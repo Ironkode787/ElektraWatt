@@ -553,13 +553,18 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
         assert_eq!(shell.page_count(), pages);
         done(&mut shell, "symbol.scratch", json!({}));
         assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1));
+        // ID-1463: the page shows after a test placement; the editor keeps the draft, Edit ▸ Symbol editor returns.
+        assert!(shell.symbol_editor().is_none());
+        done(&mut shell, "symbol.new", json!({}));
         done(&mut shell, "symbol.place", json!({"x":80,"y":80}));
+        done(&mut shell, "symbol.new", json!({}));
         done(
             &mut shell,
             "symbol.draw",
             json!({"tool":"line","x":1,"y":1,"x2":2,"y2":2}),
         );
         done(&mut shell, "symbol.place", json!({"x":120,"y":80}));
+        done(&mut shell, "symbol.new", json!({}));
         let draft = shell.symbol_editor().unwrap().draft.clone();
         let mut qet = serde_json::to_value(&draft).unwrap();
         let grid = ew_viewmodel::ew_api::symbols::units::Grid::QET_10PX;
@@ -580,14 +585,19 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
         );
         assert_eq!(shell.page_count(), page_count);
         done(&mut shell, "symbol.replace", json!({"document":draft}));
+        // Close keeps the unsaved draft; another symbol is refused until it is discarded.
+        done(&mut shell, "symbol.close", json!({}));
+        assert!(shell.symbol_editor().is_none());
+        assert_eq!(shell.kept_symbol_editor().unwrap().draft, draft);
         assert_eq!(
-            shell.dispatch("symbol.close", &json!({})),
+            shell.dispatch("symbol.open", &json!({"file":file})),
             Outcome::Failed {
                 message: "Symbol editor: This symbol has unsaved changes. Save it or choose Discard changes."
                     .into()
             }
         );
         done(&mut shell, "symbol.close", json!({"discard":true}));
+        assert!(shell.kept_symbol_editor().is_none());
         done(&mut shell, "symbol.open", json!({"file":file}));
         assert_eq!(shell.symbol_editor().unwrap().draft, original);
         shell.shutdown();
@@ -869,5 +879,272 @@ fn refusals_of_export_and_unknown_members_are_in_words() {
          saving."
     );
     assert!(!tmp.0.join("symbols.ewlib").exists());
+    shell.shutdown();
+}
+
+/// ID-1463 (M25-p3#5): Close leaves the view and keeps the draft with its history; Edit ▸ Symbol editor returns to it;
+/// only Discard drops it.
+#[test]
+fn closing_the_editor_keeps_the_draft_and_its_history_until_discarded() {
+    let tmp = Tmp::new("symbol-keep");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    drawn(&mut shell, "example.kept", "Kept");
+    let draft = shell.symbol_editor().unwrap().draft.clone();
+    done(&mut shell, "symbol.close", json!({}));
+    assert!(shell.symbol_editor().is_none());
+    assert!(shell.kept_symbol_editor().unwrap().dirty());
+    done(&mut shell, "symbol.new", json!({}));
+    let editor = shell.symbol_editor().unwrap();
+    assert_eq!(editor.draft, draft);
+    assert!(editor.can_undo());
+    done(&mut shell, "edit.undo", json!({}));
+    assert!(shell.symbol_editor().unwrap().draft.symbol.cps.is_empty());
+    done(&mut shell, "symbol.close", json!({"discard": true}));
+    assert!(shell.kept_symbol_editor().is_none());
+    done(&mut shell, "symbol.new", json!({}));
+    assert!(shell.symbol_editor().unwrap().draft.symbol.graphics.is_empty());
+    shell.shutdown();
+}
+
+/// M25-p3#7: an unedited new, forked or imported draft is no unsaved change, and an import is in no library yet.
+#[test]
+fn the_draft_state_says_unsaved_only_after_an_edit_and_saved_only_once_stored() {
+    use ew_viewmodel::strings;
+    let tmp = Tmp::new("symbol-state");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    let words = |shell: &ShellModel| strings::text(shell.symbol_editor().unwrap().state_key()).to_owned();
+    done(&mut shell, "symbol.new", json!({"key":"example.state","name":"State"}));
+    assert!(!shell.symbol_editor().unwrap().dirty());
+    assert_eq!(words(&shell), "Not in a library yet");
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4}),
+    );
+    assert_eq!(words(&shell), "Unsaved changes");
+    let file = tmp.0.join("state.symbol.json");
+    done(&mut shell, "symbol.export", json!({"file":file}));
+    assert_eq!(words(&shell), "Saved");
+    done(&mut shell, "symbol.close", json!({"discard": true}));
+    done(&mut shell, "symbol.open", json!({"file":file}));
+    assert!(!shell.symbol_editor().unwrap().dirty());
+    assert_eq!(words(&shell), "Not in a library yet");
+    let qet = concat!(env!("CARGO_MANIFEST_DIR"), "/../ew-import-qet/tests/fixtures/contact_no.elmt");
+    done(&mut shell, "symbol.open", json!({"file":qet}));
+    assert_eq!(words(&shell), "Not in a library yet");
+    done(&mut shell, "symbol.fork", json!({"source":"ew.iec.contact-no","key":"example.fork"}));
+    assert!(!shell.symbol_editor().unwrap().dirty());
+    shell.shutdown();
+}
+
+/// M25-p3#11: an empty path is refused in words before any file system call, and a relative one resolves against the
+/// default user library's folder, never the working directory.
+#[test]
+fn symbol_paths_are_refused_when_empty_and_resolve_against_the_user_library_folder() {
+    let tmp = Tmp::new("symbol-paths");
+    let config = tmp.0.join("config");
+    let mut shell = ShellModel::new(Mode::Headless, ShellConfig::in_dir(&config, "0.0.0-test"));
+    assert_eq!(
+        failed(&mut shell, "symbol.open", json!({"file":""})),
+        "Symbol editor: Choose a symbol file first."
+    );
+    drawn(&mut shell, "example.paths", "Paths");
+    assert_eq!(
+        failed(&mut shell, "symbol.export", json!({"file":"  "})),
+        "Symbol editor: Choose a symbol file first."
+    );
+    assert_eq!(
+        failed(&mut shell, "symbol.directory", json!({"directory":""})),
+        "Symbol editor: Choose a library folder before saving."
+    );
+    done(&mut shell, "symbol.directory", json!({"directory":"mine.ewlib"}));
+    let user = config.join("libraries");
+    assert_eq!(
+        std::path::PathBuf::from(&shell.symbol_editor().unwrap().directory),
+        std::path::absolute(user.join("mine.ewlib")).unwrap()
+    );
+    done(&mut shell, "symbol.save", json!({}));
+    assert!(user.join("mine.ewlib").is_dir());
+    done(&mut shell, "symbol.export", json!({"file":"paths.symbol.json"}));
+    assert!(user.join("paths.symbol.json").is_file());
+    shell.shutdown();
+}
+
+/// M25-p3#11: in the window a missing path asks the house picker.
+#[test]
+fn the_window_asks_the_pickers_for_a_missing_symbol_path() {
+    use ew_viewmodel::shell::Prompt;
+    let tmp = Tmp::new("symbol-pickers");
+    let mut shell = ShellModel::new(
+        Mode::Gui,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(&mut shell, "symbol.new", json!({"key":"example.pick","name":"Pick"}));
+    for (action, prompt) in [
+        ("symbol.open", Prompt::OpenSymbol),
+        ("symbol.export", Prompt::SaveSymbol),
+        ("symbol.directory", Prompt::LibraryFolder),
+    ] {
+        done(&mut shell, action, json!({}));
+        let asked = shell.take_prompt().unwrap();
+        assert_eq!((asked.action, asked.prompt), (action, prompt));
+    }
+    shell.shutdown();
+}
+
+/// ID-1463: a test placement shows the page with the symbol selected and offers the way back to the kept draft.
+#[test]
+fn a_test_placement_shows_the_page_and_its_toast_returns_to_the_editor() {
+    let tmp = Tmp::new("symbol-back");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(
+        &mut shell,
+        "file.new",
+        json!({"dir":tmp.0.join("project.ew"),"template":"builtin"}),
+    );
+    drawn(&mut shell, "example.back", "Back");
+    done(&mut shell, "symbol.scratch", json!({}));
+    assert!(shell.symbol_editor().is_none());
+    assert_eq!(shell.selection().items.len(), 1);
+    let toast = shell.notifications().newest_visible().unwrap().clone();
+    let page = shell.page_labels()[shell.page_index()].clone();
+    assert_eq!(toast.text, format!("Test copy placed on page {page}."));
+    assert_eq!(
+        toast.action(),
+        Some(ew_viewmodel::notifications::NoteAction::BackToEditor)
+    );
+    done(
+        &mut shell,
+        "notifications.run",
+        json!({"entry": toast.serial, "action": "edit"}),
+    );
+    assert_eq!(shell.symbol_editor().unwrap().draft.key, "example.back");
+    done(&mut shell, "symbol.place", json!({"x":80,"y":80}));
+    assert_eq!(
+        shell.notifications().newest_visible().unwrap().text,
+        "Test copy placed on this page."
+    );
+    shell.shutdown();
+}
+
+/// M25-p3#6: the test copy's key is derived from its content, so placing again after a reopen embeds a new copy.
+#[test]
+fn a_test_copy_placed_again_after_reopening_the_project_takes_its_own_key() {
+    let tmp = Tmp::new("symbol-reopen");
+    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
+    let dir = tmp.0.join("project.ew");
+    let mut shell = ShellModel::new(Mode::Headless, config.clone());
+    done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
+    drawn(&mut shell, "example.reopen", "Reopen");
+    done(&mut shell, "symbol.scratch", json!({}));
+    done(&mut shell, "file.save", json!({}));
+    shell.shutdown();
+    let mut shell = ShellModel::new(Mode::Headless, config);
+    done(&mut shell, "file.open", json!({"dir":dir}));
+    drawn(&mut shell, "example.reopen", "Reopen");
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"line","x":4,"y":0,"x2":4,"y2":4}),
+    );
+    done(&mut shell, "symbol.scratch", json!({}));
+    done(&mut shell, "file.save", json!({}));
+    shell.shutdown();
+    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let keys: std::collections::BTreeSet<String> = session
+        .query()
+        .symbols()
+        .iter()
+        .filter_map(|(_, s)| s.item.meta.key.as_ref().map(ToString::to_string))
+        .filter(|k| k.starts_with("example.reopen.test."))
+        .collect();
+    assert_eq!(keys.len(), 2, "{keys:?}");
+}
+
+/// ID-1463: quitting with an unsaved draft asks Save symbol, Discard or Cancel; `discard` discards it.
+#[test]
+fn quitting_with_an_unsaved_draft_asks_and_discard_discards_it() {
+    use ew_viewmodel::dialogs::spec;
+    use ew_viewmodel::shell::{ConfirmAnswer, Dialog};
+    let tmp = Tmp::new("symbol-quit");
+    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
+    let mut shell = ShellModel::new(Mode::Headless, config.clone());
+    drawn(&mut shell, "example.quit", "Quit block");
+    done(&mut shell, "symbol.close", json!({}));
+    assert_eq!(
+        failed(&mut shell, "app.quit", json!({})),
+        "This symbol has unsaved changes. Save it or choose Discard changes."
+    );
+    done(&mut shell, "app.quit", json!({"discard": true}));
+    assert!(shell.should_quit() && shell.kept_symbol_editor().is_none());
+    let mut shell = ShellModel::new(Mode::Gui, config);
+    drawn(&mut shell, "example.quit", "Quit block");
+    done(&mut shell, "app.quit", json!({}));
+    let dialog = shell.dialog().unwrap().clone();
+    assert!(matches!(dialog, Dialog::ConfirmDiscard { symbol: true, .. }));
+    let s = spec(&dialog, &shell);
+    assert_eq!(s.title, "Save the symbol Quit block?");
+    assert_eq!(
+        s.body,
+        ["The symbol draft has changes that are not in a library. Save it before you quit, or discard the changes."]
+    );
+    let labels: Vec<&str> = s.buttons().iter().map(|b| b.label.as_str()).collect();
+    assert_eq!(labels, ["Save symbol", "Cancel", "Discard changes"]);
+    assert_eq!(shell.answer_confirm(ConfirmAnswer::Cancel), Outcome::Done);
+    assert!(!shell.should_quit() && shell.symbol_editor().is_some());
+    done(&mut shell, "app.quit", json!({}));
+    assert_eq!(shell.answer_confirm(ConfirmAnswer::Discard), Outcome::Done);
+    assert!(shell.should_quit() && shell.kept_symbol_editor().is_none());
+    shell.shutdown();
+}
+
+/// ID-1463: while the editor shows, Ctrl+S saves the symbol and the File menu names Save symbol and keeps Save project.
+#[test]
+fn the_file_menu_names_save_symbol_and_keeps_save_project_while_the_editor_shows() {
+    use ew_viewmodel::actions::{MenuEntry, menu_model};
+    let tmp = Tmp::new("symbol-menu");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(
+        &mut shell,
+        "file.new",
+        json!({"dir":tmp.0.join("project.ew"),"template":"builtin"}),
+    );
+    let labels = |shell: &ShellModel| -> Vec<String> {
+        menu_model(shell)
+            .into_iter()
+            .find(|m| m.label == "File")
+            .unwrap()
+            .entries
+            .into_iter()
+            .filter_map(|e| match e {
+                MenuEntry::Item(i) if i.id.starts_with("file.save") => Some(i.label),
+                _ => None,
+            })
+            .collect()
+    };
+    assert_eq!(labels(&shell), ["Save", "Save as…"]);
+    drawn(&mut shell, "example.menu", "Menu");
+    assert_eq!(labels(&shell), ["Save symbol", "Save project", "Save as…"]);
+    done(&mut shell, "symbol.close", json!({}));
+    done(&mut shell, "page.new", json!({"folio":"7"}));
+    done(&mut shell, "symbol.new", json!({}));
+    assert!(shell.is_dirty());
+    done(&mut shell, "file.save_project", json!({}));
+    assert!(!shell.is_dirty());
+    done(&mut shell, "symbol.directory", json!({"directory":"menu.ewlib"}));
+    done(&mut shell, "file.save", json!({}));
+    assert!(shell.symbol_editor().unwrap().stored());
     shell.shutdown();
 }

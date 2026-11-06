@@ -1382,8 +1382,10 @@ impl App {
         if self.properties.field_open() && ctx.input(|i| i.key_pressed(Key::Escape)) {
             return;
         }
+        // ID-1463: while the symbol editor shows, Escape is its own (a gesture ends, then Select).
         if !palette_open
             && self.shell.has_project()
+            && self.shell.symbol_editor().is_none()
             && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
         {
             events.push(Event::Action("ui.dismiss", Value::Null));
@@ -1412,11 +1414,22 @@ impl App {
         // The focused context's chords first, then the global ones (WP-S2.03 §6.6); while the navigator has the
         // focus its own keys (arrows, Home, End, Enter) stay with it.
         let focused = match self.shell.focus() {
+            // ID-1463 (doc 16a P8): the symbol editor's drawing is a canvas; its tools take the canvas's keys.
+            _ if self.shell.symbol_editor().is_some() => Context::Canvas,
             Some(Focus::Navigator(_)) => Context::Navigator,
             Some(Focus::Canvas(_)) => Context::Canvas,
             Some(Focus::Properties) => Context::Properties,
             Some(Focus::Find) => Context::Find,
             Some(Focus::CommandBar | Focus::History) | None => Context::Global,
+        };
+        // While the symbol editor shows, of the canvas's keys only those that choose its tools apply.
+        let editor = self.shell.symbol_editor().is_some();
+        let applies = |b: &Binding| {
+            !editor
+                || b.context != Context::Canvas
+                || ew_viewmodel::shell::symbol_editor::TOOL_KEYS
+                    .iter()
+                    .any(|(_, action)| *action == b.action)
         };
         // WP-S2.17 part 2 (doc 16a §5.9): on the command bar Left and Right move between the tabs.
         if self.shell.focus() == Some(Focus::CommandBar) && !palette_open {
@@ -1443,7 +1456,9 @@ impl App {
             let mut physical: Vec<&Binding> = self
                 .bindings
                 .iter()
-                .filter(|b| b.physical && (b.context == Context::Global || b.context == focused))
+                .filter(|b| {
+                    b.physical && (b.context == Context::Global || b.context == focused) && applies(b)
+                })
                 .collect();
             physical.sort_by_key(|b| {
                 let m = b.shortcut.modifiers;
@@ -1558,7 +1573,7 @@ impl App {
         let mut candidates: Vec<&Binding> = self
             .bindings
             .iter()
-            .filter(|b| !b.physical && (b.context == Context::Global || b.context == focused))
+            .filter(|b| !b.physical && (b.context == Context::Global || b.context == focused) && applies(b))
             .collect();
         candidates.sort_by_key(|b| {
             let m = b.shortcut.modifiers;

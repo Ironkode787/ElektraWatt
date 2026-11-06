@@ -3,11 +3,39 @@
 
 //! The symbol editor's independent draft, history and GUI/headless actions.
 
-use super::{Outcome, ShellModel, failed};
+use super::{Mode, Outcome, Prompt, ShellModel, failed};
+use crate::notifications::{NoteAction, Validity};
 use crate::{key, strings};
 use ew_api::symbols::{self, SymbolDraft};
 use serde_json::{Map, Value, json};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+/// The editor's drawing tools, in the order of its bar.
+pub const TOOLS: [&str; 13] = [
+    "select",
+    "line",
+    "rectangle",
+    "circle",
+    "ellipse",
+    "arc",
+    "text",
+    "cp",
+    "slot",
+    "anchor",
+    "link",
+    "polyline",
+    "polygon",
+];
+
+/// The editor tools that take a binding of the keymap while the editor shows (doc 16a P8): the main window's drawing
+/// action whose key chooses the tool. Escape (`ui.dismiss`) returns to Select.
+pub const TOOL_KEYS: [(&str, &str); 5] = [
+    ("select", "ui.dismiss"),
+    ("line", "tool.graphic"),
+    ("rectangle", "tool.black_box"),
+    ("text", "tool.text"),
+    ("cp", "tool.ip"),
+];
 
 /// A named symbol that can be forked without changing its source.
 #[derive(Debug)]
@@ -48,12 +76,18 @@ pub struct SymbolEditor {
     pub generation: u64,
     /// Current portable document.
     pub draft: SymbolDraft,
-    /// Last successful export/publication; equality determines unsaved changes.
+    /// The draft as it was created, imported, exported or published; equality determines unsaved changes.
     saved: Option<SymbolDraft>,
+    /// Whether that state was exported or published (an import or a new draft is in no library yet).
+    stored: bool,
+    /// Whether the editor's view shows; a draft left with Close is kept with its history (ID-1463).
+    pub(crate) shown: bool,
     undo: Vec<SymbolDraft>,
     redo: Vec<SymbolDraft>,
     /// Current orientation of the live preview (A–H).
     pub variant: u8,
+    /// The drawing tool chosen, one of [`TOOLS`].
+    pub tool: &'static str,
     /// Last operation's error, also shown under the editor controls.
     pub error: Option<String>,
     /// Suggested writable library directory.
@@ -70,11 +104,14 @@ impl SymbolEditor {
     fn new(draft: SymbolDraft, directory: String) -> Self {
         Self {
             generation: 0,
-            draft,
-            saved: None,
+            draft: draft.clone(),
+            saved: Some(draft.clone()),
+            stored: false,
+            shown: true,
             undo: Vec::new(),
             redo: Vec::new(),
             variant: 0,
+            tool: TOOLS[0],
             error: None,
             directory,
             candidates: Vec::new(),
@@ -82,9 +119,23 @@ impl SymbolEditor {
             functions: Vec::new(),
         }
     }
-    /// Whether the draft differs from its last saved state.
+    /// Whether the draft differs from its last saved state: a new, forked or imported draft is not, until edited.
     pub fn dirty(&self) -> bool {
         self.saved.as_ref() != Some(&self.draft)
+    }
+    /// Whether the draft, unchanged, was exported or published; an unedited new or imported draft is in no library.
+    pub fn stored(&self) -> bool {
+        self.stored && !self.dirty()
+    }
+    /// The key of the words naming the draft's state: unsaved changes, saved, or not saved yet.
+    pub fn state_key(&self) -> strings::Key<'static> {
+        if self.dirty() {
+            key!("symbol-dirty")
+        } else if self.stored {
+            key!("symbol-saved")
+        } else {
+            key!("symbol-not-saved")
+        }
     }
     /// Whether editor undo is available.
     pub fn can_undo(&self) -> bool {
@@ -108,6 +159,31 @@ impl SymbolEditor {
     }
 }
 
+/// A suffix that only the same content repeats: FNV-1a over the draft's document, without its key and identity.
+fn content_suffix(draft: &SymbolDraft) -> String {
+    let mut d = draft.clone();
+    d.key.clear();
+    d.identity = None;
+    let bytes = serde_json::to_vec(&d).unwrap_or_default();
+    let hash = bytes.iter().fold(0xcbf2_9ce4_8422_2325_u64, |h, b| {
+        (h ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3)
+    });
+    format!("{hash:016x}")
+}
+
+/// The words of a symbol's name, its English text first, as the editor shows it.
+pub(crate) fn name_words(name: &symbols::MlText) -> String {
+    match name.view() {
+        symbols::MlTextView::Neutral(s) => s.to_owned(),
+        symbols::MlTextView::Langs(map) => map
+            .iter()
+            .find(|(k, _)| k.as_str() == "en")
+            .or_else(|| map.iter().next())
+            .map(|(_, v)| v.to_string())
+            .unwrap_or_default(),
+    }
+}
+
 fn text<'a>(p: &'a Map<String, Value>, key: &str) -> &'a str {
     p.get(key).and_then(Value::as_str).unwrap_or("")
 }
@@ -123,9 +199,45 @@ fn nm(p: &Map<String, Value>, name: &str) -> Result<i64, String> {
 }
 
 impl ShellModel {
-    /// The open symbol editor, independent of the current project.
+    /// The symbol editor while its view shows, independent of the current project.
     pub fn symbol_editor(&self) -> Option<&SymbolEditor> {
+        self.symbol_editor.as_ref().filter(|e| e.shown)
+    }
+
+    /// The symbol editor's draft and history, also while the view is left (Close keeps them, ID-1463).
+    pub fn kept_symbol_editor(&self) -> Option<&SymbolEditor> {
         self.symbol_editor.as_ref()
+    }
+
+    /// The tiers a symbol is saved through: the configured ones, else the settings folder's, else the user's.
+    fn symbol_tiers(&self) -> Option<ew_api::library::LibraryTiers> {
+        // Without configured tiers, the settings folder's, as a remembered company path gives; never tiers or an
+        // index in the working directory or beside the library.
+        let config_dir = self.config.config_dir.as_deref();
+        self.configured_libraries()
+            .or_else(|| {
+                config_dir.map(|d| {
+                    ew_api::library::LibraryTiers::under(d, &d.join("library-index"), Vec::new(), Vec::new())
+                })
+            })
+            .or_else(|| ew_api::library::LibraryTiers::for_user(Vec::new(), Vec::new()))
+    }
+
+    /// A path the user typed or picked: refused in words when empty, before any file system call; a relative path
+    /// resolves against the default user library's folder, never the working directory (ID-1463).
+    fn symbol_path(&self, text: &str, required: strings::Key<'static>) -> Result<PathBuf, String> {
+        if text.trim().is_empty() {
+            return Err(strings::text(required).into());
+        }
+        let path = Path::new(text);
+        if path.is_absolute() {
+            return Ok(path.to_path_buf());
+        }
+        let base = self
+            .symbol_tiers()
+            .ok_or_else(|| strings::text(required).to_owned())?
+            .user;
+        std::path::absolute(base.join(path)).map_err(|e| e.to_string())
     }
 
     /// Text styles used by both the project and the editor preview.
@@ -139,9 +251,27 @@ impl ShellModel {
 
     /// New/import/replace/edit/history/save/place share this action implementation.
     pub(crate) fn act_symbol(&mut self, action: &str, p: &Map<String, Value>) -> Outcome {
+        // ID-1463: in the window a missing path opens the house file or folder picker.
+        let prompt = match action {
+            "open" => Some(("symbol.open", Prompt::OpenSymbol, "file")),
+            "export" => Some(("symbol.export", Prompt::SaveSymbol, "file")),
+            "directory" => Some(("symbol.directory", Prompt::LibraryFolder, "directory")),
+            _ => None,
+        };
+        if let Some((name, prompt, param)) = prompt
+            && self.mode == Mode::Gui
+            && !p.contains_key(param)
+        {
+            return self.need_path(name, prompt, param, p);
+        }
         let result = self.symbol_operation(action, p);
         match result {
-            Ok(()) => Outcome::Done,
+            Ok(()) => {
+                if matches!(action, "place" | "scratch") {
+                    self.after_test_placement(action == "scratch");
+                }
+                Outcome::Done
+            }
             Err(message) => {
                 if let Some(editor) = &mut self.symbol_editor {
                     editor.error = Some(message.clone());
@@ -149,6 +279,32 @@ impl ShellModel {
                 failed(key!("symbol-operation-failed"), &[&message])
             }
         }
+    }
+
+    /// After a test placement the editor's view closes and the page shows with the symbol selected; the toast offers
+    /// the way back to the kept draft (ID-1463).
+    fn after_test_placement(&mut self, scratch: bool) {
+        if let Some(editor) = &mut self.symbol_editor {
+            editor.shown = false;
+        }
+        if let Some(id) = self.tools.last_primary.clone() {
+            let _ = self.dispatch("select.set", &json!({ "ids": [id] }));
+        }
+        let text = if scratch {
+            let page = self
+                .page_labels()
+                .get(self.page_index())
+                .cloned()
+                .unwrap_or_default();
+            strings::format(key!("symbol-scratch-created"), &[&page])
+        } else {
+            strings::text(key!("symbol-placed")).to_owned()
+        };
+        self.notes.push(
+            text,
+            "symbol",
+            Some((NoteAction::BackToEditor, Validity::SymbolDraft)),
+        );
     }
 
     fn symbol_operation(&mut self, action: &str, p: &Map<String, Value>) -> Result<(), String> {
@@ -174,14 +330,27 @@ impl ShellModel {
             e => e.to_string(),
         };
         if matches!(action, "new" | "open" | "fork" | "close") {
-            if self.symbol_editor.as_ref().is_some_and(SymbolEditor::dirty)
-                && p.get("discard") != Some(&Value::Bool(true))
-            {
-                return Err(strings::text(key!("symbol-unsaved")).into());
-            }
+            let discard = p.get("discard") == Some(&Value::Bool(true));
+            // ID-1463: Close leaves the view and keeps the draft and its history; Discard drops them, explicitly.
             if action == "close" {
-                self.symbol_editor = None;
+                if discard {
+                    self.symbol_editor = None;
+                } else if let Some(editor) = &mut self.symbol_editor {
+                    editor.shown = false;
+                }
                 return Ok(());
+            }
+            // Reopening the editor without naming a new symbol returns to the kept draft.
+            if action == "new"
+                && text(p, "key").is_empty()
+                && text(p, "name").is_empty()
+                && let Some(editor) = &mut self.symbol_editor
+            {
+                editor.shown = true;
+                return Ok(());
+            }
+            if self.symbol_editor.as_ref().is_some_and(SymbolEditor::dirty) && !discard {
+                return Err(strings::text(key!("symbol-unsaved")).into());
             }
             // No shared default key (ID-1463): a new draft starts without one, an import takes its file's name.
             let key = text(p, "key");
@@ -190,13 +359,13 @@ impl ShellModel {
             }
             let mut candidates = Vec::new();
             let draft = if action == "open" {
-                let path = Path::new(text(p, "file"));
+                let path = self.symbol_path(text(p, "file"), key!("symbol-file-required"))?;
                 let key = if key.is_empty() {
-                    symbols::file_key(path)
+                    symbols::file_key(&path)
                 } else {
                     key.to_owned()
                 };
-                candidates = symbols::open(path, &key).map_err(err)?;
+                candidates = symbols::open(&path, &key).map_err(err)?;
                 candidates
                     .first()
                     .cloned()
@@ -231,9 +400,6 @@ impl ShellModel {
             let mut editor = SymbolEditor::new(draft, dir);
             self.symbol_editor_generation = self.symbol_editor_generation.wrapping_add(1);
             editor.generation = self.symbol_editor_generation;
-            if action == "open" {
-                editor.saved = Some(editor.draft.clone());
-            }
             editor.candidates = candidates;
             let fallback;
             let registry = if let Some(project) = &self.project {
@@ -306,8 +472,8 @@ impl ShellModel {
             while labels.iter().any(|l| l == &index.to_string()) {
                 index += 1;
             }
-            let params =
-                json!({"number":index,"title":strings::text(key!("symbol-title")),"grid":draft.symbol.grid});
+            let title = strings::format(key!("symbol-scratch-title"), &[&name_words(&draft.symbol.name)]);
+            let params = json!({"number":index,"title":title,"grid":draft.symbol.grid});
             match self.host_create("page.create", params) {
                 Outcome::Done => {}
                 Outcome::Failed { message } => return Err(message),
@@ -317,17 +483,25 @@ impl ShellModel {
                 self.tools.selection.clear();
                 self.show_page_by_id(&id);
             }
-            self.symbol_operation("place", json!({"x":40,"y":40}).as_object().ok_or("position")?)?;
-            self.notify(
-                strings::format(
-                    strings::Key::run_time("symbol-scratch-created"),
-                    &[&index.to_string()],
-                ),
-                false,
-            );
-            return Ok(());
+            return self.symbol_operation("place", json!({"x":40,"y":40}).as_object().ok_or("position")?);
         }
         let configured_libraries = self.configured_libraries();
+        // The paths are resolved, and an empty one refused, before the draft is borrowed (ID-1463).
+        let file_path = matches!(action, "export")
+            .then(|| self.symbol_path(text(p, "file"), key!("symbol-file-required")))
+            .transpose()?;
+        let directory_path = match action {
+            "save" | "directory" => Some(self.symbol_path(
+                if text(p, "directory").is_empty() {
+                    self.symbol_editor.as_ref().map_or("", |e| e.directory.as_str())
+                } else {
+                    text(p, "directory")
+                },
+                key!("symbol-directory-required"),
+            )?),
+            _ => None,
+        };
+        let tiers = matches!(action, "save").then(|| self.symbol_tiers()).flatten();
         let editor = self
             .symbol_editor
             .as_mut()
@@ -428,6 +602,7 @@ impl ShellModel {
                 let draft = editor.candidates.get(index).cloned().ok_or("index")?;
                 editor.replace(draft.clone());
                 editor.saved = Some(draft);
+                editor.stored = false;
                 self.symbol_editor_generation = self.symbol_editor_generation.wrapping_add(1);
                 editor.generation = self.symbol_editor_generation;
             }
@@ -481,6 +656,12 @@ impl ShellModel {
                     editor.undo.push(std::mem::replace(&mut editor.draft, d));
                     editor.error = None;
                 }
+            }
+            "tool" => {
+                editor.tool = TOOLS
+                    .into_iter()
+                    .find(|t| *t == text(p, "tool"))
+                    .ok_or_else(|| strings::text(key!("symbol-tool-invalid")).to_owned())?;
             }
             "variant" => {
                 editor.variant = p
@@ -644,41 +825,25 @@ impl ShellModel {
                 );
             }
             "export" => {
-                let path = Path::new(text(p, "file"));
-                symbols::export(&editor.draft, path).map_err(err)?;
+                let path = file_path.ok_or("file")?;
+                symbols::export(&editor.draft, &path).map_err(err)?;
                 editor.saved = Some(editor.draft.clone());
+                editor.stored = true;
+            }
+            "directory" => {
+                let path = directory_path.ok_or("directory")?;
+                editor.directory = path.to_string_lossy().into_owned();
             }
             "save" => {
                 let mut draft = editor.draft.clone();
-                let directory = if text(p, "directory").is_empty() {
-                    editor.directory.clone()
-                } else {
-                    text(p, "directory").to_owned()
-                };
-                let path = std::path::absolute(&directory).map_err(|e| e.to_string())?;
-                if directory.is_empty() {
-                    return Err(strings::text(key!("symbol-directory-required")).into());
-                }
+                let path = directory_path.ok_or("directory")?;
+                let directory = path.to_string_lossy().into_owned();
                 let issues = draft.validate();
                 if !issues.is_empty() {
                     return Err(err(symbols::Error::Invalid(issues)));
                 }
-                // Without configured tiers, the settings folder's, as a remembered company path gives; never tiers or
-                // an index in the working directory or beside the library.
-                let config_dir = self.config.config_dir.as_deref();
-                let mut tiers = configured_libraries
-                    .or_else(|| {
-                        config_dir.map(|d| {
-                            ew_api::library::LibraryTiers::under(
-                                d,
-                                &d.join("library-index"),
-                                Vec::new(),
-                                Vec::new(),
-                            )
-                        })
-                    })
-                    .or_else(|| ew_api::library::LibraryTiers::for_user(Vec::new(), Vec::new()))
-                    .ok_or_else(|| strings::text(key!("symbol-directory-required")).to_owned())?;
+                let mut tiers =
+                    tiers.ok_or_else(|| strings::text(key!("symbol-directory-required")).to_owned())?;
                 // A library of the user tier opens from it; any other destination is a writable company path.
                 let user_tier = path.extension().is_some_and(|e| e == "ewlib")
                     && path.parent() == std::path::absolute(&tiers.user).ok().as_deref();
@@ -716,6 +881,7 @@ impl ShellModel {
                 }
                 editor.directory = directory;
                 editor.saved = Some(draft);
+                editor.stored = true;
                 editor.error = None;
                 if !user_tier {
                     self.settings
@@ -730,13 +896,11 @@ impl ShellModel {
                 if let Some(project) = &self.project {
                     draft.check_function(project.session.libraries()).map_err(err)?;
                 }
-                // Each test placement embeds its own copies, including after a draft edit.
-                let serial = self
-                    .project
-                    .as_ref()
-                    .map_or(0, |p| p.session.history().entries().len());
+                // Each content placed embeds its own copies, after a draft edit, a reopen or a trimmed history too: the
+                // suffix is derived from the content (M25-p3#6).
+                let suffix = content_suffix(&draft);
                 draft.key = format!(
-                    "{}.test.{serial}",
+                    "{}.test.{suffix}",
                     draft.key.chars().take(100).collect::<String>()
                 );
                 draft.identity = None;

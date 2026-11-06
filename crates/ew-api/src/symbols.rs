@@ -250,12 +250,13 @@ pub fn export_with(vfs: &dyn ew_store::Vfs, draft: &SymbolDraft, path: &Path) ->
     }
 }
 
-/// Preview graphics with text shaped identically to page output. Slot contents are illustrative except pin designations.
+/// Preview graphics with text shaped identically to page output. Slot contents are illustrative except pin designations;
+/// `slot_placeholder` names the other slots by their kind.
 pub fn preview_display_list(
     draft: &SymbolDraft,
     geometry: &SymbolGeometry,
     styles: &TextStyleTable,
-    slot_placeholder: &str,
+    slot_placeholder: &dyn Fn(&schema::SlotKind) -> String,
 ) -> drawing::DisplayList {
     let mut list = geometry.graphics.clone();
     for text in &geometry.texts {
@@ -278,7 +279,7 @@ pub fn preview_display_list(
                 .map(|p| p.designation.to_string())
                 .unwrap_or_default(),
             TextSource::Slot(schema::SlotKind::Tag) => "-U1".into(),
-            TextSource::Slot(_) => slot_placeholder.into(),
+            TextSource::Slot(kind) => slot_placeholder(kind),
         };
         list.items.extend(
             ew_scene::page::symbol_preview_text(text, &content, ew_text::bundled(), styles)

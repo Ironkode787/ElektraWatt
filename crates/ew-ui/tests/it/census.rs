@@ -1034,3 +1034,41 @@ fn the_form_check_names_a_form_the_census_does_not_open() {
     );
     assert_eq!(form_problems(&built, &built), Vec::<String>::new());
 }
+
+/// M25-p3#8 (ID-1463): the symbol editor's three panels with a shape, a pin and a slot, each section open.
+#[test]
+fn census_the_symbol_editor() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "g.ew");
+    let mut census = Census::default();
+    for (action, params) in [
+        ("symbol.new", json!({"key": "example.census", "name": "Census"})),
+        (
+            "symbol.draw",
+            json!({"tool": "rectangle", "x": 0, "y": 0, "x2": 8, "y2": 8}),
+        ),
+        (
+            "symbol.cp",
+            json!({"x": 0, "y": 4, "designation": "1", "direction": "left"}),
+        ),
+        ("symbol.slot", json!({"x": 0, "y": -4, "kind": "tag"})),
+    ] {
+        dispatch(&mut h, action, params);
+    }
+    h.run_ok();
+    for (panel, sections) in [
+        ("Drawing", &["Rectangle 1", "Text slots (1)", "Link point (0)"][..]),
+        ("Electrical data", &["Connection points (1)", "Assign function"][..]),
+        ("Library", &["Properties", "Advanced document", "Place on current page"][..]),
+    ] {
+        h.get_by_label(panel).click();
+        h.run_ok();
+        for section in sections {
+            h.get_by_label(section).click();
+            h.run_ok();
+        }
+        census.visit(&mut h, &format!("the symbol editor's {panel} panel"));
+    }
+    h.state_mut().shell_mut().shutdown();
+    census.assert_clean();
+}

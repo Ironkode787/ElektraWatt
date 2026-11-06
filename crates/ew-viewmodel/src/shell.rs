@@ -278,6 +278,8 @@ pub enum Dialog {
     ConfirmDiscard {
         /// What runs after the answer.
         pending: Pending,
+        /// Whether the changes are the symbol editor's draft (Save symbol, Discard, Cancel; ID-1463), not the project's.
+        symbol: bool,
     },
     /// Page, Go to page or cell: a folio or a cell typed by the user.
     GotoPage {
@@ -441,6 +443,12 @@ pub enum Prompt {
     SaveEwz,
     /// An existing `.ewz` (File ▸ Open .ewz…).
     OpenEwz,
+    /// A symbol file to open or import in the symbol editor (ID-1463).
+    OpenSymbol,
+    /// A symbol authoring file name (the symbol editor's Export draft).
+    SaveSymbol,
+    /// A symbol library folder (the symbol editor's Library folder).
+    LibraryFolder,
 }
 
 /// A request to the window to open a page of the user guide in the system browser (F1).
@@ -1230,7 +1238,7 @@ impl ShellModel {
 
     /// Whether the open project has a step to undo.
     pub fn can_undo(&self) -> bool {
-        if let Some(editor) = &self.symbol_editor {
+        if let Some(editor) = self.symbol_editor() {
             return editor.can_undo();
         }
         self.project
@@ -1240,7 +1248,7 @@ impl ShellModel {
 
     /// Whether the open project has a step to redo.
     pub fn can_redo(&self) -> bool {
-        if let Some(editor) = &self.symbol_editor {
+        if let Some(editor) = self.symbol_editor() {
             return editor.can_redo();
         }
         self.project.as_ref().is_some_and(|p| {
@@ -1732,6 +1740,7 @@ impl ShellModel {
                         action,
                         params: Value::Object(p.clone()),
                     },
+                    symbol: false,
                 });
                 Some(Outcome::Done)
             }
@@ -2127,7 +2136,7 @@ impl ShellModel {
     }
 
     pub(crate) fn act_save(&mut self) -> Outcome {
-        if self.symbol_editor.is_some() {
+        if self.symbol_editor().is_some() {
             return self.act_symbol("save", &Map::new());
         }
         self.save_project()
@@ -2229,13 +2238,32 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// `file.save_project`: the project, while the symbol editor shows and Save is the symbol's (ID-1463).
+    pub(crate) fn act_save_project(&mut self) -> Outcome {
+        self.save_project()
+    }
+
     pub(crate) fn act_quit(&mut self, p: &Map<String, Value>) -> Outcome {
+        // ID-1463: an unsaved symbol draft asks Save symbol, Discard or Cancel; `discard` discards it.
         if self
             .symbol_editor
             .as_ref()
             .is_some_and(symbol_editor::SymbolEditor::dirty)
         {
-            return failed(key!("symbol-unsaved"), &[]);
+            if flag(p, "discard") {
+                self.symbol_editor = None;
+            } else {
+                return match self.mode {
+                    Mode::Headless => failed(key!("symbol-unsaved"), &[]),
+                    Mode::Gui => self.open_dialog(Dialog::ConfirmDiscard {
+                        pending: Pending {
+                            action: "app.quit",
+                            params: Value::Object(p.clone()),
+                        },
+                        symbol: true,
+                    }),
+                };
+            }
         }
         if let Some(outcome) = self.guard_unsaved("app.quit", p) {
             return outcome;
@@ -2246,7 +2274,7 @@ impl ShellModel {
     }
 
     pub(crate) fn act_undo(&mut self) -> Outcome {
-        if self.symbol_editor.is_some() {
+        if self.symbol_editor().is_some() {
             return self.act_symbol("undo", &Map::new());
         }
         let Some(p) = &mut self.project else {
@@ -2286,7 +2314,7 @@ impl ShellModel {
     }
 
     pub(crate) fn act_redo(&mut self) -> Outcome {
-        if self.symbol_editor.is_some() {
+        if self.symbol_editor().is_some() {
             return self.act_symbol("redo", &Map::new());
         }
         let Some(p) = &mut self.project else {
@@ -2473,10 +2501,31 @@ impl ShellModel {
                 }
             };
         }
-        let Some(Dialog::ConfirmDiscard { pending }) = self.dialog.clone() else {
+        let Some(Dialog::ConfirmDiscard { pending, symbol }) = self.dialog.clone() else {
             return Outcome::Done;
         };
         self.dialog = None;
+        // ID-1463: the symbol draft's question; the pending action then asks about the project as usual.
+        if symbol {
+            let params = pending.params.clone();
+            return match answer {
+                ConfirmAnswer::Cancel => Outcome::Done,
+                ConfirmAnswer::Discard => {
+                    self.symbol_editor = None;
+                    self.dispatch(pending.action, &params)
+                }
+                ConfirmAnswer::Save => match self.act_symbol("save", &Map::new()) {
+                    Outcome::Done => self.dispatch(pending.action, &params),
+                    // The refusal shows in the editor, on its draft.
+                    other => {
+                        if let Some(editor) = &mut self.symbol_editor {
+                            editor.shown = true;
+                        }
+                        other
+                    }
+                },
+            };
+        }
         // ID-1374: the import card that the question replaced comes back, for Cancel and for the Apply that follows.
         if let Some(card) = self.recovery_stash.take() {
             self.dialog_gen += 1;

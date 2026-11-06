@@ -11,8 +11,8 @@ Review A–H in the strip. The large preview follows the selected variant; choos
 Try changing the first pin's x coordinate to 4.5 mm: the editor refuses publication. Undo that edit.
 Fine drawing coordinates, such as 0.5 mm, remain valid.
 
-In **Library**, choose a writable `.ewlib` folder and save. Test the symbol on a new scratch page, close the saved draft, and
-inspect the placed copy. Reopen the portable draft to continue editing. Increment its semantic version before
+In **Library**, choose a writable `.ewlib` folder and save. Test the symbol on a new scratch page: the page shows
+with the placed copy selected. Inspect it, then choose **Back to the editor** to continue editing. Increment its semantic version before
 publishing changed content under the same key. Previously placed copies keep their original version.
 
 The same workflow is available to AI tools and repeatable scripts in

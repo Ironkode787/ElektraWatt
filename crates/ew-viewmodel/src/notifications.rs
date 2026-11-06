@@ -41,6 +41,8 @@ pub enum NoteAction {
     /// Open the history at the step the notification reports, with its changes (an external change's Show changes,
     /// WP-S1.17 D24, decision log ID-1284 ruling 3).
     ShowChanges,
+    /// Back to the symbol editor and its kept draft, after a test placement (ID-1463).
+    BackToEditor,
 }
 
 impl NoteAction {
@@ -53,6 +55,7 @@ impl NoteAction {
             NoteAction::Renumber => "renumber",
             NoteAction::ShowBlock => "show_block",
             NoteAction::ShowChanges => "show_changes",
+            NoteAction::BackToEditor => "edit",
         }
     }
 
@@ -65,6 +68,7 @@ impl NoteAction {
             "renumber" => Some(NoteAction::Renumber),
             "show_block" => Some(NoteAction::ShowBlock),
             "show_changes" => Some(NoteAction::ShowChanges),
+            "edit" => Some(NoteAction::BackToEditor),
             _ => None,
         }
     }
@@ -78,6 +82,7 @@ impl NoteAction {
             NoteAction::Renumber => key!("action-devices-renumber"),
             NoteAction::ShowBlock => key!("toast-show-block"),
             NoteAction::ShowChanges => key!("toast-show-changes"),
+            NoteAction::BackToEditor => key!("toast-back-to-editor"),
         }
     }
 }
@@ -131,6 +136,8 @@ pub(crate) enum Validity {
         /// Its revision.
         rev: u64,
     },
+    /// Back to the editor: while the symbol editor keeps a draft.
+    SymbolDraft,
 }
 
 /// One notification: a toast while visible, an entry of the log always.

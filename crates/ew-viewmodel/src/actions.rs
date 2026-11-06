@@ -1314,6 +1314,16 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_save(),
         ),
     ),
+    // ID-1463: while the symbol editor shows, Save is the symbol's and the File menu keeps Save project.
+    hidden(parameterless(act(
+        "file.save_project",
+        Command,
+        Menu::File,
+        &[],
+        writable,
+        None,
+        |s, _| s.act_save_project(),
+    ))),
     with_params(
         "dir?:path",
         act(
@@ -5519,10 +5529,23 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "file:path, key?:text, discard?:bool",
+        "file?:path, key?:text, discard?:bool",
         hidden(act("symbol.open", View, Menu::Edit, &[], always, None, |s, p| {
             s.act_symbol("open", p)
         })),
+    ),
+    // ID-1463: the Library folder, typed or from the folder picker.
+    with_params(
+        "directory?:path",
+        hidden(act(
+            "symbol.directory",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("directory", p),
+        )),
     ),
     with_params(
         "index:uint, discard?:bool",
@@ -5620,6 +5643,13 @@ pub static ACTIONS: &[ActionMeta] = &[
         None,
         |s, p| s.act_symbol("redo", p),
     ))),
+    // ID-1463 (doc 16a P8): the editor's tool, also chosen by a key of the keymap.
+    with_params(
+        "tool:enum(select|line|rectangle|circle|ellipse|arc|text|cp|slot|anchor|link|polyline|polygon)",
+        hidden(act("symbol.tool", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("tool", p)
+        })),
+    ),
     with_params(
         "variant:uint",
         hidden(act(
@@ -5660,7 +5690,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         })),
     ),
     with_params(
-        "file:path",
+        "file?:path",
         hidden(act(
             "symbol.export",
             Command,
@@ -6291,6 +6321,15 @@ fn entries_of(metas: &[&'static ActionMeta], model: &ShellModel, separate: bool)
             entries.push(MenuEntry::Separator);
         }
         match s.submenu {
+            // ID-1463: while the symbol editor shows, Save names the symbol and Save project follows it.
+            None if meta.id == "file.save" && model.symbol_editor().is_some() => {
+                let mut item = item_of(meta, model);
+                item.label = strings::text(key!("symbol-save-symbol")).to_owned();
+                entries.push(MenuEntry::Item(item));
+                if let Some(project) = find("file.save_project") {
+                    entries.push(MenuEntry::Item(item_of(project, model)));
+                }
+            }
             None => entries.push(MenuEntry::Item(item_of(meta, model))),
             Some(submenu) => {
                 done.push(submenu);

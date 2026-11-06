@@ -40,9 +40,13 @@ gives the draft its own identity, and later saves of that draft update the same 
 when changing previously published content. The symbol's own function definition keeps its version while it is
 unchanged. A library that already holds the key for a different symbol refuses the save: choose another key, or
 fork that symbol under its own key to change it. **Export draft** writes portable JSON to a
-new file, including incomplete work; an existing file is never overwritten. Closing an unsaved draft requires
-the explicit **Discard changes** choice. **Test on scratch page** creates a page in the current project and
-uses the symbol's connection grid and places embedded copies there. After closing the editor, project undo removes
+new file, including incomplete work; an existing file is never overwritten. Leave either path empty to choose it
+in a file or folder dialog; a relative path is read from your default user library folder.
+**Close editor** keeps the draft and its undo history: **Edit ▸ Symbol editor…** returns to it. Only
+**Discard draft** drops it. While the editor shows, Ctrl+S saves the symbol and **File ▸ Save project** saves the
+project. Quitting with unsaved symbol changes asks whether to save the symbol. **Test on scratch page** creates a
+page in the current project with the symbol's connection grid and places embedded copies there. The page then
+shows with the copy selected; the message's **Back to the editor** returns to the draft. Project undo removes
 the placement; a second undo removes the scratch page.
 Scratch placements are independent draft copies, so **Source missing** in the Libraries navigator refers to
 their temporary draft source. To place a copy linked to the published library, use **Insert → Symbol** after saving.
@@ -96,14 +100,17 @@ The window and `.ewui` scripts share these actions:
 | `symbol.undo`, `symbol.redo`, `symbol.validate` | none |
 | `symbol.variant` | `variant` 0–7 for A–H |
 | `symbol.export`, `symbol.save` | `file` or library `directory` respectively |
+| `symbol.directory` | library `directory` that Save uses |
+| `symbol.tool` | `tool`: the drawing tool to choose |
 | `symbol.place` | `x`, `y` on the current project page |
 | `symbol.scratch` | none; creates a test page in the current project |
 | `symbol.close` | optional `discard: true` |
 
 Action coordinates are **millimetres**, unlike JSON document coordinates. Placement snaps the insertion point to
 the destination page grid; it never moves a pin within the symbol. A different symbol/page grid is refused
-before changing the project; use a scratch page with the matching grid. Replacing/opening/closing dirty drafts
-also requires `discard: true` where applicable. `ui.describe` and the script state expose the open editor and
+before changing the project; use a scratch page with the matching grid. Replacing or opening over a dirty draft
+requires `discard: true`; `symbol.close` keeps the draft unless it has `discard: true`, and `symbol.new` without a
+key or name returns to it. `app.quit` with `discard: true` discards an unsaved draft. `ui.describe` and the script state expose the open editor and
 validation findings. [The tutorial](../tutorials/symbol-editor.md) includes a complete six-pin example.
 
 ## Imported formats and limits
