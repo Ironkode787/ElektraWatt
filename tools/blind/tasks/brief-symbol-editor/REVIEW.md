@@ -17,7 +17,9 @@ readability. A run is accepted only after an independent manual check of all the
   with the drawing. A printed FE designation alone does not establish the FE potential role.
 - The device-tag slot is present; the cross-reference anchor lies on the left edge. A–H preserve the geometry,
   pin directions and legible text, and a placed copy agrees with the preview.
-- A published library, saved editable project and the tester's notes/friction/handback exist. Report each item
+- A published library, saved editable project and the tester's notes/friction/handback exist. A library typed as
+  `symbols.ewlib` lies in the user library folder (`libraries` in the run's settings folder), not beside the
+  project. Report each item
   as met, unmet or not observed. Record assistance and incomplete work; never turn a harness pass into a claim
   that the whole picture or release gate passed.
 
