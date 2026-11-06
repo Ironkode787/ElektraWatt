@@ -301,7 +301,7 @@ fn preview_uses_the_page_text_style_in_every_variant() {
     }));
     for variant in 0..8 {
         let g = draft.preview(variant).unwrap();
-        let list = symbols::preview_display_list(&draft, &g, &styles, "Text");
+        let list = symbols::preview_display_list(&draft, &g, &styles, &|_| "Text".into());
         let runs: Vec<_> = list
             .items
             .iter()

@@ -474,18 +474,16 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
                 ),
                 Tone::Normal,
             ),
+            // M25-p3#7: an unedited new or imported draft is in no library yet, not "Saved".
             field(
                 StatusKind::Save,
-                strings::text(if editor.dirty() {
-                    crate::key!("symbol-dirty")
-                } else {
-                    crate::key!("symbol-saved")
-                })
-                .into(),
+                strings::text(editor.state_key()).into(),
                 if editor.dirty() {
                     Tone::Strong
-                } else {
+                } else if editor.stored() {
                     Tone::Success
+                } else {
+                    Tone::Normal
                 },
             ),
         ];

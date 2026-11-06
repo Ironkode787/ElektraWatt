@@ -37,7 +37,6 @@
 {"action":"symbol.save","params":{"directory":"symbols.ewlib"}}
 {"action":"symbol.export","params":{"file":"power.symbol.json"}}
 {"action":"symbol.scratch"}
-{"action":"symbol.close"}
 {"action":"file.save"}
 {"action":"ui.describe"}
 {"action":"symbol.open","params":{"file":"power.symbol.json"}}

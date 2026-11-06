@@ -4592,6 +4592,14 @@ choice-rectangle = Rechthoek
 
 choice-text = Tekst
 
+choice-select = Selecteren
+
+choice-cp = Aansluitpunt
+
+choice-slot = Tekstpositie
+
+choice-link = Koppelpunt
+
 symbol-x-mm = x (mm)
 
 symbol-y-mm = y (mm)
@@ -4681,4 +4689,42 @@ symbol-fill = Vorm vullen
 symbol-text-style = Tekststijl
 symbol-style-default = Standaard voor dit veld
 symbol-style-choice = { $p0 } mm · { $p1 }
-symbol-scratch-created = Testkopie geplaatst op pagina { $p0 }. Sluit de editor om deze te bekijken en draden aan te sluiten.
+symbol-scratch-created = Testkopie geplaatst op pagina { $p0 }.
+symbol-not-saved = Nog niet in een bibliotheek
+symbol-file-required = Kies eerst een symboolbestand.
+symbol-scratch-title = Symbooltest: { $p0 }
+symbol-placed = Testkopie op deze pagina geplaatst.
+toast-back-to-editor = Terug naar de editor
+symbol-confirm-title = Symbool { $p0 } opslaan?
+symbol-confirm-text = Het symboolconcept heeft wijzigingen die niet in een bibliotheek staan. Sla het op voordat u afsluit, of verwerp de wijzigingen.
+symbol-save-symbol = Symbool opslaan
+symbol-discard-draft = Concept verwerpen
+symbol-choose-folder = Map kiezen…
+action-file-save-project = Project opslaan
+action-symbol-directory = Map van symboolbibliotheek kiezen
+action-symbol-tool = Tekengereedschap voor symbool kiezen
+prompt-open-symbol-title = Een symbool openen of importeren
+prompt-save-symbol-title = Symboolconcept exporteren
+prompt-symbol-name = symbool.json
+prompt-library-folder-title = Een map voor de symboolbibliotheek kiezen
+symbol-canvas = Tekening van { $p0 }
+symbol-owned = { $p0 } van { $p1 }
+symbol-part-start = Begin
+symbol-part-end = Eind
+symbol-part-centre = Middelpunt
+symbol-part-corner = Hoek { $p0 }
+symbol-part-point = Punt { $p0 }
+symbol-part-radius = Straal
+symbol-part-radius-x = Horizontale straal
+symbol-part-radius-y = Verticale straal
+symbol-axis-mm = { $p0 } { $p1 } (mm)
+symbol-place-x = Plaatsing x (mm)
+symbol-place-y = Plaatsing y (mm)
+symbol-start-x = Beginpunt x (mm)
+symbol-start-y = Beginpunt y (mm)
+symbol-variant-name = { $p0 }, variant { $p1 }, aansluitpunten { $p2 }
+symbol-variant-name-plain = { $p0 }, variant { $p1 }
+symbol-role-signal = Signaal
+symbol-role-undefined = Onbepaald
+symbol-candidates-count = Dit bestand bevat { $p0 } tekeningen. Kies de tekening die u wilt bewerken.
+symbol-panels = Panelen van de symbooleditor

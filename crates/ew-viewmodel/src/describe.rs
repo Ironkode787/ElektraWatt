@@ -2613,7 +2613,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 ));
             }
         }
-        Dialog::ConfirmDiscard { pending } => {
+        Dialog::ConfirmDiscard { pending, .. } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{line}\""));
             }

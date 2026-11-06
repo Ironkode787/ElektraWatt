@@ -30,12 +30,12 @@ with a test copy, ready to wire.
 7. In **Electrical data**, under **Connection points**, change the first point's x to 4.5 mm.
    The validation says "Connection point 1 is off the connection grid. Move it onto the grid before saving." Press
    `Ctrl+Z` to undo the change. Fine drawing coordinates, such as 0.5 mm, remain valid.
-8. In **Library**, type `symbols.ewlib` in a writable folder as the **Library folder** and choose **Save to library**.
-   The status bar says **Saved**.
-9. Under **Open or import**, type `power.symbol.json` as the **Symbol file** and choose **Export draft**.
-   The file is the portable draft, with the identity the save gave it.
-10. Choose **Test on scratch page**, then **Close editor**.
-    A new page shows a test copy of the symbol, ready to wire.
+8. In **Library**, type `symbols.ewlib` as the **Library folder** and choose **Save to library**: a name without a
+   folder is a library in your user library folder. The status bar says **Saved**.
+9. Under **Open or import**, type `power.symbol.json` as the **Symbol file** and choose **Export draft**; it is written
+   beside the library. The file is the portable draft, with the identity the save gave it.
+10. Choose **Test on scratch page**.
+    The editor makes way for a new page with a test copy of the symbol selected, ready to wire.
 11. Choose **File ▸ Save** (`Ctrl+S`).
     The title bar no longer marks the project as changed.
 
@@ -44,8 +44,8 @@ with a test copy, ready to wire.
 - The symbol editor keeps its own draft and undo history; saving it to a library does not change placed copies.
   Increase the symbol's version before you save changed content under the same key.
 - Connection points must lie on the 4 mm connection grid; the editor refuses to save a point off it, and says which.
-- To continue later, open **Edit ▸ Symbol editor…** and open `power.symbol.json` under **Open or import**: its next
-  save updates the same symbol.
+- **Close editor** keeps the draft and its undo history: **Edit ▸ Symbol editor…** returns to it. In a later session,
+  open `power.symbol.json` under **Open or import**: its next save updates the same symbol.
 
 The same workflow is available to AI tools and repeatable scripts in
 [`symbol-editor.ewui`](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/book/tutorial-scripts/symbol-editor.ewui).
@@ -55,5 +55,5 @@ Run it in a fresh directory:
 elektrawatt --headless --script symbol-editor.ewui --config-dir config
 ```
 
-The script creates the project, the library and `power.symbol.json` beside itself, and reopens the draft. See the
-[reference](../reference/symbol-editor.md) for JSON, actions and import compatibility.
+The script creates the project beside itself and the library and `power.symbol.json` in your user library folder,
+and reopens the draft. See the [reference](../reference/symbol-editor.md) for JSON, actions and import compatibility.

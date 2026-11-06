@@ -4831,6 +4831,14 @@ choice-rectangle = Rectangle
 
 choice-text = Text
 
+choice-select = Select
+
+choice-cp = Connection point
+
+choice-slot = Text slot
+
+choice-link = Link point
+
 symbol-x-mm = x (mm)
 
 symbol-y-mm = y (mm)
@@ -4920,4 +4928,42 @@ symbol-fill = Fill shape
 symbol-text-style = Text style
 symbol-style-default = Default for this field
 symbol-style-choice = { $p0 } mm · { $p1 }
-symbol-scratch-created = Test copy placed on page { $p0 }. Close the editor to inspect and wire it.
+symbol-scratch-created = Test copy placed on page { $p0 }.
+symbol-not-saved = Not in a library yet
+symbol-file-required = Choose a symbol file first.
+symbol-scratch-title = Symbol test: { $p0 }
+symbol-placed = Test copy placed on this page.
+toast-back-to-editor = Back to the editor
+symbol-confirm-title = Save the symbol { $p0 }?
+symbol-confirm-text = The symbol draft has changes that are not in a library. Save it before you quit, or discard the changes.
+symbol-save-symbol = Save symbol
+symbol-discard-draft = Discard draft
+symbol-choose-folder = Choose folder…
+action-file-save-project = Save project
+action-symbol-directory = Choose symbol library folder
+action-symbol-tool = Choose symbol drawing tool
+prompt-open-symbol-title = Open or import a symbol
+prompt-save-symbol-title = Export symbol draft
+prompt-symbol-name = symbol.json
+prompt-library-folder-title = Choose a symbol library folder
+symbol-canvas = Drawing of { $p0 }
+symbol-owned = { $p0 } of { $p1 }
+symbol-part-start = Start
+symbol-part-end = End
+symbol-part-centre = Centre
+symbol-part-corner = Corner { $p0 }
+symbol-part-point = Point { $p0 }
+symbol-part-radius = Radius
+symbol-part-radius-x = Horizontal radius
+symbol-part-radius-y = Vertical radius
+symbol-axis-mm = { $p0 } { $p1 } (mm)
+symbol-place-x = Placement x (mm)
+symbol-place-y = Placement y (mm)
+symbol-start-x = Start x (mm)
+symbol-start-y = Start y (mm)
+symbol-variant-name = { $p0 }, variant { $p1 }, connection points { $p2 }
+symbol-variant-name-plain = { $p0 }, variant { $p1 }
+symbol-role-signal = Signal
+symbol-role-undefined = Undefined
+symbol-candidates-count = This file holds { $p0 } drawings. Choose the one to edit.
+symbol-panels = Symbol editor panels

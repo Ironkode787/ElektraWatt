@@ -678,9 +678,14 @@ fn tutorial_draw_a_six_pin_power_block_runs_as_its_page_says() {
             "error \"Connection point 1 is off the connection grid. Move it onto the grid before saving.\"",
         ]
     );
-    // Steps 8 to 11: the library, the portable draft and the saved project with its scratch page.
-    assert!(tmp.path("symbols.ewlib").is_dir());
-    assert!(tmp.path("power.symbol.json").is_file());
+    // Steps 8 to 11: the library, the portable draft and the saved project with its scratch page. A name without a
+    // folder is read from the user library folder, never the working directory (ID-1463).
+    assert!(!tmp.path("symbols.ewlib").exists() && !tmp.path("power.symbol.json").exists());
+    let library = find_named(&tmp.path(""), "symbols.ewlib").expect("the library");
+    assert!(library.is_dir());
+    let user = library.parent().unwrap();
+    assert_eq!(user.file_name().unwrap(), "libraries");
+    assert!(user.join("power.symbol.json").is_file());
     assert_eq!(
         lines_of(&saved, &["title:"]),
         ["title: symbol-scratch.ew - ElektraWatt"]
@@ -700,6 +705,22 @@ fn tutorial_draw_a_six_pin_power_block_runs_as_its_page_says() {
         ),
         Vec::<String>::new()
     );
+}
+
+/// The first file or folder named `name` under `dir`, depth first.
+fn find_named(dir: &Path, name: &str) -> Option<std::path::PathBuf> {
+    for entry in std::fs::read_dir(dir).ok()?.flatten() {
+        let path = entry.path();
+        if path.file_name().is_some_and(|n| n == name) {
+            return Some(path);
+        }
+        if path.is_dir()
+            && let Some(found) = find_named(&path, name)
+        {
+            return Some(found);
+        }
+    }
+    None
 }
 
 /// The translations of the Dutch guide (`docs/book/po/nl.po`): (the entry's first reference, its translation), for

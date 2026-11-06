@@ -736,16 +736,31 @@ fn symbol_editor_accessible_controls_and_numeric_keyboard_creation() {
     );
     d.settle();
     for variant in 'A'..='H' {
-        assert!(d.find(&format!("Variants {variant}")).is_some());
+        let name = format!("Keyboard, variant {variant}, connection points FE");
+        assert!(d.find(&name).is_some(), "{name}: {:?}", d.labels());
     }
+    assert!(d.find("Drawing of Keyboard").is_some());
     d.input(&click(d.find("Electrical data").unwrap()));
     for name in [
         "Designation 1",
         "Potential role FE",
         "Source output FE",
         "May remain unconnected FE",
+        "Function type",
     ] {
         assert!(d.find(name).is_some(), "missing accessible control {name}");
+    }
+    d.input(&click(d.find("Connection points (1)").unwrap()));
+    for name in [
+        "x (mm) of Connection point FE",
+        "y (mm) of Connection point FE",
+        "Direction of Connection point FE",
+    ] {
+        assert!(
+            d.find(name).is_some(),
+            "missing accessible control {name}: {:?}",
+            d.labels()
+        );
     }
     d.input(&click(d.find("Drawing").unwrap()));
     d.input(&click(d.find("Line").unwrap()));
@@ -885,7 +900,8 @@ fn symbol_editor_forks_a_named_library_symbol_through_the_window() {
         text: "example.copy".into(),
     });
     d.input(&click(d.find("Create editable copy").unwrap()));
-    d.input(&click(d.find("Discard changes").unwrap()));
+    // M25-p3#7: the fresh draft has no unsaved changes, so the fork asks nothing.
+    assert!(d.find("Discard changes").is_none());
     assert!(actions(&mut d).contains(&"symbol.fork".to_owned()));
     let draft = &d.shell_mut().symbol_editor().unwrap().draft;
     assert_eq!(draft.key, "example.copy");
@@ -994,9 +1010,11 @@ fn symbol_editor_pointer_tools_dispatch_the_drawing_tool_name() {
     d.input(&click(d.find("Select").unwrap()));
     d.input(&click(d.find("Line 1").unwrap()));
     let before = d.shell_mut().symbol_editor().unwrap().draft.clone();
+    // M25-p3#3: the drag starts on the line (the fitted drawing's centre).
+    let on_line = d.find("Drawing of Pointer").unwrap();
     d.input(&Input::Drag {
-        from: (750, 425),
-        to: (830, 465),
+        from: on_line,
+        to: (on_line.0 + 80, on_line.1 + 40),
         button: PointerButton::Primary,
         mods: Modifiers::NONE,
     });
@@ -1044,7 +1062,9 @@ fn symbol_editor_numeric_properties_commit_complete_text_as_one_undo() {
     d.settle();
     d.input(&click(d.find("Rectangle 1").unwrap()));
     let before = d.shell_mut().symbol_editor().unwrap().draft.clone();
-    let at = d.find("X (mm)").unwrap();
+    let at = d
+        .find("Corner 1 x (mm) of Rectangle 1")
+        .unwrap_or_else(|| panic!("{:?}", d.labels()));
     d.input(&Input::DoubleClick {
         at,
         mods: Modifiers::NONE,
@@ -1162,7 +1182,7 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
         Outcome::Done
     );
     d.settle();
-    d.input(&click(d.find("Graphics").unwrap()));
+    d.input(&click(d.find("Graphics (0)").unwrap()));
     let solution = include_str!("../../../../tools/blind/tasks/brief-symbol-editor/solution.uiscript");
     for row in solution
         .lines()
@@ -1190,9 +1210,10 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
             d.input(&click(d.find("More shapes").unwrap()));
         }
         d.input(&click(d.find(tool).unwrap()));
+        let two_points = matches!(tool, "Line" | "Arc" | "Circle");
         for (member, label) in [
-            ("x", "x (mm)"),
-            ("y", "y (mm)"),
+            ("x", if two_points { "Start x (mm)" } else { "x (mm)" }),
+            ("y", if two_points { "Start y (mm)" } else { "y (mm)" }),
             ("x2", "End x (mm)"),
             ("y2", "End y (mm)"),
         ] {
@@ -1236,7 +1257,7 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
         assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None, "{row}");
     }
     d.input(&click(d.find("Electrical data").unwrap()));
-    d.input(&click(d.find("Pin mapping").unwrap()));
+    d.input(&click(d.find("Pin mapping (6)").unwrap()));
     for (pin, role) in [
         ("1", "M"),
         ("2", "M"),
@@ -1302,8 +1323,10 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
         Pt2 { x: Nm(x), y: Nm(y) }
     };
     let a = authored.preview(0).unwrap();
+    // M25-p3#8 (doc 07 §5): a preview is named by the symbol, its variant and its pins.
+    let variant_name = |v: char| format!("Supply block, variant {v}, connection points 1, 2, 3, 4, 5, FE");
     for variant in 'A'..='H' {
-        d.input(&click(d.find(&format!("Variants {variant}")).unwrap()));
+        d.input(&click(d.find(&variant_name(variant)).unwrap()));
         let editor = d.shell_mut().symbol_editor().unwrap();
         let v = variant as u8 - b'A';
         assert_eq!(editor.variant, v);
@@ -1331,7 +1354,7 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
     assert_eq!(pin(&b, 1), ((4_000_000, 12_000_000), Dir4::Right));
     assert_eq!(pin(&b, 6), ((-12_000_000, 60_000_000), Dir4::Down));
     // The scratch copy is placed as the selected variant B.
-    d.input(&click(d.find("Variants B").unwrap()));
+    d.input(&click(d.find(&variant_name('B')).unwrap()));
     d.input(&click(d.find("Library").unwrap()));
     enter(
         &mut d,
@@ -1341,8 +1364,13 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
     d.input(&click(d.find("Save to library").unwrap()));
     assert!(!d.shell_mut().symbol_editor().unwrap().dirty());
     d.input(&click(d.find("Test on scratch page").unwrap()));
-    assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None);
-    d.input(&click(d.find("Close editor").unwrap()));
+    // ID-1463: the editor's view closes itself; the page shows with the test copy selected, the draft kept behind
+    // Back to the editor.
+    assert!(d.shell_mut().symbol_editor().is_none());
+    assert_eq!(d.shell_mut().kept_symbol_editor().unwrap().error, None);
+    assert_eq!(d.shell_mut().selection().items.len(), 1);
+    d.settle();
+    assert!(d.find("Back to the editor").is_some(), "{:?}", d.labels());
     // The published library symbol, from the Insert symbol picker as Draw ▸ Place ▸ Symbol… opens it, on the same
     // scratch page (its grid is the symbol's) below the test copy.
     {
@@ -1504,7 +1532,7 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
         .unwrap();
     assert_eq!(reader.query(a2).unwrap().to_csv().lines().count(), 3);
     let scratch = reader
-        .query("SELECT count(*) AS n FROM api_v1_function f JOIN api_v1_page p ON p.id = f.page_id WHERE p.title = 'Symbol editor' AND f.ip_name IS NULL")
+        .query("SELECT count(*) AS n FROM api_v1_function f JOIN api_v1_page p ON p.id = f.page_id WHERE p.title = 'Symbol test: Supply block' AND f.ip_name IS NULL")
         .unwrap()
         .to_csv();
     assert_eq!(scratch, "n\n2\n");
@@ -1517,4 +1545,171 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
             report.csv
         );
     }
+}
+
+/// M25-p3#3: a drag moves the rectangle under its start, and a drag that starts on no shape moves nothing, whatever
+/// is selected.
+#[test]
+fn symbol_editor_drags_a_rectangle_and_hit_tests_the_drag_start() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    for (action, params) in [
+        ("symbol.new", json!({"key":"example.drag","name":"Drag"})),
+        (
+            "symbol.draw",
+            json!({"tool":"rectangle","x":-12,"y":-8,"x2":12,"y2":8}),
+        ),
+    ] {
+        assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done);
+    }
+    d.settle();
+    let centre = d.find("Drawing of Drag").unwrap();
+    let first = d.find("Drag, variant A").unwrap();
+    // The canvas's left edge from its centre and the first of the eight variant previews below it.
+    let eighth = ((centre.0 - first.0) as f64 / 3.5) as i64;
+    let left = first.0 - eighth / 2;
+    let rect = |d: &mut Driver| {
+        serde_json::to_value(&d.shell_mut().symbol_editor().unwrap().draft.symbol.graphics[0]).unwrap()["rect"]
+            ["rect"]
+            .clone()
+    };
+    let before = rect(&mut d);
+    d.input(&Input::Drag {
+        from: centre,
+        to: (centre.0 + 80, centre.1 + 40),
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    });
+    let moved = rect(&mut d);
+    assert_ne!(moved, before);
+    assert_eq!(
+        moved[1][0].as_i64().unwrap() - moved[0][0].as_i64().unwrap(),
+        24_000_000,
+        "a move keeps the size"
+    );
+    // The rectangle stays selected; a drag from the empty margin leaves it where it is.
+    d.input(&Input::Drag {
+        from: (left + eighth / 4, centre.1),
+        to: (left + eighth / 4 + 80, centre.1 + 40),
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    });
+    assert_eq!(rect(&mut d), moved);
+    d.shell_mut().shutdown();
+}
+
+/// M25-p3#4: a field of the document commits once, on focus loss, and a pin designation can be cleared and retyped.
+#[test]
+fn symbol_editor_fields_commit_on_focus_loss_and_a_designation_is_retyped() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    for (action, params) in [
+        ("symbol.new", json!({"key":"example.fields","name":"Fields"})),
+        (
+            "symbol.cp",
+            json!({"x":0,"y":0,"designation":"13","direction":"left"}),
+        ),
+    ] {
+        assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done);
+    }
+    d.settle();
+    d.input(&click(d.find("Library").unwrap()));
+    let before = d.shell_mut().symbol_editor().unwrap().draft.clone();
+    d.input(&click(d.find("Key").unwrap()));
+    d.input(&key("ctrl+a"));
+    d.input(&Input::Type {
+        text: "example.typed".into(),
+    });
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, before);
+    d.input(&key("tab"));
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().draft.key, "example.typed");
+    // One undo step for the whole entry (Ctrl+Z in the next field is the field's own).
+    assert_eq!(d.shell_mut().dispatch("edit.undo", &json!({})), Outcome::Done);
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, before);
+    d.input(&click(d.find("Electrical data").unwrap()));
+    d.input(&click(d.find("Designation 1").unwrap()));
+    d.input(&key("ctrl+a"));
+    d.input(&key("backspace"));
+    d.input(&Input::Type { text: "A1".into() });
+    d.input(&key("enter"));
+    let draft = d.shell_mut().symbol_editor().unwrap().draft.clone();
+    assert_eq!(
+        draft.function.cps.iter().next().unwrap().designation.as_str(),
+        "A1"
+    );
+    // A designation left empty keeps the one it had.
+    d.input(&click(d.find("Designation 1").unwrap()));
+    d.input(&key("ctrl+a"));
+    d.input(&key("backspace"));
+    d.input(&key("tab"));
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, draft);
+    d.shell_mut().shutdown();
+}
+
+/// The brief (FIX25a's no shared key): an import through the window takes the file's name as its key, never the open
+/// draft's.
+#[test]
+fn symbol_editor_import_through_the_window_takes_the_file_name_as_its_key() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("symbol.new", &json!({"key":"example.open","name":"Open"})),
+        Outcome::Done
+    );
+    d.settle();
+    d.input(&click(d.find("Library").unwrap()));
+    let qet = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../ew-import-qet/tests/fixtures/contact_no.elmt"
+    );
+    // The second "Open or import" is the section's header; the first, the bar's command, reads the same field.
+    let section = d
+        .labels()
+        .into_iter()
+        .filter(|(n, _)| n == "Open or import")
+        .nth(1)
+        .unwrap()
+        .1;
+    d.input(&click(section));
+    d.input(&click(d.find("Symbol file").unwrap()));
+    d.input(&Input::Type { text: qet.into() });
+    d.input(&click(d.find("Open or import").unwrap()));
+    assert!(actions(&mut d).contains(&"symbol.open".to_owned()));
+    let editor = d.shell_mut().symbol_editor().unwrap();
+    assert_eq!(editor.error, None);
+    assert_eq!(editor.draft.key, "contact_no");
+    d.shell_mut().shutdown();
+}
+
+/// ID-1463 (doc 16a P8, P10): a key of the keymap chooses a tool, its tooltip names it, and a tool leaves the panel.
+#[test]
+fn symbol_editor_tools_take_keys_of_the_keymap_and_leave_the_panel() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("symbol.new", &json!({"key":"example.keys","name":"Keys"})),
+        Outcome::Done
+    );
+    d.settle();
+    d.input(&click(d.find("Library").unwrap()));
+    d.input(&Input::Hover { at: (600, 400) });
+    d.input(&key("l"));
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().tool, "line");
+    d.input(&key("p"));
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().tool, "cp");
+    // The Library panel stays, and Escape returns to Select.
+    assert!(d.find("Library folder").is_some());
+    d.input(&key("escape"));
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().tool, "select");
+    d.shell_mut().shutdown();
 }

@@ -926,21 +926,22 @@ msgstr ""
 
 #: src/tutorials/symbol-editor.md:33
 msgid ""
-"In **Library**, type `symbols.ewlib` in a writable folder as the **Library "
-"folder** and choose **Save to library**. The status bar says **Saved**."
+"In **Library**, type `symbols.ewlib` as the **Library folder** and choose "
+"**Save to library**: a name without a folder is a library in your user "
+"library folder. The status bar says **Saved**."
 msgstr ""
 
 #: src/tutorials/symbol-editor.md:35
 msgid ""
 "Under **Open or import**, type `power.symbol.json` as the **Symbol file** "
-"and choose **Export draft**. The file is the portable draft, with the "
-"identity the save gave it."
+"and choose **Export draft**; it is written beside the library. The file is "
+"the portable draft, with the identity the save gave it."
 msgstr ""
 
 #: src/tutorials/symbol-editor.md:37
 msgid ""
-"Choose **Test on scratch page**, then **Close editor**. A new page shows a "
-"test copy of the symbol, ready to wire."
+"Choose **Test on scratch page**. The editor makes way for a new page with a "
+"test copy of the symbol selected, ready to wire."
 msgstr ""
 
 #: src/tutorials/symbol-editor.md:44
@@ -958,9 +959,9 @@ msgstr ""
 
 #: src/tutorials/symbol-editor.md:47
 msgid ""
-"To continue later, open **Edit ▸ Symbol editor…** and open "
-"`power.symbol.json` under **Open or import**: its next save updates the same "
-"symbol."
+"**Close editor** keeps the draft and its undo history: **Edit ▸ Symbol "
+"editor…** returns to it. In a later session, open `power.symbol.json` under "
+"**Open or import**: its next save updates the same symbol."
 msgstr ""
 
 #: src/tutorials/symbol-editor.md:50
@@ -972,9 +973,9 @@ msgstr ""
 
 #: src/tutorials/symbol-editor.md:58
 msgid ""
-"The script creates the project, the library and `power.symbol.json` beside "
-"itself, and reopens the draft. See the "
-"[reference](../reference/symbol-editor.md) for JSON, actions and import "
+"The script creates the project beside itself and the library and "
+"`power.symbol.json` in your user library folder, and reopens the draft. See "
+"the [reference](../reference/symbol-editor.md) for JSON, actions and import "
 "compatibility."
 msgstr ""
 
@@ -3255,28 +3256,34 @@ msgstr ""
 
 #: src/reference/symbol-editor.md:35
 msgid ""
-"**Save to library** writes a symbol and its owned function definition to the "
-"chosen `.ewlib` folder. The window remembers that folder. Its symbols appear "
-"under **Draw ▸ Place ▸ Symbol…** (`I`), with the library name; the page must "
-"use the symbol's connection grid. Already embedded copies stay at their "
-"existing version until you explicitly update them. Repeated placement keeps "
-"the authored outline and pins. An assigned existing function definition "
-"stays referenced and its semantics cannot be edited in place; any later "
-"compatible version of it is accepted. A new symbol has no key until you give "
-"it one. The first save gives the draft its own identity, and later saves of "
-"that draft update the same symbol: increase the version when changing "
-"previously published content. The symbol's own function definition keeps its "
-"version while it is unchanged. A library that already holds the key for a "
-"different symbol refuses the save: choose another key, or fork that symbol "
-"under its own key to change it. **Export draft** writes portable JSON to a "
-"new file, including incomplete work; an existing file is never overwritten. "
-"Closing an unsaved draft requires the explicit **Discard changes** choice. "
-"**Test on scratch page** creates a page in the current project and uses the "
-"symbol's connection grid and places embedded copies there. After closing the "
-"editor, project undo removes the placement; a second undo removes the "
+"**Save to library** writes a symbol and its owned function definition to the"
+" chosen `.ewlib` folder. The window remembers that folder. Its symbols "
+"appear under **Draw ▸ Place ▸ Symbol…** (`I`), with the library name; the "
+"page must use the symbol's connection grid. Already embedded copies stay at "
+"their existing version until you explicitly update them. Repeated placement "
+"keeps the authored outline and pins. An assigned existing function "
+"definition stays referenced and its semantics cannot be edited in place; any"
+" later compatible version of it is accepted. A new symbol has no key until "
+"you give it one. The first save gives the draft its own identity, and later "
+"saves of that draft update the same symbol: increase the version when "
+"changing previously published content. The symbol's own function definition "
+"keeps its version while it is unchanged. A library that already holds the "
+"key for a different symbol refuses the save: choose another key, or fork "
+"that symbol under its own key to change it. **Export draft** writes portable"
+" JSON to a new file, including incomplete work; an existing file is never "
+"overwritten. Leave either path empty to choose it in a file or folder "
+"dialog; a relative path is read from your default user library folder. "
+"**Close editor** keeps the draft and its undo history: **Edit ▸ Symbol "
+"editor…** returns to it. Only **Discard draft** drops it. While the editor "
+"shows, Ctrl+S saves the symbol and the File menu's **Save project** saves "
+"the project. Quitting with unsaved symbol changes asks whether to save the "
+"symbol. **Test on scratch page** creates a page in the current project with "
+"the symbol's connection grid and places embedded copies there. The page then"
+" shows with the copy selected; the message's **Back to the editor** returns "
+"to the draft. Project undo removes the placement; a second undo removes the "
 "scratch page. Scratch placements are independent draft copies, so **Source "
-"missing** in the Libraries navigator refers to their temporary draft source. "
-"To place a copy linked to the published library, use **Draw ▸ Place ▸ "
+"missing** in the Libraries navigator refers to their temporary draft source."
+" To place a copy linked to the published library, use **Draw ▸ Place ▸ "
 "Symbol…** after saving."
 msgstr ""
 
@@ -3467,6 +3474,22 @@ msgstr ""
 msgid "`file` or library `directory` respectively"
 msgstr ""
 
+#: src/reference/symbol-editor.md:101
+msgid "`symbol.directory`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:101
+msgid "library `directory` that Save uses"
+msgstr ""
+
+#: src/reference/symbol-editor.md:101
+msgid "`symbol.tool`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:101
+msgid "`tool`: the drawing tool to choose"
+msgstr ""
+
 #: src/reference/symbol-editor.md:102
 msgid "`symbol.place`"
 msgstr ""
@@ -3491,16 +3514,19 @@ msgstr ""
 msgid "optional `discard: true`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:106
+#: src/reference/symbol-editor.md:112
 msgid ""
 "Action coordinates are **millimetres**, unlike JSON document coordinates. "
 "Placement snaps the insertion point to the destination page grid; it never "
 "moves a pin within the symbol. A different symbol/page grid is refused "
 "before changing the project; use a scratch page with the matching grid. "
-"Replacing/opening/closing dirty drafts also requires `discard: true` where "
-"applicable. `ui.describe` and the script state expose the open editor and "
-"validation findings. [The tutorial](../tutorials/symbol-editor.md) includes "
-"a complete six-pin example."
+"Replacing or opening over a dirty draft requires `discard: true`; "
+"`symbol.close` keeps the draft unless it has `discard: true`, and "
+"`symbol.new` without a key or name returns to it. `app.quit` with `discard: "
+"true` discards an unsaved draft. `ui.describe` and the script state expose "
+"the open editor and validation findings. [The "
+"tutorial](../tutorials/symbol-editor.md) includes a complete six-pin "
+"example."
 msgstr ""
 
 #: src/reference/symbol-editor.md:112

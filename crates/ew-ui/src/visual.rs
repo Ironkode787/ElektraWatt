@@ -245,12 +245,15 @@ impl Platform for VisualPlatform {
             Prompt::SaveKeymap => Pick::Path(self.base.join("keymap.toml")),
             Prompt::SaveTable => Pick::Path(self.base.join("table.xlsx")),
             Prompt::SaveEwz => Pick::Path(self.base.join("project.ewz")),
+            Prompt::SaveSymbol => Pick::Path(self.base.join("symbol.json")),
+            Prompt::LibraryFolder => Pick::Path(self.base.join("symbols.ewlib")),
             Prompt::OpenQet
             | Prompt::OpenPartsTable
             | Prompt::OpenImage
             | Prompt::OpenKeymap
             | Prompt::OpenTable
             | Prompt::OpenEwz
+            | Prompt::OpenSymbol
                 if self.answer.borrow().is_some() =>
             {
                 self.answer.take().map_or(Pick::Cancelled, Pick::Path)
@@ -260,7 +263,8 @@ impl Platform for VisualPlatform {
             | Prompt::OpenImage
             | Prompt::OpenKeymap
             | Prompt::OpenTable
-            | Prompt::OpenEwz => Pick::Cancelled,
+            | Prompt::OpenEwz
+            | Prompt::OpenSymbol => Pick::Cancelled,
         }
     }
 }

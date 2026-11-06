@@ -1158,12 +1158,12 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
 
 /// A collapsible section header in the style of the property categories (doc 16a §6.8, §6.23): `size.row` high, a
 /// chevron, the title in `type.small` SemiBold `color.text.secondary`, and a count badge. A button node named by the
-/// title with its expanded state. Returns whether the section is open.
+/// title with its expanded state. A section that lists no items has no count. Returns whether the section is open.
 pub(crate) fn section_header(
     ui: &mut Ui,
     id: egui::Id,
     title: &str,
-    count: usize,
+    count: Option<usize>,
     default_open: bool,
 ) -> bool {
     let t = tokens(ui);
@@ -1175,7 +1175,7 @@ pub(crate) fn section_header(
         ui.data_mut(|d| d.insert_temp(id, open));
     }
     // The accessible name carries the count the badge paints ("Tags (11)").
-    let name = format!("{title} ({count})");
+    let name = count.map_or_else(|| title.to_owned(), |count| format!("{title} ({count})"));
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
     ui.ctx()
         .accesskit_node_builder(response.id, |n| n.set_expanded(open));
@@ -1214,7 +1214,9 @@ pub(crate) fn section_header(
             .layout(Layout::left_to_right(Align::Center)),
     );
     child.set_clip_rect(rect);
-    count_badge(&mut child, count);
+    if let Some(count) = count {
+        count_badge(&mut child, count);
+    }
     open
 }
 
