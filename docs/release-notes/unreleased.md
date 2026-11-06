@@ -203,3 +203,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - text-change: cli ew upgrade --check (on an `.ewz` of an older format: "the project is in the older format <f>: `ew
   extract` makes a project folder of the archive, and `ew upgrade` converts that folder to format <g> after a backup";
   FT-1214)
+- text-change: commands refusals naming a library copy (a manufacturer copy reads "manufacturer <name> (<key>) at
+  version <v>", a PLC profile "PLC profile <label>", a symbol and a macro "symbol <name>", "macro <name>"; a part and
+  a document without a name as before; FT-1524)

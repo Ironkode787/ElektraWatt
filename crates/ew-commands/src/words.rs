@@ -199,36 +199,66 @@ pub(crate) fn copy(tx: &TxBuilder<'_>, kind: Kind, name: Option<String>, version
     text!("refusal-words-copy", item(tx, kind, name), version)
 }
 
-/// A library document's kind, item name (a part's number, else the item's key) and version; `None` for a kind this
-/// build does not read.
-fn document_parts(doc: &ew_schema::LibDocument) -> Option<(Kind, Option<String>, &str)> {
+/// A library document's kind, item words and version; `None` for a kind this build does not read. A document with
+/// a name of its own is named by it with its kind's word ("manufacturer Phoenix Contact (PXC)", "symbol Contactor",
+/// ID-1455); else by a part's number, else the item's key.
+fn document_parts(doc: &ew_schema::LibDocument) -> Option<(Kind, Option<TextArg>, &str)> {
+    use ew_derive::neutral;
     use ew_schema::LibDocument as D;
-    let key = |m: &ew_schema::ItemMeta| m.key.as_ref().map(ToString::to_string);
+    let key = |m: &ew_schema::ItemMeta| m.key.as_ref().map(|k| TextArg::Plain(k.to_string()));
+    let named = |name: String, words: fn(String) -> Text, m: &ew_schema::ItemMeta| {
+        if name.is_empty() { key(m) } else { Some(words(name).into()) }
+    };
     Some(match doc {
-        D::Part(c) => (Kind::Part, Some(c.item.part_number.to_string()), &c.version),
-        D::Symbol(c) => (Kind::Symbol, key(&c.item.meta), &c.version),
+        D::Part(c) => (Kind::Part, Some(TextArg::Plain(c.item.part_number.to_string())), &c.version),
+        D::Symbol(c) => (
+            Kind::Symbol,
+            named(neutral(&c.item.name), |n| text!("refusal-words-symbol-named", n), &c.item.meta),
+            &c.version,
+        ),
         D::Fndef(c) => (Kind::Fndef, key(&c.item.meta), &c.version),
         D::Form(c) => (Kind::Form, key(&c.item.meta), &c.version),
-        D::Macro(c) => (Kind::Macro, key(&c.item.meta), &c.version),
-        D::Manufacturer(c) => (Kind::Manufacturer, key(&c.item.meta), &c.version),
-        D::PlcProfile(c) => (Kind::PlcProfile, key(&c.item.meta), &c.version),
+        D::Macro(c) => (
+            Kind::Macro,
+            named(neutral(&c.item.name), |n| text!("refusal-words-macro-named", n), &c.item.meta),
+            &c.version,
+        ),
+        D::Manufacturer(c) => {
+            let name = neutral(&c.item.name);
+            let words = if name.is_empty() {
+                key(&c.item.meta)
+            } else {
+                Some(text!("refusal-words-manufacturer-named", name, c.item.key.to_string()).into())
+            };
+            (Kind::Manufacturer, words, &c.version)
+        }
+        D::PlcProfile(c) => (
+            Kind::PlcProfile,
+            named(c.item.label.clone(), |n| text!("refusal-words-plc-profile-named", n), &c.item.meta),
+            &c.version,
+        ),
         D::Unknown(_) => return None,
     })
+}
+
+/// A library item by its words from [`document_parts`], else its kind with its article, as [`item`] names it.
+fn document_words(tx: &TxBuilder<'_>, kind: Kind, words: Option<TextArg>) -> TextArg {
+    words.unwrap_or_else(|| item(tx, kind, None))
 }
 
 /// A library document's copy, as [`copy`] names it; a document of a kind this build does not read as "an item".
 pub(crate) fn document(tx: &TxBuilder<'_>, doc: &ew_schema::LibDocument) -> Text {
     document_parts(doc).map_or_else(
         || text!("refusal-words-kind-other"),
-        |(kind, name, version)| copy(tx, kind, name, version),
+        |(kind, words, version)| text!("refusal-words-copy", document_words(tx, kind, words), version),
     )
 }
 
-/// A library document's item, as [`copy`] names it without its version.
+/// A library document's item, as [`document`] names it without its version.
 pub(crate) fn document_item(tx: &TxBuilder<'_>, doc: &ew_schema::LibDocument) -> TextArg {
     document_parts(doc).map_or_else(
         || text!("refusal-words-kind-other").into(),
-        |(kind, name, _)| item(tx, kind, name),
+        |(kind, words, _)| document_words(tx, kind, words),
     )
 }
 
