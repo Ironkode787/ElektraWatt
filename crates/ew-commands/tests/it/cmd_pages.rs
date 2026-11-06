@@ -310,9 +310,9 @@ fn delete_pages_rejections() {
 fn renumber_section_keeps_every_reference() {
     let mut e = engine(golden_model());
     let before = lines(e.model());
-    bulk(&mut e, &renumber(PageScope::Section(SEC1), 201, 1, false)).unwrap();
-    assert_eq!(folio_of(&e, PAGE_101), (Some(SEC1), 201, None));
-    assert_eq!(folio_of(&e, PAGE_102), (Some(SEC1), 202, None));
+    bulk(&mut e, &renumber(PageScope::Section(SEC1), 171, 1, false)).unwrap();
+    assert_eq!(folio_of(&e, PAGE_101), (Some(SEC1), 171, None));
+    assert_eq!(folio_of(&e, PAGE_102), (Some(SEC1), 172, None));
     // Only the two page rows changed; every representation and connection still names its page.
     let after = lines(e.model());
     let changed: Vec<_> = before
@@ -328,9 +328,9 @@ fn renumber_section_keeps_every_reference() {
 #[test]
 fn renumber_with_step() {
     let mut e = engine(golden_model());
-    bulk(&mut e, &renumber(PageScope::Project, 10, 5, false)).unwrap();
-    assert_eq!(folio_of(&e, PAGE_101).1, 10);
-    assert_eq!(folio_of(&e, PAGE_102).1, 15);
+    bulk(&mut e, &renumber(PageScope::Project, 110, 5, false)).unwrap();
+    assert_eq!(folio_of(&e, PAGE_101).1, 110);
+    assert_eq!(folio_of(&e, PAGE_102).1, 115);
 }
 
 fn with_page_105() -> (Engine, Id<Page>) {
@@ -343,15 +343,21 @@ fn with_page_105() -> (Engine, Id<Page>) {
 #[test]
 fn renumber_keep_gaps() {
     let (mut e, gap) = with_page_105();
-    bulk(&mut e, &renumber(PageScope::Section(SEC1), 10, 2, true)).unwrap();
-    assert_eq!([PAGE_101, PAGE_102, gap].map(|p| folio_of(&e, p).1), [10, 12, 18]);
+    bulk(&mut e, &renumber(PageScope::Section(SEC1), 110, 2, true)).unwrap();
+    assert_eq!(
+        [PAGE_101, PAGE_102, gap].map(|p| folio_of(&e, p).1),
+        [110, 112, 118]
+    );
 }
 
 #[test]
 fn renumber_without_gaps_compacts() {
     let (mut e, gap) = with_page_105();
-    bulk(&mut e, &renumber(PageScope::Section(SEC1), 10, 2, false)).unwrap();
-    assert_eq!([PAGE_101, PAGE_102, gap].map(|p| folio_of(&e, p).1), [10, 12, 14]);
+    bulk(&mut e, &renumber(PageScope::Section(SEC1), 110, 2, false)).unwrap();
+    assert_eq!(
+        [PAGE_101, PAGE_102, gap].map(|p| folio_of(&e, p).1),
+        [110, 112, 114]
+    );
 }
 
 #[test]
@@ -361,10 +367,10 @@ fn renumber_sub_pages_move_together() {
     sub.label = Some(ident("1"));
     let a: Id<Page> = typed(e.execute(&sub).unwrap().outcome.primary.unwrap());
     let scope = PageScope::Pages(vec![PAGE_102, a, PAGE_101]);
-    bulk(&mut e, &renumber(scope, 20, 1, false)).unwrap();
-    assert_eq!(folio_of(&e, PAGE_101), (Some(SEC1), 20, None));
-    assert_eq!(folio_of(&e, a), (Some(SEC1), 20, Some("1".into())));
-    assert_eq!(folio_of(&e, PAGE_102), (Some(SEC1), 21, None));
+    bulk(&mut e, &renumber(scope, 120, 1, false)).unwrap();
+    assert_eq!(folio_of(&e, PAGE_101), (Some(SEC1), 120, None));
+    assert_eq!(folio_of(&e, a), (Some(SEC1), 120, Some("1".into())));
+    assert_eq!(folio_of(&e, PAGE_102), (Some(SEC1), 121, None));
 }
 
 /// FT-475 (ID-670): a label whose leading number segment is the page's old printed folio follows the new folio.
@@ -390,17 +396,17 @@ fn renumber_rewrites_sub_page_labels() {
         &mut e,
         &renumber(
             PageScope::Pages(vec![PAGE_101, own, first, nested, letter, longer]),
-            20,
+            120,
             1,
             false,
         ),
     )
     .unwrap();
     let label = |e: &Engine, p| folio_of(e, p).2;
-    assert_eq!(folio_of(&e, PAGE_101), (Some(SEC1), 20, None));
-    assert_eq!(folio_of(&e, own), (Some(SEC1), 21, Some("21".into())));
-    assert_eq!(label(&e, first).as_deref(), Some("20.1"));
-    assert_eq!(label(&e, nested).as_deref(), Some("20.1.1"));
+    assert_eq!(folio_of(&e, PAGE_101), (Some(SEC1), 120, None));
+    assert_eq!(folio_of(&e, own), (Some(SEC1), 121, Some("121".into())));
+    assert_eq!(label(&e, first).as_deref(), Some("120.1"));
+    assert_eq!(label(&e, nested).as_deref(), Some("120.1.1"));
     assert_eq!(label(&e, letter).as_deref(), Some("101a"));
     assert_eq!(label(&e, longer).as_deref(), Some("1011.1"));
     assert_eq!(folio_of(&e, other), (None, 101, Some("101.1".into())));
@@ -419,8 +425,8 @@ fn renumber_sub_page_labels_undo_in_one_step() {
             .unwrap(),
     );
     let before = lines(e.model());
-    bulk(&mut e, &renumber(PageScope::Pages(vec![PAGE_101]), 20, 1, false)).unwrap();
-    assert_eq!(folio_of(&e, sub), (Some(SEC1), 101, Some("20.1".into())));
+    bulk(&mut e, &renumber(PageScope::Pages(vec![PAGE_101]), 120, 1, false)).unwrap();
+    assert_eq!(folio_of(&e, sub), (Some(SEC1), 101, Some("120.1".into())));
     e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
@@ -430,12 +436,12 @@ fn renumber_sub_page_labels_undo_in_one_step() {
 fn renumber_refuses_a_rewritten_label_that_collides() {
     let mut e = engine(golden_model());
     e.execute(&labelled(Some(SEC1), 101, "101.1")).unwrap();
-    e.execute(&labelled(Some(SEC1), 150, "20.1")).unwrap();
+    e.execute(&labelled(Some(SEC1), 150, "120.1")).unwrap();
     let reason = rejected(bulk(
         &mut e,
-        &renumber(PageScope::Pages(vec![PAGE_101]), 20, 1, false),
+        &renumber(PageScope::Pages(vec![PAGE_101]), 120, 1, false),
     ));
-    assert!(reason.contains("20.1"), "{reason}");
+    assert!(reason.contains("120.1"), "{reason}");
 }
 
 #[test]
@@ -966,6 +972,61 @@ fn renumber_refuses_a_folio_a_report_block_generates() {
     );
     assert_eq!(lines(e.model()), with_pages);
     bulk(&mut e, &renumber(PageScope::Pages(vec![PAGE_101]), 170, 1, false)).expect("a free folio");
+}
+
+/// FT-1511 (WP-S6.08 D27, S8): `page.renumber` refuses a new folio outside its section's folio range, as `page.create`
+/// does; nothing changes on a refusal.
+#[test]
+fn renumber_refuses_a_folio_outside_its_section() {
+    let mut e = engine(golden_model());
+    let before = lines(e.model());
+    assert_eq!(
+        rejected(bulk(
+            &mut e,
+            &renumber(PageScope::Pages(vec![PAGE_101, PAGE_102]), 199, 1, false)
+        )),
+        "folio 200 lies outside section 1's folios 100 to 199; choose another `start` or `step`"
+    );
+    assert_eq!(lines(e.model()), before);
+    bulk(
+        &mut e,
+        &renumber(PageScope::Pages(vec![PAGE_101, PAGE_102]), 198, 1, false),
+    )
+    .expect("inside the range");
+}
+
+/// FT-1510 (WP-S6.08 D27, S9): `fields.set` of a section's `divider` or `folio_range` refuses a divider onto a folio a
+/// page of the section prints or a page-oriented report block of the section starts at; nothing changes on a refusal,
+/// and without a divider the range is free.
+#[test]
+fn set_fields_refuses_a_divider_onto_a_held_folio() {
+    let mut e = engine(golden_model());
+    let set = |path: &str, value: serde_json::Value| SetFields {
+        kind: KindName::Section,
+        targets: vec![SEC1.cast()],
+        path: path.into(),
+        value,
+        copies: Vec::new(),
+    };
+    e.execute(&set("folio_range", serde_json::json!([101, 199])))
+        .expect("no divider");
+    let before = lines(e.model());
+    assert_eq!(
+        rejected(e.execute(&set("divider", serde_json::json!(true)))),
+        "folio 101 is held by a page; choose another folio for section 1's divider"
+    );
+    assert_eq!(lines(e.model()), before);
+    e.execute(&set("folio_range", serde_json::json!([100, 199])))
+        .expect("a free first folio");
+    e.execute(&set("divider", serde_json::json!(true)))
+        .expect("a free divider folio");
+    bulk(&mut e, &block(Some(150))).expect("a block at 150");
+    let before = lines(e.model());
+    assert_eq!(
+        rejected(e.execute(&set("folio_range", serde_json::json!([150, 199])))),
+        "folio 150 is held by a report block; choose another folio for section 1's divider"
+    );
+    assert_eq!(lines(e.model()), before);
 }
 
 /// The shipped frame without the grid (`content/forms`), the form of the golden report blocks, in the `lib/` JSON

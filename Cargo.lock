@@ -1139,7 +1139,7 @@ checksum = "0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be"
 
 [[package]]
 name = "elektrawatt"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "eframe",
@@ -1287,7 +1287,7 @@ dependencies = [
 
 [[package]]
 name = "ew"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "boon",
@@ -1305,7 +1305,7 @@ dependencies = [
 
 [[package]]
 name = "ew-api"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-checks",
@@ -1353,11 +1353,11 @@ dependencies = [
 
 [[package]]
 name = "ew-caex"
-version = "0.0.0"
+version = "0.1.0"
 
 [[package]]
 name = "ew-checks"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-derive",
@@ -1375,7 +1375,7 @@ dependencies = [
 
 [[package]]
 name = "ew-commands"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-commands",
@@ -1397,7 +1397,7 @@ dependencies = [
 
 [[package]]
 name = "ew-derive"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-commands",
@@ -1420,11 +1420,11 @@ dependencies = [
 
 [[package]]
 name = "ew-devdesc"
-version = "0.0.0"
+version = "0.1.0"
 
 [[package]]
 name = "ew-dl"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-units",
  "insta",
@@ -1436,11 +1436,11 @@ dependencies = [
 
 [[package]]
 name = "ew-ewpp"
-version = "0.0.0"
+version = "0.1.0"
 
 [[package]]
 name = "ew-export"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-dl",
@@ -1457,7 +1457,7 @@ dependencies = [
 
 [[package]]
 name = "ew-format"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-schema",
@@ -1469,7 +1469,7 @@ dependencies = [
 
 [[package]]
 name = "ew-hack"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ahash",
  "arrayvec",
@@ -1531,7 +1531,7 @@ dependencies = [
 
 [[package]]
 name = "ew-ids"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "getrandom 0.4.3",
  "proptest",
@@ -1542,7 +1542,7 @@ dependencies = [
 
 [[package]]
 name = "ew-import-catalog"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-interop-api",
  "miniz_oxide 0.8.9",
@@ -1555,21 +1555,21 @@ dependencies = [
 
 [[package]]
 name = "ew-import-dxf"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-interop-api",
 ]
 
 [[package]]
 name = "ew-import-eplan"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-interop-api",
 ]
 
 [[package]]
 name = "ew-import-qet"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-ids",
@@ -1585,7 +1585,7 @@ dependencies = [
 
 [[package]]
 name = "ew-import-tables"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-ids",
@@ -1601,7 +1601,7 @@ dependencies = [
 
 [[package]]
 name = "ew-interop-api"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-ids",
  "ew-schema",
@@ -1611,14 +1611,14 @@ dependencies = [
 
 [[package]]
 name = "ew-jobs"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-hack",
 ]
 
 [[package]]
 name = "ew-library"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-derive",
@@ -1634,7 +1634,7 @@ dependencies = [
 
 [[package]]
 name = "ew-memo"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "imbl",
  "proptest",
@@ -1644,7 +1644,7 @@ dependencies = [
 
 [[package]]
 name = "ew-mfg"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-commands",
  "ew-ewpp",
@@ -1655,7 +1655,7 @@ dependencies = [
 
 [[package]]
 name = "ew-mltext"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "proptest",
  "serde",
@@ -1667,7 +1667,7 @@ dependencies = [
 
 [[package]]
 name = "ew-model"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-hack",
  "ew-ids",
@@ -1682,7 +1682,7 @@ dependencies = [
 
 [[package]]
 name = "ew-panel"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-commands",
  "ew-hack",
@@ -1691,7 +1691,7 @@ dependencies = [
 
 [[package]]
 name = "ew-plc"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-caex",
  "ew-commands",
@@ -1702,14 +1702,14 @@ dependencies = [
 
 [[package]]
 name = "ew-plcaddr"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "proptest",
 ]
 
 [[package]]
 name = "ew-plugin-host"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-checks",
  "ew-commands",
@@ -1719,7 +1719,7 @@ dependencies = [
 
 [[package]]
 name = "ew-print"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ashpd",
  "ew-export",
@@ -1730,7 +1730,7 @@ dependencies = [
 
 [[package]]
 name = "ew-rds"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "proptest",
  "serde",
@@ -1740,7 +1740,7 @@ dependencies = [
 
 [[package]]
 name = "ew-render-cpu"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-dl",
@@ -1756,7 +1756,7 @@ dependencies = [
 
 [[package]]
 name = "ew-render2d"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-dl",
  "ew-hack",
@@ -1771,7 +1771,7 @@ dependencies = [
 
 [[package]]
 name = "ew-render3d"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-commands",
  "ew-hack",
@@ -1780,7 +1780,7 @@ dependencies = [
 
 [[package]]
 name = "ew-reports"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-checks",
@@ -1797,14 +1797,14 @@ dependencies = [
 
 [[package]]
 name = "ew-rhai"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-hack",
 ]
 
 [[package]]
 name = "ew-scene"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-derive",
@@ -1825,7 +1825,7 @@ dependencies = [
 
 [[package]]
 name = "ew-schema"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-ids",
@@ -1841,7 +1841,7 @@ dependencies = [
 
 [[package]]
 name = "ew-script"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-commands",
  "ew-hack",
@@ -1850,7 +1850,7 @@ dependencies = [
 
 [[package]]
 name = "ew-sqlview"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-checks",
@@ -1865,14 +1865,14 @@ dependencies = [
 
 [[package]]
 name = "ew-step-proto"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-units",
 ]
 
 [[package]]
 name = "ew-step-worker"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-hack",
  "ew-step-proto",
@@ -1880,7 +1880,7 @@ dependencies = [
 
 [[package]]
 name = "ew-store"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-format",
@@ -1895,11 +1895,11 @@ dependencies = [
 
 [[package]]
 name = "ew-testdir"
-version = "0.0.0"
+version = "0.1.0"
 
 [[package]]
 name = "ew-testids"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "chacha20",
  "ew-ids",
@@ -1908,7 +1908,7 @@ dependencies = [
 
 [[package]]
 name = "ew-testkit"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-api",
@@ -1931,7 +1931,7 @@ dependencies = [
 
 [[package]]
 name = "ew-text"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-dl",
  "ew-hack",
@@ -1945,7 +1945,7 @@ dependencies = [
 
 [[package]]
 name = "ew-ui"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "egui",
@@ -1969,7 +1969,7 @@ dependencies = [
 
 [[package]]
 name = "ew-units"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "proptest",
  "serde",
@@ -1978,7 +1978,7 @@ dependencies = [
 
 [[package]]
 name = "ew-viewmodel"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "automod",
  "ew-api",
@@ -1995,7 +1995,7 @@ dependencies = [
 
 [[package]]
 name = "ew-zip"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-hack",
  "miniz_oxide 0.8.9",
@@ -5872,7 +5872,7 @@ checksum = "9440ea3e5aeabb0ac63af70daf835274065238cdd0cec83418f417eae38bacee"
 
 [[package]]
 name = "xtask"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "cargo_metadata",

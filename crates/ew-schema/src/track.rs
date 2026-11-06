@@ -56,6 +56,8 @@ struct Context {
     lenient: bool,
     path: Vec<Seg>,
     findings: Vec<MalformedVariant>,
+    /// The JSON Pointer of each member read into an `extra` map: a member this reader does not know.
+    extra: Vec<String>,
     /// The structured error of the [`raise`] in progress, taken by [`TrackError`]'s `custom`.
     pending: Option<SchemaError>,
     /// The last structured error raised, for entry points whose deserialiser has a foreign error type.
@@ -90,6 +92,25 @@ pub(crate) fn with_context<R>(lenient: bool, f: impl FnOnce() -> R) -> (R, Vec<M
     let findings = CTX.with(|c| std::mem::take(&mut c.borrow_mut().findings));
     drop(restore);
     (result, findings)
+}
+
+/// Notes in the current context the JSON Pointer of each member of an `extra` map just read.
+pub(crate) fn note_extra<V>(map: &std::collections::BTreeMap<String, V>) {
+    if map.is_empty() {
+        return;
+    }
+    let paths: Vec<String> = map.keys().map(|key| path_of(key)).collect();
+    CTX.with(|c| {
+        let mut c = c.borrow_mut();
+        if c.active {
+            c.extra.extend(paths);
+        }
+    });
+}
+
+/// The JSON Pointers of the `extra` members the current context has read.
+pub(crate) fn read_extra() -> Vec<String> {
+    CTX.with(|c| c.borrow().extra.clone())
 }
 
 /// Takes the last structured error raised in the current context.

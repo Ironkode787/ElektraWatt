@@ -203,3 +203,18 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - text-change: cli ew upgrade --check (on an `.ewz` of an older format: "the project is in the older format <f>: `ew
   extract` makes a project folder of the archive, and `ew upgrade` converts that folder to format <g> after a backup";
   FT-1214)
+- behaviour-change: cli ew merge-driver (a record file one of whose sides holds a record whose `$v` is above this
+  reader's version of its kind is not merged: `%A` stays ours, the driver prints "merge-driver: <path>: holds records
+  this ElektraWatt cannot read (this one reads format <r>); left as ours: merge it with a newer version" and exits 1;
+  a record of an unknown kind or with unknown members still merges, every member kept; FT-1490, WP-S6.08 D20)
+- api-break: cli merge-driver exit 1 (its meaning names `%A` left as ours for a side in a newer format and for a side
+  holding records this version cannot read; a Preview surface, FT-1516, WP-S6.08 D21)
+- behaviour-change: window and cli every other write of a project in an unreleased format (in the window Save As, a
+  new project, the wizard's basic project and a release; in `ew` the projects `ew import qet --out` and `ew import csv`
+  write, `ew fmt`, `ew fmt --repair` and `ew revision release`) shows the toast and prints the warning of a save;
+  FT-1489, WP-S6.08 D19)
+- behaviour-change: command page.renumber (a new folio outside its section's folios is refused: "folio <n> lies
+  outside section <s>'s folios <first> to <last>; choose another `start` or `step`"; FT-1511, WP-S6.08 D27)
+- behaviour-change: command fields.set (a section's `divider` or `folio_range` that puts the divider page onto a folio
+  a page or a page-oriented report block of the section holds is refused: "folio <n> is held by a page; choose another
+  folio for section <s>'s divider", or "… held by a report block; …"; FT-1510, WP-S6.08 D27)

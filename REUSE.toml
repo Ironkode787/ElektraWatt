@@ -216,6 +216,14 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC0-1.0"
 
+# L8: the released formats' frozen corpus (ADR-0011 amendment 6, WP-S6.08 D13): Golden A's files as each release shipped
+# them, byte for byte, with the corpus job's expected saves; project files cannot carry a header.
+[[annotations]]
+path = "fixtures/format/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
+SPDX-License-Identifier = "CC0-1.0"
+
 # L8: the seed corpora of the fuzz targets (FT-297), made from the golden project by `fuzz/src/bin/seed_corpus.rs`,
 # and the crash inputs committed as regressions: binary or headerless inputs.
 [[annotations]]

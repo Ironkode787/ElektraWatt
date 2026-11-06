@@ -558,6 +558,12 @@ allowed = ["CC0-1.0"]
 glob = "golden/**"
 allowed = ["CC0-1.0"]
 
+# L8 (golden fixture): fixtures/format/ holds each released format's frozen copy of the golden project and the corpus
+# job's expected saves (ADR-0011 amendment 6, WP-S6.08 D13).
+[[path]]
+glob = "fixtures/format/**"
+allowed = ["CC0-1.0"]
+
 # ---------------------------------------------------------------------------------------------------------------
 # L12: CI workflows, scripts and tools (MIT OR Apache-2.0), so that others may copy the gates.
 [[path]]

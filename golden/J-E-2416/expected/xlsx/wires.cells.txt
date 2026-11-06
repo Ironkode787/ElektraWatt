@@ -58,7 +58,7 @@ table	block:9c936995-9fd6-5a42-9cac-271bd70c3e16
 rev	0
 generation	1
 locale	neutral
-ew	0.0.0
+ew	0.1.0
 column	no	No.	Ident	false
 column	from	From	Tag	false
 column	from_cp	CP	Ident	false

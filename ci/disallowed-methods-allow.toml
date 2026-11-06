@@ -242,6 +242,11 @@ count = 1
 
 [[allow]]
 crate = "ew-store"
+item = "fn the_corpus_job_saves_each_fixture_to_its_expected_files > call env::var_os"
+count = 1
+
+[[allow]]
+crate = "ew-store"
 item = "impl Clock for SystemClock > fn now > call SystemTime::now"
 count = 1
 

@@ -250,7 +250,7 @@ dependencies = [
 
 [[package]]
 name = "ew-api"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-checks",
  "ew-commands",
@@ -288,11 +288,11 @@ dependencies = [
 
 [[package]]
 name = "ew-caex"
-version = "0.0.0"
+version = "0.1.0"
 
 [[package]]
 name = "ew-checks"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-derive",
  "ew-hack",
@@ -308,7 +308,7 @@ dependencies = [
 
 [[package]]
 name = "ew-commands"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-derive",
  "ew-hack",
@@ -326,7 +326,7 @@ dependencies = [
 
 [[package]]
 name = "ew-derive"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-hack",
  "ew-ids",
@@ -346,11 +346,11 @@ dependencies = [
 
 [[package]]
 name = "ew-devdesc"
-version = "0.0.0"
+version = "0.1.0"
 
 [[package]]
 name = "ew-dl"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-units",
  "kurbo",
@@ -360,11 +360,11 @@ dependencies = [
 
 [[package]]
 name = "ew-ewpp"
-version = "0.0.0"
+version = "0.1.0"
 
 [[package]]
 name = "ew-export"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-dl",
  "ew-hack",
@@ -374,7 +374,7 @@ dependencies = [
 
 [[package]]
 name = "ew-format"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-schema",
  "serde",
@@ -411,7 +411,7 @@ dependencies = [
 
 [[package]]
 name = "ew-hack"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ahash",
  "arrayvec",
@@ -473,7 +473,7 @@ dependencies = [
 
 [[package]]
 name = "ew-ids"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "getrandom 0.4.3",
  "serde",
@@ -482,7 +482,7 @@ dependencies = [
 
 [[package]]
 name = "ew-import-catalog"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-interop-api",
  "miniz_oxide 0.8.9",
@@ -495,21 +495,21 @@ dependencies = [
 
 [[package]]
 name = "ew-import-dxf"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-interop-api",
 ]
 
 [[package]]
 name = "ew-import-eplan"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-interop-api",
 ]
 
 [[package]]
 name = "ew-import-qet"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-ids",
  "ew-interop-api",
@@ -524,7 +524,7 @@ dependencies = [
 
 [[package]]
 name = "ew-import-tables"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-ids",
  "ew-interop-api",
@@ -539,7 +539,7 @@ dependencies = [
 
 [[package]]
 name = "ew-interop-api"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-ids",
  "ew-schema",
@@ -549,14 +549,14 @@ dependencies = [
 
 [[package]]
 name = "ew-jobs"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-hack",
 ]
 
 [[package]]
 name = "ew-library"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-format",
  "ew-hack",
@@ -569,7 +569,7 @@ dependencies = [
 
 [[package]]
 name = "ew-memo"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "imbl",
  "smallvec",
@@ -578,7 +578,7 @@ dependencies = [
 
 [[package]]
 name = "ew-mfg"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-ewpp",
  "ew-hack",
@@ -588,7 +588,7 @@ dependencies = [
 
 [[package]]
 name = "ew-mltext"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "serde",
  "unicode-normalization",
@@ -598,7 +598,7 @@ dependencies = [
 
 [[package]]
 name = "ew-model"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-hack",
  "ew-ids",
@@ -609,7 +609,7 @@ dependencies = [
 
 [[package]]
 name = "ew-panel"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-commands",
  "ew-hack",
@@ -618,7 +618,7 @@ dependencies = [
 
 [[package]]
 name = "ew-plc"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-caex",
  "ew-commands",
@@ -629,11 +629,11 @@ dependencies = [
 
 [[package]]
 name = "ew-plcaddr"
-version = "0.0.0"
+version = "0.1.0"
 
 [[package]]
 name = "ew-plugin-host"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-checks",
  "ew-commands",
@@ -643,14 +643,14 @@ dependencies = [
 
 [[package]]
 name = "ew-rds"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "ew-render-cpu"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-dl",
  "ew-hack",
@@ -662,7 +662,7 @@ dependencies = [
 
 [[package]]
 name = "ew-reports"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-checks",
  "ew-derive",
@@ -676,14 +676,14 @@ dependencies = [
 
 [[package]]
 name = "ew-rhai"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-hack",
 ]
 
 [[package]]
 name = "ew-scene"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-derive",
  "ew-dl",
@@ -700,7 +700,7 @@ dependencies = [
 
 [[package]]
 name = "ew-schema"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-ids",
  "ew-mltext",
@@ -713,7 +713,7 @@ dependencies = [
 
 [[package]]
 name = "ew-script"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-commands",
  "ew-hack",
@@ -722,7 +722,7 @@ dependencies = [
 
 [[package]]
 name = "ew-sqlview"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-checks",
  "ew-derive",
@@ -735,14 +735,14 @@ dependencies = [
 
 [[package]]
 name = "ew-step-proto"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-units",
 ]
 
 [[package]]
 name = "ew-store"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-format",
  "ew-hack",
@@ -754,7 +754,7 @@ dependencies = [
 
 [[package]]
 name = "ew-testkit"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-hack",
  "ew-ids",
@@ -770,7 +770,7 @@ dependencies = [
 
 [[package]]
 name = "ew-text"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-dl",
  "ew-hack",
@@ -783,14 +783,14 @@ dependencies = [
 
 [[package]]
 name = "ew-units"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "ew-viewmodel"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-api",
  "ew-hack",
@@ -802,7 +802,7 @@ dependencies = [
 
 [[package]]
 name = "ew-zip"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ew-hack",
  "miniz_oxide 0.8.9",

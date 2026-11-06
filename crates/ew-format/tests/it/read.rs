@@ -505,7 +505,8 @@ fn an_old_revisions_file_loads_typed_and_is_rewritten_canonically() {
 /// WP-S1.18 part 1 (RL-1): a line written while the release record and the sign-off were untyped members (in
 /// `extra`, byte-wise order) loads into the typed members, partial payloads included, without a finding and without a
 /// rewrite: it is already canonical and writes back byte for byte. With `purpose` (still untyped, sorting before
-/// them) it loads with the same values and is rewritten canonically, `purpose` last. A revision line that does not
+/// them) it loads with the same values and its line is kept as a later minor wrote it, `purpose` last only in the
+/// canonical line of an edit (ADR-0011 amendment 1, WP-S6.08 D24). A revision line that does not
 /// parse (a page note as a bare page ID, which no writer produced) is quarantined verbatim with EW-CORE-007, never
 /// dropped.
 #[test]
@@ -538,7 +539,9 @@ fn revision_members_typed_in_part_1_load_from_an_older_line_and_a_broken_line_is
         "{:?}",
         loaded.findings
     );
-    assert!(loaded.rewrite.contains(&p("revisions.jsonl")));
+    assert!(loaded.rewrite.is_empty(), "{:?}", loaded.rewrite);
+    assert_eq!(loaded.kept.len(), 1);
+    assert_eq!(loaded.kept[0].text, with_purpose.as_bytes());
     assert_eq!(
         record_line(&loaded.records[0]).unwrap(),
         r#"{"$k":"revision","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","state":"released","sign_off":{"checker":"checker"},"purpose":"approval"}"#

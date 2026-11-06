@@ -12,7 +12,7 @@ use serde_json::Value;
 use crate::finding::{Finding, FindingKind, Findings};
 use crate::layout::RecordAnchors;
 use crate::limits::Limits;
-use crate::line::jsonl_file;
+use crate::line::{jsonl_file, later_minor_line};
 use crate::manifest::{FileHash, Manifest, sha256};
 use crate::merge::{merge_record, no_base, record_key, within_limits};
 use crate::migrate::{Migration, MigrationError};
@@ -166,9 +166,10 @@ pub enum Kept {
     /// A record of an unknown or reserved kind (doc 05 §10.3): its [`Record::Unknown`] is also in
     /// [`Loaded::records`]; the writer keeps the line in this file, in its sort position.
     UnknownKind,
-    /// A record of a known kind with a malformed variant (EW-CORE-017), whose record is also in
-    /// [`Loaded::records`]: written verbatim while the model's record equals `original`, rewritten in
-    /// canonical form once it changes (doc 05 §10.3, ADR-0011 amendment 2).
+    /// A record of a known kind with a malformed variant (EW-CORE-017), or one whose line a later minor wrote with
+    /// members this reader does not know (ADR-0011 amendment 1), whose record is also in [`Loaded::records`]: written verbatim while the
+    /// model's record equals `original`, rewritten in canonical form once it changes (doc 05 §10.3, ADR-0011
+    /// amendment 2).
     Untouched {
         /// The record as loaded.
         original: Box<Record>,
@@ -917,7 +918,8 @@ impl<'a> Loader<'a> {
         st.migrated |= migrated;
         let base_key = LineKey::of_value(&value);
         let quarantine_key = base_key.clone().with_seq(n as u64);
-        if ew_schema::normalize_nfc(&mut value) {
+        let normalised = ew_schema::normalize_nfc(&mut value);
+        if normalised {
             st.non_canonical = true;
         }
         // A line kept verbatim keeps its migrated value's text (ID-1221 ruling 2), never its old one.
@@ -931,7 +933,7 @@ impl<'a> Loader<'a> {
         // A waiver that fails its typing (no `reason`, a timestamp in `date`) waives nothing: the finding names it so
         // the dead waiver is seen (doc 15 §2.5, EW-CORE-081 cannot report a waiver it never reads).
         let waiver = value.get("$k").and_then(Value::as_str) == Some("waiver");
-        let (record, malformed) = match Record::load(value) {
+        let (record, malformed, extra) = match Record::load_noting_extra(value) {
             Ok(loaded) => loaded,
             Err(e) => {
                 let message = if waiver {
@@ -1014,7 +1016,17 @@ impl<'a> Loader<'a> {
             }
             Some(Kept::UnknownKind)
         } else if malformed.is_empty() {
-            None
+            // ADR-0011 amendment 1 (WP-S6.08 D24): a record with members this reader does not know keeps its line as a
+            // later minor wrote it while it is untouched; a line its own reader would not write (its known members out
+            // of order, migrated, normalised) is rewritten canonically.
+            let later = !extra.is_empty()
+                && !migrated
+                && !normalised
+                && crate::record_line(&record)
+                    .is_ok_and(|canonical| later_minor_line(text, &canonical, &extra));
+            later.then(|| Kept::Untouched {
+                original: Box::new(record.clone()),
+            })
         } else {
             Some(Kept::Untouched {
                 original: Box::new(record.clone()),

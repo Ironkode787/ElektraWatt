@@ -128,3 +128,24 @@ fn an_import_is_written_with_its_run_and_reproducibly() {
     reopened.close();
     assert_eq!(std::fs::read(a.join(runs[0])).unwrap(), fa[runs[0]]);
 }
+
+/// FT-1489 (WP-S6.08 D19): the project `ew import qet --out` writes reports whether its manifest is marked `unstable`:
+/// with a released list that lacks this build's format it is, with the format released it is not.
+#[test]
+fn an_imported_project_reports_an_unreleased_format() {
+    static OLDER: [&str; 1] = ["0.0"];
+    static THIS: [&str; 1] = [ew_api::FORMAT];
+    let root = Dir(ew_testdir::fresh_dir("ew-api-import-unreleased"));
+    std::fs::create_dir_all(&root.0).unwrap();
+    for (n, (released, marked)) in [(&OLDER[..], true), (&THIS[..], false)].into_iter().enumerate() {
+        let out = root.0.join(format!("p{n}.ew"));
+        let mut options = store();
+        options.released = released;
+        assert_eq!(
+            create_project_from(imported_session(7), &out, options).unwrap(),
+            marked
+        );
+        let manifest = std::fs::read_to_string(out.join("manifest.json")).unwrap();
+        assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
+    }
+}

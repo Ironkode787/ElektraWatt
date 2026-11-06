@@ -20,15 +20,21 @@ and its migration.
 A tag `v<X.Y.Z>-rc.<n>` builds a **draft prerelease** of that name that holds every release file. Nothing is public
 until the go: then a dispatch of the same workflow publishes the candidate's own files, byte for byte, as `v<X.Y.Z>`.
 No final tag is built again and no pushed tag is ever moved or deleted: a tag on a public repository is public at once,
-and a rebuild would not give the same bytes (builds are not reproducible before 1.0). A blocker is fixed on `main` and
-the next candidate, `-rc.<n+1>`, is cut.
+and a rebuild would not give the same bytes (builds are not reproducible before 1.0). A blocker is fixed on the release
+branch and the next candidate, `-rc.<n+1>`, is cut.
+
+**The release branch** (ID-1412). A minor release `X.Y` is cut from its own branch `release/<X.Y>`, branched from the
+working branch at the delivery that starts the release: the version, the notes, the candidates' commits and their
+fixes are on it, and only candidate fixes land there. The promote is dispatched from `main` (the environment `release`
+allows `main` and `v*` tags) and publishes the candidate's own files; no job requires the tagged commit to be on
+`main`.
 
 The release files of 0.1.0 are the x86_64 CLI archives (`ew-<X.Y.Z>-x86_64-pc-windows-msvc.zip`,
-`ew-<X.Y.Z>-x86_64-unknown-linux-gnu.tar.gz`), the SBOM of every artefact (`<artefact>.cdx.json`: the two archives,
-`ElektraWatt-<X.Y.Z>-x64-user-setup.exe` and `ElektraWatt-<X.Y.Z>-x86_64.AppImage`) and `SHA256SUMS` over them. The
-setup and the AppImage join when ID-476's distribution hold lifts (WP-S6.06 §13 O1); the best-effort aarch64 archives
-are not release files at 0.1.0. Nothing is signed at 0.1.0 (ID-1187): no signed tag, no Authenticode, no signed
-`SHA256SUMS`.
+`ew-<X.Y.Z>-x86_64-unknown-linux-gnu.tar.gz`), the per-user Windows setup (`ElektraWatt-<X.Y.Z>-x64-user-setup.exe`)
+and the Linux AppImage (`ElektraWatt-<X.Y.Z>-x86_64.AppImage`), the SBOM of each of the four (`<artefact>.cdx.json`)
+and `SHA256SUMS` over them: nine files. ID-476's distribution hold is lifted for the release (ID-1331 (2)); the
+best-effort aarch64 archives are not release files at 0.1.0. Nothing is signed at 0.1.0 (ID-1187): no signed tag, no
+Authenticode, no signed `SHA256SUMS`.
 
 ## 2. Before the first candidate: the repository's settings
 
@@ -45,12 +51,12 @@ These are the owner's (WP-S6.07 §13 O1). Check each before the first tag:
 
 ## 3. Before the tag
 
-1. The version: `[workspace.package].version` of `Cargo.toml` is `X.Y.Z`, merged on `main`.
+1. The version: `[workspace.package].version` of `Cargo.toml` is `X.Y.Z`, on the release branch `release/<X.Y>`.
 2. The release notes: `docs/release-notes/<X.Y.Z>.md`, with the changes, the format, CLI and API changes (RC-08) and
-   the notices of the AppImage's runtime (NFR-LIC-04's amendment), merged on `main`.
-3. `ci.yml` has a green run on the commit to be tagged (the push to `main` starts it).
-4. The deep nightly runs on that commit and is green: `gh workflow run deep-nightly.yml --ref main` while `main` is
-   that commit, then wait for its result. `perf.yml` is report-only and not asked (owner's rule).
+   the notices of the AppImage's runtime (NFR-LIC-04's amendment), on the release branch.
+3. `ci.yml` has a green run on the commit to be tagged (the push to `release/<X.Y>` starts it).
+4. The deep nightly runs on that commit and is green: `gh workflow run deep-nightly.yml --ref release/<X.Y>` while the
+   release branch is that commit, then wait for its result. `perf.yml` is report-only and not asked (owner's rule).
 5. The settings of §2 hold.
 
 The workflow's `verify` job refuses the candidate when one of 1 to 4 does not hold, with one of these texts:
@@ -67,9 +73,9 @@ git push origin v<X.Y.Z>-rc.<n>
 The push starts `release.yml`: `verify`, then `package` (WP-S6.06's packaging with `upload: true`: the
 `cargo auditable` builds, the release checks, the SBOMs, the install tests, the advisory and canary checks), `sums`
 (`SHA256SUMS`), `attest` (the build provenance of every file, `SHA256SUMS` included) and `release` (the draft
-prerelease, its files downloaded back and verified with `sha256sum -c SHA256SUMS` and `gh attestation verify`). No tag
-is pushed while ID-476's hold stands. The first candidate is the first run of the tag half (RP-3's tag half and RP-4 to
-RP-6 of WP-S6.07 are proven there, by WP-S6.08); the per-artefact checks run every night in `package.yml`.
+prerelease, its files downloaded back and verified with `sha256sum -c SHA256SUMS` and `gh attestation verify`). The
+first candidate is the first run of the tag half (RP-3's tag half and RP-4 to RP-6 of WP-S6.07 are proven there, by
+WP-S6.08); the per-artefact checks run every night in `package.yml`.
 
 ## 5. Reading the draft
 
@@ -107,8 +113,9 @@ once more. The draft stays as the record of the candidate.
 
 ## 8. A blocker
 
-Fix it on `main` through the usual pull request, then cut the next candidate, `v<X.Y.Z>-rc.<n+1>`, from §3. Leave
-the earlier candidate's tag and draft as they are: they record what was tested.
+Fix it on the release branch `release/<X.Y>`, then cherry-pick the fix onto the working branch, so that the next
+release has it too (ID-1412); then cut the next candidate, `v<X.Y.Z>-rc.<n+1>`, from §3. Leave the earlier candidate's
+tag and draft as they are: they record what was tested.
 
 ## 9. How a user verifies a download
 

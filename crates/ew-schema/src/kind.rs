@@ -603,9 +603,9 @@ pub const MERGE_STRATEGIES: &[MergeRule] = &[
     },
 ];
 
-/// The formats released so far, oldest first (doc 05 §10.4). Empty until the first release, when WP-S6.08 adds
-/// `"0.1"`; from then on a build whose [`FORMAT`] is not in it writes `unstable: true` (WP-S1.17 part 3).
-pub const RELEASED_FORMATS: &[&str] = &[];
+/// The formats released so far, oldest first (doc 05 §10.4). WP-S6.08 added `"0.1"` with the first release, 0.1.0
+/// (D13); from then on a build whose [`FORMAT`] is not in it writes `unstable: true` (WP-S1.17 part 3).
+pub const RELEASED_FORMATS: &[&str] = &["0.1"];
 
 /// The kind registry (doc 05 §2.2) as an API: rank, ownership rule, anchor and schema version.
 ///

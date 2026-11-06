@@ -1,0 +1,41 @@
+{
+  "$k": "symbol",
+  "id": "a144580f-c57c-54d2-903b-a7432c37733a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "5327420e-e5f7-5001-b9ef-476eb75b4219",
+  "version": "0.1.0",
+  "sha256": "sha256:9a08f8ec6275566fc4228a3336648135967cbc834e4ecfa6fc33b9d767e9a962",
+  "meta": {
+    "key": "ew.iec.terminal-pe@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": ["ew.original"],
+    "status": "draft"
+  },
+  "name": {"en": "Terminal, protective earth"},
+  "keywords": ["earth", "pe", "terminal"],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "3577cf46-1065-5c1e-a32d-50d8bf78b147",
+    "version_req": "^0.1",
+    "key": "ew.fn.terminal-pe"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "graphics": [
+    {"line": {"from": [0, -2645833], "to": [0, -661458], "stroke": {"pen": {"width": 264583}}}},
+    {"circle": {"centre": [0, 0], "r": 661458, "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [0, 661458], "to": [0, 2645833], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [661458, 0], "to": [1984375, 0], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [1984375, -992187], "to": [1984375, 992187], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [2645833, -661458], "to": [2645833, 661458], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [3307292, -330729], "to": [3307292, 330729], "stroke": {"pen": {"width": 264583}}}}
+  ],
+  "cps": [
+    {"idx": 0, "fn_cp": 0, "pos": [0, 2645833], "dir": "down"},
+    {"idx": 1, "fn_cp": 1, "pos": [0, -2645833], "dir": "up"}
+  ],
+  "text_slots": [
+    {"kind": "tag", "pos": [-1984375, 0], "align": "middle_right", "visible": true},
+    {"kind": "function_text", "pos": [4630208, 0], "align": "middle_left", "visible": true}
+  ],
+  "arrangements": [{"name": "full", "slots": [0, 1]}, {"name": "tag", "slots": [0]}]
+}

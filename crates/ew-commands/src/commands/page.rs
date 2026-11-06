@@ -498,6 +498,21 @@ impl Command for RenumberPages {
             };
             new_numbers.push((p.id, new));
         }
+        // FT-1511 (WP-S6.08 D27): a new folio stays inside its section's folio range, as `page.create` keeps it.
+        for (p, &(_, new)) in scope.iter().zip(&new_numbers) {
+            if let Some(s) = p.folio.section.and_then(|s| tx.get::<Section>(s)) {
+                let (first, last) = s.folio_range;
+                if new < first || new > last {
+                    return tx.reject(text!(
+                        "refusal-page-renumber-outside-section",
+                        new.to_string(),
+                        s.number.to_string(),
+                        first.to_string(),
+                        last.to_string()
+                    ));
+                }
+            }
+        }
         // The folios of the pages outside the renumbered ones, indexed once: a new number clashes when a
         // page outside the scope holds the same (section, number, label).
         let in_scope: BTreeSet<Id<Page>> = scope.iter().map(|p| p.id).collect();

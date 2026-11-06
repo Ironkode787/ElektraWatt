@@ -1476,7 +1476,8 @@ impl std::error::Error for CreateError {}
 
 /// Writes `batch` as a new project (generation 1) into `out`, which must not exist or be an empty directory: the
 /// project is written into a new sibling directory and renamed to `out` once complete, so `out` never holds a part of
-/// a project. The project is not journalled and its lock is released afterwards.
+/// a project. The project is not journalled and its lock is released afterwards. Returns whether the manifest written is
+/// marked `unstable` (an unreleased format: the CLI warns, FT-1489).
 ///
 /// # Errors
 ///
@@ -1486,14 +1487,15 @@ pub fn create_project(
     batch: &ImportBatch,
     out: &Path,
     store: crate::StoreOptions,
-) -> Result<(), CreateError> {
+) -> Result<bool, CreateError> {
     let empty_dir = target_state(out)?;
     let session = session_from_batch(batch, SessionOptions::default()).map_err(CreateError::Model)?;
     write_new(session, out, empty_dir, store)
 }
 
 /// Writes `session` as a new project into `out` under [`create_project`]'s rule (`ew import qet --out`, WP-S3.09 D8):
-/// `out` absent or empty, the project written into a sibling directory and renamed when complete.
+/// `out` absent or empty, the project written into a sibling directory and renamed when complete. Returns whether the
+/// manifest written is marked `unstable`, as [`create_project`].
 ///
 /// # Errors
 ///
@@ -1502,7 +1504,7 @@ pub fn create_project_from(
     session: Session,
     out: &Path,
     store: crate::StoreOptions,
-) -> Result<(), CreateError> {
+) -> Result<bool, CreateError> {
     let empty_dir = target_state(out)?;
     write_new(session, out, empty_dir, store)
 }
@@ -1541,7 +1543,7 @@ fn write_new(
     out: &Path,
     empty_dir: bool,
     mut store: crate::StoreOptions,
-) -> Result<(), CreateError> {
+) -> Result<bool, CreateError> {
     let Some(name) = out.file_name() else {
         return Err(CreateError::NotEmpty(out.to_path_buf()));
     };
@@ -1562,13 +1564,14 @@ fn write_new(
     store.state_dir = None;
     let written = match session.create(&temp, store) {
         Ok(()) => {
+            let unstable = session.store().is_some_and(ew_store::Store::writes_unstable);
             session.close();
             let moved = if empty_dir {
                 std::fs::remove_dir(out).and_then(|()| std::fs::rename(&temp, out))
             } else {
                 std::fs::rename(&temp, out)
             };
-            moved.map_err(|e| write_err(e.to_string()))
+            moved.map(|()| unstable).map_err(|e| write_err(e.to_string()))
         }
         Err(e) => {
             session.close();

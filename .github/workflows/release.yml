@@ -13,8 +13,8 @@
 # - `package` (CI-R-03, CI-R-05, CI-R-07, CI-R-09, CI-R-10): package.yml through workflow_call with `version: X.Y.Z`
 #   and `upload: true`; it builds with `cargo auditable`, checks the binaries, writes each artefact's SBOM and runs
 #   the install tests in the jobs that hold the bytes, as it does every night.
-# - `sums` (CI-R-06, D8): the release files of the run (the x86_64 CLI archives and every artefact's SBOM, ID-1313)
-#   and `SHA256SUMS` over them, unsigned at 0.1.0.
+# - `sums` (CI-R-06, D8): the release files of the run (the x86_64 CLI archives, the setup and the AppImage, and every
+#   artefact's SBOM; ID-1313, ID-1331 (2)) and `SHA256SUMS` over them, unsigned at 0.1.0.
 # - `attest` (CI-R-08, D10): GitHub's build provenance over every release file, `SHA256SUMS` included, signed with
 #   the run's OIDC token (`id-token: write`, `attestations: write`).
 # - `release` (CI-R-11, D13): the draft prerelease `v<X.Y.Z>-rc.<n>` with the release notes and every file, then the
@@ -24,8 +24,9 @@
 # `v<X.Y.Z>` (latest) on the candidate's commit; with `dry: true` (the default) it prints what it would publish and
 # changes nothing. The draft stays as the record of the candidate.
 #
-# ID-476's hold: `package`'s `upload: true` carries the installers once the hold lifts (WP-S6.06 §13 O1); until then
-# no tag is pushed. The GitHub settings (the `release` environment and its deployment rule, the tag ruleset,
+# ID-476's hold is lifted for the release (ID-1331 (2), WP-S6.08 D26): `package`'s `upload: true` carries the setup and
+# the AppImage into the release files. The candidate may come from a release branch `release/<X.Y>` (ID-1412): no job
+# requires the tagged commit to be on `main`, and the promote is dispatched from `main`. The GitHub settings (the `release` environment and its deployment rule, the tag ruleset,
 # immutable releases, the read-only default token) are the owner's, set before the first candidate (WP-S6.07 §13 O1).
 #
 # Hardening (doc 18 §5.4, NFR-SEC-19): top-level `contents: read`; `attest` and `release` are the only jobs with a
@@ -106,7 +107,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # The x86_64 archives and their SBOMs, and the installers' SBOMs; not the aarch64 archives (ID-1313).
+      # The x86_64 archives, the setup and the AppImage, and their SBOMs; not the aarch64 archives (ID-1313, ID-1331).
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: ew-${{ needs.verify.outputs.version }}-x86_64-*

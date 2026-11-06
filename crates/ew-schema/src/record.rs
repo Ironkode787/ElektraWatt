@@ -15,7 +15,7 @@ use crate::kind::{FileRule, Kind};
 use crate::library::{
     FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, PlcProfileDef, SymbolDef,
 };
-use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, with_context};
+use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, read_extra, with_context};
 use crate::value::Endpoint;
 use crate::{
     Bond, Carrier, CarrierRef, Channel, Conductor, Connection, Device, DeviceLink, Enclosure, ExternalRef,
@@ -449,8 +449,28 @@ impl Record {
     /// assert_eq!(serde_json::to_string(&record).unwrap(), line);
     /// ```
     pub fn load(value: Value) -> Result<(Record, Vec<MalformedVariant>), SchemaError> {
-        let (result, malformed) = with_context(true, || Record::read(value));
-        result.map(|r| (r, malformed))
+        Record::load_noting_extra(value).map(|(r, malformed, _)| (r, malformed))
+    }
+
+    /// [`Record::load`], and also the JSON Pointer of each member the record keeps in an `extra` map, at any depth: a
+    /// member this reader does not know (a later additive release's, or a plugin key). The format reader keeps the
+    /// original line of a record that holds one while the record is untouched (ADR-0011 amendment 1).
+    ///
+    /// ```
+    /// use ew_schema::{Record, parse_value};
+    ///
+    /// let line = r#"{"$k":"section","id":"1d6f3a92-7c05-5b8e-94a1-e3c2087f5d19","number":1,"folio_range":[1,99]}"#;
+    /// let (_, _, extra) = Record::load_noting_extra(parse_value(line).unwrap()).unwrap();
+    /// assert!(extra.is_empty());
+    /// let later = line.replace("]}", "],\"zeta\":1}");
+    /// let (_, _, extra) = Record::load_noting_extra(parse_value(&later).unwrap()).unwrap();
+    /// assert_eq!(extra, ["/zeta"]);
+    /// ```
+    pub fn load_noting_extra(
+        value: Value,
+    ) -> Result<(Record, Vec<MalformedVariant>, Vec<String>), SchemaError> {
+        let (result, malformed) = with_context(true, || Record::read(value).map(|r| (r, read_extra())));
+        result.map(|(r, extra)| (r, malformed, extra))
     }
 
     /// Checks that the record's serialisation has no repeated member name, which happens when an

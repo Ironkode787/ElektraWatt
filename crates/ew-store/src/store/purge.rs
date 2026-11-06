@@ -263,6 +263,12 @@ impl Store {
                 }
             }
         }
+        // An untouched record's line, written as it was read (WP-S6.08 D24), decoded too.
+        for (line, _) in self.untouched.values() {
+            if let Ok(value) = serde_json::from_slice::<serde_json::Value>(line) {
+                sha256_mentions(value.to_string().as_bytes(), &mut named);
+            }
+        }
         // The actual hash of each candidate's bytes now: an asset file rewritten behind the manifest's back is
         // not the asset of its name any more and is left alone.
         let mut actual: BTreeMap<String, [u8; 32]> = BTreeMap::new();

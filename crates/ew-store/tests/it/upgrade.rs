@@ -285,6 +285,26 @@ fn the_consent_changes_nothing_for_a_read_only_or_current_store() {
     store.close();
 }
 
+/// FT-1489 (WP-S6.08 D19): `Store::create` reports the marker as a save does: `writes_unstable` says what the manifest
+/// it wrote holds, by the released list.
+#[test]
+fn a_created_project_reports_its_unstable_marker() {
+    static RELEASED_OLDER: [&str; 1] = ["0.0"];
+    static RELEASED_THIS: [&str; 1] = [FORMAT];
+    for (released, marked) in [(&RELEASED_THIS[..], false), (&RELEASED_OLDER[..], true)] {
+        let (vfs, root) = mem_of(current_files());
+        let Opened { store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
+        store.close();
+        let target = PathBuf::from("/copy.ew");
+        let mut o = options(&vfs, 2);
+        o.released = released;
+        let created = Store::create(&target, &model, o).expect("creates");
+        assert_eq!(created.writes_unstable(), marked, "{released:?}");
+        assert_eq!(manifest_on(&vfs, &target).unstable, marked, "{released:?}");
+        created.close();
+    }
+}
+
 /// SG-1's `unstable` clauses (ruling 7): nothing is marked while no format is released; with an injected released list
 /// that does not hold the format written, the save marks the manifest; a reader of that unreleased format opens it
 /// read-write and a released one read-only.
@@ -310,7 +330,10 @@ fn the_unstable_marker_follows_the_released_list() {
         if !marked {
             continue;
         }
-        let Opened { store, report, .. } = Store::open(&root, options(&vfs, 2)).expect("reopens");
+        // The unreleased reader is a development build: no release build, whatever this build's list holds.
+        let mut o = options(&vfs, 2);
+        o.release_build = false;
+        let Opened { store, report, .. } = Store::open(&root, o).expect("reopens");
         assert_eq!(
             report.access,
             Access::Edit,

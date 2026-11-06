@@ -2773,6 +2773,16 @@ impl Store {
         self.generation
     }
 
+    /// Whether this store's saves mark the `manifest.json` they write `unstable` (an unreleased format, WP-S1.17 D3):
+    /// what [`SaveReport::unstable`] says of a save that writes one, and so of the manifest [`Store::create`] wrote. The
+    /// front ends warn on every such write (FT-1489, WP-S6.08 D19).
+    pub fn writes_unstable(&self) -> bool {
+        unstable_flag(
+            self.manifest.as_ref().filter(|_| self.keep_format),
+            self.opts.released,
+        )
+    }
+
     /// The manifest of the generation on disk: the one opened or the one the last save wrote (`None`: the project has
     /// no usable manifest yet; the next save writes one). The content digest of a sign-off is computed from it
     /// ([`ew_format::content_digest`], doc 15 §5.4).

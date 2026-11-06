@@ -28,7 +28,7 @@ sha2 = { workspace = true }
 # The as-built archive's container (WP-S1.18 D11): the own deterministic ZIP writer and reader, re-exported as `zip`
 # (decision log ID-827, ID-1145); no ZIP crate.
 ew-zip = { path = "../ew-zip" }
-ew-hack = { version = "0.0.0", path = "../ew-hack" }
+ew-hack = { version = "0.1.0", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true

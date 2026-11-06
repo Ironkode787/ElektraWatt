@@ -38,7 +38,7 @@ ew-rds = { path = "../ew-rds" }
 ew-import-tables = { path = "../ew-import-tables" }
 serde = { workspace = true }
 serde_json = "1.0.154"
-ew-hack = { version = "0.0.0", path = "../ew-hack" }
+ew-hack = { version = "0.1.0", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true

@@ -131,6 +131,9 @@ pub struct Released {
     /// Whether the stamp's save passed its commit point but did not complete: generation g+1 is decided and completes
     /// by roll-forward ([`Session::retry_save`], or the next open).
     pub save_incomplete: bool,
+    /// Whether the manifests the release wrote are marked `unstable` (an unreleased format): the front ends warn
+    /// (FT-1489, WP-S6.08 D19).
+    pub unstable: bool,
 }
 
 /// An archive that a crashed release left: complete, in place, and named by no release record (doc 05 §14.1 "On
@@ -1077,6 +1080,7 @@ impl Session {
             sha256,
             git: committed.zip(tag),
             save_incomplete,
+            unstable: self.store().is_some_and(|s| s.writes_unstable()),
         })
     }
 
@@ -1703,6 +1707,7 @@ impl Session {
             sha256: found.sha256,
             git: git_done,
             save_incomplete,
+            unstable: self.store().is_some_and(|s| s.writes_unstable()),
         })
     }
 

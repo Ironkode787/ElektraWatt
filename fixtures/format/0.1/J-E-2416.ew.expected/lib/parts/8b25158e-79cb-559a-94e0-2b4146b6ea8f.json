@@ -1,0 +1,17 @@
+{
+  "$k": "part",
+  "id": "8b25158e-79cb-559a-94e0-2b4146b6ea8f",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "feba1841-26ff-5a6a-91d5-39fb01ea5bd2",
+  "version": "1.0.0",
+  "sha256": "sha256:c2c58ead1043927b7518720f0482afd3c9c21469956c65348f5f1cbf12152656",
+  "meta": {"key": "SK 3102.000", "licence": "CC0-1.0", "sources": ["golden.table:parts|SK 3102.000"]},
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "a3b0f9a2-b3bc-54eb-ac08-9ece5bda07e5",
+    "version_req": "*"
+  },
+  "part_number": "SK 3102.000",
+  "description": "Enclosure heater",
+  "mech": {"width": 50000000, "height": 120000000, "depth": 45000000, "mount_kind": "screw"}
+}

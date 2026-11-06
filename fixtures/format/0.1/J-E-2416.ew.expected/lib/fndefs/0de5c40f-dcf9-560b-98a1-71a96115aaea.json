@@ -1,0 +1,12 @@
+{
+  "$k": "fndef",
+  "id": "0de5c40f-dcf9-560b-98a1-71a96115aaea",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "71f84e74-578d-5835-9a77-cfdaf8057ecd",
+  "version": "0.1.0",
+  "sha256": "sha256:3ab093ba774e84e93de4452d59422ac3b5a7b91b7c1fc8ba334f1133f3762ef3",
+  "meta": {"key": "ew.fn.ip", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "category": ["InterruptionPoint", "Ip", "Point"],
+  "contact_kind": "terminal",
+  "cps": [{"idx": 0, "designation": "1"}]
+}

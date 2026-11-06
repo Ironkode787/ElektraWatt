@@ -522,9 +522,10 @@ fn run_states(
     step(
         session,
         "9 page.renumber",
+        // Section 1's pages, inside its folios 100 to 199 (FT-1511, WP-S6.08 D27).
         &by(vec![cmd(
             "page.renumber",
-            json!({"scope": "project", "start": 1000, "step": 3}),
+            json!({"scope": {"section": "4fedea58-1889-5ba9-aeb8-8ab28ffe9e89"}, "start": 110, "step": 3}),
         )]),
     );
     step(session, "10 tag counter", &by(targets.counter.clone()));
