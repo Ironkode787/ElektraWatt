@@ -55,8 +55,10 @@
 # ID-476's hold: no binary that links the UI graph leaves its job. With `upload: false` (the nightly, a dispatch, and
 # every call but WP-S6.07's release) a job uploads only its CLI archive and the SBOMs of its artefacts, as the nightly
 # artefact `ew-<os>-<arch>-unsigned-dev-<short sha>` for 90 days, and its reports. `upload: true` uploads the same files
-# under the CLI archive's release name for one day; the installers join it once the hold lifts (§13 O1), so the setup
-# and the AppImage are built and tested but never leave their jobs yet (their SBOMs do: an SBOM is no binary, ID-1313).
+# under the CLI archive's release name for one day, and, the hold lifted for the release (ID-1331 (2), WP-S6.08 D26),
+# the setup and the AppImage beside them as `ew-<v>-<target>-setup` and `ew-<v>-<target>-appimage`, which the release's
+# `sums` job collects into the release files; in every other run they are built and tested but never leave their jobs
+# (their SBOMs do: an SBOM is no binary, ID-1313).
 #
 # `<v>`: the `version` input, or `<workspace version>-dev.<short sha>` (D8; a schedule has no inputs, so its version is
 # always the default). It names the archives, the setup, the staged README and the archive's root folder. The programs
@@ -426,6 +428,15 @@ jobs:
             ${{ runner.temp }}/dist/*.cdx.json
           if-no-files-found: error
           retention-days: ${{ env.UPLOAD_DAYS }}
+      # WP-S6.08 D26 (ID-1331 (2), ID-476's hold lifted): with `upload: true` the setup joins the release files, under a
+      # name the release's `sums` job collects with the archive.
+      - if: inputs.upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ew-${{ steps.pins.outputs.version }}-${{ env.TARGET }}-setup
+          path: ${{ runner.temp }}/setup/ElektraWatt-${{ steps.pins.outputs.version }}-x64-user-setup.exe
+          if-no-files-found: error
+          retention-days: 1
 
   # D6, CI-N-12, CI-R-03, CI-R-05 (Linux)
   linux:
@@ -799,6 +810,15 @@ jobs:
             ${{ runner.temp }}/dist/*.cdx.json
           if-no-files-found: error
           retention-days: ${{ env.UPLOAD_DAYS }}
+      # WP-S6.08 D26 (ID-1331 (2), ID-476's hold lifted): with `upload: true` the AppImage joins the release files, under
+      # a name the release's `sums` job collects with the archive.
+      - if: inputs.upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ew-${{ steps.pins.outputs.version }}-${{ env.TARGET }}-appimage
+          path: ${{ runner.temp }}/appimage/${{ env.APPIMAGE }}
+          if-no-files-found: error
+          retention-days: 1
 
   # D14, IN-18 (doc 18 CI-N-04, AC-14; FT-234): the release `ew` writes the same bytes on Windows and Linux, and its
   # PDF is the committed one. It runs wherever the workflow runs: nightly, on dispatch and in the release's call.

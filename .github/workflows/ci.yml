@@ -16,7 +16,8 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main]
+    # A release branch `release/<X.Y>` too: its candidates are tagged there (ID-1412, WP-S6.08 D25).
+    branches: [main, "release/**"]
   workflow_dispatch:
 
 permissions:
