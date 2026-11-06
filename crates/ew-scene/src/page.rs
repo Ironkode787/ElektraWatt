@@ -93,8 +93,8 @@
 //!   texts are fixed obstacles of rule 3 as of rule 2 (FT-701): a technical-data text that overlaps one drops below it.
 //!   (4) A horizontal cross-reference text that a horizontal wire runs through (FT-1436: on folio 101 the "102-A1" of
 //!   L-1 stood across N-1's wire, by N-1's own "102-A1") rises [`SLOT_TEXT_GAP`] above what is in its way, at most
-//!   three times, to the first place the device-tag rule judges free, inside the page's drawing area; without one it
-//!   stays. Printed text order
+//!   three times, to the first place the device-tag rule judges free and that overlaps no other representation's
+//!   symbol body (FT-1519), inside the page's drawing area; without one it stays. Printed text order
 //!   and every other position are unchanged. The rules run after "Black-box captions" and "Device tags" below and
 //!   see those texts where they ended.
 //! - **Black-box captions** (FT-734). A black box's tag, part-number and manufacturer texts without a position or
@@ -1700,12 +1700,14 @@ impl Builder<'_> {
     /// horizontal cross-reference text that a horizontal wire runs through rises [`SLOT_TEXT_GAP`] above what is in
     /// its way, at most [`SLOT_TEXT_DROPS`] times, to the first place the device-tag rule judges free (no wire runs
     /// through it, it overlaps no other text of its own symbol and collides with no text or pin text of another
-    /// representation) inside the page's drawing area; without a free place it stays.
+    /// representation, and overlaps no other representation's symbol body, FT-1519) inside the page's drawing area;
+    /// without a free place it stays.
     fn place_xrefs_off_wires(&self, view: &PageView, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
         if !texts.iter().any(|t| t.xref && t.angle == Angle2::ZERO) {
             return;
         }
         let wires = page_wires(view);
+        let bodies = symbol_bodies(view);
         let area = drawing_area(view);
         let mut boxes: Vec<Option<Rect>> = texts
             .iter()
@@ -1729,7 +1731,12 @@ impl Builder<'_> {
             }
             let entity = entities[i];
             let in_way = |b: Rect, boxes: &[Option<Rect>]| {
-                in_the_way(b, entity, (boxes, &entities), |k| k == i, pins, &wires)
+                with_bodies(
+                    in_the_way(b, entity, (boxes, &entities), |k| k == i, pins, &wires),
+                    b,
+                    entity,
+                    &bodies,
+                )
             };
             let mut b = own;
             let mut found = false;
@@ -2333,6 +2340,46 @@ fn in_the_way(
             out.push((a.y, a.y));
         }
     }
+    Some(out)
+}
+
+/// The outline bounds of each representation's symbol on the page (`symbol::lower(def, orient).bounds` at its
+/// position, as the tag rule reads them), with the representation: the symbol bodies the rise of the cross-reference
+/// texts keeps clear of (FT-1519, ID-1455).
+fn symbol_bodies(view: &PageView) -> Vec<(EntityRef, Rect)> {
+    view.reps
+        .iter()
+        .filter_map(|rv| {
+            let def = rv.symbol.as_ref()?;
+            let b = symbol::lower(def, rv.rep.orient).bounds;
+            let pos = rv.rep.pos;
+            Some((
+                EntityRef(rv.rep.id.as_uuid()),
+                Rect::from_points(
+                    Pt2::new(pos.x + b.min().x, pos.y + b.min().y),
+                    Pt2::new(pos.x + b.max().x, pos.y + b.max().y),
+                ),
+            ))
+        })
+        .collect()
+}
+
+/// [`in_the_way`]'s answer for a place `b` of a text of `entity`, with the vertical extent of each other
+/// representation's symbol body (`bodies`) that the place overlaps added (FT-1519): the rise's free test. Never the
+/// text's own symbol's body; only the rise reads it, not the captions or the tags.
+fn with_bodies(
+    in_way: Option<Vec<(Nm, Nm)>>,
+    b: Rect,
+    entity: EntityRef,
+    bodies: &[(EntityRef, Rect)],
+) -> Option<Vec<(Nm, Nm)>> {
+    let mut out = in_way?;
+    out.extend(
+        bodies
+            .iter()
+            .filter(|(e, r)| *e != entity && overlaps(b, *r))
+            .map(|(_, r)| (r.min().y, r.max().y)),
+    );
     Some(out)
 }
 

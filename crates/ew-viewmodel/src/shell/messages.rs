@@ -495,8 +495,12 @@ impl ShellModel {
     // Waive… and Unwaive (FT-674; WP-S2.09, WP-S1.16 D7)
 
     /// The finding row `key` of the Messages pane (default the open Waive prompt's row, else the cursor row) when it
-    /// is a finding in state `state`: (key, rule, fingerprint); else the refusal.
-    fn finding_row(&self, p: &Map<String, Value>, state: &str) -> Result<(String, String, String), Outcome> {
+    /// is a finding in state `state`: (key, rule, fingerprint, subject as printed); else the refusal.
+    fn finding_row(
+        &self,
+        p: &Map<String, Value>,
+        state: &str,
+    ) -> Result<(String, String, String, String), Outcome> {
         let key = match string_param(p, "key")? {
             Some(k) => k.to_owned(),
             None => match self.messages.waive.as_ref().filter(|_| self.in_waive_form()) {
@@ -525,7 +529,7 @@ impl ShellModel {
         if d.waived != (state == "waived") || d.fingerprint.is_empty() {
             return Err(refusal);
         }
-        Ok((key, d.rule, d.fingerprint))
+        Ok((key, d.rule, d.fingerprint, messages::subject(node)))
     }
 
     /// Whether the open dialog is the Waive prompt.
@@ -556,7 +560,7 @@ impl ShellModel {
                 reason_key: key!("reason-human-only"),
             };
         }
-        let (key, rule, fingerprint) = match self.finding_row(p, "open") {
+        let (key, rule, fingerprint, subject) = match self.finding_row(p, "open") {
             Ok(r) => r,
             Err(e) => return e,
         };
@@ -614,11 +618,16 @@ impl ShellModel {
         if date.parse::<ew_api::catalog::Date>().is_err() {
             return self.waive_failed(strings::format(key!("error-missing-param"), &["date"]));
         }
+        let mut params = serde_json::json!({
+            "rule": rule, "fingerprint": fingerprint, "reason": reason, "author": author, "date": date,
+        });
+        // FT-1509: the finding's subject, which the refusal of a finding waived already names.
+        if !subject.is_empty() {
+            params["subject"] = Value::String(subject);
+        }
         let cmd = AnyCommand {
             name: "check.waive".to_owned(),
-            params: serde_json::json!({
-                "rule": rule, "fingerprint": fingerprint, "reason": reason, "author": author, "date": date,
-            }),
+            params,
         };
         let out = self.run_commit(&cmd);
         match out {
@@ -647,7 +656,7 @@ impl ShellModel {
                 reason_key: key!("reason-human-only"),
             };
         }
-        let (_, _, fingerprint) = match self.finding_row(p, "waived") {
+        let (_, _, fingerprint, _) = match self.finding_row(p, "waived") {
             Ok(r) => r,
             Err(e) => return e,
         };

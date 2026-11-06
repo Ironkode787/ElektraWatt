@@ -112,6 +112,8 @@ fn waive_from_the_prompt_commits_one_check_waive_and_unwaive_opens_the_finding_a
     assert_eq!(params["reason"], "Cable length is set on site");
     assert_eq!(params["author"], "A. Engineer");
     assert_eq!(params["date"], DATE);
+    // FT-1509: the finding's subject as the row prints it, which a refusal of a second waiver names.
+    assert_eq!(params["subject"], row.cells[3].as_str());
     assert_eq!(shell.settings().author_name.as_deref(), Some("A. Engineer"));
     assert_eq!(state(&shell, &row.key), "waived");
     assert_eq!(waived(&shell), before + 1);

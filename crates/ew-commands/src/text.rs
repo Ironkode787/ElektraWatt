@@ -258,6 +258,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("refusal-words-kind-label-profile", "a label profile"),
     ("refusal-words-kind-other", "an item"),
     ("refusal-words-copy", "{0} at version {1}"),
+    ("refusal-words-symbol-named", "symbol {0}"),
+    ("refusal-words-macro-named", "macro {0}"),
+    ("refusal-words-manufacturer-named", "manufacturer {0} ({1})"),
+    ("refusal-words-plc-profile-named", "PLC profile {0}"),
     (
         "refusal-geometry-off-grid",
         "{0} at {1} is not on the drawing grid",
@@ -579,6 +583,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     (
         "refusal-check-waive-twice",
         "a waiver of {0} covers this finding already",
+    ),
+    (
+        "refusal-check-waive-twice-subject",
+        "a waiver of {0} for {1} covers this finding already",
     ),
     (
         "refusal-check-waive-rule-id",

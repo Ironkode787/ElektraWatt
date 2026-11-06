@@ -53,7 +53,8 @@ pub enum AssignModeParam {
 /// transaction (modes `replace` and `replace_all` when the device did not use the part before; WP-S4.01 D7,
 /// FR-LAY-007). Otherwise it stays and EW-LAY-003 reports it: a mode that only removes the placed copy (the part was
 /// already used) is a removal, not a replacement (FR-LAY-059); `append` removes no copy; a placement that names no
-/// part (the primary) has nothing to follow.
+/// part (the primary) has nothing to follow. A placed strip whose terminal the change widened pushes the items after
+/// it on its rail, as a growing strip does (FT-1441, FT-1497), in every mode.
 ///
 /// `qty` defaults to 1. Template functions are not matched onto existing functions (D8: part-first placement
 /// does that). Rejected, with the pointer: an empty device list (`/devices`), a device listed twice or that does
@@ -315,6 +316,15 @@ impl Command for AssignPart {
             if self.mode != AssignModeParam::Append && adds_copy {
                 crate::commands::layout::follow_part_change(tx, *d, self.part, &before)?;
             }
+        }
+        // FT-1497 (ID-1455): a strip whose terminal the change widened pushes as a growing strip does (FT-1441).
+        let strips: BTreeSet<Id<Device>> = self
+            .devices
+            .iter()
+            .filter_map(|d| tx.get::<Device>(*d)?.aspects.terminal.as_ref().map(|t| t.strip))
+            .collect();
+        for strip in strips {
+            crate::commands::layout::push_after_growth(tx, strip)?;
         }
         Ok(Outcome::primary((Kind::Device, self.devices[0].cast())))
     }
