@@ -18,6 +18,14 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   the visible value; published library folders are remembered and their symbols appear in Insert on the matching grid
 - api-add: cli ew symbol template, schema, validate, import and publish (portable data-only authoring for
   automation and AI tools, using the editor's validator; no project or library format 0.1 changes or migration)
+- behaviour-change: symbol publication gives each draft its own item identity (UUIDv7s, the optional `identity` of
+  `ew.symbol/1`), refuses a key the library holds for another symbol, keeps an unchanged owned function definition's
+  version and assigns an existing function as compatible (`^version`); a new symbol has no default key, and an
+  import without one takes its file's name (ID-1463)
+- api-add: cli ew symbol publish prints `result` (added, updated or unchanged) and the draft's `identity`
+- behaviour-change: cli ew symbol import --key defaults to the file's name instead of `user.import`
+- behaviour-change: symbol validation refuses unknown members (`symbol-unknown-member`) and points at a connection
+  point by its array position; export no longer needs hard links and syncs its folder
 - api-add: symbol imports from QElectroTech .elmt, EPLAN EDZ/PXF and the supported SLK 1.2/FE53 drawing-table
   subset (SLK requires its sibling .sdb folder but no EPLAN installation; unsupported features produce review
   findings or refusal; binary macros and full EPLAN electrical semantics are not supported)

@@ -689,3 +689,185 @@ fn project_save_confirmation_saves_the_project_with_a_symbol_open() {
         shell.shutdown();
     }
 }
+
+/// A one-pin drawing keyed `key` in a fresh editor.
+fn drawn(shell: &mut ShellModel, key: &str, name: &str) {
+    done(shell, "symbol.new", json!({"key":key,"name":name,"discard":true}));
+    done(
+        shell,
+        "symbol.draw",
+        json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4}),
+    );
+    done(shell, "symbol.cp", json!({"x":0,"y":0,"designation":"1"}));
+}
+
+fn failed(shell: &mut ShellModel, action: &str, params: serde_json::Value) -> String {
+    match shell.dispatch(action, &params) {
+        Outcome::Failed { message } => message,
+        other => panic!("{action}: {other:?}"),
+    }
+}
+
+#[test]
+fn a_second_symbol_saved_on_the_same_key_is_refused_and_the_first_stays() {
+    let tmp = Tmp::new("symbol-same-key");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    let library = json!({"directory":tmp.0.join("symbols.ewlib")});
+    drawn(&mut shell, "example.shared", "First");
+    done(&mut shell, "symbol.save", library.clone());
+    let editor = shell.symbol_editor().unwrap();
+    assert!(editor.draft.identity.is_some() && !editor.dirty());
+    drawn(&mut shell, "example.shared", "Second");
+    let refusal = "Symbol editor: The library already holds a different symbol with the key example.shared. Choose \
+                   another key.";
+    assert_eq!(failed(&mut shell, "symbol.save", library.clone()), refusal);
+    // The version bump that the immutability refusal asks for does not change that.
+    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
+    doc["version"] = json!("1.0.1");
+    done(&mut shell, "symbol.replace", json!({"document":doc}));
+    assert_eq!(failed(&mut shell, "symbol.save", library), refusal);
+    assert!(shell.symbol_editor().unwrap().draft.identity.is_none());
+    done(
+        &mut shell,
+        "symbol.new",
+        json!({"key":"example.next","discard":true}),
+    );
+    let names: Vec<_> = shell
+        .symbol_editor()
+        .unwrap()
+        .sources
+        .iter()
+        .filter(|s| s.key.as_deref() == Some("example.shared"))
+        .map(|s| serde_json::to_value(&s.name).unwrap())
+        .collect();
+    assert_eq!(names, [json!({"en":"First"})]);
+    shell.shutdown();
+}
+
+#[test]
+fn a_new_symbol_has_no_shared_default_key() {
+    let tmp = Tmp::new("symbol-no-default-key");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(&mut shell, "symbol.new", json!({}));
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4}),
+    );
+    assert_eq!(shell.symbol_editor().unwrap().draft.key, "");
+    assert_eq!(
+        failed(
+            &mut shell,
+            "symbol.save",
+            json!({"directory":tmp.0.join("symbols.ewlib")})
+        ),
+        "Symbol editor: Give the symbol a key."
+    );
+    assert_eq!(
+        failed(
+            &mut shell,
+            "symbol.fork",
+            json!({"source":"ew.iec.contact-no","key":"","discard":true})
+        ),
+        "Symbol editor: Give the symbol a key."
+    );
+    // An import without a key takes its file's name.
+    let file = tmp.0.join("contact no.elmt");
+    std::fs::write(
+        &file,
+        include_bytes!("../../../ew-import-qet/tests/fixtures/contact_no.elmt"),
+    )
+    .unwrap();
+    done(&mut shell, "symbol.open", json!({"file":file,"discard":true}));
+    assert_eq!(shell.symbol_editor().unwrap().draft.key, "contact_no");
+    shell.shutdown();
+}
+
+#[test]
+fn an_assigned_function_is_required_as_compatible() {
+    let tmp = Tmp::new("symbol-function-caret");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(
+        &mut shell,
+        "symbol.new",
+        json!({"key":"example.contact","name":"Contact"}),
+    );
+    done(&mut shell, "symbol.function", json!({"key":"ew.fn.contact-no"}));
+    let draft = &shell.symbol_editor().unwrap().draft;
+    let reference = draft.function_ref.as_ref().unwrap();
+    assert!(reference.version_req.starts_with('^'), "{reference:?}");
+    shell.shutdown();
+}
+
+#[test]
+fn saving_without_configured_tiers_keeps_the_index_in_the_settings_folder() {
+    let tmp = Tmp::new("symbol-tiers");
+    let config = tmp.0.join("config");
+    let mut shell = ShellModel::new(Mode::Headless, ShellConfig::in_dir(&config, "0.0.0-test"));
+    drawn(&mut shell, "example.tiers", "Tiers");
+    done(
+        &mut shell,
+        "symbol.save",
+        json!({"directory":tmp.0.join("out").join("symbols.ewlib")}),
+    );
+    assert!(!tmp.0.join("out").join(".symbol-index").exists());
+    assert!(config.join("library-index").is_dir());
+    shell.shutdown();
+    // A library of the user tier opens from it: it is not remembered as a company library.
+    let data = tmp.0.join("data");
+    let tiers =
+        ew_viewmodel::ew_api::library::LibraryTiers::under(&data, &tmp.0.join("cache"), vec![], vec![]);
+    let user = tmp.0.join("user-config");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&user, "0.0.0-test").with_libraries(Some(tiers)),
+    );
+    drawn(&mut shell, "example.user", "User");
+    done(
+        &mut shell,
+        "symbol.save",
+        json!({"directory":data.join("libraries").join("symbols.ewlib")}),
+    );
+    shell.shutdown();
+    let settings = std::fs::read_to_string(user.join("settings.toml")).unwrap_or_default();
+    assert!(!settings.contains("company"), "{settings}");
+}
+
+#[test]
+fn refusals_of_export_and_unknown_members_are_in_words() {
+    let tmp = Tmp::new("symbol-refusals");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    drawn(&mut shell, "example.words", "Words");
+    let file = json!({"file":tmp.0.join("words.symbol.json")});
+    done(&mut shell, "symbol.export", file.clone());
+    assert_eq!(
+        failed(&mut shell, "symbol.export", file),
+        "Symbol editor: A file with this name already exists. Choose another name."
+    );
+    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
+    doc["symbol"]["text_slot"] = json!([]);
+    done(&mut shell, "symbol.replace", json!({"document":doc}));
+    assert_eq!(
+        failed(
+            &mut shell,
+            "symbol.save",
+            json!({"directory":tmp.0.join("symbols.ewlib")})
+        ),
+        "Symbol editor: The symbol has a field this version does not know: text_slot. Remove or rename it before \
+         saving."
+    );
+    assert!(!tmp.0.join("symbols.ewlib").exists());
+    shell.shutdown();
+}

@@ -17,10 +17,12 @@ pub enum SymbolArgs {
     /// Print an array of editable drafts from QET .elmt, EPLAN EDZ/PXF/parts XML, or portable JSON.
     Import {
         file: PathBuf,
-        #[arg(long, default_value = "user.import")]
-        key: String,
+        /// The drafts' key; default: the file's name.
+        #[arg(long)]
+        key: Option<String>,
     },
-    /// Publish a validated draft to a writable .ewlib; create the library when absent.
+    /// Publish a validated draft to a writable .ewlib; create the library when absent. Print whether the symbol was
+    /// added, updated or unchanged, and the draft's identity: keep it in the draft to publish later versions.
     Publish {
         file: PathBuf,
         #[arg(long)]
@@ -55,9 +57,12 @@ fn execute(args: SymbolArgs) -> Result<(serde_json::Value, i32), Box<dyn std::er
                 code,
             )
         }
-        SymbolArgs::Import { file, key } => (serde_json::to_value(symbols::open(&file, &key)?)?, 0),
+        SymbolArgs::Import { file, key } => {
+            let key = key.unwrap_or_else(|| symbols::file_key(&file));
+            (serde_json::to_value(symbols::open(&file, &key)?)?, 0)
+        }
         SymbolArgs::Publish { file, library } => {
-            let d = SymbolDraft::parse(&symbols::read_file(&file)?)?;
+            let mut d = SymbolDraft::parse(&symbols::read_file(&file)?)?;
             let issues = d.validate();
             if !issues.is_empty() {
                 return Ok((
@@ -83,9 +88,18 @@ fn execute(args: SymbolArgs) -> Result<(serde_json::Value, i32), Box<dyn std::er
                     d.symbol.meta.licence.as_deref().unwrap_or(""),
                 )?,
             };
-            d.publish(&mut registry, id)?;
+            let report = d.publish(&mut registry, id)?;
+            let symbol = d.identity.as_ref().map(|i| i.symbol.as_uuid());
+            let result = if report.added.iter().any(|i| Some(*i) == symbol) {
+                "added"
+            } else if report.updated.iter().any(|i| Some(*i) == symbol) {
+                "updated"
+            } else {
+                "unchanged"
+            };
             (
-                json!({"format":"ew.symbol-publication/1","key":d.key,"version":d.version}),
+                json!({"format":"ew.symbol-publication/1","key":d.key,"version":d.version,"result":result,
+                    "identity":d.identity}),
                 0,
             )
         }

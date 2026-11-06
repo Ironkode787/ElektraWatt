@@ -34,8 +34,12 @@ See the [design standard](../../../design/07a-symbol-design-standard.md) for the
 The window remembers that folder. Its symbols appear under **Insert → Symbol**, with the library name;
 the page must use the symbol's connection grid. Already embedded copies stay at their existing version until
 you explicitly update them. Repeated placement keeps the authored outline and pins.
-An assigned existing function definition stays referenced and its semantics cannot be edited in place.
-Increase the version when changing previously published content. **Export draft** writes portable JSON to a
+An assigned existing function definition stays referenced and its semantics cannot be edited in place; any
+later compatible version of it is accepted. A new symbol has no key until you give it one. The first save
+gives the draft its own identity, and later saves of that draft update the same symbol: increase the version
+when changing previously published content. The symbol's own function definition keeps its version while it is
+unchanged. A library that already holds the key for a different symbol refuses the save: choose another key, or
+fork that symbol under its own key to change it. **Export draft** writes portable JSON to a
 new file, including incomplete work; an existing file is never overwritten. Closing an unsaved draft requires
 the explicit **Discard changes** choice. **Test on scratch page** creates a page in the current project and
 uses the symbol's connection grid and places embedded copies there. After closing the editor, project undo removes
@@ -62,9 +66,13 @@ when valid, 1 for validation findings, or 2 for unreadable/malformed input. Impo
 choose one object and save it as a `.symbol.json` file. QET conversion findings are retained in
 `import_details` with their original message, code and source line, so tools can identify each loss. Publication validates again and uses the ordinary library
 writer's lock, version and transaction protections. It does not save the current project.
+Without `--key`, import uses the file's name as the key. Publication prints `result` (`added`, `updated` or
+`unchanged`) and the draft's `identity`; copy that `identity` into the draft file to publish later versions of the
+same symbol. A draft without it is a new symbol, refused (exit 2) when the library holds its key for another one.
+Validation reports a member it does not know as `symbol-unknown-member`, which blocks publication.
 
 The portable envelope uses `format: "ew.symbol/1"`, `key`, `version`, `symbol`, `function`, optional
-`function_ref`, `import_notes`, `import_details` and `import_reviewed`. File coordinates are integer **nanometres**;
+`identity`, `function_ref`, `import_notes`, `import_details` and `import_reviewed`. File coordinates are integer **nanometres**;
 4 mm is `4000000`. A pin has `idx`, `fn_cp`, `pos: [x,y]` and outward `dir`.
 The function's pin with the corresponding `idx` holds its printed `designation`.
 Keep the reference created by the template; the publisher replaces temporary references for owned functions.
@@ -73,8 +81,8 @@ The window and `.ewui` scripts share these actions:
 
 | Action | Parameters |
 |---|---|
-| `symbol.new` | `key`, `name` |
-| `symbol.open` | `file`, optional import `key` |
+| `symbol.new` | optional `key` and `name` |
+| `symbol.open` | `file`, optional import `key` (default: the file's name) |
 | `symbol.candidate` | zero-based `index` from an import package |
 | `symbol.fork` | `source`: embedded copy UUID, `library:<library UUID>:<item UUID>`, or legacy key; new `key` |
 | `symbol.draw` | `tool`, `x`, `y`, optional `x2`, `y2`, `text`, arc `start`/`sweep` in whole degrees |

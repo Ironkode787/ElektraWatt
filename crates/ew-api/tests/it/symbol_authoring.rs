@@ -110,7 +110,7 @@ pub fn block() -> SymbolDraft {
 
 #[test]
 fn six_pin_block_variants_roundtrip_and_canonical_publication() {
-    let d = block();
+    let mut d = block();
     assert_eq!(d.validate(), vec![]);
     for v in 0..8 {
         let g = d.preview(v).unwrap();
@@ -150,13 +150,19 @@ fn off_grid_is_retained_and_blocks_save_while_fine_graphics_are_valid() {
     let mut value = serde_json::to_value(&d).unwrap();
     value["symbol"]["cps"][0]["pos"] = json!([4_500_000, 4_000_000]);
     d = SymbolDraft::parse(&serde_json::to_vec(&value).unwrap()).unwrap();
+    let issues = d.validate();
     assert_eq!(
-        d.validate(),
+        issues,
         vec![symbols::Issue {
             code: "symbol-cp-off-grid",
-            path: "/symbol/cps/1/pos".into(),
+            path: "/symbol/cps/0/pos".into(),
             detail: "1".into()
         }]
+    );
+    // The pointer names the moved pin's position in the draft, not its neighbour's.
+    assert_eq!(
+        serde_json::to_value(&d).unwrap().pointer(&issues[0].path),
+        Some(&json!([4_500_000, 4_000_000]))
     );
     assert!(d.documents(symbols::DRAFT_LIBRARY).is_err());
     assert!(d.preview(0).is_ok());
@@ -172,7 +178,7 @@ fn authored_symbol_closure_is_carried_when_placing_a_part_without_a_template() {
     let library = registry
         .create(&lib, "symbols", "Symbols", "CC-BY-SA-4.0")
         .unwrap();
-    let draft = block();
+    let mut draft = block();
     draft.publish(&mut registry, library).unwrap();
     let docs = draft.documents(library).unwrap();
     let symbol = docs
