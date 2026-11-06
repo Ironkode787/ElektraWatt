@@ -5,8 +5,14 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Symbol design standard
 
-EW authoring profile 1, 2026-11-05. Applies equally to people, AI programs and imported drafts.
-This is an ElektraWatt convention inspired by ECAD practice, not an IEC certification or a copy of a vendor library.
+**Status:** Draft v0.1 · **Date:** 2026-11-05 (2026-11-06, cycle 53: the document set's header and purpose, decision
+log ID-1463) · **Part of:** ElektraWatt design document set
+
+**Purpose.** This document is EW authoring profile 1: the conventions a symbol follows, whoever draws it. It applies
+equally to people in the symbol editor, AI programs and imported drafts, and refines the symbols of
+[07: Symbols, parts and macros](07-symbols-parts-macros.md); its implementation is
+[WP-S2.10](../plan/specs/WP-S2.10-symbol-editor.md). It is an ElektraWatt convention inspired by ECAD practice, not an
+IEC certification or a copy of a vendor library.
 
 | Subject | Required convention |
 |---|---|

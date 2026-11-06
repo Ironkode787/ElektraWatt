@@ -1124,6 +1124,8 @@ fn symbol_editor_name_commits_on_mouse_save_and_new_draft_has_no_stale_text() {
 
 /// The supply-block acceptance is drawn through the window's coordinate controls, then saved and placed.
 /// The source picture stays private; the reusable fixture contains only the generic electrical drawing.
+/// G-M2.5-01 (M25-p3#12): A–H are checked pin by pin; a scratch copy in variant B and the published library symbol are
+/// placed, each as its preview shows it, and both are wired and reported.
 #[test]
 fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
     use ew_ui::ew_viewmodel::shell::Outcome;
@@ -1275,14 +1277,61 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
         serde_json::to_value(&authored.symbol.anchor).unwrap(),
         json!({"named":[0,10_000_000]})
     );
+    // A–H (D4, M25-p3#12): the variant the window shows previews every pin with its index, its function pin, A's
+    // position under the variant's transform and its direction turned with it.
+    use ew_ui::ew_viewmodel::ew_api::symbols::schema::Dir4;
+    use ew_ui::ew_viewmodel::ew_api::symbols::units::{Nm, Orient2, Pt2};
+    let orients = [
+        Orient2::R0,
+        Orient2::R90,
+        Orient2::R180,
+        Orient2::R270,
+        Orient2::M0,
+        Orient2::M90,
+        Orient2::M180,
+        Orient2::M270,
+    ];
+    let unit = |d: &Dir4| {
+        let (x, y) = match d {
+            Dir4::Up => (0, -1),
+            Dir4::Right => (1, 0),
+            Dir4::Down => (0, 1),
+            Dir4::Left => (-1, 0),
+            other => panic!("direction {other:?}"),
+        };
+        Pt2 { x: Nm(x), y: Nm(y) }
+    };
+    let a = authored.preview(0).unwrap();
     for variant in 'A'..='H' {
         d.input(&click(d.find(&format!("Variants {variant}")).unwrap()));
-        assert_eq!(
-            d.shell_mut().symbol_editor().unwrap().variant,
-            variant as u8 - b'A'
-        );
+        let editor = d.shell_mut().symbol_editor().unwrap();
+        let v = variant as u8 - b'A';
+        assert_eq!(editor.variant, v);
+        let shown = editor.draft.preview(editor.variant).unwrap();
+        let o = orients[usize::from(v)];
+        let expected: Vec<_> = a
+            .cps
+            .iter()
+            .map(|c| (c.idx, c.fn_cp, o.apply(c.pos), o.apply(unit(&c.dir))))
+            .collect();
+        let got: Vec<_> = shown
+            .cps
+            .iter()
+            .map(|c| (c.idx, c.fn_cp, c.pos, unit(&c.dir)))
+            .collect();
+        assert_eq!(got, expected, "variant {variant}");
     }
-    d.input(&click(d.find("Variants A").unwrap()));
+    // B, worked by hand: pin 1 at (12, -4) facing up stands at (4, 12) facing right; FE at (60, 12) facing right
+    // stands at (-12, 60) facing down.
+    let b = authored.preview(1).unwrap();
+    let pin = |g: &ew_ui::ew_viewmodel::ew_api::symbols::SymbolGeometry, idx: u16| {
+        let c = g.cps.iter().find(|c| c.idx == idx).unwrap();
+        ((c.pos.x.0, c.pos.y.0), c.dir.clone())
+    };
+    assert_eq!(pin(&b, 1), ((4_000_000, 12_000_000), Dir4::Right));
+    assert_eq!(pin(&b, 6), ((-12_000_000, 60_000_000), Dir4::Down));
+    // The scratch copy is placed as the selected variant B.
+    d.input(&click(d.find("Variants B").unwrap()));
     d.input(&click(d.find("Library").unwrap()));
     enter(
         &mut d,
@@ -1294,11 +1343,76 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
     d.input(&click(d.find("Test on scratch page").unwrap()));
     assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None);
     d.input(&click(d.find("Close editor").unwrap()));
-    // Route from every real pin through the same wire tool used in the main window.
+    // The published library symbol, from the Insert symbol picker as Draw ▸ Place ▸ Symbol… opens it, on the same
+    // scratch page (its grid is the symbol's) below the test copy.
+    {
+        let s = d.shell_mut();
+        assert_eq!(s.dispatch("tool.place", &json!({})), Outcome::Done);
+        let row = s
+            .picker()
+            .unwrap()
+            .catalogue
+            .symbols
+            .iter()
+            .find(|r| r.key.starts_with("library:") && r.name.starts_with("Supply block"))
+            .unwrap_or_else(|| panic!("{:?}", s.picker().unwrap().catalogue))
+            .clone();
+        assert_eq!(s.dispatch("ui.dismiss", &json!({})), Outcome::Done);
+        assert_eq!(
+            s.dispatch("place.pick", &json!({"symbol":row.key,"letter":"U"})),
+            Outcome::Done
+        );
+        let at = s
+            .canvas()
+            .unwrap()
+            .page()
+            .snapper
+            .page_to_sheet((60_000_000, 140_000_000));
+        assert_eq!(
+            s.dispatch(
+                "cursor.set",
+                &json!({"x_mm":at.0 as f64/1_000_000.0,"y_mm":at.1 as f64/1_000_000.0})
+            ),
+            Outcome::Done
+        );
+        assert_eq!(s.dispatch("canvas.activate", &json!({})), Outcome::Done);
+        assert_eq!(s.dispatch("ui.dismiss", &json!({})), Outcome::Done);
+    }
+    // Each placed copy stands as the live preview of its variant shows it: every pin at the insertion point plus its
+    // previewed position (G-M2.5-01).
+    {
+        let tables = &d.shell_mut().canvas().unwrap().page().tables;
+        let placed = |key: &dyn Fn(&str) -> bool| {
+            let rep = tables
+                .reps
+                .iter()
+                .find(|r| key(&r.symbol_key))
+                .unwrap_or_else(|| panic!("{:?}", tables.reps));
+            let mut cps: Vec<_> = tables
+                .cps
+                .iter()
+                .filter(|c| c.rep == rep.id)
+                .map(|c| (c.idx, (c.at.0 - rep.pos.0, c.at.1 - rep.pos.1)))
+                .collect();
+            cps.sort_unstable();
+            (rep.orient, cps)
+        };
+        let previewed = |g: &ew_ui::ew_viewmodel::ew_api::symbols::SymbolGeometry| {
+            let mut cps: Vec<_> = g.cps.iter().map(|c| (c.fn_cp, (c.pos.x.0, c.pos.y.0))).collect();
+            cps.sort_unstable();
+            cps
+        };
+        assert_eq!(
+            placed(&|k| k.starts_with("example.supply-block.test.")),
+            (1, previewed(&b))
+        );
+        assert_eq!(placed(&|k| k == "example.supply-block"), (0, previewed(&a)));
+    }
+    // Route from every real pin of both copies through the same wire tool used in the main window.
     // Page points must be converted to sheet coordinates before setting the cursor.
     use ew_ui::ew_viewmodel::ew_api::geometry::Dir;
     let mut pins = d.shell_mut().canvas().unwrap().page().tables.cps.clone();
-    assert_eq!(pins.len(), 6);
+    assert_eq!(pins.len(), 12);
     pins.sort_by_key(|p| std::cmp::Reverse(p.at.0));
     for pin in pins {
         let s = d.shell_mut();
@@ -1313,10 +1427,11 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
         );
         assert_eq!(s.dispatch("canvas.activate", &json!({})), Outcome::Done);
         assert_eq!(s.tool().state(), "routing", "{}", pin.label);
-        let delta = if pin.dir == Some(Dir::Up) {
-            (0, -12_000_000)
-        } else {
-            (12_000_000, 0)
+        let delta = match pin.dir {
+            Some(Dir::Up) => (0, -12_000_000),
+            Some(Dir::Down) => (0, 12_000_000),
+            Some(Dir::Left) => (-12_000_000, 0),
+            _ => (12_000_000, 0),
         };
         let end = s
             .canvas()
@@ -1358,6 +1473,41 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
         .unwrap();
     let endpoints = reader.query("SELECT cp AS pin FROM (SELECT from_cp AS cp FROM api_v1_wire UNION SELECT to_cp FROM api_v1_wire) WHERE cp <> '' ORDER BY pin").unwrap().to_csv();
     assert_eq!(endpoints, "pin\n1\n2\n3\n4\n5\nFE\n");
+    // The library-linked copy uses the published function definition, and all six of its pins are wired, as are the
+    // test copy's.
+    let functions = reader
+        .query("SELECT fndef FROM api_v1_function WHERE fndef LIKE 'example.supply-block%' AND page_id IS NOT NULL ORDER BY fndef")
+        .unwrap()
+        .to_csv();
+    let functions: Vec<&str> = functions.lines().collect();
+    assert_eq!(functions.len(), 3, "{functions:?}");
+    assert_eq!(functions[..2], ["fndef", "example.supply-block.function"]);
+    assert!(
+        functions[2].starts_with("example.supply-block.test.") && functions[2].ends_with(".function"),
+        "{functions:?}"
+    );
+    let wired = reader
+        .query("SELECT f.fndef LIKE 'example.supply-block.test.%' AS test, e.cp FROM (SELECT from_device_id AS d, from_cp AS cp FROM api_v1_wire UNION SELECT to_device_id, to_cp FROM api_v1_wire) e JOIN api_v1_function f ON f.device_id = e.d WHERE e.cp <> '' ORDER BY test, e.cp")
+        .unwrap()
+        .to_csv();
+    assert_eq!(
+        wired,
+        "test,cp\n0,1\n0,2\n0,3\n0,4\n0,5\n0,FE\n1,1\n1,2\n1,3\n1,4\n1,5\n1,FE\n"
+    );
+    // The blind brief's hard check A2 finds both copies; its scratch-page branch names the scratch page's title.
+    let acceptance = include_str!("../../../../tools/blind/tasks/brief-symbol-editor/acceptance.toml");
+    let a2 = acceptance
+        .split("[[item]]")
+        .find(|item| item.contains("id = \"A2\""))
+        .and_then(|item| item.lines().find_map(|l| l.strip_prefix("query = \"")))
+        .and_then(|q| q.strip_suffix('"'))
+        .unwrap();
+    assert_eq!(reader.query(a2).unwrap().to_csv().lines().count(), 3);
+    let scratch = reader
+        .query("SELECT count(*) AS n FROM api_v1_function f JOIN api_v1_page p ON p.id = f.page_id WHERE p.title = 'Symbol editor' AND f.ip_name IS NULL")
+        .unwrap()
+        .to_csv();
+    assert_eq!(scratch, "n\n2\n");
     // Interruption-point pairs can join two drawn legs into one physical wire.
     assert!(report.rows > 0);
     for pin in ["1", "2", "3", "4", "5", "FE"] {

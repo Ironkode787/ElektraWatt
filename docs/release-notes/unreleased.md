@@ -7,30 +7,24 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-variant`, `text-change`.
 
-- api-add: window Symbol editor (drawing, connection points, function data, text slots, anchors, live A–H
-  previews, library publication and scratch placement; small shape/function icons follow the main ribbon;
-  F1 opens the editor reference; WP-S2.10, in review for 0.2.0)
-- api-add: symbol.map_cp supports undoable drag/list pin assignment; symbol.fork and symbol.function accept
-  explicit library/item sources, and the window distinguishes project copies, libraries and repeated pin names
-- behaviour-change: symbol editor shape dragging commits the complete gesture; Delete removes the selected
-  graphic; coordinate properties commit on Enter/focus loss; arc creation has whole-degree start/sweep controls
-- behaviour-change: symbol editor offers shape fills and text styles; committing a name before Save retains
-  the visible value; published library folders are remembered and their symbols appear in Insert on the matching grid
-- api-add: cli ew symbol template, schema, validate, import and publish (portable data-only authoring for
-  automation and AI tools, using the editor's validator; no project or library format 0.1 changes or migration)
-- behaviour-change: symbol publication gives each draft its own item identity (UUIDv7s, the optional `identity` of
+- api-add: window Symbol editor (Edit ▸ Symbol editor…): drawing with fills and text styles, connection points on
+  the native grid, function data with drag or list pin mapping, text slots, anchors, link points, live A–H previews,
+  publication to a library whose folder the window remembers and whose symbols appear under Draw ▸ Place ▸ Symbol…
+  on the matching grid, and test placement on a scratch page; F1 opens the editor's reference
+- api-add: symbol.* actions for scripts and AI tools, the window's own (symbol.new to symbol.scratch, symbol.map_cp
+  for pin mapping); symbol.fork and symbol.function take explicit library/item sources
+- api-add: symbol publication gives each draft its own item identity (UUIDv7s, the optional `identity` of
   `ew.symbol/1`), refuses a key the library holds for another symbol, keeps an unchanged owned function definition's
-  version and assigns an existing function as compatible (`^version`); a new symbol has no default key, and an
-  import without one takes its file's name (ID-1463)
-- api-add: cli ew symbol publish prints `result` (added, updated or unchanged) and the draft's `identity`
-- behaviour-change: cli ew symbol import --key defaults to the file's name instead of `user.import`
-- behaviour-change: symbol validation refuses unknown members (`symbol-unknown-member`) and points at a connection
-  point by its array position; export no longer needs hard links and syncs its folder
+  version and assigns an existing function as compatible (`^version`); validation refuses unknown members
+  (`symbol-unknown-member`); no project or library format 0.1 change and no migration
+- api-add: cli ew symbol template, schema, validate, import and publish (portable data-only authoring for
+  automation and AI tools, using the editor's validator; import's key defaults to the file's name; publish prints
+  `result`, added, updated or unchanged, and the draft's `identity`)
 - api-add: symbol imports from QElectroTech .elmt, EPLAN EDZ/PXF and the supported SLK 1.2/FE53 drawing-table
   subset (SLK requires its sibling .sdb folder but no EPLAN installation; unsupported features produce review
   findings or refusal; binary macros and full EPLAN electrical semantics are not supported)
 - dependency: EPLAN archive decoding adds pinned sevenz-turbo 0.26.0, lzma-turbo 0.6.0, crc-fast 1.10.0,
-  spin 0.10.1 and zeroize 1.9.1 (release remains blocked pending dependency/licence review; no exceptions granted)
+  spin 0.10.1 and zeroize 1.9.1
 
 - api-break: cli lib list --json (prints `{"$schema": "ew.lib-list-result/1", "libraries": [...]}` instead of a bare
   array; a Preview surface, WP-S1.22 D3 (d))
