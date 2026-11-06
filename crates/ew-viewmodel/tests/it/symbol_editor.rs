@@ -1190,6 +1190,44 @@ fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
     assert!(FILE_EXTENSIONS.contains(&"json"));
 }
 
+/// Part 3's nits: a refused action names no member ("index", "idx", "start"), and an Image primitive has its word.
+#[test]
+fn refusals_of_the_editors_actions_are_in_words() {
+    use ew_viewmodel::strings;
+    let tmp = Tmp::new("symbol-words");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    drawn(&mut shell, "example.words", "Words");
+    for (action, params, text) in [
+        (
+            "symbol.candidate",
+            json!({"index": 5, "discard": true}),
+            "Choose one of the drawings this file holds.",
+        ),
+        ("symbol.variant", json!({"variant": 9}), "Choose a variant from A to H."),
+        (
+            "symbol.cp",
+            json!({"idx": 70000, "x": 0, "y": 0}),
+            "Number a connection point from 1 to 65535.",
+        ),
+        (
+            "symbol.draw",
+            json!({"tool": "arc", "x": 0, "y": 0, "x2": 4, "y2": 4, "start": 400}),
+            "Give the arc's start and sweep in whole degrees, from −360 to 360.",
+        ),
+    ] {
+        assert_eq!(
+            failed(&mut shell, action, params),
+            format!("Symbol editor: {text}"),
+            "{action}"
+        );
+    }
+    assert_eq!(strings::text(strings::Key::run_time("symbol-image")), "Image");
+    shell.shutdown();
+}
+
 /// Re-review part 4: the same content placed twice is one embedded copy, placed twice.
 #[test]
 fn the_same_content_placed_twice_reuses_one_copy() {

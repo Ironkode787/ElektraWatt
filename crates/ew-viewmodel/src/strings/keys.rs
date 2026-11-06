@@ -4578,4 +4578,12 @@ pub const KEYS: &[&str] = &[
     "symbol-version-older",
     "symbol-item-symbol",
     "symbol-item-function",
+    "symbol-candidate-invalid",
+    "symbol-document-required",
+    "symbol-variant-invalid",
+    "symbol-angle-invalid",
+    "symbol-cp-index-invalid",
+    "symbol-function-pin-invalid",
+    "symbol-draft-damaged",
+    "symbol-image",
 ];

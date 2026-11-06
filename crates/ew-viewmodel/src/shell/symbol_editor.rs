@@ -188,6 +188,16 @@ pub(crate) fn name_words(name: &symbols::MlText) -> String {
     }
 }
 
+/// A refusal in the window's words (part 3's nit: never a raw member name).
+fn words(key: strings::Key<'static>) -> String {
+    strings::text(key).to_owned()
+}
+
+/// A draft whose own document lacks a member it always has: in words, never the member's name.
+fn damaged() -> String {
+    words(key!("symbol-draft-damaged"))
+}
+
 fn text<'a>(p: &'a Map<String, Value>, key: &str) -> &'a str {
     p.get(key).and_then(Value::as_str).unwrap_or("")
 }
@@ -502,7 +512,7 @@ impl ShellModel {
                 self.tools.selection.clear();
                 self.show_page_by_id(&id);
             }
-            return self.symbol_operation("place", json!({"x":40,"y":40}).as_object().ok_or("position")?);
+            return self.symbol_operation("place", json!({"x":40,"y":40}).as_object().ok_or_else(damaged)?);
         }
         let configured_libraries = self.configured_libraries();
         // The paths are resolved, and an empty one refused, before the draft is borrowed (ID-1463).
@@ -585,8 +595,8 @@ impl ShellModel {
                 for point in points {
                     let params = json!({"x":point.get(0),"y":point.get(1)});
                     converted.push([
-                        nm(params.as_object().ok_or("point")?, "x")?,
-                        nm(params.as_object().ok_or("point")?, "y")?,
+                        nm(params.as_object().ok_or_else(damaged)?, "x")?,
+                        nm(params.as_object().ok_or_else(damaged)?, "y")?,
                     ]);
                 }
                 let kind = if p.get("closed") == Some(&Value::Bool(true)) {
@@ -597,11 +607,11 @@ impl ShellModel {
                 let mut d = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
                 d["symbol"]
                     .as_object_mut()
-                    .ok_or("symbol")?
+                    .ok_or_else(damaged)?
                     .entry("graphics")
                     .or_insert(json!([]))
                     .as_array_mut()
-                    .ok_or("graphics")?
+                    .ok_or_else(damaged)?
                     .push(
                         json!({kind:{"points":converted,"closed":kind=="polygon","stroke":{"pen":"p026"}}}),
                     );
@@ -617,8 +627,8 @@ impl ShellModel {
                     .get("index")
                     .and_then(Value::as_u64)
                     .and_then(|i| usize::try_from(i).ok())
-                    .ok_or("index")?;
-                let draft = editor.candidates.get(index).cloned().ok_or("index")?;
+                    .ok_or_else(|| words(key!("symbol-candidate-invalid")))?;
+                let draft = editor.candidates.get(index).cloned().ok_or_else(|| words(key!("symbol-candidate-invalid")))?;
                 editor.replace(draft.clone());
                 editor.saved = Some(draft);
                 editor.stored = false;
@@ -661,7 +671,7 @@ impl ShellModel {
             }
             "replace" => {
                 let bytes =
-                    serde_json::to_vec(p.get("document").ok_or("document")?).map_err(|e| e.to_string())?;
+                    serde_json::to_vec(p.get("document").ok_or_else(|| words(key!("symbol-document-required")))?).map_err(|e| e.to_string())?;
                 editor.replace(SymbolDraft::parse(&bytes).map_err(err)?);
             }
             "undo" => {
@@ -687,7 +697,7 @@ impl ShellModel {
                     .get("variant")
                     .and_then(Value::as_u64)
                     .filter(|v| *v < 8)
-                    .ok_or("variant")? as u8;
+                    .ok_or_else(|| words(key!("symbol-variant-invalid")))? as u8;
             }
             "validate" => {
                 let issues = editor.draft.validate();
@@ -705,7 +715,7 @@ impl ShellModel {
                     (nm(p, "x2")?, nm(p, "y2")?)
                 };
                 let mut d = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
-                let object = d["symbol"].as_object_mut().ok_or("symbol")?;
+                let object = d["symbol"].as_object_mut().ok_or_else(damaged)?;
                 let stroke = json!({"pen":"p026"});
                 let value = match tool {
                     "line" => json!({"line":{"from":[x,y],"to":[x2,y2],"stroke":stroke}}),
@@ -721,11 +731,11 @@ impl ShellModel {
                     "arc" => {
                         let angle = |key: &str, default: i64| -> Result<i32, String> {
                             let degrees = match p.get(key) {
-                                Some(v) => v.as_i64().ok_or(key)?,
+                                Some(v) => v.as_i64().ok_or_else(|| words(key!("symbol-angle-invalid")))?,
                                 None => default,
                             };
                             if !(-360..=360).contains(&degrees) {
-                                return Err(key.to_owned());
+                                return Err(words(key!("symbol-angle-invalid")));
                             }
                             Ok((degrees * 1000) as i32)
                         };
@@ -743,7 +753,7 @@ impl ShellModel {
                         .entry("graphics")
                         .or_insert(json!([]))
                         .as_array_mut()
-                        .ok_or("graphics")?
+                        .ok_or_else(damaged)?
                         .push(value);
                 }
                 editor.replace(
@@ -763,15 +773,15 @@ impl ShellModel {
                         .unwrap_or(1)
                 });
                 if index > u64::from(u16::MAX) {
-                    return Err("idx".into());
+                    return Err(words(key!("symbol-cp-index-invalid")));
                 }
                 let points = d["symbol"]
                     .as_object_mut()
-                    .ok_or("symbol")?
+                    .ok_or_else(damaged)?
                     .entry("cps")
                     .or_insert(json!([]))
                     .as_array_mut()
-                    .ok_or("cps")?;
+                    .ok_or_else(damaged)?;
                 let mut cp = points
                     .iter()
                     .find(|v| v["idx"] == index)
@@ -784,18 +794,18 @@ impl ShellModel {
                     cp["dir"] = json!(text(p, "direction"));
                 }
                 cp["pos"] = json!([nm(p, "x")?, nm(p, "y")?]);
-                let fn_cp = cp["fn_cp"].as_u64().ok_or("fn_cp")?;
+                let fn_cp = cp["fn_cp"].as_u64().ok_or_else(|| words(key!("symbol-function-pin-invalid")))?;
                 points.retain(|v| v["idx"] != index);
                 points.push(cp);
                 points.sort_by_key(|v| v["idx"].as_u64());
                 if editor.draft.function_ref.is_none() {
                     let fpoints = d["function"]
                         .as_object_mut()
-                        .ok_or("function")?
+                        .ok_or_else(damaged)?
                         .entry("cps")
                         .or_insert(json!([]))
                         .as_array_mut()
-                        .ok_or("cps")?;
+                        .ok_or_else(damaged)?;
                     let mut fcp = fpoints
                         .iter()
                         .find(|v| v["idx"] == fn_cp)
@@ -816,11 +826,11 @@ impl ShellModel {
                 let mut d = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
                 let slots = d["symbol"]
                     .as_object_mut()
-                    .ok_or("symbol")?
+                    .ok_or_else(damaged)?
                     .entry("text_slots")
                     .or_insert(json!([]))
                     .as_array_mut()
-                    .ok_or("slots")?;
+                    .ok_or_else(damaged)?;
                 let kind = p.get("kind").cloned().unwrap_or(json!("tag"));
                 slots.push(
                     json!({"kind":kind,"pos":[nm(p,"x")?,nm(p,"y")?],"align":"top_left","visible":true}),
@@ -833,29 +843,29 @@ impl ShellModel {
                 let mut d = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
                 let points = d["symbol"]
                     .as_object_mut()
-                    .ok_or("symbol")?
+                    .ok_or_else(damaged)?
                     .entry("link_points")
                     .or_insert(json!([]))
                     .as_array_mut()
-                    .ok_or("links")?;
+                    .ok_or_else(damaged)?;
                 points.push(json!({"name":text(p,"name"),"pos":[nm(p,"x")?,nm(p,"y")?]}));
                 editor.replace(
                     SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(err)?,
                 );
             }
             "export" => {
-                let path = file_path.ok_or("file")?;
+                let path = file_path.ok_or_else(damaged)?;
                 symbols::export(&editor.draft, &path).map_err(err)?;
                 editor.saved = Some(editor.draft.clone());
                 editor.stored = true;
             }
             "directory" => {
-                let path = directory_path.ok_or("directory")?;
+                let path = directory_path.ok_or_else(damaged)?;
                 editor.directory = path.to_string_lossy().into_owned();
             }
             "save" => {
                 let mut draft = editor.draft.clone();
-                let path = directory_path.ok_or("directory")?;
+                let path = directory_path.ok_or_else(damaged)?;
                 let directory = path.to_string_lossy().into_owned();
                 let issues = draft.validate();
                 if !issues.is_empty() {
@@ -974,7 +984,7 @@ impl ShellModel {
                         symbols::schema::LibDocument::Symbol(s) => Some(s.id),
                         _ => None,
                     })
-                    .ok_or("symbol")?;
+                    .ok_or_else(damaged)?;
                 let page = self
                     .current_page()
                     .ok_or_else(|| strings::text(key!("reason-no-page")).to_owned())?;
@@ -991,7 +1001,7 @@ impl ShellModel {
                 let orient = ["r0", "r90", "r180", "r270", "m0", "m90", "m180", "m270"][usize::from(variant)];
                 let params = json!({"cmd":"device.place","params":{"page":page.uuid_text(),"symbol":symbol,"copies":docs,
                     "pos":[pos.0,pos.1],"orient":orient,"target":{"new_device":{"letter":"U"}}}});
-                match self.act_command_run(params.as_object().ok_or("params")?) {
+                match self.act_command_run(params.as_object().ok_or_else(damaged)?) {
                     Outcome::Done => {}
                     Outcome::Failed { message } => return Err(message),
                     Outcome::Refused { reason_key } => return Err(strings::text(reason_key).into()),
