@@ -22,11 +22,14 @@ mod merge_driver;
 mod merge_resolve;
 mod project_files;
 mod query;
+mod symbol;
 mod tree;
 
 /// A parsed command line.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Command {
+    /// Portable symbol authoring for people and automation.
+    Symbol(symbol::SymbolArgs),
     /// Import a QElectroTech project.
     ImportQet(ImportQetArgs),
     /// `ew import parts`.
@@ -695,6 +698,7 @@ pub fn command() -> clap::Command {
 /// import errors).
 pub fn run(cmd: Command) -> i32 {
     match cmd {
+        Command::Symbol(a) => symbol::run(a),
         Command::ImportQet(a) => run_import_qet(&a),
         Command::ImportParts(a) => run_import_parts(&a),
         Command::ImportCsv(a) => run_import_csv(&a),

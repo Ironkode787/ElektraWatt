@@ -48,6 +48,7 @@ set. The project has no code yet; the documents are the product of the design ph
 | [05 Project format](design/05-project-format-and-persistence.md) | Directory layout, JSON Lines encoding, manifest, save protocol, migration |
 | [06 Schematic editor](design/06-schematic-editor.md) | Editing of schematic pages, symbols, devices, connections, frames |
 | [07 Symbols, parts, macros](design/07-symbols-parts-macros.md) | Master data: FnDefs, parts database, macros, templates, libraries |
+| [07a Symbol design standard](design/07a-symbol-design-standard.md) | Authoring profile for people, AI tools and imported drafts |
 | [08 Connections, terminals, cables](design/08-connections-terminals-cables.md) | Connectivity levels, potentials, wire properties, terminals, cables |
 | [09 Reports, forms, output](design/09-reports-forms-output.md) | Report kinds, forms engine, derived report pages, display-list pipeline |
 | [10 PLC and bus](design/10-plc-and-bus.md) | PLC configuration, channels, addresses, fieldbus, exchange with TIA Portal and CODESYS |

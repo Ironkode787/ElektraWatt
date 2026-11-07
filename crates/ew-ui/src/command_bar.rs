@@ -475,6 +475,13 @@ fn command_button(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect) -> (Respon
     (response, chevron)
 }
 
+/// A command in a contextual toolbar, with the main ribbon's sizing, painting and accessible name.
+pub(crate) fn inline_command(ui: &mut Ui, b: &CommandButton) -> Response {
+    let t = theme::current(ui.ctx());
+    let (rect, _) = ui.allocate_exact_size(button_size(ui, &t, b), Sense::hover());
+    command_button(ui, &t, b, rect).0
+}
+
 /// A menu of `items`: each an entry with its shortcut, greyed with its reason when disabled.
 fn items_menu(ui: &mut Ui, items: &[ActionItem], events: &mut Vec<Event>) {
     for i in items {
@@ -586,9 +593,22 @@ impl CommandBarHost {
     }
 
     /// Paints the bar of `shell` into `ui` (a top panel exactly [`bar_height`] high) and collects what the user did.
-    pub(crate) fn show(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+    pub(crate) fn show(
+        &mut self,
+        ui: &mut Ui,
+        shell: &ShellModel,
+        events: &mut Vec<Event>,
+        editor_view: &mut crate::symbol_editor::EditorView,
+    ) {
         let t = theme::current(ui.ctx());
-        let model = command_bar(shell);
+        let mut model = command_bar(shell);
+        if shell.symbol_editor().is_some() {
+            model.collapsed = false;
+            model.tabs = vec![(
+                model.tab,
+                strings::text(strings::Key::run_time("symbol-title")).to_owned(),
+            )];
+        }
         if !model.collapsed {
             self.popover = false;
         }
@@ -607,9 +627,25 @@ impl CommandBarHost {
                 if !model.collapsed {
                     let row = Rect::from_min_size(
                         pos2(rect.left(), tab_row.bottom()),
-                        vec2(rect.width(), t.size_command_row),
+                        vec2(
+                            rect.width(),
+                            if shell.symbol_editor().is_some() {
+                                crate::symbol_editor::toolbar_height(&t)
+                            } else {
+                                t.size_command_row
+                            },
+                        ),
                     );
-                    command_row(ui, &t, &model, row, events);
+                    if shell.symbol_editor().is_some() {
+                        ui.painter()
+                            .rect_filled(row, theme::SQUARE, t.surface_panel.color32());
+                        ui.scope_builder(
+                            UiBuilder::new().max_rect(row.shrink2(vec2(t.space_3, t.space_2))),
+                            |ui| editor_view.toolbar(ui, shell, events),
+                        );
+                    } else {
+                        command_row(ui, &t, &model, row, events);
+                    }
                 }
                 // The line under the bar.
                 let y = rect.bottom() - t.border_width / 2.0;
@@ -828,7 +864,7 @@ impl CommandBarHost {
                         ui.painter()
                             .rect_filled(line, theme::radius(t.radius_mark), t.accent.color32());
                     }
-                    if response.double_clicked() {
+                    if shell.symbol_editor().is_none() && response.double_clicked() {
                         events.push(Event::Action("view.command_bar", json!({})));
                         self.popover = false;
                     } else if response.clicked() {

@@ -47,7 +47,7 @@ fn list(ui: &mut Ui, title: &str, rows: &[Row], open: bool) {
         return;
     }
     let id = ui.scope_id().with(("preview-list", title));
-    if !components::section_header(ui, id, title, rows.len(), open) {
+    if !components::section_header(ui, id, title, Some(rows.len()), open) {
         return;
     }
     let t = components::tokens(ui);
@@ -277,7 +277,7 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
         ui,
         id,
         strings::text(key!("macro-conflicts")),
-        m.conflicts.len(),
+        Some(m.conflicts.len()),
         true,
     ) {
         for c in &m.conflicts {

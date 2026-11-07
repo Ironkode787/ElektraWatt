@@ -1,6 +1,6 @@
 # Symbols, parts and macros
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-11-05, cycle-52 design pass: the macro variable type `text_slots` and its value in words as built, §2.7's variable types, decision log ID-1433; 2026-11-05, the symbol editor's release is 0.2.0, milestone M2.5, right after the MVP, §10, decision log ID-1402; 2026-10-31, cycle-40 design pass, part 1, the part bus section as built, §2.5, WP-S1.21 part 4b, decision log ID-927; 2026-10-30, cycle-38 design pass, part 3, the Macros and Libraries navigators as built, §5, decision log ID-885; 2026-10-30, cycle-38 design pass, `macro.insert`'s orientation and the valve typical as built, §4.6, §9.3, decision log ID-878; 2026-10-29, cycle-35 design pass, WP-S1.19 parts 2 to 4 and WP-S2.18 parts 2 and 3 as built: the generic starter parts in `ew-starter-parts`, the tiers and the index, `part.assign`, `library.update`, the parts import and the manufacturer copies, §2.1, §2.2, §3.1, §3.3, §3.6, §4.5, §4.7, §9.2, decision log ID-818, ID-820, ID-824, ID-830; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, manufacturer and macro copies, `MacroInstance`, `Project.basic_project` and `SYSTEM_LIBRARY`, §2.5, §2.7, §2.8, open question 17, decision log ID-334, ID-783; cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-11-06, cycle 53, the symbol editor's touchpoint as built and the pointer to doc 07a, §5, decision log ID-1463; 2026-11-05, cycle-52 design pass: the macro variable type `text_slots` and its value in words as built, §2.7's variable types, decision log ID-1433; 2026-11-05, the symbol editor's release is 0.2.0, milestone M2.5, right after the MVP, §10, decision log ID-1402; 2026-10-31, cycle-40 design pass, part 1, the part bus section as built, §2.5, WP-S1.21 part 4b, decision log ID-927; 2026-10-30, cycle-38 design pass, part 3, the Macros and Libraries navigators as built, §5, decision log ID-885; 2026-10-30, cycle-38 design pass, `macro.insert`'s orientation and the valve typical as built, §4.6, §9.3, decision log ID-878; 2026-10-29, cycle-35 design pass, WP-S1.19 parts 2 to 4 and WP-S2.18 parts 2 and 3 as built: the generic starter parts in `ew-starter-parts`, the tiers and the index, `part.assign`, `library.update`, the parts import and the manufacturer copies, §2.1, §2.2, §3.1, §3.3, §3.6, §4.5, §4.7, §9.2, decision log ID-818, ID-820, ID-824, ID-830; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, manufacturer and macro copies, `MacroInstance`, `Project.basic_project` and `SYSTEM_LIBRARY`, §2.5, §2.7, §2.8, open question 17, decision log ID-334, ID-783; cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies ElektraWatt's (EW) master data: symbols and function definitions (FnDefs), the
 parts database, macros with value sets, basic projects (company templates), and the libraries and governance that
@@ -9,7 +9,11 @@ and the [domain model](03-domain-model.md) (§6 `SymbolDef`, §7 `FnDef`, `PartC
 SYM, PRT and MAC rows of [02a](02a-requirements-core.md). Every example comes from the reference project, the
 cabinet J-E-2416, held as Golden A of the [golden project](20-golden-project.md).
 
+The symbol editor's authoring profile is specified in [07a: Symbol design standard](07a-symbol-design-standard.md).
+Its implementation and import compatibility scope are recorded in [WP-S2.10](../plan/specs/WP-S2.10-symbol-editor.md).
+
 **Contents**
+
 1. [Scope and position in the architecture](#1-scope-and-position-in-the-architecture)
 2. [Concepts and data](#2-concepts-and-data)
 3. [Behaviour and rules](#3-behaviour-and-rules)
@@ -1081,6 +1085,29 @@ is `#[ignore]`d (not measured, the owner's rule).
 | **Import dialogs** | CSV/XLSX column mapper; EDZ with the terms notice; parts XML; BMEcat (1.x); each ends in an import report with jump-to-record | P6, J2 |
 
 *As built (cycle 38, WP-S1.19 part 6; decision log ID-885, ID-886).* The **Macro browser** is the Macros navigator (`NavKind::Macros`): the macros of every tier, then the project's own macro copies under "In this project"; its detail shows name, version and library, description, the devices and the variables, with "No preview" where the thumbnail should be (FT-754). Enter on a row, its drop on a canvas or Insert macro… (Draw ▸ Place) arms the macro tool; its click opens the `macro` card in the Preview tab with the value set and the conflicts, and Apply is one undo step; a held macro without an installed source is not inserted. **Save as macro** (Edit menu) is a window-only dialog of name, key, description and library, which is the confirmation of a write that cannot be undone; kind, insertion point and the value-set table are FT-754, and "make variable" is the hidden action `props.make_variable`. The **Library manager** is the Libraries navigator (`NavKind::Libraries`): the libraries by tier with version, licence, access and index state, then "In this project" with each copy's state in words (Current, Update available, Source missing, Deprecated, Local fork) and the devices that use it; Update… opens `library.update`'s bulk card; "purge unused" is not in it. Its rows still show IDs rather than names (FT-755).
+
+*As built (cycle 53, WP-S2.10, milestone M2.5; decision log ID-1402, ID-1463).* The **Symbol editor** opens from
+Draw ▸ Place ▸ Symbol editor… (`symbol.new`) and takes the place of the page, with its own command bar (the drawing tools,
+Save to library, Open or import, Test on a new page, Close editor) and three panels: Drawing, Electrical data and
+Library. Its canvas is on the symbol's grid: a click places a connection point on the 4 mm connection grid, a graphic
+on 0.5 mm and a text on 1 mm ([07a](07a-symbol-design-standard.md)); a point typed off the grid stays visible as an
+error and blocks the save. The FnDef panel is Electrical data: the function's type and pins with their potential
+roles and flags, and Pin mapping, where a function pin is dragged onto a connection point or chosen from its list
+(`symbol.map_cp`), an occupied compatible pin swapping in one undo step; Assign function takes an existing FnDef. The
+live A–H strip is Variants, drawn through the placement's own lowering. The lint panel is Validation: the editor's
+validation, shared with `ew symbol validate`, not WP-S7.04's library lint. "Test place" is Test on a new page
+(`symbol.scratch`): a new page on the symbol's grid with an embedded test copy, one undo step for the page and one for
+the placement. *As built (cycle 53, PL25b and part 7's fixes; decision log ID-1477).* A page on another connection
+grid refuses the placement, naming both grids as the status bar does ("4 mm", "QET 10 px"), and offers a new page with
+the symbol's grid: **Place on a new page with its grid** places the published symbol there at 40/40 mm and selects
+it, from the Insert symbol picker's greyed row (`picker.new_page`) and from the editor while its draft is saved to a
+library and unchanged (`symbol.new_page`); for any other draft the editor offers Test on a new page. Each is one undo
+step for the page and one for the placement. New page (`page.new`) has a Connection grid, "4 mm" or "QET 10 px",
+the current page's by default; on a page whose grid is neither (an imported one) the field is empty and the new page
+still takes the current page's grid. A page's grid changes only while the page is empty. "Fork from QET import" is Fork existing symbol in the Library panel, over project copies and installed
+libraries; Open or import reads QElectroTech `.elmt`, EPLAN EDZ/PXF and the supported SLK subset into a draft with
+its import report, and an EPLAN draft saves only once its review is acknowledged. Every edit is a `symbol.*` action that scripts and AI tools share
+([WP-S2.10](../plan/specs/WP-S2.10-symbol-editor.md) §10 and §11).
 
 **Accessibility (NFR-A11Y-02).** Previews expose an accessible name built from the item name, its representation
 type and its CP designations, for example "MCB 1P+N, multi-line, connection points 1, 2, N, N". Quality levels are

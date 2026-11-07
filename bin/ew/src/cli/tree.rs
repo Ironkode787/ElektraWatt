@@ -54,6 +54,9 @@ pub(super) struct Cli {
 /// The subcommands of `ew`.
 #[derive(Subcommand, Debug)]
 enum Top {
+    /// Create, inspect, import and publish portable symbol drafts.
+    #[command(subcommand)]
+    Symbol(super::symbol::SymbolArgs),
     /// Import a project, a parts table or golden-dialect tables.
     #[command(subcommand)]
     Import(Import),
@@ -2344,6 +2347,7 @@ impl Cli {
                 json,
             }),
             Top::Commands(JsonCli { json }) => Command::Commands { json },
+            Top::Symbol(args) => Command::Symbol(args),
             Top::Schema(SchemaCli { name }) => Command::Schema(name),
             Top::Merge(MergeCli::Resolve(MergeResolveCli {
                 project_dir,

@@ -96,6 +96,7 @@ pub use marker::{MarkerTool, crossed_connections};
 pub use rail_draw::{DrawCard, DrawPart, RailDrawTool};
 // WP-S2.05 part 3
 pub use paste::PasteTool;
+pub(crate) use picker::grid_words;
 pub use picker::{PendingTerminal, Picker, PickerMode, PickerRow, symbol_name};
 pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
 pub use route_edit::RouteEditTool;

@@ -7,6 +7,40 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-variant`, `text-change`.
 
+- api-add: page.new takes `grid` (mm4 or qet_10px), the window's New page its Connection grid, the current page's by
+  default; a page's Connection grid is a choice in Properties; picker.new_page places the Insert symbol picker's symbol
+  on another grid on a new page with its grid (ID-1477)
+- behaviour-change: fields.set of a page's grid is refused while the page holds any item (ID-1477)
+- text-change: the Draw tab's button for the symbol editor reads "Symbols" (tooltip and menu "Symbol editor…") (ID-1477)
+- text-change: a connection grid is named as the status bar names it ("4 mm", "QET 10 px") in the refusal of a symbol
+  on another grid and in the page navigator's and page tab's badges, never "2.65 mm" or "QET grid" (ID-1477)
+- api-add: symbol.new_page places the symbol editor's published, unchanged draft on a new page with its grid; the
+  editor's refusal of another grid offers it, else Test on a new page (ID-1477)
+- behaviour-change: symbol validation also refuses unknown members of a deprecated status and its successor; a test
+  placement's item IDs join their v5 name's parts with U+001F (ID-1476)
+- api-add: window Symbol editor (Draw ▸ Place ▸ Symbol editor…): drawing with fills and text styles, connection points on
+  the native grid, function data with drag or list pin mapping, text slots, anchors, link points, live A–H previews,
+  publication to a library whose folder the window remembers and whose symbols appear under Draw ▸ Place ▸ Symbol…
+  on the matching grid, and test placement on a new page; F1 opens the editor's reference
+- api-add: symbol.* actions for scripts and AI tools, the window's own (symbol.new to symbol.scratch, symbol.map_cp
+  for pin mapping, symbol.role for a connection point's potential role); symbol.fork and symbol.function take explicit library/item sources
+- api-add: window File ▸ Save project (file.save_project): while the symbol editor shows, Ctrl+S and File ▸ Save
+  save the symbol, and Save project saves the project
+- api-add: symbol publication gives each draft its own item identity (UUIDv7s, the optional `identity` of
+  `ew.symbol/1`), refuses a key the library holds for another symbol, keeps an unchanged owned function definition's
+  version and assigns an existing function as compatible (`^version`); a draft saved under another key than the one
+  the library holds for its items publishes a new symbol, which the window announces (ID-1474); validation refuses
+  unknown members of every object it publishes (`symbol-unknown-member`); no project or library format 0.1 change
+  and no migration
+- api-add: cli ew symbol template, schema, validate, import and publish (portable data-only authoring for
+  automation and AI tools, using the editor's validator; import's key defaults to the file's name; publish prints
+  `result`, added, updated or unchanged, and the draft's `identity`)
+- api-add: symbol imports from QElectroTech .elmt, EPLAN EDZ (also named .zip or .7z)/PXF and the supported SLK
+  1.2/FE53 drawing-table subset (SLK requires its sibling .sdb folder but no EPLAN installation; unsupported features produce review
+  findings or refusal; binary macros and full EPLAN electrical semantics are not supported)
+- dependency: EPLAN 7z archive decoding adds pinned sevenz-rust2 0.24.2 (no default features) and lzma-rust2
+  0.23.0, both Apache-2.0 and audited, under ElektraWatt's own 7z header bounds (ID-1460)
+
 - api-break: cli lib list --json (prints `{"$schema": "ew.lib-list-result/1", "libraries": [...]}` instead of a bare
   array; a Preview surface, WP-S1.22 D3 (d))
 - api-break: cli lib search --json (prints `{"$schema": "ew.lib-search-result/1", "hits": [...]}` instead of a bare

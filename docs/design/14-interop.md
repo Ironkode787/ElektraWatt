@@ -56,7 +56,7 @@ C-15 `%f` versus `%F`).
 | QET `.elmt` directory (the user's QET collection) | read | `ew-import-qet` (§4.3 mapper) into a user library | 1.0 ([07](07-symbols-parts-macros.md) §3.6) | FR-SYM-029 (07) |
 | Golden tables (CSV) | read | `csv` importer (report format `golden-csv`) in `ew-import-tables` (ARCH §3), the CSV bootstrap of ARCH §13, exposed as `ew import csv` and reused by `ew-testkit` | MVP | FR-IMP-022 |
 | Parts CSV/XLSX | read | `ew-import-catalog` column mapper into a user or company library ([07](07-symbols-parts-macros.md) §3.6) | MVP | FR-PRT-016 (07) |
-| EDZ (7-Zip, ZIP) | read | `ew-import-eplan` (sevenz-rust2 0.24.0, zip, quick-xml 0.42.0) | 1.0 | FR-IMP-025 … FR-IMP-027 |
+| EDZ (7-Zip, ZIP) | read | `ew-import-eplan` (sevenz-rust2 0.24.2, zip, quick-xml 0.42.0) | 1.0 | FR-IMP-025 … FR-IMP-027 |
 | EPLAN parts XML | read | `ew-import-eplan` | 1.0 | FR-IMP-028 |
 | EPLAN report exports (XLSX/CSV) | read | `ew-import-eplan` (calamine 0.36.1, csv 1.4.0) | 1.0 | FR-IMP-029 |
 | PDF/DXF underlays | read | `ew-import-dxf`; PDF via hayro 0.8.0 in `ew-scene`, a runtime dependency from 1.0 (ARCH §3) | 1.0 | FR-IMP-030 |
@@ -1712,7 +1712,7 @@ the glTF/STL/STEP export from 1.0 to 1.x; see [vision](00-vision-and-scope.md) �
 | [12 panel layout](12-panel-layout.md), [13 manufacturing](13-manufacturing-outputs.md) | folio 902 binding, STEP pipeline, drilling DXF, profiles |
 | [15 checks](15-checks-revisions-collaboration.md), [16 UX](16-ux-ui.md), [17 extensibility](17-extensibility.md), [18 quality](18-quality-security-release.md) | `EW-IMP` catalogue, panels, CLI and WIT importers, fuzz and corpus CI jobs |
 | [20 golden project](20-golden-project.md) | Golden C, MF-01 … MF-27, AC-25 … AC-27, AC-37, AC-38 |
-| Crates | `ew-interop-api`, `ew-schema`, `ew-rds`, `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf`, `ew-import-tables`, `ew-import-catalog`, `ew-caex`, `ew-devdesc`, `ew-plcaddr`, `ew-commands`, `ew-reports`, `ew-export`, `ew-panel`, `ew-library`; roxmltree 0.21.1, quick-xml 0.42.0, sevenz-rust2 0.24.0, zip 9.0.4, rusqlite 0.40.2 (through `ew-library` only), dxf 0.6.2, acadrust 0.6.4, calamine 0.36.1, csv 1.4.0, rust_xlsxwriter 0.100.0, usvg 0.48.1, hayro 0.8.0, gltf-json **(verify)**, placed as in the ARCH §3 table (calamine and csv in `ew-import-eplan` and `ew-import-tables`, hayro at runtime in `ew` and `ew-scene`, the glb writer in `ew-panel`) |
+| Crates | `ew-interop-api`, `ew-schema`, `ew-rds`, `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf`, `ew-import-tables`, `ew-import-catalog`, `ew-caex`, `ew-devdesc`, `ew-plcaddr`, `ew-commands`, `ew-reports`, `ew-export`, `ew-panel`, `ew-library`; roxmltree 0.21.1, quick-xml 0.42.0, sevenz-rust2 0.24.2, zip 9.0.4, rusqlite 0.40.2 (through `ew-library` only), dxf 0.6.2, acadrust 0.6.4, calamine 0.36.1, csv 1.4.0, rust_xlsxwriter 0.100.0, usvg 0.48.1, hayro 0.8.0, gltf-json **(verify)**, placed as in the ARCH §3 table (calamine and csv in `ew-import-eplan` and `ew-import-tables`, hayro at runtime in `ew` and `ew-scene`, the glb writer in `ew-panel`) |
 
 ---
 

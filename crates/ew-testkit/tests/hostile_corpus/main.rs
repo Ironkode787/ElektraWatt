@@ -182,6 +182,35 @@ fn qet_elements() {
     );
 }
 
+/// An EPLAN symbol input as `ew symbol import` and the editor's Open take one: through the front door
+/// (`import_eplan`, M25-p2#3), its refusal in the words `ew` prints.
+#[test]
+fn eplan_symbol_inputs() {
+    const LIMIT: &str = "The EPLAN input exceeds the supported size or complexity.";
+    const DECLARED: &str = "The EPLAN XML is malformed or contains forbidden declarations.";
+    class(
+        "eplan",
+        &[
+            ("billion-laughs.xml", DECLARED),
+            ("depth-10000.xml", LIMIT),
+            ("element-of-200000-attributes.xml", LIMIT),
+            (
+                "entry-parent.edz",
+                "The EPLAN archive has unsafe or duplicate member names.",
+            ),
+            ("external-entity.xml", DECLARED),
+            ("parts-pins-over-the-budget.xml", LIMIT),
+            ("ratio-over-200.edz", LIMIT),
+            ("seven-zip-dictionary-4-gib.edz", LIMIT),
+            ("seven-zip-entries-over-the-limit.edz", LIMIT),
+        ],
+        |name, bytes| match ew_api::symbols::import_eplan(bytes, name, "hostile") {
+            Ok(drafts) => format!("imported {} drafts", drafts.len()),
+            Err(e) => e.to_string(),
+        },
+    );
+}
+
 /// A supplier's parts workbook through the front door (`parse_parts`, as `ew import parts` and the window read one).
 #[test]
 fn xlsx_parts_tables() {
@@ -462,7 +491,9 @@ fn a_page_file_that_is_a_symbolic_link_is_not_followed() {
 }
 
 /// The class folders a test of this binary runs (`sql/` is `ew-sqlview`'s).
-const CLASSES: &[&str] = &["elmt", "ewz", "jsonl", "qet", "raster", "sql", "svg", "xlsx"];
+const CLASSES: &[&str] = &[
+    "elmt", "eplan", "ewz", "jsonl", "qet", "raster", "sql", "svg", "xlsx",
+];
 
 /// Every committed file of the corpus stands in the index, and every class folder is one a test runs.
 #[test]

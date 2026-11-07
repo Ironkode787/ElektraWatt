@@ -38,6 +38,7 @@ mod canvas_actions;
 mod creation;
 // FT-1521: the closed sets of a form field's choices.
 pub mod choices;
+pub mod symbol_editor;
 // WP-S2.05 part 3
 mod clipboard;
 // WP-S2.04 part 4b: the text and graphic tools' host duties.
@@ -279,6 +280,8 @@ pub enum Dialog {
     ConfirmDiscard {
         /// What runs after the answer.
         pending: Pending,
+        /// Whether the changes are the symbol editor's draft (Save symbol, Discard, Cancel; ID-1463), not the project's.
+        symbol: bool,
     },
     /// Page, Go to page or cell: a folio or a cell typed by the user.
     GotoPage {
@@ -442,6 +445,12 @@ pub enum Prompt {
     SaveEwz,
     /// An existing `.ewz` (File ▸ Open .ewz…).
     OpenEwz,
+    /// A symbol file to open or import in the symbol editor (ID-1463).
+    OpenSymbol,
+    /// A symbol authoring file name (the symbol editor's Export draft).
+    SaveSymbol,
+    /// A symbol library folder (the symbol editor's Library folder).
+    LibraryFolder,
 }
 
 /// A request to the window to open a page of the user guide in the system browser (F1).
@@ -528,6 +537,8 @@ struct Project {
 
 /// All state of the application shell.
 pub struct ShellModel {
+    symbol_editor: Option<symbol_editor::SymbolEditor>,
+    symbol_editor_generation: u64,
     mode: Mode,
     config: ShellConfig,
     settings: Settings,
@@ -916,8 +927,9 @@ mod choice_word_tests {
             if !nl.contains(key.as_str()) {
                 missing.insert(format!("nl-NL: {key}"));
             }
-            // C50-p5#5: the accessory has one English word, "End bracket" (16a §8 item 4).
-            if v != "end_clamp" {
+            // C50-p5#5: the accessory has one English word, "End bracket" (16a §8 item 4); ID-1477 (1): the connection
+            // grids read as the status bar writes them, "4 mm" and "QET 10 px".
+            if !matches!(v.as_str(), "end_clamp" | "mm4" | "qet_10px") {
                 assert_eq!(choice_text(v), choice_words(v), "{v}");
             }
         }
@@ -1101,6 +1113,8 @@ impl ShellModel {
             command_bar_collapsed: false,
             rail_collapsed: false,
             macros: macros::MacroState::default(),
+            symbol_editor: None,
+            symbol_editor_generation: 0,
             dispatch_log: None,
             person: mode == Mode::Gui,
             revision: revision::RevisionState::default(),
@@ -1232,6 +1246,9 @@ impl ShellModel {
 
     /// Whether the open project has a step to undo.
     pub fn can_undo(&self) -> bool {
+        if let Some(editor) = self.symbol_editor() {
+            return editor.can_undo();
+        }
         self.project
             .as_ref()
             .is_some_and(|p| p.session.history().cursor() > 0)
@@ -1239,6 +1256,9 @@ impl ShellModel {
 
     /// Whether the open project has a step to redo.
     pub fn can_redo(&self) -> bool {
+        if let Some(editor) = self.symbol_editor() {
+            return editor.can_redo();
+        }
         self.project.as_ref().is_some_and(|p| {
             let h = p.session.history();
             h.cursor() < h.entries().len()
@@ -1728,6 +1748,7 @@ impl ShellModel {
                         action,
                         params: Value::Object(p.clone()),
                     },
+                    symbol: false,
                 });
                 Some(Outcome::Done)
             }
@@ -1931,15 +1952,26 @@ impl ShellModel {
     /// set a source (`set_id_source_for_tests`, feature `testkit`); the configuration's library tiers with the
     /// company libraries of the settings key `libraries.company` after any the configuration names (WP-S1.19 D4,
     /// FT-754 (f)).
-    fn session_options(&self) -> SessionOptions {
-        let libraries = self.config.libraries.clone().map(|mut tiers| {
-            for dir in self.settings.company_libraries(self.config.config_dir.as_deref()) {
+    fn configured_libraries(&self) -> Option<ew_api::library::LibraryTiers> {
+        let company = self.settings.company_libraries(self.config.config_dir.as_deref());
+        let tiers = self.config.libraries.clone().or_else(|| {
+            let dir = self.config.config_dir.as_deref()?;
+            (!company.is_empty()).then(|| {
+                ew_api::library::LibraryTiers::under(dir, &dir.join("library-index"), Vec::new(), Vec::new())
+            })
+        });
+        tiers.map(|mut tiers| {
+            for dir in company {
                 if !tiers.company.contains(&dir) {
                     tiers.company.push(dir);
                 }
             }
             tiers
-        });
+        })
+    }
+
+    fn session_options(&self) -> SessionOptions {
+        let libraries = self.configured_libraries();
         SessionOptions {
             origin: Origin::Gui,
             ids: self.id_source.map(|make| make()),
@@ -2105,6 +2137,13 @@ impl ShellModel {
     }
 
     pub(crate) fn act_save(&mut self) -> Outcome {
+        if self.symbol_editor().is_some() {
+            return self.act_symbol("save", &Map::new());
+        }
+        self.save_project()
+    }
+
+    fn save_project(&mut self) -> Outcome {
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-project"),
@@ -2217,7 +2256,33 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// `file.save_project`: the project, while the symbol editor shows and Save is the symbol's (ID-1463).
+    pub(crate) fn act_save_project(&mut self) -> Outcome {
+        self.save_project()
+    }
+
     pub(crate) fn act_quit(&mut self, p: &Map<String, Value>) -> Outcome {
+        // ID-1463: an unsaved symbol draft asks Save symbol, Discard or Cancel; `discard` discards it.
+        if self
+            .symbol_editor
+            .as_ref()
+            .is_some_and(symbol_editor::SymbolEditor::dirty)
+        {
+            if flag(p, "discard") {
+                self.symbol_editor = None;
+            } else {
+                return match self.mode {
+                    Mode::Headless => failed(key!("symbol-unsaved"), &[]),
+                    Mode::Gui => self.open_dialog(Dialog::ConfirmDiscard {
+                        pending: Pending {
+                            action: "app.quit",
+                            params: Value::Object(p.clone()),
+                        },
+                        symbol: true,
+                    }),
+                };
+            }
+        }
         if let Some(outcome) = self.guard_unsaved("app.quit", p) {
             return outcome;
         }
@@ -2227,6 +2292,9 @@ impl ShellModel {
     }
 
     pub(crate) fn act_undo(&mut self) -> Outcome {
+        if self.symbol_editor().is_some() {
+            return self.act_symbol("undo", &Map::new());
+        }
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-project"),
@@ -2264,6 +2332,9 @@ impl ShellModel {
     }
 
     pub(crate) fn act_redo(&mut self) -> Outcome {
+        if self.symbol_editor().is_some() {
+            return self.act_symbol("redo", &Map::new());
+        }
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
                 reason_key: key!("reason-no-project"),
@@ -2448,10 +2519,40 @@ impl ShellModel {
                 }
             };
         }
-        let Some(Dialog::ConfirmDiscard { pending }) = self.dialog.clone() else {
+        let Some(Dialog::ConfirmDiscard { pending, symbol }) = self.dialog.clone() else {
             return Outcome::Done;
         };
         self.dialog = None;
+        // ID-1463: the symbol draft's question; the pending action then asks about the project as usual.
+        if symbol {
+            let params = pending.params.clone();
+            return match answer {
+                ConfirmAnswer::Cancel => Outcome::Done,
+                // Quitting drops the draft and then asks about the project; an editor action discards the draft itself
+                // (ID-1472).
+                ConfirmAnswer::Discard if pending.action == "app.quit" => {
+                    self.symbol_editor = None;
+                    self.dispatch(pending.action, &params)
+                }
+                ConfirmAnswer::Discard => {
+                    let mut params = params;
+                    if let Value::Object(p) = &mut params {
+                        p.insert("discard".into(), Value::Bool(true));
+                    }
+                    self.dispatch(pending.action, &params)
+                }
+                ConfirmAnswer::Save => match self.act_symbol("save", &Map::new()) {
+                    Outcome::Done => self.dispatch(pending.action, &params),
+                    // The refusal shows in the editor, on its draft.
+                    other => {
+                        if let Some(editor) = &mut self.symbol_editor {
+                            editor.shown = true;
+                        }
+                        other
+                    }
+                },
+            };
+        }
         // ID-1374: the import card that the question replaced comes back, for Cancel and for the Apply that follows.
         if let Some(card) = self.recovery_stash.take() {
             self.dialog_gen += 1;
@@ -2464,7 +2565,7 @@ impl ShellModel {
                 params.insert("discard".to_owned(), Value::Bool(true));
                 self.dispatch(pending.action, &Value::Object(params))
             }
-            ConfirmAnswer::Save => match self.dispatch("file.save", &Value::Null) {
+            ConfirmAnswer::Save => match self.save_project() {
                 Outcome::Done => self.dispatch(pending.action, &Value::Object(params)),
                 other => other,
             },

@@ -302,7 +302,8 @@ pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<S
         .iter()
         .chain(bar.groups.iter().flat_map(|g| &g.buttons))
         .chain(&bar.next);
-    for b in buttons.filter(|b| !b.enabled) {
+    // While the symbol editor shows, its own bar replaces the command bar's buttons (ID-1463).
+    for b in buttons.filter(|b| !b.enabled && shell.symbol_editor().is_none()) {
         check(&b.bar_label, false);
     }
     for menu in actions::menu_model(shell) {

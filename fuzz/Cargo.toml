@@ -15,7 +15,7 @@ name = "ew-fuzz"
 version = "0.0.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
-description = "cargo-fuzz targets: the JSONL loader, the open path with old-shape records, the command sequence, PNG to PDF, the .ewz reader, the merge, the SQL sandbox, SVG and raster assets, textconv, the table round trip, command logs, the importers, the .ewlib reader and the headless runner's .ewui scripts."
+description = "cargo-fuzz targets: the JSONL loader, the open path with old-shape records, the command sequence, PNG to PDF, the .ewz reader, the merge, the SQL sandbox, SVG and raster assets, textconv, the table round trip, command logs, the importers, the .ewlib reader, the headless runner's .ewui scripts and the symbol editor's readers."
 repository = "https://github.com/Ironkode787/ElektraWatt"
 publish = false
 
@@ -52,6 +52,8 @@ ew-export = { path = "../crates/ew-export" }
 ew-scene = { path = "../crates/ew-scene" }
 # The `.ewui` script target: the headless runner's script parser (src/ewui_script.rs, FT-1452).
 ew-viewmodel = { path = "../crates/ew-viewmodel" }
+# The SLK target: the EPLAN importer's SLK reader itself (src/symbols.rs, M25-p2#6).
+ew-import-eplan = { path = "../crates/ew-import-eplan" }
 uuid = { version = "1.26", default-features = false }
 serde = "1.0.229"
 serde_json = "1.0.154"
@@ -186,6 +188,20 @@ bench = false
 [[bin]]
 name = "ewui_script"
 path = "fuzz_targets/ewui_script.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "symbol_authoring"
+path = "fuzz_targets/symbol_authoring.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "symbol_slk"
+path = "fuzz_targets/symbol_slk.rs"
 test = false
 doc = false
 bench = false

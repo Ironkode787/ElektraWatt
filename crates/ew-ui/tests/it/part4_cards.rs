@@ -184,6 +184,37 @@ fn a_modal_dialog_puts_the_toasts_below_its_backdrop() {
     );
 }
 
+/// SM25b m4 (ID-1476): with the Insert symbol picker open a toast lies below it, in the middle order, while the
+/// picker stands in the foreground, so no toast covers the picker's field.
+#[test]
+fn the_insert_symbol_picker_stands_above_the_toasts() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    dispatch(
+        &mut h,
+        "select.set",
+        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
+    );
+    dispatch(
+        &mut h,
+        "props.set",
+        json!({"row": "device/function_text", "value": "Spare"}),
+    );
+    dispatch(&mut h, "tool.place", json!({}));
+    h.run_ok();
+    h.run_ok();
+    assert!(h.state().shell().picker().is_some() && h.state().shell().toast().is_some());
+    let visible = |h: &Harness<'_, App>, layer: egui::LayerId| h.ctx.memory(|m| m.areas().is_visible(&layer));
+    let toast = egui::LayerId::new(egui::Order::Middle, egui::Id::unique("ew-toasts"));
+    let picker = egui::LayerId::new(egui::Order::Foreground, egui::Id::unique("place-picker"));
+    assert!(visible(&h, toast), "the toast is shown in the middle order");
+    assert!(visible(&h, picker), "the picker is shown in the foreground");
+    h.state_mut().shell_mut().shutdown();
+}
+
 #[test]
 fn cp4_the_palette_rows_carry_breadcrumbs_and_key_chips() {
     let tmp = Tmp::new();

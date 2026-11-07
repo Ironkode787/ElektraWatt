@@ -1736,6 +1736,106 @@
       "stability": "preview"
     },
     {
+      "path": "symbol import",
+      "flags": [
+        {
+          "name": "--key",
+          "value": true,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
+      "path": "symbol publish",
+      "flags": [
+        {
+          "name": "--library",
+          "value": true,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 1,
+          "meaning": "invalid draft"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
+      "path": "symbol schema",
+      "flags": [],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
+      "path": "symbol template",
+      "flags": [],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
+      "path": "symbol validate",
+      "flags": [],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 1,
+          "meaning": "invalid draft"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
       "path": "upgrade",
       "flags": [
         {

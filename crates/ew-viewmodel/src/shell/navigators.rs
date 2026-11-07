@@ -260,6 +260,14 @@ impl ShellModel {
     /// `navigator.rename` with the focused navigator's `kind` while it is not in table mode (WP-S2.07 part 2, FT-490);
     /// every other binding runs its own action without parameters.
     pub fn shortcut_action(&self, action: &'static str) -> (&'static str, Value) {
+        // ID-1463 (doc 16a P8): while the symbol editor shows, the main window's drawing keys choose its tools.
+        if self.symbol_editor().is_some()
+            && let Some((tool, _)) = crate::shell::symbol_editor::TOOL_KEYS
+                .iter()
+                .find(|(_, a)| *a == action && *a != "ui.dismiss")
+        {
+            return ("symbol.tool", json!({ "tool": tool }));
+        }
         let strips = self.focused_navigator() == Some(NavKind::Strips);
         // WP-S4.02 part 3 (doc 12 §12.4, ID-628): on a panel page the canvas's Tab, R and X place, and the arrows nudge
         // a selected placement; each chord stays unique per context.

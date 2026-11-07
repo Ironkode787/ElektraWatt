@@ -52,6 +52,8 @@ pub(crate) enum Event {
     PaletteField(usize, String),
     /// An answer to the unsaved-changes dialog.
     Confirm(ConfirmAnswer),
+    /// A symbol editor action that drops its draft, asked first when the draft has unsaved changes (ID-1472).
+    SymbolAsk(&'static str, Value),
     /// The go-to field changed.
     GotoText(String),
     /// Go in the go-to dialog: a folio or a cell.
@@ -249,6 +251,7 @@ pub struct App {
     area_splitters: usize,
     /// The page view of the wizard's preview.
     preview_view: PageView,
+    symbol_editor_view: crate::symbol_editor::EditorView,
     dock: Dock,
     initial: Option<PathBuf>,
     bindings: Vec<Binding>,
@@ -355,6 +358,7 @@ impl App {
             waker_set: false,
             area_splitters: 0,
             preview_view: PageView::new(),
+            symbol_editor_view: crate::symbol_editor::EditorView::default(),
             dock,
             initial,
             // Built by the first frame from the shell's keymap (`App::sync_bindings`).
@@ -659,6 +663,15 @@ impl App {
         if under_row {
             return;
         }
+        // SM25b m2 (P3): a refusal the symbol editor shows with its draft is not made a banner as well.
+        if self
+            .shell
+            .symbol_editor()
+            .and_then(|e| e.error.as_deref())
+            .is_some_and(|e| message.ends_with(e))
+        {
+            return;
+        }
         // A state banner (W49.3-F2) lies under a message: the message shows over it.
         if self.shell.message_banner().is_none() || ours {
             self.shell.show_banner(&message);
@@ -939,7 +952,11 @@ impl App {
         self.shell
             .set_canvas_fit_inset(f64::from(crate::hud::fit_inset(&tokens)));
         // WP-S2.17 part 2: the command bar replaces the menu bar (doc 16a §5.2); the app button opens the app menu.
-        let bar_height = crate::command_bar::bar_height(&tokens, self.shell.command_bar_collapsed());
+        let bar_height = if self.shell.symbol_editor().is_some() {
+            tokens.size_tab_row + crate::symbol_editor::toolbar_height(&tokens) + tokens.border_width
+        } else {
+            crate::command_bar::bar_height(&tokens, self.shell.command_bar_collapsed())
+        };
         let command_bar = &mut self.command_bar;
         let shell = &self.shell;
         Panel::top("command-bar")
@@ -947,7 +964,9 @@ impl App {
             .resizable(false)
             .show_separator_line(false)
             .frame(egui::Frame::NONE.fill(chrome))
-            .show(ui, |ui| command_bar.show(ui, shell, &mut events));
+            .show(ui, |ui| {
+                command_bar.show(ui, shell, &mut events, &mut self.symbol_editor_view)
+            });
         // F6 reached the command bar: its active tab takes egui's keyboard focus.
         let bar_has_focus = self.shell.focus() == Some(Focus::CommandBar);
         if bar_has_focus && !self.bar_had_focus {
@@ -974,11 +993,11 @@ impl App {
         let mut canvas_shown = false;
         let project_view =
             self.shell.first_run().is_none() && self.shell.wizard().is_none() && self.shell.has_project();
-        if project_view {
+        if project_view && self.shell.symbol_editor().is_none() {
             self.canvas.begin_frame(&ctx, &self.shell);
         }
         self.area_splitters = 0;
-        if project_view {
+        if project_view && self.shell.symbol_editor().is_none() {
             // WP-S2.17 part 3 (doc 16a §5.4, §5.6): the navigator rail at the left, the palettes rail at the right.
             for (side, left) in [("rail-left", true), ("rail-right", false)] {
                 let panel = if left {
@@ -1001,12 +1020,17 @@ impl App {
             }
         }
         let mut page_pane = None;
+        if self.shell.symbol_editor().is_none() {
+            self.symbol_editor_view = crate::symbol_editor::EditorView::default();
+        }
         CentralPanel::default().show(ui, |ui| {
             crate::properties::remember_free_area(ui);
             if self.shell.first_run().is_some() {
                 first_run::show(ui, &self.shell, &mut events);
             } else if self.shell.wizard().is_some() {
                 wizard::show(ui, &self.shell, &mut self.preview_view, &mut events);
+            } else if self.shell.symbol_editor().is_some() {
+                self.symbol_editor_view.show(ui, &self.shell, &mut events);
             } else if self.shell.has_project() {
                 let App {
                     shell,
@@ -1155,8 +1179,10 @@ impl App {
             _ => egui::Align2::RIGHT_TOP,
         };
         let dialog_open = self.shell.dialog().is_some();
-        // Doc 16a §6.12: under a modal the toasts go below its backdrop, which dims them with the rest.
-        let under_modal = dialog_open || ctx.memory(|m| m.top_modal_layer().is_some());
+        // Doc 16a §6.12: under a modal the toasts go below its backdrop, which dims them with the rest. SM25b m4
+        // (ID-1476): below the Insert symbol picker too, which stands in the foreground and keeps its field clear.
+        let under_modal =
+            dialog_open || self.shell.picker().is_some() || ctx.memory(|m| m.top_modal_layer().is_some());
         // FT-1027 (ID-1107; doc 16a §4.12, §6.10): each toast fades in and out over `motion.base` on the frame clock.
         let frame_time = ctx.input(|i| i.time);
         let fade = f64::from(tokens.motion_base) / 1000.0;
@@ -1369,8 +1395,10 @@ impl App {
         if self.properties.field_open() && ctx.input(|i| i.key_pressed(Key::Escape)) {
             return;
         }
+        // ID-1463: while the symbol editor shows, Escape is its own (a gesture ends, then Select).
         if !palette_open
             && self.shell.has_project()
+            && self.shell.symbol_editor().is_none()
             && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
         {
             events.push(Event::Action("ui.dismiss", Value::Null));
@@ -1399,11 +1427,22 @@ impl App {
         // The focused context's chords first, then the global ones (WP-S2.03 §6.6); while the navigator has the
         // focus its own keys (arrows, Home, End, Enter) stay with it.
         let focused = match self.shell.focus() {
+            // ID-1463 (doc 16a P8): the symbol editor's drawing is a canvas; its tools take the canvas's keys.
+            _ if self.shell.symbol_editor().is_some() => Context::Canvas,
             Some(Focus::Navigator(_)) => Context::Navigator,
             Some(Focus::Canvas(_)) => Context::Canvas,
             Some(Focus::Properties) => Context::Properties,
             Some(Focus::Find) => Context::Find,
             Some(Focus::CommandBar | Focus::History) | None => Context::Global,
+        };
+        // While the symbol editor shows, of the canvas's keys only those that choose its tools apply.
+        let editor = self.shell.symbol_editor().is_some();
+        let applies = |b: &Binding| {
+            !editor
+                || b.context != Context::Canvas
+                || ew_viewmodel::shell::symbol_editor::TOOL_KEYS
+                    .iter()
+                    .any(|(_, action)| *action == b.action)
         };
         // WP-S2.17 part 2 (doc 16a §5.9): on the command bar Left and Right move between the tabs.
         if self.shell.focus() == Some(Focus::CommandBar) && !palette_open {
@@ -1430,7 +1469,9 @@ impl App {
             let mut physical: Vec<&Binding> = self
                 .bindings
                 .iter()
-                .filter(|b| b.physical && (b.context == Context::Global || b.context == focused))
+                .filter(|b| {
+                    b.physical && (b.context == Context::Global || b.context == focused) && applies(b)
+                })
                 .collect();
             physical.sort_by_key(|b| {
                 let m = b.shortcut.modifiers;
@@ -1545,7 +1586,7 @@ impl App {
         let mut candidates: Vec<&Binding> = self
             .bindings
             .iter()
-            .filter(|b| !b.physical && (b.context == Context::Global || b.context == focused))
+            .filter(|b| !b.physical && (b.context == Context::Global || b.context == focused) && applies(b))
             .collect();
         candidates.sort_by_key(|b| {
             let m = b.shortcut.modifiers;
@@ -1810,6 +1851,9 @@ impl App {
             Event::PaletteMove(delta) => self.shell.move_palette_selection(delta),
             Event::PaletteField(i, text) => self.shell.set_palette_field(i, &text),
             Event::Confirm(answer) => self.run(None, |shell| shell.answer_confirm(answer)),
+            Event::SymbolAsk(action, params) => {
+                self.run(None, |shell| shell.ask_symbol_discard(action, params))
+            }
             Event::GotoText(text) => self.shell.set_goto_text(&text),
             Event::GotoGo(text) => self.dispatch("nav.goto", &json!({ "text": text })),
             Event::WorkspaceText(text) => self.shell.set_workspace_text(&text),

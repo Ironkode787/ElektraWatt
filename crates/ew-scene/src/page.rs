@@ -645,6 +645,34 @@ impl PageScene {
     }
 }
 
+/// Shapes a symbol-editor text with the same styles, fonts, alignment and readable rotation as page placement.
+/// Dynamic slot values are supplied by the editor's preview data.
+pub fn symbol_preview_text(
+    text: &symbol::PlacedText,
+    content: &str,
+    fonts: &FontSet,
+    styles: &TextStyleTable,
+) -> LayerList {
+    let mut builder = Builder {
+        fonts,
+        styles,
+        out: LayerList::default(),
+    };
+    if text.visible {
+        builder.text(&TextSpec {
+            text: content,
+            at: text.pos,
+            angle: text.angle,
+            align: &text.align,
+            style_key: &text.style_key,
+            entity: EntityRef(Uuid::nil()),
+            link: None,
+            items: &[],
+        });
+    }
+    builder.out
+}
+
 pub(crate) struct Builder<'a> {
     pub(crate) fonts: &'a FontSet,
     styles: &'a TextStyleTable,

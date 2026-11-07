@@ -83,6 +83,36 @@ const HUMAN_EXITS: &[Exit] = &[
 /// The exits, results and stability of every subcommand path of the tree.
 pub const TABLE: &[Row] = &[
     Row {
+        path: &["symbol", "template"],
+        exits: &[OK, USAGE_ETC],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["symbol", "schema"],
+        exits: &[OK, USAGE_ETC],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["symbol", "validate"],
+        exits: &[OK, exit(1, "invalid draft"), USAGE_ETC],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["symbol", "import"],
+        exits: &[OK, USAGE_ETC],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["symbol", "publish"],
+        exits: &[OK, exit(1, "invalid draft"), USAGE_ETC],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["import", "qet"],
         exits: &[
             exit(0, "imported, even with findings"),

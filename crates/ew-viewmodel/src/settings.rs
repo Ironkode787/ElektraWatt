@@ -434,6 +434,30 @@ impl Settings {
             .collect()
     }
 
+    /// Remember an explicitly chosen publication directory using the existing library setting.
+    pub(crate) fn remember_library(&mut self, path: &Path, config_dir: Option<&Path>) {
+        let mut paths = self.company_libraries(config_dir);
+        if !paths.iter().any(|p| p == path) {
+            paths.push(path.to_owned());
+        }
+        let libraries = self
+            .extra
+            .entry("libraries")
+            .or_insert_with(|| toml::Value::Table(toml::Table::new()));
+        if !libraries.is_table() {
+            *libraries = toml::Value::Table(toml::Table::new());
+        }
+        libraries.as_table_mut().expect("table above").insert(
+            "company".into(),
+            toml::Value::Array(
+                paths
+                    .into_iter()
+                    .map(|p| toml::Value::String(p.to_string_lossy().into_owned()))
+                    .collect(),
+            ),
+        );
+    }
+
     /// The TOML text of the settings: `version`, the known keys and the kept unknown ones, keys sorted.
     pub fn to_toml(&self) -> String {
         let mut table = self.extra.clone();

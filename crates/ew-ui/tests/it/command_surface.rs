@@ -99,6 +99,15 @@ fn cb2_the_tabs_and_the_draw_row_dispatch_their_actions() {
                 continue;
             }
             node.click();
+            // ID-1477 (7): the symbol editor takes the place of the page and its docks; Close editor returns to them.
+            if b.id == "symbol.new" {
+                h.run_ok();
+                assert_eq!(h.state().dispatched().last().copied(), Some(b.id));
+                let _ = h.state_mut().shell_mut().dispatch("symbol.close", &json!({}));
+                settle(&mut h);
+                clicked += 1;
+                continue;
+            }
             settle(&mut h);
             assert_eq!(
                 h.state().dispatched().last().copied(),

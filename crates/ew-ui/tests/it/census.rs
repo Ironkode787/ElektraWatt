@@ -1034,3 +1034,171 @@ fn the_form_check_names_a_form_the_census_does_not_open() {
     );
     assert_eq!(form_problems(&built, &built), Vec::<String>::new());
 }
+
+/// M25-p3#8 (ID-1463): the symbol editor's three panels with a shape, a pin and a slot, each section open.
+#[test]
+fn census_the_symbol_editor() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "g.ew");
+    let mut census = Census::default();
+    for (action, params) in [
+        ("symbol.new", json!({"key": "example.census", "name": "Census"})),
+        (
+            "symbol.draw",
+            json!({"tool": "rectangle", "x": 0, "y": 0, "x2": 8, "y2": 8}),
+        ),
+        (
+            "symbol.cp",
+            json!({"x": 0, "y": 4, "designation": "1", "direction": "left"}),
+        ),
+        ("symbol.slot", json!({"x": 0, "y": -4, "kind": "tag"})),
+    ] {
+        dispatch(&mut h, action, params);
+    }
+    h.run_ok();
+    for (panel, sections) in [
+        (
+            "Drawing",
+            &["Rectangle 1", "Text slots (1)", "Link point (0)"][..],
+        ),
+        (
+            "Electrical data",
+            &["Connection points (1)", "Assign function"][..],
+        ),
+        (
+            "Library",
+            &["Properties", "Advanced document", "Place on current page"][..],
+        ),
+    ] {
+        h.get_by_label(panel).click();
+        h.run_ok();
+        for section in sections {
+            h.get_by_label(section).click();
+            h.run_ok();
+        }
+        census.visit(&mut h, &format!("the symbol editor's {panel} panel"));
+    }
+    h.state_mut().shell_mut().shutdown();
+    census.assert_clean();
+}
+
+/// Doc 16a P8 (M25-p5 nit): the tool buttons name the keys of the keymap that choose them, which their tooltips
+/// show; a tool without a key names none.
+#[test]
+fn the_symbol_editors_tool_buttons_name_their_keys() {
+    use egui::accesskit::Role;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "g.ew");
+    dispatch(
+        &mut h,
+        "symbol.new",
+        json!({"key": "example.keys", "name": "Keys"}),
+    );
+    h.run_ok();
+    h.run_ok();
+    let shortcut = |h: &Harness<'_, App>, name: &str| {
+        h.get_by_role_and_label(Role::Button, name)
+            .accesskit_node()
+            .data()
+            .keyboard_shortcut()
+            .map(str::to_owned)
+    };
+    for (tool, key) in [
+        ("Select", Some("Esc")),
+        ("Line", Some("L")),
+        ("Rectangle", Some("B")),
+        ("Text", Some("T")),
+        ("Connection point", Some("P")),
+        ("Circle", None),
+    ] {
+        assert_eq!(shortcut(&h, tool).as_deref(), key, "{tool}");
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// SM25b m2 (doc 16a P3): a Save refused off the grid says so once, in Validation: no banner and no header line.
+#[test]
+fn the_symbol_editors_off_grid_refusal_shows_once() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "g.ew");
+    for (action, params) in [
+        ("symbol.new", json!({"key": "example.once", "name": "Once"})),
+        (
+            "symbol.draw",
+            json!({"tool": "line", "x": 0, "y": 0, "x2": 0, "y2": 4}),
+        ),
+        ("symbol.cp", json!({"x": 4.5, "y": 0, "designation": "1"})),
+        ("symbol.directory", json!({"directory": tmp.0.join("once.ewlib")})),
+    ] {
+        dispatch(&mut h, action, params);
+    }
+    h.run_ok();
+    h.get_by_label("Save to library").click();
+    h.run_ok();
+    h.run_ok();
+    let text = "Connection point 1 is off the connection grid. Move it onto the grid before saving.";
+    let shell = h.state().shell();
+    assert_eq!(shell.symbol_editor().unwrap().error.as_deref(), Some(text));
+    assert_eq!(shell.banner(), None);
+    assert_eq!(h.query_all_by_label_contains(text).count(), 1);
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// M25-p5#4 (ID-1463, #8): a control repeated for each pin, slot, link point or the selected shape names the item it
+/// belongs to, so no two share a name.
+#[test]
+fn the_symbol_editors_repeated_controls_name_their_item() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "g.ew");
+    for (action, params) in [
+        ("symbol.new", json!({"key": "example.names", "name": "Names"})),
+        (
+            "symbol.draw",
+            json!({"tool": "rectangle", "x": 0, "y": 0, "x2": 8, "y2": 8}),
+        ),
+        ("symbol.cp", json!({"x": 0, "y": 4, "designation": "1"})),
+        ("symbol.cp", json!({"x": 0, "y": 8, "designation": "2"})),
+        ("symbol.slot", json!({"x": 0, "y": -4, "kind": "tag"})),
+        ("symbol.slot", json!({"x": 4, "y": -4, "kind": "tag"})),
+        ("symbol.link", json!({"x": 8, "y": 0, "name": "a"})),
+        ("symbol.link", json!({"x": 8, "y": 4, "name": "a"})),
+    ] {
+        dispatch(&mut h, action, params);
+    }
+    h.run_ok();
+    let names = |h: &Harness<'_, App>, names: &[&str]| {
+        for name in names {
+            assert_eq!(h.query_all_by_label(name).count(), 1, "{name}");
+        }
+    };
+    for section in ["Rectangle 1", "Text slots (2)"] {
+        h.get_by_label(section).click();
+        h.run_ok();
+    }
+    h.run_ok();
+    names(
+        &h,
+        &[
+            "Fill shape of Rectangle 1",
+            "Delete Rectangle 1",
+            "Device tag 1 visible",
+            "Device tag 2 visible",
+            "Text style of Device tag 2",
+            "Delete Device tag 2",
+        ],
+    );
+    // The slots close, so the link points show in the panel.
+    for section in ["Text slots (2)", "Link point (2)"] {
+        h.get_by_label(section).click();
+        h.run_ok();
+    }
+    h.run_ok();
+    names(&h, &["Name of Link point 2", "Delete Link point 2"]);
+    h.get_by_label("Electrical data").click();
+    h.run_ok();
+    h.get_by_label("Connection points (2)").click();
+    h.run_ok();
+    h.run_ok();
+    names(&h, &["Delete Connection point 1", "Delete Connection point 2"]);
+    h.state_mut().shell_mut().shutdown();
+}

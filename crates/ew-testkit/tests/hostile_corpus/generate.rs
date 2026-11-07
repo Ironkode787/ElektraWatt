@@ -10,6 +10,16 @@ use ew_api::zip::{Method, crc32, write};
 /// The small binary files of the corpus that this module makes, by their path below `hostile/`.
 pub fn committed() -> Vec<(&'static str, Vec<u8>)> {
     vec![
+        ("eplan/entry-parent.edz", eplan_entry_parent()),
+        ("eplan/ratio-over-200.edz", eplan_ratio_over_200()),
+        (
+            "eplan/seven-zip-dictionary-4-gib.edz",
+            seven_zip_dictionary_4_gib(),
+        ),
+        (
+            "eplan/seven-zip-entries-over-the-limit.edz",
+            seven_zip_entries_over_the_limit(),
+        ),
         ("ewz/parent-entry.ewz", ewz_parent_entry()),
         ("raster/png-2-31-pixels.png", png_2_31_pixels()),
         ("xlsx/billion-laughs.xlsx", xlsx_with_rels(&billion_laughs_rels())),
@@ -25,6 +35,15 @@ pub fn committed() -> Vec<(&'static str, Vec<u8>)> {
 /// The files made at each run only, by their path below `hostile/` (none of them is committed).
 pub fn large() -> Vec<(&'static str, Vec<u8>)> {
     vec![
+        ("eplan/depth-10000.xml", eplan_depth_10000()),
+        (
+            "eplan/element-of-200000-attributes.xml",
+            eplan_element_of_200000_attributes(),
+        ),
+        (
+            "eplan/parts-pins-over-the-budget.xml",
+            eplan_parts_pins_over_the_budget(),
+        ),
         ("ewz/65536-entries.ewz", ewz_65536_entries()),
         ("jsonl/line-over-16-mib.jsonl", jsonl_line_over_16_mib()),
         (
@@ -233,6 +252,83 @@ fn jsonl_line_over_16_mib() -> Vec<u8> {
     out.resize((16 << 20) + 1 - tail.len() + 1, b'a');
     out.extend_from_slice(tail);
     out
+}
+
+/// An EPLAN parts document of one part with one connection.
+const EPLAN_PARTS: &[u8] =
+    br#"<partsmanagement><part><functiontemplate connectionDesignation="1"/></part></partsmanagement>"#;
+
+/// An EDZ whose parts document is named `../x.xml`.
+fn eplan_entry_parent() -> Vec<u8> {
+    renamed(
+        &[("aaaaaaaa", Method::Deflated, EPLAN_PARTS)],
+        "aaaaaaaa",
+        "../x.xml",
+    )
+}
+
+/// An EDZ whose parts document carries 1 MiB of spaces that pack to about a thousandth: honestly declared, above the
+/// 200 : 1 ratio.
+fn eplan_ratio_over_200() -> Vec<u8> {
+    let mut parts = EPLAN_PARTS.to_vec();
+    parts.resize(1 << 20, b' ');
+    write(&[("parts.xml", Method::Deflated, &parts)]).expect("an archive")
+}
+
+/// A 7z archive of the packed bytes `packed` and the plain header `header` behind them, its start header's CRC right.
+fn seven_zip(packed: &[u8], header: &[u8]) -> Vec<u8> {
+    let mut start = Vec::new();
+    start.extend((packed.len() as u64).to_le_bytes());
+    start.extend((header.len() as u64).to_le_bytes());
+    start.extend(crc32(header).to_le_bytes());
+    let mut out = b"7z\xbc\xaf\x27\x1c\x00\x04".to_vec();
+    out.extend(crc32(&start).to_le_bytes());
+    out.extend(start);
+    out.extend(packed);
+    out.extend(header);
+    out
+}
+
+/// A 7z archive of one LZMA2 folder over 16 bytes that declares a 4 GiB dictionary (property 40): the decoder would
+/// allocate it.
+fn seven_zip_dictionary_4_gib() -> Vec<u8> {
+    let header = [
+        0x01, 0x04, 0x06, 0x00, 0x01, 0x09, 0x10, 0x00, 0x07, 0x0b, 0x01, 0x00, 0x01, 0x21, 0x21, 0x01, 40,
+        0x0c, 0x10, 0x00, 0x00, 0x00,
+    ];
+    seven_zip(&[0; 16], &header)
+}
+
+/// A 7z archive whose files declare 5,000 entries (the NUMBER `93 88`), over the 4,096 of the reader.
+fn seven_zip_entries_over_the_limit() -> Vec<u8> {
+    seven_zip(&[], &[0x01, 0x05, 0x93, 0x88, 0x00, 0x00])
+}
+
+/// An EPLAN XML nested 10,000 deep (SM25#1: it overflowed the stack before the depth was checked).
+fn eplan_depth_10000() -> Vec<u8> {
+    format!("{}{}", "<a>".repeat(10_000), "</a>".repeat(10_000)).into_bytes()
+}
+
+/// An EPLAN XML whose one element carries 200,000 attributes, within the document's 200,000 `=`, the last repeating
+/// the first (M25-p4#3): the parser's duplicate check is quadratic in an element's attributes, so it worked through
+/// all of them before it refused the repeat.
+fn eplan_element_of_200000_attributes() -> Vec<u8> {
+    let mut out = String::from("<partsmanagement");
+    for i in 0..199_999 {
+        out.push_str(&format!(" a{i}=''"));
+    }
+    out.push_str(" a0=''/>");
+    out.into_bytes()
+}
+
+/// A parts document of 17 parts of 4,000 connections each (`a¶`, 3 bytes): every part within the 4,096 of one
+/// symbol, all of them together over the 65,536 graphics and connection points of one read (M25-p2#2).
+fn eplan_parts_pins_over_the_budget() -> Vec<u8> {
+    let part = format!(
+        "<part><functiontemplate connectionDesignation=\"{}\"/></part>",
+        "a\u{b6}".repeat(4_000)
+    );
+    format!("<partsmanagement>{}</partsmanagement>", part.repeat(17)).into_bytes()
 }
 
 /// A project whose first diagram carries 8,193 attributes, one over the per-element limit.

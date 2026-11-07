@@ -118,7 +118,11 @@ fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
         })
         .cloned()
         .collect();
-    assert_eq!(placement, pairs(&[("Scale", "1:10")]));
+    // ID-1477 (1): the Connection grid row is a choice outside Advanced; its fraction stays under it.
+    assert_eq!(
+        placement,
+        pairs(&[("Connection grid", "QET 10 px"), ("Scale", "1:10")])
+    );
     let advanced: Vec<(String, String)> = shown(&s, true)
         .into_iter()
         .filter(|(l, _)| {

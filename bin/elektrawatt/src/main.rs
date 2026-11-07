@@ -277,6 +277,25 @@ impl RfdPlatform {
                     .add_filter("EWZ", &["ewz"]),
                 DialogKind::File,
             ),
+            // ID-1463: the symbol editor's file and library folder.
+            Prompt::OpenSymbol => (
+                base.set_title(strings::text(key!("prompt-open-symbol-title")))
+                    .add_filter(
+                        strings::text(key!("prompt-symbol-filter")),
+                        &ew_ui::ew_viewmodel::shell::symbol_editor::FILE_EXTENSIONS,
+                    ),
+                DialogKind::File,
+            ),
+            Prompt::SaveSymbol => (
+                base.set_title(strings::text(key!("prompt-save-symbol-title")))
+                    .set_file_name(strings::text(key!("prompt-symbol-name")))
+                    .add_filter("JSON", &["json"]),
+                DialogKind::Save,
+            ),
+            Prompt::LibraryFolder => (
+                base.set_title(strings::text(key!("prompt-library-folder-title"))),
+                DialogKind::Folder,
+            ),
         }
     }
 

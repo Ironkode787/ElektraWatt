@@ -9,7 +9,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 109;
+pub const COUNT: usize = 116;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -60,6 +60,13 @@ pub enum IconId {
     ew_interruption_point,
     ew_potential,
     ew_qet_grid,
+    ew_shape_arc,
+    ew_shape_circle,
+    ew_shape_ellipse,
+    ew_shape_line,
+    ew_shape_polygon,
+    ew_shape_polyline,
+    ew_shape_rectangle,
     ew_structure_box,
     ew_terminal_strip,
     external_link,
@@ -174,6 +181,13 @@ impl IconId {
         IconId::ew_interruption_point,
         IconId::ew_potential,
         IconId::ew_qet_grid,
+        IconId::ew_shape_arc,
+        IconId::ew_shape_circle,
+        IconId::ew_shape_ellipse,
+        IconId::ew_shape_line,
+        IconId::ew_shape_polygon,
+        IconId::ew_shape_polyline,
+        IconId::ew_shape_rectangle,
         IconId::ew_structure_box,
         IconId::ew_terminal_strip,
         IconId::external_link,
@@ -288,6 +302,13 @@ pub const KEYS: [&str; COUNT] = [
     "ew-interruption-point",
     "ew-potential",
     "ew-qet-grid",
+    "ew-shape-arc",
+    "ew-shape-circle",
+    "ew-shape-ellipse",
+    "ew-shape-line",
+    "ew-shape-polygon",
+    "ew-shape-polyline",
+    "ew-shape-rectangle",
     "ew-structure-box",
     "ew-terminal-strip",
     "external-link",
@@ -1047,6 +1068,59 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(12.01, 16.0),
         M(16.0, 16.0),
         L(16.01, 16.0),
+    ],
+    // ew-shape-arc
+    &[
+        M(3.0, 17.0),
+        C(3.0, 12.029, 7.029, 8.0, 12.0, 8.0),
+        C(16.971, 8.0, 21.0, 12.029, 21.0, 17.0),
+    ],
+    // ew-shape-circle
+    &[
+        M(21.0, 12.0),
+        C(21.0, 7.029, 16.971, 3.0, 12.0, 3.0),
+        C(7.029, 3.0, 3.0, 7.029, 3.0, 12.0),
+        C(3.0, 16.971, 7.029, 21.0, 12.0, 21.0),
+        C(16.971, 21.0, 21.0, 16.971, 21.0, 12.0),
+        Z,
+    ],
+    // ew-shape-ellipse
+    &[
+        M(21.0, 12.0),
+        C(21.0, 8.686, 16.971, 6.0, 12.0, 6.0),
+        C(7.029, 6.0, 3.0, 8.686, 3.0, 12.0),
+        C(3.0, 15.314, 7.029, 18.0, 12.0, 18.0),
+        C(16.971, 18.0, 21.0, 15.314, 21.0, 12.0),
+        Z,
+    ],
+    // ew-shape-line
+    &[
+        M(4.0, 20.0),
+        L(20.0, 4.0),
+    ],
+    // ew-shape-polygon
+    &[
+        M(4.0, 19.0),
+        L(7.0, 5.0),
+        L(20.0, 8.0),
+        L(16.0, 14.0),
+        L(20.0, 19.0),
+        Z,
+    ],
+    // ew-shape-polyline
+    &[
+        M(3.0, 18.0),
+        L(8.0, 6.0),
+        L(16.0, 18.0),
+        L(21.0, 6.0),
+    ],
+    // ew-shape-rectangle
+    &[
+        M(3.0, 5.0),
+        L(21.0, 5.0),
+        L(21.0, 19.0),
+        L(3.0, 19.0),
+        Z,
     ],
     // ew-structure-box
     &[

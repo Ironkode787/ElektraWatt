@@ -42,12 +42,6 @@ use super::view::{PageFrameOf, PageRepsOf};
 use crate::Session;
 use crate::geometry::{Dir, orient_dir, orient_index, orient_point};
 
-/// The connection grid of QElectroTech's 10 px, `7_937_500/3` nm: a page on it lists the `@qet10` symbols.
-const QET_GRID: (u64, u64) = (7_937_500, 3);
-
-/// The suffix of the keys of the QET 10 px edition.
-const QET_SUFFIX: &str = "@qet10";
-
 /// The flattening tolerance of a symbol outline, nm.
 pub const OUTLINE_TOLERANCE_NM: f64 = 50_000.0;
 
@@ -57,8 +51,7 @@ pub const OUTLINE_TOLERANCE_NM: f64 = 50_000.0;
 /// What can be placed on a page (WP-S2.04 §4.3, §7.1): symbols and parts.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PlaceCatalogue {
-    /// The embedded symbol copies and the starter symbols the project has not embedded, of the page's grid family,
-    /// in key order.
+    /// Embedded symbols and available library symbols on the page's stored grid, in key/address order.
     pub symbols: Vec<CatalogueSymbol>,
     /// The embedded part copies, then the system libraries' parts with a function template the project does not hold
     /// (FT-1375), each group by manufacturer, then part number, then copy ID.
@@ -87,7 +80,7 @@ pub struct CatalogueStrip {
 pub struct CatalogueSymbol {
     /// The symbol's key (`ew.iec.mcb-1p@qet10`); the copy's UUID text for a copy without a key.
     pub key: String,
-    /// The copy ID when the project has embedded the symbol; `None` for a starter symbol.
+    /// The copy ID when embedded; `None` for an unembedded starter or installed-library symbol.
     pub copy: Option<Uuid>,
     /// The key of the symbol's function definition (`ew.fn.mcb-1p`).
     pub fndef_key: String,
@@ -99,8 +92,11 @@ pub struct CatalogueSymbol {
     pub black_box: bool,
     /// Whether the FnDef's first category is `Terminal` or `TerminalEarth` (placed as a terminal of a strip).
     pub terminal: bool,
-    /// Whether the page's type allows the symbol's representation type.
+    /// Whether the page's type allows the symbol's representation type, and the page's grid the symbol's.
     pub allowed: bool,
+    /// A published library symbol on a connection grid other than the page's (SM25b m3): the symbol's grid and the
+    /// page's, each as its `(num, den)` nanometres per step. The row is listed, not allowed, with this reason.
+    pub grid_mismatch: Option<[(u64, u64); 2]>,
     /// The words the picker's filter matches besides the keys (cycle 36): the symbol's name in every language and its
     /// keywords.
     pub words: Vec<String>,
@@ -434,7 +430,13 @@ fn symbol_row(
         fndef_key,
         rep_type: rep_type_word(&symbol.rep_type),
         letter: letter_of(set, def.as_deref()),
-        black_box: def
+        black_box: symbol.meta.key.as_ref().is_some_and(|key| {
+            starter_symbol(key.as_str()).is_some_and(|s| {
+                copy.is_none_or(|id| id == s.id.as_uuid())
+                    && s.item.fndef.library == symbol.fndef.library
+                    && s.item.fndef.item == symbol.fndef.item
+            })
+        }) && def
             .as_ref()
             .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox),
         // A PE terminal's category is `TerminalEarth` (FT-618): it is placed into a strip like every terminal.
@@ -442,6 +444,7 @@ fn symbol_row(
             .as_ref()
             .is_some_and(|d| matches!(d.item.category.0.as_str(), "Terminal" | "TerminalEarth")),
         allowed: rep_type_allowed(page, &symbol.rep_type),
+        grid_mismatch: None,
         name: ml_texts(&symbol.name).into_iter().next().unwrap_or_default(),
         words: ml_texts(&symbol.name)
             .into_iter()
@@ -461,14 +464,27 @@ fn drawn_page(q: &Q, folio: &str) -> Option<(PageRef, Id<Page>)> {
 }
 
 impl Session {
+    // Qualified addresses distinguish a library master from an older project copy with the same key.
+    fn installed_symbol(&self, address: &str) -> Option<LibCopy<SymbolDef>> {
+        self.libraries()
+            .libraries()
+            .into_iter()
+            .flat_map(|l| self.libraries().documents(l.id, ew_schema::Kind::Symbol))
+            .find_map(|doc| match doc {
+                LibDocument::Symbol(s) if format!("library:{}:{}", s.library_id, s.item_id) == address => {
+                    Some(s)
+                }
+                _ => None,
+            })
+    }
+
     /// What can be placed on the page labelled `folio` (WP-S2.04 §4.3, §7.1); `None` for an unknown folio or a page
     /// that is not drawn (a generated page, a divider).
     ///
-    /// `symbols` lists every embedded symbol copy and every starter symbol whose key the project has not embedded,
-    /// of the page's grid family only (keys ending `@qet10` on a page whose connection grid is `7_937_500/3` nm,
-    /// the others elsewhere), in key order (an embedded copy before a starter symbol of the same key). `letter` is
-    /// the project identifier set's letter for the FnDef's category (`ew-rds`' mapping), `black_box` whether the
-    /// FnDef's contact kind is `black_box`, `terminal` whether its first category is `Terminal`, `allowed` whether
+    /// `symbols` lists embedded symbols, unembedded starter symbols and installed library masters, filtered by
+    /// their stored grid. Library masters have qualified addresses; an embedded copy remains version-pinned.
+    /// Rows are ordered by key/address. `letter` is the identifier set's letter for the FnDef's category;
+    /// `black_box` identifies the built-in resizable placeholder, `terminal` its terminal category, `allowed` whether
     /// the page's type allows the symbol's representation type (`allowed_rep_types`). `parts` lists every embedded
     /// part copy, with or without a function template, then every part of the system libraries with a function
     /// template the project does not hold (FT-1375, ID-1391: the project's own copies first), each group by
@@ -478,29 +494,88 @@ impl Session {
         let q = self.query();
         let (_, page_id) = drawn_page(&q, folio)?;
         let page = q.pages().get(page_id)?.clone();
-        let qet = (page.grid.num(), page.grid.den()) == QET_GRID;
-        let in_family = |key: &str| key.ends_with(QET_SUFFIX) == qet;
         let set = IdentifierSet::by_key(&q.profile().identifier_set);
         let mut rows: Vec<(CatalogueSymbol, Id<FnDef>)> = Vec::new();
         let mut embedded_keys: BTreeSet<String> = BTreeSet::new();
+        // SM25b m3: the published library symbols, by copy ID, so that an embedded one on another grid is listed too.
+        let published: BTreeSet<Uuid> = self
+            .libraries()
+            .libraries()
+            .iter()
+            .flat_map(|l| self.libraries().documents(l.id, ew_schema::Kind::Symbol))
+            .filter_map(|d| match d {
+                LibDocument::Symbol(s) => Some(s.id.as_uuid()),
+                _ => None,
+            })
+            .filter(|id| {
+                !starter_docs()
+                    .iter()
+                    .any(|(_, _, d)| matches!(d, LibDocument::Symbol(s) if s.id.as_uuid() == *id))
+            })
+            .collect();
         for (id, copy) in q.symbols().iter() {
             let key = key_or_id(copy.item.meta.key.as_ref(), id.as_uuid());
             embedded_keys.insert(key.clone());
-            if !in_family(&key) {
+            let other_grid = copy.item.grid != page.grid;
+            if other_grid && !published.contains(&id.as_uuid()) {
                 continue;
             }
-            let row = symbol_row(&q, set, &page, key, Some(id.as_uuid()), &copy.item);
+            let mut row = symbol_row(&q, set, &page, key, Some(id.as_uuid()), &copy.item);
+            if other_grid {
+                row.allowed = false;
+                row.grid_mismatch = Some([
+                    (copy.item.grid.num(), copy.item.grid.den()),
+                    (page.grid.num(), page.grid.den()),
+                ]);
+            }
             rows.push((row, fndef_copy(&copy.item.fndef)));
         }
         for (key, kind, doc) in starter_docs() {
             let (StarterKind::Symbol, LibDocument::Symbol(copy)) = (kind, doc) else {
                 continue;
             };
-            if embedded_keys.contains(*key) || !in_family(key) || q.symbols().contains(copy.id) {
+            if embedded_keys.contains(*key) || copy.item.grid != page.grid || q.symbols().contains(copy.id) {
                 continue;
             }
             let row = symbol_row(&q, set, &page, (*key).to_owned(), None, &copy.item);
             rows.push((row, fndef_copy(&copy.item.fndef)));
+        }
+        // Authored/imported library masters are offered independently of project copies.
+        for library in self.libraries().libraries() {
+            for doc in self.libraries().documents(library.id, ew_schema::Kind::Symbol) {
+                let LibDocument::Symbol(copy) = doc else { continue };
+                if q.symbols().contains(copy.id)
+                    || starter_docs()
+                        .iter()
+                        .any(|(_, _, d)| matches!(d, LibDocument::Symbol(s) if s.id == copy.id))
+                {
+                    continue;
+                }
+                let address = format!("library:{}:{}", copy.library_id, copy.item_id);
+                let mut row = symbol_row(&q, set, &page, address, None, &copy.item);
+                // SM25b m3 (ruled): a published symbol the page's grid cannot take is listed, greyed with its reason.
+                if copy.item.grid != page.grid {
+                    row.allowed = false;
+                    row.grid_mismatch = Some([
+                        (copy.item.grid.num(), copy.item.grid.den()),
+                        (page.grid.num(), page.grid.den()),
+                    ]);
+                }
+                let Ok(LibDocument::Fndef(def)) = self.libraries().resolve(&copy.item.fndef) else {
+                    continue;
+                };
+                row.fndef_key = key_or_id(def.item.meta.key.as_ref(), def.id.as_uuid());
+                row.letter = letter_of(set, Some(&def));
+                row.terminal = matches!(def.item.category.0.as_str(), "Terminal" | "TerminalEarth");
+                // A library master already has its authored outline and pins; do not redraw it as a box.
+                row.black_box = false;
+                row.name = format!("{} · {}", row.name, library.name);
+                if let Some(key) = &copy.item.meta.key {
+                    row.words.push(key.to_string());
+                }
+                row.words.push(library.name.clone());
+                rows.push((row, fndef_copy(&copy.item.fndef)));
+            }
         }
         rows.sort_by(|(a, _), (b, _)| {
             a.key
@@ -572,6 +647,24 @@ impl Session {
         Some(serde_json::json!({ "copies": copies }))
     }
 
+    /// Documents needed to place a starter key or qualified installed-library symbol.
+    ///
+    /// # Errors
+    /// A library reference cannot be read, or its closure conflicts with a project-held version.
+    pub fn symbol_embed(&self, key: &str) -> Result<Option<serde_json::Value>, crate::ApiError> {
+        if let Some(symbol) = self.installed_symbol(key) {
+            let reference = LibRef {
+                library: symbol.library_id,
+                item: symbol.item_id,
+                version_req: format!("={}", symbol.version),
+                extra: ew_schema::Extra::new(),
+            };
+            let copies = self.closure_docs(&[reference])?;
+            return Ok((!copies.is_empty()).then(|| serde_json::json!({"copies":copies})));
+        }
+        Ok(self.starter_embed(key))
+    }
+
     /// The `library.embed` parameters (`{"copies": [...]}`) that make part copy `part`'s function template
     /// placeable with the catalogue symbol `symbol` (WP-S2.04 §7.1 as amended by the part-first follow-up of cycle
     /// 27): first the starter symbol `symbol` and its FnDef, each when `symbol` names a starter symbol and the
@@ -609,6 +702,18 @@ impl Session {
         let item = |id: Uuid| starter::items().iter().find(|i| starter_id(i.json) == Some(id));
         let mut copies: Vec<serde_json::Value> = Vec::new();
         let mut seen: BTreeSet<Uuid> = BTreeSet::new();
+        if self.installed_symbol(symbol).is_some()
+            && let Some(params) = self.symbol_embed(symbol).map_err(|e| vec![e.to_string()])?
+            && let Some(documents) = params["copies"].as_array()
+        {
+            for document in documents {
+                let id = serde_json::from_value::<Uuid>(document["id"].clone())
+                    .map_err(|e| vec![e.to_string()])?;
+                if seen.insert(id) {
+                    copies.push(document.clone());
+                }
+            }
+        }
         let push = |copies: &mut Vec<serde_json::Value>, id: Uuid| -> bool {
             let Some(i) = item(id) else { return false };
             let Ok(v) = serde_json::from_str::<serde_json::Value>(i.json) else {
@@ -1066,15 +1171,33 @@ impl Session {
         let starter = starter_docs().iter().find_map(|(_, _, d)| match d {
             LibDocument::Symbol(c) if c.id.as_uuid() == copy => Some(c),
             _ => None,
-        })?;
-        Some(shape_with(copy, &starter.item, fndef_of(&q, &starter.item.fndef)))
+        });
+        if let Some(starter) = starter {
+            return Some(shape_with(copy, &starter.item, fndef_of(&q, &starter.item.fndef)));
+        }
+        let symbol = self
+            .libraries()
+            .libraries()
+            .into_iter()
+            .flat_map(|l| self.libraries().documents(l.id, ew_schema::Kind::Symbol))
+            .find_map(|doc| match doc {
+                LibDocument::Symbol(s) if s.id.as_uuid() == copy => Some(s),
+                _ => None,
+            })?;
+        let def = match self.libraries().resolve(&symbol.item.fndef).ok()? {
+            LibDocument::Fndef(f) => Some(Arc::new(f)),
+            _ => None,
+        };
+        Some(shape_with(copy, &symbol.item, def))
     }
 
     /// The copy ID the starter symbol `key` has once embedded, `v5(NS_LIBCOPY, library ‖ item)` (the ID of its
     /// starter copy); `None` when `key` is not a starter symbol. The Place tool names the symbol by it before the
     /// placement embeds it (FT-656).
     pub fn starter_symbol_copy(&self, key: &str) -> Option<Uuid> {
-        starter_symbol(key).map(|c| c.id.as_uuid())
+        starter_symbol(key)
+            .map(|c| c.id.as_uuid())
+            .or_else(|| self.installed_symbol(key).map(|c| c.id.as_uuid()))
     }
 }
 

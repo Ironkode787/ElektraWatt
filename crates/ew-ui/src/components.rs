@@ -1158,12 +1158,12 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
 
 /// A collapsible section header in the style of the property categories (doc 16a §6.8, §6.23): `size.row` high, a
 /// chevron, the title in `type.small` SemiBold `color.text.secondary`, and a count badge. A button node named by the
-/// title with its expanded state. Returns whether the section is open.
+/// title with its expanded state. A section that lists no items has no count. Returns whether the section is open.
 pub(crate) fn section_header(
     ui: &mut Ui,
     id: egui::Id,
     title: &str,
-    count: usize,
+    count: Option<usize>,
     default_open: bool,
 ) -> bool {
     let t = tokens(ui);
@@ -1175,7 +1175,7 @@ pub(crate) fn section_header(
         ui.data_mut(|d| d.insert_temp(id, open));
     }
     // The accessible name carries the count the badge paints ("Tags (11)").
-    let name = format!("{title} ({count})");
+    let name = count.map_or_else(|| title.to_owned(), |count| format!("{title} ({count})"));
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
     ui.ctx()
         .accesskit_node_builder(response.id, |n| n.set_expanded(open));
@@ -1213,8 +1213,11 @@ pub(crate) fn section_header(
             .max_rect(badge_rect)
             .layout(Layout::left_to_right(Align::Center)),
     );
-    child.set_clip_rect(rect);
-    count_badge(&mut child, count);
+    // ID-1477 (9): within the panel's own clip too, so a header scrolled out of a panel paints no badge over the bar.
+    child.set_clip_rect(rect.intersect(ui.clip_rect()));
+    if let Some(count) = count {
+        count_badge(&mut child, count);
+    }
     open
 }
 
@@ -1222,6 +1225,42 @@ pub(crate) fn section_header(
 mod tests {
     use super::{Kind, TIP_MAX_LINES, button_look, tip_galley};
     use crate::theme::{Density, Theme, contrast, tokens};
+
+    /// ID-1477 (9): a section header scrolled above its panel paints nothing outside the panel, its count badge
+    /// included, which painted over the editor's command bar.
+    #[test]
+    fn a_section_headers_count_badge_stays_inside_its_panel() {
+        let ctx = egui::Context::default();
+        let panel = egui::Rect::from_min_size(egui::pos2(0.0, 100.0), egui::vec2(300.0, 200.0));
+        let input = egui::RawInput {
+            screen_rect: Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::vec2(400.0, 400.0),
+            )),
+            ..Default::default()
+        };
+        let mut out = ctx.run_ui(input, |ui| {
+            ui.set_clip_rect(panel);
+            let above = egui::Rect::from_min_size(egui::pos2(0.0, 20.0), egui::vec2(300.0, 40.0));
+            let mut child = ui.new_child(egui::UiBuilder::new().max_rect(above));
+            super::section_header(
+                &mut child,
+                egui::Id::unique("graphics"),
+                "Graphics",
+                Some(11),
+                true,
+            );
+        });
+        out.textures_delta.clear();
+        assert!(!out.shapes.is_empty());
+        for s in &out.shapes {
+            assert!(
+                s.clip_rect.is_negative() || panel.contains_rect(s.clip_rect),
+                "{:?} paints outside {panel:?}",
+                s.clip_rect
+            );
+        }
+    }
 
     /// Cycle 37 (window check): a tooltip is at most `size.tooltip.max` wide and [`TIP_MAX_LINES`] lines; a longer
     /// text ends in "…", a short one is shown whole.

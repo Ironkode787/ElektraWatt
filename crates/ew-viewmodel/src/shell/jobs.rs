@@ -168,6 +168,7 @@ impl ShellModel {
             }),
             // WP-S2.08 part 6: a tip's action without a step, while its project session is open.
             Some(Validity::Session { epoch, .. }) => self.project.as_ref().is_some_and(|p| p.epoch == *epoch),
+            Some(Validity::SymbolDraft) => self.kept_symbol_editor().is_some(),
         }
     }
 
@@ -326,6 +327,11 @@ impl ShellModel {
                     return shown;
                 }
                 self.dispatch("history.changes", &serde_json::json!({ "entry": index + 1 }))
+            }
+            // ID-1463: the editor's view again, on the kept draft; the toast is spent.
+            Some(NoteAction::BackToEditor) => {
+                self.notes.dismiss(entry.serial);
+                self.dispatch("symbol.new", &serde_json::json!({}))
             }
             None => Outcome::Refused {
                 reason_key: key!("reason-no-toast"),

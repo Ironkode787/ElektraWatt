@@ -322,6 +322,11 @@ jobs:
             max_len: "65536"
           - target: qet_element
             max_len: "16384"
+          - target: symbol_authoring
+            max_len: "65536"
+          # M25-p2#6: the EPLAN SLK descriptor and its eight tables.
+          - target: symbol_slk
+            max_len: "16384"
           - target: golden_tables
             max_len: "65536"
           - target: parts_table

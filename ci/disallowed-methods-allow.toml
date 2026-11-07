@@ -33,7 +33,7 @@ count = 1
 [[allow]]
 crate = "ew"
 item = "fn bin_exe"
-count = 6
+count = 7
 
 [[allow]]
 crate = "ew"
@@ -68,6 +68,11 @@ count = 4
 [[allow]]
 crate = "ew-api"
 item = "fn nfr_perf_21_part_search_over_500k_parts"
+count = 1
+
+[[allow]]
+crate = "ew-api"
+item = "fn optional_native_slk_sample_opens_without_eplan"
 count = 1
 
 [[allow]]
@@ -148,6 +153,16 @@ count = 1
 [[allow]]
 crate = "ew-ids"
 item = "impl IdSource for SystemSource"
+count = 1
+
+[[allow]]
+crate = "ew-import-eplan"
+item = "fn bless"
+count = 1
+
+[[allow]]
+crate = "ew-import-eplan"
+item = "fn manufacturer_edz_when_supplied"
 count = 1
 
 [[allow]]

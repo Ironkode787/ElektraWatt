@@ -167,6 +167,42 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 close(),
             )
         },
+        // ID-1463: quitting with an unsaved symbol draft asks Save symbol, Discard or Cancel; ID-1472: so does an editor
+        // action that drops the draft, in words of its own.
+        Dialog::ConfirmDiscard {
+            symbol: true,
+            pending,
+        } => DialogSpec {
+            title: strings::format(
+                key!("symbol-confirm-title"),
+                &[&model
+                    .kept_symbol_editor()
+                    .map(|e| crate::shell::symbol_editor::name_words(&e.draft.symbol.name))
+                    .unwrap_or_default()],
+            ),
+            body: vec![
+                strings::text(if pending.action == "app.quit" {
+                    key!("symbol-confirm-text")
+                } else {
+                    key!("symbol-confirm-replace")
+                })
+                .to_owned(),
+            ],
+            primary: DialogButton::new(
+                key!("symbol-save-symbol"),
+                DialogAnswer::Confirm(ConfirmAnswer::Save),
+            ),
+            secondary: vec![DialogButton::new(
+                key!("dialog-cancel"),
+                DialogAnswer::Confirm(ConfirmAnswer::Cancel),
+            )],
+            danger: Some(DialogButton::new(
+                key!("symbol-discard"),
+                DialogAnswer::Confirm(ConfirmAnswer::Discard),
+            )),
+            asks: true,
+            form: false,
+        },
         // The quit and close prompt (doc 16a §6.12): Save, Cancel, and Don't save apart.
         Dialog::ConfirmDiscard { .. } => DialogSpec {
             title: strings::format(key!("confirm-title"), &[model.project_name().unwrap_or("")]),

@@ -77,9 +77,9 @@
    neutral table image through `ImportCx`, so that the importer links no rusqlite (ARCH §3 rules 2 and 4;
    [14](../design/14-interop.md) OQ15).
 5. **EPLAN data (1.0).**
-   - **EDZ parts** through sevenz-rust2 0.24.0, plus zip for ZIP-format packages (FR-IMP-025, FR-IMP-026). EDZ
-     import is part data only (`*.part.xml` article fields, function templates as pin lists), user-initiated and
-     local, and shows the Data Portal terms notice. EW never bundles EDZ content.
+   - **EDZ parts** through sevenz-rust2 0.24.2 (decision log ID-1460), plus zip for ZIP-format packages (FR-IMP-025,
+     FR-IMP-026). EDZ import is part data only (`*.part.xml` article fields, function templates as pin lists),
+     user-initiated and local, and shows the Data Portal terms notice. EW never bundles EDZ content.
    - **Other EPLAN sources:** EPLAN parts XML (FR-IMP-028), report spreadsheets through a column mapper
      (FR-IMP-029, Should), and PDF/DXF pages as locked underlays (FR-IMP-030, Should).
    - **Project XML** (`.epj`) is parked (Later, Could; FR-IMP-031): at most an experimental importer behind a flag.

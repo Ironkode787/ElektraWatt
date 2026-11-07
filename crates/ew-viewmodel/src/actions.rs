@@ -374,7 +374,9 @@ fn history_writable(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 fn can_undo(m: &ShellModel) -> Result<(), Key<'static>> {
-    writable(m)?;
+    if m.symbol_editor().is_none() {
+        writable(m)?;
+    }
     if m.can_undo() {
         Ok(())
     } else {
@@ -383,7 +385,9 @@ fn can_undo(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 fn can_redo(m: &ShellModel) -> Result<(), Key<'static>> {
-    writable(m)?;
+    if m.symbol_editor().is_none() {
+        writable(m)?;
+    }
     if m.can_redo() {
         Ok(())
     } else {
@@ -619,6 +623,19 @@ pub fn enabled_with(
     m: &ShellModel,
     p: &serde_json::Map<String, Value>,
 ) -> Result<(), Key<'static>> {
+    if m.symbol_editor().is_some() {
+        if meta.id == "file.save" {
+            return Ok(());
+        }
+        if meta.id.starts_with("tool.")
+            || (meta.kind == ActionKind::Command
+                && !meta.id.starts_with("symbol.")
+                && !meta.id.starts_with("file.")
+                && !matches!(meta.id, "edit.undo" | "edit.redo" | "page.new" | "app.quit"))
+        {
+            return Err(key!("symbol-editor-active"));
+        }
+    }
     if meta.id == "bond.draw" && (p.contains_key("a") || p.contains_key("b")) {
         return editable_page(m);
     }
@@ -1297,6 +1314,16 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_save(),
         ),
     ),
+    // ID-1463: while the symbol editor shows, Save is the symbol's and the File menu keeps Save project.
+    hidden(parameterless(act(
+        "file.save_project",
+        Command,
+        Menu::File,
+        &[],
+        writable,
+        None,
+        |s, _| s.act_save_project(),
+    ))),
     with_params(
         "dir?:path",
         act(
@@ -1609,7 +1636,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     ))),
     // FT-408: Page, New page.
     with_params(
-        "folio:text, type?:enum(title_page|table_of_contents|section_divider|graphic|single_line|multi_line|overview|bus_topology|fluid|assembly_overview|panel_layout|model_view|external_document), title?:text, section?:text",
+        "folio:text, type?:enum(title_page|table_of_contents|section_divider|graphic|single_line|multi_line|overview|bus_topology|fluid|assembly_overview|panel_layout|model_view|external_document), title?:text, section?:text, grid?:enum(mm4|qet_10px)",
         placed(
             place(Group::Pages, 1, CommandSize::Large, None),
             "file-plus",
@@ -2528,6 +2555,16 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_picker_choose(p),
         ),
     ))),
+    // ID-1477 (1): the current row, a symbol on another connection grid, placed on a new page with its grid.
+    keeps_banner(hidden(parameterless(act(
+        "picker.new_page",
+        Command,
+        Menu::Draw,
+        &[],
+        picker_open,
+        None,
+        |s, _| s.act_picker_new_page(),
+    )))),
     // WP-S2.18 part 1 (D2): J opens the Place tool's Join chooser (doc 16a §6.22) while the armed symbol can be an
     // auxiliary function; the chooser's own keys are its actions.
     keeps_banner(hidden(in_canvas(parameterless(act(
@@ -5489,6 +5526,251 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_keymap_export(p),
         )),
     ),
+    // ID-1477 (7): the editor has a button on the Draw tab, whose Place group holds its menu entry and palette row.
+    with_params(
+        "key?:text, name?:text, discard?:bool",
+        placed(
+            place(
+                Group::Place,
+                5,
+                CommandSize::Small,
+                Some(key!("bar-symbol-editor")),
+            ),
+            "pencil",
+            act(
+                "symbol.new",
+                View,
+                Menu::Edit,
+                &[],
+                always,
+                slot(Menu::Edit),
+                |s, p| s.act_symbol("new", p),
+            ),
+        ),
+    ),
+    with_params(
+        "file?:path, key?:text, discard?:bool",
+        hidden(act("symbol.open", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("open", p)
+        })),
+    ),
+    // ID-1463: the Library folder, typed or from the folder picker.
+    with_params(
+        "directory?:path",
+        hidden(act(
+            "symbol.directory",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("directory", p),
+        )),
+    ),
+    with_params(
+        "index:uint, discard?:bool",
+        hidden(act(
+            "symbol.candidate",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("candidate", p),
+        )),
+    ),
+    with_params(
+        "key:text",
+        hidden(act(
+            "symbol.function",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("function", p),
+        )),
+    ),
+    with_params(
+        "cp:uint, fn_cp:uint",
+        hidden(act(
+            "symbol.map_cp",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("map_cp", p),
+        )),
+    ),
+    // Part 3's nit (D6): a connection point's potential role, for scripts and AI tools as for the role list.
+    with_params(
+        "cp:uint, role:enum(none|l1|l2|l3|l|n|pe|pen|fe|l_plus|l_minus|m|signal|undefined)",
+        hidden(act("symbol.role", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("role", p)
+        })),
+    ),
+    with_params(
+        "name:text, x:mm, y:mm",
+        hidden(act("symbol.link", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("link", p)
+        })),
+    ),
+    with_params(
+        "points:json, closed?:bool",
+        hidden(act("symbol.path", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("path", p)
+        })),
+    ),
+    with_params(
+        "source:text, key:text, discard?:bool",
+        hidden(act("symbol.fork", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("fork", p)
+        })),
+    ),
+    with_params(
+        "discard?:bool",
+        hidden(act(
+            "symbol.close",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("close", p),
+        )),
+    ),
+    with_params(
+        "document:json",
+        hidden(act(
+            "symbol.replace",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("replace", p),
+        )),
+    ),
+    hidden(parameterless(act(
+        "symbol.undo",
+        View,
+        Menu::Edit,
+        &[],
+        always,
+        None,
+        |s, p| s.act_symbol("undo", p),
+    ))),
+    hidden(parameterless(act(
+        "symbol.redo",
+        View,
+        Menu::Edit,
+        &[],
+        always,
+        None,
+        |s, p| s.act_symbol("redo", p),
+    ))),
+    // ID-1463 (doc 16a P8): the editor's tool, also chosen by a key of the keymap.
+    with_params(
+        "tool:enum(select|line|rectangle|circle|ellipse|arc|text|cp|slot|anchor|link|polyline|polygon)",
+        hidden(act("symbol.tool", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("tool", p)
+        })),
+    ),
+    with_params(
+        "variant:uint",
+        hidden(act(
+            "symbol.variant",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("variant", p),
+        )),
+    ),
+    hidden(parameterless(act(
+        "symbol.validate",
+        View,
+        Menu::Edit,
+        &[],
+        always,
+        None,
+        |s, p| s.act_symbol("validate", p),
+    ))),
+    with_params(
+        "tool:enum(line|rectangle|circle|ellipse|arc|text|anchor), x:mm, y:mm, x2?:mm, y2?:mm, text?:text, start?:int, sweep?:int",
+        hidden(act("symbol.draw", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("draw", p)
+        })),
+    ),
+    with_params(
+        "x:mm, y:mm, idx?:uint, fn_cp?:uint, designation?:text, direction?:enum(up|right|down|left)",
+        hidden(act("symbol.cp", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("cp", p)
+        })),
+    ),
+    with_params(
+        "kind?:json, x:mm, y:mm",
+        hidden(act("symbol.slot", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("slot", p)
+        })),
+    ),
+    with_params(
+        "file?:path",
+        hidden(act(
+            "symbol.export",
+            Command,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("export", p),
+        )),
+    ),
+    with_params(
+        "directory?:path",
+        hidden(act(
+            "symbol.save",
+            Command,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("save", p),
+        )),
+    ),
+    with_params(
+        "x:mm, y:mm",
+        hidden(act(
+            "symbol.place",
+            Command,
+            Menu::Edit,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_symbol("place", p),
+        )),
+    ),
+    hidden(parameterless(act(
+        "symbol.scratch",
+        Command,
+        Menu::Edit,
+        &[],
+        writable,
+        None,
+        |s, p| s.act_symbol("scratch", p),
+    ))),
+    // M25-p7#2 (ID-1477 (1)): the editor's offer for a draft saved to a library and unchanged since.
+    hidden(parameterless(act(
+        "symbol.new_page",
+        Command,
+        Menu::Edit,
+        &[],
+        writable,
+        None,
+        |s, p| s.act_symbol("new_page", p),
+    ))),
 ];
 
 // WP-S2.08 part 2
@@ -5732,7 +6014,7 @@ pub struct MenuModel {
 
 /// The menu item of `meta` in the state of `model`.
 pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
-    let state = (meta.enabled)(model);
+    let state = enabled_with(meta, model, &serde_json::Map::new());
     // Paste names the page kind that cannot take it (window check, item 3): the reason is a text with the kind, not a
     // plain key, so the item formats it here.
     // Enclosure… likewise names Structure node… in its reason when the project has no location (W44.2 F1).
@@ -6076,6 +6358,15 @@ fn entries_of(metas: &[&'static ActionMeta], model: &ShellModel, separate: bool)
             entries.push(MenuEntry::Separator);
         }
         match s.submenu {
+            // ID-1463: while the symbol editor shows, Save names the symbol and Save project follows it.
+            None if meta.id == "file.save" && model.symbol_editor().is_some() => {
+                let mut item = item_of(meta, model);
+                item.label = strings::text(key!("symbol-save-symbol")).to_owned();
+                entries.push(MenuEntry::Item(item));
+                if let Some(project) = find("file.save_project") {
+                    entries.push(MenuEntry::Item(item_of(project, model)));
+                }
+            }
             None => entries.push(MenuEntry::Item(item_of(meta, model))),
             Some(submenu) => {
                 done.push(submenu);

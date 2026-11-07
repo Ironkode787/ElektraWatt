@@ -328,7 +328,9 @@ impl Picker {
             PickerRow::Symbol(i) => {
                 let s = self.catalogue.symbols.get(i)?;
                 // From WP-S2.04 part 3 a black-box row arms the black box tool (§9.5).
-                if !s.allowed {
+                if s.grid_mismatch.is_some() {
+                    Some(key!("reason-symbol-grid"))
+                } else if !s.allowed {
                     Some(key!("reason-rep-type-not-allowed"))
                 } else {
                     None
@@ -346,6 +348,27 @@ impl Picker {
         }
     }
 
+    /// The words of the reason a row is disabled; `None` for an enabled row. A symbol on another connection grid
+    /// names both grids (SM25b m3) as the status bar does (M25-p7#3).
+    pub fn disabled_words(&self, row: PickerRow) -> Option<String> {
+        let reason = self.disabled(row)?;
+        if let PickerRow::Symbol(i) = row
+            && let Some(grids) = self.catalogue.symbols.get(i).and_then(|s| s.grid_mismatch)
+        {
+            return Some(grid_words(grids));
+        }
+        Some(crate::strings::text(reason).to_owned())
+    }
+}
+
+/// Why a symbol on another connection grid cannot be placed on the page, both grids named as the status bar names
+/// them ("4 mm", "QET 10 px"; M25-p7#3, ruled), the words New page and Properties offer.
+pub(crate) fn grid_words([symbol, page]: [(u64, u64); 2]) -> String {
+    let words = |(num, den): (u64, u64)| crate::status::grid_words(num as i64, den as i64);
+    crate::strings::format(key!("reason-symbol-grid"), &[&words(symbol), &words(page)])
+}
+
+impl Picker {
     /// The describe line of a row (without its indentation): `row symbol "<key>" embedded`,
     /// `row part "<number>" function <n> of <count> "<fndef>" [main]`, `row part "<number>" symbol`
     /// (FT-1375) or `row strip "<tag>" terminal "<next>" <id>`, then ` disabled: <reason>`.
@@ -358,7 +381,14 @@ impl Picker {
                 format!(
                     "row symbol \"{}\" {} \"{}\"",
                     symbol_name(&s.key),
-                    if s.copy.is_some() { "embedded" } else { "starter" },
+                    // ID-1477 (9): an installed or user library's symbol is never "starter".
+                    if s.copy.is_some() {
+                        "embedded"
+                    } else if s.key.starts_with("library:") {
+                        "library"
+                    } else {
+                        "starter"
+                    },
                     s.key
                 )
             }
@@ -385,8 +415,8 @@ impl Picker {
                 )
             }
         };
-        if let Some(reason) = self.disabled(row) {
-            line.push_str(&format!(" disabled: {}", crate::strings::text(reason)));
+        if let Some(reason) = self.disabled_words(row) {
+            line.push_str(&format!(" disabled: {reason}"));
         }
         line
     }

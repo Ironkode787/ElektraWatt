@@ -459,6 +459,35 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
         tone,
         tip: String::new(),
     };
+    if let Some(editor) = model.symbol_editor() {
+        return vec![
+            field(
+                StatusKind::State,
+                strings::text(crate::key!("symbol-title")).into(),
+                Tone::Normal,
+            ),
+            field(
+                StatusKind::Grid,
+                grid_words(
+                    editor.draft.symbol.grid.num() as i64,
+                    editor.draft.symbol.grid.den() as i64,
+                ),
+                Tone::Normal,
+            ),
+            // M25-p3#7: an unedited new or imported draft is in no library yet, not "Saved".
+            field(
+                StatusKind::Save,
+                strings::text(editor.state_key()).into(),
+                if editor.dirty() {
+                    Tone::Strong
+                } else if editor.stored() {
+                    Tone::Success
+                } else {
+                    Tone::Normal
+                },
+            ),
+        ];
+    }
     // ID-1392 (FT-1405): a note the shell made for the open project stands in the state's place.
     let state = model
         .status_note()

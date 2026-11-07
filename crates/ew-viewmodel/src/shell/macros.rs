@@ -466,7 +466,9 @@ impl ShellModel {
 
     /// Drops what reads the libraries (after a library write): the tables of the Macros and Libraries navigators and
     /// the detail; the next sync fetches them again.
-    fn libraries_changed(&mut self) {
+    pub(super) fn libraries_changed(&mut self) {
+        self.tools.catalogue = None;
+        self.tools.shapes = None;
         for k in [NavKind::Macros, NavKind::Libraries] {
             if let Some(n) = self.navs.get_mut(&k) {
                 n.table = None;

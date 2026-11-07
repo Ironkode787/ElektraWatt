@@ -513,7 +513,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "row level 2 page \"900\" \"=P01+J-E-2416 - Section 9 - Page 900 - 999 - Nomenclature\" changed \"V1.0\"",
             "row level 2 page \"901\" \"Partlist 1\" generated changed \"V1.0\"",
             "row level 2 page \"901.1\" \"Partlist 2\" generated changed \"V1.0\"",
-            "row level 2 page \"902\" \"Cabinet Layout\" badge \"QET grid\" changed \"V1.0\"",
+            "row level 2 page \"902\" \"Cabinet Layout\" badge \"QET 10 px\" changed \"V1.0\"",
             "row level 2 page \"903\" \"Terminal Diagram 1X1\" generated changed \"V1.0\"",
             "row level 2 page \"904\" \"Terminal Diagram -X1031\" generated changed \"V1.0\"",
             "row level 2 page \"905\" \"Terminal Diagram -X1032\" generated changed \"V1.0\"",
@@ -655,6 +655,75 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
     );
 }
 
+/// The symbol editor's tutorial (WP-S2.10, G-M2.5-05; M25-p3#2): a six-pin power block drawn in the symbol editor,
+/// refused off the grid in words, saved to a library, exported, tested on a new page, the project saved and the
+/// exported draft reopened: every step done, the end state the page names, and the page passes the lint.
+#[test]
+fn tutorial_draw_a_six_pin_power_block_runs_as_its_page_says() {
+    let tmp = Tmp::new();
+    let out = run_tutorial(&tmp, "symbol-editor");
+    let transcript = all_done(&out);
+    let [drawn, off_grid, saved, reopened] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
+    let editor = ["dialog ", "field ", "error "];
+    // Step 5: "The validation says Ready to save" (no finding).
+    assert_eq!(
+        lines_of(&drawn, &editor),
+        ["dialog \"Symbol editor\"", "field \"Key\": \"example.power\""]
+    );
+    // Step 7: the refusal in words.
+    assert_eq!(
+        lines_of(&off_grid, &editor),
+        [
+            "dialog \"Symbol editor\"",
+            "field \"Key\": \"example.power\"",
+            "error \"Connection point 1 is off the connection grid. Move it onto the grid before saving.\"",
+        ]
+    );
+    // Steps 8 to 11: the library, the portable draft and the saved project with its new page. A name without a
+    // folder is read from the user library folder, never the working directory (ID-1463).
+    assert!(!tmp.path("symbols.ewlib").exists() && !tmp.path("power.symbol.json").exists());
+    let library = find_named(&tmp.path(""), "symbols.ewlib").expect("the library");
+    assert!(library.is_dir());
+    let user = library.parent().unwrap();
+    assert_eq!(user.file_name().unwrap(), "libraries");
+    assert!(user.join("power.symbol.json").is_file());
+    assert_eq!(
+        lines_of(&saved, &["title:"]),
+        ["title: symbol-scratch.ew - ElektraWatt"]
+    );
+    // What you learnt: the exported draft opens again, without a finding.
+    assert_eq!(
+        lines_of(&reopened, &editor),
+        ["dialog \"Symbol editor\"", "field \"Key\": \"example.power\""]
+    );
+    let items = items(&tmp);
+    assert_eq!(
+        lint(
+            "tutorials/symbol-editor.md",
+            &page("tutorials/symbol-editor.md"),
+            Some(&script("symbol-editor")),
+            &items
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// The first file or folder named `name` under `dir`, depth first.
+fn find_named(dir: &Path, name: &str) -> Option<std::path::PathBuf> {
+    for entry in std::fs::read_dir(dir).ok()?.flatten() {
+        let path = entry.path();
+        if path.file_name().is_some_and(|n| n == name) {
+            return Some(path);
+        }
+        if path.is_dir()
+            && let Some(found) = find_named(&path, name)
+        {
+            return Some(found);
+        }
+    }
+    None
+}
+
 /// The translations of the Dutch guide (`docs/book/po/nl.po`): (the entry's first reference, its translation), for
 /// every translated entry.
 fn dutch_translations() -> Vec<(String, String)> {
@@ -712,7 +781,8 @@ fn the_dutch_guide_names_the_dutch_windows_menu_paths() {
     assert_eq!(problems, Vec::<String>::new());
 }
 
-/// D9, D12, D13: the how-to and explanation pages that name menu paths pass the lint.
+/// D9, D12, D13: the how-to and explanation pages that name menu paths pass the lint, as does the symbol editor's
+/// reference page.
 #[test]
 fn the_how_to_and_explanation_pages_name_the_windows_menu_paths() {
     let tmp = Tmp::new();
@@ -722,6 +792,8 @@ fn the_how_to_and_explanation_pages_name_the_windows_menu_paths() {
         "how-to/upgrade-a-project.md",
         "explanation/eplan-and-ew.md",
         "explanation/qet-and-ew.md",
+        // M25-p3#9: the symbol editor's reference names the window's menu paths.
+        "reference/symbol-editor.md",
     ] {
         let text = page(rel);
         assert!(!named(&text).is_empty(), "{rel} names no menu path");

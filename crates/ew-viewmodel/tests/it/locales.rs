@@ -171,7 +171,7 @@ fn shipped_file(locale: &str) -> String {
 /// by name: the toasts' button and label words, and the fragments composed into another toast's sentence.
 #[test]
 fn every_toast_ends_with_its_full_stop() {
-    const LABELS: [&str; 8] = [
+    const LABELS: [&str; 9] = [
         "toast-undo",
         "toast-close",
         "toast-open",
@@ -180,6 +180,7 @@ fn every_toast_ends_with_its_full_stop() {
         "toast-convert",
         "toast-show-block",
         "toast-show-changes",
+        "toast-back-to-editor",
     ];
     const FRAGMENTS: [&str; 5] = [
         "toast-external-git",

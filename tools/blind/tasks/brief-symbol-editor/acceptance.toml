@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC-BY-4.0
+[[item]]
+id = "A1"
+kind = "hard"
+what = "The tester authored graphics and a physical connection point. Picture fidelity is assessed separately from the frames and saved symbol, not inferred from these actions."
+how = "outcomes"
+actions = ["symbol.draw", "symbol.cp"]
+
+[[item]]
+id = "A2"
+kind = "hard"
+what = "The saved project contains a placed copy of the new supply block: a test copy or the published library symbol with its own function definition, or a test copy on a scratch page with an assigned library function (the scratch page found by its title in either window language). The published symbol placed with an assigned library function, the six pin designations, mapping and native grid are checked separately in the saved symbol."
+how = "work"
+query = "SELECT f.id FROM api_v1_function f LEFT JOIN api_v1_page p ON p.id = f.page_id WHERE f.page_id IS NOT NULL AND f.ip_name IS NULL AND (f.fndef LIKE 'example.supply-block%.function' OR p.title LIKE 'Symbol test: %' OR p.title LIKE 'Symbooltest: %')"
+expect = ">= 1"
+
+[[item]]
+id = "A3"
+kind = "hard"
+what = "The tester authored a text slot and opened an orientation preview. Slot kind, anchor placement and visual quality are checked separately in the saved symbol and frames."
+how = "outcomes"
+actions = ["symbol.slot", "symbol.variant"]
+
+[[item]]
+id = "A4"
+kind = "hard"
+what = "The symbol was published to a library and a test copy was placed in the saved project."
+how = "work, outcomes"
+actions = ["symbol.save", "symbol.scratch or symbol.place", "file.save"]

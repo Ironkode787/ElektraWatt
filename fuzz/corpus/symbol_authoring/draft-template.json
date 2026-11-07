@@ -1,0 +1,37 @@
+{
+  "format": "ew.symbol/1",
+  "function": {
+    "category": [
+      "Assembly",
+      "BlackBox",
+      "Generic"
+    ],
+    "contact_kind": "black_box"
+  },
+  "import_reviewed": false,
+  "key": "fuzz.seed",
+  "symbol": {
+    "anchor": "graphic_centre",
+    "fndef": {
+      "item": "538eae42-48c1-587c-89a6-d66c371ef5c4",
+      "library": "791cacd0-f0e4-57af-b580-b364458b9452",
+      "version_req": "=1.0.0"
+    },
+    "grid": {
+      "den": 1,
+      "num": 4000000
+    },
+    "meta": {
+      "key": "fuzz.seed",
+      "licence": "CC-BY-SA-4.0",
+      "sources": [
+        "original"
+      ],
+      "status": "draft"
+    },
+    "name": {
+      "en": "Seed"
+    }
+  },
+  "version": "1.0.0"
+}

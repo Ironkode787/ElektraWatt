@@ -401,7 +401,7 @@ pub(crate) fn draw_fields(
 /// A segmented control (doc 16a §6.20, the Project entry's look): a sunken track with one segment per choice, the
 /// chosen one raised in the panel fill with semibold text; a tab list named `name` whose tabs are the choices. Returns
 /// the choice clicked when it was not the chosen one.
-fn segmented(ui: &mut Ui, name: &str, choices: &[(&str, bool)]) -> Option<usize> {
+pub(crate) fn segmented(ui: &mut Ui, name: &str, choices: &[(&str, bool)]) -> Option<usize> {
     let t = crate::theme::current(ui.ctx());
     let font = crate::theme::font(&t.type_small);
     let bold = crate::theme::font(&crate::theme::TypeToken {

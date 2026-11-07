@@ -30,6 +30,7 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
                 action: "file.close",
                 params: Value::Null,
             },
+            symbol: false,
         },
         Dialog::GotoPage { text: String::new() },
         Dialog::ConfirmJournalDiscard,
@@ -54,6 +55,14 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
             base_matches: true,
             last_change_ms: 0,
             failed: Some("the journal could not be replayed".into()),
+        },
+        // ID-1463: quitting with an unsaved symbol draft.
+        Dialog::ConfirmDiscard {
+            pending: Pending {
+                action: "app.quit",
+                params: Value::Null,
+            },
+            symbol: true,
         },
     ];
     for (action, params) in [
@@ -297,6 +306,11 @@ const OPENS_INPUT: &[&str] = &[
     "cable.new",
     "cable.connect_cores",
     "report_block.new",
+    // WP-S2.10: the editor and file actions accept parameters through the shared palette form.
+    "symbol.new",
+    "symbol.open",
+    "symbol.fork",
+    "symbol.export",
 ];
 
 #[test]

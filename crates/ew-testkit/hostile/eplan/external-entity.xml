@@ -1,0 +1,3 @@
+<?xml version="1.0"?>
+<!DOCTYPE partsmanagement [<!ENTITY e SYSTEM "file:///etc/passwd">]>
+<partsmanagement><part P_ARTICLE_PARTNR="&e;"><functiontemplate connectionDesignation="1"/></part></partsmanagement>

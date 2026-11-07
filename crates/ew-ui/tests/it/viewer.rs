@@ -490,7 +490,7 @@ fn j32_canvas_tab_badges_are_chips_not_bracketed_words() {
         assert!(!label.contains('['), "{label}");
     }
     let qet = tabs.iter().find(|(l, _)| l.starts_with("101 ")).unwrap();
-    assert!(qet.0.ends_with(", QET grid"), "{}", qet.0);
+    assert!(qet.0.ends_with(", QET 10 px"), "{}", qet.0);
     let generated = tabs.iter().find(|(l, _)| l.starts_with("2 ")).unwrap();
     assert!(generated.0.ends_with(", generated"), "{}", generated.0);
     // The chips' words are painted inside their tabs.
@@ -505,14 +505,14 @@ fn j32_canvas_tab_badges_are_chips_not_bracketed_words() {
     for c in &h.output().shapes {
         walk(&c.shape, &mut painted);
     }
-    for ((_, rect), word) in [(qet, "QET grid"), (generated, "generated")] {
+    for ((_, rect), word) in [(qet, "QET 10 px"), (generated, "generated")] {
         assert!(
             painted.iter().any(|(t, p)| t == word && rect.contains(*p)),
             "{word} in {rect:?}"
         );
     }
     assert!(
-        !painted.iter().any(|(t, _)| t.contains("[QET grid]")),
+        !painted.iter().any(|(t, _)| t.contains("[QET 10 px]")),
         "no bracketed badge is painted"
     );
     h.state_mut().shell_mut().shutdown();

@@ -393,7 +393,10 @@ impl ShellModel {
         let project = self.project.as_ref().ok_or(no_row.clone())?;
         let copies = project
             .session
-            .starter_embed(key)
+            .symbol_embed(key)
+            .map_err(|e| Outcome::Failed {
+                message: e.to_string(),
+            })?
             .map(copies_of)
             .unwrap_or_default();
         if row.copy.is_none() {
@@ -508,6 +511,12 @@ impl ShellModel {
             }
         };
         let row = cat.symbols[row_index].clone();
+        // SM25b m3: a symbol on another connection grid says so, with both grids.
+        if let Some(grids) = row.grid_mismatch {
+            return Outcome::Failed {
+                message: crate::tools::grid_words(grids),
+            };
+        }
         if !row.allowed {
             return Outcome::Refused {
                 reason_key: key!("reason-rep-type-not-allowed"),
@@ -535,11 +544,14 @@ impl ShellModel {
                 Err(keys) => return failed(key!("error-part-fndef-missing"), &[&keys.join(", ")]),
                 Ok(params) => params.map(copies_of).unwrap_or_default(),
             },
-            (Some(project), None) => project
-                .session
-                .starter_embed(&row.key)
-                .map(copies_of)
-                .unwrap_or_default(),
+            (Some(project), None) => match project.session.symbol_embed(&row.key) {
+                Ok(params) => params.map(copies_of).unwrap_or_default(),
+                Err(error) => {
+                    return Outcome::Failed {
+                        message: error.to_string(),
+                    };
+                }
+            },
         };
         let mut row = row;
         if row.copy.is_none() {
@@ -785,6 +797,51 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// `picker.new_page` (ID-1477 (1)): the current row, a symbol on another connection grid than the page's, placed on
+    /// a new page with its grid and selected; the picker closes.
+    pub(crate) fn act_picker_new_page(&mut self) -> Outcome {
+        let Some(picker) = &self.tools.picker else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-picker"),
+            };
+        };
+        let symbol = match picker.rows.get(picker.row) {
+            Some(PickerRow::Symbol(i)) => picker.catalogue.symbols.get(*i),
+            _ => None,
+        };
+        let Some((key, letter, [(num, den), _])) =
+            symbol.and_then(|s| Some((s.key.clone(), s.letter.clone(), s.grid_mismatch?)))
+        else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-grid-mismatch"),
+            };
+        };
+        self.tools.picker = None;
+        if let Err(message) = self.new_page_with_grid(json!({"num": num, "den": den}), None) {
+            return Outcome::Failed { message };
+        }
+        // The canvas and the tool's context follow the new page now, so the placement's tool is not escaped by it.
+        self.sync_views();
+        self.sync_tool_context();
+        let letter = letter.unwrap_or_else(|| "U".to_owned());
+        for (action, params) in [
+            ("place.pick", json!({"symbol": key, "letter": letter})),
+            ("cursor.set", json!({"x_mm": 40, "y_mm": 40})),
+            ("canvas.activate", json!({})),
+        ] {
+            let out = self.dispatch(action, &params);
+            if out != Outcome::Done {
+                return out;
+            }
+        }
+        let placed = self.tools.last_primary.clone();
+        let _ = self.dispatch("ui.dismiss", &json!({}));
+        if let Some(id) = placed {
+            return self.dispatch("select.set", &json!({ "ids": [id] }));
+        }
+        Outcome::Done
+    }
+
     /// `picker.choose`: the current row (§7.1).
     pub(crate) fn act_picker_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(picker) = &self.tools.picker else {
@@ -798,6 +855,12 @@ impl ShellModel {
             };
         };
         if let Some(reason_key) = picker.disabled(row) {
+            // SM25b m3: the grids' reason names both grids.
+            if reason_key == key!("reason-symbol-grid") {
+                return Outcome::Failed {
+                    message: picker.disabled_words(row).unwrap_or_default(),
+                };
+            }
             return Outcome::Refused { reason_key };
         }
         let (mode, cat, pending) = (picker.mode, Arc::clone(&picker.catalogue), picker.pending.clone());
