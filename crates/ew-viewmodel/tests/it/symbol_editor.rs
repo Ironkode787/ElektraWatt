@@ -1446,6 +1446,27 @@ fn a_new_text_is_centred_in_the_style_chosen_last() {
     shell.shutdown();
 }
 
+/// ID-1477 (5): with no folder given, a new draft's Library folder is the default user library, `symbols.ewlib` in the
+/// user library folder, and Save to library saves there.
+#[test]
+fn save_without_a_folder_saves_to_the_default_user_library() {
+    let tmp = Tmp::new("symbol-default-library");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    drawn(&mut shell, "example.default", "Default library");
+    let library = std::path::absolute(tmp.0.join("config").join("libraries").join("symbols.ewlib")).unwrap();
+    assert_eq!(
+        shell.symbol_editor().unwrap().directory,
+        library.to_string_lossy()
+    );
+    done(&mut shell, "symbol.save", json!({}));
+    assert!(shell.symbol_editor().unwrap().stored());
+    assert!(library.is_dir());
+    shell.shutdown();
+}
+
 /// ID-1463 (M25-p5 nit): the quit question's Save symbol saves the draft, then quits.
 #[test]
 fn the_quit_questions_save_symbol_saves_the_draft_and_quits() {

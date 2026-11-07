@@ -489,10 +489,12 @@ impl ShellModel {
                 };
                 SymbolDraft::new(key, name).map_err(err)?
             };
+            // ID-1477 (5): without a folder given, Save to library saves to the default user library, which the field
+            // shows, so "Ready to save" holds.
             let dir = self
-                .configured_libraries()
-                .as_ref()
+                .symbol_tiers()
                 .map(|t| t.user.join("symbols.ewlib"))
+                .map(|p| std::path::absolute(&p).unwrap_or(p))
                 .map(|p| p.to_string_lossy().into_owned())
                 .unwrap_or_default();
             let mut editor = SymbolEditor::new(draft, dir);
@@ -576,8 +578,9 @@ impl ShellModel {
             .then(|| self.symbol_path(text(p, "file"), key!("symbol-file-required")))
             .transpose()?;
         let directory_path = match action {
+            // A Library folder typed empty is refused; Save without one takes the editor's (ID-1477 (5)).
             "save" | "directory" => Some(self.symbol_path(
-                if text(p, "directory").is_empty() {
+                if action == "save" && text(p, "directory").is_empty() {
                     self.symbol_editor.as_ref().map_or("", |e| e.directory.as_str())
                 } else {
                     text(p, "directory")
