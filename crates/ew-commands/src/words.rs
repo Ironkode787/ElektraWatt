@@ -327,6 +327,14 @@ pub fn damaged_copy(
     }
 }
 
+/// Several texts as one, joined by commas (`a, b, c`), the way `comma_list` joins them; `None` for none: every
+/// damaged copy a Save As leaves out (C53-p3#6, ID-1481).
+pub fn comma_joined(items: Vec<Text>) -> Option<Text> {
+    let mut rest = items.into_iter().rev();
+    let last = rest.next()?;
+    Some(rest.fold(last, |tail, item| text!("refusal-words-list-comma", item, tail)))
+}
+
 /// A carrier's label inside a sentence ("rail 1", "duct 3"; [`CarrierLabel::in_sentence`], keyed).
 pub(crate) fn carrier_in_sentence(label: CarrierLabel) -> Text {
     match label.kind {

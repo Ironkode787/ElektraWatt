@@ -275,7 +275,10 @@ pub fn instantiate(
     let mut fragment: Fragment = serde_json::from_value(variant.fragment.clone()).map_err(|e| {
         err(
             "/macro",
-            text!("refusal-macro-fragment-unreadable", e.to_string()),
+            text!(
+                "refusal-macro-fragment-unreadable",
+                crate::error::serde_error_text(&e)
+            ),
         )
     })?;
     let set = match value_set {

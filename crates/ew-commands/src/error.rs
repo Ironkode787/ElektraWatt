@@ -231,11 +231,16 @@ pub(crate) fn model_error_text(
 }
 
 /// [`CmdError::from`] with the records of a model error named in words on `tx`'s model (FT-1488): a device by its tag,
-/// a page by its folio, as a command's refusal names them.
+/// a page by its folio, as a command's refusal names them; a record `tx` does not hold (one the refused step created)
+/// by its kind (C53-p3#3, ID-1481).
 pub(crate) fn worded(e: ModelError, tx: &crate::tx::TxBuilder<'_>) -> CmdError {
     match CmdError::from(e) {
         CmdError::Model(e, _) => {
-            let text = model_error_text(&e, &|k| crate::words::record(tx, k));
+            let name = |k: AnyKey| match tx.row(&k) {
+                Some(_) => crate::words::record(tx, k),
+                None => crate::words::kind_words(k.0),
+            };
+            let text = model_error_text(&e, &name);
             CmdError::Model(e, text.map(Box::new))
         }
         other => other,
@@ -609,6 +614,37 @@ mod tests {
                 None,
             ]
         );
+    }
+
+    /// C53-p3#3 (ID-1481): a record the model does not hold (one the refused step created) is named by its kind, not as
+    /// "a device that is not in the project"; the printed form stays the model error's.
+    #[test]
+    fn a_record_the_model_lacks_is_named_by_its_kind() {
+        use ew_schema::{AnyId, Kind};
+        let project = serde_json::from_str(
+            r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
+        )
+        .expect("project");
+        let model = ew_model::Model::new(project);
+        let mut ids = ew_ids::SystemSource;
+        let tx = crate::tx::TxBuilder::new(&model, &mut ids);
+        let id = AnyId::from_uuid(ew_ids::Uuid::nil());
+        let invariant = ModelError::Invariant {
+            id: ew_model::EXCLUSIVE_ASPECTS,
+            message: "m".into(),
+            keys: vec![(Kind::Device, id)],
+        };
+        let printed = invariant.to_string();
+        match worded(invariant, &tx) {
+            CmdError::Model(m, text) => {
+                assert_eq!(m.to_string(), printed);
+                assert_eq!(
+                    text.map(|t| t.to_string()).as_deref(),
+                    Some("EW-INV-010: a device is at most one of a terminal, a strip and a cable (a device)")
+                );
+            }
+            other => panic!("{other:?}"),
+        }
     }
 
     /// FT-1494: serde's errors keep their English byte for byte through their keys, a position included; a plain kind

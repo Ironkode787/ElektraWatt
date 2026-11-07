@@ -1847,10 +1847,22 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
             && let Some(code) = block_kind.and_then(|i| node.cells.get(i)).cloned()
         {
             let words = super::creation::report_kind_words(&code);
-            for cell in node.cells.iter_mut().filter(|c| **c == code) {
-                *cell = words.clone();
+            // C53-p3#5 (ID-1481): the kind column, and the title cell and the label only where `ew-api` put the kind
+            // there for a block without a title, never a title that happens to read as a code.
+            let untitled = node.records.first().is_some_and(|id| {
+                project
+                    .session
+                    .query()
+                    .report_blocks()
+                    .iter()
+                    .any(|(b, block)| b.as_uuid() == *id && block.title.is_empty())
+            });
+            for (i, cell) in node.cells.iter_mut().enumerate() {
+                if *cell == code && (Some(i) == block_kind || untitled) {
+                    *cell = words.clone();
+                }
             }
-            if node.label == code {
+            if untitled && node.label == code {
                 node.label = words;
             }
         }

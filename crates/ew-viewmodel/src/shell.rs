@@ -770,19 +770,33 @@ fn damaged_banner(damaged: &ew_api::DamagedCopy) -> String {
             part: None,
             ..
         } => strings::format(key!("banner-damaged-copy-unnamed"), &[device]),
+        // C53-p3#6 (ID-1481): every copy a Save As leaves out.
         ew_api::DamagedCopy {
             words,
             left_out: true,
+            left_out_words,
             ..
-        } => strings::format(
-            key!("banner-damaged-copy-left-out"),
-            &[&tools::rejected_words("", Some(words))],
-        ),
+        } => match left_out_copies(left_out_words) {
+            Some(all) => strings::format(key!("banner-damaged-copies-left-out"), &[&all]),
+            None => strings::format(
+                key!("banner-damaged-copy-left-out"),
+                &[&tools::rejected_words("", Some(words))],
+            ),
+        },
         ew_api::DamagedCopy { words, .. } => strings::format(
             key!("banner-damaged-copy-record"),
             &[&tools::rejected_words("", Some(words))],
         ),
     }
+}
+
+/// Two or more damaged copies a Save As leaves out, in words joined by commas (C53-p3#6, ID-1481); `None` for one.
+fn left_out_copies(words: &[ew_api::Text]) -> Option<String> {
+    if words.len() < 2 {
+        return None;
+    }
+    let joined = ew_api::comma_joined(words.to_vec())?;
+    Some(tools::rejected_words("", Some(&joined)))
 }
 
 fn read_only_key(reason: &ReadOnlyReason) -> Key<'static> {
@@ -2174,10 +2188,15 @@ impl ShellModel {
                 if let Some(d) = damaged {
                     self.collab.damaged = None;
                     self.refresh_state_banner();
-                    let text = strings::format(
-                        key!("toast-save-as-left-out"),
-                        &[&dir_name(&dir), &tools::rejected_words("", Some(&d.words))],
-                    );
+                    let text = match left_out_copies(&d.left_out_words) {
+                        Some(all) => {
+                            strings::format(key!("toast-save-as-left-out-many"), &[&dir_name(&dir), &all])
+                        }
+                        None => strings::format(
+                            key!("toast-save-as-left-out"),
+                            &[&dir_name(&dir), &tools::rejected_words("", Some(&d.words))],
+                        ),
+                    };
                     self.notify_toned(text, crate::notifications::NoteTone::Warning);
                 }
                 Outcome::Done

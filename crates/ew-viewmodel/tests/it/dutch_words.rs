@@ -1192,3 +1192,59 @@ fn ft1483_kinds_tiers_and_block_kinds_read_in_dutch() {
         ]
     );
 }
+
+/// C53-p3#5 (ID-1481): the Blocks navigator words a block's kind code in its kind column, and in its title and label
+/// only where `ew-api` put the code there for a block without a title; a title that reads as a code stays as typed.
+#[test]
+fn a_block_title_that_reads_as_a_kind_code_stays_as_typed() {
+    let tmp = Tmp::new("c53-p3-5");
+    let dir = tmp.golden_copy();
+    crate::common::copy_dir(std::path::Path::new(crate::common::GOLDEN_A), &dir);
+    let blocks = dir.join("report-blocks.jsonl");
+    let text = std::fs::read_to_string(&blocks).unwrap();
+    let edited = text.replace("\"title\":\"Table of Contents {n}\",", "").replace(
+        "\"title\":\"Revision Overview\"",
+        "\"title\":\"revision_overview\"",
+    );
+    assert!(edited != text);
+    std::fs::write(&blocks, edited).unwrap();
+    let mut shell = tmp.shell_in(Mode::Headless, false, "101");
+    let row = |shell: &ShellModel, id: &str| {
+        let table = shell
+            .nav(NavKind::Blocks)
+            .and_then(|n| n.table())
+            .cloned()
+            .unwrap();
+        let kind = table.columns.iter().position(|c| c.key == "kind").unwrap();
+        let node = table
+            .nodes
+            .iter()
+            .find(|n| n.records.first().is_some_and(|r| r.to_string() == id))
+            .cloned()
+            .expect("the block");
+        (
+            node.label.clone(),
+            node.cells[0].clone(),
+            node.cells[kind].clone(),
+        )
+    };
+    let mut seen = Vec::new();
+    for locale in ["en", "nl"] {
+        done(&mut shell, "view.language", json!({ "value": locale }));
+        done(&mut shell, "navigator.show", json!({ "kind": "blocks" }));
+        seen.push(row(&shell, "0c94a4fa-8056-575b-88ee-4e5905fbb4c8"));
+        seen.push(row(&shell, "0d61e123-bf15-5761-8ca0-edeb5a82734d"));
+    }
+    done(&mut shell, "view.language", json!({ "value": "en" }));
+    shell.shutdown();
+    let s = |a: &str, b: &str, c: &str| (a.to_owned(), b.to_owned(), c.to_owned());
+    assert_eq!(
+        seen,
+        [
+            s("Table of contents", "Table of contents", "Table of contents"),
+            s("revision_overview", "revision_overview", "Revision overview"),
+            s("Inhoudsopgave", "Inhoudsopgave", "Inhoudsopgave"),
+            s("revision_overview", "revision_overview", "Revisieoverzicht"),
+        ]
+    );
+}

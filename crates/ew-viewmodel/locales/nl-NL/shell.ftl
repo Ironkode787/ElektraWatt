@@ -741,6 +741,8 @@ banner-damaged-copy = Dit project is alleen-lezen geopend: het apparaat { $p0 } 
 banner-damaged-copy-unnamed = Dit project is alleen-lezen geopend: het apparaat { $p0 } gebruikt de bibliotheekkopie van zijn artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek.
 banner-damaged-copy-record = Dit project is alleen-lezen geopend: { $p0 } is beschadigd. Werk de kopie eerst bij vanuit de bibliotheek.
 banner-damaged-copy-left-out = Dit project is alleen-lezen geopend: { $p0 } is beschadigd. Werk de kopie bij vanuit de bibliotheek, of maak met Opslaan als een projectkopie zonder deze bibliotheekkopie.
+# C53-p3#6 (ID-1481): two or more damaged copies that a Save As leaves out.
+banner-damaged-copies-left-out = Dit project is alleen-lezen geopend: { $p0 } zijn beschadigd. Werk de kopieën bij vanuit hun bibliotheken, of maak met Opslaan als een projectkopie zonder deze bibliotheekkopieën.
 banner-findings = Bij het openen van het project zijn { $p0 } integriteitsbevindingen gevonden.
 banner-settings-bad = Het instellingenbestand kon niet worden gelezen; de standaardwaarden worden gebruikt en het oude bestand is bewaard als { $p0 }.
 banner-settings-write = De instellingen konden niet worden geschreven.
@@ -768,6 +770,7 @@ error-save-as-damaged-copy = Opslaan als is geweigerd: het apparaat { $p0 } gebr
 error-save-as-damaged-copy-unnamed = Opslaan als is geweigerd: het apparaat { $p0 } gebruikt de bibliotheekkopie van zijn artikel, die beschadigd is, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst bij vanuit de bibliotheek.
 error-save-as-damaged-copy-record = Opslaan als is geweigerd: { $p0 } is beschadigd, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst bij vanuit de bibliotheek.
 toast-save-as-left-out = Opgeslagen als { $p0 } zonder { $p1 }, die beschadigd is.
+toast-save-as-left-out-many = Opgeslagen als { $p0 } zonder { $p1 }, die beschadigd zijn.
 toast-saved-unreleased-format = Opgeslagen in een formaat dat nog niet is uitgebracht. Uitgebrachte versies van ElektraWatt openen dit project alleen-lezen.
 error-export = Exporteren mislukt: { $p0 }.
 error-write = Het bestand kon niet worden geschreven.

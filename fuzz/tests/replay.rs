@@ -336,6 +336,70 @@ fn the_migration_chain_missing_symbol_copy_opens_read_only() {
     assert_eq!(open_path::check(&bytes), Outcome::ReadOnly);
 }
 
+/// C53-p3#1 (ID-1481): the open-path oracle judges every violation (FT-1540) and accepts, beside an EW-INV-001 naming
+/// a dropped copy, a violation whose records include one that refers to that copy: EW-INV-024 on a fluid line ending at
+/// a function whose definition copy was dropped. A violation unrelated to a dropped copy still fails, and nothing is
+/// accepted when no loader finding names the copy.
+#[test]
+fn the_open_path_oracle_accepts_a_violation_of_a_dropped_copys_referrer() {
+    use ew_format::ew_schema::{AnyId, Kind};
+    use ew_model::ModelError;
+    use std::collections::BTreeSet;
+    let id = |s: &str| s.parse::<AnyId>().expect("a UUID");
+    let (fndef, function) = (
+        id("7b85e9bb-116f-5c3c-a7b6-d5260aa1c219"),
+        id("f47a4bc8-4c73-5bba-b96c-ed7542db1f1a"),
+    );
+    let (line, other_line, other_function) = (
+        id("bc567040-5fda-53cd-8063-952499b3c9f3"),
+        id("00000000-0000-4000-8000-000000000001"),
+        id("00000000-0000-4000-8000-000000000002"),
+    );
+    let invariant = |rule: &'static str, keys: Vec<(Kind, AnyId)>| ModelError::Invariant {
+        id: rule,
+        message: "m".into(),
+        keys,
+    };
+    let dangling = invariant(
+        ew_model::REFS_RESOLVE,
+        vec![(Kind::Function, function), (Kind::Fndef, fndef)],
+    );
+    let follows = invariant(
+        ew_model::FLUID_LINES,
+        vec![(Kind::Connection, line), (Kind::Function, function)],
+    );
+    let unrelated = invariant(
+        ew_model::FLUID_LINES,
+        vec![(Kind::Connection, other_line), (Kind::Function, other_function)],
+    );
+    let named = BTreeSet::from([fndef]);
+    let judged = [
+        open_path::dropped_copy_violations(&[dangling.clone()], &named),
+        open_path::dropped_copy_violations(&[dangling.clone(), follows.clone()], &named),
+        open_path::dropped_copy_violations(&[dangling.clone(), follows.clone(), unrelated], &named),
+        open_path::dropped_copy_violations(&[dangling, follows], &BTreeSet::new()),
+    ];
+    assert_eq!(judged, [true, true, false, false]);
+}
+
+/// C53-p3#1 (ID-1481, `regressions/migration_chain/missing-fluid-fndef-copy`, 5 bytes): the golden project with the
+/// definition copy of the pneumatic cylinders deleted (its manifest listing kept), opened for editing. Folio 203 is a
+/// fluid page, so its fluid lines at those cylinders fail EW-INV-024 beside the EW-INV-001 that names the copy. The
+/// load's own check tolerates only the EW-INV-001 of a dropped copy (`Model::from_records_missing`), so today the open
+/// is refused (`OpenError::Model`), not read-only as FT-1383 wants: a finding of its own (the hand-back's proposed FT
+/// row). Once the load tolerates it, the outcome is `ReadOnly` and the oracle above accepts the model.
+#[test]
+fn the_migration_chain_missing_fluid_definition_copy_does_not_abort() {
+    let bytes = inputs_named(&inputs("regressions/migration_chain"), "missing-fluid-fndef-copy");
+    assert_eq!(bytes, [0x00, 0x5b, 0x01, 0x0d, 0x21]);
+    let paths = ew_fuzz::golden::paths();
+    assert_eq!(
+        paths[0x5b % paths.len()],
+        "lib/fndefs/7b85e9bb-116f-5c3c-a7b6-d5260aa1c219.json"
+    );
+    assert_eq!(open_path::check(&bytes), Outcome::Refused);
+}
+
 /// The importer seeds (WP-S3.09 D15, IC-17) pass and reach their properties: every QET project imports and commits;
 /// the element fixtures that are definitions import; the golden tables import and the smallest set opens as a
 /// project; both supplier tables import parts.

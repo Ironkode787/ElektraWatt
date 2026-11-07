@@ -472,7 +472,7 @@ impl Command for PlaceItem {
                             CmdError::invalid_params(
                                 Self::NAME,
                                 "/kind/image/asset",
-                                text!("refusal-params-detail", e.to_string()),
+                                text!("refusal-params-detail", crate::error::asset_error_text(&e)),
                             )
                         })?;
                         *asset

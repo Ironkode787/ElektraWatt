@@ -167,7 +167,10 @@ fn resolve_record(
     let record = Record::from_value(value).map_err(|e| {
         CmdError::rejected(
             ResolveConflicts::NAME,
-            text!("refusal-merge-invalid-record", e.to_string()),
+            text!(
+                "refusal-merge-invalid-record",
+                crate::error::schema_error_text(&e)
+            ),
         )
     })?;
     put_record(tx, record)?;
