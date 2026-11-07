@@ -257,6 +257,56 @@ fn ft1499_every_copy_written_is_named_with_its_version() {
     assert!(strings::set_locale("en"));
 }
 
+/// A library's version of the damaged copy that would break the project (C53-p4#3). Golden A's double-acting cylinder
+/// -203Q1 gets a wire between its two ports, which its definition, damaged and dropped, does not judge; the starter
+/// library's version makes them fluid ports, which no wire may end at (EW-INV-024). The update is refused with the
+/// misfit's words, whole in both languages, and nothing is written.
+#[test]
+fn ft1499_a_library_version_that_breaks_the_project_refuses_the_update() {
+    let tmp = Tmp::new("ft1499-misfit");
+    let dir = tmp.golden_copy();
+    copy_dir(Path::new(common::GOLDEN_A), &dir);
+    let page = dir.join("pages/ce20ff4a-7c7c-587a-aeb9-b6ab6624ea08.jsonl");
+    let cylinder = "eb6810a7-f538-5968-ac8c-cd35cc1c0725";
+    let mut text = std::fs::read_to_string(&page).unwrap();
+    assert!(text.contains(cylinder), "-203Q1's function is drawn on the page");
+    text.push_str(&format!(
+        "{{\"$k\":\"connection\",\"id\":\"9d1c53a4-0000-4000-8000-000000000001\",\"a\":{{\"cp\":[\"{cylinder}\",0]}},\
+         \"b\":{{\"cp\":[\"{cylinder}\",1]}},\"page\":\"ce20ff4a-7c7c-587a-aeb9-b6ab6624ea08\"}}\n"
+    ));
+    std::fs::write(&page, text).unwrap();
+    std::fs::write(
+        dir.join("lib/fndefs/7b85e9bb-116f-5c3c-a7b6-d5260aa1c219.json"),
+        "{\"$k\": \"fndef\",\n",
+    )
+    .unwrap();
+    let before = tree(&dir);
+    for (locale, message) in [
+        (
+            "en",
+            "Update from library is refused: the libraries' versions of the damaged copies do not fit the project, \
+             which would then not open; nothing was written.",
+        ),
+        (
+            "nl",
+            "Bijwerken vanuit de bibliotheek is geweigerd: de versies van de beschadigde kopieën in de bibliotheken \
+             passen niet bij het project, dat dan niet zou openen; er is niets geschreven.",
+        ),
+    ] {
+        let mut s = open(&tmp, locale, None, &dir);
+        assert!(s.read_only_reason().is_some());
+        assert!(s.damaged_update_offered(), "the banner offers the update");
+        match s.dispatch("library.update_damaged", &json!({})) {
+            Outcome::Failed { message: m } => assert_eq!(m, message),
+            other => panic!("{other:?}"),
+        }
+        assert_eq!(s.banner(), Some(message));
+        done(&mut s, "file.close", json!({}));
+    }
+    assert!(strings::set_locale("en"));
+    assert!(tree(&dir) == before, "nothing is written");
+}
+
 /// No library holds the damaged copy (Golden A's own part copy of -201U8-Q1): the banner says so (FT-1383's tests
 /// assert it whole) and offers nothing; the action is refused with its reason, whole in both languages, and nothing is
 /// written.
