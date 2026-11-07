@@ -99,6 +99,15 @@ fn cb2_the_tabs_and_the_draw_row_dispatch_their_actions() {
                 continue;
             }
             node.click();
+            // ID-1477 (7): the symbol editor takes the place of the page and its docks; Close editor returns to them.
+            if b.id == "symbol.new" {
+                h.run_ok();
+                assert_eq!(h.state().dispatched().last().copied(), Some(b.id));
+                let _ = h.state_mut().shell_mut().dispatch("symbol.close", &json!({}));
+                settle(&mut h);
+                clicked += 1;
+                continue;
+            }
             settle(&mut h);
             assert_eq!(
                 h.state().dispatched().last().copied(),
@@ -110,11 +119,6 @@ fn cb2_the_tabs_and_the_draw_row_dispatch_their_actions() {
             // Back to rest: a dialog or a running tool would change the row's state for the next button.
             h.key_press(Key::Escape);
             settle(&mut h);
-            // ID-1477 (7): the symbol editor takes the place of the page; Close editor returns to it.
-            if b.id == "symbol.new" {
-                let _ = h.state_mut().shell_mut().dispatch("symbol.close", &json!({}));
-                settle(&mut h);
-            }
             let _ = h.state_mut().shell_mut().dispatch("tool.select", &json!({}));
             settle(&mut h);
         }
