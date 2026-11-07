@@ -438,7 +438,9 @@ impl ShellModel {
         };
         // FT-1523 (ID-1458): a held image over the pixel limit is refused as `image.file` refuses it.
         if let Err(e) = ew_api::pixel_limit(reference.format, reference.size) {
-            return failed(key!("error-image-refused"), &[text, &e.to_string()]);
+            // C53-p3#2 (ID-1481): in the window's language, as `image.file`'s refusal.
+            let why = super::tools::rejected_words(&e.to_string(), Some(&ew_api::asset_error_text(&e)));
+            return failed(key!("error-image-refused"), &[text, &why]);
         }
         let asset = ImageAsset {
             hash: sha256.to_string(),

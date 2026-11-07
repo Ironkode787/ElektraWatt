@@ -175,6 +175,33 @@ fn ft1523_a_held_image_over_the_limit_is_refused_by_its_hash_and_named_after_a_t
         }
     );
     assert_eq!(s.tool().state(), "picking", "the tool is unchanged");
+    // C53-p3#2 (ID-1481): both refusals in a Dutch window's language.
+    done(&mut s, "view.language", json!({ "value": "nl" }));
+    assert_eq!(
+        s.dispatch(
+            "command.run",
+            &json!({"cmd": "item.place", "params": {"page": page,
+                "kind": {"image": {"asset": hash, "rect": [[0, 0], [2_000_000, 1_000_000]]}}}}),
+        ),
+        Outcome::Failed {
+            message: "Item plaatsen: Bestand: ongeldige invoer: de png-afbeelding is 65536 × 32768 pixels, meer dan \
+                      een tekening kan tonen (ten hoogste 16777216 pixels en 65535 per zijde); verklein haar en voeg \
+                      haar opnieuw toe"
+                .to_owned()
+        }
+    );
+    done(&mut s, "tool.image", json!({}));
+    assert_eq!(
+        s.dispatch("image.pick", &json!({ "asset": hash })),
+        Outcome::Failed {
+            message: format!(
+                "De afbeelding {hash} wordt niet aanvaard: de png-afbeelding is 65536 × 32768 pixels, meer dan een \
+                 tekening kan tonen (ten hoogste 16777216 pixels en 65535 per zijde); verklein haar en voeg haar \
+                 opnieuw toe."
+            )
+        }
+    );
+    done(&mut s, "view.language", json!({ "value": "en" }));
     done(&mut s, "file.close", json!({}));
     let made = tmp.0.join("made");
     done(
