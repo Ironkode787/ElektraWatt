@@ -753,24 +753,33 @@ fn string_param<'a>(p: &'a Map<String, Value>, name: &str) -> Result<Option<&'a 
     }
 }
 
-/// The banner of a project open read-only because of a damaged library copy a device uses (FT-1383, ID-1418): the
-/// device, the copy's part and its library when an installed library holds it; `None` for a copy no device names.
-fn damaged_banner(damaged: &ew_api::DamagedCopy) -> Option<String> {
+/// The banner of a project open read-only because of a damaged library copy (FT-1383, ID-1418): the device that uses
+/// it, the copy's part and its library when an installed library holds it; a copy no device names by its own words and
+/// the record that names it, and one that no record names with the Save As that leaves it out (FT-1500, ID-1458).
+fn damaged_banner(damaged: &ew_api::DamagedCopy) -> String {
     match damaged {
         ew_api::DamagedCopy {
             device: Some(device),
             part: Some((part, library)),
             ..
-        } => Some(strings::format(
-            key!("banner-damaged-copy"),
-            &[device, part, library],
-        )),
+        } => strings::format(key!("banner-damaged-copy"), &[device, part, library]),
         ew_api::DamagedCopy {
             device: Some(device),
             part: None,
             ..
-        } => Some(strings::format(key!("banner-damaged-copy-unnamed"), &[device])),
-        _ => None,
+        } => strings::format(key!("banner-damaged-copy-unnamed"), &[device]),
+        ew_api::DamagedCopy {
+            words,
+            left_out: true,
+            ..
+        } => strings::format(
+            key!("banner-damaged-copy-left-out"),
+            &[&tools::rejected_words("", Some(words))],
+        ),
+        ew_api::DamagedCopy { words, .. } => strings::format(
+            key!("banner-damaged-copy-record"),
+            &[&tools::rejected_words("", Some(words))],
+        ),
     }
 }
 
@@ -2017,7 +2026,7 @@ impl ShellModel {
                 let banner = (!read_only).then(|| {
                     damaged
                         .as_ref()
-                        .and_then(damaged_banner)
+                        .map(damaged_banner)
                         .unwrap_or_else(|| strings::format(key!("banner-read-only"), &[strings::text(key)]))
                 });
                 Opened {
@@ -2143,18 +2152,21 @@ impl ShellModel {
     }
 
     pub(crate) fn act_save_as(&mut self, p: &Map<String, Value>) -> Outcome {
-        // FT-1383 (ID-1418): a project whose damaged library copy a device uses is not copied: the copy would not open.
-        if let Some(ew_api::DamagedCopy {
-            device: Some(device),
-            part,
-            ..
-        }) = self.project.as_ref().and_then(|p| p.session.damaged_copy())
-        {
-            let message = match part {
-                Some((part, library)) => {
-                    strings::format(key!("error-save-as-damaged-copy"), &[&device, &part, &library])
+        // FT-1383 (ID-1418): a project whose damaged library copy a record names is not copied: the copy would not open.
+        // FT-1500 (ID-1458): one that no record names is left out of the copy, which says so.
+        let damaged = self.project.as_ref().and_then(|p| p.session.damaged_copy());
+        if let Some(d) = damaged.as_ref().filter(|d| !d.left_out) {
+            let message = match (&d.device, &d.part) {
+                (Some(device), Some((part, library))) => {
+                    strings::format(key!("error-save-as-damaged-copy"), &[device, part, library])
                 }
-                None => strings::format(key!("error-save-as-damaged-copy-unnamed"), &[&device]),
+                (Some(device), None) => {
+                    strings::format(key!("error-save-as-damaged-copy-unnamed"), &[device])
+                }
+                (None, _) => strings::format(
+                    key!("error-save-as-damaged-copy-record"),
+                    &[&tools::rejected_words("", Some(&d.words))],
+                ),
             };
             self.banner = Some(message.clone());
             return Outcome::Failed { message };
@@ -2182,6 +2194,15 @@ impl ShellModel {
                 self.record.saved_steps = self.record.steps.clone();
                 self.settings.push_recent(&dir.to_string_lossy());
                 self.save_settings();
+                if let Some(d) = damaged {
+                    self.collab.damaged = None;
+                    self.refresh_state_banner();
+                    let text = strings::format(
+                        key!("toast-save-as-left-out"),
+                        &[&dir_name(&dir), &tools::rejected_words("", Some(&d.words))],
+                    );
+                    self.notify_toned(text, crate::notifications::NoteTone::Warning);
+                }
                 Outcome::Done
             }
             Err(e) => {

@@ -2410,6 +2410,13 @@ fn open_editing_to(
                         dir.display()
                     )
                 }
+                // FT-1500 (ID-1458): a copy no device names, by its own words and the record that names it.
+                (ew_api::ReadOnlyReason::Integrity, Some(damaged)) => format!(
+                    "error: {}: the project opens read-only: {} is damaged; update the copy from its library first; \
+                     nothing was written",
+                    dir.display(),
+                    damaged.words
+                ),
                 _ => read_only_refusal(dir, reason),
             };
             let _ = writeln!(errors, "{refusal}");

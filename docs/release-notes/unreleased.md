@@ -214,3 +214,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   `bracket_outside`; FT-1495)
 - behaviour-change: command part.assign (a placed strip whose terminal the change widens pushes the items after it,
   as a growing strip does, in every mode; FT-1497)
+- text-change: cli ew apply, fmt, recover, import parts and the human-only subcommands (a project read-only for a
+  damaged library copy that no device names is refused naming the copy and the record that names it: "the library
+  copy of a form named by page 1 is damaged; update the copy from its library first", instead of "it has integrity
+  findings"; FT-1500)

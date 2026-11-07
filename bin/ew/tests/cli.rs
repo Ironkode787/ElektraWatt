@@ -3012,6 +3012,75 @@ fn a_writer_names_the_damaged_copy_a_device_uses() {
     assert!(tree(&project) == before, "nothing is written");
 }
 
+/// FT-1525 (ID-1458): a writer refused on a project whose damaged library copy is of a part an installed library holds
+/// (the compiled-in starter parts' EW-GEN-MCB-2, assigned to F55 by `ew apply`) names the part and its library, whole.
+#[test]
+fn a_writer_names_the_damaged_copy_of_an_installed_part_whole() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    let copy = "4b259878-8a92-56e0-ac8e-8f23e7c66a6b";
+    let assign = r#"{"cmd":"part.assign","params":{"copies":[{"$k":"part","category":["ProtectionOvercurrent","MCB","1P+N"],"cp_pattern":[{"designation":"1","idx":0},{"designation":"2","idx":1},{"designation":"N","idx":2},{"designation":"N","idx":3}],"description":{"en":"Miniature circuit breaker, 1 pole and neutral"},"function_template":[{"cps":[0,1,2,3],"fndef":{"item":"473bc9ca-9b42-5683-ada8-f5f0a4081772","key":"ew.fn.mcb-1pn","library":"7202fd8b-1024-4bf1-9e99-670772eaa589","version_req":"^0.1"},"main":true}],"id":"4b259878-8a92-56e0-ac8e-8f23e7c66a6b","item_id":"eb8a0c03-fd56-5637-b8f9-23434fd03a5d","library_id":"75d07cef-7a38-5814-a2ca-4610c08d9a8b","manufacturer":{"item":"f4260253-4a2b-5c11-a3d6-b01e2aa5efe6","library":"75d07cef-7a38-5814-a2ca-4610c08d9a8b","version_req":"^0.1"},"mech":{"depth":70000000,"height":85000000,"mount_kind":"ts35x7_5","width":36000000},"meta":{"key":"EW-GEN-MCB-2","licence":"CC0-1.0","sources":["ew.original"]},"part_number":"EW-GEN-MCB-2","sha256":"sha256:3eeb8d7541d8f9218a2fe6c5c069ec88a310aab147248f8f39364403bbe249e7","tech_data":[{"key":"characteristic","value":"C"},{"key":"rated_current","value":{"unit":"A","value":"10"}}],"version":"0.1.1"},{"$k":"manufacturer","id":"7ae048b6-63ea-5c01-83b2-e1a83b5b4414","item_id":"f4260253-4a2b-5c11-a3d6-b01e2aa5efe6","key":"Generic","library_id":"75d07cef-7a38-5814-a2ca-4610c08d9a8b","meta":{"licence":"CC0-1.0","sources":["ew.original"]},"name":{"en":"Generic"},"sha256":"sha256:f3df52cb1e83bcc3bda7957948246bcb5a5a958739eca73dce4191db5ad15d9c","version":"0.1.0"}],"devices":["594f6043-5d61-51b2-8f57-db20fe74a517"],"from":"f54fb48e-fc5d-5bd2-9d6a-67edb901dc3f","mode":"replace","part":"4b259878-8a92-56e0-ac8e-8f23e7c66a6b"}}"#;
+    let log = t.0.join("assign.ewcmd");
+    std::fs::write(
+        &log,
+        format!("{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"test\"}}\n{assign}\n"),
+    )
+    .unwrap();
+    let applied = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
+    std::fs::write(
+        project.join(format!("lib/parts/{copy}.json")),
+        "{\"$k\": \"part\",\n",
+    )
+    .unwrap();
+    let before = tree(&project);
+    let o = ew_in(&home, &["fmt".as_ref(), project.as_os_str()], &[]);
+    assert_eq!(
+        (o.status.code(), stdout(&o), stderr(&o)),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: {}: the project opens read-only: the device F55 uses the library copy of part EW-GEN-MCB-2 \
+                 from ElektraWatt starter parts, which is damaged; update the copy from its library first; nothing \
+                 was written\n",
+                project.display()
+            )
+        )
+    );
+    assert!(tree(&project) == before, "nothing is written");
+}
+
+/// FT-1500 (ID-1458): a writer refused on a project whose damaged library copy no device names (the form page 1 names)
+/// names the copy and the record that names it, and writes nothing.
+#[test]
+fn a_writer_names_the_damaged_copy_a_page_names() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    std::fs::write(
+        project.join("lib/forms/81ee0d6d-6c0e-55e4-b7fd-1896f594051f.json"),
+        "{\"$k\": \"form\",\n",
+    )
+    .unwrap();
+    let before = tree(&project);
+    let o = ew_in(&home, &["fmt".as_ref(), project.as_os_str()], &[]);
+    assert_eq!(
+        (o.status.code(), stdout(&o), stderr(&o)),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: {}: the project opens read-only: the library copy of a form named by page 1 is damaged; \
+                 update the copy from its library first; nothing was written\n",
+                project.display()
+            )
+        )
+    );
+    assert!(tree(&project) == before, "nothing is written");
+}
+
 /// FM-3: `ew fmt` on a project with a crashed session's journal exits 2, pointing at `ew recover`, and writes nothing,
 /// though a file is out of canonical form; the journal stays.
 #[test]

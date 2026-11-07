@@ -262,6 +262,15 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("refusal-words-macro-named", "macro {0}"),
     ("refusal-words-manufacturer-named", "manufacturer {0} ({1})"),
     ("refusal-words-plc-profile-named", "PLC profile {0}"),
+    ("refusal-words-part-named", "part {0}"),
+    ("refusal-words-fndef-named", "function definition {0}"),
+    ("refusal-words-form-named", "form {0}"),
+    ("refusal-words-manufacturer-keyed", "manufacturer {0}"),
+    (
+        "refusal-words-damaged-copy",
+        "the library copy of {0} named by {1}",
+    ),
+    ("refusal-words-library-copy", "the library copy of {0}"),
     (
         "refusal-geometry-off-grid",
         "{0} at {1} is not on the drawing grid",
