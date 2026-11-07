@@ -338,11 +338,7 @@ fn labels(h: &Harness<'_, App>) -> Vec<String> {
 #[test]
 fn the_pages_navigator_follows_the_language_in_its_first_frame() {
     let modes: [(bool, &[&str], &[&str]); 2] = [
-        (
-            false,
-            &["Sectie 1", "gegenereerd"],
-            &["Section 1", "generated"],
-        ),
+        (false, &["Sectie 1", "gegenereerd"], &["Section 1", "generated"]),
         (true, &[", rij 1 van 36"], &[", row 1 of 36"]),
     ];
     for (table, dutch_words, english_words) in modes {
