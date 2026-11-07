@@ -81,6 +81,8 @@ mod potentials;
 mod profile;
 mod q;
 mod query;
+// WP-S2.19 (ID-1498): the schematic router's page model and the layout measures; the router core joins it later.
+pub mod routing;
 mod settings;
 mod stitch;
 mod strip_bridges;

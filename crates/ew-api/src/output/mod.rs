@@ -79,6 +79,8 @@ mod raster;
 mod rows;
 // WP-S1.18 part 2: page digests and the page change status (D6, D7).
 mod revisions;
+// WP-S2.19 part 1 (ID-1498): a page's geometry for the router and the layout measures of `ew layout`.
+mod route_measures;
 // FT-1016 (ID-1148): the scale a panel page is fitted at.
 mod scale_fit;
 // WP-S2.07 part 1: the strip editor's gestures (§4.2).
@@ -155,6 +157,10 @@ pub use panel::{
 pub use plc_bind::{CardPin, OffCardBind};
 pub use preview::PreviewEntity;
 pub use project_diff::{DiffEntry, FieldDelta, textconv};
+pub use route_measures::{
+    LayoutBends, LayoutCrossing, LayoutError, LayoutJunction, LayoutPair, LayoutPoint, LayoutThrough,
+    LayoutTouch, PageLayout,
+};
 // WP-S2.06 parts 1 and 2
 pub use navigators::{
     Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NaturalKey, NavColumn,

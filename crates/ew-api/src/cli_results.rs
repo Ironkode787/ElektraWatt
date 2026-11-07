@@ -140,6 +140,8 @@ pub const COMMANDS: &str = "ew.commands-result/1";
 pub const QUERY: &str = "ew.query-result/1";
 /// `ew queries --json`.
 pub const QUERIES: &str = "ew.queries-result/1";
+/// `ew layout --json` (WP-S2.19 part 1, decision log ID-1498).
+pub const LAYOUT: &str = "ew.layout-result/1";
 
 /// Every published result schema, in name order.
 pub const RESULTS: &[ResultSchema] = &[
@@ -268,6 +270,12 @@ pub const RESULTS: &[ResultSchema] = &[
         command: "import table",
         flag: None,
         schema: schema_of::<ImportTableResult>,
+    },
+    ResultSchema {
+        name: LAYOUT,
+        command: "layout",
+        flag: None,
+        schema: schema_of::<LayoutResult>,
     },
     ResultSchema {
         name: LIB_CREATE,
@@ -957,6 +965,18 @@ pub struct OracleMismatch {
     pub memoised: String,
     /// The cold value, as `Debug` text.
     pub cold: String,
+}
+
+/// `ew layout --json` ([`LAYOUT`]): the layout measures of one page or of every schematic page (WP-S2.19 part 1,
+/// decision log ID-1498).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct LayoutResult {
+    /// [`LAYOUT`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The pages measured, in page order.
+    pub pages: Vec<crate::output::PageLayout>,
 }
 
 /// `ew lib list --json` ([`LIB_LIST`]).

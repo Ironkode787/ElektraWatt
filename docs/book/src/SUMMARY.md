@@ -272,6 +272,7 @@
     - [`ew fmt`](reference/cli/fmt.md)
     - [`ew git`](reference/cli/git.md)
     - [`ew import`](reference/cli/import.md)
+    - [`ew layout`](reference/cli/layout.md)
     - [`ew lib`](reference/cli/lib.md)
     - [`ew merge`](reference/cli/merge.md)
     - [`ew merge-driver`](reference/cli/merge-driver.md)

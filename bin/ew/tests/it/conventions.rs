@@ -432,6 +432,7 @@ fn project_flag_equals_the_positional_directory() {
         ),
         (vec!["export", "ewz"], args([&"--out", &ewz, &"--json"]), &p),
         (vec!["verify-derived"], args([&"--json"]), &tiny),
+        (vec!["layout"], args([&"--page", &"101", &"--json"]), &p),
         (vec!["fmt"], args([&"--check", &"--json"]), &p),
         (vec!["recover"], args([&"--json"]), &p),
         (vec!["project", "assets", "purge"], args([&"--preview"]), &p),
@@ -705,6 +706,13 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         0,
     );
     assert!(verify.differences.is_empty() && verify.oracle.is_empty());
+    let layout: results::LayoutResult = json_twice(
+        &t,
+        &args([&"layout", &p, &"--page", &"101", &"--json"]),
+        results::LAYOUT,
+        0,
+    );
+    assert_eq!(layout.pages[0].folio, "101");
     // The index first: the first open of the tiers builds it, so a later listing reports it fresh every time.
     let index: results::LibIndexResult = json_twice(
         &t,

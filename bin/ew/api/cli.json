@@ -993,6 +993,38 @@
       "stability": "preview"
     },
     {
+      "path": "layout",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--page",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "measured"
+        },
+        {
+          "code": 2,
+          "meaning": "usage and open errors, a folio that names no drawn page"
+        }
+      ],
+      "result": "ew.layout-result/1",
+      "stability": "preview"
+    },
+    {
       "path": "lib create",
       "flags": [
         {

@@ -166,7 +166,7 @@ fn stderr(o: &Output) -> String {
 type Run = (Option<i32>, String, String, BTreeMap<String, Vec<u8>>);
 
 /// EZ-2: every reader (`check`, `sql`, `sql dump`, the row and page exports, `export table`, `print`, `render`,
-/// `verify-derived`, `query`, `fmt --check`, `upgrade --check` as decision log ID-1230 ruling 5 adds it) gives the same
+/// `verify-derived`, `query`, `layout`, `fmt --check`, `upgrade --check` as decision log ID-1230 ruling 5 adds it) gives the same
 /// exit code, stdout, stderr and output bytes on Golden A's `.ewz` as on its directory; nothing is written beside the archive. The runs go in parallel, each with its own output path.
 #[test]
 fn ez2_every_reader_gives_the_same_output_on_the_ewz() {
@@ -200,6 +200,7 @@ fn ez2_every_reader_gives_the_same_output_on_the_ewz() {
         &["render", "{p}", "--page", "103", "--png", "--out", "{out}"],
         &["verify-derived", "{tiny}", "--json"],
         &["query", "{p}", "device_tag", "tag:-101F1", "--explain"],
+        &["layout", "{p}", "--page", "101"],
         &["fmt", "{p}", "--check"],
         &["upgrade", "{p}", "--check"],
     ];

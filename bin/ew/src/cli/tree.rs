@@ -22,6 +22,7 @@ use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 
 use super::collab::GitSetupArgs;
 use super::diff::DiffArgs;
+use super::layout::LayoutArgs;
 use super::merge_driver::MergeDriverArgs;
 use super::merge_resolve::MergeResolveArgs;
 use super::query::QueryArgs;
@@ -217,6 +218,16 @@ enum Top {
     ///
     /// Lists the public queries with their keys (`ew query` answers one); exits 0.
     Queries(JsonCli),
+    /// Measure how the wires of the pages are drawn.
+    ///
+    /// Opens the project as a reader (no lock) and prints the layout measures of the page `--page <folio>` names, else
+    /// of every drawn page but the panel-layout pages, in page order: the hard rules a route must not break (a wire
+    /// touching a connection point or a junction it does not end at, two wires running along each other on one line,
+    /// a wire through a symbol's body other than along its own end's escape, a wire through a symbol's text, a
+    /// junction with four or more arms) and the costs (the points where two wires cross or meet, the bends), each
+    /// with the wires it names by their ends. `--json` prints `ew.layout-result/1`. Exit 0 when measured, 2 on usage,
+    /// open errors and a folio that names no drawn page.
+    Layout(LayoutCli),
     /// List, search, reindex, create and import into libraries.
     ///
     /// Works on the libraries of the four tiers: system (the compiled-in starter, and `<content>/libraries` when
@@ -1539,6 +1550,33 @@ struct QueryCli {
     json: bool,
 }
 
+/// `ew layout`.
+#[derive(Args, Debug)]
+struct LayoutCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The page, by its folio label (default: every drawn page but the panel-layout pages).
+    #[arg(
+        long,
+        value_name = "folio",
+        allow_hyphen_values = true,
+        overrides_with = "page"
+    )]
+    page: Option<String>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
 /// A subcommand that takes `--json` only.
 #[derive(Args, Debug)]
 struct JsonCli {
@@ -2335,6 +2373,16 @@ impl Cli {
                 })
             }
             Top::Queries(JsonCli { json }) => Command::Queries { json },
+            Top::Layout(LayoutCli {
+                project_dir,
+                project: flag,
+                page,
+                json,
+            }) => Command::Layout(LayoutArgs {
+                project: project(flag, project_dir),
+                page,
+                json,
+            }),
             Top::Lib(LibCli {
                 action,
                 company,

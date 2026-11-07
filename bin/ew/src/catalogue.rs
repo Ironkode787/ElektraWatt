@@ -437,6 +437,15 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["layout"],
+        exits: &[
+            exit(0, "measured"),
+            exit(2, "usage and open errors, a folio that names no drawn page"),
+        ],
+        result: Some(ew_api::cli_results::LAYOUT),
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["lib", "list"],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::LIB_LIST),
