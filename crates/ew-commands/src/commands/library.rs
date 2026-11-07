@@ -122,7 +122,7 @@ pub(crate) fn read_copy(
         CmdError::invalid_params(
             command,
             at.to_owned(),
-            text!("refusal-params-detail", e.to_string()),
+            text!("refusal-params-detail", crate::error::schema_error_text(&e)),
         )
     })?;
     let l = match &doc {
@@ -188,13 +188,20 @@ impl Command for EmbedLibraryCopies {
                 ));
             }
             // WP-S7.03 D8, T2: an address profile that does not render never reaches a project.
+            // FT-1494: its frame by key, as `ew_derive::unreadable_profile` words it; the engine's reason as it prints.
             if let LibDocument::PlcProfile(c) = &doc
-                && let Some(refusal) = ew_derive::unreadable_profile(&c.item)
+                && let Err(reason) = ew_derive::address_profile(&c.item)
             {
+                let why = text!(
+                    "refusal-plc-profile-unreadable",
+                    c.item.profile.id.to_string(),
+                    c.item.profile.version.to_string(),
+                    reason.to_string()
+                );
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     at,
-                    text!("refusal-params-detail", refusal),
+                    text!("refusal-params-detail", why),
                 ));
             }
             let kind = doc.kind().expect("an implemented kind");

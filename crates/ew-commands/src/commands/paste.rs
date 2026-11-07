@@ -756,8 +756,12 @@ impl Insertion<'_> {
         let mut seen = BTreeSet::new();
         for (i, v) in self.all().enumerate() {
             let at = self.pointer(i);
-            let record = Record::from_value(v.clone())
-                .map_err(|e| self.invalid(&at, text!("refusal-params-detail", e.to_string())))?;
+            let record = Record::from_value(v.clone()).map_err(|e| {
+                self.invalid(
+                    &at,
+                    text!("refusal-params-detail", crate::error::schema_error_text(&e)),
+                )
+            })?;
             let kind = if i < n {
                 record.kind().filter(|k| self.kinds.contains(k)).ok_or_else(|| {
                     self.invalid(
@@ -837,8 +841,12 @@ impl Insertion<'_> {
         let mut used: BTreeSet<Uuid> = BTreeSet::new();
         for (i, value) in self.fragment.copies.iter().enumerate() {
             let at = format!("{}/copies/{i}", self.prefix);
-            let doc = LibDocument::from_value(value.clone())
-                .map_err(|e| self.invalid(&at, text!("refusal-params-detail", e.to_string())))?;
+            let doc = LibDocument::from_value(value.clone()).map_err(|e| {
+                self.invalid(
+                    &at,
+                    text!("refusal-params-detail", crate::error::schema_error_text(&e)),
+                )
+            })?;
             let (id, claimed): (Id<()>, ew_schema::Sha256) = match &doc {
                 LibDocument::Part(c) => (c.id.cast(), c.sha256),
                 LibDocument::Symbol(c) => (c.id.cast(), c.sha256),
@@ -870,7 +878,9 @@ impl Insertion<'_> {
                                 text!(
                                     "refusal-paste-adapt-major",
                                     crate::words::document_item(tx, &doc),
-                                    diff.major_reasons.join(", ")
+                                    crate::words::comma_list(
+                                        diff.major_reasons.into_iter().map(Into::into).collect()
+                                    )
                                 ),
                             ));
                         }
@@ -1088,8 +1098,12 @@ impl Insertion<'_> {
                     );
                 }
             }
-            let mut record = Record::from_value(v)
-                .map_err(|e| self.invalid(&at, text!("refusal-params-detail", e.to_string())))?;
+            let mut record = Record::from_value(v).map_err(|e| {
+                self.invalid(
+                    &at,
+                    text!("refusal-params-detail", crate::error::schema_error_text(&e)),
+                )
+            })?;
             // Effect 7: a marker whose connections were all cleared is not inserted.
             if let Record::PageItem(item) = &record
                 && item.kind.wire_marker().is_some_and(|m| m.connections.is_empty())

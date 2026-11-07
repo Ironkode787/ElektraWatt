@@ -1445,6 +1445,35 @@ mod ft779 {
         );
     }
 
+    /// FT-1494 (ID-1457): another crate's error under `refusal-params-detail` (here serde's) reads in a
+    /// Dutch window, the error keeping its English for the CLI.
+    #[test]
+    fn another_crates_detail_reads_in_a_dutch_window() {
+        let serde = serde_json::from_value::<u32>(serde_json::json!("x")).unwrap_err();
+        let e = CmdError::invalid_params(
+            "fields.set",
+            "/value",
+            keyed(
+                "refusal-params-detail",
+                vec![ew_api::serde_error_text(&serde).into()],
+            ),
+        );
+        assert_eq!(
+            e.to_string(),
+            "fields.set: invalid parameters at `/value`: invalid type: string \"x\", expected u32"
+        );
+        assert!(strings::set_locale("nl"));
+        let nl = command_error_text(&e).1;
+        assert!(strings::set_locale("en"));
+        assert_eq!(
+            nl,
+            vec![
+                "ongeldige invoer: ongeldig type: de tekst \"x\", verwacht: een geheel getal (u32)"
+                    .to_owned()
+            ]
+        );
+    }
+
     /// The `{ $pN }` arguments of the message `key` in the Fluent source `ftl`; `None` when it has no such message.
     fn arguments(ftl: &str, key: &str) -> Option<Vec<String>> {
         let line = ftl

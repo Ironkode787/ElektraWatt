@@ -488,6 +488,150 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-asset-advice-flatten",
         "flatten the transforms and remove convolution filters, then export it again as a plain SVG",
     ),
+    // The detail of other crates' errors (FT-1494): serde's, the encodings', an identifier's, a carrier path's, the PLC texts' and a major update's.
+    ("refusal-serde-at", "{0} at line {1} column {2}"),
+    ("refusal-serde-invalid-type", "invalid type: {0}, expected {1}"),
+    ("refusal-serde-invalid-value", "invalid value: {0}, expected {1}"),
+    ("refusal-serde-invalid-length", "invalid length {0}, expected {1}"),
+    (
+        "refusal-serde-unknown-variant",
+        "unknown variant `{0}`, expected {1}",
+    ),
+    (
+        "refusal-serde-unknown-variant-none",
+        "unknown variant `{0}`, there are no variants",
+    ),
+    ("refusal-serde-unknown-field", "unknown field `{0}`, expected {1}"),
+    (
+        "refusal-serde-unknown-field-none",
+        "unknown field `{0}`, there are no fields",
+    ),
+    ("refusal-serde-missing-field", "missing field `{0}`"),
+    ("refusal-serde-duplicate-field", "duplicate field `{0}`"),
+    ("refusal-serde-got-string", "string {0}"),
+    ("refusal-serde-got-integer", "integer {0}"),
+    ("refusal-serde-got-float", "floating point {0}"),
+    ("refusal-serde-got-boolean", "boolean {0}"),
+    ("refusal-serde-got-null", "null"),
+    ("refusal-serde-got-sequence", "sequence"),
+    ("refusal-serde-got-map", "map"),
+    ("refusal-serde-want-whole", "{0}"),
+    ("refusal-serde-want-number", "{0}"),
+    ("refusal-serde-want-string", "a string"),
+    ("refusal-serde-want-boolean", "a boolean"),
+    ("refusal-serde-want-sequence", "a sequence"),
+    ("refusal-serde-want-map", "a map"),
+    ("refusal-schema-float", "floats are not allowed (EW-CORE-007)"),
+    ("refusal-schema-integer-range", "integer outside ±(2^53 - 1)"),
+    (
+        "refusal-schema-reversed-rect",
+        "rectangle corners reversed: the minimum corner comes first",
+    ),
+    ("refusal-schema-date", "not a valid YYYY-MM-DD date"),
+    (
+        "refusal-schema-hash",
+        "not a hash of the form sha256:<64 lower-case hex digits>",
+    ),
+    (
+        "refusal-schema-colour-count",
+        "a colour specification has one or two codes",
+    ),
+    ("refusal-schema-missing-kind", "missing string member \"$k\""),
+    ("refusal-schema-unknown-kind", "unknown kind \"{0}\""),
+    ("refusal-schema-wrong-family", "kind \"{0}\" does not belong here"),
+    (
+        "refusal-schema-version",
+        "kind \"{0}\" has $v {1}, this reader implements $v {2}; migrate first",
+    ),
+    ("refusal-schema-json", "not valid JSON: {0}"),
+    (
+        "refusal-schema-duplicate-member",
+        "duplicate member \"{0}\" in the object at \"{1}\"",
+    ),
+    (
+        "refusal-schema-unsorted",
+        "element at \"{0}\" is out of order (sets and keyed lists are sorted)",
+    ),
+    (
+        "refusal-schema-duplicate-key",
+        "duplicate set element or key {0} at \"{1}\"",
+    ),
+    (
+        "refusal-schema-malformed-variant",
+        "malformed value of the known variant \"{0}\" at \"{1}\": {2}",
+    ),
+    ("refusal-schema-invalid", "{0} at \"{1}\""),
+    (
+        "refusal-schema-company-code-iec",
+        "company colour code \"{0}\" is an IEC 60757 code",
+    ),
+    ("refusal-ident-lang-tag", "not a well-formed BCP 47 language tag"),
+    (
+        "refusal-ident-lang-tag-canonical",
+        "language tag is not canonical (use '-', lower-case language, title-case script, upper-case region, e.g. \"nl-NL\")",
+    ),
+    (
+        "refusal-ident-not-nfc",
+        "text is not in Unicode Normalization Form C",
+    ),
+    ("refusal-ident-empty", "identifier is empty"),
+    (
+        "refusal-ident-whitespace",
+        "identifier has leading or trailing white space",
+    ),
+    ("refusal-ident-control", "identifier contains a control character"),
+    ("refusal-ident-empty-language", "language string is empty"),
+    (
+        "refusal-ident-no-languages",
+        "multilingual text object has no language",
+    ),
+    (
+        "refusal-ident-unsorted-languages",
+        "language keys are not sorted or not unique",
+    ),
+    ("refusal-carrier-rail-points", "a rail is two points, not {0}"),
+    (
+        "refusal-carrier-duct-points",
+        "a duct is at least two points, not {0}",
+    ),
+    ("refusal-carrier-zero-length", "segment {0} has no length"),
+    (
+        "refusal-carrier-diagonal",
+        "segment {0} is neither horizontal nor vertical; carriers are axis-parallel",
+    ),
+    (
+        "refusal-plc-address-profile-gone",
+        "`{0}` is not an address profile of this build or of the project, so an address text cannot be read; give auto, excluded or tbd",
+    ),
+    (
+        "refusal-plc-address-text",
+        "`{0}` is not an address of profile {1}: expected an address like {2}",
+    ),
+    (
+        "refusal-plc-start-profile-gone",
+        "`{0}` is not an address profile of this build or of the project, so a start text cannot be read; give auto, excluded or tbd",
+    ),
+    (
+        "refusal-plc-start-text",
+        "`{0}` is not a start of profile {1}: expected a start like {2}",
+    ),
+    (
+        "refusal-plc-profile-unreadable",
+        "the address profile {0}@{1} cannot be read: {2}",
+    ),
+    ("refusal-major-cp-gone", "CP {0} ({1}) disappears"),
+    (
+        "refusal-major-cp-designation",
+        "CP {0} changes its designation from {1} to {2}",
+    ),
+    ("refusal-major-fndef", "the FnDef changes"),
+    ("refusal-major-category", "the category changes"),
+    (
+        "refusal-major-template",
+        "a template function is added or removed",
+    ),
+    ("refusal-major-macro-variable", "macro variable {0} is removed"),
+    ("refusal-serde-other", "{0}"),
     // assembly.attach, valve.add and device.link.
     (
         "refusal-assembly-position-twice",

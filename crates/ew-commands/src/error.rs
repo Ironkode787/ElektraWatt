@@ -162,6 +162,194 @@ impl fmt::Display for CmdError {
 
 impl std::error::Error for CmdError {}
 
+/// A parameter that does not deserialise, by key (FT-1494, ID-1457): serde's sentence, what it got and the expected
+/// value in words where serde names a plain kind, any other part as serde writes it. Its English is serde's own text.
+pub fn serde_error_text(e: &serde_json::Error) -> Text {
+    let full = e.to_string();
+    let at = format!(" at line {} column {}", e.line(), e.column());
+    match full.strip_suffix(&at) {
+        Some(body) if e.line() > 0 => text!(
+            "refusal-serde-at",
+            serde_message_text(body),
+            e.line().to_string(),
+            e.column().to_string()
+        ),
+        _ => serde_message_text(&full),
+    }
+}
+
+/// [`serde_error_text`] of a message without its position.
+fn serde_message_text(m: &str) -> Text {
+    let pair = |rest: &str| {
+        rest.rsplit_once(", expected ")
+            .map(|(a, b)| (a.to_owned(), b.to_owned()))
+    };
+    let named = |rest: &str, tail: &str| rest.strip_suffix(tail).map(str::to_owned);
+    if let Some((got, want)) = m.strip_prefix("invalid type: ").and_then(pair) {
+        return text!("refusal-serde-invalid-type", serde_got(&got), serde_want(&want));
+    }
+    if let Some((got, want)) = m.strip_prefix("invalid value: ").and_then(pair) {
+        return text!("refusal-serde-invalid-value", serde_got(&got), serde_want(&want));
+    }
+    if let Some((n, want)) = m.strip_prefix("invalid length ").and_then(pair) {
+        return text!("refusal-serde-invalid-length", n, serde_want(&want));
+    }
+    if let Some(rest) = m.strip_prefix("unknown variant `") {
+        if let Some((name, want)) = rest.split_once("`, expected ") {
+            return text!("refusal-serde-unknown-variant", name, want);
+        }
+        if let Some(name) = named(rest, "`, there are no variants") {
+            return text!("refusal-serde-unknown-variant-none", name);
+        }
+    }
+    if let Some(rest) = m.strip_prefix("unknown field `") {
+        if let Some((name, want)) = rest.split_once("`, expected ") {
+            return text!("refusal-serde-unknown-field", name, want);
+        }
+        if let Some(name) = named(rest, "`, there are no fields") {
+            return text!("refusal-serde-unknown-field-none", name);
+        }
+    }
+    if let Some(name) = m.strip_prefix("missing field `").and_then(|r| named(r, "`")) {
+        return text!("refusal-serde-missing-field", name);
+    }
+    if let Some(name) = m.strip_prefix("duplicate field `").and_then(|r| named(r, "`")) {
+        return text!("refusal-serde-duplicate-field", name);
+    }
+    // A type's own message (`Error::custom`) as it is.
+    text!("refusal-serde-other", m)
+}
+
+/// What serde got (its `Unexpected`), in words where it is a plain kind.
+fn serde_got(got: &str) -> crate::text::TextArg {
+    let value = |prefix: &str| got.strip_prefix(prefix).map(str::to_owned);
+    if let Some(v) = value("string ") {
+        return text!("refusal-serde-got-string", v).into();
+    }
+    if let Some(v) = value("integer ") {
+        return text!("refusal-serde-got-integer", v).into();
+    }
+    if let Some(v) = value("floating point ") {
+        return text!("refusal-serde-got-float", v).into();
+    }
+    if let Some(v) = value("boolean ") {
+        return text!("refusal-serde-got-boolean", v).into();
+    }
+    match got {
+        "null" => text!("refusal-serde-got-null").into(),
+        "sequence" => text!("refusal-serde-got-sequence").into(),
+        "map" => text!("refusal-serde-got-map").into(),
+        other => other.into(),
+    }
+}
+
+/// What serde expected, in words where it is a plain kind.
+fn serde_want(want: &str) -> crate::text::TextArg {
+    match want {
+        "u8" | "u16" | "u32" | "u64" | "u128" | "usize" | "i8" | "i16" | "i32" | "i64" | "i128" | "isize" => {
+            text!("refusal-serde-want-whole", want).into()
+        }
+        "f32" | "f64" => text!("refusal-serde-want-number", want).into(),
+        "a string" => text!("refusal-serde-want-string").into(),
+        "a boolean" => text!("refusal-serde-want-boolean").into(),
+        "a sequence" => text!("refusal-serde-want-sequence").into(),
+        "a map" => text!("refusal-serde-want-map").into(),
+        other => other.into(),
+    }
+}
+
+/// A violation of the value encodings, by key (FT-1494, ID-1457): every [`ew_schema::SchemaError`], its English the
+/// error's own text.
+pub fn schema_error_text(e: &ew_schema::SchemaError) -> Text {
+    use ew_schema::SchemaError as E;
+    match e {
+        E::Float => text!("refusal-schema-float"),
+        E::IntegerOutOfRange => text!("refusal-schema-integer-range"),
+        E::ReversedRect => text!("refusal-schema-reversed-rect"),
+        E::InvalidDate => text!("refusal-schema-date"),
+        E::InvalidHash => text!("refusal-schema-hash"),
+        E::ColourCount => text!("refusal-schema-colour-count"),
+        E::MissingKind => text!("refusal-schema-missing-kind"),
+        E::UnknownKind(k) => text!("refusal-schema-unknown-kind", k),
+        E::WrongFamily(k) => text!("refusal-schema-wrong-family", k),
+        E::UnsupportedVersion {
+            kind,
+            found,
+            expected,
+        } => text!(
+            "refusal-schema-version",
+            *kind,
+            found.to_string(),
+            expected.to_string()
+        ),
+        E::Json { message } => text!("refusal-schema-json", message),
+        E::DuplicateMember { path, key } => text!("refusal-schema-duplicate-member", key, path),
+        E::UnsortedList { path } => text!("refusal-schema-unsorted", path),
+        E::DuplicateKey { path, key } => text!("refusal-schema-duplicate-key", key, path),
+        E::MalformedVariant(m) => text!(
+            "refusal-schema-malformed-variant",
+            &m.variant,
+            &m.path,
+            &m.message
+        ),
+        E::Invalid { path, message } => text!("refusal-schema-invalid", message, path),
+        E::CompanyCodeIsIec(code) => text!("refusal-schema-company-code-iec", code),
+    }
+}
+
+/// An identifier or a multilingual text that is refused, by key (FT-1494, ID-1457): every [`ew_mltext::TextError`],
+/// its English the error's own text.
+pub fn ident_error_text(e: &ew_mltext::TextError) -> Text {
+    use ew_mltext::TextError as E;
+    match e {
+        E::InvalidLangTag => text!("refusal-ident-lang-tag"),
+        E::NonCanonicalLangTag => text!("refusal-ident-lang-tag-canonical"),
+        E::NotNfc => text!("refusal-ident-not-nfc"),
+        E::EmptyIdent => text!("refusal-ident-empty"),
+        E::SurroundingWhitespace => text!("refusal-ident-whitespace"),
+        E::ControlCharacter => text!("refusal-ident-control"),
+        E::EmptyLanguageText => text!("refusal-ident-empty-language"),
+        E::NoLanguages => text!("refusal-ident-no-languages"),
+        E::UnsortedLanguages => text!("refusal-ident-unsorted-languages"),
+        // A reason of a newer `ew-mltext`, as it prints.
+        _ => text!("refusal-serde-other", e.to_string()),
+    }
+}
+
+/// An address text (`start` false) or a module-start text (`start` true) of `profile` that does not parse, by key
+/// (FT-1494, ID-1457): the profile not at hand, else the text with the profile's example. Its English is the text of
+/// `ew_derive::parse_plc_address` and `ew_derive::parse_plc_start`.
+pub(crate) fn plc_text_refusal(
+    at_hand: &[std::sync::Arc<ew_derive::ew_plcaddr::AddressProfile>],
+    profile: &str,
+    typed: &str,
+    start: bool,
+) -> Text {
+    match ew_derive::pinned_profile(at_hand, profile) {
+        None if start => text!("refusal-plc-start-profile-gone", profile),
+        None => text!("refusal-plc-address-profile-gone", profile),
+        Some(p) if start => text!(
+            "refusal-plc-start-text",
+            typed,
+            profile,
+            ew_derive::start_example(&p, ew_derive::ew_plcaddr::Area::Q)
+        ),
+        Some(p) => text!("refusal-plc-address-text", typed, profile, p.example()),
+    }
+}
+
+/// A carrier path that is refused, by key (FT-1494, ID-1457): every [`ew_derive::layout::PathError`], its English the
+/// error's own text.
+pub fn path_error_text(e: &ew_derive::layout::PathError) -> Text {
+    use ew_derive::layout::PathError as E;
+    match e {
+        E::RailPoints(n) => text!("refusal-carrier-rail-points", n.to_string()),
+        E::DuctPoints(n) => text!("refusal-carrier-duct-points", n.to_string()),
+        E::ZeroLength(i) => text!("refusal-carrier-zero-length", i.to_string()),
+        E::Diagonal(i) => text!("refusal-carrier-diagonal", i.to_string()),
+    }
+}
+
 /// An image the asset gate refuses, by key (FT-1504, ID-1457): every [`ew_schema::AssetError`], its English the
 /// error's own text, so the CLI prints what it printed.
 pub fn asset_error_text(e: &ew_schema::AssetError) -> Text {
@@ -262,6 +450,150 @@ mod tests {
         );
         for e in &errors {
             assert_eq!(asset_error_text(e).to_string(), e.to_string());
+        }
+    }
+
+    /// FT-1494: serde's errors keep their English byte for byte through their keys, a position included; a plain kind
+    /// is worded, any other part kept as serde writes it.
+    #[test]
+    fn every_serde_refusal_keeps_its_english() {
+        #[derive(serde::Deserialize, Debug)]
+        #[serde(deny_unknown_fields)]
+        #[allow(dead_code)]
+        struct S {
+            n: u32,
+            b: bool,
+            s: String,
+            l: Vec<u8>,
+            e: Option<E>,
+        }
+        #[derive(serde::Deserialize, Debug)]
+        #[allow(dead_code)]
+        enum E {
+            A,
+            B,
+        }
+        let cases = [
+            serde_json::json!({"n": "x", "b": true, "s": "", "l": []}),
+            serde_json::json!({"n": -1, "b": true, "s": "", "l": []}),
+            serde_json::json!({"n": 1.5, "b": true, "s": "", "l": []}),
+            serde_json::json!({"n": 1, "b": null, "s": "", "l": []}),
+            serde_json::json!({"n": 1, "b": true, "s": 5, "l": []}),
+            serde_json::json!({"n": 1, "b": true, "s": "", "l": {}}),
+            serde_json::json!({"n": 1, "b": "yes", "s": "", "l": []}),
+            serde_json::json!({"n": 1, "b": true, "s": "", "l": [], "e": "C"}),
+            serde_json::json!({"n": 1, "b": true, "s": "", "l": [], "z": 1}),
+            serde_json::json!({"n": 1, "b": true, "s": ""}),
+            serde_json::json!([1, true]),
+        ];
+        let mut keys = Vec::new();
+        for case in cases {
+            let e = serde_json::from_value::<S>(case).unwrap_err();
+            let t = serde_error_text(&e);
+            assert_eq!(t.to_string(), e.to_string());
+            keys.push(t.key());
+        }
+        let e = serde_json::from_str::<S>("{\"n\": 1, \"n\": 2}").unwrap_err();
+        assert_eq!(serde_error_text(&e).to_string(), e.to_string());
+        assert_eq!(serde_error_text(&e).key(), "refusal-serde-at");
+        assert_eq!(
+            keys,
+            [
+                "refusal-serde-invalid-type",
+                "refusal-serde-invalid-value",
+                "refusal-serde-invalid-type",
+                "refusal-serde-invalid-type",
+                "refusal-serde-invalid-type",
+                "refusal-serde-invalid-type",
+                "refusal-serde-invalid-type",
+                "refusal-serde-unknown-variant",
+                "refusal-serde-unknown-field",
+                "refusal-serde-missing-field",
+                "refusal-serde-invalid-length",
+            ]
+        );
+    }
+
+    /// FT-1494: every encoding error, identifier error and carrier path error keeps its English through its key.
+    #[test]
+    fn every_parse_refusal_keeps_its_english() {
+        use ew_schema::{MalformedVariant, SchemaError as S};
+        let schema = [
+            S::Float,
+            S::IntegerOutOfRange,
+            S::ReversedRect,
+            S::InvalidDate,
+            S::InvalidHash,
+            S::ColourCount,
+            S::MissingKind,
+            S::UnknownKind("x".into()),
+            S::WrongFamily("x".into()),
+            S::UnsupportedVersion {
+                kind: "device",
+                found: 9,
+                expected: 1,
+            },
+            S::Json {
+                message: "m at line 1 column 2".into(),
+            },
+            S::DuplicateMember {
+                path: "/a".into(),
+                key: "k".into(),
+            },
+            S::UnsortedList { path: "/a/1".into() },
+            S::DuplicateKey {
+                path: "/a/1".into(),
+                key: "k".into(),
+            },
+            S::MalformedVariant(MalformedVariant {
+                path: "/a".into(),
+                variant: "v".into(),
+                message: "m".into(),
+            }),
+            S::Invalid {
+                path: "/a".into(),
+                message: "m".into(),
+            },
+            S::CompanyCodeIsIec("RD".into()),
+        ];
+        for e in &schema {
+            assert_eq!(schema_error_text(e).to_string(), e.to_string());
+        }
+        use ew_mltext::TextError as T;
+        for e in [
+            T::InvalidLangTag,
+            T::NonCanonicalLangTag,
+            T::NotNfc,
+            T::EmptyIdent,
+            T::SurroundingWhitespace,
+            T::ControlCharacter,
+            T::EmptyLanguageText,
+            T::NoLanguages,
+            T::UnsortedLanguages,
+        ] {
+            assert_eq!(ident_error_text(&e).to_string(), e.to_string());
+        }
+        use ew_derive::layout::PathError as P;
+        for e in [
+            P::RailPoints(3),
+            P::DuctPoints(1),
+            P::ZeroLength(0),
+            P::Diagonal(2),
+        ] {
+            assert_eq!(path_error_text(&e).to_string(), e.to_string());
+        }
+    }
+
+    /// FT-1494: an address or a start text that does not parse, and a profile not at hand, keep the parsers' English.
+    #[test]
+    fn the_plc_text_refusals_keep_their_english() {
+        let at_hand = ew_derive::builtin_profiles();
+        let profile = ew_derive::default_profile();
+        for (profile, typed) in [(profile.as_str(), "X9"), ("nope@1", "Q1")] {
+            let e = ew_derive::parse_plc_address(at_hand, profile, typed).unwrap_err();
+            assert_eq!(plc_text_refusal(at_hand, profile, typed, false).to_string(), e);
+            let e = ew_derive::parse_plc_start(at_hand, profile, typed).unwrap_err();
+            assert_eq!(plc_text_refusal(at_hand, profile, typed, true).to_string(), e);
         }
     }
 }

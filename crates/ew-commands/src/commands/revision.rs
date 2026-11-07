@@ -751,7 +751,11 @@ pub(crate) fn refuse_open_page_notes(command: &str, value: &serde_json::Value) -
     serde_json::from_value::<Vec<RevisionPageNote>>(value.clone())
         .map(|_| ())
         .map_err(|e| {
-            CmdError::invalid_params(command, "/value", text!("refusal-params-detail", e.to_string()))
+            CmdError::invalid_params(
+                command,
+                "/value",
+                text!("refusal-params-detail", crate::error::serde_error_text(&e)),
+            )
         })
 }
 

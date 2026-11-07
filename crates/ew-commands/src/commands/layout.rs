@@ -446,7 +446,11 @@ fn checked_params(
 /// Checks a carrier path (`/path`, D5).
 fn checked_path(name: &'static str, kind: &CarrierKind, path: &[Pt2]) -> Result<(), CmdError> {
     check_path(kind, path).map_err(|e: PathError| {
-        CmdError::invalid_params(name, "/path", text!("refusal-params-detail", e.to_string()))
+        CmdError::invalid_params(
+            name,
+            "/path",
+            text!("refusal-params-detail", crate::error::path_error_text(&e)),
+        )
     })
 }
 
@@ -2555,8 +2559,13 @@ fn fill_units(tx: &TxBuilder<'_>, q: &Q, candidates: Vec<Candidate>) -> Vec<Vec<
 
 /// An identifier this module spells as a literal.
 fn ident(name: &'static str, text: &str) -> Result<Ident, CmdError> {
-    Ident::from_input(text)
-        .map_err(|e| CmdError::invalid_params(name, "", text!("refusal-params-detail", e.to_string())))
+    Ident::from_input(text).map_err(|e| {
+        CmdError::invalid_params(
+            name,
+            "",
+            text!("refusal-params-detail", crate::error::ident_error_text(&e)),
+        )
+    })
 }
 
 /// A device's part use of one piece of `part`.
