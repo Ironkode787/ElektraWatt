@@ -271,6 +271,22 @@ pub const TEXTS: &[(&str, &str)] = &[
         "the library copy of {0} named by {1}",
     ),
     ("refusal-words-library-copy", "the library copy of {0}"),
+    // ew-api's notices of an image kept but not drawn (FT-1378, FT-1503): the window's open banner and `ew`.
+    (
+        "banner-image-not-drawn",
+        "The image on folio {0} is {1} × {2} pixels, more than a drawing can show, so it is kept but not drawn; scale \
+         it down and add it again.",
+    ),
+    (
+        "banner-image-not-drawn-folios",
+        "The image on folios {0} is {1} × {2} pixels, more than a drawing can show, so it is kept but not drawn; scale \
+         it down and add it again.",
+    ),
+    (
+        "banner-logo-not-drawn",
+        "The company logo is {0} × {1} pixels, more than a drawing can show, so it is kept but not drawn; scale it \
+         down and add it again.",
+    ),
     (
         "refusal-geometry-off-grid",
         "{0} at {1} is not on the drawing grid",

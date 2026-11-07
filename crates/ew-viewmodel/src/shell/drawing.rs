@@ -432,6 +432,10 @@ impl ShellModel {
         let Some((reference, _)) = project.session.asset(&sha256) else {
             return failed(key!("error-image-asset-missing"), &[text]);
         };
+        // FT-1523 (ID-1458): a held image over the pixel limit is refused as `image.file` refuses it.
+        if let Err(e) = ew_api::pixel_limit(reference.format, reference.size) {
+            return failed(key!("error-image-refused"), &[text, &e.to_string()]);
+        }
         let asset = ImageAsset {
             hash: sha256.to_string(),
             size: reference.size,

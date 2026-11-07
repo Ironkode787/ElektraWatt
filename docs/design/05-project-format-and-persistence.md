@@ -1695,12 +1695,16 @@ writes to the system and community tiers are refused.
 - **The raster pixel limit** (*as built 2026-11-05, cycle 52, FT-1378; decision log ID-1417, ID-1426, ID-1433*). A PNG
   or JPEG that declares more than `ew_schema::MAX_RASTER_PIXELS` (16 Mi pixels, the renderers' decode limit) or a side
   over 65,535 is refused, in words, **at the gates that bring an image in only**: `ew_api::asset_ref_of` (a file the
-  user picks or drops) and the commands' `store_image` (the company logo and an image given as data to `item.place`).
-  `TxBuilder::put_asset` does not apply it, so `external.apply` keeps another build's assets as they are. **At open**,
-  in a journal replay and in a template's copy, an over-limit image an earlier build accepted is **kept, never
-  dropped**: the renderers still refuse to decode it, and the window's open banner names each such image in words, by
-  its folio or folios or as the company logo, with its pixel size and what to do (scale it down and add it again). `ew`
-  does not report it yet (FT-1503).
+  user picks or drops) and the commands' `store_image` (the company logo and an image given as data to `item.place`);
+  a held image placed again by its hash (`item.place {asset}`, the window's `image.pick`) is refused in the same words
+  (*as built cycle 53, FT-1523; ID-1458*). `TxBuilder::put_asset` does not apply it, so `external.apply` keeps another
+  build's assets as they are. **At open**, in a journal replay and in a template's copy, an over-limit image an earlier
+  build accepted is **kept, never dropped**: the renderers still refuse to decode it, and the window's open banner and
+  the banner of a project made from a template name each such image in words, by its folio or folios or as the company
+  logo, with its pixel size and what to do (scale it down and add it again). `ew` says the same words
+  (`Session::undrawn_image_notices`; *as built cycle 53, FT-1503; ID-1458, ID-1459*): `ew check --integrity` and `ew
+  check` as a `notice:` line on stderr outside the counts, their JSON in the result's optional `notices` array, and a
+  writer's open as a `notice:` line on stderr; no check rule reports it.
 - **STEP** files are not embedded by default (open question 8). `PartCopy` references `sha256(STEP)`; meshes live in
   the OS cache, and without the STEP file the 3D view shows the part's bounding box.
 

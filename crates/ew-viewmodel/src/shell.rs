@@ -1901,20 +1901,13 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return Vec::new();
         };
-        let mut notes = Vec::new();
-        for image in project.session.undrawn_images() {
-            let (w, h) = (image.width.to_string(), image.height.to_string());
-            if image.logo {
-                notes.push(strings::format(key!("banner-logo-not-drawn"), &[&w, &h]));
-            }
-            let key = match image.folios.len() {
-                0 => continue,
-                1 => key!("banner-image-not-drawn"),
-                _ => key!("banner-image-not-drawn-folios"),
-            };
-            notes.push(strings::format(key, &[&image.folios.join(", "), &w, &h]));
-        }
-        notes
+        // FT-1503 (ID-1458): `ew-api`'s notices, which `ew` prints in the same words.
+        project
+            .session
+            .undrawn_image_notices()
+            .iter()
+            .map(|t| tools::rejected_words("", Some(t)))
+            .collect()
     }
 
     fn open_for_editing(&self, dir: &Path) -> Result<(Session, OpenReport), OpenError> {

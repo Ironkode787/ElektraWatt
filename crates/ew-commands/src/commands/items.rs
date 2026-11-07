@@ -459,13 +459,22 @@ impl Command for PlaceItem {
                         ));
                     }
                     (Some(asset), None) => {
-                        if tx.asset(asset).is_none() {
+                        let Some(r) = tx.asset(asset) else {
                             return Err(CmdError::invalid_params(
                                 Self::NAME,
                                 "/kind/image/asset",
                                 text!("refusal-items-image-asset-missing", asset.to_string()),
                             ));
-                        }
+                        };
+                        // FT-1523 (ID-1458): a held image over the pixel limit, which an earlier build took in, is
+                        // refused as the data gate refuses it.
+                        ew_schema::pixel_limit(r.format, r.size).map_err(|e| {
+                            CmdError::invalid_params(
+                                Self::NAME,
+                                "/kind/image/asset",
+                                text!("refusal-params-detail", e.to_string()),
+                            )
+                        })?;
                         *asset
                     }
                     (None, Some(data)) => {

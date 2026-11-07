@@ -297,7 +297,8 @@ pub use ew_schema::PartyRole;
 pub use ew_schema::new_project_text_styles;
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
 pub use ew_schema::{
-    AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, SvgHazard, base64_encode, sniff as sniff_asset,
+    AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, SvgHazard, base64_encode, pixel_limit,
+    sniff as sniff_asset,
 };
 /// The conflict records a merge leaves (doc 05 §11.2; WP-S1.17 D17): `ew merge resolve` selects them by kind and member.
 pub use ew_schema::{Conflict, ConflictBody, FILE_CONFLICT_KIND};
@@ -827,6 +828,35 @@ impl Session {
             }
         }
         found.into_values().collect()
+    }
+
+    /// [`Session::undrawn_images`] one sentence each, keyed for the reader's language (FT-1503, decision log ID-1458):
+    /// the window's open banner and `ew`'s notices say the same words. Which image (the company logo, or the folios
+    /// that show it), its size in pixels, that it is kept but not drawn, and the remedy.
+    pub fn undrawn_image_notices(&self) -> Vec<Text> {
+        let mut notices = Vec::new();
+        for image in self.undrawn_images() {
+            let (w, h) = (image.width.to_string(), image.height.to_string());
+            if image.logo {
+                notices.push(api_text!("banner-logo-not-drawn", &w, &h));
+            }
+            match image.folios.len() {
+                0 => {}
+                1 => notices.push(api_text!(
+                    "banner-image-not-drawn",
+                    image.folios.join(", "),
+                    &w,
+                    &h
+                )),
+                _ => notices.push(api_text!(
+                    "banner-image-not-drawn-folios",
+                    image.folios.join(", "),
+                    &w,
+                    &h
+                )),
+            }
+        }
+        notices
     }
 
     /// The libraries of [`SessionOptions::libraries`] (WP-S1.19 §5.2), opened (and reindexed where they changed) at

@@ -3081,6 +3081,113 @@ fn a_writer_names_the_damaged_copy_a_page_names() {
     assert!(tree(&project) == before, "nothing is written");
 }
 
+/// The header of a PNG file of `w` × `h` pixels: what the asset gate reads of it.
+fn png(w: u32, h: u32) -> Vec<u8> {
+    let mut b = b"\x89PNG\r\n\x1a\n".to_vec();
+    b.extend_from_slice(&13u32.to_be_bytes());
+    b.extend_from_slice(b"IHDR");
+    b.extend_from_slice(&w.to_be_bytes());
+    b.extend_from_slice(&h.to_be_bytes());
+    b.extend_from_slice(&[8, 6, 0, 0, 0, 0, 0, 0, 0]);
+    b
+}
+
+/// The SHA-256 of `bytes` in hex.
+fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    sha2::Sha256::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+/// `bytes` in standard base64 with padding.
+fn base64(bytes: &[u8]) -> String {
+    const A: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::new();
+    for c in bytes.chunks(3) {
+        let n = (u32::from(c[0]) << 16)
+            | (u32::from(*c.get(1).unwrap_or(&0)) << 8)
+            | u32::from(*c.get(2).unwrap_or(&0));
+        for i in 0..4 {
+            if i <= c.len() {
+                out.push(A[(n >> (18 - 6 * i) & 63) as usize] as char);
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
+}
+
+/// FT-1503 (ID-1458): a project that holds an image over the pixel limit, which an earlier build took in (a small
+/// image placed on folio 101 by `ew apply`, then turned into a big one on disk with the manifest's hashes), is named in
+/// the window's words by `ew check --integrity`, as a `notice:` line outside the counts and in the JSON's `notices`, and
+/// by a writer's open.
+#[test]
+fn an_image_kept_but_not_drawn_is_a_notice_of_check_integrity_and_of_an_open() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    let (small, big) = (png(2, 1), png(65536, 32768));
+    let place = format!(
+        r#"{{"cmd":"item.place","params":{{"page":"71260e59-ea02-5e16-8678-401d4044d9d7","kind":{{"image":{{"data":"{}","rect":[[0,0],[2000000,1000000]]}}}}}}}}"#,
+        base64(&small)
+    );
+    let log = t.0.join("place.ewcmd");
+    std::fs::write(
+        &log,
+        format!("{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"test\"}}\n{place}\n"),
+    )
+    .unwrap();
+    let applied = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
+    // An earlier build took the big one in: the asset file, the record naming it and the manifest's hashes.
+    let (from, to) = (sha256_hex(&small), sha256_hex(&big));
+    let mut manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
+    for (rel, bytes) in tree(&project) {
+        let Ok(text) = String::from_utf8(bytes) else {
+            continue;
+        };
+        if rel != "manifest.json" && text.contains(&from) {
+            let changed = text.replace(&from, &to);
+            manifest = manifest.replace(&sha256_hex(text.as_bytes()), &sha256_hex(changed.as_bytes()));
+            std::fs::write(project.join(&rel), changed).unwrap();
+        }
+    }
+    std::fs::remove_file(project.join(format!("assets/{from}.png"))).unwrap();
+    std::fs::write(project.join(format!("assets/{to}.png")), &big).unwrap();
+    std::fs::write(project.join("manifest.json"), manifest.replace(&from, &to)).unwrap();
+    let notice = "The image on folio 101 is 65536 × 32768 pixels, more than a drawing can show, so it is kept but not \
+                  drawn; scale it down and add it again.";
+    let o = ew(&["check".as_ref(), project.as_os_str(), "--integrity".as_ref()]);
+    assert_eq!(
+        (o.status.code(), stderr(&o)),
+        (
+            Some(0),
+            format!("notice: {notice}\nintegrity: 0 errors, 0 warnings, 0 infos, 0 waived\n")
+        )
+    );
+    let o = ew(&[
+        "check".as_ref(),
+        project.as_os_str(),
+        "--integrity".as_ref(),
+        "--format".as_ref(),
+        "json".as_ref(),
+    ]);
+    let v: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
+    assert_eq!(v["notices"], serde_json::json!([notice]));
+    assert_eq!(v["counts"]["errors"], 0);
+    let o = ew_isolated(&home, &["fmt".as_ref(), project.as_os_str()]);
+    assert_eq!(
+        (o.status.code(), stderr(&o)),
+        (
+            Some(0),
+            format!("notice: {notice}\nfmt: every file is in canonical form; nothing was written\n")
+        )
+    );
+}
+
 /// FM-3: `ew fmt` on a project with a crashed session's journal exits 2, pointing at `ew recover`, and writes nothing,
 /// though a file is out of canonical form; the journal stays.
 #[test]
