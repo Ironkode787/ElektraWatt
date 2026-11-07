@@ -1317,6 +1317,7 @@ refusal-page-renumber-used = folio { $p0 } wordt al gebruikt door een pagina bui
 refusal-page-renumber-label-used = subpaginalabel { $p0 } wordt al gebruikt door een andere pagina van de sectie; kies een andere `start`
 refusal-page-surface-view-not-layout = folio { $p0 } is geen paneellayoutpagina; een paneelaanzicht hoort op een paneellayoutpagina
 refusal-page-scale = een schaal is 1:n met n ten minste 1
+refusal-page-grid-not-empty = pagina { $p0 } bevat items; het verbindingsraster van een pagina verandert alleen zolang de pagina leeg is
 # page.reorder.
 refusal-page-reorder-twice = { $p0 } staat twee keer in de lijst
 refusal-page-reorder-no-section = geen sectie { $p0 }

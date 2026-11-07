@@ -1636,6 +1636,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "folio {0} is not a panel-layout page; a surface view goes on a panel-layout page",
     ),
     ("refusal-page-scale", "a scale is 1:n with n at least 1"),
+    (
+        "refusal-page-grid-not-empty",
+        "page {0} holds items; a page's connection grid changes only while the page is empty",
+    ),
     // page.reorder.
     ("refusal-page-reorder-twice", "{0} is listed twice"),
     ("refusal-page-reorder-no-section", "no section {0}"),

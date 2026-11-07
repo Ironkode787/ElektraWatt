@@ -1360,6 +1360,7 @@ refusal-page-renumber-used = folio { $p0 } is already used by a page outside the
 refusal-page-renumber-label-used = sub-page label { $p0 } is already used by another page of the section; choose another `start`
 refusal-page-surface-view-not-layout = folio { $p0 } is not a panel-layout page; a surface view goes on a panel-layout page
 refusal-page-scale = a scale is 1:n with n at least 1
+refusal-page-grid-not-empty = page { $p0 } holds items; a page's connection grid changes only while the page is empty
 # page.reorder.
 refusal-page-reorder-twice = { $p0 } is listed twice
 refusal-page-reorder-no-section = no section { $p0 }

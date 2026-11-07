@@ -1233,6 +1233,7 @@ pub const KEYS: &[&str] = &[
     "refusal-page-renumber-label-used",
     "refusal-page-surface-view-not-layout",
     "refusal-page-scale",
+    "refusal-page-grid-not-empty",
     "refusal-page-reorder-twice",
     "refusal-page-reorder-no-section",
     "refusal-page-reorder-other-section",
