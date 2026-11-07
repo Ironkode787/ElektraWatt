@@ -1164,19 +1164,20 @@ impl ShellModel {
         let Some(view) = self.table_view(kind) else {
             return Outcome::Done;
         };
-        // ID-1497 (1): a column is named by its key or by its header label.
-        let Some(col) = view
-            .table
-            .columns
-            .iter()
-            .position(|c| c.key == column)
-            .or_else(|| {
-                view.table
-                    .columns
-                    .iter()
-                    .position(|c| c.label.to_lowercase() == column.to_lowercase())
-            })
-        else {
+        // ID-1497 (1): a column is named by its key or by its header label. C53-fx#4: a label that heads more than one
+        // column (the Wires table's two "CP") names none; the refusal lists their keys.
+        let labelled: Vec<usize> = (0..view.table.columns.len())
+            .filter(|i| view.table.columns[*i].label.to_lowercase() == column.to_lowercase())
+            .collect();
+        let by_key = view.table.columns.iter().position(|c| c.key == column);
+        if by_key.is_none() && labelled.len() > 1 {
+            let keys: Vec<&str> = labelled
+                .iter()
+                .map(|i| view.table.columns[*i].key.as_str())
+                .collect();
+            return failed(key!("error-nav-value"), &["column", &column, &keys.join(", ")]);
+        }
+        let Some(col) = by_key.or_else(|| labelled.first().copied()) else {
             let keys: Vec<&str> = view.table.columns.iter().map(|c| c.key.as_str()).collect();
             return failed(key!("error-nav-value"), &["column", &column, &keys.join(", ")]);
         };

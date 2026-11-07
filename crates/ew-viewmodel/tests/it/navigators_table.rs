@@ -1167,3 +1167,27 @@ fn table_set_sets_the_marked_rows_and_takes_the_header_label() {
     }
     shell.shutdown();
 }
+
+/// C53-fx#4: a header label that heads more than one column (the Connections table's From CP and To CP, both "CP")
+/// names none: `table.set` refuses it and lists their keys, in either case of the label.
+#[test]
+fn table_set_refuses_a_header_label_of_two_columns() {
+    let tmp = Tmp::new("c53-fx4");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut shell, "navigator.show", json!({"kind": "connections"}));
+    done(
+        &mut shell,
+        "navigator.table",
+        json!({"kind": "connections", "on": true}),
+    );
+    for label in ["CP", "cp"] {
+        let params = json!({"kind": "connections", "column": label, "value": "1"});
+        assert_eq!(
+            shell.dispatch("table.set", &params),
+            Outcome::Failed {
+                message: format!("Unknown column {label}; use one of from_cp, to_cp.")
+            }
+        );
+    }
+    shell.shutdown();
+}
