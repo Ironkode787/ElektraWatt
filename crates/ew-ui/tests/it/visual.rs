@@ -1703,8 +1703,7 @@ fn symbol_editor_refusal_banner_keeps_the_canvas_view() {
     d.input(&drag);
     d.settle();
     assert_eq!(
-        d.shell_mut()
-            .dispatch("symbol.variant", &json!({"variant": 9})),
+        d.shell_mut().dispatch("symbol.variant", &json!({"variant": 9})),
         Outcome::Failed {
             message: "Symbol editor: Choose a variant from A to H.".into()
         }
