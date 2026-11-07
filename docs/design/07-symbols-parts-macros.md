@@ -1097,7 +1097,14 @@ roles and flags, and Pin mapping, where a function pin is dragged onto a connect
 live A–H strip is Variants, drawn through the placement's own lowering. The lint panel is Validation: the editor's
 validation, shared with `ew symbol validate`, not WP-S7.04's library lint. "Test place" is Test on a new page
 (`symbol.scratch`): a new page on the symbol's grid with an embedded test copy, one undo step for the page and one for
-the placement. "Fork from QET import" is Fork existing symbol in the Library panel, over project copies and installed
+the placement. *As built (cycle 53, PL25b and part 7's fixes; decision log ID-1477).* A page on another connection
+grid refuses the placement, naming both grids as the status bar does ("4 mm", "QET 10 px"), and offers a new page with
+the symbol's grid: **Place on a new page with its grid** places the published symbol there at 40/40 mm and selects
+it, from the Insert symbol picker's greyed row (`picker.new_page`) and from the editor while its draft is saved to a
+library and unchanged (`symbol.new_page`); for any other draft the editor offers Test on a new page. Each is one undo
+step for the page and one for the placement. New page (`page.new`) has a Connection grid, "4 mm" or "QET 10 px",
+the current page's by default; on a page whose grid is neither (an imported one) the field is empty and the new page
+still takes the current page's grid. A page's grid changes only while the page is empty. "Fork from QET import" is Fork existing symbol in the Library panel, over project copies and installed
 libraries; Open or import reads QElectroTech `.elmt`, EPLAN EDZ/PXF and the supported SLK subset into a draft with
 its import report, and an EPLAN draft saves only once its review is acknowledged. Every edit is a `symbol.*` action that scripts and AI tools share
 ([WP-S2.10](../plan/specs/WP-S2.10-symbol-editor.md) §10 and §11).

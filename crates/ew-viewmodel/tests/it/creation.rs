@@ -206,6 +206,39 @@ fn page_new_takes_a_connection_grid_and_properties_changes_an_empty_pages() {
     shell.shutdown();
 }
 
+/// M25-p7 nit: on a page whose grid is neither choice (an imported 5 mm one) New page still takes the current page's
+/// grid, in both front ends; the dialog's Connection grid field is then empty.
+#[test]
+fn page_new_on_a_page_of_another_grid_takes_that_grid() {
+    for mode in [Mode::Headless, Mode::Gui] {
+        let tmp = Tmp::new("pagenew-odd-grid");
+        let mut shell = new_project(&tmp, mode);
+        let grid = |shell: &ShellModel| shell.canvas().unwrap().page().snapper.grid();
+        done(
+            &mut shell,
+            "command.run",
+            json!({"cmd": "page.create", "params": {"number": 150, "grid": {"num": 5_000_000, "den": 1}}}),
+        );
+        done(&mut shell, "page.goto", json!({"folio": "150"}));
+        assert_eq!(grid(&shell), (5_000_000, 1));
+        if mode == Mode::Gui {
+            done(&mut shell, "page.new", json!({}));
+            let Some(Dialog::Form(form)) = shell.dialog().cloned() else {
+                panic!("{:?}", shell.dialog());
+            };
+            let field = form.fields.iter().find(|f| f.name == "grid").unwrap();
+            assert_eq!(field.value, "");
+            shell.set_form_field("folio", "151");
+            assert_eq!(shell.submit_form(), Outcome::Done);
+        } else {
+            done(&mut shell, "page.new", json!({"folio": "151"}));
+        }
+        assert!(shell.page_labels().iter().any(|l| l == "151"));
+        assert_eq!(grid(&shell), (5_000_000, 1), "{mode:?}");
+        shell.shutdown();
+    }
+}
+
 #[test]
 fn the_new_actions_are_refused_without_a_project_and_read_only() {
     let tmp = Tmp::new("create-refused");

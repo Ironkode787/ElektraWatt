@@ -730,12 +730,9 @@ impl ShellModel {
             }
         }
         let [folio, ty, title, section, grid] = <[String; 5]>::try_from(v).expect("five fields");
-        let current_grid = self
-            .canvas()
-            .and_then(|c| {
-                let (num, den) = c.page().snapper.grid();
-                page_grid_word(num, den)
-            })
+        let current = self.canvas().map(|c| c.page().snapper.grid());
+        let current_grid = current
+            .and_then(|(num, den)| page_grid_word(num, den))
             .unwrap_or_default();
         if folio.is_empty() {
             // WP-S2.06 part 1 (FT-461): the dialog opens with the proposed folio and section filled in.
@@ -790,6 +787,10 @@ impl ShellModel {
                 );
             };
             params["grid"] = value;
+        } else if let Some((num, den)) = current {
+            // M25-p7 nit: a current page on a grid neither choice names (an imported one) still gives its grid; the
+            // dialog's field is then empty.
+            params["grid"] = json!({"num": num, "den": den});
         }
         if !section.is_empty() {
             let Some(project) = &self.project else {
