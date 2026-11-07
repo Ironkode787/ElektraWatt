@@ -108,11 +108,15 @@ fn integrity_check_on_load_rejected() {
 fn integrity_violations_report_every_dangling_reference() {
     let (p, mut records, lib) = mini_golden_parts();
     let (gone_a, gone_b) = (nid::<Function>(0x10_001), nid::<Function>(0x10_003));
-    let keys: [AnyKey; 2] = [(ew_schema::Kind::Function, gone_a.cast()), (ew_schema::Kind::Function, gone_b.cast())];
+    let keys: [AnyKey; 2] = [
+        (ew_schema::Kind::Function, gone_a.cast()),
+        (ew_schema::Kind::Function, gone_b.cast()),
+    ];
     records.push(Record::Representation(rep(nid(0x10_000), PAGE_101, vec![gone_a])));
     records.push(Record::Representation(rep(nid(0x10_002), PAGE_101, vec![gone_b])));
     let missing = keys.into();
-    let m = Model::from_records_missing(p, records, lib, &missing).expect("the missing targets are tolerated");
+    let m =
+        Model::from_records_missing(p, records, lib, &missing).expect("the missing targets are tolerated");
     let all = m.integrity_violations();
     let named: Vec<AnyKey> = all
         .iter()
