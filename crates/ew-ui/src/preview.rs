@@ -671,6 +671,15 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 closed += list(ui, strings::text(key!("preview-pages")), &pages, false);
                 closed
             });
+        // Window check F2 (doc 16a §6.23, P2): while the lists are scrolled, a 1-px `color.border.subtle` edge at the
+        // top of their area parts the rows passing under it from the fixed summary line.
+        if shown.state.clamped_offset().y > 0.0 {
+            ui.painter().hline(
+                shown.inner_rect.x_range(),
+                shown.inner_rect.top() + t.border_width / 2.0,
+                theme::stroke(t.border_width, t.border_subtle),
+            );
+        }
         // ID-1497 (4): the dock is sized for every list open, so that a list opened or closed keeps the headers where
         // they are (a click on the next header hit the one before, which the grown dock had moved there); past the
         // dock's room the lists scroll.

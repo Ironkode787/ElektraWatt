@@ -1346,6 +1346,21 @@ impl ShellModel {
             .collect()
     }
 
+    /// C53-fx#1 (ID-1497 (8)): whether Delete on the schematic page shown has something of the selection to act on, as
+    /// [`Self::act_delete_selection`] resolves it: what the page draws of it, a device no page draws (deleted itself),
+    /// or a device or a function another page draws (refused with its own reason). A page chosen in the page list has
+    /// none, so Edit ▸ Delete is not offered for it.
+    pub(crate) fn delete_has_target(&self) -> bool {
+        if self.selection_drawn_here() {
+            return true;
+        }
+        let Some(page) = self.canvas().map(|c| Arc::clone(c.page())) else {
+            return false;
+        };
+        let (unused, elsewhere) = self.undrawn_devices(&self.copy_targets(), &page.tables);
+        !unused.is_empty() || elsewhere
+    }
+
     /// `edit.delete_selection` (Delete, §7.4): `edit.delete` with every entity of the selection the page tables
     /// resolve.
     pub(crate) fn act_delete_selection(&mut self) -> Outcome {
