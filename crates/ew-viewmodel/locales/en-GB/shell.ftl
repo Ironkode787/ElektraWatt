@@ -821,8 +821,8 @@ toast-save-as-left-out = Saved as { $p0 } without { $p1 }, which is damaged.
 toast-save-as-left-out-many = Saved as { $p0 } without { $p1 }, which are damaged.
 # FT-1499 (ID-1486): Update from library of the damaged copies, from the banner.
 error-update-damaged = Update from library is refused: { $p0 }.
-toast-damaged-copies-updated = Updated { $p0 } damaged library copies from their libraries.
-toast-damaged-copies-not-updated = Damaged library copies not updated: { $p0 }, as no library on this computer holds a readable version. Every other one was updated from its library.
+toast-damaged-copies-updated = Updated from library: { $p0 }.
+toast-damaged-copies-not-updated = Updated from library: { $p0 }. Not updated, as no library on this computer holds a readable version: { $p1 }.
 toast-saved-unreleased-format = Saved in a format that is not released yet. Released versions of ElektraWatt open this project read-only.
 error-export = Export failed: { $p0 }.
 error-write = The file could not be written.
@@ -911,6 +911,8 @@ refusal-words-form-named = form { $p0 }
 refusal-words-manufacturer-keyed = manufacturer { $p0 }
 refusal-words-damaged-copy = the library copy of { $p0 } named by { $p1 }
 refusal-words-library-copy = the library copy of { $p0 }
+# A damaged copy written from its library, with the version written (C53-p4#4, ID-1491).
+refusal-words-copy-at-version = { $p0 } at version { $p1 }
 refusal-geometry-off-grid = { $p0 } at { $p1 } is not on the drawing grid
 refusal-geometry-branch-point = the branch point
 refusal-geometry-outline-corner = the outline's corner
@@ -4229,7 +4231,6 @@ choice-report = Report
 choice-page-based = Page-based
 label-paste-dropped-one = , 1 connection dropped
 banner-findings-one = 1 integrity finding was found when the project was opened.
-toast-damaged-copies-updated-one = Updated the damaged library copy from its library.
 revision-waivers-one = Approving also acknowledges 1 safety waiver in force.
 # WP-S2.08 part 6: the glossary pane (D16), the one-time tips (D17) and the wire-colour view (D18).
 action-help-glossary = Glossary

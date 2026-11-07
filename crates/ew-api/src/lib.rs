@@ -572,7 +572,7 @@ pub struct DamagedCopy {
 /// [`DamagedCopy::words`] names a copy, in key order. Both empty for a project without a damaged copy.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct CopiesUpdated {
-    /// The copies written from their libraries.
+    /// The copies written from their libraries, each with the version written ("… at version 0.1.1", C53-p4#4).
     pub updated: Vec<Text>,
     /// The copies left damaged.
     pub not_updated: Vec<Text>,
@@ -1595,17 +1595,24 @@ impl Session {
             let installed = self.installed_document(kind, copy);
             let words =
                 ew_commands::damaged_copy_words(&model, kind, installed.as_ref().map(|(d, _)| d), None);
-            let embedded = installed.and_then(|(doc, _)| {
-                let cmd = ew_commands::commands::EmbedLibraryCopies {
-                    copies: vec![serde_json::to_value(&doc).ok()?],
-                };
-                engine.execute(&AnyCommand::of(&cmd).ok()?).ok()
-            });
-            if embedded.is_some() {
-                keys.insert((kind, copy));
-                done.updated.push(words);
-            } else {
+            let Some(value) = installed.and_then(|(doc, _)| serde_json::to_value(&doc).ok()) else {
                 done.not_updated.push(words);
+                continue;
+            };
+            // The library's current version is written, named by its version (C53-p4#4, ID-1491): the damaged copy's
+            // own version cannot be read, so the change is not classified.
+            let version = value["version"].as_str().unwrap_or_default().to_owned();
+            let cmd = ew_commands::commands::EmbedLibraryCopies { copies: vec![value] };
+            let Ok(cmd) = AnyCommand::of(&cmd) else {
+                done.not_updated.push(words);
+                continue;
+            };
+            match engine.execute(&cmd) {
+                Ok(_) => {
+                    keys.insert((kind, copy));
+                    done.updated.push(api_text!("refusal-words-copy-at-version", words, version));
+                }
+                Err(_) => done.not_updated.push(words),
             }
         }
         let (Some(p), false) = (self.persistence.as_mut(), keys.is_empty()) else {

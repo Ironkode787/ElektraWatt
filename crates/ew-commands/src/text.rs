@@ -271,6 +271,8 @@ pub const TEXTS: &[(&str, &str)] = &[
         "the library copy of {0} named by {1}",
     ),
     ("refusal-words-library-copy", "the library copy of {0}"),
+    // A damaged copy written from its library, with the version written (C53-p4#4, ID-1491).
+    ("refusal-words-copy-at-version", "{0} at version {1}"),
     // ew-api's notices of an image kept but not drawn (FT-1378, FT-1503): the window's open banner and `ew`.
     (
         "banner-image-not-drawn",

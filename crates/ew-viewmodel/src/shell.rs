@@ -2265,21 +2265,27 @@ impl ShellModel {
         if outcome != Outcome::Done {
             return outcome;
         }
-        match ew_api::comma_joined(done.not_updated) {
-            Some(all) => self.notify_toned(
+        // C53-p4#4 (ID-1491): the toast names each copy written with its version.
+        let updated = ew_api::comma_joined(done.updated);
+        match (updated, ew_api::comma_joined(done.not_updated)) {
+            (updated, Some(left)) => self.notify_toned(
                 strings::format(
                     key!("toast-damaged-copies-not-updated"),
-                    &[&tools::rejected_words("", Some(&all))],
+                    &[
+                        &tools::rejected_words("", updated.as_ref()),
+                        &tools::rejected_words("", Some(&left)),
+                    ],
                 ),
                 crate::notifications::NoteTone::Warning,
             ),
-            None => self.notify_toned(
-                strings::format_count(
-                    crate::count_key!("toast-damaged-copies-updated"),
-                    done.updated.len(),
+            (Some(updated), None) => self.notify_toned(
+                strings::format(
+                    key!("toast-damaged-copies-updated"),
+                    &[&tools::rejected_words("", Some(&updated))],
                 ),
                 crate::notifications::NoteTone::Success,
             ),
+            (None, None) => {}
         }
         Outcome::Done
     }

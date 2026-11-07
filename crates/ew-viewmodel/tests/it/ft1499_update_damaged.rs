@@ -96,7 +96,7 @@ fn tree(dir: &Path) -> Vec<(PathBuf, Vec<u8>)> {
 
 /// The round trip: the banner of a damaged copy of a starter part offers Update from library; the action writes the
 /// library's copy over the damaged file, byte for byte as the assignment's save wrote it, and the project opens for
-/// editing with no banner; the toast says so. Both languages.
+/// editing with no banner; the toast names the copy with the version written (C53-p4#4). Both languages.
 #[test]
 fn ft1499_update_from_library_writes_the_copy_and_opens_the_project_for_editing() {
     let tmp = Tmp::new("ft1499-round-trip");
@@ -107,14 +107,14 @@ fn ft1499_update_from_library_writes_the_copy_and_opens_the_project_for_editing(
             "This project is open read-only: the device F55 uses the library copy of part EW-GEN-MCB-2 from \
              ElektraWatt starter parts, which is damaged. Update the copy from its library first. 1 integrity \
              finding was found when the project was opened.",
-            "Updated the damaged library copy from its library.",
+            "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.1.",
         ),
         (
             "nl",
             "Dit project is alleen-lezen geopend: het apparaat F55 gebruikt de bibliotheekkopie van artikel \
              EW-GEN-MCB-2 uit ElektraWatt starter parts, die beschadigd is. Werk de kopie eerst bij vanuit de \
              bibliotheek. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
-            "De beschadigde bibliotheekkopie is bijgewerkt vanuit haar bibliotheek.",
+            "Bijgewerkt vanuit bibliotheek: de bibliotheekkopie van artikel EW-GEN-MCB-2 in versie 0.1.1.",
         ),
     ] {
         damage(&file);
@@ -154,14 +154,8 @@ fn ft1499_update_from_library_writes_the_copy_and_opens_the_project_for_editing(
     assert!(strings::set_locale("en"));
 }
 
-/// Several damaged copies: the starter part's, which a library holds, is updated, and Golden A's part copy of
-/// -201U8-Q1, which no library holds, stays damaged and is named in the toast; the project opens read-only again with
-/// that copy's banner, which offers nothing. Both languages.
-#[test]
-fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
-    let tmp = Tmp::new("ft1499-several");
-    let (dir, file, original) = starter_project(&tmp);
-    // Golden A's first part copy a device names.
+/// Golden A's first part copy a device names (the device -201U8-Q1's), which no library holds: its file in `dir`.
+fn golden_part_copy(dir: &Path) -> PathBuf {
     let mut shards: Vec<_> = std::fs::read_dir(dir.join("devices"))
         .unwrap()
         .map(|e| e.unwrap().path())
@@ -175,15 +169,25 @@ fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
             Some(text[at..at + 36].to_owned())
         })
         .expect("a device names a part copy");
-    damage(&dir.join("lib/parts").join(format!("{golden}.json")));
+    dir.join("lib/parts").join(format!("{golden}.json"))
+}
+
+/// Several damaged copies: the starter part's, which a library holds, is updated, and Golden A's part copy of
+/// -201U8-Q1, which no library holds, stays damaged and is named in the toast; the project opens read-only again with
+/// that copy's banner, which offers nothing. Both languages.
+#[test]
+fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
+    let tmp = Tmp::new("ft1499-several");
+    let (dir, file, original) = starter_project(&tmp);
+    damage(&golden_part_copy(&dir));
     for (locale, before, toast, after) in [
         (
             "en",
             "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
              damaged. Update the copy from its library first. 2 integrity findings were found when the project was \
              opened.",
-            "Damaged library copies not updated: the library copy of a part, as no library on this computer holds a \
-             readable version. Every other one was updated from its library.",
+            "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.1. Not updated, as no \
+             library on this computer holds a readable version: the library copy of a part.",
             "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
              damaged. No library on this computer holds it, so the copy cannot be updated from one. 1 integrity \
              finding was found when the project was opened.",
@@ -193,9 +197,9 @@ fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
             "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
              artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek. Bij het openen van het \
              project zijn 2 integriteitsbevindingen gevonden.",
-            "Beschadigde bibliotheekkopieën niet bijgewerkt: de bibliotheekkopie van een artikel, omdat geen \
-             bibliotheek op deze computer een leesbare versie heeft. Elke andere is bijgewerkt vanuit haar \
-             bibliotheek.",
+            "Bijgewerkt vanuit bibliotheek: de bibliotheekkopie van artikel EW-GEN-MCB-2 in versie 0.1.1. Niet \
+             bijgewerkt, omdat geen bibliotheek op deze computer een leesbare versie heeft: de bibliotheekkopie van \
+             een artikel.",
             "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
              artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit \
              een bibliotheek worden bijgewerkt. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
@@ -214,6 +218,40 @@ fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
         assert!(s.read_only_reason().is_some(), "the project stays read-only");
         assert_eq!(s.banner(), Some(after));
         assert!(!s.damaged_update_offered());
+        done(&mut s, "file.close", json!({}));
+    }
+    assert!(strings::set_locale("en"));
+}
+
+/// Two damaged copies a library holds, the starter part's and its manufacturer's (C53-p2's plural toast, C53-p4#2 and
+/// #4): both are written and the toast names each with the version written. Both languages.
+#[test]
+fn ft1499_every_copy_written_is_named_with_its_version() {
+    let tmp = Tmp::new("ft1499-two");
+    let (dir, file, original) = starter_project(&tmp);
+    let maker = dir.join("lib/manufacturers/7ae048b6-63ea-5c01-83b2-e1a83b5b4414.json");
+    let maker_bytes = std::fs::read(&maker).unwrap();
+    for (locale, toast) in [
+        (
+            "en",
+            "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.1, the library copy of \
+             manufacturer Generic (Generic) at version 0.1.0.",
+        ),
+        (
+            "nl",
+            "Bijgewerkt vanuit bibliotheek: de bibliotheekkopie van artikel EW-GEN-MCB-2 in versie 0.1.1, de \
+             bibliotheekkopie van fabrikant Generic (Generic) in versie 0.1.0.",
+        ),
+    ] {
+        damage(&file);
+        std::fs::write(&maker, "{\"$k\": \"manufacturer\",\n").unwrap();
+        let mut s = open(&tmp, locale, None, &dir);
+        assert!(s.damaged_update_offered());
+        done(&mut s, "library.update_damaged", json!({}));
+        assert_eq!(s.toast().map(|t| t.text.as_str()), Some(toast));
+        assert!(s.read_only_reason().is_none(), "the project edits");
+        assert!(std::fs::read(&file).unwrap() == original);
+        assert!(std::fs::read(&maker).unwrap() == maker_bytes);
         done(&mut s, "file.close", json!({}));
     }
     assert!(strings::set_locale("en"));

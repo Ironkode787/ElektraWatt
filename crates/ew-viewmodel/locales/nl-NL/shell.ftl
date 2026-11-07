@@ -778,8 +778,8 @@ toast-save-as-left-out = Opgeslagen als { $p0 } zonder { $p1 }, die beschadigd i
 toast-save-as-left-out-many = Opgeslagen als { $p0 } zonder { $p1 }, die beschadigd zijn.
 # FT-1499 (ID-1486): Update from library of the damaged copies, from the banner.
 error-update-damaged = Bijwerken vanuit de bibliotheek is geweigerd: { $p0 }.
-toast-damaged-copies-updated = { $p0 } beschadigde bibliotheekkopieën zijn bijgewerkt vanuit hun bibliotheken.
-toast-damaged-copies-not-updated = Beschadigde bibliotheekkopieën niet bijgewerkt: { $p0 }, omdat geen bibliotheek op deze computer een leesbare versie heeft. Elke andere is bijgewerkt vanuit haar bibliotheek.
+toast-damaged-copies-updated = Bijgewerkt vanuit bibliotheek: { $p0 }.
+toast-damaged-copies-not-updated = Bijgewerkt vanuit bibliotheek: { $p0 }. Niet bijgewerkt, omdat geen bibliotheek op deze computer een leesbare versie heeft: { $p1 }.
 toast-saved-unreleased-format = Opgeslagen in een formaat dat nog niet is uitgebracht. Uitgebrachte versies van ElektraWatt openen dit project alleen-lezen.
 error-export = Exporteren mislukt: { $p0 }.
 error-write = Het bestand kon niet worden geschreven.
@@ -868,6 +868,8 @@ refusal-words-form-named = formulier { $p0 }
 refusal-words-manufacturer-keyed = fabrikant { $p0 }
 refusal-words-damaged-copy = de bibliotheekkopie van { $p0 } waarnaar { $p1 } verwijst
 refusal-words-library-copy = de bibliotheekkopie van { $p0 }
+# A damaged copy written from its library, with the version written (C53-p4#4, ID-1491).
+refusal-words-copy-at-version = { $p0 } in versie { $p1 }
 refusal-geometry-off-grid = { $p0 } op { $p1 } ligt niet op het tekenraster
 refusal-geometry-branch-point = het aftakpunt
 refusal-geometry-outline-corner = de hoek van de omtrek
@@ -3991,7 +3993,6 @@ choice-report = Rapport
 choice-page-based = Per pagina
 label-paste-dropped-one = , 1 verbinding weggelaten
 banner-findings-one = Bij het openen van het project is 1 integriteitsbevinding gevonden.
-toast-damaged-copies-updated-one = De beschadigde bibliotheekkopie is bijgewerkt vanuit haar bibliotheek.
 revision-waivers-one = Goedkeuren erkent ook 1 geldende veiligheidsvrijstelling.
 # WP-S2.08 part 6: het woordenlijstvenster (D16), de eenmalige tips (D17) en de aderkleurweergave (D18).
 action-help-glossary = Woordenlijst

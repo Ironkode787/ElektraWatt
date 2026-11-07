@@ -3102,7 +3102,8 @@ fn starter_mcb_project(t: &Tmp, home: &std::path::Path) -> (PathBuf, PathBuf) {
 }
 
 /// FT-1499 (ID-1486): `ew update-copies` writes a damaged copy of a starter part from the compiled-in library, byte for
-/// byte as the assignment's save wrote it, says so, and the project then opens for editing (`ew fmt` writes nothing).
+/// byte as the assignment's save wrote it, says so with the version written (C53-p4#4), and the project then opens for
+/// editing (`ew fmt` writes nothing).
 #[test]
 fn update_copies_writes_a_damaged_copy_from_its_library() {
     let t = Tmp::new();
@@ -3115,7 +3116,8 @@ fn update_copies_writes_a_damaged_copy_from_its_library() {
         (o.status.code(), stdout(&o), stderr(&o)),
         (
             Some(0),
-            "updated the library copy of part EW-GEN-MCB-2 from its library\nthe project opens for editing\n"
+            "updated the library copy of part EW-GEN-MCB-2 at version 0.1.1 from its library\nthe project opens for \
+             editing\n"
                 .to_owned(),
             String::new()
         )
