@@ -1012,10 +1012,25 @@ impl EditorView {
                         }
                     }
                 }
+                // ID-1477 (4): press, drag and release draws a rectangle (two clicks still do): the press is its first
+                // corner, the release its second, each on the 0.5 mm step.
+                let on_step = |pos: Pos2| { let at=(pos-origin)/self.zoom; [(f64::from(at.x)*2.0).round()/2.0,(f64::from(at.y)*2.0).round()/2.0] };
+                if editor.variant == 0 && self.tool == 2 {
+                    if response.drag_started_by(egui::PointerButton::Primary) && let Some(press) = ui.input(|i| i.pointer.press_origin()) {
+                        self.start = Some(on_step(press));
+                    }
+                    if response.drag_stopped_by(egui::PointerButton::Primary) && let Some(end) = response.interact_pointer_pos() && let Some(start) = self.start.take() {
+                        let p = on_step(end);
+                        if p != start { action(events,"symbol.draw",json!({"tool":tools[2].0,"x":start[0],"y":start[1],"x2":p[0],"y2":p[1]})); }
+                    }
+                }
                 if let Some(start) = self.start {
                     let at = origin+Vec2::new(start[0] as f32*self.zoom,start[1] as f32*self.zoom);
                     painter.circle_stroke(at,t.space_2,Stroke::new(t.focus_width,t.canvas_selection.color32()));
-                    if let Some(pointer) = response.hover_pos() { painter.line_segment([at,pointer],Stroke::new(t.border_width,t.canvas_selection.color32())); }
+                    if let Some(pointer) = response.hover_pos() {
+                        if self.tool == 2 { painter.rect_stroke(egui::Rect::from_two_pos(at,pointer),t.radius_none,Stroke::new(t.border_width,t.canvas_selection.color32()),egui::StrokeKind::Middle); }
+                        else { painter.line_segment([at,pointer],Stroke::new(t.border_width,t.canvas_selection.color32())); }
+                    }
                 }
                 if editor.variant == 0 && response.clicked() && let Some(pointer) = response.interact_pointer_pos() {
                     let at = (pointer-origin)/self.zoom;
