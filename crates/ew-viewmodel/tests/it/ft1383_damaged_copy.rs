@@ -295,6 +295,55 @@ fn ft1500_save_as_leaves_out_a_damaged_copy_no_record_names() {
     assert!(tree(&dir) == before, "nothing is written inside the project");
 }
 
+/// C53-p3#6 (ID-1481): two damaged copies that no record names are both left out of a Save As, and the banner and the
+/// toast name both, whole in both languages.
+#[test]
+fn every_damaged_copy_a_save_as_leaves_out_is_named() {
+    let tmp = Tmp::new("left-out-two");
+    let dir = golden_with_damaged(&tmp, "manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json");
+    std::fs::write(
+        dir.join("lib/manufacturers/35eacba5-ccf5-59f0-86c7-d0156b0a1889.json"),
+        "{\"$k\": \"form\",\n",
+    )
+    .unwrap();
+    for (locale, banner, toast) in [
+        (
+            "en",
+            "This project is open read-only: the library copy of a manufacturer, the library copy of a manufacturer \
+             are damaged. Update the copies from their libraries, or use Save as for a copy of the project without \
+             them. 2 integrity findings were found when the project was opened.",
+            "Saved as save-as-en without the library copy of a manufacturer, the library copy of a manufacturer, \
+             which are damaged.",
+        ),
+        (
+            "nl",
+            "Dit project is alleen-lezen geopend: de bibliotheekkopie van een fabrikant, de bibliotheekkopie van een \
+             fabrikant zijn beschadigd. Werk de kopieën bij vanuit hun bibliotheken, of maak met Opslaan als een \
+             projectkopie zonder deze bibliotheekkopieën. Bij het openen van het project zijn 2 \
+             integriteitsbevindingen gevonden.",
+            "Opgeslagen als save-as-nl zonder de bibliotheekkopie van een fabrikant, de bibliotheekkopie van een \
+             fabrikant, die beschadigd zijn.",
+        ),
+    ] {
+        let target = tmp.0.join(format!("save-as-{locale}"));
+        let mut s = ShellModel::new(
+            Mode::Headless,
+            ShellConfig::in_dir(&tmp.0.join(format!("config-{locale}")), "0.0.0-test"),
+        );
+        assert!(strings::set_locale(locale));
+        done(
+            &mut s,
+            "file.open",
+            json!({"dir": dir.to_string_lossy(), "read_only": false}),
+        );
+        assert_eq!(s.banner(), Some(banner));
+        done(&mut s, "file.save_as", json!({"dir": target.to_string_lossy()}));
+        assert_eq!(s.toast().map(|t| t.text.as_str()), Some(toast));
+        done(&mut s, "file.close", json!({}));
+    }
+    assert!(strings::set_locale("en"));
+}
+
 /// FT-1525 (ID-1458): a damaged copy of a part an installed library holds (the compiled-in starter parts, assigned to
 /// F55 and saved) is named in the banner and the Save As refusal by its part number and its library, whole in both
 /// languages.

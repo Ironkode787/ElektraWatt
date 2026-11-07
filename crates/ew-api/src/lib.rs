@@ -338,7 +338,7 @@ pub use ew_commands::{
 pub use ew_commands::{CommandMeta, Cost, Exposure, HistoryBlock};
 /// A command's refusal by key (FT-1337): the window renders it in its language, the CLI prints its English.
 pub use ew_commands::{
-    TEXTS, Text, TextArg, asset_error_text, ident_error_text, path_error_text, schema_error_text,
+    TEXTS, Text, TextArg, asset_error_text, comma_joined, ident_error_text, path_error_text, schema_error_text,
     serde_error_text,
 };
 /// The types of [`IdSource`]'s methods, so that a test can supply its own source of new IDs
@@ -559,6 +559,9 @@ pub struct DamagedCopy {
     /// Whether no record names the copy and the model passes its integrity check (FT-1500): only another library
     /// copy's link names it, or nothing does, so a Save As makes a project without it rather than being refused.
     pub left_out: bool,
+    /// When [`DamagedCopy::left_out`]: every copy the open dropped that a Save As leaves out, each in words as
+    /// [`DamagedCopy::words`] names the first, in key order (C53-p3#6, ID-1481); empty otherwise.
+    pub left_out_words: Vec<Text>,
 }
 
 /// What [`Session::open`] does with a leftover journal of a crashed session (doc 05 §8.3).
@@ -1512,12 +1515,28 @@ impl Session {
         };
         let words =
             ew_commands::damaged_copy_words(model, kind, installed.as_ref().map(|(d, _)| d), referrer);
+        // C53-p3#6 (ID-1481): a Save As leaves out every dropped copy no record names, and names them all.
+        let left_out_words = match referrer {
+            Some(_) => Vec::new(),
+            None => self
+                .persistence
+                .as_ref()
+                .map(|p| p.dropped.as_slice())
+                .unwrap_or_default()
+                .iter()
+                .map(|&(kind, copy)| {
+                    let installed = self.installed_document(kind, copy);
+                    ew_commands::damaged_copy_words(model, kind, installed.as_ref().map(|(d, _)| d), None)
+                })
+                .collect(),
+        };
         Some(DamagedCopy {
             device,
             file,
             part,
             words,
             left_out: referrer.is_none(),
+            left_out_words,
         })
     }
 

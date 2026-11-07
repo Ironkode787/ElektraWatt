@@ -782,6 +782,8 @@ banner-damaged-copy = This project is open read-only: the device { $p0 } uses th
 banner-damaged-copy-unnamed = This project is open read-only: the device { $p0 } uses the library copy of its part, which is damaged. Update the copy from its library first.
 banner-damaged-copy-record = This project is open read-only: { $p0 } is damaged. Update the copy from its library first.
 banner-damaged-copy-left-out = This project is open read-only: { $p0 } is damaged. Update the copy from its library, or use Save as for a copy of the project without it.
+# C53-p3#6 (ID-1481): two or more damaged copies that a Save As leaves out.
+banner-damaged-copies-left-out = This project is open read-only: { $p0 } are damaged. Update the copies from their libraries, or use Save as for a copy of the project without them.
 banner-findings = { $p0 } integrity findings were found when the project was opened.
 banner-settings-bad = The settings file could not be read; defaults are used and the old file was kept as { $p0 }.
 banner-settings-write = The settings could not be written.
@@ -811,6 +813,7 @@ error-save-as-damaged-copy = Save as is refused: the device { $p0 } uses the lib
 error-save-as-damaged-copy-unnamed = Save as is refused: the device { $p0 } uses the library copy of its part, which is damaged, and a copy of the project without it would not open. Update the copy from its library first.
 error-save-as-damaged-copy-record = Save as is refused: { $p0 } is damaged, and a copy of the project without it would not open. Update the copy from its library first.
 toast-save-as-left-out = Saved as { $p0 } without { $p1 }, which is damaged.
+toast-save-as-left-out-many = Saved as { $p0 } without { $p1 }, which are damaged.
 toast-saved-unreleased-format = Saved in a format that is not released yet. Released versions of ElektraWatt open this project read-only.
 error-export = Export failed: { $p0 }.
 error-write = The file could not be written.
