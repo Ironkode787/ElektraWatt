@@ -81,6 +81,13 @@ pub(crate) fn fixture(tmp: &Tmp) -> ShellModel {
         done(&mut s, activate, json!({}));
         done(&mut s, "tool.select", json!({}));
     }
+    // The autoconnected wire stores its straight run (WP-S2.19 D12); its route is cleared, so it is unrouted.
+    let wire = coil_wire(&tables(&s)).id;
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "connection.route", "params": {"connection": wire.to_string(), "route": []}}),
+    );
     let t = tables(&s);
     assert!(!coil_wire(&t).stored_route, "the autoconnected wire has no route");
     let coil = t

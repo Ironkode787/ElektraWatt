@@ -391,6 +391,9 @@ pub struct CanvasPage {
     /// The panel data of a panel-layout page with a surface view (`Session::panel_tables`, WP-S4.02 D9), fetched once
     /// per (session, revision, folio) with the page content; `None` for every other page.
     pub panel: Option<Arc<ew_api::output::PanelTables>>,
+    /// The page as the schematic router reads it (`Session::page_geometry`, WP-S2.19 D4), fetched with the tables:
+    /// the Wire tool routes its ghost against it. Empty for a page that is not drawn.
+    pub geometry: Arc<ew_api::routing::PageGeometry>,
 }
 
 /// The tables of a page that holds no record.
@@ -435,6 +438,7 @@ impl CanvasPage {
             snapper,
             tables: Arc::new(empty_tables(folio)),
             panel: None,
+            geometry: Arc::default(),
         }
     }
 
@@ -1262,6 +1266,7 @@ mod tests {
             snapper: Snapper::default(),
             tables: Arc::new(empty_tables("103")),
             panel: None,
+            geometry: Arc::default(),
         })
     }
 

@@ -694,7 +694,10 @@ fn ft1020_a_terminal_dropped_on_an_autoconnected_wire_is_split_into_it() {
         .filter(|c| ends(&wired, c) == ["-103K1:A1".to_owned(), "-103S1:14".to_owned()])
         .collect();
     assert_eq!(hinted.len(), 1, "one wire from the coil to the switch");
-    assert!(!hinted[0].stored_route, "the hint's wire has no route");
+    assert!(
+        hinted[0].stored_route,
+        "the hint's wire stores its straight run (WP-S2.19 D12)"
+    );
     place(
         &mut s,
         json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "terminal_designation": "71"}),

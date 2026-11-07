@@ -265,6 +265,7 @@ pub const KEYS: &[&str] = &[
     "hint-wire-armed",
     "hint-wire-routing",
     "hint-wire-direct",
+    "hint-wire-full-junction",
     "hint-route-edit",
     "announce-wire-routing",
     "wire-readout",

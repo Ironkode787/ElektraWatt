@@ -6,8 +6,9 @@
 //! the mates of §5.4 and the areas and rip-up rounds of §5.5, deterministic (§5.6).
 //!
 //! **One job's request.** The ends are the connection's CPs (with their leaving directions) or junctions. Every
-//! representation's body and black-box outline grown by one grid step, and its text boxes grown by a quarter step,
-//! block; the ends' own representations' rectangles block but for the escape corridors. The frame's bands block,
+//! representation's body and black-box outline grown by one grid step, and every text box grown by a quarter step,
+//! block; the ends' own representations' bodies block but for the escape corridors, and their texts block as any
+//! other text (rule 4 has no exemption for a wire's own texts; ID-1502). The frame's bands block,
 //! the drawing area's edge grown inward by one step but on a side where an end or its stub stands within that step
 //! (FT-758). The routed connections that are not re-routed, and the jobs routed so far, are the other wires (an
 //! unrouted connection outside the solve is no obstacle). Every other connection point and its stub, and every
@@ -208,10 +209,9 @@ fn request(
         }
         obstacles.extend(frame_rects(page, g, &[a.at, stub(a), b.at, stub(b)]));
     }
+    // Rule 4 (ID-1502): every text blocks, the ends' own included; the escape corridors pass bodies only.
     if !relax.texts {
-        for t in &page.texts {
-            place(t.rep, grow(t.rect, g / 4), &mut obstacles, &mut own);
-        }
+        obstacles.extend(page.texts.iter().map(|t| grow(t.rect, g / 4)));
     }
     let mut reserved: Vec<Point> = Vec::new();
     if !relax.points {
@@ -674,20 +674,57 @@ pub fn route_one(
     to: OneEnd,
     arrive: Option<Heading>,
 ) -> Option<Vec<Point>> {
-    let mut lines: Vec<&super::DrawnConnection> = page.connections.iter().filter(|c| c.routed).collect();
-    lines.sort_by_key(|c| c.id);
-    let wires: Vec<[Point; 2]> = lines
-        .iter()
-        .flat_map(|c| segments(&c.polyline).collect::<Vec<_>>())
-        .collect();
     let mut req = request(
         page,
         (&from, &to),
         (&[], &[from.at, to.at]),
-        &wires,
+        &routed_wires(page),
         &[],
         Relax::default(),
     );
     req.arrive = arrive;
     search_areas(page, &req).map(|(points, _)| points)
+}
+
+/// The segments of the page's routed connections, in ID order: [`route_one`]'s other wires.
+fn routed_wires(page: &PageGeometry) -> Vec<[Point; 2]> {
+    let mut lines: Vec<&super::DrawnConnection> = page.connections.iter().filter(|c| c.routed).collect();
+    lines.sort_by_key(|c| c.id);
+    lines
+        .iter()
+        .flat_map(|c| segments(&c.polyline).collect::<Vec<_>>())
+        .collect()
+}
+
+/// Whether `points` is a route [`route_one`] could take from `from` to `to` on `page` (`search::clear` on its
+/// request), with the representations `through` left out: their bodies, texts and connection points. The Wire tool
+/// asks it of the direct route through a free terminal in line (FT-705).
+pub fn clear_one(
+    page: &PageGeometry,
+    (from, to): (OneEnd, OneEnd),
+    arrive: Option<Heading>,
+    through: &[Uuid],
+    points: &[Point],
+) -> bool {
+    let mut page = page.clone();
+    page.bodies.retain(|b| !through.contains(&b.rep));
+    page.texts.retain(|t| !through.contains(&t.rep));
+    page.cps.retain(|c| !through.contains(&c.rep));
+    let mut req = request(
+        &page,
+        (&from, &to),
+        (&[], &[from.at, to.at]),
+        &routed_wires(&page),
+        &[],
+        Relax::default(),
+    );
+    req.arrive = arrive;
+    let g = step(&page);
+    let (xs, ys) = (points.iter().map(|p| p.0), points.iter().map(|p| p.1));
+    let (Some(x0), Some(x1), Some(y0), Some(y1)) = (xs.clone().min(), xs.max(), ys.clone().min(), ys.max())
+    else {
+        return false;
+    };
+    req.area = [x0 - g, y0 - g, x1 + g, y1 + g];
+    super::search::clear(&req, points)
 }

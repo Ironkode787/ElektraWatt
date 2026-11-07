@@ -352,8 +352,10 @@ fn the_same_page_routes_the_same_wires() {
     assert_eq!(routes("ft706-det-a"), routes("ft706-det-b"));
 }
 
+/// WP-S2.19 D13 (RW3): without a clear route the ghost is the unrouted line, the hint says so, and the commit stores
+/// the wire unrouted; with a fixed bend, the bends and an L tail are the user's route.
 #[test]
-fn without_a_clear_route_the_wire_is_drawn_direct_and_the_tool_says_so() {
+fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
     let tmp = Tmp::new("ft706-direct");
     let mut p = page(&tmp);
     // A second box drawn round the breaker's first bottom pin: the pin can leave by its stub only, into the box.
@@ -375,9 +377,12 @@ fn without_a_clear_route_the_wire_is_drawn_direct_and_the_tool_says_so() {
         "Click a connection point; Backspace removes the last bend; Esc cancels"
     );
     hover(&mut p.s, p.l.at);
-    assert_eq!(p.s.tool_hint(), "No clear route; drawn direct");
+    let unrouted = "No clear route: the wire stays unrouted. Click to place bends.";
+    assert_eq!(p.s.tool_hint(), unrouted);
+    let (from, to) = (p.bottom[0].at, p.l.at);
+    assert_eq!(p.s.wire_ghost_route(), Some(vec![from, to]), "the unrouted line");
     click(&mut p.s, p.l.at, false);
-    // Not a refusal: the wire is drawn, on the L route of the fallback (down first, as the pin leaves).
+    // Not a refusal: the wire is drawn, without a route.
     assert_eq!(p.s.revision(), rev.map(|r| r + 1), "one commit");
     let after = tables(&p.s);
     let new: Vec<&TableConnection> = after
@@ -386,18 +391,32 @@ fn without_a_clear_route_the_wire_is_drawn_direct_and_the_tool_says_so() {
         .filter(|c| before.connections.iter().all(|o| o.id != c.id))
         .collect();
     assert_eq!(new.len(), 1);
-    let mut line = new[0].polyline.clone();
-    line.dedup();
-    let (from, to) = (p.bottom[0].at, p.l.at);
-    assert_eq!(line, vec![from, (from.0, to.1), to]);
+    assert!(!new[0].stored_route, "stored unrouted");
     // The hint stays with the drawn wire until the next one starts.
     assert_eq!(
         (p.s.tool().state(), p.s.tool_hint().as_str()),
-        ("armed", "No clear route; drawn direct")
+        ("armed", unrouted)
     );
     click(&mut p.s, p.bottom[1].at, false);
     assert_eq!(
         p.s.tool_hint(),
         "Click a connection point; Backspace removes the last bend; Esc cancels"
     );
+    done(&mut p.s, "ui.dismiss", json!({}));
+    // A fixed bend in the box, then the same end: the bend and the L tail are stored as the user drew them.
+    let before = tables(&p.s);
+    click(&mut p.s, p.bottom[0].at, false);
+    let bend = page_point(&p.s, (k.0, k.1 + 2));
+    click(&mut p.s, bend, false);
+    click(&mut p.s, p.l.at, false);
+    let after = tables(&p.s);
+    let new: Vec<&TableConnection> = after
+        .connections
+        .iter()
+        .filter(|c| before.connections.iter().all(|o| o.id != c.id))
+        .collect();
+    assert_eq!(new.len(), 1);
+    assert!(new[0].stored_route, "the user's route");
+    assert_eq!(new[0].polyline.first(), Some(&from));
+    assert_eq!(new[0].polyline.last(), Some(&to));
 }

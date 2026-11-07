@@ -233,7 +233,8 @@ pub struct ConnectHint {
 ///   function `{def: the symbol's FnDef}`, then placed. With `part` (part-first placement of a terminal part) the
 ///   terminal also gets `parts: [the part, quantity 1]`; the part copy must exist and, when it has a function
 ///   template, its main entry's FnDef must be the symbol's.
-/// - Every hint creates a wire `{a: the hint's CP, b: to, page}` without a route; the hint's symbol CP is
+/// - Every hint creates a wire `{a: the hint's CP, b: to, page}` with the straight route between its two ends' points
+///   (WP-S2.19 D12; none when they do not lie on one line, so the wire is unrouted); the hint's symbol CP is
 ///   mapped to a function CP as the derived pin map does (`(functions[0], fn_cp)`); an unknown symbol CP
 ///   is rejected. A hint ending at a junction appends the wire to the junction's sequence; a hint ending
 ///   on a point of a connection (`HintTarget::Split`) puts a new junction there, splits the connection at
@@ -403,13 +404,15 @@ impl Command for PlaceSymbol {
                     true,
                 ),
             };
+            let a = Endpoint::Cp(function, fn_cp);
+            let route = crate::geometry::hint_route(tx, &a, &to, self.page);
             tx.insert(Connection {
                 id,
                 v: 1,
-                a: Endpoint::Cp(function, fn_cp),
+                a,
                 b: to.clone(),
                 page: Some(self.page),
-                route: Vec::new(),
+                route,
                 kind: ConnectionKind::Wire,
                 overrides: Default::default(),
                 number: NumberSpec::default(),

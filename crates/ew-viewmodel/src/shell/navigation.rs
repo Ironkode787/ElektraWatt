@@ -428,6 +428,9 @@ impl ShellModel {
             page.tables = Arc::new(tables);
         }
         self.count(|c| c.page_tables += 1);
+        if let Some(geometry) = project.session.page_geometry(folio) {
+            page.geometry = Arc::new(geometry);
+        }
         // WP-S4.02 D9: a panel-layout page's panel data, once per (session, revision, folio); none for another page.
         if self
             .page_rows()

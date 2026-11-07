@@ -218,17 +218,18 @@ fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
         .find(|j| j.style == "bevel" && j.wiring == "chain")
         .unwrap()
         .clone();
-    let members = junction.sequence.len();
+    // WP-S2.19 D13 (RW4): a junction that already joins three wires is no end, and the hint says so.
+    assert!(junction.sequence.len() >= 3);
     cursor(&mut s, junction.at);
-    assert_eq!(canvas(&s)["snap"]["kind"], "junction");
-    done(&mut s, "canvas.activate", json!({}));
-    let t = tables(&s);
-    let j = t.junctions.iter().find(|x| x.id == junction.id).unwrap();
+    // The snap falls past it: to a point on one of its wires or to the grid, never to the junction itself.
+    let label = canvas(&s)["snap"]["label"].as_str().unwrap_or_default().to_owned();
+    assert!(!label.starts_with('@') || label.contains(" -> "), "{label}");
     assert_eq!(
-        j.sequence.len(),
-        members + 1,
-        "the wire is appended to the junction"
+        s.tool_hint(),
+        "This junction already joins three wires: end on a wire to make a new junction."
     );
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.tool().state(), "armed");
     // From another free CP onto a point of a wire: a junction there and the wire split.
     let before = tables(&s);
     let w = before

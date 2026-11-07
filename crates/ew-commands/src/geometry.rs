@@ -176,6 +176,25 @@ pub fn drawn_cp(tx: &TxBuilder<'_>, function: Id<Function>, idx: u16, page: Id<P
     })
 }
 
+/// The point of end `e` on `page`: a CP's as [`cp_position`] places it, a junction's own; `None` for an end not drawn
+/// there.
+pub fn end_point(tx: &TxBuilder<'_>, e: &Endpoint, page: Id<Page>) -> Option<Pt2> {
+    match e {
+        Endpoint::Cp(function, idx) => cp_position(tx, *function, *idx, page),
+        Endpoint::Junction(j) => tx.get::<Junction>(*j).filter(|j| j.page == page).map(|j| j.at),
+        Endpoint::Unknown(_) => None,
+    }
+}
+
+/// The straight route of an autoconnect hint's wire from `a` to `b` on `page` (WP-S2.19 D12: a proposal is a
+/// straight, clear run, WP-S2.04 §8.3): both ends' points when they lie on one line; empty, so unrouted, otherwise.
+pub fn hint_route(tx: &TxBuilder<'_>, a: &Endpoint, b: &Endpoint, page: Id<Page>) -> Vec<Pt2> {
+    match (end_point(tx, a, page), end_point(tx, b, page)) {
+        (Some(p), Some(q)) if p != q && (p.x == q.x || p.y == q.y) => vec![p, q],
+        _ => Vec::new(),
+    }
+}
+
 /// The path the page draws connection `c` along when it has no stored route (FT-1020, decision log ID-1104, ID-1110):
 /// [`ew_derive::provisional_path`] between its ends on its page, the path `ew_derive::drawn_path` gives and the page
 /// scene draws, read from the transaction's records. An end at a CP is placed by [`ew_derive::rep_cp_end`] (the
