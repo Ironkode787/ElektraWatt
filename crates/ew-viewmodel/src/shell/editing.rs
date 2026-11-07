@@ -819,6 +819,9 @@ impl ShellModel {
         if let Err(message) = self.new_page_with_grid(json!({"num": num, "den": den}), None) {
             return Outcome::Failed { message };
         }
+        // The canvas and the tool's context follow the new page now, so the placement's tool is not escaped by it.
+        self.sync_views();
+        self.sync_tool_context();
         let letter = letter.unwrap_or_else(|| "U".to_owned());
         for (action, params) in [
             ("place.pick", json!({"symbol": key, "letter": letter})),

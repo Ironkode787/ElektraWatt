@@ -1370,11 +1370,23 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
         "the first row is on this page's grid"
     );
     done(&mut shell, "picker.row", json!({"to": at}));
+    let recorded = shell.recorded_commands().len();
     done(&mut shell, "picker.new_page", json!({}));
     assert!(shell.picker().is_none());
     assert_eq!(grid(&shell), (4_000_000, 1));
     assert_eq!(shell.page_labels().len(), pages + 2);
-    assert_eq!(shell.selection().items.len(), 1);
+    let cmds: Vec<&str> = shell.recorded_commands()[recorded..]
+        .iter()
+        .map(|c| c.cmd.as_str())
+        .collect();
+    assert_eq!(cmds, ["page.create", "device.place"]);
+    let selected = &shell.selection().items;
+    assert_eq!(selected.len(), 1);
+    assert_ne!(
+        Some(selected[0].0.to_string()),
+        shell.current_page().map(|p| p.uuid_text()),
+        "the symbol is selected, not its page"
+    );
     shell.shutdown();
 }
 
