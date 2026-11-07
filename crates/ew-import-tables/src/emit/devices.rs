@@ -610,10 +610,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
             && role == FnRole::Main
             && !mains.insert(d.clone())
         {
-            cx.malformed(
-                row,
-                &format!("device `{d}` already has a main function"),
-            );
+            cx.malformed(row, &format!("device `{d}` already has a main function"));
             continue;
         }
         let Ok(cp_overrides) = KeyedList::from_vec(overrides) else {

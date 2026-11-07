@@ -349,10 +349,7 @@ fn stored_route(
         match ends.into_iter().find(|e| px(*e) == px(v)) {
             Some(e) => Ok(e),
             None if grid_index(page.grid, v).is_some() => Ok(v),
-            None => Err(
-                "column `route`: a corner is off the page grid (positions are never snapped)"
-                    .into(),
-            ),
+            None => Err("column `route`: a corner is off the page grid (positions are never snapped)".into()),
         }
     };
     let mut route = vec![a];

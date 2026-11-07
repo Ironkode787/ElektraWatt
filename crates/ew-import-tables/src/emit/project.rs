@@ -820,9 +820,7 @@ pub(crate) fn emit_revisions(cx: &mut Cx<'_>, table: Option<&Table>, parties: Op
         let author = party(&mut r, "author");
         let checker = party(&mut r, "checker");
         if author.is_some() && author == checker {
-            r.fail(
-                "columns `author` and `checker`: the same party; the checker is another party",
-            );
+            r.fail("columns `author` and `checker`: the same party; the checker is another party");
         }
         if state == Some("open") && open_seen {
             r.fail("column `state`: a second open revision; at most one is open");
@@ -831,9 +829,7 @@ pub(crate) fn emit_revisions(cx: &mut Cx<'_>, table: Option<&Table>, parties: Op
         for page in r.list("changed_pages") {
             match cx.pages.get(page) {
                 Some(info) if notes.iter().any(|n| n.page == info.id) => {
-                    r.fail(format!(
-                        "column `changed_pages`: page `{page}` listed twice"
-                    ));
+                    r.fail(format!("column `changed_pages`: page `{page}` listed twice"));
                 }
                 Some(info) => notes.push(PageNote {
                     page: info.id,

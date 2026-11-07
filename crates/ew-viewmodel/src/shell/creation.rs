@@ -26,8 +26,8 @@
 use ew_api::{AnyCommand, DynCommand};
 use serde_json::{Map, Value, json};
 
-use super::{Dialog, Mode, Outcome, ShellModel, failed};
 use super::choices::ClosedChoices;
+use super::{Dialog, Mode, Outcome, ShellModel, failed};
 use crate::key;
 use crate::strings;
 use crate::strings::Key;

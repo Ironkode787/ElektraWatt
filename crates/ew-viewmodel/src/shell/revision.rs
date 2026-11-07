@@ -769,8 +769,18 @@ impl ShellModel {
             Vec::new()
         } else {
             vec![
-                field("role", key!("form-revision-checker"), &super::choices::ROLES, "checker".to_owned()),
-                field("typed", key!("form-revision-typed"), &super::choices::NONE, String::new()),
+                field(
+                    "role",
+                    key!("form-revision-checker"),
+                    &super::choices::ROLES,
+                    "checker".to_owned(),
+                ),
+                field(
+                    "typed",
+                    key!("form-revision-typed"),
+                    &super::choices::NONE,
+                    String::new(),
+                ),
             ]
         };
         self.revision.label = label.to_owned();
@@ -914,7 +924,12 @@ impl ShellModel {
         let (body, blocked) = match judged {
             Ok(plan) => {
                 list = self.release_steps(label, &plan);
-                fields.push(field("typed", key!("form-revision-typed"), &super::choices::NONE, String::new()));
+                fields.push(field(
+                    "typed",
+                    key!("form-revision-typed"),
+                    &super::choices::NONE,
+                    String::new(),
+                ));
                 if plan.git.is_some() {
                     fields.push(field(
                         "git",
@@ -1240,8 +1255,18 @@ impl ShellModel {
                 key!("revision-withdraw-title"),
                 key!("dialog-withdraw"),
                 vec![
-                    field("revision", key!("form-revision-revision"), &super::choices::NONE, last),
-                    field("reason", key!("form-revision-reason"), &super::choices::NONE, String::new()),
+                    field(
+                        "revision",
+                        key!("form-revision-revision"),
+                        &super::choices::NONE,
+                        last,
+                    ),
+                    field(
+                        "reason",
+                        key!("form-revision-reason"),
+                        &super::choices::NONE,
+                        String::new(),
+                    ),
                 ],
             );
         }
@@ -1321,7 +1346,12 @@ impl ShellModel {
                 SET_AUTHOR,
                 key!("revision-author-title"),
                 key!("dialog-set-author"),
-                vec![field("role", key!("form-revision-author"), &super::choices::ROLES, current)],
+                vec![field(
+                    "role",
+                    key!("form-revision-author"),
+                    &super::choices::ROLES,
+                    current,
+                )],
             );
         }
         if let Err(e) = self.fill_form(p, &["role"]) {

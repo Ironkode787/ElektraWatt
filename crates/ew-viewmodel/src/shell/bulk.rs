@@ -585,8 +585,18 @@ impl ShellModel {
                 title_key: key!("renumber-devices-title"),
                 ok_key: key!("dialog-renumber"),
                 fields: vec![
-                    field("scope", key!("form-scope"), &super::choices::DEVICE_SCOPES, &scope),
-                    field("scheme", key!("form-scheme"), &super::choices::SCHEMES, SCHEMES[0]),
+                    field(
+                        "scope",
+                        key!("form-scope"),
+                        &super::choices::DEVICE_SCOPES,
+                        &scope,
+                    ),
+                    field(
+                        "scheme",
+                        key!("form-scheme"),
+                        &super::choices::SCHEMES,
+                        SCHEMES[0],
+                    ),
                     field(
                         "include_frozen",
                         key!("form-include-frozen"),
