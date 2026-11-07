@@ -1651,6 +1651,52 @@
       "stability": "preview"
     },
     {
+      "path": "route",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--page",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--selection",
+          "value": true,
+          "repeatable": true
+        },
+        {
+          "name": "--dry-run",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "every wire it routes is routed"
+        },
+        {
+          "code": 1,
+          "meaning": "a wire stays unrouted"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, an unknown folio, a refused command and save errors"
+        }
+      ],
+      "result": "ew.route-result/1",
+      "stability": "preview"
+    },
+    {
       "path": "schema",
       "flags": [],
       "exits": [

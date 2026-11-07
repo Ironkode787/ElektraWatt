@@ -20,11 +20,15 @@
 //! The hard rules, which no route of a router may break:
 //!
 //! - **(a) Touch.** A connection touches a connection point, or a junction, that it does not end at, when the
-//!   point's position lies on one of its segments. One item per (connection, point). Junctions are included as well
-//!   as connection points: a line through a junction's dot reads as joined to it as much as one through a pin.
+//!   point's position lies on one of its segments and is not the position of a point the connection ends at (a
+//!   terminal's clamps drawn at one point are touched by the end itself). One item per (connection, point).
+//!   Junctions are included as well as connection points: a line through a junction's dot reads as joined to it as
+//!   much as one through a pin.
 //! - **(b) Overlap.** Two connections overlap when a segment of each lies on one line and the two share a stretch of
 //!   positive length. One item per pair of connections, with every stretch they share. Wires of one potential or
-//!   meeting at one junction count as well: a reader cannot tell two wires on one line apart.
+//!   meeting at one junction count as well: a reader cannot tell two wires on one line apart. A stretch within the
+//!   stub of a connection point both end at (one grid step along its leaving direction) is theirs to share
+//!   (WP-S2.19 §9, doc 06 D-20's bevel) and does not count.
 //! - **(c) Through a body.** A segment runs through a representation's body (or a black box's outline) other than
 //!   along its own ends' escapes: for a connection point the connection ends at, the ray from its point along its
 //!   leaving direction is that end's escape, and the part of a segment on it does not count inside the bodies of the
@@ -48,14 +52,19 @@
 
 mod measures;
 mod page;
+// WP-S2.19 step 3: the page solve and one route against a page as drawn (§5).
+mod plan;
 // WP-S2.19 step 1: the single-connection search, moved from `ew_commands::route` unchanged.
+#[cfg(test)]
+mod plan_tests;
 mod search;
 #[cfg(test)]
 mod tests;
 
 pub use measures::{Bends, Crossing, FourWay, Measures, Overlap, Through, Touch, TouchedPoint, measure};
 pub use page::{Body, CpPoint, DrawnConnection, JunctionPoint, PageGeometry, Point, Rect, TextBox};
+pub use plan::{OneEnd, RoutePlan, SUPPLY_ORDER, Unrouted, route_one, route_page};
 pub use search::{
-    BEND_COST, Heading, MAX_NODES, RouteEnd, RouteRequest, Routed, auto_route, clear, fallback, l_route,
-    route,
+    BEND_COST, CROSSING_COST, Heading, MATE_STEP_COST, MAX_NODES, RouteEnd, RouteRequest, Routed, STEP_COST,
+    auto_route, clear, fallback, l_route, route,
 };

@@ -1125,6 +1125,11 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-connection-draw-many-too-many",
         "{0} connections are more than the {1} one command takes",
     ),
+    // connection.route_many.
+    (
+        "refusal-connection-route-many-too-many",
+        "{0} routes are more than the {1} one command takes",
+    ),
     // junction.edit.
     (
         "refusal-junction-sequence",

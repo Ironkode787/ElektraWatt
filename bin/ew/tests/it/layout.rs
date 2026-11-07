@@ -141,3 +141,52 @@ fn every_drawn_page_gets_a_line_of_counts_and_an_unknown_folio_is_refused() {
         )
     );
 }
+
+/// `ew route` (WP-S2.19 D13): folio 3's one route-less wire is routed and saved, so a second run has nothing to do;
+/// `--dry-run` writes nothing; an unknown folio is refused in words.
+#[test]
+fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {
+    let t = Tmp::new();
+    let p = t.golden();
+    let before = std::fs::read_dir(Path::new(&p).join("pages")).unwrap().count();
+    let o = t.ew(&["route", &p, "--page", "3", "--dry-run"]);
+    assert_eq!(
+        (o.status.code(), stdout(&o)),
+        (
+            Some(0),
+            "Route 1 wires on 3: 1 routed, 0 not routed.\n".to_owned()
+        ),
+        "{}",
+        stderr(&o)
+    );
+    let o = t.ew(&["route", &p, "--page", "3"]);
+    assert_eq!(
+        (o.status.code(), stdout(&o)),
+        (
+            Some(0),
+            "Route 1 wires on 3: 1 routed, 0 not routed.\n".to_owned()
+        ),
+        "{}",
+        stderr(&o)
+    );
+    assert_eq!(
+        std::fs::read_dir(Path::new(&p).join("pages")).unwrap().count(),
+        before
+    );
+    let o = t.ew(&["route", &p, "--page", "3", "--json"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let json: results::RouteResult = serde_json::from_str(&stdout(&o)).unwrap();
+    assert_eq!(json.schema, results::ROUTE);
+    assert_eq!(
+        (json.pages.len(), json.pages[0].routed.len(), json.saved),
+        (1, 0, false)
+    );
+    let o = t.ew(&["route", &p, "--page", "999"]);
+    assert_eq!(
+        (o.status.code(), stderr(&o)),
+        (
+            Some(2),
+            "error: the page order has no drawn page with the folio `999`\n".to_owned()
+        )
+    );
+}

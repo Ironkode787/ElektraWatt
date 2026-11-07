@@ -52,6 +52,7 @@ command-connection-draw = Draw wire
 command-connection-draw_many = Draw wires
 command-connection-draw_to_ip = Draw wire to interruption point
 command-connection-route = Route wire
+command-connection-route_many = Route wires
 command-device-create = Create device
 command-device-link = Link device
 command-device-place = Place device
@@ -1270,6 +1271,7 @@ refusal-connection-fluid-branch = only a fluid line branches from { $p0 }
 refusal-connection-draw-many-entry = entry { $p0 }: { $p1 }
 refusal-connection-delete-none = no connection given; name at least one connection to delete
 refusal-connection-draw-many-too-many = { $p0 } connections are more than the { $p1 } one command takes
+refusal-connection-route-many-too-many = { $p0 } routes are more than the { $p1 } one command takes
 # junction.edit.
 refusal-junction-sequence = `sequence` is not a permutation of the connections ending at the junction; list each of them exactly once
 # ip.place, ip.continue and the star of an interruption point.

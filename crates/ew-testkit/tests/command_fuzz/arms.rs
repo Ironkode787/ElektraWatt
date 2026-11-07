@@ -525,6 +525,12 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: layout_surface_edit,
     },
+    // WP-S2.19 D12 (last, so that the arms before it keep their seeds in `every_arm_commits_on_golden_a`)
+    Arm {
+        command: "connection.route_many",
+        weight: 2,
+        build: connection_route_many,
+    },
 ];
 
 /// The representation types a page type allows (`allowed_rep_types` of `ew-commands`, in JSON form).
@@ -3010,6 +3016,44 @@ fn connection_route(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 route,
                 conn,
             ))
+        }
+    }
+}
+
+// WP-S2.19 D12: several routes in one transaction, each as `connection.route` takes it.
+fn connection_route_many(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let r = rng.pick(&live.routes)?;
+    let conn = r.connection.clone();
+    let (a, b) = (r.a, r.b);
+    let route = |a: (i64, i64), b: (i64, i64)| -> Value {
+        if a.0 == b.0 || a.1 == b.1 {
+            json!([[a.0, a.1], [b.0, b.1]])
+        } else {
+            json!([[a.0, a.1], [b.0, a.1], [b.0, b.1]])
+        }
+    };
+    match rng.below(6) {
+        // The command refuses: no entry.
+        0 => Some(Step::cmd("connection.route_many", json!({"routes": []}))),
+        // Refused: the second entry names a connection that does not exist; the first is not kept either.
+        1 => Some(
+            Step::cmd(
+                "connection.route_many",
+                json!({"routes": [
+                    {"connection": conn, "route": route(a, b)},
+                    {"connection": rng.uuid(), "route": []},
+                ]}),
+            )
+            .refuse(),
+        ),
+        // A dog-leg route from end to end and a cleared one, as two entries.
+        _ => {
+            let other = rng.pick(&live.routes)?;
+            let mut routes = vec![json!({"connection": conn, "route": route(a, b)})];
+            if other.connection != conn {
+                routes.push(json!({"connection": other.connection, "route": []}));
+            }
+            Some(Step::cmd("connection.route_many", json!({"routes": routes})))
         }
     }
 }

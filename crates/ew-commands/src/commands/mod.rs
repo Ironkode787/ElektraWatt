@@ -154,6 +154,8 @@ commands! {
     connection::ArrangeIps,
     // Cycle 33: the chain of bridges of Edit ▸ Bridge terminals
     connection::ConnectMany,
+    // WP-S2.19 D12: a page's or a selection's routes in one step
+    connection::RouteMany,
     terminal::AddTerminals,
     terminal::DesignateTerminals,
     terminal::CreateCable,

@@ -181,6 +181,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "connection.route_many",
+      "params_version": 1,
+      "schema": "connection.route_many.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "device.create",
       "params_version": 1,
       "schema": "device.create.schema.json",

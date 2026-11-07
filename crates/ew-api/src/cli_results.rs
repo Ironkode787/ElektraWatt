@@ -142,6 +142,8 @@ pub const QUERY: &str = "ew.query-result/1";
 pub const QUERIES: &str = "ew.queries-result/1";
 /// `ew layout --json` (WP-S2.19 part 1, decision log ID-1498).
 pub const LAYOUT: &str = "ew.layout-result/1";
+/// `ew route --json` (WP-S2.19 D13).
+pub const ROUTE: &str = "ew.route-result/1";
 
 /// Every published result schema, in name order.
 pub const RESULTS: &[ResultSchema] = &[
@@ -342,6 +344,12 @@ pub const RESULTS: &[ResultSchema] = &[
         command: "render",
         flag: None,
         schema: schema_of::<RenderResult>,
+    },
+    ResultSchema {
+        name: ROUTE,
+        command: "route",
+        flag: None,
+        schema: schema_of::<RouteResult>,
     },
     ResultSchema {
         name: SQL_DUMP,
@@ -977,6 +985,42 @@ pub struct LayoutResult {
     pub schema: String,
     /// The pages measured, in page order.
     pub pages: Vec<crate::output::PageLayout>,
+}
+
+/// `ew route --json` ([`ROUTE`]): the plan of each page routed (WP-S2.19 D13).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RouteResult {
+    /// [`ROUTE`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// Each page routed, in page order.
+    pub pages: Vec<RoutePageResult>,
+    /// Whether the routes were saved (`false` with `--dry-run` or when nothing was routed).
+    pub saved: bool,
+}
+
+/// One page of [`RouteResult`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RoutePageResult {
+    /// The printed folio label.
+    pub folio: String,
+    /// The wires routed, by their ends (`E55:PE → PE-1.1`), in the order of their IDs.
+    pub routed: Vec<String>,
+    /// The wires left unrouted, with why.
+    pub unrouted: Vec<RouteUnrouted>,
+}
+
+/// A wire [`RoutePageResult`] leaves unrouted.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RouteUnrouted {
+    /// The wire by its ends.
+    pub wire: String,
+    /// Why: `wires`, `symbols`, `texts`, `points` or `four_arms` (no route keeps clear of other wires, of the
+    /// symbols, of the texts, of the other connection points, or the junction would join four wires).
+    pub reason: String,
 }
 
 /// `ew lib list --json` ([`LIB_LIST`]).

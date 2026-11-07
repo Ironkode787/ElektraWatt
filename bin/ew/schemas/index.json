@@ -166,6 +166,11 @@
       "schema": "ew.render-result-1.schema.json"
     },
     {
+      "command": "route",
+      "name": "ew.route-result/1",
+      "schema": "ew.route-result-1.schema.json"
+    },
+    {
       "command": "sql dump",
       "name": "ew.sql-dump-result/1",
       "schema": "ew.sql-dump-result-1.schema.json"

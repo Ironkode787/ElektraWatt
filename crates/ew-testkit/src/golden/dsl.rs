@@ -1089,6 +1089,20 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             .map(|_| ())
     }
 
+    /// `connection.route_many` (WP-S2.19 D12): the `routes` of several connections in one transaction.
+    ///
+    /// # Errors
+    ///
+    /// A command's error.
+    pub fn route_many(&mut self, routes: &[(Id<Connection>, Value)]) -> Result<()> {
+        let routes: Vec<Value> = routes
+            .iter()
+            .map(|(id, route)| json!({"connection": id, "route": route}))
+            .collect();
+        self.run("connection.route_many", json!({"routes": routes}))
+            .map(|_| ())
+    }
+
     /// `fields.set` of a connection's `overrides` members and `number`; its ends, page and kind are written
     /// by `connection.draw`; a stored `route` is set by `connection.route`.
     ///

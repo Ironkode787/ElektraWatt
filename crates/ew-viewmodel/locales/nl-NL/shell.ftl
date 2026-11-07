@@ -100,6 +100,7 @@ command-connection-draw = Draad tekenen
 command-connection-draw_many = Draden tekenen
 command-connection-draw_to_ip = Draad naar onderbrekingspunt tekenen
 command-connection-route = Draad routeren
+command-connection-route_many = Draden routeren
 command-device-create = Apparaat maken
 command-device-link = Apparaat koppelen
 command-device-place = Apparaat plaatsen
@@ -1227,6 +1228,7 @@ refusal-connection-fluid-branch = alleen een fluïdumleiding takt af van { $p0 }
 refusal-connection-draw-many-entry = regel { $p0 }: { $p1 }
 refusal-connection-delete-none = geen verbinding opgegeven; noem ten minste één verbinding om te verwijderen
 refusal-connection-draw-many-too-many = { $p0 } verbindingen zijn meer dan de { $p1 } die één opdracht neemt
+refusal-connection-route-many-too-many = { $p0 } routes zijn meer dan de { $p1 } die één opdracht neemt
 # junction.edit.
 refusal-junction-sequence = `sequence` is geen permutatie van de verbindingen die bij de aftakking eindigen; noem elk ervan precies één keer
 # ip.place, ip.continue and the star of an interruption point.

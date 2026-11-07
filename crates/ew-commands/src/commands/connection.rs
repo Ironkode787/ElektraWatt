@@ -517,6 +517,83 @@ impl Command for RouteConnection {
     }
 }
 
+/// The most entries one `connection.route_many` takes.
+pub const ROUTE_MANY_MAX: usize = 10_000;
+
+/// `connection.route_many` (WP-S2.19 D12): several [`RouteConnection`]s, in the given order, in **one** transaction
+/// (one undo step): Route page and Route selection commit the plan their preview showed with it, so replay never
+/// runs the router.
+///
+/// Each entry is applied exactly as `connection.route` with those parameters would be, in order. Rejected with
+/// [`CmdError::InvalidParams`] at `/routes`: no entry, or more than 10,000; an entry's own parameter error keeps its
+/// message with its JSON Pointer prefixed by `/routes/<i>`, and its refusal keeps its reason prefixed by
+/// `entry <i>: `. Every other error passes through unprefixed. Cost: `Bulk` above 500 entries, else interactive.
+/// Outcome: the first connection.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RouteMany {
+    /// The routes, each the parameters of one `connection.route` (1 to 10,000).
+    pub routes: Vec<RouteConnection>,
+}
+
+impl Command for RouteMany {
+    const NAME: &'static str = "connection.route_many";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn cost(&self, _model: &ew_model::Model) -> crate::meta::Cost {
+        if self.routes.len() > crate::commands::BULK_ABOVE {
+            crate::meta::Cost::Bulk
+        } else {
+            crate::meta::Cost::Interactive
+        }
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.routes.is_empty() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/routes",
+                text!("refusal-params-no-connection"),
+            ));
+        }
+        if self.routes.len() > ROUTE_MANY_MAX {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/routes",
+                text!(
+                    "refusal-connection-route-many-too-many",
+                    self.routes.len().to_string(),
+                    ROUTE_MANY_MAX.to_string()
+                ),
+            ));
+        }
+        let mut first = None;
+        for (i, r) in self.routes.iter().enumerate() {
+            let out = r.run(tx).map_err(|err| match err {
+                CmdError::InvalidParams { path, text, .. } => {
+                    CmdError::invalid_params(Self::NAME, format!("/routes/{i}{path}"), *text)
+                }
+                CmdError::Rejected { source, reason, text } => {
+                    let why = text.map_or_else(|| TextArg::from(reason), TextArg::from);
+                    CmdError::rejected(
+                        source,
+                        text!("refusal-connection-draw-many-entry", i.to_string(), why),
+                    )
+                }
+                other => other,
+            })?;
+            first = first.or(out.primary);
+        }
+        Ok(Outcome {
+            primary: first,
+            ..Outcome::default()
+        })
+    }
+}
+
 /// `connection.delete`: removes connections through the delete policies (they leave junction sequences;
 /// bonds lose their `via`). A junction left with two or fewer connections is cleaned up by normaliser #8.
 /// Every connection must exist. Outcome: none.

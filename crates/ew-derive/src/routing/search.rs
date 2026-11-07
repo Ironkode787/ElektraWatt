@@ -7,8 +7,11 @@
 //! `connection.draw`'s `route`, so the command stores what the ghost showed and the router never runs on replay.
 //!
 //! **The search.** Grid nodes inside the area (the area's nearest grid indices, extended to hold both ends and
-//! their stubs), 4-neighbourhood, cost 1 per step and 4 per bend, no move back against the arriving heading (a
-//! U-turn would cost one bend only; FT-437). A node whose page point lies strictly inside an
+//! their stubs), 4-neighbourhood, cost [`STEP_COST`] per step and [`BEND_COST`] per bend (WP-S2.19 D6: 2 and 8,
+//! today's ratio), [`RouteRequest::cross_cost`] more for each right-angle crossing of another wire
+//! ([`CROSSING_COST`] in a page solve) and [`MATE_STEP_COST`] instead of a step's cost beside a mate's route
+//! ([`RouteRequest::mates`], §5.4), no move back against the arriving heading (a U-turn would cost one bend only;
+//! FT-437). A node whose page point lies strictly inside an
 //! obstacle rectangle is blocked, and a move that runs through the open inside of one is not taken (FT-706: a text
 //! thinner than a grid step lies between two nodes); the two ends, their nearest grid nodes and their stub nodes
 //! are never blocked, nor the move from a CP end to its stub. The nodes of the [`RouteRequest::reserved`] points
@@ -58,8 +61,19 @@ use ew_units::{Grid, Nm, Pt2};
 /// part 2, item 3: the distance table is five states per node).
 pub const MAX_NODES: usize = 262_144;
 
-/// The cost of a bend, in steps.
-pub const BEND_COST: u32 = 4;
+/// The cost of a unit step (WP-S2.19 D6).
+pub const STEP_COST: u32 = 2;
+
+/// The cost of a bend: four steps (WP-S2.19 D6).
+pub const BEND_COST: u32 = 8;
+
+/// The cost of a right-angle crossing of another route: six steps (WP-S2.19 D6). A request names it in
+/// [`RouteRequest::cross_cost`]; 0 makes a crossing free.
+pub const CROSSING_COST: u32 = 12;
+
+/// The cost of a unit step beside a mate's route, one grid step away in the same heading, instead of [`STEP_COST`]
+/// (WP-S2.19 D6, §5.4).
+pub const MATE_STEP_COST: u32 = 1;
 
 /// A heading on the page (y down), in the rank order of the tie rule: right < down < left < up.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -151,6 +165,13 @@ pub struct RouteRequest {
     /// Points no route passes through, page nm: the page's other connection points and their stubs, kept for their
     /// own wires (FT-706). The node nearest to each is blocked (but for the ends and their stubs).
     pub reserved: Vec<(i64, i64)>,
+    /// The extra cost of each right-angle crossing of one of [`wires`](Self::wires) (WP-S2.19 D6:
+    /// [`CROSSING_COST`]); 0: a crossing costs nothing more than its step.
+    pub cross_cost: u32,
+    /// The segments of the routes of this route's mates (WP-S2.19 §5.4), page nm, each from its first vertex to its
+    /// second in its route's direction: a unit move one grid step beside one, within its extent and in its heading,
+    /// costs [`MATE_STEP_COST`] instead of [`STEP_COST`]. Empty: no mate.
+    pub mates: Vec<[(i64, i64); 2]>,
 }
 
 /// A route and how it was found.
@@ -158,6 +179,8 @@ pub struct RouteRequest {
 pub struct Routed {
     /// The full vertex list from the first end to the second.
     pub points: Vec<(i64, i64)>,
+    /// Its cost by the weights of the search (steps, bends, crossings, mates' steps); 0 for the fallback.
+    pub cost: u32,
     /// Whether it is the provisional L route of the fallback: no path inside the area (or an unusable grid or an
     /// area over [`MAX_NODES`]), so the route may cross obstacles and other wires (FT-706: the tool says so).
     pub direct: bool,
@@ -192,7 +215,23 @@ struct Space {
     no_right: Vec<u8>,
     /// Why the move down from a node is not taken.
     no_down: Vec<u8>,
+    /// How many other wires the move right from a node crosses at a right angle (WP-S2.19 D6).
+    cross_right: Vec<u8>,
+    /// How many other wires the move down from a node crosses.
+    cross_down: Vec<u8>,
+    /// The headings in which the move right from a node runs beside a mate (§5.4): [`MATE_FORWARD`] for right,
+    /// [`MATE_BACKWARD`] for left.
+    mate_right: Vec<u8>,
+    /// The same for the move down: [`MATE_FORWARD`] for down, [`MATE_BACKWARD`] for up.
+    mate_down: Vec<u8>,
+    /// The extra cost of a crossing ([`RouteRequest::cross_cost`]).
+    cross_cost: u32,
 }
+
+/// A mate beside a move in its forward heading (right or down).
+const MATE_FORWARD: u8 = 1;
+/// A mate beside a move in its backward heading (left or up).
+const MATE_BACKWARD: u8 = 2;
 
 /// A move on another wire's track (FT-706).
 const ON_WIRE: u8 = 1;
@@ -237,6 +276,26 @@ impl Space {
         })
     }
 
+    /// The cost of the unit move `m` from the index point `p` without its bend (WP-S2.19 D6): a step, or a mate's
+    /// step, and the crossings it makes.
+    fn move_cost(&self, p: (i64, i64), m: Heading) -> u32 {
+        let (from, cross, mate, bit) = match m {
+            Heading::Right => (p, &self.cross_right, &self.mate_right, MATE_FORWARD),
+            Heading::Down => (p, &self.cross_down, &self.mate_down, MATE_FORWARD),
+            Heading::Left => ((p.0 - 1, p.1), &self.cross_right, &self.mate_right, MATE_BACKWARD),
+            Heading::Up => ((p.0, p.1 - 1), &self.cross_down, &self.mate_down, MATE_BACKWARD),
+        };
+        let Some(n) = self.node(from) else {
+            return STEP_COST;
+        };
+        let step = if mate[n] & bit != 0 {
+            MATE_STEP_COST
+        } else {
+            STEP_COST
+        };
+        step.saturating_add(self.cross_cost.saturating_mul(u32::from(cross[n])))
+    }
+
     fn node(&self, p: (i64, i64)) -> Option<usize> {
         if p.0 < self.lo.0 || p.0 > self.hi.0 || p.1 < self.lo.1 || p.1 > self.hi.1 {
             return None;
@@ -251,10 +310,11 @@ impl Space {
     }
 }
 
-/// The cost of a move with heading `m` from a state that arrived with `h`: `(steps + 4 × bend, bend)`.
-fn weight(h: Option<Heading>, m: Heading) -> (u32, u32) {
+/// The cost of a move with heading `m` and move cost `step` ([`Space::move_cost`]) from a state that arrived with
+/// `h`: `(step + BEND_COST × bend, bend)`.
+fn weight(h: Option<Heading>, m: Heading, step: u32) -> (u32, u32) {
     let bend = u32::from(h.is_some_and(|h| h != m));
-    (1 + BEND_COST * bend, bend)
+    (step + BEND_COST * bend, bend)
 }
 
 /// Whether a move with heading `m` from a state that arrived with `h` turns back on itself: never taken, so a route
@@ -281,12 +341,14 @@ pub fn auto_route(req: &RouteRequest) -> Vec<(i64, i64)> {
 /// [`auto_route`] with whether the result is the fallback ([`Routed::direct`]).
 pub fn route(req: &RouteRequest) -> Routed {
     match search(req) {
-        Some(points) => Routed {
+        Some((points, cost)) => Routed {
             points,
+            cost,
             direct: false,
         },
         None => Routed {
             points: fallback(req),
+            cost: 0,
             direct: true,
         },
     }
@@ -457,6 +519,11 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
         blocked: vec![false; nodes],
         no_right: vec![0; nodes],
         no_down: vec![0; nodes],
+        cross_right: vec![0; nodes],
+        cross_down: vec![0; nodes],
+        mate_right: vec![0; nodes],
+        mate_down: vec![0; nodes],
+        cross_cost: req.cross_cost,
     };
     // A node is blocked when its page point lies strictly inside an obstacle; a move is not taken when it runs
     // through the open inside of one (FT-706: a text thinner than a grid step lies between two nodes).
@@ -564,6 +631,64 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
             }
         }
     }
+    // WP-S2.19 D6: a move across another wire's segment at a right angle, the segment's coordinate in the move's
+    // half-open span (its far node included) and the move's track strictly inside the segment's extent, is a
+    // crossing; a move one grid step beside a mate's segment, within its extent, runs beside the mate in the
+    // segment's heading.
+    if req.cross_cost > 0 || !req.mates.is_empty() {
+        let segs = |list: &[[(i64, i64); 2]]| -> Vec<((i64, i64), (i64, i64))> {
+            list.iter()
+                .map(|w| (w[0], w[1]))
+                .filter(|(a, b)| a != b)
+                .collect()
+        };
+        let (crossed, mates) = (segs(&req.wires), segs(&req.mates));
+        for j in lo.1..=hi.1 {
+            for i in lo.0..=hi.0 {
+                let Some(n) = space.node((i, j)) else { continue };
+                let (Some(x), Some(y)) = (space.coord(i), space.coord(j)) else {
+                    continue;
+                };
+                let (x1, y1) = (space.coord(i + 1), space.coord(j + 1));
+                for &(a, b) in &crossed {
+                    let (s0, s1) = ((a.0.min(b.0), a.1.min(b.1)), (a.0.max(b.0), a.1.max(b.1)));
+                    // A vertical wire crossed by the move right.
+                    if a.0 == b.0
+                        && i < hi.0
+                        && s0.1 < y
+                        && y < s1.1
+                        && x1.is_some_and(|x1| x < a.0 && a.0 <= x1)
+                    {
+                        space.cross_right[n] = space.cross_right[n].saturating_add(1);
+                    }
+                    // A horizontal wire crossed by the move down.
+                    if a.1 == b.1
+                        && j < hi.1
+                        && s0.0 < x
+                        && x < s1.0
+                        && y1.is_some_and(|y1| y < a.1 && a.1 <= y1)
+                    {
+                        space.cross_down[n] = space.cross_down[n].saturating_add(1);
+                    }
+                }
+                for &(a, b) in &mates {
+                    let (s0, s1) = ((a.0.min(b.0), a.1.min(b.1)), (a.0.max(b.0), a.1.max(b.1)));
+                    if a.1 == b.1 && i < hi.0 {
+                        let beside = space.coord(j - 1) == Some(a.1) || space.coord(j + 1) == Some(a.1);
+                        if beside && x1.is_some_and(|x1| s0.0 <= x && x1 <= s1.0) {
+                            space.mate_right[n] |= if b.0 > a.0 { MATE_FORWARD } else { MATE_BACKWARD };
+                        }
+                    }
+                    if a.0 == b.0 && j < hi.1 {
+                        let beside = space.coord(i - 1) == Some(a.0) || space.coord(i + 1) == Some(a.0);
+                        if beside && y1.is_some_and(|y1| s0.1 <= y && y1 <= s1.1) {
+                            space.mate_down[n] |= if b.1 > a.1 { MATE_FORWARD } else { MATE_BACKWARD };
+                        }
+                    }
+                }
+            }
+        }
+    }
     // The other connection points and their stubs are reserved for their own wires (FT-706).
     for p in &req.reserved {
         if let Some(n) = space.node((idx(p.0), idx(p.1))) {
@@ -591,10 +716,10 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
     Some(Prepared { space, s, t, s1 })
 }
 
-fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
+fn search(req: &RouteRequest) -> Option<(Vec<(i64, i64)>, u32)> {
     let (from, to) = (req.from, req.to);
     if from.at == to.at {
-        return Some(vec![from.at]);
+        return Some((vec![from.at], 0));
     }
     let Prepared { space, s, t, s1 } = prepare(req)?;
     let (lo, width, nodes) = (space.lo, space.width, space.blocked.len());
@@ -612,13 +737,14 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
     // fixed bend the route starts from is free (the user fixed a bend there), so the arrival only excludes the move
     // back over the last segment.
     let free_turn = arrive.map(|_| start_state);
-    let step_cost = |st: usize, h: Option<Heading>, m: Heading| -> Option<(u32, u32)> {
+    let step_cost = |st: usize, h: Option<Heading>, m: Heading, p: (i64, i64)| -> Option<(u32, u32)> {
+        let step = space.move_cost(p, m);
         if reverses(h, m) {
             None
         } else if free_turn == Some(st) {
-            Some(weight(None, m))
+            Some(weight(None, m, step))
         } else {
-            Some(weight(h, m))
+            Some(weight(h, m, step))
         }
     };
     // The backward Dijkstra: the least (cost, bends) from every state to the second end. It stops once the popped
@@ -679,7 +805,7 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
             if (n1 == goal && s1 != start_state) || first_cp == Some(n1) {
                 continue;
             }
-            let Some(w) = step_cost(s1, h, m) else {
+            let Some(w) = step_cost(s1, h, m, p1) else {
                 continue;
             };
             let cand = add(w, d);
@@ -703,12 +829,18 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
     if dist[state(node, heading)] == INF {
         return None;
     }
+    // The route's cost: the walk's from here, and a CP end's stub move before it.
+    let stub_cost = match from.dir {
+        Some(d) => space.move_cost(s, d),
+        None => 0,
+    };
+    let total = dist[state(node, heading)].0.saturating_add(stub_cost);
     while dist[state(node, heading)] != (0, 0) {
         let here = dist[state(node, heading)];
         let p = position(node);
         let here_state = state(node, heading);
         let next = Heading::ALL.into_iter().find_map(|m| {
-            let w = step_cost(here_state, heading, m)?;
+            let w = step_cost(here_state, heading, m, p)?;
             let q = (p.0 + m.step().0, p.1 + m.step().1);
             let n = space.node(q)?;
             if space.blocked[n] || !space.move_free(p, m) {
@@ -725,7 +857,7 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
             return None;
         }
     }
-    build(&space, from, to, s, &moves)
+    build(&space, from, to, s, &moves).map(|points| (points, total))
 }
 
 /// The route of a move list from the grid node `s`: the exact ends, the corners on the grid, the corners next to an
@@ -835,6 +967,8 @@ mod tests {
             own: [Vec::new(), Vec::new()],
             wires: Vec::new(),
             reserved: Vec::new(),
+            cross_cost: 0,
+            mates: Vec::new(),
         }
     }
 
@@ -1012,6 +1146,8 @@ mod tests {
             own: [Vec::new(), Vec::new()],
             wires: Vec::new(),
             reserved: Vec::new(),
+            cross_cost: 0,
+            mates: Vec::new(),
         };
         let r = auto_route(&request);
         assert_eq!(r.first(), Some(&a.at));
@@ -1053,6 +1189,8 @@ mod tests {
             own: [Vec::new(), Vec::new()],
             wires: Vec::new(),
             reserved: Vec::new(),
+            cross_cost: 0,
+            mates: Vec::new(),
         };
         assert_eq!(auto_route(&edge), l_route(edge.from, edge.to));
     }
@@ -1528,7 +1666,7 @@ mod tests {
         }
     }
 
-    /// The cost of an orthogonal route on the 1 mm grid by the router's weights: one per step, [`BEND_COST`] per bend
+    /// The cost of an orthogonal route on the 1 mm grid by the router's weights: [`STEP_COST`] per step, [`BEND_COST`] per bend
     /// between two moves (a turn at the first end is never a bend: a CP end's first move is its direction, and an
     /// end without one turns freely at a fixed bend).
     fn cost(points: &[(i64, i64)]) -> u32 {
@@ -1545,7 +1683,7 @@ mod tests {
             moves.extend(std::iter::repeat_n(h, usize::try_from(n).unwrap()));
         }
         let bends = moves.windows(2).filter(|w| w[0] != w[1]).count();
-        u32::try_from(moves.len() + bends * BEND_COST as usize).unwrap()
+        u32::try_from(moves.len() * STEP_COST as usize + bends * BEND_COST as usize).unwrap()
     }
 
     proptest::proptest! {

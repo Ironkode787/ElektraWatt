@@ -215,6 +215,8 @@ fn routed(a: (Pt2, Heading), b: (Pt2, Heading)) -> Vec<Pt2> {
         own: [vec![], vec![]],
         wires: vec![],
         reserved: vec![],
+        cross_cost: 0,
+        mates: Vec::new(),
     };
     auto_route(&req).into_iter().map(|(x, y)| pt(x, y)).collect()
 }

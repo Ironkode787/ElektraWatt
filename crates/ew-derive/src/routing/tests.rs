@@ -23,6 +23,7 @@ fn wire(n: u128, points: &[Point]) -> DrawnConnection {
     DrawnConnection {
         id: id(n),
         polyline: points.to_vec(),
+        ..DrawnConnection::default()
     }
 }
 
@@ -390,7 +391,8 @@ proptest::proptest! {
         let reserved: Vec<Point> = rs.iter().map(|&(x, y)| mm(x, y)).collect();
         let strictly = |p: Point, r: &Rect| r[0] < p.0 && p.0 < r[2] && r[1] < p.1 && p.1 < r[3];
         for (a, b) in own {
-            proptest::prop_assume!(obstacles.iter().all(|r| !strictly(a, r) && !strictly(b, r)));
+            let mid = ((a.0 + b.0) / 2, (a.1 + b.1) / 2);
+            proptest::prop_assume!(obstacles.iter().all(|r| !strictly(a, r) && !strictly(b, r) && !strictly(mid, r)));
             proptest::prop_assume!(reserved.iter().all(|&q| !on(q, (a, b))));
             proptest::prop_assume!(wires.iter().all(|&(c, d)| !on(c, (a, b)) && !on(d, (a, b)) && !on(a, (c, d)) && !on(b, (c, d))));
         }
@@ -409,6 +411,8 @@ proptest::proptest! {
             own: [Vec::new(), Vec::new()],
             wires: wires.iter().map(|&(a, b)| [a, b]).collect(),
             reserved: reserved.clone(),
+            cross_cost: 0,
+            mates: Vec::new(),
         };
         let routed = route(&rq);
         if !routed.direct {
@@ -426,4 +430,35 @@ proptest::proptest! {
             proptest::prop_assert!(!m.through_bodies.iter().any(|t| mine(&t.connection)), "{:?} {:?}", routed.points, m.through_bodies);
         }
     }
+}
+
+#[test]
+fn a_a_cp_stacked_on_the_wire_s_own_end_is_no_touch() {
+    // A terminal's clamps b and c drawn at one point: the wire ending at b does not touch c.
+    let mut page = two_ends(&[mm(0, 0), mm(40, 0)]);
+    page.cps.push(cp(12, mm(0, 0), Dir4::Right, 100, &[]));
+    assert_eq!(measure(&page).touches, vec![]);
+}
+
+#[test]
+fn b_two_wires_sharing_a_cp_s_stub_do_not_overlap_there() {
+    // Two wires leave one CP along its stub (one grid step, 1 mm here) and part: the stub is theirs to share.
+    let shared = |second: &[Point]| PageGeometry {
+        grid: (MM, 1),
+        cps: vec![cp(10, mm(0, 0), Dir4::Right, 100, &[1, 2])],
+        connections: vec![wire(1, &[mm(0, 0), mm(1, 0), mm(1, 10)]), wire(2, second)],
+        ..PageGeometry::default()
+    };
+    assert_eq!(
+        measure(&shared(&[mm(0, 0), mm(1, 0), mm(1, -10)])).overlaps,
+        vec![]
+    );
+    // Beyond the stub they overlap.
+    assert_eq!(
+        measure(&shared(&[mm(0, 0), mm(1, 0), mm(1, 5), mm(5, 5)])).overlaps,
+        vec![Overlap {
+            connections: [id(1), id(2)],
+            stretches: vec![(mm(1, 0), mm(1, 5))],
+        }]
+    );
 }

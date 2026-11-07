@@ -152,6 +152,15 @@ pub fn measure(page: &PageGeometry) -> Measures {
     m
 }
 
+/// The page's grid step in nm, rounded (1 for a page without a grid).
+fn grid_step(page: &PageGeometry) -> i64 {
+    let (num, den) = page.grid;
+    if num <= 0 || den <= 0 {
+        return 1;
+    }
+    ((num + den / 2) / den).max(1)
+}
+
 /// The polyline without consecutive equal points.
 fn clean(polyline: &[Point]) -> Vec<Point> {
     let mut out: Vec<Point> = Vec::with_capacity(polyline.len());
@@ -185,8 +194,22 @@ fn on(p: Point, (a, b): (Point, Point)) -> bool {
 fn touches(page: &PageGeometry, c: &DrawnConnection, line: &[Point], out: &mut Vec<Touch>) {
     let segs = segments(line);
     let hit = |at: Point| segs.iter().any(|s| on(at, *s));
+    // The points the connection ends at: a CP stacked on one of them (a terminal's clamps drawn at one point) is
+    // touched by the end itself, not by the wire.
+    let own: Vec<Point> = page
+        .cps
+        .iter()
+        .filter(|cp| cp.connections.contains(&c.id))
+        .map(|cp| cp.at)
+        .chain(
+            page.junctions
+                .iter()
+                .filter(|j| j.connections.contains(&c.id))
+                .map(|j| j.at),
+        )
+        .collect();
     for cp in &page.cps {
-        if !cp.connections.contains(&c.id) && hit(cp.at) {
+        if !cp.connections.contains(&c.id) && !own.contains(&cp.at) && hit(cp.at) {
             out.push(Touch {
                 connection: c.id,
                 point: TouchedPoint::Cp(cp.id),
@@ -401,7 +424,7 @@ fn orient(a: Point, b: Point, c: Point) -> i128 {
 
 /// The stretch two segments with a length share on one line, from its smaller end to its larger (by x, on a
 /// vertical line by y); `None` when they are not on one line or share at most a point.
-fn overlap(s: (Point, Point), t: (Point, Point)) -> Option<(Point, Point)> {
+pub(super) fn overlap(s: (Point, Point), t: (Point, Point)) -> Option<(Point, Point)> {
     let ((a, b), (c, d)) = (s, t);
     if a == b || c == d || orient(a, b, c) != 0 || orient(a, b, d) != 0 {
         return None;
@@ -416,7 +439,7 @@ fn overlap(s: (Point, Point), t: (Point, Point)) -> Option<(Point, Point)> {
 
 /// The point two segments meet at, when they share exactly one (rounded to the nm for a crossing of segments that
 /// are neither horizontal nor vertical); `None` when they are apart or share a stretch.
-fn meet(s: (Point, Point), t: (Point, Point)) -> Option<Point> {
+pub(super) fn meet(s: (Point, Point), t: (Point, Point)) -> Option<Point> {
     let ((a, b), (c, d)) = (s, t);
     let (o1, o2, o3, o4) = (orient(a, b, c), orient(a, b, d), orient(c, d, a), orient(c, d, b));
     if o1.signum() * o2.signum() < 0 && o3.signum() * o4.signum() < 0 {
@@ -474,6 +497,18 @@ fn pair(
             });
         }
     }
+    // §9: the stub of a CP both connections end at (one grid step along its leaving direction) is theirs to share.
+    let g = grid_step(page);
+    stretches.retain(|s| {
+        !page.cps.iter().any(|cp| {
+            let Some(v) = cp.dir.as_ref().and_then(vector) else {
+                return false;
+            };
+            let both = cp.connections.contains(&ci.id) && cp.connections.contains(&cj.id);
+            let stub = (cp.at, (cp.at.0 + v.0 as i64 * g, cp.at.1 + v.1 as i64 * g));
+            both && on(s.0, stub) && on(s.1, stub)
+        })
+    });
     if !stretches.is_empty() {
         overlaps.push(Overlap {
             connections: [ci.id, cj.id],

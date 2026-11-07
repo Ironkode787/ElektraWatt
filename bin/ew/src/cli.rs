@@ -23,6 +23,7 @@ mod merge_driver;
 mod merge_resolve;
 mod project_files;
 mod query;
+mod route;
 mod symbol;
 mod tree;
 
@@ -97,6 +98,8 @@ pub enum Command {
     },
     /// `ew layout [--page <folio>] [--json]`: the layout measures (WP-S2.19 part 1, ID-1498).
     Layout(layout::LayoutArgs),
+    /// `ew route [--page <folio>] [--selection <ids>] [--dry-run] [--json]`: the page router (WP-S2.19 D13).
+    Route(route::RouteArgs),
     /// `ew merge resolve`: the conflict records a merge left, resolved (WP-S1.17 D19).
     MergeResolve(merge_resolve::MergeResolveArgs),
     /// `ew diff` (WP-S1.17 D26, D27).
@@ -742,6 +745,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::Query(a) => query::run_query(&a),
         Command::Queries { json } => query::run_queries(json),
         Command::Layout(a) => layout::run_layout(&a),
+        Command::Route(a) => route::run_route(&a),
         Command::MergeResolve(a) => merge_resolve::run_merge_resolve(&a),
         Command::Diff(a) => diff::run_diff(&a),
         Command::GitSetup(a) => collab::run_git_setup(&a),

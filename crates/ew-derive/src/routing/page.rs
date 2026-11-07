@@ -16,6 +16,12 @@ pub type Rect = [i64; 4];
 /// Everything drawn on one page that a route has to keep clear of or join, in page nm.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PageGeometry {
+    /// The page's connection grid `(num, den)` nm.
+    pub grid: (i64, i64),
+    /// The sheet: the frame's outer rectangle, else the default sheet.
+    pub sheet: Rect,
+    /// The frame grid's drawing area; `None` for a page without a frame grid.
+    pub drawing_area: Option<Rect>,
     /// The representations' bodies: each symbol body under its orientation and each black box's outline (by its
     /// bounds), one rectangle each, so a black box gives two.
     pub bodies: Vec<Body>,
@@ -77,12 +83,19 @@ pub struct JunctionPoint {
 }
 
 /// A connection with the polyline it is drawn along.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct DrawnConnection {
     /// The connection's ID.
     pub id: Uuid,
-    /// The drawn polyline from end `a` to end `b`. Consecutive equal points are allowed: the writers store a route
-    /// with its ends and the readers add the ends again ([`drawn_path`](crate::drawn_path)), so a stored route is
-    /// drawn with each end twice; the measures skip the empty segments.
+    /// Its ends `a` and `b`: the ID of the CP ([`CpPoint::id`]) or junction ([`JunctionPoint::id`]) each lies at; nil
+    /// for an end not drawn on the page.
+    pub ends: [Uuid; 2],
+    /// Whether it has a stored route (the router's fixed wire); `false` for a connection drawn without one.
+    pub routed: bool,
+    /// The rank of its potential's supply type in [`SUPPLY_ORDER`](super::SUPPLY_ORDER) (L1 first); `None` for a
+    /// signal, undefined or unknown potential (§5.3).
+    pub supply: Option<u8>,
+    /// The drawn polyline from end `a` to end `b`. Consecutive equal points are allowed (a source may repeat a
+    /// vertex); the measures and the router skip the empty segments.
     pub polyline: Vec<Point>,
 }

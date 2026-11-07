@@ -20,14 +20,17 @@ use std::collections::BTreeSet;
 use std::fmt;
 
 use ew_derive::ew_ids::{Id, Uuid};
+use ew_derive::ew_schema::PotentialType;
 use ew_derive::ew_schema::{Dir4, PageType};
 use ew_derive::ew_units::{Nm, Pt2};
 use ew_derive::routing::{
     self, Body, CpPoint, DrawnConnection, JunctionPoint, Measures, PageGeometry, TextBox, TouchedPoint,
 };
-use ew_derive::{CellOf, DisplayedTag, PageOrder, PageRef, Q};
+use ew_derive::routing::{Point, SUPPLY_ORDER};
+use ew_derive::{CellOf, CpRef, DisplayedTag, PageOrder, PageRef, PotentialFlow, PotentialPartition, Q};
 use ew_dl::Layer;
 use ew_scene::forms::FrameGeometry;
+use ew_scene::page::DEFAULT_SHEET;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -234,11 +237,20 @@ fn geometry(q: &Q, page: PageRef, tables: &PageTables) -> PageGeometry {
             (a.x != b.x && a.y != b.y && seen.insert((e.0, rect))).then_some(TextBox { rep: e.0, rect })
         })
         .collect();
-    let frame_bands = q
-        .get::<PageFrameOf>(page)
+    let frame = q.get::<PageFrameOf>(page);
+    let frame_geometry = frame
         .as_ref()
         .as_ref()
-        .and_then(|f| FrameGeometry::of(&f.form, f.title_block.as_deref()))
+        .and_then(|f| FrameGeometry::of(&f.form, f.title_block.as_deref()));
+    let rect = |r: ew_derive::ew_units::Rect| [r.min().x.0, r.min().y.0, r.max().x.0, r.max().y.0];
+    let sheet = match (&frame_geometry, frame.as_ref().as_ref()) {
+        (Some(g), _) => rect(g.outer),
+        (None, Some(f)) => [0, 0, f.form.sheet.width.0, f.form.sheet.height.0],
+        (None, None) => [0, 0, DEFAULT_SHEET.0.0, DEFAULT_SHEET.1.0],
+    };
+    let drawing_area = frame_geometry.as_ref().map(|g| rect(g.drawing_area));
+    let frame_bands = frame_geometry
+        .as_ref()
         .map(|g| {
             let (o0, o1, d0, d1) = (
                 g.outer.min(),
@@ -273,7 +285,48 @@ fn geometry(q: &Q, page: PageRef, tables: &PageTables) -> PageGeometry {
                 .collect(),
         })
         .collect();
+    // The supply type of each connection's potential, by the potential of an end CP (§5.3).
+    let partition = q.get::<PotentialPartition>(());
+    let supply = |c: &super::editing::TableConnection| -> Option<u8> {
+        [c.a, c.b].into_iter().find_map(|e| {
+            let TableEnd::Cp { function, idx } = e else {
+                return None;
+            };
+            let p = partition.potential_at(CpRef::new(Id::from_uuid(function), idx).key())?;
+            let flow = q.get::<PotentialFlow>(p.id);
+            let ptype = flow.as_ref().as_ref()?.ptype.as_ref()?.value.clone();
+            let word = match ptype {
+                PotentialType::L1 => "L1",
+                PotentialType::L2 => "L2",
+                PotentialType::L3 => "L3",
+                PotentialType::L => "L",
+                PotentialType::N => "N",
+                PotentialType::Pen => "PEN",
+                PotentialType::Pe => "PE",
+                PotentialType::Fe => "FE",
+                PotentialType::LPlus => "L+",
+                PotentialType::M => "M",
+                PotentialType::LMinus => "L-",
+                _ => return None,
+            };
+            SUPPLY_ORDER
+                .iter()
+                .position(|w| *w == word)
+                .and_then(|k| u8::try_from(k).ok())
+        })
+    };
+    let end_id = |e: &TableEnd| match e {
+        TableEnd::Cp { function, idx } => tables
+            .cps
+            .iter()
+            .find(|cp| cp.function == *function && cp.idx == *idx)
+            .map_or(Uuid::nil(), |cp| cp.id),
+        TableEnd::Junction { id } => *id,
+    };
     PageGeometry {
+        grid: tables.grid,
+        sheet,
+        drawing_area,
         bodies,
         cps: tables
             .cps
@@ -294,22 +347,28 @@ fn geometry(q: &Q, page: PageRef, tables: &PageTables) -> PageGeometry {
             .iter()
             .map(|c| DrawnConnection {
                 id: c.id,
+                ends: [end_id(&c.a), end_id(&c.b)],
+                routed: c.stored_route,
+                supply: supply(c),
                 polyline: c.polyline.clone(),
             })
             .collect(),
     }
 }
 
-/// The measures of a page in words (see [`PageLayout`]).
-fn page_layout(q: &Q, tables: &PageTables, m: &Measures) -> PageLayout {
+/// The frame cell of the point `p` on `page` as printed (`C4`); empty off the drawing area or without a frame grid.
+fn cell_text(q: &Q, page: Id<ew_derive::ew_schema::Page>, p: (i64, i64)) -> String {
+    q.get::<CellOf>((page, Pt2::new(Nm(p.0), Nm(p.1))))
+        .as_ref()
+        .as_ref()
+        .map(ToString::to_string)
+        .unwrap_or_default()
+}
+
+/// A connection of `tables` named by its ends (`-E55:PE → -X1:PE`, `the junction in C11 → E56:X2`); empty for one
+/// the page does not draw.
+fn connection_text(q: &Q, tables: &PageTables, id: Uuid) -> String {
     let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
-    let cell = |p: (i64, i64)| {
-        q.get::<CellOf>((page, Pt2::new(Nm(p.0), Nm(p.1))))
-            .as_ref()
-            .as_ref()
-            .map(ToString::to_string)
-            .unwrap_or_default()
-    };
     let end = |e: &TableEnd| match e {
         TableEnd::Cp { function, idx } => tables
             .cps
@@ -320,21 +379,26 @@ fn page_layout(q: &Q, tables: &PageTables, m: &Measures) -> PageLayout {
                 |cp| cp.label.clone(),
             ),
         TableEnd::Junction { id } => match tables.junctions.iter().find(|j| j.id == *id) {
-            Some(j) => match cell(j.at) {
+            Some(j) => match cell_text(q, page, j.at) {
                 c if c.is_empty() => "a junction".to_owned(),
                 c => format!("the junction in {c}"),
             },
             None => "a junction".to_owned(),
         },
     };
-    let connection = |id: Uuid| {
-        tables
-            .connections
-            .iter()
-            .find(|c| c.id == id)
-            .map(|c| format!("{} → {}", end(&c.a), end(&c.b)))
-            .unwrap_or_default()
-    };
+    tables
+        .connections
+        .iter()
+        .find(|c| c.id == id)
+        .map(|c| format!("{} → {}", end(&c.a), end(&c.b)))
+        .unwrap_or_default()
+}
+
+/// The measures of a page in words (see [`PageLayout`]).
+fn page_layout(q: &Q, tables: &PageTables, m: &Measures) -> PageLayout {
+    let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
+    let cell = |p: (i64, i64)| cell_text(q, page, p);
+    let connection = |id: Uuid| connection_text(q, tables, id);
     let symbol = |id: Uuid| {
         let Some(r) = tables.reps.iter().find(|r| r.id == id) else {
             return String::new();
@@ -348,8 +412,8 @@ fn page_layout(q: &Q, tables: &PageTables, m: &Measures) -> PageLayout {
         }
     };
     let point = |p: (i64, i64)| [p.0, p.1];
-    let stretches = |s: &[((i64, i64), (i64, i64))]| s.iter().map(|(a, b)| [point(*a), point(*b)]).collect();
-    let first = |s: &[((i64, i64), (i64, i64))]| s.first().map(|(a, _)| cell(*a)).unwrap_or_default();
+    let stretches = |s: &[(Point, Point)]| s.iter().map(|(a, b)| [point(*a), point(*b)]).collect();
+    let first = |s: &[(Point, Point)]| s.first().map(|(a, _)| cell(*a)).unwrap_or_default();
     let through = |list: &[routing::Through]| {
         list.iter()
             .map(|t| LayoutThrough {
@@ -423,6 +487,26 @@ fn page_layout(q: &Q, tables: &PageTables, m: &Measures) -> PageLayout {
 }
 
 impl Session {
+    /// The folios of every drawn page but the panel-layout pages, in page order: the pages `ew layout` measures and
+    /// `ew route` routes by default.
+    pub fn schematic_folios(&self) -> Vec<String> {
+        self.query()
+            .get::<PageOrder>(())
+            .entries
+            .iter()
+            .filter(|e| matches!(e.page, PageRef::Drawn(_)) && e.kind != PageType::PanelLayout)
+            .map(|e| e.folio.clone())
+            .collect()
+    }
+
+    /// The connection `id` of the page labelled `folio` named by its ends, as `ew layout` names it
+    /// (`E55:PE → PE-1.1`); `None` for an unknown folio or a connection the page does not draw.
+    pub fn connection_words(&self, folio: &str, id: Uuid) -> Option<String> {
+        let tables = self.page_tables(folio)?;
+        let text = connection_text(&self.query(), &tables, id);
+        (!text.is_empty()).then_some(text)
+    }
+
     /// The geometry of the page labelled `folio` as the schematic router and the layout measures read it, in page nm
     /// (see the module documentation); `None` for an unknown folio or a page that is not drawn.
     pub fn page_geometry(&self, folio: &str) -> Option<PageGeometry> {
@@ -446,13 +530,7 @@ impl Session {
                 entry_of(&q, f)?;
                 vec![f.to_owned()]
             }
-            None => q
-                .get::<PageOrder>(())
-                .entries
-                .iter()
-                .filter(|e| matches!(e.page, PageRef::Drawn(_)) && e.kind != PageType::PanelLayout)
-                .map(|e| e.folio.clone())
-                .collect(),
+            None => self.schematic_folios(),
         };
         let mut out = Vec::new();
         for f in folios {

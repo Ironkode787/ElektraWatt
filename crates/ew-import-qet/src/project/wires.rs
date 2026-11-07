@@ -1056,12 +1056,12 @@ mod tests {
             .is_empty()
         );
         // One segment: the straight route between the ends; a corner within a QET px of an end takes its value.
-        let b = Some(Pt2::new(px(1), Nm(0)));
-        assert_eq!(route_of(o, b, &[seg(true, 1)]), vec![Pt2::ORIGIN, b.unwrap()]);
-        let b = Some(Pt2::new(Nm(px(10).0 + 1), Nm(px(10).0)));
+        let b = Pt2::new(px(1), Nm(0));
+        assert_eq!(route_of(o, Some(b), &[seg(true, 1)]), vec![Pt2::ORIGIN, b]);
+        let b = Pt2::new(Nm(px(10).0 + 1), Nm(px(10).0));
         assert_eq!(
-            route_of(o, b, &[seg(true, 10), seg(false, 10)]),
-            vec![Pt2::ORIGIN, Pt2::new(b.unwrap().x, Nm(0)), b.unwrap()]
+            route_of(o, Some(b), &[seg(true, 10), seg(false, 10)]),
+            vec![Pt2::ORIGIN, Pt2::new(b.x, Nm(0)), b]
         );
     }
 
