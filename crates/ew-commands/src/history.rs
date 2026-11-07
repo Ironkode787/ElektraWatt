@@ -350,11 +350,15 @@ impl History {
                         "`{}` is a non-undoable checkpoint; nothing before it can be undone",
                         e.tx.label
                     ),
+                    block: crate::error::HistoryBlock::Checkpoint {
+                        label: e.tx.label.clone(),
+                    },
                 });
             }
         }
         Err(CmdError::History {
             reason: "nothing to undo".into(),
+            block: crate::error::HistoryBlock::NothingToUndo,
         })
     }
 
@@ -364,6 +368,7 @@ impl History {
             .find(|i| self.entries[*i].is_step())
             .ok_or_else(|| CmdError::History {
                 reason: "nothing to redo".into(),
+                block: crate::error::HistoryBlock::NothingToRedo,
             })
     }
 

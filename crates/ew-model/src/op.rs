@@ -180,6 +180,7 @@ impl Model {
                     rule: v.rule,
                     message: v.message,
                     keys: v.keys,
+                    args: v.args,
                 })?;
         }
         Ok(m)

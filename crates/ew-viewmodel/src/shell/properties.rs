@@ -55,9 +55,9 @@ fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
             }
         }
         CmdError::Rejected { reason, text, .. } => super::tools::rejected_words(reason, text.as_ref()),
-        CmdError::Prevented { rule, finding, .. } => format!("{rule}: {finding}"),
         CmdError::NotFound { .. } => strings::text(key!("props-gone")).to_owned(),
-        other => other.to_string(),
+        // FT-1488: a prevent rule, a model or history error in the window's language.
+        other => super::tools::command_error_words(other),
     }
 }
 

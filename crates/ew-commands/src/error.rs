@@ -70,19 +70,48 @@ pub enum CmdError {
         finding: String,
         /// The records involved.
         keys: Vec<AnyKey>,
+        /// The finding's message arguments, by Fluent variable name, from which the window renders the rule's message
+        /// from the check catalogue in its language (FT-1488, ID-1457); empty for a rule the catalogue does not word.
+        args: Vec<(&'static str, String)>,
+        /// The finding by key, for a rule of the commands' own (EW-REL-004), which the window renders in its language;
+        /// `None` for a rule of the check catalogue.
+        text: Option<Box<Text>>,
     },
     /// The candidate snapshot was rejected by `Model::apply_with`: a structural invariant, a forbid link, the
-    /// delete-time rule EW-INV-021 (a library copy that a `LibRef` names), a prevent rule or a stale op.
-    Model(ModelError),
+    /// delete-time rule EW-INV-021 (a library copy that a `LibRef` names), a prevent rule or a stale op. Beside it the
+    /// error by key, its records in words, which the window renders in its language (FT-1488, ID-1457); `None` for an
+    /// error only a defect reaches (a revision that does not increase, a malformed op), which stays English.
+    Model(ModelError, Option<Box<Text>>),
     /// Undo or redo cannot apply: there is no step, a checkpoint blocks it, or the model changed under it.
     History {
-        /// What is wrong.
+        /// What is wrong, in English.
         reason: String,
+        /// Which of the four it is, which the window words in its language (FT-1488, ID-1457).
+        block: HistoryBlock,
     },
     /// A bug: normalisers did not converge within three passes, or an internal step failed.
     Internal {
         /// What went wrong.
         reason: String,
+    },
+}
+
+/// Why undo or redo cannot apply ([`CmdError::History`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum HistoryBlock {
+    /// A non-undoable checkpoint, the command `label`, stands before the step.
+    Checkpoint {
+        /// The checkpoint's command name.
+        label: String,
+    },
+    /// There is no step to undo.
+    NothingToUndo,
+    /// There is no step to redo.
+    NothingToRedo,
+    /// The model changed under the step of the command `label`.
+    Changed {
+        /// The step's command name.
+        label: String,
     },
 }
 
@@ -118,12 +147,23 @@ impl From<ModelError> for CmdError {
     fn from(e: ModelError) -> CmdError {
         match e {
             ModelError::NotFound { key } => CmdError::NotFound { key },
-            ModelError::Prevented { rule, message, keys } => CmdError::Prevented {
+            ModelError::Prevented {
+                rule,
+                message,
+                keys,
+                args,
+            } => CmdError::Prevented {
                 rule,
                 finding: message,
                 keys,
+                args,
+                text: None,
             },
-            other => CmdError::Model(other),
+            // FT-1488: without the model at hand, a record by its kind.
+            other => {
+                let text = model_error_text(&other, &|(kind, _)| crate::words::kind_words(kind));
+                CmdError::Model(other, text.map(Box::new))
+            }
         }
     }
 }
@@ -153,14 +193,88 @@ impl fmt::Display for CmdError {
                 write!(f, "{command} is a bulk command: run it with preview and commit")
             }
             CmdError::Prevented { rule, finding, .. } => write!(f, "{rule}: {finding}"),
-            CmdError::Model(e) => write!(f, "{e}"),
-            CmdError::History { reason } => write!(f, "history: {reason}"),
+            CmdError::Model(e, _) => write!(f, "{e}"),
+            CmdError::History { reason, .. } => write!(f, "history: {reason}"),
             CmdError::Internal { reason } => write!(f, "internal error: {reason}"),
         }
     }
 }
 
 impl std::error::Error for CmdError {}
+
+/// A model error by key, its records named by `name` (FT-1488, ID-1457): a record a forbid link still names, a stale
+/// step, a duplicate, an invariant by its code; `None` for an error only a defect reaches, and for a prevent rule or a
+/// missing record, which [`CmdError`] carries as their own errors.
+pub(crate) fn model_error_text(
+    e: &ModelError,
+    name: &dyn Fn(AnyKey) -> crate::text::TextArg,
+) -> Option<Text> {
+    Some(match e {
+        ModelError::Referenced { target, referrer, .. } => {
+            text!("refusal-model-referenced", name(*target), name(*referrer))
+        }
+        ModelError::StaleBefore { .. } => text!("refusal-model-stale"),
+        ModelError::DuplicateRecord { key } => text!("refusal-model-duplicate", name(*key)),
+        ModelError::DuplicateUnknownRecord { kind, .. } => text!("refusal-model-duplicate-unknown", kind),
+        ModelError::Invariant { id, keys, .. } => {
+            let statement = invariant_text(id)?;
+            match keys.first() {
+                Some(k) => text!("refusal-model-invariant", *id, statement, name(*k)),
+                None => text!("refusal-model-invariant-bare", *id, statement),
+            }
+        }
+        ModelError::RevNotIncreasing { .. }
+        | ModelError::Malformed { .. }
+        | ModelError::Prevented { .. }
+        | ModelError::NotFound { .. } => return None,
+    })
+}
+
+/// [`CmdError::from`] with the records of a model error named in words on `tx`'s model (FT-1488): a device by its tag,
+/// a page by its folio, as a command's refusal names them.
+pub(crate) fn worded(e: ModelError, tx: &crate::tx::TxBuilder<'_>) -> CmdError {
+    match CmdError::from(e) {
+        CmdError::Model(e, _) => {
+            let text = model_error_text(&e, &|k| crate::words::record(tx, k));
+            CmdError::Model(e, text.map(Box::new))
+        }
+        other => other,
+    }
+}
+
+/// The statement of the invariant `id` in words (FT-1488); `None` for an ID this build does not know.
+fn invariant_text(id: &str) -> Option<Text> {
+    use ew_model as i;
+    Some(match id {
+        i::REFS_RESOLVE => text!("refusal-inv-001"),
+        i::ONE_MAIN_FUNCTION => text!("refusal-inv-002"),
+        i::DEVICE_IFF_NOT_IP => text!("refusal-inv-003"),
+        i::ENDPOINTS_DIFFER => text!("refusal-inv-ci-01"),
+        i::REP_ONE_DEVICE => text!("refusal-inv-004"),
+        i::PIN_MAP_UNIQUE => text!("refusal-inv-005"),
+        i::JUNCTION_SEQUENCE => text!("refusal-inv-ci-04"),
+        i::CONDUCTOR_CABLE => text!("refusal-inv-006"),
+        i::TERMINAL_STRIP => text!("refusal-inv-007"),
+        i::STRUCTURE_ACYCLIC => text!("refusal-inv-008"),
+        i::DEVICE_ACYCLIC => text!("refusal-inv-009"),
+        i::EXCLUSIVE_ASPECTS => text!("refusal-inv-010"),
+        i::STRUCTURE_SAME_ASPECT => text!("refusal-inv-011"),
+        i::NO_STORED_REPORT_PAGE => text!("refusal-inv-012"),
+        i::IP_ONE_REPRESENTATION => text!("refusal-inv-013"),
+        i::REPORT_BLOCK_FOLIO => text!("refusal-inv-014"),
+        i::INHERITANCE_ACYCLIC => text!("refusal-inv-015"),
+        i::ONE_OPEN_REVISION => text!("refusal-inv-016"),
+        i::REVISION_LABEL_UNIQUE => text!("refusal-inv-017"),
+        i::REVISION_FOUR_EYES => text!("refusal-inv-018"),
+        i::REVISION_PAGE_NOTE_UNIQUE => text!("refusal-inv-019"),
+        i::REVISION_IMMUTABLE => text!("refusal-inv-020"),
+        i::LIB_REF_KEEP_ALIVE => text!("refusal-inv-021"),
+        i::ITEM_PAGE_EXISTS => text!("refusal-inv-022"),
+        i::MARKER_CONNECTIONS => text!("refusal-inv-023"),
+        i::FLUID_LINES => text!("refusal-inv-024"),
+        _ => return None,
+    })
+}
 
 /// A parameter that does not deserialise, by key (FT-1494, ID-1457): serde's sentence, what it got and the expected
 /// value in words where serde names a plain kind, any other part as serde writes it. Its English is serde's own text.
@@ -451,6 +565,50 @@ mod tests {
         for e in &errors {
             assert_eq!(asset_error_text(e).to_string(), e.to_string());
         }
+    }
+
+    /// FT-1488: a model error carries its text by key beside it, its records by their kind where no model is at hand;
+    /// its printed form is the model error's, as before; an error only a defect reaches has no text.
+    #[test]
+    fn a_model_error_carries_its_text_by_key() {
+        use ew_schema::{AnyId, Kind};
+        let id = AnyId::from_uuid(ew_ids::Uuid::nil());
+        let referenced = ModelError::Referenced {
+            link: "terminal.strip".into(),
+            target: (Kind::Device, id),
+            referrer: (Kind::Device, id),
+        };
+        let invariant = ModelError::Invariant {
+            id: ew_model::REVISION_LABEL_UNIQUE,
+            message: "m".into(),
+            keys: vec![(Kind::Revision, id)],
+        };
+        let malformed = ModelError::Malformed {
+            key: (Kind::Device, id),
+            reason: "r",
+        };
+        let texts: Vec<(String, Option<String>)> = [referenced, invariant, malformed]
+            .into_iter()
+            .map(|m| {
+                let printed = m.to_string();
+                match CmdError::from(m) {
+                    CmdError::Model(m, text) => {
+                        assert_eq!(m.to_string(), printed);
+                        (printed, text.map(|t| t.to_string()))
+                    }
+                    other => panic!("{other:?}"),
+                }
+            })
+            .collect();
+        let words: Vec<Option<&str>> = texts.iter().map(|(_, t)| t.as_deref()).collect();
+        assert_eq!(
+            words,
+            [
+                Some("a device cannot be removed: a device still names it"),
+                Some("EW-INV-017: revision labels are unique (a revision)"),
+                None,
+            ]
+        );
     }
 
     /// FT-1494: serde's errors keep their English byte for byte through their keys, a position included; a plain kind

@@ -1004,7 +1004,7 @@ fn a_named_fndef_copy_cannot_be_removed_by_an_edit() {
         .execute(&purge)
         .expect_err("the delete plan refuses a named copy");
     assert!(
-        matches!(&err, CmdError::Model(ew_model::ModelError::Referenced { .. })),
+        matches!(&err, CmdError::Model(ew_model::ModelError::Referenced { .. }, _)),
         "{err:?}"
     );
     assert_eq!(err.to_string(), message);

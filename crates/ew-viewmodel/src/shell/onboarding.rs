@@ -555,7 +555,8 @@ impl ShellModel {
                     .map_err(|e| {
                         strings::format(
                             key!("wizard-error-command"),
-                            &["project.checks.set", &e.to_string()],
+                            // FT-1488 (ID-1457): in the window's language.
+                            &["project.checks.set", &super::tools::command_error_words(&e)],
                         )
                     })
                     .and_then(|_| {

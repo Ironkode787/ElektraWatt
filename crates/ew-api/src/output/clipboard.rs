@@ -124,15 +124,30 @@ pub enum FragmentError {
         /// The version that is newer (`v2`, a format such as `0.2`, a record's `$v`).
         version: String,
     },
-    /// The text exceeds a limit.
-    TooLarge(String),
+    /// The text exceeds a limit, by key (FT-1488).
+    TooLarge(crate::Text),
     /// A line is not what the format allows.
     Invalid {
         /// The 1-based line.
         line: usize,
-        /// What is wrong.
-        message: String,
+        /// What is wrong, by key (FT-1488).
+        message: crate::Text,
     },
+}
+
+impl FragmentError {
+    /// The error by key, which the window renders in its language (FT-1488, ID-1457); its English is the error's
+    /// [`Display`](fmt::Display) text.
+    pub fn text(&self) -> crate::Text {
+        match self {
+            FragmentError::NotAFragment => api_text!("refusal-fragment-not"),
+            FragmentError::Newer { version } => api_text!("refusal-fragment-newer", version),
+            FragmentError::TooLarge(what) => api_text!("refusal-fragment-too-large", what.clone()),
+            FragmentError::Invalid { line, message } => {
+                api_text!("refusal-fragment-line", line.to_string(), message.clone())
+            }
+        }
+    }
 }
 
 impl fmt::Display for FragmentError {
@@ -193,8 +208,9 @@ fn pair(v: &Value) -> Option<(i64, i64)> {
 
 /// The refusal of a fragment of an older format, or a record of an older schema version, that the migration chain does
 /// not reach.
-const OLDER_FORMAT: &str =
-    "copied from an older ElektraWatt format; open and save that project with this version first";
+fn older_format() -> crate::Text {
+    api_text!("refusal-fragment-older")
+}
 
 /// Reads clipboard text as a fragment (§8.3). The text is untrusted: at most 4 MiB, 10,000 record lines, 1 MiB per
 /// line and a nesting of 64; every line strict JSON (repeated member names refused). Within v1 a header member this
@@ -225,15 +241,13 @@ pub fn parse_fragment_with(text: &str, chain: &Migrations) -> Result<ParsedFragm
         return Err(FragmentError::NotAFragment);
     }
     if text.len() > FRAGMENT_MAX_BYTES {
-        return Err(FragmentError::TooLarge(format!(
-            "{} bytes, at most {FRAGMENT_MAX_BYTES}",
-            text.len()
+        return Err(FragmentError::TooLarge(api_text!(
+            "refusal-fragment-bytes",
+            text.len().to_string(),
+            FRAGMENT_MAX_BYTES.to_string()
         )));
     }
-    let invalid = |line: usize, message: &str| FragmentError::Invalid {
-        line,
-        message: message.to_owned(),
-    };
+    let invalid = |line: usize, message: crate::Text| FragmentError::Invalid { line, message };
     let mut header: Option<Value> = None;
     let mut migration: Option<Migration<'_>> = None;
     let mut records: Vec<Value> = Vec::new();
@@ -246,23 +260,28 @@ pub fn parse_fragment_with(text: &str, chain: &Migrations) -> Result<ParsedFragm
             continue;
         }
         if line.len() > FRAGMENT_MAX_LINE {
-            return Err(FragmentError::TooLarge(format!(
-                "line {line_no} has {} bytes, at most {FRAGMENT_MAX_LINE}",
-                line.len()
+            return Err(FragmentError::TooLarge(api_text!(
+                "refusal-fragment-line-bytes",
+                line_no.to_string(),
+                line.len().to_string(),
+                FRAGMENT_MAX_LINE.to_string()
             )));
         }
         if depth(line) > FRAGMENT_MAX_DEPTH {
-            return Err(FragmentError::TooLarge(format!(
-                "line {line_no} nests deeper than {FRAGMENT_MAX_DEPTH}"
+            return Err(FragmentError::TooLarge(api_text!(
+                "refusal-fragment-line-depth",
+                line_no.to_string(),
+                FRAGMENT_MAX_DEPTH.to_string()
             )));
         }
-        let value = ew_schema::parse_value(line).map_err(|e| invalid(line_no, &e.to_string()))?;
+        let value =
+            ew_schema::parse_value(line).map_err(|e| invalid(line_no, crate::schema_error_text(&e)))?;
         let Some(obj) = value.as_object() else {
-            return Err(invalid(line_no, "a line of a fragment is a JSON object"));
+            return Err(invalid(line_no, api_text!("refusal-fragment-object")));
         };
         if header.is_none() {
             let Some(h) = obj.get("$fragment").filter(|_| obj.len() == 1) else {
-                return Err(invalid(line_no, "line 2 is the `$fragment` header"));
+                return Err(invalid(line_no, api_text!("refusal-fragment-header-line")));
             };
             let (h, way) = read_header(h, line_no, chain)?;
             header = Some(h);
@@ -274,25 +293,20 @@ pub fn parse_fragment_with(text: &str, chain: &Migrations) -> Result<ParsedFragm
             migration
                 .as_ref()
                 .map_or_else(|| Ok(value.clone()), |way| way.record(value.clone()))
-                .map_err(|_| invalid(line_no, OLDER_FORMAT))
+                .map_err(|_| invalid(line_no, older_format()))
         };
         if obj.len() == 1 && obj.contains_key("$lib") {
             let mut doc = migrate(&obj["$lib"])?;
             // A step that changed the copy's item is no edit: its hash follows the item, as the loader's does.
             rehash_migrated_copy(&obj["$lib"], &mut doc);
-            LibDocument::from_value(doc.clone()).map_err(|e| invalid(line_no, &e.to_string()))?;
+            LibDocument::from_value(doc.clone())
+                .map_err(|e| invalid(line_no, crate::schema_error_text(&e)))?;
             copies.push(doc);
         } else if obj.len() == 1 && obj.contains_key("$node") {
             nodes.push(read_node(&obj["$node"], line_no)?);
         } else if let Some(k) = obj.get("$k").and_then(Value::as_str) {
             let Some(kind) = Kind::from_name(k).filter(|k| PASTE_KINDS.contains(k)) else {
-                return Err(invalid(
-                    line_no,
-                    &format!(
-                        "a record of kind {k} is not pasted (only devices, functions, representations, connections, \
-                         junctions, potential definitions, page items and structure boxes)"
-                    ),
-                ));
+                return Err(invalid(line_no, api_text!("refusal-fragment-kind", k)));
             };
             let v = obj.get("$v").and_then(Value::as_u64).unwrap_or(1);
             let ours = u64::from(kind.schema_version());
@@ -302,26 +316,28 @@ pub fn parse_fragment_with(text: &str, chain: &Migrations) -> Result<ParsedFragm
                 });
             }
             let value = migrate(&value)?;
-            let record = Record::from_value(value.clone()).map_err(|e| invalid(line_no, &e.to_string()))?;
+            let record = Record::from_value(value.clone())
+                .map_err(|e| invalid(line_no, crate::schema_error_text(&e)))?;
             if let Some(id) = record.id()
                 && !ids.insert(id)
             {
-                return Err(invalid(line_no, "the record's ID is listed twice"));
+                return Err(invalid(line_no, api_text!("refusal-fragment-id-twice")));
             }
             records.push(value);
             if records.len() > PASTE_MAX_RECORDS {
-                return Err(FragmentError::TooLarge(format!(
-                    "more than {PASTE_MAX_RECORDS} records"
+                return Err(FragmentError::TooLarge(api_text!(
+                    "refusal-fragment-records",
+                    PASTE_MAX_RECORDS.to_string()
                 )));
             }
         } else if obj.keys().any(|k| k.starts_with('$')) {
-            return Err(invalid(line_no, "an unknown `$` line"));
+            return Err(invalid(line_no, api_text!("refusal-fragment-unknown-line")));
         } else {
-            return Err(invalid(line_no, "a line without `$k` is no record"));
+            return Err(invalid(line_no, api_text!("refusal-fragment-no-kind")));
         }
     }
     let Some(header) = header else {
-        return Err(invalid(2, "the `$fragment` header is missing"));
+        return Err(invalid(2, api_text!("refusal-fragment-no-header")));
     };
     let grid = pair(&header["grid"]).unwrap_or_default();
     let ghost = header["ghost"]
@@ -359,18 +375,19 @@ fn read_header<'c>(
     line: usize,
     chain: &'c Migrations,
 ) -> Result<(Value, Migration<'c>), FragmentError> {
-    let invalid = |message: String| FragmentError::Invalid { line, message };
+    let invalid = |message: crate::Text| FragmentError::Invalid { line, message };
     let Some(obj) = h.as_object() else {
-        return Err(invalid("the `$fragment` header is an object".into()));
+        return Err(invalid(api_text!("refusal-fragment-header-object")));
     };
     let member = |name: &str| {
         obj.get(name)
-            .ok_or_else(|| invalid(format!("the header has no `{name}`")))
+            .ok_or_else(|| invalid(api_text!("refusal-fragment-header-member", name)))
     };
     let format = member("format")?
         .as_str()
-        .ok_or_else(|| invalid("`format` is a text".into()))?;
-    let theirs = format_version(format).ok_or_else(|| invalid(format!("`format` {format} is no version")))?;
+        .ok_or_else(|| invalid(api_text!("refusal-fragment-format-text")))?;
+    let theirs = format_version(format)
+        .ok_or_else(|| invalid(api_text!("refusal-fragment-format-version", format)))?;
     let ours = format_version(ew_schema::FORMAT).expect("the format version reads");
     let from = match theirs.cmp(&ours) {
         Ordering::Greater => {
@@ -384,22 +401,22 @@ fn read_header<'c>(
     // An older format migrates through the chain (FT-403); what it does not reach is refused as before.
     let migration = chain
         .towards(from, ew_schema::FORMAT)
-        .map_err(|_| invalid(OLDER_FORMAT.into()))?;
+        .map_err(|_| invalid(older_format()))?;
     if member("project")?
         .as_str()
         .and_then(|s| s.parse::<Id<()>>().ok())
         .is_none()
     {
-        return Err(invalid("`project` is a UUID".into()));
+        return Err(invalid(api_text!("refusal-fragment-project")));
     }
     if pair(member("grid")?).is_none_or(|(n, d)| n < 1 || d < 1) {
-        return Err(invalid("`grid` is [num, den] of positive integers".into()));
+        return Err(invalid(api_text!("refusal-fragment-grid")));
     }
     if !member("page_kind")?.is_string() {
-        return Err(invalid("`page_kind` is a text".into()));
+        return Err(invalid(api_text!("refusal-fragment-page-kind")));
     }
     if pair(member("anchor")?).is_none() {
-        return Err(invalid("`anchor` is [x, y] in nm".into()));
+        return Err(invalid(api_text!("refusal-fragment-anchor")));
     }
     let rects_ok = member("ghost")?.as_array().is_some_and(|a| {
         a.iter().all(|r| {
@@ -408,23 +425,22 @@ fn read_header<'c>(
         })
     });
     if !rects_ok {
-        return Err(invalid("`ghost` is a list of [x0, y0, x1, y1]".into()));
+        return Err(invalid(api_text!("refusal-fragment-ghost")));
     }
     Ok((h.clone(), migration))
 }
 
 /// A `$node` line's value: `{"id", "aspect", "path", "aliases"}`.
 fn read_node(v: &Value, line: usize) -> Result<Value, FragmentError> {
-    let invalid = |message: &str| FragmentError::Invalid {
-        line,
-        message: message.to_owned(),
-    };
-    let obj = v.as_object().ok_or_else(|| invalid("`$node` is an object"))?;
+    let invalid = |message: crate::Text| FragmentError::Invalid { line, message };
+    let obj = v
+        .as_object()
+        .ok_or_else(|| invalid(api_text!("refusal-fragment-node-object")))?;
     if obj
         .keys()
         .any(|k| !matches!(k.as_str(), "id" | "aspect" | "path" | "aliases"))
     {
-        return Err(invalid("`$node` has the members id, aspect, path and aliases"));
+        return Err(invalid(api_text!("refusal-fragment-node-members")));
     }
     let texts = |v: Option<&Value>| {
         v.and_then(Value::as_array)
@@ -436,10 +452,10 @@ fn read_node(v: &Value, line: usize) -> Result<Value, FragmentError> {
         .is_some_and(|s| s.parse::<Id<()>>().is_ok());
     let path_ok = texts(obj.get("path")) && obj["path"].as_array().is_some_and(|a| !a.is_empty());
     if !id_ok || !obj.get("aspect").is_some_and(Value::is_string) || !path_ok {
-        return Err(invalid("`$node` needs an ID, an aspect and a path"));
+        return Err(invalid(api_text!("refusal-fragment-node-needs")));
     }
     if obj.get("aliases").is_some_and(|a| !texts(Some(a))) {
-        return Err(invalid("`aliases` is a list of texts"));
+        return Err(invalid(api_text!("refusal-fragment-node-aliases")));
     }
     Ok(v.clone())
 }

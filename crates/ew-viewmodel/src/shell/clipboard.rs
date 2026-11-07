@@ -430,7 +430,7 @@ impl ShellModel {
                             }
                         }
                     }
-                    Err(e) => return failed(key!("error-command"), &[&e.to_string()]),
+                    Err(e) => return failed(key!("error-command"), &[&crate::clipboard::fragment_words(&e)]),
                 };
                 match plan {
                     Ok(plan) => {
@@ -479,7 +479,7 @@ impl ShellModel {
         bump(&self.calls, |c| c.parse_fragment += 1);
         let f = match parsed {
             Ok(f) => f,
-            Err(e) => return failed(key!("error-command"), &[&e.to_string()]),
+            Err(e) => return failed(key!("error-command"), &[&crate::clipboard::fragment_words(&e)]),
         };
         let anchor = (
             f.params["anchor"][0].as_i64().unwrap_or(0),

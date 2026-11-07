@@ -1183,9 +1183,16 @@ pub(crate) fn run_commands(
         let text = Draft::cmdlog(label, &[(*cmd, params.clone())]);
         let log = CmdLog::parse(&text)
             .map_err(|e| strings::format(key!("wizard-error-command"), &[cmd, &e.to_string()]))?;
-        session
-            .run_script(&log, label)
-            .map_err(|e| strings::format(key!("wizard-error-command"), &[cmd, &e.to_string()]))?;
+        // FT-1488 (ID-1457): the command's error in the window's language.
+        session.run_script(&log, label).map_err(|e| {
+            let why = match &e {
+                ew_api::CmdLogError::Refused { error, .. } | ew_api::CmdLogError::Failed { error, .. } => {
+                    crate::shell::tools::command_error_words(error)
+                }
+                other => other.to_string(),
+            };
+            strings::format(key!("wizard-error-command"), &[cmd, &why])
+        })?;
     }
     Ok(())
 }

@@ -133,6 +133,19 @@ pub(crate) fn record(tx: &TxBuilder<'_>, key: ew_model::AnyKey) -> TextArg {
         Kind::Representation => symbol(tx, id.cast()).into(),
         Kind::Connection => wire(tx, id.cast()).into(),
         Kind::Junction => junction(tx, id.cast()).into(),
+        other => kind_words(other),
+    }
+}
+
+/// A record by its kind with its article only (`a device`… `an enclosure`), where no model is at hand (FT-1488).
+pub(crate) fn kind_words(kind: Kind) -> TextArg {
+    match kind {
+        Kind::Device => text!("refusal-words-kind-device").into(),
+        Kind::Function => text!("refusal-words-kind-function").into(),
+        Kind::Page => text!("refusal-words-kind-page").into(),
+        Kind::Representation => text!("refusal-words-symbol-any").into(),
+        Kind::Connection => text!("refusal-words-wire-any").into(),
+        Kind::Junction => text!("refusal-words-kind-junction").into(),
         Kind::Project => text!("refusal-words-kind-project").into(),
         Kind::PlcConfigProject => text!("refusal-words-kind-plc-config-project").into(),
         Kind::LogicalNet => text!("refusal-words-kind-logical-net").into(),

@@ -123,7 +123,12 @@ pub fn copy_refusal(e: ew_api::output::CopyError) -> Key<'static> {
 
 /// The banner text of a fragment that does not read (other than plain text, which is refused quietly).
 pub fn fragment_banner(e: &ew_api::output::FragmentError) -> String {
-    strings::format(key!("banner-paste-refused"), &[&e.to_string()])
+    strings::format(key!("banner-paste-refused"), &[&fragment_words(e)])
+}
+
+/// A fragment's error in the window's language (FT-1488, ID-1457).
+pub fn fragment_words(e: &ew_api::output::FragmentError) -> String {
+    crate::shell::tools::rejected_words(&e.to_string(), Some(&e.text()))
 }
 
 #[cfg(test)]

@@ -94,7 +94,8 @@ pub use engine::{
     Change, Engine, EngineOptions, NoPrevent, Preview, Receipt, Restored, World, affected_pages,
 };
 pub use error::{
-    CmdError, asset_error_text, ident_error_text, path_error_text, schema_error_text, serde_error_text,
+    CmdError, HistoryBlock, asset_error_text, ident_error_text, path_error_text, schema_error_text,
+    serde_error_text,
 };
 pub use history::{History, HistoryEntry, HistoryLimits};
 pub use jsonschema::{

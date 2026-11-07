@@ -335,6 +335,7 @@ impl PreventHook for RejectAll {
             rule: "EW-TEST-001".to_owned(),
             message: "no candidate passes".to_owned(),
             keys: vec![],
+            args: vec![],
         })
     }
 }

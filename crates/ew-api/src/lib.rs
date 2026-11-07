@@ -334,7 +334,7 @@ pub use ew_commands::{
 };
 /// A command's registered metadata, its cost and its exposure class (WP-S2.05 §4.2): the property grid's guard that
 /// builds only `Edit` commands and its edit policy read them through [`Session::command_meta`].
-pub use ew_commands::{CommandMeta, Cost, Exposure};
+pub use ew_commands::{CommandMeta, Cost, Exposure, HistoryBlock};
 /// A command's refusal by key (FT-1337): the window renders it in its language, the CLI prints its English.
 pub use ew_commands::{
     TEXTS, Text, TextArg, asset_error_text, ident_error_text, path_error_text, schema_error_text,
@@ -471,6 +471,8 @@ impl PreventHook for ShippedPrevent {
                 rule: f.rule.to_owned(),
                 message: f.message,
                 keys: f.targets.iter().map(|t| (t.kind, t.id)).collect(),
+                // FT-1488: the window renders the rule's message from them in its language.
+                args: f.args,
             }),
         }
     }

@@ -439,7 +439,8 @@ impl Engine {
                 &ApplyOptions {
                     prevent: (!internal && cmd.prevent()).then_some(&*self.prevent),
                 },
-            )?
+            )
+            .map_err(|e| crate::error::worded(e, &TxBuilder::new(base, &mut *self.ids)))?
         };
         for asset in &assets {
             candidate.put_asset(asset.clone());
@@ -731,6 +732,9 @@ impl Engine {
             .apply_history(ops, rev)
             .map_err(|e| CmdError::History {
                 reason: format!("the model changed under the step `{label}`: {e}"),
+                block: crate::error::HistoryBlock::Changed {
+                    label: label.to_owned(),
+                },
             })?;
         let change = Change {
             rev,
