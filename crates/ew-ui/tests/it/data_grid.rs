@@ -1097,3 +1097,30 @@ fn a_column_scrolled_into_view_lands_right_of_the_frozen_column() {
     }
     h.state_mut().shell_mut().shutdown();
 }
+
+/// ID-1497 (1), C53-fx#2: a one-character value and Enter in the next frame (as the visual driver sends `type` and
+/// `key enter`) commits it: the frame the editor opens in leaves Enter to the editor, not to the grid, which still
+/// holds the focus there.
+#[test]
+fn a_character_and_enter_in_the_next_frame_commit_the_value() {
+    let tmp = Tmp::new();
+    let mut h = strips(&tmp);
+    show_column(&mut h, "Function text");
+    let row = h
+        .state()
+        .shell()
+        .nav(NavKind::Strips)
+        .unwrap()
+        .cursor_key()
+        .expect("a cursor row");
+    let column = column_key(&h, "Function text");
+    h.event(egui::Event::Text("Q".to_owned()));
+    h.step();
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    let shell = h.state().shell();
+    let nav = shell.nav(NavKind::Strips).unwrap();
+    assert!(nav.table_mode().and_then(|m| m.edit()).is_none(), "the editor closed");
+    assert_eq!(shell.table_cell_text(NavKind::Strips, &row, &column), "Q");
+    h.state_mut().shell_mut().shutdown();
+}

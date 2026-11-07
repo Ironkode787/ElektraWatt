@@ -199,7 +199,8 @@ impl TableUi {
             .headers([HeaderRow::new(tokens.size_table_header)]);
         if let Some((r, c)) = scroll {
             t = t.scroll_to_row(r as u64, None).scroll_to_column(c, None);
-            self.settling = Some((Rect::NOTHING, SETTLE_FRAMES));
+            // The key column itself is never cut.
+            self.settling = (c > 0).then_some((Rect::NOTHING, SETTLE_FRAMES));
         } else if let (Some(align), Some(c)) = (self.realign.take(), cursor_col) {
             t = t.scroll_to_columns(c..=c, Some(align));
             self.settling = Some((Rect::NOTHING, SETTLE_FRAMES));
@@ -674,7 +675,10 @@ pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>
         return;
     };
     // WP-S2.07 §6.5: the chooser list has the keys while it is open (`TableUi::chooser_list`).
-    if mode.chooser().is_some() {
+    // ID-1497 (1, C53-fx#2): so has the cell editor once an edit is open, also in the frame it opens in, while the
+    // grid still holds the focus: the characters typed after the first ("Reserve" lost its "e" when this replaced the
+    // buffer with it) and Enter, the arrows, Home, End and Ctrl+A (a "Q" and Enter in the next frame lost the Enter).
+    if mode.chooser().is_some() || mode.edit().is_some() {
         return;
     }
     let shown = mode.shown_columns(table);
@@ -743,10 +747,8 @@ pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>
             "navigator.select",
             json!({"kind": kind, "keys": keys}),
         ));
-    } else if mode.edit().is_none() {
-        // A printable character other than Space, without Ctrl or Alt, starts editing the cursor cell with it. ID-1497
-        // (1): once the edit is open the cell editor takes the next characters, also in the frame before it has the
-        // focus ("Reserve" lost its "e" when this replaced the buffer with it).
+    } else {
+        // A printable character other than Space, without Ctrl or Alt, starts editing the cursor cell with it.
         let typed = ui.ctx().input_mut(|i| {
             let mut typed = String::new();
             if !(i.modifiers.ctrl || i.modifiers.command || i.modifiers.alt) {
@@ -965,10 +967,18 @@ impl Delegate<'_> {
     fn editor(&mut self, ui: &mut Ui, name: &str) {
         let t = self.tokens.clone();
         let word = self.kind.word();
+        // ID-1497 (1): the editor takes the focus before it reads this frame's input, so a key pressed in the frame it
+        // first shows reaches it: when it opens, and while the grid still holds the keys (an editor that opened on a
+        // row scrolled out of view takes them once it shows).
+        let took = self.fresh || self.focused;
+        if took {
+            ui.memory_mut(|m| m.request_focus(self.edit_id));
+        }
         let focused = ui.memory(|m| m.has_focus(self.edit_id));
         // Ctrl+Enter commits every marked row (egui's single-line field ends on a plain Enter only).
         let all = focused && ui.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::Enter));
         let escape = ui.input(|i| i.key_pressed(Key::Escape));
+        let enter = ui.input(|i| i.key_pressed(Key::Enter));
         let frame = ui.max_rect().shrink(t.space_1);
         let painter = ui.painter();
         let r = theme::radius(t.radius_sm);
@@ -980,12 +990,6 @@ impl Delegate<'_> {
         // The field is exactly `field` high, so that its centred text sits on the cell text's baseline: egui would
         // grow it to `interact_size.y` (the row's height) downwards and the text would drop by the difference.
         ui.spacing_mut().interact_size.y = field.height();
-        // ID-1497 (1): the editor takes the focus before it reads this frame's input, so a character typed in the frame
-        // it first shows reaches it: when it opens, and while the grid still holds the keys (an editor that opened on a
-        // row scrolled out of view takes them once it shows).
-        if self.fresh || self.focused {
-            ui.memory_mut(|m| m.request_focus(self.edit_id));
-        }
         let response = ui.put(
             field,
             TextEdit::singleline(self.buffer)
@@ -999,9 +1003,6 @@ impl Delegate<'_> {
         );
         let name = name.to_owned();
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
-        if self.fresh {
-            response.request_focus();
-        }
         if response.changed() {
             self.events.push(Event::Action(
                 "table.input",
@@ -1017,7 +1018,9 @@ impl Delegate<'_> {
             response.surrender_focus();
             self.events
                 .push(Event::Action("table.commit", json!({"kind": word, "all": true})));
-        } else if response.lost_focus() {
+        } else if response.lost_focus() || (took && (enter || escape) && !response.has_focus()) {
+            // C53-fx#2: an Enter or Escape in the frame the editor took the focus in ends it too (egui counts no lost
+            // focus for a field that had none at the frame's start).
             if escape {
                 self.events.push(Event::Action("ui.dismiss", Value::Null));
             } else {
