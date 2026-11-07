@@ -374,7 +374,7 @@ fn the_open_path_oracle_accepts_a_violation_of_a_dropped_copys_referrer() {
     );
     let named = BTreeSet::from([fndef]);
     let judged = [
-        open_path::dropped_copy_violations(&[dangling.clone()], &named),
+        open_path::dropped_copy_violations(std::slice::from_ref(&dangling), &named),
         open_path::dropped_copy_violations(&[dangling.clone(), follows.clone()], &named),
         open_path::dropped_copy_violations(&[dangling.clone(), follows.clone(), unrelated], &named),
         open_path::dropped_copy_violations(&[dangling, follows], &BTreeSet::new()),
