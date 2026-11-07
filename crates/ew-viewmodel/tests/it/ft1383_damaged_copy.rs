@@ -344,6 +344,59 @@ fn every_damaged_copy_a_save_as_leaves_out_is_named() {
     assert!(strings::set_locale("en"));
 }
 
+/// ID-1484 (FT-1383): a damaged definition copy whose functions end fluid lines (Golden A's pneumatic cylinders on
+/// folio 203, EW-INV-024 beside the EW-INV-001 that names the copy) opens read-only with FT-1383's banner, where the
+/// open was refused before; Save As is refused in its words as for any copy a record names (ID-1418), nothing being
+/// written. Both languages.
+#[test]
+fn id1484_a_damaged_definition_copy_with_fluid_lines_opens_read_only() {
+    let tmp = Tmp::new("id1484-fluid");
+    let dir = golden_with_damaged(&tmp, "fndefs/7b85e9bb-116f-5c3c-a7b6-d5260aa1c219.json");
+    let before = tree(&dir);
+    let target = tmp.0.join("save-as");
+    for (locale, banner, save_as) in [
+        (
+            "en",
+            "This project is open read-only: the device -203Q5 uses the library copy of its part, which is \
+             damaged. Update the copy from its library first. 1 integrity finding was found when the project was \
+             opened.",
+            "Save as is refused: the device -203Q5 uses the library copy of its part, which is damaged, and a copy \
+             of the project without it would not open. Update the copy from its library first.",
+        ),
+        (
+            "nl",
+            "Dit project is alleen-lezen geopend: het apparaat -203Q5 gebruikt de bibliotheekkopie van zijn \
+             artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek. Bij het openen van het \
+             project is 1 integriteitsbevinding gevonden.",
+            "Opslaan als is geweigerd: het apparaat -203Q5 gebruikt de bibliotheekkopie van zijn artikel, die \
+             beschadigd is, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst \
+             bij vanuit de bibliotheek.",
+        ),
+    ] {
+        let mut s = ShellModel::new(
+            Mode::Headless,
+            ShellConfig::in_dir(&tmp.0.join(format!("config-{locale}")), "0.0.0-test"),
+        );
+        assert!(strings::set_locale(locale));
+        done(
+            &mut s,
+            "file.open",
+            json!({"dir": dir.to_string_lossy(), "read_only": false}),
+        );
+        assert!(s.read_only_reason().is_some(), "the project opens read-only");
+        assert_eq!(s.banner(), Some(banner));
+        let message = match s.dispatch("file.save_as", &json!({"dir": target.to_string_lossy()})) {
+            Outcome::Failed { message } => message,
+            other => panic!("{other:?}"),
+        };
+        assert_eq!(message, save_as);
+        assert!(!target.exists(), "nothing is written");
+        done(&mut s, "file.close", json!({}));
+    }
+    assert!(strings::set_locale("en"));
+    assert!(tree(&dir) == before, "nothing is written inside the project");
+}
+
 /// FT-1525 (ID-1458): a damaged copy of a part an installed library holds (the compiled-in starter parts, assigned to
 /// F55 and saved) is named in the banner and the Save As refusal by its part number and its library, whole in both
 /// languages.

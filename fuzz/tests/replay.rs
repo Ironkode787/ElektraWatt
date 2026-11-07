@@ -385,9 +385,8 @@ fn the_open_path_oracle_accepts_a_violation_of_a_dropped_copys_referrer() {
 /// C53-p3#1 (ID-1481, `regressions/migration_chain/missing-fluid-fndef-copy`, 5 bytes): the golden project with the
 /// definition copy of the pneumatic cylinders deleted (its manifest listing kept), opened for editing. Folio 203 is a
 /// fluid page, so its fluid lines at those cylinders fail EW-INV-024 beside the EW-INV-001 that names the copy. The
-/// load's own check tolerates only the EW-INV-001 of a dropped copy (`Model::from_records_missing`), so today the open
-/// is refused (`OpenError::Model`), not read-only as FT-1383 wants: a finding of its own (the hand-back's proposed FT
-/// row). Once the load tolerates it, the outcome is `ReadOnly` and the oracle above accepts the model.
+/// load tolerates both (`Model::from_records_missing`, ID-1484), so the project opens read-only as FT-1383 wants, and
+/// the oracle above accepts the model; before ID-1484 the open was refused (`OpenError::Model`).
 #[test]
 fn the_migration_chain_missing_fluid_definition_copy_does_not_abort() {
     let bytes = inputs_named(&inputs("regressions/migration_chain"), "missing-fluid-fndef-copy");
@@ -397,7 +396,7 @@ fn the_migration_chain_missing_fluid_definition_copy_does_not_abort() {
         paths[0x5b % paths.len()],
         "lib/fndefs/7b85e9bb-116f-5c3c-a7b6-d5260aa1c219.json"
     );
-    assert_eq!(open_path::check(&bytes), Outcome::Refused);
+    assert_eq!(open_path::check(&bytes), Outcome::ReadOnly);
 }
 
 /// The importer seeds (WP-S3.09 D15, IC-17) pass and reach their properties: every QET project imports and commits;

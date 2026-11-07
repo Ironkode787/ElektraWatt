@@ -35,7 +35,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, UNIX_EPOCH};
 
-use ew_format::ew_schema::AnyId;
+use ew_format::ew_schema::{AnyId, Kind};
 use ew_format::{FileHash, FilePath, FindingKind, Limits, Manifest, PathClass, classify, sha256};
 use ew_model::{Model, ModelError};
 use ew_store::mem::{DirSync, MemVfs};
@@ -465,28 +465,19 @@ pub enum Outcome {
 /// Whether `violations`, every violation of an opened model's integrity check, are what a dropped library copy
 /// explains (FT-1383, FT-1540; ID-1481): an EW-INV-001 that names a copy `named` (the copies a loader finding names),
 /// or a violation whose records include one that refers to such a copy (EW-INV-024 on a fluid line ending at a
-/// function whose definition copy was dropped). A violation unrelated to a dropped copy is not.
+/// function whose definition copy was dropped). A violation unrelated to a dropped copy is not. The rule is the load's
+/// own, [`ew_model::unexplained_by_dropped_copies`] (ID-1484), for every library kind of each ID.
 pub fn dropped_copy_violations(violations: &[ModelError], named: &BTreeSet<AnyId>) -> bool {
-    let names_dropped = |v: &ModelError| {
-        matches!(
-            v,
-            ModelError::Invariant { id: "EW-INV-001", keys, .. }
-                if keys.iter().any(|(kind, id)| kind.is_library() && named.contains(id))
-        )
-    };
-    // EW-INV-001 lists the referrer first, then the missing copy.
-    let referrers: BTreeSet<ew_model::AnyKey> = violations
+    let dropped: BTreeSet<ew_model::AnyKey> = named
         .iter()
-        .filter(|v| names_dropped(v))
-        .filter_map(|v| match v {
-            ModelError::Invariant { keys, .. } => keys.first().copied(),
-            _ => None,
+        .flat_map(|id| {
+            Kind::ALL
+                .into_iter()
+                .filter(|k| k.is_library())
+                .map(move |k| (k, *id))
         })
         .collect();
-    violations.iter().all(|v| {
-        names_dropped(v)
-            || matches!(v, ModelError::Invariant { keys, .. } if keys.iter().any(|k| referrers.contains(k)))
-    })
+    ew_model::unexplained_by_dropped_copies(violations, &dropped).is_none()
 }
 
 /// Runs the properties over one input; panics (with the failure) when one does not hold.

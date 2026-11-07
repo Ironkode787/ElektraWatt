@@ -268,8 +268,6 @@ pub(crate) struct Scope {
     pub(crate) before: BTreeMap<AnyKey, Option<AnyRow>>,
     /// The batch is an edit ([`Model::apply_with`]): the rules that judge what an edit adds (EW-INV-023) run.
     pub(crate) edit: bool,
-    /// The library copies a load could not read (FT-1383): a reference to one is no EW-INV-001 at that load.
-    pub(crate) missing: BTreeSet<AnyKey>,
 }
 
 impl Scope {
@@ -287,7 +285,6 @@ impl Scope {
             keys,
             before: BTreeMap::new(),
             edit: false,
-            missing: BTreeSet::new(),
         }
     }
 
@@ -325,6 +322,37 @@ pub(crate) fn check_all(m: &Model, scope: &Scope) -> Vec<ModelError> {
     let kept = rules(m, scope, &mut out);
     debug_assert!(kept.is_ok(), "a rule keeping every violation returns none");
     out.0.unwrap_or_default()
+}
+
+/// The first of `violations`, every violation of a model's integrity check, that a dropped library copy does not
+/// explain (FT-1383; ID-1481, ID-1484), `None` when it explains them all: an EW-INV-001 whose keys include a copy in
+/// `dropped` (the library copies a load could not read), or a violation whose keys include a record that refers to
+/// such a copy, the first key of that EW-INV-001 (EW-INV-024 on a fluid line ending at a function whose definition
+/// copy was dropped). The load ([`Model::from_records_missing`]) and the open-path fuzz oracle judge by it; no rule
+/// changes its meaning.
+pub fn unexplained_by_dropped_copies<'a>(
+    violations: &'a [ModelError],
+    dropped: &BTreeSet<AnyKey>,
+) -> Option<&'a ModelError> {
+    let names_dropped = |v: &ModelError| {
+        matches!(
+            v,
+            ModelError::Invariant { id: REFS_RESOLVE, keys, .. } if keys.iter().any(|k| dropped.contains(k))
+        )
+    };
+    // EW-INV-001 lists the referrer first, then the missing copy.
+    let referrers: BTreeSet<AnyKey> = violations
+        .iter()
+        .filter(|v| names_dropped(v))
+        .filter_map(|v| match v {
+            ModelError::Invariant { keys, .. } => keys.first().copied(),
+            _ => None,
+        })
+        .collect();
+    violations.iter().find(|v| {
+        !(names_dropped(v)
+            || matches!(v, ModelError::Invariant { keys, .. } if keys.iter().any(|k| referrers.contains(k))))
+    })
 }
 
 /// Where a rule puts a violation (FT-1540): with `None` the first ends the check, else every one is kept.
@@ -393,11 +421,7 @@ fn refs_resolve(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), Mo
                                 .iter()
                                 .any(|k| get_row(m, &(*k, t.id())).is_some())
                         };
-                        if !present
-                            && !link.lib_ref
-                            && !link.load_tolerant
-                            && !scope.missing.contains(&target)
-                        {
+                        if !present && !link.lib_ref && !link.load_tolerant {
                             out.report(violation(
                                 REFS_RESOLVE,
                                 format!(

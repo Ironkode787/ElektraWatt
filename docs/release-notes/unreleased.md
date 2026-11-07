@@ -232,3 +232,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   instead of its schema kind; FT-1515)
 - text-change: commands import.apply and external.apply refusals ("an item of an unknown kind (<kind>)", "a
   normaliser removed an item the import brought: <item>", instead of "a record"; FT-1526)
+- behaviour-change: window and cli opening a project (a damaged library copy whose referrers also break another rule,
+  such as a function definition's copy dropped while fluid lines end at its functions, opens the project read-only
+  with the damaged copy's banner instead of refusing it; any other violation still refuses the open; ID-1484)

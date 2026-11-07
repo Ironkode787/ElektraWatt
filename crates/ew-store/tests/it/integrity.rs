@@ -487,3 +487,57 @@ fn a_damaged_copy_a_device_names_opens_read_only_with_its_finding() {
     assert_eq!(opened.report.access, Access::ReadOnly(ReadOnlyReason::Integrity));
     opened.store.close();
 }
+
+/// ID-1484 (FT-1383): the damaged definition copy of Golden A's pneumatic cylinders, whose functions end the fluid
+/// lines of folio 203, opens read-only: beside the EW-INV-001 that names the copy, the load tolerates the EW-INV-024 of
+/// those lines, whose records include a function that names the copy. The same damage beside a violation unrelated to
+/// it, a page whose location is not in the project, is still refused by that violation.
+#[test]
+fn a_damaged_definition_copy_whose_functions_end_fluid_lines_opens_read_only() {
+    use ew_model::{FLUID_LINES, ModelError, REFS_RESOLVE};
+    use ew_store::ew_format::ew_schema::{AnyId, Kind};
+    let damaged = "lib/fndefs/7b85e9bb-116f-5c3c-a7b6-d5260aa1c219.json";
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    vfs.put(&join(&root, damaged), b"{\"$k\": \"fndef\",\n");
+    let Opened { model, report, store } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    assert_eq!(report.access, Access::ReadOnly(ReadOnlyReason::Integrity));
+    let rules: BTreeSet<&str> = model
+        .integrity_violations()
+        .iter()
+        .map(|v| match v {
+            ModelError::Invariant { id, .. } => *id,
+            other => panic!("{other:?}"),
+        })
+        .collect();
+    assert_eq!(rules, BTreeSet::from([REFS_RESOLVE, FLUID_LINES]));
+    store.close();
+
+    let page = "pages/1d6aab0f-e47b-5da2-9d75-d3eb428e8c48.jsonl";
+    let (location, elsewhere) = (
+        "101a2f5d-a009-511b-a9a9-8068d1624101",
+        "00000000-0000-4000-8000-000000000001",
+    );
+    let text = String::from_utf8(fixture()[page].clone()).unwrap();
+    assert!(text.contains(location), "{page}");
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    vfs.put(&join(&root, damaged), b"{\"$k\": \"fndef\",\n");
+    vfs.put(&join(&root, page), text.replacen(location, elsewhere, 1).as_bytes());
+    let id = |s: &str| s.parse::<AnyId>().expect("a UUID");
+    match Store::open(&root, options(&vfs, 1)) {
+        Err(ew_store::OpenError::Model {
+            error: ModelError::Invariant { id: rule, keys, .. },
+            ..
+        }) => {
+            assert_eq!(rule, REFS_RESOLVE);
+            assert_eq!(
+                keys,
+                [
+                    (Kind::Page, id("1d6aab0f-e47b-5da2-9d75-d3eb428e8c48")),
+                    (Kind::StructureNode, id(elsewhere)),
+                ]
+            );
+        }
+        Err(other) => panic!("{other:?}"),
+        Ok(_) => panic!("a project with an unrelated violation opens"),
+    }
+}
