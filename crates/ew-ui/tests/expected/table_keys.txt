@@ -37,7 +37,6 @@ editor: type x
   table.input {"kind":"strips","text":"Qx"}
 editor: Escape
   ui.dismiss null
-  table.commit {"kind":"strips"}
 type Z
   table.input {"kind":"strips","text":"Z"}
 editor: Enter
@@ -64,7 +63,6 @@ double click
   table.edit {"column":"label","kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:46e82110-0737-5547-b146-aac63d618b30"}
 editor: Escape
   ui.dismiss null
-  table.commit {"kind":"strips"}
 header click
   navigator.sort {"by":"terminal","descending":true,"kind":"strips"}
 header click again

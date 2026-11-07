@@ -934,9 +934,10 @@ impl Delegate<'_> {
         // The field is exactly `field` high, so that its centred text sits on the cell text's baseline: egui would
         // grow it to `interact_size.y` (the row's height) downwards and the text would drop by the difference.
         ui.spacing_mut().interact_size.y = field.height();
-        // ID-1497 (1): a fresh editor takes the focus before it reads this frame's input, so a character typed in the
-        // frame it first shows reaches it.
-        if self.fresh {
+        // ID-1497 (1): the editor takes the focus before it reads this frame's input, so a character typed in the frame
+        // it first shows reaches it: when it opens, and while the grid still holds the keys (an editor that opened on a
+        // row scrolled out of view takes them once it shows).
+        if self.fresh || self.focused {
             ui.memory_mut(|m| m.request_focus(self.edit_id));
         }
         let response = ui.put(
