@@ -56,6 +56,8 @@ macro_rules! closed_choices {
 closed_choices! {
     /// New page's page types.
     PAGE_TYPES = super::creation::PAGE_TYPES;
+    /// New page's connection grids (ID-1477).
+    PAGE_GRIDS = super::creation::PAGE_GRIDS;
     /// New structure node's aspects.
     STRUCTURE_KINDS = super::creation::STRUCTURE_KINDS;
     /// A yes-or-no field (drawn as a check box).

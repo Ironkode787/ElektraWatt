@@ -18,9 +18,9 @@ Cargo.toml and docs/release-notes/<X.Y.Z>.md exists with text beyond its licence
 (`gh run list --commit <sha> --workflow <file> --json conclusion`) for the runs of ci.yml and deep-nightly.yml on the
 commit and refuses unless each has one concluded `success` (perf.yml is report-only and not asked). `clean` refuses
 when `git status --porcelain` lists anything. `sums` writes `SHA256SUMS` in sha256sum's format (`<hex>  <name>`, sorted
-by name) over the release files of 0.1.0 in <dir>: the CLI archives of x86_64 Windows and Linux and every artefact's
-SBOM (`<artefact>.cdx.json`: the two archives', the setup's and the AppImage's); it refuses any other file and a
-missing one.
+by name) over the release files of 0.1.0 in <dir>: the CLI archives of x86_64 Windows and Linux, the Windows setup and
+the AppImage (ID-476's hold lifted, ID-1331 (2), WP-S6.08 D26), and every artefact's SBOM (`<artefact>.cdx.json`); it
+refuses any other file and a missing one.
 
 `draft` creates the draft prerelease <tag> with the release notes of its version and every file of <dir>
 (`gh release create --draft --prerelease --verify-tag`, so no tag is created), downloads its files back and verifies
@@ -53,9 +53,9 @@ CANDIDATE = re.compile(r"v(\d+\.\d+\.\d+)-rc\.\d+")
 WORKFLOWS = ("ci.yml", "deep-nightly.yml")
 SUMS = "SHA256SUMS"
 SIGNER = ".github/workflows/release.yml"
-# ID-1313: the release files under ID-476's hold; the installers join when it lifts, the aarch64 archives never at 0.1.0.
-ARCHIVES = ("ew-{v}-x86_64-pc-windows-msvc.zip", "ew-{v}-x86_64-unknown-linux-gnu.tar.gz")
-SBOMS = ("ElektraWatt-{v}-x64-user-setup.exe.cdx.json", "ElektraWatt-{v}-x86_64.AppImage.cdx.json")
+# ID-1313, ID-1331 (2): the CLI archives and the installers, each with its SBOM; the aarch64 archives never at 0.1.0.
+ARCHIVES = ("ew-{v}-x86_64-pc-windows-msvc.zip", "ew-{v}-x86_64-unknown-linux-gnu.tar.gz",
+            "ElektraWatt-{v}-x64-user-setup.exe", "ElektraWatt-{v}-x86_64.AppImage")
 
 
 class Refusal(Exception):
@@ -117,7 +117,7 @@ def release_files(directory, version):
     """The release files of `directory`, sorted by name: refuses any file that is no release file of ID-1313."""
     names = sorted(n for n in os.listdir(directory) if n != SUMS)
     archives = [a.format(v=version) for a in ARCHIVES]
-    allowed = set(archives) | {f"{a}.cdx.json" for a in archives} | {s.format(v=version) for s in SBOMS}
+    allowed = set(archives) | {f"{a}.cdx.json" for a in archives}
     for name in names:
         if name not in allowed:
             raise Refusal(f"{name} in {directory} is no release file of {version}")
@@ -125,9 +125,6 @@ def release_files(directory, version):
         for name in (archive, f"{archive}.cdx.json"):
             if name not in names:
                 raise Refusal(f"{name} is missing from {directory}")
-    for sbom in SBOMS:
-        if sbom.format(v=version) not in names:
-            raise Refusal(f"{sbom.format(v=version)} is missing from {directory}")
     return names
 
 
@@ -363,7 +360,8 @@ class ReleaseVerifyTest(unittest.TestCase):
 
     FILES = ["ew-0.1.0-x86_64-unknown-linux-gnu.tar.gz", "ew-0.1.0-x86_64-unknown-linux-gnu.tar.gz.cdx.json",
              "ew-0.1.0-x86_64-pc-windows-msvc.zip", "ew-0.1.0-x86_64-pc-windows-msvc.zip.cdx.json",
-             "ElektraWatt-0.1.0-x64-user-setup.exe.cdx.json", "ElektraWatt-0.1.0-x86_64.AppImage.cdx.json"]
+             "ElektraWatt-0.1.0-x64-user-setup.exe", "ElektraWatt-0.1.0-x64-user-setup.exe.cdx.json",
+             "ElektraWatt-0.1.0-x86_64.AppImage", "ElektraWatt-0.1.0-x86_64.AppImage.cdx.json"]
 
     def test_sums_list_every_release_file_sorted_in_sha256sums_format(self):
         directory = self.release_dir(self.FILES)
@@ -384,11 +382,22 @@ class ReleaseVerifyTest(unittest.TestCase):
                          f"ew-0.1.0-x86_64-pc-windows-msvc.zip.cdx.json is missing from {directory}")
 
     def test_sums_require_the_sbom_of_every_artefact(self):
-        # C50-p2#4, ID-1313: the setup's and the AppImage's SBOMs are release files as the archives' are.
-        for sbom in ("ElektraWatt-0.1.0-x64-user-setup.exe.cdx.json", "ElektraWatt-0.1.0-x86_64.AppImage.cdx.json"):
-            directory = self.release_dir([f for f in self.FILES if f != sbom])
-            self.assertEqual(self.refused(write_sums, directory, "0.1.0"), f"{sbom} is missing from {directory}")
+        # C50-p2#4, ID-1313: the setup's and the AppImage's SBOMs are release files as the archives' are; WP-S6.08 D26
+        # (ID-1331 (2)): so are the setup and the AppImage themselves.
+        for name in ("ElektraWatt-0.1.0-x64-user-setup.exe.cdx.json", "ElektraWatt-0.1.0-x86_64.AppImage.cdx.json",
+                     "ElektraWatt-0.1.0-x64-user-setup.exe", "ElektraWatt-0.1.0-x86_64.AppImage"):
+            directory = self.release_dir([f for f in self.FILES if f != name])
+            self.assertEqual(self.refused(write_sums, directory, "0.1.0"), f"{name} is missing from {directory}")
             shutil.rmtree(directory)
+
+    def test_the_verify_job_requires_nothing_of_main(self):
+        # WP-S6.08 D25 (ID-1412): a candidate is tagged on its release branch `release/<X.Y>`, so the `verify` job
+        # names no branch: neither `main` nor a branch ref or filter.
+        with open(os.path.join(REPO, ".github", "workflows", "release.yml"), encoding="utf-8") as f:
+            text = f.read()
+        start = text.index("\n  verify:\n")
+        job = text[start:text.index("\n  package:\n", start)]
+        self.assertIsNone(re.search(r"\bmain\b|refs/heads|branches", job), job)
 
     def test_verification_needs_exactly_the_listed_files_and_their_provenance(self):
         directory = self.release_dir(self.FILES)
@@ -444,7 +453,7 @@ class ReleaseVerifyTest(unittest.TestCase):
         self.assertEqual(printed.getvalue(), "".join(
             [f"release-verify: the build provenance of {n} verifies\n" for n in names]
             + ["release-verify: dry run: would create the tag v0.1.0 on c0ffee and publish the release v0.1.0 "
-               "(latest) with the notes of v0.1.0-rc.2 and its 7 files:\n"]
+               "(latest) with the notes of v0.1.0-rc.2 and its 9 files:\n"]
             + [f"  {n}\n" for n in names]
             + ["release-verify: dry run: nothing was changed\n"]))
 

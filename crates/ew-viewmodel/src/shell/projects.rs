@@ -242,7 +242,9 @@ impl ShellModel {
     ) -> Outcome {
         match session.create(dir, self.store_options()) {
             Ok(()) => {
+                let unstable = session.store().is_some_and(|s| s.writes_unstable());
                 self.install_new(session, dir, banner);
+                self.warn_unreleased(unstable);
                 Outcome::Done
             }
             Err(e) => {

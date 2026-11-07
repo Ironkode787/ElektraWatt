@@ -468,8 +468,9 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     );
     assert_eq!(shell.revision(), rev, "nothing committed");
     done(&mut shell, "ui.dismiss", json!({}));
-    // Page 101 renumbered to 250, outside section 1's range: EW-CORE-021 (conflict), never pending, while the commit
-    // makes the page the editing page again (so MSGTEST's finding is pending once more).
+    // Page 101 renumbered to 150, then section 1's folios narrowed to 100 to 149 (`page.renumber` keeps a folio inside
+    // its section, FT-1511): EW-CORE-021 (conflict), never pending, while the commits make the page the editing page
+    // again (so MSGTEST's finding is pending once more).
     let page = shell
         .page_rows()
         .iter()
@@ -479,9 +480,15 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     done(
         &mut shell,
         "command.run",
-        json!({"cmd": "page.renumber", "params": {"scope": {"pages": [page]}, "start": 250}}),
+        json!({"cmd": "page.renumber", "params": {"scope": {"pages": [page]}, "start": 150}}),
     );
-    let conflict = finding(&shell, "EW-CORE-021", "folio 250");
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "section", "targets": ["4fedea58-1889-5ba9-aeb8-8ab28ffe9e89"],
+            "path": "folio_range", "value": [100, 149]}}),
+    );
+    let conflict = finding(&shell, "EW-CORE-021", "folio 150");
     assert!(
         conflict
             .facets
@@ -494,9 +501,9 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     // Pending: MSGTEST's finding and the open completeness findings Golden A already has on the page.
     assert_eq!(
         shell.messages_counts().unwrap().pending,
-        completeness_on(&shell, "250")
+        completeness_on(&shell, "150")
     );
-    assert!(completeness_on(&shell, "250") >= 1);
+    assert!(completeness_on(&shell, "150") >= 1);
     shell.shutdown();
 }
 

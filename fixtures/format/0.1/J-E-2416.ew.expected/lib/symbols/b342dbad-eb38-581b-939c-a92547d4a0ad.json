@@ -1,0 +1,43 @@
+{
+  "$k": "symbol",
+  "id": "b342dbad-eb38-581b-939c-a92547d4a0ad",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "b350ea01-a28e-5f06-9125-89befdd60ae9",
+  "version": "0.1.0",
+  "sha256": "sha256:ad8d9e16811632f531a9834f63a5ccd72e8cfd62a4a9f0d3dceb8a094603fd25",
+  "meta": {
+    "key": "ew.bus.dp-connector@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": ["ew.original"],
+    "status": "draft"
+  },
+  "name": {"en": "Bus connector, PROFIBUS DP"},
+  "keywords": ["bus", "connector", "dp", "profibus"],
+  "rep_type": "topology",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "b4f8132f-1f44-5a21-a3ba-e082898d00d4",
+    "version_req": "^0.1",
+    "key": "ew.fn.dp-connector"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "graphics": [
+    {"rect": {"rect": [[0, 0], [10583333, 7937500]], "stroke": {"pen": {"width": 264583}}}},
+    {"text": {"pos": [5291667, 3968750], "text": "DP", "style": "cp.small", "align": "centre"}}
+  ],
+  "cps": [
+    {"idx": 0, "fn_cp": 0, "pos": [0, 2645833], "dir": "left", "discipline": "bus"},
+    {"idx": 1, "fn_cp": 1, "pos": [0, 5291667], "dir": "left", "discipline": "bus"},
+    {"idx": 2, "fn_cp": 2, "pos": [10583333, 2645833], "dir": "right", "discipline": "bus"},
+    {"idx": 3, "fn_cp": 3, "pos": [10583333, 5291667], "dir": "right", "discipline": "bus"}
+  ],
+  "text_slots": [
+    {"kind": "tag", "pos": [5291667, -661458], "align": "bottom_centre", "visible": true},
+    {"kind": {"cp_designation": 0}, "pos": [661458, 2645833], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 1}, "pos": [661458, 5291667], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 2}, "pos": [9921875, 2645833], "align": "middle_right", "visible": true},
+    {"kind": {"cp_designation": 3}, "pos": [9921875, 5291667], "align": "middle_right", "visible": true}
+  ],
+  "arrangements": [{"name": "full", "slots": [0, 1, 2, 3, 4]}, {"name": "tag", "slots": [0]}],
+  "anchor": "graphic_centre"
+}

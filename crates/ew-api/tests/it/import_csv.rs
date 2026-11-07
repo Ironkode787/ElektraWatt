@@ -158,3 +158,22 @@ fn an_unreadable_table_and_a_non_empty_target_are_refused() {
     assert!(empty.join("manifest.json").is_file());
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// FT-1489 (WP-S6.08 D19): the project `ew import csv` writes reports whether its manifest is marked `unstable`: with a
+/// released list that lacks this build's format it is, with the format released it is not.
+#[test]
+fn a_tables_project_reports_an_unreleased_format() {
+    static OLDER: [&str; 1] = ["0.0"];
+    static THIS: [&str; 1] = [ew_api::FORMAT];
+    let batch = import_tables(&read_tables(&tables()).unwrap(), &library(), ImportMode::Strict).unwrap();
+    let dir = ew_testdir::fresh_dir("ew-api-import-csv-unreleased");
+    for (n, (released, marked)) in [(&OLDER[..], true), (&THIS[..], false)].into_iter().enumerate() {
+        let out = dir.join(format!("p{n}.ew"));
+        let mut options = store();
+        options.released = released;
+        assert_eq!(create_project(&batch, &out, options).unwrap(), marked);
+        let manifest = std::fs::read_to_string(out.join("manifest.json")).unwrap();
+        assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}

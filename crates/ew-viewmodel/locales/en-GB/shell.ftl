@@ -1469,6 +1469,8 @@ refusal-fields-port-role-unknown = { $p0 } is not a port role; give master, slav
 refusal-fields-bus-address-unknown = { $p0 } is not a bus address; give tbd, not_applicable or {"{"}"value": {"{"}"profibus": n{"}"}{"}"}
 refusal-fields-termination-unknown = { $p0 } is not a termination; give on or off
 refusal-fields-counter-used-project = counter { $p0 } with letter { $p1 } is already used by another cable without a page; use { $p2 }, the next free counter
+refusal-fields-section-divider-page = folio { $p0 } is held by a page; choose another folio for section { $p1 }'s divider
+refusal-fields-section-divider-report = folio { $p0 } is held by a report block; choose another folio for section { $p1 }'s divider
 # valve.set_occupancy and fluid.port.close.
 refusal-valve-no-positions = { $p0 } has no valve positions
 refusal-valve-no-position = { $p0 } has { $p1 } valve positions; position { $p2 } does not exist
@@ -1565,6 +1567,7 @@ refusal-page-renumber-no-pages = no pages in scope; name pages, a section or the
 refusal-page-renumber-out-of-range = new folio number { $p0 } is out of range; choose another `start` or `step`
 refusal-page-renumber-used = folio { $p0 } is already used by a page outside the renumbered pages; choose another `start` or include that page
 refusal-page-renumber-label-used = sub-page label { $p0 } is already used by another page of the section; choose another `start`
+refusal-page-renumber-outside-section = folio { $p0 } lies outside section { $p1 }'s folios { $p2 } to { $p3 }; choose another `start` or `step`
 refusal-page-surface-view-not-layout = folio { $p0 } is not a panel-layout page; a surface view goes on a panel-layout page
 refusal-page-scale = a scale is 1:n with n at least 1
 refusal-page-grid-not-empty = page { $p0 } holds items; a page's connection grid changes only while the page is empty
@@ -2205,6 +2208,8 @@ toast-ip-deleted-wire = Deleted the interruption point { $p0 } and the wire conn
 toast-ip-deleted-wires = Deleted the interruption point { $p0 } and the { $p1 } wires connected to it.
 toast-ips-deleted-wire = Deleted the interruption points { $p0 } and the wire connected to them.
 toast-ips-deleted-wires = Deleted the interruption points { $p0 } and the { $p1 } wires connected to them.
+# ID-1470 (C53-p1#6): a pasted interruption point keeps its name, so it continues the points of that name.
+toast-paste-ip-continues = The pasted interruption point { $p0 } keeps its name, so it continues { $p0 } at { $p1 }.
 
 # FT-709: a delete that leaves a device without a symbol keeps the device; the toast says where it stays.
 toast-device-unplaced = { $p0 } has no symbol on a page now; it stays in the Devices navigator and the parts list.

@@ -260,6 +260,117 @@ pub fn jsonl_file<L: AsRef<[u8]>>(mut lines: Vec<(LineKey, L)>) -> Vec<u8> {
     out
 }
 
+/// Whether `line`, a record's line as read, is the line a later minor of this format writes for the record whose
+/// canonical line is `canonical`, `extra` holding the JSON Pointers of the members this reader does not know and
+/// `variants` those of the values it keeps as unknown variants (ADR-0011 amendment 1, WP-S6.08 D24, D30): in every
+/// object the members this reader knows stand in the canonical order, wherever the others stand, and an unknown
+/// variant's value is the later minor's, whatever its order. A line that is not JSON is not one.
+pub(crate) fn later_minor_line(line: &str, canonical: &str, extra: &[String], variants: &[String]) -> bool {
+    match (
+        serde_json::from_str::<Ordered>(line),
+        serde_json::from_str::<Ordered>(canonical),
+    ) {
+        (Ok(line), Ok(canonical)) => known_in_order(&line, &canonical, "", extra, variants),
+        _ => false,
+    }
+}
+
+/// A JSON value with each object's members in the order of its text.
+enum Ordered {
+    Object(Vec<(String, Ordered)>),
+    Array(Vec<Ordered>),
+    Scalar,
+}
+
+impl<'de> serde::Deserialize<'de> for Ordered {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Of;
+        impl<'de> serde::de::Visitor<'de> for Of {
+            type Value = Ordered;
+            fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("a JSON value")
+            }
+            fn visit_bool<E>(self, _: bool) -> Result<Ordered, E> {
+                Ok(Ordered::Scalar)
+            }
+            fn visit_i64<E>(self, _: i64) -> Result<Ordered, E> {
+                Ok(Ordered::Scalar)
+            }
+            fn visit_u64<E>(self, _: u64) -> Result<Ordered, E> {
+                Ok(Ordered::Scalar)
+            }
+            fn visit_f64<E>(self, _: f64) -> Result<Ordered, E> {
+                Ok(Ordered::Scalar)
+            }
+            fn visit_str<E>(self, _: &str) -> Result<Ordered, E> {
+                Ok(Ordered::Scalar)
+            }
+            fn visit_unit<E>(self) -> Result<Ordered, E> {
+                Ok(Ordered::Scalar)
+            }
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut seq: A) -> Result<Ordered, A::Error> {
+                let mut items = Vec::new();
+                while let Some(item) = seq.next_element()? {
+                    items.push(item);
+                }
+                Ok(Ordered::Array(items))
+            }
+            fn visit_map<A: serde::de::MapAccess<'de>>(self, mut map: A) -> Result<Ordered, A::Error> {
+                let mut members = Vec::new();
+                while let Some(member) = map.next_entry()? {
+                    members.push(member);
+                }
+                Ok(Ordered::Object(members))
+            }
+        }
+        deserializer.deserialize_any(Of)
+    }
+}
+
+/// [`later_minor_line`] below the JSON Pointer `path`.
+fn known_in_order(
+    line: &Ordered,
+    canonical: &Ordered,
+    path: &str,
+    extra: &[String],
+    variants: &[String],
+) -> bool {
+    if variants.iter().any(|v| v == path) {
+        return true;
+    }
+    match (line, canonical) {
+        (Ordered::Object(a), Ordered::Object(b)) => {
+            fn known<'m>(
+                members: &'m [(String, Ordered)],
+                path: &str,
+                extra: &[String],
+            ) -> Vec<(String, &'m Ordered)> {
+                members
+                    .iter()
+                    .map(|(key, value)| {
+                        let token = key.replace('~', "~0").replace('/', "~1");
+                        (format!("{path}/{token}"), value)
+                    })
+                    .filter(|(at, _)| !extra.contains(at))
+                    .collect()
+            }
+            let (a, b) = (known(a, path, extra), known(b, path, extra));
+            a.len() == b.len()
+                && a.iter()
+                    .zip(&b)
+                    .all(|((at, x), (bt, y))| at == bt && known_in_order(x, y, at, extra, variants))
+        }
+        (Ordered::Array(a), Ordered::Array(b)) => {
+            a.len() == b.len()
+                && a.iter()
+                    .zip(b)
+                    .enumerate()
+                    .all(|(i, (x, y))| known_in_order(x, y, &format!("{path}/{i}"), extra, variants))
+        }
+        _ => true,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

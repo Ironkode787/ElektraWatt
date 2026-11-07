@@ -2975,6 +2975,7 @@ fn released_lines(output: &mut dyn std::io::Write, done: &ew_api::Released) {
             done.stamped
         );
     }
+    warn_unreleased(done.unstable, &mut std::io::stderr());
 }
 
 /// An archive of the open revision's label that a crashed release left (doc 05 section 14.1 "On failure"): the
@@ -4302,7 +4303,10 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
                     out,
                     ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
                 ) {
-                    Ok(()) => say(format!("project written to {}", out.display())),
+                    Ok(unstable) => {
+                        say(format!("project written to {}", out.display()));
+                        warn_unreleased(unstable, &mut std::io::stderr());
+                    }
                     Err(e) => {
                         eprintln!("error: {e}");
                         return 2;
@@ -4522,7 +4526,7 @@ fn run_import_csv(a: &ImportCsvArgs) -> i32 {
             &a.out,
             ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
         ) {
-            Ok(()) => {
+            Ok(unstable) => {
                 say(format!(
                     "imported {} into {}: {}, {}",
                     plural(tables, "table", "tables"),
@@ -4530,6 +4534,7 @@ fn run_import_csv(a: &ImportCsvArgs) -> i32 {
                     plural(records, "record", "records"),
                     plural(documents, "library document", "library documents")
                 ));
+                warn_unreleased(unstable, &mut std::io::stderr());
                 (0, true)
             }
             Err(e @ CreateError::Model(_)) => {

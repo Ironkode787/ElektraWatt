@@ -893,6 +893,7 @@ impl ShellModel {
                     "edit",
                     false,
                 );
+                self.warn_unreleased(done.unstable);
                 Outcome::Done
             }
             Err(e) => {
@@ -1110,27 +1111,34 @@ impl ShellModel {
                 p.session
                     .complete_release_as(&origin, &integrity, &options)
                     .map(|done| {
-                        strings::format(
+                        let toast = strings::format(
                             key!("toast-revision-released"),
                             &[&done.label, &file_name(&done.archive)],
-                        )
+                        );
+                        (toast, done.unstable)
                     })
             }
             Some(p) => p
                 .session
                 .discard_incomplete_release_as(&origin, &options)
-                .map(|_| strings::format(key!("toast-revision-discarded"), &[&label])),
+                .map(|_| {
+                    (
+                        strings::format(key!("toast-revision-discarded"), &[&label]),
+                        false,
+                    )
+                }),
             None => return Outcome::Done,
         };
         self.revision.integrity = integrity;
         let out = match result {
-            Ok(toast) => {
+            Ok((toast, unstable)) => {
                 if how == COMPLETE {
                     self.revision_saved();
                 }
                 self.revision.incomplete = None;
                 self.revision_done();
                 self.notify_with(toast, "edit", false);
+                self.warn_unreleased(unstable);
                 Outcome::Done
             }
             Err(e) => {

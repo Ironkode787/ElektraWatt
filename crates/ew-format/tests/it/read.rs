@@ -505,7 +505,8 @@ fn an_old_revisions_file_loads_typed_and_is_rewritten_canonically() {
 /// WP-S1.18 part 1 (RL-1): a line written while the release record and the sign-off were untyped members (in
 /// `extra`, byte-wise order) loads into the typed members, partial payloads included, without a finding and without a
 /// rewrite: it is already canonical and writes back byte for byte. With `purpose` (still untyped, sorting before
-/// them) it loads with the same values and is rewritten canonically, `purpose` last. A revision line that does not
+/// them) it loads with the same values and its line is kept as a later minor wrote it, `purpose` last only in the
+/// canonical line of an edit (ADR-0011 amendment 1, WP-S6.08 D24). A revision line that does not
 /// parse (a page note as a bare page ID, which no writer produced) is quarantined verbatim with EW-CORE-007, never
 /// dropped.
 #[test]
@@ -538,7 +539,9 @@ fn revision_members_typed_in_part_1_load_from_an_older_line_and_a_broken_line_is
         "{:?}",
         loaded.findings
     );
-    assert!(loaded.rewrite.contains(&p("revisions.jsonl")));
+    assert!(loaded.rewrite.is_empty(), "{:?}", loaded.rewrite);
+    assert_eq!(loaded.kept.len(), 1);
+    assert_eq!(loaded.kept[0].text, with_purpose.as_bytes());
     assert_eq!(
         record_line(&loaded.records[0]).unwrap(),
         r#"{"$k":"revision","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","state":"released","sign_off":{"checker":"checker"},"purpose":"approval"}"#
@@ -1033,13 +1036,16 @@ const ITEM_LINES: [&str; 6] = [
 
 /// The migration test of WP-S2.04 §10.1: a page file holding both kinds and an unknown `page_item` variant reads
 /// without a finding (typed records, the unknown variant kept as `PageItemKind::Unknown`) and its lines are written
-/// back byte for byte: nothing is quarantined, kept aside or scheduled for a rewrite.
+/// back byte for byte: nothing is quarantined or scheduled for a rewrite, and the line with the unknown variant is
+/// kept as it was read while its record is untouched (WP-S6.08 D30).
 #[test]
 fn a_page_file_with_page_items_and_a_structure_box_round_trips_byte_for_byte() {
     use ew_format::ew_schema::PageItemKind;
     let loaded = load_lines(PAGE_FILE, &ITEM_LINES);
     assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
-    assert!(loaded.kept.is_empty(), "{:?}", loaded.kept);
+    let kept: Vec<&[u8]> = loaded.kept.iter().map(|k| k.text.as_slice()).collect();
+    assert_eq!(kept, [ITEM_LINES[4].as_bytes()]);
+    assert!(matches!(loaded.kept[0].kept, Kept::Untouched { .. }));
     assert!(loaded.rewrite.is_empty());
     assert_eq!(loaded.records.len(), ITEM_LINES.len());
     let lines: Vec<String> = loaded.records.iter().map(|r| record_line(r).unwrap()).collect();

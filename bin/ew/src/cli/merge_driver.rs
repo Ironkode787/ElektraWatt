@@ -7,7 +7,8 @@
 //! It reads the three files under the reader's limits (doc 05 §3.6), makes `%P` project-relative, merges once through
 //! [`ew_api::merge_file`] and writes the result to `%A` all-or-nothing (a temporary file beside it, then a rename). It
 //! never runs git and takes no project lock: `%A` is git's temporary file, not a project file. Exit 0 clean, 1 with
-//! conflict records (or with `%A` left as ours when a side is newer than this reader, FT-1235), 129 on a caught internal
+//! conflict records (or with `%A` left as ours when a side is newer than this reader, FT-1235, or holds a record it
+//! cannot read, FT-1490), 129 on a caught internal
 //! error (I/O, a panic in the merge) with `%A` as it was; a usage error
 //! exits 129 too, with clap's text (decision log ID-1273).
 
@@ -15,7 +16,7 @@ use std::io::Read as _;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 
-use ew_api::{FORMAT, FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, merge_file};
+use ew_api::{FORMAT, FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, holds_newer_records, merge_file};
 
 /// The arguments of `ew merge-driver`.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -114,6 +115,16 @@ fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, m
         eprintln!(
             "merge-driver: {}: written by a newer ElektraWatt (format {newer}; this one reads {FORMAT}); left as \
              ours: merge it with that version",
+            a.path
+        );
+        return CONFLICTS;
+    }
+    // FT-1490 (WP-S6.08 D20): theirs' manifest is not in the working tree while the drivers run, so a record file is
+    // judged by its own lines: one whose `$v` is above this reader's leaves the file as ours.
+    if holds_newer_records(&path, [&base, &ours, &theirs], limits) {
+        eprintln!(
+            "merge-driver: {}: holds records this ElektraWatt cannot read (this one reads format {FORMAT}); left as \
+             ours: merge it with a newer version",
             a.path
         );
         return CONFLICTS;

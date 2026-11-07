@@ -28,7 +28,7 @@ mem_forget = "warn"
 [dependencies]
 ew-export = { path = "../ew-export" }
 ew-render-cpu = { path = "../ew-render-cpu" }
-ew-hack = { version = "0.0.0", path = "../ew-hack" }
+ew-hack = { version = "0.1.0", path = "../ew-hack" }
 
 # WP-S3.07 D11: the xdg-desktop-portal Print adapter on Linux (MIT; MSRV 1.87). No default features (they bring
 # tokio): the async-io executor the graph's zbus 5 already runs on for accessibility, and the print portal only.

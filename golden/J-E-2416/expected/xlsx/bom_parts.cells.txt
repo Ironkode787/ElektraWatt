@@ -34,7 +34,7 @@ table	kind:parts_summary/parts
 rev	0
 generation	1
 locale	neutral
-ew	0.0.0
+ew	0.1.0
 column	pos	Pos	Ident	false
 column	qty	Qty	Qty	false
 column	unit	Unit	Ident	false

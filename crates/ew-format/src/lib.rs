@@ -109,7 +109,7 @@ pub use line::{
     INLINE_LIMIT, jsonl_file, lib_document_text, pretty, record_line, tagged_document, tagged_line,
 };
 pub use manifest::{FileHash, MAX_GENERATION, Manifest, ManifestError, hash_text, sha256};
-pub use merge::{FileMerge, MergeSide, RecordMerge, merge_file, merge_record};
+pub use merge::{FileMerge, MergeSide, RecordMerge, holds_newer_records, merge_file, merge_record};
 pub use migrate::{
     FormatStep, KindStep, MIGRATIONS, Migration, MigrationError, Migrations, Step, StewardProblem,
     steward_problems,

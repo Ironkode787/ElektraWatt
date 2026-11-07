@@ -53,4 +53,6 @@ candidate is cut ([the procedure](../../README.md#8-a-blocker) §8); every earli
 
 Each candidate's draft prerelease on the repository's releases page holds its files, the SBOM of every artefact
 (`<artefact>.cdx.json`) and `SHA256SUMS`; the build provenance of every file is on the repository's attestations
-page. Each candidate's row of section 2 links its draft; the release job's log ends with the number of verified files.
+page. The files of 0.1.0 (ID-1313, ID-1331 (2)): `ew-0.1.0-x86_64-pc-windows-msvc.zip`,
+`ew-0.1.0-x86_64-unknown-linux-gnu.tar.gz`, `ElektraWatt-0.1.0-x64-user-setup.exe` and
+`ElektraWatt-0.1.0-x86_64.AppImage`, each with its `.cdx.json`, and `SHA256SUMS`: nine files. Each candidate's row of section 2 links its draft; the release job's log ends with the number of verified files.

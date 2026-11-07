@@ -176,7 +176,7 @@ static PAGE_NEW: Spec = Spec {
         Field {
             name: "grid",
             label_key: key!("form-grid"),
-            choices: PAGE_GRIDS,
+            choices: &super::choices::PAGE_GRIDS,
             default: "",
         },
     ],

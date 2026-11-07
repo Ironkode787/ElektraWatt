@@ -1,0 +1,11 @@
+{
+  "$k": "manufacturer",
+  "id": "bd612847-36e1-5b4e-a47a-bd9b685fe3c4",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "c7cc7426-9bee-56de-807e-d6db02ca0d01",
+  "version": "1.0.0",
+  "sha256": "sha256:73e566d46c855c8d8ee8245b84653c2b45dc85c6dc9cbf2fb85960ca50c64e54",
+  "meta": {"licence": "CC0-1.0", "sources": ["golden.table:parts|2904602"]},
+  "key": "Phoenix Contact",
+  "name": "Phoenix Contact"
+}

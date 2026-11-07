@@ -346,7 +346,7 @@ fn every_member_and_variant_since_row_names_a_path_newer_than_its_kind() {
 
 #[test]
 fn released_formats_are_formats_in_ascending_order() {
-    // Empty until the first release (WP-S6.08 adds "0.1"); every entry a format, oldest first, none newer than the
+    // "0.1" from the first release on (WP-S6.08 D13); every entry a format, oldest first, none newer than the
     // schema's.
     let released: Vec<(u32, u32)> = RELEASED_FORMATS
         .iter()
