@@ -16,8 +16,31 @@ the `records` step of `cargo xtask settle --merge` runs it at the merge point.
 Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:` trailer cites, newest first, with the commits that cite it, newest first.
 
 - **ID-1463** (cycle 53): The M2.5 review's triage and its rulings (project owner (delegated)): parts 1 and 2 are not accepted (M25-p1#1: publishing a new symbol on the default key, after the version bump the guide asks for, replaces an unrelated one; M25-p2#1 to #3: the decoder chain, ID-1460, memory amplification past NFR-SEC-02, and the new imports outside WP-S3.09's front door), part 3 is accepted with twelve minors, and the smoke test SM25 adds a stack overflow on a deeply nested EPLAN XML (major) and eleven minors; the author is not a lane that can be resumed, so the author's findings go to fresh lanes (rule 13): **FIX25a** the publication's data (M25-p1#1 to #7 and #9), **FIX25b** the importers and their dependencies (M25-p2#1 to #8, M25-p1#8, SM25's nested XML, raw keys in the CLI and `.pxf` routing), **PL25a** the editor's window (M25-p3#3 to #8, #10, #11 and SM25's window minors), and part 3's reviewer fixes M25-p3#1, #2, #9, #12 and the documents' nits in its fix phase (ID-1450); all of them on the integration branch `m25/integration`, cut from `feature/symbol-editor` at d6830ad0 with the working branch merged in (ID-1445), `feature/symbol-editor` itself left as its author left it. The rulings: **M25-p1#1/#2**: a draft carries its own item identity, minted as a UUIDv7 at its first publication (ADR-0004) with the kind in it, and reused only for the item it came from; there is no shared default key; a save onto a key another lineage holds is refused in words; the CLI says whether it added or updated; **M25-p1#3**: a symbol's own function keeps its version while its content is unchanged, and an assigned function is required as compatible (`^version`), not exact; **M25-p1#6**: an unknown member outside the known extension keys is a validation issue that blocks publication, as §6 says; **M25-p3#5**: leaving the editor keeps the draft and its history, and reopening returns to it, Discard being an explicit action; "Test on scratch page" and "Place on current page" close the editor's view after placing and show the page with the symbol selected, a toast offering "Back to the editor"; Ctrl+S saves the symbol while the editor shows, the File menu then naming "Save symbol" and keeping "Save project", and the blind brief's third hint goes; quitting with an unsaved draft asks Save symbol, Discard or Cancel, and `app.quit`'s `discard: true` discards it; **M25-p3#11**: the library folder and the symbol file take the house file and folder pickers beside the typed path, a relative path resolving against the default user library's folder, never the working directory, and an empty path is refused in words before any file system call. ID-1450; ID-1445; ID-1460; ID-1461; ID-1462.
+  - `31566b7e34` fix(viewmodel): the symbol file picker offers .zip and .7z
+  - `79d8ba7091` docs(security): re-point the threat model's drifted code anchors (M25-p4#2)
+  - `6e78408cd9` test(fuzz): a draft without validation issues must yield its documents (M25-p4 nit)
+  - `a15dc78d41` test(import-eplan): decode LZMA and LZMA2 7z streams, fuzz past the 7z header CRCs (M25-p4#4)
+  - `4fe1d7e3f7` fix(import-eplan): count an element's attributes before parsing (M25-p4#3)
+  - `9a04c3d1e8` fix(symbol-editor): symbol.role's roles in their printed words (the closed-choice check)
   - `10193da89a` docs(security): re-point the threat model's symbols.rs anchors
   - `67740c0059` fix(symbols): publish a draft under another key as a new item
+  - `4b68d47a6a` style(symbol-editor): format
+  - `3edddb86fa` fix(picker): a published symbol on another grid is listed greyed with both grids in words (SM25b m3, ruled)
+  - `1ae262505a` fix(blind): the symbol brief's A2 finds a scratch page in either window language, and the task says where symbols.ewlib lands (M25-p5 nit)
+  - `03397f720b` test(symbol-editor): the tool buttons' keys and the quit question's Save symbol (M25-p5 nits)
+  - `b667420722` fix(symbol-editor): the dialog's and the scratch page's titles name the symbol in the window's language (M25-p5 nit)
+  - `3efb43d760` feat(symbol-editor): symbol.role sets a connection point's potential role (part 3's nit, D6)
+  - `a6d6250f11` docs(symbols): the reference's paths and New symbol, spec D1 as built, and file.save_project's release line (M25-p5 nits)
+  - `cbce7aebb9` fix(symbol-editor): refusals in words, never member names, and the Image primitive's word (part 3's nits)
+  - `4cb97184b6` fix(symbol-editor): the same content placed twice reuses one embedded copy (re-review part 4)
+  - `8fa0af8385` fix(symbol-editor): the library's version refusals in words, without a UUID (M25-p4#6)
+  - `1d08dd520c` fix(symbol-editor): an off-grid refusal shows once, in Validation (SM25b m2, the P3 nit)
+  - `06020fa578` feat(symbol-editor): New symbol, and the house dialog before a draft is dropped (M25-p5#6)
+  - `c7948bcc5b` fix(symbol-editor): the symbol file picker offers .pxf, its filter named in words (M25-p5#5)
+  - `b710e0a8e6` fix(symbol-editor): repeated controls name the item they belong to (M25-p5#4)
+  - `5d4cc6701f` fix(symbol-editor): a slow drag of a number moves it (M25-p5#3)
+  - `ee1543be7f` fix(symbol-editor): Escape cancels a field's entry and keeps the tool (M25-p5#2)
+  - `efa3537326` fix(symbol-editor): the Library folder typed is the one Ctrl+S saves to (M25-p5#1)
   - `53ada4afdc` fix(symbol-editor): clippy, tool choice words, Dutch file name and the book template
   - `e345ca0002` style(symbol-editor): format
   - `a9295198fa` fix(symbol-editor): window rulings of the M2.5 review and smoke test
