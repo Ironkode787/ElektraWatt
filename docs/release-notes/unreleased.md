@@ -284,3 +284,12 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: command fields.set (a section's `divider` or `folio_range` that puts the divider page onto a folio
   a page or a page-oriented report block of the section holds is refused: "folio <n> is held by a page; choose another
   folio for section <s>'s divider", or "… held by a report block; …"; FT-1510, WP-S6.08 D27)
+- api-add: cli ew update-copies [project-dir] [--project <dir>] [--company <dir>]... (the project's damaged library
+  copies are read from the libraries of `ew lib`, checked, and written over their damaged files in one save, and the
+  project opens again; each copy written is named with the library's version written, a copy no library holds stays
+  damaged and is named; exit 0 when every damaged copy was updated
+  and the project opens for editing, 1 when refused or a copy stays damaged, 2 on usage, open and save errors; FT-1499)
+- api-add: window the damaged-copy banner's Update from library (`library.update_damaged`: every damaged library copy
+  an installed library holds is written from it and the project opens again, writable when the integrity check
+  passes, the toast naming each copy with the version written; a banner whose copy no library holds says so and
+  offers nothing; FT-1499)

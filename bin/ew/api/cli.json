@@ -1836,6 +1836,37 @@
       "stability": "preview"
     },
     {
+      "path": "update-copies",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--company",
+          "value": true,
+          "repeatable": true
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "every damaged library copy updated and the project opens for editing, or none damaged"
+        },
+        {
+          "code": 1,
+          "meaning": "refused, or a copy stays damaged"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open and save errors"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
       "path": "upgrade",
       "flags": [
         {

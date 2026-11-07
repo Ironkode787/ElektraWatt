@@ -30,7 +30,7 @@ use super::{
     ExportKind, ExportPagesArgs, ExportTableArgs, ExtractArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs,
     ImportQetArgs, ImportTableArgs, LibAction, LibArgs, PageFormat, PrintArgs, PrintVia, RecoverAction,
     RecoverArgs, RenderArgs, RevisionAction, RevisionArgs, RowFormat, SqlArgs, SqlDumpArgs, SqlFormat,
-    SqlSource, UpgradeArgs, VerifyArgs, XLSX_NEEDS_OUT,
+    SqlSource, UpdateCopiesArgs, UpgradeArgs, VerifyArgs, XLSX_NEEDS_OUT,
 };
 
 /// The ElektraWatt command-line interface.
@@ -172,6 +172,19 @@ enum Top {
     /// upgraded and saved, or nothing is to be upgraded; 1 when `--check` finds an upgrade needed, or it is not
     /// confirmed; 2 on usage, terminal, lock, open, backup and save errors.
     Upgrade(UpgradeCli),
+    /// Update the project's damaged library copies from their libraries.
+    ///
+    /// A project whose library copy (`lib/<kind>/<id>.json`) is damaged opens read-only. `update-copies` reads each
+    /// damaged copy's item from the libraries of `ew lib` (the compiled-in starter, `<content>/libraries` when
+    /// `EW_CONTENT_DIR` names the starter content, every `--company <dir>`, the user's) and checks it before anything is
+    /// written, then writes every copy a library holds over its damaged file in one save, under the project's lock, and
+    /// opens the project again. A copy no library holds stays damaged and is named. Refused before anything is
+    /// written (exit 1): no damaged copy that a library holds, libraries' versions that would leave a project that does
+    /// not open, a project another session holds, a project that opens read-only for another reason or has other
+    /// integrity findings. Exit 0 when every damaged copy was updated and the
+    /// project opens for editing, or it has no damaged copy; 1 when refused or a copy stays damaged; 2 on usage, open
+    /// and save errors.
+    UpdateCopies(UpdateCopiesCli),
     /// The project's check schemes and asset files (human-only).
     #[command(subcommand)]
     Project(ProjectCli),
@@ -1232,6 +1245,25 @@ struct UpgradeCli {
     yes: bool,
 }
 
+/// `ew update-copies`.
+#[derive(Args, Debug)]
+struct UpdateCopiesCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// A company library: a library directory or a directory of `*.ewlib` libraries (repeatable).
+    #[arg(long, value_name = "dir", allow_hyphen_values = true)]
+    company: Vec<PathBuf>,
+}
+
 /// `ew recover`.
 #[derive(Args, Debug)]
 struct RecoverCli {
@@ -2222,6 +2254,14 @@ impl Cli {
                 project: project(flag, project_dir),
                 check,
                 yes,
+            }),
+            Top::UpdateCopies(UpdateCopiesCli {
+                project_dir,
+                project: flag,
+                company,
+            }) => Command::UpdateCopies(UpdateCopiesArgs {
+                project: project(flag, project_dir),
+                company,
             }),
             Top::Project(ProjectCli::Checks(ChecksCli::Set(ChecksSetCli {
                 project_dir,

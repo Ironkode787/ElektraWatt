@@ -285,6 +285,7 @@
     - [`ew schema`](reference/cli/schema.md)
     - [`ew sql`](reference/cli/sql.md)
     - [`ew symbol`](reference/cli/symbol.md)
+    - [`ew update-copies`](reference/cli/update-copies.md)
     - [`ew upgrade`](reference/cli/upgrade.md)
     - [`ew verify-derived`](reference/cli/verify-derived.md)
   - [Query reference](reference/queries.md)

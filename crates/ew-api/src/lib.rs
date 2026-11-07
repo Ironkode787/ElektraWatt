@@ -565,6 +565,21 @@ pub struct DamagedCopy {
     /// When [`DamagedCopy::left_out`]: every copy the open dropped that a Save As leaves out, each in words as
     /// [`DamagedCopy::words`] names the first, in key order (C53-p3#6, ID-1481); empty otherwise.
     pub left_out_words: Vec<Text>,
+    /// Whether an installed library holds a readable document of the copy the banner names (FT-1499, ID-1486; of any
+    /// copy the open dropped when [`DamagedCopy::left_out`], whose banner names them all, C53-p4#5): the banner then
+    /// offers Update from library ([`Session::update_damaged_copies`]).
+    pub in_library: bool,
+}
+
+/// What [`Session::update_damaged_copies`] did (FT-1499, ID-1486): the damaged library copies written from their
+/// libraries and those no installed library holds a readable document of, each in words as
+/// [`DamagedCopy::words`] names a copy, in key order. Both empty for a project without a damaged copy.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct CopiesUpdated {
+    /// The copies written from their libraries, each with the version written ("… at version 0.1.1", C53-p4#4).
+    pub updated: Vec<Text>,
+    /// The copies left damaged.
+    pub not_updated: Vec<Text>,
 }
 
 /// What [`Session::open`] does with a leftover journal of a crashed session (doc 05 §8.3).
@@ -1533,6 +1548,15 @@ impl Session {
                 })
                 .collect(),
         };
+        // C53-p4#5: the update is offered for the copy the banner names, or for any copy of a banner that names them all.
+        let in_library = match referrer {
+            Some(_) => installed.is_some(),
+            None => self.persistence.as_ref().is_some_and(|p| {
+                p.dropped
+                    .iter()
+                    .any(|&(kind, copy)| self.installed_document(kind, copy).is_some())
+            }),
+        };
         Some(DamagedCopy {
             device,
             file,
@@ -1540,7 +1564,94 @@ impl Session {
             words,
             left_out: referrer.is_none(),
             left_out_words,
+            in_library,
         })
+    }
+
+    /// Update from library of the damaged library copies (FT-1499, decision log ID-1486): every copy the open dropped
+    /// as damaged that an installed library holds is read and checked as `library.embed` reads a library's document,
+    /// before anything is written, and the store then writes those copies over their damaged files in one save
+    /// ([`Store::update_damaged_copies`]); a copy no library holds, or whose document the check refuses, stays damaged
+    /// and is named. The session is not opened again: its caller opens the project again, writable when the integrity
+    /// check passes.
+    ///
+    /// # Errors
+    ///
+    /// The refusal in words, nothing written: no copy can be updated from a library, the libraries' versions would
+    /// leave a project that does not open, another session holds the project, the project is read-only for another
+    /// reason or has other integrity findings, or the save fails.
+    pub fn update_damaged_copies(&mut self) -> Result<CopiesUpdated, Text> {
+        let dropped = self
+            .persistence
+            .as_ref()
+            .map(|p| p.dropped.clone())
+            .unwrap_or_default();
+        if dropped.is_empty() {
+            return Ok(CopiesUpdated::default());
+        }
+        let model = self.engine.model().clone();
+        let mut engine = ew_commands::Engine::new(
+            model.clone(),
+            ew_commands::EngineOptions {
+                prevent: Some(Box::new(crate::ShippedPrevent)),
+                ..ew_commands::EngineOptions::default()
+            },
+        );
+        let mut done = CopiesUpdated::default();
+        let mut keys = BTreeSet::new();
+        for &(kind, copy) in &dropped {
+            let installed = self.installed_document(kind, copy);
+            let words =
+                ew_commands::damaged_copy_words(&model, kind, installed.as_ref().map(|(d, _)| d), None);
+            let Some(value) = installed.and_then(|(doc, _)| serde_json::to_value(&doc).ok()) else {
+                done.not_updated.push(words);
+                continue;
+            };
+            // The library's current version is written, named by its version (C53-p4#4, ID-1491): the damaged copy's
+            // own version cannot be read, so the change is not classified.
+            let version = value["version"].as_str().unwrap_or_default().to_owned();
+            let cmd = ew_commands::commands::EmbedLibraryCopies { copies: vec![value] };
+            let Ok(cmd) = AnyCommand::of(&cmd) else {
+                done.not_updated.push(words);
+                continue;
+            };
+            match engine.execute(&cmd) {
+                Ok(_) => {
+                    keys.insert((kind, copy));
+                    done.updated
+                        .push(api_text!("refusal-words-copy-at-version", words, version));
+                }
+                // The library's version breaks a record of the project (an invariant or a prevent rule of the
+                // engine's own check): the misfit, nothing written (C53-p4#3).
+                Err(ew_commands::CmdError::Model(..) | ew_commands::CmdError::Prevented { .. }) => {
+                    return Err(api_text!("refusal-update-copies-misfit"));
+                }
+                Err(_) => done.not_updated.push(words),
+            }
+        }
+        let (Some(p), false) = (self.persistence.as_mut(), keys.is_empty()) else {
+            let all = ew_commands::comma_joined(done.not_updated.clone());
+            return all.map_or(Ok(done), |all| {
+                Err(api_text!("refusal-update-copies-no-library", all))
+            });
+        };
+        // The project must open after it: every violation left is one the copies still damaged explain.
+        let missing: BTreeSet<AnyKey> = dropped.iter().filter(|k| !keys.contains(*k)).copied().collect();
+        if ew_model::unexplained_by_dropped_copies(&engine.model().integrity_violations(), &missing).is_some()
+        {
+            return Err(api_text!("refusal-update-copies-misfit"));
+        }
+        match p.store.update_damaged_copies(engine.model(), &keys) {
+            Ok(_) => Ok(done),
+            Err(ew_store::SaveError::ReadOnly(ReadOnlyReason::LockedBy(_))) => {
+                Err(api_text!("refusal-update-copies-locked"))
+            }
+            Err(ew_store::SaveError::ReadOnly(ReadOnlyReason::Integrity)) => {
+                Err(api_text!("refusal-update-copies-findings"))
+            }
+            Err(ew_store::SaveError::ReadOnly(_)) => Err(api_text!("refusal-update-copies-read-only")),
+            Err(e) => Err(api_text!("refusal-update-copies-save", e.to_string())),
+        }
     }
 
     /// The document of `kind` and the library's name of the installed item whose copy ID is `copy` (FT-1396, ID-1423;

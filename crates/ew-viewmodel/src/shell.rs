@@ -768,8 +768,12 @@ fn string_param<'a>(p: &'a Map<String, Value>, name: &str) -> Result<Option<&'a 
 
 /// The banner of a project open read-only because of a damaged library copy (FT-1383, ID-1418): the device that uses
 /// it, the copy's part and its library when an installed library holds it; a copy no device names by its own words and
-/// the record that names it, and one that no record names with the Save As that leaves it out (FT-1500, ID-1458).
+/// the record that names it, and one that no record names with the Save As that leaves it out (FT-1500, ID-1458). When
+/// no installed library holds a damaged copy, it says so instead of naming the update (FT-1499, ID-1486).
 fn damaged_banner(damaged: &ew_api::DamagedCopy) -> String {
+    if !damaged.in_library {
+        return damaged_banner_no_library(damaged);
+    }
     match damaged {
         ew_api::DamagedCopy {
             device: Some(device),
@@ -796,6 +800,32 @@ fn damaged_banner(damaged: &ew_api::DamagedCopy) -> String {
         },
         ew_api::DamagedCopy { words, .. } => strings::format(
             key!("banner-damaged-copy-record"),
+            &[&tools::rejected_words("", Some(words))],
+        ),
+    }
+}
+
+/// [`damaged_banner`] when no installed library holds a damaged copy (FT-1499, ID-1486): the banner says so and offers
+/// no update. A copy no library holds has no part number to name.
+fn damaged_banner_no_library(damaged: &ew_api::DamagedCopy) -> String {
+    match damaged {
+        ew_api::DamagedCopy {
+            device: Some(device), ..
+        } => strings::format(key!("banner-damaged-copy-unnamed-no-library"), &[device]),
+        ew_api::DamagedCopy {
+            words,
+            left_out: true,
+            left_out_words,
+            ..
+        } => match left_out_copies(left_out_words) {
+            Some(all) => strings::format(key!("banner-damaged-copies-left-out-no-library"), &[&all]),
+            None => strings::format(
+                key!("banner-damaged-copy-left-out-no-library"),
+                &[&tools::rejected_words("", Some(words))],
+            ),
+        },
+        ew_api::DamagedCopy { words, .. } => strings::format(
+            key!("banner-damaged-copy-record-no-library"),
             &[&tools::rejected_words("", Some(words))],
         ),
     }
@@ -2250,6 +2280,57 @@ impl ShellModel {
                 Outcome::Failed { message }
             }
         }
+    }
+
+    /// `library.update_damaged` (the damaged-copy banner's Update from library, FT-1499, ID-1486): every damaged library
+    /// copy an installed library holds is written from it, and the project opens again, writable when the integrity
+    /// check passes, else read-only with its banner; a toast says what was updated and names the copies that were not.
+    /// A refusal (another session holding the project among them) is a banner in words, nothing written.
+    pub(crate) fn act_update_damaged(&mut self) -> Outcome {
+        let Some(project) = self.project.as_mut() else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-project"),
+            };
+        };
+        let dir = project.dir.clone();
+        let done = match project.session.update_damaged_copies() {
+            Ok(done) => done,
+            Err(refusal) => {
+                let message = strings::format(
+                    key!("error-update-damaged"),
+                    &[&tools::rejected_words("", Some(&refusal))],
+                );
+                self.banner = Some(message.clone());
+                return Outcome::Failed { message };
+            }
+        };
+        let outcome = self.open_dir(&dir, false);
+        if outcome != Outcome::Done {
+            return outcome;
+        }
+        // C53-p4#4 (ID-1491): the toast names each copy written with its version.
+        let updated = ew_api::comma_joined(done.updated);
+        match (updated, ew_api::comma_joined(done.not_updated)) {
+            (updated, Some(left)) => self.notify_toned(
+                strings::format(
+                    key!("toast-damaged-copies-not-updated"),
+                    &[
+                        &tools::rejected_words("", updated.as_ref()),
+                        &tools::rejected_words("", Some(&left)),
+                    ],
+                ),
+                crate::notifications::NoteTone::Warning,
+            ),
+            (Some(updated), None) => self.notify_toned(
+                strings::format(
+                    key!("toast-damaged-copies-updated"),
+                    &[&tools::rejected_words("", Some(&updated))],
+                ),
+                crate::notifications::NoteTone::Success,
+            ),
+            (None, None) => {}
+        }
+        Outcome::Done
     }
 
     pub(crate) fn act_close(&mut self, p: &Map<String, Value>) -> Outcome {

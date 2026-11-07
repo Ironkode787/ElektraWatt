@@ -70,6 +70,8 @@ pub enum Command {
     Recover(RecoverArgs),
     /// `ew upgrade`: a project of an older format converted after a backup (WP-S1.17 D11).
     Upgrade(UpgradeArgs),
+    /// `ew update-copies`: the damaged library copies updated from their libraries (FT-1499).
+    UpdateCopies(UpdateCopiesArgs),
     /// Name the project's check schemes (`project checks set`, a human-only command).
     ChecksSet(ChecksSetArgs),
     /// Delete the asset files nothing names (`project assets purge`).
@@ -240,6 +242,15 @@ pub struct UpgradeArgs {
     pub check: bool,
     /// `--yes`: confirm without the typed word.
     pub yes: bool,
+}
+
+/// The arguments of `ew update-copies` (FT-1499, decision log ID-1486).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct UpdateCopiesArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The company libraries (`--company`).
+    pub company: Vec<PathBuf>,
 }
 
 /// The arguments of `ew import csv`.
@@ -718,6 +729,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::Fmt(a) => project_files::run_fmt(&a),
         Command::Recover(a) => project_files::run_recover(&a),
         Command::Upgrade(a) => project_files::run_upgrade(&a),
+        Command::UpdateCopies(a) => run_update_copies(&a),
         Command::ChecksSet(a) => run_checks_set(&a),
         Command::AssetsPurge(a) => run_assets_purge(&a),
         Command::Lib(a) => run_lib(&a),
@@ -2294,6 +2306,74 @@ fn run_apply(a: &ApplyArgs) -> i32 {
             2
         }
     }
+}
+
+/// `ew update-copies` (FT-1499, decision log ID-1486): every damaged library copy that a library of `ew lib` holds is
+/// written from it, as the window's Update from library writes it, and the project opens again; a copy no library
+/// holds is named. A refusal is printed in its words, nothing written.
+fn run_update_copies(a: &UpdateCopiesArgs) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let system: Vec<PathBuf> = content_dir().map(|d| d.join("libraries")).into_iter().collect();
+    let Some(tiers) = ew_api::library::LibraryTiers::for_user(system, a.company.clone()) else {
+        eprintln!("error: no data and cache directories (set EW_DATA_DIR and EW_CACHE_DIR)");
+        return 2;
+    };
+    let open = || {
+        let options = ew_api::SessionOptions {
+            origin: ew_api::Origin::Cli {
+                subcommand: "update-copies".to_owned(),
+                confirmed: false,
+            },
+            libraries: Some(tiers.clone()),
+            ..ew_api::SessionOptions::default()
+        };
+        let store = ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION"));
+        ew_api::Session::open(&dir, store, options, ew_api::Recovery::Keep).map_err(|e| {
+            eprintln!("error: {}: {e}", dir.display());
+            2
+        })
+    };
+    let (mut session, _) = match open() {
+        Ok(opened) => opened,
+        Err(code) => return code,
+    };
+    let done = session.update_damaged_copies();
+    session.close();
+    let done = match done {
+        Ok(done) => done,
+        Err(refusal) => {
+            eprintln!("error: {}: {refusal}", dir.display());
+            return if refusal.key() == "refusal-update-copies-save" {
+                2
+            } else {
+                1
+            };
+        }
+    };
+    for copy in &done.updated {
+        println!("updated {copy} from its library");
+    }
+    for copy in &done.not_updated {
+        eprintln!("not updated, as no library on this computer holds a readable version: {copy}");
+    }
+    // The project again: writable when the integrity check passes.
+    let (session, report) = match open() {
+        Ok(opened) => opened,
+        Err(code) => return code,
+    };
+    session.close();
+    if report.access != ew_api::Access::Edit {
+        eprintln!("the project still opens read-only");
+        return 1;
+    }
+    if done.updated.is_empty() {
+        println!("the project has no damaged library copy");
+    } else {
+        println!("the project opens for editing");
+    }
+    i32::from(!done.not_updated.is_empty())
 }
 
 /// Opens the project in `dir` for writing with `origin`: refused (exit 2) when it opens read-only or a crashed
