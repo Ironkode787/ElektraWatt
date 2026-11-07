@@ -172,37 +172,85 @@ fn golden_part_copy(dir: &Path) -> PathBuf {
     dir.join("lib/parts").join(format!("{golden}.json"))
 }
 
-/// Several damaged copies: the starter part's, which a library holds, is updated, and Golden A's part copy of
-/// -201U8-Q1, which no library holds, stays damaged and is named in the toast; the project opens read-only again with
-/// that copy's banner, which offers nothing. Both languages.
+/// The manifest's entry of the project file `path` (relative, with `/`) in `dir`.
+fn manifest_entry(dir: &Path, path: &str) -> Value {
+    let manifest: Value = serde_json::from_slice(&std::fs::read(dir.join("manifest.json")).unwrap()).unwrap();
+    manifest["files"][path].clone()
+}
+
+/// C53-p4#5: the banner offers the update only for the copy it names. It names Golden A's part copy of -201U8-Q1,
+/// which no library holds, so it says so and offers nothing, though a library holds the starter part's damaged copy
+/// too; nothing is written. Both languages.
 #[test]
-fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
-    let tmp = Tmp::new("ft1499-several");
-    let (dir, file, original) = starter_project(&tmp);
+fn ft1499_the_banner_offers_the_update_only_for_the_copy_it_names() {
+    let tmp = Tmp::new("ft1499-named");
+    let (dir, file, _) = starter_project(&tmp);
     damage(&golden_part_copy(&dir));
-    for (locale, before, toast, after) in [
+    damage(&file);
+    let before = tree(&dir);
+    for (locale, banner) in [
         (
             "en",
             "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
-             damaged. Update the copy from its library first. 2 integrity findings were found when the project was \
-             opened.",
-            "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.1. Not updated, as no \
-             library on this computer holds a readable version: the library copy of a part.",
-            "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
-             damaged. No library on this computer holds it, so the copy cannot be updated from one. 1 integrity \
-             finding was found when the project was opened.",
+             damaged. No library on this computer holds it, so the copy cannot be updated from one. 2 integrity \
+             findings were found when the project was opened.",
         ),
         (
             "nl",
             "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
-             artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek. Bij het openen van het \
-             project zijn 2 integriteitsbevindingen gevonden.",
+             artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit \
+             een bibliotheek worden bijgewerkt. Bij het openen van het project zijn 2 integriteitsbevindingen \
+             gevonden.",
+        ),
+    ] {
+        let mut s = open(&tmp, locale, None, &dir);
+        assert_eq!(s.banner(), Some(banner));
+        assert!(!s.damaged_update_offered(), "nothing is offered");
+        assert_eq!(
+            refused(&mut s, "library.update_damaged", json!({})),
+            "reason-no-damaged-copy-update"
+        );
+        done(&mut s, "file.close", json!({}));
+    }
+    assert!(strings::set_locale("en"));
+    assert!(tree(&dir) == before, "nothing is written");
+}
+
+/// Several damaged copies (C53-p4#1): the starter part's, which a library holds and the banner names, is updated, and a
+/// manufacturer copy of Golden A that no record names and no library holds, whose file is gone, stays damaged with its
+/// manifest entry and is named in the toast; the project opens read-only again with that copy's banner, which offers
+/// nothing. Both languages.
+#[test]
+fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
+    let tmp = Tmp::new("ft1499-several");
+    let (dir, file, original) = starter_project(&tmp);
+    let gone = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
+    let entry = manifest_entry(&dir, gone);
+    assert!(entry.is_string(), "{gone} is listed");
+    std::fs::remove_file(dir.join(gone)).unwrap();
+    for (locale, before, toast, after) in [
+        (
+            "en",
+            "This project is open read-only: the device F55 uses the library copy of part EW-GEN-MCB-2 from \
+             ElektraWatt starter parts, which is damaged. Update the copy from its library first. 2 integrity \
+             findings were found when the project was opened.",
+            "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.1. Not updated, as no \
+             library on this computer holds a readable version: the library copy of a manufacturer.",
+            "This project is open read-only: the library copy of a manufacturer is damaged. No library on this \
+             computer holds it; use Save as for a copy of the project without it. 1 integrity finding was found when \
+             the project was opened.",
+        ),
+        (
+            "nl",
+            "Dit project is alleen-lezen geopend: het apparaat F55 gebruikt de bibliotheekkopie van artikel \
+             EW-GEN-MCB-2 uit ElektraWatt starter parts, die beschadigd is. Werk de kopie eerst bij vanuit de \
+             bibliotheek. Bij het openen van het project zijn 2 integriteitsbevindingen gevonden.",
             "Bijgewerkt vanuit bibliotheek: de bibliotheekkopie van artikel EW-GEN-MCB-2 in versie 0.1.1. Niet \
              bijgewerkt, omdat geen bibliotheek op deze computer een leesbare versie heeft: de bibliotheekkopie van \
-             een artikel.",
-            "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
-             artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit \
-             een bibliotheek worden bijgewerkt. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
+             een fabrikant.",
+            "Dit project is alleen-lezen geopend: de bibliotheekkopie van een fabrikant is beschadigd. Geen \
+             bibliotheek op deze computer bevat het; maak met Opslaan als een projectkopie zonder deze \
+             bibliotheekkopie. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
         ),
     ] {
         damage(&file);
@@ -215,6 +263,7 @@ fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
             std::fs::read(&file).unwrap() == original,
             "the starter part's copy is written"
         );
+        assert_eq!(manifest_entry(&dir, gone), entry, "the entry of the copy left damaged");
         assert!(s.read_only_reason().is_some(), "the project stays read-only");
         assert_eq!(s.banner(), Some(after));
         assert!(!s.damaged_update_offered());

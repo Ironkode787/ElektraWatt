@@ -562,8 +562,9 @@ pub struct DamagedCopy {
     /// When [`DamagedCopy::left_out`]: every copy the open dropped that a Save As leaves out, each in words as
     /// [`DamagedCopy::words`] names the first, in key order (C53-p3#6, ID-1481); empty otherwise.
     pub left_out_words: Vec<Text>,
-    /// Whether an installed library holds a readable document of a copy the open dropped (FT-1499, ID-1486): the
-    /// banner then offers Update from library ([`Session::update_damaged_copies`]).
+    /// Whether an installed library holds a readable document of the copy the banner names (FT-1499, ID-1486; of any
+    /// copy the open dropped when [`DamagedCopy::left_out`], whose banner names them all, C53-p4#5): the banner then
+    /// offers Update from library ([`Session::update_damaged_copies`]).
     pub in_library: bool,
 }
 
@@ -1544,11 +1545,15 @@ impl Session {
                 })
                 .collect(),
         };
-        let in_library = self.persistence.as_ref().is_some_and(|p| {
-            p.dropped
-                .iter()
-                .any(|&(kind, copy)| self.installed_document(kind, copy).is_some())
-        });
+        // C53-p4#5: the update is offered for the copy the banner names, or for any copy of a banner that names them all.
+        let in_library = match referrer {
+            Some(_) => installed.is_some(),
+            None => self.persistence.as_ref().is_some_and(|p| {
+                p.dropped
+                    .iter()
+                    .any(|&(kind, copy)| self.installed_document(kind, copy).is_some())
+            }),
+        };
         Some(DamagedCopy {
             device,
             file,
