@@ -306,6 +306,85 @@ fn ft1499_every_copy_written_is_named_with_its_version() {
     assert!(strings::set_locale("en"));
 }
 
+/// Another file of the project changed outside ElektraWatt (a page file, EW-CORE-002) beside the damaged copy: the
+/// update is refused in words, whole in both languages, and nothing is written (C53-p4#2).
+#[test]
+fn ft1499_other_integrity_findings_refuse_the_update() {
+    let tmp = Tmp::new("ft1499-findings");
+    let (dir, file, _) = starter_project(&tmp);
+    damage(&file);
+    let mut pages: Vec<_> = std::fs::read_dir(dir.join("pages"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect();
+    pages.sort();
+    let mut edited = std::fs::read(&pages[0]).unwrap();
+    edited.extend_from_slice(b"\n");
+    std::fs::write(&pages[0], edited).unwrap();
+    let before = tree(&dir);
+    for (locale, message) in [
+        (
+            "en",
+            "Update from library is refused: the project has other integrity findings, which keep it read-only; \
+             nothing was written.",
+        ),
+        (
+            "nl",
+            "Bijwerken vanuit de bibliotheek is geweigerd: het project heeft andere integriteitsbevindingen, die het \
+             alleen-lezen houden; er is niets geschreven.",
+        ),
+    ] {
+        let mut s = open(&tmp, locale, None, &dir);
+        assert!(s.damaged_update_offered());
+        match s.dispatch("library.update_damaged", &json!({})) {
+            Outcome::Failed { message: m } => assert_eq!(m, message),
+            other => panic!("{other:?}"),
+        }
+        done(&mut s, "file.close", json!({}));
+    }
+    assert!(strings::set_locale("en"));
+    assert!(tree(&dir) == before, "nothing is written");
+}
+
+/// The save fails (the manifest changed on disk after the open): the update is refused in words, whole in both
+/// languages, and nothing more is written (C53-p4#2).
+#[test]
+fn ft1499_a_save_that_fails_refuses_the_update() {
+    let tmp = Tmp::new("ft1499-save");
+    let (dir, file, _) = starter_project(&tmp);
+    let manifest = dir.join("manifest.json");
+    let original = std::fs::read(&manifest).unwrap();
+    for (locale, message) in [
+        (
+            "en",
+            "Update from library is refused: the update could not be written: the project changed on disk \
+             (manifest.json); merge the change first.",
+        ),
+        (
+            "nl",
+            "Bijwerken vanuit de bibliotheek is geweigerd: het bijwerken kon niet worden weggeschreven: the project \
+             changed on disk (manifest.json); merge the change first.",
+        ),
+    ] {
+        damage(&file);
+        std::fs::write(&manifest, &original).unwrap();
+        let mut s = open(&tmp, locale, None, &dir);
+        assert!(s.damaged_update_offered());
+        let mut changed = original.clone();
+        changed.extend_from_slice(b"\n");
+        std::fs::write(&manifest, &changed).unwrap();
+        let before = tree(&dir);
+        match s.dispatch("library.update_damaged", &json!({})) {
+            Outcome::Failed { message: m } => assert_eq!(m, message),
+            other => panic!("{other:?}"),
+        }
+        assert!(tree(&dir) == before, "nothing is written");
+        done(&mut s, "file.close", json!({}));
+    }
+    std::fs::write(&manifest, &original).unwrap();
+    assert!(strings::set_locale("en"));
+}
+
 /// A library's version of the damaged copy that would break the project (C53-p4#3). Golden A's double-acting cylinder
 /// -203Q1 gets a wire between its two ports, which its definition, damaged and dropped, does not judge; the starter
 /// library's version makes them fluid ports, which no wire may end at (EW-INV-024). The update is refused with the
