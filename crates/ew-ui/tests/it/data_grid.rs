@@ -1120,7 +1120,10 @@ fn a_character_and_enter_in_the_next_frame_commit_the_value() {
     settle(&mut h);
     let shell = h.state().shell();
     let nav = shell.nav(NavKind::Strips).unwrap();
-    assert!(nav.table_mode().and_then(|m| m.edit()).is_none(), "the editor closed");
+    assert!(
+        nav.table_mode().and_then(|m| m.edit()).is_none(),
+        "the editor closed"
+    );
     assert_eq!(shell.table_cell_text(NavKind::Strips, &row, &column), "Q");
     h.state_mut().shell_mut().shutdown();
 }
