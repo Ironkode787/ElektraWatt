@@ -4304,6 +4304,7 @@ pub const KEYS: &[&str] = &[
     "symbol-function-key-taken",
     "symbol-unknown-member",
     "symbol-export-exists",
+    "symbol-saved-new",
     "symbol-invalid-version",
     "symbol-name-required",
     "symbol-provenance-required",

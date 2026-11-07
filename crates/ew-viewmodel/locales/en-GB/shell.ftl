@@ -4681,6 +4681,7 @@ symbol-key-taken = The library already holds a different symbol with the key { $
 symbol-function-key-taken = The library already holds a different function definition with the key { $p0 }. Choose another symbol key.
 symbol-unknown-member = The symbol has a field this version does not know: { $p0 }. Remove or rename it before saving.
 symbol-export-exists = A file with this name already exists. Choose another name.
+symbol-saved-new = Saved { $p0 } as a new symbol; the symbol with the earlier key stays in the library.
 symbol-invalid-version = Use a version as major.minor.patch: { $p0 }.
 symbol-name-required = Give the symbol a name: { $p0 }.
 symbol-provenance-required = Add a licence and source for { $p0 }.

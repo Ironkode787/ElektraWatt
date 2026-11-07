@@ -47,7 +47,7 @@ QET element import and investigation/implementation of EDZ and native EPLAN symb
 | # | Decision |
 |---|---|
 | D1 | A separate editor draft and undo history. Editing a library symbol never mutates already placed project copies. Closing/replacing an unsaved draft requires an explicit discard. |
-| D2 | Preserve format 0.1. Authoring interchange is a separately versioned JSON envelope around existing SymbolDef/FnDef data. Publishing creates ordinary library copies with deterministic IDs and canonical hashes. No migration is required. |
+| D2 | Preserve format 0.1. Authoring interchange is a separately versioned JSON envelope around existing SymbolDef/FnDef data. Publishing creates ordinary library copies with canonical hashes under the draft's own item identity: UUIDv7s minted at its first publication, kept by the draft, and replaced by new ones when the draft's key differs from the key the library holds for them (as built 2026-11-07, ID-1463, ID-1474). No migration is required. |
 | D3 | Apply [the symbol design standard](../../design/07a-symbol-design-standard.md). Native CPs on 4 mm, graphics on 0.5 mm and text on 1 mm. Numeric off-grid CP edits remain visible as errors and prevent publication; never silently move a pin. |
 | D4 | Use the existing geometry lowering for previews. A–H are derived, never eight separately maintained drawings. Keep pin identities and readable text. GraphicCentre is the initial cross-reference anchor; insertion origin is distinct. |
 | D5 | Validation is shared by GUI, headless authoring and import. Check finite bounded geometry, reference integrity, unique indices, CP mapping/discipline, the grid, slots, anchors, names and provenance. Errors block publishing; advice does not. This is editor validation, not WP-S7.04's library lint rules. |
@@ -124,7 +124,7 @@ Sources: handoff WP-S2.10; ADR-0011/0027; docs 07/16/16a; the neighbouring speci
   This includes API authoring, GUI/headless actions, archive/XML boundaries, QET conversion-report round trips,
   pin-mapping preservation, repeated scratch-page creation and the opt-in manufacturer EDZ sample.
 - Formatting, generated-file settlement, clippy, documentation/doctests and fuzz-target compilation passed.
-  The remaining policy failures are exactly the dependency gates below. No snapshot baselines were changed.
+  The remaining policy failures were exactly the dependency gates below (decided by ID-1460, as built 2026-11-07). No snapshot baselines were changed.
 - Offscreen scripts passed at 1280×800 and 1920×1080: six-pin drawing, A–H, pointer drawing, off-grid feedback,
   export, library save and embedded placement. Separate scripts passed for assigned functions, two successive
   scratch pages and the manufacturer's EDZ preview (33 editable candidates). Images/transcripts remain local.
@@ -170,7 +170,8 @@ source and optional-pin flags are visible without JSON. Printing a designation d
 The correction set has targeted regressions and offscreen checks at 1280×800 and 1920×1080. Independent review
 subsequently found source-identity collisions, incomplete drag displacement and ambiguous choices. Follow-up
 fixes and regression tests cover those findings, whole-degree arcs and clearing stale errors on undo/redo.
-The owner's dependency-review release block remains in force; no exemption was added.
+As built 2026-11-07: the dependency-review block is decided by ID-1460 (the five crates replaced, see above); no
+exemption was added.
 
 ## 11. Orchestrator brief audit (2026-11-05)
 
@@ -188,15 +189,15 @@ with the smaller synthetic fixture in §6. It is an implementation audit, not an
 | G-M2.5-01: reference power block, saved, placed, wired and reported | Development acceptance now follows the private picture: five upper plug pins, FE at right, supply labels, device-tag/xref fields and left-edge anchor, adapted to the native grid. The actual-window test draws it, assigns M/M/PE/L+/L+/FE, checks A–H, publishes, places, wires all six pins, saves/reopens and verifies report/SQL endpoints. A built-binary script also draws, saves and wires it. The private picture is not committed; the reusable fixture is generic. Final candidate acceptance remains pending. |
 | G-M2.5-02: off-grid refusal at save, in words; fine graphics saved | Actual-window test attempts Save with a CP at 4.5 mm, asserts the complete refusal and absence of a library, then fixes the pin and saves graphics at 0.5 mm. |
 | G-M2.5-03: picture-only blind personas | Two fresh development personas completed the picture task with all three hints: QET user 73 turns/21 frictions, keep 5/10; EPLAN designer 116 turns/34 frictions, keep 4/10. They found material usability/data issues; this is not a passing release verdict. Fix verification and fresh retest precede the formal candidate round. Author-operated screenshots are separate evidence. |
-| G-M2.5-04: release pipeline, advisories/fuzz/hostile inputs/network policy | **Blocked/pending:** the owner's dependency-review block remains. Targeted tests are not the end-to-end release dossier. |
+| G-M2.5-04: release pipeline, advisories/fuzz/hostile inputs/network policy | **Pending:** the dependency-review block is decided by ID-1460 (as built 2026-11-07). Targeted tests are not the end-to-end release dossier. |
 | G-M2.5-05: tutorial/reference, offline F1, release notes | Guide pages and SUMMARY entries exist. This revision adds editor/action F1 routing and release-note entries. **Pending:** verify the final release's offline bundle and CI documentation gate. |
 | G-M2.5-06: formats and migration | No changes to the 0.1 project/library format; no migration is introduced. **Pending:** the release fixture corpus on the 0.2.0 candidate. |
 | G-M2.5-07: still-applicable G-M2 and AC-24 | **Pending** on the 0.2.0 candidate; no full regression-gate claim. |
 | Owner additions: design standard, AI authoring, QET/EPLAN import | Standard, schema/template/validate/publish and QET element import are implemented. EDZ/PXF and direct SLK have the explicit supported subsets above. Native binary macros and full EPLAN electrical/part semantics remain unsupported. |
 
 Remaining work is verification of the playtest fixes and retest, followed by the release-candidate offline
-bundle, fixture/regression/pipeline evidence and owner dependency review. Do not describe the release gate as
-passed or merge into working/release branches before those decisions and gates.
+bundle and fixture/regression/pipeline evidence (the dependency review: ID-1460, as built 2026-11-07). Do not
+describe the release gate as passed or merge into working/release branches before those decisions and gates.
 
 ### Follow-up design details
 

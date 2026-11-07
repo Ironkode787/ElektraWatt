@@ -1165,3 +1165,47 @@ fn the_file_menu_names_save_symbol_and_keeps_save_project_while_the_editor_shows
     assert!(shell.symbol_editor().unwrap().stored());
     shell.shutdown();
 }
+
+#[test]
+fn saving_a_published_draft_under_another_key_adds_a_symbol_and_says_so() {
+    let tmp = Tmp::new("symbol-renamed-key");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    let library = json!({"directory":tmp.0.join("symbols.ewlib")});
+    drawn(&mut shell, "example.a", "A");
+    done(&mut shell, "symbol.save", library.clone());
+    let first = shell.symbol_editor().unwrap().draft.identity.clone();
+    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
+    doc["key"] = json!("example.b");
+    doc["version"] = json!("1.0.1");
+    done(&mut shell, "symbol.replace", json!({"document":doc}));
+    done(&mut shell, "symbol.save", library.clone());
+    assert_eq!(
+        shell.toast().unwrap().text,
+        "Saved example.b as a new symbol; the symbol with the earlier key stays in the library."
+    );
+    let editor = shell.symbol_editor().unwrap();
+    assert_ne!(editor.draft.identity, first);
+    assert!(!editor.dirty());
+    // The draft keeps its new identity: saving it again adds nothing.
+    done(&mut shell, "symbol.save", library);
+    done(
+        &mut shell,
+        "symbol.new",
+        json!({"key":"example.next","discard":true}),
+    );
+    let mut keys: Vec<_> = shell
+        .symbol_editor()
+        .unwrap()
+        .sources
+        .iter()
+        .filter(|s| s.library.is_some())
+        .filter_map(|s| s.key.clone())
+        .filter(|k| k.starts_with("example."))
+        .collect();
+    keys.sort();
+    assert_eq!(keys, ["example.a", "example.b"]);
+    shell.shutdown();
+}

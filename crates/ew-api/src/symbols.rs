@@ -36,7 +36,7 @@ pub const DRAFT_LIBRARY: Uuid = Uuid::from_u128(0x791cacd0_f0e4_57af_b580_b36445
 pub struct SymbolDraft {
     /// Must be `ew.symbol/1`.
     pub format: String,
-    /// Stable human key. The publisher derives IDs from this key.
+    /// Stable human key. The item IDs are the draft's `identity`, not derived from the key.
     pub key: String,
     /// Semantic version; changing published content requires a new version.
     pub version: String,
@@ -62,7 +62,8 @@ pub struct SymbolDraft {
 }
 
 /// The item IDs of a draft's library records, one per kind (ID-1463): UUIDv7s minted at the draft's first
-/// publication, and kept only by a draft that comes from those items under their key.
+/// publication, and kept only by a draft that comes from those items under their key. A draft whose key differs from
+/// the key the target library holds for them publishes new items instead (ID-1474).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DraftIdentity {
@@ -290,24 +291,41 @@ pub fn export_with(vfs: &dyn ew_store::Vfs, draft: &SymbolDraft, path: &Path) ->
     let id = Id::<()>::try_new_v7().map_err(input)?;
     let temporary = parent.join(format!(".symbol-{id}.tmp"));
     vfs.create_new(&temporary, &bytes).map_err(input)?;
+    // Whether this call put the file at `path`: only that file is ever removed again.
+    let mut ours = false;
     let placed = vfs
         .sync(&temporary)
         .and_then(|()| match vfs.rename_noreplace(&temporary, path) {
+            Ok(()) => {
+                ours = true;
+                Ok(())
+            }
             Err(e) if e.kind() == ErrorKind::Unsupported => match vfs.stat(path) {
                 Ok(_) => Err(ErrorKind::AlreadyExists.into()),
-                Err(e) if e.kind() == ErrorKind::NotFound => vfs.rename(&temporary, path),
+                Err(e) if e.kind() == ErrorKind::NotFound => {
+                    // A failed rename moved nothing.
+                    vfs.rename(&temporary, path)?;
+                    ours = true;
+                    Ok(())
+                }
                 Err(e) => Err(e),
             },
-            moved => moved,
-        })
-        .and_then(|()| vfs.sync_dir(parent));
+            Err(e) if e.kind() == ErrorKind::AlreadyExists => Err(e),
+            Err(e) => {
+                // A move by link and unlink can fail after the link, which only succeeds where nothing was: then the file
+                // there is ours.
+                ours = vfs.read(path).is_ok_and(|held| held == bytes);
+                Err(e)
+            }
+        });
+    let placed = placed.and_then(|()| vfs.sync_dir(parent));
     let _ = vfs.remove_file(&temporary);
     match placed {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == ErrorKind::AlreadyExists => Err(input("symbol-export-exists")),
         Err(e) => {
-            // A move by link and unlink, or an unsynced name, can fail after the file is placed: it goes too.
-            if vfs.read(path).is_ok_and(|held| held == bytes) {
+            // An unsynced name of a file this call placed: it goes too.
+            if ours {
                 let _ = vfs.remove_file(path);
                 let _ = vfs.sync_dir(parent);
             }
@@ -388,7 +406,8 @@ impl SymbolDraft {
         if bytes.len() as u64 > MAX_BYTES {
             return Err(input("symbol-input-limit"));
         }
-        let text = std::str::from_utf8(bytes).map_err(input)?;
+        // Bytes that are no text (an archive, say) are no authoring document: refused in words, not by the decoder.
+        let text = std::str::from_utf8(bytes).map_err(|_| input("symbol-input-object"))?;
         let value = ew_schema::parse_value(text).map_err(input)?;
         let draft: Self = serde_json::from_value(value).map_err(input)?;
         if draft.format != FORMAT {
@@ -505,6 +524,53 @@ impl SymbolDraft {
                 .enumerate()
                 .map(|(i, e)| (format!("/function/cps/{i}"), e)),
         );
+        // And of every nested object that publishes with them (M25-p4#5).
+        for (i, p) in self.symbol.graphics.iter().enumerate() {
+            let (tag, extra, stroke) = match p {
+                Primitive::Line(x) => ("line", &x.extra, x.stroke.as_ref()),
+                Primitive::Polyline(x) => ("polyline", &x.extra, x.stroke.as_ref()),
+                Primitive::Rect(x) => ("rect", &x.extra, x.stroke.as_ref()),
+                Primitive::Circle(x) => ("circle", &x.extra, x.stroke.as_ref()),
+                Primitive::Ellipse(x) => ("ellipse", &x.extra, x.stroke.as_ref()),
+                Primitive::Arc(x) => ("arc", &x.extra, x.stroke.as_ref()),
+                Primitive::Polygon(x) => ("polygon", &x.extra, x.stroke.as_ref()),
+                Primitive::Text(x) => ("text", &x.extra, None),
+                Primitive::Image(x) => ("image", &x.extra, None),
+                _ => continue,
+            };
+            members.push((format!("/symbol/graphics/{i}/{tag}"), extra));
+            if let Some(s) = stroke {
+                members.push((format!("/symbol/graphics/{i}/{tag}/stroke"), &s.extra));
+            }
+        }
+        let slots = self.symbol.text_slots.iter().map(|s| &s.extra);
+        members.extend(
+            slots
+                .enumerate()
+                .map(|(i, e)| (format!("/symbol/text_slots/{i}"), e)),
+        );
+        let arrangements = self.symbol.arrangements.iter().map(|a| &a.extra);
+        members.extend(
+            arrangements
+                .enumerate()
+                .map(|(i, e)| (format!("/symbol/arrangements/{i}"), e)),
+        );
+        let links = self.symbol.link_points.iter().map(|l| &l.extra);
+        members.extend(
+            links
+                .enumerate()
+                .map(|(i, e)| (format!("/symbol/link_points/{i}"), e)),
+        );
+        for (i, link) in self.function.internal.iter().enumerate() {
+            members.push((format!("/function/internal/{i}"), &link.extra));
+            if let schema::InternalKind::PassThrough(spec) = &link.kind {
+                members.push((format!("/function/internal/{i}/kind/pass_through"), &spec.extra));
+            }
+        }
+        members.push(("/function/flags".into(), &self.function.flags.extra));
+        if let Some(r) = &self.function_ref {
+            members.push(("/function_ref".into(), &r.extra));
+        }
         for (path, extra) in members {
             for name in extra
                 .keys()
@@ -741,23 +807,49 @@ impl SymbolDraft {
 
     /// Publish through the library's existing lock and generation transaction. The first publication mints the
     /// draft's identity and keeps it in the draft. A key the library holds for another item is refused; the owned
-    /// function definition keeps the version the library holds while its content is unchanged (ID-1463).
+    /// function definition keeps the version the library holds while its content is unchanged (ID-1463). An item of
+    /// the identity that the library holds under another key is not renamed: the draft publishes a new item with a
+    /// new identity, which it takes, and the report names it as added (ID-1474).
     ///
     /// # Errors
     /// Validation, unresolved assigned function, stale function, a key of another item, or the writer's
     /// lock/version/I/O errors. The draft and the library are then unchanged.
     pub fn publish(&mut self, registry: &mut Registry, library: Uuid) -> Result<WriteReport, Error> {
         self.check_function(registry)?;
-        let identity = self.publication_identity()?;
-        let mut docs = self.materialise(library, &identity, &self.version)?;
+        let mut identity = self.publication_identity()?;
         let function_key = format!("{}.function", self.key);
-        let owned = identity.fndef.filter(|_| self.function_ref.is_none());
-        let mut held_function = None;
-        let symbols = registry.documents(library, schema::Kind::Symbol);
-        for doc in symbols
+        let held = registry.documents(library, schema::Kind::Symbol);
+        let held: Vec<_> = held
             .into_iter()
             .chain(registry.documents(library, schema::Kind::Fndef))
+            .collect();
+        // Whether the library holds `item` under a key other than `key`.
+        let elsewhere = |item: Uuid, key: &str| {
+            held.iter().any(|d| match d {
+                LibDocument::Symbol(s) => s.item_id.as_uuid() == item && !own_key(&s.item.meta, key),
+                LibDocument::Fndef(f) => f.item_id.as_uuid() == item && !own_key(&f.item.meta, key),
+                _ => false,
+            })
+        };
+        if elsewhere(identity.symbol.as_uuid(), &self.key) {
+            identity = DraftIdentity {
+                symbol: Id::try_new_v7().map_err(input)?,
+                fndef: None,
+            };
+        }
+        if identity
+            .fndef
+            .is_some_and(|f| elsewhere(f.as_uuid(), &function_key))
         {
+            identity.fndef = None;
+        }
+        if self.function_ref.is_none() && identity.fndef.is_none() {
+            identity.fndef = Some(Id::try_new_v7().map_err(input)?);
+        }
+        let mut docs = self.materialise(library, &identity, &self.version)?;
+        let owned = identity.fndef.filter(|_| self.function_ref.is_none());
+        let mut held_function = None;
+        for doc in held {
             let (item, key, function, ours) = match &doc {
                 LibDocument::Symbol(s) => (
                     s.item_id,
@@ -838,6 +930,11 @@ fn kept_identity(symbol: &LibCopy<SymbolDef>, function: &LibCopy<FnDef>, key: &s
             && own(function.item.meta.key.as_ref(), &format!("{key}.function")))
         .then(|| Id::from_uuid(function.item_id.as_uuid())),
     })
+}
+
+/// Whether an item's metadata names it `key`.
+fn own_key(meta: &schema::ItemMeta, key: &str) -> bool {
+    meta.key.as_ref().is_some_and(|k| k.as_str() == key)
 }
 
 fn bounded(v: &Value, depth: usize) -> bool {
@@ -1077,7 +1174,7 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
     }
     let eplan = matches!(
         ext.as_str(),
-        "edz" | "pxf" | "ema" | "ems" | "esl" | "slk" | "xml"
+        "edz" | "zip" | "7z" | "pxf" | "ema" | "ems" | "esl" | "slk" | "xml"
     );
     let bytes = read_bounded_file(
         path,
