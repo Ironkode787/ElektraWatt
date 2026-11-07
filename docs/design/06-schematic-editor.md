@@ -521,7 +521,8 @@ gets the same route as the mouse.
 amended. **Routing is one pure function, `ew_commands::route::auto_route`, re-exported by `ew-api`, and the tools call it;
 the commands do not.** The Wire tool computes its ghost with it and passes the result as the `route` of
 `connection.draw`, which **stores the route it is given and stays unchanged**: an empty route stays route-less and is
-drawn provisionally by `ew-scene`, so every connection of Golden A (none has a stored route) and its derived output are
+drawn provisionally by `ew-scene`, so every connection of Golden A (none had a stored route then; folio 203's sixteen
+fluid lines have one since FT-1315) and its derived output are
 untouched. `rep.move` keeps moving the route's vertices by `geometry::follow_end` (WP-S2.04 §5.2); a re-solve of a moved connection
 stays FT-18. A script therefore gets the mouse's route by calling the same function and passing the result, not by a
 command that routes. **Normaliser 7 (connection split) works on routes**, so it splits a connection that has a stored
@@ -534,6 +535,16 @@ route-less, and a routed connection drawn on the same line is split first. *As b
 normaliser 7 places its ends by `ew_derive::rep_cp_end`. Next to an end off the sheet the drawn wire runs along the
 edge, where neither normaliser 7 nor EW-TERM-006 sees it; a wire ending at a strip segment's terminal point is not
 split.
+
+*Decided for WP-S2.19 (2026-11-07, cycle 53; decision log ID-1498, [ADR-0033](../adr/0033-schematic-routing-model.md)).*
+The two paragraphs above are superseded when WP-S2.19 lands. A connection is drawn along its stored route, the full
+vertex list with both ends; the provisional path is retired, and a page connection without a route is *unrouted*:
+drawn as a dashed straight line, not split by normaliser 7, not read by EW-TERM-006, reported by EW-CORE-073. The
+commands still never route (ID-564): the router, now `ew_derive::routing` reached through `ew_api::routing`, runs in
+the tools and in Route page and Route selection, which store their plan with `connection.route_many`; autoconnect
+hints store their straight run; `rep.move` takes the routes the Select tool re-solved (FT-18). A new row 18,
+*interruption-point form*, gives an interruption point drawn with EW's IP symbol the arrow form of its direction
+([WP-S2.19 specification](../plan/specs/WP-S2.19-schematic-autorouter.md) D16).
 
 *As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* Rows 1 and 16 are built: N-FL-1
 as `valve_functions`, first in `ORDER`, and N-FL-4 as `drives_link`, after `bus_ports` (doc 11 §4.2 as built); row 1
@@ -942,6 +953,11 @@ stateDiagram-v2
 - **Keyboard wiring** (FR-UI-015): arrow keys move the grid cursor, `]` and `[` jump to the next and previous CP,
   `N` to the next unconnected CP, Enter acts as a click. A kittest flow draws -102F1:2 → -102F2:24VDC#1 on folio 102
   without the pointer.
+- *Decided for WP-S2.19 (2026-11-07, cycle 53; decision log ID-1498).* The auto-route preview is the page router's
+  route for the one new wire against the page as drawn (`ew_api::routing::route_one`); it keeps every hard rule of
+  [ADR-0033](../adr/0033-schematic-routing-model.md), so the graded passes over texts and bodies are removed. Without a
+  clear route the ghost is the unrouted dashed line, the HUD says so, and the wire is stored unrouted unless the user
+  fixed a bend. A junction that already joins three wires is not an end target.
 
 ### 4.5 Other tools
 
@@ -1075,6 +1091,22 @@ the segments next to a moved CP are re-solved) is not built in WP-S2.04: a move 
 moved CPs (`rep.move`, §5.7), and the re-solve stays FT-18.
 
 *As built (cycle 26, WP-S2.04 part 2; decision log ID-635).* `auto_route` is an exact backward Dijkstra over (grid node, heading) from the end, then a forward walk from the start that takes the lowest-ranked move staying on a least path: not A*, but the same least path by (bends, length, move sequence). Ends are exact and interior corners on the grid (a corner next to an end takes that end's coordinate, so a connection point up to 1 nm off a rational grid stays valid); collinear vertices are removed. **Size limit:** the search area holds at most `MAX_NODES` = 262,144 grid nodes (2^18; an A0 sheet at a 2.5 mm grid has 160,412); a larger area, an index at the edge of `i64` and an area without a path all give the L route; the backward search stops once its distance passes the start's. Known minor case: after a fixed bend the router knows no incoming direction and can double back over the last segment (FT-437). Crossings are drawn as hops by `ew-scene` when `project.drawing.set` sets `crossings` to `hops`: each proper crossing of a horizontal and a vertical segment of two connections, a half circle of 1 mm radius above the horizontal one, a crossing closer than 2 mm to a segment end or another hop drawn plain.
+
+*As built since cycles 38 and 39 (FT-706, FT-705, FT-758; decision log ID-873, ID-888, ID-898), noted 2026-11-07.* The obstacles are no longer
+the bodies alone. The Wire tool's request blocks the other representations' bodies and black-box outlines grown by one
+grid step, their texts (tags, slot texts, pin texts) grown by a quarter step, the frame's bands outside the drawing
+area, the vertices and tracks of the other wires (a right-angle crossing stays allowed) and every other CP with its
+stub; the two ends' own rectangles block except along a CP's escape corridor. The tool tries the passes Clear, then
+without the texts, then the bodies alone, each in an area of 4 and then 16 grid steps around the ends, after FT-705's
+direct route through a free representation in line; only without any route does it draw the L and say so.
+
+*Decided for WP-S2.19 (2026-11-07, cycle 53; decision log ID-1498, [ADR-0033](../adr/0033-schematic-routing-model.md)).*
+This section's router is replaced by the page router of the
+[WP-S2.19 specification](../plan/specs/WP-S2.19-schematic-autorouter.md) §5: the search moves to
+`ew_derive::routing`; only the Clear pass remains, as hard rules; integer costs for steps, bends, crossings and
+parallel mates; a page or a selection routed in a fixed order (supply potentials first, then by span) with at most two
+rip-up rounds; no fallback L: a connection without a clear route stays unrouted and is reported. Step 4 of the list
+above (re-solve after a move, FT-18) is built in the Select tool, which passes the re-solved routes to `rep.move`.
 
 ### 5.5 Physical wires behind junctions and IPs
 

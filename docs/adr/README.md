@@ -2,7 +2,7 @@
 
 **Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt document set
 
-**Purpose.** This page lists every architecture decision record (ADR) of ElektraWatt (EW) with its status and the decision in one line. 27 ADRs are Accepted and 5 are Proposed. Status and date are read from each file; "amended 2026-10-18" means the Accepted record was revised in the consistency pass of that date; "2026-10-19" marks the amendments from the sixth implementation cycle.
+**Purpose.** This page lists every architecture decision record (ADR) of ElektraWatt (EW) with its status and the decision in one line. 28 ADRs are Accepted and 5 are Proposed. Status and date are read from each file; "amended 2026-10-18" means the Accepted record was revised in the consistency pass of that date; "2026-10-19" marks the amendments from the sixth implementation cycle.
 
 | ADR | Title | Status | Date | Decision |
 |---|---|---|---|---|
@@ -12,7 +12,7 @@
 | [0004](0004-identity-uuidv7-uuidv5.md) | Identity: UUIDv7 for authored records, UUIDv5 for instantiated, imported and generated ones | Accepted (amended 2026-10-18) | 2026-10-17 | UUIDv7 for authored records; UUIDv5 for instantiated, imported and generated ones |
 | [0005](0005-value-types-nm-dec3-mltext.md) | Values: i64 nm coordinates, rational grids, `Dec3` quantities, `MlText` | Accepted (amended 2026-10-18) | 2026-10-17 | i64 nm coordinates, rational grids, `Dec3` quantities, `MlText` |
 | [0006](0006-function-device-representation-model.md) | Function / Device / Representation model with typed device aspects | Accepted (amended 2026-10-18) | 2026-10-17 | Function / Device / Representation model with typed device aspects |
-| [0007](0007-explicit-connections-and-autoconnect.md) | Connection model: explicit connections and junction sequences; autoconnect as an editing aid | Accepted (amended 2026-10-18) | 2026-10-17 | Explicit connections and junction sequences are the model; autoconnect is an editing aid |
+| [0007](0007-explicit-connections-and-autoconnect.md) | Connection model: explicit connections and junction sequences; autoconnect as an editing aid | Accepted (amended 2026-10-18; 2026-11-07: connect on move, ID-1498) | 2026-10-17 | Explicit connections and junction sequences are the model; autoconnect is an editing aid |
 | [0008](0008-transactions-undo-preview.md) | Transactions, undo/redo and preview-as-fork | Accepted (amended 2026-10-18, 2026-10-21, 2026-10-22, 2026-10-23: a transaction carries assets; 2026-10-24: the `HumanOnly` rule covers undo and redo, and the asset purge as a `HumanOnly` marker line, notes) | 2026-10-17 | Command, Transaction, Op layers; undo/redo; preview as a fork of the model |
 | [0009](0009-invariant-catalogue.md) | Invariant catalogue: structural vs configurable prevent rules; lenient import | Accepted (amended 2026-10-18, 2026-10-19, 2026-10-21, 2026-10-22: a historic released revision without a checker; released revisions immutable as EW-INV-020; the `LibRef` keep-alive as the delete-time rule EW-INV-021; 2026-10-23: EW-INV-022 and EW-INV-023 specified for page items and structure boxes) | 2026-10-17 | Structural invariants vs configurable prevent rules; lenient import |
 | [0010](0010-project-storage-jsonl-directory.md) | Project storage: UUID-named JSONL directory, manifest-last save, external journal, lock file | Accepted (amended 2026-10-18, 2026-10-20) | 2026-10-17 | UUID-named JSONL directory, manifest-last save, external journal, lock file |
@@ -38,6 +38,7 @@
 | [0030](0030-legal-steward-cra-role-support-signing.md) | Legal steward, CRA role, support period and signing identity | Proposed (amended 2026-10-22, ID-454; 2026-11-02: the steward's processes and signing are 1.0's, ID-1187) | 2026-10-17 | Legal steward, CRA role, support period and signing identity (pending) |
 | [0031](0031-design-language-and-task-ordered-command-bar.md) | Design language and the task-ordered command bar | Accepted (amended 2026-10-30: no macOS menu bar, ID-880) | 2026-10-28 | Design language (doc 16a) with the owner-approved mockup as visual reference, one token source, a single-row task-ordered command bar, Volt-blue accent, Tabler icons |
 | [0032](0032-per-project-text-styles.md) | Per-project text styles as overrides of the built-in table | Accepted | 2026-10-30 | A project stores text-style overrides in `ProjectSettings.text_styles` (absent: the built-in table, the 0.94 mm small styles kept); new projects write `cp.small` and `marker` at 7 px; one effective table for scene, exports and checks; no migration |
+| [0033](0033-schematic-routing-model.md) | Schematic routing: stored routes written by one page router, unrouted connections and one route convention | Accepted | 2026-11-07 | A connection is drawn along its stored route, the full vertex list with both ends; one deterministic page router in `ew-derive` writes routes that never break the hard rules, through `ew-api`; a connection without a route is unrouted, drawn dashed and reported; interruption points take the arrow form of their direction |
 
 ## How to add an ADR
 
