@@ -116,7 +116,9 @@ The window and `.ewui` scripts share these actions:
 
 Action coordinates are **millimetres**, unlike JSON document coordinates. Placement snaps the insertion point to
 the destination page grid; it never moves a pin within the symbol. A different symbol/page grid is refused
-before changing the project; use **Place on a new page with its grid**. Replacing or opening over a dirty draft
+before changing the project, and the refusal offers a new page with the symbol's grid: **Place on a new page with
+its grid** (`symbol.new_page`) places the published symbol there and selects it while the draft is saved to a library
+and unchanged since, and **Test on a new page** places a test copy otherwise. Replacing or opening over a dirty draft
 requires `discard: true`; `symbol.close` keeps the draft unless it has `discard: true`, and `symbol.new` without a
 key or name returns to it, or with `discard: true` starts a fresh draft. `app.quit` with `discard: true` discards an unsaved draft. `ui.describe` and the script state expose the open editor and
 validation findings. [The tutorial](../tutorials/symbol-editor.md) includes a complete six-pin example.

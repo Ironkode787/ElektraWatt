@@ -1395,7 +1395,81 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
     shell.shutdown();
 }
 
-/// ID-1477 (2): a new free text is centred on its click, in the small style pin designations use until a style is
+//// M25-p7#2 (ID-1477 (1)): the editor's offer for a draft saved to a library and unchanged since places the published
+/// symbol on a new page with its grid and selects it; for any other draft it is Test on a new page, and
+/// `symbol.new_page` is refused in words.
+#[test]
+fn the_editors_offer_places_the_published_symbol_only_while_the_draft_is_as_saved() {
+    let tmp = Tmp::new("symbol-offer-published");
+    let dir = tmp.0.join("project.ew");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
+    drawn(&mut shell, "example.offered", "Offered");
+    let not_published = "Symbol editor: The symbol is not in a library as drawn. Save it to a library first.";
+    assert_eq!(shell.symbol_editor().unwrap().published(), None);
+    assert_eq!(failed(&mut shell, "symbol.new_page", json!({})), not_published);
+    done(
+        &mut shell,
+        "symbol.save",
+        json!({"directory": tmp.0.join("offered.ewlib")}),
+    );
+    assert!(
+        shell
+            .symbol_editor()
+            .unwrap()
+            .published()
+            .is_some_and(|a| a.starts_with("library:"))
+    );
+    // An edit makes it a draft again; its undo makes it the published one.
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"line","x":0,"y":4,"x2":4,"y2":4}),
+    );
+    assert_eq!(shell.symbol_editor().unwrap().published(), None);
+    done(&mut shell, "symbol.undo", json!({}));
+    assert!(shell.symbol_editor().unwrap().published().is_some());
+    failed(&mut shell, "symbol.place", json!({"x":40,"y":40}));
+    assert!(shell.symbol_editor().unwrap().offer_new_page);
+    let pages = shell.page_labels().len();
+    let recorded = shell.recorded_commands().len();
+    done(&mut shell, "symbol.new_page", json!({}));
+    assert_eq!(shell.page_labels().len(), pages + 1);
+    assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1));
+    let cmds: Vec<&str> = shell.recorded_commands()[recorded..]
+        .iter()
+        .map(|c| c.cmd.as_str())
+        .collect();
+    assert_eq!(cmds, ["page.create", "device.place"]);
+    let selected = &shell.selection().items;
+    assert_eq!(selected.len(), 1);
+    assert_ne!(
+        Some(selected[0].0.to_string()),
+        shell.current_page().map(|p| p.uuid_text()),
+        "the symbol is selected, not its page"
+    );
+    assert_eq!(
+        shell.toast().map(|t| t.text.clone()).as_deref(),
+        Some("Symbol placed on page 2.")
+    );
+    done(&mut shell, "file.save", json!({}));
+    shell.shutdown();
+    // The project embeds the published symbol under its own key, no test copy.
+    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let q = session.query();
+    let keys: Vec<String> = q
+        .symbols()
+        .iter()
+        .filter_map(|(_, s)| s.item.meta.key.as_ref().map(ToString::to_string))
+        .filter(|k| k.starts_with("example.offered"))
+        .collect();
+    assert_eq!(keys, ["example.offered"]);
+}
+
+// ID-1477 (2): a new free text is centred on its click, in the small style pin designations use until a style is
 /// chosen in the draft, then in the style chosen last; a text may hold a line break; a style is named in words.
 #[test]
 fn a_new_text_is_centred_in_the_style_chosen_last() {

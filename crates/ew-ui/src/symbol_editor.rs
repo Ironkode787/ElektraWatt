@@ -907,18 +907,25 @@ impl EditorView {
             && !error.lines().all(|line| issues.iter().any(|i| i == line))
         {
             ui.colored_label(t.error.color32(), error);
-            // ID-1477 (1): a page on another connection grid offers a new page with the symbol's grid.
+            // ID-1477 (1): a page on another connection grid offers a new page with the symbol's grid. M25-p7#2: a draft
+            // saved to a library and unchanged places the published symbol; any other is tested, each under its own
+            // command's label.
+            let (text, offer) = if editor.published().is_some() {
+                ("symbol-place-new-page", "symbol.new_page")
+            } else {
+                ("symbol-scratch", "symbol.scratch")
+            };
             if editor.offer_new_page
                 && components::button(
                     ui,
                     Kind::Secondary,
-                    label(strings::Key::run_time("symbol-place-new-page")),
+                    label(strings::Key::run_time(text)),
                     shell.has_project(),
                     0.0,
                 )
                 .clicked()
             {
-                action(events, "symbol.scratch", json!({}));
+                action(events, offer, json!({}));
             }
         }
         ui.separator();
