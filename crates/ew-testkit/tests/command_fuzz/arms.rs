@@ -4162,6 +4162,19 @@ fn valve_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                                 "the valve is at position {:?}, not {expected}",
                                 d.position
                             )),
+                            // ID-1493: a part with a PLC section of role module makes the new device a PLC module,
+                            // which normaliser N0 attaches to the project's only station when the module has no
+                            // station ancestor (WP-S1.21 D4).
+                            [] if after.devices().iter().any(|(id, d)| {
+                                !before.devices().contains(id)
+                                    && d.aspects.plc_module.is_some()
+                                    && d.parent
+                                        .and_then(|s| after.devices().get(s))
+                                        .is_some_and(|s| s.aspects.plc_station.is_some())
+                            }) =>
+                            {
+                                Ok(())
+                            }
                             other => Err(format!("{} new children of the module, not one", other.len())),
                         }
                     }),

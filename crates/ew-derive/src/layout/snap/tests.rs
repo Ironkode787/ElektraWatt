@@ -362,6 +362,12 @@ fn sn6_strips_keep_their_brackets() {
 
 /// A random non-overlapping rail: items laid from the start with random gaps.
 fn rail() -> impl Strategy<Value = (i128, Vec<RailItem>)> {
+    rail_of(0..=8)
+}
+
+/// [`rail`] with a number of items in `count` (ID-1493: the swap test draws a rail with an item rather than reject
+/// one without, which aborted at the deep nightly's case count).
+fn rail_of(count: std::ops::RangeInclusive<usize>) -> impl Strategy<Value = (i128, Vec<RailItem>)> {
     (
         100i128..=800,
         prop::collection::vec(
@@ -374,7 +380,7 @@ fn rail() -> impl Strategy<Value = (i128, Vec<RailItem>)> {
                 0i128..=6,
                 any::<bool>(),
             ),
-            0..=8,
+            count,
         ),
     )
         .prop_map(|(len, raw)| {
@@ -468,8 +474,7 @@ proptest! {
     /// Swap: a placement of the rail dropped anywhere either refuses or keeps every other item's order, moves no
     /// locked placement and leaves the arrangement within the rail without new overlaps.
     #[test]
-    fn swap_keeps_the_rail_well_formed((len, items) in rail(), pick in 0usize..8, at in 0i128..=800) {
-        prop_assume!(!items.is_empty());
+    fn swap_keeps_the_rail_well_formed((len, items) in rail_of(1..=8), pick in 0usize..8, at in 0i128..=800) {
         let m = items[pick % items.len()];
         if let Ok(r) = resolve(&items, len, m, at * MM, SnapMode::Swap) {
             for (p, _) in &r.moved {

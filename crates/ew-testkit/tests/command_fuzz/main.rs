@@ -1659,8 +1659,31 @@ fn rep_transform_of_a_black_box_keeps_the_centre_of_its_bounding_box() {
 /// counts N-FL-1's functions.
 #[test]
 fn device_create_with_a_valve_part_counts_its_valve_functions() {
-    let input: &[u8] =
-        include_bytes!("../../../../fuzz/regressions/command_sequence/device-create-valve-part-functions");
+    replay_drawing(
+        include_bytes!("../../../../fuzz/regressions/command_sequence/device-create-valve-part-functions"),
+        r#"{"cmd":"device.create","params":{"letter":"A","main_fndef":"2c38898e-6848-5acc-95e5-d8c5b8f702ab","parts":[{"part":{"copy":"2b23f42b-b502-5f8b-aab9-6200eb76adcf"},"qty":"1"}]}}"#,
+    );
+}
+
+/// Deep nightly finding (ID-1493; `fuzz/regressions/command_sequence/valve-add-plc-module-part-attached-to-station`,
+/// seed 365 072 220 161, step 2): `valve.add` on Golden A's -203Q1 with the electronic module part 533361, whose PLC
+/// section has the role module, committed, and normaliser N0 made the new device a PLC module and attached it to the
+/// project's only station, as WP-S1.21 D4 says for a module without a station ancestor; the arm expected a child of
+/// -203Q1. The input (the finding's seed, a tape that draws the finding's step first) replays and passes the arm's
+/// oracle, which accepts N0's attachment.
+#[test]
+fn valve_add_of_a_plc_module_part_is_attached_to_the_station() {
+    replay_drawing(
+        include_bytes!(
+            "../../../../fuzz/regressions/command_sequence/valve-add-plc-module-part-attached-to-station"
+        ),
+        r#"{"cmd":"valve.add","params":{"module":"eec54bc9-3da2-5515-bd80-29bf50425002","part":{"part":{"copy":"496e2ad0-fbe2-5733-bb7c-b950ab527a14"},"qty":"1"},"position":21}}"#,
+    );
+}
+
+/// Replays a `command_sequence` input with the cadence of the fuzz target, after asserting that its first step is
+/// still `first` (a remade tape keeps the finding's step only while the generator draws as it did).
+fn replay_drawing(input: &[u8], first: &str) {
     let (seed, rest) = input.split_first_chunk::<8>().expect("a seed");
     let (&steps, tape) = rest.split_first().expect("a step count");
     let seed = u64::from_le_bytes(*seed);
@@ -1673,10 +1696,7 @@ fn device_create_with_a_valve_part_counts_its_valve_functions() {
         false,
         Mix::default(),
     );
-    assert_eq!(
-        step.line(),
-        r#"{"cmd":"device.create","params":{"letter":"A","main_fndef":"2c38898e-6848-5acc-95e5-d8c5b8f702ab","parts":[{"part":{"copy":"2b23f42b-b502-5f8b-aab9-6200eb76adcf"},"qty":"1"}]}}"#
-    );
+    assert_eq!(step.line(), first);
     let cadence = Cadence {
         sample_every: 0,
         check_every: 0,

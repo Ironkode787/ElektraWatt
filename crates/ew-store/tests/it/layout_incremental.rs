@@ -342,18 +342,24 @@ fn run(steps: &[Vec<Edit>]) -> Result<(), String> {
     Ok(())
 }
 
-proptest! {
-    #![proptest_config(ProptestConfig { cases: 8, ..ProptestConfig::default() })]
-
-    #[test]
-    fn incremental_layout_save_equals_full_save(
-        steps in prop::collection::vec(
-            prop::collection::vec((0u8..EDIT_KINDS, any::<u32>(), any::<u32>()), 1..=4),
-            1..=6,
-        )
-    ) {
-        run(&steps).map_err(TestCaseError::fail)?;
-    }
+#[test]
+fn incremental_layout_save_equals_full_save() {
+    // A runner of its own rather than `proptest!`, whose PROPTEST_CASES has no ceiling. ID-1496: at most 2,000 cases
+    // whatever PROPTEST_CASES asks, so that the deep nightly's 20,000 stay within its proptest step's 600 s bound per
+    // test.
+    let mut config = proptest::test_runner::contextualize_config(ProptestConfig {
+        cases: 8,
+        source_file: Some(file!()),
+        ..ProptestConfig::default()
+    });
+    config.cases = config.cases.min(2_000);
+    let steps = prop::collection::vec(
+        prop::collection::vec((0u8..EDIT_KINDS, any::<u32>(), any::<u32>()), 1..=4),
+        1..=6,
+    );
+    proptest::test_runner::TestRunner::new(config)
+        .run(&steps, |steps| run(&steps).map_err(TestCaseError::fail))
+        .unwrap_or_else(|e| panic!("{e}"));
 }
 
 /// Guards the property test against edit kinds that never apply: each applies on the seeded fixture, before or after

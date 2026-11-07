@@ -816,11 +816,14 @@ fn incremental_partition_equals_cold() {
     // `contextualize_config` applies the PROPTEST_* variables (the deep nightly's PROPTEST_CASES) that the
     // `proptest!` macro applies itself and a hand-built runner would otherwise ignore. Twelve cases per gate;
     // the deep nightly (CI-N-02) runs thousands.
-    let config = contextualize_config(Config {
+    let mut config = contextualize_config(Config {
         cases: 12,
         failure_persistence: None,
         ..Config::default()
     });
+    // ID-1496: at most 2,000 cases whatever PROPTEST_CASES asks, so that the deep nightly's 20,000 stay within its
+    // proptest step's 600 s bound per test.
+    config.cases = config.cases.min(2_000);
     let mut runner = TestRunner::new_with_rng(config, TestRng::deterministic_rng(RngAlgorithm::ChaCha));
     let cover = RefCell::new(Coverage::default());
     runner
