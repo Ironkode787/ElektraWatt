@@ -58,8 +58,6 @@ pub(super) const ROLES: &[&str] = &[
     "customer",
     "end_user",
 ];
-/// The yes-or-no choice of a check box (FT-558).
-const TOGGLE: &[&str] = &["false", "true"];
 /// The most findings a dialog lists before "and <n> more".
 const LISTED: usize = 8;
 
@@ -154,7 +152,7 @@ fn role_words(role: &PartyRole) -> String {
 fn field(
     name: &'static str,
     label_key: Key<'static>,
-    choices: &'static [&'static str],
+    choices: &'static super::choices::ClosedChoices,
     value: String,
 ) -> FormField {
     FormField {
@@ -771,8 +769,8 @@ impl ShellModel {
             Vec::new()
         } else {
             vec![
-                field("role", key!("form-revision-checker"), ROLES, "checker".to_owned()),
-                field("typed", key!("form-revision-typed"), &[], String::new()),
+                field("role", key!("form-revision-checker"), &super::choices::ROLES, "checker".to_owned()),
+                field("typed", key!("form-revision-typed"), &super::choices::NONE, String::new()),
             ]
         };
         self.revision.label = label.to_owned();
@@ -916,12 +914,12 @@ impl ShellModel {
         let (body, blocked) = match judged {
             Ok(plan) => {
                 list = self.release_steps(label, &plan);
-                fields.push(field("typed", key!("form-revision-typed"), &[], String::new()));
+                fields.push(field("typed", key!("form-revision-typed"), &super::choices::NONE, String::new()));
                 if plan.git.is_some() {
                     fields.push(field(
                         "git",
                         key!("form-revision-git"),
-                        TOGGLE,
+                        &super::choices::BOOL,
                         "false".to_owned(),
                     ));
                 }
@@ -1197,7 +1195,7 @@ impl ShellModel {
                 fields.push(field(
                     "git",
                     key!("form-revision-git"),
-                    TOGGLE,
+                    &super::choices::BOOL,
                     "false".to_owned(),
                 ));
             }
@@ -1242,8 +1240,8 @@ impl ShellModel {
                 key!("revision-withdraw-title"),
                 key!("dialog-withdraw"),
                 vec![
-                    field("revision", key!("form-revision-revision"), &[], last),
-                    field("reason", key!("form-revision-reason"), &[], String::new()),
+                    field("revision", key!("form-revision-revision"), &super::choices::NONE, last),
+                    field("reason", key!("form-revision-reason"), &super::choices::NONE, String::new()),
                 ],
             );
         }
@@ -1323,7 +1321,7 @@ impl ShellModel {
                 SET_AUTHOR,
                 key!("revision-author-title"),
                 key!("dialog-set-author"),
-                vec![field("role", key!("form-revision-author"), ROLES, current)],
+                vec![field("role", key!("form-revision-author"), &super::choices::ROLES, current)],
             );
         }
         if let Err(e) = self.fill_form(p, &["role"]) {

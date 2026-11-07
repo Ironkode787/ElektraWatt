@@ -71,7 +71,7 @@ impl ShellModel {
             fields: vec![FormField {
                 name,
                 label_key,
-                choices: &[],
+                choices: &super::choices::NONE,
                 options,
                 value,
             }],

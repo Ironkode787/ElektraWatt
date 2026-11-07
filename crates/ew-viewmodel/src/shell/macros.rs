@@ -1131,7 +1131,7 @@ impl ShellModel {
             let field = |name: &'static str, label_key: Key<'static>, value: String| FormField {
                 name,
                 label_key,
-                choices: &[],
+                choices: &super::choices::NONE,
                 options: Vec::new(),
                 value,
             };
@@ -1143,7 +1143,7 @@ impl ShellModel {
                 FormField {
                     name: "kind",
                     label_key: key!("form-macro-kind"),
-                    choices: &MACRO_KINDS,
+                    choices: &super::choices::MACRO_KINDS,
                     options: Vec::new(),
                     value: if page_macro { "page" } else { "window" }.to_owned(),
                 },

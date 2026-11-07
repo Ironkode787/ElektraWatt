@@ -36,6 +36,8 @@ use crate::wizard::Wizard;
 mod canvas_actions;
 // FT-408 and FT-409
 mod creation;
+// FT-1521: the closed sets of a form field's choices.
+pub mod choices;
 // WP-S2.05 part 3
 mod clipboard;
 // WP-S2.04 part 4b: the text and graphic tools' host duties.
@@ -837,24 +839,6 @@ mod save_error_tests {
     }
 }
 
-// map: closed-sets: a new closed set of choices a form dialog shows through choice_text goes in CLOSED_SETS.
-/// The closed sets of choices the form dialogs show through `strings::choice_text` (ID-1278 ruling 2; FT-1262: the
-/// choice-word test reads this one list): New page's types, New structure node's aspects, the yes-or-no fields,
-/// Renumber devices…' scopes and schemes, Save as macro's kinds, the revision forms' roles, the part editor's kinds and a fluid line's kinds.
-#[cfg(test)]
-const CLOSED_SETS: &[&[&str]] = &[
-    PAGE_TYPES,
-    STRUCTURE_KINDS,
-    bulk::BOOL_CHOICES,
-    bulk::DEVICE_SCOPES,
-    bulk::SCHEMES,
-    &macros::MACRO_KINDS,
-    revision::ROLES,
-    &part_dialog::PART_KINDS,
-    // WP-S1.20 T25: a fluid line's line kinds.
-    crate::strings::LINE_KINDS,
-];
-
 #[cfg(test)]
 mod choice_word_tests {
     use crate::strings::{self, choice_text, choice_words};
@@ -893,7 +877,7 @@ mod choice_word_tests {
             .collect();
         assert!(types.iter().any(|t| t == "report"), "{types:?}");
         values.extend(types);
-        for set in super::CLOSED_SETS {
+        for set in super::choices::ALL {
             values.extend(set.iter().map(|v| (*v).to_owned()));
         }
         let nl: std::collections::BTreeSet<&str> = include_str!("../locales/nl-NL/shell.ftl")

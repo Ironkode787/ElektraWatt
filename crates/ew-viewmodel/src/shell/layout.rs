@@ -854,7 +854,7 @@ impl ShellModel {
                 super::FormField {
                     name: "location",
                     label_key: key!("form-enclosure-location"),
-                    choices: &[],
+                    choices: &super::choices::NONE,
                     options: locations
                         .iter()
                         .map(|(id, code)| (id.to_string(), code.clone()))
@@ -864,7 +864,7 @@ impl ShellModel {
                 super::FormField {
                     name: "part",
                     label_key: key!("form-enclosure-part"),
-                    choices: &[],
+                    choices: &super::choices::NONE,
                     options: parts
                         .iter()
                         .map(|o| {
@@ -1019,14 +1019,14 @@ impl ShellModel {
                             super::FormField {
                                 name: "rail",
                                 label_key: key!("form-auto-fill-rail"),
-                                choices: &[],
+                                choices: &super::choices::NONE,
                                 options: rails,
                                 value: rail,
                             },
                             super::FormField {
                                 name: "order",
                                 label_key: key!("form-auto-fill-order"),
-                                choices: &[],
+                                choices: &super::choices::NONE,
                                 options: fill_orders(),
                                 value: "schematic".to_owned(),
                             },

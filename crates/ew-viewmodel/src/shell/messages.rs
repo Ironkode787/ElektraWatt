@@ -597,14 +597,14 @@ impl ShellModel {
                     FormField {
                         name: "reason",
                         label_key: key!("form-reason"),
-                        choices: &[],
+                        choices: &super::choices::NONE,
                         options: Vec::new(),
                         value: String::new(),
                     },
                     FormField {
                         name: "author",
                         label_key: key!("form-author"),
-                        choices: &[],
+                        choices: &super::choices::NONE,
                         options: Vec::new(),
                         value: author,
                     },
