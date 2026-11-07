@@ -634,6 +634,10 @@ pub fn choice_words(value: &str) -> String {
         "cp" => "connection point".to_owned(),
         "slot" => "text slot".to_owned(),
         "link" => "link point".to_owned(),
+        // `symbol.role`'s potential roles, as printed.
+        "l1" | "l2" | "l3" | "l" | "n" | "pe" | "pen" | "fe" | "m" => value.to_uppercase(),
+        "l_plus" => "L+".to_owned(),
+        "l_minus" => "L-".to_owned(),
         other => other.replace('_', " "),
     };
     let mut chars = words.chars();
