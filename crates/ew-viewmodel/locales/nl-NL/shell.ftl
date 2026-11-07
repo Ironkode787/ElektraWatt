@@ -4442,6 +4442,7 @@ symbol-key-taken = De bibliotheek bevat al een ander symbool met de sleutel { $p
 symbol-function-key-taken = De bibliotheek bevat al een andere functiedefinitie met de sleutel { $p0 }. Kies een andere symboolsleutel.
 symbol-unknown-member = Het symbool bevat een veld dat deze versie niet kent: { $p0 }. Verwijder of hernoem het voordat u opslaat.
 symbol-export-exists = Er bestaat al een bestand met deze naam. Kies een andere naam.
+symbol-saved-new = { $p0 } opgeslagen als nieuw symbool; het symbool met de eerdere sleutel blijft in de bibliotheek.
 symbol-invalid-version = Voer een versie in als hoofdversie.subversie.patch: { $p0 }.
 symbol-name-required = Geef het symbool een naam: { $p0 }.
 symbol-provenance-required = Voeg een licentie en bron toe voor { $p0 }.

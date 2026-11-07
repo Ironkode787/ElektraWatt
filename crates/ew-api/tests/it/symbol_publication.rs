@@ -246,6 +246,113 @@ fn unknown_members_block_publication_and_import_extension_keys_do_not() {
 }
 
 #[test]
+fn unknown_members_of_nested_objects_block_publication() {
+    let mut value = serde_json::to_value(block()).unwrap();
+    value["symbol"]["graphics"][0]["rect"]["glow"] = json!(1);
+    value["symbol"]["graphics"][0]["rect"]["stroke"]["wdth"] = json!(1);
+    value["symbol"]["text_slots"][0]["visibl"] = json!(true);
+    value["symbol"]["arrangements"] = json!([{"name":"full","slots":[0],"slotz":[]}]);
+    value["symbol"]["link_points"] = json!([{"name":"a","pos":[0,0],"posn":[0,0]}]);
+    value["function"]["internal"] =
+        json!([{"a":1,"b":2,"kind":{"pass_through":{"opens":true,"open":true}},"note":""}]);
+    value["function"]["flags"] = json!({"n_isolation":true,"n_isolaton":true});
+    let mut reference = value["symbol"]["fndef"].clone();
+    reference["pinned"] = json!(true);
+    value["function_ref"] = reference;
+    let draft = SymbolDraft::parse(&serde_json::to_vec(&value).unwrap()).unwrap();
+    let paths: Vec<_> = draft
+        .validate()
+        .into_iter()
+        .filter(|i| i.code == "symbol-unknown-member")
+        .map(|i| i.path)
+        .collect();
+    assert_eq!(
+        paths,
+        [
+            "/symbol/graphics/0/rect/glow",
+            "/symbol/graphics/0/rect/stroke/wdth",
+            "/symbol/text_slots/0/visibl",
+            "/symbol/arrangements/0/slotz",
+            "/symbol/link_points/0/posn",
+            "/function/internal/0/note",
+            "/function/internal/0/kind/pass_through/open",
+            "/function/flags/n_isolaton",
+            "/function_ref/pinned",
+        ]
+    );
+    // Each pointer names the member in the draft.
+    let doc = serde_json::to_value(&draft).unwrap();
+    assert!(paths.iter().all(|p| doc.pointer(p).is_some()), "{paths:?}");
+}
+
+#[test]
+fn a_draft_under_another_key_than_its_items_publishes_new_ones_and_both_stay() {
+    let (dir, mut registry, id) = library("symbol-renamed-draft");
+    let mut a = block();
+    a.publish(&mut registry, id).unwrap();
+    let first = a.identity.clone().unwrap();
+    // The same draft under key B, at the version the immutability refusal would ask for.
+    let mut b = a.clone();
+    b.key = "example.other".into();
+    b.version = "1.0.1".into();
+    b.symbol.graphics.push(line());
+    let report = b.publish(&mut registry, id).unwrap();
+    let second = b.identity.clone().unwrap();
+    assert_ne!(second.symbol, first.symbol);
+    assert_ne!(second.fndef, first.fndef);
+    let mut added = vec![second.symbol.as_uuid(), second.fndef.unwrap().as_uuid()];
+    added.sort();
+    assert_eq!(report.added, added);
+    assert_eq!(report.updated, Vec::<Uuid>::new());
+    let held_a = symbol(&registry, id, "example.power");
+    assert_eq!(held_a.item_id.as_uuid(), first.symbol.as_uuid());
+    assert_eq!(held_a.item.graphics, a.symbol.graphics);
+    assert_eq!(held_a.version, "1.0.0");
+    assert_eq!(
+        function(&registry, id, "example.power.function")
+            .item_id
+            .as_uuid(),
+        first.fndef.unwrap().as_uuid()
+    );
+    assert_eq!(
+        symbol(&registry, id, "example.other").item.graphics,
+        b.symbol.graphics
+    );
+    // A draft file carrying A's identity under a third key does the same; B's draft now updates B.
+    let mut foreign = block();
+    foreign.key = "example.third".into();
+    foreign.identity = Some(first.clone());
+    foreign.publish(&mut registry, id).unwrap();
+    assert_ne!(foreign.identity, Some(first));
+    b.version = "1.0.2".into();
+    b.symbol.graphics.push(line());
+    assert_eq!(
+        b.publish(&mut registry, id).unwrap().updated,
+        vec![second.symbol.as_uuid()]
+    );
+    for key in ["example.power", "example.other", "example.third"] {
+        symbol(&registry, id, key);
+    }
+    drop(registry);
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn opening_a_zip_reads_it_as_an_archive_and_bytes_that_are_no_text_are_refused_in_words() {
+    let dir = ew_testdir::fresh_dir("symbol-zip");
+    let zip = dir.join("symbols.zip");
+    std::fs::write(&zip, b"PK\x03\x04 not a real archive").unwrap();
+    let refused = symbols::open(&zip, "example").unwrap_err();
+    assert_eq!(
+        refused.to_string(),
+        "The EPLAN archive is damaged, encrypted or unsupported."
+    );
+    let refused = SymbolDraft::parse(b"\xff\xfe binary").unwrap_err();
+    assert_eq!(refused.to_string(), "The symbol document is not valid.");
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn an_empty_key_is_named_before_publication() {
     let draft = SymbolDraft::new("", "Untitled").unwrap();
     assert_eq!(draft.symbol.meta.key, None);
@@ -319,4 +426,24 @@ fn export_without_hard_links_renames_after_checking_and_syncs_the_folder() {
         vfs.files(Path::new("/out")).keys().collect::<Vec<_>>(),
         ["power.symbol.json"]
     );
+}
+
+#[test]
+fn a_failed_export_never_removes_an_earlier_identical_file() {
+    use ew_store::mem::{DirSync, Fault, MemVfs};
+    let vfs = MemVfs::new(DirSync::Explicit);
+    let path = Path::new("/out/power.symbol.json");
+    let draft = block();
+    let earlier = serde_json::to_vec_pretty(&draft).unwrap();
+    vfs.put(path, &earlier);
+    vfs.reset_calls();
+    // The temporary file's sync (call 2) fails: this call placed nothing.
+    vfs.set_fault(Fault::Error {
+        at: 2,
+        kind: std::io::ErrorKind::Other,
+    });
+    assert!(symbols::export_with(&vfs, &draft, path).is_err());
+    let files = vfs.files(Path::new("/out"));
+    assert_eq!(files.keys().collect::<Vec<_>>(), ["power.symbol.json"]);
+    assert_eq!(files["power.symbol.json"], earlier);
 }

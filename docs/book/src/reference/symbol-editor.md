@@ -41,7 +41,8 @@ later compatible version of it is accepted. A new symbol has no key until you gi
 gives the draft its own identity, and later saves of that draft update the same symbol: increase the version
 when changing previously published content. The symbol's own function definition keeps its version while it is
 unchanged. A library that already holds the key for a different symbol refuses the save: choose another key, or
-fork that symbol under its own key to change it. **Export draft** writes portable JSON to a
+fork that symbol under its own key to change it. Saving a draft under another key than its symbol's makes a new
+symbol, and a message says so; the symbol with the earlier key stays. **Export draft** writes portable JSON to a
 new file, including incomplete work; an existing file is never overwritten. Leave either path empty to choose it
 in a file or folder dialog; a relative path is read from your default user library folder.
 **Close editor** keeps the draft and its undo history: **Edit ▸ Symbol editor…** returns to it. Only

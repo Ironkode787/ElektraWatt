@@ -867,7 +867,11 @@ impl ShellModel {
                         )
                         .map_err(|e| e.to_string())?,
                 };
+                let before = draft.identity.clone();
                 draft.publish(&mut registry, target).map_err(err)?;
+                // A key other than the one the library holds for the draft's items published new ones (ID-1474).
+                let note = (before.is_some() && before != draft.identity)
+                    .then(|| strings::format(key!("symbol-saved-new"), &[&draft.key]));
                 self.config.libraries = Some(tiers);
                 if let Some(project) = &mut self.project {
                     *project.session.libraries_mut() = registry;
@@ -875,7 +879,7 @@ impl ShellModel {
                 // The draft's history publishes the same items from now on.
                 let history = editor.undo.iter_mut().chain(editor.redo.iter_mut());
                 for d in history.chain([&mut editor.draft]) {
-                    if d.key == draft.key && d.identity.is_none() {
+                    if d.key == draft.key {
                         d.identity.clone_from(&draft.identity);
                     }
                 }
@@ -889,6 +893,9 @@ impl ShellModel {
                 }
                 self.save_settings();
                 self.libraries_changed();
+                if let Some(note) = note {
+                    self.notify(note, false);
+                }
             }
             "place" => {
                 let mut draft = editor.draft.clone();
