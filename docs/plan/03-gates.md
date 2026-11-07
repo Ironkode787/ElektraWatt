@@ -199,12 +199,12 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 | **G-M0** | 3 (Jan 2027) | **3 (Jan 2027)** | 3 (Jan 2027) | 3 (Jan 2027) | 3 (Jan 2027) |
 | **G-M1** | 23 (Sep 2028) | **17 (Mar 2028)** | 16 (Feb 2028) | 13 (Nov 2027) | 11 (Sep 2027) |
 | **G-PP** | 38 (Dec 2029) | **27 (Jan 2029)** | 26 (Dec 2028) | 21 (Jul 2028) | 18 (Apr 2028) |
-| **G-M2** | 58 (Aug 2031) | **41 (Mar 2030)** | 36 (Oct 2029) | 32 (Jun 2029) | 27 (Jan 2029) |
-| **G-M2.5** | 59 (Sep 2031) | **42 (Apr 2030)** | 37 (Nov 2029) | 33 (Jul 2029) | 28 (Feb 2029) |
-| **G-M3** | 68 (Jun 2032) | **48 (Oct 2030)** | 40 (Feb 2030) | 37 (Nov 2029) | 32 (Jun 2029) |
-| **G-M4** | 82 (Aug 2033) | **58 (Aug 2031)** | 52 (Feb 2031) | 45 (Jul 2030) | 39 (Jan 2030) |
-| **G-M5** | 86 (Dec 2033) | **59 (Sep 2031)** | 52 (Feb 2031) | 46 (Aug 2030) | 39 (Jan 2030) |
-| **G-M6** | 97 (Nov 2034) | **69 (Jul 2032)** | 64 (Feb 2032) | 54 (Apr 2031) | 46 (Aug 2030) |
+| **G-M2** | 59 (Sep 2031) | **42 (Apr 2030)** | 36 (Oct 2029) | 32 (Jun 2029) | 28 (Feb 2029) |
+| **G-M2.5** | 60 (Oct 2031) | **43 (May 2030)** | 38 (Dec 2029) | 33 (Jul 2029) | 29 (Mar 2029) |
+| **G-M3** | 69 (Jul 2032) | **48 (Oct 2030)** | 41 (Mar 2030) | 38 (Dec 2029) | 32 (Jun 2029) |
+| **G-M4** | 83 (Sep 2033) | **59 (Sep 2031)** | 53 (Mar 2031) | 46 (Aug 2030) | 39 (Jan 2030) |
+| **G-M5** | 87 (Jan 2034) | **60 (Oct 2031)** | 53 (Mar 2031) | 47 (Sep 2030) | 40 (Feb 2030) |
+| **G-M6** | 98 (Dec 2034) | **70 (Aug 2032)** | 64 (Feb 2032) | 54 (Apr 2031) | 47 (Sep 2030) |
 <!-- /generated:gate-timing -->
 
 **Sensitivity, three developers.** Capacity −20 % / +20 % (28.8 / 43.2 pw per developer-year), and the full scope
@@ -217,12 +217,12 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 | **G-M0** | 3 (Jan 2027) | 3 (Jan 2027) | 2 (Dec 2026) | 3 (Jan 2027) |
 | **G-M1** | 21 (Jul 2028) | 17 (Mar 2028) | 14 (Dec 2027) | 17 (Mar 2028) |
 | **G-PP** | 34 (Aug 2029) | 27 (Jan 2029) | 23 (Sep 2028) | 27 (Jan 2029) |
-| **G-M2** | 51 (Jan 2031) | 41 (Mar 2030) | 34 (Aug 2029) | 43 (May 2030) |
-| **G-M2.5** | 53 (Mar 2031) | 42 (Apr 2030) | 35 (Sep 2029) | 45 (Jul 2030) |
+| **G-M2** | 52 (Feb 2031) | 42 (Apr 2030) | 35 (Sep 2029) | 44 (Jun 2030) |
+| **G-M2.5** | 54 (Apr 2031) | 43 (May 2030) | 36 (Oct 2029) | 46 (Aug 2030) |
 | **G-M3** | 60 (Oct 2031) | 48 (Oct 2030) | 40 (Feb 2030) | 49 (Nov 2030) |
-| **G-M4** | 72 (Oct 2032) | 58 (Aug 2031) | 48 (Oct 2030) | 59 (Sep 2031) |
-| **G-M5** | 74 (Dec 2032) | 59 (Sep 2031) | 49 (Nov 2030) | 66 (Apr 2032) |
-| **G-M6** | 86 (Dec 2033) | 69 (Jul 2032) | 58 (Aug 2031) | 77 (Mar 2033) |
+| **G-M4** | 73 (Nov 2032) | 59 (Sep 2031) | 49 (Nov 2030) | 60 (Oct 2031) |
+| **G-M5** | 75 (Jan 2033) | 60 (Oct 2031) | 50 (Dec 2030) | 67 (May 2032) |
+| **G-M6** | 87 (Jan 2034) | 70 (Aug 2032) | 58 (Aug 2031) | 77 (Mar 2033) |
 <!-- /generated:gate-sensitivity-3d -->
 
 **Sensitivity, two and four developers** (lean scope; −20 % / base / +20 %).
@@ -234,12 +234,12 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 | **G-M0** | 3 (Jan 2027) | 3 (Jan 2027) | 2 (Dec 2026) | 3 (Jan 2027) | 3 (Jan 2027) | 2 (Dec 2026) |
 | **G-M1** | 29 (Mar 2029) | 23 (Sep 2028) | 19 (May 2028) | 19 (May 2028) | 16 (Feb 2028) | 13 (Nov 2027) |
 | **G-PP** | 48 (Oct 2030) | 38 (Dec 2029) | 32 (Jun 2029) | 33 (Jul 2029) | 26 (Dec 2028) | 22 (Aug 2028) |
-| **G-M2** | 72 (Oct 2032) | 58 (Aug 2031) | 48 (Oct 2030) | 44 (Jun 2030) | 36 (Oct 2029) | 30 (Apr 2029) |
-| **G-M2.5** | 74 (Dec 2032) | 59 (Sep 2031) | 49 (Nov 2030) | 46 (Aug 2030) | 37 (Nov 2029) | 31 (May 2029) |
-| **G-M3** | 85 (Nov 2033) | 68 (Jun 2032) | 57 (Jul 2031) | 50 (Dec 2030) | 40 (Feb 2030) | 34 (Aug 2029) |
-| **G-M4** | 103 (May 2035) | 82 (Aug 2033) | 69 (Jul 2032) | 65 (Mar 2032) | 52 (Feb 2031) | 44 (Jun 2030) |
-| **G-M5** | 107 (Sep 2035) | 86 (Dec 2033) | 72 (Oct 2032) | 65 (Mar 2032) | 52 (Feb 2031) | 44 (Jun 2030) |
-| **G-M6** | 121 (Nov 2036) | 97 (Nov 2034) | 81 (Jul 2033) | 79 (May 2033) | 64 (Feb 2032) | 53 (Mar 2031) |
+| **G-M2** | 74 (Dec 2032) | 59 (Sep 2031) | 49 (Nov 2030) | 45 (Jul 2030) | 36 (Oct 2029) | 30 (Apr 2029) |
+| **G-M2.5** | 75 (Jan 2033) | 60 (Oct 2031) | 50 (Dec 2030) | 47 (Sep 2030) | 38 (Dec 2029) | 31 (May 2029) |
+| **G-M3** | 86 (Dec 2033) | 69 (Jul 2032) | 58 (Aug 2031) | 50 (Dec 2030) | 41 (Mar 2030) | 34 (Aug 2029) |
+| **G-M4** | 104 (Jun 2035) | 83 (Sep 2033) | 70 (Aug 2032) | 66 (Apr 2032) | 53 (Mar 2031) | 44 (Jun 2030) |
+| **G-M5** | 109 (Nov 2035) | 87 (Jan 2034) | 73 (Nov 2032) | 66 (Apr 2032) | 53 (Mar 2031) | 44 (Jun 2030) |
+| **G-M6** | 122 (Dec 2036) | 98 (Dec 2034) | 82 (Aug 2033) | 80 (Jun 2033) | 64 (Feb 2032) | 54 (Apr 2031) |
 <!-- /generated:gate-sensitivity-2d4d -->
 
 **Full scope, base capacity, two and four developers.**
@@ -251,12 +251,12 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 | **G-M0** | 3 (Jan 2027) | 3 (Jan 2027) |
 | **G-M1** | 23 (Sep 2028) | 16 (Feb 2028) |
 | **G-PP** | 38 (Dec 2029) | 26 (Dec 2028) |
-| **G-M2** | 62 (Dec 2031) | 38 (Dec 2029) |
-| **G-M2.5** | 63 (Jan 2032) | 39 (Jan 2030) |
-| **G-M3** | 70 (Aug 2032) | 42 (Apr 2030) |
-| **G-M4** | 85 (Nov 2033) | 50 (Dec 2030) |
-| **G-M5** | 97 (Nov 2034) | 56 (Jun 2031) |
-| **G-M6** | 108 (Oct 2035) | 67 (May 2032) |
+| **G-M2** | 63 (Jan 2032) | 38 (Dec 2029) |
+| **G-M2.5** | 64 (Feb 2032) | 40 (Feb 2030) |
+| **G-M3** | 71 (Sep 2032) | 43 (May 2030) |
+| **G-M4** | 86 (Dec 2033) | 51 (Jan 2031) |
+| **G-M5** | 98 (Dec 2034) | 57 (Jul 2031) |
+| **G-M6** | 109 (Nov 2035) | 68 (Jun 2032) |
 <!-- /generated:gate-full-2d4d -->
 
 **Reading it.**
@@ -522,13 +522,13 @@ ranges of the zone table are read from the generated table under it.
 <!-- generated:velocity-zones -->
 | Velocity ratio (every WP) | Effort change | G-M1 | G-PP | G-M2 | G-M6 |
 |---|---|---|---|---|---|
-| 1.50 | −33 % | 12 (Oct 2027) | 18 (Apr 2028) | 27 (Jan 2029) | 46 (Aug 2030) |
-| 1.25 | −20 % | 14 (Dec 2027) | 22 (Aug 2028) | 33 (Jul 2029) | 55 (May 2031) |
-| 1.10 | −9 % | 16 (Feb 2028) | 25 (Nov 2028) | 37 (Nov 2029) | 63 (Jan 2032) |
-| 1.00 | +0 % | 17 (Mar 2028) | 27 (Jan 2029) | 41 (Mar 2030) | 69 (Jul 2032) |
-| 0.90 | +11 % | 19 (May 2028) | 30 (Apr 2029) | 45 (Jul 2030) | 77 (Mar 2033) |
-| 0.80 | +25 % | 21 (Jul 2028) | 34 (Aug 2029) | 51 (Jan 2031) | 86 (Dec 2033) |
-| 0.67 | +50 % | 26 (Dec 2028) | 40 (Feb 2030) | 61 (Nov 2031) | 103 (May 2035) |
+| 1.50 | −33 % | 12 (Oct 2027) | 18 (Apr 2028) | 28 (Feb 2029) | 47 (Sep 2030) |
+| 1.25 | −20 % | 14 (Dec 2027) | 22 (Aug 2028) | 34 (Aug 2029) | 56 (Jun 2031) |
+| 1.10 | −9 % | 16 (Feb 2028) | 25 (Nov 2028) | 38 (Dec 2029) | 64 (Feb 2032) |
+| 1.00 | +0 % | 17 (Mar 2028) | 27 (Jan 2029) | 42 (Apr 2030) | 70 (Aug 2032) |
+| 0.90 | +11 % | 19 (May 2028) | 30 (Apr 2029) | 46 (Aug 2030) | 78 (Apr 2033) |
+| 0.80 | +25 % | 21 (Jul 2028) | 34 (Aug 2029) | 52 (Feb 2031) | 87 (Jan 2034) |
+| 0.67 | +50 % | 26 (Dec 2028) | 40 (Feb 2030) | 63 (Jan 2032) | 105 (Jul 2035) |
 <!-- /generated:velocity-zones -->
 
 At +50 % effort, three developers reach G-M2 at month 62 and G-M6 at month 97, about the two-developer dates
@@ -903,7 +903,7 @@ plan; the re-forecast of G-M2 … G-M6; the one-row gate record.
 | **Kind and length** | Release gate, 3 hours on the release candidate (RC on the first working day of the month, release the following week if no blocker), plus 30 minutes go/no-go at the final candidate |
 | **Timing** | **Month 41 (Mar 2030)**; month 51 at −20 % capacity, 34 at +20 %; 2 developers: month 58; 4 developers: month 36 (§2.2; aligned 2026-11-05, FT-1474) |
 | **Decision makers** | Chair: project lead. **Go decided by the project owner.** Concurrence: pilot user (R1 result, SC-3 start, pilot switch); no counsel concurrence (LG-3, LG-4 and the steward checklist are 1.0's, ID-1187). Present: release manager, UX researcher, steward liaison, all developers |
-| **WBS link** | The 26 WPs of M2 in the lean scope (`milestone_lean` = `M2`; the 16 WPs of M-PP are already behind G-PP), closed by WP-S6.08; with lever (b) the QET project import WPs WP-S3.10, WP-S3.11 and WP-S3.13 move to G-M3 and AC-25 … AC-27 with them |
+| **WBS link** | The 27 WPs of M2 in the lean scope (`milestone_lean` = `M2`; the 16 WPs of M-PP are already behind G-PP), closed by WP-S6.08; with lever (b) the QET project import WPs WP-S3.10, WP-S3.11 and WP-S3.13 move to G-M3 and AC-25 … AC-27 with them |
 
 **Entry criteria**
 - All M2 WPs of the lean scope are done, including WP-S6.04 (security for the pilot release), WP-S6.05 (privacy and

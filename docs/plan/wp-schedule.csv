@@ -1,14 +1,14 @@
 wp_id,title,stream,milestone,milestone_lean,lever,pert_pw,developer_baseline,start_3d-lean,finish_3d-lean,start_3d-lean-ai-moderate,finish_3d-lean-ai-moderate,start_3d-lean-ai-strong,finish_3d-lean-ai-strong,start_3d-full,finish_3d-full,start_4d-lean,finish_4d-lean,start_2d-lean,finish_2d-lean
 WP-S0.01,"Repository, workspace and CI bootstrap",S0,M0,M0,,3.2,dev 1,0.0,1.3,0.0,1.3,0.0,1.3,0.0,1.3,0.0,1.3,0.0,1.3
 WP-S0.02,"Licensing, REUSE, DCO and licence-boundary check",S0,M0,M0,,2.0,dev 1,1.3,2.1,1.3,2.1,1.3,2.1,1.3,2.1,1.3,2.1,1.3,2.1
-WP-S0.03,Governance files and contribution process,S0,M2,M2,,1.0,dev 2,2.1,2.5,2.1,2.5,24.7,25.1,2.1,2.5,2.1,2.5,3.5,3.9
+WP-S0.03,Governance files and contribution process,S0,M2,M2,,1.0,dev 2,2.1,2.5,2.1,2.5,25.1,25.5,2.1,2.5,2.1,2.5,3.5,3.9
 WP-S0.04,"Legal gates for contributions: LG-1, LG-2, LG-5",S0,M1,M1,,1.7,dev 1,2.1,2.7,2.1,2.7,9.8,10.5,2.1,2.7,2.1,2.7,2.9,3.5
 WP-S0.05a,"Signing enrolment and trademark search: LG-3, LG-4 start",S0,M0,M0,,1.0,dev 2,0.6,1.0,0.6,1.0,0.6,1.0,0.6,1.0,0.6,1.0,0.6,1.0
-WP-S0.05,"Steward, signing identities and trademark: LG-3, LG-4 close",S0,M6,M6,,1.6,dev 2,61.2,61.9,50.0,50.7,43.4,44.0,68.6,69.2,50.0,50.7,95.8,96.4
+WP-S0.05,"Steward, signing identities and trademark: LG-3, LG-4 close",S0,M6,M6,,1.6,dev 3,62.0,62.6,50.7,51.3,43.9,44.6,69.3,70.0,50.6,51.3,96.9,97.6
 WP-S0.06,Documentation and website infrastructure,S0,M1,M1,,2.0,dev 2,1.3,2.1,1.3,2.1,1.3,2.1,1.3,2.1,1.3,2.1,2.1,2.9
-WP-S0.07,Funding applications and reporting,S0,M6,M6,,0.0,dev 1,2.7,2.7,50.2,50.2,43.5,43.5,2.7,2.7,2.7,2.7,95.8,95.8
+WP-S0.07,Funding applications and reporting,S0,M6,M6,,0.0,dev 1,2.7,2.7,50.9,50.9,44.1,44.1,2.7,2.7,2.7,2.7,97.0,97.0
 WP-S0.08,Pilot kick-off and early decisions,S0,M0,M0,,1.6,dev 2,0.0,0.6,0.0,0.6,0.0,0.6,0.0,0.6,0.0,0.6,0.0,0.6
-WP-S0.09,"Pilot programme, community and governance to 1.0",S0,M6,M6,,9.3,dev 2,2.5,6.2,45.5,49.2,39.0,42.7,2.5,6.2,2.5,6.2,87.0,90.7
+WP-S0.09,"Pilot programme, community and governance to 1.0",S0,M6,M6,,9.3,dev 2,2.5,6.2,46.1,49.8,39.5,43.2,2.5,6.2,2.5,6.2,88.2,91.9
 WP-S1.01,"Permissive foundation crates: units, ids, text, reference designations",S1,M1,M1,,3.7,dev 3,0.0,1.5,0.0,1.2,0.0,1.0,0.0,1.5,0.0,1.5,1.0,2.5
 WP-S1.02,ew-schema v0 and JSON Schemas,S1,M1,M1,,3.2,dev 3,1.5,2.7,1.2,2.2,1.0,1.8,1.5,2.7,1.5,2.7,2.5,3.8
 WP-S1.03,"ew-model: tables, operations, indexes, invariants",S1,M1,M1,,4.7,dev 1,2.7,4.6,2.2,3.6,1.8,3.1,2.7,4.6,2.7,4.6,3.8,5.6
@@ -26,23 +26,23 @@ WP-S1.14,"Terminals, strips, cables and conductors",S1,M-PP,M-PP,,4.0,dev 2,18.6
 WP-S1.15,"Rule engine, rhai formulas, trust model and the check CLI",S1,M-PP,M-PP,,7.2,dev 3,18.2,21.0,13.7,16.0,11.8,13.7,18.5,21.3,15.2,18.3,25.0,27.8
 WP-S1.16a,Core online checks for the pilot preview,S1,M-PP,M-PP,,2.1,dev 3,21.0,21.9,16.0,16.6,13.7,14.2,21.3,22.2,18.3,19.3,29.4,30.3
 WP-S1.16,"MVP rule packs: EW-CORE, EW-IEC81346, EW-TERM, EW-POT",S1,M2,M2,,4.7,dev 1,28.6,30.5,21.9,23.3,18.9,20.1,30.4,32.3,24.9,27.0,42.5,44.4
-WP-S1.17,"Collaboration: external change, migrations, integrity, merge driver",S1,M2,M2,,6.9,dev 1,30.5,33.2,23.6,25.8,20.1,21.9,31.8,34.5,25.7,28.7,44.4,47.1
+WP-S1.17,"Collaboration: external change, migrations, integrity, merge driver",S1,M2,M2,,6.9,dev 2,30.9,33.6,24.3,26.5,20.8,22.7,32.0,34.7,25.8,28.8,44.5,47.2
 WP-S1.18,"Revisions, release gate and as-built archive",S1,M2,M2,,4.6,dev 1,26.3,28.2,20.1,21.5,17.4,18.6,26.4,28.2,19.3,21.3,37.9,39.7
 WP-S1.19a,Project parts and part import for the pilot preview,S1,M-PP,M-PP,,2.6,dev 3,17.1,18.2,12.9,13.7,11.6,12.2,17.4,18.5,15.1,16.2,23.9,25.0
 WP-S1.19,"Parts, libraries and macros",S1,M2,M2,,5.8,dev 2,26.3,28.6,20.0,21.9,17.0,18.5,26.2,28.5,18.3,20.8,37.5,39.8
-WP-S1.20,Fluid power model (MVP),S1,M2,M2,,3.1,dev 2,30.9,32.1,23.3,24.3,20.0,20.8,32.6,33.9,25.8,27.1,44.5,45.7
+WP-S1.20,Fluid power model (MVP),S1,M2,M2,,3.1,dev 3,31.4,32.6,23.6,24.6,20.1,20.9,34.7,35.9,26.9,28.3,45.6,46.8
 WP-S1.21,PLC and bus model with addressing (MVP),S1,M2,M2,,6.3,dev 3,27.7,30.2,21.2,23.1,18.1,19.8,28.2,30.7,22.9,25.7,40.7,43.2
-WP-S1.22,CLI surface and API stability guard,S1,M2,M2,,3.1,dev 2,34.3,35.6,27.0,28.0,23.2,24.0,34.9,36.2,28.7,30.1,49.8,51.0
-WP-S1.23,Headless read-only MCP server,S1,M2,M5,a,2.1,dev 3,57.4,58.3,44.8,45.4,38.2,38.8,39.6,40.5,47.4,48.4,84.7,85.6
-WP-S1.24,"PLC and bus 1.0: tracking, symbols, safety, PROFINET, IO-Link, EtherCAT",S1,M3,M3,,7.3,dev 1,37.9,40.8,29.1,31.4,25.1,27.0,40.3,43.2,31.8,35.1,54.9,57.9
-WP-S1.25,"Fluid 1.0: valve models, media, tubes, fluid reports",S1,M3,M3,,4.7,dev 2,40.4,42.2,31.2,32.7,26.8,28.1,40.5,42.3,32.4,34.5,58.6,60.5
-WP-S1.26,"Model 1.0 completion: connections, terminals, cables, numbering, project",S1,M5,M5,,5.7,dev 2,54.5,56.7,42.3,44.1,36.2,37.7,59.3,61.6,41.0,43.6,81.4,83.7
-WP-S1.27,Project languages and translation exchange,S1,M5,1.x,c,3.1,,,,,,,,63.9,65.1,,,,
-WP-S1.28,"Parts 1.0: accessories, variants, classification, consumables",S1,M4,M4,,3.6,dev 1,47.2,48.7,36.5,37.6,31.3,32.3,48.1,49.6,39.4,41.0,70.3,71.7
-WP-S1.29,"Macros 1.0: placeholders, variants, updates, table instantiation",S1,M5,1.x,c,3.2,,,,,,,,62.6,63.9,,,,
-WP-S1.30,"1.0 rule packs, SQL rules and SARIF",S1,M5,M5,,4.7,dev 1,55.1,56.9,42.6,44.1,36.6,37.8,60.7,62.6,46.1,48.2,81.6,83.5
-WP-S1.31,"Revision compare, change lists and review",S1,M5,1.x,c,4.7,,,,,,,,56.2,58.1,,,,
-WP-S1.32,"Automation 1.0: scripts, jobsets, macro recorder, MCP writes",S1,M5,1.x,c,3.2,,,,,,,,63.3,64.5,,,,
+WP-S1.22,CLI surface and API stability guard,S1,M2,M2,,3.1,dev 1,35.8,37.0,27.5,28.5,23.6,24.4,36.0,37.2,29.9,31.3,51.7,52.9
+WP-S1.23,Headless read-only MCP server,S1,M2,M5,a,2.1,dev 1,58.4,59.2,45.3,45.9,38.6,39.2,40.6,41.4,48.1,49.0,85.9,86.7
+WP-S1.24,"PLC and bus 1.0: tracking, symbols, safety, PROFINET, IO-Link, EtherCAT",S1,M3,M3,,7.3,dev 2,38.5,41.5,29.8,32.1,25.7,27.6,41.0,44.0,32.7,36.0,56.0,59.0
+WP-S1.25,"Fluid 1.0: valve models, media, tubes, fluid reports",S1,M3,M3,,4.7,dev 3,41.1,43.0,31.8,33.3,27.4,28.6,41.2,43.1,32.9,35.0,59.8,61.7
+WP-S1.26,"Model 1.0 completion: connections, terminals, cables, numbering, project",S1,M5,M5,,5.7,dev 3,55.2,57.5,42.9,44.7,36.8,38.3,60.1,62.4,41.6,44.2,82.6,84.8
+WP-S1.27,Project languages and translation exchange,S1,M5,1.x,c,3.1,,,,,,,,64.7,65.9,,,,
+WP-S1.28,"Parts 1.0: accessories, variants, classification, consumables",S1,M4,M4,,3.6,dev 2,47.9,49.3,37.2,38.3,31.9,32.9,48.9,50.4,40.1,41.6,71.4,72.8
+WP-S1.29,"Macros 1.0: placeholders, variants, updates, table instantiation",S1,M5,1.x,c,3.2,,,,,,,,63.4,64.7,,,,
+WP-S1.30,"1.0 rule packs, SQL rules and SARIF",S1,M5,M5,,4.7,dev 2,55.7,57.6,43.4,44.8,37.1,38.4,61.5,63.4,46.7,48.8,82.8,84.7
+WP-S1.31,"Revision compare, change lists and review",S1,M5,1.x,c,4.7,,,,,,,,57.0,58.9,,,,
+WP-S1.32,"Automation 1.0: scripts, jobsets, macro recorder, MCP writes",S1,M5,1.x,c,3.2,,,,,,,,64.0,65.3,,,,
 WP-S1.33,Plugins: WASM component host and SDK (1.x),S1,1.x,1.x,,9.3,,,,,,,,,,,,,
 WP-S1.34,"Core, collaboration and automation backlog (1.x)",S1,1.x,1.x,,11.7,,,,,,,,,,,,,
 WP-S2.01,"Application shell, first run and company-standard wizard UI",S2,M-PP,M-PP,,5.8,dev 1,16.6,18.9,12.4,14.2,10.5,12.0,16.5,18.8,14.1,16.6,22.6,24.9
@@ -51,77 +51,78 @@ WP-S2.03,"Viewer, view models and canvas tool framework",S2,M-PP,M-PP,,6.8,dev 1
 WP-S2.04,"Placement, wiring and drawing tools",S2,M-PP,M-PP,,10.3,dev 3,21.9,26.0,16.6,19.9,14.2,17.0,21.9,26.1,20.5,25.1,30.3,34.4
 WP-S2.05,"Property grid, provenance, find and replace, clipboard",S2,M-PP,M-PP,,4.6,dev 2,22.1,23.9,16.8,18.2,14.5,15.8,22.2,24.0,20.8,22.9,31.6,33.4
 WP-S2.06,Navigators and table mode,S2,M-PP,M-PP,,5.2,dev 1,21.6,23.7,16.3,18.0,13.8,15.2,21.5,23.5,19.6,21.9,29.5,31.6
-WP-S2.07,"Domain tables: strip, cable and PLC editors, part selection",S2,M2,M2,,3.6,dev 1,33.2,34.7,26.0,27.2,22.3,23.2,34.9,36.4,27.1,28.7,48.4,49.8
-WP-S2.08,"Command palette, keymaps, accessibility and UI localisation",S2,M2,M2,,2.4,dev 1,36.9,37.9,28.8,29.6,24.7,25.3,39.6,40.5,31.3,32.4,54.0,55.0
+WP-S2.07,"Domain tables: strip, cable and PLC editors, part selection",S2,M2,M2,,3.6,dev 1,34.4,35.8,26.5,27.6,22.7,23.6,36.4,37.8,28.8,30.4,49.5,51.0
+WP-S2.08,"Command palette, keymaps, accessibility and UI localisation",S2,M2,M2,,2.4,dev 1,38.1,39.0,29.3,30.0,25.1,25.7,40.1,41.0,32.0,33.0,55.1,56.0
 WP-S2.09,"Messages, bulk previews, history, jobs and recovery UI",S2,M-PP,M-PP,,3.6,dev 1,23.7,25.1,18.0,19.1,15.2,16.1,23.5,25.0,21.3,22.9,35.8,37.2
-WP-S2.10,Symbol editor,S2,M2.5,M2.5,,3.1,dev 3,40.5,41.7,31.4,32.4,26.9,27.7,42.9,44.2,35.1,36.4,57.4,58.6
-WP-S2.11,GUI test suite (egui_kittest),S2,M2,M2,,2.6,dev 1,35.9,36.9,28.0,28.8,24.0,24.7,37.6,38.6,30.2,31.3,52.3,53.3
-WP-S2.12,Usability rounds R0 and R1,S2,M2,M2,,3.1,dev 1,34.7,35.9,25.8,27.0,21.9,23.2,36.4,37.6,29.3,30.7,50.6,51.9
-WP-S2.13,"Automation workspaces: PLC, bus and fluid",S2,M3,M3,,6.8,dev 2,42.2,44.9,32.7,34.8,28.1,29.9,44.2,46.9,36.4,39.4,62.2,64.9
-WP-S2.14,Editor 1.0 completion,S2,M5,1.x,c,4.6,,,,,,,,61.6,63.4,,,,
-WP-S2.15,"Revision, review and merge UI",S2,M5,1.x,c,3.1,,,,,,,,64.5,65.8,,,,
-WP-S2.16,Usability round R2 and fixes,S2,M6,M6,,1.4,dev 2,58.6,59.2,46.5,47.1,40.1,40.7,65.9,66.5,48.3,48.9,90.7,91.2
+WP-S2.10,Symbol editor,S2,M2.5,M2.5,,3.1,dev 1,41.4,42.6,31.9,32.9,27.3,28.2,43.8,45.0,35.7,37.0,58.6,59.8
+WP-S2.11,GUI test suite (egui_kittest),S2,M2,M2,,2.6,dev 1,37.0,38.1,28.5,29.3,24.4,25.1,38.5,39.5,31.1,32.3,53.5,54.6
+WP-S2.12,Usability rounds R0 and R1,S2,M2,M2,,3.1,dev 3,30.2,31.4,23.1,24.4,19.8,21.0,30.7,32.0,25.5,26.9,43.2,44.5
+WP-S2.13,"Automation workspaces: PLC, bus and fluid",S2,M3,M3,,6.8,dev 3,43.0,45.7,33.3,35.4,28.6,30.4,45.0,47.7,37.0,40.0,63.3,66.0
+WP-S2.14,Editor 1.0 completion,S2,M5,1.x,c,4.6,,,,,,,,62.4,64.2,,,,
+WP-S2.15,"Revision, review and merge UI",S2,M5,1.x,c,3.1,,,,,,,,65.3,66.5,,,,
+WP-S2.16,Usability round R2 and fixes,S2,M6,M6,,1.4,dev 3,59.3,59.9,47.3,47.8,40.7,41.3,66.7,67.3,49.0,49.6,91.9,92.4
 WP-S2.17,Design language and UI polish,S2,M-PP,M-PP,,6.0,dev 2,23.9,26.3,18.2,20.1,15.8,17.4,24.0,26.4,22.9,25.5,33.4,35.8
-WP-S2.18,"Basic elements from the window: starter symbols, parts and joined functions",S2,M2,M2,,3.1,dev 3,35.4,36.6,27.2,28.1,23.2,24.1,37.4,38.6,29.9,31.3,51.0,52.3
+WP-S2.18,"Basic elements from the window: starter symbols, parts and joined functions",S2,M2,M2,,3.1,dev 2,35.8,37.1,27.6,28.6,23.6,24.4,37.8,39.0,30.4,31.8,52.3,53.5
+WP-S2.19,The schematic autorouter,S2,M2,M2,,5.8,dev 3,32.6,35.0,24.6,26.4,21.0,22.6,33.7,36.0,27.0,29.6,47.2,49.5
 WP-S3.01,"Display list, scene and symbol model",S3,M1,M1,,5.7,dev 3,2.7,5.0,2.5,4.2,2.1,3.6,2.7,5.0,2.7,5.0,3.9,6.2
 WP-S3.02,"Frames, forms, title blocks, text and fonts",S3,M1,M1,,4.7,dev 1,6.8,8.7,5.4,6.8,4.6,5.8,6.8,8.7,6.6,8.6,9.8,11.7
 WP-S3.03,Report engine and spine report folios,S3,M1,M1,,5.6,dev 3,9.2,11.4,7.6,9.3,6.4,7.9,9.2,11.4,9.7,12.2,11.7,13.9
 WP-S3.04,"Page output: CPU renderer, PNG goldens and PDF",S3,M1,M1,,6.8,dev 1,12.7,15.4,9.3,11.4,7.9,9.7,12.7,15.4,12.2,15.2,18.1,20.8
 WP-S3.05,Spine importers: CSV golden bootstrap and QET element reader,S3,M1,M1,,4.2,dev 2,11.8,13.5,9.3,10.6,7.9,9.0,11.4,13.1,8.6,10.5,16.4,18.1
-WP-S3.06,MVP report pack,S3,M2,M2,,2.5,dev 2,36.7,37.7,28.1,28.9,24.1,24.7,38.6,39.6,31.3,32.4,53.3,54.3
-WP-S3.07,SVG export and printing,S3,M2,M2,,3.3,dev 3,34.1,35.4,26.2,27.2,22.4,23.2,36.1,37.4,28.7,30.2,49.3,50.6
-WP-S3.08,Table exports and Excel round trip,S3,M2,M2,,2.8,dev 2,35.6,36.7,27.2,28.1,23.2,24.0,37.4,38.6,30.1,31.4,51.9,53.0
-WP-S3.09,"Importer contracts, lineage and migration report",S3,M2,M2,,3.1,dev 3,30.2,31.4,23.1,24.1,19.8,20.6,26.7,27.9,25.5,26.9,43.2,44.5
-WP-S3.10,"QET project import I: pages, devices, conductors, title blocks",S3,M2,M3,b,6.2,dev 2,37.9,40.4,29.3,31.2,25.2,26.8,27.9,30.4,32.1,34.8,57.9,60.3
-WP-S3.11,"QET project import II: links, formulas, strips, tables",S3,M2,M3,b,4.7,dev 1,42.7,44.5,32.9,34.3,28.3,29.5,30.8,32.6,34.8,36.9,64.2,66.0
-WP-S3.12,"QET migration assistants: cables, fluid map, layout binding, reconstruction",S3,M2,M5,a,2.6,dev 1,56.9,58.0,44.1,44.9,37.8,38.5,38.6,39.6,46.3,47.4,83.7,84.7
-WP-S3.13,"QET corpus, migration verifier and pilot migrations",S3,M2,M3,b,3.2,dev 2,44.9,46.2,34.8,35.8,29.9,30.7,36.2,37.4,36.9,38.3,66.0,67.3
-WP-S3.14,"Forms editor, ISO 5457 frames and PDF 1.0 options",S3,M5,1.x,c,6.8,,,,,,,,56.6,59.3,,,,
-WP-S3.15,1.0 report kinds and user SQL reports,S3,M5,M5,,4.7,dev 2,56.7,58.6,44.1,45.5,37.7,39.0,61.4,63.3,46.2,48.3,83.5,85.3
-WP-S3.16,"PLC exchange: AutomationML, TIA tag tables, PLCopen XML",S3,M3,M3,,9.3,dev 3,41.7,45.4,32.4,35.3,27.7,30.2,43.2,46.9,35.1,39.2,60.5,64.2
-WP-S3.17,"Device descriptions: GSD, GSDML and IODD import",S3,M3,1.x,c,3.2,,,,,,,,46.9,48.1,,,,
-WP-S3.18,"EDZ, EPLAN parts XML and QET 1.0 import",S3,M3,M3,,6.8,dev 1,44.5,47.2,34.3,36.5,29.5,31.3,44.2,46.9,36.5,39.5,64.9,67.6
-WP-S3.19,DXF and DWG exchange,S3,M3,M3,,4.7,dev 1,40.8,42.7,31.4,32.9,27.0,28.3,42.3,44.2,34.5,36.5,60.3,62.2
+WP-S3.06,MVP report pack,S3,M2,M2,,2.5,dev 3,37.4,38.4,29.1,29.8,24.8,25.4,39.6,40.6,31.8,32.9,54.6,55.6
+WP-S3.07,SVG export and printing,S3,M2,M2,,3.3,dev 3,35.0,36.3,26.5,27.5,22.7,23.6,37.1,38.5,29.6,31.1,51.0,52.3
+WP-S3.08,Table exports and Excel round trip,S3,M2,M2,,2.8,dev 3,36.3,37.4,28.2,29.1,24.0,24.8,38.5,39.6,30.7,32.0,52.9,54.1
+WP-S3.09,"Importer contracts, lineage and migration report",S3,M2,M2,,3.1,dev 1,30.5,31.7,23.3,24.3,20.0,20.8,26.7,27.9,25.7,27.0,44.4,45.6
+WP-S3.10,"QET project import I: pages, devices, conductors, title blocks",S3,M2,M3,b,6.2,dev 3,38.6,41.1,29.9,31.8,25.7,27.4,27.9,30.4,32.7,35.5,59.0,61.4
+WP-S3.11,"QET project import II: links, formulas, strips, tables",S3,M2,M3,b,4.7,dev 2,43.3,45.2,33.6,35.1,28.9,30.1,31.8,33.7,35.5,37.5,65.4,67.3
+WP-S3.12,"QET migration assistants: cables, fluid map, layout binding, reconstruction",S3,M2,M5,a,2.6,dev 2,57.6,58.6,44.8,45.6,38.4,39.1,39.0,40.1,47.0,48.1,84.8,85.9
+WP-S3.13,"QET corpus, migration verifier and pilot migrations",S3,M2,M3,b,3.2,dev 3,45.7,46.9,35.4,36.4,30.4,31.3,37.2,38.5,37.5,39.0,67.3,68.5
+WP-S3.14,"Forms editor, ISO 5457 frames and PDF 1.0 options",S3,M5,1.x,c,6.8,,,,,,,,57.4,60.1,,,,
+WP-S3.15,1.0 report kinds and user SQL reports,S3,M5,M5,,4.7,dev 3,57.5,59.3,44.7,46.1,38.3,39.5,62.2,64.0,46.9,49.0,84.7,86.5
+WP-S3.16,"PLC exchange: AutomationML, TIA tag tables, PLCopen XML",S3,M3,M3,,9.3,dev 1,42.6,46.3,32.9,35.8,28.2,30.6,44.0,47.7,36.0,40.1,61.7,65.4
+WP-S3.17,"Device descriptions: GSD, GSDML and IODD import",S3,M3,1.x,c,3.2,,,,,,,,47.7,48.9,,,,
+WP-S3.18,"EDZ, EPLAN parts XML and QET 1.0 import",S3,M3,M3,,6.8,dev 2,45.2,47.9,35.1,37.2,30.1,31.9,45.0,47.7,37.1,40.1,66.0,68.7
+WP-S3.19,DXF and DWG exchange,S3,M3,M3,,4.7,dev 2,41.5,43.3,32.1,33.6,27.6,28.9,43.1,45.0,35.0,37.1,61.4,63.3
 WP-S3.20,Interop 1.x backlog,S3,1.x,1.x,,8.2,,,,,,,,,,,,,
 WP-S4.01,Layout model and 2D panel pages (MVP slice),S4,M2,M2,,5.7,dev 2,28.6,30.9,21.9,23.6,18.5,20.0,28.5,30.8,21.9,24.4,39.8,42.1
-WP-S4.02,2D panel editing tools,S4,M2,M2,,5.5,dev 2,32.1,34.3,24.3,26.0,20.8,22.3,33.9,36.1,26.9,29.3,47.1,49.3
-WP-S4.03,STEP worker (ew-step-worker),S4,M4,M4,,6.3,dev 3,45.4,47.9,35.3,37.3,30.2,31.9,46.9,49.4,38.3,41.1,67.3,69.8
-WP-S4.04,3D renderer and the Panel 3D workspace,S4,M4,M4,,8.3,dev 1,48.7,52.0,37.6,40.2,32.3,34.5,49.6,52.9,39.5,43.2,74.6,77.9
-WP-S4.05,"3D layout model: enclosures, doors, surfaces, panel macros, 3D CPs",S4,M4,M4,,5.2,dev 3,47.9,50.0,37.3,38.9,31.9,33.3,49.4,51.5,41.1,43.4,69.8,71.9
-WP-S4.06,Collision and clearance checking,S4,M4,M4,,3.7,dev 2,51.8,53.2,40.2,41.3,34.4,35.4,52.5,54.0,43.6,45.2,77.9,79.4
-WP-S4.07,Routing graph and RouteWires,S4,M4,M4,,6.2,dev 3,50.0,52.5,38.9,40.9,33.3,34.9,51.5,54.0,43.4,46.2,71.9,74.4
-WP-S4.08,"Wire lengths, duct fill and wiring manager",S4,M4,M4,,4.7,dev 3,52.5,54.3,40.9,42.3,34.9,36.2,54.0,55.8,46.2,48.2,74.4,76.2
-WP-S4.09,"Model views, dimensions, busbars, bonding and 3D export",S4,M5,1.x,c,6.7,,,,,,,,58.1,60.7,,,,
-WP-S4.10,Thermal calculation and climate sizing,S4,M4,1.x,c,4.2,,,,,,,,54.0,55.6,,,,
+WP-S4.02,2D panel editing tools,S4,M2,M2,,5.5,dev 2,33.6,35.8,26.4,28.2,22.6,24.0,34.9,37.1,28.3,30.7,49.5,51.7
+WP-S4.03,STEP worker (ew-step-worker),S4,M4,M4,,6.3,dev 1,46.3,48.9,35.8,37.8,30.6,32.3,47.7,50.2,39.0,41.8,68.5,71.1
+WP-S4.04,3D renderer and the Panel 3D workspace,S4,M4,M4,,8.3,dev 2,49.3,52.6,38.3,40.9,32.9,35.1,50.4,53.7,40.1,43.7,75.7,79.0
+WP-S4.05,"3D layout model: enclosures, doors, surfaces, panel macros, 3D CPs",S4,M4,M4,,5.2,dev 1,48.9,50.9,37.8,39.4,32.3,33.7,50.2,52.3,41.8,44.1,71.1,73.1
+WP-S4.06,Collision and clearance checking,S4,M4,M4,,3.7,dev 3,52.5,54.0,40.8,41.9,35.0,36.0,53.3,54.7,44.2,45.8,79.0,80.5
+WP-S4.07,Routing graph and RouteWires,S4,M4,M4,,6.2,dev 1,50.9,53.4,39.4,41.3,33.7,35.3,52.3,54.7,44.1,46.8,73.1,75.6
+WP-S4.08,"Wire lengths, duct fill and wiring manager",S4,M4,M4,,4.7,dev 1,53.4,55.3,41.3,42.8,35.3,36.6,54.7,56.6,46.8,48.9,75.6,77.5
+WP-S4.09,"Model views, dimensions, busbars, bonding and 3D export",S4,M5,1.x,c,6.7,,,,,,,,58.9,61.5,,,,
+WP-S4.10,Thermal calculation and climate sizing,S4,M4,1.x,c,4.2,,,,,,,,54.7,56.4,,,,
 WP-S4.11,Physical 1.x backlog,S4,1.x,1.x,,8.2,,,,,,,,,,,,,
-WP-S5.01,"Production wire records, change list and Manufacturing workspace",S5,M4,M4,,6.8,dev 2,46.2,48.9,35.8,37.9,30.7,32.5,46.9,49.6,39.2,42.2,67.6,70.3
-WP-S5.02,Ferrules and end treatments,S5,M4,M4,,3.6,dev 2,48.9,50.3,37.9,39.0,32.5,33.5,49.6,51.1,42.2,43.8,71.7,73.2
-WP-S5.03,Marking schemes and label engine,S5,M4,M4,,3.6,dev 2,50.3,51.8,39.0,40.2,33.5,34.4,51.1,52.5,43.2,44.8,73.2,74.6
-WP-S5.04,Machine export profiles and pre-flight,S5,M4,M4,,4.7,dev 3,54.3,56.2,42.3,43.8,36.2,37.4,55.8,57.7,48.2,50.3,76.2,78.1
-WP-S5.05,"Terminal assembly lists, cut lists and consumables",S5,M4,M4,,2.5,dev 1,54.1,55.1,41.8,42.6,35.9,36.6,55.6,56.6,45.2,46.3,80.6,81.6
-WP-S5.06,"Machining features, drilling DXF and hole tables",S5,M4,M4,,5.3,dev 1,52.0,54.1,40.2,41.8,34.5,35.9,52.9,55.0,43.8,46.1,79.3,81.4
-WP-S5.07,Production package .ewpp,S5,M4,M4,,3.1,dev 3,56.2,57.4,43.8,44.8,37.4,38.2,57.7,58.9,50.3,51.7,78.1,79.3
-WP-S5.08,Verification checklists and as-built package,S5,M5,1.x,c,3.1,,,,,,,,64.7,65.9,,,,
-WP-S5.09,Read-only wiring viewer,S5,M5,1.x,c,3.2,,,,,,,,63.4,64.7,,,,
+WP-S5.01,"Production wire records, change list and Manufacturing workspace",S5,M4,M4,,6.8,dev 3,46.9,49.6,36.4,38.5,31.3,33.1,47.7,50.4,40.0,43.0,68.7,71.4
+WP-S5.02,Ferrules and end treatments,S5,M4,M4,,3.6,dev 3,49.6,51.1,38.5,39.6,33.1,34.0,50.4,51.8,43.0,44.6,72.8,74.3
+WP-S5.03,Marking schemes and label engine,S5,M4,M4,,3.6,dev 3,51.1,52.5,39.6,40.8,34.0,35.0,51.8,53.3,43.7,45.3,74.3,75.7
+WP-S5.04,Machine export profiles and pre-flight,S5,M4,M4,,4.7,dev 1,55.3,57.1,42.8,44.3,36.6,37.8,56.6,58.5,48.9,51.0,77.5,79.3
+WP-S5.05,"Terminal assembly lists, cut lists and consumables",S5,M4,M4,,2.5,dev 2,54.7,55.7,42.6,43.4,36.5,37.1,56.4,57.4,45.8,46.9,81.8,82.8
+WP-S5.06,"Machining features, drilling DXF and hole tables",S5,M4,M4,,5.3,dev 2,52.6,54.7,40.9,42.6,35.1,36.5,53.7,55.8,44.6,47.0,80.5,82.6
+WP-S5.07,Production package .ewpp,S5,M4,M4,,3.1,dev 1,57.1,58.4,44.3,45.3,37.8,38.6,58.5,59.7,51.0,52.3,79.3,80.6
+WP-S5.08,Verification checklists and as-built package,S5,M5,1.x,c,3.1,,,,,,,,65.5,66.7,,,,
+WP-S5.09,Read-only wiring viewer,S5,M5,1.x,c,3.2,,,,,,,,64.2,65.5,,,,
 WP-S5.10,Manufacturing 1.x backlog,S5,1.x,1.x,,6.2,,,,,,,,,,,,,
 WP-S6.01,ew-testkit and acceptance runner,S6,M1,M1,,3.7,dev 3,11.4,12.9,6.8,8.0,5.8,6.8,11.8,13.3,8.3,10.0,15.6,17.1
 WP-S6.02,"Determinism, property tests and command fuzzer",S6,M1,M1,,3.1,dev 1,15.4,16.6,11.4,12.4,9.7,10.5,15.4,16.6,12.7,14.1,21.0,22.3
 WP-S6.03,Performance and memory gate,S6,M1,M1,,3.3,dev 3,12.9,14.2,9.0,10.0,7.4,8.3,13.3,14.6,11.2,12.7,17.1,18.4
-WP-S6.04,Security engineering for the pilot release,S6,M2,M2,,1.1,dev 3,37.6,38.1,28.9,29.3,24.7,25.0,39.7,40.1,31.4,31.8,54.3,54.7
-WP-S6.05,Privacy controls and the local crash log,S6,M2,M2,,0.6,dev 2,37.7,37.9,28.9,29.1,25.0,25.2,40.1,40.3,31.8,32.1,54.7,54.9
-WP-S6.06,The pilot release's installers and the platform CI matrix,S6,M2,M2,,2.6,dev 3,26.6,27.7,20.4,21.2,17.4,18.1,30.7,31.8,19.3,20.5,39.7,40.7
-WP-S6.07,"Release pipeline: sums, provenance, SBOM",S6,M2,M2,,1.1,dev 1,28.2,28.6,21.5,21.9,18.6,18.9,34.5,34.9,24.4,24.9,42.1,42.5
-WP-S6.08,MVP release stabilisation and the first release,S6,M2,M2,,6.0,dev 3,38.1,40.5,29.6,31.4,25.3,26.9,40.5,42.9,32.4,35.1,55.0,57.4
-WP-S6.09,Monthly 0.x releases and support from MVP to 1.0,S6,M5,M5,,4.1,dev 1,58.0,59.6,44.9,46.5,38.5,40.1,65.1,66.7,48.2,50.0,85.3,87.0
-WP-S6.10,1.0 quality layers and release hardening,S6,M6,M6,,19.4,dev 3,58.3,66.0,45.4,51.5,38.8,44.0,65.8,73.5,51.7,60.3,85.6,93.3
-WP-S6.11,"External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8)",S6,M6,M6,,3.7,dev 1,59.6,61.1,48.7,50.2,40.7,42.2,66.7,68.2,51.7,53.3,93.3,94.8
-WP-S6.12,1.0 beta-to-release stabilisation,S6,M6,M6,,6.2,dev 1,66.0,68.5,51.5,53.5,44.0,45.6,73.5,76.0,60.3,63.1,93.3,95.8
+WP-S6.04,Security engineering for the pilot release,S6,M2,M2,,1.1,dev 2,38.1,38.5,29.4,29.7,25.4,25.7,40.6,41.0,32.3,32.7,55.6,56.0
+WP-S6.05,Privacy controls and the local crash log,S6,M2,M2,,0.6,dev 3,38.4,38.6,29.7,29.9,25.5,25.7,41.0,41.2,32.5,32.7,56.0,56.2
+WP-S6.06,The pilot release's installers and the platform CI matrix,S6,M2,M2,,2.6,dev 3,26.6,27.7,20.4,21.2,17.4,18.1,30.8,31.8,19.3,20.5,39.7,40.7
+WP-S6.07,"Release pipeline: sums, provenance, SBOM",S6,M2,M2,,1.1,dev 1,28.2,28.6,21.5,21.9,18.6,18.9,35.9,36.4,24.4,24.9,42.1,42.5
+WP-S6.08,MVP release stabilisation and the first release,S6,M2,M2,,6.0,dev 1,39.0,41.4,30.0,31.9,25.7,27.3,41.4,43.8,33.0,35.7,56.2,58.6
+WP-S6.09,Monthly 0.x releases and support from MVP to 1.0,S6,M5,M5,,4.1,dev 2,58.6,60.3,45.6,47.3,39.1,40.7,65.9,67.5,48.8,50.6,86.5,88.2
+WP-S6.10,1.0 quality layers and release hardening,S6,M6,M6,,19.4,dev 1,59.2,67.0,45.9,52.0,39.2,44.4,66.5,74.3,52.3,61.0,86.7,94.5
+WP-S6.11,"External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8)",S6,M6,M6,,3.7,dev 2,60.3,61.7,49.5,50.9,41.3,42.7,67.5,69.0,52.3,54.0,94.5,96.0
+WP-S6.12,1.0 beta-to-release stabilisation,S6,M6,M6,,6.2,dev 1,67.0,69.4,52.0,54.0,44.4,46.0,74.3,76.8,61.0,63.7,94.5,96.9
 WP-S6.13,"Blind-drafter gate agent: harness, personas and prompt",S6,M-PP,M-PP,,1.6,dev 3,26.0,26.6,19.9,20.4,17.0,17.4,26.1,26.7,25.1,25.8,37.2,37.9
 WP-S7.01,"Golden project data (A, B, C) and expected outputs",S7,M1,M1,,4.6,dev 2,14.9,16.8,11.2,12.6,9.2,10.4,14.6,16.5,12.1,14.1,20.8,22.6
 WP-S7.02,Starter symbol set,S7,M1,M1,,3.1,dev 3,14.2,15.5,10.6,11.6,9.0,9.8,14.5,15.8,11.8,13.2,19.8,21.0
-WP-S7.03,"Starter parts, profiles, address maps and basic project",S7,M2,M2,,2.6,dev 3,36.6,37.6,28.1,28.9,24.0,24.7,38.6,39.7,30.7,31.8,53.0,54.0
-WP-S7.04,Full IEC 60617 and ISO 1219 libraries with symbol lint,S7,M5,1.x,c,6.2,,,,,,,,58.9,61.4,,,,
-WP-S7.05,"User documentation, rule pages and MVP tutorials",S7,M2,M2,,6.7,dev 3,31.4,34.1,24.1,26.2,20.6,22.4,32.3,34.9,27.0,29.9,45.7,48.4
-WP-S7.06,"Golden 1.0 fixtures: A-R, 3D, thermal, exchange, manufacturing",S7,M4,M4,,3.1,dev 2,53.2,54.5,41.3,42.3,35.4,36.2,55.0,56.2,44.8,46.2,79.4,80.6
-WP-S7.07,"Documentation and tutorials 1.0, German translation",S7,M6,M6,,5.2,dev 2,59.2,61.2,47.1,48.7,42.2,43.5,66.5,68.6,48.4,50.7,91.2,93.3
-WP-S7.08,First manufacturer data pack and content repositories,S7,M6,M6,,2.6,dev 1,61.1,62.1,49.2,50.0,42.7,43.4,68.2,69.2,48.9,50.0,94.8,95.8
+WP-S7.03,"Starter parts, profiles, address maps and basic project",S7,M2,M2,,2.6,dev 2,37.1,38.1,28.6,29.4,24.4,25.1,39.5,40.6,31.3,32.5,54.1,55.1
+WP-S7.04,Full IEC 60617 and ISO 1219 libraries with symbol lint,S7,M5,1.x,c,6.2,,,,,,,,59.7,62.2,,,,
+WP-S7.05,"User documentation, rule pages and MVP tutorials",S7,M2,M2,,6.7,dev 1,31.7,34.4,24.4,26.5,20.9,22.7,32.3,34.9,27.0,29.9,46.8,49.5
+WP-S7.06,"Golden 1.0 fixtures: A-R, 3D, thermal, exchange, manufacturing",S7,M4,M4,,3.1,dev 3,54.0,55.2,41.9,42.9,36.0,36.8,55.8,57.0,45.3,46.7,80.6,81.8
+WP-S7.07,"Documentation and tutorials 1.0, German translation",S7,M6,M6,,5.2,dev 3,59.9,62.0,47.8,49.5,42.7,44.1,67.3,69.3,49.0,51.3,92.4,94.5
+WP-S7.08,First manufacturer data pack and content repositories,S7,M6,M6,,2.6,dev 2,61.7,62.8,49.8,50.7,43.2,43.9,69.0,70.0,49.6,50.7,96.0,97.0

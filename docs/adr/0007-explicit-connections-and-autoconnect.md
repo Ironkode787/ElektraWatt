@@ -1,6 +1,6 @@
 # ADR-0007: Connection model: explicit connections and junction sequences; autoconnect as an editing aid
 
-**Status:** Accepted · amended 2026-10-18 · to be validated with two EPLAN users and one QET user before M2 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-11-07 · to be validated with two EPLAN users and one QET user before M2 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -60,6 +60,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    sequence orders the parts of a split connection by flow distance from the source, with reading order as the
    tie-break ([schematic editor](../design/06-schematic-editor.md) §3.5). QET imports, where only geometry is
    available, use the same defaults; the pilot user confirms them in the M2 usability test.
+3. **Open question 2 answered: connect on move** (2026-11-07, cycle 53; decision log ID-1498,
+   [ADR-0033](0033-schematic-routing-model.md) decision 8). R1's question B1 answered two "connect" and one "ask". A move
+   proposes autoconnect wires by default, as a placement does; the proposals are shown during the drag and commit with
+   the move in one transaction, each new wire with its straight route; a modifier moves without them and a session
+   toggle (C) changes the default. Decision 4 holds: no existing connection changes, and every new one is shown
+   before it is made.
 
 ## Consequences
 
