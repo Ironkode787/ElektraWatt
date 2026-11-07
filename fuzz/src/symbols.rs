@@ -4,6 +4,8 @@
 //! The symbol editor's readers (WP-S2.10; M25-p1#8, M25-p2#6):
 //! - [`authoring`]: the bytes as a portable `ew.symbol/1` draft (`SymbolDraft::parse`), and as an EPLAN input named
 //!   `.edz`, `.ems` and `.xml` through `symbols::import_eplan`, the front door under `Limits::element_definition()`;
+//!   a 7z input goes once more with its start-header and next-header CRCs made right ([`seven_zip_with_crcs`],
+//!   M25-p4#4), so that a mutated header reaches EW's header walk instead of failing its checksum;
 //! - [`slk`]: the bytes as an SLK 1.2 descriptor and its eight `.sdb` tables (nine sections of a 2-byte little-endian
 //!   length and the bytes, the last cut short by the input's end), through `slk::directory` and `slk::read`.
 //!
@@ -44,7 +46,8 @@ fn exercise(draft: &SymbolDraft, variants: u8) {
     }
 }
 
-/// `symbol_authoring`: the bytes as a draft, then as an EPLAN input under three names.
+/// `symbol_authoring`: the bytes as a draft, then as an EPLAN input under three names, and a 7z input once more with
+/// its header CRCs made right.
 pub fn authoring(data: &[u8]) -> Outcome {
     let mut out = Outcome::default();
     if let Ok(draft) = SymbolDraft::parse(data) {
@@ -52,8 +55,13 @@ pub fn authoring(data: &[u8]) -> Outcome {
         out.drafts += 1;
         exercise(&draft, 8);
     }
-    for name in ["sample.edz", "sample.ems", "sample.xml"] {
-        match symbols::import_eplan(data, name, "fuzz.symbol") {
+    let fixed = seven_zip_with_crcs(data);
+    let inputs = [(data, "sample.edz"), (data, "sample.ems"), (data, "sample.xml")];
+    for (bytes, name) in inputs
+        .into_iter()
+        .chain(fixed.as_deref().map(|f| (f, "sample.edz")))
+    {
+        match symbols::import_eplan(bytes, name, "fuzz.symbol") {
             Ok(drafts) => {
                 out.drafts += drafts.len();
                 for draft in &drafts {
@@ -64,6 +72,31 @@ pub fn authoring(data: &[u8]) -> Outcome {
         }
     }
     out
+}
+
+/// The bytes of a 7z archive with its start-header CRC, and its next header's CRC where the start header places that
+/// header within the bytes, computed again (M25-p4#4): a fuzzer cannot keep either checksum right while it mutates a
+/// header, so without this no mutated header would get past the checksums to the bounds of EW's header walk. `None`
+/// for bytes that are no 7z archive, or whose checksums are already right.
+pub fn seven_zip_with_crcs(data: &[u8]) -> Option<Vec<u8>> {
+    use ew_api::zip::crc32;
+    if data.len() < 32 || !data.starts_with(b"7z\xbc\xaf\x27\x1c") {
+        return None;
+    }
+    let word = |at: usize| u64::from_le_bytes(data[at..at + 8].try_into().expect("8 bytes"));
+    let (offset, size) = (word(12), word(20));
+    let mut out = data.to_vec();
+    let next = offset
+        .checked_add(32)
+        .and_then(|start| Some((start, start.checked_add(size)?)))
+        .filter(|&(_, end)| end <= data.len() as u64);
+    if let Some((start, end)) = next {
+        let crc = crc32(&data[start as usize..end as usize]);
+        out[28..32].copy_from_slice(&crc.to_le_bytes());
+    }
+    let crc = crc32(&out[12..32]);
+    out[8..12].copy_from_slice(&crc.to_le_bytes());
+    (out != data).then_some(out)
 }
 
 /// What [`slk`] did.
