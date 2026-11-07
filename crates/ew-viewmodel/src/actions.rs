@@ -1104,7 +1104,9 @@ fn editable_selection(m: &ShellModel) -> Result<(), Key<'static>> {
         };
     }
     editable_page(m)?;
-    if m.selection().is_empty() {
+    // C53-fx#1 (ID-1497 (8)): a selection Delete has nothing of on this page (a page chosen in the page list) is not
+    // offered here.
+    if m.selection().is_empty() || !m.delete_has_target() {
         Err(key!("reason-nothing-selected"))
     } else {
         Ok(())

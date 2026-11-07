@@ -180,15 +180,27 @@ impl ShellModel {
 
     /// ID-1497 (8): how many selected items the canvas's status field and HUD count: the selection, or none while
     /// nothing of it is drawn on the focused group's page (a page chosen in the page list selects its page record,
-    /// which draws nothing there). The live region and the page list's Delete keep the whole selection.
+    /// which draws nothing there). A device or a function selected by its tag counts where the page draws it, as
+    /// Delete takes it (C53-fx#1). The live region and the page list's Delete keep the whole selection.
     pub fn canvas_selected(&self) -> usize {
         let n = self.tools.selection.items.len();
         let group = self.area.as_ref().map_or(0, |a| a.focused);
-        if n > 0 && self.selected_rects(group).is_empty() {
+        if n > 0 && self.selected_rects(group).is_empty() && !self.selection_drawn_here() {
             0
         } else {
             n
         }
+    }
+
+    /// C53-fx#1: whether the page shown draws something of the selection as Delete and Cut take it
+    /// ([`Self::copy_targets`]: a device or a function selected by its tag as its representations on the page).
+    pub(crate) fn selection_drawn_here(&self) -> bool {
+        let Some(page) = self.canvas().map(|c| Arc::clone(c.page())) else {
+            return false;
+        };
+        self.copy_targets()
+            .into_iter()
+            .any(|e| crate::tools::entity_kind(&page.tables, e).is_some())
     }
 
     // FT-705
