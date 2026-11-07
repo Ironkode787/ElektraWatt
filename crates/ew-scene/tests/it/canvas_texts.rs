@@ -892,7 +892,7 @@ fn a_cross_reference_without_a_free_place_stays() {
 
 /// FT-1519 (ID-1455): the rise keeps clear of another representation's symbol body. A coil without texts whose
 /// outline bounds cover the place the label would rise to (above the wire) leaves the label clear of the body: it rises
-/// past it or stays, never onto it.
+/// past it, never onto it.
 #[test]
 fn a_cross_reference_does_not_rise_onto_another_symbols_body() {
     let (up, bare) = arrow_label(27, &[g(28)], (Vec::new(), Vec::new()));
@@ -935,9 +935,16 @@ fn a_cross_reference_does_not_rise_onto_another_symbols_body() {
         !overlap(shown, body),
         "{shown:?} clear of the coil's body {body:?}"
     );
-    assert!(
-        shown == bare || shown.max().y.0 <= body.min().y.0 - SLOT_TEXT_GAP.0 + 1_000,
-        "{shown:?}: where it stood, or above the body"
+    // C53-p2#4 (ID-1480): it rises past the body, to SLOT_TEXT_GAP above it, as tall as it stood.
+    let height = bare.max().y.0 - bare.min().y.0;
+    let top = body.min().y.0 - SLOT_TEXT_GAP.0;
+    assert_eq!(
+        shown,
+        Rect::from_points(
+            Pt2::new(bare.min().x, ew_units::Nm(top - height)),
+            Pt2::new(bare.max().x, ew_units::Nm(top)),
+        ),
+        "above the coil's body {body:?}"
     );
 }
 
