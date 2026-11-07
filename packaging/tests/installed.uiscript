@@ -3,4 +3,5 @@
 {"action":"ui.describe"}
 {"action":"ui.dismiss"}
 {"action":"file.import_qet","params":{"file":"example.qet","dir":"imported.ew"}}
+{"action":"file.import_qet_apply","params":{"confirm":true}}
 {"action":"file.open_sample"}
