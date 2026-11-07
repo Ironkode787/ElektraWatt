@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The orthogonal router the canvas tools call without a `Session` (WP-S2.04 §4.3, §8.1, D7): the pure function
-//! `ew_commands::route::auto_route` on the plain integers and the [`Dir`] a tool holds. The Wire tool routes its
+//! `ew_derive::routing::auto_route` on the plain integers and the [`Dir`] a tool holds. The Wire tool routes its
 //! ghost with it and passes the result as `connection.draw`'s `route`, so the committed route is exactly the ghost
 //! and the router never runs on replay.
 //!
@@ -11,9 +11,9 @@
 //! of the end next to it, the ends exact; clear of the obstacles, of the ends' own representations but for a CP's
 //! escape corridor, of the other wires' tracks and vertices, and of the reserved points (FT-706); without such a
 //! path inside the area, the
-//! provisional L route, marked [`Routed::direct`]. Page nm, y down. See `ew_commands::route` for the algorithm.
+//! provisional L route, marked [`Routed::direct`]. Page nm, y down. See `ew_derive::routing` for the algorithm.
 
-use ew_commands::route::{self, Heading};
+use ew_derive::routing::{self as route, Heading};
 
 use crate::geometry::Dir;
 
@@ -110,14 +110,14 @@ pub fn route(req: &RouteRequest) -> Routed {
 }
 
 /// Whether the route `points` is one the router could take for `req`: every unit move on the grid free and on no
-/// blocked node by the router's own rules, a CP end left and entered along its direction (`ew_commands::route::clear`).
+/// blocked node by the router's own rules, a CP end left and entered along its direction (`ew_derive::routing::clear`).
 /// The Wire tool asks it of the direct route through a free terminal in line (FT-705 with FT-706).
 pub fn clear(req: &RouteRequest, points: &[(i64, i64)]) -> bool {
     route::clear(&request(req), points)
 }
 
 /// The provisional L route of `req`, the one [`route()`] falls back to (a straight segment for aligned ends, else one
-/// corner; `ew_commands::route::fallback`).
+/// corner; `ew_derive::routing::fallback`).
 pub fn direct_route(req: &RouteRequest) -> Vec<(i64, i64)> {
     route::fallback(&request(req))
 }

@@ -354,3 +354,76 @@ fn e_a_slanted_crossing_at_the_record_limit_does_not_overflow() {
     let at = m.crossings[0].at;
     assert!(at.0.abs() <= 1 && at.1.abs() <= 1, "{at:?}");
 }
+
+proptest::proptest! {
+    /// WP-S2.19 step 1: every route the search finds (not the fallback) breaks no hard rule by the measures, an oracle
+    /// independent of the search: no touch of another CP (the reserved points), no run along another wire, no
+    /// stretch inside an obstacle. The ends, their stubs and the stub moves are the search's own (never blocked), so
+    /// the cases keep the obstacles, wires and reserved points off them.
+    #[test]
+    fn every_found_route_breaks_no_hard_rule_by_the_measures(
+        fx in -6i64..6, fy in -6i64..6, tx in -6i64..6, ty in -6i64..6,
+        fd in proptest::option::of(0usize..4), td in proptest::option::of(0usize..4),
+        ob in proptest::collection::vec((-8i64..8, -8i64..8, 1i64..4, 1i64..4), 0..3),
+        ws in proptest::collection::vec((-9i64..9, -9i64..9, -6i64..6, proptest::bool::ANY), 0..4),
+        rs in proptest::collection::vec((-8i64..8, -8i64..8), 0..3),
+    ) {
+        let dir = |k: Option<usize>| k.map(|k| Heading::ALL[k]);
+        let (from, to) = (
+            RouteEnd { at: mm(fx, fy), dir: dir(fd) },
+            RouteEnd { at: mm(tx, ty), dir: dir(td) },
+        );
+        let stub = |e: RouteEnd| e.dir.map_or(e.at, |d| (e.at.0 + d.step().0 * MM, e.at.1 + d.step().1 * MM));
+        let own = [(from.at, stub(from)), (to.at, stub(to))];
+        let on = |p: Point, (a, b): (Point, Point)| {
+            crate::on_segment(
+                ew_units::Pt2::new(ew_units::Nm(p.0), ew_units::Nm(p.1)),
+                ew_units::Pt2::new(ew_units::Nm(a.0), ew_units::Nm(a.1)),
+                ew_units::Pt2::new(ew_units::Nm(b.0), ew_units::Nm(b.1)),
+            )
+        };
+        let obstacles: Vec<Rect> = ob.iter().map(|&(x, y, w, h)| rect(mm(x, y), mm(x + w, y + h))).collect();
+        let wires: Vec<(Point, Point)> = ws
+            .iter()
+            .map(|&(x, y, len, horizontal)| (mm(x, y), if horizontal { mm(x + len, y) } else { mm(x, y + len) }))
+            .collect();
+        let reserved: Vec<Point> = rs.iter().map(|&(x, y)| mm(x, y)).collect();
+        let strictly = |p: Point, r: &Rect| r[0] < p.0 && p.0 < r[2] && r[1] < p.1 && p.1 < r[3];
+        for (a, b) in own {
+            proptest::prop_assume!(obstacles.iter().all(|r| !strictly(a, r) && !strictly(b, r)));
+            proptest::prop_assume!(reserved.iter().all(|&q| !on(q, (a, b))));
+            proptest::prop_assume!(wires.iter().all(|&(c, d)| !on(c, (a, b)) && !on(d, (a, b)) && !on(a, (c, d)) && !on(b, (c, d))));
+        }
+        let rq = RouteRequest {
+            from,
+            to,
+            obstacles: obstacles.clone(),
+            grid: (MM, 1),
+            area: [
+                fx.min(tx) * MM - 4 * MM,
+                fy.min(ty) * MM - 4 * MM,
+                fx.max(tx) * MM + 4 * MM,
+                fy.max(ty) * MM + 4 * MM,
+            ],
+            arrive: None,
+            own: [Vec::new(), Vec::new()],
+            wires: wires.iter().map(|&(a, b)| [a, b]).collect(),
+            reserved: reserved.clone(),
+        };
+        let routed = route(&rq);
+        if !routed.direct {
+            let mut page = PageGeometry {
+                bodies: obstacles.iter().map(|r| Body { rep: id(900), rect: *r }).collect(),
+                cps: reserved.iter().zip(500u128..).map(|(&at, k)| cp(k, at, Dir4::Up, 901, &[])).collect(),
+                connections: vec![wire(1, &routed.points)],
+                ..PageGeometry::default()
+            };
+            page.connections.extend(wires.iter().zip(2u128..).map(|(&(a, b), k)| wire(k, &[a, b])));
+            let m = measure(&page);
+            let mine = |c: &Uuid| *c == id(1);
+            proptest::prop_assert!(!m.touches.iter().any(|t| mine(&t.connection)), "{:?} {:?}", routed.points, m.touches);
+            proptest::prop_assert!(!m.overlaps.iter().any(|o| o.connections.iter().any(mine)), "{:?} {:?}", routed.points, m.overlaps);
+            proptest::prop_assert!(!m.through_bodies.iter().any(|t| mine(&t.connection)), "{:?} {:?}", routed.points, m.through_bodies);
+        }
+    }
+}

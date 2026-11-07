@@ -48,8 +48,13 @@
 
 mod measures;
 mod page;
+// WP-S2.19 step 1: the single-connection search, moved from `ew_commands::route` unchanged.
+mod search;
 #[cfg(test)]
 mod tests;
 
 pub use measures::{Bends, Crossing, FourWay, Measures, Overlap, Through, Touch, TouchedPoint, measure};
 pub use page::{Body, CpPoint, DrawnConnection, JunctionPoint, PageGeometry, Point, Rect, TextBox};
+pub use search::{
+    BEND_COST, Heading, MAX_NODES, RouteEnd, RouteRequest, Routed, auto_route, clear, fallback, l_route, route,
+};

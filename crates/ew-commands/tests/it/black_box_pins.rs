@@ -21,7 +21,7 @@ use common::*;
 use ew_commands::commands::{
     Connect, EndpointParam, MoveReps, PasteFragment, PlaceBlackBox, PlaceSymbol, PlaceTarget, TransformReps,
 };
-use ew_commands::route::{Heading, RouteEnd, RouteRequest, auto_route};
+use ew_derive::routing::{Heading, RouteEnd, RouteRequest, auto_route};
 use ew_commands::{CmdError, Engine};
 use ew_ids::Id;
 use ew_model::{Entity, Model};

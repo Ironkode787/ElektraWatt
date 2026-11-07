@@ -168,7 +168,7 @@ pub struct Routed {
 /// is `ew_derive::provisional_path`, the path the page draws a connection without a route along (FT-1020).
 pub fn l_route(a: RouteEnd, b: RouteEnd) -> Vec<(i64, i64)> {
     let point = |(x, y): (i64, i64)| Pt2::new(Nm(x), Nm(y));
-    ew_derive::provisional_path(
+    crate::provisional_path(
         point(a.at),
         a.dir.map(Heading::vertical),
         point(b.at),
