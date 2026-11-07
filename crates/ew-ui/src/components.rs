@@ -1233,14 +1233,23 @@ mod tests {
         let ctx = egui::Context::default();
         let panel = egui::Rect::from_min_size(egui::pos2(0.0, 100.0), egui::vec2(300.0, 200.0));
         let input = egui::RawInput {
-            screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(400.0, 400.0))),
+            screen_rect: Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::vec2(400.0, 400.0),
+            )),
             ..Default::default()
         };
         let mut out = ctx.run_ui(input, |ui| {
             ui.set_clip_rect(panel);
             let above = egui::Rect::from_min_size(egui::pos2(0.0, 20.0), egui::vec2(300.0, 40.0));
             let mut child = ui.new_child(egui::UiBuilder::new().max_rect(above));
-            super::section_header(&mut child, egui::Id::unique("graphics"), "Graphics", Some(11), true);
+            super::section_header(
+                &mut child,
+                egui::Id::unique("graphics"),
+                "Graphics",
+                Some(11),
+                true,
+            );
         });
         out.textures_delta.clear();
         assert!(!out.shapes.is_empty());

@@ -1360,7 +1360,11 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
         .iter()
         .position(|s| s.key.starts_with("library:") && s.name.starts_with("Offer block"))
         .unwrap();
-    let at = picker.rows.iter().position(|r| *r == PickerRow::Symbol(i)).unwrap();
+    let at = picker
+        .rows
+        .iter()
+        .position(|r| *r == PickerRow::Symbol(i))
+        .unwrap();
     assert_ne!(at, 0, "a starter symbol of the page's grid leads");
     assert_eq!(
         shell.dispatch("picker.new_page", &json!({})),
@@ -1419,7 +1423,11 @@ fn a_new_text_is_centred_in_the_style_chosen_last() {
     let first = texts(&shell)[0].clone();
     assert_eq!(
         (&first["align"], &first["style"], &first["pos"]),
-        (&json!("centre"), &json!("cp.small"), &json!([8_000_000, 8_000_000]))
+        (
+            &json!("centre"),
+            &json!("cp.small"),
+            &json!([8_000_000, 8_000_000])
+        )
     );
     // A style chosen for the first text is the next text's.
     let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
@@ -1435,7 +1443,11 @@ fn a_new_text_is_centred_in_the_style_chosen_last() {
     let second = texts(&shell)[1].clone();
     assert_eq!(
         (&second["align"], &second["style"], &second["text"]),
-        (&json!("centre"), &json!("tag.main"), &json!({"en": "Line 1\nLine 2"}))
+        (
+            &json!("centre"),
+            &json!("tag.main"),
+            &json!({"en": "Line 1\nLine 2"})
+        )
     );
     assert_eq!(text_style_words("cp.small"), "Pin designation");
     assert_eq!(text_style_words("company.label"), "company.label");

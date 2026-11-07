@@ -581,8 +581,7 @@ fn function_pins(ui: &mut Ui, cps: &mut [Value]) -> bool {
                 // list under it, shows every role without scrolling, and letters typed while it is open choose the
                 // role they name.
                 let button = ui.add(
-                    egui::Button::new(role_words(&role))
-                        .min_size(Vec2::new(t.size_button_min_width, 0.0)),
+                    egui::Button::new(role_words(&role)).min_size(Vec2::new(t.size_button_min_width, 0.0)),
                 );
                 let chevron = egui::Rect::from_center_size(
                     egui::pos2(button.rect.right() - t.space_3, button.rect.center().y),
@@ -646,17 +645,16 @@ fn function_pins(ui: &mut Ui, cps: &mut [Value]) -> bool {
                 } else {
                     ui.data_mut(|d| d.remove::<String>(typed_id));
                 }
-                button
-                    .widget_info(|| {
-                        egui::WidgetInfo::labeled(
-                            egui::Role::ComboBox,
-                            ui.is_enabled(),
-                            control_name(
-                                label(strings::Key::run_time("symbol-potential-role")),
-                                &designation,
-                            ),
-                        )
-                    });
+                button.widget_info(|| {
+                    egui::WidgetInfo::labeled(
+                        egui::Role::ComboBox,
+                        ui.is_enabled(),
+                        control_name(
+                            label(strings::Key::run_time("symbol-potential-role")),
+                            &designation,
+                        ),
+                    )
+                });
                 for (member, key) in [
                     ("source_output", "symbol-source-output"),
                     ("optional", "symbol-optional-pin"),
@@ -2472,7 +2470,11 @@ mod tests {
         frame(1, vec![key(egui::Key::End, false)], &mut value, &mut commits);
         frame(2, vec![key(egui::Key::Enter, true)], &mut value, &mut commits);
         frame(3, vec![egui::Event::Text("B".into())], &mut value, &mut commits);
-        assert_eq!((value.clone(), commits), (json!({"en": "A"}), 0), "nothing commits while typing");
+        assert_eq!(
+            (value.clone(), commits),
+            (json!({"en": "A"}), 0),
+            "nothing commits while typing"
+        );
         frame(4, vec![key(egui::Key::Enter, false)], &mut value, &mut commits);
         assert_eq!((value, commits), (json!({"en": "A\nB"}), 1));
     }

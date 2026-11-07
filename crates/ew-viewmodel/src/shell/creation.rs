@@ -777,7 +777,11 @@ impl ShellModel {
         if !title.is_empty() {
             params["title"] = Value::String(title);
         }
-        let grid = if grid.is_empty() { current_grid } else { grid.as_str() };
+        let grid = if grid.is_empty() {
+            current_grid
+        } else {
+            grid.as_str()
+        };
         if !grid.is_empty() {
             let Some(value) = page_grid_value(grid) else {
                 return self.form_failed(

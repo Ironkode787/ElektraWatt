@@ -129,7 +129,10 @@ fn page_new_takes_a_connection_grid_and_properties_changes_an_empty_pages() {
         panic!("{:?}", shell.dialog());
     };
     let field = form.fields.iter().find(|f| f.name == "grid").unwrap();
-    assert_eq!((field.label_key.as_str(), field.value.as_str()), ("form-grid", "qet_10px"));
+    assert_eq!(
+        (field.label_key.as_str(), field.value.as_str()),
+        ("form-grid", "qet_10px")
+    );
     assert_eq!(
         field
             .choices
@@ -147,7 +150,11 @@ fn page_new_takes_a_connection_grid_and_properties_changes_an_empty_pages() {
     done(&mut headless, "page.new", json!({"folio": "201", "grid": "mm4"}));
     done(&mut headless, "page.new", json!({"folio": "202"}));
     assert_eq!(grid(&headless), (4_000_000, 1));
-    done(&mut headless, "page.new", json!({"folio": "203", "grid": "qet_10px"}));
+    done(
+        &mut headless,
+        "page.new",
+        json!({"folio": "203", "grid": "qet_10px"}),
+    );
     assert_eq!(grid(&headless), qet);
     assert_eq!(
         failed(&mut headless, "page.new", json!({"folio": "204", "grid": "5mm"})),
@@ -173,7 +180,11 @@ fn page_new_takes_a_connection_grid_and_properties_changes_an_empty_pages() {
     assert_eq!(choices, ["4 mm", "QET 10 px"]);
     done(&mut headless, "props.choose", json!({"index": 0}));
     assert_eq!(grid(&headless), (4_000_000, 1));
-    done(&mut headless, "props.set", json!({"row": "page/grid", "value": "QET 10 px"}));
+    done(
+        &mut headless,
+        "props.set",
+        json!({"row": "page/grid", "value": "QET 10 px"}),
+    );
     assert_eq!(grid(&headless), qet);
     // A page that holds an item keeps its grid.
     done(
@@ -183,7 +194,11 @@ fn page_new_takes_a_connection_grid_and_properties_changes_an_empty_pages() {
             "at": [50_800_000, 30_480_000], "angle": 0, "style": "text.normal", "align": "centre"}}}}),
     );
     assert_eq!(
-        failed(&mut headless, "props.set", json!({"row": "page/grid", "value": "4 mm"})),
+        failed(
+            &mut headless,
+            "props.set",
+            json!({"row": "page/grid", "value": "4 mm"})
+        ),
         "page 203 holds items; a page's connection grid changes only while the page is empty"
     );
     assert_eq!(grid(&headless), qet);

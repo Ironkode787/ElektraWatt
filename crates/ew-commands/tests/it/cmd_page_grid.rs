@@ -32,7 +32,9 @@ fn a_populated_pages_grid_change_is_refused_and_an_empty_pages_grid_is_set() {
     let before = lines(e.model());
     let mm4 = json!({"num": 4_000_000, "den": 1});
     assert_eq!(
-        e.execute(&set_grid(PAGE_101, mm4.clone())).unwrap_err().to_string(),
+        e.execute(&set_grid(PAGE_101, mm4.clone()))
+            .unwrap_err()
+            .to_string(),
         "fields.set: invalid parameters at `/value`: page 101 holds items; a page's connection grid changes only \
          while the page is empty"
     );

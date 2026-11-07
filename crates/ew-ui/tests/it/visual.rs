@@ -1616,7 +1616,11 @@ fn symbol_editor_draws_a_rectangle_by_drag_and_keeps_its_view() {
         Outcome::Done
     );
     d.settle();
-    assert_eq!(d.find("Drawing of Drawn").unwrap(), canvas, "the canvas stays put");
+    assert_eq!(
+        d.find("Drawing of Drawn").unwrap(),
+        canvas,
+        "the canvas stays put"
+    );
     assert_eq!(
         d.shell_mut()
             .dispatch("symbol.tool", &json!({"tool": "rectangle"})),
@@ -1641,10 +1645,18 @@ fn symbol_editor_draws_a_rectangle_by_drag_and_keeps_its_view() {
         .symbol
         .graphics
         .iter()
-        .filter_map(|g| serde_json::to_value(g).unwrap().get("rect").map(|r| r["rect"].clone()))
+        .filter_map(|g| {
+            serde_json::to_value(g)
+                .unwrap()
+                .get("rect")
+                .map(|r| r["rect"].clone())
+        })
         .collect();
     assert_eq!(rects.len(), 2, "{rects:?}");
-    assert_eq!(rects[0], rects[1], "the second drag draws at the first one's zoom");
+    assert_eq!(
+        rects[0], rects[1],
+        "the second drag draws at the first one's zoom"
+    );
     assert!(rects[0][1][0].as_i64().unwrap() > rects[0][0][0].as_i64().unwrap());
     d.shell_mut().shutdown();
 }

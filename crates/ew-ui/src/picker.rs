@@ -286,7 +286,9 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                         .color(t.text_secondary.color32()),
                 );
                 let new_page = strings::text(key!("action-picker-new-page"));
-                if crate::components::button(ui, crate::components::Kind::Secondary, new_page, true, 0.0).clicked() {
+                if crate::components::button(ui, crate::components::Kind::Secondary, new_page, true, 0.0)
+                    .clicked()
+                {
                     events.push(Event::Action("picker.new_page", json!({})));
                 }
             }
