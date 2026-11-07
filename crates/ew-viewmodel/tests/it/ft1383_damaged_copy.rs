@@ -305,7 +305,12 @@ fn ft1525_a_damaged_copy_of_an_installed_part_is_named_whole() {
     done(&mut s, "select.set", json!({ "refs": ["tag:F55"] }));
     done(&mut s, "part.choose", json!({ "use": 0 }));
     done(&mut s, "part.pick", json!({ "part": "EW-GEN-MCB-2" }));
-    let params = s.recorded_commands().last().expect("the assignment").params.clone();
+    let params = s
+        .recorded_commands()
+        .last()
+        .expect("the assignment")
+        .params
+        .clone();
     let copy = params["copies"]
         .as_array()
         .expect("copies")
