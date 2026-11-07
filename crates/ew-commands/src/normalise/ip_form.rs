@@ -11,8 +11,7 @@
 //! undirected point either. A symbol copy is one of the forms by its key; its twin is the copy of the other key in
 //! the same library.
 //!
-//! The normaliser takes the interruption-point functions this transaction touched (a changed function row, or a
-//! changed representation of one) and gives each representation drawn with a form that is not its direction's the
+//! The normaliser takes the interruption-point functions whose direction this transaction changed and gives each representation drawn with a form that is not its direction's the
 //! twin, with the default orientation; a project that does not hold the twin refuses the command in words.
 
 use std::collections::BTreeSet;
@@ -138,17 +137,20 @@ impl Normaliser for IpForm {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
         let mut functions: BTreeSet<Id<Function>> = BTreeSet::new();
+        // Only a point whose direction changed: a rename, a paste or a macro leaves the forms as they are drawn.
+        let direction = |row: Option<AnyRow>| match row {
+            Some(AnyRow::Function(f)) => match &f.kind {
+                FunctionKind::Ip(spec) => Some(spec.direction.clone()),
+                _ => None,
+            },
+            _ => None,
+        };
         for key in tx.changed_keys() {
-            match key.0 {
-                Kind::Function => {
+            if key.0 == Kind::Function {
+                let (now, before) = (direction(tx.row(&key)), direction(tx.base_row(&key)));
+                if now.is_some() && before.is_some() && now != before {
                     functions.insert(key.1.cast());
                 }
-                Kind::Representation => {
-                    if let Some(AnyRow::Representation(r)) = tx.row(&key) {
-                        functions.extend(r.functions.iter().copied());
-                    }
-                }
-                _ => {}
             }
         }
         let mut changed = false;

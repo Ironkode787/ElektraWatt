@@ -1289,8 +1289,11 @@ fn a_right_click_opens_the_canvas_context_menu() {
         page.entities
             .iter()
             .map(|(e, r)| (*e, rect_centre(*r)))
+            // Not an interruption point: EW's forms are never turned (WP-S2.19 D16).
             .find(|(e, p)| {
-                c.link_at(*p).is_none() && pick(&page.entities, Some(*p), 0.0).map(|(x, _)| x) == Some(*e)
+                c.link_at(*p).is_none()
+                    && pick(&page.entities, Some(*p), 0.0).map(|(x, _)| x) == Some(*e)
+                    && !page.tables.reps.iter().any(|r| r.id == e.0 && r.ip.is_some())
             })
             .expect("an object")
     };

@@ -39,6 +39,9 @@ use crate::tools::{
     black_box, selection_kinds,
 };
 
+/// EW's interruption-point forms (WP-S2.19 D16): the source form, the target form, and the documents to embed.
+type IpForms = (Arc<SymbolShape>, Option<Arc<SymbolShape>>, Vec<Value>);
+
 /// The natural order of two names: runs of decimal digits compare by their value, other runs by their text.
 pub fn natural_cmp(a: &str, b: &str) -> Ordering {
     fn runs(s: &str) -> Vec<(bool, &str)> {
@@ -161,7 +164,7 @@ impl ShellModel {
 
     /// EW's interruption-point forms in the page's grid family (WP-S2.19 D16): the source form, the target form when
     /// the catalogue holds it, and the library documents a command drawing either carries, each once.
-    fn ip_forms(&mut self) -> Result<(Arc<SymbolShape>, Option<Arc<SymbolShape>>, Vec<Value>), Outcome> {
+    fn ip_forms(&mut self) -> Result<IpForms, Outcome> {
         let (source, mut copies) = self.family_shape("ew.gen.ip")?;
         let target = match self.family_shape("ew.gen.ip-target") {
             Ok((target, more)) => {

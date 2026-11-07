@@ -581,11 +581,17 @@ fn hinted_wire_in(
     let wires: Vec<ew_ids::Id<Connection>> = created(&r, Kind::Connection);
     assert_eq!(wires.len(), 1);
     let w = row(&e, wires[0]);
+    // WP-S2.19 D12: the hint's wire stores its straight run; cleared here, it is the wire without a route.
     assert_eq!(
-        (w.a.clone(), w.b.clone(), w.route.clone()),
-        (cp(fb, 0), cp(fa, 1), Vec::new()),
-        "the hint's wire has no route"
+        (w.a.clone(), w.b.clone(), w.route.len()),
+        (cp(fb, 0), cp(fa, 1), 2),
+        "the hint's wire stores its straight run"
     );
+    e.execute(&ew_commands::commands::RouteConnection {
+        connection: wires[0],
+        route: Vec::new(),
+    })
+    .expect("the route cleared");
     (e, wires[0], fa, fb)
 }
 

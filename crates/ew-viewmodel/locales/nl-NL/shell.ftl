@@ -1241,7 +1241,7 @@ refusal-ip-continue-same-page = de doelpagina is de pagina van het onderbrekings
 refusal-ip-continue-no-rep = het onderbrekingspunt heeft geen representatie om voort te zetten
 # WP-S2.19 D16: de pijlvormen van EW's onderbrekingspunt.
 refusal-ip-form-turned = de pijl van een onderbrekingspunt wijst in de richting van het signaal: wijzig in plaats daarvan de richting
-refusal-ip-form-direction = een bronpunt wordt getekend met de uitgaande pijl, een doelpunt met de inkomende pijl
+refusal-ip-form-direction = een onderbrekingspunt met de richting bron wordt getekend met de uitgaande pijl, een doelpunt met de inkomende pijl
 refusal-ip-form-missing = het project bevat de { $p0 } pijl van { $p1 } niet: plaats eerst één onderbrekingspunt met die richting
 refusal-ip-form-outgoing = uitgaande
 refusal-ip-form-incoming = inkomende

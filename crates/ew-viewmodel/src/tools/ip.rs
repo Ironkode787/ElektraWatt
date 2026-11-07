@@ -365,6 +365,9 @@ pub struct IpExternal {
     pub label: String,
 }
 
+/// A symbol's outline paths, shared with the overlay.
+type Outline = Arc<[Vec<(i64, i64)>]>;
+
 /// The IP tool.
 #[derive(Clone, Debug)]
 pub struct IpTool {
@@ -373,7 +376,7 @@ pub struct IpTool {
     orient: u8,
     /// EW's target form with its outline, while `shape` is EW's source form (WP-S2.19 D16): a target point is drawn
     /// with it, and neither form is turned.
-    target: Option<(Arc<SymbolShape>, Arc<[Vec<(i64, i64)>]>)>,
+    target: Option<(Arc<SymbolShape>, Outline)>,
     /// The snapped insertion point: (sheet nm, page nm).
     at: Option<((i64, i64), (i64, i64))>,
     typed: Option<String>,
@@ -451,7 +454,7 @@ impl IpTool {
     /// is drawn with its direction's form and never turned.
     pub fn with_target(mut self, target: Option<Arc<SymbolShape>>) -> IpTool {
         self.target = target.map(|t| {
-            let outline: Arc<[Vec<(i64, i64)>]> = t.outline.clone().into();
+            let outline: Outline = t.outline.clone().into();
             (t, outline)
         });
         self
@@ -464,7 +467,7 @@ impl IpTool {
 
     /// The shape, outline and orientation a point of direction `d` is drawn with: EW's target form for a target while
     /// the tool holds EW's forms (unturned), else the tool's shape as turned.
-    fn drawn(&self, d: IpDir) -> (&Arc<SymbolShape>, &Arc<[Vec<(i64, i64)>]>, u8) {
+    fn drawn(&self, d: IpDir) -> (&Arc<SymbolShape>, &Outline, u8) {
         match &self.target {
             Some((shape, outline)) if self.external.is_none() && d == IpDir::Target => (shape, outline, 0),
             Some(_) if self.external.is_none() => (&self.shape, &self.outline, 0),

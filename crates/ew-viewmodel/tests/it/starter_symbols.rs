@@ -54,6 +54,7 @@ const PATHS: &[(&str, Path)] = &[
     ("ew.gen.cable-marker@qet10", Path::Aid),
     ("ew.gen.external-arrow@qet10", Path::Device("A", MULTI)),
     ("ew.gen.ip@qet10", Path::Device("A", MULTI)),
+    ("ew.gen.ip-target@qet10", Path::Device("A", MULTI)),
     ("ew.gen.junction-bevel@qet10", Path::Aid),
     ("ew.gen.junction-dot@qet10", Path::Aid),
     ("ew.gen.strip-segment@qet10", Path::Aid),
