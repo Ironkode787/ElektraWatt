@@ -360,16 +360,16 @@ fn id1484_a_damaged_definition_copy_with_fluid_lines_opens_read_only() {
         (
             "en",
             "This project is open read-only: the device -203Q5 uses the library copy of its part, which is \
-             damaged. No library on this computer holds it, so the copy cannot be updated from one. 1 integrity \
-             finding was found when the project was opened.",
+             damaged. Update the copy from its library first. 1 integrity finding was found when the project was \
+             opened.",
             "Save as is refused: the device -203Q5 uses the library copy of its part, which is damaged, and a copy \
              of the project without it would not open. Update the copy from its library first.",
         ),
         (
             "nl",
             "Dit project is alleen-lezen geopend: het apparaat -203Q5 gebruikt de bibliotheekkopie van zijn \
-             artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit \
-             een bibliotheek worden bijgewerkt. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
+             artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek. Bij het openen van het \
+             project is 1 integriteitsbevinding gevonden.",
             "Opslaan als is geweigerd: het apparaat -203Q5 gebruikt de bibliotheekkopie van zijn artikel, die \
              beschadigd is, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst \
              bij vanuit de bibliotheek.",

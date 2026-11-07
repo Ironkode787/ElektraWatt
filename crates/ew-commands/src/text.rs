@@ -2564,6 +2564,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "no library on this computer holds a readable version of {0}; nothing was written",
     ),
     (
+        "refusal-update-copies-misfit",
+        "the libraries' versions of the damaged copies do not fit the project, which would then not open; nothing was written",
+    ),
+    (
         "refusal-update-copies-locked",
         "another session holds the project; nothing was written",
     ),

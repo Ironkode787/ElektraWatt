@@ -1569,8 +1569,9 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// The refusal in words, nothing written: no copy can be updated from a library, another session holds the
-    /// project, the project is read-only for another reason or has other integrity findings, or the save fails.
+    /// The refusal in words, nothing written: no copy can be updated from a library, the libraries' versions would
+    /// leave a project that does not open, another session holds the project, the project is read-only for another
+    /// reason or has other integrity findings, or the save fails.
     pub fn update_damaged_copies(&mut self) -> Result<CopiesUpdated, Text> {
         let dropped = self
             .persistence
@@ -1613,6 +1614,11 @@ impl Session {
                 Err(api_text!("refusal-update-copies-no-library", all))
             });
         };
+        // The project must open after it: every violation left is one the copies still damaged explain.
+        let missing: BTreeSet<AnyKey> = dropped.iter().filter(|k| !keys.contains(*k)).copied().collect();
+        if ew_model::unexplained_by_dropped_copies(&engine.model().integrity_violations(), &missing).is_some() {
+            return Err(api_text!("refusal-update-copies-misfit"));
+        }
         match p.store.update_damaged_copies(engine.model(), &keys) {
             Ok(_) => Ok(done),
             Err(ew_store::SaveError::ReadOnly(ReadOnlyReason::LockedBy(_))) => {

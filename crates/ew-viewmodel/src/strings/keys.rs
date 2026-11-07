@@ -1572,6 +1572,7 @@ pub const KEYS: &[&str] = &[
     "refusal-purge-save",
     "refusal-purge-human-only",
     "refusal-update-copies-no-library",
+    "refusal-update-copies-misfit",
     "refusal-update-copies-locked",
     "refusal-update-copies-read-only",
     "refusal-update-copies-findings",

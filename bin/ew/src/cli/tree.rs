@@ -176,8 +176,9 @@ enum Top {
     /// `EW_CONTENT_DIR` names the starter content, every `--company <dir>`, the user's) and checks it before anything is
     /// written, then writes every copy a library holds over its damaged file in one save, under the project's lock, and
     /// opens the project again. A copy no library holds stays damaged and is named. Refused before anything is
-    /// written (exit 1): no damaged copy that a library holds, a project another session holds, a project that opens
-    /// read-only for another reason or has other integrity findings. Exit 0 when every damaged copy was updated and the
+    /// written (exit 1): no damaged copy that a library holds, libraries' versions that would leave a project that does
+    /// not open, a project another session holds, a project that opens read-only for another reason or has other
+    /// integrity findings. Exit 0 when every damaged copy was updated and the
     /// project opens for editing, or it has no damaged copy; 1 when refused or a copy stays damaged; 2 on usage, open
     /// and save errors.
     UpdateCopies(UpdateCopiesCli),

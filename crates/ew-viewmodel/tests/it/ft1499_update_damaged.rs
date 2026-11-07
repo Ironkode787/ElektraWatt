@@ -60,13 +60,14 @@ fn damage(file: &Path) {
     std::fs::write(file, "{\"$k\": \"part\",\n").unwrap();
 }
 
-/// A headless shell with its own configuration `config` under `tmp` and the libraries `libraries`, `dir` open for
-/// editing.
-fn open(tmp: &Tmp, config: &str, libraries: Option<LibraryTiers>, dir: &Path) -> ShellModel {
+/// A headless shell in `locale` with its own configuration `config-<locale>` under `tmp` and the libraries
+/// `libraries`, `dir` open for editing.
+fn open(tmp: &Tmp, locale: &str, libraries: Option<LibraryTiers>, dir: &Path) -> ShellModel {
     let mut s = ShellModel::new(
         Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join(config), "0.0.0-test").with_libraries(libraries),
+        ShellConfig::in_dir(&tmp.0.join(format!("config-{locale}")), "0.0.0-test").with_libraries(libraries),
     );
+    assert!(strings::set_locale(locale));
     done(
         &mut s,
         "file.open",
@@ -117,8 +118,7 @@ fn ft1499_update_from_library_writes_the_copy_and_opens_the_project_for_editing(
         ),
     ] {
         damage(&file);
-        assert!(strings::set_locale(locale));
-        let mut s = open(&tmp, &format!("config-{locale}"), None, &dir);
+        let mut s = open(&tmp, locale, None, &dir);
         assert!(s.read_only_reason().is_some(), "the project opens read-only");
         assert_eq!(s.banner(), Some(banner));
         assert!(s.damaged_update_offered(), "the banner offers the update");
@@ -202,8 +202,7 @@ fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
         ),
     ] {
         damage(&file);
-        assert!(strings::set_locale(locale));
-        let mut s = open(&tmp, &format!("config-{locale}"), None, &dir);
+        let mut s = open(&tmp, locale, None, &dir);
         assert_eq!(s.banner(), Some(before));
         assert!(s.damaged_update_offered());
         done(&mut s, "library.update_damaged", json!({}));
@@ -253,8 +252,7 @@ fn ft1499_a_copy_no_library_holds_offers_nothing() {
             "Het open project heeft geen beschadigde bibliotheekkopie die een bibliotheek bevat",
         ),
     ] {
-        assert!(strings::set_locale(locale));
-        let mut s = open(&tmp, &format!("config-{locale}"), None, &dir);
+        let mut s = open(&tmp, locale, None, &dir);
         assert!(s.read_only_reason().is_some());
         assert!(!s.damaged_update_offered(), "nothing is offered");
         let key = refused(&mut s, "library.update_damaged", json!({}));
@@ -295,7 +293,7 @@ fn ft1499_nothing_is_written_when_the_library_copy_cannot_be_read() {
     reg.write(lib, &[serde_json::from_value(value).unwrap()])
         .unwrap();
     drop(reg);
-    let mut s = open(&tmp, "config-assign", Some(t.clone()), &dir);
+    let mut s = open(&tmp, "en", Some(t.clone()), &dir);
     let copy = assign_f55(&mut s, "EW-TEST-MCB-2");
     let file = dir.join("lib/parts").join(format!("{copy}.json"));
     damage(&file);
@@ -312,7 +310,6 @@ fn ft1499_nothing_is_written_when_the_library_copy_cannot_be_read() {
              versie van de bibliotheekkopie van een artikel; er is niets geschreven.",
         ),
     ] {
-        assert!(strings::set_locale(locale));
         // The library's file is read again: it is whole when the project opens.
         let parts = lib_dir.join("parts");
         let saved: Vec<(PathBuf, Vec<u8>)> = std::fs::read_dir(&parts)
@@ -323,7 +320,7 @@ fn ft1499_nothing_is_written_when_the_library_copy_cannot_be_read() {
                 (p, b)
             })
             .collect();
-        let mut s = open(&tmp, &format!("config-{locale}"), Some(t.clone()), &dir);
+        let mut s = open(&tmp, locale, Some(t.clone()), &dir);
         assert!(s.damaged_update_offered(), "the banner offers the update");
         for (p, _) in &saved {
             std::fs::write(p, "{\"$k\": \"part\",\n").unwrap();
@@ -369,8 +366,7 @@ fn ft1499_update_is_refused_while_another_session_holds_the_project() {
              geschreven.",
         ),
     ] {
-        assert!(strings::set_locale(locale));
-        let mut s = open(&tmp, &format!("config-{locale}"), None, &dir);
+        let mut s = open(&tmp, locale, None, &dir);
         assert!(s.damaged_update_offered());
         std::fs::copy(other.join(".~ew.lock"), dir.join(".~ew.lock")).unwrap();
         match s.dispatch("library.update_damaged", &json!({})) {

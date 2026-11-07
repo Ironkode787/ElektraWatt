@@ -2769,8 +2769,9 @@ impl Store {
     /// that the integrity findings made read-only takes the lock for the save and gives it back after, staying
     /// read-only: the caller opens the project again, writable when the integrity check passes. Refused before anything
     /// is written: a store read-only for another reason (another session holding the lock among them), another file
-    /// that does not hold the bytes the manifest lists (other integrity findings, which this save would hide), and a
-    /// damaged file that changed since the open.
+    /// that does not hold the bytes the manifest lists (other integrity findings, which this save would hide; another
+    /// damaged copy the open kept as found is listed as it is and stays damaged), and a damaged file that changed since
+    /// the open.
     ///
     /// # Errors
     ///
@@ -2790,10 +2791,14 @@ impl Store {
             .iter()
             .filter_map(|&(kind, id)| Some(FilePath::lib(ew_format::lib_dir(kind)?, id)))
             .collect();
+        // A damaged copy left as it is (one the open kept as found) is listed again as it is, and stays damaged.
+        let damaged = |path: &FilePath| {
+            self.opaque.contains_key(path) && matches!(classify(path.as_str()), PathClass::LibDocument { .. })
+        };
         let as_listed = self.manifest.as_ref().is_some_and(|m| {
             m.files
                 .iter()
-                .filter(|(path, _)| !paths.contains(*path))
+                .filter(|(path, _)| !paths.contains(*path) && !damaged(path))
                 .all(
                     |(path, listed)| match (self.disk.get(path), self.opaque.get(path), listed) {
                         (Some(held), _, FileHash::Sha256(hash)) => held.accepted().contains(hash),
