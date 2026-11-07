@@ -1328,9 +1328,7 @@ msgstr ""
 
 #: src/tutorials/symbol-editor.md:47
 msgid ""
-"**Close editor** keeps the draft and its undo history: **Edit ▸ Symbol "
-"editor…** returns to it. In a later session, open `power.symbol.json` under "
-"**Open or import**: its next save updates the same symbol."
+"**Close editor** keeps the draft and its undo history: **Draw ▸ Place ▸ Symbol editor…** returns to it. In a later session, open `power.symbol.json` under **Open or import**: its next save updates the same symbol."
 msgstr ""
 "**Editor sluiten** bewaart het concept en de geschiedenis om ongedaan te "
 "maken: **Tekenen ▸ Plaatsen ▸ Symbooleditor…** keert ernaar terug. Open in een latere "
