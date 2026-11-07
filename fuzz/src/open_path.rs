@@ -15,7 +15,8 @@
 //!
 //! - the open never panics (a refusal, [`ew_store::OpenError`], is fine);
 //! - the model it returns passes `Model::integrity_check`, unless the session is read-only, its EW-INV-001 names a
-//!   library copy that a loader finding names (FT-1383, ID-1395), and a save is refused;
+//!   library copy that a loader finding names (FT-1383, ID-1395), every other violation names a record that refers
+//!   to such a copy ([`dropped_copy_violations`], ID-1481), and a save is refused;
 //! - an input whose operations change only the shape of the files ([`shape_only`]: member order, the line order of a
 //!   JSON Lines file, CRLF, a BOM, a missing final LF, a blank line; in a JSON Lines file or a library document)
 //!   opens, with a model equal to the golden project's (`Model::content_eq`): the open of an old shape is lossless,
@@ -461,6 +462,33 @@ pub enum Outcome {
     },
 }
 
+/// Whether `violations`, every violation of an opened model's integrity check, are what a dropped library copy
+/// explains (FT-1383, FT-1540; ID-1481): an EW-INV-001 that names a copy `named` (the copies a loader finding names),
+/// or a violation whose records include one that refers to such a copy (EW-INV-024 on a fluid line ending at a
+/// function whose definition copy was dropped). A violation unrelated to a dropped copy is not.
+pub fn dropped_copy_violations(violations: &[ModelError], named: &BTreeSet<AnyId>) -> bool {
+    let names_dropped = |v: &ModelError| {
+        matches!(
+            v,
+            ModelError::Invariant { id: "EW-INV-001", keys, .. }
+                if keys.iter().any(|(kind, id)| kind.is_library() && named.contains(id))
+        )
+    };
+    // EW-INV-001 lists the referrer first, then the missing copy.
+    let referrers: BTreeSet<ew_model::AnyKey> = violations
+        .iter()
+        .filter(|v| names_dropped(v))
+        .filter_map(|v| match v {
+            ModelError::Invariant { keys, .. } => keys.first().copied(),
+            _ => None,
+        })
+        .collect();
+    violations.iter().all(|v| {
+        names_dropped(v)
+            || matches!(v, ModelError::Invariant { keys, .. } if keys.iter().any(|k| referrers.contains(k)))
+    })
+}
+
 /// Runs the properties over one input; panics (with the failure) when one does not hold.
 pub fn check(input: &[u8]) -> Outcome {
     let case = decode(input);
@@ -497,13 +525,7 @@ pub fn check(input: &[u8]) -> Outcome {
             })
             .collect();
         // Every violation, not only the first (FT-1540): a second, unrelated one behind the dangling one fails.
-        let dangling = model.integrity_violations().iter().all(|v| {
-            matches!(
-                v,
-                ModelError::Invariant { id: "EW-INV-001", keys, .. }
-                    if keys.iter().any(|(kind, id)| kind.is_library() && named.contains(id))
-            )
-        });
+        let dangling = dropped_copy_violations(&model.integrity_violations(), &named);
         assert!(
             dangling && !shape_only && report.access != Access::Edit,
             "the opened model fails its integrity check: {e:?} (access {:?}, findings {:?})",
