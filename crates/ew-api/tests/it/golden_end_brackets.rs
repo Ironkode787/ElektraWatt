@@ -645,6 +645,65 @@ fn resized(mut copy: ew_schema::LibCopy<Part>, item: u128, key: &str, width: i64
     )
 }
 
+/// The first terminal of `strip` (by ID).
+fn first_terminal(q: &Q, strip: &str) -> Id<Device> {
+    q.devices()
+        .iter()
+        .filter(|(_, d)| d.aspects.terminal.as_ref().is_some_and(|t| t.strip == dev(strip)))
+        .map(|(id, _)| id)
+        .min()
+        .expect("a terminal")
+}
+
+/// C53-p2#2 (decision log ID-1480; doc 12 §3.4): one `part.assign` that widens a terminal of -X1031 and one of -X1032
+/// by 5.2 mm each cascades both pushes: -X1032 moves from 172.6 to 177.8 mm, and X33, placed 3 mm clear of the
+/// bracket after -X1032 (at 211.6 mm), moves to 219.0 mm, 10 mm after -X1032's new end at 209.0 mm, with no finding.
+/// Each push measured on the base snapshot left X33 at 216.0 mm, the bracket after -X1032 overlapping it.
+#[test]
+fn a_part_change_that_widens_two_strips_on_one_rail_cascades_both_pushes() {
+    let mut s = session();
+    run(
+        &mut s,
+        "layout.place",
+        json!({"device": id_json(x33()), "carrier": {"carrier": id_json(carrier("R2"))}, "pose": at(2116)}),
+    );
+    let x33_at = |s: &Session| {
+        let q = s.query();
+        let at = q
+            .table::<Placement>()
+            .iter()
+            .find(|(_, p)| p.device == x33())
+            .map(|(_, p)| p.pose.t[0].0)
+            .expect("X33's placement");
+        at * 10 / MM
+    };
+    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
+    let (terminals, copy, part) = {
+        let q = s.query();
+        let terminals = [first_terminal(&q, "-X1031"), first_terminal(&q, "-X1032")];
+        let old = q.devices().get(terminals[0]).expect("the terminal").parts[0]
+            .part
+            .copy;
+        let twin = ew_schema::LibCopy::clone(q.table::<ew_schema::LibCopy<Part>>().get(old).expect("the copy"));
+        let (copy, part) = resized(twin, 0x0190_0000_0000_7000_8000_0000_0000_1480, "C53P2-TWIN", 10_400_000);
+        (terminals, copy, part)
+    };
+    assert_eq!(
+        (s10(&s, "-X1031"), s10(&s, "-X1032"), x33_at(&s)),
+        (586, 1726, 2116)
+    );
+    run(
+        &mut s,
+        "part.assign",
+        json!({"devices": terminals.map(id_json), "part": part, "copies": [copy], "mode": "replace_all"}),
+    );
+    assert_eq!(
+        (s10(&s, "-X1031"), s10(&s, "-X1032"), x33_at(&s)),
+        (586, 1778, 2190)
+    );
+    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
+}
+
 /// C53-p2#3 (decision log ID-1480; doc 12 §3.4): -X1031 turned 180° as in FT-1495, with an end bracket of 5 mm of its
 /// own while 1X1 keeps its 10 mm one. One terminal inserted into -X1031 moves 1X1 from 30 to 24.8 mm: the gap between
 /// the two strips is the bracket of 1X1, the strip on the left, as EW-LAY-010 judges it, so there is no finding.

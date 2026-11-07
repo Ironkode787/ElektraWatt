@@ -387,7 +387,8 @@ snap_on_rail(rail, device, cursor, mode):
   leftwards, by the same cascade on the rail's coordinates mirrored: the gaps stay the real frame's, so between two
   strips the bracket of the strip on the left, as EW-LAY-010 judges it (C53-p2#3, ID-1480), a locked item stops the
   cascade, and past the rail's start the positions are written and EW-LAY-010 reports `bracket_outside` (cycle 53,
-  FT-1495; ID-1455).
+  FT-1495; ID-1455). The pushes of one command cascade from one another: each reads the positions and the strip
+  widths the transaction holds (C53-p2#2).
 - **Group accessories** (FR-LAY-060, MVP). A group is a maximal run of abutting strip placements on one rail.
   Wherever strips are placed, `rail_occupancy` derives one end bracket per strip boundary in the run plus one at each
   run end, so k abutting strips need k + 1 brackets. GP rail R2 holds 1X1, -X1031 and -X1032 abutting: **4**

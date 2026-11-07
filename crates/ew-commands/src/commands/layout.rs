@@ -1679,7 +1679,8 @@ pub(crate) fn follow_part_change(
 /// FT-1441 (doc 12 §3.3's push; decision log ID-1416): after terminals were inserted into `strip`, each placement of the
 /// strip as a whole on a rail (turned 0°) that grew shifts the items after it on the rail by the overlap, cascading
 /// ([`cascade`] with the grown strip first), in the same transaction. The grown width is the strip's terminals as the
-/// transaction holds them, side by side; the positions are the base snapshot's. A strip turned 180° grows left and
+/// transaction holds them, side by side; the positions and the other strips' widths are the transaction's too
+/// ([`in_transaction`], C53-p2#2), so one command's pushes cascade from one another. A strip turned 180° grows left and
 /// pushes the items before it, leftwards (FT-1495, ID-1455): the same cascade runs on the rail's coordinates mirrored
 /// ([`cascade_mirrored`]), the gap between two strips being the bracket of the strip on the left in the real frame, as
 /// EW-LAY-010 judges it (C53-p2#3, ID-1480); past the rail's start the positions are written all the same.
@@ -1692,18 +1693,9 @@ pub(crate) fn follow_part_change(
 /// - A strip whose footprint is unknown before or after (a terminal without a part or without a width and height)
 ///   pushes nothing, so `terminal.add`, which inserts terminals without a part, never pushes.
 pub(crate) fn push_after_growth(tx: &mut TxBuilder<'_>, strip: Id<Device>) -> Result<(), CmdError> {
-    let mut width = 0i128;
-    for t in tx.terminals_of_strip(strip) {
-        let size = tx
-            .get::<Device>(t)
-            .and_then(|d| primary_part(tx, &d))
-            .and_then(|p| mech_of(tx, p.copy))
-            .and_then(|m| Some((m.width?, m.height?)));
-        let Some((w, _)) = size else {
-            return Ok(());
-        };
-        width += i128::from(w.0);
-    }
+    let Some(width) = strip_width(tx, strip) else {
+        return Ok(());
+    };
     let base_model = tx.base_model().clone();
     let q = Q::new(&base_model);
     let mut writes = Vec::new();
@@ -1734,6 +1726,7 @@ pub(crate) fn push_after_growth(tx: &mut TxBuilder<'_>, strip: Id<Device>) -> Re
             note_rail_reads(tx, c, &[d.as_ref()]);
         }
         let mut items = rail_items(&q, c);
+        in_transaction(tx, &q, p, &mut items);
         if turned {
             // The mirrored frame: `s` becomes `−s`, the pads swap sides, and the items before the strip come after it.
             for i in &mut items {
@@ -1782,6 +1775,55 @@ pub(crate) fn push_after_growth(tx: &mut TxBuilder<'_>, strip: Id<Device>) -> Re
         }
     }
     move_neighbours(tx, writes)
+}
+
+/// The width of `strip`'s terminals side by side as the transaction holds them; `None` when one has no part or no
+/// width and height (FT-1441).
+fn strip_width(tx: &TxBuilder<'_>, strip: Id<Device>) -> Option<i128> {
+    let mut width = 0i128;
+    for t in tx.terminals_of_strip(strip) {
+        let (w, _) = tx
+            .get::<Device>(t)
+            .and_then(|d| primary_part(tx, &d))
+            .and_then(|p| mech_of(tx, p.copy))
+            .and_then(|m| Some((m.width?, m.height?)))?;
+        width += i128::from(w.0);
+    }
+    Some(width)
+}
+
+/// C53-p2#2 (ID-1480): the rail's items (computed on the base snapshot `q`) where the transaction holds them, so that
+/// a command that grows several strips cascades each push from the earlier ones: an item whose placement moved along
+/// the rail (its turn unchanged) moves by as much, and another strip placed as a whole takes the width of its terminals
+/// as the transaction holds them, at its clip point (its left end, turned 180° its right end). The placement `grown`
+/// keeps its width before the change, which its growth is measured against.
+fn in_transaction(tx: &TxBuilder<'_>, q: &Q, grown: Id<Placement>, items: &mut [RailItem]) {
+    let base = q.table::<Placement>();
+    for i in items.iter_mut() {
+        let Some(ip) = i.placement else {
+            continue;
+        };
+        let (Some(now), Some(was)) = (tx.get::<Placement>(ip), base.get(ip)) else {
+            continue;
+        };
+        if now.pose.q != was.pose.q {
+            continue;
+        }
+        let by = i128::from(now.pose.t[0].0) - i128::from(was.pose.t[0].0);
+        i.s0 = i.s0.saturating_add(by);
+        i.s1 = i.s1.saturating_add(by);
+        if ip == grown || !i.strip {
+            continue;
+        }
+        let Some(w) = strip_width(tx, now.device) else {
+            continue;
+        };
+        match Quarter::of(now.pose.q) {
+            Some(Quarter::NONE) => i.s1 = i.s0.saturating_add(w),
+            Some(Quarter::HALF) => i.s0 = i.s1.saturating_sub(w),
+            _ => {}
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------
