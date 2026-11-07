@@ -1661,6 +1661,154 @@ fn symbol_editor_draws_a_rectangle_by_drag_and_keeps_its_view() {
     d.shell_mut().shutdown();
 }
 
+/// ID-1483 (F6): at the 1280 × 800 floor the Library tab scrolls, and its fields keep clear of the scroll bar: they
+/// are narrower than the same field on the Drawing tab, which does not scroll.
+#[test]
+fn symbol_editor_library_fields_keep_clear_of_the_scroll_bar() {
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.scroll");
+    assert_eq!(d.geometry().window_points(), egui::Vec2::new(1280.0, 800.0));
+    let drawing = d.find("Name").unwrap();
+    d.input(&click(d.find("Library").unwrap()));
+    d.input(&Input::Wait { ms: 100 });
+    let library = d.find("Name").unwrap();
+    assert!(
+        library.0 < drawing.0,
+        "the field gives the scroll bar its room: {library:?} against {drawing:?}"
+    );
+    d.shell_mut().shutdown();
+}
+
+/// ID-1483 (F5): the refusal banner above the canvas neither re-fits nor moves the view: the same drag draws the same
+/// rectangle with the banner on show as without it.
+#[test]
+fn symbol_editor_refusal_banner_keeps_the_canvas_view() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.banner");
+    let canvas = d.find("Drawing of Drawn").unwrap();
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("symbol.tool", &json!({"tool": "rectangle"})),
+        Outcome::Done
+    );
+    d.settle();
+    let from = (canvas.0 - 160, canvas.1 - 40);
+    let drag = Input::Drag {
+        from,
+        to: (from.0 + 120, from.1 + 60),
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    };
+    d.input(&drag);
+    d.settle();
+    assert_eq!(
+        d.shell_mut().dispatch("symbol.variant", &json!({"variant": 9})),
+        Outcome::Failed {
+            message: "Symbol editor: Choose a variant from A to H.".into()
+        }
+    );
+    d.input(&Input::Wait { ms: 100 });
+    assert_ne!(
+        d.find("Drawing of Drawn").unwrap(),
+        canvas,
+        "the banner shows above the canvas, which it shortens"
+    );
+    d.input(&drag);
+    d.settle();
+    let rects: Vec<Value> = d
+        .shell_mut()
+        .symbol_editor()
+        .unwrap()
+        .draft
+        .symbol
+        .graphics
+        .iter()
+        .filter_map(|g| {
+            serde_json::to_value(g)
+                .unwrap()
+                .get("rect")
+                .map(|r| r["rect"].clone())
+        })
+        .collect();
+    assert_eq!(rects.len(), 2, "{rects:?}");
+    assert_eq!(rects[0], rects[1], "the banner moved or re-zoomed the view");
+    d.shell_mut().shutdown();
+}
+
+/// ID-1483 (F2): with the Text tool and its field empty, a click on the canvas creates nothing and shows no error; it
+/// marks the spot and puts the focus in the Text field, and the text typed is created there on Enter. Escape drops
+/// the mark.
+#[test]
+fn symbol_editor_text_click_with_an_empty_field_marks_the_spot_for_the_text_typed() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.text-mark");
+    let canvas = d.find("Drawing of Drawn").unwrap();
+    assert_eq!(
+        d.shell_mut().dispatch("symbol.tool", &json!({"tool": "text"})),
+        Outcome::Done
+    );
+    d.settle();
+    let texts = |d: &mut Driver| -> Vec<Value> {
+        d.shell_mut()
+            .symbol_editor()
+            .unwrap()
+            .draft
+            .symbol
+            .graphics
+            .iter()
+            .filter_map(|g| serde_json::to_value(g).unwrap().get("text").cloned())
+            .collect()
+    };
+    let spot = (canvas.0 + 40, canvas.1 + 30);
+    d.input(&click(spot));
+    d.settle();
+    assert_eq!(texts(&mut d), Vec::<Value>::new(), "the click creates nothing");
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None);
+    assert_eq!(state(&mut d)["toast"], Value::Null);
+    // The focus is in the Text field: the typing goes there, and Enter creates the text at the marked spot.
+    d.input(&Input::Type { text: "K1".into() });
+    d.input(&key("enter"));
+    d.settle();
+    let marked = texts(&mut d);
+    assert_eq!(marked.len(), 1, "{marked:?}");
+    assert_eq!(
+        (&marked[0]["text"], &marked[0]["align"]),
+        (&json!({"en": "K1"}), &json!("centre"))
+    );
+    // The same click with the field filled creates the text there at once: the mark was the click's own point.
+    d.input(&click(spot));
+    d.settle();
+    let both = texts(&mut d);
+    assert_eq!(both.len(), 2, "{both:?}");
+    assert_eq!(both[1]["pos"], marked[0]["pos"]);
+    // Escape drops a mark: the text typed afterwards is created nowhere, and the tool stays. The Text field is the
+    // rightmost widget named Text above the canvas (the tool's button and the field's caption are left of it).
+    let field = |d: &Driver| {
+        d.labels()
+            .into_iter()
+            .filter(|(l, at)| l == "Text" && at.1 < canvas.1)
+            .map(|(_, at)| at)
+            .max_by_key(|at| at.0)
+            .unwrap()
+    };
+    d.input(&click(field(&d)));
+    d.input(&key("ctrl+a"));
+    d.input(&key("backspace"));
+    d.input(&key("tab"));
+    d.input(&click((spot.0 - 60, spot.1 + 20)));
+    d.input(&key("escape"));
+    d.settle();
+    d.input(&click(field(&d)));
+    d.input(&Input::Type { text: "K2".into() });
+    d.input(&key("enter"));
+    d.settle();
+    assert_eq!(texts(&mut d).len(), 2);
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().tool, "text");
+    d.shell_mut().shutdown();
+}
+
 /// M25-p3#4: a field of the document commits once, on focus loss, and a pin designation can be cleared and retyped.
 #[test]
 fn symbol_editor_fields_commit_on_focus_loss_and_a_designation_is_retyped() {

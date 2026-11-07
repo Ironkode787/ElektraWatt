@@ -5025,6 +5025,7 @@ symbol-angle-invalid = Give the arc's start and sweep in whole degrees, from −
 symbol-cp-index-invalid = Number a connection point from 1 to 65535.
 symbol-function-pin-invalid = Give the function pin as a number.
 symbol-draft-damaged = The symbol draft is damaged. Undo the last change, or open the draft again.
+symbol-change-invalid = That change would leave the symbol incomplete, so it was not made. Fill in what it needs and try again.
 symbol-image = Image
 action-symbol-role = Set the potential role of a symbol connection point
 symbol-cp-unknown = This symbol has no connection point { $p0 }.

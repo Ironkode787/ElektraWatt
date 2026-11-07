@@ -1458,6 +1458,32 @@ fn a_new_text_is_centred_in_the_style_chosen_last() {
     shell.shutdown();
 }
 
+/// ID-1483 (F2): an edit the reader refuses (a text with no characters) is refused in words, never the parser's.
+#[test]
+fn an_edit_the_reader_refuses_is_refused_in_words() {
+    let tmp = Tmp::new("symbol-edit-words");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    drawn(&mut shell, "example.words", "Words");
+    let before = shell.symbol_editor().unwrap().draft.clone();
+    let sentence = "That change would leave the symbol incomplete, so it was not made. Fill in what it needs and try \
+                    again.";
+    assert_eq!(
+        shell.dispatch("symbol.draw", &json!({"tool":"text","x":8,"y":8,"text":""})),
+        Outcome::Failed {
+            message: format!("Symbol editor: {sentence}")
+        }
+    );
+    let editor = shell.symbol_editor().unwrap();
+    assert_eq!(
+        (editor.error.as_deref(), &editor.draft),
+        (Some(sentence), &before)
+    );
+    shell.shutdown();
+}
+
 /// ID-1477 (5): with no folder given, a new draft's Library folder is the default user library, `symbols.ewlib` in the
 /// user library folder, and Save to library saves there.
 #[test]

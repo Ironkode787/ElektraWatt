@@ -27,6 +27,9 @@ pub(crate) struct EditorView {
     /// The model's tool last seen, so a key that chooses a tool shows here (ID-1463).
     seen_tool: &'static str,
     start: Option<[f64; 2]>,
+    /// The spot a Text tool click marked while the Text field was empty: the text typed is created there on Enter
+    /// (ID-1483 F2).
+    text_mark: Option<[f64; 2]>,
     vertices: Vec<[f64; 2]>,
     selected: Option<usize>,
     move_start: Option<Pos2>,
@@ -38,7 +41,8 @@ pub(crate) struct EditorView {
     zoom: f32,
     pan: Vec2,
     manual_view: bool,
-    /// The canvas size the view was last fitted to (ID-1477 (9)): the view fits again only at another size or on Fit.
+    /// The editor's size the view was last fitted at (ID-1477 (9)): the view fits again only at another size or on Fit,
+    /// never because the refusal banner shortens the canvas (ID-1483 (F5)).
     fitted: Option<Vec2>,
     place: [f64; 2],
     draw_coordinates: [f64; 4],
@@ -184,7 +188,8 @@ fn field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
     response.changed()
 }
 /// [`field`] for a text that may hold a line break, which Shift+Enter starts; Enter ends the entry (ID-1477 (2)).
-fn lines_field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
+/// Returns the field's input and whether Enter ended the entry.
+fn lines_field(ui: &mut Ui, key: &str, value: &mut String) -> (egui::Id, bool) {
     let caption = ui.label(label(strings::Key::run_time(key)));
     let input = ui.make_persistent_id(("lines", key));
     let enter = enter_pressed(ui, input);
@@ -203,7 +208,7 @@ fn lines_field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
     let name = label(strings::Key::run_time(key));
     ui.ctx()
         .accesskit_node_builder(response.id, |n| n.set_label(name));
-    response.changed()
+    (input, enter)
 }
 /// A text of the document that commits on Enter or focus loss, never per keystroke (M25-p3#4): the typing stays in
 /// the field until then. `allow_empty` false keeps the previous text when the field is left empty, so a designation
@@ -716,6 +721,7 @@ impl EditorView {
                 .position(|t| *t == editor.tool)
                 .unwrap_or(0);
             self.start = None;
+            self.text_mark = None;
             self.move_start = None;
             self.vertices.clear();
         }
@@ -865,6 +871,7 @@ impl EditorView {
         if clicked {
             self.tool = index;
             self.start = None;
+            self.text_mark = None;
             self.move_start = None;
             self.vertices.clear();
             action(events, "symbol.tool", json!({"tool": word}));
@@ -886,6 +893,7 @@ impl EditorView {
         let draft = &editor.draft;
         let styles = shell.symbol_text_styles();
         let t = theme::current(ui.ctx());
+        let view_size = ui.available_size();
         let symbol_name = display_text(&serde_json::to_value(&draft.symbol.name).unwrap_or_default());
         // P3: the saved state and the grid are the status bar's; the header names the symbol and the error, once.
         ui.horizontal(|ui| {
@@ -926,6 +934,8 @@ impl EditorView {
         let height = ui.available_height();
         ui.horizontal_top(|ui| {
             ui.allocate_ui_with_layout(Vec2::new(width,height),egui::Layout::top_down(egui::Align::Min),|ui| {
+                // ID-1483 (F6): the scroll bar takes its own room, so no field runs under it.
+                ui.spacing_mut().scroll.floating = false;
                 egui::ScrollArea::vertical().id_salt("symbol-properties-scroll").max_height(height).show(ui,|ui| {
                     ui.set_min_width(width - t.space_5);
                     let tabs = ["symbol-drawing-tab", "symbol-data-tab", "symbol-library-tab"].map(|k| label(strings::Key::run_time(k)));
@@ -1045,7 +1055,15 @@ impl EditorView {
                 band_ui.set_clip_rect(band_rect.intersect(ui.clip_rect()));
                 let ui_band = &mut band_ui;
                 let field_width = (band_rect.width() / 3.0).max(t.size_button_min_width);
-                if self.tool == 6 { ui_band.allocate_ui_with_layout(Vec2::new(field_width * 2.0, band), egui::Layout::left_to_right(egui::Align::Center), |ui| lines_field(ui,"symbol-text",&mut self.text)); }
+                let mut text_input = None;
+                if self.tool == 6 {
+                    let (input, entered) = ui_band.allocate_ui_with_layout(Vec2::new(field_width * 2.0, band), egui::Layout::left_to_right(egui::Align::Center), |ui| lines_field(ui,"symbol-text",&mut self.text)).inner;
+                    text_input = Some(input);
+                    // ID-1483 (F2): the text typed after a click on the canvas is created at that click, on Enter.
+                    if entered && !self.text.is_empty() && let Some(p) = self.text_mark.take() {
+                        action(events,"symbol.draw",json!({"tool":TOOLS[6].0,"x":p[0],"y":p[1],"text":self.text}));
+                    }
+                }
                 if self.tool == 10 { ui_band.allocate_ui_with_layout(Vec2::new(field_width * 2.0, band), egui::Layout::left_to_right(egui::Align::Center), |ui| field(ui,"symbol-name",&mut self.link_name)); }
                 if self.tool == 8 { slot_kind_control(ui_band,&mut self.slot_kind,&mut self.slot_pin); }
                 if self.tool == 7 {
@@ -1071,17 +1089,18 @@ impl EditorView {
                 }
                 // Fit fills the canvas at every width (SM25 nit: a small import filled 60 px at 1920). ID-1477 (9): it
                 // fits when the draft opens, when the canvas changes size and when Fit is chosen, never because the
-                // drawing changed; an empty draft shows the 40 mm square right and below its origin.
-                if !self.manual_view && self.fitted != Some(rect.size()) && let Ok(g)=draft.preview(editor.variant) {
-                    self.fitted = Some(rect.size());
+                // drawing changed; an empty draft shows the 40 mm square right and below its origin. ID-1483 (F5): the
+                // view stands on the canvas's bottom edge, which the refusal banner above it does not move.
+                if !self.manual_view && self.fitted != Some(view_size) && let Ok(g)=draft.preview(editor.variant) {
+                    self.fitted = Some(view_size);
                     let b=g.bounds;let empty=draft.symbol.graphics.is_empty()&&draft.symbol.cps.is_empty();
                     let (width,height,centre)=if empty {(40.0,40.0,Vec2::splat(20.0))} else {
                         ((b.max().x.0-b.min().x.0) as f32/1e6,(b.max().y.0-b.min().y.0) as f32/1e6,Vec2::new((b.min().x.0+b.max().x.0) as f32/2e6,(b.min().y.0+b.max().y.0) as f32/2e6))
                     };
                     self.zoom=(rect.width()/(width+16.0)).min(rect.height()/(height+16.0)).clamp(0.01,80.0);
-                    self.pan=-centre*self.zoom;
+                    self.pan=-centre*self.zoom-Vec2::new(0.0,rect.height()/2.0);
                 }
-                let origin = rect.center() + self.pan;
+                let origin = rect.center_bottom() + self.pan;
                 let step = self.zoom * draft.symbol.grid.at(1).map_or(4.0,|n|n.0 as f32 / 1_000_000.0);
                 if step >= t.space_3 {
                     let x0 = ((rect.left()-origin.x)/step).floor() as i32;
@@ -1133,6 +1152,9 @@ impl EditorView {
                         if p != start { action(events,"symbol.draw",json!({"tool":tools[2].0,"x":start[0],"y":start[1],"x2":p[0],"y2":p[1]})); }
                     }
                 }
+                if let Some(mark) = self.text_mark {
+                    painter.circle_stroke(origin+Vec2::new(mark[0] as f32,mark[1] as f32)*self.zoom,t.space_2,Stroke::new(t.focus_width,t.canvas_selection.color32()));
+                }
                 if let Some(start) = self.start {
                     let at = origin+Vec2::new(start[0] as f32*self.zoom,start[1] as f32*self.zoom);
                     painter.circle_stroke(at,t.space_2,Stroke::new(t.focus_width,t.canvas_selection.color32()));
@@ -1156,18 +1178,23 @@ impl EditorView {
                             action(events,"symbol.path",json!({"points":self.vertices,"closed":self.tool==12}));self.vertices.clear();
                         }
                     }
-                    else if matches!(self.tool,6|9) { action(events,"symbol.draw",json!({"tool":tools[self.tool].0,"x":p[0],"y":p[1],"text":self.text})); }
+                    // ID-1483 (F2): with the Text field empty a click marks its spot and puts the focus in the field.
+                    else if self.tool == 6 && self.text.is_empty() {
+                        self.text_mark = Some(p);
+                        if let Some(input) = text_input { ui.memory_mut(|m| m.request_focus(input)); }
+                    }
+                    else if matches!(self.tool,6|9) { self.text_mark = None; action(events,"symbol.draw",json!({"tool":tools[self.tool].0,"x":p[0],"y":p[1],"text":self.text})); }
                     else if self.tool > 0 {
                         if let Some(start)=self.start.take() { action(events,"symbol.draw",json!({"tool":tools[self.tool].0,"x":start[0],"y":start[1],"x2":p[0],"y2":p[1],"start":self.arc_angles[0],"sweep":self.arc_angles[1]})); } else { self.start=Some(p); }
                     }
                 }
                 // Escape ends a gesture; at rest it returns to Select (the key the Select tooltip names).
                 if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE,egui::Key::Escape)) {
-                    if self.start.is_none() && self.move_start.is_none() && self.vertices.is_empty() && self.tool != 0 {
+                    if self.start.is_none() && self.text_mark.is_none() && self.move_start.is_none() && self.vertices.is_empty() && self.tool != 0 {
                         self.tool = 0;
                         action(events, "symbol.tool", json!({"tool": tools[0].0}));
                     }
-                    self.start=None;self.move_start=None;self.vertices.clear();
+                    self.start=None;self.text_mark=None;self.move_start=None;self.vertices.clear();
                 }
                 ui.horizontal(|ui| {
                     ui.label(label(strings::Key::run_time("symbol-variants")));
@@ -1187,14 +1214,13 @@ impl EditorView {
                         response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, variant == editor.variant, &name));
                         let painter=ui.painter_at(r);
                         painter.rect_filled(r,t.radius_mark,if variant==editor.variant {t.canvas_selection.alpha(24).over(t.canvas_sheet).color32()} else {t.canvas_sheet.color32()});
-                        painter.text(r.left_top()+Vec2::new(t.space_2,t.space_1),egui::Align2::LEFT_TOP,&letter,theme::font(&t.type_small),t.canvas_sheet_line.color32());
-                        if let Ok(g)=draft.preview(variant) {
-                            let b=g.bounds; let width=(b.max().x.0-b.min().x.0) as f32/1_000_000.0;
-                            let height=(b.max().y.0-b.min().y.0) as f32/1_000_000.0;
-                            let inner = (strip - 2.0 * t.space_4).max(t.space_4);
-                            let scale=((w-t.space_4)/width.max(8.0)).min(inner/height.max(8.0));
-                            let centre=Vec2::new((b.max().x.0+b.min().x.0) as f32/2_000_000.0,(b.max().y.0+b.min().y.0) as f32/2_000_000.0);
-                            paint(&painter,draft,variant,r.center()-centre*scale,scale,false,&styles);
+                        let letter_at = r.left_top()+Vec2::new(t.space_2,t.space_1);
+                        let letter_rect = painter.text(letter_at,egui::Align2::LEFT_TOP,&letter,theme::font(&t.type_small),t.canvas_sheet_line.color32());
+                        // ID-1483 (F4): the drawing, its texts included, fits inside its cell, right of its letter.
+                        let area = egui::Rect::from_min_max(Pos2::new(letter_rect.right()+t.space_2,r.top()+t.space_2),r.max-Vec2::splat(t.space_2));
+                        if let Some(b) = drawn_bounds(draft,variant,&styles) {
+                            let (origin,scale) = variant_view(b,area);
+                            paint(&painter,draft,variant,origin,scale,false,&styles);
                         }
                         if response.clicked() { action(events,"symbol.variant",json!({"variant":variant})); }
                     }
@@ -1938,17 +1964,7 @@ fn paint(
     let at = |p: symbols::units::Pt2| {
         origin + Vec2::new(p.x.0 as f32 / 1_000_000.0, p.y.0 as f32 / 1_000_000.0) * scale
     };
-    // SM25#11: a slot previews as the words of its kind, not one placeholder for all.
-    let placeholder = |kind: &symbols::schema::SlotKind| {
-        label(strings::Key::run_time(match kind {
-            symbols::schema::SlotKind::FunctionText => "symbol-function-text",
-            symbols::schema::SlotKind::TechData => "symbol-tech-data",
-            symbols::schema::SlotKind::Xref => "symbol-xref",
-            _ => "symbol-text",
-        }))
-        .to_owned()
-    };
-    let list = symbols::preview_display_list(draft, &g, styles, &placeholder);
+    let list = symbols::preview_display_list(draft, &g, styles, &slot_placeholder);
     paint_graphics(painter, &list, variant, origin, scale);
     for cp in &g.cps {
         let p = at(cp.pos);
@@ -2025,6 +2041,40 @@ fn paint(
             }
         }
     }
+}
+
+/// SM25#11: a slot previews as the words of its kind, not one placeholder for all.
+fn slot_placeholder(kind: &symbols::schema::SlotKind) -> String {
+    label(strings::Key::run_time(match kind {
+        symbols::schema::SlotKind::FunctionText => "symbol-function-text",
+        symbols::schema::SlotKind::TechData => "symbol-tech-data",
+        symbols::schema::SlotKind::Xref => "symbol-xref",
+        _ => "symbol-text",
+    }))
+    .to_owned()
+}
+
+/// The bounds of variant `variant` in millimetres as [`paint`] draws it, its texts included (ID-1483 (F4)).
+fn drawn_bounds(draft: &SymbolDraft, variant: u8, styles: &symbols::TextStyleTable) -> Option<[f32; 4]> {
+    let g = draft.preview(variant).ok()?;
+    let b = symbols::preview_display_list(draft, &g, styles, &slot_placeholder)
+        .bounds()
+        .unwrap_or(g.bounds);
+    Some([
+        b.min().x.0 as f32 / 1e6,
+        b.min().y.0 as f32 / 1e6,
+        b.max().x.0 as f32 / 1e6,
+        b.max().y.0 as f32 / 1e6,
+    ])
+}
+
+/// The origin and the scale that show `bounds` (millimetres) whole and centred in `area`; a drawing smaller than 8 mm
+/// shows at the scale of 8 mm.
+fn variant_view(bounds: [f32; 4], area: egui::Rect) -> (Pos2, f32) {
+    let (width, height) = (bounds[2] - bounds[0], bounds[3] - bounds[1]);
+    let scale = (area.width() / width.max(8.0)).min(area.height() / height.max(8.0));
+    let centre = Vec2::new(bounds[0] + bounds[2], bounds[1] + bounds[3]) / 2.0;
+    (area.center() - centre * scale, scale)
 }
 
 fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyleTable, owner: &str) -> bool {
@@ -2498,6 +2548,45 @@ mod tests {
         assert_eq!(pick_graphic(&draft, on_glyphs, 0.1, &styles), Some(0));
         assert_eq!(pick_graphic(&draft, Vec2::new(3.0, 17.0), 0.1, &styles), Some(1));
         assert_eq!(pick_graphic(&draft, Vec2::new(30.0, 30.0), 0.1, &styles), None);
+    }
+
+    /// ID-1483 (F4): every variant, its large two-line text included, shows whole inside its cell, right of its
+    /// letter; the text's glyphs reach past the bounds of the geometry alone, which the strip fitted before.
+    #[test]
+    fn each_variant_with_its_texts_fits_inside_its_cell_right_of_its_letter() {
+        let styles = ew_viewmodel::ew_api::output::new_project_text_style_table();
+        let draft = SymbolDraft::new("example.strip", "Strip").unwrap();
+        let mut doc = serde_json::to_value(&draft).unwrap();
+        doc["symbol"]["graphics"] = json!([
+            {"rect": {"rect": [[0, 0], [24_000_000, 16_000_000]], "stroke": {"pen": "p026"}}},
+            {"text": {"pos": [12_000_000, 0], "text": {"en": "Line 1\nLine 2"}, "align": "centre",
+                "style": "section.subtitle"}},
+        ]);
+        let draft = SymbolDraft::parse(&serde_json::to_vec(&doc).unwrap()).unwrap();
+        let geometry = draft.preview(0).unwrap().bounds;
+        let drawn = drawn_bounds(&draft, 0, &styles).unwrap();
+        assert!(
+            drawn[1] < geometry.min().y.0 as f32 / 1e6,
+            "the text reaches above the rectangle: {drawn:?}"
+        );
+        let cell = egui::Rect::from_min_size(Pos2::new(100.0, 700.0), Vec2::new(110.0, 84.0));
+        let letter = egui::Rect::from_min_size(cell.min + Vec2::new(8.0, 4.0), Vec2::new(8.0, 14.0));
+        let area = egui::Rect::from_min_max(
+            Pos2::new(letter.right() + 8.0, cell.top() + 8.0),
+            cell.max - Vec2::splat(8.0),
+        );
+        for variant in 0..8u8 {
+            let b = drawn_bounds(&draft, variant, &styles).unwrap();
+            let (origin, scale) = variant_view(b, area);
+            let shown = egui::Rect::from_min_max(
+                origin + Vec2::new(b[0], b[1]) * scale,
+                origin + Vec2::new(b[2], b[3]) * scale,
+            );
+            assert!(
+                area.expand(0.01).contains_rect(shown) && !shown.intersects(letter),
+                "variant {variant}: {shown:?} in {area:?}"
+            );
+        }
     }
 
     /// ID-1477 (8): letters typed into an open role list choose the role whose words they are, else the first they
