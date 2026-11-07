@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 
 use common::{Tmp, copy_dir, done, refused};
 use ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
-use ew_viewmodel::ew_api::{Recovery, Session, SessionOptions, StoreOptions};
+use ew_viewmodel::ew_api::{OpenMode, Recovery, Session, SessionOptions, StoreOptions};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use ew_viewmodel::{key, strings};
 use serde_json::{Value, json};
@@ -383,6 +383,62 @@ fn ft1499_a_save_that_fails_refuses_the_update() {
     }
     std::fs::write(&manifest, &original).unwrap();
     assert!(strings::set_locale("en"));
+}
+
+/// A project opened read-only on request (C53-p4#6): the window shows no damaged-copy banner there, so it offers no
+/// update and refuses the action with its reason; the session's own refusal is the read-only one. Each text whole in
+/// both languages; nothing is written.
+#[test]
+fn ft1499_a_project_opened_read_only_on_request_offers_no_update() {
+    let tmp = Tmp::new("ft1499-requested");
+    let (dir, file, _) = starter_project(&tmp);
+    damage(&file);
+    let before = tree(&dir);
+    for (locale, reason, refusal) in [
+        (
+            "en",
+            "The open project has no damaged library copy that a library holds",
+            "the project can only be opened read-only, for a reason other than its damaged library copies; nothing \
+             was written",
+        ),
+        (
+            "nl",
+            "Het open project heeft geen beschadigde bibliotheekkopie die een bibliotheek bevat",
+            "het project kan alleen als alleen-lezen worden geopend, om een andere reden dan zijn beschadigde \
+             bibliotheekkopieën; er is niets geschreven",
+        ),
+    ] {
+        let mut s = ShellModel::new(
+            Mode::Headless,
+            ShellConfig::in_dir(&tmp.0.join(format!("config-{locale}")), "0.0.0-test"),
+        );
+        assert!(strings::set_locale(locale));
+        done(
+            &mut s,
+            "file.open",
+            json!({"dir": dir.to_string_lossy(), "read_only": true}),
+        );
+        assert!(s.read_only_reason().is_some());
+        assert!(!s.damaged_update_offered(), "nothing is offered");
+        assert_eq!(
+            refused(&mut s, "library.update_damaged", json!({})),
+            "reason-no-damaged-copy-update"
+        );
+        assert_eq!(strings::text(key!("reason-no-damaged-copy-update")), reason);
+        done(&mut s, "file.close", json!({}));
+        // The session's own refusal, for a front-end that asks it anyway.
+        let mut store = StoreOptions::new("ElektraWatt test");
+        store.state_dir = None;
+        store.mode = OpenMode::ReadOnly;
+        let (mut session, _) =
+            Session::open(&dir, store, SessionOptions::default(), Recovery::Keep).expect("opens read-only");
+        let text = session.update_damaged_copies().expect_err("refused");
+        assert_eq!(text.key(), "refusal-update-copies-read-only");
+        assert_eq!(strings::text(key!("refusal-update-copies-read-only")), refusal);
+        session.close();
+    }
+    assert!(strings::set_locale("en"));
+    assert!(tree(&dir) == before, "nothing is written");
 }
 
 /// A library's version of the damaged copy that would break the project (C53-p4#3). Golden A's double-acting cylinder

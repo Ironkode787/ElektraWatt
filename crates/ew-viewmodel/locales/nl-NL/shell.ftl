@@ -1678,7 +1678,7 @@ refusal-purge-human-only = opruimen is alleen voor mensen: bevestig het in Elekt
 # Update from library of the damaged library copies: the refusals of ew-api's own (FT-1499, ID-1486).
 refusal-update-copies-no-library = geen bibliotheek op deze computer heeft een leesbare versie van { $p0 }; er is niets geschreven
 refusal-update-copies-misfit = de versies van de beschadigde kopieën in de bibliotheken passen niet bij het project, dat dan niet zou openen; er is niets geschreven
-refusal-update-copies-locked =een andere sessie heeft het project open; er is niets geschreven
+refusal-update-copies-locked = een andere sessie heeft het project open; er is niets geschreven
 refusal-update-copies-read-only = het project kan alleen als alleen-lezen worden geopend, om een andere reden dan zijn beschadigde bibliotheekkopieën; er is niets geschreven
 refusal-update-copies-findings = het project heeft andere integriteitsbevindingen, die het alleen-lezen houden; er is niets geschreven
 refusal-update-copies-save = het bijwerken kon niet worden weggeschreven: { $p0 }
