@@ -4975,7 +4975,6 @@ symbol-not-saved = Not in a library yet
 symbol-file-required = Choose a symbol file first.
 symbol-scratch-title = Symbol test: { $p0 }
 symbol-placed = Test copy placed on this page.
-symbol-placed-new-page = Symbol placed on page { $p0 }.
 symbol-not-published = The symbol is not in a library as drawn. Save it to a library first.
 toast-back-to-editor = Back to the editor
 symbol-confirm-title = Save the symbol { $p0 }?

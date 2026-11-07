@@ -4576,7 +4576,6 @@ pub const KEYS: &[&str] = &[
     "symbol-file-required",
     "symbol-scratch-title",
     "symbol-placed",
-    "symbol-placed-new-page",
     "symbol-not-published",
     "toast-back-to-editor",
     "symbol-confirm-title",

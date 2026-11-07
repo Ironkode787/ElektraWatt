@@ -4735,7 +4735,6 @@ symbol-not-saved = Nog niet in een bibliotheek
 symbol-file-required = Kies eerst een symboolbestand.
 symbol-scratch-title = Symbooltest: { $p0 }
 symbol-placed = Testkopie op deze pagina geplaatst.
-symbol-placed-new-page = Symbool geplaatst op pagina { $p0 }.
 symbol-not-published = Het symbool staat niet zoals getekend in een bibliotheek. Sla het eerst op in een bibliotheek.
 toast-back-to-editor = Terug naar de editor
 symbol-confirm-title = Symbool { $p0 } opslaan?

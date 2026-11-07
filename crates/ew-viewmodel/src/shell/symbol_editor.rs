@@ -434,19 +434,10 @@ impl ShellModel {
             .clone()
             .filter(|id| Some(id) != page.as_ref());
         let _ = self.dispatch("ui.dismiss", &json!({}));
+        // The Place tool's own toast says what was placed where, with Undo; the Draw tab's Symbols returns to the draft.
         if let Some(id) = placed {
             let _ = self.dispatch("select.set", &json!({ "ids": [id] }));
         }
-        let folio = self
-            .page_labels()
-            .get(self.page_index())
-            .cloned()
-            .unwrap_or_default();
-        self.notes.push(
-            strings::format(key!("symbol-placed-new-page"), &[&folio]),
-            "symbol",
-            Some((NoteAction::BackToEditor, Validity::SymbolDraft)),
-        );
         Ok(())
     }
 
