@@ -18,6 +18,14 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 - **ID-1481** (cycle 53): The triage of cycle 53's review part 3, the FT batches FT53f, FT53d and FT53e (project owner (delegated)): accepted; its reviewer fixes in its fix phase (ID-1450): **C53-p3#1 ruled**: the `open_path` oracle accepts, beside an EW-INV-001 naming a dropped copy, a violation whose keys name a record that refers to a dropped copy (such as EW-INV-024 on a fluid line ending at a function whose definition copy was dropped), never a violation unrelated to a dropped copy; no check rule changes its meaning; a `regressions/open_path` input with a damaged definition copy on a fluid page replays it; settled before the delivery's fuzz run; **#2** FT53d's pixel refusals keyed through `asset_error_text`, with a Dutch assertion, the English byte-equal; and the nits #3 to #6 (a key absent from the base named by its kind, the remaining serde and schema details wrapped or listed, the Blocks rewording kept to the kind column, every left-out copy named). ID-1448; ID-1457; ID-1458; ID-1478; ID-1479.
   - `b96a77c7cd` docs(plan): the triage of review part 3
 - **ID-1480** (cycle 53): The triage of cycle 53's review part 2, the FT batches FT53c, FT53a and FT53b (project owner (delegated)): accepted; its reviewer fixes in its fix phase (ID-1450): **C53-p2#1** the combined delete toast joined with one space now that each sentence ends with its full stop, with a whole-text test; **#2** `part.assign`'s pushes cascade against the transaction's positions (or one pass per rail in rail order), so two widened strips on one rail never overlap, with a test of two widened strips (data: positions); **#3 ruled**: in FT-1495's mirrored cascade the gap between two strips is the bracket of the strip on the left in the real frame, as `brackets()` and EW-LAY-010 judge it, with a test of two different bracket parts; and the nits #4 to #6 (the FT-1519 test pinned to its outcome, whole-text tests for FT-1515's and FT-1524's forms, the release notes' text-change lines). The release line's fixes reach the working branch with the merge of `release/0.1` before the first candidate (ID-1466). ID-1455; ID-1457; ID-1456; ID-1450.
+  - `5a3fa38d98` docs(plan): part 2's follow-up row
+  - `ac965f23b2` style: rustfmt the fix phase's tests (C53-p2#2, C53-p2#3, C53-p2#5)
+  - `46ed4c1e84` fix(commands): one command's strip pushes cascade from one another (C53-p2#2)
+  - `6477ab2675` fix(commands): a turned strip's push keeps the real frame's bracket gap (C53-p2#3)
+  - `b6ad55a021` docs(release-notes): text-change lines for FT-1515's and FT-1526's refusals (C53-p2#6)
+  - `f0606e42d2` test(commands): assert the held-copy and copy-name refusals whole (C53-p2#5)
+  - `b13ef5513b` test(scene): pin FT-1519's risen cross-reference to its place above the body (C53-p2#4)
+  - `7ba5fafba2` fix(viewmodel): join a delete toast's two sentences with one space (C53-p2#1)
   - `af368d5629` docs(plan): the triage of review part 2
 - **ID-1479** (cycle 53): FT53d and FT53e as built (project owner (delegated)): FT53d built all six rows (a record that is itself a library copy named by its kind alone, a report block as "a report block"; a copy no installed library holds named by its kind with an article; `ew`'s text notices on standard error, so an `--out` file never holds them; the JSON's new optional `notices` array); FT53e built six of seven; **FT-1530 is re-dated** to after 0.1.0's promote: the Dutch starter names in a patch version would re-embed Golden A's 21 starter symbol copies through its bootstrap, after WP-S6.08's lock froze `fixtures/format/0.1` from Golden A, and three generic symbols would need a new derivation profile; at 0.1.0 a Dutch window shows the starter symbols' English names (the release notes' known limitations); the lane's 39 drafted Dutch names wait in its report; the attached-records refusal's raw member name and `image.pick`'s refusal by hash go to FT-1556 and FT-1557. ID-1458; ID-1465; ID-1451.
   - `96b6f96ddd` docs(plan): FT53d and FT53e as built
@@ -1676,7 +1684,7 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 
 ## Open follow-up tasks
 
-591 open: 21 scheduled, 87 expired, 483 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
+592 open: 22 scheduled, 87 expired, 483 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
 
 ### Scheduled (due in cycle 53 or later)
 
@@ -1701,6 +1709,7 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 - FT-1556 (cycle 53, Low, ew-commands; due: cycle 54 (FT batch)): the attached-records refusal shows the raw member name ("pin fn_cp 0") and "a function without a device" for an interruption point's pins; name them in words. Source: ID-1479
 - FT-1557 (cycle 53, Low, ew-viewmodel; due: cycle 54 (FT batch)): `image.pick`'s refusal of an over-limit image names it by its `sha256:` hash, as its missing-asset error does; name the image by its file name where the project knows it. Source: ID-1479
 - FT-1558 (cycle 53, Low, xtask; due: cycle 54 (FT batch)): `xtask/src/blind/replay.rs`'s `replay_command` returns a command without `EW_CONTENT_DIR` (its test sets it, other callers do not), and FT-1539's check reads only `bin/elektrawatt/tests`; name the content folder in the command and widen the check to every crate's tests. Source: ID-1464
+- FT-1559 (cycle 53, Low, ew-library; due: cycle 54 (FT batch)): `Registry::resolve` (`crates/ew-library/src/registry.rs:904`) never searches the `plc_profile` kind, so a company library's PLC profile cannot be resolved by reference; search it as the other kinds are searched, with a test. Source: ID-1480
 
 ### Expired (not scheduled, opened in cycle 49 or earlier)
 
