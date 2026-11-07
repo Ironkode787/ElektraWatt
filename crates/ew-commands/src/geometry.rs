@@ -472,7 +472,8 @@ pub fn require_split_point(
 /// geometry and passes):
 ///
 /// - an end at a CP that a representation on `page` draws must be exactly that CP's position (route
-///   vertex 0 at endpoint `a`, the last vertex at endpoint `b`);
+///   vertex 0 at endpoint `a`, the last vertex at endpoint `b`), and an end at a junction on `page` exactly the
+///   junction's point (WP-S2.19 D2: a route holds both ends);
 /// - every coordinate of every vertex lies on the page's connection grid, or equals that coordinate of
 ///   a route end that meets its CP: a CP position can sit up to 1 nm off a rational grid (the rounding
 ///   pitfall of `Grid::cell`), and the segment leaving it stays orthogonal;
@@ -517,6 +518,29 @@ pub fn require_route(
     }
     let mut exact: Vec<Pt2> = Vec::new();
     for (e, v, i) in [(a, first, 0), (b, last, route.len() - 1)] {
+        // WP-S2.19 D2: a junction end's point is the route's end vertex too.
+        if let Endpoint::Junction(j) = e {
+            let Some(at) = tx.get::<Junction>(*j).filter(|j| j.page == page).map(|j| j.at) else {
+                continue;
+            };
+            if v != at {
+                let (here, there) = (crate::words::position(v), crate::words::position(at));
+                let junction = text!("refusal-geometry-junction");
+                let miss = if here == there {
+                    text!("refusal-geometry-misses", junction)
+                } else {
+                    text!("refusal-geometry-does-not-meet", junction, there)
+                };
+                return tx.reject(text!(
+                    "refusal-geometry-end-off-junction",
+                    what(i),
+                    crate::words::point(tx, page, v),
+                    miss
+                ));
+            }
+            exact.push(at);
+            continue;
+        }
         let Endpoint::Cp(function, idx) = e else {
             continue;
         };

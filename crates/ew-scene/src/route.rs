@@ -52,18 +52,20 @@ pub struct RouteEnd {
 
 /// The polyline of a connection from `a` to `b` (both ends included).
 ///
-/// - `stored` non-empty: `[a.pos] ++ stored ++ [b.pos]` (the stored route holds the interior vertices, in
-///   model order), each point clamped into `page`. The route is drawn as stored: duplicate and collinear
-///   vertices are kept, because the model's route is authoritative and the user placed those vertices.
+/// - `stored` non-empty: `ew_derive::stored_path(a.pos, stored, b.pos)` (the stored route holds every vertex from
+///   end `a`'s point to end `b`'s, both included, WP-S2.19 D2; equal neighbours merged, a stale end joined by one
+///   straight segment), each point clamped into `page`, equal neighbours merged again. Collinear vertices are kept:
+///   the model's route is authoritative and the user placed those vertices.
 /// - `stored` empty: [`provisional_route`]`(a, b, page)`, which is cleaned.
 pub fn connection_polyline(a: &RouteEnd, b: &RouteEnd, stored: &[Pt2], page: Rect) -> Vec<Pt2> {
     if stored.is_empty() {
         return provisional_route(a, b, page);
     }
-    let mut pts = Vec::with_capacity(stored.len() + 2);
-    pts.push(clamp(a.pos, page));
-    pts.extend(stored.iter().map(|&p| clamp(p, page)));
-    pts.push(clamp(b.pos, page));
+    let mut pts: Vec<Pt2> = ew_derive::stored_path(a.pos, stored, b.pos)
+        .into_iter()
+        .map(|p| clamp(p, page))
+        .collect();
+    pts.dedup();
     pts
 }
 

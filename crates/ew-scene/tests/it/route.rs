@@ -134,7 +134,9 @@ fn upward_and_leftward_targets_work_too() {
 }
 
 #[test]
-fn stored_route_keeps_interior_vertices_in_order() {
+fn a_stale_route_joins_its_ends_by_straight_segments() {
+    // WP-S2.19 D2: a route whose end vertices are not the ends' points (an end moved without the route following) is
+    // joined to each end by one straight segment.
     let a = end(0, 0, None);
     let b = end(300, 300, None);
     let stored = [p(0, 100), p(200, 100), p(200, 300)];
@@ -146,22 +148,10 @@ fn stored_route_keeps_interior_vertices_in_order() {
 fn stored_route_is_drawn_as_stored() {
     let a = end(0, 0, None);
     let b = end(300, 100, None);
-    // (0,0) duplicates the start, (50,0) and (100,0) are collinear, (300,100) duplicates the end: all kept.
+    // WP-S2.19 D2: the route holds both ends, drawn once each; (50,0) and (100,0) are collinear and kept.
     let stored = [p(0, 0), p(50, 0), p(100, 0), p(300, 0), p(300, 100)];
     let r = connection_polyline(&a, &b, &stored, page());
-    assert_eq!(
-        r,
-        vec![
-            p(0, 0),
-            p(0, 0),
-            p(50, 0),
-            p(100, 0),
-            p(300, 0),
-            p(300, 100),
-            p(300, 100)
-        ]
-    );
-    assert_eq!(r.len(), stored.len() + 2);
+    assert_eq!(r, stored.to_vec());
 }
 
 #[test]

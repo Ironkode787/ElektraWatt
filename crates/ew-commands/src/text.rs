@@ -317,6 +317,11 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-geometry-end-off-cp",
         "{0} at {1} {2}; end the wire at its connection point",
     ),
+    ("refusal-geometry-junction", "the junction"),
+    (
+        "refusal-geometry-end-off-junction",
+        "{0} at {1} {2}; end the wire at its junction",
+    ),
     (
         "refusal-geometry-corner-onto-grid",
         "{0}; move the corner onto the grid",

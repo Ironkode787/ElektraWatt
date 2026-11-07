@@ -829,6 +829,8 @@ pub const KEYS: &[&str] = &[
     "refusal-geometry-misses",
     "refusal-geometry-does-not-meet",
     "refusal-geometry-end-off-cp",
+    "refusal-geometry-junction",
+    "refusal-geometry-end-off-junction",
     "refusal-geometry-corner-onto-grid",
     "refusal-geometry-duplicate-corner",
     "refusal-geometry-overlap",

@@ -3245,7 +3245,20 @@ pub fn page_describe(page: &CanvasPage) -> String {
         .iter()
         .map(|c| {
             let (a, b) = (end_text(&c.a), end_text(&c.b));
-            let bends = c.polyline.len().saturating_sub(2);
+            // The vertices where the drawn polyline turns (WP-S2.19 D2: a stored route is drawn as stored, so a vertex
+            // it runs straight through is no bend).
+            let bends = c
+                .polyline
+                .windows(3)
+                .filter(|w| {
+                    let (u, v) = (
+                        (w[1].0 - w[0].0, w[1].1 - w[0].1),
+                        (w[2].0 - w[1].0, w[2].1 - w[1].1),
+                    );
+                    i128::from(u.0) * i128::from(v.1) != i128::from(u.1) * i128::from(v.0)
+                        || i128::from(u.0) * i128::from(v.0) + i128::from(u.1) * i128::from(v.1) < 0
+                })
+                .count();
             let route = if c.stored_route { "stored" } else { "provisional" };
             // A point that picks this wire and nothing else (FT-485 item 4), where there is one.
             let point =

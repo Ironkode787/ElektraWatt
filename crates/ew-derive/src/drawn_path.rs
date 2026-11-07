@@ -7,8 +7,9 @@
 //! (its ends placed by [`rep_cp_end`](crate::rep_cp_end)), and EW-TERM-006 names a terminal lying on a wire it does not
 //! join.
 //!
-//! - A connection with a stored route is drawn through its ends' points and the stored vertices,
-//!   `[a] ++ route ++ [b]`.
+//! - A connection with a stored route is drawn along it as stored ([`stored_path`]): the route holds every vertex
+//!   from end `a`'s point to end `b`'s, both included (WP-S2.19 D2, ADR-0033); equal neighbours are merged, and an
+//!   end whose point differs from the route's end vertex (a stale route) is joined to it by one straight segment.
 //! - A connection without one is drawn along [`provisional_path`] between its ends.
 //! - An end at a CP is the CP's point and leaving direction on the page ([`cp_end`]); an end at a junction is the
 //!   junction's point, without a direction. A connection one of whose ends is not drawn on the page is not drawn.
@@ -117,11 +118,24 @@ pub fn drawn_path(q: &Q, c: &Connection, page: Id<Page>) -> Option<Vec<Pt2>> {
         let vertical = |d: Option<Dir4>| d.as_ref().and_then(dir_vertical);
         return Some(provisional_path(a, vertical(a_dir), b, vertical(b_dir)));
     }
-    let mut path = Vec::with_capacity(c.route.len() + 2);
-    path.push(a);
-    path.extend_from_slice(&c.route);
-    path.push(b);
-    Some(path)
+    Some(stored_path(a, &c.route, b))
+}
+
+/// The path a stored `route` is drawn along between the ends' points `a` and `b` (WP-S2.19 D2): the route as stored,
+/// both ends included, equal neighbours merged; an end whose point differs from the route's end vertex (a stale route,
+/// an end moved without the route following) is joined to it by one straight segment. An empty route gives `[a, b]`
+/// (`[a]` for equal points).
+pub fn stored_path(a: Pt2, route: &[Pt2], b: Pt2) -> Vec<Pt2> {
+    let mut path: Vec<Pt2> = Vec::with_capacity(route.len() + 2);
+    for p in std::iter::once(a)
+        .chain(route.iter().copied())
+        .chain(std::iter::once(b))
+    {
+        if path.last() != Some(&p) {
+            path.push(p);
+        }
+    }
+    path
 }
 
 #[cfg(test)]

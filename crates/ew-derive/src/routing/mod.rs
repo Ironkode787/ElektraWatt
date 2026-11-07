@@ -56,5 +56,6 @@ mod tests;
 pub use measures::{Bends, Crossing, FourWay, Measures, Overlap, Through, Touch, TouchedPoint, measure};
 pub use page::{Body, CpPoint, DrawnConnection, JunctionPoint, PageGeometry, Point, Rect, TextBox};
 pub use search::{
-    BEND_COST, Heading, MAX_NODES, RouteEnd, RouteRequest, Routed, auto_route, clear, fallback, l_route, route,
+    BEND_COST, Heading, MAX_NODES, RouteEnd, RouteRequest, Routed, auto_route, clear, fallback, l_route,
+    route,
 };

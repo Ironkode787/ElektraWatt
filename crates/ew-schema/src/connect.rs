@@ -42,7 +42,8 @@ pub struct Connection {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub page: Option<Id<Page>>,
-    /// Orthogonal route in nm, in model order.
+    /// The orthogonal route in nm, in model order: every vertex from end a's point to end b's, both included. Empty:
+    /// the connection is not routed.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[schemars(with = "Vec<Pt2S>")]
     pub route: Vec<Pt2>,
