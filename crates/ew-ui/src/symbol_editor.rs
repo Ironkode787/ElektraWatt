@@ -1209,14 +1209,13 @@ impl EditorView {
                         response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, variant == editor.variant, &name));
                         let painter=ui.painter_at(r);
                         painter.rect_filled(r,t.radius_mark,if variant==editor.variant {t.canvas_selection.alpha(24).over(t.canvas_sheet).color32()} else {t.canvas_sheet.color32()});
-                        painter.text(r.left_top()+Vec2::new(t.space_2,t.space_1),egui::Align2::LEFT_TOP,&letter,theme::font(&t.type_small),t.canvas_sheet_line.color32());
-                        if let Ok(g)=draft.preview(variant) {
-                            let b=g.bounds; let width=(b.max().x.0-b.min().x.0) as f32/1_000_000.0;
-                            let height=(b.max().y.0-b.min().y.0) as f32/1_000_000.0;
-                            let inner = (strip - 2.0 * t.space_4).max(t.space_4);
-                            let scale=((w-t.space_4)/width.max(8.0)).min(inner/height.max(8.0));
-                            let centre=Vec2::new((b.max().x.0+b.min().x.0) as f32/2_000_000.0,(b.max().y.0+b.min().y.0) as f32/2_000_000.0);
-                            paint(&painter,draft,variant,r.center()-centre*scale,scale,false,&styles);
+                        let letter_at = r.left_top()+Vec2::new(t.space_2,t.space_1);
+                        let letter_rect = painter.text(letter_at,egui::Align2::LEFT_TOP,&letter,theme::font(&t.type_small),t.canvas_sheet_line.color32());
+                        // ID-1483 (F4): the drawing, its texts included, fits inside its cell, right of its letter.
+                        let area = egui::Rect::from_min_max(Pos2::new(letter_rect.right()+t.space_2,r.top()+t.space_2),r.max-Vec2::splat(t.space_2));
+                        if let Some(b) = drawn_bounds(draft,variant,&styles) {
+                            let (origin,scale) = variant_view(b,area);
+                            paint(&painter,draft,variant,origin,scale,false,&styles);
                         }
                         if response.clicked() { action(events,"symbol.variant",json!({"variant":variant})); }
                     }
@@ -1960,17 +1959,7 @@ fn paint(
     let at = |p: symbols::units::Pt2| {
         origin + Vec2::new(p.x.0 as f32 / 1_000_000.0, p.y.0 as f32 / 1_000_000.0) * scale
     };
-    // SM25#11: a slot previews as the words of its kind, not one placeholder for all.
-    let placeholder = |kind: &symbols::schema::SlotKind| {
-        label(strings::Key::run_time(match kind {
-            symbols::schema::SlotKind::FunctionText => "symbol-function-text",
-            symbols::schema::SlotKind::TechData => "symbol-tech-data",
-            symbols::schema::SlotKind::Xref => "symbol-xref",
-            _ => "symbol-text",
-        }))
-        .to_owned()
-    };
-    let list = symbols::preview_display_list(draft, &g, styles, &placeholder);
+    let list = symbols::preview_display_list(draft, &g, styles, &slot_placeholder);
     paint_graphics(painter, &list, variant, origin, scale);
     for cp in &g.cps {
         let p = at(cp.pos);
@@ -2047,6 +2036,40 @@ fn paint(
             }
         }
     }
+}
+
+/// SM25#11: a slot previews as the words of its kind, not one placeholder for all.
+fn slot_placeholder(kind: &symbols::schema::SlotKind) -> String {
+    label(strings::Key::run_time(match kind {
+        symbols::schema::SlotKind::FunctionText => "symbol-function-text",
+        symbols::schema::SlotKind::TechData => "symbol-tech-data",
+        symbols::schema::SlotKind::Xref => "symbol-xref",
+        _ => "symbol-text",
+    }))
+    .to_owned()
+}
+
+/// The bounds of variant `variant` in millimetres as [`paint`] draws it, its texts included (ID-1483 (F4)).
+fn drawn_bounds(draft: &SymbolDraft, variant: u8, styles: &symbols::TextStyleTable) -> Option<[f32; 4]> {
+    let g = draft.preview(variant).ok()?;
+    let b = symbols::preview_display_list(draft, &g, styles, &slot_placeholder)
+        .bounds()
+        .unwrap_or(g.bounds);
+    Some([
+        b.min().x.0 as f32 / 1e6,
+        b.min().y.0 as f32 / 1e6,
+        b.max().x.0 as f32 / 1e6,
+        b.max().y.0 as f32 / 1e6,
+    ])
+}
+
+/// The origin and the scale that show `bounds` (millimetres) whole and centred in `area`; a drawing smaller than 8 mm
+/// shows at the scale of 8 mm.
+fn variant_view(bounds: [f32; 4], area: egui::Rect) -> (Pos2, f32) {
+    let (width, height) = (bounds[2] - bounds[0], bounds[3] - bounds[1]);
+    let scale = (area.width() / width.max(8.0)).min(area.height() / height.max(8.0));
+    let centre = Vec2::new(bounds[0] + bounds[2], bounds[1] + bounds[3]) / 2.0;
+    (area.center() - centre * scale, scale)
 }
 
 fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyleTable, owner: &str) -> bool {
@@ -2520,6 +2543,45 @@ mod tests {
         assert_eq!(pick_graphic(&draft, on_glyphs, 0.1, &styles), Some(0));
         assert_eq!(pick_graphic(&draft, Vec2::new(3.0, 17.0), 0.1, &styles), Some(1));
         assert_eq!(pick_graphic(&draft, Vec2::new(30.0, 30.0), 0.1, &styles), None);
+    }
+
+    /// ID-1483 (F4): every variant, its large two-line text included, shows whole inside its cell, right of its
+    /// letter; the text's glyphs reach past the bounds of the geometry alone, which the strip fitted before.
+    #[test]
+    fn each_variant_with_its_texts_fits_inside_its_cell_right_of_its_letter() {
+        let styles = ew_viewmodel::ew_api::output::new_project_text_style_table();
+        let draft = SymbolDraft::new("example.strip", "Strip").unwrap();
+        let mut doc = serde_json::to_value(&draft).unwrap();
+        doc["symbol"]["graphics"] = json!([
+            {"rect": {"rect": [[0, 0], [24_000_000, 16_000_000]], "stroke": {"pen": "p026"}}},
+            {"text": {"pos": [12_000_000, 0], "text": {"en": "Line 1\nLine 2"}, "align": "centre",
+                "style": "section.subtitle"}},
+        ]);
+        let draft = SymbolDraft::parse(&serde_json::to_vec(&doc).unwrap()).unwrap();
+        let geometry = draft.preview(0).unwrap().bounds;
+        let drawn = drawn_bounds(&draft, 0, &styles).unwrap();
+        assert!(
+            drawn[1] < geometry.min().y.0 as f32 / 1e6,
+            "the text reaches above the rectangle: {drawn:?}"
+        );
+        let cell = egui::Rect::from_min_size(Pos2::new(100.0, 700.0), Vec2::new(110.0, 84.0));
+        let letter = egui::Rect::from_min_size(cell.min + Vec2::new(8.0, 4.0), Vec2::new(8.0, 14.0));
+        let area = egui::Rect::from_min_max(
+            Pos2::new(letter.right() + 8.0, cell.top() + 8.0),
+            cell.max - Vec2::splat(8.0),
+        );
+        for variant in 0..8u8 {
+            let b = drawn_bounds(&draft, variant, &styles).unwrap();
+            let (origin, scale) = variant_view(b, area);
+            let shown = egui::Rect::from_min_max(
+                origin + Vec2::new(b[0], b[1]) * scale,
+                origin + Vec2::new(b[2], b[3]) * scale,
+            );
+            assert!(
+                area.expand(0.01).contains_rect(shown) && !shown.intersects(letter),
+                "variant {variant}: {shown:?} in {area:?}"
+            );
+        }
     }
 
     /// ID-1477 (8): letters typed into an open role list choose the role whose words they are, else the first they
