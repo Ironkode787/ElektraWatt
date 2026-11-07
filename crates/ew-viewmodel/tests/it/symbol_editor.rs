@@ -1390,6 +1390,62 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
     shell.shutdown();
 }
 
+/// ID-1477 (2): a new free text is centred on its click, in the small style pin designations use until a style is
+/// chosen in the draft, then in the style chosen last; a text may hold a line break; a style is named in words.
+#[test]
+fn a_new_text_is_centred_in_the_style_chosen_last() {
+    use ew_viewmodel::shell::symbol_editor::text_style_words;
+    use ew_viewmodel::strings;
+    let tmp = Tmp::new("symbol-text-style");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    drawn(&mut shell, "example.texts", "Texts");
+    let texts = |shell: &ShellModel| -> Vec<serde_json::Value> {
+        let d = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
+        d["symbol"]["graphics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|g| g.get("text").cloned())
+            .collect()
+    };
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"text","x":8,"y":8,"text":"K1"}),
+    );
+    let first = texts(&shell)[0].clone();
+    assert_eq!(
+        (&first["align"], &first["style"], &first["pos"]),
+        (&json!("centre"), &json!("cp.small"), &json!([8_000_000, 8_000_000]))
+    );
+    // A style chosen for the first text is the next text's.
+    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
+    let graphics = doc["symbol"]["graphics"].as_array_mut().unwrap();
+    let at = graphics.iter().position(|g| g.get("text").is_some()).unwrap();
+    graphics[at]["text"]["style"] = json!("tag.main");
+    done(&mut shell, "symbol.replace", json!({"document": doc}));
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"text","x":8,"y":16,"text":"Line 1\nLine 2"}),
+    );
+    let second = texts(&shell)[1].clone();
+    assert_eq!(
+        (&second["align"], &second["style"], &second["text"]),
+        (&json!("centre"), &json!("tag.main"), &json!({"en": "Line 1\nLine 2"}))
+    );
+    assert_eq!(text_style_words("cp.small"), "Pin designation");
+    assert_eq!(text_style_words("company.label"), "company.label");
+    assert!(strings::set_locale("nl"));
+    let dutch = text_style_words("cp.small");
+    assert!(strings::set_locale("en"));
+    assert_eq!(dutch, "Aansluitcodering");
+    shell.shutdown();
+}
+
 /// ID-1463 (M25-p5 nit): the quit question's Save symbol saves the draft, then quits.
 #[test]
 fn the_quit_questions_save_symbol_saves_the_draft_and_quits() {

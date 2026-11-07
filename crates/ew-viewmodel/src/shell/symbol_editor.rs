@@ -99,6 +99,8 @@ pub struct SymbolEditor {
     /// Whether that error is the page's other connection grid, which offers Place on a new page with its grid
     /// (ID-1477 (1)).
     pub offer_new_page: bool,
+    /// The text style last chosen for a text of the draft, which a new text takes (ID-1477 (2)).
+    pub text_style: Option<String>,
     /// Suggested writable library directory.
     pub directory: String,
     /// Other drawings recovered from the same input; selecting one is an explicit replacement.
@@ -123,6 +125,7 @@ impl SymbolEditor {
             tool: TOOLS[0],
             error: None,
             offer_new_page: false,
+            text_style: None,
             directory,
             candidates: Vec::new(),
             sources: Vec::new(),
@@ -167,6 +170,36 @@ impl SymbolEditor {
         self.redo.clear();
         self.error = None;
     }
+}
+
+/// The style a new free text takes when none was chosen in the draft: the small style pin designations use
+/// (ID-1477 (2); `ew_scene`'s default for a connection point's designation).
+pub const NEW_TEXT_STYLE: &str = "cp.small";
+
+/// The style of a free text of `after` that differs from the same text of `before`, or is new with a style: the style
+/// a person chose last (ID-1477 (2)).
+fn chosen_text_style(before: &SymbolDraft, after: &SymbolDraft) -> Option<String> {
+    let styles = |d: &SymbolDraft| -> Vec<Option<String>> {
+        serde_json::to_value(&d.symbol.graphics)
+            .ok()
+            .and_then(|v| v.as_array().cloned())
+            .unwrap_or_default()
+            .iter()
+            .map(|g| g.get("text")?.get("style")?.as_str().map(str::to_owned))
+            .collect()
+    };
+    let (old, new) = (styles(before), styles(after));
+    new.iter()
+        .enumerate()
+        .find(|(i, s)| s.is_some() && old.get(*i) != Some(s))
+        .and_then(|(_, s)| s.clone())
+}
+
+/// A text style's name in the window's words (ID-1477 (2)): `text-style-<key>`, else the key itself (a project's own
+/// style).
+pub fn text_style_words(key: &str) -> String {
+    strings::lookup(&format!("text-style-{}", key.replace(['.', '_'], "-")))
+        .map_or_else(|| key.to_owned(), str::to_owned)
 }
 
 /// A suffix that only the same content repeats: FNV-1a over the draft's document, without its key and identity.
@@ -736,7 +769,11 @@ impl ShellModel {
                         .ok_or_else(|| words(key!("symbol-document-required")))?,
                 )
                 .map_err(|e| e.to_string())?;
-                editor.replace(SymbolDraft::parse(&bytes).map_err(err)?);
+                let draft = SymbolDraft::parse(&bytes).map_err(err)?;
+                if let Some(style) = chosen_text_style(&editor.draft, &draft) {
+                    editor.text_style = Some(style);
+                }
+                editor.replace(draft);
             }
             "undo" => {
                 if let Some(d) = editor.undo.pop() {
@@ -805,7 +842,11 @@ impl ShellModel {
                         };
                         json!({"arc":{"rect":[[x.min(x2),y.min(y2)],[x.max(x2),y.max(y2)]],"start":angle("start",0)?,"sweep":angle("sweep",180)?,"stroke":stroke}})
                     }
-                    "text" => json!({"text":{"pos":[x,y],"text":{"en":text(p,"text")},"align":"top_left"}}),
+                    // ID-1477 (2): centred on its click, in the style last chosen, else the pin designations' small one.
+                    "text" => {
+                        let style = editor.text_style.as_deref().unwrap_or(NEW_TEXT_STYLE);
+                        json!({"text":{"pos":[x,y],"text":{"en":text(p,"text")},"align":"centre","style":style}})
+                    }
                     "anchor" => {
                         object.insert("anchor".into(), json!({"named":[x,y]}));
                         Value::Null

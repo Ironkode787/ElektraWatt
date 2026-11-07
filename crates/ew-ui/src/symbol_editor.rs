@@ -417,21 +417,47 @@ fn edit_text(value: &mut Value, text: &str) {
     *value = serde_json::to_value(typed).unwrap_or_default();
 }
 
-// Keep an in-progress empty translation in the widget, committing on Enter/focus loss.
-fn text_field(ui: &mut Ui, key: &str, value: &mut Value) -> bool {
+/// The key that starts a new line in a text that may hold one (ID-1477 (2)); Enter alone commits.
+fn new_line_key() -> egui::KeyboardShortcut {
+    egui::KeyboardShortcut::new(egui::Modifiers::SHIFT, egui::Key::Enter)
+}
+
+/// Whether Enter without Shift was pressed in the focused field `input`: the commit of a text that may hold a line
+/// break (ID-1477 (2)).
+fn enter_pressed(ui: &Ui, input: egui::Id) -> bool {
+    ui.memory(|m| m.has_focus(input))
+        && ui.input(|i| {
+            i.events.iter().any(|e| {
+                matches!(e, egui::Event::Key { key: egui::Key::Enter, pressed: true, modifiers, .. }
+                    if !modifiers.shift)
+            })
+        })
+}
+
+// Keep an in-progress empty translation in the widget, committing on Enter/focus loss. A text that may hold a line
+// break (`lines`) takes it with Shift+Enter (ID-1477 (2)).
+fn text_field(ui: &mut Ui, key: &str, value: &mut Value, lines: bool) -> bool {
     let id = ui.make_persistent_id(key);
     let (source, mut buffer) = ui
         .data_mut(|d| d.get_temp::<(Value, String)>(id))
         .filter(|(source, _)| source == value)
         .unwrap_or_else(|| (value.clone(), display_text(value)));
     let caption = ui.label(label(strings::Key::run_time(key)));
+    let input = id.with("input");
+    let enter = lines && enter_pressed(ui, input);
+    let edit = if lines {
+        egui::TextEdit::multiline(&mut buffer)
+            .desired_rows(1)
+            .return_key(new_line_key())
+    } else {
+        egui::TextEdit::singleline(&mut buffer)
+    };
     let response = ui
-        .add(
-            egui::TextEdit::singleline(&mut buffer)
-                .id(id.with("input"))
-                .desired_width(ui.available_width()),
-        )
+        .add(edit.id(input).desired_width(ui.available_width()))
         .labelled_by(caption.id);
+    if enter {
+        response.surrender_focus();
+    }
     response.widget_info(|| {
         let mut info = egui::WidgetInfo::labeled(
             egui::Role::TextInput,
@@ -443,7 +469,7 @@ fn text_field(ui: &mut Ui, key: &str, value: &mut Value) -> bool {
     });
     // M25-p5#2: Escape cancels the entry.
     let escape = response.lost_focus() && cancelled(ui);
-    let commit = response.lost_focus() && !escape && buffer != display_text(value);
+    let commit = (response.lost_focus() || enter) && !escape && buffer != display_text(value);
     if escape {
         buffer = display_text(value);
     }
@@ -1242,7 +1268,7 @@ impl EditorView {
             graphics.remove(index);
             changed = true;
         }
-        changed |= text_field(ui, "symbol-name", &mut doc["symbol"]["name"]);
+        changed |= text_field(ui, "symbol-name", &mut doc["symbol"]["name"], false);
         if self.panel == 2 {
             for (key, path) in [("symbol-key", "key"), ("symbol-version", "version")] {
                 let mut value = doc[path].as_str().unwrap_or_default().to_owned();
@@ -1358,9 +1384,10 @@ impl EditorView {
                     }
                     if let Some(text) = value.get_mut("text") {
                         changed |= text_style_control(ui, text, styles, &owner);
+                        changed |= align_control(ui, text, &owner);
                         changed |= ui
                             .push_id(("graphic-text", i), |ui| {
-                                text_field(ui, "symbol-text", &mut text["text"])
+                                text_field(ui, "symbol-text", &mut text["text"], true)
                             })
                             .inner;
                         changed |= rotation_control(ui, text, &owner);
@@ -1856,14 +1883,28 @@ fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyl
         .to_owned();
     let mut selected = before.clone();
     let t = theme::current(ui.ctx());
+    // ID-1477 (2): each style by its name in words and its size ("Pin designation · 1.85 mm").
+    let name = |key: &str| {
+        let words = ew_viewmodel::shell::symbol_editor::text_style_words(key);
+        match styles.rows().iter().find(|r| r.key == key) {
+            Some(row) => strings::format(
+                strings::Key::run_time("symbol-style-choice"),
+                &[
+                    &words,
+                    &strings::decimal(&format!("{:.2}", row.em.0 as f64 / 1_000_000.0)),
+                ],
+            ),
+            None => words,
+        }
+    };
     ui.horizontal(|ui| {
         ui.label(label(strings::Key::run_time("symbol-text-style")));
         egui::ComboBox::from_id_salt("text-style")
             .height(t.size_chooser_rows as f32 * t.size_row)
             .selected_text(if selected.is_empty() {
-                label(strings::Key::run_time("symbol-style-default"))
+                label(strings::Key::run_time("symbol-style-default")).to_owned()
             } else {
-                &selected
+                name(&selected)
             })
             .show_ui(ui, |ui| {
                 ui.selectable_value(
@@ -1872,11 +1913,7 @@ fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyl
                     label(strings::Key::run_time("symbol-style-default")),
                 );
                 for row in styles.rows() {
-                    let name = strings::format(
-                        strings::Key::run_time("symbol-style-choice"),
-                        &[&format!("{:.2}", row.em.0 as f64 / 1_000_000.0), &row.key],
-                    );
-                    ui.selectable_value(&mut selected, row.key.clone(), name);
+                    ui.selectable_value(&mut selected, row.key.clone(), name(&row.key));
                 }
             })
             .response
@@ -1899,6 +1936,67 @@ fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyl
     } else {
         value["style"] = json!(selected);
     }
+    true
+}
+
+/// The nine alignments of a text, by (horizontal, vertical) position: left, centre, right; top, middle, bottom.
+const ALIGNS: [[&str; 3]; 3] = [
+    ["top_left", "middle_left", "bottom_left"],
+    ["top_centre", "centre", "bottom_centre"],
+    ["top_right", "middle_right", "bottom_right"],
+];
+
+/// The (horizontal, vertical) position of an alignment word; a word of a newer format reads as top left.
+fn align_position(word: &str) -> (usize, usize) {
+    (0..3)
+        .flat_map(|h| (0..3).map(move |v| (h, v)))
+        .find(|(h, v)| ALIGNS[*h][*v] == word)
+        .unwrap_or((0, 0))
+}
+
+/// A text's alignment as two choices, left, centre or right and top, middle or bottom (ID-1477 (2)), named for the
+/// text `owner`. Returns whether it changed.
+fn align_control(ui: &mut Ui, value: &mut Value, owner: &str) -> bool {
+    let (mut h, mut v) = align_position(value["align"].as_str().unwrap_or("top_left"));
+    let before = (h, v);
+    ui.horizontal(|ui| {
+        ui.label(label(strings::Key::run_time("symbol-alignment")));
+        for (salt, caption, words, at) in [
+            (
+                "align-h",
+                "symbol-align-horizontal",
+                ["symbol-align-left", "symbol-align-centre", "symbol-align-right"],
+                &mut h,
+            ),
+            (
+                "align-v",
+                "symbol-align-vertical",
+                ["symbol-align-top", "symbol-align-middle", "symbol-align-bottom"],
+                &mut v,
+            ),
+        ] {
+            egui::ComboBox::from_id_salt(salt)
+                .selected_text(label(strings::Key::run_time(words[*at])))
+                .show_ui(ui, |ui| {
+                    for (i, word) in words.iter().enumerate() {
+                        ui.selectable_value(at, i, label(strings::Key::run_time(word)));
+                    }
+                })
+                .response
+                .expanded(ui)
+                .widget_info(|| {
+                    egui::WidgetInfo::labeled(
+                        egui::Role::ComboBox,
+                        true,
+                        owned(label(strings::Key::run_time(caption)), owner),
+                    )
+                });
+        }
+    });
+    if (h, v) == before {
+        return false;
+    }
+    value["align"] = json!(ALIGNS[h][v]);
     true
 }
 
@@ -2092,6 +2190,62 @@ fn paint_graphics(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// ID-1477 (2): in a text's field Shift+Enter starts a new line and Enter alone commits the text with it.
+    #[test]
+    fn shift_enter_breaks_a_texts_line_and_enter_commits_it() {
+        let ctx = egui::Context::default();
+        let mut value = json!({"en": "A"});
+        let mut commits = 0;
+        let key = |key, shift| egui::Event::Key {
+            key,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: if shift {
+                egui::Modifiers::SHIFT
+            } else {
+                egui::Modifiers::NONE
+            },
+        };
+        let frame = |n: usize, events: Vec<egui::Event>, value: &mut Value, commits: &mut usize| {
+            let input = egui::RawInput {
+                events,
+                time: Some(n as f64 / 60.0),
+                screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, Vec2::new(400.0, 200.0))),
+                ..Default::default()
+            };
+            let mut output = ctx.run_ui(input, |ui| {
+                if n == 0 {
+                    let input = ui.make_persistent_id("symbol-text").with("input");
+                    ui.memory_mut(|m| m.request_focus(input));
+                }
+                if text_field(ui, "symbol-text", value, true) {
+                    *commits += 1;
+                }
+            });
+            output.textures_delta.clear();
+        };
+        frame(0, Vec::new(), &mut value, &mut commits);
+        frame(1, vec![key(egui::Key::End, false)], &mut value, &mut commits);
+        frame(2, vec![key(egui::Key::Enter, true)], &mut value, &mut commits);
+        frame(3, vec![egui::Event::Text("B".into())], &mut value, &mut commits);
+        assert_eq!((value.clone(), commits), (json!({"en": "A"}), 0), "nothing commits while typing");
+        frame(4, vec![key(egui::Key::Enter, false)], &mut value, &mut commits);
+        assert_eq!((value, commits), (json!({"en": "A\nB"}), 1));
+    }
+
+    /// ID-1477 (2): the nine alignments are three horizontal by three vertical positions, each read back as itself.
+    #[test]
+    fn the_nine_alignments_read_back_as_their_positions() {
+        for (h, column) in ALIGNS.iter().enumerate() {
+            for (v, word) in column.iter().enumerate() {
+                assert_eq!(align_position(word), (h, v), "{word}");
+            }
+        }
+        assert_eq!(ALIGNS[1][1], "centre");
+        assert_eq!(align_position("a-newer-word"), (0, 0));
+    }
 
     #[test]
     fn simultaneous_name_and_import_review_commits_are_merged_before_save() {
