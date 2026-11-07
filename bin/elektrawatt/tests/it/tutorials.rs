@@ -68,7 +68,8 @@ fn run_tutorial(tmp: &Tmp, name: &str) -> Output {
 }
 
 /// [`run_tutorial`] with the sample project `sample` (Help ▸ Tutorials copies it; absent: none). No data directory is
-/// given (`EW_DATA_DIR`): the tutorials run on the compiled-in starter set alone, as a new installation does (FT-1401).
+/// given (`EW_DATA_DIR`): the tutorials run on the shipped tier alone, the compiled-in starter parts and the libraries
+/// of `EW_CONTENT_DIR` (the sample parts library among them), as a new installation does (FT-1401).
 fn run_tutorial_with(tmp: &Tmp, name: &str, sample: Option<&str>) -> Output {
     let path = Path::new(BOOK)
         .join("tutorial-scripts")
