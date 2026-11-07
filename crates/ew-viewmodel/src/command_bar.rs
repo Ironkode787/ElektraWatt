@@ -667,7 +667,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             if !model.stack_quiet() {
                 stack = pointer_stack(model);
             }
-            let selected = model.selection().items.len();
+            let selected = model.canvas_selected();
             if stack > 1 {
                 strings::format(key!("hud-stack"), &[&stack.to_string()])
             } else if selected > 0 && model.selected_placements() > 0 {

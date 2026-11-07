@@ -207,6 +207,8 @@ picker-empty-parts = No parts in this project yet
 picker-empty-parts-filter = No part matches the filter. To give a placed symbol its part, select it and use Edit ▸ Choose part…
 picker-part-symbol = Choose a symbol…
 picker-title-part-symbol = Choose a symbol for { $p0 }
+# ID-1497 (5): the line under the title of the symbol chooser of a part without a symbol.
+picker-part-symbol-note = This part has no symbol of its own: choose the symbol to place it with.
 picker-empty-strips = No terminal strips in this project yet
 picker-empty-strips-text = A terminal goes into a terminal strip. Create one here, then choose it.
 picker-new-strip = New terminal strip…
@@ -251,6 +253,7 @@ reason-unknown-symbol = No such symbol, part or function for this page
 reason-no-strip = No terminal strip to add to: create one (Draw ▸ Place ▸ Terminal strip…). A terminal designation numbers a terminal; a device's tag is set in its properties (Frozen tag)
 reason-designation-needed = Give the terminal's designation
 reason-choose-strip = Choose a terminal strip in the list first, or press Esc
+reason-choose-symbol = Choose a symbol in the list first, or press Esc
 reason-ip-exchange = An interruption point keeps its symbol
 reason-no-next-rep-type = No other symbol draws this function on this page
 reason-no-picker-row = The picker shows no row
@@ -287,6 +290,8 @@ tool-route_edit = Edit route
 hint-wire-armed = Click or { $p0 } on a connection point, a junction or a wire to start
 hint-wire-routing = Click a connection point; { $p0 } removes the last bend; { $p1 } cancels
 hint-wire-direct = No clear route; drawn direct
+# ID-1497 (11): after a click that placed a bend instead of ending the wire.
+hint-wire-bend = Bend placed: click a connection point to end the wire.
 hint-route-edit = { $p0 } picks the segment, the arrow keys move it, { $p1 } commits; { $p2 } cancels
 announce-wire-routing = Wire: routing from { $p0 }. Click a connection point; { $p1 } removes the last bend; { $p2 } cancels
 wire-readout = { $p0 } mm
@@ -573,10 +578,12 @@ link-preview-node = Link preview: page { $p0 }, cell { $p1 }
 link-preview-node-page = Link preview: page { $p0 }
 
 # FT-902: the tooltip of a page link under the pointer, with its target's cell or folio.
-tip-link = Go to { $p0 }
+tip-link = Double-click to go to { $p0 }
 
 # FT-1092 (ID-1184; doc 06 §3.10): what the Pending chips and the Messages header's "pending n" count.
 tip-pending = Findings on the page you are editing that wait until you leave it or run a check
+# ID-1497 (6): the Messages panel's sentence at its top while findings are pending.
+messages-pending-note = Pending findings are on the page you are editing: they count once you leave that page or run a check.
 canvas-cursor-live-cp = , connection point { $p0 }
 reason-no-cp = The page has no connection point
 reason-no-unconnected-cp = The page has no unconnected connection point
@@ -691,7 +698,7 @@ bar-wire = Wire
 bar-interruption = Interruption
 bar-rotate = Rotate
 bar-mirror = Mirror
-bar-renumber = Renumber
+bar-renumber = Renumber devices
 bar-check-project = Check project
 bar-navigators = Navigators
 bar-workspaces = Workspaces
@@ -800,6 +807,7 @@ message-expected-failure = expected a failure; the step did not fail
 message-expect-failed-inner = script.expect_failed needs `action`, an action ID other than script.expect_refused and script.expect_failed, and `params` as an object
 error-unknown-action = Unknown action `{ $p0 }`.
 error-missing-param = Missing parameter `{ $p0 }`.
+error-missing-param-choices = Missing parameter `{ $p0 }`; use one of { $p1 }.
 # FT-1257: a form's missing parameter, named by its field's label.
 error-missing-field = { $p0 } is empty: fill it in.
 # FT-1256 (doc 16a §8 item 5): a form's common refusal reasons, each with what to do next.
@@ -2263,6 +2271,9 @@ check-pending = { $p0 } pending
 # FT-1432: after an earlier check, the toast leads with what changed since, then the project's totals.
 check-since = { $p0 } since the last check; project: { $p1 }
 check-unchanged = no change
+# ID-1497 (3): the same counts as the last check, other findings (the new ones counted).
+check-changed-one = 1 finding changed
+check-changed = { $p0 } findings changed
 marker-export = Exported PDF to { $p0 }
 marker-recovered = Recovered { $p0 } changes from the journal
 marker-recovered-one = Recovered 1 change from the journal
@@ -2894,7 +2905,7 @@ action-table-cell = Move the cell cursor
 action-table-edit = Edit cell
 action-table-input = Type into the cell
 action-table-commit = Commit the cell
-action-table-set = Set cells
+action-table-set = Set cells of the marked rows, else of the cursor row (the column by key or header label)
 action-table-fill-down = Fill down
 action-table-pattern-fill = Pattern fill…
 action-table-paste = Paste cells
@@ -3057,6 +3068,8 @@ table-cell-row = , row { $p0 } of { $p1 }
 table-cell-read-only = , read-only
 table-pattern-title = Pattern fill
 table-pattern-hint = Pattern
+# ID-1497 (1): the cell editor's line while more than one row is marked.
+table-commit-all-hint = Ctrl+Enter sets all { $p0 } marked rows.
 table-pattern-values = Values: { $p0 }
 table-resize = Resize { $p0 } column
 
@@ -3327,6 +3340,8 @@ renumber-pages-title = Renumber pages
 renumber-devices-title = Renumber devices
 dialog-renumber = Renumber
 form-renumber-section = Section (number, or front)
+# ID-1497 (4): the line under Renumber pages' Start.
+form-renumber-start-note = Section dividers keep their numbers.
 form-start = Start
 form-step = Step
 form-keep-gaps = Keep gaps

@@ -194,7 +194,20 @@ impl ShellModel {
             .filter_map(|p| position(p.as_uuid()))
             .collect();
         pages.sort_unstable();
-        self.preview.pages = pages.into_iter().map(|i| rows[i].folio.clone()).collect();
+        // ID-1497 (4): a page whose folio the card changes is named by both folios, read from the candidate model.
+        let after = project.session.preview_folios(preview);
+        self.preview.pages = pages
+            .into_iter()
+            .map(|i| {
+                let folio = rows[i].folio.clone();
+                let new = after
+                    .iter()
+                    .find(|(id, _)| *id == rows[i].id)
+                    .map(|(_, f)| f.clone())
+                    .filter(|f| *f != folio);
+                (folio, new)
+            })
+            .collect();
         let mut tags: Vec<(String, String)> = card
             .preview
             .derived
@@ -568,9 +581,13 @@ impl ShellModel {
         };
         let Some(scheme) = scheme else {
             if self.mode == Mode::Headless || self.in_bulk_form(ACTION) {
-                let out = Outcome::Failed {
-                    message: self.missing_text("scheme"),
+                // ID-1497 (7): headless, the refusal names the schemes it takes.
+                let message = if self.in_bulk_form(ACTION) {
+                    self.missing_text("scheme")
+                } else {
+                    strings::format(key!("error-missing-param-choices"), &["scheme", &SCHEMES.join(", ")])
                 };
+                let out = Outcome::Failed { message };
                 return self.bulk_form_done(ACTION, out);
             }
             let field = |name, label_key, choices, value: &str| FormField {

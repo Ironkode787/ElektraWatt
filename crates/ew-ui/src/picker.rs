@@ -122,6 +122,17 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         .min_width(width)
         .max_width(width)
         .show(ctx, |ui| {
+            // ID-1497 (5): the symbol chooser of a part without a symbol says why it asks, under its title.
+            if picker.part.is_some() {
+                ui.add(
+                    egui::Label::new(
+                        egui::RichText::new(strings::text(key!("picker-part-symbol-note")))
+                            .font(crate::theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    )
+                    .wrap(),
+                );
+            }
             let mut filter = picker.filter.clone();
             // Cycle 37 (window check W37): the focus is taken before the field reads this frame's input, so the key
             // typed in the frame that first shows the picker reaches the filter ("relay", not "elay"); it is asked for

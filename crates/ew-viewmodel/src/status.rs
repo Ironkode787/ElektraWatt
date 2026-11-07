@@ -500,7 +500,7 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
         if !hide_job && let Some(job) = model.jobs().newest_running() {
             out.push(field(StatusKind::Job, job_field(model, job), Tone::Normal));
         }
-        let selected = model.selection().items.len();
+        let selected = model.canvas_selected();
         if selected > 0 {
             out.push(field(
                 StatusKind::Selection,

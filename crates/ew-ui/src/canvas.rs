@@ -383,6 +383,31 @@ fn paint_conflicts(
 /// FT-997): `icon.sm` in `color.text.secondary`, fixed on screen whatever the zoom, standing on the footprint's top
 /// edge at its right end, so it covers none of the device's drawing or labels. An overlay of the window only: the
 /// page's output (SVG, PDF) has no lock. Returns the icons' frames in points.
+/// ID-1497 (9): the hovered link's text underlined, as a link (doc 16a §7.2's hover, P4): a 1-px `canvas.hover` line
+/// along the bottom of the link's rectangle on screen, when the link leads somewhere.
+fn paint_link_underline(ui: &egui::Ui, rect: Rect, ppp: f32, t: &DrawTransform, canvas: &CanvasModel) {
+    let Some(link) = canvas.hovered_link().filter(|l| l.label().is_some()) else {
+        return;
+    };
+    let (lo, hi) = (link.rect.min(), link.rect.max());
+    let on_screen: Vec<Pos2> = [(lo.x.0, lo.y.0), (hi.x.0, hi.y.0)]
+        .iter()
+        .map(|&(x, y)| {
+            let (sx, sy) = t.to_screen((x as f64, y as f64));
+            rect.min + Vec2::new(sx as f32, sy as f32) / ppp
+        })
+        .collect();
+    let left = on_screen[0].x.min(on_screen[1].x);
+    let right = on_screen[0].x.max(on_screen[1].x);
+    let bottom = on_screen[0].y.max(on_screen[1].y);
+    let tokens = crate::theme::current(ui.ctx());
+    ui.painter_at(rect).hline(
+        left..=right,
+        bottom,
+        crate::theme::stroke(tokens.border_width, tokens.canvas_hover),
+    );
+}
+
 fn paint_locks(ui: &egui::Ui, rect: Rect, ppp: f32, t: &DrawTransform, canvas: &CanvasModel) -> Vec<Rect> {
     let page = canvas.page();
     let Some(panel) = page.panel.as_deref() else {
@@ -1514,6 +1539,10 @@ impl CanvasHost {
         self.paint_arrival(ui, rect, ppp, &transform, canvas, group, shell.reduce_motion());
         // FT-997: a locked placement's lock icon, over the page on either backend.
         self.locks[group] = paint_locks(ui, rect, ppp, &transform, canvas);
+        // ID-1497 (9): a hovered link that leads somewhere is underlined.
+        if shell.tool().wants_hover() {
+            paint_link_underline(ui, rect, ppp, &transform, canvas);
+        }
         let stats = shell
             .frame_stats_shown()
             .then(|| self.statistics_frame(ui, rect, shell));

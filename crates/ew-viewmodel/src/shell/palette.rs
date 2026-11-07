@@ -6,7 +6,7 @@
 //! action runs (or opens its parameter form, D5 (a)), a page is shown, a cell is gone to, an object is selected and a
 //! rule shows Messages filtered to it. The palette is transient widget state: nothing here is persisted.
 
-use ew_api::output::FindQuery;
+use ew_api::output::{FindField, FindQuery};
 use serde_json::{Value, json};
 
 use super::{Outcome, PaletteState, ShellModel};
@@ -88,7 +88,7 @@ impl ShellModel {
     ///
     /// By the query's prefix (D4): none or `>` the registry actions the window can list, ranked by label, glossary
     /// alias and ID with the recency boost, and with an empty query the eight most recent distinct actions first
-    /// (D3); `@` the objects of `Session::find` (at most 50, an exact match first); `#` the pages by folio or title;
+    /// (D3), then, without `>`, the objects whose tag holds the query (ID-1497); `@` the objects of `Session::find` (at most 50, an exact match first); `#` the pages by folio or title;
     /// `:` the cell `Session::resolve_goto` finds; `?` the rules of the shipped catalogue, then the Help menu's
     /// actions. An action that needs parameters is listed: with a form when its signature allows one, disabled with
     /// its reason otherwise (D5 (a)). Disabled entries follow the enabled ones; each carries its breadcrumb.
@@ -96,8 +96,16 @@ impl ShellModel {
         let query = self.palette.as_ref().map(|p| p.query.as_str()).unwrap_or("");
         let (prefix, rest) = split_prefix(query);
         match prefix {
-            Prefix::Actions => self.action_entries(rest, |_| true, true),
-            Prefix::Objects => self.object_entries(rest),
+            Prefix::Actions => {
+                let mut entries = self.action_entries(rest, |_| true, true);
+                // ID-1497 (10): without a prefix the search ("commands and devices") also finds the devices, terminal
+                // strips and cables whose tag holds the query, after the actions.
+                if !query.trim_start().starts_with('>') {
+                    entries.extend(self.object_entries(rest, &[FindField::Tag]));
+                }
+                entries
+            }
+            Prefix::Objects => self.object_entries(rest, &[]),
             Prefix::Pages => self.page_entries(rest),
             Prefix::Cell => self.cell_entries(rest),
             Prefix::Help => {
@@ -177,8 +185,8 @@ impl ShellModel {
     }
 
     /// `@`: the records `Session::find` matches, one entry per record, an exact (case-insensitive) match first, then by
-    /// score of the subject, then the subject and the ID.
-    fn object_entries(&self, query: &str) -> Vec<PaletteEntry> {
+    /// score of the subject, then the subject and the ID; in `fields` only (every field when empty).
+    fn object_entries(&self, query: &str, fields: &[FindField]) -> Vec<PaletteEntry> {
         let Some(project) = &self.project else {
             return Vec::new();
         };
@@ -187,6 +195,7 @@ impl ShellModel {
         }
         let results = project.session.find(&FindQuery {
             text: query.to_owned(),
+            fields: fields.to_vec(),
             ..FindQuery::default()
         });
         let lower = query.to_lowercase();

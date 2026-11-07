@@ -243,6 +243,40 @@ fn pl5_the_prefixes_find_pages_cells_objects_and_rules() {
     shell.shutdown();
 }
 
+/// ID-1497 (10): the search without a prefix ("Search commands and devices") finds a terminal strip, a cable and a
+/// device by their tags, after the actions; Enter on one selects it. `>` keeps to the actions.
+#[test]
+fn the_search_without_a_prefix_finds_strips_cables_and_devices_by_tag() {
+    let tmp = Tmp::new("pal-strips");
+    let mut shell = tmp.shell_in(Mode::Gui, false, "101");
+    for (q, tag) in [("X1031", "-X1031"), ("-3W1", "-3W1"), ("-102F1", "-102F1")] {
+        let entries = query(&mut shell, q);
+        let labels: Vec<&str> = entries.iter().map(|e| e.label.as_str()).collect();
+        assert!(labels.contains(&tag), "{q}: {labels:?}");
+        let first_object = entries
+            .iter()
+            .position(|e| matches!(e.run, PaletteRun::Object { .. }))
+            .unwrap();
+        assert!(
+            entries[first_object..]
+                .iter()
+                .all(|e| matches!(e.run, PaletteRun::Object { .. })),
+            "{q}: the objects follow the actions"
+        );
+    }
+    assert!(
+        query(&mut shell, ">X1031")
+            .iter()
+            .all(|e| matches!(e.run, PaletteRun::Action(_)))
+    );
+    let entries = query(&mut shell, "-102F1");
+    let at = entries.iter().position(|e| e.label == "-102F1").unwrap();
+    shell.select_palette_entry(at);
+    assert_eq!(shell.run_palette_selection(), Outcome::Done);
+    assert_eq!(shell.selection().items.len(), 1);
+    shell.shutdown();
+}
+
 #[test]
 fn pl6_forms_open_prefilled_run_with_enter_and_a_path_parameter_is_disabled() {
     let tmp = Tmp::new("pal-pl6");

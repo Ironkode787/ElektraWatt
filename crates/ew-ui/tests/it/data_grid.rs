@@ -249,6 +249,24 @@ fn dk9_every_key_dispatches_the_as_built_actions() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// ID-1497 (1): a value typed into the grid one character a frame loses none: the first character opens the cell
+/// editor and the editor takes the next one in the frame it first shows (R1 saw "Reserve" land as "Rserve").
+#[test]
+fn a_value_typed_one_character_a_frame_loses_no_keystroke() {
+    let tmp = Tmp::new();
+    let mut h = strips(&tmp);
+    show_column(&mut h, "Function text");
+    for c in "Reserve".chars() {
+        h.event(egui::Event::Text(c.to_string()));
+        h.step();
+    }
+    settle(&mut h);
+    let nav = h.state().shell().nav(NavKind::Strips).unwrap();
+    let edit = nav.table_mode().and_then(|m| m.edit()).expect("the cell editor");
+    assert_eq!(edit.buffer, "Reserve");
+    h.state_mut().shell_mut().shutdown();
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // The painted shapes of the restyled grid
 

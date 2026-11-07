@@ -3008,7 +3008,9 @@ pub static ACTIONS: &[ActionMeta] = &[
         None,
         |s, p| s.act_tool_connect_on_move(p),
     ))))),
-    keeps_banner(in_canvas(with_icon(
+    // ID-1497 (10): Edit route on the Draw tab's Connect group, beside Wire.
+    keeps_banner(in_canvas(placed(
+        place(Group::Connect, 2, CommandSize::Small, None),
         "route-2",
         act(
             "tool.route_edit",

@@ -11,7 +11,7 @@
 //! the online check once more to read the finding's quick fix (memoised), then previews the fix.
 
 use ew_api::checks::{CheckMode, FindingState};
-use ew_api::output::NavKind;
+use ew_api::output::{NavKind, NavTable};
 use ew_api::{AnyCommand, Submit};
 use serde_json::{Map, Value};
 
@@ -438,12 +438,22 @@ impl ShellModel {
         self.fetch_messages_table();
         // FT-549: the outcome counted, `Check: 1 error, 0 warnings`, from the pane's table or, with the pane closed,
         // from a table fetched for the count alone.
-        let counts = self.messages_counts().or_else(|| {
-            let project = self.project.as_ref()?;
-            let table = Self::messages_table_of(project, &self.messages);
-            Some(messages::counts(&table, self.editing_folio().as_deref()))
-        });
-        if let Some(c) = counts {
+        // ID-1497 (3): with the findings counted, which the next check compares as a set.
+        let editing = self.editing_folio();
+        let counted = |t: &NavTable| {
+            (
+                messages::counts(t, editing.as_deref()),
+                messages::counted_findings(t, editing.as_deref()),
+            )
+        };
+        let counts = match self.navs.get(&NavKind::Messages).and_then(|n| n.table()) {
+            Some(t) => Some(counted(t)),
+            None => self
+                .project
+                .as_ref()
+                .map(|project| counted(&Self::messages_table_of(project, &self.messages))),
+        };
+        if let Some((c, findings)) = counts {
             // FT-1432: the last check of this project, which the toast's changes count from; C52-p5#2: only a check
             // of the same table, the same scheme and the migration report or not, so a switch reads as no change.
             let table = (
@@ -458,11 +468,12 @@ impl ShellModel {
                 .messages
                 .checked
                 .filter(|((e, _), t, _)| Some(*e) == epoch && *t == table)
-                .map(|(_, _, before)| before);
+                .map(|(_, _, before)| (before, findings.difference(&self.messages.checked_findings).count()));
             self.messages.checked = self
                 .project
                 .as_ref()
                 .map(|p| ((p.epoch, p.session.world().rev.0), table, c));
+            self.messages.checked_findings = findings;
             self.notify_toned(check_summary(c, before), check_tone(c));
             self.messages.check_toast = self
                 .messages
@@ -847,8 +858,10 @@ fn named_cp(discriminator: &str) -> Option<(ew_api::output::Uuid, u16)> {
 /// pending findings, when there are any, qualify the title so the line of counts stays one line (FT-664):
 /// `Check: 1 error, 0 warnings`, `Check · 1 waived: 1 error, 0 warnings`. FT-1432 (ID-1397): after an earlier check of
 /// the same project (`before`), the line leads with what changed since then, then the project's totals:
-/// `Check: −1 error since the last check; project: 0 errors, 2 warnings`.
-pub(crate) fn check_summary(c: MessageCounts, before: Option<MessageCounts>) -> String {
+/// `Check: −1 error since the last check; project: 0 errors, 2 warnings`. ID-1497 (3): `before` carries how many of
+/// this check's findings the earlier one did not count, so that equal counts of other findings read "2 findings
+/// changed", not "no change".
+pub(crate) fn check_summary(c: MessageCounts, before: Option<(MessageCounts, usize)>) -> String {
     let count = |n: usize, one: Key<'_>, many: Key<'_>| match n {
         1 => strings::text(one).to_owned(),
         n => strings::format(many, &[&n.to_string()]),
@@ -860,7 +873,7 @@ pub(crate) fn check_summary(c: MessageCounts, before: Option<MessageCounts>) -> 
     if c.infos > 0 {
         parts.push(count(c.infos, key!("check-info"), key!("check-infos")));
     }
-    if let Some(b) = before {
+    if let Some((b, new)) = before {
         let changes: Vec<String> = [
             (b.errors, c.errors, key!("check-error"), key!("check-errors")),
             (
@@ -878,7 +891,9 @@ pub(crate) fn check_summary(c: MessageCounts, before: Option<MessageCounts>) -> 
             format!("{sign}{}", count(now.abs_diff(was), one, many))
         })
         .collect();
-        let changes = if changes.is_empty() {
+        let changes = if changes.is_empty() && new > 0 {
+            count(new, key!("check-changed-one"), key!("check-changed"))
+        } else if changes.is_empty() {
             strings::text(key!("check-unchanged")).to_owned()
         } else {
             changes.join(", ")
@@ -981,20 +996,68 @@ mod tests {
         );
         // FT-1432: after an earlier check, what changed leads, then the project's totals.
         assert_eq!(
-            check_summary(c(32, 4, 0, 0, 0), Some(c(33, 3, 1, 0, 0))),
+            check_summary(c(32, 4, 0, 0, 0), Some((c(33, 3, 1, 0, 0), 1))),
             "Check: \u{2212}1 error, +1 warning, \u{2212}1 info since the last check; project: 32 errors, 4 warnings."
         );
         assert_eq!(
-            check_summary(c(33, 3, 0, 1, 0), Some(c(33, 3, 0, 0, 0))),
+            check_summary(c(33, 3, 0, 1, 0), Some((c(33, 3, 0, 0, 0), 0))),
             "Check · 1 waived: no change since the last check; project: 33 errors, 3 warnings."
         );
+        // ID-1497 (3): the same counts of other findings are a change, counted by the new findings.
+        assert_eq!(
+            check_summary(c(33, 3, 0, 0, 0), Some((c(33, 3, 0, 0, 0), 2))),
+            "Check: 2 findings changed since the last check; project: 33 errors, 3 warnings."
+        );
+        assert_eq!(
+            check_summary(c(33, 3, 0, 0, 0), Some((c(33, 3, 0, 0, 0), 1))),
+            "Check: 1 finding changed since the last check; project: 33 errors, 3 warnings."
+        );
         assert!(strings::set_locale("nl"));
-        let dutch = check_summary(c(32, 3, 0, 0, 0), Some(c(33, 3, 0, 0, 0)));
+        let dutch = check_summary(c(32, 3, 0, 0, 0), Some((c(33, 3, 0, 0, 0), 0)));
+        let dutch_changed = check_summary(c(33, 3, 0, 0, 0), Some((c(33, 3, 0, 0, 0), 2)));
         assert!(strings::set_locale("en"));
+        assert_eq!(
+            dutch_changed,
+            "Controle: 2 bevindingen gewijzigd sinds de vorige controle; project: 33 fouten, 3 waarschuwingen."
+        );
         assert_eq!(
             dutch,
             "Controle: \u{2212}1 fout sinds de vorige controle; project: 32 fouten, 3 waarschuwingen."
         );
+    }
+
+    /// ID-1497 (3): Check project compares the findings themselves (rule, subject, message) as a set: a check whose
+    /// counts equal the last one's but whose findings differ reports the change ("1 finding changed"), not "no
+    /// change"; the same findings again are no change.
+    #[test]
+    fn a_check_of_other_findings_with_the_same_counts_reports_the_change() {
+        use crate::shell::{Outcome, ShellModel};
+        use serde_json::json;
+        let mut shell = ShellModel::for_tests();
+        let base = crate::shell::fresh_test_dir("ew-check-findings");
+        let dir = base.join("g.ew");
+        let golden = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
+        crate::shell::properties::tests::copy_dir(&golden, &dir);
+        let run = |shell: &mut ShellModel, action: &str, p: serde_json::Value| {
+            assert_eq!(shell.dispatch(action, &p), Outcome::Done, "{action}");
+        };
+        let toast = |shell: &ShellModel| shell.toast().expect("the check toast").text.clone();
+        run(&mut shell, "file.open", json!({ "dir": dir.to_string_lossy() }));
+        run(&mut shell, "messages.check", json!({}));
+        let c = shell.status_counts().expect("the checked counts");
+        // The last check counted one finding this one has not, in place of one it has: the counts are equal.
+        let one = shell.messages.checked_findings.iter().next().cloned().expect("a finding");
+        shell.messages.checked_findings.remove(&one);
+        shell
+            .messages
+            .checked_findings
+            .insert((one.0.clone(), "-Z99".to_owned(), one.2.clone()));
+        run(&mut shell, "messages.check", json!({}));
+        assert_eq!(toast(&shell), check_summary(c, Some((c, 1))));
+        run(&mut shell, "messages.check", json!({}));
+        assert_eq!(toast(&shell), check_summary(c, Some((c, 0))), "the same findings");
+        shell.shutdown();
+        let _ = std::fs::remove_dir_all(&base);
     }
 
     /// C52-p5#2 (FT-1432): Check project counts its changes only from a check of the same table. A switch of the
@@ -1020,7 +1083,7 @@ mod tests {
         let toast = |shell: &ShellModel| shell.toast().expect("the check toast").text.clone();
         assert_eq!(
             toast(&shell),
-            check_summary(c, Some(c)),
+            check_summary(c, Some((c, 0))),
             "the same table: no change"
         );
         let cmd = AnyCommand {

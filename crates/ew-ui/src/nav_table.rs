@@ -120,6 +120,16 @@ impl TableUi {
                 ui.add_space(tokens.space_4);
                 ui.colored_label(tokens.error.color32(), e);
             });
+        } else if let Some(hint) = ew_viewmodel::navigators::table::commit_all_hint(nav) {
+            // ID-1497 (1): with more than one row marked the editor says that Ctrl+Enter sets them all.
+            ui.horizontal(|ui| {
+                ui.add_space(tokens.space_4);
+                ui.label(
+                    RichText::new(hint)
+                        .font(theme::font(&tokens.type_small))
+                        .color(tokens.text_secondary.color32()),
+                );
+            });
         }
         // The pattern fill dialog (§8.5).
         self.pattern_dialog(ui, nav, preview, events);
@@ -693,8 +703,17 @@ pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>
         {
             events.push(Event::Action("navigator.open", json!({"kind": kind, "key": k})));
         }
-    } else {
-        // A printable character other than Space, without Ctrl or Alt, starts editing the cursor cell with it.
+    } else if pressed(Modifiers::COMMAND, Key::A) {
+        // ID-1497 (2): Ctrl+A marks every row of the filtered table (doc 16 §4.6).
+        let keys: Vec<String> = (0..rows.len()).filter_map(row_key).collect();
+        events.push(Event::Action(
+            "navigator.select",
+            json!({"kind": kind, "keys": keys}),
+        ));
+    } else if mode.edit().is_none() {
+        // A printable character other than Space, without Ctrl or Alt, starts editing the cursor cell with it. ID-1497
+        // (1): once the edit is open the cell editor takes the next characters, also in the frame before it has the
+        // focus ("Reserve" lost its "e" when this replaced the buffer with it).
         let typed = ui.ctx().input_mut(|i| {
             let mut typed = String::new();
             if !(i.modifiers.ctrl || i.modifiers.command || i.modifiers.alt) {
@@ -922,6 +941,11 @@ impl Delegate<'_> {
         // The field is exactly `field` high, so that its centred text sits on the cell text's baseline: egui would
         // grow it to `interact_size.y` (the row's height) downwards and the text would drop by the difference.
         ui.spacing_mut().interact_size.y = field.height();
+        // ID-1497 (1): a fresh editor takes the focus before it reads this frame's input, so a character typed in the
+        // frame it first shows reaches it.
+        if self.fresh {
+            ui.memory_mut(|m| m.request_focus(self.edit_id));
+        }
         let response = ui.put(
             field,
             TextEdit::singleline(self.buffer)

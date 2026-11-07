@@ -420,6 +420,36 @@ fn page_new_shows_the_new_page_with_nothing_selected() {
     s.shutdown();
 }
 
+/// ID-1497 (8): a page chosen in the page list selects its page record, which draws nothing on the canvas: the
+/// canvas's HUD and status bar do not count it ("1 selected · Del deletes"), while the selection itself stays (the
+/// page list's Delete deletes the page). A device drawn on the page is counted as before.
+#[test]
+fn a_page_chosen_in_the_page_list_is_not_counted_on_the_canvas() {
+    use ew_viewmodel::navigator::RowKind;
+    use ew_viewmodel::status::{StatusKind, bar};
+    let tmp = Tmp::new("id1497-8");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let key = s
+        .navigator_rows()
+        .into_iter()
+        .find(|r| matches!(r.kind, RowKind::Page(i) if s.page_rows()[i].folio == "101"))
+        .expect("the row of 101")
+        .key;
+    done(&mut s, "navigator.select", json!({"kind": "pages", "keys": [key]}));
+    assert_eq!(s.selection().items.len(), 1, "the page record is selected");
+    assert_eq!(s.canvas_selected(), 0);
+    assert_eq!(hud(&s).prompt, s.tool_hint());
+    assert!(!bar(&s, false).iter().any(|f| f.kind == StatusKind::Selection));
+    // A device record selected by its tag draws nothing on the canvas either; a click on a drawn item counts.
+    done(&mut s, "select.set", json!({"refs": ["tag:-101F1"]}));
+    assert_eq!(s.canvas_selected(), 0);
+    let (_, p) = common::entity_points(s.canvas().unwrap())[0];
+    click(&mut s, p, json!({}));
+    assert_eq!(s.canvas_selected(), 1);
+    assert!(bar(&s, false).iter().any(|f| f.kind == StatusKind::Selection));
+    s.shutdown();
+}
+
 /// CB5's model side and FT-521: with Select and one selected object the prompt is "1 selected · Del deletes · R
 /// rotates"; with the pointer over a pick stack of n objects it is "n objects overlap here · click again to select the
 /// next" (FT-894's words).

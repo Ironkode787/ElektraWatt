@@ -1039,15 +1039,22 @@ impl Driver {
         };
         self.frame(vec![Self::mods_event(mods), moved, press]);
         let release = self.clock_s();
-        self.frame(vec![
-            Event::PointerButton {
-                pos,
-                button,
-                pressed: false,
-                modifiers: mods,
-            },
-            Self::mods_event(Modifiers::NONE),
-        ]);
+        // ID-1497 (2): the modifiers are let go in a frame after the release, as a hand lets go of Shift after the
+        // click: released in the release's frame, a widget that reads the click (on release) read no modifier, so a
+        // Shift+click or Ctrl+click in a table marked nothing.
+        let mut up = vec![Event::PointerButton {
+            pos,
+            button,
+            pressed: false,
+            modifiers: mods,
+        }];
+        if mods == Modifiers::NONE {
+            up.push(Self::mods_event(Modifiers::NONE));
+        }
+        self.frame(up);
+        if mods != Modifiers::NONE {
+            self.frame(vec![Self::mods_event(Modifiers::NONE)]);
+        }
         self.last_click_s = Some(release);
     }
 

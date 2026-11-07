@@ -41,17 +41,18 @@ fn row_text(row: &Row) -> String {
 }
 
 /// The rows of one list in a collapsible section titled `title` with a count badge, open at first when `open`; at most
-/// `size.preview_list` rows on show, then it scrolls.
-fn list(ui: &mut Ui, title: &str, rows: &[Row], open: bool) {
+/// `size.preview_list` rows on show, then it scrolls. Returns the height its rows would take while it is closed (0
+/// while open).
+fn list(ui: &mut Ui, title: &str, rows: &[Row], open: bool) -> f32 {
     if rows.is_empty() {
-        return;
-    }
-    let id = ui.scope_id().with(("preview-list", title));
-    if !components::section_header(ui, id, title, Some(rows.len()), open) {
-        return;
+        return 0.0;
     }
     let t = components::tokens(ui);
     let row = t.size_row;
+    let id = ui.scope_id().with(("preview-list", title));
+    if !components::section_header(ui, id, title, Some(rows.len()), open) {
+        return row * rows.len().min(t.size_preview_list_rows as usize) as f32;
+    }
     egui::ScrollArea::vertical()
         .id_salt(title)
         .max_height(row * t.size_preview_list_rows as f32)
@@ -81,6 +82,7 @@ fn list(ui: &mut Ui, title: &str, rows: &[Row], open: bool) {
                 );
             }
         });
+    0.0
 }
 
 /// The rows of the four lists: entities, tags, cross-reference texts, pages.
@@ -123,10 +125,14 @@ fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 4] {
             r
         })
         .collect();
+    // ID-1497 (4): a page whose folio changes as "106 → 104".
     let pages = pane
         .pages()
         .iter()
-        .map(|p| vec![(p.clone(), t.text_primary)])
+        .map(|(p, after)| match after {
+            Some(a) => arrow(p, a),
+            None => vec![(p.clone(), t.text_primary)],
+        })
         .collect();
     [entities, tags, xrefs, pages]
 }
@@ -481,16 +487,16 @@ fn table_import(
                 false,
             );
         });
-    report(ui, &shown);
+    report(ui, &shown, 0.0);
 }
 
-/// FT-1415: the dock follows the Preview tab's lists.
-fn report<R>(ui: &Ui, shown: &egui::scroll_area::ScrollAreaOutput<R>) {
+/// FT-1415: the dock follows the Preview tab's lists; `closed` is the height the closed lists' rows would add.
+fn report<R>(ui: &Ui, shown: &egui::scroll_area::ScrollAreaOutput<R>, closed: f32) {
     crate::dock::report_content(
         ui,
         ew_viewmodel::layout::PaneKind::Preview,
         shown.inner_rect,
-        shown.content_size.y,
+        shown.content_size.y + closed,
     );
 }
 
@@ -653,17 +659,22 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 // W31-2: the list that carries the change comes first and open (Tags for a renumber, the changed
                 // entities otherwise); the others follow, closed.
                 let renumber = card.preview.name.ends_with("renumber") && !tags.is_empty();
+                let mut closed = 0.0;
                 if renumber {
-                    list(ui, strings::text(key!("preview-tags")), &tags, true);
-                    list(ui, strings::text(key!("preview-entities")), &entities, false);
+                    closed += list(ui, strings::text(key!("preview-tags")), &tags, true);
+                    closed += list(ui, strings::text(key!("preview-entities")), &entities, false);
                 } else {
-                    list(ui, strings::text(key!("preview-entities")), &entities, true);
-                    list(ui, strings::text(key!("preview-tags")), &tags, false);
+                    closed += list(ui, strings::text(key!("preview-entities")), &entities, true);
+                    closed += list(ui, strings::text(key!("preview-tags")), &tags, false);
                 }
-                list(ui, strings::text(key!("preview-xrefs")), &xrefs, false);
-                list(ui, strings::text(key!("preview-pages")), &pages, false);
+                closed += list(ui, strings::text(key!("preview-xrefs")), &xrefs, false);
+                closed += list(ui, strings::text(key!("preview-pages")), &pages, false);
+                closed
             });
-        report(ui, &shown);
+        // ID-1497 (4): the dock is sized for every list open, so that a list opened or closed keeps the headers where
+        // they are (a click on the next header hit the one before, which the grown dock had moved there); past the
+        // dock's room the lists scroll.
+        report(ui, &shown, shown.inner);
     });
 }
 

@@ -543,6 +543,20 @@ fn form_fields(
                 crate::components::focus_ring(ui, &combo, t.radius_md);
             }
         });
+        // ID-1497 (4): a field's line under it, in the field column, `type.small` secondary.
+        if let Some(note) = form.note(f.name) {
+            ui.horizontal(|ui| {
+                ui.add_space(label_width + t.space_3);
+                ui.add(
+                    egui::Label::new(
+                        egui::RichText::new(note)
+                            .font(crate::theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    )
+                    .wrap(),
+                );
+            });
+        }
     }
     // FT-786: Save as macro's value-set table under the fields, the refusal under it.
     if let Some(table) = &form.table {

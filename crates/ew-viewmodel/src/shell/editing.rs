@@ -474,6 +474,8 @@ impl ShellModel {
         };
         let mut box_cps: Option<Vec<(u16, String)>> = None;
         let mut part_copy = None;
+        // ID-1497 (7): the letter of the part's own function category, which a black box placed from it takes.
+        let mut part_letter = None;
         let mut part_cps: Vec<(u16, String)> = Vec::new();
         let (row_index, part) = match &pick {
             Pick::Symbol(i) | Pick::Function(_, i) | Pick::Join(_, i) => (*i, None),
@@ -481,6 +483,7 @@ impl ShellModel {
                 let part = &cat.parts[*pi];
                 let f = &part.functions[*fi];
                 part_copy = Some(part.copy);
+                part_letter.clone_from(&part.letter);
                 // The CPs come from the part's `cp_pattern`, which the catalogue lists whether or not the FnDef is
                 // embedded yet; `f.black_box` is false until it is (the first black box of a project arms through
                 // the starter symbol row instead), so the CPs are kept apart from that test (cycle 33, row 4).
@@ -507,6 +510,7 @@ impl ShellModel {
             Pick::PartSymbol(pi, i) => {
                 let part = &cat.parts[*pi];
                 part_copy = Some(part.copy);
+                part_letter.clone_from(&part.letter);
                 (*i, Some((part.copy.to_string(), 0, part.part_number.clone())))
             }
         };
@@ -568,7 +572,7 @@ impl ShellModel {
             };
             let target = match part {
                 Some((part, template, number)) => {
-                    let Some(letter) = letter_param.or(row.letter.clone()) else {
+                    let Some(letter) = letter_param.or(part_letter).or(row.letter.clone()) else {
                         return Outcome::Refused {
                             reason_key: key!("reason-letter-needed"),
                         };
