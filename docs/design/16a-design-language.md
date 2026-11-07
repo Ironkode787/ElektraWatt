@@ -1164,8 +1164,8 @@ and padding stay. **Keyboard and accessibility** as built (WP-S2.06 §8.1): arro
 Ctrl+Home, Ctrl+End move the cursor; Shift+Up and Shift+Down extend the marks; Enter opens the row; Ctrl+Enter applies
 the table card; a printable character starts editing; in the editor Enter commits, Ctrl+Enter commits every marked
 row, Escape reverts. *As built (cycle 53, ID-1497):* the editor takes every character typed after the first, also in
-the frame it opens in; while more than one row is marked a line above the grid says "Ctrl+Enter sets all 12 marked
-rows."; Shift+click marks the range from the cursor row, Ctrl+click toggles a row and Ctrl+A marks every row of the
+the frame it opens in; while more than one row is marked a tooltip under the editor (§6.18) says "Ctrl+Enter sets all 12
+marked rows."; Shift+click marks the range from the cursor row, Ctrl+click toggles a row and Ctrl+A marks every row of the
 filtered table; `table.set` without `rows` sets the marked rows (else the cursor row) and names a column by its key or
 its header label. The grid is a `Table` named "<navigator> table", a header cell a button "Sort by <column>", a
 cell a `Cell` named "<column> <text>, row <i> of <n>[, read-only]", a resize handle a `Splitter`.

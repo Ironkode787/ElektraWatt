@@ -120,16 +120,6 @@ impl TableUi {
                 ui.add_space(tokens.space_4);
                 ui.colored_label(tokens.error.color32(), e);
             });
-        } else if let Some(hint) = ew_viewmodel::navigators::table::commit_all_hint(nav) {
-            // ID-1497 (1): with more than one row marked the editor says that Ctrl+Enter sets them all.
-            ui.horizontal(|ui| {
-                ui.add_space(tokens.space_4);
-                ui.label(
-                    RichText::new(hint)
-                        .font(theme::font(&tokens.type_small))
-                        .color(tokens.text_secondary.color32()),
-                );
-            });
         }
         // The pattern fill dialog (§8.5).
         self.pattern_dialog(ui, nav, preview, events);
@@ -217,6 +207,7 @@ impl TableUi {
             sort,
             edit: edit_cell,
             fresh,
+            commit_hint: ew_viewmodel::navigators::table::commit_all_hint(nav),
             writable,
             buffer: &mut self.buffer,
             edit_id: table_id.with("edit"),
@@ -855,6 +846,8 @@ struct Delegate<'a> {
     edit: Option<(usize, usize)>,
     /// Whether the editor opened this frame.
     fresh: bool,
+    /// ID-1497 (1): what the editor says while more than one row is marked ("Ctrl+Enter sets all 12 marked rows.").
+    commit_hint: Option<String>,
     /// Whether the project is writable (a double click edits).
     writable: bool,
     buffer: &'a mut String,
@@ -967,6 +960,11 @@ impl Delegate<'_> {
                 "table.input",
                 json!({"kind": word, "text": *self.buffer}),
             ));
+        }
+        // ID-1497 (1): with more than one row marked the editor says, in a tooltip under it (doc 16a §6.18's style),
+        // that Ctrl+Enter sets them all; Enter sets the cursor row.
+        if let Some(hint) = &self.commit_hint {
+            crate::components::show_tip(ui.ctx(), egui::containers::Tooltip::for_widget(&response), hint);
         }
         if all {
             response.surrender_focus();
