@@ -136,7 +136,7 @@ fn read_part(raw: &Value) -> Result<Part, CmdError> {
             let v: TechValue = serde_json::from_value(item.clone()).map_err(|e| {
                 bad(
                     format!("/part/tech_data/{i}"),
-                    text!("refusal-part-edit-tech-value", e.to_string()),
+                    text!("refusal-part-edit-tech-value", crate::error::serde_error_text(&e)),
                 )
             })?;
             if !seen.insert(v.key.as_str().to_owned()) {
@@ -168,7 +168,7 @@ fn read_part(raw: &Value) -> Result<Part, CmdError> {
         }
     }
     serde_json::from_value(Value::Object(map))
-        .map_err(|e| bad("/part", text!("refusal-part-edit-not-part", e.to_string())))
+        .map_err(|e| bad("/part", text!("refusal-part-edit-not-part", crate::error::serde_error_text(&e))))
 }
 
 /// Replaces the string `from` by `to` at the dotted `path` of `v` (`parts[].part.copy`: `[]` walks every element of
@@ -359,6 +359,22 @@ mod tests {
             json!({"parts": [{"part": {"copy": "z"}}, {"part": {"copy": "b"}}], "x": "a"})
         );
         assert!(!repoint_at(&mut v, &["overrides", "wire_part", "copy"], "a", "z"));
+    }
+
+    /// C53-p3#4 (ID-1481): a technical value that does not deserialise is refused with serde's sentence by key, so the
+    /// window words it in its language; its English is serde's own text.
+    #[test]
+    fn a_bad_technical_value_is_refused_by_key() {
+        let raw = json!({"manufacturer": "x", "part_number": "P1", "tech_data": [5]});
+        let serde = serde_json::from_value::<TechValue>(json!(5)).unwrap_err();
+        let Err(CmdError::InvalidParams { text, .. }) = read_part(&raw) else {
+            panic!("a bad technical value is refused")
+        };
+        assert_eq!(text.to_string(), format!("not a technical value: {serde}"));
+        match text.args() {
+            [crate::text::TextArg::Text(t)] => assert_eq!(t.key(), "refusal-serde-invalid-type"),
+            other => panic!("{other:?}"),
+        }
     }
 
     /// R7: every part-copy link of the link table is one the command re-points.
