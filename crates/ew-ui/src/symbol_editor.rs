@@ -324,6 +324,37 @@ fn role_words(role: &str) -> String {
     }
 }
 
+/// The potential roles a connection point takes, in the role list's order after "None".
+const ROLES: [&str; 13] = [
+    "l1",
+    "l2",
+    "l3",
+    "l",
+    "n",
+    "pe",
+    "pen",
+    "fe",
+    "l_plus",
+    "l_minus",
+    "m",
+    "signal",
+    "undefined",
+];
+
+/// The role the letters typed into an open role list name (ID-1477 (8)): the role whose words they are, else the
+/// first whose words start with them, in any case; `None` for none.
+fn role_typed(typed: &str) -> Option<&'static str> {
+    let typed = typed.trim().to_lowercase();
+    if typed.is_empty() {
+        return None;
+    }
+    let words = |r: &str| role_words(r).to_lowercase();
+    ROLES
+        .into_iter()
+        .find(|r| words(r) == typed)
+        .or_else(|| ROLES.into_iter().find(|r| words(r).starts_with(&typed)))
+}
+
 /// WP-S2.11 D3 (R3): a combo box's node says whether its list shows.
 trait Expanded {
     fn expanded(self, ui: &Ui) -> Self;
@@ -480,9 +511,16 @@ fn text_field(ui: &mut Ui, key: &str, value: &mut Value, lines: bool) -> bool {
     commit
 }
 
+/// Whether a role list is open (ID-1477 (8)): the panel then ends in room for the list, so the list opens below its
+/// row, which the panel scrolls to its top.
+fn role_room_id() -> egui::Id {
+    egui::Id::unique("symbol-role-room")
+}
+
 fn function_pins(ui: &mut Ui, cps: &mut [Value]) -> bool {
     let t = theme::current(ui.ctx());
     let mut changed = false;
+    ui.data_mut(|d| d.insert_temp(role_room_id(), false));
     egui::Grid::new("symbol-function-pins")
         .spacing(Vec2::new(t.space_2, t.space_2))
         .show(ui, |ui| {
@@ -515,11 +553,24 @@ fn function_pins(ui: &mut Ui, cps: &mut [Value]) -> bool {
                     changed = true;
                 }
                 let role = cp["potential_role"].as_str().unwrap_or("").to_owned();
-                egui::ComboBox::from_id_salt(("role", i))
-                    .width(t.size_button_min_width)
-                    .height(6.0 * t.size_row)
-                    .selected_text(role_words(&role))
-                    .show_ui(ui, |ui| {
+                // ID-1477 (8): the list opens below its row, which the panel scrolls to its top with room for the
+                // list under it, shows every role without scrolling, and letters typed while it is open choose the
+                // role they name.
+                let button = ui.add(
+                    egui::Button::new(role_words(&role))
+                        .min_size(Vec2::new(t.size_button_min_width, 0.0)),
+                );
+                let chevron = egui::Rect::from_center_size(
+                    egui::pos2(button.rect.right() - t.space_3, button.rect.center().y),
+                    Vec2::splat(t.icon_sm),
+                );
+                components::combo_chevron(ui, chevron, ui.style().interact(&button), false);
+                let list_id = button.id.with("roles");
+                egui::Popup::menu(&button)
+                    .id(list_id)
+                    .align(egui::RectAlign::BOTTOM_START)
+                    .align_alternatives(&[])
+                    .show(|ui| {
                         if ui
                             .selectable_label(
                                 role.is_empty(),
@@ -532,28 +583,46 @@ fn function_pins(ui: &mut Ui, cps: &mut [Value]) -> bool {
                             }
                             changed = true;
                         }
-                        for role in [
-                            "l1",
-                            "l2",
-                            "l3",
-                            "l",
-                            "n",
-                            "pe",
-                            "pen",
-                            "fe",
-                            "l_plus",
-                            "l_minus",
-                            "m",
-                            "signal",
-                            "undefined",
-                        ] {
+                        for role in ROLES {
                             changed |= ui
                                 .selectable_value(&mut cp["potential_role"], json!(role), role_words(role))
                                 .changed();
                         }
-                    })
-                    .response
-                    .expanded(ui)
+                    });
+                let open = egui::Popup::is_id_open(ui.ctx(), list_id);
+                ui.ctx()
+                    .accesskit_node_builder(button.id, |n| n.set_expanded(open));
+                let typed_id = button.id.with("typed");
+                if open {
+                    ui.data_mut(|d| d.insert_temp(role_room_id(), true));
+                    if button.clicked() {
+                        button.scroll_to_me(Some(egui::Align::Min));
+                        ui.data_mut(|d| d.remove::<String>(typed_id));
+                    }
+                    let letters: String = ui.input(|i| {
+                        i.events
+                            .iter()
+                            .filter_map(|e| match e {
+                                egui::Event::Text(t) => Some(t.as_str()),
+                                _ => None,
+                            })
+                            .collect()
+                    });
+                    if !letters.is_empty() {
+                        let mut typed = ui.data(|d| d.get_temp::<String>(typed_id)).unwrap_or_default();
+                        typed.push_str(&letters);
+                        if let Some(found) = role_typed(&typed)
+                            && cp["potential_role"] != json!(found)
+                        {
+                            cp["potential_role"] = json!(found);
+                            changed = true;
+                        }
+                        ui.data_mut(|d| d.insert_temp(typed_id, typed));
+                    }
+                } else {
+                    ui.data_mut(|d| d.remove::<String>(typed_id));
+                }
+                button
                     .widget_info(|| {
                         egui::WidgetInfo::labeled(
                             egui::Role::ComboBox,
@@ -2397,6 +2466,24 @@ mod tests {
         assert_eq!(pick_graphic(&draft, on_glyphs, 0.1, &styles), Some(0));
         assert_eq!(pick_graphic(&draft, Vec2::new(3.0, 17.0), 0.1, &styles), Some(1));
         assert_eq!(pick_graphic(&draft, Vec2::new(30.0, 30.0), 0.1, &styles), None);
+    }
+
+    /// ID-1477 (8): letters typed into an open role list choose the role whose words they are, else the first they
+    /// begin, in any case.
+    #[test]
+    fn letters_typed_into_a_role_list_choose_the_role_they_name() {
+        for (typed, role) in [
+            ("l", Some("l")),
+            ("L1", Some("l1")),
+            ("p", Some("pe")),
+            ("pen", Some("pen")),
+            ("l+", Some("l_plus")),
+            ("sig", Some("signal")),
+            ("x", None),
+            ("", None),
+        ] {
+            assert_eq!(role_typed(typed), role, "{typed}");
+        }
     }
 
     #[test]
