@@ -7,7 +7,7 @@
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
+use std::process::{Output, Stdio};
 
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -97,7 +97,7 @@ fn copy_dir(from: &Path, to: &Path) {
 }
 
 fn elektrawatt(tmp: &Tmp, args: &[&std::ffi::OsStr]) -> Output {
-    Command::new(bin_exe())
+    support::elektrawatt(&bin_exe())
         .args(args)
         .env("EW_CONFIG_DIR", tmp.path("config"))
         .env_remove("SOURCE_DATE_EPOCH")
@@ -346,7 +346,7 @@ fn the_transcript_is_deterministic() {
 
     // The same script on stdin, line by line, gives the same transcript.
     let dir = tmp_c.golden("three");
-    let mut child = Command::new(bin_exe())
+    let mut child = support::elektrawatt(&bin_exe())
         .args(["--headless", "--script", "-"])
         .env("EW_CONFIG_DIR", tmp_c.path("config"))
         .stdin(Stdio::piped())
@@ -620,7 +620,7 @@ fn config_dir_keeps_the_resources_the_program_found() {
         script(&[("file.open_sample", json!({})), ("file.close", json!({}))]),
     )
     .unwrap();
-    let out = Command::new(bin_exe())
+    let out = support::elektrawatt(&bin_exe())
         .args(["--headless", "--script"])
         .arg(&file)
         .arg("--config-dir")
@@ -656,7 +656,7 @@ fn a_headless_run_leaves_the_users_settings_alone() {
     let file = tmp.path("s.jsonl");
     std::fs::write(&file, &text).unwrap();
     let run = |extra: &[&std::ffi::OsStr]| {
-        Command::new(bin_exe())
+        support::elektrawatt(&bin_exe())
             .args(["--headless", "--script"])
             .arg(&file)
             .args(extra)

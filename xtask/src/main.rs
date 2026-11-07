@@ -1315,6 +1315,58 @@ mod tests {
         );
     }
 
+    /// FT-1539: a test that starts the `elektrawatt` binary without `EW_CONTENT_DIR` finds the content folder by where
+    /// the binary lies, which a nextest archive's partition moves. Every start of a program that is no string literal
+    /// in the binary's tests (`Command::new(bin_exe())`, `Command::new(exe)`) names `EW_CONTENT_DIR` in the same
+    /// top-level item; the shared runner, `support::elektrawatt`, does.
+    #[test]
+    fn tests_start_the_binary_with_the_content_folder() {
+        let root = workspace_root();
+        let files: Vec<String> = crate::repo::list_files(&root)
+            .unwrap()
+            .into_iter()
+            .filter(|f| f.starts_with("bin/elektrawatt/tests/") && f.ends_with(".rs"))
+            .collect();
+        assert!(!files.is_empty(), "no test sources found");
+        let mut bare = Vec::new();
+        for file in &files {
+            let text = std::fs::read_to_string(root.join(file)).unwrap();
+            bare.extend(starts_without_content(&text).into_iter().map(|n| format!("{file}:{n}")));
+        }
+        assert!(
+            bare.is_empty(),
+            "start the binary through support::elektrawatt(), which sets EW_CONTENT_DIR: {bare:#?}"
+        );
+        let shared = "pub fn elektrawatt(exe: &Path) -> Command {\n    let mut cmd = Command::new(exe);\n    \
+                      cmd.env(\"EW_CONTENT_DIR\", CONTENT);\n    cmd\n}\n";
+        assert!(starts_without_content(shared).is_empty());
+        assert_eq!(
+            starts_without_content("fn run() -> Output {\n    Command::new(bin_exe())\n        .output()\n}\n"),
+            [2]
+        );
+        assert!(starts_without_content("fn git() {\n    Command::new(\"git\").output();\n}\n").is_empty());
+    }
+
+    /// The lines (from 1) of `text` that start a program that is no string literal (`Command::new(` not followed by
+    /// `"`) without `EW_CONTENT_DIR` in the rest of their top-level item (up to a line that is a lone `}`).
+    fn starts_without_content(text: &str) -> Vec<usize> {
+        let lines: Vec<&str> = text.lines().collect();
+        let mut bare = Vec::new();
+        for (n, line) in lines.iter().enumerate() {
+            let Some((_, after)) = line.split_once("Command::new(") else {
+                continue;
+            };
+            if after.starts_with('"') {
+                continue;
+            }
+            let rest = lines[n..].iter().take_while(|l| **l != "}");
+            if !rest.clone().any(|l| l.contains("EW_CONTENT_DIR")) {
+                bare.push(n + 1);
+            }
+        }
+        bare
+    }
+
     #[test]
     fn an_unresolvable_disallowed_path_is_caught() {
         let warning = "warning: `ew_model::Model::gone` does not refer to a reachable function";

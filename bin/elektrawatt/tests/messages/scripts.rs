@@ -10,7 +10,7 @@
 //! `tests/headless.rs`, whose `bin_exe` it uses.
 
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
+use std::process::{Output, Stdio};
 
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
@@ -58,7 +58,7 @@ fn script(steps: &[(&str, Value)]) -> String {
 fn run(run: &Path, name: &str, steps: &[(&str, Value)]) -> Output {
     let file = run.join(format!("{name}.uiscript"));
     std::fs::write(&file, script(steps)).unwrap();
-    Command::new(super::bin_exe())
+    super::support::elektrawatt(&super::bin_exe())
         .args(["--headless", "--script"])
         .arg(&file)
         .arg("--record")

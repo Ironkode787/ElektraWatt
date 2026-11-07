@@ -9,7 +9,7 @@
 //! find lines. A module of `tests/headless.rs`, whose `bin_exe` it uses (FT-353).
 
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
+use std::process::{Output, Stdio};
 
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
@@ -72,7 +72,7 @@ fn script(steps: &[(&str, Value)]) -> String {
 fn run(tmp: &Tmp, name: &str, text: &str, record: &Path) -> Output {
     let file = tmp.path(name);
     std::fs::write(&file, text).unwrap();
-    Command::new(super::bin_exe())
+    super::support::elektrawatt(&super::bin_exe())
         .args(["--headless", "--script"])
         .arg(&file)
         .arg("--record")

@@ -14,7 +14,7 @@ mod support;
 mod folio_cases;
 
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
+use std::process::{Output, Stdio};
 
 use ew_ui::ew_viewmodel::canvas::{HOVER_SLOP_PT, pick, rect_centre};
 use ew_ui::ew_viewmodel::ew_api::Session;
@@ -77,7 +77,7 @@ fn script(steps: &[(&str, Value)]) -> String {
 fn run_script(tmp: &Tmp, name: &str, text: &str) -> Output {
     let file = tmp.path(name);
     std::fs::write(&file, text).unwrap();
-    Command::new(bin_exe())
+    support::elektrawatt(&bin_exe())
         .args(["--headless", "--script"])
         .arg(&file)
         .env("EW_CONFIG_DIR", tmp.path("config"))
