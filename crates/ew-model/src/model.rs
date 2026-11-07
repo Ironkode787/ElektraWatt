@@ -146,7 +146,11 @@ impl Model {
 
     /// [`Model::from_records`] for a project whose library copies `missing` could not be read (FT-1383, ID-1395): a
     /// record that names one of them is no EW-INV-001 here, so the project opens (read-only, the loader's finding
-    /// naming the copy); an edit that touches such a record is still refused by EW-INV-001.
+    /// naming the copy); an edit that touches such a record is still refused by EW-INV-001. Nor is a violation of
+    /// another rule whose records include such a referrer (ID-1484, [`unexplained_by_dropped_copies`]): any other
+    /// violation is the error.
+    ///
+    /// [`unexplained_by_dropped_copies`]: crate::unexplained_by_dropped_copies
     pub fn from_records_missing(
         project: Project,
         records: impl IntoIterator<Item = Record>,
@@ -205,9 +209,14 @@ impl Model {
         m.unknown = Arc::new(unknown);
         m.unknown_lib = Arc::new(unknown_lib);
         m.idx = BaseIndexes::rebuild(&m);
-        let mut scope = Scope::full(&m);
-        scope.missing = missing.clone();
-        invariants::check(&m, &scope)?;
+        let scope = Scope::full(&m);
+        if missing.is_empty() {
+            invariants::check(&m, &scope)?;
+        } else if let Some(e) =
+            invariants::unexplained_by_dropped_copies(&invariants::check_all(&m, &scope), missing)
+        {
+            return Err(e.clone());
+        }
         Ok(m)
     }
 

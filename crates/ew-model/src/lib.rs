@@ -146,6 +146,7 @@ pub use invariants::{
     ONE_OPEN_REVISION, PIN_MAP_UNIQUE, REFS_RESOLVE, REP_ONE_DEVICE, REPORT_BLOCK_FOLIO, REVISION_FOUR_EYES,
     REVISION_IMMUTABLE, REVISION_LABEL_UNIQUE, REVISION_PAGE_NOTE_UNIQUE, RULES, Rule, RuleClass,
     STRUCTURE_ACYCLIC, STRUCTURE_SAME_ASPECT, TERMINAL_STRIP, fluid_port_class,
+    unexplained_by_dropped_copies,
 };
 pub use links::{IndexName, LINKS, LinkDecl, LinkId, MACRO_MEMBER_KINDS, NOT_LINKS, Policy};
 pub use model::Model;
