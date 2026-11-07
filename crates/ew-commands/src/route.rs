@@ -14,11 +14,12 @@
 //! are never blocked, nor the move from a CP end to its stub. The nodes of the [`RouteRequest::reserved`] points
 //! (the other CPs and their stubs, FT-706) are blocked. A CP end
 //! (one with a leaving direction) first leaves one step along its direction (the stub) and is entered along the
-//! opposite of its direction; a junction or split end (`dir: None`) has no such constraint. A first end without a
-//! direction may carry the heading the route arrived there with ([`RouteRequest::arrive`], a fixed bend's incoming
-//! direction; FT-437): the first move never takes its opposite, so the route never doubles back over the segment
-//! before the bend; a turn there costs nothing (the bend was fixed to turn at), so the tie rule is otherwise the one
-//! of an end without a direction.
+//! opposite of its direction; no move enters the first CP end's node nor leaves the second end's (ID-1493); a
+//! junction or split end (`dir: None`) has no such constraint. A first end without a direction may carry the
+//! heading the route arrived there with ([`RouteRequest::arrive`], a fixed bend's incoming direction; FT-437): the
+//! first move never takes its opposite, so the route never doubles back over the segment before the bend; a turn
+//! there costs nothing (the bend was fixed to turn at), so the tie rule is otherwise the one of an end without a
+//! direction.
 //!
 //! **The ends' own representations** ([`RouteRequest::own`], FT-706). The rectangles of the two ends' own
 //! representations (body, black-box outline, texts) block like the other obstacles, except along a CP end's escape
@@ -294,7 +295,8 @@ pub fn route(req: &RouteRequest) -> Routed {
 /// Whether the given route `points` from `req.from.at` to `req.to.at` is one the router could take: walked on the
 /// grid nodes the router searches, every unit move is free and lands on a node that is not blocked, by the router's
 /// own rules for `req` (obstacles, the ends' own rectangles but for their corridors, other wires, reserved points;
-/// module documentation); a CP end is left along its direction and entered against the second end's; the first move
+/// module documentation); a CP end is left along its direction and entered against the second end's, and no move
+/// enters the first CP end's node nor leaves the second end's (ID-1493); the first move
 /// does not reverse [`RouteRequest::arrive`] and no move reverses the one before it. `req.area` only has to hold the
 /// route. A route that is not orthogonal on the grid, that does not start and end at the ends, or a request the
 /// router would refuse (an unusable grid, an area over [`MAX_NODES`]) is not clear.
@@ -308,7 +310,7 @@ pub fn clear(req: &RouteRequest, points: &[(i64, i64)]) -> bool {
     if first != req.from.at || last != req.to.at {
         return false;
     }
-    let Some(Prepared { space, s, .. }) = prepare(req) else {
+    let Some(Prepared { space, s, t, .. }) = prepare(req) else {
         return false;
     };
     // FT-767: a first end without a direction (a fixed bend) starts on its own grid node, which the walk below never
@@ -345,11 +347,16 @@ pub fn clear(req: &RouteRequest, points: &[(i64, i64)]) -> bool {
     }
     let mut p = s;
     let mut heading: Option<Heading> = None;
-    for m in moves {
-        if reverses(heading, m) {
+    // The move the router's walk starts with: after a CP end's stub (ID-1493).
+    let start_move = usize::from(req.from.dir.is_some());
+    for (k, m) in moves.into_iter().enumerate() {
+        if reverses(heading, m) || (k > start_move && p == t) {
             return false;
         }
         let q = (p.0 + m.step().0, p.1 + m.step().1);
+        if req.from.dir.is_some() && q == s && q != t {
+            return false;
+        }
         let free = space
             .node(q)
             .is_some_and(|n| !space.blocked[n] && space.move_free(p, m));
@@ -592,6 +599,8 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
     let Prepared { space, s, t, s1 } = prepare(req)?;
     let (lo, width, nodes) = (space.lo, space.width, space.blocked.len());
     let goal = space.node(t)?;
+    // The node of a first CP end, left by its stub (unless it is the second end's too).
+    let first_cp = from.dir.and_then(|_| space.node(s)).filter(|&n| n != goal);
     // The state the forward walk starts from: the first end's stub with its heading, else the first end with its
     // arrival heading (FT-437), else the first end.
     let arrive = if from.dir.is_none() { req.arrive } else { None };
@@ -665,6 +674,11 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
             Some(Heading::Up),
         ] {
             let s1 = state(n1, h);
+            // Nothing leaves the second end but from the start, and nothing reaches a first CP end's node (ID-1493):
+            // a route would pass through its own end and loop back to end there, or come back through its start.
+            if (n1 == goal && s1 != start_state) || first_cp == Some(n1) {
+                continue;
+            }
             let Some(w) = step_cost(s1, h, m) else {
                 continue;
             };
@@ -1619,6 +1633,69 @@ mod tests {
         );
         assert!(!clear(&inside, &[p(0, 0), p(0, 5)]));
         assert!(route(&inside).direct);
+    }
+
+    #[test]
+    fn a_route_does_not_pass_its_own_end_on_another_wire_s_vertex() {
+        // Failing inputs of `a_found_route_keeps_off_other_wires` under the deep nightly's case count (ID-1493), in
+        // its terms (`(x, y, len, horizontal)` per wire): an end is another wire's vertex, and the route ran through
+        // the second end before it looped back to end there, or came back through the first.
+        type Case = ((i64, i64, usize), (i64, i64, usize), Vec<(i64, i64, i64, bool)>);
+        let cases: [Case; 3] = [
+            ((0, 0, 0), (1, 5, 1), vec![(2, 0, 5, false), (1, 5, 2, false)]),
+            ((0, -1, 0), (2, -1, 0), vec![(2, 2, -3, false)]),
+            ((-3, 4, 1), (-3, 0, 1), vec![(-3, 4, 0, false)]),
+        ];
+        let mut found = Vec::new();
+        for ((fx, fy, fd), (tx, ty, td), ws) in cases {
+            let rq = RouteRequest {
+                wires: ws
+                    .iter()
+                    .map(|&(x, y, len, horizontal)| {
+                        let b = if horizontal { (x + len, y) } else { (x, y + len) };
+                        [p(x, y), p(b.0, b.1)]
+                    })
+                    .collect(),
+                ..req(
+                    end(fx, fy, Some(Heading::ALL[fd])),
+                    end(tx, ty, Some(Heading::ALL[td])),
+                    vec![],
+                )
+            };
+            let routed = route(&rq);
+            assert!(!routed.direct, "{:?}", routed.points);
+            assert_eq!(
+                violations(&rq, &routed.points),
+                Vec::<String>::new(),
+                "{:?}",
+                routed.points
+            );
+            assert!(clear(&rq, &routed.points), "{:?}", routed.points);
+            found.push(routed.points);
+        }
+        assert_eq!(
+            found,
+            [
+                vec![p(0, 0), p(1, 0), p(1, 4), p(0, 4), p(0, 6), p(1, 6), p(1, 5)],
+                vec![p(0, -1), p(1, -1), p(1, 0), p(3, 0), p(3, -1), p(2, -1)],
+                vec![p(-3, 4), p(-3, 5), p(-2, 5), p(-2, 3), p(-3, 3), p(-3, 0)],
+            ]
+        );
+    }
+
+    #[test]
+    fn a_stub_on_the_second_end_leaves_it() {
+        // The first end's stub is the second end's node (ID-1493): the route starts there and may leave it, by the
+        // search and by `clear` alike.
+        let rq = req(
+            end(1, 0, Some(Heading::Left)),
+            end(0, 0, Some(Heading::Down)),
+            vec![],
+        );
+        let routed = route(&rq);
+        assert!(!routed.direct, "{:?}", routed.points);
+        assert_eq!(routed.points, vec![p(1, 0), p(-1, 0), p(-1, 1), p(0, 1), p(0, 0)]);
+        assert!(clear(&rq, &routed.points), "{:?}", routed.points);
     }
 
     proptest::proptest! {
