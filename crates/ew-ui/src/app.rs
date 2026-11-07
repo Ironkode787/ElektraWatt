@@ -259,8 +259,9 @@ pub struct App {
     bindings_for: (ew_viewmodel::keymap::Preset, u64),
     title: String,
     palette_was_open: bool,
-    /// Whether the picker was open in the previous frame (its filter field takes the focus when it opens).
-    picker_was_open: bool,
+    /// The picker's step in the previous frame: `None` closed, else the part whose symbol it asks for. Its filter
+    /// field takes the focus when it opens and (ID-1497 (5)) when it moves on to a part's symbols.
+    picker_was_open: Option<Option<usize>>,
     /// The Join chooser's type-ahead text (WP-S2.18 D2).
     chooser_typing: crate::chooser::TypeAhead,
     /// The opening of the dialog the last frame showed ([`ShellModel::dialog_generation`]): a dialog opened since is a
@@ -366,7 +367,7 @@ impl App {
             bindings_for: (ew_viewmodel::keymap::Preset::Ew, u64::MAX),
             title: String::new(),
             palette_was_open: false,
-            picker_was_open: false,
+            picker_was_open: None,
             chooser_typing: crate::chooser::TypeAhead::default(),
             dialog_was: None,
             pending_pick: None,
@@ -1104,7 +1105,13 @@ impl App {
             self.options_rect = None;
         }
         if let Some(pane) = self.page_pane {
-            self.hud_rect = Some(crate::hud::show(&ctx, &self.shell, pane, &mut events));
+            self.hud_rect = Some(crate::hud::show(
+                &ctx,
+                &self.shell,
+                pane,
+                self.toast_stack,
+                &mut events,
+            ));
             crate::hud::show_zoom(&ctx, &self.shell, pane, &mut events);
             options_card = self.tool_options(&ctx, pane, &mut events);
         }
@@ -1131,17 +1138,17 @@ impl App {
             &mut events,
         );
         self.palette_was_open = palette_open;
-        let picker_open = self.shell.picker().is_some();
+        let picker_step = self.shell.picker().map(|p| p.part);
         if !held_for_picker.is_empty() {
             ctx.input_mut(|i| i.events.extend(held_for_picker));
         }
         crate::picker::show(
             &ctx,
             &self.shell,
-            picker_open && !self.picker_was_open,
+            picker_step.is_some() && picker_step != self.picker_was_open,
             &mut events,
         );
-        self.picker_was_open = picker_open;
+        self.picker_was_open = picker_step;
         // WP-S2.18 D2: the Place tool's Join chooser (doc 16a §6.22).
         crate::chooser::show(
             &ctx,

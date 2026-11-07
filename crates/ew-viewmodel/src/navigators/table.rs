@@ -367,6 +367,15 @@ pub fn gesture_rows(nav: &Navigator) -> Vec<u32> {
         .collect()
 }
 
+/// ID-1497 (1): what the cell editor says while more than one row is marked: Enter sets the cursor row, Ctrl+Enter
+/// every marked row on show ("Ctrl+Enter sets all 12 marked rows."); `None` while no cell is edited or at most one row
+/// is marked.
+pub fn commit_all_hint(nav: &Navigator) -> Option<String> {
+    nav.table_mode()?.edit()?;
+    let n = gesture_rows(nav).len();
+    (n > 1).then(|| strings::format(key!("table-commit-all-hint"), &[&n.to_string()]))
+}
+
 /// The cell text of node `node` in the column with key `key` (empty for an unknown key).
 pub fn cell_text(table: &NavTable, node: u32, key: &str) -> String {
     table

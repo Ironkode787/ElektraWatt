@@ -12,6 +12,7 @@ use crate::common;
 use ew_viewmodel::key;
 
 use common::{Tmp, done, refused};
+use ew_viewmodel::navigators::table::commit_all_hint;
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
@@ -1119,5 +1120,74 @@ fn plc_state_and_potential_class_cells_take_their_words() {
         stored.push(params["value"].clone());
     }
     assert_eq!(stored, [json!("spare"), json!("analogue")]);
+    shell.shutdown();
+}
+
+/// ID-1497 (1): `table.set` without `rows` sets the marked rows when any are marked, and takes a column's header label
+/// as well as its key; while a cell is edited with more than one row marked the editor says that Ctrl+Enter sets them
+/// all.
+#[test]
+fn table_set_sets_the_marked_rows_and_takes_the_header_label() {
+    let tmp = Tmp::new("id1497-1");
+    let mut shell = strips(&tmp, "x1032");
+    let keys: Vec<String> = column(&shell, NavKind::Strips, "Terminal")
+        .into_iter()
+        .map(|(k, _)| k)
+        .collect();
+    let fn_col = col(&shell, NavKind::Strips, "Function text");
+    let before: Vec<String> = keys
+        .iter()
+        .map(|k| shell.table_cell_text(NavKind::Strips, k, &fn_col))
+        .collect();
+    mark(&mut shell, NavKind::Strips, &keys[1..3]);
+    let hint = |shell: &ShellModel| commit_all_hint(shell.nav(NavKind::Strips).unwrap());
+    assert_eq!(hint(&shell), None, "no cell is edited");
+    done(&mut shell, "table.cell", json!({"column": fn_col}));
+    done(&mut shell, "table.input", json!({"text": "R"}));
+    assert_eq!(
+        hint(&shell).as_deref(),
+        Some("Ctrl+Enter sets all 2 marked rows.")
+    );
+    done(&mut shell, "ui.dismiss", json!({}));
+    done(
+        &mut shell,
+        "table.set",
+        json!({"kind": "strips", "column": "Function text", "value": "Reserve"}),
+    );
+    let after: Vec<String> = keys
+        .iter()
+        .map(|k| shell.table_cell_text(NavKind::Strips, k, &fn_col))
+        .collect();
+    for (i, (b, a)) in before.iter().zip(&after).enumerate() {
+        if i == 1 || i == 2 {
+            assert_eq!(a, "Reserve", "row {i}, marked");
+        } else {
+            assert_eq!(a, b, "row {i}, not marked");
+        }
+    }
+    shell.shutdown();
+}
+
+/// C53-fx#4: a header label that heads more than one column (the Connections table's From CP and To CP, both "CP")
+/// names none: `table.set` refuses it and lists their keys, in either case of the label.
+#[test]
+fn table_set_refuses_a_header_label_of_two_columns() {
+    let tmp = Tmp::new("c53-fx4");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut shell, "navigator.show", json!({"kind": "connections"}));
+    done(
+        &mut shell,
+        "navigator.table",
+        json!({"kind": "connections", "on": true}),
+    );
+    for label in ["CP", "cp"] {
+        let params = json!({"kind": "connections", "column": label, "value": "1"});
+        assert_eq!(
+            shell.dispatch("table.set", &params),
+            Outcome::Failed {
+                message: format!("Unknown column {label}; use one of from_cp, to_cp.")
+            }
+        );
+    }
     shell.shutdown();
 }

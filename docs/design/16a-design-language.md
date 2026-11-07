@@ -688,7 +688,10 @@ Show · On"). Frame statistics drawn with its icon where its siblings show their
   pills (Wire, Symbol, Text), a 1 × 16 px divider and the **prompt** in `type.small` at 80 % opacity: the selection
   and its keys with Select ("1 selected · Del deletes · R rotates"), the tool's target and keys otherwise
   ("Place -X1031:21 · R rotates · V variant · Esc done"). It never takes focus and never covers the pointer: it
-  moves to 12 px under the tab bar while the pointer is within 48 px of it. It is the floating tool window of the
+  moves to 12 px under the tab bar while the pointer is within 48 px of it, and moves back only once the pointer is
+  more than 96 px away (as built, ID-1497); while toasts show, it sits above the toast stack's top, or under its
+  bottom where the page view has no room above it. After a Wire click that placed a bend instead of ending on a
+  connection point its prompt is "Bend placed: click a connection point to end the wire." It is the floating tool window of the
   owner's reference, reduced to what the running tool needs; the hint strip under the menu is removed.
 - **The zoom control**: at the canvas's bottom right (`space.4` from the right, `space.5` from the bottom), a
   vertical stack of three 28-px icon buttons (Zoom in, Zoom out, Fit page) on `color.surface.raised`, `radius.md`,
@@ -1160,7 +1163,12 @@ width), at one position with or without focus; the grid's scroll handle is `colo
 and padding stay. **Keyboard and accessibility** as built (WP-S2.06 §8.1): arrows, Tab and Shift+Tab, Home, End,
 Ctrl+Home, Ctrl+End move the cursor; Shift+Up and Shift+Down extend the marks; Enter opens the row; Ctrl+Enter applies
 the table card; a printable character starts editing; in the editor Enter commits, Ctrl+Enter commits every marked
-row, Escape reverts. The grid is a `Table` named "<navigator> table", a header cell a button "Sort by <column>", a
+row, Escape reverts. *As built (cycle 53, ID-1497):* the editor takes every character typed after the first, also in
+the frame it opens in; while more than one row is marked a tooltip under the editor (§6.18) says "Ctrl+Enter sets all 12
+marked rows."; Shift+click marks the range from the cursor row, Ctrl+click toggles a row and Ctrl+A marks every row of the
+filtered table; `table.set` without `rows` sets the marked rows (else the cursor row) and names a column by its key or
+its header label. A column the grid scrolls into view (the cursor's cell, the cell editor) lands whole to the right of
+the frozen key column, and one wider than the room with its left edge there. The grid is a `Table` named "<navigator> table", a header cell a button "Sort by <column>", a
 cell a `Cell` named "<column> <text>, row <i> of <n>[, read-only]", a resize handle a `Splitter`.
 
 **Cards of the grid** follow §6.9 and §6.23: the **pattern fill card** (title "Pattern fill" in `type.body.strong`,

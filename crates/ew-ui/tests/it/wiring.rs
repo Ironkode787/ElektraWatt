@@ -411,7 +411,22 @@ fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     settle(&mut h);
     assert!(h.state().shell().canvas().unwrap().hovered_link().is_some());
     assert!(h.state().shell().canvas().unwrap().hovered_cp().is_none());
-    let tip = format!("Go to {label}");
+    // ID-1497 (9): the hovered link is underlined: a 1-px `canvas.hover` line along its bottom.
+    let hover = ew_ui::theme::current(&h.ctx).canvas_hover.color32();
+    fn lines(shape: &egui::Shape, colour: egui::Color32, n: &mut usize) {
+        match shape {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| lines(s, colour, n)),
+            egui::Shape::LineSegment { stroke, .. } if stroke.color == colour => *n += 1,
+            _ => {}
+        }
+    }
+    let mut underlines = 0;
+    for c in &h.output().shapes {
+        lines(&c.shape, hover, &mut underlines);
+    }
+    assert_eq!(underlines, 1, "the link's underline");
+    // ID-1497 (9): the tooltip says the gesture.
+    let tip = format!("Click to go to {label}");
     // FT-1091 (ID-1184): the rest opens the link preview first, and the tooltip waits while it shows ...
     let mut preview = false;
     for _ in 0..120 {

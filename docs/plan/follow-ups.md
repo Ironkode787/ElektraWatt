@@ -599,3 +599,8 @@ scheduled, expired and other.
 - FT-1580 (cycle 53, Low, ew-commands; due: M3): splitting a four-way junction into two three-arm junctions, beside EW-CORE-072's report (WP-S2.19 OQ6). Source: ID-1499
 - FT-1581 (cycle 53, Low, ew-checks; due: M3): a check and a re-solve for a stale route whose end moved without it (a symbol exchange), drawn joined by one segment today (WP-S2.19 OQ7). Source: ID-1499
 - FT-1582 (cycle 53, Low, ew-derive; due: M3): a negotiated-congestion router if WP-S2.19's two rip-up rounds fall short on real projects (spec §5.5). Source: ID-1499
+- FT-1583 (cycle 53, Low, ew-ui; due: M3): a list nested in the renumber preview dock shows only the rows that fit and scrolls inside the dock's own scroll area; one scroll for the dock (ID-1501). Source: ID-1501
+- FT-1584 (cycle 53, Low, ew-ui; due: M3): the visual harness's drag still lets go of its modifiers in the release frame, as its click did before ID-1501; a modified drag is seen unmodified. Source: ID-1501
+- FT-1585 (cycle 53, Low, ew-ui; due: M3): a device selected only by its tag (the palette's tag hits, `select.set tag:`) draws no outline on the canvas although the status bar counts it. Source: ID-1501
+- FT-1586 (cycle 53, Low, ew-viewmodel; due: M3): Ctrl+A on the canvas (select every item of the page) is not built; doc 16 §4.6 says so. Source: ID-1501
+- FT-1587 (cycle 53, Low, ew-viewmodel; due: M3): the page's Properties badge read "1 Pending" while the Messages panel said "pending 8" and the status bar "8 pending on this page" (FIXR1's frame 06, cause unverified: perhaps only findings whose subject is the page). Source: ID-1501

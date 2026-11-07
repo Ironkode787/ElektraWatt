@@ -1400,8 +1400,14 @@ impl Tool for WireTool {
     }
 
     /// FT-706: while the ghost is the router's fallback, and after a wire drawn so until the next one starts, the
-    /// hint says that no clear route was found and the wire is drawn direct (not a refusal).
+    /// hint says that no clear route was found and the wire is drawn direct (not a refusal). A bend placed comes
+    /// first (ID-1497 (11)).
     fn status_hint(&self) -> super::Hint {
+        // ID-1497 (11): once a click placed a bend instead of ending on a connection point, the hint says so and what
+        // ends the wire (a click that missed a connection point snaps to the grid and bends there).
+        if self.bends() > 0 {
+            return super::Hint::plain(key!("hint-wire-bend"));
+        }
         if self.direct {
             return super::Hint::plain(key!("hint-wire-direct"));
         }

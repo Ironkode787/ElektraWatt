@@ -146,6 +146,26 @@ fn ft558_booleans_are_check_boxes() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// Window check F3 of FIXR1 (doc 16a §6.12): Renumber pages' "Section dividers keep their numbers." sits with Start,
+/// the field it explains: its gap to Start is smaller than its gap to Step.
+#[test]
+fn the_start_note_sits_with_start() {
+    let tmp = Tmp::new();
+    let mut h = window(&tmp);
+    done(h.state_mut().shell_mut(), "pages.renumber", json!({}));
+    settle(&mut h);
+    let field =
+        |h: &Harness<'static, App>, label: &str| h.get_by_role_and_label(egui::Role::TextInput, label).rect();
+    let (start, step) = (field(&h, "Start"), field(&h, "Step"));
+    let note = h.get_by_label("Section dividers keep their numbers.").rect();
+    let (above, below) = (note.top() - start.bottom(), step.top() - note.bottom());
+    assert!(
+        above >= 0.0 && above < below,
+        "the note's gap to Start {above} and to Step {below}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FT-566: the form dialogs share one label column: every field starts at the same x in every form dialog, and the
 /// fields fill the body to the same right edge.
 #[test]

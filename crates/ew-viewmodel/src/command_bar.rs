@@ -287,7 +287,7 @@ pub const PENDING: &[(Group, u16, &str)] = &[
     (Group::Pages, 2, "Page properties"),
     (Group::Pages, 3, "Delete page"),
     (Group::Place, 3, "Terminal"),
-    (Group::Connect, 2, "Potential"),
+    (Group::Connect, 3, "Potential"),
     (Group::Arrange, 3, "Align"),
     (Group::Run, 2, "Check scheme"),
     (Group::Numbering, 1, "Freeze tag"),
@@ -667,7 +667,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             if !model.stack_quiet() {
                 stack = pointer_stack(model);
             }
-            let selected = model.selection().items.len();
+            let selected = model.canvas_selected();
             if stack > 1 {
                 strings::format(key!("hud-stack"), &[&stack.to_string()])
             } else if selected > 0 && model.selected_placements() > 0 {

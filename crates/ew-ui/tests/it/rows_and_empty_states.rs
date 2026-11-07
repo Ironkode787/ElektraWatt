@@ -184,8 +184,15 @@ fn dk10_messages_rows_badges_and_header() {
     let mut h = on_golden(&tmp, false);
     dispatch(&mut h, "messages.show", json!({"on": true}));
     settle(&mut h);
+    // ID-1497 (6): while findings are pending, one sentence under the header says what pending means.
+    let note = "Pending findings are on the page you are editing: they count once you leave that page or run a check.";
+    assert!(h.query_by_label(note).is_none(), "nothing pending yet");
     place_ip(&mut h, "K32PEND");
     settle(&mut h);
+    assert!(
+        h.query_by_label(note).is_some(),
+        "the sentence while findings are pending"
+    );
     let shell = h.state().shell();
     let counts = shell.messages_counts().unwrap();
     // Golden A's online scheme reports one error and infos, no warning: the warning's icon and colour are proved by the

@@ -178,6 +178,31 @@ impl ShellModel {
             .collect()
     }
 
+    /// ID-1497 (8): how many selected items the canvas's status field and HUD count: the selection, or none while
+    /// nothing of it is drawn on the focused group's page (a page chosen in the page list selects its page record,
+    /// which draws nothing there). A device or a function selected by its tag counts where the page draws it, as
+    /// Delete takes it (C53-fx#1). The live region and the page list's Delete keep the whole selection.
+    pub fn canvas_selected(&self) -> usize {
+        let n = self.tools.selection.items.len();
+        let group = self.area.as_ref().map_or(0, |a| a.focused);
+        if n > 0 && self.selected_rects(group).is_empty() && !self.selection_drawn_here() {
+            0
+        } else {
+            n
+        }
+    }
+
+    /// C53-fx#1: whether the page shown draws something of the selection as Delete and Cut take it
+    /// ([`Self::copy_targets`]: a device or a function selected by its tag as its representations on the page).
+    pub(crate) fn selection_drawn_here(&self) -> bool {
+        let Some(page) = self.canvas().map(|c| Arc::clone(c.page())) else {
+            return false;
+        };
+        self.copy_targets()
+            .into_iter()
+            .any(|e| crate::tools::entity_kind(&page.tables, e).is_some())
+    }
+
     // FT-705
     /// The sheet points of the connection points of group `group`'s page that have no connection on the page, in the
     /// page tables' order: the window marks each open (a session overlay like the CP rings, doc 16a §7), so that a
@@ -1015,6 +1040,14 @@ impl ShellModel {
                 self.tools.drop_release = true;
                 return Outcome::Refused {
                     reason_key: key!("reason-choose-strip"),
+                };
+            }
+            // ID-1497 (5): so does the symbol chooser of a part without a symbol (FT-1375).
+            if !release && self.tools.picker.as_ref().is_some_and(|p| p.part.is_some()) {
+                self.tools.press_held = false;
+                self.tools.drop_release = true;
+                return Outcome::Refused {
+                    reason_key: key!("reason-choose-symbol"),
                 };
             }
             // A new press: a release that never came is forgotten (before the focus moves, so the press's own

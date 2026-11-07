@@ -5,7 +5,8 @@
 //! `ew_viewmodel::command_bar::hud`. The HUD is a pill centred `space.5` above the page view's bottom edge: the active
 //! tool as an accent pill, the three quick tools (Wire, Symbol, Text), a divider and the prompt (the selection and its
 //! keys, the pick stack under the pointer, FT-521, or the tool's target and keys). It never takes the keyboard focus
-//! and never covers the pointer: while the pointer is within 48 px of it, it stands 12 px under the canvas tab bar.
+//! and never covers the pointer: while the pointer is within 48 px of it, it stands 12 px under the canvas tab bar, and
+//! goes back once the pointer is more than 96 px away (ID-1497 (11)); it keeps clear of the toast stack.
 //! The zoom control is a column of three icon buttons at the bottom right. The HUD replaces the tool strip under the
 //! menu bar; the fields of the IP, Text, Wire marker and Structure box tools moved into the "Tool options" card at the
 //! page view's top left (`app.rs`).
@@ -26,6 +27,10 @@ use crate::theme::{self, Tokens, TypeToken};
 
 /// How near the pointer may come to the HUD before it moves under the tab bar (doc 16a §5.5), points.
 const AVOID: f32 = 48.0;
+
+/// How far the pointer must go from the HUD's place at the bottom before it moves back there (ID-1497 (11): with
+/// the gap between 48 and 96 px it does not flip back and forth), points.
+const RETURN: f32 = 96.0;
 
 /// The opacity of the HUD's divider (the mockup's `.hud .div`, a quarter of the text colour).
 const DIVIDER_OPACITY: f32 = 0.25;
@@ -58,8 +63,30 @@ pub(crate) fn hud_rect(t: &Tokens, pane: Rect, width: f32, raised: bool) -> Rect
     Rect::from_min_size(pos2(pane.center().x - width / 2.0, top), vec2(width, height))
 }
 
-/// Paints the HUD of `shell` over the page view `pane` and returns its rectangle.
-pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: &mut Vec<Event>) -> Rect {
+/// The place of a HUD at `rect` beside the toast stack `toasts` (ID-1497 (11)): where they meet, the HUD sits above
+/// the stack's top, or under its bottom where the page view `pane` has no room above it.
+pub(crate) fn clear_of_toasts(t: &Tokens, pane: Rect, rect: Rect, toasts: Option<Rect>) -> Rect {
+    let Some(stack) = toasts.filter(|s| s.intersects(rect)) else {
+        return rect;
+    };
+    let above = stack.top() - t.space_4 - rect.height();
+    let top = if above >= pane.top() + t.size_dock_tab_bar {
+        above
+    } else {
+        stack.bottom() + t.space_4
+    };
+    rect.translate(vec2(0.0, top - rect.top()))
+}
+
+/// Paints the HUD of `shell` over the page view `pane`, clear of the last frame's toast stack `toasts`, and returns
+/// its rectangle.
+pub(crate) fn show(
+    ctx: &egui::Context,
+    shell: &ShellModel,
+    pane: Rect,
+    toasts: Option<Rect>,
+    events: &mut Vec<Event>,
+) -> Rect {
     let t = theme::current(ctx);
     let h = hud(shell);
     let measure = |text: &str, font: egui::FontId| {
@@ -94,10 +121,19 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
         (width, prompt_room)
     };
     let lower = hud_rect(&t, pane, width, false);
+    // ID-1497 (11): raised while the pointer is within `AVOID` of the HUD's place at the bottom, back only once it is
+    // more than `RETURN` away.
+    let raised_id = Id::unique("tool-hud-raised");
+    let reach = if ctx.data(|d| d.get_temp::<bool>(raised_id)).unwrap_or(false) {
+        RETURN
+    } else {
+        AVOID
+    };
     let raised = ctx
         .pointer_hover_pos()
-        .is_some_and(|p| lower.expand(AVOID).contains(p));
-    let rect = hud_rect(&t, pane, width, raised);
+        .is_some_and(|p| lower.expand(reach).contains(p));
+    ctx.data_mut(|d| d.insert_temp(raised_id, raised));
+    let rect = clear_of_toasts(&t, pane, hud_rect(&t, pane, width, raised), toasts);
     let mut value = h.tool_label.clone();
     if let Some(target) = &h.target {
         value.push(' ');
@@ -362,8 +398,31 @@ pub(crate) fn show_zoom(ctx: &egui::Context, shell: &ShellModel, pane: Rect, eve
 mod tests {
     use egui::{Rect, pos2};
 
-    use super::{balanced_room, hud_rect, max_width, zoom_rect};
+    use super::{balanced_room, clear_of_toasts, hud_rect, max_width, zoom_rect};
     use crate::theme::{self, Density, Tokens};
+
+    /// ID-1497 (11): the HUD keeps clear of the toast stack: where they meet it sits above the stack's top, or under its
+    /// bottom where the page view has no room above it; apart from the stack it keeps its place.
+    #[test]
+    fn the_hud_keeps_clear_of_the_toast_stack() {
+        let t = theme::tokens(theme::Theme::Light, Density::Comfortable);
+        let pane = Rect::from_min_max(pos2(300.0, 140.0), pos2(1500.0, 900.0));
+        let low = hud_rect(&t, pane, 600.0, false);
+        let high = hud_rect(&t, pane, 600.0, true);
+        assert_eq!(clear_of_toasts(&t, pane, low, None), low);
+        // A stack beside it: no move.
+        let aside = Rect::from_min_max(pos2(1450.0, 200.0), pos2(1490.0, 400.0));
+        assert_eq!(clear_of_toasts(&t, pane, high, Some(aside)), high);
+        // A stack at the bottom right that the low HUD meets: the HUD sits above its top.
+        let stack = Rect::from_min_max(pos2(700.0, 700.0), pos2(1490.0, 860.0));
+        let moved = clear_of_toasts(&t, pane, low, Some(stack));
+        assert_eq!(moved.bottom(), stack.top() - t.space_4);
+        assert_eq!((moved.left(), moved.width()), (low.left(), low.width()));
+        // A stack at the top right that the raised HUD meets, with no room above it: under its bottom.
+        let top = Rect::from_min_max(pos2(700.0, high.top()), pos2(1490.0, high.top() + 120.0));
+        let under = clear_of_toasts(&t, pane, high, Some(top));
+        assert_eq!(under.top(), top.bottom() + t.space_4);
+    }
 
     /// The rows of `prompt` in `type.small` wrapped at `room`, as text.
     fn rows(ctx: &egui::Context, t: &Tokens, prompt: &str, room: f32) -> Vec<String> {
