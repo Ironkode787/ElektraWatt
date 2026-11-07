@@ -407,6 +407,87 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("refusal-params-no-page", "name at least one page"),
     ("refusal-params-no-module", "name at least one module"),
     ("refusal-params-positions-one-based", "positions are 1-based"),
+    // An image the asset gate refuses (FT-1504): each `AssetError`, and an unsafe SVG's finding and its advice.
+    ("refusal-asset-unknown-format", "not an SVG, PNG or JPEG file"),
+    (
+        "refusal-asset-too-large",
+        "the {0} file has {1} bytes, more than the limit of {2}",
+    ),
+    (
+        "refusal-asset-too-many-nodes",
+        "the SVG file has more than {0} elements",
+    ),
+    (
+        "refusal-asset-too-many-pixels",
+        "the {0} image is {1} × {2} pixels, more than a drawing can show (at most {3} pixels and 65535 on a side); scale it down and add it again",
+    ),
+    ("refusal-asset-damaged", "the {0} header is damaged or cut short"),
+    (
+        "refusal-asset-base64",
+        "not base64 text (standard alphabet, padded)",
+    ),
+    ("refusal-asset-unsafe-svg", "the SVG file is refused: {0}; {1}"),
+    ("refusal-asset-svg-not-utf8", "it is not UTF-8 text"),
+    (
+        "refusal-asset-svg-doctype-subset",
+        "it has a DOCTYPE with an internal subset",
+    ),
+    ("refusal-asset-svg-entity", "it declares an entity"),
+    ("refusal-asset-svg-script", "it has a script"),
+    ("refusal-asset-svg-event-attribute", "it has an event attribute"),
+    (
+        "refusal-asset-svg-foreign-object",
+        "it has a foreignObject element",
+    ),
+    (
+        "refusal-asset-svg-external-reference",
+        "it references something outside the document",
+    ),
+    ("refusal-asset-svg-malformed", "its markup cannot be followed"),
+    (
+        "refusal-asset-svg-too-complex",
+        "its structure is too deep, too complex or cyclic",
+    ),
+    (
+        "refusal-asset-svg-huge-number",
+        "it has a number too large to draw",
+    ),
+    (
+        "refusal-asset-svg-unsupported",
+        "it uses transform-origin or feConvolveMatrix",
+    ),
+    (
+        "refusal-asset-advice-plain-utf8",
+        "export it again as a plain SVG in UTF-8",
+    ),
+    (
+        "refusal-asset-advice-editing-data",
+        "this is the editing data Illustrator writes with \"Preserve Illustrator Editing Capabilities\": save the SVG again with that option off (File > Save As, SVG Options), or save it from Inkscape as \"Plain SVG\"",
+    ),
+    (
+        "refusal-asset-advice-no-code",
+        "a drawing's image never runs code: remove the scripts and interactivity, then export it again as a plain SVG",
+    ),
+    (
+        "refusal-asset-advice-html",
+        "it holds HTML: export it again as a plain SVG, in Illustrator with \"Preserve Illustrator Editing Capabilities\" off, in draw.io after selecting all labels and clearing \"Formatted Text\" and \"Word Wrap\" (Text tab, Advanced) before File > Export as > SVG",
+    ),
+    (
+        "refusal-asset-advice-self-contained",
+        "remove linked or embedded images and fonts (convert text to outlines) and export it again as a plain SVG; add a raster picture as its own PNG or JPEG file",
+    ),
+    (
+        "refusal-asset-advice-simplify",
+        "simplify the drawing (fewer nested groups, clones, markers and style rules) and export it again as a plain SVG with presentation attributes rather than a style sheet (Inkscape: \"Plain SVG\"; CorelDRAW: Styling options \"Presentation attributes\")",
+    ),
+    (
+        "refusal-asset-advice-scale",
+        "scale the drawing to a normal page size, keep filter values small, and export it again as a plain SVG",
+    ),
+    (
+        "refusal-asset-advice-flatten",
+        "flatten the transforms and remove convolution filters, then export it again as a plain SVG",
+    ),
     // assembly.attach, valve.add and device.link.
     (
         "refusal-assembly-position-twice",

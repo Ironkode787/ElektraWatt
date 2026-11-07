@@ -373,7 +373,11 @@ impl ShellModel {
         }
         let reference = match ew_api::asset_ref_of(&bytes) {
             Ok(r) => r,
-            Err(e) => return failed(key!("error-image-refused"), &[&name, &e.to_string()]),
+            // FT-1504: the gate's refusal in the window's language.
+            Err(e) => {
+                let why = super::tools::rejected_words(&e.to_string(), Some(&ew_api::asset_error_text(&e)));
+                return failed(key!("error-image-refused"), &[&name, &why]);
+            }
         };
         let Some(project) = &self.project else {
             return Outcome::Refused {

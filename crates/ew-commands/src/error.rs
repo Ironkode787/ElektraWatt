@@ -8,7 +8,7 @@ use std::fmt;
 use ew_model::{AnyKey, ModelError};
 
 use crate::meta::{Exposure, Origin};
-use crate::text::Text;
+use crate::text::{Text, text};
 
 /// Why a command was not committed. A failed command leaves the session unchanged.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -161,3 +161,107 @@ impl fmt::Display for CmdError {
 }
 
 impl std::error::Error for CmdError {}
+
+/// An image the asset gate refuses, by key (FT-1504, ID-1457): every [`ew_schema::AssetError`], its English the
+/// error's own text, so the CLI prints what it printed.
+pub fn asset_error_text(e: &ew_schema::AssetError) -> Text {
+    use ew_schema::{AssetError as E, SvgHazard as H};
+    match e {
+        E::UnknownFormat => text!("refusal-asset-unknown-format"),
+        E::TooLarge { format, len, limit } => text!(
+            "refusal-asset-too-large",
+            format.ext(),
+            len.to_string(),
+            limit.to_string()
+        ),
+        E::TooManyNodes => text!(
+            "refusal-asset-too-many-nodes",
+            ew_schema::MAX_SVG_NODES.to_string()
+        ),
+        E::TooManyPixels {
+            format,
+            width,
+            height,
+        } => text!(
+            "refusal-asset-too-many-pixels",
+            format.ext(),
+            width.to_string(),
+            height.to_string(),
+            ew_schema::MAX_RASTER_PIXELS.to_string()
+        ),
+        E::Damaged(format) => text!("refusal-asset-damaged", format.ext()),
+        E::Base64 => text!("refusal-asset-base64"),
+        E::UnsafeSvg(h) => {
+            let found = match h {
+                H::NotUtf8 => text!("refusal-asset-svg-not-utf8"),
+                H::DoctypeSubset => text!("refusal-asset-svg-doctype-subset"),
+                H::Entity => text!("refusal-asset-svg-entity"),
+                H::Script => text!("refusal-asset-svg-script"),
+                H::EventAttribute => text!("refusal-asset-svg-event-attribute"),
+                H::ForeignObject => text!("refusal-asset-svg-foreign-object"),
+                H::ExternalReference => text!("refusal-asset-svg-external-reference"),
+                H::Malformed => text!("refusal-asset-svg-malformed"),
+                H::TooComplex => text!("refusal-asset-svg-too-complex"),
+                H::HugeNumber => text!("refusal-asset-svg-huge-number"),
+                H::Unsupported => text!("refusal-asset-svg-unsupported"),
+            };
+            let advice = match h {
+                H::NotUtf8 | H::Malformed => text!("refusal-asset-advice-plain-utf8"),
+                H::DoctypeSubset | H::Entity => text!("refusal-asset-advice-editing-data"),
+                H::Script | H::EventAttribute => text!("refusal-asset-advice-no-code"),
+                H::ForeignObject => text!("refusal-asset-advice-html"),
+                H::ExternalReference => text!("refusal-asset-advice-self-contained"),
+                H::TooComplex => text!("refusal-asset-advice-simplify"),
+                H::HugeNumber => text!("refusal-asset-advice-scale"),
+                H::Unsupported => text!("refusal-asset-advice-flatten"),
+            };
+            text!("refusal-asset-unsafe-svg", found, advice)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// FT-1504: every asset refusal's keyed English is the error's own text, byte for byte.
+    #[test]
+    fn every_asset_refusal_keeps_its_english() {
+        use ew_schema::{AssetError as E, AssetFormat as F, SvgHazard as H};
+        let mut errors = vec![
+            E::UnknownFormat,
+            E::TooLarge {
+                format: F::Png,
+                len: 9,
+                limit: 8,
+            },
+            E::TooManyNodes,
+            E::TooManyPixels {
+                format: F::Jpeg,
+                width: 70_000,
+                height: 2,
+            },
+            E::Damaged(F::Png),
+            E::Base64,
+        ];
+        errors.extend(
+            [
+                H::NotUtf8,
+                H::DoctypeSubset,
+                H::Entity,
+                H::Script,
+                H::EventAttribute,
+                H::ForeignObject,
+                H::ExternalReference,
+                H::Malformed,
+                H::TooComplex,
+                H::HugeNumber,
+                H::Unsupported,
+            ]
+            .map(E::UnsafeSvg),
+        );
+        for e in &errors {
+            assert_eq!(asset_error_text(e).to_string(), e.to_string());
+        }
+    }
+}

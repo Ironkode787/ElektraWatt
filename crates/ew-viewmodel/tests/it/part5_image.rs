@@ -443,6 +443,35 @@ fn files_the_store_refuses_fail_and_change_nothing() {
     }
 }
 
+/// FT-1504 (ID-1457): the asset gate's pixel refusal reads in a Dutch window's language, the error keeping its English.
+#[test]
+fn the_pixel_refusal_reads_in_a_dutch_window() {
+    let tmp = Tmp::new("image-file-pixels");
+    let mut s = shell(&tmp, "101");
+    done(&mut s, "tool.image", json!({}));
+    let mut wide = tiny_png();
+    wide[16..20].copy_from_slice(&70_000u32.to_be_bytes());
+    let file = write_file(&tmp, "wide.png", &wide);
+    assert!(ew_viewmodel::strings::set_locale("nl"));
+    let message = failed_message(&mut s, "image.file", json!({ "path": file }));
+    assert!(ew_viewmodel::strings::set_locale("en"));
+    assert_eq!(
+        message,
+        format!(
+            "De afbeelding {file} wordt niet aanvaard: de png-afbeelding is 70000 × 2 pixels, meer dan een tekening kan \
+             tonen (ten hoogste 16777216 pixels en 65535 per zijde); verklein haar en voeg haar opnieuw toe."
+        )
+    );
+    let message = failed_message(&mut s, "image.file", json!({ "path": file }));
+    assert_eq!(
+        message,
+        format!(
+            "The image {file} is not accepted: the png image is 70000 × 2 pixels, more than a drawing can show (at \
+             most 16777216 pixels and 65535 on a side); scale it down and add it again."
+        )
+    );
+}
+
 /// Cycle-29 review 6: only a regular file is read. A directory is refused with `error-image-file` and the reason, whatever
 /// the platform's own error for reading it would say.
 #[test]
