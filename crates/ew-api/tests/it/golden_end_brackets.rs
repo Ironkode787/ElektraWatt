@@ -684,8 +684,14 @@ fn a_part_change_that_widens_two_strips_on_one_rail_cascades_both_pushes() {
         let old = q.devices().get(terminals[0]).expect("the terminal").parts[0]
             .part
             .copy;
-        let twin = ew_schema::LibCopy::clone(q.table::<ew_schema::LibCopy<Part>>().get(old).expect("the copy"));
-        let (copy, part) = resized(twin, 0x0190_0000_0000_7000_8000_0000_0000_1480, "C53P2-TWIN", 10_400_000);
+        let twin =
+            ew_schema::LibCopy::clone(q.table::<ew_schema::LibCopy<Part>>().get(old).expect("the copy"));
+        let (copy, part) = resized(
+            twin,
+            0x0190_0000_0000_7000_8000_0000_0000_1480,
+            "C53P2-TWIN",
+            10_400_000,
+        );
         (terminals, copy, part)
     };
     assert_eq!(
@@ -726,7 +732,12 @@ fn a_turned_strip_pushes_by_the_bracket_of_the_strip_on_its_left() {
             Some(Nm(10 * MM)),
             "the TBD end bracket is 10 mm wide"
         );
-        let (copy, part) = resized(bracket, 0x0190_0000_0000_7000_8000_0000_0000_1481, "C53P2-BRACKET-5", 5 * MM);
+        let (copy, part) = resized(
+            bracket,
+            0x0190_0000_0000_7000_8000_0000_0000_1481,
+            "C53P2-BRACKET-5",
+            5 * MM,
+        );
         (copy, part, tbd)
     };
     run(

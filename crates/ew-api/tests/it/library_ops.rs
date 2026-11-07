@@ -827,12 +827,15 @@ fn library_update_refuses_what_it_cannot_update() {
     symbol["name"] = json!({"en": "Cabinet light"});
     // Version 1: `lib_ref` asks for `^1`.
     symbol["version"] = json!("1.0.0");
-    s.libraries_mut().write(lib, &[into_library(symbol, lib)]).unwrap();
+    s.libraries_mut()
+        .write(lib, &[into_library(symbol, lib)])
+        .unwrap();
     let symbol = serde_json::to_value(s.libraries().resolve(&lib_ref(lib, symbol_item)).unwrap()).unwrap();
     // The registry resolves no PLC profile: the profile's copy is made here, its ID and hash as a copy's.
     let profile_item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_1526);
-    let mut profile: Value = serde_json::from_str(include_str!("../../../../content/plc-profiles/iec-61131-3.json"))
-        .expect("the IEC profile");
+    let mut profile: Value =
+        serde_json::from_str(include_str!("../../../../content/plc-profiles/iec-61131-3.json"))
+            .expect("the IEC profile");
     profile["library_id"] = json!(lib.to_string());
     profile["item_id"] = json!(profile_item.to_string());
     profile["id"] = json!(copy_in(lib, profile_item).to_string());
