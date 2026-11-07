@@ -12,6 +12,8 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   on another grid on a new page with its grid (ID-1477)
 - behaviour-change: fields.set of a page's grid is refused while the page holds any item (ID-1477)
 - text-change: the Draw tab's button for the symbol editor reads "Symbols" (tooltip and menu "Symbol editor…") (ID-1477)
+- text-change: a connection grid is named as the status bar names it ("4 mm", "QET 10 px") in the refusal of a symbol
+  on another grid and in the page navigator's and page tab's badges, never "2.65 mm" or "QET grid" (ID-1477)
 - api-add: symbol.new_page places the symbol editor's published, unchanged draft on a new page with its grid; the
   editor's refusal of another grid offers it, else Test on a new page (ID-1477)
 - behaviour-change: symbol validation also refuses unknown members of a deprecated status and its successor; a test
