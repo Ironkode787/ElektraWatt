@@ -116,13 +116,13 @@ ARCHES = ("amd64", "arm64")
 # request goes to the window only).
 RESOURCES = (
     ("samples", "file.open_sample", "sample"),
-    ("content", "file.import_qet", "content"),
+    ("content", "file.import_qet_apply", "content"),
     (NOTICES, "ui.describe", "notices"),
 )
 # The variables that would name a resource or a settings directory other than the tree's and the run's own.
 RESOURCE_VARIABLES = ("EW_SAMPLE_DIR", "EW_CONTENT_DIR", "EW_DOCS_DIR", "EW_CONFIG_DIR", "EW_DATA_DIR", "EW_CACHE_DIR")
-# The QElectroTech project that the content step imports: one page, no element; the import's banner says when the
-# starter content is missing.
+# The QElectroTech project that the content step imports: one page, no element. The import opens its card, and its
+# Apply opens the project with the banner that says when the starter content is missing (WP-S3.09 D8).
 QET = (
     '<project version="0.100" title="Installed">\n'
     '<diagram title="First page" folio="1" cols="17" colsize="60" rows="8" rowsize="80" height="640"/>\n'
@@ -854,7 +854,8 @@ class StageTest(unittest.TestCase):
             "help.notices": {"outcome": "done", "state": {}},
             "ui.describe": {"outcome": "done", "describe": "  notices: 88 lines"},
             "ui.dismiss": {"outcome": "done"},
-            "file.import_qet": {"outcome": "done", "state": {"banner": "Imported example.qet."}},
+            "file.import_qet": {"outcome": "done", "state": {"banner": None}},
+            "file.import_qet_apply": {"outcome": "done", "state": {"banner": "Imported example.qet."}},
             "file.open_sample": {"outcome": "done", "state": sample},
         }
         for action, line in changed.items():
@@ -868,7 +869,10 @@ class StageTest(unittest.TestCase):
         runs = {
             "installed": (0, self.transcript()),
             "sample": (1, self.transcript(file__open_sample={"outcome": "failed", "message": "Not installed."})),
-            "content": (0, self.transcript(file__import_qet={"outcome": "done", "state": {"banner": "No content."}})),
+            "content": (
+                0,
+                self.transcript(file__import_qet_apply={"outcome": "done", "state": {"banner": "No content."}}),
+            ),
             "notices": (0, self.transcript(ui__describe={"outcome": "done", "describe": "  notices: 85 lines"})),
         }
         self.assertEqual(resource_problems(runs), [])
@@ -886,7 +890,7 @@ class StageTest(unittest.TestCase):
                 "the run on the tree exited with 1, not 0",
                 "file.open_sample on the tree: refused, No sample.",
                 "the sample opened edit with None pages, not read-only with 36",
-                "file.import_qet reads the same with and without the content: the content is not proven",
+                "file.import_qet_apply reads the same with and without the content: the content is not proven",
                 "the run without the notices exited with 101, not 0 or 1",
             ],
         )
@@ -898,8 +902,10 @@ class StageTest(unittest.TestCase):
         actions = [line["action"] for line in lines[1:]]
         for _, action, _ in RESOURCES:
             self.assertEqual(actions.count(action), 1, action)
-        imported = next(line for line in lines[1:] if line["action"] == "file.import_qet")
-        self.assertEqual(imported["params"], {"file": "example.qet", "dir": "imported.ew"})
+        imported = next(i for i, line in enumerate(lines) if line.get("action") == "file.import_qet")
+        self.assertEqual(lines[imported]["params"], {"file": "example.qet", "dir": "imported.ew"})
+        # The import opens its card; the content shows in the banner of its Apply, the step right after it.
+        self.assertEqual(lines[imported + 1], {"action": "file.import_qet_apply", "params": {"confirm": True}})
 
     def test_the_setup_removes_d3s_entries_by_name(self):
         # The uninstall section of the setup deletes exactly the top-level entries of the Windows tree, and itself.
