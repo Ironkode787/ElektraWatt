@@ -383,7 +383,12 @@ impl ShellModel {
         let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else {
             return failed(key!("error-bad-param"), &["path"]);
         };
-        if self.jobs.running() > 0 {
+        // FT-1502: a print being spooled writes no file and runs beside the export.
+        if self
+            .jobs
+            .entries()
+            .any(|e| e.is_running() && e.kind != JobKind::Print)
+        {
             return Outcome::Refused {
                 reason_key: key!("reason-export-running"),
             };

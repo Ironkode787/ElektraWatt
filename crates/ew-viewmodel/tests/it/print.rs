@@ -332,6 +332,31 @@ fn a_running_print_is_a_job_whose_cancel_reaches_the_print() {
     s.shutdown();
 }
 
+/// FT-1502: a print being spooled is no export: a PDF export started meanwhile runs beside it, and the print's end
+/// takes only the print's entry away.
+#[test]
+fn a_pdf_export_runs_beside_a_print_being_spooled() {
+    let tmp = Tmp::new("print-beside-export");
+    let mut s = tmp.shell("100");
+    done(&mut s, "file.print", json!({"range": "current"}));
+    done(&mut s, "print.send", json!({}));
+    let _request = s.take_print_request().expect("a request");
+    let target = tmp.0.join("beside.pdf");
+    done(
+        &mut s,
+        "file.export_pdf",
+        json!({"path": target.to_string_lossy()}),
+    );
+    assert!(target.is_file(), "the export wrote its file");
+    let kinds = |s: &ShellModel| -> Vec<(JobKind, bool)> {
+        s.jobs().entries().map(|e| (e.kind, e.is_running())).collect()
+    };
+    assert_eq!(kinds(&s), [(JobKind::Print, true), (JobKind::Pdf, false)]);
+    s.print_done(PrintEnd::Cancelled);
+    assert_eq!(kinds(&s), [(JobKind::Pdf, false)]);
+    s.shutdown();
+}
+
 /// C52-p6#2 (ID-1424): a way that hands a file over cannot take it back: a print cancelled in the Jobs pane that the
 /// printer or the viewer already had says so in words, in English and Dutch, rather than telling it as sent.
 #[test]
