@@ -109,6 +109,8 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     ctx.data_mut(|d| d.insert_temp(picker_width_id(), width));
     Window::new(title)
         .id(Id::unique("place-picker"))
+        // SM25b m4 (ID-1476): above the toasts, which stand below it while it is open.
+        .order(egui::Order::Foreground)
         .anchor(
             Align2::CENTER_TOP,
             [0.0, t.size_tab_row + t.size_command_row + t.space_4],

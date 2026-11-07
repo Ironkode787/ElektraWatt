@@ -1031,7 +1031,10 @@ impl ShellModel {
                     e => err(e),
                 })?;
                 // A key other than the one the library holds for the draft's items published new ones (ID-1474).
-                let note = (before.is_some() && before != draft.identity)
+                // ID-1476 (M25-p6#1): only when the symbol's own identity changed, not when only an owned function
+                // definition took one.
+                let symbol_of = |i: &Option<symbols::DraftIdentity>| i.as_ref().map(|i| i.symbol);
+                let note = (before.is_some() && symbol_of(&before) != symbol_of(&draft.identity))
                     .then(|| strings::format(key!("symbol-saved-new"), &[&draft.key]));
                 self.config.libraries = Some(tiers);
                 if let Some(project) = &mut self.project {
@@ -1072,11 +1075,12 @@ impl ShellModel {
                     draft.key.chars().take(100).collect::<String>()
                 );
                 // The same content placed again is the same copy (re-review part 4): its item IDs come from its key,
-                // which carries the content's suffix, never a new UUIDv7 per placement.
+                // which carries the content's suffix, never a new UUIDv7 per placement. ID-1476: the v5 name's parts
+                // joined with U+001F (ADR-0004 amendment 4), as projects store these IDs.
                 let item = |kind: &str| {
                     ew_api::output::Uuid::new_v5(
                         &symbols::DRAFT_LIBRARY,
-                        format!("{kind}|{}", draft.key).as_bytes(),
+                        format!("{kind}\u{1f}{}", draft.key).as_bytes(),
                     )
                     .to_string()
                 };

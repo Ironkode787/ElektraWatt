@@ -1467,6 +1467,93 @@ fn save_without_a_folder_saves_to_the_default_user_library() {
     shell.shutdown();
 }
 
+/// ID-1476 (M25-p6#1): an editable copy of a starter symbol under its own key says nothing of a new symbol when saved:
+/// only its function definition took an identity of its own.
+#[test]
+fn saving_a_copy_under_its_own_key_announces_no_new_symbol() {
+    let tmp = Tmp::new("symbol-own-key");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(&mut shell, "symbol.new", json!({"key":"example.empty"}));
+    let source = shell
+        .symbol_editor()
+        .unwrap()
+        .sources
+        .iter()
+        .find(|s| s.key.as_deref() == Some("ew.iec.contact-no"))
+        .unwrap()
+        .source
+        .clone();
+    done(
+        &mut shell,
+        "symbol.fork",
+        json!({"source":source,"key":"ew.iec.contact-no","discard":true}),
+    );
+    let before = shell.symbol_editor().unwrap().draft.identity.clone();
+    done(
+        &mut shell,
+        "symbol.save",
+        json!({"directory": tmp.0.join("own.ewlib")}),
+    );
+    let after = shell.symbol_editor().unwrap().draft.identity.clone();
+    assert_ne!(before, after, "the function definition took an identity");
+    assert_eq!(
+        before.map(|i| i.symbol),
+        after.map(|i| i.symbol),
+        "the symbol kept its own"
+    );
+    assert_eq!(shell.toast().map(|t| t.text.clone()), None);
+    shell.shutdown();
+}
+
+/// ID-1476 (M25-p6 nits): the test copy's item IDs are v5 names whose parts are joined with U+001F (ADR-0004
+/// amendment 4); a save whose owned function definition differs at its version is refused naming that definition.
+#[test]
+fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
+    use ew_viewmodel::ew_api::{output::Uuid, symbols};
+    let tmp = Tmp::new("symbol-v5");
+    let dir = tmp.0.join("project.ew");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
+    drawn(&mut shell, "example.v5", "Five");
+    let library = json!({"directory": tmp.0.join("v5.ewlib")});
+    done(&mut shell, "symbol.save", library.clone());
+    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
+    doc["function"]["cps"][0]["designation"] = json!("A1");
+    done(&mut shell, "symbol.replace", json!({"document": doc}));
+    assert_eq!(
+        failed(&mut shell, "symbol.save", library),
+        "Symbol editor: The library holds the function definition of Five at version 1.0.0 with other content. Give \
+         the change a new version."
+    );
+    done(&mut shell, "symbol.scratch", json!({}));
+    done(&mut shell, "file.save", json!({}));
+    shell.shutdown();
+    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let q = session.query();
+    let (_, copy) = q
+        .symbols()
+        .iter()
+        .find(|(_, s)| {
+            s.item
+                .meta
+                .key
+                .as_ref()
+                .is_some_and(|k| k.as_str().starts_with("example.v5.test."))
+        })
+        .unwrap();
+    let key = copy.item.meta.key.as_ref().unwrap().to_string();
+    assert_eq!(
+        copy.item_id.as_uuid(),
+        Uuid::new_v5(&symbols::DRAFT_LIBRARY, format!("symbol\u{1f}{key}").as_bytes())
+    );
+}
+
 /// ID-1477 (7): the editor has a button on the Draw tab's Place group, and the command search names it there.
 #[test]
 fn the_editor_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {

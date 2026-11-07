@@ -571,6 +571,15 @@ impl SymbolDraft {
         if let Some(r) = &self.function_ref {
             members.push(("/function_ref".into(), &r.extra));
         }
+        // ID-1476 (M25-p6 nit): a deprecation's object and its successor's reference in either meta's status.
+        for (owner, meta) in [("/symbol", &self.symbol.meta), ("/function", &self.function.meta)] {
+            if let schema::ItemStatus::Deprecated(d) = &meta.status {
+                members.push((format!("{owner}/meta/status/deprecated"), &d.extra));
+                if let Some(s) = &d.successor {
+                    members.push((format!("{owner}/meta/status/deprecated/successor"), &s.extra));
+                }
+            }
+        }
         for (path, extra) in members {
             for name in extra
                 .keys()

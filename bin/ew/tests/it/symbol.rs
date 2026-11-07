@@ -145,3 +145,38 @@ fn publish_creates_then_reuses_the_library_and_refuses_a_key_another_symbol_hold
     assert_eq!(updated["result"], "updated");
     assert_eq!(updated["identity"], first["identity"]);
 }
+
+/// ID-1476 (M25-p6 nit, ID-1474's path): a draft that carries the identity of a published symbol under another key
+/// publishes a new symbol: `added`, a new identity printed, and the first symbol stays.
+#[test]
+fn publish_under_another_key_adds_a_symbol_with_a_new_identity() {
+    let tmp = Tmp::new();
+    let library = tmp.0.join("symbols.ewlib");
+    let file = tmp.0.join("contact.symbol.json");
+    let publish = |file: &Path| tmp.ew(&args(&[&"symbol", &"publish", &file, &"--library", &library]));
+    let mut draft = valid(&tmp, "example.first");
+    write(&file, &draft);
+    let o = publish(&file);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let first: Value = serde_json::from_str(&stdout(&o)).unwrap();
+    draft["identity"] = first["identity"].clone();
+    draft["key"] = json!("example.second");
+    write(&file, &draft);
+    let o = publish(&file);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let second: Value = serde_json::from_str(&stdout(&o)).unwrap();
+    assert_eq!(second["result"], "added");
+    assert_eq!(second["key"], "example.second");
+    assert!(second["identity"]["symbol"].is_string());
+    assert_ne!(second["identity"]["symbol"], first["identity"]["symbol"]);
+    // The first symbol stays: its draft with its identity is unchanged.
+    draft["identity"] = first["identity"].clone();
+    draft["key"] = json!("example.first");
+    write(&file, &draft);
+    let o = publish(&file);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(
+        serde_json::from_str::<Value>(&stdout(&o)).unwrap()["result"],
+        "unchanged"
+    );
+}
