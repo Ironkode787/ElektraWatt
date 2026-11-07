@@ -1957,7 +1957,6 @@ dependencies = [
  "ew-hack",
  "ew-render-cpu",
  "ew-render2d",
- "ew-render3d",
  "ew-testdir",
  "ew-viewmodel",
  "png",
