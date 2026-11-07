@@ -1651,6 +1651,80 @@ fn rep_transform_of_a_black_box_keeps_the_centre_of_its_bounding_box() {
     );
 }
 
+/// Deep nightly finding (ID-1493; `fuzz/regressions/command_sequence/device-create-valve-part-functions`, seed
+/// 13 901 746 652 117 265 409, step 0): `device.create` with Golden A's valve part and a main FnDef of another kind
+/// commits three functions, its main one and the valve and coil functions normaliser N-FL-1 makes from the valve
+/// part (WP-S1.20 D6), and the arm expected one. The input (the finding's seed, its tape remade to draw the finding's
+/// step) still draws that step, and it replays with the cadence of the fuzz target and passes the arm's oracle, which
+/// counts N-FL-1's functions.
+#[test]
+fn device_create_with_a_valve_part_counts_its_valve_functions() {
+    let input: &[u8] =
+        include_bytes!("../../../../fuzz/regressions/command_sequence/device-create-valve-part-functions");
+    let (seed, rest) = input.split_first_chunk::<8>().expect("a seed");
+    let (&steps, tape) = rest.split_first().expect("a step count");
+    let seed = u64::from_le_bytes(*seed);
+    let session = open_session_with(seed, MemoMode::On);
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let step = gen_step(
+        &session,
+        &fixture,
+        &mut SplitMix64::with_tape(seed, tape),
+        false,
+        Mix::default(),
+    );
+    assert_eq!(
+        step.line(),
+        r#"{"cmd":"device.create","params":{"letter":"A","main_fndef":"2c38898e-6848-5acc-95e5-d8c5b8f702ab","parts":[{"part":{"copy":"2b23f42b-b502-5f8b-aab9-6200eb76adcf"},"qty":"1"}]}}"#
+    );
+    let cadence = Cadence {
+        sample_every: 0,
+        check_every: 0,
+        verify_every: 0,
+        full_end: false,
+        save_weight: 1,
+        import_weight: 0,
+        deep: false,
+    };
+    run_fuzz_tape(seed, tape, 1 + usize::from(steps) % 8, &cadence);
+}
+
+/// The same cause in the `valve.add` arm (ID-1493): with Golden A's valve part the command ignores `fndef`
+/// (WP-S1.20 D7) and N-FL-1 makes the valve and coil functions (D6). The arm's well-formed steps on that part, with
+/// `fndef` and without, commit and pass its oracle.
+#[test]
+fn valve_add_with_a_valve_part_counts_its_valve_functions() {
+    let mut session = open_session_with(1493, MemoMode::On);
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let arm = ARMS
+        .iter()
+        .find(|a| a.command == "valve.add")
+        .expect("the valve.add arm");
+    // Each commit is undone, so every step is built from Golden A.
+    let live = Live::read(&session.query(), &fixture);
+    let mut seen = BTreeSet::new();
+    for seed in 0..3_000 {
+        let Some(Step::Cmd(c)) = (arm.build)(&live, &mut SplitMix64::new(seed)) else {
+            continue;
+        };
+        if c.params["part"]["part"]["copy"] != "2b23f42b-b502-5f8b-aab9-6200eb76adcf"
+            || c.posts.is_empty()
+            || !seen.insert(c.params.get("fndef").is_some())
+        {
+            continue;
+        }
+        let applied = apply(&mut session, &c, &mut FuzzStats::default())
+            .unwrap_or_else(|e| panic!("{e}\nstep: {}", Step::Cmd(c).line()));
+        assert!(applied.ok);
+        session.undo(&ew_api::Origin::Gui).expect("the valve undoes");
+    }
+    assert_eq!(
+        seen.len(),
+        2,
+        "the arm built the valve part's steps with and without `fndef`"
+    );
+}
+
 /// The placement and arrangement steps of WP-S2.04 on Golden A: the `from_part` and `new_terminal` targets of
 /// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol`,
 /// `project.drawing.set`, `connection.draw_to_ip`, `ip.arrange` and `box.reshape` are all generated, and each kind

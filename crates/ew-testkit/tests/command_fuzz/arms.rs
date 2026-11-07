@@ -3342,9 +3342,65 @@ fn part_use(parts: &[Value], rng: &mut SplitMix64) -> Option<Value> {
     Some(json!({"part": {"copy": part}, "qty": "1"}))
 }
 
+/// The FnDef copies of the template entries of the part copy `part` with their contact kinds (`None`: not embedded).
+fn template_kinds(
+    q: &ew_derive::Q,
+    part: &ew_schema::LibCopy<ew_schema::Part>,
+) -> Vec<(ew_ids::Id<ew_schema::FnDef>, Option<ew_schema::ContactKind>)> {
+    part.item
+        .function_template
+        .iter()
+        .map(|e| {
+            let def = ew_ids::v5::lib_copy_id(e.fndef.library.as_uuid(), e.fndef.item.as_uuid());
+            (def, q.fndefs().get(def).map(|d| d.item.contact_kind.clone()))
+        })
+        .collect()
+}
+
+/// The check that the Functions table grew by a new device's functions (ID-1493): the command's own main function
+/// on the FnDef copy `main`, and those normaliser N-FL-1 (`valve_functions`, WP-S1.20 D6) gives a device with a valve
+/// part (a fluid section with solenoids): its valve entry's unless the main function is of contact kind valve, and
+/// one per coil entry but one on the main function's FnDef. With `from_part` (`valve.add`, D7) a part with an entry
+/// of contact kind valve drops the command's own main function.
+fn functions_added(
+    part: Option<Value>,
+    main: Option<Value>,
+    from_part: bool,
+) -> impl Fn(&ew_derive::Q, &ew_derive::Q) -> Result<(), String> {
+    use ew_schema::ContactKind;
+    move |before, after| {
+        let copy = part
+            .as_ref()
+            .and_then(typed::<ew_schema::Part>)
+            .and_then(|id| before.parts().get(id));
+        let entries = copy.map(|c| template_kinds(before, c)).unwrap_or_default();
+        let valve_entry = entries.iter().any(|(_, k)| *k == Some(ContactKind::Valve));
+        let main = main
+            .as_ref()
+            .and_then(typed::<ew_schema::FnDef>)
+            .filter(|_| !(from_part && valve_entry));
+        let main_kind = main.and_then(|d| before.fndefs().get(d).map(|c| c.item.contact_kind.clone()));
+        let mut want = isize::from(main.is_some());
+        if copy.is_some_and(|c| ew_derive::valve_solenoids(&c.item).is_some()) {
+            let coils = entries.iter().filter(|(_, k)| *k == Some(ContactKind::Coil));
+            want += isize::from(valve_entry && main_kind != Some(ContactKind::Valve));
+            want += isize::try_from(coils.clone().count()).unwrap_or(0);
+            want -= isize::from(coils.clone().any(|(d, _)| Some(*d) == main));
+        }
+        let (b, a) = (Table::Functions.count(before), Table::Functions.count(after));
+        if isize::try_from(a).unwrap_or(0) - isize::try_from(b).unwrap_or(0) == want {
+            Ok(())
+        } else {
+            Err(format!(
+                "{:?} went from {b} to {a} records, expected {want:+}",
+                Table::Functions
+            ))
+        }
+    }
+}
+
 fn device_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let mut p = json!({"letter": letter(rng)});
-    let mut functions = 0;
     match rng.below(10) {
         // Refused: the part copy does not exist.
         0 => {
@@ -3363,7 +3419,6 @@ fn device_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
     if rng.chance(2) {
         p["main_fndef"] = rng.pick(&live.fndefs)?.id.clone();
-        functions = 1;
     }
     if rng.chance(5) {
         p["strip"] = json!({});
@@ -3371,7 +3426,13 @@ fn device_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     if rng.chance(4) {
         p["function_text"] = json!(rng.word(8));
     }
-    Some(Step::cmd("device.create", p).counts(&[(Table::Devices, 1), (Table::Functions, functions)]))
+    let part = p.get("parts").map(|u| u[0]["part"]["copy"].clone());
+    let main = p.get("main_fndef").cloned();
+    Some(
+        Step::cmd("device.create", p)
+            .counts(&[(Table::Devices, 1)])
+            .check(functions_added(part, main, false)),
+    )
 }
 
 fn terminal_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -4079,16 +4140,15 @@ fn valve_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             } else {
                 (1..).find(|n| !taken.contains(n))?
             };
-            let functions = if rng.chance(2) {
+            if rng.chance(2) {
                 p["fndef"] = rng.pick(&live.fndefs)?.id.clone();
-                1
-            } else {
-                0
-            };
+            }
+            let (copy, fndef) = (p["part"]["part"]["copy"].clone(), p.get("fndef").cloned());
             let module_id = module.id.clone();
             Some(
                 Step::cmd("valve.add", p)
-                    .counts(&[(Table::Devices, 1), (Table::Functions, functions)])
+                    .counts(&[(Table::Devices, 1)])
+                    .check(functions_added(Some(copy), fndef, true))
                     .check(move |before, after| {
                         let want = typed(&module_id);
                         let new: Vec<_> = after
