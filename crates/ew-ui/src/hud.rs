@@ -398,8 +398,31 @@ pub(crate) fn show_zoom(ctx: &egui::Context, shell: &ShellModel, pane: Rect, eve
 mod tests {
     use egui::{Rect, pos2};
 
-    use super::{balanced_room, hud_rect, max_width, zoom_rect};
+    use super::{balanced_room, clear_of_toasts, hud_rect, max_width, zoom_rect};
     use crate::theme::{self, Density, Tokens};
+
+    /// ID-1497 (11): the HUD keeps clear of the toast stack: where they meet it sits above the stack's top, or under its
+    /// bottom where the page view has no room above it; apart from the stack it keeps its place.
+    #[test]
+    fn the_hud_keeps_clear_of_the_toast_stack() {
+        let t = theme::tokens(theme::Theme::Light, Density::Comfortable);
+        let pane = Rect::from_min_max(pos2(300.0, 140.0), pos2(1500.0, 900.0));
+        let low = hud_rect(&t, pane, 600.0, false);
+        let high = hud_rect(&t, pane, 600.0, true);
+        assert_eq!(clear_of_toasts(&t, pane, low, None), low);
+        // A stack beside it: no move.
+        let aside = Rect::from_min_max(pos2(1450.0, 200.0), pos2(1490.0, 400.0));
+        assert_eq!(clear_of_toasts(&t, pane, high, Some(aside)), high);
+        // A stack at the bottom right that the low HUD meets: the HUD sits above its top.
+        let stack = Rect::from_min_max(pos2(700.0, 700.0), pos2(1490.0, 860.0));
+        let moved = clear_of_toasts(&t, pane, low, Some(stack));
+        assert_eq!(moved.bottom(), stack.top() - t.space_4);
+        assert_eq!((moved.left(), moved.width()), (low.left(), low.width()));
+        // A stack at the top right that the raised HUD meets, with no room above it: under its bottom.
+        let top = Rect::from_min_max(pos2(700.0, high.top()), pos2(1490.0, high.top() + 120.0));
+        let under = clear_of_toasts(&t, pane, high, Some(top));
+        assert_eq!(under.top(), top.bottom() + t.space_4);
+    }
 
     /// The rows of `prompt` in `type.small` wrapped at `room`, as text.
     fn rows(ctx: &egui::Context, t: &Tokens, prompt: &str, room: f32) -> Vec<String> {

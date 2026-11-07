@@ -578,7 +578,7 @@ link-preview-node = Link preview: page { $p0 }, cell { $p1 }
 link-preview-node-page = Link preview: page { $p0 }
 
 # FT-902: the tooltip of a page link under the pointer, with its target's cell or folio.
-tip-link = Double-click to go to { $p0 }
+tip-link = Click to go to { $p0 }
 
 # FT-1092 (ID-1184; doc 06 §3.10): what the Pending chips and the Messages header's "pending n" count.
 tip-pending = Findings on the page you are editing that wait until you leave it or run a check

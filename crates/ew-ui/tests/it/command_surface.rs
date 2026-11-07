@@ -249,9 +249,11 @@ fn cb4_the_geometry_at_1280_by_800_in_both_densities() {
         let model = command_bar(h.state().shell());
         let mut seen = (0, 0);
         for b in model.groups.iter().flat_map(|g| &g.buttons) {
+            // ID-1497 (10): the bar's own button (a group collapsed at the floor shows none; the HUD's Text is no
+            // button of the bar).
             let Some(r) = h
                 .query_all_by_label(&b.bar_label)
-                .find(|n| n.accesskit_node().role() == egui::Role::Button)
+                .find(|n| n.accesskit_node().role() == egui::Role::Button && bar_rect.contains_rect(n.rect()))
                 .map(|n| n.rect())
             else {
                 continue;
@@ -324,10 +326,12 @@ fn cb5_one_hud_with_the_prompt_of_the_selection() {
             .count(),
         1
     );
+    // ID-1497 (8): an item drawn on the page (a selection that draws nothing there is not counted).
+    let drawn = h.state().shell().canvas().unwrap().page().entities[0].0;
     assert_eq!(
         h.state_mut()
             .shell_mut()
-            .dispatch("select.set", &json!({"refs": ["tag:-101F1"]})),
+            .dispatch("select.set", &json!({"ids": [drawn.0.to_string()]})),
         Outcome::Done
     );
     settle(&mut h);
@@ -549,5 +553,28 @@ fn ft1520_view_show_switches_show_only_their_check() {
         0,
         "no icon beside Frame statistics"
     );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// ID-1497 (11): the HUD moves under the tab bar while the pointer is within 48 px of its place at the bottom, and
+/// back only once the pointer is more than 96 px away, so it does not flip back and forth between the two.
+#[test]
+fn the_hud_moves_up_near_the_pointer_and_back_only_far_from_it() {
+    let tmp = Tmp::new();
+    let mut h = window(&tmp, "comfortable");
+    let (_, hud, pane) = h.state().command_surface_rects();
+    let (low, pane) = (hud.unwrap(), pane.unwrap());
+    let hud_at = |h: &mut Harness<'static, App>, p: egui::Pos2| {
+        h.hover_at(p);
+        settle(h);
+        h.state().command_surface_rects().1.unwrap()
+    };
+    let above = |d: f32| egui::pos2(low.center().x, low.top() - d);
+    assert_eq!(hud_at(&mut h, above(150.0)), low, "far: at the bottom");
+    let raised = hud_at(&mut h, above(40.0));
+    assert!(raised.center().y < pane.center().y, "within 48 px: raised {raised:?}");
+    assert_eq!(hud_at(&mut h, above(70.0)), raised, "between 48 and 96 px: still raised");
+    assert_eq!(hud_at(&mut h, above(110.0)), low, "past 96 px: back at the bottom");
+    assert_eq!(hud_at(&mut h, above(70.0)), low, "between 48 and 96 px from below: stays low");
     h.state_mut().shell_mut().shutdown();
 }

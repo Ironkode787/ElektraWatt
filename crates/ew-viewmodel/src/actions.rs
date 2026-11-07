@@ -3008,10 +3008,10 @@ pub static ACTIONS: &[ActionMeta] = &[
         None,
         |s, p| s.act_tool_connect_on_move(p),
     ))))),
-    // ID-1497 (10): Edit route on the Draw tab's Connect group, beside Wire.
+    // ID-1497 (10): Edit route on the Draw tab's Connect group, beside Wire (the polyline: Wire has the route icon).
     keeps_banner(in_canvas(placed(
         place(Group::Connect, 2, CommandSize::Small, None),
-        "route-2",
+        "ew-shape-polyline",
         act(
             "tool.route_edit",
             Command,
@@ -3084,7 +3084,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     keeps_banner(in_canvas(placed(
         place(
             Group::Connect,
-            3,
+            4,
             CommandSize::Small,
             Some(key!("bar-interruption")),
         ),
