@@ -327,7 +327,7 @@ pub fn damaged_copy(
     }
 }
 
-/// Several texts as one, joined by commas (`a, b, c`), the way [`comma_list`] joins them; `None` for none: every
+/// Several texts as one, joined by commas (`a, b, c`), the way `comma_list` joins them; `None` for none: every
 /// damaged copy a Save As leaves out (C53-p3#6, ID-1481).
 pub fn comma_joined(items: Vec<Text>) -> Option<Text> {
     let mut rest = items.into_iter().rev();
