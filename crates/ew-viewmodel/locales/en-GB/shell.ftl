@@ -5029,4 +5029,4 @@ symbol-image = Image
 action-symbol-role = Set the potential role of a symbol connection point
 symbol-cp-unknown = This symbol has no connection point { $p0 }.
 symbol-role-assigned = An assigned function definition keeps its roles. Change them in a function definition of the symbol's own.
-reason-symbol-grid = This symbol is drawn on the { $p0 } mm connection grid, and this page uses { $p1 } mm. Place it on a page with its grid.
+reason-symbol-grid = This symbol is drawn on the { $p0 } connection grid, and this page uses { $p1 }. Place it on a page with its grid.

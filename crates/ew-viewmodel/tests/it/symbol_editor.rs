@@ -584,8 +584,8 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
         assert_eq!(
             shell.dispatch("symbol.place", &json!({"x":80,"y":80})),
             Outcome::Failed {
-                message: "Symbol editor: This symbol is drawn on the 2.65 mm connection grid, and this page uses 4 \
-                          mm. Place it on a page with its grid."
+                message: "Symbol editor: This symbol is drawn on the QET 10 px connection grid, and this page uses \
+                          4 mm. Place it on a page with its grid."
                     .into()
             }
         );
@@ -1274,7 +1274,8 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
         .expect("the published symbol is listed");
     let row = PickerRow::Symbol(i);
     assert!(picker.rows.contains(&row));
-    let words = "This symbol is drawn on the 4 mm connection grid, and this page uses 2.65 mm. Place it on a page \
+    // M25-p7#3: both grids named as the status bar, New page and Properties name them.
+    let words = "This symbol is drawn on the 4 mm connection grid, and this page uses QET 10 px. Place it on a page \
                  with its grid.";
     assert_eq!(picker.disabled_words(row).as_deref(), Some(words));
     assert!(strings::set_locale("nl"));
@@ -1283,7 +1284,7 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
     assert_eq!(
         dutch.as_deref(),
         Some(
-            "Dit symbool is getekend op het verbindingsraster van 4 mm, en deze pagina gebruikt 2,65 mm. Plaats het op \
+            "Dit symbool is getekend op het verbindingsraster 4 mm, en deze pagina gebruikt QET 10 px. Plaats het op \
              een pagina met zijn raster."
         )
     );
@@ -1332,8 +1333,8 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
     drawn(&mut shell, "example.offer", "Offer block");
     assert_eq!(
         failed(&mut shell, "symbol.place", json!({"x":40,"y":40})),
-        "Symbol editor: This symbol is drawn on the 4 mm connection grid, and this page uses 2.65 mm. Place it on a \
-         page with its grid."
+        "Symbol editor: This symbol is drawn on the 4 mm connection grid, and this page uses QET 10 px. Place it on \
+         a page with its grid."
     );
     assert!(shell.symbol_editor().unwrap().offer_new_page);
     let pages = shell.page_labels().len();
