@@ -11,7 +11,7 @@
 //!
 //! Properties, whatever the bytes: no reader panics (the front door's caught panic, `symbol-import-stopped`, fails the
 //! target); an accepted draft validates, previews (every variant for a parsed draft), and a draft with no validation
-//! issue yields its library documents; an SLK read holds the read budget: at most 4,096 graphics and 4,096
+//! issue yields its library documents, the symbol and its owned function definition; an SLK read holds the read budget: at most 4,096 graphics and 4,096
 //! connection points per symbol, 65,536 of both together, 512 symbols.
 
 use std::collections::BTreeMap;
@@ -25,6 +25,8 @@ pub struct Outcome {
     pub parsed: bool,
     /// The drafts the readers made of it.
     pub drafts: usize,
+    /// The library documents its drafts without validation issues yielded.
+    pub documents: usize,
 }
 
 /// The front door's refusal of a panic is a finding.
@@ -35,15 +37,25 @@ fn no_panic(e: &Error) {
     );
 }
 
-/// A draft validates, previews, and yields its documents when it has no issue.
-fn exercise(draft: &SymbolDraft, variants: u8) {
+/// A draft validates, previews, and yields its documents when it has no issue: the symbol, and its own function
+/// definition unless it is assigned one. Returns the documents' count.
+fn exercise(draft: &SymbolDraft, variants: u8) -> usize {
     let issues = draft.validate();
     for variant in 0..variants {
         let _ = draft.preview(variant);
     }
-    if issues.is_empty() {
-        let _ = draft.documents(symbols::DRAFT_LIBRARY);
+    if !issues.is_empty() {
+        return 0;
     }
+    let documents = draft
+        .documents(symbols::DRAFT_LIBRARY)
+        .unwrap_or_else(|e| panic!("a draft without validation issues yields no documents: {e}"));
+    assert_eq!(
+        documents.len(),
+        1 + usize::from(draft.function_ref.is_none()),
+        "the documents of a draft without validation issues"
+    );
+    documents.len()
 }
 
 /// `symbol_authoring`: the bytes as a draft, then as an EPLAN input under three names, and a 7z input once more with
@@ -53,7 +65,7 @@ pub fn authoring(data: &[u8]) -> Outcome {
     if let Ok(draft) = SymbolDraft::parse(data) {
         out.parsed = true;
         out.drafts += 1;
-        exercise(&draft, 8);
+        out.documents += exercise(&draft, 8);
     }
     let fixed = seven_zip_with_crcs(data);
     let inputs = [(data, "sample.edz"), (data, "sample.ems"), (data, "sample.xml")];
@@ -65,7 +77,7 @@ pub fn authoring(data: &[u8]) -> Outcome {
             Ok(drafts) => {
                 out.drafts += drafts.len();
                 for draft in &drafts {
-                    exercise(draft, 1);
+                    out.documents += exercise(draft, 1);
                 }
             }
             Err(e) => no_panic(&e),

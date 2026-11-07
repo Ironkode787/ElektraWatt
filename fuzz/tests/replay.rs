@@ -413,7 +413,7 @@ fn the_ewui_script_seeds_and_the_tutorial_scripts_pass() {
 
 /// M25-p1#8 and M25-p2#6: the symbol readers' seeds pass and make drafts: the template parses as a draft, each EPLAN
 /// seed (parts XML, a PXF macro, a ZIP, a copy-coded 7z EDZ and an LZMA2 7z EDZ under an LZMA-encoded header)
-/// imports, and the SLK seed reads its one symbol.
+/// imports, and the SLK seed reads its one symbol. M25-p4#4: the valid draft yields its two library documents.
 #[test]
 fn the_symbol_seeds_pass_and_make_drafts() {
     use ew_fuzz::symbols::{authoring, slk};
@@ -429,6 +429,11 @@ fn the_symbol_seeds_pass_and_make_drafts() {
         assert_eq!(
             o.parsed,
             name.ends_with(".json"),
+            "symbol_authoring/{name}: {o:?}"
+        );
+        assert_eq!(
+            o.documents,
+            if name == "valid-draft.json" { 2 } else { 0 },
             "symbol_authoring/{name}: {o:?}"
         );
     }
