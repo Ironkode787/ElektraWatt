@@ -2189,7 +2189,9 @@ impl ShellModel {
                     self.collab.damaged = None;
                     self.refresh_state_banner();
                     let text = match left_out_copies(&d.left_out_words) {
-                        Some(all) => strings::format(key!("toast-save-as-left-out-many"), &[&dir_name(&dir), &all]),
+                        Some(all) => {
+                            strings::format(key!("toast-save-as-left-out-many"), &[&dir_name(&dir), &all])
+                        }
                         None => strings::format(
                             key!("toast-save-as-left-out"),
                             &[&dir_name(&dir), &tools::rejected_words("", Some(&d.words))],

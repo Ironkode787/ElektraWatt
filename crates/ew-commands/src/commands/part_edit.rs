@@ -167,8 +167,12 @@ fn read_part(raw: &Value) -> Result<Part, CmdError> {
             );
         }
     }
-    serde_json::from_value(Value::Object(map))
-        .map_err(|e| bad("/part", text!("refusal-part-edit-not-part", crate::error::serde_error_text(&e))))
+    serde_json::from_value(Value::Object(map)).map_err(|e| {
+        bad(
+            "/part",
+            text!("refusal-part-edit-not-part", crate::error::serde_error_text(&e)),
+        )
+    })
 }
 
 /// Replaces the string `from` by `to` at the dotted `path` of `v` (`parts[].part.copy`: `[]` walks every element of

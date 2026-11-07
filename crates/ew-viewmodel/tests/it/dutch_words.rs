@@ -1202,14 +1202,19 @@ fn a_block_title_that_reads_as_a_kind_code_stays_as_typed() {
     crate::common::copy_dir(std::path::Path::new(crate::common::GOLDEN_A), &dir);
     let blocks = dir.join("report-blocks.jsonl");
     let text = std::fs::read_to_string(&blocks).unwrap();
-    let edited = text
-        .replace("\"title\":\"Table of Contents {n}\",", "")
-        .replace("\"title\":\"Revision Overview\"", "\"title\":\"revision_overview\"");
+    let edited = text.replace("\"title\":\"Table of Contents {n}\",", "").replace(
+        "\"title\":\"Revision Overview\"",
+        "\"title\":\"revision_overview\"",
+    );
     assert!(edited != text);
     std::fs::write(&blocks, edited).unwrap();
     let mut shell = tmp.shell_in(Mode::Headless, false, "101");
     let row = |shell: &ShellModel, id: &str| {
-        let table = shell.nav(NavKind::Blocks).and_then(|n| n.table()).cloned().unwrap();
+        let table = shell
+            .nav(NavKind::Blocks)
+            .and_then(|n| n.table())
+            .cloned()
+            .unwrap();
         let kind = table.columns.iter().position(|c| c.key == "kind").unwrap();
         let node = table
             .nodes
@@ -1217,7 +1222,11 @@ fn a_block_title_that_reads_as_a_kind_code_stays_as_typed() {
             .find(|n| n.records.first().is_some_and(|r| r.to_string() == id))
             .cloned()
             .expect("the block");
-        (node.label.clone(), node.cells[0].clone(), node.cells[kind].clone())
+        (
+            node.label.clone(),
+            node.cells[0].clone(),
+            node.cells[kind].clone(),
+        )
     };
     let mut seen = Vec::new();
     for locale in ["en", "nl"] {

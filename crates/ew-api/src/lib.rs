@@ -338,8 +338,8 @@ pub use ew_commands::{
 pub use ew_commands::{CommandMeta, Cost, Exposure, HistoryBlock};
 /// A command's refusal by key (FT-1337): the window renders it in its language, the CLI prints its English.
 pub use ew_commands::{
-    TEXTS, Text, TextArg, asset_error_text, comma_joined, ident_error_text, path_error_text, schema_error_text,
-    serde_error_text,
+    TEXTS, Text, TextArg, asset_error_text, comma_joined, ident_error_text, path_error_text,
+    schema_error_text, serde_error_text,
 };
 /// The types of [`IdSource`]'s methods, so that a test can supply its own source of new IDs
 /// ([`SessionOptions::ids`]).
