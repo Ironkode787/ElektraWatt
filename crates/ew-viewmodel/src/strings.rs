@@ -890,7 +890,10 @@ mod tests {
         ),
         ("junction-orient", "R inside the junction popup"),
         ("table-pos-move", "Alt+Up and Alt+Down inside the table editor"),
-        ("table-commit-all-hint", "Ctrl+Enter inside the table's cell editor (nav_table.rs)"),
+        (
+            "table-commit-all-hint",
+            "Ctrl+Enter inside the table's cell editor (nav_table.rs)",
+        ),
         ("palette-form-hint", "Enter and Esc inside the palette's form"),
         ("tooltip-learn-more", "F1 on a hovered menu item (menu.rs)"),
     ];

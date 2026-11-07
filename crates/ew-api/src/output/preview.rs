@@ -12,8 +12,8 @@ use std::cmp::Ordering;
 
 use ew_commands::{ChangeKind, EntityChange, ModelDiff, Preview};
 use ew_derive::ew_ids::Uuid;
-use ew_derive::{PageOrder, PageRef, Q};
 use ew_derive::ew_mltext::natural_cmp;
+use ew_derive::{PageOrder, PageRef, Q};
 
 use super::properties::{ml_text, record_title};
 use crate::Session;

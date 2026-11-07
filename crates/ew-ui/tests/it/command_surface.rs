@@ -572,9 +572,24 @@ fn the_hud_moves_up_near_the_pointer_and_back_only_far_from_it() {
     let above = |d: f32| egui::pos2(low.center().x, low.top() - d);
     assert_eq!(hud_at(&mut h, above(150.0)), low, "far: at the bottom");
     let raised = hud_at(&mut h, above(40.0));
-    assert!(raised.center().y < pane.center().y, "within 48 px: raised {raised:?}");
-    assert_eq!(hud_at(&mut h, above(70.0)), raised, "between 48 and 96 px: still raised");
-    assert_eq!(hud_at(&mut h, above(110.0)), low, "past 96 px: back at the bottom");
-    assert_eq!(hud_at(&mut h, above(70.0)), low, "between 48 and 96 px from below: stays low");
+    assert!(
+        raised.center().y < pane.center().y,
+        "within 48 px: raised {raised:?}"
+    );
+    assert_eq!(
+        hud_at(&mut h, above(70.0)),
+        raised,
+        "between 48 and 96 px: still raised"
+    );
+    assert_eq!(
+        hud_at(&mut h, above(110.0)),
+        low,
+        "past 96 px: back at the bottom"
+    );
+    assert_eq!(
+        hud_at(&mut h, above(70.0)),
+        low,
+        "between 48 and 96 px from below: stays low"
+    );
     h.state_mut().shell_mut().shutdown();
 }

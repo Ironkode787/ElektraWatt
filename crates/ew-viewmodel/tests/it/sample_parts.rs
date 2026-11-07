@@ -250,7 +250,8 @@ fn a_black_box_from_a_part_takes_the_letter_of_its_category() {
     }
     done(&mut s, "file.save", json!({}));
     let (session, _) = Session::open_read_only(&tmp.0.join("new.ew"), "test").unwrap();
-    let tags: Vec<(&str, Option<String>)> = placed.iter().map(|(n, d)| (*n, session.device_tag(*d))).collect();
+    let tags: Vec<(&str, Option<String>)> =
+        placed.iter().map(|(n, d)| (*n, session.device_tag(*d))).collect();
     assert_eq!(
         tags,
         [

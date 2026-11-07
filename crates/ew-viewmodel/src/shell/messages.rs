@@ -468,7 +468,12 @@ impl ShellModel {
                 .messages
                 .checked
                 .filter(|((e, _), t, _)| Some(*e) == epoch && *t == table)
-                .map(|(_, _, before)| (before, findings.difference(&self.messages.checked_findings).count()));
+                .map(|(_, _, before)| {
+                    (
+                        before,
+                        findings.difference(&self.messages.checked_findings).count(),
+                    )
+                });
             self.messages.checked = self
                 .project
                 .as_ref()
@@ -1046,7 +1051,13 @@ mod tests {
         run(&mut shell, "messages.check", json!({}));
         let c = shell.status_counts().expect("the checked counts");
         // The last check counted one finding this one has not, in place of one it has: the counts are equal.
-        let one = shell.messages.checked_findings.iter().next().cloned().expect("a finding");
+        let one = shell
+            .messages
+            .checked_findings
+            .iter()
+            .next()
+            .cloned()
+            .expect("a finding");
         shell.messages.checked_findings.remove(&one);
         shell
             .messages

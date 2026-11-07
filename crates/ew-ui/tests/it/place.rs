@@ -571,10 +571,16 @@ fn the_symbol_chooser_of_a_part_says_why_takes_the_keys_and_holds_the_page() {
         .type_text("A9F78116");
     settle(&mut h);
     let note = "This part has no symbol of its own: choose the symbol to place it with.";
-    assert!(h.query_by_label(note).is_none(), "no line before the part is chosen");
+    assert!(
+        h.query_by_label(note).is_none(),
+        "no line before the part is chosen"
+    );
     h.get_by_label_contains("Miniature circuit breaker 1P").click();
     settle(&mut h);
-    assert!(h.query_by_label("Choose a symbol for A9F78116").is_some(), "the title stays");
+    assert!(
+        h.query_by_label("Choose a symbol for A9F78116").is_some(),
+        "the title stays"
+    );
     assert!(h.query_by_label(note).is_some(), "the line under the title");
     let filter = h
         .get_all_by_role(egui::Role::TextInput)

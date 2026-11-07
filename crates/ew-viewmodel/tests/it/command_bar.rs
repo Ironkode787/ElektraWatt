@@ -435,7 +435,11 @@ fn a_page_chosen_in_the_page_list_is_not_counted_on_the_canvas() {
         .find(|r| matches!(r.kind, RowKind::Page(i) if s.page_rows()[i].folio == "101"))
         .expect("the row of 101")
         .key;
-    done(&mut s, "navigator.select", json!({"kind": "pages", "keys": [key]}));
+    done(
+        &mut s,
+        "navigator.select",
+        json!({"kind": "pages", "keys": [key]}),
+    );
     assert_eq!(s.selection().items.len(), 1, "the page record is selected");
     assert_eq!(s.canvas_selected(), 0);
     assert_eq!(hud(&s).prompt, s.tool_hint());
@@ -531,7 +535,10 @@ fn cb5_arming_place_names_the_tool_the_target_and_its_keys() {
 /// Wire.
 #[test]
 fn the_draw_tab_names_renumber_devices_and_offers_edit_route_beside_wire() {
-    let ids: Vec<&str> = command_bar::placed_in(Group::Connect).iter().map(|m| m.id).collect();
+    let ids: Vec<&str> = command_bar::placed_in(Group::Connect)
+        .iter()
+        .map(|m| m.id)
+        .collect();
     assert_eq!(ids[..2], ["tool.wire", "tool.route_edit"]);
     let tmp = Tmp::new("id1497-10");
     let mut s = tmp.shell_in(Mode::Headless, true, "101");

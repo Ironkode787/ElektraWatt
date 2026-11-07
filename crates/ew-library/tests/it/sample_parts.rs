@@ -327,7 +327,11 @@ fn documents() -> Vec<LibDocument> {
 fn category_of(key: &str) -> Option<Value> {
     match key {
         "2904602" => Some(json!(["PowerSupplyAcDc", "PowerSupply", "AcDc"])),
-        "MICO 4.10" => Some(json!(["ProtectionOvercurrent", "ElectronicCircuitBreaker", "4Channel"])),
+        "MICO 4.10" => Some(json!([
+            "ProtectionOvercurrent",
+            "ElectronicCircuitBreaker",
+            "4Channel"
+        ])),
         _ => None,
     }
 }

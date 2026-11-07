@@ -278,9 +278,18 @@ fn golden_b(mode: Mode) {
         pages.len()
     );
     // ID-1497 (4): the page whose folio changes is named by both folios; the others by their folio.
-    assert!(pages.contains(&("106".to_owned(), Some("104".to_owned()))), "{pages:?}");
-    assert!(pages.iter().all(|(f, a)| (f == "106") == a.is_some()), "{pages:?}");
-    assert!(section.contains(&"  page \"106\" \"104\"".to_owned()), "{section:?}");
+    assert!(
+        pages.contains(&("106".to_owned(), Some("104".to_owned()))),
+        "{pages:?}"
+    );
+    assert!(
+        pages.iter().all(|(f, a)| (f == "106") == a.is_some()),
+        "{pages:?}"
+    );
+    assert!(
+        section.contains(&"  page \"106\" \"104\"".to_owned()),
+        "{section:?}"
+    );
     done(&mut shell, "preview.apply", json!({}));
     assert_eq!(history_cursor(&mut shell), cursor + 1, "one transaction");
     assert!(shell.page_labels().contains(&"104".to_owned()));

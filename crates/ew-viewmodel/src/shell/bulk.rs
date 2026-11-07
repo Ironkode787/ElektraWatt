@@ -585,7 +585,10 @@ impl ShellModel {
                 let message = if self.in_bulk_form(ACTION) {
                     self.missing_text("scheme")
                 } else {
-                    strings::format(key!("error-missing-param-choices"), &["scheme", &SCHEMES.join(", ")])
+                    strings::format(
+                        key!("error-missing-param-choices"),
+                        &["scheme", &SCHEMES.join(", ")],
+                    )
                 };
                 let out = Outcome::Failed { message };
                 return self.bulk_form_done(ACTION, out);

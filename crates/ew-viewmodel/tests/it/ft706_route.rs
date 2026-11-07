@@ -419,7 +419,11 @@ fn a_click_that_places_a_bend_says_so() {
     assert_eq!(ew_viewmodel::command_bar::hud(&p.s).prompt, bend);
     let rev = p.s.revision();
     click(&mut p.s, p.l.at, false);
-    assert_eq!(p.s.revision(), rev.map(|r| r + 1), "the wire ends on the connection point");
+    assert_eq!(
+        p.s.revision(),
+        rev.map(|r| r + 1),
+        "the wire ends on the connection point"
+    );
     click(&mut p.s, p.bottom[1].at, false);
     assert_eq!(
         p.s.tool_hint(),

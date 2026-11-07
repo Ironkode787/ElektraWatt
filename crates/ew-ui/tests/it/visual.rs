@@ -304,7 +304,15 @@ fn shift_and_ctrl_clicks_mark_table_rows_and_ctrl_a_marks_them_all() {
             })
             .1
     };
-    let marked = |d: &Driver| d.app().unwrap().shell().nav(NavKind::Strips).unwrap().marked().len();
+    let marked = |d: &Driver| {
+        d.app()
+            .unwrap()
+            .shell()
+            .nav(NavKind::Strips)
+            .unwrap()
+            .marked()
+            .len()
+    };
     let with = |at, mods| Input::Click {
         at,
         button: PointerButton::Primary,
@@ -320,7 +328,14 @@ fn shift_and_ctrl_clicks_mark_table_rows_and_ctrl_a_marks_them_all() {
     assert_eq!(marked(&d), 4, "and row 5");
     d.input(&key("ctrl+a"));
     assert_eq!(actions(&mut d), ["navigator.select"]);
-    let rows = d.app().unwrap().shell().nav(NavKind::Strips).unwrap().visible().len();
+    let rows = d
+        .app()
+        .unwrap()
+        .shell()
+        .nav(NavKind::Strips)
+        .unwrap()
+        .visible()
+        .len();
     assert_eq!(marked(&d), rows, "every row");
     d.shell_mut().shutdown();
 }
