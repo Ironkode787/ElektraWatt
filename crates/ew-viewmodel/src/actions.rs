@@ -5526,7 +5526,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_keymap_export(p),
         )),
     ),
-    // ID-1477 (7): the editor has a button on the Draw tab, which the palette names it by; Edit ▸ Symbol editor… stays.
+    // ID-1477 (7): the editor has a button on the Draw tab, whose Place group holds its menu entry and palette row.
     with_params(
         "key?:text, name?:text, discard?:bool",
         placed(

@@ -1208,11 +1208,11 @@ msgstr ""
 
 #: src/tutorials/symbol-editor.md:16
 msgid ""
-"Choose **Edit ▸ Symbol editor…**. Type **Power block** as its **Name**, and "
+"Choose **Draw ▸ Place ▸ Symbol editor…**. Type **Power block** as its **Name**, and "
 "in **Library** type the key `example.power`. The editor takes the place of "
 "the page, with its own command bar."
 msgstr ""
-"Kies **Bewerken ▸ Symbooleditor…**. Typ **Power block** als **Naam**, en typ "
+"Kies **Tekenen ▸ Plaatsen ▸ Symbooleditor…**. Typ **Power block** als **Naam**, en typ "
 "in **Bibliotheek** de sleutel `example.power`. De editor neemt de plaats van "
 "de pagina in, met een eigen opdrachtbalk."
 
@@ -1333,7 +1333,7 @@ msgid ""
 "**Open or import**: its next save updates the same symbol."
 msgstr ""
 "**Editor sluiten** bewaart het concept en de geschiedenis om ongedaan te "
-"maken: **Bewerken ▸ Symbooleditor…** keert ernaar terug. Open in een latere "
+"maken: **Tekenen ▸ Plaatsen ▸ Symbooleditor…** keert ernaar terug. Open in een latere "
 "sessie `power.symbol.json` onder **Openen of importeren**: de volgende keer "
 "opslaan werkt hetzelfde symbool bij."
 

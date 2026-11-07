@@ -13,7 +13,7 @@ with a test copy, ready to wire.
 ## Steps
 
 1. Choose **File ▸ New project…** (`Ctrl+N`) and pick an empty folder named `symbol-scratch.ew`.
-2. Choose **Edit ▸ Symbol editor…**. Type **Power block** as its **Name**, and in **Library** type the key
+2. Choose **Draw ▸ Place ▸ Symbol editor…**. Type **Power block** as its **Name**, and in **Library** type the key
    `example.power`.
    The editor takes the place of the page, with its own command bar.
 3. In **Drawing**, choose **Rectangle** and draw the body from `(4, 0)` to `(24, 28)` mm: click both corners, or type
@@ -44,7 +44,7 @@ with a test copy, ready to wire.
 - The symbol editor keeps its own draft and undo history; saving it to a library does not change placed copies.
   Increase the symbol's version before you save changed content under the same key.
 - Connection points must lie on the 4 mm connection grid; the editor refuses to save a point off it, and says which.
-- **Close editor** keeps the draft and its undo history: **Edit ▸ Symbol editor…** returns to it. In a later session,
+- **Close editor** keeps the draft and its undo history: **Draw ▸ Place ▸ Symbol editor…** returns to it. In a later session,
   open `power.symbol.json` under **Open or import**: its next save updates the same symbol.
 
 The same workflow is available to AI tools and repeatable scripts in
