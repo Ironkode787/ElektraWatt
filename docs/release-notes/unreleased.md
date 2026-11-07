@@ -214,3 +214,14 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   `bracket_outside`; FT-1495)
 - behaviour-change: command part.assign (a placed strip whose terminal the change widens pushes the items after it,
   as a growing strip does, in every mode; FT-1497)
+- text-change: cli ew apply, fmt, recover, import parts and the human-only subcommands (a project read-only for a
+  damaged library copy that no device names is refused naming the copy and the record that names it: "the library
+  copy of a form named by page 1 is damaged; update the copy from its library first", instead of "it has integrity
+  findings"; FT-1500)
+- behaviour-change: cli ew check, ew check --integrity and the writers' open (an image the project keeps but no
+  drawing shows, over the pixel limit, is named in the window's words as a `notice:` line on stderr, outside the
+  counts; no check rule reports it; FT-1503)
+- api-add: cli ew check --format json notices (optional: the notices outside the findings and their counts, in the
+  window's words, absent when there is none; FT-1503)
+- behaviour-change: command item.place (an image placed by the hash of an asset the project holds is refused when the
+  asset is over the pixel limit, in the words its data is refused in; FT-1523)

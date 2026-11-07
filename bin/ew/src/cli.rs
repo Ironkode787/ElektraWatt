@@ -2410,6 +2410,13 @@ fn open_editing_to(
                         dir.display()
                     )
                 }
+                // FT-1500 (ID-1458): a copy no device names, by its own words and the record that names it.
+                (ew_api::ReadOnlyReason::Integrity, Some(damaged)) => format!(
+                    "error: {}: the project opens read-only: {} is damaged; update the copy from its library first; \
+                     nothing was written",
+                    dir.display(),
+                    damaged.words
+                ),
                 _ => read_only_refusal(dir, reason),
             };
             let _ = writeln!(errors, "{refusal}");
@@ -2417,6 +2424,10 @@ fn open_editing_to(
             return Err(2);
         }
         ew_api::Access::Edit => {}
+    }
+    // FT-1503 (ID-1458): an image kept but not drawn is named as the window's open banner names it.
+    for notice in undrawn_notices(&session) {
+        let _ = writeln!(errors, "notice: {notice}");
     }
     Ok((session, opened))
 }
@@ -3471,7 +3482,7 @@ fn run_check(a: &CheckArgs) -> i32 {
             session.assume_merged();
         }
         let result = report::localise(&session.check_integrity(&opened), &a.lang);
-        return print_check(a, &result);
+        return print_check(a, &result, &undrawn_notices(&session));
     }
     // `--scheme`, else the scheme the project names for the mode (FT-366), else the shipped default. A project naming a
     // scheme this build does not ship (a newer writer, a hand edit) gets the default and a notice; the exit status is
@@ -3511,17 +3522,40 @@ fn run_check(a: &CheckArgs) -> i32 {
             .with_integrity(ew_api::integrity_items(&opened)),
         &a.lang,
     );
-    print_check(a, &result)
+    print_check(a, &result, &undrawn_notices(&session))
 }
 
-/// Prints a check report as `ew check` does, to `--out` or stdout with the totals on stderr; its exit code.
-fn print_check(a: &CheckArgs, result: &ew_api::checks::CheckReport) -> i32 {
+/// The notices of the images the project keeps but no drawing shows, in the window's words (FT-1503, ID-1458).
+fn undrawn_notices(session: &ew_api::Session) -> Vec<String> {
+    session
+        .undrawn_image_notices()
+        .iter()
+        .map(ToString::to_string)
+        .collect()
+}
+
+/// Prints a check report as `ew check` does, to `--out` or stdout with the totals on stderr; its exit code. The
+/// `notices` stand outside the findings and their counts (FT-1503): the JSON's `notices`, else a `notice:` line each on
+/// stderr.
+fn print_check(a: &CheckArgs, result: &ew_api::checks::CheckReport, notices: &[String]) -> i32 {
     let result = result.clone();
     let text = match a.format {
         CheckFormat::Text => report::to_text(&result),
         CheckFormat::Markdown => report::to_markdown(&result),
-        CheckFormat::Json => format!("{:#}\n", report::to_json(&result)),
+        CheckFormat::Json => {
+            let mut json = report::to_result(&result);
+            json.notices = notices.to_vec();
+            format!(
+                "{:#}\n",
+                serde_json::to_value(json).unwrap_or(serde_json::Value::Null)
+            )
+        }
     };
+    if !matches!(a.format, CheckFormat::Json) {
+        for notice in notices {
+            eprintln!("notice: {notice}");
+        }
+    }
     match &a.out {
         Some(path) => match write_report(path, &text) {
             Ok(()) => println!("report written to {}", path.display()),

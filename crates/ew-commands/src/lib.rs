@@ -107,6 +107,7 @@ pub use registry::{AnyCommand, CommandRegistry, RegisteredCommand};
 pub use text::{TEXTS, Text, TextArg, arity as text_arity, english as text_english};
 pub use transaction::{Submit, Transaction, TxContext, Viewport};
 pub use tx::{IndexRead, ReadSet, TxBuilder};
+pub use words::damaged_copy as damaged_copy_words;
 
 /// The ID source trait of `ew-ids`, re-exported for crates that inject one into an [`Engine`].
 pub use ew_ids::IdSource;

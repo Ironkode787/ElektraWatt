@@ -129,3 +129,65 @@ fn an_image_over_the_pixel_limit_is_kept_at_open_and_refused_at_insertion() {
         assert!(kept, "the open keeps the image ({locale})");
     }
 }
+
+/// FT-1523 (ID-1458): an image over the pixel limit that the project already holds is refused when it is placed again
+/// by its hash (`item.place {asset}`, `image.pick`), as its data and its file are; a project made from a template that
+/// holds it names it as an open does.
+#[test]
+fn ft1523_a_held_image_over_the_limit_is_refused_by_its_hash_and_named_after_a_template_copy() {
+    let tmp = Tmp::new("ft1523-held");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let (small, big) = (png(2, 1), png(65536, 32768));
+    assert_eq!(place(&mut s, &small), Outcome::Done);
+    done(&mut s, "file.save", json!({}));
+    s.shutdown();
+    swap_asset(&tmp.golden_copy(), &small, &big);
+    let dir = tmp.golden_copy();
+    let mut s = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
+    done(&mut s, "page.goto", json!({"folio": "101"}));
+    let hash = format!("sha256:{}", hex(&big));
+    let page = s.canvas().unwrap().page().tables.page.to_string();
+    assert_eq!(
+        s.dispatch(
+            "command.run",
+            &json!({"cmd": "item.place", "params": {"page": page,
+                "kind": {"image": {"asset": hash, "rect": [[0, 0], [2_000_000, 1_000_000]]}}}}),
+        ),
+        Outcome::Failed {
+            message:
+                "Place item: Asset: the png image is 65536 × 32768 pixels, more than a drawing can show (at \
+                      most 16777216 pixels and 65535 on a side); scale it down and add it again"
+                    .to_owned()
+        }
+    );
+    done(&mut s, "tool.image", json!({}));
+    assert_eq!(
+        s.dispatch("image.pick", &json!({ "asset": hash })),
+        Outcome::Failed {
+            message: format!(
+                "The image {hash} is not accepted: the png image is 65536 × 32768 pixels, more than a drawing can \
+                 show (at most 16777216 pixels and 65535 on a side); scale it down and add it again."
+            )
+        }
+    );
+    assert_eq!(s.tool().state(), "picking", "the tool is unchanged");
+    done(&mut s, "file.close", json!({}));
+    let made = tmp.0.join("made");
+    done(
+        &mut s,
+        "file.new",
+        json!({"template": dir.to_string_lossy(), "dir": made.to_string_lossy()}),
+    );
+    assert_eq!(
+        s.banner(),
+        Some(
+            "The image on folio 101 is 65536 × 32768 pixels, more than a drawing can show, so it is kept but not \
+             drawn; scale it down and add it again."
+        )
+    );
+    s.shutdown();
+}

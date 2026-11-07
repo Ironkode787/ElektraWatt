@@ -295,6 +295,38 @@ pub(crate) fn document_item(tx: &TxBuilder<'_>, doc: &ew_schema::LibDocument) ->
     )
 }
 
+/// A damaged library copy in words (FT-1500, ID-1458), for the banner and the refusals of a project the open made
+/// read-only: by its kind word and its own name or key as `doc` names it (the installed library's document of the
+/// same copy, the project's own file being unreadable), else its kind with its article, and by the record of `model`
+/// that names it, when one does ("the library copy of form A3 named by page 103").
+pub fn damaged_copy(
+    model: &ew_model::Model,
+    kind: Kind,
+    doc: Option<&ew_schema::LibDocument>,
+    referrer: Option<ew_model::AnyKey>,
+) -> Text {
+    let mut ids = ew_ids::SystemSource;
+    let tx = TxBuilder::new(model, &mut ids);
+    let copy = match doc.and_then(document_parts) {
+        Some((kind, Some(TextArg::Plain(name)), _)) => match kind {
+            Kind::Part => text!("refusal-words-part-named", name).into(),
+            Kind::Fndef => text!("refusal-words-fndef-named", name).into(),
+            Kind::Form => text!("refusal-words-form-named", name).into(),
+            Kind::Symbol => text!("refusal-words-symbol-named", name).into(),
+            Kind::Macro => text!("refusal-words-macro-named", name).into(),
+            Kind::Manufacturer => text!("refusal-words-manufacturer-keyed", name).into(),
+            Kind::PlcProfile => text!("refusal-words-plc-profile-named", name).into(),
+            _ => TextArg::Plain(name),
+        },
+        Some((_, Some(words), _)) => words,
+        _ => item(&tx, kind, None),
+    };
+    match referrer {
+        Some(key) => text!("refusal-words-damaged-copy", copy, record(&tx, key)),
+        None => text!("refusal-words-library-copy", copy),
+    }
+}
+
 /// A carrier's label inside a sentence ("rail 1", "duct 3"; [`CarrierLabel::in_sentence`], keyed).
 pub(crate) fn carrier_in_sentence(label: CarrierLabel) -> Text {
     match label.kind {

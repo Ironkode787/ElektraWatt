@@ -297,7 +297,8 @@ pub use ew_schema::PartyRole;
 pub use ew_schema::new_project_text_styles;
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
 pub use ew_schema::{
-    AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, SvgHazard, base64_encode, sniff as sniff_asset,
+    AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, SvgHazard, base64_encode, pixel_limit,
+    sniff as sniff_asset,
 };
 /// The conflict records a merge leaves (doc 05 §11.2; WP-S1.17 D17): `ew merge resolve` selects them by kind and member.
 pub use ew_schema::{Conflict, ConflictBody, FILE_CONFLICT_KIND};
@@ -508,6 +509,38 @@ pub fn integrity_items(report: &OpenReport) -> Vec<checks::IntegrityItem> {
         .collect()
 }
 
+/// The library copies the open dropped as damaged (FT-1500): a loader finding names the copy's file and the model
+/// lacks the copy. In key order.
+fn dropped_copies(q: &Q, report: &OpenReport) -> Vec<AnyKey> {
+    use ew_schema::{Kind, LibCopy, MacroDef};
+    use ew_store::ew_format::{PathClass, classify, lib_dir};
+    let held = |&(kind, id): &AnyKey| match kind {
+        Kind::Part => q.parts().contains(id.cast()),
+        Kind::Symbol => q.symbols().contains(id.cast()),
+        Kind::Fndef => q.fndefs().contains(id.cast()),
+        Kind::Form => q.forms().contains(id.cast()),
+        Kind::Macro => q.table::<LibCopy<MacroDef>>().contains(id.cast()),
+        Kind::Manufacturer => q.manufacturers().contains(id.cast()),
+        Kind::PlcProfile => q.plc_profiles().contains(id.cast()),
+        _ => true,
+    };
+    let mut dropped: Vec<AnyKey> = report
+        .findings
+        .iter()
+        .filter_map(|f| match classify(f.file.as_ref()?.as_str()) {
+            PathClass::LibDocument { dir, id } => Kind::ALL
+                .into_iter()
+                .find(|k| k.is_library() && lib_dir(*k) == Some(dir))
+                .map(|k| (k, id)),
+            _ => None,
+        })
+        .filter(|key| !held(key))
+        .collect();
+    dropped.sort();
+    dropped.dedup();
+    dropped
+}
+
 /// A library copy the open dropped as damaged and the device that names it ([`Session::damaged_copy`], FT-1383).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DamagedCopy {
@@ -519,6 +552,13 @@ pub struct DamagedCopy {
     /// The part the copy holds, as an installed library gives it: its part number and the library's name; `None` when
     /// no installed library holds it, or the copy is no part's.
     pub part: Option<(String, String)>,
+    /// The copy in words, keyed for the reader's language (FT-1500, ID-1458): its kind word and its own name or key as
+    /// an installed library gives them, else its kind, and the record that names it ("the library copy of form A3
+    /// named by page 103").
+    pub words: Text,
+    /// Whether no record names the copy and the model passes its integrity check (FT-1500): only another library
+    /// copy's link names it, or nothing does, so a Save As makes a project without it rather than being refused.
+    pub left_out: bool,
 }
 
 /// What [`Session::open`] does with a leftover journal of a crashed session (doc 05 §8.3).
@@ -551,6 +591,9 @@ struct Persistence {
     backup: Option<std::path::PathBuf>,
     /// The external-change state: the held change, the cloud rechecks (WP-S1.17 D20 to D22).
     watch: external_change::Watch,
+    /// The library copies the open dropped as damaged (a loader finding names the file, the model lacks the copy), in
+    /// key order (FT-1500); none for a project Save As wrote.
+    dropped: Vec<AnyKey>,
 }
 
 /// The run of `ew check --integrity` ([`Session::check_integrity`]): every rule it is given, nothing switched off, the
@@ -801,6 +844,35 @@ impl Session {
             }
         }
         found.into_values().collect()
+    }
+
+    /// [`Session::undrawn_images`] one sentence each, keyed for the reader's language (FT-1503, decision log ID-1458):
+    /// the window's open banner and `ew`'s notices say the same words. Which image (the company logo, or the folios
+    /// that show it), its size in pixels, that it is kept but not drawn, and the remedy.
+    pub fn undrawn_image_notices(&self) -> Vec<Text> {
+        let mut notices = Vec::new();
+        for image in self.undrawn_images() {
+            let (w, h) = (image.width.to_string(), image.height.to_string());
+            if image.logo {
+                notices.push(api_text!("banner-logo-not-drawn", &w, &h));
+            }
+            match image.folios.len() {
+                0 => {}
+                1 => notices.push(api_text!(
+                    "banner-image-not-drawn",
+                    image.folios.join(", "),
+                    &w,
+                    &h
+                )),
+                _ => notices.push(api_text!(
+                    "banner-image-not-drawn-folios",
+                    image.folios.join(", "),
+                    &w,
+                    &h
+                )),
+            }
+        }
+        notices
     }
 
     /// The libraries of [`SessionOptions::libraries`] (WP-S1.19 §5.2), opened (and reindexed where they changed) at
@@ -1158,6 +1230,7 @@ impl Session {
             }
         }
         let mut session = Session::new(model, options);
+        let dropped = dropped_copies(&session.query(), &report);
         session.persistence = Some(Persistence {
             store,
             unsaved,
@@ -1166,6 +1239,7 @@ impl Session {
             consented: false,
             backup: None,
             watch: external_change::Watch::default(),
+            dropped,
         });
         // FT-814: this directory's stale release-run records (archive gone or released) go now.
         session.remove_stale_run_records();
@@ -1381,6 +1455,7 @@ impl Session {
             consented: false,
             backup: None,
             watch: external_change::Watch::default(),
+            dropped: Vec::new(),
         });
         if let Some(p) = previous {
             p.store.close();
@@ -1391,19 +1466,30 @@ impl Session {
 
     /// FT-1383 (ID-1418): the first record, in the integrity check's order, that names a library copy the open
     /// dropped as damaged, as the device's tag, the copy's project-relative file and, from the installed libraries, the
-    /// copy's part (FT-1396); `None` when the model passes the
-    /// check. Such a project is read-only, and [`Session::create`] refuses it: a copy without the damaged file would not
-    /// open.
+    /// copy's part (FT-1396), with the copy and that record in words (FT-1500); when the model passes the check, the
+    /// first copy the open dropped that no record names ([`DamagedCopy::left_out`]); `None` when there is neither. A
+    /// project with a named one is read-only, and [`Session::create`] refuses it: a copy without the damaged file would
+    /// not open.
     pub fn damaged_copy(&self) -> Option<DamagedCopy> {
-        let Err(ModelError::Invariant { id, keys, .. }) = self.engine.model().integrity_check() else {
-            return None;
-        };
-        let (&[referrer, (kind, copy)], true) = (keys.as_slice(), id == ew_model::REFS_RESOLVE) else {
-            return None;
+        let model = self.engine.model();
+        let (referrer, kind, copy) = match model.integrity_check() {
+            Err(ModelError::Invariant { id, keys, .. }) => {
+                let (&[referrer, (kind, copy)], true) = (keys.as_slice(), id == ew_model::REFS_RESOLVE)
+                else {
+                    return None;
+                };
+                (Some(referrer), kind, copy)
+            }
+            Err(_) => return None,
+            // FT-1500 (ID-1458): a dropped copy that only another copy's library link names, or nothing.
+            Ok(()) => {
+                let &(kind, copy) = self.persistence.as_ref()?.dropped.first()?;
+                (None, kind, copy)
+            }
         };
         let file = ew_store::ew_format::FilePath::lib(ew_store::ew_format::lib_dir(kind)?, copy).to_string();
         let q = self.query();
-        let device = match referrer.0 {
+        let device = referrer.and_then(|referrer| match referrer.0 {
             ew_schema::Kind::Device => Some(referrer.1.cast()),
             ew_schema::Kind::Function => q.functions().get(referrer.1.cast()).and_then(|f| f.device),
             ew_schema::Kind::Representation => q
@@ -1411,7 +1497,7 @@ impl Session {
                 .get(referrer.1.cast())
                 .and_then(|r| r.functions.iter().find_map(|f| q.functions().get(*f)?.device)),
             _ => None,
-        };
+        });
         let device = device.map(|d| {
             q.get::<DeviceTag>(d)
                 .as_ref()
@@ -1419,28 +1505,50 @@ impl Session {
                 .map(|t| t.short())
                 .unwrap_or_default()
         });
-        let part = (kind == ew_schema::Kind::Part)
-            .then(|| self.installed_part(copy))
-            .flatten();
-        Some(DamagedCopy { device, file, part })
+        let installed = self.installed_document(kind, copy);
+        let part = match &installed {
+            Some((LibDocument::Part(c), library)) => Some((c.item.part_number.to_string(), library.clone())),
+            _ => None,
+        };
+        let words =
+            ew_commands::damaged_copy_words(model, kind, installed.as_ref().map(|(d, _)| d), referrer);
+        Some(DamagedCopy {
+            device,
+            file,
+            part,
+            words,
+            left_out: referrer.is_none(),
+        })
     }
 
-    /// The part number and library name of the installed part whose copy ID is `copy` (FT-1396, ID-1423): the words
-    /// of a damaged copy, whose own file cannot be read.
-    fn installed_part(&self, copy: ew_derive::ew_ids::Id<()>) -> Option<(String, String)> {
+    /// The document of `kind` and the library's name of the installed item whose copy ID is `copy` (FT-1396, ID-1423;
+    /// FT-1500): the words of a damaged copy, whose own file cannot be read.
+    fn installed_document(
+        &self,
+        kind: ew_schema::Kind,
+        copy: ew_derive::ew_ids::Id<()>,
+    ) -> Option<(LibDocument, String)> {
+        let item_id = |d: &LibDocument| match d {
+            LibDocument::Part(c) => Some(c.item_id),
+            LibDocument::Symbol(c) => Some(c.item_id),
+            LibDocument::Fndef(c) => Some(c.item_id),
+            LibDocument::Form(c) => Some(c.item_id),
+            LibDocument::Macro(c) => Some(c.item_id),
+            LibDocument::Manufacturer(c) => Some(c.item_id),
+            LibDocument::PlcProfile(c) => Some(c.item_id),
+            LibDocument::Unknown(_) => None,
+        };
         let libraries = self.libraries();
         libraries.libraries().into_iter().find_map(|info| {
             libraries
-                .documents(info.id, ew_schema::Kind::Part)
+                .documents(info.id, kind)
                 .into_iter()
-                .find_map(|d| match d {
-                    LibDocument::Part(c)
-                        if ew_derive::ew_ids::v5::lib_copy_id::<()>(info.id, c.item_id.as_uuid()) == copy =>
-                    {
-                        Some((c.item.part_number.to_string(), info.name.clone()))
-                    }
-                    _ => None,
+                .find(|d| {
+                    item_id(d).is_some_and(|i| {
+                        ew_derive::ew_ids::v5::lib_copy_id::<()>(info.id, i.as_uuid()) == copy
+                    })
                 })
+                .map(|d| (d, info.name.clone()))
         })
     }
 

@@ -648,15 +648,63 @@ fn em6_a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connec
     let CmdError::Rejected { reason, .. } = &e else {
         panic!("{e:?}")
     };
-    // FT-1396: the attached records in words, a wire by its number or page, never by its ID.
-    let uuid = |w: &str| w.len() == 36 && w.matches('-').count() == 4;
-    assert!(
-        reason.starts_with("the update leaves connected CPs without a CP; map them in `cp_maps`: ")
-            && reason.contains("wire")
-            && !reason
-                .split(|c: char| !(c.is_ascii_hexdigit() || c == '-'))
-                .any(uuid),
-        "{reason}"
+    // FT-1396: the attached records in words, a wire by its number or page, never by its ID; whole (FT-1525).
+    let wires = [
+        "wire 103.1",
+        "a wire on page 106",
+        "wire 102.11",
+        "wire 102.13",
+        "a wire on page 103",
+        "wire 102.12",
+        "wire 102.11",
+        "wire 103.2",
+        "wire 101.11",
+        "wire 102.10",
+        "a wire on page 106",
+        "a wire on page 106",
+        "a wire on page 106",
+        "wire 102.5",
+        "a wire on page 103",
+        "wire 102.10",
+        "wire 102.6",
+        "a wire on page 106",
+        "wire 102.5",
+        "a wire on page 106",
+        "a wire on page 103",
+        "wire 101.12",
+        "a wire on page 103",
+        "a wire on page 103",
+        "a wire on page 106",
+        "wire 101.12",
+        "wire 102.13",
+        "a wire on page 103",
+        "a wire on page 106",
+        "wire 102.6",
+        "a wire on page 106",
+        "wire 102.12",
+        "wire 102.7",
+        "wire 101.18",
+        "wire 101.18",
+        "a wire on page 103",
+        "wire 102.7",
+        "a wire on page 103",
+        "wire 103.2",
+        "a wire on page 103",
+        "a wire on page 106",
+        "wire 103.1",
+        "wire 101.11",
+        "a wire on page 103",
+    ];
+    let attached: Vec<String> = wires
+        .iter()
+        .map(|w| format!("a function without a device pin fn_cp 0: {w}"))
+        .collect();
+    assert_eq!(
+        reason,
+        &format!(
+            "the update leaves connected CPs without a CP; map them in `cp_maps`: {}",
+            attached.join("; ")
+        )
     );
 }
 
@@ -1046,6 +1094,12 @@ fn a_damaged_copy_is_named_by_its_installed_part() {
     )
     .unwrap();
     let damaged = s.damaged_copy().expect("a damaged copy");
+    // FT-1500: the copy and the record that names it in words, whole; a record names it, so a Save As is refused.
+    assert_eq!(
+        damaged.words.to_string(),
+        "the library copy of part 2904602 named by -102G1"
+    );
+    assert!(!damaged.left_out);
     assert_eq!(
         (damaged.device, damaged.part),
         (

@@ -194,7 +194,7 @@ impl ShellModel {
             if p.session.external_unreadable() {
                 return Some(strings::text(key!("banner-external-unreadable")).to_owned());
             }
-            if let Some(text) = self.damaged_state(p.epoch).and_then(super::damaged_banner) {
+            if let Some(text) = self.damaged_state(p.epoch).map(super::damaged_banner) {
                 return Some(text);
             }
             if self.collab.cloud_dismissed {

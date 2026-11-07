@@ -269,6 +269,13 @@
       "$ref": "#/$defs/ResultMode",
       "description": "The check mode."
     },
+    "notices": {
+      "description": "Notices outside the findings and their counts, in the window's words: an image the project keeps but no drawing\nshows (FT-1503, decision log ID-1458). Absent when there is none.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
     "rules": {
       "description": "The rules the scheme ran, in report order.",
       "items": {

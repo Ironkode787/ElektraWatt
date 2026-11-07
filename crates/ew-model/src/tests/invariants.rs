@@ -102,6 +102,34 @@ fn integrity_check_on_load_rejected() {
     rejected_by(r, crate::REFS_RESOLVE);
 }
 
+/// FT-1540: the all-violations form reports a second dangling reference that the integrity check's first
+/// violation hides, the first of them being the integrity check's error.
+#[test]
+fn integrity_violations_report_every_dangling_reference() {
+    let (p, mut records, lib) = mini_golden_parts();
+    let (gone_a, gone_b) = (nid::<Function>(0x10_001), nid::<Function>(0x10_003));
+    let keys: [AnyKey; 2] = [
+        (ew_schema::Kind::Function, gone_a.cast()),
+        (ew_schema::Kind::Function, gone_b.cast()),
+    ];
+    records.push(Record::Representation(rep(nid(0x10_000), PAGE_101, vec![gone_a])));
+    records.push(Record::Representation(rep(nid(0x10_002), PAGE_101, vec![gone_b])));
+    let missing = keys.into();
+    let m =
+        Model::from_records_missing(p, records, lib, &missing).expect("the missing targets are tolerated");
+    let all = m.integrity_violations();
+    let named: Vec<AnyKey> = all
+        .iter()
+        .map(|e| match e {
+            ModelError::Invariant { id, keys, .. } if *id == crate::REFS_RESOLVE => keys[1],
+            other => panic!("expected EW-INV-001, got {other:?}"),
+        })
+        .collect();
+    assert_eq!(named, keys);
+    assert_eq!(m.integrity_check(), Err(all[0].clone()));
+    assert!(mini_golden().integrity_violations().is_empty());
+}
+
 /// A `LibRef` referrer that the removal of its copy leaves behind is no violation of EW-INV-001: the history
 /// path (`apply`, which undo and redo use) accepts the removal, and the result passes the integrity check,
 /// because the symbol's `LibRef` then names nothing (NFR-REL-11). That an edit may not remove it is EW-INV-021.

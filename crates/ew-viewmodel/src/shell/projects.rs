@@ -222,6 +222,13 @@ impl ShellModel {
         self.settings.push_recent(&dir.to_string_lossy());
         self.save_settings();
         self.banner = banner;
+        // FT-1523 (ID-1458): a template's image over the pixel limit is named as an open names it.
+        for extra in self.undrawn_image_notes() {
+            self.banner = Some(match self.banner.take() {
+                Some(b) => format!("{b} {extra}"),
+                None => extra,
+            });
+        }
     }
 
     /// Writes `session` into `dir` and makes it the open project; the message of a failure carries the reason, never

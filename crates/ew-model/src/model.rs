@@ -217,6 +217,12 @@ impl Model {
         invariants::check(self, &Scope::full(self))
     }
 
+    /// Every violation [`Model::integrity_check`] finds, in its order, the first being its error (FT-1540): each
+    /// rule reports every record at fault, EW-INV-024 the first fault of each connection. Empty when it passes.
+    pub fn integrity_violations(&self) -> Vec<ModelError> {
+        invariants::check_all(self, &Scope::full(self))
+    }
+
     /// The model's revision.
     pub fn rev(&self) -> Rev {
         self.rev

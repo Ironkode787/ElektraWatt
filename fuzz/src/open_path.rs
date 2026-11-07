@@ -496,11 +496,14 @@ pub fn check(input: &[u8]) -> Outcome {
                 _ => None,
             })
             .collect();
-        let dangling = matches!(
-            &e,
-            ModelError::Invariant { id: "EW-INV-001", keys, .. }
-                if keys.iter().any(|(kind, id)| kind.is_library() && named.contains(id))
-        );
+        // Every violation, not only the first (FT-1540): a second, unrelated one behind the dangling one fails.
+        let dangling = model.integrity_violations().iter().all(|v| {
+            matches!(
+                v,
+                ModelError::Invariant { id: "EW-INV-001", keys, .. }
+                    if keys.iter().any(|(kind, id)| kind.is_library() && named.contains(id))
+            )
+        });
         assert!(
             dangling && !shape_only && report.access != Access::Edit,
             "the opened model fails its integrity check: {e:?} (access {:?}, findings {:?})",

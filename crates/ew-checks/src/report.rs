@@ -155,6 +155,10 @@ pub struct CheckResult {
     pub rules: Vec<ResultRule>,
     /// The findings in report order.
     pub findings: Vec<ResultFinding>,
+    /// Notices outside the findings and their counts, in the window's words: an image the project keeps but no drawing
+    /// shows (FT-1503, decision log ID-1458). Absent when there is none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub notices: Vec<String>,
 }
 
 /// The check mode of a [`CheckResult`].
@@ -335,6 +339,7 @@ pub fn to_result(report: &CheckReport) -> CheckResult {
             })
             .collect(),
         findings: report.findings.iter().map(finding_result).collect(),
+        notices: Vec::new(),
     }
 }
 
