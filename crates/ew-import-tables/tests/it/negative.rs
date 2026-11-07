@@ -734,6 +734,9 @@ fn a_device_parent_cycle_is_dropped_with_its_children() {
     expect_error(&b, 2, "devices.csv", "-1F1", "parent chain is a cycle");
     expect_error(&b, 2, "devices.csv", "-1F2", "parent chain is a cycle");
     expect_error(&b, 3, "devices.csv", "-1F3", "was dropped");
+    // FT-1508: the case in words, no invariant code.
+    let cycle: Vec<_> = errors(&b, 2).iter().map(|e| e.message.as_str()).collect();
+    assert_eq!(cycle, ["row dropped: parent chain is a cycle (devices)"; 2]);
     assert_eq!(devices(&b), 1);
 }
 

@@ -26,6 +26,7 @@
 use ew_api::{AnyCommand, DynCommand};
 use serde_json::{Map, Value, json};
 
+use super::choices::ClosedChoices;
 use super::{Dialog, Mode, Outcome, ShellModel, failed};
 use crate::key;
 use crate::strings;
@@ -117,7 +118,7 @@ fn node_path(nodes: &[(String, String, Option<String>)], id: &str) -> Vec<String
 struct Field {
     name: &'static str,
     label_key: Key<'static>,
-    choices: &'static [&'static str],
+    choices: &'static ClosedChoices,
     default: &'static str,
 }
 
@@ -132,7 +133,7 @@ const fn field(name: &'static str, label_key: Key<'static>) -> Field {
     Field {
         name,
         label_key,
-        choices: &[],
+        choices: &super::choices::NONE,
         default: "",
     }
 }
@@ -145,7 +146,7 @@ static PAGE_NEW: Spec = Spec {
         Field {
             name: "type",
             label_key: key!("form-page-type"),
-            choices: PAGE_TYPES,
+            choices: &super::choices::PAGE_TYPES,
             default: "multi_line",
         },
         field("title", key!("form-title")),
@@ -160,7 +161,7 @@ static STRUCTURE_NEW: Spec = Spec {
         Field {
             name: "kind",
             label_key: key!("form-kind"),
-            choices: STRUCTURE_KINDS,
+            choices: &super::choices::STRUCTURE_KINDS,
             default: "location",
         },
         field("designation", key!("form-designation")),
@@ -234,7 +235,7 @@ pub struct FormField {
     /// The key of the field's label.
     pub label_key: Key<'static>,
     /// The values a choice field offers, in order; empty for a free-text field.
-    pub choices: &'static [&'static str],
+    pub choices: &'static ClosedChoices,
     /// WP-S4.02 part 4 (ruling 7): a choice list built at run time (the project's locations, the enclosure parts),
     /// each `(value, words)`: the action receives the value, the window shows the words. Empty for every other field.
     pub options: Vec<(String, String)>,
@@ -245,7 +246,7 @@ pub struct FormField {
 impl FormField {
     /// Whether the field is a yes-or-no choice (`false`, `true`), which the window draws as a check box (FT-558).
     pub fn is_toggle(&self) -> bool {
-        self.choices == ["false", "true"]
+        self.choices.values() == ["false", "true"]
     }
 
     /// Whether the field is free text: no choice and no run-time option list. A form's first focus is its first text

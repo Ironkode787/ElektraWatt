@@ -3,7 +3,8 @@
 
 //! WP-S2.07 part 4a headless (PS9): the part dialog's and the part editor's flows of PS1, PS4, PS5 and PS7 as
 //! `ew.uiscript/1` scripts through the built binary, each on its own copy of Golden A with an empty `EW_DATA_DIR`
-//! (the compiled-in starter catalogue only) and its own `EW_CONFIG_DIR`. Per gate one run; the deep nightly runs each
+//! (the shipped tier only: the compiled-in starter parts and the libraries of `EW_CONTENT_DIR`, the sample parts
+//! library among them) and its own `EW_CONFIG_DIR`. Per gate one run; the deep nightly runs each
 //! twice and compares the transcripts byte for byte. The `--record` log of each editing script, replayed onto a fresh
 //! copy by `Session::run_script` without any library (what `ew apply` runs), gives the saved project's records: the
 //! chosen part travels inside the command. The model half of each flow runs in `ew-viewmodel`'s

@@ -437,7 +437,7 @@ impl PlaceError {
     /// The finding text.
     pub(crate) fn message(self) -> &'static str {
         match self {
-            PlaceError::OffGrid => "position off the page grid (positions are never snapped, doc 06 §5.7)",
+            PlaceError::OffGrid => "position off the page grid (positions are never snapped)",
             PlaceError::Unreachable => {
                 "no grid position puts the symbol's anchor exactly on this cell position (anchor at a half-grid tie)"
             }

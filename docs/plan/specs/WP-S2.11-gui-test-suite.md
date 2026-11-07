@@ -297,6 +297,13 @@ The recommendation is (a), built in one FT batch lane: the type and the macro, e
 reading `ALL`, `CLOSED_SETS` and its `closed-sets` map marker removed, and a compile-time refusal of a choice list
 built outside the module (FT-1521).
 
+*As built (2026-11-07, cycle-53 FT batch; FT-1521, FT-1352; decision log ID-1465).* Option (a) in
+`ew-viewmodel`'s `shell::choices`: `ClosedChoices` with its value list private (a `compile_fail` doc test proves a
+list built elsewhere is refused), one `closed_choices!` invocation defining the sets and `ALL`, and `NONE`, outside
+`ALL`, for a free-text field. `ALL` also holds the two closed sets that are not form fields, the part editor's kinds
+(by reference to `ew-api`'s `PART_KINDS`) and a fluid line's kinds, so the choice-word test keeps its coverage; the
+revision forms' own yes-or-no list became the shared `BOOL`. `CLOSED_SETS` and its `closed-sets` marker are gone.
+
 ## 13. Open questions
 
 - **O1** How the Linux images are blessed. Options: (1) the lane blesses them in WSL Ubuntu 24.04 with the pinned Mesa

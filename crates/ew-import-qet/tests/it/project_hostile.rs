@@ -238,3 +238,31 @@ fn an_xinclude_is_reported_and_never_followed() {
             .any(|r| matches!(r, ew_import_qet::ew_interop_api::ew_schema::Record::Page(_)))
     );
 }
+
+/// FT-1508: a placed thumbnail element is dropped by design with its reason in words, no plan reference.
+#[test]
+fn a_thumbnail_element_is_dropped_in_words() {
+    let xml = r#"<project version="0.100.0">
+<collection><category name="import"><element name="t.elmt">
+<definition type="element" version="0.5" hotspot_x="30" hotspot_y="20" width="60" height="40" link_type="thumbnail">
+<names><name lang="en">Thumbnail</name></names>
+<description><line x1="-20" y1="0" x2="20" y2="0" style="line-style:normal;line-weight:normal;filling:none;color:black"/></description>
+</definition>
+</element></category></collection>
+<diagram folio="1">
+<elements>
+<element type="embed://import/t.elmt" x="100" y="100" uuid="{00000000-0000-4000-8000-000000000001}"/>
+</elements>
+</diagram>
+</project>"#;
+    let batch = import(xml).expect("lenient import");
+    let dropped: Vec<&str> = with_code(&batch, Code::DROPPED_BY_DESIGN)
+        .iter()
+        .map(|e| e.message.as_str())
+        .filter(|m| m.contains("thumbnail"))
+        .collect();
+    assert_eq!(
+        dropped,
+        ["thumbnail element is a graphic; not imported (no page-item records yet)"]
+    );
+}
