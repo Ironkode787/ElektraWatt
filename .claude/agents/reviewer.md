@@ -35,7 +35,8 @@ get the code, not the orchestrator's conclusions.
    the fuzz table. Review their generators, and check the outputs with `cargo xtask settle --check --base <from>` and
    `cargo xtask records --check`.
 5. **Run** `cargo xtask check-trailers --range <from>..<to>`, and `cargo xtask api-guard --base <from>` when
-   `bin/ew/api/cli.json` or `crates/ew-sqlview/api/api_v1.json` changes in the range.
+   a file it reads changes in the range: an API snapshot, `schemas/`, `fixtures/format/` or
+   `docs/release-notes/unreleased.md`.
 6. **Check every lane's self-check claims** against the diff.
 7. **Append your findings to the ledger.** During the review it is the only file you write, besides your scratch
    files.

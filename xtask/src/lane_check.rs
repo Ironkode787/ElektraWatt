@@ -41,8 +41,9 @@
 //!      directory and on any changed file that mentions `--test`; `check-unsafe` on any changed `.rs` file,
 //!      `Cargo.toml` or `ci/unsafe-allowlist.toml`; `check-ui-strings` on any changed file of `crates/ew-ui/src` or
 //!      `ci/ui-strings-allow.txt`; `map --check` (the shared-list markers) on any
-//!      changed `.rs` file, `Cargo.toml` or `ci/dep-rules.toml`; `api-guard --base <rev>` when one of
-//!      [`API_SNAPSHOTS`] changed (FT-1007).
+//!      changed `.rs` file, `Cargo.toml` or `ci/dep-rules.toml`; `api-guard --base <rev>` when a file it reads
+//!      changed ([`crate::api_guard::reads`]: every snapshot surface, `schemas/`, `fixtures/format/` and
+//!      `docs/release-notes/unreleased.md`; FT-1007, FT-1517).
 //!   7. `trailers`: in-process over the non-merge commits of `<merge base>..HEAD` ([`trailers::commits`]). It fails
 //!      on each record line of a commit's message that stands outside git's trailer block ([`trailers::outside_block`],
 //!      FT-1104), with or without `--trailers`. With `--trailers "<Key>: <items>"` (repeatable; the items separated by
@@ -582,11 +583,8 @@ pub(crate) fn warm_command(set: &BTreeSet<String>, members: &Members) -> Cmd {
     cmd
 }
 
-/// The published-surface snapshots whose change runs `api-guard` (FT-1007).
-pub(crate) const API_SNAPSHOTS: [&str; 2] = ["bin/ew/api/cli.json", "crates/ew-sqlview/api/api_v1.json"];
-
 /// The policy checks of lane.md step 6 that the diff triggers, in lane.md's order, then `api-guard --base <base>`
-/// when the diff holds one of [`API_SNAPSHOTS`] (FT-1007), then the dependency checks.
+/// when the diff holds a file it reads ([`crate::api_guard::reads`], FT-1007, FT-1517), then the dependency checks.
 pub(crate) fn policy_commands(diff: &Diff, base: &str) -> Vec<Cmd> {
     let any = |pred: &dyn Fn(&str) -> bool| diff.files.iter().any(|f| pred(f));
     let manifest = |f: &str| f == "Cargo.toml" || f.ends_with("/Cargo.toml");
@@ -622,7 +620,7 @@ pub(crate) fn policy_commands(diff: &Diff, base: &str) -> Vec<Cmd> {
     if markers {
         cmds.push(Cmd::xtask(&["map", "--check"]));
     }
-    if any(&|f| API_SNAPSHOTS.contains(&f)) {
+    if any(&|f| crate::api_guard::reads(f)) {
         cmds.push(Cmd::xtask(&["api-guard", "--base", base]));
     }
     if dependency {
@@ -3223,11 +3221,22 @@ mod tests {
         assert!(!names_root(r#"join("x/../schemas")"#, "schemas/0.1/"));
     }
 
-    /// FT-1007: a change of a published-surface snapshot runs `api-guard` against the base, in the policy step.
+    /// FT-1007, FT-1517: a change of any file `api-guard` reads runs it against the base, in the policy step: every
+    /// snapshot surface, the format surface's schemas and fixtures, and the release notes; a file it does not read
+    /// does not.
     #[test]
     fn an_api_snapshot_change_runs_the_api_guard() {
         let guard = Cmd::xtask(&["api-guard", "--base", BASE]);
-        for file in API_SNAPSHOTS {
+        for file in [
+            "bin/ew/api/cli.json",
+            "crates/ew-sqlview/api/api_v1.json",
+            "crates/ew-api/api/queries.json",
+            "crates/ew-commands/schemas/bond.create.schema.json",
+            "bin/ew/schemas/ew.apply-result-1.schema.json",
+            "docs/release-notes/unreleased.md",
+            "schemas/0.1/bond.schema.json",
+            "fixtures/format/0.1/starter.ew",
+        ] {
             assert_eq!(
                 policy_commands(&diff(&[file], &[]), BASE),
                 std::slice::from_ref(&guard),
@@ -3238,7 +3247,14 @@ mod tests {
             lines(&diff(&["bin/ew/api/cli.json"], &[]))[5],
             "policy: cargo xtask api-guard --base 4762316c"
         );
-        assert!(!policy_commands(&diff(&["crates/ew-api/api/queries.json"], &[]), BASE).contains(&guard));
+        for file in [
+            "docs/release-notes/0.1.0.md",
+            "schemasx/a.json",
+            "fixtures/other/a.ew",
+            "crates/ew-commands/schemas/nested/a.json",
+        ] {
+            assert!(!policy_commands(&diff(&[file], &[]), BASE).contains(&guard), "{file}");
+        }
     }
 
     /// FT-1006: the doc step runs the doctests of the documented crates that have a library target, and only those.

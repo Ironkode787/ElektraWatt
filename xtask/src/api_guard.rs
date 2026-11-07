@@ -279,6 +279,15 @@ fn is_snapshot_file(path: &str) -> bool {
     }) || [CLI, QUERIES, API_V1, RELEASE_NOTES].contains(&path)
 }
 
+/// Whether `path` is a file `api-guard` reads: a snapshot file, or a file under the format surface's published
+/// schemas or frozen fixtures (FT-1517, ID-1464).
+pub(crate) fn reads(path: &str) -> bool {
+    is_snapshot_file(path)
+        || [SCHEMAS_DIR, FIXTURES_DIR]
+            .iter()
+            .any(|dir| path.strip_prefix(dir).is_some_and(|rest| rest.starts_with('/')))
+}
+
 /// The snapshot files of the working tree.
 fn working_files(root: &Path) -> Result<Files> {
     let mut paths = Vec::new();
