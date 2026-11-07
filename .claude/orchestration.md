@@ -85,10 +85,9 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
      verify run one after another in the third slot. Only a major's fix may take a work-package slot, by delaying the
      next work-package dispatch.
    - A finished lane's slot takes the next queued lane.
-   - **No slot stays idle** (owner, 2026-11-04: "our goal should be to always fill up all possible build spaces";
-     ID-1326). When the current cycle has no lane ready for a free slot, its end phase included, the slot takes the
-     next cycle's first-wave lane, on the newest picked tip. That lane is integrated after the end tip and reviewed in
-     the next cycle (rule 8). The next cycle's briefs are therefore kept ready ahead of need.
+   - **Fill a slot only with real work** (owner, 2026-11-04, ID-1326; amended 2026-11-07, ID-1488: "they can be idle
+     if there is no more work left to do"). A free slot takes the next lane that is due; when none is, it stays idle.
+     Never start new work only to fill a slot, least of all on the release path.
    - **Never with M3 work** (owner, 2026-11-06: "do not continue to M3, when lanes are open. Leave them idle instead";
      ID-1452). A slot with no M2 or release work left for it takes M2.5's work instead (WP-S2.10, the symbol editor:
      its smoke test, review, persona runs and polish, ID-1453), and stays idle when there is none: no M3 package,
@@ -138,7 +137,9 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
    - **While CI runs,** the next cycle's lanes may be integrated locally but not pushed or reviewed. A CI fix goes onto
      the end tip, and the unpushed commits are rebased onto it.
    - Local Windows and WSL gates are only a fallback for when CI cannot run.
-10. **Continuous cycles** (2026-10-28). Never wait for the owner; only an explicit hold stops the work. When a cycle's
+10. **Continuous cycles** (2026-10-28; amended 2026-11-07, ID-1488: "We aim to finish M2, then hold. (Including
+    the symbol editor.)"). Never wait for the owner; only an explicit hold stops the work. The work holds once M2,
+    0.1.0 with the symbol editor, is finished. When a cycle's
     first wave is dispatched, post its table (lane | model | effort | task | wave), and add rows for later lanes.
 
 ## Review and fixes (owner, 2026-10-27; amended 2026-10-31, 2026-11-01)
