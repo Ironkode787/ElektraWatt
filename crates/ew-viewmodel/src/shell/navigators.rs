@@ -1690,10 +1690,11 @@ fn json_map(v: Value) -> Map<String, Value> {
 
 /// A function's kind text in the UI language (FT-1338, ID-1392): its longest leading words that `ew-api`'s
 /// `KIND_WORDS` give ("Two-way process valve" of "Two-way process valve 1-2") by their `kind-words-<words>` text, the
-/// CP designations after them kept; `None` when no leading words have a text.
-fn kind_words(text: &str) -> Option<String> {
+/// CP designations after them kept; else the generic rule's words ([`generic_kind_words`], FT-1483); `None` when
+/// neither has a text.
+pub(super) fn kind_words(text: &str) -> Option<String> {
     let words: Vec<&str> = text.split(' ').collect();
-    (1..=words.len()).rev().find_map(|n| {
+    let leading = (1..=words.len()).rev().find_map(|n| {
         let slug: String = words[..n]
             .join(" ")
             .to_lowercase()
@@ -1708,7 +1709,85 @@ fn kind_words(text: &str) -> Option<String> {
                 .collect::<Vec<_>>()
                 .join(" "),
         )
-    })
+    });
+    leading.or_else(|| generic_kind_words(&words))
+}
+
+/// The generic rule's kind text in the UI language (FT-1483, ID-1457, ID-1459): its first two words are the FnDef
+/// category's last two segments ("NO contact 13-14", "Changeover contact 11-12-14"), or its one segment before the CP
+/// designations ("Coil A1-A2"), each by its `kind-segment-<segment>` text, two of them joined by `kind-generic` (a Dutch
+/// segment carries its own joint: "NO-contact", "Wisselcontact"); a segment without a text is shown as written. `None`
+/// when the first word has no text and the second none either.
+fn generic_kind_words(words: &[&str]) -> Option<String> {
+    let segment = |w: &str| strings::lookup(&format!("kind-segment-{}", w.to_lowercase()));
+    let first = segment(words.first()?);
+    let second = words.get(1).and_then(|w| segment(w));
+    let (head, rest) = match (first, second) {
+        (Some(a), Some(b)) => (strings::format(key!("kind-generic"), &[a, b]), &words[2..]),
+        (Some(a), None) => (a.trim_end().to_owned(), &words[1..]),
+        (None, Some(b)) => (format!("{} {b}", words[0]), &words[2..]),
+        (None, None) => return None,
+    };
+    Some(
+        std::iter::once(strings::sentence_start(&head).into_owned())
+            .chain(rest.iter().map(|w| (*w).to_owned()))
+            .collect::<Vec<_>>()
+            .join(" "),
+    )
+}
+
+/// A library row's tier, access and index state in the UI language (FT-1483, ID-1459): the tier by its facet, the access
+/// by the `writable` facet, the state cell's index words and an unreadable profile's note by their closed English forms
+/// (`ew-api`'s `index_word` and `ew_derive::unreadable_profile`), any other note as it is.
+fn library_in_words(node: &mut NavNode, tier: Option<usize>, access: Option<usize>, state: Option<usize>) {
+    let facet = |name: &str| {
+        node.facets
+            .iter()
+            .find(|(f, _)| f == name)
+            .map(|(_, v)| v.clone())
+    };
+    if let Some(word) = facet("tier").and_then(|t| strings::lookup(&format!("lib-tier-{t}"))) {
+        if node.role == NavRole::Tier {
+            node.label = word.to_owned();
+        }
+        if let Some(cell) = tier.and_then(|i| node.cells.get_mut(i)) {
+            *cell = word.to_owned();
+        }
+    }
+    if node.role != NavRole::Library {
+        return;
+    }
+    let writable = facet("writable").is_some();
+    if let Some(cell) = access.and_then(|i| node.cells.get_mut(i)) {
+        *cell = strings::text(if writable {
+            key!("lib-access-writable")
+        } else {
+            key!("status-bar-read-only")
+        })
+        .to_owned();
+    }
+    if let Some(cell) = state.and_then(|i| node.cells.get_mut(i)) {
+        let words: Vec<String> = cell
+            .split("; ")
+            .map(|part| match part {
+                "Index up to date" => strings::text(key!("lib-index-fresh")).to_owned(),
+                "Index rebuilt" => strings::text(key!("lib-index-rebuilt")).to_owned(),
+                _ => {
+                    if let Some(m) = part.strip_prefix("Index failed: ") {
+                        strings::format(key!("lib-index-failed"), &[m])
+                    } else if let Some((profile, why)) = part
+                        .strip_prefix("the address profile ")
+                        .and_then(|r| r.split_once(" cannot be read: "))
+                    {
+                        strings::format(key!("lib-profile-unreadable"), &[profile, why])
+                    } else {
+                        part.to_owned()
+                    }
+                }
+            })
+            .collect();
+        *cell = words.join("; ");
+    }
 }
 
 /// A navigator table's texts in the UI language (ID-1315 ruling 1: `ew-api` gives the codes, the shell the words),
@@ -1754,7 +1833,27 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
     let kind = (nav == "libraries")
         .then(|| table.columns.iter().position(|c| c.key == "kind"))
         .flatten();
+    // FT-1483 (ID-1459): a library's tier, access and state cells; a report block's kind, by its code.
+    let column = |key: &str| table.columns.iter().position(|c| c.key == key);
+    let library = (nav == "libraries").then(|| (column("tier"), column("access"), column("state")));
+    let block_kind = (nav == "blocks").then(|| column("kind")).flatten();
     for node in &mut table.nodes {
+        if let Some((tier, access, state)) = library
+            && matches!(node.role, NavRole::Tier | NavRole::Library)
+        {
+            library_in_words(node, tier, access, state);
+        }
+        if node.role == NavRole::ReportBlock
+            && let Some(code) = block_kind.and_then(|i| node.cells.get(i)).cloned()
+        {
+            let words = super::creation::report_kind_words(&code);
+            for cell in node.cells.iter_mut().filter(|c| **c == code) {
+                *cell = words.clone();
+            }
+            if node.label == code {
+                node.label = words;
+            }
+        }
         // FT-1338 (ID-1392): a function's kind, and a function definition's in the Libraries tree, in `KIND_WORDS`'
         // words.
         let fndef = kind

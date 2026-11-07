@@ -672,7 +672,8 @@ fn em7_a_declared_patch_that_removes_a_cp_is_major() {
         &LibDocument::from_value(new).unwrap(),
     );
     assert_eq!(diff.class, ChangeClass::Major);
-    assert_eq!(diff.major_reasons, ["CP 6 (−) disappears"]);
+    let reasons: Vec<String> = diff.major_reasons.iter().map(ToString::to_string).collect();
+    assert_eq!(reasons, ["CP 6 (−) disappears"]);
 }
 
 /// The CP-map path of `library.update`: a part whose CP index changes designation is major, the connected CP needs a

@@ -190,7 +190,7 @@ fn pointer(r: Result<ew_commands::Receipt, CmdError>) -> String {
 
 fn referenced(r: Result<ew_commands::Receipt, CmdError>) -> String {
     match r {
-        Err(CmdError::Model(ModelError::Referenced { link, .. })) => link,
+        Err(CmdError::Model(ModelError::Referenced { link, .. }, _)) => link,
         other => panic!("expected a forbid refusal, got {other:?}"),
     }
 }

@@ -154,7 +154,7 @@ fn a_pasted_wire_to_a_fluid_port_fails_the_fluid_invariant() {
         adapt: Vec::new(),
     };
     match e.execute(&cmd) {
-        Err(CmdError::Model(ew_model::ModelError::Invariant { id, .. })) => {
+        Err(CmdError::Model(ew_model::ModelError::Invariant { id, .. }, _)) => {
             assert_eq!(id, ew_model::FLUID_LINES)
         }
         other => panic!("expected EW-INV-024, got {other:?}"),

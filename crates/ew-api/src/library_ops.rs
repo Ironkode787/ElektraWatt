@@ -980,7 +980,7 @@ impl Session {
                 to,
                 class: diff.class,
                 fields: diff.fields,
-                major_reasons: diff.major_reasons,
+                major_reasons: diff.major_reasons.iter().map(ToString::to_string).collect(),
             });
             docs.push(lib);
         }

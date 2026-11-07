@@ -57,8 +57,8 @@ pub struct CopyDiff {
     pub class: ChangeClass,
     /// The members that differ, in member-name order.
     pub fields: Vec<FieldChange>,
-    /// Why the change is major (empty below major), in a fixed order.
-    pub major_reasons: Vec<String>,
+    /// Why the change is major (empty below major), in a fixed order, by key (FT-1494): the CLI prints their English.
+    pub major_reasons: Vec<Text>,
 }
 
 /// The item of a library document as a JSON object (empty for an unknown kind).
@@ -192,10 +192,16 @@ pub fn classify_update(old: &LibDocument, new: &LibDocument) -> CopyDiff {
     if let (Some(o), Some(n)) = (copy_cps(old), copy_cps(new)) {
         for (idx, cp) in &o {
             match n.get(idx) {
-                None => major.push(format!("CP {idx} ({}) disappears", cp.designation)),
-                Some(m) if m.designation != cp.designation => major.push(format!(
-                    "CP {idx} changes its designation from {} to {}",
-                    cp.designation, m.designation
+                None => major.push(text!(
+                    "refusal-major-cp-gone",
+                    idx.to_string(),
+                    cp.designation.to_string()
+                )),
+                Some(m) if m.designation != cp.designation => major.push(text!(
+                    "refusal-major-cp-designation",
+                    idx.to_string(),
+                    cp.designation.to_string(),
+                    m.designation.to_string()
                 )),
                 Some(_) => {}
             }
@@ -204,10 +210,10 @@ pub fn classify_update(old: &LibDocument, new: &LibDocument) -> CopyDiff {
     let changed = |m: &str| fields.iter().any(|f| f.member == m);
     match (old, new) {
         (LibDocument::Symbol(_), LibDocument::Symbol(_)) if changed("fndef") => {
-            major.push("the FnDef changes".to_owned());
+            major.push(text!("refusal-major-fndef"));
         }
         (LibDocument::Part(_) | LibDocument::Fndef(_), _) if changed("category") => {
-            major.push("the category changes".to_owned());
+            major.push(text!("refusal-major-category"));
         }
         _ => {}
     }
@@ -222,13 +228,13 @@ pub fn classify_update(old: &LibDocument, new: &LibDocument) -> CopyDiff {
             v
         };
         if refs(&o.item) != refs(&n.item) {
-            major.push("a template function is added or removed".to_owned());
+            major.push(text!("refusal-major-template"));
         }
     }
     if let (LibDocument::Macro(o), LibDocument::Macro(n)) = (old, new) {
         for v in &o.item.variables {
             if !n.item.variables.iter().any(|w| w.name == v.name) {
-                major.push(format!("macro variable {} is removed", v.name.as_str()));
+                major.push(text!("refusal-major-macro-variable", v.name.as_str()));
             }
         }
     }

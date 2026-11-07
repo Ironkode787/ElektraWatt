@@ -315,8 +315,10 @@ impl Command for SetStart {
                 _ => {
                     let profile = module_profile(tx, *m);
                     let at_hand = crate::commands::fields::profiles_in(tx);
-                    let a = ew_derive::parse_plc_start(&at_hand, &profile, &self.spec).map_err(|e| {
-                        CmdError::invalid_params(Self::NAME, "/spec", text!("refusal-params-detail", e))
+                    // FT-1494: the parser's refusal by key.
+                    let a = ew_derive::parse_plc_start(&at_hand, &profile, &self.spec).map_err(|_| {
+                        let why = crate::error::plc_text_refusal(&at_hand, &profile, &self.spec, true);
+                        CmdError::invalid_params(Self::NAME, "/spec", text!("refusal-params-detail", why))
                     })?;
                     let (want, name, area) = match self.dir {
                         StartDir::Input => (

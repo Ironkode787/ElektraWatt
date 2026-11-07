@@ -314,7 +314,9 @@ impl ShellModel {
                     };
                     match project.session.parse_field_input(&kind, &path, &input) {
                         Ok(parsed) => CellValue::Valid(parsed.value),
-                        Err(InputError::Invalid(message)) => CellValue::Invalid(message),
+                        Err(InputError::Invalid(why)) => {
+                            CellValue::Invalid(super::tools::rejected_words(&why.to_string(), Some(&why)))
+                        }
                         Err(InputError::UnknownPart(typed)) => {
                             CellValue::Invalid(strings::format(key!("error-no-part"), &[&typed]))
                         }

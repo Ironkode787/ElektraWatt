@@ -1168,9 +1168,7 @@ fn scale_input(text: &str) -> Option<Result<Value, InputError>> {
     }
     Some(match n.parse::<u32>() {
         Ok(k) if k > 0 => Ok(serde_json::json!({ "one_to": k })),
-        _ => Err(invalid(format!(
-            "`{t}` is not a scale; type 1:n with n a whole number from 1 to 4294967295"
-        ))),
+        _ => Err(invalid(api_text!("refusal-input-scale", t))),
     })
 }
 
@@ -1214,8 +1212,8 @@ pub struct ParsedInput {
 /// Why an editor input does not parse.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum InputError {
-    /// Not a value of the field's type; the text says why.
-    Invalid(String),
+    /// Not a value of the field's type; the text says why, by key (FT-1493): the window shows it in its language.
+    Invalid(crate::Text),
     /// No part copy of the project has the typed part number (the text as typed, trimmed); the shell says so in a
     /// sentence of its strings table.
     UnknownPart(String),
@@ -1239,7 +1237,7 @@ impl InputError {
     /// shell's strings (the table round trip, the part editor); `None` for the others.
     pub fn text(&self) -> Option<String> {
         match self {
-            InputError::Invalid(why) => Some(why.clone()),
+            InputError::Invalid(why) => Some(why.to_string()),
             InputError::NotOneOf { typed, options } => {
                 Some(format!("`{typed}` is not one of {}", options.join(", ")))
             }
@@ -1306,8 +1304,8 @@ pub(crate) trait ParseCx {
     fn slot_nodes(&self, member: &str) -> Vec<(String, String, Vec<String>)>;
 }
 
-fn invalid(message: impl Into<String>) -> InputError {
-    InputError::Invalid(message.into())
+fn invalid(text: crate::Text) -> InputError {
+    InputError::Invalid(text)
 }
 
 /// The canonical text of a lenient decimal.
@@ -1327,8 +1325,10 @@ fn parse_dec3(text: &str, wrap: &dyn Fn(String) -> Value) -> Result<Value, Input
     if ambiguous {
         let int: String = t[..t.len() - 4].to_owned();
         let frac: String = t[t.len() - 3..].to_owned();
-        let decimal = Dec3::parse_lenient(&format!("{int}.{frac}")).map_err(|e| invalid(e.to_string()))?;
-        let thousands = Dec3::parse_lenient(&format!("{int}{frac}")).map_err(|e| invalid(e.to_string()))?;
+        let decimal = Dec3::parse_lenient(&format!("{int}.{frac}"))
+            .map_err(|e| invalid(api_text!("refusal-input-detail", e.to_string())))?;
+        let thousands = Dec3::parse_lenient(&format!("{int}{frac}"))
+            .map_err(|e| invalid(api_text!("refusal-input-detail", e.to_string())))?;
         return Err(InputError::Ambiguous {
             choices: vec![
                 (
@@ -1344,7 +1344,7 @@ fn parse_dec3(text: &str, wrap: &dyn Fn(String) -> Value) -> Result<Value, Input
     }
     Dec3::parse_lenient(t)
         .map(|d| wrap(dec3_text(d)))
-        .map_err(|_| invalid(format!("`{t}` is not a decimal number")))
+        .map_err(|_| invalid(api_text!("refusal-input-decimal", t)))
 }
 
 /// The persisted unit spellings and their symbols.
@@ -1370,17 +1370,17 @@ fn parse_csa(text: &str) -> Result<Value, InputError> {
         let value = if let Some(zeros) = n.strip_suffix("/0") {
             let k: i64 = zeros
                 .parse()
-                .map_err(|_| invalid(format!("`{n}` is not an AWG size")))?;
+                .map_err(|_| invalid(api_text!("refusal-input-awg", n)))?;
             if !(1..=4).contains(&k) {
-                return Err(invalid(format!("`{n}` is not an AWG size")));
+                return Err(invalid(api_text!("refusal-input-awg", n)));
             }
             1 - k
         } else {
             let k: i64 = n
                 .parse()
-                .map_err(|_| invalid(format!("`{n}` is not an AWG size")))?;
+                .map_err(|_| invalid(api_text!("refusal-input-awg", n)))?;
             if !(1..=40).contains(&k) {
-                return Err(invalid(format!("`{n}` is not an AWG size")));
+                return Err(invalid(api_text!("refusal-input-awg", n)));
             }
             k
         };
@@ -1407,11 +1407,7 @@ fn parse_csa(text: &str) -> Result<Value, InputError> {
 fn parse_nm(text: &str) -> Result<Value, InputError> {
     let t = text.trim();
     let t = t.strip_suffix("mm").unwrap_or(t).trim();
-    let bad = || {
-        invalid(format!(
-            "`{t}` is not a length in millimetres (at most 6 decimals)"
-        ))
-    };
+    let bad = || invalid(api_text!("refusal-input-mm", t));
     let (neg, digits) = match t.strip_prefix('-') {
         Some(rest) => (true, rest),
         None => (false, t),
@@ -1456,12 +1452,14 @@ fn parse_colour(text: &str, company: &[(String, String)]) -> Result<Value, Input
             .find(|(a, _)| a.eq_ignore_ascii_case(code))
             .map(|(_, iec)| iec.as_str());
         match alias {
-            Some(iec) => invalid(format!(
-                "`{code}` is not a colour code; did you mean {iec} {}? Accepted: {}",
+            Some(iec) => invalid(api_text!(
+                "refusal-input-colour-alias",
+                code,
+                iec,
                 iec_name(iec),
                 accepted()
             )),
-            None => invalid(format!("`{code}` is not a colour code; accepted: {}", accepted())),
+            None => invalid(api_text!("refusal-input-colour", code, accepted())),
         }
     };
     let mut tokens: Vec<String> = t
@@ -1470,7 +1468,7 @@ fn parse_colour(text: &str, company: &[(String, String)]) -> Result<Value, Input
         .map(str::to_uppercase)
         .collect();
     if tokens.is_empty() {
-        return Err(invalid("give one or two colour codes"));
+        return Err(invalid(api_text!("refusal-input-colour-none")));
     }
     if tokens.len() == 1 && !known(&tokens[0]) {
         // Without a separator: split into two known codes (`GNYE`, `DBUWH`).
@@ -1491,7 +1489,7 @@ fn parse_colour(text: &str, company: &[(String, String)]) -> Result<Value, Input
         }
     }
     if tokens.len() > 2 {
-        return Err(invalid("a colour has one or two codes"));
+        return Err(invalid(api_text!("refusal-input-colour-count")));
     }
     for code in &tokens {
         if !known(code) {
@@ -1529,12 +1527,12 @@ pub(crate) fn parse_input(
         }
         FieldType::Text => {
             if text.chars().any(char::is_control) {
-                return Err(invalid("a text has no line breaks or control characters"));
+                return Err(invalid(api_text!("refusal-input-text-control")));
             }
             plain(Value::String(text.to_owned()))
         }
         FieldType::Ident => {
-            let ident = Ident::from_input(text).map_err(|e| invalid(e.to_string()))?;
+            let ident = Ident::from_input(text).map_err(|e| invalid(crate::ident_error_text(&e)))?;
             let notes = ident_notes(ident.as_str());
             Ok(ParsedInput {
                 value: Value::String(ident.as_str().to_owned()),
@@ -1543,7 +1541,7 @@ pub(crate) fn parse_input(
         }
         FieldType::MlText => {
             if text.chars().any(char::is_control) {
-                return Err(invalid("a text has no line breaks or control characters"));
+                return Err(invalid(api_text!("refusal-input-text-control")));
             }
             if text.is_empty() {
                 plain(Value::Null)
@@ -1554,16 +1552,17 @@ pub(crate) fn parse_input(
         FieldType::Bool => match text.trim().to_ascii_lowercase().as_str() {
             "true" | "yes" | "1" => plain(Value::Bool(true)),
             "false" | "no" | "0" => plain(Value::Bool(false)),
-            _ => Err(invalid(format!("`{}` is not yes or no", text.trim()))),
+            _ => Err(invalid(api_text!("refusal-input-yes-no", text.trim()))),
         },
         FieldType::Int { min, max } => {
             let t = text.trim();
             let n: i64 = t
                 .parse()
-                .map_err(|_| invalid(format!("`{t}` is not a whole number")))?;
+                .map_err(|_| invalid(api_text!("refusal-input-whole", t)))?;
             if min.is_some_and(|m| n < m) || max.is_some_and(|m| n > m) {
-                return Err(invalid(format!(
-                    "{n} is outside {}..{}",
+                return Err(invalid(api_text!(
+                    "refusal-input-range",
+                    n.to_string(),
                     min.map_or_else(String::new, |m| m.to_string()),
                     max.map_or_else(String::new, |m| m.to_string())
                 )));
@@ -1588,9 +1587,7 @@ pub(crate) fn parse_input(
                     }
                 });
             let Some((unit, spelling)) = found else {
-                return Err(invalid(format!(
-                    "`{t}` has no unit; units: mm², A, V, Hz, bar, °C, kg, W, m, piece, set"
-                )));
+                return Err(invalid(api_text!("refusal-input-no-unit", t)));
             };
             let number = t[..t.len() - spelling.len()].trim();
             parse_dec3(number, &|d| serde_json::json!({ "value": d, "unit": unit })).map(|value| {
@@ -1653,10 +1650,10 @@ pub(crate) fn parse_input(
                     value: Value::String(id.clone()),
                     notes: vec![format!("resolved through alias '{t}'")],
                 }),
-                None => Err(invalid(format!("no structure node `{t}` of this aspect"))),
+                None => Err(invalid(api_text!("refusal-input-no-node", t))),
             }
         }
-        FieldType::Uuid | FieldType::Link { .. } => Err(invalid("this field is shown, not edited")),
+        FieldType::Uuid | FieldType::Link { .. } => Err(invalid(api_text!("refusal-input-shown"))),
         FieldType::List(_) if ty.is_part_uses() && !text.trim_start().starts_with('[') => {
             parse_part_uses(cx, text)
         }
@@ -1665,7 +1662,7 @@ pub(crate) fn parse_input(
                 value,
                 notes: Vec::new(),
             })
-            .map_err(|e| invalid(format!("not strict JSON: {e}"))),
+            .map_err(|e| invalid(api_text!("refusal-input-json", crate::schema_error_text(&e)))),
     }
 }
 
@@ -1696,7 +1693,7 @@ pub(crate) enum PartMiss {
     /// No copy matches (the text as typed, trimmed).
     Unknown(String),
     /// A malformed `id:` text.
-    Invalid(String),
+    Invalid(crate::Text),
     /// Two or more copies match, in the order of [`part_order`].
     Ambiguous(Vec<PartCopyText>),
 }
@@ -1721,7 +1718,7 @@ pub(crate) fn find_part(cx: &dyn ParseCx, text: &str, kinds: Option<&[&str]>) ->
     if let Some(id) = t.strip_prefix("id:") {
         return match copies.iter().find(|c| c.id == id) {
             Some(c) => Ok(c.id.clone()),
-            None => Err(PartMiss::Invalid(format!("the project has no part copy `{id}`"))),
+            None => Err(PartMiss::Invalid(api_text!("refusal-input-no-part-copy", id))),
         };
     }
     let mut hits: Vec<&PartCopyText> = copies
@@ -1776,7 +1773,7 @@ fn parse_part_uses(cx: &dyn ParseCx, text: &str) -> Result<ParsedInput, InputErr
                 let qty = Dec3::parse_lenient(q)
                     .ok()
                     .filter(|d| d.0 > 0)
-                    .ok_or_else(|| invalid(format!("`{q}` is not a quantity above 0")))?;
+                    .ok_or_else(|| invalid(api_text!("refusal-input-quantity", q)))?;
                 (p.trim(), dec3_text(qty))
             }
             None => (item, "1".to_owned()),
@@ -2037,9 +2034,9 @@ mod tests {
         );
         assert_eq!(parse(FieldType::Nm, "12.5 mm").unwrap(), 12_500_000);
         assert_eq!(
-            parse(FieldType::Nm, "0.0000001"),
-            Err(invalid(
-                "`0.0000001` is not a length in millimetres (at most 6 decimals)"
+            parse(FieldType::Nm, "0.0000001").map_err(|e| e.text()),
+            Err(Some(
+                "`0.0000001` is not a length in millimetres (at most 6 decimals)".to_owned()
             ))
         );
         assert_eq!(
@@ -2062,6 +2059,7 @@ mod tests {
         let Err(InputError::Invalid(m)) = parse(FieldType::Colour, "BR") else {
             panic!()
         };
+        let m = m.to_string();
         assert!(m.contains("BN brown"), "{m}");
         assert_eq!(
             format_field_value(&FieldType::Colour, &serde_json::json!(["GN", "YE"])),

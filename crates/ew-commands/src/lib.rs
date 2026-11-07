@@ -93,7 +93,10 @@ pub use diff::{ChangeKind, EntityChange, ModelDiff, diff_model};
 pub use engine::{
     Change, Engine, EngineOptions, NoPrevent, Preview, Receipt, Restored, World, affected_pages,
 };
-pub use error::CmdError;
+pub use error::{
+    CmdError, HistoryBlock, asset_error_text, ident_error_text, path_error_text, schema_error_text,
+    serde_error_text,
+};
 pub use history::{History, HistoryEntry, HistoryLimits};
 pub use jsonschema::{
     MAX_PARAM_BYTES, MAX_PARAM_DEPTH, MAX_PARAM_ITEMS, MAX_PARAM_STRING, SchemaViolation, check_limits,

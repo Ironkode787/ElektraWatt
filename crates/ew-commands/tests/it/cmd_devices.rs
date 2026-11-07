@@ -410,7 +410,7 @@ fn place_join_device_adds_an_auxiliary_function() {
             },
         ))
         .unwrap_err();
-    assert!(matches!(err, CmdError::Model(_)), "{err:?}");
+    assert!(matches!(err, CmdError::Model(..)), "{err:?}");
 }
 
 #[test]

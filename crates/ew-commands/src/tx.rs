@@ -856,7 +856,12 @@ impl<'a> TxBuilder<'a> {
         if keys.is_empty() {
             return Ok(());
         }
-        let plan = self.planning_snapshot()?.delete_plan_many(keys)?;
+        // FT-1488: a record a forbid link still names, in words.
+        let planned = self.planning_snapshot()?.delete_plan_many(keys);
+        let plan = match planned {
+            Ok(plan) => plan,
+            Err(e) => return Err(crate::error::worded(e, self)),
+        };
         for op in plan {
             let k = op.key();
             if !self.pending.contains_key(&k) {

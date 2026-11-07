@@ -181,7 +181,9 @@ fn a_new_duplicate_is_prevented_with_the_rule_and_a_remedy() {
     };
     let rev = s.world().rev;
     match s.execute(&cmd) {
-        Err(CmdError::Prevented { rule, finding, keys }) => {
+        Err(CmdError::Prevented {
+            rule, finding, keys, ..
+        }) => {
             assert_eq!(rule, "EW-TERM-002");
             assert!(finding.contains("taken"), "{finding}");
             assert!(finding.contains("swap 3"), "{finding}");

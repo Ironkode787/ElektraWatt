@@ -51,7 +51,10 @@ impl Command for ApplyExternal {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         for asset in &self.assets {
             tx.put_asset(asset.bytes().to_vec()).map_err(|e| {
-                CmdError::rejected(Self::NAME, text!("refusal-external-image", e.to_string()))
+                CmdError::rejected(
+                    Self::NAME,
+                    text!("refusal-external-image", crate::error::asset_error_text(&e)),
+                )
             })?;
         }
         // Removals first: a removal's own bookkeeping (a macro member's instance) never outlives a row written after it.

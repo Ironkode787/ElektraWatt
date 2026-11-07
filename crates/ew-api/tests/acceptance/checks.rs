@@ -2962,9 +2962,9 @@ fn error_kind(e: &ew_api::CmdError) -> &'static str {
         CmdError::Exposure { .. } => "Exposure",
         CmdError::NeedsPreview { .. } => "NeedsPreview",
         CmdError::Prevented { .. } => "Prevented",
-        CmdError::Model(ew_model::ModelError::Invariant { .. }) => "Model(Invariant)",
-        CmdError::Model(ew_model::ModelError::Prevented { .. }) => "Model(Prevented)",
-        CmdError::Model(_) => "Model(other)",
+        CmdError::Model(ew_model::ModelError::Invariant { .. }, _) => "Model(Invariant)",
+        CmdError::Model(ew_model::ModelError::Prevented { .. }, _) => "Model(Prevented)",
+        CmdError::Model(..) => "Model(other)",
         _ => "other",
     }
 }
@@ -2989,8 +2989,8 @@ fn set_designation(c: &Ctx, key: &str, value: &str, params_layer: bool) -> Outco
         return fail(format!("`{value}` was accepted for {key}, expected a refusal"));
     };
     let layer = match &e {
-        CmdError::Model(ModelError::Invariant { id, .. }) => Some(format!("the invariant {id}")),
-        CmdError::Model(ModelError::Prevented { rule, .. }) | CmdError::Prevented { rule, .. } => {
+        CmdError::Model(ModelError::Invariant { id, .. }, _) => Some(format!("the invariant {id}")),
+        CmdError::Model(ModelError::Prevented { rule, .. }, _) | CmdError::Prevented { rule, .. } => {
             Some(format!("the prevent rule {rule}"))
         }
         CmdError::Rejected { source, .. } => Some(format!("the command's own rule ({source})")),

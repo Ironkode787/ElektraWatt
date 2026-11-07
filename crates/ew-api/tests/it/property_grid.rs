@@ -692,6 +692,7 @@ fn pg8_editors_parse_and_format_on_golden_a() {
     let Err(InputError::Invalid(m)) = s.parse_field_input("connection", "overrides.colour", "BR") else {
         panic!("BR is not a code");
     };
+    let m = m.to_string();
     assert!(m.contains("BN brown"), "{m}");
     let Err(InputError::Ambiguous { choices }) = s.parse_field_input("connection", "overrides.csa", "1,500")
     else {

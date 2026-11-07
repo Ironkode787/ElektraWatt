@@ -228,23 +228,35 @@ fn refuse_label_out_of_order(
     }
     let opening = *state == RevisionState::Open;
     let current = || revisions.iter().filter(|r| !r.is_withdrawal());
-    let next = if opening {
-        format
-            .next_after(current().map(|r| r.label.as_str()))
-            .map_or_else(String::new, |n| format!("; the next label is {n}"))
-    } else {
-        String::new()
+    // FT-1488 (ID-1457): the finding by key, its English the one the CLI prints.
+    let next = || -> crate::text::TextArg {
+        let n = if opening {
+            format.next_after(current().map(|r| r.label.as_str()))
+        } else {
+            None
+        };
+        n.map_or_else(
+            || "".into(),
+            |n| text!("refusal-rel-label-next", n.to_string()).into(),
+        )
+    };
+    let prevented = |text: crate::text::Text, keys| CmdError::Prevented {
+        rule: LABEL_ORDER_RULE.into(),
+        finding: text.to_string(),
+        keys,
+        args: Box::default(),
+        text: Some(Box::new(text)),
     };
     let Some(key) = format.order_key(label.as_str()) else {
-        return Err(CmdError::Prevented {
-            rule: LABEL_ORDER_RULE.into(),
-            finding: format!(
-                "the label {label} is not in the project's revision label format {}; give a label in that \
-                 format{next}",
-                format.pattern()
+        return Err(prevented(
+            text!(
+                "refusal-rel-label-format",
+                label.to_string(),
+                format.pattern().to_string(),
+                next()
             ),
-            keys: Vec::new(),
-        });
+            Vec::new(),
+        ));
     };
     let keyed = current().filter_map(|r| format.order_key(r.label.as_str()).map(|k| (k, r)));
     let bound = if opening {
@@ -256,23 +268,20 @@ fn refuse_label_out_of_order(
         return Ok(());
     };
     let finding = if opening {
-        format!(
-            "the label {label} does not follow revision {}: revision labels increase in natural order; give a \
-             later label{next}",
-            r.label
+        text!(
+            "refusal-rel-label-follow",
+            label.to_string(),
+            r.label.to_string(),
+            next()
         )
     } else {
-        format!(
-            "the label {label} does not precede {}, the label of the open revision: revision labels increase in \
-             natural order, the open revision last; give an earlier label",
-            r.label
+        text!(
+            "refusal-rel-label-precede",
+            label.to_string(),
+            r.label.to_string()
         )
     };
-    Err(CmdError::Prevented {
-        rule: LABEL_ORDER_RULE.into(),
-        finding,
-        keys: vec![(Kind::Revision, r.id.cast())],
-    })
+    Err(prevented(finding, vec![(Kind::Revision, r.id.cast())]))
 }
 
 /// `revision.set_author` (`SetRevisionAuthor`): sets the author of the open revision (WP-S1.18 D4, FT-402), the one
@@ -751,7 +760,11 @@ pub(crate) fn refuse_open_page_notes(command: &str, value: &serde_json::Value) -
     serde_json::from_value::<Vec<RevisionPageNote>>(value.clone())
         .map(|_| ())
         .map_err(|e| {
-            CmdError::invalid_params(command, "/value", text!("refusal-params-detail", e.to_string()))
+            CmdError::invalid_params(
+                command,
+                "/value",
+                text!("refusal-params-detail", crate::error::serde_error_text(&e)),
+            )
         })
 }
 

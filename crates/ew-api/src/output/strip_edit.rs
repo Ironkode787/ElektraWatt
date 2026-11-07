@@ -425,7 +425,7 @@ fn resolve(cx: &dyn ParseCx, text: &str, kinds: &[&str]) -> Result<String, Strip
             "the project has no part `{t}` of kind {}",
             kinds.join(" or ")
         ))),
-        Err(PartMiss::Invalid(m)) => Err(StripEditError::Invalid(m)),
+        Err(PartMiss::Invalid(m)) => Err(StripEditError::Invalid(m.to_string())),
         Err(PartMiss::Ambiguous(hits)) => Err(StripEditError::Ambiguous(choices(hits))),
     }
 }

@@ -77,7 +77,7 @@ impl Command for SetProjectSupply {
             CmdError::invalid_params(
                 Self::NAME,
                 "/value",
-                text!("refusal-params-detail", e.to_string()),
+                text!("refusal-params-detail", crate::error::serde_error_text(&e)),
             )
         })?;
         if let Some(source) = next.origin.as_ref().and_then(|o| o.source) {

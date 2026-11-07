@@ -63,8 +63,8 @@ fn the_scale_is_typed_as_it_shows() {
     assert_eq!(value("not to scale").unwrap(), json!("not_to_scale"));
     assert_eq!(value(r#"{"one_to": 7}"#).unwrap(), json!({"one_to": 7}));
     match value("1:0") {
-        Err(InputError::Invalid(m)) => assert_eq!(
-            m,
+        Err(e @ InputError::Invalid(_)) => assert_eq!(
+            e.text().unwrap(),
             "`1:0` is not a scale; type 1:n with n a whole number from 1 to 4294967295"
         ),
         other => panic!("{other:?}"),

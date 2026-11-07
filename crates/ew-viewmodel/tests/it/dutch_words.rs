@@ -346,6 +346,10 @@ fn ft1264_every_navigator_column_and_badge_reads_in_both_locales() {
         ("Enclosure heater ", "Kastverwarming "),
         ("2P manual switch ", "2P-handschakelaar "),
         ("NO position switch ", "NO-positieschakelaar "),
+        // FT-1483 (ID-1457): the generic rule's segments, a segment without words of its own as written.
+        ("Cabinet lamp ", "Kastlamp "),
+        ("NC thermostat ", "NC-thermostaat "),
+        ("A1A2 coil ", "A1A2 spoel "),
     ];
     let worded: Vec<String> = english
         .iter()
@@ -563,6 +567,25 @@ fn ft1287_a_generated_page_shows_its_kind_and_source_in_words() {
             ),
         ]
     );
+    shell.shutdown();
+}
+
+/// FT-1493 (ID-1457): the property grid's own parse error reads in the window's language, keyed with its argument.
+#[test]
+fn ft1493_a_grid_parse_error_reads_in_the_windows_language() {
+    let tmp = Tmp::new("ft1493");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    let refusal = |shell: &mut ShellModel| match shell
+        .dispatch("props.set", &json!({"row": "device/tag.counter", "value": "x1"}))
+    {
+        ew_viewmodel::shell::Outcome::Failed { message } => message,
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(refusal(&mut shell), "`x1` is not a whole number");
+    done(&mut shell, "view.language", json!({ "value": "nl" }));
+    assert_eq!(refusal(&mut shell), "`x1` is geen geheel getal");
+    done(&mut shell, "view.language", json!({ "value": "en" }));
     shell.shutdown();
 }
 
@@ -1084,4 +1107,88 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
     }
     done(&mut shell, "view.language", json!({ "value": "en" }));
     shell.shutdown();
+}
+
+/// FT-1483 (ID-1457, ID-1459): the window words what the navigators' JSON keeps in English: a function's kind by the
+/// generic rule ("NC thermostat 5-3"), a library's tier, access and index state, a report block's kind; in en-GB they read as
+/// the CLI prints them, but a block's kind, which reads by its words in both.
+#[test]
+fn ft1483_kinds_tiers_and_block_kinds_read_in_dutch() {
+    use ew_viewmodel::navigators::NavRole;
+    let tmp = Tmp::new("ft1483");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let table = |shell: &ShellModel, kind: NavKind| shell.nav(kind).and_then(|n| n.table()).cloned().unwrap();
+    let col = |t: &ew_viewmodel::ew_api::output::NavTable, key: &str| {
+        t.columns.iter().position(|c| c.key == key).expect("the column")
+    };
+    let mut seen = Vec::new();
+    for locale in ["en", "nl"] {
+        done(&mut shell, "view.language", json!({ "value": locale }));
+        for k in ["devices", "libraries", "blocks"] {
+            done(&mut shell, "navigator.show", json!({ "kind": k }));
+        }
+        let devices = table(&shell, NavKind::Devices);
+        let kind = devices
+            .nodes
+            .iter()
+            .filter(|n| n.role == NavRole::Function)
+            .map(|n| n.label.clone())
+            .find(|l| l.ends_with(" 5-3"))
+            .expect("a thermostat");
+        let libraries = table(&shell, NavKind::Libraries);
+        let tier = libraries
+            .nodes
+            .iter()
+            .find(|n| n.role == NavRole::Tier)
+            .map(|n| n.label.clone())
+            .expect("a tier");
+        let library = libraries
+            .nodes
+            .iter()
+            .find(|n| n.role == NavRole::Library)
+            .expect("a library");
+        let (tier_cell, access, state) = (
+            library.cells[col(&libraries, "tier")].clone(),
+            library.cells[col(&libraries, "access")].clone(),
+            library.cells[col(&libraries, "state")].clone(),
+        );
+        let blocks = table(&shell, NavKind::Blocks);
+        let kinds: BTreeSet<String> = blocks
+            .nodes
+            .iter()
+            .filter(|n| n.role == NavRole::ReportBlock)
+            .map(|n| n.cells[col(&blocks, "kind")].clone())
+            .collect();
+        seen.push((
+            kind,
+            tier,
+            tier_cell,
+            access,
+            state,
+            kinds.contains(if locale == "en" { "Wire list" } else { "Draadlijst" }),
+        ));
+    }
+    done(&mut shell, "view.language", json!({ "value": "en" }));
+    shell.shutdown();
+    assert_eq!(
+        seen,
+        [
+            (
+                "NC thermostat 5-3".to_owned(),
+                "System".to_owned(),
+                "System".to_owned(),
+                "Read-only".to_owned(),
+                "Index rebuilt".to_owned(),
+                true
+            ),
+            (
+                "NC-thermostaat 5-3".to_owned(),
+                "Systeem".to_owned(),
+                "Systeem".to_owned(),
+                "Alleen-lezen".to_owned(),
+                "Index opnieuw opgebouwd".to_owned(),
+                true
+            ),
+        ]
+    );
 }

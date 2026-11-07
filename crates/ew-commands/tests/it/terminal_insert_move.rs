@@ -506,7 +506,7 @@ fn a_dangling_accessory_part_is_refused_by_the_link_check() {
         json!([{"after_seq": 20, "kind": "end_clamp", "part": {"copy": id::<ew_schema::Part>(0x9f4)}}]),
     );
     match r {
-        Err(CmdError::Model(ModelError::Invariant { id, message, .. })) => {
+        Err(CmdError::Model(ModelError::Invariant { id, message, .. }, _)) => {
             assert_eq!(id, "EW-INV-001");
             assert!(message.contains("strip.accessories[].part.copy"), "{message}");
         }

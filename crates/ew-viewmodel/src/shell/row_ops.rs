@@ -351,7 +351,11 @@ impl ShellModel {
         };
         let value = match project.session.parse_field_input(route_kind, path, &text) {
             Ok(parsed) => parsed.value,
-            Err(InputError::Invalid(message)) => return Outcome::Failed { message },
+            Err(InputError::Invalid(why)) => {
+                return Outcome::Failed {
+                    message: super::tools::rejected_words(&why.to_string(), Some(&why)),
+                };
+            }
             Err(InputError::UnknownPart(typed)) => return failed(key!("error-no-part"), &[&typed]),
             Err(InputError::NotOneOf { typed, options }) => {
                 return Outcome::Failed {

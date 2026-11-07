@@ -521,6 +521,14 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
         "the rule pack code EW-CORE",
     ),
     ("refusal-library-copy-hash", "core", "the rule code EW-CORE-014"),
+    // FT-1494: another crate's error by its own words, a rule code, a language tag.
+    ("refusal-schema-float", "core", "the rule code EW-CORE-007"),
+    ("refusal-ident-lang-tag", "tag", "a language tag (taalcode)"),
+    (
+        "refusal-ident-lang-tag-canonical",
+        "tag",
+        "a language tag (taalcode)",
+    ),
     (
         "refusal-fields-port-role-unknown",
         "device",

@@ -53,15 +53,18 @@ pub(crate) fn store_image(
     if text.len() > ew_schema::MAX_LOGO_BYTES.div_ceil(3) * 4 {
         return Err(too_large());
     }
-    let bytes = ew_schema::base64_decode(text).map_err(|e| {
-        CmdError::invalid_params(command, pointer, text!("refusal-params-detail", e.to_string()))
-    })?;
+    // FT-1504: the gate's refusal by key.
+    let refused = |e: ew_schema::AssetError| {
+        CmdError::invalid_params(
+            command,
+            pointer,
+            text!("refusal-params-detail", crate::error::asset_error_text(&e)),
+        )
+    };
+    let bytes = ew_schema::base64_decode(text).map_err(refused)?;
     if bytes.len() > ew_schema::MAX_LOGO_BYTES {
         return Err(too_large());
     }
-    let refused = |e: ew_schema::AssetError| {
-        CmdError::invalid_params(command, pointer, text!("refusal-params-detail", e.to_string()))
-    };
     let reference = tx.put_asset(bytes).map_err(refused)?;
     // ID-1417: a gate that brings an image in applies the pixel limit; a refusal drops the transaction and its asset.
     ew_schema::pixel_limit(reference.format, reference.size).map_err(refused)?;

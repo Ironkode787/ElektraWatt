@@ -242,6 +242,7 @@ impl ShellModel {
                     return failed(key!("error-potential-voltage"), &[text]);
                 }
                 Err(InputError::Invalid(why)) => {
+                    let why = super::tools::rejected_words(&why.to_string(), Some(&why));
                     let title = strings::text(key!("command-potential-define"));
                     return Outcome::Failed {
                         message: strings::format(key!("error-command-field"), &[title, &field, &why]),

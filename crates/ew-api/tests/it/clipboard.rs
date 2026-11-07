@@ -357,6 +357,27 @@ fn header_with(text: &str, f: impl Fn(&mut Value)) -> String {
     with_line(text, 2, &h.to_string())
 }
 
+/// FT-1488 (ID-1457): a fragment's refusal by key keeps its English, so the CLI and a script read what they read.
+#[test]
+fn a_fragment_refusal_keeps_its_english_through_its_key() {
+    let text = valid_text();
+    let deep = plus_line(&text, &format!("{}{}", "[".repeat(65), "]".repeat(65)));
+    let errors: Vec<FragmentError> = [
+        "hello".to_owned(),
+        text.replacen("v1", "v2", 1),
+        deep,
+        plus_line(&text, "{\"$k\":\"revision\"}"),
+        plus_line(&text, "{\"$x\":1}"),
+        plus_line(&text, "[1]"),
+    ]
+    .iter()
+    .map(|t| parse_fragment(t).unwrap_err())
+    .collect();
+    for e in &errors {
+        assert_eq!(e.text().to_string(), e.to_string());
+    }
+}
+
 /// CB2: every refusal of §8.3 on hostile input.
 #[test]
 fn cb2_every_refusal_of_the_parser() {
@@ -1371,11 +1392,8 @@ fn mg6_ft403_an_older_fragment_pastes_through_the_test_chain() {
     let current = parse_fragment(&text).unwrap();
     let older = at_v0(&header_with(&text, |h| h["format"] = json!("0.0")));
     assert_eq!(
-        parse_fragment(&older),
-        Err(FragmentError::Invalid {
-            line: 2,
-            message: older_text.into()
-        })
+        parse_fragment(&older).map_err(|e| e.to_string()),
+        Err(format!("fragment line 2: {older_text}"))
     );
     let migrated = parse_fragment_with(&older, &FRAGMENT_CHAIN).unwrap();
     assert_eq!(migrated.params, current.params);
@@ -1384,11 +1402,8 @@ fn mg6_ft403_an_older_fragment_pastes_through_the_test_chain() {
     // An older `$v` in a fragment of this format.
     let older_v = at_v0(&text);
     assert_eq!(
-        parse_fragment(&older_v),
-        Err(FragmentError::Invalid {
-            line: 3,
-            message: older_text.into()
-        })
+        parse_fragment(&older_v).map_err(|e| e.to_string()),
+        Err(format!("fragment line 3: {older_text}"))
     );
     assert_eq!(
         parse_fragment_with(&older_v, &FRAGMENT_CHAIN).unwrap().params,

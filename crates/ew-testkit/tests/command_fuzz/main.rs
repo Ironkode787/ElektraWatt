@@ -413,7 +413,7 @@ struct Applied {
 
 /// The kind of a refusal, for the report; `None` for the ones that are the backstop of the model.
 fn is_backstop(e: &CmdError) -> bool {
-    matches!(e, CmdError::Model(_) | CmdError::Prevented { .. })
+    matches!(e, CmdError::Model(..) | CmdError::Prevented { .. })
 }
 
 /// The history operations the undo law drives ([`undo_law`]): the session's own, or a test's wrapper that injects

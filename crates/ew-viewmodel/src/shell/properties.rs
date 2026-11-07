@@ -55,9 +55,9 @@ fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
             }
         }
         CmdError::Rejected { reason, text, .. } => super::tools::rejected_words(reason, text.as_ref()),
-        CmdError::Prevented { rule, finding, .. } => format!("{rule}: {finding}"),
         CmdError::NotFound { .. } => strings::text(key!("props-gone")).to_owned(),
-        other => other.to_string(),
+        // FT-1488: a prevent rule, a model or history error in the window's language.
+        other => super::tools::command_error_words(other),
     }
 }
 
@@ -1054,7 +1054,9 @@ impl ShellModel {
                 });
                 return Outcome::Done;
             }
-            (Err(InputError::Invalid(message)), _) => {
+            (Err(InputError::Invalid(why)), _) => {
+                // FT-1493: the reason in the window's language.
+                let message = super::tools::rejected_words(&why.to_string(), Some(&why));
                 self.props.set_error(key.to_owned(), message.clone());
                 return Outcome::Failed { message };
             }
@@ -1650,7 +1652,9 @@ impl ShellModel {
                 let joined = rep.and_then(|r| self.project.as_ref()?.session.joined_text(r));
                 // FX37a: what the removed source device carried goes with it; the toast names it.
                 joined.map(|j| {
-                    let text = strings::format(key!("toast-joined"), &[&j.tag, &j.kind, &j.place]);
+                    // FT-1483: the function's kind in the window's language.
+                    let kind = super::navigators::kind_words(&j.kind).unwrap_or_else(|| j.kind.clone());
+                    let text = strings::format(key!("toast-joined"), &[&j.tag, &kind, &j.place]);
                     if notices.is_empty() {
                         text
                     } else {

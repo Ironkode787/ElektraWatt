@@ -218,7 +218,7 @@ fn black_box_second_main_function_is_refused_by_ew_inv_002() {
     let err = e
         .execute(&black(pt(3 * G, 4 * G), Some(spec()), target))
         .unwrap_err();
-    assert!(matches!(err, CmdError::Model(_)), "{err:?}");
+    assert!(matches!(err, CmdError::Model(..)), "{err:?}");
     assert_eq!(lines(e.model()), before);
 }
 

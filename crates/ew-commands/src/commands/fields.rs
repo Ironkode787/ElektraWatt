@@ -566,7 +566,7 @@ fn set_project_member(
         CmdError::invalid_params(
             SetFields::NAME,
             "/value",
-            text!("refusal-params-detail", e.to_string()),
+            text!("refusal-params-detail", crate::error::serde_error_text(&e)),
         )
     })?;
     tx.set_project(next)
@@ -631,8 +631,11 @@ fn channel_address_value(
     }
     let c = tx.require::<Channel>(channel)?;
     let profile = channel_profile(tx, c.module);
-    let address = ew_derive::parse_plc_address(&profiles_in(tx), &profile, text).map_err(|m| {
-        CmdError::invalid_params(SetFields::NAME, "/value", text!("refusal-params-detail", m))
+    let at_hand = profiles_in(tx);
+    // FT-1494: the parser's refusal by key.
+    let address = ew_derive::parse_plc_address(&at_hand, &profile, text).map_err(|_| {
+        let why = crate::error::plc_text_refusal(&at_hand, &profile, text, false);
+        CmdError::invalid_params(SetFields::NAME, "/value", text!("refusal-params-detail", why))
     })?;
     serde_json::to_value(AddrSpec::Manual(address))
         .map_err(|e| CmdError::internal(format!("fields.set: cannot serialise an address ({e})")))
@@ -1115,7 +1118,7 @@ fn set_one<T: Entity + Serialize + DeserializeOwned>(
         CmdError::invalid_params(
             SetFields::NAME,
             "/value",
-            text!("refusal-params-detail", e.to_string()),
+            text!("refusal-params-detail", crate::error::serde_error_text(&e)),
         )
     })?;
     tx.update::<T>(id, |r| *r = next)?;

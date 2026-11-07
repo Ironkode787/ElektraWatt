@@ -369,7 +369,7 @@ impl Command for DeletePages {
             match tx.delete_if_exists((Kind::Device, device.cast())) {
                 Ok(()) => {}
                 // A forbid link (a strip with terminals): the device stays, unplaced.
-                Err(CmdError::Model(ModelError::Referenced { .. })) => kept.push(device),
+                Err(CmdError::Model(ModelError::Referenced { .. }, _)) => kept.push(device),
                 Err(e) => return Err(e),
             }
         }

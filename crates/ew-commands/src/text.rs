@@ -407,6 +407,451 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("refusal-params-no-page", "name at least one page"),
     ("refusal-params-no-module", "name at least one module"),
     ("refusal-params-positions-one-based", "positions are 1-based"),
+    // An image the asset gate refuses (FT-1504): each `AssetError`, and an unsafe SVG's finding and its advice.
+    ("refusal-asset-unknown-format", "not an SVG, PNG or JPEG file"),
+    (
+        "refusal-asset-too-large",
+        "the {0} file has {1} bytes, more than the limit of {2}",
+    ),
+    (
+        "refusal-asset-too-many-nodes",
+        "the SVG file has more than {0} elements",
+    ),
+    (
+        "refusal-asset-too-many-pixels",
+        "the {0} image is {1} × {2} pixels, more than a drawing can show (at most {3} pixels and 65535 on a side); scale it down and add it again",
+    ),
+    ("refusal-asset-damaged", "the {0} header is damaged or cut short"),
+    (
+        "refusal-asset-base64",
+        "not base64 text (standard alphabet, padded)",
+    ),
+    ("refusal-asset-unsafe-svg", "the SVG file is refused: {0}; {1}"),
+    ("refusal-asset-svg-not-utf8", "it is not UTF-8 text"),
+    (
+        "refusal-asset-svg-doctype-subset",
+        "it has a DOCTYPE with an internal subset",
+    ),
+    ("refusal-asset-svg-entity", "it declares an entity"),
+    ("refusal-asset-svg-script", "it has a script"),
+    ("refusal-asset-svg-event-attribute", "it has an event attribute"),
+    (
+        "refusal-asset-svg-foreign-object",
+        "it has a foreignObject element",
+    ),
+    (
+        "refusal-asset-svg-external-reference",
+        "it references something outside the document",
+    ),
+    ("refusal-asset-svg-malformed", "its markup cannot be followed"),
+    (
+        "refusal-asset-svg-too-complex",
+        "its structure is too deep, too complex or cyclic",
+    ),
+    (
+        "refusal-asset-svg-huge-number",
+        "it has a number too large to draw",
+    ),
+    (
+        "refusal-asset-svg-unsupported",
+        "it uses transform-origin or feConvolveMatrix",
+    ),
+    (
+        "refusal-asset-advice-plain-utf8",
+        "export it again as a plain SVG in UTF-8",
+    ),
+    (
+        "refusal-asset-advice-editing-data",
+        "this is the editing data Illustrator writes with \"Preserve Illustrator Editing Capabilities\": save the SVG again with that option off (File > Save As, SVG Options), or save it from Inkscape as \"Plain SVG\"",
+    ),
+    (
+        "refusal-asset-advice-no-code",
+        "a drawing's image never runs code: remove the scripts and interactivity, then export it again as a plain SVG",
+    ),
+    (
+        "refusal-asset-advice-html",
+        "it holds HTML: export it again as a plain SVG, in Illustrator with \"Preserve Illustrator Editing Capabilities\" off, in draw.io after selecting all labels and clearing \"Formatted Text\" and \"Word Wrap\" (Text tab, Advanced) before File > Export as > SVG",
+    ),
+    (
+        "refusal-asset-advice-self-contained",
+        "remove linked or embedded images and fonts (convert text to outlines) and export it again as a plain SVG; add a raster picture as its own PNG or JPEG file",
+    ),
+    (
+        "refusal-asset-advice-simplify",
+        "simplify the drawing (fewer nested groups, clones, markers and style rules) and export it again as a plain SVG with presentation attributes rather than a style sheet (Inkscape: \"Plain SVG\"; CorelDRAW: Styling options \"Presentation attributes\")",
+    ),
+    (
+        "refusal-asset-advice-scale",
+        "scale the drawing to a normal page size, keep filter values small, and export it again as a plain SVG",
+    ),
+    (
+        "refusal-asset-advice-flatten",
+        "flatten the transforms and remove convolution filters, then export it again as a plain SVG",
+    ),
+    // The detail of other crates' errors (FT-1494): serde's, the encodings', an identifier's, a carrier path's, the PLC texts' and a major update's.
+    ("refusal-serde-at", "{0} at line {1} column {2}"),
+    ("refusal-serde-invalid-type", "invalid type: {0}, expected {1}"),
+    ("refusal-serde-invalid-value", "invalid value: {0}, expected {1}"),
+    ("refusal-serde-invalid-length", "invalid length {0}, expected {1}"),
+    (
+        "refusal-serde-unknown-variant",
+        "unknown variant `{0}`, expected {1}",
+    ),
+    (
+        "refusal-serde-unknown-variant-none",
+        "unknown variant `{0}`, there are no variants",
+    ),
+    ("refusal-serde-unknown-field", "unknown field `{0}`, expected {1}"),
+    (
+        "refusal-serde-unknown-field-none",
+        "unknown field `{0}`, there are no fields",
+    ),
+    ("refusal-serde-missing-field", "missing field `{0}`"),
+    ("refusal-serde-duplicate-field", "duplicate field `{0}`"),
+    ("refusal-serde-got-string", "string {0}"),
+    ("refusal-serde-got-integer", "integer {0}"),
+    ("refusal-serde-got-float", "floating point {0}"),
+    ("refusal-serde-got-boolean", "boolean {0}"),
+    ("refusal-serde-got-null", "null"),
+    ("refusal-serde-got-sequence", "sequence"),
+    ("refusal-serde-got-map", "map"),
+    ("refusal-serde-want-whole", "{0}"),
+    ("refusal-serde-want-number", "{0}"),
+    ("refusal-serde-want-string", "a string"),
+    ("refusal-serde-want-boolean", "a boolean"),
+    ("refusal-serde-want-sequence", "a sequence"),
+    ("refusal-serde-want-map", "a map"),
+    ("refusal-schema-float", "floats are not allowed (EW-CORE-007)"),
+    ("refusal-schema-integer-range", "integer outside ±(2^53 - 1)"),
+    (
+        "refusal-schema-reversed-rect",
+        "rectangle corners reversed: the minimum corner comes first",
+    ),
+    ("refusal-schema-date", "not a valid YYYY-MM-DD date"),
+    (
+        "refusal-schema-hash",
+        "not a hash of the form sha256:<64 lower-case hex digits>",
+    ),
+    (
+        "refusal-schema-colour-count",
+        "a colour specification has one or two codes",
+    ),
+    ("refusal-schema-missing-kind", "missing string member \"$k\""),
+    ("refusal-schema-unknown-kind", "unknown kind \"{0}\""),
+    ("refusal-schema-wrong-family", "kind \"{0}\" does not belong here"),
+    (
+        "refusal-schema-version",
+        "kind \"{0}\" has $v {1}, this reader implements $v {2}; migrate first",
+    ),
+    ("refusal-schema-json", "not valid JSON: {0}"),
+    (
+        "refusal-schema-duplicate-member",
+        "duplicate member \"{0}\" in the object at \"{1}\"",
+    ),
+    (
+        "refusal-schema-unsorted",
+        "element at \"{0}\" is out of order (sets and keyed lists are sorted)",
+    ),
+    (
+        "refusal-schema-duplicate-key",
+        "duplicate set element or key {0} at \"{1}\"",
+    ),
+    (
+        "refusal-schema-malformed-variant",
+        "malformed value of the known variant \"{0}\" at \"{1}\": {2}",
+    ),
+    ("refusal-schema-invalid", "{0} at \"{1}\""),
+    (
+        "refusal-schema-company-code-iec",
+        "company colour code \"{0}\" is an IEC 60757 code",
+    ),
+    ("refusal-ident-lang-tag", "not a well-formed BCP 47 language tag"),
+    (
+        "refusal-ident-lang-tag-canonical",
+        "language tag is not canonical (use '-', lower-case language, title-case script, upper-case region, e.g. \"nl-NL\")",
+    ),
+    (
+        "refusal-ident-not-nfc",
+        "text is not in Unicode Normalization Form C",
+    ),
+    ("refusal-ident-empty", "identifier is empty"),
+    (
+        "refusal-ident-whitespace",
+        "identifier has leading or trailing white space",
+    ),
+    ("refusal-ident-control", "identifier contains a control character"),
+    ("refusal-ident-empty-language", "language string is empty"),
+    (
+        "refusal-ident-no-languages",
+        "multilingual text object has no language",
+    ),
+    (
+        "refusal-ident-unsorted-languages",
+        "language keys are not sorted or not unique",
+    ),
+    ("refusal-carrier-rail-points", "a rail is two points, not {0}"),
+    (
+        "refusal-carrier-duct-points",
+        "a duct is at least two points, not {0}",
+    ),
+    ("refusal-carrier-zero-length", "segment {0} has no length"),
+    (
+        "refusal-carrier-diagonal",
+        "segment {0} is neither horizontal nor vertical; carriers are axis-parallel",
+    ),
+    (
+        "refusal-plc-address-profile-gone",
+        "`{0}` is not an address profile of this build or of the project, so an address text cannot be read; give auto, excluded or tbd",
+    ),
+    (
+        "refusal-plc-address-text",
+        "`{0}` is not an address of profile {1}: expected an address like {2}",
+    ),
+    (
+        "refusal-plc-start-profile-gone",
+        "`{0}` is not an address profile of this build or of the project, so a start text cannot be read; give auto, excluded or tbd",
+    ),
+    (
+        "refusal-plc-start-text",
+        "`{0}` is not a start of profile {1}: expected a start like {2}",
+    ),
+    (
+        "refusal-plc-profile-unreadable",
+        "the address profile {0}@{1} cannot be read: {2}",
+    ),
+    ("refusal-major-cp-gone", "CP {0} ({1}) disappears"),
+    (
+        "refusal-major-cp-designation",
+        "CP {0} changes its designation from {1} to {2}",
+    ),
+    ("refusal-major-fndef", "the FnDef changes"),
+    ("refusal-major-category", "the category changes"),
+    (
+        "refusal-major-template",
+        "a template function is added or removed",
+    ),
+    ("refusal-major-macro-variable", "macro variable {0} is removed"),
+    ("refusal-serde-other", "{0}"),
+    // The property grid's own parse errors (FT-1493): a typed value that is not one of its field's type.
+    ("refusal-input-detail", "{0}"),
+    (
+        "refusal-input-scale",
+        "`{0}` is not a scale; type 1:n with n a whole number from 1 to 4294967295",
+    ),
+    ("refusal-input-decimal", "`{0}` is not a decimal number"),
+    ("refusal-input-awg", "`{0}` is not an AWG size"),
+    (
+        "refusal-input-mm",
+        "`{0}` is not a length in millimetres (at most 6 decimals)",
+    ),
+    (
+        "refusal-input-colour-alias",
+        "`{0}` is not a colour code; did you mean {1} {2}? Accepted: {3}",
+    ),
+    (
+        "refusal-input-colour",
+        "`{0}` is not a colour code; accepted: {1}",
+    ),
+    ("refusal-input-colour-none", "give one or two colour codes"),
+    ("refusal-input-colour-count", "a colour has one or two codes"),
+    (
+        "refusal-input-text-control",
+        "a text has no line breaks or control characters",
+    ),
+    ("refusal-input-yes-no", "`{0}` is not yes or no"),
+    ("refusal-input-whole", "`{0}` is not a whole number"),
+    ("refusal-input-range", "{0} is outside {1}..{2}"),
+    (
+        "refusal-input-no-unit",
+        "`{0}` has no unit; units: mm², A, V, Hz, bar, °C, kg, W, m, piece, set",
+    ),
+    ("refusal-input-no-node", "no structure node `{0}` of this aspect"),
+    ("refusal-input-shown", "this field is shown, not edited"),
+    ("refusal-input-json", "not strict JSON: {0}"),
+    ("refusal-input-no-part-copy", "the project has no part copy `{0}`"),
+    ("refusal-input-quantity", "`{0}` is not a quantity above 0"),
+    ("refusal-input-not-a-field", "`{0}` is not a field of {1}"),
+    (
+        "refusal-input-plc-address",
+        "give an address (for example Q0.1), auto, excluded or tbd",
+    ),
+    (
+        "refusal-input-plc-target",
+        "`{0}` names no device with a function to target",
+    ),
+    (
+        "refusal-input-plc-slot",
+        "`{0}` is not a slot; give a number (3), <rack>.<slot> (1.3) or auto",
+    ),
+    (
+        "refusal-input-metres",
+        "`{0}` is not a length in metres (for example 12.5 m)",
+    ),
+    ("refusal-input-too-long", "`{0}` is too long a length"),
+    // A model error a window form can reach (FT-1488): a record still named, a stale step, a duplicate, an invariant by its code; a record by its kind.
+    ("refusal-words-kind-device", "a device"),
+    ("refusal-words-kind-function", "a function"),
+    ("refusal-words-kind-page", "a page"),
+    ("refusal-words-kind-junction", "a junction"),
+    (
+        "refusal-model-referenced",
+        "{0} cannot be removed: {1} still names it",
+    ),
+    (
+        "refusal-model-stale",
+        "the project changed while the edit was being prepared; run it again",
+    ),
+    ("refusal-model-duplicate", "{0} is in the project twice"),
+    (
+        "refusal-model-duplicate-unknown",
+        "two items of the kind {0} have one identity",
+    ),
+    ("refusal-model-invariant", "{0}: {1} ({2})"),
+    ("refusal-model-invariant-bare", "{0}: {1}"),
+    (
+        "refusal-inv-001",
+        "every reference names an item that is in the project",
+    ),
+    ("refusal-inv-002", "a device has exactly one main function"),
+    (
+        "refusal-inv-003",
+        "only an interruption point is a function without a device",
+    ),
+    ("refusal-inv-ci-01", "a wire joins two different ends"),
+    ("refusal-inv-004", "a symbol draws the functions of one device"),
+    (
+        "refusal-inv-005",
+        "a symbol's connection point maps to at most one connection point of a function",
+    ),
+    (
+        "refusal-inv-ci-04",
+        "a junction lists exactly the wires that end at it",
+    ),
+    (
+        "refusal-inv-006",
+        "a conductor's cable is a device with the cable aspect",
+    ),
+    (
+        "refusal-inv-007",
+        "a terminal's strip is a device with the strip aspect",
+    ),
+    (
+        "refusal-inv-008",
+        "a structure node is never its own parent, directly or through others",
+    ),
+    (
+        "refusal-inv-009",
+        "a device is never its own parent in an assembly, directly or through others",
+    ),
+    (
+        "refusal-inv-010",
+        "a device is at most one of a terminal, a strip and a cable",
+    ),
+    ("refusal-inv-011", "a structure node's parent has the same aspect"),
+    ("refusal-inv-012", "a report page is generated, never stored"),
+    ("refusal-inv-013", "an interruption point has exactly one symbol"),
+    (
+        "refusal-inv-014",
+        "a page-oriented report block has a first folio",
+    ),
+    (
+        "refusal-inv-015",
+        "a device never inherits from itself (a terminal from its strip, a device from its parent)",
+    ),
+    ("refusal-inv-016", "at most one revision is open"),
+    ("refusal-inv-017", "revision labels are unique"),
+    ("refusal-inv-018", "a revision's checker is not its author"),
+    ("refusal-inv-019", "a revision notes each page at most once"),
+    (
+        "refusal-inv-020",
+        "a released or withdrawn revision does not change",
+    ),
+    (
+        "refusal-inv-021",
+        "a library copy that an item names stays in the project",
+    ),
+    (
+        "refusal-inv-022",
+        "the page of a page item or a structure box is in the project",
+    ),
+    (
+        "refusal-inv-023",
+        "every wire a wire marker lists is on the marker's page",
+    ),
+    (
+        "refusal-inv-024",
+        "a fluid line joins fluid ports of one medium family",
+    ),
+    (
+        "refusal-rel-label-format",
+        "the label {0} is not in the project's revision label format {1}; give a label in that format{2}",
+    ),
+    (
+        "refusal-rel-label-follow",
+        "the label {0} does not follow revision {1}: revision labels increase in natural order; give a later label{2}",
+    ),
+    (
+        "refusal-rel-label-precede",
+        "the label {0} does not precede {1}, the label of the open revision: revision labels increase in natural order, the open revision last; give an earlier label",
+    ),
+    ("refusal-rel-label-next", "; the next label is {0}"),
+    // A clipboard fragment that does not read (FT-1488): its kind of failure and each line's reason.
+    (
+        "refusal-fragment-not",
+        "the clipboard holds no ElektraWatt fragment",
+    ),
+    (
+        "refusal-fragment-newer",
+        "copied from a newer ElektraWatt, which writes a newer format ({0})",
+    ),
+    ("refusal-fragment-too-large", "the fragment is too large: {0}"),
+    ("refusal-fragment-line", "fragment line {0}: {1}"),
+    ("refusal-fragment-bytes", "{0} bytes, at most {1}"),
+    (
+        "refusal-fragment-line-bytes",
+        "line {0} has {1} bytes, at most {2}",
+    ),
+    ("refusal-fragment-line-depth", "line {0} nests deeper than {1}"),
+    ("refusal-fragment-records", "more than {0} records"),
+    ("refusal-fragment-object", "a line of a fragment is a JSON object"),
+    ("refusal-fragment-header-line", "line 2 is the `$fragment` header"),
+    (
+        "refusal-fragment-older",
+        "copied from an older ElektraWatt format; open and save that project with this version first",
+    ),
+    (
+        "refusal-fragment-kind",
+        "a record of kind {0} is not pasted (only devices, functions, representations, connections, junctions, potential definitions, page items and structure boxes)",
+    ),
+    ("refusal-fragment-id-twice", "the record's ID is listed twice"),
+    ("refusal-fragment-unknown-line", "an unknown `$` line"),
+    ("refusal-fragment-no-kind", "a line without `$k` is no record"),
+    ("refusal-fragment-no-header", "the `$fragment` header is missing"),
+    (
+        "refusal-fragment-header-object",
+        "the `$fragment` header is an object",
+    ),
+    ("refusal-fragment-header-member", "the header has no `{0}`"),
+    ("refusal-fragment-format-text", "`format` is a text"),
+    ("refusal-fragment-format-version", "`format` {0} is no version"),
+    ("refusal-fragment-project", "`project` is a UUID"),
+    (
+        "refusal-fragment-grid",
+        "`grid` is [num, den] of positive integers",
+    ),
+    ("refusal-fragment-page-kind", "`page_kind` is a text"),
+    ("refusal-fragment-anchor", "`anchor` is [x, y] in nm"),
+    ("refusal-fragment-ghost", "`ghost` is a list of [x0, y0, x1, y1]"),
+    ("refusal-fragment-node-object", "`$node` is an object"),
+    (
+        "refusal-fragment-node-members",
+        "`$node` has the members id, aspect, path and aliases",
+    ),
+    (
+        "refusal-fragment-node-needs",
+        "`$node` needs an ID, an aspect and a path",
+    ),
+    ("refusal-fragment-node-aliases", "`aliases` is a list of texts"),
     // assembly.attach, valve.add and device.link.
     (
         "refusal-assembly-position-twice",

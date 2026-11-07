@@ -147,15 +147,23 @@ fn read_part(raw: &Value) -> Result<Part, CmdError> {
             }
             values.push(v);
         }
-        let sorted = ew_schema::KeyedList::from_vec(values)
-            .map_err(|e| bad("/part/tech_data", text!("refusal-params-detail", e.to_string())))?;
+        let sorted = ew_schema::KeyedList::from_vec(values).map_err(|e| {
+            bad(
+                "/part/tech_data",
+                text!("refusal-params-detail", crate::error::schema_error_text(&e)),
+            )
+        })?;
         if sorted.is_empty() {
             map.remove("tech_data");
         } else {
             map.insert(
                 "tech_data".into(),
-                serde_json::to_value(&sorted)
-                    .map_err(|e| bad("/part/tech_data", text!("refusal-params-detail", e.to_string())))?,
+                serde_json::to_value(&sorted).map_err(|e| {
+                    bad(
+                        "/part/tech_data",
+                        text!("refusal-params-detail", crate::error::serde_error_text(&e)),
+                    )
+                })?,
             );
         }
     }

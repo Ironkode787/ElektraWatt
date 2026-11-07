@@ -220,7 +220,7 @@ static REPORT_NEW: Spec = Spec {
 };
 
 /// A report kind in the window's words (`report-kind-<kind>`).
-fn report_kind_words(kind: &str) -> String {
+pub(super) fn report_kind_words(kind: &str) -> String {
     strings::lookup(&format!("report-kind-{}", kind.replace('_', "-")))
         .unwrap_or(kind)
         .to_owned()

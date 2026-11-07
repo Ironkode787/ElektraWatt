@@ -1292,6 +1292,37 @@ pub(crate) fn rejected_words(reason: &str, text: Option<&ew_api::Text>) -> Strin
     text.map_or_else(|| reason.to_owned(), words)
 }
 
+/// A prevent rule's refusal in the window's language, after its rule code (FT-1488, ID-1457): a finding of the
+/// commands' own by its key, a finding of the check catalogue by the rule's message rendered from its arguments, else
+/// the finding as it prints.
+pub(crate) fn prevented_words(
+    rule: &str,
+    finding: &str,
+    args: &[(&'static str, String)],
+    text: Option<&ew_api::Text>,
+) -> String {
+    let words = match (text, ew_api::checks::rule(rule)) {
+        (Some(t), _) => rejected_words(finding, Some(t)),
+        (None, Some(r)) if !args.is_empty() => {
+            let f = args.iter().fold(
+                ew_api::checks::Finding::new(r.meta(), std::iter::empty(), "", "", finding),
+                |f, (k, v)| f.arg(k, v.clone()),
+            );
+            ew_api::checks::messages::render(&f, strings::rule_language())
+        }
+        _ => finding.to_owned(),
+    };
+    format!("{rule}: {words}")
+}
+
+/// A command error that is neither an invalid parameter nor a command's refusal in the window's language, as
+/// [`command_error_text`] words it (FT-1488): the property grid's and Find's refusals read it.
+pub(crate) fn command_error_words(e: &CmdError) -> String {
+    let (key, args) = command_error_text(e);
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    strings::format(key, &args)
+}
+
 /// The keys [`command_error_text`] renders a command error by, one per reason (FT-1337): a test checks each has its
 /// text in both languages with the same arguments.
 #[cfg(test)]
@@ -1304,6 +1335,10 @@ const COMMAND_ERROR_KEYS: &[&str] = &[
     "error-command-needs-preview",
     "error-command-history",
     "error-command-internal",
+    "error-history-checkpoint",
+    "error-history-changed",
+    "reason-nothing-to-undo",
+    "reason-nothing-to-redo",
 ];
 
 /// The key and the arguments of a command error that is neither an invalid parameter nor a command's refusal
@@ -1325,9 +1360,39 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
         },
         CmdError::NeedsPreview { command } => (key!("error-command-needs-preview"), vec![title(command)]),
         // A prevent rule's and the model's own words, after their rule code (`EW-CORE-052: …`), which the IP tool and
-        // the card read.
-        CmdError::Prevented { .. } | CmdError::Model(_) => (key!("error-command"), vec![e.to_string()]),
-        CmdError::History { reason } => (key!("error-command-history"), vec![reason.clone()]),
+        // the card read; FT-1488 (ID-1457): in the window's language.
+        CmdError::Prevented {
+            rule,
+            finding,
+            args,
+            text,
+            ..
+        } => (
+            key!("error-command"),
+            vec![prevented_words(rule, finding, args, text.as_deref())],
+        ),
+        CmdError::Model(m, text) => (
+            key!("error-command"),
+            vec![
+                text.as_deref()
+                    .map_or_else(|| m.to_string(), |t| rejected_words("", Some(t))),
+            ],
+        ),
+        CmdError::History { block, .. } => match block {
+            ew_api::HistoryBlock::NothingToUndo => (key!("reason-nothing-to-undo"), Vec::new()),
+            ew_api::HistoryBlock::NothingToRedo => (key!("reason-nothing-to-redo"), Vec::new()),
+            ew_api::HistoryBlock::Checkpoint { label } => (
+                key!("error-command-history"),
+                vec![strings::format(
+                    key!("error-history-checkpoint"),
+                    &[&title(label)],
+                )],
+            ),
+            ew_api::HistoryBlock::Changed { label } => (
+                key!("error-command-history"),
+                vec![strings::format(key!("error-history-changed"), &[&title(label)])],
+            ),
+        },
         CmdError::Internal { reason } => (key!("error-command-internal"), vec![reason.clone()]),
         CmdError::InvalidParams { message, text, .. } => (
             key!("error-command"),
@@ -1445,6 +1510,88 @@ mod ft779 {
         );
     }
 
+    /// FT-1494 (ID-1457): another crate's error under `refusal-params-detail` (here serde's) reads in a
+    /// Dutch window, the error keeping its English for the CLI.
+    #[test]
+    fn another_crates_detail_reads_in_a_dutch_window() {
+        let serde = serde_json::from_value::<u32>(serde_json::json!("x")).unwrap_err();
+        let e = CmdError::invalid_params(
+            "fields.set",
+            "/value",
+            keyed(
+                "refusal-params-detail",
+                vec![ew_api::serde_error_text(&serde).into()],
+            ),
+        );
+        assert_eq!(
+            e.to_string(),
+            "fields.set: invalid parameters at `/value`: invalid type: string \"x\", expected u32"
+        );
+        assert!(strings::set_locale("nl"));
+        let nl = command_error_text(&e).1;
+        assert!(strings::set_locale("en"));
+        assert_eq!(
+            nl,
+            vec![
+                "ongeldige invoer: ongeldig type: de tekst \"x\", verwacht: een geheel getal (u32)"
+                    .to_owned()
+            ]
+        );
+    }
+
+    /// FT-1488 (ID-1457): a prevent rule's refusal reads in the window's language, the rule's message rendered from the
+    /// finding's arguments after its code (which the IP tool reads); a history block by its own words; the errors keep
+    /// their English for the CLI.
+    #[test]
+    fn a_prevented_edit_and_a_history_block_read_in_a_dutch_window() {
+        let finding = "interruption point 0V: 2 source points and no star source; set all but one to target, or flag \
+                       one as the star source";
+        let prevented = CmdError::Prevented {
+            rule: "EW-CORE-052".into(),
+            finding: finding.into(),
+            keys: Vec::new(),
+            args: vec![
+                ("name", "0V".to_owned()),
+                ("form", "sources".to_owned()),
+                ("count", "2".to_owned()),
+            ]
+            .into(),
+            text: None,
+        };
+        let checkpoint = CmdError::History {
+            reason: "`revision.release` is a non-undoable checkpoint; nothing before it can be undone".into(),
+            block: ew_api::HistoryBlock::Checkpoint {
+                label: "revision.release".into(),
+            },
+        };
+        let nothing = CmdError::History {
+            reason: "nothing to undo".into(),
+            block: ew_api::HistoryBlock::NothingToUndo,
+        };
+        let words = || [&prevented, &checkpoint, &nothing].map(|e| message(command_failed(e, &Value::Null)));
+        let en = words();
+        assert!(strings::set_locale("nl"));
+        let nl = words();
+        assert!(strings::set_locale("en"));
+        assert_eq!(prevented.to_string(), format!("EW-CORE-052: {finding}"));
+        assert_eq!(en[0], format!("EW-CORE-052: {finding}"));
+        let release = strings::command_title("revision.release");
+        assert_eq!(
+            en[1],
+            format!(
+                "Undo or redo cannot apply: {release} is a checkpoint that cannot be undone; nothing before it can be \
+                 undone"
+            )
+        );
+        assert_eq!(en[2], "Nothing to undo");
+        assert_eq!(
+            nl[0],
+            "EW-CORE-052: onderbrekingspunt 0V: 2 bronpunten en geen sterbron; maak ze op één na tot doel, of markeer \
+             er één als sterbron"
+        );
+        assert_eq!(nl[2], "Niets om ongedaan te maken");
+    }
+
     /// The `{ $pN }` arguments of the message `key` in the Fluent source `ftl`; `None` when it has no such message.
     fn arguments(ftl: &str, key: &str) -> Option<Vec<String>> {
         let line = ftl
@@ -1476,7 +1623,14 @@ mod ft779 {
             CmdError::NeedsPreview {
                 command: "part.assign".into(),
             },
-            CmdError::History { reason: "r".into() },
+            CmdError::History {
+                reason: "r".into(),
+                block: ew_api::HistoryBlock::NothingToUndo,
+            },
+            CmdError::History {
+                reason: "r".into(),
+                block: ew_api::HistoryBlock::Checkpoint { label: "x.y".into() },
+            },
             CmdError::Internal { reason: "r".into() },
         ];
         for e in &errors {

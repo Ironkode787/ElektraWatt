@@ -340,7 +340,7 @@ fn the_state_is_not_settable_and_invariants_hold() {
     // EW-INV-017 holds for fields.set too.
     let label = e.execute(&set(&[v2], "label", json!("V1.0"))).unwrap_err();
     assert!(
-        matches!(&label, CmdError::Model(ew_model::ModelError::Invariant { id, .. }) if *id == ew_model::REVISION_LABEL_UNIQUE),
+        matches!(&label, CmdError::Model(ew_model::ModelError::Invariant { id, .. }, _) if *id == ew_model::REVISION_LABEL_UNIQUE),
         "{label:?}"
     );
     let missing = e

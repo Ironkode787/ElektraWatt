@@ -857,6 +857,8 @@ mod tests {
         ("choice-m", "L, N and M are potential types"),
         ("choice-n", "L, N and M are potential types"),
         ("report-kind-io-list", "I/O are the inputs and outputs"),
+        ("refusal-ident-not-nfc", "C is Unicode's Normalization Form C"),
+        ("refusal-input-no-unit", "V, W and °C are units"),
         ("column-size", "W × H are the width and the height"),
         ("field-word-b", "a geometry member's letter"),
         ("field-word-r", "a geometry member's letter"),
