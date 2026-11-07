@@ -988,19 +988,19 @@ impl EditorView {
                 if editor.variant != 0 { painter.text(rect.left_top()+Vec2::splat(t.space_3),egui::Align2::LEFT_TOP,label(strings::Key::run_time("symbol-edit-a")),theme::font(&t.type_body),t.canvas_selection.color32()); }
                 if editor.variant == 0 && self.tool == 0 {
                     if response.clicked() && let Some(pointer)=response.interact_pointer_pos() {
-                        self.selected=pick_graphic(draft,(pointer-origin)/self.zoom,t.space_2/self.zoom);
+                        self.selected=pick_graphic(draft,(pointer-origin)/self.zoom,t.space_2/self.zoom,&styles);
                     }
                     // M25-p3#3: a drag moves the shape under its start, which it selects; a drag that starts on no
                     // shape moves nothing.
                     if response.drag_started_by(egui::PointerButton::Primary) {
                         let press = ui.input(|i| i.pointer.press_origin());
                         self.move_start = None;
-                        if let Some(start) = press && let Some(index) = pick_graphic(draft,(start-origin)/self.zoom,t.space_2/self.zoom) {
+                        if let Some(start) = press && let Some(index) = pick_graphic(draft,(start-origin)/self.zoom,t.space_2/self.zoom,&styles) {
                             self.selected = Some(index);
                             self.move_start = Some(start);
                         }
                     }
-                    if let Some(index)=self.selected && let Some(bounds)=graphic_bounds(draft,index) {
+                    if let Some(index)=self.selected && let Some(bounds)=graphic_bounds(draft,index,&styles) {
                         let lo=origin+Vec2::new(bounds[0],bounds[1])*self.zoom;
                         let hi=origin+Vec2::new(bounds[2],bounds[3])*self.zoom;
                         painter.rect_stroke(egui::Rect::from_two_pos(lo,hi).expand(t.space_1),t.radius_none,Stroke::new(t.border_width,t.canvas_selection.color32()),egui::StrokeKind::Outside);
@@ -2057,13 +2057,18 @@ fn slot_kind_control(ui: &mut Ui, index: &mut usize, pin: &mut u16) {
         });
     }
 }
-fn graphic_bounds(draft: &SymbolDraft, index: usize) -> Option<[f32; 4]> {
+/// The bounds of graphic `index` in millimetres: as drawn, a text's glyphs included (ID-1477 (3)), else as the preview
+/// bounds it.
+fn graphic_bounds(draft: &SymbolDraft, index: usize, styles: &symbols::TextStyleTable) -> Option<[f32; 4]> {
     let mut d = draft.clone();
     d.symbol.graphics = vec![d.symbol.graphics.get(index)?.clone()];
     d.symbol.cps = Default::default();
     d.symbol.text_slots.clear();
     d.symbol.link_points.clear();
-    let b = d.preview(0).ok()?.bounds;
+    let g = d.preview(0).ok()?;
+    let b = symbols::preview_display_list(&d, &g, styles, &|_| String::new())
+        .bounds()
+        .unwrap_or(g.bounds);
     Some([
         b.min().x.0 as f32 / 1e6,
         b.min().y.0 as f32 / 1e6,
@@ -2071,12 +2076,18 @@ fn graphic_bounds(draft: &SymbolDraft, index: usize) -> Option<[f32; 4]> {
         b.max().y.0 as f32 / 1e6,
     ])
 }
-fn pick_graphic(draft: &SymbolDraft, p: Vec2, slop: f32) -> Option<usize> {
-    (0..draft.symbol.graphics.len()).rev().find(|&i| {
-        graphic_bounds(draft, i).is_some_and(|b| {
-            p.x >= b[0] - slop && p.y >= b[1] - slop && p.x <= b[2] + slop && p.y <= b[3] + slop
+/// The graphic under `p`: the smallest whose bounds (widened by `slop`) hold it, so a text is picked before the
+/// rectangle behind it (ID-1477 (3)); of equally small ones the topmost.
+fn pick_graphic(draft: &SymbolDraft, p: Vec2, slop: f32, styles: &symbols::TextStyleTable) -> Option<usize> {
+    (0..draft.symbol.graphics.len())
+        .rev()
+        .filter_map(|i| {
+            let b = graphic_bounds(draft, i, styles)?;
+            let under = p.x >= b[0] - slop && p.y >= b[1] - slop && p.x <= b[2] + slop && p.y <= b[3] + slop;
+            under.then_some(((b[2] - b[0]) * (b[3] - b[1]), i))
         })
-    })
+        .min_by(|a, b| a.0.total_cmp(&b.0))
+        .map(|(_, i)| i)
 }
 fn translate_graphic(v: &mut Value, dx: i64, dy: i64) {
     fn points(v: &mut Value, dx: i64, dy: i64) {
@@ -2322,6 +2333,27 @@ mod tests {
         );
         assert_eq!(commits, 1);
         assert!(value >= 10.0, "a slow drag stalls: {value}");
+    }
+
+    /// ID-1477 (3): a click on a text's glyphs, drawn before the rectangle around it, picks the text, the smaller item;
+    /// a click inside the rectangle elsewhere picks the rectangle.
+    #[test]
+    fn a_click_picks_the_smallest_item_under_the_pointer() {
+        let styles = ew_viewmodel::ew_api::output::new_project_text_style_table();
+        let draft = SymbolDraft::new("example.pick", "Pick").unwrap();
+        let mut doc = serde_json::to_value(&draft).unwrap();
+        doc["symbol"]["graphics"] = json!([
+            {"text": {"pos": [10_000_000, 10_000_000], "text": {"en": "K1"}, "align": "centre", "style": "cp.small"}},
+            {"rect": {"rect": [[0, 0], [20_000_000, 20_000_000]], "stroke": {"pen": "p026"}}},
+        ]);
+        let draft = SymbolDraft::parse(&serde_json::to_vec(&doc).unwrap()).unwrap();
+        let text = graphic_bounds(&draft, 0, &styles).unwrap();
+        assert!(text[2] - text[0] > 1.0, "the glyphs' width: {text:?}");
+        // On the glyphs, away from the text's anchor point by more than the slop.
+        let on_glyphs = Vec2::new(text[2] - 0.2, 10.0);
+        assert_eq!(pick_graphic(&draft, on_glyphs, 0.1, &styles), Some(0));
+        assert_eq!(pick_graphic(&draft, Vec2::new(3.0, 17.0), 0.1, &styles), Some(1));
+        assert_eq!(pick_graphic(&draft, Vec2::new(30.0, 30.0), 0.1, &styles), None);
     }
 
     #[test]
