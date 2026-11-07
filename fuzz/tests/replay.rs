@@ -360,8 +360,14 @@ fn the_open_path_oracle_accepts_a_violation_of_a_dropped_copys_referrer() {
         message: "m".into(),
         keys,
     };
-    let dangling = invariant(ew_model::REFS_RESOLVE, vec![(Kind::Function, function), (Kind::Fndef, fndef)]);
-    let follows = invariant(ew_model::FLUID_LINES, vec![(Kind::Connection, line), (Kind::Function, function)]);
+    let dangling = invariant(
+        ew_model::REFS_RESOLVE,
+        vec![(Kind::Function, function), (Kind::Fndef, fndef)],
+    );
+    let follows = invariant(
+        ew_model::FLUID_LINES,
+        vec![(Kind::Connection, line), (Kind::Function, function)],
+    );
     let unrelated = invariant(
         ew_model::FLUID_LINES,
         vec![(Kind::Connection, other_line), (Kind::Function, other_function)],
