@@ -1331,7 +1331,11 @@ mod tests {
         let mut bare = Vec::new();
         for file in &files {
             let text = std::fs::read_to_string(root.join(file)).unwrap();
-            bare.extend(starts_without_content(&text).into_iter().map(|n| format!("{file}:{n}")));
+            bare.extend(
+                starts_without_content(&text)
+                    .into_iter()
+                    .map(|n| format!("{file}:{n}")),
+            );
         }
         assert!(
             bare.is_empty(),
@@ -1341,7 +1345,9 @@ mod tests {
                       cmd.env(\"EW_CONTENT_DIR\", CONTENT);\n    cmd\n}\n";
         assert!(starts_without_content(shared).is_empty());
         assert_eq!(
-            starts_without_content("fn run() -> Output {\n    Command::new(bin_exe())\n        .output()\n}\n"),
+            starts_without_content(
+                "fn run() -> Output {\n    Command::new(bin_exe())\n        .output()\n}\n"
+            ),
             [2]
         );
         assert!(starts_without_content("fn git() {\n    Command::new(\"git\").output();\n}\n").is_empty());

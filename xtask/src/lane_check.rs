@@ -1312,9 +1312,13 @@ fn names_path(code: &str, path: &str) -> bool {
     let mut segments = path.split('/');
     let first = segments.next().unwrap_or_default();
     let second = segments.next();
-    if [format!("\"{first}\""), format!("../{first}\""), format!("}}/{first}\"")]
-        .iter()
-        .any(|p| code.contains(p.as_str()))
+    if [
+        format!("\"{first}\""),
+        format!("../{first}\""),
+        format!("}}/{first}\""),
+    ]
+    .iter()
+    .any(|p| code.contains(p.as_str()))
     {
         return true;
     }
@@ -1348,10 +1352,7 @@ fn code_lines(text: &str) -> String {
         };
         let d = raw.trim_start();
         let run = |c: char| d.chars().take_while(|x| *x == c).count();
-        let opens = ['`', '~']
-            .into_iter()
-            .map(|c| (c, run(c)))
-            .find(|(_, n)| *n >= 3);
+        let opens = ['`', '~'].into_iter().map(|c| (c, run(c))).find(|(_, n)| *n >= 3);
         match (fence, opens) {
             (Some((c, n)), Some((o, m))) if o == c && m >= n && d[m..].trim().is_empty() => fence = None,
             (Some(_), _) => out.push(line),
@@ -3293,7 +3294,10 @@ mod tests {
             "fixtures/other/a.ew",
             "crates/ew-commands/schemas/nested/a.json",
         ] {
-            assert!(!policy_commands(&diff(&[file], &[]), BASE).contains(&guard), "{file}");
+            assert!(
+                !policy_commands(&diff(&[file], &[]), BASE).contains(&guard),
+                "{file}"
+            );
         }
     }
 
@@ -4193,7 +4197,13 @@ mod tests {
             from_memory(records, step, Some(&now), false, &mut tool, &mut docs_only, skips)
         };
         assert!(from(&mut records, &step, &mut skips).is_none());
-        record_step(&mut records, &step, "ok", Some(&key("0ld7ree")), &mut |_: &str| None);
+        record_step(
+            &mut records,
+            &step,
+            "ok",
+            Some(&key("0ld7ree")),
+            &mut |_: &str| None,
+        );
         let outcome = from(&mut records, &step, &mut skips).unwrap();
         assert_eq!(
             (outcome.name, outcome.status, outcome.why.as_deref()),
