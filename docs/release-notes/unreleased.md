@@ -7,10 +7,14 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-variant`, `text-change`.
 
+- api-add: page.new takes `grid` (mm4 or qet_10px), the window's New page its Connection grid, the current page's by
+  default; a page's Connection grid is a choice in Properties; picker.new_page places the Insert symbol picker's symbol
+  on another grid on a new page with its grid (ID-1477)
+- behaviour-change: fields.set of a page's grid is refused while the page holds any item (ID-1477)
 - api-add: window Symbol editor (Edit ▸ Symbol editor…): drawing with fills and text styles, connection points on
   the native grid, function data with drag or list pin mapping, text slots, anchors, link points, live A–H previews,
   publication to a library whose folder the window remembers and whose symbols appear under Draw ▸ Place ▸ Symbol…
-  on the matching grid, and test placement on a scratch page; F1 opens the editor's reference
+  on the matching grid, and test placement on a new page; F1 opens the editor's reference
 - api-add: symbol.* actions for scripts and AI tools, the window's own (symbol.new to symbol.scratch, symbol.map_cp
   for pin mapping, symbol.role for a connection point's potential role); symbol.fork and symbol.function take explicit library/item sources
 - api-add: window File ▸ Save project (file.save_project): while the symbol editor shows, Ctrl+S and File ▸ Save

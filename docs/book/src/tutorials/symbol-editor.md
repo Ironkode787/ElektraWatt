@@ -2,7 +2,7 @@
 
 In this tutorial you draw a reusable symbol: a power block with six connections, designated 1 to 5 and FE. You check
 it on the connection grid, preview its eight orientations, save it to a library, keep a portable copy of the draft and
-test the symbol on a scratch page of a project. At the end you have a library with the symbol and a saved project
+test the symbol on a new page of a project. At the end you have a library with the symbol and a saved project
 with a test copy, ready to wire.
 
 ## What you need
@@ -34,7 +34,7 @@ with a test copy, ready to wire.
    folder is a library in your user library folder. The status bar says **Saved**.
 9. Under **Open or import**, type `power.symbol.json` as the **Symbol file** and choose **Export draft**; it is written
    beside the library. The file is the portable draft, with the identity the save gave it.
-10. Choose **Test on scratch page**.
+10. Choose **Test on a new page**.
     The editor makes way for a new page with a test copy of the symbol selected, ready to wire.
 11. Choose **File ▸ Save** (`Ctrl+S`).
     The title bar no longer marks the project as changed.

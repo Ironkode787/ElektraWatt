@@ -1363,7 +1363,7 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
     );
     d.input(&click(d.find("Save to library").unwrap()));
     assert!(!d.shell_mut().symbol_editor().unwrap().dirty());
-    d.input(&click(d.find("Test on scratch page").unwrap()));
+    d.input(&click(d.find("Test on a new page").unwrap()));
     // ID-1463: the editor's view closes itself; the page shows with the test copy selected, the draft kept behind
     // Back to the editor.
     assert!(d.shell_mut().symbol_editor().is_none());

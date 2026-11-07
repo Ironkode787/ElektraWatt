@@ -796,6 +796,48 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// `picker.new_page` (ID-1477 (1)): the current row, a symbol on another connection grid than the page's, placed on
+    /// a new page with its grid and selected; the picker closes.
+    pub(crate) fn act_picker_new_page(&mut self) -> Outcome {
+        let Some(picker) = &self.tools.picker else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-picker"),
+            };
+        };
+        let symbol = match picker.rows.get(picker.row) {
+            Some(PickerRow::Symbol(i)) => picker.catalogue.symbols.get(*i),
+            _ => None,
+        };
+        let Some((key, letter, [(num, den), _])) =
+            symbol.and_then(|s| Some((s.key.clone(), s.letter.clone(), s.grid_mismatch?)))
+        else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-grid-mismatch"),
+            };
+        };
+        self.tools.picker = None;
+        if let Err(message) = self.new_page_with_grid(json!({"num": num, "den": den}), None) {
+            return Outcome::Failed { message };
+        }
+        let letter = letter.unwrap_or_else(|| "U".to_owned());
+        for (action, params) in [
+            ("place.pick", json!({"symbol": key, "letter": letter})),
+            ("cursor.set", json!({"x_mm": 40, "y_mm": 40})),
+            ("canvas.activate", json!({})),
+        ] {
+            let out = self.dispatch(action, &params);
+            if out != Outcome::Done {
+                return out;
+            }
+        }
+        let placed = self.tools.last_primary.clone();
+        let _ = self.dispatch("ui.dismiss", &json!({}));
+        if let Some(id) = placed {
+            return self.dispatch("select.set", &json!({ "ids": [id] }));
+        }
+        Outcome::Done
+    }
+
     /// `picker.choose`: the current row (§7.1).
     pub(crate) fn act_picker_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(picker) = &self.tools.picker else {

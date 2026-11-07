@@ -22,7 +22,7 @@ Each tutorial runs as a test of EW's own build, so its steps, menu paths and key
    read, its missing wire drawn and its parts chosen, until the report holds only the record of the import. You need
    EW installed and the tutorial's file [lamp-circuit.qet](files/lamp-circuit.qet).
 5. [Draw a six-pin power block](symbol-editor.md): a power block drawn in the symbol editor, checked on the
-   connection grid, its eight orientations previewed, saved to a library and tested on a scratch page. You need EW
+   connection grid, its eight orientations previewed, saved to a library and tested on a new page. You need EW
    installed and an empty folder.
 6. [A first headless run on the golden project](headless-workflow.md): check a project, write its pages as PDF and
    SVG, export the cable list and the bill of materials, and query it with SQL, all from the terminal with the `ew`

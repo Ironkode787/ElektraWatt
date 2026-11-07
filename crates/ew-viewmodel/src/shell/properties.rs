@@ -93,6 +93,16 @@ const SURFACE_ROW: &str = "page/derived.surface";
 const PRINTED_LABEL_ROW: &str = "device/derived.printed_label";
 /// WP-S2.18 D3 (FT-628): the key of a device's Tag row.
 const TAG_ROW: &str = "device/derived.tag";
+/// ID-1477 (1): a page's Connection grid row, a choice of the grids New page offers, in their words.
+const GRID_ROW: &str = "page/grid";
+
+/// The choices of the Connection grid row: each grid of `PAGE_GRIDS` in its words, with its value.
+fn grid_choices() -> Vec<(String, Value)> {
+    super::creation::PAGE_GRIDS
+        .iter()
+        .filter_map(|w| Some((strings::choice_text(w), super::creation::page_grid_value(w)?)))
+        .collect()
+}
 
 /// FT-633: the grid row and value of a tag typed for a device whose tag on show is `shown` (letter `letter`, counter
 /// `counter`) when the typed text changes exactly one of the two and keeps the rest: `-102F1` → `-102K1` is the Letter
@@ -730,6 +740,8 @@ impl ShellModel {
                         text.clone()
                     }
                 }
+                // ID-1477 (1): the Connection grid is edited in its words ("4 mm"), as its choices show it.
+                (RowValue::One { text, .. }, None) if row.key == GRID_ROW => text.clone(),
                 // FT-1019 (ID-1107): a JSON value shown in words (a scale's `1:10`, a length's `12.5 m`) is edited in
                 // those words, which its parser reads back.
                 (RowValue::One { json, text }, None)
@@ -763,7 +775,7 @@ impl ShellModel {
         self.props.choices = None;
         self.props.popup = None;
         // A choice editor lists its options (§6.5).
-        if crate::properties::has_options(&row.ty) {
+        if crate::properties::has_options(&row.ty) || row.key == GRID_ROW {
             self.props.choices = self.options(&section, &row, "", key);
         }
         Outcome::Done
@@ -777,6 +789,13 @@ impl ShellModel {
         // project's surfaces), each its own text.
         let mut details = Vec::new();
         let items: Vec<(String, Value)> = match (&row.route, row.ty.inner()) {
+            _ if row.key == GRID_ROW => {
+                let f = filter.to_lowercase();
+                grid_choices()
+                    .into_iter()
+                    .filter(|(text, _)| text.to_lowercase().contains(&f))
+                    .collect()
+            }
             // FT-1478: an address profile by its name, its reference as the secondary line; choosing one commits the
             // reference.
             (crate::properties::EditRoute::Command { command }, _) if command == "plc.set_profile" => {
@@ -1000,6 +1019,15 @@ impl ShellModel {
         // WP-S2.07 D13: a terminal's Group row compiles through `Session::strip_edit` (D8).
         if row.key == GROUP_ROW {
             return self.commit_group_label(&section, &row, text);
+        }
+        // ID-1477 (1): a Connection grid typed in its words is that grid.
+        if row.key == GRID_ROW
+            && let Some((_, value)) = grid_choices()
+                .into_iter()
+                .find(|(words, _)| words.eq_ignore_ascii_case(text.trim()))
+        {
+            self.props.choices = None;
+            return self.commit_value(key, value, text.to_owned(), Vec::new());
         }
         // FT-1258: a word of an enumerated row is read back as its stored word.
         let typed = crate::properties::enum_value_of(&section.kind, &row, text);

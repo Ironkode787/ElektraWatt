@@ -96,6 +96,9 @@ pub struct SymbolEditor {
     pub tool: &'static str,
     /// Last operation's error, also shown under the editor controls.
     pub error: Option<String>,
+    /// Whether that error is the page's other connection grid, which offers Place on a new page with its grid
+    /// (ID-1477 (1)).
+    pub offer_new_page: bool,
     /// Suggested writable library directory.
     pub directory: String,
     /// Other drawings recovered from the same input; selecting one is an explicit replacement.
@@ -119,6 +122,7 @@ impl SymbolEditor {
             variant: 0,
             tool: TOOLS[0],
             error: None,
+            offer_new_page: false,
             directory,
             candidates: Vec::new(),
             sources: Vec::new(),
@@ -283,6 +287,9 @@ impl ShellModel {
         {
             return self.need_path(name, prompt, param, p);
         }
+        if let Some(editor) = &mut self.symbol_editor {
+            editor.offer_new_page = false;
+        }
         let result = self.symbol_operation(action, p);
         match result {
             Ok(()) => {
@@ -337,6 +344,30 @@ impl ShellModel {
             "symbol",
             Some((NoteAction::BackToEditor, Validity::SymbolDraft)),
         );
+    }
+
+    /// A new page with the connection grid `grid` (`{num, den}`), at the first free whole folio, titled `title`, then
+    /// shown: Test on a new page's and Place on a new page with its grid's page (ID-1477 (1)).
+    pub(crate) fn new_page_with_grid(&mut self, grid: Value, title: Option<String>) -> Result<(), String> {
+        let labels = self.page_labels();
+        let mut index = 1;
+        while labels.iter().any(|l| l == &index.to_string()) {
+            index += 1;
+        }
+        let mut params = json!({"number":index,"grid":grid});
+        if let Some(title) = title {
+            params["title"] = json!(title);
+        }
+        match self.host_create("page.create", params) {
+            Outcome::Done => {}
+            Outcome::Failed { message } => return Err(message),
+            Outcome::Refused { reason_key } => return Err(strings::text(reason_key).into()),
+        }
+        if let Some(id) = self.tools.last_primary.clone() {
+            self.tools.selection.clear();
+            self.show_page_by_id(&id);
+        }
+        Ok(())
     }
 
     fn symbol_operation(&mut self, action: &str, p: &Map<String, Value>) -> Result<(), String> {
@@ -501,22 +532,9 @@ impl ShellModel {
                 .as_ref()
                 .ok_or_else(|| strings::text(key!("reason-no-project")).to_owned())?;
             draft.check_function(project.session.libraries()).map_err(err)?;
-            let labels = self.page_labels();
-            let mut index = 1;
-            while labels.iter().any(|l| l == &index.to_string()) {
-                index += 1;
-            }
             let title = strings::format(key!("symbol-scratch-title"), &[&name_words(&draft.symbol.name)]);
-            let params = json!({"number":index,"title":title,"grid":draft.symbol.grid});
-            match self.host_create("page.create", params) {
-                Outcome::Done => {}
-                Outcome::Failed { message } => return Err(message),
-                Outcome::Refused { reason_key } => return Err(strings::text(reason_key).into()),
-            }
-            if let Some(id) = self.tools.last_primary.clone() {
-                self.tools.selection.clear();
-                self.show_page_by_id(&id);
-            }
+            let grid = json!(draft.symbol.grid);
+            self.new_page_with_grid(grid, Some(title))?;
             return self.symbol_operation("place", json!({"x":40,"y":40}).as_object().ok_or_else(damaged)?);
         }
         let configured_libraries = self.configured_libraries();
@@ -1051,8 +1069,18 @@ impl ShellModel {
                     .canvas()
                     .ok_or_else(|| strings::text(key!("reason-no-page")).to_owned())?;
                 let snapper = &canvas.page().snapper;
-                if snapper.grid() != (draft.symbol.grid.num() as i64, draft.symbol.grid.den() as i64) {
-                    return Err(strings::text(key!("symbol-page-grid-mismatch")).into());
+                let (num, den) = snapper.grid();
+                if (num, den) != (draft.symbol.grid.num() as i64, draft.symbol.grid.den() as i64) {
+                    // ID-1477 (1): the picker's words, both grids named; the editor then offers Place on a new page
+                    // with its grid.
+                    let words = crate::tools::grid_words([
+                        (draft.symbol.grid.num(), draft.symbol.grid.den()),
+                        (num.unsigned_abs(), den.unsigned_abs()),
+                    ]);
+                    if let Some(editor) = &mut self.symbol_editor {
+                        editor.offer_new_page = true;
+                    }
+                    return Err(words);
                 }
                 let pos = snapper
                     .snap_grid(snapper.page_to_sheet((nm(p, "x")?, nm(p, "y")?)))

@@ -1088,14 +1088,14 @@ is `#[ignore]`d (not measured, the owner's rule).
 
 *As built (cycle 53, WP-S2.10, milestone M2.5; decision log ID-1402, ID-1463).* The **Symbol editor** opens from
 Edit ▸ Symbol editor… (`symbol.new`) and takes the place of the page, with its own command bar (the drawing tools,
-Save to library, Open or import, Test on scratch page, Close editor) and three panels: Drawing, Electrical data and
+Save to library, Open or import, Test on a new page, Close editor) and three panels: Drawing, Electrical data and
 Library. Its canvas is on the symbol's grid: a click places a connection point on the 4 mm connection grid, a graphic
 on 0.5 mm and a text on 1 mm ([07a](07a-symbol-design-standard.md)); a point typed off the grid stays visible as an
 error and blocks the save. The FnDef panel is Electrical data: the function's type and pins with their potential
 roles and flags, and Pin mapping, where a function pin is dragged onto a connection point or chosen from its list
 (`symbol.map_cp`), an occupied compatible pin swapping in one undo step; Assign function takes an existing FnDef. The
 live A–H strip is Variants, drawn through the placement's own lowering. The lint panel is Validation: the editor's
-validation, shared with `ew symbol validate`, not WP-S7.04's library lint. "Test place" is Test on scratch page
+validation, shared with `ew symbol validate`, not WP-S7.04's library lint. "Test place" is Test on a new page
 (`symbol.scratch`): a new page on the symbol's grid with an embedded test copy, one undo step for the page and one for
 the placement. "Fork from QET import" is Fork existing symbol in the Library panel, over project copies and installed
 libraries; Open or import reads QElectroTech `.elmt`, EPLAN EDZ/PXF and the supported SLK subset into a draft with

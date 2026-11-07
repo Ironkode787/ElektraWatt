@@ -50,6 +50,27 @@ pub const PAGE_TYPES: &[&str] = &[
     "external_document",
 ];
 
+/// The connection grids `page.new` gives a page (ID-1477 (1)): the native 4 mm grid and QET's 10 px, as `Grid::MM4` and
+/// `Grid::QET_10PX`. The signature of the action lists the same words (a test compares them).
+pub const PAGE_GRIDS: &[&str] = &["mm4", "qet_10px"];
+
+/// The grid of a word of [`PAGE_GRIDS`] as `page.create` takes it (`{num, den}` nanometres per step).
+pub(crate) fn page_grid_value(word: &str) -> Option<Value> {
+    match word {
+        "mm4" => Some(json!({"num": 4_000_000, "den": 1})),
+        "qet_10px" => Some(json!({"num": 7_937_500, "den": 3})),
+        _ => None,
+    }
+}
+
+/// The word of [`PAGE_GRIDS`] of a grid of `num` nanometres per `den` steps, `None` for any other grid.
+pub(crate) fn page_grid_word(num: i64, den: i64) -> Option<&'static str> {
+    PAGE_GRIDS
+        .iter()
+        .copied()
+        .find(|w| page_grid_value(w) == Some(json!({"num": num, "den": den})))
+}
+
 /// The aspects of a structure tree `structure.new` creates a node in (the product aspect is the device tree).
 pub const STRUCTURE_KINDS: &[&str] = &[
     "functional_assignment",
@@ -150,6 +171,13 @@ static PAGE_NEW: Spec = Spec {
         },
         field("title", key!("form-title")),
         field("section", key!("form-section")),
+        // ID-1477 (1): the dialog starts with the current page's grid.
+        Field {
+            name: "grid",
+            label_key: key!("form-grid"),
+            choices: PAGE_GRIDS,
+            default: "",
+        },
     ],
 };
 
@@ -691,8 +719,8 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The actions
 
-    /// `page.new {folio, type?, title?, section?}` (FT-408): one `page.create` with the explicit folio, then the new page
-    /// is shown.
+    /// `page.new {folio, type?, title?, section?, grid?}` (FT-408): one `page.create` with the explicit folio and the
+    /// connection grid given, else the current page's (ID-1477 (1)), then the new page is shown.
     pub(crate) fn act_page_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let mut v = Vec::new();
         for f in PAGE_NEW.fields {
@@ -701,7 +729,14 @@ impl ShellModel {
                 Err(e) => return e,
             }
         }
-        let [folio, ty, title, section] = <[String; 4]>::try_from(v).expect("four fields");
+        let [folio, ty, title, section, grid] = <[String; 5]>::try_from(v).expect("five fields");
+        let current_grid = self
+            .canvas()
+            .and_then(|c| {
+                let (num, den) = c.page().snapper.grid();
+                page_grid_word(num, den)
+            })
+            .unwrap_or_default();
         if folio.is_empty() {
             // WP-S2.06 part 1 (FT-461): the dialog opens with the proposed folio and section filled in.
             if !self.in_form(&PAGE_NEW) {
@@ -712,6 +747,9 @@ impl ShellModel {
                 }
                 if section.is_empty() && !proposed_section.is_empty() {
                     filled.insert("section".into(), Value::String(proposed_section));
+                }
+                if grid.is_empty() && !current_grid.is_empty() {
+                    filled.insert("grid".into(), Value::String(current_grid.to_owned()));
                 }
                 if self.mode == Mode::Gui {
                     return self.open_dialog(Dialog::Form(PAGE_NEW.dialog(&filled)));
@@ -738,6 +776,16 @@ impl ShellModel {
         }
         if !title.is_empty() {
             params["title"] = Value::String(title);
+        }
+        let grid = if grid.is_empty() { current_grid } else { grid.as_str() };
+        if !grid.is_empty() {
+            let Some(value) = page_grid_value(grid) else {
+                return self.form_failed(
+                    &PAGE_NEW,
+                    strings::format(key!("error-page-grid"), &[grid, &PAGE_GRIDS.join(", ")]),
+                );
+            };
+            params["grid"] = value;
         }
         if !section.is_empty() {
             let Some(project) = &self.project else {
@@ -1038,6 +1086,7 @@ mod tests {
                 .collect()
         };
         assert_eq!(enum_of("page.new", "type"), PAGE_TYPES);
+        assert_eq!(enum_of("page.new", "grid"), PAGE_GRIDS);
         assert_eq!(enum_of("structure.new", "kind"), STRUCTURE_KINDS);
         for spec in [&PAGE_NEW, &STRUCTURE_NEW, &EXTERNAL_REF_NEW] {
             let sig = parse_signature(find(spec.action).unwrap().params).unwrap();

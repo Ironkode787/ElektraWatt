@@ -580,8 +580,14 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
         done(&mut shell, "symbol.replace", json!({"document":qet}));
         done(&mut shell, "symbol.validate", json!({}));
         let page_count = shell.page_count();
-        assert!(
-            matches!(shell.dispatch("symbol.place", &json!({"x":80,"y":80})), Outcome::Failed { message } if message.contains("different connection grid"))
+        // ID-1477 (1): the picker's words, both grids named.
+        assert_eq!(
+            shell.dispatch("symbol.place", &json!({"x":80,"y":80})),
+            Outcome::Failed {
+                message: "Symbol editor: This symbol is drawn on the 2.65 mm connection grid, and this page uses 4 \
+                          mm. Place it on a page with its grid."
+                    .into()
+            }
         );
         assert_eq!(shell.page_count(), page_count);
         done(&mut shell, "symbol.replace", json!({"document":draft}));
@@ -1303,6 +1309,72 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
         .map(|(i, _)| picker.disabled_words(PickerRow::Symbol(i)))
         .collect();
     assert_eq!(embedded, [Some(words.to_owned())]);
+    shell.shutdown();
+}
+
+/// ID-1477 (1): on a QET-grid page Place on current page is refused in the picker's words, both grids named, and offers
+/// Place on a new page with its grid; the Insert symbol picker's greyed row of the published symbol places it on a new
+/// page with its grid, selected, and the picker closes.
+#[test]
+fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
+    use ew_viewmodel::tools::PickerRow;
+    let tmp = Tmp::new("symbol-new-page");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(
+        &mut shell,
+        "file.new",
+        json!({"dir":tmp.0.join("project.ew"),"template":"builtin"}),
+    );
+    let grid = |shell: &ShellModel| shell.canvas().unwrap().page().snapper.grid();
+    drawn(&mut shell, "example.offer", "Offer block");
+    assert_eq!(
+        failed(&mut shell, "symbol.place", json!({"x":40,"y":40})),
+        "Symbol editor: This symbol is drawn on the 4 mm connection grid, and this page uses 2.65 mm. Place it on a \
+         page with its grid."
+    );
+    assert!(shell.symbol_editor().unwrap().offer_new_page);
+    let pages = shell.page_labels().len();
+    done(&mut shell, "symbol.scratch", json!({}));
+    assert_eq!(grid(&shell), (4_000_000, 1));
+    assert_eq!(shell.page_labels().len(), pages + 1);
+    assert_eq!(shell.selection().items.len(), 1);
+    // The picker: the published symbol's greyed row, made current, is placed on a new page of its grid.
+    done(&mut shell, "symbol.new", json!({}));
+    assert!(!shell.symbol_editor().unwrap().offer_new_page);
+    done(
+        &mut shell,
+        "symbol.save",
+        json!({"directory": tmp.0.join("offer.ewlib")}),
+    );
+    done(&mut shell, "symbol.close", json!({}));
+    done(&mut shell, "nav.goto", json!({"text": "1"}));
+    assert_eq!(grid(&shell), (7_937_500, 3));
+    done(&mut shell, "tool.place", json!({}));
+    let picker = shell.picker().unwrap();
+    let i = picker
+        .catalogue
+        .symbols
+        .iter()
+        .position(|s| s.key.starts_with("library:") && s.name.starts_with("Offer block"))
+        .unwrap();
+    let at = picker.rows.iter().position(|r| *r == PickerRow::Symbol(i)).unwrap();
+    assert_ne!(at, 0, "a starter symbol of the page's grid leads");
+    assert_eq!(
+        shell.dispatch("picker.new_page", &json!({})),
+        Outcome::Refused {
+            reason_key: ew_viewmodel::key!("reason-no-grid-mismatch")
+        },
+        "the first row is on this page's grid"
+    );
+    done(&mut shell, "picker.row", json!({"to": at}));
+    done(&mut shell, "picker.new_page", json!({}));
+    assert!(shell.picker().is_none());
+    assert_eq!(grid(&shell), (4_000_000, 1));
+    assert_eq!(shell.page_labels().len(), pages + 2);
+    assert_eq!(shell.selection().items.len(), 1);
     shell.shutdown();
 }
 

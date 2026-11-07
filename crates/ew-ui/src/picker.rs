@@ -251,23 +251,43 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                             .selected(i == picker.row)
                             .frame_when_inactive(false)
                             .min_size(egui::vec2(ui.available_width(), t.size_row));
-                        let response = ui.add_enabled(enabled, button);
+                        // ID-1477 (1): a symbol on another grid stays greyed but takes a click, which makes it the
+                        // current row: its whole reason and Place on a new page with its grid show under the list.
+                        let other_grid = matches!(row, PickerRow::Symbol(k)
+                            if picker.catalogue.symbols[*k].grid_mismatch.is_some());
+                        let response = ui.add_enabled(enabled || other_grid, button);
                         // FT-1255: egui maps `selected` to `toggled` only; AccessKit's selected state.
                         ui.ctx()
                             .accesskit_node_builder(response.id, |n| n.set_selected(i == picker.row));
                         // A disabled row says its reason in its tooltip too (egui opens `.tip` on enabled widgets
                         // only).
-                        let response = if enabled {
+                        let response = if enabled || other_grid {
                             response.tip(&tooltip)
                         } else {
                             response.disabled_tip(&tooltip)
                         };
                         if response.clicked() {
                             events.push(Event::Action("picker.row", json!({ "to": i })));
-                            events.push(Event::Action("picker.choose", json!({})));
+                            if enabled {
+                                events.push(Event::Action("picker.choose", json!({})));
+                            }
                         }
                     }
                 });
+            // ID-1477 (1): the current row on another connection grid: its reason whole, never cut, and the way out.
+            if let Some(row @ PickerRow::Symbol(k)) = picker.rows.get(picker.row).copied()
+                && picker.catalogue.symbols[k].grid_mismatch.is_some()
+            {
+                ui.add_space(t.space_2);
+                ui.label(
+                    egui::RichText::new(picker.disabled_words(row).unwrap_or_default())
+                        .color(t.text_secondary.color32()),
+                );
+                let new_page = strings::text(key!("action-picker-new-page"));
+                if crate::components::button(ui, crate::components::Kind::Secondary, new_page, true, 0.0).clicked() {
+                    events.push(Event::Action("picker.new_page", json!({})));
+                }
+            }
         });
 }
 

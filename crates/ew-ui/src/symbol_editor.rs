@@ -789,6 +789,19 @@ impl EditorView {
             && !error.lines().all(|line| issues.iter().any(|i| i == line))
         {
             ui.colored_label(t.error.color32(), error);
+            // ID-1477 (1): a page on another connection grid offers a new page with the symbol's grid.
+            if editor.offer_new_page
+                && components::button(
+                    ui,
+                    Kind::Secondary,
+                    label(strings::Key::run_time("symbol-place-new-page")),
+                    shell.has_project(),
+                    0.0,
+                )
+                .clicked()
+            {
+                action(events, "symbol.scratch", json!({}));
+            }
         }
         ui.separator();
         let width = crate::dock::left_default_width(&t, ui.available_width());
