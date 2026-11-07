@@ -147,6 +147,12 @@ const ITEMS: &[StarterItem] = &[
         "symbols/qet10/ew.gen.external-arrow@qet10.json"
     ),
     item!("ew.gen.ip", Symbol, "symbols/ew.gen.ip.json"),
+    item!("ew.gen.ip-target", Symbol, "symbols/ew.gen.ip-target.json"),
+    item!(
+        "ew.gen.ip-target@qet10",
+        Symbol,
+        "symbols/qet10/ew.gen.ip-target@qet10.json"
+    ),
     item!("ew.gen.ip@qet10", Symbol, "symbols/qet10/ew.gen.ip@qet10.json"),
     item!(
         "ew.gen.junction-bevel",

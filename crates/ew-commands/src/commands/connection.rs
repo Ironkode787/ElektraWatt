@@ -94,6 +94,8 @@ fn new_ip(
     orient: Orient2,
     rep_type: RepType,
 ) -> Result<Id<Function>, CmdError> {
+    // WP-S2.19 D16: one of EW's forms is never turned, and is its direction's.
+    crate::normalise::ip_form::check_new(tx, symbol, orient, &spec.direction)?;
     let function: Id<Function> = tx.mint();
     let rep: Id<Representation> = tx.mint();
     tx.insert(Function {
@@ -805,7 +807,9 @@ impl Command for PlaceIp {
 ///
 /// Creates an IP function with the same name, def, `sort` and no `external`, the direction reversed
 /// (source ↔ target; undirected stays), `star_source: false`, and its representation on `page` with the
-/// original representation's symbol, orientation and rep type, at `pos` (default: the original's position).
+/// original representation's symbol, orientation and rep type, at `pos` (default: the original's position); a point
+/// drawn with one of EW's forms gives its partner the other form, unturned (WP-S2.19 D16), which the project must
+/// hold (else refused in words).
 /// Rejected: `ip` is not an interruption point; `page` is the original's page; an external connection
 /// point (it never pairs). Outcome: the new IP function.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -857,6 +861,13 @@ impl Command for ContinueIp {
         };
         let pos = self.pos.unwrap_or(rep.pos);
         require_on_grid(tx, self.page, pos, "/pos")?;
+        // WP-S2.19 D16: the partner of a point drawn with one of EW's forms takes the other form.
+        let symbol = crate::normalise::ip_form::symbol_for(tx, rep.symbol, &direction)?;
+        let orient = if symbol == rep.symbol {
+            rep.orient
+        } else {
+            Orient2::default()
+        };
         let partner = IpSpec {
             name: spec.name.clone(),
             direction,
@@ -870,9 +881,9 @@ impl Command for ContinueIp {
             original.def,
             partner,
             self.page,
-            rep.symbol,
+            symbol,
             pos,
-            rep.orient,
+            orient,
             rep.rep_type.clone(),
         )?;
         Ok(Outcome::primary((Kind::Function, function.cast())))

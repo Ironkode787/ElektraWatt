@@ -1239,6 +1239,12 @@ refusal-ip-continue-not-ip = de functie is geen onderbrekingspunt; kies een onde
 refusal-ip-continue-external = een extern aansluitpunt vormt nooit een paar; het kan niet worden voortgezet
 refusal-ip-continue-same-page = de doelpagina is de pagina van het onderbrekingspunt; zet het op een andere pagina voort
 refusal-ip-continue-no-rep = het onderbrekingspunt heeft geen representatie om voort te zetten
+# WP-S2.19 D16: de pijlvormen van EW's onderbrekingspunt.
+refusal-ip-form-turned = de pijl van een onderbrekingspunt wijst in de richting van het signaal: wijzig in plaats daarvan de richting
+refusal-ip-form-direction = een bronpunt wordt getekend met de uitgaande pijl, een doelpunt met de inkomende pijl
+refusal-ip-form-missing = het project bevat de { $p0 } pijl van { $p1 } niet: plaats eerst één onderbrekingspunt met die richting
+refusal-ip-form-outgoing = uitgaande
+refusal-ip-form-incoming = inkomende
 # potential.define and bond.create.
 refusal-potential-define-on-connection = een potentiaal wordt gedefinieerd op een aansluitpunt of een aftakking, niet op een verbinding; noem een van beide
 refusal-potential-define-twice = dit punt definieert de potentiaal { $p0 } al; wijzig in plaats daarvan die definitie

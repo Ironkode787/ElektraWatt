@@ -29,7 +29,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`ip.continue`: the partner of an interruption point on another page (FR-XRF-014).\n\nCreates an IP function with the same name, def, `sort` and no `external`, the direction reversed\n(source ↔ target; undirected stays), `star_source: false`, and its representation on `page` with the\noriginal representation's symbol, orientation and rep type, at `pos` (default: the original's position).\nRejected: `ip` is not an interruption point; `page` is the original's page; an external connection\npoint (it never pairs). Outcome: the new IP function.",
+  "description": "`ip.continue`: the partner of an interruption point on another page (FR-XRF-014).\n\nCreates an IP function with the same name, def, `sort` and no `external`, the direction reversed\n(source ↔ target; undirected stays), `star_source: false`, and its representation on `page` with the\noriginal representation's symbol, orientation and rep type, at `pos` (default: the original's position); a point\ndrawn with one of EW's forms gives its partner the other form, unturned (WP-S2.19 D16), which the project must\nhold (else refused in words).\nRejected: `ip` is not an interruption point; `page` is the original's page; an external connection\npoint (it never pairs). Outcome: the new IP function.",
   "properties": {
     "ip": {
       "$ref": "#/$defs/CmdUuid",

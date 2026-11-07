@@ -1282,6 +1282,12 @@ refusal-ip-continue-not-ip = the function is not an interruption point; pick an 
 refusal-ip-continue-external = an external connection point never pairs; it cannot be continued
 refusal-ip-continue-same-page = the target page is the page of the interruption point; continue it on another page
 refusal-ip-continue-no-rep = the interruption point has no representation to continue
+# WP-S2.19 D16: EW's interruption-point forms.
+refusal-ip-form-turned = an interruption point's arrow points the way its signal flows: change its direction instead
+refusal-ip-form-direction = a source interruption point is drawn with the outgoing arrow, a target with the incoming arrow
+refusal-ip-form-missing = the project does not hold the { $p0 } arrow of { $p1 }: place one interruption point of that direction first
+refusal-ip-form-outgoing = outgoing
+refusal-ip-form-incoming = incoming
 # potential.define and bond.create.
 refusal-potential-define-on-connection = a potential is defined at a CP or a junction, not on a connection; name one of them
 refusal-potential-define-twice = this point already defines the potential { $p0 }; change that definition instead

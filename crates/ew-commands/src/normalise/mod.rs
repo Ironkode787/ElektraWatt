@@ -20,6 +20,7 @@
 //! | 14 | `module_pin_binding` | N3: a new unbound channel of a module whose part has a channel → pin map binds the module pin (doc 10 §3.3) |
 //! | 14a | `bus_ports` | N5: a device that is new or whose bus part (the first part use with a `bus` section with ports) changed, or a bus-port function new to or moved onto a device with a bus part, gives the part's uncarried ports to the device's port-less bus-port functions in list and ID order: address `not_applicable` for a passive port, else `tbd`, no nets; it never rewrites a port, and a carried port that disagrees with the part gives a notice (WP-S1.21 D16) |
 //! | 16 | `drives_link` | N-FL-4: a new fluid line whose fluid net holds a valve's working port and the consumer port of exactly one other device outside the valve's parent chain links the valve to that device (`drives`), unless the valve has a `drives` link (WP-S1.20 D15) |
+//! | 18 (doc 06) | `ip_form` | An interruption point drawn with one of EW's arrow forms whose direction changed takes the twin form of its new direction, unturned; a project without the twin refuses the change (WP-S2.19 D16) |
 //! | 18 | `revision_ensure_open` | `revision.ensure_open`: a content edit in a project with a released revision and no open one adds the open revision with the next label and the ID `v5(latest released, "next")` (doc 15 §5.3, WP-S1.18 D3) |
 //!
 //! A pass runs every normaliser in order; a normaliser whose input another one creates later in the same
@@ -34,6 +35,7 @@ pub(crate) mod channel_instantiation;
 mod connection_split;
 mod cp_instantiation;
 mod drives_link;
+pub(crate) mod ip_form;
 mod junction_cleanup;
 mod module_pin_binding;
 mod online_numbering;
@@ -48,6 +50,7 @@ pub use channel_instantiation::ChannelInstantiation;
 pub use connection_split::{ConnectionSplit, split_connection};
 pub use cp_instantiation::CpInstantiation;
 pub use drives_link::DrivesLink;
+pub use ip_form::IpForm;
 pub use junction_cleanup::JunctionCleanup;
 pub use module_pin_binding::ModulePinBinding;
 pub use online_numbering::OnlineNumbering;
@@ -71,7 +74,7 @@ pub trait Normaliser: Send + Sync {
 }
 
 /// The registry order within one pass: the IDs of [`registry`], asserted by a test.
-pub const ORDER: [&str; 13] = [
+pub const ORDER: [&str; 14] = [
     "valve_functions",
     "plc_aspects",
     "cp_instantiation",
@@ -84,6 +87,7 @@ pub const ORDER: [&str; 13] = [
     "module_pin_binding",
     "bus_ports",
     "drives_link",
+    "ip_form",
     "revision_ensure_open",
 ];
 
@@ -105,6 +109,7 @@ pub fn registry() -> Vec<Box<dyn Normaliser>> {
         Box::new(ModulePinBinding),
         Box::new(BusPorts),
         Box::new(DrivesLink),
+        Box::new(IpForm),
         Box::new(RevisionEnsureOpen),
     ]
 }

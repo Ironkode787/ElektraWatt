@@ -371,6 +371,9 @@ pub struct IpTool {
     shape: Arc<SymbolShape>,
     outline: Arc<[Vec<(i64, i64)>]>,
     orient: u8,
+    /// EW's target form with its outline, while `shape` is EW's source form (WP-S2.19 D16): a target point is drawn
+    /// with it, and neither form is turned.
+    target: Option<(Arc<SymbolShape>, Arc<[Vec<(i64, i64)>]>)>,
     /// The snapped insertion point: (sheet nm, page nm).
     at: Option<((i64, i64), (i64, i64))>,
     typed: Option<String>,
@@ -418,6 +421,7 @@ impl IpTool {
             shape,
             outline,
             orient: 0,
+            target: None,
             at: None,
             typed: memory.typed.clone(),
             chosen: None,
@@ -441,6 +445,31 @@ impl IpTool {
     pub fn with_copies(mut self, copies: Vec<Value>) -> IpTool {
         self.copies = copies;
         self
+    }
+
+    /// The tool holding EW's two forms (WP-S2.19 D16): its shape is the source form, `target` the target form; a point
+    /// is drawn with its direction's form and never turned.
+    pub fn with_target(mut self, target: Option<Arc<SymbolShape>>) -> IpTool {
+        self.target = target.map(|t| {
+            let outline: Arc<[Vec<(i64, i64)>]> = t.outline.clone().into();
+            (t, outline)
+        });
+        self
+    }
+
+    /// Whether the tool draws EW's two forms (no external reference set, which has a symbol of its own).
+    fn forms(&self) -> bool {
+        self.target.is_some() && self.external.is_none()
+    }
+
+    /// The shape, outline and orientation a point of direction `d` is drawn with: EW's target form for a target while
+    /// the tool holds EW's forms (unturned), else the tool's shape as turned.
+    fn drawn(&self, d: IpDir) -> (&Arc<SymbolShape>, &Arc<[Vec<(i64, i64)>]>, u8) {
+        match &self.target {
+            Some((shape, outline)) if self.external.is_none() && d == IpDir::Target => (shape, outline, 0),
+            Some(_) if self.external.is_none() => (&self.shape, &self.outline, 0),
+            _ => (&self.shape, &self.outline, self.orient),
+        }
     }
 
     /// Replaces the library documents the placements embed (the symbol changed with the external reference).
@@ -512,8 +541,9 @@ impl IpTool {
 
     /// The ghost CP's page point at the insertion point `pos`.
     fn cp_at(&self, pos: (i64, i64)) -> Option<(i64, i64)> {
-        let cp = self.shape.cps.first()?;
-        let o = orient_point(self.orient, cp.at);
+        let (shape, _, orient) = self.drawn(self.shown_dir);
+        let cp = shape.cps.first()?;
+        let o = orient_point(orient, cp.at);
         Some((pos.0 + o.0, pos.1 + o.1))
     }
 
@@ -640,13 +670,15 @@ impl IpTool {
         let (_, pos) = self.at?;
         let (name, direction) = self.resolve(cx, Some(pos));
         let page = cx.page.tables.page.to_string();
+        let (shape, _, orient) = self.drawn(direction);
+        let (symbol, orient) = (shape.copy.to_string(), ORIENT_NAMES[usize::from(orient % 8)]);
         let (cmd_name, mut params) = match self.drop_on(cx, pos) {
             DropOn::Refused(_) => return None,
             DropOn::Pin(pin) => {
                 let mut ip = json!({
-                    "symbol": self.shape.copy.to_string(),
+                    "symbol": symbol,
                     "pos": [pos.0, pos.1],
-                    "orient": ORIENT_NAMES[usize::from(self.orient % 8)],
+                    "orient": orient,
                     "name": name,
                     "direction": direction.word(),
                 });
@@ -670,9 +702,9 @@ impl IpTool {
             DropOn::Free => {
                 let mut params = json!({
                     "page": page,
-                    "symbol": self.shape.copy.to_string(),
+                    "symbol": symbol,
                     "pos": [pos.0, pos.1],
-                    "orient": ORIENT_NAMES[usize::from(self.orient % 8)],
+                    "orient": orient,
                     "name": name,
                     "direction": direction.word(),
                 });
@@ -709,9 +741,10 @@ impl IpTool {
         let Some((sheet, pos)) = self.at else {
             return Overlay::default();
         };
+        let (_, outline, orient) = self.drawn(direction);
         let mut items = vec![OverlayItem::Paths {
-            paths: Arc::clone(&self.outline),
-            transform: (self.orient, pos),
+            paths: Arc::clone(outline),
+            transform: (orient, pos),
         }];
         if let Some(c) = self.cp_at(pos) {
             items.push(OverlayItem::Marker {
@@ -761,6 +794,10 @@ impl Tool for IpTool {
 
     fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> ToolOutput {
         let turn = |t: &mut IpTool, rotate: u8, mirror: bool| {
+            // WP-S2.19 D16: EW's forms are never turned; D changes the direction and with it the form.
+            if t.forms() {
+                return ToolOutput::None;
+            }
             t.orient = orient_then(t.orient, rotate, mirror);
             ToolOutput::Transient(t.refresh(cx))
         };
@@ -773,7 +810,7 @@ impl Tool for IpTool {
             CanvasEvent::Key(ToolKey::RotateCcw) => turn(self, 3, false),
             CanvasEvent::Key(ToolKey::MirrorX) => turn(self, 0, true),
             CanvasEvent::Key(ToolKey::MirrorY) => turn(self, 2, true),
-            CanvasEvent::Key(ToolKey::NextVariant) => {
+            CanvasEvent::Key(ToolKey::NextVariant) if !self.forms() => {
                 self.orient = (self.orient + 1) % 8;
                 ToolOutput::Transient(self.refresh(cx))
             }

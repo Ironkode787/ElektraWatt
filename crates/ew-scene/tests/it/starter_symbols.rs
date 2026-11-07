@@ -49,7 +49,7 @@ use ew_schema::{
 use ew_units::{Grid, Nm, Orient2, Pt2};
 
 /// The interruption-point symbols: their xref slot keeps the default style of its kind.
-const INTERRUPTION_POINTS: [&str; 2] = ["ew.gen.ip", "ew.gen.external-arrow"];
+const INTERRUPTION_POINTS: [&str; 3] = ["ew.gen.ip", "ew.gen.ip-target", "ew.gen.external-arrow"];
 
 /// The keys of the native starter library; the qet10 edition has the same keys with `@qet10`.
 const STARTER_KEYS: &[&str] = &[
@@ -80,6 +80,7 @@ const STARTER_KEYS: &[&str] = &[
     "ew.iec.plug-pin",
     "ew.gen.blackbox",
     "ew.gen.ip",
+    "ew.gen.ip-target",
     "ew.gen.external-arrow",
     "ew.gen.junction-dot",
     "ew.gen.junction-bevel",
@@ -105,11 +106,14 @@ const VERSION: &str = "0.1.0";
 /// minor change; FT-698 (cycle 38): the same slot on the lamp, the position switch and the 5/2 valve; WP-S1.20 (cycle
 /// 50): the 5/2 valve's solenoid CP leaves its FnDef (major) and its symbol's function text falls back to the process
 /// tag (minor), the cylinder's ports gain their role (minor), the module overview's tag moves above the valve glyphs
-/// (minor); FT-1204 (cycle 52, ID-1395): the one-pole on/off switch moves to the manual-command category, class S.
+/// (minor); FT-1204 (cycle 52, ID-1395): the one-pole on/off switch moves to the manual-command category, class S;
+/// WP-S2.19 D16 (cycle 53): the interruption point is redrawn with its arrow pointing right and its CP on the tail
+/// (major).
 const BUMPED: &[(&str, &str)] = &[
     ("ew.fn.cylinder-double-acting", "0.1.1"),
     ("ew.fn.switch-1p", "0.1.1"),
     ("ew.fn.valve-5-2-sol-spring", "0.2.0"),
+    ("ew.gen.ip", "0.2.0"),
     ("ew.iec.coil", "0.2.0"),
     ("ew.iec.lamp", "0.2.0"),
     ("ew.iec.position-switch-no", "0.2.0"),

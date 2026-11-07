@@ -2019,6 +2019,8 @@ SYMBOL = {
     "ew.fn.ip": "ew.gen.ip@qet10",
 }
 EXTERNAL_ARROW = "ew.gen.external-arrow@qet10"
+# WP-S2.19 D16: a target interruption point is drawn with the incoming arrow, the target form
+IP_TARGET = "ew.gen.ip-target@qet10"
 
 # F13: the offsets (QET px) of the k-th interruption point of a coincident group
 IP_OFFSETS = [(0, 0), (0, 20), (0, -20), (20, 0)]
@@ -2259,7 +2261,7 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
     for name in ip_order:
         sf, sc, tf, tc = ips[name]
         rep(f"{name}@{sf}", sf, sc, SYMBOL["ew.fn.ip"])
-        rep(f"{name}@{tf}", tf, tc, SYMBOL["ew.fn.ip"])
+        rep(f"{name}@{tf}", tf, tc, IP_TARGET)
     # external points (section 15 prose); dy offsets of the three mains points are fixture choices (triangle)
     dys = {ext.group(1): "-20", ext.group(2): "0", ext.group(3): "20"}
     for name, folio, cell, direction in ext_defs:
@@ -2340,6 +2342,27 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
 # ---------------------------------------------------------------------------------------------------------------
 # connections, junctions, bonds
 # ---------------------------------------------------------------------------------------------------------------
+
+
+def keep_router_routes(rows):
+    """WP-S2.19 section 8.2 (ID-1499): the routes of the page connections doc 20 gives none are written once by the
+    schematic router's bless-mode route tool into the committed connections.csv; a row without a route of its own keeps
+    the committed one."""
+    path = TABLES_DIR / "connections.csv"
+    if not path.exists():
+        return
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split(",")
+    key_at, route_at = header.index("key"), header.index("route")
+    committed = {}
+    for line in lines[1:]:
+        cells = line.split(",")
+        if len(cells) == len(header) and cells[route_at]:
+            committed[cells[key_at]] = cells[route_at]
+    for r in rows:
+        if not r.get("route") and r["key"] in committed:
+            r["route"] = committed[r["key"]]
+
 
 CONN_COLS = [
     "key", "wire", "page", "a", "b", "kind", "core", "bridge_group", "bridge_kind", "bridge_shaft", "csa",
@@ -2627,6 +2650,7 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
     build_fluid_lines(rows)
     n_wires = sum(1 for x in rows if x["wire"].startswith("W") and x["key"] == x["wire"])
     check(n_wires == 44, f"{n_wires} wire connections, 44 expected")
+    keep_router_routes(rows)
     register("connections", CONN_COLS, rows, 72 + 19 + 2 + 16)
 
     # endpoint sanity: device or terminal exists, IP function exists

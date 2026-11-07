@@ -1104,6 +1104,10 @@ impl Command for TransformReps {
             if self.mirror {
                 orient = orient.then(Orient2::M0);
             }
+            // WP-S2.19 D16: one of EW's interruption-point forms is never turned.
+            if orient != old.orient && crate::normalise::ip_form::form(tx, old.symbol).is_some() {
+                return tx.reject(crate::normalise::ip_form::turned());
+            }
             let mut new = (*old).clone();
             new.orient = orient;
             if let Some(v) = self.variant {

@@ -222,7 +222,10 @@ fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
     assert!(junction.sequence.len() >= 3);
     cursor(&mut s, junction.at);
     // The snap falls past it: to a point on one of its wires or to the grid, never to the junction itself.
-    let label = canvas(&s)["snap"]["label"].as_str().unwrap_or_default().to_owned();
+    let label = canvas(&s)["snap"]["label"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
     assert!(!label.starts_with('@') || label.contains(" -> "), "{label}");
     assert_eq!(
         s.tool_hint(),

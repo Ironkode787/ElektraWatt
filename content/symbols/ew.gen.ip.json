@@ -3,8 +3,8 @@
   "id": "83cdf540-204c-5161-9c85-c819484b0b57",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "d26089d1-247f-5b69-b19a-e7c369dbea11",
-  "version": "0.1.0",
-  "sha256": "sha256:4ac75ded9a4aab80556e7cacd1951f2474207849bb317c399f29919c4175f9b8",
+  "version": "0.2.0",
+  "sha256": "sha256:8c619c13056534377c9d8ab466b8b8947ba2846dafa065ed5297502ab6279c14",
   "meta": {
     "key": "ew.gen.ip",
     "licence": "CC-BY-SA-4.0",
@@ -35,12 +35,12 @@
     {
       "line": {
         "from": [
-          0,
-          -4000000
+          -4000000,
+          0
         ],
         "to": [
-          0,
-          -3000000
+          -3000000,
+          0
         ],
         "stroke": {
           "pen": "p026"
@@ -51,12 +51,12 @@
       "polygon": {
         "points": [
           [
-            -1500000,
-            -3000000
+            -3000000,
+            -1500000
           ],
           [
-            1500000,
-            -3000000
+            -3000000,
+            1500000
           ],
           [
             0,
@@ -76,27 +76,27 @@
       "idx": 0,
       "fn_cp": 0,
       "pos": [
-        0,
-        -4000000
+        -4000000,
+        0
       ],
-      "dir": "up"
+      "dir": "left"
     }
   ],
   "text_slots": [
     {
       "kind": "function_text",
       "pos": [
-        3000000,
+        -2000000,
         -2000000
       ],
-      "align": "middle_left",
+      "align": "bottom_centre",
       "visible": true
     },
     {
       "kind": "xref",
       "pos": [
-        1000000,
-        1000000
+        0,
+        2000000
       ],
       "align": "top_right",
       "visible": true

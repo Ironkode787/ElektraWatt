@@ -1075,10 +1075,14 @@ impl WireTool {
     /// `connection.draw_to_ip` commit with the name and direction, the tool armed again; a refusal key while not
     /// routing to a grid point (`reason-ip-end-grid`), before the wire has a segment (`reason-ip-end-segment`) or for a
     /// symbol without exactly one CP (`reason-ip-symbol`).
+    ///
+    /// With EW's two forms (`shapes`: the source form and the target form, WP-S2.19 D16) the point is never turned:
+    /// `name_of` gives the name and the direction from the start and the end's grid point first, and the direction's
+    /// form is drawn there, its CP where the grid puts it, the route ending at it.
     pub fn end_in_ip(
         &mut self,
         cx: &ToolCx<'_>,
-        shape: &ew_api::output::SymbolShape,
+        shapes: (&ew_api::output::SymbolShape, Option<&ew_api::output::SymbolShape>),
         name_of: impl FnOnce(&WireTarget, (i64, i64)) -> (String, &'static str),
     ) -> Result<(ToolOutput, String, &'static str), Key<'static>> {
         let State::Routing {
@@ -1094,6 +1098,15 @@ impl WireTool {
         let Some(WireTarget::Grid { at: end }) = end else {
             return Err(key!("reason-ip-end-grid"));
         };
+        let mut name_of = Some(name_of);
+        let (shape, named) = match (shapes, name_of.take_if(|_| shapes.1.is_some())) {
+            ((source, Some(target)), Some(name_of)) => {
+                let (name, direction) = name_of(&start, end);
+                let shape = if direction == "target" { target } else { source };
+                (shape, Some((name, direction)))
+            }
+            ((shape, _), _) => (shape, None),
+        };
         let [cp] = shape.cps.as_slice() else {
             return Err(key!("reason-ip-symbol"));
         };
@@ -1104,13 +1117,20 @@ impl WireTool {
         };
         // Along the segment's longer axis: an unrouted line from a CP 1 nm off the grid is not quite straight.
         let (dx, dy) = (b.0 - a.0, b.1 - a.1);
-        let v = if dx.abs() >= dy.abs() { (dx.signum(), 0) } else { (0, dy.signum()) };
+        let v = if dx.abs() >= dy.abs() {
+            (dx.signum(), 0)
+        } else {
+            (0, dy.signum())
+        };
         let arrive = Dir::of_vector(v).ok_or(key!("reason-ip-end-segment"))?;
         let away =
             Dir::of_vector((-arrive.vector().0, -arrive.vector().1)).ok_or(key!("reason-ip-end-segment"))?;
-        let orient = (0..4u8)
-            .find(|o| ew_api::geometry::orient_dir(*o, cp.dir) == away)
-            .ok_or(key!("reason-ip-symbol"))?;
+        let orient = match named {
+            Some(_) => 0,
+            None => (0..4u8)
+                .find(|o| ew_api::geometry::orient_dir(*o, cp.dir) == away)
+                .ok_or(key!("reason-ip-symbol"))?,
+        };
         let off = ew_api::geometry::orient_point(orient, cp.at);
         let grid = PageGridMap::new(cx.page.tables.grid);
         let pos = (
@@ -1123,7 +1143,7 @@ impl WireTool {
             idx: cp.fn_cp,
             rep: EntityRef(cx.page.tables.page),
             at: cp_at,
-            dir: Some(away),
+            dir: Some(ew_api::geometry::orient_dir(orient, cp.dir)),
             label: String::new(),
         };
         let mut route = self.full_route(cx, &start, &fixed, &target);
@@ -1131,7 +1151,11 @@ impl WireTool {
             // WP-S2.19 D13: without a clear route and without a fixed bend, the wire is stored unrouted.
             route.clear();
         }
-        let (name, direction) = name_of(&start, pos);
+        let (name, direction) = match (named, name_of) {
+            (Some(named), _) => named,
+            (None, Some(name_of)) => name_of(&start, pos),
+            (None, None) => return Err(key!("reason-ip-symbol")),
+        };
         let Some(a) = start.endpoint() else {
             return Err(key!("reason-ip-end-grid"));
         };

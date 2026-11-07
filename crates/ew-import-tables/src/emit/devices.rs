@@ -589,6 +589,14 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
         }
         let Some(fndef) = fndef else { continue };
         let ip = matches!(kind, FunctionKind::Ip(_));
+        let ip_target = match &kind {
+            FunctionKind::Ip(spec) => match spec.direction {
+                IpDirection::Source => Some(false),
+                IpDirection::Target => Some(true),
+                _ => None,
+            },
+            _ => None,
+        };
         if kind_name == 2 && !ip {
             continue;
         }
@@ -639,6 +647,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
                 device,
                 cps,
                 ip,
+                ip_target,
                 black_box,
             },
         ));
@@ -823,6 +832,34 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             cx.unresolved(row, &format!("unknown symbol `{symbol}`"));
             continue;
         };
+        // WP-S2.19 D16: EW's arrow forms are their direction's (`ew.gen.ip` the source's outgoing arrow,
+        // `ew.gen.ip-target` the target's incoming one, each with its `@qet10` edition).
+        let target_form = match symbol.split('@').next() {
+            Some("ew.gen.ip") => Some(false),
+            Some("ew.gen.ip-target") => Some(true),
+            _ => None,
+        };
+        let wants = ip_fn
+            .as_ref()
+            .and_then(|f| cx.functions.get(f))
+            .and_then(|i| i.ip_target);
+        if let (Some(form), Some(wants)) = (target_form, wants)
+            && form != wants
+        {
+            let (direction, arrow) = if wants {
+                ("target", "incoming")
+            } else {
+                ("source", "outgoing")
+            };
+            cx.malformed(
+                row,
+                &format!(
+                    "a {direction} interruption point is drawn with the {arrow} arrow; symbol `{symbol}` is the other \
+                     direction's"
+                ),
+            );
+            continue;
+        }
         // The anchor of the symbol's policy, exactly as `rep_anchor_cell` derives it (FR-SYM-010, D-14): the
         // cell column names where the anchor lands, not the symbol origin.
         let (sym_id, rep_type) = (sym.id, sym.item.rep_type.clone());

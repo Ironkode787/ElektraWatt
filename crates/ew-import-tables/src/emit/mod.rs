@@ -52,6 +52,8 @@ pub(crate) struct FnInfo {
     pub(crate) cps: Vec<CpInfo>,
     /// Whether it is an interruption point.
     pub(crate) ip: bool,
+    /// An interruption point's direction: `Some(true)` for a target, `Some(false)` for a source, `None` otherwise.
+    pub(crate) ip_target: Option<bool>,
     /// Whether it was emitted with `kind = black_box`.
     pub(crate) black_box: bool,
 }
