@@ -88,9 +88,7 @@ At most 700 words, through SubagentHandback.
 - who fixes it: you (a minor or nit), or the author (a major; a finding in a file the author's fix of a major
   touches; anything touching `unsafe`; a fix that needs a ruling first). The orchestrator decides.
 
-**Then the ledger check:** each earlier finding, closed or reopened.
-
 **Then the verdict:** accepted, or not accepted while a major remains.
 
-**On the last part of a cycle,** also re-review what the fixes since the previous part touch, and give the cycle's
-verdict.
+**On the last part of a cycle,** also give the cycle's verdict. Never re-review earlier fixes: a fix phase ends its
+finding (ID-1487).

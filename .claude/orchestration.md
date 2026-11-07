@@ -167,7 +167,7 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
       for new work rather than a fix, or a design, becomes an FT row.
     - Window-check and play-test findings keep the earlier triage: fixed in the cycle by the author or a fix lane are
       majors and minors that touch data, the file format or what users see; the rest become FT rows.
-    - **After the last wave's review part** (its scoped re-review included) and the last window check, only majors,
+    - **After the last wave's review part** and the last window check, only majors,
       blockers and minors that touch data or the file format get an author's fix round before the end tip. The last
       part's reviewer fixes its other minors and nits when a slot is free before the last verify; otherwise they go to
       the next cycle's first review part or FT batch, named in the ledger (cycle-49 retro: six fix rounds and four
@@ -185,13 +185,13 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
     - A lane or reviewer resumed after it has handed back may not be able to hand back again. Its message asks it to
       write its report to a file in the orchestrator's notes and to end with one line naming that file (cycle-46
       retro).
-14. **No separate re-review rounds.**
-    - The next part's reviewer first checks the earlier fixes in the ledger, the reviewer's own fixes included: each
-      finding closed, with the test that shows it.
-    - The last part ends with a re-review scoped to the authors' fixes. Only a major re-opens a full re-review. That
-      re-review's own findings follow rule 12's last bullet; no further re-review runs in the cycle (cycle-49 retro).
-    - The last part's own fixes, and a fix that lands after the cycle's review is accepted (a play-test blocker), open
-      the next cycle's first review part, named in its range.
+14. **No re-reviews** (owner, 2026-11-07, ID-1487: "We said that the reviewer will fix the minors. We do not need
+    another re-reviewer afterwards.").
+    - A fix is never reviewed again: not the reviewer's own fixes, not an author's or a fix lane's fix of a major. The
+      fix phase ends the finding; the verify covers every fix.
+    - No later part checks the earlier fixes, and the cycle ends with no scoped re-review.
+    - The orchestrator reads the diff of an author's fix of a major before merging it.
+    - New work (a lane that is not a fix) is still reviewed once, in its own part, with its own fix phase.
 15. **Shift left.** Every lane runs the hand-back checks and the self-check of its agent definition, and reports them.
     - One full lane-check per hand-back; after a failure, only the failed step (`--only <step>`). A second full run
       needs a reason in the report (cycle-49 retro; LC50 found that cycle 49's repeated runs followed real changes,
@@ -238,7 +238,7 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
         `m25/integration` (`feature/symbol-editor` stays as its author left it). Once its review is accepted and a
         second smoke test is green, `m25/integration` merges into the working branch. Then `release/0.1` is merged
         into the working branch (the lock and the release-line fixes) and fast-forwarded to the working branch's
-        tip for `v0.1.0-rc.1`; every lane in that tip is reviewed and verified first. After the first candidate,
+        tip for `v0.1.0-rc.1`; every lane in that tip is reviewed once (its fixes are not, rule 14) and verified first. After the first candidate,
         only candidate fixes land on `release/0.1` again.
 17. **Facts and the feasibility read before dispatch** (amended 2026-11-02; the facts, 2026-11-01, cycle-43 retro;
     fix rulings, cycle-45 retro).
