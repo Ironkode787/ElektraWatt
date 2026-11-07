@@ -73,6 +73,8 @@ const MOCKUP_TITLES: &[(&str, &str)] = &[
     ("Sort by Terminal", "arrow-narrow-up"),
     ("Structure", "sitemap"),
     ("Symbol", "circuit-switch-open"),
+    // ID-1477 (7): Draw ▸ Place.
+    ("Symbol editor…", "pencil"),
     ("Symbols", "category"),
     ("Table", "table"),
     ("Terminal", "circle-dot"),

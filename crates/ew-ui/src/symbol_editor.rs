@@ -38,6 +38,8 @@ pub(crate) struct EditorView {
     zoom: f32,
     pan: Vec2,
     manual_view: bool,
+    /// The canvas size the view was last fitted to (ID-1477 (9)): the view fits again only at another size or on Fit.
+    fitted: Option<Vec2>,
     place: [f64; 2],
     draw_coordinates: [f64; 4],
     arc_angles: [i32; 2],
@@ -179,6 +181,28 @@ fn field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
         info.current_text_value = Some(value.clone());
         info
     });
+    response.changed()
+}
+/// [`field`] for a text that may hold a line break, which Shift+Enter starts; Enter ends the entry (ID-1477 (2)).
+fn lines_field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
+    let caption = ui.label(label(strings::Key::run_time(key)));
+    let input = ui.make_persistent_id(("lines", key));
+    let enter = enter_pressed(ui, input);
+    let response = ui
+        .add(
+            egui::TextEdit::multiline(value)
+                .id(input)
+                .desired_rows(1)
+                .return_key(new_line_key())
+                .desired_width(ui.available_width()),
+        )
+        .labelled_by(caption.id);
+    if enter {
+        response.surrender_focus();
+    }
+    let name = label(strings::Key::run_time(key));
+    ui.ctx()
+        .accesskit_node_builder(response.id, |n| n.set_label(name));
     response.changed()
 }
 /// A text of the document that commits on Enter or focus loss, never per keystroke (M25-p3#4): the typing stays in
@@ -324,6 +348,37 @@ fn role_words(role: &str) -> String {
     }
 }
 
+/// The potential roles a connection point takes, in the role list's order after "None".
+const ROLES: [&str; 13] = [
+    "l1",
+    "l2",
+    "l3",
+    "l",
+    "n",
+    "pe",
+    "pen",
+    "fe",
+    "l_plus",
+    "l_minus",
+    "m",
+    "signal",
+    "undefined",
+];
+
+/// The role the letters typed into an open role list name (ID-1477 (8)): the role whose words they are, else the
+/// first whose words start with them, in any case; `None` for none.
+fn role_typed(typed: &str) -> Option<&'static str> {
+    let typed = typed.trim().to_lowercase();
+    if typed.is_empty() {
+        return None;
+    }
+    let words = |r: &str| role_words(r).to_lowercase();
+    ROLES
+        .into_iter()
+        .find(|r| words(r) == typed)
+        .or_else(|| ROLES.into_iter().find(|r| words(r).starts_with(&typed)))
+}
+
 /// WP-S2.11 D3 (R3): a combo box's node says whether its list shows.
 trait Expanded {
     fn expanded(self, ui: &Ui) -> Self;
@@ -417,21 +472,47 @@ fn edit_text(value: &mut Value, text: &str) {
     *value = serde_json::to_value(typed).unwrap_or_default();
 }
 
-// Keep an in-progress empty translation in the widget, committing on Enter/focus loss.
-fn text_field(ui: &mut Ui, key: &str, value: &mut Value) -> bool {
+/// The key that starts a new line in a text that may hold one (ID-1477 (2)); Enter alone commits.
+fn new_line_key() -> egui::KeyboardShortcut {
+    egui::KeyboardShortcut::new(egui::Modifiers::SHIFT, egui::Key::Enter)
+}
+
+/// Whether Enter without Shift was pressed in the focused field `input`: the commit of a text that may hold a line
+/// break (ID-1477 (2)).
+fn enter_pressed(ui: &Ui, input: egui::Id) -> bool {
+    ui.memory(|m| m.has_focus(input))
+        && ui.input(|i| {
+            i.events.iter().any(|e| {
+                matches!(e, egui::Event::Key { key: egui::Key::Enter, pressed: true, modifiers, .. }
+                    if !modifiers.shift)
+            })
+        })
+}
+
+// Keep an in-progress empty translation in the widget, committing on Enter/focus loss. A text that may hold a line
+// break (`lines`) takes it with Shift+Enter (ID-1477 (2)).
+fn text_field(ui: &mut Ui, key: &str, value: &mut Value, lines: bool) -> bool {
     let id = ui.make_persistent_id(key);
     let (source, mut buffer) = ui
         .data_mut(|d| d.get_temp::<(Value, String)>(id))
         .filter(|(source, _)| source == value)
         .unwrap_or_else(|| (value.clone(), display_text(value)));
     let caption = ui.label(label(strings::Key::run_time(key)));
+    let input = id.with("input");
+    let enter = lines && enter_pressed(ui, input);
+    let edit = if lines {
+        egui::TextEdit::multiline(&mut buffer)
+            .desired_rows(1)
+            .return_key(new_line_key())
+    } else {
+        egui::TextEdit::singleline(&mut buffer)
+    };
     let response = ui
-        .add(
-            egui::TextEdit::singleline(&mut buffer)
-                .id(id.with("input"))
-                .desired_width(ui.available_width()),
-        )
+        .add(edit.id(input).desired_width(ui.available_width()))
         .labelled_by(caption.id);
+    if enter {
+        response.surrender_focus();
+    }
     response.widget_info(|| {
         let mut info = egui::WidgetInfo::labeled(
             egui::Role::TextInput,
@@ -443,7 +524,7 @@ fn text_field(ui: &mut Ui, key: &str, value: &mut Value) -> bool {
     });
     // M25-p5#2: Escape cancels the entry.
     let escape = response.lost_focus() && cancelled(ui);
-    let commit = response.lost_focus() && !escape && buffer != display_text(value);
+    let commit = (response.lost_focus() || enter) && !escape && buffer != display_text(value);
     if escape {
         buffer = display_text(value);
     }
@@ -454,9 +535,16 @@ fn text_field(ui: &mut Ui, key: &str, value: &mut Value) -> bool {
     commit
 }
 
+/// Whether a role list is open (ID-1477 (8)): the panel then ends in room for the list, so the list opens below its
+/// row, which the panel scrolls to its top.
+fn role_room_id() -> egui::Id {
+    egui::Id::unique("symbol-role-room")
+}
+
 fn function_pins(ui: &mut Ui, cps: &mut [Value]) -> bool {
     let t = theme::current(ui.ctx());
     let mut changed = false;
+    ui.data_mut(|d| d.insert_temp(role_room_id(), false));
     egui::Grid::new("symbol-function-pins")
         .spacing(Vec2::new(t.space_2, t.space_2))
         .show(ui, |ui| {
@@ -489,11 +577,23 @@ fn function_pins(ui: &mut Ui, cps: &mut [Value]) -> bool {
                     changed = true;
                 }
                 let role = cp["potential_role"].as_str().unwrap_or("").to_owned();
-                egui::ComboBox::from_id_salt(("role", i))
-                    .width(t.size_button_min_width)
-                    .height(6.0 * t.size_row)
-                    .selected_text(role_words(&role))
-                    .show_ui(ui, |ui| {
+                // ID-1477 (8): the list opens below its row, which the panel scrolls to its top with room for the
+                // list under it, shows every role without scrolling, and letters typed while it is open choose the
+                // role they name.
+                let button = ui.add(
+                    egui::Button::new(role_words(&role)).min_size(Vec2::new(t.size_button_min_width, 0.0)),
+                );
+                let chevron = egui::Rect::from_center_size(
+                    egui::pos2(button.rect.right() - t.space_3, button.rect.center().y),
+                    Vec2::splat(t.icon_sm),
+                );
+                components::combo_chevron(ui, chevron, ui.style().interact(&button), false);
+                let list_id = button.id.with("roles");
+                egui::Popup::menu(&button)
+                    .id(list_id)
+                    .align(egui::RectAlign::BOTTOM_START)
+                    .align_alternatives(&[])
+                    .show(|ui| {
                         if ui
                             .selectable_label(
                                 role.is_empty(),
@@ -506,38 +606,55 @@ fn function_pins(ui: &mut Ui, cps: &mut [Value]) -> bool {
                             }
                             changed = true;
                         }
-                        for role in [
-                            "l1",
-                            "l2",
-                            "l3",
-                            "l",
-                            "n",
-                            "pe",
-                            "pen",
-                            "fe",
-                            "l_plus",
-                            "l_minus",
-                            "m",
-                            "signal",
-                            "undefined",
-                        ] {
+                        for role in ROLES {
                             changed |= ui
                                 .selectable_value(&mut cp["potential_role"], json!(role), role_words(role))
                                 .changed();
                         }
-                    })
-                    .response
-                    .expanded(ui)
-                    .widget_info(|| {
-                        egui::WidgetInfo::labeled(
-                            egui::Role::ComboBox,
-                            ui.is_enabled(),
-                            control_name(
-                                label(strings::Key::run_time("symbol-potential-role")),
-                                &designation,
-                            ),
-                        )
                     });
+                let open = egui::Popup::is_id_open(ui.ctx(), list_id);
+                ui.ctx()
+                    .accesskit_node_builder(button.id, |n| n.set_expanded(open));
+                let typed_id = button.id.with("typed");
+                if open {
+                    ui.data_mut(|d| d.insert_temp(role_room_id(), true));
+                    if button.clicked() {
+                        button.scroll_to_me(Some(egui::Align::Min));
+                        ui.data_mut(|d| d.remove::<String>(typed_id));
+                    }
+                    let letters: String = ui.input(|i| {
+                        i.events
+                            .iter()
+                            .filter_map(|e| match e {
+                                egui::Event::Text(t) => Some(t.as_str()),
+                                _ => None,
+                            })
+                            .collect()
+                    });
+                    if !letters.is_empty() {
+                        let mut typed = ui.data(|d| d.get_temp::<String>(typed_id)).unwrap_or_default();
+                        typed.push_str(&letters);
+                        if let Some(found) = role_typed(&typed)
+                            && cp["potential_role"] != json!(found)
+                        {
+                            cp["potential_role"] = json!(found);
+                            changed = true;
+                        }
+                        ui.data_mut(|d| d.insert_temp(typed_id, typed));
+                    }
+                } else {
+                    ui.data_mut(|d| d.remove::<String>(typed_id));
+                }
+                button.widget_info(|| {
+                    egui::WidgetInfo::labeled(
+                        egui::Role::ComboBox,
+                        ui.is_enabled(),
+                        control_name(
+                            label(strings::Key::run_time("symbol-potential-role")),
+                            &designation,
+                        ),
+                    )
+                });
                 for (member, key) in [
                     ("source_output", "symbol-source-output"),
                     ("optional", "symbol-optional-pin"),
@@ -776,6 +893,7 @@ impl EditorView {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if button(ui, "symbol-fit") {
                     self.manual_view = false;
+                    self.fitted = None;
                 }
             });
         });
@@ -789,6 +907,19 @@ impl EditorView {
             && !error.lines().all(|line| issues.iter().any(|i| i == line))
         {
             ui.colored_label(t.error.color32(), error);
+            // ID-1477 (1): a page on another connection grid offers a new page with the symbol's grid.
+            if editor.offer_new_page
+                && components::button(
+                    ui,
+                    Kind::Secondary,
+                    label(strings::Key::run_time("symbol-place-new-page")),
+                    shell.has_project(),
+                    0.0,
+                )
+                .clicked()
+            {
+                action(events, "symbol.scratch", json!({}));
+            }
         }
         ui.separator();
         let width = crate::dock::left_default_width(&t, ui.available_width());
@@ -898,21 +1029,32 @@ impl EditorView {
                     // operation is the header's error, never repeated here.
                     if issues.is_empty() { ui.label(label(strings::Key::run_time("symbol-valid"))); }
                     for issue in &issues { ui.colored_label(t.text_secondary.color32(), issue); }
+                    // ID-1477 (8): room for an open role list below its row.
+                    if self.panel == 1 && ui.data(|d| d.get_temp::<bool>(role_room_id())).unwrap_or(false) { ui.add_space((ROLES.len() + 1) as f32 * (t.size_row + t.space_2)); }
                 });
             });
             ui.separator();
             ui.vertical(|ui| {
                 let tools = TOOLS;
-                if self.tool == 6 { field(ui,"symbol-text",&mut self.text); }
-                if self.tool == 10 { field(ui,"symbol-name",&mut self.link_name); }
-                if self.tool == 8 { slot_kind_control(ui,&mut self.slot_kind,&mut self.slot_pin); }
-                if self.tool == 7 { ui.horizontal_wrapped(|ui| {
-                    field(ui,"symbol-designation",&mut self.designation);
-                    egui::ComboBox::from_id_salt("symbol-cp-direction").selected_text(label(strings::Key::run_time(["symbol-up","symbol-right","symbol-down","symbol-left"][self.direction]))).show_ui(ui,|ui| {
+                // ID-1477 (9): the tool's own fields stand in a band of one height above the canvas, the same for
+                // every tool, so choosing a tool never moves or shrinks the canvas under the pointer.
+                // Its height holds a text of two lines, which the text tool's field may take (ID-1477 (2)).
+                let band = t.size_control + t.size_row;
+                let (band_rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), band), Sense::hover());
+                let mut band_ui = ui.new_child(egui::UiBuilder::new().max_rect(band_rect).layout(egui::Layout::left_to_right(egui::Align::Center)));
+                band_ui.set_clip_rect(band_rect.intersect(ui.clip_rect()));
+                let ui_band = &mut band_ui;
+                let field_width = (band_rect.width() / 3.0).max(t.size_button_min_width);
+                if self.tool == 6 { ui_band.allocate_ui_with_layout(Vec2::new(field_width * 2.0, band), egui::Layout::left_to_right(egui::Align::Center), |ui| lines_field(ui,"symbol-text",&mut self.text)); }
+                if self.tool == 10 { ui_band.allocate_ui_with_layout(Vec2::new(field_width * 2.0, band), egui::Layout::left_to_right(egui::Align::Center), |ui| field(ui,"symbol-name",&mut self.link_name)); }
+                if self.tool == 8 { slot_kind_control(ui_band,&mut self.slot_kind,&mut self.slot_pin); }
+                if self.tool == 7 {
+                    ui_band.allocate_ui_with_layout(Vec2::new(field_width, band), egui::Layout::left_to_right(egui::Align::Center), |ui| field(ui,"symbol-designation",&mut self.designation));
+                    egui::ComboBox::from_id_salt("symbol-cp-direction").selected_text(label(strings::Key::run_time(["symbol-up","symbol-right","symbol-down","symbol-left"][self.direction]))).show_ui(ui_band,|ui| {
                         for (i,k) in ["symbol-up","symbol-right","symbol-down","symbol-left"].iter().enumerate() { ui.selectable_value(&mut self.direction,i,label(strings::Key::run_time(k))); }
-                    }).response.expanded(ui).widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label(strings::Key::run_time("symbol-direction"))));
-                }); }
-                if self.tool>=11 {ui.label(label(strings::Key::run_time("symbol-path-hint")));}
+                    }).response.expanded(ui_band).widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label(strings::Key::run_time("symbol-direction"))));
+                }
+                if self.tool>=11 {ui_band.label(label(strings::Key::run_time("symbol-path-hint")));}
                 // The variant strip under the canvas: its caption row and its thumbnails.
                 let strip = 3.0 * t.size_row;
                 let canvas_height = (ui.available_height() - strip - t.size_row - 2.0 * t.space_3).max(4.0 * t.size_row);
@@ -927,11 +1069,17 @@ impl EditorView {
                     if scroll != 0.0 {self.manual_view=true;}
                     self.zoom = (self.zoom * (scroll * 0.0015).exp()).clamp(1.0,80.0);
                 }
-                // Fit fills the canvas at every width (SM25 nit: a small import filled 60 px at 1920).
-                if !self.manual_view && let Ok(g)=draft.preview(editor.variant) {
-                    let b=g.bounds;let width=(b.max().x.0-b.min().x.0) as f32/1e6;let height=(b.max().y.0-b.min().y.0) as f32/1e6;
+                // Fit fills the canvas at every width (SM25 nit: a small import filled 60 px at 1920). ID-1477 (9): it
+                // fits when the draft opens, when the canvas changes size and when Fit is chosen, never because the
+                // drawing changed; an empty draft shows the 40 mm square right and below its origin.
+                if !self.manual_view && self.fitted != Some(rect.size()) && let Ok(g)=draft.preview(editor.variant) {
+                    self.fitted = Some(rect.size());
+                    let b=g.bounds;let empty=draft.symbol.graphics.is_empty()&&draft.symbol.cps.is_empty();
+                    let (width,height,centre)=if empty {(40.0,40.0,Vec2::splat(20.0))} else {
+                        ((b.max().x.0-b.min().x.0) as f32/1e6,(b.max().y.0-b.min().y.0) as f32/1e6,Vec2::new((b.min().x.0+b.max().x.0) as f32/2e6,(b.min().y.0+b.max().y.0) as f32/2e6))
+                    };
                     self.zoom=(rect.width()/(width+16.0)).min(rect.height()/(height+16.0)).clamp(0.01,80.0);
-                    self.pan=-Vec2::new((b.min().x.0+b.max().x.0) as f32/2e6,(b.min().y.0+b.max().y.0) as f32/2e6)*self.zoom;
+                    self.pan=-centre*self.zoom;
                 }
                 let origin = rect.center() + self.pan;
                 let step = self.zoom * draft.symbol.grid.at(1).map_or(4.0,|n|n.0 as f32 / 1_000_000.0);
@@ -949,19 +1097,19 @@ impl EditorView {
                 if editor.variant != 0 { painter.text(rect.left_top()+Vec2::splat(t.space_3),egui::Align2::LEFT_TOP,label(strings::Key::run_time("symbol-edit-a")),theme::font(&t.type_body),t.canvas_selection.color32()); }
                 if editor.variant == 0 && self.tool == 0 {
                     if response.clicked() && let Some(pointer)=response.interact_pointer_pos() {
-                        self.selected=pick_graphic(draft,(pointer-origin)/self.zoom,t.space_2/self.zoom);
+                        self.selected=pick_graphic(draft,(pointer-origin)/self.zoom,t.space_2/self.zoom,&styles);
                     }
                     // M25-p3#3: a drag moves the shape under its start, which it selects; a drag that starts on no
                     // shape moves nothing.
                     if response.drag_started_by(egui::PointerButton::Primary) {
                         let press = ui.input(|i| i.pointer.press_origin());
                         self.move_start = None;
-                        if let Some(start) = press && let Some(index) = pick_graphic(draft,(start-origin)/self.zoom,t.space_2/self.zoom) {
+                        if let Some(start) = press && let Some(index) = pick_graphic(draft,(start-origin)/self.zoom,t.space_2/self.zoom,&styles) {
                             self.selected = Some(index);
                             self.move_start = Some(start);
                         }
                     }
-                    if let Some(index)=self.selected && let Some(bounds)=graphic_bounds(draft,index) {
+                    if let Some(index)=self.selected && let Some(bounds)=graphic_bounds(draft,index,&styles) {
                         let lo=origin+Vec2::new(bounds[0],bounds[1])*self.zoom;
                         let hi=origin+Vec2::new(bounds[2],bounds[3])*self.zoom;
                         painter.rect_stroke(egui::Rect::from_two_pos(lo,hi).expand(t.space_1),t.radius_none,Stroke::new(t.border_width,t.canvas_selection.color32()),egui::StrokeKind::Outside);
@@ -973,10 +1121,25 @@ impl EditorView {
                         }
                     }
                 }
+                // ID-1477 (4): press, drag and release draws a rectangle (two clicks still do): the press is its first
+                // corner, the release its second, each on the 0.5 mm step.
+                let on_step = |pos: Pos2| { let at=(pos-origin)/self.zoom; [(f64::from(at.x)*2.0).round()/2.0,(f64::from(at.y)*2.0).round()/2.0] };
+                if editor.variant == 0 && self.tool == 2 {
+                    if response.drag_started_by(egui::PointerButton::Primary) && let Some(press) = ui.input(|i| i.pointer.press_origin()) {
+                        self.start = Some(on_step(press));
+                    }
+                    if response.drag_stopped_by(egui::PointerButton::Primary) && let Some(end) = response.interact_pointer_pos() && let Some(start) = self.start.take() {
+                        let p = on_step(end);
+                        if p != start { action(events,"symbol.draw",json!({"tool":tools[2].0,"x":start[0],"y":start[1],"x2":p[0],"y2":p[1]})); }
+                    }
+                }
                 if let Some(start) = self.start {
                     let at = origin+Vec2::new(start[0] as f32*self.zoom,start[1] as f32*self.zoom);
                     painter.circle_stroke(at,t.space_2,Stroke::new(t.focus_width,t.canvas_selection.color32()));
-                    if let Some(pointer) = response.hover_pos() { painter.line_segment([at,pointer],Stroke::new(t.border_width,t.canvas_selection.color32())); }
+                    if let Some(pointer) = response.hover_pos() {
+                        if self.tool == 2 { painter.rect_stroke(egui::Rect::from_two_pos(at,pointer),t.radius_none,Stroke::new(t.border_width,t.canvas_selection.color32()),egui::StrokeKind::Middle); }
+                        else { painter.line_segment([at,pointer],Stroke::new(t.border_width,t.canvas_selection.color32())); }
+                    }
                 }
                 if editor.variant == 0 && response.clicked() && let Some(pointer) = response.interact_pointer_pos() {
                     let at = (pointer-origin)/self.zoom;
@@ -1229,7 +1392,7 @@ impl EditorView {
             graphics.remove(index);
             changed = true;
         }
-        changed |= text_field(ui, "symbol-name", &mut doc["symbol"]["name"]);
+        changed |= text_field(ui, "symbol-name", &mut doc["symbol"]["name"], false);
         if self.panel == 2 {
             for (key, path) in [("symbol-key", "key"), ("symbol-version", "version")] {
                 let mut value = doc[path].as_str().unwrap_or_default().to_owned();
@@ -1345,9 +1508,10 @@ impl EditorView {
                     }
                     if let Some(text) = value.get_mut("text") {
                         changed |= text_style_control(ui, text, styles, &owner);
+                        changed |= align_control(ui, text, &owner);
                         changed |= ui
                             .push_id(("graphic-text", i), |ui| {
-                                text_field(ui, "symbol-text", &mut text["text"])
+                                text_field(ui, "symbol-text", &mut text["text"], true)
                             })
                             .inner;
                         changed |= rotation_control(ui, text, &owner);
@@ -1595,6 +1759,20 @@ impl EditorView {
                     changed = true;
                 }
             }
+            // ID-1477 (6): the cross-reference anchor of its own stands in a list with its place and Delete, which
+            // returns the anchor to the origin.
+            let named = doc["symbol"]["anchor"].get("named").is_some();
+            if section(ui, "anchor", "symbol-anchor", Some(usize::from(named)), false) && named {
+                let owner = label(strings::Key::run_time("symbol-anchor")).to_owned();
+                ui.push_id("anchor", |ui| {
+                    ui.label(&owner);
+                    changed |= numeric_fields(ui, &mut doc["symbol"]["anchor"]["named"], "", true, &owner);
+                    if delete_button(ui, "symbol-delete-row", &owner) {
+                        doc["symbol"]["anchor"] = json!("origin");
+                        changed = true;
+                    }
+                });
+            }
         }
         if changed {
             replace_action(events, draft, doc);
@@ -1831,6 +2009,20 @@ fn paint(
                 6.0,
                 Stroke::new(t.border_width, t.canvas_snap.color32()),
             );
+            // ID-1477 (6): a cross-reference anchor of its own shows as a marker: its circle crossed, and its name.
+            if matches!(draft.symbol.anchor, symbols::schema::AnchorPolicy::Named(_)) {
+                let p = at(g.anchor);
+                let stroke = Stroke::new(t.border_width, t.canvas_snap.color32());
+                painter.line_segment([p - Vec2::new(9.0, 0.0), p + Vec2::new(9.0, 0.0)], stroke);
+                painter.line_segment([p - Vec2::new(0.0, 9.0), p + Vec2::new(0.0, 9.0)], stroke);
+                painter.text(
+                    p + Vec2::new(8.0, -8.0),
+                    egui::Align2::LEFT_BOTTOM,
+                    label(strings::Key::run_time("symbol-anchor")),
+                    theme::font(&t.type_small),
+                    t.canvas_snap.color32(),
+                );
+            }
         }
     }
 }
@@ -1843,14 +2035,28 @@ fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyl
         .to_owned();
     let mut selected = before.clone();
     let t = theme::current(ui.ctx());
+    // ID-1477 (2): each style by its name in words and its size ("Pin designation · 1.85 mm").
+    let name = |key: &str| {
+        let words = ew_viewmodel::shell::symbol_editor::text_style_words(key);
+        match styles.rows().iter().find(|r| r.key == key) {
+            Some(row) => strings::format(
+                strings::Key::run_time("symbol-style-choice"),
+                &[
+                    &words,
+                    &strings::decimal(&format!("{:.2}", row.em.0 as f64 / 1_000_000.0)),
+                ],
+            ),
+            None => words,
+        }
+    };
     ui.horizontal(|ui| {
         ui.label(label(strings::Key::run_time("symbol-text-style")));
         egui::ComboBox::from_id_salt("text-style")
             .height(t.size_chooser_rows as f32 * t.size_row)
             .selected_text(if selected.is_empty() {
-                label(strings::Key::run_time("symbol-style-default"))
+                label(strings::Key::run_time("symbol-style-default")).to_owned()
             } else {
-                &selected
+                name(&selected)
             })
             .show_ui(ui, |ui| {
                 ui.selectable_value(
@@ -1859,11 +2065,7 @@ fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyl
                     label(strings::Key::run_time("symbol-style-default")),
                 );
                 for row in styles.rows() {
-                    let name = strings::format(
-                        strings::Key::run_time("symbol-style-choice"),
-                        &[&format!("{:.2}", row.em.0 as f64 / 1_000_000.0), &row.key],
-                    );
-                    ui.selectable_value(&mut selected, row.key.clone(), name);
+                    ui.selectable_value(&mut selected, row.key.clone(), name(&row.key));
                 }
             })
             .response
@@ -1886,6 +2088,67 @@ fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyl
     } else {
         value["style"] = json!(selected);
     }
+    true
+}
+
+/// The nine alignments of a text, by (horizontal, vertical) position: left, centre, right; top, middle, bottom.
+const ALIGNS: [[&str; 3]; 3] = [
+    ["top_left", "middle_left", "bottom_left"],
+    ["top_centre", "centre", "bottom_centre"],
+    ["top_right", "middle_right", "bottom_right"],
+];
+
+/// The (horizontal, vertical) position of an alignment word; a word of a newer format reads as top left.
+fn align_position(word: &str) -> (usize, usize) {
+    (0..3)
+        .flat_map(|h| (0..3).map(move |v| (h, v)))
+        .find(|(h, v)| ALIGNS[*h][*v] == word)
+        .unwrap_or((0, 0))
+}
+
+/// A text's alignment as two choices, left, centre or right and top, middle or bottom (ID-1477 (2)), named for the
+/// text `owner`. Returns whether it changed.
+fn align_control(ui: &mut Ui, value: &mut Value, owner: &str) -> bool {
+    let (mut h, mut v) = align_position(value["align"].as_str().unwrap_or("top_left"));
+    let before = (h, v);
+    ui.horizontal(|ui| {
+        ui.label(label(strings::Key::run_time("symbol-alignment")));
+        for (salt, caption, words, at) in [
+            (
+                "align-h",
+                "symbol-align-horizontal",
+                ["symbol-align-left", "symbol-align-centre", "symbol-align-right"],
+                &mut h,
+            ),
+            (
+                "align-v",
+                "symbol-align-vertical",
+                ["symbol-align-top", "symbol-align-middle", "symbol-align-bottom"],
+                &mut v,
+            ),
+        ] {
+            egui::ComboBox::from_id_salt(salt)
+                .selected_text(label(strings::Key::run_time(words[*at])))
+                .show_ui(ui, |ui| {
+                    for (i, word) in words.iter().enumerate() {
+                        ui.selectable_value(at, i, label(strings::Key::run_time(word)));
+                    }
+                })
+                .response
+                .expanded(ui)
+                .widget_info(|| {
+                    egui::WidgetInfo::labeled(
+                        egui::Role::ComboBox,
+                        true,
+                        owned(label(strings::Key::run_time(caption)), owner),
+                    )
+                });
+        }
+    });
+    if (h, v) == before {
+        return false;
+    }
+    value["align"] = json!(ALIGNS[h][v]);
     true
 }
 
@@ -1946,13 +2209,18 @@ fn slot_kind_control(ui: &mut Ui, index: &mut usize, pin: &mut u16) {
         });
     }
 }
-fn graphic_bounds(draft: &SymbolDraft, index: usize) -> Option<[f32; 4]> {
+/// The bounds of graphic `index` in millimetres: as drawn, a text's glyphs included (ID-1477 (3)), else as the preview
+/// bounds it.
+fn graphic_bounds(draft: &SymbolDraft, index: usize, styles: &symbols::TextStyleTable) -> Option<[f32; 4]> {
     let mut d = draft.clone();
     d.symbol.graphics = vec![d.symbol.graphics.get(index)?.clone()];
     d.symbol.cps = Default::default();
     d.symbol.text_slots.clear();
     d.symbol.link_points.clear();
-    let b = d.preview(0).ok()?.bounds;
+    let g = d.preview(0).ok()?;
+    let b = symbols::preview_display_list(&d, &g, styles, &|_| String::new())
+        .bounds()
+        .unwrap_or(g.bounds);
     Some([
         b.min().x.0 as f32 / 1e6,
         b.min().y.0 as f32 / 1e6,
@@ -1960,12 +2228,18 @@ fn graphic_bounds(draft: &SymbolDraft, index: usize) -> Option<[f32; 4]> {
         b.max().y.0 as f32 / 1e6,
     ])
 }
-fn pick_graphic(draft: &SymbolDraft, p: Vec2, slop: f32) -> Option<usize> {
-    (0..draft.symbol.graphics.len()).rev().find(|&i| {
-        graphic_bounds(draft, i).is_some_and(|b| {
-            p.x >= b[0] - slop && p.y >= b[1] - slop && p.x <= b[2] + slop && p.y <= b[3] + slop
+/// The graphic under `p`: the smallest whose bounds (widened by `slop`) hold it, so a text is picked before the
+/// rectangle behind it (ID-1477 (3)); of equally small ones the topmost.
+fn pick_graphic(draft: &SymbolDraft, p: Vec2, slop: f32, styles: &symbols::TextStyleTable) -> Option<usize> {
+    (0..draft.symbol.graphics.len())
+        .rev()
+        .filter_map(|i| {
+            let b = graphic_bounds(draft, i, styles)?;
+            let under = p.x >= b[0] - slop && p.y >= b[1] - slop && p.x <= b[2] + slop && p.y <= b[3] + slop;
+            under.then_some(((b[2] - b[0]) * (b[3] - b[1]), i))
         })
-    })
+        .min_by(|a, b| a.0.total_cmp(&b.0))
+        .map(|(_, i)| i)
 }
 fn translate_graphic(v: &mut Value, dx: i64, dy: i64) {
     fn points(v: &mut Value, dx: i64, dy: i64) {
@@ -2155,6 +2429,105 @@ mod tests {
         );
         assert_eq!(commits, 1);
         assert!(value >= 10.0, "a slow drag stalls: {value}");
+    }
+
+    /// ID-1477 (2): in a text's field Shift+Enter starts a new line and Enter alone commits the text with it.
+    #[test]
+    fn shift_enter_breaks_a_texts_line_and_enter_commits_it() {
+        let ctx = egui::Context::default();
+        let mut value = json!({"en": "A"});
+        let mut commits = 0;
+        let key = |key, shift| egui::Event::Key {
+            key,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: if shift {
+                egui::Modifiers::SHIFT
+            } else {
+                egui::Modifiers::NONE
+            },
+        };
+        let frame = |n: usize, events: Vec<egui::Event>, value: &mut Value, commits: &mut usize| {
+            let input = egui::RawInput {
+                events,
+                time: Some(n as f64 / 60.0),
+                screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, Vec2::new(400.0, 200.0))),
+                ..Default::default()
+            };
+            let mut output = ctx.run_ui(input, |ui| {
+                if n == 0 {
+                    let input = ui.make_persistent_id("symbol-text").with("input");
+                    ui.memory_mut(|m| m.request_focus(input));
+                }
+                if text_field(ui, "symbol-text", value, true) {
+                    *commits += 1;
+                }
+            });
+            output.textures_delta.clear();
+        };
+        frame(0, Vec::new(), &mut value, &mut commits);
+        frame(1, vec![key(egui::Key::End, false)], &mut value, &mut commits);
+        frame(2, vec![key(egui::Key::Enter, true)], &mut value, &mut commits);
+        frame(3, vec![egui::Event::Text("B".into())], &mut value, &mut commits);
+        assert_eq!(
+            (value.clone(), commits),
+            (json!({"en": "A"}), 0),
+            "nothing commits while typing"
+        );
+        frame(4, vec![key(egui::Key::Enter, false)], &mut value, &mut commits);
+        assert_eq!((value, commits), (json!({"en": "A\nB"}), 1));
+    }
+
+    /// ID-1477 (3): a click on a text's glyphs, drawn before the rectangle around it, picks the text, the smaller item;
+    /// a click inside the rectangle elsewhere picks the rectangle.
+    #[test]
+    fn a_click_picks_the_smallest_item_under_the_pointer() {
+        let styles = ew_viewmodel::ew_api::output::new_project_text_style_table();
+        let draft = SymbolDraft::new("example.pick", "Pick").unwrap();
+        let mut doc = serde_json::to_value(&draft).unwrap();
+        doc["symbol"]["graphics"] = json!([
+            {"text": {"pos": [10_000_000, 10_000_000], "text": {"en": "K1"}, "align": "centre", "style": "cp.small"}},
+            {"rect": {"rect": [[0, 0], [20_000_000, 20_000_000]], "stroke": {"pen": "p026"}}},
+        ]);
+        let draft = SymbolDraft::parse(&serde_json::to_vec(&doc).unwrap()).unwrap();
+        let text = graphic_bounds(&draft, 0, &styles).unwrap();
+        assert!(text[2] - text[0] > 1.0, "the glyphs' width: {text:?}");
+        // On the glyphs, away from the text's anchor point by more than the slop.
+        let on_glyphs = Vec2::new(text[2] - 0.2, 10.0);
+        assert_eq!(pick_graphic(&draft, on_glyphs, 0.1, &styles), Some(0));
+        assert_eq!(pick_graphic(&draft, Vec2::new(3.0, 17.0), 0.1, &styles), Some(1));
+        assert_eq!(pick_graphic(&draft, Vec2::new(30.0, 30.0), 0.1, &styles), None);
+    }
+
+    /// ID-1477 (8): letters typed into an open role list choose the role whose words they are, else the first they
+    /// begin, in any case.
+    #[test]
+    fn letters_typed_into_a_role_list_choose_the_role_they_name() {
+        for (typed, role) in [
+            ("l", Some("l")),
+            ("L1", Some("l1")),
+            ("p", Some("pe")),
+            ("pen", Some("pen")),
+            ("l+", Some("l_plus")),
+            ("sig", Some("signal")),
+            ("x", None),
+            ("", None),
+        ] {
+            assert_eq!(role_typed(typed), role, "{typed}");
+        }
+    }
+
+    /// ID-1477 (2): the nine alignments are three horizontal by three vertical positions, each read back as itself.
+    #[test]
+    fn the_nine_alignments_read_back_as_their_positions() {
+        for (h, column) in ALIGNS.iter().enumerate() {
+            for (v, word) in column.iter().enumerate() {
+                assert_eq!(align_position(word), (h, v), "{word}");
+            }
+        }
+        assert_eq!(ALIGNS[1][1], "centre");
+        assert_eq!(align_position("a-newer-word"), (0, 0));
     }
 
     #[test]

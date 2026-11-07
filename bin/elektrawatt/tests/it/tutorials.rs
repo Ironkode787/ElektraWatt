@@ -655,7 +655,7 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
 }
 
 /// The symbol editor's tutorial (WP-S2.10, G-M2.5-05; M25-p3#2): a six-pin power block drawn in the symbol editor,
-/// refused off the grid in words, saved to a library, exported, tested on a scratch page, the project saved and the
+/// refused off the grid in words, saved to a library, exported, tested on a new page, the project saved and the
 /// exported draft reopened: every step done, the end state the page names, and the page passes the lint.
 #[test]
 fn tutorial_draw_a_six_pin_power_block_runs_as_its_page_says() {
@@ -678,7 +678,7 @@ fn tutorial_draw_a_six_pin_power_block_runs_as_its_page_says() {
             "error \"Connection point 1 is off the connection grid. Move it onto the grid before saving.\"",
         ]
     );
-    // Steps 8 to 11: the library, the portable draft and the saved project with its scratch page. A name without a
+    // Steps 8 to 11: the library, the portable draft and the saved project with its new page. A name without a
     // folder is read from the user library folder, never the working directory (ID-1463).
     assert!(!tmp.path("symbols.ewlib").exists() && !tmp.path("power.symbol.json").exists());
     let library = find_named(&tmp.path(""), "symbols.ewlib").expect("the library");

@@ -1,6 +1,6 @@
 # Symbol editor and automated authoring
 
-Open **Edit ▸ Symbol editor…**. A symbol draft has its own undo history, drawing, function definition,
+Open **Draw ▸ Place ▸ Symbol editor…**. A symbol draft has its own undo history, drawing, function definition,
 connection points, text slots and cross-reference anchor. Changes do not alter existing placements.
 Choose A to draw; B–H show live rotated/mirrored previews. Select a graphic to move it by dragging or edit
 its coordinates in **Drawing**. **Draw by coordinates** also creates geometry from the keyboard.
@@ -46,15 +46,15 @@ symbol, and a message says so; the symbol with the earlier key stays. **Export d
 new file, including incomplete work; an existing file is never overwritten. Leave **Symbol file** empty to
 choose the file in a file dialog, and choose **Choose folder…** to pick the library folder; an empty **Library
 folder** is refused when you save. A relative path is read from your default user library folder.
-**Close editor** keeps the draft and its undo history: **Edit ▸ Symbol editor…** returns to it. Only
+**Close editor** keeps the draft and its undo history: **Draw ▸ Place ▸ Symbol editor…** returns to it. Only
 **Discard draft** drops it, and **New symbol** starts a fresh draft. While the draft has unsaved changes,
 **New symbol**, **Open or import**, **Create editable copy**, another drawing of an import and **Discard draft**
 first ask whether to save the symbol. While the editor shows, Ctrl+S saves the symbol and the File menu's **Save project**
-saves the project. Quitting with unsaved symbol changes asks whether to save the symbol. **Test on scratch page** creates a
+saves the project. Quitting with unsaved symbol changes asks whether to save the symbol. **Test on a new page** creates a
 page in the current project with the symbol's connection grid and places embedded copies there. The page then
 shows with the copy selected; the message's **Back to the editor** returns to the draft. Project undo removes
-the placement; a second undo removes the scratch page.
-Scratch placements are independent draft copies, so **Source missing** in the Libraries navigator refers to
+the placement; a second undo removes the new page.
+Test placements are independent draft copies, so **Source missing** in the Libraries navigator refers to
 their temporary draft source. To place a copy linked to the published library, use **Draw ▸ Place ▸ Symbol…**
 after saving.
 
@@ -116,7 +116,7 @@ The window and `.ewui` scripts share these actions:
 
 Action coordinates are **millimetres**, unlike JSON document coordinates. Placement snaps the insertion point to
 the destination page grid; it never moves a pin within the symbol. A different symbol/page grid is refused
-before changing the project; use a scratch page with the matching grid. Replacing or opening over a dirty draft
+before changing the project; use **Place on a new page with its grid**. Replacing or opening over a dirty draft
 requires `discard: true`; `symbol.close` keeps the draft unless it has `discard: true`, and `symbol.new` without a
 key or name returns to it, or with `discard: true` starts a fresh draft. `app.quit` with `discard: true` discards an unsaved draft. `ui.describe` and the script state expose the open editor and
 validation findings. [The tutorial](../tutorials/symbol-editor.md) includes a complete six-pin example.

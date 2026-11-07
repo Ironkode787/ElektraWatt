@@ -920,8 +920,9 @@ mod choice_word_tests {
             if !nl.contains(key.as_str()) {
                 missing.insert(format!("nl-NL: {key}"));
             }
-            // C50-p5#5: the accessory has one English word, "End bracket" (16a §8 item 4).
-            if v != "end_clamp" {
+            // C50-p5#5: the accessory has one English word, "End bracket" (16a §8 item 4); ID-1477 (1): the connection
+            // grids read as the status bar writes them, "4 mm" and "QET 10 px".
+            if !matches!(v.as_str(), "end_clamp" | "mm4" | "qet_10px") {
                 assert_eq!(choice_text(v), choice_words(v), "{v}");
             }
         }

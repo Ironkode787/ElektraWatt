@@ -403,9 +403,13 @@ impl SetFields {
                     }
                 }
                 KindName::Page => {
+                    let grid = tx.require::<Page>(t.cast())?.grid;
                     set_one::<Page>(tx, *t, path, value)?;
                     if path == "scale" {
                         refuse_bad_scale(tx, *t)?;
+                    }
+                    if path == "grid" {
+                        refuse_grid_under_items(tx, *t, grid)?;
                     }
                 }
                 KindName::Representation => set_one::<Representation>(tx, *t, path, value)?,
@@ -594,6 +598,27 @@ fn refuse_bad_scale(tx: &TxBuilder<'_>, page: AnyId) -> Result<(), CmdError> {
         Some(problem) => Err(CmdError::invalid_params(SetFields::NAME, "/value", problem)),
         None => Ok(()),
     }
+}
+
+/// ID-1477 (1): a page's connection grid changes only while the page holds no item, since the items keep their
+/// positions and would stand off the new grid; refused at `/value` in words, the page by its printed folio.
+fn refuse_grid_under_items(tx: &TxBuilder<'_>, page: AnyId, before: ew_units::Grid) -> Result<(), CmdError> {
+    let id: ew_ids::Id<Page> = page.cast();
+    let p = tx.require::<Page>(id)?;
+    let holds = !tx.reps_on_page(id).is_empty()
+        || !tx.connections_on_page(id).is_empty()
+        || !tx.junctions_on_page(id).is_empty()
+        || !tx.page_items_on_page(id).is_empty()
+        || !tx.structure_boxes_on_page(id).is_empty();
+    if p.grid == before || !holds {
+        return Ok(());
+    }
+    let folio = crate::commands::page::printed_folio(p.folio.number, p.folio.label.as_ref());
+    Err(CmdError::invalid_params(
+        SetFields::NAME,
+        "/value",
+        text!("refusal-page-grid-not-empty", folio),
+    ))
 }
 
 /// [`refuse_unknown_colour`] for a conductor's `colour` (FT-476): the same check and text, refused at `/value`.

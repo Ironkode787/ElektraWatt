@@ -1636,7 +1636,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     ))),
     // FT-408: Page, New page.
     with_params(
-        "folio:text, type?:enum(title_page|table_of_contents|section_divider|graphic|single_line|multi_line|overview|bus_topology|fluid|assembly_overview|panel_layout|model_view|external_document), title?:text, section?:text",
+        "folio:text, type?:enum(title_page|table_of_contents|section_divider|graphic|single_line|multi_line|overview|bus_topology|fluid|assembly_overview|panel_layout|model_view|external_document), title?:text, section?:text, grid?:enum(mm4|qet_10px)",
         placed(
             place(Group::Pages, 1, CommandSize::Large, None),
             "file-plus",
@@ -2555,6 +2555,16 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_picker_choose(p),
         ),
     ))),
+    // ID-1477 (1): the current row, a symbol on another connection grid, placed on a new page with its grid.
+    keeps_banner(hidden(parameterless(act(
+        "picker.new_page",
+        Command,
+        Menu::Draw,
+        &[],
+        picker_open,
+        None,
+        |s, _| s.act_picker_new_page(),
+    )))),
     // WP-S2.18 part 1 (D2): J opens the Place tool's Join chooser (doc 16a §6.22) while the armed symbol can be an
     // auxiliary function; the chooser's own keys are its actions.
     keeps_banner(hidden(in_canvas(parameterless(act(
@@ -5516,16 +5526,26 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_keymap_export(p),
         )),
     ),
+    // ID-1477 (7): the editor has a button on the Draw tab, whose Place group holds its menu entry and palette row.
     with_params(
         "key?:text, name?:text, discard?:bool",
-        act(
-            "symbol.new",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            slot(Menu::Edit),
-            |s, p| s.act_symbol("new", p),
+        placed(
+            place(
+                Group::Place,
+                5,
+                CommandSize::Small,
+                Some(key!("bar-symbol-editor")),
+            ),
+            "pencil",
+            act(
+                "symbol.new",
+                View,
+                Menu::Edit,
+                &[],
+                always,
+                slot(Menu::Edit),
+                |s, p| s.act_symbol("new", p),
+            ),
         ),
     ),
     with_params(

@@ -114,6 +114,98 @@ fn a_label_a_section_and_the_refusals_of_page_new() {
     shell.shutdown();
 }
 
+/// ID-1477 (1): New page's Connection grid, the current page's by default, the grid given otherwise, a wrong word
+/// refused in words; in Properties an empty page's Connection grid row is a choice outside Advanced, set in its words,
+/// and a page that holds items keeps its grid, refused in words.
+#[test]
+fn page_new_takes_a_connection_grid_and_properties_changes_an_empty_pages() {
+    let tmp = Tmp::new("pagenew-grid");
+    let mut shell = new_project(&tmp, Mode::Gui);
+    let grid = |shell: &ShellModel| shell.canvas().unwrap().page().snapper.grid();
+    let qet = grid(&shell);
+    assert_eq!(qet, (7_937_500, 3));
+    done(&mut shell, "page.new", json!({}));
+    let Some(Dialog::Form(form)) = shell.dialog().cloned() else {
+        panic!("{:?}", shell.dialog());
+    };
+    let field = form.fields.iter().find(|f| f.name == "grid").unwrap();
+    assert_eq!(
+        (field.label_key.as_str(), field.value.as_str()),
+        ("form-grid", "qet_10px")
+    );
+    assert_eq!(
+        field
+            .choices
+            .iter()
+            .map(|c| ew_viewmodel::strings::choice_text(c))
+            .collect::<Vec<_>>(),
+        ["4 mm", "QET 10 px"]
+    );
+    shell.set_form_field("folio", "201");
+    shell.set_form_field("grid", "mm4");
+    assert_eq!(shell.submit_form(), Outcome::Done);
+    assert_eq!(grid(&shell), (4_000_000, 1));
+    // Without a grid New page takes the current page's.
+    let mut headless = new_project(&Tmp::new("pagenew-grid-headless"), Mode::Headless);
+    done(&mut headless, "page.new", json!({"folio": "201", "grid": "mm4"}));
+    done(&mut headless, "page.new", json!({"folio": "202"}));
+    assert_eq!(grid(&headless), (4_000_000, 1));
+    done(
+        &mut headless,
+        "page.new",
+        json!({"folio": "203", "grid": "qet_10px"}),
+    );
+    assert_eq!(grid(&headless), qet);
+    assert_eq!(
+        failed(&mut headless, "page.new", json!({"folio": "204", "grid": "5mm"})),
+        "\"5mm\" is not a connection grid; use one of: mm4, qet_10px."
+    );
+    // Properties: the empty page 203's Connection grid row is on show without Advanced and takes "4 mm".
+    done(&mut headless, "select.set", json!({"ids": []}));
+    let page = headless.current_page().unwrap().uuid_text();
+    let sheet = headless.properties().sheet().unwrap().clone();
+    let section = sheet.sections.iter().find(|s| s.kind == "page").unwrap();
+    let row = section.rows.iter().find(|r| r.key == "page/grid").unwrap();
+    assert!(!ew_viewmodel::properties::is_advanced(row));
+    assert_eq!(ew_viewmodel::properties::value_text(row), "QET 10 px");
+    done(&mut headless, "props.edit", json!({"row": "page/grid"}));
+    let choices: Vec<String> = headless
+        .properties()
+        .choices()
+        .unwrap()
+        .items
+        .iter()
+        .map(|(t, _)| t.clone())
+        .collect();
+    assert_eq!(choices, ["4 mm", "QET 10 px"]);
+    done(&mut headless, "props.choose", json!({"index": 0}));
+    assert_eq!(grid(&headless), (4_000_000, 1));
+    done(
+        &mut headless,
+        "props.set",
+        json!({"row": "page/grid", "value": "QET 10 px"}),
+    );
+    assert_eq!(grid(&headless), qet);
+    // A page that holds an item keeps its grid.
+    done(
+        &mut headless,
+        "command.run",
+        json!({"cmd": "item.place", "params": {"page": page, "kind": {"free_text": {"text": "Note",
+            "at": [50_800_000, 30_480_000], "angle": 0, "style": "text.normal", "align": "centre"}}}}),
+    );
+    assert_eq!(
+        failed(
+            &mut headless,
+            "props.set",
+            json!({"row": "page/grid", "value": "4 mm"})
+        ),
+        "page 203 holds items; a page's connection grid changes only while the page is empty"
+    );
+    assert_eq!(grid(&headless), qet);
+    headless.shutdown();
+    shell.shutdown();
+}
+
 #[test]
 fn the_new_actions_are_refused_without_a_project_and_read_only() {
     let tmp = Tmp::new("create-refused");
@@ -507,7 +599,8 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
             ("folio", "2"),
             ("type", "multi_line"),
             ("title", "Typed first"),
-            ("section", "")
+            ("section", ""),
+            ("grid", "qet_10px")
         ]
     );
     assert!(form.fields[1].choices.contains(&"single_line") && !form.fields[1].choices.contains(&"report"));
@@ -628,6 +721,7 @@ fn the_dialog_describes_itself_in_the_vocabulary() {
             "  field \"Type\": \"multi_line\"",
             "  field \"Title\": \"\"",
             "  field \"Section number\": \"\"",
+            "  field \"Connection grid\": \"qet_10px\"",
             "  error: A folio starts with its number: \"A1\" does not.",
             "  button \"Create\"",
             "  button \"Cancel\"",

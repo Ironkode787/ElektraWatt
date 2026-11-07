@@ -1179,8 +1179,10 @@ impl App {
             _ => egui::Align2::RIGHT_TOP,
         };
         let dialog_open = self.shell.dialog().is_some();
-        // Doc 16a §6.12: under a modal the toasts go below its backdrop, which dims them with the rest.
-        let under_modal = dialog_open || ctx.memory(|m| m.top_modal_layer().is_some());
+        // Doc 16a §6.12: under a modal the toasts go below its backdrop, which dims them with the rest. SM25b m4
+        // (ID-1476): below the Insert symbol picker too, which stands in the foreground and keeps its field clear.
+        let under_modal =
+            dialog_open || self.shell.picker().is_some() || ctx.memory(|m| m.top_modal_layer().is_some());
         // FT-1027 (ID-1107; doc 16a §4.12, §6.10): each toast fades in and out over `motion.base` on the frame clock.
         let frame_time = ctx.input(|i| i.time);
         let fade = f64::from(tokens.motion_base) / 1000.0;

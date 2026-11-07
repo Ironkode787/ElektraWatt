@@ -258,6 +258,11 @@ fn unknown_members_of_nested_objects_block_publication() {
     value["function"]["flags"] = json!({"n_isolation":true,"n_isolaton":true});
     let mut reference = value["symbol"]["fndef"].clone();
     reference["pinned"] = json!(true);
+    // ID-1476 (M25-p6 nit): a deprecation's object and its successor's reference.
+    let mut successor = reference.clone();
+    successor.as_object_mut().unwrap().remove("pinned");
+    successor["pined"] = json!(true);
+    value["symbol"]["meta"]["status"] = json!({"deprecated": {"successor": successor, "reason": "old"}});
     value["function_ref"] = reference;
     let draft = SymbolDraft::parse(&serde_json::to_vec(&value).unwrap()).unwrap();
     let paths: Vec<_> = draft
@@ -278,6 +283,8 @@ fn unknown_members_of_nested_objects_block_publication() {
             "/function/internal/0/kind/pass_through/open",
             "/function/flags/n_isolaton",
             "/function_ref/pinned",
+            "/symbol/meta/status/deprecated/reason",
+            "/symbol/meta/status/deprecated/successor/pined",
         ]
     );
     // Each pointer names the member in the draft.

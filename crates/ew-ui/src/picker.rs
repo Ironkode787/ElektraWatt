@@ -86,7 +86,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         let (mut name_w, mut number_w, mut meta_w) = (0.0_f32, 0.0_f32, 0.0_f32);
         for row in &all.rows {
             let (name, second, meta, _) = row_texts(&all, *row);
-            let meta = all.disabled_words(*row).unwrap_or(meta);
+            let meta = column_reason(&all, *row).unwrap_or(meta);
             name_w = name_w.max(measure(&name, &t.type_body));
             number_w = number_w.max(second.as_deref().map_or(0.0, |n| measure(n, &t.type_small)));
             meta_w = meta_w.max(measure(&meta, &t.type_small));
@@ -109,6 +109,8 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     ctx.data_mut(|d| d.insert_temp(picker_width_id(), width));
     Window::new(title)
         .id(Id::unique("place-picker"))
+        // SM25b m4 (ID-1476): above the toasts, which stand below it while it is open.
+        .order(egui::Order::Foreground)
         .anchor(
             Align2::CENTER_TOP,
             [0.0, t.size_tab_row + t.size_command_row + t.space_4],
@@ -174,7 +176,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                     let (mut number_w, mut meta_w) = (0.0_f32, 0.0_f32);
                     for row in &picker.rows {
                         let (_, second, meta, _) = row_texts(picker, *row);
-                        let meta = picker.disabled_words(*row).unwrap_or(meta);
+                        let meta = column_reason(picker, *row).unwrap_or(meta);
                         number_w = number_w.max(second.as_deref().map_or(0.0, width));
                         meta_w = meta_w.max(width(&meta));
                     }
@@ -208,7 +210,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                         let (name, second, meta, tooltip) = row_texts(picker, *row);
                         let reason = picker.disabled_words(*row);
                         let enabled = reason.is_none();
-                        let meta = reason.unwrap_or(meta);
+                        let meta = column_reason(picker, *row).unwrap_or(meta);
                         let text_colour = if enabled { t.text_primary } else { t.text_disabled };
                         // Name in body text, the library or function in tertiary (secondary on the selected row).
                         let meta_colour = if i == picker.row {
@@ -242,7 +244,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                                 .atom_align(egui::Align2::RIGHT_CENTER),
                         );
                         let tooltip = if !matches!(row, PickerRow::Strip(_)) {
-                            format!("{tooltip}\n{meta}")
+                            format!("{tooltip}\n{}", reason.as_deref().unwrap_or(&meta))
                         } else {
                             tooltip
                         };
@@ -251,24 +253,55 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                             .selected(i == picker.row)
                             .frame_when_inactive(false)
                             .min_size(egui::vec2(ui.available_width(), t.size_row));
-                        let response = ui.add_enabled(enabled, button);
+                        // ID-1477 (1): a symbol on another grid stays greyed but takes a click, which makes it the
+                        // current row: its whole reason and Place on a new page with its grid show under the list.
+                        let other_grid = matches!(row, PickerRow::Symbol(k)
+                            if picker.catalogue.symbols[*k].grid_mismatch.is_some());
+                        let response = ui.add_enabled(enabled || other_grid, button);
                         // FT-1255: egui maps `selected` to `toggled` only; AccessKit's selected state.
                         ui.ctx()
                             .accesskit_node_builder(response.id, |n| n.set_selected(i == picker.row));
                         // A disabled row says its reason in its tooltip too (egui opens `.tip` on enabled widgets
                         // only).
-                        let response = if enabled {
+                        let response = if enabled || other_grid {
                             response.tip(&tooltip)
                         } else {
                             response.disabled_tip(&tooltip)
                         };
                         if response.clicked() {
                             events.push(Event::Action("picker.row", json!({ "to": i })));
-                            events.push(Event::Action("picker.choose", json!({})));
+                            if enabled {
+                                events.push(Event::Action("picker.choose", json!({})));
+                            }
                         }
                     }
                 });
+            // ID-1477 (1): the current row on another connection grid: its reason whole, never cut, and the way out.
+            if let Some(row @ PickerRow::Symbol(k)) = picker.rows.get(picker.row).copied()
+                && picker.catalogue.symbols[k].grid_mismatch.is_some()
+            {
+                ui.add_space(t.space_2);
+                ui.label(
+                    egui::RichText::new(picker.disabled_words(row).unwrap_or_default())
+                        .color(t.text_secondary.color32()),
+                );
+                let new_page = strings::text(key!("action-picker-new-page"));
+                if crate::components::button(ui, crate::components::Kind::Secondary, new_page, true, 0.0)
+                    .clicked()
+                {
+                    events.push(Event::Action("picker.new_page", json!({})));
+                }
+            }
         });
+}
+
+/// The reason a row's function column shows for a disabled row: none for a symbol on another connection grid, whose
+/// reason shows whole under the list when it is the current row (ID-1477 (1): never cut).
+fn column_reason(picker: &ew_viewmodel::tools::Picker, row: PickerRow) -> Option<String> {
+    match row {
+        PickerRow::Symbol(k) if picker.catalogue.symbols[k].grid_mismatch.is_some() => None,
+        _ => picker.disabled_words(row),
+    }
 }
 
 /// The key of the open picker's width (ID-1439): it never narrows while the picker is open.
@@ -298,8 +331,11 @@ fn row_texts(
     match row {
         PickerRow::Symbol(k) => {
             let s = &picker.catalogue.symbols[k];
+            // ID-1477 (9): a symbol of an installed or user library is never called "starter".
             let library = if s.copy.is_some() {
                 strings::text(key!("picker-badge-embedded"))
+            } else if s.key.starts_with("library:") {
+                strings::text(key!("picker-badge-library"))
             } else {
                 strings::text(key!("picker-badge-starter"))
             };

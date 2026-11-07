@@ -580,8 +580,14 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
         done(&mut shell, "symbol.replace", json!({"document":qet}));
         done(&mut shell, "symbol.validate", json!({}));
         let page_count = shell.page_count();
-        assert!(
-            matches!(shell.dispatch("symbol.place", &json!({"x":80,"y":80})), Outcome::Failed { message } if message.contains("different connection grid"))
+        // ID-1477 (1): the picker's words, both grids named.
+        assert_eq!(
+            shell.dispatch("symbol.place", &json!({"x":80,"y":80})),
+            Outcome::Failed {
+                message: "Symbol editor: This symbol is drawn on the 2.65 mm connection grid, and this page uses 4 \
+                          mm. Place it on a page with its grid."
+                    .into()
+            }
         );
         assert_eq!(shell.page_count(), page_count);
         done(&mut shell, "symbol.replace", json!({"document":draft}));
@@ -1303,6 +1309,285 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
         .map(|(i, _)| picker.disabled_words(PickerRow::Symbol(i)))
         .collect();
     assert_eq!(embedded, [Some(words.to_owned())]);
+    shell.shutdown();
+}
+
+/// ID-1477 (1): on a QET-grid page Place on current page is refused in the picker's words, both grids named, and offers
+/// Place on a new page with its grid; the Insert symbol picker's greyed row of the published symbol places it on a new
+/// page with its grid, selected, and the picker closes.
+#[test]
+fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
+    use ew_viewmodel::tools::PickerRow;
+    let tmp = Tmp::new("symbol-new-page");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(
+        &mut shell,
+        "file.new",
+        json!({"dir":tmp.0.join("project.ew"),"template":"builtin"}),
+    );
+    let grid = |shell: &ShellModel| shell.canvas().unwrap().page().snapper.grid();
+    drawn(&mut shell, "example.offer", "Offer block");
+    assert_eq!(
+        failed(&mut shell, "symbol.place", json!({"x":40,"y":40})),
+        "Symbol editor: This symbol is drawn on the 4 mm connection grid, and this page uses 2.65 mm. Place it on a \
+         page with its grid."
+    );
+    assert!(shell.symbol_editor().unwrap().offer_new_page);
+    let pages = shell.page_labels().len();
+    done(&mut shell, "symbol.scratch", json!({}));
+    assert_eq!(grid(&shell), (4_000_000, 1));
+    assert_eq!(shell.page_labels().len(), pages + 1);
+    assert_eq!(shell.selection().items.len(), 1);
+    // The picker: the published symbol's greyed row, made current, is placed on a new page of its grid.
+    done(&mut shell, "symbol.new", json!({}));
+    assert!(!shell.symbol_editor().unwrap().offer_new_page);
+    done(
+        &mut shell,
+        "symbol.save",
+        json!({"directory": tmp.0.join("offer.ewlib")}),
+    );
+    done(&mut shell, "symbol.close", json!({}));
+    done(&mut shell, "nav.goto", json!({"text": "1"}));
+    assert_eq!(grid(&shell), (7_937_500, 3));
+    done(&mut shell, "tool.place", json!({}));
+    let picker = shell.picker().unwrap();
+    let i = picker
+        .catalogue
+        .symbols
+        .iter()
+        .position(|s| s.key.starts_with("library:") && s.name.starts_with("Offer block"))
+        .unwrap();
+    let at = picker
+        .rows
+        .iter()
+        .position(|r| *r == PickerRow::Symbol(i))
+        .unwrap();
+    assert_ne!(at, 0, "a starter symbol of the page's grid leads");
+    assert_eq!(
+        shell.dispatch("picker.new_page", &json!({})),
+        Outcome::Refused {
+            reason_key: ew_viewmodel::key!("reason-no-grid-mismatch")
+        },
+        "the first row is on this page's grid"
+    );
+    done(&mut shell, "picker.row", json!({"to": at}));
+    let recorded = shell.recorded_commands().len();
+    done(&mut shell, "picker.new_page", json!({}));
+    assert!(shell.picker().is_none());
+    assert_eq!(grid(&shell), (4_000_000, 1));
+    assert_eq!(shell.page_labels().len(), pages + 2);
+    let cmds: Vec<&str> = shell.recorded_commands()[recorded..]
+        .iter()
+        .map(|c| c.cmd.as_str())
+        .collect();
+    assert_eq!(cmds, ["page.create", "device.place"]);
+    let selected = &shell.selection().items;
+    assert_eq!(selected.len(), 1);
+    assert_ne!(
+        Some(selected[0].0.to_string()),
+        shell.current_page().map(|p| p.uuid_text()),
+        "the symbol is selected, not its page"
+    );
+    shell.shutdown();
+}
+
+/// ID-1477 (2): a new free text is centred on its click, in the small style pin designations use until a style is
+/// chosen in the draft, then in the style chosen last; a text may hold a line break; a style is named in words.
+#[test]
+fn a_new_text_is_centred_in_the_style_chosen_last() {
+    use ew_viewmodel::shell::symbol_editor::text_style_words;
+    use ew_viewmodel::strings;
+    let tmp = Tmp::new("symbol-text-style");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    drawn(&mut shell, "example.texts", "Texts");
+    let texts = |shell: &ShellModel| -> Vec<serde_json::Value> {
+        let d = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
+        d["symbol"]["graphics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|g| g.get("text").cloned())
+            .collect()
+    };
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"text","x":8,"y":8,"text":"K1"}),
+    );
+    let first = texts(&shell)[0].clone();
+    assert_eq!(
+        (&first["align"], &first["style"], &first["pos"]),
+        (
+            &json!("centre"),
+            &json!("cp.small"),
+            &json!([8_000_000, 8_000_000])
+        )
+    );
+    // A style chosen for the first text is the next text's.
+    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
+    let graphics = doc["symbol"]["graphics"].as_array_mut().unwrap();
+    let at = graphics.iter().position(|g| g.get("text").is_some()).unwrap();
+    graphics[at]["text"]["style"] = json!("tag.main");
+    done(&mut shell, "symbol.replace", json!({"document": doc}));
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"text","x":8,"y":16,"text":"Line 1\nLine 2"}),
+    );
+    let second = texts(&shell)[1].clone();
+    assert_eq!(
+        (&second["align"], &second["style"], &second["text"]),
+        (
+            &json!("centre"),
+            &json!("tag.main"),
+            &json!({"en": "Line 1\nLine 2"})
+        )
+    );
+    assert_eq!(text_style_words("cp.small"), "Pin designation");
+    assert_eq!(text_style_words("company.label"), "company.label");
+    assert!(strings::set_locale("nl"));
+    let dutch = text_style_words("cp.small");
+    assert!(strings::set_locale("en"));
+    assert_eq!(dutch, "Aansluitcodering");
+    shell.shutdown();
+}
+
+/// ID-1477 (5): with no folder given, a new draft's Library folder is the default user library, `symbols.ewlib` in the
+/// user library folder, and Save to library saves there.
+#[test]
+fn save_without_a_folder_saves_to_the_default_user_library() {
+    let tmp = Tmp::new("symbol-default-library");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    drawn(&mut shell, "example.default", "Default library");
+    let library = std::path::absolute(tmp.0.join("config").join("libraries").join("symbols.ewlib")).unwrap();
+    assert_eq!(
+        shell.symbol_editor().unwrap().directory,
+        library.to_string_lossy()
+    );
+    done(&mut shell, "symbol.save", json!({}));
+    assert!(shell.symbol_editor().unwrap().stored());
+    assert!(library.is_dir());
+    shell.shutdown();
+}
+
+/// ID-1476 (M25-p6#1): an editable copy of a starter symbol under its own key says nothing of a new symbol when saved:
+/// only its function definition took an identity of its own.
+#[test]
+fn saving_a_copy_under_its_own_key_announces_no_new_symbol() {
+    let tmp = Tmp::new("symbol-own-key");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(&mut shell, "symbol.new", json!({"key":"example.empty"}));
+    let source = shell
+        .symbol_editor()
+        .unwrap()
+        .sources
+        .iter()
+        .find(|s| s.key.as_deref() == Some("ew.iec.contact-no"))
+        .unwrap()
+        .source
+        .clone();
+    done(
+        &mut shell,
+        "symbol.fork",
+        json!({"source":source,"key":"ew.iec.contact-no","discard":true}),
+    );
+    let before = shell.symbol_editor().unwrap().draft.identity.clone();
+    done(
+        &mut shell,
+        "symbol.save",
+        json!({"directory": tmp.0.join("own.ewlib")}),
+    );
+    let after = shell.symbol_editor().unwrap().draft.identity.clone();
+    assert_ne!(before, after, "the function definition took an identity");
+    assert_eq!(
+        before.map(|i| i.symbol),
+        after.map(|i| i.symbol),
+        "the symbol kept its own"
+    );
+    assert_eq!(shell.toast().map(|t| t.text.clone()), None);
+    shell.shutdown();
+}
+
+/// ID-1476 (M25-p6 nits): the test copy's item IDs are v5 names whose parts are joined with U+001F (ADR-0004
+/// amendment 4); a save whose owned function definition differs at its version is refused naming that definition.
+#[test]
+fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
+    use ew_viewmodel::ew_api::{output::Uuid, symbols};
+    let tmp = Tmp::new("symbol-v5");
+    let dir = tmp.0.join("project.ew");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
+    drawn(&mut shell, "example.v5", "Five");
+    let library = json!({"directory": tmp.0.join("v5.ewlib")});
+    done(&mut shell, "symbol.save", library.clone());
+    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
+    doc["function"]["cps"][0]["designation"] = json!("A1");
+    done(&mut shell, "symbol.replace", json!({"document": doc}));
+    assert_eq!(
+        failed(&mut shell, "symbol.save", library),
+        "Symbol editor: The library holds the function definition of Five at version 1.0.0 with other content. Give \
+         the change a new version."
+    );
+    done(&mut shell, "symbol.scratch", json!({}));
+    done(&mut shell, "file.save", json!({}));
+    shell.shutdown();
+    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let q = session.query();
+    let (_, copy) = q
+        .symbols()
+        .iter()
+        .find(|(_, s)| {
+            s.item
+                .meta
+                .key
+                .as_ref()
+                .is_some_and(|k| k.as_str().starts_with("example.v5.test."))
+        })
+        .unwrap();
+    let key = copy.item.meta.key.as_ref().unwrap().to_string();
+    assert_eq!(
+        copy.item_id.as_uuid(),
+        Uuid::new_v5(&symbols::DRAFT_LIBRARY, format!("symbol\u{1f}{key}").as_bytes())
+    );
+}
+
+/// ID-1477 (7): the editor has a button on the Draw tab's Place group, and the command search names it there.
+#[test]
+fn the_editor_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {
+    use ew_viewmodel::command_bar::{Group, Tab};
+    let tmp = Tmp::new("symbol-draw-tab");
+    let mut shell = ShellModel::new(
+        Mode::Gui,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    let place = ew_viewmodel::actions::find("symbol.new")
+        .unwrap()
+        .placement
+        .unwrap();
+    assert_eq!((place.tab, place.group), (Tab::Draw, Group::Place));
+    done(&mut shell, "tools.palette", json!({}));
+    shell.set_palette_query("symbol editor");
+    let entry = shell
+        .palette_entries()
+        .into_iter()
+        .find(|e| e.id == "symbol.new")
+        .unwrap();
+    assert_eq!(entry.breadcrumb, "Draw · Place");
     shell.shutdown();
 }
 

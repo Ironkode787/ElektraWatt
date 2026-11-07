@@ -387,7 +387,14 @@ impl Picker {
                 format!(
                     "row symbol \"{}\" {} \"{}\"",
                     symbol_name(&s.key),
-                    if s.copy.is_some() { "embedded" } else { "starter" },
+                    // ID-1477 (9): an installed or user library's symbol is never "starter".
+                    if s.copy.is_some() {
+                        "embedded"
+                    } else if s.key.starts_with("library:") {
+                        "library"
+                    } else {
+                        "starter"
+                    },
                     s.key
                 )
             }
