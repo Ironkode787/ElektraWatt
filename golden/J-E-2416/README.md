@@ -918,8 +918,22 @@ skips when the variable is unset:
 EW_PRIVATE_CORPUS=<dir> cargo nextest run -p ew-api --test it -E 'test(/^golden_c::/)' --run-ignored all --no-capture
 ```
 
-**Migration report (cycle 12).** `expected/c-migration-report.csv` has one row per code: the MF rows of doc 20
-§20.1, doc 20's expected count, the count produced as built, and a status. The test asserts the produced counts.
+**The pipeline (WP-S3.09).** `ew_api::import::import_qet` takes the file through the import front door
+(`front_door`, D3, D4): the limits are checked before the QElectroTech project importer runs, a panic of the importer
+and a batch that breaks the importer contract (shared identities, identities not from their source keys, another
+lineage, records out of order) are refused, and the model stays untouched. The batch then becomes the project through
+`import.apply` (`ApplyImport`, D7): on a fork of an empty project its library documents are embedded, its records put,
+the lineage and the import run written (the run's findings in the importer's order, its counts per code, and the
+`source` hash of every imported record, D6, D11), the normalisers run, and the structural invariants hold, while a
+prevent rule's violation stays in the model as a lenient finding; the result is committed as the project's first
+state. The live findings of the `migration` scheme are read on that project, and the migration report leaves out an
+importer entry that its live counterpart reports on the same records (D9 c). FT-143 is closed: the live rules run on
+an import through the pipeline.
+
+**Migration report.** `expected/c-migration-report.csv` has one row per code: the MF rows of doc 20 §20.1, doc 20's
+expected count, the count produced as built, and a status. The test asserts the produced counts. The counts below and
+the CSV's `as_built` column are cycle 12's; the run through the pipeline above is measured on the private corpus with
+the G-M2 acceptance run (FT-1543).
 
 - *Holds:* MF-09 (8 EW-TERM-002 groups), MF-10 (1 EW-IMP-109), MF-22 (1 EW-IMP-006; the substituted family is not
   Tahoma, but the count holds).
@@ -933,8 +947,8 @@ EW_PRIVATE_CORPUS=<dir> cargo nextest run -p ew-api --test it -E 'test(/^golden_
 - *Not detected yet (importer gaps):* MF-02 (FT-130), MF-06 (FT-139), MF-07, MF-18, MF-19 (FT-132), MF-08 (it
   surfaces inside EW-IMP-008, as the terminal numbered "8" for want of a designation, FT-141; the CSV lists MF-08 on
   both rows), MF-11 (FT-135), MF-12 (FT-131), MF-21 (FT-133). The live-rule
-  rows MF-13, MF-16, MF-23, MF-25 and MF-27 need imports through the pipeline (FT-143); the text "3-B0" itself
-  is reproduced. MF-05 (EW-IMP-105, FT-173), MF-06 (EW-IMP-106, FT-174), MF-14 and MF-20 (EW-IMP-110 and
+  rows MF-13, MF-16, MF-23, MF-25 and MF-27 are read on the imported project since FT-143 closed, their counts to be
+  measured (FT-1543); the text "3-B0" itself is reproduced. MF-05 (EW-IMP-105, FT-173), MF-06 (EW-IMP-106, FT-174), MF-14 and MF-20 (EW-IMP-110 and
   EW-IMP-112, FT-175), MF-15 (EW-IMP-111, FT-176), MF-26 (EW-IMP-114, FT-177) and MF-17 (EW-IMP-121, FT-178) have
   no detection in the importer yet.
 - *Not in §20.1:* EW-IMP-004 (94), EW-IMP-005 (3 fallback strips), EW-IMP-008 (13), EW-IMP-116 (1), EW-IMP-119 (16)
