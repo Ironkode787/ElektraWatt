@@ -1224,7 +1224,7 @@ fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
     };
     let json = refusal("json");
     let read: Vec<&str> = [
-        "elmt", "edz", "pxf", "ema", "ems", "esl", "slk", "xml", "zip", "qet", "txt", "dxf",
+        "elmt", "edz", "pxf", "ema", "ems", "esl", "slk", "xml", "zip", "7z", "qet", "txt", "dxf",
     ]
     .into_iter()
     .filter(|ext| refusal(ext) != json)
