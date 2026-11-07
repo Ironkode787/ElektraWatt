@@ -263,7 +263,11 @@ fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
             std::fs::read(&file).unwrap() == original,
             "the starter part's copy is written"
         );
-        assert_eq!(manifest_entry(&dir, gone), entry, "the entry of the copy left damaged");
+        assert_eq!(
+            manifest_entry(&dir, gone),
+            entry,
+            "the entry of the copy left damaged"
+        );
         assert!(s.read_only_reason().is_some(), "the project stays read-only");
         assert_eq!(s.banner(), Some(after));
         assert!(!s.damaged_update_offered());

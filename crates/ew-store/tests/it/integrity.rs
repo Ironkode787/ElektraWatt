@@ -684,7 +684,8 @@ fn update_damaged_copies_keeps_the_manifest_entries_of_the_copies_it_leaves_dama
     vfs.remove_file(&join(&root, &gone)).expect("removed");
     vfs.put(&join(&root, cut), b"{\"$k\": \"manufacturer\",\n");
     let entries = |files: &std::collections::BTreeMap<String, Vec<u8>>| {
-        let manifest: serde_json::Value = serde_json::from_slice(&files["manifest.json"]).expect("a manifest");
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&files["manifest.json"]).expect("a manifest");
         (manifest["files"][&gone].clone(), manifest["files"][cut].clone())
     };
     let Opened { model, store, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
@@ -698,7 +699,11 @@ fn update_damaged_copies_keeps_the_manifest_entries_of_the_copies_it_leaves_dama
     assert_eq!(report.written, vec![FilePath::new(&path).unwrap()]);
     let after = project_files(&vfs, &root);
     assert_eq!(after[&path], fixture()[&path]);
-    assert_eq!(entries(&after), entries(&before), "the entries of the copies left damaged");
+    assert_eq!(
+        entries(&after),
+        entries(&before),
+        "the entries of the copies left damaged"
+    );
     assert!(!entries(&before).0.is_null() && !entries(&before).1.is_null());
     store.close();
     let again = reopen(&vfs, 1);
@@ -710,7 +715,13 @@ fn update_damaged_copies_keeps_the_manifest_entries_of_the_copies_it_leaves_dama
         .filter_map(|f| Some((f.kind, f.file.as_ref()?.to_string())))
         .filter(|(_, file)| *file == gone || file == cut)
         .collect();
-    assert!(found.contains(&(FindingKind::MissingFile, gone.clone())), "{found:?}");
-    assert!(found.contains(&(FindingKind::ForeignEdit, cut.to_owned())), "{found:?}");
+    assert!(
+        found.contains(&(FindingKind::MissingFile, gone.clone())),
+        "{found:?}"
+    );
+    assert!(
+        found.contains(&(FindingKind::ForeignEdit, cut.to_owned())),
+        "{found:?}"
+    );
     again.store.close();
 }

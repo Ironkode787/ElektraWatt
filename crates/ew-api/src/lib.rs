@@ -1615,7 +1615,8 @@ impl Session {
             match engine.execute(&cmd) {
                 Ok(_) => {
                     keys.insert((kind, copy));
-                    done.updated.push(api_text!("refusal-words-copy-at-version", words, version));
+                    done.updated
+                        .push(api_text!("refusal-words-copy-at-version", words, version));
                 }
                 // The library's version breaks a record of the project (an invariant or a prevent rule of the
                 // engine's own check): the misfit, nothing written (C53-p4#3).
