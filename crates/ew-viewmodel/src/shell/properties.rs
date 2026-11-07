@@ -1054,7 +1054,9 @@ impl ShellModel {
                 });
                 return Outcome::Done;
             }
-            (Err(InputError::Invalid(message)), _) => {
+            (Err(InputError::Invalid(why)), _) => {
+                // FT-1493: the reason in the window's language.
+                let message = super::tools::rejected_words(&why.to_string(), Some(&why));
                 self.props.set_error(key.to_owned(), message.clone());
                 return Outcome::Failed { message };
             }

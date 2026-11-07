@@ -566,6 +566,25 @@ fn ft1287_a_generated_page_shows_its_kind_and_source_in_words() {
     shell.shutdown();
 }
 
+/// FT-1493 (ID-1457): the property grid's own parse error reads in the window's language, keyed with its argument.
+#[test]
+fn ft1493_a_grid_parse_error_reads_in_the_windows_language() {
+    let tmp = Tmp::new("ft1493");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    let refusal = |shell: &mut ShellModel| match shell
+        .dispatch("props.set", &json!({"row": "device/tag.counter", "value": "x1"}))
+    {
+        ew_viewmodel::shell::Outcome::Failed { message } => message,
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(refusal(&mut shell), "`x1` is not a whole number");
+    done(&mut shell, "view.language", json!({ "value": "nl" }));
+    assert_eq!(refusal(&mut shell), "`x1` is geen geheel getal");
+    done(&mut shell, "view.language", json!({ "value": "en" }));
+    shell.shutdown();
+}
+
 /// FT-1258 and FT-1240 (ID-1315): an enumerated row shows its value and its choices in the UI language's words, takes
 /// a word typed in them, and refuses another word naming the choices in words, in en-GB and nl-NL.
 #[test]

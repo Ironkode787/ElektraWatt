@@ -434,7 +434,8 @@ impl Session {
         if t.starts_with(|c: char| c.is_ascii_digit()) {
             let parsed = self.parse_quantity_text(t).map_err(|e| {
                 let why = match e {
-                    InputError::Invalid(m) | InputError::UnknownPart(m) => m,
+                    InputError::Invalid(m) => m.to_string(),
+                    InputError::UnknownPart(m) => m,
                     e @ InputError::NotOneOf { .. } => e.text().unwrap_or_default(),
                     InputError::Ambiguous { choices } => choices
                         .iter()

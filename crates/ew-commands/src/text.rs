@@ -632,6 +632,62 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     ("refusal-major-macro-variable", "macro variable {0} is removed"),
     ("refusal-serde-other", "{0}"),
+    // The property grid's own parse errors (FT-1493): a typed value that is not one of its field's type.
+    ("refusal-input-detail", "{0}"),
+    (
+        "refusal-input-scale",
+        "`{0}` is not a scale; type 1:n with n a whole number from 1 to 4294967295",
+    ),
+    ("refusal-input-decimal", "`{0}` is not a decimal number"),
+    ("refusal-input-awg", "`{0}` is not an AWG size"),
+    (
+        "refusal-input-mm",
+        "`{0}` is not a length in millimetres (at most 6 decimals)",
+    ),
+    (
+        "refusal-input-colour-alias",
+        "`{0}` is not a colour code; did you mean {1} {2}? Accepted: {3}",
+    ),
+    (
+        "refusal-input-colour",
+        "`{0}` is not a colour code; accepted: {1}",
+    ),
+    ("refusal-input-colour-none", "give one or two colour codes"),
+    ("refusal-input-colour-count", "a colour has one or two codes"),
+    (
+        "refusal-input-text-control",
+        "a text has no line breaks or control characters",
+    ),
+    ("refusal-input-yes-no", "`{0}` is not yes or no"),
+    ("refusal-input-whole", "`{0}` is not a whole number"),
+    ("refusal-input-range", "{0} is outside {1}..{2}"),
+    (
+        "refusal-input-no-unit",
+        "`{0}` has no unit; units: mm², A, V, Hz, bar, °C, kg, W, m, piece, set",
+    ),
+    ("refusal-input-no-node", "no structure node `{0}` of this aspect"),
+    ("refusal-input-shown", "this field is shown, not edited"),
+    ("refusal-input-json", "not strict JSON: {0}"),
+    ("refusal-input-no-part-copy", "the project has no part copy `{0}`"),
+    ("refusal-input-quantity", "`{0}` is not a quantity above 0"),
+    ("refusal-input-not-a-field", "`{0}` is not a field of {1}"),
+    (
+        "refusal-input-plc-address",
+        "give an address (for example Q0.1), auto, excluded or tbd",
+    ),
+    (
+        "refusal-input-plc-target",
+        "`{0}` names no device with a function to target",
+    ),
+    (
+        "refusal-input-plc-slot",
+        "`{0}` is not a slot; give a number (3), <rack>.<slot> (1.3) or auto",
+    ),
+    (
+        "refusal-input-metres",
+        "`{0}` is not a length in metres (for example 12.5 m)",
+    ),
+    ("refusal-input-too-long", "`{0}` is too long a length"),
     // assembly.attach, valve.add and device.link.
     (
         "refusal-assembly-position-twice",
