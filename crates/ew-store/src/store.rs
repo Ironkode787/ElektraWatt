@@ -2770,8 +2770,8 @@ impl Store {
     /// read-only: the caller opens the project again, writable when the integrity check passes. Refused before anything
     /// is written: a store read-only for another reason (another session holding the lock among them), another file
     /// that does not hold the bytes the manifest lists (other integrity findings, which this save would hide; another
-    /// damaged copy the open kept as found is listed as it is and stays damaged), and a damaged file that changed since
-    /// the open.
+    /// damaged copy, kept as found or missing or over the limit, keeps its manifest entry unchanged and stays damaged),
+    /// and a damaged file that changed since the open.
     ///
     /// # Errors
     ///
@@ -2791,14 +2791,27 @@ impl Store {
             .iter()
             .filter_map(|&(kind, id)| Some(FilePath::lib(ew_format::lib_dir(kind)?, id)))
             .collect();
-        // A damaged copy left as it is (one the open kept as found) is listed again as it is, and stays damaged.
-        let damaged = |path: &FilePath| {
-            self.opaque.contains_key(path) && matches!(classify(path.as_str()), PathClass::LibDocument { .. })
-        };
+        // A damaged copy left as it is (one the open kept as found, or whose file it could not read: missing or over the
+        // limit) keeps its manifest entry unchanged, and stays damaged with its findings (C53-p4#1).
+        let left: BTreeMap<FilePath, FileHash> = self
+            .manifest
+            .as_ref()
+            .map(|m| {
+                m.files
+                    .iter()
+                    .filter(|(path, _)| {
+                        !paths.contains(*path)
+                            && matches!(classify(path.as_str()), PathClass::LibDocument { .. })
+                            && (self.opaque.contains_key(*path) || !self.disk.contains_key(*path))
+                    })
+                    .map(|(path, listed)| (path.clone(), *listed))
+                    .collect()
+            })
+            .unwrap_or_default();
         let as_listed = self.manifest.as_ref().is_some_and(|m| {
             m.files
                 .iter()
-                .filter(|(path, _)| !paths.contains(*path) && !damaged(path))
+                .filter(|(path, _)| !paths.contains(*path) && !left.contains_key(*path))
                 .all(
                     |(path, listed)| match (self.disk.get(path), self.opaque.get(path), listed) {
                         (Some(held), _, FileHash::Sha256(hash)) => held.accepted().contains(hash),
@@ -2855,6 +2868,8 @@ impl Store {
                 );
             }
         }
+        // The new manifest lists the copies left damaged with their entries as they were.
+        self.opaque.extend(left);
         let saved = self.save(model, Changes::Keys(keys));
         if saved
             .as_ref()

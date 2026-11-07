@@ -659,3 +659,58 @@ fn update_damaged_copies_is_refused_beside_another_finding_and_under_another_loc
     assert!(project_files(&vfs, &root) == before, "nothing is written");
     store.close();
 }
+
+/// C53-p4#1 (ID-1486): the copies an update from library leaves damaged, one cut short (kept as found) and one whose
+/// file is gone, neither refuse the update of the copy a library holds nor lose their manifest entries: the reopen finds
+/// them damaged as before, the cut-short one changed outside ElektraWatt (EW-CORE-002) and the other missing.
+#[test]
+fn update_damaged_copies_keeps_the_manifest_entries_of_the_copies_it_leaves_damaged() {
+    use ew_store::Vfs;
+    let (vfs, root, path) = damaged_part_copy();
+    // Golden A's second part copy a device names, whose file is gone, and a manufacturer copy no record names, cut short.
+    let gone = fixture()
+        .iter()
+        .filter(|(name, _)| name.starts_with("devices/"))
+        .flat_map(|(_, bytes)| {
+            let text = String::from_utf8_lossy(bytes).into_owned();
+            text.match_indices("\"copy\":\"")
+                .map(|(at, m)| text[at + m.len()..at + m.len() + 36].to_owned())
+                .collect::<Vec<_>>()
+        })
+        .map(|copy| format!("lib/parts/{copy}.json"))
+        .find(|p| *p != path && fixture().contains_key(p))
+        .expect("a second part copy");
+    let cut = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
+    vfs.remove_file(&join(&root, &gone)).expect("removed");
+    vfs.put(&join(&root, cut), b"{\"$k\": \"manufacturer\",\n");
+    let entries = |files: &std::collections::BTreeMap<String, Vec<u8>>| {
+        let manifest: serde_json::Value = serde_json::from_slice(&files["manifest.json"]).expect("a manifest");
+        (manifest["files"][&gone].clone(), manifest["files"][cut].clone())
+    };
+    let Opened { model, store, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    let mut store = store;
+    assert_eq!(*store.access(), Access::ReadOnly(ReadOnlyReason::Integrity));
+    let (next, keys) = with_copy(&model, &path);
+    let before = project_files(&vfs, &root);
+    let report = store
+        .update_damaged_copies(&next, &keys)
+        .expect("the copy a library holds is written");
+    assert_eq!(report.written, vec![FilePath::new(&path).unwrap()]);
+    let after = project_files(&vfs, &root);
+    assert_eq!(after[&path], fixture()[&path]);
+    assert_eq!(entries(&after), entries(&before), "the entries of the copies left damaged");
+    assert!(!entries(&before).0.is_null() && !entries(&before).1.is_null());
+    store.close();
+    let again = reopen(&vfs, 1);
+    assert_eq!(again.report.access, Access::ReadOnly(ReadOnlyReason::Integrity));
+    let found: Vec<(FindingKind, String)> = again
+        .report
+        .findings
+        .iter()
+        .filter_map(|f| Some((f.kind, f.file.as_ref()?.to_string())))
+        .filter(|(_, file)| *file == gone || file == cut)
+        .collect();
+    assert!(found.contains(&(FindingKind::MissingFile, gone.clone())), "{found:?}");
+    assert!(found.contains(&(FindingKind::ForeignEdit, cut.to_owned())), "{found:?}");
+    again.store.close();
+}
