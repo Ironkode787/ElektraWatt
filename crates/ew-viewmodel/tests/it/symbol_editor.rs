@@ -1395,7 +1395,7 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
     shell.shutdown();
 }
 
-//// M25-p7#2 (ID-1477 (1)): the editor's offer for a draft saved to a library and unchanged since places the published
+/// M25-p7#2 (ID-1477 (1)): the editor's offer for a draft saved to a library and unchanged since places the published
 /// symbol on a new page with its grid and selects it; for any other draft it is Test on a new page, and
 /// `symbol.new_page` is refused in words.
 #[test]
@@ -1469,7 +1469,7 @@ fn the_editors_offer_places_the_published_symbol_only_while_the_draft_is_as_save
     assert_eq!(keys, ["example.offered"]);
 }
 
-// ID-1477 (2): a new free text is centred on its click, in the small style pin designations use until a style is
+/// ID-1477 (2): a new free text is centred on its click, in the small style pin designations use until a style is
 /// chosen in the draft, then in the style chosen last; a text may hold a line break; a style is named in words.
 #[test]
 fn a_new_text_is_centred_in_the_style_chosen_last() {
