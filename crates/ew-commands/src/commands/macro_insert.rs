@@ -171,7 +171,8 @@ fn set_path(root: &mut Value, path: &str, value: Value) -> bool {
 /// Coerces one value of a macro variable to its type (doc 07 §2.7), returning the value as it is written into the
 /// records: `text` a text or a language object; `ident`, `state`, `process_tag`, `address` a text; `number` a
 /// number or a decimal text; `bool` a boolean; `tag_counter` an integer from 1; `channel_binding` an integer from
-/// 0 to 65535; `part` a part use object (`{"copy": …}`); `device_ref` a UUID text. A value of a type this version does
+/// 0 to 65535; `part` a part use object (`{"copy": …}`); `device_ref` a UUID text; `text_slots` an array, each slot
+/// checked by the representation it binds (FT-1420, doc 07 §2.7's as-built note). A value of a type this version does
 /// not know is taken as it is.
 ///
 /// # Errors
