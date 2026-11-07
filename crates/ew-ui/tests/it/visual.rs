@@ -1721,10 +1721,7 @@ fn symbol_driver(tmp: &Tmp, key: &str) -> Driver {
     d.enable_accesskit();
     for (action, params) in [
         ("symbol.new", json!({"key":key,"name":"Drawn"})),
-        (
-            "symbol.draw",
-            json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4}),
-        ),
+        ("symbol.draw", json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4})),
         (
             "symbol.cp",
             json!({"x":0,"y":0,"designation":"1","direction":"left"}),

@@ -665,7 +665,11 @@ impl ShellModel {
                     .and_then(Value::as_u64)
                     .and_then(|i| usize::try_from(i).ok())
                     .ok_or_else(|| words(key!("symbol-candidate-invalid")))?;
-                let draft = editor.candidates.get(index).cloned().ok_or_else(|| words(key!("symbol-candidate-invalid")))?;
+                let draft = editor
+                    .candidates
+                    .get(index)
+                    .cloned()
+                    .ok_or_else(|| words(key!("symbol-candidate-invalid")))?;
                 editor.replace(draft.clone());
                 editor.saved = Some(draft);
                 editor.stored = false;
@@ -707,8 +711,11 @@ impl ShellModel {
                 editor.replace(draft);
             }
             "replace" => {
-                let bytes =
-                    serde_json::to_vec(p.get("document").ok_or_else(|| words(key!("symbol-document-required")))?).map_err(|e| e.to_string())?;
+                let bytes = serde_json::to_vec(
+                    p.get("document")
+                        .ok_or_else(|| words(key!("symbol-document-required")))?,
+                )
+                .map_err(|e| e.to_string())?;
                 editor.replace(SymbolDraft::parse(&bytes).map_err(err)?);
             }
             "undo" => {
@@ -730,11 +737,11 @@ impl ShellModel {
                     .ok_or_else(|| strings::text(key!("symbol-tool-invalid")).to_owned())?;
             }
             "variant" => {
-                editor.variant = p
-                    .get("variant")
-                    .and_then(Value::as_u64)
-                    .filter(|v| *v < 8)
-                    .ok_or_else(|| words(key!("symbol-variant-invalid")))? as u8;
+                editor.variant =
+                    p.get("variant")
+                        .and_then(Value::as_u64)
+                        .filter(|v| *v < 8)
+                        .ok_or_else(|| words(key!("symbol-variant-invalid")))? as u8;
             }
             "validate" => {
                 let issues = editor.draft.validate();
@@ -831,7 +838,9 @@ impl ShellModel {
                     cp["dir"] = json!(text(p, "direction"));
                 }
                 cp["pos"] = json!([nm(p, "x")?, nm(p, "y")?]);
-                let fn_cp = cp["fn_cp"].as_u64().ok_or_else(|| words(key!("symbol-function-pin-invalid")))?;
+                let fn_cp = cp["fn_cp"]
+                    .as_u64()
+                    .ok_or_else(|| words(key!("symbol-function-pin-invalid")))?;
                 points.retain(|v| v["idx"] != index);
                 points.push(cp);
                 points.sort_by_key(|v| v["idx"].as_u64());
@@ -945,9 +954,10 @@ impl ShellModel {
                     strings::format(kind, &[&name])
                 };
                 draft.publish(&mut registry, target).map_err(|e| match e {
-                    symbols::Error::Library(ew_api::library::LibraryError::Immutable { item: id, version }) => {
-                        strings::format(key!("symbol-version-taken"), &[&item(id), &version])
-                    }
+                    symbols::Error::Library(ew_api::library::LibraryError::Immutable {
+                        item: id,
+                        version,
+                    }) => strings::format(key!("symbol-version-taken"), &[&item(id), &version]),
                     symbols::Error::Library(ew_api::library::LibraryError::Downgrade {
                         item: id,
                         version,
@@ -993,8 +1003,11 @@ impl ShellModel {
                 // The same content placed again is the same copy (re-review part 4): its item IDs come from its key,
                 // which carries the content's suffix, never a new UUIDv7 per placement.
                 let item = |kind: &str| {
-                    ew_api::output::Uuid::new_v5(&symbols::DRAFT_LIBRARY, format!("{kind}|{}", draft.key).as_bytes())
-                        .to_string()
+                    ew_api::output::Uuid::new_v5(
+                        &symbols::DRAFT_LIBRARY,
+                        format!("{kind}|{}", draft.key).as_bytes(),
+                    )
+                    .to_string()
                 };
                 let fndef = draft.function_ref.is_none().then(|| item("fndef"));
                 draft.identity = Some(

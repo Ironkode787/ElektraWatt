@@ -1208,7 +1208,11 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
     );
     assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (7_937_500, 3));
     drawn(&mut shell, "example.grid-block", "Grid block");
-    done(&mut shell, "symbol.save", json!({"directory": tmp.0.join("grid.ewlib")}));
+    done(
+        &mut shell,
+        "symbol.save",
+        json!({"directory": tmp.0.join("grid.ewlib")}),
+    );
     done(&mut shell, "symbol.close", json!({}));
     done(&mut shell, "tool.place", json!({}));
     let picker = shell.picker().unwrap();
@@ -1363,7 +1367,11 @@ fn refusals_of_the_editors_actions_are_in_words() {
             json!({"index": 5, "discard": true}),
             "Choose one of the drawings this file holds.",
         ),
-        ("symbol.variant", json!({"variant": 9}), "Choose a variant from A to H."),
+        (
+            "symbol.variant",
+            json!({"variant": 9}),
+            "Choose a variant from A to H.",
+        ),
         (
             "symbol.cp",
             json!({"idx": 70000, "x": 0, "y": 0}),
@@ -1487,10 +1495,16 @@ fn new_symbol_over_unsaved_changes_asks_save_discard_or_cancel() {
     use ew_viewmodel::dialogs::spec;
     use ew_viewmodel::shell::{ConfirmAnswer, Dialog};
     let tmp = Tmp::new("symbol-ask");
-    let mut shell = ShellModel::new(Mode::Gui, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"));
+    let mut shell = ShellModel::new(
+        Mode::Gui,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
     drawn(&mut shell, "example.ask", "Ask block");
     let fresh = json!({"discard": true});
-    assert_eq!(shell.ask_symbol_discard("symbol.new", fresh.clone()), Outcome::Done);
+    assert_eq!(
+        shell.ask_symbol_discard("symbol.new", fresh.clone()),
+        Outcome::Done
+    );
     let dialog = shell.dialog().unwrap().clone();
     assert!(matches!(dialog, Dialog::ConfirmDiscard { symbol: true, .. }));
     let s = spec(&dialog, &shell);
@@ -1505,13 +1519,19 @@ fn new_symbol_over_unsaved_changes_asks_save_discard_or_cancel() {
     assert_eq!(shell.answer_confirm(ConfirmAnswer::Cancel), Outcome::Done);
     assert_eq!(shell.symbol_editor().unwrap().draft.key, "example.ask");
     // Discard starts the fresh draft.
-    assert_eq!(shell.ask_symbol_discard("symbol.new", fresh.clone()), Outcome::Done);
+    assert_eq!(
+        shell.ask_symbol_discard("symbol.new", fresh.clone()),
+        Outcome::Done
+    );
     assert_eq!(shell.answer_confirm(ConfirmAnswer::Discard), Outcome::Done);
     assert!(shell.symbol_editor().unwrap().draft.key.is_empty());
     // Save symbol saves the draft first, then starts the fresh one.
     drawn(&mut shell, "example.ask", "Ask block");
     done(&mut shell, "symbol.directory", json!({"directory": "ask.ewlib"}));
-    assert_eq!(shell.ask_symbol_discard("symbol.new", fresh.clone()), Outcome::Done);
+    assert_eq!(
+        shell.ask_symbol_discard("symbol.new", fresh.clone()),
+        Outcome::Done
+    );
     assert_eq!(shell.answer_confirm(ConfirmAnswer::Save), Outcome::Done);
     assert!(shell.dialog().is_none());
     assert!(shell.symbol_editor().unwrap().draft.key.is_empty());

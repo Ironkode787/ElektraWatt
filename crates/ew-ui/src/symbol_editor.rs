@@ -641,7 +641,17 @@ impl EditorView {
                 .map(|m| shell.shortcut_text(m))
                 .unwrap_or_default();
             // ID-1472: a fresh draft, asking first when the kept one has unsaved changes.
-            if ribbon_button(ui, "symbol-new-symbol", "file-plus", false, true, false, String::new()).clicked() {
+            if ribbon_button(
+                ui,
+                "symbol-new-symbol",
+                "file-plus",
+                false,
+                true,
+                false,
+                String::new(),
+            )
+            .clicked()
+            {
                 ask(events, "symbol.new", json!({"discard": true}));
             }
             // P10: no command switches the panel; an empty folder is refused in words.
@@ -2120,19 +2130,29 @@ mod tests {
             pressed,
             modifiers: egui::Modifiers::NONE,
         };
-        frame(0, vec![egui::Event::PointerMoved(start)], &mut value, &mut commits);
         frame(
-            1,
-            vec![button(start, true)],
+            0,
+            vec![egui::Event::PointerMoved(start)],
             &mut value,
             &mut commits,
         );
+        frame(1, vec![button(start, true)], &mut value, &mut commits);
         for i in 1..=40 {
             let at = start + Vec2::new(i as f32, 0.0);
-            frame(1 + i, vec![egui::Event::PointerMoved(at)], &mut value, &mut commits);
+            frame(
+                1 + i,
+                vec![egui::Event::PointerMoved(at)],
+                &mut value,
+                &mut commits,
+            );
         }
         assert_eq!((value, commits), (0.0, 0), "nothing commits while the drag lasts");
-        frame(42, vec![button(start + Vec2::new(40.0, 0.0), false)], &mut value, &mut commits);
+        frame(
+            42,
+            vec![button(start + Vec2::new(40.0, 0.0), false)],
+            &mut value,
+            &mut commits,
+        );
         assert_eq!(commits, 1);
         assert!(value >= 10.0, "a slow drag stalls: {value}");
     }

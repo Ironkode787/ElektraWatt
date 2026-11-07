@@ -1849,7 +1849,9 @@ impl App {
             Event::PaletteMove(delta) => self.shell.move_palette_selection(delta),
             Event::PaletteField(i, text) => self.shell.set_palette_field(i, &text),
             Event::Confirm(answer) => self.run(None, |shell| shell.answer_confirm(answer)),
-            Event::SymbolAsk(action, params) => self.run(None, |shell| shell.ask_symbol_discard(action, params)),
+            Event::SymbolAsk(action, params) => {
+                self.run(None, |shell| shell.ask_symbol_discard(action, params))
+            }
             Event::GotoText(text) => self.shell.set_goto_text(&text),
             Event::GotoGo(text) => self.dispatch("nav.goto", &json!({ "text": text })),
             Event::WorkspaceText(text) => self.shell.set_workspace_text(&text),

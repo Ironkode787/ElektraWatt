@@ -1089,7 +1089,11 @@ fn the_symbol_editors_tool_buttons_name_their_keys() {
     use egui::accesskit::Role;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "g.ew");
-    dispatch(&mut h, "symbol.new", json!({"key": "example.keys", "name": "Keys"}));
+    dispatch(
+        &mut h,
+        "symbol.new",
+        json!({"key": "example.keys", "name": "Keys"}),
+    );
     h.run_ok();
     h.run_ok();
     let shortcut = |h: &Harness<'_, App>, name: &str| {
@@ -1124,10 +1128,7 @@ fn the_symbol_editors_off_grid_refusal_shows_once() {
             json!({"tool": "line", "x": 0, "y": 0, "x2": 0, "y2": 4}),
         ),
         ("symbol.cp", json!({"x": 4.5, "y": 0, "designation": "1"})),
-        (
-            "symbol.directory",
-            json!({"directory": tmp.0.join("once.ewlib")}),
-        ),
+        ("symbol.directory", json!({"directory": tmp.0.join("once.ewlib")})),
     ] {
         dispatch(&mut h, action, params);
     }
