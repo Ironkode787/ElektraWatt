@@ -743,6 +743,11 @@ banner-damaged-copy-record = Dit project is alleen-lezen geopend: { $p0 } is bes
 banner-damaged-copy-left-out = Dit project is alleen-lezen geopend: { $p0 } is beschadigd. Werk de kopie bij vanuit de bibliotheek, of maak met Opslaan als een projectkopie zonder deze bibliotheekkopie.
 # C53-p3#6 (ID-1481): two or more damaged copies that a Save As leaves out.
 banner-damaged-copies-left-out = Dit project is alleen-lezen geopend: { $p0 } zijn beschadigd. Werk de kopieën bij vanuit hun bibliotheken, of maak met Opslaan als een projectkopie zonder deze bibliotheekkopieën.
+# FT-1499 (ID-1486): the same banners when no library on this computer holds a damaged copy: no update is offered.
+banner-damaged-copy-unnamed-no-library = Dit project is alleen-lezen geopend: het apparaat { $p0 } gebruikt de bibliotheekkopie van zijn artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit een bibliotheek worden bijgewerkt.
+banner-damaged-copy-record-no-library = Dit project is alleen-lezen geopend: { $p0 } is beschadigd. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit een bibliotheek worden bijgewerkt.
+banner-damaged-copy-left-out-no-library = Dit project is alleen-lezen geopend: { $p0 } is beschadigd. Geen bibliotheek op deze computer bevat het; maak met Opslaan als een projectkopie zonder deze bibliotheekkopie.
+banner-damaged-copies-left-out-no-library = Dit project is alleen-lezen geopend: { $p0 } zijn beschadigd. Geen bibliotheek op deze computer bevat ze; maak met Opslaan als een projectkopie zonder deze bibliotheekkopieën.
 banner-findings = Bij het openen van het project zijn { $p0 } integriteitsbevindingen gevonden.
 banner-settings-bad = Het instellingenbestand kon niet worden gelezen; de standaardwaarden worden gebruikt en het oude bestand is bewaard als { $p0 }.
 banner-settings-write = De instellingen konden niet worden geschreven.
@@ -771,6 +776,10 @@ error-save-as-damaged-copy-unnamed = Opslaan als is geweigerd: het apparaat { $p
 error-save-as-damaged-copy-record = Opslaan als is geweigerd: { $p0 } is beschadigd, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst bij vanuit de bibliotheek.
 toast-save-as-left-out = Opgeslagen als { $p0 } zonder { $p1 }, die beschadigd is.
 toast-save-as-left-out-many = Opgeslagen als { $p0 } zonder { $p1 }, die beschadigd zijn.
+# FT-1499 (ID-1486): Update from library of the damaged copies, from the banner.
+error-update-damaged = Bijwerken vanuit de bibliotheek is geweigerd: { $p0 }.
+toast-damaged-copies-updated = { $p0 } beschadigde bibliotheekkopieën zijn bijgewerkt vanuit hun bibliotheken.
+toast-damaged-copies-not-updated = Niet bijgewerkt, omdat geen bibliotheek op deze computer een leesbare versie heeft: { $p0 }. Elke andere beschadigde bibliotheekkopie is bijgewerkt vanuit haar bibliotheek.
 toast-saved-unreleased-format = Opgeslagen in een formaat dat nog niet is uitgebracht. Uitgebrachte versies van ElektraWatt openen dit project alleen-lezen.
 error-export = Exporteren mislukt: { $p0 }.
 error-write = Het bestand kon niet worden geschreven.
@@ -1664,6 +1673,12 @@ refusal-purge-stale-one = 1 van de vermelde afbeeldingen kan niet meer worden op
 refusal-purge-unreadable = een bestand van het project kon niet worden gelezen; er is niets verwijderd
 refusal-purge-save = de opslag die de afbeeldingen verwijdert is mislukt: { $p0 }
 refusal-purge-human-only = opruimen is alleen voor mensen: bevestig het in ElektraWatt of met ew project assets purge op de opdrachtregel; er is niets verwijderd
+# Update from library of the damaged library copies: the refusals of ew-api's own (FT-1499, ID-1486).
+refusal-update-copies-no-library = geen bibliotheek op deze computer heeft een leesbare versie van { $p0 }; er is niets geschreven
+refusal-update-copies-locked = een andere sessie heeft het project open; er is niets geschreven
+refusal-update-copies-read-only = het project kan alleen als alleen-lezen worden geopend, om een andere reden dan zijn beschadigde bibliotheekkopieën; er is niets geschreven
+refusal-update-copies-findings = het project heeft andere integriteitsbevindingen, die het alleen-lezen houden; er is niets geschreven
+refusal-update-copies-save = het bijwerken kon niet worden weggeschreven: { $p0 }
 # project.assets.purge's own parameters.
 refusal-purge-asset-hash = een bestandshash is `sha256:` met 64 hexadecimale cijfers in kleine letters
 # The structure: structure.create_node, section.create, report_block.create and external_ref.create.
@@ -1830,6 +1845,7 @@ confirm-check-scheme-title = Het controleschema toepassen?
 confirm-check-scheme-text = Het controleschema "{ $p0 }" op het basisproject toepassen? Het controleschema bepaalt welke regels de vrijgavepoort uitvoert en wat de controles melden.
 dialog-apply = Toepassen
 reason-no-journal = Het project heeft geen journaal van een eerdere sessie
+reason-no-damaged-copy-update = Het open project heeft geen beschadigde bibliotheekkopie die een bibliotheek bevat
 reason-no-wizard = De wizard bedrijfsstandaard is niet open
 reason-no-first-run = De eerste instelling is niet open
 readonly-sample = het voorbeeldproject
@@ -3974,6 +3990,7 @@ choice-report = Rapport
 choice-page-based = Per pagina
 label-paste-dropped-one = , 1 verbinding weggelaten
 banner-findings-one = Bij het openen van het project is 1 integriteitsbevinding gevonden.
+toast-damaged-copies-updated-one = De beschadigde bibliotheekkopie is bijgewerkt vanuit haar bibliotheek.
 revision-waivers-one = Goedkeuren erkent ook 1 geldende veiligheidsvrijstelling.
 # WP-S2.08 part 6: het woordenlijstvenster (D16), de eenmalige tips (D17) en de aderkleurweergave (D18).
 action-help-glossary = Woordenlijst
@@ -4076,6 +4093,7 @@ action-file-upgrade = Omzetten en opslaan
 action-external-apply = De wijziging op schijf toepassen
 action-external-choose = Een kant kiezen
 action-external-review = Opnieuw kiezen tussen uw versie en die op schijf
+action-library-update-damaged = Bijwerken vanuit bibliotheek
 action-git-setup = Samenvoegdriver instellen
 choice-extract = Uitpakken
 choice-read-only = Alleen-lezen

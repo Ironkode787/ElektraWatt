@@ -784,6 +784,11 @@ banner-damaged-copy-record = This project is open read-only: { $p0 } is damaged.
 banner-damaged-copy-left-out = This project is open read-only: { $p0 } is damaged. Update the copy from its library, or use Save as for a copy of the project without it.
 # C53-p3#6 (ID-1481): two or more damaged copies that a Save As leaves out.
 banner-damaged-copies-left-out = This project is open read-only: { $p0 } are damaged. Update the copies from their libraries, or use Save as for a copy of the project without them.
+# FT-1499 (ID-1486): the same banners when no library on this computer holds a damaged copy: no update is offered.
+banner-damaged-copy-unnamed-no-library = This project is open read-only: the device { $p0 } uses the library copy of its part, which is damaged. No library on this computer holds it, so the copy cannot be updated from one.
+banner-damaged-copy-record-no-library = This project is open read-only: { $p0 } is damaged. No library on this computer holds it, so the copy cannot be updated from one.
+banner-damaged-copy-left-out-no-library = This project is open read-only: { $p0 } is damaged. No library on this computer holds it; use Save as for a copy of the project without it.
+banner-damaged-copies-left-out-no-library = This project is open read-only: { $p0 } are damaged. No library on this computer holds them; use Save as for a copy of the project without them.
 banner-findings = { $p0 } integrity findings were found when the project was opened.
 banner-settings-bad = The settings file could not be read; defaults are used and the old file was kept as { $p0 }.
 banner-settings-write = The settings could not be written.
@@ -814,6 +819,10 @@ error-save-as-damaged-copy-unnamed = Save as is refused: the device { $p0 } uses
 error-save-as-damaged-copy-record = Save as is refused: { $p0 } is damaged, and a copy of the project without it would not open. Update the copy from its library first.
 toast-save-as-left-out = Saved as { $p0 } without { $p1 }, which is damaged.
 toast-save-as-left-out-many = Saved as { $p0 } without { $p1 }, which are damaged.
+# FT-1499 (ID-1486): Update from library of the damaged copies, from the banner.
+error-update-damaged = Update from library is refused: { $p0 }.
+toast-damaged-copies-updated = Updated { $p0 } damaged library copies from their libraries.
+toast-damaged-copies-not-updated = Not updated, as no library on this computer holds a readable version: { $p0 }. Every other damaged library copy was updated from its library.
 toast-saved-unreleased-format = Saved in a format that is not released yet. Released versions of ElektraWatt open this project read-only.
 error-export = Export failed: { $p0 }.
 error-write = The file could not be written.
@@ -1707,6 +1716,12 @@ refusal-purge-stale-one = 1 of the listed images can no longer be purged; previe
 refusal-purge-unreadable = a file of the project could not be read; nothing was removed
 refusal-purge-save = the save that removes the images failed: { $p0 }
 refusal-purge-human-only = the purge is human-only: confirm it in ElektraWatt or with ew project assets purge on a terminal; nothing was removed
+# Update from library of the damaged library copies: the refusals of ew-api's own (FT-1499, ID-1486).
+refusal-update-copies-no-library = no library on this computer holds a readable version of { $p0 }; nothing was written
+refusal-update-copies-locked = another session holds the project; nothing was written
+refusal-update-copies-read-only = the project can only be opened read-only, for a reason other than its damaged library copies; nothing was written
+refusal-update-copies-findings = the project has other integrity findings, which keep it read-only; nothing was written
+refusal-update-copies-save = the update could not be written: { $p0 }
 # project.assets.purge's own parameters.
 refusal-purge-asset-hash = an asset hash is `sha256:` and 64 lower-case hex digits
 # The structure: structure.create_node, section.create, report_block.create and external_ref.create.
@@ -1886,6 +1901,7 @@ confirm-check-scheme-title = Apply the check scheme?
 confirm-check-scheme-text = Apply the check scheme "{ $p0 }" to the basic project? The check scheme decides which rules the release gate runs and what the checks report.
 dialog-apply = Apply
 reason-no-journal = The project has no journal of an earlier session
+reason-no-damaged-copy-update = The open project has no damaged library copy that a library holds
 reason-no-wizard = The company-standard wizard is not open
 reason-no-first-run = The first-run setup is not open
 readonly-sample = the sample project
@@ -4212,6 +4228,7 @@ choice-report = Report
 choice-page-based = Page-based
 label-paste-dropped-one = , 1 connection dropped
 banner-findings-one = 1 integrity finding was found when the project was opened.
+toast-damaged-copies-updated-one = Updated the damaged library copy from its library.
 revision-waivers-one = Approving also acknowledges 1 safety waiver in force.
 # WP-S2.08 part 6: the glossary pane (D16), the one-time tips (D17) and the wire-colour view (D18).
 action-help-glossary = Glossary
@@ -4314,6 +4331,7 @@ action-file-upgrade = Upgrade and save
 action-external-apply = Apply the change on disk
 action-external-choose = Choose a side
 action-external-review = Choose again between yours and the disk's
+action-library-update-damaged = Update from library
 action-git-setup = Set up merge driver
 choice-extract = Extract
 choice-read-only = Read only

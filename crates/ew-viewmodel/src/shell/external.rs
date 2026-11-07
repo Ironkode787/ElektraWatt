@@ -216,6 +216,15 @@ impl ShellModel {
             .is_some_and(|p| p.session.external_collisions().is_some())
     }
 
+    /// Whether the damaged-copy banner offers Update from library (`library.update_damaged`, FT-1499, ID-1486): the
+    /// open project is read-only for a damaged library copy and an installed library holds one the open dropped.
+    pub fn damaged_update_offered(&self) -> bool {
+        self.project
+            .as_ref()
+            .and_then(|p| self.damaged_state(p.epoch))
+            .is_some_and(|d| d.in_library)
+    }
+
     /// Whether the banner shown may be dismissed: a message, or the cloud folder's; never saves held by a change on disk,
     /// which only a choice (or the disk) resolves.
     pub fn banner_dismissable(&self) -> bool {

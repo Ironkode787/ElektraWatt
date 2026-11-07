@@ -83,16 +83,16 @@ fn ft1383_save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
         (
             "en",
             "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
-             damaged. Update the copy from its library first. 1 integrity finding was found when the project was \
-             opened.",
+             damaged. No library on this computer holds it, so the copy cannot be updated from one. 1 integrity \
+             finding was found when the project was opened.",
             "Save as is refused: the device -201U8-Q1 uses the library copy of its part, which is damaged, and a copy \
              of the project without it would not open. Update the copy from its library first.",
         ),
         (
             "nl",
             "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
-             artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek. Bij het openen van het \
-             project is 1 integriteitsbevinding gevonden.",
+             artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit \
+             een bibliotheek worden bijgewerkt. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
             "Opslaan als is geweigerd: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn artikel, die \
              beschadigd is, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst \
              bij vanuit de bibliotheek.",
@@ -141,7 +141,7 @@ fn id1427_the_damaged_copy_banner_stays_while_its_state_holds() {
         s.banner(),
         Some(
             "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
-             damaged. Update the copy from its library first."
+             damaged. No library on this computer holds it, so the copy cannot be updated from one."
         )
     );
     assert!(!s.banner_dismissable());
@@ -150,7 +150,8 @@ fn id1427_the_damaged_copy_banner_stays_while_its_state_holds() {
         s.banner(),
         Some(
             "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
-             artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek."
+             artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit \
+             een bibliotheek worden bijgewerkt."
         )
     );
     done(&mut s, "view.language", json!({"value": "en"}));
@@ -196,16 +197,17 @@ fn ft1500_a_damaged_copy_a_page_names_is_named_with_its_page() {
     for (locale, banner, save_as) in [
         (
             "en",
-            "This project is open read-only: the library copy of a form named by page 1 is damaged. Update the \
-             copy from its library first. 1 integrity finding was found when the project was opened.",
+            "This project is open read-only: the library copy of a form named by page 1 is damaged. No library on \
+             this computer holds it, so the copy cannot be updated from one. 1 integrity finding was found when the \
+             project was opened.",
             "Save as is refused: the library copy of a form named by page 1 is damaged, and a copy of the project \
              without it would not open. Update the copy from its library first.",
         ),
         (
             "nl",
             "Dit project is alleen-lezen geopend: de bibliotheekkopie van een formulier waarnaar pagina 1 verwijst \
-             is beschadigd. Werk de kopie eerst bij vanuit de bibliotheek. Bij het openen van het project is 1 \
-             integriteitsbevinding gevonden.",
+             is beschadigd. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit een \
+             bibliotheek worden bijgewerkt. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
             "Opslaan als is geweigerd: de bibliotheekkopie van een formulier waarnaar pagina 1 verwijst is \
              beschadigd, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst bij \
              vanuit de bibliotheek.",
@@ -248,15 +250,15 @@ fn ft1500_save_as_leaves_out_a_damaged_copy_no_record_names() {
     for (locale, banner, toast) in [
         (
             "en",
-            "This project is open read-only: the library copy of a manufacturer is damaged. Update the copy from \
-             its library, or use Save as for a copy of the project without it. 1 integrity finding was found when \
+            "This project is open read-only: the library copy of a manufacturer is damaged. No library on this \
+             computer holds it; use Save as for a copy of the project without it. 1 integrity finding was found when \
              the project was opened.",
             "Saved as save-as-en without the library copy of a manufacturer, which is damaged.",
         ),
         (
             "nl",
-            "Dit project is alleen-lezen geopend: de bibliotheekkopie van een fabrikant is beschadigd. Werk de \
-             kopie bij vanuit de bibliotheek, of maak met Opslaan als een projectkopie zonder deze \
+            "Dit project is alleen-lezen geopend: de bibliotheekkopie van een fabrikant is beschadigd. Geen \
+             bibliotheek op deze computer bevat het; maak met Opslaan als een projectkopie zonder deze \
              bibliotheekkopie. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
             "Opgeslagen als save-as-nl zonder de bibliotheekkopie van een fabrikant, die beschadigd is.",
         ),
@@ -310,7 +312,7 @@ fn every_damaged_copy_a_save_as_leaves_out_is_named() {
         (
             "en",
             "This project is open read-only: the library copy of a manufacturer, the library copy of a manufacturer \
-             are damaged. Update the copies from their libraries, or use Save as for a copy of the project without \
+             are damaged. No library on this computer holds them; use Save as for a copy of the project without \
              them. 2 integrity findings were found when the project was opened.",
             "Saved as save-as-en without the library copy of a manufacturer, the library copy of a manufacturer, \
              which are damaged.",
@@ -318,7 +320,7 @@ fn every_damaged_copy_a_save_as_leaves_out_is_named() {
         (
             "nl",
             "Dit project is alleen-lezen geopend: de bibliotheekkopie van een fabrikant, de bibliotheekkopie van een \
-             fabrikant zijn beschadigd. Werk de kopieën bij vanuit hun bibliotheken, of maak met Opslaan als een \
+             fabrikant zijn beschadigd. Geen bibliotheek op deze computer bevat ze; maak met Opslaan als een \
              projectkopie zonder deze bibliotheekkopieën. Bij het openen van het project zijn 2 \
              integriteitsbevindingen gevonden.",
             "Opgeslagen als save-as-nl zonder de bibliotheekkopie van een fabrikant, de bibliotheekkopie van een \
@@ -358,16 +360,16 @@ fn id1484_a_damaged_definition_copy_with_fluid_lines_opens_read_only() {
         (
             "en",
             "This project is open read-only: the device -203Q5 uses the library copy of its part, which is \
-             damaged. Update the copy from its library first. 1 integrity finding was found when the project was \
-             opened.",
+             damaged. No library on this computer holds it, so the copy cannot be updated from one. 1 integrity \
+             finding was found when the project was opened.",
             "Save as is refused: the device -203Q5 uses the library copy of its part, which is damaged, and a copy \
              of the project without it would not open. Update the copy from its library first.",
         ),
         (
             "nl",
             "Dit project is alleen-lezen geopend: het apparaat -203Q5 gebruikt de bibliotheekkopie van zijn \
-             artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek. Bij het openen van het \
-             project is 1 integriteitsbevinding gevonden.",
+             artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit \
+             een bibliotheek worden bijgewerkt. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
             "Opslaan als is geweigerd: het apparaat -203Q5 gebruikt de bibliotheekkopie van zijn artikel, die \
              beschadigd is, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst \
              bij vanuit de bibliotheek.",

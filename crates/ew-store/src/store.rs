@@ -2763,6 +2763,107 @@ impl Store {
         self.save_inner(&base, Changes::Keys(&BTreeSet::new()), &BTreeSet::new(), true)
     }
 
+    /// Update from library of the damaged library copies `keys` (FT-1499, decision log ID-1486): one save of `model`,
+    /// which holds the library's documents of those copies, that writes each over its damaged file, which the open kept
+    /// as it was found, and lists it in the manifest, as a save writes an updated copy; nothing else is written. A store
+    /// that the integrity findings made read-only takes the lock for the save and gives it back after, staying
+    /// read-only: the caller opens the project again, writable when the integrity check passes. Refused before anything
+    /// is written: a store read-only for another reason (another session holding the lock among them), another file
+    /// that does not hold the bytes the manifest lists (other integrity findings, which this save would hide), and a
+    /// damaged file that changed since the open.
+    ///
+    /// # Errors
+    ///
+    /// [`SaveError::ReadOnly`] with the reason: [`ReadOnlyReason::LockedBy`] when another session holds the lock,
+    /// [`ReadOnlyReason::Integrity`] for another file's finding; otherwise as [`Store::save`].
+    pub fn update_damaged_copies(
+        &mut self,
+        model: &Model,
+        keys: &BTreeSet<AnyKey>,
+    ) -> Result<SaveReport, SaveError> {
+        let read_only = match &self.access {
+            Access::Edit => false,
+            Access::ReadOnly(ReadOnlyReason::Integrity) => true,
+            Access::ReadOnly(reason) => return Err(SaveError::ReadOnly(reason.clone())),
+        };
+        let paths: BTreeSet<FilePath> = keys
+            .iter()
+            .filter_map(|&(kind, id)| Some(FilePath::lib(ew_format::lib_dir(kind)?, id)))
+            .collect();
+        let as_listed = self.manifest.as_ref().is_some_and(|m| {
+            m.files
+                .iter()
+                .filter(|(path, _)| !paths.contains(*path))
+                .all(
+                    |(path, listed)| match (self.disk.get(path), self.opaque.get(path), listed) {
+                        (Some(held), _, FileHash::Sha256(hash)) => held.accepted().contains(hash),
+                        (None, Some(held), _) => held == listed,
+                        _ => false,
+                    },
+                )
+        });
+        if !as_listed {
+            return Err(SaveError::ReadOnly(ReadOnlyReason::Integrity));
+        }
+        if read_only {
+            let vfs = Arc::clone(&self.opts.vfs);
+            let acquired = lock::acquire(
+                &*vfs,
+                &self.root,
+                &*self.opts.clock,
+                self.opts.stale_after,
+                &self.opts.identity,
+                &*self.opts.probe,
+            )
+            .map_err(|error| SaveError::Failed {
+                step: SaveStep::PreCheck,
+                path: join(&self.root, ew_format::LOCK),
+                error,
+            })?;
+            match acquired {
+                Acquire::Held => {}
+                Acquire::HeldBy(info) => {
+                    return Err(SaveError::ReadOnly(ReadOnlyReason::LockedBy(Box::new(info))));
+                }
+                Acquire::NotWritable(why) => {
+                    return Err(SaveError::ReadOnly(ReadOnlyReason::NotWritable(why)));
+                }
+            }
+            self.holds_lock = true;
+            self.access = Access::Edit;
+        }
+        // The damaged files as the open found them are what this save replaces, and only the copies are written.
+        let kept = (
+            self.opaque.clone(),
+            self.disk.clone(),
+            std::mem::take(&mut self.rewrite),
+        );
+        for path in &paths {
+            if let Some(FileHash::Sha256(hash)) = self.opaque.remove(path) {
+                self.disk.insert(
+                    path.clone(),
+                    Held {
+                        hash,
+                        lf: None,
+                        since: None,
+                    },
+                );
+            }
+        }
+        let saved = self.save(model, Changes::Keys(keys));
+        if saved
+            .as_ref()
+            .is_err_and(|e| !matches!(e, SaveError::Incomplete { .. }))
+        {
+            (self.opaque, self.disk, self.rewrite) = kept;
+        }
+        if read_only {
+            self.access = Access::ReadOnly(ReadOnlyReason::Integrity);
+            self.release_lock();
+        }
+        saved
+    }
+
     /// The access of the session.
     pub fn access(&self) -> &Access {
         &self.access

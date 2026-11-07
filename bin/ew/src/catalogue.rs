@@ -336,6 +336,19 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["update-copies"],
+        exits: &[
+            exit(
+                0,
+                "every damaged library copy updated and the project opens for editing, or none damaged",
+            ),
+            exit(1, "refused, or a copy stays damaged"),
+            exit(2, "usage, open and save errors"),
+        ],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["project", "checks", "set"],
         exits: HUMAN_EXITS,
         result: None,

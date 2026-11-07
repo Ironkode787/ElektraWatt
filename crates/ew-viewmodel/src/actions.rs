@@ -767,6 +767,15 @@ fn can_discard_journal(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// Update from library needs the damaged-copy banner that offers it (FT-1499, ID-1486).
+fn damaged_update_offered(m: &ShellModel) -> Result<(), Key<'static>> {
+    if m.damaged_update_offered() {
+        Ok(())
+    } else {
+        Err(key!("reason-no-damaged-copy-update"))
+    }
+}
+
 // WP-S2.09 part 1
 /// The recovery dialog's answers need the dialog (§6.6).
 fn recovery_open(m: &ShellModel) -> Result<(), Key<'static>> {
@@ -1393,6 +1402,16 @@ pub static ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_external_review(),
     )))),
+    // FT-1499 (ID-1486): the damaged-copy banner's Update from library.
+    hidden(parameterless(act(
+        "library.update_damaged",
+        Command,
+        Menu::File,
+        &[],
+        damaged_update_offered,
+        None,
+        |s, _| s.act_update_damaged(),
+    ))),
     keeps_banner(with_params(
         "row:uint, take:enum(mine|theirs)",
         hidden(act(

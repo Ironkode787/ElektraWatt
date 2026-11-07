@@ -2558,6 +2558,27 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-purge-human-only",
         "the purge is human-only: confirm it in ElektraWatt or with ew project assets purge on a terminal; nothing was removed",
     ),
+    // Update from library of the damaged library copies: the refusals of `ew-api`'s own (FT-1499, ID-1486).
+    (
+        "refusal-update-copies-no-library",
+        "no library on this computer holds a readable version of {0}; nothing was written",
+    ),
+    (
+        "refusal-update-copies-locked",
+        "another session holds the project; nothing was written",
+    ),
+    (
+        "refusal-update-copies-read-only",
+        "the project can only be opened read-only, for a reason other than its damaged library copies; nothing was written",
+    ),
+    (
+        "refusal-update-copies-findings",
+        "the project has other integrity findings, which keep it read-only; nothing was written",
+    ),
+    (
+        "refusal-update-copies-save",
+        "the update could not be written: {0}",
+    ),
     // project.assets.purge's own parameters.
     (
         "refusal-purge-asset-hash",

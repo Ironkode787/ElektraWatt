@@ -235,3 +235,10 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: window and cli opening a project (a damaged library copy whose referrers also break another rule,
   such as a function definition's copy dropped while fluid lines end at its functions, opens the project read-only
   with the damaged copy's banner instead of refusing it; any other violation still refuses the open; ID-1484)
+- api-add: cli ew update-copies [project-dir] [--project <dir>] [--company <dir>]... (the project's damaged library
+  copies are read from the libraries of `ew lib`, checked, and written over their damaged files in one save, and the
+  project opens again; a copy no library holds stays damaged and is named; exit 0 when every damaged copy was updated
+  and the project opens for editing, 1 when refused or a copy stays damaged, 2 on usage, open and save errors; FT-1499)
+- api-add: window the damaged-copy banner's Update from library (`library.update_damaged`: every damaged library copy
+  an installed library holds is written from it and the project opens again, writable when the integrity check
+  passes; a banner whose copy no library holds says so and offers nothing; FT-1499)

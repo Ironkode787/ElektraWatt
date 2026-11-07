@@ -744,6 +744,20 @@ impl App {
                         {
                             events.push(Event::Action("external.review", Value::Null));
                         }
+                        // FT-1499 (ID-1486): the damaged-copy banner's one Primary updates the copies from their
+                        // libraries; a banner of a copy no library holds offers nothing.
+                        if self.shell.damaged_update_offered()
+                            && crate::components::button(
+                                ui,
+                                crate::components::Kind::Primary,
+                                strings::text(key!("action-library-update-damaged")),
+                                true,
+                                0.0,
+                            )
+                            .clicked()
+                        {
+                            events.push(Event::Action("library.update_damaged", Value::Null));
+                        }
                         if self.shell.banner_dismissable()
                             && crate::components::button(
                                 ui,
