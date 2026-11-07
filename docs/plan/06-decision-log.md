@@ -132,12 +132,12 @@ performance-spike decision, one month after WP-S1.03.
 | **G-M0** | 3 (Jan 2027) | **3 (Jan 2027)** | 3 (Jan 2027) | 3 (Jan 2027) | 3 (Jan 2027) |
 | **G-M1** | 23 (Sep 2028) | **17 (Mar 2028)** | 16 (Feb 2028) | 13 (Nov 2027) | 11 (Sep 2027) |
 | **G-PP** | 38 (Dec 2029) | **27 (Jan 2029)** | 26 (Dec 2028) | 21 (Jul 2028) | 18 (Apr 2028) |
-| **G-M2** | 58 (Aug 2031) | **41 (Mar 2030)** | 36 (Oct 2029) | 32 (Jun 2029) | 27 (Jan 2029) |
-| **G-M2.5** | 59 (Sep 2031) | **42 (Apr 2030)** | 37 (Nov 2029) | 33 (Jul 2029) | 28 (Feb 2029) |
-| **G-M3** | 68 (Jun 2032) | **48 (Oct 2030)** | 40 (Feb 2030) | 37 (Nov 2029) | 32 (Jun 2029) |
-| **G-M4** | 82 (Aug 2033) | **58 (Aug 2031)** | 52 (Feb 2031) | 45 (Jul 2030) | 39 (Jan 2030) |
-| **G-M5** | 86 (Dec 2033) | **59 (Sep 2031)** | 52 (Feb 2031) | 46 (Aug 2030) | 39 (Jan 2030) |
-| **G-M6** | 97 (Nov 2034) | **69 (Jul 2032)** | 64 (Feb 2032) | 54 (Apr 2031) | 46 (Aug 2030) |
+| **G-M2** | 59 (Sep 2031) | **42 (Apr 2030)** | 36 (Oct 2029) | 32 (Jun 2029) | 28 (Feb 2029) |
+| **G-M2.5** | 60 (Oct 2031) | **43 (May 2030)** | 38 (Dec 2029) | 33 (Jul 2029) | 29 (Mar 2029) |
+| **G-M3** | 69 (Jul 2032) | **48 (Oct 2030)** | 41 (Mar 2030) | 38 (Dec 2029) | 32 (Jun 2029) |
+| **G-M4** | 83 (Sep 2033) | **59 (Sep 2031)** | 53 (Mar 2031) | 46 (Aug 2030) | 39 (Jan 2030) |
+| **G-M5** | 87 (Jan 2034) | **60 (Oct 2031)** | 53 (Mar 2031) | 47 (Sep 2030) | 40 (Feb 2030) |
+| **G-M6** | 98 (Dec 2034) | **70 (Aug 2032)** | 64 (Feb 2032) | 54 (Apr 2031) | 47 (Sep 2030) |
 <!-- /generated:gate-timing -->
 
 A work package (WP) is written "WP-S1.21 (month 25)" when the decision is needed before it starts. The month is the
@@ -186,7 +186,7 @@ These are binding and are not re-litigated in any document ([vision](../design/0
 
 ### 2.2 Accepted ADRs
 
-All 27 are Accepted; those marked *amended* took amendments on 2026-10-18 or later that are folded into the ADR text. The five Proposed ADRs (0025, 0027, 0028, 0029, 0030) are decisions in Part B.
+All 28 are Accepted; those marked *amended* took amendments on 2026-10-18 or later that are folded into the ADR text. The five Proposed ADRs (0025, 0027, 0028, 0029, 0030) are decisions in Part B.
 
 | ADR | Decision in one line | Note |
 |---|---|---|
@@ -196,7 +196,7 @@ All 27 are Accepted; those marked *amended* took amendments on 2026-10-18 or lat
 | [ADR-0004](../adr/0004-identity-uuidv7-uuidv5.md) | Identity: UUIDv7 for authored records, UUIDv5 for instantiated, imported and generated ones. | amended (import lineage, UUIDv7 method, UUIDv5 name layout and `NS_IMPORT`) |
 | [ADR-0005](../adr/0005-value-types-nm-dec3-mltext.md) | Values: `i64` nanometre coordinates, rational grids, `Dec3` quantities, `MlText`. | amended (`Angle2`, its counter-clockwise rotation sense) |
 | [ADR-0006](../adr/0006-function-device-representation-model.md) | Function / Device / Representation model with typed device aspects. | amended |
-| [ADR-0007](../adr/0007-explicit-connections-and-autoconnect.md) | Explicit connections and junction sequences are the model; autoconnect is an editing aid. | amended; validation with EPLAN and QET users is DEC-078 |
+| [ADR-0007](../adr/0007-explicit-connections-and-autoconnect.md) | Explicit connections and junction sequences are the model; autoconnect is an editing aid. | amended; validation with EPLAN and QET users is DEC-078; open question 2 (connect on move) answered 2026-11-07 (ID-1498, ADR-0033) |
 | [ADR-0008](../adr/0008-transactions-undo-preview.md) | Transactions, undo/redo and preview-as-fork; every write is a serialisable command. | amended |
 | [ADR-0009](../adr/0009-invariant-catalogue.md) | Invariant catalogue: structural versus configurable prevent rules; lenient import. | amended |
 | [ADR-0010](../adr/0010-project-storage-jsonl-directory.md) | Project storage: UUID-named JSONL directory, manifest-last save, external journal, lock file. | amended (intent manifest, lock record) |
@@ -217,6 +217,7 @@ All 27 are Accepted; those marked *amended* took amendments on 2026-10-18 or lat
 | [ADR-0026](../adr/0026-default-device-tag-identifier-set.md) | Default device-tag identifier set: EN 81346-2:2009 single letters; IEC 81346-2:2019 and IEC 60750 selectable. | amended; the leniency on S is DEC-046 |
 | [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md) | Design language (doc 16a) and a single-row, task-ordered command bar generated from the action registry; no multi-row Office ribbon and no contextual tabs; the owner-approved mockup is the visual reference. | Accepted 2026-10-28 (ID-725, ID-726) |
 | [ADR-0032](../adr/0032-per-project-text-styles.md) | Per-project text styles: overrides of the built-in table in `ProjectSettings.text_styles`, absent meaning today's table; new projects get `cp.small` and `marker` at 7 px (1.32 mm cap height); one effective table in `ew-schema`, read through `ew-derive` by the checks and passed to the scene; no migration, Golden A and C unchanged. | new 2026-10-30 (ID-837) |
+| [ADR-0033](../adr/0033-schematic-routing-model.md) | Schematic routing: a connection is drawn along its stored route (the full vertex list, both ends included); one deterministic page router in `ew-derive`, reached through `ew-api`, writes routes that never break the hard rules; a connection without a route is unrouted, drawn dashed and reported; the commands store and never route; interruption points take the arrow form of their direction. | new 2026-11-07 (ID-1498; WP-S2.19) |
 
 ### 2.3 Planning inputs used by the plan
 
