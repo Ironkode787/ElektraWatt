@@ -37,6 +37,10 @@ pub fn large() -> Vec<(&'static str, Vec<u8>)> {
     vec![
         ("eplan/depth-10000.xml", eplan_depth_10000()),
         (
+            "eplan/element-of-200000-attributes.xml",
+            eplan_element_of_200000_attributes(),
+        ),
+        (
             "eplan/parts-pins-over-the-budget.xml",
             eplan_parts_pins_over_the_budget(),
         ),
@@ -303,6 +307,18 @@ fn seven_zip_entries_over_the_limit() -> Vec<u8> {
 /// An EPLAN XML nested 10,000 deep (SM25#1: it overflowed the stack before the depth was checked).
 fn eplan_depth_10000() -> Vec<u8> {
     format!("{}{}", "<a>".repeat(10_000), "</a>".repeat(10_000)).into_bytes()
+}
+
+/// An EPLAN XML whose one element carries 200,000 attributes, within the document's 200,000 `=`, the last repeating
+/// the first (M25-p4#3): the parser's duplicate check is quadratic in an element's attributes, so it worked through
+/// all of them before it refused the repeat.
+fn eplan_element_of_200000_attributes() -> Vec<u8> {
+    let mut out = String::from("<partsmanagement");
+    for i in 0..199_999 {
+        out.push_str(&format!(" a{i}=''"));
+    }
+    out.push_str(" a0=''/>");
+    out.into_bytes()
 }
 
 /// A parts document of 17 parts of 4,000 connections each (`a¶`, 3 bytes): every part within the 4,096 of one

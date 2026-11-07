@@ -10,6 +10,9 @@ use serde_json::json;
 
 /// The deepest element nesting read: the tree check below allows 65 ancestors with the document root.
 const MAX_DEPTH: usize = 64;
+/// The most attributes of one element, counted before parsing as well as after it: the parser's duplicate-attribute
+/// check is quadratic in the attributes of one element (M25-p4#3).
+const MAX_ATTRIBUTES: usize = 256;
 
 /// The index just past the first `pattern` at or after `from`, else the end of `b`.
 fn after(b: &[u8], from: usize, pattern: &[u8]) -> usize {
@@ -18,10 +21,11 @@ fn after(b: &[u8], from: usize, pattern: &[u8]) -> usize {
         .map_or(b.len(), |at| from + at + pattern.len())
 }
 
-/// Whether the element nesting of `text` exceeds `limit`, by a flat scan before the parser recurses into it
-/// (SM25#1): comments, CDATA sections, processing instructions and declarations are skipped, and a quoted
-/// attribute value may hold `>` and `/`. A malformed input gives some answer; the parser reports it.
-fn too_deep(text: &str, limit: usize) -> bool {
+/// Whether the element nesting of `text` exceeds `limit`, or one element has more than `attributes` attributes (an
+/// `=` outside its quoted values), by a flat scan before the parser reads it (SM25#1, M25-p4#3): comments, CDATA
+/// sections, processing instructions and declarations are skipped, and a quoted attribute value may hold `>`, `/` and
+/// `=`. A malformed input gives some answer; the parser reports it.
+fn over_limits(text: &str, limit: usize, attributes: usize) -> bool {
     let b = text.as_bytes();
     let (mut at, mut depth) = (0, 0usize);
     while let Some(open) = b.get(at..).and_then(|rest| rest.iter().position(|&c| c == b'<')) {
@@ -41,15 +45,20 @@ fn too_deep(text: &str, limit: usize) -> bool {
         } else {
             let mut quote = None;
             let mut end = at;
+            let mut held = 0usize;
             while let Some(&c) = b.get(end) {
                 match quote {
                     Some(q) if c == q => quote = None,
                     Some(_) => {}
                     None if c == b'"' || c == b'\'' => quote = Some(c),
                     None if c == b'>' => break,
+                    None if c == b'=' => held += 1,
                     None => {}
                 }
                 end += 1;
+            }
+            if held > attributes {
+                return true;
             }
             if !(end > at && b[end - 1] == b'/' && b.get(end) == Some(&b'>')) {
                 depth += 1;
@@ -67,7 +76,7 @@ pub(crate) fn xml(text: &str) -> Result<Document<'_>, String> {
     if text.len() as u64 > crate::MAX_FILE
         || text.bytes().filter(|b| *b == b'<').count() > 100_000
         || text.bytes().filter(|b| *b == b'=').count() > 200_000
-        || too_deep(text, MAX_DEPTH)
+        || over_limits(text, MAX_DEPTH, MAX_ATTRIBUTES)
     {
         return Err("eplan-input-limit".into());
     }
@@ -82,7 +91,7 @@ pub(crate) fn xml(text: &str) -> Result<Document<'_>, String> {
     .map_err(|_| "eplan-xml-invalid")?;
     for n in doc.descendants() {
         if n.ancestors().take(66).count() > 65
-            || n.attributes().len() > 256
+            || n.attributes().len() > MAX_ATTRIBUTES
             || n.attributes().any(|a| a.value().len() > 65536)
         {
             return Err("eplan-input-limit".into());

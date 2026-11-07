@@ -387,6 +387,30 @@ fn deep_xml_is_refused_before_parsing() {
     );
 }
 
+/// M25-p4#3: the attributes of one element are counted before parsing, because the parser's duplicate check is
+/// quadratic in them. 257 are the limit's refusal even where the parser would refuse the element for its own reason
+/// (here the last attribute repeats the first); 256, each with an `=` in its quoted value, still read.
+#[test]
+fn an_elements_attributes_are_counted_before_parsing() {
+    let attributes = |n: usize| (0..n).map(|i| format!(" a{i}='x=y'")).collect::<String>();
+    let parts = |attributes: &str| {
+        format!(
+            r#"<partsmanagement{attributes}><part><functiontemplate connectionDesignation="1"/></part></partsmanagement>"#
+        )
+    };
+    assert_eq!(
+        read(parts(&attributes(256)).as_bytes(), "parts.xml")
+            .unwrap()
+            .len(),
+        1
+    );
+    let repeated = format!("{} a0='x'", attributes(256));
+    assert_eq!(
+        read(parts(&repeated).as_bytes(), "parts.xml").unwrap_err(),
+        "eplan-input-limit"
+    );
+}
+
 /// M25-p2#8 and SM25#4: a UTF-16 XML reads as XML, and a `.pxf` member or file is read as PXF.
 #[test]
 fn utf16_xml_and_pxf_names_are_read() {

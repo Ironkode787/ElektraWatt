@@ -193,6 +193,7 @@ fn eplan_symbol_inputs() {
         &[
             ("billion-laughs.xml", DECLARED),
             ("depth-10000.xml", LIMIT),
+            ("element-of-200000-attributes.xml", LIMIT),
             (
                 "entry-parent.edz",
                 "The EPLAN archive has unsafe or duplicate member names.",
