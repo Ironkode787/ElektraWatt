@@ -1467,6 +1467,31 @@ fn save_without_a_folder_saves_to_the_default_user_library() {
     shell.shutdown();
 }
 
+/// ID-1477 (7): the editor has a button on the Draw tab's Place group, and the command search names it there.
+#[test]
+fn the_editor_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {
+    use ew_viewmodel::command_bar::{Group, Tab};
+    let tmp = Tmp::new("symbol-draw-tab");
+    let mut shell = ShellModel::new(
+        Mode::Gui,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    let place = ew_viewmodel::actions::find("symbol.new")
+        .unwrap()
+        .placement
+        .unwrap();
+    assert_eq!((place.tab, place.group), (Tab::Draw, Group::Place));
+    done(&mut shell, "tools.palette", json!({}));
+    shell.set_palette_query("symbol editor");
+    let entry = shell
+        .palette_entries()
+        .into_iter()
+        .find(|e| e.id == "symbol.new")
+        .unwrap();
+    assert_eq!(entry.breadcrumb, "Draw · Place");
+    shell.shutdown();
+}
+
 /// ID-1463 (M25-p5 nit): the quit question's Save symbol saves the draft, then quits.
 #[test]
 fn the_quit_questions_save_symbol_saves_the_draft_and_quits() {

@@ -5526,16 +5526,21 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_keymap_export(p),
         )),
     ),
+    // ID-1477 (7): the editor has a button on the Draw tab, which the palette names it by; Edit ▸ Symbol editor… stays.
     with_params(
         "key?:text, name?:text, discard?:bool",
-        act(
-            "symbol.new",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            slot(Menu::Edit),
-            |s, p| s.act_symbol("new", p),
+        placed(
+            place(Group::Place, 5, CommandSize::Small, None),
+            "pencil",
+            act(
+                "symbol.new",
+                View,
+                Menu::Edit,
+                &[],
+                always,
+                slot(Menu::Edit),
+                |s, p| s.act_symbol("new", p),
+            ),
         ),
     ),
     with_params(
