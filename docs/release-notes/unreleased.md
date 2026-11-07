@@ -225,3 +225,10 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   window's words, absent when there is none; FT-1503)
 - behaviour-change: command item.place (an image placed by the hash of an asset the project holds is refused when the
   asset is over the pixel limit, in the words its data is refused in; FT-1523)
+- text-change: commands library.embed and paste refusals naming a held library item ("the project holds <item>
+  already; take another version of it with update from library", "the project holds another version of <item>;
+  update from library first", "the project's version of <item> differs from the pasted one in a major way (<why>);
+  update instead", the item named as the copy refusals name it, "manufacturer Eaton (EATON)", a part by its number,
+  instead of its schema kind; FT-1515)
+- text-change: commands import.apply and external.apply refusals ("an item of an unknown kind (<kind>)", "a
+  normaliser removed an item the import brought: <item>", instead of "a record"; FT-1526)

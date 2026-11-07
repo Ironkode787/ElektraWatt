@@ -97,7 +97,11 @@ fn adapt_reuses_the_held_copy_of_another_version_in_one_step() {
     // Without adapt: the old refusal.
     let (path, message) = refusal(&mut e, &paste(&pasted, &[]));
     assert_eq!(path, "/fragment/copies/0");
-    assert!(message.contains("update from library first"), "{message}");
+    // The whole refusal, the held item named in words (FT-1515; C53-p2#5).
+    assert_eq!(
+        message,
+        "the project holds another version of FX-MCB-1PN; update from library first"
+    );
     // With adapt: the held copy serves the pasted device; the held version stays.
     e.execute(&paste(&pasted, &[held.id.cast()])).expect("adapted");
     assert_eq!(pasted_uses(&e, &devices), [held.id]);
