@@ -229,9 +229,9 @@ The outputs that a step rewrites whole carry `merge=regen` in `.gitattributes`.
 `cargo xtask lane-check --base <rev> -p <pkg>...` (`xtask/src/lane_check.rs`) is an agent lane's hand-back sequence:
 from the diff against `<rev>` and the lane's declared package set it runs, in this order, fmt, `settle --base <rev>`
 (write mode), clippy, doc and the doctests of the changed crates, one nextest run over them, their direct dependants
-and the additions of `.claude/agents/lane.md`, the triggered policy checks (`api-guard --base <rev>` when
-`bin/ew/api/cli.json` or `crates/ew-sqlview/api/api_v1.json` changed), the trailers check and the fuzz workspace
-check, prints only failures and a summary, and writes `target/lane-check.json`. It is bounded to direct dependants;
+and the additions of `.claude/agents/lane.md`, the triggered policy checks (`api-guard --base <rev>` when a
+file it reads changed: an API snapshot, `schemas/`, `fixtures/format/` or `docs/release-notes/unreleased.md`), the
+trailers check and the fuzz workspace check, prints only failures and a summary, and writes `target/lane-check.json`. It is bounded to direct dependants;
 the transitive closure is `cargo xtask affected`, at the merge point. It fails fast (ID-1103): when fmt or settle
 rewrites files (found by a snapshot of the worktree, not by their text), no later step runs; each reads `not run
 (commit the rewrites and run again)` and the run fails, while a failed step lets the later steps run. `--trailers

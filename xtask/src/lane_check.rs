@@ -41,8 +41,9 @@
 //!      directory and on any changed file that mentions `--test`; `check-unsafe` on any changed `.rs` file,
 //!      `Cargo.toml` or `ci/unsafe-allowlist.toml`; `check-ui-strings` on any changed file of `crates/ew-ui/src` or
 //!      `ci/ui-strings-allow.txt`; `map --check` (the shared-list markers) on any
-//!      changed `.rs` file, `Cargo.toml` or `ci/dep-rules.toml`; `api-guard --base <rev>` when one of
-//!      [`API_SNAPSHOTS`] changed (FT-1007).
+//!      changed `.rs` file, `Cargo.toml` or `ci/dep-rules.toml`; `api-guard --base <rev>` when a file it reads
+//!      changed ([`crate::api_guard::reads`]: every snapshot surface, `schemas/`, `fixtures/format/` and
+//!      `docs/release-notes/unreleased.md`; FT-1007, FT-1517).
 //!   7. `trailers`: in-process over the non-merge commits of `<merge base>..HEAD` ([`trailers::commits`]). It fails
 //!      on each record line of a commit's message that stands outside git's trailer block ([`trailers::outside_block`],
 //!      FT-1104), with or without `--trailers`. With `--trailers "<Key>: <items>"` (repeatable; the items separated by
@@ -582,11 +583,8 @@ pub(crate) fn warm_command(set: &BTreeSet<String>, members: &Members) -> Cmd {
     cmd
 }
 
-/// The published-surface snapshots whose change runs `api-guard` (FT-1007).
-pub(crate) const API_SNAPSHOTS: [&str; 2] = ["bin/ew/api/cli.json", "crates/ew-sqlview/api/api_v1.json"];
-
 /// The policy checks of lane.md step 6 that the diff triggers, in lane.md's order, then `api-guard --base <base>`
-/// when the diff holds one of [`API_SNAPSHOTS`] (FT-1007), then the dependency checks.
+/// when the diff holds a file it reads ([`crate::api_guard::reads`], FT-1007, FT-1517), then the dependency checks.
 pub(crate) fn policy_commands(diff: &Diff, base: &str) -> Vec<Cmd> {
     let any = |pred: &dyn Fn(&str) -> bool| diff.files.iter().any(|f| pred(f));
     let manifest = |f: &str| f == "Cargo.toml" || f.ends_with("/Cargo.toml");
@@ -622,7 +620,7 @@ pub(crate) fn policy_commands(diff: &Diff, base: &str) -> Vec<Cmd> {
     if markers {
         cmds.push(Cmd::xtask(&["map", "--check"]));
     }
-    if any(&|f| API_SNAPSHOTS.contains(&f)) {
+    if any(&|f| crate::api_guard::reads(f)) {
         cmds.push(Cmd::xtask(&["api-guard", "--base", base]));
     }
     if dependency {
@@ -1209,8 +1207,10 @@ enum Readers {
     Every,
     /// These steps.
     Steps(&'static [&'static str]),
-    /// These steps, and clippy, doc and nextest when one of their packages or a workspace dependency of one names
-    /// the path in its code ([`names_path`]): what it embeds, its build script reads or its tests read.
+    /// These steps, and clippy, doc and nextest when the path is a member's file (a member's own `rustfmt.toml` or
+    /// `clippy.toml`, which its code may read as any file of it, FT-1537) or one of their packages or a workspace
+    /// dependency of one names the path in its code ([`names_path`]): what it embeds, its build script reads or its
+    /// tests read.
     Named(&'static [&'static str]),
 }
 
@@ -1226,10 +1226,10 @@ const INPUTS: &[(Paths, Readers)] = &[
     (Paths::Glob("rust-toolchain.toml"), Readers::Every),
     (Paths::Glob(".cargo/**"), Readers::Every),
     // rustfmt and clippy take the nearest configuration upwards, under either name.
-    (Paths::Glob("**/rustfmt.toml"), Readers::Steps(&["fmt"])),
-    (Paths::Glob("**/.rustfmt.toml"), Readers::Steps(&["fmt"])),
-    (Paths::Glob("**/clippy.toml"), Readers::Steps(&["clippy"])),
-    (Paths::Glob("**/.clippy.toml"), Readers::Steps(&["clippy"])),
+    (Paths::Glob("**/rustfmt.toml"), Readers::Named(&["fmt"])),
+    (Paths::Glob("**/.rustfmt.toml"), Readers::Named(&["fmt"])),
+    (Paths::Glob("**/clippy.toml"), Readers::Named(&["clippy"])),
+    (Paths::Glob("**/.clippy.toml"), Readers::Named(&["clippy"])),
     (Paths::Glob(".config/nextest.toml"), Readers::Steps(&["nextest"])),
     (Paths::Member, Readers::Steps(&["clippy", "doc", "nextest"])),
     (Paths::Glob("**/*.toml"), Readers::Named(&[])),
@@ -1287,7 +1287,8 @@ fn reads(step: &str, path: &str, oracle: &mut dyn Oracle) -> bool {
         Some(Readers::Steps(steps)) => steps.contains(&step),
         Some(Readers::Named(steps)) => {
             steps.contains(&step)
-                || (["clippy", "doc", "nextest"].contains(&step) && oracle.named(step, path))
+                || (["clippy", "doc", "nextest"].contains(&step)
+                    && (oracle.member_file(path) || oracle.named(step, path)))
         }
     }
 }
@@ -1302,7 +1303,8 @@ fn first_input<'c>(step: &str, changed: &'c [String], oracle: &mut dyn Oracle) -
 
 /// Whether the code `code` names the repository path `path` (`/`-separated, from the root) as a place it reads: a
 /// literal of its first segment alone, anywhere (`join("docs")`, `find_dir("EW_CONTENT_DIR", "content")`, an array
-/// item), or a parent-relative literal of it (`"../../docs"`) names every path below it; a literal `"docs/<x>` or
+/// item), a parent-relative literal of it (`"../../docs"`) or a format string whose joined path it ends
+/// (`format!("{root}/docs")`, FT-1537) names every path below it; a literal `"docs/<x>` or
 /// `/docs/<x>` names the paths below `docs/<x>`, and every path below `docs` when `<x>` is no plain name
 /// (`"docs/{name}"`, `"../content/"`). `code` is without its comment lines ([`code_lines`]). A false match only costs
 /// a run.
@@ -1310,9 +1312,13 @@ fn names_path(code: &str, path: &str) -> bool {
     let mut segments = path.split('/');
     let first = segments.next().unwrap_or_default();
     let second = segments.next();
-    if [format!("\"{first}\""), format!("../{first}\"")]
-        .iter()
-        .any(|p| code.contains(p.as_str()))
+    if [
+        format!("\"{first}\""),
+        format!("../{first}\""),
+        format!("}}/{first}\""),
+    ]
+    .iter()
+    .any(|p| code.contains(p.as_str()))
     {
         return true;
     }
@@ -1329,21 +1335,30 @@ fn names_path(code: &str, path: &str) -> bool {
 }
 
 /// The lines of `text` that do not start with `//`, a path a comment names being no path the code reads, and the
-/// doc-comment lines inside a code block (` ``` `), which the doc step runs as doctests.
+/// doc-comment lines that the doc step runs as doctests (FT-1537, checked against rustdoc): those inside a fenced
+/// block, of backticks or of tildes, which only a fence of the same character at least as long closes, and those
+/// indented by four spaces or a tab (an indented code block; a list item's deeper paragraph counts too, which only
+/// costs a run).
 fn code_lines(text: &str) -> String {
-    let mut in_block = false;
+    let mut fence: Option<(char, usize)> = None;
     let mut out: Vec<&str> = Vec::new();
     for line in text.lines() {
         let trimmed = line.trim_start();
-        let doc = ["///", "//!"]
-            .iter()
-            .find_map(|p| trimmed.strip_prefix(p))
-            .map(str::trim_start);
-        match doc {
-            Some(d) if d.starts_with("```") => in_block = !in_block,
-            Some(_) if in_block => out.push(line),
-            _ if !trimmed.starts_with("//") => out.push(line),
-            _ => {}
+        let Some(raw) = ["///", "//!"].iter().find_map(|p| trimmed.strip_prefix(p)) else {
+            if !trimmed.starts_with("//") {
+                out.push(line);
+            }
+            continue;
+        };
+        let d = raw.trim_start();
+        let run = |c: char| d.chars().take_while(|x| *x == c).count();
+        let opens = ['`', '~'].into_iter().map(|c| (c, run(c))).find(|(_, n)| *n >= 3);
+        match (fence, opens) {
+            (Some((c, n)), Some((o, m))) if o == c && m >= n && d[m..].trim().is_empty() => fence = None,
+            (Some(_), _) => out.push(line),
+            (None, Some(open)) => fence = Some(open),
+            (None, None) if raw.starts_with("    ") || raw.starts_with('\t') => out.push(line),
+            (None, None) => {}
         }
     }
     out.join("\n")
@@ -1907,21 +1922,20 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
     let mut misses: Vec<(&str, String)> = Vec::new();
     let mut skips: Vec<(&str, Vec<String>)> = Vec::new();
     let outcomes = run_steps(selected, |s| {
+        if let Some(outcome) = from_memory(
+            &mut records,
+            s,
+            key.as_ref(),
+            a.fresh,
+            &mut tool_version,
+            &mut since,
+            &mut skips,
+        ) {
+            return Ok(outcome);
+        }
         let outcome = match &s.run {
             StepRun::Skip(why) => Outcome::without_command(s.name, "skipped", why),
             StepRun::Fail(why) => Outcome::without_command(s.name, "FAILED", why),
-            StepRun::Run(cmds)
-                if remembered_step(&records, s, key.as_ref(), a.fresh, &mut tool_version, &mut since) =>
-            {
-                skips.extend(
-                    move_to_tree(&mut records, s, key.as_ref(), &mut tool_version, &mut since)
-                        .map(|c| (s.name, c)),
-                );
-                Outcome {
-                    commands: cmds.iter().map(ToString::to_string).collect(),
-                    ..Outcome::without_command(s.name, "ok", FROM_MEMORY)
-                }
-            }
             StepRun::Run(cmds) => {
                 misses.extend(
                     miss_reason(
@@ -2028,6 +2042,31 @@ fn remembered_step(
         StepRun::Run(cmds) => remembered(records, step.name, cmds, key, fresh, tool_version, since),
         StepRun::Trailers(_) | StepRun::Skip(_) | StepRun::Fail(_) => false,
     }
+}
+
+/// The outcome of a step that the memory skips ([`remembered_step`]), `ok (from memory; ...)`, else `None`: its record
+/// moves to this tree ([`move_to_tree`]) and the paths changed since go to `skips` for the memory line. `run`'s branch
+/// for such a step, which runs no command (FT-1537).
+fn from_memory(
+    records: &mut BTreeMap<String, Record>,
+    step: &StepPlan,
+    key: Option<&MemoryKey>,
+    fresh: bool,
+    tool_version: &mut dyn FnMut(&str) -> Option<String>,
+    since: &mut dyn FnMut(&str, &str) -> Since,
+    skips: &mut Vec<(&'static str, Vec<String>)>,
+) -> Option<Outcome> {
+    let StepRun::Run(cmds) = &step.run else {
+        return None;
+    };
+    if !remembered_step(records, step, key, fresh, tool_version, since) {
+        return None;
+    }
+    skips.extend(move_to_tree(records, step, key, tool_version, since).map(|c| (step.name, c)));
+    Some(Outcome {
+        commands: cmds.iter().map(ToString::to_string).collect(),
+        ..Outcome::without_command(step.name, "ok", FROM_MEMORY)
+    })
 }
 
 /// After `step` ran with `status`: a step that runs commands updates the memory as [`update_memory`] says; the
@@ -3223,11 +3262,22 @@ mod tests {
         assert!(!names_root(r#"join("x/../schemas")"#, "schemas/0.1/"));
     }
 
-    /// FT-1007: a change of a published-surface snapshot runs `api-guard` against the base, in the policy step.
+    /// FT-1007, FT-1517: a change of any file `api-guard` reads runs it against the base, in the policy step: every
+    /// snapshot surface, the format surface's schemas and fixtures, and the release notes; a file it does not read
+    /// does not.
     #[test]
     fn an_api_snapshot_change_runs_the_api_guard() {
         let guard = Cmd::xtask(&["api-guard", "--base", BASE]);
-        for file in API_SNAPSHOTS {
+        for file in [
+            "bin/ew/api/cli.json",
+            "crates/ew-sqlview/api/api_v1.json",
+            "crates/ew-api/api/queries.json",
+            "crates/ew-commands/schemas/bond.create.schema.json",
+            "bin/ew/schemas/ew.apply-result-1.schema.json",
+            "docs/release-notes/unreleased.md",
+            "schemas/0.1/bond.schema.json",
+            "fixtures/format/0.1/starter.ew",
+        ] {
             assert_eq!(
                 policy_commands(&diff(&[file], &[]), BASE),
                 std::slice::from_ref(&guard),
@@ -3238,7 +3288,17 @@ mod tests {
             lines(&diff(&["bin/ew/api/cli.json"], &[]))[5],
             "policy: cargo xtask api-guard --base 4762316c"
         );
-        assert!(!policy_commands(&diff(&["crates/ew-api/api/queries.json"], &[]), BASE).contains(&guard));
+        for file in [
+            "docs/release-notes/0.1.0.md",
+            "schemasx/a.json",
+            "fixtures/other/a.ew",
+            "crates/ew-commands/schemas/nested/a.json",
+        ] {
+            assert!(
+                !policy_commands(&diff(&[file], &[]), BASE).contains(&guard),
+                "{file}"
+            );
+        }
     }
 
     /// FT-1006: the doc step runs the doctests of the documented crates that have a library target, and only those.
@@ -3801,13 +3861,15 @@ mod tests {
             // fmt: the `.rs` files, the manifests and rustfmt's configuration under either name, anywhere.
             ("crates/ew-leaf/src/lib.rs", &cargo),
             ("rustfmt.toml", &["fmt"]),
-            ("crates/ew-leaf/.rustfmt.toml", &["fmt"]),
+            // FT-1537: a member's own configuration is also a file of the member, which its code may read.
+            ("crates/ew-leaf/.rustfmt.toml", &cargo),
             // clippy and doc: every file of a member, the build-wide files, clippy's configuration.
             ("crates/ew-leaf/README.md", &["clippy", "doc", "nextest"]),
             ("ci/dep-rules.toml", &["clippy", "doc", "nextest"]),
             ("Cargo.lock", &cargo),
             ("clippy.toml", &["clippy"]),
-            ("crates/ew-leaf/.clippy.toml", &["clippy"]),
+            ("crates/ew-leaf/.clippy.toml", &["clippy", "doc", "nextest"]),
+            ("crates/ew-leaf/rustfmt.toml", &cargo),
             // nextest: its configuration, and the data a package of it names.
             (".config/nextest.toml", &["nextest"]),
             ("golden/J-E-2416/tables/a.csv", &["clippy", "doc", "nextest"]),
@@ -3908,6 +3970,24 @@ mod tests {
                 "/// ```\n/// let p = repo().join(\"docs/plan/x.md\");\n/// ```\n/// docs/design/a.md\nfn f() {}\n"
             ),
             ["docs/plan/decisions.md"]
+        );
+        // FT-1537: a folder that ends a joined path; a doctest in a tilde fence, in a longer backtick fence holding a
+        // shorter one, and in an indented block, as rustdoc runs them; prose after a closed tilde fence is no code.
+        assert_eq!(
+            names(r#"let dir = format!("{root}/docs");"#),
+            ["docs/plan/decisions.md", "docs/design/16a.md"]
+        );
+        assert_eq!(
+            names("/// ~~~\n/// let p = repo().join(\"docs/plan/x.md\");\n/// ~~~\n/// docs/design/a.md\n"),
+            ["docs/plan/decisions.md"]
+        );
+        assert_eq!(
+            names("//! ````\n//! ```\n//! include_str!(\"../NOTICE\");\n//! ````\n//! \"docs/plan/x.md\"\n"),
+            ["NOTICE"]
+        );
+        assert_eq!(
+            names("/// Reads:\n///\n///     let p = repo().join(\"content/forms\");\n///\n/// \"docs\"\n"),
+            ["content/forms/a.json"]
         );
         // The packages that read: the step's own and their workspace dependencies, transitively.
         assert_eq!(
@@ -4099,7 +4179,53 @@ mod tests {
         assert_eq!(records["clippy"].tree, "n3w7ree");
     }
 
-    /// Runs git in `dir` with a fixed identity; panics when it fails. The output, trimmed.
+    /// FT-1537: `run`'s branch for a step the memory skips, which runs no command: `ok (from memory; ...)` with its
+    /// commands, its record moved to the current tree and the changed paths kept for the memory line; a step the
+    /// memory does not hold, or a step without commands, is left to the rest of `run`.
+    #[test]
+    fn run_skips_a_remembered_step_and_moves_its_record() {
+        let step = StepPlan {
+            name: "clippy",
+            run: StepRun::Run(vec![Cmd::cargo(&["clippy", "-p", "ew-leaf"])]),
+        };
+        let mut tool = |_: &str| None;
+        let mut records = BTreeMap::new();
+        let mut skips = Vec::new();
+        let mut docs_only = |_: &str, _: &str| Since::NoInput(vec!["docs/a.md".to_owned()]);
+        let now = key("n3w7ree");
+        let mut from = |records: &mut BTreeMap<String, Record>, step: &StepPlan, skips: &mut Vec<_>| {
+            from_memory(records, step, Some(&now), false, &mut tool, &mut docs_only, skips)
+        };
+        assert!(from(&mut records, &step, &mut skips).is_none());
+        record_step(
+            &mut records,
+            &step,
+            "ok",
+            Some(&key("0ld7ree")),
+            &mut |_: &str| None,
+        );
+        let outcome = from(&mut records, &step, &mut skips).unwrap();
+        assert_eq!(
+            (outcome.name, outcome.status, outcome.why.as_deref()),
+            ("clippy", "ok", Some(FROM_MEMORY))
+        );
+        assert_eq!(
+            summary_line(&outcome),
+            "lane-check: clippy: ok (from memory; --fresh runs it again)"
+        );
+        assert_eq!(outcome.commands, ["cargo clippy -p ew-leaf"]);
+        assert_eq!(records["clippy"].tree, "n3w7ree");
+        assert_eq!(skips, [("clippy", vec!["docs/a.md".to_owned()])]);
+        let skipped = StepPlan {
+            name: "fuzz",
+            run: StepRun::Skip("no fuzz input changed".to_owned()),
+        };
+        assert!(from(&mut records, &skipped, &mut skips).is_none());
+        assert_eq!(skips.len(), 1);
+    }
+
+    /// Runs git in `dir` with a fixed identity and without the user's global or system configuration (FT-1537);
+    /// panics when it fails. The output, trimmed.
     fn git_in(dir: &Path, args: &[&str]) -> String {
         let out = Command::new("git")
             .args([
@@ -4112,6 +4238,8 @@ mod tests {
             ])
             .args(args)
             .current_dir(dir)
+            .env("GIT_CONFIG_GLOBAL", dir.join("no-global-config"))
+            .env("GIT_CONFIG_NOSYSTEM", "1")
             .output()
             .unwrap();
         assert!(
@@ -4122,19 +4250,29 @@ mod tests {
         String::from_utf8_lossy(&out.stdout).trim().to_owned()
     }
 
+    /// A temporary folder, removed when it drops, a failed assertion's unwinding included (FT-1537).
+    struct TempDir(std::path::PathBuf);
+
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            std::fs::remove_dir_all(&self.0).ok();
+        }
+    }
+
     /// ID-1441 (C52-p9#5): `Worktree::since` on a real repository: a rename and a deletion count on both sides, a
     /// changed `.rs` file is the first input, a tree git does not hold runs the step; `named` finds a package's bare
     /// literal and lets xtask name every path.
     #[test]
     fn since_reads_the_change_between_two_real_trees() {
-        let dir = std::env::temp_dir().join(format!(
+        let guard = TempDir(std::env::temp_dir().join(format!(
             "ew-xtask-lane-check-since-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_nanos()
-        ));
+        )));
+        let dir = guard.0.clone();
         let write = |path: &str, text: &str| {
             let p = dir.join(path);
             std::fs::create_dir_all(p.parent().unwrap()).unwrap();
@@ -4203,7 +4341,7 @@ mod tests {
         );
         let mut tools_tree = worktree(&tree_b, "xtask");
         assert!(tools_tree.named("clippy", "golden/x.ew"));
-        drop((b, c, tools_tree));
-        std::fs::remove_dir_all(&dir).unwrap();
+        drop((b, c, tools_tree, guard));
+        assert!(!dir.exists());
     }
 }

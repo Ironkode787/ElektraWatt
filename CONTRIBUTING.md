@@ -34,7 +34,7 @@ The book's reference pages are built, not committed: `cargo xtask docs-gen` writ
 files, and `mdbook build docs/book` needs them.
 An agent lane runs its hand-back checks with `cargo xtask lane-check --base <rev> -p <pkg>...`, which picks, in this
 order, fmt, settle (write mode), clippy, doc with the doctests, one bounded nextest run and the policy checks (with
-`api-guard` when an API snapshot changed) from the diff (`--plan` prints them). A rewrite by fmt or settle stops the
+`api-guard` when a file it reads changed) from the diff (`--plan` prints them). A rewrite by fmt or settle stops the
 run: commit the rewrites and run it again. `--trailers "Decision: ID-n"` (repeatable) adds a step that fails when no
 commit since the merge base carries an item. On a clean worktree it skips a step that passed before on the same tree
 with the same commands; `--fresh` runs every step.

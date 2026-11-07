@@ -87,7 +87,8 @@ commands:
    A changed file outside every crate (`golden/`, `content/`, `schemas/`, `assets/`, `Cargo.lock`, ...) fails this
    step unless you name the packages it reaches with `-p`.
 6. `policy`: the policy checks the diff touches (dependencies, new files, `.rs` files, tests), and `api-guard --base
-   <base>` when `bin/ew/api/cli.json` or `crates/ew-sqlview/api/api_v1.json` changed (a breaking change is a stop).
+   <base>` when a file it reads changed: an API snapshot, `schemas/`, `fixtures/format/` or
+   `docs/release-notes/unreleased.md` (a breaking change is a stop).
    An exemption for `cargo deny` or `cargo vet` needs a ruling: stop.
 7. `trailers`: a record line (`Decision:`, `FT-Opens:`, `Golden:`, ...) of a commit since the merge base that stands
    outside git's trailer block fails, with or without the option; with `--trailers`, each item must also sit under

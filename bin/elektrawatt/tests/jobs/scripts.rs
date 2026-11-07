@@ -8,7 +8,7 @@
 //! `tests/jobs.rs` (feature `testkit`). A module of `tests/headless.rs`, whose `bin_exe` it uses.
 
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
+use std::process::{Output, Stdio};
 
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
@@ -58,7 +58,7 @@ fn script(steps: &[(&str, Value)]) -> String {
 fn run(run: &Path, name: &str, steps: &[(&str, Value)], record: Option<&Path>) -> Output {
     let file = run.join(format!("{name}.uiscript"));
     std::fs::write(&file, script(steps)).unwrap();
-    let mut cmd = Command::new(super::bin_exe());
+    let mut cmd = super::support::elektrawatt(&super::bin_exe());
     cmd.args(["--headless", "--script"]).arg(&file);
     if let Some(r) = record {
         cmd.arg("--record").arg(r);

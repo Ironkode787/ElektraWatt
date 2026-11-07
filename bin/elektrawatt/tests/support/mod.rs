@@ -805,12 +805,21 @@ pub const USER_DIRS: [&str; 8] = [
     "XDG_CACHE_HOME",
 ];
 
+/// The command that starts the binary at `exe` in a test, with the content of the source tree (`EW_CONTENT_DIR`), so
+/// what it finds does not depend on where the binary lies (a nextest archive's partition, FT-1539). Every test start
+/// of the binary names the content folder (xtask's `tests_start_the_binary_with_the_content_folder`).
+pub fn elektrawatt(exe: &Path) -> Command {
+    let mut cmd = Command::new(exe);
+    cmd.env("EW_CONTENT_DIR", CONTENT);
+    cmd
+}
+
 /// Runs a script headless through the binary at `exe` (with the content of the source tree), optionally recording
 /// the committed commands.
 pub fn run(exe: &Path, tmp: &Tmp, name: &str, steps: &[(String, Value)], record: Option<&Path>) -> Output {
     let file = tmp.path(name);
     std::fs::write(&file, script_text(steps)).unwrap();
-    let mut cmd = Command::new(exe);
+    let mut cmd = elektrawatt(exe);
     cmd.args(["--headless", "--script"]).arg(&file);
     if let Some(r) = record {
         cmd.arg("--record").arg(r);
@@ -831,7 +840,6 @@ pub fn run(exe: &Path, tmp: &Tmp, name: &str, steps: &[(String, Value)], record:
         cmd.env(d, dir);
     }
     cmd.env("EW_CONFIG_DIR", config)
-        .env("EW_CONTENT_DIR", CONTENT)
         .env_remove("EW_SAMPLE_DIR")
         .env_remove("EW_DOCS_DIR")
         .env_remove("SOURCE_DATE_EPOCH")

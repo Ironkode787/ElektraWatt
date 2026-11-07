@@ -6,7 +6,7 @@
 //! end line, the journal is kept, and the next start offers the project and the log; Recover replays the journal.
 
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
+use std::process::{Output, Stdio};
 
 use crate::support::{GOLDEN_A, Tmp, copy_dir, path, script_text, steps};
 use serde_json::{Value, json};
@@ -35,7 +35,7 @@ const USER_DIRS: [&str; 8] = [
 fn run(tmp: &Tmp, name: &str, list: &[(&str, Value)], panic: bool) -> Output {
     let file = tmp.path(name);
     std::fs::write(&file, script_text(&steps(list))).unwrap();
-    let mut cmd = Command::new(bin_exe());
+    let mut cmd = crate::support::elektrawatt(&bin_exe());
     cmd.args(["--headless", "--script"])
         .arg(&file)
         .arg("--config-dir")

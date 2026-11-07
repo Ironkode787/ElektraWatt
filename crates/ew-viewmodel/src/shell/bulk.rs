@@ -119,7 +119,7 @@ impl ShellModel {
             ));
         }
         let records = card.preview.result.as_ref().map_or(0, |p| p.diff().len());
-        // Cycle 37 (window check W37): a count of one takes the singular ("1 record · 1 page").
+        // Cycle 37 (window check W37): a count of one takes the singular ("1 item · 1 page").
         Some(strings::format(
             key!("preview-summary"),
             &[
