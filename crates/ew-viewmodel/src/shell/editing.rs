@@ -249,7 +249,8 @@ impl ShellModel {
                 if text.is_empty() {
                     return;
                 }
-                self.notify(text.join(". "), true);
+                // C53-p2#1: each sentence ends with its own full stop (FT-1505).
+                self.notify(text.join(" "), true);
             }
         }
     }

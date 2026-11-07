@@ -305,6 +305,50 @@ fn row5_a_device_whose_cps_carry_potentials_and_a_bond_is_kept() {
     assert!(found[0].contains("G1"), "{found:?}");
 }
 
+/// C53-p2#1 (ID-1480): one delete of an interruption point with its wire and of -102G1's only box joins the two
+/// sentences of its toast with one space, each ending with its own full stop (FT-1505), in both languages.
+#[test]
+fn a_delete_toast_of_two_sentences_joins_them_with_one_space() {
+    for (lang, want) in [
+        (
+            "en",
+            "Deleted the interruption point {name} and the wire connected to it. -102G1 (now -?G1) has no symbol on a \
+             page now; it stays in the Devices navigator and the parts list.",
+        ),
+        (
+            "nl",
+            "Onderbrekingspunt {name} en de draad die erop aansloot verwijderd. -102G1 (nu -?G1) heeft nu geen symbool \
+             op een pagina; het blijft in de navigator Apparaten en de stuklijst.",
+        ),
+    ] {
+        let tmp = Tmp::new("gpp-parts-c53p2-1");
+        let mut s = golden(&tmp, "102");
+        done(&mut s, "view.language", json!({"value": lang}));
+        done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
+        let g1 = reps_of(&s, selected_device(&s));
+        assert_eq!(g1.len(), 1, "-102G1 is one black box");
+        let (ip, name) = {
+            let t = &s.canvas().unwrap().page().tables;
+            t.reps
+                .iter()
+                .filter(|r| r.ip.is_some())
+                .find_map(|r| {
+                    t.cps.iter().find(|c| c.rep == r.id && c.connections.len() == 1)?;
+                    Some((r.id.to_string(), r.ip.as_ref()?.name.clone()))
+                })
+                .expect("an IP of 102 with one wire")
+        };
+        done(&mut s, "select.set", json!({"ids": [g1[0].to_string(), ip]}));
+        done(&mut s, "edit.delete_selection", json!({}));
+        assert_eq!(
+            s.toast().map(|t| t.text.clone()).as_deref(),
+            Some(want.replace("{name}", &name).as_str()),
+            "{lang}"
+        );
+        done(&mut s, "view.language", json!({"value": "en"}));
+    }
+}
+
 /// Finding 5's limit: a device with another representation keeps its device when one representation is deleted.
 #[test]
 fn row5_a_device_with_another_representation_is_kept() {
