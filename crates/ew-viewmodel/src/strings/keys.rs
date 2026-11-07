@@ -4589,4 +4589,5 @@ pub const KEYS: &[&str] = &[
     "action-symbol-role",
     "symbol-cp-unknown",
     "symbol-role-assigned",
+    "reason-symbol-grid",
 ];

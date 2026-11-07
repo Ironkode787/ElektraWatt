@@ -4748,3 +4748,4 @@ symbol-image = Afbeelding
 action-symbol-role = De potentiaalrol van een symboolaansluitpunt instellen
 symbol-cp-unknown = Dit symbool heeft geen aansluitpunt { $p0 }.
 symbol-role-assigned = Een toegewezen functiedefinitie houdt haar rollen. Wijzig ze in een eigen functiedefinitie van het symbool.
+reason-symbol-grid = Dit symbool is getekend op het verbindingsraster van { $p0 } mm, en deze pagina gebruikt { $p1 } mm. Plaats het op een pagina met zijn raster.

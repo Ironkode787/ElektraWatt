@@ -86,7 +86,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         let (mut name_w, mut number_w, mut meta_w) = (0.0_f32, 0.0_f32, 0.0_f32);
         for row in &all.rows {
             let (name, second, meta, _) = row_texts(&all, *row);
-            let meta = all.disabled(*row).map_or(meta, |r| strings::text(r).to_owned());
+            let meta = all.disabled_words(*row).unwrap_or(meta);
             name_w = name_w.max(measure(&name, &t.type_body));
             number_w = number_w.max(second.as_deref().map_or(0.0, |n| measure(n, &t.type_small)));
             meta_w = meta_w.max(measure(&meta, &t.type_small));
@@ -174,9 +174,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                     let (mut number_w, mut meta_w) = (0.0_f32, 0.0_f32);
                     for row in &picker.rows {
                         let (_, second, meta, _) = row_texts(picker, *row);
-                        let meta = picker
-                            .disabled(*row)
-                            .map_or(meta, |r| strings::text(r).to_owned());
+                        let meta = picker.disabled_words(*row).unwrap_or(meta);
                         number_w = number_w.max(second.as_deref().map_or(0.0, width));
                         meta_w = meta_w.max(width(&meta));
                     }
@@ -198,12 +196,9 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                             );
                         }
                         let (name, second, meta, tooltip) = row_texts(picker, *row);
-                        let reason = picker.disabled(*row);
-                        let meta = match reason {
-                            Some(r) => strings::text(r).to_owned(),
-                            None => meta,
-                        };
+                        let reason = picker.disabled_words(*row);
                         let enabled = reason.is_none();
+                        let meta = reason.unwrap_or(meta);
                         let text_colour = if enabled { t.text_primary } else { t.text_disabled };
                         // Name in body text, the library or function in tertiary (secondary on the selected row).
                         let meta_colour = if i == picker.row {
@@ -430,6 +425,7 @@ mod tests {
             black_box: false,
             terminal: false,
             allowed: false,
+            grid_mismatch: None,
             words: Vec::new(),
             name: "Miniature circuit breaker, 1-pole".to_owned(),
         };

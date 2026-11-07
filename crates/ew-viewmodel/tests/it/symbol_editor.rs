@@ -1190,6 +1190,74 @@ fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
     assert!(FILE_EXTENSIONS.contains(&"json"));
 }
 
+/// SM25b m3 (ruled): on a QET-grid page the Insert symbol picker lists a published 4 mm symbol greyed, with both grids
+/// in words, and choosing it is refused in those words.
+#[test]
+fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
+    use ew_viewmodel::strings;
+    use ew_viewmodel::tools::PickerRow;
+    let tmp = Tmp::new("symbol-picker-grid");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(
+        &mut shell,
+        "file.new",
+        json!({"dir":tmp.0.join("project.ew"),"template":"builtin"}),
+    );
+    assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (7_937_500, 3));
+    drawn(&mut shell, "example.grid-block", "Grid block");
+    done(&mut shell, "symbol.save", json!({"directory": tmp.0.join("grid.ewlib")}));
+    done(&mut shell, "symbol.close", json!({}));
+    done(&mut shell, "tool.place", json!({}));
+    let picker = shell.picker().unwrap();
+    let i = picker
+        .catalogue
+        .symbols
+        .iter()
+        .position(|s| s.key.starts_with("library:") && s.name.starts_with("Grid block"))
+        .expect("the published symbol is listed");
+    let row = PickerRow::Symbol(i);
+    assert!(picker.rows.contains(&row));
+    let words = "This symbol is drawn on the 4 mm connection grid, and this page uses 2.65 mm. Place it on a page \
+                 with its grid.";
+    assert_eq!(picker.disabled_words(row).as_deref(), Some(words));
+    assert!(strings::set_locale("nl"));
+    let dutch = shell.picker().unwrap().disabled_words(row);
+    assert!(strings::set_locale("en"));
+    assert_eq!(
+        dutch.as_deref(),
+        Some(
+            "Dit symbool is getekend op het verbindingsraster van 4 mm, en deze pagina gebruikt 2,65 mm. Plaats het op \
+             een pagina met zijn raster."
+        )
+    );
+    let key = shell.picker().unwrap().catalogue.symbols[i].key.clone();
+    done(&mut shell, "ui.dismiss", json!({}));
+    assert_eq!(failed(&mut shell, "place.pick", json!({"symbol": key})), words);
+    // Placed on a page of its grid it is embedded; back on the QET-grid page the embedded copy is greyed the same way.
+    done(&mut shell, "symbol.new", json!({}));
+    done(&mut shell, "symbol.scratch", json!({}));
+    done(&mut shell, "place.pick", json!({"symbol": key}));
+    done(&mut shell, "cursor.set", json!({"x_mm": 100, "y_mm": 100}));
+    done(&mut shell, "canvas.activate", json!({}));
+    done(&mut shell, "ui.dismiss", json!({}));
+    done(&mut shell, "nav.goto", json!({"text": "1"}));
+    done(&mut shell, "tool.place", json!({}));
+    let picker = shell.picker().unwrap();
+    let embedded: Vec<Option<String>> = picker
+        .catalogue
+        .symbols
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| s.copy.is_some() && s.name.starts_with("Grid block"))
+        .map(|(i, _)| picker.disabled_words(PickerRow::Symbol(i)))
+        .collect();
+    assert_eq!(embedded, [Some(words.to_owned())]);
+    shell.shutdown();
+}
+
 /// ID-1463 (M25-p5 nit): the quit question's Save symbol saves the draft, then quits.
 #[test]
 fn the_quit_questions_save_symbol_saves_the_draft_and_quits() {
