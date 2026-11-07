@@ -76,6 +76,7 @@ prints them.
 |---|---|---|
 | `billion-laughs.xml` | the billion laughs in a part's article number | Refused: the XML is malformed or has forbidden declarations |
 | `depth-10000.xml` | elements nested 10,000 deep, which overflowed the stack (SM25#1) (*generated*) | Refused before parsing: the input exceeds the supported size or complexity |
+| `element-of-200000-attributes.xml` | one element of 200,000 attributes, the last repeating the first: the parser's duplicate check is quadratic in them (M25-p4#3) (*generated*) | Refused before parsing: over the 256 attributes of one element |
 | `entry-parent.edz` | a parts document named `../x.xml` | Refused: unsafe or duplicate member names |
 | `external-entity.xml` | an external entity naming `/etc/passwd` | Refused: the XML is malformed or has forbidden declarations |
 | `parts-pins-over-the-budget.xml` | 17 parts of 4,000 connections, each within a symbol's 4,096 (M25-p2#2) (*generated*) | Refused: over the 65,536 graphics and connection points of one read |

@@ -412,7 +412,8 @@ fn the_ewui_script_seeds_and_the_tutorial_scripts_pass() {
 }
 
 /// M25-p1#8 and M25-p2#6: the symbol readers' seeds pass and make drafts: the template parses as a draft, each EPLAN
-/// seed (parts XML, a PXF macro, a ZIP and a copy-coded 7z EDZ) imports, and the SLK seed reads its one symbol.
+/// seed (parts XML, a PXF macro, a ZIP, a copy-coded 7z EDZ and an LZMA2 7z EDZ under an LZMA-encoded header)
+/// imports, and the SLK seed reads its one symbol. M25-p4#4: the valid draft yields its two library documents.
 #[test]
 fn the_symbol_seeds_pass_and_make_drafts() {
     use ew_fuzz::symbols::{authoring, slk};
@@ -430,6 +431,11 @@ fn the_symbol_seeds_pass_and_make_drafts() {
             name.ends_with(".json"),
             "symbol_authoring/{name}: {o:?}"
         );
+        assert_eq!(
+            o.documents,
+            if name == "valid-draft.json" { 2 } else { 0 },
+            "symbol_authoring/{name}: {o:?}"
+        );
     }
     let seeds = inputs("corpus/symbol_slk");
     assert!(!seeds.is_empty(), "the SLK target's seeds are missing");
@@ -437,6 +443,41 @@ fn the_symbol_seeds_pass_and_make_drafts() {
         let o = slk(bytes);
         assert!(o.descriptor && o.symbols >= 1, "symbol_slk/{name}: {o:?}");
     }
+}
+
+/// M25-p4#4: a 7z input's header CRCs are computed again, so that a mutated header reaches EW's header walk: here the
+/// copy seed's first coder turned into an unknown method is the walk's refusal, where the unmended bytes are refused
+/// by the checksum.
+#[test]
+fn a_mutated_seven_zip_header_reaches_the_header_walk() {
+    use ew_fuzz::symbols::seven_zip_with_crcs;
+    let seeds = inputs("corpus/symbol_authoring");
+    let seed = inputs_named(&seeds, "macro-7z.edz");
+    assert_eq!(seven_zip_with_crcs(&seed), None, "the seed's checksums are right");
+    let mut stale = seed.clone();
+    stale[8] ^= 1;
+    assert_eq!(seven_zip_with_crcs(&stale).as_deref(), Some(&seed[..]));
+    // The first folder's copy coder (`0b 02 00 01 01 00`: two folders, one coder, method 00) becomes method 04.
+    let folders = seed
+        .windows(6)
+        .position(|w| w == [0x0b, 0x02, 0x00, 0x01, 0x01, 0x00])
+        .expect("the seed's folders");
+    let mut mutated = seed.clone();
+    mutated[folders + 5] = 0x04;
+    let words = |bytes: &[u8]| {
+        ew_api::symbols::import_eplan(bytes, "sample.edz", "fuzz.symbol")
+            .map(|d| d.len())
+            .map_err(|e| e.to_string())
+    };
+    assert_eq!(
+        words(&mutated),
+        Err("The EPLAN archive is damaged, encrypted or unsupported.".to_owned())
+    );
+    let mended = seven_zip_with_crcs(&mutated).expect("a 7z archive");
+    assert_eq!(
+        words(&mended),
+        Err("This archive compression method is unsupported.".to_owned())
+    );
 }
 
 /// The reported findings: each input of `regressions/<target>/` is replayed in this ordinary test process, where a

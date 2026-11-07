@@ -639,7 +639,9 @@ library through `ew-library`'s in-memory entry, `Registry::in_memory`, with the 
 *Cycle 53 (ID-1463; M25-p1#8, M25-p2#6).* The symbol editor's readers have two targets: `symbol_authoring` (the
 portable `ew.symbol/1` draft, and the EPLAN EDZ, PXF and parts-XML import through the front door, its caught panic a
 failure) and `symbol_slk` (an SLK descriptor and its eight `.sdb` tables through `ew-import-eplan`'s SLK reader, the
-read budget an oracle), with hand-made seeds that the replay test runs. The hostile corpus gains `eplan/`.
+read budget an oracle), with hand-made seeds that the replay test runs. The hostile corpus gains `eplan/`. A 7z input
+goes once more with its header CRCs computed again, so that a mutated header reaches EW's header walk, and an LZMA2 seed
+under an LZMA-encoded header reaches both decoders (M25-p4#4).
 
 ### 3.13 Reliability harnesses
 

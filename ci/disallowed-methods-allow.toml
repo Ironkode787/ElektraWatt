@@ -157,6 +157,11 @@ count = 1
 
 [[allow]]
 crate = "ew-import-eplan"
+item = "fn bless"
+count = 1
+
+[[allow]]
+crate = "ew-import-eplan"
 item = "fn manufacturer_edz_when_supplied"
 count = 1
 

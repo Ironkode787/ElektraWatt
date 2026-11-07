@@ -387,6 +387,305 @@ fn deep_xml_is_refused_before_parsing() {
     );
 }
 
+/// M25-p4#3: the attributes of one element are counted before parsing, because the parser's duplicate check is
+/// quadratic in them. 257 are the limit's refusal even where the parser would refuse the element for its own reason
+/// (here the last attribute repeats the first); 256, each with an `=` in its quoted value, still read.
+#[test]
+fn an_elements_attributes_are_counted_before_parsing() {
+    let attributes = |n: usize| (0..n).map(|i| format!(" a{i}='x=y'")).collect::<String>();
+    let parts = |attributes: &str| {
+        format!(
+            r#"<partsmanagement{attributes}><part><functiontemplate connectionDesignation="1"/></part></partsmanagement>"#
+        )
+    };
+    assert_eq!(
+        read(parts(&attributes(256)).as_bytes(), "parts.xml")
+            .unwrap()
+            .len(),
+        1
+    );
+    let repeated = format!("{} a0='x'", attributes(256));
+    assert_eq!(
+        read(parts(&repeated).as_bytes(), "parts.xml").unwrap_err(),
+        "eplan-input-limit"
+    );
+}
+
+/// The range encoder of the LZMA SDK, as far as a stream of literals and one long match needs it (M25-p4#4): the LZMA
+/// and LZMA2 fixtures are made here, with no external tool and no third-party content.
+struct RangeEncoder {
+    low: u64,
+    range: u32,
+    cache: u8,
+    pending: u64,
+    out: Vec<u8>,
+}
+
+impl RangeEncoder {
+    fn new() -> Self {
+        RangeEncoder {
+            low: 0,
+            range: u32::MAX,
+            cache: 0,
+            pending: 1,
+            out: Vec::new(),
+        }
+    }
+
+    fn shift_low(&mut self) {
+        let carry = (self.low >> 32) as u8;
+        if carry != 0 || self.low < 0xff00_0000 {
+            let mut byte = self.cache;
+            while self.pending > 0 {
+                self.out.push(byte.wrapping_add(carry));
+                byte = 0xff;
+                self.pending -= 1;
+            }
+            self.cache = (self.low >> 24) as u8;
+        }
+        self.pending += 1;
+        self.low = (self.low & 0x00ff_ffff) << 8;
+    }
+
+    fn normalize(&mut self) {
+        if self.range < 1 << 24 {
+            self.range <<= 8;
+            self.shift_low();
+        }
+    }
+
+    /// One bit under the adaptive probability `prob` (11 bits, moved by 5).
+    fn bit(&mut self, prob: &mut u16, bit: u32) {
+        let bound = (self.range >> 11) * u32::from(*prob);
+        if bit == 0 {
+            self.range = bound;
+            *prob += (2048 - *prob) >> 5;
+        } else {
+            self.low += u64::from(bound);
+            self.range -= bound;
+            *prob -= *prob >> 5;
+        }
+        self.normalize();
+    }
+
+    /// The `bits` low bits of `symbol` through the bit tree `probs`, the highest bit first.
+    fn tree(&mut self, probs: &mut [u16], bits: u32, symbol: u32) {
+        let mut at = 1;
+        for i in (0..bits).rev() {
+            let bit = (symbol >> i) & 1;
+            self.bit(&mut probs[at], bit);
+            at = (at << 1) | bit as usize;
+        }
+    }
+
+    /// The `bits` low bits of `symbol` through the bit tree `probs`, the lowest bit first.
+    fn reverse(&mut self, probs: &mut [u16], bits: u32, symbol: u32) {
+        let mut at = 1;
+        for i in 0..bits {
+            let bit = (symbol >> i) & 1;
+            self.bit(&mut probs[at], bit);
+            at = (at << 1) | bit as usize;
+        }
+    }
+
+    /// The `bits` low bits of `value` at probability one half, the highest first.
+    fn direct(&mut self, value: u32, bits: u32) {
+        for i in (0..bits).rev() {
+            self.range >>= 1;
+            if (value >> i) & 1 == 1 {
+                self.low += u64::from(self.range);
+            }
+            self.normalize();
+        }
+    }
+
+    fn finish(mut self) -> Vec<u8> {
+        for _ in 0..5 {
+            self.shift_low();
+        }
+        self.out
+    }
+}
+
+/// `data` as a raw LZMA stream (lc 3, lp 0, pb 2, no end marker) of literals and, with `repeat = (at, distance)`,
+/// one match: the bytes from `at` repeat those `distance` bytes back, as many as `distance` (at most 273). A
+/// distance over 128 makes the decoder read direct bits, the assembly loop of lzma-rust2's range decoder.
+fn lzma(data: &[u8], repeat: Option<(usize, usize)>) -> Vec<u8> {
+    let mut rc = RangeEncoder::new();
+    let mut is_match = [[1024u16; 4]; 12];
+    let mut is_rep = [1024u16; 12];
+    let mut literal = vec![[1024u16; 0x300]; 8];
+    let (mut choice, mut low, mut mid, mut high) =
+        ([1024u16; 2], [[1024u16; 8]; 4], [[1024u16; 8]; 4], [1024u16; 256]);
+    let mut slots = [[1024u16; 64]; 4];
+    let mut align = [1024u16; 16];
+    let (mut state, mut pos, mut rep) = (0usize, 0usize, 0usize);
+    while pos < data.len() {
+        let pos_state = pos & 3;
+        if let Some((at, distance)) = repeat.filter(|&(at, _)| at == pos) {
+            let len = distance;
+            assert!((129..=273).contains(&len) && at >= distance && at + len <= data.len());
+            assert_eq!(data[at..at + len], data[at - distance..at - distance + len]);
+            rc.bit(&mut is_match[state][pos_state], 1);
+            rc.bit(&mut is_rep[state], 0);
+            state = if state < 7 { 7 } else { 10 };
+            let l = (len - 2) as u32;
+            if l < 8 {
+                rc.bit(&mut choice[0], 0);
+                rc.tree(&mut low[pos_state], 3, l);
+            } else if l < 16 {
+                rc.bit(&mut choice[0], 1);
+                rc.bit(&mut choice[1], 0);
+                rc.tree(&mut mid[pos_state], 3, l - 8);
+            } else {
+                rc.bit(&mut choice[0], 1);
+                rc.bit(&mut choice[1], 1);
+                rc.tree(&mut high, 8, l - 16);
+            }
+            let d = (distance - 1) as u32;
+            let top = 31 - d.leading_zeros();
+            let slot = (top << 1) | ((d >> (top - 1)) & 1);
+            assert!(slot >= 14, "a slot of direct bits");
+            rc.tree(&mut slots[(len - 2).min(3)], 6, slot);
+            let footer = (slot >> 1) - 1;
+            let reduced = d - ((2 | (slot & 1)) << footer);
+            rc.direct(reduced >> 4, footer - 4);
+            rc.reverse(&mut align, 4, reduced & 15);
+            (pos, rep) = (pos + len, distance);
+            continue;
+        }
+        let byte = u32::from(data[pos]);
+        rc.bit(&mut is_match[state][pos_state], 0);
+        let previous = if pos == 0 { 0 } else { data[pos - 1] };
+        let probs = &mut literal[usize::from(previous >> 5)];
+        if state < 7 {
+            rc.tree(probs, 8, byte);
+        } else {
+            // The literal after a match is coded against the byte at the match's distance.
+            let mut matched = u32::from(data[pos - rep]);
+            let (mut offset, mut symbol) = (0x100u32, 1u32);
+            for i in (0..8).rev() {
+                matched <<= 1;
+                let match_bit = matched & offset;
+                let bit = (byte >> i) & 1;
+                rc.bit(&mut probs[(offset + match_bit + symbol) as usize], bit);
+                symbol = (symbol << 1) | bit;
+                offset &= 0u32.wrapping_sub(bit) ^ !match_bit;
+            }
+        }
+        state = match state {
+            0..=3 => 0,
+            4..=9 => state - 3,
+            _ => state - 6,
+        };
+        pos += 1;
+    }
+    rc.finish()
+}
+
+/// One parts XML member `EDZ/parts.xml`, LZMA2-coded (one LZMA chunk, a 64 KiB dictionary), under an LZMA-encoded
+/// header, as 7-Zip writes an EDZ: its two parts are alike, so the member's stream holds a match of a distance over
+/// 128 (M25-p4#4). Returns the archive and the length of the member's packed stream, which comes first.
+fn lzma_seven() -> (Vec<u8>, usize) {
+    let part = r#"<part P_ARTICLE_PARTNR="An LZMA2 seed of the 7z reader's own test"><functiontemplate connectionDesignation="1&#10;2&#10;FE"/></part>"#;
+    let data = format!("<partsmanagement>{part}{part}</partsmanagement>");
+    let raw = lzma(data.as_bytes(), Some((17 + part.len(), part.len())));
+    let (u, c) = (data.len() - 1, raw.len() - 1);
+    let mut packed = vec![
+        0xe0 | (u >> 16) as u8,
+        (u >> 8) as u8,
+        u as u8,
+        (c >> 8) as u8,
+        c as u8,
+        0x5d,
+    ];
+    packed.extend(&raw);
+    packed.push(0x00);
+    let member = packed.len();
+    // The plain header: one LZMA2 folder (dictionary property 8) of the one file.
+    let mut h = vec![0x01, 0x04, 0x06, 0x00, 0x01, 0x09];
+    h.extend(number(member as u64));
+    h.extend([0x00, 0x07, 0x0b, 0x01, 0x00, 0x01, 0x21, 0x21, 0x01, 0x08, 0x0c]);
+    h.extend(number(data.len() as u64));
+    h.extend([0x0a, 0x01]);
+    h.extend(crc32fast::hash(data.as_bytes()).to_le_bytes());
+    h.extend([0x00, 0x08, 0x00, 0x00, 0x05, 0x01, 0x11]);
+    let names: Vec<u8> = "EDZ/parts.xml"
+        .encode_utf16()
+        .chain([0])
+        .flat_map(u16::to_le_bytes)
+        .collect();
+    h.extend(number(names.len() as u64 + 1));
+    h.push(0x00);
+    h.extend(names);
+    h.extend([0x00, 0x00]);
+    // The header as one LZMA folder (a 64 KiB dictionary) behind the member.
+    let header = lzma(&h, None);
+    let mut e = vec![0x17, 0x06];
+    e.extend(number(member as u64));
+    e.extend([0x01, 0x09]);
+    e.extend(number(header.len() as u64));
+    e.extend([
+        0x00, 0x07, 0x0b, 0x01, 0x00, 0x01, 0x23, 0x03, 0x01, 0x01, 0x05, 0x5d,
+    ]);
+    e.extend((1u32 << 16).to_le_bytes());
+    e.push(0x0c);
+    e.extend(number(h.len() as u64));
+    e.extend([0x0a, 0x01]);
+    e.extend(crc32fast::hash(&h).to_le_bytes());
+    e.extend([0x00, 0x00]);
+    packed.extend(header);
+    (seven_of(&packed, &e), member)
+}
+
+// Allowed: the program boundary of a test, read once; the value never reaches a verdict.
+#[allow(clippy::disallowed_methods)]
+fn bless() -> bool {
+    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
+}
+
+/// M25-p4#4: an LZMA2 member under an LZMA-encoded header reads through both decoders (EW's header walk decodes the
+/// header, sevenz-rust2 the header again and the member), and a damaged byte in either stream is refused after its
+/// decoder ran. The archive is the `symbol_authoring` fuzz seed `lzma2-7z.edz` (`EW_BLESS=1` writes it).
+#[test]
+fn seven_zip_lzma2_members_read_under_an_lzma_encoded_header() {
+    let (archive, member) = lzma_seven();
+    let symbols = read(&archive, "sample.edz").unwrap();
+    let read_back: Vec<(&str, &str, Vec<&str>)> = symbols
+        .iter()
+        .map(|s| {
+            let pins = s.pins.iter().map(|p| p.designation.as_str()).collect();
+            (s.source.as_str(), s.name.as_str(), pins)
+        })
+        .collect();
+    let part = (
+        "EDZ/parts.xml",
+        "An LZMA2 seed of the 7z reader's own test",
+        vec!["1", "2", "FE"],
+    );
+    assert_eq!(read_back, [part.clone(), part]);
+    for at in [32 + 6 + 2, 32 + member + 2] {
+        let mut damaged = archive.clone();
+        damaged[at] ^= 0x40;
+        assert_eq!(
+            read(&damaged, "sample.edz").unwrap_err(),
+            "eplan-archive-invalid",
+            "byte {at}"
+        );
+    }
+    let seed = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fuzz/corpus/symbol_authoring/lzma2-7z.edz");
+    if bless() {
+        std::fs::write(&seed, &archive).unwrap();
+    }
+    let held =
+        std::fs::read(&seed).unwrap_or_else(|e| panic!("{}: {e} (EW_BLESS=1 writes it)", seed.display()));
+    assert!(
+        held == archive,
+        "the fuzz seed is not this archive (EW_BLESS=1 writes it)"
+    );
+}
+
 /// M25-p2#8 and SM25#4: a UTF-16 XML reads as XML, and a `.pxf` member or file is read as PXF.
 #[test]
 fn utf16_xml_and_pxf_names_are_read() {
