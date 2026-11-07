@@ -1650,6 +1650,20 @@ impl EditorView {
                     changed = true;
                 }
             }
+            // ID-1477 (6): the cross-reference anchor of its own stands in a list with its place and Delete, which
+            // returns the anchor to the origin.
+            let named = doc["symbol"]["anchor"].get("named").is_some();
+            if section(ui, "anchor", "symbol-anchor", Some(usize::from(named)), false) && named {
+                let owner = label(strings::Key::run_time("symbol-anchor")).to_owned();
+                ui.push_id("anchor", |ui| {
+                    ui.label(&owner);
+                    changed |= numeric_fields(ui, &mut doc["symbol"]["anchor"]["named"], "", true, &owner);
+                    if delete_button(ui, "symbol-delete-row", &owner) {
+                        doc["symbol"]["anchor"] = json!("origin");
+                        changed = true;
+                    }
+                });
+            }
         }
         if changed {
             replace_action(events, draft, doc);
@@ -1886,6 +1900,20 @@ fn paint(
                 6.0,
                 Stroke::new(t.border_width, t.canvas_snap.color32()),
             );
+            // ID-1477 (6): a cross-reference anchor of its own shows as a marker: its circle crossed, and its name.
+            if matches!(draft.symbol.anchor, symbols::schema::AnchorPolicy::Named(_)) {
+                let p = at(g.anchor);
+                let stroke = Stroke::new(t.border_width, t.canvas_snap.color32());
+                painter.line_segment([p - Vec2::new(9.0, 0.0), p + Vec2::new(9.0, 0.0)], stroke);
+                painter.line_segment([p - Vec2::new(0.0, 9.0), p + Vec2::new(0.0, 9.0)], stroke);
+                painter.text(
+                    p + Vec2::new(8.0, -8.0),
+                    egui::Align2::LEFT_BOTTOM,
+                    label(strings::Key::run_time("symbol-anchor")),
+                    theme::font(&t.type_small),
+                    t.canvas_snap.color32(),
+                );
+            }
         }
     }
 }
