@@ -315,31 +315,59 @@ fn key_of<T>(kind: Kind, id: Id<T>) -> AnyKey {
 
 /// Evaluates the catalogue in [`RULES`] order; the first violation is the error.
 pub(crate) fn check(m: &Model, scope: &Scope) -> Result<(), ModelError> {
-    refs_resolve(m, scope)?;
-    one_main_function(m, scope)?;
-    device_iff_not_ip(m, scope)?;
-    endpoints_differ(m, scope)?;
-    rep_one_device(m, scope)?;
-    pin_map_unique(m, scope)?;
-    junction_sequence(m, scope)?;
-    conductor_cable(m, scope)?;
-    terminal_strip(m, scope)?;
-    structure_acyclic(m, scope)?;
-    device_acyclic(m, scope)?;
-    exclusive_aspects(m, scope)?;
-    structure_same_aspect(m, scope)?;
-    no_stored_report_page(m, scope)?;
-    ip_one_representation(m, scope)?;
-    report_block_folio(m, scope)?;
-    inheritance_acyclic(m, scope)?;
-    one_open_revision(m, scope)?;
-    revision_label_unique(m, scope)?;
-    revision_four_eyes(m, scope)?;
-    revision_page_note_unique(m, scope)?;
-    revision_immutable(m, scope)?;
+    rules(m, scope, &mut Violations(None))
+}
+
+/// Every violation of the catalogue, in [`RULES`] order and then the order each rule finds them, the first being
+/// [`check`]'s error (FT-1540): a rule reports each record at fault, EW-INV-024 the first fault of each connection.
+pub(crate) fn check_all(m: &Model, scope: &Scope) -> Vec<ModelError> {
+    let mut out = Violations(Some(Vec::new()));
+    let kept = rules(m, scope, &mut out);
+    debug_assert!(kept.is_ok(), "a rule keeping every violation returns none");
+    out.0.unwrap_or_default()
+}
+
+/// Where a rule puts a violation (FT-1540): with `None` the first ends the check, else every one is kept.
+pub(crate) struct Violations(Option<Vec<ModelError>>);
+
+impl Violations {
+    fn report(&mut self, e: ModelError) -> Result<(), ModelError> {
+        match &mut self.0 {
+            Some(all) => {
+                all.push(e);
+                Ok(())
+            }
+            None => Err(e),
+        }
+    }
+}
+
+fn rules(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
+    refs_resolve(m, scope, out)?;
+    one_main_function(m, scope, out)?;
+    device_iff_not_ip(m, scope, out)?;
+    endpoints_differ(m, scope, out)?;
+    rep_one_device(m, scope, out)?;
+    pin_map_unique(m, scope, out)?;
+    junction_sequence(m, scope, out)?;
+    conductor_cable(m, scope, out)?;
+    terminal_strip(m, scope, out)?;
+    structure_acyclic(m, scope, out)?;
+    device_acyclic(m, scope, out)?;
+    exclusive_aspects(m, scope, out)?;
+    structure_same_aspect(m, scope, out)?;
+    no_stored_report_page(m, scope, out)?;
+    ip_one_representation(m, scope, out)?;
+    report_block_folio(m, scope, out)?;
+    inheritance_acyclic(m, scope, out)?;
+    one_open_revision(m, scope, out)?;
+    revision_label_unique(m, scope, out)?;
+    revision_four_eyes(m, scope, out)?;
+    revision_page_note_unique(m, scope, out)?;
+    revision_immutable(m, scope, out)?;
     // EW-INV-022 is the page links' half of EW-INV-001 (above).
-    marker_connections(m, scope)?;
-    fluid_lines(m, scope)
+    marker_connections(m, scope, out)?;
+    fluid_lines(m, scope, out)
 }
 
 /// EW-INV-001 with the forbid policy.
@@ -351,7 +379,7 @@ pub(crate) fn check(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 ///
 /// A kind-erased link ([`crate::LinkDecl::kind_erased`], `macro_instance.members[][1]`) resolves when a record of
 /// any of its kinds has the ID; its removal half is the ordinary one, for each of the kinds.
-fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn refs_resolve(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in &scope.keys {
         match get_row(m, key) {
             Some(row) => {
@@ -370,7 +398,7 @@ fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                             && !link.load_tolerant
                             && !scope.missing.contains(&target)
                         {
-                            return Err(violation(
+                            out.report(violation(
                                 REFS_RESOLVE,
                                 format!(
                                     "{} of {} names missing {}",
@@ -379,7 +407,7 @@ fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                                     KeyFmt(&target)
                                 ),
                                 vec![*key, target],
-                            ));
+                            ))?;
                         }
                     }
                 }
@@ -388,7 +416,7 @@ fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                 for (lid, link) in links_to(key.0).filter(|(_, l)| !l.lib_ref) {
                     if let Some(src) = m.referrers_via(lid, key).first() {
                         let referrer = (link.from, *src);
-                        return Err(if link.policy == Policy::Forbid {
+                        out.report(if link.policy == Policy::Forbid {
                             ModelError::Referenced {
                                 link: LINKS[lid].path(),
                                 target: *key,
@@ -407,7 +435,7 @@ fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                                 ),
                                 vec![referrer, *key],
                             )
-                        });
+                        })?;
                     }
                 }
             }
@@ -447,7 +475,7 @@ fn lib_ref_keep_alive(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 }
 
 /// EW-INV-002: touched devices and the old and new devices of touched functions.
-fn one_main_function(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn one_main_function(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     let mut devices: BTreeSet<Id<Device>> = scope.of_kind(Kind::Device).map(typed).collect();
     for key in scope.of_kind(Kind::Function) {
         let id: Id<Function> = typed(key);
@@ -469,7 +497,7 @@ fn one_main_function(m: &Model, scope: &Scope) -> Result<(), ModelError> {
         if mains != 1 {
             let mut keys = vec![key_of(Kind::Device, d)];
             keys.extend(fns.iter().map(|f| key_of(Kind::Function, *f)));
-            return Err(violation(
+            out.report(violation(
                 ONE_MAIN_FUNCTION,
                 format!(
                     "device {} has {mains} main functions among {} (exactly one required)",
@@ -477,14 +505,14 @@ fn one_main_function(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                     fns.len()
                 ),
                 keys,
-            ));
+            ))?;
         }
     }
     Ok(())
 }
 
 /// EW-INV-003: touched functions.
-fn device_iff_not_ip(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn device_iff_not_ip(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::Function) {
         if let Some(f) = m.functions.get(&typed(key)) {
             let ip = matches!(f.kind, FunctionKind::Ip(_));
@@ -494,7 +522,7 @@ fn device_iff_not_ip(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                 } else {
                     format!("function {} has no device but is not an interruption point", f.id)
                 };
-                return Err(violation(DEVICE_IFF_NOT_IP, message, vec![*key]));
+                out.report(violation(DEVICE_IFF_NOT_IP, message, vec![*key]))?;
             }
         }
     }
@@ -502,15 +530,15 @@ fn device_iff_not_ip(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 }
 
 /// CI-01: touched connections (existence is EW-INV-001's).
-fn endpoints_differ(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn endpoints_differ(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::Connection) {
         if let Some(c) = m.connections.get(&typed::<Connection>(key)) {
             if c.a == c.b {
-                return Err(violation(
+                out.report(violation(
                     ENDPOINTS_DIFFER,
                     format!("connection {} starts and ends at the same endpoint", c.id),
                     vec![*key],
-                ));
+                ))?;
             }
         }
     }
@@ -518,7 +546,7 @@ fn endpoints_differ(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 }
 
 /// EW-INV-004: touched representations and the representations of touched functions.
-fn rep_one_device(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn rep_one_device(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     let mut reps: BTreeSet<Id<Representation>> = scope.of_kind(Kind::Representation).map(typed).collect();
     for key in scope.of_kind(Kind::Function) {
         reps.extend(m.idx.reps_by_function.get(&typed(key)).copied());
@@ -535,30 +563,30 @@ fn rep_one_device(m: &Model, scope: &Scope) -> Result<(), ModelError> {
         if devices.len() > 1 {
             let mut keys = vec![key_of(Kind::Representation, r)];
             keys.extend(devices.iter().map(|d| key_of(Kind::Device, *d)));
-            return Err(violation(
+            out.report(violation(
                 REP_ONE_DEVICE,
                 format!("representation {r} draws functions of {} devices", devices.len()),
                 keys,
-            ));
+            ))?;
         }
     }
     Ok(())
 }
 
 /// EW-INV-005: touched representations.
-fn pin_map_unique(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn pin_map_unique(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::Representation) {
         if let Some(rep) = m.reps.get(&typed(key)) {
             let mut seen = BTreeSet::new();
             if let Some(dup) = rep.pin_map.iter().find(|p| !seen.insert(p.symbol_cp)) {
-                return Err(violation(
+                out.report(violation(
                     PIN_MAP_UNIQUE,
                     format!(
                         "representation {} maps symbol CP {} more than once",
                         rep.id, dup.symbol_cp
                     ),
                     vec![*key],
-                ));
+                ))?;
             }
         }
     }
@@ -574,7 +602,7 @@ fn junctions_of(c: &Connection, out: &mut BTreeSet<Id<Junction>>) {
 }
 
 /// CI-04: touched junctions and the old and new junctions of touched connections.
-fn junction_sequence(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn junction_sequence(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     let mut junctions: BTreeSet<Id<Junction>> = scope.of_kind(Kind::Junction).map(typed).collect();
     for key in scope.of_kind(Kind::Connection) {
         if let Some(c) = scope.before_of::<Connection>(key) {
@@ -611,14 +639,14 @@ fn junction_sequence(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                     ending.len()
                 ),
             };
-            return Err(violation(JUNCTION_SEQUENCE, message, keys));
+            out.report(violation(JUNCTION_SEQUENCE, message, keys))?;
         }
     }
     Ok(())
 }
 
 /// EW-INV-006: touched conductors and the conductors of touched devices.
-fn conductor_cable(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn conductor_cable(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     let mut conductors: BTreeSet<Id<ew_schema::Conductor>> =
         scope.of_kind(Kind::Conductor).map(typed).collect();
     for key in scope.of_kind(Kind::Device) {
@@ -630,11 +658,11 @@ fn conductor_cable(m: &Model, scope: &Scope) -> Result<(), ModelError> {
         };
         if let Some(cable) = m.devices.get(&conductor.cable) {
             if cable.aspects.cable.is_none() {
-                return Err(violation(
+                out.report(violation(
                     CONDUCTOR_CABLE,
                     format!("the cable {} of conductor {c} has no cable aspect", cable.id),
                     vec![key_of(Kind::Conductor, c), key_of(Kind::Device, cable.id)],
-                ));
+                ))?;
             }
         }
     }
@@ -642,7 +670,7 @@ fn conductor_cable(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 }
 
 /// EW-INV-007: touched terminals and the terminals of touched devices.
-fn terminal_strip(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn terminal_strip(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     let mut terminals: BTreeSet<Id<Device>> = BTreeSet::new();
     for key in scope.of_kind(Kind::Device) {
         let d: Id<Device> = typed(key);
@@ -660,11 +688,11 @@ fn terminal_strip(m: &Model, scope: &Scope) -> Result<(), ModelError> {
         };
         if let Some(strip) = m.devices.get(&strip_id) {
             if strip.aspects.strip.is_none() {
-                return Err(violation(
+                out.report(violation(
                     TERMINAL_STRIP,
                     format!("the strip {strip_id} of terminal {t} has no strip aspect"),
                     vec![key_of(Kind::Device, t), key_of(Kind::Device, strip_id)],
-                ));
+                ))?;
             }
         }
     }
@@ -688,14 +716,14 @@ fn find_cycle<T>(start: Id<T>, parent: impl Fn(Id<T>) -> Option<Id<T>>) -> Optio
 }
 
 /// EW-INV-008: walks up from every touched node.
-fn structure_acyclic(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn structure_acyclic(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::StructureNode) {
         let start: Id<StructureNode> = typed(key);
         if !m.structure.contains(&start) {
             continue;
         }
         if let Some(cycle) = find_cycle(start, |n| m.structure.get(&n).and_then(|n| n.parent)) {
-            return Err(violation(
+            out.report(violation(
                 STRUCTURE_ACYCLIC,
                 format!(
                     "structure node {start} is on a parent cycle of {} nodes",
@@ -705,32 +733,32 @@ fn structure_acyclic(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                     .into_iter()
                     .map(|n| key_of(Kind::StructureNode, n))
                     .collect(),
-            ));
+            ))?;
         }
     }
     Ok(())
 }
 
 /// EW-INV-009: walks up from every touched device.
-fn device_acyclic(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn device_acyclic(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::Device) {
         let start: Id<Device> = typed(key);
         if !m.devices.contains(&start) {
             continue;
         }
         if let Some(cycle) = find_cycle(start, |d| m.devices.get(&d).and_then(|d| d.parent)) {
-            return Err(violation(
+            out.report(violation(
                 DEVICE_ACYCLIC,
                 format!("device {start} is on a parent cycle of {} devices", cycle.len()),
                 cycle.into_iter().map(|d| key_of(Kind::Device, d)).collect(),
-            ));
+            ))?;
         }
     }
     Ok(())
 }
 
 /// EW-INV-010: touched devices.
-fn exclusive_aspects(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn exclusive_aspects(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::Device) {
         if let Some(d) = m.devices.get(&typed(key)) {
             let a = &d.aspects;
@@ -743,7 +771,7 @@ fn exclusive_aspects(m: &Model, scope: &Scope) -> Result<(), ModelError> {
             .filter_map(|(name, on)| on.then_some(name))
             .collect();
             if present.len() > 1 {
-                return Err(violation(
+                out.report(violation(
                     EXCLUSIVE_ASPECTS,
                     format!(
                         "device {} carries the {} aspects, which exclude each other",
@@ -751,7 +779,7 @@ fn exclusive_aspects(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                         present.join(" and ")
                     ),
                     vec![*key],
-                ));
+                ))?;
             }
         }
     }
@@ -759,7 +787,7 @@ fn exclusive_aspects(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 }
 
 /// EW-INV-011: touched nodes and the children of touched nodes.
-fn structure_same_aspect(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn structure_same_aspect(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     let mut nodes: BTreeSet<Id<StructureNode>> = BTreeSet::new();
     for key in scope.of_kind(Kind::StructureNode) {
         let n: Id<StructureNode> = typed(key);
@@ -772,7 +800,7 @@ fn structure_same_aspect(m: &Model, scope: &Scope) -> Result<(), ModelError> {
             continue;
         };
         if parent.aspect != node.aspect {
-            return Err(violation(
+            out.report(violation(
                 STRUCTURE_SAME_ASPECT,
                 format!(
                     "structure node {n} and its parent {} have different aspects",
@@ -782,25 +810,25 @@ fn structure_same_aspect(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                     key_of(Kind::StructureNode, n),
                     key_of(Kind::StructureNode, parent.id),
                 ],
-            ));
+            ))?;
         }
     }
     Ok(())
 }
 
 /// EW-INV-012: touched pages.
-fn no_stored_report_page(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn no_stored_report_page(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::Page) {
         if let Some(p) = m.pages.get(&typed(key)) {
             if p.kind == ew_schema::PageType::Report {
-                return Err(violation(
+                out.report(violation(
                     NO_STORED_REPORT_PAGE,
                     format!(
                         "page {} is of kind Report; report pages are generated, never stored",
                         p.id
                     ),
                     vec![*key],
-                ));
+                ))?;
             }
         }
     }
@@ -814,7 +842,7 @@ fn rep_functions(rep: &Representation, out: &mut BTreeSet<Id<Function>>) {
 }
 
 /// EW-INV-013: touched functions and the functions named by touched representations, before and after.
-fn ip_one_representation(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn ip_one_representation(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     let mut fns: BTreeSet<Id<Function>> = scope.of_kind(Kind::Function).map(typed).collect();
     for key in scope.of_kind(Kind::Representation) {
         if let Some(r) = scope.before_of::<Representation>(key) {
@@ -835,32 +863,32 @@ fn ip_one_representation(m: &Model, scope: &Scope) -> Result<(), ModelError> {
         if reps.len() != 1 {
             let mut keys = vec![key_of(Kind::Function, f)];
             keys.extend(reps.iter().map(|r| key_of(Kind::Representation, *r)));
-            return Err(violation(
+            out.report(violation(
                 IP_ONE_REPRESENTATION,
                 format!(
                     "interruption-point function {f} has {} representations (exactly one required: it owns the                      function)",
                     reps.len()
                 ),
                 keys,
-            ));
+            ))?;
         }
     }
     Ok(())
 }
 
 /// EW-INV-014: touched report blocks.
-fn report_block_folio(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn report_block_folio(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::ReportBlock) {
         if let Some(b) = m.report_blocks.get(&typed(key)) {
             if b.embedded.is_none() && b.first_folio.is_none() {
-                return Err(violation(
+                out.report(violation(
                     REPORT_BLOCK_FOLIO,
                     format!(
                         "report block {} is page-oriented (no embedded) but has no first_folio",
                         b.id
                     ),
                     vec![*key],
-                ));
+                ))?;
             }
         }
     }
@@ -880,7 +908,7 @@ fn inheritance_successors(m: &Model, d: Id<Device>) -> [Option<Id<Device>>; 2] {
 /// batch closes contains an edge the batch changed, whose source is a touched device, so walking from the
 /// touched devices finds it. Devices already walked are not walked again, so the check is linear in the
 /// devices reached.
-fn inheritance_acyclic(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn inheritance_acyclic(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     let mut done: BTreeSet<Id<Device>> = BTreeSet::new();
     for key in scope.of_kind(Kind::Device) {
         let start: Id<Device> = typed(key);
@@ -906,7 +934,7 @@ fn inheritance_acyclic(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                     .iter()
                     .map(|(d, _)| key_of(Kind::Device, *d))
                     .collect();
-                return Err(violation(
+                out.report(violation(
                     INHERITANCE_ACYCLIC,
                     format!(
                         "device {to} is on a cycle of {} devices of the inheritance graph (terminal to strip, \
@@ -914,7 +942,8 @@ fn inheritance_acyclic(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                         cycle.len()
                     ),
                     cycle,
-                ));
+                ))?;
+                continue;
             }
             if done.contains(&to) || !m.devices.contains(&to) {
                 continue;
@@ -928,7 +957,7 @@ fn inheritance_acyclic(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 
 /// EW-INV-016: when a batch touches a revision, every revision (a project has a handful, so the table is
 /// scanned rather than indexed).
-fn one_open_revision(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn one_open_revision(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     if scope.of_kind(Kind::Revision).next().is_none() {
         return Ok(());
     }
@@ -940,7 +969,7 @@ fn one_open_revision(m: &Model, scope: &Scope) -> Result<(), ModelError> {
         .collect();
     if open.len() > 1 {
         let labels: Vec<&str> = open.iter().map(|r| r.label.as_str()).collect();
-        return Err(violation(
+        out.report(violation(
             ONE_OPEN_REVISION,
             format!(
                 "{} revisions are open ({}); at most one revision collects the current edits",
@@ -948,14 +977,14 @@ fn one_open_revision(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                 labels.join(", ")
             ),
             open.iter().map(|r| key_of(Kind::Revision, r.id)).collect(),
-        ));
+        ))?;
     }
     Ok(())
 }
 
 /// EW-INV-017: the label of every touched revision that is not a withdrawal record, against the other
 /// revisions of the table.
-fn revision_label_unique(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn revision_label_unique(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::Revision) {
         let Some(r) = m.revisions.get(&typed(key)) else {
             continue;
@@ -969,28 +998,28 @@ fn revision_label_unique(m: &Model, scope: &Scope) -> Result<(), ModelError> {
             .map(|(_, o)| o)
             .find(|o| o.id != r.id && o.state != RevisionState::Withdrawn && o.label == r.label);
         if let Some(o) = twin {
-            return Err(violation(
+            out.report(violation(
                 REVISION_LABEL_UNIQUE,
                 format!(
                     "revisions {} and {} both have the label {}; a label names one revision",
                     r.id, o.id, r.label
                 ),
                 vec![*key, key_of(Kind::Revision, o.id)],
-            ));
+            ))?;
         }
     }
     Ok(())
 }
 
 /// EW-INV-018: touched revisions.
-fn revision_four_eyes(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn revision_four_eyes(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::Revision) {
         let Some(r) = m.revisions.get(&typed(key)) else {
             continue;
         };
         if let (Some(author), Some(checker)) = (&r.author, &r.checker) {
             if author == checker {
-                return Err(violation(
+                out.report(violation(
                     REVISION_FOUR_EYES,
                     format!(
                         "revision {} ({}) has the same party as author and checker; the checker must be \
@@ -998,7 +1027,7 @@ fn revision_four_eyes(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                         r.id, r.label
                     ),
                     vec![*key],
-                ));
+                ))?;
             }
         }
     }
@@ -1006,21 +1035,21 @@ fn revision_four_eyes(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 }
 
 /// EW-INV-019: touched revisions.
-fn revision_page_note_unique(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn revision_page_note_unique(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::Revision) {
         let Some(r) = m.revisions.get(&typed(key)) else {
             continue;
         };
         let mut seen = BTreeSet::new();
         if let Some(twice) = r.page_notes.iter().find(|n| !seen.insert(n.page)) {
-            return Err(violation(
+            out.report(violation(
                 REVISION_PAGE_NOTE_UNIQUE,
                 format!(
                     "revision {} ({}) has two page notes for page {}; one note per page",
                     r.id, r.label, twice.page
                 ),
                 vec![*key],
-            ));
+            ))?;
         }
     }
     Ok(())
@@ -1028,7 +1057,7 @@ fn revision_page_note_unique(m: &Model, scope: &Scope) -> Result<(), ModelError>
 
 /// EW-INV-020: every touched revision whose row before the batch was released or withdrawn, and which the
 /// batch did not remove, is unchanged. The integrity check has no rows before it, so it never reports this.
-fn revision_immutable(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn revision_immutable(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::Revision) {
         let Some(before) = scope.before_of::<Revision>(key) else {
             continue;
@@ -1038,7 +1067,7 @@ fn revision_immutable(m: &Model, scope: &Scope) -> Result<(), ModelError> {
         }
         if let Some(after) = m.revisions.get(&typed(key)) {
             if **after != **before {
-                return Err(violation(
+                out.report(violation(
                     REVISION_IMMUTABLE,
                     format!(
                         "revision {} ({}) is not open; a released or withdrawn revision is never changed \
@@ -1046,7 +1075,7 @@ fn revision_immutable(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                         before.id, before.label
                     ),
                     vec![*key],
-                ));
+                ))?;
             }
         }
     }
@@ -1064,7 +1093,7 @@ fn marker_list(item: &PageItem) -> Option<&[Id<Connection>]> {
 /// EW-INV-023, on the edit path only (see [`MARKER_CONNECTIONS`]): for every touched wire marker, each entry the
 /// batch added (absent from the marker's row before the batch) names an existing connection on the marker's page;
 /// for every touched connection whose page the batch changed, every marker listing it is on its new page.
-fn marker_connections(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn marker_connections(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     if !scope.edit {
         return Ok(());
     }
@@ -1084,24 +1113,24 @@ fn marker_connections(m: &Model, scope: &Scope) -> Result<(), ModelError> {
             let ck = key_of(Kind::Connection, *c);
             match m.connections.get(c) {
                 None => {
-                    return Err(violation(
+                    out.report(violation(
                         MARKER_CONNECTIONS,
                         format!(
                             "wire marker {} lists connection {c}, which does not exist",
                             item.id
                         ),
                         vec![*key, ck],
-                    ));
+                    ))?;
                 }
                 Some(conn) if conn.page != Some(item.page) => {
-                    return Err(violation(
+                    out.report(violation(
                         MARKER_CONNECTIONS,
                         format!(
                             "wire marker {} on page {} lists connection {c}, which is not drawn on that page",
                             item.id, item.page
                         ),
                         vec![*key, ck],
-                    ));
+                    ))?;
                 }
                 Some(_) => {}
             }
@@ -1128,14 +1157,14 @@ fn marker_connections(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                 continue;
             };
             if conn.page != Some(item.page) {
-                return Err(violation(
+                out.report(violation(
                     MARKER_CONNECTIONS,
                     format!(
                         "connection {} moved off page {}, where wire marker {} lists it",
                         conn.id, item.page, item.id
                     ),
                     vec![*key, key_of(Kind::PageItem, item.id)],
-                ));
+                ))?;
             }
         }
     }
@@ -1222,7 +1251,7 @@ fn black_box_from_pattern(function: &Function, parts: &[&ew_schema::Part]) -> bo
 /// EW-INV-024 (WP-S1.20 D11): the touched connections, the connections at the CPs of touched functions and of the
 /// functions of touched devices, and every connection at a junction one of them ends at. A batch that touches a
 /// FnDef or part copy checks every connection, since a copy changes the disciplines of every function using it.
-fn fluid_lines(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn fluid_lines(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     let mut connections: BTreeSet<Id<Connection>> = BTreeSet::new();
     if scope.of_kind(Kind::Fndef).next().is_some() || scope.of_kind(Kind::Part).next().is_some() {
         connections.extend(m.connections.ids());
@@ -1252,7 +1281,9 @@ fn fluid_lines(m: &Model, scope: &Scope) -> Result<(), ModelError> {
         let Some(conn) = m.connections.get(&c) else {
             continue;
         };
-        fluid_line_ok(m, conn)?;
+        if let Err(e) = fluid_line_ok(m, conn) {
+            out.report(e)?;
+        }
     }
     Ok(())
 }
