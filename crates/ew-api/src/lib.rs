@@ -506,19 +506,30 @@ pub fn integrity_items(report: &OpenReport) -> Vec<checks::IntegrityItem> {
 
 /// The library copies the open dropped as damaged (FT-1500): a loader finding names the copy's file and the model
 /// lacks the copy. In key order.
-fn dropped_copies(model: &Model, report: &OpenReport) -> Vec<AnyKey> {
+fn dropped_copies(q: &Q, report: &OpenReport) -> Vec<AnyKey> {
+    use ew_schema::{Kind, LibCopy, MacroDef};
     use ew_store::ew_format::{PathClass, classify, lib_dir};
+    let held = |&(kind, id): &AnyKey| match kind {
+        Kind::Part => q.parts().contains(id.cast()),
+        Kind::Symbol => q.symbols().contains(id.cast()),
+        Kind::Fndef => q.fndefs().contains(id.cast()),
+        Kind::Form => q.forms().contains(id.cast()),
+        Kind::Macro => q.table::<LibCopy<MacroDef>>().contains(id.cast()),
+        Kind::Manufacturer => q.manufacturers().contains(id.cast()),
+        Kind::PlcProfile => q.plc_profiles().contains(id.cast()),
+        _ => true,
+    };
     let mut dropped: Vec<AnyKey> = report
         .findings
         .iter()
         .filter_map(|f| match classify(f.file.as_ref()?.as_str()) {
-            PathClass::LibDocument { dir, id } => ew_schema::Kind::ALL
+            PathClass::LibDocument { dir, id } => Kind::ALL
                 .into_iter()
                 .find(|k| k.is_library() && lib_dir(*k) == Some(dir))
                 .map(|k| (k, id)),
             _ => None,
         })
-        .filter(|key| model.row(key).is_none())
+        .filter(|key| !held(key))
         .collect();
     dropped.sort();
     dropped.dedup();
@@ -1213,8 +1224,8 @@ impl Session {
                 },
             }
         }
-        let dropped = dropped_copies(&model, &report);
         let mut session = Session::new(model, options);
+        let dropped = dropped_copies(&session.query(), &report);
         session.persistence = Some(Persistence {
             store,
             unsaved,
