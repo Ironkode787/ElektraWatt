@@ -4626,6 +4626,7 @@ pub const KEYS: &[&str] = &[
     "symbol-cp-index-invalid",
     "symbol-function-pin-invalid",
     "symbol-draft-damaged",
+    "symbol-change-invalid",
     "symbol-image",
     "action-symbol-role",
     "symbol-cp-unknown",

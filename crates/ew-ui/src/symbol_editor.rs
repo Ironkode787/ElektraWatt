@@ -27,6 +27,9 @@ pub(crate) struct EditorView {
     /// The model's tool last seen, so a key that chooses a tool shows here (ID-1463).
     seen_tool: &'static str,
     start: Option<[f64; 2]>,
+    /// The spot a Text tool click marked while the Text field was empty: the text typed is created there on Enter
+    /// (ID-1483 F2).
+    text_mark: Option<[f64; 2]>,
     vertices: Vec<[f64; 2]>,
     selected: Option<usize>,
     move_start: Option<Pos2>,
@@ -184,7 +187,8 @@ fn field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
     response.changed()
 }
 /// [`field`] for a text that may hold a line break, which Shift+Enter starts; Enter ends the entry (ID-1477 (2)).
-fn lines_field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
+/// Returns the field's input and whether Enter ended the entry.
+fn lines_field(ui: &mut Ui, key: &str, value: &mut String) -> (egui::Id, bool) {
     let caption = ui.label(label(strings::Key::run_time(key)));
     let input = ui.make_persistent_id(("lines", key));
     let enter = enter_pressed(ui, input);
@@ -203,7 +207,7 @@ fn lines_field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
     let name = label(strings::Key::run_time(key));
     ui.ctx()
         .accesskit_node_builder(response.id, |n| n.set_label(name));
-    response.changed()
+    (input, enter)
 }
 /// A text of the document that commits on Enter or focus loss, never per keystroke (M25-p3#4): the typing stays in
 /// the field until then. `allow_empty` false keeps the previous text when the field is left empty, so a designation
@@ -716,6 +720,7 @@ impl EditorView {
                 .position(|t| *t == editor.tool)
                 .unwrap_or(0);
             self.start = None;
+            self.text_mark = None;
             self.move_start = None;
             self.vertices.clear();
         }
@@ -865,6 +870,7 @@ impl EditorView {
         if clicked {
             self.tool = index;
             self.start = None;
+            self.text_mark = None;
             self.move_start = None;
             self.vertices.clear();
             action(events, "symbol.tool", json!({"tool": word}));
@@ -1045,7 +1051,15 @@ impl EditorView {
                 band_ui.set_clip_rect(band_rect.intersect(ui.clip_rect()));
                 let ui_band = &mut band_ui;
                 let field_width = (band_rect.width() / 3.0).max(t.size_button_min_width);
-                if self.tool == 6 { ui_band.allocate_ui_with_layout(Vec2::new(field_width * 2.0, band), egui::Layout::left_to_right(egui::Align::Center), |ui| lines_field(ui,"symbol-text",&mut self.text)); }
+                let mut text_input = None;
+                if self.tool == 6 {
+                    let (input, entered) = ui_band.allocate_ui_with_layout(Vec2::new(field_width * 2.0, band), egui::Layout::left_to_right(egui::Align::Center), |ui| lines_field(ui,"symbol-text",&mut self.text)).inner;
+                    text_input = Some(input);
+                    // ID-1483 (F2): the text typed after a click on the canvas is created at that click, on Enter.
+                    if entered && !self.text.is_empty() && let Some(p) = self.text_mark.take() {
+                        action(events,"symbol.draw",json!({"tool":TOOLS[6].0,"x":p[0],"y":p[1],"text":self.text}));
+                    }
+                }
                 if self.tool == 10 { ui_band.allocate_ui_with_layout(Vec2::new(field_width * 2.0, band), egui::Layout::left_to_right(egui::Align::Center), |ui| field(ui,"symbol-name",&mut self.link_name)); }
                 if self.tool == 8 { slot_kind_control(ui_band,&mut self.slot_kind,&mut self.slot_pin); }
                 if self.tool == 7 {
@@ -1133,6 +1147,9 @@ impl EditorView {
                         if p != start { action(events,"symbol.draw",json!({"tool":tools[2].0,"x":start[0],"y":start[1],"x2":p[0],"y2":p[1]})); }
                     }
                 }
+                if let Some(mark) = self.text_mark {
+                    painter.circle_stroke(origin+Vec2::new(mark[0] as f32,mark[1] as f32)*self.zoom,t.space_2,Stroke::new(t.focus_width,t.canvas_selection.color32()));
+                }
                 if let Some(start) = self.start {
                     let at = origin+Vec2::new(start[0] as f32*self.zoom,start[1] as f32*self.zoom);
                     painter.circle_stroke(at,t.space_2,Stroke::new(t.focus_width,t.canvas_selection.color32()));
@@ -1156,18 +1173,23 @@ impl EditorView {
                             action(events,"symbol.path",json!({"points":self.vertices,"closed":self.tool==12}));self.vertices.clear();
                         }
                     }
-                    else if matches!(self.tool,6|9) { action(events,"symbol.draw",json!({"tool":tools[self.tool].0,"x":p[0],"y":p[1],"text":self.text})); }
+                    // ID-1483 (F2): with the Text field empty a click marks its spot and puts the focus in the field.
+                    else if self.tool == 6 && self.text.is_empty() {
+                        self.text_mark = Some(p);
+                        if let Some(input) = text_input { ui.memory_mut(|m| m.request_focus(input)); }
+                    }
+                    else if matches!(self.tool,6|9) { self.text_mark = None; action(events,"symbol.draw",json!({"tool":tools[self.tool].0,"x":p[0],"y":p[1],"text":self.text})); }
                     else if self.tool > 0 {
                         if let Some(start)=self.start.take() { action(events,"symbol.draw",json!({"tool":tools[self.tool].0,"x":start[0],"y":start[1],"x2":p[0],"y2":p[1],"start":self.arc_angles[0],"sweep":self.arc_angles[1]})); } else { self.start=Some(p); }
                     }
                 }
                 // Escape ends a gesture; at rest it returns to Select (the key the Select tooltip names).
                 if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE,egui::Key::Escape)) {
-                    if self.start.is_none() && self.move_start.is_none() && self.vertices.is_empty() && self.tool != 0 {
+                    if self.start.is_none() && self.text_mark.is_none() && self.move_start.is_none() && self.vertices.is_empty() && self.tool != 0 {
                         self.tool = 0;
                         action(events, "symbol.tool", json!({"tool": tools[0].0}));
                     }
-                    self.start=None;self.move_start=None;self.vertices.clear();
+                    self.start=None;self.text_mark=None;self.move_start=None;self.vertices.clear();
                 }
                 ui.horizontal(|ui| {
                     ui.label(label(strings::Key::run_time("symbol-variants")));

@@ -425,6 +425,14 @@ impl ShellModel {
             ),
             e => e.to_string(),
         };
+        // ID-1483 (F2): an edit the reader refuses is refused in words, never in the parser's (a text with no
+        // characters, say).
+        let edit = |e: symbols::Error| match e {
+            symbols::Error::Input(s) if !s.starts_with("symbol-") || s.contains(' ') => {
+                words(key!("symbol-change-invalid"))
+            }
+            e => err(e),
+        };
         if matches!(action, "new" | "open" | "fork" | "close") {
             let discard = p.get("discard") == Some(&Value::Bool(true));
             // ID-1463: Close leaves the view and keeps the draft and its history; Discard drops them, explicitly.
@@ -673,7 +681,7 @@ impl ShellModel {
                     }
                 }
                 editor.replace(
-                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(err)?,
+                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit)?,
                 );
             }
             "path" => {
@@ -709,7 +717,7 @@ impl ShellModel {
                         json!({kind:{"points":converted,"closed":kind=="polygon","stroke":{"pen":"p026"}}}),
                     );
                 editor.replace(
-                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(err)?,
+                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit)?,
                 );
             }
             "candidate" => {
@@ -772,7 +780,7 @@ impl ShellModel {
                         .ok_or_else(|| words(key!("symbol-document-required")))?,
                 )
                 .map_err(|e| e.to_string())?;
-                let draft = SymbolDraft::parse(&bytes).map_err(err)?;
+                let draft = SymbolDraft::parse(&bytes).map_err(edit)?;
                 if let Some(style) = chosen_text_style(&editor.draft, &draft) {
                     editor.text_style = Some(style);
                 }
@@ -865,7 +873,7 @@ impl ShellModel {
                         .push(value);
                 }
                 editor.replace(
-                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(err)?,
+                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit)?,
                 );
             }
             "cp" => {
@@ -929,7 +937,7 @@ impl ShellModel {
                     fpoints.sort_by_key(|v| v["idx"].as_u64());
                 }
                 editor.replace(
-                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(err)?,
+                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit)?,
                 );
             }
             "slot" => {
@@ -946,7 +954,7 @@ impl ShellModel {
                     json!({"kind":kind,"pos":[nm(p,"x")?,nm(p,"y")?],"align":"top_left","visible":true}),
                 );
                 editor.replace(
-                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(err)?,
+                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit)?,
                 );
             }
             "link" => {
@@ -960,7 +968,7 @@ impl ShellModel {
                     .ok_or_else(damaged)?;
                 points.push(json!({"name":text(p,"name"),"pos":[nm(p,"x")?,nm(p,"y")?]}));
                 editor.replace(
-                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(err)?,
+                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit)?,
                 );
             }
             "export" => {
