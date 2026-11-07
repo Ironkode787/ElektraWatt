@@ -758,8 +758,9 @@ mod tests {
     proptest! {
         /// Any entries round-trip through the writer and the reader, in order, and write to the same bytes twice.
         #[test]
-        fn round_trip(files in proptest::collection::btree_map("[a-z]{1,4}/[a-z0-9_.]{1,8}", proptest::collection::vec(any::<u8>(), 0..300), 0..8)) {
-            // `.` and `..` segments are refused by design; the generator's other names are all accepted.
+        fn round_trip(files in proptest::collection::btree_map("[a-z]{1,4}/\\.{0,2}[a-z0-9_][a-z0-9_.]{0,5}", proptest::collection::vec(any::<u8>(), 0..300), 0..8)) {
+            // `.` and `..` segments are refused by design; the generator's other names are all accepted. It writes
+            // none: a last segment holds a character that is not a dot (ID-1493: the assumption rejected too many).
             prop_assume!(files.keys().all(|n| !n.ends_with("/.") && !n.ends_with("/..")));
             let entries: Vec<(&str, Method, &[u8])> = files
                 .iter()
