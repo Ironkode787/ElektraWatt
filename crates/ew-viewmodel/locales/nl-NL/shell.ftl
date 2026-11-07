@@ -237,6 +237,7 @@ picker-title-exchange = Symbool wisselen
 picker-filter-hint = Filter op sleutel, artikelnummer of functie
 picker-badge-embedded = ingesloten
 picker-badge-starter = starter
+picker-badge-library = bibliotheek
 picker-part-function = { $p0 } van { $p1 } { $p2 }
 picker-main = hoofd
 picker-empty = Niets voldoet aan het filter

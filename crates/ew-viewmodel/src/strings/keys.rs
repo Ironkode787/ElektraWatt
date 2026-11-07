@@ -184,6 +184,7 @@ pub const KEYS: &[&str] = &[
     "picker-filter-hint",
     "picker-badge-embedded",
     "picker-badge-starter",
+    "picker-badge-library",
     "picker-part-function",
     "picker-main",
     "picker-empty",

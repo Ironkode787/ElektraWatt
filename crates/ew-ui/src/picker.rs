@@ -327,8 +327,11 @@ fn row_texts(
     match row {
         PickerRow::Symbol(k) => {
             let s = &picker.catalogue.symbols[k];
+            // ID-1477 (9): a symbol of an installed or user library is never called "starter".
             let library = if s.copy.is_some() {
                 strings::text(key!("picker-badge-embedded"))
+            } else if s.key.starts_with("library:") {
+                strings::text(key!("picker-badge-library"))
             } else {
                 strings::text(key!("picker-badge-starter"))
             };

@@ -1009,6 +1009,8 @@ fn symbol_editor_pointer_tools_dispatch_the_drawing_tool_name() {
     assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None);
     d.input(&click(d.find("Select").unwrap()));
     d.input(&click(d.find("Line 1").unwrap()));
+    // ID-1477 (9): the canvas fits only when asked.
+    d.input(&click(d.find("Fit drawing").unwrap()));
     let before = d.shell_mut().symbol_editor().unwrap().draft.clone();
     // M25-p3#3: the drag starts on the line (the fitted drawing's centre).
     let on_line = d.find("Drawing of Pointer").unwrap();
@@ -1597,6 +1599,53 @@ fn symbol_editor_drags_a_rectangle_and_hit_tests_the_drag_start() {
         mods: Modifiers::NONE,
     });
     assert_eq!(rect(&mut d), moved);
+    d.shell_mut().shutdown();
+}
+
+/// ID-1477 (4), (9): with the Rectangle tool a press, drag and release draws a rectangle; the canvas keeps its place
+/// when the connection point tool shows its fields, and its zoom as the drawing grows: the same drag again draws the
+/// same rectangle.
+#[test]
+fn symbol_editor_draws_a_rectangle_by_drag_and_keeps_its_view() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.drag-draw");
+    let canvas = d.find("Drawing of Drawn").unwrap();
+    assert_eq!(
+        d.shell_mut().dispatch("symbol.tool", &json!({"tool": "cp"})),
+        Outcome::Done
+    );
+    d.settle();
+    assert_eq!(d.find("Drawing of Drawn").unwrap(), canvas, "the canvas stays put");
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("symbol.tool", &json!({"tool": "rectangle"})),
+        Outcome::Done
+    );
+    d.settle();
+    let from = (canvas.0 - 160, canvas.1 - 90);
+    for _ in 0..2 {
+        d.input(&Input::Drag {
+            from,
+            to: (from.0 + 120, from.1 + 60),
+            button: PointerButton::Primary,
+            mods: Modifiers::NONE,
+        });
+        d.settle();
+    }
+    let rects: Vec<Value> = d
+        .shell_mut()
+        .symbol_editor()
+        .unwrap()
+        .draft
+        .symbol
+        .graphics
+        .iter()
+        .filter_map(|g| serde_json::to_value(g).unwrap().get("rect").map(|r| r["rect"].clone()))
+        .collect();
+    assert_eq!(rects.len(), 2, "{rects:?}");
+    assert_eq!(rects[0], rects[1], "the second drag draws at the first one's zoom");
+    assert!(rects[0][1][0].as_i64().unwrap() > rects[0][0][0].as_i64().unwrap());
     d.shell_mut().shutdown();
 }
 

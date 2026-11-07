@@ -199,6 +199,7 @@ picker-title-exchange = Change symbol
 picker-filter-hint = Filter by key, part number or function
 picker-badge-embedded = embedded
 picker-badge-starter = starter
+picker-badge-library = library
 picker-part-function = { $p0 } of { $p1 } { $p2 }
 picker-main = main
 picker-empty = Nothing matches the filter

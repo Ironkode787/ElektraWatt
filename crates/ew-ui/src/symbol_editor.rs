@@ -38,6 +38,8 @@ pub(crate) struct EditorView {
     zoom: f32,
     pan: Vec2,
     manual_view: bool,
+    /// The canvas size the view was last fitted to (ID-1477 (9)): the view fits again only at another size or on Fit.
+    fitted: Option<Vec2>,
     place: [f64; 2],
     draw_coordinates: [f64; 4],
     arc_angles: [i32; 2],
@@ -179,6 +181,28 @@ fn field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
         info.current_text_value = Some(value.clone());
         info
     });
+    response.changed()
+}
+/// [`field`] for a text that may hold a line break, which Shift+Enter starts; Enter ends the entry (ID-1477 (2)).
+fn lines_field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
+    let caption = ui.label(label(strings::Key::run_time(key)));
+    let input = ui.make_persistent_id(("lines", key));
+    let enter = enter_pressed(ui, input);
+    let response = ui
+        .add(
+            egui::TextEdit::multiline(value)
+                .id(input)
+                .desired_rows(1)
+                .return_key(new_line_key())
+                .desired_width(ui.available_width()),
+        )
+        .labelled_by(caption.id);
+    if enter {
+        response.surrender_focus();
+    }
+    let name = label(strings::Key::run_time(key));
+    ui.ctx()
+        .accesskit_node_builder(response.id, |n| n.set_label(name));
     response.changed()
 }
 /// A text of the document that commits on Enter or focus loss, never per keystroke (M25-p3#4): the typing stays in
@@ -871,6 +895,7 @@ impl EditorView {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if button(ui, "symbol-fit") {
                     self.manual_view = false;
+                    self.fitted = None;
                 }
             });
         });
@@ -1006,21 +1031,32 @@ impl EditorView {
                     // operation is the header's error, never repeated here.
                     if issues.is_empty() { ui.label(label(strings::Key::run_time("symbol-valid"))); }
                     for issue in &issues { ui.colored_label(t.text_secondary.color32(), issue); }
+                    // ID-1477 (8): room for an open role list below its row.
+                    if self.panel == 1 && ui.data(|d| d.get_temp::<bool>(role_room_id())).unwrap_or(false) { ui.add_space((ROLES.len() + 1) as f32 * (t.size_row + t.space_2)); }
                 });
             });
             ui.separator();
             ui.vertical(|ui| {
                 let tools = TOOLS;
-                if self.tool == 6 { field(ui,"symbol-text",&mut self.text); }
-                if self.tool == 10 { field(ui,"symbol-name",&mut self.link_name); }
-                if self.tool == 8 { slot_kind_control(ui,&mut self.slot_kind,&mut self.slot_pin); }
-                if self.tool == 7 { ui.horizontal_wrapped(|ui| {
-                    field(ui,"symbol-designation",&mut self.designation);
-                    egui::ComboBox::from_id_salt("symbol-cp-direction").selected_text(label(strings::Key::run_time(["symbol-up","symbol-right","symbol-down","symbol-left"][self.direction]))).show_ui(ui,|ui| {
+                // ID-1477 (9): the tool's own fields stand in a band of one height above the canvas, the same for
+                // every tool, so choosing a tool never moves or shrinks the canvas under the pointer.
+                // Its height holds a text of two lines, which the text tool's field may take (ID-1477 (2)).
+                let band = t.size_control + t.size_row;
+                let (band_rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), band), Sense::hover());
+                let mut band_ui = ui.new_child(egui::UiBuilder::new().max_rect(band_rect).layout(egui::Layout::left_to_right(egui::Align::Center)));
+                band_ui.set_clip_rect(band_rect.intersect(ui.clip_rect()));
+                let ui_band = &mut band_ui;
+                let field_width = (band_rect.width() / 3.0).max(t.size_button_min_width);
+                if self.tool == 6 { ui_band.allocate_ui_with_layout(Vec2::new(field_width * 2.0, band), egui::Layout::left_to_right(egui::Align::Center), |ui| lines_field(ui,"symbol-text",&mut self.text)); }
+                if self.tool == 10 { ui_band.allocate_ui_with_layout(Vec2::new(field_width * 2.0, band), egui::Layout::left_to_right(egui::Align::Center), |ui| field(ui,"symbol-name",&mut self.link_name)); }
+                if self.tool == 8 { slot_kind_control(ui_band,&mut self.slot_kind,&mut self.slot_pin); }
+                if self.tool == 7 {
+                    ui_band.allocate_ui_with_layout(Vec2::new(field_width, band), egui::Layout::left_to_right(egui::Align::Center), |ui| field(ui,"symbol-designation",&mut self.designation));
+                    egui::ComboBox::from_id_salt("symbol-cp-direction").selected_text(label(strings::Key::run_time(["symbol-up","symbol-right","symbol-down","symbol-left"][self.direction]))).show_ui(ui_band,|ui| {
                         for (i,k) in ["symbol-up","symbol-right","symbol-down","symbol-left"].iter().enumerate() { ui.selectable_value(&mut self.direction,i,label(strings::Key::run_time(k))); }
-                    }).response.expanded(ui).widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label(strings::Key::run_time("symbol-direction"))));
-                }); }
-                if self.tool>=11 {ui.label(label(strings::Key::run_time("symbol-path-hint")));}
+                    }).response.expanded(ui_band).widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label(strings::Key::run_time("symbol-direction"))));
+                }
+                if self.tool>=11 {ui_band.label(label(strings::Key::run_time("symbol-path-hint")));}
                 // The variant strip under the canvas: its caption row and its thumbnails.
                 let strip = 3.0 * t.size_row;
                 let canvas_height = (ui.available_height() - strip - t.size_row - 2.0 * t.space_3).max(4.0 * t.size_row);
@@ -1035,11 +1071,17 @@ impl EditorView {
                     if scroll != 0.0 {self.manual_view=true;}
                     self.zoom = (self.zoom * (scroll * 0.0015).exp()).clamp(1.0,80.0);
                 }
-                // Fit fills the canvas at every width (SM25 nit: a small import filled 60 px at 1920).
-                if !self.manual_view && let Ok(g)=draft.preview(editor.variant) {
-                    let b=g.bounds;let width=(b.max().x.0-b.min().x.0) as f32/1e6;let height=(b.max().y.0-b.min().y.0) as f32/1e6;
+                // Fit fills the canvas at every width (SM25 nit: a small import filled 60 px at 1920). ID-1477 (9): it
+                // fits when the draft opens, when the canvas changes size and when Fit is chosen, never because the
+                // drawing changed; an empty draft shows the 40 mm square right and below its origin.
+                if !self.manual_view && self.fitted != Some(rect.size()) && let Ok(g)=draft.preview(editor.variant) {
+                    self.fitted = Some(rect.size());
+                    let b=g.bounds;let empty=draft.symbol.graphics.is_empty()&&draft.symbol.cps.is_empty();
+                    let (width,height,centre)=if empty {(40.0,40.0,Vec2::splat(20.0))} else {
+                        ((b.max().x.0-b.min().x.0) as f32/1e6,(b.max().y.0-b.min().y.0) as f32/1e6,Vec2::new((b.min().x.0+b.max().x.0) as f32/2e6,(b.min().y.0+b.max().y.0) as f32/2e6))
+                    };
                     self.zoom=(rect.width()/(width+16.0)).min(rect.height()/(height+16.0)).clamp(0.01,80.0);
-                    self.pan=-Vec2::new((b.min().x.0+b.max().x.0) as f32/2e6,(b.min().y.0+b.max().y.0) as f32/2e6)*self.zoom;
+                    self.pan=-centre*self.zoom;
                 }
                 let origin = rect.center() + self.pan;
                 let step = self.zoom * draft.symbol.grid.at(1).map_or(4.0,|n|n.0 as f32 / 1_000_000.0);
@@ -2314,62 +2356,6 @@ fn paint_graphics(
 mod tests {
     use super::*;
 
-    /// ID-1477 (2): in a text's field Shift+Enter starts a new line and Enter alone commits the text with it.
-    #[test]
-    fn shift_enter_breaks_a_texts_line_and_enter_commits_it() {
-        let ctx = egui::Context::default();
-        let mut value = json!({"en": "A"});
-        let mut commits = 0;
-        let key = |key, shift| egui::Event::Key {
-            key,
-            physical_key: None,
-            pressed: true,
-            repeat: false,
-            modifiers: if shift {
-                egui::Modifiers::SHIFT
-            } else {
-                egui::Modifiers::NONE
-            },
-        };
-        let frame = |n: usize, events: Vec<egui::Event>, value: &mut Value, commits: &mut usize| {
-            let input = egui::RawInput {
-                events,
-                time: Some(n as f64 / 60.0),
-                screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, Vec2::new(400.0, 200.0))),
-                ..Default::default()
-            };
-            let mut output = ctx.run_ui(input, |ui| {
-                if n == 0 {
-                    let input = ui.make_persistent_id("symbol-text").with("input");
-                    ui.memory_mut(|m| m.request_focus(input));
-                }
-                if text_field(ui, "symbol-text", value, true) {
-                    *commits += 1;
-                }
-            });
-            output.textures_delta.clear();
-        };
-        frame(0, Vec::new(), &mut value, &mut commits);
-        frame(1, vec![key(egui::Key::End, false)], &mut value, &mut commits);
-        frame(2, vec![key(egui::Key::Enter, true)], &mut value, &mut commits);
-        frame(3, vec![egui::Event::Text("B".into())], &mut value, &mut commits);
-        assert_eq!((value.clone(), commits), (json!({"en": "A"}), 0), "nothing commits while typing");
-        frame(4, vec![key(egui::Key::Enter, false)], &mut value, &mut commits);
-        assert_eq!((value, commits), (json!({"en": "A\nB"}), 1));
-    }
-
-    /// ID-1477 (2): the nine alignments are three horizontal by three vertical positions, each read back as itself.
-    #[test]
-    fn the_nine_alignments_read_back_as_their_positions() {
-        for (h, column) in ALIGNS.iter().enumerate() {
-            for (v, word) in column.iter().enumerate() {
-                assert_eq!(align_position(word), (h, v), "{word}");
-            }
-        }
-        assert_eq!(ALIGNS[1][1], "centre");
-        assert_eq!(align_position("a-newer-word"), (0, 0));
-    }
-
     #[test]
     fn simultaneous_name_and_import_review_commits_are_merged_before_save() {
         let draft = SymbolDraft::new("example.text", "Before").unwrap();
@@ -2447,6 +2433,50 @@ mod tests {
         assert!(value >= 10.0, "a slow drag stalls: {value}");
     }
 
+    /// ID-1477 (2): in a text's field Shift+Enter starts a new line and Enter alone commits the text with it.
+    #[test]
+    fn shift_enter_breaks_a_texts_line_and_enter_commits_it() {
+        let ctx = egui::Context::default();
+        let mut value = json!({"en": "A"});
+        let mut commits = 0;
+        let key = |key, shift| egui::Event::Key {
+            key,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: if shift {
+                egui::Modifiers::SHIFT
+            } else {
+                egui::Modifiers::NONE
+            },
+        };
+        let frame = |n: usize, events: Vec<egui::Event>, value: &mut Value, commits: &mut usize| {
+            let input = egui::RawInput {
+                events,
+                time: Some(n as f64 / 60.0),
+                screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, Vec2::new(400.0, 200.0))),
+                ..Default::default()
+            };
+            let mut output = ctx.run_ui(input, |ui| {
+                if n == 0 {
+                    let input = ui.make_persistent_id("symbol-text").with("input");
+                    ui.memory_mut(|m| m.request_focus(input));
+                }
+                if text_field(ui, "symbol-text", value, true) {
+                    *commits += 1;
+                }
+            });
+            output.textures_delta.clear();
+        };
+        frame(0, Vec::new(), &mut value, &mut commits);
+        frame(1, vec![key(egui::Key::End, false)], &mut value, &mut commits);
+        frame(2, vec![key(egui::Key::Enter, true)], &mut value, &mut commits);
+        frame(3, vec![egui::Event::Text("B".into())], &mut value, &mut commits);
+        assert_eq!((value.clone(), commits), (json!({"en": "A"}), 0), "nothing commits while typing");
+        frame(4, vec![key(egui::Key::Enter, false)], &mut value, &mut commits);
+        assert_eq!((value, commits), (json!({"en": "A\nB"}), 1));
+    }
+
     /// ID-1477 (3): a click on a text's glyphs, drawn before the rectangle around it, picks the text, the smaller item;
     /// a click inside the rectangle elsewhere picks the rectangle.
     #[test]
@@ -2484,6 +2514,18 @@ mod tests {
         ] {
             assert_eq!(role_typed(typed), role, "{typed}");
         }
+    }
+
+    /// ID-1477 (2): the nine alignments are three horizontal by three vertical positions, each read back as itself.
+    #[test]
+    fn the_nine_alignments_read_back_as_their_positions() {
+        for (h, column) in ALIGNS.iter().enumerate() {
+            for (v, word) in column.iter().enumerate() {
+                assert_eq!(align_position(word), (h, v), "{word}");
+            }
+        }
+        assert_eq!(ALIGNS[1][1], "centre");
+        assert_eq!(align_position("a-newer-word"), (0, 0));
     }
 
     #[test]
