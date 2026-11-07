@@ -69,10 +69,19 @@ pub(crate) struct TableUi {
     chooser_active: usize,
     /// The grid's width last frame (C40, FT-816: a resize re-fills the capped columns).
     pane_width: Option<f32>,
+    /// ID-1497 F1: how the cursor's column is aligned again in the next frame, when the scroll that brought it into
+    /// view left it cut by the frozen key column (or, while it fits, by the grid's right edge).
+    realign: Option<egui::Align>,
+    /// ID-1497 F1: after a scroll to the cursor's column, its cell as laid out in the last frame and how many frames
+    /// more the grid waits for it to come to rest before it checks the column's place.
+    settling: Option<(Rect, u8)>,
 }
 
 /// How far the grid's focus ring is inset into the pane (doc 16a §6.21: 1 px).
 const RING_INSET: f32 = 1.0;
+
+/// ID-1497 F1: the most frames the grid waits for a scroll to its cursor's column to come to rest.
+const SETTLE_FRAMES: u8 = 30;
 
 /// The egui_table ID of the column with key `key` (its width survives hiding and reordering).
 fn column_id(key: &str) -> egui::Id {
@@ -190,7 +199,12 @@ impl TableUi {
             .headers([HeaderRow::new(tokens.size_table_header)]);
         if let Some((r, c)) = scroll {
             t = t.scroll_to_row(r as u64, None).scroll_to_column(c, None);
+            self.settling = Some((Rect::NOTHING, SETTLE_FRAMES));
+        } else if let (Some(align), Some(c)) = (self.realign.take(), cursor_col) {
+            t = t.scroll_to_columns(c..=c, Some(align));
+            self.settling = Some((Rect::NOTHING, SETTLE_FRAMES));
         }
+        self.realign = None;
         // The grid has the keyboard: the cursor cell's ring is 2 px, 1 px otherwise (doc 16a §6.21).
         // The shell's focus decides in the frame it moves (egui's follows a frame later).
         let focused = ours && ui.memory(|m| m.has_focus(table_id));
@@ -214,6 +228,8 @@ impl TableUi {
             events,
             painted: 0,
             cursor_rect: None,
+            cursor_cell: None,
+            key_right: None,
             others: None,
         };
         let column_ids: Vec<(egui::Id, String)> = shown
@@ -282,6 +298,32 @@ impl TableUi {
             }
         });
         self.painted = delegate.painted;
+        // ID-1497 F1: a column the grid scrolls into view lands whole to the right of the frozen key column, and one
+        // wider than the room with its left edge there. egui scrolls as little as it can and left the column cut under
+        // the key column at the floor; such a column is aligned again in the next frame: at its left edge when the key
+        // column cuts it, at its right edge when the grid's edge cuts one that fits.
+        // The check waits until the scroll (animated or not) has come to rest, so a column the user scrolls away
+        // from afterwards stays where the user put it.
+        if let Some((last, left)) = self.settling.take() {
+            match (delegate.cursor_cell, delegate.key_right) {
+                (Some(cell), Some(key)) if cell == last => {
+                    let room = area.right() - key;
+                    self.realign = if cell.left() < key - 0.5 {
+                        Some(egui::Align::Min)
+                    } else if cell.right() > area.right() + 0.5 && cell.width() <= room {
+                        Some(egui::Align::Max)
+                    } else {
+                        None
+                    };
+                }
+                (Some(cell), Some(_)) if left > 0 => self.settling = Some((cell, left - 1)),
+                _ if left > 0 => self.settling = Some((last, left - 1)),
+                _ => {}
+            }
+            if self.realign.is_some() || self.settling.is_some() {
+                ui.ctx().request_repaint();
+            }
+        }
         let anchor = delegate.cursor_rect;
         // Doc 16a §6.21 (FT-532): the grid is the focusable node, so while it has the keyboard the focus ring of §6.1
         // (2-px `color.focus`, `radius.sm`) is drawn around the whole grid, inset 1 px into the pane.
@@ -856,6 +898,10 @@ struct Delegate<'a> {
     painted: usize,
     /// The cursor row's key cell as painted this frame (the chooser list opens under it).
     cursor_rect: Option<Rect>,
+    /// ID-1497 F1: the cursor's cell (or the edited one) as laid out this frame, when it is not in the key column.
+    cursor_cell: Option<Rect>,
+    /// ID-1497 F1: the right edge of the frozen key column this frame.
+    key_right: Option<f32>,
     /// The width the columns other than the filling one need ([`fill_cap`]), measured once in a sizing pass.
     others: Option<f32>,
 }
@@ -1138,6 +1184,9 @@ impl TableDelegate for Delegate<'_> {
         let rect = ui.max_rect();
         if cell.col_nr == 0 {
             self.frozen_edge(ui, rect);
+            self.key_right = Some(rect.right());
+        } else if self.edit.or(self.cursor) == Some((at, cell.col_nr)) {
+            self.cursor_cell = Some(rect);
         }
         if self.edit == Some((at, cell.col_nr)) {
             self.editor(ui, &name);

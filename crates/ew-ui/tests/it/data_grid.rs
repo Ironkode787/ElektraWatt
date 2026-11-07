@@ -1040,3 +1040,60 @@ fn ft1167_export_and_import_table_follow_their_predicates() {
     }
     h.state_mut().shell_mut().shutdown();
 }
+
+/// ID-1497 F1 (the fix round's window check): a column the grid scrolls into view (the cursor's cell, the cell editor)
+/// lands whole to the right of the frozen key column, and a column wider than the room lands with its left edge
+/// there: at the 1280 × 800 floor the Function text column's left edge (and the editor's first character) ended under
+/// the frozen Strip column. Every column in turn, from the far right back to the left and from the left out to the
+/// right, at the floor and wide.
+#[test]
+fn a_column_scrolled_into_view_lands_right_of_the_frozen_column() {
+    let tmp = Tmp::new();
+    let mut h = strips(&tmp);
+    let labels: Vec<String> = {
+        let n = h.state().shell().nav(NavKind::Strips).unwrap();
+        let t = n.table().unwrap();
+        let mode = n.table_mode().unwrap();
+        mode.shown_columns(t)
+            .iter()
+            .skip(1)
+            .map(|c| t.columns[*c].label.clone())
+            .collect()
+    };
+    assert!(labels.len() > 4, "{labels:?}");
+    for size in [egui::vec2(1280.0, 800.0), egui::vec2(1920.0, 1080.0)] {
+        h.set_size(size);
+        settle(&mut h);
+        let order: Vec<&String> = labels.iter().rev().chain(labels.iter()).collect();
+        for label in order {
+            show_column(&mut h, label);
+            settle(&mut h);
+            let grid = h.get_by_label("Terminal strips table").rect();
+            let key = cell(&h, "Strip", 1);
+            // An empty cell is named "<column>, row 1 of <n>".
+            let shown = h
+                .get_all_by_role(egui::Role::Cell)
+                .find(|n| {
+                    n.accesskit_node().label().is_some_and(|l| {
+                        l.strip_prefix(label.as_str())
+                            .is_some_and(|rest| rest.starts_with(' ') || rest.starts_with(", row 1 of "))
+                            && l.contains(", row 1 of ")
+                    })
+                })
+                .unwrap_or_else(|| panic!("{size:?}: the cell of {label} in row 1"))
+                .rect();
+            assert!(
+                shown.left() >= key.right() - 0.5,
+                "{size:?}: {label} {shown:?} starts under the frozen column {key:?}"
+            );
+            let room = grid.right() - key.right();
+            if shown.width() <= room - 20.0 {
+                assert!(
+                    shown.right() <= grid.right() + 0.5,
+                    "{size:?}: {label} {shown:?} is whole in the grid {grid:?}"
+                );
+            }
+        }
+    }
+    h.state_mut().shell_mut().shutdown();
+}

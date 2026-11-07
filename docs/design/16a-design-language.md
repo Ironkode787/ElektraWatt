@@ -1167,7 +1167,8 @@ row, Escape reverts. *As built (cycle 53, ID-1497):* the editor takes every char
 the frame it opens in; while more than one row is marked a tooltip under the editor (§6.18) says "Ctrl+Enter sets all 12
 marked rows."; Shift+click marks the range from the cursor row, Ctrl+click toggles a row and Ctrl+A marks every row of the
 filtered table; `table.set` without `rows` sets the marked rows (else the cursor row) and names a column by its key or
-its header label. The grid is a `Table` named "<navigator> table", a header cell a button "Sort by <column>", a
+its header label. A column the grid scrolls into view (the cursor's cell, the cell editor) lands whole to the right of
+the frozen key column, and one wider than the room with its left edge there. The grid is a `Table` named "<navigator> table", a header cell a button "Sort by <column>", a
 cell a `Cell` named "<column> <text>, row <i> of <n>[, read-only]", a resize handle a `Splitter`.
 
 **Cards of the grid** follow §6.9 and §6.23: the **pattern fill card** (title "Pattern fill" in `type.body.strong`,
