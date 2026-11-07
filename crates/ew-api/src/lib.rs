@@ -1616,7 +1616,8 @@ impl Session {
         };
         // The project must open after it: every violation left is one the copies still damaged explain.
         let missing: BTreeSet<AnyKey> = dropped.iter().filter(|k| !keys.contains(*k)).copied().collect();
-        if ew_model::unexplained_by_dropped_copies(&engine.model().integrity_violations(), &missing).is_some() {
+        if ew_model::unexplained_by_dropped_copies(&engine.model().integrity_violations(), &missing).is_some()
+        {
             return Err(api_text!("refusal-update-copies-misfit"));
         }
         match p.store.update_damaged_copies(engine.model(), &keys) {

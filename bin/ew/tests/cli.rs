@@ -3120,8 +3120,15 @@ fn update_copies_writes_a_damaged_copy_from_its_library() {
             String::new()
         )
     );
-    assert!(std::fs::read(&file).unwrap() == original, "the library's copy is written");
-    let fmt = ew_in(&home, &["fmt".as_ref(), project.as_os_str(), "--check".as_ref()], &[]);
+    assert!(
+        std::fs::read(&file).unwrap() == original,
+        "the library's copy is written"
+    );
+    let fmt = ew_in(
+        &home,
+        &["fmt".as_ref(), project.as_os_str(), "--check".as_ref()],
+        &[],
+    );
     assert_eq!(fmt.status.code(), Some(0), "{}", stderr(&fmt));
 }
 

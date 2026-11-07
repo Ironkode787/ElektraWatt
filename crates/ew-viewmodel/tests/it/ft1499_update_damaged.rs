@@ -290,8 +290,7 @@ fn ft1499_nothing_is_written_when_the_library_copy_cannot_be_read() {
     value["library_id"] = json!(lib.hyphenated().to_string());
     value["part_number"] = json!("EW-TEST-MCB-2");
     value["meta"]["key"] = json!("EW-TEST-MCB-2");
-    reg.write(lib, &[serde_json::from_value(value).unwrap()])
-        .unwrap();
+    reg.write(lib, &[serde_json::from_value(value).unwrap()]).unwrap();
     drop(reg);
     let mut s = open(&tmp, "en", Some(t.clone()), &dir);
     let copy = assign_f55(&mut s, "EW-TEST-MCB-2");
@@ -353,8 +352,8 @@ fn ft1499_update_is_refused_while_another_session_holds_the_project() {
     copy_dir(Path::new(common::GOLDEN_A), &other);
     let mut store = StoreOptions::new("ElektraWatt test");
     store.state_dir = None;
-    let (holder, _) =
-        Session::open(&other, store, SessionOptions::default(), Recovery::Keep).expect("the other copy opens");
+    let (holder, _) = Session::open(&other, store, SessionOptions::default(), Recovery::Keep)
+        .expect("the other copy opens");
     for (locale, message) in [
         (
             "en",

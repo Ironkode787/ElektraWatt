@@ -565,7 +565,8 @@ fn damaged_part_copy() -> (Arc<MemVfs>, PathBuf, String) {
 /// `model` with the part copy of `path` as Golden A holds it (a library's document of it), and its key.
 fn with_copy(model: &ew_model::Model, path: &str) -> (ew_model::Model, BTreeSet<ew_model::AnyKey>) {
     use ew_store::ew_format::ew_schema::LibDocument;
-    let LibDocument::Part(copy) = serde_json::from_slice(&fixture()[path]).expect("Golden A's copy reads") else {
+    let LibDocument::Part(copy) = serde_json::from_slice(&fixture()[path]).expect("Golden A's copy reads")
+    else {
         panic!("{path} holds a part");
     };
     let mut keys = BTreeSet::new();
@@ -584,11 +585,17 @@ fn update_damaged_copies_writes_the_copy_and_the_project_opens_for_editing() {
     assert_eq!(*store.access(), Access::ReadOnly(ReadOnlyReason::Integrity));
     let (next, keys) = with_copy(&model, &path);
     let before = project_files(&vfs, &root);
-    let report = store.update_damaged_copies(&next, &keys).expect("the copy is written");
+    let report = store
+        .update_damaged_copies(&next, &keys)
+        .expect("the copy is written");
     assert_eq!(report.written, vec![FilePath::new(&path).unwrap()]);
     assert_eq!(*store.access(), Access::ReadOnly(ReadOnlyReason::Integrity));
     let after = project_files(&vfs, &root);
-    assert_eq!(after[&path], fixture()[&path], "the library's document is written");
+    assert_eq!(
+        after[&path],
+        fixture()[&path],
+        "the library's document is written"
+    );
     let changed: Vec<&String> = after
         .iter()
         .filter(|(name, bytes)| before.get(*name) != Some(*bytes))
