@@ -420,3 +420,32 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
     assert_eq!(new[0].polyline.first(), Some(&from));
     assert_eq!(new[0].polyline.last(), Some(&to));
 }
+
+/// ID-1497 (11): a click that places a bend instead of ending on a connection point (a miss snaps to the grid) is told
+/// in the hint and the HUD's prompt: "Bend placed: click a connection point to end the wire."; the wire then ends on a
+/// connection point as before, and the next wire starts with the routing hint.
+#[test]
+fn a_click_that_places_a_bend_says_so() {
+    let tmp = Tmp::new("id1497-bend");
+    let mut p = page(&tmp);
+    done(&mut p.s, "tool.wire", json!({}));
+    click(&mut p.s, p.bottom[0].at, false);
+    let k = index_of(&p.s, p.bottom[0].at);
+    let bend_at = page_point(&p.s, (k.0 + 4, k.1 + 4));
+    click(&mut p.s, bend_at, false);
+    let bend = "Bend placed: click a connection point to end the wire.";
+    assert_eq!(p.s.tool_hint(), bend);
+    assert_eq!(ew_viewmodel::command_bar::hud(&p.s).prompt, bend);
+    let rev = p.s.revision();
+    click(&mut p.s, p.l.at, false);
+    assert_eq!(
+        p.s.revision(),
+        rev.map(|r| r + 1),
+        "the wire ends on the connection point"
+    );
+    click(&mut p.s, p.bottom[1].at, false);
+    assert_eq!(
+        p.s.tool_hint(),
+        "Click a connection point; Backspace removes the last bend; Esc cancels"
+    );
+}

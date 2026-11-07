@@ -128,6 +128,10 @@ pub struct CataloguePart {
     /// The words the picker's filter matches besides the part number, the manufacturer and the FnDef keys (cycle 36:
     /// "relay" found nothing): the description in every language and the category.
     pub words: Vec<String>,
+    /// The letter code the project's identifier set maps the part's own function category to (`G` for a power
+    /// supply), `None` when the part has no category or the set no mapping: a black box placed from the part takes it
+    /// (ID-1497 (7)).
+    pub letter: Option<String>,
 }
 
 /// One function of a part's template in the place catalogue.
@@ -271,6 +275,7 @@ fn fndef_of(q: &Q, r: &LibRef) -> Option<Arc<LibCopy<FnDef>>> {
 /// does not embed are read from the starter.
 fn catalogue_part(
     q: &Q,
+    set: Option<&IdentifierSet>,
     rows: &[(CatalogueSymbol, Id<FnDef>)],
     copy: Uuid,
     part: &Part,
@@ -351,6 +356,10 @@ fn catalogue_part(
     if let Some((a, b, c)) = &part.category {
         words.extend([a, b, c].map(|w| w.as_str().to_owned()));
     }
+    let letter = part.category.as_ref().and_then(|(category, group, _)| {
+        set?.mapping(category.as_str(), Some(group.as_str()))
+            .map(|m| m.letter().as_str().to_owned())
+    });
     Some(CataloguePart {
         copy,
         library,
@@ -360,6 +369,7 @@ fn catalogue_part(
         rating: rating_text(part),
         functions,
         words,
+        letter,
     })
 }
 
@@ -589,7 +599,7 @@ impl Session {
         // ([`Session::library_manufacturer`]).
         let mut parts: Vec<CataloguePart> = Vec::new();
         for (id, copy) in q.parts().iter() {
-            if let Some(row) = catalogue_part(&q, &rows, id.as_uuid(), &copy.item, None) {
+            if let Some(row) = catalogue_part(&q, set, &rows, id.as_uuid(), &copy.item, None) {
                 parts.push(CataloguePart {
                     manufacturer: ew_derive::manufacturer_name(&q, &copy.item.manufacturer),
                     ..row
@@ -603,7 +613,7 @@ impl Session {
             }
             let manufacturer = self.library_manufacturer(&c.item.manufacturer);
             let source = Some((c.library_id.as_uuid(), c.item_id.as_uuid()));
-            if let Some(row) = catalogue_part(&q, &rows, c.id.as_uuid(), &c.item, source) {
+            if let Some(row) = catalogue_part(&q, set, &rows, c.id.as_uuid(), &c.item, source) {
                 parts.push(CataloguePart { manufacturer, ..row });
             }
         }

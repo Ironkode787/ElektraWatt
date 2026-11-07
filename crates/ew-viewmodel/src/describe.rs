@@ -1754,7 +1754,10 @@ fn preview_lines(model: &ShellModel, lines: &mut Vec<String>) {
             user(&x.after)
         )
     });
-    listed(lines, pane.pages(), "page", |f| format!("  page \"{}\"", user(f)));
+    listed(lines, pane.pages(), "page", |(f, after)| match after {
+        Some(a) => format!("  page \"{}\" \"{}\"", user(f), user(a)),
+        None => format!("  page \"{}\"", user(f)),
+    });
 }
 
 // WP-S2.08 part 6

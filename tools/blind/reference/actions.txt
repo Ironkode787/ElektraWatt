@@ -278,7 +278,7 @@ table.cell View "Move the cell cursor" menu none shortcut none context navigator
 table.edit View "Edit cell" menu none shortcut "F2" context navigator hidden params "kind?:text, row?:text, column?:text"
 table.input View "Type into the cell" menu none shortcut none context navigator hidden params "kind?:text, text:text"
 table.commit Command "Commit the cell" menu none shortcut none context navigator hidden params "kind?:text, all?:bool"
-table.set Command "Set cells" menu none shortcut none context global hidden params "kind:text, column:text, value:text, rows?:list(text), all?:bool"
+table.set Command "Set cells of the marked rows, else of the cursor row (the column by key or header label)" menu none shortcut none context global hidden params "kind:text, column:text, value:text, rows?:list(text), all?:bool"
 table.fill_down Command "Fill down" menu none shortcut "Ctrl+D" context navigator params "kind?:text"
 table.pattern_fill Command "Pattern fill…" menu none shortcut "Ctrl+Shift+D" context navigator params "kind?:text, pattern?:text"
 table.paste Command "Paste cells" menu none shortcut "Ctrl+V" context navigator params "kind?:text, text?:text"

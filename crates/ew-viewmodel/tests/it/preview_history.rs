@@ -272,10 +272,23 @@ fn golden_b(mode: Mode) {
     );
     assert_eq!(section.iter().filter(|l| l.starts_with("  xref ")).count(), 14);
     let pages = shell.preview_pane().pages().to_vec();
-    assert!(!pages.is_empty() && pages.iter().all(|f| shell.page_labels().contains(f)));
+    assert!(!pages.is_empty() && pages.iter().all(|(f, _)| shell.page_labels().contains(f)));
     assert_eq!(
         section.iter().filter(|l| l.starts_with("  page ")).count(),
         pages.len()
+    );
+    // ID-1497 (4): the page whose folio changes is named by both folios; the others by their folio.
+    assert!(
+        pages.contains(&("106".to_owned(), Some("104".to_owned()))),
+        "{pages:?}"
+    );
+    assert!(
+        pages.iter().all(|(f, a)| (f == "106") == a.is_some()),
+        "{pages:?}"
+    );
+    assert!(
+        section.contains(&"  page \"106\" \"104\"".to_owned()),
+        "{section:?}"
     );
     done(&mut shell, "preview.apply", json!({}));
     assert_eq!(history_cursor(&mut shell), cursor + 1, "one transaction");
@@ -323,9 +336,16 @@ fn pv2_the_dialogs_refuse_in_place_and_headless_names_the_missing_parameter() {
     gui.shutdown();
     let tmp = Tmp::new("pv2-headless");
     let mut s = tmp.shell_in(Mode::Headless, true, "101");
-    for (action, name) in [("pages.renumber", "start"), ("devices.renumber", "scheme")] {
+    // ID-1497 (7): the missing scheme's refusal names the schemes it takes.
+    for (action, text) in [
+        ("pages.renumber", "Missing parameter `start`."),
+        (
+            "devices.renumber",
+            "Missing parameter `scheme`; use one of page_based.",
+        ),
+    ] {
         match s.dispatch(action, &json!({})) {
-            Outcome::Failed { message } => assert!(message.contains(name), "{message}"),
+            Outcome::Failed { message } => assert_eq!(message, text),
             other => panic!("{action}: {other:?}"),
         }
     }

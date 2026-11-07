@@ -14,7 +14,7 @@
 //! **Order.** The provider gives every node its rank as its first natural key, so the framework's default label sort
 //! shows Errors, Warnings, Infos, the rules in rule-ID order and the findings in the report's order.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::{NavNode, NavRole, NavTable};
 use crate::canvas::PageId;
@@ -57,6 +57,9 @@ pub struct MessagesState {
     /// the table they were counted from, (the scheme's name, whether it was the migration report): the next check
     /// counts its changes only from a check of the same table (C52-p5#2).
     pub(crate) checked: Option<((u64, u64), CheckedTable, MessageCounts)>,
+    /// ID-1497 (3): the findings the last Check project counted ([`counted_findings`]), which the next check compares
+    /// with its own: equal counts of other findings are a change.
+    pub(crate) checked_findings: BTreeSet<CountedFinding>,
     /// The serial of the last Check project's toast and the (project session, revision) it counted: the toast goes
     /// once the revision leaves that one, so its counts never disagree with the dock's pending ones (FT-759).
     pub(crate) check_toast: Option<((u64, u64), u64)>,
@@ -214,6 +217,25 @@ pub fn counts(table: &NavTable, editing: Option<&str>) -> MessageCounts {
         }
     }
     c
+}
+
+/// A finding a check counts, as the check's toast compares two checks (ID-1497 (3)): its rule, subject and message.
+pub type CountedFinding = (String, String, String);
+
+/// The findings [`counts`] counts in its errors, warnings and infos (open, not pending), as a set: the same findings in
+/// another order are the same set.
+pub fn counted_findings(table: &NavTable, editing: Option<&str>) -> BTreeSet<CountedFinding> {
+    table
+        .nodes
+        .iter()
+        .filter(|n| n.role == NavRole::Finding)
+        .filter(|n| n.cells.get(STATE).map(String::as_str) != Some("waived") && !is_pending(n, editing))
+        .filter(|n| severity(n).is_some())
+        .map(|n| {
+            let cell = |i: usize| n.cells.get(i).cloned().unwrap_or_default();
+            (cell(RULE), cell(SUBJECT), cell(MESSAGE))
+        })
+        .collect()
 }
 
 /// The rule ID of a finding or rule row (the finding's `rule` cell, the rule group's key segment).

@@ -224,3 +224,39 @@ fn the_picker_and_the_libraries_navigator_offer_the_sample_parts() {
     let lib = key(NavRole::Library, "Sample project parts");
     assert!(lib.starts_with(&format!("{tier}/")), "{lib} under {tier}");
 }
+
+/// ID-1497 (7): a black box placed from a sample part takes its letter from the part's function category, as the
+/// reference drawing's -102G1 (2904602, a power supply: G) and -102F2 (MICO 4.10, monitoring and protection: F).
+#[test]
+fn a_black_box_from_a_part_takes_the_letter_of_its_category() {
+    let tmp = Tmp::new("sample-letters");
+    let mut s = new_project(&tmp);
+    goto(&mut s, MULTI);
+    let mut placed = Vec::new();
+    for (k, number) in [(0i64, "2904602"), (1, "MICO 4.10")] {
+        let before = reps(&s);
+        done(&mut s, "place.pick", json!({"part": number, "template": 0}));
+        assert_eq!(s.tool().name(), "black_box", "{number}");
+        let cell = (8 + 24 * k, 10);
+        let (a, b) = (grid(&s, cell), grid(&s, (cell.0 + 12, cell.1 + 8)));
+        click(&mut s, a, json!({}));
+        click(&mut s, b, json!({}));
+        done(&mut s, "ui.dismiss", json!({}));
+        let rep = reps(&s)
+            .into_iter()
+            .find(|r| before.iter().all(|b| b.id != r.id))
+            .unwrap_or_else(|| panic!("{number}: the box"));
+        placed.push((number, rep.device.expect("a device")));
+    }
+    done(&mut s, "file.save", json!({}));
+    let (session, _) = Session::open_read_only(&tmp.0.join("new.ew"), "test").unwrap();
+    let tags: Vec<(&str, Option<String>)> =
+        placed.iter().map(|(n, d)| (*n, session.device_tag(*d))).collect();
+    assert_eq!(
+        tags,
+        [
+            ("2904602", Some("-101G1".to_owned())),
+            ("MICO 4.10", Some("-101F1".to_owned()))
+        ]
+    );
+}

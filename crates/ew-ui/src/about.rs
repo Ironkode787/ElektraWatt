@@ -543,6 +543,26 @@ fn form_fields(
                 crate::components::focus_ring(ui, &combo, t.radius_md);
             }
         });
+        // ID-1497 (4): a field's line under it, in the field column, `type.small` secondary. Window check F3 (doc 16a
+        // §6.12): the line sits with its field, `space.1` under it, and the row gap follows it to the next field.
+        if let Some(note) = form.note(f.name) {
+            ui.add_space(t.space_1 - ui.spacing().item_spacing.y);
+            ui.scope(|ui| {
+                // The row is the line's own height, not a control's, so the line is not centred between the fields.
+                ui.spacing_mut().interact_size.y = 0.0;
+                ui.horizontal(|ui| {
+                    ui.add_space(label_width + t.space_3);
+                    ui.add(
+                        egui::Label::new(
+                            egui::RichText::new(note)
+                                .font(crate::theme::font(&t.type_small))
+                                .color(t.text_secondary.color32()),
+                        )
+                        .wrap(),
+                    );
+                });
+            });
+        }
     }
     // FT-786: Save as macro's value-set table under the fields, the refusal under it.
     if let Some(table) = &form.table {

@@ -1287,12 +1287,17 @@ impl Tool for WireTool {
         }
     }
 
-    /// WP-S2.19 D13: while no clear route is found, and after a wire drawn so until the next one starts, the hint
-    /// says that the wire stays unrouted (not a refusal); while the target is a junction that already joins three
-    /// wires, that it is no end.
+    /// WP-S2.19 D13: while the target is a junction that already joins three wires, the hint says it is no end; once a
+    /// click placed a bend, that a bend is placed (ID-1497 (11)); while no clear route is found, and after a wire drawn
+    /// so until the next one starts, that the wire stays unrouted (not a refusal).
     fn status_hint(&self) -> super::Hint {
         if self.full_junction {
             return super::Hint::plain(key!("hint-wire-full-junction"));
+        }
+        // ID-1497 (11): once a click placed a bend instead of ending on a connection point, the hint says so and what
+        // ends the wire (a click that missed a connection point snaps to the grid and bends there).
+        if self.bends() > 0 {
+            return super::Hint::plain(key!("hint-wire-bend"));
         }
         if self.direct {
             return super::Hint::plain(key!("hint-wire-direct"));

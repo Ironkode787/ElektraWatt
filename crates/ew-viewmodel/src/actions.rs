@@ -1113,7 +1113,9 @@ fn editable_selection(m: &ShellModel) -> Result<(), Key<'static>> {
         };
     }
     editable_page(m)?;
-    if m.selection().is_empty() {
+    // C53-fx#1 (ID-1497 (8)): a selection Delete has nothing of on this page (a page chosen in the page list) is not
+    // offered here.
+    if m.selection().is_empty() || !m.delete_has_target() {
         Err(key!("reason-nothing-selected"))
     } else {
         Ok(())
@@ -3027,8 +3029,10 @@ pub static ACTIONS: &[ActionMeta] = &[
         None,
         |s, p| s.act_tool_connect_on_move(p),
     ))))),
-    keeps_banner(in_canvas(with_icon(
-        "route-2",
+    // ID-1497 (10): Edit route on the Draw tab's Connect group, beside Wire (the polyline: Wire has the route icon).
+    keeps_banner(in_canvas(placed(
+        place(Group::Connect, 2, CommandSize::Small, None),
+        "ew-shape-polyline",
         act(
             "tool.route_edit",
             Command,
@@ -3101,7 +3105,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     keeps_banner(in_canvas(placed(
         place(
             Group::Connect,
-            3,
+            4,
             CommandSize::Small,
             Some(key!("bar-interruption")),
         ),

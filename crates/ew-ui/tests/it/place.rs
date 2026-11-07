@@ -547,3 +547,56 @@ fn ft1375_device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     assert_eq!(reps(&h), before);
     h.state_mut().shell_mut().shutdown();
 }
+
+/// ID-1497 (5): on GP-UT, a click on A9F78116's row (a part without a symbol) opens its symbol chooser with a line
+/// under the title that says why it asks, its filter with the keyboard focus (the click had moved it to the row), and
+/// a press on the page does nothing while it is open, as with the strip chooser.
+#[test]
+fn the_symbol_chooser_of_a_part_says_why_takes_the_keys_and_holds_the_page() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    let gp_ut = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/variants/gp-ut.ewcmd"),
+    )
+    .expect("the GP-UT log");
+    let line: Value = serde_json::from_str(gp_ut.lines().nth(1).expect("its command")).unwrap();
+    dispatch(&mut h, "command.run", line);
+    settle(&mut h);
+    let (key, mods) = chord_of(&h, "tool.place_part");
+    h.key_press_modifiers(mods, key);
+    settle(&mut h);
+    h.get_all_by_role(egui::Role::TextInput)
+        .next()
+        .expect("the filter field")
+        .type_text("A9F78116");
+    settle(&mut h);
+    let note = "This part has no symbol of its own: choose the symbol to place it with.";
+    assert!(
+        h.query_by_label(note).is_none(),
+        "no line before the part is chosen"
+    );
+    h.get_by_label_contains("Miniature circuit breaker 1P").click();
+    settle(&mut h);
+    assert!(
+        h.query_by_label("Choose a symbol for A9F78116").is_some(),
+        "the title stays"
+    );
+    assert!(h.query_by_label(note).is_some(), "the line under the title");
+    let filter = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().placeholder() == Some("Filter by key, part number or function"))
+        .expect("the chooser's filter");
+    assert!(filter.accesskit_node().is_focused(), "the filter has the keys");
+    let press = h
+        .state_mut()
+        .shell_mut()
+        .dispatch("canvas.press", &json!({"x_mm": 150, "y_mm": 100}));
+    assert_eq!(
+        press,
+        Outcome::Refused {
+            reason_key: ew_ui::ew_viewmodel::key!("reason-choose-symbol")
+        }
+    );
+    assert!(h.state().shell().picker().is_some(), "the chooser stays open");
+    h.state_mut().shell_mut().shutdown();
+}
