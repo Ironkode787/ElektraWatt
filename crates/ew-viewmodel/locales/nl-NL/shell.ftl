@@ -779,7 +779,7 @@ toast-save-as-left-out-many = Opgeslagen als { $p0 } zonder { $p1 }, die beschad
 # FT-1499 (ID-1486): Update from library of the damaged copies, from the banner.
 error-update-damaged = Bijwerken vanuit de bibliotheek is geweigerd: { $p0 }.
 toast-damaged-copies-updated = { $p0 } beschadigde bibliotheekkopieën zijn bijgewerkt vanuit hun bibliotheken.
-toast-damaged-copies-not-updated = Niet bijgewerkt, omdat geen bibliotheek op deze computer een leesbare versie heeft: { $p0 }. Elke andere beschadigde bibliotheekkopie is bijgewerkt vanuit haar bibliotheek.
+toast-damaged-copies-not-updated = Beschadigde bibliotheekkopieën niet bijgewerkt: { $p0 }, omdat geen bibliotheek op deze computer een leesbare versie heeft. Elke andere is bijgewerkt vanuit haar bibliotheek.
 toast-saved-unreleased-format = Opgeslagen in een formaat dat nog niet is uitgebracht. Uitgebrachte versies van ElektraWatt openen dit project alleen-lezen.
 error-export = Exporteren mislukt: { $p0 }.
 error-write = Het bestand kon niet worden geschreven.

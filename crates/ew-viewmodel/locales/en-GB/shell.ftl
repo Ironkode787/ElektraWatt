@@ -822,7 +822,7 @@ toast-save-as-left-out-many = Saved as { $p0 } without { $p1 }, which are damage
 # FT-1499 (ID-1486): Update from library of the damaged copies, from the banner.
 error-update-damaged = Update from library is refused: { $p0 }.
 toast-damaged-copies-updated = Updated { $p0 } damaged library copies from their libraries.
-toast-damaged-copies-not-updated = Not updated, as no library on this computer holds a readable version: { $p0 }. Every other damaged library copy was updated from its library.
+toast-damaged-copies-not-updated = Damaged library copies not updated: { $p0 }, as no library on this computer holds a readable version. Every other one was updated from its library.
 toast-saved-unreleased-format = Saved in a format that is not released yet. Released versions of ElektraWatt open this project read-only.
 error-export = Export failed: { $p0 }.
 error-write = The file could not be written.

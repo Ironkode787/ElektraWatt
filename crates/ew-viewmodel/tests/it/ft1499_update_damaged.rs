@@ -182,8 +182,8 @@ fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
             "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
              damaged. Update the copy from its library first. 2 integrity findings were found when the project was \
              opened.",
-            "Not updated, as no library on this computer holds a readable version: the library copy of a part. Every \
-             other damaged library copy was updated from its library.",
+            "Damaged library copies not updated: the library copy of a part, as no library on this computer holds a \
+             readable version. Every other one was updated from its library.",
             "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
              damaged. No library on this computer holds it, so the copy cannot be updated from one. 1 integrity \
              finding was found when the project was opened.",
@@ -193,8 +193,8 @@ fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
             "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
              artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek. Bij het openen van het \
              project zijn 2 integriteitsbevindingen gevonden.",
-            "Niet bijgewerkt, omdat geen bibliotheek op deze computer een leesbare versie heeft: de \
-             bibliotheekkopie van een artikel. Elke andere beschadigde bibliotheekkopie is bijgewerkt vanuit haar \
+            "Beschadigde bibliotheekkopieën niet bijgewerkt: de bibliotheekkopie van een artikel, omdat geen \
+             bibliotheek op deze computer een leesbare versie heeft. Elke andere is bijgewerkt vanuit haar \
              bibliotheek.",
             "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
              artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit \
