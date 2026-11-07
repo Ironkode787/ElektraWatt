@@ -478,7 +478,13 @@ fn a_conductor_needs_a_cable_device() {
     let batch = run(&[("conductors.csv", "key,cable,core\nx:A,-1F1,A\ny:A,-9W9,A\n")]);
     assert!(!batch.records.iter().any(|r| matches!(r, Record::Conductor(_))));
     assert_eq!(count(&batch, 3, Severity::Error), 2);
-    assert!(messages(&batch, 3).iter().any(|m| m.contains("EW-INV-006")));
+    assert_eq!(
+        messages(&batch, 3),
+        [
+            "row dropped: `-1F1` is not a cable device",
+            "row dropped: `-9W9` is not a cable device"
+        ]
+    );
 }
 
 #[test]
@@ -596,7 +602,7 @@ fn a_bad_route_drops_the_row() {
     let cases = [
         (
             "W1,101,-1F1:2,-2F1:1,B2 -5 40",
-            "row dropped: column `route`: a corner is off the page grid (positions are never snapped, doc 06 §5.7)",
+            "row dropped: column `route`: a corner is off the page grid (positions are never snapped)",
         ),
         (
             "W1,,-1F1:2,-2F1:1,B2 -10 40",

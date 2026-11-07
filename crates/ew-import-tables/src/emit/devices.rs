@@ -178,7 +178,7 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
             }
         });
         if strip.is_some() && cable.is_some() {
-            r.fail("a device is a strip or a cable, not both (EW-INV-010)");
+            r.fail("a device is a strip or a cable, not both");
         }
         let plc_station = r.text("plc_station");
         let plc_role = r.choice("plc_role", STATION_ROLES);
@@ -285,7 +285,7 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
     }
     let fates = parent_fates(&parents, &pre);
     let rows: Vec<Row<'_>> = pending.iter().map(|(row, _, _)| *row).collect();
-    cx.report_fates(&rows, &fates, "EW-INV-009");
+    cx.report_fates(&rows, &fates, "devices");
     let ids: Vec<Id<Device>> = pending.iter().map(|(_, _, d)| d.id).collect();
     for (i, (row, _, mut device)) in pending.into_iter().enumerate() {
         if fates[i] != Fate::Kept {
@@ -539,7 +539,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
                 },
             };
             if device.is_some() {
-                r.fail("an interruption point has no device (EW-INV-003)");
+                r.fail("an interruption point has no device");
             }
             if let (Some(name), Some(direction)) = (name, direction) {
                 kind = FunctionKind::Ip(IpSpec {
@@ -612,7 +612,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
         {
             cx.malformed(
                 row,
-                &format!("device `{d}` already has a main function (EW-INV-002)"),
+                &format!("device `{d}` already has a main function"),
             );
             continue;
         }
@@ -650,7 +650,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
         if let Some(d) = &info.device
             && !mains.contains(d)
         {
-            cx.unresolved(row, &format!("device `{d}` has no main function (EW-INV-002)"));
+            cx.unresolved(row, &format!("device `{d}` has no main function"));
             continue;
         }
         if let Some(d) = &info.device {
@@ -787,7 +787,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
                     match &owner {
                         None => owner = Some(info.device.clone()),
                         Some(o) if *o != info.device => {
-                            problem = Some("the functions belong to different devices (EW-INV-004)".into());
+                            problem = Some("the functions belong to different devices".into());
                         }
                         Some(_) => {}
                     }
@@ -804,7 +804,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
         {
             cx.malformed(
                 row,
-                &format!("interruption point `{f}` already has a representation (EW-INV-013)"),
+                &format!("interruption point `{f}` already has a representation"),
             );
             continue;
         }
@@ -940,7 +940,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             "functions.csv",
             Some(&key),
             None,
-            "row dropped: interruption point without a representation (EW-INV-013)",
+            "row dropped: interruption point without a representation",
         );
         cx.functions.remove(&key);
     }

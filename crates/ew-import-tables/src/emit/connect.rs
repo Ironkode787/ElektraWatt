@@ -75,7 +75,7 @@ pub(crate) fn emit_conductors(cx: &mut Cx<'_>, table: Option<&Table>) {
             continue;
         };
         let Some(cable_id) = cx.devices.get(cable).filter(|d| d.cable).map(|d| d.id) else {
-            cx.unresolved(row, &format!("`{cable}` is not a cable device (EW-INV-006)"));
+            cx.unresolved(row, &format!("`{cable}` is not a cable device"));
             continue;
         };
         let id = record_id::<Conductor>("conductors", row.key());
@@ -350,7 +350,7 @@ fn stored_route(
             Some(e) => Ok(e),
             None if grid_index(page.grid, v).is_some() => Ok(v),
             None => Err(
-                "column `route`: a corner is off the page grid (positions are never snapped, doc 06 §5.7)"
+                "column `route`: a corner is off the page grid (positions are never snapped)"
                     .into(),
             ),
         }
@@ -478,12 +478,12 @@ fn check_sequence(
         };
         if !ends_here(&conn.a) && !ends_here(&conn.b) {
             return Err(Refusal::Malformed(format!(
-                "connection `{entry}` does not end at junction `{key}` (CI-04)"
+                "connection `{entry}` does not end at junction `{key}`"
             )));
         }
         if !listed.insert(entry) {
             return Err(Refusal::Malformed(format!(
-                "connection `{entry}` is listed twice (CI-04)"
+                "connection `{entry}` is listed twice"
             )));
         }
         ids.push(conn.id);
@@ -491,7 +491,7 @@ fn check_sequence(
     for conn_key in ix.ends.get(&id).map(Vec::as_slice).unwrap_or_default() {
         if cx.connections.contains_key(conn_key) && !listed.contains(conn_key.as_str()) {
             return Err(Refusal::Malformed(format!(
-                "connection `{conn_key}` ends at junction `{key}` but is missing from its sequence (CI-04)"
+                "connection `{conn_key}` ends at junction `{key}` but is missing from its sequence"
             )));
         }
     }

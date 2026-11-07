@@ -780,7 +780,7 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
                     e,
                     Code::DROPPED_BY_DESIGN,
                     Severity::Info,
-                    "thumbnail element is a graphic (doc 14 §4.3); not imported (no page-item records yet)",
+                    "thumbnail element is a graphic; not imported (no page-item records yet)",
                 );
                 let folio = mx.folio(e.diagram).to_owned();
                 mx.out.registry.insert(

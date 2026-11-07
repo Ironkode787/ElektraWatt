@@ -821,18 +821,18 @@ pub(crate) fn emit_revisions(cx: &mut Cx<'_>, table: Option<&Table>, parties: Op
         let checker = party(&mut r, "checker");
         if author.is_some() && author == checker {
             r.fail(
-                "columns `author` and `checker`: the same party; the checker is another party (EW-INV-018)",
+                "columns `author` and `checker`: the same party; the checker is another party",
             );
         }
         if state == Some("open") && open_seen {
-            r.fail("column `state`: a second open revision; at most one is open (EW-INV-016)");
+            r.fail("column `state`: a second open revision; at most one is open");
         }
         let mut notes: Vec<PageNote> = Vec::new();
         for page in r.list("changed_pages") {
             match cx.pages.get(page) {
                 Some(info) if notes.iter().any(|n| n.page == info.id) => {
                     r.fail(format!(
-                        "column `changed_pages`: page `{page}` listed twice (EW-INV-019)"
+                        "column `changed_pages`: page `{page}` listed twice"
                     ));
                 }
                 Some(info) => notes.push(PageNote {
