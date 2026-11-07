@@ -16,6 +16,7 @@ the `records` step of `cargo xtask settle --merge` runs it at the merge point.
 Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:` trailer cites, newest first, with the commits that cite it, newest first.
 
 - **ID-1495** (cycle 53): DN53 and PKG53 as built, merged on `release/0.1` (af6e3d6f) and into the working branch (project owner (delegated)): the router's search never leaves its second end's node but from the start nor re-enters a first CP end's node, `route::clear` likewise (WP-S2.04 §8.1), the deep nightly's failing routes kept as regressions, Golden A's routes unchanged; the command fuzzer's oracle counts the valve and coil functions N-FL-1 adds for a valve part (WP-S1.20 D6, D7), in the `device_create` and `valve_add` arms, the nightly's seed kept; the installed-resources proof watches the import's Apply (`file.import_qet_apply`), where the no-content note shows since the import card (WP-S3.09 D8), no product code changed; `ci.yml`, the deep nightly and `package.yml` running on af6e3d6f for the first candidate. Opened: FT-1571 to FT-1575. ID-1493; ID-1494.
+  - `365b40e04d` docs(plan): the valve module's PLC-module part question
   - `061cf70ada` docs(plan): DN53 and PKG53 as built
 - **ID-1494** (cycle 53): A third blocker of the first candidate (project owner (delegated)): `package.yml` has failed every night since 2026-11-04 (its last green run a dispatch on 14f88612), on both platforms, in the installed-resources proof (WP-S6.06 D13, `packaging/stage.py` `check_resources`): "file.import_qet reads the same with and without the content: the content is not proven", so the starter content's presence no longer shows in the import step's result; the release workflow's `package` job runs the same checks, so the candidate would fail; fixed on `release/0.1` by its own lane, PKG53: the cause found (the commit between 14f88612 and the first failing tip that changed the import's result or the content's lookup), then the window's import says again when the starter content is missing if that is what D13 and the import's spec ask, or the proof observes what the import does show, citing the document; the proof re-run on a staged tree locally on Windows and in WSL. ID-1493.
   - `881e00d16c` fix(packaging): prove the starter content by the import's Apply
@@ -1860,7 +1861,7 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 
 ## Open follow-up tasks
 
-601 open: 20 scheduled, 87 expired, 494 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
+602 open: 20 scheduled, 87 expired, 495 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
 
 ### Scheduled (due in cycle 53 or later)
 
@@ -2471,4 +2472,5 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 - FT-1573 (cycle 53, Low, docs; due: the design pass): WP-S6.06 §6's "as built" names no D13 step; name the installed-resources proof's steps, the content proven at the import's Apply (ID-1494). Source: ID-1495
 - FT-1574 (cycle 53, Low, docs; due: the design pass): WP-S2.04 §8.1 gains an "as built" line for ID-1493's end-node rule (no move leaves the second end's node but from the start, none re-enters a first CP end's node). Source: ID-1495
 - FT-1575 (cycle 53, Low, CI; due: the next upkeep lane): the deep nightly's printed minimal failing input of `route::tests::a_found_route_keeps_off_other_wires` did not fail alone (it lacked a second wire); find how the shrunk case is printed or copied, and persist proptest's failures as an artifact. Source: ID-1495
+- FT-1576 (cycle 53, Low, ew-commands; due: after 0.1.0's promote): `valve.add` with a part that has a PLC-module section adds a device that normaliser N0 attaches to the project's only station (WP-S1.21 D4) instead of the valve module; rule whether `valve.add` refuses such a part or N0 leaves a `valve.add` child in its module, and record it in WP-S1.20 and WP-S1.21. Source: ID-1496
 <!-- /generated:records -->
