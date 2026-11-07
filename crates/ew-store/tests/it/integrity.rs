@@ -521,7 +521,10 @@ fn a_damaged_definition_copy_whose_functions_end_fluid_lines_opens_read_only() {
     assert!(text.contains(location), "{page}");
     let (vfs, root) = mem_project(DirSync::Explicit);
     vfs.put(&join(&root, damaged), b"{\"$k\": \"fndef\",\n");
-    vfs.put(&join(&root, page), text.replacen(location, elsewhere, 1).as_bytes());
+    vfs.put(
+        &join(&root, page),
+        text.replacen(location, elsewhere, 1).as_bytes(),
+    );
     let id = |s: &str| s.parse::<AnyId>().expect("a UUID");
     match Store::open(&root, options(&vfs, 1)) {
         Err(ew_store::OpenError::Model {
