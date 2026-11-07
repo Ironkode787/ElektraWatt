@@ -1001,6 +1001,61 @@ pub(crate) fn arrival_opacity(elapsed: f64, reduce_motion: bool) -> Option<f32> 
     })
 }
 
+/// The arrival ring of `radius` around `centre` as the polylines it is drawn with (FT-1506): the circle in 96 steps,
+/// each step whose middle lies in one of `texts` left out, so the ring runs under the texts.
+pub(crate) fn ring_runs(centre: Pos2, radius: f32, texts: &[Rect]) -> Vec<Vec<Pos2>> {
+    const STEPS: usize = 96;
+    let on_ring = |i: usize| centre + radius * Vec2::angled(i as f32 * std::f32::consts::TAU / STEPS as f32);
+    let mut runs = Vec::new();
+    let mut run: Vec<Pos2> = Vec::new();
+    for i in 0..STEPS {
+        let (a, b) = (on_ring(i), on_ring(i + 1));
+        if texts.iter().any(|r| r.contains(a + (b - a) / 2.0)) {
+            if run.len() > 1 {
+                runs.push(std::mem::take(&mut run));
+            }
+            run.clear();
+            continue;
+        }
+        if run.is_empty() {
+            run.push(a);
+        }
+        run.push(b);
+    }
+    if run.len() > 1 {
+        runs.push(run);
+    }
+    runs
+}
+
+/// The sheet rectangles of the texts (glyph runs) of the page's display list `list`, at any depth (FT-1506: the arrival
+/// ring runs under them).
+pub(crate) fn text_rects(list: &ew_viewmodel::ew_api::output::ew_dl::DisplayList) -> Vec<SheetRect> {
+    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind, Transform, ew_units::Pt2};
+    fn walk(items: &[Item], map: &dyn Fn(Pt2) -> Pt2, out: &mut Vec<SheetRect>) {
+        for item in items {
+            match &item.kind {
+                ItemKind::Glyphs(run) => {
+                    let mut acc: Option<SheetRect> = None;
+                    for q in run.bound_points() {
+                        let r = SheetRect::from_point(map(q));
+                        acc = Some(acc.map_or(r, |a| a.union(r)));
+                    }
+                    out.extend(acc);
+                }
+                ItemKind::Group(g) => {
+                    let t = g.transform.unwrap_or(Transform::IDENTITY);
+                    walk(&g.items, &|q| map(t.apply(q)), out);
+                }
+                _ => {}
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(&list.items, &|p| p, &mut out);
+    out
+}
+
 impl Default for CanvasHost {
     fn default() -> CanvasHost {
         CanvasHost::new()
@@ -1144,11 +1199,28 @@ impl CanvasHost {
         let centre = rect.min + egui::Vec2::new(x as f32, y as f32) / ppp;
         let mut colour = tokens.accent;
         colour.a = (f32::from(colour.a) * opacity).round() as u8;
-        ui.painter_at(rect).circle_stroke(
-            centre,
-            tokens.size_control_inline,
-            crate::theme::stroke(2.0 * tokens.focus_width, colour),
-        );
+        // FT-1506 (ID-1456, doc 16a §5.5): the ring runs under the page's texts: it is left out where it crosses one,
+        // so it never covers a text.
+        let radius = tokens.size_control_inline;
+        let stroke = crate::theme::stroke(2.0 * tokens.focus_width, colour);
+        let ring = Rect::from_center_size(centre, Vec2::splat(2.0 * radius + stroke.width));
+        let texts: Vec<Rect> = text_rects(&canvas.page().list)
+            .into_iter()
+            .map(|r| {
+                let a = t.to_screen((r.min().x.0 as f64, r.min().y.0 as f64));
+                let b = t.to_screen((r.max().x.0 as f64, r.max().y.0 as f64));
+                Rect::from_two_pos(
+                    rect.min + Vec2::new(a.0 as f32, a.1 as f32) / ppp,
+                    rect.min + Vec2::new(b.0 as f32, b.1 as f32) / ppp,
+                )
+                .expand(stroke.width / 2.0)
+            })
+            .filter(|r| r.intersects(ring))
+            .collect();
+        let painter = ui.painter_at(rect);
+        for run in ring_runs(centre, radius, &texts) {
+            painter.add(egui::Shape::line(run, stroke));
+        }
         if reduce_motion {
             // A still mark needs one more frame only, when its moment is over (a visual run's next frames show it until
             // that much frame time has passed).
@@ -2717,5 +2789,76 @@ mod model_identity_tests {
         let rebuilt = Arc::new(String::from("103"));
         assert!(!same_model(Some(&seen), &rebuilt));
         assert!(!same_model(None, &rebuilt));
+    }
+}
+
+#[cfg(test)]
+mod arrival_tests {
+    use super::*;
+    use ew_viewmodel::ew_api::output::ew_dl::ew_units::Pt2;
+    use ew_viewmodel::ew_api::output::ew_dl::{
+        Brush, DisplayList, Glyph, Item, ShapedRun, Transform, ew_units::Rect as R,
+    };
+
+    /// FT-1506 (ID-1456): the ring runs under a text: no step of it lies in the text's rectangle, and the rest of the
+    /// circle is drawn; without a text it is one closed run.
+    #[test]
+    fn the_arrival_ring_runs_under_the_texts() {
+        let centre = egui::pos2(100.0, 100.0);
+        let whole = ring_runs(centre, 24.0, &[]);
+        assert_eq!(whole.len(), 1);
+        assert_eq!(whole[0].len(), 97);
+        let text = Rect::from_min_max(egui::pos2(110.0, 90.0), egui::pos2(200.0, 110.0));
+        let runs = ring_runs(centre, 24.0, &[text]);
+        assert!(!runs.is_empty());
+        for run in &runs {
+            for w in run.windows(2) {
+                assert!(!text.contains(w[0] + (w[1] - w[0]) / 2.0), "{w:?} in the text");
+            }
+        }
+        let drawn: usize = runs.iter().map(|r| r.len() - 1).sum();
+        assert!(drawn > 48 && drawn < 96, "{drawn} of 96 steps");
+    }
+
+    /// FT-1506: the texts of a list are its glyph runs' rectangles, through the groups' transforms; paths are not
+    /// texts.
+    #[test]
+    fn the_texts_of_a_list_are_its_glyph_runs() {
+        let p = |x, y| Pt2::new(Nm(x), Nm(y));
+        let run = ShapedRun {
+            font: FontKey {
+                sha256: [1; 32],
+                face_index: 0,
+            },
+            size: Nm(2_000),
+            origin: p(1_000, 1_000),
+            transform: Transform::IDENTITY,
+            glyphs: vec![Glyph {
+                id: 5,
+                x: Nm(0),
+                y: Nm(0),
+            }],
+            text: "X".into(),
+            brush: Brush::BLACK,
+            layout_box: R::from_points(p(0, -1_600), p(1_200, 400)),
+        };
+        let list = DisplayList {
+            items: vec![
+                Item::path(
+                    ew_viewmodel::ew_api::output::ew_dl::Path::line(p(0, 0), p(9, 9)),
+                    None,
+                    None,
+                ),
+                Item::group(
+                    Some(Transform::from_translation(p(10_000, 0))),
+                    None,
+                    vec![Item::glyphs(Arc::new(run))],
+                ),
+            ],
+        };
+        assert_eq!(
+            text_rects(&list),
+            [R::from_points(p(11_000, -600), p(12_200, 1_400))]
+        );
     }
 }

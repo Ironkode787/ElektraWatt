@@ -501,7 +501,7 @@ pub(crate) fn a_table_script_runs_twice_identically_and_its_record_replays_case(
         "{filled}"
     );
     assert!(
-        filled.contains("toast \"Set function text on 5 terminals\" undo"),
+        filled.contains("toast \"Set function text on 5 terminals.\" undo"),
         "{filled}"
     );
     for t in ["13", "14", "15", "16", "17"] {

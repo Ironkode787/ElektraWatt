@@ -734,3 +734,13 @@ rule-ew-imp-105 =
 rule-ew-imp-114 =
     .title = Imported text styles not bound to slot kinds
     .hint = Apply the text style the slot kind names.
+
+# The quick fixes' labels (FT-1482, ID-1457): the window's text of a fix by its key (`QuickFix::key`); the en-GB
+# text is the fix's English label, which the CLI and the JSON print.
+fix-drop-override = drop override
+fix-anchor-graphics-centre = anchor at the graphics centre
+fix-renumber-newer = Renumber the newer
+fix-unfreeze-tag = Unfreeze the tag
+fix-realise-primary-part = Realise the primary part
+fix-rebind-map-channel = Rebind to the map's channel
+fix-declare-pelv-bond = Declare 0 V–PE bond (PELV)

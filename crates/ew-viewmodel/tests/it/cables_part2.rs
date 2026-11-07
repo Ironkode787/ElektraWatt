@@ -94,7 +94,7 @@ fn ct1_swap_cores_moves_the_assignment_in_one_step() {
             .iter()
             .all(|e| e["kind"] == "connection" && e["path"] == "kind")
     );
-    assert_eq!(state(&s)["toast"]["text"], "Swapped cores BN and WH of -106W1");
+    assert_eq!(state(&s)["toast"]["text"], "Swapped cores BN and WH of -106W1.");
     // The cable diagram (block 906, the table's From and To) follows; the colour stays.
     assert_eq!(cell(&s, "-106W1", "WH", "from"), bn_from);
     assert_eq!(cell(&s, "-106W1", "WH", "to"), bn_to);

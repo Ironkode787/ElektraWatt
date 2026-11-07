@@ -187,7 +187,7 @@ fn pg6_twenty_terminals_get_a_part_in_one_command() {
     assert_eq!(step.params["targets"].as_array().unwrap().len(), 20);
     assert_eq!(step.params["path"], "parts");
     let toast = shell.toast().expect("a toast");
-    assert_eq!(toast.text, "Set part on 20 devices");
+    assert_eq!(toast.text, "Set part on 20 devices.");
     assert!(text(&shell, "device/parts[0].part").starts_with(other));
     // Undo through the toast: one step.
     done(&mut shell, "toast.undo", json!({}));
@@ -1022,6 +1022,36 @@ fn a_terminal_lists_its_connection_point_labels() {
     shell.shutdown();
 }
 
+/// FT-1531 (ID-1457): in a Dutch window a placed device's connection points are labelled in Dutch ("Aansluitpunt 1"),
+/// by `field_label`'s item rule, never the humanised English "Connection point 1".
+#[test]
+fn ft1531_a_dutch_window_labels_the_connection_points_in_dutch() {
+    let tmp = Tmp::new("props-ft1531");
+    let mut shell = writable(&tmp, "101");
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    let label = |shell: &ShellModel| {
+        let d = shell.describe();
+        let line = d
+            .lines()
+            .find(|l| l.trim_start().starts_with("row \"device/derived.cp[0]\" "))
+            .unwrap_or_else(|| {
+                panic!(
+                    "no first connection point row:
+{d}"
+                )
+            })
+            .trim_start()
+            .to_owned();
+        line.split('"').nth(3).unwrap_or_default().to_owned()
+    };
+    assert_eq!(label(&shell), "Aansluitpunt 1");
+    assert!(!shell.describe().contains("Connection point"));
+    done(&mut shell, "view.language", json!({"value": "en"}));
+    assert_eq!(label(&shell), "Connection point 1");
+    shell.shutdown();
+}
+
 /// FT-544: `select.set` takes a bare tag as the page prints it, a terminal as `TAG:pin` included, and selects the
 /// same record as `tag:<tag>`; a tag no device prints fails with a sentence that lists the reference forms.
 #[test]
@@ -1071,20 +1101,20 @@ fn ft554_wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
     );
     // Golden A has ten connections with an explicit cross-section or colour: the explicit mode marks those ten.
     done(&mut shell, "project.marker_mode", json!({"mode": "explicit"}));
-    assert_eq!(shell.toast().unwrap().text, "10 wires carry a marker");
+    assert_eq!(shell.toast().unwrap().text, "10 wires carry a marker.");
     // The same mode again commits nothing and still reports the count.
     let rev = shell.revision();
     done(&mut shell, "project.marker_mode", json!({"mode": "explicit"}));
     assert_eq!(shell.revision(), rev);
-    assert_eq!(shell.toast().unwrap().text, "10 wires carry a marker");
+    assert_eq!(shell.toast().unwrap().text, "10 wires carry a marker.");
     // No markers: says so, in the plural.
     done(&mut shell, "project.marker_mode", json!({"mode": "none"}));
-    assert_eq!(shell.toast().unwrap().text, "0 wires carry a marker");
+    assert_eq!(shell.toast().unwrap().text, "0 wires carry a marker.");
     // Every wire: a count above one, in the plural.
     done(&mut shell, "project.marker_mode", json!({"mode": "all"}));
     let all = shell.toast().unwrap().text.clone();
     assert!(
-        all.ends_with(" wires carry a marker") && !all.starts_with("0 "),
+        all.ends_with(" wires carry a marker.") && !all.starts_with("0 "),
         "{all}"
     );
 }

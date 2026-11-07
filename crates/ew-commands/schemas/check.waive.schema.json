@@ -34,7 +34,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`check.waive` (`WaiveFinding`): records a waiver that accepts one finding (doc 15 §2.5, FR-CHK-009; WP-S1.16 D7,\nFT-494): `Waiver {rule, target: {finding}, reason, author, date}` with a new ID.\n\nThe finding is named by its rule ID and its fingerprint (32 hex digits, FR-CHK-044; stored in lower case). The\nauthor (the display name the GUI records) and the date are parameters: the command reads no clock and no\noperating-system user (WP-S1.16 §10 rule 2). The check engine then reports the matching finding as waived; a\nwaiver that matches no finding stays and is reported (EW-CORE-081), and a rule whose findings cannot be waived\n(an integrity or system rule) gives no waived finding either.\n\nRejected: a rule ID that is not of the form `EW-<PACK>-<three digits>` (at `/rule`); a fingerprint that is not 32\nhex digits (at `/fingerprint`); an empty reason or one with a text shorter than [`WAIVER_REASON_MIN_CHARS`]\ncharacters (at `/reason`); a finding that a waiver of the same rule covers already (the existing waiver is named).\n\n**Exposure `HumanOnly`** (ADR-0019 decision 8, doc 15 §2.5 \"Who may waive\"): a scripted waiver would defeat the\nrecord, so command logs, scripts, MCP and plugins get `CmdError::Exposure`. Interactive; undoable as one step.\nOutcome: the waiver.",
+  "description": "`check.waive` (`WaiveFinding`): records a waiver that accepts one finding (doc 15 §2.5, FR-CHK-009; WP-S1.16 D7,\nFT-494): `Waiver {rule, target: {finding}, reason, author, date}` with a new ID.\n\nThe finding is named by its rule ID and its fingerprint (32 hex digits, FR-CHK-044; stored in lower case). The\nauthor (the display name the GUI records) and the date are parameters: the command reads no clock and no\noperating-system user (WP-S1.16 §10 rule 2). The check engine then reports the matching finding as waived; a\nwaiver that matches no finding stays and is reported (EW-CORE-081), and a rule whose findings cannot be waived\n(an integrity or system rule) gives no waived finding either.\n\nRejected: a rule ID that is not of the form `EW-<PACK>-<three digits>` (at `/rule`); a fingerprint that is not 32\nhex digits (at `/fingerprint`); an empty reason or one with a text shorter than [`WAIVER_REASON_MIN_CHARS`]\ncharacters (at `/reason`); a finding that a waiver of the same rule covers already (the existing waiver is named by\nits rule, and by the finding's `subject` when it is given, FT-1509).\n\n**Exposure `HumanOnly`** (ADR-0019 decision 8, doc 15 §2.5 \"Who may waive\"): a scripted waiver would defeat the\nrecord, so command logs, scripts, MCP and plugins get `CmdError::Exposure`. Interactive; undoable as one step.\nOutcome: the waiver.",
   "properties": {
     "author": {
       "$ref": "#/$defs/CmdIdent",
@@ -55,6 +55,13 @@
     "rule": {
       "$ref": "#/$defs/CmdIdent",
       "description": "The rule ID of the finding (`EW-CORE-041`)."
+    },
+    "subject": {
+      "description": "The finding's subject as printed (a device's tag), which the refusal of a finding waived already names; not\nrecorded (FT-1509).",
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "required": [

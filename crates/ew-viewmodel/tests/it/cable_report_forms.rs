@@ -136,7 +136,7 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
     assert_eq!(tag, "-W1");
     assert_eq!(
         state(&s)["toast"]["text"],
-        format!("Created cable {tag} with 5 cores")
+        format!("Created cable {tag} with 5 cores.")
     );
     // Connect cores…: the two leftmost wires of the page become BK and BU.
     let w = wires(&s);
@@ -165,7 +165,7 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
     let tag = "-103W1".to_owned();
     assert_eq!(
         state(&s)["toast"]["text"],
-        format!("Wires connected to the cores of {tag}: 2")
+        format!("Wires connected to the cores of {tag}: 2.")
     );
     done(&mut s, "navigator.show", json!({"kind": "cables"}));
     let from = |s: &mut ShellModel, core: &str| {
@@ -278,7 +278,7 @@ fn a_report_block_from_its_form_adds_its_pages() {
     );
     assert_eq!(
         state(&s)["toast"]["text"],
-        "Added the report block Terminal diagram from folio 950"
+        "Added the report block Terminal diagram from folio 950."
     );
     done(&mut s, "edit.undo", json!({}));
     assert!(!s.page_labels().iter().any(|l| l.starts_with("950")));
@@ -491,7 +491,7 @@ fn connect_cores_tells_two_cables_with_one_tag_apart() {
     );
     assert_eq!(
         state(&s)["toast"]["text"],
-        "Wires connected to the cores of -9W9 \u{b7} NEBU-G78W5-K-2-N-LE5 (2): 1"
+        "Wires connected to the cores of -9W9 \u{b7} NEBU-G78W5-K-2-N-LE5 (2): 1."
     );
     s.shutdown();
 }

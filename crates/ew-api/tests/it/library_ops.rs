@@ -756,6 +756,21 @@ fn library_update_refuses_what_it_cannot_update() {
             not_held["version"].as_str().unwrap()
         )
     );
+    // FT-1524: a manufacturer by its name and key, never "a manufacturer".
+    let maker_item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_1524);
+    let mut maker = golden_manufacturer_of("2904602");
+    maker["item_id"] = json!(maker_item.to_string());
+    maker["key"] = json!("PWC");
+    maker["name"] = json!("PowerCo");
+    s.libraries_mut().write(lib, &[into_library(maker, lib)]).unwrap();
+    let maker = serde_json::to_value(s.libraries().resolve(&lib_ref(lib, maker_item)).unwrap()).unwrap();
+    let (p, m) = run(&mut s, json!({"copies": [maker]}));
+    assert_eq!(p, "/copies/0");
+    assert_eq!(
+        m,
+        "the project holds no copy of manufacturer PowerCo (PWC) at version 1.0.0; embed it first (library.embed \
+         or part.assign)"
+    );
     let mut lower = golden_part("2904602");
     lower["description"] = json!("older");
     let mut lower = rehashed(lower);

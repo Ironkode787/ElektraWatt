@@ -210,6 +210,8 @@ picker-empty-strips-text = A terminal goes into a terminal strip. Create one her
 picker-new-strip = New terminal strip…
 picker-empty-black-box = No black-box symbols or parts to place
 picker-empty-page = Nothing can be placed on this page
+picker-group-project = In this project
+picker-group-libraries = From libraries
 reason-letter-needed = Give a letter code: the symbol's category maps to none
 reason-one-rep = Select exactly one representation
 reason-nothing-to-move = Nothing movable is selected
@@ -419,20 +421,20 @@ error-accessory-part-ambiguous = Several parts fit: { $p0 }; give part
 table-accessory-row = accessory row
 table-pos-move = move rows with Alt+Up and Alt+Down
 table-no-bridge = the terminal has no bridge
-toast-strip-inserted = Inserted { $p0 } terminals before { $p1 }
-toast-strip-inserted-one = Inserted 1 terminal before { $p1 }
-toast-strip-appended = Inserted { $p0 } terminals at the end of { $p1 }
-toast-strip-appended-one = Inserted 1 terminal at the end of { $p1 }
-toast-strip-moved = Moved { $p0 } terminals of { $p1 }
-toast-strip-moved-one = Moved { $p1 }
-toast-accessory-added = Added { $p0 } after { $p1 }
-toast-accessory-added-first = Added { $p0 } at the start of { $p1 }
-toast-accessory-added-before = Added { $p0 } before { $p1 }
+toast-strip-inserted = Inserted { $p0 } terminals before { $p1 }.
+toast-strip-inserted-one = Inserted 1 terminal before { $p1 }.
+toast-strip-appended = Inserted { $p0 } terminals at the end of { $p1 }.
+toast-strip-appended-one = Inserted 1 terminal at the end of { $p1 }.
+toast-strip-moved = Moved { $p0 } terminals of { $p1 }.
+toast-strip-moved-one = Moved { $p1 }.
+toast-accessory-added = Added { $p0 } after { $p1 }.
+toast-accessory-added-first = Added { $p0 } at the start of { $p1 }.
+toast-accessory-added-before = Added { $p0 } before { $p1 }.
 accessory-at-terminal = terminal { $p1 } of { $p0 }
-toast-accessories-removed = Removed { $p0 } accessories
-toast-accessories-removed-one = Removed 1 accessory
-toast-unbridged = Removed { $p0 } bridges
-toast-unbridged-one = Removed 1 bridge
+toast-accessories-removed = Removed { $p0 } accessories.
+toast-accessories-removed-one = Removed 1 accessory.
+toast-unbridged = Removed { $p0 } bridges.
+toast-unbridged-one = Removed 1 bridge.
 chooser-accessory-part = Choose the part
 
 # WP-S2.07 part 2: swap cores, and Delete and F2 in navigator trees (§7, FT-490).
@@ -445,7 +447,7 @@ reason-swap-cores-unwired = Neither core has a connection
 reason-nav-not-deletable = These rows stand for nothing that can be deleted
 reason-nav-not-renamable = This row has no name to rename
 reason-nav-delete = Deleting also removes what depends on the rows
-toast-cores-swapped = Swapped cores { $p0 } and { $p1 } of { $p2 }
+toast-cores-swapped = Swapped cores { $p0 } and { $p1 } of { $p2 }.
 
 # G-PP triage row 7: Draw ▸ Bond.
 action-bond-draw = Bond
@@ -883,6 +885,10 @@ refusal-words-kind-machine-profile = a machine profile
 refusal-words-kind-label-profile = a label profile
 refusal-words-kind-other = an item
 refusal-words-copy = { $p0 } at version { $p1 }
+refusal-words-symbol-named = symbol { $p0 }
+refusal-words-macro-named = macro { $p0 }
+refusal-words-manufacturer-named = manufacturer { $p0 } ({ $p1 })
+refusal-words-plc-profile-named = PLC profile { $p0 }
 refusal-geometry-off-grid = { $p0 } at { $p1 } is not on the drawing grid
 refusal-geometry-branch-point = the branch point
 refusal-geometry-outline-corner = the outline's corner
@@ -1022,6 +1028,7 @@ refusal-languages-decimal-separator = not a decimal separator of this version
 refusal-languages-no-source = translation languages need a `source` language
 # check.waive.
 refusal-check-waive-twice = a waiver of { $p0 } covers this finding already
+refusal-check-waive-twice-subject = a waiver of { $p0 } for { $p1 } covers this finding already
 refusal-check-waive-rule-id = `{ $p0 }` is not a rule ID (EW-<PACK>-<three digits>, for example EW-CORE-041)
 refusal-check-waive-fingerprint = `{ $p0 }` is not a finding fingerprint (32 hex digits)
 refusal-check-waive-reason = a waiver needs a reason of at least { $p0 } characters
@@ -1169,8 +1176,8 @@ refusal-paste-off-grid = { $p0 }; paste at a point on the grid
 refusal-paste-the-paste-point = the paste point
 refusal-paste-kind = a record of kind { $p0 } { $p1 }
 refusal-paste-kinds = is not pasted (only devices, functions, representations, connections, junctions, potential definitions, page items and structure boxes)
-refusal-paste-adapt-major = the project's version of { $p0 } { $p1 } differs from the pasted one in a major way ({ $p2 }); update instead
-refusal-paste-held-other-version = the project holds another version of { $p0 } { $p1 }; update from library first
+refusal-paste-adapt-major = the project's version of { $p0 } differs from the pasted one in a major way ({ $p1 }); update instead
+refusal-paste-held-other-version = the project holds another version of { $p0 }; update from library first
 refusal-paste-reference-missing = the { $p0 }'s { $p1 } names a { $p2 } that is neither in the fragment nor in this project; copy them together
 # item.place and marker.place, and a page item's members.
 refusal-items-image-asset-missing = the project holds no asset { $p0 }; an image places an asset the project already holds, or gives its file as `data`
@@ -1362,7 +1369,7 @@ refusal-page-reorder-before-and-section = give either before or section, not bot
 refusal-page-reorder-before-moved = the page to put the pages before is one of the moved pages; name a page that stays
 refusal-page-reorder-unchanged = the pages are already in this order
 # library.embed and library.update.
-refusal-library-embed-held = the project holds this { $p0 } already; take another version of it with update from library
+refusal-library-embed-held = the project holds { $p0 } already; take another version of it with update from library
 refusal-library-update-cp-twice = two updated copies map CP { $p0 } of function { $p1 } differently ({ $p2 } and { $p3 })
 refusal-library-update-blocked = the update leaves connected CPs without a CP; map them in `cp_maps`: { $p0 }
 refusal-library-update-missing = the new versions name items the project does not hold; give them in `embed`: { $p0 }
@@ -1544,8 +1551,8 @@ refusal-junction-unnumbered = without a number
 refusal-junction-number-newer = with a number of a newer format
 refusal-valve-functions-no-id = { $p0 } cannot take the functions of part { $p1 }: no free function ID is left; replace the device
 # The imports and the external changes: import.apply and external.apply.
-refusal-import-unknown-kind = a record of an unknown kind ({ $p0 })
-refusal-import-removed = a normaliser removed a record the import brought: { $p0 }
+refusal-import-unknown-kind = an item of an unknown kind ({ $p0 })
+refusal-import-removed = a normaliser removed an item the import brought: { $p0 }
 refusal-external-image = an image of the change does not read ({ $p0 })
 # FT-1337: end of the command refusals.
 
@@ -1951,16 +1958,16 @@ props-no = no
 props-fluid-line = { $p0 } line
 props-row-name = { $p0 }: { $p1 }
 props-neutral = Neutral
-toast-set = Set { $p0 } on { $p1 } { $p2 }
-toast-tag-proposal = Tag { $p0 }: online numbering gave counter { $p1 }
+toast-set = Set { $p0 } on { $p1 } { $p2 }.
+toast-tag-proposal = Tag { $p0 }: online numbering gave counter { $p1 }.
 props-tag-proposal = { $p0 }. Use { $p1 } to accept it.
 props-tag-proposal-script = { $p0 }. Use { $p1 } to accept it: props.accept_tag_proposal takes it.
 props-use-tag = Use { $p0 }
 props-join-tag = Join { $p0 }
 props-join-proposal = { $p0 } exists. Join it as an auxiliary contact?
 props-join-proposal-script = { $p0 } exists. Join it as an auxiliary contact? props.accept_tag_proposal joins it.
-toast-joined = Joined { $p0 } ({ $p1 }) at { $p2 }
-toast-joined-dropped = { $p0 }; { $p1 }
+toast-joined = Joined { $p0 } ({ $p1 }) at { $p2 }.
+toast-joined-dropped = { $p0 }; { $p1 }.
 count-wire = { $p0 } wire
 count-wires = { $p0 } wires
 count-box-pin = { $p0 } connection point
@@ -1973,7 +1980,7 @@ toast-strip-new = Created a terminal strip. It takes its tag, such as { $p0 }, w
 # FT-1090: a tag given in the New terminal strip form is the strip's from the start.
 toast-strip-new-tagged = Created terminal strip { $p0 }. Place its terminals with Draw ▸ Symbol… and the terminal symbol, whose strip picker lists it.
 toast-strip-new-no-example = Created a terminal strip. It takes its tag when its first terminal is placed: Draw ▸ Symbol… and the terminal symbol, whose strip picker lists it.
-toast-export-pdf = Exported { $p0 }: { $p1 }, { $p2 } KiB
+toast-export-pdf = Exported { $p0 }: { $p1 }, { $p2 } KiB.
 # FT-1212 (ID-1392): the export toast names its pages by kind.
 export-pages-drawing = { $p0 } drawing pages
 export-pages-drawing-one = 1 drawing page
@@ -1983,26 +1990,26 @@ export-pages-report = { $p0 } report pages
 export-pages-report-one = 1 report page
 
 # P-2: a second export of the same file in this session says so, so the toast visibly changes.
-toast-export-pdf-again = Exported { $p0 } again: { $p1 }, { $p2 } KiB
-toast-structure-new = Created the { $p0 } node { $p1 }
-toast-external-ref-new = Created the external reference { $p0 }; the Interruption point tool links an external point to it by this label
-toast-ip-deleted-wire = Deleted the interruption point { $p0 } and the wire connected to it
-toast-ip-deleted-wires = Deleted the interruption point { $p0 } and the { $p1 } wires connected to it
-toast-ips-deleted-wire = Deleted the interruption points { $p0 } and the wire connected to them
-toast-ips-deleted-wires = Deleted the interruption points { $p0 } and the { $p1 } wires connected to them
+toast-export-pdf-again = Exported { $p0 } again: { $p1 }, { $p2 } KiB.
+toast-structure-new = Created the { $p0 } node { $p1 }.
+toast-external-ref-new = Created the external reference { $p0 }; the Interruption point tool links an external point to it by this label.
+toast-ip-deleted-wire = Deleted the interruption point { $p0 } and the wire connected to it.
+toast-ip-deleted-wires = Deleted the interruption point { $p0 } and the { $p1 } wires connected to it.
+toast-ips-deleted-wire = Deleted the interruption points { $p0 } and the wire connected to them.
+toast-ips-deleted-wires = Deleted the interruption points { $p0 } and the { $p1 } wires connected to them.
 
 # FT-709: a delete that leaves a device without a symbol keeps the device; the toast says where it stays.
-toast-device-unplaced = { $p0 } has no symbol on a page now; it stays in the Devices navigator and the parts list
-toast-device-unplaced-no-part = { $p0 } has no symbol on a page now; it stays in the Devices navigator
-toast-devices-unplaced = { $p0 } have no symbol on a page now; they stay in the Devices navigator and the parts list
-toast-devices-unplaced-no-part = { $p0 } have no symbol on a page now; they stay in the Devices navigator
+toast-device-unplaced = { $p0 } has no symbol on a page now; it stays in the Devices navigator and the parts list.
+toast-device-unplaced-no-part = { $p0 } has no symbol on a page now; it stays in the Devices navigator.
+toast-devices-unplaced = { $p0 } have no symbol on a page now; they stay in the Devices navigator and the parts list.
+toast-devices-unplaced-no-part = { $p0 } have no symbol on a page now; they stay in the Devices navigator.
 toast-device-retagged = { $p0 } (now { $p1 })
-toast-autoconnect = { $p0 } and connected { $p1 }: { $p2 }. Alt+Click or { $p3 } places without connecting
-toast-placed = Placed { $p0 } at { $p1 }
-toast-placed-no-cell = Placed { $p0 }
-toast-placed-in-wire = { $p0 }, connected into the wire it was dropped on
+toast-autoconnect = { $p0 } and connected { $p1 }: { $p2 }. Alt+Click or { $p3 } places without connecting.
+toast-placed = Placed { $p0 } at { $p1 }.
+toast-placed-no-cell = Placed { $p0 }.
+toast-placed-in-wire = { $p0 }, connected into the wire it was dropped on.
 # FT-1208: the end of the toast of a terminal placed where a terminal of its strip stands ({0} the strip, {1} the grid steps).
-toast-placed-moved = { $p1 } grid steps right: { $p0 } has a terminal on the click point
+toast-placed-moved = { $p1 } grid steps right: { $p0 } has a terminal on the click point.
 
 # FIXPT41: an interruption point dropped on a pin ({3} the key of `canvas.activate_alt`).
 toast-ip-connected = Placed the interruption point { $p0 } at { $p1 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
@@ -2018,18 +2025,18 @@ toast-close = Close
 
 # WP-S2.09 part 1: the jobs, the notifications and the recovery dialog.
 toast-open = Open
-toast-export-cancelled = Export cancelled; no file written
-toast-export-failed = Export failed: { $p0 }; check that the folder is writable and the file is not open in another program
-toast-export-internal = Export failed: an internal error
-toast-recovered = Recovered { $p0 } changes; save to keep them
-toast-recovered-one = Recovered 1 change; save to keep it
+toast-export-cancelled = Export cancelled; no file written.
+toast-export-failed = Export failed: { $p0 }; check that the folder is writable and the file is not open in another program.
+toast-export-internal = Export failed: an internal error.
+toast-recovered = Recovered { $p0 } changes; save to keep them.
+toast-recovered-one = Recovered 1 change; save to keep it.
 
 # FT-549: the counted outcomes.
-toast-bridged = Added { $p0 } bridges between { $p1 } terminals
-toast-bridged-one = Added 1 bridge between { $p1 } terminals
-toast-check = Check: { $p0 }
-toast-marker-count = { $p0 } wires carry a marker
-toast-marker-count-one = 1 wire carries a marker
+toast-bridged = Added { $p0 } bridges between { $p1 } terminals.
+toast-bridged-one = Added 1 bridge between { $p1 } terminals.
+toast-check = Check: { $p0 }.
+toast-marker-count = { $p0 } wires carry a marker.
+toast-marker-count-one = 1 wire carries a marker.
 check-error = 1 error
 check-errors = { $p0 } errors
 check-warning = 1 warning
@@ -2104,8 +2111,8 @@ print-failed = The print set could not be built: { $p0 }
 # FT-1124 (ID-1225): the refusal of the Pages text, under the field.
 print-pages-error = The pages could not be read. Type folio labels or ranges, separated by commas.
 print-unavailable = Printing is not available in this window. Export a PDF and print it from your PDF viewer.
-toast-print-printed = Sent { $p0 } to the printer
-toast-print-opened = Opened { $p0 } in your PDF viewer
+toast-print-printed = Sent { $p0 } to the printer.
+toast-print-opened = Opened { $p0 } in your PDF viewer.
 toast-print-fallback-printer = Printing through the print dialog failed, so { $p0 } went to the default printer.
 toast-print-fallback-viewer = Printing could not start, so { $p0 } opened in your PDF viewer to print from there.
 toast-print-failed = Printing failed: { $p0 }. Export a PDF and print it from your PDF viewer.
@@ -2643,16 +2650,16 @@ reason-drop-on-cp = Drop the channel on a connection point
 reason-bind-off-card = The connection point is not on the channel's card: a channel binds a pin of its card or the coil of a valve on it
 
 # FT-753: the words say what to do.
-toast-bind-off-card = { $p0 } is not on the card { $p1 }: wire { $p0 } to a pin of { $p1 } first; the channel binds the card's pin
-toast-bind-off-card-untagged = The connection point is not on the card { $p0 }: a channel binds a pin of its card or the coil of a valve on it
+toast-bind-off-card = { $p0 } is not on the card { $p1 }: wire { $p0 } to a pin of { $p1 } first; the channel binds the card's pin.
+toast-bind-off-card-untagged = The connection point is not on the card { $p0 }: a channel binds a pin of its card or the coil of a valve on it.
 
 # FT-753: a channel dropped on a field device, reached in the model's terms.
 reason-bind-wired-pins = The device is wired to more than one pin of the card: drop the channel on the card's pin you mean
-toast-bind-wired-pins = { $p0 } is wired to { $p2 } pins of { $p1 } ({ $p3 }): drop the channel on the card's pin you mean
-toast-bind-no-position = { $p0 } cannot go on the valve terminal { $p1 }: no valve position is free, or { $p0 } sits on another assembly
-toast-bind-done = Bound { $p0 } to { $p1 }
-toast-bind-wired = Bound { $p0 } to { $p1 }, where { $p2 } is wired
-toast-bind-attached = Attached { $p0 } to { $p1 } at position { $p2 } and bound { $p3 } to { $p4 } (two undo steps)
+toast-bind-wired-pins = { $p0 } is wired to { $p2 } pins of { $p1 } ({ $p3 }): drop the channel on the card's pin you mean.
+toast-bind-no-position = { $p0 } cannot go on the valve terminal { $p1 }: no valve position is free, or { $p0 } sits on another assembly.
+toast-bind-done = Bound { $p0 } to { $p1 }.
+toast-bind-wired = Bound { $p0 } to { $p1 }, where { $p2 } is wired.
+toast-bind-attached = Attached { $p0 } to { $p1 } at position { $p2 } and bound { $p3 } to { $p4 } (two undo steps).
 
 # FT-757: a channel the bind unbound (FR-PLC-005), appended to the bind's toast.
 toast-bind-displaced = ; { $p0 } was bound there and is now unbound
@@ -2753,15 +2760,15 @@ prompt-table-name = table.xlsx
 prompt-open-table-title = Import table
 job-kind-table = Table export
 job-done-table = { $p0 } KiB
-toast-export-table = Exported { $p0 }: { $p1 } KiB
-toast-export-table-again = Exported { $p0 } again: { $p1 } KiB
+toast-export-table = Exported { $p0 }: { $p1 } KiB.
+toast-export-table-again = Exported { $p0 } again: { $p1 } KiB.
 marker-export-table = Exported the table to { $p0 }
-toast-table-imported = Imported { $p0 } changed cells from { $p1 }
+toast-table-imported = Imported { $p0 } changed cells from { $p1 }.
 table-import-title = Import { $p0 }
 table-import-nothing = Nothing to import: the file matches the project.
 # ID-1231: the toast of one cell, the refusal with several tables shown and none focused, and the link preview's line
 # when `nav.follow` has no key (the command by its menu path, as the menu table holds it).
-toast-table-imported-one = Imported 1 changed cell from { $p1 }
+toast-table-imported-one = Imported 1 changed cell from { $p1 }.
 reason-table-which = Several tables are shown; click in the one to export or import
 link-preview-go-none = Click the link or use Page ▸ Follow cross-reference to go there
 table-import-counts = { $p0 }, { $p1 }, { $p2 }, { $p3 }, { $p4 }, { $p5 }
@@ -2891,7 +2898,7 @@ error-waive-reason = A waiver needs a reason of at least { $p0 } characters.
 error-waive-author = A waiver needs the author's name.
 reason-not-open-finding = The row is not an open finding
 reason-not-waived = The finding is not waived
-toast-check-qualified = Check · { $p1 }: { $p0 }
+toast-check-qualified = Check · { $p1 }: { $p0 }.
 card-fix = { $p0 }, { $p1 }, { $p2 }
 nav-tree-name = { $p0 } navigator
 chips-label = Not on this page:
@@ -3284,7 +3291,7 @@ reason-part-favourite-local = Only a part from a library can be a favourite
 reason-no-part-dialog = Open the part dialog first
 reason-no-part-editor = Open the part editor first
 reason-part-edit = A part is edited
-toast-part-chosen = Chose { $p0 }
+toast-part-chosen = Chose { $p0 }.
 action-part-choose = Choose part…
 action-part-add = Add part…
 action-part-search = Search parts
@@ -3462,12 +3469,12 @@ error-revision-person = This needs a person at the window: a revision is approve
 error-revision-approve = The approval was refused: { $p0 }.
 error-revision-release = The release was refused: { $p0 }.
 error-revision-settle = The incomplete release was not settled: { $p0 }.
-toast-revision-approved = Approved revision { $p0 }; saved
-toast-revision-released = Released revision { $p0 } as { $p1 }
-toast-revision-withdrawn = Withdrew revision { $p0 }
-toast-revision-author = The { $p1 } is now the author of { $p0 }
-toast-revision-discarded = Discarded the incomplete release of { $p0 }
-toast-release-troubles = The release left housekeeping warnings ({ $p0 }): see Messages
+toast-revision-approved = Approved revision { $p0 }; saved.
+toast-revision-released = Released revision { $p0 } as { $p1 }.
+toast-revision-withdrawn = Withdrew revision { $p0 }.
+toast-revision-author = The { $p1 } is now the author of { $p0 }.
+toast-revision-discarded = Discarded the incomplete release of { $p0 }.
+toast-release-troubles = The release left housekeeping warnings ({ $p0 }): see Messages.
 release-source = Release
 
 # FIX41b ruling 6: the cause in words from the error's kind ({1}: a cause below, or nothing).
@@ -4003,9 +4010,9 @@ external-records = { $p0 } records
 external-records-one = 1 record
 external-changes = { $p0 } changes
 external-changes-one = 1 change
-toast-external = External change applied: { $p0 }
-toast-external-folios = External change applied: { $p0 } on folios { $p1 }
-toast-external-folio = External change applied: { $p0 } on folio { $p1 }
+toast-external = External change applied: { $p0 }.
+toast-external-folios = External change applied: { $p0 } on folios { $p1 }.
+toast-external-folio = External change applied: { $p0 } on folio { $p1 }.
 toast-external-git = {" "}(git { $p0 })
 external-absent = (none)
 external-whole-record = The whole record
@@ -4023,8 +4030,8 @@ external-text = Changed here and on disk: { $p0 }. Choose yours or theirs for ea
 external-text-one = Changed here and on disk: { $p0 }. Choose yours or theirs; saving waits until you do.
 external-fields = { $p0 } fields
 external-fields-one = 1 field
-toast-external-kept = Your version was kept: { $p0 }
-toast-external-same = The change on disk equals your version: nothing to take
+toast-external-kept = Your version was kept: { $p0 }.
+toast-external-same = The change on disk equals your version: nothing to take.
 external-apply = Apply
 external-all-mine = All mine
 external-all-theirs = All theirs
@@ -4052,12 +4059,12 @@ ewz-read-only = Open read-only
 error-extract-ewz = { $p0 } could not be extracted: it is not a whole project, or the folder beside it cannot be written; nothing was written.
 error-extract-exists = { $p0 } could not be extracted: the folder { $p1 } exists beside it, and an .ewz is extracted into a new folder only; nothing was written.
 error-export-ewz = Exporting the .ewz failed: { $p0 }.
-toast-ewz = Exported { $p0 }
-toast-ewz-unsaved = Exported { $p0 } with the saved state; the unsaved changes are not in it
+toast-ewz = Exported { $p0 }.
+toast-ewz-unsaved = Exported { $p0 } with the saved state; the unsaved changes are not in it.
 git-setup-title = Set up the merge driver?
 git-setup-text = ElektraWatt writes its merge driver and diff into this repository's git configuration, and the managed .gitattributes and .gitignore blocks into the project folder { $p0 }.
 git-setup-button = Set up
-toast-git-setup = Merge driver set up
+toast-git-setup = Merge driver set up.
 error-git-setup = The merge driver could not be set up: { $p0 }.
 reason-not-in-git = The project folder is not in a git repository
 reason-no-ew = The ew command is not installed beside ElektraWatt
@@ -4289,6 +4296,8 @@ field-word-covers = Covers
 field-word-cp-overrides = Connection point overrides
 field-word-cps = Connection points
 field-word-cps-item = Connection point
+# FT-1531: a device's derived connection points (`derived.cp[n]`).
+field-word-cp-item = Connection point
 field-word-cpu = CPU
 field-word-created = Created
 field-word-csa = Cross-section
@@ -4647,10 +4656,10 @@ reason-cores-no-cable = The project has no cable yet; create one first
 error-no-cable = The project has no cable { $p0 }: choose one from the list.
 error-cable-ambiguous = { $p0 } is the tag of { $p1 } cables: choose one from the list.
 error-cores-too-few = { $p0 } has { $p1 } free cores for { $p2 } wires: select fewer wires, or choose another cable.
-toast-cable-new = Created cable { $p0 } with { $p1 }
+toast-cable-new = Created cable { $p0 } with { $p1 }.
 toast-cable-new-cores = { $p0 } cores
 toast-cable-new-cores-one = 1 core
-toast-cores-connected = Wires connected to the cores of { $p1 }: { $p0 }
+toast-cores-connected = Wires connected to the cores of { $p1 }: { $p0 }.
 
 # FT-1372 (ID-1362): Output ▸ Reports ▸ Report block….
 action-report-block-new = Report block…
@@ -4659,7 +4668,7 @@ form-report-kind = Report
 form-first-folio = First folio
 error-report-kind = "{ $p0 }" is not a report; use one of: { $p1 }.
 error-first-folio = The first folio is a number: "{ $p0 }" is not.
-toast-report-block-new = Added the report block { $p0 } from folio { $p1 }
+toast-report-block-new = Added the report block { $p0 } from folio { $p1 }.
 
 # FT-1337 and FT-1363 (ID-1359 ruling 1): a command error in the window, by its reason.
 error-command-unknown = There is no command { $p0 }

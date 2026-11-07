@@ -189,11 +189,23 @@ fn the_picker_lists_the_imported_parts_under_their_manufacturer_in_part_number_o
         keys, sorted,
         "the project's first, then manufacturer, then part-number order"
     );
-    // A header stands above the first part row of each manufacturer and above no other row.
-    for (k, (i, m, _, _)) in rows.iter().enumerate() {
-        let first = k == 0 || rows[k - 1].1 != *m;
+    // A header stands above the first part row of each manufacturer within its group and above no other row; FT-1513
+    // (ID-1456): the group's heading in words above the group's first part row.
+    for (k, (i, m, _, l)) in rows.iter().enumerate() {
+        let starts = k == 0 || rows[k - 1].3 != *l;
+        let first = starts || rows[k - 1].1 != *m;
         assert_eq!(picker.header_before(*i), first.then_some(*m), "row {i}");
+        let heading = if *l { "From libraries" } else { "In this project" };
+        assert_eq!(
+            picker.group_before(*i).map(ew_viewmodel::strings::text),
+            starts.then_some(heading),
+            "row {i}"
+        );
     }
+    assert!(
+        rows.iter().any(|r| !r.3) && rows.iter().any(|r| r.3),
+        "both groups listed"
+    );
     assert!(
         (0..picker.rows.len())
             .filter(|i| !matches!(picker.rows[*i], PickerRow::PartFn(..)))

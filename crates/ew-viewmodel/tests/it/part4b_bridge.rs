@@ -374,7 +374,7 @@ fn a_bridge_extends_the_group_of_an_existing_bridge() {
     // FT-549: one bridge counts its two terminals.
     assert_eq!(
         s.toast().expect("the bridge toast").text,
-        "Added 1 bridge between 2 terminals"
+        "Added 1 bridge between 2 terminals."
     );
 }
 
@@ -475,7 +475,7 @@ fn four_terminals_draw_the_chain_in_one_undo_step() {
     // FT-549: the outcome is counted in the toast.
     assert_eq!(
         s.toast().expect("the bridge toast").text,
-        "Added 3 bridges between 4 terminals"
+        "Added 3 bridges between 4 terminals."
     );
     for (k, c) in connections.iter().enumerate() {
         assert_eq!(c["a"], json!({"cp": {"function": X1031[k], "idx": 3}}));
@@ -524,7 +524,7 @@ fn a_chain_draws_only_the_pairs_not_bridged_yet() {
     // FT-549: one bridge counts its two terminals.
     assert_eq!(
         s.toast().expect("the bridge toast").text,
-        "Added 1 bridge between 2 terminals"
+        "Added 1 bridge between 2 terminals."
     );
 }
 
@@ -869,7 +869,7 @@ fn se13_remove_bridge() {
     br1.sort();
     assert_eq!(targets(&s), br1);
     assert!(
-        s.describe().contains("toast \"Removed 3 bridges\" undo"),
+        s.describe().contains("toast \"Removed 3 bridges.\" undo"),
         "the toast"
     );
     done(&mut s, "edit.undo", json!({}));

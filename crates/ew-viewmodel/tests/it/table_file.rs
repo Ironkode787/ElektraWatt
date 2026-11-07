@@ -229,7 +229,10 @@ fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
         d.contains(&format!("  job 1 table \"x.xlsx\" done kib {kib} rev {rev}\n")),
         "the job's end names no pages: {d}"
     );
-    assert_eq!(shell.toast().unwrap().text, format!("Exported x.xlsx: {kib} KiB"));
+    assert_eq!(
+        shell.toast().unwrap().text,
+        format!("Exported x.xlsx: {kib} KiB.")
+    );
 
     // Five labels changed in the file.
     let labels = ["Valve 1", "Valve 2", "Valve 3", "Valve 4", "Valve 5"];
@@ -278,7 +281,7 @@ fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     assert_eq!(shell.recorded_commands().last().unwrap().cmd, "fields.set_many");
     assert_eq!(
         shell.toast().unwrap().text,
-        "Imported 5 changed cells from y.xlsx"
+        "Imported 5 changed cells from y.xlsx."
     );
     let again = tmp.0.join("x2.xlsx");
     done(
@@ -635,7 +638,7 @@ fn the_export_is_cut_to_the_rows_and_columns_on_show() {
     done(&mut shell, "preview.apply", json!({}));
     assert_eq!(
         shell.toast().unwrap().text,
-        "Imported 1 changed cell from one.xlsx"
+        "Imported 1 changed cell from one.xlsx."
     );
     shell.shutdown();
 }

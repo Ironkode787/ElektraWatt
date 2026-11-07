@@ -267,7 +267,7 @@ pub(crate) fn jb7_the_recovery_script_is_byte_identical_twice_case(twice: bool) 
         assert_eq!(lines[1]["state"]["dirty"], true);
         assert_eq!(
             lines[1]["state"]["toast"]["text"],
-            "Recovered 1 change; save to keep it"
+            "Recovered 1 change; save to keep it."
         );
         let d = lines[2]["describe"].as_str().unwrap();
         assert!(d.contains("page \"996\""), "the recovered page: {d}");
@@ -352,7 +352,7 @@ fn jb5_an_export_that_did_not_wait_and_failed_exits_1_with_its_notification() {
         assert_eq!(
             stderr.trim_end(),
             "error: Export failed: the folder does not exist; check that the folder is writable and the file is not \
-             open in another program"
+             open in another program."
         );
         let lines = steps_of(&out);
         assert_eq!(lines.len(), 2);

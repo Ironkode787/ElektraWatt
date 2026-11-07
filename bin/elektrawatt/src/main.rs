@@ -42,7 +42,7 @@ use ew_ui::ew_viewmodel::window::{MonitorArea, WindowGeometry};
 use ew_ui::gpu::{Flags, adapter_count, wgpu_configuration};
 use ew_ui::headless::{self, HeadlessArgs, ScriptSource};
 use ew_ui::visual::Geometry;
-use ew_ui::window_memory::{CoordSpace, Display, FirstFrameStep};
+use ew_ui::window_memory::{Display, FirstFrameStep};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -572,14 +572,12 @@ fn place_on_screen(ctx: &egui::Context, frame: &eframe::Frame, saved: Option<Win
                     width: size.width as f32,
                     height: size.height as f32,
                 },
-                scale: m.scale_factor() as f32,
                 primary: primary.as_ref() == Some(&m),
             }
         })
         .collect();
     let inner = window.inner_size();
     let steps = ew_ui::window_memory::first_frame(
-        CoordSpace::of_this_platform(),
         saved,
         outer,
         (inner.width as f32, inner.height as f32),

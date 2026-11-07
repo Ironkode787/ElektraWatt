@@ -451,11 +451,11 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
     let [created, connected, describe] = <[String; 3]>::try_from(describes(&transcript)).unwrap();
     assert_eq!(
         lines_of(&created, &["toast"]),
-        ["toast \"Created cable -W1 with 3 cores\" undo"]
+        ["toast \"Created cable -W1 with 3 cores.\" undo"]
     );
     assert_eq!(
         lines_of(&connected, &["toast"]),
-        ["toast \"Wires connected to the cores of -1W1: 2\" undo"]
+        ["toast \"Wires connected to the cores of -1W1: 2.\" undo"]
     );
     assert_eq!(
         lines_of(
@@ -477,7 +477,7 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
             "row level 2 conductor \"BN\"",
             "row level 2 conductor \"BU\"",
             "row level 2 conductor \"GNYE\"",
-            "toast \"Check: 0 errors, 8 warnings, 2 infos\"",
+            "toast \"Check: 0 errors, 8 warnings, 2 infos.\"",
         ]
     );
     let items = items(&tmp);
@@ -534,7 +534,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
     // Step 3's toast.
     assert_eq!(
         lines_of(&parts, &["toast"]),
-        ["toast \"Added the report block Parts list from folio 912\" undo"]
+        ["toast \"Added the report block Parts list from folio 912.\" undo"]
     );
     assert_eq!(
         lines_of(&preview, &["dialog \"Print\"", "preview \""]),

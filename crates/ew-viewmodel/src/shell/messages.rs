@@ -113,6 +113,11 @@ impl ShellModel {
                 .find(|f| f.fingerprint.to_string() == d.fingerprint)
             {
                 d.message = ew_api::checks::messages::render(f, lang);
+                // FT-1482: the quick fix's label by its key.
+                d.fix = f
+                    .fix
+                    .as_ref()
+                    .map(|q| ew_api::checks::messages::fix_label(q, lang));
             }
         }
         // FT-1140 (ID-1229 item 9): the message stands on its own line, so it starts with a capital (ID-1182).
@@ -495,8 +500,12 @@ impl ShellModel {
     // Waive… and Unwaive (FT-674; WP-S2.09, WP-S1.16 D7)
 
     /// The finding row `key` of the Messages pane (default the open Waive prompt's row, else the cursor row) when it
-    /// is a finding in state `state`: (key, rule, fingerprint); else the refusal.
-    fn finding_row(&self, p: &Map<String, Value>, state: &str) -> Result<(String, String, String), Outcome> {
+    /// is a finding in state `state`: (key, rule, fingerprint, subject as printed); else the refusal.
+    fn finding_row(
+        &self,
+        p: &Map<String, Value>,
+        state: &str,
+    ) -> Result<(String, String, String, String), Outcome> {
         let key = match string_param(p, "key")? {
             Some(k) => k.to_owned(),
             None => match self.messages.waive.as_ref().filter(|_| self.in_waive_form()) {
@@ -525,7 +534,7 @@ impl ShellModel {
         if d.waived != (state == "waived") || d.fingerprint.is_empty() {
             return Err(refusal);
         }
-        Ok((key, d.rule, d.fingerprint))
+        Ok((key, d.rule, d.fingerprint, messages::subject(node)))
     }
 
     /// Whether the open dialog is the Waive prompt.
@@ -556,7 +565,7 @@ impl ShellModel {
                 reason_key: key!("reason-human-only"),
             };
         }
-        let (key, rule, fingerprint) = match self.finding_row(p, "open") {
+        let (key, rule, fingerprint, subject) = match self.finding_row(p, "open") {
             Ok(r) => r,
             Err(e) => return e,
         };
@@ -614,11 +623,16 @@ impl ShellModel {
         if date.parse::<ew_api::catalog::Date>().is_err() {
             return self.waive_failed(strings::format(key!("error-missing-param"), &["date"]));
         }
+        let mut params = serde_json::json!({
+            "rule": rule, "fingerprint": fingerprint, "reason": reason, "author": author, "date": date,
+        });
+        // FT-1509: the finding's subject, which the refusal of a finding waived already names.
+        if !subject.is_empty() {
+            params["subject"] = Value::String(subject);
+        }
         let cmd = AnyCommand {
             name: "check.waive".to_owned(),
-            params: serde_json::json!({
-                "rule": rule, "fingerprint": fingerprint, "reason": reason, "author": author, "date": date,
-            }),
+            params,
         };
         let out = self.run_commit(&cmd);
         match out {
@@ -647,7 +661,7 @@ impl ShellModel {
                 reason_key: key!("reason-human-only"),
             };
         }
-        let (_, _, fingerprint) = match self.finding_row(p, "waived") {
+        let (_, _, fingerprint, _) = match self.finding_row(p, "waived") {
             Ok(r) => r,
             Err(e) => return e,
         };
@@ -950,36 +964,36 @@ mod tests {
         };
         assert_eq!(
             check_summary(c(1, 0, 0, 0, 0), None),
-            "Check: 1 error, 0 warnings"
+            "Check: 1 error, 0 warnings."
         );
         assert_eq!(
             check_summary(c(0, 1, 0, 0, 0), None),
-            "Check: 0 errors, 1 warning"
+            "Check: 0 errors, 1 warning."
         );
         // FT-664: waived and pending qualify the title; the line keeps the severities.
         assert_eq!(
             check_summary(c(2, 3, 1, 4, 1), None),
-            "Check · 4 waived · 1 pending: 2 errors, 3 warnings, 1 info"
+            "Check · 4 waived · 1 pending: 2 errors, 3 warnings, 1 info."
         );
         assert_eq!(
             check_summary(c(0, 25, 0, 1, 0), None),
-            "Check · 1 waived: 0 errors, 25 warnings"
+            "Check · 1 waived: 0 errors, 25 warnings."
         );
         // FT-1432: after an earlier check, what changed leads, then the project's totals.
         assert_eq!(
             check_summary(c(32, 4, 0, 0, 0), Some(c(33, 3, 1, 0, 0))),
-            "Check: \u{2212}1 error, +1 warning, \u{2212}1 info since the last check; project: 32 errors, 4 warnings"
+            "Check: \u{2212}1 error, +1 warning, \u{2212}1 info since the last check; project: 32 errors, 4 warnings."
         );
         assert_eq!(
             check_summary(c(33, 3, 0, 1, 0), Some(c(33, 3, 0, 0, 0))),
-            "Check · 1 waived: no change since the last check; project: 33 errors, 3 warnings"
+            "Check · 1 waived: no change since the last check; project: 33 errors, 3 warnings."
         );
         assert!(strings::set_locale("nl"));
         let dutch = check_summary(c(32, 3, 0, 0, 0), Some(c(33, 3, 0, 0, 0)));
         assert!(strings::set_locale("en"));
         assert_eq!(
             dutch,
-            "Controle: \u{2212}1 fout sinds de vorige controle; project: 32 fouten, 3 waarschuwingen"
+            "Controle: \u{2212}1 fout sinds de vorige controle; project: 32 fouten, 3 waarschuwingen."
         );
     }
 

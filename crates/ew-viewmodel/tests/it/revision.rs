@@ -257,7 +257,7 @@ fn ru3_a_person_at_the_window_approves_releases_and_withdraws() {
         s.notifications()
             .visible()
             .iter()
-            .any(|n| n.text == "Approved revision V1.0; saved"),
+            .any(|n| n.text == "Approved revision V1.0; saved."),
         "the toast"
     );
 
@@ -298,7 +298,7 @@ fn ru3_a_person_at_the_window_approves_releases_and_withdraws() {
         s.notifications()
             .visible()
             .iter()
-            .any(|n| n.text == "Released revision V1.0 as V1.0.ewarchive"),
+            .any(|n| n.text == "Released revision V1.0 as V1.0.ewarchive."),
         "the toast"
     );
 
@@ -722,7 +722,7 @@ fn ft842_the_release_warnings_show_once_in_messages() {
         .collect();
     assert_eq!(
         toasts,
-        vec!["The release left housekeeping warnings (1): see Messages".to_owned()]
+        vec!["The release left housekeeping warnings (1): see Messages.".to_owned()]
     );
     // Shown once: another fetch of the table keeps the one entry and adds no toast.
     done(&mut s, "messages.show", json!({ "on": false }));

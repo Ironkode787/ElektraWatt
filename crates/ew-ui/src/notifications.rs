@@ -128,11 +128,21 @@ pub(crate) fn text_width(t: &Tokens, width: f32) -> f32 {
     width - 2.0 * t.space_4 - t.icon_md - t.size_control_inline - 2.0 * t.space_3
 }
 
+/// The non-breaking hyphen (U+2011) a toast shows for each hyphen (FT-1507).
+const NB_HYPHEN: char = '\u{2011}';
+
 /// The layout of a toast's title or line: wrapped at word boundaries in the text column, up to `rows` rows
-/// ([`TITLE_ROWS`], [`LINE_ROWS`]), then cut with an ellipsis.
+/// ([`TITLE_ROWS`], [`LINE_ROWS`]), then cut with an ellipsis. FT-1507 (ID-1456): never at a hyphen, so a tag
+/// ("-X1031", "103-E9") is never broken: each hyphen is shown as U+2011, the non-breaking hyphen, which the UI's faces
+/// carry ([`crate::fonts::carries`]); the labels are not selectable, and their accessible names keep "-".
 fn line_job(line: &str, font: egui::FontId, colour: egui::Color32, rows: usize) -> egui::text::LayoutJob {
-    let mut job =
-        egui::text::LayoutJob::single_section(line.to_owned(), egui::TextFormat::simple(font, colour));
+    static CARRIED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    let shown = if *CARRIED.get_or_init(|| crate::fonts::carries(NB_HYPHEN)) {
+        line.replace('-', &NB_HYPHEN.to_string())
+    } else {
+        line.to_owned()
+    };
+    let mut job = egui::text::LayoutJob::single_section(shown, egui::TextFormat::simple(font, colour));
     job.wrap.max_rows = rows;
     job.wrap.break_anywhere = false;
     job
@@ -188,14 +198,16 @@ fn toast(
                                     TITLE_ROWS,
                                 ))
                                 .wrap()
+                                .selectable(false)
                                 .show_tooltip_when_elided(false),
                             );
-                            let live = n.text.clone();
+                            let (live, name) = (n.text.clone(), title.to_owned());
                             ui.ctx().accesskit_node_builder(response.id, |node| {
                                 node.set_live(egui::accesskit::Live::Polite);
                                 node.set_value(live);
+                                node.set_label(name);
                             });
-                            ui.add(
+                            let response = ui.add(
                                 egui::Label::new(line_job(
                                     &line,
                                     theme::font(&t.type_small),
@@ -203,8 +215,12 @@ fn toast(
                                     LINE_ROWS,
                                 ))
                                 .wrap()
+                                .selectable(false)
                                 .show_tooltip_when_elided(false),
                             );
+                            let name = line.to_string();
+                            ui.ctx()
+                                .accesskit_node_builder(response.id, |node| node.set_label(name));
                         }
                         (_, None) => {
                             // FT-1195 (doc 16a §6.10, ID-940): a long text wraps up to three rows, then is cut with an
@@ -217,12 +233,14 @@ fn toast(
                                     LINE_ROWS,
                                 ))
                                 .wrap()
+                                .selectable(false)
                                 .show_tooltip_when_elided(false),
                             );
-                            let live = n.text.clone();
+                            let (live, name) = (n.text.clone(), n.text.clone());
                             ui.ctx().accesskit_node_builder(response.id, |node| {
                                 node.set_live(egui::accesskit::Live::Polite);
                                 node.set_value(live);
+                                node.set_label(name);
                             });
                         }
                     }
@@ -568,5 +586,39 @@ mod tests {
         });
         output.textures_delta.clear();
         assert_eq!(shown, (2, false, TITLE_ROWS, true, title.to_owned()));
+    }
+
+    /// FT-1507 (ID-1456, W52 F12): the UI's faces carry the non-breaking hyphen, and a toast at the floor never breaks
+    /// a tag at its hyphen: at every width of a narrowing column each row ends at a space or with the text, so no "-"
+    /// is left alone on a row.
+    #[test]
+    fn a_toast_never_breaks_a_tag() {
+        assert!(crate::fonts::carries(NB_HYPHEN));
+        let text = "Placed -X1031 terminal 71 at 103-E9, connected into the wire it was dropped on.";
+        let ctx = egui::Context::default();
+        crate::fonts::install(&ctx);
+        let mut output = ctx.run_ui(egui::RawInput::default(), |_| {});
+        output.textures_delta.clear();
+        let mut broken = Vec::new();
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let t = theme::tokens(Theme::Light, Density::Comfortable);
+            for width in (140..=text_width(&t, toast_width(&t, 1280.0)) as u32).step_by(2) {
+                let mut job = line_job(text, theme::font(&t.type_body_strong), theme::NO_TINT, 8);
+                job.wrap.max_width = width as f32;
+                let galley = ui.painter().layout_job(job);
+                let rows: Vec<String> = galley
+                    .rows
+                    .iter()
+                    .map(|r| r.glyphs.iter().map(|g| g.chr).collect())
+                    .collect();
+                for row in &rows[..rows.len() - 1] {
+                    if !row.ends_with(' ') {
+                        broken.push(format!("{width}: {rows:?}"));
+                    }
+                }
+            }
+        });
+        output.textures_delta.clear();
+        assert_eq!(broken, Vec::<String>::new());
     }
 }

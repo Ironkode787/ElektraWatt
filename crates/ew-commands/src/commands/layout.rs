@@ -1675,7 +1675,10 @@ pub(crate) fn follow_part_change(
 /// FT-1441 (doc 12 §3.3's push; decision log ID-1416): after terminals were inserted into `strip`, each placement of the
 /// strip as a whole on a rail (turned 0°) that grew shifts the items after it on the rail by the overlap, cascading
 /// ([`cascade`] with the grown strip first), in the same transaction. The grown width is the strip's terminals as the
-/// transaction holds them, side by side; the positions are the base snapshot's.
+/// transaction holds them, side by side; the positions are the base snapshot's. A strip turned 180° grows left and
+/// pushes the items before it, leftwards (FT-1495, ID-1455): the same cascade runs on the rail's coordinates mirrored,
+/// where the gaps and the bracket side apply as for an unturned strip; past the rail's start the positions are written
+/// all the same.
 ///
 /// - Free space after the strip is used first; an item moves only as far as its minimum gap to its moved neighbour
 ///   requires (between two strips, the end bracket).
@@ -1712,7 +1715,12 @@ pub(crate) fn push_after_growth(tx: &mut TxBuilder<'_>, strip: Id<Device>) -> Re
             .as_ref()
             .as_ref()
             .is_some_and(|g| !g.unknown);
-        if row.part.is_some() || !known || Quarter::of(row.pose.q) != Some(Quarter::NONE) {
+        let turned = match Quarter::of(row.pose.q) {
+            Some(Quarter::NONE) => false,
+            Some(Quarter::HALF) => true,
+            _ => continue,
+        };
+        if row.part.is_some() || !known {
             continue;
         }
         let Some(axis) = tx.get::<Carrier>(c).and_then(|r| RailAxis::of(&r.path)) else {
@@ -1722,6 +1730,17 @@ pub(crate) fn push_after_growth(tx: &mut TxBuilder<'_>, strip: Id<Device>) -> Re
             note_rail_reads(tx, c, &[d.as_ref()]);
         }
         let mut items = rail_items(&q, c);
+        if turned {
+            // The mirrored frame: `s` becomes `−s`, the pads swap sides, and the items before the strip come after it.
+            for i in &mut items {
+                *i = RailItem {
+                    s0: -i.s1,
+                    s1: -i.s0,
+                    pad: [i.pad[1], i.pad[0]],
+                    ..*i
+                };
+            }
+        }
         items.sort_by_key(|i| (i.s0, i.s1, i.placement));
         let Some(k) = items.iter().position(|i| i.placement == Some(p)) else {
             continue;
@@ -1733,7 +1752,7 @@ pub(crate) fn push_after_growth(tx: &mut TxBuilder<'_>, strip: Id<Device>) -> Re
         if grown.s1 <= items[k].s1 {
             continue;
         }
-        // The rail's end refuses nothing here: EW-LAY-010 reports it.
+        // The rail's end (its start, mirrored) refuses nothing here: EW-LAY-010 reports it.
         let rest = &items[k + 1..];
         let moves = match cascade(grown, rest, i128::MAX, true) {
             Ok(moves) => moves,
@@ -1750,7 +1769,9 @@ pub(crate) fn push_after_growth(tx: &mut TxBuilder<'_>, strip: Id<Device>) -> Re
             ) else {
                 continue;
             };
-            let s = i128::from(pl.pose.t[0].0) + (s0 - old.s0);
+            // Mirrored, the item's real start moves by the opposite of its mirrored start's move.
+            let by = if turned { old.s0 - s0 } else { s0 - old.s0 };
+            let s = i128::from(pl.pose.t[0].0) + by;
             writes.push((moved, rail_pose(tx, &axis, s, &pl.pose)?));
         }
     }

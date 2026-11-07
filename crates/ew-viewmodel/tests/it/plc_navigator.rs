@@ -435,7 +435,7 @@ fn ft753_a_device_wired_to_the_card_binds_the_card_pin() {
     let toast = s.toast().expect("the bind's toast").text.clone();
     assert_eq!(
         toast,
-        format!("Bound I0.0 to {card}:3, where {switch} is wired; I0.2 was bound there and is now unbound")
+        format!("Bound I0.0 to {card}:3, where {switch} is wired; I0.2 was bound there and is now unbound.")
     );
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(address_at(&s, &format!("{card}:3")).as_deref(), Some("I0.2"));
@@ -464,7 +464,7 @@ fn ft753_a_device_wired_to_two_card_pins_asks_which() {
     assert_eq!(
         toast,
         format!(
-            "{switch} is wired to 2 pins of {card} ({card}:2, {card}:3): drop the channel on the card's pin you mean"
+            "{switch} is wired to 2 pins of {card} ({card}:2, {card}:3): drop the channel on the card's pin you mean."
         )
     );
 }
@@ -591,7 +591,7 @@ fn ft757_a_displaced_channel_is_named() {
     let toast = s.toast().unwrap();
     assert_eq!(
         toast.text,
-        "Bound Q0.0 to -101A2:4; Q0.3 was bound there and is now unbound"
+        "Bound Q0.0 to -101A2:4; Q0.3 was bound there and is now unbound."
     );
     assert!(toast.action().is_some(), "Undo");
     assert!(!toast.text.contains('@'));
@@ -630,7 +630,7 @@ fn ft757_an_edited_row_keeps_the_cursor_and_the_toast_reads_in_sentence_case() {
     );
     let last = n.visible().len() - 1;
     assert_eq!(key(&s, last), first, "the row sorted to the end");
-    assert_eq!(s.toast().unwrap().text, "Set address on 1 channel");
+    assert_eq!(s.toast().unwrap().text, "Set address on 1 channel.");
 }
 
 /// PG6 (WP-S2.07 §8): the PLC navigator's transcript members and describe words, and its table calls. The focus
@@ -740,11 +740,7 @@ fn ft1448_the_address_profile_is_chosen_in_properties() {
         };
         (text.clone(), options)
     };
-    let (now, options) = profile(&s);
-    assert!(
-        options.len() >= 2 && options.contains(&now),
-        "{now} among {options:?}"
-    );
+    let (now_name, options) = profile(&s);
     // FT-1478: the chooser shows each profile's name, its reference as the secondary line, and commits the reference.
     done(&mut s, "props.edit", json!({"row": "plc_config_project/profile"}));
     let c = s.properties().choices().expect("the profiles").clone();
@@ -765,14 +761,31 @@ fn ft1448_the_address_profile_is_chosen_in_properties() {
         assert!(shown.contains(&builtin), "{builtin:?} among {shown:?}");
     }
     assert_eq!(c.details.len(), c.items.len());
-    done(&mut s, "props.cancel", json!({}));
+    // FT-1491 (ID-1456): the row reads the chosen profile's name; its reference is read through the chooser.
+    let name_of = |reference: &str| {
+        shown
+            .iter()
+            .find(|(_, r, _)| *r == reference)
+            .map(|(name, _, _)| name.to_string())
+    };
+    let now = shown
+        .iter()
+        .find(|(name, _, _)| *name == now_name)
+        .map(|(_, r, _)| r.to_string())
+        .unwrap_or_else(|| panic!("{now_name} among {shown:?}"));
+    assert!(
+        options.len() >= 2 && options.contains(&now),
+        "{now} among {options:?}"
+    );
     let other = options.iter().find(|o| **o != now).unwrap().clone();
+    let other_name = name_of(&other).expect("the other profile's name");
+    done(&mut s, "props.cancel", json!({}));
     done(
         &mut s,
         "props.set",
         json!({"row": "plc_config_project/profile", "value": other}),
     );
-    assert_eq!(profile(&s).0, other);
+    assert_eq!(profile(&s).0, other_name);
     assert_eq!(
         s.recorded_commands().last().map(|c| c.cmd.as_str()),
         Some("plc.set_profile")

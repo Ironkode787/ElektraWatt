@@ -60,6 +60,24 @@ fn the_start_page_has_every_entry_of_doc_16_section_3_7() {
     );
 }
 
+/// FT-1475: the quick switches stand centred in the page's column, as the buttons above them do, not at its left edge.
+#[test]
+fn the_start_page_quick_switches_are_centred_in_its_column() {
+    let tmp = Tmp::new();
+    let mut h = harness_with(gui_shell(&tmp), Scripted::default(), None);
+    settle(&mut h);
+    let centre = h.get_by_label("New project").rect().center().x;
+    for (label, last) in [("Language", "Nederlands"), ("Keymap", "KiCad-like")] {
+        let left = h.get_by_label(label).rect().min.x;
+        let right = h.get_by_label(last).rect().max.x;
+        let mid = (left + right) / 2.0;
+        assert!(
+            (mid - centre).abs() < 8.0,
+            "{label}: the row's middle {mid} against the page's {centre}"
+        );
+    }
+}
+
 #[test]
 fn new_project_asks_for_a_directory_and_opens_the_built_in_page() {
     let tmp = Tmp::new();

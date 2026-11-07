@@ -258,6 +258,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("refusal-words-kind-label-profile", "a label profile"),
     ("refusal-words-kind-other", "an item"),
     ("refusal-words-copy", "{0} at version {1}"),
+    ("refusal-words-symbol-named", "symbol {0}"),
+    ("refusal-words-macro-named", "macro {0}"),
+    ("refusal-words-manufacturer-named", "manufacturer {0} ({1})"),
+    ("refusal-words-plc-profile-named", "PLC profile {0}"),
     (
         "refusal-geometry-off-grid",
         "{0} at {1} is not on the drawing grid",
@@ -579,6 +583,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     (
         "refusal-check-waive-twice",
         "a waiver of {0} covers this finding already",
+    ),
+    (
+        "refusal-check-waive-twice-subject",
+        "a waiver of {0} for {1} covers this finding already",
     ),
     (
         "refusal-check-waive-rule-id",
@@ -1044,11 +1052,11 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-paste-adapt-major",
-        "the project's version of {0} {1} differs from the pasted one in a major way ({2}); update instead",
+        "the project's version of {0} differs from the pasted one in a major way ({1}); update instead",
     ),
     (
         "refusal-paste-held-other-version",
-        "the project holds another version of {0} {1}; update from library first",
+        "the project holds another version of {0}; update from library first",
     ),
     (
         "refusal-paste-reference-missing",
@@ -1654,7 +1662,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     // library.embed and library.update.
     (
         "refusal-library-embed-held",
-        "the project holds this {0} already; take another version of it with update from library",
+        "the project holds {0} already; take another version of it with update from library",
     ),
     (
         "refusal-library-update-cp-twice",
@@ -2226,10 +2234,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "{0} cannot take the functions of part {1}: no free function ID is left; replace the device",
     ),
     // The imports and the external changes: import.apply and external.apply.
-    ("refusal-import-unknown-kind", "a record of an unknown kind ({0})"),
+    ("refusal-import-unknown-kind", "an item of an unknown kind ({0})"),
     (
         "refusal-import-removed",
-        "a normaliser removed a record the import brought: {0}",
+        "a normaliser removed an item the import brought: {0}",
     ),
     (
         "refusal-external-image",

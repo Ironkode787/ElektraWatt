@@ -21,7 +21,8 @@ fn action(events: &mut Vec<Event>, id: &'static str, params: Value) {
     events.push(Event::Action(id, params));
 }
 
-/// A row of choices for one setting: the label, then one selectable button per option.
+/// A row of choices for one setting: the label, then one selectable button per option, centred in the page's column
+/// as the rest of the page is (FT-1475).
 fn quick_switch(
     ui: &mut Ui,
     events: &mut Vec<Event>,
@@ -30,10 +31,28 @@ fn quick_switch(
     current: &str,
     options: &[&str],
 ) {
-    ui.horizontal(|ui| {
-        ui.label(strings::text(label_key));
-        for option in options {
-            let text = strings::text(strings::Key::run_time(&format!("{key}-{option}")));
+    let label = strings::text(label_key);
+    let texts: Vec<&str> = options
+        .iter()
+        .map(|option| strings::text(strings::Key::run_time(&format!("{key}-{option}"))))
+        .collect();
+    let body = egui::TextStyle::Body.resolve(ui.style());
+    let width_of = |text: &str| {
+        ui.painter()
+            .layout_no_wrap(text.to_owned(), body.clone(), crate::theme::NONE)
+            .size()
+            .x
+    };
+    let spacing = ui.spacing();
+    let width = width_of(label)
+        + texts
+            .iter()
+            .map(|text| width_of(text) + 2.0 * spacing.button_padding.x + spacing.item_spacing.x)
+            .sum::<f32>();
+    let size = egui::vec2(width.min(ui.available_width()), spacing.interact_size.y);
+    ui.allocate_ui_with_layout(size, egui::Layout::left_to_right(egui::Align::Center), |ui| {
+        ui.label(label);
+        for (option, text) in options.iter().zip(texts) {
             if ui.selectable_label(*option == current, text).clicked() && *option != current {
                 action(events, "settings.set", json!({ "key": key, "value": option }));
             }

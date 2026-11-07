@@ -95,9 +95,15 @@ pub fn resource_errors() -> Vec<(&'static str, String)> {
 const NUMBER_ARGS: &[&str] = &["cp_nth"];
 
 /// The decimal arguments of a rule, by rule ID (ID-1417): written with the decimal separator of the language
-/// ([`DECIMAL_COMMA`]). EW-POT-006's cross-sections in mm².
-const DECIMAL_ARGS: &[(&str, &[&str])] =
-    &[(crate::rules::pot::PE_UNDERSIZED.id, &["pe", "required", "line"])];
+/// ([`DECIMAL_COMMA`]). EW-POT-006's cross-sections in mm²; EW-LAY-010's lengths in mm (FT-1496), its point lists
+/// (`rail`, `at`) keeping their notation.
+const DECIMAL_ARGS: &[(&str, &[&str])] = &[
+    (crate::rules::pot::PE_UNDERSIZED.id, &["pe", "required", "line"]),
+    (
+        crate::rules::layout::CARRIER_INCOMPATIBLE.id,
+        &["s", "length", "from", "to", "by"],
+    ),
+];
 
 /// The shipped languages that write a decimal comma (`1,5 mm²`).
 const DECIMAL_COMMA: &[&str] = &["nl-NL"];
@@ -215,6 +221,21 @@ pub fn has(rule: &str, name: Option<&str>, lang: &str) -> bool {
         Some("value") => m.value().is_some(),
         Some(attr) => m.get_attribute(attr).is_some(),
     }
+}
+
+/// A quick fix's label in `lang` (FT-1482): its key's message of that language, falling back to en-GB's, and to the
+/// English label for a fix without a key (an importer's).
+pub fn fix_label(fix: &crate::finding::QuickFix, lang: &str) -> String {
+    let lookup = |tag: &str| -> Option<String> {
+        let b = bundle(tag)?;
+        let pattern = b.get_message(fix.key?)?.value()?;
+        let mut errors = Vec::new();
+        let text = b.format_pattern(pattern, None, &mut errors);
+        errors.is_empty().then(|| text.into_owned())
+    };
+    lookup(lang)
+        .or_else(|| lookup(DEFAULT_LANGUAGE))
+        .unwrap_or_else(|| fix.label.clone())
 }
 
 /// A rule's title in `lang` (`.title`), falling back to en-GB.

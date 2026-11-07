@@ -1742,6 +1742,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
             .check(project.session.online_scheme(), ew_api::checks::CheckMode::Online)
     });
     let message = table.columns.iter().position(|c| c.key == "message");
+    let fix = table.columns.iter().position(|c| c.key == "fix");
     // FT-1338 (ID-1357 ruling 1): a yes-or-no column's cells ("Generated", a core's "Shield", a cable's "External").
     let yes_no: Vec<usize> = (table.columns.iter().enumerate())
         .filter(|(_, c)| ["generated", "shield", "external"].contains(&c.key.as_str()))
@@ -1863,6 +1864,10 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
                 };
                 if let Some(cell) = message.and_then(|i| node.cells.get_mut(i)) {
                     *cell = text;
+                }
+                // FT-1482: the quick fix's label by its key.
+                if let (Some(q), Some(cell)) = (&f.fix, fix.and_then(|i| node.cells.get_mut(i))) {
+                    *cell = ew_api::checks::messages::fix_label(q, lang);
                 }
             }
             _ => {}

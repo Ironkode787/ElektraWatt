@@ -110,6 +110,18 @@ fn waive_checks_its_parameters_and_refuses_a_second_waiver_of_one_finding() {
         }
         other => panic!("{other:?}"),
     }
+    // FT-1509: with the finding's subject, the refusal names it too.
+    let mut again = w1();
+    again["subject"] = json!("-102G1");
+    match e.execute(&waive(again)).unwrap_err() {
+        CmdError::Rejected { reason, .. } => {
+            assert_eq!(
+                reason,
+                "a waiver of EW-CORE-041 for -102G1 covers this finding already"
+            );
+        }
+        other => panic!("{other:?}"),
+    }
     // The same fingerprint under another rule is another finding.
     let mut other = w1();
     other["rule"] = json!("EW-POT-009");

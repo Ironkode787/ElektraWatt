@@ -690,6 +690,7 @@ impl Rule for DiffersFromMap {
                     if let Some(id) = expected_id {
                         f = f.with_fix(QuickFix {
                             label: "Rebind to the map's channel".to_owned(),
+                            key: Some("fix-rebind-map-channel"),
                             command: "plc.bind_channel".to_owned(),
                             params: serde_json::json!({
                                 "channel": id.to_string(),

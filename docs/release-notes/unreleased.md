@@ -226,3 +226,14 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - text-change: cli ew upgrade --check (on an `.ewz` of an older format: "the project is in the older format <f>: `ew
   extract` makes a project folder of the archive, and `ew upgrade` converts that folder to format <g> after a backup";
   FT-1214)
+- text-change: commands refusals naming a library copy (a manufacturer copy reads "manufacturer <name> (<key>) at
+  version <v>", a PLC profile "PLC profile <label>", a symbol and a macro "symbol <name>", "macro <name>"; a part and
+  a document without a name as before; FT-1524)
+- api-add: command check.waive subject (optional: the finding's subject as printed, which the window passes from the
+  Messages row; a finding waived already is refused as "a waiver of <rule> for <subject> covers this finding
+  already", the earlier text kept without it; FT-1509)
+- behaviour-change: command terminal.insert (a strip placed turned 180° grows left and pushes the items before it on
+  its rail, leftwards, cascading; past the rail's start the positions are written and EW-LAY-010 reports
+  `bracket_outside`; FT-1495)
+- behaviour-change: command part.assign (a placed strip whose terminal the change widens pushes the items after it,
+  as a growing strip does, in every mode; FT-1497)

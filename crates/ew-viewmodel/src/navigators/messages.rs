@@ -26,6 +26,8 @@ const SEVERITY: usize = 0;
 const RULE: usize = 1;
 /// The column of a finding row's message.
 const MESSAGE: usize = 2;
+/// The column of a finding row's subject, as printed.
+const SUBJECT: usize = 3;
 /// The column of a finding row's quick-fix label.
 const FIX: usize = 5;
 /// The column of a finding row's state (`open`, `waived`).
@@ -363,6 +365,11 @@ pub fn with_release_notes(mut table: NavTable, notes: &[String]) -> NavTable {
         }
     }
     table
+}
+
+/// A finding row's subject as printed (a device's tag; FT-1509), empty for none.
+pub(crate) fn subject(node: &NavNode) -> String {
+    node.cells.get(SUBJECT).cloned().unwrap_or_default()
 }
 
 /// The detail block of a finding row (§7.3); `None` for any other row and for the release's housekeeping warnings

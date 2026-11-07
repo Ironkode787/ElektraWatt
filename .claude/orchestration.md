@@ -232,9 +232,14 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
     - **The symbol editor's branch** (owner, 2026-11-05, ID-1445). WP-S2.10 is built on `feature/symbol-editor`, cut
       from the working branch at cycle 52's delivery, by whoever the owner names (the handoff:
       `ew-private/notes/handoffs/HANDOFF-WP-S2.10-symbol-editor.md`). It takes the working branch in by merges, never
-      the other way, and merges into the working branch when 0.1.0 is completed (promoted); its review parts run
-      before that merge. Until then it numbers no decision line or FT row: it proposes them and the orchestrator
+      the other way. Until it merges it numbers no decision line or FT row: it proposes them and the orchestrator
       numbers them.
+      - **Folded into 0.1.0** (owner, 2026-11-06: "Yes, fold it in", ID-1466). Its fixes integrate on
+        `m25/integration` (`feature/symbol-editor` stays as its author left it). Once its review is accepted and a
+        second smoke test is green, `m25/integration` merges into the working branch. Then `release/0.1` is merged
+        into the working branch (the lock and the release-line fixes) and fast-forwarded to the working branch's
+        tip for `v0.1.0-rc.1`; every lane in that tip is reviewed and verified first. After the first candidate,
+        only candidate fixes land on `release/0.1` again.
 17. **Facts and the feasibility read before dispatch** (amended 2026-11-02; the facts, 2026-11-01, cycle-43 retro;
     fix rulings, cycle-45 retro).
     - **The facts, for every brief:** a `scout` (Haiku) gathers them at the lane's base hash with `git show` and

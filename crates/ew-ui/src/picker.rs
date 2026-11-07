@@ -183,6 +183,16 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                     let meta_w = meta_w.min(ui.available_width() / 3.0);
                     let small_h = t.type_small.line;
                     for (i, row) in picker.rows.iter().enumerate() {
+                        // FT-1513 (ID-1456): the group's heading above its first part row, "In this project" or
+                        // "From libraries", in `type.body.strong` over the manufacturers' headers.
+                        if let Some(g) = picker.group_before(i) {
+                            ui.add_space(t.space_2);
+                            ui.label(
+                                egui::RichText::new(strings::text(g))
+                                    .font(crate::theme::font(&t.type_body_strong))
+                                    .color(t.text_primary.color32()),
+                            );
+                        }
                         // FT-425: the manufacturer's header above its first part row.
                         if let Some(m) = picker.header_before(i) {
                             ui.add_space(t.space_2);
@@ -318,7 +328,7 @@ fn row_texts(
                 meta.push(' ');
                 meta.push_str(strings::text(key!("picker-main")));
             }
-            // FT-664: the function in words, never an ID; the tooltip adds the FnDef key that scripts name. FT-712:
+            // FT-664: the function in words, never an ID (FT-1514: in the tooltip too). FT-712:
             // the description leads (the part number when the part has none), the part number follows it, and the
             // tooltip starts with the whole description.
             // FT-1209 (ID-1392): the part number and the rating tell two parts of one kind apart ("Fuse holder with
@@ -338,10 +348,9 @@ fn row_texts(
                 tip.push_str(&part.description);
                 tip.push('\n');
             }
-            tip.push_str(&format!(
-                "{} {}\n{}\n{}",
-                part.manufacturer, part.part_number, f.kind_text, f.fndef_key
-            ));
+            // FT-1514 (ID-1415): no FnDef key in a user text; the function's words end the tooltip (the meta line
+            // the window adds, which holds the kind text in words).
+            tip.push_str(&format!("{} {}", part.manufacturer, part.part_number));
             (name, second, meta, tip)
         }
         // FT-1375: a held part without a function template; its symbol is chosen next.

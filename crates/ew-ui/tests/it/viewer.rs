@@ -565,7 +565,20 @@ fn ft1435_a_jump_marks_its_arrival_and_back_stands_beside_the_tabs() {
         let g = h.state().shell().area().unwrap().focused;
         let canvas = h.state().shell().canvas().unwrap();
         let (at, _) = canvas.arrival().expect("the arrival is marked");
-        assert_eq!(canvas.centre(), at, "the arrival at the centre");
+        // FT-1506 (ID-1456): the view stays on the sheet; the arrival in the corner cell A1 stands off centre in it.
+        let [x0, y0, x1, y1] = canvas.view_nm();
+        let (w, ht) = canvas.page().sheet;
+        assert!(
+            x0 >= -1 && y0 >= -1 && x1 <= w + 1 && y1 <= ht + 1,
+            "the view {:?} on the sheet {:?}",
+            canvas.view_nm(),
+            canvas.page().sheet
+        );
+        assert!(
+            (x0..=x1).contains(&at.0) && (y0..=y1).contains(&at.1),
+            "the arrival {at:?} in view"
+        );
+        assert_ne!(canvas.centre(), at, "off centre near the sheet's corner");
         let first = h
             .state_mut()
             .canvas_host()
