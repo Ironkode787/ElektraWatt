@@ -41,7 +41,8 @@ pub(crate) struct EditorView {
     zoom: f32,
     pan: Vec2,
     manual_view: bool,
-    /// The canvas size the view was last fitted to (ID-1477 (9)): the view fits again only at another size or on Fit.
+    /// The editor's size the view was last fitted at (ID-1477 (9)): the view fits again only at another size or on Fit,
+    /// never because the refusal banner shortens the canvas (ID-1483 (F5)).
     fitted: Option<Vec2>,
     place: [f64; 2],
     draw_coordinates: [f64; 4],
@@ -892,6 +893,7 @@ impl EditorView {
         let draft = &editor.draft;
         let styles = shell.symbol_text_styles();
         let t = theme::current(ui.ctx());
+        let view_size = ui.available_size();
         let symbol_name = display_text(&serde_json::to_value(&draft.symbol.name).unwrap_or_default());
         // P3: the saved state and the grid are the status bar's; the header names the symbol and the error, once.
         ui.horizontal(|ui| {
@@ -1085,17 +1087,18 @@ impl EditorView {
                 }
                 // Fit fills the canvas at every width (SM25 nit: a small import filled 60 px at 1920). ID-1477 (9): it
                 // fits when the draft opens, when the canvas changes size and when Fit is chosen, never because the
-                // drawing changed; an empty draft shows the 40 mm square right and below its origin.
-                if !self.manual_view && self.fitted != Some(rect.size()) && let Ok(g)=draft.preview(editor.variant) {
-                    self.fitted = Some(rect.size());
+                // drawing changed; an empty draft shows the 40 mm square right and below its origin. ID-1483 (F5): the
+                // view stands on the canvas's bottom edge, which the refusal banner above it does not move.
+                if !self.manual_view && self.fitted != Some(view_size) && let Ok(g)=draft.preview(editor.variant) {
+                    self.fitted = Some(view_size);
                     let b=g.bounds;let empty=draft.symbol.graphics.is_empty()&&draft.symbol.cps.is_empty();
                     let (width,height,centre)=if empty {(40.0,40.0,Vec2::splat(20.0))} else {
                         ((b.max().x.0-b.min().x.0) as f32/1e6,(b.max().y.0-b.min().y.0) as f32/1e6,Vec2::new((b.min().x.0+b.max().x.0) as f32/2e6,(b.min().y.0+b.max().y.0) as f32/2e6))
                     };
                     self.zoom=(rect.width()/(width+16.0)).min(rect.height()/(height+16.0)).clamp(0.01,80.0);
-                    self.pan=-centre*self.zoom;
+                    self.pan=-centre*self.zoom-Vec2::new(0.0,rect.height()/2.0);
                 }
-                let origin = rect.center() + self.pan;
+                let origin = rect.center_bottom() + self.pan;
                 let step = self.zoom * draft.symbol.grid.at(1).map_or(4.0,|n|n.0 as f32 / 1_000_000.0);
                 if step >= t.space_3 {
                     let x0 = ((rect.left()-origin.x)/step).floor() as i32;

@@ -1661,6 +1661,64 @@ fn symbol_editor_draws_a_rectangle_by_drag_and_keeps_its_view() {
     d.shell_mut().shutdown();
 }
 
+/// ID-1483 (F5): the refusal banner above the canvas neither re-fits nor moves the view: the same drag draws the same
+/// rectangle with the banner on show as without it.
+#[test]
+fn symbol_editor_refusal_banner_keeps_the_canvas_view() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.banner");
+    let canvas = d.find("Drawing of Drawn").unwrap();
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("symbol.tool", &json!({"tool": "rectangle"})),
+        Outcome::Done
+    );
+    d.settle();
+    let from = (canvas.0 - 160, canvas.1 - 40);
+    let drag = Input::Drag {
+        from,
+        to: (from.0 + 120, from.1 + 60),
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    };
+    d.input(&drag);
+    d.settle();
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("symbol.variant", &json!({"variant": 9})),
+        Outcome::Failed {
+            message: "Symbol editor: Choose a variant from A to H.".into()
+        }
+    );
+    d.input(&Input::Wait { ms: 100 });
+    assert_ne!(
+        d.find("Drawing of Drawn").unwrap(),
+        canvas,
+        "the banner shows above the canvas, which it shortens"
+    );
+    d.input(&drag);
+    d.settle();
+    let rects: Vec<Value> = d
+        .shell_mut()
+        .symbol_editor()
+        .unwrap()
+        .draft
+        .symbol
+        .graphics
+        .iter()
+        .filter_map(|g| {
+            serde_json::to_value(g)
+                .unwrap()
+                .get("rect")
+                .map(|r| r["rect"].clone())
+        })
+        .collect();
+    assert_eq!(rects.len(), 2, "{rects:?}");
+    assert_eq!(rects[0], rects[1], "the banner moved or re-zoomed the view");
+    d.shell_mut().shutdown();
+}
+
 /// ID-1483 (F2): with the Text tool and its field empty, a click on the canvas creates nothing and shows no error; it
 /// marks the spot and puts the focus in the Text field, and the text typed is created there on Enter. Escape drops
 /// the mark.
