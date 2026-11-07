@@ -249,6 +249,24 @@ fn dk9_every_key_dispatches_the_as_built_actions() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// ID-1497 (1): a value typed into the grid one character a frame loses none: the first character opens the cell
+/// editor and the editor takes the next one in the frame it first shows (R1 saw "Reserve" land as "Rserve").
+#[test]
+fn a_value_typed_one_character_a_frame_loses_no_keystroke() {
+    let tmp = Tmp::new();
+    let mut h = strips(&tmp);
+    show_column(&mut h, "Function text");
+    for c in "Reserve".chars() {
+        h.event(egui::Event::Text(c.to_string()));
+        h.step();
+    }
+    settle(&mut h);
+    let nav = h.state().shell().nav(NavKind::Strips).unwrap();
+    let edit = nav.table_mode().and_then(|m| m.edit()).expect("the cell editor");
+    assert_eq!(edit.buffer, "Reserve");
+    h.state_mut().shell_mut().shutdown();
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // The painted shapes of the restyled grid
 
@@ -1020,5 +1038,92 @@ fn ft1167_export_and_import_table_follow_their_predicates() {
     for name in ["Export table…", "Import table…"] {
         assert!(h.get_by_label(name).accesskit_node().is_disabled(), "{name}");
     }
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// ID-1497 F1 (the fix round's window check): a column the grid scrolls into view (the cursor's cell, the cell editor)
+/// lands whole to the right of the frozen key column, and a column wider than the room lands with its left edge
+/// there: at the 1280 × 800 floor the Function text column's left edge (and the editor's first character) ended under
+/// the frozen Strip column. Every column in turn, from the far right back to the left and from the left out to the
+/// right, at the floor and wide.
+#[test]
+fn a_column_scrolled_into_view_lands_right_of_the_frozen_column() {
+    let tmp = Tmp::new();
+    let mut h = strips(&tmp);
+    let labels: Vec<String> = {
+        let n = h.state().shell().nav(NavKind::Strips).unwrap();
+        let t = n.table().unwrap();
+        let mode = n.table_mode().unwrap();
+        mode.shown_columns(t)
+            .iter()
+            .skip(1)
+            .map(|c| t.columns[*c].label.clone())
+            .collect()
+    };
+    assert!(labels.len() > 4, "{labels:?}");
+    for size in [egui::vec2(1280.0, 800.0), egui::vec2(1920.0, 1080.0)] {
+        h.set_size(size);
+        settle(&mut h);
+        let order: Vec<&String> = labels.iter().rev().chain(labels.iter()).collect();
+        for label in order {
+            show_column(&mut h, label);
+            settle(&mut h);
+            let grid = h.get_by_label("Terminal strips table").rect();
+            let key = cell(&h, "Strip", 1);
+            // An empty cell is named "<column>, row 1 of <n>".
+            let shown = h
+                .get_all_by_role(egui::Role::Cell)
+                .find(|n| {
+                    n.accesskit_node().label().is_some_and(|l| {
+                        l.strip_prefix(label.as_str())
+                            .is_some_and(|rest| rest.starts_with(' ') || rest.starts_with(", row 1 of "))
+                            && l.contains(", row 1 of ")
+                    })
+                })
+                .unwrap_or_else(|| panic!("{size:?}: the cell of {label} in row 1"))
+                .rect();
+            assert!(
+                shown.left() >= key.right() - 0.5,
+                "{size:?}: {label} {shown:?} starts under the frozen column {key:?}"
+            );
+            let room = grid.right() - key.right();
+            if shown.width() <= room - 20.0 {
+                assert!(
+                    shown.right() <= grid.right() + 0.5,
+                    "{size:?}: {label} {shown:?} is whole in the grid {grid:?}"
+                );
+            }
+        }
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// ID-1497 (1), C53-fx#2: a one-character value and Enter in the next frame (as the visual driver sends `type` and
+/// `key enter`) commits it: the frame the editor opens in leaves Enter to the editor, not to the grid, which still
+/// holds the focus there.
+#[test]
+fn a_character_and_enter_in_the_next_frame_commit_the_value() {
+    let tmp = Tmp::new();
+    let mut h = strips(&tmp);
+    show_column(&mut h, "Function text");
+    let row = h
+        .state()
+        .shell()
+        .nav(NavKind::Strips)
+        .unwrap()
+        .cursor_key()
+        .expect("a cursor row");
+    let column = column_key(&h, "Function text");
+    h.event(egui::Event::Text("Q".to_owned()));
+    h.step();
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    let shell = h.state().shell();
+    let nav = shell.nav(NavKind::Strips).unwrap();
+    assert!(
+        nav.table_mode().and_then(|m| m.edit()).is_none(),
+        "the editor closed"
+    );
+    assert_eq!(shell.table_cell_text(NavKind::Strips, &row, &column), "Q");
     h.state_mut().shell_mut().shutdown();
 }

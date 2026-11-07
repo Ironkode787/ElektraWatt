@@ -356,3 +356,37 @@ fn id1427_a_changed_records_line_reads_in_dutch() {
     assert!(has_text(&h, "Voorbeeld: eigenschap instellen · vanaf revisie 1"));
     h.state_mut().shell_mut().shutdown();
 }
+
+/// ID-1497 (4): at 1280 × 800 the renumber of 106 to 104 previews its Pages list as "106 → 104"; a click on a list's
+/// header opens it in place, so the headers below stay where they were (R1's second click hit the header the grown dock
+/// had moved under it), and a second click closes it again.
+#[test]
+fn id1497_the_preview_lists_open_in_place_and_name_the_new_folio() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "106"}));
+    dispatch(&mut h, "pages.renumber", json!({"section": "1", "start": 101}));
+    settle(&mut h);
+    settle(&mut h);
+    let header = |h: &Harness<'_, App>, name: &str| h.get_by_label(name).rect();
+    let (pages, xrefs) = (header(&h, "Pages (1)"), header(&h, "Xrefs (14)"));
+    h.get_by_label("Pages (1)").click();
+    settle(&mut h);
+    settle(&mut h);
+    assert!(h.query_by_label("106 → 104").is_some(), "the page by both folios");
+    assert_eq!(header(&h, "Pages (1)"), pages, "Pages stays");
+    assert_eq!(header(&h, "Xrefs (14)"), xrefs, "Xrefs stays");
+    h.get_by_label("Pages (1)").click();
+    settle(&mut h);
+    settle(&mut h);
+    assert!(h.query_by_label("106 → 104").is_none(), "Pages closes again");
+    assert_eq!(header(&h, "Xrefs (14)"), xrefs, "Xrefs stays when Pages closes");
+    h.get_by_label("Xrefs (14)").click();
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(header(&h, "Xrefs (14)"), xrefs, "Xrefs stays when it opens");
+    h.state_mut().shell_mut().shutdown();
+}

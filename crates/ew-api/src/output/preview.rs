@@ -11,9 +11,9 @@
 use std::cmp::Ordering;
 
 use ew_commands::{ChangeKind, EntityChange, ModelDiff, Preview};
-use ew_derive::Q;
 use ew_derive::ew_ids::Uuid;
 use ew_derive::ew_mltext::natural_cmp;
+use ew_derive::{PageOrder, PageRef, Q};
 
 use super::properties::{ml_text, record_title};
 use crate::Session;
@@ -141,6 +141,20 @@ impl Session {
             .any(|c| c.change == ChangeKind::Added)
             .then(|| self.query_over(preview.candidate()));
         entities_of(preview.diff(), &current, candidate.as_ref())
+    }
+
+    /// The folio of every drawn page in `preview`'s candidate model, by page ID, in its page order: the Preview tab
+    /// names a page whose folio the card changes by both folios ("106 → 104", ID-1497 (4)).
+    pub fn preview_folios(&self, preview: &Preview) -> Vec<(Uuid, String)> {
+        let q = self.query_over(preview.candidate());
+        q.get::<PageOrder>(())
+            .entries
+            .iter()
+            .filter_map(|e| match e.page {
+                PageRef::Drawn(p) => Some((p.as_uuid(), e.folio.clone())),
+                _ => None,
+            })
+            .collect()
     }
 }
 

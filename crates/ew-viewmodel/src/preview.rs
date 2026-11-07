@@ -90,7 +90,7 @@ pub struct PreviewPane {
     pub(crate) entities: Vec<PreviewEntity>,
     pub(crate) tags: Vec<(String, String)>,
     pub(crate) xrefs: Vec<XrefChange>,
-    pub(crate) pages: Vec<String>,
+    pub(crate) pages: Vec<(String, Option<String>)>,
     /// Whether the card chain opened the tab (it was not in the layout when the first card came): the tab then closes
     /// when the last card is applied or cancelled; a tab the user opened by hand stays (cycle 39, FIX39b-1).
     pub(crate) opened_by_card: bool,
@@ -112,8 +112,9 @@ impl PreviewPane {
         &self.xrefs
     }
 
-    /// The folios of the pages whose content changes, in page order.
-    pub fn pages(&self) -> &[String] {
+    /// The folios of the pages whose content changes, in page order, each with the folio the card gives it when that
+    /// is another (ID-1497 (4): "106 → 104").
+    pub fn pages(&self) -> &[(String, Option<String>)] {
         &self.pages
     }
 

@@ -880,6 +880,7 @@ mod tests {
         // Keys no keymap action reaches there.
         ("hint-choose-strip", "Esc closes the picker popup (app.rs)"),
         ("reason-choose-strip", "Esc closes the picker popup (app.rs)"),
+        ("reason-choose-symbol", "Esc closes the picker popup (app.rs)"),
         ("hint-text-typing", "Enter and Esc inside the text popup's field"),
         ("hint-text-edit", "Enter and Esc inside the text popup's field"),
         ("action-ip-name-hint", "Enter and Tab inside the IP name field"),
@@ -889,6 +890,10 @@ mod tests {
         ),
         ("junction-orient", "R inside the junction popup"),
         ("table-pos-move", "Alt+Up and Alt+Down inside the table editor"),
+        (
+            "table-commit-all-hint",
+            "Ctrl+Enter inside the table's cell editor (nav_table.rs)",
+        ),
         ("palette-form-hint", "Enter and Esc inside the palette's form"),
         ("tooltip-learn-more", "F1 on a hovered menu item (menu.rs)"),
     ];

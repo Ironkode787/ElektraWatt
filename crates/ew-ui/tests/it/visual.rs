@@ -272,6 +272,74 @@ fn ft891_the_drivers_double_clicks_on_two_rows_open_both() {
     }
 }
 
+/// ID-1497 (2): in the visual harness as in the window, a Shift+click on a row of the Terminal strips table marks the
+/// range from the cursor row and a Ctrl+click toggles one row (R1's clicks lost their modifiers: the harness let go of
+/// them in the release's frame, where the grid reads the click); Ctrl+A marks every row of the filtered table.
+#[test]
+fn shift_and_ctrl_clicks_mark_table_rows_and_ctrl_a_marks_them_all() {
+    use ew_ui::ew_viewmodel::navigators::NavKind;
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = golden_on_101(&tmp);
+    for (action, params) in [
+        ("props.show", json!({"on": false})),
+        ("navigator.show", json!({"kind": "strips"})),
+        ("navigator.table", json!({"kind": "strips"})),
+        ("navigator.filter", json!({"kind": "strips", "text": "x1032"})),
+        ("ui.focus", json!({"area": "navigator", "kind": "strips"})),
+    ] {
+        assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done, "{action}");
+    }
+    // A few frames lay the table out.
+    d.input(&Input::Wait { ms: 100 });
+    let _ = actions(&mut d);
+    let row = |d: &Driver, i: usize| {
+        let needle = format!(", row {i} of ");
+        d.labels()
+            .into_iter()
+            .find(|(l, _)| l.starts_with("Strip ") && l.contains(&needle))
+            .unwrap_or_else(|| {
+                let cells: Vec<String> = d.labels().into_iter().map(|(l, _)| l).collect();
+                panic!("the Strip cell of row {i} among {cells:?}")
+            })
+            .1
+    };
+    let marked = |d: &Driver| {
+        d.app()
+            .unwrap()
+            .shell()
+            .nav(NavKind::Strips)
+            .unwrap()
+            .marked()
+            .len()
+    };
+    let with = |at, mods| Input::Click {
+        at,
+        button: PointerButton::Primary,
+        mods,
+    };
+    d.input(&click(row(&d, 1)));
+    assert_eq!(actions(&mut d), ["ui.focus", "navigator.select", "table.cell"]);
+    d.input(&with(row(&d, 3), Modifiers::SHIFT));
+    assert_eq!(actions(&mut d), ["ui.focus", "navigator.row", "table.cell"]);
+    assert_eq!(marked(&d), 3, "rows 1 to 3");
+    d.input(&with(row(&d, 5), Modifiers::COMMAND));
+    assert_eq!(actions(&mut d), ["ui.focus", "navigator.mark", "table.cell"]);
+    assert_eq!(marked(&d), 4, "and row 5");
+    d.input(&key("ctrl+a"));
+    assert_eq!(actions(&mut d), ["navigator.select"]);
+    let rows = d
+        .app()
+        .unwrap()
+        .shell()
+        .nav(NavKind::Strips)
+        .unwrap()
+        .visible()
+        .len();
+    assert_eq!(marked(&d), rows, "every row");
+    d.shell_mut().shutdown();
+}
+
 /// BV3: a click on a known button dispatches its action; a right click on a property row opens its menu; typing
 /// into a field sets it; a rubber band selects and a drag from a selected item moves the selection.
 #[test]

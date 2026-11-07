@@ -50,6 +50,8 @@ const MOCKUP_TITLES: &[(&str, &str)] = &[
     ("Device from part", "package"),
     ("Duct", "ew-duct"),
     ("Dismiss", "x"),
+    // ID-1497 (10): Edit route beside Wire, a polyline.
+    ("Edit route", "ew-shape-polyline"),
     ("Findings", "circle-x"),
     ("Fit page", "maximize"),
     ("History", "history"),

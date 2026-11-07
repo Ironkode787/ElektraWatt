@@ -644,6 +644,10 @@ code editors.
 | `:` | a cell in the project's xref format | ":103-A1" opens folio 103 with A1 centred (FR-UI-039) |
 | `?` | help topics and rule IDs | "?EW-POT-013" |
 
+*As built (cycle 53, decision log ID-1497).* Without a prefix the search ("Search commands and devices") lists, after
+the actions, the devices, terminal strips and cables whose tag holds the query ("X1031" → -X1031); `>` keeps to the
+actions.
+
 - **Ranking** is the deterministic score of §15.1, with a recency boost from the last 50 invocations. An empty query
   lists the eight most recent actions.
 - **Aliases** come from the glossary (§9.3): "folio report" finds *Insert interruption point*, "master/slave"
@@ -841,6 +845,11 @@ selects what it touches. An entity with several rectangles is enclosed only if a
 touched if any is. A click on empty canvas clears the selection (Shift keeps it). Selected items carry a 2-pixel solid
 blue outline (#0072B2). The live region says `<n> selected`. Not built: the rich announcement above, Ctrl+A, and undo
 restoring the selection; they are follow-ups of WP-S2.04 and WP-S2.05 (specification WP-S2.03 §12).
+*As built (cycle 53, decision log ID-1497).* Ctrl+A is built for a navigator's table only: it marks every row of the
+filtered table. The canvas's Ctrl+A is not built. The canvas's status field and HUD count a selection only when part
+of it is drawn on the page shown: a page chosen in the page list (its page record) or a device selected by its tag
+with nothing drawn there is not counted, and the HUD offers no Delete for it; the live region and the page list's
+Delete keep the whole selection.
 
 ### 4.7 Context menus
 
@@ -1146,6 +1155,11 @@ replace (FR-UI-020), multi-target quick fixes, structure rename and merge (FR-PR
 | Pages  before | after of every page whose display list changed (2, 103, 104, 200, 201, 202, reports) |
 +-------------------------------------------------------------------------------------------------------+
 ```
+
+*As built (cycle 53, decision log ID-1497).* In the Pages list a page whose folio the command changes is named by both
+folios, "106 → 104"; the others by their folio. The lists open and close in place: the dock is sized for every list
+open, and past its room the lists scroll. Renumber pages' dialog says "Section dividers keep their numbers." under
+Start.
 
 Only the page record changes; the tags and xref texts are derived from it ([03](03-domain-model.md) §8.2), which is
 why the preview shows them as query diffs rather than entity changes. The BOM delta is one row (pos 13, tags

@@ -96,7 +96,9 @@ fn dk3_the_groups_labels_and_advanced_rows() {
 fn dk4_the_status_bar_fields() {
     let tmp = Tmp::new("docks-dk4");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
-    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    // ID-1497 (8): a selection drawn on the canvas (a selection that draws nothing there is not counted).
+    let (_, p) = common::entity_points(shell.canvas().unwrap())[0];
+    common::click(&mut shell, p, json!({}));
     let fields = bar(&shell, false);
     assert_eq!(fields[0].kind, StatusKind::State);
     assert_eq!(fields[0].text, "Ready");

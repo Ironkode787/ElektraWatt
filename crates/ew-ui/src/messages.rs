@@ -344,6 +344,20 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             n.set_live(egui::accesskit::Live::Polite);
             n.set_value(line);
         });
+        // ID-1497 (6): while findings are pending, one sentence under the header says what pending means.
+        if c.pending > 0 {
+            ui.horizontal(|ui| {
+                ui.add_space(t.space_4);
+                ui.add(
+                    egui::Label::new(
+                        RichText::new(strings::text(key!("messages-pending-note")))
+                            .font(theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    )
+                    .wrap(),
+                );
+            });
+        }
     }
     fix_card(ui, shell, events);
 }

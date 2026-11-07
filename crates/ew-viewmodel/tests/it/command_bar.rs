@@ -420,6 +420,40 @@ fn page_new_shows_the_new_page_with_nothing_selected() {
     s.shutdown();
 }
 
+/// ID-1497 (8): a page chosen in the page list selects its page record, which draws nothing on the canvas: the
+/// canvas's HUD and status bar do not count it ("1 selected · Del deletes"), while the selection itself stays (the
+/// page list's Delete deletes the page). A device drawn on the page is counted as before.
+#[test]
+fn a_page_chosen_in_the_page_list_is_not_counted_on_the_canvas() {
+    use ew_viewmodel::navigator::RowKind;
+    use ew_viewmodel::status::{StatusKind, bar};
+    let tmp = Tmp::new("id1497-8");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let key = s
+        .navigator_rows()
+        .into_iter()
+        .find(|r| matches!(r.kind, RowKind::Page(i) if s.page_rows()[i].folio == "101"))
+        .expect("the row of 101")
+        .key;
+    done(
+        &mut s,
+        "navigator.select",
+        json!({"kind": "pages", "keys": [key]}),
+    );
+    assert_eq!(s.selection().items.len(), 1, "the page record is selected");
+    assert_eq!(s.canvas_selected(), 0);
+    assert_eq!(hud(&s).prompt, s.tool_hint());
+    assert!(!bar(&s, false).iter().any(|f| f.kind == StatusKind::Selection));
+    // A device record selected by its tag draws nothing on the canvas either; a click on a drawn item counts.
+    done(&mut s, "select.set", json!({"refs": ["tag:-101F1"]}));
+    assert_eq!(s.canvas_selected(), 0);
+    let (_, p) = common::entity_points(s.canvas().unwrap())[0];
+    click(&mut s, p, json!({}));
+    assert_eq!(s.canvas_selected(), 1);
+    assert!(bar(&s, false).iter().any(|f| f.kind == StatusKind::Selection));
+    s.shutdown();
+}
+
 /// CB5's model side and FT-521: with Select and one selected object the prompt is "1 selected · Del deletes · R
 /// rotates"; with the pointer over a pick stack of n objects it is "n objects overlap here · click again to select the
 /// next" (FT-894's words).
@@ -494,5 +528,23 @@ fn cb5_arming_place_names_the_tool_the_target_and_its_keys() {
         h.prompt
     );
     assert!(h.prompt.contains("-X1031:30"), "{}", h.prompt);
+    s.shutdown();
+}
+
+/// ID-1497 (10): the Draw tab's Renumber reads "Renumber devices", and Edit route stands in the Connect group beside
+/// Wire.
+#[test]
+fn the_draw_tab_names_renumber_devices_and_offers_edit_route_beside_wire() {
+    let ids: Vec<&str> = command_bar::placed_in(Group::Connect)
+        .iter()
+        .map(|m| m.id)
+        .collect();
+    assert_eq!(ids[..2], ["tool.wire", "tool.route_edit"]);
+    let tmp = Tmp::new("id1497-10");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let renumber = command_bar::action_button(&s, "devices.renumber").unwrap();
+    assert_eq!(renumber.bar_label, "Renumber devices");
+    let route = command_bar::action_button(&s, "tool.route_edit").unwrap();
+    assert_eq!(route.bar_label, "Edit route");
     s.shutdown();
 }

@@ -302,6 +302,17 @@ pub struct FormDialog {
     pub table: Option<FormTable>,
 }
 
+impl FormDialog {
+    /// The line under field `field`, if it has one (ID-1497 (4): Renumber pages' Start says that the section dividers
+    /// keep their numbers).
+    pub fn note(&self, field: &str) -> Option<&'static str> {
+        match (self.action, field) {
+            ("pages.renumber", "start") => Some(strings::text(key!("form-renumber-start-note"))),
+            _ => None,
+        }
+    }
+}
+
 /// An editable table of a form (FT-786: the value sets of Save as macro, doc 16a section 6.21's look): a named first
 /// column and one column per variable. Submit carries it as the JSON parameter `name`: one object per row,
 /// `{"name": <first column>, "values": {<column>: <cell>}}`, blank cells left out.

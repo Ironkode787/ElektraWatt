@@ -1139,8 +1139,9 @@ impl ShellModel {
         self.run_gesture(Self::gesture(GestureKind::Edit, kind, cells), None)
     }
 
-    /// `table.set {kind, column, value, rows?, all?}`: sets a column's cells to a typed text: the listed rows, the
-    /// marked rows (`all`), else the cursor row.
+    /// `table.set {kind, column, value, rows?, all?}`: sets a column's cells to a typed text: the listed rows, else the
+    /// marked rows when any are marked, else the cursor row (`all` is the same, ID-1497); the column by its key or its
+    /// header label.
     pub(crate) fn act_table_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
@@ -1163,7 +1164,19 @@ impl ShellModel {
         let Some(view) = self.table_view(kind) else {
             return Outcome::Done;
         };
-        let Some(col) = view.table.columns.iter().position(|c| c.key == column) else {
+        // ID-1497 (1): a column is named by its key or by its header label.
+        let Some(col) = view
+            .table
+            .columns
+            .iter()
+            .position(|c| c.key == column)
+            .or_else(|| {
+                view.table
+                    .columns
+                    .iter()
+                    .position(|c| c.label.to_lowercase() == column.to_lowercase())
+            })
+        else {
             let keys: Vec<&str> = view.table.columns.iter().map(|c| c.key.as_str()).collect();
             return failed(key!("error-nav-value"), &["column", &column, &keys.join(", ")]);
         };
@@ -1186,8 +1199,8 @@ impl ShellModel {
                 out.dedup();
                 out
             }
-            None if flag(p, "all") => view.acted.clone(),
-            None => view.cursor_row.map(|r| view.rows[r]).into_iter().collect(),
+            // ID-1497 (1): without `rows` the marked rows when any are marked, else the cursor row (`all` the same).
+            None => view.acted.clone(),
         };
         if rows.is_empty() {
             return Outcome::Refused {

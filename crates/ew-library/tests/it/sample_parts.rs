@@ -13,6 +13,8 @@
 //!   print (the function definition's, or the function's alias); a decoration function (`ew.fn.graphic`, a cable's
 //!   drawing) is no function of the part;
 //! - the bus port the device's function holds (195740's DP slave port), as a bus section;
+//! - a function category where Golden A's copy has none and the part is one a black box places (2904602, MICO 4.10;
+//!   ID-1497), so that the box takes the category's letter;
 //! - `meta.confidence` per section: `test` where doc 20 gives the value as a test input (the dimensions, ▲U-26; the
 //!   solenoid-position map H1 of 533361, ▲U-23; the FE pin of 550208, ▲U-18), `unverified` for the rest. No section
 //!   is `verified`: nobody checked a value against the maker's data.
@@ -266,6 +268,13 @@ fn documents() -> Vec<LibDocument> {
         let key = p["meta"]["key"].as_str().unwrap();
         let item = item_id("part", key);
         let mut v = (*p).clone();
+        // ID-1497 (7): a part that Golden A's copy leaves without a function category gains one, so that a black box
+        // placed from it takes the category's letter (the reference drawing's -102G1 and -102F2).
+        if v.get("category").is_none()
+            && let Some(category) = category_of(key)
+        {
+            v["category"] = category;
+        }
         let o = v.as_object_mut().unwrap();
         o.insert("id".into(), json!(item.to_string()));
         o.insert("library_id".into(), json!(lib.to_string()));
@@ -310,6 +319,21 @@ fn documents() -> Vec<LibDocument> {
         docs.push(LibDocument::from_value(v).unwrap_or_else(|e| panic!("{key}: {e}")));
     }
     docs
+}
+
+/// The function category a catalogue part gains (ID-1497 (7)): 2904602 is a power supply (`PowerSupplyAcDc`, G in
+/// EN 81346-2:2009), MICO 4.10 an electronic load distribution that monitors and protects its channels
+/// (`ProtectionOvercurrent`, F).
+fn category_of(key: &str) -> Option<Value> {
+    match key {
+        "2904602" => Some(json!(["PowerSupplyAcDc", "PowerSupply", "AcDc"])),
+        "MICO 4.10" => Some(json!([
+            "ProtectionOvercurrent",
+            "ElectronicCircuitBreaker",
+            "4Channel"
+        ])),
+        _ => None,
+    }
 }
 
 /// The confidence of each section of a part document (D4).
