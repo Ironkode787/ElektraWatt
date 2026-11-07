@@ -306,7 +306,9 @@ impl Picker {
             PickerRow::Symbol(i) => {
                 let s = self.catalogue.symbols.get(i)?;
                 // From WP-S2.04 part 3 a black-box row arms the black box tool (§9.5).
-                if !s.allowed {
+                if s.grid_mismatch.is_some() {
+                    Some(key!("reason-symbol-grid"))
+                } else if !s.allowed {
                     Some(key!("reason-rep-type-not-allowed"))
                 } else {
                     None
@@ -324,6 +326,33 @@ impl Picker {
         }
     }
 
+    /// The words of the reason a row is disabled; `None` for an enabled row. A symbol on another connection grid
+    /// names both grids in millimetres (SM25b m3).
+    pub fn disabled_words(&self, row: PickerRow) -> Option<String> {
+        let reason = self.disabled(row)?;
+        if let PickerRow::Symbol(i) = row
+            && let Some(grids) = self.catalogue.symbols.get(i).and_then(|s| s.grid_mismatch)
+        {
+            return Some(grid_words(grids));
+        }
+        Some(crate::strings::text(reason).to_owned())
+    }
+}
+
+/// Why a symbol on another connection grid cannot be placed on the page, both grids in millimetres (SM25b m3).
+pub(crate) fn grid_words([symbol, page]: [(u64, u64); 2]) -> String {
+    crate::strings::format(key!("reason-symbol-grid"), &[&grid_mm(symbol), &grid_mm(page)])
+}
+
+/// A connection grid's step `(num, den)` nanometres in millimetres, at most two decimals, in the UI language's
+/// decimal form (`4`, `2,65`).
+fn grid_mm((num, den): (u64, u64)) -> String {
+    let mm = num as f64 / den.max(1) as f64 / 1_000_000.0;
+    let text = format!("{mm:.2}");
+    crate::strings::decimal(text.trim_end_matches('0').trim_end_matches('.'))
+}
+
+impl Picker {
     /// The describe line of a row (without its indentation): `row symbol "<key>" embedded`,
     /// `row part "<number>" function <n> of <count> "<fndef>" [main]`, `row part "<number>" symbol`
     /// (FT-1375) or `row strip "<tag>" terminal "<next>" <id>`, then ` disabled: <reason>`.
@@ -363,8 +392,8 @@ impl Picker {
                 )
             }
         };
-        if let Some(reason) = self.disabled(row) {
-            line.push_str(&format!(" disabled: {}", crate::strings::text(reason)));
+        if let Some(reason) = self.disabled_words(row) {
+            line.push_str(&format!(" disabled: {reason}"));
         }
         line
     }

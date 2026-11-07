@@ -2510,8 +2510,17 @@ impl ShellModel {
             let params = pending.params.clone();
             return match answer {
                 ConfirmAnswer::Cancel => Outcome::Done,
-                ConfirmAnswer::Discard => {
+                // Quitting drops the draft and then asks about the project; an editor action discards the draft itself
+                // (ID-1472).
+                ConfirmAnswer::Discard if pending.action == "app.quit" => {
                     self.symbol_editor = None;
+                    self.dispatch(pending.action, &params)
+                }
+                ConfirmAnswer::Discard => {
+                    let mut params = params;
+                    if let Value::Object(p) = &mut params {
+                        p.insert("discard".into(), Value::Bool(true));
+                    }
                     self.dispatch(pending.action, &params)
                 }
                 ConfirmAnswer::Save => match self.act_symbol("save", &Map::new()) {

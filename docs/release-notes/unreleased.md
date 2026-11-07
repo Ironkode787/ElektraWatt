@@ -12,7 +12,9 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   publication to a library whose folder the window remembers and whose symbols appear under Draw ▸ Place ▸ Symbol…
   on the matching grid, and test placement on a scratch page; F1 opens the editor's reference
 - api-add: symbol.* actions for scripts and AI tools, the window's own (symbol.new to symbol.scratch, symbol.map_cp
-  for pin mapping); symbol.fork and symbol.function take explicit library/item sources
+  for pin mapping, symbol.role for a connection point's potential role); symbol.fork and symbol.function take explicit library/item sources
+- api-add: window File ▸ Save project (file.save_project): while the symbol editor shows, Ctrl+S and File ▸ Save
+  save the symbol, and Save project saves the project
 - api-add: symbol publication gives each draft its own item identity (UUIDv7s, the optional `identity` of
   `ew.symbol/1`), refuses a key the library holds for another symbol, keeps an unchanged owned function definition's
   version and assigns an existing function as compatible (`^version`); a draft saved under another key than the one

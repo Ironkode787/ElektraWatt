@@ -281,8 +281,8 @@ impl RfdPlatform {
             Prompt::OpenSymbol => (
                 base.set_title(strings::text(key!("prompt-open-symbol-title")))
                     .add_filter(
-                        "Symbol",
-                        &["json", "elmt", "edz", "ema", "ems", "esl", "slk", "xml"],
+                        strings::text(key!("prompt-symbol-filter")),
+                        &ew_ui::ew_viewmodel::shell::symbol_editor::FILE_EXTENSIONS,
                     ),
                 DialogKind::File,
             ),

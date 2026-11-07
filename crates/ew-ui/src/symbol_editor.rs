@@ -34,7 +34,6 @@ pub(crate) struct EditorView {
     text: String,
     designation: String,
     direction: usize,
-    pending: Option<(&'static str, Value)>,
     panel: usize,
     zoom: f32,
     pan: Vec2,
@@ -120,6 +119,11 @@ fn function_pin_name(draft: &SymbolDraft, index: u16) -> String {
 }
 fn action(events: &mut Vec<Event>, name: &'static str, value: Value) {
     events.push(Event::Action(name, value));
+}
+/// An action that drops the draft: the model asks Save symbol, Discard or Cancel first while it has unsaved changes,
+/// in the house dialog (ID-1472).
+fn ask(events: &mut Vec<Event>, name: &'static str, value: Value) {
+    events.push(Event::SymbolAsk(name, value));
 }
 // Several controls can commit on one focus change. Merge their changes against the same frame's draft.
 fn replace_action(events: &mut Vec<Event>, draft: &SymbolDraft, document: Value) {
@@ -208,7 +212,10 @@ fn committed_text(
         info.current_text_value = Some(buffer.clone());
         info
     });
-    let commit = response.lost_focus() && buffer != *value && (allow_empty || !buffer.trim().is_empty());
+    // M25-p5#2 (doc 16a §6.8): Escape cancels the entry; it is the field's, so the tool stays.
+    let escape = response.lost_focus() && cancelled(ui);
+    let commit =
+        response.lost_focus() && !escape && buffer != *value && (allow_empty || !buffer.trim().is_empty());
     if response.lost_focus() && !commit {
         buffer.clone_from(value);
     }
@@ -217,6 +224,12 @@ fn committed_text(
         *value = buffer;
     }
     commit
+}
+
+/// Whether the field that lost the focus this frame lost it to Escape, which then is the field's and goes no further
+/// (doc 16a §6.8: Escape cancels).
+fn cancelled(ui: &Ui) -> bool {
+    ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape))
 }
 
 /// A number of the document named `name`: typed text commits on Enter or focus loss, a drag at its end, never per
@@ -228,7 +241,8 @@ fn number(
     range: std::ops::RangeInclusive<f64>,
     name: &str,
 ) -> bool {
-    let id = ui.next_auto_id();
+    // M25-p5#3: a slot of its own beside the DragValue's id, whose precise drag value egui keeps as an `f64` too.
+    let id = ui.next_auto_id().with("symbol-number");
     let mut v = ui.data(|d| d.get_temp::<f64>(id)).unwrap_or(*value);
     let response = ui.add(
         egui::DragValue::new(&mut v)
@@ -253,6 +267,22 @@ fn number(
     commit
 }
 
+/// A button of one item's row, its words `key`, named "Delete <owner>" (M25-p5#4). Returns whether it was clicked.
+fn delete_button(ui: &mut Ui, key: &str, owner: &str) -> bool {
+    let response = components::button(ui, Kind::Secondary, label(strings::Key::run_time(key)), true, 0.0);
+    let name = strings::format(strings::Key::run_time("symbol-delete-item"), &[owner]);
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+    response.clicked()
+}
+
+/// A check box with the words `key`, named `name` for the item it belongs to (M25-p5#4). Returns whether it changed.
+fn named_checkbox(ui: &mut Ui, on: &mut bool, key: &str, name: &str) -> bool {
+    let response = ui.checkbox(on, label(strings::Key::run_time(key)));
+    let state = *on;
+    response.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, ui.is_enabled(), state, name));
+    response.changed()
+}
+
 /// `{part} of {owner}`: the accessible name of a control that belongs to an item (M25-p3#8).
 fn owned(part: &str, owner: &str) -> String {
     strings::format(strings::Key::run_time("symbol-owned"), &[part, owner])
@@ -265,7 +295,7 @@ fn section(ui: &mut Ui, salt: &str, key: &str, count: Option<usize>, default_ope
 }
 
 /// A path the user types beside its picker: wrapped, so a long path shows whole at every width (SM25#8).
-fn path_field(ui: &mut Ui, key: &str, value: &mut String) {
+fn path_field(ui: &mut Ui, key: &str, value: &mut String) -> egui::Response {
     let caption = ui.label(label(strings::Key::run_time(key)));
     let response = ui
         .add(
@@ -279,6 +309,7 @@ fn path_field(ui: &mut Ui, key: &str, value: &mut String) {
     let name = label(strings::Key::run_time(key));
     ui.ctx()
         .accesskit_node_builder(response.id, |n| n.set_label(name));
+    response
 }
 
 /// The words of a potential role as the role list shows them: codes as printed, Signal and Undefined in words.
@@ -410,7 +441,12 @@ fn text_field(ui: &mut Ui, key: &str, value: &mut Value) -> bool {
         info.current_text_value = Some(buffer.clone());
         info
     });
-    let commit = response.lost_focus() && buffer != display_text(value);
+    // M25-p5#2: Escape cancels the entry.
+    let escape = response.lost_focus() && cancelled(ui);
+    let commit = response.lost_focus() && !escape && buffer != display_text(value);
+    if escape {
+        buffer = display_text(value);
+    }
     ui.data_mut(|d| d.insert_temp(id, (source, buffer.clone())));
     if commit {
         edit_text(value, &buffer);
@@ -568,14 +604,6 @@ impl EditorView {
         }
     }
 
-    fn request(&mut self, shell: &ShellModel, events: &mut Vec<Event>, name: &'static str, value: Value) {
-        if shell.symbol_editor().is_some_and(|e| e.dirty()) {
-            self.pending = Some((name, value));
-        } else {
-            action(events, name, value);
-        }
-    }
-
     pub(crate) fn toolbar(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         self.sync(shell);
         let Some(editor) = shell.symbol_editor() else {
@@ -612,6 +640,20 @@ impl EditorView {
             let save_key = ew_viewmodel::actions::find("file.save")
                 .map(|m| shell.shortcut_text(m))
                 .unwrap_or_default();
+            // ID-1472: a fresh draft, asking first when the kept one has unsaved changes.
+            if ribbon_button(
+                ui,
+                "symbol-new-symbol",
+                "file-plus",
+                false,
+                true,
+                false,
+                String::new(),
+            )
+            .clicked()
+            {
+                ask(events, "symbol.new", json!({"discard": true}));
+            }
             // P10: no command switches the panel; an empty folder is refused in words.
             if ribbon_button(ui, "symbol-save", "device-floppy", false, true, false, save_key).clicked() {
                 action(events, "symbol.save", json!({"directory":self.directory}));
@@ -627,7 +669,7 @@ impl EditorView {
             )
             .clicked()
             {
-                self.request(shell, events, "symbol.open", self.file_params());
+                ask(events, "symbol.open", self.file_params());
             }
             if ribbon_button(
                 ui,
@@ -658,7 +700,7 @@ impl EditorView {
             )
             .clicked()
             {
-                self.request(shell, events, "symbol.close", json!({"discard": true}));
+                ask(events, "symbol.close", json!({"discard": true}));
             }
             ui.separator();
             ui.label(label(strings::Key::run_time(if editor.variant == 0 {
@@ -718,30 +760,6 @@ impl EditorView {
         let Some(editor) = shell.symbol_editor() else {
             return;
         };
-        if let Some((name, mut value)) = self.pending.clone() {
-            egui::Modal::new(egui::Id::unique("symbol-discard-confirm")).show(ui.ctx(), |ui| {
-                ui.heading(label(strings::Key::run_time("symbol-dirty")));
-                ui.label(label(strings::Key::run_time("symbol-unsaved")));
-                ui.horizontal(|ui| {
-                    if button(ui, "symbol-cancel") {
-                        self.pending = None;
-                    }
-                    if components::button(
-                        ui,
-                        Kind::Danger,
-                        label(strings::Key::run_time("symbol-discard")),
-                        true,
-                        0.0,
-                    )
-                    .clicked()
-                    {
-                        value["discard"] = json!(true);
-                        action(events, name, value);
-                        self.pending = None;
-                    }
-                });
-            });
-        }
         if self.zoom == 0.0 {
             self.zoom = 8.0;
         }
@@ -761,7 +779,15 @@ impl EditorView {
                 }
             });
         });
-        if let Some(error) = &editor.error {
+        // P3 (SM25b m2): a refusal that Validation lists, issue by issue, shows there only; any other shows here, once.
+        let issues: Vec<String> = draft
+            .validate()
+            .iter()
+            .map(|i| strings::format(strings::Key::run_time(i.code), &[&i.detail]))
+            .collect();
+        if let Some(error) = &editor.error
+            && !error.lines().all(|line| issues.iter().any(|i| i == line))
+        {
             ui.colored_label(t.error.color32(), error);
         }
         ui.separator();
@@ -784,7 +810,7 @@ impl EditorView {
                             for (i,d) in editor.candidates.iter().enumerate() {
                                 let name = display_text(&serde_json::to_value(&d.symbol.name).unwrap_or_default());
                                 if components::button(ui, Kind::Secondary, &name, true, 0.0).clicked() {
-                                    self.request(shell, events,"symbol.candidate",json!({"index":i}));
+                                    ask(events, "symbol.candidate",json!({"index":i}));
                                 }
                             }
                         }
@@ -827,7 +853,7 @@ impl EditorView {
                         }).response.expanded(ui).widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label(strings::Key::run_time("symbol-choose-source"))));
                         field(ui, "symbol-fork-key", &mut self.fork_key);
                         if components::button(ui, Kind::Secondary, label(strings::Key::run_time("symbol-fork-create")), !self.source.is_empty() && !self.fork_key.is_empty(), 0.0).clicked() {
-                            self.request(shell, events, "symbol.fork", json!({"source":self.source,"key":self.fork_key}));
+                            ask(events, "symbol.fork", json!({"source":self.source,"key":self.fork_key}));
                         }
                     }
                     ui.separator();
@@ -836,11 +862,20 @@ impl EditorView {
                     if section(ui, "import", "symbol-import", None, false) {
                         path_field(ui,"symbol-file",&mut self.file);
                         ui.horizontal_wrapped(|ui| {
-                            if button(ui,"symbol-import") { self.request(shell, events,"symbol.open",self.file_params()); }
+                            if button(ui,"symbol-import") { ask(events, "symbol.open",self.file_params()); }
                             if button(ui,"symbol-export") { action(events,"symbol.export",self.file_params()); }
                         });
                     }
-                    path_field(ui,"symbol-library-folder",&mut self.directory);
+                    // M25-p5#1: the folder typed is the editor's on Enter or focus loss, so Ctrl+S, File ▸ Save symbol
+                    // and the quit question save there too; Escape takes the editor's folder back.
+                    let folder = path_field(ui,"symbol-library-folder",&mut self.directory);
+                    if folder.lost_focus() && self.directory != editor.directory {
+                        if cancelled(ui) {
+                            self.directory.clone_from(&editor.directory);
+                        } else {
+                            action(events, "symbol.directory", json!({"directory": self.directory}));
+                        }
+                    }
                     if button(ui, "symbol-choose-folder") { action(events, "symbol.directory", json!({})); }
                     if section(ui, "place", "symbol-place", None, false) {
                         ui.horizontal(|ui| {
@@ -861,9 +896,8 @@ impl EditorView {
                     ui.separator(); ui.strong(label(strings::Key::run_time("symbol-validation")));
                     // SM25#9/#10: the issues are what to do before saving, in the secondary text; the refusal of an
                     // operation is the header's error, never repeated here.
-                    let issues = draft.validate();
                     if issues.is_empty() { ui.label(label(strings::Key::run_time("symbol-valid"))); }
-                    for issue in issues { ui.colored_label(t.text_secondary.color32(), strings::format(strings::Key::run_time(issue.code),&[&issue.detail])); }
+                    for issue in &issues { ui.colored_label(t.text_secondary.color32(), issue); }
                 });
             });
             ui.separator();
@@ -1294,10 +1328,12 @@ impl EditorView {
                     for kind in ["rect", "circle", "ellipse", "polygon"] {
                         if let Some(shape) = value.get_mut(kind) {
                             let mut filled = !shape["fill"].is_null();
-                            if ui
-                                .checkbox(&mut filled, label(strings::Key::run_time("symbol-fill")))
-                                .changed()
-                            {
+                            if named_checkbox(
+                                ui,
+                                &mut filled,
+                                "symbol-fill",
+                                &owned(label(strings::Key::run_time("symbol-fill")), &owner),
+                            ) {
                                 if filled {
                                     shape["fill"] = json!("by_layer");
                                 } else if let Some(object) = shape.as_object_mut() {
@@ -1308,7 +1344,7 @@ impl EditorView {
                         }
                     }
                     if let Some(text) = value.get_mut("text") {
-                        changed |= text_style_control(ui, text, styles);
+                        changed |= text_style_control(ui, text, styles, &owner);
                         changed |= ui
                             .push_id(("graphic-text", i), |ui| {
                                 text_field(ui, "symbol-text", &mut text["text"])
@@ -1333,7 +1369,7 @@ impl EditorView {
                             });
                         }
                     }
-                    if button(ui, "symbol-delete") {
+                    if delete_button(ui, "symbol-delete", &owner) {
                         if let Some(a) = doc["symbol"]["graphics"].as_array_mut() {
                             a.remove(i);
                         }
@@ -1446,7 +1482,7 @@ impl EditorView {
                                             owned(label(strings::Key::run_time("symbol-direction")), &owner),
                                         )
                                     });
-                                if button(ui, "symbol-delete") {
+                                if delete_button(ui, "symbol-delete-row", &owner) {
                                     remove = Some(i);
                                 }
                             });
@@ -1481,20 +1517,26 @@ impl EditorView {
                                 "xref" => "symbol-xref",
                                 _ => "symbol-cp-designation",
                             };
-                            let owner = label(strings::Key::run_time(key));
-                            ui.label(owner);
-                            changed |= text_style_control(ui, slot, styles);
-                            changed |= numeric_fields(ui, &mut slot["pos"], "", true, owner);
-                            changed |= rotation_control(ui, slot, owner);
+                            // M25-p5#4: each slot is named by its kind and its place in the list.
+                            let owner = strings::format(
+                                strings::Key::run_time("symbol-graphic-item"),
+                                &[label(strings::Key::run_time(key)), &(i + 1).to_string()],
+                            );
+                            ui.label(&owner);
+                            changed |= text_style_control(ui, slot, styles, &owner);
+                            changed |= numeric_fields(ui, &mut slot["pos"], "", true, &owner);
+                            changed |= rotation_control(ui, slot, &owner);
                             let mut visible = slot["visible"].as_bool().unwrap_or(false);
-                            if ui
-                                .checkbox(&mut visible, label(strings::Key::run_time("symbol-visible")))
-                                .changed()
-                            {
+                            if named_checkbox(
+                                ui,
+                                &mut visible,
+                                "symbol-visible",
+                                &strings::format(strings::Key::run_time("symbol-visible-of"), &[&owner]),
+                            ) {
                                 slot["visible"] = json!(visible);
                                 changed = true;
                             }
-                            if button(ui, "symbol-delete") {
+                            if delete_button(ui, "symbol-delete-row", &owner) {
                                 remove = Some(i);
                             }
                         });
@@ -1519,13 +1561,28 @@ impl EditorView {
                     for (i, p) in points.iter_mut().enumerate() {
                         ui.push_id(("link", i), |ui| {
                             let mut s = p["name"].as_str().unwrap_or_default().to_owned();
-                            let owner = s.clone();
-                            if doc_field(ui, "symbol-name", &mut s) {
+                            // M25-p5#4: a link point is named by its place in the list, whatever its name.
+                            let owner = strings::format(
+                                strings::Key::run_time("symbol-graphic-item"),
+                                &[label(strings::Key::run_time("symbol-link")), &(i + 1).to_string()],
+                            );
+                            let caption = label(strings::Key::run_time("symbol-name"));
+                            ui.label(caption);
+                            let width = ui.available_width();
+                            if committed_text(
+                                ui,
+                                ("doc", "symbol-name"),
+                                &owned(caption, &owner),
+                                None,
+                                &mut s,
+                                width,
+                                true,
+                            ) {
                                 p["name"] = json!(s);
                                 changed = true;
                             }
                             changed |= numeric_fields(ui, &mut p["pos"], "", true, &owner);
-                            if button(ui, "symbol-delete") {
+                            if delete_button(ui, "symbol-delete-row", &owner) {
                                 remove = Some(i);
                             }
                         });
@@ -1778,7 +1835,7 @@ fn paint(
     }
 }
 
-fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyleTable) -> bool {
+fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyleTable, owner: &str) -> bool {
     let before = value
         .get("style")
         .and_then(Value::as_str)
@@ -1815,7 +1872,7 @@ fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyl
                 egui::WidgetInfo::labeled(
                     egui::Role::ComboBox,
                     true,
-                    label(strings::Key::run_time("symbol-text-style")),
+                    owned(label(strings::Key::run_time("symbol-text-style")), owner),
                 )
             });
     });
@@ -2043,6 +2100,61 @@ mod tests {
             json!({"en":"After"})
         );
         assert!(matches!(&events[1], Event::Action("symbol.save", _)));
+    }
+
+    /// M25-p5#3: a drag of one point per frame moves a number (egui keeps the precise value between frames), and the
+    /// number commits once, at the drag's end.
+    #[test]
+    fn a_slow_drag_of_a_number_moves_it_and_commits_once_at_its_end() {
+        let ctx = egui::Context::default();
+        let mut value = 0.0_f64;
+        let mut commits = 0;
+        let start = Pos2::new(20.0, 16.0);
+        let frame = |n: usize, events: Vec<egui::Event>, value: &mut f64, commits: &mut usize| {
+            let input = egui::RawInput {
+                events,
+                time: Some(n as f64 / 60.0),
+                screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, Vec2::new(400.0, 200.0))),
+                ..Default::default()
+            };
+            let mut output = ctx.run_ui(input, |ui| {
+                if number(ui, value, 0.5, -100.0..=100.0, "x") {
+                    *commits += 1;
+                }
+            });
+            output.textures_delta.clear();
+        };
+        let button = |pos, pressed| egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        };
+        frame(
+            0,
+            vec![egui::Event::PointerMoved(start)],
+            &mut value,
+            &mut commits,
+        );
+        frame(1, vec![button(start, true)], &mut value, &mut commits);
+        for i in 1..=40 {
+            let at = start + Vec2::new(i as f32, 0.0);
+            frame(
+                1 + i,
+                vec![egui::Event::PointerMoved(at)],
+                &mut value,
+                &mut commits,
+            );
+        }
+        assert_eq!((value, commits), (0.0, 0), "nothing commits while the drag lasts");
+        frame(
+            42,
+            vec![button(start + Vec2::new(40.0, 0.0), false)],
+            &mut value,
+            &mut commits,
+        );
+        assert_eq!(commits, 1);
+        assert!(value >= 10.0, "a slow drag stalls: {value}");
     }
 
     #[test]

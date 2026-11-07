@@ -37,6 +37,10 @@ pub const TOOL_KEYS: [(&str, &str); 5] = [
     ("cp", "tool.ip"),
 ];
 
+/// The files the symbol editor opens or imports, as its file picker offers them (M25-p5#5): the authoring JSON,
+/// QElectroTech elements and every EPLAN format `symbols::open` reads.
+pub const FILE_EXTENSIONS: [&str; 9] = ["json", "elmt", "edz", "pxf", "ema", "ems", "esl", "slk", "xml"];
+
 /// A named symbol that can be forked without changing its source.
 #[derive(Debug)]
 pub struct SymbolSource {
@@ -171,17 +175,30 @@ fn content_suffix(draft: &SymbolDraft) -> String {
     format!("{hash:016x}")
 }
 
-/// The words of a symbol's name, its English text first, as the editor shows it.
+/// The words of a symbol's name in the window's language (the dialog's and the scratch page's titles), else its
+/// English text, else its first.
 pub(crate) fn name_words(name: &symbols::MlText) -> String {
+    let language = strings::locale().split('-').next().unwrap_or("en");
     match name.view() {
         symbols::MlTextView::Neutral(s) => s.to_owned(),
         symbols::MlTextView::Langs(map) => map
             .iter()
-            .find(|(k, _)| k.as_str() == "en")
+            .find(|(k, _)| k.as_str() == language)
+            .or_else(|| map.iter().find(|(k, _)| k.as_str() == "en"))
             .or_else(|| map.iter().next())
             .map(|(_, v)| v.to_string())
             .unwrap_or_default(),
     }
+}
+
+/// A refusal in the window's words (part 3's nit: never a raw member name).
+fn words(key: strings::Key<'static>) -> String {
+    strings::text(key).to_owned()
+}
+
+/// A draft whose own document lacks a member it always has: in words, never the member's name.
+fn damaged() -> String {
+    words(key!("symbol-draft-damaged"))
 }
 
 fn text<'a>(p: &'a Map<String, Value>, key: &str) -> &'a str {
@@ -281,6 +298,19 @@ impl ShellModel {
         }
     }
 
+    /// The window's way to an editor action that drops the draft (New symbol, Open or import, Fork, a candidate,
+    /// Discard draft): with unsaved changes it asks Save symbol, Discard or Cancel in the house dialog first, the
+    /// action then running with `discard`; otherwise the action runs at once (ID-1472).
+    pub fn ask_symbol_discard(&mut self, action: &'static str, params: Value) -> Outcome {
+        if self.symbol_editor.as_ref().is_some_and(SymbolEditor::dirty) {
+            return self.open_dialog(super::Dialog::ConfirmDiscard {
+                pending: super::Pending { action, params },
+                symbol: true,
+            });
+        }
+        self.dispatch(action, &params)
+    }
+
     /// After a test placement the editor's view closes and the page shows with the symbol selected; the toast offers
     /// the way back to the kept draft (ID-1463).
     fn after_test_placement(&mut self, scratch: bool) {
@@ -340,8 +370,10 @@ impl ShellModel {
                 }
                 return Ok(());
             }
-            // Reopening the editor without naming a new symbol returns to the kept draft.
+            // Reopening the editor without naming a new symbol returns to the kept draft; `discard` starts a fresh one
+            // (ID-1472).
             if action == "new"
+                && !discard
                 && text(p, "key").is_empty()
                 && text(p, "name").is_empty()
                 && let Some(editor) = &mut self.symbol_editor
@@ -483,7 +515,7 @@ impl ShellModel {
                 self.tools.selection.clear();
                 self.show_page_by_id(&id);
             }
-            return self.symbol_operation("place", json!({"x":40,"y":40}).as_object().ok_or("position")?);
+            return self.symbol_operation("place", json!({"x":40,"y":40}).as_object().ok_or_else(damaged)?);
         }
         let configured_libraries = self.configured_libraries();
         // The paths are resolved, and an empty one refused, before the draft is borrowed (ID-1463).
@@ -554,6 +586,40 @@ impl ShellModel {
                 draft.symbol.cps.insert(target);
                 editor.replace(draft);
             }
+            // The potential role of the function pin a connection point draws; `none` clears it (part 3's nit, D6).
+            "role" => {
+                let cp = p.get("cp").and_then(Value::as_u64);
+                let fn_cp = editor
+                    .draft
+                    .symbol
+                    .cps
+                    .iter()
+                    .find(|c| Some(u64::from(c.idx)) == cp)
+                    .map(|c| u64::from(c.fn_cp))
+                    .ok_or_else(|| {
+                        strings::format(key!("symbol-cp-unknown"), &[&cp.unwrap_or_default().to_string()])
+                    })?;
+                if editor.draft.function_ref.is_some() {
+                    return Err(words(key!("symbol-role-assigned")));
+                }
+                let mut d = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
+                let pin = d["function"]["cps"]
+                    .as_array_mut()
+                    .and_then(|pins| pins.iter_mut().find(|v| v["idx"] == fn_cp))
+                    .and_then(Value::as_object_mut)
+                    .ok_or_else(damaged)?;
+                match text(p, "role") {
+                    "none" => {
+                        pin.remove("potential_role");
+                    }
+                    role => {
+                        pin.insert("potential_role".into(), json!(role));
+                    }
+                }
+                editor.replace(
+                    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(err)?,
+                );
+            }
             "path" => {
                 let points = p
                     .get("points")
@@ -566,8 +632,8 @@ impl ShellModel {
                 for point in points {
                     let params = json!({"x":point.get(0),"y":point.get(1)});
                     converted.push([
-                        nm(params.as_object().ok_or("point")?, "x")?,
-                        nm(params.as_object().ok_or("point")?, "y")?,
+                        nm(params.as_object().ok_or_else(damaged)?, "x")?,
+                        nm(params.as_object().ok_or_else(damaged)?, "y")?,
                     ]);
                 }
                 let kind = if p.get("closed") == Some(&Value::Bool(true)) {
@@ -578,11 +644,11 @@ impl ShellModel {
                 let mut d = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
                 d["symbol"]
                     .as_object_mut()
-                    .ok_or("symbol")?
+                    .ok_or_else(damaged)?
                     .entry("graphics")
                     .or_insert(json!([]))
                     .as_array_mut()
-                    .ok_or("graphics")?
+                    .ok_or_else(damaged)?
                     .push(
                         json!({kind:{"points":converted,"closed":kind=="polygon","stroke":{"pen":"p026"}}}),
                     );
@@ -598,8 +664,12 @@ impl ShellModel {
                     .get("index")
                     .and_then(Value::as_u64)
                     .and_then(|i| usize::try_from(i).ok())
-                    .ok_or("index")?;
-                let draft = editor.candidates.get(index).cloned().ok_or("index")?;
+                    .ok_or_else(|| words(key!("symbol-candidate-invalid")))?;
+                let draft = editor
+                    .candidates
+                    .get(index)
+                    .cloned()
+                    .ok_or_else(|| words(key!("symbol-candidate-invalid")))?;
                 editor.replace(draft.clone());
                 editor.saved = Some(draft);
                 editor.stored = false;
@@ -641,8 +711,11 @@ impl ShellModel {
                 editor.replace(draft);
             }
             "replace" => {
-                let bytes =
-                    serde_json::to_vec(p.get("document").ok_or("document")?).map_err(|e| e.to_string())?;
+                let bytes = serde_json::to_vec(
+                    p.get("document")
+                        .ok_or_else(|| words(key!("symbol-document-required")))?,
+                )
+                .map_err(|e| e.to_string())?;
                 editor.replace(SymbolDraft::parse(&bytes).map_err(err)?);
             }
             "undo" => {
@@ -664,11 +737,11 @@ impl ShellModel {
                     .ok_or_else(|| strings::text(key!("symbol-tool-invalid")).to_owned())?;
             }
             "variant" => {
-                editor.variant = p
-                    .get("variant")
-                    .and_then(Value::as_u64)
-                    .filter(|v| *v < 8)
-                    .ok_or("variant")? as u8;
+                editor.variant =
+                    p.get("variant")
+                        .and_then(Value::as_u64)
+                        .filter(|v| *v < 8)
+                        .ok_or_else(|| words(key!("symbol-variant-invalid")))? as u8;
             }
             "validate" => {
                 let issues = editor.draft.validate();
@@ -686,7 +759,7 @@ impl ShellModel {
                     (nm(p, "x2")?, nm(p, "y2")?)
                 };
                 let mut d = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
-                let object = d["symbol"].as_object_mut().ok_or("symbol")?;
+                let object = d["symbol"].as_object_mut().ok_or_else(damaged)?;
                 let stroke = json!({"pen":"p026"});
                 let value = match tool {
                     "line" => json!({"line":{"from":[x,y],"to":[x2,y2],"stroke":stroke}}),
@@ -702,11 +775,11 @@ impl ShellModel {
                     "arc" => {
                         let angle = |key: &str, default: i64| -> Result<i32, String> {
                             let degrees = match p.get(key) {
-                                Some(v) => v.as_i64().ok_or(key)?,
+                                Some(v) => v.as_i64().ok_or_else(|| words(key!("symbol-angle-invalid")))?,
                                 None => default,
                             };
                             if !(-360..=360).contains(&degrees) {
-                                return Err(key.to_owned());
+                                return Err(words(key!("symbol-angle-invalid")));
                             }
                             Ok((degrees * 1000) as i32)
                         };
@@ -724,7 +797,7 @@ impl ShellModel {
                         .entry("graphics")
                         .or_insert(json!([]))
                         .as_array_mut()
-                        .ok_or("graphics")?
+                        .ok_or_else(damaged)?
                         .push(value);
                 }
                 editor.replace(
@@ -744,15 +817,15 @@ impl ShellModel {
                         .unwrap_or(1)
                 });
                 if index > u64::from(u16::MAX) {
-                    return Err("idx".into());
+                    return Err(words(key!("symbol-cp-index-invalid")));
                 }
                 let points = d["symbol"]
                     .as_object_mut()
-                    .ok_or("symbol")?
+                    .ok_or_else(damaged)?
                     .entry("cps")
                     .or_insert(json!([]))
                     .as_array_mut()
-                    .ok_or("cps")?;
+                    .ok_or_else(damaged)?;
                 let mut cp = points
                     .iter()
                     .find(|v| v["idx"] == index)
@@ -765,18 +838,20 @@ impl ShellModel {
                     cp["dir"] = json!(text(p, "direction"));
                 }
                 cp["pos"] = json!([nm(p, "x")?, nm(p, "y")?]);
-                let fn_cp = cp["fn_cp"].as_u64().ok_or("fn_cp")?;
+                let fn_cp = cp["fn_cp"]
+                    .as_u64()
+                    .ok_or_else(|| words(key!("symbol-function-pin-invalid")))?;
                 points.retain(|v| v["idx"] != index);
                 points.push(cp);
                 points.sort_by_key(|v| v["idx"].as_u64());
                 if editor.draft.function_ref.is_none() {
                     let fpoints = d["function"]
                         .as_object_mut()
-                        .ok_or("function")?
+                        .ok_or_else(damaged)?
                         .entry("cps")
                         .or_insert(json!([]))
                         .as_array_mut()
-                        .ok_or("cps")?;
+                        .ok_or_else(damaged)?;
                     let mut fcp = fpoints
                         .iter()
                         .find(|v| v["idx"] == fn_cp)
@@ -797,11 +872,11 @@ impl ShellModel {
                 let mut d = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
                 let slots = d["symbol"]
                     .as_object_mut()
-                    .ok_or("symbol")?
+                    .ok_or_else(damaged)?
                     .entry("text_slots")
                     .or_insert(json!([]))
                     .as_array_mut()
-                    .ok_or("slots")?;
+                    .ok_or_else(damaged)?;
                 let kind = p.get("kind").cloned().unwrap_or(json!("tag"));
                 slots.push(
                     json!({"kind":kind,"pos":[nm(p,"x")?,nm(p,"y")?],"align":"top_left","visible":true}),
@@ -814,29 +889,29 @@ impl ShellModel {
                 let mut d = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
                 let points = d["symbol"]
                     .as_object_mut()
-                    .ok_or("symbol")?
+                    .ok_or_else(damaged)?
                     .entry("link_points")
                     .or_insert(json!([]))
                     .as_array_mut()
-                    .ok_or("links")?;
+                    .ok_or_else(damaged)?;
                 points.push(json!({"name":text(p,"name"),"pos":[nm(p,"x")?,nm(p,"y")?]}));
                 editor.replace(
                     SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(err)?,
                 );
             }
             "export" => {
-                let path = file_path.ok_or("file")?;
+                let path = file_path.ok_or_else(damaged)?;
                 symbols::export(&editor.draft, &path).map_err(err)?;
                 editor.saved = Some(editor.draft.clone());
                 editor.stored = true;
             }
             "directory" => {
-                let path = directory_path.ok_or("directory")?;
+                let path = directory_path.ok_or_else(damaged)?;
                 editor.directory = path.to_string_lossy().into_owned();
             }
             "save" => {
                 let mut draft = editor.draft.clone();
-                let path = directory_path.ok_or("directory")?;
+                let path = directory_path.ok_or_else(damaged)?;
                 let directory = path.to_string_lossy().into_owned();
                 let issues = draft.validate();
                 if !issues.is_empty() {
@@ -868,7 +943,29 @@ impl ShellModel {
                         .map_err(|e| e.to_string())?,
                 };
                 let before = draft.identity.clone();
-                draft.publish(&mut registry, target).map_err(err)?;
+                // M25-p4#6: the writer's version refusals in words, the item named by the symbol, without its UUID.
+                let fndef_item = draft.identity.as_ref().and_then(|i| i.fndef).map(|f| f.as_uuid());
+                let name = name_words(&draft.symbol.name);
+                let item = |id| {
+                    let kind = if Some(id) == fndef_item {
+                        key!("symbol-item-function")
+                    } else {
+                        key!("symbol-item-symbol")
+                    };
+                    strings::format(kind, &[&name])
+                };
+                draft.publish(&mut registry, target).map_err(|e| match e {
+                    symbols::Error::Library(ew_api::library::LibraryError::Immutable {
+                        item: id,
+                        version,
+                    }) => strings::format(key!("symbol-version-taken"), &[&item(id), &version]),
+                    symbols::Error::Library(ew_api::library::LibraryError::Downgrade {
+                        item: id,
+                        version,
+                        held,
+                    }) => strings::format(key!("symbol-version-older"), &[&item(id), &version, &held]),
+                    e => err(e),
+                })?;
                 // A key other than the one the library holds for the draft's items published new ones (ID-1474).
                 let note = (before.is_some() && before != draft.identity)
                     .then(|| strings::format(key!("symbol-saved-new"), &[&draft.key]));
@@ -910,7 +1007,20 @@ impl ShellModel {
                     "{}.test.{suffix}",
                     draft.key.chars().take(100).collect::<String>()
                 );
-                draft.identity = None;
+                // The same content placed again is the same copy (re-review part 4): its item IDs come from its key,
+                // which carries the content's suffix, never a new UUIDv7 per placement.
+                let item = |kind: &str| {
+                    ew_api::output::Uuid::new_v5(
+                        &symbols::DRAFT_LIBRARY,
+                        format!("{kind}|{}", draft.key).as_bytes(),
+                    )
+                    .to_string()
+                };
+                let fndef = draft.function_ref.is_none().then(|| item("fndef"));
+                draft.identity = Some(
+                    serde_json::from_value(json!({"symbol": item("symbol"), "fndef": fndef}))
+                        .map_err(|e| e.to_string())?,
+                );
                 let mut docs = draft.documents(symbols::DRAFT_LIBRARY).map_err(err)?;
                 if let Some(r) = &draft.function_ref {
                     let project = self
@@ -931,7 +1041,7 @@ impl ShellModel {
                         symbols::schema::LibDocument::Symbol(s) => Some(s.id),
                         _ => None,
                     })
-                    .ok_or("symbol")?;
+                    .ok_or_else(damaged)?;
                 let page = self
                     .current_page()
                     .ok_or_else(|| strings::text(key!("reason-no-page")).to_owned())?;
@@ -948,7 +1058,7 @@ impl ShellModel {
                 let orient = ["r0", "r90", "r180", "r270", "m0", "m90", "m180", "m270"][usize::from(variant)];
                 let params = json!({"cmd":"device.place","params":{"page":page.uuid_text(),"symbol":symbol,"copies":docs,
                     "pos":[pos.0,pos.1],"orient":orient,"target":{"new_device":{"letter":"U"}}}});
-                match self.act_command_run(params.as_object().ok_or("params")?) {
+                match self.act_command_run(params.as_object().ok_or_else(damaged)?) {
                     Outcome::Done => {}
                     Outcome::Failed { message } => return Err(message),
                     Outcome::Refused { reason_key } => return Err(strings::text(reason_key).into()),

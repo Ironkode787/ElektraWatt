@@ -5583,6 +5583,13 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_symbol("map_cp", p),
         )),
     ),
+    // Part 3's nit (D6): a connection point's potential role, for scripts and AI tools as for the role list.
+    with_params(
+        "cp:uint, role:enum(none|l1|l2|l3|l|n|pe|pen|fe|l_plus|l_minus|m|signal|undefined)",
+        hidden(act("symbol.role", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("role", p)
+        })),
+    ),
     with_params(
         "name:text, x:mm, y:mm",
         hidden(act("symbol.link", View, Menu::Edit, &[], always, None, |s, p| {

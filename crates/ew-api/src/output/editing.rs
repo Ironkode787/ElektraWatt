@@ -92,8 +92,11 @@ pub struct CatalogueSymbol {
     pub black_box: bool,
     /// Whether the FnDef's first category is `Terminal` or `TerminalEarth` (placed as a terminal of a strip).
     pub terminal: bool,
-    /// Whether the page's type allows the symbol's representation type.
+    /// Whether the page's type allows the symbol's representation type, and the page's grid the symbol's.
     pub allowed: bool,
+    /// A published library symbol on a connection grid other than the page's (SM25b m3): the symbol's grid and the
+    /// page's, each as its `(num, den)` nanometres per step. The row is listed, not allowed, with this reason.
+    pub grid_mismatch: Option<[(u64, u64); 2]>,
     /// The words the picker's filter matches besides the keys (cycle 36): the symbol's name in every language and its
     /// keywords.
     pub words: Vec<String>,
@@ -441,6 +444,7 @@ fn symbol_row(
             .as_ref()
             .is_some_and(|d| matches!(d.item.category.0.as_str(), "Terminal" | "TerminalEarth")),
         allowed: rep_type_allowed(page, &symbol.rep_type),
+        grid_mismatch: None,
         name: ml_texts(&symbol.name).into_iter().next().unwrap_or_default(),
         words: ml_texts(&symbol.name)
             .into_iter()
@@ -493,13 +497,37 @@ impl Session {
         let set = IdentifierSet::by_key(&q.profile().identifier_set);
         let mut rows: Vec<(CatalogueSymbol, Id<FnDef>)> = Vec::new();
         let mut embedded_keys: BTreeSet<String> = BTreeSet::new();
+        // SM25b m3: the published library symbols, by copy ID, so that an embedded one on another grid is listed too.
+        let published: BTreeSet<Uuid> = self
+            .libraries()
+            .libraries()
+            .iter()
+            .flat_map(|l| self.libraries().documents(l.id, ew_schema::Kind::Symbol))
+            .filter_map(|d| match d {
+                LibDocument::Symbol(s) => Some(s.id.as_uuid()),
+                _ => None,
+            })
+            .filter(|id| {
+                !starter_docs()
+                    .iter()
+                    .any(|(_, _, d)| matches!(d, LibDocument::Symbol(s) if s.id.as_uuid() == *id))
+            })
+            .collect();
         for (id, copy) in q.symbols().iter() {
             let key = key_or_id(copy.item.meta.key.as_ref(), id.as_uuid());
             embedded_keys.insert(key.clone());
-            if copy.item.grid != page.grid {
+            let other_grid = copy.item.grid != page.grid;
+            if other_grid && !published.contains(&id.as_uuid()) {
                 continue;
             }
-            let row = symbol_row(&q, set, &page, key, Some(id.as_uuid()), &copy.item);
+            let mut row = symbol_row(&q, set, &page, key, Some(id.as_uuid()), &copy.item);
+            if other_grid {
+                row.allowed = false;
+                row.grid_mismatch = Some([
+                    (copy.item.grid.num(), copy.item.grid.den()),
+                    (page.grid.num(), page.grid.den()),
+                ]);
+            }
             rows.push((row, fndef_copy(&copy.item.fndef)));
         }
         for (key, kind, doc) in starter_docs() {
@@ -520,12 +548,19 @@ impl Session {
                     || starter_docs()
                         .iter()
                         .any(|(_, _, d)| matches!(d, LibDocument::Symbol(s) if s.id == copy.id))
-                    || copy.item.grid != page.grid
                 {
                     continue;
                 }
                 let address = format!("library:{}:{}", copy.library_id, copy.item_id);
                 let mut row = symbol_row(&q, set, &page, address, None, &copy.item);
+                // SM25b m3 (ruled): a published symbol the page's grid cannot take is listed, greyed with its reason.
+                if copy.item.grid != page.grid {
+                    row.allowed = false;
+                    row.grid_mismatch = Some([
+                        (copy.item.grid.num(), copy.item.grid.den()),
+                        (page.grid.num(), page.grid.den()),
+                    ]);
+                }
                 let Ok(LibDocument::Fndef(def)) = self.libraries().resolve(&copy.item.fndef) else {
                     continue;
                 };

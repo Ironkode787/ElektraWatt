@@ -1079,7 +1079,7 @@ fn symbol_editor_numeric_properties_commit_complete_text_as_one_undo() {
     d.input(&key("escape"));
     d.input(&key("ctrl+z"));
     assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, before);
-    d.input(&click(d.find("Fill shape").unwrap()));
+    d.input(&click(d.find("Fill shape of Rectangle 1").unwrap()));
     let filled =
         serde_json::to_value(&d.shell_mut().symbol_editor().unwrap().draft.symbol.graphics[0]).unwrap();
     assert_eq!(filled["rect"]["fill"], json!("by_layer"));
@@ -1711,5 +1711,128 @@ fn symbol_editor_tools_take_keys_of_the_keymap_and_leave_the_panel() {
     assert!(d.find("Library folder").is_some());
     d.input(&key("escape"));
     assert_eq!(d.shell_mut().symbol_editor().unwrap().tool, "select");
+    d.shell_mut().shutdown();
+}
+
+/// A driver with the symbol editor open on a drawn one-pin draft (a line and pin 1 at the origin).
+fn symbol_driver(tmp: &Tmp, key: &str) -> Driver {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    for (action, params) in [
+        ("symbol.new", json!({"key":key,"name":"Drawn"})),
+        ("symbol.draw", json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4})),
+        (
+            "symbol.cp",
+            json!({"x":0,"y":0,"designation":"1","direction":"left"}),
+        ),
+    ] {
+        assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done);
+    }
+    d.settle();
+    d
+}
+
+/// M25-p5#1: the Library folder typed in its field is the editor's once the field is left, so Ctrl+S saves there.
+#[test]
+fn symbol_editor_saves_with_ctrl_s_to_the_library_folder_typed() {
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.folder");
+    d.input(&click(d.find("Library").unwrap()));
+    let typed = tmp.0.join("typed.ewlib");
+    d.input(&click(d.find("Library folder").unwrap()));
+    d.input(&key("ctrl+a"));
+    d.input(&Input::Type {
+        text: typed.to_string_lossy().into_owned(),
+    });
+    d.input(&key("tab"));
+    assert_eq!(
+        PathBuf::from(&d.shell_mut().symbol_editor().unwrap().directory),
+        typed
+    );
+    d.input(&Input::Hover { at: (600, 400) });
+    d.input(&key("ctrl+s"));
+    let editor = d.shell_mut().symbol_editor().unwrap();
+    assert_eq!(editor.error, None);
+    assert!(editor.stored());
+    assert!(typed.is_dir());
+    d.shell_mut().shutdown();
+}
+
+/// M25-p5#2 (doc 16a §6.8): Escape cancels a field's entry, and the tool stays; Enter commits.
+#[test]
+fn symbol_editor_escape_cancels_a_field_and_keeps_the_tool() {
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.escape");
+    d.input(&Input::Hover { at: (600, 400) });
+    d.input(&key("l"));
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().tool, "line");
+    let before = d.shell_mut().symbol_editor().unwrap().draft.clone();
+    for (field, text) in [("Name", "Typed name"), ("Designation 1", "A1")] {
+        if field == "Designation 1" {
+            d.input(&click(d.find("Electrical data").unwrap()));
+        }
+        d.input(&click(d.find(field).unwrap()));
+        d.input(&key("ctrl+a"));
+        d.input(&Input::Type { text: text.into() });
+        d.input(&key("escape"));
+        assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, before, "{field}");
+        assert_eq!(d.shell_mut().symbol_editor().unwrap().tool, "line", "{field}");
+    }
+    d.input(&click(d.find("Designation 1").unwrap()));
+    d.input(&key("ctrl+a"));
+    d.input(&Input::Type { text: "A1".into() });
+    d.input(&key("enter"));
+    let draft = d.shell_mut().symbol_editor().unwrap().draft.clone();
+    assert_eq!(
+        draft.function.cps.iter().next().unwrap().designation.as_str(),
+        "A1"
+    );
+    d.shell_mut().shutdown();
+}
+
+/// M25-p3#4, M25-p5#3: a drag of a coordinate through the window moves it and commits once, at its end (the slow drag
+/// of one point per frame is `symbol_editor`'s unit test: the driver's drag moves eight times).
+#[test]
+fn symbol_editor_a_drag_of_a_coordinate_commits_once() {
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.slow");
+    d.input(&click(d.find("Electrical data").unwrap()));
+    d.input(&click(d.find("Connection points (1)").unwrap()));
+    let at = d.find("x (mm) of Connection point 1").unwrap();
+    d.input(&Input::Drag {
+        from: at,
+        to: (at.0 + 40, at.1),
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    });
+    let editor = d.shell_mut().symbol_editor().unwrap();
+    let x = editor.draft.symbol.cps.iter().next().unwrap().pos.x.0;
+    assert!(x > 0, "the pin did not move: {x}");
+    // One undo step for the whole drag.
+    assert_eq!(
+        d.shell_mut().dispatch("edit.undo", &json!({})),
+        ew_ui::ew_viewmodel::shell::Outcome::Done
+    );
+    let editor = d.shell_mut().symbol_editor().unwrap();
+    assert_eq!(editor.draft.symbol.cps.iter().next().unwrap().pos.x.0, 0);
+    d.shell_mut().shutdown();
+}
+
+/// ID-1472 (M25-p5#6): the editor's bar has New symbol; over unsaved changes it asks in the house dialog, whose
+/// Discard changes starts the fresh draft.
+#[test]
+fn symbol_editor_new_symbol_asks_before_it_drops_unsaved_changes() {
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.fresh");
+    d.input(&click(d.find("New symbol").unwrap()));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_some());
+    assert!(d.find("Save symbol").is_some(), "{:?}", d.labels());
+    d.input(&click(d.find("Discard changes").unwrap()));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_none());
+    let editor = d.shell_mut().symbol_editor().unwrap();
+    assert!(editor.draft.key.is_empty() && editor.draft.symbol.graphics.is_empty());
     d.shell_mut().shutdown();
 }

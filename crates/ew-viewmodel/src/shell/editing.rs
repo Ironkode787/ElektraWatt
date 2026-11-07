@@ -508,6 +508,12 @@ impl ShellModel {
             }
         };
         let row = cat.symbols[row_index].clone();
+        // SM25b m3: a symbol on another connection grid says so, with both grids.
+        if let Some(grids) = row.grid_mismatch {
+            return Outcome::Failed {
+                message: crate::tools::grid_words(grids),
+            };
+        }
         if !row.allowed {
             return Outcome::Refused {
                 reason_key: key!("reason-rep-type-not-allowed"),
@@ -801,6 +807,12 @@ impl ShellModel {
             };
         };
         if let Some(reason_key) = picker.disabled(row) {
+            // SM25b m3: the grids' reason names both grids.
+            if reason_key == key!("reason-symbol-grid") {
+                return Outcome::Failed {
+                    message: picker.disabled_words(row).unwrap_or_default(),
+                };
+            }
             return Outcome::Refused { reason_key };
         }
         let (mode, cat, pending) = (picker.mode, Arc::clone(&picker.catalogue), picker.pending.clone());
