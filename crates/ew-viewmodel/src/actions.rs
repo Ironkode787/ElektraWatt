@@ -5530,7 +5530,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     with_params(
         "key?:text, name?:text, discard?:bool",
         placed(
-            place(Group::Place, 5, CommandSize::Small, None),
+            place(Group::Place, 5, CommandSize::Small, Some(key!("bar-symbol-editor"))),
             "pencil",
             act(
                 "symbol.new",

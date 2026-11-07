@@ -84,9 +84,12 @@ fn form_value(h: &Harness<'static, App>, name: &str) -> String {
     }
 }
 
-/// The shown value of the open dialog's one combo box.
+/// The shown value of the open dialog's first combo box (New page's Type; ID-1477 (1): Connection grid follows it).
 fn combo_value(h: &Harness<'static, App>) -> String {
-    let combo = h.get_by_role(egui::Role::ComboBox);
+    let combo = h
+        .get_all_by_role(egui::Role::ComboBox)
+        .next()
+        .expect("a combo box");
     let node = combo.accesskit_node();
     node.value()
         .map(|v| v.to_string())
@@ -104,7 +107,10 @@ fn ft558_choices_show_display_words() {
     settle(&mut h);
     assert_eq!(combo_value(&h), "Multi-line", "the page type in words");
     assert_eq!(form_value(&h, "type"), "multi_line");
-    h.get_by_role(egui::Role::ComboBox).click();
+    h.get_all_by_role(egui::Role::ComboBox)
+        .next()
+        .expect("the Type list")
+        .click();
     settle(&mut h);
     assert!(
         h.query_by_label("Table of contents").is_some(),

@@ -140,7 +140,11 @@ fn a_refusal_stays_in_the_dialog_and_the_type_is_a_choice() {
         "the refusal is not made a banner as well"
     );
     // Choosing the type from the list.
-    h.get_by_role(egui::Role::ComboBox).click();
+    // The first list is Type (ID-1477 (1): Connection grid follows it).
+    h.get_all_by_role(egui::Role::ComboBox)
+        .next()
+        .expect("the Type list")
+        .click();
     settle(&mut h);
     h.get_by_label("Single-line").click();
     settle(&mut h);

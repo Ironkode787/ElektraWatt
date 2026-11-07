@@ -611,6 +611,7 @@ pub const KEYS: &[&str] = &[
     "bar-go-to",
     "bar-follow-reference",
     "bar-device",
+    "bar-symbol-editor",
     "bar-wire",
     "bar-interruption",
     "bar-rotate",
