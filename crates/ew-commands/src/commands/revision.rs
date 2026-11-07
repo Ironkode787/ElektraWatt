@@ -244,7 +244,7 @@ fn refuse_label_out_of_order(
         rule: LABEL_ORDER_RULE.into(),
         finding: text.to_string(),
         keys,
-        args: Vec::new(),
+        args: Box::default(),
         text: Some(Box::new(text)),
     };
     let Some(key) = format.order_key(label.as_str()) else {

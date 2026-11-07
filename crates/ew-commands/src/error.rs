@@ -72,7 +72,7 @@ pub enum CmdError {
         keys: Vec<AnyKey>,
         /// The finding's message arguments, by Fluent variable name, from which the window renders the rule's message
         /// from the check catalogue in its language (FT-1488, ID-1457); empty for a rule the catalogue does not word.
-        args: Vec<(&'static str, String)>,
+        args: Box<[(&'static str, String)]>,
         /// The finding by key, for a rule of the commands' own (EW-REL-004), which the window renders in its language;
         /// `None` for a rule of the check catalogue.
         text: Option<Box<Text>>,

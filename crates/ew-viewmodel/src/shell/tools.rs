@@ -1554,7 +1554,8 @@ mod ft779 {
                 ("name", "0V".to_owned()),
                 ("form", "sources".to_owned()),
                 ("count", "2".to_owned()),
-            ],
+            ]
+            .into(),
             text: None,
         };
         let checkpoint = CmdError::History {
