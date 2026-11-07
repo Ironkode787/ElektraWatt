@@ -15,9 +15,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_derive::Q;
 use ew_derive::layout::{
     Fit, Mountable, PathError, PlacementGeometry, PoseError, PoseOn, Profile, Quarter, RailAxis, RailExtent,
-    RailItem, Resolution, SnapError, SnapMode, Unplaced, bracket_part, carrier_label, cascade, check_path,
-    check_pose, clip_offset, fits_rail, member_order, member_slot, min_gap, mm, mount_label, next_fit,
-    plate_frame, rail_extent, rail_items, rehome_pose, resolve,
+    RailItem, Resolution, SnapError, SnapMode, Unplaced, bracket_part, carrier_label, cascade,
+    cascade_mirrored, check_path, check_pose, clip_offset, fits_rail, member_order, member_slot, min_gap, mm,
+    mount_label, next_fit, plate_frame, rail_extent, rail_items, rehome_pose, resolve,
 };
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, StructureOf, StructurePath};
 use ew_ids::Id;
@@ -1680,9 +1680,9 @@ pub(crate) fn follow_part_change(
 /// strip as a whole on a rail (turned 0°) that grew shifts the items after it on the rail by the overlap, cascading
 /// ([`cascade`] with the grown strip first), in the same transaction. The grown width is the strip's terminals as the
 /// transaction holds them, side by side; the positions are the base snapshot's. A strip turned 180° grows left and
-/// pushes the items before it, leftwards (FT-1495, ID-1455): the same cascade runs on the rail's coordinates mirrored,
-/// where the gaps and the bracket side apply as for an unturned strip; past the rail's start the positions are written
-/// all the same.
+/// pushes the items before it, leftwards (FT-1495, ID-1455): the same cascade runs on the rail's coordinates mirrored
+/// ([`cascade_mirrored`]), the gap between two strips being the bracket of the strip on the left in the real frame, as
+/// EW-LAY-010 judges it (C53-p2#3, ID-1480); past the rail's start the positions are written all the same.
 ///
 /// - Free space after the strip is used first; an item moves only as far as its minimum gap to its moved neighbour
 ///   requires (between two strips, the end bracket).
@@ -1758,11 +1758,13 @@ pub(crate) fn push_after_growth(tx: &mut TxBuilder<'_>, strip: Id<Device>) -> Re
         }
         // The rail's end (its start, mirrored) refuses nothing here: EW-LAY-010 reports it.
         let rest = &items[k + 1..];
-        let moves = match cascade(grown, rest, i128::MAX, true) {
+        // C53-p2#3 (ID-1480): mirrored, the gaps stay the real frame's.
+        let push = if turned { cascade_mirrored } else { cascade };
+        let moves = match push(grown, rest, i128::MAX, true) {
             Ok(moves) => moves,
             Err(SnapError::Locked(Some(locked))) => {
                 let stop = rest.iter().position(|i| i.placement == Some(locked)).unwrap_or(0);
-                cascade(grown, &rest[..stop], i128::MAX, true).unwrap_or_default()
+                push(grown, &rest[..stop], i128::MAX, true).unwrap_or_default()
             }
             Err(_) => Vec::new(),
         };

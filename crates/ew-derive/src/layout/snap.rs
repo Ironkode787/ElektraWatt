@@ -407,11 +407,42 @@ pub fn cascade(
     length: i128,
     first_is_item: bool,
 ) -> Result<Vec<(Id<Placement>, i128)>, SnapError> {
+    cascade_by(first, rest, length, first_is_item, min_gap)
+}
+
+/// [`cascade`] on a rail's coordinates mirrored (`s` read as `−s`, the pads swapped), as a strip turned 180° that grows
+/// left pushes the items before it (`ew-commands`, FT-1495). The gaps are the real frame's (C53-p2#3, ID-1480): between
+/// two strips the bracket of the strip that stands left on the rail, `b` in the mirrored frame, as [`brackets`] and
+/// EW-LAY-010 judge it; every other pair as [`min_gap`] gives it, the mirror already swapping the pads.
+///
+/// # Errors
+///
+/// As [`cascade`].
+pub fn cascade_mirrored(
+    first: RailItem,
+    rest: &[RailItem],
+    length: i128,
+    first_is_item: bool,
+) -> Result<Vec<(Id<Placement>, i128)>, SnapError> {
+    let gap = |a: &RailItem, b: &RailItem| {
+        if a.strip && b.strip { b.bw() } else { min_gap(a, b) }
+    };
+    cascade_by(first, rest, length, first_is_item, gap)
+}
+
+/// [`cascade`] with the minimum gap `gap(left, right)` between two consecutive items.
+fn cascade_by(
+    first: RailItem,
+    rest: &[RailItem],
+    length: i128,
+    first_is_item: bool,
+    gap: impl Fn(&RailItem, &RailItem) -> i128,
+) -> Result<Vec<(Id<Placement>, i128)>, SnapError> {
     let mut moved = Vec::new();
     let mut prev = first;
     let mut last: Option<usize> = None;
     for (i, o) in rest.iter().enumerate() {
-        let need = prev.s1.saturating_add(min_gap(&prev, o));
+        let need = prev.s1.saturating_add(gap(&prev, o));
         if need <= o.s0 {
             break;
         }
