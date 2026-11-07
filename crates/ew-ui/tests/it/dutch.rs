@@ -333,14 +333,15 @@ fn labels(h: &Harness<'_, App>) -> Vec<String> {
 
 /// ID-1278 ruling 5 (W49.1 I): after View ▸ Language back to English, the very next frame's Pages navigator speaks
 /// English (its rows were kept from the Dutch frame until the next change): in tree mode its section row and the
-/// `generated` and `QET grid` badges, in table mode its cells' row positions.
+/// `generated` badge (the grid's badge reads "QET 10 px" in both languages, as the status bar), in table mode its
+/// cells' row positions.
 #[test]
 fn the_pages_navigator_follows_the_language_in_its_first_frame() {
     let modes: [(bool, &[&str], &[&str]); 2] = [
         (
             false,
-            &["Sectie 1", "gegenereerd", "QET-raster"],
-            &["Section 1", "generated", "QET grid"],
+            &["Sectie 1", "gegenereerd"],
+            &["Section 1", "generated"],
         ),
         (true, &[", rij 1 van 36"], &[", row 1 of 36"]),
     ];
