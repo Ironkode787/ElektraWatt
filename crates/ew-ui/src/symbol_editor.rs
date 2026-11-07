@@ -934,6 +934,8 @@ impl EditorView {
         let height = ui.available_height();
         ui.horizontal_top(|ui| {
             ui.allocate_ui_with_layout(Vec2::new(width,height),egui::Layout::top_down(egui::Align::Min),|ui| {
+                // ID-1483 (F6): the scroll bar takes its own room, so no field runs under it.
+                ui.spacing_mut().scroll.floating = false;
                 egui::ScrollArea::vertical().id_salt("symbol-properties-scroll").max_height(height).show(ui,|ui| {
                     ui.set_min_width(width - t.space_5);
                     let tabs = ["symbol-drawing-tab", "symbol-data-tab", "symbol-library-tab"].map(|k| label(strings::Key::run_time(k)));

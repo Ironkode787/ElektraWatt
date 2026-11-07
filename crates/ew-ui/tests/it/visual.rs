@@ -1661,6 +1661,24 @@ fn symbol_editor_draws_a_rectangle_by_drag_and_keeps_its_view() {
     d.shell_mut().shutdown();
 }
 
+/// ID-1483 (F6): at the 1280 × 800 floor the Library tab scrolls, and its fields keep clear of the scroll bar: they
+/// are narrower than the same field on the Drawing tab, which does not scroll.
+#[test]
+fn symbol_editor_library_fields_keep_clear_of_the_scroll_bar() {
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.scroll");
+    assert_eq!(d.geometry().window_points(), egui::Vec2::new(1280.0, 800.0));
+    let drawing = d.find("Name").unwrap();
+    d.input(&click(d.find("Library").unwrap()));
+    d.input(&Input::Wait { ms: 100 });
+    let library = d.find("Name").unwrap();
+    assert!(
+        library.0 < drawing.0,
+        "the field gives the scroll bar its room: {library:?} against {drawing:?}"
+    );
+    d.shell_mut().shutdown();
+}
+
 /// ID-1483 (F5): the refusal banner above the canvas neither re-fits nor moves the view: the same drag draws the same
 /// rectangle with the banner on show as without it.
 #[test]
