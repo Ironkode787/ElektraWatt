@@ -1652,7 +1652,9 @@ impl ShellModel {
                 let joined = rep.and_then(|r| self.project.as_ref()?.session.joined_text(r));
                 // FX37a: what the removed source device carried goes with it; the toast names it.
                 joined.map(|j| {
-                    let text = strings::format(key!("toast-joined"), &[&j.tag, &j.kind, &j.place]);
+                    // FT-1483: the function's kind in the window's language.
+                    let kind = super::navigators::kind_words(&j.kind).unwrap_or_else(|| j.kind.clone());
+                    let text = strings::format(key!("toast-joined"), &[&j.tag, &kind, &j.place]);
                     if notices.is_empty() {
                         text
                     } else {
