@@ -820,6 +820,41 @@ fn library_update_refuses_what_it_cannot_update() {
         "the project holds no copy of manufacturer PowerCo (PWC) at version 1.0.0; embed it first (library.embed \
          or part.assign)"
     );
+    // FT-1524 (C53-p2#5): a symbol by its name, a PLC profile by its label.
+    let symbol_item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_1525);
+    let mut symbol = held_symbol(&s, "ew.gen.ip@qet10");
+    symbol["item_id"] = json!(symbol_item.to_string());
+    symbol["name"] = json!({"en": "Cabinet light"});
+    // Version 1: `lib_ref` asks for `^1`.
+    symbol["version"] = json!("1.0.0");
+    s.libraries_mut().write(lib, &[into_library(symbol, lib)]).unwrap();
+    let symbol = serde_json::to_value(s.libraries().resolve(&lib_ref(lib, symbol_item)).unwrap()).unwrap();
+    // The registry resolves no PLC profile: the profile's copy is made here, its ID and hash as a copy's.
+    let profile_item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_1526);
+    let mut profile: Value = serde_json::from_str(include_str!("../../../../content/plc-profiles/iec-61131-3.json"))
+        .expect("the IEC profile");
+    profile["library_id"] = json!(lib.to_string());
+    profile["item_id"] = json!(profile_item.to_string());
+    profile["id"] = json!(copy_in(lib, profile_item).to_string());
+    let doc = LibDocument::from_value(profile).unwrap();
+    let mut profile = serde_json::to_value(&doc).unwrap();
+    profile["sha256"] =
+        json!(ew_schema::Sha256(ew_commands::commands::library_copy_hash(&doc).unwrap()).to_string());
+    for (doc, want) in [
+        (
+            symbol,
+            "the project holds no copy of symbol Cabinet light at version 1.0.0; embed it first (library.embed or \
+             part.assign)",
+        ),
+        (
+            profile,
+            "the project holds no copy of PLC profile IEC 61131-3 at version 0.1.0; embed it first (library.embed \
+             or part.assign)",
+        ),
+    ] {
+        let (p, m) = run(&mut s, json!({"copies": [doc]}));
+        assert_eq!((p.as_str(), m.as_str()), ("/copies/0", want));
+    }
     let mut lower = golden_part("2904602");
     lower["description"] = json!("older");
     let mut lower = rehashed(lower);
