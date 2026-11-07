@@ -584,8 +584,8 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
         assert_eq!(
             shell.dispatch("symbol.place", &json!({"x":80,"y":80})),
             Outcome::Failed {
-                message: "Symbol editor: This symbol is drawn on the 2.65 mm connection grid, and this page uses 4 \
-                          mm. Place it on a page with its grid."
+                message: "Symbol editor: This symbol is drawn on the QET 10 px connection grid, and this page uses \
+                          4 mm. Place it on a page with its grid."
                     .into()
             }
         );
@@ -1274,7 +1274,8 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
         .expect("the published symbol is listed");
     let row = PickerRow::Symbol(i);
     assert!(picker.rows.contains(&row));
-    let words = "This symbol is drawn on the 4 mm connection grid, and this page uses 2.65 mm. Place it on a page \
+    // M25-p7#3: both grids named as the status bar, New page and Properties name them.
+    let words = "This symbol is drawn on the 4 mm connection grid, and this page uses QET 10 px. Place it on a page \
                  with its grid.";
     assert_eq!(picker.disabled_words(row).as_deref(), Some(words));
     assert!(strings::set_locale("nl"));
@@ -1283,7 +1284,7 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
     assert_eq!(
         dutch.as_deref(),
         Some(
-            "Dit symbool is getekend op het verbindingsraster van 4 mm, en deze pagina gebruikt 2,65 mm. Plaats het op \
+            "Dit symbool is getekend op het verbindingsraster 4 mm, en deze pagina gebruikt QET 10 px. Plaats het op \
              een pagina met zijn raster."
         )
     );
@@ -1332,8 +1333,8 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
     drawn(&mut shell, "example.offer", "Offer block");
     assert_eq!(
         failed(&mut shell, "symbol.place", json!({"x":40,"y":40})),
-        "Symbol editor: This symbol is drawn on the 4 mm connection grid, and this page uses 2.65 mm. Place it on a \
-         page with its grid."
+        "Symbol editor: This symbol is drawn on the 4 mm connection grid, and this page uses QET 10 px. Place it on \
+         a page with its grid."
     );
     assert!(shell.symbol_editor().unwrap().offer_new_page);
     let pages = shell.page_labels().len();
@@ -1392,6 +1393,80 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
         "the symbol is selected, not its page"
     );
     shell.shutdown();
+}
+
+/// M25-p7#2 (ID-1477 (1)): the editor's offer for a draft saved to a library and unchanged since places the published
+/// symbol on a new page with its grid and selects it; for any other draft it is Test on a new page, and
+/// `symbol.new_page` is refused in words.
+#[test]
+fn the_editors_offer_places_the_published_symbol_only_while_the_draft_is_as_saved() {
+    let tmp = Tmp::new("symbol-offer-published");
+    let dir = tmp.0.join("project.ew");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
+    drawn(&mut shell, "example.offered", "Offered");
+    let not_published = "Symbol editor: The symbol is not in a library as drawn. Save it to a library first.";
+    assert_eq!(shell.symbol_editor().unwrap().published(), None);
+    assert_eq!(failed(&mut shell, "symbol.new_page", json!({})), not_published);
+    done(
+        &mut shell,
+        "symbol.save",
+        json!({"directory": tmp.0.join("offered.ewlib")}),
+    );
+    assert!(
+        shell
+            .symbol_editor()
+            .unwrap()
+            .published()
+            .is_some_and(|a| a.starts_with("library:"))
+    );
+    // An edit makes it a draft again; its undo makes it the published one.
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"line","x":0,"y":4,"x2":4,"y2":4}),
+    );
+    assert_eq!(shell.symbol_editor().unwrap().published(), None);
+    done(&mut shell, "symbol.undo", json!({}));
+    assert!(shell.symbol_editor().unwrap().published().is_some());
+    failed(&mut shell, "symbol.place", json!({"x":40,"y":40}));
+    assert!(shell.symbol_editor().unwrap().offer_new_page);
+    let pages = shell.page_labels().len();
+    let recorded = shell.recorded_commands().len();
+    done(&mut shell, "symbol.new_page", json!({}));
+    assert_eq!(shell.page_labels().len(), pages + 1);
+    assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1));
+    let cmds: Vec<&str> = shell.recorded_commands()[recorded..]
+        .iter()
+        .map(|c| c.cmd.as_str())
+        .collect();
+    assert_eq!(cmds, ["page.create", "device.place"]);
+    let selected = &shell.selection().items;
+    assert_eq!(selected.len(), 1);
+    assert_ne!(
+        Some(selected[0].0.to_string()),
+        shell.current_page().map(|p| p.uuid_text()),
+        "the symbol is selected, not its page"
+    );
+    assert_eq!(
+        shell.toast().map(|t| t.text.clone()).as_deref(),
+        Some("Placed -2A1 at 2-B2.")
+    );
+    done(&mut shell, "file.save", json!({}));
+    shell.shutdown();
+    // The project embeds the published symbol under its own key, no test copy.
+    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let q = session.query();
+    let keys: Vec<String> = q
+        .symbols()
+        .iter()
+        .filter_map(|(_, s)| s.item.meta.key.as_ref().map(ToString::to_string))
+        .filter(|k| k.starts_with("example.offered"))
+        .collect();
+    assert_eq!(keys, ["example.offered"]);
 }
 
 /// ID-1477 (2): a new free text is centred on its click, in the small style pin designations use until a style is
@@ -1606,6 +1681,17 @@ fn the_editor_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {
         .placement
         .unwrap();
     assert_eq!((place.tab, place.group), (Tab::Draw, Group::Place));
+    // M25-p7 (ruled): the button reads "Symbols", the editor's things; its tooltip and menu entry "Symbol editor…".
+    let bar = place.bar_label.unwrap();
+    assert_eq!(ew_viewmodel::strings::text(bar), "Symbols");
+    assert!(ew_viewmodel::strings::set_locale("nl"));
+    let dutch = ew_viewmodel::strings::text(bar);
+    assert!(ew_viewmodel::strings::set_locale("en"));
+    assert_eq!(dutch, "Symbolen");
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::key!("action-symbol-new")),
+        "Symbol editor…"
+    );
     done(&mut shell, "tools.palette", json!({}));
     shell.set_palette_query("symbol editor");
     let entry = shell

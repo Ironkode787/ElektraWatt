@@ -99,6 +99,8 @@ pub struct SymbolEditor {
     /// Whether that error is the page's other connection grid, which offers Place on a new page with its grid
     /// (ID-1477 (1)).
     pub offer_new_page: bool,
+    /// The draft as last published and the published symbol's picker address (`library:<library>:<item>`).
+    published: Option<(SymbolDraft, String)>,
     /// The text style last chosen for a text of the draft, which a new text takes (ID-1477 (2)).
     pub text_style: Option<String>,
     /// Suggested writable library directory.
@@ -125,6 +127,7 @@ impl SymbolEditor {
             tool: TOOLS[0],
             error: None,
             offer_new_page: false,
+            published: None,
             text_style: None,
             directory,
             candidates: Vec::new(),
@@ -149,6 +152,14 @@ impl SymbolEditor {
         } else {
             key!("symbol-not-saved")
         }
+    }
+    /// The picker address of the published symbol when the draft is saved to a library and unchanged since
+    /// (M25-p7#2): Place on a new page with its grid places it; otherwise the offer is Test on a new page.
+    pub fn published(&self) -> Option<&str> {
+        self.published
+            .as_ref()
+            .filter(|(draft, _)| *draft == self.draft)
+            .map(|(_, address)| address.as_str())
     }
     /// Whether editor undo is available.
     pub fn can_undo(&self) -> bool {
@@ -323,7 +334,11 @@ impl ShellModel {
         if let Some(editor) = &mut self.symbol_editor {
             editor.offer_new_page = false;
         }
-        let result = self.symbol_operation(action, p);
+        let result = if action == "new_page" {
+            self.place_published_on_new_page()
+        } else {
+            self.symbol_operation(action, p)
+        };
         match result {
             Ok(()) => {
                 if matches!(action, "place" | "scratch") {
@@ -377,6 +392,53 @@ impl ShellModel {
             "symbol",
             Some((NoteAction::BackToEditor, Validity::SymbolDraft)),
         );
+    }
+
+    /// `symbol.new_page` (M25-p7#2; ID-1477 (1)): the published symbol of a draft saved to a library and unchanged
+    /// since, placed on a new page with its grid at 40/40 mm (Test on a new page's point) and selected, as the Insert
+    /// symbol picker's offer places it; the editor steps aside as after a test placement. Any other draft is refused:
+    /// its offer is Test on a new page.
+    fn place_published_on_new_page(&mut self) -> Result<(), String> {
+        let editor = self
+            .symbol_editor
+            .as_ref()
+            .ok_or_else(|| strings::text(key!("symbol-not-open")).to_owned())?;
+        let address = editor
+            .published()
+            .ok_or_else(|| strings::text(key!("symbol-not-published")).to_owned())?
+            .to_owned();
+        let grid = json!(editor.draft.symbol.grid);
+        self.new_page_with_grid(grid, None)?;
+        let page = self.tools.last_primary.clone();
+        // The editor steps aside first, as after a test placement: the Place tool works on the project's page.
+        if let Some(editor) = &mut self.symbol_editor {
+            editor.shown = false;
+        }
+        // The canvas and the tool's context follow the new page, so the placement's tool is not escaped by it.
+        self.sync_views();
+        self.sync_tool_context();
+        for (action, params) in [
+            ("place.pick", json!({ "symbol": address })),
+            ("cursor.set", json!({"x_mm": 40, "y_mm": 40})),
+            ("canvas.activate", json!({})),
+        ] {
+            match self.dispatch(action, &params) {
+                Outcome::Done => {}
+                Outcome::Failed { message } => return Err(message),
+                Outcome::Refused { reason_key } => return Err(strings::text(reason_key).to_owned()),
+            }
+        }
+        let placed = self
+            .tools
+            .last_primary
+            .clone()
+            .filter(|id| Some(id) != page.as_ref());
+        let _ = self.dispatch("ui.dismiss", &json!({}));
+        // The Place tool's own toast says what was placed where, with Undo; the Draw tab's Symbols returns to the draft.
+        if let Some(id) = placed {
+            let _ = self.dispatch("select.set", &json!({ "ids": [id] }));
+        }
+        Ok(())
     }
 
     /// A new page with the connection grid `grid` (`{num, den}`), at the first free whole folio, titled `title`, then
@@ -1056,6 +1118,11 @@ impl ShellModel {
                     }
                 }
                 editor.directory = directory;
+                // M25-p7#2: the published symbol as the Insert symbol picker addresses it, while the draft is this one.
+                editor.published = draft
+                    .identity
+                    .as_ref()
+                    .map(|i| (draft.clone(), format!("library:{target}:{}", i.symbol)));
                 editor.saved = Some(draft);
                 editor.stored = true;
                 editor.error = None;

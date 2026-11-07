@@ -512,7 +512,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "row level 2 page \"900\" \"=P01+J-E-2416 - Section 9 - Page 900 - 999 - Nomenclature\" changed \"V1.0\"",
             "row level 2 page \"901\" \"Partlist 1\" generated changed \"V1.0\"",
             "row level 2 page \"901.1\" \"Partlist 2\" generated changed \"V1.0\"",
-            "row level 2 page \"902\" \"Cabinet Layout\" badge \"QET grid\" changed \"V1.0\"",
+            "row level 2 page \"902\" \"Cabinet Layout\" badge \"QET 10 px\" changed \"V1.0\"",
             "row level 2 page \"903\" \"Terminal Diagram 1X1\" generated changed \"V1.0\"",
             "row level 2 page \"904\" \"Terminal Diagram -X1031\" generated changed \"V1.0\"",
             "row level 2 page \"905\" \"Terminal Diagram -X1032\" generated changed \"V1.0\"",

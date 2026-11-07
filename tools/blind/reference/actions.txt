@@ -385,3 +385,4 @@ symbol.export Command "Export symbol draft…" menu none shortcut none context g
 symbol.save Command "Save symbol to library" menu none shortcut none context global hidden params "directory?:path"
 symbol.place Command "Place edited symbol" menu none shortcut none context global hidden params "x:mm, y:mm"
 symbol.scratch Command "Test symbol on a new page" menu none shortcut none context global hidden params ""
+symbol.new_page Command "Place on a new page with its grid" menu none shortcut none context global hidden params ""

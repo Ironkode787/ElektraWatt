@@ -5761,6 +5761,16 @@ pub static ACTIONS: &[ActionMeta] = &[
         None,
         |s, p| s.act_symbol("scratch", p),
     ))),
+    // M25-p7#2 (ID-1477 (1)): the editor's offer for a draft saved to a library and unchanged since.
+    hidden(parameterless(act(
+        "symbol.new_page",
+        Command,
+        Menu::Edit,
+        &[],
+        writable,
+        None,
+        |s, p| s.act_symbol("new_page", p),
+    ))),
 ];
 
 // WP-S2.08 part 2

@@ -349,7 +349,7 @@ impl Picker {
     }
 
     /// The words of the reason a row is disabled; `None` for an enabled row. A symbol on another connection grid
-    /// names both grids in millimetres (SM25b m3).
+    /// names both grids (SM25b m3) as the status bar does (M25-p7#3).
     pub fn disabled_words(&self, row: PickerRow) -> Option<String> {
         let reason = self.disabled(row)?;
         if let PickerRow::Symbol(i) = row
@@ -361,17 +361,11 @@ impl Picker {
     }
 }
 
-/// Why a symbol on another connection grid cannot be placed on the page, both grids in millimetres (SM25b m3).
+/// Why a symbol on another connection grid cannot be placed on the page, both grids named as the status bar names
+/// them ("4 mm", "QET 10 px"; M25-p7#3, ruled), the words New page and Properties offer.
 pub(crate) fn grid_words([symbol, page]: [(u64, u64); 2]) -> String {
-    crate::strings::format(key!("reason-symbol-grid"), &[&grid_mm(symbol), &grid_mm(page)])
-}
-
-/// A connection grid's step `(num, den)` nanometres in millimetres, at most two decimals, in the UI language's
-/// decimal form (`4`, `2,65`).
-fn grid_mm((num, den): (u64, u64)) -> String {
-    let mm = num as f64 / den.max(1) as f64 / 1_000_000.0;
-    let text = format!("{mm:.2}");
-    crate::strings::decimal(text.trim_end_matches('0').trim_end_matches('.'))
+    let words = |(num, den): (u64, u64)| crate::status::grid_words(num as i64, den as i64);
+    crate::strings::format(key!("reason-symbol-grid"), &[&words(symbol), &words(page)])
 }
 
 impl Picker {

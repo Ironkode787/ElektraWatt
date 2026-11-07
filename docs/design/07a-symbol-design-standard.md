@@ -38,5 +38,5 @@ Editor errors block publishing: off-grid pins, invalid geometry, missing functio
 unknown unsupported drawing kinds, missing provenance or an invalid version. Advice about layout or visual balance
 does not silently alter the symbol. A valid file still needs engineering review of its electrical meaning.
 
-Test placement requires identical symbol and page connection grids; otherwise Place on a new page with its grid places it on a new page of its grid (ID-1477).
+Test placement requires identical symbol and page connection grids; otherwise the refusal offers a new page of its grid: Place on a new page with its grid places the published symbol while the draft is saved to a library and unchanged, Test on a new page a test copy otherwise (ID-1477; M25-p7#2).
 Unknown active electrical semantics remain inspectable in a draft but block publication and placement.

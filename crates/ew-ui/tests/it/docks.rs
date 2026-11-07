@@ -239,7 +239,7 @@ fn dk2_page_rows_carry_badge_nodes_not_bracketed_words() {
         assert!(!label.contains('['), "{label}");
     }
     assert!(
-        h.query_all_by_label("QET grid")
+        h.query_all_by_label("QET 10 px")
             .any(|n| n.accesskit_node().role() == egui::Role::Label),
         "the badge is a named node"
     );

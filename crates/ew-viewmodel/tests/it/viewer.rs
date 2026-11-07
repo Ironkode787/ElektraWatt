@@ -442,7 +442,7 @@ fn v4_the_navigator_on_golden_a() {
         .unwrap();
     assert!(names[row_103].starts_with("103 "), "{}", names[row_103]);
     assert!(
-        names[row_103].ends_with(", page, QET grid, current"),
+        names[row_103].ends_with(", page, QET 10 px, current"),
         "{}",
         names[row_103]
     );

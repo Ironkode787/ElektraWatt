@@ -72,7 +72,7 @@ fn x32b_pages_rows_keep_to_the_pane_and_the_long_row_is_ellipsised() {
         })
         .collect();
     assert!(
-        chips.iter().any(|(c, _)| c == "QET grid"),
+        chips.iter().any(|(c, _)| c == "QET 10 px"),
         "the QET grid chips: {chips:?}"
     );
     for (name, r) in &chips {
