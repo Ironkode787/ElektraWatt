@@ -15,6 +15,8 @@ the `records` step of `cargo xtask settle --merge` runs it at the merge point.
 
 Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:` trailer cites, newest first, with the commits that cite it, newest first.
 
+- **ID-1517** (cycle 53): RTR-G's review fixes accepted (project owner (delegated); the golden decision is the orchestrator's): `d9088a56f` passes its lane-check. Accepted: the three-phase motor 0.2.0 with leads one grid step longer (U1, V1, W1 move; no text-only move clears the QET edition's stubs) and the heater 0.1.1; RG3's new totals (101: 38 bends, the kept 1 nm jog counting two, FT-1598; 103: 27 crossings, 52 bends; 106: 14 crossings, its lower targets standing right above left so that no cross-reference sits under the wrong arrow), every page still at hard 0, text overlaps 0 and no detour above 2. Both fix branches now merge for the third candidate. ID-1509; ID-1516.
+  - `f79986579f` docs(plan): WP-S2.19 authoring fixes accepted
 - **ID-1516** (cycle 53): WP-S2.19's review fix phase accepted (project owner (delegated); Dutch wording the orchestrator's, ID-1320): every assigned finding is fixed at `bd66bc24c` with its lane-check passing; C53-rt#14 is withdrawn (an empty list is the command's own refusal, as in `connection.draw_many`'s arm). Route selection's disabled reason reads "Select a wire or a symbol to route" | "Selecteer een draad of een symbool om te routeren". The route pair's icons (`file-settings`, `magnet`) stand for 0.1.0; icons drawn for routing are FT-1618. ID-1509.
   - `286b2de7bf` docs(plan): WP-S2.19 review fix phase accepted
 - **ID-1515** (cycle 53): M2.5 starts only when M2 is closed in full and 0.1.0 is final (project owner, 2026-11-08: "Agreed. We only start when M2 is completely closed, and 0.1 is definitive."): no M2.5 lane runs beside a release candidate, and the hold after M2 (ID-1488) still needs the owner to lift it. ID-1514.
@@ -1925,7 +1927,7 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 
 ## Open follow-up tasks
 
-644 open: 20 scheduled, 87 expired, 537 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
+646 open: 20 scheduled, 87 expired, 539 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
 
 ### Scheduled (due in cycle 53 or later)
 
@@ -2579,4 +2581,6 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 - FT-1616 (cycle 53, Medium, tests; due: M2.5): go through every test by hand, crate by crate (about 7,400 tests, 307k lines with the fuzz harness): combine tests that assert the same behaviour, scrap those that prove nothing a stronger test does not, and refactor repeated set-up into shared builders; coverage before and after shows nothing proven is lost; the golden and acceptance tests are kept. Source: ID-1513
 - FT-1617 (cycle 53, Medium, workspace; due: M2.5): a pass against over-design, crate by crate: remove redundant helpers and functions, abstractions with a single use, options nothing sets, dead or `#[allow(dead_code)]` code (42 attributes) and needless `#[allow(clippy::…)]` (271), and unused dependencies; behaviour unchanged, proven by the suite. Source: ID-1513
 - FT-1618 (cycle 53, Low, ew-ui; due: M3): Route page and Route selection use `file-settings` and `magnet`, the only unused icons of the set that fit; give them icons drawn for routing (a route and a waypoint glyph) from the same icon family. Source: ID-1516
+- FT-1619 (cycle 53, Low, ew-library; due: M3): the QET edition of the three-phase motor draws "M" over "3~", and its pin texts stand 0.27 mm from the next lead; space them. Source: ID-1517
+- FT-1620 (cycle 53, Low, tests; due: M2.5): the library test that no symbol's text crosses a stub checks the default orientation only; check every orientation a symbol allows. Source: ID-1517
 <!-- /generated:records -->
