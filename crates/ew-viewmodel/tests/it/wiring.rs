@@ -596,9 +596,12 @@ fn rm1_a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_c
     assert_eq!(wire(&s, "-103K1:A1").polyline, upper, "the undo restores both");
 }
 
+/// A wire to draw: its two CP labels and its route's grid indices.
+type WireSpec<'a> = (&'a str, &'a str, &'a [(i64, i64)]);
+
 /// Coils at the grid indices `ks` on folio 103 (`-103K1`, `-103K2`, … in this order) and the wires `(a, b, route)`
 /// between their CPs, each route a list of grid indices (empty: unrouted), drawn by `connection.draw`.
-fn coils_and_wires(s: &mut ShellModel, ks: &[(i64, i64)], wires: &[(&str, &str, &[(i64, i64)])]) {
+fn coils_and_wires(s: &mut ShellModel, ks: &[(i64, i64)], wires: &[WireSpec<'_>]) {
     for k in ks {
         done(
             s,
