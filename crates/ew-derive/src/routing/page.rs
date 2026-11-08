@@ -27,7 +27,8 @@ pub struct PageGeometry {
     pub bodies: Vec<Body>,
     /// The connection points drawn on the page.
     pub cps: Vec<CpPoint>,
-    /// The texts the representations print: tags, slot and pin texts, cross-reference texts, one box per line.
+    /// The texts the page prints: the representations' tags, slot and pin texts and cross-reference texts, the free
+    /// texts and the structure boxes' captions (ID-1502 (3)), one box per line.
     pub texts: Vec<TextBox>,
     /// The junctions of the page.
     pub junctions: Vec<JunctionPoint>,
@@ -65,7 +66,7 @@ pub struct CpPoint {
 /// A text box a representation prints.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TextBox {
-    /// The representation that prints it.
+    /// The representation, free text or structure box that prints it.
     pub rep: Uuid,
     /// The box of one line of text.
     pub rect: Rect,

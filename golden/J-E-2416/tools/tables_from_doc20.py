@@ -1993,7 +1993,7 @@ FUNC_COLS = [
     "key", "device", "fndef", "role", "kind", "part", "template", "cp_aliases", "ip_name", "ip_direction",
     "ip_external",
 ]  # fmt: skip
-REP_COLS = ["key", "functions", "page", "symbol", "cell", "dx", "dy", "arrangement", "slot_pos"]
+REP_COLS = ["key", "functions", "page", "symbol", "cell", "dx", "dy", "arrangement", "slot_pos", "orient"]
 
 # doc 07 section 9.1: symbol of a function by its FnDef, always the "@qet10" edition
 SYMBOL = {
@@ -2023,7 +2023,9 @@ EXTERNAL_ARROW = "ew.gen.external-arrow@qet10"
 IP_TARGET = "ew.gen.ip-target@qet10"
 
 # F13: the offsets (QET px) of the k-th interruption point of a coincident group
-IP_OFFSETS = [(0, 0), (0, 20), (0, -20), (20, 0)]
+# ID-1502 (5): the members stack vertically, two grid steps (20 px) apart, never side by side (a target's tip and a
+# source's tail would face each other one step apart)
+IP_OFFSETS = [(0, 0), (0, 20), (0, -20), (0, 40)]
 IP_GROUPS = {}  # (page, cell, dx, dy) -> representation keys, for the coincident groups (information only)
 
 # doc 20 section 6 / doc 07 section 9.1: main function of each device
@@ -2096,10 +2098,10 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
         d.update(kw)
         funcs.append(d)
 
-    def rep(key, page, cell, symbol, dx="", dy="", functions=None, arrangement=""):
+    def rep(key, page, cell, symbol, dx="", dy="", functions=None, arrangement="", orient=""):
         reps.append(
             {"key": key, "functions": functions or key, "page": page, "symbol": symbol, "cell": cell, "dx": dx,
-             "dy": dy, "arrangement": arrangement}
+             "dy": dy, "arrangement": arrangement, "orient": orient}
         )  # fmt: skip
 
     rows61 = {}
@@ -2265,7 +2267,8 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
     # external points (section 15 prose); dy offsets of the three mains points are fixture choices (triangle)
     dys = {ext.group(1): "-20", ext.group(2): "0", ext.group(3): "20"}
     for name, folio, cell, direction in ext_defs:
-        rep(f"{name}@{folio}", folio, cell, EXTERNAL_ARROW, dy=dys.get(name, ""))
+        # ID-1502 (7): the mains points at the left edge are mirrored (E), so their CPs leave into the drawing area
+        rep(f"{name}@{folio}", folio, cell, EXTERNAL_ARROW, dy=dys.get(name, ""), orient="E" if name in dys else "")
     fixture(
         "representations", "dy", [f"{n}@{ext.group(4)}" for n in dys], "-20; 0; 20", "§15",
         "test input (fixture choice): the three mains points share the cell 101-G0 and are stacked",
@@ -2289,7 +2292,7 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
     # ▲ test input (fixture choice): separates coincident interruption points; the cell is what doc 20 §15 asserts
     fixture(
         "representations", ["dx", "dy"], "interruption points that share a cell",
-        "k-th member of a coincident group (natural key order): +(0,0), +(0,20), +(0,-20), +(20,0) px", "§15",
+        "k-th member of a coincident group (natural key order): +(0,0), +(0,20), +(0,-20), +(0,40) px", "§15",
         "▲ test input (fixture choice): separates coincident interruption points; the cell is what doc 20 §15"
         " asserts",
     )  # fmt: skip
@@ -2663,6 +2666,12 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
 
     # junctions.csv: cells are fixture choices (test positions, triangle); doc 20 section 8.3 gives the folio
     cells = {"J1": "C11", "J2": "C13", "J3": "C6", "J4": "D7", "J5": "D5", "J6": "D6"}
+    # ID-1502 (6): J4 and J6 sit one grid step (10 px) above their cells' centres, clear of the -102F2 caption
+    dys = {"J4": "-10", "J6": "-10"}
+    fixture(
+        "junctions", "dy", list(dys), "; ".join(dys.values()), "§8.3",
+        "test input (fixture choice): J4 and J6 one grid step clear of the -102F2 black box's caption (ID-1502)",
+    )  # fmt: skip
     fixture(
         "junctions", "cell", list(cells), "; ".join(cells.values()), "§8.3",
         "test input (fixture choice): doc 20 gives the folio of a junction, not its cell",
@@ -2682,8 +2691,8 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
         missing = [k for k in seqs[j].split(";") if k not in keys]
         check(not missing, f"junction {j}: the sequence {seqs[j]!r} names the missing connections {missing}")
         jr.append(
-            {"key": j, "page": v["page"], "cell": cells[j], "style": v["style"], "wiring": v["wiring"],
-             "sequence": seqs[j]}
+            {"key": j, "page": v["page"], "cell": cells[j], "dy": dys.get(j, ""), "style": v["style"],
+             "wiring": v["wiring"], "sequence": seqs[j]}
         )  # fmt: skip
     register("junctions", ["key", "page", "cell", "dx", "dy", "style", "wiring", "sequence"], jr, 6)
 

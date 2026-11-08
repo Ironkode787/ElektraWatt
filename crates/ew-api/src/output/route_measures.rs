@@ -223,7 +223,15 @@ fn geometry(q: &Q, page: PageRef, tables: &PageTables) -> PageGeometry {
             }
         }
     }
-    let reps: BTreeSet<Uuid> = tables.reps.iter().map(|r| r.id).collect();
+    // The texts the labels layer draws for the page's representations, free texts and structure boxes (their
+    // captions); wire markers move with their wire and are left out (ID-1502 (3)).
+    let reps: BTreeSet<Uuid> = tables
+        .reps
+        .iter()
+        .map(|r| r.id)
+        .chain(tables.items.iter().filter(|i| i.kind == "free_text").map(|i| i.id))
+        .chain(tables.structure_boxes.iter().map(|b| b.id))
+        .collect();
     // A cross-reference's link area repeats its text's box: each box once.
     let mut seen: BTreeSet<(Uuid, [i64; 4])> = BTreeSet::new();
     let texts = page_layer(q, page, Layer::Labels)
@@ -401,7 +409,16 @@ fn page_layout(q: &Q, tables: &PageTables, m: &Measures) -> PageLayout {
     let connection = |id: Uuid| connection_text(q, tables, id);
     let symbol = |id: Uuid| {
         let Some(r) = tables.reps.iter().find(|r| r.id == id) else {
-            return String::new();
+            // A free text or a structure box's caption (ID-1502 (3)).
+            if let Some(t) = tables.items.iter().find(|i| i.id == id) {
+                return format!("the free text \"{}\"", t.text.clone().unwrap_or_default());
+            }
+            return tables
+                .structure_boxes
+                .iter()
+                .find(|b| b.id == id)
+                .map(|b| format!("the structure box \"{}\"", b.caption))
+                .unwrap_or_default();
         };
         if let Some(ip) = &r.ip {
             return format!("interruption point {}", ip.name);

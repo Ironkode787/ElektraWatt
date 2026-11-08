@@ -12,7 +12,7 @@ use ew_schema::{
     PartUse, PlcModule, PlcStation, Record, Representation, Side, SlotOverride, Strip, TagPrint, TagScheme,
     TagSign, TagSpec, Terminal, TerminalGroup, pair_template_cps,
 };
-use ew_units::{Dec3, Grid, Nm, Pt2};
+use ew_units::{Dec3, Grid, Nm, Orient2, Pt2};
 
 use super::plc::STATION_ROLES;
 use super::project::structure_assignment;
@@ -765,6 +765,17 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
         let dx = r.int("dx").unwrap_or(0);
         let dy = r.int("dy").unwrap_or(0);
         let arrangement = r.ident("arrangement");
+        // ID-1502 (7): the orientation's letter, A to H (doc 06's variant keys); empty for A.
+        let orient = match r.text("orient") {
+            None => Orient2::R0,
+            Some(l) => match "ABCDEFGH".find(l).filter(|_| l.len() == 1) {
+                Some(k) => Orient2::ALL[k],
+                None => {
+                    r.fail(format!("column `orient`: `{l}` is not a letter A to H"));
+                    Orient2::R0
+                }
+            },
+        };
         let slot_pos = slot_pos(&mut r);
         if functions.is_empty() {
             r.fail("column `functions` is empty");
@@ -891,10 +902,17 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             cx.malformed(row, &p);
             continue;
         }
-        let sym_cps: Vec<(u16, Pt2)> = sym.item.cps.as_slice().iter().map(|c| (c.fn_cp, c.pos)).collect();
+        let sym_cps: Vec<(u16, Pt2)> = sym
+            .item
+            .cps
+            .as_slice()
+            .iter()
+            .map(|c| (c.fn_cp, orient.apply(c.pos)))
+            .collect();
         let placed = sym
             .item
             .anchor_point()
+            .map(|a| orient.apply(a))
             .zip(cell_point(cell, dx, dy))
             .ok_or(PlaceError::OutOfRange)
             .and_then(|(anchor, target)| place(page_info.grid, target, anchor));
@@ -947,7 +965,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             symbol: sym_id,
             variant: 0,
             pos,
-            orient: Default::default(),
+            orient,
             rep_type,
             pin_map: KeyedList::default(),
             text_slots,

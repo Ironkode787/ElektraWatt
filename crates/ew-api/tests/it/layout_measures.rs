@@ -165,3 +165,35 @@ fn the_geometry_of_folio_101_holds_its_bodies_texts_and_frame_bands() {
         assert!(g.cps.iter().all(|c| !inside(c.at)), "{b:?}");
     }
 }
+
+/// ID-1502 (3): a free text and a structure box's caption are text boxes of the page's geometry, so measure (d) and
+/// the router's rule 4 see them.
+#[test]
+fn free_texts_and_structure_box_captions_are_text_boxes() {
+    use crate::golden_common;
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let mut s = golden_common::session(&batch);
+    let page = ids["pages|101"].clone();
+    let at = [100_541_667, 31_750_000];
+    let placed = s
+        .execute(&ew_api::AnyCommand {
+            name: "item.place".into(),
+            params: serde_json::json!({"page": page, "kind": {"free_text": {"text": "FT", "at": at}}}),
+        })
+        .expect("item.place");
+    let item = placed.outcome.primary.expect("the item").1.as_uuid();
+    let q = 7_937_500 / 3;
+    let outline = [[30 * q, 30 * q], [40 * q, 30 * q], [40 * q, 35 * q], [30 * q, 35 * q]];
+    let boxed = s
+        .execute(&ew_api::AnyCommand {
+            name: "box.structure".into(),
+            params: serde_json::json!({"page": page, "outline": outline, "style": "dotted", "caption": "Box", "assigns": {}}),
+        })
+        .expect("box.structure");
+    let structure = boxed.outcome.primary.expect("the box").1.as_uuid();
+    let geometry = s.page_geometry("101").expect("folio 101");
+    let has = |id| geometry.texts.iter().any(|t| t.rep == id);
+    assert!(has(item), "the free text");
+    assert!(has(structure), "the structure box's caption");
+}

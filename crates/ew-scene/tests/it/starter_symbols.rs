@@ -108,12 +108,13 @@ const VERSION: &str = "0.1.0";
 /// tag (minor), the cylinder's ports gain their role (minor), the module overview's tag moves above the valve glyphs
 /// (minor); FT-1204 (cycle 52, ID-1395): the one-pole on/off switch moves to the manual-command category, class S;
 /// WP-S2.19 D16 (cycle 53): the interruption point is redrawn with its arrow pointing right and its CP on the tail
-/// (major).
+/// (major); ID-1502 (4): the strip segment's tag moves beside the strip, left of its first terminal (minor).
 const BUMPED: &[(&str, &str)] = &[
     ("ew.fn.cylinder-double-acting", "0.1.1"),
     ("ew.fn.switch-1p", "0.1.1"),
     ("ew.fn.valve-5-2-sol-spring", "0.2.0"),
     ("ew.gen.ip", "0.2.0"),
+    ("ew.gen.strip-segment", "0.2.0"),
     ("ew.iec.coil", "0.2.0"),
     ("ew.iec.lamp", "0.2.0"),
     ("ew.iec.position-switch-no", "0.2.0"),

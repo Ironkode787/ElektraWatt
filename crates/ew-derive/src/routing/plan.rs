@@ -433,12 +433,21 @@ impl Solve<'_> {
                 .request(f, &state, true, Relax::default())
                 .and_then(|req| search_areas(self.page, &req));
             let Some((free, _)) = free else { continue };
-            let ripped: Vec<Uuid> = self
+            // The routed jobs the free route meets, and every routed job after the first of them in the order: they
+            // were routed around it, so they are routed again too (ID-1502, step 6's tuning).
+            let first = self
                 .order
                 .iter()
-                .copied()
-                .filter(|j| state.routes.get(j).is_some_and(|(r, _)| conflict(&free, r)))
-                .collect();
+                .position(|j| state.routes.get(j).is_some_and(|(r, _)| conflict(&free, r)));
+            let ripped: Vec<Uuid> = first
+                .map(|k| {
+                    self.order[k..]
+                        .iter()
+                        .copied()
+                        .filter(|j| *j != f && state.routes.contains_key(j))
+                        .collect()
+                })
+                .unwrap_or_default();
             for j in &ripped {
                 state.routes.remove(j);
             }
