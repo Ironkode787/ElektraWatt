@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-07T13:23:17+01:00\n"
+"POT-Creation-Date: 2026-11-08T08:58:03+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -469,7 +469,7 @@ msgid ""
 msgstr ""
 
 #: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:50
-#: src/tutorials/reports-and-pdf.md:38 src/tutorials/import-qet.md:50
+#: src/tutorials/reports-and-pdf.md:38 src/tutorials/import-qet.md:54
 #: src/tutorials/symbol-editor.md:42
 msgid "What you learnt"
 msgstr ""
@@ -594,7 +594,7 @@ msgid ""
 msgstr ""
 
 #: src/tutorials/terminal-strip-and-cable.md:47
-#: src/tutorials/reports-and-pdf.md:35 src/tutorials/import-qet.md:47
+#: src/tutorials/reports-and-pdf.md:35 src/tutorials/import-qet.md:51
 #: src/tutorials/symbol-editor.md:39
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
@@ -743,7 +743,7 @@ msgstr ""
 msgid ""
 "Choose **Project ▸ Import QElectroTech project…**, pick `lamp-circuit.qet`, "
 "and name the new project's folder `lamp-circuit.ew`. The import's preview "
-"says what it will create: \"1 page, 4 devices, 3 connections; 0 errors, 8 "
+"says what it will create: \"1 page, 4 devices, 3 connections; 3 errors, 8 "
 "warnings and 5 infos in the migration report\". Nothing is written yet."
 msgstr ""
 
@@ -751,7 +751,7 @@ msgstr ""
 msgid ""
 "Choose **Apply** in the preview. EW creates the project and opens it. The "
 "Messages pane shows the **Migration report**, chosen in its header beside "
-"the project's own scheme: 8 warnings and 5 infos."
+"the project's own scheme: 3 errors, 8 warnings and 5 infos."
 msgstr ""
 
 #: src/tutorials/import-qet.md:25
@@ -786,12 +786,22 @@ msgstr ""
 
 #: src/tutorials/import-qet.md:32
 msgid ""
-"The others are live checks of the project, and yours to fix: EW-POT-009 says "
-"that the lamp's pin X2 and the supply's pin - are not connected, and "
-"EW-CORE-041 says that none of the four devices has a part."
+"The others are live checks of the project, and yours to fix: EW-CORE-073 "
+"says that the file's three conductors have no route, so they are drawn as "
+"dashed straight lines; EW-POT-009 says that the lamp's pin X2 and the "
+"supply's pin - are not connected; and EW-CORE-041 says that none of the four "
+"devices has a part."
 msgstr ""
 
-#: src/tutorials/import-qet.md:34
+#: src/tutorials/import-qet.md:35
+msgid ""
+"Choose **Draw ▸ Connect ▸ Route page**. The preview says \"Route 3 wires on "
+"folio 1: 3 routed, 0 not routed.\" Choose **Apply**: the three wires are "
+"drawn along their routes, the toast says \"Routed 3 wires on folio 1.\", and "
+"the three EW-CORE-073 errors are gone."
+msgstr ""
+
+#: src/tutorials/import-qet.md:38
 msgid ""
 "Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the lamp's pin X2, at its "
 "bottom, then the supply's pin -, at the bottom of G1: the return wire is "
@@ -799,31 +809,31 @@ msgid ""
 "you edit, the Messages pane shows the project's own scheme, drafting."
 msgstr ""
 
-#: src/tutorials/import-qet.md:37
+#: src/tutorials/import-qet.md:41
 msgid ""
 "Click the lamp -1A1 and choose **Edit ▸ Choose part…**. Type `lamp`, choose "
 "**EW-GEN-LMP-1**, and confirm with **Choose**. The lamp has its part."
 msgstr ""
 
-#: src/tutorials/import-qet.md:40
+#: src/tutorials/import-qet.md:44
 msgid ""
 "Click the switch S1, choose **Edit ▸ Choose part…**, type `on/off` and "
 "choose **EW-GEN-SW-1**."
 msgstr ""
 
-#: src/tutorials/import-qet.md:41
+#: src/tutorials/import-qet.md:45
 msgid ""
 "Click the supply G1, choose **Edit ▸ Choose part…**, type `power supply` and "
 "choose **EW-GEN-PSU-1**."
 msgstr ""
 
-#: src/tutorials/import-qet.md:42
+#: src/tutorials/import-qet.md:46
 msgid ""
 "Click the earth -1X1, choose **Edit ▸ Choose part…**, type `earth` and "
 "choose **EW-GEN-TRM-2**. Every device has its part, and EW-CORE-041 is gone."
 msgstr ""
 
-#: src/tutorials/import-qet.md:44
+#: src/tutorials/import-qet.md:48
 msgid ""
 "Choose **Check ▸ Run checks** (`F7`). The Messages pane shows the migration "
 "report again, with no error, 2 warnings (EW-IMP-008 and EW-IMP-119) and 5 "
@@ -831,27 +841,27 @@ msgid ""
 "import, nothing left to fix."
 msgstr ""
 
-#: src/tutorials/import-qet.md:52
+#: src/tutorials/import-qet.md:56
 msgid ""
 "**Project ▸ Import QElectroTech project…** previews an import before it "
 "writes anything, and makes a new EW project of its own; the QElectroTech "
 "file is not changed."
 msgstr ""
 
-#: src/tutorials/import-qet.md:54
+#: src/tutorials/import-qet.md:58
 msgid ""
 "The migration report lists two kinds of finding: the import's own record "
 "(the EW-IMP rules, and the frozen tags), which stays as a note of what "
 "changed, and the live checks of the project, which go away when you fix them."
 msgstr ""
 
-#: src/tutorials/import-qet.md:56
+#: src/tutorials/import-qet.md:60
 msgid ""
 "In the Messages pane's header you switch between the migration report and "
 "the project's own scheme."
 msgstr ""
 
-#: src/tutorials/import-qet.md:57
+#: src/tutorials/import-qet.md:61
 msgid ""
 "[QElectroTech and EW](../explanation/qet-and-ew.md) explains how "
 "QElectroTech's elements, labels, conductors and folio reports become EW's "
@@ -2590,21 +2600,29 @@ msgid ""
 msgstr ""
 
 #: src/reference/window/tools.md:71
+msgid ""
+"When you let go, a wire whose followed route would now run through a symbol, "
+"a text, a connection point or along another wire, or would bend more than "
+"before, is routed again; a wire that stays clean keeps its shape. Both "
+"happen in the same undo step as the move."
+msgstr ""
+
+#: src/reference/window/tools.md:75
 msgid "Finish"
 msgstr ""
 
-#: src/reference/window/tools.md:73
+#: src/reference/window/tools.md:77
 msgid ""
 "Ends what the active tool is drawing, such as a wire or a polyline, at the "
 "current point. It has no menu item; use its key or double-click where a tool "
 "allows it."
 msgstr ""
 
-#: src/reference/window/tools.md:76
+#: src/reference/window/tools.md:80
 msgid "Wire"
 msgstr ""
 
-#: src/reference/window/tools.md:78
+#: src/reference/window/tools.md:82
 msgid ""
 "Draws connections between connection points: click a start point, then the "
 "end point; corners are placed where you click in between. Open it with Draw "
@@ -2612,142 +2630,227 @@ msgid ""
 "page](../../tutorials/first-page.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:81
+#: src/reference/window/tools.md:85
+msgid ""
+"While you draw, the wire shows the route it will take. The route never runs "
+"through another connection point, along another wire, through a symbol or a "
+"text, over the frame's bands, or through a junction, and never makes a "
+"fourth arm of a junction. When no such route exists the wire shows as a "
+"dashed straight line and the hint says \"No clear route: the wire stays "
+"unrouted. Click to place bends.\" Ending it there stores an unrouted wire: "
+"it keeps its connection, but it is drawn dashed and the check reports it "
+"until it has a route. Click on empty points to place bends and the wire "
+"follows them (\"Bend placed: click a connection point to end the wire.\"). A "
+"junction that already joins three wires is not an end: the hint says \"This "
+"junction already joins three wires: end on a wire to make a new junction.\""
+msgstr ""
+
+#: src/reference/window/tools.md:94
+msgid ""
+"An unrouted wire, from an import or a placement, is drawn as a dashed "
+"straight line between its ends, on the page and in the PDF. Route page or "
+"Route selection draws it."
+msgstr ""
+
+#: src/reference/window/tools.md:97
 msgid "Next autoconnect proposal"
 msgstr ""
 
-#: src/reference/window/tools.md:83
+#: src/reference/window/tools.md:99
 msgid ""
 "While a symbol floats near other connection points, shows the next of the "
 "connections EW proposes to draw when you place it. It has no menu item; use "
 "its key."
 msgstr ""
 
-#: src/reference/window/tools.md:86
+#: src/reference/window/tools.md:102
 msgid "Connect while moving"
 msgstr ""
 
-#: src/reference/window/tools.md:88
+#: src/reference/window/tools.md:104
 msgid ""
 "While moving a symbol, connects its connection points to the ones it lands "
 "on. It has no menu item; use its key."
 msgstr ""
 
-#: src/reference/window/tools.md:90
+#: src/reference/window/tools.md:106
+msgid ""
+"Connect while moving is on when you start: the wires the moved symbol would "
+"make are shown while you drag and are drawn with the move when you let go, "
+"in the same undo step. Hold the key that places without wires as you let go "
+"to move without them. The key of Connect while moving turns it off, and on "
+"again, until you close the program; the hint of the move and the status bar "
+"show the key followed by \"Connect on move: on\" or \"off\". A move with the "
+"keyboard follows that setting."
+msgstr ""
+
+#: src/reference/window/tools.md:112
 msgid "Edit route"
 msgstr ""
 
-#: src/reference/window/tools.md:92
+#: src/reference/window/tools.md:114
 msgid ""
 "Changes the drawn route of a wire: drag a segment or a corner. Open it with "
 "Draw ▸ Connect ▸ Edit route."
 msgstr ""
 
-#: src/reference/window/tools.md:94 src/explanation/eplan-and-ew.md:44
+#: src/reference/window/tools.md:116
+msgid "Route page"
+msgstr ""
+
+#: src/reference/window/tools.md:118
+msgid ""
+"Routes every unrouted wire of the page on show in one step. Open it with "
+"Draw ▸ Connect ▸ Route page. The Preview tab shows the plan first: \"Route 3 "
+"wires on folio 101: 2 routed, 1 not routed.\", and for each wire that no "
+"route keeps clear, why, such as \"No route keeps clear of other wires: "
+"-101F1:2 → -101E55:L.\" Apply draws the routes, and one Undo takes them "
+"back; the toast says \"Routed 2 wires on folio 101.\" When every wire of the "
+"page has a route it says \"Every wire on folio 101 has a route.\" instead. "
+"The router routes supply wires and long wires first, keeps the wires of a "
+"feed side by side in the order L1, L2, L3, N, PE where their ends allow it, "
+"and keeps every route clear as the Wire tool does. A wire it cannot route "
+"stays unrouted; move a symbol to make room, or place its bends with the Wire "
+"tool."
+msgstr ""
+
+#: src/reference/window/tools.md:127
+msgid "Route selection"
+msgstr ""
+
+#: src/reference/window/tools.md:129
+msgid ""
+"Routes the selected wires, and every wire with an end on a selected symbol, "
+"again, routed or not; the other wires of the page stay as they are. Open it "
+"with Draw ▸ Connect ▸ Route selection. It shows its plan and applies it as "
+"Route page does."
+msgstr ""
+
+#: src/reference/window/tools.md:133 src/explanation/eplan-and-ew.md:44
 msgid "Interruption point"
 msgstr ""
 
-#: src/reference/window/tools.md:96
+#: src/reference/window/tools.md:135
 msgid ""
 "Places an interruption point: the end of a potential on this page that "
 "continues at a point of the same name elsewhere. Open it with Draw ▸ Connect "
 "▸ Interruption point."
 msgstr ""
 
-#: src/reference/window/tools.md:99
+#: src/reference/window/tools.md:138
+msgid ""
+"The arrow always points right, the way the signal flows. A source, where the "
+"potential leaves the page, has its wire on the arrow's tail and belongs at "
+"the page's right edge; a target, where the potential arrives, has its wire "
+"on the arrow's tip and belongs at the left edge. The name is above the arrow "
+"and the cross-reference below it. The arrow is never rotated or mirrored: "
+"change the point's direction instead. While you draw a wire, the "
+"interruption point's key ends the wire in a point of the right form for that "
+"end."
+msgstr ""
+
+#: src/reference/window/tools.md:144
 msgid "Interruption point direction"
 msgstr ""
 
-#: src/reference/window/tools.md:101
+#: src/reference/window/tools.md:146
 msgid ""
 "Turns the interruption point that the tool floats to its next direction. "
 "Draw ▸ Connect ▸ Interruption point direction."
 msgstr ""
 
-#: src/reference/window/tools.md:104
+#: src/reference/window/tools.md:149
+msgid ""
+"The point takes the form of its new direction: the wire moves from the tail "
+"to the tip, or back. Changing the direction of a placed point in its "
+"properties does the same, and is refused when the project does not hold the "
+"other form yet: place one point of that direction first."
+msgstr ""
+
+#: src/reference/window/tools.md:153
 msgid "Star source"
 msgstr ""
 
-#: src/reference/window/tools.md:106
+#: src/reference/window/tools.md:155
 msgid ""
 "Marks the interruption point as the source of its name in star mode: one "
 "source, many targets. Draw ▸ Connect ▸ Star source."
 msgstr ""
 
-#: src/reference/window/tools.md:109
+#: src/reference/window/tools.md:158
 msgid "Wire marker"
 msgstr ""
 
-#: src/reference/window/tools.md:111
+#: src/reference/window/tools.md:160
 msgid ""
 "Places a wire marker, the label that prints a wire's number or text on the "
 "wire. Open it with Draw ▸ Connect ▸ Wire marker."
 msgstr ""
 
-#: src/reference/window/tools.md:114
+#: src/reference/window/tools.md:163
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:116
+#: src/reference/window/tools.md:165
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:118
+#: src/reference/window/tools.md:167
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:120
+#: src/reference/window/tools.md:169
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:123 src/explanation/eplan-and-ew.md:120
+#: src/reference/window/tools.md:172 src/explanation/eplan-and-ew.md:120
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:125
+#: src/reference/window/tools.md:174
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:128
+#: src/reference/window/tools.md:177
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:130
+#: src/reference/window/tools.md:179
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:132
+#: src/reference/window/tools.md:181
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:134
+#: src/reference/window/tools.md:183
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:137
+#: src/reference/window/tools.md:186
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:139
+#: src/reference/window/tools.md:188
 msgid "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail."
 msgstr ""
 
-#: src/reference/window/tools.md:141
+#: src/reference/window/tools.md:190
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:143
+#: src/reference/window/tools.md:192
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 
