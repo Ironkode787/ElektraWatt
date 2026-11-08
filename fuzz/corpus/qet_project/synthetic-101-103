@@ -19,7 +19,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.iec.pe@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc008}" x="350" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.iec.pe@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc008}" x="330" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="n" id="5"/>
         </terminals>
@@ -31,7 +31,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.iec.terminal@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC00C}" x="150" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.iec.terminal@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC00C}" x="140" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="10" orientation="s" id="6"/>
           <terminal x="0" y="-10" orientation="n" id="7"/>
@@ -46,7 +46,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.iec.terminal@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc00e}" x="170" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.iec.terminal@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc00e}" x="160" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="10" orientation="s" id="8"/>
           <terminal x="0" y="-10" orientation="n" id="9"/>
@@ -114,7 +114,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.external-arrow@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC021}" x="50" y="520" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.external-arrow@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC021}" x="50" y="500" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-20" y="0" orientation="w" id="21"/>
         </terminals>
@@ -138,7 +138,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.external-arrow@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC025}" x="50" y="560" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.external-arrow@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC025}" x="50" y="580" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-20" y="0" orientation="w" id="23"/>
         </terminals>
@@ -150,7 +150,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc029}" x="1010" y="620" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc029}" x="1010" y="640" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="24"/>
         </terminals>
@@ -164,7 +164,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc066}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC02B}" x="1010" y="640" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC02B}" x="1010" y="600" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="25"/>
         </terminals>
@@ -192,7 +192,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc0c6}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.iec.switch-2p-manual@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC034}" x="170" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.iec.switch-2p-manual@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC034}" x="140" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="n" id="27"/>
           <terminal x="0" y="30" orientation="s" id="28"/>
@@ -280,7 +280,7 @@
   </diagram>
   <diagram order="2" folio="102" title="Power Supply 2 - Control Current" cols="17" colsize="60" rows="8" rowsize="80" height="660" author="" date="" indexrev="" version="0.100.0">
     <elements>
-      <element type="embed://import/synth/ew.iec.mcb-1p@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC044}" x="470" y="220" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.iec.mcb-1p@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC044}" x="440" y="250" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-20" orientation="n" id="1"/>
           <terminal x="0" y="20" orientation="s" id="2"/>
@@ -293,7 +293,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.blackbox@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc050}" x="470" y="380" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.blackbox@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc050}" x="490" y="410" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="10" y="-30" orientation="n" id="3"/>
           <terminal x="30" y="-30" orientation="n" id="4"/>
@@ -314,7 +314,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.blackbox@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000ABC059}" x="410" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.blackbox@qet10-2.elmt" uuid="{00000000-0000-4000-8000-000000ABC059}" x="430" y="170" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="10" y="-30" orientation="n" id="13"/>
           <terminal x="30" y="-30" orientation="n" id="14"/>
@@ -346,7 +346,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc0b2}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC05C}" x="950" y="620" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC05C}" x="950" y="640" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="21"/>
         </terminals>
@@ -360,7 +360,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc0b4}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc05e}" x="950" y="640" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc05e}" x="950" y="600" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="22"/>
         </terminals>
@@ -374,7 +374,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc0b6}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC060}" x="950" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC060}" x="950" y="560" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="23"/>
         </terminals>
@@ -388,7 +388,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc0b8}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc062}" x="950" y="560" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc062}" x="950" y="520" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="24"/>
         </terminals>
@@ -402,7 +402,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc0ba}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC066}" x="110" y="60" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC066}" x="110" y="80" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="25"/>
         </terminals>
@@ -416,7 +416,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc029}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc068}" x="110" y="80" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc068}" x="110" y="40" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="26"/>
         </terminals>
@@ -458,7 +458,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc0c8}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000ABC06E}" x="410" y="220" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000ABC06E}" x="440" y="210" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="n" id="29"/>
         </terminals>
@@ -468,7 +468,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000abc06f}" x="470" y="290" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000abc06f}" x="500" y="310" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="n" id="30"/>
         </terminals>
@@ -478,7 +478,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000ABC070}" x="350" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000ABC070}" x="540" y="300" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="n" id="31"/>
         </terminals>
@@ -488,7 +488,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000abc071}" x="410" y="290" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/junction.elmt" uuid="{00000000-0000-4000-8000-000000abc071}" x="560" y="220" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="n" id="32"/>
         </terminals>
@@ -523,7 +523,7 @@
   </diagram>
   <diagram order="3" folio="103" title="Power Supply 3 - Control Current Distribution" cols="17" colsize="60" rows="8" rowsize="80" height="660" author="" date="" indexrev="" version="0.100.0">
     <elements>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC075}" x="230" y="60" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC075}" x="230" y="90" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="1"/>
           <terminal x="0" y="10" orientation="s" id="2"/>
@@ -538,7 +538,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc077}" x="230" y="80" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc077}" x="230" y="110" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="3"/>
           <terminal x="0" y="10" orientation="s" id="4"/>
@@ -551,7 +551,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC079}" x="230" y="100" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC079}" x="230" y="130" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="5"/>
           <terminal x="0" y="10" orientation="s" id="6"/>
@@ -564,7 +564,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc07b}" x="230" y="120" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc07b}" x="230" y="150" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="7"/>
           <terminal x="0" y="10" orientation="s" id="8"/>
@@ -577,7 +577,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC07D}" x="230" y="140" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC07D}" x="230" y="170" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="9"/>
           <terminal x="0" y="10" orientation="s" id="10"/>
@@ -590,7 +590,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc07f}" x="230" y="160" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc07f}" x="230" y="190" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="11"/>
           <terminal x="0" y="10" orientation="s" id="12"/>
@@ -603,7 +603,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC081}" x="230" y="180" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC081}" x="230" y="210" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="13"/>
           <terminal x="0" y="10" orientation="s" id="14"/>
@@ -616,7 +616,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc083}" x="230" y="200" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc083}" x="230" y="230" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="15"/>
           <terminal x="0" y="10" orientation="s" id="16"/>
@@ -629,7 +629,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC085}" x="230" y="220" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC085}" x="230" y="250" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="17"/>
           <terminal x="0" y="10" orientation="s" id="18"/>
@@ -642,7 +642,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc087}" x="230" y="240" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc087}" x="230" y="270" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="19"/>
           <terminal x="0" y="10" orientation="s" id="20"/>
@@ -655,7 +655,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC089}" x="650" y="60" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC089}" x="650" y="90" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="21"/>
           <terminal x="0" y="10" orientation="s" id="22"/>
@@ -670,7 +670,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc08b}" x="650" y="80" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc08b}" x="650" y="110" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="23"/>
           <terminal x="0" y="10" orientation="s" id="24"/>
@@ -683,7 +683,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC08D}" x="650" y="100" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC08D}" x="650" y="130" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="25"/>
           <terminal x="0" y="10" orientation="s" id="26"/>
@@ -696,7 +696,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc08f}" x="650" y="120" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc08f}" x="650" y="150" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="27"/>
           <terminal x="0" y="10" orientation="s" id="28"/>
@@ -709,7 +709,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC091}" x="650" y="140" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC091}" x="650" y="170" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="29"/>
           <terminal x="0" y="10" orientation="s" id="30"/>
@@ -722,7 +722,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc093}" x="650" y="160" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc093}" x="650" y="190" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="31"/>
           <terminal x="0" y="10" orientation="s" id="32"/>
@@ -735,7 +735,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC095}" x="650" y="180" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC095}" x="650" y="210" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="33"/>
           <terminal x="0" y="10" orientation="s" id="34"/>
@@ -748,7 +748,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc097}" x="650" y="200" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc097}" x="650" y="230" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="35"/>
           <terminal x="0" y="10" orientation="s" id="36"/>
@@ -761,7 +761,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC099}" x="650" y="220" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000ABC099}" x="650" y="250" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="37"/>
           <terminal x="0" y="10" orientation="s" id="38"/>
@@ -774,7 +774,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc09b}" x="650" y="240" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal.elmt" uuid="{00000000-0000-4000-8000-000000abc09b}" x="650" y="270" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="39"/>
           <terminal x="0" y="10" orientation="s" id="40"/>
@@ -787,7 +787,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000ABC0A0}" x="230" y="460" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000ABC0A0}" x="230" y="480" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="41"/>
           <terminal x="0" y="10" orientation="s" id="42"/>
@@ -802,7 +802,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000abc0a2}" x="230" y="480" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000abc0a2}" x="230" y="500" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="43"/>
           <terminal x="0" y="10" orientation="s" id="44"/>
@@ -815,7 +815,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000ABC0A4}" x="230" y="500" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000ABC0A4}" x="230" y="520" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="45"/>
           <terminal x="0" y="10" orientation="s" id="46"/>
@@ -828,7 +828,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000abc0a6}" x="230" y="520" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000abc0a6}" x="230" y="540" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="47"/>
           <terminal x="0" y="10" orientation="s" id="48"/>
@@ -841,7 +841,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000ABC0A8}" x="230" y="540" z="10" orientation="1" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/strip-terminal-pe.elmt" uuid="{00000000-0000-4000-8000-000000ABC0A8}" x="230" y="560" z="10" orientation="1" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="-10" orientation="n" id="49"/>
           <terminal x="0" y="10" orientation="s" id="50"/>
@@ -854,7 +854,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0aa}" x="890" y="60" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0aa}" x="910" y="60" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="51"/>
         </terminals>
@@ -866,7 +866,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0AC}" x="890" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0AC}" x="910" y="170" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="52"/>
         </terminals>
@@ -878,7 +878,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ae}" x="890" y="160" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ae}" x="870" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="53"/>
         </terminals>
@@ -890,7 +890,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0B0}" x="890" y="120" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0B0}" x="870" y="100" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="54"/>
         </terminals>
@@ -902,7 +902,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0b2}" x="110" y="60" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0b2}" x="110" y="40" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="55"/>
         </terminals>
@@ -958,7 +958,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc060}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ba}" x="110" y="460" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ba}" x="110" y="430" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="59"/>
         </terminals>
@@ -972,7 +972,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc062}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0BC}" x="410" y="60" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0BC}" x="430" y="60" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="60"/>
         </terminals>
@@ -984,7 +984,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0be}" x="410" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0be}" x="430" y="170" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="61"/>
         </terminals>
@@ -996,7 +996,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C0}" x="410" y="160" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C0}" x="390" y="140" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="62"/>
         </terminals>
@@ -1008,7 +1008,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0c2}" x="410" y="120" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0c2}" x="390" y="100" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="-10" y="0" orientation="w" id="63"/>
         </terminals>
@@ -1020,7 +1020,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C4}" x="110" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C4}" x="90" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="64"/>
         </terminals>
@@ -1034,7 +1034,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc06a}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0c6}" x="410" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0c6}" x="380" y="510" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="65"/>
         </terminals>
@@ -1048,7 +1048,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc02d}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C8}" x="410" y="560" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C8}" x="430" y="530" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="66"/>
         </terminals>
@@ -1062,7 +1062,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc06c}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ca}" x="410" y="520" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ca}" x="380" y="550" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="67"/>
         </terminals>
@@ -1074,7 +1074,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0CC}" x="410" y="500" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0CC}" x="430" y="570" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="68"/>
         </terminals>
@@ -1086,7 +1086,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ce}" x="110" y="560" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ce}" x="90" y="500" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="69"/>
         </terminals>
@@ -1098,7 +1098,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0D0}" x="110" y="520" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0D0}" x="130" y="570" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="70"/>
         </terminals>
