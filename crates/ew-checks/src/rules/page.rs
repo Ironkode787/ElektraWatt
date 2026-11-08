@@ -975,7 +975,7 @@ pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<
             label.to_owned(),
             label.to_owned(),
         ),
-        PassedPoint::Junction { id, cell } if cell.is_empty() => (
+        PassedPoint::Junction { id, cell: "" } => (
             Target::new(Kind::Junction, id),
             "junction".to_owned(),
             "junction-off-grid",
