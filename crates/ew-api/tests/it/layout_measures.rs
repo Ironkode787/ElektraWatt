@@ -563,7 +563,8 @@ fn a_four_way_junction_off_a_frame_grid_is_named_by_its_folio() {
             "folio 7",
             "A junction on folio 7 joins four wires: draw two T junctions instead.",
             "A junction on folio 7 joins four wires: draw two T junctions instead.".to_owned(),
-            "Een aftakking op folio 7 verbindt vier draden: teken in plaats daarvan twee T-aftakkingen.".to_owned()
+            "Een aftakking op folio 7 verbindt vier draden: teken in plaats daarvan twee T-aftakkingen."
+                .to_owned()
         )
     );
 }

@@ -3210,7 +3210,10 @@ mod tests {
             wire,
             "Draad -G1:+ → -S1:1 heeft geen route: Pagina routeren tekent hem."
         ));
-        assert!(names_subject("folio 7", "A junction on folio 7 joins four wires."));
+        assert!(names_subject(
+            "folio 7",
+            "A junction on folio 7 joins four wires."
+        ));
         assert!(names_subject("-1K1", "the coil -1K1."));
         assert!(!names_subject("-1K1", "the coil -1K10 has no part"));
         assert!(!names_subject("-1K1", "the coil x-1K1 has no part"));

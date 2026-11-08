@@ -503,7 +503,10 @@ mod tests {
     /// project view's page.
     #[test]
     fn route_page_and_route_selection_open_their_sections() {
-        for (action, fragment) in [("route.page", "route-page"), ("route.selection", "route-selection")] {
+        for (action, fragment) in [
+            ("route.page", "route-page"),
+            ("route.selection", "route-selection"),
+        ] {
             let a = action_topic(action).and_then(anchor).expect(action);
             assert_eq!((a.page, a.fragment), (TOOLS, fragment), "{action}");
         }

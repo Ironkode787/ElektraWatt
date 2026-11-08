@@ -608,7 +608,11 @@ fn a_followed_route_along_an_unrouted_line_is_kept() {
         &[(55, 20), (65, 20), (58, 30), (62, 30)],
         &[
             ("-103K1:A2", "-103K2:A2", &[]),
-            ("-103K3:A1", "-103K4:A1", &[(58, 30), (58, 24), (62, 24), (62, 30)]),
+            (
+                "-103K3:A1",
+                "-103K4:A1",
+                &[(58, 30), (58, 24), (62, 24), (62, 30)],
+            ),
         ],
     );
     let routed = |s: &ShellModel| -> Vec<(i64, i64)> {
@@ -633,7 +637,11 @@ fn a_followed_route_along_an_unrouted_line_is_kept() {
     let step = sheet(&s, grid_point(&s, (1, 0))).0 - sheet(&s, grid_point(&s, (0, 0))).0;
     done(&mut s, "canvas.press", at(k4, json!({})));
     done(&mut s, "canvas.pointer", at((k4.0 + step, k4.1), json!({})));
-    done(&mut s, "canvas.release", at((k4.0 + step, k4.1), json!({"alt": true})));
+    done(
+        &mut s,
+        "canvas.release",
+        at((k4.0 + step, k4.1), json!({"alt": true})),
+    );
     let expected: Vec<(i64, i64)> = [(58, 30), (58, 24), (63, 24), (63, 30)]
         .iter()
         .map(|k| grid_point(&s, *k))
@@ -667,10 +675,18 @@ fn a_move_onto_a_wire_lists_no_split() {
     let centre = sheet(&s, ((c.body[0] + c.body[2]) / 2, (c.body[1] + c.body[3]) / 2));
     let left = sheet(&s, grid_point(&s, (0, 0))).0 - sheet(&s, grid_point(&s, (10, 0))).0;
     done(&mut s, "canvas.press", at(centre, json!({})));
-    done(&mut s, "canvas.pointer", at((centre.0 + left, centre.1), json!({})));
+    done(
+        &mut s,
+        "canvas.pointer",
+        at((centre.0 + left, centre.1), json!({})),
+    );
     assert_eq!(s.tool().state(), "dragging");
     assert_eq!(describe_line(&s, "canvas proposals "), None);
-    done(&mut s, "canvas.release", at((centre.0 + left, centre.1), json!({})));
+    done(
+        &mut s,
+        "canvas.release",
+        at((centre.0 + left, centre.1), json!({})),
+    );
     assert_eq!(tables(&s).connections.len(), n, "no split, no wire");
 }
 
@@ -683,11 +699,20 @@ fn the_connect_on_move_key_keeps_the_move_s_readout() {
     let mut s = shell(&tmp, "103");
     coils_and_wires(&mut s, &[(60, 20)], &[]);
     let t = tables(&s);
-    let r = t.reps.iter().find(|r| t.cps.iter().any(|c| c.rep == r.id && c.label == "-103K1:A1")).expect("-103K1").clone();
+    let r = t
+        .reps
+        .iter()
+        .find(|r| t.cps.iter().any(|c| c.rep == r.id && c.label == "-103K1:A1"))
+        .expect("-103K1")
+        .clone();
     let centre = sheet(&s, ((r.body[0] + r.body[2]) / 2, (r.body[1] + r.body[3]) / 2));
     let step = sheet(&s, grid_point(&s, (1, 0))).0 - sheet(&s, grid_point(&s, (0, 0))).0;
     done(&mut s, "canvas.press", at(centre, json!({})));
-    done(&mut s, "canvas.pointer", at((centre.0 + step, centre.1), json!({})));
+    done(
+        &mut s,
+        "canvas.pointer",
+        at((centre.0 + step, centre.1), json!({})),
+    );
     let readout = match s.tool_ghost() {
         Some(ew_viewmodel::tools::Ghost::Move { readout, .. }) => readout,
         other => panic!("a move's ghost: {other:?}"),
@@ -806,11 +831,7 @@ fn rw1_route_page_previews_the_plan_and_applies_it_in_one_step() {
 fn route_selection_with_a_plan_that_changes_nothing_opens_no_card() {
     let tmp = Tmp::new("f2");
     let mut s = shell(&tmp, "103");
-    coils_and_wires(
-        &mut s,
-        &[(55, 20), (55, 29)],
-        &[("-103K1:A2", "-103K2:A1", &[])],
-    );
+    coils_and_wires(&mut s, &[(55, 20), (55, 29)], &[("-103K1:A2", "-103K2:A1", &[])]);
     done(&mut s, "route.page", json!({}));
     done(&mut s, "preview.apply", json!({}));
     let t = tables(&s);
@@ -926,11 +947,7 @@ fn rw2_route_selection_re_routes_a_selected_wire_and_nothing_else() {
 fn route_selection_needs_a_selection() {
     let tmp = Tmp::new("rt6");
     let mut s = shell(&tmp, "103");
-    coils_and_wires(
-        &mut s,
-        &[(55, 20), (55, 29)],
-        &[("-103K1:A2", "-103K2:A1", &[])],
-    );
+    coils_and_wires(&mut s, &[(55, 20), (55, 29)], &[("-103K1:A2", "-103K2:A1", &[])]);
     done(&mut s, "ui.dismiss", json!({}));
     assert_eq!(
         s.dispatch("route.selection", &json!({})),

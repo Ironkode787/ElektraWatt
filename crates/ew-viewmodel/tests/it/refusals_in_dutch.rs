@@ -123,7 +123,11 @@ fn a_route_off_its_junction_is_refused_with_the_aftakking() {
         .clone();
     let (a, b) = (c.polyline[0], c.polyline[1]);
     // The same straight line, one grid step short of the junction.
-    let step = if a.0 == b.0 { (0, (a.1 - b.1).signum() * 2_645_833) } else { ((a.0 - b.0).signum() * 2_645_833, 0) };
+    let step = if a.0 == b.0 {
+        (0, (a.1 - b.1).signum() * 2_645_833)
+    } else {
+        ((a.0 - b.0).signum() * 2_645_833, 0)
+    };
     let route = json!({"connection": c.id.to_string(), "route": [[a.0, a.1], [b.0 + step.0, b.1 + step.1]]});
     assert!(strings::set_locale("nl"));
     assert_eq!(
