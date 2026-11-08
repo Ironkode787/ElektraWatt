@@ -34,7 +34,7 @@ use ew_scene::page::DEFAULT_SHEET;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::editing::{PageTables, TableEnd};
+use super::editing::{PageTables, TableCp, TableEnd};
 use super::layers::page_layer;
 use super::view::PageFrameOf;
 use crate::Session;
@@ -390,7 +390,7 @@ fn connection_text(q: &Q, tables: &PageTables, id: Uuid) -> String {
             .find(|cp| cp.function == *function && cp.idx == *idx)
             .map_or_else(
                 || "a connection point of another page".to_owned(),
-                |cp| cp.label.clone(),
+                |cp| cp_text(q, cp),
             ),
         TableEnd::Junction { id } => match tables.junctions.iter().find(|j| j.id == *id) {
             Some(j) => match cell_text(q, page, j.at) {
@@ -428,8 +428,41 @@ fn symbol_text(q: &Q, tables: &PageTables, id: Uuid) -> String {
         return format!("interruption point {}", ip.name);
     }
     match r.device {
-        Some(d) => q.get::<DisplayedTag>((Id::from_uuid(d), page)).as_ref().clone(),
+        Some(d) => signed(
+            q,
+            Some(Id::from_uuid(d)),
+            q.get::<DisplayedTag>((Id::from_uuid(d), page)).as_ref(),
+        ),
         None => r.symbol_key.clone(),
+    }
+}
+
+/// A connection point of the page in the layout words: its label with its device's tag signed ([`signed`]).
+fn cp_text(q: &Q, cp: &TableCp) -> String {
+    let device = q
+        .functions()
+        .get(Id::from_uuid(cp.function))
+        .and_then(|f| f.device);
+    signed(q, device, &cp.label)
+}
+
+/// `text`, which names a CP or a representation of `device` as the page prints its tag, with the tag's product sign
+/// also where a frozen tag hides it on pages (`G1:+` → `-G1:+`): the layout rules and the route card name a device by
+/// its tag with its prefix, as §12a's `{wire}` and the other rules do (ID-1509 (9), the window check's F4).
+fn signed(q: &Q, device: Option<Id<ew_derive::ew_schema::Device>>, text: &str) -> String {
+    let tag = device.and_then(|d| q.get::<ew_derive::DeviceTag>(d).as_ref().clone());
+    let Some(tag) = tag.filter(|t| !t.sign_on_pages) else {
+        return text.to_owned();
+    };
+    let shown = tag.short();
+    let full = ew_derive::Tag {
+        sign_on_pages: true,
+        ..tag
+    }
+    .short();
+    match text.strip_prefix(shown.as_str()) {
+        Some(rest) if !shown.is_empty() => format!("{full}{rest}"),
+        _ => text.to_owned(),
     }
 }
 
@@ -464,7 +497,7 @@ fn page_layout(q: &Q, tables: &PageTables, m: &Measures) -> PageLayout {
                         .cps
                         .iter()
                         .find(|cp| cp.id == id)
-                        .map(|cp| cp.label.clone())
+                        .map(|cp| cp_text(q, cp))
                         .unwrap_or_default(),
                     TouchedPoint::Junction(_) => "the junction".to_owned(),
                 },
@@ -596,10 +629,11 @@ fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<
                 if terminal {
                     continue;
                 }
+                let label = cp_text(q, cp);
                 let point = rules::PassedPoint::Cp {
                     function: Id::from_uuid(cp.function),
                     idx: cp.idx,
-                    label: &cp.label,
+                    label: &label,
                 };
                 out.push(rules::wire_through_cp(page, wire(t.connection), point));
             }

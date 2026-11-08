@@ -57,11 +57,11 @@ fn rg2_folio_101_s_pe_wire_lamp_feed_and_heater_feed_keep_clear() {
     assert!(
         !p.touches
             .iter()
-            .any(|t| t.connection == "E55:PE → PE-1.1" && t.point == "E56:X1"),
+            .any(|t| t.connection == "-E55:PE → PE-1.1" && t.point == "-E56:X1"),
         "{:#?}",
         p.touches
     );
-    let feed = "the junction in C11 → E56:X2";
+    let feed = "the junction in C11 → -E56:X2";
     assert!(
         !p.overlaps.iter().any(|o| o.connection == feed || o.other == feed),
         "{:#?}",
@@ -70,7 +70,7 @@ fn rg2_folio_101_s_pe_wire_lamp_feed_and_heater_feed_keep_clear() {
     assert!(
         !p.through_symbols
             .iter()
-            .any(|t| t.connection.ends_with("E55:L") && t.symbol == "T55"),
+            .any(|t| t.connection.ends_with("-E55:L") && t.symbol == "-T55"),
         "{:#?}",
         p.through_symbols
     );
@@ -78,6 +78,21 @@ fn rg2_folio_101_s_pe_wire_lamp_feed_and_heater_feed_keep_clear() {
     // The page as the whole-project report measures it.
     let all = s.layout_report(None).unwrap();
     assert_eq!(all.iter().find(|q| q.folio == "101"), Some(p));
+}
+
+/// ID-1509 (9), the window check's F4: a wire's words name each device by its tag with its prefix, also where a
+/// frozen tag hides its sign on the page (folio 101's S51 and terminals 1X1).
+#[test]
+fn a_wire_s_words_name_each_device_with_its_tag_s_prefix() {
+    use crate::golden_common;
+    let (_tmp, s) = golden_copy();
+    let w4: ew_derive::ew_ids::Uuid = golden_common::ids_by_key(&golden_common::batch())["connections|W4"]
+        .parse()
+        .expect("an ID");
+    assert_eq!(
+        s.connection_words("101", w4).as_deref(),
+        Some("-1X1:1/a → -S51:2")
+    );
 }
 
 #[test]
