@@ -167,13 +167,13 @@
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":41.104,"y_mm":88.075}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":46.324,"y_mm":56.761}}
-{"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":43.714,"y_mm":88.075}}
-{"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":69.81,"y_mm":28.057}}
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":46.324,"y_mm":88.075}}
+{"action":"canvas.activate","params":{}}
+{"action":"cursor.set","params":{"x_mm":46.324,"y_mm":56.761}}
+{"action":"canvas.activate","params":{}}
+{"action":"cursor.set","params":{"x_mm":43.714,"y_mm":88.075}}
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":43.714,"y_mm":129.829}}
 {"action":"canvas.activate","params":{}}
@@ -217,7 +217,7 @@
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":132.438,"y_mm":174.189}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":46.324,"y_mm":129.829}}
+{"action":"cursor.set","params":{"x_mm":93.296,"y_mm":137.656}}
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":101.124,"y_mm":22.838}}
 {"action":"canvas.activate","params":{}}
