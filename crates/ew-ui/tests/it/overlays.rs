@@ -420,7 +420,11 @@ fn ov7_the_pick_stacks_hover_outline_and_walk() {
     done(&mut shell, "canvas.press", at(p));
     done(&mut shell, "canvas.release", at(p));
     assert_eq!(shell.selection().items, vec![stack[1]]);
-    assert!(shell.selected_rects(0).contains(&second), "{:?}", shell.selected_rects(0));
+    assert!(
+        shell.selected_rects(0).contains(&second),
+        "{:?}",
+        shell.selected_rects(0)
+    );
     let image = snapshot(&shell);
     let o = overlay_of(&shell, None, &[second]);
     let band = o.selected.iter().max_by_key(|r| r.x1 - r.x0).copied().unwrap();

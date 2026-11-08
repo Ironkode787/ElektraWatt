@@ -85,7 +85,12 @@ fn folio_101_routed_names_no_touch_overlap_or_symbol_crossed() {
     let text = stdout(&o);
     let lines: Vec<&str> = text.lines().collect();
     // Golden A's routes are the router's (WP-S2.19 RG1, RG2): no line names a broken hard rule.
-    for word in ["  touch: ", "  overlap: ", "  through a symbol: ", "  through a text: "] {
+    for word in [
+        "  touch: ",
+        "  overlap: ",
+        "  through a symbol: ",
+        "  through a text: ",
+    ] {
         assert!(!lines.iter().any(|l| l.starts_with(word)), "{word}\n{text}");
     }
     // The line of counts, from the `--json` result of the same page.

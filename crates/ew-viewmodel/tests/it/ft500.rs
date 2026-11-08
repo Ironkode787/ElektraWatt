@@ -85,9 +85,7 @@ fn own_point(s: &ShellModel, own: EntityRef, all: &[(EntityRef, Vec<(i64, i64)>)
     samples(line).into_iter().find(|p| {
         !on_body(s, *p)
             && s.canvas().unwrap().link_at(*p).is_none()
-            && junctions
-                .iter()
-                .all(|j| segment_dist2(*p, *j, *j) > 4 * r * r)
+            && junctions.iter().all(|j| segment_dist2(*p, *j, *j) > 4 * r * r)
             && all
                 .iter()
                 .all(|(e, pts)| *e == own || pts.windows(2).all(|w| segment_dist2(*p, w[0], w[1]) > r * r))

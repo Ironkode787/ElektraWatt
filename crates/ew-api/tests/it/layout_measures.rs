@@ -62,9 +62,7 @@ fn rg2_folio_101_s_pe_wire_lamp_feed_and_heater_feed_keep_clear() {
     );
     let feed = "the junction in C11 → E56:X2";
     assert!(
-        !p.overlaps
-            .iter()
-            .any(|o| o.connection == feed || o.other == feed),
+        !p.overlaps.iter().any(|o| o.connection == feed || o.other == feed),
         "{:#?}",
         p.overlaps
     );

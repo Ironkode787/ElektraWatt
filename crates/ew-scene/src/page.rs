@@ -1132,7 +1132,9 @@ impl Builder<'_> {
         }
         for (id, pts) in &unrouted {
             let dashed = Stroke::pen(Pen::P013).dashed(DashPattern::Dash42);
-            self.push(Item::path(Path::polyline(pts), Some(dashed), None).with_entity(EntityRef(id.as_uuid())));
+            self.push(
+                Item::path(Path::polyline(pts), Some(dashed), None).with_entity(EntityRef(id.as_uuid())),
+            );
         }
         let mut junctions: Vec<&JunctionView> = view.junctions.iter().collect();
         junctions.sort_by_key(|j| j.junction.id);
