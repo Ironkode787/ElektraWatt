@@ -865,7 +865,7 @@ working lines from ports 2 and 4 of -201U3-Q1 … -201U4-Q4 to A and B of the ac
 FT-744 closed), and N-FL-4 gives the eight `drives` links that path (b) now takes from the lines. *As built (cycle
 51, decision log ID-1359):* they carry stored routes (▲U-51, FT-1315 closed) that clear the cylinder bodies, and the
 eight valves move their function-text slot below the body on folio 203 only (FT-1323 closed). *As built (cycle 53,
-decision log ID-1503):* on folio 203 each valve sits in row H, below the actuator it drives (▲U-38), and the lines'
+decision log ID-1503):* each valve sits in row H, below the actuator it drives on folio 203 (▲U-38), and the lines'
 routes are the schematic router's, written by Golden A's route tool like every other routed page (▲U-51).
 
 ---
@@ -1623,7 +1623,7 @@ that waits for the owner's acknowledgement with the generated change list (ID-63
 | U-35 | Cover basis text | "IEC60757 / EN60204-1" kept, profile basis shown in metadata | D-37 | PQ-05 |
 | U-36 | Spare valves fitted or blanked | valves fitted (28 × 571334) | §14 | PQ-14 |
 | U-37 | Letter mapping of the shipped 2009 set (`verified = false`) | T55 reported; accepted: S for S51 and S56, U for the valve-terminal assembly and modules -201U1 … -201U9 and -202U1 … -202U3, Q for the valves (QM as an accepted alternative) | EF-18 | PQ-08 |
-| U-38 | Valve cells on the valve-terminal folio | row D (row H on folio 203, below the actuators, decision log ID-1503), columns c−3, c−1, c+1, c+3 around the module's auxiliary column c (valves Q1 … Q4) | §6.2, §12 | — (fixture choice) |
+| U-38 | Valve cells on the valve-terminal folio | row H (below the actuators on folio 203, the same on 204–206; decision log ID-1503), columns c−3, c−1, c+1, c+3 around the module's auxiliary column c (valves Q1 … Q4) | §6.2, §12 | — (fixture choice) |
 | U-39 | Field-device cells | valve in row G and actuator in row F, in the column of the driving valve | §6.1, §6.2, §12 | — (fixture choice) |
 | U-40 | Junction cells | J1 C11, J2 C13 (folio 101); J3 C6, J4 D7, J5 D5, J6 D6 (folio 102) | §8.3 | — (fixture choice) |
 | U-41 | 1X1 terminal offsets | dx −20, 0, +20 px from the cell centre of 101-D2 (terminals 1, 2, PE) | §6.1, §9 | — (fixture choice) |

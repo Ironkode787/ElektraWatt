@@ -2024,8 +2024,9 @@ IP_TARGET = "ew.gen.ip-target@qet10"
 
 # F13: the offsets (QET px) of the k-th interruption point of a coincident group
 # ID-1502 (5): the members stack vertically, two grid steps (20 px) apart, never side by side (a target's tip and a
-# source's tail would face each other one step apart)
-IP_OFFSETS = [(0, 0), (0, 20), (0, -20), (0, 40)]
+# source's tail would face each other one step apart), inside the cell: a cell's lower edge belongs to the row below, so
+# the fourth member goes up (its anchor keeps the cell doc 20 section 15 asserts)
+IP_OFFSETS = [(0, 0), (0, 20), (0, -20), (0, -40)]
 IP_GROUPS = {}  # (page, cell, dx, dy) -> representation keys, for the coincident groups (information only)
 
 # doc 20 section 6 / doc 07 section 9.1: main function of each device
@@ -2221,24 +2222,23 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
                 aux_rep[key] = (folio, cell)
                 rep(key, folio, cell, SYMBOL[fndef_of[key]])
 
-    # valves (triangle test inputs): row D, columns c-3, c-1, c+1, c+3 around the module's aux column c; on folio 203
-    # row H, below the actuators they drive (decision log ID-1503: each cylinder above the valve that drives it)
+    # valves (triangle test inputs): row H, columns c-3, c-1, c+1, c+3 around the module's aux column c; below the
+    # actuators they drive on folio 203 (decision log ID-1503: each cylinder above the valve that drives it), and in the
+    # same place on 204-206, which the valve-manifold macro saved from 203 reproduces (FR-MAC-004)
     fixture(
         "representations", "cell", "-201U3-Q1 … -202U2-Q4",
-        "row D (row H on folio 203), columns c-3, c-1, c+1, c+3 around the module's aux column c",
-        "§6.1 rows 33-60, §15",
-        "test input (fixture choice): doc 20 names only the pages 203-206 of the valves, not their cells; on folio 203"
-        " each valve sits below the actuator it drives (ID-1503)",
+        "row H, columns c-3, c-1, c+1, c+3 around the module's aux column c", "§6.1 rows 33-60, §15",
+        "test input (fixture choice): doc 20 names only the pages 203-206 of the valves, not their cells; each valve"
+        " sits below the actuator it drives (ID-1503)",
         cell=rows61["VALVES"]["Main rep."],
     )  # fmt: skip
     valve_col = {}
     for m in MODULES:
         folio, cell = aux_rep[f"{m}#aux"]
         c = int(cell[1:])
-        row = "H" if folio == "203" else "D"
         for q, off in zip(range(1, 5), (-3, -1, 1, 3)):
             valve_col[f"{m}-Q{q}"] = (folio, c + off)
-            rep(f"{m}-Q{q}", folio, f"{row}{c + off}", SYMBOL["ew.fn.valve-5-2-sol-spring"])
+            rep(f"{m}-Q{q}", folio, f"H{c + off}", SYMBOL["ew.fn.valve-5-2-sol-spring"])
 
     # field devices (triangle): row G (valve) and row F (actuator) in the column of the driving valve (section 6.2)
     fixture(
@@ -2296,7 +2296,7 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
     # ▲ test input (fixture choice): separates coincident interruption points; the cell is what doc 20 §15 asserts
     fixture(
         "representations", ["dx", "dy"], "interruption points that share a cell",
-        "k-th member of a coincident group (natural key order): +(0,0), +(0,20), +(0,-20), +(0,40) px", "§15",
+        "k-th member of a coincident group (natural key order): +(0,0), +(0,20), +(0,-20), +(0,-40) px", "§15",
         "▲ test input (fixture choice): separates coincident interruption points; the cell is what doc 20 §15"
         " asserts",
     )  # fmt: skip
