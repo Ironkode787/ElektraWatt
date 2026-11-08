@@ -674,6 +674,32 @@ fn a_move_onto_a_wire_lists_no_split() {
     assert_eq!(tables(&s).connections.len(), n, "no split, no wire");
 }
 
+/// ID-1509 (9), the window check's C2: the connect-on-move key pressed during a drag turns the state the move's prompt
+/// shows at once and keeps its readout; no notice takes the prompt's place.
+#[test]
+fn the_connect_on_move_key_keeps_the_move_s_readout() {
+    use ew_viewmodel::command_bar::hud;
+    let tmp = Tmp::new("c2");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(&mut s, &[(60, 20)], &[]);
+    let t = tables(&s);
+    let r = t.reps.iter().find(|r| t.cps.iter().any(|c| c.rep == r.id && c.label == "-103K1:A1")).expect("-103K1").clone();
+    let centre = sheet(&s, ((r.body[0] + r.body[2]) / 2, (r.body[1] + r.body[3]) / 2));
+    let step = sheet(&s, grid_point(&s, (1, 0))).0 - sheet(&s, grid_point(&s, (0, 0))).0;
+    done(&mut s, "canvas.press", at(centre, json!({})));
+    done(&mut s, "canvas.pointer", at((centre.0 + step, centre.1), json!({})));
+    let readout = match s.tool_ghost() {
+        Some(ew_viewmodel::tools::Ghost::Move { readout, .. }) => readout,
+        other => panic!("a move's ghost: {other:?}"),
+    };
+    assert_eq!(hud(&s).prompt, format!("{readout} \u{b7} C Connect on move: on"));
+    done(&mut s, "tool.connect_on_move", json!({}));
+    assert_eq!(s.tool_notice(), None);
+    assert_eq!(hud(&s).prompt, format!("{readout} \u{b7} C Connect on move: off"));
+    done(&mut s, "tool.connect_on_move", json!({}));
+    assert_eq!(hud(&s).prompt, format!("{readout} \u{b7} C Connect on move: on"));
+}
+
 /// A wire to draw: its two CP labels and its route's grid indices.
 type WireSpec<'a> = (&'a str, &'a str, &'a [(i64, i64)]);
 

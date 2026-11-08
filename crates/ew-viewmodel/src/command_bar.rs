@@ -766,10 +766,11 @@ pub fn hud(model: &ShellModel) -> HudModel {
             };
             format!("{what} \u{b7} {keys}")
         }
-        // WP-S2.19 D15: the move's HUD names connect on move's key and state.
-        Some(Ghost::Move { readout, connect, .. }) => {
+        // WP-S2.19 D15: the move's HUD names connect on move's key and the session's state, which the key turns at once
+        // (ID-1509 (9), C2).
+        Some(Ghost::Move { readout, .. }) => {
             let state = strings::format(
-                if connect {
+                if model.connect_on_move() {
                     key!("hud-connect-on-move-on")
                 } else {
                     key!("hud-connect-on-move-off")
