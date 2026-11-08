@@ -604,3 +604,10 @@ scheduled, expired and other.
 - FT-1585 (cycle 53, Low, ew-ui; due: M3): a device selected only by its tag (the palette's tag hits, `select.set tag:`) draws no outline on the canvas although the status bar counts it. Source: ID-1501
 - FT-1586 (cycle 53, Low, ew-viewmodel; due: M3): Ctrl+A on the canvas (select every item of the page) is not built; doc 16 §4.6 says so. Source: ID-1501
 - FT-1587 (cycle 53, Low, ew-viewmodel; due: M3): the page's Properties badge read "1 Pending" while the Messages panel said "pending 8" and the status bar "8 pending on this page" (FIXR1's frame 06, cause unverified: perhaps only findings whose subject is the page). Source: ID-1501
+- FT-1588 (cycle 53, Low, ew-derive; due: M3): wire markers are no obstacles for the router or measure (d), since they move with their wire; place them clear of other wires and texts after routing (ID-1502 (3)). Source: ID-1502
+- FT-1589 (cycle 53, Low, ew-derive; due: M3): a layout measure for a route over the frame bands; the router already blocks them (WP-S2.19 §5.1 rule 5). Source: ID-1502
+- FT-1590 (cycle 53, Low, ew-derive; due: M3): QET-grid connection points can sit 1 nm off a grid line, so the exact measures miss an overlap 1 nm off. Source: ID-1502
+- FT-1591 (cycle 53, Low, ew-testkit; due: M3): the fuzz `device.place` arm counts Connections +0 although a random drop onto a wire splits it (normaliser 7). Source: ID-1502
+- FT-1592 (cycle 53, Low, ew-testkit; due: M3): a new fuzz arm or command shifts `gen_step`'s draws, so the `command_sequence` regression tapes need remaking by hand; derive each arm's seed from its name. Source: ID-1502
+- FT-1593 (cycle 53, Low, ew-scene; due: M3): a black box's caption is placed without regard to junctions and wires beside it (Golden A's -102F2 against D6 and D7, ID-1502 (6)); place it clear. Source: ID-1502
+- FT-1594 (cycle 53, Low, ew-viewmodel; due: M3): the interruption point tool's ghost connection point should move with the form when D changes the direction (the insertion point stays). Source: ID-1502
