@@ -358,7 +358,9 @@ fn stored_route(
         let p = cell_point(c.0, c.1, c.2).ok_or("column `route`: a corner is out of range")?;
         match (grid_index(page.grid, p.x), grid_index(page.grid, p.y)) {
             (Some(_), Some(_)) => Ok(p),
-            _ => Err("column `route`: an end's point is off the page grid (positions are never snapped)".into()),
+            _ => Err(
+                "column `route`: an end's point is off the page grid (positions are never snapped)".into(),
+            ),
         }
     };
     let a = match end(a, a_text) {

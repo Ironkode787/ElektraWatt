@@ -184,7 +184,12 @@ fn free_texts_and_structure_box_captions_are_text_boxes() {
         .expect("item.place");
     let item = placed.outcome.primary.expect("the item").1.as_uuid();
     let q = 7_937_500 / 3;
-    let outline = [[30 * q, 30 * q], [40 * q, 30 * q], [40 * q, 35 * q], [30 * q, 35 * q]];
+    let outline = [
+        [30 * q, 30 * q],
+        [40 * q, 30 * q],
+        [40 * q, 35 * q],
+        [30 * q, 35 * q],
+    ];
     let boxed = s
         .execute(&ew_api::AnyCommand {
             name: "box.structure".into(),

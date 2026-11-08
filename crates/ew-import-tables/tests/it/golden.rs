@@ -912,7 +912,11 @@ fn a_route_runs_from_a_black_box_cp_to_a_junction() {
     // The row's router-written route (WP-S2.19 §8.2) is replaced by the one corner.
     let row = "J3.1,,102,-102G1:+#1,@J3,,,,,,,,,,";
     let text = std::fs::read_to_string(common::tables_dir().join("connections.csv")).unwrap();
-    let line = text.lines().find(|l| l.starts_with(row)).expect("the J3.1 row").to_owned();
+    let line = text
+        .lines()
+        .find(|l| l.starts_with(row))
+        .expect("the J3.1 row")
+        .to_owned();
     let text = text.replace(&line, &format!("{row}C6 {dx} 0"));
     let inputs: Vec<ew_interop_api::ImportInput> = common::golden_inputs()
         .into_iter()

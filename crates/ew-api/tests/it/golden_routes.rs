@@ -167,7 +167,11 @@ fn router_routes() -> (BTreeMap<String, String>, Vec<String>) {
             // An end at a strip segment's terminal, which the tables do not place, is named first or last; a straight
             // route without such an end has no corner, so its end `b` stands as its one corner (an empty column is no
             // route; the importer stores `[a, b, b]`, which every reader draws as `[a, b]`).
-            let conn = tables.connections.iter().find(|c| c.id == *id).expect("a drawn connection");
+            let conn = tables
+                .connections
+                .iter()
+                .find(|c| c.id == *id)
+                .expect("a drawn connection");
             let mut corners: Vec<(i64, i64)> = Vec::new();
             if on_segment(&conn.a) {
                 corners.push(a);

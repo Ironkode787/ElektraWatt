@@ -229,7 +229,13 @@ fn geometry(q: &Q, page: PageRef, tables: &PageTables) -> PageGeometry {
         .reps
         .iter()
         .map(|r| r.id)
-        .chain(tables.items.iter().filter(|i| i.kind == "free_text").map(|i| i.id))
+        .chain(
+            tables
+                .items
+                .iter()
+                .filter(|i| i.kind == "free_text")
+                .map(|i| i.id),
+        )
         .chain(tables.structure_boxes.iter().map(|b| b.id))
         .collect();
     // A cross-reference's link area repeats its text's box: each box once.
