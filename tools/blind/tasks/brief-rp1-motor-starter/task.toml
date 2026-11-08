@@ -1,0 +1,23 @@
+# A persona brief of the third candidate's round (WP-S2.19 section 11.3): RP1 visual by `eplan-designer` and RP4, the
+# same brief as a text run by `qet-veteran`, both greenfield at 1920 x 1080. `check-brief brief-rp1-motor-starter`
+# proves it runnable by replaying `solution.uiscript` and deciding `acceptance.toml` on its exports.
+kind = "brief"
+grade = 2
+version = 1
+turn_budget = 60
+senses = ["text", "visual"]
+requires = [
+    "symbol: ew.iec.terminal@qet10",
+    "symbol: ew.iec.terminal-pe@qet10",
+    "symbol: ew.iec.contact-no@qet10",
+    "part: EW-GEN-CON-1",
+    "part: EW-GEN-MOT-1",
+    "action: strip.new",
+    "action: tool.ip",
+    "action: tool.wire",
+    "action: route.page",
+    "action: file.export_pdf",
+]
+areas = ["new page", "terminal strips", "interruption points", "relay contacts", "wiring", "routing", "save and export"]
+task_id = "RP1"
+rounds = ["R2"]

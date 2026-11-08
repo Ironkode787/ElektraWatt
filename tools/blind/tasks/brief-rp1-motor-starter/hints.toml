@@ -1,0 +1,10 @@
+# The hints (WP-S2.12 D8), from where to look to what to do, in the user's words; `hint` gives them one at a time.
+
+[[hint]]
+text = "Interruption points are in the Draw tab's Connect group; one that ends at the page's left edge is where a potential arrives."
+
+[[hint]]
+text = "The contactor's main contacts are placed one by one from the symbol picker, each as a contact of the contactor you placed first (1-2, 3-4, 5-6)."
+
+[[hint]]
+text = "Route page in the Draw tab's Connect group shows its plan in the Preview tab first; Apply draws it."

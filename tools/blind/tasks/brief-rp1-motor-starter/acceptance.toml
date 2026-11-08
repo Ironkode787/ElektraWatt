@@ -1,0 +1,65 @@
+# The acceptance list of RP1 (WP-S2.19 section 11.3). `check-brief` decides each item on the reference solution; the
+# round decides them on the tester's saved project and exports. Correctness is the netlist (A1 to A3, `ew sql`); the
+# measures are A4 and A7 here and `ew layout <project>` in the round's report: its hard rules must be 0 on every page,
+# and its crossings and bends per page are written beside the keep score. A finding of the run is written as a row of
+# the round's report: the run, the item or the measure, what the tester did, what the program showed, a frame.
+
+[[item]]
+id = "A1"
+kind = "hard"
+what = "L1, L2 and L3 arrive at interruption points and each goes to its own main contact of one contactor, in phase order (L1 to 1, L2 to 3, L3 to 5)."
+how = "connections"
+query = '''SELECT w.seq FROM api_v1_wire w JOIN api_v1_device k ON k.tag IN (w.from_tag, w.to_tag) WHERE k.letter = 'K' AND ((k.tag = w.to_tag AND (((w.ips LIKE '%"L1"%' OR w.from_ip = 'L1' OR w.to_ip = 'L1') AND w.to_cp = '1') OR ((w.ips LIKE '%"L2"%' OR w.from_ip = 'L2' OR w.to_ip = 'L2') AND w.to_cp = '3') OR ((w.ips LIKE '%"L3"%' OR w.from_ip = 'L3' OR w.to_ip = 'L3') AND w.to_cp = '5'))) OR (k.tag = w.from_tag AND (((w.ips LIKE '%"L1"%' OR w.from_ip = 'L1' OR w.to_ip = 'L1') AND w.from_cp = '1') OR ((w.ips LIKE '%"L2"%' OR w.from_ip = 'L2' OR w.to_ip = 'L2') AND w.from_cp = '3') OR ((w.ips LIKE '%"L3"%' OR w.from_ip = 'L3' OR w.to_ip = 'L3') AND w.from_cp = '5'))))'''
+expect = "== 3"
+
+[[item]]
+id = "A2"
+kind = "hard"
+what = "The contactor's main contacts 2, 4 and 6 go to the motor's U1, V1 and W1, in that order."
+how = "connections"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.letter = 'K' AND b.letter = 'M' AND ((w.from_cp = '2' AND w.to_cp = 'U1') OR (w.from_cp = '4' AND w.to_cp = 'V1') OR (w.from_cp = '6' AND w.to_cp = 'W1'))) OR (b.letter = 'K' AND a.letter = 'M' AND ((w.to_cp = '2' AND w.from_cp = 'U1') OR (w.to_cp = '4' AND w.from_cp = 'V1') OR (w.to_cp = '6' AND w.from_cp = 'W1')))"
+expect = "== 3"
+
+[[item]]
+id = "A3"
+kind = "hard"
+what = "PE arrives at an interruption point and goes to the motor's PE."
+how = "connections"
+query = '''SELECT w.seq FROM api_v1_wire w JOIN api_v1_device m ON m.tag IN (w.from_tag, w.to_tag) WHERE m.letter = 'M' AND ((m.tag = w.to_tag AND ((w.ips LIKE '%"PE"%' OR w.from_ip = 'PE' OR w.to_ip = 'PE') AND w.to_cp = 'PE')) OR (m.tag = w.from_tag AND ((w.ips LIKE '%"PE"%' OR w.from_ip = 'PE' OR w.to_ip = 'PE') AND w.from_cp = 'PE')))'''
+expect = "== 1"
+
+[[item]]
+id = "A4"
+kind = "hard"
+what = "No drawn wire passes a connection point it does not join, runs along another wire or through a symbol, and no wire is left without a route."
+how = "check"
+query = "SELECT fingerprint FROM api_v1_message WHERE rule IN ('EW-CORE-067', 'EW-CORE-068', 'EW-CORE-069', 'EW-CORE-073')"
+expect = "== 0"
+
+[[item]]
+id = "A5"
+kind = "hard"
+what = "The tester let the program route the starter page (Route page)."
+how = "outcomes"
+actions = ["route.page"]
+
+[[item]]
+id = "A6"
+kind = "hard"
+what = "The check report is clean, or every remaining finding is explained in the tester's hand-back."
+how = "check, handback"
+
+[[item]]
+id = "A7"
+kind = "soft"
+what = "No wire runs through a text, and no junction joins four wires."
+how = "check"
+query = "SELECT fingerprint FROM api_v1_message WHERE rule IN ('EW-CORE-070', 'EW-CORE-072')"
+expect = "== 0"
+infeasible = "the starter motor's pin texts U1 and V1 stand over the stubs of V1 and W1, so a wire to V1 or W1 runs through a text whatever its route (the symbol's text slots; a follow-up row)"
+
+[[item]]
+id = "A8"
+kind = "hard"
+what = "Delivered: the tester saved the project and exported the PDF itself."
+how = "pdf, work, outcomes"
