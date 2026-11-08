@@ -8,10 +8,10 @@
 //!
 //! - **Bodies:** each representation's body (`TableRep::body`) and a black box's outline by its bounds, as the Wire
 //!   tool's obstacles without their growth (`ew-viewmodel`'s `rep_rects`).
-//! - **Text boxes:** the labels layer's entity rectangles of the page's representations that are not a point: every
-//!   line of a tag, a slot or pin text and a cross-reference text the scene prints for a representation (the canvas's
-//!   entity rectangles of the same texts, in page coordinates). A wire marker's text, a free text and a structure
-//!   box's caption are not representations' texts and are left out.
+//! - **Text boxes:** the labels layer's entity rectangles that are not a point of the page's representations, free
+//!   texts and structure boxes: every line of a tag, a slot or pin text and a cross-reference text the scene prints
+//!   for a representation, a free text's lines and a structure box's caption (ID-1502 (3)), in page coordinates. A
+//!   wire marker's text moves with its wire and is left out.
 //! - **Frame bands:** the frame's outer rectangle outside its drawing area (`ew_scene::forms::FrameGeometry`), up to
 //!   four bands, as the Wire tool's `frame_rects` without its inset.
 //! - **Connections:** each connection's drawn polyline (`TableConnection::polyline`, the scene's), ends included.

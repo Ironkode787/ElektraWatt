@@ -47,7 +47,8 @@ fn reason(why: Unrouted, wire: &str) -> (&'static str, String) {
 }
 
 /// `ew route`: routes each page and saves (a reader with `--dry-run`). Exit 0 when every wire it routes is routed, 1
-/// when a wire stays unrouted, 2 on usage, open, an unknown folio or selection, a refused command and save errors.
+/// when a wire stays unrouted, 2 on usage (a `--selection` item that is no record ID), open, an unknown folio, a
+/// refused command and save errors. A selection ID that names nothing on a page routes nothing there.
 pub(super) fn run_route(a: &RouteArgs) -> i32 {
     let mut selection = Vec::with_capacity(a.selection.len());
     for s in &a.selection {
