@@ -116,7 +116,11 @@ No performance tests and no timing assertions (owner's rule).
 
 `cargo xtask map` prints them in its section "Shared lists still kept by hand", each with where a new item goes. Each
 comes from a marker: one comment line above the registry, `// map: <name>: a new <X> goes <where and how>.` (`#` in
-TOML). When you add a hand-kept list, add its marker; `cargo xtask map --check` keeps the markers honest.
+TOML). `cargo xtask map --check` keeps the markers honest.
+
+**Never add a new hand-kept list** (ID-1510). Register the item where it is defined: a macro, a derive, or generation
+from one source. If your brief cannot be built without a new list, stop and report. Adding an item to an existing list
+is allowed until M3 removes that list.
 
 ## Self-check
 

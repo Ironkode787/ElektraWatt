@@ -45,7 +45,8 @@ that directory until `main.rs` changes.
 
 A registry or list that is still kept by hand carries a marker comment, `// map: <name>: a new <X> goes <where>.`, one
 line above it; `cargo xtask map --crates <a,b>` prints a crate's modules, tests, features, edges and markers, and
-`cargo xtask map --check` keeps the markers honest.
+`cargo xtask map --check` keeps the markers honest. No new list kept by hand is added: register a new kind of item
+where it is defined (a macro, a derive, or generation from one source). The existing lists are being removed.
 
 The golden-project commands (`ew export pdf golden/J-E-2416.ew --out out/J-E-2416.pdf`, and the acceptance runner
 `ew-testkit accept`) follow with M1.
