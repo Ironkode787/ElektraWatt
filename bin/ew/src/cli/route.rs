@@ -177,7 +177,7 @@ fn page_result(
     }
 }
 
-/// The text of one page: its summary line (WP-S2.19 §12a, the page as "folio <label>" as the window words it), then
+/// The text of one page: its summary line (WP-S2.19 §12a, the page as `folio <label>`, as the window words it), then
 /// one line per unrouted wire.
 fn page_text(page: &results::RoutePageResult, plan: &RoutePlan) -> String {
     let (routed, unrouted) = (page.routed.len(), page.unrouted.len());
