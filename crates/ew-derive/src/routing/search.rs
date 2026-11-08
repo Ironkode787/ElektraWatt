@@ -54,7 +54,7 @@
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
-use ew_units::{Grid, Nm, Pt2};
+use ew_units::{Grid, Nm};
 
 /// The largest search area, in grid nodes, beyond which the router finds no route: 2¹⁸ = 262 144, an A0
 /// sheet (1189 × 841 mm) at a 2.5 mm grid (476 × 337 = 160 412 nodes) with room to spare (fix round of WP-S2.04
