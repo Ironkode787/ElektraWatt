@@ -15,6 +15,8 @@ the `records` step of `cargo xtask settle --merge` runs it at the merge point.
 
 Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:` trailer cites, newest first, with the commits that cite it, newest first.
 
+- **ID-1515** (cycle 53): M2.5 starts only when M2 is closed in full and 0.1.0 is final (project owner, 2026-11-08: "Agreed. We only start when M2 is completely closed, and 0.1 is definitive."): no M2.5 lane runs beside a release candidate, and the hold after M2 (ID-1488) still needs the owner to lift it. ID-1514.
+  - `6bfc606f36` docs(plan): M2.5 starts only after M2 is closed and 0.1.0 is final (owner)
 - **ID-1514** (cycle 53): M2.5 runs in a fixed order (project owner, 2026-11-08: "Make sure we do this in the correct order."): decide what is worth doing first, fix correctness before moving code, change the structure before deleting, delete before moving, move before reviewing the tests, and document the final shape last; the folding of the rulings into the documents runs beside the code, since M2.5 changes no behaviour. The seven steps are in doc 01's progress table, row M2.5. ID-1512; ID-1513.
   - `7e75f4e9a1` docs(plan): M2.5's order (owner)
 - **ID-1513** (cycle 53): M2.5 adds a manual pass over every test and a pass against over-design (project owner, 2026-11-08: "We also should manually go through all the tests, see if we can combine, scrap, or refactor them. Also we need to have a pass to catch possible overdesigning, redundant helpers, functions, etc."). Both are read by agents crate by crate, not done by a tool alone; a removal keeps what the suite proves (FT-1616, FT-1617). ID-1512.
