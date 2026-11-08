@@ -177,13 +177,21 @@ Report each item as "checked: `<place>`" or "not applicable".
 ## Your context
 
 The auto-compact window is 1M tokens (ID-1322). Plan to finish under about 700k. If your context nears 800k before
-the brief is done, commit what is done, write the hand-off note, and hand back with what is left; a fresh lane
-continues the same brief. A brief may name a smaller limit for its package: that one holds.
+the brief is done, do not hand back for size (ID-1507):
+1. commit what is done, so the tree is clean;
+2. write the hand-off note below;
+3. carry on in the same worktree.
+
+When your context has compacted, read the hand-off note and your brief's order again before your next edit, and check
+`git log -1` and `git status` against the note. Each time your context nears 800k again, bring the note up to date the
+same way. A stop in your brief still hands back at once, whatever your size. A brief may name a smaller limit for its
+package: that one holds.
 
 ## Hand-off note
 
-When you hand back before your brief is done, or your brief asks for one, write at most 1,000 words, as your last
-step, to the path the brief names:
+Write it when your context nears 800k (above), when you hand back before your brief is done, or when your brief asks
+for one; at most 1,000 words, to the path the brief names (if it names none, `<lane>_handoff.md` beside the brief).
+When you hand back, bring it up to date as your last step:
 - the files you changed, and why;
 - the invariants a successor must keep;
 - the traps you hit;
