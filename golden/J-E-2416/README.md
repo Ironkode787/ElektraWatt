@@ -645,14 +645,13 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
 installed (`Session::query()`), so Prev/Next, the outline and the page labels include the generated pages. All 72
 page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106), and the single-line bus cable -3W1 on folio 3
 (`DP.1`, from the external point DP to -3X1; the plug-on connection `DP.2` is page-less and not drawn; the route is
-the provisional router's). Still open:
+the router's). Still open:
 
-- **Router.** Wires use the provisional orthogonal router (doc 06 §5.4 owns the real one), so routes overlap: on
-  101 the S51 → -101F1 L and N routes run collinear along row B; on 102 the feeds of -102G1 run along the box's top
-  edge and over -102F1, whose tag "-102F1" is covered by a wire and its "1.5" marker; on 103 the side-1 feeds of
-  -X1031 and -X1032 run collinear along the top of each segment and over the strip tags, and the column-1
-  interruption points (0VDC, 24VDC-1 … 4, PE-AIR2, PE-0VDC, PE-AIR1) are joined by one collinear vertical route that
-  reads as 24 V shorted to 0 V and PE; on 106 the twelve feeds of the CPX power boxes run along the box edges.
+- **Router.** *Closed by WP-S2.19 (cycle 53; decision log ID-1499, ID-1502 to ID-1505).* Every page connection of
+  folios 3, 101, 102, 103, 106 and 203 has the schematic router's route, written into `connections.csv`'s `route`
+  column by Golden A's route tool, with no wire through a connection point, along another wire, through a symbol or
+  through a text; `expected/layout.txt` holds each page's crossings and bends, a ratchet that a later router change
+  may not raise. The provisional router's overlaps that this item listed are gone.
 - **Report pages.** The generated pages (2, 2.1, 901, 903 … 911) draw their `tables` layer (FT-53): the house
   report table of doc 20 §16 (x 16.31 to 277.27 mm, rows of 6.52 mm, header #C0C0C0, 8.88 pt), column widths by
   the columns' weights (no data area in the golden report forms, so the widths are the kinds' choice: only the TOC's
