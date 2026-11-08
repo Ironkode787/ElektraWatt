@@ -340,7 +340,14 @@ pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) 
     if affected.is_empty() {
         return Vec::new();
     }
-    let (was, now) = (measure(before), measure(&after));
+    // D3: an unrouted connection's dashed line is no wire, so the measures read the routed connections only (as the
+    // layout rules do); the unrouted ones stay in `after` as jobs.
+    let routed = |g: &ew_api::routing::PageGeometry| {
+        let mut g = g.clone();
+        g.connections.retain(|c| c.routed);
+        g
+    };
+    let (was, now) = (measure(&routed(before)), measure(&routed(&after)));
     let bends = |m: &Measures, id: ew_api::output::Uuid| {
         m.bends.iter().find(|b| b.connection == id).map_or(0, |b| b.bends)
     };

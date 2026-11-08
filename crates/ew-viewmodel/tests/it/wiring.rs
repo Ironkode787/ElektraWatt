@@ -596,6 +596,51 @@ fn rm1_a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_c
     assert_eq!(wire(&s, "-103K1:A1").polyline, upper, "the undo restores both");
 }
 
+/// C53-rt#3 (D3, RM1): an unrouted connection's dashed line is no wire, so a moved wire whose followed route lies
+/// along it stays clean and keeps its route vertex for vertex. On folio 103, -103K1:A2 → -103K2:A2 is unrouted along
+/// row 24, and the routed -103K3:A1 → -103K4:A1 runs along row 24 between them; -103K4 moves one step right.
+#[test]
+fn a_followed_route_along_an_unrouted_line_is_kept() {
+    let tmp = Tmp::new("rt3");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (65, 20), (58, 30), (62, 30)],
+        &[
+            ("-103K1:A2", "-103K2:A2", &[]),
+            ("-103K3:A1", "-103K4:A1", &[(58, 30), (58, 24), (62, 24), (62, 30)]),
+        ],
+    );
+    let routed = |s: &ShellModel| -> Vec<(i64, i64)> {
+        let t = tables(s);
+        t.connections
+            .iter()
+            .find(|c| end_label(&t, &c.a) == "-103K3:A1")
+            .expect("the routed wire")
+            .polyline
+            .clone()
+    };
+    let k4 = {
+        let t = tables(&s);
+        let r = t
+            .reps
+            .iter()
+            .find(|r| t.cps.iter().any(|c| c.rep == r.id && c.label == "-103K4:A1"))
+            .expect("-103K4")
+            .clone();
+        sheet(&s, ((r.body[0] + r.body[2]) / 2, (r.body[1] + r.body[3]) / 2))
+    };
+    let step = sheet(&s, grid_point(&s, (1, 0))).0 - sheet(&s, grid_point(&s, (0, 0))).0;
+    done(&mut s, "canvas.press", at(k4, json!({})));
+    done(&mut s, "canvas.pointer", at((k4.0 + step, k4.1), json!({})));
+    done(&mut s, "canvas.release", at((k4.0 + step, k4.1), json!({"alt": true})));
+    let expected: Vec<(i64, i64)> = [(58, 30), (58, 24), (63, 24), (63, 30)]
+        .iter()
+        .map(|k| grid_point(&s, *k))
+        .collect();
+    assert_eq!(routed(&s), expected, "followed, not routed again");
+}
+
 /// A wire to draw: its two CP labels and its route's grid indices.
 type WireSpec<'a> = (&'a str, &'a str, &'a [(i64, i64)]);
 
