@@ -612,3 +612,4 @@ scheduled, expired and other.
 - FT-1593 (cycle 53, Low, ew-scene; due: M3): a black box's caption is placed without regard to junctions and wires beside it (Golden A's -102F2 against D6 and D7, ID-1502 (6)); place it clear. Source: ID-1502
 - FT-1594 (cycle 53, Low, ew-viewmodel; due: M3): the interruption point tool's ghost connection point should move with the form when D changes the direction (the insertion point stays). Source: ID-1502
 - FT-1595 (cycle 53, Low, ew-scene; due: M3): the tag of a terminal drawn without a strip segment (`StripTagView`) still stands above the terminal, where a wire leaving up crosses it; place it beside, as ID-1502 (4) does for a strip segment. Source: ID-1503
+- FT-1596 (cycle 53, Low, ew-api; due: M3): FT-1091's test (a connection point on a link) is `#[ignore]`d because no folio of Golden A has a connection point on a link after its routing; give the test a staged page of its own and run it again. Source: ID-1504
