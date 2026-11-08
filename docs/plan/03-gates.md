@@ -46,6 +46,7 @@ replaces the committed dates with a re-forecast from measured velocity.
 | **G-PP** (light) | M-PP Pilot preview, release 0.0.x | 27 (Jan 2029) | The pilot may use the unsigned preview for new projects; R0 starts | The pilot draws golden folios 101–103 and the parts list 901 in a new project and exports the PDF (AC-07) |
 | **G-M2** | M2 MVP, release 0.1.0 | 41 (Mar 2030) | The first public release (0.1.0, unsigned); the pilot may switch for new projects | AC-14 (all OSes), AC-18 (GUI), AC-21, AC-23, AC-28 …; R1; CI-R-01 … CI-R-11 (0.1.0's form) |
 | **G-M2.5** | M2.5 Symbol editor, release 0.2.0 | 42 (Apr 2030) | The symbol editor's release (0.2.0, unsigned), right after 0.1.0 (ID-1402) | FR-SYM-017's acceptance (the CPX power block of folio 106 drawn and placed); FR-SYM-009; a blind-persona round; CI-R-01 … CI-R-11 (0.1.0's form) |
+| **G-M2.5-Fix** | M2.5-Fix, release 0.2.0 | – | *Added 2026-11-08 (ID-1521).* A properly working program: what is open and what M2.5 turns up is fixed (§5.5b) | No open row due in M2.5-Fix; a persona round; the owner's hands-on test |
 | **G-M3** | M3 Automation and migration, release 0.8.0 | 48 (Oct 2030) | Existing QET projects migrate; PLC exchange and EDZ/DXF work against reference files; SC-3 and SC-4 closed | AC-25 … AC-27, AC-30, AC-38; SC-3, SC-4 |
 | **G-M4** | M4 Manufacturing and 3D | 58 (Aug 2031) | The physical and manufacturing chain works on Golden A-R | AC-34, AC-35 content; NFR-PERF-16, -17, -18, -24 |
 | **G-M5** | M5 Feature complete (beta) | 59 (Sep 2031) | No new scope; 1.0 beta may be published | AC-22; L/XL performance gate green |
@@ -1043,6 +1044,21 @@ refused).
 | **Recycle** | Any H open: fix, new RC on the first working day of the next month, new 30-minute go/no-go. M3's releases wait for 0.2.0 |
 | **Descope** | Variants move to a later 0.x release by an owner decision, recorded; FR-SYM-017's acceptance (G-M2.5-01), its live preview with it, and the grid rule (G-M2.5-02) never move. *Amended 2026-11-05, cycle-52 design pass (C52-p2#6; decision log ID-1417, ID-1435):* the live preview left this row, since G-M2.5-01 and FR-SYM-017 require it |
 | **Stop or pivot** | None beyond those of G-M2: the editor is not a viability question |
+
+### 5.5b G-M2.5-Fix A properly working program, release 0.2.0 (M2.5-Fix)
+
+*Added 2026-11-08 (ID-1521).* The symbol editor moved into 0.1.0 (ID-1466) and M2.5 became maintenance with no
+release of its own (ID-1512), so §5.5a no longer applies; 0.2.0 is M2.5-Fix's release. M2.5-Fix follows M2.5 and
+fixes what is open: the owner's hands-on findings on rc.3, every open row M2.5's triage finds to be a fix, and every
+fix M2.5's passes turn up. M3 is new development only.
+
+| ID | Criterion | Evidence |
+|---|---|---|
+| G-M2.5-Fix-01 | No open follow-up row is due in M2.5-Fix | `cargo xtask records` |
+| G-M2.5-Fix-02 | A persona round of three or four on the candidate leaves no severe finding open (ID-1518) | The round report |
+| G-M2.5-Fix-03 | The owner's own hands-on test of the candidate (the wizard, a new project, placing, wiring, routing, the symbol editor, a QET import) finds nothing that stops the work | The owner's go |
+
+The go is the owner's. A failed criterion means a fix and a new candidate.
 
 ### 5.6 G-M3 Automation breadth and migration (M3)
 
