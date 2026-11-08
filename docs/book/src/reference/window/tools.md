@@ -68,6 +68,10 @@ form. Draw ▸ Arrange ▸ Next representation type.
 
 Moves the selection with the pointer or the keyboard; wires attached to it follow. Draw ▸ Arrange ▸ Move.
 
+When you let go, a wire whose followed route would now run through a symbol, a text, a connection point or along
+another wire, or would bend more than before, is routed again; a wire that stays clean keeps its shape. Both happen
+in the same undo step as the move.
+
 ## Finish
 
 Ends what the active tool is drawing, such as a wire or a polyline, at the current point. It has no menu item; use
@@ -78,6 +82,18 @@ its key or double-click where a tool allows it.
 Draws connections between connection points: click a start point, then the end point; corners are placed where you
 click in between. Open it with Draw ▸ Connect ▸ Wire. See [A first schematic page](../../tutorials/first-page.md).
 
+While you draw, the wire shows the route it will take. The route never runs through another connection point, along
+another wire, through a symbol or a text, over the frame's bands, or through a junction, and never makes a fourth
+arm of a junction. When no such route exists the wire shows as a dashed straight line and the hint
+says "No clear route: the wire stays unrouted. Click to place bends." Ending it there stores an unrouted wire: it
+keeps its connection, but it is drawn dashed and the check reports it until it has a route. Click on empty points
+to place bends and the wire follows them ("Bend placed: click a connection point to end the wire."). A junction
+that already joins three wires is not an end: the hint says "This junction already joins three wires: end on a wire
+to make a new junction."
+
+An unrouted wire, from an import or a placement, is drawn as a dashed straight line between its ends, on the page
+and in the PDF. Route page or Route selection draws it.
+
 ## Next autoconnect proposal
 
 While a symbol floats near other connection points, shows the next of the connections EW proposes to draw when you
@@ -87,19 +103,52 @@ place it. It has no menu item; use its key.
 
 While moving a symbol, connects its connection points to the ones it lands on. It has no menu item; use its key.
 
+Connect while moving is on when you start: the wires the moved symbol would make are shown while you drag and are
+drawn with the move when you let go, in the same undo step. Hold the key that places without wires as you let go to
+move without them. The key of Connect while moving turns it off, and on again, until you close the program; the
+hint of the move and the status bar show the key followed by "Connect on move: on" or "off". A move with the keyboard
+follows that setting.
+
 ## Edit route
 
 Changes the drawn route of a wire: drag a segment or a corner. Open it with Draw ▸ Connect ▸ Edit route.
+
+## Route page
+
+Routes every unrouted wire of the page on show in one step. Open it with Draw ▸ Connect ▸ Route page. The Preview
+tab shows the plan first: "Route 3 wires on folio 101: 2 routed, 1 not routed.", and for each wire that no route
+keeps clear, why, such as "No route keeps clear of other wires: -101F1:2 → -101E55:L." Apply draws the routes, and
+one Undo takes them back; the toast says "Routed 2 wires on folio 101." When every wire of the page has a route it
+says "Every wire on folio 101 has a route." instead. The router routes supply wires and long wires first, keeps the
+wires of a feed side by side in the order L1, L2, L3, N, PE where their ends allow it, and keeps every route clear as
+the Wire tool does.
+A wire it cannot route stays unrouted; move a symbol to make room, or place its bends with the Wire tool.
+
+## Route selection
+
+Routes the selected wires, and every wire with an end on a selected symbol, again, routed or not; the other wires of
+the page stay as they are. Open it with Draw ▸ Connect ▸ Route selection. It shows its plan and applies it as Route
+page does.
 
 ## Interruption point
 
 Places an interruption point: the end of a potential on this page that continues at a point of the same name
 elsewhere. Open it with Draw ▸ Connect ▸ Interruption point.
 
+The arrow always points right, the way the signal flows. A source, where the potential leaves the page, has its wire
+on the arrow's tail and belongs at the page's right edge; a target, where the potential arrives, has its wire on the
+arrow's tip and belongs at the left edge. The name is above the arrow and the cross-reference below it. The arrow is
+never rotated or mirrored: change the point's direction instead. While you draw a wire, the interruption point's key
+ends the wire in a point of the right form for that end.
+
 ## Interruption point direction
 
 Turns the interruption point that the tool floats to its next direction. Draw ▸ Connect ▸ Interruption point
 direction.
+
+The point takes the form of its new direction: the wire moves from the tail to the tip, or back. Changing the
+direction of a placed point in its properties does the same, and is refused when the project does not hold the other
+form yet: place one point of that direction first.
 
 ## Star source
 

@@ -513,6 +513,7 @@ and accepted only while its refusal is still under the field on the same revisio
 | 15 | **Logical-net inheritance** (N4) | A bus connection to a port without a logical net assigns the net of the other port | [10](10-plc-and-bus.md) §3.3 |
 | 16 | **Drives link** (N-FL-4) | The first tube from a valve working port to a consumer port of another device adds `DeviceLink{Drives}` | [11](11-fluid-power.md) §4.2 |
 | 17 | **Tube counter** (N-FL-5) | A new tube connection gets its counter when a line-tag scheme is active | [11](11-fluid-power.md) §4.2 |
+| 18 | **Interruption-point form** (as built in cycle 53, `ip_form`; decision log ID-1499) | An interruption point drawn with one of EW's two arrow forms whose direction the transaction changed takes the other form, the one of its new direction, with the default orientation; a project that does not hold that form refuses the change: "the project does not hold the incoming arrow of symbol Interruption point: place one interruption point of that direction first" | this document §3.5 |
 
 Auto-routing (§5.4) is not a normaliser: it runs inside `connection.draw` and `rep.move` themselves, so a script
 gets the same route as the mouse.
@@ -545,6 +546,16 @@ the tools and in Route page and Route selection, which store their plan with `co
 hints store their straight run; `rep.move` takes the routes the Select tool re-solved (FT-18). A new row 18,
 *interruption-point form*, gives an interruption point drawn with EW's IP symbol the arrow form of its direction
 ([WP-S2.19 specification](../plan/specs/WP-S2.19-schematic-autorouter.md) D16).
+
+*As built (cycle 53; WP-S2.19, decision log ID-1499).* The commands that store a route are `connection.draw`,
+`connection.draw_many`, `connection.draw_to_ip`, `connection.route`, `connection.route_many` (1 to 10,000 entries,
+one transaction, an entry's error prefixed `/routes/<i>`) and `rep.move` with its optional `routes`, each checked by
+`require_route` (on the grid, the first vertex at end `a`'s point and the last at end `b`'s, a junction end included);
+`device.place`'s hints and `rep.move`'s optional `connect` hints store the straight run between their two ends, and a
+hint whose ends are not aligned stays unrouted. `rep.move`'s `connect` hint names its connection point by function,
+`{rep, cp: {function, idx}, to}`, not by symbol CP: the window knows a placed representation's points by function,
+and a black box draws points no symbol CP indexes (ID-1506). Normaliser 7 splits routed connections only; row 18 runs
+after row 16, before the revision normaliser of [15](15-checks-revisions-collaboration.md) §5.3.
 
 *As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* Rows 1 and 16 are built: N-FL-1
 as `valve_functions`, first in `ORDER`, and N-FL-4 as `drives_link`, after `bus_ports` (doc 11 §4.2 as built); row 1
@@ -649,6 +660,18 @@ and one main function of the chosen symbol's function definition.
   Pairing (star or chain, scope) follows the project's `ip_pairing` setting with per-name overrides (FR-XRF-007,
   FR-XRF-010). "Continue on page…" creates the partner on a chosen page at the opposite edge in the same row, with
   the direction reversed (FR-XRF-014). "Arrange" sorts a page's IP stack by name or potential (FR-XRF-013, D-39).
+  *As built (cycle 53; WP-S2.19 D16, decision log ID-1499, ID-1502).* EW's interruption-point symbol comes in two
+  forms, both with the arrow pointing right and its tip at the origin: the source form (`ew.gen.ip` 0.2.0), the wire
+  on the tail and the CP one grid step left of the tip, leaving left; the target form (`ew.gen.ip-target` 0.1.0), the
+  wire on the tip and the CP at the tip, leaving right; each with its `@qet10` twin. The name sits above the arrow and
+  the cross-reference below it, right-aligned at the tip. A point drawn with these forms is never turned: its form is
+  its direction's (an undirected point takes either), D swaps the form with the direction, and the rotate and mirror
+  keys are not offered. `ip.place` refuses a turned form ("an interruption point's arrow points the way its signal
+  flows: change its direction instead") and the other direction's form ("a source interruption point is drawn with
+  the outgoing arrow, a target with the incoming arrow"); `rep.transform` refuses the first; `ip.continue` gives the
+  partner the other form and refuses in words when the project lacks it; a direction change swaps the form by row 18.
+  While the Wire tool routes, P picks the form by the direction at the end point. Imported points, company symbols
+  and the external arrow keep a free orientation.
 - **External connection points** are IPs with `external = Some(ExternalRef)`. They never pair and print the external
   target ("+J-E-206 / JE-N1000-03") in the xref slot (FR-XRF-012).
 - **Potential definition points** name and type a potential at an endpoint, a CP or a junction (FR-CON-010); they
@@ -958,6 +981,13 @@ stateDiagram-v2
   [ADR-0033](../adr/0033-schematic-routing-model.md), so the graded passes over texts and bodies are removed. Without a
   clear route the ghost is the unrouted dashed line, the HUD says so, and the wire is stored unrouted unless the user
   fixed a bend. A junction that already joins three wires is not an end target.
+- *As built (cycle 53; WP-S2.19 D13, decision log ID-1499, ID-1501).* The ghost is `route_one`'s route; the passes
+  and FT-1210's turned IP end are gone. Without a clear route the ghost is the dashed straight line of an unrouted
+  wire and the HUD says "No clear route: the wire stays unrouted. Click to place bends."; a commit then stores the
+  wire without a route, or with the fixed bends and an L tail as the user's route when a bend was fixed. After a click
+  that places a bend the HUD says "Bend placed: click a connection point to end the wire." Over a junction that
+  already joins three wires the HUD says "This junction already joins three wires: end on a wire to make a new
+  junction.", since the junction is no end target.
 
 ### 4.5 Other tools
 
@@ -1471,6 +1501,7 @@ interactions:
 | Symbol placement with variants A–H, representation types, part-first placement | ● | | | |
 | Autoconnect assistant with two-stage ghosts; split on insert | ● | | | |
 | Explicit connections, orthogonal auto-route, route editing, crossings or hops | ● | | | |
+| Page router: Route page and Route selection, re-solve and connect on move, the unrouted dashed line, the layout rules (WP-S2.19, as built in cycle 53) | ● | | | |
 | Junctions with style, wiring and sequence editor | ● | | | |
 | Interruption points (star, chain, matrix, external), continue on page, arrange | ● | | | |
 | Xref formats and presets; main/aux and same-function xrefs; contact images | ● | | | |

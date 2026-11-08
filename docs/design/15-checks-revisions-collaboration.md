@@ -139,6 +139,11 @@ Examples: EW-TERM-002 → `001002`, EW-CORE-033 → `003033`, EW-POT-013 → `00
 EW-CORE-013 → `100013`, EW-CORE-041 → `102041`, EW-CORE-061 → `104061`, EW-PLC-012 → `110012`, EW-SAF-001 →
 `110101`, EW-IOL-001 → `111101`, EW-LAY-011 → `130011`, EW-IMP-101 → `160101`, EW-LIB-006 → `170006`.
 
+*As built (cycle 53; WP-S2.19 §9, decision log ID-1499).* The schematic layout rules EW-CORE-067 to -070, -072 and
+-073 (a drawn wire against its page's geometry) take numbers of EW-CORE's texts-and-graphics block, class 104
+(EW-CORE-067 → `104067`), around EW-CORE-071, which keeps its number; they are not of the EW-LAY family, which is the
+panel layout's.
+
 **Registry rules.**
 - **Fixed family list.** A new shipped family needs a row in the table above, with its class and number blocks.
   A family with a code offset uses numbers below 100 only, so no two families share a code.
