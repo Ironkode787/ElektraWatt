@@ -380,7 +380,7 @@ fn golden_a_layout_never_gets_worse() {
         assert_eq!(*overlaps, 0, "folio {folio}: texts overlap (ID-1504 (4a))");
     }
     // A detour above 2 has its reason (ID-1504 (4d)).
-    for line in now.lines().filter(|l| l.ends_with("(no reason given)")) {
+    if let Some(line) = now.lines().find(|l| l.ends_with("(no reason given)")) {
         panic!("a detour without its reason in DETOURS: {line}");
     }
     // A connection with more than four bends, or a detour above 2, is listed with the file's review.
