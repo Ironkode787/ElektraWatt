@@ -403,11 +403,16 @@ fn stored_route(
         }
     };
     let mut route = vec![a];
-    for (cell, dx, dy) in corners {
+    // Where both ends round to a corner's px, the last of several corners takes end `b`'s coordinate and every other
+    // end `a`'s, as the router puts the corner next to each end on that end's coordinate: the router's 1 nm jog
+    // between ends 1 nm apart is kept, and no stored segment leans (ID-1509 (2)).
+    let last = corners.len().saturating_sub(1);
+    for (k, (cell, dx, dy)) in corners.iter().enumerate() {
         let p = cell_point(*cell, *dx, *dy).ok_or("column `route`: a corner is out of range")?;
+        let near = |a: Nm, b: Nm| if k > 0 && k == last { [b, a] } else { [a, b] };
         route.push(Pt2::new(
-            coordinate(p.x, [a.x, b.x])?,
-            coordinate(p.y, [a.y, b.y])?,
+            coordinate(p.x, near(a.x, b.x))?,
+            coordinate(p.y, near(a.y, b.y))?,
         ));
     }
     route.push(b);

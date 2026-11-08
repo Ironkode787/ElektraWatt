@@ -240,11 +240,11 @@ fn assert_routes_meet_their_ends(s: &Session, page: Id<Page>) -> usize {
             Some(end_pos(&q, &c.b, page)),
             "{id}: route end"
         );
-        // A straight route between two CPs that each sit up to 1 nm off the rational grid (the router keeps both
-        // ends exactly, `ew_derive::routing::search`) may lean by 1 nm, as ID-1504's straight wires on folio 101 do.
+        // A straight route between two CPs 1 nm apart across it keeps the router's 1 nm jog (ID-1509 (2)): no segment
+        // leans.
         for w in c.route.windows(2) {
             assert!(
-                (w[0].x.0 - w[1].x.0).abs() <= 1 || (w[0].y.0 - w[1].y.0).abs() <= 1,
+                w[0].x == w[1].x || w[0].y == w[1].y,
                 "{id}: a diagonal segment {w:?}"
             );
         }
