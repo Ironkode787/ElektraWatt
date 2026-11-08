@@ -179,9 +179,41 @@ rule-ew-core-065 =
     .title = Technische gegevens in de omschrijving
     .hint = Verplaats nominale waarden en technische gegevens uit de omschrijving naar hun eigen velden.
 
+rule-ew-core-067 = Draad { $wire } loopt door { $point ->
+        [junction] de aftakking in { $pin }
+        [junction-off-grid] een aftakking
+       *[cp] { $pin }
+    }, waarmee hij niet verbonden is.
+    .title = Draad door een aansluitpunt
+    .hint = Routeer de draad opnieuw met Selectie routeren, of wijzig zijn route met Route bewerken zodat hij vrij blijft van het punt.
+
+rule-ew-core-068 = Draad { $wire } loopt over { $other } op folio { $page }.
+    .title = Draad over een andere draad
+    .hint = Routeer een van de draden opnieuw met Selectie routeren, zodat elke draad een eigen lijn heeft.
+
+rule-ew-core-069 = Draad { $wire } loopt door { $device }.
+    .title = Draad door een symbool
+    .hint = Routeer de draad opnieuw met Selectie routeren, of verplaats het symbool uit de weg.
+
+rule-ew-core-070 = Draad { $wire } loopt door { $owner ->
+        [free-text] de vrije tekst "{ $text }"
+        [structure-box] het bijschrift "{ $text }" van een structuurkader
+       *[symbol] de tekst "{ $text }" van { $device }
+    }.
+    .title = Draad door een tekst
+    .hint = Routeer de draad opnieuw met Selectie routeren, of verplaats de tekst.
+
 rule-ew-core-071 =
     .title = Grafische lijn op een aansluitpunt
     .hint = Vervang de grafische lijn door een verbinding, zodat ze meetelt in de connectiviteit.
+
+rule-ew-core-072 = De aftakking in { $cell } verbindt vier draden: teken in plaats daarvan twee T-aftakkingen.
+    .title = Vierwegaftakking
+    .hint = Verplaats één tak naar een eigen aftakking een rasterstap verder, zodat elke aftakking drie draden verbindt.
+
+rule-ew-core-073 = Draad { $wire } heeft geen route: Pagina routeren tekent hem.
+    .title = Draad zonder route
+    .hint = Gebruik Pagina routeren of Selectie routeren, of teken de route van de draad met Route bewerken.
 
 rule-ew-core-081 =
     .title = Vrijstelling zonder bevinding

@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! EW-CORE rules of pages, report blocks and texts (doc 15 §4.2; WP-S1.16 part 4): EW-CORE-021, -022, -025 and -026
-//! (folios, the table of contents and report coverage, doc 09 §3.1 and §7), and EW-CORE-061, -063 and -071 (text
-//! heights, unstyled text sizes and graphic lines on connection points).
+//! (folios, the table of contents and report coverage, doc 09 §3.1 and §7), EW-CORE-061, -063 and -071 (text
+//! heights, unstyled text sizes and graphic lines on connection points), and the layout rules EW-CORE-067 to -070,
+//! -072 and -073 (WP-S2.19 §9), whose findings the session joins.
 //!
 //! # Determinism (WP-S1.16 §10)
 //!
@@ -16,8 +17,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{
-    AnyId, Device, EffectiveStyle, Function, GraphicShape, Kind, Page, PageItem, PageItemKind, Primitive,
-    ReportBlock, ReportKind, ReportSource, SlotKind, TextSlot,
+    AnyId, Connection, Device, EffectiveStyle, Function, GraphicShape, Junction, Kind, Page, PageItem,
+    PageItemKind, Primitive, ReportBlock, ReportKind, ReportSource, Representation, SlotKind, StructureBox, TextSlot,
 };
 use ew_derive::ew_units::Pt2;
 use ew_derive::{
@@ -810,4 +811,312 @@ impl Rule for GraphicLineOnCp {
             })
             .collect()
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-CORE-067 to -070, -072 and -073: the layout rules (WP-S2.19 §9, D19)
+
+/// The metadata of a layout rule: pack EW-CORE, scope page, release MVP, modes `o r`.
+const fn layout_rule(
+    id: &'static str,
+    code: &'static str,
+    title: &'static str,
+    kind: RuleKind,
+    severity: Severity,
+    release_severity: Option<Severity>,
+    docs: &'static str,
+) -> RuleMeta {
+    RuleMeta {
+        id,
+        code,
+        pack: "EW-CORE",
+        title,
+        kind,
+        modes: Modes::letters("or"),
+        severity,
+        release_severity,
+        scope: ScopeKind::Page,
+        supersedes: &[],
+        release: Release::Mvp,
+        docs,
+    }
+}
+
+/// EW-CORE-067 "Wire through a connection point" (WP-S2.19 §9): conflict, o r, warning (release error), page.
+pub const WIRE_THROUGH_CP: RuleMeta = layout_rule(
+    "EW-CORE-067",
+    "104067",
+    "Wire through a connection point",
+    RuleKind::Conflict,
+    Severity::Warning,
+    Some(Severity::Error),
+    "reference/rules/ew-core-067",
+);
+
+/// EW-CORE-068 "Wire along another wire" (WP-S2.19 §9): conflict, o r, warning (release error), page.
+pub const WIRE_ALONG_WIRE: RuleMeta = layout_rule(
+    "EW-CORE-068",
+    "104068",
+    "Wire along another wire",
+    RuleKind::Conflict,
+    Severity::Warning,
+    Some(Severity::Error),
+    "reference/rules/ew-core-068",
+);
+
+/// EW-CORE-069 "Wire through a symbol" (WP-S2.19 §9): hygiene, o r, warning, page.
+pub const WIRE_THROUGH_SYMBOL: RuleMeta = layout_rule(
+    "EW-CORE-069",
+    "104069",
+    "Wire through a symbol",
+    RuleKind::Hygiene,
+    Severity::Warning,
+    None,
+    "reference/rules/ew-core-069",
+);
+
+/// EW-CORE-070 "Wire through a text" (WP-S2.19 §9): hygiene, o r, warning, page.
+pub const WIRE_THROUGH_TEXT: RuleMeta = layout_rule(
+    "EW-CORE-070",
+    "104070",
+    "Wire through a text",
+    RuleKind::Hygiene,
+    Severity::Warning,
+    None,
+    "reference/rules/ew-core-070",
+);
+
+/// EW-CORE-072 "Four-way junction" (WP-S2.19 §9): hygiene, o r, warning, page.
+pub const FOUR_WAY_JUNCTION: RuleMeta = layout_rule(
+    "EW-CORE-072",
+    "104072",
+    "Four-way junction",
+    RuleKind::Hygiene,
+    Severity::Warning,
+    None,
+    "reference/rules/ew-core-072",
+);
+
+/// EW-CORE-073 "Unrouted wire" (WP-S2.19 §9, D3): completeness, o r, info (release error), page.
+pub const UNROUTED_WIRE: RuleMeta = layout_rule(
+    "EW-CORE-073",
+    "104073",
+    "Unrouted wire",
+    RuleKind::Completeness,
+    Severity::Info,
+    Some(Severity::Error),
+    "reference/rules/ew-core-073",
+);
+
+/// A layout rule (EW-CORE-067 to -070, -072 and -073; WP-S2.19 D19). Its evidence, a page's drawn geometry with the
+/// text boxes the scene measures, exists only where the scene runs, so the rule reports nothing over the model: the
+/// session measures each schematic page (`ew_derive::routing::measure`) and joins the findings, worded by the
+/// functions below, through [`CheckReport::with_layout_evidence`](crate::CheckReport::with_layout_evidence), where
+/// the scheme, the mode's severity and the waivers apply as they do to any rule.
+#[derive(Clone, Copy, Debug)]
+pub struct LayoutRule(pub &'static RuleMeta);
+
+impl Rule for LayoutRule {
+    fn meta(&self) -> &'static RuleMeta {
+        self.0
+    }
+
+    fn run(&self, _q: &Q, _scope: &Scope) -> Vec<Finding> {
+        Vec::new()
+    }
+}
+
+/// A drawn wire as a layout finding names it: its connection and its words, its two ends as the page prints them
+/// (`-101F1:2 → -101E55:L`).
+#[derive(Clone, Copy, Debug)]
+pub struct LayoutWire<'a> {
+    /// The connection.
+    pub id: Id<Connection>,
+    /// Its words.
+    pub words: &'a str,
+}
+
+impl LayoutWire<'_> {
+    fn target(self) -> Target {
+        Target::new(Kind::Connection, self.id)
+    }
+}
+
+/// The point a wire runs through without joining it (EW-CORE-067).
+#[derive(Clone, Copy, Debug)]
+pub enum PassedPoint<'a> {
+    /// A connection point: its function, its index and its printed label (`-101E56:X1`).
+    Cp {
+        /// The function.
+        function: Id<Function>,
+        /// The CP index.
+        idx: u16,
+        /// The printed label.
+        label: &'a str,
+    },
+    /// A junction and the frame cell it stands in (`C11`; empty off the frame grid).
+    Junction {
+        /// The junction.
+        id: Id<Junction>,
+        /// The cell.
+        cell: &'a str,
+    },
+}
+
+/// EW-CORE-067: `wire` runs through `point`, which it does not join (measure (a)). Targets the wire and the point's
+/// function or junction; discriminator the CP index (`cp 2`) or `junction`.
+pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<'_>) -> Finding {
+    let (target, discriminator, kind, pin, named) = match point {
+        PassedPoint::Cp { function, idx, label } => (
+            Target::new(Kind::Function, function),
+            format!("cp {idx}"),
+            "cp",
+            label.to_owned(),
+            label.to_owned(),
+        ),
+        PassedPoint::Junction { id, cell } if cell.is_empty() => (
+            Target::new(Kind::Junction, id),
+            "junction".to_owned(),
+            "junction-off-grid",
+            String::new(),
+            "a junction".to_owned(),
+        ),
+        PassedPoint::Junction { id, cell } => (
+            Target::new(Kind::Junction, id),
+            "junction".to_owned(),
+            "junction",
+            cell.to_owned(),
+            format!("the junction in {cell}"),
+        ),
+    };
+    Finding::new(
+        &WIRE_THROUGH_CP,
+        [wire.target(), target],
+        discriminator,
+        wire.words,
+        format!(
+            "Wire {} runs through {named}, which it does not join.",
+            wire.words
+        ),
+    )
+    .on_page(page)
+    .arg("wire", wire.words)
+    .arg("point", kind)
+    .arg("pin", pin)
+}
+
+/// EW-CORE-068: `wire` runs along `other` on the page labelled `folio` (measure (b)). Targets both wires.
+pub fn wire_along_wire(page: Id<Page>, folio: &str, wire: LayoutWire<'_>, other: LayoutWire<'_>) -> Finding {
+    Finding::new(
+        &WIRE_ALONG_WIRE,
+        [wire.target(), other.target()],
+        "",
+        wire.words,
+        format!("Wire {} runs along {} on folio {folio}.", wire.words, other.words),
+    )
+    .on_page(page)
+    .arg("wire", wire.words)
+    .arg("other", other.words)
+    .arg("page", folio)
+}
+
+/// EW-CORE-069: `wire` runs through the body of the representation `rep`, named `device` (its tag as the page prints
+/// it; measure (c)). Targets the wire and the representation.
+pub fn wire_through_symbol(
+    page: Id<Page>,
+    wire: LayoutWire<'_>,
+    rep: Id<Representation>,
+    device: &str,
+) -> Finding {
+    Finding::new(
+        &WIRE_THROUGH_SYMBOL,
+        [wire.target(), Target::new(Kind::Representation, rep)],
+        "",
+        wire.words,
+        format!("Wire {} runs through {device}.", wire.words),
+    )
+    .on_page(page)
+    .arg("wire", wire.words)
+    .arg("device", device)
+}
+
+/// The owner of a text a wire runs through (EW-CORE-070).
+#[derive(Clone, Copy, Debug)]
+pub enum TextOwner<'a> {
+    /// A representation, named by its device's tag as the page prints it (`interruption point <name>` for a point,
+    /// else its symbol's key).
+    Symbol {
+        /// The representation.
+        rep: Id<Representation>,
+        /// Its name.
+        device: &'a str,
+    },
+    /// A free text.
+    FreeText(Id<PageItem>),
+    /// A structure box, by its caption.
+    StructureBox(Id<StructureBox>),
+}
+
+/// EW-CORE-070: `wire` runs through the text `text` of `owner` (measure (d)). Targets the wire and the owner. A free
+/// text and a structure box's caption have their own wording ("the free text …", "the caption … of a structure box"),
+/// so that no English word enters another language's message.
+pub fn wire_through_text(page: Id<Page>, wire: LayoutWire<'_>, owner: TextOwner<'_>, text: &str) -> Finding {
+    let (target, kind, device, named) = match owner {
+        TextOwner::Symbol { rep, device } => (
+            Target::new(Kind::Representation, rep),
+            "symbol",
+            device,
+            format!("the text \"{text}\" of {device}"),
+        ),
+        TextOwner::FreeText(id) => (
+            Target::new(Kind::PageItem, id),
+            "free-text",
+            "",
+            format!("the free text \"{text}\""),
+        ),
+        TextOwner::StructureBox(id) => (
+            Target::new(Kind::StructureBox, id),
+            "structure-box",
+            "",
+            format!("the caption \"{text}\" of a structure box"),
+        ),
+    };
+    Finding::new(
+        &WIRE_THROUGH_TEXT,
+        [wire.target(), target],
+        "",
+        wire.words,
+        format!("Wire {} runs through {named}.", wire.words),
+    )
+    .on_page(page)
+    .arg("wire", wire.words)
+    .arg("owner", kind)
+    .arg("text", text)
+    .arg("device", device)
+}
+
+/// EW-CORE-072: the junction `junction` in the frame cell `cell` joins four wires (measure (g)). Targets the junction.
+pub fn four_way_junction(page: Id<Page>, junction: Id<Junction>, cell: &str) -> Finding {
+    Finding::new(
+        &FOUR_WAY_JUNCTION,
+        [Target::new(Kind::Junction, junction)],
+        "",
+        cell,
+        format!("The junction at {cell} joins four wires: draw two T junctions instead."),
+    )
+    .on_page(page)
+    .arg("cell", cell)
+}
+
+/// EW-CORE-073: `wire`, a page connection between two different points, has no route (WP-S2.19 D3). Targets the wire.
+pub fn unrouted_wire(page: Id<Page>, wire: LayoutWire<'_>) -> Finding {
+    Finding::new(
+        &UNROUTED_WIRE,
+        [wire.target()],
+        "",
+        wire.words,
+        format!("Wire {} has no route: Route page draws it.", wire.words),
+    )
+    .on_page(page)
+    .arg("wire", wire.words)
 }

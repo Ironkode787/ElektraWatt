@@ -1883,6 +1883,174 @@
       "waivable": true
     },
     {
+      "code": "104067",
+      "docs": "reference/rules/ew-core-067",
+      "hint": "Route the wire again with Route selection, or change its route with Edit route so that it keeps clear of the point.",
+      "id": "EW-CORE-067",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": "error",
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "page",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Wire through a connection point",
+      "waivable": true
+    },
+    {
+      "code": "104068",
+      "docs": "reference/rules/ew-core-068",
+      "hint": "Route one of the wires again with Route selection, so that each runs on a line of its own.",
+      "id": "EW-CORE-068",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": "error",
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "page",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Wire along another wire",
+      "waivable": true
+    },
+    {
+      "code": "104069",
+      "docs": "reference/rules/ew-core-069",
+      "hint": "Route the wire again with Route selection, or move the symbol out of its way.",
+      "id": "EW-CORE-069",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "page",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Wire through a symbol",
+      "waivable": true
+    },
+    {
+      "code": "104070",
+      "docs": "reference/rules/ew-core-070",
+      "hint": "Route the wire again with Route selection, or move the text.",
+      "id": "EW-CORE-070",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "page",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Wire through a text",
+      "waivable": true
+    },
+    {
       "code": "104071",
       "docs": "reference/rules/ew-core-071",
       "hint": "Replace the graphic line by a connection, so that it takes part in the connectivity.",
@@ -1921,6 +2089,90 @@
       "severity": "info",
       "supersedes": [],
       "title": "Graphic line on a CP",
+      "waivable": true
+    },
+    {
+      "code": "104072",
+      "docs": "reference/rules/ew-core-072",
+      "hint": "Move one branch to a junction of its own a grid step away, so that each junction joins three wires.",
+      "id": "EW-CORE-072",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "page",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Four-way junction",
+      "waivable": true
+    },
+    {
+      "code": "104073",
+      "docs": "reference/rules/ew-core-073",
+      "hint": "Run Route page or Route selection, or draw the wire's route with Edit route.",
+      "id": "EW-CORE-073",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": "error",
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "page",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Unrouted wire",
       "waivable": true
     },
     {

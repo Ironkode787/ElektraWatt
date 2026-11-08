@@ -408,32 +408,37 @@ fn connection_text(q: &Q, tables: &PageTables, id: Uuid) -> String {
         .unwrap_or_default()
 }
 
+/// The owner `id` of a body or a text box of `tables` in words: a representation's device tag as the page prints it,
+/// `interruption point <name>`, else its symbol's key; a free text or a structure box by its text.
+fn symbol_text(q: &Q, tables: &PageTables, id: Uuid) -> String {
+    let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
+    let Some(r) = tables.reps.iter().find(|r| r.id == id) else {
+        // A free text or a structure box's caption (ID-1502 (3)).
+        if let Some(t) = tables.items.iter().find(|i| i.id == id) {
+            return format!("the free text \"{}\"", t.text.clone().unwrap_or_default());
+        }
+        return tables
+            .structure_boxes
+            .iter()
+            .find(|b| b.id == id)
+            .map(|b| format!("the structure box \"{}\"", b.caption))
+            .unwrap_or_default();
+    };
+    if let Some(ip) = &r.ip {
+        return format!("interruption point {}", ip.name);
+    }
+    match r.device {
+        Some(d) => q.get::<DisplayedTag>((Id::from_uuid(d), page)).as_ref().clone(),
+        None => r.symbol_key.clone(),
+    }
+}
+
 /// The measures of a page in words (see [`PageLayout`]).
 fn page_layout(q: &Q, tables: &PageTables, m: &Measures) -> PageLayout {
     let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
     let cell = |p: (i64, i64)| cell_text(q, page, p);
     let connection = |id: Uuid| connection_text(q, tables, id);
-    let symbol = |id: Uuid| {
-        let Some(r) = tables.reps.iter().find(|r| r.id == id) else {
-            // A free text or a structure box's caption (ID-1502 (3)).
-            if let Some(t) = tables.items.iter().find(|i| i.id == id) {
-                return format!("the free text \"{}\"", t.text.clone().unwrap_or_default());
-            }
-            return tables
-                .structure_boxes
-                .iter()
-                .find(|b| b.id == id)
-                .map(|b| format!("the structure box \"{}\"", b.caption))
-                .unwrap_or_default();
-        };
-        if let Some(ip) = &r.ip {
-            return format!("interruption point {}", ip.name);
-        }
-        match r.device {
-            Some(d) => q.get::<DisplayedTag>((Id::from_uuid(d), page)).as_ref().clone(),
-            None => r.symbol_key.clone(),
-        }
-    };
+    let symbol = |id: Uuid| symbol_text(q, tables, id);
     let point = |p: (i64, i64)| [p.0, p.1];
     let stretches = |s: &[(Point, Point)]| s.iter().map(|(a, b)| [point(*a), point(*b)]).collect();
     let first = |s: &[(Point, Point)]| s.first().map(|(a, _)| cell(*a)).unwrap_or_default();
@@ -509,7 +514,192 @@ fn page_layout(q: &Q, tables: &PageTables, m: &Measures) -> PageLayout {
     }
 }
 
+/// The text runs the labels layer draws on `page` for the owners in `owners`: each run's owner, its box in page nm and
+/// its text.
+fn text_runs(q: &Q, page: PageRef, owners: &BTreeSet<Uuid>) -> Vec<(Uuid, [i64; 4], String)> {
+    type Runs = Vec<(Uuid, [i64; 4], String)>;
+    fn walk(
+        items: &[ew_dl::Item],
+        map: &dyn Fn(Pt2) -> Pt2,
+        owner: Option<Uuid>,
+        owners: &BTreeSet<Uuid>,
+        out: &mut Runs,
+    ) {
+        for item in items {
+            let owner = item.entity.map(|e| e.0).or(owner);
+            match &item.kind {
+                ew_dl::ItemKind::Glyphs(run) => {
+                    if let Some(o) = owner.filter(|o| owners.contains(o)) {
+                        let p = run.layout_quad().map(|p| map(p));
+                        let (xs, ys) = (p.iter().map(|p| p.x.0), p.iter().map(|p| p.y.0));
+                        let rect = [
+                            xs.clone().min().unwrap_or(0),
+                            ys.clone().min().unwrap_or(0),
+                            xs.max().unwrap_or(0),
+                            ys.max().unwrap_or(0),
+                        ];
+                        out.push((o, rect, run.text.clone()));
+                    }
+                }
+                ew_dl::ItemKind::Group(g) => {
+                    let t = g.transform.unwrap_or(ew_dl::Transform::IDENTITY);
+                    walk(&g.items, &|p| map(t.apply(p)), owner, owners, out);
+                }
+                _ => {}
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(
+        &page_layer(q, page, Layer::Labels).list.items,
+        &|p| p,
+        None,
+        owners,
+        &mut out,
+    );
+    out
+}
+
+/// The layout rules' findings on the page of `tables` (WP-S2.19 §9), worded by `ew-checks`: the measures of its
+/// routed connections (an unrouted one counts only as unrouted, D3), a touched terminal CP left to EW-TERM-006, and
+/// EW-CORE-073 for each connection without a route between two different points.
+fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<crate::checks::Finding>) {
+    use crate::checks::rules::page as rules;
+    let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
+    let mut g = geometry(q, page_ref, tables);
+    g.connections.retain(|c| c.routed);
+    let m = routing::measure(&g);
+    let words: Vec<(Uuid, String)> = tables
+        .connections
+        .iter()
+        .map(|c| (c.id, connection_text(q, tables, c.id)))
+        .collect();
+    let wire = |id: Uuid| rules::LayoutWire {
+        id: Id::from_uuid(id),
+        words: words
+            .iter()
+            .find(|(c, _)| *c == id)
+            .map_or("", |(_, w)| w.as_str()),
+    };
+    for t in &m.touches {
+        match t.point {
+            TouchedPoint::Cp(id) => {
+                let Some(cp) = tables.cps.iter().find(|cp| cp.id == id) else {
+                    continue;
+                };
+                let terminal = q
+                    .functions()
+                    .get(Id::from_uuid(cp.function))
+                    .and_then(|f| f.device)
+                    .and_then(|d| q.devices().get(d))
+                    .is_some_and(|d| d.aspects.terminal.is_some());
+                if terminal {
+                    continue;
+                }
+                let point = rules::PassedPoint::Cp {
+                    function: Id::from_uuid(cp.function),
+                    idx: cp.idx,
+                    label: &cp.label,
+                };
+                out.push(rules::wire_through_cp(page, wire(t.connection), point));
+            }
+            TouchedPoint::Junction(id) => {
+                let cell = cell_text(q, page, t.at);
+                let point = rules::PassedPoint::Junction {
+                    id: Id::from_uuid(id),
+                    cell: &cell,
+                };
+                out.push(rules::wire_through_cp(page, wire(t.connection), point));
+            }
+        }
+    }
+    for o in &m.overlaps {
+        out.push(rules::wire_along_wire(
+            page,
+            &tables.folio,
+            wire(o.connections[0]),
+            wire(o.connections[1]),
+        ));
+    }
+    for t in &m.through_bodies {
+        let device = symbol_text(q, tables, t.rep);
+        out.push(rules::wire_through_symbol(
+            page,
+            wire(t.connection),
+            Id::from_uuid(t.rep),
+            &device,
+        ));
+    }
+    if !m.through_texts.is_empty() {
+        let owners: BTreeSet<Uuid> = m.through_texts.iter().map(|t| t.rep).collect();
+        let runs = text_runs(q, page_ref, &owners);
+        for t in &m.through_texts {
+            // The run the first stretch inside runs through: the one holding the stretch's middle, else the owner's
+            // first.
+            let mid = t
+                .stretches
+                .first()
+                .map(|(a, b)| ((a.0 + b.0) / 2, (a.1 + b.1) / 2));
+            let own = || runs.iter().filter(|(o, _, _)| *o == t.rep);
+            let text = own()
+                .find(|(_, r, _)| mid.is_some_and(|(x, y)| r[0] <= x && x <= r[2] && r[1] <= y && y <= r[3]))
+                .or_else(|| own().next())
+                .map_or("", |(_, _, s)| s.as_str());
+            let device = symbol_text(q, tables, t.rep);
+            let owner = if tables.reps.iter().any(|r| r.id == t.rep) {
+                rules::TextOwner::Symbol {
+                    rep: Id::from_uuid(t.rep),
+                    device: &device,
+                }
+            } else if tables.items.iter().any(|i| i.id == t.rep) {
+                rules::TextOwner::FreeText(Id::from_uuid(t.rep))
+            } else {
+                rules::TextOwner::StructureBox(Id::from_uuid(t.rep))
+            };
+            out.push(rules::wire_through_text(page, wire(t.connection), owner, text));
+        }
+    }
+    for j in &m.four_way {
+        let cell = cell_text(q, page, j.at);
+        out.push(rules::four_way_junction(page, Id::from_uuid(j.junction), &cell));
+    }
+    for c in &tables.connections {
+        if !c.stored_route && c.polyline.len() >= 2 && c.polyline.first() != c.polyline.last() {
+            out.push(rules::unrouted_wire(page, wire(c.id)));
+        }
+    }
+}
+
 impl Session {
+    /// `report` with the layout rules' findings of every schematic page joined (EW-CORE-067 to -070, -072 and -073;
+    /// WP-S2.19 D19), when the run evaluated one of them; the scheme, the severities and the waivers apply as
+    /// [`CheckReport::with_layout_evidence`](crate::checks::CheckReport::with_layout_evidence) says.
+    pub(crate) fn with_layout_findings(
+        &self,
+        q: &Q,
+        report: crate::checks::CheckReport,
+    ) -> crate::checks::CheckReport {
+        use crate::checks::rules::page as rules;
+        let layout = [
+            &rules::WIRE_THROUGH_CP,
+            &rules::WIRE_ALONG_WIRE,
+            &rules::WIRE_THROUGH_SYMBOL,
+            &rules::WIRE_THROUGH_TEXT,
+            &rules::FOUR_WAY_JUNCTION,
+            &rules::UNROUTED_WIRE,
+        ];
+        if !report.rules.iter().any(|m| layout.iter().any(|l| l.id == m.id)) {
+            return report;
+        }
+        let mut found = Vec::new();
+        for folio in self.schematic_folios() {
+            if let (Some(tables), Ok(page)) = (self.page_tables(&folio), entry_of(q, &folio)) {
+                layout_findings(q, page, &tables, &mut found);
+            }
+        }
+        report.with_layout_evidence(q, found)
+    }
+
     /// The folios of every drawn page but the panel-layout pages, in page order: the pages `ew layout` measures and
     /// `ew route` routes by default.
     pub fn schematic_folios(&self) -> Vec<String> {
