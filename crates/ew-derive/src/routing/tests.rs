@@ -462,3 +462,22 @@ fn b_two_wires_sharing_a_cp_s_stub_do_not_overlap_there() {
         }]
     );
 }
+
+#[test]
+fn b_a_shared_stub_ends_on_the_grid_point_where_a_step_is_no_whole_nm() {
+    // The QET grid (7 937 500 / 3 nm): the CP at grid index 38 (100 541 667 nm) leaves up, and its stub ends on the
+    // grid point of index 37 (97 895 833 nm), where both wires turn, not at the CP less a rounded step (97 895 834).
+    let (num, den) = (7_937_500, 3);
+    let at = |k: i64| (k * num + 1) / den;
+    let page = PageGeometry {
+        grid: (num, den),
+        cps: vec![cp(10, (at(53), at(38)), Dir4::Up, 100, &[1, 2])],
+        connections: vec![
+            wire(1, &[(at(23), at(29)), (at(53), at(29)), (at(53), at(38))]),
+            wire(2, &[(at(53), at(38)), (at(53), at(37)), (at(68), at(37))]),
+        ],
+        ..PageGeometry::default()
+    };
+    assert_eq!(at(37), 97_895_833);
+    assert_eq!(measure(&page).overlaps, vec![]);
+}

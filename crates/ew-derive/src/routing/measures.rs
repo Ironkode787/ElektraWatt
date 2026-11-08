@@ -161,6 +161,27 @@ fn grid_step(page: &PageGeometry) -> i64 {
     ((num + den / 2) / den).max(1)
 }
 
+/// The coordinate `d` grid steps (−1, 0 or 1) from the coordinate `x`: the grid point at the grid index nearest `x`
+/// plus `d`, rounded to the nm as the page grid rounds its points (ties toward zero), so that a stub ends on the grid
+/// point a route turns at even where a step is not a whole nm (the QET grid's `7_937_500 / 3`); `x` itself for
+/// `d = 0`, and `x + d` grid steps rounded for a page without a grid.
+fn step_from(page: &PageGeometry, x: i64, d: i64) -> i64 {
+    let (num, den) = page.grid;
+    if d == 0 {
+        return x;
+    }
+    if num <= 0 || den <= 0 {
+        return x + d * grid_step(page);
+    }
+    let round = |n: i128, m: i128| {
+        let (q, r) = (n / m, n % m);
+        if 2 * r.abs() > m { q + n.signum() } else { q }
+    };
+    let (num, den) = (i128::from(num), i128::from(den));
+    let k = round(i128::from(x) * den, num) + i128::from(d);
+    i64::try_from(round(k * num, den)).unwrap_or(x)
+}
+
 /// The polyline without consecutive equal points.
 fn clean(polyline: &[Point]) -> Vec<Point> {
     let mut out: Vec<Point> = Vec::with_capacity(polyline.len());
@@ -498,14 +519,19 @@ fn pair(
         }
     }
     // §9: the stub of a CP both connections end at (one grid step along its leaving direction) is theirs to share.
-    let g = grid_step(page);
     stretches.retain(|s| {
         !page.cps.iter().any(|cp| {
             let Some(v) = cp.dir.as_ref().and_then(vector) else {
                 return false;
             };
             let both = cp.connections.contains(&ci.id) && cp.connections.contains(&cj.id);
-            let stub = (cp.at, (cp.at.0 + v.0 as i64 * g, cp.at.1 + v.1 as i64 * g));
+            let stub = (
+                cp.at,
+                (
+                    step_from(page, cp.at.0, v.0 as i64),
+                    step_from(page, cp.at.1, v.1 as i64),
+                ),
+            );
             both && on(s.0, stub) && on(s.1, stub)
         })
     });
