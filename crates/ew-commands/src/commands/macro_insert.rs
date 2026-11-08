@@ -520,7 +520,8 @@ fn drop_records(fragment: &mut Fragment, dropped: &mut BTreeSet<Uuid>) {
 /// **Rejected**: `/macro` no such macro, a symbol macro, a fragment that does not read or does not fit the macro's
 /// kind; `/copies/<i>` a document that `library.embed` refuses, a second macro, or a macro the project holds in another
 /// version ("update from library first"); `/page` a missing page, or no variant for its representation types; `/at`
-/// missing for a window macro, or off the page's grid; `/orient` other than `r0` for a page macro; `/value_set` and
+/// missing for a window macro, or off the page's grid; `/orient` other than `r0` for a page macro, or for a window
+/// macro holding one of EW's interruption-point forms (they always point right, WP-S2.19 D16); `/value_set` and
 /// `/values/<name>` as [`instantiate`]; `/macro/fragment/…` as `edit.paste` refuses a fragment (a grid other than the
 /// page's, a record that does not read, …). Tag, address, interruption-point and process-tag conflicts are not
 /// refusals: the session lists them on the preview (FR-MAC-005); the project's prevent rules apply as to every edit (a
@@ -688,6 +689,16 @@ impl Command for InsertMacro {
             keep_refs: inst.refs.clone(),
         };
         let out = insertion.run(tx)?;
+        // ID-1509 (5), WP-S2.19 D16: EW's interruption-point forms always point right, so a window macro holding one is
+        // never inserted turned.
+        if !self.orient.is_default()
+            && out.members.iter().any(|(_, new)| {
+                tx.get::<ew_schema::Representation>(Id::from_uuid(*new))
+                    .is_some_and(|r| crate::normalise::ip_form::form(tx, r.symbol).is_some())
+            })
+        {
+            return Err(Self::invalid("/orient", text!("refusal-macro-ip-turned")));
+        }
         let anchor = out.pages.first().copied().unwrap_or(self.page);
         let instance = MacroInstance {
             id: self.instance,

@@ -1641,6 +1641,7 @@ refusal-library-update-missing-copy = { $p0 }, named by { $p1 }
 refusal-macro-held-version = the project holds version { $p0 } of this macro, not { $p1 }; update from library first
 refusal-macro-copy-missing = no macro copy { $p0 }: give its document in `copies`
 refusal-macro-page-orientation = a page macro keeps the layout of its pages and takes no orientation; insert it with `r0`
+refusal-macro-ip-turned = A macro with interruption points cannot be inserted turned: interruption points always point right.
 refusal-macro-window-no-at = a window macro needs the point `at`
 refusal-macro-window-pages = a window macro's fragment holds no pages
 refusal-macro-only-own-document = only the inserted macro's document is given

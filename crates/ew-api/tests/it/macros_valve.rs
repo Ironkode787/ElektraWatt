@@ -1219,6 +1219,66 @@ fn a_window_macro_at_90_degrees_keeps_its_wires_on_their_cps() {
     assert_eq!(cp_nets(&old_links), cp_nets(&new_links));
 }
 
+/// ID-1509 (5), WP-S2.19 D16: a window macro holding EW's interruption-point forms (folio 102's points) is refused
+/// turned, in words, since those points always point right.
+#[test]
+fn a_window_macro_with_interruption_points_is_refused_turned() {
+    let (_root, t, lib) = user_library("ew-api-orient-ip");
+    let mut s = golden(Some(t));
+    let page = s.page_tables("102").unwrap();
+    let scope: Vec<Uuid> = page
+        .reps
+        .iter()
+        .filter(|r| r.ip.is_some())
+        .map(|r| r.id)
+        .collect();
+    assert!(!scope.is_empty(), "folio 102 draws interruption points");
+    let spec = MacroSpec {
+        key: "ip-stack".into(),
+        name: MlText::neutral("IP stack"),
+        description: MlText::neutral(""),
+        scope: MacroScope::Window(scope),
+        origin: None,
+        keep_tags: Vec::new(),
+        variables: Vec::new(),
+        groups: Vec::new(),
+        value_sets: Vec::new(),
+    };
+    let saved: SavedMacro = s.save_macro(lib, &spec).unwrap();
+    let section = serde_json::to_value(
+        s.query()
+            .pages()
+            .get(Id::<Page>::from_uuid(page_of(&s, "102")))
+            .unwrap()
+            .folio
+            .section,
+    )
+    .unwrap();
+    run(
+        &mut s,
+        "page.create",
+        json!({"number": 105, "title": "Power Supply 5", "section": section}),
+    );
+    let g = ew_units::Grid::QET_10PX;
+    let cmd = s
+        .insert_macro(
+            &saved.reference,
+            &InsertAt {
+                page: page_of(&s, "105"),
+                at: Some(Pt2::new(g.at(80).unwrap(), g.at(20).unwrap())),
+                orient: Orient2::R90,
+            },
+            &MacroValues::default(),
+            Uuid::from_u128(0x1509),
+        )
+        .unwrap();
+    assert_eq!(
+        s.preview(&cmd).expect_err("turned").to_string(),
+        "macro.insert: invalid parameters at `/orient`: A macro with interruption points cannot be inserted turned: \
+         interruption points always point right."
+    );
+}
+
 /// The CP nodes (`cp:…`) of a set of links, grouped by the nets the links join (junctions count as nodes but are
 /// left out of the result).
 fn cp_nets(links: &[(String, String)]) -> BTreeSet<BTreeSet<String>> {

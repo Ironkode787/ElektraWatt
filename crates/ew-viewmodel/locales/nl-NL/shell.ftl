@@ -1595,6 +1595,7 @@ refusal-library-update-missing-copy = { $p0 }, genoemd door { $p1 }
 refusal-macro-held-version = het project bevat versie { $p0 } van deze macro, niet { $p1 }; werk eerst bij vanuit de bibliotheek
 refusal-macro-copy-missing = geen macrokopie { $p0 }: geef haar document in `copies`
 refusal-macro-page-orientation = een paginamacro houdt de layout van zijn pagina's en neemt geen oriëntatie; voeg hem in met `r0`
+refusal-macro-ip-turned = Een macro met onderbrekingspunten kan niet gedraaid worden ingevoegd: onderbrekingspunten wijzen altijd naar rechts.
 refusal-macro-window-no-at = een venstermacro heeft het punt `at` nodig
 refusal-macro-window-pages = het fragment van een venstermacro bevat geen pagina's
 refusal-macro-only-own-document = alleen het document van de ingevoegde macro wordt gegeven

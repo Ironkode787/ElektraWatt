@@ -2274,6 +2274,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "a page macro keeps the layout of its pages and takes no orientation; insert it with `r0`",
     ),
     (
+        "refusal-macro-ip-turned",
+        "A macro with interruption points cannot be inserted turned: interruption points always point right.",
+    ),
+    (
         "refusal-macro-window-no-at",
         "a window macro needs the point `at`",
     ),
