@@ -120,6 +120,8 @@ fn location(node: Id<ew_schema::StructureNode>) -> StructureAssignment {
 
 fn mv(reps: Vec<Id<ew_schema::Representation>>, items: Vec<AnyId>, delta: Pt2) -> MoveReps {
     MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items,
         steps: None,
         reps,
@@ -909,6 +911,8 @@ fn rep_move_moves_items_and_boxes() {
         i64::try_from(if 2 * r.abs() >= den { q + num.signum() } else { q }).unwrap()
     };
     e.execute(&MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: vec![label.cast()],
         steps: Some([2, -1]),
         reps: vec![],
@@ -1007,6 +1011,8 @@ fn a_cross_page_move_unlinks_the_old_pages_markers() {
     m.page = PAGE_101;
     let marker_id: Id<PageItem> = e.execute(&m).unwrap().outcome.primary.unwrap().1.cast();
     e.execute(&MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps: vec![REP_101F1, REP_IP_101],

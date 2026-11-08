@@ -30,6 +30,8 @@ fn unlimited() -> HistoryLimits {
 
 fn move_rep(dx: i64) -> MoveReps {
     MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps: vec![REP_102F2],

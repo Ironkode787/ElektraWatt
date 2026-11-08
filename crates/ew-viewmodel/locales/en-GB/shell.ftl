@@ -1360,6 +1360,7 @@ refusal-rep-move-steps-out-of-range = the move takes { $p0 } outside the drawabl
 refusal-rep-move-steps-cp-out-of-range = the move takes a connection point of { $p0 } outside the drawable range; move it fewer grid steps
 refusal-rep-move-route-out-of-range = the move takes the route of { $p0 } outside the drawable range; move it less far
 refusal-rep-move-nothing = give at least one representation or item to move
+refusal-rep-move-no-cp = { $p0 } has no connection point { $p1 } to connect on the move; pick one of its CPs
 refusal-rep-move-out-of-range = the move takes { $p0 } outside the drawable range; move it less far
 refusal-rep-move-cp-out-of-range = the move takes a connection point of { $p0 } outside the drawable range; move it less far
 refusal-rep-move-end-behind = the move would keep one end of { $p0 } behind on the old page; move both ends together

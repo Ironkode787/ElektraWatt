@@ -364,6 +364,8 @@ impl Scen {
         let k = i % self.handles.load_reps.len();
         (
             MoveReps {
+                routes: Vec::new(),
+                connect: Vec::new(),
                 items: Vec::new(),
                 steps: None,
                 reps: vec![self.handles.load_reps[k]],

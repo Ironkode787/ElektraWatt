@@ -1230,6 +1230,7 @@ pub const KEYS: &[&str] = &[
     "refusal-rep-move-steps-cp-out-of-range",
     "refusal-rep-move-route-out-of-range",
     "refusal-rep-move-nothing",
+    "refusal-rep-move-no-cp",
     "refusal-rep-move-out-of-range",
     "refusal-rep-move-cp-out-of-range",
     "refusal-rep-move-end-behind",

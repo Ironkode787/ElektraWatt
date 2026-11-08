@@ -675,6 +675,8 @@ fn ft1020_a_routed_wire_drawn_on_the_line_of_a_wire_without_a_route_is_split_fir
 
 fn mv(reps: Vec<ew_ids::Id<Representation>>, delta: Pt2) -> MoveReps {
     MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps,
@@ -735,6 +737,8 @@ fn move_across_pages_moves_wires_with_both_ends_and_renumbers() {
     let new_dev: ew_ids::Id<Device> = created(&placed, Kind::Device)[0];
     assert_eq!(row(&e, new_dev).tag.counter, Some(1));
     e.execute(&MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps: vec![REP_101F1, REP_IP_101],
@@ -761,6 +765,8 @@ fn move_across_pages_moves_wires_with_both_ends_and_renumbers() {
 fn move_across_pages_rejects_a_wire_with_one_end_left_behind() {
     let mut e = engine(golden_model());
     let cmd = MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps: vec![REP_101F1],
@@ -770,6 +776,8 @@ fn move_across_pages_rejects_a_wire_with_one_end_left_behind() {
     rejected(e.execute(&cmd));
     // A wire to a junction stays behind as well.
     let cmd = MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps: vec![REP_102G1],
@@ -786,6 +794,8 @@ fn move_rejects_empty_lists_and_unknown_references() {
     rejected(e.execute(&mv(vec![], pt(G, 0))));
     not_found(e.execute(&mv(vec![id(0x999)], pt(G, 0))));
     not_found(e.execute(&MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps: vec![REP_102F2],

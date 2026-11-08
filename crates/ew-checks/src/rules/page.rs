@@ -18,7 +18,8 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{
     AnyId, Connection, Device, EffectiveStyle, Function, GraphicShape, Junction, Kind, Page, PageItem,
-    PageItemKind, Primitive, ReportBlock, ReportKind, ReportSource, Representation, SlotKind, StructureBox, TextSlot,
+    PageItemKind, Primitive, ReportBlock, ReportKind, ReportSource, Representation, SlotKind, StructureBox,
+    TextSlot,
 };
 use ew_derive::ew_units::Pt2;
 use ew_derive::{

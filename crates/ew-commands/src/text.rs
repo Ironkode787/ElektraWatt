@@ -1390,6 +1390,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "give at least one representation or item to move",
     ),
     (
+        "refusal-rep-move-no-cp",
+        "{0} has no connection point {1} to connect on the move; pick one of its CPs",
+    ),
+    (
         "refusal-rep-move-out-of-range",
         "the move takes {0} outside the drawable range; move it less far",
     ),

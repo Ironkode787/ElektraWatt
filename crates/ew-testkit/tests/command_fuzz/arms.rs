@@ -622,6 +622,32 @@ fn rep_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 }),
             );
         }
+        // WP-S2.19 D14, D15: the window's members. Refused: a route for a connection that does not exist. Either: a
+        // connection's route cleared after the move (a route the move followed), and a hint whose junction does not
+        // exist (dropped with a notice) or a symbol CP the representation may not draw (refused).
+        7 => {
+            let steps = [rng.range(-1, 1), rng.range(-1, 1)];
+            return Some(match rng.below(3) {
+                0 => Step::cmd(
+                    "rep.move",
+                    json!({"reps": [rep], "steps": steps, "routes": [{"connection": rng.uuid(), "route": []}]}),
+                )
+                .refuse(),
+                1 => {
+                    let conn = rng.pick(&live.routes)?.connection.clone();
+                    Step::cmd(
+                        "rep.move",
+                        json!({"reps": [rep], "steps": steps, "routes": [{"connection": conn, "route": []}]}),
+                    )
+                }
+                _ => Step::cmd(
+                    "rep.move",
+                    json!({"reps": [rep.clone()], "steps": steps, "connect": [
+                        {"rep": rep, "cp": rng.below(4), "to": {"junction": {"junction": rng.uuid()}}}
+                    ]}),
+                ),
+            });
+        }
         _ => {}
     }
     let (mut k, mut m) = (rng.range(-2, 2), rng.range(-2, 2));

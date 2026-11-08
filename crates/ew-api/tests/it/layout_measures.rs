@@ -216,7 +216,10 @@ fn rk1_page(coils: &[(i64, i64)]) -> (Session, String, Vec<String>) {
     if let Some(embed) = s.starter_embed("ew.iec.coil@qet10") {
         run(&mut s, "library.embed", embed);
     }
-    let coil = s.starter_symbol_copy("ew.iec.coil@qet10").expect("the starter coil").to_string();
+    let coil = s
+        .starter_symbol_copy("ew.iec.coil@qet10")
+        .expect("the starter coil")
+        .to_string();
     let mut functions = Vec::new();
     for &(c, r) in coils {
         let before: Vec<_> = s.query().functions().ids().collect();
@@ -225,7 +228,12 @@ fn rk1_page(coils: &[(i64, i64)]) -> (Session, String, Vec<String>) {
             "device.place",
             serde_json::json!({"page": page, "symbol": coil, "pos": grid(c, r), "target": {"new_device": {"letter": "K"}}}),
         );
-        let placed = s.query().functions().ids().find(|f| !before.contains(f)).expect("the coil's function");
+        let placed = s
+            .query()
+            .functions()
+            .ids()
+            .find(|f| !before.contains(f))
+            .expect("the coil's function");
         functions.push(placed.to_string());
     }
     (s, page, functions)
@@ -252,7 +260,13 @@ fn pin(function: &str, idx: u16) -> serde_json::Value {
 }
 
 /// Draws a wire on `page` from `a` to `b` along `route` (empty: unrouted); its ID.
-fn draw(s: &mut Session, page: &str, a: serde_json::Value, b: serde_json::Value, route: serde_json::Value) -> String {
+fn draw(
+    s: &mut Session,
+    page: &str,
+    a: serde_json::Value,
+    b: serde_json::Value,
+    route: serde_json::Value,
+) -> String {
     run(
         s,
         "connection.draw",
@@ -375,7 +389,13 @@ fn rk1_a_wire_through_a_text_fires_ew_core_070() {
         "item.place",
         serde_json::json!({"page": page, "kind": {"free_text": {"text": "Note", "at": grid(59, 28)}}}),
     );
-    let w = draw(&mut s, &page, pin(&k[0], 1), pin(&k[1], 0), route(&[(60, 24), (60, 32)]));
+    let w = draw(
+        &mut s,
+        &page,
+        pin(&k[0], 1),
+        pin(&k[1], 0),
+        route(&[(60, 24), (60, 32)]),
+    );
     assert_eq!(
         findings(&s, "EW-CORE-070"),
         [(
@@ -414,9 +434,21 @@ fn rk1_a_wire_through_a_text_fires_ew_core_070() {
 #[test]
 fn rk1_a_four_way_junction_fires_ew_core_072() {
     let (mut s, page, k) = rk1_page(&[(60, 20), (60, 32), (52, 20), (68, 20)]);
-    let v = draw(&mut s, &page, pin(&k[0], 1), pin(&k[1], 0), route(&[(60, 24), (60, 32)]));
+    let v = draw(
+        &mut s,
+        &page,
+        pin(&k[0], 1),
+        pin(&k[1], 0),
+        route(&[(60, 24), (60, 32)]),
+    );
     let on_v = serde_json::json!({"on_connection": {"connection": v, "at": grid(60, 28)}});
-    draw(&mut s, &page, pin(&k[2], 1), on_v, route(&[(52, 24), (52, 28), (60, 28)]));
+    draw(
+        &mut s,
+        &page,
+        pin(&k[2], 1),
+        on_v,
+        route(&[(52, 24), (52, 28), (60, 28)]),
+    );
     assert_eq!(findings(&s, "EW-CORE-072"), []);
     let junction = s
         .page_tables("103")
@@ -460,7 +492,11 @@ fn rk1_an_unrouted_wire_fires_ew_core_073_at_its_severities_and_takes_a_waiver()
         )]
     );
     let release = s.check(&PRE_DELIVERY, CheckMode::Release);
-    let found: Vec<_> = release.findings.iter().filter(|f| f.rule == "EW-CORE-073").collect();
+    let found: Vec<_> = release
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-CORE-073")
+        .collect();
     assert_eq!(found.len(), 1);
     assert_eq!(found[0].severity, Severity::Error);
     let fingerprint = found[0].fingerprint.to_string();
@@ -483,7 +519,14 @@ fn rk1_an_unrouted_wire_fires_ew_core_073_at_its_severities_and_takes_a_waiver()
         .map(|f| matches!(f.state, FindingState::Waived { .. }))
         .collect();
     assert_eq!(states, [true]);
-    assert_eq!(release.findings.iter().filter(|f| f.rule == "EW-CORE-081").count(), 0);
+    assert_eq!(
+        release
+            .findings
+            .iter()
+            .filter(|f| f.rule == "EW-CORE-081")
+            .count(),
+        0
+    );
     run(
         &mut s,
         "connection.route",
@@ -504,10 +547,22 @@ fn rk2_golden_a_s_check_report_holds_no_layout_finding() {
         let layout: Vec<&str> = report
             .findings
             .iter()
-            .filter(|f| ["EW-CORE-067", "EW-CORE-068", "EW-CORE-069", "EW-CORE-070", "EW-CORE-073"].contains(&f.rule))
+            .filter(|f| {
+                [
+                    "EW-CORE-067",
+                    "EW-CORE-068",
+                    "EW-CORE-069",
+                    "EW-CORE-070",
+                    "EW-CORE-073",
+                ]
+                .contains(&f.rule)
+            })
             .map(|f| f.message.as_str())
             .collect();
         assert_eq!(layout, Vec::<&str>::new());
-        assert!(report.rules.iter().any(|m| m.id == "EW-CORE-073"), "the run evaluated the rules");
+        assert!(
+            report.rules.iter().any(|m| m.id == "EW-CORE-073"),
+            "the run evaluated the rules"
+        );
     }
 }

@@ -1653,6 +1653,34 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             .map(|_| ())
     }
 
+    /// [`Dsl::move_steps`] with the window's members (WP-S2.19 D14, D15): `routes` replace the followed routes of the
+    /// connections named, and `connect` makes the wires of the autoconnect hints `(rep, symbol CP, other end)`.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn move_steps_with(
+        &mut self,
+        reps: &[Id<Representation>],
+        steps: [i64; 2],
+        routes: &[(Id<Connection>, Value)],
+        connect: &[(Id<Representation>, u16, Value)],
+    ) -> Result<()> {
+        let routes: Vec<Value> = routes
+            .iter()
+            .map(|(id, route)| json!({"connection": id, "route": route}))
+            .collect();
+        let connect: Vec<Value> = connect
+            .iter()
+            .map(|(rep, cp, to)| json!({"rep": rep, "cp": cp, "to": to}))
+            .collect();
+        self.run(
+            "rep.move",
+            json!({"reps": reps, "steps": steps, "routes": routes, "connect": connect}),
+        )
+        .map(|_| ())
+    }
+
     /// `rep.exchange_symbol` (FR-SYM-022): the representation `rep` is drawn by the symbol copy `symbol` from now
     /// on. `pin_map` lists `(symbol CP, function CP)` pairs; `None` derives the map (by index for the same
     /// function definition, else by designation).

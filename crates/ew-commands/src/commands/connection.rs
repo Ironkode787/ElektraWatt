@@ -572,28 +572,40 @@ impl Command for RouteMany {
                 ),
             ));
         }
-        let mut first = None;
-        for (i, r) in self.routes.iter().enumerate() {
-            let out = r.run(tx).map_err(|err| match err {
-                CmdError::InvalidParams { path, text, .. } => {
-                    CmdError::invalid_params(Self::NAME, format!("/routes/{i}{path}"), *text)
-                }
-                CmdError::Rejected { source, reason, text } => {
-                    let why = text.map_or_else(|| TextArg::from(reason), TextArg::from);
-                    CmdError::rejected(
-                        source,
-                        text!("refusal-connection-draw-many-entry", i.to_string(), why),
-                    )
-                }
-                other => other,
-            })?;
-            first = first.or(out.primary);
-        }
         Ok(Outcome {
-            primary: first,
+            primary: run_routes(tx, Self::NAME, &self.routes)?,
             ..Outcome::default()
         })
     }
+}
+
+/// Applies `routes` in order, each exactly as `connection.route` with those parameters would be, for the command
+/// `command` (`connection.route_many`, and `rep.move`'s `routes`, WP-S2.19 D14): an entry's own parameter error keeps
+/// its message with its JSON Pointer prefixed by `/routes/<i>`, its refusal keeps its reason prefixed by `entry <i>: `,
+/// every other error passes through. The first connection.
+pub(crate) fn run_routes(
+    tx: &mut TxBuilder<'_>,
+    command: &'static str,
+    routes: &[RouteConnection],
+) -> Result<Option<ew_model::AnyKey>, CmdError> {
+    let mut first = None;
+    for (i, r) in routes.iter().enumerate() {
+        let out = r.run(tx).map_err(|err| match err {
+            CmdError::InvalidParams { path, text, .. } => {
+                CmdError::invalid_params(command, format!("/routes/{i}{path}"), *text)
+            }
+            CmdError::Rejected { source, reason, text } => {
+                let why = text.map_or_else(|| TextArg::from(reason), TextArg::from);
+                CmdError::rejected(
+                    source,
+                    text!("refusal-connection-draw-many-entry", i.to_string(), why),
+                )
+            }
+            other => other,
+        })?;
+        first = first.or(out.primary);
+    }
+    Ok(first)
 }
 
 /// `connection.delete`: removes connections through the delete policies (they leave junction sequences;

@@ -385,49 +385,63 @@ impl Command for PlaceSymbol {
             else {
                 return tx.reject(text!("refusal-device-place-lost-cp"));
             };
-            let id: Id<Connection> = tx.mint();
-            let (to, joins_sequence) = match &hint.to {
-                EndpointParam::OnConnection { connection, at } => (
-                    split_for_hint(
-                        tx,
-                        *connection,
-                        *at,
-                        id,
-                        &format!("/connect/{i}/to/on_connection/at"),
-                    )?,
-                    false,
-                ),
-                other => (
-                    other
-                        .endpoint()
-                        .expect("a CP or junction parameter has an endpoint"),
-                    true,
-                ),
-            };
-            let a = Endpoint::Cp(function, fn_cp);
-            let route = crate::geometry::hint_route(tx, &a, &to, self.page);
-            tx.insert(Connection {
-                id,
-                v: 1,
-                a,
-                b: to.clone(),
-                page: Some(self.page),
-                route,
-                kind: ConnectionKind::Wire,
-                overrides: Default::default(),
-                number: NumberSpec::default(),
-                source_ref: None,
-                extra: Extra::new(),
-            })?;
-            if let (Endpoint::Junction(j), true) = (to, joins_sequence) {
-                tx.update::<Junction>(j, |j| j.sequence.push(id))?;
-            }
+            hint_wire(tx, Endpoint::Cp(function, fn_cp), &hint.to, self.page, i)?;
         }
         Ok(Outcome {
             notices,
             ..Outcome::primary((Kind::Representation, rep.cast()))
         })
     }
+}
+
+/// The wire of the autoconnect hint `i` (of `device.place`, or of `rep.move`'s `connect`): `{a, b: to, page}` with the
+/// straight route between its two ends' points (none when they do not lie on one line); a hint ending at a junction
+/// appends the wire to the junction's sequence, one ending on a point of a connection splits it there
+/// ([`split_for_hint`], the point checked at `/connect/<i>/to/on_connection/at`).
+fn hint_wire(
+    tx: &mut TxBuilder<'_>,
+    a: Endpoint,
+    to: &EndpointParam,
+    page: Id<Page>,
+    i: usize,
+) -> Result<(), CmdError> {
+    let id: Id<Connection> = tx.mint();
+    let (to, joins_sequence) = match to {
+        EndpointParam::OnConnection { connection, at } => (
+            split_for_hint(
+                tx,
+                *connection,
+                *at,
+                id,
+                &format!("/connect/{i}/to/on_connection/at"),
+            )?,
+            false,
+        ),
+        other => (
+            other
+                .endpoint()
+                .expect("a CP or junction parameter has an endpoint"),
+            true,
+        ),
+    };
+    let route = crate::geometry::hint_route(tx, &a, &to, page);
+    tx.insert(Connection {
+        id,
+        v: 1,
+        a,
+        b: to.clone(),
+        page: Some(page),
+        route,
+        kind: ConnectionKind::Wire,
+        overrides: Default::default(),
+        number: NumberSpec::default(),
+        source_ref: None,
+        extra: Extra::new(),
+    })?;
+    if let (Endpoint::Junction(j), true) = (to, joins_sequence) {
+        tx.update::<Junction>(j, |j| j.sequence.push(id))?;
+    }
+    Ok(())
 }
 
 /// What a hint names that does not exist (any more), as a phrase for a notice.
@@ -584,7 +598,13 @@ fn zero() -> Pt2 {
 /// variant or shape it keeps verbatim) and `items` with a cross-page `page` are rejected. A moved wire marker writes
 /// a clean list (its entries naming a connection that does not exist or is not on its page are dropped).
 ///
-/// Outcome: none. Coalesce one drag with a key.
+/// **Re-solved routes and connect on move** (WP-S2.19 D14, D15; both optional, so a script's move keeps the follow):
+/// after the follow, each entry of `routes` replaces a connection's route exactly as `connection.route` would (errors
+/// prefixed `/routes/<i>`, as `connection.route_many` prefixes them); then each hint of `connect` makes a wire from
+/// the named representation's symbol CP as a `device.place` hint does, with the straight route between its ends (a
+/// hint whose target no longer exists is dropped with a notice; a CP the representation does not draw is refused).
+///
+/// Outcome: none; the notices of dropped hints. Coalesce one drag with a key.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MoveReps {
@@ -606,6 +626,27 @@ pub struct MoveReps {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[schemars(with = "Vec<UuidS>")]
     pub items: Vec<AnyId>,
+    /// Routes that replace the followed routes of the connections named, after the follow, each as
+    /// `connection.route` takes it (WP-S2.19 D14: the Select tool's re-solve).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub routes: Vec<crate::commands::connection::RouteConnection>,
+    /// Autoconnect hints committed with the move, each a `device.place` hint naming its representation (WP-S2.19
+    /// D15: connect on move).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub connect: Vec<MoveHint>,
+}
+
+/// An autoconnect hint of `rep.move` (WP-S2.19 D15): a `device.place` hint ([`ConnectHint`]) of a representation.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct MoveHint {
+    /// The representation whose CP the wire starts at.
+    #[schemars(with = "UuidS")]
+    pub rep: Id<Representation>,
+    /// The symbol CP of the representation (`SymbolCp.idx`).
+    pub cp: u16,
+    /// The other end: a CP, a junction or a point on a connection.
+    pub to: EndpointParam,
 }
 
 /// `round(k × num / den)`, halves away from zero, saturating (the nm length of `k` grid steps).
@@ -697,6 +738,36 @@ impl MoveReps {
             }
         }
         Ok(out)
+    }
+
+    /// After the move (WP-S2.19 D14, D15): `routes` replace the followed routes, as `connection.route_many` applies
+    /// them, then each hint of `connect` makes its wire as `device.place` does (a hint whose target no longer exists is
+    /// dropped with a notice; a CP the representation does not draw is refused). The notices.
+    fn routes_and_hints(&self, tx: &mut TxBuilder<'_>) -> Result<Vec<String>, CmdError> {
+        crate::commands::connection::run_routes(tx, Self::NAME, &self.routes)?;
+        let mut notices = Vec::new();
+        for (i, hint) in self.connect.iter().enumerate() {
+            if let Some(gone) = missing_target(tx, &hint.to) {
+                notices.push(format!(
+                    "autoconnect hint {} dropped: {gone} no longer exists",
+                    i + 1
+                ));
+                continue;
+            }
+            let rep = tx.require::<Representation>(hint.rep)?;
+            let Some(cp) = crate::geometry::rep_cps(tx, &rep)
+                .into_iter()
+                .find(|c| c.symbol_cp == hint.cp)
+            else {
+                return tx.reject(text!(
+                    "refusal-rep-move-no-cp",
+                    crate::words::symbol(tx, hint.rep),
+                    hint.cp.to_string()
+                ));
+            };
+            hint_wire(tx, Endpoint::Cp(cp.function, cp.idx), &hint.to, rep.page, i)?;
+        }
+        Ok(notices)
     }
 
     /// Puts the moved page items and structure boxes, translated by `d` (a moved wire marker with a clean list).
@@ -857,7 +928,10 @@ impl MoveReps {
             let d = Pt2::new(Nm(steps_nm(grid, steps[0])), Nm(steps_nm(grid, steps[1])));
             Self::put_items(tx, &items, d)?;
         }
-        Ok(Outcome::default())
+        Ok(Outcome {
+            notices: self.routes_and_hints(tx)?,
+            ..Outcome::default()
+        })
     }
 }
 
@@ -1039,7 +1113,10 @@ impl Command for MoveReps {
             tx.put(rep);
         }
         Self::put_items(tx, &items, self.delta)?;
-        Ok(Outcome::default())
+        Ok(Outcome {
+            notices: self.routes_and_hints(tx)?,
+            ..Outcome::default()
+        })
     }
 }
 

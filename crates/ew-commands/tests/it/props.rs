@@ -162,6 +162,8 @@ fn build(model: &Model, step: &Step) -> Option<Box<dyn DynCommand>> {
             connect: vec![],
         }),
         Step::Move { rep, dx, dy } => boxed(MoveReps {
+            routes: Vec::new(),
+            connect: Vec::new(),
             items: Vec::new(),
             steps: None,
             reps: vec![nth::<Representation>(model, *rep)?.id],

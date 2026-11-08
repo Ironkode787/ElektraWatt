@@ -1314,6 +1314,7 @@ refusal-rep-move-steps-out-of-range = de verplaatsing brengt { $p0 } buiten het 
 refusal-rep-move-steps-cp-out-of-range = de verplaatsing brengt een aansluitpunt van { $p0 } buiten het tekenbereik; verplaats minder rasterstappen
 refusal-rep-move-route-out-of-range = de verplaatsing brengt het verloop van { $p0 } buiten het tekenbereik; verplaats minder ver
 refusal-rep-move-nothing = geef ten minste één representatie of element om te verplaatsen
+refusal-rep-move-no-cp = { $p0 } heeft geen aansluitpunt { $p1 } om bij het verplaatsen te verbinden; kies een van zijn aansluitpunten
 refusal-rep-move-out-of-range = de verplaatsing brengt { $p0 } buiten het tekenbereik; verplaats minder ver
 refusal-rep-move-cp-out-of-range = de verplaatsing brengt een aansluitpunt van { $p0 } buiten het tekenbereik; verplaats minder ver
 refusal-rep-move-end-behind = de verplaatsing zou één uiteinde van { $p0 } op de oude pagina achterlaten; verplaats beide uiteinden samen

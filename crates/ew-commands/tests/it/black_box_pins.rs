@@ -265,6 +265,8 @@ fn wire_every_pin(e: &mut Engine, rep: Id<Representation>, f: Id<Function>) -> V
 
 fn steps(rep: Id<Representation>, s: [i64; 2]) -> MoveReps {
     MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         reps: vec![rep],
         delta: Pt2::ORIGIN,
@@ -392,6 +394,8 @@ fn a_route_to_a_black_box_pin_follows_the_box_on_a_drag_and_a_transform() {
     e.execute(&steps(rep, [0, -2])).expect("two steps up");
     check(&e, "two steps up");
     e.execute(&MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         reps: vec![rep],
         delta: pt(G, 0),
