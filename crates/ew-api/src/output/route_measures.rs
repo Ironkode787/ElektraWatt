@@ -530,7 +530,7 @@ fn text_runs(q: &Q, page: PageRef, owners: &BTreeSet<Uuid>) -> Vec<(Uuid, [i64; 
             match &item.kind {
                 ew_dl::ItemKind::Glyphs(run) => {
                     if let Some(o) = owner.filter(|o| owners.contains(o)) {
-                        let p = run.layout_quad().map(|p| map(p));
+                        let p = run.layout_quad().map(map);
                         let (xs, ys) = (p.iter().map(|p| p.x.0), p.iter().map(|p| p.y.0));
                         let rect = [
                             xs.clone().min().unwrap_or(0),
