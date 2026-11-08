@@ -16,6 +16,10 @@ the `records` step of `cargo xtask settle --merge` runs it at the merge point.
 Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:` trailer cites, newest first, with the commits that cite it, newest first.
 
 - **ID-1517** (cycle 53): RTR-G's review fixes accepted (project owner (delegated); the golden decision is the orchestrator's): `d9088a56f` passes its lane-check. Accepted: the three-phase motor 0.2.0 with leads one grid step longer (U1, V1, W1 move; no text-only move clears the QET edition's stubs) and the heater 0.1.1; RG3's new totals (101: 38 bends, the kept 1 nm jog counting two, FT-1598; 103: 27 crossings, 52 bends; 106: 14 crossings, its lower targets standing right above left so that no cross-reference sits under the wrong arrow), every page still at hard 0, text overlaps 0 and no detour above 2. Both fix branches now merge for the third candidate. ID-1509; ID-1516.
+  - `9bcb938f1e` docs(plan): records refreshed after the merge
+  - `26a125a2c2` chore: settle after the merge (the visual self-test's frame hashes)
+  - `8d4a8455b6` test(ui): the 14 snapshots re-blessed on the merged tree
+  - `64662047e8` docs(release-notes): the motor, heater and target interruption point's symbol changes; RP1's A7 is hard
   - `f79986579f` docs(plan): WP-S2.19 authoring fixes accepted
 - **ID-1516** (cycle 53): WP-S2.19's review fix phase accepted (project owner (delegated); Dutch wording the orchestrator's, ID-1320): every assigned finding is fixed at `bd66bc24c` with its lane-check passing; C53-rt#14 is withdrawn (an empty list is the command's own refusal, as in `connection.draw_many`'s arm). Route selection's disabled reason reads "Select a wire or a symbol to route" | "Selecteer een draad of een symbool om te routeren". The route pair's icons (`file-settings`, `magnet`) stand for 0.1.0; icons drawn for routing are FT-1618. ID-1509.
   - `286b2de7bf` docs(plan): WP-S2.19 review fix phase accepted
