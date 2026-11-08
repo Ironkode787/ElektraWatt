@@ -363,7 +363,10 @@ fn c_turns_connect_on_move_off_and_on_and_the_status_bar_says_so() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "102");
     press(&mut h, Key::C);
-    assert_eq!(h.state().shell().status_fields(false)[0], "C Connect on move: off");
+    assert_eq!(
+        h.state().shell().status_fields(false)[0],
+        "C Connect on move: off"
+    );
     press(&mut h, Key::C);
     assert_eq!(h.state().shell().status_fields(false)[0], "C Connect on move: on");
     h.state_mut().shell_mut().shutdown();
