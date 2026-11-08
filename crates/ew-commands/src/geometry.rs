@@ -195,40 +195,6 @@ pub fn hint_route(tx: &TxBuilder<'_>, a: &Endpoint, b: &Endpoint, page: Id<Page>
     }
 }
 
-/// The path the page draws connection `c` along when it has no stored route (FT-1020, decision log ID-1104, ID-1110):
-/// [`ew_derive::provisional_path`] between its ends on its page, the path `ew_derive::drawn_path` gives and the page
-/// scene draws, read from the transaction's records. An end at a CP is placed by [`ew_derive::rep_cp_end`] (the
-/// representation on the page with the smallest ID that draws it, as `ew_derive::cp_end` takes it); an end at a
-/// junction is the junction's point without a direction. `None` when `c` has a stored route (that route is its path) or
-/// no page, or an end is not drawn on its page by a representation: a strip segment's terminal point, which
-/// `ew_derive::cp_end` places from derived queries, is not read, so such a connection is not located.
-pub fn provisional_path_of(tx: &TxBuilder<'_>, c: &Connection) -> Option<Vec<Pt2>> {
-    let page = c.page?;
-    if !c.route.is_empty() {
-        return None;
-    }
-    let cp_end = |function: Id<Function>, idx: u16| {
-        let mut reps = tx.reps_of_function(function);
-        reps.sort();
-        reps.into_iter().find_map(|rid| {
-            let rep = tx.get::<Representation>(rid).filter(|r| r.page == page)?;
-            let symbol = tx.get::<LibCopy<SymbolDef>>(rep.symbol)?;
-            let (at, dir) = ew_derive::rep_cp_end(&rep, &symbol.item, function, idx)?;
-            Some((at, dir.as_ref().and_then(ew_derive::dir_vertical)))
-        })
-    };
-    let end = |e: &Endpoint| match e {
-        Endpoint::Cp(function, idx) => cp_end(*function, *idx),
-        Endpoint::Junction(j) => tx
-            .get::<Junction>(*j)
-            .filter(|j| j.page == page)
-            .map(|j| (j.at, None)),
-        Endpoint::Unknown(_) => None,
-    };
-    let ((a, a_vertical), (b, b_vertical)) = (end(&c.a)?, end(&c.b)?);
-    Some(ew_derive::provisional_path(a, a_vertical, b, b_vertical))
-}
-
 /// Whether `p` lies on the closed segment `a`–`b` (exact: collinear by an `i128` cross product, inside the
 /// bounding box; [`ew_derive::on_segment`], the test of the page's drawn paths). A point outside ±[`MAX_COORD`]
 /// lies on nothing; within the range the differences are below 2⁵⁴ and their products below 2¹⁰⁸, so the `i128`

@@ -48,15 +48,15 @@
 //! end takes that end's coordinate on the axis of the segment between them (a CP may sit up to 1 nm off a rational
 //! grid; `geometry::require_route` accepts a coordinate equal to an end CP's), collinear and duplicate interior
 //! vertices removed. Without a path inside the area (or with an unusable grid or an area of more than
-//! [`MAX_NODES`] nodes) the result is the provisional L route of `ew-scene`'s rule: a straight segment for aligned
-//! ends, else one corner from the ends' own coordinates.
+//! [`MAX_NODES`] nodes) there is no route ([`Routed::direct`]): the result is the straight line between the ends, the
+//! line an unrouted connection is drawn with (WP-S2.19 D3), never a wire.
 
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
 use ew_units::{Grid, Nm, Pt2};
 
-/// The largest search area, in grid nodes, beyond which the router falls back to the L route: 2¹⁸ = 262 144, an A0
+/// The largest search area, in grid nodes, beyond which the router finds no route: 2¹⁸ = 262 144, an A0
 /// sheet (1189 × 841 mm) at a 2.5 mm grid (476 × 337 = 160 412 nodes) with room to spare (fix round of WP-S2.04
 /// part 2, item 3: the distance table is five states per node).
 pub const MAX_NODES: usize = 262_144;
@@ -179,27 +179,11 @@ pub struct RouteRequest {
 pub struct Routed {
     /// The full vertex list from the first end to the second.
     pub points: Vec<(i64, i64)>,
-    /// Its cost by the weights of the search (steps, bends, crossings, mates' steps); 0 for the fallback.
+    /// Its cost by the weights of the search (steps, bends, crossings, mates' steps); 0 without a route.
     pub cost: u32,
-    /// Whether it is the provisional L route of the fallback: no path inside the area (or an unusable grid or an
-    /// area over [`MAX_NODES`]), so the route may cross obstacles and other wires (FT-706: the tool says so).
+    /// Whether no route was found: no path inside the area (or an unusable grid or an area over [`MAX_NODES`]); the
+    /// points are then the straight line between the ends, the unrouted line (WP-S2.19 D3), never a wire.
     pub direct: bool,
-}
-
-/// The provisional L route of `ew-scene`'s rule (the fallback): `[a, b]` for aligned ends (`[a]` for equal ones),
-/// else one corner from the ends' own coordinates, chosen by `a`'s direction, else `b`'s, else `(b.x, a.y)`. The rule
-/// is `ew_derive::provisional_path`, the path the page draws a connection without a route along (FT-1020).
-pub fn l_route(a: RouteEnd, b: RouteEnd) -> Vec<(i64, i64)> {
-    let point = |(x, y): (i64, i64)| Pt2::new(Nm(x), Nm(y));
-    crate::provisional_path(
-        point(a.at),
-        a.dir.map(Heading::vertical),
-        point(b.at),
-        b.dir.map(Heading::vertical),
-    )
-    .into_iter()
-    .map(|p| (p.x.0, p.y.0))
-    .collect()
 }
 
 /// The search space of one request.
@@ -338,7 +322,7 @@ pub fn auto_route(req: &RouteRequest) -> Vec<(i64, i64)> {
     route(req).points
 }
 
-/// [`auto_route`] with whether the result is the fallback ([`Routed::direct`]).
+/// [`auto_route`] with whether a route was found ([`Routed::direct`]).
 pub fn route(req: &RouteRequest) -> Routed {
     match search(req) {
         Some((points, cost)) => Routed {
@@ -347,7 +331,7 @@ pub fn route(req: &RouteRequest) -> Routed {
             direct: false,
         },
         None => Routed {
-            points: fallback(req),
+            points: vec![req.from.at, req.to.at],
             cost: 0,
             direct: true,
         },
@@ -428,41 +412,6 @@ pub fn clear(req: &RouteRequest, points: &[(i64, i64)]) -> bool {
         (p, heading) = (q, Some(m));
     }
     true
-}
-
-/// The L route of the fallback; with an arrival heading at a first end without a direction, the corner whose first
-/// leg does not reverse it (FT-437; aligned ends behind the arrival stay the straight segment, the only L there is).
-pub fn fallback(req: &RouteRequest) -> Vec<(i64, i64)> {
-    let (a, b) = (req.from, req.to);
-    let (pa, pb) = (a.at, b.at);
-    if let (None, Some(h)) = (a.dir, req.arrive)
-        && pa.0 != pb.0
-        && pa.1 != pb.1
-    {
-        // The default corner of an end without a direction, unless its first leg runs against `h`.
-        let default = l_route(a, b);
-        let first_leg = if default[1].1 == pa.1 {
-            if pb.0 > pa.0 {
-                Heading::Right
-            } else {
-                Heading::Left
-            }
-        } else if pb.1 > pa.1 {
-            Heading::Down
-        } else {
-            Heading::Up
-        };
-        if first_leg == h.opposite() {
-            let other = if default[1].1 == pa.1 {
-                (pa.0, pb.1)
-            } else {
-                (pb.0, pa.1)
-            };
-            return vec![pa, other, pb];
-        }
-        return default;
-    }
-    l_route(a, b)
 }
 
 /// The search space of a request with every rule of the module documentation applied: the blocked nodes and the
@@ -1046,7 +995,7 @@ mod tests {
     }
 
     #[test]
-    fn without_a_path_the_l_route_is_the_fallback() {
+    fn without_a_path_the_result_is_the_straight_unrouted_line() {
         // The second end is walled in on every side inside the area.
         let to = end(10, 10, None);
         let walls = vec![
@@ -1056,12 +1005,11 @@ mod tests {
             rect(11, 7, 13, 13),
         ];
         let r = auto_route(&req(end(0, 0, Some(Heading::Right)), to, walls));
-        assert_eq!(r, l_route(end(0, 0, Some(Heading::Right)), to));
-        assert_eq!(r, vec![p(0, 0), p(10, 0), p(10, 10)]);
-        // An unusable grid falls back too.
+        assert_eq!(r, vec![p(0, 0), p(10, 10)]);
+        // An unusable grid finds none too.
         let mut bad = req(end(0, 0, None), end(3, 4, None), vec![]);
         bad.grid = (0, 1);
-        assert_eq!(auto_route(&bad), vec![p(0, 0), p(3, 0), p(3, 4)]);
+        assert_eq!(auto_route(&bad), vec![p(0, 0), p(3, 4)]);
     }
 
     #[test]
@@ -1163,7 +1111,7 @@ mod tests {
     }
 
     #[test]
-    fn an_area_over_the_node_cap_falls_back_to_the_l_route() {
+    fn an_area_over_the_node_cap_finds_no_route() {
         // 1 mm grid, an area of 600 × 600 = 360 000 nodes (> 262 144).
         let mut big = req(
             end(0, 0, Some(Heading::Right)),
@@ -1171,8 +1119,9 @@ mod tests {
             vec![],
         );
         big.area = [-300 * MM, -300 * MM, 300 * MM, 300 * MM];
-        assert_eq!(auto_route(&big), l_route(big.from, big.to));
-        // Ends at the edge of `i64` give no stub: the fallback too.
+        assert!(route(&big).direct);
+        assert_eq!(auto_route(&big), vec![big.from.at, big.to.at]);
+        // Ends at the edge of `i64` give no stub: no route either.
         let edge = RouteRequest {
             from: RouteEnd {
                 at: (i64::MAX, 0),
@@ -1192,7 +1141,7 @@ mod tests {
             cross_cost: 0,
             mates: Vec::new(),
         };
-        assert_eq!(auto_route(&edge), l_route(edge.from, edge.to));
+        assert!(route(&edge).direct);
     }
 
     #[test]
@@ -1261,30 +1210,6 @@ mod tests {
         assert_eq!(
             auto_route(&with_arrive(base.clone(), Heading::Left)),
             auto_route(&base)
-        );
-    }
-
-    #[test]
-    fn the_fallback_does_not_reverse_the_arrival() {
-        // The end walled in: the L route; its default corner (10, 0) would leave right against an arrival heading
-        // left, so the other corner is taken.
-        let to = end(10, 10, None);
-        let walls = vec![
-            rect(7, 7, 13, 9),
-            rect(7, 11, 13, 13),
-            rect(7, 7, 9, 13),
-            rect(11, 7, 13, 13),
-        ];
-        let base = req(end(0, 0, None), to, walls);
-        assert_eq!(auto_route(&base), vec![p(0, 0), p(10, 0), p(10, 10)]);
-        assert_eq!(
-            auto_route(&with_arrive(base.clone(), Heading::Left)),
-            vec![p(0, 0), p(0, 10), p(10, 10)]
-        );
-        // An arrival the default corner does not reverse keeps it.
-        assert_eq!(
-            auto_route(&with_arrive(base, Heading::Right)),
-            vec![p(0, 0), p(10, 0), p(10, 10)]
         );
     }
 
@@ -1497,7 +1422,7 @@ mod tests {
         rq.own[1] = vec![rect(-3, -1, 3, 9)];
         let routed = route(&rq);
         assert!(routed.direct, "{:?}", routed.points);
-        assert_eq!(routed.points, l_route(rq.from, rq.to));
+        assert_eq!(routed.points, [rq.from.at, rq.to.at]);
     }
 
     #[test]
@@ -1535,7 +1460,7 @@ mod tests {
     }
 
     #[test]
-    fn the_fallback_says_it_is_direct() {
+    fn without_a_route_the_result_says_it_is_direct() {
         let to = end(10, 10, None);
         let walls = vec![
             rect(7, 7, 13, 9),
@@ -1545,7 +1470,7 @@ mod tests {
         ];
         let walled = route(&req(end(0, 0, Some(Heading::Right)), to, walls));
         assert!(walled.direct);
-        assert_eq!(walled.points, vec![p(0, 0), p(10, 0), p(10, 10)]);
+        assert_eq!(walled.points, vec![p(0, 0), p(10, 10)]);
         assert!(!route(&req(end(0, 0, Some(Heading::Right)), to, vec![])).direct);
     }
 
@@ -1633,7 +1558,7 @@ mod tests {
     }
 
     proptest::proptest! {
-        /// The oracle of `clear`: every route the router finds (not the fallback) is clear by `clear`, among
+        /// The oracle of `clear`: every route the router finds is clear by `clear`, among
         /// obstacles, other wires and reserved points.
         #[test]
         fn every_found_route_is_clear(
@@ -1688,7 +1613,7 @@ mod tests {
 
     proptest::proptest! {
         /// FT-767, the converse of `every_found_route_is_clear`: a straight or L route between the ends that `clear`
-        /// accepts is one the router's search accepts. The search finds a route (not the fallback), and of least cost,
+        /// accepts is one the router's search accepts. The search finds a route, and of least cost,
         /// so no dearer than that one. The start may lie on a reserved point, another wire's vertex or inside an
         /// obstacle, with and without a direction, with and without an arrival heading.
         #[test]
@@ -1837,7 +1762,7 @@ mod tests {
     }
 
     proptest::proptest! {
-        /// FT-706: a route that is not the fallback never runs on another wire's track nor touches one of its
+        /// FT-706: a route found never runs on another wire's track nor touches one of its
         /// vertices (but for the CP ends' stubs), whatever the wires.
         #[test]
         fn a_found_route_keeps_off_other_wires(
@@ -1867,9 +1792,8 @@ mod tests {
     }
 
     proptest::proptest! {
-        /// FT-437: from a point without a direction and an arrival heading, the first segment never runs against
-        /// the arrival (but for the fallback between aligned ends), and the route is orthogonal with exact ends,
-        /// among obstacles too.
+        /// FT-437: from a point without a direction and an arrival heading, the first segment of a route found never
+        /// runs against the arrival, and the route is orthogonal with exact ends, among obstacles too.
         #[test]
         fn the_first_segment_never_reverses_the_arrival(
             fx in -6i64..6, fy in -6i64..6, tx in -6i64..6, ty in -6i64..6,
@@ -1881,12 +1805,10 @@ mod tests {
             let obstacles = ob.iter().map(|&(x, y, w, hh)| rect(x, y, x + w, y + hh)).collect();
             let rq = with_arrive(req(end(fx, fy, None), to, obstacles), arrive);
             let r = auto_route(&rq);
-            // The fallback between aligned ends is the straight segment, the only L there is.
-            let aligned_fallback = search(&rq).is_none() && (fx == tx || fy == ty);
             proptest::prop_assert_eq!(r.first(), Some(&p(fx, fy)));
             proptest::prop_assert_eq!(r.last(), Some(&p(tx, ty)));
-            proptest::prop_assert!(orthogonal(&r), "{:?}", r);
-            if r.len() >= 2 && !aligned_fallback {
+            if search(&rq).is_some() && r.len() >= 2 {
+                proptest::prop_assert!(orthogonal(&r), "{:?}", r);
                 let (a, b) = (r[0], r[1]);
                 let first = if b.0 > a.0 { Heading::Right } else if b.0 < a.0 { Heading::Left }
                     else if b.1 > a.1 { Heading::Down } else { Heading::Up };

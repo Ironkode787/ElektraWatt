@@ -382,7 +382,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("junctions", &[Reach::Page]),
     ("wires", &[Reach::Page]),
     ("stored", &[Reach::Page]),
-    ("provisional", &[Reach::Page]),
+    ("unrouted", &[Reach::Page]),
     ("ip", &[Reach::Ip, Reach::Page]),
     ("direction", &[Reach::Ip, Reach::Page]),
     ("source", &[Reach::Ip, Reach::Page]),
@@ -3262,7 +3262,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
                         || i128::from(u.0) * i128::from(v.0) + i128::from(u.1) * i128::from(v.1) < 0
                 })
                 .count();
-            let route = if c.stored_route { "stored" } else { "provisional" };
+            let route = if c.stored_route { "stored" } else { "unrouted" };
             // A point that picks this wire and nothing else (FT-485 item 4), where there is one.
             let point =
                 wire_point(page, c).map_or_else(String::new, |p| format!(" at {} {} mm", mm3(p.0), mm3(p.1)));

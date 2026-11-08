@@ -1090,9 +1090,12 @@ impl Builder<'_> {
         let page = page_rect(view);
         let stroke = wire_stroke(view.grid);
         // The drawn polylines in connection-ID order (the hop rule of `crate::hops` reads them all first), each with
-        // its stroke: a fluid pilot or drain line is dashed 4:2 in the page's wire pen (WP-S1.20 D17).
+        // its stroke: a fluid pilot or drain line is dashed 4:2 in the page's wire pen (WP-S1.20 D17). An unrouted
+        // connection (WP-S2.19 D3) is the dashed straight line between its ends in the thinnest pen, and no wire: it
+        // takes and makes no hop.
         let mut drawn: Vec<(Id<Connection>, Vec<Pt2>)> = Vec::new();
         let mut strokes: Vec<Stroke> = Vec::new();
+        let mut unrouted: Vec<(Id<Connection>, Vec<Pt2>)> = Vec::new();
         for cv in sorted_connections(view) {
             let c = &cv.connection;
             let Some(pts) = polyline_of(view, &cps, c, page) else {
@@ -1102,6 +1105,10 @@ impl Builder<'_> {
                 continue;
             };
             if pts.len() < 2 {
+                continue;
+            }
+            if c.route.is_empty() {
+                unrouted.push((c.id, pts));
                 continue;
             }
             drawn.push((c.id, pts));
@@ -1122,6 +1129,10 @@ impl Builder<'_> {
                 _ => Path::polyline(pts),
             };
             self.push(Item::path(path, Some(strokes[k].clone()), None).with_entity(EntityRef(id.as_uuid())));
+        }
+        for (id, pts) in &unrouted {
+            let dashed = Stroke::pen(Pen::P013).dashed(DashPattern::Dash42);
+            self.push(Item::path(Path::polyline(pts), Some(dashed), None).with_entity(EntityRef(id.as_uuid())));
         }
         let mut junctions: Vec<&JunctionView> = view.junctions.iter().collect();
         junctions.sort_by_key(|j| j.junction.id);
@@ -2289,7 +2300,11 @@ fn page_wires(view: &PageView) -> Vec<(Pt2, Pt2)> {
     let cps = cp_map(view);
     let page = page_rect(view);
     let mut wires: Vec<(Pt2, Pt2)> = Vec::new();
-    for cv in sorted_connections(view) {
+    // An unrouted connection has no wire geometry (WP-S2.19 D3).
+    for cv in sorted_connections(view)
+        .into_iter()
+        .filter(|cv| !cv.connection.route.is_empty())
+    {
         if let Some(pts) = polyline_of(view, &cps, &cv.connection, page) {
             wires.extend(pts.windows(2).map(|w| (w[0], w[1])));
         }

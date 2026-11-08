@@ -4,15 +4,13 @@
 //! Normaliser #7, connection split (doc 06 §3.2 and §5.3, FR-CON-008), and the split itself, which
 //! `connection.draw` uses for an endpoint on an existing connection.
 
-use std::collections::BTreeMap;
-
 use ew_ids::Id;
 use ew_model::{AnyKey, EndpointKey};
 use ew_schema::{Connection, Endpoint, Extra, Junction, Kind, NumberSpec, Representation};
 use ew_units::Pt2;
 
 use crate::error::CmdError;
-use crate::geometry::{locate, provisional_path_of, rep_cps, split_route};
+use crate::geometry::{locate, rep_cps, split_route};
 use crate::normalise::Normaliser;
 use crate::text::text;
 use crate::tx::TxBuilder;
@@ -87,17 +85,14 @@ pub fn split_connection(
 /// Normaliser #7.
 ///
 /// A representation created by this transaction whose functions have no connection yet, and of whose
-/// drawn CPs at least two distinct positions lie on the path of one connection of its page (the connections
-/// with a stored route in ID order, then those without one in ID order; connections already attached to its
-/// functions are skipped), splits that connection: the part from `a` ends at the CP met first along the path,
+/// drawn CPs at least two distinct positions lie on the stored route of one connection of its page (in ID order;
+/// connections already attached to its functions are skipped), splits that connection: the part from `a` ends at the CP met first along the path,
 /// the part to `b` starts at the CP met last. The representation then has connections, so a second run does
 /// nothing.
 ///
-/// A connection's path is the one the page draws it along (FT-1020, decision log ID-1104): its stored route, or,
-/// without one (the wire of a `connect` hint, an import), the provisional path between its ends
-/// ([`provisional_path_of`]). A connection without a route splits into two parts without one, which the page draws
-/// between their own ends. A routed connection goes first because an imported page draws route-less wires on top of
-/// one another (Golden A's folio 101), where a stored route is the line someone drew.
+/// A connection's path is the one the page draws it along (FT-1020, decision log ID-1104): its stored route. A
+/// connection without one is unrouted and has no wire geometry (WP-S2.19 D3): it is drawn as a dashed straight line
+/// between its ends, and it is not split.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ConnectionSplit;
 
@@ -113,9 +108,6 @@ impl Normaliser for ConnectionSplit {
             .into_iter()
             .filter(|k| tx.is_new(k))
             .collect();
-        // The provisional paths of the connections without a route, each computed once per run: the CPs of their
-        // ends do not move here, and a split connection's entry is dropped (its ends changed).
-        let mut provisional: BTreeMap<Id<Connection>, Option<Vec<Pt2>>> = BTreeMap::new();
         for key in new_reps {
             let Some(rep) = tx.get::<Representation>(key.1.cast()) else {
                 continue;
@@ -132,56 +124,42 @@ impl Normaliser for ConnectionSplit {
                 continue;
             }
             let on_page = tx.connections_on_page(rep.page);
-            // The connections with a stored route first, then those without one: where a routed wire and the
-            // provisional path of a route-less one are drawn on one line, the routed wire is split.
-            'search: for routed in [true, false] {
-                for &cid in &on_page {
-                    let Some(c) = tx.get::<Connection>(cid) else {
-                        continue;
-                    };
-                    if c.route.is_empty() == routed
-                        || [&c.a, &c.b]
-                            .iter()
-                            .any(|e| e.function().is_some_and(|f| rep.functions.contains(&f)))
-                    {
-                        continue;
-                    }
-                    let path: &[Pt2] = if routed {
-                        &c.route
-                    } else {
-                        match provisional
-                            .entry(cid)
-                            .or_insert_with(|| provisional_path_of(tx, &c))
-                        {
-                            Some(path) => path,
-                            None => continue,
-                        }
-                    };
-                    let mut on: Vec<((usize, i128), usize)> = cps
+            // Only a wire with a stored route has wire geometry: an unrouted connection is not split (WP-S2.19 D3).
+            for &cid in &on_page {
+                let Some(c) = tx.get::<Connection>(cid) else {
+                    continue;
+                };
+                if c.route.is_empty()
+                    || [&c.a, &c.b]
                         .iter()
-                        .enumerate()
-                        .filter_map(|(i, cp)| locate(path, cp.pos).map(|at| (at, i)))
-                        .collect();
-                    on.sort();
-                    let (Some(&(first_at, i1)), Some(&(last_at, i2))) = (on.first(), on.last()) else {
-                        continue;
-                    };
-                    if first_at == last_at || cps[i1].pos == cps[i2].pos {
-                        continue;
-                    }
-                    let (c1, c2) = (cps[i1], cps[i2]);
-                    provisional.remove(&cid);
-                    split_connection(
-                        tx,
-                        cid,
-                        c1.pos,
-                        Endpoint::Cp(c1.function, c1.idx),
-                        c2.pos,
-                        Endpoint::Cp(c2.function, c2.idx),
-                    )?;
-                    changed = true;
-                    break 'search;
+                        .any(|e| e.function().is_some_and(|f| rep.functions.contains(&f)))
+                {
+                    continue;
                 }
+                let path: &[Pt2] = &c.route;
+                let mut on: Vec<((usize, i128), usize)> = cps
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, cp)| locate(path, cp.pos).map(|at| (at, i)))
+                    .collect();
+                on.sort();
+                let (Some(&(first_at, i1)), Some(&(last_at, i2))) = (on.first(), on.last()) else {
+                    continue;
+                };
+                if first_at == last_at || cps[i1].pos == cps[i2].pos {
+                    continue;
+                }
+                let (c1, c2) = (cps[i1], cps[i2]);
+                split_connection(
+                    tx,
+                    cid,
+                    c1.pos,
+                    Endpoint::Cp(c1.function, c1.idx),
+                    c2.pos,
+                    Endpoint::Cp(c2.function, c2.idx),
+                )?;
+                changed = true;
+                break;
             }
         }
         Ok(changed)

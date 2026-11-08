@@ -1,37 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Provisional orthogonal routing of connections.
+//! The polyline a connection is drawn along on its page.
 //!
-//! **PROVISIONAL.** This module is a replaceable stand-in so that pages can be drawn before the real router
-//! exists. The A* auto-route of doc 06 §5.4 (work items FT-18 and FT-43) owns routing; when it lands, it
-//! replaces [`provisional_route`] and the stored routes it writes take over through [`connection_polyline`].
+//! A connection's stored route is its drawing (WP-S2.19 D1, ADR-0033): the scene never routes. A stored route holds
+//! every vertex from end `a`'s point to end `b`'s (D2) and is drawn as stored ([`connection_polyline`]). A connection
+//! without one is *unrouted* (D3): it is drawn as the straight line between its ends (the page draws it dashed in the
+//! thinnest pen), and as nothing where its ends meet.
 //!
-//! Everything is integer nanometres ([`Nm`], [`Pt2`], [`Rect`]) on the page, origin top-left,
-//! y down, as in [`symbol`](crate::symbol). The functions are pure, deterministic and integer-only (no
-//! arithmetic on coordinates at all, so no overflow), and the result never leaves the page: every vertex is
-//! clamped into the page rectangle.
-//!
-//! # Rules ([`provisional_route`])
-//!
-//! The path is `ew_derive::provisional_path`, the one rule that normaliser 7 of `ew-commands` splits a wire along
-//! and EW-TERM-006 reads (decision log ID-1110):
-//!
-//! 1. Both ends at the same position: a single point (callers draw nothing for it).
-//! 2. Same x or same y: a straight segment.
-//! 3. Otherwise an L with one corner, taken from the ends' own coordinates (so ends on the connection grid
-//!    give a corner on the grid). The wire leaves `a` along the axis of `a.dir`: `Up`/`Down` gives the
-//!    corner `(a.x, b.y)`, `Left`/`Right` gives `(b.x, a.y)`. Without a direction at `a` (a junction or an
-//!    unknown direction) the direction of `b` decides, so the wire arrives at `b` along its axis:
-//!    `Up`/`Down` gives `(b.x, a.y)`, `Left`/`Right` gives `(a.x, b.y)`. With neither direction the corner is
-//!    `(b.x, a.y)`.
-//!
-//! Then the scene alone clamps every vertex into the page and cleans the polyline: consecutive duplicate points
-//! and interior vertices collinear with their neighbours on an axis are removed; the first and last vertex always
-//! stay. On the page the clamp and the clean change nothing (the path's vertices are distinct and turn at its
-//! corner), so the page draws the path the model's rules read; next to an end off the page, the drawn wire runs
-//! along the page's edge, where those rules do not see it. A stored route is drawn as stored (see
-//! [`connection_polyline`]): it is clamped into the page but never cleaned.
+//! Everything is integer nanometres ([`Nm`], [`Pt2`], [`Rect`]) on the page, origin top-left, y down, as in
+//! [`symbol`](crate::symbol). The functions are pure, deterministic and integer-only, and the result never leaves the
+//! page: every vertex is clamped into the page rectangle.
 //!
 //! # Junctions
 //!
@@ -56,33 +35,15 @@ pub struct RouteEnd {
 ///   end `a`'s point to end `b`'s, both included, WP-S2.19 D2; equal neighbours merged, a stale end joined by one
 ///   straight segment), each point clamped into `page`, equal neighbours merged again. Collinear vertices are kept:
 ///   the model's route is authoritative and the user placed those vertices.
-/// - `stored` empty: [`provisional_route`]`(a, b, page)`, which is cleaned.
+/// - `stored` empty: the unrouted line `[a.pos, b.pos]` (WP-S2.19 D3), clamped into `page`; `[a.pos]` where the ends
+///   meet (nothing is drawn).
 pub fn connection_polyline(a: &RouteEnd, b: &RouteEnd, stored: &[Pt2], page: Rect) -> Vec<Pt2> {
-    if stored.is_empty() {
-        return provisional_route(a, b, page);
-    }
     let mut pts: Vec<Pt2> = ew_derive::stored_path(a.pos, stored, b.pos)
         .into_iter()
         .map(|p| clamp(p, page))
         .collect();
     pts.dedup();
     pts
-}
-
-/// The provisional orthogonal route between two ends: 1, 2 or 3 vertices.
-///
-/// 1. `a.pos == b.pos` gives `[a.pos]` (a single point; callers draw nothing for it).
-/// 2. Same x or same y gives `[a.pos, b.pos]`.
-/// 3. Otherwise an L with one corner: `(a.x, b.y)` when `a.dir` is `Up`/`Down`, `(b.x, a.y)` when it is
-///    `Left`/`Right`; with no (or an unknown) `a.dir`, `b.dir` decides so the wire arrives along `b`'s
-///    axis (`Up`/`Down` gives `(b.x, a.y)`, `Left`/`Right` gives `(a.x, b.y)`); with neither, `(b.x, a.y)`.
-///
-/// `ew_derive::provisional_path` between the ends, every vertex clamped into `page`, then the polyline cleaned (see
-/// the module docs).
-pub fn provisional_route(a: &RouteEnd, b: &RouteEnd, page: Rect) -> Vec<Pt2> {
-    let vertical = |d: &Option<Dir4>| d.as_ref().and_then(ew_derive::dir_vertical);
-    let pts = ew_derive::provisional_path(a.pos, vertical(&a.dir), b.pos, vertical(&b.dir));
-    clean(pts.into_iter().map(|p| clamp(p, page)).collect())
 }
 
 /// `p` pulled onto the page rectangle, per axis.
@@ -93,33 +54,4 @@ fn clamp(p: Pt2, page: Rect) -> Pt2 {
 
 fn clamp_nm(v: Nm, lo: Nm, hi: Nm) -> Nm {
     v.max(lo).min(hi)
-}
-
-/// Removes consecutive duplicate points, then interior vertices collinear with their neighbours on an axis,
-/// to a fixpoint. The first and last vertex are never removed.
-fn clean(pts: Vec<Pt2>) -> Vec<Pt2> {
-    let mut out: Vec<Pt2> = Vec::with_capacity(pts.len());
-    for p in pts {
-        if out.last() == Some(&p) {
-            continue;
-        }
-        out.push(p);
-        // The newest vertex is the candidate last one, so it stays; test the one before it.
-        while let [.., prev, mid, next] = out[..] {
-            if collinear(prev, mid, next) {
-                out.remove(out.len() - 2);
-                // Removing `mid` may leave `prev == next` (a spike back onto itself).
-                if out.len() >= 2 && out[out.len() - 1] == out[out.len() - 2] {
-                    out.pop();
-                }
-            } else {
-                break;
-            }
-        }
-    }
-    out
-}
-
-fn collinear(prev: Pt2, v: Pt2, next: Pt2) -> bool {
-    (prev.x == v.x && v.x == next.x) || (prev.y == v.y && v.y == next.y)
 }
