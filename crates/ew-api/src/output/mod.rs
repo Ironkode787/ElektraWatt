@@ -164,7 +164,7 @@ pub use route_measures::{
 // WP-S2.06 parts 1 and 2
 pub use navigators::{
     Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NaturalKey, NavColumn,
-    NavKind, NavNode, NavOpen, NavRole, NavTable, Uuid, nav_natural_key, tokens as nav_tokens,
+    NavKind, NavNode, NavOpen, NavRole, NavTable, Uuid, nav_natural_key, names_subject, tokens as nav_tokens,
 };
 // WP-S1.18 part 2
 pub use properties::{

@@ -3038,12 +3038,19 @@ fn primary_drawables<K: Ord>(candidates: impl Iterator<Item = (K, String, Vec<Dr
         .unwrap_or_default()
 }
 
-/// Whether a finding's `message` already leads with its `subject` (the subject, then a colon, a space or nothing), so
-/// that the Messages row shows the subject once.
-fn leads_with_subject(subject: &str, message: &str) -> bool {
+/// Whether a finding's `message` already names its `subject`, so that the Messages row shows the subject once: the
+/// message leads with it (then a colon, a space or nothing), or names it after a space, followed by the end, a space,
+/// a colon, a comma or a full stop ("Wire -G1:+ → -S1:1 has no route", the layout rules; ID-1509 (9), the window
+/// check's F3).
+pub fn names_subject(subject: &str, message: &str) -> bool {
+    let ends = |rest: &str| rest.is_empty() || rest.starts_with([':', ' ', ',', '.']);
     message
         .strip_prefix(subject)
         .is_some_and(|rest| rest.is_empty() || rest.starts_with(':') || rest.starts_with(' '))
+        || (!subject.is_empty()
+            && message
+                .match_indices(subject)
+                .any(|(i, _)| message[..i].ends_with(' ') && ends(&message[i + subject.len()..])))
 }
 
 /// A finding's page and its primary target's drawables (§7.1): the finding's page, else the page of the primary
@@ -3136,7 +3143,7 @@ fn finding_node(
     facets.push(("state".to_owned(), state.to_owned()));
     // Cycle 39 (window check): a rule whose message already leads with its subject (EW-BUS-001, EW-CORE-033: "X: X has
     // no ...") shows the subject once; the findings themselves, the CSV and the reports are unchanged.
-    let label = if f.subject.is_empty() || leads_with_subject(&f.subject, &f.message) {
+    let label = if f.subject.is_empty() || names_subject(&f.subject, &f.message) {
         f.message.clone()
     } else {
         format!("{}: {}", f.subject, f.message)
@@ -3180,13 +3187,34 @@ mod tests {
     /// another message, and a longer tag that only starts like the subject, keep the prefix.
     #[test]
     fn a_message_leading_with_its_subject_is_shown_once() {
-        assert!(leads_with_subject(
+        assert!(names_subject(
             "=P01+-201U1:DP",
             "=P01+-201U1:DP: the station address is TBD"
         ));
-        assert!(leads_with_subject("-1K1", "-1K1 has no part"));
-        assert!(!leads_with_subject("-1K1", "-1K10 has no part"));
-        assert!(!leads_with_subject("-1K1", "the station address is TBD"));
+        assert!(names_subject("-1K1", "-1K1 has no part"));
+        assert!(!names_subject("-1K1", "-1K10 has no part"));
+        assert!(!names_subject("-1K1", "the station address is TBD"));
+    }
+
+    /// ID-1509 (9), the window check's F3: a message that names its subject after a word (the layout rules' "Wire
+    /// <wire> has no route") shows it once too, in either language; a subject only the start of a longer tag in the
+    /// message, or one glued to a word, does not count.
+    #[test]
+    fn a_message_naming_its_subject_shows_it_once() {
+        let wire = "-G1:+ → -S1:1";
+        assert!(names_subject(
+            wire,
+            "Wire -G1:+ → -S1:1 has no route: Route page draws it."
+        ));
+        assert!(names_subject(
+            wire,
+            "Draad -G1:+ → -S1:1 heeft geen route: Pagina routeren tekent hem."
+        ));
+        assert!(names_subject("folio 7", "A junction on folio 7 joins four wires."));
+        assert!(names_subject("-1K1", "the coil -1K1."));
+        assert!(!names_subject("-1K1", "the coil -1K10 has no part"));
+        assert!(!names_subject("-1K1", "the coil x-1K1 has no part"));
+        assert!(!names_subject("", "Wire has no route"));
     }
 
     #[test]
