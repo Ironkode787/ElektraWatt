@@ -377,10 +377,11 @@ fn ft1086_a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() 
 
 /// FT-1115 (ID-1225) at the floor: the Tool options card's band takes the pointer only on its controls. A click in the
 /// gap between the IP name's label and its field places a point on the sheet beneath; a click on the field does not.
+/// Folio 3, whose sheet is free beneath the band (103's routed wires run there, and a point is not placed on a wire).
 #[test]
 fn ft1115_a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_golden(&tmp, "3");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     press(&mut h, Key::P);

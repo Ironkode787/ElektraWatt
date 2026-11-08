@@ -281,16 +281,13 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
         assert_eq!(g.snap_point(pos.x), Some(pos.x));
         assert_eq!(g.snap_point(pos.y), Some(pos.y));
     }
-    // The golden fixture holds no routes: give the wires at these functions one.
+    // Give the wires at these functions a route of the test's own (Golden A's routes are the router's).
     let functions: Vec<Id<Function>> = reps.iter().map(|r| rep(&s, *r).functions[0]).collect();
     let wires = connections_at(&s, page, &functions);
     assert!(wires.len() >= 6, "{} wires at the three functions", wires.len());
-    assert!(
-        wires.iter().all(|w| connection(&s, *w).route.is_empty()),
-        "Golden A holds no wire routes (its bootstrap writes connectivity only)"
-    );
     route_all(&mut s, page, &wires);
-    assert_eq!(assert_routes_meet_their_ends(&s, page), wires.len());
+    let routed = assert_routes_meet_their_ends(&s, page);
+    assert!(routed >= wires.len(), "{routed}");
     let ends: Vec<(Endpoint, Endpoint)> = wires
         .iter()
         .map(|w| (connection(&s, *w).a.clone(), connection(&s, *w).b.clone()))
@@ -324,7 +321,7 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
         for (r, old) in reps.iter().zip(&old) {
             assert_eq!(rep(&s, *r).pos, stepped(*old, steps), "{r} by {steps:?}");
         }
-        assert_eq!(assert_routes_meet_their_ends(&s, page), wires.len(), "{steps:?}");
+        assert_eq!(assert_routes_meet_their_ends(&s, page), routed, "{steps:?}");
         for ((w, e), n) in wires.iter().zip(&ends).zip(&vertices) {
             let c = connection(&s, *w);
             assert_eq!(
@@ -454,6 +451,8 @@ fn exchange_symbol_on_e56_keeps_its_connections_and_follows_the_new_cps() {
     let wires = connections_at(&s, page, &[function_id]);
     assert_eq!(wires.len(), 2, "E56 has two connections");
     route_all(&mut s, page, &wires);
+    // Every routed wire of the page meets its ends (Golden A's routes are the router's).
+    let routed = assert_routes_meet_their_ends(&s, page);
     let ends: Vec<(Endpoint, Endpoint)> = wires
         .iter()
         .map(|w| (connection(&s, *w).a.clone(), connection(&s, *w).b.clone()))
@@ -536,7 +535,7 @@ fn exchange_symbol_on_e56_keeps_its_connections_and_follows_the_new_cps() {
     }
     assert_eq!(
         assert_routes_meet_their_ends(&s, page),
-        2,
+        routed,
         "both routes end at the new CP positions"
     );
     // One undo takes the exchange back.

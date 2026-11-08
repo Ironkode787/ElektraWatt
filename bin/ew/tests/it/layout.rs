@@ -77,20 +77,16 @@ fn stderr(o: &Output) -> String {
 }
 
 #[test]
-fn folio_101_names_the_pe_wire_on_the_lamp_s_x1_and_the_feed_along_the_switch() {
+fn folio_101_routed_names_no_touch_overlap_or_symbol_crossed() {
     let t = Tmp::new();
     let p = t.golden();
     let o = t.ew(&["layout", &p, "--page", "101"]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let text = stdout(&o);
     let lines: Vec<&str> = text.lines().collect();
-    for line in [
-        "  touch: E55:PE → PE-1.1 touches E56:X1 in E14",
-        "  overlap: the junction in C11 → E56:X2 runs along the junction in C13 → S56:13 in C13",
-        "  overlap: the junction in C11 → E56:X2 runs along S56:14 → E56:X1 in D14",
-        "  through a symbol: the junction in C11 → E56:X2 runs through E56 in E14",
-    ] {
-        assert!(lines.contains(&line), "{line}\n{text}");
+    // Golden A's routes are the router's (WP-S2.19 RG1, RG2): no line names a broken hard rule.
+    for word in ["  touch: ", "  overlap: ", "  through a symbol: ", "  through a text: "] {
+        assert!(!lines.iter().any(|l| l.starts_with(word)), "{word}\n{text}");
     }
     // The line of counts, from the `--json` result of the same page.
     let o = t.ew(&["layout", &p, "--page", "101", "--json"]);
@@ -142,12 +138,22 @@ fn every_drawn_page_gets_a_line_of_counts_and_an_unknown_folio_is_refused() {
     );
 }
 
-/// `ew route` (WP-S2.19 D13): folio 3's one route-less wire is routed and saved, so a second run has nothing to do;
-/// `--dry-run` writes nothing; an unknown folio is refused in words.
+/// `ew route` (WP-S2.19 D13): folio 3's one wire, its route cleared first (Golden A's routes are the router's), is
+/// routed and saved, so a second run has nothing to do; `--dry-run` writes nothing; an unknown folio is refused in words.
 #[test]
 fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {
     let t = Tmp::new();
     let p = t.golden();
+    // `connections|DP.1`, the bus cable's hop on folio 3, without a route.
+    let log = Path::new(&p).with_file_name("unroute.ewcmd");
+    std::fs::write(
+        &log,
+        "{\"$schema\":\"ew.cmdlog/1\",\"label\":\"folio 3's wire unrouted\"}\n\
+         {\"cmd\":\"connection.route\",\"params\":{\"connection\":\"ec0fcf51-0509-588e-a64c-a564f837c94b\",\"route\":[]}}\n",
+    )
+    .unwrap();
+    let o = t.ew(&["apply", &p, log.to_str().unwrap()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let before = std::fs::read_dir(Path::new(&p).join("pages")).unwrap().count();
     let o = t.ew(&["route", &p, "--page", "3", "--dry-run"]);
     assert_eq!(

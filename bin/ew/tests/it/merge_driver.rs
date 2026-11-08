@@ -133,7 +133,14 @@ fn md6_the_w20_conflict_variant_writes_one_conflict_record_and_exits_1() {
 fn md6_the_manifest_merges_to_max_plus_one_merged_and_no_base() {
     let t = Tree::new();
     let base = std::fs::read_to_string(Path::new(GOLDEN_A).join("manifest.json")).unwrap();
-    let page_hash = "sha256:2a2fe46e4b651dd9370bbb337c61f0790a9a1dfe1297361f63e0b5adfa269b12";
+    // A page's hash as the committed manifest holds it (it changes whenever Golden A's fixture is regenerated).
+    let page_hash = base
+        .lines()
+        .find(|l| l.contains("\"pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl\""))
+        .and_then(|l| l.split('"').nth(3))
+        .expect("the page in the manifest")
+        .to_owned();
+    let page_hash = page_hash.as_str();
     let device_hash = "sha256:e82c564a97ba572b71c077519883188930ab7b94f975b3567d2cea9f1dad8d66";
     let end = "\n  }\n}\n";
     assert!(base.contains("\"generation\": 1,") && base.contains(page_hash) && base.contains(device_hash));

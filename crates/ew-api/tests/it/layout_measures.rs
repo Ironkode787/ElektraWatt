@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 
 use ew_api::Session;
-use ew_api::output::{LayoutError, LayoutPair, LayoutTouch};
+use ew_api::output::LayoutError;
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
@@ -43,48 +43,39 @@ fn golden_copy() -> (Tmp, Session) {
     (tmp, session)
 }
 
+/// WP-S2.19 RG2 on Golden A's routed folio 101 (rc.1's provisional drawing broke all three): the heater's PE wire does
+/// not touch the lamp's X1, the lamp's L feed runs along none of the switch's wires, and the heater's L feed does not
+/// pass through T55; the page breaks no hard rule.
 #[test]
-fn folio_101_names_the_pe_wire_through_the_lamp_s_x1_and_the_lamp_feed_along_the_switch_s_wires() {
+fn rg2_folio_101_s_pe_wire_lamp_feed_and_heater_feed_keep_clear() {
     let (_tmp, s) = golden_copy();
     let pages = s.layout_report(Some("101")).unwrap();
     assert_eq!(pages.len(), 1);
     let p = &pages[0];
     assert_eq!(p.folio, "101");
-    let pe = LayoutTouch {
-        connection: "E55:PE → PE-1.1".to_owned(),
-        point: "E56:X1".to_owned(),
-        at: [235_479_167, 100_541_667],
-        cell: "E14".to_owned(),
-    };
-    assert!(p.touches.contains(&pe), "{:#?}", p.touches);
-    let feed = "the junction in C11 → E56:X2";
-    let along_s56_13 = LayoutPair {
-        connection: feed.to_owned(),
-        other: "the junction in C13 → S56:13".to_owned(),
-        stretches: vec![
-            [[219_604_167, 58_208_333], [235_479_167, 58_208_333]],
-            [[235_479_167, 58_208_333], [235_479_167, 79_375_000]],
-        ],
-        cell: "C13".to_owned(),
-    };
-    let along_s56_14 = LayoutPair {
-        connection: feed.to_owned(),
-        other: "S56:14 → E56:X1".to_owned(),
-        stretches: vec![[[235_479_167, 87_312_500], [235_479_167, 100_541_667]]],
-        cell: "D14".to_owned(),
-    };
-    for pair in [&along_s56_13, &along_s56_14] {
-        assert!(p.overlaps.contains(pair), "{:#?}", p.overlaps);
-    }
-    // The feed also runs through the lamp's body to reach X2 from above, against X2's escape (down).
-    let inside = [[[235_479_167, 100_541_667], [235_479_167, 108_479_167]]];
     assert!(
-        p.through_symbols
+        !p.touches
             .iter()
-            .any(|t| t.connection == feed && t.symbol == "E56" && t.stretches == inside),
+            .any(|t| t.connection == "E55:PE → PE-1.1" && t.point == "E56:X1"),
+        "{:#?}",
+        p.touches
+    );
+    let feed = "the junction in C11 → E56:X2";
+    assert!(
+        !p.overlaps
+            .iter()
+            .any(|o| o.connection == feed || o.other == feed),
+        "{:#?}",
+        p.overlaps
+    );
+    assert!(
+        !p.through_symbols
+            .iter()
+            .any(|t| t.connection.ends_with("E55:L") && t.symbol == "T55"),
         "{:#?}",
         p.through_symbols
     );
+    assert_eq!(p.hard(), 0, "{p:#?}");
     // The page as the whole-project report measures it.
     let all = s.layout_report(None).unwrap();
     assert_eq!(all.iter().find(|q| q.folio == "101"), Some(p));

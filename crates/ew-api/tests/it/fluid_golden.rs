@@ -390,8 +390,8 @@ fn meets(a: Pt2, b: Pt2, lo: Pt2, hi: Pt2) -> bool {
 
 /// FT-1315 (doc 20 ▲U-51): F1 to F16 carry stored routes on folio 203. Each starts and ends where its CPs are drawn,
 /// runs orthogonally, is taken again by `connection.route` (its ends and the connection grid, D3), keeps clear of
-/// every cylinder body, and the two lines of a valve never meet; F1 runs down from port 2, left past the cylinder and
-/// right into A.
+/// every cylinder body, and the two lines of a valve never meet; F1 runs up from port 2 of its valve in row H, past
+/// the process valve, left over the cylinder and down into A (the router's route, decision log ID-1503).
 #[test]
 fn ft1315_the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
     let batch = golden_common::batch();
@@ -450,7 +450,7 @@ fn ft1315_the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
         }
     }
     let f1: Vec<(i64, i64)> = routes[&1].1.iter().copied().map(px).collect();
-    assert_eq!(f1, [(140, 270), (140, 380), (80, 380), (80, 440), (90, 440)]);
+    assert_eq!(f1, [(140, 590), (140, 420), (80, 420), (80, 440), (90, 440)]);
     drop(q);
     for (n, (id, route)) in &routes {
         let cmd = AnyCommand {
