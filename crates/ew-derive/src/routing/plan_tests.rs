@@ -406,7 +406,11 @@ fn across_stub(text: Rect, cp: &CpPoint) -> bool {
     let (x, y) = cp.at;
     match cp.dir {
         Some(Dir4::Left) | Some(Dir4::Right) => {
-            let sx = if cp.dir == Some(Dir4::Left) { x - MM } else { x + MM };
+            let sx = if cp.dir == Some(Dir4::Left) {
+                x - MM
+            } else {
+                x + MM
+            };
             y0 < y && y < y1 && x.min(sx).max(x0) < x.max(sx).min(x1)
         }
         Some(Dir4::Up) | Some(Dir4::Down) => {

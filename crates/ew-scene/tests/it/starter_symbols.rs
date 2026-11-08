@@ -1564,7 +1564,8 @@ fn no_text_of_a_symbol_crosses_a_stub_of_its_connection_points() {
                 item_links: Vec::new(),
             })
             .collect();
-        let arrangements = std::iter::once(None).chain(def.arrangements.iter().map(|a| Some(a.name.to_string())));
+        let arrangements =
+            std::iter::once(None).chain(def.arrangements.iter().map(|a| Some(a.name.to_string())));
         for arrangement in arrangements {
             let rep: ew_schema::Representation = serde_json::from_value(serde_json::json!({
                 "id": Uuid::from_u128(0x11), "functions": [Uuid::from_u128(0x21)], "page": Uuid::from_u128(0x100),
@@ -1618,7 +1619,8 @@ fn no_text_of_a_symbol_crosses_a_stub_of_its_connection_points() {
                 };
                 for (_, r) in &boxes {
                     let q = step / 4;
-                    let (x0, y0, x1, y1) = (r.min().x.0 - q, r.min().y.0 - q, r.max().x.0 + q, r.max().y.0 + q);
+                    let (x0, y0, x1, y1) =
+                        (r.min().x.0 - q, r.min().y.0 - q, r.max().x.0 + q, r.max().y.0 + q);
                     let across = if at.1 == stub.1 {
                         y0 < at.1 && at.1 < y1 && at.0.min(stub.0).max(x0) < at.0.max(stub.0).min(x1)
                     } else {
@@ -1629,7 +1631,12 @@ fn no_text_of_a_symbol_crosses_a_stub_of_its_connection_points() {
                             "{} ({}): the text box {:?} crosses cp {}'s stub",
                             d.who(),
                             arrangement.as_deref().unwrap_or("default"),
-                            [r.min().x.0 - origin.x.0, r.min().y.0 - origin.y.0, r.max().x.0 - origin.x.0, r.max().y.0 - origin.y.0],
+                            [
+                                r.min().x.0 - origin.x.0,
+                                r.min().y.0 - origin.y.0,
+                                r.max().x.0 - origin.x.0,
+                                r.max().y.0 - origin.y.0
+                            ],
                             cp.idx
                         ));
                     }
