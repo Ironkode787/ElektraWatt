@@ -650,9 +650,9 @@ fn ov4_the_link_preview_has_a_named_region() {
 ///
 /// No connection point of Golden A stands on a link since WP-S2.19 (the target form's connection point is at the
 /// arrow's tip, D16, and the slot texts keep clear of the points), so the case has no page to run on until a page is
-/// built for it (a follow-up row).
+/// built for it (FT-1596).
 #[test]
-#[ignore = "no Golden A page has a connection point on a link since WP-S2.19 (D16)"]
+#[ignore = "FT-1596: no Golden A page has a connection point on a link since WP-S2.19 (D16)"]
 fn ft1091_the_link_preview_and_the_cp_tooltip_never_show_together() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
