@@ -400,6 +400,7 @@ proptest::proptest! {
             from,
             to,
             obstacles: obstacles.clone(),
+            texts: Vec::new(),
             grid: (MM, 1),
             area: [
                 fx.min(tx) * MM - 4 * MM,

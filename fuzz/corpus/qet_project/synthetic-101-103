@@ -1020,7 +1020,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C4}" x="90" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C4}" x="130" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="64"/>
         </terminals>
@@ -1034,7 +1034,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc06a}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0c6}" x="380" y="510" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0c6}" x="430" y="500" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="65"/>
         </terminals>
@@ -1048,7 +1048,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc02d}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C8}" x="430" y="530" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0C8}" x="380" y="520" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="66"/>
         </terminals>
@@ -1062,7 +1062,7 @@
           <link_uuid uuid="{00000000-0000-4000-8000-000000abc06c}"/>
         </links_uuids>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ca}" x="380" y="550" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ca}" x="430" y="540" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="67"/>
         </terminals>
@@ -1074,7 +1074,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0CC}" x="430" y="570" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0CC}" x="380" y="560" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="68"/>
         </terminals>
@@ -1086,7 +1086,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ce}" x="90" y="500" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000abc0ce}" x="130" y="500" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="69"/>
         </terminals>
@@ -1098,7 +1098,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0D0}" x="130" y="570" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0D0}" x="90" y="570" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="70"/>
         </terminals>

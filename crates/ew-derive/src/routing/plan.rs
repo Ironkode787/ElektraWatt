@@ -8,10 +8,11 @@
 //! **One job's request.** The ends are the connection's CPs (with their leaving directions) or junctions. Every
 //! representation's body and black-box outline grown by one grid step, and every text box grown by a quarter step,
 //! block; the ends' own representations' bodies block but for the escape corridors, and their texts block as any
-//! other text (rule 4 has no exemption for a wire's own texts; ID-1502). The frame's bands block,
-//! the drawing area's edge grown inward by one step but on a side where an end or its stub stands within that step
-//! (FT-758). The routed connections that are not re-routed, and the jobs routed so far, are the other wires (an
-//! unrouted connection outside the solve is no obstacle). Every other connection point and its stub, and every
+//! other text (rule 4 has no exemption for a wire's own texts, nor for its stubs; ID-1502, ID-1509). The frame's
+//! bands block, the drawing area's edge grown inward by one step but on a side where an end or its stub stands
+//! within that step (FT-758). The routed connections that are not re-routed, and the jobs routed so far, are the
+//! other wires (an unrouted connection outside the solve is no obstacle). Every other connection point and its stub,
+//! and every
 //! junction the job does not end at, is reserved. A crossing costs [`CROSSING_COST`]; a step beside a routed mate of
 //! the job's group costs [`MATE_STEP_COST`](super::MATE_STEP_COST).
 //!
@@ -209,10 +210,13 @@ fn request(
         }
         obstacles.extend(frame_rects(page, g, &[a.at, stub(a), b.at, stub(b)]));
     }
-    // Rule 4 (ID-1502): every text blocks, the ends' own included; the escape corridors pass bodies only.
-    if !relax.texts {
-        obstacles.extend(page.texts.iter().map(|t| grow(t.rect, g / 4)));
-    }
+    // Rule 4 (ID-1502, ID-1509): every text blocks, the ends' own included, across a stub too; the escape corridors
+    // pass bodies only.
+    let texts = if relax.texts {
+        Vec::new()
+    } else {
+        page.texts.iter().map(|t| grow(t.rect, g / 4)).collect()
+    };
     let mut reserved: Vec<Point> = Vec::new();
     if !relax.points {
         for cp in &page.cps {
@@ -235,6 +239,7 @@ fn request(
         from: RouteEnd { at: a.at, dir: a.dir },
         to: RouteEnd { at: b.at, dir: b.dir },
         obstacles,
+        texts,
         grid: page.grid,
         area: whole(page),
         arrive: None,

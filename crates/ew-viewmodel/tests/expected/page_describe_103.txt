@@ -103,20 +103,20 @@ page "103" "Power Supply 3 - Control Current Distribution" reps 23 connections 2
     cp "-X1032:3/c" field at 77.638 142.877 mm wires 0
     cp "-X1032:4/c" field at 80.248 142.877 mm wires 0
     cp "-X1032:5/c" field at 82.857 142.877 mm wires 0
-  rep ip "PE-AIR1" direction target continues "106-E1" cell "103-G1" symbol "ew.gen.ip-target@qet10" variant "A" at 33.276 140.267 mm
-    cp "PE-AIR1" at 33.276 140.267 mm wires 1 potential "PE"
-  rep ip "PE-0VDC" direction target continues "102-D15" cell "103-G1" symbol "ew.gen.ip-target@qet10" variant "A" at 33.276 150.705 mm
-    cp "PE-0VDC" at 33.276 150.705 mm wires 1 potential "0V"
-  rep ip "PE-AIR2" direction target continues "106-B1" cell "103-G1" symbol "ew.gen.ip-target@qet10" variant "A" at 43.714 158.534 mm
-    cp "PE-AIR2" at 43.714 158.534 mm wires 1 potential "PE"
-  rep ip "PE-1.1" direction target continues "101-G15" cell "103-G6" symbol "ew.gen.ip-target@qet10" variant "A" at 108.952 142.877 mm
-    cp "PE-1.1" at 108.952 142.877 mm wires 1 potential "PE"
-  rep ip "PE-1.2" direction target continues "102-A15" cell "103-G6" symbol "ew.gen.ip-target@qet10" variant "A" at 122.000 148.096 mm
-    cp "PE-1.2" at 122.000 148.096 mm wires 1 potential "PE"
-  rep ip "PE-1.3" direction target continues "106-D1" cell "103-G6" symbol "ew.gen.ip-target@qet10" variant "A" at 108.952 153.315 mm
-    cp "PE-1.3" at 108.952 153.315 mm wires 1 potential "PE"
-  rep ip "PE-1.4" direction target continues "106-A1" cell "103-G6" symbol "ew.gen.ip-target@qet10" variant "A" at 122.000 158.534 mm
-    cp "PE-1.4" at 122.000 158.534 mm wires 1 potential "PE"
+  rep ip "PE-AIR1" direction target continues "106-E1" cell "103-G1" symbol "ew.gen.ip-target@qet10" variant "A" at 43.714 140.267 mm
+    cp "PE-AIR1" at 43.714 140.267 mm wires 1 potential "PE"
+  rep ip "PE-0VDC" direction target continues "102-D15" cell "103-G1" symbol "ew.gen.ip-target@qet10" variant "A" at 43.714 150.705 mm
+    cp "PE-0VDC" at 43.714 150.705 mm wires 1 potential "0V"
+  rep ip "PE-AIR2" direction target continues "106-B1" cell "103-G1" symbol "ew.gen.ip-target@qet10" variant "A" at 33.276 158.534 mm
+    cp "PE-AIR2" at 33.276 158.534 mm wires 1 potential "PE"
+  rep ip "PE-1.1" direction target continues "101-G15" cell "103-G6" symbol "ew.gen.ip-target@qet10" variant "A" at 122.000 140.267 mm
+    cp "PE-1.1" at 122.000 140.267 mm wires 1 potential "PE"
+  rep ip "PE-1.2" direction target continues "102-A15" cell "103-G6" symbol "ew.gen.ip-target@qet10" variant "A" at 108.952 145.486 mm
+    cp "PE-1.2" at 108.952 145.486 mm wires 1 potential "PE"
+  rep ip "PE-1.3" direction target continues "106-D1" cell "103-G6" symbol "ew.gen.ip-target@qet10" variant "A" at 122.000 150.705 mm
+    cp "PE-1.3" at 122.000 150.705 mm wires 1 potential "PE"
+  rep ip "PE-1.4" direction target continues "106-A1" cell "103-G6" symbol "ew.gen.ip-target@qet10" variant "A" at 108.952 155.924 mm
+    cp "PE-1.4" at 108.952 155.924 mm wires 1 potential "PE"
   wire "-X1031:1/b" -> "24VDC-AIR1" route stored bends 3 at 101.124 32.787 mm
   wire "-X1031:11/b" -> "0VDC-AIR1" route stored bends 3 at 226.382 32.787 mm
   wire "-X1031:12/b" -> "0VDC-AIR2" route stored bends 1 at 225.892 54.152 mm
@@ -125,18 +125,18 @@ page "103" "Power Supply 3 - Control Current Distribution" reps 23 connections 2
   wire "-X1031:2/b" -> "24VDC-AIR2" route stored bends 1 at 99.982 54.152 mm
   wire "-X1031:3/b" -> "24VDC-AIR3" route stored bends 1 at 93.295 46.324 mm
   wire "-X1031:4/b" -> "24VDC-AIR4" route stored bends 3 at 89.381 51.543 mm
-  wire "-X1032:1/a" -> "PE-AIR2" route stored bends 3 at 56.762 153.641 mm
-  wire "-X1032:3/a" -> "PE-AIR1" route stored bends 3 at 57.822 127.219 mm
-  wire "-X1032:3/b" -> "PE-1.3" route stored bends 3 at 94.600 161.143 mm
-  wire "-X1032:4/b" -> "PE-1.4" route stored bends 3 at 102.429 163.753 mm
+  wire "-X1032:1/a" -> "PE-AIR2" route stored bends 3 at 59.371 152.010 mm
+  wire "-X1032:3/a" -> "PE-AIR1" route stored bends 3 at 76.170 127.219 mm
+  wire "-X1032:3/b" -> "PE-1.3" route stored bends 3 at 103.733 161.143 mm
+  wire "-X1032:4/b" -> "PE-1.4" route stored bends 3 at 102.510 150.705 mm
   wire "0VDC" -> "-X1031:11/a" route stored bends 1 at 110.257 20.228 mm
   wire "24VDC-1" -> "-X1031:1/a" route stored bends 1 at 51.216 30.666 mm
   wire "24VDC-2" -> "-X1031:5/a" route stored bends 3 at 54.152 24.224 mm
-  wire "24VDC-3" -> "-X1031:7/a" route stored bends 3 at 47.628 88.076 mm
+  wire "24VDC-3" -> "-X1031:7/a" route stored bends 3 at 48.770 88.076 mm
   wire "24VDC-4" -> "-X1031:9/a" route stored bends 3 at 59.371 89.707 mm
-  wire "PE-0VDC" -> "-X1032:2/a" route stored bends 3 at 46.324 150.705 mm
-  wire "PE-1.1" -> "-X1032:1/b" route stored bends 3 at 91.990 148.096 mm
-  wire "PE-1.2" -> "-X1032:2/b" route stored bends 5 at 94.600 158.534 mm
+  wire "PE-0VDC" -> "-X1032:2/a" route stored bends 3 at 53.908 150.705 mm
+  wire "PE-1.1" -> "-X1032:1/b" route stored bends 5 at 114.172 135.048 mm
+  wire "PE-1.2" -> "-X1032:2/b" route stored bends 5 at 106.343 140.267 mm
   bridge "BR1" "-X1031:1" "-X1031:2" "-X1031:3" "-X1031:4"
   bridge "BR2" "-X1031:5" "-X1031:6"
   bridge "BR3" "-X1031:7" "-X1031:8"

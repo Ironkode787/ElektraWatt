@@ -56,7 +56,6 @@ what = "No wire runs through a text, and no junction joins four wires."
 how = "check"
 query = "SELECT fingerprint FROM api_v1_message WHERE rule IN ('EW-CORE-070', 'EW-CORE-072')"
 expect = "== 0"
-infeasible = "the starter motor's pin texts U1 and V1 stand over the stubs of V1 and W1, so a wire to V1 or W1 runs through a text whatever its route (the symbol's text slots; a follow-up row)"
 
 [[item]]
 id = "A8"

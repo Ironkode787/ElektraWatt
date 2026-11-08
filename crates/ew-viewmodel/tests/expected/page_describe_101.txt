@@ -55,7 +55,7 @@ page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
   wire "-101F1:N#1" -> "F55:N#1" route stored bends 4 at 179.410 38.495 mm
   wire "-101F1:N#2" -> "N-1" route stored bends 1 at 212.029 166.362 mm
   wire "1X1:1/a" -> "S51:2" route stored bends 0 at 46.324 69.809 mm
-  wire "1X1:2/a" -> "S51:4" route stored bends 1 at 51.543 61.981 mm
+  wire "1X1:2/a" -> "S51:4" route stored bends 2 at 51.543 77.638 mm
   wire "1X1:PE/a" -> "-XPE:PE" route stored bends 2 at 77.638 82.857 mm
   wire "E55:PE" -> "PE-1.1" route stored bends 2 at 231.601 129.829 mm
   wire "F55:2" -> junction 1 route stored bends 2 at 208.115 58.066 mm

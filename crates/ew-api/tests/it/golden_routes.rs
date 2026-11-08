@@ -9,9 +9,9 @@
 //!
 //! The layout of the routed pages, the bends and crossings per page (RG3), is in `golden/J-E-2416/expected/layout.txt`:
 //! a later change that raises a page's total fails, and no connection has more than four bends unless the file lists
-//! it with its reason. The file also gives each page's text-on-text overlaps, held at zero, and lists every connection
-//! whose detour (its drawn length over the Manhattan distance of its ends) is above 2, with its reason from
-//! [`DETOURS`] (decision log ID-1504 (4d)).
+//! it with its reason from [`BENDS`] (ID-1509 (3)). The file also gives each page's text-on-text overlaps, held at
+//! zero, and lists every connection whose detour (its drawn length over the Manhattan distance of its ends) is above
+//! 2, with its reason from [`DETOURS`] (decision log ID-1504 (4d)).
 //!
 //! Bless (the tables, then the layout file):
 //! `EW_BLESS_GOLDEN_ROUTES=1 cargo nextest run -p ew-api --test it -E 'test(/^golden_routes::/)'`; then the
@@ -250,6 +250,20 @@ fn write_routes(routes: &BTreeMap<String, String>) {
 /// Why a connection of Golden A runs more than twice the Manhattan distance of its ends (ID-1504 (4d)), by its words.
 const DETOURS: &[(&str, &str)] = &[];
 
+/// Why a connection of Golden A bends more than four times (RG3, ID-1509 (3)), by its words.
+const BENDS: &[(&str, &str)] = &[
+    (
+        "PE-1.1 → -X1032:1/b",
+        "one of four targets in 103-G6, right of the strip it feeds: its wire leaves right and loops back over the \
+         stack, as its cross-reference runs right under its arrow (ID-1509 (4))",
+    ),
+    (
+        "PE-1.2 → -X1032:2/b",
+        "one of four targets in 103-G6, right of the strip it feeds: its wire leaves right and loops back over the \
+         stack, as its cross-reference runs right under its arrow (ID-1509 (4))",
+    ),
+];
+
 /// The pairs of a page's text boxes whose insides overlap.
 fn text_overlaps(texts: &[ew_derive::routing::TextBox]) -> usize {
     let mut n = 0;
@@ -309,7 +323,11 @@ fn layout_text() -> String {
                 overlaps
             ));
             for b in p.bends.iter().filter(|b| b.bends > 4) {
-                out.push_str(&format!("  {} bends: {}\n", b.bends, b.connection));
+                let why = BENDS
+                    .iter()
+                    .find(|(w, _)| *w == b.connection)
+                    .map_or("no reason given", |(_, why)| why);
+                out.push_str(&format!("  {} bends: {} ({why})\n", b.bends, b.connection));
             }
         }
         let mut long: Vec<(String, i64)> = detours(&s, folio).into_iter().filter(|(_, d)| *d > 20).collect();
@@ -379,9 +397,9 @@ fn golden_a_layout_never_gets_worse() {
         );
         assert_eq!(*overlaps, 0, "folio {folio}: texts overlap (ID-1504 (4a))");
     }
-    // A detour above 2 has its reason (ID-1504 (4d)).
+    // A detour above 2 has its reason (ID-1504 (4d)), and so has a route of more than four bends (ID-1509 (3)).
     if let Some(line) = now.lines().find(|l| l.ends_with("(no reason given)")) {
-        panic!("a detour without its reason in DETOURS: {line}");
+        panic!("a route without its reason in DETOURS or BENDS: {line}");
     }
     // A connection with more than four bends, or a detour above 2, is listed with the file's review.
     for line in now.lines().filter(|l| l.starts_with("  ")) {

@@ -664,7 +664,8 @@ and one main function of the chosen symbol's function definition.
   forms, both with the arrow pointing right and its tip at the origin: the source form (`ew.gen.ip` 0.2.0), the wire
   on the tail and the CP one grid step left of the tip, leaving left; the target form (`ew.gen.ip-target` 0.1.0), the
   wire on the tip and the CP at the tip, leaving right; each with its `@qet10` twin. The name sits above the arrow and
-  the cross-reference below it, right-aligned at the tip. A point drawn with these forms is never turned: its form is
+  the cross-reference below it: right-aligned at the tip on a source, left-aligned at the tail on a target, so that it
+  runs into the sheet (ID-1509). A point drawn with these forms is never turned: its form is
   its direction's (an undirected point takes either), D swaps the form with the direction, and the rotate and mirror
   keys are not offered. `ip.place` refuses a turned form ("an interruption point's arrow points the way its signal
   flows: change its direction instead") and the other direction's form ("a source interruption point is drawn with

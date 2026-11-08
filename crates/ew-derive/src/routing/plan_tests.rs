@@ -310,6 +310,117 @@ fn g_a_job_that_would_be_a_junction_s_fourth_arm_is_unrouted() {
     assert_eq!(plan.routes, vec![]);
 }
 
+#[test]
+fn a_job_whose_stub_a_text_crosses_is_unrouted_for_the_texts() {
+    // ID-1509 (§5.1 rule 4, C53-rt#1): the pin text of the next pole lies over a motor pole's stub, between the CP and
+    // its stub node. The page solve leaves the wire unrouted with the reason "texts" and the Wire tool finds no route,
+    // whichever end the CP is; the text's own representation is the CP's.
+    let mut p = page();
+    add_job(
+        &mut p,
+        1,
+        (10, mm(0, 0), Dir4::Up),
+        (11, mm(20, -10), Dir4::Left),
+        None,
+    );
+    p.texts.push(TextBox {
+        rep: id(1010),
+        rect: tenths(-30, -6, 5, -3),
+    });
+    let ends = |k: usize| {
+        let c = &p.cps[k];
+        OneEnd {
+            at: c.at,
+            dir: Some(if k == 0 { Heading::Up } else { Heading::Left }),
+            rep: Some(c.rep),
+        }
+    };
+    let plan = route_page(&p, &[id(1)]);
+    assert_eq!(plan.unrouted, vec![(id(1), Unrouted::Texts)]);
+    assert_eq!(plan.routes, vec![]);
+    assert_eq!(route_one(&p, ends(0), ends(1), None), None);
+    assert_eq!(route_one(&p, ends(1), ends(0), None), None);
+    // Without the text, the same wire is routed.
+    p.texts.clear();
+    assert_eq!(route_page(&p, &[id(1)]).unrouted, vec![]);
+}
+
+/// RT1's page: symbols at the lattice `cells`, each a 2 × 2 mm body at (10 i, 10 j) with CP 2k on its left leaving
+/// left and CP 2k + 1 on its right leaving right, and a connection for each of `pairs` between two free CPs (indices
+/// modulo the CPs).
+fn lattice(cells: &[(i64, i64)], pairs: &[(usize, usize)]) -> PageGeometry {
+    let mut p = page();
+    p.sheet = [-10 * MM, -10 * MM, 70 * MM, 70 * MM];
+    // Symbol k: a 2 × 2 mm body at (10 i, 10 j), CP 2k on its left leaving left, 2k + 1 on its right leaving right.
+    for (k, (i, j)) in cells.iter().enumerate() {
+        let k = u128::try_from(k).unwrap();
+        let (x, y) = (10 * i, 10 * j);
+        p.bodies.push(Body {
+            rep: id(1000 + k),
+            rect: [x * MM, (y - 1) * MM, (x + 2) * MM, (y + 1) * MM],
+        });
+        for (n, at, dir) in [
+            (2 * k, mm(x, y), Dir4::Left),
+            (2 * k + 1, mm(x + 2, y), Dir4::Right),
+        ] {
+            p.cps.push(CpPoint {
+                id: id(100 + n),
+                at,
+                dir: Some(dir),
+                rep: id(1000 + k),
+                connections: vec![],
+            });
+        }
+    }
+    let n_cps = p.cps.len();
+    let mut used = std::collections::BTreeSet::new();
+    for (c, (a, b)) in pairs.iter().enumerate() {
+        let (a, b) = (a % n_cps, b % n_cps);
+        if a == b || !used.insert(a) || !used.insert(b) {
+            continue;
+        }
+        let c = id(5000 + u128::try_from(c).unwrap());
+        p.cps[a].connections.push(c);
+        p.cps[b].connections.push(c);
+        p.connections.push(DrawnConnection {
+            id: c,
+            ends: [p.cps[a].id, p.cps[b].id],
+            polyline: vec![p.cps[a].at, p.cps[b].at],
+            ..DrawnConnection::default()
+        });
+    }
+    p
+}
+
+/// A rectangle in tenths of a millimetre.
+fn tenths(x0: i64, y0: i64, x1: i64, y1: i64) -> Rect {
+    [x0 * MM / 10, y0 * MM / 10, x1 * MM / 10, y1 * MM / 10]
+}
+
+/// Whether a text box, grown by a quarter grid step as the router grows it, lies across the stub of `cp` (the move
+/// from its point one grid step along its direction): the stub's line strictly inside the box across it, and a
+/// stretch of the stub inside the box along it.
+fn across_stub(text: Rect, cp: &CpPoint) -> bool {
+    let q = MM / 4;
+    let [x0, y0, x1, y1] = [text[0] - q, text[1] - q, text[2] + q, text[3] + q];
+    let (x, y) = cp.at;
+    match cp.dir {
+        Some(Dir4::Left) | Some(Dir4::Right) => {
+            let sx = if cp.dir == Some(Dir4::Left) {
+                x - MM
+            } else {
+                x + MM
+            };
+            y0 < y && y < y1 && x.min(sx).max(x0) < x.max(sx).min(x1)
+        }
+        Some(Dir4::Up) | Some(Dir4::Down) => {
+            let sy = if cp.dir == Some(Dir4::Up) { y - MM } else { y + MM };
+            x0 < x && x < x1 && y.min(sy).max(y0) < y.max(sy).min(y1)
+        }
+        _ => false,
+    }
+}
+
 proptest::proptest! {
     /// RT1 and RT8: on a generated page of symbols at least four grid steps apart, each with two CPs on its left and
     /// right, the connections between random CPs: every route the solve returns breaks no hard rule by the measures,
@@ -320,34 +431,7 @@ proptest::proptest! {
         pairs in proptest::collection::vec((0usize..64, 0usize..64), 1..7),
     ) {
         let cells: Vec<(i64, i64)> = cells.into_iter().collect();
-        let mut p = page();
-        p.sheet = [-10 * MM, -10 * MM, 70 * MM, 70 * MM];
-        // Symbol k: a 2 × 2 mm body at (10 i, 10 j), CP 2k on its left leaving left, 2k + 1 on its right leaving right.
-        for (k, (i, j)) in cells.iter().enumerate() {
-            let k = u128::try_from(k).unwrap();
-            let (x, y) = (10 * i, 10 * j);
-            p.bodies.push(Body { rep: id(1000 + k), rect: [x * MM, (y - 1) * MM, (x + 2) * MM, (y + 1) * MM] });
-            for (n, at, dir) in [(2 * k, mm(x, y), Dir4::Left), (2 * k + 1, mm(x + 2, y), Dir4::Right)] {
-                p.cps.push(CpPoint { id: id(100 + n), at, dir: Some(dir), rep: id(1000 + k), connections: vec![] });
-            }
-        }
-        let n_cps = p.cps.len();
-        let mut used = std::collections::BTreeSet::new();
-        for (c, (a, b)) in pairs.iter().enumerate() {
-            let (a, b) = (a % n_cps, b % n_cps);
-            if a == b || !used.insert(a) || !used.insert(b) {
-                continue;
-            }
-            let c = id(5000 + u128::try_from(c).unwrap());
-            p.cps[a].connections.push(c);
-            p.cps[b].connections.push(c);
-            p.connections.push(DrawnConnection {
-                id: c,
-                ends: [p.cps[a].id, p.cps[b].id],
-                polyline: vec![p.cps[a].at, p.cps[b].at],
-                ..DrawnConnection::default()
-            });
-        }
+        let p = lattice(&cells, &pairs);
         let plan = route_page(&p, &jobs(&p));
         let m = measure(&routed(&p, &plan));
         let mine = |c: &Uuid| plan.routes.iter().any(|(r, _)| r == c);
@@ -356,6 +440,109 @@ proptest::proptest! {
         proptest::prop_assert!(!m.through_bodies.iter().any(|t| mine(&t.connection)), "{:?}", m.through_bodies);
         if cells.len() >= 6 && p.connections.len() <= 3 {
             proptest::prop_assert_eq!(&plan.unrouted, &vec![]);
+        }
+    }
+
+    /// RT1 among texts, junctions and fixed wires (ID-1509): RT1's page with text boxes near the symbols' stubs
+    /// (across one, over one's node, beside one, above a body, below a CP) and near junctions; junctions in the middle
+    /// of the lattice's squares, each with one to three fixed wires leaving it along the middle lines; and connections
+    /// from free CPs to the junctions. Every route the solve returns keeps measures (a) to (d), no junction has a
+    /// fourth arm (g), and a connection whose stub a text crosses is not routed (§5.1 rule 4 has no exemption).
+    #[test]
+    fn rt1_every_returned_route_keeps_the_hard_rules_among_texts_junctions_and_fixed_wires(
+        cells in proptest::collection::btree_set((0i64..6, 0i64..6), 2..9),
+        pairs in proptest::collection::vec((0usize..64, 0usize..64), 1..7),
+        texts in proptest::collection::vec((0usize..64, 0usize..8), 1..7),
+        hubs in proptest::collection::btree_map((0i64..5, 0i64..5), 1u8..15, 0..4),
+        hub_jobs in proptest::collection::vec((0usize..64, 0usize..64), 0..5),
+    ) {
+        let cells: Vec<(i64, i64)> = cells.into_iter().collect();
+        let mut p = lattice(&cells, &pairs);
+        let hubs: Vec<((i64, i64), u8)> = hubs.into_iter().collect();
+        // Junction h in the middle of a lattice square, with a fixed wire of 3 mm along a middle line for each bit of
+        // its mask (right, down, left, up; the mask is below 15, so at most three).
+        for (h, ((i, j), mask)) in hubs.iter().enumerate() {
+            let h = u128::try_from(h).unwrap();
+            let at = mm(10 * i + 5, 10 * j + 5);
+            let mut arms = Vec::new();
+            for (bit, (dx, dy)) in [(3, 0), (0, 3), (-3, 0), (0, -3)].into_iter().enumerate() {
+                if mask & (1 << bit) != 0 {
+                    let c = id(7000 + 10 * h + u128::try_from(bit).unwrap());
+                    arms.push(c);
+                    p.connections.push(DrawnConnection {
+                        id: c,
+                        ends: [id(6000 + h), Uuid::nil()],
+                        routed: true,
+                        polyline: vec![at, (at.0 + dx * MM, at.1 + dy * MM)],
+                        ..DrawnConnection::default()
+                    });
+                }
+            }
+            p.junctions.push(JunctionPoint { id: id(6000 + h), at, connections: arms });
+        }
+        let n_cps = p.cps.len();
+        for (c, (h, a)) in hub_jobs.iter().enumerate() {
+            if hubs.is_empty() || !p.cps[a % n_cps].connections.is_empty() {
+                continue;
+            }
+            let (h, a) = (h % hubs.len(), a % n_cps);
+            let c = id(8000 + u128::try_from(c).unwrap());
+            p.cps[a].connections.push(c);
+            p.junctions[h].connections.push(c);
+            p.connections.push(DrawnConnection {
+                id: c,
+                ends: [p.cps[a].id, p.junctions[h].id],
+                polyline: vec![p.cps[a].at, p.junctions[h].at],
+                ..DrawnConnection::default()
+            });
+        }
+        for (k, kind) in &texts {
+            let (rect, rep) = if *kind < 6 {
+                let k = k % cells.len();
+                let (x, y) = (100 * cells[k].0, 100 * cells[k].1);
+                let rect = match kind {
+                    // Across the left stub, between the CP and its stub node.
+                    0 => tenths(x - 7, y - 4, x - 3, y + 4),
+                    // Across the right stub.
+                    1 => tenths(x + 23, y - 4, x + 27, y + 4),
+                    // A pin text over the left stub's node and beyond.
+                    2 => tenths(x - 30, y - 5, x - 5, y + 5),
+                    // Beside the right stub, above it.
+                    3 => tenths(x + 20, y - 20, x + 40, y - 10),
+                    // A tag above the body.
+                    4 => tenths(x, y - 30, x + 20, y - 15),
+                    // Below the left CP.
+                    _ => tenths(x - 30, y + 10, x, y + 20),
+                };
+                (rect, id(1000 + u128::try_from(k).unwrap()))
+            } else if hubs.is_empty() {
+                continue;
+            } else {
+                let h = k % hubs.len();
+                let (x, y) = (100 * hubs[h].0.0 + 50, 100 * hubs[h].0.1 + 50);
+                let rect = if *kind == 6 {
+                    // Beside the junction, above its right arm.
+                    tenths(x + 10, y - 15, x + 30, y - 5)
+                } else {
+                    // Across the line left of the junction.
+                    tenths(x - 16, y - 4, x - 12, y + 4)
+                };
+                (rect, id(9000 + u128::try_from(h).unwrap()))
+            };
+            p.texts.push(TextBox { rep, rect });
+        }
+        let plan = route_page(&p, &jobs(&p));
+        let m = measure(&routed(&p, &plan));
+        let mine = |c: &Uuid| plan.routes.iter().any(|(r, _)| r == c);
+        proptest::prop_assert!(!m.touches.iter().any(|t| mine(&t.connection)), "{:?}", m.touches);
+        proptest::prop_assert!(!m.overlaps.iter().any(|o| mine(&o.connections[0]) || mine(&o.connections[1])), "{:?}", m.overlaps);
+        proptest::prop_assert!(!m.through_bodies.iter().any(|t| mine(&t.connection)), "{:?}", m.through_bodies);
+        proptest::prop_assert!(!m.through_texts.iter().any(|t| mine(&t.connection)), "{:?}", m.through_texts);
+        proptest::prop_assert_eq!(&m.four_way, &vec![]);
+        for cp in &p.cps {
+            if p.texts.iter().any(|t| across_stub(t.rect, cp)) {
+                proptest::prop_assert!(!cp.connections.iter().any(mine), "{:?} {:?}", cp, plan.routes);
+            }
         }
     }
 }

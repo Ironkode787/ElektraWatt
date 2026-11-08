@@ -202,7 +202,7 @@ the junction would get a fourth arm; it names the first rule the free route brok
 | Wire | On the tail: a stub from the CP to the arrow's base | On the tip |
 | CP | One grid step left of the tip, leaving left | At the tip, leaving right |
 | Name text (function text) | Above the arrow, centred | The same |
-| Cross-reference text | Below the arrow, right-aligned at the tip (FR-XRF-011's default) | The same |
+| Cross-reference text | Below the arrow, right-aligned at the tip (FR-XRF-011's default) | Below the arrow, left-aligned at the arrow's tail, so that it runs into the sheet from the left edge (ID-1509 (4)) |
 | Anchor | The arrow tip (doc 20 §4.4's anchor policy) | The same |
 
 A source sits at the right edge with its wire coming from the circuit on its left; a target at the left edge with its
@@ -340,7 +340,7 @@ measures** (`ew layout`: no hard-rule violation; bends and crossings reported), 
 | OQ6 | Splitting a four-way junction into two T junctions | Reported only (EW-CORE-072); a junction is connectivity, not the router's; a follow-up row |
 | OQ7 | A stale route (an end moved without the route following, as after a symbol exchange) | Drawn joined by a straight segment (D2); a follow-up row for a check and an automatic re-solve |
 | OQ8 | FR-XRF-009's "▷ outgoing, ◁ incoming" | Read as the printed direction marker of the cross-reference table, which stays; 02a gets a note at the design pass that the drawn arrow follows ID-1498 |
-| OQ9 | FR-XRF-011's acceptance (the IP cross-references within ±0.2 mm of the reference) | The cross-reference keeps its slot below the arrow, right-aligned at the tip; if a test pins the old position the lane re-blesses it under §8.4 and reports it |
+| OQ9 | FR-XRF-011's acceptance (the IP cross-references within ±0.2 mm of the reference) | The cross-reference keeps its slot below the arrow, right-aligned at the tip (a target's left-aligned at its tail, ID-1509 (4)); if a test pins the old position the lane re-blesses it under §8.4 and reports it |
 
 No question needs the owner; no contradiction between ID-1498 and an ADR was found (ADR-0007's decision 4 and its
 open question 2 are reconciled by D15; ADR-0003 supports D1; ID-564's "the commands do not route" is kept by D12).
