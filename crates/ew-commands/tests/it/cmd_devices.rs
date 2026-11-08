@@ -581,58 +581,42 @@ fn hinted_wire_in(
     let wires: Vec<ew_ids::Id<Connection>> = created(&r, Kind::Connection);
     assert_eq!(wires.len(), 1);
     let w = row(&e, wires[0]);
-    assert_eq!(
-        (w.a.clone(), w.b.clone(), w.route.clone()),
-        (cp(fb, 0), cp(fa, 1), Vec::new()),
-        "the hint's wire has no route"
-    );
+    // WP-S2.19 D12: the hint's wire stores its straight run (none for ends off one line); cleared here, it is the wire
+    // without a route.
+    assert_eq!((w.a.clone(), w.b.clone()), (cp(fb, 0), cp(fa, 1)));
+    assert!(w.route.is_empty() || w.route.len() == 2, "a straight run or none");
+    e.execute(&ew_commands::commands::RouteConnection {
+        connection: wires[0],
+        route: Vec::new(),
+    })
+    .expect("the route cleared");
     (e, wires[0], fa, fb)
 }
 
-/// FT-1020 (decision log ID-1104): `place` dropped a symbol (its two CPs at `at` and `at` + (0, 10 mm)) on the hinted
-/// wire `wire`; the wire is split as FR-CON-008 says. The part at the wire's `a` end keeps the wire's ID, number,
-/// kind and overrides and ends at the CP met first from `a` (CP 1, the lower one); the other part is new, unnumbered,
-/// and runs from CP 0 to the wire's `b` end. A wire without a route splits into parts without one (the page draws
-/// each between its ends).
-fn assert_split_at_the_drop(e: &Engine, r: &Receipt, wire: ew_ids::Id<Connection>, before: &Connection) {
-    let f: ew_ids::Id<Function> = created(r, Kind::Function)[0];
-    let first = row(e, wire);
-    let mut expected = before.clone();
-    expected.b = cp(f, 1);
-    expected.v = first.v;
-    assert_eq!(*first, expected);
-    let wires: Vec<ew_ids::Id<Connection>> = created(r, Kind::Connection);
-    assert_eq!(wires.len(), 1, "one new part");
-    let second = row(e, wires[0]);
-    let expected = Connection {
-        id: wires[0],
-        v: 1,
-        a: cp(f, 0),
-        b: before.b.clone(),
-        page: before.page,
-        route: Vec::new(),
-        kind: before.kind.clone(),
-        overrides: before.overrides.clone(),
-        number: NumberSpec::Unassigned,
-        source_ref: None,
-        extra: ew_schema::Extra::new(),
-    };
-    assert_eq!(*second, expected);
+/// FT-1020 (decision log ID-1104) under WP-S2.19 D3: `place` dropped a symbol on the hinted wire `wire`, which has no
+/// route. An unrouted wire has no wire geometry (it is drawn as the dashed straight line between its ends), so
+/// normaliser 7 does not split it: no new part, and the wire is as it was.
+fn assert_not_split(e: &Engine, r: &Receipt, wire: ew_ids::Id<Connection>, before: &Connection) {
+    assert!(
+        created::<Connection>(r, Kind::Connection).is_empty(),
+        "no new part"
+    );
+    assert_eq!(*row(e, wire), *before);
 }
 
 #[test]
-fn ft1020_a_two_pin_symbol_dropped_on_a_wire_without_a_route_splits_it() {
-    // The wire runs straight up from B's CP 0 at (0, 6G) to A's CP 1 at (0, 10 mm).
+fn ft1020_a_two_pin_symbol_dropped_on_an_unrouted_wire_does_not_split_it() {
+    // The unrouted wire's straight line runs up from B's CP 0 at (0, 6G) to A's CP 1 at (0, 10 mm).
     let (mut e, wire, _, _) = hinted_wire(pt(0, 6 * G));
     let before = (*row(&e, wire)).clone();
     let r = e
         .execute(&place(PAGE_102, pt(0, 2 * G), new_device("F")))
         .unwrap();
-    assert_split_at_the_drop(&e, &r, wire, &before);
+    assert_not_split(&e, &r, wire, &before);
 }
 
 #[test]
-fn ft1020_a_terminal_dropped_on_a_wire_without_a_route_splits_it() {
+fn ft1020_a_terminal_dropped_on_an_unrouted_wire_does_not_split_it() {
     let (mut e, wire, _, _) = hinted_wire(pt(0, 6 * G));
     let before = (*row(&e, wire)).clone();
     let terminal = PlaceTarget::NewTerminal {
@@ -642,27 +626,19 @@ fn ft1020_a_terminal_dropped_on_a_wire_without_a_route_splits_it() {
         part: None,
     };
     let r = e.execute(&place(PAGE_102, pt(0, 2 * G), terminal)).unwrap();
-    assert_split_at_the_drop(&e, &r, wire, &before);
+    assert_not_split(&e, &r, wire, &before);
 }
 
 #[test]
-fn ft1020_a_wire_without_a_route_splits_only_where_the_page_draws_it() {
-    // B at (4G, 6G): its CP 0 leaves up, so the page draws the wire up from (4G, 6G) to the corner (4G, 10 mm), then
-    // left to A's CP 1 at (0, 10 mm) (the corner of `ew-scene`'s provisional route).
-    let (mut e, wire, _, _) = hinted_wire(pt(4 * G, 6 * G));
-    let before = (*row(&e, wire)).clone();
-    // On the other corner's leg (x = 0): not on the drawn wire, so nothing is split.
-    let r = e
-        .execute(&place(PAGE_102, pt(0, 2 * G), new_device("F")))
-        .unwrap();
-    assert!(created::<Connection>(&r, Kind::Connection).is_empty());
-    assert_eq!(*row(&e, wire), before);
-    // On the drawn leg (x = 4G): split.
-    let (mut e, wire, _, _) = hinted_wire(pt(4 * G, 6 * G));
-    let r = e
-        .execute(&place(PAGE_102, pt(4 * G, 2 * G), new_device("F")))
-        .unwrap();
-    assert_split_at_the_drop(&e, &r, wire, &before);
+fn ft1020_an_unrouted_wire_is_split_nowhere() {
+    // B at (4G, 6G): the retired provisional path drew the wire up to the corner (4G, 10 mm), then left to A's CP 1 at
+    // (0, 10 mm). Neither leg is a wire now: a drop on either splits nothing.
+    for at in [pt(0, 2 * G), pt(4 * G, 2 * G)] {
+        let (mut e, wire, _, _) = hinted_wire(pt(4 * G, 6 * G));
+        let before = (*row(&e, wire)).clone();
+        let r = e.execute(&place(PAGE_102, at, new_device("F"))).unwrap();
+        assert_not_split(&e, &r, wire, &before);
+    }
 }
 
 #[test]
@@ -699,6 +675,8 @@ fn ft1020_a_routed_wire_drawn_on_the_line_of_a_wire_without_a_route_is_split_fir
 
 fn mv(reps: Vec<ew_ids::Id<Representation>>, delta: Pt2) -> MoveReps {
     MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps,
@@ -759,6 +737,8 @@ fn move_across_pages_moves_wires_with_both_ends_and_renumbers() {
     let new_dev: ew_ids::Id<Device> = created(&placed, Kind::Device)[0];
     assert_eq!(row(&e, new_dev).tag.counter, Some(1));
     e.execute(&MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps: vec![REP_101F1, REP_IP_101],
@@ -785,6 +765,8 @@ fn move_across_pages_moves_wires_with_both_ends_and_renumbers() {
 fn move_across_pages_rejects_a_wire_with_one_end_left_behind() {
     let mut e = engine(golden_model());
     let cmd = MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps: vec![REP_101F1],
@@ -794,6 +776,8 @@ fn move_across_pages_rejects_a_wire_with_one_end_left_behind() {
     rejected(e.execute(&cmd));
     // A wire to a junction stays behind as well.
     let cmd = MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps: vec![REP_102G1],
@@ -810,6 +794,8 @@ fn move_rejects_empty_lists_and_unknown_references() {
     rejected(e.execute(&mv(vec![], pt(G, 0))));
     not_found(e.execute(&mv(vec![id(0x999)], pt(G, 0))));
     not_found(e.execute(&MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps: vec![REP_102F2],

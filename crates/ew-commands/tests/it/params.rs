@@ -81,6 +81,11 @@ fn examples() -> Vec<(&'static str, Value)> {
             "connection.route",
             json!({"connection": CON_W22.to_string(), "route": [[0, 0], [7_937_500, 7_937_500]]}),
         ),
+        // WP-S2.19 D12
+        (
+            "connection.route_many",
+            json!({"routes": [{"connection": CON_W22.to_string(), "route": [[0, 0], [7_937_500, 7_937_500]]}]}),
+        ),
         ("connection.delete", json!({"connections": [CON_W22.to_string()]})),
         (
             "junction.edit",

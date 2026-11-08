@@ -416,12 +416,13 @@ def build_structure_and_external():
     device, location = external
     # doc 20 section 15 "External connection points": names, cells and the connection letter
     m = re.search(
-        r"External connection points \(4, no in-project partner\):\*\* (J-E-206-L), (J-E-206-N), (J-E-206-PE) at"
-        r"\s+(\d+)-(G\d+) and (DP) at\s+(\d+)-(G\d+)",
+        r"External connection points \(4, no in-project partner\):\*\* (J-E-206-L) and (J-E-206-N) at\s+(\d+)-(G\d+),"
+        r"\s+(J-E-206-PE) at\s+(\d+)-(H\d+)\s+and (DP) at\s+(\d+)-(G\d+)",
         DOC_TEXT,
     )
     check(m, "section 15: the External connection points paragraph is missing or changed")
-    names = [m.group(1), m.group(2), m.group(3), m.group(6)]
+    check(m.group(6) == m.group(3), "section 15: the three mains points are on one folio")
+    names = [m.group(1), m.group(2), m.group(5), m.group(8)]
     ext = []
     for name in names:
         conn = name[len("J-E-206-"):] if name.startswith("J-E-206-") else name
@@ -1993,7 +1994,7 @@ FUNC_COLS = [
     "key", "device", "fndef", "role", "kind", "part", "template", "cp_aliases", "ip_name", "ip_direction",
     "ip_external",
 ]  # fmt: skip
-REP_COLS = ["key", "functions", "page", "symbol", "cell", "dx", "dy", "arrangement", "slot_pos"]
+REP_COLS = ["key", "functions", "page", "symbol", "cell", "dx", "dy", "arrangement", "slot_pos", "orient"]
 
 # doc 07 section 9.1: symbol of a function by its FnDef, always the "@qet10" edition
 SYMBOL = {
@@ -2019,9 +2020,40 @@ SYMBOL = {
     "ew.fn.ip": "ew.gen.ip@qet10",
 }
 EXTERNAL_ARROW = "ew.gen.external-arrow@qet10"
+# WP-S2.19 D16: a target interruption point is drawn with the incoming arrow, the target form
+IP_TARGET = "ew.gen.ip-target@qet10"
 
-# F13: the offsets (QET px) of the k-th interruption point of a coincident group
-IP_OFFSETS = [(0, 0), (0, 20), (0, -20), (20, 0)]
+# F13: the offsets (QET px) of the k-th interruption point of a coincident group of n, by n
+# ID-1504 (4a): every member keeps its cell (doc 20 section 15; a cell's lower and right edges belong to the next cell)
+# and no text of one overlaps another's or a wire. A point's name stands above its arrow and its cross-reference below
+# it, right-aligned at the tip (WP-S2.19 section 7), each 1.2 grid steps tall and half a step off the arrow, so two
+# members whose texts share columns stand four grid steps (40 px) apart; a third stands three steps below the second
+# and four steps right of it, where the second's cross-reference ends left of the third's name; of four, the second and
+# fourth stand five steps right of the first and third (names up to four steps wide). A wire leaving a member passes
+# between the texts of the members beside it.
+IP_OFFSETS = {
+    1: [(0, 0)],
+    2: [(0, -20), (0, 20)],
+    3: [(-20, -40), (-20, 0), (20, 30)],
+    4: [(-30, -30), (20, -10), (-30, 10), (20, 30)],
+}
+# ID-1504 (4a): a group of a source and three targets (106-B1, 106-E1): the source and the first target side by side,
+# the source on the left (its wire arrives from the left, the target's leaves to the right), the other two targets
+# below them as a group of three stands
+IP_OFFSETS_SOURCE_AND_TARGETS = [(-30, -40), (20, -40), (-30, 0), (20, 30)]
+# ID-1504 (4a): a group's members top first where natural key order would cross their wires: a member whose wire runs
+# farther along the stack's row stands above one whose wire turns off before it
+IP_ORDER = {
+    ("102", "A1"): ["N-1@102", "L-1@102"],
+    ("102", "G15"): ["24VDC-4@102", "24VDC-3@102"],
+    ("102", "H15"): ["24VDC-2@102", "24VDC-1@102"],
+    ("101", "H16"): ["N-1@101", "L-1@101"],
+    ("103", "G1"): ["PE-AIR1@103", "PE-0VDC@103", "PE-AIR2@103"],
+    ("103", "B6"): ["24VDC-AIR4@103", "24VDC-AIR3@103", "24VDC-AIR2@103"],
+    ("103", "B14"): ["0VDC-AIR4@103", "0VDC-AIR3@103", "0VDC-AIR2@103"],
+    ("106", "B1"): ["PE-AIR2@106", "0VDC-AIR3@106", "24VDC-AIR4@106", "24VDC-AIR3@106"],
+    ("106", "E1"): ["PE-AIR1@106", "0VDC-AIR1@106", "24VDC-AIR2@106", "24VDC-AIR1@106"],
+}
 IP_GROUPS = {}  # (page, cell, dx, dy) -> representation keys, for the coincident groups (information only)
 
 # doc 20 section 6 / doc 07 section 9.1: main function of each device
@@ -2094,10 +2126,10 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
         d.update(kw)
         funcs.append(d)
 
-    def rep(key, page, cell, symbol, dx="", dy="", functions=None, arrangement=""):
+    def rep(key, page, cell, symbol, dx="", dy="", functions=None, arrangement="", orient=""):
         reps.append(
             {"key": key, "functions": functions or key, "page": page, "symbol": symbol, "cell": cell, "dx": dx,
-             "dy": dy, "arrangement": arrangement}
+             "dy": dy, "arrangement": arrangement, "orient": orient}
         )  # fmt: skip
 
     rows61 = {}
@@ -2159,10 +2191,10 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
         fn(key=f"{name}@{sf}", fndef="ew.fn.ip", kind="ip", ip_name=name, ip_direction="source")
         fn(key=f"{name}@{tf}", fndef="ew.fn.ip", kind="ip", ip_name=name, ip_direction="target")
     ext_defs = [
-        (ext.group(1), ext.group(4), ext.group(5), "target"),
-        (ext.group(2), ext.group(4), ext.group(5), "target"),
-        (ext.group(3), ext.group(4), ext.group(5), "target"),
-        (ext.group(6), ext.group(7), ext.group(8), "undirected"),
+        (ext.group(1), ext.group(3), ext.group(4), "target"),
+        (ext.group(2), ext.group(3), ext.group(4), "target"),
+        (ext.group(5), ext.group(6), ext.group(7), "target"),
+        (ext.group(8), ext.group(9), ext.group(10), "undirected"),
     ]
     for name, folio, cell, direction in ext_defs:
         # External points (doc 20 section 15): unpaired, named like the external reference they target.
@@ -2217,11 +2249,14 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
                 aux_rep[key] = (folio, cell)
                 rep(key, folio, cell, SYMBOL[fndef_of[key]])
 
-    # valves (triangle test inputs): row D, columns c-3, c-1, c+1, c+3 around the module's aux column c
+    # valves (triangle test inputs): row H, columns c-3, c-1, c+1, c+3 around the module's aux column c; below the
+    # actuators they drive on folio 203 (decision log ID-1503: each cylinder above the valve that drives it), and in the
+    # same place on 204-206, which the valve-manifold macro saved from 203 reproduces (FR-MAC-004)
     fixture(
         "representations", "cell", "-201U3-Q1 … -202U2-Q4",
-        "row D, columns c-3, c-1, c+1, c+3 around the module's aux column c", "§6.1 rows 33-60, §15",
-        "test input (fixture choice): doc 20 names only the pages 203-206 of the valves, not their cells",
+        "row H, columns c-3, c-1, c+1, c+3 around the module's aux column c", "§6.1 rows 33-60, §15",
+        "test input (fixture choice): doc 20 names only the pages 203-206 of the valves, not their cells; each valve"
+        " sits below the actuator it drives (ID-1503)",
         cell=rows61["VALVES"]["Main rep."],
     )  # fmt: skip
     valve_col = {}
@@ -2230,7 +2265,7 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
         c = int(cell[1:])
         for q, off in zip(range(1, 5), (-3, -1, 1, 3)):
             valve_col[f"{m}-Q{q}"] = (folio, c + off)
-            rep(f"{m}-Q{q}", folio, f"D{c + off}", SYMBOL["ew.fn.valve-5-2-sol-spring"])
+            rep(f"{m}-Q{q}", folio, f"H{c + off}", SYMBOL["ew.fn.valve-5-2-sol-spring"])
 
     # field devices (triangle): row G (valve) and row F (actuator) in the column of the driving valve (section 6.2)
     fixture(
@@ -2259,39 +2294,89 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
     for name in ip_order:
         sf, sc, tf, tc = ips[name]
         rep(f"{name}@{sf}", sf, sc, SYMBOL["ew.fn.ip"])
-        rep(f"{name}@{tf}", tf, tc, SYMBOL["ew.fn.ip"])
+        rep(f"{name}@{tf}", tf, tc, IP_TARGET)
     # external points (section 15 prose); dy offsets of the three mains points are fixture choices (triangle)
-    dys = {ext.group(1): "-20", ext.group(2): "0", ext.group(3): "20"}
+    # ID-1504 (4a): their texts span 1.7 grid steps above and below each arrow and the external reference is nine
+    # steps wide, so the three stand four steps (40 px) apart, spread over the rows G and H: the third in H0
+    dys = {ext.group(1): "-40", ext.group(2): "0", ext.group(5): "-40"}
     for name, folio, cell, direction in ext_defs:
-        rep(f"{name}@{folio}", folio, cell, EXTERNAL_ARROW, dy=dys.get(name, ""))
+        # ID-1502 (7): the mains points at the left edge are mirrored (E), so their CPs leave into the drawing area
+        rep(f"{name}@{folio}", folio, cell, EXTERNAL_ARROW, dy=dys.get(name, ""),
+            orient="E" if name in dys else "")  # fmt: skip
     fixture(
-        "representations", "dy", [f"{n}@{ext.group(4)}" for n in dys], "-20; 0; 20", "§15",
-        "test input (fixture choice): the three mains points share the cell 101-G0 and are stacked",
+        "representations", ["cell", "dy"], [f"{n}@{ext.group(3)}" for n in dys], "G0 -40; G0 0; H0 -40", "§15",
+        "test input (fixture choice): the three mains points stand four grid steps apart, so that their texts do not"
+        " overlap, spread from 101-G0 over the row below (ID-1504)",
     )  # fmt: skip
 
     # F13: up to four interruption points sit on the identical point (examples: 103-G6, 103-B6, 103-B14, 103-G1,
     # 106-E1, 101-H16, 102-A1, 103-A1). Each coincident group is spread by multiples of 10 px, inside the 60 x 80 px
-    # cell and on the 10 px grid; the k-th member (natural key order) gets the k-th offset.
+    # cell and on the 10 px grid; the k-th member (natural key order, or IP_ORDER's) gets the k-th offset (IP_OFFSETS).
     ip_reps = [rp for rp in reps if fndef_of[rp["functions"]] == "ew.fn.ip"]
     groups = {}
     for rp in sorted(ip_reps, key=lambda rp: natural_key(rp["key"])):
         groups.setdefault((rp["page"], rp["cell"], rp["dx"] or "0", rp["dy"] or "0"), []).append(rp)
+    ip_dir = {f["key"]: f["ip_direction"] for f in funcs}
     for (page, cell, dx0, dy0), members in groups.items():
-        check(len(members) <= len(IP_OFFSETS), f"{len(members)} interruption points coincide at {page}-{cell}")
-        for k, rp in enumerate(members):
-            if k:  # the first member keeps the point
-                rp["dx"], rp["dy"] = str(int(dx0) + IP_OFFSETS[k][0]), str(int(dy0) + IP_OFFSETS[k][1])
+        check(len(members) in IP_OFFSETS, f"{len(members)} interruption points coincide at {page}-{cell}")
+        order = IP_ORDER.get((page, cell))
+        if order:
+            check(sorted(order) == sorted(rp["key"] for rp in members), f"IP_ORDER of {page}-{cell}: {order}")
+            members.sort(key=lambda rp: order.index(rp["key"]))
+        offsets = IP_OFFSETS[len(members)]
+        sources = [rp for rp in members if ip_dir[rp["functions"]] == "source"]
+        if len(members) == 4 and len(sources) == 1:
+            members.sort(key=lambda rp: rp is not sources[0])
+            offsets = IP_OFFSETS_SOURCE_AND_TARGETS
+        for rp, (dx, dy) in zip(members, offsets):
+            if (dx, dy) != (0, 0):
+                rp["dx"], rp["dy"] = str(int(dx0) + dx), str(int(dy0) + dy)
     coincident = {g: [rp["key"] for rp in members] for g, members in groups.items() if len(members) > 1}
     places = [(rp["page"], rp["cell"], rp["dx"] or "0", rp["dy"] or "0") for rp in ip_reps]
     check(len(set(places)) == len(places), "two interruption-point representations share (page, cell, dx, dy)")
     # ▲ test input (fixture choice): separates coincident interruption points; the cell is what doc 20 §15 asserts
     fixture(
         "representations", ["dx", "dy"], "interruption points that share a cell",
-        "k-th member of a coincident group (natural key order): +(0,0), +(0,20), +(0,-20), +(20,0) px", "§15",
+        "k-th member of a coincident group of n (natural key order, or IP_ORDER's), in px: n=2 (0,-20) (0,20); n=3"
+        " (-20,-40) (-20,0) (20,30); n=4 (-30,-30) (20,-10) (-30,10) (20,30), a source and three targets (-30,-40) (20,-40)"
+        " (-30,0) (20,30) with the source first",
+        "§15",
         "▲ test input (fixture choice): separates coincident interruption points; the cell is what doc 20 §15"
         " asserts",
     )  # fmt: skip
     IP_GROUPS.update(coincident)
+    # ID-1504 (4b, 4c): Golden A's layout for the router, each item moved inside its cell (its anchor keeps the cell
+    # doc 20 section 6.1 gives, so nothing that prints a cell changes). Folio 102 reads as current paths: -102G1's
+    # outputs straight down through -102F1 to -102F2, its 0 V outputs onto two rails to the right; folio 101: S51's
+    # contacts above the terminals of 1X1 they feed, and 1X1's terminals turned over (G: mirrored top to bottom), so
+    # that the mains points below feed them from below and S51 above leaves from above.
+    layout = {
+        "-102G1": ("20", "30", ""),
+        "-102F1": ("-30", "30", ""),
+        "-102F2": ("20", "30", ""),
+        "S51": ("-30", "", ""),
+        "1X1:1": ("-30", "", "G"),
+        "1X1:2": ("-10", "", "G"),
+        "1X1:PE": ("20", "", "G"),
+        "-X1032": ("", "20", ""),
+        "-XPE": ("-20", "", ""),
+        "-X1031": ("", "30", ""),
+        "-X1031.2": ("", "30", ""),
+        "24VDC-AIR1@103": ("20", "", ""),
+        "0VDC-AIR1@103": ("20", "", ""),
+        "PE-1.4@106": ("-30", "", ""),
+        "PE-1.3@106": ("-30", "", ""),
+        "0VDC-AIR2@106": ("", "-10", ""),
+        "24VDC-4@103": ("", "-30", ""),
+    }
+    for rp in reps:
+        if rp["key"] in layout:
+            rp["dx"], rp["dy"], rp["orient"] = layout[rp["key"]]
+    fixture(
+        "representations", ["dx", "dy", "orient"], list(layout), "; ".join(" ".join(v) for v in layout.values()),
+        "§6.1",
+        "test input (fixture choice): items moved inside their cells so that the router draws current paths (ID-1504)",
+    )  # fmt: skip
     # doc 20 §6.2: valve and field tags are not printed on 203-206 (property arrangement, FR-SYM-012). The fixture
     # selects the symbol's arrangement without the Tag slot, named "ports", for the representations of the three
     # valve-terminal and field-device symbols on those folios.
@@ -2340,6 +2425,27 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
 # ---------------------------------------------------------------------------------------------------------------
 # connections, junctions, bonds
 # ---------------------------------------------------------------------------------------------------------------
+
+
+def keep_router_routes(rows):
+    """WP-S2.19 section 8.2 (ID-1499): the routes of the page connections doc 20 gives none are written once by the
+    schematic router's bless-mode route tool into the committed connections.csv; a row without a route of its own keeps
+    the committed one."""
+    path = TABLES_DIR / "connections.csv"
+    if not path.exists():
+        return
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split(",")
+    key_at, route_at = header.index("key"), header.index("route")
+    committed = {}
+    for line in lines[1:]:
+        cells = line.split(",")
+        if len(cells) == len(header) and cells[route_at]:
+            committed[cells[key_at]] = cells[route_at]
+    for r in rows:
+        if not r.get("route") and r["key"] in committed:
+            r["route"] = committed[r["key"]]
+
 
 CONN_COLS = [
     "key", "wire", "page", "a", "b", "kind", "core", "bridge_group", "bridge_kind", "bridge_shaft", "csa",
@@ -2465,15 +2571,9 @@ def build_fluid_lines(rows):
     keys = []
     first = None
     cells = {rp["key"]: rp["cell"] for rp in TABLES["representations"][1]}
-    # ▲U-51 (FT-1315): the stored route, the corners between the ends in QET px from cell centres. Ports 2 and 4 sit
-    # on the valve's top at +30 and +10 px from the valve cell's centre (row D), A and B on the cylinder's left at
-    # -20 px, -20 and +20 px from the actuator cell's centre (row F, the valve's column, ▲U-39): each line runs down
-    # from its port into row E, left past the cylinder and then right into its end. The line to B turns higher and
-    # runs further out, so the two lines of a valve never cross.
-    routes = {
-        "2": "E{c} 30 0;E{c} -30 0;F{c} -30 -20",
-        "4": "E{c} 10 -20;E{c} -40 -20;F{c} -40 20",
-    }
+    # ▲U-51 (decision log ID-1503): each valve sits in row H below the actuator it drives (row F, ▲U-38, ▲U-39), and
+    # the lines carry no route of their own: the schematic router's route tool writes them into the committed
+    # connections.csv (WP-S2.19 section 8.2), as on every other routed page (keep_router_routes).
     for r in table_dicts("## 12. Pneumatic functions", 1):
         if "A-R only" in r["Lines"]:
             continue
@@ -2484,13 +2584,13 @@ def build_fluid_lines(rows):
         first = first or r["To"]
         column = cells[frm.group(1)][1:]
         check(
-            cells[frm.group(1)][0] == "D" and cells[f"{to.group(1)}#actuator"] == f"F{column}",
-            f"section 12: the valve {frm.group(1)} and the actuator of {to.group(1)} are not in rows D and F of one column",
+            cells[frm.group(1)][0] == "H" and cells[f"{to.group(1)}#actuator"] == f"F{column}",
+            f"section 12: the valve {frm.group(1)} and the actuator of {to.group(1)} are not in rows H and F of one column",
         )
         for key, port, end in zip(lines, ("2", "4"), ("A", "B")):
             rows.append(
                 {"key": key, "wire": "", "page": "203", "a": f"{frm.group(1)}:{port}", "b": f"{to.group(1)}:{end}",
-                 "kind": "fluid", "route": routes[port].format(c=column)}
+                 "kind": "fluid"}
             )  # fmt: skip
             keys.append(key)
     check(keys == [f"F{n}" for n in range(1, 17)], f"section 12: the lines are {keys}")
@@ -2499,12 +2599,6 @@ def build_fluid_lines(rows):
         "ports 2 and 4 of each used valve join A and B of its actuator (the ▲ of the cell), as working fluid lines on "
         "folio 203 (WP-S1.20 D20)",
         cell=first,
-    )  # fmt: skip
-    fixture(
-        "connections", "route", keys, "; ".join(routes.values()), "§12",
-        "test input (fixture choice): each line runs down from its port, left past the cylinder and right into A or B, "
-        "on the connection grid and clear of the cylinder bodies (FT-1315); `{c}` is the column of the valve",
-        marks=["U-51"],
     )  # fmt: skip
 
 
@@ -2627,6 +2721,7 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
     build_fluid_lines(rows)
     n_wires = sum(1 for x in rows if x["wire"].startswith("W") and x["key"] == x["wire"])
     check(n_wires == 44, f"{n_wires} wire connections, 44 expected")
+    keep_router_routes(rows)
     register("connections", CONN_COLS, rows, 72 + 19 + 2 + 16)
 
     # endpoint sanity: device or terminal exists, IP function exists
@@ -2638,7 +2733,15 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
                 check(end.split(":")[0] in device_keys, f"connection endpoint {end!r}: no such device or strip")
 
     # junctions.csv: cells are fixture choices (test positions, triangle); doc 20 section 8.3 gives the folio
-    cells = {"J1": "C11", "J2": "C13", "J3": "C6", "J4": "D7", "J5": "D5", "J6": "D6"}
+    cells = {"J1": "C11", "J2": "C13", "J3": "C7", "J4": "D8", "J5": "D8", "J6": "C9"}
+    # ID-1504 (4b): folio 102's junctions sit where its current paths meet: J3 below -102G1's first + output, J4 on the
+    # path from -102F1 down to -102F2's 24 V inputs, J5 and J6 at the start of the 0 V rails to the right edge
+    dxs = {"J3": "-30", "J4": "-30", "J5": "10", "J6": "-30"}
+    dys = {"J3": "-10", "J4": "10"}
+    fixture(
+        "junctions", ["dx", "dy"], list(dxs), "; ".join(f"{dxs[j]} {dys.get(j, '0')}" for j in dxs), "§8.3",
+        "test input (fixture choice): folio 102's junctions where its current paths meet (ID-1504)",
+    )  # fmt: skip
     fixture(
         "junctions", "cell", list(cells), "; ".join(cells.values()), "§8.3",
         "test input (fixture choice): doc 20 gives the folio of a junction, not its cell",
@@ -2658,8 +2761,8 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
         missing = [k for k in seqs[j].split(";") if k not in keys]
         check(not missing, f"junction {j}: the sequence {seqs[j]!r} names the missing connections {missing}")
         jr.append(
-            {"key": j, "page": v["page"], "cell": cells[j], "style": v["style"], "wiring": v["wiring"],
-             "sequence": seqs[j]}
+            {"key": j, "page": v["page"], "cell": cells[j], "dx": dxs.get(j, ""), "dy": dys.get(j, ""), "style": v["style"],
+             "wiring": v["wiring"], "sequence": seqs[j]}
         )  # fmt: skip
     register("junctions", ["key", "page", "cell", "dx", "dy", "style", "wiring", "sequence"], jr, 6)
 

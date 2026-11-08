@@ -139,6 +139,11 @@ Examples: EW-TERM-002 → `001002`, EW-CORE-033 → `003033`, EW-POT-013 → `00
 EW-CORE-013 → `100013`, EW-CORE-041 → `102041`, EW-CORE-061 → `104061`, EW-PLC-012 → `110012`, EW-SAF-001 →
 `110101`, EW-IOL-001 → `111101`, EW-LAY-011 → `130011`, EW-IMP-101 → `160101`, EW-LIB-006 → `170006`.
 
+*As built (cycle 53; WP-S2.19 §9, decision log ID-1499).* The schematic layout rules EW-CORE-067 to -070, -072 and
+-073 (a drawn wire against its page's geometry) take numbers of EW-CORE's texts-and-graphics block, class 104
+(EW-CORE-067 → `104067`), around EW-CORE-071, which keeps its number; they are not of the EW-LAY family, which is the
+panel layout's.
+
 **Registry rules.**
 - **Fixed family list.** A new shipped family needs a row in the table above, with its class and number blocks.
   A family with a code offset uses numbers below 100 only, so no two families share a code.
@@ -671,7 +676,13 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-064 | *Retired* | Font substitution at import is the import finding EW-IMP-006 | — | — | — | — | — | — | — | — |
 | EW-CORE-065 | Description lint | A rating in a description, unit formatting ("50hz", "0.75 mm ²"), manufacturer spelling As built (cycle 14, ID-354, ID-353): in the 1.0 content of the EW-CORE pack, scope project, modes f r; it checks ratings and unit formatting in part descriptions and accepts "24 VDC" and "230 VAC"; the manufacturer-spelling half is not built and needs the manufacturer master of FR-PRT-002 (FT-238); its quick fix, a command to edit part descriptions, is FT-237. | hygiene | f r | warning | project | 1.0 | FR-CHK-040 | D-18, D-35; EF-25 | 15 |
 | EW-CORE-066 | Glyph missing | A character that no bundled face drew (it prints as `.notdef`); a character drawn by the bundled symbol fallback face is not a finding | hygiene | o x r | warning/error | page | MVP | FR-OUT-027 | — | 09 §7 |
+| EW-CORE-067 | Wire through a connection point | A drawn wire passes a CP or a junction it does not join (layout measure (a)); a terminal's CP is left to EW-TERM-006. *As built (cycle 53; WP-S2.19 §9, ID-1499):* evaluated by the session from the page's geometry and joined to the report (D19), like the five rules below | conflict | o r | warning/error | page | MVP | FR-CON-007 | RK1, RK2 | WP-S2.19 §9 |
+| EW-CORE-068 | Wire along another wire | A segment runs on another connection's segment with a positive overlap, the shared stub of one CP excepted (measure (b)); one finding per pair | conflict | o r | warning/error | page | MVP | FR-CON-007 | RK1, RK2 | WP-S2.19 §9 |
+| EW-CORE-069 | Wire through a symbol | A segment passes through a representation's body or a black box other than at its own end's escape (measure (c)) | hygiene | o r | warning | page | MVP | FR-CON-007 | RK1, RK2 | WP-S2.19 §9 |
+| EW-CORE-070 | Wire through a text | A segment passes through a text box the scene draws: a tag, a slot, pin or cross-reference text, a free text, a structure box's caption (measure (d)); the message quotes the text | hygiene | o r | warning | page | MVP | FR-CON-007 | RK1, RK2 | WP-S2.19 §9 |
 | EW-CORE-071 | Graphic line on a CP | A graphic line ending on a CP, which has no electrical meaning (a QET habit); quick fix "convert to connection". *As built (cycle 52; ID-1392, FT-1399):* no quick fix: the conversion draws a connection and deletes the graphic, two commands where a quick fix runs one; the user draws the wire | hygiene | o | info | page | MVP | FR-CON-001 | — | 06 §8 |
+| EW-CORE-072 | Four-way junction | A junction that wires leave in four directions (measure (g)); reported only, the router never splits a junction (WP-S2.19 OQ6) | hygiene | o r | warning | page | MVP | FR-CON-005 | RK1 | WP-S2.19 §9 |
+| EW-CORE-073 | Unrouted wire | A page connection between two different points without a stored route, drawn as a dashed straight line (WP-S2.19 D3) | completeness | o r | info/error | page | MVP | FR-CON-007 | RK1, RK2 | WP-S2.19 §9 |
 | EW-CORE-081 | Waiver matches nothing | A waiver whose fingerprint or part target matches no finding. As built (cycle 12; decision log ID-310): reported only when the waiver's rule ran in the scheme and mode; a waiver whose rule did not run gets an info "not evaluated" finding under this ID; part targets and expiry are FT-184 | hygiene | o r | info | project | MVP | FR-CHK-009, FR-CHK-049 | — | 15 |
 | EW-CORE-082 | Waiver expired | A waiver past its expiry date or release | hygiene | o r | warning | project | 1.0 | FR-CHK-049 | — | 15 |
 | EW-CORE-083 | Rule not evaluated | A rule could not be evaluated: rhai operation limit, SQL error, formula cycle, caught panic. *As built (cycle 52; ID-1392, FT-1399):* one cause, a caught panic: the shipped Rust rules have no operation limit, no SQL and no formulas | integrity | all | warning/error | project | MVP | FR-CHK-047 | — | 15 |

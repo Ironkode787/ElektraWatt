@@ -437,6 +437,28 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["route"],
+        exits: &[
+            exit(0, "every wire it routes is routed"),
+            exit(1, "a wire stays unrouted"),
+            exit(
+                2,
+                "usage, open, an unknown folio, a refused command and save errors",
+            ),
+        ],
+        result: Some(ew_api::cli_results::ROUTE),
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["layout"],
+        exits: &[
+            exit(0, "measured"),
+            exit(2, "usage and open errors, a folio that names no drawn page"),
+        ],
+        result: Some(ew_api::cli_results::LAYOUT),
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["lib", "list"],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::LIB_LIST),

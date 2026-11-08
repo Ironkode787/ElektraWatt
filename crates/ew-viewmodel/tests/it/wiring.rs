@@ -199,7 +199,7 @@ fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
     // From a free CP, a bend on the grid, Backspace, the bend again, then onto a junction.
     let start = cp(&s, "-102F2:13");
     enter_at(&mut s, start.at);
-    let bend = grid_point(&s, (56, 26));
+    let bend = grid_point(&s, (58, 33));
     enter_at(&mut s, bend);
     assert_eq!(canvas(&s)["route"]["bends"], 1);
     done(&mut s, "tool.back", json!({}));
@@ -210,7 +210,7 @@ fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
         "routing",
         "Backspace without a bend does nothing"
     );
-    let bend = grid_point(&s, (56, 26));
+    let bend = grid_point(&s, (58, 33));
     enter_at(&mut s, bend);
     let junction = tables(&s)
         .junctions
@@ -218,27 +218,31 @@ fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
         .find(|j| j.style == "bevel" && j.wiring == "chain")
         .unwrap()
         .clone();
-    let members = junction.sequence.len();
+    // WP-S2.19 D13 (RW4): a junction that already joins three wires is no end, and the hint says so.
+    assert!(junction.sequence.len() >= 3);
     cursor(&mut s, junction.at);
-    assert_eq!(canvas(&s)["snap"]["kind"], "junction");
-    done(&mut s, "canvas.activate", json!({}));
-    let t = tables(&s);
-    let j = t.junctions.iter().find(|x| x.id == junction.id).unwrap();
+    // The snap falls past it: to a point on one of its wires or to the grid, never to the junction itself.
+    let label = canvas(&s)["snap"]["label"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
+    assert!(!label.starts_with('@') || label.contains(" -> "), "{label}");
     assert_eq!(
-        j.sequence.len(),
-        members + 1,
-        "the wire is appended to the junction"
+        s.tool_hint(),
+        "This junction already joins three wires: end on a wire to make a new junction."
     );
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.tool().state(), "armed");
     // From another free CP onto a point of a wire: a junction there and the wire split.
     let before = tables(&s);
     let w = before
         .connections
         .iter()
-        .find(|c| line(c).len() == 3 && line(c)[1].1 == line(c)[2].1 && line(c)[2].1 == 13_229_167)
+        .find(|c| line(c).len() == 3 && line(c)[1].1 == line(c)[2].1 && line(c)[2].1 == 15_875_000)
         .expect("-102G1:PE to PE-1.2")
         .clone();
     let x = s.canvas().unwrap().page().snapper.page_of_index(76);
-    let point = (x, 13_229_167);
+    let point = (x, 15_875_000);
     let free = cp(&s, "-102F2:14");
     enter_at(&mut s, free.at);
     cursor(&mut s, point);
@@ -274,13 +278,13 @@ fn backspace_after_two_collinear_bends_keeps_the_first() {
     let start = cp(&s, "-102F2:13");
     enter_at(&mut s, start.at);
     // Bends straight above the CP, on rows no wire runs along.
-    let (b1, b2) = (grid_point(&s, (56, 33)), grid_point(&s, (56, 32)));
+    let (b1, b2) = (grid_point(&s, (58, 33)), grid_point(&s, (58, 32)));
     enter_at(&mut s, b1);
     enter_at(&mut s, b2);
     assert_eq!(canvas(&s)["route"]["bends"], 2);
     done(&mut s, "tool.back", json!({}));
     assert_eq!(canvas(&s)["route"]["bends"], 1);
-    let aside = grid_point(&s, (60, 32));
+    let aside = grid_point(&s, (64, 32));
     cursor(&mut s, aside);
     let ghost = s.wire_ghost_route().expect("routing");
     assert!(
@@ -437,20 +441,519 @@ fn wr4_a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_co
         .clone();
     let centre = sheet(&s, ((c.body[0] + c.body[2]) / 2, (c.body[1] + c.body[3]) / 2));
     let right = sheet(&s, ((c.body[0] + c.body[2]) / 2 + g, (c.body[1] + c.body[3]) / 2));
+    // WP-S2.19 RM2 (D15): the contact moved a step right, off the facing CPs, connects nothing.
+    let n = tables(&s).connections.len();
     done(&mut s, "canvas.press", at(centre, json!({})));
     done(&mut s, "canvas.pointer", at(right, json!({})));
-    done(&mut s, "canvas.pointer", at(centre, json!({})));
-    assert_eq!(s.tool().state(), "dragging");
+    done(&mut s, "canvas.release", at(right, json!({})));
+    assert_eq!(tables(&s).connections.len(), n);
+    // Dragged back onto them, the move shows its two proposals and connects them on release, in one undo step.
+    let drag_back = |s: &mut ShellModel| {
+        done(s, "canvas.press", at(right, json!({})));
+        done(s, "canvas.pointer", at(centre, json!({})));
+        assert_eq!(s.tool().state(), "dragging");
+    };
+    drag_back(&mut s);
+    let line_text = describe_line(&s, "canvas proposals ").expect("a move's proposals");
+    assert!(line_text.ends_with(" connect all"), "{line_text}");
+    let rev = s.revision();
+    done(&mut s, "canvas.release", at(centre, json!({})));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");
+    assert_eq!(
+        tables(&s).connections.len(),
+        n + 2,
+        "the move connects its proposals"
+    );
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(
+        tables(&s).connections.len(),
+        n,
+        "the undo takes the move and its wires"
+    );
+    // With Alt held at the release: none.
+    drag_back(&mut s);
+    done(&mut s, "canvas.release", at(centre, json!({"alt": true})));
+    assert_eq!(
+        tables(&s).connections.len(),
+        n,
+        "Alt at the release connects none"
+    );
+    done(&mut s, "edit.undo", json!({}));
+    // `tool.connect_on_move` turns it off for the session, and the status bar says so with the key.
+    done(&mut s, "tool.connect_on_move", json!({}));
+    assert_eq!(s.tool_notice(), Some("C Connect on move: off"));
+    drag_back(&mut s);
     let line_text = describe_line(&s, "canvas proposals ").expect("a move's proposals");
     assert!(line_text.ends_with(" connect none"), "{line_text}");
-    done(&mut s, "canvas.pointer", at(right, json!({})));
-    let n = tables(&s).connections.len();
-    done(&mut s, "canvas.release", at(right, json!({})));
-    assert_eq!(tables(&s).connections.len(), n, "a move never adds a connection");
-    // `tool.connect_on_move` is refused in this package.
+    done(&mut s, "canvas.release", at(centre, json!({})));
+    assert_eq!(tables(&s).connections.len(), n, "connect on move off");
+}
+
+/// WP-S2.19 RM1 (D14): on an empty stretch of Golden A's folio 103, coils -103K1 and -103K2 side by side joined twice,
+/// under the A2s and over the A1s, and -103K3 below between them. A drag of the first two four steps down would carry
+/// the lower wire through -103K3: the release re-solves it in the same undo step, and the upper wire, clean where it
+/// follows, keeps its vertices translated.
+#[test]
+fn rm1_a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_clean_one() {
+    use ew_viewmodel::ew_api::routing::measure;
+    let tmp = Tmp::new("rm1");
+    let mut s = shell(&tmp, "103");
+    for k in [(55, 20), (65, 20), (60, 29)] {
+        done(
+            &mut s,
+            "place.pick",
+            json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+        );
+        let p = grid_point(&s, k);
+        enter_at(&mut s, p);
+        done(&mut s, "ui.dismiss", json!({}));
+    }
+    let page = tables(&s).page.to_string();
+    let pin = |s: &ShellModel, label: &str| {
+        let c = cp(s, label);
+        json!({"cp": {"function": c.function.to_string(), "idx": c.idx}})
+    };
+    let route = |s: &ShellModel, points: &[(i64, i64)]| -> Value {
+        points
+            .iter()
+            .map(|k| {
+                let p = grid_point(s, *k);
+                json!([p.0, p.1])
+            })
+            .collect()
+    };
+    for (a, b, points) in [
+        ("-103K1:A2", "-103K2:A2", [(55, 24), (55, 26), (65, 26), (65, 24)]),
+        ("-103K1:A1", "-103K2:A1", [(55, 20), (55, 17), (65, 17), (65, 20)]),
+    ] {
+        let params = json!({"a": pin(&s, a), "b": pin(&s, b), "page": page, "route": route(&s, &points)});
+        done(
+            &mut s,
+            "command.run",
+            json!({"cmd": "connection.draw", "params": params}),
+        );
+    }
+    let wire = |s: &ShellModel, a: &str| -> TableConnection {
+        let t = tables(s);
+        let f = t.cps.iter().find(|c| c.label == a).expect("the CP").clone();
+        t.connections
+            .iter()
+            .find(|c| {
+                c.a == TableEnd::Cp {
+                    function: f.function,
+                    idx: f.idx,
+                }
+            })
+            .expect("the wire")
+            .clone()
+    };
+    let upper = wire(&s, "-103K1:A1").polyline;
+    let centre = |s: &ShellModel, tag: &str| {
+        let t = tables(s);
+        let r = t
+            .reps
+            .iter()
+            .find(|r| {
+                t.cps
+                    .iter()
+                    .any(|c| c.rep == r.id && c.label == format!("{tag}:A1"))
+            })
+            .expect("the coil")
+            .clone();
+        sheet(s, ((r.body[0] + r.body[2]) / 2, (r.body[1] + r.body[3]) / 2))
+    };
+    let (k1, k2) = (centre(&s, "-103K1"), centre(&s, "-103K2"));
+    done(&mut s, "canvas.press", at(k1, json!({})));
+    done(&mut s, "canvas.release", at(k1, json!({})));
+    done(&mut s, "canvas.press", at(k2, json!({"shift": true})));
+    done(&mut s, "canvas.release", at(k2, json!({"shift": true})));
+    let d = grid_point(&s, (0, 24)).1 - grid_point(&s, (0, 20)).1;
+    let down = sheet(&s, (0, d)).1 - sheet(&s, (0, 0)).1;
+    let rev = s.revision();
+    done(&mut s, "canvas.press", at(k2, json!({})));
+    done(&mut s, "canvas.pointer", at((k2.0, k2.1 + down), json!({})));
+    done(&mut s, "canvas.release", at((k2.0, k2.1 + down), json!({})));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
+    // The upper wire: its route translated, vertex for vertex.
+    let moved: Vec<(i64, i64)> = upper.iter().map(|p| (p.0, p.1 + d)).collect();
+    assert_eq!(wire(&s, "-103K1:A1").polyline, moved);
+    // The lower wire: routed again, through no symbol, and the page breaks no hard rule.
+    let lower = wire(&s, "-103K1:A2");
+    let geometry = s.canvas().unwrap().page().geometry.clone();
+    let m = measure(&geometry);
     assert_eq!(
-        refused(&mut s, "tool.connect_on_move", json!({})),
-        "reason-connect-on-place"
+        (
+            m.touches.len(),
+            m.overlaps.len(),
+            m.through_bodies.len(),
+            m.through_texts.len()
+        ),
+        (0, 0, 0, 0),
+        "{:?}",
+        lower.polyline
+    );
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(wire(&s, "-103K1:A1").polyline, upper, "the undo restores both");
+}
+
+/// C53-rt#3 (D3, RM1): an unrouted connection's dashed line is no wire, so a moved wire whose followed route lies
+/// along it stays clean and keeps its route vertex for vertex. On folio 103, -103K1:A2 → -103K2:A2 is unrouted along
+/// row 24, and the routed -103K3:A1 → -103K4:A1 runs along row 24 between them; -103K4 moves one step right.
+#[test]
+fn a_followed_route_along_an_unrouted_line_is_kept() {
+    let tmp = Tmp::new("rt3");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (65, 20), (58, 30), (62, 30)],
+        &[
+            ("-103K1:A2", "-103K2:A2", &[]),
+            (
+                "-103K3:A1",
+                "-103K4:A1",
+                &[(58, 30), (58, 24), (62, 24), (62, 30)],
+            ),
+        ],
+    );
+    let routed = |s: &ShellModel| -> Vec<(i64, i64)> {
+        let t = tables(s);
+        t.connections
+            .iter()
+            .find(|c| end_label(&t, &c.a) == "-103K3:A1")
+            .expect("the routed wire")
+            .polyline
+            .clone()
+    };
+    let k4 = {
+        let t = tables(&s);
+        let r = t
+            .reps
+            .iter()
+            .find(|r| t.cps.iter().any(|c| c.rep == r.id && c.label == "-103K4:A1"))
+            .expect("-103K4")
+            .clone();
+        sheet(&s, ((r.body[0] + r.body[2]) / 2, (r.body[1] + r.body[3]) / 2))
+    };
+    let step = sheet(&s, grid_point(&s, (1, 0))).0 - sheet(&s, grid_point(&s, (0, 0))).0;
+    done(&mut s, "canvas.press", at(k4, json!({})));
+    done(&mut s, "canvas.pointer", at((k4.0 + step, k4.1), json!({})));
+    done(
+        &mut s,
+        "canvas.release",
+        at((k4.0 + step, k4.1), json!({"alt": true})),
+    );
+    let expected: Vec<(i64, i64)> = [(58, 30), (58, 24), (63, 24), (63, 30)]
+        .iter()
+        .map(|k| grid_point(&s, *k))
+        .collect();
+    assert_eq!(routed(&s), expected, "followed, not routed again");
+}
+
+/// C53-rt#12 (ADR-0007 decision 4): a contact dragged onto a routed wire, its two CPs on the wire facing its ends,
+/// lists no proposal, since a move never splits a wire; the release changes no connection.
+#[test]
+fn a_move_onto_a_wire_lists_no_split() {
+    let tmp = Tmp::new("rt12");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(60, 20), (60, 40)],
+        &[("-103K1:A2", "-103K2:A1", &[(60, 24), (60, 40)])],
+    );
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
+    );
+    let p = grid_point(&s, (70, 30));
+    cursor(&mut s, p);
+    done(&mut s, "canvas.activate_alt", json!({}));
+    done(&mut s, "ui.dismiss", json!({}));
+    let t = tables(&s);
+    let c = t.reps.iter().find(|r| r.pos == p).expect("the contact").clone();
+    let n = t.connections.len();
+    let centre = sheet(&s, ((c.body[0] + c.body[2]) / 2, (c.body[1] + c.body[3]) / 2));
+    let left = sheet(&s, grid_point(&s, (0, 0))).0 - sheet(&s, grid_point(&s, (10, 0))).0;
+    done(&mut s, "canvas.press", at(centre, json!({})));
+    done(
+        &mut s,
+        "canvas.pointer",
+        at((centre.0 + left, centre.1), json!({})),
+    );
+    assert_eq!(s.tool().state(), "dragging");
+    assert_eq!(describe_line(&s, "canvas proposals "), None);
+    done(
+        &mut s,
+        "canvas.release",
+        at((centre.0 + left, centre.1), json!({})),
+    );
+    assert_eq!(tables(&s).connections.len(), n, "no split, no wire");
+}
+
+/// ID-1509 (9), the window check's C2: the connect-on-move key pressed during a drag turns the state the move's prompt
+/// shows at once and keeps its readout; no notice takes the prompt's place.
+#[test]
+fn the_connect_on_move_key_keeps_the_move_s_readout() {
+    use ew_viewmodel::command_bar::hud;
+    let tmp = Tmp::new("c2");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(&mut s, &[(60, 20)], &[]);
+    let t = tables(&s);
+    let r = t
+        .reps
+        .iter()
+        .find(|r| t.cps.iter().any(|c| c.rep == r.id && c.label == "-103K1:A1"))
+        .expect("-103K1")
+        .clone();
+    let centre = sheet(&s, ((r.body[0] + r.body[2]) / 2, (r.body[1] + r.body[3]) / 2));
+    let step = sheet(&s, grid_point(&s, (1, 0))).0 - sheet(&s, grid_point(&s, (0, 0))).0;
+    done(&mut s, "canvas.press", at(centre, json!({})));
+    done(
+        &mut s,
+        "canvas.pointer",
+        at((centre.0 + step, centre.1), json!({})),
+    );
+    let readout = match s.tool_ghost() {
+        Some(ew_viewmodel::tools::Ghost::Move { readout, .. }) => readout,
+        other => panic!("a move's ghost: {other:?}"),
+    };
+    assert_eq!(hud(&s).prompt, format!("{readout} \u{b7} C Connect on move: on"));
+    done(&mut s, "tool.connect_on_move", json!({}));
+    assert_eq!(s.tool_notice(), None);
+    assert_eq!(hud(&s).prompt, format!("{readout} \u{b7} C Connect on move: off"));
+    done(&mut s, "tool.connect_on_move", json!({}));
+    assert_eq!(hud(&s).prompt, format!("{readout} \u{b7} C Connect on move: on"));
+}
+
+/// A wire to draw: its two CP labels and its route's grid indices.
+type WireSpec<'a> = (&'a str, &'a str, &'a [(i64, i64)]);
+
+/// Coils at the grid indices `ks` on folio 103 (`-103K1`, `-103K2`, … in this order) and the wires `(a, b, route)`
+/// between their CPs, each route a list of grid indices (empty: unrouted), drawn by `connection.draw`.
+fn coils_and_wires(s: &mut ShellModel, ks: &[(i64, i64)], wires: &[WireSpec<'_>]) {
+    for k in ks {
+        done(
+            s,
+            "place.pick",
+            json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+        );
+        let p = grid_point(s, *k);
+        // With Alt: the coils join only by the wires given, never by autoconnect.
+        cursor(s, p);
+        done(s, "canvas.activate_alt", json!({}));
+        done(s, "ui.dismiss", json!({}));
+    }
+    let page = tables(s).page.to_string();
+    for (a, b, points) in wires {
+        let pin = |label: &str| {
+            let c = cp(s, label);
+            json!({"cp": {"function": c.function.to_string(), "idx": c.idx}})
+        };
+        let route: Vec<Value> = points
+            .iter()
+            .map(|k| {
+                let p = grid_point(s, *k);
+                json!([p.0, p.1])
+            })
+            .collect();
+        let params = json!({"a": pin(a), "b": pin(b), "page": page, "route": route});
+        done(
+            s,
+            "command.run",
+            json!({"cmd": "connection.draw", "params": params}),
+        );
+    }
+}
+
+/// The card line of the describe text, while a card is open.
+fn card_line(s: &ShellModel) -> String {
+    describe_line(s, "card ").expect("a card")
+}
+
+/// WP-S2.19 RW1 (D13, §12a): on folio 103 with two unrouted wires, one between two free coils and one from a CP whose
+/// stub ends in another coil, Route page previews the plan, its lead and its unrouted row in en-GB and nl-NL; Apply
+/// commits one `connection.route_many` (one undo step) and the toast says what it routed; a second Route page has
+/// nothing to do.
+#[test]
+fn rw1_route_page_previews_the_plan_and_applies_it_in_one_step() {
+    let tmp = Tmp::new("rw1");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (55, 29), (70, 20), (70, 25)],
+        &[("-103K1:A2", "-103K2:A1", &[]), ("-103K3:A2", "-103K2:A2", &[])],
+    );
+    done(&mut s, "route.page", json!({}));
+    assert_eq!(
+        card_line(&s),
+        "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"Route 2 wires on folio 103: 1 \
+         routed, 1 not routed.\" \"No route keeps clear of symbols: -103K3:A2 → -103K2:A2.\""
+    );
+    // ID-1509 (9), the window check's C3: the card's title names the button.
+    let title = |s: &ShellModel| s.properties().card().expect("the card").command().to_owned();
+    assert_eq!(title(&s), "Route page");
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    done(&mut s, "preview.cancel", json!({}));
+    done(&mut s, "route.page", json!({}));
+    assert_eq!(title(&s), "Pagina routeren");
+    assert_eq!(
+        card_line(&s),
+        "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"2 draden op folio 103 \
+         routeren: 1 gerouteerd, 1 niet gerouteerd.\" \"Geen route blijft vrij van symbolen: -103K3:A2 → \
+         -103K2:A2.\""
+    );
+    done(&mut s, "view.language", json!({"value": "en"}));
+    let rev = s.revision();
+    done(&mut s, "preview.apply", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
+    assert_eq!(
+        s.toast().map(|t| t.text.as_str()),
+        Some("Routed 1 wire on folio 103.")
+    );
+    let t = tables(&s);
+    let routed: Vec<bool> = t
+        .connections
+        .iter()
+        .filter(|c| c.polyline.len() > 1 && cp_label_at(&t, c).starts_with("-103K"))
+        .map(|c| c.stored_route)
+        .collect();
+    assert_eq!(routed.iter().filter(|r| **r).count(), 1, "{routed:?}");
+    // The unroutable wire stays; only it is left, so Route page previews it again and routes none.
+    assert_eq!(
+        done_outcome(&mut s, "route.page"),
+        "Route 1 wire on folio 103: 0 routed, 1 not routed."
+    );
+}
+
+/// ID-1509 (8), the window check's F2: a Route selection plan whose routes are the ones drawn opens no card and says
+/// so, in en-GB and nl-NL.
+#[test]
+fn route_selection_with_a_plan_that_changes_nothing_opens_no_card() {
+    let tmp = Tmp::new("f2");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(&mut s, &[(55, 20), (55, 29)], &[("-103K1:A2", "-103K2:A1", &[])]);
+    done(&mut s, "route.page", json!({}));
+    done(&mut s, "preview.apply", json!({}));
+    let t = tables(&s);
+    let wire = t
+        .connections
+        .iter()
+        .find(|c| end_label(&t, &c.a) == "-103K1:A2")
+        .expect("the wire")
+        .clone();
+    assert!(wire.stored_route, "Route page routed it");
+    let mid = sheet(
+        &s,
+        (
+            (wire.polyline[0].0 + wire.polyline[1].0) / 2,
+            (wire.polyline[0].1 + wire.polyline[1].1) / 2,
+        ),
+    );
+    done(&mut s, "canvas.press", at(mid, json!({})));
+    done(&mut s, "canvas.release", at(mid, json!({})));
+    let rev = s.revision();
+    done(&mut s, "route.selection", json!({}));
+    assert_eq!(describe_line(&s, "card "), None, "no card");
+    assert_eq!(s.revision(), rev, "nothing committed");
+    assert_eq!(
+        s.toast().map(|t| t.text.as_str()),
+        Some("Nothing to change: the selected wires keep their routes.")
+    );
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    done(&mut s, "route.selection", json!({}));
+    assert_eq!(
+        s.toast().map(|t| t.text.as_str()),
+        Some("Niets te wijzigen: de geselecteerde draden houden hun routes.")
+    );
+}
+
+/// The label of a connection's end `a`.
+fn cp_label_at(t: &PageTables, c: &TableConnection) -> String {
+    end_label(t, &c.a)
+}
+
+/// The failure message of `action` (a solve that routes nothing fails with its lead).
+fn done_outcome(s: &mut ShellModel, action: &str) -> String {
+    match s.dispatch(action, &json!({})) {
+        ew_viewmodel::shell::Outcome::Failed { message } => message,
+        other => panic!("{action}: {other:?}"),
+    }
+}
+
+/// WP-S2.19 RW2 (D13): Route selection with one routed wire selected routes it again, in the card's one step; the
+/// page's other wires keep their routes.
+#[test]
+fn rw2_route_selection_re_routes_a_selected_wire_and_nothing_else() {
+    let tmp = Tmp::new("rw2");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (65, 20)],
+        &[(
+            "-103K1:A2",
+            "-103K2:A2",
+            &[(55, 24), (55, 31), (60, 31), (60, 26), (65, 26), (65, 24)],
+        )],
+    );
+    let before = tables(&s);
+    let wire = before
+        .connections
+        .iter()
+        .find(|c| end_label(&before, &c.a) == "-103K1:A2")
+        .expect("the wire")
+        .clone();
+    let mid = sheet(
+        &s,
+        (wire.polyline[1].0, (wire.polyline[1].1 + wire.polyline[2].1) / 2),
+    );
+    done(&mut s, "canvas.press", at(mid, json!({})));
+    done(&mut s, "canvas.release", at(mid, json!({})));
+    done(&mut s, "route.selection", json!({}));
+    assert_eq!(
+        card_line(&s),
+        "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"Route 1 wire on folio 103: 1 \
+         routed, 0 not routed.\""
+    );
+    // ID-1509 (9), the window check's C3: the card's title names the button.
+    let card = s.properties().card().expect("the card").command().to_owned();
+    assert_eq!(card, "Route selection");
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    assert_eq!(
+        s.properties().card().expect("the card").command(),
+        "Selectie routeren"
+    );
+    done(&mut s, "view.language", json!({"value": "en"}));
+    done(&mut s, "preview.apply", json!({}));
+    let after = tables(&s);
+    let now = after
+        .connections
+        .iter()
+        .find(|c| c.id == wire.id)
+        .expect("the wire");
+    assert_ne!(now.polyline, wire.polyline, "routed again");
+    let others = |t: &PageTables| -> Vec<(ew_viewmodel::ew_api::output::Uuid, Vec<(i64, i64)>)> {
+        t.connections
+            .iter()
+            .filter(|c| c.id != wire.id)
+            .map(|c| (c.id, c.polyline.clone()))
+            .collect()
+    };
+    assert_eq!(others(&after), others(&before), "nothing else changes");
+}
+
+/// ID-1509 (8), C53-rt#6: Route selection needs a selected wire or symbol; with nothing selected it is refused,
+/// whatever the page holds unrouted.
+#[test]
+fn route_selection_needs_a_selection() {
+    let tmp = Tmp::new("rt6");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(&mut s, &[(55, 20), (55, 29)], &[("-103K1:A2", "-103K2:A1", &[])]);
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(
+        s.dispatch("route.selection", &json!({})),
+        ew_viewmodel::shell::Outcome::Refused {
+            reason_key: ew_viewmodel::key!("reason-route-selection")
+        }
     );
 }
 
@@ -461,7 +964,7 @@ fn wr4_a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_co
 fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire() {
     let tmp = Tmp::new("split");
     let mut s = shell(&tmp, "101");
-    // W13: from J1 to E55:L, route-less (an L).
+    // W13: from J1 to E55:L, routed by Golden A's route tool.
     let e55 = cp(&s, "E55:L");
     let w13 = tables(&s)
         .connections
@@ -472,7 +975,6 @@ fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire()
         })
         .expect("W13")
         .clone();
-    assert!(!w13.stored_route);
     let drawn = line(&w13);
     // W13's printed number before the insert.
     let number_before = {
@@ -504,9 +1006,14 @@ fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire()
         .clone();
     assert!(routed.stored_route);
     assert_eq!(line(&routed), drawn);
-    // A contact dropped onto its vertical segment, its CPs facing the ends: one split proposal, no hint.
-    let x = drawn[1].0;
-    let (y0, y1) = (drawn[1].1.min(drawn[2].1), drawn[1].1.max(drawn[2].1));
+    // A contact dropped onto its longest vertical segment, its CPs facing the ends: one split proposal, no hint.
+    let seg = drawn
+        .windows(2)
+        .filter(|w| w[0].0 == w[1].0)
+        .max_by_key(|w| (w[0].1 - w[1].1).abs())
+        .expect("a vertical segment");
+    let x = seg[0].0;
+    let (y0, y1) = (seg[0].1.min(seg[1].1), seg[0].1.max(seg[1].1));
     let sn = s.canvas().unwrap().page().snapper.clone();
     let k = (sn.grid_index_of(y0) + sn.grid_index_of(y1)) / 2 - 2;
     let p = (x, sn.page_of_index(k));
@@ -585,7 +1092,7 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
     let w = tables(&s)
         .connections
         .iter()
-        .find(|c| line(c).len() == 3 && line(c)[2].1 == 13_229_167 && line(c)[0].0 == 121_708_333)
+        .find(|c| line(c).len() == 3 && line(c)[2].1 == 15_875_000 && line(c)[0].0 == 127_000_000)
         .expect("-102G1:PE to PE-1.2")
         .clone();
     let pts = line(&w);
@@ -842,14 +1349,20 @@ fn wr9_every_part_2_word_is_reached_and_in_the_vocabulary() {
     done(&mut s, "tool.route_edit", json!({}));
     done(&mut s, "canvas.activate", json!({}));
     let drawn = line(&w13);
+    // Its longest vertical segment.
+    let seg = drawn
+        .windows(2)
+        .filter(|w| w[0].0 == w[1].0)
+        .max_by_key(|w| (w[0].1 - w[1].1).abs())
+        .expect("a vertical segment");
     let sn = s.canvas().unwrap().page().snapper.clone();
-    let k = (sn.grid_index_of(drawn[1].1) + sn.grid_index_of(drawn[2].1)) / 2 - 2;
+    let k = (sn.grid_index_of(seg[0].1) + sn.grid_index_of(seg[1].1)) / 2 - 2;
     done(
         &mut s,
         "place.pick",
         json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
     );
-    cursor(&mut s, (drawn[1].0, sn.page_of_index(k)));
+    cursor(&mut s, (seg[0].0, sn.page_of_index(k)));
     texts.push(s.describe());
     let p0 = grid_point(&s, (60, 38));
     cursor(&mut s, p0);
@@ -939,20 +1452,16 @@ fn wr10_the_wire_tool_routes_once_per_changed_target_and_reads_nothing() {
 fn the_rubber_band_of_a_move_is_the_route_rep_move_stores() {
     let tmp = Tmp::new("band");
     let mut s = shell(&tmp, "102");
-    // A straight wire from -102F2:13 up to a grid point above it, then -102F2's box moved one step right: the far end
-    // stays and the wire takes a dog-leg, in the rubber band and in the stored route alike.
-    done(&mut s, "tool.wire", json!({}));
-    let a = cp(&s, "-102F2:13");
-    enter_at(&mut s, a.at);
-    let target = cp(&s, "-102G1:−#2");
-    enter_at(&mut s, target.at);
-    done(&mut s, "ui.dismiss", json!({}));
+    // The routed wire from -102F2:Out1 to 24VDC-1, then -102F2's box moved one step right: the far end stays and the
+    // wire's route follows, in the rubber band and in the stored route alike.
+    let a = cp(&s, "-102F2:Out1");
+    let target = cp(&s, "24VDC-1");
     let t = tables(&s);
     let wire = t
         .connections
         .iter()
         .filter(|c| c.stored_route)
-        .find(|c| end_label(&t, &c.a) == "-102F2:13")
+        .find(|c| end_label(&t, &c.a) == "-102F2:Out1")
         .unwrap()
         .clone();
     let rep = t.reps.iter().find(|r| r.id == a.rep).unwrap().clone();

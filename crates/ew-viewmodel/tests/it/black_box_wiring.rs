@@ -51,7 +51,7 @@ fn cursor_k(s: &mut ShellModel, k: (i64, i64)) {
     done(s, "cursor.set", at(q, json!({})));
 }
 
-/// Draws the black box of the two-FnDef part with corners at grid indices (60, 40) and (66, 44); returns its ID text.
+/// Draws the black box of the two-FnDef part with corners at grid indices (30, 44) and (36, 48); returns its ID text.
 fn draw_box(s: &mut ShellModel) -> String {
     let fixture: Value =
         serde_json::from_str(&std::fs::read_to_string(TWO_FNDEF_PART).expect("the fixture")).expect("JSON");
@@ -66,9 +66,9 @@ fn draw_box(s: &mut ShellModel) -> String {
         json!({"part": "MICO 4.10 TWO", "template": 0, "letter": "A"}),
     );
     assert_eq!(s.tool().name(), "black_box");
-    cursor_k(s, (60, 40));
+    cursor_k(s, (30, 44));
     done(s, "canvas.activate", json!({}));
-    cursor_k(s, (66, 44));
+    cursor_k(s, (36, 48));
     done(s, "canvas.activate", json!({}));
     done(s, "ui.dismiss", json!({}));
     tables(s)
@@ -103,7 +103,7 @@ fn bbox(s: &ShellModel, rep: &str) -> ((i64, i64), (i64, i64)) {
 }
 
 /// For every pin of the box: the Wire tool from the pin to the grid point three steps out along the pin's direction,
-/// ended in an interruption point with P; each is one commit whose wire starts exactly at the pin.
+/// ended in an interruption point with P; each is one commit whose wire starts exactly at the pin, undone before the next.
 fn wire_every_pin(s: &mut ShellModel, rep: &str, what: &str) {
     // From right to left: an interruption point's name stands to its right, so the next wire's end stays clear of it.
     let mut order = pins(s, rep);
@@ -140,6 +140,9 @@ fn wire_every_pin(s: &mut ShellModel, rep: &str, what: &str) {
             .expect("the new wire");
         assert_eq!(wire.polyline.first(), Some(&pin.at), "{what}: pin {}", pin.label);
         done(s, "ui.dismiss", json!({}));
+        // Each pin on its own: the point's connection point leaves sideways (WP-S2.19 D16), so a neighbour's point
+        // one grid step away would block the next end's stub under the router's hard rules.
+        done(s, "edit.undo", json!({}));
     }
 }
 
@@ -155,9 +158,9 @@ fn a_black_box_moved_one_step_with_m_takes_a_wire_on_every_pin() {
         let rep = draw_box(&mut s);
         let before = bbox(&s, &rep);
         select(&mut s, &rep);
-        cursor_k(&mut s, (60, 40));
+        cursor_k(&mut s, (30, 44));
         done(&mut s, "tool.move", json!({}));
-        cursor_k(&mut s, (60 + dx, 40 + dy));
+        cursor_k(&mut s, (30 + dx, 44 + dy));
         done(&mut s, "canvas.activate", json!({}));
         let after = bbox(&s, &rep);
         assert_ne!(before, after, "the box moved by ({dx}, {dy})");

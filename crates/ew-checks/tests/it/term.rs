@@ -475,34 +475,41 @@ fn term006_reports(wire: u128, number: &'static str) -> impl Fn(&str, &[ew_check
     }
 }
 
-/// FT-1020 (decision log ID-1104): a terminal whose connection points lie on a wire it does not join is one warning,
-/// on a wire without a route (drawn straight between its ends) as on a routed one; once the wire is split at the
-/// terminal, or with the terminal beside it, there is none. The message leads with the terminal (ID-1110), so the
+/// FT-1020 (decision log ID-1104): a terminal whose connection points lie on a routed wire it does not join is one
+/// warning; once the wire is split at the terminal, or with the terminal beside it, there is none. An unrouted wire
+/// (no route) has no wire geometry and is not seen (WP-S2.19 D3). The message leads with the terminal (ID-1110), so the
 /// Messages row, which prints the subject before a message that does not lead with it, names it once.
 #[test]
 fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
     let k1 = Ep::Cp(TERM_K1, 1);
     let k2 = Ep::Cp(TERM_K2, 0);
     let over = |route: Vec<[i64; 2]>| term006_fx([0, 32_000_000], &[(TERM_WIRE, k1, k2, route)]);
+    let straight = || vec![[0, 17_000_000], [0, 64_000_000]];
     let split = term006_fx(
         [0, 32_000_000],
         &[
-            (TERM_WIRE, k1, Ep::Cp(TERM_FN, 0), Vec::new()),
-            (0x901, Ep::Cp(TERM_FN, 1), k2, Vec::new()),
+            (
+                TERM_WIRE,
+                k1,
+                Ep::Cp(TERM_FN, 0),
+                vec![[0, 17_000_000], [0, 32_000_000]],
+            ),
+            (
+                0x901,
+                Ep::Cp(TERM_FN, 1),
+                k2,
+                vec![[0, 33_000_000], [0, 64_000_000]],
+            ),
         ],
     );
-    let beside = term006_fx([4_000_000, 32_000_000], &[(TERM_WIRE, k1, k2, Vec::new())]);
+    let beside = term006_fx([4_000_000, 32_000_000], &[(TERM_WIRE, k1, k2, straight())]);
     rule_table(
         "EW-TERM-006",
         vec![
-            Case::reports(
-                "a wire without a route",
-                over(Vec::new()).build(),
-                term006_reports(TERM_WIRE, "1.1"),
-            ),
+            Case::silent("an unrouted wire", over(Vec::new()).build()),
             Case::reports(
                 "a routed wire",
-                over(vec![[0, 17_000_000], [0, 64_000_000]]).build(),
+                over(straight()).build(),
                 term006_reports(TERM_WIRE, "1.1"),
             ),
             Case::silent("the wire split at the terminal", split.build()),
@@ -510,7 +517,7 @@ fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
         ],
     );
     // The release run reports it too.
-    let m = over(Vec::new()).build();
+    let m = over(straight()).build();
     let report = run(&Q::new(&m), &PRE_DELIVERY, CheckMode::Release);
     assert_eq!(
         report.findings.iter().filter(|f| f.rule == "EW-TERM-006").count(),
@@ -521,8 +528,8 @@ fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
 }
 
 /// C45-p1#3 and #4 (decision log ID-1110): each branch of EW-TERM-006, with the whole finding. A horizontal wire (the
-/// horizontal lines), a slanted route segment (tested one by one), an L-shaped path without a route (its corner from
-/// the leaving direction: a wrong corner misses the terminal), a cable core (no wire number: "?"); silent when the wire
+/// horizontal lines), a slanted route segment (tested one by one), an L-shaped route, a cable core (no wire number:
+/// "?"); every wire routed, as an unrouted one is not seen (WP-S2.19 D3); silent when the wire
 /// ends at another function of the terminal's device, or at a junction standing on the terminal's CP that a connection
 /// joins to the terminal; a junction on the CP that is not joined to it, or one joined to it beside its CPs, does not
 /// join the wire.
@@ -548,7 +555,12 @@ fn term006_every_branch() {
 
     let mut horizontal = term006_fx(
         [20 * MM, 80 * MM],
-        &[(TERM_WIRE, Ep::Cp(H1, 0), Ep::Cp(H2, 0), Vec::new())],
+        &[(
+            TERM_WIRE,
+            Ep::Cp(H1, 0),
+            Ep::Cp(H2, 0),
+            vec![[0, 80 * MM], [40 * MM, 80 * MM]],
+        )],
     );
     horizontal.func_at(H1, P1, [0, 80 * MM]);
     horizontal.func_at(H2, P1, [40 * MM, 80 * MM]);
@@ -556,13 +568,30 @@ fn term006_every_branch() {
         on_cp,
         &[(TERM_WIRE, k1, k2, vec![[-8 * MM, 24 * MM], [8 * MM, 40 * MM]])],
     );
-    let mut l_shaped = term006_fx([20 * MM, 48 * MM], &[(TERM_WIRE, k1, Ep::Cp(L, 0), Vec::new())]);
+    let mut l_shaped = term006_fx(
+        [20 * MM, 48 * MM],
+        &[(
+            TERM_WIRE,
+            k1,
+            Ep::Cp(L, 0),
+            vec![[0, 17 * MM], [0, 48 * MM], [40 * MM, 48 * MM]],
+        )],
+    );
     l_shaped.func_at(L, P1, [40 * MM, 48 * MM]);
     let mut core = term006_fx(on_cp, &[]);
     core.push(json!({"$k": "device", "id": us(0x6000), "tag": {"letter": "W", "counter": 1}, "cable": {}}));
     core.push(json!({"$k": "conductor", "id": us(0x6001), "cable": us(0x6000), "core": "1"}));
-    core.conn(TERM_WIRE, P1, k1, k2, &json!({"kind": {"core": us(0x6001)}}));
-    let mut other_function = term006_fx(on_cp, &[(TERM_WIRE, k1, Ep::Cp(FN2, 0), Vec::new())]);
+    core.conn(
+        TERM_WIRE,
+        P1,
+        k1,
+        k2,
+        &json!({"kind": {"core": us(0x6001)}, "route": [[0, 17 * MM], [0, 64 * MM]]}),
+    );
+    let mut other_function = term006_fx(
+        on_cp,
+        &[(TERM_WIRE, k1, Ep::Cp(FN2, 0), vec![[0, 17 * MM], [0, 96 * MM]])],
+    );
     other_function.drawn_function(FN2, TERM_T, P1, [0, 96 * MM]);
     for r in &mut other_function.records {
         if r["$k"] == "function" && r["id"] == json!(us(FN2)) {
@@ -572,19 +601,24 @@ fn term006_every_branch() {
     let mut joined_junction = term006_fx(
         on_cp,
         &[
-            (TERM_WIRE, k1, Ep::J(J), Vec::new()),
+            (TERM_WIRE, k1, Ep::J(J), vec![[0, 17 * MM], on_cp]),
             (W2, Ep::J(J), Ep::Cp(TERM_FN, 0), Vec::new()),
-            (W3, Ep::J(J), k2, Vec::new()),
+            (W3, Ep::J(J), k2, vec![on_cp, [0, 64 * MM]]),
         ],
     );
     junction(&mut joined_junction, on_cp, &[TERM_WIRE, W2, W3]);
-    let mut lone_junction = term006_fx(on_cp, &[(TERM_WIRE, k1, Ep::J(J), Vec::new())]);
+    let mut lone_junction = term006_fx(on_cp, &[(TERM_WIRE, k1, Ep::J(J), vec![[0, 17 * MM], on_cp])]);
     junction(&mut lone_junction, on_cp, &[TERM_WIRE]);
     let mut junction_beside = term006_fx(
         on_cp,
         &[
-            (TERM_WIRE, k1, Ep::J(J), Vec::new()),
-            (W2, Ep::J(J), Ep::Cp(TERM_FN, 0), Vec::new()),
+            (
+                TERM_WIRE,
+                k1,
+                Ep::J(J),
+                vec![[0, 17 * MM], on_cp, [4 * MM, 32 * MM]],
+            ),
+            (W2, Ep::J(J), Ep::Cp(TERM_FN, 0), vec![[4 * MM, 32 * MM], on_cp]),
         ],
     );
     junction(&mut junction_beside, [4 * MM, 32 * MM], &[TERM_WIRE, W2]);
@@ -603,7 +637,7 @@ fn term006_every_branch() {
                 term006_reports(TERM_WIRE, "1.1"),
             ),
             Case::reports(
-                "an L-shaped path without a route",
+                "an L-shaped route",
                 l_shaped.build(),
                 term006_reports(TERM_WIRE, "1.1"),
             ),

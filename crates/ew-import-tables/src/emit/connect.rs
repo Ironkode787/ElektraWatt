@@ -318,7 +318,9 @@ fn route_cells(r: &mut Rd<'_>) -> Vec<((i64, i64), i64, i64)> {
 /// to the point where end `b` is drawn, as `connection.draw` stores it
 /// (`ew_commands::geometry::require_route`). A CP drawn by a symbol may lie off the page grid by the nm rounding of
 /// QET px, so a corner coordinate that names the same QET px as a coordinate of an end takes the end's exact value;
-/// every other corner coordinate must be a point of the page grid (never snapped, doc 06 §5.7).
+/// every other corner coordinate must be a point of the page grid (never snapped, doc 06 §5.7). An end the tables do
+/// not place (a CP of a function no symbol or black box draws: a strip segment's terminal) takes the route's first or
+/// last item as its point, on the page grid.
 fn stored_route(
     cx: &Cx<'_>,
     page: PageInfo,
@@ -343,7 +345,55 @@ fn stored_route(
             )
         })
     };
-    let (a, b) = (end(a, a_text)?, end(b, b_text)?);
+    // An end the tables do not place (a strip segment's terminal, drawn from derived queries: a CP of a function no
+    // symbol or black box draws) is named by the route itself: its first item is end `a`'s point, its last end `b`'s
+    // (WP-S2.19 §8.2, Golden A's router-written routes).
+    let undrawn = |e: &Endpoint| match e {
+        Endpoint::Cp(f, _) => {
+            !cx.cp_points.keys().any(|(g, _, _)| g == f)
+                && cx
+                    .functions
+                    .values()
+                    .find(|i| i.id == *f)
+                    .and_then(|i| i.device.as_ref())
+                    .and_then(|d| cx.devices.get(d))
+                    .is_some_and(|d| d.terminal)
+        }
+        _ => false,
+    };
+    let (a_named, b_named) = (undrawn(a), undrawn(b));
+    let mut corners = corners;
+    let grid_point = |c: &((i64, i64), i64, i64)| -> Result<Pt2, String> {
+        let p = cell_point(c.0, c.1, c.2).ok_or("column `route`: a corner is out of range")?;
+        match (grid_index(page.grid, p.x), grid_index(page.grid, p.y)) {
+            (Some(_), Some(_)) => Ok(p),
+            _ => Err(
+                "column `route`: an end's point is off the page grid (positions are never snapped)".into(),
+            ),
+        }
+    };
+    let a = match end(a, a_text) {
+        Ok(p) => p,
+        Err(e) if !a_named => return Err(e),
+        Err(e) => match corners.split_first() {
+            Some((first, rest)) => {
+                corners = rest;
+                grid_point(first)?
+            }
+            None => return Err(e),
+        },
+    };
+    let b = match end(b, b_text) {
+        Ok(p) => p,
+        Err(e) if !b_named => return Err(e),
+        Err(e) => match corners.split_last() {
+            Some((last, rest)) => {
+                corners = rest;
+                grid_point(last)?
+            }
+            None => return Err(e),
+        },
+    };
     let px = |v: Nm| Grid::QET_1PX.snap(v);
     let coordinate = |v: Nm, ends: [Nm; 2]| -> Result<Nm, String> {
         match ends.into_iter().find(|e| px(*e) == px(v)) {
@@ -361,6 +411,12 @@ fn stored_route(
         ));
     }
     route.push(b);
+    // A corner on an end (a straight route names end `b` as its one corner) is no vertex of its own: the stored route
+    // repeats no point, as `connection.route` requires; its two ends stay where they meet (FT-1029).
+    route.dedup();
+    if route.len() == 1 {
+        route.push(b);
+    }
     Ok(route)
 }
 

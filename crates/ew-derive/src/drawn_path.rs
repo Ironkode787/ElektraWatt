@@ -2,14 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The path a connection is drawn along on its page (doc 06 §5.4), one rule for the page and the model (FT-1020,
-//! decision log ID-1104, ID-1110): the page scene (`ew-scene`, `route::provisional_route`) draws a connection without a
-//! route along [`provisional_path`], normaliser 7 of `ew-commands` splits a connection under a dropped symbol along it
-//! (its ends placed by [`rep_cp_end`](crate::rep_cp_end)), and EW-TERM-006 names a terminal lying on a wire it does not
-//! join.
+//! decision log ID-1104, ID-1110): the page scene (`ew-scene`, `route::connection_polyline`) draws a wire along it,
+//! normaliser 7 of `ew-commands` splits a connection under a dropped symbol along it (its ends placed by
+//! [`rep_cp_end`](crate::rep_cp_end)), and EW-TERM-006 names a terminal lying on a wire it does not join.
 //!
-//! - A connection with a stored route is drawn through its ends' points and the stored vertices,
-//!   `[a] ++ route ++ [b]`.
-//! - A connection without one is drawn along [`provisional_path`] between its ends.
+//! - A connection with a stored route is drawn along it as stored ([`stored_path`]): the route holds every vertex
+//!   from end `a`'s point to end `b`'s, both included (WP-S2.19 D2, ADR-0033); equal neighbours are merged, and an
+//!   end whose point differs from the route's end vertex (a stale route) is joined to it by one straight segment.
+//! - A connection without one has no wire geometry (WP-S2.19 D3): it is *unrouted* (the scene draws a dashed straight
+//!   line between its ends, which no rule reads) or, with its ends at one point, drawn as nothing.
 //! - An end at a CP is the CP's point and leaving direction on the page ([`cp_end`]); an end at a junction is the
 //!   junction's point, without a direction. A connection one of whose ends is not drawn on the page is not drawn.
 //!
@@ -54,35 +55,6 @@ pub fn oriented_dir(d: &Dir4, o: Orient2) -> Option<Dir4> {
     }
 }
 
-/// The provisional path of a connection without a stored route, from end `a` to end `b`, each with whether a wire
-/// leaves it along y ([`dir_vertical`]; `None` for a junction or an unknown direction). The page scene draws it
-/// (`ew-scene`, `route::provisional_route`, which then clamps it into the sheet), and the router of `ew-commands` falls
-/// back to it.
-///
-/// 1. `a == b` gives `[a]` (a single point; nothing is drawn).
-/// 2. Ends on one x or one y give the straight segment `[a, b]`.
-/// 3. Otherwise an L with one corner from the ends' own coordinates: the wire leaves `a` along its axis (along y the
-///    corner is `(a.x, b.y)`, along x `(b.x, a.y)`); when `a` has no direction it arrives at `b` along `b`'s axis
-///    (along y the corner is `(b.x, a.y)`, along x `(a.x, b.y)`); with neither direction the corner is `(b.x, a.y)`.
-pub fn provisional_path(a: Pt2, a_vertical: Option<bool>, b: Pt2, b_vertical: Option<bool>) -> Vec<Pt2> {
-    if a == b {
-        return vec![a];
-    }
-    if a.x == b.x || a.y == b.y {
-        return vec![a, b];
-    }
-    let vertical_first = Pt2::new(a.x, b.y);
-    let horizontal_first = Pt2::new(b.x, a.y);
-    let corner = match (a_vertical, b_vertical) {
-        (Some(true), _) => vertical_first,
-        (Some(false), _) => horizontal_first,
-        (None, Some(true)) => horizontal_first,
-        (None, Some(false)) => vertical_first,
-        (None, None) => horizontal_first,
-    };
-    vec![a, corner, b]
-}
-
 /// Whether `p` lies on the closed segment `a`–`b`: exactly, collinear by an `i128` cross product and inside the
 /// segment's bounding box. A product that would overflow `i128` (a coordinate far beyond the ±(2⁵³ − 1) nm a record
 /// holds, ADR-0005) counts as off the segment.
@@ -98,9 +70,10 @@ pub fn on_segment(p: Pt2, a: Pt2, b: Pt2) -> bool {
 }
 
 /// The path connection `c` is drawn along on `page` (see the module documentation), from its end `a` to its end `b`;
-/// `None` when it is not drawn there: it belongs to another page (or none), or an end is not drawn on `page`.
+/// `None` when it is no wire there: it belongs to another page (or none), an end is not drawn on `page`, or it has no
+/// stored route (unrouted, WP-S2.19 D3).
 pub fn drawn_path(q: &Q, c: &Connection, page: Id<Page>) -> Option<Vec<Pt2>> {
-    if c.page != Some(page) {
+    if c.page != Some(page) || c.route.is_empty() {
         return None;
     }
     let end = |e: &Endpoint| match e {
@@ -112,16 +85,25 @@ pub fn drawn_path(q: &Q, c: &Connection, page: Id<Page>) -> Option<Vec<Pt2>> {
             .map(|j| (j.at, None)),
         Endpoint::Unknown(_) => None,
     };
-    let ((a, a_dir), (b, b_dir)) = (end(&c.a)?, end(&c.b)?);
-    if c.route.is_empty() {
-        let vertical = |d: Option<Dir4>| d.as_ref().and_then(dir_vertical);
-        return Some(provisional_path(a, vertical(a_dir), b, vertical(b_dir)));
+    let ((a, _), (b, _)) = (end(&c.a)?, end(&c.b)?);
+    Some(stored_path(a, &c.route, b))
+}
+
+/// The path a stored `route` is drawn along between the ends' points `a` and `b` (WP-S2.19 D2): the route as stored,
+/// both ends included, equal neighbours merged; an end whose point differs from the route's end vertex (a stale route,
+/// an end moved without the route following) is joined to it by one straight segment. An empty route gives `[a, b]`
+/// (`[a]` for equal points).
+pub fn stored_path(a: Pt2, route: &[Pt2], b: Pt2) -> Vec<Pt2> {
+    let mut path: Vec<Pt2> = Vec::with_capacity(route.len() + 2);
+    for p in std::iter::once(a)
+        .chain(route.iter().copied())
+        .chain(std::iter::once(b))
+    {
+        if path.last() != Some(&p) {
+            path.push(p);
+        }
     }
-    let mut path = Vec::with_capacity(c.route.len() + 2);
-    path.push(a);
-    path.extend_from_slice(&c.route);
-    path.push(b);
-    Some(path)
+    path
 }
 
 #[cfg(test)]
@@ -130,18 +112,6 @@ mod tests {
 
     fn p(x: i64, y: i64) -> Pt2 {
         Pt2::new(Nm(x), Nm(y))
-    }
-
-    #[test]
-    fn the_corner_follows_the_scene_s_rule() {
-        let (a, b) = (p(0, 0), p(10, 20));
-        assert_eq!(provisional_path(a, Some(true), b, Some(false)), [a, p(0, 20), b]);
-        assert_eq!(provisional_path(a, Some(false), b, Some(true)), [a, p(10, 0), b]);
-        assert_eq!(provisional_path(a, None, b, Some(true)), [a, p(10, 0), b]);
-        assert_eq!(provisional_path(a, None, b, Some(false)), [a, p(0, 20), b]);
-        assert_eq!(provisional_path(a, None, b, None), [a, p(10, 0), b]);
-        assert_eq!(provisional_path(a, Some(true), p(0, 5), None), [a, p(0, 5)]);
-        assert_eq!(provisional_path(a, Some(true), a, None), [a]);
     }
 
     #[test]

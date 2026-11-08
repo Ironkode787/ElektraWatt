@@ -7,8 +7,11 @@
 //! `connection.draw`'s `route`, so the command stores what the ghost showed and the router never runs on replay.
 //!
 //! **The search.** Grid nodes inside the area (the area's nearest grid indices, extended to hold both ends and
-//! their stubs), 4-neighbourhood, cost 1 per step and 4 per bend, no move back against the arriving heading (a
-//! U-turn would cost one bend only; FT-437). A node whose page point lies strictly inside an
+//! their stubs), 4-neighbourhood, cost [`STEP_COST`] per step and [`BEND_COST`] per bend (WP-S2.19 D6: 2 and 8,
+//! today's ratio), [`RouteRequest::cross_cost`] more for each right-angle crossing of another wire
+//! ([`CROSSING_COST`] in a page solve) and [`MATE_STEP_COST`] instead of a step's cost beside a mate's route
+//! ([`RouteRequest::mates`], §5.4), no move back against the arriving heading (a U-turn would cost one bend only;
+//! FT-437). A node whose page point lies strictly inside an
 //! obstacle rectangle is blocked, and a move that runs through the open inside of one is not taken (FT-706: a text
 //! thinner than a grid step lies between two nodes); the two ends, their nearest grid nodes and their stub nodes
 //! are never blocked, nor the move from a CP end to its stub. The nodes of the [`RouteRequest::reserved`] points
@@ -45,21 +48,32 @@
 //! end takes that end's coordinate on the axis of the segment between them (a CP may sit up to 1 nm off a rational
 //! grid; `geometry::require_route` accepts a coordinate equal to an end CP's), collinear and duplicate interior
 //! vertices removed. Without a path inside the area (or with an unusable grid or an area of more than
-//! [`MAX_NODES`] nodes) the result is the provisional L route of `ew-scene`'s rule: a straight segment for aligned
-//! ends, else one corner from the ends' own coordinates.
+//! [`MAX_NODES`] nodes) there is no route ([`Routed::direct`]): the result is the straight line between the ends, the
+//! line an unrouted connection is drawn with (WP-S2.19 D3), never a wire.
 
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
-use ew_units::{Grid, Nm, Pt2};
+use ew_units::{Grid, Nm};
 
-/// The largest search area, in grid nodes, beyond which the router falls back to the L route: 2¹⁸ = 262 144, an A0
+/// The largest search area, in grid nodes, beyond which the router finds no route: 2¹⁸ = 262 144, an A0
 /// sheet (1189 × 841 mm) at a 2.5 mm grid (476 × 337 = 160 412 nodes) with room to spare (fix round of WP-S2.04
 /// part 2, item 3: the distance table is five states per node).
 pub const MAX_NODES: usize = 262_144;
 
-/// The cost of a bend, in steps.
-pub const BEND_COST: u32 = 4;
+/// The cost of a unit step (WP-S2.19 D6).
+pub const STEP_COST: u32 = 2;
+
+/// The cost of a bend: four steps (WP-S2.19 D6).
+pub const BEND_COST: u32 = 8;
+
+/// The cost of a right-angle crossing of another route: six steps (WP-S2.19 D6). A request names it in
+/// [`RouteRequest::cross_cost`]; 0 makes a crossing free.
+pub const CROSSING_COST: u32 = 12;
+
+/// The cost of a unit step beside a mate's route, one grid step away in the same heading, instead of [`STEP_COST`]
+/// (WP-S2.19 D6, §5.4).
+pub const MATE_STEP_COST: u32 = 1;
 
 /// A heading on the page (y down), in the rank order of the tie rule: right < down < left < up.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -151,6 +165,13 @@ pub struct RouteRequest {
     /// Points no route passes through, page nm: the page's other connection points and their stubs, kept for their
     /// own wires (FT-706). The node nearest to each is blocked (but for the ends and their stubs).
     pub reserved: Vec<(i64, i64)>,
+    /// The extra cost of each right-angle crossing of one of [`wires`](Self::wires) (WP-S2.19 D6:
+    /// [`CROSSING_COST`]); 0: a crossing costs nothing more than its step.
+    pub cross_cost: u32,
+    /// The segments of the routes of this route's mates (WP-S2.19 §5.4), page nm, each from its first vertex to its
+    /// second in its route's direction: a unit move one grid step beside one, within its extent and in its heading,
+    /// costs [`MATE_STEP_COST`] instead of [`STEP_COST`]. Empty: no mate.
+    pub mates: Vec<[(i64, i64); 2]>,
 }
 
 /// A route and how it was found.
@@ -158,25 +179,11 @@ pub struct RouteRequest {
 pub struct Routed {
     /// The full vertex list from the first end to the second.
     pub points: Vec<(i64, i64)>,
-    /// Whether it is the provisional L route of the fallback: no path inside the area (or an unusable grid or an
-    /// area over [`MAX_NODES`]), so the route may cross obstacles and other wires (FT-706: the tool says so).
+    /// Its cost by the weights of the search (steps, bends, crossings, mates' steps); 0 without a route.
+    pub cost: u32,
+    /// Whether no route was found: no path inside the area (or an unusable grid or an area over [`MAX_NODES`]); the
+    /// points are then the straight line between the ends, the unrouted line (WP-S2.19 D3), never a wire.
     pub direct: bool,
-}
-
-/// The provisional L route of `ew-scene`'s rule (the fallback): `[a, b]` for aligned ends (`[a]` for equal ones),
-/// else one corner from the ends' own coordinates, chosen by `a`'s direction, else `b`'s, else `(b.x, a.y)`. The rule
-/// is `ew_derive::provisional_path`, the path the page draws a connection without a route along (FT-1020).
-pub fn l_route(a: RouteEnd, b: RouteEnd) -> Vec<(i64, i64)> {
-    let point = |(x, y): (i64, i64)| Pt2::new(Nm(x), Nm(y));
-    ew_derive::provisional_path(
-        point(a.at),
-        a.dir.map(Heading::vertical),
-        point(b.at),
-        b.dir.map(Heading::vertical),
-    )
-    .into_iter()
-    .map(|p| (p.x.0, p.y.0))
-    .collect()
 }
 
 /// The search space of one request.
@@ -192,7 +199,23 @@ struct Space {
     no_right: Vec<u8>,
     /// Why the move down from a node is not taken.
     no_down: Vec<u8>,
+    /// How many other wires the move right from a node crosses at a right angle (WP-S2.19 D6).
+    cross_right: Vec<u8>,
+    /// How many other wires the move down from a node crosses.
+    cross_down: Vec<u8>,
+    /// The headings in which the move right from a node runs beside a mate (§5.4): [`MATE_FORWARD`] for right,
+    /// [`MATE_BACKWARD`] for left.
+    mate_right: Vec<u8>,
+    /// The same for the move down: [`MATE_FORWARD`] for down, [`MATE_BACKWARD`] for up.
+    mate_down: Vec<u8>,
+    /// The extra cost of a crossing ([`RouteRequest::cross_cost`]).
+    cross_cost: u32,
 }
+
+/// A mate beside a move in its forward heading (right or down).
+const MATE_FORWARD: u8 = 1;
+/// A mate beside a move in its backward heading (left or up).
+const MATE_BACKWARD: u8 = 2;
 
 /// A move on another wire's track (FT-706).
 const ON_WIRE: u8 = 1;
@@ -237,6 +260,26 @@ impl Space {
         })
     }
 
+    /// The cost of the unit move `m` from the index point `p` without its bend (WP-S2.19 D6): a step, or a mate's
+    /// step, and the crossings it makes.
+    fn move_cost(&self, p: (i64, i64), m: Heading) -> u32 {
+        let (from, cross, mate, bit) = match m {
+            Heading::Right => (p, &self.cross_right, &self.mate_right, MATE_FORWARD),
+            Heading::Down => (p, &self.cross_down, &self.mate_down, MATE_FORWARD),
+            Heading::Left => ((p.0 - 1, p.1), &self.cross_right, &self.mate_right, MATE_BACKWARD),
+            Heading::Up => ((p.0, p.1 - 1), &self.cross_down, &self.mate_down, MATE_BACKWARD),
+        };
+        let Some(n) = self.node(from) else {
+            return STEP_COST;
+        };
+        let step = if mate[n] & bit != 0 {
+            MATE_STEP_COST
+        } else {
+            STEP_COST
+        };
+        step.saturating_add(self.cross_cost.saturating_mul(u32::from(cross[n])))
+    }
+
     fn node(&self, p: (i64, i64)) -> Option<usize> {
         if p.0 < self.lo.0 || p.0 > self.hi.0 || p.1 < self.lo.1 || p.1 > self.hi.1 {
             return None;
@@ -251,10 +294,11 @@ impl Space {
     }
 }
 
-/// The cost of a move with heading `m` from a state that arrived with `h`: `(steps + 4 × bend, bend)`.
-fn weight(h: Option<Heading>, m: Heading) -> (u32, u32) {
+/// The cost of a move with heading `m` and move cost `step` ([`Space::move_cost`]) from a state that arrived with
+/// `h`: `(step + BEND_COST × bend, bend)`.
+fn weight(h: Option<Heading>, m: Heading, step: u32) -> (u32, u32) {
     let bend = u32::from(h.is_some_and(|h| h != m));
-    (1 + BEND_COST * bend, bend)
+    (step + BEND_COST * bend, bend)
 }
 
 /// Whether a move with heading `m` from a state that arrived with `h` turns back on itself: never taken, so a route
@@ -278,15 +322,17 @@ pub fn auto_route(req: &RouteRequest) -> Vec<(i64, i64)> {
     route(req).points
 }
 
-/// [`auto_route`] with whether the result is the fallback ([`Routed::direct`]).
+/// [`auto_route`] with whether a route was found ([`Routed::direct`]).
 pub fn route(req: &RouteRequest) -> Routed {
     match search(req) {
-        Some(points) => Routed {
+        Some((points, cost)) => Routed {
             points,
+            cost,
             direct: false,
         },
         None => Routed {
-            points: fallback(req),
+            points: vec![req.from.at, req.to.at],
+            cost: 0,
             direct: true,
         },
     }
@@ -368,41 +414,6 @@ pub fn clear(req: &RouteRequest, points: &[(i64, i64)]) -> bool {
     true
 }
 
-/// The L route of the fallback; with an arrival heading at a first end without a direction, the corner whose first
-/// leg does not reverse it (FT-437; aligned ends behind the arrival stay the straight segment, the only L there is).
-pub fn fallback(req: &RouteRequest) -> Vec<(i64, i64)> {
-    let (a, b) = (req.from, req.to);
-    let (pa, pb) = (a.at, b.at);
-    if let (None, Some(h)) = (a.dir, req.arrive)
-        && pa.0 != pb.0
-        && pa.1 != pb.1
-    {
-        // The default corner of an end without a direction, unless its first leg runs against `h`.
-        let default = l_route(a, b);
-        let first_leg = if default[1].1 == pa.1 {
-            if pb.0 > pa.0 {
-                Heading::Right
-            } else {
-                Heading::Left
-            }
-        } else if pb.1 > pa.1 {
-            Heading::Down
-        } else {
-            Heading::Up
-        };
-        if first_leg == h.opposite() {
-            let other = if default[1].1 == pa.1 {
-                (pa.0, pb.1)
-            } else {
-                (pb.0, pa.1)
-            };
-            return vec![pa, other, pb];
-        }
-        return default;
-    }
-    l_route(a, b)
-}
-
 /// The search space of a request with every rule of the module documentation applied: the blocked nodes and the
 /// moves not taken, with the ends' grid nodes and the first end's stub.
 struct Prepared {
@@ -457,6 +468,11 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
         blocked: vec![false; nodes],
         no_right: vec![0; nodes],
         no_down: vec![0; nodes],
+        cross_right: vec![0; nodes],
+        cross_down: vec![0; nodes],
+        mate_right: vec![0; nodes],
+        mate_down: vec![0; nodes],
+        cross_cost: req.cross_cost,
     };
     // A node is blocked when its page point lies strictly inside an obstacle; a move is not taken when it runs
     // through the open inside of one (FT-706: a text thinner than a grid step lies between two nodes).
@@ -564,6 +580,64 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
             }
         }
     }
+    // WP-S2.19 D6: a move across another wire's segment at a right angle, the segment's coordinate in the move's
+    // half-open span (its far node included) and the move's track strictly inside the segment's extent, is a
+    // crossing; a move one grid step beside a mate's segment, within its extent, runs beside the mate in the
+    // segment's heading.
+    if req.cross_cost > 0 || !req.mates.is_empty() {
+        let segs = |list: &[[(i64, i64); 2]]| -> Vec<((i64, i64), (i64, i64))> {
+            list.iter()
+                .map(|w| (w[0], w[1]))
+                .filter(|(a, b)| a != b)
+                .collect()
+        };
+        let (crossed, mates) = (segs(&req.wires), segs(&req.mates));
+        for j in lo.1..=hi.1 {
+            for i in lo.0..=hi.0 {
+                let Some(n) = space.node((i, j)) else { continue };
+                let (Some(x), Some(y)) = (space.coord(i), space.coord(j)) else {
+                    continue;
+                };
+                let (x1, y1) = (space.coord(i + 1), space.coord(j + 1));
+                for &(a, b) in &crossed {
+                    let (s0, s1) = ((a.0.min(b.0), a.1.min(b.1)), (a.0.max(b.0), a.1.max(b.1)));
+                    // A vertical wire crossed by the move right.
+                    if a.0 == b.0
+                        && i < hi.0
+                        && s0.1 < y
+                        && y < s1.1
+                        && x1.is_some_and(|x1| x < a.0 && a.0 <= x1)
+                    {
+                        space.cross_right[n] = space.cross_right[n].saturating_add(1);
+                    }
+                    // A horizontal wire crossed by the move down.
+                    if a.1 == b.1
+                        && j < hi.1
+                        && s0.0 < x
+                        && x < s1.0
+                        && y1.is_some_and(|y1| y < a.1 && a.1 <= y1)
+                    {
+                        space.cross_down[n] = space.cross_down[n].saturating_add(1);
+                    }
+                }
+                for &(a, b) in &mates {
+                    let (s0, s1) = ((a.0.min(b.0), a.1.min(b.1)), (a.0.max(b.0), a.1.max(b.1)));
+                    if a.1 == b.1 && i < hi.0 {
+                        let beside = space.coord(j - 1) == Some(a.1) || space.coord(j + 1) == Some(a.1);
+                        if beside && x1.is_some_and(|x1| s0.0 <= x && x1 <= s1.0) {
+                            space.mate_right[n] |= if b.0 > a.0 { MATE_FORWARD } else { MATE_BACKWARD };
+                        }
+                    }
+                    if a.0 == b.0 && j < hi.1 {
+                        let beside = space.coord(i - 1) == Some(a.0) || space.coord(i + 1) == Some(a.0);
+                        if beside && y1.is_some_and(|y1| s0.1 <= y && y1 <= s1.1) {
+                            space.mate_down[n] |= if b.1 > a.1 { MATE_FORWARD } else { MATE_BACKWARD };
+                        }
+                    }
+                }
+            }
+        }
+    }
     // The other connection points and their stubs are reserved for their own wires (FT-706).
     for p in &req.reserved {
         if let Some(n) = space.node((idx(p.0), idx(p.1))) {
@@ -591,10 +665,10 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
     Some(Prepared { space, s, t, s1 })
 }
 
-fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
+fn search(req: &RouteRequest) -> Option<(Vec<(i64, i64)>, u32)> {
     let (from, to) = (req.from, req.to);
     if from.at == to.at {
-        return Some(vec![from.at]);
+        return Some((vec![from.at], 0));
     }
     let Prepared { space, s, t, s1 } = prepare(req)?;
     let (lo, width, nodes) = (space.lo, space.width, space.blocked.len());
@@ -612,13 +686,14 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
     // fixed bend the route starts from is free (the user fixed a bend there), so the arrival only excludes the move
     // back over the last segment.
     let free_turn = arrive.map(|_| start_state);
-    let step_cost = |st: usize, h: Option<Heading>, m: Heading| -> Option<(u32, u32)> {
+    let step_cost = |st: usize, h: Option<Heading>, m: Heading, p: (i64, i64)| -> Option<(u32, u32)> {
+        let step = space.move_cost(p, m);
         if reverses(h, m) {
             None
         } else if free_turn == Some(st) {
-            Some(weight(None, m))
+            Some(weight(None, m, step))
         } else {
-            Some(weight(h, m))
+            Some(weight(h, m, step))
         }
     };
     // The backward Dijkstra: the least (cost, bends) from every state to the second end. It stops once the popped
@@ -679,7 +754,7 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
             if (n1 == goal && s1 != start_state) || first_cp == Some(n1) {
                 continue;
             }
-            let Some(w) = step_cost(s1, h, m) else {
+            let Some(w) = step_cost(s1, h, m, p1) else {
                 continue;
             };
             let cand = add(w, d);
@@ -703,12 +778,18 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
     if dist[state(node, heading)] == INF {
         return None;
     }
+    // The route's cost: the walk's from here, and a CP end's stub move before it.
+    let stub_cost = match from.dir {
+        Some(d) => space.move_cost(s, d),
+        None => 0,
+    };
+    let total = dist[state(node, heading)].0.saturating_add(stub_cost);
     while dist[state(node, heading)] != (0, 0) {
         let here = dist[state(node, heading)];
         let p = position(node);
         let here_state = state(node, heading);
         let next = Heading::ALL.into_iter().find_map(|m| {
-            let w = step_cost(here_state, heading, m)?;
+            let w = step_cost(here_state, heading, m, p)?;
             let q = (p.0 + m.step().0, p.1 + m.step().1);
             let n = space.node(q)?;
             if space.blocked[n] || !space.move_free(p, m) {
@@ -725,7 +806,7 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
             return None;
         }
     }
-    build(&space, from, to, s, &moves)
+    build(&space, from, to, s, &moves).map(|points| (points, total))
 }
 
 /// The route of a move list from the grid node `s`: the exact ends, the corners on the grid, the corners next to an
@@ -835,6 +916,8 @@ mod tests {
             own: [Vec::new(), Vec::new()],
             wires: Vec::new(),
             reserved: Vec::new(),
+            cross_cost: 0,
+            mates: Vec::new(),
         }
     }
 
@@ -912,7 +995,7 @@ mod tests {
     }
 
     #[test]
-    fn without_a_path_the_l_route_is_the_fallback() {
+    fn without_a_path_the_result_is_the_straight_unrouted_line() {
         // The second end is walled in on every side inside the area.
         let to = end(10, 10, None);
         let walls = vec![
@@ -922,12 +1005,11 @@ mod tests {
             rect(11, 7, 13, 13),
         ];
         let r = auto_route(&req(end(0, 0, Some(Heading::Right)), to, walls));
-        assert_eq!(r, l_route(end(0, 0, Some(Heading::Right)), to));
-        assert_eq!(r, vec![p(0, 0), p(10, 0), p(10, 10)]);
-        // An unusable grid falls back too.
+        assert_eq!(r, vec![p(0, 0), p(10, 10)]);
+        // An unusable grid finds none too.
         let mut bad = req(end(0, 0, None), end(3, 4, None), vec![]);
         bad.grid = (0, 1);
-        assert_eq!(auto_route(&bad), vec![p(0, 0), p(3, 0), p(3, 4)]);
+        assert_eq!(auto_route(&bad), vec![p(0, 0), p(3, 4)]);
     }
 
     #[test]
@@ -1012,6 +1094,8 @@ mod tests {
             own: [Vec::new(), Vec::new()],
             wires: Vec::new(),
             reserved: Vec::new(),
+            cross_cost: 0,
+            mates: Vec::new(),
         };
         let r = auto_route(&request);
         assert_eq!(r.first(), Some(&a.at));
@@ -1027,7 +1111,7 @@ mod tests {
     }
 
     #[test]
-    fn an_area_over_the_node_cap_falls_back_to_the_l_route() {
+    fn an_area_over_the_node_cap_finds_no_route() {
         // 1 mm grid, an area of 600 × 600 = 360 000 nodes (> 262 144).
         let mut big = req(
             end(0, 0, Some(Heading::Right)),
@@ -1035,8 +1119,9 @@ mod tests {
             vec![],
         );
         big.area = [-300 * MM, -300 * MM, 300 * MM, 300 * MM];
-        assert_eq!(auto_route(&big), l_route(big.from, big.to));
-        // Ends at the edge of `i64` give no stub: the fallback too.
+        assert!(route(&big).direct);
+        assert_eq!(auto_route(&big), vec![big.from.at, big.to.at]);
+        // Ends at the edge of `i64` give no stub: no route either.
         let edge = RouteRequest {
             from: RouteEnd {
                 at: (i64::MAX, 0),
@@ -1053,21 +1138,26 @@ mod tests {
             own: [Vec::new(), Vec::new()],
             wires: Vec::new(),
             reserved: Vec::new(),
+            cross_cost: 0,
+            mates: Vec::new(),
         };
-        assert_eq!(auto_route(&edge), l_route(edge.from, edge.to));
+        assert!(route(&edge).direct);
     }
 
     #[test]
-    fn a_stub_into_an_obstacle_is_allowed() {
-        // The first end's stub node lies inside another body; the route still leaves along the stub.
-        let r = auto_route(&req(
+    fn a_stub_inside_a_foreign_body_gives_no_route() {
+        // The first end's stub node lies inside another representation's body. The node itself is free, but every
+        // move out of it runs through the body's open inside (FT-706), which only an end's own corridor may cross
+        // (WP-S2.19 §5.1 rule 3): no route, the unrouted straight line (D3), as for a foreign obstacle across the
+        // corridor below. (Before FT-706 only nodes were blocked and the route left down along the stub.)
+        let rq = req(
             end(0, 0, Some(Heading::Down)),
             end(6, 4, Some(Heading::Left)),
             vec![rect(-2, 0, 2, 2)],
-        ));
-        assert_eq!(r.first(), Some(&p(0, 0)));
-        assert_eq!(r[1].0, 0, "leaves down along x = 0: {r:?}");
-        assert!(r[1].1 > 0);
+        );
+        let routed = route(&rq);
+        assert!(routed.direct, "{:?}", routed.points);
+        assert_eq!(routed.points, [rq.from.at, rq.to.at]);
     }
 
     fn with_arrive(mut r: RouteRequest, h: Heading) -> RouteRequest {
@@ -1123,30 +1213,6 @@ mod tests {
         assert_eq!(
             auto_route(&with_arrive(base.clone(), Heading::Left)),
             auto_route(&base)
-        );
-    }
-
-    #[test]
-    fn the_fallback_does_not_reverse_the_arrival() {
-        // The end walled in: the L route; its default corner (10, 0) would leave right against an arrival heading
-        // left, so the other corner is taken.
-        let to = end(10, 10, None);
-        let walls = vec![
-            rect(7, 7, 13, 9),
-            rect(7, 11, 13, 13),
-            rect(7, 7, 9, 13),
-            rect(11, 7, 13, 13),
-        ];
-        let base = req(end(0, 0, None), to, walls);
-        assert_eq!(auto_route(&base), vec![p(0, 0), p(10, 0), p(10, 10)]);
-        assert_eq!(
-            auto_route(&with_arrive(base.clone(), Heading::Left)),
-            vec![p(0, 0), p(0, 10), p(10, 10)]
-        );
-        // An arrival the default corner does not reverse keeps it.
-        assert_eq!(
-            auto_route(&with_arrive(base, Heading::Right)),
-            vec![p(0, 0), p(10, 0), p(10, 10)]
         );
     }
 
@@ -1359,7 +1425,7 @@ mod tests {
         rq.own[1] = vec![rect(-3, -1, 3, 9)];
         let routed = route(&rq);
         assert!(routed.direct, "{:?}", routed.points);
-        assert_eq!(routed.points, l_route(rq.from, rq.to));
+        assert_eq!(routed.points, [rq.from.at, rq.to.at]);
     }
 
     #[test]
@@ -1397,7 +1463,7 @@ mod tests {
     }
 
     #[test]
-    fn the_fallback_says_it_is_direct() {
+    fn without_a_route_the_result_says_it_is_direct() {
         let to = end(10, 10, None);
         let walls = vec![
             rect(7, 7, 13, 9),
@@ -1407,7 +1473,7 @@ mod tests {
         ];
         let walled = route(&req(end(0, 0, Some(Heading::Right)), to, walls));
         assert!(walled.direct);
-        assert_eq!(walled.points, vec![p(0, 0), p(10, 0), p(10, 10)]);
+        assert_eq!(walled.points, vec![p(0, 0), p(10, 10)]);
         assert!(!route(&req(end(0, 0, Some(Heading::Right)), to, vec![])).direct);
     }
 
@@ -1495,7 +1561,7 @@ mod tests {
     }
 
     proptest::proptest! {
-        /// The oracle of `clear`: every route the router finds (not the fallback) is clear by `clear`, among
+        /// The oracle of `clear`: every route the router finds is clear by `clear`, among
         /// obstacles, other wires and reserved points.
         #[test]
         fn every_found_route_is_clear(
@@ -1528,7 +1594,7 @@ mod tests {
         }
     }
 
-    /// The cost of an orthogonal route on the 1 mm grid by the router's weights: one per step, [`BEND_COST`] per bend
+    /// The cost of an orthogonal route on the 1 mm grid by the router's weights: [`STEP_COST`] per step, [`BEND_COST`] per bend
     /// between two moves (a turn at the first end is never a bend: a CP end's first move is its direction, and an
     /// end without one turns freely at a fixed bend).
     fn cost(points: &[(i64, i64)]) -> u32 {
@@ -1545,12 +1611,12 @@ mod tests {
             moves.extend(std::iter::repeat_n(h, usize::try_from(n).unwrap()));
         }
         let bends = moves.windows(2).filter(|w| w[0] != w[1]).count();
-        u32::try_from(moves.len() + bends * BEND_COST as usize).unwrap()
+        u32::try_from(moves.len() * STEP_COST as usize + bends * BEND_COST as usize).unwrap()
     }
 
     proptest::proptest! {
         /// FT-767, the converse of `every_found_route_is_clear`: a straight or L route between the ends that `clear`
-        /// accepts is one the router's search accepts. The search finds a route (not the fallback), and of least cost,
+        /// accepts is one the router's search accepts. The search finds a route, and of least cost,
         /// so no dearer than that one. The start may lie on a reserved point, another wire's vertex or inside an
         /// obstacle, with and without a direction, with and without an arrival heading.
         #[test]
@@ -1699,7 +1765,7 @@ mod tests {
     }
 
     proptest::proptest! {
-        /// FT-706: a route that is not the fallback never runs on another wire's track nor touches one of its
+        /// FT-706: a route found never runs on another wire's track nor touches one of its
         /// vertices (but for the CP ends' stubs), whatever the wires.
         #[test]
         fn a_found_route_keeps_off_other_wires(
@@ -1729,9 +1795,8 @@ mod tests {
     }
 
     proptest::proptest! {
-        /// FT-437: from a point without a direction and an arrival heading, the first segment never runs against
-        /// the arrival (but for the fallback between aligned ends), and the route is orthogonal with exact ends,
-        /// among obstacles too.
+        /// FT-437: from a point without a direction and an arrival heading, the first segment of a route found never
+        /// runs against the arrival, and the route is orthogonal with exact ends, among obstacles too.
         #[test]
         fn the_first_segment_never_reverses_the_arrival(
             fx in -6i64..6, fy in -6i64..6, tx in -6i64..6, ty in -6i64..6,
@@ -1743,12 +1808,10 @@ mod tests {
             let obstacles = ob.iter().map(|&(x, y, w, hh)| rect(x, y, x + w, y + hh)).collect();
             let rq = with_arrive(req(end(fx, fy, None), to, obstacles), arrive);
             let r = auto_route(&rq);
-            // The fallback between aligned ends is the straight segment, the only L there is.
-            let aligned_fallback = search(&rq).is_none() && (fx == tx || fy == ty);
             proptest::prop_assert_eq!(r.first(), Some(&p(fx, fy)));
             proptest::prop_assert_eq!(r.last(), Some(&p(tx, ty)));
-            proptest::prop_assert!(orthogonal(&r), "{:?}", r);
-            if r.len() >= 2 && !aligned_fallback {
+            if search(&rq).is_some() && r.len() >= 2 {
+                proptest::prop_assert!(orthogonal(&r), "{:?}", r);
                 let (a, b) = (r[0], r[1]);
                 let first = if b.0 > a.0 { Heading::Right } else if b.0 < a.0 { Heading::Left }
                     else if b.1 > a.1 { Heading::Down } else { Heading::Up };

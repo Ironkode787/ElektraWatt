@@ -382,7 +382,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("junctions", &[Reach::Page]),
     ("wires", &[Reach::Page]),
     ("stored", &[Reach::Page]),
-    ("provisional", &[Reach::Page]),
+    ("unrouted", &[Reach::Page]),
     ("ip", &[Reach::Ip, Reach::Page]),
     ("direction", &[Reach::Ip, Reach::Page]),
     ("source", &[Reach::Ip, Reach::Page]),
@@ -1556,6 +1556,13 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                             line.push_str(&format!(" \"{}\"", user(n)));
                         }
                     }
+                    // WP-S2.19 D13: the route card names its origin, its lead and its unrouted rows.
+                    if let crate::properties::CardOrigin::Route { lead, rows, .. } = &card.origin {
+                        line.push_str(&format!(" route \"{}\"", user(lead)));
+                        for r in rows {
+                            line.push_str(&format!(" \"{}\"", user(r)));
+                        }
+                    }
                     // WP-S2.09 part 2: the quick-fix card names its origin and the finding's rule.
                     if let crate::properties::CardOrigin::QuickFix { rule } = &card.origin {
                         line.push_str(&format!(" fix \"{}\"", user(rule)));
@@ -2277,14 +2284,17 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             steps,
             readout,
             proposals,
+            ..
         }) => {
             lines.push(format!(
                 "canvas ghost move {count} steps {} {} readout \"{readout}\"",
                 steps.0, steps.1
             ));
-            // WP-S2.04 part 2 (§8.3): a move shows its proposals and connects none.
+            // WP-S2.04 part 2 (§8.3): a move shows its proposals; WP-S2.19 D15: it connects them unless connect on
+            // move is off, the session's setting as the key turns it (ID-1509 (9)).
             if !proposals.is_empty() {
-                lines.push(format!("{} connect none", proposals_line(&proposals)));
+                let connects = if model.connect_on_move() { "all" } else { "none" };
+                lines.push(format!("{} connect {connects}", proposals_line(&proposals)));
             }
         }
         // WP-S2.05 part 3 (§8.8)
@@ -3248,8 +3258,21 @@ pub fn page_describe(page: &CanvasPage) -> String {
         .iter()
         .map(|c| {
             let (a, b) = (end_text(&c.a), end_text(&c.b));
-            let bends = c.polyline.len().saturating_sub(2);
-            let route = if c.stored_route { "stored" } else { "provisional" };
+            // The vertices where the drawn polyline turns (WP-S2.19 D2: a stored route is drawn as stored, so a vertex
+            // it runs straight through is no bend).
+            let bends = c
+                .polyline
+                .windows(3)
+                .filter(|w| {
+                    let (u, v) = (
+                        (w[1].0 - w[0].0, w[1].1 - w[0].1),
+                        (w[2].0 - w[1].0, w[2].1 - w[1].1),
+                    );
+                    i128::from(u.0) * i128::from(v.1) != i128::from(u.1) * i128::from(v.0)
+                        || i128::from(u.0) * i128::from(v.0) + i128::from(u.1) * i128::from(v.1) < 0
+                })
+                .count();
+            let route = if c.stored_route { "stored" } else { "unrouted" };
             // A point that picks this wire and nothing else (FT-485 item 4), where there is one.
             let point =
                 wire_point(page, c).map_or_else(String::new, |p| format!(" at {} {} mm", mm3(p.0), mm3(p.1)));

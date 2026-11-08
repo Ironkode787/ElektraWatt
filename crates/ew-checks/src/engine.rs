@@ -208,6 +208,38 @@ impl CheckReport {
         self.counts = count(&self.findings);
         self
     }
+
+    /// The report with the layout rules' findings joined (EW-CORE-067 to -070, -072 and -073; WP-S2.19 D19): the
+    /// session measures the drawn pages and words each finding with [`rules::page`](crate::rules::page)'s functions.
+    /// A finding joins only when the run evaluated its rule (the scheme and the mode enable it), at the mode's
+    /// severity; a waiver that matches it waives it, and the EW-CORE-081 finding that said it matched nothing goes. The
+    /// findings and the counts follow.
+    #[must_use]
+    pub fn with_layout_evidence(mut self, q: &Q, found: impl IntoIterator<Item = Finding>) -> CheckReport {
+        let mut waivers: Option<Vec<Waiver>> = None;
+        for mut f in found {
+            let Some(meta) = self.rules.iter().copied().find(|m| m.id == f.rule) else {
+                continue;
+            };
+            f.severity = self.mode.severity(meta, f.severity);
+            if meta.waivable() {
+                let waivers = waivers.get_or_insert_with(|| self::waivers(q));
+                if let Some(w) = waivers
+                    .iter()
+                    .find(|w| w.rule == f.rule && w.finding == Some(f.fingerprint))
+                {
+                    let unmatched = format!("waiver {}", w.id);
+                    self.findings
+                        .retain(|g| !(g.rule == WAIVER_MATCHES_NOTHING.id && g.subject == unmatched));
+                    f.state = FindingState::Waived { waiver: w.id.clone() };
+                }
+            }
+            self.findings.push(f);
+        }
+        sort_findings(&mut self.findings);
+        self.counts = count(&self.findings);
+        self
+    }
 }
 
 /// One integrity finding of opening a project (the store's findings, doc 05 §6.3), for

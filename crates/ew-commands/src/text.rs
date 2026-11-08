@@ -317,6 +317,11 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-geometry-end-off-cp",
         "{0} at {1} {2}; end the wire at its connection point",
     ),
+    ("refusal-geometry-junction", "the junction"),
+    (
+        "refusal-geometry-end-off-junction",
+        "{0} at {1} {2}; end the wire at its junction",
+    ),
     (
         "refusal-geometry-corner-onto-grid",
         "{0}; move the corner onto the grid",
@@ -1120,6 +1125,11 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-connection-draw-many-too-many",
         "{0} connections are more than the {1} one command takes",
     ),
+    // connection.route_many.
+    (
+        "refusal-connection-route-many-too-many",
+        "{0} routes are more than the {1} one command takes",
+    ),
     // junction.edit.
     (
         "refusal-junction-sequence",
@@ -1150,6 +1160,21 @@ pub const TEXTS: &[(&str, &str)] = &[
         "refusal-ip-continue-no-rep",
         "the interruption point has no representation to continue",
     ),
+    // WP-S2.19 D16: EW's interruption-point forms.
+    (
+        "refusal-ip-form-turned",
+        "an interruption point's arrow points the way its signal flows: change its direction instead",
+    ),
+    (
+        "refusal-ip-form-direction",
+        "a source interruption point is drawn with the outgoing arrow, a target with the incoming arrow",
+    ),
+    (
+        "refusal-ip-form-missing",
+        "the project does not hold the {0} arrow of {1}: place one interruption point of that direction first",
+    ),
+    ("refusal-ip-form-outgoing", "outgoing"),
+    ("refusal-ip-form-incoming", "incoming"),
     // potential.define and bond.create.
     (
         "refusal-potential-define-on-connection",
@@ -1363,6 +1388,14 @@ pub const TEXTS: &[(&str, &str)] = &[
     (
         "refusal-rep-move-nothing",
         "give at least one representation or item to move",
+    ),
+    (
+        "refusal-rep-move-no-cp",
+        "{0} does not draw connection point {1}; connect on the move from one of its own connection points",
+    ),
+    (
+        "refusal-rep-move-split",
+        "A move connects only to connection points; it never splits an existing wire.",
     ),
     (
         "refusal-rep-move-out-of-range",
@@ -2239,6 +2272,10 @@ pub const TEXTS: &[(&str, &str)] = &[
     (
         "refusal-macro-page-orientation",
         "a page macro keeps the layout of its pages and takes no orientation; insert it with `r0`",
+    ),
+    (
+        "refusal-macro-ip-turned",
+        "A macro with interruption points cannot be inserted turned: interruption points always point right.",
     ),
     (
         "refusal-macro-window-no-at",

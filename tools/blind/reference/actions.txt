@@ -150,6 +150,8 @@ layout.draw_options View "Drawing options" menu none shortcut none context globa
 layout.enclosure_new Command "Enclosure…" menu "Project" shortcut none context global params "location?:text, part?:text"
 tool.connect_on_move Command "Connect while moving" menu none shortcut "C" context canvas hidden params ""
 tool.route_edit Command "Edit route" menu "Draw" shortcut none context canvas params ""
+route.page Command "Route page" menu "Draw" shortcut none context global params ""
+route.selection Command "Route selection" menu "Draw" shortcut none context global params ""
 junction.open View "Junction sequence…" menu "Draw" shortcut none context canvas params ""
 junction.member Command "Move a junction member" menu none shortcut none context global hidden params "from:uint, to:uint"
 junction.style Command "Junction style" menu none shortcut none context global hidden params "style:enum(dot|bevel), orient?:uint"

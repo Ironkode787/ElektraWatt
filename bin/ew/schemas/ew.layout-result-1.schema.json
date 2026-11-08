@@ -1,0 +1,305 @@
+{
+  "$defs": {
+    "LayoutBends": {
+      "additionalProperties": false,
+      "description": "(f) A connection's bends.",
+      "properties": {
+        "bends": {
+          "description": "Its bends, at least one.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "connection": {
+          "description": "The connection, by its ends.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "connection",
+        "bends"
+      ],
+      "type": "object"
+    },
+    "LayoutCrossing": {
+      "additionalProperties": false,
+      "description": "(e) Two connections meeting at a point.",
+      "properties": {
+        "at": {
+          "description": "Where, in page nm.",
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "cell": {
+          "description": "The frame cell there.",
+          "type": "string"
+        },
+        "connection": {
+          "description": "The first connection, by its ends.",
+          "type": "string"
+        },
+        "other": {
+          "description": "The other connection, by its ends.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "connection",
+        "other",
+        "at",
+        "cell"
+      ],
+      "type": "object"
+    },
+    "LayoutJunction": {
+      "additionalProperties": false,
+      "description": "(g) A junction with four or more arms.",
+      "properties": {
+        "arms": {
+          "description": "The junction's arms, at least four.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "at": {
+          "description": "Where, in page nm.",
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "cell": {
+          "description": "The frame cell there.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "arms",
+        "at",
+        "cell"
+      ],
+      "type": "object"
+    },
+    "LayoutPair": {
+      "additionalProperties": false,
+      "description": "(b) Two connections running along each other.",
+      "properties": {
+        "cell": {
+          "description": "The frame cell at the first stretch's start.",
+          "type": "string"
+        },
+        "connection": {
+          "description": "The first connection, by its ends.",
+          "type": "string"
+        },
+        "other": {
+          "description": "The other connection, by its ends.",
+          "type": "string"
+        },
+        "stretches": {
+          "description": "The stretches they share, each from its smaller end to its larger, in page nm.",
+          "items": {
+            "items": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "connection",
+        "other",
+        "stretches",
+        "cell"
+      ],
+      "type": "object"
+    },
+    "LayoutThrough": {
+      "additionalProperties": false,
+      "description": "(c) or (d): a connection through a symbol's body or text.",
+      "properties": {
+        "cell": {
+          "description": "The frame cell at the first stretch's start.",
+          "type": "string"
+        },
+        "connection": {
+          "description": "The connection, by its ends.",
+          "type": "string"
+        },
+        "stretches": {
+          "description": "The stretches inside, in the connection's direction, in page nm.",
+          "items": {
+            "items": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "symbol": {
+          "description": "The symbol: its device's tag as the page prints it, `interruption point <name>`, else its symbol's key.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "connection",
+        "symbol",
+        "stretches",
+        "cell"
+      ],
+      "type": "object"
+    },
+    "LayoutTouch": {
+      "additionalProperties": false,
+      "description": "(a) A connection touching a point it does not end at.",
+      "properties": {
+        "at": {
+          "description": "Where, in page nm.",
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "cell": {
+          "description": "The frame cell there (`C4`); empty off the drawing area or without a frame grid.",
+          "type": "string"
+        },
+        "connection": {
+          "description": "The connection, by its ends (`-E55:PE → -X1:PE`).",
+          "type": "string"
+        },
+        "point": {
+          "description": "The connection point's label, or `the junction` (its cell names it).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "connection",
+        "point",
+        "at",
+        "cell"
+      ],
+      "type": "object"
+    },
+    "PageLayout": {
+      "additionalProperties": false,
+      "description": "The layout measures of one page in words (`ew_derive::routing`'s module documentation defines them).",
+      "properties": {
+        "bends": {
+          "description": "(f) Cost: the connections with bends.",
+          "items": {
+            "$ref": "#/$defs/LayoutBends"
+          },
+          "type": "array"
+        },
+        "crossings": {
+          "description": "(e) Cost: the points where two connections meet.",
+          "items": {
+            "$ref": "#/$defs/LayoutCrossing"
+          },
+          "type": "array"
+        },
+        "folio": {
+          "description": "The printed folio label.",
+          "type": "string"
+        },
+        "four_way_junctions": {
+          "description": "(g) Hard rule: the junctions with four or more arms.",
+          "items": {
+            "$ref": "#/$defs/LayoutJunction"
+          },
+          "type": "array"
+        },
+        "overlaps": {
+          "description": "(b) Hard rule: the pairs of connections running along each other.",
+          "items": {
+            "$ref": "#/$defs/LayoutPair"
+          },
+          "type": "array"
+        },
+        "through_symbols": {
+          "description": "(c) Hard rule: the connections through a symbol's body (or a black box), but along their own ends' escapes.",
+          "items": {
+            "$ref": "#/$defs/LayoutThrough"
+          },
+          "type": "array"
+        },
+        "through_texts": {
+          "description": "(d) Hard rule: the connections through a symbol's text.",
+          "items": {
+            "$ref": "#/$defs/LayoutThrough"
+          },
+          "type": "array"
+        },
+        "touches": {
+          "description": "(a) Hard rule: the connections touching a connection point or a junction they do not end at.",
+          "items": {
+            "$ref": "#/$defs/LayoutTouch"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "folio",
+        "touches",
+        "overlaps",
+        "through_symbols",
+        "through_texts",
+        "four_way_junctions",
+        "crossings",
+        "bends"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew layout --json` ([`LAYOUT`]): the layout measures of one page or of every schematic page (WP-S2.19 part 1,\ndecision log ID-1498).",
+  "properties": {
+    "$schema": {
+      "const": "ew.layout-result/1",
+      "description": "The name of this schema."
+    },
+    "pages": {
+      "description": "The pages measured, in page order.",
+      "items": {
+        "$ref": "#/$defs/PageLayout"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "$schema",
+    "pages"
+  ],
+  "title": "ew.layout-result/1",
+  "type": "object"
+}

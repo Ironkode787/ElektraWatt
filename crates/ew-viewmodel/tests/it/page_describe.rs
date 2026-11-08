@@ -95,14 +95,15 @@ fn no_record_id_reaches_the_text_and_every_token_is_a_vocabulary_word() {
             }
         }
     }
-    // The three folios reach the words the page text adds, except the two states Golden A does not have: a stored
-    // route (every connection of the fixture is drawn by its provisional route) and an undirected interruption point.
+    // The three folios reach the words the page text adds, except the two states Golden A does not have: an unrouted
+    // connection (every page connection of the fixture has the router's route, WP-S2.19) and an undirected
+    // interruption point.
     let missing: Vec<&str> = words(Reach::Page)
         .into_iter()
         .filter(|w| !seen.contains(*w))
         .collect();
     assert!(
-        missing.iter().all(|w| ["stored", "undirected"].contains(w)),
+        missing.iter().all(|w| ["unrouted", "undirected"].contains(w)),
         "words no folio reaches: {missing:?}"
     );
     shell.shutdown();

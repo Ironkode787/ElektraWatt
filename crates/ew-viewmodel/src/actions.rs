@@ -580,6 +580,16 @@ fn wire_page(m: &ShellModel) -> Result<(), Key<'static>> {
     m.wire_kind().map(|_| ())
 }
 
+/// An editable page with a connection or a representation selected (Route selection, WP-S2.19 D13; ID-1509 (8)).
+fn route_selection(m: &ShellModel) -> Result<(), Key<'static>> {
+    editable_page(m)?;
+    if m.route_selection_ids().is_empty() {
+        Err(key!("reason-route-selection"))
+    } else {
+        Ok(())
+    }
+}
+
 /// An editable page with exactly one connection selected (Edit ▸ Edit route; WP-S2.04 part 2, window check).
 fn one_connection(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
@@ -3043,6 +3053,35 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_route_edit(),
         ),
     ))),
+    // WP-S2.19 D13: Route page and Route selection after Edit route, previewed (no default key); after Interruption,
+    // so the two stack in one column of their own (ID-1506 (6)). Each its own icon, neither the generated badge's
+    // (ID-1509 (9), C1): the page as a whole, and a pull on the selected wires.
+    keeps_banner(placed(
+        place(Group::Connect, 7, CommandSize::Small, None),
+        "file-settings",
+        act(
+            "route.page",
+            Command,
+            Menu::Draw,
+            &[],
+            editable_page,
+            grp(Group::Connect),
+            |s, _| s.act_route_page(),
+        ),
+    )),
+    keeps_banner(placed(
+        place(Group::Connect, 8, CommandSize::Small, None),
+        "magnet",
+        act(
+            "route.selection",
+            Command,
+            Menu::Draw,
+            &[],
+            route_selection,
+            grp(Group::Connect),
+            |s, _| s.act_route_selection(),
+        ),
+    )),
     keeps_banner(in_canvas(act(
         "junction.open",
         View,
@@ -3105,7 +3144,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     keeps_banner(in_canvas(placed(
         place(
             Group::Connect,
-            4,
+            6,
             CommandSize::Small,
             Some(key!("bar-interruption")),
         ),

@@ -45,7 +45,7 @@ use ew_api::geometry::Dir;
 use ew_api::output::Uuid;
 use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::ew_dl::ew_units::Rect;
-use ew_api::routing::{RouteEnd, RouteRequest, route};
+use ew_api::routing::{OneEnd, clear_one, heading, route_one};
 use serde_json::{Value, json};
 
 use super::{
@@ -280,9 +280,12 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
             label: cp.label.clone(),
         };
     }
-    // 2. A junction.
+    // 2. A junction, but one that already joins three wires (WP-S2.19 D13: a fourth would make a four-way junction).
     let mut best: Option<(i128, EntityRef, (i64, i64))> = None;
     for j in &tables.junctions {
+        if full_junction(tables, j.id) {
+            continue;
+        }
         let d = d2(j.at);
         let id = EntityRef(j.id);
         if d <= limit && best.is_none_or(|(bd, bid, _)| d < bd || (d == bd && id < bid)) {
@@ -330,6 +333,30 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
         return WireTarget::Segment { connection, at };
     }
     grid_point()
+}
+
+/// Whether the junction `id` already joins three wires or more (WP-S2.19 D13): it is no end of a new wire.
+fn full_junction(tables: &ew_api::output::PageTables, id: Uuid) -> bool {
+    let at = ew_api::output::TableEnd::Junction { id };
+    tables
+        .connections
+        .iter()
+        .filter(|c| c.a == at || c.b == at)
+        .count()
+        >= 3
+}
+
+/// Whether the sheet point `at` is within reach of a junction that already joins three wires and of no connection
+/// point (the Wire tool's hint, WP-S2.19 D13).
+fn near_full_junction(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> bool {
+    let tables = &cx.page.tables;
+    let reach = cx.nm_of_points(CP_SNAP_PT).floor().min(9.0e15) as i128;
+    let near = |p: (i64, i64)| super::dist2(cx.snapper.page_to_sheet(p), at) <= reach * reach;
+    !alt && !tables.cps.iter().any(|cp| near(cp.at))
+        && tables
+            .junctions
+            .iter()
+            .any(|j| near(j.at) && full_junction(tables, j.id))
 }
 
 /// The grid coordinate nearest to `v` inside `[lo, hi]`; `None` when no grid coordinate lies inside.
@@ -622,190 +649,49 @@ type RouteKey = (
 /// A routed tail in the cache: its key, its points, and whether it is the router's fallback.
 type CachedTail = (RouteKey, Vec<(i64, i64)>, bool);
 
-/// The margins of the router's search area around the two ends, in grid steps, tried in turn until a clear route is
-/// found (FT-706): WP-S2.04 §8.1's 4, then a wider 16 for a route that has to go round a box or other wires.
-const AREA_MARGINS: [i64; 2] = [4, 16];
-
-/// The obstacle rectangles of every representation of the page, page nm (FT-706): its body and a black box's outline
-/// inflated by one grid step `g`, and every text and mark the scene draws for it (the tag, the slot texts, a black
-/// box's pin texts: the page's entity rectangles of the representation that are not a point) inflated by a quarter
-/// step, a little clearance; the router refuses a move across a rectangle, so a text thinner than a step counts too.
-/// Without `texts`, only the bodies and the black-box outlines.
-fn rep_rects(cx: &ToolCx<'_>, g: i64, texts: bool) -> std::collections::BTreeMap<Uuid, Vec<[i64; 4]>> {
-    let grow = |r: [i64; 4], d: i64| [r[0] - d, r[1] - d, r[2] + d, r[3] + d];
-    let mut out: std::collections::BTreeMap<Uuid, Vec<[i64; 4]>> = std::collections::BTreeMap::new();
-    for r in &cx.page.tables.reps {
-        let rects = out.entry(r.id).or_default();
-        rects.push(grow(r.body, g));
-        if let Some(b) = &r.black_box {
-            let xs = b.outline.iter().map(|p| p.0);
-            let ys = b.outline.iter().map(|p| p.1);
-            if let (Some(x0), Some(x1), Some(y0), Some(y1)) =
-                (xs.clone().min(), xs.max(), ys.clone().min(), ys.max())
-            {
-                rects.push(grow([x0, y0, x1, y1], g));
-            }
-        }
-    }
-    if !texts {
-        return out;
-    }
-    let clearance = g / 4;
-    for (e, rect) in &cx.page.entities {
-        let Some(rects) = out.get_mut(&e.0) else {
-            continue;
-        };
-        let (a, b) = (rect.min(), rect.max());
-        if a.x == b.x || a.y == b.y {
-            continue;
-        }
-        let p = cx.snapper.sheet_to_page((a.x.0, a.y.0));
-        let q = cx.snapper.sheet_to_page((b.x.0, b.y.0));
-        rects.push(grow(
-            [p.0.min(q.0), p.1.min(q.1), p.0.max(q.0), p.1.max(q.1)],
-            clearance,
-        ));
-    }
-    out
-}
-
-/// The direction to leave `end` by when it is the CP of an interruption point and `other`, the route's other end, lies
-/// straight behind it, on its axis against its leaving direction: the opposite one (FT-1210). `None` otherwise.
-fn ip_turned(cx: &ToolCx<'_>, end: &WireTarget, other: (i64, i64)) -> Option<Dir> {
-    let WireTarget::Cp {
-        rep,
+/// The router's end of a point with the direction a wire leaves it and the representation that draws it.
+fn one_end(at: (i64, i64), dir: Option<Dir>, rep: Option<EntityRef>) -> OneEnd {
+    OneEnd {
         at,
-        dir: Some(d),
-        ..
-    } = end
-    else {
-        return None;
-    };
-    let v = d.vector();
-    let (dx, dy) = (other.0 - at.0, other.1 - at.1);
-    let behind = v.0 * dx + v.1 * dy < 0 && v.1 * dx - v.0 * dy == 0;
-    let ip = cx
-        .page
-        .tables
-        .reps
-        .iter()
-        .any(|r| r.id == rep.0 && r.ip.is_some());
-    (behind && ip).then(|| Dir::of_vector((-v.0, -v.1))).flatten()
-}
-
-/// The obstacle rectangles of the page's frame (FT-758): the sheet outside the frame grid's drawing area, that is
-/// the header bands with their labels, the title block and its text fields, in page nm, the drawing area's edge grown
-/// inward by one grid step `g` as a box's outline is. On a side where one of the `ends` (the route's ends and their
-/// stubs) stands within that step, the edge is not grown: an interruption point one step inside the area, leaving
-/// towards the sheet's edge, turns on the area's edge as before. Empty for a page without a frame grid.
-fn frame_rects(cx: &ToolCx<'_>, g: i64, ends: &[(i64, i64)]) -> Vec<[i64; 4]> {
-    let Some([x0, y0, x1, y1]) = super::ip::drawing_area(cx.page) else {
-        return Vec::new();
-    };
-    let a = cx.snapper.sheet_to_page((0, 0));
-    let b = cx.snapper.sheet_to_page(cx.page.sheet);
-    let (sx0, sy0, sx1, sy1) = (a.0.min(b.0), a.1.min(b.1), a.0.max(b.0), a.1.max(b.1));
-    let inset = |near: &dyn Fn(&(i64, i64)) -> bool| if ends.iter().any(near) { 0 } else { g };
-    let ix0 = x0 + inset(&|p| p.0 < x0 + g);
-    let iy0 = y0 + inset(&|p| p.1 < y0 + g);
-    let ix1 = x1 - inset(&|p| p.0 > x1 - g);
-    let iy1 = y1 - inset(&|p| p.1 > y1 - g);
-    if ix0 >= ix1 || iy0 >= iy1 {
-        return Vec::new();
+        dir: dir.map(heading),
+        rep: rep.map(|r| r.0),
     }
-    // Above, below, left of and right of the drawing area, each reaching a step past the sheet so that its far side
-    // blocks nothing the area holds.
-    vec![
-        [sx0 - g, sy0 - g, sx1 + g, iy0],
-        [sx0 - g, iy1, sx1 + g, sy1 + g],
-        [sx0 - g, iy0, ix0, iy1],
-        [ix1, iy0, sx1 + g, iy1],
-    ]
 }
 
-/// What a routing pass keeps clear (FT-706). The Wire tool tries the passes in turn and takes the first clear route;
-/// only when none is found does it draw the provisional L route and say so.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum Pass {
-    /// Every rule: the other representations' bodies, black boxes and texts, the ends' own but for their escape
-    /// corridors, the other wires, the other CPs and their stubs.
-    Clear,
-    /// As [`Pass::Clear`] without the texts: a crowded spot where only a run over a text is left.
-    OverTexts,
-    /// The router of WP-S2.04 §8.1 before FT-706: the other representations' bodies only.
-    Bodies,
-}
-
-impl Pass {
-    const ALL: [Pass; 3] = [Pass::Clear, Pass::OverTexts, Pass::Bodies];
-}
-
-/// The route request of `pass` from `from` (leaving along `from_dir`, or arrived at along `arrive`) to `to`, the area
-/// left for the caller; `own` are the representations of the two ends (FT-706). The representations `through` (the
-/// ones a direct route passes through, FT-705) are left out: their bodies, texts, CPs and stubs.
-fn request(
-    cx: &ToolCx<'_>,
-    g: i64,
-    pass: Pass,
+/// The user's tail from `from` (leaving along `from_dir`, or arrived at along `arrive`) to `to` (entered against
+/// `to_dir`), taken without a clear route after a fixed bend (WP-S2.19 D13): the straight segment for aligned ends,
+/// else one corner from the ends' own coordinates, the first leg along `from_dir`'s axis, else the last along
+/// `to_dir`'s, else across first; a first leg that would double back over `arrive` takes the other corner (FT-437).
+fn l_tail(
     (from, from_dir, arrive): ((i64, i64), Option<Dir>, Option<Dir>),
-    own: [Option<EntityRef>; 2],
-    to: &WireTarget,
-    through: &[Uuid],
-) -> RouteRequest {
-    let tables = &cx.page.tables;
-    let t = to.at();
-    let mut rects = rep_rects(cx, g, pass == Pass::Clear);
-    let mut own_rects = own.map(|r| r.and_then(|r| rects.get(&r.0).cloned()).unwrap_or_default());
-    for r in own.into_iter().flatten() {
-        rects.remove(&r.0);
+    to: (i64, i64),
+    to_dir: Option<Dir>,
+) -> Vec<(i64, i64)> {
+    if from == to {
+        return vec![from];
     }
-    for r in through {
-        rects.remove(r);
+    if from.0 == to.0 || from.1 == to.1 {
+        return vec![from, to];
     }
-    let mut obstacles: Vec<[i64; 4]> = rects.into_values().flatten().collect();
-    let stub = |p: (i64, i64), d: Option<Dir>| {
-        d.map_or(p, |d| {
-            let v = d.vector();
-            (p.0 + v.0 * g, p.1 + v.1 * g)
-        })
+    let (down_first, across_first) = ((from.0, to.1), (to.0, from.1));
+    let vertical = |d: Dir| d.vector().0 == 0;
+    let mut corner = match (from_dir, to_dir) {
+        (Some(d), _) if vertical(d) => down_first,
+        (Some(_), _) | (None, None) => across_first,
+        (None, Some(d)) if vertical(d) => across_first,
+        (None, Some(_)) => down_first,
     };
-    let ends = [from, stub(from, from_dir), t, stub(t, to.dir())];
-    obstacles.extend(frame_rects(cx, g, &ends));
-    let mut wires: Vec<[(i64, i64); 2]> = Vec::new();
-    // Every other CP and its stub is kept for its own wire.
-    let mut reserved: Vec<(i64, i64)> = Vec::new();
-    if pass == Pass::Bodies {
-        own_rects = [Vec::new(), Vec::new()];
-    } else {
-        for c in &tables.connections {
-            let line = super::autoconnect::dedup(&c.polyline);
-            wires.extend(line.windows(2).map(|w| [w[0], w[1]]));
-        }
-        for cp in &tables.cps {
-            if cp.at == from || cp.at == t || through.contains(&cp.rep) {
-                continue;
-            }
-            reserved.push(cp.at);
-            if let Some(d) = cp.dir {
-                let v = d.vector();
-                reserved.push((cp.at.0 + v.0 * g, cp.at.1 + v.1 * g));
-            }
-        }
+    if from_dir.is_none()
+        && let Some(h) = arrive
+        && heading_between(from, corner).map(Dir::vector) == Some((-h.vector().0, -h.vector().1))
+    {
+        corner = if corner == down_first {
+            across_first
+        } else {
+            down_first
+        };
     }
-    RouteRequest {
-        from: RouteEnd {
-            at: from,
-            dir: from_dir,
-        },
-        to: RouteEnd { at: t, dir: to.dir() },
-        obstacles,
-        grid: tables.grid,
-        area: drawing_area(cx),
-        arrive,
-        own: own_rects,
-        wires,
-        reserved,
-    }
+    vec![from, corner, to]
 }
 
 /// The direct route of a tail from `from` to `to` when it passes through a free representation in line (FT-705 with
@@ -813,16 +699,13 @@ fn request(
 /// a free terminal and [`pass_through`] would never see one; a terminal standing in line between the ends is to be
 /// connected through, not avoided.
 ///
-/// The direct route is the straight run between aligned ends, else the router's own provisional L
-/// ([`ew_api::routing::direct_route`]). It is taken when [`pass_through`]'s rule finds at least one representation
-/// passed on it (the CPs of `own` and at the two ends not counted), every passed CP lying on the route itself (not
-/// beside it, a jog away), and the router's own tests
-/// ([`ew_api::routing::clear`], [`Pass::Clear`]: other boxes and texts, other wires, other CPs and stubs) find it
-/// clear with the passed representations' bodies, texts, CPs and stubs left out. Otherwise `None`, and the router
-/// runs as before.
+/// The direct route is the straight run between aligned ends, else the L of [`l_tail`]. It is taken when
+/// [`pass_through`]'s rule finds at least one representation passed on it (the CPs of `own` and at the two ends not
+/// counted), every passed CP lying on the route itself (not beside it, a jog away), and the router's own tests
+/// ([`clear_one`]: the page's bodies and texts, other wires, other CPs and stubs) find it clear with the passed
+/// representations' bodies, texts and CPs left out. Otherwise `None`, and the router runs as before.
 fn through_route(
     cx: &ToolCx<'_>,
-    g: i64,
     (from, from_dir, arrive): ((i64, i64), Option<Dir>, Option<Dir>),
     own: [Option<EntityRef>; 2],
     to: &WireTarget,
@@ -831,8 +714,7 @@ fn through_route(
     if from == t {
         return None;
     }
-    let mut req = request(cx, g, Pass::Clear, (from, from_dir, arrive), own, to, &[]);
-    let direct = clean(ew_api::routing::direct_route(&req));
+    let direct = clean(l_tail((from, from_dir, arrive), t, to.dir()));
     let found = passes(cx, own, [from, t], &direct)?;
     // In line: the route runs over the passed CPs themselves, not beside them.
     if found
@@ -845,16 +727,8 @@ fn through_route(
     let mut through: Vec<Uuid> = found.passes.iter().map(|(entry, _)| entry.cp.rep).collect();
     through.sort_unstable();
     through.dedup();
-    req = request(cx, g, Pass::Clear, (from, from_dir, arrive), own, to, &through);
-    let xs = direct.iter().map(|p| p.0);
-    let ys = direct.iter().map(|p| p.1);
-    req.area = [
-        xs.clone().min()? - g,
-        ys.clone().min()? - g,
-        xs.max()? + g,
-        ys.max()? + g,
-    ];
-    ew_api::routing::clear(&req, &direct).then_some(direct)
+    let ends = (one_end(from, from_dir, own[0]), one_end(t, to.dir(), own[1]));
+    clear_one(&cx.page.geometry, ends, arrive.map(heading), &through, &direct).then_some(direct)
 }
 
 /// The Wire tool.
@@ -863,9 +737,11 @@ pub struct WireTool {
     state: State,
     /// The last routed tail, whether it is the router's fallback, and its key (one route per changed snapped point).
     cache: Option<CachedTail>,
-    /// Whether the last route the tool computed is the fallback drawn direct (FT-706): the status hint says so until
+    /// Whether the last tail the tool computed found no clear route (WP-S2.19 D13): the status hint says so until
     /// the next wire starts.
     direct: bool,
+    /// Whether the point is on a junction that already joins three wires (WP-S2.19 D13): the hint says so.
+    full_junction: bool,
     /// How many times the router ran (the exact-count test, §12 item 4).
     routes: u64,
     /// The labels of the start and the end, for the transcript.
@@ -897,6 +773,7 @@ impl WireTool {
             state: State::Armed { target: None },
             cache: None,
             direct: false,
+            full_junction: false,
             routes: 0,
             labels: (None, None),
             kind: None,
@@ -923,13 +800,14 @@ impl WireTool {
     }
 
     /// The router's tail from `from` (leaving along `from_dir`, or arrived at along `arrive`) to the end target,
-    /// through the cache; it sets `self.direct` to whether the tail is the router's fallback.
+    /// through the cache; it sets `self.direct` to whether no clear route was found.
     ///
-    /// The obstacles are every representation of the page ([`rep_rects`]); those of `own` (the start's while the
-    /// tail starts at it, the end's) are the ends' own, left only along a CP's escape corridor; the other wires are
-    /// every connection on the page, and the other CPs and their stubs are reserved (FT-706). The passes ([`Pass`])
-    /// are tried in turn, each with the search area grown by [`AREA_MARGINS`], until a route is found. Before them,
-    /// the direct route through a free terminal in line is taken when it qualifies ([`through_route`], FT-705).
+    /// The tail is [`route_one`]'s against the page as drawn (WP-S2.19 D13, the host's page geometry): every
+    /// routed connection a fixed wire, every other CP with its stub and every junction not at an end reserved, the
+    /// ends' own bodies left only along a CP's escape corridor (`own`: the start's while the tail starts at it, the
+    /// end's). Before it, the direct route through a free terminal in line is taken when it qualifies
+    /// ([`through_route`], FT-705). Without a clear route the tail is the straight line to the end, the unrouted
+    /// line, or after a fixed bend the user's L ([`l_tail`]).
     fn tail(
         &mut self,
         cx: &ToolCx<'_>,
@@ -944,34 +822,24 @@ impl WireTool {
             self.direct = *direct;
             return r.clone();
         }
-        let g = PageGridMap::new(cx.page.tables.grid).step();
         let t = to.at();
-        let page = drawing_area(cx);
-        if let Some(points) = through_route(cx, g, (from, from_dir, arrive), own, to) {
+        if let Some(points) = through_route(cx, (from, from_dir, arrive), own, to) {
             self.routes += 1;
             self.direct = false;
             self.cache = Some((key, points.clone(), false));
             return points;
         }
-        let mut routed = None;
-        'passes: for pass in Pass::ALL {
-            let req = request(cx, g, pass, (from, from_dir, arrive), own, to, &[]);
-            for m in AREA_MARGINS {
-                let area = [
-                    (from.0.min(t.0) - m * g).max(page[0]),
-                    (from.1.min(t.1) - m * g).max(page[1]),
-                    (from.0.max(t.0) + m * g).min(page[2]),
-                    (from.1.max(t.1) + m * g).min(page[3]),
-                ];
-                let r = route(&RouteRequest { area, ..req.clone() });
-                let found = !r.direct;
-                routed = Some(r);
-                if found {
-                    break 'passes;
-                }
-            }
-        }
-        let (points, direct) = routed.map_or_else(|| (vec![from, t], true), |r| (r.points, r.direct));
+        let routed = route_one(
+            &cx.page.geometry,
+            one_end(from, from_dir, own[0]),
+            one_end(t, to.dir(), own[1]),
+            arrive.map(heading),
+        );
+        let (points, direct) = match routed {
+            Some(points) => (points, false),
+            None if arrive.is_some() => (l_tail((from, from_dir, arrive), t, to.dir()), true),
+            None => (vec![from, t], true),
+        };
         self.routes += 1;
         self.direct = direct;
         self.cache = Some((key, points.clone(), direct));
@@ -999,24 +867,6 @@ impl WireTool {
         // The start's representation is the tail's own only while the tail starts at it; after a bend it is an
         // obstacle like any other (FT-706).
         let own = [start.rep().filter(|_| fixed.len() == 1), to.rep()];
-        // FT-1210 (ID-1395): an interruption point with the other end straight behind it is left the other way,
-        // through its own arrow, so the short run between them is straight and takes no loop round the point.
-        let from_dir = match ip_turned(cx, start, to.at()) {
-            Some(d) if fixed.len() == 1 => Some(d),
-            _ => from_dir,
-        };
-        let turned_end;
-        let to = match (ip_turned(cx, to, last), to) {
-            (Some(d), WireTarget::Cp { .. }) => {
-                let mut end = to.clone();
-                if let WireTarget::Cp { dir, .. } = &mut end {
-                    *dir = Some(d);
-                }
-                turned_end = end;
-                &turned_end
-            }
-            _ => to,
-        };
         let tail = self.tail(cx, (last, from_dir, arrive), own, to);
         let mut pts: Vec<(i64, i64)> = fixed[..fixed.len() - 1].to_vec();
         pts.extend(tail);
@@ -1080,6 +930,12 @@ impl WireTool {
             return None;
         };
         let end = end.as_ref().filter(|e| e.is_end() && !e.same_end(start))?;
+        // WP-S2.19 D13: without a clear route and without a fixed bend, the wire is stored unrouted.
+        let route: &[(i64, i64)] = if self.direct && self.bends() == 0 {
+            &[]
+        } else {
+            route
+        };
         let draw = |a: Value, b: Value, route: &[(i64, i64)]| {
             let mut params = json!({
                 "a": a,
@@ -1117,6 +973,7 @@ impl WireTool {
     /// The target under `at` moved to: re-route while routing.
     fn moved(&mut self, at: (i64, i64), mods: Mods, cx: &ToolCx<'_>) -> ToolOutput {
         let target = resolve_target(cx, at, mods.alt);
+        self.full_junction = near_full_junction(cx, at, mods.alt);
         match self.state.clone() {
             State::Armed { .. } => {
                 self.state = State::Armed { target: Some(target) };
@@ -1141,6 +998,7 @@ impl WireTool {
     /// A click (a press or Enter) at `at`.
     fn click(&mut self, at: (i64, i64), mods: Mods, cx: &ToolCx<'_>) -> ToolOutput {
         let target = resolve_target(cx, at, mods.alt);
+        self.full_junction = near_full_junction(cx, at, mods.alt);
         match self.state.clone() {
             State::Armed { .. } => {
                 if !target.is_end() {
@@ -1217,10 +1075,14 @@ impl WireTool {
     /// `connection.draw_to_ip` commit with the name and direction, the tool armed again; a refusal key while not
     /// routing to a grid point (`reason-ip-end-grid`), before the wire has a segment (`reason-ip-end-segment`) or for a
     /// symbol without exactly one CP (`reason-ip-symbol`).
+    ///
+    /// With EW's two forms (`shapes`: the source form and the target form, WP-S2.19 D16) the point is never turned:
+    /// `name_of` gives the name and the direction from the start and the end's grid point first, and the direction's
+    /// form is drawn there, its CP where the grid puts it, the route ending at it.
     pub fn end_in_ip(
         &mut self,
         cx: &ToolCx<'_>,
-        shape: &ew_api::output::SymbolShape,
+        shapes: (&ew_api::output::SymbolShape, Option<&ew_api::output::SymbolShape>),
         name_of: impl FnOnce(&WireTarget, (i64, i64)) -> (String, &'static str),
     ) -> Result<(ToolOutput, String, &'static str), Key<'static>> {
         let State::Routing {
@@ -1236,6 +1098,15 @@ impl WireTool {
         let Some(WireTarget::Grid { at: end }) = end else {
             return Err(key!("reason-ip-end-grid"));
         };
+        let mut name_of = Some(name_of);
+        let (shape, named) = match (shapes, name_of.take_if(|_| shapes.1.is_some())) {
+            ((source, Some(target)), Some(name_of)) => {
+                let (name, direction) = name_of(&start, end);
+                let shape = if direction == "target" { target } else { source };
+                (shape, Some((name, direction)))
+            }
+            ((shape, _), _) => (shape, None),
+        };
         let [cp] = shape.cps.as_slice() else {
             return Err(key!("reason-ip-symbol"));
         };
@@ -1244,13 +1115,22 @@ impl WireTool {
         let [.., a, b] = line.as_slice() else {
             return Err(key!("reason-ip-end-segment"));
         };
-        let arrive = Dir::of_vector(((b.0 - a.0).signum(), (b.1 - a.1).signum()))
-            .ok_or(key!("reason-ip-end-segment"))?;
+        // Along the segment's longer axis: an unrouted line from a CP 1 nm off the grid is not quite straight.
+        let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+        let v = if dx.abs() >= dy.abs() {
+            (dx.signum(), 0)
+        } else {
+            (0, dy.signum())
+        };
+        let arrive = Dir::of_vector(v).ok_or(key!("reason-ip-end-segment"))?;
         let away =
             Dir::of_vector((-arrive.vector().0, -arrive.vector().1)).ok_or(key!("reason-ip-end-segment"))?;
-        let orient = (0..4u8)
-            .find(|o| ew_api::geometry::orient_dir(*o, cp.dir) == away)
-            .ok_or(key!("reason-ip-symbol"))?;
+        let orient = match named {
+            Some(_) => 0,
+            None => (0..4u8)
+                .find(|o| ew_api::geometry::orient_dir(*o, cp.dir) == away)
+                .ok_or(key!("reason-ip-symbol"))?,
+        };
         let off = ew_api::geometry::orient_point(orient, cp.at);
         let grid = PageGridMap::new(cx.page.tables.grid);
         let pos = (
@@ -1263,11 +1143,19 @@ impl WireTool {
             idx: cp.fn_cp,
             rep: EntityRef(cx.page.tables.page),
             at: cp_at,
-            dir: Some(away),
+            dir: Some(ew_api::geometry::orient_dir(orient, cp.dir)),
             label: String::new(),
         };
-        let route = self.full_route(cx, &start, &fixed, &target);
-        let (name, direction) = name_of(&start, pos);
+        let mut route = self.full_route(cx, &start, &fixed, &target);
+        if self.direct && fixed.len() == 1 {
+            // WP-S2.19 D13: without a clear route and without a fixed bend, the wire is stored unrouted.
+            route.clear();
+        }
+        let (name, direction) = match (named, name_of) {
+            (Some(named), _) => named,
+            (None, Some(name_of)) => name_of(&start, pos),
+            (None, None) => return Err(key!("reason-ip-symbol")),
+        };
         let Some(a) = start.endpoint() else {
             return Err(key!("reason-ip-end-grid"));
         };
@@ -1399,10 +1287,13 @@ impl Tool for WireTool {
         }
     }
 
-    /// FT-706: while the ghost is the router's fallback, and after a wire drawn so until the next one starts, the
-    /// hint says that no clear route was found and the wire is drawn direct (not a refusal). A bend placed comes
-    /// first (ID-1497 (11)).
+    /// WP-S2.19 D13: while the target is a junction that already joins three wires, the hint says it is no end; once a
+    /// click placed a bend, that a bend is placed (ID-1497 (11)); while no clear route is found, and after a wire drawn
+    /// so until the next one starts, that the wire stays unrouted (not a refusal).
     fn status_hint(&self) -> super::Hint {
+        if self.full_junction {
+            return super::Hint::plain(key!("hint-wire-full-junction"));
+        }
         // ID-1497 (11): once a click placed a bend instead of ending on a connection point, the hint says so and what
         // ends the wire (a click that missed a connection point snaps to the grid and bends there).
         if self.bends() > 0 {

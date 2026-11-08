@@ -219,7 +219,7 @@ pub(crate) const FUNCTIONS: TableSpec = spec(
 pub(crate) const REPRESENTATIONS: TableSpec = spec(
     "representations",
     &["key", "functions", "page", "symbol", "cell"],
-    &["dx", "dy", "arrangement", "slot_pos"],
+    &["dx", "dy", "arrangement", "slot_pos", "orient"],
 );
 
 /// `connections.csv`.

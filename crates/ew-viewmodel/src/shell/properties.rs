@@ -2309,6 +2309,10 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::PasteUpdate { .. }) {
             return self.apply_paste_update_card(card);
         }
+        // WP-S2.19 D13: a route card commits its plan and says what it routed.
+        if matches!(card.origin, CardOrigin::Route { .. }) {
+            return self.apply_route_card(card);
+        }
         // WP-S2.09 part 3: a bulk card is a renumber dialog's (§8.2).
         if matches!(card.origin, CardOrigin::Bulk | CardOrigin::Part(_)) {
             return self.apply_bulk_card(card);

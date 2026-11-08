@@ -21,8 +21,8 @@ use common::*;
 use ew_commands::commands::{
     Connect, EndpointParam, MoveReps, PasteFragment, PlaceBlackBox, PlaceSymbol, PlaceTarget, TransformReps,
 };
-use ew_commands::route::{Heading, RouteEnd, RouteRequest, auto_route};
 use ew_commands::{CmdError, Engine};
+use ew_derive::routing::{Heading, RouteEnd, RouteRequest, auto_route};
 use ew_ids::Id;
 use ew_model::{Entity, Model};
 use ew_schema::{
@@ -215,6 +215,8 @@ fn routed(a: (Pt2, Heading), b: (Pt2, Heading)) -> Vec<Pt2> {
         own: [vec![], vec![]],
         wires: vec![],
         reserved: vec![],
+        cross_cost: 0,
+        mates: Vec::new(),
     };
     auto_route(&req).into_iter().map(|(x, y)| pt(x, y)).collect()
 }
@@ -263,6 +265,8 @@ fn wire_every_pin(e: &mut Engine, rep: Id<Representation>, f: Id<Function>) -> V
 
 fn steps(rep: Id<Representation>, s: [i64; 2]) -> MoveReps {
     MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         reps: vec![rep],
         delta: Pt2::ORIGIN,
@@ -390,6 +394,8 @@ fn a_route_to_a_black_box_pin_follows_the_box_on_a_drag_and_a_transform() {
     e.execute(&steps(rep, [0, -2])).expect("two steps up");
     check(&e, "two steps up");
     e.execute(&MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         reps: vec![rep],
         delta: pt(G, 0),

@@ -143,6 +143,9 @@ pub static ANCHORS: &[Anchor] = &[
     on(TOOLS, "tool-duct-draw", "duct"),
     on(TOOLS, "tool-connect-on-move", "connect-while-moving"),
     on(TOOLS, "tool-route-edit", "edit-route"),
+    // WP-S2.19 D13 (C53-rt#19): the two route actions have their sections on the tools page.
+    on(TOOLS, "route-page", "route-page"),
+    on(TOOLS, "route-selection", "route-selection"),
     on(TOOLS, "tool-ip", "interruption-point"),
     on(TOOLS, "tool-black-box", "black-box"),
     on(TOOLS, "tool-ip-direction", "interruption-point-direction"),
@@ -235,6 +238,9 @@ pub fn action_topic(action: &str) -> Option<&'static str> {
         "messages.show" => "nav-messages",
         "strip.edit" => "strip-editor",
         "navigator.table" => "table-mode",
+        // WP-S2.19 D13 (C53-rt#19).
+        "route.page" => "route-page",
+        "route.selection" => "route-selection",
         a if a.starts_with("symbol.") => "symbol-editor",
         a if a.starts_with("tool.") => return tool_topic(a),
         a if a.starts_with("view.workspace") => "workspaces",
@@ -490,6 +496,19 @@ mod tests {
                     .any(|id| id == a.fragment);
                 assert!(found, "{}: no heading with the id `{}`", a.page, a.fragment);
             }
+        }
+    }
+
+    /// C53-rt#19 (WP-S2.19 D13): F1 on Route page and Route selection opens their sections of the tools page, not the
+    /// project view's page.
+    #[test]
+    fn route_page_and_route_selection_open_their_sections() {
+        for (action, fragment) in [
+            ("route.page", "route-page"),
+            ("route.selection", "route-selection"),
+        ] {
+            let a = action_topic(action).and_then(anchor).expect(action);
+            assert_eq!((a.page, a.fragment), (TOOLS, fragment), "{action}");
         }
     }
 

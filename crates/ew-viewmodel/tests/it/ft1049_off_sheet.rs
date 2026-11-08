@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1049 (decision log ID-1148) on a temporary copy of Golden A: a route-less wire whose coil end lies off the sheet
-//! is drawn along the sheet's edge by the scene's clamp, where normaliser 7 does not split it. The page tables name
+//! FT-1049 (decision log ID-1148) on a temporary copy of Golden A: a routed wire whose coil end lies off the sheet is
+//! drawn along the sheet's edge by the scene's clamp, where normaliser 7 does not split it. The page tables name
 //! that stretch; the Place tool proposes no split on it and refuses a drop with a connection point strictly inside
 //! it, in words; a symbol placed there by a command is treated as before (the wire is not split).
 
@@ -59,7 +59,8 @@ fn coil_wire(t: &PageTables) -> TableConnection {
 }
 
 /// Page 103 with a switch at grid (60, 20), a coil autoconnected under it, the coil then moved off the sheet's left
-/// edge by a command: the wire keeps no route and the scene draws it along the edge (also FT-1074's bare end).
+/// edge by a command: the wire's stored route follows the coil and the scene draws its off-sheet part along the edge
+/// (also FT-1074's bare end). (A wire without a route is unrouted and has no wire geometry, WP-S2.19 D3.)
 pub(crate) fn fixture(tmp: &Tmp) -> ShellModel {
     let mut s = tmp.shell_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
@@ -81,8 +82,9 @@ pub(crate) fn fixture(tmp: &Tmp) -> ShellModel {
         done(&mut s, activate, json!({}));
         done(&mut s, "tool.select", json!({}));
     }
+    // The autoconnected wire stores its straight run (WP-S2.19 D12).
     let t = tables(&s);
-    assert!(!coil_wire(&t).stored_route, "the autoconnected wire has no route");
+    assert!(coil_wire(&t).stored_route, "the autoconnected wire has a route");
     let coil = t
         .cps
         .iter()
@@ -100,7 +102,7 @@ pub(crate) fn fixture(tmp: &Tmp) -> ShellModel {
 /// The stretch the clamp drew: its two ends, the one nearer the top first.
 fn stretch(t: &PageTables) -> ((i64, i64), (i64, i64)) {
     let w = coil_wire(t);
-    assert!(!w.stored_route);
+    assert!(w.stored_route);
     assert_eq!(w.off_sheet.len(), 1, "one stretch along the edge: {w:?}");
     let i = w.off_sheet[0];
     let (a, b) = (w.polyline[i], w.polyline[i + 1]);

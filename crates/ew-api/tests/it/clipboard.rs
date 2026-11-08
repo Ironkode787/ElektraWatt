@@ -637,9 +637,9 @@ fn cb3_held_copies_are_reused_and_cb4_the_paste_of_102f1_is_102f3() {
     let mut s = golden();
     let frag = fragment(&s, &reps_of(&s, "102", &["-102F1"]));
     let parts = s.query().parts().len();
-    // Twelve grid steps right: beside the original, on no wire. (Six steps down, the copy's pins would lie on -102F1's
-    // own wire to the junction below it, which normaliser 7 splits into the copy, FT-1020.)
-    let receipt = paste(&mut s, "102", at_steps(&frag, (12, 0)), &frag).unwrap();
+    // Sixteen grid steps right: beside the original, on no wire. (Six steps down, or twelve right, the copy's pins would
+    // lie on a routed wire, which normaliser 7 splits into the copy, FT-1020.)
+    let receipt = paste(&mut s, "102", at_steps(&frag, (16, 0)), &frag).unwrap();
     assert_eq!(s.query().parts().len(), parts, "the part copy is reused");
     assert!(created(&receipt, Kind::Part).is_empty());
     assert!(created(&receipt, Kind::Connection).is_empty());

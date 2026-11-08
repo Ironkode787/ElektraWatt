@@ -458,6 +458,7 @@ impl ShellModel {
             snapper: &page.snapper,
             selection: &self.tools.selection,
             layout: self.tools.layout_options,
+            connect_on_move: self.tools.connect_on_move,
         };
         let crate::tools::wire::WireTarget::Cp { function, idx, .. } =
             crate::tools::wire::resolve_target(&cx, at, false)
@@ -592,6 +593,7 @@ impl ShellModel {
             snapper: &page.snapper,
             selection: &host.selection,
             layout: host.layout_options,
+            connect_on_move: host.connect_on_move,
         };
         Some(f(host.tool.as_mut(), &cx))
     }
@@ -612,5 +614,152 @@ impl ShellModel {
     /// Sends a tool key that only some tools take (Tab): the active tool answers.
     pub(crate) fn send_proposal_key(&mut self) -> Outcome {
         self.send_tool(&CanvasEvent::Key(crate::tools::ToolKey::NextProposal))
+    }
+
+    // -----------------------------------------------------------------------------------------------------------
+    // Route page and Route selection (WP-S2.19 D13)
+
+    /// `route.page` (WP-S2.19 D13): the plan of the page's unrouted connections in the preview card.
+    pub(crate) fn act_route_page(&mut self) -> Outcome {
+        self.route_card(ew_api::routing::RouteScope::Page)
+    }
+
+    /// `route.selection` (WP-S2.19 D13): the plan of the selected connections and of every connection with an end on a
+    /// selected representation, routed ones routed again, in the preview card.
+    pub(crate) fn act_route_selection(&mut self) -> Outcome {
+        if self.canvas().is_none() {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-page"),
+            };
+        }
+        let ids = self.route_selection_ids();
+        if ids.is_empty() {
+            return Outcome::Refused {
+                reason_key: key!("reason-route-selection"),
+            };
+        }
+        self.route_card(ew_api::routing::RouteScope::Selection(ids))
+    }
+
+    /// The selected connections and representations of the focused page, which Route selection routes (ID-1509 (8):
+    /// it needs one).
+    pub(crate) fn route_selection_ids(&self) -> Vec<ew_api::output::Uuid> {
+        self.canvas().map_or_else(Vec::new, |c| {
+            selection_kinds(&self.tools.selection, &c.page().tables)
+                .into_iter()
+                .filter(|(_, k)| matches!(k, EntityKind::Connection | EntityKind::Rep))
+                .map(|(e, _)| e.0)
+                .collect()
+        })
+    }
+
+    /// The preview card of a page solve of `scope` on the current page (WP-S2.19 D13, §12a): its lead line and one row
+    /// per connection left unrouted, with its reason; Apply commits the plan's one `connection.route_many`. A solve with
+    /// nothing to route says so in a toast and opens no card; one that routes nothing fails with its lead.
+    fn route_card(&mut self, scope: ew_api::routing::RouteScope) -> Outcome {
+        use ew_api::routing::{Unrouted, route_many_params};
+        let Some(folio) = self.current_folio().map(str::to_owned) else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-page"),
+            };
+        };
+        let Some(session) = self.project.as_ref().map(|p| &p.session) else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-project"),
+            };
+        };
+        let Some(plan) = session.route_plan(&folio, &scope) else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-page"),
+            };
+        };
+        let page = strings::format(key!("route-folio"), &[&folio]);
+        let total = plan.routes.len() + plan.unrouted.len();
+        if total == 0 {
+            self.notify(strings::format(key!("toast-route-nothing"), &[&page]), false);
+            return Outcome::Done;
+        }
+        let lead = strings::format(
+            if total == 1 {
+                key!("route-preview-lead-one")
+            } else {
+                key!("route-preview-lead")
+            },
+            &[
+                &total.to_string(),
+                &page,
+                &plan.routes.len().to_string(),
+                &plan.unrouted.len().to_string(),
+            ],
+        );
+        let rows = plan
+            .unrouted
+            .iter()
+            .map(|(id, reason)| {
+                let wire = session.connection_words(&folio, *id).unwrap_or_default();
+                let key = match reason {
+                    Unrouted::Wires => key!("route-reason-wires"),
+                    Unrouted::Symbols => key!("route-reason-symbols"),
+                    Unrouted::Texts => key!("route-reason-texts"),
+                    Unrouted::Points => key!("route-reason-points"),
+                    Unrouted::FourArms => key!("route-reason-four-way"),
+                };
+                strings::format(key, &[&wire])
+            })
+            .collect();
+        let Some(params) = route_many_params(&plan) else {
+            return Outcome::Failed { message: lead };
+        };
+        // ID-1509 (8): a plan whose routes are the ones drawn changes nothing, so it opens no card.
+        let unchanged = self.canvas().is_some_and(|c| {
+            plan.routes.iter().all(|(id, route)| {
+                c.page()
+                    .tables
+                    .connections
+                    .iter()
+                    .any(|t| t.id == *id && t.stored_route && t.polyline == *route)
+            })
+        });
+        if unchanged {
+            if !plan.unrouted.is_empty() {
+                return Outcome::Failed { message: lead };
+            }
+            self.notify(strings::format(key!("toast-route-unchanged"), &[]), false);
+            return Outcome::Done;
+        }
+        self.preview_host_card_as(
+            "connection.route_many",
+            params,
+            key!("reason-route"),
+            crate::properties::CardOrigin::Route {
+                lead,
+                rows,
+                page,
+                routed: plan.routes.len(),
+                selection: matches!(scope, ew_api::routing::RouteScope::Selection(_)),
+            },
+        )
+    }
+
+    /// Apply on a Route page or Route selection card: the plan's `connection.route_many` commits as a bulk card's
+    /// command does, and the toast says how many wires it routed (§12a).
+    pub(super) fn apply_route_card(&mut self, card: crate::properties::Card) -> Outcome {
+        let toast = match &card.origin {
+            crate::properties::CardOrigin::Route { page, routed, .. } => strings::format(
+                if *routed == 1 {
+                    key!("toast-route-done-one")
+                } else {
+                    key!("toast-route-done")
+                },
+                &[&routed.to_string(), page],
+            ),
+            _ => String::new(),
+        };
+        let fresh = self.revision() == Some(card.preview.base_rev) && card.preview.result.is_ok();
+        let out = self.apply_bulk_card(card);
+        if fresh && out == Outcome::Done {
+            self.notify(toast, true);
+        }
+        out
     }
 }

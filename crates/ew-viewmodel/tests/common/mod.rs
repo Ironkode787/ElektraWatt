@@ -166,3 +166,51 @@ pub fn structural_tokens(line: &str) -> Vec<String> {
         .map(str::to_owned)
         .collect()
 }
+
+/// FT-500's overlap and its wire through a symbol on a writable Golden A shown at folio 101, which the routed folio no
+/// longer draws (WP-S2.19, Golden A's route tool): three wires given the routes the provisional path drew them along
+/// before, by `connection.route` (a command stores the route it is given). `-101F1:1 -> F55:1` and
+/// `S51:3 -> -101F1:N#1` then overlap on one line inside -101F1's rectangle, and `T55:3 -> E55:N` runs straight down
+/// through E55's body. Returns the sheet y of the overlap's line.
+#[allow(dead_code)]
+pub fn provisional_overlap_on_101(shell: &mut ShellModel) -> i64 {
+    let (routes, y) = {
+        let page = shell.canvas().expect("a page").page();
+        let t = &page.tables;
+        let cp = |label: &str| {
+            t.cps
+                .iter()
+                .find(|c| c.label == label)
+                .unwrap_or_else(|| panic!("{label}"))
+                .clone()
+        };
+        let wire = |a: &str, b: &str| {
+            let (a, b) = (cp(a), cp(b));
+            let id = t
+                .connections
+                .iter()
+                .find(|c| a.connections.contains(&c.id) && b.connections.contains(&c.id))
+                .unwrap_or_else(|| panic!("a wire from {} to {}", a.label, b.label))
+                .id;
+            (id, a.at, b.at)
+        };
+        let f1 = wire("-101F1:1", "F55:1");
+        let s51 = wire("S51:3", "-101F1:N#1");
+        let t55 = wire("T55:3", "E55:N");
+        let routes = vec![
+            (f1.0, vec![f1.1, f1.2]),
+            (s51.0, vec![s51.1, (s51.1.0, s51.2.1), s51.2]),
+            (t55.0, vec![t55.1, t55.2]),
+        ];
+        (routes, page.snapper.page_to_sheet(f1.1).1)
+    };
+    for (id, route) in routes {
+        let route: Vec<Value> = route.iter().map(|p| json!([p.0, p.1])).collect();
+        done(
+            shell,
+            "command.run",
+            json!({"cmd": "connection.route", "params": {"connection": id.to_string(), "route": route}}),
+        );
+    }
+    y
+}

@@ -242,7 +242,7 @@ connections
 junctions
 wires
 stored
-provisional
+unrouted
 ip
 direction
 source

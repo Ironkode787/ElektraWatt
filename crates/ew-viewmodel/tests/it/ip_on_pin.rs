@@ -69,10 +69,11 @@ fn ghost_pos(s: &ShellModel) -> (i64, i64) {
 }
 
 /// The insertion point whose ghost CP lies on the page point `target`, read from the armed tool's ghost
-/// (`pos = target - orient(cp.at)`): its insertion point and its CP marker at a free grid point.
+/// (`pos = target - orient(cp.at)`): its insertion point and its CP marker with the ghost at the target, so the
+/// ghost shows the form of the direction there (WP-S2.19 D16: a source's CP is one grid step behind its tip, a
+/// target's at its tip).
 fn insertion_for(s: &mut ShellModel, target: (i64, i64)) -> (i64, i64) {
-    let probe = grid_point(s, (40, 40));
-    cursor(s, probe);
+    cursor(s, target);
     let pos = ghost_pos(s);
     let marker = s
         .tool_overlay()
@@ -567,6 +568,9 @@ fn ft950_after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
     let pin = cp(&s, "-102F2:14");
     arm_on(&mut s, "FT950", pin.at);
     done(&mut s, "tool.ip_direction", json!({"direction": "target"}));
+    // The target's form has its CP at the tip (WP-S2.19 D16): the ghost goes where that CP lies on the pin.
+    let pos = insertion_for(&mut s, pin.at);
+    cursor(&mut s, pos);
     let before = tables(&s);
     done(&mut s, "canvas.activate", json!({}));
     assert_connects(&s, &before, &pin, "FT950");

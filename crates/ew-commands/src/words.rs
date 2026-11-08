@@ -121,6 +121,21 @@ pub(crate) fn symbol(tx: &TxBuilder<'_>, id: ew_ids::Id<Representation>) -> Text
     )
 }
 
+/// A symbol copy by its item's name ("symbol Interruption point"), else its key, else "a symbol".
+pub(crate) fn symbol_copy(tx: &TxBuilder<'_>, id: ew_ids::Id<ew_schema::SymbolDef>) -> TextArg {
+    let words = tx
+        .get::<ew_schema::LibCopy<ew_schema::SymbolDef>>(id)
+        .and_then(|c| {
+            let name = ew_derive::neutral(&c.item.name);
+            if name.is_empty() {
+                c.item.meta.key.as_ref().map(|k| TextArg::Plain(k.to_string()))
+            } else {
+                Some(text!("refusal-words-symbol-named", name).into())
+            }
+        });
+    document_words(tx, Kind::Symbol, words)
+}
+
 /// Any record by the words of its kind (WP-S3.09 D12's EW-IMP-010 and EW-IMP-011, the re-import card's rows): a device
 /// by its tag, a function or an interruption point, a page, a symbol, a wire or a junction as above, else its kind with
 /// its article (`a conductor`… `an enclosure`). Keyed, so the window shows it in its language (ID-1374).

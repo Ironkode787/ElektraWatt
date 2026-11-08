@@ -1,0 +1,58 @@
+# The acceptance list of RP3 (WP-S2.19 section 11.3), on a copy of Golden A, whose own check report has errors of
+# other packages (the panel layout's, for one), so no item asks for a clean report. Correctness is A1 and A2 (`ew sql`);
+# the measures are A4 and A7 here and `ew layout <project> --page 101` in the round's report: its hard rules must be 0,
+# and its crossings and bends are written beside the keep score and Golden A's own line in `expected/layout.txt`. A
+# finding of the run is written as a row of the round's report: the run, the item or the measure, what the tester did,
+# what the program showed, a frame.
+
+[[item]]
+id = "A1"
+kind = "hard"
+what = "E56 stands two columns to the right of where it was, in 101-E16."
+how = "pages"
+query = "SELECT tag FROM api_v1_device WHERE tag = 'E56' AND main_folio = '101' AND main_cell = 'E16'"
+expect = "== 1"
+
+[[item]]
+id = "A2"
+kind = "hard"
+what = "A second lamp is wired in parallel with E56: a lamp other than E56 on both of E56's potentials."
+how = "connections"
+query = "SELECT f.device_tag FROM api_v1_function f WHERE f.fndef = 'ew.fn.lamp' AND f.device_tag <> 'E56' AND f.device_tag IN (SELECT from_tag FROM api_v1_wire WHERE potential_name = 'N-55S' UNION SELECT to_tag FROM api_v1_wire WHERE potential_name = 'N-55S') AND f.device_tag IN (SELECT from_tag FROM api_v1_wire WHERE potential_name = 'L-55' UNION SELECT to_tag FROM api_v1_wire WHERE potential_name = 'L-55')"
+expect = ">= 1"
+
+[[item]]
+id = "A3"
+kind = "hard"
+what = "The tester let the program route the lamps' wires again (Route selection)."
+how = "outcomes"
+actions = ["route.selection"]
+
+[[item]]
+id = "A4"
+kind = "hard"
+what = "No drawn wire passes a connection point it does not join, runs along another wire or through a symbol, and no wire is left without a route."
+how = "check"
+query = "SELECT fingerprint FROM api_v1_message WHERE rule IN ('EW-CORE-067', 'EW-CORE-068', 'EW-CORE-069', 'EW-CORE-073')"
+expect = "== 0"
+
+[[item]]
+id = "A5"
+kind = "hard"
+what = "The tester ran the check."
+how = "outcomes"
+actions = ["messages.check"]
+
+[[item]]
+id = "A6"
+kind = "hard"
+what = "Delivered: the tester saved the project and exported the PDF itself."
+how = "pdf, work, outcomes"
+
+[[item]]
+id = "A7"
+kind = "soft"
+what = "No wire runs through a text, and no junction joins four wires."
+how = "check"
+query = "SELECT fingerprint FROM api_v1_message WHERE rule IN ('EW-CORE-070', 'EW-CORE-072')"
+expect = "== 0"

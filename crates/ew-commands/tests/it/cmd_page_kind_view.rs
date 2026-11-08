@@ -300,6 +300,8 @@ fn a_page_without_a_view_deletes_nothing() {
 fn ft882_a_move_of_a_selection_with_the_surface_view_names_it() {
     let (mut e, view) = fx();
     let r = e.execute(&ew_commands::commands::MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: vec![view.1],
         reps: Vec::new(),
         delta: Pt2::new(Nm(10 * MM), Nm(0)),

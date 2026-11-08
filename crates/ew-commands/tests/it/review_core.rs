@@ -105,6 +105,8 @@ fn place_device(
 
 fn move_reps(reps: Vec<Id<Representation>>, delta: Pt2) -> MoveReps {
     MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps,
@@ -187,6 +189,8 @@ fn f1_a_step_move_that_takes_a_connection_point_out_of_range_is_refused_in_words
     }));
     let before = lines(e.model());
     let reason = rejection(e.execute(&MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         reps: vec![r],
         delta: Pt2::ORIGIN,
@@ -357,6 +361,8 @@ fn f3_moving_onto_a_colliding_page_renumbers_the_moved_device() {
     let mut e = engine(model);
     let stayed_before = row(&e, stayed);
     e.execute(&MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         steps: None,
         reps: vec![id(0x1201)],

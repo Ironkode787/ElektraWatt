@@ -1,0 +1,10 @@
+# The hints (WP-S2.12 D8), from where to look to what to do, in the user's words; `hint` gives them one at a time.
+
+[[hint]]
+text = "The power supply is placed from its part with Device in the Draw tab's Place group; its outline takes a second click."
+
+[[hint]]
+text = "The relay's own contacts are placed from the symbol picker as contacts of the relay you placed first; its 13-14 contact holds it."
+
+[[hint]]
+text = "An interruption point at the right edge of the supply page and one of the same name at the left edge of the control page carry 24 V across."

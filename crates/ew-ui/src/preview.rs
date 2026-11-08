@@ -534,7 +534,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         ui.horizontal(|ui| {
             ui.add_space(pad);
             ui.spacing_mut().item_spacing.x = t.space_3;
-            let command = strings::command_title(&card.preview.name);
+            let command = card.command();
             // Cycle 39 (FIX39b-1): a question card (the paste choice) previews nothing: its head is the command alone,
             // with no "Preview:" and no revision.
             let title = if choice {
@@ -649,6 +649,18 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         }
         if let CardOrigin::Part(p) = &card.origin {
             inset(ui, &mut |ui| part_block(ui, p));
+        }
+        // WP-S2.19 D13: a route card's connections left unrouted, one row each with its reason.
+        if let CardOrigin::Route { rows, .. } = &card.origin {
+            for row in rows {
+                inset(ui, &mut |ui| {
+                    ui.label(
+                        RichText::new(row)
+                            .font(theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    );
+                });
+            }
         }
         ui.add_space(t.space_2);
         let [entities, tags, xrefs, pages] = rows(&t, shell);

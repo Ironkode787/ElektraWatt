@@ -763,7 +763,7 @@ impl Line {
 
 /// EW-TERM-006 (FT-1020, decision log ID-1104, ID-1110): a connection point of a terminal, drawn on the page by the
 /// terminal's own symbol, lies on the path a wire or cable core of the page is drawn along (`ew_derive::drawn_path`:
-/// its stored route, else the provisional path between its ends), and that wire does not join the terminal: the page
+/// its stored route; an unrouted connection has none, WP-S2.19 D3), and that wire does not join the terminal: the page
 /// shows the terminal in the wire, but it is not connected. A wire joins the terminal when an end is a CP of any
 /// function of the terminal's device, or a junction standing on one of the terminal's CP points on the page that a
 /// connection joins to a CP of the terminal's device. One finding per terminal and wire: targets the terminal and the

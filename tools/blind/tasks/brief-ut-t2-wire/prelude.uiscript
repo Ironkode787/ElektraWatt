@@ -1,7 +1,7 @@
 {"$schema":"ew.uiscript/1","label":"brief-ut-t2-wire prelude: GP-UT, then T1's reference steps"}
 {"action":"file.open","params":{"dir":"project"}}
 {"action":"page.goto","params":{"folio":"102"}}
-{"action":"nav.goto","params":{"text":"102-C7"}}
+{"action":"cursor.set","params":{"x_mm":124.610,"y_mm":69.882}}
 {"action":"tool.place","params":{}}
 {"action":"place.pick","params":{"symbol":"ew.iec.mcb-1p@qet10"}}
 {"action":"canvas.activate","params":{"alt":true}}

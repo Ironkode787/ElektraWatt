@@ -52,6 +52,8 @@ pub(crate) struct FnInfo {
     pub(crate) cps: Vec<CpInfo>,
     /// Whether it is an interruption point.
     pub(crate) ip: bool,
+    /// An interruption point's direction: `Some(true)` for a target, `Some(false)` for a source, `None` otherwise.
+    pub(crate) ip_target: Option<bool>,
     /// Whether it was emitted with `kind = black_box`.
     pub(crate) black_box: bool,
 }
@@ -65,6 +67,8 @@ pub(crate) struct DeviceInfo {
     pub(crate) strip_field_side: Option<Side>,
     /// Whether the device has the cable aspect.
     pub(crate) cable: bool,
+    /// Whether the device is a strip segment's terminal (a `terminals` row).
+    pub(crate) terminal: bool,
     /// The `parts` keys of its part uses, in `Device.parts` order.
     pub(crate) parts: Vec<String>,
 }

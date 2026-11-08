@@ -48,7 +48,7 @@ fn with_two_points(tmp: &Tmp) -> Harness<'static, App> {
     dispatch(&mut h, "props.show", json!({"on": true}));
     dispatch(&mut h, "tool.ip", json!({}));
     dispatch(&mut h, "ip.external", json!({"external": "JE-N1000-03:N"}));
-    dispatch(&mut h, "cursor.set", json!({"x_mm": 155.924, "y_mm": 101.124}));
+    dispatch(&mut h, "cursor.set", json!({"x_mm": 185.208, "y_mm": 101.124}));
     dispatch(&mut h, "canvas.activate", json!({}));
     dispatch(&mut h, "ip.external", json!({"external": ""}));
     dispatch(&mut h, "ip.name", json!({"text": "W464"}));
@@ -94,7 +94,7 @@ fn row_error(h: &Harness<'_, App>) -> Option<(String, String)> {
 fn two_refusals_on_two_points_show_under_the_row_and_raise_no_banner() {
     let tmp = Tmp::new();
     let mut h = with_two_points(&tmp);
-    star_with_keys(&mut h, 155.924, 99.124);
+    star_with_keys(&mut h, 185.208, 99.124);
     assert_eq!(row_error(&h), Some((STAR.to_owned(), EXTERNAL.to_owned())));
     assert_eq!(
         h.state().shell().banner(),

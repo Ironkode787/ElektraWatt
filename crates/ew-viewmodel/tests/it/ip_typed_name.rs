@@ -49,8 +49,8 @@ fn new_ip_names(before: &PageTables, s: &ShellModel) -> Vec<String> {
         .collect()
 }
 
-/// Starts a wire at `-102F2:<cp>` and moves the grid cursor four steps down from it (an empty grid point).
-fn route_down_from(s: &mut ShellModel, label: &str) {
+/// Starts a wire at `-102F2:<cp>` and moves the grid cursor `steps` steps down from it (an empty grid point).
+fn route_down_from(s: &mut ShellModel, label: &str, steps: i64) {
     let start = tables(s)
         .cps
         .iter()
@@ -62,7 +62,7 @@ fn route_down_from(s: &mut ShellModel, label: &str) {
     done(s, "canvas.activate", json!({}));
     assert_eq!(s.tool().state(), "routing");
     let k = index_of(s, start.at);
-    let end = grid_point(s, (k.0, k.1 + 4));
+    let end = grid_point(s, (k.0, k.1 + steps));
     cursor(s, end);
 }
 
@@ -73,13 +73,13 @@ fn a_name_typed_with_the_ip_tool_names_the_end_of_the_next_wire_ended_with_p() {
     done(&mut s, "tool.ip", json!({}));
     done(&mut s, "ip.name", json!({"text": "0V"}));
     let before = tables(&s);
-    route_down_from(&mut s, "-102F2:14");
+    route_down_from(&mut s, "-102F2:14", 6);
     done(&mut s, "tool.ip", json!({}));
     assert_eq!(new_ip_names(&before, &s), vec!["0V".to_owned()]);
     // The name is taken: the next wire's end is proposed again (from its start's potential or the last name's
     // series), never the typed name unchanged a second time on the same page.
     let before = tables(&s);
-    route_down_from(&mut s, "-102F2:13");
+    route_down_from(&mut s, "-102F2:13", 4);
     done(&mut s, "tool.ip", json!({}));
     let names = new_ip_names(&before, &s);
     assert_eq!(names.len(), 1);
@@ -96,7 +96,7 @@ fn a_name_typed_with_the_ip_tool_names_the_point_its_click_places() {
     done(&mut s, "tool.wire", json!({}));
     done(&mut s, "tool.ip", json!({}));
     let before = tables(&s);
-    let k = (40, 40);
+    let k = (46, 40);
     let p = grid_point(&s, k);
     cursor(&mut s, p);
     done(&mut s, "canvas.activate", json!({}));
@@ -116,7 +116,7 @@ fn an_empty_or_blank_name_cancels_the_typed_name() {
         done(&mut s, "tool.wire", json!({}));
         done(&mut s, "tool.ip", json!({}));
         let before = tables(&s);
-        let p = grid_point(&s, (40, 40));
+        let p = grid_point(&s, (46, 40));
         cursor(&mut s, p);
         done(&mut s, "canvas.activate", json!({}));
         assert_eq!(new_ip_names(&before, &s), vec!["IP".to_owned()], "{erased:?}");

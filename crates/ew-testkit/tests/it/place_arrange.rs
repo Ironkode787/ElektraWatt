@@ -36,11 +36,11 @@ const PAGE_102: &str = "4aa43308-d0d3-57ee-be0c-d9383f429f50";
 const PAGE_103: &str = "f239a42a-2ec8-574b-8086-d0fe72d1da6a";
 /// Terminal -X1031 (strip device, 20 terminals), letter X, structure of folio 103.
 const STRIP_X1031: &str = "d8221507-61e8-5141-a2cb-95300ef8a242";
-/// Terminal X (`ew.iec.terminal@qet10`) on folio 101: x index 15 (15 mod 3 = 0).
-const REP_TERMINAL: &str = "66c620c1-6907-547f-996d-b8063cf278e1";
+/// -XPE (`ew.iec.pe@qet10`) on folio 101: x index 33 (33 mod 3 = 0), moved there by ID-1504.
+const REP_XPE: &str = "ec75639e-891f-58fd-8e73-3a43743f8573";
 /// F55 (`ew.iec.mcb-1pn@qet10`): x index 76 (mod 3 = 1).
 const REP_F55: &str = "8c4dbb72-b2ea-5ae7-9f5c-a84358d4f9fa";
-/// S51 (`ew.iec.switch-2p-manual@qet10`): x index 17 (mod 3 = 2).
+/// S51 (`ew.iec.switch-2p-manual@qet10`): x index 14 (mod 3 = 2).
 const REP_S51: &str = "57543b91-fc2a-54ed-9420-0c0e30135653";
 /// E56 (`ew.iec.lamp@qet10`) on folio 101, two connections.
 const REP_E56: &str = "6112da7c-cc90-592a-916a-48bbda475c86";
@@ -240,9 +240,11 @@ fn assert_routes_meet_their_ends(s: &Session, page: Id<Page>) -> usize {
             Some(end_pos(&q, &c.b, page)),
             "{id}: route end"
         );
+        // A straight route between two CPs that each sit up to 1 nm off the rational grid (the router keeps both
+        // ends exactly, `ew_derive::routing::search`) may lean by 1 nm, as ID-1504's straight wires on folio 101 do.
         for w in c.route.windows(2) {
             assert!(
-                w[0].x == w[1].x || w[0].y == w[1].y,
+                (w[0].x.0 - w[1].x.0).abs() <= 1 || (w[0].y.0 - w[1].y.0).abs() <= 1,
                 "{id}: a diagonal segment {w:?}"
             );
         }
@@ -267,7 +269,7 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
     let work = Work::new();
     let mut s = open_copy(&work, 1);
     let page: Id<Page> = id(PAGE_101);
-    let reps: Vec<Id<Representation>> = [REP_TERMINAL, REP_F55, REP_S51].map(id).to_vec();
+    let reps: Vec<Id<Representation>> = [REP_XPE, REP_F55, REP_S51].map(id).to_vec();
     // The three representations have x grid indices with three different residues modulo 3 (so any uniform nm
     // delta leaves at least one off the grid), and all sit on the grid.
     let g = grid();
@@ -281,16 +283,13 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
         assert_eq!(g.snap_point(pos.x), Some(pos.x));
         assert_eq!(g.snap_point(pos.y), Some(pos.y));
     }
-    // The golden fixture holds no routes: give the wires at these functions one.
+    // Give the wires at these functions a route of the test's own (Golden A's routes are the router's).
     let functions: Vec<Id<Function>> = reps.iter().map(|r| rep(&s, *r).functions[0]).collect();
     let wires = connections_at(&s, page, &functions);
     assert!(wires.len() >= 6, "{} wires at the three functions", wires.len());
-    assert!(
-        wires.iter().all(|w| connection(&s, *w).route.is_empty()),
-        "Golden A holds no wire routes (its bootstrap writes connectivity only)"
-    );
     route_all(&mut s, page, &wires);
-    assert_eq!(assert_routes_meet_their_ends(&s, page), wires.len());
+    let routed = assert_routes_meet_their_ends(&s, page);
+    assert!(routed >= wires.len(), "{routed}");
     let ends: Vec<(Endpoint, Endpoint)> = wires
         .iter()
         .map(|w| (connection(&s, *w).a.clone(), connection(&s, *w).b.clone()))
@@ -324,7 +323,7 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
         for (r, old) in reps.iter().zip(&old) {
             assert_eq!(rep(&s, *r).pos, stepped(*old, steps), "{r} by {steps:?}");
         }
-        assert_eq!(assert_routes_meet_their_ends(&s, page), wires.len(), "{steps:?}");
+        assert_eq!(assert_routes_meet_their_ends(&s, page), routed, "{steps:?}");
         for ((w, e), n) in wires.iter().zip(&ends).zip(&vertices) {
             let c = connection(&s, *w);
             assert_eq!(
@@ -454,6 +453,8 @@ fn exchange_symbol_on_e56_keeps_its_connections_and_follows_the_new_cps() {
     let wires = connections_at(&s, page, &[function_id]);
     assert_eq!(wires.len(), 2, "E56 has two connections");
     route_all(&mut s, page, &wires);
+    // Every routed wire of the page meets its ends (Golden A's routes are the router's).
+    let routed = assert_routes_meet_their_ends(&s, page);
     let ends: Vec<(Endpoint, Endpoint)> = wires
         .iter()
         .map(|w| (connection(&s, *w).a.clone(), connection(&s, *w).b.clone()))
@@ -536,7 +537,7 @@ fn exchange_symbol_on_e56_keeps_its_connections_and_follows_the_new_cps() {
     }
     assert_eq!(
         assert_routes_meet_their_ends(&s, page),
-        2,
+        routed,
         "both routes end at the new CP positions"
     );
     // One undo takes the exchange back.

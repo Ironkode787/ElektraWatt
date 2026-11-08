@@ -12,7 +12,7 @@ use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
     Connect, ConnectMany, ContinueIp, DefinePotential, DeleteConnections, EditJunction, EndpointParam,
-    PlaceIp, RouteConnection, WiringChoice,
+    PlaceIp, RouteConnection, RouteMany, WiringChoice,
 };
 use ew_commands::{CmdError, Engine};
 use ew_ids::Id;
@@ -381,6 +381,55 @@ fn route_of_a_missing_connection_is_not_found() {
         route: vec![],
     });
     assert!(matches!(r, Err(CmdError::NotFound { .. })));
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// connection.route_many (WP-S2.19 D12)
+
+#[test]
+fn route_many_sets_every_route_in_one_step_and_names_a_refused_entry() {
+    let mut e = engine(golden_model());
+    let (w29, w11) = (row(&e, CON_W29), row(&e, CON_W11A));
+    let route = vec![pt(0, 0), pt(0, G), pt(G, G)];
+    let r = e
+        .execute(&RouteMany {
+            routes: vec![
+                RouteConnection {
+                    connection: CON_W29,
+                    route: route.clone(),
+                },
+                RouteConnection {
+                    connection: CON_W11A,
+                    route: vec![],
+                },
+            ],
+        })
+        .unwrap();
+    assert_eq!(r.outcome.primary, Some((Kind::Connection, CON_W29.cast())));
+    assert_eq!(row(&e, CON_W29).route, route);
+    // One undo step restores both.
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!((row(&e, CON_W29), row(&e, CON_W11A)), (w29, w11));
+    // No entry; a missing connection in the second entry: nothing changes.
+    let r = e.execute(&RouteMany { routes: vec![] });
+    assert!(
+        matches!(&r, Err(CmdError::InvalidParams { path, .. }) if path == "/routes"),
+        "{r:?}"
+    );
+    let r = e.execute(&RouteMany {
+        routes: vec![
+            RouteConnection {
+                connection: CON_W29,
+                route: route.clone(),
+            },
+            RouteConnection {
+                connection: id(0xdead),
+                route: vec![],
+            },
+        ],
+    });
+    assert!(matches!(r, Err(CmdError::NotFound { .. })), "{r:?}");
+    assert_eq!(row(&e, CON_W29).route, Vec::new());
 }
 
 // ---------------------------------------------------------------------------------------------------------

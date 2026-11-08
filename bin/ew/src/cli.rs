@@ -18,10 +18,12 @@ use ew_api::{BomMode, CmdLog, Export};
 
 mod collab;
 mod diff;
+mod layout;
 mod merge_driver;
 mod merge_resolve;
 mod project_files;
 mod query;
+mod route;
 mod symbol;
 mod tree;
 
@@ -94,6 +96,10 @@ pub enum Command {
         /// Print the result as JSON (`--json`).
         json: bool,
     },
+    /// `ew layout [--page <folio>] [--json]`: the layout measures (WP-S2.19 part 1, ID-1498).
+    Layout(layout::LayoutArgs),
+    /// `ew route [--page <folio>] [--selection <ids>] [--dry-run] [--json]`: the page router (WP-S2.19 D13).
+    Route(route::RouteArgs),
     /// `ew merge resolve`: the conflict records a merge left, resolved (WP-S1.17 D19).
     MergeResolve(merge_resolve::MergeResolveArgs),
     /// `ew diff` (WP-S1.17 D26, D27).
@@ -738,6 +744,8 @@ pub fn run(cmd: Command) -> i32 {
         Command::Schema(name) => run_schema(&name),
         Command::Query(a) => query::run_query(&a),
         Command::Queries { json } => query::run_queries(json),
+        Command::Layout(a) => layout::run_layout(&a),
+        Command::Route(a) => route::run_route(&a),
         Command::MergeResolve(a) => merge_resolve::run_merge_resolve(&a),
         Command::Diff(a) => diff::run_diff(&a),
         Command::GitSetup(a) => collab::run_git_setup(&a),
@@ -774,8 +782,8 @@ fn ewz_refusal(path: &Path) -> String {
 }
 
 /// The explicit project, else the directory found from the current directory, for a reader (`check`, `sql`, the row
-/// and page exports, `export table`, `print`, `render`, `verify-derived`, `query`, `fmt --check`, `upgrade --check`):
-/// an `.ewz` is taken as it is and opened read-only from memory by `Session::open_reader` (WP-S1.17 D9, ID-1175 ruling
+/// and page exports, `export table`, `print`, `render`, `verify-derived`, `query`, `layout`, `fmt --check`, `upgrade
+/// --check`): an `.ewz` is taken as it is and opened read-only from memory by `Session::open_reader` (WP-S1.17 D9, ID-1175 ruling
 /// 5, ID-1230 ruling 5).
 fn reader_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
     match explicit {
@@ -6188,6 +6196,37 @@ SELECT 1"
         );
         assert!(p(&["verify-derived", "a", "b"]).is_err());
         assert!(p(&["verify-derived", "--bogus"]).is_err());
+    }
+
+    #[test]
+    fn layout_forms() {
+        assert_eq!(
+            p(&["layout"]),
+            Ok(Command::Layout(layout::LayoutArgs {
+                project: None,
+                page: None,
+                json: false,
+            }))
+        );
+        assert_eq!(
+            p(&["layout", "proj", "--page", "101", "--json"]),
+            Ok(Command::Layout(layout::LayoutArgs {
+                project: Some(PathBuf::from("proj")),
+                page: Some("101".to_owned()),
+                json: true,
+            }))
+        );
+        assert_eq!(
+            p(&["layout", "--project", "proj", "--page", "-1"]),
+            Ok(Command::Layout(layout::LayoutArgs {
+                project: Some(PathBuf::from("proj")),
+                page: Some("-1".to_owned()),
+                json: false,
+            }))
+        );
+        assert!(p(&["layout", "a", "b"]).is_err());
+        assert!(p(&["layout", "a", "--project", "b"]).is_err());
+        assert!(p(&["layout", "--page"]).is_err());
     }
 }
 

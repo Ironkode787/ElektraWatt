@@ -1,0 +1,80 @@
+# The acceptance list of RP2 (WP-S2.19 section 11.3). `check-brief` decides each item on the reference solution; the
+# round decides them on the tester's saved project and exports. Correctness is the netlist (A1 to A5, `ew sql`); the
+# measures are A6 and A9 here and `ew layout <project>` in the round's report: its hard rules must be 0 on every page,
+# and its crossings and bends per page are written beside the keep score. A finding of the run is written as a row of
+# the round's report: the run, the item or the measure, what the tester did, what the program showed, a frame.
+
+[[item]]
+id = "A1"
+kind = "hard"
+what = "The power supply unit is fed: its L, N and PE inputs are wired."
+how = "connections"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device g ON (g.tag = w.to_tag AND w.to_cp IN ('L', 'N', 'PE')) OR (g.tag = w.from_tag AND w.from_cp IN ('L', 'N', 'PE')) WHERE g.part_number = 'EW-GEN-PSU-1'"
+expect = ">= 3"
+
+[[item]]
+id = "A2"
+kind = "hard"
+what = "The supply's + and - outputs continue on a second page."
+how = "connections, pages"
+query = "SELECT p.id FROM api_v1_potential p WHERE p.pages LIKE '%,%' AND p.id IN (SELECT w.potential_id FROM api_v1_wire w JOIN api_v1_device g ON (g.tag = w.from_tag AND (w.from_cp LIKE '+%' OR w.from_cp LIKE '-%')) OR (g.tag = w.to_tag AND (w.to_cp LIKE '+%' OR w.to_cp LIKE '-%')) WHERE g.part_number = 'EW-GEN-PSU-1')"
+expect = ">= 2"
+
+[[item]]
+id = "A3"
+kind = "hard"
+what = "Self-holding: a relay's coil terminal A1 shares its potential with a pushbutton's pin and with a pin of one of the relay's own contacts."
+how = "connections"
+query = "SELECT k.tag FROM api_v1_device k WHERE k.letter = 'K' AND EXISTS (SELECT 1 FROM api_v1_wire a WHERE ((a.from_tag = k.tag AND a.from_cp = 'A1') OR (a.to_tag = k.tag AND a.to_cp = 'A1')) AND a.potential_id IN (SELECT b.potential_id FROM api_v1_wire b WHERE (b.from_tag = k.tag AND b.from_cp NOT IN ('A1', 'A2')) OR (b.to_tag = k.tag AND b.to_cp NOT IN ('A1', 'A2'))) AND a.potential_id IN (SELECT c.potential_id FROM api_v1_wire c JOIN api_v1_device s ON s.tag IN (c.from_tag, c.to_tag) WHERE s.letter = 'S'))"
+expect = ">= 1"
+
+[[item]]
+id = "A4"
+kind = "hard"
+what = "Two pushbuttons are wired."
+how = "connections"
+query = "SELECT DISTINCT d.tag FROM api_v1_device d JOIN api_v1_wire w ON d.tag IN (w.from_tag, w.to_tag) WHERE d.letter = 'S'"
+expect = ">= 2"
+
+[[item]]
+id = "A5"
+kind = "hard"
+what = "A lamp is wired at both ends."
+how = "connections"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_function f ON f.device_tag IN (w.from_tag, w.to_tag) WHERE f.fndef = 'ew.fn.lamp'"
+expect = ">= 2"
+
+[[item]]
+id = "A6"
+kind = "hard"
+what = "No drawn wire passes a connection point it does not join, runs along another wire or through a symbol, and no wire is left without a route."
+how = "check"
+query = "SELECT fingerprint FROM api_v1_message WHERE rule IN ('EW-CORE-067', 'EW-CORE-068', 'EW-CORE-069', 'EW-CORE-073')"
+expect = "== 0"
+
+[[item]]
+id = "A7"
+kind = "hard"
+what = "The tester let the program route a page (Route page)."
+how = "outcomes"
+actions = ["route.page"]
+
+[[item]]
+id = "A8"
+kind = "hard"
+what = "The check report is clean, or every remaining finding is explained in the tester's hand-back."
+how = "check, handback"
+
+[[item]]
+id = "A9"
+kind = "soft"
+what = "No wire runs through a text, and no junction joins four wires."
+how = "check"
+query = "SELECT fingerprint FROM api_v1_message WHERE rule IN ('EW-CORE-070', 'EW-CORE-072')"
+expect = "== 0"
+
+[[item]]
+id = "A10"
+kind = "hard"
+what = "Delivered: the tester saved the project and exported the PDF itself."
+how = "pdf, work, outcomes"

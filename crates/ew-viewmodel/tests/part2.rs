@@ -458,10 +458,11 @@ fn a_migration_report_row_previews_its_quick_fix() {
         json!({ "file": path(&qet), "dir": path(&dir) }),
     );
     done(&mut shell, "file.import_qet_apply", json!({ "confirm": true }));
-    // FT-1397: the banner's count is the report's (8 warnings and 5 infos).
+    // FT-1397: the banner's count is the report's (3 errors, 8 warnings and 5 infos: the file's three conductors
+    // have no route, EW-CORE-073, WP-S2.19 D17).
     assert_eq!(
         shell.banner(),
-        Some("Imported lamp-circuit.qet: 1 page, 4 devices, 13 findings in the migration report.")
+        Some("Imported lamp-circuit.qet: 1 page, 4 devices, 16 findings in the migration report.")
     );
     assert!(shell.messages_shows_migration());
     done(&mut shell, "messages.show", json!({"on": true}));

@@ -1377,7 +1377,7 @@ impl Session {
         scheme: &checks::Scheme,
         mode: checks::CheckMode,
     ) -> checks::CheckReport {
-        let report = checks::run(q, scheme, mode);
+        let report = self.with_layout_findings(q, checks::run(q, scheme, mode));
         if self.merge_evidence() {
             report.with_merge_evidence(q)
         } else {

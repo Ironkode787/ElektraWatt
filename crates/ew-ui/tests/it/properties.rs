@@ -1302,7 +1302,7 @@ fn id1427_an_identifier_stays_whole_beside_its_chip_at_the_floor() {
 }
 
 /// ID-1427 (W52 F5): at the 1280 × 800 floor in Dutch the position row of -102F1's representation is whole: its grid
-/// cell and its millimetres with one decimal ("102-C7 · x 124.4 y 52.9 mm").
+/// cell and its millimetres with one decimal ("102-C7 · x 116.4 y 60.9 mm").
 #[test]
 fn id1427_the_position_row_is_whole_at_the_floor() {
     let tmp = Tmp::new();
@@ -1328,7 +1328,7 @@ fn id1427_the_position_row_is_whole_at_the_floor() {
     settle(&mut h);
     let rows = texts_in_row(&h, "Positie");
     assert!(
-        rows.contains(&("102-C7 · x 124.4 y 52.9 mm".to_owned(), false)),
+        rows.contains(&("102-C7 · x 116.4 y 60.9 mm".to_owned(), false)),
         "{rows:?}"
     );
 }

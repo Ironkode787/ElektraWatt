@@ -581,7 +581,7 @@
       "description": "The page it is drawn on."
     },
     "route": {
-      "description": "Orthogonal route in nm, in model order.",
+      "description": "The orthogonal route in nm, in model order: every vertex from end a's point to end b's, both included. Empty:\nthe connection is not routed.",
       "items": {
         "$ref": "#/$defs/Pt2"
       },

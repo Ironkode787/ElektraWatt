@@ -1151,12 +1151,12 @@ fn end_cells_follow_the_drawn_cp_points() {
     };
     // A symbol CP: F55:2 of W13 on folio 101.
     assert_eq!(cell_of(13, "F55", "101").as_deref(), Some("B12"));
-    // A black box (box CPs): -102G1:+ of W20 on folio 102.
-    assert_eq!(cell_of(20, "-102G1", "102").as_deref(), Some("B6"));
+    // A black box (box CPs): -102G1:+ of W20 on folio 102, below the box in C7 since ID-1504 moved it.
+    assert_eq!(cell_of(20, "-102G1", "102").as_deref(), Some("C7"));
     // Terminals in strip segments (doc 08 §6.7): -X1031 draws its first terminals in the segment at 103-A3, the
-    // 0 V group in the one at 103-A10; side 1 and side 2 of a terminal share the row of a one-row segment.
+    // 0 V group in the one at 103-A10; ID-1504 moved the segments down, so side 2 at a segment's foot lies in row B.
     assert_eq!(cell_of(29, "-X1031:1", "103").as_deref(), Some("A3"));
-    assert_eq!(cell_of(35, "-X1031:12", "103").as_deref(), Some("A10"));
+    assert_eq!(cell_of(35, "-X1031:12", "103").as_deref(), Some("B10"));
     // A terminal is drawn on its segment's page only.
     assert_eq!(cell_of(29, "-X1031:1", "101"), None);
 }

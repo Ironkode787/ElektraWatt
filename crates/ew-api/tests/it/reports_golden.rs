@@ -342,7 +342,7 @@ fn plc_overview_908_lists_the_56_channels_of_the_valve_terminal() {
             used[col("process_tag")].as_str(),
             used[col("page")].as_str(),
         ),
-        ("-201U3", "-201U3-Q1", "TA05-V-15", "TA05-V-15", "203-D1")
+        ("-201U3", "-201U3-Q1", "TA05-V-15", "TA05-V-15", "203-H1")
     );
     let spare = &rows[2 * 8 + 1];
     assert_eq!(

@@ -215,7 +215,8 @@ fn ib2_the_name_proposal_is_the_potential_under_the_ghost_cp() {
     let tmp = Tmp::new("ip-potential");
     let mut s = shell(&tmp, "102");
     let t = tables(&s);
-    // A CP with a derived potential, the IP's CP one grid step above its insertion point (ew.gen.ip, A).
+    // A CP with a derived potential, the source form's CP one grid step left of its insertion point, the arrow's tip
+    // (WP-S2.19 D16).
     let cp = t
         .cps
         .iter()
@@ -225,7 +226,8 @@ fn ib2_the_name_proposal_is_the_potential_under_the_ghost_cp() {
     let potential = cp.potential.clone().unwrap().name;
     let k = index_of(&s, cp.at);
     done(&mut s, "tool.ip", json!({}));
-    cursor_k(&mut s, (k.0, k.1 + 1));
+    done(&mut s, "tool.ip_direction", json!({"direction": "source"}));
+    cursor_k(&mut s, (k.0 + 1, k.1));
     let name = canvas(&s)["ghost"]["name"].as_str().unwrap().to_owned();
     assert!(
         name == potential || name.starts_with(&format!("{potential}-")),
@@ -252,9 +254,9 @@ fn ib2_ending_a_wire_in_an_ip_is_one_transaction_and_one_undo_step() {
     done(&mut s, "tool.wire", json!({}));
     enter_at(&mut s, start.at);
     assert_eq!(s.tool().state(), "routing");
-    // Down from the CP by four grid steps, then P.
+    // Down from the CP by six grid steps (clear of the routed wires), then P.
     let k = index_of(&s, start.at);
-    let end = grid_point(&s, (k.0, k.1 + 4));
+    let end = grid_point(&s, (k.0, k.1 + 6));
     cursor(&mut s, end);
     assert_eq!(canvas(&s)["route"]["end"], Value::Null, "an empty grid point");
     done(&mut s, "tool.ip", json!({}));
@@ -371,7 +373,11 @@ fn ib3_continue_on_page_103_places_the_paired_ip_at_the_default_position() {
         k
     };
     assert_eq!(continued.pos.0, grid_point(&s, (leftmost, 0)).0);
-    assert_eq!(continued.symbol, original.symbol);
+    // WP-S2.19 D16: the partner of a source takes the target form.
+    assert_eq!(
+        (original.symbol_key.as_str(), continued.symbol_key.as_str()),
+        ("ew.gen.ip@qet10", "ew.gen.ip-target@qet10")
+    );
 }
 
 /// The cross-reference text (`102-A1`) that the source IP `name` on 101 prints for its partner on 102: the target cell
@@ -386,7 +392,8 @@ fn xref_of_partner(s: &mut ShellModel, name: &str) -> String {
         .page()
         .links
         .iter()
-        .filter(|l| l.target.as_ref().is_some_and(|t| t.folio == "102"))
+        // The point's cross-reference text stands below its arrow (FR-XRF-011's slot, WP-S2.19 §7).
+        .filter(|l| l.target.as_ref().is_some_and(|t| t.folio == "102") && l.rect.min().y.0 >= at.1)
         .min_by_key(|l| {
             let c = ew_viewmodel::canvas::rect_centre(l.rect);
             let (dx, dy) = (i128::from(c.0 - at.0), i128::from(c.1 - at.1));
@@ -404,14 +411,14 @@ fn ib4_arrange_by_name_puts_l1_in_the_upper_slot() {
     let mut s = shell(&tmp, "102");
     let t = tables(&s);
     let (l1, n1) = (ip(&t, "L-1", "target"), ip(&t, "N-1", "target"));
-    assert!(l1.pos.1 < n1.pos.1, "on Golden A L-1 is above N-1");
-    // N-1 moved above L-1 (four grid steps up: two above L-1) and into the next column, so that the two slots lie in
-    // different cells and the partners' cross-reference texts on 101 tell them apart.
+    assert!(n1.pos.1 < l1.pos.1, "on Golden A N-1 is above L-1 (ID-1504)");
+    // N-1 moved into the next column, still above L-1, so that the two slots lie in different cells and the partners'
+    // cross-reference texts on 101 tell them apart.
     let rev = s.revision();
     done(
         &mut s,
         "command.run",
-        json!({"cmd": "rep.move", "params": {"reps": [n1.id.to_string()], "steps": [10, -4]}}),
+        json!({"cmd": "rep.move", "params": {"reps": [n1.id.to_string()], "steps": [10, 0]}}),
     );
     assert_eq!(s.revision(), rev.map(|r| r + 1));
     let t = tables(&s);

@@ -431,9 +431,8 @@ fn ft1162_the_messages_rows_and_the_chip_read_in_dutch() {
             continue;
         };
         let text = messages::render(f, "nl-NL");
-        let leads = text
-            .strip_prefix(f.subject.as_str())
-            .is_some_and(|rest| rest.is_empty() || rest.starts_with(':') || rest.starts_with(' '));
+        // The subject once (ID-1509 (9)): before the message unless the message names it.
+        let leads = ew_viewmodel::ew_api::output::names_subject(&f.subject, &text);
         let shown = if f.subject.is_empty() || leads {
             text
         } else {
@@ -447,6 +446,10 @@ fn ft1162_the_messages_rows_and_the_chip_read_in_dutch() {
     // C50-p5#7: one row as the Dutch reader sees it.
     let cable = "=P01+J-E-2416-3W1 heeft geen gerouteerde, handmatige of artikellengte";
     assert_eq!(rows.iter().filter(|r| *r == cable).count(), 1, "{rows:?}");
+    // ID-1509 (9), the window check's F3: a message that names its subject after a word shows it once.
+    let pe = "PE-draad 101.8 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij 1X1 \
+              (de dimensioneringstabel is niet getoetst aan de norm)";
+    assert_eq!(rows.iter().filter(|r| *r == pe).count(), 1, "{rows:?}");
     // FT-1314: the detail of that row names the rule by its nl-NL title.
     let key = t
         .nodes
@@ -725,10 +728,10 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
         "A: -201U3-Q3:4",
         "B: -203Q3:B",
         "Route: 5 items",
-        "Route 1: D5",
-        "Route 2: E5",
-        "Route 3: E4",
-        "Route 4: F4",
+        "Route 1: H5",
+        "Route 2: H5",
+        "Route 3: H5",
+        "Route 4: F5",
         "Route 5: F5",
         "Source ref: ",
         "Key: connections|F6",
@@ -742,10 +745,10 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
         "A: -201U3-Q3:4",
         "B: -203Q3:B",
         "Route: 5 elementen",
-        "Route 1: D5",
-        "Route 2: E5",
-        "Route 3: E4",
-        "Route 4: F4",
+        "Route 1: H5",
+        "Route 2: H5",
+        "Route 3: H5",
+        "Route 4: F5",
         "Route 5: F5",
         "Bronverwijzing: ",
         "Sleutel: connections|F6",

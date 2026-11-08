@@ -380,10 +380,10 @@ fn cb7_duplicate_leaves_the_clipboard_and_starts_two_steps_off() {
     );
     assert_eq!(shell.tool().name(), "paste");
     let ghost = state(&shell)["canvas"]["ghost"].clone();
-    // -102F1's anchor is [121708333, 52916667] (the fragment of fragment_102F1.txt); two QET steps on.
-    assert_eq!(ghost["at_nm"], json!([127_000_000, 58_208_333]));
+    // -102F1's anchor is [113770833, 60854167] (the fragment of fragment_102F1.txt); two QET steps on.
+    assert_eq!(ghost["at_nm"], json!([119_062_500, 66_145_833]));
     let rev = shell.revision();
-    let p = sheet(&shell, (127_000_000, 58_208_333));
+    let p = sheet(&shell, (119_062_500, 66_145_833));
     done(&mut shell, "canvas.press", at(p, json!({})));
     assert_eq!(shell.revision(), rev.map(|r| r + 1));
     assert_eq!(shell.tool().name(), "select");

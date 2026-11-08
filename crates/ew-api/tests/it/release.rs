@@ -138,7 +138,7 @@ fn build_release_min(dir: &Path, state: &Path) {
         let mut params = serde_json::json!({
             "page": page.to_string(),
             "symbol": symbol.to_string(),
-            "pos": [(20 + 20 * i as i64) * step, 20 * step],
+            "pos": [(20 + 10 * i as i64) * step, 20 * step],
             "target": {"from_part": {"part": part.copy.to_string(), "template": 0, "letter": letter}},
         });
         if let Some(embed) = s.starter_embed_part(part.copy, &key).expect("the part's closure") {
@@ -154,8 +154,8 @@ fn build_release_min(dir: &Path, state: &Path) {
             .expect("the placed function");
         functions.push(placed);
     }
-    // A closed loop: F1:2 to E1:X1 and E1:X2 to F1:1, drawn on the page.
-    for (a, b) in [((0, 1), (1, 0)), ((1, 1), (0, 0))] {
+    // A closed loop: F1:2 to E1:X2 and E1:X1 to F1:1, drawn on the page (no crossing once routed).
+    for (a, b) in [((0, 1), (1, 1)), ((1, 0), (0, 0))] {
         run(
             &mut s,
             "connection.draw",
@@ -166,6 +166,13 @@ fn build_release_min(dir: &Path, state: &Path) {
             }),
         );
     }
+    // Route page (WP-S2.19 D13): an unrouted wire is an error in release mode (EW-CORE-073).
+    let plan = s
+        .route_plan("1", &ew_api::routing::RouteScope::Page)
+        .expect("folio 1");
+    assert_eq!(plan.unrouted, []);
+    let params = ew_api::routing::route_many_params(&plan).expect("the two routes");
+    run(&mut s, "connection.route_many", params);
     run(
         &mut s,
         "revision.create",

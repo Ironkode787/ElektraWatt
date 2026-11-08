@@ -336,12 +336,13 @@ fn path_b_equals_path_a_record_by_record_up_to_ids() {
         .collect();
     // WP-S1.20 GA-2 (FL-14): the 16 fluid lines F1 to F16 are drawn, and normaliser N-FL-4 makes the eight `drives`
     // links of the valves they join, so no `device.link` is issued; the links compare equal record by record below.
-    // FT-1315 and FT-1323: F1 to F16 take their stored routes by `connection.route`, and the eight valves of folio
-    // 203 their moved function-text slot by `fields.set`.
+    // WP-S2.19 §8.2 and FT-1323: the 89 page connections of folios 3, 101 to 106 and 203 take their stored routes (the
+    // router's) by `connection.route`, and the eight valves of folio 203 their moved function-text slot by
+    // `fields.set`.
     assert_eq!(
         commands.join(", "),
         "assembly.attach: 2, bond.create: 1, box.black: 11, bus.logical_net.create: 1, \
-         bus.physical_net.create: 1, cable.create: 3, connection.draw: 103, connection.route: 16, \
+         bus.physical_net.create: 1, cable.create: 3, connection.draw: 103, connection.route: 89, \
          device.create: 37, device.place: 76, external_ref.create: 4, fields.set: 215, \
          ip.place: 48, junction.edit: 6, layout.carrier.add: 8, layout.enclosure.create: 1, layout.place: 20, \
          layout.space.create: 1, library.embed: 1, page.create: 13, page.surface_view.set: 1, plc.bind_channel: 28, \

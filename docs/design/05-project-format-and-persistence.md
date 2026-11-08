@@ -498,6 +498,10 @@ Folio 101's page file holds the page row, the -101F1 representation and wire W7 
   is additive within 0.1 (ADR-0011 amendment 4, decision log ID-334, ID-351).
 - **W7.** Its 2.5 mm² BK is an explicit override (CDP) with a marker. W8 (-101F1:1 → F55:1) has **no**
   `overrides` member: its 1.5 mm² BK is derived (D-08).
+  *As built (cycle 53; WP-S2.19 D2, D20, decision log ID-1499).* `route` is, in the schema's words, "the orthogonal
+  route in nm, in model order: every vertex from end a's point to end b's, both included. Empty: the connection is
+  not routed." W7's two vertices are its two ends. The meaning changed before format 0.1 locks (ID-1325), so no
+  record shape and no migration changed; `schemas/0.1/connection.schema.json` carries the text.
 
 Shard `devices/c2.jsonl` holds -102G1 (ID ending `c2`) and, after it (rank 32 after 31), its main function:
 

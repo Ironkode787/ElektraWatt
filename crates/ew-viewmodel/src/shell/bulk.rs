@@ -118,6 +118,10 @@ impl ShellModel {
                 ],
             ));
         }
+        // WP-S2.19 D13: a route card's summary is its plan's lead (§12a).
+        if let crate::properties::CardOrigin::Route { lead, .. } = &card.origin {
+            return Some(lead.clone());
+        }
         let records = card.preview.result.as_ref().map_or(0, |p| p.diff().len());
         // Cycle 37 (window check W37): a count of one takes the singular ("1 item · 1 page").
         Some(strings::format(

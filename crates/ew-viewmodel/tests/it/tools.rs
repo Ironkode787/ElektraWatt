@@ -103,7 +103,7 @@ fn t4_select_clicks_shift_and_ctrl() {
     // The live region announces the change: one selected record in words (WP-S2.08 D13).
     assert_eq!(
         shell.tool_announcement(),
-        Some("-X1032, Terminal strip segment, folio 103")
+        Some("Interruption point 24VDC-4, folio 103")
     );
     click(&mut shell, empty, json!({}));
     assert!(shell.selection().is_empty());

@@ -94,6 +94,8 @@ fn new_ip(
     orient: Orient2,
     rep_type: RepType,
 ) -> Result<Id<Function>, CmdError> {
+    // WP-S2.19 D16: one of EW's forms is never turned, and is its direction's.
+    crate::normalise::ip_form::check_new(tx, symbol, orient, &spec.direction)?;
     let function: Id<Function> = tx.mint();
     let rep: Id<Representation> = tx.mint();
     tx.insert(Function {
@@ -517,6 +519,95 @@ impl Command for RouteConnection {
     }
 }
 
+/// The most entries one `connection.route_many` takes.
+pub const ROUTE_MANY_MAX: usize = 10_000;
+
+/// `connection.route_many` (WP-S2.19 D12): several [`RouteConnection`]s, in the given order, in **one** transaction
+/// (one undo step): Route page and Route selection commit the plan their preview showed with it, so replay never
+/// runs the router.
+///
+/// Each entry is applied exactly as `connection.route` with those parameters would be, in order. Rejected with
+/// [`CmdError::InvalidParams`] at `/routes`: no entry, or more than 10,000; an entry's own parameter error keeps its
+/// message with its JSON Pointer prefixed by `/routes/<i>`, and its refusal keeps its reason prefixed by
+/// `entry <i>: `. Every other error passes through unprefixed. Cost: `Bulk` above 500 entries, else interactive.
+/// Outcome: the first connection.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RouteMany {
+    /// The routes, each the parameters of one `connection.route` (1 to 10,000).
+    pub routes: Vec<RouteConnection>,
+}
+
+impl Command for RouteMany {
+    const NAME: &'static str = "connection.route_many";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn cost(&self, _model: &ew_model::Model) -> crate::meta::Cost {
+        if self.routes.len() > crate::commands::BULK_ABOVE {
+            crate::meta::Cost::Bulk
+        } else {
+            crate::meta::Cost::Interactive
+        }
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.routes.is_empty() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/routes",
+                text!("refusal-params-no-connection"),
+            ));
+        }
+        if self.routes.len() > ROUTE_MANY_MAX {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/routes",
+                text!(
+                    "refusal-connection-route-many-too-many",
+                    self.routes.len().to_string(),
+                    ROUTE_MANY_MAX.to_string()
+                ),
+            ));
+        }
+        Ok(Outcome {
+            primary: run_routes(tx, Self::NAME, &self.routes)?,
+            ..Outcome::default()
+        })
+    }
+}
+
+/// Applies `routes` in order, each exactly as `connection.route` with those parameters would be, for the command
+/// `command` (`connection.route_many`, and `rep.move`'s `routes`, WP-S2.19 D14): an entry's own parameter error keeps
+/// its message with its JSON Pointer prefixed by `/routes/<i>`, its refusal keeps its reason prefixed by `entry <i>: `,
+/// every other error passes through. The first connection.
+pub(crate) fn run_routes(
+    tx: &mut TxBuilder<'_>,
+    command: &'static str,
+    routes: &[RouteConnection],
+) -> Result<Option<ew_model::AnyKey>, CmdError> {
+    let mut first = None;
+    for (i, r) in routes.iter().enumerate() {
+        let out = r.run(tx).map_err(|err| match err {
+            CmdError::InvalidParams { path, text, .. } => {
+                CmdError::invalid_params(command, format!("/routes/{i}{path}"), *text)
+            }
+            CmdError::Rejected { source, reason, text } => {
+                let why = text.map_or_else(|| TextArg::from(reason), TextArg::from);
+                CmdError::rejected(
+                    source,
+                    text!("refusal-connection-draw-many-entry", i.to_string(), why),
+                )
+            }
+            other => other,
+        })?;
+        first = first.or(out.primary);
+    }
+    Ok(first)
+}
+
 /// `connection.delete`: removes connections through the delete policies (they leave junction sequences;
 /// bonds lose their `via`). A junction left with two or fewer connections is cleaned up by normaliser #8.
 /// Every connection must exist. Outcome: none.
@@ -728,7 +819,9 @@ impl Command for PlaceIp {
 ///
 /// Creates an IP function with the same name, def, `sort` and no `external`, the direction reversed
 /// (source ↔ target; undirected stays), `star_source: false`, and its representation on `page` with the
-/// original representation's symbol, orientation and rep type, at `pos` (default: the original's position).
+/// original representation's symbol, orientation and rep type, at `pos` (default: the original's position); a point
+/// drawn with one of EW's forms gives its partner the other form, unturned (WP-S2.19 D16), which the project must
+/// hold (else refused in words).
 /// Rejected: `ip` is not an interruption point; `page` is the original's page; an external connection
 /// point (it never pairs). Outcome: the new IP function.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -780,6 +873,13 @@ impl Command for ContinueIp {
         };
         let pos = self.pos.unwrap_or(rep.pos);
         require_on_grid(tx, self.page, pos, "/pos")?;
+        // WP-S2.19 D16: the partner of a point drawn with one of EW's forms takes the other form.
+        let symbol = crate::normalise::ip_form::symbol_for(tx, rep.symbol, &direction)?;
+        let orient = if symbol == rep.symbol {
+            rep.orient
+        } else {
+            Orient2::default()
+        };
         let partner = IpSpec {
             name: spec.name.clone(),
             direction,
@@ -793,9 +893,9 @@ impl Command for ContinueIp {
             original.def,
             partner,
             self.page,
-            rep.symbol,
+            symbol,
             pos,
-            rep.orient,
+            orient,
             rep.rep_type.clone(),
         )?;
         Ok(Outcome::primary((Kind::Function, function.cast())))

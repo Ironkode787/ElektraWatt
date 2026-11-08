@@ -52,6 +52,9 @@ const MOCKUP_TITLES: &[(&str, &str)] = &[
     ("Dismiss", "x"),
     // ID-1497 (10): Edit route beside Wire, a polyline.
     ("Edit route", "ew-shape-polyline"),
+    // WP-S2.19 D13, ID-1509 (9): one icon per concept, neither the generated badge's.
+    ("Route page", "file-settings"),
+    ("Route selection", "magnet"),
     ("Findings", "circle-x"),
     ("Fit page", "maximize"),
     ("History", "history"),

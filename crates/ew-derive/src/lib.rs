@@ -81,6 +81,9 @@ mod potentials;
 mod profile;
 mod q;
 mod query;
+// WP-S2.19 (ID-1498): the schematic router's page model, the layout measures and the router core (the search and the
+// page solve).
+pub mod routing;
 mod settings;
 mod stitch;
 mod strip_bridges;
@@ -106,7 +109,7 @@ pub use cell::{
 pub use channel_index::{ChannelKeyed, ChannelsByCp, ChannelsByModule, ModuleChannelIds};
 pub use cp_point::{cp_cell, cp_end, cp_point, rep_cp_end};
 pub use cps::{Cp, FunctionCps};
-pub use drawn_path::{dir_vertical, drawn_path, on_segment, oriented_dir, provisional_path};
+pub use drawn_path::{dir_vertical, drawn_path, on_segment, oriented_dir, stored_path};
 // WP-S1.07 part 2: the derived-index families of the connectivity (ARCH §6.3 rule 5) and the interruption-point
 // pairing split out of the stitch graph.
 pub use index::{

@@ -176,38 +176,23 @@ pub fn drawn_cp(tx: &TxBuilder<'_>, function: Id<Function>, idx: u16, page: Id<P
     })
 }
 
-/// The path the page draws connection `c` along when it has no stored route (FT-1020, decision log ID-1104, ID-1110):
-/// [`ew_derive::provisional_path`] between its ends on its page, the path `ew_derive::drawn_path` gives and the page
-/// scene draws, read from the transaction's records. An end at a CP is placed by [`ew_derive::rep_cp_end`] (the
-/// representation on the page with the smallest ID that draws it, as `ew_derive::cp_end` takes it); an end at a
-/// junction is the junction's point without a direction. `None` when `c` has a stored route (that route is its path) or
-/// no page, or an end is not drawn on its page by a representation: a strip segment's terminal point, which
-/// `ew_derive::cp_end` places from derived queries, is not read, so such a connection is not located.
-pub fn provisional_path_of(tx: &TxBuilder<'_>, c: &Connection) -> Option<Vec<Pt2>> {
-    let page = c.page?;
-    if !c.route.is_empty() {
-        return None;
-    }
-    let cp_end = |function: Id<Function>, idx: u16| {
-        let mut reps = tx.reps_of_function(function);
-        reps.sort();
-        reps.into_iter().find_map(|rid| {
-            let rep = tx.get::<Representation>(rid).filter(|r| r.page == page)?;
-            let symbol = tx.get::<LibCopy<SymbolDef>>(rep.symbol)?;
-            let (at, dir) = ew_derive::rep_cp_end(&rep, &symbol.item, function, idx)?;
-            Some((at, dir.as_ref().and_then(ew_derive::dir_vertical)))
-        })
-    };
-    let end = |e: &Endpoint| match e {
-        Endpoint::Cp(function, idx) => cp_end(*function, *idx),
-        Endpoint::Junction(j) => tx
-            .get::<Junction>(*j)
-            .filter(|j| j.page == page)
-            .map(|j| (j.at, None)),
+/// The point of end `e` on `page`: a CP's as [`cp_position`] places it, a junction's own; `None` for an end not drawn
+/// there.
+pub fn end_point(tx: &TxBuilder<'_>, e: &Endpoint, page: Id<Page>) -> Option<Pt2> {
+    match e {
+        Endpoint::Cp(function, idx) => cp_position(tx, *function, *idx, page),
+        Endpoint::Junction(j) => tx.get::<Junction>(*j).filter(|j| j.page == page).map(|j| j.at),
         Endpoint::Unknown(_) => None,
-    };
-    let ((a, a_vertical), (b, b_vertical)) = (end(&c.a)?, end(&c.b)?);
-    Some(ew_derive::provisional_path(a, a_vertical, b, b_vertical))
+    }
+}
+
+/// The straight route of an autoconnect hint's wire from `a` to `b` on `page` (WP-S2.19 D12: a proposal is a
+/// straight, clear run, WP-S2.04 §8.3): both ends' points when they lie on one line; empty, so unrouted, otherwise.
+pub fn hint_route(tx: &TxBuilder<'_>, a: &Endpoint, b: &Endpoint, page: Id<Page>) -> Vec<Pt2> {
+    match (end_point(tx, a, page), end_point(tx, b, page)) {
+        (Some(p), Some(q)) if p != q && (p.x == q.x || p.y == q.y) => vec![p, q],
+        _ => Vec::new(),
+    }
 }
 
 /// Whether `p` lies on the closed segment `a`–`b` (exact: collinear by an `i128` cross product, inside the
@@ -472,7 +457,8 @@ pub fn require_split_point(
 /// geometry and passes):
 ///
 /// - an end at a CP that a representation on `page` draws must be exactly that CP's position (route
-///   vertex 0 at endpoint `a`, the last vertex at endpoint `b`);
+///   vertex 0 at endpoint `a`, the last vertex at endpoint `b`), and an end at a junction on `page` exactly the
+///   junction's point (WP-S2.19 D2: a route holds both ends);
 /// - every coordinate of every vertex lies on the page's connection grid, or equals that coordinate of
 ///   a route end that meets its CP: a CP position can sit up to 1 nm off a rational grid (the rounding
 ///   pitfall of `Grid::cell`), and the segment leaving it stays orthogonal;
@@ -517,6 +503,29 @@ pub fn require_route(
     }
     let mut exact: Vec<Pt2> = Vec::new();
     for (e, v, i) in [(a, first, 0), (b, last, route.len() - 1)] {
+        // WP-S2.19 D2: a junction end's point is the route's end vertex too.
+        if let Endpoint::Junction(j) = e {
+            let Some(at) = tx.get::<Junction>(*j).filter(|j| j.page == page).map(|j| j.at) else {
+                continue;
+            };
+            if v != at {
+                let (here, there) = (crate::words::position(v), crate::words::position(at));
+                let junction = text!("refusal-geometry-junction");
+                let miss = if here == there {
+                    text!("refusal-geometry-misses", junction)
+                } else {
+                    text!("refusal-geometry-does-not-meet", junction, there)
+                };
+                return tx.reject(text!(
+                    "refusal-geometry-end-off-junction",
+                    what(i),
+                    crate::words::point(tx, page, v),
+                    miss
+                ));
+            }
+            exact.push(at);
+            continue;
+        }
         let Endpoint::Cp(function, idx) = e else {
             continue;
         };

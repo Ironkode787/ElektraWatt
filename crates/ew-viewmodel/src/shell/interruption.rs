@@ -39,6 +39,9 @@ use crate::tools::{
     black_box, selection_kinds,
 };
 
+/// EW's interruption-point forms (WP-S2.19 D16): the source form, the target form, and the documents to embed.
+type IpForms = (Arc<SymbolShape>, Option<Arc<SymbolShape>>, Vec<Value>);
+
 /// The natural order of two names: runs of decimal digits compare by their value, other runs by their text.
 pub fn natural_cmp(a: &str, b: &str) -> Ordering {
     fn runs(s: &str) -> Vec<(bool, &str)> {
@@ -159,6 +162,24 @@ impl ShellModel {
         Ok((shape, copies))
     }
 
+    /// EW's interruption-point forms in the page's grid family (WP-S2.19 D16): the source form, the target form when
+    /// the catalogue holds it, and the library documents a command drawing either carries, each once.
+    fn ip_forms(&mut self) -> Result<IpForms, Outcome> {
+        let (source, mut copies) = self.family_shape("ew.gen.ip")?;
+        let target = match self.family_shape("ew.gen.ip-target") {
+            Ok((target, more)) => {
+                for c in more {
+                    if !copies.contains(&c) {
+                        copies.push(c);
+                    }
+                }
+                Some(target)
+            }
+            Err(_) => None,
+        };
+        Ok((source, target, copies))
+    }
+
     /// The drawing area of the focused page (page nm), or its sheet.
     fn focused_area(&self) -> Option<[i64; 4]> {
         let page = self.canvas()?.page();
@@ -234,12 +255,14 @@ impl ShellModel {
         if self.tools.tool.name() == "wire" && self.tools.tool.state() == "routing" {
             return self.wire_end_in_ip();
         }
-        let (shape, copies) = match self.family_shape("ew.gen.ip") {
+        let (shape, target, copies) = match self.ip_forms() {
             Ok(s) => s,
             Err(e) => return e,
         };
         let area = self.focused_area();
-        let mut tool = IpTool::new(shape, self.tools.ip_memory.clone(), area).with_copies(copies);
+        let mut tool = IpTool::new(shape, self.tools.ip_memory.clone(), area)
+            .with_target(target)
+            .with_copies(copies);
         tool.set_project(self.project_ips(), self.revision());
         self.activate_tool(Box::new(tool));
         // ID-1139: the ghost's name is computed at once, so the HUD leads with it before the pointer is over the
@@ -254,7 +277,7 @@ impl ShellModel {
 
     /// P while the Wire tool routes: `connection.draw_to_ip` at the routed end (one transaction, one undo step).
     fn wire_end_in_ip(&mut self) -> Outcome {
-        let (shape, copies) = match self.family_shape("ew.gen.ip") {
+        let (shape, target, copies) = match self.ip_forms() {
             Ok(s) => s,
             Err(e) => return e,
         };
@@ -266,7 +289,7 @@ impl ShellModel {
         let result = self
             .with_tool(|t, cx| {
                 let w = t.as_any_mut()?.downcast_mut::<WireTool>()?;
-                Some(w.end_in_ip(cx, &shape, |start, pos| {
+                Some(w.end_in_ip(cx, (&shape, target.as_deref()), |start, pos| {
                     let tables = &cx.page.tables;
                     let direction = area
                         .and_then(|a| quarter_direction(pos, a))
@@ -493,12 +516,13 @@ impl ShellModel {
             },
             Some(_) => return failed(key!("error-bad-param"), &["external"]),
         };
-        let base = if external.is_some() {
-            "ew.gen.external-arrow"
+        // Back to EW's forms: the copies of both, as the tool was armed with (WP-S2.19 D16).
+        let found = if external.is_some() {
+            self.family_shape("ew.gen.external-arrow")
         } else {
-            "ew.gen.ip"
+            self.ip_forms().map(|(shape, _, copies)| (shape, copies))
         };
-        let (shape, copies) = match self.family_shape(base) {
+        let (shape, copies) = match found {
             Ok(s) => s,
             Err(e) => return e,
         };

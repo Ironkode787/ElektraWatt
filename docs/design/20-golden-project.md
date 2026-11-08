@@ -629,15 +629,15 @@ bond (FR-CON-014, D-22). W27 is listed in the wire list with potential "0V ⇄ P
 | 17 | 101.17 | 101 | T55:3 | E55:N | N-55T | 1.5 BU (rule) | — |
 | 18 | 101.19 | 101 | S56:14 ▲ | E56:X1 ▲ | N-55S | 1.5 BU (rule) | — |
 | 19 | 101.18 | 101→103 | E55:PE | -X1032:1/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.1 |
-| 20 | 102.1 | 102 | -102G1:+#1 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | J3 |
-| 21 | 102.2 | 102 | -102G1:+#2 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | J3; 2 wires on -102F1:1 |
-| 22 | 102.3 | 102 | -102G1:−#1 | -102F2:GND#1 | 0V | 1.5 (CDP) WH (profile) | J5 |
-| 23 | 102.4 | 102 | -102G1:−#2 | -102F2:GND#2 | 0V | 1.5 (CDP) WH (profile) | J6 |
-| 24 | 102.8 | 102 | -102F1:2 | -102F2:24VDC#1 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
-| 25 | 102.9 | 102 | -102F1:2 | -102F2:24VDC#2 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
-| 26 | 102.7 | 102→103 | -102G1:−#2 | -X1031:11/a | 0V | 0.75 WH (rule) | J6; IP 0VDC |
+| 20 | 102.2 | 102 | -102G1:+#1 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | J3 |
+| 21 | 102.3 | 102 | -102G1:+#2 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | J3; 2 wires on -102F1:1 |
+| 22 | 102.4 | 102 | -102G1:−#1 | -102F2:GND#1 | 0V | 1.5 (CDP) WH (profile) | J5 |
+| 23 | 102.8 | 102 | -102G1:−#2 | -102F2:GND#2 | 0V | 1.5 (CDP) WH (profile) | J6 |
+| 24 | 102.6 | 102 | -102F1:2 | -102F2:24VDC#1 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
+| 25 | 102.7 | 102 | -102F1:2 | -102F2:24VDC#2 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
+| 26 | 102.9 | 102→103 | -102G1:−#2 | -X1031:11/a | 0V | 0.75 WH (rule) | J6; IP 0VDC |
 | 27 | 102.5 | 102→103 | -102G1:−#1 | -X1032:2/a | 0V ⇄ PE | 0.75 GNYE (bond rule) ▲U-19 | J5; IP PE-0VDC |
-| 28 | 102.6 | 102→103 | -102G1:PE | -X1032:2/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.2 |
+| 28 | 102.1 | 102→103 | -102G1:PE | -X1032:2/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.2 |
 | 29 | 102.10 | 102→103 | -102F2:Out1 | -X1031:1/a | 24VDC-1 | 0.75 DBU (rule) | IP 24VDC-1 |
 | 30 | 102.11 | 102→103 | -102F2:Out2 | -X1031:5/a | 24VDC-2 | 0.75 DBU (rule) | IP 24VDC-2 |
 | 31 | 102.12 | 102→103 | -102F2:Out3 | -X1031:7/a | 24VDC-3 | 0.75 DBU (rule) | IP 24VDC-3 |
@@ -655,7 +655,7 @@ bond (FR-CON-014, D-22). W27 is listed in the wire list with potential "0V ⇄ P
 | 43 | — | 103→106 | -X1031:4/b | -202U1:4 | 24VDC-1 | -106W2 WH (core) | IP 24VDC-AIR4 |
 | 44 | — | 103→106 | -X1031:3/b | -202U1:5 | 24VDC-1 | -106W2 BN (core) | IP 24VDC-AIR3 |
 
-The "No." column is the computed numbering of §8.1 (W1 to W34; the ten cable cores carry none). **As built (cycle 14; decision log ID-348).** The Via column of a join is the wire list's notation on folio 907: "star at" or "chain on" the CP, with the junction's grid cell in front where it has one ("101-C11 star at F55:2", "102-D7 chain on -102F1:2"); the names J1 to J6 of §8.3 are the table's own labels and are not printed. Daisy chains exist at device CPs only, and one rule, `cp_label`, writes every CP label.
+The "No." column is the computed numbering of §8.1 (W1 to W34; the ten cable cores carry none). **As built (cycle 14; decision log ID-348).** The Via column of a join is the wire list's notation on folio 907: "star at" or "chain on" the CP, with the junction's grid cell in front where it has one ("101-C11 star at F55:2", "102-D8 chain on -102F1:2"); the names J1 to J6 of §8.3 are the table's own labels and are not printed. Daisy chains exist at device CPs only, and one rule, `cp_label`, writes every CP label.
 
 **The Via column is a generator contract** (decision log ID-379). `golden/J-E-2416/tools/tables_from_doc20.py` reads this table into `tables/connections.csv`, and from the Via column it reads only the junction tokens J1 to J6, "idem", "IP …" and "; 2 wires on …". The printed notation of folio 907 ("star at", "chain on", the junction's cell) is described in the paragraph above and held by the goldens (`expected/csv/wires.csv`), never written into this column. An edit of this table is checked with `tables_from_doc20.py --check` before it is committed.
 
@@ -864,7 +864,9 @@ valve. Silencers close ports 3 and 5 of -201U9 and -202U3, and plugs close ports
 working lines from ports 2 and 4 of -201U3-Q1 … -201U4-Q4 to A and B of the actuators of -203Q1 … -203Q8 (GA-2,
 FT-744 closed), and N-FL-4 gives the eight `drives` links that path (b) now takes from the lines. *As built (cycle
 51, decision log ID-1359):* they carry stored routes (▲U-51, FT-1315 closed) that clear the cylinder bodies, and the
-eight valves move their function-text slot below the body on folio 203 only (FT-1323 closed).
+eight valves move their function-text slot below the body on folio 203 only (FT-1323 closed). *As built (cycle 53,
+decision log ID-1503):* each valve sits in row H, below the actuator it drives on folio 203 (▲U-38), and the lines'
+routes are the schematic router's, written by Golden A's route tool like every other routed page (▲U-51).
 
 ---
 
@@ -1054,8 +1056,8 @@ auxiliary positions ("∞ 3-B2, 106-G3"); the external texts have no link. Arrow
 | PE-1.3 | 106-D1 ◁ | 103-G6 ◁ | 103-G6 | 106-D1 |
 | PE-1.4 | 106-A1 ◁ | 103-G6 ◁ | 103-G6 | 106-A1 |
 
-**External connection points (4, no in-project partner):** J-E-206-L, J-E-206-N, J-E-206-PE at 101-G0 and DP at
-3-G15 print "+J-E-206 / JE-N1000-03" (FR-XRF-012). The box captions "External Connection (J-E-206 / JE-N1000-03)"
+**External connection points (4, no in-project partner):** J-E-206-L and J-E-206-N at 101-G0, J-E-206-PE at 101-H0
+and DP at 3-G15 print "+J-E-206 / JE-N1000-03" (FR-XRF-012). The box captions "External Connection (J-E-206 / JE-N1000-03)"
 and "To J-E-206 / JE-N1000-03" are texts bound to the ExternalRef.
 
 **Main ↔ auxiliary references (9 devices, 19 texts, 20 targets):**
@@ -1621,11 +1623,11 @@ that waits for the owner's acknowledgement with the generated change list (ID-63
 | U-35 | Cover basis text | "IEC60757 / EN60204-1" kept, profile basis shown in metadata | D-37 | PQ-05 |
 | U-36 | Spare valves fitted or blanked | valves fitted (28 × 571334) | §14 | PQ-14 |
 | U-37 | Letter mapping of the shipped 2009 set (`verified = false`) | T55 reported; accepted: S for S51 and S56, U for the valve-terminal assembly and modules -201U1 … -201U9 and -202U1 … -202U3, Q for the valves (QM as an accepted alternative) | EF-18 | PQ-08 |
-| U-38 | Valve cells on the valve-terminal folio | row D, columns c−3, c−1, c+1, c+3 around the module's auxiliary column c (valves Q1 … Q4) | §6.2, §12 | — (fixture choice) |
+| U-38 | Valve cells on the valve-terminal folio | row H (below the actuators on folio 203, the same on 204–206; decision log ID-1503), columns c−3, c−1, c+1, c+3 around the module's auxiliary column c (valves Q1 … Q4) | §6.2, §12 | — (fixture choice) |
 | U-39 | Field-device cells | valve in row G and actuator in row F, in the column of the driving valve | §6.1, §6.2, §12 | — (fixture choice) |
 | U-40 | Junction cells | J1 C11, J2 C13 (folio 101); J3 C6, J4 D7, J5 D5, J6 D6 (folio 102) | §8.3 | — (fixture choice) |
 | U-41 | 1X1 terminal offsets | dx −20, 0, +20 px from the cell centre of 101-D2 (terminals 1, 2, PE) | §6.1, §9 | — (fixture choice) |
-| U-42 | External-arrow (external reference) offsets | dy −20, 0, +20 px for J-E-206-L, -N, -PE at 101-G0; no offset for DP | §15 | — (fixture choice) |
+| U-42 | External-arrow (external reference) offsets | dy −40 and 0 px for J-E-206-L and -N at 101-G0, −40 px for J-E-206-PE at 101-H0, four grid steps apart so that their texts do not overlap (ID-1504); no offset for DP | §15 | — (fixture choice) |
 | U-43 | 1X1 without a strip segment | 1X1 is drawn as its three terminal symbols; no strip-segment representation | §9 | — (fixture choice) |
 | U-44 | Folio 901 report block kind | `parts_summary` | §14.1, §16 | — (fixture choice) |
 | U-45 | Manufacturer reference | `LibRef v5(ns, "manufacturers\|<name>")` with the name in its `extra.key`, a stopgap until a manufacturer library copy exists (FT-39); for example the name Siemens. *As built (cycle 35, WP-S1.19 part 3; decision log ID-820; FT-39 closed):* Golden A holds eight project-local manufacturer copies, one per name, and the part references name them with no `key`; a legacy `key` is still read; every exported output byte-equal ([07](07-symbols-parts-macros.md) §9.2) | §6.1, §14.1 | — (fixture choice) |
@@ -1634,7 +1636,7 @@ that waits for the owner's acknowledgement with the generated change list (ID-63
 | U-48 | End-user address storage | street `<address>`, country `<country>` | §1.2, §4.2 | — (fixture choice) |
 | U-49 | Interruption points sharing one cell | PE-1.1 … PE-1.4 at 103-G6 and PE-AIR1, PE-AIR2 at 103-G1 get distinct offsets inside their cell, set by the fix round (FT-40) | §15 | — (fixture choice) |
 | U-50 | Layout test geometry | the plate 650 × 900 mm at frame (50, 50) mm, the carrier paths, the part dimensions and mount kinds, the placement poses of §13's test geometry (WP-S4.01 D13, FT-205) | §13 | PQ-24 |
-| U-51 | Fluid-line routes on folio 203 | F1 … F16 run down from port 2 or 4 into row E, left past the cylinder and right into A or B; the line to B turns higher and runs further out (FT-1315, decision log ID-1359) | §12 | — (fixture choice) |
+| U-51 | Fluid-line routes on folio 203 | the schematic router's, written by Golden A's route tool (WP-S2.19 §8.2, decision log ID-1503; before it, hand routes, FT-1315, ID-1359) | §12 | — (fixture choice) |
 
 ### 23.2 Questions for the pilot user
 

@@ -71,6 +71,16 @@ fn connection(n: u128, a: serde_json::Value, b: serde_json::Value) -> Arc<Connec
     Arc::new(serde_json::from_value(json!({ "id": uuid(n), "a": a, "b": b, "page": uuid(PAGE) })).unwrap())
 }
 
+/// `connection` with the stored route `route` (page nm, both ends included; WP-S2.19 D2): a wire without one is
+/// unrouted and drawn dashed (D3).
+fn routed(n: u128, a: serde_json::Value, b: serde_json::Value, route: &[(i64, i64)]) -> Arc<Connection> {
+    let route: Vec<[i64; 2]> = route.iter().map(|&(x, y)| [x, y]).collect();
+    Arc::new(
+        serde_json::from_value(json!({ "id": uuid(n), "a": a, "b": b, "page": uuid(PAGE), "route": route }))
+            .unwrap(),
+    )
+}
+
 /// Two terminals (functions 0xF1 at grid (10, 20), 0xF2 at (50, 50)), a junction at (40, 20) joining a
 /// wire from F1's top CP and one to F2's top CP, a direct wire F1 bottom → F2 bottom with a marker, and a
 /// wire to a function that is not on the page.
@@ -84,6 +94,8 @@ fn view() -> PageView {
         .unwrap(),
     );
     let junction = json!({ "junction": uuid(0x31) });
+    // The terminals' CPs: idx 0 one grid step below the origin, idx 1 one above.
+    let (below, above) = (|x, y| (g(x), g(y) + 2_645_833), |x, y| (g(x), g(y) - 2_645_833));
     PageView {
         page: Id::from_uuid(Uuid::from_u128(PAGE)),
         kind: PageKind::Schematic,
@@ -137,15 +149,30 @@ fn view() -> PageView {
         ],
         connections: vec![
             ConnectionView {
-                connection: connection(0x23, cp(0xF1, 0), cp(0xF2, 0)),
+                connection: routed(
+                    0x23,
+                    cp(0xF1, 0),
+                    cp(0xF2, 0),
+                    &[below(10, 20), (g(10), below(50, 50).1), below(50, 50)],
+                ),
                 marker: Some("2.5 BU".into()),
             },
             ConnectionView {
-                connection: connection(0x21, cp(0xF1, 1), junction.clone()),
+                connection: routed(
+                    0x21,
+                    cp(0xF1, 1),
+                    junction.clone(),
+                    &[above(10, 20), (g(40), above(10, 20).1), (g(40), g(20))],
+                ),
                 marker: None,
             },
             ConnectionView {
-                connection: connection(0x22, junction, cp(0xF2, 1)),
+                connection: routed(
+                    0x22,
+                    junction,
+                    cp(0xF2, 1),
+                    &[(g(40), g(20)), (g(50), g(20)), above(50, 50)],
+                ),
                 marker: None,
             },
             ConnectionView {
@@ -206,7 +233,7 @@ fn wires_run_between_the_drawn_cps_and_junction_arms_meet_at_the_junction() {
     // Terminal CPs: idx 0 one grid step below the origin ((0, 2 645 833) = 1 grid step), idx 1 above.
     let below = |x, y| Pt2::new(Nm(g(x)), Nm(g(y) + 2_645_833));
     let above = |x, y| Pt2::new(Nm(g(x)), Nm(g(y) - 2_645_833));
-    // F1 top (leaving up) → junction: vertical first, then along y = 20 … the CP is at y = 20 - 1 step.
+    // F1 top (the CP at y = 20 - 1 step) → junction, along their stored routes (WP-S2.19 D2).
     assert_eq!(lines[0].1.first(), Some(&above(10, 20)));
     assert_eq!(lines[0].1.last(), Some(&p(40, 20)));
     assert_eq!(lines[1].1.first(), Some(&p(40, 20)));
@@ -716,6 +743,39 @@ fn fluid_pilot_and_drain_lines_are_dashed_and_working_lines_solid() {
     assert_eq!(dash_of(0), dashed);
     assert_eq!(dash_of(1), None);
     assert_eq!(dash_of(2), dashed);
+}
+
+/// WP-S2.19 D3 (RC2): a connection without a route is unrouted: the dashed straight line between its ends, in the
+/// thinnest pen, whatever its kind.
+#[test]
+fn an_unrouted_connection_is_the_dashed_straight_line_in_the_thinnest_pen() {
+    let mut v = view();
+    let mut record = (*v.connections[0].connection).clone();
+    record.route.clear();
+    v.connections[0].connection = Arc::new(record);
+    let wires = page_display_list(&v, Layer::Wires, bundled(), builtin());
+    let id = Uuid::from_u128(0x23);
+    let strokes: Vec<Option<ew_dl::Stroke>> = wires
+        .list
+        .items
+        .iter()
+        .filter_map(|i| match (&i.kind, i.entity) {
+            (ItemKind::Path(p), Some(EntityRef(e))) if e == id => Some(p.stroke.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        strokes,
+        [Some(
+            ew_dl::Stroke::pen(ew_dl::Pen::P013).dashed(ew_dl::DashPattern::Dash42)
+        )]
+    );
+    let below = |x, y| Pt2::new(Nm(g(x)), Nm(g(y) + 2_645_833));
+    let line = polylines(&wires.list)
+        .into_iter()
+        .find(|(u, _)| *u == id)
+        .map(|(_, pts)| pts);
+    assert_eq!(line, Some(vec![below(10, 20), below(50, 50)]));
 }
 
 #[test]

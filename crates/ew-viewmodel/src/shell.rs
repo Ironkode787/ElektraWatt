@@ -1659,14 +1659,29 @@ impl ShellModel {
         self.act_activate_with(&alt)
     }
 
-    /// `tool.connect_on_move`: refused in this package (WP-S2.04 §8.3); the status bar says why, the window has no other
-    /// trace of a key.
+    /// Whether a move connects its autoconnect proposals, for the session (WP-S2.19 D15; `tool.connect_on_move`).
+    pub fn connect_on_move(&self) -> bool {
+        self.tools.connect_on_move
+    }
+
+    /// `tool.connect_on_move`: turns connect on move off or on again for the session (WP-S2.19 D15, ADR-0007 amendment
+    /// 3: on by default); the status bar says the new state with the key.
     pub(crate) fn act_tool_connect_on_move(&mut self, _p: &Map<String, Value>) -> Outcome {
-        self.tools.notice = Some(strings::text(key!("reason-connect-on-place")).to_owned());
-        self.tools.notice_sticky = false;
-        Outcome::Refused {
-            reason_key: key!("reason-connect-on-place"),
+        self.tools.connect_on_move = !self.tools.connect_on_move;
+        // ID-1509 (9), the window check's C2: during a move the move's own prompt says the new state, beside its
+        // readout, so no notice takes its place.
+        if matches!(self.tool_ghost(), Some(crate::tools::Ghost::Move { .. })) {
+            return Outcome::Done;
         }
+        let state = if self.tools.connect_on_move {
+            key!("hud-connect-on-move-on")
+        } else {
+            key!("hud-connect-on-move-off")
+        };
+        let key = crate::command_bar::key_name(self, "tool.connect_on_move");
+        self.tools.notice = Some(strings::format(state, &[&key]));
+        self.tools.notice_sticky = false;
+        Outcome::Done
     }
 
     /// `help.shortcuts`: the keymap editor opens with an empty search and nothing recording (WP-S2.08 D8).

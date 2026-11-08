@@ -342,6 +342,7 @@ impl ShellModel {
                 snapper: &page.snapper,
                 selection: &host.selection,
                 layout: host.layout_options,
+                connect_on_move: host.connect_on_move,
             };
             host.tool.on_event(ev, &cx)
         };

@@ -321,7 +321,7 @@ fn a_segment_drag_at_58_percent_moves_the_middle_segment() {
     let mut h = on_golden(&tmp, "102");
     let w = connections(&h)
         .into_iter()
-        .find(|c| c.polyline.last().is_some_and(|p| p.1 == 13_229_167) && c.polyline[0].0 == 121_708_333)
+        .find(|c| c.polyline.last().is_some_and(|p| p.1 == 15_875_000) && c.polyline[0].0 == 127_000_000)
         .expect("-102G1:PE to PE-1.2");
     let (a, b) = (w.polyline[0], *w.polyline.last().unwrap());
     let row = 21_166_667; // grid row 8 (8 × 7 937 500 / 3, rounded)
@@ -356,17 +356,19 @@ fn a_segment_drag_at_58_percent_moves_the_middle_segment() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Window check, item 6: C (connect on move) is refused in this package; the status bar says why.
+/// Window check, item 6; WP-S2.19 D15: C turns connect on move off for the session, and on again; the status bar says
+/// the state with the key.
 #[test]
-fn c_shows_why_it_does_not_connect_while_moving() {
+fn c_turns_connect_on_move_off_and_on_and_the_status_bar_says_so() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "102");
     press(&mut h, Key::C);
-    let fields = h.state().shell().status_fields(false);
-    assert!(
-        fields[0].starts_with("Proposals connect when a symbol is placed"),
-        "{fields:?}"
+    assert_eq!(
+        h.state().shell().status_fields(false)[0],
+        "C Connect on move: off"
     );
+    press(&mut h, Key::C);
+    assert_eq!(h.state().shell().status_fields(false)[0], "C Connect on move: on");
     h.state_mut().shell_mut().shutdown();
 }
 

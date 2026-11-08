@@ -168,6 +168,9 @@ pub(crate) struct ToolHost {
     // WP-S4.02 part 3
     /// The placing options of the tool options card (the sticky mode and the grid step), kept across tools.
     pub layout_options: super::LayoutOptions,
+    /// Whether a move connects its autoconnect proposals, kept across tools for the session (WP-S2.19 D15: on until
+    /// `tool.connect_on_move` turns it off).
+    pub connect_on_move: bool,
     /// Whether a `layout.*` commit of this dispatch announces the selected placement's live text once the page is
     /// read again (at the end of the dispatch).
     pub layout_announce: bool,
@@ -265,6 +268,7 @@ impl ToolHost {
             drop_release: false,
             result_note: None,
             layout_options: super::LayoutOptions::default(),
+            connect_on_move: true,
             layout_announce: false,
             placed: false,
             placed_device: None,

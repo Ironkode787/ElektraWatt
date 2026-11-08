@@ -1964,10 +1964,8 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
                     continue;
                 };
                 let text = ew_api::checks::messages::render(f, lang);
-                // As `ew-api` builds the row: the subject once, before the message unless the message leads with it.
-                let leads = text
-                    .strip_prefix(f.subject.as_str())
-                    .is_some_and(|rest| rest.is_empty() || rest.starts_with(':') || rest.starts_with(' '));
+                // As `ew-api` builds the row: the subject once, before the message unless the message names it.
+                let leads = ew_api::output::names_subject(&f.subject, &text);
                 node.label = if f.subject.is_empty() || leads {
                     text.clone()
                 } else {

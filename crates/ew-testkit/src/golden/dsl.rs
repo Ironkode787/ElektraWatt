@@ -1089,6 +1089,20 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             .map(|_| ())
     }
 
+    /// `connection.route_many` (WP-S2.19 D12): the `routes` of several connections in one transaction.
+    ///
+    /// # Errors
+    ///
+    /// A command's error.
+    pub fn route_many(&mut self, routes: &[(Id<Connection>, Value)]) -> Result<()> {
+        let routes: Vec<Value> = routes
+            .iter()
+            .map(|(id, route)| json!({"connection": id, "route": route}))
+            .collect();
+        self.run("connection.route_many", json!({"routes": routes}))
+            .map(|_| ())
+    }
+
     /// `fields.set` of a connection's `overrides` members and `number`; its ends, page and kind are written
     /// by `connection.draw`; a stored `route` is set by `connection.route`.
     ///
@@ -1637,6 +1651,38 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     pub fn move_steps(&mut self, reps: &[Id<Representation>], steps: [i64; 2]) -> Result<()> {
         self.run("rep.move", json!({"reps": reps, "steps": steps}))
             .map(|_| ())
+    }
+
+    /// [`Self::move_steps`] with the window's members (WP-S2.19 D14, D15): `routes` replace the followed routes of the
+    /// connections named, and `connect` makes the wires of the autoconnect hints `(rep, (function, CP index), other
+    /// end)`.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    #[allow(clippy::type_complexity)] // the hints as the command names them: (rep, (function, CP), other end)
+    pub fn move_steps_with(
+        &mut self,
+        reps: &[Id<Representation>],
+        steps: [i64; 2],
+        routes: &[(Id<Connection>, Value)],
+        connect: &[(Id<Representation>, (Id<Function>, u16), Value)],
+    ) -> Result<()> {
+        let routes: Vec<Value> = routes
+            .iter()
+            .map(|(id, route)| json!({"connection": id, "route": route}))
+            .collect();
+        let connect: Vec<Value> = connect
+            .iter()
+            .map(|(rep, (function, idx), to)| {
+                json!({"rep": rep, "cp": {"function": function, "idx": idx}, "to": to})
+            })
+            .collect();
+        self.run(
+            "rep.move",
+            json!({"reps": reps, "steps": steps, "routes": routes, "connect": connect}),
+        )
+        .map(|_| ())
     }
 
     /// `rep.exchange_symbol` (FR-SYM-022): the representation `rep` is drawn by the symbol copy `symbol` from now

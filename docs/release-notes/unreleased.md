@@ -7,6 +7,42 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-variant`, `text-change`.
 
+- api-add: window Draw ▸ Connect ▸ Route page and Route selection preview the page router's plan and commit it as one
+  `connection.route_many` (WP-S2.19 D13)
+- api-add: rep.move takes `routes` (applied after the follow, as connection.route_many applies them) and `connect`
+  (autoconnect hints `{rep, cp: {function, idx}, to}`); a move in the window re-solves a followed route that breaks a
+  hard rule, and connects its proposals unless Alt is held (`tool.connect_on_move`, C, turns that off) (WP-S2.19 D14,
+  D15); a `connect` hint onto a point of a connection is refused, since a move never splits a wire (ID-1509)
+- api-add: command `connection.route_many {routes: [{connection, route}]}`, several `connection.route` entries in one
+  transaction (one undo step), 1 to 10,000 entries, an entry's error prefixed `/routes/<i>` (WP-S2.19 D12)
+- api-add: `ew route [<project-dir>] [--page <folio>] [--selection <ids>] [--dry-run] [--json]` routes the pages'
+  unrouted wires (or the selection's) with the page router and saves them in one step per page, result
+  `ew.route-result/1`, exit 1 while a wire stays unrouted; `ew layout [<project-dir>] [--page <folio>] [--json]`
+  prints the layout measures of the drawn pages, result `ew.layout-result/1` (WP-S2.19 D13)
+- behaviour-change: a connection's `route` holds every vertex from end `a`'s point to end `b`'s, both included, and
+  is drawn as stored; an empty route means the connection is unrouted. The QElectroTech importer stores each
+  conductor's route that way (WP-S2.19 D2, D17)
+- behaviour-change: an unrouted connection is drawn on the canvas and in every export as a dashed straight line
+  between its ends, never as the provisional L, and is no wire for the connection split, EW-TERM-006 and autoconnect
+  (WP-S2.19 D3)
+- behaviour-change: `device.place`'s autoconnect hints store the straight route between their two ends; a hint whose
+  ends are not aligned makes an unrouted wire (WP-S2.19 D12)
+- behaviour-change: an interruption point's arrow always points right: `ew.gen.ip` 0.2.0, the source form, has its
+  wire on the tail, and the new `ew.gen.ip-target` 0.1.0, the target form, has it on the tip (each with its `@qet10`
+  twin). `ip.place`, `connection.draw_to_ip` and `ip.continue` refuse a turned form or the other direction's,
+  `rep.transform` refuses to turn one, `macro.insert` refuses a turned macro holding one, and a direction change
+  swaps the form (WP-S2.19 D16, ID-1509)
+- behaviour-change: `ew.gen.strip-segment` 0.2.0 prints the strip's tag beside the strip, left of its first terminal,
+  not above the terminal row (ID-1502)
+- api-add: the tables importer: `representations.csv` takes an optional `orient` column (`A` to `H`) and refuses an
+  interruption-point form that is not its function's direction; a `route` that names end `b` as its one corner is a
+  straight route (ID-1502, ID-1503)
+- api-add: check rules EW-CORE-067 (wire through a connection point), -068 (wire along another wire), -069 (wire
+  through a symbol), -070 (wire through a text), -072 (four-way junction) and -073 (unrouted wire, an error in
+  release mode) (WP-S2.19 §9)
+- behaviour-change: an imported or drawn connection without a route is an EW-CORE-073 finding; `ew check` exits 1 on
+  it until Route page or `ew route` routes it (WP-S2.19 D3, D17)
+
 - api-add: page.new takes `grid` (mm4 or qet_10px), the window's New page its Connection grid, the current page's by
   default; a page's Connection grid is a choice in Properties; picker.new_page places the Insert symbol picker's symbol
   on another grid on a new page with its grid (ID-1477)

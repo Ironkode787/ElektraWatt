@@ -476,7 +476,7 @@ fn a_page_chosen_in_the_page_list_is_not_counted_on_the_canvas() {
 #[test]
 fn cb5_ft521_the_hud_prompts_the_selection_and_the_pick_stack() {
     let tmp = Tmp::new("cb5");
-    let mut s = shell(&tmp);
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
     let h = hud(&s);
     assert_eq!(h.tool, "tool.select");
     assert_eq!(h.quick, ["tool.wire", "tool.place", "tool.text"]);
@@ -491,11 +491,7 @@ fn cb5_ft521_the_hud_prompts_the_selection_and_the_pick_stack() {
     assert_eq!(hud(&s).prompt, "1 selected \u{b7} Del deletes \u{b7} R rotates");
     // FT-521: at an overlap of two wires and a symbol (FT-500's point on folio 101 at actual size).
     done(&mut s, "view.zoom_actual", json!({}));
-    let page = s.canvas().unwrap().page();
-    let y = page
-        .snapper
-        .page_to_sheet(page.tables.connections[0].polyline[0])
-        .1;
+    let y = common::provisional_overlap_on_101(&mut s);
     let over = (150_000_000, y);
     done(&mut s, "canvas.pointer", at(over, json!({})));
     let c = s.canvas().unwrap();

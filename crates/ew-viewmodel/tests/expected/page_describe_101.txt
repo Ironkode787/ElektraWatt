@@ -1,9 +1,9 @@
 page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
-  rep "S51" cell "101-B2" symbol "ew.iec.switch-2p-manual@qet10" variant "A" at 54.152 46.324 mm
-    cp "S51:1" at 54.152 46.324 mm wires 1 potential "L-S"
-    cp "S51:2" at 54.152 54.152 mm wires 1 potential "L"
-    cp "S51:3" at 59.371 46.324 mm wires 1 potential "N-S"
-    cp "S51:4" at 59.371 54.152 mm wires 1 potential "N"
+  rep "S51" cell "101-B2" symbol "ew.iec.switch-2p-manual@qet10" variant "A" at 46.324 46.324 mm
+    cp "S51:1" at 46.324 46.324 mm wires 1 potential "L-S"
+    cp "S51:2" at 46.324 54.152 mm wires 1 potential "L"
+    cp "S51:3" at 51.543 46.324 mm wires 1 potential "N-S"
+    cp "S51:4" at 51.543 54.152 mm wires 1 potential "N"
   rep "-101F1" cell "101-B8" symbol "ew.iec.mcb-1pn@qet10" variant "A" at 145.486 41.104 mm
     cp "-101F1:1" at 145.486 41.104 mm wires 2 potential "L-S"
     cp "-101F1:2" at 145.486 51.543 mm wires 1 potential "L-1"
@@ -17,17 +17,17 @@ page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
   rep "T55" cell "101-C12" symbol "ew.iec.thermostat-nc@qet10" variant "A" at 210.725 67.200 mm
     cp "T55:5" at 210.725 67.200 mm wires 1 potential "N-55"
     cp "T55:3" at 210.725 75.028 mm wires 1 potential "N-55T"
-  rep "1X1:1" cell "101-D2" symbol "ew.iec.terminal@qet10" variant "A" at 48.933 88.076 mm
-    cp "1X1:1/a" internal at 48.933 90.686 mm wires 1 potential "L"
-    cp "1X1:1/b" field at 48.933 85.467 mm wires 1 potential "L"
-  rep "1X1:2" cell "101-D2" symbol "ew.iec.terminal@qet10" variant "A" at 54.152 88.076 mm
-    cp "1X1:2/a" internal at 54.152 90.686 mm wires 1 potential "N"
-    cp "1X1:2/b" field at 54.152 85.467 mm wires 1 potential "N"
-  rep "1X1:PE" cell "101-D2" symbol "ew.iec.terminal-pe@qet10" variant "A" at 59.371 88.076 mm
-    cp "1X1:PE/a" internal at 59.371 90.686 mm wires 1 potential "PE"
-    cp "1X1:PE/b" field at 59.371 85.467 mm wires 1 potential "PE"
-  rep "-XPE" cell "101-D5" symbol "ew.iec.pe@qet10" variant "A" at 101.124 88.076 mm
-    cp "-XPE:PE" at 101.124 88.076 mm wires 1 potential "PE"
+  rep "1X1:1" cell "101-D2" symbol "ew.iec.terminal@qet10" variant "G" at 46.324 88.076 mm
+    cp "1X1:1/a" internal at 46.324 85.467 mm wires 1 potential "L"
+    cp "1X1:1/b" field at 46.324 90.686 mm wires 1 potential "L"
+  rep "1X1:2" cell "101-D2" symbol "ew.iec.terminal@qet10" variant "G" at 51.543 88.076 mm
+    cp "1X1:2/a" internal at 51.543 85.467 mm wires 1 potential "N"
+    cp "1X1:2/b" field at 51.543 90.686 mm wires 1 potential "N"
+  rep "1X1:PE" cell "101-D2" symbol "ew.iec.terminal-pe@qet10" variant "G" at 59.371 88.076 mm
+    cp "1X1:PE/a" internal at 59.371 85.467 mm wires 1 potential "PE"
+    cp "1X1:PE/b" field at 59.371 90.686 mm wires 1 potential "PE"
+  rep "-XPE" cell "101-D5" symbol "ew.iec.pe@qet10" variant "A" at 95.905 88.076 mm
+    cp "-XPE:PE" at 95.905 88.076 mm wires 1 potential "PE"
   rep "S56" cell "101-D14" symbol "ew.iec.position-switch-no@qet10" variant "A" at 242.039 88.076 mm
     cp "S56:13" at 242.039 88.076 mm wires 1 potential "N-55"
     cp "S56:14" at 242.039 95.905 mm wires 1 potential "N-55S"
@@ -38,38 +38,38 @@ page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
   rep "E56" cell "101-E14" symbol "ew.iec.lamp@qet10" variant "A" at 242.039 108.952 mm
     cp "E56:X1" at 242.039 108.952 mm wires 1 potential "N-55S"
     cp "E56:X2" at 242.039 116.781 mm wires 1 potential "L-55"
-  rep ip "J-E-206-L" direction target continues "+J-E-206 / JE-N1000-03" cell "101-G0" symbol "ew.gen.external-arrow@qet10" variant "A" at 17.619 145.486 mm
-    cp "J-E-206-L" at 17.619 145.486 mm wires 1 potential "L"
-  rep ip "J-E-206-N" direction target continues "+J-E-206 / JE-N1000-03" cell "101-G0" symbol "ew.gen.external-arrow@qet10" variant "A" at 17.619 150.705 mm
-    cp "J-E-206-N" at 17.619 150.705 mm wires 1 potential "N"
-  rep ip "J-E-206-PE" direction target continues "+J-E-206 / JE-N1000-03" cell "101-G0" symbol "ew.gen.external-arrow@qet10" variant "A" at 17.619 155.924 mm
-    cp "J-E-206-PE" at 17.619 155.924 mm wires 1 potential "PE"
+  rep ip "J-E-206-L" direction target continues "+J-E-206 / JE-N1000-03" cell "101-G0" symbol "ew.gen.external-arrow@qet10" variant "E" at 28.057 140.267 mm
+    cp "J-E-206-L" at 28.057 140.267 mm wires 1 potential "L"
+  rep ip "J-E-206-N" direction target continues "+J-E-206 / JE-N1000-03" cell "101-G0" symbol "ew.gen.external-arrow@qet10" variant "E" at 28.057 150.705 mm
+    cp "J-E-206-N" at 28.057 150.705 mm wires 1 potential "N"
   rep ip "PE-1.1" direction source continues "103-G6" cell "101-G15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 150.705 mm
-    cp "PE-1.1" at 257.696 148.096 mm wires 1 potential "PE"
-  rep ip "L-1" direction source continues "102-A1" cell "101-H16" symbol "ew.gen.ip@qet10" variant "A" at 273.353 171.581 mm
-    cp "L-1" at 273.353 168.972 mm wires 1 potential "L-1"
-  rep ip "N-1" direction source continues "102-A1" cell "101-H16" symbol "ew.gen.ip@qet10" variant "A" at 273.353 176.801 mm
-    cp "N-1" at 273.353 174.191 mm wires 1 potential "N-1"
-  wire "-101F1:1" -> "F55:1" route provisional bends 0
-  wire "-101F1:2" -> "L-1" route provisional bends 1 at 209.420 168.972 mm
-  wire "-101F1:N#1" -> "F55:N#1" route provisional bends 0 at 212.029 41.104 mm
-  wire "-101F1:N#2" -> "N-1" route provisional bends 1 at 153.315 112.867 mm
-  wire "1X1:1/a" -> "S51:2" route provisional bends 1 at 48.933 72.419 mm
-  wire "1X1:2/a" -> "S51:4" route provisional bends 1 at 54.152 72.419 mm
-  wire "1X1:PE/a" -> "-XPE:PE" route provisional bends 1 at 80.248 88.076 mm
-  wire "E55:PE" -> "PE-1.1" route provisional bends 1 at 235.515 108.952 mm
-  wire "F55:2" -> junction 1 route provisional bends 1 at 208.115 59.371 mm
-  wire "F55:N#2" -> junction 2 route provisional bends 1 at 215.944 59.371 mm
-  wire "J-E-206-L" -> "1X1:1/b" route provisional bends 1 at 48.933 115.476 mm
-  wire "J-E-206-N" -> "1X1:2/b" route provisional bends 1 at 54.152 118.086 mm
-  wire "J-E-206-PE" -> "1X1:PE/b" route provisional bends 1 at 59.371 120.695 mm
-  wire "S51:1" -> "-101F1:1" route provisional bends 1 at 54.152 43.714 mm
-  wire "S51:3" -> "-101F1:N#1" route provisional bends 1 at 59.371 44.040 mm
-  wire "S56:14" -> "E56:X1" route provisional bends 0
-  wire "T55:3" -> "E55:N" route provisional bends 0 at 210.725 111.725 mm
-  wire junction 1 -> "E55:L" route provisional bends 1 at 210.725 71.767 mm
-  wire junction 1 -> "E56:X2" route provisional bends 1 at 242.039 91.990 mm
-  wire junction 2 -> "S56:13" route provisional bends 1
-  wire junction 2 -> "T55:5" route provisional bends 0
+    cp "PE-1.1" at 255.087 150.705 mm wires 1 potential "PE"
+  rep ip "J-E-206-PE" direction target continues "+J-E-206 / JE-N1000-03" cell "101-H0" symbol "ew.gen.external-arrow@qet10" variant "E" at 28.057 161.143 mm
+    cp "J-E-206-PE" at 28.057 161.143 mm wires 1 potential "PE"
+  rep ip "N-1" direction source continues "102-A1" cell "101-H16" symbol "ew.gen.ip@qet10" variant "A" at 273.353 166.362 mm
+    cp "N-1" at 270.744 166.362 mm wires 1 potential "N-1"
+  rep ip "L-1" direction source continues "102-A1" cell "101-H16" symbol "ew.gen.ip@qet10" variant "A" at 273.353 176.801 mm
+    cp "L-1" at 270.744 176.801 mm wires 1 potential "L-1"
+  wire "-101F1:1" -> "F55:1" route stored bends 2 at 176.801 33.276 mm
+  wire "-101F1:2" -> "L-1" route stored bends 1 at 208.115 176.801 mm
+  wire "-101F1:N#1" -> "F55:N#1" route stored bends 4 at 179.410 38.495 mm
+  wire "-101F1:N#2" -> "N-1" route stored bends 1 at 212.029 166.362 mm
+  wire "1X1:1/a" -> "S51:2" route stored bends 0 at 46.324 69.809 mm
+  wire "1X1:2/a" -> "S51:4" route stored bends 1 at 51.543 61.981 mm
+  wire "1X1:PE/a" -> "-XPE:PE" route stored bends 2 at 77.638 82.857 mm
+  wire "E55:PE" -> "PE-1.1" route stored bends 2 at 231.601 129.829 mm
+  wire "F55:2" -> junction 1 route stored bends 2 at 208.115 58.066 mm
+  wire "F55:N#2" -> junction 2 route stored bends 2 at 226.382 60.676 mm
+  wire "J-E-206-L" -> "1X1:1/b" route stored bends 1 at 46.324 115.476 mm
+  wire "J-E-206-N" -> "1X1:2/b" route stored bends 1 at 51.543 120.695 mm
+  wire "J-E-206-PE" -> "1X1:PE/b" route stored bends 1 at 59.371 125.915 mm
+  wire "S51:1" -> "-101F1:1" route stored bends 2 at 46.324 42.409 mm
+  wire "S51:3" -> "-101F1:N#1" route stored bends 2 at 51.543 41.431 mm
+  wire "S56:14" -> "E56:X1" route stored bends 0 at 242.039 102.429 mm
+  wire "T55:3" -> "E55:N" route stored bends 4 at 200.286 97.210 mm
+  wire junction 1 -> "E55:L" route stored bends 3 at 210.725 91.990 mm
+  wire junction 1 -> "E56:X2" route stored bends 2 at 195.067 93.295 mm
+  wire junction 2 -> "S56:13" route stored bends 1 at 242.039 77.638 mm
+  wire junction 2 -> "T55:5" route stored bends 3 at 215.944 64.590 mm
   junction 1 cell "101-C11" at 195.067 67.200 mm style dot wiring star sequence "F55:2" "E55:L" "E56:X2"
   junction 2 cell "101-C13" at 226.382 67.200 mm style dot wiring star sequence "F55:N#2" "T55:5" "S56:13"

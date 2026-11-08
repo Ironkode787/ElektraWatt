@@ -865,6 +865,8 @@ fn steps_model_at(ymid: Nm) -> Model {
 
 fn steps_cmd(reps: Vec<Id<Representation>>, steps: [i64; 2]) -> MoveReps {
     MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         reps,
         delta: pt(0, 0),
@@ -935,6 +937,108 @@ fn move_by_steps_makes_a_route_with_one_moved_end_follow_that_end() {
             "the other wires keep their vertices"
         );
     }
+}
+
+/// `rep.move` with the window's members (WP-S2.19 D14, D15), from its JSON form.
+fn move_with(params: Value) -> MoveReps {
+    serde_json::from_value(params).expect("rep.move parameters")
+}
+
+/// WP-S2.19 D14: `routes` replace the followed route after the follow, in the move's one transaction; an entry is
+/// checked as `connection.route` checks it, its error at `/routes/<i>`.
+#[test]
+fn move_routes_replace_the_followed_route_in_the_same_step() {
+    let mut e = engine(steps_model());
+    let rev = e.model().rev().0;
+    e.execute(&move_with(json!({
+        "reps": [REP_102G1], "steps": [1, 0], "routes": [{"connection": CON_C, "route": []}]
+    })))
+    .expect("rep.move");
+    assert_eq!(e.model().rev().0, rev + 1, "one step in the history");
+    assert_eq!(
+        row(&e, CON_C).route,
+        Vec::<Pt2>::new(),
+        "the route given, not the followed one"
+    );
+    // A route that does not start at the moved CP: refused as `connection.route` refuses it, named by its entry.
+    let g1 = row(&e, REP_102G1).pos;
+    assert_eq!(
+        rejection(engine(steps_model()).execute(&move_with(json!({
+            "reps": [REP_102G1], "steps": [1, 0], "routes": [{"connection": CON_C, "route": [g1, gp(20, 20)]}]
+        })))),
+        "entry 0: the wire's start at x 10.6, y 31.8 mm on page 102 does not meet connection point -102G1:N at x \
+         10.6, y 41.8 mm; end the wire at its connection point"
+    );
+    // Without `routes` the route follows, as a script's move always did.
+    let mut plain = engine(steps_model());
+    plain
+        .execute(&steps_cmd(vec![REP_102G1], [1, 0]))
+        .expect("rep.move");
+    assert_eq!(
+        plain
+            .model()
+            .table::<ew_schema::Connection>()
+            .get(&CON_C)
+            .map(|c| c.route.len()),
+        Some(2)
+    );
+}
+
+/// WP-S2.19 D15: a `connect` hint makes its wire with the move, from the named representation's symbol CP, with the
+/// straight route when its ends lie on one line; a hint whose junction is gone is dropped with a notice; a symbol CP
+/// the representation does not draw is refused in words.
+#[test]
+fn move_hints_make_their_wires_and_refuse_a_cp_in_words() {
+    let mut e = engine(steps_model());
+    let before = e.model().table::<ew_schema::Connection>().len();
+    let r = e
+        .execute(&move_with(json!({
+            "reps": [REP_102G1], "steps": [0, 0],
+            "connect": [
+                {"rep": REP_102G1, "cp": {"function": FN_102G1, "idx": 0}, "to": {"cp": {"function": FN_T1, "idx": 1}}},
+                {"rep": REP_102G1, "cp": {"function": FN_102G1, "idx": 1}, "to": {"junction": {"junction": id::<ew_schema::Junction>(0x9999)}}}
+            ]
+        })))
+        .expect("rep.move");
+    assert_eq!(
+        r.outcome.notices,
+        ["autoconnect hint 2 dropped: the junction it connects to no longer exists"]
+    );
+    let model = e.model();
+    let made: Vec<&std::sync::Arc<ew_schema::Connection>> = model
+        .table::<ew_schema::Connection>()
+        .iter()
+        .map(|(_, c)| c)
+        .filter(|c| c.b == ew_schema::Endpoint::Cp(FN_T1, 1) && c.a == ew_schema::Endpoint::Cp(FN_102G1, 0))
+        .collect();
+    assert_eq!(model.table::<ew_schema::Connection>().len(), before + 1);
+    assert_eq!(made.len(), 1, "the hint's wire from -102G1's CP 0 to -T1's CP 1");
+    assert_eq!(
+        rejection(engine(steps_model()).execute(&move_with(json!({
+            "reps": [REP_102G1], "steps": [0, 0],
+            "connect": [{"rep": REP_102G1, "cp": {"function": FN_102G1, "idx": 7}, "to": {"cp": {"function": FN_T1, "idx": 1}}}]
+        })))),
+        "the symbol of -102G1 does not draw connection point -102G1:7; connect on the move from one of its own \
+         connection points"
+    );
+}
+
+/// ID-1509 (6), ADR-0007 decision 4: a `connect` hint onto a point of a connection would split an existing wire, so
+/// the move refuses it in words and changes nothing.
+#[test]
+fn a_move_refuses_a_hint_that_would_split_a_wire() {
+    let mut e = engine(steps_model());
+    let rev = e.model().rev();
+    let at = gp(20, 20);
+    assert_eq!(
+        rejection(e.execute(&move_with(json!({
+            "reps": [REP_102G1], "steps": [0, 0],
+            "connect": [{"rep": REP_102G1, "cp": {"function": FN_102G1, "idx": 0},
+                         "to": {"on_connection": {"connection": CON_C, "at": at}}}]
+        })))),
+        "A move connects only to connection points; it never splits an existing wire."
+    );
+    assert_eq!(e.model().rev(), rev, "nothing committed");
 }
 
 #[test]
@@ -1066,6 +1170,8 @@ fn the_same_move_as_one_nm_delta_is_refused() {
     let mut e = engine(steps_model());
     let rev = e.model().rev();
     let delta = MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         reps: reps.clone(),
         delta: p(one_step, Nm(0)),
@@ -1104,6 +1210,8 @@ fn move_by_steps_rejections() {
     // Steps with a non-zero delta: invalid at /steps.
     invalid_at(
         e.execute(&MoveReps {
+            routes: Vec::new(),
+            connect: Vec::new(),
             items: Vec::new(),
             reps: vec![REP_102F2],
             delta: pt(G, 0),
@@ -1115,6 +1223,8 @@ fn move_by_steps_rejections() {
     // Steps with a page.
     invalid_at(
         e.execute(&MoveReps {
+            routes: Vec::new(),
+            connect: Vec::new(),
             items: Vec::new(),
             reps: vec![REP_102F2],
             delta: pt(0, 0),
@@ -1135,6 +1245,8 @@ fn move_by_steps_rejections() {
     let mut split = engine(arrange_model(|_| {}));
     assert_eq!(
         rejection(split.execute(&MoveReps {
+            routes: Vec::new(),
+            connect: Vec::new(),
             items: Vec::new(),
             reps: vec![REP_102F2],
             delta: pt(0, 0),
@@ -1697,6 +1809,8 @@ fn drawing_set_json_distinguishes_null_from_absent() {
 #[test]
 fn rep_move_without_steps_serialises_as_before() {
     let cmd = MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         reps: vec![REP_102F2],
         delta: pt(7_937_500, -3),
@@ -1712,6 +1826,8 @@ fn rep_move_without_steps_serialises_as_before() {
     assert!(!text.contains("steps"));
     // With a page, as before.
     let with_page = MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         page: Some(PAGE_101),
         ..cmd.clone()
@@ -1725,6 +1841,8 @@ fn rep_move_without_steps_serialises_as_before() {
     assert_eq!(back, cmd);
     // With steps the key is there, and `delta` can be left out.
     let steps = MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         delta: pt(0, 0),
         steps: Some([1, -2]),
@@ -1916,6 +2034,8 @@ fn run_follow_op(e: &mut Engine, op: &FollowOp) {
         FollowOp::Steps(reps, steps) => e.execute(&steps_cmd(reps.clone(), *steps)).map(|_| ()),
         FollowOp::Delta(reps, d) => e
             .execute(&MoveReps {
+                routes: Vec::new(),
+                connect: Vec::new(),
                 items: Vec::new(),
                 reps: reps.clone(),
                 delta: pt(d[0], d[1]),
@@ -2025,6 +2145,8 @@ proptest! {
 fn a_route_whose_ends_met_moves_one_end_only() {
     let mut e = engine(follow_model([(2, 2), (13, 28), (19, 28)], [0, 0, 0]));
     e.execute(&MoveReps {
+        routes: Vec::new(),
+        connect: Vec::new(),
         items: Vec::new(),
         reps: vec![REP_102G1],
         delta: pt(-2 * G, 0),

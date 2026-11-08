@@ -150,7 +150,7 @@ fn points(tmp: &Tmp) -> Points {
         .expect("-102F2:14")
         .at;
     let x = s.canvas().unwrap().page().snapper.page_of_index(76);
-    let split_page = (x, 13_229_167);
+    let split_page = (x, 15_875_000);
     let wire_from = page_to_sheet(&s, from);
     let split = page_to_sheet(&s, split_page);
     // A touching band (right to left) around the split point, starting on an empty point.

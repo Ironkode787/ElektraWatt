@@ -1,0 +1,3 @@
+{"$schema":"ew.uiscript/1","label":"brief-rp3-golden-lamps prelude: a copy of Golden A on folio 101"}
+{"action":"file.open","params":{"dir":"project"}}
+{"action":"page.goto","params":{"folio":"101"}}

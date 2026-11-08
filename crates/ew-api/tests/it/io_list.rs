@@ -97,7 +97,7 @@ fn row(cells: [&str; 20]) -> Vec<String> {
     cells.iter().map(|c| (*c).to_owned()).collect()
 }
 
-/// The row of a used channel: -201U3 channel 1, Q0.1, bound to coil 14 of -201U3-Q1 drawn at 203-D1.
+/// The row of a used channel: -201U3 channel 1, Q0.1, bound to coil 14 of -201U3-Q1 drawn at 203-H1.
 fn first_used() -> Vec<String> {
     row([
         "PLC1",
@@ -118,7 +118,7 @@ fn first_used() -> Vec<String> {
         "TA05-V-15",
         "-201U3-Q1",
         "14",
-        "203-D1",
+        "203-H1",
         "used",
     ])
 }
@@ -154,7 +154,7 @@ fn px1_the_default_io_list_lists_28_rows_of_used_and_spare_channels() {
             "",
             "-202U2-Q4",
             "14",
-            "206-D7",
+            "206-H7",
             "spare",
         ])
     );
@@ -260,7 +260,7 @@ fn px1_the_export_by_block_writes_the_header_and_28_rows() {
     );
     assert_eq!(
         lines[1],
-        "data,PLC1,,-201U1,TBD,1,-201U3,533361,1,1,DO,Q0.1,,Bool,,TA05-V-15,TA05-V-15,-201U3-Q1,14,203-D1,used"
+        "data,PLC1,,-201U1,TBD,1,-201U3,533361,1,1,DO,Q0.1,,Bool,,TA05-V-15,TA05-V-15,-201U3-Q1,14,203-H1,used"
     );
 }
 

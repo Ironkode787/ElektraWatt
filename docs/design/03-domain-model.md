@@ -1500,6 +1500,15 @@ classDiagram
 | `PhysicalWire`: what the shop cuts | D | ID, two CP ends, constituent connections | §9.2 | — |
 | `ColourProfile`, `SizeProfile` | A, in `ProjectSettings` | colour: rows `(voltage class, PotentialType) → (ColourSpec, name: MlText)`, company codes, `basis: Standard \| CompanyConvention` (D-37); size: rows `circuit class → (csa, wire_part?)` | Generate the cover tables of folio 1 (FR-REP-028) | — |
 
+*As built (cycle 53; WP-S2.19 D1 to D3, [ADR-0033](../adr/0033-schematic-routing-model.md), decision log ID-1499).* A
+non-empty `Connection.route` is the drawing: the full orthogonal vertex list from end `a`'s point (a CP's or a
+junction's) to end `b`'s, both included, every corner between on the page grid or on an end's coordinate; a reader
+draws it as stored and joins an end that has moved off it with one straight segment. An empty route on a page
+connection whose ends lie at two points means the connection is *unrouted*: it is drawn as a dashed straight line
+between its ends, has no wire geometry for normaliser 7, EW-TERM-006 or autoconnect, and is reported by EW-CORE-073.
+Routes are written only by an explicit step (the Wire tool, Route page, Route selection, a move's re-solve, an
+importer, Golden A's route tool); no reader routes.
+
 ### 9.1 Potential types and circuit classes
 
 `PotentialType = L1 | L2 | L3 | L | N | PE | PEN | FE | LPlus | LMinus | M | Signal | Undefined` (FR-CON-010).

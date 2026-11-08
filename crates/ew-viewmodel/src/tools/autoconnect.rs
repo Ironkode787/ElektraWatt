@@ -292,12 +292,11 @@ pub fn on_off_sheet_segment(cps: &[GhostCp], tables: &PageTables) -> bool {
     })
 }
 
-/// The splits of the ghost: pairs of ghost CPs on one segment of a connection facing its two ends, those of the
-/// connections with a stored route first (normaliser 7 splits a routed connection before a route-less one drawn on
-/// the same line).
+/// The splits of the ghost: pairs of ghost CPs on one segment of a connection facing its two ends. Only a wire with a
+/// stored route has wire geometry: an unrouted connection is not split (WP-S2.19 D3, as normaliser 7).
 fn splits(cps: &[GhostCp], tables: &PageTables, grid: GridMap) -> Vec<Proposal> {
     let mut out: Vec<(bool, Proposal)> = Vec::new();
-    for c in &tables.connections {
+    for c in tables.connections.iter().filter(|c| c.stored_route) {
         let line = dedup(&c.polyline);
         for w in line.windows(2) {
             let (a, b) = (w[0], w[1]);
@@ -600,9 +599,9 @@ mod tests {
         assert!(matches!(&p.list[0].target, ProposalTarget::Split { .. }));
         assert!(p.hints().is_empty());
         assert_eq!(p.lines(), vec![("\"1\" \"2\"".to_owned(), None)]);
-        // Route-less: the same split along the drawn polyline (FT-1020: normaliser 7 splits it there too).
+        // Unrouted: no split (WP-S2.19 D3: normaliser 7 does not split it either).
         t.connections[0].stored_route = false;
-        assert_eq!(proposals(&g, &t, &[], AREA, 0), p);
+        assert!(proposals(&g, &t, &[], AREA, 0).list.is_empty());
     }
 
     #[test]
@@ -641,7 +640,7 @@ mod tests {
             b: TableEnd::Junction { id: uuid(2) },
             kind: "wire".into(),
             polyline: vec![(20 * G, 0), (0, 0), (0, 20 * G)],
-            stored_route: false,
+            stored_route: true,
             off_sheet: vec![1],
             line_kind: None,
         });

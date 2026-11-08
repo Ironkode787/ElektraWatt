@@ -287,7 +287,7 @@ pub const PENDING: &[(Group, u16, &str)] = &[
     (Group::Pages, 2, "Page properties"),
     (Group::Pages, 3, "Delete page"),
     (Group::Place, 3, "Terminal"),
-    (Group::Connect, 3, "Potential"),
+    (Group::Connect, 5, "Potential"),
     (Group::Arrange, 3, "Align"),
     (Group::Run, 2, "Check scheme"),
     (Group::Numbering, 1, "Freeze tag"),
@@ -766,7 +766,19 @@ pub fn hud(model: &ShellModel) -> HudModel {
             };
             format!("{what} \u{b7} {keys}")
         }
-        Some(Ghost::Move { readout, .. }) => readout,
+        // WP-S2.19 D15: the move's HUD names connect on move's key and the session's state, which the key turns at once
+        // (ID-1509 (9), C2).
+        Some(Ghost::Move { readout, .. }) => {
+            let state = strings::format(
+                if model.connect_on_move() {
+                    key!("hud-connect-on-move-on")
+                } else {
+                    key!("hud-connect-on-move-off")
+                },
+                &[&key_name(model, "tool.connect_on_move")],
+            );
+            format!("{readout} \u{b7} {state}")
+        }
         Some(Ghost::Paste { records, .. }) => format!(
             "{} \u{b7} {}",
             strings::format_count(crate::count_key!("label-paste"), records),

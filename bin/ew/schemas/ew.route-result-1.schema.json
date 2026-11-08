@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "RoutePageResult": {
+      "additionalProperties": false,
+      "description": "One page of [`RouteResult`].",
+      "properties": {
+        "folio": {
+          "description": "The printed folio label.",
+          "type": "string"
+        },
+        "routed": {
+          "description": "The wires routed, by their ends (`E55:PE → PE-1.1`), in the order of their IDs.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "unrouted": {
+          "description": "The wires left unrouted, with why.",
+          "items": {
+            "$ref": "#/$defs/RouteUnrouted"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "folio",
+        "routed",
+        "unrouted"
+      ],
+      "type": "object"
+    },
+    "RouteUnrouted": {
+      "additionalProperties": false,
+      "description": "A wire [`RoutePageResult`] leaves unrouted.",
+      "properties": {
+        "reason": {
+          "description": "Why: `wires`, `symbols`, `texts`, `points` or `four_arms` (no route keeps clear of other wires, of the\nsymbols, of the texts, of the other connection points, or the junction would join four wires).",
+          "type": "string"
+        },
+        "wire": {
+          "description": "The wire by its ends.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "wire",
+        "reason"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew route --json` ([`ROUTE`]): the plan of each page routed (WP-S2.19 D13).",
+  "properties": {
+    "$schema": {
+      "const": "ew.route-result/1",
+      "description": "The name of this schema."
+    },
+    "pages": {
+      "description": "Each page routed, in page order.",
+      "items": {
+        "$ref": "#/$defs/RoutePageResult"
+      },
+      "type": "array"
+    },
+    "saved": {
+      "description": "Whether the routes were saved (`false` with `--dry-run` or when nothing was routed).",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "$schema",
+    "pages",
+    "saved"
+  ],
+  "title": "ew.route-result/1",
+  "type": "object"
+}

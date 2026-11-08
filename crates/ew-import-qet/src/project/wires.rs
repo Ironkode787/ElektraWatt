@@ -17,7 +17,7 @@ use ew_mltext::Ident;
 use ew_schema::{
     Connection, ConnectionKind, Endpoint, Junction, JunctionStyle, JunctionWiring, NumberSpec, WireOverrides,
 };
-use ew_units::{Nm, Pt2};
+use ew_units::{Grid, Nm, Pt2};
 use serde_json::Value;
 
 use super::cx::{ElementKey, Findings, Ids, Placed, Registry, Target, element_keys, terminal_ids};
@@ -298,13 +298,33 @@ fn points_of(start: Pt2, segments: &[Segment]) -> Option<Vec<Pt2>> {
     Some(points)
 }
 
-/// The interior route points of a conductor drawn from `start` through `segments`: the point after each
-/// segment except the last (which is the other end). Empty when `start` is unknown, a length does not
+/// The route of a conductor drawn from `start` through `segments` to `end`, both ends included (WP-S2.19 D2, D17):
+/// `start`, the point after each segment but the last, then `end`; a coordinate that names the same QET px as an
+/// end's coordinate takes the end's exact value (the tables importer's rule), and equal neighbours are merged.
+/// Empty (the connection is unrouted) without segments, when an end's position is unknown, a length does not
 /// convert or the arithmetic overflows.
-fn route_of(start: Option<Pt2>, segments: &[Segment]) -> Vec<Pt2> {
-    let mut points = start.and_then(|p| points_of(p, segments)).unwrap_or_default();
+fn route_of(start: Option<Pt2>, end: Option<Pt2>, segments: &[Segment]) -> Vec<Pt2> {
+    let (Some(a), Some(b)) = (start, end) else {
+        return Vec::new();
+    };
+    let mut points = match points_of(a, segments) {
+        Some(points) if !points.is_empty() => points,
+        _ => return Vec::new(),
+    };
     points.pop();
-    points
+    let px = |v: Nm| Grid::QET_1PX.snap(v);
+    let snap = |v: Nm, ends: [Nm; 2]| ends.into_iter().find(|e| px(*e) == px(v)).unwrap_or(v);
+    let mut route: Vec<Pt2> = vec![a];
+    for p in points
+        .into_iter()
+        .map(|p| Pt2::new(snap(p.x, [a.x, b.x]), snap(p.y, [a.y, b.y])))
+        .chain(std::iter::once(b))
+    {
+        if route.last() != Some(&p) {
+            route.push(p);
+        }
+    }
+    route
 }
 
 /// The displacement from the first to the last point of a conductor drawn through `segments`, nm; `None`
@@ -617,7 +637,7 @@ fn map_conductors_counted(
                 a: e1.endpoint.clone(),
                 b: e2.endpoint.clone(),
                 page: Some(e1.placed.page),
-                route: route_of(end_pos(&e1), &c.segments),
+                route: route_of(end_pos(&e1), end_pos(&e2), &c.segments),
                 kind: ConnectionKind::default(),
                 overrides: WireOverrides::default(),
                 number,
@@ -992,7 +1012,7 @@ mod tests {
     }
 
     #[test]
-    fn route_replays_segments_without_the_last_point() {
+    fn route_replays_segments_from_end_to_end() {
         let (mut d, reg) = two_elements();
         let mut c = cond(end_u(&uid(10), &uid(21)), end_u(&uid(11), &uid(22)));
         c.segments = vec![
@@ -1010,9 +1030,10 @@ mod tests {
         let start = reg[&(0, uid(10))].terminals[1].page_pos.unwrap();
         let step = Grid::QET_10PX.at(1).unwrap();
         assert_eq!(step, px(10));
+        let end = reg[&(0, uid(11))].terminals[0].page_pos.unwrap();
         assert_eq!(
             out.connections[0].route,
-            vec![Pt2::new(Nm(start.x.0 + step.0), start.y)]
+            vec![start, Pt2::new(Nm(start.x.0 + step.0), start.y), end]
         );
     }
 
@@ -1022,16 +1043,26 @@ mod tests {
             horizontal,
             length: Decimal::from_int(n),
         };
-        assert!(route_of(Some(Pt2::ORIGIN), &[]).is_empty());
-        assert!(route_of(None, &[seg(true, 1), seg(false, 1)]).is_empty());
+        let o = Some(Pt2::ORIGIN);
+        assert!(route_of(o, o, &[]).is_empty());
+        assert!(route_of(None, o, &[seg(true, 1), seg(false, 1)]).is_empty());
+        assert!(route_of(o, None, &[seg(true, 1), seg(false, 1)]).is_empty());
         assert!(
             route_of(
                 Some(Pt2::new(Nm(i64::MAX), Nm(0))),
+                o,
                 &[seg(true, 1), seg(false, 1)]
             )
             .is_empty()
         );
-        assert!(route_of(Some(Pt2::ORIGIN), &[seg(true, 1)]).is_empty());
+        // One segment: the straight route between the ends; a corner within a QET px of an end takes its value.
+        let b = Pt2::new(px(1), Nm(0));
+        assert_eq!(route_of(o, Some(b), &[seg(true, 1)]), vec![Pt2::ORIGIN, b]);
+        let b = Pt2::new(Nm(px(10).0 + 1), Nm(px(10).0));
+        assert_eq!(
+            route_of(o, Some(b), &[seg(true, 10), seg(false, 10)]),
+            vec![Pt2::ORIGIN, Pt2::new(b.x, Nm(0)), b]
+        );
     }
 
     #[test]

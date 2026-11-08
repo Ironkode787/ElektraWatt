@@ -12,7 +12,7 @@ use ew_schema::{
     PartUse, PlcModule, PlcStation, Record, Representation, Side, SlotOverride, Strip, TagPrint, TagScheme,
     TagSign, TagSpec, Terminal, TerminalGroup, pair_template_cps,
 };
-use ew_units::{Dec3, Grid, Nm, Pt2};
+use ew_units::{Dec3, Grid, Nm, Orient2, Pt2};
 
 use super::plc::STATION_ROLES;
 use super::project::structure_assignment;
@@ -218,6 +218,7 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
                 id,
                 strip_field_side: strip.as_ref().map(|s| s.field_side.clone()),
                 cable: cable.is_some(),
+                terminal: false,
                 parts: part_keys,
             },
         );
@@ -341,6 +342,7 @@ pub(crate) fn emit_terminals(cx: &mut Cx<'_>, table: Option<&Table>) {
                 id,
                 strip_field_side: None,
                 cable: false,
+                terminal: true,
                 parts: part_keys,
             },
         );
@@ -589,6 +591,14 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
         }
         let Some(fndef) = fndef else { continue };
         let ip = matches!(kind, FunctionKind::Ip(_));
+        let ip_target = match &kind {
+            FunctionKind::Ip(spec) => match spec.direction {
+                IpDirection::Source => Some(false),
+                IpDirection::Target => Some(true),
+                _ => None,
+            },
+            _ => None,
+        };
         if kind_name == 2 && !ip {
             continue;
         }
@@ -639,6 +649,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
                 device,
                 cps,
                 ip,
+                ip_target,
                 black_box,
             },
         ));
@@ -756,6 +767,17 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
         let dx = r.int("dx").unwrap_or(0);
         let dy = r.int("dy").unwrap_or(0);
         let arrangement = r.ident("arrangement");
+        // ID-1502 (7): the orientation's letter, A to H (doc 06's variant keys); empty for A.
+        let orient = match r.text("orient") {
+            None => Orient2::R0,
+            Some(l) => match "ABCDEFGH".find(l).filter(|_| l.len() == 1) {
+                Some(k) => Orient2::ALL[k],
+                None => {
+                    r.fail(format!("column `orient`: `{l}` is not a letter A to H"));
+                    Orient2::R0
+                }
+            },
+        };
         let slot_pos = slot_pos(&mut r);
         if functions.is_empty() {
             r.fail("column `functions` is empty");
@@ -823,6 +845,34 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             cx.unresolved(row, &format!("unknown symbol `{symbol}`"));
             continue;
         };
+        // WP-S2.19 D16: EW's arrow forms are their direction's (`ew.gen.ip` the source's outgoing arrow,
+        // `ew.gen.ip-target` the target's incoming one, each with its `@qet10` edition).
+        let target_form = match symbol.split('@').next() {
+            Some("ew.gen.ip") => Some(false),
+            Some("ew.gen.ip-target") => Some(true),
+            _ => None,
+        };
+        let wants = ip_fn
+            .as_ref()
+            .and_then(|f| cx.functions.get(f))
+            .and_then(|i| i.ip_target);
+        if let (Some(form), Some(wants)) = (target_form, wants)
+            && form != wants
+        {
+            let (direction, arrow) = if wants {
+                ("target", "incoming")
+            } else {
+                ("source", "outgoing")
+            };
+            cx.malformed(
+                row,
+                &format!(
+                    "a {direction} interruption point is drawn with the {arrow} arrow; symbol `{symbol}` is the other \
+                     direction's"
+                ),
+            );
+            continue;
+        }
         // The anchor of the symbol's policy, exactly as `rep_anchor_cell` derives it (FR-SYM-010, D-14): the
         // cell column names where the anchor lands, not the symbol origin.
         let (sym_id, rep_type) = (sym.id, sym.item.rep_type.clone());
@@ -854,10 +904,17 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             cx.malformed(row, &p);
             continue;
         }
-        let sym_cps: Vec<(u16, Pt2)> = sym.item.cps.as_slice().iter().map(|c| (c.fn_cp, c.pos)).collect();
+        let sym_cps: Vec<(u16, Pt2)> = sym
+            .item
+            .cps
+            .as_slice()
+            .iter()
+            .map(|c| (c.fn_cp, orient.apply(c.pos)))
+            .collect();
         let placed = sym
             .item
             .anchor_point()
+            .map(|a| orient.apply(a))
             .zip(cell_point(cell, dx, dy))
             .ok_or(PlaceError::OutOfRange)
             .and_then(|(anchor, target)| place(page_info.grid, target, anchor));
@@ -910,7 +967,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             symbol: sym_id,
             variant: 0,
             pos,
-            orient: Default::default(),
+            orient,
             rep_type,
             pin_map: KeyedList::default(),
             text_slots,
