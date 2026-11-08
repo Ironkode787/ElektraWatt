@@ -1209,7 +1209,7 @@ fn ft1043_a_representations_position_reads_in_millimetres_with_its_cell() {
     let (_, row) = find_row(sheet, "representation/pos").expect("the position row");
     assert_eq!(
         ew_viewmodel::properties::value_text(row),
-        "102-C7 · x 124.4 y 52.9 mm"
+        "102-C7 · x 116.4 y 60.9 mm"
     );
     shell.shutdown();
     // The project's decimal comma (no command sets it: the company-standard wizard writes it).
@@ -1226,7 +1226,7 @@ fn ft1043_a_representations_position_reads_in_millimetres_with_its_cell() {
     .unwrap();
     let mut shell = writable(&tmp, "102");
     done(&mut shell, "select.set", json!({"ids": [rep.to_string()]}));
-    assert_eq!(text(&shell, "representation/pos"), "102-C7 · x 124,4 y 52,9 mm");
+    assert_eq!(text(&shell, "representation/pos"), "102-C7 · x 116,4 y 60,9 mm");
     shell.shutdown();
 }
 

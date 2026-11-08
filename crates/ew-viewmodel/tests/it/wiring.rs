@@ -199,7 +199,7 @@ fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
     // From a free CP, a bend on the grid, Backspace, the bend again, then onto a junction.
     let start = cp(&s, "-102F2:13");
     enter_at(&mut s, start.at);
-    let bend = grid_point(&s, (56, 26));
+    let bend = grid_point(&s, (58, 33));
     enter_at(&mut s, bend);
     assert_eq!(canvas(&s)["route"]["bends"], 1);
     done(&mut s, "tool.back", json!({}));
@@ -210,7 +210,7 @@ fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
         "routing",
         "Backspace without a bend does nothing"
     );
-    let bend = grid_point(&s, (56, 26));
+    let bend = grid_point(&s, (58, 33));
     enter_at(&mut s, bend);
     let junction = tables(&s)
         .junctions
@@ -278,13 +278,13 @@ fn backspace_after_two_collinear_bends_keeps_the_first() {
     let start = cp(&s, "-102F2:13");
     enter_at(&mut s, start.at);
     // Bends straight above the CP, on rows no wire runs along.
-    let (b1, b2) = (grid_point(&s, (56, 31)), grid_point(&s, (56, 30)));
+    let (b1, b2) = (grid_point(&s, (58, 33)), grid_point(&s, (58, 32)));
     enter_at(&mut s, b1);
     enter_at(&mut s, b2);
     assert_eq!(canvas(&s)["route"]["bends"], 2);
     done(&mut s, "tool.back", json!({}));
     assert_eq!(canvas(&s)["route"]["bends"], 1);
-    let aside = grid_point(&s, (62, 30));
+    let aside = grid_point(&s, (64, 32));
     cursor(&mut s, aside);
     let ghost = s.wire_ghost_route().expect("routing");
     assert!(
@@ -593,7 +593,7 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
     let w = tables(&s)
         .connections
         .iter()
-        .find(|c| line(c).len() == 3 && line(c)[2].1 == 15_875_000 && line(c)[0].0 == 121_708_333)
+        .find(|c| line(c).len() == 3 && line(c)[2].1 == 15_875_000 && line(c)[0].0 == 127_000_000)
         .expect("-102G1:PE to PE-1.2")
         .clone();
     let pts = line(&w);

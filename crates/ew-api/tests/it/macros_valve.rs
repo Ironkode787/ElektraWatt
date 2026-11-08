@@ -1181,8 +1181,20 @@ fn a_window_macro_at_90_degrees_keeps_its_wires_on_their_cps() {
             }
         }
         // every bend of a stored route is a turned bend, CP or junction of the saved block (a wire without a route
-        // is drawn by the scene's router)
-        for &(x, y) in c.polyline.iter().filter(|_| c.stored_route) {
+        // is drawn by the scene's router); a straight route whose turned ends lie 1 nm apart (a CP 1 nm off the
+        // rational grid) keeps a 1 nm jog, whose two points are not bends (ID-1504's straight routes on folio 102)
+        let jog = |i: usize| {
+            let p = c.polyline[i];
+            [i.checked_sub(1), Some(i + 1)]
+                .into_iter()
+                .flatten()
+                .filter_map(|j| c.polyline.get(j))
+                .any(|q| (p.0 - q.0).abs() + (p.1 - q.1).abs() == 1)
+        };
+        for (i, &(x, y)) in c.polyline.iter().enumerate().filter(|_| c.stored_route) {
+            if jog(i) {
+                continue;
+            }
             let p = Pt2::new(ew_units::Nm(x), ew_units::Nm(y));
             if ew_commands::geometry::point_on_grid(g, p) {
                 let cp_or_junction = t105.cps.iter().any(|cp| cp.at == (x, y))

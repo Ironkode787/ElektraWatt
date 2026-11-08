@@ -1627,7 +1627,7 @@ that waits for the owner's acknowledgement with the generated change list (ID-63
 | U-39 | Field-device cells | valve in row G and actuator in row F, in the column of the driving valve | §6.1, §6.2, §12 | — (fixture choice) |
 | U-40 | Junction cells | J1 C11, J2 C13 (folio 101); J3 C6, J4 D7, J5 D5, J6 D6 (folio 102) | §8.3 | — (fixture choice) |
 | U-41 | 1X1 terminal offsets | dx −20, 0, +20 px from the cell centre of 101-D2 (terminals 1, 2, PE) | §6.1, §9 | — (fixture choice) |
-| U-42 | External-arrow (external reference) offsets | dy −20, 0, +20 px for J-E-206-L, -N, -PE at 101-G0; no offset for DP | §15 | — (fixture choice) |
+| U-42 | External-arrow (external reference) offsets | dy −40 and 0 px for J-E-206-L and -N at 101-G0, −40 px for J-E-206-PE at 101-H0, four grid steps apart so that their texts do not overlap (ID-1504); no offset for DP | §15 | — (fixture choice) |
 | U-43 | 1X1 without a strip segment | 1X1 is drawn as its three terminal symbols; no strip-segment representation | §9 | — (fixture choice) |
 | U-44 | Folio 901 report block kind | `parts_summary` | §14.1, §16 | — (fixture choice) |
 | U-45 | Manufacturer reference | `LibRef v5(ns, "manufacturers\|<name>")` with the name in its `extra.key`, a stopgap until a manufacturer library copy exists (FT-39); for example the name Siemens. *As built (cycle 35, WP-S1.19 part 3; decision log ID-820; FT-39 closed):* Golden A holds eight project-local manufacturer copies, one per name, and the part references name them with no `key`; a legacy `key` is still read; every exported output byte-equal ([07](07-symbols-parts-macros.md) §9.2) | §6.1, §14.1 | — (fixture choice) |

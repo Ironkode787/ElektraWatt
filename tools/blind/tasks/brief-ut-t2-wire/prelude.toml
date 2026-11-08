@@ -11,7 +11,7 @@ action = "page.goto"
 class = "setup"
 
 [[step]]
-action = "nav.goto"
+action = "cursor.set"
 class = "setup"
 
 [[step]]

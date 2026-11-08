@@ -53,7 +53,7 @@ fn a_refused_command_shows_its_reason_in_the_window_language() {
     );
     assert_eq!(
         refused(&mut shell, "rep.move", far.clone()),
-        "de positie op x 2645833333441.8, y 29.1 mm ligt buiten het tekenbereik; kies een punt dichter bij de \
+        "de positie op x 2645833333447.1, y 37 mm ligt buiten het tekenbereik; kies een punt dichter bij de \
          oorsprong van de pagina"
     );
 
@@ -68,7 +68,7 @@ fn a_refused_command_shows_its_reason_in_the_window_language() {
     );
     assert_eq!(
         refused(&mut shell, "rep.move", far),
-        "the position at x 2645833333441.8, y 29.1 mm lies outside the drawable range; move it nearer the page origin"
+        "the position at x 2645833333447.1, y 37 mm lies outside the drawable range; move it nearer the page origin"
     );
     shell.shutdown();
 }

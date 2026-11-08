@@ -1,4 +1,4 @@
 {"$schema":"ew.uiscript/1","label":"brief-ut-t5-export reference solution"}
 {"action":"file.export_pdf","params":{"path":"project.pdf","wait":true}}
 {"action":"page.goto","params":{"folio":"102"}}
-{"action":"nav.follow","params":{"x_mm":253.881,"y_mm":174.486}}
+{"action":"nav.follow","params":{"x_mm":253.881,"y_mm":179.705}}

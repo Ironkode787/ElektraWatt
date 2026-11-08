@@ -286,11 +286,13 @@ pub fn placement_steps_with(
         let symbol = keys[r["symbol"].as_str().unwrap()].clone();
         let pos = (r["pos"][0].as_i64().unwrap(), r["pos"][1].as_i64().unwrap());
         let function = &all[r["functions"][0].as_str().unwrap()];
-        // ID-1502 (7): Golden A's mains points are mirrored (E); everything else is placed in orientation A.
+        // ID-1502 (7): Golden A's mains points are mirrored (E); ID-1504: 1X1's terminals are mirrored top to bottom
+        // (G); everything else is placed in orientation A.
         let mirrored = function["kind"].get("ip").is_some() && orient_of(&r["orient"]) == 4;
+        let flipped = function["kind"].get("ip").is_none() && orient_of(&r["orient"]) == 6;
         assert!(
-            mirrored || orient_of(&r["orient"]) == 0,
-            "part 1's generator places orientation A only, or a mirrored external point"
+            mirrored || flipped || orient_of(&r["orient"]) == 0,
+            "part 1's generator places orientation A only, a mirrored external point or a flipped symbol"
         );
         if let Some(ip) = function["kind"].get("ip") {
             // WP-S2.04 part 3: the IP tool; an external connection point names its external reference by printed text
@@ -336,6 +338,9 @@ pub fn placement_steps_with(
         };
         let (x, y) = map.mm(pos);
         steps.push(("place.pick".into(), pick));
+        if flipped {
+            steps.push(("tool.mirror_y".into(), json!({})));
+        }
         steps.push(("cursor.set".into(), json!({"x_mm": x, "y_mm": y})));
         // With Alt: the placement sends no autoconnect proposals (part 2); the wires are the Wire tool's.
         steps.push(("canvas.activate".into(), json!({"alt": true})));

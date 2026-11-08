@@ -321,7 +321,7 @@ fn a_segment_drag_at_58_percent_moves_the_middle_segment() {
     let mut h = on_golden(&tmp, "102");
     let w = connections(&h)
         .into_iter()
-        .find(|c| c.polyline.last().is_some_and(|p| p.1 == 15_875_000) && c.polyline[0].0 == 121_708_333)
+        .find(|c| c.polyline.last().is_some_and(|p| p.1 == 15_875_000) && c.polyline[0].0 == 127_000_000)
         .expect("-102G1:PE to PE-1.2");
     let (a, b) = (w.polyline[0], *w.polyline.last().unwrap());
     let row = 21_166_667; // grid row 8 (8 × 7 937 500 / 3, rounded)

@@ -528,10 +528,9 @@ fn gpp_rehearsal_draws_folios_101_to_103_saves_exports_and_lists_the_parts() {
     };
     let (markers101, fallbacks101) = marker_steps(101, &tables101, map101);
     let (markers102, fallbacks102) = marker_steps(102, &tables102, map102);
-    // E1/E2 of the review of round a28-r5: every 101 group is drawn by the tool, and the 102 fallbacks are the W20
-    // to W23 group and (FT-706: W24 no longer runs on W25's track into their shared point, so no straight line
-    // crosses just the two) the W24 and W25 group, in golden order (found by their end labels as `marker_steps`
-    // finds its members).
+    // E1/E2 of the review of round a28-r5: every 101 group is drawn by the tool, and the 102 fallback is the W20 to
+    // W23 group (found by their end labels as `marker_steps` finds its members); since ID-1504's layout of 102 one
+    // straight line crosses W24 and W25 alone, so the tool draws their group.
     assert!(
         fallbacks101.is_empty(),
         "no 101 marker group falls back: {fallbacks101:?}"
@@ -545,8 +544,8 @@ fn gpp_rehearsal_draws_folios_101_to_103_saves_exports_and_lists_the_parts() {
     let fallen: Vec<&Vec<String>> = fallbacks102.iter().map(|f| &f.connections).collect();
     assert_eq!(
         fallen,
-        [&groups(&["W20", "W21", "W22", "W23"]), &groups(&["W24", "W25"])],
-        "the 102 fallbacks are W20 to W23 and W24, W25, in order"
+        [&groups(&["W20", "W21", "W22", "W23"])],
+        "the 102 fallback is W20 to W23"
     );
     let mut script3 = steps(&[("file.open", json!({ "dir": path(&job) }))]);
     script3.extend(steps(&[("page.goto", json!({"folio": "101"}))]));

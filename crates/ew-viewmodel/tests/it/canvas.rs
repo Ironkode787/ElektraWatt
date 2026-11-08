@@ -393,7 +393,11 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     assert!(!describe.contains(&hovered.0.to_string()));
     assert!(hover_line.ends_with(&format!("{} mm", ew_viewmodel::canvas::mm3(hr.max().y.0))));
     if hovered == entity {
-        assert_eq!(hr, r);
+        // The hover's box and the entity list's agree to the nm's rounding (a text of ID-1504's moved items sits off
+        // the rational grid).
+        let h = [hr.min().x.0, hr.min().y.0, hr.max().x.0, hr.max().y.0];
+        let e = [r.min().x.0, r.min().y.0, r.max().x.0, r.max().y.0];
+        assert!(h.iter().zip(&e).all(|(a, b)| (a - b).abs() <= 1), "{hr:?} {r:?}");
     }
     assert!(describe.contains(&format!(
         "canvas pointer {} {} mm",

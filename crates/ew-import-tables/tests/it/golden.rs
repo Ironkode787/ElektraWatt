@@ -494,8 +494,9 @@ fn a_representation_sits_at_its_cell_position() {
             _ => None,
         })
         .expect("representation S51");
-    // Cell B2 of the grid: column 2, row B (index 1); the symbol has no named anchor, so no anchor offset.
-    assert_eq!(rep.pos.x, Grid::QET_10PX.at(5 + 6 * 2).unwrap());
+    // Cell B2 of the grid: column 2, row B (index 1), less the table's dx of three grid steps (ID-1504); the symbol
+    // has no named anchor, so no anchor offset.
+    assert_eq!(rep.pos.x, Grid::QET_10PX.at(5 + 6 * 2 - 3).unwrap());
     assert_eq!(rep.pos.y, Grid::QET_10PX.at(6 + 8).unwrap());
 }
 
@@ -868,14 +869,14 @@ fn the_import_is_deterministic() {
     assert_eq!(a.report.entries, b.report.entries);
 }
 
-/// FT-1419: a `route` may start at a CP that a black box draws and end at a junction: Golden A's `J3.1`, from
-/// -102G1's `+` to J3 on page 102, with one corner on the CP's column and the junction's row.
+/// FT-1419: a `route` may start at a CP that a black box draws and end at a junction: Golden A's `J5.feed`, from
+/// -102G1's first `−` to J5 on page 102, with one corner on the CP's column and the junction's row.
 #[test]
 fn a_route_runs_from_a_black_box_cp_to_a_junction() {
     let plain = golden();
-    let base = connection(&plain, "J3.1");
+    let base = connection(&plain, "J5.feed");
     let Endpoint::Cp(f, idx) = base.a else {
-        panic!("J3.1 starts at a CP: {:?}", base.a)
+        panic!("J5.feed starts at a CP: {:?}", base.a)
     };
     let rep_id: Id<Representation> = record_id("representations", "-102G1");
     let rep = plain
@@ -897,7 +898,7 @@ fn a_route_runs_from_a_black_box_cp_to_a_junction() {
         .unwrap()
         .pos;
     let a = Pt2::new(Nm(rep.pos.x.0 + local.x.0), Nm(rep.pos.y.0 + local.y.0));
-    let j: Id<ew_schema::Junction> = record_id("junctions", "J3");
+    let j: Id<ew_schema::Junction> = record_id("junctions", "J5");
     let b = plain
         .records
         .iter()
@@ -905,19 +906,19 @@ fn a_route_runs_from_a_black_box_cp_to_a_junction() {
             Record::Junction(x) if x.id == j => Some(x.at),
             _ => None,
         })
-        .expect("J3");
-    // J3 lies at the centre of C6; the corner is that cell moved to the CP's column (in QET px).
+        .expect("J5");
+    // J5 lies 10 px right of the centre of D8 (ID-1504); the corner is that cell moved to the CP's column (in QET px).
     let px = |v: Nm| Grid::QET_1PX.snap(v);
     let dx = px(a.x) - px(b.x);
     // The row's router-written route (WP-S2.19 §8.2) is replaced by the one corner.
-    let row = "J3.1,,102,-102G1:+#1,@J3,,,,,,,,,,";
+    let row = "J5.feed,,102,-102G1:−#1,@J5,,,,,,,,,,";
     let text = std::fs::read_to_string(common::tables_dir().join("connections.csv")).unwrap();
     let line = text
         .lines()
         .find(|l| l.starts_with(row))
-        .expect("the J3.1 row")
+        .expect("the J5.feed row")
         .to_owned();
-    let text = text.replace(&line, &format!("{row}C6 {dx} 0"));
+    let text = text.replace(&line, &format!("{row}D8 {} 0", dx + 10));
     let inputs: Vec<ew_interop_api::ImportInput> = common::golden_inputs()
         .into_iter()
         .map(|i| {
@@ -930,5 +931,5 @@ fn a_route_runs_from_a_black_box_cp_to_a_junction() {
         .collect();
     let routed = common::import(&inputs).expect("the golden tables import");
     assert_eq!(routed.report.entries, plain.report.entries);
-    assert_eq!(connection(&routed, "J3.1").route, [a, Pt2::new(a.x, b.y), b]);
+    assert_eq!(connection(&routed, "J5.feed").route, [a, Pt2::new(a.x, b.y), b]);
 }

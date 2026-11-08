@@ -411,14 +411,14 @@ fn ib4_arrange_by_name_puts_l1_in_the_upper_slot() {
     let mut s = shell(&tmp, "102");
     let t = tables(&s);
     let (l1, n1) = (ip(&t, "L-1", "target"), ip(&t, "N-1", "target"));
-    assert!(l1.pos.1 < n1.pos.1, "on Golden A L-1 is above N-1");
-    // N-1 moved above L-1 (four grid steps up: two above L-1) and into the next column, so that the two slots lie in
-    // different cells and the partners' cross-reference texts on 101 tell them apart.
+    assert!(n1.pos.1 < l1.pos.1, "on Golden A N-1 is above L-1 (ID-1504)");
+    // N-1 moved into the next column, still above L-1, so that the two slots lie in different cells and the partners'
+    // cross-reference texts on 101 tell them apart.
     let rev = s.revision();
     done(
         &mut s,
         "command.run",
-        json!({"cmd": "rep.move", "params": {"reps": [n1.id.to_string()], "steps": [10, -4]}}),
+        json!({"cmd": "rep.move", "params": {"reps": [n1.id.to_string()], "steps": [10, 0]}}),
     );
     assert_eq!(s.revision(), rev.map(|r| r + 1));
     let t = tables(&s);

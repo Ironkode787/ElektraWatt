@@ -801,7 +801,8 @@ fn a_stationary_click_keeps_the_place_ghost() {
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "place");
     let (w, hh) = h.state().shell().canvas().unwrap().sheet();
-    let pos = screen(&h, (w / 2, hh / 2));
+    // Below right of the centre, so that the pan brings -102F2's body under the pointer (ID-1504's layout of 102).
+    let pos = screen(&h, (w / 2 + 31_022_226, hh / 2 + 21_802_780));
     h.event(egui::Event::PointerMoved(pos));
     settle(&mut h);
     let Some(Ghost::Place {
@@ -841,7 +842,8 @@ fn a_view_change_with_a_stationary_pointer_replays_the_pointer() {
     let tmp = Tmp::new();
     let mut h = quick_golden(&tmp, "102");
     let (w, hh) = h.state().shell().canvas().unwrap().sheet();
-    let pos = screen(&h, (w / 2, hh / 2));
+    // Below right of the centre, so that the pan brings -102F2's body under the pointer (ID-1504's layout of 102).
+    let pos = screen(&h, (w / 2 + 31_022_226, hh / 2 + 21_802_780));
     h.event(egui::Event::PointerMoved(pos));
     settle(&mut h);
     let before = h

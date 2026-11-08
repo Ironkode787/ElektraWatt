@@ -184,8 +184,8 @@ const W4_W5: [(&str, &str); 2] = [("1X1:1/a", "S51:2"), ("1X1:2/a", "S51:4")];
 const W20_TO_W23: [(&str, &str); 4] = [
     ("junction 1", "-102F1:1"),
     ("-102G1:+#2", "junction 1"),
-    ("junction 2", "-102F2:GND#1"),
-    ("junction 3", "-102F2:GND#2"),
+    ("junction 3", "-102F2:GND#1"),
+    ("junction 2", "-102F2:GND#2"),
 ];
 
 /// Done criterion of row 8 under FT-577 (P1-4): L, N, 24 V and 0 V of folios drawn without definitions print BK, BU,

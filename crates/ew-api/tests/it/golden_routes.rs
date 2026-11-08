@@ -9,7 +9,9 @@
 //!
 //! The layout of the routed pages, the bends and crossings per page (RG3), is in `golden/J-E-2416/expected/layout.txt`:
 //! a later change that raises a page's total fails, and no connection has more than four bends unless the file lists
-//! it with its reason.
+//! it with its reason. The file also gives each page's text-on-text overlaps, held at zero, and lists every connection
+//! whose detour (its drawn length over the Manhattan distance of its ends) is above 2, with its reason from
+//! [`DETOURS`] (decision log ID-1504 (4d)).
 //!
 //! Bless (the tables, then the layout file):
 //! `EW_BLESS_GOLDEN_ROUTES=1 cargo nextest run -p ew-api --test it -E 'test(/^golden_routes::/)'`; then the
@@ -245,34 +247,86 @@ fn write_routes(routes: &BTreeMap<String, String>) {
         .expect("writing connections.csv");
 }
 
-/// The layout of Golden A as committed, per routed page: the hard-rule total, crossings and bends, then each
-/// connection with more than four bends (RG3).
+/// Why a connection of Golden A runs more than twice the Manhattan distance of its ends (ID-1504 (4d)), by its words.
+const DETOURS: &[(&str, &str)] = &[];
+
+/// The pairs of a page's text boxes whose insides overlap.
+fn text_overlaps(texts: &[ew_derive::routing::TextBox]) -> usize {
+    let mut n = 0;
+    for (i, a) in texts.iter().enumerate() {
+        for b in &texts[i + 1..] {
+            let (a, b) = (a.rect, b.rect);
+            if a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3] {
+                n += 1;
+            }
+        }
+    }
+    n
+}
+
+/// Each drawn connection of a page with its words and its detour in tenths (the drawn length over the Manhattan
+/// distance of its ends, rounded), for the connections whose ends lie apart.
+fn detours(s: &ew_api::Session, folio: &str) -> Vec<(String, i64)> {
+    let g = s.page_geometry(folio).expect("a drawn page");
+    let mut out = Vec::new();
+    for c in &g.connections {
+        let (Some(a), Some(b)) = (c.polyline.first(), c.polyline.last()) else {
+            continue;
+        };
+        let span = (a.0 - b.0).abs() + (a.1 - b.1).abs();
+        if span == 0 {
+            continue;
+        }
+        let length: i64 = c
+            .polyline
+            .windows(2)
+            .map(|w| (w[0].0 - w[1].0).abs() + (w[0].1 - w[1].1).abs())
+            .sum();
+        let words = s.connection_words(folio, c.id).unwrap_or_default();
+        out.push((words, (length * 10 + span / 2) / span));
+    }
+    out
+}
+
+/// The layout of Golden A as committed, per routed page: the hard-rule total, crossings, bends and text-on-text
+/// overlaps, then each connection with more than four bends (RG3) and each with a detour above 2 with its reason.
 fn layout_text() -> String {
     let s = golden_common::session(&batch(false));
     let mut out = String::from(
         "# Golden A's layout per routed page (WP-S2.19 RG3): written by golden_routes' bless; a page's totals never \
-         rise.\n",
+         rise, its text overlaps stay at zero.\n",
     );
     for folio in ROUTED {
         let pages = s.layout_report(Some(folio)).expect("a drawn page");
+        let overlaps = text_overlaps(&s.page_geometry(folio).expect("a drawn page").texts);
         for p in &pages {
             out.push_str(&format!(
-                "{}: hard {}, crossings {}, bends {}\n",
+                "{}: hard {}, crossings {}, bends {}, text overlaps {}\n",
                 p.folio,
                 p.hard(),
                 p.crossings.len(),
-                p.bend_total()
+                p.bend_total(),
+                overlaps
             ));
             for b in p.bends.iter().filter(|b| b.bends > 4) {
                 out.push_str(&format!("  {} bends: {}\n", b.bends, b.connection));
             }
         }
+        let mut long: Vec<(String, i64)> = detours(&s, folio).into_iter().filter(|(_, d)| *d > 20).collect();
+        long.sort();
+        for (words, d) in long {
+            let why = DETOURS
+                .iter()
+                .find(|(w, _)| *w == words)
+                .map_or("no reason given", |(_, why)| why);
+            out.push_str(&format!("  detour {}.{}: {words} ({why})\n", d / 10, d % 10));
+        }
     }
     out
 }
 
-/// The per-page totals of a layout text: folio → (hard, crossings, bends).
-fn totals(text: &str) -> BTreeMap<String, (usize, usize, usize)> {
+/// The per-page totals of a layout text: folio → (hard, crossings, bends, text overlaps).
+fn totals(text: &str) -> BTreeMap<String, (usize, usize, usize, usize)> {
     text.lines()
         .filter(|l| !l.starts_with('#') && !l.starts_with(' '))
         .filter_map(|l| {
@@ -281,10 +335,10 @@ fn totals(text: &str) -> BTreeMap<String, (usize, usize, usize)> {
                 .split(", ")
                 .filter_map(|part| part.rsplit(' ').next()?.parse().ok())
                 .collect();
-            let [hard, crossings, bends] = n.as_slice() else {
+            let [hard, crossings, bends, overlaps] = n.as_slice() else {
                 return None;
             };
-            Some((folio.to_owned(), (*hard, *crossings, *bends)))
+            Some((folio.to_owned(), (*hard, *crossings, *bends, *overlaps)))
         })
         .collect()
 }
@@ -317,14 +371,19 @@ fn golden_a_layout_never_gets_worse() {
     let now = layout_text();
     let (was, is) = (totals(&committed), totals(&now));
     assert_eq!(was.keys().collect::<Vec<_>>(), is.keys().collect::<Vec<_>>());
-    for (folio, (hard, crossings, bends)) in &is {
-        let (h0, c0, b0) = was[folio];
+    for (folio, (hard, crossings, bends, overlaps)) in &is {
+        let (h0, c0, b0, _) = was[folio];
         assert!(
             *hard <= h0 && *crossings <= c0 && *bends <= b0,
             "folio {folio}: hard {hard}, crossings {crossings}, bends {bends} rise above {h0}, {c0}, {b0}"
         );
+        assert_eq!(*overlaps, 0, "folio {folio}: texts overlap (ID-1504 (4a))");
     }
-    // A connection with more than four bends is listed with the file's review.
+    // A detour above 2 has its reason (ID-1504 (4d)).
+    for line in now.lines().filter(|l| l.ends_with("(no reason given)")) {
+        panic!("a detour without its reason in DETOURS: {line}");
+    }
+    // A connection with more than four bends, or a detour above 2, is listed with the file's review.
     for line in now.lines().filter(|l| l.starts_with("  ")) {
         assert!(
             committed.lines().any(|l| l == line),
