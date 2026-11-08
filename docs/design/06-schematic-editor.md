@@ -1122,7 +1122,8 @@ followed route along its rubber band) and routes again every connection with a m
 hard rule there or bends more than before; it commits them as `rep.move`'s `routes`, applied after the follow as
 `connection.route_many` applies its entries, in the move's one undo step; a connection the router finds no clear route
 for keeps the followed route. **Route page** (`route.page`) and **Route selection** (`route.selection`) sit in the Draw
-tab's Connect group after Edit route, with no default key; each opens the plan in the Preview tab ("Route 3 wires on
+tab's Connect group after Edit route and Interruption, stacked in one column of their own (ID-1506), with no default
+key; each opens the plan in the Preview tab ("Route 3 wires on
 folio 101: 2 routed, 1 not routed.", one row per wire left unrouted with its reason), and Apply commits one
 `connection.route_many` with the toast "Routed 2 wires on folio 101."; a page with nothing to route says "Every wire on
 folio 101 has a route." The layout measures are the check rules EW-CORE-067 to -070, -072 and -073 (doc 15 §4).
