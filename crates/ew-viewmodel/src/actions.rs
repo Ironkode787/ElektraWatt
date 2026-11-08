@@ -3054,10 +3054,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     ))),
     // WP-S2.19 D13: Route page and Route selection after Edit route, previewed (no default key); after Interruption,
-    // so the two stack in one column of their own (ID-1506 (6)).
+    // so the two stack in one column of their own (ID-1506 (6)). Each its own icon, neither the generated badge's
+    // (ID-1509 (9), C1): the page as a whole, and a pull on the selected wires.
     keeps_banner(placed(
         place(Group::Connect, 7, CommandSize::Small, None),
-        "sparkles",
+        "file-settings",
         act(
             "route.page",
             Command,
@@ -3070,7 +3071,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     )),
     keeps_banner(placed(
         place(Group::Connect, 8, CommandSize::Small, None),
-        "sparkles",
+        "magnet",
         act(
             "route.selection",
             Command,

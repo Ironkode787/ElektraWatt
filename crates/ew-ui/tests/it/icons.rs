@@ -52,8 +52,9 @@ const MOCKUP_TITLES: &[(&str, &str)] = &[
     ("Dismiss", "x"),
     // ID-1497 (10): Edit route beside Wire, a polyline.
     ("Edit route", "ew-shape-polyline"),
-    ("Route page", "sparkles"),
-    ("Route selection", "sparkles"),
+    // WP-S2.19 D13, ID-1509 (9): one icon per concept, neither the generated badge's.
+    ("Route page", "file-settings"),
+    ("Route selection", "magnet"),
     ("Findings", "circle-x"),
     ("Fit page", "maximize"),
     ("History", "history"),
@@ -302,8 +303,6 @@ fn ft1015_no_icon_key_serves_two_concepts() {
         ("sitemap", &["pane structure", "structure.new"]),
         // A QElectroTech project imported, and the same file imported again into its import (FT-1388).
         ("file-import", &["file.import_qet", "file.reimport_qet"]),
-        // One page router, run on a page or on a selection (WP-S2.19 D13).
-        ("sparkles", &["route.page", "route.selection"]),
     ];
     let mut by_key: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
     for a in ew_viewmodel::actions::ACTIONS {
