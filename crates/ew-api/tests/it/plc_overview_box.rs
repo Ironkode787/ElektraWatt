@@ -150,13 +150,13 @@ fn px3_the_box_of_201u3_on_201_lists_its_eight_channels_with_the_cells_of_folio_
 /// The printed cells of -201U3's eight rows on Golden A: channel, address, symbol, function text, state, page.
 const EXPECTED_ROWS: [[&str; 6]; 8] = [
     ["0", "Q0.0", "", "", "deactivated", ""],
-    ["1", "Q0.1", "", "TA05-V-15", "used", "203-D1"],
+    ["1", "Q0.1", "", "TA05-V-15", "used", "203-H1"],
     ["2", "Q0.2", "", "", "deactivated", ""],
-    ["3", "Q0.3", "", "TA05-V-33", "used", "203-D3"],
+    ["3", "Q0.3", "", "TA05-V-33", "used", "203-H3"],
     ["4", "Q0.4", "", "", "deactivated", ""],
-    ["5", "Q0.5", "", "TA05-V-18", "used", "203-D5"],
+    ["5", "Q0.5", "", "TA05-V-18", "used", "203-H5"],
     ["6", "Q0.6", "", "", "deactivated", ""],
-    ["7", "Q0.7", "", "TA05-V-17", "used", "203-D7"],
+    ["7", "Q0.7", "", "TA05-V-17", "used", "203-H7"],
 ];
 
 /// PX-3: a selection naming a module lists that module's rows only; one naming the station lists all 56 (folio 908's

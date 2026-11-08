@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-500: every wire of a page can be picked by a click. On Golden A's folio 101 the provisional routes run along
-//! one another and through or along symbol bodies; a click on a point of a wire's route that no other wire covers
+//! FT-500: every wire of a page can be picked by a click. Where routes run along one another or through symbol bodies
+//! (Golden A's folio 101 drew them so along the provisional path; its routed folio does not, so the tests give three
+//! wires those routes again, `common::provisional_overlap_on_101`), a click on a point of a wire's route that no other wire covers
 //! picks that wire (WP-S2.04 §6.6 as FT-500 amends it: a wire's line nearer than the centre of the representation
 //! rectangle the press is in goes first), and a repeated click at one place walks the pick stack and wraps, so a
 //! wire that other wires cover for its whole length is reached too.
@@ -69,14 +70,24 @@ fn on_body(s: &ShellModel, p: (i64, i64)) -> bool {
     })
 }
 
-/// The first sample of `own`'s route that no other wire passes within the reach of, that no link is under and that no
-/// symbol's body covers (FT-1438).
+/// The first sample of `own`'s route that no other wire passes within the reach of, that no link is under, that no
+/// symbol's body covers (FT-1438) and that no junction is within twice the reach of (a junction's dot picks first).
 fn own_point(s: &ShellModel, own: EntityRef, all: &[(EntityRef, Vec<(i64, i64)>)]) -> Option<(i64, i64)> {
     let r = reach(s);
     let line = &all.iter().find(|(e, _)| *e == own)?.1;
+    let page = s.canvas().unwrap().page();
+    let junctions: Vec<(i64, i64)> = page
+        .tables
+        .junctions
+        .iter()
+        .map(|j| page.snapper.page_to_sheet(j.at))
+        .collect();
     samples(line).into_iter().find(|p| {
         !on_body(s, *p)
             && s.canvas().unwrap().link_at(*p).is_none()
+            && junctions
+                .iter()
+                .all(|j| segment_dist2(*p, *j, *j) > 4 * r * r)
             && all
                 .iter()
                 .all(|(e, pts)| *e == own || pts.windows(2).all(|w| segment_dist2(*p, w[0], w[1]) > r * r))
@@ -100,9 +111,8 @@ fn fresh_click(s: &mut ShellModel, p: (i64, i64)) -> Vec<EntityRef> {
 }
 
 /// Every wire of a copy of Golden A's folio 101, at the fitted view and at actual size: a click on a point of its
-/// route that no other wire covers selects that wire alone (eight did not before FT-500: four whose free stretch lies
-/// in or on a symbol's rectangle picked the symbol, and four that other wires cover for their whole length have no
-/// such point); each of the four covered ones is reached by repeated clicks on its route, within its pick stack.
+/// route that no other wire covers selects that wire alone (eight did not before FT-500 on the provisional routes);
+/// the routed folio has no wire that other wires cover for its whole length.
 #[test]
 fn every_wire_of_folio_101_is_picked_by_a_click_on_a_point_only_it_covers() {
     for actual in [false, true] {
@@ -127,27 +137,7 @@ fn every_wire_of_folio_101_is_picked_by_a_click_on_a_point_only_it_covers() {
                 None => covered.push((*wire, line.clone())),
             }
         }
-        // Four routes lie on other wires end to end: -101F1:1 -> F55:1, S56:14 -> E56:X1, junction 2 -> S56:13 and
-        // junction 2 -> T55:5.
-        assert_eq!(covered.len(), 4, "actual size: {actual}");
-        for (wire, line) in &covered {
-            // The middle of the longest segment.
-            let w = line
-                .windows(2)
-                .max_by_key(|w| (w[1].0 - w[0].0).abs() + (w[1].1 - w[0].1).abs())
-                .unwrap();
-            let p = ((w[0].0 + w[1].0) / 2, (w[0].1 + w[1].1) / 2);
-            let st = stack(&s, p);
-            assert!(st.contains(wire), "{wire:?} in the stack at {p:?}");
-            let mut picked = fresh_click(&mut s, p);
-            let mut clicks = 1;
-            while picked != vec![*wire] {
-                assert!(clicks < st.len(), "{wire:?} not reached in {} clicks", st.len());
-                click(&mut s, p, json!({}));
-                picked = s.selection().items.clone();
-                clicks += 1;
-            }
-        }
+        assert_eq!(covered, Vec::new(), "actual size: {actual}");
         s.shutdown();
     }
 }
@@ -158,12 +148,13 @@ fn every_wire_of_folio_101_is_picked_by_a_click_on_a_point_only_it_covers() {
 #[test]
 fn a_repeated_click_at_an_overlap_walks_the_candidates_and_wraps() {
     let tmp = Tmp::new("ft500-walk");
-    let mut s = tmp.shell_in(Mode::Headless, false, "101");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut s, "view.zoom_actual", json!({}));
     // On the line y = 41.104 mm, -101F1:1 -> F55:1 and S51:3 -> -101F1:N#1 overlap between x = 145.5 and 153.3 mm,
     // inside -101F1's rectangle.
+    let y = common::provisional_overlap_on_101(&mut s);
     let all = wires(&s);
-    let p = (150_000_000, all[0].1[0].1);
+    let p = (150_000_000, y);
     let st = stack(&s, p);
     assert_eq!(st, stack(&s, p), "deterministic");
     let tables = std::sync::Arc::clone(&s.canvas().unwrap().page().tables);
@@ -234,6 +225,7 @@ fn a_wire_through_a_symbol_is_clicked_and_the_symbol_still_drags_from_there() {
     ));
     assert_eq!(fresh_click(&mut s, centre), vec![EntityRef(heater.id)]);
     // T55:3 -> E55:N runs through E55's body on x = 210.725 mm.
+    common::provisional_overlap_on_101(&mut s);
     let all = wires(&s);
     let (wire, line) = all
         .iter()

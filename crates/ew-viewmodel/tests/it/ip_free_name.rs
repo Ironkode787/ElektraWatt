@@ -73,8 +73,8 @@ fn place_ip(s: &mut ShellModel, k: (i64, i64), direction: &str) -> (String, Stri
 fn a_point_placed_after_a_reopen_takes_a_free_name_and_joins_nothing() {
     let tmp = Tmp::new("ip-free-reopen");
     let mut s = shell(&tmp, "102");
-    assert_eq!(place_ip(&mut s, (40, 40), "source").1, "IP");
-    assert_eq!(place_ip(&mut s, (44, 40), "source").1, "IP-1");
+    assert_eq!(place_ip(&mut s, (46, 40), "source").1, "IP");
+    assert_eq!(place_ip(&mut s, (50, 40), "source").1, "IP-1");
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "file.save", json!({}));
     done(&mut s, "file.close", json!({}));
@@ -82,7 +82,7 @@ fn a_point_placed_after_a_reopen_takes_a_free_name_and_joins_nothing() {
     done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
     done(&mut s, "page.goto", json!({"folio": "103"}));
     let links = links_to(&s, "102");
-    assert_eq!(place_ip(&mut s, (40, 40), "target").1, "IP-2");
+    assert_eq!(place_ip(&mut s, (46, 40), "target").1, "IP-2");
     assert_eq!(
         links_to(&s, "102"),
         links,
@@ -96,14 +96,14 @@ fn a_point_placed_after_a_reopen_takes_a_free_name_and_joins_nothing() {
 fn a_point_placed_after_an_undo_brings_one_back_takes_a_free_name() {
     let tmp = Tmp::new("ip-free-undo");
     let mut s = shell(&tmp, "102");
-    let (rep, name) = place_ip(&mut s, (40, 40), "source");
+    let (rep, name) = place_ip(&mut s, (46, 40), "source");
     assert_eq!(name, "IP");
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "select.set", json!({ "ids": [rep] }));
     done(&mut s, "edit.delete_selection", json!({}));
     // On 103 "IP" is free now; its undo frees nothing else.
     done(&mut s, "page.goto", json!({"folio": "103"}));
-    assert_eq!(place_ip(&mut s, (40, 40), "target").1, "IP");
+    assert_eq!(place_ip(&mut s, (46, 40), "target").1, "IP");
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "edit.undo", json!({}));
     // The delete undone (the undo shows 102): its source "IP" is back.
@@ -116,7 +116,7 @@ fn a_point_placed_after_an_undo_brings_one_back_takes_a_free_name() {
     );
     done(&mut s, "page.goto", json!({"folio": "103"}));
     let links = links_to(&s, "102");
-    assert_eq!(place_ip(&mut s, (40, 40), "target").1, "IP-1");
+    assert_eq!(place_ip(&mut s, (46, 40), "target").1, "IP-1");
     assert_eq!(
         links_to(&s, "102"),
         links,
@@ -130,7 +130,7 @@ fn a_point_placed_after_an_undo_brings_one_back_takes_a_free_name() {
 fn a_point_placed_after_a_paste_takes_a_free_name() {
     let tmp = Tmp::new("ip-free-paste");
     let mut s = shell(&tmp, "102");
-    let (rep, name) = place_ip(&mut s, (40, 40), "source");
+    let (rep, name) = place_ip(&mut s, (46, 40), "source");
     assert_eq!(name, "IP");
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "select.set", json!({ "ids": [rep] }));
@@ -138,11 +138,11 @@ fn a_point_placed_after_a_paste_takes_a_free_name() {
     done(&mut s, "page.goto", json!({"folio": "103"}));
     done(&mut s, "edit.paste_clip", json!({}));
     let before = tables(&s);
-    cursor_k(&mut s, (40, 40));
+    cursor_k(&mut s, (46, 40));
     done(&mut s, "canvas.activate", json!({}));
     assert_eq!(new_ip(&before, &s).1, "IP", "the pasted point keeps its name");
     done(&mut s, "ui.dismiss", json!({}));
-    assert_eq!(place_ip(&mut s, (44, 40), "target").1, "IP-1");
+    assert_eq!(place_ip(&mut s, (50, 40), "target").1, "IP-1");
     s.shutdown();
 }
 
@@ -152,12 +152,12 @@ fn a_point_placed_after_a_paste_takes_a_free_name() {
 fn a_pasted_point_keeps_its_name_and_says_which_point_it_continues() {
     let tmp = Tmp::new("ip-paste-continues");
     let mut s = shell(&tmp, "102");
-    assert_eq!(place_ip(&mut s, (40, 40), "source").1, "IP");
+    assert_eq!(place_ip(&mut s, (46, 40), "source").1, "IP");
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "page.goto", json!({"folio": "103"}));
     done(&mut s, "tool.ip", json!({}));
     done(&mut s, "ip.name", json!({"text": "IP"}));
-    let (target, name) = place_ip(&mut s, (40, 40), "target");
+    let (target, name) = place_ip(&mut s, (46, 40), "target");
     assert_eq!(name, "IP", "typed");
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "select.set", json!({ "ids": [target] }));

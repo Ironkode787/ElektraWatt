@@ -152,7 +152,22 @@ fn ui1_the_macros_navigator_shows_the_psu_macro_and_its_detail() {
         );
     }
     done(&mut shell, "navigator.show", json!({"kind": "libraries"}));
-    let text = ew_viewmodel::describe::describe(&shell);
+    let first = ew_viewmodel::describe::describe(&shell);
+    // Then the cursor on an installed library's row, so its row shows among the 50 shown whatever the number of copies
+    // the project holds above it.
+    let library = shell
+        .nav(NavKind::Libraries)
+        .and_then(|n| n.table())
+        .and_then(|t| t.nodes.iter().find(|n| n.role == NavRole::Library))
+        .expect("an installed library")
+        .key
+        .clone();
+    done(
+        &mut shell,
+        "navigator.row",
+        json!({"kind": "libraries", "key": library}),
+    );
+    let text = first + &ew_viewmodel::describe::describe(&shell);
     for word in ["libraries", "library", "project_copies", "library_copy"] {
         assert!(
             text.split_whitespace()

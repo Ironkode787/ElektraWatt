@@ -411,6 +411,12 @@ fn stored_route(
         ));
     }
     route.push(b);
+    // A corner on an end (a straight route names end `b` as its one corner) is no vertex of its own: the stored route
+    // repeats no point, as `connection.route` requires; its two ends stay where they meet (FT-1029).
+    route.dedup();
+    if route.len() == 1 {
+        route.push(b);
+    }
     Ok(route)
 }
 

@@ -142,7 +142,7 @@ fn bl1_the_bom_folios_link_each_listed_folio() {
     assert_eq!(printed, ["203", "206"]);
     assert_eq!(
         targets(&s, &links),
-        [target("203", Some("203-D1")), target("206", Some("206-D1"))]
+        [target("203", Some("203-H1")), target("206", Some("206-H1"))]
     );
 
     // The layout objects: the panel-layout page.

@@ -215,7 +215,8 @@ fn ib2_the_name_proposal_is_the_potential_under_the_ghost_cp() {
     let tmp = Tmp::new("ip-potential");
     let mut s = shell(&tmp, "102");
     let t = tables(&s);
-    // A CP with a derived potential, the IP's CP one grid step above its insertion point (ew.gen.ip, A).
+    // A CP with a derived potential, the source form's CP one grid step left of its insertion point, the arrow's tip
+    // (WP-S2.19 D16).
     let cp = t
         .cps
         .iter()
@@ -225,7 +226,8 @@ fn ib2_the_name_proposal_is_the_potential_under_the_ghost_cp() {
     let potential = cp.potential.clone().unwrap().name;
     let k = index_of(&s, cp.at);
     done(&mut s, "tool.ip", json!({}));
-    cursor_k(&mut s, (k.0, k.1 + 1));
+    done(&mut s, "tool.ip_direction", json!({"direction": "source"}));
+    cursor_k(&mut s, (k.0 + 1, k.1));
     let name = canvas(&s)["ghost"]["name"].as_str().unwrap().to_owned();
     assert!(
         name == potential || name.starts_with(&format!("{potential}-")),
@@ -252,9 +254,9 @@ fn ib2_ending_a_wire_in_an_ip_is_one_transaction_and_one_undo_step() {
     done(&mut s, "tool.wire", json!({}));
     enter_at(&mut s, start.at);
     assert_eq!(s.tool().state(), "routing");
-    // Down from the CP by four grid steps, then P.
+    // Down from the CP by six grid steps (clear of the routed wires), then P.
     let k = index_of(&s, start.at);
-    let end = grid_point(&s, (k.0, k.1 + 4));
+    let end = grid_point(&s, (k.0, k.1 + 6));
     cursor(&mut s, end);
     assert_eq!(canvas(&s)["route"]["end"], Value::Null, "an empty grid point");
     done(&mut s, "tool.ip", json!({}));
@@ -390,7 +392,8 @@ fn xref_of_partner(s: &mut ShellModel, name: &str) -> String {
         .page()
         .links
         .iter()
-        .filter(|l| l.target.as_ref().is_some_and(|t| t.folio == "102"))
+        // The point's cross-reference text stands below its arrow (FR-XRF-011's slot, WP-S2.19 §7).
+        .filter(|l| l.target.as_ref().is_some_and(|t| t.folio == "102") && l.rect.min().y.0 >= at.1)
         .min_by_key(|l| {
             let c = ew_viewmodel::canvas::rect_centre(l.rect);
             let (dx, dy) = (i128::from(c.0 - at.0), i128::from(c.1 - at.1));

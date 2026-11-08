@@ -165,7 +165,7 @@ fn router_routes() -> (BTreeMap<String, String>, Vec<String>) {
             let (a, b) = (route[0], route[route.len() - 1]);
             // An end at a strip segment's terminal, which the tables do not place, is named first or last; a straight
             // route without such an end has no corner, so its end `b` stands as its one corner (an empty column is no
-            // route; the importer stores `[a, b, b]`, which every reader draws as `[a, b]`).
+            // route; the importer stores `[a, b]`).
             let conn = tables
                 .connections
                 .iter()

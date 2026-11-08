@@ -238,11 +238,11 @@ fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
     let w = before
         .connections
         .iter()
-        .find(|c| line(c).len() == 3 && line(c)[1].1 == line(c)[2].1 && line(c)[2].1 == 13_229_167)
+        .find(|c| line(c).len() == 3 && line(c)[1].1 == line(c)[2].1 && line(c)[2].1 == 15_875_000)
         .expect("-102G1:PE to PE-1.2")
         .clone();
     let x = s.canvas().unwrap().page().snapper.page_of_index(76);
-    let point = (x, 13_229_167);
+    let point = (x, 15_875_000);
     let free = cp(&s, "-102F2:14");
     enter_at(&mut s, free.at);
     cursor(&mut s, point);
@@ -278,13 +278,13 @@ fn backspace_after_two_collinear_bends_keeps_the_first() {
     let start = cp(&s, "-102F2:13");
     enter_at(&mut s, start.at);
     // Bends straight above the CP, on rows no wire runs along.
-    let (b1, b2) = (grid_point(&s, (56, 33)), grid_point(&s, (56, 32)));
+    let (b1, b2) = (grid_point(&s, (56, 31)), grid_point(&s, (56, 30)));
     enter_at(&mut s, b1);
     enter_at(&mut s, b2);
     assert_eq!(canvas(&s)["route"]["bends"], 2);
     done(&mut s, "tool.back", json!({}));
     assert_eq!(canvas(&s)["route"]["bends"], 1);
-    let aside = grid_point(&s, (60, 32));
+    let aside = grid_point(&s, (62, 30));
     cursor(&mut s, aside);
     let ghost = s.wire_ghost_route().expect("routing");
     assert!(
@@ -465,7 +465,7 @@ fn wr4_a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_co
 fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire() {
     let tmp = Tmp::new("split");
     let mut s = shell(&tmp, "101");
-    // W13: from J1 to E55:L, route-less (an L).
+    // W13: from J1 to E55:L, routed by Golden A's route tool.
     let e55 = cp(&s, "E55:L");
     let w13 = tables(&s)
         .connections
@@ -476,7 +476,6 @@ fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire()
         })
         .expect("W13")
         .clone();
-    assert!(!w13.stored_route);
     let drawn = line(&w13);
     // W13's printed number before the insert.
     let number_before = {
@@ -508,9 +507,14 @@ fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire()
         .clone();
     assert!(routed.stored_route);
     assert_eq!(line(&routed), drawn);
-    // A contact dropped onto its vertical segment, its CPs facing the ends: one split proposal, no hint.
-    let x = drawn[1].0;
-    let (y0, y1) = (drawn[1].1.min(drawn[2].1), drawn[1].1.max(drawn[2].1));
+    // A contact dropped onto its longest vertical segment, its CPs facing the ends: one split proposal, no hint.
+    let seg = drawn
+        .windows(2)
+        .filter(|w| w[0].0 == w[1].0)
+        .max_by_key(|w| (w[0].1 - w[1].1).abs())
+        .expect("a vertical segment");
+    let x = seg[0].0;
+    let (y0, y1) = (seg[0].1.min(seg[1].1), seg[0].1.max(seg[1].1));
     let sn = s.canvas().unwrap().page().snapper.clone();
     let k = (sn.grid_index_of(y0) + sn.grid_index_of(y1)) / 2 - 2;
     let p = (x, sn.page_of_index(k));
@@ -589,7 +593,7 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
     let w = tables(&s)
         .connections
         .iter()
-        .find(|c| line(c).len() == 3 && line(c)[2].1 == 13_229_167 && line(c)[0].0 == 121_708_333)
+        .find(|c| line(c).len() == 3 && line(c)[2].1 == 15_875_000 && line(c)[0].0 == 121_708_333)
         .expect("-102G1:PE to PE-1.2")
         .clone();
     let pts = line(&w);
@@ -846,14 +850,20 @@ fn wr9_every_part_2_word_is_reached_and_in_the_vocabulary() {
     done(&mut s, "tool.route_edit", json!({}));
     done(&mut s, "canvas.activate", json!({}));
     let drawn = line(&w13);
+    // Its longest vertical segment.
+    let seg = drawn
+        .windows(2)
+        .filter(|w| w[0].0 == w[1].0)
+        .max_by_key(|w| (w[0].1 - w[1].1).abs())
+        .expect("a vertical segment");
     let sn = s.canvas().unwrap().page().snapper.clone();
-    let k = (sn.grid_index_of(drawn[1].1) + sn.grid_index_of(drawn[2].1)) / 2 - 2;
+    let k = (sn.grid_index_of(seg[0].1) + sn.grid_index_of(seg[1].1)) / 2 - 2;
     done(
         &mut s,
         "place.pick",
         json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
     );
-    cursor(&mut s, (drawn[1].0, sn.page_of_index(k)));
+    cursor(&mut s, (seg[0].0, sn.page_of_index(k)));
     texts.push(s.describe());
     let p0 = grid_point(&s, (60, 38));
     cursor(&mut s, p0);
@@ -943,20 +953,16 @@ fn wr10_the_wire_tool_routes_once_per_changed_target_and_reads_nothing() {
 fn the_rubber_band_of_a_move_is_the_route_rep_move_stores() {
     let tmp = Tmp::new("band");
     let mut s = shell(&tmp, "102");
-    // A straight wire from -102F2:13 up to a grid point above it, then -102F2's box moved one step right: the far end
-    // stays and the wire takes a dog-leg, in the rubber band and in the stored route alike.
-    done(&mut s, "tool.wire", json!({}));
-    let a = cp(&s, "-102F2:13");
-    enter_at(&mut s, a.at);
-    let target = cp(&s, "-102G1:−#2");
-    enter_at(&mut s, target.at);
-    done(&mut s, "ui.dismiss", json!({}));
+    // The routed wire from -102F2:Out1 to 24VDC-1, then -102F2's box moved one step right: the far end stays and the
+    // wire's route follows, in the rubber band and in the stored route alike.
+    let a = cp(&s, "-102F2:Out1");
+    let target = cp(&s, "24VDC-1");
     let t = tables(&s);
     let wire = t
         .connections
         .iter()
         .filter(|c| c.stored_route)
-        .find(|c| end_label(&t, &c.a) == "-102F2:13")
+        .find(|c| end_label(&t, &c.a) == "-102F2:Out1")
         .unwrap()
         .clone();
     let rep = t.reps.iter().find(|r| r.id == a.rep).unwrap().clone();

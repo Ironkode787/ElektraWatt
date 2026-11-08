@@ -537,15 +537,29 @@ fn a_black_box_caption_on_the_line_turns_the_through_route_away() {
 }
 
 // FT-758: an interruption point one step inside the drawing area, leaving towards the sheet's edge (Golden A's
-// folio 101 feeds), still turns on the area's edge: the frame's inward step gives way on that side.
+// folio 101 feeds before decision log ID-1502 (7) mirrored them, so the test mirrors one back), still turns on the
+// area's edge: the frame's inward step gives way on that side.
 #[test]
 fn an_interruption_point_at_the_area_edge_still_routes() {
     let tmp = Tmp::new("c39-edge");
     let mut s = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut s, "view.zoom_actual", json!({}));
+    let feed = cp(&s, "J-E-206-L").rep.to_string();
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "rep.transform", "params": {"reps": [feed.clone()], "mirror": true}}),
+    );
     let area = ew_viewmodel::tools::ip::drawing_area(s.canvas().unwrap().page()).expect("the drawing area");
-    let (from, to) = (cp(&s, "J-E-206-L"), cp(&s, "1X1:1/b"));
     let g = page_point(&s, (1, 0)).0 - page_point(&s, (0, 0)).0;
+    // And moved so that its connection point lies one step inside the area's left edge.
+    let steps = (area[0] + g - cp(&s, "J-E-206-L").at.0) / g;
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "rep.move", "params": {"reps": [feed], "steps": [steps, 0]}}),
+    );
+    let (from, to) = (cp(&s, "J-E-206-L"), cp(&s, "1X1:1/b"));
     // The case: one step inside the area's left edge, leaving left.
     assert_eq!(from.at.0, area[0] + g);
     let before = tables(&s);

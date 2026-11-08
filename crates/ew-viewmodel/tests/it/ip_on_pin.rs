@@ -600,7 +600,7 @@ fn ft950_after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
         let sn = &s.canvas().unwrap().page().snapper;
         (sn.grid_index_of(start.at.0), sn.grid_index_of(start.at.1))
     };
-    let end = grid_point(&s, (k.0, k.1 + 4));
+    let end = grid_point(&s, (k.0, k.1 + 6));
     cursor(&mut s, end);
     let before = tables(&s);
     done(&mut s, "tool.ip", json!({}));
