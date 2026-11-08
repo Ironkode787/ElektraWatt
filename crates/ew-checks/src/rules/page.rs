@@ -1021,36 +1021,72 @@ pub fn wire_along_wire(page: Id<Page>, folio: &str, wire: LayoutWire<'_>, other:
     .arg("page", folio)
 }
 
-/// EW-CORE-069: `wire` runs through the body of the representation `rep`, named `device` (its tag as the page prints
-/// it; measure (c)). Targets the wire and the representation.
+/// A representation as a layout rule names it (EW-CORE-069, -070): a device by its tag, an interruption point by its
+/// name, which each language words itself ("interruption point L-1", "onderbrekingspunt L-1"; ID-1509 (7)).
+#[derive(Clone, Copy, Debug)]
+pub enum SymbolName<'a> {
+    /// A device's tag as the page prints it, with its prefix (or the symbol's key for a representation without one).
+    Device(&'a str),
+    /// An interruption point's name.
+    Ip(&'a str),
+}
+
+impl<'a> SymbolName<'a> {
+    /// The `symbol` argument's word and the name.
+    fn parts(self) -> (&'static str, &'a str) {
+        match self {
+            SymbolName::Device(d) => ("device", d),
+            SymbolName::Ip(n) => ("ip", n),
+        }
+    }
+
+    /// The name in English.
+    fn english(self) -> String {
+        match self {
+            SymbolName::Device(d) => d.to_owned(),
+            SymbolName::Ip(n) => format!("interruption point {n}"),
+        }
+    }
+}
+
+/// EW-CORE-069: `wire` runs through the body of the representation `rep`, named by `symbol` (measure (c)). Targets the
+/// wire and the representation.
 pub fn wire_through_symbol(
     page: Id<Page>,
     wire: LayoutWire<'_>,
     rep: Id<Representation>,
-    device: &str,
+    symbol: SymbolName<'_>,
 ) -> Finding {
+    let (kind, name) = symbol.parts();
     Finding::new(
         &WIRE_THROUGH_SYMBOL,
         [wire.target(), Target::new(Kind::Representation, rep)],
         "",
         wire.words,
-        format!("Wire {} runs through {device}.", wire.words),
+        format!("Wire {} runs through {}.", wire.words, symbol.english()),
     )
     .on_page(page)
     .arg("wire", wire.words)
-    .arg("device", device)
+    .arg("symbol", kind)
+    .arg("device", name)
 }
 
 /// The owner of a text a wire runs through (EW-CORE-070).
 #[derive(Clone, Copy, Debug)]
 pub enum TextOwner<'a> {
-    /// A representation, named by its device's tag as the page prints it (`interruption point <name>` for a point,
-    /// else its symbol's key).
+    /// A representation, named by its device's tag as the page prints it (else its symbol's key).
     Symbol {
         /// The representation.
         rep: Id<Representation>,
         /// Its name.
         device: &'a str,
+    },
+    /// An interruption point's representation, named by the point's name (ID-1509 (7)).
+    Ip {
+        /// The representation.
+        rep: Id<Representation>,
+        /// The point's name.
+        name: &'a str,
     },
     /// A free text.
     FreeText(Id<PageItem>),
@@ -1068,6 +1104,12 @@ pub fn wire_through_text(page: Id<Page>, wire: LayoutWire<'_>, owner: TextOwner<
             "symbol",
             device,
             format!("the text \"{text}\" of {device}"),
+        ),
+        TextOwner::Ip { rep, name } => (
+            Target::new(Kind::Representation, rep),
+            "ip",
+            name,
+            format!("the text \"{text}\" of interruption point {name}"),
         ),
         TextOwner::FreeText(id) => (
             Target::new(Kind::PageItem, id),

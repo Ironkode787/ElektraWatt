@@ -621,13 +621,23 @@ fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<
             wire(o.connections[1]),
         ));
     }
+    // An interruption point by its name, which each language words itself (ID-1509 (7)).
+    let ip_name = |rep: Uuid| {
+        tables
+            .reps
+            .iter()
+            .find(|r| r.id == rep)
+            .and_then(|r| r.ip.as_ref())
+            .map(|ip| ip.name.as_str())
+    };
     for t in &m.through_bodies {
         let device = symbol_text(q, tables, t.rep);
+        let symbol = ip_name(t.rep).map_or(rules::SymbolName::Device(&device), rules::SymbolName::Ip);
         out.push(rules::wire_through_symbol(
             page,
             wire(t.connection),
             Id::from_uuid(t.rep),
-            &device,
+            symbol,
         ));
     }
     if !m.through_texts.is_empty() {
@@ -646,7 +656,12 @@ fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<
                 .or_else(|| own().next())
                 .map_or("", |(_, _, s)| s.as_str());
             let device = symbol_text(q, tables, t.rep);
-            let owner = if tables.reps.iter().any(|r| r.id == t.rep) {
+            let owner = if let Some(name) = ip_name(t.rep) {
+                rules::TextOwner::Ip {
+                    rep: Id::from_uuid(t.rep),
+                    name,
+                }
+            } else if tables.reps.iter().any(|r| r.id == t.rep) {
                 rules::TextOwner::Symbol {
                     rep: Id::from_uuid(t.rep),
                     device: &device,

@@ -195,13 +195,17 @@ rule-ew-core-068 = Wire { $wire } runs along { $other } on folio { $page }.
     .title = Wire along another wire
     .hint = Route one of the wires again with Route selection, so that each runs on a line of its own.
 
-rule-ew-core-069 = Wire { $wire } runs through { $device }.
+rule-ew-core-069 = Wire { $wire } runs through { $symbol ->
+        [ip] interruption point { $device }
+       *[device] { $device }
+    }.
     .title = Wire through a symbol
     .hint = Route the wire again with Route selection, or move the symbol out of its way.
 
 rule-ew-core-070 = Wire { $wire } runs through { $owner ->
         [free-text] the free text "{ $text }"
         [structure-box] the caption "{ $text }" of a structure box
+        [ip] the text "{ $text }" of interruption point { $device }
        *[symbol] the text "{ $text }" of { $device }
     }.
     .title = Wire through a text

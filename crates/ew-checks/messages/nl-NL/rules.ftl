@@ -191,13 +191,17 @@ rule-ew-core-068 = Draad { $wire } loopt over { $other } op folio { $page }.
     .title = Draad over een andere draad
     .hint = Routeer een van de draden opnieuw met Selectie routeren, zodat elke draad een eigen lijn heeft.
 
-rule-ew-core-069 = Draad { $wire } loopt door { $device }.
+rule-ew-core-069 = Draad { $wire } loopt door { $symbol ->
+        [ip] onderbrekingspunt { $device }
+       *[device] { $device }
+    }.
     .title = Draad door een symbool
     .hint = Routeer de draad opnieuw met Selectie routeren, of verplaats het symbool uit de weg.
 
 rule-ew-core-070 = Draad { $wire } loopt door { $owner ->
         [free-text] de vrije tekst "{ $text }"
         [structure-box] het bijschrift "{ $text }" van een structuurkader
+        [ip] de tekst "{ $text }" van onderbrekingspunt { $device }
        *[symbol] de tekst "{ $text }" van { $device }
     }.
     .title = Draad door een tekst

@@ -429,6 +429,59 @@ fn rk1_a_wire_through_a_text_fires_ew_core_070() {
     );
 }
 
+/// ID-1509 (7), C53-rt#4: a wire through an interruption point names the point in each language's words, never
+/// "interruption point" in a Dutch message: EW-CORE-069 on a page, and EW-CORE-070's wording of a point's text.
+#[test]
+fn a_wire_through_an_interruption_point_names_it_in_each_language() {
+    use ew_api::checks::rules::page::{LayoutWire, TextOwner, wire_through_text};
+    let (mut s, page, k) = rk1_page(&[(52, 20), (70, 20)]);
+    if let Some(embed) = s.starter_embed("ew.gen.ip@qet10") {
+        run(&mut s, "library.embed", embed);
+    }
+    let ip = s
+        .starter_symbol_copy("ew.gen.ip@qet10")
+        .expect("the starter interruption point")
+        .to_string();
+    // A source point whose arrow (its tip at 61, 28) the wire along row 28 runs through.
+    run(
+        &mut s,
+        "ip.place",
+        serde_json::json!({"page": page, "symbol": ip, "pos": grid(61, 28), "name": "X-9", "direction": "source"}),
+    );
+    draw(
+        &mut s,
+        &page,
+        pin(&k[0], 1),
+        pin(&k[1], 1),
+        route(&[(52, 24), (52, 28), (70, 28), (70, 24)]),
+    );
+    assert_eq!(
+        findings(&s, "EW-CORE-069"),
+        [(
+            "Wire -103K1:A2 → -103K2:A2 runs through interruption point X-9.".to_owned(),
+            "Draad -103K1:A2 → -103K2:A2 loopt door onderbrekingspunt X-9.".to_owned(),
+            Warning
+        )]
+    );
+    let rep = s.page_tables("103").expect("folio 103").reps[0].id;
+    let wire = LayoutWire {
+        id: ew_derive::ew_ids::Id::from_uuid(rep),
+        words: "-103K1:A2 → -103K2:A2",
+    };
+    let owner = TextOwner::Ip {
+        rep: ew_derive::ew_ids::Id::from_uuid(rep),
+        name: "X-9",
+    };
+    let f = wire_through_text(ew_derive::ew_ids::Id::from_uuid(rep), wire, owner, "X-9");
+    assert_eq!(
+        (f.message.as_str(), ew_api::checks::render(&f, "nl-NL")),
+        (
+            "Wire -103K1:A2 → -103K2:A2 runs through the text \"X-9\" of interruption point X-9.",
+            "Draad -103K1:A2 → -103K2:A2 loopt door de tekst \"X-9\" van onderbrekingspunt X-9.".to_owned()
+        )
+    );
+}
+
 /// RK1, EW-CORE-072: wires from above, below, the left and the right into one junction; its twin, the junction before
 /// the fourth wire, joins three.
 #[test]
