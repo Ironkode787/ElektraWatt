@@ -1145,16 +1145,19 @@ mod tests {
     }
 
     #[test]
-    fn a_stub_into_an_obstacle_is_allowed() {
-        // The first end's stub node lies inside another body; the route still leaves along the stub.
-        let r = auto_route(&req(
+    fn a_stub_inside_a_foreign_body_gives_no_route() {
+        // The first end's stub node lies inside another representation's body. The node itself is free, but every
+        // move out of it runs through the body's open inside (FT-706), which only an end's own corridor may cross
+        // (WP-S2.19 §5.1 rule 3): no route, the unrouted straight line (D3), as for a foreign obstacle across the
+        // corridor below. (Before FT-706 only nodes were blocked and the route left down along the stub.)
+        let rq = req(
             end(0, 0, Some(Heading::Down)),
             end(6, 4, Some(Heading::Left)),
             vec![rect(-2, 0, 2, 2)],
-        ));
-        assert_eq!(r.first(), Some(&p(0, 0)));
-        assert_eq!(r[1].0, 0, "leaves down along x = 0: {r:?}");
-        assert!(r[1].1 > 0);
+        );
+        let routed = route(&rq);
+        assert!(routed.direct, "{:?}", routed.points);
+        assert_eq!(routed.points, [rq.from.at, rq.to.at]);
     }
 
     fn with_arrive(mut r: RouteRequest, h: Heading) -> RouteRequest {

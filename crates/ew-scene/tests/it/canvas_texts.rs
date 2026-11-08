@@ -359,18 +359,6 @@ fn tags_with_room_stay_put() {
     }
 }
 
-fn connection(n: u128, a: (u128, u16), b: (u128, u16)) -> ConnectionView {
-    let c: Connection = serde_json::from_value(json!({
-        "id": uuid(n), "page": uuid(PAGE),
-        "a": {"cp": [uuid(a.0), a.1]}, "b": {"cp": [uuid(b.0), b.1]},
-    }))
-    .unwrap();
-    ConnectionView {
-        connection: Arc::new(c),
-        marker: None,
-    }
-}
-
 /// FT-758 (play-test rv-vis-2, turn 33): a valve placed four grid steps right of a vertical wire would have its tag on
 /// the wire; the tag moves off it and stays beside its valve, clear of the valve's own texts.
 #[test]
@@ -398,7 +386,7 @@ fn a_tag_does_not_sit_on_a_wire() {
     // -K1's A2 (grid 40, 14) straight down to -K2's A1 (grid 40, 50): a vertical wire at x = grid 40.
     let wired = view(
         vec![k(0x31, 10), k(0x32, 50), m.clone()],
-        vec![connection(0x41, (0x1031, 1), (0x1032, 0))],
+        vec![routed(0x41, (0x1031, 1), (0x1032, 0), &[(40, 30)])],
     );
     let unwired = view(vec![k(0x31, 10), k(0x32, 50), m], Vec::new());
     let before = run(&runs(&unwired), 0x33, "-101M1").rect;
@@ -447,7 +435,7 @@ fn the_labels_layer_reports_a_moved_tag_where_it_prints() {
     };
     let wired = view(
         vec![k(0x31, 10), k(0x32, 50), m.clone()],
-        vec![connection(0x41, (0x1031, 1), (0x1032, 0))],
+        vec![routed(0x41, (0x1031, 1), (0x1032, 0), &[(40, 30)])],
     );
     let unwired = view(vec![k(0x31, 10), k(0x32, 50), m], Vec::new());
     let tags = |v: &PageView| page_display_list(v, Layer::Labels, bundled(), builtin()).tags;
@@ -571,7 +559,15 @@ const CAPTION: [&str; 3] = ["-101A1", "EW-GEN-PSU-1", "Generic"];
 fn a_risen_caption_never_lies_across_a_wire() {
     let mut reps = caption_under_a_pin();
     reps.push(boxed(0x13, (30, 2), (12, 8), &[(0, (4, 8), "down")], &[], None));
-    let wired = view(reps.clone(), vec![connection(0x41, (0x1012, 0), (0x1013, 0))]);
+    let wired = view(
+        reps.clone(),
+        vec![routed_nm(
+            0x41,
+            (0x1012, 0),
+            (0x1013, 0),
+            &[(g(32) + g(2), g(26)), (g(30) + g(4), g(2) + g(8))],
+        )],
+    );
     let unwired = view(reps, Vec::new());
     let wire_x = g(34);
     let across = |t: Rect| t.min().x.0 < wire_x && wire_x < t.max().x.0 && t.min().y.0 < g(26);
@@ -657,9 +653,17 @@ fn a_technical_data_text_drops_below_a_pin_text_it_would_overlap() {
     );
 }
 
-/// A connection `n` from `a` to `b` with the stored route `route` (grid points).
+/// A connection `n` from `a` to `b` with the stored route `route` (grid points). A route of interior points only is a
+/// stale one: the scene joins each end to it with a straight segment (WP-S2.19 D2); one point on the line between two
+/// aligned ends makes the straight wire. Without a route a connection is unrouted (D3) and no obstacle of a text.
 fn routed(n: u128, a: (u128, u16), b: (u128, u16), route: &[(i64, i64)]) -> ConnectionView {
-    let route: Vec<[i64; 2]> = route.iter().map(|&(x, y)| [g(x), g(y)]).collect();
+    let route: Vec<(i64, i64)> = route.iter().map(|&(x, y)| (g(x), g(y))).collect();
+    routed_nm(n, a, b, &route)
+}
+
+/// [`routed`] with the route in page nm.
+fn routed_nm(n: u128, a: (u128, u16), b: (u128, u16), route: &[(i64, i64)]) -> ConnectionView {
+    let route: Vec<[i64; 2]> = route.iter().map(|&(x, y)| [x, y]).collect();
     let c: Connection = serde_json::from_value(json!({
         "id": uuid(n), "page": uuid(PAGE),
         "a": {"cp": [uuid(a.0), a.1]}, "b": {"cp": [uuid(b.0), b.1]}, "route": route,
@@ -757,7 +761,8 @@ fn a_cross_reference_rises_off_a_horizontal_wire() {
         before.min().y.0 < y && y < before.max().y.0,
         "the case: the wire would run through {before:?}"
     );
-    let wired = view(reps, vec![routed(0x41, (0x1013, 0), (0x1014, 0), &[])]);
+    let ends = [(g(10) + g(2), g(26) + g(2)), (g(70), g(26) + g(2))];
+    let wired = view(reps, vec![routed_nm(0x41, (0x1013, 0), (0x1014, 0), &ends)]);
     let after = run(&runs(&wired), 0x21, "102-A1").rect;
     assert!(
         (after.max().y.0 - (y - SLOT_TEXT_GAP.0)).abs() <= 1_000,
@@ -795,7 +800,12 @@ fn wires_at(ys: &[i64]) -> (Vec<RepView>, Vec<ConnectionView>) {
                 pins: Vec::new(),
             });
         }
-        connections.push(connection(0x90 + k as u128, (n + 0x1000, 0), (n + 0x1001, 0)));
+        connections.push(routed_nm(
+            0x90 + k as u128,
+            (n + 0x1000, 0),
+            (n + 0x1001, 0),
+            &[(g(10) + g(2), y), (g(70), y)],
+        ));
     }
     (reps, connections)
 }
@@ -880,7 +890,8 @@ fn a_cross_reference_without_a_free_place_stays() {
         boxed(0x15, (38, 13), (2, 4), &[(0, (1, 4), "down")], &[], None),
         boxed(0x16, (38, 27), (2, 2), &[(0, (1, 0), "up")], &[], None),
     ];
-    let down = routed(0x45, (0x1015, 0), (0x1016, 0), &[]);
+    let ends = [(g(38) + g(1), g(13) + g(4)), (g(38) + g(1), g(27))];
+    let down = routed_nm(0x45, (0x1015, 0), (0x1016, 0), &ends);
     let (shown, bare) = arrow_label(27, &[g(28)], (blocker, vec![down]));
     assert!(through(bare, g(28)), "the case: the wire runs through {bare:?}");
     assert!(

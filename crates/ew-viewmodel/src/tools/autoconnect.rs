@@ -640,7 +640,7 @@ mod tests {
             b: TableEnd::Junction { id: uuid(2) },
             kind: "wire".into(),
             polyline: vec![(20 * G, 0), (0, 0), (0, 20 * G)],
-            stored_route: false,
+            stored_route: true,
             off_sheet: vec![1],
             line_kind: None,
         });
