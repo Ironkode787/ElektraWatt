@@ -1023,6 +1023,24 @@ fn move_hints_make_their_wires_and_refuse_a_cp_in_words() {
     );
 }
 
+/// ID-1509 (6), ADR-0007 decision 4: a `connect` hint onto a point of a connection would split an existing wire, so
+/// the move refuses it in words and changes nothing.
+#[test]
+fn a_move_refuses_a_hint_that_would_split_a_wire() {
+    let mut e = engine(steps_model());
+    let rev = e.model().rev();
+    let at = gp(20, 20);
+    assert_eq!(
+        rejection(e.execute(&move_with(json!({
+            "reps": [REP_102G1], "steps": [0, 0],
+            "connect": [{"rep": REP_102G1, "cp": {"function": FN_102G1, "idx": 0},
+                         "to": {"on_connection": {"connection": CON_C, "at": at}}}]
+        })))),
+        "A move connects only to connection points; it never splits an existing wire."
+    );
+    assert_eq!(e.model().rev(), rev, "nothing committed");
+}
+
 #[test]
 fn move_by_steps_keeps_the_shape_of_a_route_whose_both_ends_move() {
     let before = steps_model();

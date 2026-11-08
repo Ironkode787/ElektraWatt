@@ -602,7 +602,8 @@ fn zero() -> Pt2 {
 /// after the follow, each entry of `routes` replaces a connection's route exactly as `connection.route` would (errors
 /// prefixed `/routes/<i>`, as `connection.route_many` prefixes them); then each hint of `connect` makes a wire from
 /// the named representation's symbol CP as a `device.place` hint does, with the straight route between its ends (a
-/// hint whose target no longer exists is dropped with a notice; a CP the representation does not draw is refused).
+/// hint whose target no longer exists is dropped with a notice; a CP the representation does not draw is refused). A
+/// hint onto a point of a connection is refused: a move never splits an existing wire (ADR-0007 decision 4, ID-1509).
 ///
 /// Outcome: none; the notices of dropped hints. Coalesce one drag with a key.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -647,7 +648,7 @@ pub struct MoveHint {
     pub rep: Id<Representation>,
     /// The CP the representation draws.
     pub cp: HintCp,
-    /// The other end: a CP, a junction or a point on a connection.
+    /// The other end: a CP or a junction (a point on a connection is refused: a move never splits a wire).
     pub to: EndpointParam,
 }
 
@@ -760,6 +761,10 @@ impl MoveReps {
         crate::commands::connection::run_routes(tx, Self::NAME, &self.routes)?;
         let mut notices = Vec::new();
         for (i, hint) in self.connect.iter().enumerate() {
+            // ID-1509 (6): ADR-0007 decision 4 holds on a move, so no existing connection is split.
+            if matches!(hint.to, EndpointParam::OnConnection { .. }) {
+                return tx.reject(text!("refusal-rep-move-split"));
+            }
             if let Some(gone) = missing_target(tx, &hint.to) {
                 notices.push(format!(
                     "autoconnect hint {} dropped: {gone} no longer exists",

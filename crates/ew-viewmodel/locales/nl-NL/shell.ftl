@@ -1318,6 +1318,7 @@ refusal-rep-move-steps-cp-out-of-range = de verplaatsing brengt een aansluitpunt
 refusal-rep-move-route-out-of-range = de verplaatsing brengt het verloop van { $p0 } buiten het tekenbereik; verplaats minder ver
 refusal-rep-move-nothing = geef ten minste één representatie of element om te verplaatsen
 refusal-rep-move-no-cp = { $p0 } tekent aansluitpunt { $p1 } niet; verbind bij het verplaatsen vanaf een van zijn eigen aansluitpunten
+refusal-rep-move-split = Een verplaatsing verbindt alleen met aansluitpunten; ze splitst nooit een bestaande draad.
 refusal-rep-move-out-of-range = de verplaatsing brengt { $p0 } buiten het tekenbereik; verplaats minder ver
 refusal-rep-move-cp-out-of-range = de verplaatsing brengt een aansluitpunt van { $p0 } buiten het tekenbereik; verplaats minder ver
 refusal-rep-move-end-behind = de verplaatsing zou één uiteinde van { $p0 } op de oude pagina achterlaten; verplaats beide uiteinden samen

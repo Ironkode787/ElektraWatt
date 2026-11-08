@@ -1394,6 +1394,10 @@ pub const TEXTS: &[(&str, &str)] = &[
         "{0} does not draw connection point {1}; connect on the move from one of its own connection points",
     ),
     (
+        "refusal-rep-move-split",
+        "A move connects only to connection points; it never splits an existing wire.",
+    ),
+    (
         "refusal-rep-move-out-of-range",
         "the move takes {0} outside the drawable range; move it less far",
     ),
