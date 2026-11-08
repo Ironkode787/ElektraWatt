@@ -738,9 +738,13 @@ fn rw1_route_page_previews_the_plan_and_applies_it_in_one_step() {
         "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"Route 2 wires on folio 103: 1 \
          routed, 1 not routed.\" \"No route keeps clear of symbols: -103K3:A2 → -103K2:A2.\""
     );
+    // ID-1509 (9), the window check's C3: the card's title names the button.
+    let title = |s: &ShellModel| s.properties().card().expect("the card").command().to_owned();
+    assert_eq!(title(&s), "Route page");
     done(&mut s, "view.language", json!({"value": "nl"}));
     done(&mut s, "preview.cancel", json!({}));
     done(&mut s, "route.page", json!({}));
+    assert_eq!(title(&s), "Pagina routeren");
     assert_eq!(
         card_line(&s),
         "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"2 draden op folio 103 \
@@ -863,6 +867,15 @@ fn rw2_route_selection_re_routes_a_selected_wire_and_nothing_else() {
         "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"Route 1 wire on folio 103: 1 \
          routed, 0 not routed.\""
     );
+    // ID-1509 (9), the window check's C3: the card's title names the button.
+    let card = s.properties().card().expect("the card").command().to_owned();
+    assert_eq!(card, "Route selection");
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    assert_eq!(
+        s.properties().card().expect("the card").command(),
+        "Selectie routeren"
+    );
+    done(&mut s, "view.language", json!({"value": "en"}));
     done(&mut s, "preview.apply", json!({}));
     let after = tables(&s);
     let now = after

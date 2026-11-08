@@ -264,6 +264,8 @@ pub enum CardOrigin {
         page: String,
         /// How many wires the plan routes.
         routed: usize,
+        /// Whether Route selection opened it (else Route page): the card's title follows the button (ID-1509 (9)).
+        selection: bool,
     },
 }
 
@@ -493,6 +495,16 @@ pub struct Card {
 }
 
 impl Card {
+    /// What the card's title names (`Preview: <it>`): the command's title, but for a route card the button that opened
+    /// it, "Route page" or "Route selection" (ID-1509 (9), the window check's C3).
+    pub fn command(&self) -> &str {
+        match &self.origin {
+            CardOrigin::Route { selection: true, .. } => strings::text(key!("action-route-selection")),
+            CardOrigin::Route { .. } => strings::text(key!("action-route-page")),
+            _ => strings::command_title(&self.preview.name),
+        }
+    }
+
     /// The lead line of a failed card (cycle 38, FX38d; doc 16a P3, words not IDs) and the rule code that may follow it
     /// in secondary text; `None` while the preview stands. A macro card leads with a sentence that says what blocks
     /// the apply and how many conflicts its list shows (the list is the detail, so the lead never repeats a row); the

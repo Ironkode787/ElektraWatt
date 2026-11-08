@@ -534,7 +534,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         ui.horizontal(|ui| {
             ui.add_space(pad);
             ui.spacing_mut().item_spacing.x = t.space_3;
-            let command = strings::command_title(&card.preview.name);
+            let command = card.command();
             // Cycle 39 (FIX39b-1): a question card (the paste choice) previews nothing: its head is the command alone,
             // with no "Preview:" and no revision.
             let title = if choice {

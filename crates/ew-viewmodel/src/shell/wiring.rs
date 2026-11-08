@@ -736,6 +736,7 @@ impl ShellModel {
                 rows,
                 page,
                 routed: plan.routes.len(),
+                selection: matches!(scope, ew_api::routing::RouteScope::Selection(_)),
             },
         )
     }
