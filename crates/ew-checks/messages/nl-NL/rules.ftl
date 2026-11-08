@@ -207,7 +207,10 @@ rule-ew-core-071 =
     .title = Grafische lijn op een aansluitpunt
     .hint = Vervang de grafische lijn door een verbinding, zodat ze meetelt in de connectiviteit.
 
-rule-ew-core-072 = De aftakking in { $cell } verbindt vier draden: teken in plaats daarvan twee T-aftakkingen.
+rule-ew-core-072 = { $place ->
+        [off-grid] Een aftakking op folio { $page } verbindt vier draden: teken in plaats daarvan twee T-aftakkingen.
+       *[cell] De aftakking in { $cell } verbindt vier draden: teken in plaats daarvan twee T-aftakkingen.
+    }
     .title = Vierwegaftakking
     .hint = Verplaats één tak naar een eigen aftakking een rasterstap verder, zodat elke aftakking drie draden verbindt.
 

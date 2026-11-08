@@ -476,6 +476,30 @@ fn rk1_a_four_way_junction_fires_ew_core_072() {
     );
 }
 
+/// ID-1509 (7), C53-rt#5: on a page without a frame grid EW-CORE-072 names the junction by its folio, in both
+/// languages, with the folio as its subject.
+#[test]
+fn a_four_way_junction_off_a_frame_grid_is_named_by_its_folio() {
+    use ew_api::checks::rules::page::four_way_junction;
+    let page: ew_derive::ew_ids::Id<ew_derive::ew_schema::Page> =
+        ew_derive::ew_ids::Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(7));
+    let f = four_way_junction(page, "7", page.cast(), "");
+    assert_eq!(
+        (
+            f.subject.as_str(),
+            f.message.as_str(),
+            ew_api::checks::render(&f, "en-GB"),
+            ew_api::checks::render(&f, "nl-NL")
+        ),
+        (
+            "folio 7",
+            "A junction on folio 7 joins four wires: draw two T junctions instead.",
+            "A junction on folio 7 joins four wires: draw two T junctions instead.".to_owned(),
+            "Een aftakking op folio 7 verbindt vier draden: teken in plaats daarvan twee T-aftakkingen.".to_owned()
+        )
+    );
+}
+
 /// RK1, EW-CORE-073: a wire drawn without a route between two points (info online, an error in release mode); its
 /// fixed twin has the straight route. A waiver of the finding waives it, and EW-CORE-081 does not report the waiver.
 #[test]

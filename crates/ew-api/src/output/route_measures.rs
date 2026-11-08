@@ -661,7 +661,12 @@ fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<
     }
     for j in &m.four_way {
         let cell = cell_text(q, page, j.at);
-        out.push(rules::four_way_junction(page, Id::from_uuid(j.junction), &cell));
+        out.push(rules::four_way_junction(
+            page,
+            &tables.folio,
+            Id::from_uuid(j.junction),
+            &cell,
+        ));
     }
     for c in &tables.connections {
         if !c.stored_route && c.polyline.len() >= 2 && c.polyline.first() != c.polyline.last() {

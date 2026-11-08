@@ -211,7 +211,10 @@ rule-ew-core-071 =
     .title = Graphic line on a CP
     .hint = Replace the graphic line by a connection, so that it takes part in the connectivity.
 
-rule-ew-core-072 = The junction at { $cell } joins four wires: draw two T junctions instead.
+rule-ew-core-072 = { $place ->
+        [off-grid] A junction on folio { $page } joins four wires: draw two T junctions instead.
+       *[cell] The junction at { $cell } joins four wires: draw two T junctions instead.
+    }
     .title = Four-way junction
     .hint = Move one branch to a junction of its own a grid step away, so that each junction joins three wires.
 

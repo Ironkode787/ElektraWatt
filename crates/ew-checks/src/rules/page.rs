@@ -1096,17 +1096,33 @@ pub fn wire_through_text(page: Id<Page>, wire: LayoutWire<'_>, owner: TextOwner<
     .arg("device", device)
 }
 
-/// EW-CORE-072: the junction `junction` in the frame cell `cell` joins four wires (measure (g)). Targets the junction.
-pub fn four_way_junction(page: Id<Page>, junction: Id<Junction>, cell: &str) -> Finding {
+/// EW-CORE-072: the junction `junction` in the frame cell `cell` joins four wires (measure (g)); on a page without a
+/// frame grid (`cell` empty) the junction is named by the folio `folio` (ID-1509 (7)). Targets the junction.
+pub fn four_way_junction(page: Id<Page>, folio: &str, junction: Id<Junction>, cell: &str) -> Finding {
+    let (place, subject, message) = if cell.is_empty() {
+        (
+            "off-grid",
+            format!("folio {folio}"),
+            format!("A junction on folio {folio} joins four wires: draw two T junctions instead."),
+        )
+    } else {
+        (
+            "cell",
+            cell.to_owned(),
+            format!("The junction at {cell} joins four wires: draw two T junctions instead."),
+        )
+    };
     Finding::new(
         &FOUR_WAY_JUNCTION,
         [Target::new(Kind::Junction, junction)],
         "",
-        cell,
-        format!("The junction at {cell} joins four wires: draw two T junctions instead."),
+        subject,
+        message,
     )
     .on_page(page)
+    .arg("place", place)
     .arg("cell", cell)
+    .arg("page", folio)
 }
 
 /// EW-CORE-073: `wire`, a page connection between two different points, has no route (WP-S2.19 D3). Targets the wire.
