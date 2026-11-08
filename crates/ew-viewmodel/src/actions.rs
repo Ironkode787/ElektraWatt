@@ -3043,6 +3043,33 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_route_edit(),
         ),
     ))),
+    // WP-S2.19 D13: Route page and Route selection after Edit route, previewed (no default key).
+    keeps_banner(placed(
+        place(Group::Connect, 3, CommandSize::Small, None),
+        "wand",
+        act(
+            "route.page",
+            Command,
+            Menu::Draw,
+            &[],
+            editable_page,
+            grp(Group::Connect),
+            |s, _| s.act_route_page(),
+        ),
+    )),
+    keeps_banner(placed(
+        place(Group::Connect, 4, CommandSize::Small, None),
+        "sparkles",
+        act(
+            "route.selection",
+            Command,
+            Menu::Draw,
+            &[],
+            editable_page,
+            grp(Group::Connect),
+            |s, _| s.act_route_selection(),
+        ),
+    )),
     keeps_banner(in_canvas(act(
         "junction.open",
         View,
@@ -3105,7 +3132,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     keeps_banner(in_canvas(placed(
         place(
             Group::Connect,
-            4,
+            6,
             CommandSize::Small,
             Some(key!("bar-interruption")),
         ),

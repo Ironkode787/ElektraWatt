@@ -1556,6 +1556,13 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                             line.push_str(&format!(" \"{}\"", user(n)));
                         }
                     }
+                    // WP-S2.19 D13: the route card names its origin, its lead and its unrouted rows.
+                    if let crate::properties::CardOrigin::Route { lead, rows, .. } = &card.origin {
+                        line.push_str(&format!(" route \"{}\"", user(lead)));
+                        for r in rows {
+                            line.push_str(&format!(" \"{}\"", user(r)));
+                        }
+                    }
                     // WP-S2.09 part 2: the quick-fix card names its origin and the finding's rule.
                     if let crate::properties::CardOrigin::QuickFix { rule } = &card.origin {
                         line.push_str(&format!(" fix \"{}\"", user(rule)));

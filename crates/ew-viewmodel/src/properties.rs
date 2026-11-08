@@ -252,6 +252,19 @@ pub enum CardOrigin {
     /// ID-1224): the card in the Preview tab with the counts and the per-cell list; Apply commits the import's one
     /// `fields.set_many`.
     TableImport(Box<TableImportCard>),
+    // WP-S2.19 D13
+    /// Route page and Route selection (`route.page`, `route.selection`): the card in the Preview tab with the plan's
+    /// lead line and one row per connection left unrouted; Apply commits the plan's `connection.route_many`.
+    Route {
+        /// "Route 3 wires on folio 101: 2 routed, 1 not routed." (§12a).
+        lead: String,
+        /// One row per connection left unrouted, with its reason.
+        rows: Vec<String>,
+        /// The page in words (`folio 101`), for the toast.
+        page: String,
+        /// How many wires the plan routes.
+        routed: usize,
+    },
 }
 
 /// What a table import card shows and commits (WP-S3.08 D14).
@@ -457,6 +470,7 @@ impl CardOrigin {
             CardOrigin::PasteVersions(_) => "paste",
             CardOrigin::PasteUpdate { .. } => "update",
             CardOrigin::TableImport(_) => "table-import",
+            CardOrigin::Route { .. } => "route",
         }
     }
 }

@@ -287,7 +287,7 @@ pub const PENDING: &[(Group, u16, &str)] = &[
     (Group::Pages, 2, "Page properties"),
     (Group::Pages, 3, "Delete page"),
     (Group::Place, 3, "Terminal"),
-    (Group::Connect, 3, "Potential"),
+    (Group::Connect, 5, "Potential"),
     (Group::Arrange, 3, "Align"),
     (Group::Run, 2, "Check scheme"),
     (Group::Numbering, 1, "Freeze tag"),

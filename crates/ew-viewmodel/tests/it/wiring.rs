@@ -596,6 +596,164 @@ fn rm1_a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_c
     assert_eq!(wire(&s, "-103K1:A1").polyline, upper, "the undo restores both");
 }
 
+/// Coils at the grid indices `ks` on folio 103 (`-103K1`, `-103K2`, … in this order) and the wires `(a, b, route)`
+/// between their CPs, each route a list of grid indices (empty: unrouted), drawn by `connection.draw`.
+fn coils_and_wires(s: &mut ShellModel, ks: &[(i64, i64)], wires: &[(&str, &str, &[(i64, i64)])]) {
+    for k in ks {
+        done(
+            s,
+            "place.pick",
+            json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+        );
+        let p = grid_point(s, *k);
+        // With Alt: the coils join only by the wires given, never by autoconnect.
+        cursor(s, p);
+        done(s, "canvas.activate_alt", json!({}));
+        done(s, "ui.dismiss", json!({}));
+    }
+    let page = tables(s).page.to_string();
+    for (a, b, points) in wires {
+        let pin = |label: &str| {
+            let c = cp(s, label);
+            json!({"cp": {"function": c.function.to_string(), "idx": c.idx}})
+        };
+        let route: Vec<Value> = points
+            .iter()
+            .map(|k| {
+                let p = grid_point(s, *k);
+                json!([p.0, p.1])
+            })
+            .collect();
+        let params = json!({"a": pin(a), "b": pin(b), "page": page, "route": route});
+        done(
+            s,
+            "command.run",
+            json!({"cmd": "connection.draw", "params": params}),
+        );
+    }
+}
+
+/// The card line of the describe text, while a card is open.
+fn card_line(s: &ShellModel) -> String {
+    describe_line(s, "card ").expect("a card")
+}
+
+/// WP-S2.19 RW1 (D13, §12a): on folio 103 with two unrouted wires, one between two free coils and one from a CP whose
+/// stub ends in another coil, Route page previews the plan, its lead and its unrouted row in en-GB and nl-NL; Apply
+/// commits one `connection.route_many` (one undo step) and the toast says what it routed; a second Route page has
+/// nothing to do.
+#[test]
+fn rw1_route_page_previews_the_plan_and_applies_it_in_one_step() {
+    let tmp = Tmp::new("rw1");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (55, 29), (70, 20), (70, 25)],
+        &[("-103K1:A2", "-103K2:A1", &[]), ("-103K3:A2", "-103K2:A2", &[])],
+    );
+    done(&mut s, "route.page", json!({}));
+    assert_eq!(
+        card_line(&s),
+        "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"Route 2 wires on folio 103: 1 \
+         routed, 1 not routed.\" \"No route keeps clear of symbols: -103K3:A2 → -103K2:A2.\""
+    );
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    done(&mut s, "preview.cancel", json!({}));
+    done(&mut s, "route.page", json!({}));
+    assert_eq!(
+        card_line(&s),
+        "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"2 draden op folio 103 \
+         routeren: 1 gerouteerd, 1 niet gerouteerd.\" \"Geen route blijft vrij van symbolen: -103K3:A2 → \
+         -103K2:A2.\""
+    );
+    done(&mut s, "view.language", json!({"value": "en"}));
+    let rev = s.revision();
+    done(&mut s, "preview.apply", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
+    assert_eq!(
+        s.toast().map(|t| t.text.as_str()),
+        Some("Routed 1 wire on folio 103.")
+    );
+    let t = tables(&s);
+    let routed: Vec<bool> = t
+        .connections
+        .iter()
+        .filter(|c| c.polyline.len() > 1 && cp_label_at(&t, c).starts_with("-103K"))
+        .map(|c| c.stored_route)
+        .collect();
+    assert_eq!(routed.iter().filter(|r| **r).count(), 1, "{routed:?}");
+    // The unroutable wire stays; only it is left, so Route page previews it again and routes none.
+    assert_eq!(
+        done_outcome(&mut s, "route.page"),
+        "Route 1 wire on folio 103: 0 routed, 1 not routed."
+    );
+}
+
+/// The label of a connection's end `a`.
+fn cp_label_at(t: &PageTables, c: &TableConnection) -> String {
+    end_label(t, &c.a)
+}
+
+/// The failure message of `action` (a solve that routes nothing fails with its lead).
+fn done_outcome(s: &mut ShellModel, action: &str) -> String {
+    match s.dispatch(action, &json!({})) {
+        ew_viewmodel::shell::Outcome::Failed { message } => message,
+        other => panic!("{action}: {other:?}"),
+    }
+}
+
+/// WP-S2.19 RW2 (D13): Route selection with one routed wire selected routes it again, in the card's one step; the
+/// page's other wires keep their routes.
+#[test]
+fn rw2_route_selection_re_routes_a_selected_wire_and_nothing_else() {
+    let tmp = Tmp::new("rw2");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (65, 20)],
+        &[(
+            "-103K1:A2",
+            "-103K2:A2",
+            &[(55, 24), (55, 31), (60, 31), (60, 26), (65, 26), (65, 24)],
+        )],
+    );
+    let before = tables(&s);
+    let wire = before
+        .connections
+        .iter()
+        .find(|c| end_label(&before, &c.a) == "-103K1:A2")
+        .expect("the wire")
+        .clone();
+    let mid = sheet(
+        &s,
+        (wire.polyline[1].0, (wire.polyline[1].1 + wire.polyline[2].1) / 2),
+    );
+    done(&mut s, "canvas.press", at(mid, json!({})));
+    done(&mut s, "canvas.release", at(mid, json!({})));
+    done(&mut s, "route.selection", json!({}));
+    assert_eq!(
+        card_line(&s),
+        "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"Route 1 wire on folio 103: 1 \
+         routed, 0 not routed.\""
+    );
+    done(&mut s, "preview.apply", json!({}));
+    let after = tables(&s);
+    let now = after
+        .connections
+        .iter()
+        .find(|c| c.id == wire.id)
+        .expect("the wire");
+    assert_ne!(now.polyline, wire.polyline, "routed again");
+    let others = |t: &PageTables| -> Vec<(ew_viewmodel::ew_api::output::Uuid, Vec<(i64, i64)>)> {
+        t.connections
+            .iter()
+            .filter(|c| c.id != wire.id)
+            .map(|c| (c.id, c.polyline.clone()))
+            .collect()
+    };
+    assert_eq!(others(&after), others(&before), "nothing else changes");
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Route edit and the split on insert (WR5)
 

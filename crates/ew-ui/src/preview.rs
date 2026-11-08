@@ -650,6 +650,18 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         if let CardOrigin::Part(p) = &card.origin {
             inset(ui, &mut |ui| part_block(ui, p));
         }
+        // WP-S2.19 D13: a route card's connections left unrouted, one row each with its reason.
+        if let CardOrigin::Route { rows, .. } = &card.origin {
+            for row in rows {
+                inset(ui, &mut |ui| {
+                    ui.label(
+                        RichText::new(row)
+                            .font(theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    );
+                });
+            }
+        }
         ui.add_space(t.space_2);
         let [entities, tags, xrefs, pages] = rows(&t, shell);
         let shown = egui::ScrollArea::vertical()
