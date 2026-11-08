@@ -38,8 +38,8 @@ delivery comes every second cycle. Measured by content, not by date:
 | M0 | Technical part delivered: the workspace, CI on Linux and Windows, licensing and the licence-boundary check. The remaining gate items are the project owner's |
 | M1 | Delivered with follow-up tasks: the model, the commands, the derived data, the checks, the reports and the PDF of the reference project are produced headlessly |
 | M-PP | Closed: the pilot-preview gate was recorded as Go |
-| M2 | In progress, toward the pilot release 0.1.0 on Windows and Linux, unsigned and with no network code |
-| M2.5 | Not started: the maintenance step starts once 0.1.0 is final |
+| M2 | Closed: 0.1.0 was released on 2026-11-08 for Windows and Linux, unsigned and with no network code |
+| M2.5 | Not started: the maintenance step starts when the project owner lifts the hold after 0.1.0 |
 | M2.5-Fix | Not started: follows M2.5 |
 | M3 to M6, 1.x | Not started |
 

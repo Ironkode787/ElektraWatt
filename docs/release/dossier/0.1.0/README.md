@@ -38,18 +38,23 @@ candidate is cut ([the procedure](../../README.md#8-a-blocker) §8); every earli
 
 | Candidate | Commit | Draft | Checklist | Result |
 |---|---|---|---|---|
-| — | — | — | — | No candidate yet |
+| `v0.1.0-rc.1` | `af30f7cc5` | The draft prerelease `v0.1.0-rc.1` | Not filled | Superseded: R1's findings and the autorouter (WP-S2.19) went into the next candidate (ID-1497, ID-1498). rc.2 was a fix round that was never tagged |
+| `v0.1.0-rc.3` | `135c0251b` | The draft prerelease `v0.1.0-rc.3` (release run 42481900397) | [checklist-rc.3.md](checklist-rc.3.md) | **Promoted as `v0.1.0`** on the owner's go (ID-1522) |
 
 ## 3. The go and the published release
 
 | Item | Record |
 |---|---|
-| The gate review G-M2 | Open |
-| The owner's go | Open |
-| The promote's dry run | Open |
-| The published release `v0.1.0` | Open |
+| The gate review G-M2 | The owner's own hands-on test of rc.3, 2026-11-08: about an hour, its findings recorded for M2.5-Fix (ID-1521). The acceptance run, the translation report and the manual tests of this folder were not run for 0.1.0: CI was off (ID-1519), the release was cut to an early alpha's size (ID-1520), and the owner gave the go with them open |
+| The owner's go | 2026-11-08: "Promote rc.3" (ID-1522) |
+| The promote's dry run | 2026-11-08, dispatched from `main`: it would create `v0.1.0` on `135c0251b` with rc.3's notes and its five files, and changed nothing |
+| The published release `v0.1.0` | 2026-11-08: the tag `v0.1.0` on `135c0251b`, published as the latest release with rc.3's five files, which were checked again after the upload |
 
 ## 4. The drafts, the SBOMs and the attestations
+
+*Changed 2026-11-08 (ID-1520):* the release workflow makes no SBOM and no attestation at 0.1.x, so rc.3 and 0.1.0
+hold five files: the four below and `SHA256SUMS`. rc.1, built before that change, also holds the SBOMs. The text
+below describes the pipeline before ID-1520.
 
 Each candidate's draft prerelease on the repository's releases page holds its files, the SBOM of every artefact
 (`<artefact>.cdx.json`) and `SHA256SUMS`; the build provenance of every file is on the repository's attestations
