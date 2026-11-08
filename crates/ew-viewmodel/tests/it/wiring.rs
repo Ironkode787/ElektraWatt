@@ -641,6 +641,39 @@ fn a_followed_route_along_an_unrouted_line_is_kept() {
     assert_eq!(routed(&s), expected, "followed, not routed again");
 }
 
+/// C53-rt#12 (ADR-0007 decision 4): a contact dragged onto a routed wire, its two CPs on the wire facing its ends,
+/// lists no proposal, since a move never splits a wire; the release changes no connection.
+#[test]
+fn a_move_onto_a_wire_lists_no_split() {
+    let tmp = Tmp::new("rt12");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(60, 20), (60, 40)],
+        &[("-103K1:A2", "-103K2:A1", &[(60, 24), (60, 40)])],
+    );
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
+    );
+    let p = grid_point(&s, (70, 30));
+    cursor(&mut s, p);
+    done(&mut s, "canvas.activate_alt", json!({}));
+    done(&mut s, "ui.dismiss", json!({}));
+    let t = tables(&s);
+    let c = t.reps.iter().find(|r| r.pos == p).expect("the contact").clone();
+    let n = t.connections.len();
+    let centre = sheet(&s, ((c.body[0] + c.body[2]) / 2, (c.body[1] + c.body[3]) / 2));
+    let left = sheet(&s, grid_point(&s, (0, 0))).0 - sheet(&s, grid_point(&s, (10, 0))).0;
+    done(&mut s, "canvas.press", at(centre, json!({})));
+    done(&mut s, "canvas.pointer", at((centre.0 + left, centre.1), json!({})));
+    assert_eq!(s.tool().state(), "dragging");
+    assert_eq!(describe_line(&s, "canvas proposals "), None);
+    done(&mut s, "canvas.release", at((centre.0 + left, centre.1), json!({})));
+    assert_eq!(tables(&s).connections.len(), n, "no split, no wire");
+}
+
 /// A wire to draw: its two CP labels and its route's grid indices.
 type WireSpec<'a> = (&'a str, &'a str, &'a [(i64, i64)]);
 

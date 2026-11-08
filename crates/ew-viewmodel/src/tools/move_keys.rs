@@ -169,8 +169,8 @@ pub fn grid_point_of(grid: (i64, i64), v: i64) -> i64 {
     i64::try_from(p).unwrap_or(if p < 0 { i64::MIN } else { i64::MAX })
 }
 
-/// The autoconnect proposals of the free CPs of `moved` displaced by `steps` (WP-S2.04 §8.3): shown during a move,
-/// never committed by it.
+/// The autoconnect proposals of the free CPs of `moved` displaced by `steps` (WP-S2.04 §8.3): the CP proposals a move
+/// shows and, with connect on move, commits (WP-S2.19 D15); a split is none.
 pub fn move_proposals(
     cx: &ToolCx<'_>,
     moved: &[EntityRef],
@@ -185,7 +185,13 @@ pub fn move_proposals(
             .map(|r| rep_delta(cx, r.pos, steps))
     };
     let ghost = super::autoconnect::moved_cps(tables, &delta);
-    super::autoconnect::proposals(&ghost, tables, moved, super::wire::drawing_area(cx), 0)
+    let mut found = super::autoconnect::proposals(&ghost, tables, moved, super::wire::drawing_area(cx), 0);
+    // A move never splits an existing wire (ADR-0007 decision 4, ID-1509 (6)), so a split is no proposal of a move:
+    // the ghost lists only the wires the release makes (C53-rt#12).
+    found
+        .list
+        .retain(|p| matches!(p.target, super::autoconnect::ProposalTarget::Cp { .. }));
+    found
 }
 
 /// `geometry::follow_ends` of `ew-commands` on a page polyline (FT-423): end `a` moves by `da`, end `b` by `db`
