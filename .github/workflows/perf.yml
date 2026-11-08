@@ -27,8 +27,7 @@
 name: perf
 
 on:
-  schedule:
-    - cron: "17 2 * * *"
+  # Off until 1.0 (owner, 2026-11-08, ID-1519): no push, pull-request or schedule trigger; run it by hand.
   workflow_dispatch:
     inputs:
       quick:

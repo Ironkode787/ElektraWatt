@@ -40,7 +40,8 @@ source: GPL-3.0-or-later for the app, MIT OR Apache-2.0 for the format crates. T
 
 - **Agents run targeted tests only.** Never the workspace suite, never `cargo xtask ci`. The agent definitions give
   the edit loop (one package set, `--all-features`, the nextest `lane` profile) and the hand-back checks.
-- **The full suite runs once per delivery,** as the CI run on the working branch.
+- **CI is off until 1.0** (owner, 2026-11-08, ID-1519): no workflow runs on a push, a pull request or a schedule, and
+  no full-suite run replaces it. The lane checks are the test runs.
 - **No performance tests during development** (2026-10-22: "Assume it passed"):
   - no `#[ignore]`d release-profile tests, no timing assertions, no `cargo xtask perf-gate`;
   - perf claims are marked "not measured (owner's rule)".

@@ -55,8 +55,7 @@
 name: deep-nightly
 
 on:
-  schedule:
-    - cron: "7 6 * * *"
+  # Off until 1.0 (owner, 2026-11-08, ID-1519): no push, pull-request or schedule trigger; run it by hand.
   workflow_dispatch:
     inputs:
       fuzz_minutes:

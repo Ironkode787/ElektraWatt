@@ -20,8 +20,7 @@
 name: coverage
 
 on:
-  schedule:
-    - cron: "43 3 * * 0"
+  # Off until 1.0 (owner, 2026-11-08, ID-1519): no push, pull-request or schedule trigger; run it by hand.
   workflow_dispatch:
 
 permissions:

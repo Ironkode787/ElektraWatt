@@ -14,10 +14,7 @@
 name: ci
 
 on:
-  pull_request:
-  push:
-    # A release branch `release/<X.Y>` too: its candidates are tagged there (ID-1412, WP-S6.08 D25).
-    branches: [main, "release/**"]
+  # Off until 1.0 (owner, 2026-11-08, ID-1519): no push, pull-request or schedule trigger; run it by hand.
   workflow_dispatch:
 
 permissions:

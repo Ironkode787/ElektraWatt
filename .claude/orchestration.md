@@ -126,7 +126,8 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
      - the last verify.
    - Meanwhile the free slots build the next cycle's first wave on the last wave's verified tip. Those lanes are
      integrated after the end tip and reviewed in the next cycle.
-9. **Checkpoints and deliveries alternate** (2026-10-31).
+9. **Checkpoints and deliveries alternate** (2026-10-31). **CI is off until 1.0** (owner, 2026-11-08, ID-1519): a
+   delivery is a checkpoint that also fast-forwards `main`; nothing below that dispatches or waits for CI applies.
    - **Checkpoint:** after the last verify, the design pass and the accepted review, push the working branch. `main`
      does not move and CI does not run.
    - **Delivery:** the gate is CI.
