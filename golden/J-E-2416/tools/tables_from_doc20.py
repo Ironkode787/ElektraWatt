@@ -2221,20 +2221,24 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
                 aux_rep[key] = (folio, cell)
                 rep(key, folio, cell, SYMBOL[fndef_of[key]])
 
-    # valves (triangle test inputs): row D, columns c-3, c-1, c+1, c+3 around the module's aux column c
+    # valves (triangle test inputs): row D, columns c-3, c-1, c+1, c+3 around the module's aux column c; on folio 203
+    # row H, below the actuators they drive (decision log ID-1503: each cylinder above the valve that drives it)
     fixture(
         "representations", "cell", "-201U3-Q1 … -202U2-Q4",
-        "row D, columns c-3, c-1, c+1, c+3 around the module's aux column c", "§6.1 rows 33-60, §15",
-        "test input (fixture choice): doc 20 names only the pages 203-206 of the valves, not their cells",
+        "row D (row H on folio 203), columns c-3, c-1, c+1, c+3 around the module's aux column c",
+        "§6.1 rows 33-60, §15",
+        "test input (fixture choice): doc 20 names only the pages 203-206 of the valves, not their cells; on folio 203"
+        " each valve sits below the actuator it drives (ID-1503)",
         cell=rows61["VALVES"]["Main rep."],
     )  # fmt: skip
     valve_col = {}
     for m in MODULES:
         folio, cell = aux_rep[f"{m}#aux"]
         c = int(cell[1:])
+        row = "H" if folio == "203" else "D"
         for q, off in zip(range(1, 5), (-3, -1, 1, 3)):
             valve_col[f"{m}-Q{q}"] = (folio, c + off)
-            rep(f"{m}-Q{q}", folio, f"D{c + off}", SYMBOL["ew.fn.valve-5-2-sol-spring"])
+            rep(f"{m}-Q{q}", folio, f"{row}{c + off}", SYMBOL["ew.fn.valve-5-2-sol-spring"])
 
     # field devices (triangle): row G (valve) and row F (actuator) in the column of the driving valve (section 6.2)
     fixture(
@@ -2491,15 +2495,9 @@ def build_fluid_lines(rows):
     keys = []
     first = None
     cells = {rp["key"]: rp["cell"] for rp in TABLES["representations"][1]}
-    # ▲U-51 (FT-1315): the stored route, the corners between the ends in QET px from cell centres. Ports 2 and 4 sit
-    # on the valve's top at +30 and +10 px from the valve cell's centre (row D), A and B on the cylinder's left at
-    # -20 px, -20 and +20 px from the actuator cell's centre (row F, the valve's column, ▲U-39): each line runs down
-    # from its port into row E, left past the cylinder and then right into its end. The line to B turns higher and
-    # runs further out, so the two lines of a valve never cross.
-    routes = {
-        "2": "E{c} 30 0;E{c} -30 0;F{c} -30 -20",
-        "4": "E{c} 10 -20;E{c} -40 -20;F{c} -40 20",
-    }
+    # ▲U-51 (decision log ID-1503): each valve sits in row H below the actuator it drives (row F, ▲U-38, ▲U-39), and
+    # the lines carry no route of their own: the schematic router's route tool writes them into the committed
+    # connections.csv (WP-S2.19 section 8.2), as on every other routed page (keep_router_routes).
     for r in table_dicts("## 12. Pneumatic functions", 1):
         if "A-R only" in r["Lines"]:
             continue
@@ -2510,13 +2508,13 @@ def build_fluid_lines(rows):
         first = first or r["To"]
         column = cells[frm.group(1)][1:]
         check(
-            cells[frm.group(1)][0] == "D" and cells[f"{to.group(1)}#actuator"] == f"F{column}",
-            f"section 12: the valve {frm.group(1)} and the actuator of {to.group(1)} are not in rows D and F of one column",
+            cells[frm.group(1)][0] == "H" and cells[f"{to.group(1)}#actuator"] == f"F{column}",
+            f"section 12: the valve {frm.group(1)} and the actuator of {to.group(1)} are not in rows H and F of one column",
         )
         for key, port, end in zip(lines, ("2", "4"), ("A", "B")):
             rows.append(
                 {"key": key, "wire": "", "page": "203", "a": f"{frm.group(1)}:{port}", "b": f"{to.group(1)}:{end}",
-                 "kind": "fluid", "route": routes[port].format(c=column)}
+                 "kind": "fluid"}
             )  # fmt: skip
             keys.append(key)
     check(keys == [f"F{n}" for n in range(1, 17)], f"section 12: the lines are {keys}")
@@ -2525,12 +2523,6 @@ def build_fluid_lines(rows):
         "ports 2 and 4 of each used valve join A and B of its actuator (the ▲ of the cell), as working fluid lines on "
         "folio 203 (WP-S1.20 D20)",
         cell=first,
-    )  # fmt: skip
-    fixture(
-        "connections", "route", keys, "; ".join(routes.values()), "§12",
-        "test input (fixture choice): each line runs down from its port, left past the cylinder and right into A or B, "
-        "on the connection grid and clear of the cylinder bodies (FT-1315); `{c}` is the column of the valve",
-        marks=["U-51"],
     )  # fmt: skip
 
 

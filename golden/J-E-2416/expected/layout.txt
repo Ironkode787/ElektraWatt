@@ -13,4 +13,4 @@
   5 bends: -X1032:3/b → PE-1.3
   5 bends: PE-1.1 → -X1032:1/b
 106: hard 0, crossings 23, bends 30
-203: hard 32, crossings 0, bends 48
+203: hard 0, crossings 0, bends 48

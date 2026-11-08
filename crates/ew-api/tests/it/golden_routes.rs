@@ -1,11 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Golden A's route tool (WP-S2.19 §8.2, decision log ID-1499): the routes of the page connections of folios 3, 101,
-//! 102, 103 and 106 are the schematic router's. The tool imports the tables with those rows' routes left out, routes
+//! Golden A's route tool (WP-S2.19 §8.2, decision log ID-1499, ID-1503): the routes of the page connections of folios
+//! 3, 101, 102, 103, 106 and 203 are the schematic router's. The tool imports the tables with those rows' routes left out, routes
 //! each page with `Session::route_plan` (Route page), and writes each route's corners into `connections.csv`'s `route`
-//! column in the column's grammar (`<cell>` or `<cell> <dx> <dy>`, QET px from the cell's centre); folio 203's hand
-//! routes (U-51, FT-1315) are never rewritten. Compare mode asserts that the committed column is the router's result,
+//! column in the column's grammar (`<cell>` or `<cell> <dx> <dy>`, QET px from the cell's centre). Compare mode asserts that the committed column is the router's result,
 //! so a router change is a golden diff, and that every page connection is routed (RG1).
 //!
 //! The layout of the routed pages, the bends and crossings per page (RG3), is in `golden/J-E-2416/expected/layout.txt`:
@@ -31,8 +30,8 @@ use ew_derive::ew_units::{Grid, Nm};
 use ew_import_tables::ew_interop_api::{ImportBatch, ImportInput};
 use ew_import_tables::{TablesImporter, bootstrap_context};
 
-/// The folios whose route-less page connections the router routes; folio 203's routes are hand-written.
-const ROUTED: [&str; 5] = ["3", "101", "102", "103", "106"];
+/// The folios whose page connections the router routes.
+const ROUTED: [&str; 6] = ["3", "101", "102", "103", "106", "203"];
 
 /// The frame grid of the golden pages in QET px (`ew-import-tables`' cell geometry): the header band, a column's
 /// width, a row's height.
@@ -254,9 +253,7 @@ fn layout_text() -> String {
         "# Golden A's layout per routed page (WP-S2.19 RG3): written by golden_routes' bless; a page's totals never \
          rise.\n",
     );
-    let mut folios: Vec<&str> = ROUTED.to_vec();
-    folios.push("203");
-    for folio in folios {
+    for folio in ROUTED {
         let pages = s.layout_report(Some(folio)).expect("a drawn page");
         for p in &pages {
             out.push_str(&format!(

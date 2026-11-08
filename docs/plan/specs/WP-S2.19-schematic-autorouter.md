@@ -218,11 +218,12 @@ one of these forms). The external-arrow symbol keeps its free orientation (§12,
    `ew.gen.ip-target@qet10` for every target; the cells stay (the insertion point is the arrow tip as before). The
    tables importer refuses an EW IP form that does not match its function's `ip_direction`, in words.
 2. **The routes.** A route tool (an `ew-api` test in bless mode, `EW_BLESS_GOLDEN_ROUTES=1`) imports the tables with
-   the router-written rows' routes left out, routes folios 3, 101, 102, 103 and 106 with `route_plan`, and writes each
-   route's corners into `connections.csv`'s `route` column in the column's grammar (`<cell>` or `<cell> <dx> <dy>`);
-   folio 203's sixteen hand-written routes (U-51, FT-1315) are never rewritten. In compare mode the test asserts that
-   the committed column equals the router's result, so a router change is a golden diff. A corner the grammar cannot
-   express (a grid point that is no whole QET px from its cell's centre) is a stop, with the probe.
+   the router-written rows' routes left out, routes folios 3, 101, 102, 103, 106 and 203 with `route_plan`, and writes
+   each route's corners into `connections.csv`'s `route` column in the column's grammar (`<cell>` or `<cell> <dx>
+   <dy>`); folio 203's hand routes (U-51, FT-1315) were removed and the page laid out for the router (ID-1503). In
+   compare mode the test asserts that the committed column equals the router's result, so a router change is a golden
+   diff. A corner the grammar cannot express (a grid point that is no whole QET px from its cell's centre) is a stop,
+   with the probe.
 3. **The fixture.** `golden/J-E-2416.ew` is regenerated from the tables by the existing bless test
    (`EW_BLESS_GOLDEN_FIXTURE=1`, `crates/ew-api/tests/it/golden_fixture.rs`); no session opens it for writing.
 4. **What changes** (re-blessed, each compared side by side with the reference rendering of the previous candidate):
