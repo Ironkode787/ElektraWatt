@@ -320,8 +320,13 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
     - One brief, one lane, one review part per work package.
     - A lane is sized to finish under about 700k tokens (the 1M auto-compact window, the owner's maximum, ID-1322).
       Near 800k it commits, writes its hand-off note (at most 1,000 words, kept in the orchestrator's notes) and
-      hands back; a fresh `lane` continues from that note and the code map (`cargo xtask map --crates <set>`),
-      within the same brief and review part.
+      carries on in the same worktree through the compaction, reading the note again first; it hands back only when
+      its brief is done or at one of the brief's stops (owner, 2026-11-08, ID-1507). A fresh `lane` continues from
+      that note and the code map (`cargo xtask map --crates <set>`), within the same brief and review part, only
+      when a lane stops early.
+    - The retro compares the lanes that compact under ID-1507 with fresh lanes: re-reads after the compaction,
+      mistakes that trace to lost detail, and the wall time from the 800k point to the next edit.
+    - A specification's hand-back point at "nears 800k" reads under ID-1507; one at the end of a step stands.
     - An agent is resumed for fix rounds, rulings and questions while its context is under about 750k tokens.
     - The lane definition states these limits, so a brief names a smaller one only where its package needs it.
 
