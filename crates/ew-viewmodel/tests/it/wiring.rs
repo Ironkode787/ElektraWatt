@@ -802,6 +802,26 @@ fn rw2_route_selection_re_routes_a_selected_wire_and_nothing_else() {
     assert_eq!(others(&after), others(&before), "nothing else changes");
 }
 
+/// ID-1509 (8), C53-rt#6: Route selection needs a selected wire or symbol; with nothing selected it is refused,
+/// whatever the page holds unrouted.
+#[test]
+fn route_selection_needs_a_selection() {
+    let tmp = Tmp::new("rt6");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (55, 29)],
+        &[("-103K1:A2", "-103K2:A1", &[])],
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(
+        s.dispatch("route.selection", &json!({})),
+        ew_viewmodel::shell::Outcome::Refused {
+            reason_key: ew_viewmodel::key!("reason-route-selection")
+        }
+    );
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Route edit and the split on insert (WR5)
 

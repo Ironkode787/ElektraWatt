@@ -580,6 +580,16 @@ fn wire_page(m: &ShellModel) -> Result<(), Key<'static>> {
     m.wire_kind().map(|_| ())
 }
 
+/// An editable page with a connection or a representation selected (Route selection, WP-S2.19 D13; ID-1509 (8)).
+fn route_selection(m: &ShellModel) -> Result<(), Key<'static>> {
+    editable_page(m)?;
+    if m.route_selection_ids().is_empty() {
+        Err(key!("reason-route-selection"))
+    } else {
+        Ok(())
+    }
+}
+
 /// An editable page with exactly one connection selected (Edit ▸ Edit route; WP-S2.04 part 2, window check).
 fn one_connection(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
@@ -3066,7 +3076,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             Command,
             Menu::Draw,
             &[],
-            editable_page,
+            route_selection,
             grp(Group::Connect),
             |s, _| s.act_route_selection(),
         ),

@@ -5336,3 +5336,4 @@ toast-route-done = Routed { $p0 } wires on { $p1 }.
 toast-route-done-one = Routed 1 wire on { $p1 }.
 toast-route-nothing = Every wire on { $p0 } has a route.
 reason-route = The routes are previewed first
+reason-route-selection = Select a wire or a symbol to route

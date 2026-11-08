@@ -627,17 +627,30 @@ impl ShellModel {
     /// `route.selection` (WP-S2.19 D13): the plan of the selected connections and of every connection with an end on a
     /// selected representation, routed ones routed again, in the preview card.
     pub(crate) fn act_route_selection(&mut self) -> Outcome {
-        let Some(c) = self.canvas() else {
+        if self.canvas().is_none() {
             return Outcome::Refused {
                 reason_key: key!("reason-no-page"),
             };
-        };
-        let ids = selection_kinds(&self.tools.selection, &c.page().tables)
-            .into_iter()
-            .filter(|(_, k)| matches!(k, EntityKind::Connection | EntityKind::Rep))
-            .map(|(e, _)| e.0)
-            .collect();
+        }
+        let ids = self.route_selection_ids();
+        if ids.is_empty() {
+            return Outcome::Refused {
+                reason_key: key!("reason-route-selection"),
+            };
+        }
         self.route_card(ew_api::routing::RouteScope::Selection(ids))
+    }
+
+    /// The selected connections and representations of the focused page, which Route selection routes (ID-1509 (8):
+    /// it needs one).
+    pub(crate) fn route_selection_ids(&self) -> Vec<ew_api::output::Uuid> {
+        self.canvas().map_or_else(Vec::new, |c| {
+            selection_kinds(&self.tools.selection, &c.page().tables)
+                .into_iter()
+                .filter(|(_, k)| matches!(k, EntityKind::Connection | EntityKind::Rep))
+                .map(|(e, _)| e.0)
+                .collect()
+        })
     }
 
     /// The preview card of a page solve of `scope` on the current page (WP-S2.19 D13, §12a): its lead line and one row
