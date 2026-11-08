@@ -441,21 +441,159 @@ fn wr4_a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_co
         .clone();
     let centre = sheet(&s, ((c.body[0] + c.body[2]) / 2, (c.body[1] + c.body[3]) / 2));
     let right = sheet(&s, ((c.body[0] + c.body[2]) / 2 + g, (c.body[1] + c.body[3]) / 2));
+    // WP-S2.19 RM2 (D15): the contact moved a step right, off the facing CPs, connects nothing.
+    let n = tables(&s).connections.len();
     done(&mut s, "canvas.press", at(centre, json!({})));
     done(&mut s, "canvas.pointer", at(right, json!({})));
-    done(&mut s, "canvas.pointer", at(centre, json!({})));
-    assert_eq!(s.tool().state(), "dragging");
+    done(&mut s, "canvas.release", at(right, json!({})));
+    assert_eq!(tables(&s).connections.len(), n);
+    // Dragged back onto them, the move shows its two proposals and connects them on release, in one undo step.
+    let drag_back = |s: &mut ShellModel| {
+        done(s, "canvas.press", at(right, json!({})));
+        done(s, "canvas.pointer", at(centre, json!({})));
+        assert_eq!(s.tool().state(), "dragging");
+    };
+    drag_back(&mut s);
+    let line_text = describe_line(&s, "canvas proposals ").expect("a move's proposals");
+    assert!(line_text.ends_with(" connect all"), "{line_text}");
+    let rev = s.revision();
+    done(&mut s, "canvas.release", at(centre, json!({})));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");
+    assert_eq!(
+        tables(&s).connections.len(),
+        n + 2,
+        "the move connects its proposals"
+    );
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(
+        tables(&s).connections.len(),
+        n,
+        "the undo takes the move and its wires"
+    );
+    // With Alt held at the release: none.
+    drag_back(&mut s);
+    done(&mut s, "canvas.release", at(centre, json!({"alt": true})));
+    assert_eq!(
+        tables(&s).connections.len(),
+        n,
+        "Alt at the release connects none"
+    );
+    done(&mut s, "edit.undo", json!({}));
+    // `tool.connect_on_move` turns it off for the session, and the status bar says so with the key.
+    done(&mut s, "tool.connect_on_move", json!({}));
+    assert_eq!(s.tool_notice(), Some("C Connect on move: off"));
+    drag_back(&mut s);
     let line_text = describe_line(&s, "canvas proposals ").expect("a move's proposals");
     assert!(line_text.ends_with(" connect none"), "{line_text}");
-    done(&mut s, "canvas.pointer", at(right, json!({})));
-    let n = tables(&s).connections.len();
-    done(&mut s, "canvas.release", at(right, json!({})));
-    assert_eq!(tables(&s).connections.len(), n, "a move never adds a connection");
-    // `tool.connect_on_move` is refused in this package.
+    done(&mut s, "canvas.release", at(centre, json!({})));
+    assert_eq!(tables(&s).connections.len(), n, "connect on move off");
+}
+
+/// WP-S2.19 RM1 (D14): on an empty stretch of Golden A's folio 103, coils -103K1 and -103K2 side by side joined twice,
+/// under the A2s and over the A1s, and -103K3 below between them. A drag of the first two four steps down would carry
+/// the lower wire through -103K3: the release re-solves it in the same undo step, and the upper wire, clean where it
+/// follows, keeps its vertices translated.
+#[test]
+fn rm1_a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_clean_one() {
+    use ew_viewmodel::ew_api::routing::measure;
+    let tmp = Tmp::new("rm1");
+    let mut s = shell(&tmp, "103");
+    for k in [(55, 20), (65, 20), (60, 29)] {
+        done(
+            &mut s,
+            "place.pick",
+            json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+        );
+        let p = grid_point(&s, k);
+        enter_at(&mut s, p);
+        done(&mut s, "ui.dismiss", json!({}));
+    }
+    let page = tables(&s).page.to_string();
+    let pin = |s: &ShellModel, label: &str| {
+        let c = cp(s, label);
+        json!({"cp": {"function": c.function.to_string(), "idx": c.idx}})
+    };
+    let route = |s: &ShellModel, points: &[(i64, i64)]| -> Value {
+        points
+            .iter()
+            .map(|k| {
+                let p = grid_point(s, *k);
+                json!([p.0, p.1])
+            })
+            .collect()
+    };
+    for (a, b, points) in [
+        ("-103K1:A2", "-103K2:A2", [(55, 24), (55, 26), (65, 26), (65, 24)]),
+        ("-103K1:A1", "-103K2:A1", [(55, 20), (55, 17), (65, 17), (65, 20)]),
+    ] {
+        let params = json!({"a": pin(&s, a), "b": pin(&s, b), "page": page, "route": route(&s, &points)});
+        done(
+            &mut s,
+            "command.run",
+            json!({"cmd": "connection.draw", "params": params}),
+        );
+    }
+    let wire = |s: &ShellModel, a: &str| -> TableConnection {
+        let t = tables(s);
+        let f = t.cps.iter().find(|c| c.label == a).expect("the CP").clone();
+        t.connections
+            .iter()
+            .find(|c| {
+                c.a == TableEnd::Cp {
+                    function: f.function,
+                    idx: f.idx,
+                }
+            })
+            .expect("the wire")
+            .clone()
+    };
+    let upper = wire(&s, "-103K1:A1").polyline;
+    let centre = |s: &ShellModel, tag: &str| {
+        let t = tables(s);
+        let r = t
+            .reps
+            .iter()
+            .find(|r| {
+                t.cps
+                    .iter()
+                    .any(|c| c.rep == r.id && c.label == format!("{tag}:A1"))
+            })
+            .expect("the coil")
+            .clone();
+        sheet(s, ((r.body[0] + r.body[2]) / 2, (r.body[1] + r.body[3]) / 2))
+    };
+    let (k1, k2) = (centre(&s, "-103K1"), centre(&s, "-103K2"));
+    done(&mut s, "canvas.press", at(k1, json!({})));
+    done(&mut s, "canvas.release", at(k1, json!({})));
+    done(&mut s, "canvas.press", at(k2, json!({"shift": true})));
+    done(&mut s, "canvas.release", at(k2, json!({"shift": true})));
+    let d = grid_point(&s, (0, 24)).1 - grid_point(&s, (0, 20)).1;
+    let down = sheet(&s, (0, d)).1 - sheet(&s, (0, 0)).1;
+    let rev = s.revision();
+    done(&mut s, "canvas.press", at(k2, json!({})));
+    done(&mut s, "canvas.pointer", at((k2.0, k2.1 + down), json!({})));
+    done(&mut s, "canvas.release", at((k2.0, k2.1 + down), json!({})));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
+    // The upper wire: its route translated, vertex for vertex.
+    let moved: Vec<(i64, i64)> = upper.iter().map(|p| (p.0, p.1 + d)).collect();
+    assert_eq!(wire(&s, "-103K1:A1").polyline, moved);
+    // The lower wire: routed again, through no symbol, and the page breaks no hard rule.
+    let lower = wire(&s, "-103K1:A2");
+    let geometry = s.canvas().unwrap().page().geometry.clone();
+    let m = measure(&geometry);
     assert_eq!(
-        refused(&mut s, "tool.connect_on_move", json!({})),
-        "reason-connect-on-place"
+        (
+            m.touches.len(),
+            m.overlaps.len(),
+            m.through_bodies.len(),
+            m.through_texts.len()
+        ),
+        (0, 0, 0, 0),
+        "{:?}",
+        lower.polyline
     );
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(wire(&s, "-103K1:A1").polyline, upper, "the undo restores both");
 }
 
 // ---------------------------------------------------------------------------------------------------------------

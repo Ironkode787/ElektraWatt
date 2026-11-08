@@ -256,6 +256,7 @@ fn assert_unique_split_target(shell: &ShellModel, point: (i64, i64), far: &[Stri
         snapper: &page.snapper,
         selection: shell.selection(),
         layout: ew_ui::ew_viewmodel::tools::LayoutOptions::default(),
+        connect_on_move: true,
     };
     let target = resolve_target(&cx, page.snapper.page_to_sheet(point), false);
     assert!(

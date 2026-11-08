@@ -286,8 +286,10 @@ pub enum Ghost {
         steps: (i64, i64),
         /// The readout (`dx 7.938 dy 0.000 mm`).
         readout: String,
-        /// The autoconnect proposals of the moved CPs (part 2, §8.3): shown, never committed by a move.
+        /// The autoconnect proposals of the moved CPs (part 2, §8.3).
         proposals: Vec<(String, Option<String>)>,
+        /// Whether the move commits them (WP-S2.19 D15: connect on move).
+        connect: bool,
     },
     // WP-S2.05 part 3
     /// The paste tool's floating fragment (§8.8).
@@ -581,6 +583,9 @@ pub struct ToolCx<'a> {
     pub selection: &'a Selection,
     /// The placing options of the tool options card (WP-S4.02 part 3): the sticky mode and the grid step.
     pub layout: LayoutOptions,
+    /// Whether a move connects its autoconnect proposals (WP-S2.19 D15: on by default; `tool.connect_on_move` toggles
+    /// it for the session).
+    pub connect_on_move: bool,
 }
 
 impl ToolCx<'_> {

@@ -636,17 +636,30 @@ pub struct MoveReps {
     pub connect: Vec<MoveHint>,
 }
 
-/// An autoconnect hint of `rep.move` (WP-S2.19 D15): a `device.place` hint ([`ConnectHint`]) of a representation.
+/// An autoconnect hint of `rep.move` (WP-S2.19 D15): a `device.place` hint ([`ConnectHint`]) of a representation,
+/// its CP named by function and index (the CP the representation draws, a black box's included), as the window knows
+/// a placed representation's CPs.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MoveHint {
     /// The representation whose CP the wire starts at.
     #[schemars(with = "UuidS")]
     pub rep: Id<Representation>,
-    /// The symbol CP of the representation (`SymbolCp.idx`).
-    pub cp: u16,
+    /// The CP the representation draws.
+    pub cp: HintCp,
     /// The other end: a CP, a junction or a point on a connection.
     pub to: EndpointParam,
+}
+
+/// A function's connection point, as a [`MoveHint`] names it.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct HintCp {
+    /// The function.
+    #[schemars(with = "UuidS")]
+    pub function: Id<Function>,
+    /// The function's CP index.
+    pub idx: u16,
 }
 
 /// `round(k × num / den)`, halves away from zero, saturating (the nm length of `k` grid steps).
@@ -755,17 +768,18 @@ impl MoveReps {
                 continue;
             }
             let rep = tx.require::<Representation>(hint.rep)?;
-            let Some(cp) = crate::geometry::rep_cps(tx, &rep)
-                .into_iter()
-                .find(|c| c.symbol_cp == hint.cp)
-            else {
+            let (function, idx) = (hint.cp.function, hint.cp.idx);
+            if !crate::geometry::rep_cps(tx, &rep)
+                .iter()
+                .any(|c| c.function == function && c.idx == idx)
+            {
                 return tx.reject(text!(
                     "refusal-rep-move-no-cp",
                     crate::words::symbol(tx, hint.rep),
-                    hint.cp.to_string()
+                    crate::words::cp(tx, function, idx)
                 ));
-            };
-            hint_wire(tx, Endpoint::Cp(cp.function, cp.idx), &hint.to, rep.page, i)?;
+            }
+            hint_wire(tx, Endpoint::Cp(function, idx), &hint.to, rep.page, i)?;
         }
         Ok(notices)
     }

@@ -65,7 +65,7 @@ use ew_api::output::ew_dl::ew_units::Rect;
 use ew_api::output::ew_dl::{Destination, EntityRef};
 
 use super::black_box;
-use super::move_keys::{move_command, move_overlay, moved_set, readout, steps_between};
+use super::move_keys::{move_command, move_overlay, moved_set, readout, release_command, steps_between};
 use super::route_edit::{moved_route, route_command, segment_at, segment_overlay, segment_steps};
 use super::transform::{selected_movable, selected_reps, transform_command};
 use super::wire::PageGridMap;
@@ -150,8 +150,10 @@ pub struct SelectTool {
     /// The selection's generation and the page's revision when a drag or the keyboard move began: a change of
     /// either makes the pending move stale (fix round of WP-S2.04 part 1, item 11).
     origin: (u64, u64),
-    /// The autoconnect proposals of the moved CPs at the current steps, as the describe text names them (shown only).
+    /// The autoconnect proposals of the moved CPs at the current steps, as the describe text names them.
     proposals: Vec<(String, Option<String>)>,
+    /// Whether the move connects them on release (WP-S2.19 D15: the session's connect on move, as the drag saw it).
+    connect: bool,
     /// The last plain click and what it selected, for the repeated click that walks the pick stack (FT-500).
     last: Option<LastClick>,
     // WP-S4.02 part 3
@@ -287,6 +289,7 @@ impl SelectTool {
             cursor: None,
             origin: (0, 0),
             proposals: Vec::new(),
+            connect: false,
             last: None,
             panel: None,
         }
@@ -456,9 +459,11 @@ impl SelectTool {
         SelectTool::click_entity(picked, mods)
     }
 
-    /// The overlay of a move of `moved` by `steps`; the proposals of the moved CPs are kept for the ghost (shown only).
+    /// The overlay of a move of `moved` by `steps`; the proposals of the moved CPs are kept for the ghost, with whether
+    /// the move connects them (WP-S2.19 D15).
     fn move_out(&mut self, cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> ToolOutput {
         self.proposals = super::move_keys::move_proposals(cx, moved, steps).lines();
+        self.connect = cx.connect_on_move;
         ToolOutput::Transient(move_overlay(cx, moved, steps))
     }
 
@@ -787,7 +792,9 @@ impl SelectTool {
                 if steps == (0, 0) {
                     self.click(last, pressed, from, held, cx)
                 } else {
-                    ToolOutput::Commit(move_command(&cx.page.tables, &moved, steps))
+                    // WP-S2.19 D14, D15: the re-solved routes, and the proposals unless Alt is held at the release.
+                    let connect = cx.connect_on_move && !(held.alt || mods.alt);
+                    ToolOutput::Commit(release_command(cx, &moved, steps, connect))
                 }
             }
             moving @ State::Moving { .. } => {
@@ -989,7 +996,7 @@ impl Tool for SelectTool {
                     return if steps == (0, 0) {
                         ToolOutput::Cancel
                     } else {
-                        ToolOutput::Commit(move_command(&cx.page.tables, &moved, steps))
+                        ToolOutput::Commit(release_command(cx, &moved, steps, cx.connect_on_move))
                     };
                 }
                 let Some(at) = self.cursor else {
@@ -1083,6 +1090,7 @@ impl Tool for SelectTool {
                 steps: *steps,
                 readout: readout.clone(),
                 proposals: self.proposals.clone(),
+                connect: self.connect,
             }),
             _ => None,
         }

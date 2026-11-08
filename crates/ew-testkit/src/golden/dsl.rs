@@ -1654,7 +1654,8 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     }
 
     /// [`Dsl::move_steps`] with the window's members (WP-S2.19 D14, D15): `routes` replace the followed routes of the
-    /// connections named, and `connect` makes the wires of the autoconnect hints `(rep, symbol CP, other end)`.
+    /// connections named, and `connect` makes the wires of the autoconnect hints `(rep, (function, CP index), other
+    /// end)`.
     ///
     /// # Errors
     ///
@@ -1664,7 +1665,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         reps: &[Id<Representation>],
         steps: [i64; 2],
         routes: &[(Id<Connection>, Value)],
-        connect: &[(Id<Representation>, u16, Value)],
+        connect: &[(Id<Representation>, (Id<Function>, u16), Value)],
     ) -> Result<()> {
         let routes: Vec<Value> = routes
             .iter()
@@ -1672,7 +1673,9 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             .collect();
         let connect: Vec<Value> = connect
             .iter()
-            .map(|(rep, cp, to)| json!({"rep": rep, "cp": cp, "to": to}))
+            .map(|(rep, (function, idx), to)| {
+                json!({"rep": rep, "cp": {"function": function, "idx": idx}, "to": to})
+            })
             .collect();
         self.run(
             "rep.move",

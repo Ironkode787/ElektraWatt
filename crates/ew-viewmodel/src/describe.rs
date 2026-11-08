@@ -2277,14 +2277,17 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             steps,
             readout,
             proposals,
+            connect,
         }) => {
             lines.push(format!(
                 "canvas ghost move {count} steps {} {} readout \"{readout}\"",
                 steps.0, steps.1
             ));
-            // WP-S2.04 part 2 (§8.3): a move shows its proposals and connects none.
+            // WP-S2.04 part 2 (§8.3): a move shows its proposals; WP-S2.19 D15: it connects them unless connect on
+            // move is off.
             if !proposals.is_empty() {
-                lines.push(format!("{} connect none", proposals_line(&proposals)));
+                let connects = if connect { "all" } else { "none" };
+                lines.push(format!("{} connect {connects}", proposals_line(&proposals)));
             }
         }
         // WP-S2.05 part 3 (§8.8)

@@ -297,7 +297,6 @@ hint-wire-bend = Bend placed: click a connection point to end the wire.
 hint-route-edit = { $p0 } picks the segment, the arrow keys move it, { $p1 } commits; { $p2 } cancels
 announce-wire-routing = Wire: routing from { $p0 }. Click a connection point; { $p1 } removes the last bend; { $p2 } cancels
 wire-readout = { $p0 } mm
-reason-connect-on-place = Proposals connect when a symbol is placed; a move never adds a connection
 reason-one-connection = Select exactly one connection
 reason-one-junction = Select exactly one junction
 reason-no-wire-kind = The Wire tool does not draw this page type's connections yet
@@ -725,6 +724,8 @@ key-none = (no key)
 hud-stack = { $p0 } objects overlap here · click again to select the next
 hud-selected = { $p0 } selected · { $p2 } deletes · { $p1 } rotates
 hud-keys-place = { $p0 } rotates · { $p1 } variant · { $p2 } done
+hud-connect-on-move-on = { $p0 } Connect on move: on
+hud-connect-on-move-off = { $p0 } Connect on move: off
 hud-place-wires = connects { $p0 }; Alt+Click or { $p1 } places without
 
 # FIXPT41: the IP tool's ghost on a pin.
@@ -1360,7 +1361,7 @@ refusal-rep-move-steps-out-of-range = the move takes { $p0 } outside the drawabl
 refusal-rep-move-steps-cp-out-of-range = the move takes a connection point of { $p0 } outside the drawable range; move it fewer grid steps
 refusal-rep-move-route-out-of-range = the move takes the route of { $p0 } outside the drawable range; move it less far
 refusal-rep-move-nothing = give at least one representation or item to move
-refusal-rep-move-no-cp = { $p0 } has no connection point { $p1 } to connect on the move; pick one of its CPs
+refusal-rep-move-no-cp = { $p0 } does not draw connection point { $p1 }; connect on the move from one of its own connection points
 refusal-rep-move-out-of-range = the move takes { $p0 } outside the drawable range; move it less far
 refusal-rep-move-cp-out-of-range = the move takes a connection point of { $p0 } outside the drawable range; move it less far
 refusal-rep-move-end-behind = the move would keep one end of { $p0 } behind on the old page; move both ends together

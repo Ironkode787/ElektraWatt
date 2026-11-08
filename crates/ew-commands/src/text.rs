@@ -1391,7 +1391,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ),
     (
         "refusal-rep-move-no-cp",
-        "{0} has no connection point {1} to connect on the move; pick one of its CPs",
+        "{0} does not draw connection point {1}; connect on the move from one of its own connection points",
     ),
     (
         "refusal-rep-move-out-of-range",

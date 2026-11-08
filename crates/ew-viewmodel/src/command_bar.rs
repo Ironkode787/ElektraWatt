@@ -766,7 +766,18 @@ pub fn hud(model: &ShellModel) -> HudModel {
             };
             format!("{what} \u{b7} {keys}")
         }
-        Some(Ghost::Move { readout, .. }) => readout,
+        // WP-S2.19 D15: the move's HUD names connect on move's key and state.
+        Some(Ghost::Move { readout, connect, .. }) => {
+            let state = strings::format(
+                if connect {
+                    key!("hud-connect-on-move-on")
+                } else {
+                    key!("hud-connect-on-move-off")
+                },
+                &[&key_name(model, "tool.connect_on_move")],
+            );
+            format!("{readout} \u{b7} {state}")
+        }
         Some(Ghost::Paste { records, .. }) => format!(
             "{} \u{b7} {}",
             strings::format_count(crate::count_key!("label-paste"), records),

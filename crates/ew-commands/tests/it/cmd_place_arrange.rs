@@ -995,8 +995,8 @@ fn move_hints_make_their_wires_and_refuse_a_cp_in_words() {
         .execute(&move_with(json!({
             "reps": [REP_102G1], "steps": [0, 0],
             "connect": [
-                {"rep": REP_102G1, "cp": 0, "to": {"cp": {"function": FN_T1, "idx": 1}}},
-                {"rep": REP_102G1, "cp": 1, "to": {"junction": {"junction": id::<ew_schema::Junction>(0x9999)}}}
+                {"rep": REP_102G1, "cp": {"function": FN_102G1, "idx": 0}, "to": {"cp": {"function": FN_T1, "idx": 1}}},
+                {"rep": REP_102G1, "cp": {"function": FN_102G1, "idx": 1}, "to": {"junction": {"junction": id::<ew_schema::Junction>(0x9999)}}}
             ]
         })))
         .expect("rep.move");
@@ -1016,9 +1016,10 @@ fn move_hints_make_their_wires_and_refuse_a_cp_in_words() {
     assert_eq!(
         rejection(engine(steps_model()).execute(&move_with(json!({
             "reps": [REP_102G1], "steps": [0, 0],
-            "connect": [{"rep": REP_102G1, "cp": 7, "to": {"cp": {"function": FN_T1, "idx": 1}}}]
+            "connect": [{"rep": REP_102G1, "cp": {"function": FN_102G1, "idx": 7}, "to": {"cp": {"function": FN_T1, "idx": 1}}}]
         })))),
-        "the symbol of -102G1 has no connection point 7 to connect on the move; pick one of its CPs"
+        "the symbol of -102G1 does not draw connection point -102G1:7; connect on the move from one of its own \
+         connection points"
     );
 }
 

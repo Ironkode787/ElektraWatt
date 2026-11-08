@@ -248,6 +248,131 @@ fn follow_start(r: &mut Vec<(i64, i64)>, snap: &dyn Fn(i64) -> i64, d: (i64, i64
     }
 }
 
+/// The command a move of `moved` by `steps` commits on release (WP-S2.19 D14, D15): [`move_command`] with `routes`,
+/// the connections [`resolved_routes`] routes again, and with `connect` the autoconnect proposals of the moved CPs as
+/// `connect` hints, so the move, its re-solved routes and its new wires are one undo step.
+pub fn release_command(
+    cx: &ToolCx<'_>,
+    moved: &[EntityRef],
+    steps: (i64, i64),
+    connect: bool,
+) -> Box<AnyCommand> {
+    let mut cmd = move_command(&cx.page.tables, moved, steps);
+    let routes = resolved_routes(cx, moved, steps);
+    if !routes.is_empty() {
+        cmd.params["routes"] = serde_json::Value::Array(routes);
+    }
+    if connect {
+        let tables = &cx.page.tables;
+        let hints: Vec<serde_json::Value> = move_proposals(cx, moved, steps)
+            .list
+            .iter()
+            .filter_map(|p| match &p.target {
+                // A moved CP's index in the page tables stands for its symbol CP (`autoconnect::moved_cps`).
+                super::autoconnect::ProposalTarget::Cp { function, idx, .. } => {
+                    let cp = tables.cps.get(usize::from(p.cp.symbol_cp))?;
+                    Some(json!({
+                        "rep": cp.rep.to_string(),
+                        "cp": {"function": cp.function.to_string(), "idx": cp.idx},
+                        "to": {"cp": {"function": function.0.to_string(), "idx": idx}},
+                    }))
+                }
+                super::autoconnect::ProposalTarget::Split { .. } => None,
+            })
+            .collect();
+        if !hints.is_empty() {
+            cmd.params["connect"] = serde_json::Value::Array(hints);
+        }
+    }
+    cmd
+}
+
+/// The re-solved routes of a move of `moved` by `steps` (WP-S2.19 D14), as `rep.move`'s `routes` entries. On the page
+/// geometry with the move applied (the moved representations' bodies, CPs and texts displaced as `rep.move` displaces
+/// them; each connection with a moved end drawn along its rubber band), every such connection that is unrouted,
+/// breaks a hard rule there or has more bends than before is routed again (`route_page`, the other connections fixed);
+/// the others keep the followed route, and so does one the router finds no clear route for.
+pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> Vec<serde_json::Value> {
+    use ew_api::routing::{Measures, measure, route_page};
+    let tables = &cx.page.tables;
+    let before = &*cx.page.geometry;
+    let delta_of = |rep: ew_api::output::Uuid| -> Option<(i64, i64)> {
+        if !moved.iter().any(|e| e.0 == rep) {
+            return None;
+        }
+        tables
+            .reps
+            .iter()
+            .find(|r| r.id == rep)
+            .map(|r| rep_delta(cx, r.pos, steps))
+    };
+    let shift = |r: [i64; 4], d: (i64, i64)| [r[0] + d.0, r[1] + d.1, r[2] + d.0, r[3] + d.1];
+    let mut after = before.clone();
+    for b in &mut after.bodies {
+        if let Some(d) = delta_of(b.rep) {
+            b.rect = shift(b.rect, d);
+        }
+    }
+    for t in &mut after.texts {
+        if let Some(d) = delta_of(t.rep) {
+            t.rect = shift(t.rect, d);
+        }
+    }
+    let mut moved_cps: Vec<(ew_api::output::Uuid, (i64, i64))> = Vec::new();
+    for cp in &mut after.cps {
+        if let Some(d) = delta_of(cp.rep) {
+            cp.at = (cp.at.0 + d.0, cp.at.1 + d.1);
+            moved_cps.push((cp.id, d));
+        }
+    }
+    let snap = |v: i64| grid_point_of(cx.snapper.grid(), v);
+    let end_delta = |end: ew_api::output::Uuid| moved_cps.iter().find(|(id, _)| *id == end).map(|(_, d)| *d);
+    let mut affected = Vec::new();
+    for c in &mut after.connections {
+        let (da, db) = (end_delta(c.ends[0]), end_delta(c.ends[1]));
+        c.polyline = match (da, db) {
+            (None, None) => continue,
+            (Some(d), Some(_)) => c.polyline.iter().map(|p| (p.0 + d.0, p.1 + d.1)).collect(),
+            _ => follow_polyline(&c.polyline, &snap, da, db),
+        };
+        affected.push(c.id);
+    }
+    if affected.is_empty() {
+        return Vec::new();
+    }
+    let (was, now) = (measure(before), measure(&after));
+    let bends = |m: &Measures, id: ew_api::output::Uuid| {
+        m.bends.iter().find(|b| b.connection == id).map_or(0, |b| b.bends)
+    };
+    let breaks = |id: ew_api::output::Uuid| {
+        now.touches.iter().any(|t| t.connection == id)
+            || now.overlaps.iter().any(|o| o.connections.contains(&id))
+            || now.through_bodies.iter().any(|t| t.connection == id)
+            || now.through_texts.iter().any(|t| t.connection == id)
+    };
+    let jobs: Vec<ew_api::output::Uuid> = affected
+        .into_iter()
+        .filter(|id| {
+            let Some(c) = after.connections.iter().find(|c| c.id == *id) else {
+                return false;
+            };
+            let unrouted = !c.routed && c.polyline.first() != c.polyline.last();
+            unrouted || (c.routed && (breaks(*id) || bends(&now, *id) > bends(&was, *id)))
+        })
+        .collect();
+    if jobs.is_empty() {
+        return Vec::new();
+    }
+    route_page(&after, &jobs)
+        .routes
+        .iter()
+        .map(|(id, route)| {
+            let points: Vec<serde_json::Value> = route.iter().map(|p| json!([p.0, p.1])).collect();
+            json!({"connection": id.to_string(), "route": points})
+        })
+        .collect()
+}
+
 /// `rep.move {reps, steps}` (plus `items` when page items or structure boxes move): the moved entities that are
 /// representations go to `reps` (always present, because the command requires it), those that are page items or
 /// structure boxes to `items`, each in `moved` order; `items` is serialised only when it is not empty, so a move of

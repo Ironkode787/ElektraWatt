@@ -113,16 +113,35 @@
         }
       ]
     },
-    "MoveHint": {
+    "HintCp": {
       "additionalProperties": false,
-      "description": "An autoconnect hint of `rep.move` (WP-S2.19 D15): a `device.place` hint ([`ConnectHint`]) of a representation.",
+      "description": "A function's connection point, as a [`MoveHint`] names it.",
       "properties": {
-        "cp": {
-          "description": "The symbol CP of the representation (`SymbolCp.idx`).",
+        "function": {
+          "$ref": "#/$defs/CmdUuid",
+          "description": "The function."
+        },
+        "idx": {
+          "description": "The function's CP index.",
           "format": "uint16",
           "maximum": 65535,
           "minimum": 0,
           "type": "integer"
+        }
+      },
+      "required": [
+        "function",
+        "idx"
+      ],
+      "type": "object"
+    },
+    "MoveHint": {
+      "additionalProperties": false,
+      "description": "An autoconnect hint of `rep.move` (WP-S2.19 D15): a `device.place` hint ([`ConnectHint`]) of a representation,\nits CP named by function and index (the CP the representation draws, a black box's included), as the window knows\na placed representation's CPs.",
+      "properties": {
+        "cp": {
+          "$ref": "#/$defs/HintCp",
+          "description": "The CP the representation draws."
         },
         "rep": {
           "$ref": "#/$defs/CmdUuid",
