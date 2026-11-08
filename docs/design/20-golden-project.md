@@ -629,15 +629,15 @@ bond (FR-CON-014, D-22). W27 is listed in the wire list with potential "0V ⇄ P
 | 17 | 101.17 | 101 | T55:3 | E55:N | N-55T | 1.5 BU (rule) | — |
 | 18 | 101.19 | 101 | S56:14 ▲ | E56:X1 ▲ | N-55S | 1.5 BU (rule) | — |
 | 19 | 101.18 | 101→103 | E55:PE | -X1032:1/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.1 |
-| 20 | 102.1 | 102 | -102G1:+#1 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | J3 |
-| 21 | 102.2 | 102 | -102G1:+#2 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | J3; 2 wires on -102F1:1 |
-| 22 | 102.3 | 102 | -102G1:−#1 | -102F2:GND#1 | 0V | 1.5 (CDP) WH (profile) | J5 |
-| 23 | 102.4 | 102 | -102G1:−#2 | -102F2:GND#2 | 0V | 1.5 (CDP) WH (profile) | J6 |
-| 24 | 102.8 | 102 | -102F1:2 | -102F2:24VDC#1 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
-| 25 | 102.9 | 102 | -102F1:2 | -102F2:24VDC#2 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
-| 26 | 102.7 | 102→103 | -102G1:−#2 | -X1031:11/a | 0V | 0.75 WH (rule) | J6; IP 0VDC |
+| 20 | 102.2 | 102 | -102G1:+#1 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | J3 |
+| 21 | 102.3 | 102 | -102G1:+#2 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | J3; 2 wires on -102F1:1 |
+| 22 | 102.4 | 102 | -102G1:−#1 | -102F2:GND#1 | 0V | 1.5 (CDP) WH (profile) | J5 |
+| 23 | 102.8 | 102 | -102G1:−#2 | -102F2:GND#2 | 0V | 1.5 (CDP) WH (profile) | J6 |
+| 24 | 102.6 | 102 | -102F1:2 | -102F2:24VDC#1 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
+| 25 | 102.7 | 102 | -102F1:2 | -102F2:24VDC#2 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
+| 26 | 102.9 | 102→103 | -102G1:−#2 | -X1031:11/a | 0V | 0.75 WH (rule) | J6; IP 0VDC |
 | 27 | 102.5 | 102→103 | -102G1:−#1 | -X1032:2/a | 0V ⇄ PE | 0.75 GNYE (bond rule) ▲U-19 | J5; IP PE-0VDC |
-| 28 | 102.6 | 102→103 | -102G1:PE | -X1032:2/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.2 |
+| 28 | 102.1 | 102→103 | -102G1:PE | -X1032:2/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.2 |
 | 29 | 102.10 | 102→103 | -102F2:Out1 | -X1031:1/a | 24VDC-1 | 0.75 DBU (rule) | IP 24VDC-1 |
 | 30 | 102.11 | 102→103 | -102F2:Out2 | -X1031:5/a | 24VDC-2 | 0.75 DBU (rule) | IP 24VDC-2 |
 | 31 | 102.12 | 102→103 | -102F2:Out3 | -X1031:7/a | 24VDC-3 | 0.75 DBU (rule) | IP 24VDC-3 |
@@ -655,7 +655,7 @@ bond (FR-CON-014, D-22). W27 is listed in the wire list with potential "0V ⇄ P
 | 43 | — | 103→106 | -X1031:4/b | -202U1:4 | 24VDC-1 | -106W2 WH (core) | IP 24VDC-AIR4 |
 | 44 | — | 103→106 | -X1031:3/b | -202U1:5 | 24VDC-1 | -106W2 BN (core) | IP 24VDC-AIR3 |
 
-The "No." column is the computed numbering of §8.1 (W1 to W34; the ten cable cores carry none). **As built (cycle 14; decision log ID-348).** The Via column of a join is the wire list's notation on folio 907: "star at" or "chain on" the CP, with the junction's grid cell in front where it has one ("101-C11 star at F55:2", "102-D7 chain on -102F1:2"); the names J1 to J6 of §8.3 are the table's own labels and are not printed. Daisy chains exist at device CPs only, and one rule, `cp_label`, writes every CP label.
+The "No." column is the computed numbering of §8.1 (W1 to W34; the ten cable cores carry none). **As built (cycle 14; decision log ID-348).** The Via column of a join is the wire list's notation on folio 907: "star at" or "chain on" the CP, with the junction's grid cell in front where it has one ("101-C11 star at F55:2", "102-D8 chain on -102F1:2"); the names J1 to J6 of §8.3 are the table's own labels and are not printed. Daisy chains exist at device CPs only, and one rule, `cp_label`, writes every CP label.
 
 **The Via column is a generator contract** (decision log ID-379). `golden/J-E-2416/tools/tables_from_doc20.py` reads this table into `tables/connections.csv`, and from the Via column it reads only the junction tokens J1 to J6, "idem", "IP …" and "; 2 wires on …". The printed notation of folio 907 ("star at", "chain on", the junction's cell) is described in the paragraph above and held by the goldens (`expected/csv/wires.csv`), never written into this column. An edit of this table is checked with `tables_from_doc20.py --check` before it is committed.
 
@@ -1056,8 +1056,8 @@ auxiliary positions ("∞ 3-B2, 106-G3"); the external texts have no link. Arrow
 | PE-1.3 | 106-D1 ◁ | 103-G6 ◁ | 103-G6 | 106-D1 |
 | PE-1.4 | 106-A1 ◁ | 103-G6 ◁ | 103-G6 | 106-A1 |
 
-**External connection points (4, no in-project partner):** J-E-206-L, J-E-206-N, J-E-206-PE at 101-G0 and DP at
-3-G15 print "+J-E-206 / JE-N1000-03" (FR-XRF-012). The box captions "External Connection (J-E-206 / JE-N1000-03)"
+**External connection points (4, no in-project partner):** J-E-206-L and J-E-206-N at 101-G0, J-E-206-PE at 101-H0
+and DP at 3-G15 print "+J-E-206 / JE-N1000-03" (FR-XRF-012). The box captions "External Connection (J-E-206 / JE-N1000-03)"
 and "To J-E-206 / JE-N1000-03" are texts bound to the ExternalRef.
 
 **Main ↔ auxiliary references (9 devices, 19 texts, 20 targets):**

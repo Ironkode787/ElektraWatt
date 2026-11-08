@@ -416,12 +416,13 @@ def build_structure_and_external():
     device, location = external
     # doc 20 section 15 "External connection points": names, cells and the connection letter
     m = re.search(
-        r"External connection points \(4, no in-project partner\):\*\* (J-E-206-L), (J-E-206-N), (J-E-206-PE) at"
-        r"\s+(\d+)-(G\d+) and (DP) at\s+(\d+)-(G\d+)",
+        r"External connection points \(4, no in-project partner\):\*\* (J-E-206-L) and (J-E-206-N) at\s+(\d+)-(G\d+),"
+        r"\s+(J-E-206-PE) at\s+(\d+)-(H\d+)\s+and (DP) at\s+(\d+)-(G\d+)",
         DOC_TEXT,
     )
     check(m, "section 15: the External connection points paragraph is missing or changed")
-    names = [m.group(1), m.group(2), m.group(3), m.group(6)]
+    check(m.group(6) == m.group(3), "section 15: the three mains points are on one folio")
+    names = [m.group(1), m.group(2), m.group(5), m.group(8)]
     ext = []
     for name in names:
         conn = name[len("J-E-206-"):] if name.startswith("J-E-206-") else name
@@ -2190,10 +2191,10 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
         fn(key=f"{name}@{sf}", fndef="ew.fn.ip", kind="ip", ip_name=name, ip_direction="source")
         fn(key=f"{name}@{tf}", fndef="ew.fn.ip", kind="ip", ip_name=name, ip_direction="target")
     ext_defs = [
-        (ext.group(1), ext.group(4), ext.group(5), "target"),
-        (ext.group(2), ext.group(4), ext.group(5), "target"),
-        (ext.group(3), ext.group(4), ext.group(5), "target"),
-        (ext.group(6), ext.group(7), ext.group(8), "undirected"),
+        (ext.group(1), ext.group(3), ext.group(4), "target"),
+        (ext.group(2), ext.group(3), ext.group(4), "target"),
+        (ext.group(5), ext.group(6), ext.group(7), "target"),
+        (ext.group(8), ext.group(9), ext.group(10), "undirected"),
     ]
     for name, folio, cell, direction in ext_defs:
         # External points (doc 20 section 15): unpaired, named like the external reference they target.
@@ -2297,14 +2298,13 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
     # external points (section 15 prose); dy offsets of the three mains points are fixture choices (triangle)
     # ID-1504 (4a): their texts span 1.7 grid steps above and below each arrow and the external reference is nine
     # steps wide, so the three stand four steps (40 px) apart, spread over the rows G and H: the third in H0
-    dys = {ext.group(1): "-40", ext.group(2): "0", ext.group(3): "-40"}
-    ext_cells = {ext.group(3): "H0"}
+    dys = {ext.group(1): "-40", ext.group(2): "0", ext.group(5): "-40"}
     for name, folio, cell, direction in ext_defs:
         # ID-1502 (7): the mains points at the left edge are mirrored (E), so their CPs leave into the drawing area
-        rep(f"{name}@{folio}", folio, ext_cells.get(name, cell), EXTERNAL_ARROW, dy=dys.get(name, ""),
+        rep(f"{name}@{folio}", folio, cell, EXTERNAL_ARROW, dy=dys.get(name, ""),
             orient="E" if name in dys else "")  # fmt: skip
     fixture(
-        "representations", ["cell", "dy"], [f"{n}@{ext.group(4)}" for n in dys], "G0 -40; G0 0; H0 -40", "§15",
+        "representations", ["cell", "dy"], [f"{n}@{ext.group(3)}" for n in dys], "G0 -40; G0 0; H0 -40", "§15",
         "test input (fixture choice): the three mains points stand four grid steps apart, so that their texts do not"
         " overlap, spread from 101-G0 over the row below (ID-1504)",
     )  # fmt: skip
