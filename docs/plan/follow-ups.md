@@ -611,3 +611,4 @@ scheduled, expired and other.
 - FT-1592 (cycle 53, Low, ew-testkit; due: M3): a new fuzz arm or command shifts `gen_step`'s draws, so the `command_sequence` regression tapes need remaking by hand; derive each arm's seed from its name. Source: ID-1502
 - FT-1593 (cycle 53, Low, ew-scene; due: M3): a black box's caption is placed without regard to junctions and wires beside it (Golden A's -102F2 against D6 and D7, ID-1502 (6)); place it clear. Source: ID-1502
 - FT-1594 (cycle 53, Low, ew-viewmodel; due: M3): the interruption point tool's ghost connection point should move with the form when D changes the direction (the insertion point stays). Source: ID-1502
+- FT-1595 (cycle 53, Low, ew-scene; due: M3): the tag of a terminal drawn without a strip segment (`StripTagView`) still stands above the terminal, where a wire leaving up crosses it; place it beside, as ID-1502 (4) does for a strip segment. Source: ID-1503
