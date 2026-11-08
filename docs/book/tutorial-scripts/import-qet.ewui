@@ -3,6 +3,8 @@
 {"action":"ui.describe"}
 {"action":"file.import_qet_apply","params":{"confirm":true}}
 {"action":"ui.describe"}
+{"action":"route.page"}
+{"action":"preview.apply"}
 {"action":"tool.wire"}
 {"action":"cursor.set","params":{"x_mm":61.981,"y_mm":98.514}}
 {"action":"canvas.activate"}

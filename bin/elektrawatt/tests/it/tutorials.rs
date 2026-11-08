@@ -605,14 +605,15 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
     assert_eq!(
         lines_of(&preview, &["label \"1 page,"]),
         [
-            "label \"1 page, 4 devices, 3 connections; 0 errors, 8 warnings and 5 infos in the migration report\""
+            "label \"1 page, 4 devices, 3 connections; 3 errors, 8 warnings and 5 infos in the migration report\""
         ]
     );
     let report = ["messages scheme", "row level 2 rule"];
     assert_eq!(
         lines_of(&imported, &report),
         [
-            "messages scheme \"Migration report\" errors 0 warnings 8 infos 5 waived 0 pending 0",
+            "messages scheme \"Migration report\" errors 3 warnings 8 infos 5 waived 0 pending 0",
+            "row level 2 rule \"EW-CORE-073 Unrouted wire\" badge \"3\" expanded",
             "row level 2 rule \"EW-CORE-041 Device without part\" badge \"4\" expanded",
             "row level 2 rule \"EW-IMP-008 Value kept as foreign or opaque text\" badge \"1\" expanded",
             "row level 2 rule \"EW-IMP-119 Element without function semantics\" badge \"1\" expanded",

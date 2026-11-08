@@ -17,11 +17,11 @@ symbol wired to the supply's PE terminal. One conductor is missing on purpose: t
 
 1. Choose **Project ▸ Import QElectroTech project…**, pick `lamp-circuit.qet`, and name the new project's
    folder `lamp-circuit.ew`.
-   The import's preview says what it will create: "1 page, 4 devices, 3 connections; 0 errors, 8 warnings and 5
+   The import's preview says what it will create: "1 page, 4 devices, 3 connections; 3 errors, 8 warnings and 5
    infos in the migration report". Nothing is written yet.
 2. Choose **Apply** in the preview.
    EW creates the project and opens it. The Messages pane shows the **Migration report**, chosen in its header beside
-   the project's own scheme: 8 warnings and 5 infos.
+   the project's own scheme: 3 errors, 8 warnings and 5 infos.
 3. Read the report, rule by rule. Some findings are the record of the import, and stay:
    - EW-IMP-008: the folio-report format of QElectroTech is kept as text; EW's own cross-reference format applies.
    - EW-IMP-119: the supply's element has no meaning EW knows, so G1 came in as a generic black box.
@@ -29,22 +29,26 @@ symbol wired to the supply's PE terminal. One conductor is missing on purpose: t
      project's numbering.
    - EW-IMP-122: the lamp and the earth had no label, so EW gave them the tags -1A1 and -1X1.
 
-   The others are live checks of the project, and yours to fix: EW-POT-009 says that the lamp's pin X2 and the
-   supply's pin - are not connected, and EW-CORE-041 says that none of the four devices has a part.
-4. Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the lamp's pin X2, at its bottom, then the supply's pin -, at the
+   The others are live checks of the project, and yours to fix: EW-CORE-073 says that the file's three conductors
+   have no route, so they are drawn as dashed straight lines; EW-POT-009 says that the lamp's pin X2 and the
+   supply's pin - are not connected; and EW-CORE-041 says that none of the four devices has a part.
+4. Choose **Draw ▸ Connect ▸ Route page**.
+   The preview says "Route 3 wires on folio 1: 3 routed, 0 not routed." Choose **Apply**: the three wires are drawn
+   along their routes, the toast says "Routed 3 wires on folio 1.", and the three EW-CORE-073 errors are gone.
+5. Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the lamp's pin X2, at its bottom, then the supply's pin -, at the
    bottom of G1: the return wire is drawn. Choose **Draw ▸ Select**.
    The two EW-POT-009 warnings are gone. While you edit, the Messages pane shows the project's own scheme, drafting.
-5. Click the lamp -1A1 and choose **Edit ▸ Choose part…**. Type `lamp`, choose **EW-GEN-LMP-1**, and confirm with
+6. Click the lamp -1A1 and choose **Edit ▸ Choose part…**. Type `lamp`, choose **EW-GEN-LMP-1**, and confirm with
    **Choose**.
    The lamp has its part.
-6. Click the switch S1, choose **Edit ▸ Choose part…**, type `on/off` and choose **EW-GEN-SW-1**.
-7. Click the supply G1, choose **Edit ▸ Choose part…**, type `power supply` and choose **EW-GEN-PSU-1**.
-8. Click the earth -1X1, choose **Edit ▸ Choose part…**, type `earth` and choose **EW-GEN-TRM-2**.
+7. Click the switch S1, choose **Edit ▸ Choose part…**, type `on/off` and choose **EW-GEN-SW-1**.
+8. Click the supply G1, choose **Edit ▸ Choose part…**, type `power supply` and choose **EW-GEN-PSU-1**.
+9. Click the earth -1X1, choose **Edit ▸ Choose part…**, type `earth` and choose **EW-GEN-TRM-2**.
    Every device has its part, and EW-CORE-041 is gone.
-9. Choose **Check ▸ Run checks** (`F7`).
-   The Messages pane shows the migration report again, with no error, 2 warnings (EW-IMP-008 and EW-IMP-119) and 5
-   infos (EW-IMP-103 twice, EW-IMP-122 and EW-NUM-001 twice): the record of the import, nothing left to fix.
-10. Choose **File ▸ Save** (`Ctrl+S`).
+10. Choose **Check ▸ Run checks** (`F7`).
+    The Messages pane shows the migration report again, with no error, 2 warnings (EW-IMP-008 and EW-IMP-119) and 5
+    infos (EW-IMP-103 twice, EW-IMP-122 and EW-NUM-001 twice): the record of the import, nothing left to fix.
+11. Choose **File ▸ Save** (`Ctrl+S`).
     The title bar no longer marks the project as changed.
 
 ## What you learnt
