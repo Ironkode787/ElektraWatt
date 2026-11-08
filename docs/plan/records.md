@@ -15,6 +15,8 @@ the `records` step of `cargo xtask settle --merge` runs it at the merge point.
 
 Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:` trailer cites, newest first, with the commits that cite it, newest first.
 
+- **ID-1518** (cycle 53): The rc.3 persona round's findings go to M3 and rc.3 goes on to the release (project owner, 2026-11-08: "Let's move it all to M3. We have to finish M2."): all four runs (RP1 to RP4) finished unassisted with every hard item met; the findings are FT-1621 to FT-1624. A release candidate's persona round runs before its CI round from now on, so a fix the round asks for never repeats the CI round. ID-1497; ID-1508.
+  - `275c2b061c` docs(plan): the rc.3 persona round to M3 (owner)
 - **ID-1517** (cycle 53): RTR-G's review fixes accepted (project owner (delegated); the golden decision is the orchestrator's): `d9088a56f` passes its lane-check. Accepted: the three-phase motor 0.2.0 with leads one grid step longer (U1, V1, W1 move; no text-only move clears the QET edition's stubs) and the heater 0.1.1; RG3's new totals (101: 38 bends, the kept 1 nm jog counting two, FT-1598; 103: 27 crossings, 52 bends; 106: 14 crossings, its lower targets standing right above left so that no cross-reference sits under the wrong arrow), every page still at hard 0, text overlaps 0 and no detour above 2. Both fix branches now merge for the third candidate. ID-1509; ID-1516.
   - `9bcb938f1e` docs(plan): records refreshed after the merge
   - `26a125a2c2` chore: settle after the merge (the visual self-test's frame hashes)
@@ -2026,7 +2028,7 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 
 ## Open follow-up tasks
 
-646 open: 20 scheduled, 87 expired, 539 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
+650 open: 20 scheduled, 87 expired, 543 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
 
 ### Scheduled (due in cycle 53 or later)
 
@@ -2682,4 +2684,8 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 - FT-1618 (cycle 53, Low, ew-ui; due: M3): Route page and Route selection use `file-settings` and `magnet`, the only unused icons of the set that fit; give them icons drawn for routing (a route and a waypoint glyph) from the same icon family. Source: ID-1516
 - FT-1619 (cycle 53, Low, ew-library; due: M3): the QET edition of the three-phase motor draws "M" over "3~", and its pin texts stand 0.27 mm from the next lead; space them. Source: ID-1517
 - FT-1620 (cycle 53, Low, tests; due: M2.5): the library test that no symbol's text crosses a stub checks the default orientation only; check every orientation a symbol allows. Source: ID-1517
+- FT-1621 (cycle 53, Medium, ew-viewmodel; due: M3): the interruption-point tool's direction (RP1, RP4): the status line says source and the point goes in as target; after one placement the tool renames itself "L1-1" and switches to target; D types into the Tool options name field when it has the focus. Source: ID-1518
+- FT-1622 (cycle 53, Medium, ew-viewmodel; due: M3): adding a contact to an existing device (RP2, RP4): picking a contact of -102K1 from "In this project" makes a new device; Join on a placed contact is refused; deleting the extra device leaves an empty "-?K2"; Join's list shows the device twice per slot; the duplicate-designation finding's Fix does nothing visible. Source: ID-1518
+- FT-1623 (cycle 53, Low, ew-viewmodel; due: M3): a drag from a symbol's centre does nothing (only its edge grabs); a paste lands about 20 px from the click; the "4 Warnings" badge opens Messages filtered on "2 devices"; Esc leaves the coil tool armed (RP2, RP3). Source: ID-1518
+- FT-1624 (cycle 53, Low, ew-viewmodel; due: M3): the full-junction HUD reads as a refusal though the wire is made; an outgoing point's connection point one step behind its tip goes unseen; the auto-connect notice on placement is missed; the text interface gives Route page's result as bend counts only, not where a wire runs; the power supply's pin labels and the points' connection squares are tiny (RP1 to RP4). Source: ID-1518
 <!-- /generated:records -->
