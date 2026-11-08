@@ -1653,13 +1653,14 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             .map(|_| ())
     }
 
-    /// [`Dsl::move_steps`] with the window's members (WP-S2.19 D14, D15): `routes` replace the followed routes of the
+    /// [`Self::move_steps`] with the window's members (WP-S2.19 D14, D15): `routes` replace the followed routes of the
     /// connections named, and `connect` makes the wires of the autoconnect hints `(rep, (function, CP index), other
     /// end)`.
     ///
     /// # Errors
     ///
     /// The command's error.
+    #[allow(clippy::type_complexity)] // the hints as the command names them: (rep, (function, CP), other end)
     pub fn move_steps_with(
         &mut self,
         reps: &[Id<Representation>],

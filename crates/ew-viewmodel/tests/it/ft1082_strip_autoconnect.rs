@@ -183,9 +183,9 @@ fn ft1082_a_terminal_moved_under_one_of_its_strip_proposes_nothing() {
     place(&mut s, terminal("-X1031", "71"), (50, 40), "canvas.activate_alt");
     place(&mut s, terminal("-X1032", "90"), (70, 40), "canvas.activate_alt");
     assert_eq!(drag_proposals(&mut s, (50, 40), (10, -6)), None);
-    // The other strip's terminal dragged to the same point is proposed (shown, never committed).
+    // The other strip's terminal dragged to the same point is proposed, and the move connects it (WP-S2.19 D15).
     assert_eq!(
         drag_proposals(&mut s, (70, 40), (-10, -6)).as_deref(),
-        Some("canvas proposals 1 \"90/b\" -> \"-X1031:70/a\" connect none")
+        Some("canvas proposals 1 \"90/b\" -> \"-X1031:70/a\" connect all")
     );
 }

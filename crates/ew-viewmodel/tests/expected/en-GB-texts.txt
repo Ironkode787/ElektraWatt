@@ -240,7 +240,6 @@ hint-wire-bend = Bend placed: click a connection point to end the wire.
 hint-route-edit = {0} picks the segment, the arrow keys move it, {1} commits; {2} cancels
 announce-wire-routing = Wire: routing from {0}. Click a connection point; {1} removes the last bend; {2} cancels
 wire-readout = {0} mm
-reason-connect-on-place = Proposals connect when a symbol is placed; a move never adds a connection
 reason-one-connection = Select exactly one connection
 reason-one-junction = Select exactly one junction
 reason-no-wire-kind = The Wire tool does not draw this page type's connections yet

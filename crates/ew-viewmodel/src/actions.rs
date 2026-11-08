@@ -3046,7 +3046,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     // WP-S2.19 D13: Route page and Route selection after Edit route, previewed (no default key).
     keeps_banner(placed(
         place(Group::Connect, 3, CommandSize::Small, None),
-        "wand",
+        "sparkles",
         act(
             "route.page",
             Command,
