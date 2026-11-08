@@ -14,7 +14,8 @@
 //! FT-437). A node whose page point lies strictly inside an
 //! obstacle rectangle is blocked, and a move that runs through the open inside of one is not taken (FT-706: a text
 //! thinner than a grid step lies between two nodes); the two ends, their nearest grid nodes and their stub nodes
-//! are never blocked, nor the move from a CP end to its stub. The nodes of the [`RouteRequest::reserved`] points
+//! are never blocked, nor the move from a CP end to its stub but by a text across it ([`RouteRequest::texts`]:
+//! WP-S2.19 §5.1 rule 4 has no exemption; ID-1509). The nodes of the [`RouteRequest::reserved`] points
 //! (the other CPs and their stubs, FT-706) are blocked. A CP end
 //! (one with a leaving direction) first leaves one step along its direction (the stub) and is entered along the
 //! opposite of its direction; no move enters the first CP end's node nor leaves the second end's (ID-1493); a
@@ -146,6 +147,10 @@ pub struct RouteRequest {
     /// The obstacle rectangles `[x0, y0, x1, y1]` in page nm (any corner order): the bodies of the representations
     /// on the page other than those of the two ends, inflated by one grid step.
     pub obstacles: Vec<[i64; 4]>,
+    /// The text boxes `[x0, y0, x1, y1]` in page nm (any corner order, inflated as the caller inflates them), the
+    /// ends' own included: they block as the obstacles do, and the move from a CP end to its stub too (WP-S2.19 §5.1
+    /// rule 4 has no exemption; ID-1509). Empty: no text.
+    pub texts: Vec<[i64; 4]>,
     /// The connection grid `(num, den)` nm.
     pub grid: (i64, i64),
     /// The search area `[x0, y0, x1, y1]` in page nm: the bounding box of both ends grown by 4 grid steps, clipped to
@@ -194,8 +199,8 @@ struct Space {
     hi: (i64, i64),
     width: usize,
     blocked: Vec<bool>,
-    /// Why the move right from a node is not taken: [`ON_WIRE`], [`OVER_OWN`], [`OVER_OBSTACLE`] (FT-706); 0 when it
-    /// is free.
+    /// Why the move right from a node is not taken: [`ON_WIRE`], [`OVER_OWN`], [`OVER_OBSTACLE`] (FT-706),
+    /// [`OVER_TEXT`]; 0 when it is free.
     no_right: Vec<u8>,
     /// Why the move down from a node is not taken.
     no_down: Vec<u8>,
@@ -223,6 +228,8 @@ const ON_WIRE: u8 = 1;
 const OVER_OWN: u8 = 2;
 /// A move across an obstacle rectangle (FT-706).
 const OVER_OBSTACLE: u8 = 4;
+/// A move across a text box: never exempt, a CP end's stub move included (§5.1 rule 4; ID-1509).
+const OVER_TEXT: u8 = 8;
 
 impl Space {
     /// Whether the unit move `m` from the index point `p` is free: on no other wire's track and across no rectangle
@@ -340,9 +347,9 @@ pub fn route(req: &RouteRequest) -> Routed {
 
 /// Whether the given route `points` from `req.from.at` to `req.to.at` is one the router could take: walked on the
 /// grid nodes the router searches, every unit move is free and lands on a node that is not blocked, by the router's
-/// own rules for `req` (obstacles, the ends' own rectangles but for their corridors, other wires, reserved points;
-/// module documentation); a CP end is left along its direction and entered against the second end's, and no move
-/// enters the first CP end's node nor leaves the second end's (ID-1493); the first move
+/// own rules for `req` (obstacles, texts, the ends' own rectangles but for their corridors, other wires, reserved
+/// points; module documentation); a CP end is left along its direction and entered against the second end's, and no
+/// move enters the first CP end's node nor leaves the second end's (ID-1493); the first move
 /// does not reverse [`RouteRequest::arrive`] and no move reverses the one before it. `req.area` only has to hold the
 /// route. A route that is not orthogonal on the grid, that does not start and end at the ends, or a request the
 /// router would refuse (an unusable grid, an area over [`MAX_NODES`]) is not clear.
@@ -507,6 +514,9 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
     for o in &req.obstacles {
         mark(&mut space, o, &mut blocked, OVER_OBSTACLE);
     }
+    for o in &req.texts {
+        mark(&mut space, o, &mut blocked, OVER_TEXT);
+    }
     // The ends' own representations block too, but for their escape corridors (FT-706): from a CP end along its
     // direction, the stub and every further node while it, or the move on out of it, is inside one of the own
     // rectangles.
@@ -645,11 +655,11 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
         }
     }
     // The corridors' moves are exempt from the own rectangles and from other wires (a second wire on a CP leaves
-    // along the same stub); the stub move from everything, as the stub node is.
+    // along the same stub); the stub move from everything but the texts, as the stub node is (ID-1509).
     for c in &corridors {
         for (k, pair) in c.windows(2).enumerate() {
             if let Some(f) = space.move_flags(pair[0], pair[1]) {
-                *f &= if k == 0 { 0 } else { !(ON_WIRE | OVER_OWN) };
+                *f &= if k == 0 { OVER_TEXT } else { !(ON_WIRE | OVER_OWN) };
             }
         }
     }
@@ -671,6 +681,10 @@ fn search(req: &RouteRequest) -> Option<(Vec<(i64, i64)>, u32)> {
         return Some((vec![from.at], 0));
     }
     let Prepared { space, s, t, s1 } = prepare(req)?;
+    // The walk below starts past a first CP end's stub: a text across that stub leaves no route (ID-1509).
+    if from.dir.is_some_and(|d| !space.move_free(s, d)) {
+        return None;
+    }
     let (lo, width, nodes) = (space.lo, space.width, space.blocked.len());
     let goal = space.node(t)?;
     // The node of a first CP end, left by its stub (unless it is the second end's too).
@@ -910,6 +924,7 @@ mod tests {
             from,
             to,
             obstacles,
+            texts: Vec::new(),
             grid: (MM, 1),
             area: [x0 - 4 * MM, y0 - 4 * MM, x1 + 4 * MM, y1 + 4 * MM],
             arrive: None,
@@ -1088,6 +1103,7 @@ mod tests {
             from: a,
             to: b,
             obstacles: vec![],
+            texts: Vec::new(),
             grid: (7_937_500, 3),
             area: [at(5), at(5), at(25), at(21)],
             arrive: None,
@@ -1132,6 +1148,7 @@ mod tests {
                 dir: None,
             },
             obstacles: vec![],
+            texts: Vec::new(),
             grid: (1, 1),
             area: [0, 0, 1, 1],
             arrive: None,
@@ -1158,6 +1175,37 @@ mod tests {
         let routed = route(&rq);
         assert!(routed.direct, "{:?}", routed.points);
         assert_eq!(routed.points, [rq.from.at, rq.to.at]);
+    }
+
+    #[test]
+    fn a_text_across_either_end_s_stub_leaves_no_route() {
+        // ID-1509 (§5.1 rule 4): a text between a CP and its stub node blocks the stub move as it blocks any other
+        // move; the stub node itself stays free. The same rectangle as an obstacle (a foreign body's margin) leaves
+        // the stub move free, as before.
+        let base = req(
+            end(0, 0, Some(Heading::Right)),
+            end(10, 0, Some(Heading::Left)),
+            vec![],
+        );
+        let straight = vec![p(0, 0), p(10, 0)];
+        assert_eq!(auto_route(&base), straight);
+        for text in [
+            [MM / 5, -2 * MM / 5, 4 * MM / 5, 2 * MM / 5],
+            [9 * MM + MM / 5, -2 * MM / 5, 9 * MM + 4 * MM / 5, 2 * MM / 5],
+        ] {
+            let rq = RouteRequest {
+                texts: vec![text],
+                ..base.clone()
+            };
+            let routed = route(&rq);
+            assert!(routed.direct, "{text:?}: {:?}", routed.points);
+            assert!(!clear(&rq, &straight), "{text:?}");
+            let body = RouteRequest {
+                obstacles: vec![text],
+                ..base.clone()
+            };
+            assert_eq!(auto_route(&body), straight, "{text:?}");
+        }
     }
 
     fn with_arrive(mut r: RouteRequest, h: Heading) -> RouteRequest {

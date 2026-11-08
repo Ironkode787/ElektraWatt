@@ -108,7 +108,9 @@ const VERSION: &str = "0.1.0";
 /// tag (minor), the cylinder's ports gain their role (minor), the module overview's tag moves above the valve glyphs
 /// (minor); FT-1204 (cycle 52, ID-1395): the one-pole on/off switch moves to the manual-command category, class S;
 /// WP-S2.19 D16 (cycle 53): the interruption point is redrawn with its arrow pointing right and its CP on the tail
-/// (major); ID-1502 (4): the strip segment's tag moves beside the strip, left of its first terminal (minor).
+/// (major); ID-1502 (4): the strip segment's tag moves beside the strip, left of its first terminal (minor);
+/// ID-1509 (1): no text of a symbol crosses a stub of its CPs, so the heater's technical data moves down one step
+/// (patch) and the three-phase motor's leads grow one step up, its pin texts beside them (its CPs move: major).
 const BUMPED: &[(&str, &str)] = &[
     ("ew.fn.cylinder-double-acting", "0.1.1"),
     ("ew.fn.switch-1p", "0.1.1"),
@@ -116,7 +118,9 @@ const BUMPED: &[(&str, &str)] = &[
     ("ew.gen.ip", "0.2.0"),
     ("ew.gen.strip-segment", "0.2.0"),
     ("ew.iec.coil", "0.2.0"),
+    ("ew.iec.heater", "0.1.1"),
     ("ew.iec.lamp", "0.2.0"),
+    ("ew.iec.motor-3ph", "0.2.0"),
     ("ew.iec.position-switch-no", "0.2.0"),
     ("ew.iec.pushbutton-no", "0.2.0"),
     ("ew.iec.selector-switch-no", "0.2.0"),
@@ -1508,4 +1512,130 @@ fn bless_native_documents() {
         }
     }
     eprintln!("blessed {} file(s): {changed:?}", changed.len());
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// 10. TEXTS CLEAR OF THE STUBS
+
+/// What a slot prints in [`no_text_of_a_symbol_crosses_a_stub_of_its_connection_points`]: a CP's designation from
+/// the symbol's FnDef, else a typical text of the slot's kind.
+fn sample_text(kind: &SlotKind, def: &SymbolDef, fndef: Option<&FnDef>) -> String {
+    let text = match kind {
+        SlotKind::CpDesignation(i) => {
+            let cp = def.cps.get(i).and_then(|c| fndef?.cps.get(&c.fn_cp));
+            return cp.map_or_else(|| "13".to_owned(), |c| c.designation.to_string());
+        }
+        SlotKind::Tag => "-101K10",
+        SlotKind::FunctionText => "Pump",
+        SlotKind::TechData => "24 V DC",
+        SlotKind::Xref => "101-D16",
+        SlotKind::PlcAddress => "Q0.0",
+        _ => "Text",
+    };
+    text.to_owned()
+}
+
+#[test]
+fn no_text_of_a_symbol_crosses_a_stub_of_its_connection_points() {
+    // WP-S2.19 §5.1 rule 4 (ID-1509): a wire leaves a CP along its stub, one grid step along the CP's direction, and
+    // no route crosses a text, the symbol's own included. A text box across a stub (grown by a quarter grid step, as
+    // the router grows it) leaves every wire to that CP unrouted. Each symbol is placed alone at R0 with every slot
+    // filled, the texts shown as by default and as in each of its arrangements.
+    let l = lib();
+    let by_key: BTreeMap<&str, &Doc<FnDef>> = l.fndefs.iter().map(|d| (d.key.as_str(), d)).collect();
+    let mut problems = Vec::new();
+    for (_, d) in symbols() {
+        let def = &d.copy.item;
+        let fndef = def
+            .fndef
+            .extra
+            .get("key")
+            .and_then(|v| v.as_str())
+            .and_then(|k| by_key.get(k))
+            .map(|f| &f.copy.item);
+        let grid = def.grid;
+        let step = i64::try_from((grid.num() + grid.den() / 2) / grid.den()).unwrap_or(i64::MAX);
+        let origin = Pt2::new(grid.at(40).unwrap(), grid.at(40).unwrap());
+        let slots: Vec<ew_scene::page::SlotValue> = (0..def.text_slots.len())
+            .map(|k| ew_scene::page::SlotValue {
+                slot: u16::try_from(k).unwrap(),
+                text: sample_text(&def.text_slots[k].kind, def, fndef),
+                link: None,
+                item_links: Vec::new(),
+            })
+            .collect();
+        let arrangements = std::iter::once(None).chain(def.arrangements.iter().map(|a| Some(a.name.to_string())));
+        for arrangement in arrangements {
+            let rep: ew_schema::Representation = serde_json::from_value(serde_json::json!({
+                "id": Uuid::from_u128(0x11), "functions": [Uuid::from_u128(0x21)], "page": Uuid::from_u128(0x100),
+                "symbol": d.copy.id.as_uuid(), "pos": [origin.x.0, origin.y.0], "orient": "r0",
+                "arrangement": arrangement,
+            }))
+            .unwrap();
+            let view = ew_scene::page::PageView {
+                page: ew_ids::Id::from_uuid(Uuid::from_u128(0x100)),
+                kind: ew_scene::page::PageKind::Schematic,
+                grid,
+                language: None,
+                frame: None,
+                reps: vec![ew_scene::page::RepView {
+                    rep: std::sync::Arc::new(rep),
+                    symbol: Some(std::sync::Arc::new(def.clone())),
+                    slots: slots.clone(),
+                    terminals: Vec::new(),
+                    pins: Vec::new(),
+                }],
+                connections: Vec::new(),
+                junctions: Vec::new(),
+                wire_marker: None,
+                table: None,
+                embedded: Vec::new(),
+                break_marks: Vec::new(),
+                valve_glyphs: Vec::new(),
+                cp_targets: Vec::new(),
+                crossings: Default::default(),
+                items: Vec::new(),
+                structure_boxes: Vec::new(),
+                panel: None,
+                strip_tags: Vec::new(),
+            };
+            let labels = ew_scene::page::page_display_list(
+                &view,
+                ew_dl::Layer::Labels,
+                ew_text::bundled(),
+                ew_text::builtin(),
+            );
+            let boxes = labels.list.entity_bounds();
+            for cp in &lower(def, Orient2::R0).cps {
+                let at = (origin.x.0 + cp.pos.x.0, origin.y.0 + cp.pos.y.0);
+                let along = |c: i64, d: i64| grid.at(grid.snap(Nm(c)) + d).map_or(c, |n| n.0);
+                let stub = match cp.dir {
+                    Dir4::Left => (along(at.0, -1), at.1),
+                    Dir4::Right => (along(at.0, 1), at.1),
+                    Dir4::Up => (at.0, along(at.1, -1)),
+                    Dir4::Down => (at.0, along(at.1, 1)),
+                    Dir4::Unknown(_) => continue,
+                };
+                for (_, r) in &boxes {
+                    let q = step / 4;
+                    let (x0, y0, x1, y1) = (r.min().x.0 - q, r.min().y.0 - q, r.max().x.0 + q, r.max().y.0 + q);
+                    let across = if at.1 == stub.1 {
+                        y0 < at.1 && at.1 < y1 && at.0.min(stub.0).max(x0) < at.0.max(stub.0).min(x1)
+                    } else {
+                        x0 < at.0 && at.0 < x1 && at.1.min(stub.1).max(y0) < at.1.max(stub.1).min(y1)
+                    };
+                    if across {
+                        problems.push(format!(
+                            "{} ({}): the text box {:?} crosses cp {}'s stub",
+                            d.who(),
+                            arrangement.as_deref().unwrap_or("default"),
+                            [r.min().x.0 - origin.x.0, r.min().y.0 - origin.y.0, r.max().x.0 - origin.x.0, r.max().y.0 - origin.y.0],
+                            cp.idx
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    assert_clean("texts across a stub", &problems);
 }

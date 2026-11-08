@@ -204,6 +204,7 @@ fn routed(a: (Pt2, Heading), b: (Pt2, Heading)) -> Vec<Pt2> {
             dir: Some(b.1),
         },
         obstacles: vec![],
+        texts: vec![],
         grid: (7_937_500, 3),
         area: [
             a.0.x.0.min(b.0.x.0) - grow,
