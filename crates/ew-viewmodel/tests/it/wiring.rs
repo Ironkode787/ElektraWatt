@@ -737,6 +737,52 @@ fn rw1_route_page_previews_the_plan_and_applies_it_in_one_step() {
     );
 }
 
+/// ID-1509 (8), the window check's F2: a Route selection plan whose routes are the ones drawn opens no card and says
+/// so, in en-GB and nl-NL.
+#[test]
+fn route_selection_with_a_plan_that_changes_nothing_opens_no_card() {
+    let tmp = Tmp::new("f2");
+    let mut s = shell(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (55, 29)],
+        &[("-103K1:A2", "-103K2:A1", &[])],
+    );
+    done(&mut s, "route.page", json!({}));
+    done(&mut s, "preview.apply", json!({}));
+    let t = tables(&s);
+    let wire = t
+        .connections
+        .iter()
+        .find(|c| end_label(&t, &c.a) == "-103K1:A2")
+        .expect("the wire")
+        .clone();
+    assert!(wire.stored_route, "Route page routed it");
+    let mid = sheet(
+        &s,
+        (
+            (wire.polyline[0].0 + wire.polyline[1].0) / 2,
+            (wire.polyline[0].1 + wire.polyline[1].1) / 2,
+        ),
+    );
+    done(&mut s, "canvas.press", at(mid, json!({})));
+    done(&mut s, "canvas.release", at(mid, json!({})));
+    let rev = s.revision();
+    done(&mut s, "route.selection", json!({}));
+    assert_eq!(describe_line(&s, "card "), None, "no card");
+    assert_eq!(s.revision(), rev, "nothing committed");
+    assert_eq!(
+        s.toast().map(|t| t.text.as_str()),
+        Some("Nothing to change: the selected wires keep their routes.")
+    );
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    done(&mut s, "route.selection", json!({}));
+    assert_eq!(
+        s.toast().map(|t| t.text.as_str()),
+        Some("Niets te wijzigen: de geselecteerde draden houden hun routes.")
+    );
+}
+
 /// The label of a connection's end `a`.
 fn cp_label_at(t: &PageTables, c: &TableConnection) -> String {
     end_label(t, &c.a)

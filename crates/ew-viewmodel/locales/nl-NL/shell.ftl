@@ -5088,5 +5088,6 @@ route-reason-four-way = De aftakking zou vier draden verbinden: { $p0 }.
 toast-route-done = { $p0 } draden op { $p1 } gerouteerd.
 toast-route-done-one = 1 draad op { $p1 } gerouteerd.
 toast-route-nothing = Elke draad op { $p0 } heeft een route.
+toast-route-unchanged = Niets te wijzigen: de geselecteerde draden houden hun routes.
 reason-route = De routes worden eerst als voorbeeld getoond
 reason-route-selection = Selecteer een draad of een symbool om te routeren

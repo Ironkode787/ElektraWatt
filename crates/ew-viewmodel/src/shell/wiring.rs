@@ -710,6 +710,23 @@ impl ShellModel {
         let Some(params) = route_many_params(&plan) else {
             return Outcome::Failed { message: lead };
         };
+        // ID-1509 (8): a plan whose routes are the ones drawn changes nothing, so it opens no card.
+        let unchanged = self.canvas().is_some_and(|c| {
+            plan.routes.iter().all(|(id, route)| {
+                c.page()
+                    .tables
+                    .connections
+                    .iter()
+                    .any(|t| t.id == *id && t.stored_route && t.polyline == *route)
+            })
+        });
+        if unchanged {
+            if !plan.unrouted.is_empty() {
+                return Outcome::Failed { message: lead };
+            }
+            self.notify(strings::format(key!("toast-route-unchanged"), &[]), false);
+            return Outcome::Done;
+        }
         self.preview_host_card_as(
             "connection.route_many",
             params,

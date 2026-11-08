@@ -4915,6 +4915,7 @@ pub const KEYS: &[&str] = &[
     "toast-route-done",
     "toast-route-done-one",
     "toast-route-nothing",
+    "toast-route-unchanged",
     "reason-route",
     "reason-route-selection",
 ];
