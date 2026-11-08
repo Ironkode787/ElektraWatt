@@ -3043,9 +3043,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_route_edit(),
         ),
     ))),
-    // WP-S2.19 D13: Route page and Route selection after Edit route, previewed (no default key).
+    // WP-S2.19 D13: Route page and Route selection after Edit route, previewed (no default key); after Interruption,
+    // so the two stack in one column of their own (ID-1506 (6)).
     keeps_banner(placed(
-        place(Group::Connect, 3, CommandSize::Small, None),
+        place(Group::Connect, 7, CommandSize::Small, None),
         "sparkles",
         act(
             "route.page",
@@ -3058,7 +3059,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     )),
     keeps_banner(placed(
-        place(Group::Connect, 4, CommandSize::Small, None),
+        place(Group::Connect, 8, CommandSize::Small, None),
         "sparkles",
         act(
             "route.selection",
