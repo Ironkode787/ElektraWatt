@@ -2,25 +2,20 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""The checks and the publishing steps of the release workflow (WP-S6.07 D5, D6, D8, D10, D13; doc 18 CI-R-01,
-CI-R-02, CI-R-06, CI-R-08, CI-R-11), run by .github/workflows/release.yml and, for `clean`, by package.yml.
+"""The checks and the publishing steps of the release workflow (WP-S6.07 D5, D8, D13, slimmed by ID-1520; doc 18
+CI-R-01, CI-R-06, CI-R-11), run by .github/workflows/release.yml.
 
   python3 -I ci/release-verify.py tag <tag>                  CI-R-01: prints `version=<X.Y.Z>` (for GITHUB_OUTPUT)
-  python3 -I ci/release-verify.py runs <sha> --repo <o/r>    CI-R-02: green ci.yml and deep-nightly.yml runs
-  python3 -I ci/release-verify.py clean                      no build step wrote into the checkout
   python3 -I ci/release-verify.py sums <dir> --version <v>   CI-R-06: writes <dir>/SHA256SUMS
-  python3 -I ci/release-verify.py draft <tag> <dir> --repo <o/r> --sha <commit>
+  python3 -I ci/release-verify.py draft <tag> <dir> --repo <o/r>
   python3 -I ci/release-verify.py promote <candidate> <dir> --repo <o/r> (--dry | --publish)
   python3 -I ci/release-verify.py --test                     # its offline unit test
 
 `tag` takes a candidate tag `v<X.Y.Z>-rc.<n>` (D2) and refuses it unless `X.Y.Z` is `[workspace.package].version` of
-Cargo.toml and docs/release-notes/<X.Y.Z>.md exists with text beyond its licence comment. `runs` asks the GitHub CLI
-(`gh run list --commit <sha> --workflow <file> --json conclusion`) for the runs of ci.yml and deep-nightly.yml on the
-commit and refuses unless each has one concluded `success` (perf.yml is report-only and not asked). `clean` refuses
-when `git status --porcelain` lists anything. `sums` writes `SHA256SUMS` in sha256sum's format (`<hex>  <name>`, sorted
-by name) over the release files of 0.1.0 in <dir>: the CLI archives of x86_64 Windows and Linux, the Windows setup and
-the AppImage (ID-476's hold lifted, ID-1331 (2), WP-S6.08 D26), and every artefact's SBOM (`<artefact>.cdx.json`); it
-refuses any other file and a missing one.
+Cargo.toml and docs/release-notes/<X.Y.Z>.md exists with text beyond its licence comment. It asks for no CI run: CI is
+off until 1.0 (ID-1519, ID-1520). `sums` writes `SHA256SUMS` in sha256sum's format (`<hex>  <name>`, sorted by name)
+over the release files of 0.1.x in <dir>: the CLI archives of x86_64 Windows and Linux, the Windows setup and the
+AppImage (ID-476's hold lifted, ID-1331 (2), WP-S6.08 D26); it refuses any other file and a missing one.
 
 `draft` creates the draft prerelease <tag> with the release notes of its version and every file of <dir>
 (`gh release create --draft --prerelease --verify-tag`, so no tag is created), downloads its files back and verifies
@@ -28,11 +23,8 @@ them. `promote` refuses when the tag v<X.Y.Z> exists, finds the draft <candidate
 verifies them; with `--dry` it prints what it would publish and changes nothing; with `--publish` it creates the
 release v<X.Y.Z> (published, latest, not a prerelease) with the draft's notes and those files on the candidate's
 commit, which creates the tag there, and verifies the published files again. Verifying a release's files: the files
-are SHA256SUMS and exactly the files it lists, `sha256sum --check --strict SHA256SUMS` passes and `gh attestation
-verify <file> --repo <o/r> --signer-workflow <o/r>/.github/workflows/release.yml --source-digest <commit>` passes
-for each file (D10), the commit being the tag's at the draft (`--sha`, the workflow's `$GITHUB_SHA`) and the
-candidate's at the promote, so the bytes are bound to the release workflow and to the commit they were built from
-(C50-p2#5, FT-1302). Standard library only; the GitHub CLI and sha256sum are the runner's.
+are SHA256SUMS and exactly the files it lists, and `sha256sum --check --strict SHA256SUMS` passes (no build provenance
+at 0.1.x, ID-1520). Standard library only; the GitHub CLI and sha256sum are the runner's.
 """
 import argparse
 import contextlib
@@ -50,10 +42,8 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CANDIDATE = re.compile(r"v(\d+\.\d+\.\d+)-rc\.\d+")
-WORKFLOWS = ("ci.yml", "deep-nightly.yml")
 SUMS = "SHA256SUMS"
-SIGNER = ".github/workflows/release.yml"
-# ID-1313, ID-1331 (2): the CLI archives and the installers, each with its SBOM; the aarch64 archives never at 0.1.0.
+# ID-1313, ID-1331 (2), ID-1520: the x86_64 CLI archives and the installers.
 ARCHIVES = ("ew-{v}-x86_64-pc-windows-msvc.zip", "ew-{v}-x86_64-unknown-linux-gnu.tar.gz",
             "ElektraWatt-{v}-x64-user-setup.exe", "ElektraWatt-{v}-x86_64.AppImage")
 
@@ -97,34 +87,16 @@ def check_tag(repo, tag):
     return version
 
 
-def check_runs(sha, repo, gh=run):
-    """D6: a run concluded `success` of each of WORKFLOWS on the commit `sha`."""
-    for workflow in WORKFLOWS:
-        out = gh(["gh", "run", "list", "--repo", repo, "--commit", sha, "--workflow", workflow,
-                  "--json", "conclusion", "--limit", "100"])
-        if not any(run.get("conclusion") == "success" for run in json.loads(out or "[]")):
-            raise Refusal(f"no successful {workflow} run on {sha[:7]}; run it on this commit before tagging")
-
-
-def check_clean(git=run, repo=REPO):
-    """D5: `git status --porcelain` lists nothing after the builds."""
-    out = git(["git", "status", "--porcelain"], cwd=repo)
-    if out.strip():
-        raise Refusal(f"the build wrote into the checkout (git status --porcelain):\n{out.rstrip()}")
-
-
 def release_files(directory, version):
     """The release files of `directory`, sorted by name: refuses any file that is no release file of ID-1313."""
     names = sorted(n for n in os.listdir(directory) if n != SUMS)
     archives = [a.format(v=version) for a in ARCHIVES]
-    allowed = set(archives) | {f"{a}.cdx.json" for a in archives}
     for name in names:
-        if name not in allowed:
+        if name not in archives:
             raise Refusal(f"{name} in {directory} is no release file of {version}")
-    for archive in archives:
-        for name in (archive, f"{archive}.cdx.json"):
-            if name not in names:
-                raise Refusal(f"{name} is missing from {directory}")
+    for name in archives:
+        if name not in names:
+            raise Refusal(f"{name} is missing from {directory}")
     return names
 
 
@@ -142,10 +114,9 @@ def write_sums(directory, version, sha=None):
     return lines
 
 
-def verify_files(directory, repo, run=run, commit=None):
-    """D10, D13: `directory` holds SHA256SUMS and exactly the files it lists, `sha256sum -c` passes and each file's
-    build provenance verifies, signed by release.yml (and, given `commit`, built from it). Returns the file names,
-    SHA256SUMS last."""
+def verify_files(directory, run=run):
+    """D13: `directory` holds SHA256SUMS and exactly the files it lists, and `sha256sum -c` passes. Returns the file
+    names, SHA256SUMS last."""
     path = os.path.join(directory, SUMS)
     if not os.path.isfile(path):
         raise Refusal(f"no {SUMS} in {directory}")
@@ -159,16 +130,11 @@ def verify_files(directory, repo, run=run, commit=None):
         if name not in present:
             raise Refusal(f"{name} of {SUMS} is missing")
     print(run(["sha256sum", "--check", "--strict", SUMS], cwd=directory), end="")
-    for name in present + [SUMS]:
-        run(["gh", "attestation", "verify", os.path.join(directory, name), "--repo", repo,
-             "--signer-workflow", f"{repo}/{SIGNER}", *(["--source-digest", commit] if commit else [])])
-        print(f"release-verify: the build provenance of {name} verifies")
     return present + [SUMS]
 
 
-def draft(repo_root, tag, directory, repo, commit, run=run):
-    """D13: the draft prerelease `tag` with every file of `directory`, then its files downloaded back and verified as
-    built from `commit` (FT-1302)."""
+def draft(repo_root, tag, directory, repo, run=run):
+    """D13: the draft prerelease `tag` with every file of `directory`, then its files downloaded back and checked."""
     version = candidate_version(tag)
     notes = os.path.join(repo_root, "docs", "release-notes", f"{version}.md")
     files = [os.path.join(directory, n) for n in sorted(os.listdir(directory))]
@@ -176,7 +142,7 @@ def draft(repo_root, tag, directory, repo, commit, run=run):
          "--title", tag, "--notes-file", notes, *files])
     back = tempfile.mkdtemp(prefix="release-back-")
     run(["gh", "release", "download", tag, "--repo", repo, "--dir", back])
-    names = verify_files(back, repo, run, commit)
+    names = verify_files(back, run)
     print(f"release-verify: the draft prerelease {tag} holds {len(names)} verified files; nothing is published")
 
 
@@ -192,7 +158,7 @@ def promote(candidate, directory, repo, publish, run=run):
         raise Refusal(f"the release {candidate} is not a draft; promote the draft of a candidate")
     commit = run(["gh", "api", f"repos/{repo}/commits/{candidate}", "--jq", ".sha"]).strip()
     run(["gh", "release", "download", candidate, "--repo", repo, "--dir", directory])
-    names = verify_files(directory, repo, run, commit)
+    names = verify_files(directory, run)
     if not publish:
         print(f"release-verify: dry run: would create the tag {final} on {commit} and publish the release {final} "
               f"(latest) with the notes of {candidate} and its {len(names)} files:")
@@ -207,7 +173,7 @@ def promote(candidate, directory, repo, publish, run=run):
          "--notes-file", notes, "--latest", *[os.path.join(directory, n) for n in names]])
     back = tempfile.mkdtemp(prefix="release-back-")
     run(["gh", "release", "download", final, "--repo", repo, "--dir", back])
-    verify_files(back, repo, run, commit)
+    verify_files(back, run)
     print(f"release-verify: published {final} on {commit} with the {len(names)} files of {candidate}")
 
 
@@ -217,10 +183,6 @@ def main(argv):
     sub = parser.add_subparsers(dest="command")
     p = sub.add_parser("tag", help="CI-R-01: the tag's version and its release notes")
     p.add_argument("tag")
-    p = sub.add_parser("runs", help="CI-R-02: green ci.yml and deep-nightly.yml runs on the commit")
-    p.add_argument("sha")
-    p.add_argument("--repo", required=True)
-    sub.add_parser("clean", help="no build step wrote into the checkout")
     p = sub.add_parser("sums", help="CI-R-06: write SHA256SUMS over the release files")
     p.add_argument("dir")
     p.add_argument("--version", required=True)
@@ -228,7 +190,6 @@ def main(argv):
     p.add_argument("tag")
     p.add_argument("dir")
     p.add_argument("--repo", required=True)
-    p.add_argument("--sha", required=True)
     p = sub.add_parser("promote", help="CI-R-11: publish a verified candidate as v<X.Y.Z>")
     p.add_argument("candidate")
     p.add_argument("dir")
@@ -243,17 +204,11 @@ def main(argv):
     try:
         if args.command == "tag":
             print(f"version={check_tag(REPO, args.tag)}")
-        elif args.command == "runs":
-            check_runs(args.sha, args.repo)
-            print(f"release-verify: {' and '.join(WORKFLOWS)} have a successful run on {args.sha[:7]}")
-        elif args.command == "clean":
-            check_clean()
-            print("release-verify: git status --porcelain is empty; no build step wrote into the checkout")
         elif args.command == "sums":
             lines = write_sums(args.dir, args.version)
             print("".join(lines), end="")
         elif args.command == "draft":
-            draft(REPO, args.tag, args.dir, args.repo, args.sha)
+            draft(REPO, args.tag, args.dir, args.repo)
         elif args.command == "promote":
             promote(args.candidate, args.dir, args.repo, args.publish)
         else:
@@ -265,8 +220,8 @@ def main(argv):
 
 
 class FakeRun:
-    """Records the commands and answers them from `answers` (a command prefix to its output); `sha256sum` and
-    `gh attestation verify` pass unless named in `failing`."""
+    """Records the commands and answers them from `answers` (a command prefix to its output); `sha256sum` passes
+    unless named in `failing`."""
 
     def __init__(self, answers=None, failing=()):
         self.answers = answers or {}
@@ -326,30 +281,6 @@ class ReleaseVerifyTest(unittest.TestCase):
         self.notes("<!--\nSPDX-FileCopyrightText: 2026 The ElektraWatt contributors\n-->\n\n  \n")
         self.assertEqual(self.refused(check_tag, self.repo, "v0.1.0-rc.1"), want)
 
-    def test_a_commit_without_a_successful_run_is_refused(self):
-        sha = "0123456789abcdef0123456789abcdef01234567"
-
-        def runs(conclusions):
-            return FakeRun({("gh", "run", "list"): lambda c: conclusions[c[c.index("--workflow") + 1]]})
-
-        green = runs({"ci.yml": '[{"conclusion":"failure"},{"conclusion":"success"}]',
-                      "deep-nightly.yml": '[{"conclusion":"success"}]'})
-        check_runs(sha, "o/r", green)
-        self.assertEqual(green.commands[0], ["gh", "run", "list", "--repo", "o/r", "--commit", sha, "--workflow",
-                                             "ci.yml", "--json", "conclusion", "--limit", "100"])
-        self.assertEqual(
-            self.refused(check_runs, sha, "o/r", runs({"ci.yml": '[{"conclusion":"success"}]',
-                                                        "deep-nightly.yml": '[{"conclusion":"cancelled"}]'})),
-            "no successful deep-nightly.yml run on 0123456; run it on this commit before tagging")
-        self.assertEqual(
-            self.refused(check_runs, sha, "o/r", runs({"ci.yml": "[]", "deep-nightly.yml": "[]"})),
-            "no successful ci.yml run on 0123456; run it on this commit before tagging")
-
-    def test_a_build_that_wrote_into_the_checkout_is_refused(self):
-        check_clean(FakeRun({("git", "status"): ""}))
-        self.assertEqual(self.refused(check_clean, FakeRun({("git", "status"): "?? stray.txt\n"})),
-                         "the build wrote into the checkout (git status --porcelain):\n?? stray.txt")
-
     def release_dir(self, names):
         directory = os.path.join(self.dir, "release")
         os.makedirs(directory)
@@ -358,10 +289,8 @@ class ReleaseVerifyTest(unittest.TestCase):
                 f.write(name.encode())
         return directory
 
-    FILES = ["ew-0.1.0-x86_64-unknown-linux-gnu.tar.gz", "ew-0.1.0-x86_64-unknown-linux-gnu.tar.gz.cdx.json",
-             "ew-0.1.0-x86_64-pc-windows-msvc.zip", "ew-0.1.0-x86_64-pc-windows-msvc.zip.cdx.json",
-             "ElektraWatt-0.1.0-x64-user-setup.exe", "ElektraWatt-0.1.0-x64-user-setup.exe.cdx.json",
-             "ElektraWatt-0.1.0-x86_64.AppImage", "ElektraWatt-0.1.0-x86_64.AppImage.cdx.json"]
+    FILES = ["ew-0.1.0-x86_64-unknown-linux-gnu.tar.gz", "ew-0.1.0-x86_64-pc-windows-msvc.zip",
+             "ElektraWatt-0.1.0-x64-user-setup.exe", "ElektraWatt-0.1.0-x86_64.AppImage"]
 
     def test_sums_list_every_release_file_sorted_in_sha256sums_format(self):
         directory = self.release_dir(self.FILES)
@@ -372,20 +301,17 @@ class ReleaseVerifyTest(unittest.TestCase):
         self.assertEqual(lines[0], f"{hashlib.sha256(sorted(self.FILES)[0].encode()).hexdigest()}  {sorted(self.FILES)[0]}")
         self.assertEqual(self.refused(write_sums, directory, "0.1.0"), f"{directory} holds a SHA256SUMS already")
 
-    def test_sums_refuse_a_stray_file_and_a_missing_sbom(self):
-        directory = self.release_dir(self.FILES + ["ew-0.1.0-aarch64-unknown-linux-gnu.tar.gz"])
-        self.assertEqual(self.refused(write_sums, directory, "0.1.0"),
-                         f"ew-0.1.0-aarch64-unknown-linux-gnu.tar.gz in {directory} is no release file of 0.1.0")
-        os.remove(os.path.join(directory, "ew-0.1.0-aarch64-unknown-linux-gnu.tar.gz"))
-        os.remove(os.path.join(directory, "ew-0.1.0-x86_64-pc-windows-msvc.zip.cdx.json"))
-        self.assertEqual(self.refused(write_sums, directory, "0.1.0"),
-                         f"ew-0.1.0-x86_64-pc-windows-msvc.zip.cdx.json is missing from {directory}")
+    def test_sums_refuse_a_stray_file_and_an_sbom(self):
+        # ID-1520: no SBOM is a release file any more, and the aarch64 archives never were.
+        for stray in ("ew-0.1.0-aarch64-unknown-linux-gnu.tar.gz", "ew-0.1.0-x86_64-pc-windows-msvc.zip.cdx.json"):
+            directory = self.release_dir(self.FILES + [stray])
+            self.assertEqual(self.refused(write_sums, directory, "0.1.0"),
+                             f"{stray} in {directory} is no release file of 0.1.0")
+            shutil.rmtree(directory)
 
-    def test_sums_require_the_sbom_of_every_artefact(self):
-        # C50-p2#4, ID-1313: the setup's and the AppImage's SBOMs are release files as the archives' are; WP-S6.08 D26
-        # (ID-1331 (2)): so are the setup and the AppImage themselves.
-        for name in ("ElektraWatt-0.1.0-x64-user-setup.exe.cdx.json", "ElektraWatt-0.1.0-x86_64.AppImage.cdx.json",
-                     "ElektraWatt-0.1.0-x64-user-setup.exe", "ElektraWatt-0.1.0-x86_64.AppImage"):
+    def test_sums_require_every_release_file(self):
+        # WP-S6.08 D26 (ID-1331 (2)): the setup and the AppImage are release files as the archives are.
+        for name in self.FILES:
             directory = self.release_dir([f for f in self.FILES if f != name])
             self.assertEqual(self.refused(write_sums, directory, "0.1.0"), f"{name} is missing from {directory}")
             shutil.rmtree(directory)
@@ -399,21 +325,18 @@ class ReleaseVerifyTest(unittest.TestCase):
         job = text[start:text.index("\n  package:\n", start)]
         self.assertIsNone(re.search(r"\bmain\b|refs/heads|branches", job), job)
 
-    def test_verification_needs_exactly_the_listed_files_and_their_provenance(self):
+    def test_verification_needs_exactly_the_listed_files_and_their_sums(self):
         directory = self.release_dir(self.FILES)
         write_sums(directory, "0.1.0")
         fake = FakeRun()
-        self.assertEqual(verify_files(directory, "o/r", fake), sorted(self.FILES) + [SUMS])
-        self.assertEqual(fake.commands[0], ["sha256sum", "--check", "--strict", SUMS])
-        self.assertEqual(fake.commands[-1], ["gh", "attestation", "verify", os.path.join(directory, SUMS),
-                                             "--repo", "o/r", "--signer-workflow", "o/r/.github/workflows/release.yml"])
-        self.assertEqual(len(fake.commands), 1 + len(self.FILES) + 1)
+        self.assertEqual(verify_files(directory, fake), sorted(self.FILES) + [SUMS])
+        self.assertEqual(fake.commands, [["sha256sum", "--check", "--strict", SUMS]])
         with open(os.path.join(directory, "extra.bin"), "wb") as f:
             f.write(b"x")
-        self.assertEqual(self.refused(verify_files, directory, "o/r", FakeRun()), "extra.bin is not listed in SHA256SUMS")
+        self.assertEqual(self.refused(verify_files, directory, FakeRun()), "extra.bin is not listed in SHA256SUMS")
         os.remove(os.path.join(directory, "extra.bin"))
-        failing = FakeRun(failing=[("gh", "attestation")])
-        self.assertTrue(self.refused(verify_files, directory, "o/r", failing).startswith("`gh attestation verify "))
+        failing = FakeRun(failing=[("sha256sum",)])
+        self.assertTrue(self.refused(verify_files, directory, failing).startswith("`sha256sum --check --strict "))
 
     def promote_fake(self, refs="[]", draft=True, with_files=True):
         def download(command):
@@ -440,20 +363,16 @@ class ReleaseVerifyTest(unittest.TestCase):
         with contextlib.redirect_stdout(printed):
             promote("v0.1.0-rc.2", directory, "o/r", publish=False, run=fake)
         names = sorted(self.FILES) + [SUMS]
-        verify = [["gh", "attestation", "verify", os.path.join(directory, n), "--repo", "o/r", "--signer-workflow",
-                   "o/r/.github/workflows/release.yml", "--source-digest", "c0ffee"] for n in names]
         self.assertEqual(fake.commands, [
             ["gh", "api", "repos/o/r/git/matching-refs/tags/v0.1.0"],
             ["gh", "release", "view", "v0.1.0-rc.2", "--repo", "o/r", "--json", "isDraft,body"],
             ["gh", "api", "repos/o/r/commits/v0.1.0-rc.2", "--jq", ".sha"],
             ["gh", "release", "download", "v0.1.0-rc.2", "--repo", "o/r", "--dir", directory],
             ["sha256sum", "--check", "--strict", SUMS],
-            *verify,
         ])
         self.assertEqual(printed.getvalue(), "".join(
-            [f"release-verify: the build provenance of {n} verifies\n" for n in names]
-            + ["release-verify: dry run: would create the tag v0.1.0 on c0ffee and publish the release v0.1.0 "
-               "(latest) with the notes of v0.1.0-rc.2 and its 9 files:\n"]
+            ["release-verify: dry run: would create the tag v0.1.0 on c0ffee and publish the release v0.1.0 "
+             "(latest) with the notes of v0.1.0-rc.2 and its 5 files:\n"]
             + [f"  {n}\n" for n in names]
             + ["release-verify: dry run: nothing was changed\n"]))
 
@@ -491,17 +410,13 @@ class ReleaseVerifyTest(unittest.TestCase):
         directory = self.release_dir(self.FILES)
         write_sums(directory, "0.1.0")
         fake = self.promote_fake()
-        draft(self.repo, "v0.1.0-rc.1", directory, "o/r", "c0ffee", fake)
+        draft(self.repo, "v0.1.0-rc.1", directory, "o/r", fake)
         create = fake.commands[0]
         self.assertEqual(create[:12], ["gh", "release", "create", "v0.1.0-rc.1", "--repo", "o/r", "--draft",
                                        "--prerelease", "--verify-tag", "--title", "v0.1.0-rc.1", "--notes-file"])
         self.assertEqual(len(create), 13 + len(self.FILES) + 1)
         self.assertEqual(fake.commands[1][:4], ["gh", "release", "download", "v0.1.0-rc.1"])
-        self.assertTrue(any(c[:3] == ["sha256sum", "--check", "--strict"] for c in fake.commands))
-        # FT-1302: the draft binds each file to the tag's commit, as the promote does.
-        verifies = [c for c in fake.commands if c[:3] == ["gh", "attestation", "verify"]]
-        self.assertEqual(len(verifies), len(self.FILES) + 1)
-        self.assertTrue(all(c[-2:] == ["--source-digest", "c0ffee"] for c in verifies), verifies)
+        self.assertEqual(fake.commands[2:], [["sha256sum", "--check", "--strict", SUMS]])
 
 
 if __name__ == "__main__":

@@ -44,9 +44,8 @@ security and data-loss fixes for 6 months after its successor ships. There is no
 
 ## Verifying a download
 
-ElektraWatt 0.1.0 is not signed. Each release carries `SHA256SUMS`, the SHA-256 checksum of each of its files, and
-GitHub's build-provenance attestations, which show that a file was built by the release workflow of this repository.
-The commands to check both are in the install guide's section
+ElektraWatt 0.1.0 is not signed. Each release carries `SHA256SUMS`, the SHA-256 checksum of each of its files. The
+commands to check a file against it are in the install guide's section
 [Verify a download](docs/book/src/how-to/install.md#verify-a-download).
 
 ## Scope

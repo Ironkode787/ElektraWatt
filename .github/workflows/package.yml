@@ -1,69 +1,37 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-# The pilot release's packaging (WP-S6.06 D8; doc 18 §5.2 CI-N-12, CI-R-03, CI-R-05): one workflow builds, from one
-# commit, the release binaries on Windows and Linux, stages the installed tree of D3 and writes the CLI archives. It
-# replaces cli-artefact.yml (its nightly `ew` artefact, G-M1-22, and its release check, FT-333): the book, the two
-# builds up to the staged tree and the CLI archives, their smoke steps and the nightly CLI upload; the Windows setup and
-# the Linux AppImage with their install tests.
+# The release packaging of 0.1.x (WP-S6.06 D8, slimmed for an early alpha by ID-1520; doc 18 §5.2 CI-R-03, CI-R-05):
+# one workflow builds, from one commit, the x86_64 release binaries on Windows and Linux, stages the installed tree of
+# D3, writes the CLI archives and the installers. It runs by hand and through release.yml's `workflow_call`.
 #
-# - `book` runs packaging/stage.py's own tests (IN-1, FT-1228) and builds the user guide once (ci/build-book.sh, D7),
-#   which it hands to the OS jobs as an artifact (HTML, no binary).
-# - `windows` (D5): `cargo build --release` with the static C runtime and link.exe; `dumpbin /dependents` shows that
-#   neither program imports the C runtime (IN-4).
-# - `linux` (D6): the build in the digest-pinned `ubuntu:22.04` container with `gcc` and `libc6-dev` (exact versions,
-#   packaging/components.toml) and no C++ compiler, with no network, the release check of CI-R-03 on both binaries
-#   and glibc 2.35 at most (ci/linux-container.sh, IN-3). apt reads Ubuntu's archive at the snapshot of
-#   packaging/components.toml, and every package it downloads is compared with the list there before the install
-#   (FT-1222, FT-1223).
-# - Each OS job stages the tree (packaging/stage.py, D4), runs `elektrawatt --smoke` on the staged sample and
-#   `--version` of both programs (IN-6), writes its CLI archive and checks it extracted: `ew --version` and `ew export
-#   pdf` of the archive's sample against golden/J-E-2416/expected/pdf/sha256.txt (IN-5).
-# - `windows` (D2, D9, D11): makensis (NSIS, pinned in packaging/components.toml) compiles
-#   packaging/windows/elektrawatt.nsi into the per-user setup, and packaging/windows/install-test.ps1 installs it with
-#   `/S` under outbound firewall blocks (IN-8, IN-9). On the installed tree, with write and delete denied: the smoke
-#   run, the installed-resources script and its runs without each resource (D13, IN-11), AC-40's acceptance
-#   (ci/installed-acceptance.sh, D12, IN-12) and the unchanged listing (IN-10); then the setup once more over the
-#   installation and the uninstall (IN-13).
-# - `linux` (D2, D10, D11): the AppDir around the staged tree (packaging/stage.py appdir: packaging/linux/AppRun, its
-#   desktop file and the icon of assets/icons/app/), its squashfs image written by mksquashfs in the build container
-#   (squashfs-tools from the same snapshot, zstd), and the pinned type-2 runtime before it:
-#   `ElektraWatt-<v>-x86_64.AppImage`. packaging/linux/install-test.sh runs it in `ubuntu:22.04` and `debian:12` with
-#   no network through `--appimage-extract-and-run` (IN-14) and on its extraction with `chmod -R a-w` (IN-10, IN-12),
-#   then on the runner the same on its extraction with D13's resource runs (IN-10 to IN-12), as Python is there.
-# - Each OS job writes the digests of its release `ew` on Golden A (ci/golden-digests.py, D14: the PDF on 1 and 4
-#   threads, the SVG pages serial and on 4 threads, the report and row CSVs, `fmt --check`) and uploads them as
-#   `digests-<os>`; `digests` compares the two manifests and the PDFs with the committed digest (IN-18, FT-234).
-# - `windows-arm` and `linux-arm` (D16, best-effort, `continue-on-error`): the aarch64 CLI archives on windows-11-arm
-#   and ubuntu-24.04-arm (Linux in the arm64 `ubuntu:22.04` image, as D6), `ew --version` and AC-40's script on the
-#   staged CLI tree; a failure shows in the run and its job summary and leaves the run green. No ARM installer.
+# - `book` builds the user guide once (ci/build-book.sh, D7), which the installers ship, and hands it to the OS jobs
+#   as an artifact (HTML, no binary).
+# - `windows` (D5): the third-party notices (cargo-about), `cargo build --release` with the static C runtime and
+#   link.exe, the staged tree (packaging/stage.py, D4), its smoke test (`--version` of both programs and `elektrawatt
+#   --smoke` on the staged sample, IN-6), the CLI archive and the per-user setup (makensis, NSIS pinned in
+#   packaging/components.toml, compiles packaging/windows/elektrawatt.nsi).
+# - `linux` (D6): the notices, then the build in the digest-pinned `ubuntu:22.04` container with `gcc` and
+#   `libc6-dev` (exact versions, packaging/components.toml, downloaded from Ubuntu's archive at its snapshot and
+#   compared with the list, FT-1222, FT-1223) and no C++ compiler, with no network, the release check of CI-R-03 on
+#   both binaries and glibc 2.35 at most (ci/linux-container.sh, IN-3); the staged tree, the same smoke test, the CLI
+#   archive, and the AppImage: the AppDir around the staged tree (packaging/stage.py appdir), its squashfs image
+#   written by mksquashfs in the build container (squashfs-tools from the same snapshot, zstd) and the pinned type-2
+#   runtime before it, `ElektraWatt-<v>-x86_64.AppImage`.
 #
-# The release checks of WP-S6.07, nightly as in the release's call (release.yml):
-# - D7 (CI-R-03, FT-02): both x86_64 release builds (and the aarch64 Linux one) are `cargo auditable build --release
-#   --locked`, which embeds each binary's dependency list; `ci/release-check.sh env` asserts the build environment on
-#   both OSes (on Windows with PKG_CONFIG=false too), and ci/release-verify.py's `clean` that the build wrote nothing
-#   into the checkout.
-# - D11, D12 (CI-R-02's advisory half, CI-R-09): ci/audit-data.py reads every shipped binary's embedded list and refuses
-#   a missing one and a test-only crate in it; `cargo audit bin` checks each against the advisory database, and the
-#   linux job runs `cargo deny check advisories` and `cargo audit` on Cargo.lock (waivers: .cargo/audit.toml and
-#   deny.toml). On the Linux install test's installed tree, ci/no-listen.sh runs the smoke start and an export under
-#   strace and refuses any `listen` call.
-# - D9 (CI-R-07, FT-04): ci/sbom.py writes the CycloneDX SBOM of each artefact (`<artefact>.cdx.json`, from
-#   cargo-cyclonedx's SBOMs of its binaries, with the non-crate components), checks it complete against `cargo metadata`,
-#   and appends the non-crate components' notices to THIRD-PARTY-NOTICES.txt before the tree is staged.
+# Every tree ships the licence texts and NOTICE (stage.py) beside THIRD-PARTY-NOTICES.txt; NOTICE names the non-crate
+# components (the fonts, SQLite, the AppImage's runtime).
 #
-# ID-476's hold: no binary that links the UI graph leaves its job. With `upload: false` (the nightly, a dispatch, and
-# every call but WP-S6.07's release) a job uploads only its CLI archive and the SBOMs of its artefacts, as the nightly
-# artefact `ew-<os>-<arch>-unsigned-dev-<short sha>` for 90 days, and its reports. `upload: true` uploads the same files
-# under the CLI archive's release name for one day, and, the hold lifted for the release (ID-1331 (2), WP-S6.08 D26),
-# the setup and the AppImage beside them as `ew-<v>-<target>-setup` and `ew-<v>-<target>-appimage`, which the release's
-# `sums` job collects into the release files; in every other run they are built and tested but never leave their jobs
-# (their SBOMs do: an SBOM is no binary, ID-1313).
+# ID-476's hold: no binary that links the UI graph leaves its job. With `upload: false` (a dispatch, and every call
+# but the release's) a job uploads only its CLI archive, as the artefact `ew-<os>-<arch>-unsigned-dev-<short sha>` for
+# 90 days, and its reports. `upload: true` uploads the same archive under its release name for one day, and, the hold
+# lifted for the release (ID-1331 (2), WP-S6.08 D26), the setup and the AppImage beside it as
+# `ew-<v>-<target>-setup` and `ew-<v>-<target>-appimage`, which the release's `sums` job collects into the release
+# files; in every other run they are built but never leave their jobs.
 #
-# `<v>`: the `version` input, or `<workspace version>-dev.<short sha>` (D8; a schedule has no inputs, so its version is
-# always the default). It names the archives, the setup, the staged README and the archive's root folder. The programs
-# print the workspace version (CARGO_PKG_VERSION); the jobs assert that they print the version of Cargo.toml and that
-# `<v>` is that version, alone or followed by `-` (FT-1227; stamping `<v>` into the binaries is WP-S6.07's, ID-1251).
+# `<v>`: the `version` input, or `<workspace version>-dev.<short sha>` (D8). It names the archives, the setup, the
+# staged README and the archive's root folder. The programs print the workspace version (CARGO_PKG_VERSION); the jobs
+# assert that they print the version of Cargo.toml and that `<v>` is that version, alone or followed by `-` (FT-1227).
 #
 # Same hardening as ci.yml (§5.4, NFR-SEC-19): actions pinned by commit SHA with a version comment, the image by
 # digest, every download by version and SHA-256, read-only default token, no secret, credentials not persisted by the
@@ -106,12 +74,6 @@ env:
   # its multi-arch image index (Docker Hub, resolved 2026-11-03). Its libc6 is the version of packaging/components.toml's
   # libc6-dev; update the tag, the digest and those versions together. The c-only job of ci.yml uses the same image.
   LINUX_BUILD_IMAGE: ubuntu@sha256:076e7bf82319619f28dd0aa9c02ab34b055ad37100395b4f49a2ffba04fb5e11
-  # D11: the AppImage's install tests also run in debian:12 (glibc 2.36), pinned by the digest of its multi-arch image
-  # index (Docker Hub, resolved 2026-11-03).
-  DEBIAN_IMAGE: debian@sha256:d74df7598108a173a621eda4d58a2adbf850b2d9a9d81bc2cca1a6c21174a880
-  # D16: the arm64 build container, the linux/arm64 manifest of LINUX_BUILD_IMAGE's index, pinned by its own digest;
-  # update it with LINUX_BUILD_IMAGE and packaging/components.toml's [[apt.arm64]].
-  LINUX_ARM_BUILD_IMAGE: ubuntu@sha256:a8fb2ba88181746111cbbe2969826d6546b71226785b196c93d2c3445a25000d
 
 jobs:
   book:
@@ -128,13 +90,8 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      # IN-1, FT-1228: the staging, the archives, the pins and the package list, over a fixture repository.
-      - name: packaging/stage.py's tests
-        run: python3 -I packaging/stage.py --test
       - name: build the book offline
         run: bash ci/build-book.sh "$RUNNER_TEMP/book"
-      - name: link check of the built book
-        run: python3 -I ci/check-book-links.py "$RUNNER_TEMP/book"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: package-book
@@ -191,19 +148,16 @@ jobs:
             echo "version=$version"
             echo "short=${GITHUB_SHA::7}"
             echo "cargo_about=$(python -I packaging/stage.py pin cargo-about)"
-            echo "cargo_auditable=$(python -I packaging/stage.py pin cargo-auditable)"
-            echo "cargo_cyclonedx=$(python -I packaging/stage.py pin cargo-cyclonedx)"
-            echo "cargo_audit=$(python -I packaging/stage.py pin cargo-audit)"
           } >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: package-book
           path: ${{ runner.temp }}/book
       # The tree is a distribution of the GPL program: it ships the third-party notices (NFR-LIC-08), written beside
-      # the binaries, where stage.py takes them. The release tools of WP-S6.07 (packaging/components.toml).
+      # the binaries, where stage.py takes them (cargo-about, packaging/components.toml).
       - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
         with:
-          tool: cargo-about@${{ steps.pins.outputs.cargo_about }},cargo-auditable@${{ steps.pins.outputs.cargo_auditable }},cargo-cyclonedx@${{ steps.pins.outputs.cargo_cyclonedx }},cargo-audit@${{ steps.pins.outputs.cargo_audit }}
+          tool: cargo-about@${{ steps.pins.outputs.cargo_about }}
       - name: third-party notices
         run: |
           mkdir -p target/release
@@ -212,9 +166,9 @@ jobs:
       # link.exe and not with the local builds' rust-lld (ID-746); the C runtime is linked statically (doc 18 §8: no
       # redistributable), and the release check's three path remaps keep the cargo home, the rustup home and the
       # checkout out of the binaries. link.exe writes elektrawatt.pdb and ew.pdb beside them (public symbols only).
-      # WP-S6.07 D7 (FT-02): `cargo auditable` embeds the dependency list; the release check's environment step runs
-      # in the shell that starts the build, with PKG_CONFIG=false as on Linux (no pkg-config probe; harmless here).
-      - name: cargo auditable build (release, static C runtime)
+      # The release check's environment step runs in the shell that starts the build, with PKG_CONFIG=false as on
+      # Linux (no pkg-config probe; harmless here).
+      - name: cargo build (release, static C runtime)
         run: |
           set -euo pipefail
           export RUSTFLAGS="-D warnings -C target-feature=+crt-static --remap-path-prefix=${CARGO_HOME:?}=/cargo --remap-path-prefix=${RUSTUP_HOME:-$(rustup show home)}=/rustup --remap-path-prefix=$GITHUB_WORKSPACE=/build"
@@ -222,60 +176,7 @@ jobs:
           # actions/setup-python exports PKG_CONFIG_PATH (its Python's lib/pkgconfig); the release build reads none.
           unset PKG_CONFIG_PATH
           bash ci/release-check.sh env
-          cargo auditable build --release --locked -p elektrawatt -p ew
-      # D5: no build step wrote into the checkout.
-      - name: the checkout is clean after the build
-        run: python -I ci/release-verify.py clean
-      # D12 (b), D11: the embedded dependency lists, no test-only crate in them, and no advisory against them.
-      # `--max-binary-size`: cargo audit bin reads at most 100 MiB by default, and the release binaries are larger
-      # (package.yml run 10: 137 and 107 MB on Linux); 512 MiB keeps a bound.
-      - name: the binaries' cargo-auditable data and advisories
-        run: |
-          set -euo pipefail
-          python -I ci/audit-data.py target/release/elektrawatt.exe target/release/ew.exe
-          cargo audit bin --max-binary-size 536870912 target/release/elektrawatt.exe target/release/ew.exe
-      # IN-4: neither program imports the C runtime, which the hosted image has and a clean PC may not.
-      - name: no C runtime import
-        shell: pwsh
-        run: |
-          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-          $dumpbin = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find 'VC\Tools\MSVC\**\bin\Hostx64\x64\dumpbin.exe' | Select-Object -First 1
-          if (-not $dumpbin) { Write-Output "::error::dumpbin.exe was not found through vswhere"; exit 1 }
-          $failed = $false
-          foreach ($exe in 'elektrawatt.exe', 'ew.exe') {
-            $imports = & $dumpbin /nologo /dependents "target\release\$exe"
-            if ($LASTEXITCODE -ne 0) { Write-Output "::error::dumpbin failed on $exe"; exit 1 }
-            $imports | Out-Host
-            $crt = $imports | Select-String -Pattern '^\s*(vcruntime\S*|msvcp\S*|ucrtbase\S*|api-ms-win-crt-\S*)\.dll\s*$'
-            if ($crt) { Write-Output "::error::$exe imports the C runtime: $(($crt | ForEach-Object { $_.Line.Trim() }) -join ', ')"; $failed = $true }
-          }
-          if ($failed) { exit 1 }
-      # D9 (CI-R-07, FT-04): the SBOM of the setup (both programs and NSIS's stub) and of the CLI archive (`ew`), each
-      # the shipped set of `cargo tree` (ID-1318) and complete against it and cargo metadata; then the non-crate
-      # components in the notices that the tree takes. The CLI archive's set is what `ew` reaches in the joint graph of
-      # both programs, the one build that makes its binary (C50-p2#2).
-      - name: the SBOMs and the notices (D9)
-        env:
-          VERSION: ${{ steps.pins.outputs.version }}
-        run: |
-          set -euo pipefail
-          sbom="$RUNNER_TEMP/sbom" dist="$RUNNER_TEMP/dist"
-          setup="ElektraWatt-$VERSION-x64-user-setup.exe" cli="ew-$VERSION-$TARGET.zip"
-          mkdir -p "$dist"
-          python -I ci/sbom.py cyclonedx --target "$TARGET" --bin elektrawatt --bin ew --out "$sbom"
-          python -I ci/sbom.py shipped --target "$TARGET" --bin elektrawatt --bin ew --out "$sbom/setup.tree"
-          python -I ci/sbom.py shipped --target "$TARGET" --bin elektrawatt --bin ew --root ew --out "$sbom/cli.tree"
-          python -I ci/sbom.py merge --artefact "$setup" --version "$VERSION" --metadata "$sbom/metadata.json" \
-            --tree "$sbom/setup.tree" --cdx "$sbom/elektrawatt.cdx.json" --cdx "$sbom/ew.cdx.json" --component nsis \
-            --out "$dist/$setup.cdx.json"
-          python -I ci/sbom.py merge --artefact "$cli" --version "$VERSION" --metadata "$sbom/metadata.json" \
-            --tree "$sbom/cli.tree" --cdx "$sbom/ew.cdx.json" --out "$dist/$cli.cdx.json"
-          python -I ci/sbom.py complete --sbom "$dist/$setup.cdx.json" --metadata "$sbom/metadata.json" \
-            --tree "$sbom/setup.tree" --bin elektrawatt --bin ew
-          python -I ci/sbom.py complete --sbom "$dist/$cli.cdx.json" --metadata "$sbom/metadata.json" \
-            --tree "$sbom/cli.tree" --bin ew
-          python -I ci/sbom.py notices --sbom "$dist/$setup.cdx.json" --sbom "$dist/$cli.cdx.json" \
-            --metadata "$sbom/metadata.json" --notices target/release/THIRD-PARTY-NOTICES.txt
+          cargo build --release --locked -p elektrawatt -p ew
       - name: stage the installed tree
         env:
           VERSION: ${{ steps.pins.outputs.version }}
@@ -299,35 +200,6 @@ jobs:
           archive="ew-$VERSION-$TARGET.zip"
           python -I packaging/stage.py archive --tree "$RUNNER_TEMP/tree" --kind zip --out "$RUNNER_TEMP/dist/$archive"
           echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
-      # IN-5: the archive, extracted, runs and writes the committed PDF from its own sample, with no EW_CONTENT_DIR.
-      - name: check the extracted CLI archive
-        env:
-          VERSION: ${{ steps.pins.outputs.version }}
-          WORKSPACE_VERSION: ${{ steps.pins.outputs.workspace }}
-        run: |
-          set -euo pipefail
-          out="$RUNNER_TEMP/extracted"
-          mkdir -p "$out"
-          python -I -m zipfile -e "$RUNNER_TEMP/dist/$ARCHIVE" "$out"
-          root="$out/ew-$VERSION-$TARGET"
-          test "$("$root/ew.exe" --version | tr -d '\r')" = "ew $WORKSPACE_VERSION"
-          "$root/ew.exe" export pdf "$root/samples/J-E-2416.ew" --out "$out/golden.pdf"
-          want="$(tr -d '\r\n' < golden/J-E-2416/expected/pdf/sha256.txt)"
-          got="$(sha256sum < "$out/golden.pdf" | cut -d' ' -f1)"
-          echo "the archive's PDF: $got (committed: $want)"
-          test "$got" = "$want" || { echo "::error::the PDF of the Windows CLI archive is not the committed digest of golden/J-E-2416/expected/pdf/sha256.txt"; exit 1; }
-      # D14: the digests of the release `ew` on the staged sample, compared with Linux's in the `digests` job.
-      - name: the golden digests (D14)
-        run: |
-          set -euo pipefail
-          python -I ci/golden-digests.py "$RUNNER_TEMP/tree/ew.exe" "$RUNNER_TEMP/tree/samples/J-E-2416.ew" "$RUNNER_TEMP/digests"
-          cp "$RUNNER_TEMP/digests/digests.txt" "$RUNNER_TEMP/digests-windows.txt"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-windows
-          path: ${{ runner.temp }}/digests-windows.txt
-          if-no-files-found: error
-          retention-days: 7
       # D2, D9: windows-2025 has no NSIS (the image's README, version 20261030.317.1), so makensis comes from NSIS's
       # release archive, pinned by version and SHA-256 in packaging/components.toml and checked before it is unpacked.
       - name: makensis (NSIS, pinned)
@@ -357,41 +229,6 @@ jobs:
           "$MAKENSIS" -V3 "-DVERSION=$VERSION" "-DTREE=$(cygpath -w "$RUNNER_TEMP/tree")" \
             "-DOUTFILE=$(cygpath -w "$setup")" packaging/windows/elektrawatt.nsi
           echo "SETUP=$(cygpath -w "$setup")" >> "$GITHUB_ENV"
-      # IN-8, IN-9: the install under the firewall blocks; every later step runs under them too. pwsh, so that `/S`
-      # reaches the setup as it is.
-      - name: install the setup (/S, firewall blocks; IN-8, IN-9)
-        shell: pwsh
-        env:
-          VERSION: ${{ steps.pins.outputs.version }}
-        run: ./packaging/windows/install-test.ps1 install -Setup $env:SETUP -Tree "$env:RUNNER_TEMP\tree" -Version $env:VERSION
-      # IN-10: write and delete denied to the running user in the installed tree, for the step after.
-      - name: deny writing in the installed tree
-        shell: pwsh
-        run: ./packaging/windows/install-test.ps1 deny -Dir "$env:LOCALAPPDATA\Programs\ElektraWatt"
-      # IN-10 to IN-12 on Windows' installed tree: the smoke run, the installed-resources script and its runs on copies
-      # without each resource (D13), AC-40's acceptance (D12), the installed guide found (FT-1267, WP-S6.08 D6), then
-      # the same listing and SHA-256 of every file.
-      - name: the installed tree, read-only (IN-10 to IN-12)
-        run: |
-          set -euo pipefail
-          root="$LOCALAPPDATA/Programs/ElektraWatt"
-          python -I packaging/stage.py listing "$root" > "$RUNNER_TEMP/listing-before.txt"
-          "$root/elektrawatt.exe" --smoke "$root/samples/J-E-2416.ew"
-          python -I packaging/stage.py resources --tree "$root" --work "$RUNNER_TEMP/resources"
-          bash ci/installed-acceptance.sh "$root/ew.exe" "$root/samples/J-E-2416.ew" golden/J-E-2416/expected "$RUNNER_TEMP/acceptance"
-          bash ci/installed-guide.sh "$root/elektrawatt.exe" "$root/docs" "$RUNNER_TEMP/guide"
-          python -I packaging/stage.py listing "$root" > "$RUNNER_TEMP/listing-after.txt"
-          diff "$RUNNER_TEMP/listing-before.txt" "$RUNNER_TEMP/listing-after.txt" || { echo "::error::the programs changed the installed tree (IN-10)"; exit 1; }
-          echo "the installed tree is unchanged: $(wc -l < "$RUNNER_TEMP/listing-before.txt") files"
-      - name: allow writing in the installed tree again
-        shell: pwsh
-        run: ./packaging/windows/install-test.ps1 allow -Dir "$env:LOCALAPPDATA\Programs\ElektraWatt"
-      # IN-13: the setup once more over the installation, then the uninstall; the user's settings stay.
-      - name: install again and uninstall (IN-13)
-        shell: pwsh
-        env:
-          VERSION: ${{ steps.pins.outputs.version }}
-        run: ./packaging/windows/install-test.ps1 again-and-uninstall -Setup $env:SETUP -Tree "$env:RUNNER_TEMP\tree" -Version $env:VERSION
       - name: name the upload
         env:
           VERSION: ${{ steps.pins.outputs.version }}
@@ -413,18 +250,16 @@ jobs:
               echo "No setup was compiled (see the log)."
             fi
             if [ -n "${UPLOAD_NAME:-}" ]; then
-              echo "Built \`${ARCHIVE}\`, uploaded as \`$UPLOAD_NAME\` with the SBOMs of the setup and the archive: an unsigned build, not a release unless WP-S6.07's release uploads it."
+              echo "Built \`${ARCHIVE}\`, uploaded as \`$UPLOAD_NAME\`: an unsigned build, not a release unless the release workflow uploads it."
             else
               echo "No CLI archive was uploaded (see the log)."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-      # The CLI archive and the SBOMs; the setup only in the release's run (below), the staged tree never (ID-476).
+      # The CLI archive; the setup only in the release's run (below), the staged tree never (ID-476).
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ env.UPLOAD_NAME }}
-          path: |
-            ${{ runner.temp }}/dist/${{ env.ARCHIVE }}
-            ${{ runner.temp }}/dist/*.cdx.json
+          path: ${{ runner.temp }}/dist/${{ env.ARCHIVE }}
           if-no-files-found: error
           retention-days: ${{ env.UPLOAD_DAYS }}
       # WP-S6.08 D26 (ID-1331 (2), ID-476's hold lifted): with `upload: true` the setup joins the release files, under a
@@ -478,10 +313,6 @@ jobs:
             echo "version=$version"
             echo "short=${GITHUB_SHA::7}"
             echo "cargo_about=$(python3 -I packaging/stage.py pin cargo-about)"
-            echo "cargo_auditable=$(python3 -I packaging/stage.py pin cargo-auditable)"
-            echo "cargo_cyclonedx=$(python3 -I packaging/stage.py pin cargo-cyclonedx)"
-            echo "cargo_audit=$(python3 -I packaging/stage.py pin cargo-audit)"
-            echo "cargo_deny=$(python3 -I packaging/stage.py pin cargo-deny)"
             echo "gcc=$(python3 -I packaging/stage.py pin gcc)"
             echo "libc6_dev=$(python3 -I packaging/stage.py pin libc6-dev)"
             echo "apt_snapshot=$(python3 -I packaging/stage.py snapshot)"
@@ -491,10 +322,10 @@ jobs:
         with:
           name: package-book
           path: ${{ runner.temp }}/book
-      # cargo-auditable lands in the cargo home's bin (the static musl build), which the build container mounts.
+      # cargo-about for the notices.
       - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
         with:
-          tool: cargo-about@${{ steps.pins.outputs.cargo_about }},cargo-auditable@${{ steps.pins.outputs.cargo_auditable }},cargo-cyclonedx@${{ steps.pins.outputs.cargo_cyclonedx }},cargo-audit@${{ steps.pins.outputs.cargo_audit }},cargo-deny@${{ steps.pins.outputs.cargo_deny }}
+          tool: cargo-about@${{ steps.pins.outputs.cargo_about }}
       - name: third-party notices
         run: |
           mkdir -p target/release
@@ -534,7 +365,7 @@ jobs:
         run: python3 -I packaging/stage.py debs "$RUNNER_TEMP/apt/archives"
       # IN-3: no network, no C++ compiler (asserted), PKG_CONFIG=false and the release check's remaps; the checkout,
       # the cargo home and the toolchain are mounted at their runner paths, so the remaps and the scan see those paths.
-      - name: cargo auditable build (release) in the container, release check
+      - name: cargo build (release) in the container, release check
         env:
           EW_GCC_VERSION: ${{ steps.pins.outputs.gcc }}
           EW_LIBC6_DEV_VERSION: ${{ steps.pins.outputs.libc6_dev }}
@@ -556,48 +387,6 @@ jobs:
             --volume "$CARGO_HOME:$CARGO_HOME" \
             --volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" --workdir "$GITHUB_WORKSPACE" \
             "$LINUX_BUILD_IMAGE" bash ci/linux-container.sh release
-      # D5: no build step wrote into the checkout (the container's reports are under target/).
-      - name: the checkout is clean after the build
-        run: python3 -I ci/release-verify.py clean
-      # D11 (CI-R-02's advisory half): the lock against the advisory database, with the supply-chain job's tools.
-      - name: advisories of Cargo.lock
-        run: |
-          set -euo pipefail
-          cargo deny --locked check advisories
-          cargo audit
-      # D12 (b), D11: the embedded dependency lists, no test-only crate in them, and no advisory against them (the
-      # size bound as in the windows job).
-      - name: the binaries' cargo-auditable data and advisories
-        run: |
-          set -euo pipefail
-          python3 -I ci/audit-data.py target/release/elektrawatt target/release/ew
-          cargo audit bin --max-binary-size 536870912 target/release/elektrawatt target/release/ew
-      # D9 (CI-R-07, FT-04): the SBOM of the AppImage (both programs and the type-2 runtime) and of the CLI archive
-      # (`ew`), each the shipped set of `cargo tree` (ID-1318) and complete against it and cargo metadata; then the
-      # non-crate components in the notices the tree takes. The CLI archive's set is what `ew` reaches in the joint
-      # graph of both programs, the one build that makes its binary (C50-p2#2).
-      - name: the SBOMs and the notices (D9)
-        env:
-          VERSION: ${{ steps.pins.outputs.version }}
-        run: |
-          set -euo pipefail
-          sbom="$RUNNER_TEMP/sbom" dist="$RUNNER_TEMP/dist"
-          appimage="ElektraWatt-$VERSION-x86_64.AppImage" cli="ew-$VERSION-$TARGET.tar.gz"
-          mkdir -p "$dist"
-          python3 -I ci/sbom.py cyclonedx --target "$TARGET" --bin elektrawatt --bin ew --out "$sbom"
-          python3 -I ci/sbom.py shipped --target "$TARGET" --bin elektrawatt --bin ew --out "$sbom/appimage.tree"
-          python3 -I ci/sbom.py shipped --target "$TARGET" --bin elektrawatt --bin ew --root ew --out "$sbom/cli.tree"
-          python3 -I ci/sbom.py merge --artefact "$appimage" --version "$VERSION" --metadata "$sbom/metadata.json" \
-            --tree "$sbom/appimage.tree" --cdx "$sbom/elektrawatt.cdx.json" --cdx "$sbom/ew.cdx.json" \
-            --component appimage-type2-runtime --out "$dist/$appimage.cdx.json"
-          python3 -I ci/sbom.py merge --artefact "$cli" --version "$VERSION" --metadata "$sbom/metadata.json" \
-            --tree "$sbom/cli.tree" --cdx "$sbom/ew.cdx.json" --out "$dist/$cli.cdx.json"
-          python3 -I ci/sbom.py complete --sbom "$dist/$appimage.cdx.json" --metadata "$sbom/metadata.json" \
-            --tree "$sbom/appimage.tree" --bin elektrawatt --bin ew
-          python3 -I ci/sbom.py complete --sbom "$dist/$cli.cdx.json" --metadata "$sbom/metadata.json" \
-            --tree "$sbom/cli.tree" --bin ew
-          python3 -I ci/sbom.py notices --sbom "$dist/$appimage.cdx.json" --sbom "$dist/$cli.cdx.json" \
-            --metadata "$sbom/metadata.json" --notices target/release/THIRD-PARTY-NOTICES.txt
       - name: stage the installed tree
         env:
           VERSION: ${{ steps.pins.outputs.version }}
@@ -621,35 +410,6 @@ jobs:
           archive="ew-$VERSION-$TARGET.tar.gz"
           python3 -I packaging/stage.py archive --tree "$RUNNER_TEMP/tree" --kind tar.gz --out "$RUNNER_TEMP/dist/$archive"
           echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
-      # IN-5
-      - name: check the extracted CLI archive
-        env:
-          VERSION: ${{ steps.pins.outputs.version }}
-          WORKSPACE_VERSION: ${{ steps.pins.outputs.workspace }}
-        run: |
-          set -euo pipefail
-          out="$RUNNER_TEMP/extracted"
-          mkdir -p "$out"
-          tar -xzf "$RUNNER_TEMP/dist/$ARCHIVE" -C "$out"
-          root="$out/ew-$VERSION-$TARGET"
-          test "$("$root/ew" --version)" = "ew $WORKSPACE_VERSION"
-          "$root/ew" export pdf "$root/samples/J-E-2416.ew" --out "$out/golden.pdf"
-          want="$(tr -d '\n' < golden/J-E-2416/expected/pdf/sha256.txt)"
-          got="$(sha256sum < "$out/golden.pdf" | cut -d' ' -f1)"
-          echo "the archive's PDF: $got (committed: $want)"
-          test "$got" = "$want" || { echo "::error::the PDF of the Linux CLI archive is not the committed digest of golden/J-E-2416/expected/pdf/sha256.txt"; exit 1; }
-      # D14: the digests of the release `ew` on the staged sample, compared with Windows' in the `digests` job.
-      - name: the golden digests (D14)
-        run: |
-          set -euo pipefail
-          python3 -I ci/golden-digests.py "$RUNNER_TEMP/tree/ew" "$RUNNER_TEMP/tree/samples/J-E-2416.ew" "$RUNNER_TEMP/digests"
-          cp "$RUNNER_TEMP/digests/digests.txt" "$RUNNER_TEMP/digests-linux.txt"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-linux
-          path: ${{ runner.temp }}/digests-linux.txt
-          if-no-files-found: error
-          retention-days: 7
       # D2, ID-1275: the static type-2 runtime, pinned by URL and SHA-256 in packaging/components.toml and checked
       # before it is used, so an upstream asset that changes fails here.
       - name: the AppImage runtime (pinned)
@@ -685,63 +445,6 @@ jobs:
           mkdir -p "$RUNNER_TEMP/appimage"
           python3 -I packaging/stage.py appimage --runtime "$RUNNER_TEMP/runtime/runtime" --image "$RUNNER_TEMP/AppDir.squashfs" --out "$RUNNER_TEMP/appimage/$appimage"
           echo "APPIMAGE=$appimage" >> "$GITHUB_ENV"
-      # IN-14, IN-10, IN-12 (D11): in ubuntu:22.04 and debian:12, with no network and as the runner's user, the
-      # AppImage through --appimage-extract-and-run, then its extraction read-only: the smoke run and AC-40 with its
-      # `ew` dispatch, where no system font exists. D3's listing is stage.py's of the staged tree.
-      - name: the AppImage in ubuntu:22.04 and debian:12 (IN-14, IN-10, IN-12)
-        env:
-          WORKSPACE_VERSION: ${{ steps.pins.outputs.workspace }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/listing"
-          python3 -I packaging/stage.py listing "$RUNNER_TEMP/tree" > "$RUNNER_TEMP/listing/tree.txt"
-          for image in LINUX_BUILD_IMAGE DEBIAN_IMAGE; do
-            echo "install-test: in ${!image}"
-            bash packaging/linux/install-test.sh container "${!image}" "$RUNNER_TEMP/appimage/$APPIMAGE" \
-              "$WORKSPACE_VERSION" "$RUNNER_TEMP/listing/tree.txt" "$RUNNER_TEMP/install-tests/$image"
-          done
-      # IN-10 to IN-12 on the runner, on the AppImage's extraction with `chmod -R a-w`: the smoke run, the
-      # installed-resources script and its runs on copies without each resource (D13, which needs Python), AC-40 with
-      # the `ew` dispatch (D12), then the same listing and SHA-256 of every file.
-      - name: the AppImage's extraction, read-only (IN-10 to IN-12)
-        env:
-          WORKSPACE_VERSION: ${{ steps.pins.outputs.workspace }}
-        run: |
-          bash packaging/linux/install-test.sh inside "$RUNNER_TEMP/appimage/$APPIMAGE" "$WORKSPACE_VERSION" \
-            "$RUNNER_TEMP/listing/tree.txt" "$RUNNER_TEMP/install-tests/runner" resources
-      # D12 (d): ubuntu-24.04 has no strace (the image's README, version 20261026.354.1), so noble's package comes from
-      # the Ubuntu archive snapshot of packaging/components.toml, pinned by version and SHA-256 and checked before apt
-      # installs it with its one dependency, libunwind8, from the runner's archive. A test tool: it reaches no artefact.
-      - name: strace (pinned)
-        env:
-          STRACE_DEB: strace_6.8-0ubuntu2_amd64.deb
-          STRACE_SHA256: d588810ae26b06fee6678dc81e5b54f6efcde8e718e4589adb4d11d254b9820b
-          EW_APT_SNAPSHOT: ${{ steps.pins.outputs.apt_snapshot }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/strace"
-          curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 --retry 3 \
-            --output "$RUNNER_TEMP/strace/$STRACE_DEB" \
-            "https://snapshot.ubuntu.com/ubuntu/$EW_APT_SNAPSHOT/pool/main/s/strace/$STRACE_DEB"
-          echo "$STRACE_SHA256  $RUNNER_TEMP/strace/$STRACE_DEB" | sha256sum --check --strict -
-          apt=(-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
-          sudo apt-get "${apt[@]}" update -qq
-          sudo apt-get "${apt[@]}" install -y -qq --no-install-recommends "$RUNNER_TEMP/strace/$STRACE_DEB"
-          strace --version | sed -n 1p
-      # FT-1267 (WP-S6.08 D6): the extraction's `elektrawatt` finds its installed guide, read-only as the step above.
-      - name: the installed guide is found (FT-1267)
-        run: |
-          set -euo pipefail
-          appdir="$RUNNER_TEMP/install-tests/runner/squashfs-root"
-          trap 'chmod -R u+w "$appdir"' EXIT
-          chmod -R a-w "$appdir"
-          bash ci/installed-guide.sh "$appdir/AppRun" "$appdir/usr/lib/elektrawatt/docs" "$RUNNER_TEMP/guide"
-      # D12 (d), G-M2-15: no listening socket on the installed tree (the extraction the step above leaves).
-      - name: no listening socket (D12 (d))
-        run: |
-          set -euo pipefail
-          bash ci/no-listen.sh --test  # its check on fixture traces, one with a listen call
-          bash ci/no-listen.sh "$RUNNER_TEMP/install-tests/runner/squashfs-root" "$RUNNER_TEMP/no-listen"
       - name: name the upload
         env:
           VERSION: ${{ steps.pins.outputs.version }}
@@ -787,7 +490,7 @@ jobs:
             fi
             echo
             if [ -n "${UPLOAD_NAME:-}" ]; then
-              echo "Built \`${ARCHIVE}\`, uploaded as \`$UPLOAD_NAME\` with the SBOMs of the AppImage and the archive: an unsigned build, not a release unless WP-S6.07's release uploads it."
+              echo "Built \`${ARCHIVE}\`, uploaded as \`$UPLOAD_NAME\`: an unsigned build, not a release unless the release workflow uploads it."
             else
               echo "No CLI archive was uploaded (see the log)."
             fi
@@ -800,13 +503,11 @@ jobs:
           path: target/release-check-*.md
           if-no-files-found: ignore
           retention-days: 30
-      # The CLI archive and the SBOMs; the AppImage only in the release's run (below, ID-1331 (2)).
+      # The CLI archive; the AppImage only in the release's run (below, ID-1331 (2)).
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ env.UPLOAD_NAME }}
-          path: |
-            ${{ runner.temp }}/dist/${{ env.ARCHIVE }}
-            ${{ runner.temp }}/dist/*.cdx.json
+          path: ${{ runner.temp }}/dist/${{ env.ARCHIVE }}
           if-no-files-found: error
           retention-days: ${{ env.UPLOAD_DAYS }}
       # WP-S6.08 D26 (ID-1331 (2), ID-476's hold lifted): with `upload: true` the AppImage joins the release files, under
@@ -818,294 +519,3 @@ jobs:
           path: ${{ runner.temp }}/appimage/${{ env.APPIMAGE }}
           if-no-files-found: error
           retention-days: 1
-
-  # D14, IN-18 (doc 18 CI-N-04, AC-14; FT-234): the release `ew` writes the same bytes on Windows and Linux, and its
-  # PDF is the committed one. It runs wherever the workflow runs: nightly, on dispatch and in the release's call.
-  digests:
-    name: digests
-    needs: [windows, linux]
-    # The OS jobs upload their manifests before their installer steps, so a later failure there still compares them.
-    if: ${{ !cancelled() }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      # IN-17: the script's own tests, over fixture manifests, before it compares the real ones.
-      - name: ci/golden-digests.py's tests
-        run: python3 -I ci/golden-digests.py --test
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
-        with:
-          name: digests-windows
-          path: ${{ runner.temp }}/digests
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
-        with:
-          name: digests-linux
-          path: ${{ runner.temp }}/digests
-      - name: compare the two platforms (IN-18)
-        run: |
-          set -euo pipefail
-          python3 -I ci/golden-digests.py --compare "$RUNNER_TEMP/digests/digests-windows.txt" \
-            "$RUNNER_TEMP/digests/digests-linux.txt" --expected golden/J-E-2416/expected 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
-
-  # D16 (NFR-PLAT-01's Best-effort rows): the aarch64 CLI archive of Windows. Never a gate: a failure leaves the run
-  # green and shows in the job summary. `ew` alone, so no window program is built; the archive is uploaded as the
-  # x86_64 one (ID-476 holds the window's program only).
-  windows-arm:
-    name: windows (aarch64, best-effort)
-    runs-on: windows-11-arm
-    continue-on-error: true
-    timeout-minutes: 90
-    defaults:
-      run:
-        shell: bash
-    env:
-      TARGET: aarch64-pc-windows-msvc
-      INPUT_VERSION: ${{ inputs.version }}
-      INPUT_UPLOAD: ${{ inputs.upload }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: package-windows-arm
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.12"
-      - name: assert ICU4X_DATA_DIR is unset
-        run: test -z "${ICU4X_DATA_DIR:-}"
-      - name: the version and the pins
-        id: pins
-        run: |
-          set -euo pipefail
-          python --version
-          workspace="$(python -I packaging/stage.py version)"
-          version="${INPUT_VERSION:-$(python -I packaging/stage.py version --sha "$GITHUB_SHA")}"
-          [[ "$version" =~ ^[0-9A-Za-z.+-]+$ ]] || { echo "::error::the version '$version' holds a character a file name cannot"; exit 1; }
-          case "$version" in
-            "$workspace" | "$workspace"-*) ;;
-            *) echo "::error::the version $version is not the workspace version $workspace (Cargo.toml), alone or followed by -"; exit 1 ;;
-          esac
-          {
-            echo "workspace=$workspace"
-            echo "version=$version"
-            echo "short=${GITHUB_SHA::7}"
-            echo "cargo_about=$(python -I packaging/stage.py pin cargo-about)"
-          } >> "$GITHUB_OUTPUT"
-      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
-        with:
-          tool: cargo-about@${{ steps.pins.outputs.cargo_about }}
-      - name: third-party notices
-        run: |
-          mkdir -p target/release
-          cargo about generate -o target/release/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs
-      # As D5, for `ew` alone.
-      - name: cargo build (release, static C runtime)
-        run: |
-          set -euo pipefail
-          export RUSTFLAGS="-D warnings -C target-feature=+crt-static --remap-path-prefix=${CARGO_HOME:?}=/cargo --remap-path-prefix=${RUSTUP_HOME:-$(rustup show home)}=/rustup --remap-path-prefix=$GITHUB_WORKSPACE=/build"
-          cargo build --release --locked -p ew
-      - name: stage the CLI tree
-        env:
-          VERSION: ${{ steps.pins.outputs.version }}
-        run: python -I packaging/stage.py tree --cli --bin target/release --version "$VERSION" --out "$RUNNER_TEMP/tree"
-      # D16's smoke: `ew --version` and AC-40's script on the staged sample.
-      - name: ew --version and AC-40 (D12)
-        env:
-          WORKSPACE_VERSION: ${{ steps.pins.outputs.workspace }}
-        run: |
-          set -euo pipefail
-          tree="$RUNNER_TEMP/tree"
-          test "$("$tree/ew.exe" --version | tr -d '\r')" = "ew $WORKSPACE_VERSION"
-          bash ci/installed-acceptance.sh "$tree/ew.exe" "$tree/samples/J-E-2416.ew" golden/J-E-2416/expected "$RUNNER_TEMP/acceptance"
-      - name: write the CLI archive
-        env:
-          VERSION: ${{ steps.pins.outputs.version }}
-          SHORT: ${{ steps.pins.outputs.short }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/dist"
-          archive="ew-$VERSION-$TARGET.zip"
-          python -I packaging/stage.py archive --tree "$RUNNER_TEMP/tree" --kind zip --out "$RUNNER_TEMP/dist/$archive"
-          echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
-          if [ "$INPUT_UPLOAD" = true ]; then
-            { echo "UPLOAD_NAME=ew-$VERSION-$TARGET"; echo "UPLOAD_DAYS=1"; } >> "$GITHUB_ENV"
-          else
-            { echo "UPLOAD_NAME=ew-windows-aarch64-unsigned-dev-$SHORT"; echo "UPLOAD_DAYS=90"; } >> "$GITHUB_ENV"
-          fi
-      - name: job summary
-        if: always()
-        env:
-          OUTCOME: ${{ job.status }}
-        run: |
-          if [ "$OUTCOME" = success ]; then
-            echo "Windows (aarch64, best-effort, D16): built \`${ARCHIVE}\`, uploaded as \`$UPLOAD_NAME\`; \`ew --version\` and AC-40 passed." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Windows (aarch64, best-effort, D16): **failed** (see the log); the run stays green (continue-on-error)." >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ${{ env.UPLOAD_NAME }}
-          path: ${{ runner.temp }}/dist/${{ env.ARCHIVE }}
-          if-no-files-found: error
-          retention-days: ${{ env.UPLOAD_DAYS }}
-
-  # D16: the aarch64 CLI archive of Linux, built as D6 in the arm64 `ubuntu:22.04` image with its packages of
-  # packaging/components.toml ([[apt.arm64]]), no network, a C compiler only and glibc 2.35 at most. Never a gate.
-  linux-arm:
-    name: linux (aarch64, best-effort)
-    runs-on: ubuntu-24.04-arm
-    continue-on-error: true
-    timeout-minutes: 90
-    env:
-      TARGET: aarch64-unknown-linux-gnu
-      INPUT_VERSION: ${{ inputs.version }}
-      INPUT_UPLOAD: ${{ inputs.upload }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: package-linux-arm
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: assert ICU4X_DATA_DIR is unset
-        run: test -z "${ICU4X_DATA_DIR:-}"
-      - name: the version and the pins
-        id: pins
-        run: |
-          set -euo pipefail
-          python3 --version
-          workspace="$(python3 -I packaging/stage.py version)"
-          version="${INPUT_VERSION:-$(python3 -I packaging/stage.py version --sha "$GITHUB_SHA")}"
-          [[ "$version" =~ ^[0-9A-Za-z.+-]+$ ]] || { echo "::error::the version '$version' holds a character a file name cannot"; exit 1; }
-          case "$version" in
-            "$workspace" | "$workspace"-*) ;;
-            *) echo "::error::the version $version is not the workspace version $workspace (Cargo.toml), alone or followed by -"; exit 1 ;;
-          esac
-          {
-            echo "workspace=$workspace"
-            echo "version=$version"
-            echo "short=${GITHUB_SHA::7}"
-            echo "cargo_about=$(python3 -I packaging/stage.py pin cargo-about)"
-            echo "cargo_auditable=$(python3 -I packaging/stage.py pin cargo-auditable)"
-            echo "gcc=$(python3 -I packaging/stage.py pin gcc)"
-            echo "libc6_dev=$(python3 -I packaging/stage.py pin libc6-dev)"
-            echo "apt_snapshot=$(python3 -I packaging/stage.py snapshot)"
-          } >> "$GITHUB_OUTPUT"
-      # cargo-auditable (the aarch64 glibc build, GLIBC_2.34 at most) in the cargo home that the container mounts.
-      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
-        with:
-          tool: cargo-about@${{ steps.pins.outputs.cargo_about }},cargo-auditable@${{ steps.pins.outputs.cargo_auditable }}
-      - name: third-party notices
-        run: |
-          mkdir -p target/release
-          cargo about generate -o target/release/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs
-      - name: cargo fetch
-        run: cargo fetch --locked
-      - name: pull the container image
-        run: |
-          for attempt in 1 2 3; do
-            docker pull "$LINUX_ARM_BUILD_IMAGE" && exit 0
-            echo "docker pull failed (attempt $attempt of 3)"
-            sleep $((attempt * 15))
-          done
-          echo "::error::docker pull of $LINUX_ARM_BUILD_IMAGE failed three times"
-          exit 1
-      - name: download gcc and libc6-dev in the container
-        env:
-          EW_GCC_VERSION: ${{ steps.pins.outputs.gcc }}
-          EW_LIBC6_DEV_VERSION: ${{ steps.pins.outputs.libc6_dev }}
-          EW_APT_SNAPSHOT: ${{ steps.pins.outputs.apt_snapshot }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/apt/archives/partial" "$RUNNER_TEMP/apt/lists/partial"
-          docker run --rm --env EW_GCC_VERSION --env EW_LIBC6_DEV_VERSION --env EW_APT_SNAPSHOT \
-            --volume /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro \
-            --volume "$RUNNER_TEMP/apt/archives:/var/cache/apt/archives" \
-            --volume "$RUNNER_TEMP/apt/lists:/var/lib/apt/lists" \
-            --volume "$PWD/ci/linux-container.sh:/linux-container.sh:ro" \
-            "$LINUX_ARM_BUILD_IMAGE" bash /linux-container.sh download
-      - name: compare the downloaded packages with packaging/components.toml
-        run: python3 -I packaging/stage.py debs --arch arm64 "$RUNNER_TEMP/apt/archives"
-      - name: cargo auditable build (release, ew) in the container, release check
-        env:
-          EW_GCC_VERSION: ${{ steps.pins.outputs.gcc }}
-          EW_LIBC6_DEV_VERSION: ${{ steps.pins.outputs.libc6_dev }}
-          EW_APT_SNAPSHOT: ${{ steps.pins.outputs.apt_snapshot }}
-        run: |
-          set -euo pipefail
-          export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}" RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}"
-          toolchain="$(dirname "$(dirname "$(rustup which --toolchain "$RUST_TOOLCHAIN" cargo)")")"
-          export EW_TOOLCHAIN_BIN="$toolchain/bin" EW_UID="$(id -u)" EW_GID="$(id -g)" PKG_CONFIG=false
-          export RUSTFLAGS="-D warnings --remap-path-prefix=$CARGO_HOME=/cargo --remap-path-prefix=$RUSTUP_HOME=/rustup --remap-path-prefix=$GITHUB_WORKSPACE=/build"
-          docker run --rm --network none \
-            --env EW_GCC_VERSION --env EW_LIBC6_DEV_VERSION --env EW_APT_SNAPSHOT --env EW_TOOLCHAIN_BIN \
-            --env EW_UID --env EW_GID \
-            --env PKG_CONFIG --env RUSTFLAGS --env CARGO_HOME --env RUSTUP_HOME --env CARGO_TERM_COLOR \
-            --env GITHUB_WORKSPACE --env GITHUB_SHA --env RUNNER_TEMP \
-            --volume "$RUNNER_TEMP/apt/archives:/var/cache/apt/archives" \
-            --volume "$RUNNER_TEMP/apt/lists:/var/lib/apt/lists" \
-            --volume "$toolchain:$toolchain:ro" \
-            --volume "$CARGO_HOME:$CARGO_HOME" \
-            --volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" --workdir "$GITHUB_WORKSPACE" \
-            "$LINUX_ARM_BUILD_IMAGE" bash ci/linux-container.sh cli
-      - name: stage the CLI tree
-        env:
-          VERSION: ${{ steps.pins.outputs.version }}
-        run: python3 -I packaging/stage.py tree --cli --bin target/release --version "$VERSION" --out "$RUNNER_TEMP/tree"
-      - name: ew --version and AC-40 (D12)
-        env:
-          WORKSPACE_VERSION: ${{ steps.pins.outputs.workspace }}
-        run: |
-          set -euo pipefail
-          tree="$RUNNER_TEMP/tree"
-          test "$("$tree/ew" --version)" = "ew $WORKSPACE_VERSION"
-          bash ci/installed-acceptance.sh "$tree/ew" "$tree/samples/J-E-2416.ew" golden/J-E-2416/expected "$RUNNER_TEMP/acceptance"
-      - name: write the CLI archive
-        env:
-          VERSION: ${{ steps.pins.outputs.version }}
-          SHORT: ${{ steps.pins.outputs.short }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/dist"
-          archive="ew-$VERSION-$TARGET.tar.gz"
-          python3 -I packaging/stage.py archive --tree "$RUNNER_TEMP/tree" --kind tar.gz --out "$RUNNER_TEMP/dist/$archive"
-          echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
-          if [ "$INPUT_UPLOAD" = true ]; then
-            { echo "UPLOAD_NAME=ew-$VERSION-$TARGET"; echo "UPLOAD_DAYS=1"; } >> "$GITHUB_ENV"
-          else
-            { echo "UPLOAD_NAME=ew-linux-aarch64-unsigned-dev-$SHORT"; echo "UPLOAD_DAYS=90"; } >> "$GITHUB_ENV"
-          fi
-      - name: job summary
-        if: always()
-        env:
-          OUTCOME: ${{ job.status }}
-        run: |
-          if [ "$OUTCOME" = success ]; then
-            echo "Linux (aarch64, best-effort, D16): built \`${ARCHIVE}\` in \`$LINUX_ARM_BUILD_IMAGE\`, uploaded as \`$UPLOAD_NAME\`; \`ew --version\` and AC-40 passed." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Linux (aarch64, best-effort, D16): **failed** (see the log); the run stays green (continue-on-error)." >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always()
-        with:
-          name: release-check-report-aarch64
-          path: target/release-check-*.md
-          if-no-files-found: ignore
-          retention-days: 30
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ${{ env.UPLOAD_NAME }}
-          path: ${{ runner.temp }}/dist/${{ env.ARCHIVE }}
-          if-no-files-found: error
-          retention-days: ${{ env.UPLOAD_DAYS }}

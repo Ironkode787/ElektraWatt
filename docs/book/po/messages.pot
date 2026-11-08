@@ -1405,35 +1405,26 @@ msgstr ""
 
 #: src/how-to/install.md:30
 msgid ""
-"Each file also carries GitHub's build provenance: a signed statement that "
-"the release workflow of ElektraWatt's repository built it from the release's "
-"commit. With the GitHub CLI installed, sign in to GitHub once with `gh auth "
-"login` (the CLI reads the statements through GitHub's API), then check a "
-"file with"
+"The releases are not signed yet; this check shows that a file is the one the "
+"project published."
 msgstr ""
 
-#: src/how-to/install.md:38
-msgid ""
-"The releases are not signed yet; these two checks show that a file is the "
-"one the project built and published."
-msgstr ""
-
-#: src/how-to/install.md:40
+#: src/how-to/install.md:32
 msgid "Install with the setup on Windows"
 msgstr ""
 
-#: src/how-to/install.md:42
+#: src/how-to/install.md:34
 msgid "Run `ElektraWatt-<version>-x64-user-setup.exe`."
 msgstr ""
 
-#: src/how-to/install.md:43
+#: src/how-to/install.md:35
 msgid ""
 "The setup is not signed yet, so Windows may stop it with **Windows protected "
 "your PC**. Choose **More info**, check that the file is the one you "
 "downloaded, then choose **Run anyway**."
 msgstr ""
 
-#: src/how-to/install.md:45
+#: src/how-to/install.md:37
 msgid ""
 "Keep the folder the setup proposes, `%LOCALAPPDATA%\\Programs\\ElektraWatt`, "
 "or choose another one of your own, then choose **Install**. The folder must "
@@ -1445,13 +1436,13 @@ msgid ""
 "run the setup again."
 msgstr ""
 
-#: src/how-to/install.md:50
+#: src/how-to/install.md:42
 msgid ""
 "On the last page, leave **Run ElektraWatt** ticked to start it, and choose "
 "**Finish**."
 msgstr ""
 
-#: src/how-to/install.md:52
+#: src/how-to/install.md:44
 msgid ""
 "The setup installs for you alone: the program, the command-line program "
 "`ew.exe`, the starter content, the sample project and this guide, all in the "
@@ -1459,36 +1450,36 @@ msgid ""
 "change `PATH`."
 msgstr ""
 
-#: src/how-to/install.md:56
+#: src/how-to/install.md:48
 msgid ""
 "To install without questions, for example from a script, run the setup with "
 "`/S`. Add `/D=<folder>` as the last argument, without quotes even when the "
 "folder has spaces, to install into another folder:"
 msgstr ""
 
-#: src/how-to/install.md:63
+#: src/how-to/install.md:55
 msgid ""
 "The same folders are refused here too: the setup installs nothing and ends "
 "with exit code 2. Give another folder, or delete the old one and run the "
 "setup again."
 msgstr ""
 
-#: src/how-to/install.md:66
+#: src/how-to/install.md:58
 msgid "Run the AppImage on Linux"
 msgstr ""
 
-#: src/how-to/install.md:68
+#: src/how-to/install.md:60
 msgid ""
 "The AppImage is one file, `ElektraWatt-<version>-x86_64.AppImage`, that "
 "holds the program, the command-line program `ew`, the starter content, the "
 "sample project and this guide. It installs nothing: you run the file itself."
 msgstr ""
 
-#: src/how-to/install.md:71
+#: src/how-to/install.md:63
 msgid "Make it executable, then start it:"
 msgstr ""
 
-#: src/how-to/install.md:78
+#: src/how-to/install.md:70
 msgid ""
 "The AppImage opens itself through FUSE, which most desktops have. Where FUSE "
 "is missing (in a container, or on a system without the `fuse` kernel "
@@ -1497,13 +1488,13 @@ msgid ""
 "itself into a temporary folder for that run."
 msgstr ""
 
-#: src/how-to/install.md:86
+#: src/how-to/install.md:78
 msgid ""
 "To run `ew`, give `ew` as the first argument, then its own arguments (after "
 "`--appimage-extract-and-run` where FUSE is missing):"
 msgstr ""
 
-#: src/how-to/install.md:94
+#: src/how-to/install.md:86
 msgid ""
 "Like the `ew` of a CLI archive, it reads the starter content only through "
 "`--content` or `EW_CONTENT_DIR`. The AppImage's own content sits in a folder "
@@ -1512,7 +1503,7 @@ msgid ""
 "`EW_CONTENT_DIR` at the content in it:"
 msgstr ""
 
-#: src/how-to/install.md:98
+#: src/how-to/install.md:90
 msgid ""
 "```text\n"
 "./ElektraWatt-<version>-x86_64.AppImage --appimage-extract\n"
@@ -1520,22 +1511,22 @@ msgid ""
 "```"
 msgstr ""
 
-#: src/how-to/install.md:103
+#: src/how-to/install.md:95
 msgid "Unpack it again after an upgrade."
 msgstr ""
 
-#: src/how-to/install.md:105
+#: src/how-to/install.md:97
 msgid ""
 "Keep the file where you like, for example in `~/Applications`. The AppImage "
 "is not signed yet: check that the file is the one you downloaded against the "
 "checksums published with its release."
 msgstr ""
 
-#: src/how-to/install.md:108
+#: src/how-to/install.md:100
 msgid "Use the CLI archive"
 msgstr ""
 
-#: src/how-to/install.md:110
+#: src/how-to/install.md:102
 msgid ""
 "The archives hold `ew` with the starter content and the sample project, for "
 "a machine without the window or for a CI job: "
@@ -1543,43 +1534,43 @@ msgid ""
 "`ew-<version>-x86_64-unknown-linux-gnu.tar.gz`."
 msgstr ""
 
-#: src/how-to/install.md:113
+#: src/how-to/install.md:105
 msgid "Unpack the archive. It holds one folder, `ew-<version>-<target>`."
 msgstr ""
 
-#: src/how-to/install.md:114
+#: src/how-to/install.md:106
 msgid ""
 "`ew` finds the starter content through `--content` or the environment "
 "variable `EW_CONTENT_DIR`, not beside itself. Set `EW_CONTENT_DIR` to the "
 "folder's `content` folder:"
 msgstr ""
 
-#: src/how-to/install.md:116
+#: src/how-to/install.md:108
 msgid "Linux: `export EW_CONTENT_DIR=<folder>/content`"
 msgstr ""
 
-#: src/how-to/install.md:117
+#: src/how-to/install.md:109
 msgid "Windows (PowerShell): `$env:EW_CONTENT_DIR = \"<folder>\\content\"`"
 msgstr ""
 
-#: src/how-to/install.md:118
+#: src/how-to/install.md:110
 msgid ""
 "Check it: `ew --version` prints the version, and `ew export pdf "
 "<folder>/samples/J-E-2416.ew --out sample.pdf` writes the sample project's "
 "drawings as a PDF."
 msgstr ""
 
-#: src/how-to/install.md:121
+#: src/how-to/install.md:113
 msgid ""
 "The `ew.exe` that the setup installs finds the starter content the same way: "
 "set `EW_CONTENT_DIR` to the `content` folder of the installation."
 msgstr ""
 
-#: src/how-to/install.md:124
+#: src/how-to/install.md:116
 msgid "Upgrade"
 msgstr ""
 
-#: src/how-to/install.md:126
+#: src/how-to/install.md:118
 msgid ""
 "Run the setup of the newer version as above. It finds the installed version "
 "and proposes its folder, removes it first with its own uninstaller, then "
@@ -1587,33 +1578,33 @@ msgid ""
 "stay as they are."
 msgstr ""
 
-#: src/how-to/install.md:130
+#: src/how-to/install.md:122
 msgid ""
 "To upgrade the AppImage, download the newer file, make it executable and "
 "delete the older one. Your settings and keymaps stay as they are."
 msgstr ""
 
-#: src/how-to/install.md:133
+#: src/how-to/install.md:125
 msgid ""
 "To upgrade `ew` from an archive, unpack the newer archive and point "
 "`EW_CONTENT_DIR` at its `content` folder."
 msgstr ""
 
-#: src/how-to/install.md:135
+#: src/how-to/install.md:127
 msgid "Uninstall"
 msgstr ""
 
-#: src/how-to/install.md:137
+#: src/how-to/install.md:129
 msgid ""
 "Open **Settings**, then **Apps** and **Installed apps** (on Windows 10: "
 "**Apps & features**)."
 msgstr ""
 
-#: src/how-to/install.md:138
+#: src/how-to/install.md:130
 msgid "Find **ElektraWatt** and choose **Uninstall**."
 msgstr ""
 
-#: src/how-to/install.md:140
+#: src/how-to/install.md:132
 msgid ""
 "To uninstall without questions, run `uninstall.exe /S` from the installation "
 "folder. The uninstall removes the installation folder, the Start-menu "
@@ -1623,7 +1614,7 @@ msgid ""
 "yourself when you no longer want them."
 msgstr ""
 
-#: src/how-to/install.md:145
+#: src/how-to/install.md:137
 msgid ""
 "The AppImage installs nothing: delete its file. It leaves your projects, "
 "your settings and keymaps (in `~/.config/elektrawatt`), your libraries and "
@@ -1633,7 +1624,7 @@ msgid ""
 "longer want them."
 msgstr ""
 
-#: src/how-to/install.md:150
+#: src/how-to/install.md:142
 msgid "A CLI archive installs nothing: delete its folder."
 msgstr ""
 

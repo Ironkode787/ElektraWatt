@@ -1,26 +1,22 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-# The release workflow of 0.1.0 (WP-S6.07 D2, D3; doc 18 §5.2 CI-R-01 to CI-R-11 in their 0.1.0 form; NFR-SEC-10 to
-# NFR-SEC-13, NFR-SEC-19). The candidate is the release: a tag `v<X.Y.Z>-rc.<n>` builds a draft prerelease holding
-# every release file, and the go publishes those same files as `v<X.Y.Z>`; no tag is built twice or moved. The
-# procedure and the checklist: docs/release/README.md, docs/release/checklist.md.
+# The release workflow of 0.1.x (WP-S6.07 D2, D3, slimmed for an early alpha by ID-1520; doc 18 §5.2 CI-R-01, CI-R-05,
+# CI-R-06, CI-R-11). The candidate is the release: a tag `v<X.Y.Z>-rc.<n>` builds a draft prerelease holding every
+# release file, and the go publishes those same files as `v<X.Y.Z>`; no tag is built twice or moved. The procedure and
+# the checklist: docs/release/README.md, docs/release/checklist.md.
 #
 # On a candidate tag:
-# - `verify` (CI-R-01, CI-R-02; D5, D6): ci/release-verify.py checks that the tag's X.Y.Z is the workspace version and
-#   that docs/release-notes/<X.Y.Z>.md has notes, and that ci.yml and deep-nightly.yml each have a successful run on
-#   the tagged commit (the GitHub CLI reads them with `actions: read`).
-# - `package` (CI-R-03, CI-R-05, CI-R-07, CI-R-09, CI-R-10): package.yml through workflow_call with `version: X.Y.Z`
-#   and `upload: true`; it builds with `cargo auditable`, checks the binaries, writes each artefact's SBOM and runs
-#   the install tests in the jobs that hold the bytes, as it does every night.
-# - `sums` (CI-R-06, D8): the release files of the run (the x86_64 CLI archives, the setup and the AppImage, and every
-#   artefact's SBOM; ID-1313, ID-1331 (2)) and `SHA256SUMS` over them, unsigned at 0.1.0.
-# - `attest` (CI-R-08, D10): GitHub's build provenance over every release file, `SHA256SUMS` included, signed with
-#   the run's OIDC token (`id-token: write`, `attestations: write`).
+# - `verify` (CI-R-01; D5): ci/release-verify.py checks that the tag's X.Y.Z is the workspace version and that
+#   docs/release-notes/<X.Y.Z>.md has notes. It waits for no CI run: CI is off until 1.0 (ID-1519).
+# - `package` (CI-R-05): package.yml through workflow_call with `version: X.Y.Z` and `upload: true`: the x86_64 release
+#   builds, the notices, the staged trees with their smoke test, the CLI archives, the setup and the AppImage.
+# - `sums` (CI-R-06, D8): the release files of the run (the x86_64 CLI archives, the setup and the AppImage; ID-1313,
+#   ID-1331 (2)) and `SHA256SUMS` over them, unsigned.
 # - `release` (CI-R-11, D13): the draft prerelease `v<X.Y.Z>-rc.<n>` with the release notes and every file, then the
-#   files downloaded back, `sha256sum -c SHA256SUMS` and `gh attestation verify` on each. It publishes nothing.
+#   files downloaded back and `sha256sum -c SHA256SUMS`. It publishes nothing.
 # On a dispatch with `candidate` (the promote): `release` alone. It refuses when `v<X.Y.Z>` exists, finds the
-# candidate's draft, verifies its files again and, with `dry: false`, publishes them byte for byte as the release
+# candidate's draft, checks its files again and, with `dry: false`, publishes them byte for byte as the release
 # `v<X.Y.Z>` (latest) on the candidate's commit; with `dry: true` (the default) it prints what it would publish and
 # changes nothing. The draft stays as the record of the candidate.
 #
@@ -29,10 +25,10 @@
 # requires the tagged commit to be on `main`, and the promote is dispatched from `main`. The GitHub settings (the `release` environment and its deployment rule, the tag ruleset,
 # immutable releases, the read-only default token) are the owner's, set before the first candidate (WP-S6.07 §13 O1).
 #
-# Hardening (doc 18 §5.4, NFR-SEC-19): top-level `contents: read`; `attest` and `release` are the only jobs with a
-# write scope and both run in the protected `release` environment (`cargo xtask check-workflows` refuses a write
-# scope anywhere else); no secret: the GitHub CLI uses the run's short-lived `GITHUB_TOKEN`, the attestation the run's
-# OIDC token; actions pinned by commit SHA; the checkout keeps no credentials.
+# Hardening (doc 18 §5.4, NFR-SEC-19): top-level `contents: read`; `release` is the only job with a write scope and
+# runs in the protected `release` environment (`cargo xtask check-workflows` refuses a write scope anywhere else); no
+# secret: the GitHub CLI uses the run's short-lived `GITHUB_TOKEN`; actions pinned by commit SHA; the checkout keeps no
+# credentials.
 
 name: release
 
@@ -59,7 +55,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # CI-R-01, CI-R-02 (D5, D6)
+  # CI-R-01 (D5)
   verify:
     name: verify
     if: github.event_name == 'push'
@@ -67,26 +63,19 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-      actions: read
     outputs:
       version: ${{ steps.tag.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: ci/release-verify.py's tests
-        run: python3 -I ci/release-verify.py --test
       - name: the tag's version and its release notes (CI-R-01)
         id: tag
         env:
           TAG: ${{ github.ref_name }}
         run: python3 -I ci/release-verify.py tag "$TAG" >> "$GITHUB_OUTPUT"
-      - name: the commit's ci and deep-nightly runs (CI-R-02)
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 -I ci/release-verify.py runs "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY"
 
-  # CI-R-03, CI-R-05, CI-R-07, CI-R-09, CI-R-10: WP-S6.06's packaging with the per-artefact checks.
+  # CI-R-05: WP-S6.06's packaging, slimmed (ID-1520).
   package:
     name: package
     needs: verify
@@ -107,7 +96,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # The x86_64 archives, the setup and the AppImage, and their SBOMs; not the aarch64 archives (ID-1313, ID-1331).
+      # The x86_64 archives, the setup and the AppImage (ID-1313, ID-1331).
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: ew-${{ needs.verify.outputs.version }}-x86_64-*
@@ -124,37 +113,16 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # CI-R-08 (D10): the only job with `id-token: write`.
-  attest:
-    name: attest
-    needs: sums
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    environment: release
-    permissions:
-      contents: read
-      id-token: write
-      attestations: write
-    steps:
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
-        with:
-          name: release-files
-          path: ${{ runner.temp }}/release
-      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
-        with:
-          subject-path: ${{ runner.temp }}/release/*
-
   # CI-R-11 (D13): the draft on a candidate tag; the promote on a dispatch.
   release:
     name: release
-    needs: [verify, attest]
-    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || (needs.verify.result == 'success' && needs.attest.result == 'success')) }}
+    needs: [verify, sums]
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || (needs.verify.result == 'success' && needs.sums.result == 'success')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: release
     permissions:
       contents: write
-      attestations: read
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -166,11 +134,11 @@ jobs:
         with:
           name: release-files
           path: ${{ runner.temp }}/release
-      - name: the draft prerelease, downloaded back and verified
+      - name: the draft prerelease, downloaded back and checked
         if: github.event_name == 'push'
         env:
           TAG: ${{ github.ref_name }}
-        run: python3 -I ci/release-verify.py draft "$TAG" "$RUNNER_TEMP/release" --repo "$GITHUB_REPOSITORY" --sha "$GITHUB_SHA"
+        run: python3 -I ci/release-verify.py draft "$TAG" "$RUNNER_TEMP/release" --repo "$GITHUB_REPOSITORY"
       - name: the promote of the candidate's draft
         if: github.event_name == 'workflow_dispatch'
         env:

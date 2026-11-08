@@ -28,12 +28,9 @@ The job names are the GitHub status-check names to mark as required.
 | CI-PR-15 | `docs.yml` / `docs-diagrams` (ubuntu-24.04) | Renders every Mermaid block under `docs/` and in the root Markdown with mermaid-cli 12.0.0 (container image pinned by digest) and fails on any error | `python3 -I ci/render-mermaid.py --image <image@sha256:…>` (needs docker); `--extract-only` lists the blocks without docker |
 | CI-PR-10 (book) | `docs.yml` / `docs-book` (ubuntu-24.04) | The user-documentation book of `docs/book` (WP-S0.06, NFR-DOC-01, NFR-DOC-06): `cargo xtask docs-gen --check` (the committed `SUMMARY.md` is current with the generated reference pages); then [`build-book.sh`](build-book.sh) (WP-S6.06 D7, also run by `package.yml`'s `book` job): `cargo xtask docs-gen` (the reference pages are built, not committed), mdBook 0.5.4 installed from its pinned release archive (SHA-256 checked) and `mdbook build docs/book` in an empty network namespace (the build is offline); `ci/check-book-links.py` over the built pages (relative links, anchors, and links into the repository); the built book uploaded as the artifact `user-guide`. A separate job, so that `legal-docs` stays fast | `cargo xtask docs-gen --check`; `bash ci/build-book.sh target/book` (Linux, with sudo for the network namespace), or `cargo xtask docs-gen` and `mdbook build docs/book` (mdBook 0.5.4); `python3 -I ci/check-book-links.py target/book` |
 | CI-N-09 | `ci.yml` / `verapdf` (ubuntu-24.04) | Builds `ew`, exports the golden PDF in three variants (all pages; dated by `SOURCE_DATE_EPOCH`; `--pages 101-106,901`) and validates each against PDF/A-2b with veraPDF 1.30.3 (the project's `verapdf/cli` image pinned by digest, run with no network); `ci/verapdf-check.py` turns the XML report into the verdict (FT-294, G-M1-02); the report uploaded as the artifact `verapdf-report`. Details: [veraPDF job](#verapdf-job-ci-n-09) | `python3 -I ci/verapdf-check.py --selftest`; with docker: `docker run --rm -v "$PWD/out:/data:ro" verapdf/cli@sha256:… --flavour 2b --format xml /data/golden-all.pdf > out/verapdf-report.xml`, then `python3 -I ci/verapdf-check.py out/verapdf-report.xml` |
-| CI-N-12, CI-R-05, CI-R-10 | `package.yml` / `book`, `windows (x86_64)` (windows-2025), `linux (x86_64)` (ubuntu-24.04, the `ubuntu:22.04` and `debian:12` containers; nightly at 04:37 UTC, `workflow_dispatch` and `workflow_call`) | The release builds of `elektrawatt` and `ew` (Windows: static C runtime, `dumpbin /dependents` without a C runtime import; Linux: in the container with a C compiler only and no network, the packages compared with `packaging/components.toml`, the release check of CI-R-03 and glibc 2.35 at most), the installed tree of WP-S6.06 D3 staged by `packaging/stage.py`, `--version` and `elektrawatt --smoke` on the staged tree, and the CLI archives `ew-<v>-x86_64-pc-windows-msvc.zip` and `ew-<v>-x86_64-unknown-linux-gnu.tar.gz`, checked extracted (`ew --version`, `ew export pdf` of the archive's sample against the committed digest); the per-user setup `ElektraWatt-<v>-x64-user-setup.exe` (NSIS), installed under firewall blocks, checked (IN-8 to IN-13), installed again and uninstalled; the AppImage `ElektraWatt-<v>-x86_64.AppImage` (the AppDir, `mksquashfs` in the build container, the pinned type-2 runtime), run in `ubuntu:22.04` and `debian:12` with no network through `--appimage-extract-and-run` and on its extraction (IN-14, IN-10, IN-12), and on the runner on its extraction with D13's runs (IN-10 to IN-12); uploads only the CLI archive, as `ew-<os>-<arch>-unsigned-dev-<short sha>` for 90 days, and the release-check reports; no signing, no release, no secret (FT-299, G-M1-22, ID-476). Details: [Packaging](#packaging-packageyml-ci-n-12-and-ci-r-03) | `python3 -I packaging/stage.py --test`; on Linux with docker, the steps of the `linux` job |
-| CI-R-03 | `package.yml` / `linux (x86_64)` (in the `ubuntu:22.04` container) and `windows (x86_64)` | `cargo auditable build --release --locked --offline -p elektrawatt -p ew` with `PKG_CONFIG=false` and path remapping (WP-S6.07 D7: cargo-auditable embeds each binary's dependency list; on Windows `cargo auditable build --release --locked` after `release-check.sh env` with `PKG_CONFIG=false`, FT-02); after both builds `ci/release-verify.py clean` refuses any file the build wrote into the checkout; asserts no pkg-config override, no `ICU4X_DATA_DIR`, no `CARGO_ENCODED_RUSTFLAGS` and no cargo `[env]` table in the build environment, then fails on any build-host path in either binary (outside a reviewed exception list), any hard link to libwayland, libxkbcommon, libX11, libxcb, libEGL, libGL or libvulkan, and any library directory in x11-dl's generated config; uploads the reports only, never a binary (FT-333, ID-476). Details: [Release check](#release-check-ci-r-03-before-wp-s607) | `bash ci/release-check.sh env`, the build and `bash ci/release-check.sh scan …` with `PKG_CONFIG=false` and the `RUSTFLAGS` remap, as in the section below (Linux) |
-| CI-R-01, CI-R-02, CI-R-06, CI-R-08, CI-R-11 | `release.yml` / `verify`, `package`, `sums`, `attest`, `release` (ubuntu-24.04; on a tag `v<X.Y.Z>-rc.<n>` and on `workflow_dispatch` with `candidate` and `dry`) | The release workflow of WP-S6.07: the tag's version and notes and the commit's green `ci.yml` and `deep-nightly.yml` runs; `package.yml` through `workflow_call` with `upload: true`; `SHA256SUMS` over the release files; build provenance of every file (`actions/attest-build-provenance`); the draft prerelease, downloaded back and verified; the promote, dry by default. `attest` and `release` alone hold write scopes, in the `release` environment. Details: [Release workflow](#release-workflow-releaseyml-ci-r-01-to-ci-r-11) | `python3 -I ci/release-verify.py --test`; the rest needs a tag on GitHub |
-| CI-R-07, CI-R-09, CI-R-02 (advisories) | `package.yml` / `windows (x86_64)`, `linux (x86_64)` (nightly and in the release's call) | WP-S6.07 D9, D11, D12: the CycloneDX SBOM of every artefact (`ci/sbom.py` over cargo-cyclonedx 0.5.9: the setup, the AppImage and the two CLI archives, with the non-crate components of `NOTICE`, SQLite and `packaging/components.toml`), complete against `cargo metadata`, and the notices of the non-crate components appended to `THIRD-PARTY-NOTICES.txt` (FT-04); `ci/audit-data.py` and `cargo audit bin` on every shipped binary; `cargo deny check advisories` and `cargo audit` on `Cargo.lock` (Linux); `ci/no-listen.sh` (strace) on the Linux install test's installed tree. Details: [Release workflow](#release-workflow-releaseyml-ci-r-01-to-ci-r-11) | `python3 -I ci/sbom.py --test`, `python3 -I ci/audit-data.py --test`; `cargo deny --locked check advisories`, `cargo audit`; with cargo-cyclonedx and cargo-auditable, the steps of the jobs |
-| CI-N-04 | `package.yml` / `digests` (ubuntu-24.04; wherever `package.yml` runs: nightly, `workflow_dispatch` and the release's `workflow_call`, never on a pull request) | AC-14 across the OSes (WP-S6.06 D14, FT-234): each OS job runs [`golden-digests.py`](golden-digests.py) with its release `ew` on the staged sample (the PDF on 1 and 4 threads, the 36 SVG pages serial and on 4 threads, the report CSVs of D12, the wire, terminal, cable and BOM CSVs, `ew fmt --check`) and uploads `digests-<os>.txt` (`digests-windows`, `digests-linux`, 7 days); `digests` runs the script's tests, then compares the two, line by line, each manifest's serial SVGs with its 4-thread ones, and the PDFs with `golden/J-E-2416/expected/pdf/sha256.txt`, and writes the number of files compared to its summary (IN-18) | `python3 -I ci/golden-digests.py --test`; `python3 -I ci/golden-digests.py target/release/ew golden/J-E-2416.ew <out>` on each OS, then `--compare <a> <b> --expected golden/J-E-2416/expected` |
-| CI-N-12 (Best-effort rows) | `package.yml` / `windows (aarch64, best-effort)` (windows-11-arm), `linux (aarch64, best-effort)` (ubuntu-24.04-arm and the arm64 `ubuntu:22.04` image) | The two aarch64 CLI archives of NFR-PLAT-01's Best-effort rows (WP-S6.06 D16): `ew` alone, built as D5 and D6 (Linux in `LINUX_ARM_BUILD_IMAGE` with the arm64 packages of `[[apt.arm64]]`, no network, the release check, glibc 2.35 at most), staged by `stage.py tree --cli`, `ew --version` and [`installed-acceptance.sh`](installed-acceptance.sh) on the staged sample, archived and uploaded as `ew-<os>-aarch64-unsigned-dev-<short sha>` (90 days). `continue-on-error: true`: a failure shows in the run and the job summary and leaves the run green. No ARM installer | On an aarch64 machine, the steps of the job |
+| CI-N-12, CI-R-05 | `package.yml` / `book`, `windows (x86_64)` (windows-2025), `linux (x86_64)` (ubuntu-24.04 and the `ubuntu:22.04` container; `workflow_dispatch` and `workflow_call`) | Slimmed for 0.1.x (ID-1520): the guide; the third-party notices; the release builds of `elektrawatt` and `ew` (Windows: static C runtime; Linux: in the container with a C compiler only and no network, the packages compared with `packaging/components.toml`, the release check of CI-R-03 and glibc 2.35 at most); the installed tree of WP-S6.06 D3 staged by `packaging/stage.py` and one smoke test on it (`--version` of both programs, `elektrawatt --smoke` on the sample); the CLI archives `ew-<v>-x86_64-pc-windows-msvc.zip` and `ew-<v>-x86_64-unknown-linux-gnu.tar.gz`; the per-user setup `ElektraWatt-<v>-x64-user-setup.exe` (NSIS) and the AppImage `ElektraWatt-<v>-x86_64.AppImage` (the AppDir, `mksquashfs` in the build container, the pinned type-2 runtime). Uploads only the CLI archive, as `ew-<os>-<arch>-unsigned-dev-<short sha>` for 90 days, and the release-check reports, unless the release calls it (ID-476). Details: [Packaging](#packaging-packageyml-ci-n-12-and-ci-r-03) | `python3 -I packaging/stage.py --test`; on Linux with docker, the steps of the `linux` job |
+| CI-R-03 | `package.yml` / `linux (x86_64)` (in the `ubuntu:22.04` container) and `windows (x86_64)` | `cargo build --release --locked --offline -p elektrawatt -p ew` with `PKG_CONFIG=false` and path remapping (on Windows `cargo build --release --locked` after `release-check.sh env` with `PKG_CONFIG=false`); asserts no pkg-config override, no `ICU4X_DATA_DIR`, no `CARGO_ENCODED_RUSTFLAGS` and no cargo `[env]` table in the build environment, then fails on any build-host path in either binary (outside a reviewed exception list), any hard link to libwayland, libxkbcommon, libX11, libxcb, libEGL, libGL or libvulkan, and any library directory in x11-dl's generated config (FT-333). Details: [Release check](#release-check-ci-r-03-before-wp-s607) | `bash ci/release-check.sh env`, the build and `bash ci/release-check.sh scan …` with `PKG_CONFIG=false` and the `RUSTFLAGS` remap, as in the section below (Linux) |
+| CI-R-01, CI-R-06, CI-R-11 | `release.yml` / `verify`, `package`, `sums`, `release` (ubuntu-24.04; on a tag `v<X.Y.Z>-rc.<n>` and on `workflow_dispatch` with `candidate` and `dry`) | The release workflow, slimmed for 0.1.x (ID-1520): the tag's version and notes; `package.yml` through `workflow_call` with `upload: true`; `SHA256SUMS` over the release files; the draft prerelease, downloaded back and checked with `sha256sum -c`; the promote, dry by default. `release` alone holds a write scope, in the `release` environment. Details: [Release workflow](#release-workflow-releaseyml-ci-r-01-to-ci-r-11) | `python3 -I ci/release-verify.py --test`; the rest needs a tag on GitHub |
 | CI-W-03 (lag) | `weekly.yml` / `ui-stack-lag` (ubuntu-24.04; weekly on Monday at 05:17 UTC and `workflow_dispatch`) | [`ui-stack-lag.py`](ui-stack-lag.py)'s offline test (IN-19), then the locked and newest non-yanked releases of egui, eframe, egui-wgpu, egui_tiles, egui_table, egui_ltreeview, egui_kittest, wgpu and winit (Cargo.lock and the crates.io sparse index) as a table in the job summary; red when egui is more than two minors or wgpu more than one major behind (NFR-MAINT-04, WP-S6.06 D17, IN-20). The quarterly upgrade train itself is the issue form [`upgrade-train.yml`](../.github/ISSUE_TEMPLATE/upgrade-train.yml) (doc 18 §6.3's seven steps, their pass conditions, the abort rule and the crates bumped together) | `python3 -I ci/ui-stack-lag.py --test`; `python3 -I ci/ui-stack-lag.py` (needs the network) |
 | CI-N-02, CI-N-03 | `deep-nightly.yml` / `full-oracle`, `proptest`, `fuzz (<target>)` (one job per target), `asan-command-fuzz`, `gpu-parity` (ubuntu-24.04; nightly at 06:07 UTC and `workflow_dispatch`) | The memo oracle on every read over Golden A and Golden B (release profile, debug assertions on); the tests of the core crates with `PROPTEST_CASES=20000`; every cargo-fuzz target of [`fuzz/`](../fuzz) (the matrix of the workflow), 30 minutes each, AddressSanitizer, on the nightly pinned by date; the seeded command fuzzer `fuzz_long` under `-Zsanitizer=address` (FT-297, FT-304, FT-272). Red only for a finding, a failed build or a hang. Details: [Deep nightly](#deep-nightly-deep-nightlyyml-ci-n-02-and-ci-n-03) | `cd fuzz && cargo fuzz run <target> -- -max_total_time=60`; `PROPTEST_CASES=2000 cargo nextest run --release -p ew-model -p ew-commands -p ew-store -p ew-zip -p ew-format -p ew-memo -p ew-derive -p ew-schema`; `cargo nextest run --release -p ew-api -p ew-testkit -p elektrawatt --all-features -E 'binary(memo_oracle) or binary(golden_b) or test(/(^|::)nightly_/)' --run-ignored all` |
 | CI-N-06 | `deep-nightly.yml` / `network-sandbox` (ubuntu-24.04; nightly at 06:07 UTC and `workflow_dispatch`) | The network sandbox of WP-S6.05 (D4, D5; doc 18 §12.2, NFR-PRIV-01, NFR-SEC-09): the release `elektrawatt` and `ew` (the release profile without this workflow's debug assertions) and `ew-ui`'s kittest binary, built first; then [`sandbox/run.sh`](sandbox/run.sh) runs every flow as the runner user in a network namespace whose only interface is loopback, up (`sudo unshare --net`, then `sudo -u` back), under `strace -f`: `elektrawatt --smoke`, a headless session ([`sandbox/flows.ewui`](sandbox/flows.ewui): open, an edit, check, export PDF, print, save, quit), the kittest tests [`sandbox/kittest-filter.txt`](sandbox/kittest-filter.txt) names, and `ew` `check`, `export pdf`, `export svg`, `export bom`, `render`, `sql`, `import qet` ([`sandbox/fixture.qet`](sandbox/fixture.qet), and [`sandbox/fixture-hostile.qet`](sandbox/fixture-hostile.qet), which names the sibling file [`sandbox/sibling.txt`](sandbox/sibling.txt) by an external entity and an `xi:include`; WP-S6.04 D14; and [`sandbox/fixture-include.qet`](sandbox/fixture-include.qet), which names it by an `xi:include` alone, past no DOCTYPE refusal; FT-1376), `print --out` and `apply`. [`sandbox-check.py`](sandbox-check.py) fails on an internet socket, connection, datagram or bind, a connect to the resolver's socket, a read of `/etc/resolv.conf`, `/etc/hosts` or `/etc/gai.conf`, any `listen`, in an import flow an open of a file of the work folder other than its source or of the repository outside `content/` (`foreign-file`, NFR-SEC-18), and on `EW_DEBUG_PANIC` or `egui_mcp` in a release binary; a failed flow is red too. The traces, the flows' output and the verdict are the artifact `network-sandbox-report` | `python3 -I ci/sandbox-check.py --test`; on Linux with strace: `sudo unshare --net -- bash -c 'ip link set lo up && exec sudo -u "$0" bash ci/sandbox/run.sh "$PWD" target/release <kittest-binary> <work> target/sandbox' "$USER"`, then `python3 -I ci/sandbox-check.py scan target/sandbox/*.strace` and `canary target/release/elektrawatt target/release/ew` |
@@ -482,6 +479,16 @@ environment. The job is not a required check yet (FT-325 and FT-284, owner).
 
 ## Packaging (`package.yml`, CI-N-12 and CI-R-03)
 
+**Slimmed for 0.1.x (ID-1520).** The workflow now runs by hand and through the release's `workflow_call` only, x86_64
+only: `book` builds the guide; each OS job writes the third-party notices, runs a plain `cargo build --release` (Linux
+in the container below, with the release check and glibc 2.35 at most), stages the tree, runs one smoke test on it
+(`--version` of both programs, `elektrawatt --smoke` on the sample), writes the CLI archive, and compiles the setup
+(Windows) or the AppImage (Linux). The rest of this section describes the earlier form; these parts of it are gone:
+the aarch64 jobs, `cargo auditable` and the advisory checks, the SBOMs, the golden digests and `digests`, the
+extracted-archive check, the install, uninstall and read-only-tree tests, the AppImage's runs in `ubuntu:22.04` and
+`debian:12`, strace and the listening-socket check, the clean-checkout and C-runtime-import checks, `stage.py --test`
+and the book's link check. The scripts they ran stay in `ci/` and `packaging/`.
+
 WP-S6.06 part 1 (D3 to D8, D18; FT-299, FT-333, gate criterion G-M1-22; doc 18 §5.2, §5.3, §8) and part 2 (D2, D9 to
 D13). The workflow
 [`package.yml`](../.github/workflows/package.yml) replaced `cli-artefact.yml`. It runs nightly at 04:37 UTC, on
@@ -643,78 +650,36 @@ bash ci/release-check.sh scan target/release/elektrawatt target report.md
 
 ## Release workflow (`release.yml`, CI-R-01 to CI-R-11)
 
-WP-S6.07 (doc 18 §5.1, §5.2, §7.4, §9.2; NFR-SEC-10 to NFR-SEC-13, NFR-SEC-19). The procedure, the owner's settings it
-needs and the checklist are in [`docs/release/`](../docs/release/README.md). The candidate is the release: a tag
-`v<X.Y.Z>-rc.<n>` builds a draft prerelease, and a dispatch publishes its files as `v<X.Y.Z>`.
+WP-S6.07 (doc 18 §5.1, §5.2, §7.4), slimmed to an early alpha's size for 0.1.x (ID-1520). The procedure, the owner's
+settings it needs and the checklist are in [`docs/release/`](../docs/release/README.md). The candidate is the release:
+a tag `v<X.Y.Z>-rc.<n>` builds a draft prerelease, and a dispatch publishes its files as `v<X.Y.Z>`.
 
 [`release.yml`](../.github/workflows/release.yml), on a candidate tag:
 
-1. `verify` (`contents: read`, `actions: read`): [`release-verify.py`](release-verify.py)'s tests; `tag` refuses
-   unless the tag's `X.Y.Z` is the workspace version ("the tag v<t> does not match the workspace version <w>") and
+1. `verify` (`contents: read`): [`release-verify.py`](release-verify.py) `tag` refuses unless the tag's `X.Y.Z` is the
+   workspace version ("the tag v<t> does not match the workspace version <w>") and
    `docs/release-notes/<X.Y.Z>.md` has text beyond its licence comment ("no release notes:
-   docs/release-notes/<X.Y.Z>.md is missing or empty"); `runs` asks `gh run list --commit <sha> --workflow <file>
-   --json conclusion` for `ci.yml` and `deep-nightly.yml` and refuses without a run concluded `success` ("no
-   successful <workflow> run on <short sha>; run it on this commit before tagging").
+   docs/release-notes/<X.Y.Z>.md is missing or empty"). It waits for no CI run (CI is off until 1.0, ID-1519).
 2. `package`: [`package.yml`](../.github/workflows/package.yml) through `workflow_call`, `version: X.Y.Z`,
-   `upload: true`; every per-artefact check below runs there, nightly too.
-3. `sums`: downloads the artifacts `ew-<X.Y.Z>-x86_64-*` (the x86_64 CLI archives with the SBOMs of their jobs; the
-   aarch64 archives are no release files, ID-1313) and `release-verify.py sums` writes `SHA256SUMS` (`<hex>  <name>`,
-   sorted by name), refusing any file that is no release file and a missing one: both archives and the SBOMs of the
-   archives, the setup and the AppImage.
-4. `attest` (environment `release`; `id-token: write`, `attestations: write`): `actions/attest-build-provenance`
-   v4.2.2 over every file, `SHA256SUMS` included.
-5. `release` (environment `release`; `contents: write`): `release-verify.py draft` creates the draft prerelease
+   `upload: true` ([Packaging](#packaging-packageyml-ci-n-12-and-ci-r-03)).
+3. `sums`: downloads the artifacts `ew-<X.Y.Z>-x86_64-*` (the two CLI archives, the setup and the AppImage) and
+   `release-verify.py sums` writes `SHA256SUMS` (`<hex>  <name>`, sorted by name), refusing any other file and a
+   missing one.
+4. `release` (environment `release`; `contents: write`): `release-verify.py draft` creates the draft prerelease
    (`gh release create --draft --prerelease --verify-tag`, so no tag is created), downloads its files back and runs
-   `sha256sum --check --strict SHA256SUMS` and `gh attestation verify <file> --repo <owner>/<repo> --signer-workflow
-   <owner>/<repo>/.github/workflows/release.yml` on each (the promote adds `--source-digest <the candidate's commit>`).
+   `sha256sum --check --strict SHA256SUMS`.
 
 On `workflow_dispatch` with `candidate` and `dry` (default `true`), `release` alone runs `release-verify.py promote`:
 it refuses when the tag `v<X.Y.Z>` exists ("v<X.Y.Z> exists already; promote a new candidate") or the candidate is
-no draft, downloads the draft's files, checks that they are exactly `SHA256SUMS` and the files it lists, verifies them
-as above and, with `dry: false`, creates the published release `v<X.Y.Z>` (latest) on the candidate's commit with
-those files and the draft's notes, then verifies the published files again; with `dry: true` it prints the tag, the
-commit and the files and changes nothing. No job uses a secret: the GitHub CLI takes the run's `GITHUB_TOKEN`
-(`${{ github.token }}`), the attestation the run's OIDC token.
+no draft, downloads the draft's files, checks that they are exactly `SHA256SUMS` and the files it lists and that
+`sha256sum -c` passes and, with `dry: false`, creates the published release `v<X.Y.Z>` (latest) on the candidate's
+commit with those files and the draft's notes, then checks the published files again; with `dry: true` it prints the
+tag, the commit and the files and changes nothing. No job uses a secret: the GitHub CLI takes the run's
+`GITHUB_TOKEN` (`${{ github.token }}`).
 
-The per-artefact steps of `package.yml` (WP-S6.07 part 2), in `windows (x86_64)` and `linux (x86_64)`:
-
-- [`sbom.py`](sbom.py) (D9, CI-R-07): `cyclonedx` writes `cargo metadata --filter-platform <target>` and runs
-  cargo-cyclonedx 0.5.9 (`--format json --spec-version 1.5 --describe binaries --all --target <target>`), keeps the
-  SBOMs of `elektrawatt` and `ew` and deletes the other files it wrote beside the manifests; `shipped` writes the
-  artefact's shipped set, `cargo tree -e normal,build -p <its binaries> --target <target> --prefix none --format
-  "{p}"` (ID-1318: `cargo metadata`'s resolve, which cargo-cyclonedx and cargo-auditable read, also holds the optional
-  dependencies that only a weak feature `dep?/feature` names, such as egui_glow, glutin and zlib-rs, which no binary
-  holds); for a CLI archive, `shipped --root ew` takes what `ew` reaches in the joint graph of both programs, the
-  build that makes its binary; `merge` writes `<artefact>.cdx.json` for the setup (`elektrawatt`, `ew`, NSIS's stub), the AppImage
-  (`elektrawatt`, `ew`, the type-2 runtime) and each CLI archive (`ew`): the crates of the shipped set once per purl
-  (one printed line per crate it drops), each workspace crate's `bom-ref` relative to the workspace (no checkout
-  path), the bundled fonts and the Tabler icons of `NOTICE` (family, version, licence, SHA-256), SQLite at the version
-  of the `sqlite3.h` that libsqlite3-sys bundles, and the `packaging/components.toml` entries the artefact holds;
-  `complete` fails on any package of the shipped set that the SBOM lacks, and on any outside the binaries' closure of
-  normal and build dependencies in `cargo metadata`, naming each; `notices` appends "Non-crate
-  components" (each with its licence and its `NOTICE` section, SQLite's dedication included) to the cargo-about output
-  `THIRD-PARTY-NOTICES.txt` before the tree is staged, and fails on any SBOM component, other than the workspace's own
-  crates, that the file does not name, and on any non-crate component with no `NOTICE` section unless its
-  `components.toml` entry gives `no_notice`, why it needs none (NSIS's stub, zlib code: its SBOM licence is the entry's
-  `shipped_licence`).
-- [`audit-data.py`](audit-data.py) (D12 (b), CI-R-09) reads the `.dep-v0` section of every shipped binary (ELF or PE):
-  "no cargo-auditable data in <file>" when it is missing, "<file> contains the test-only crate <name>" for `egui_mcp`,
-  `ew-testids` or `ew-testkit`. Then `cargo audit bin` on the same binaries (D11).
-- `linux (x86_64)` only: `cargo deny --locked check advisories` and `cargo audit` on `Cargo.lock` (D11; a waiver is an
-  `ignore` entry in `deny.toml` and in [`.cargo/audit.toml`](../.cargo/audit.toml), each with its reason, owner and
-  expiry, checked by hand at RC-03); [`no-listen.sh`](no-listen.sh) (D12 (d)) runs `AppRun --smoke` and `AppRun ew
-  export pdf` of the sample on the install test's extraction under `strace -f -e trace=listen` and fails on any
-  `listen` call; `no-listen.sh --test`, run first in the same step, checks that on fixture traces, one of them with a
-  `listen` call. ubuntu-24.04 has no strace, so the step before installs noble's `strace_6.8-0ubuntu2_amd64.deb` from
-  the Ubuntu archive snapshot of `components.toml`, pinned by SHA-256 in the step (a test tool; its one dependency,
-  libunwind8, comes from the runner's archive through apt).
-
-The tools: cargo-auditable 0.7.7, cargo-cyclonedx 0.5.9, cargo-audit 0.22.2 and cargo-deny 0.20.2 are pinned in
-`packaging/components.toml` (cargo-audit, cargo-deny and cargo-about at the supply-chain job's versions, which a test of
-`xtask` keeps equal) and installed by `taiki-e/install-action`, which checks each release asset against its manifest's
-SHA-256. In the Linux container, cargo finds cargo-auditable in the mounted cargo home's `bin`: the static musl build
-on x86_64, the glibc build (GLIBC_2.34 at most) on aarch64. cargo-auditable sets `RUSTC_WORKSPACE_WRAPPER` only, never
-`RUSTFLAGS` or `CARGO_ENCODED_RUSTFLAGS`, so the remaps and `release-check.sh env` hold.
+Not run at 0.1.x (ID-1520): the CI-run gate of CI-R-02, the build provenance of CI-R-08 (`attest`, `gh attestation
+verify`), and in `package.yml` the SBOMs ([`sbom.py`](sbom.py)), [`audit-data.py`](audit-data.py), `cargo audit`,
+`cargo deny check advisories` and [`no-listen.sh`](no-listen.sh). The scripts stay, with their own tests.
 
 ## Headless container job (CI-PR-05)
 

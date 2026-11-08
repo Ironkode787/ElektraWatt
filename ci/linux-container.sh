@@ -22,10 +22,8 @@
 #       uid and gid (EW_UID, EW_GID, through `setpriv`) with the host's toolchain (EW_TOOLCHAIN_BIN, mounted) on PATH:
 #       - check: `cargo check --locked --offline -p elektrawatt -p ew` (the `c-only` job: every build script's C
 #         compilation with a C compiler only);
-#       - release: `ci/release-check.sh env`, `cargo auditable build --release --locked --offline -p elektrawatt -p ew`
-#         (WP-S6.07 D7: cargo-auditable, installed on the runner into the mounted cargo home's bin, where cargo finds
-#         it; it sets RUSTC_WORKSPACE_WRAPPER only, so RUSTFLAGS and its remaps stay), `ci/release-check.sh scan` on
-#         both binaries (reports `target/release-check-<binary>.md`), and the highest `GLIBC_` symbol version of both,
+#       - release: `ci/release-check.sh env`, `cargo build --release --locked --offline -p elektrawatt -p ew` (a plain
+#         build since ID-1520), `ci/release-check.sh scan` on both binaries (reports `target/release-check-<binary>.md`), and the highest `GLIBC_` symbol version of both,
 #         which must be at most 2.35 (glibc of Ubuntu 22.04, the oldest Supported Linux); it writes the container's
 #         `dpkg-query --show` to `target/container-packages.txt` for the job summary (FT-1223). The reports go under
 #         target/, so the checkout stays clean (WP-S6.07 D5);
@@ -105,8 +103,6 @@ if [ "$mode" = check ]; then
   as_runner cargo check --locked --offline -p elektrawatt -p ew
   exit 0
 fi
-[ -x "${CARGO_HOME:?}/bin/cargo-auditable" ] \
-  || fail "no cargo-auditable in $CARGO_HOME/bin: install it on the runner (packaging/components.toml) before the build"
 binaries=(elektrawatt ew)
 cli_scan=""
 if [ "$mode" = cli ]; then
@@ -117,7 +113,7 @@ fi
 as_runner bash -c '
   set -euo pipefail
   bash ci/release-check.sh env
-  cargo auditable build --release --locked --offline "${@/#/--package=}"
+  cargo build --release --locked --offline "${@/#/--package=}"
 ' build "${binaries[@]}"
 dpkg-query --show | as_runner tee target/container-packages.txt > /dev/null
 failed=0

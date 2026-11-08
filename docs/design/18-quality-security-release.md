@@ -1577,6 +1577,8 @@ gantt
 | CI-R-10 | Clean-VM offline installation on Windows 10 22H2, Windows 11, Ubuntu 22.04 and Debian 12 (0.1.0: the per-user setup on Windows and the AppImage on Linux; from 1.0 also the MSI and the `.deb`): install, open the GP sample, pass its acceptance CSVs, and from 1.0 open the GP `.ewpp` in `ew-wiring-viewer`; uninstall (NFR-PLAT-06, AC-40). An upgrade over the previous release's installer keeps user settings, keymaps, the trust store and company catalogues; uninstall leaves them in place |
 | CI-R-11 | Publish the GitHub release. From 1.0: after two-maintainer approval, with the update manifest, crates.io through trusted publishing (**verify**) and the Flathub PR |
 
+*0.1.x follows the slim workflow (cycle 53, decision log ID-1520):* CI-R-01, CI-R-03 with a plain `cargo build`, CI-R-05 with one smoke test, CI-R-06 and CI-R-11 without provenance; the rest of this table, and of the as-built text below, is not run at 0.1.x ([`docs/release/README.md`](../release/README.md) §10).
+
 *As built (2026-11-04, cycle 50; WP-S6.07, decision log ID-1336, ID-1337), the jobs in 0.1.0's form.* `release.yml`
 runs on a candidate tag. **CI-R-01:** `ci/release-verify.py tag` requires the tag's `X.Y.Z` to equal the workspace
 version and `docs/release-notes/<X.Y.Z>.md` to exist and not be empty; `clean` requires an empty `git status
