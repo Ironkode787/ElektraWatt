@@ -15,6 +15,8 @@ the `records` step of `cargo xtask settle --merge` runs it at the merge point.
 
 Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:` trailer cites, newest first, with the commits that cite it, newest first.
 
+- **ID-1516** (cycle 53): WP-S2.19's review fix phase accepted (project owner (delegated); Dutch wording the orchestrator's, ID-1320): every assigned finding is fixed at `bd66bc24c` with its lane-check passing; C53-rt#14 is withdrawn (an empty list is the command's own refusal, as in `connection.draw_many`'s arm). Route selection's disabled reason reads "Select a wire or a symbol to route" | "Selecteer een draad of een symbool om te routeren". The route pair's icons (`file-settings`, `magnet`) stand for 0.1.0; icons drawn for routing are FT-1618. ID-1509.
+  - `286b2de7bf` docs(plan): WP-S2.19 review fix phase accepted
 - **ID-1515** (cycle 53): M2.5 starts only when M2 is closed in full and 0.1.0 is final (project owner, 2026-11-08: "Agreed. We only start when M2 is completely closed, and 0.1 is definitive."): no M2.5 lane runs beside a release candidate, and the hold after M2 (ID-1488) still needs the owner to lift it. ID-1514.
   - `6bfc606f36` docs(plan): M2.5 starts only after M2 is closed and 0.1.0 is final (owner)
 - **ID-1514** (cycle 53): M2.5 runs in a fixed order (project owner, 2026-11-08: "Make sure we do this in the correct order."): decide what is worth doing first, fix correctness before moving code, change the structure before deleting, delete before moving, move before reviewing the tests, and document the final shape last; the folding of the rulings into the documents runs beside the code, since M2.5 changes no behaviour. The seven steps are in doc 01's progress table, row M2.5. ID-1512; ID-1513.
@@ -1923,7 +1925,7 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 
 ## Open follow-up tasks
 
-643 open: 20 scheduled, 87 expired, 536 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
+644 open: 20 scheduled, 87 expired, 537 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
 
 ### Scheduled (due in cycle 53 or later)
 
@@ -2576,4 +2578,5 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 - FT-1615 (cycle 53, Low, upkeep; due: M2.5): remove the worktrees (230) and local branches (277) of accepted work, keeping the working, release and integration branches and the worktrees of open parts. Source: ID-1512
 - FT-1616 (cycle 53, Medium, tests; due: M2.5): go through every test by hand, crate by crate (about 7,400 tests, 307k lines with the fuzz harness): combine tests that assert the same behaviour, scrap those that prove nothing a stronger test does not, and refactor repeated set-up into shared builders; coverage before and after shows nothing proven is lost; the golden and acceptance tests are kept. Source: ID-1513
 - FT-1617 (cycle 53, Medium, workspace; due: M2.5): a pass against over-design, crate by crate: remove redundant helpers and functions, abstractions with a single use, options nothing sets, dead or `#[allow(dead_code)]` code (42 attributes) and needless `#[allow(clippy::…)]` (271), and unused dependencies; behaviour unchanged, proven by the suite. Source: ID-1513
+- FT-1618 (cycle 53, Low, ew-ui; due: M3): Route page and Route selection use `file-settings` and `magnet`, the only unused icons of the set that fit; give them icons drawn for routing (a route and a waypoint glyph) from the same icon family. Source: ID-1516
 <!-- /generated:records -->
