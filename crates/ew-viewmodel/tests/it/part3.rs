@@ -371,7 +371,11 @@ fn ib3_continue_on_page_103_places_the_paired_ip_at_the_default_position() {
         k
     };
     assert_eq!(continued.pos.0, grid_point(&s, (leftmost, 0)).0);
-    assert_eq!(continued.symbol, original.symbol);
+    // WP-S2.19 D16: the partner of a source takes the target form.
+    assert_eq!(
+        (original.symbol_key.as_str(), continued.symbol_key.as_str()),
+        ("ew.gen.ip@qet10", "ew.gen.ip-target@qet10")
+    );
 }
 
 /// The cross-reference text (`102-A1`) that the source IP `name` on 101 prints for its partner on 102: the target cell

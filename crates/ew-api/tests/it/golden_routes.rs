@@ -25,6 +25,7 @@ use crate::golden_common;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
+use ew_api::output::TableEnd;
 use ew_api::routing::{RouteScope, Unrouted};
 use ew_derive::ew_units::{Grid, Nm};
 use ew_import_tables::ew_interop_api::{ImportBatch, ImportInput};
@@ -147,16 +148,38 @@ fn router_routes() -> (BTreeMap<String, String>, Vec<String>) {
         let plan = s
             .route_plan(folio, &RouteScope::Page)
             .unwrap_or_else(|| panic!("folio {folio} is drawn"));
+        let tables = s.page_tables(folio).expect("a drawn page");
+        let on_segment = |e: &TableEnd| match e {
+            TableEnd::Cp { function, idx } => tables
+                .cps
+                .iter()
+                .find(|c| c.function == *function && c.idx == *idx)
+                .and_then(|c| tables.reps.iter().find(|r| r.id == c.rep))
+                .is_some_and(|r| r.symbol_key.starts_with("ew.gen.strip-segment")),
+            TableEnd::Junction { .. } => false,
+        };
         for (id, route) in &plan.routes {
             let key = key_of
                 .get(&id.to_string())
                 .cloned()
                 .unwrap_or_else(|| id.to_string());
             let (a, b) = (route[0], route[route.len() - 1]);
-            let cells: Result<Vec<String>, String> = route[1..route.len() - 1]
-                .iter()
-                .map(|p| corner_cell(*p, a, b))
-                .collect();
+            // An end at a strip segment's terminal, which the tables do not place, is named first or last; a straight
+            // route without such an end has no corner, so its end `b` stands as its one corner (an empty column is no
+            // route; the importer stores `[a, b, b]`, which every reader draws as `[a, b]`).
+            let conn = tables.connections.iter().find(|c| c.id == *id).expect("a drawn connection");
+            let mut corners: Vec<(i64, i64)> = Vec::new();
+            if on_segment(&conn.a) {
+                corners.push(a);
+            }
+            corners.extend_from_slice(&route[1..route.len() - 1]);
+            if on_segment(&conn.b) {
+                corners.push(b);
+            }
+            if corners.is_empty() {
+                corners.push(b);
+            }
+            let cells: Result<Vec<String>, String> = corners.iter().map(|p| corner_cell(*p, a, b)).collect();
             match cells {
                 Ok(cells) => {
                     routes.insert(key, cells.join(";"));

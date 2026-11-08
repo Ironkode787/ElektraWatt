@@ -1,0 +1,16 @@
+# Golden A's layout per routed page (WP-S2.19 RG3): written by golden_routes' bless; a page's totals never rise.
+3: hard 0, crossings 0, bends 2
+101: hard 0, crossings 14, bends 54
+  5 bends: J-E-206-N → 1X1:2/b
+102: hard 0, crossings 52, bends 58
+  5 bends: -102G1:−#2 → the junction in D6
+  5 bends: the junction in C6 → -102F1:1
+  7 bends: the junction in D6 → -102F2:GND#2
+  7 bends: the junction in D7 → -102F2:24VDC#1
+  5 bends: -102F2:Out2 → 24VDC-2
+103: hard 0, crossings 42, bends 58
+  5 bends: 0VDC → -X1031:11/a
+  5 bends: -X1032:3/b → PE-1.3
+  5 bends: PE-1.1 → -X1032:1/b
+106: hard 0, crossings 23, bends 30
+203: hard 32, crossings 0, bends 48
