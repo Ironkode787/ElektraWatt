@@ -2026,7 +2026,7 @@ IP_TARGET = "ew.gen.ip-target@qet10"
 # F13: the offsets (QET px) of the k-th interruption point of a coincident group of n, by n
 # ID-1504 (4a): every member keeps its cell (doc 20 section 15; a cell's lower and right edges belong to the next cell)
 # and no text of one overlaps another's or a wire. A point's name stands above its arrow and its cross-reference below
-# it, right-aligned at the tip (WP-S2.19 section 7), each 1.2 grid steps tall and half a step off the arrow, so two
+# it, right-aligned at a source's tip (WP-S2.19 section 7), each 1.2 grid steps tall and half a step off the arrow, so two
 # members whose texts share columns stand four grid steps (40 px) apart; a third stands three steps below the second
 # and four steps right of it, where the second's cross-reference ends left of the third's name; of four, the second and
 # fourth stand five steps right of the first and third (names up to four steps wide). A wire leaving a member passes
@@ -2037,12 +2037,19 @@ IP_OFFSETS = {
     3: [(-20, -40), (-20, 0), (20, 30)],
     4: [(-30, -30), (20, -10), (-30, 10), (20, 30)],
 }
+# ID-1509 (4): a target's cross-reference stands left-aligned at its arrow's tail and runs right, into the sheet, so a
+# member below a target and beside it stands left of it, where the target's cross-reference starts right of the
+# member's name: of three targets (103-G1), the third four steps left of the second; of four (103-G6), in two columns
+# five steps apart, each two steps below the one before, the first on the right, so a wire leaving the left column
+# passes between the texts of the right one
+IP_OFFSETS_TARGETS = {3: [(20, -40), (20, 0), (-20, 30)], 4: [(20, -40), (-30, -20), (20, 0), (-30, 20)]}
 # ID-1504 (4a): a group of a source and three targets (106-B1, 106-E1): the source and the first target side by side,
 # the source on the left (its wire arrives from the left, the target's leaves to the right), the other two targets
-# below them as a group of three stands
-IP_OFFSETS_SOURCE_AND_TARGETS = [(-30, -40), (20, -40), (-30, 0), (20, 30)]
+# below them as a group of three targets stands (ID-1509 (4))
+IP_OFFSETS_SOURCE_AND_TARGETS = [(-30, -40), (20, -40), (20, 0), (-30, 30)]
 # ID-1504 (4a): a group's members top first where natural key order would cross their wires: a member whose wire runs
-# farther along the stack's row stands above one whose wire turns off before it
+# farther along the stack's row stands above one whose wire turns off before it (on 106, the targets of a module's
+# outer lower pin above those of its inner one since ID-1509 (4) set them right above left)
 IP_ORDER = {
     ("102", "A1"): ["N-1@102", "L-1@102"],
     ("102", "G15"): ["24VDC-4@102", "24VDC-3@102"],
@@ -2051,8 +2058,8 @@ IP_ORDER = {
     ("103", "G1"): ["PE-AIR1@103", "PE-0VDC@103", "PE-AIR2@103"],
     ("103", "B6"): ["24VDC-AIR4@103", "24VDC-AIR3@103", "24VDC-AIR2@103"],
     ("103", "B14"): ["0VDC-AIR4@103", "0VDC-AIR3@103", "0VDC-AIR2@103"],
-    ("106", "B1"): ["PE-AIR2@106", "0VDC-AIR3@106", "24VDC-AIR4@106", "24VDC-AIR3@106"],
-    ("106", "E1"): ["PE-AIR1@106", "0VDC-AIR1@106", "24VDC-AIR2@106", "24VDC-AIR1@106"],
+    ("106", "B1"): ["PE-AIR2@106", "0VDC-AIR3@106", "24VDC-AIR3@106", "24VDC-AIR4@106"],
+    ("106", "E1"): ["PE-AIR1@106", "0VDC-AIR1@106", "24VDC-AIR1@106", "24VDC-AIR2@106"],
 }
 IP_GROUPS = {}  # (page, cell, dx, dy) -> representation keys, for the coincident groups (information only)
 
@@ -2325,6 +2332,8 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
             members.sort(key=lambda rp: order.index(rp["key"]))
         offsets = IP_OFFSETS[len(members)]
         sources = [rp for rp in members if ip_dir[rp["functions"]] == "source"]
+        if not sources and len(members) in IP_OFFSETS_TARGETS:
+            offsets = IP_OFFSETS_TARGETS[len(members)]
         if len(members) == 4 and len(sources) == 1:
             members.sort(key=lambda rp: rp is not sources[0])
             offsets = IP_OFFSETS_SOURCE_AND_TARGETS
@@ -2338,8 +2347,9 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
     fixture(
         "representations", ["dx", "dy"], "interruption points that share a cell",
         "k-th member of a coincident group of n (natural key order, or IP_ORDER's), in px: n=2 (0,-20) (0,20); n=3"
-        " (-20,-40) (-20,0) (20,30); n=4 (-30,-30) (20,-10) (-30,10) (20,30), a source and three targets (-30,-40) (20,-40)"
-        " (-30,0) (20,30) with the source first",
+        " (-20,-40) (-20,0) (20,30); n=4 (-30,-30) (20,-10) (-30,10) (20,30); three targets (20,-40) (20,0) (-20,30);"
+        " four targets (20,-40) (-30,-20) (20,0) (-30,20); a source and three targets (-30,-40) (20,-40) (20,0) (-30,30)"
+        " with the source first",
         "§15",
         "▲ test input (fixture choice): separates coincident interruption points; the cell is what doc 20 §15"
         " asserts",

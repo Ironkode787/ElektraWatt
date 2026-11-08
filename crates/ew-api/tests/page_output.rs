@@ -443,7 +443,7 @@ fn the_display_list_of_folio_101_is_stable() {
             symbols instance de795e26 sym=9a687b31 variant=A translate=(203729167,95250000)
             symbols instance ec75639e sym=f8b44164 variant=A translate=(87312500,79375000)
             symbols instance f4fdc202 sym=4f6bee27 variant=E translate=(18520833,132291667)
-            wires path 09ed5beb els=3 first=(42333333,76729167) last=(42333334,44979167) stroke=264583 fill=-
+            wires path 09ed5beb els=4 first=(42333333,76729167) last=(42333334,44979167) stroke=264583 fill=-
             wires path 13c75a2c els=3 first=(18520833,142875000) last=(42333333,82020833) stroke=264583 fill=-
             wires path 17b31bbc els=4 first=(42333334,37041667) last=(145520833,31750000) stroke=264583 fill=-
             wires path 2b9b8f17 els=4 first=(137583333,31750000) last=(201083333,31750000) stroke=264583 fill=-
@@ -524,8 +524,8 @@ fn the_display_list_of_folio_101_is_stable() {
             labels glyphs f4fdc202 "J-E-206-L" origin=(11070828,130271044) size=2381250 angle=0
             labels glyphs f4fdc202 "+J-E-206 / JE-N1000-03" origin=(3590132,136160140) size=2381250 angle=0
             labels glyphs 66c620c1 "1X1" origin=(29106813,75721369) size=3439583 angle=0
-            labels instance 09ed5beb sym=04b0176e variant=A translate=(42333333,52916667)
-            labels glyphs 09ed5beb "2.5" origin=(41399354,53388948) size=1322917 angle=0
+            labels instance 09ed5beb sym=04b0176e variant=D translate=(42333333,68791667)
+            labels glyphs 09ed5beb "2.5" origin=(42805614,69725646) size=1322917 angle=90000
             labels instance 17b31bbc sym=04b0176e variant=A translate=(93927083,26458333)
             labels glyphs 17b31bbc "2.5" origin=(92993104,26930614) size=1322917 angle=0
             labels instance 628881aa sym=04b0176e variant=D translate=(37041667,60854167)

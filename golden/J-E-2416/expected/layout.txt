@@ -1,8 +1,9 @@
 # Golden A's layout per routed page (WP-S2.19 RG3): written by golden_routes' bless; a page's totals never rise, its text overlaps stay at zero.
 3: hard 0, crossings 0, bends 2, text overlaps 0
-101: hard 0, crossings 5, bends 37, text overlaps 0
+101: hard 0, crossings 5, bends 38, text overlaps 0
 102: hard 0, crossings 1, bends 14, text overlaps 0
-103: hard 0, crossings 29, bends 50, text overlaps 0
-  5 bends: PE-1.2 → -X1032:2/b
-106: hard 0, crossings 12, bends 28, text overlaps 0
+103: hard 0, crossings 27, bends 52, text overlaps 0
+  5 bends: PE-1.1 → -X1032:1/b (one of four targets in 103-G6, right of the strip it feeds: its wire leaves right and loops back over the stack, as its cross-reference runs right under its arrow (ID-1509 (4)))
+  5 bends: PE-1.2 → -X1032:2/b (one of four targets in 103-G6, right of the strip it feeds: its wire leaves right and loops back over the stack, as its cross-reference runs right under its arrow (ID-1509 (4)))
+106: hard 0, crossings 14, bends 28, text overlaps 0
 203: hard 0, crossings 0, bends 48, text overlaps 0
