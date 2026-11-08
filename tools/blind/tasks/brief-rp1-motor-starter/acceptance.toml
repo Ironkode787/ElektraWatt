@@ -51,7 +51,7 @@ how = "check, handback"
 
 [[item]]
 id = "A7"
-kind = "soft"
+kind = "hard"
 what = "No wire runs through a text, and no junction joins four wires."
 how = "check"
 query = "SELECT fingerprint FROM api_v1_message WHERE rule IN ('EW-CORE-070', 'EW-CORE-072')"

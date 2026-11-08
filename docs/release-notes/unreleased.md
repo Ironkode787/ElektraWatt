@@ -34,6 +34,11 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   swaps the form (WP-S2.19 D16, ID-1509)
 - behaviour-change: `ew.gen.strip-segment` 0.2.0 prints the strip's tag beside the strip, left of its first terminal,
   not above the terminal row (ID-1502)
+- behaviour-change: `ew.iec.motor-3ph` 0.2.0, the three-phase motor, has leads one grid step longer, its connection
+  points U1, V1 and W1 one grid step higher, so that its wires are routed clear of its texts (ID-1509)
+- behaviour-change: `ew.iec.heater` 0.1.1, the heater, prints its technical data one grid step lower (ID-1509)
+- behaviour-change: a target interruption point's cross-reference (`ew.gen.ip-target` and its `@qet10` twin) is
+  left-aligned at the arrow's tail, below the arrow, so that it runs into the sheet from the left edge (ID-1509)
 - api-add: the tables importer: `representations.csv` takes an optional `orient` column (`A` to `H`) and refuses an
   interruption-point form that is not its function's direction; a `route` that names end `b` as its one corner is a
   straight route (ID-1502, ID-1503)
