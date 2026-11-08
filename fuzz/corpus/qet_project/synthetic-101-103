@@ -1074,7 +1074,7 @@
         <texts_groups/>
         <links_uuids/>
       </element>
-      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0CC}" x="410" y="580" z="10" orientation="0" prefix="" freezeLabel="false">
+      <element type="embed://import/synth/ew.gen.ip-target@qet10.elmt" uuid="{00000000-0000-4000-8000-000000ABC0CC}" x="410" y="500" z="10" orientation="0" prefix="" freezeLabel="false">
         <terminals>
           <terminal x="0" y="0" orientation="e" id="68"/>
         </terminals>
