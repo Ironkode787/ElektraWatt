@@ -1,7 +1,7 @@
 # ADR-0033: Schematic routing: stored routes written by one page router, unrouted connections and one route convention
 
-**Status:** Accepted · **Date:** 2026-11-07 · **Deciders:** lead designer (cycle-53 design lane, decision log ID-1498;
-the project owner may reverse it)
+**Status:** Accepted; built in cycle 53 (WP-S2.19, decision log ID-1499 to ID-1505) · **Date:** 2026-11-07 ·
+**Deciders:** lead designer (cycle-53 design lane, decision log ID-1498; the project owner may reverse it)
 
 ## Context
 

@@ -1053,6 +1053,14 @@ connection in WP-S2.04**, and the action `tool.connect_on_move` (C) is refused w
 Committing the proposals of a move, and the sticky wire, are FT-373, after WP-S2.04 part 2. Placement is unchanged: the
 accepted proposals become the `connect` hints of the committed `device.place`, and Alt at the commit sends none.
 
+*As built (cycle 53; WP-S2.19 D15, ADR-0007 amendment 3, decision log ID-1499).* The "On move" narrowing above is
+lifted: a move connects the proposals its drag shows by default. They commit with the move as `rep.move`'s `connect`
+hints, `{rep, cp: {function, idx}, to}` (the CP named by function, as the window knows a placed representation's CPs),
+each making its wire as a `device.place` hint does, in the move's one undo step. Alt held at the release moves without
+them; `tool.connect_on_move` (C) turns connect on move off or on for the session, and the move's HUD and the status
+bar say "C Connect on move: on" or "off", the key from the keymap. The keyboard move (M) connects by the session's
+setting.
+
 ### 5.3 Splitting a connection
 
 Dropping a symbol with two facing CPs onto connection W (between A and B) replaces W by W′ (A → c1) and
@@ -1107,6 +1115,17 @@ This section's router is replaced by the page router of the
 parallel mates; a page or a selection routed in a fixed order (supply potentials first, then by span) with at most two
 rip-up rounds; no fallback L: a connection without a clear route stays unrouted and is reported. Step 4 of the list
 above (re-solve after a move, FT-18) is built in the Select tool, which passes the re-solved routes to `rep.move`.
+
+*As built (cycle 53; WP-S2.19 D13, D14, decision log ID-1499).* On the release of a move the Select tool builds the
+moved page geometry (the moved representations' bodies, CPs and texts displaced as `rep.move` displaces them, each
+followed route along its rubber band) and routes again every connection with a moved end that is unrouted, breaks a
+hard rule there or bends more than before; it commits them as `rep.move`'s `routes`, applied after the follow as
+`connection.route_many` applies its entries, in the move's one undo step; a connection the router finds no clear route
+for keeps the followed route. **Route page** (`route.page`) and **Route selection** (`route.selection`) sit in the Draw
+tab's Connect group after Edit route, with no default key; each opens the plan in the Preview tab ("Route 3 wires on
+folio 101: 2 routed, 1 not routed.", one row per wire left unrouted with its reason), and Apply commits one
+`connection.route_many` with the toast "Routed 2 wires on folio 101."; a page with nothing to route says "Every wire on
+folio 101 has a route." The layout measures are the check rules EW-CORE-067 to -070, -072 and -073 (doc 15 §4).
 
 ### 5.5 Physical wires behind junctions and IPs
 

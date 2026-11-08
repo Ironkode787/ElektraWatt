@@ -7,6 +7,18 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-variant`, `text-change`.
 
+- api-add: window Draw ▸ Connect ▸ Route page and Route selection preview the page router's plan and commit it as one
+  `connection.route_many` (WP-S2.19 D13)
+- api-add: rep.move takes `routes` (applied after the follow, as connection.route_many applies them) and `connect`
+  (autoconnect hints `{rep, cp: {function, idx}, to}`); a move in the window re-solves a followed route that breaks a
+  hard rule, and connects its proposals unless Alt is held (`tool.connect_on_move`, C, turns that off) (WP-S2.19 D14,
+  D15)
+- api-add: check rules EW-CORE-067 (wire through a connection point), -068 (wire along another wire), -069 (wire
+  through a symbol), -070 (wire through a text), -072 (four-way junction) and -073 (unrouted wire, an error in
+  release mode) (WP-S2.19 §9)
+- behaviour-change: an imported or drawn connection without a route is an EW-CORE-073 finding; `ew check` exits 1 on
+  it until Route page or `ew route` routes it (WP-S2.19 D3, D17)
+
 - api-add: page.new takes `grid` (mm4 or qet_10px), the window's New page its Connection grid, the current page's by
   default; a page's Connection grid is a choice in Properties; picker.new_page places the Insert symbol picker's symbol
   on another grid on a new page with its grid (ID-1477)
