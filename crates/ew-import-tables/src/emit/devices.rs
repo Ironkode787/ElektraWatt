@@ -218,6 +218,7 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
                 id,
                 strip_field_side: strip.as_ref().map(|s| s.field_side.clone()),
                 cable: cable.is_some(),
+                terminal: false,
                 parts: part_keys,
             },
         );
@@ -341,6 +342,7 @@ pub(crate) fn emit_terminals(cx: &mut Cx<'_>, table: Option<&Table>) {
                 id,
                 strip_field_side: None,
                 cable: false,
+                terminal: true,
                 parts: part_keys,
             },
         );

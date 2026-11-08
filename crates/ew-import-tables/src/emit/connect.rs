@@ -349,7 +349,16 @@ fn stored_route(
     // symbol or black box draws) is named by the route itself: its first item is end `a`'s point, its last end `b`'s
     // (WP-S2.19 §8.2, Golden A's router-written routes).
     let undrawn = |e: &Endpoint| match e {
-        Endpoint::Cp(f, _) => !cx.cp_points.keys().any(|(g, _, _)| g == f),
+        Endpoint::Cp(f, _) => {
+            !cx.cp_points.keys().any(|(g, _, _)| g == f)
+                && cx
+                    .functions
+                    .values()
+                    .find(|i| i.id == *f)
+                    .and_then(|i| i.device.as_ref())
+                    .and_then(|d| cx.devices.get(d))
+                    .is_some_and(|d| d.terminal)
+        }
         _ => false,
     };
     let (a_named, b_named) = (undrawn(a), undrawn(b));

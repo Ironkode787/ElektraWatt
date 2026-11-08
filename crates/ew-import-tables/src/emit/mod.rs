@@ -67,6 +67,8 @@ pub(crate) struct DeviceInfo {
     pub(crate) strip_field_side: Option<Side>,
     /// Whether the device has the cable aspect.
     pub(crate) cable: bool,
+    /// Whether the device is a strip segment's terminal (a `terminals` row).
+    pub(crate) terminal: bool,
     /// The `parts` keys of its part uses, in `Device.parts` order.
     pub(crate) parts: Vec<String>,
 }
