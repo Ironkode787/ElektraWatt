@@ -488,8 +488,18 @@ fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
     let split = term006_fx(
         [0, 32_000_000],
         &[
-            (TERM_WIRE, k1, Ep::Cp(TERM_FN, 0), vec![[0, 17_000_000], [0, 32_000_000]]),
-            (0x901, Ep::Cp(TERM_FN, 1), k2, vec![[0, 33_000_000], [0, 64_000_000]]),
+            (
+                TERM_WIRE,
+                k1,
+                Ep::Cp(TERM_FN, 0),
+                vec![[0, 17_000_000], [0, 32_000_000]],
+            ),
+            (
+                0x901,
+                Ep::Cp(TERM_FN, 1),
+                k2,
+                vec![[0, 33_000_000], [0, 64_000_000]],
+            ),
         ],
     );
     let beside = term006_fx([4_000_000, 32_000_000], &[(TERM_WIRE, k1, k2, straight())]);
@@ -545,7 +555,12 @@ fn term006_every_branch() {
 
     let mut horizontal = term006_fx(
         [20 * MM, 80 * MM],
-        &[(TERM_WIRE, Ep::Cp(H1, 0), Ep::Cp(H2, 0), vec![[0, 80 * MM], [40 * MM, 80 * MM]])],
+        &[(
+            TERM_WIRE,
+            Ep::Cp(H1, 0),
+            Ep::Cp(H2, 0),
+            vec![[0, 80 * MM], [40 * MM, 80 * MM]],
+        )],
     );
     horizontal.func_at(H1, P1, [0, 80 * MM]);
     horizontal.func_at(H2, P1, [40 * MM, 80 * MM]);
@@ -555,7 +570,12 @@ fn term006_every_branch() {
     );
     let mut l_shaped = term006_fx(
         [20 * MM, 48 * MM],
-        &[(TERM_WIRE, k1, Ep::Cp(L, 0), vec![[0, 17 * MM], [0, 48 * MM], [40 * MM, 48 * MM]])],
+        &[(
+            TERM_WIRE,
+            k1,
+            Ep::Cp(L, 0),
+            vec![[0, 17 * MM], [0, 48 * MM], [40 * MM, 48 * MM]],
+        )],
     );
     l_shaped.func_at(L, P1, [40 * MM, 48 * MM]);
     let mut core = term006_fx(on_cp, &[]);
@@ -592,7 +612,12 @@ fn term006_every_branch() {
     let mut junction_beside = term006_fx(
         on_cp,
         &[
-            (TERM_WIRE, k1, Ep::J(J), vec![[0, 17 * MM], on_cp, [4 * MM, 32 * MM]]),
+            (
+                TERM_WIRE,
+                k1,
+                Ep::J(J),
+                vec![[0, 17 * MM], on_cp, [4 * MM, 32 * MM]],
+            ),
             (W2, Ep::J(J), Ep::Cp(TERM_FN, 0), vec![[4 * MM, 32 * MM], on_cp]),
         ],
     );

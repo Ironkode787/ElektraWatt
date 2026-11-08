@@ -597,7 +597,10 @@ fn hinted_wire_in(
 /// route. An unrouted wire has no wire geometry (it is drawn as the dashed straight line between its ends), so
 /// normaliser 7 does not split it: no new part, and the wire is as it was.
 fn assert_not_split(e: &Engine, r: &Receipt, wire: ew_ids::Id<Connection>, before: &Connection) {
-    assert!(created::<Connection>(r, Kind::Connection).is_empty(), "no new part");
+    assert!(
+        created::<Connection>(r, Kind::Connection).is_empty(),
+        "no new part"
+    );
     assert_eq!(*row(e, wire), *before);
 }
 
