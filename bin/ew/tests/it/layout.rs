@@ -165,7 +165,7 @@ fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {
         (o.status.code(), stdout(&o)),
         (
             Some(0),
-            "Route 1 wires on 3: 1 routed, 0 not routed.\n".to_owned()
+            "Route 1 wire on folio 3: 1 routed, 0 not routed.\n".to_owned()
         ),
         "{}",
         stderr(&o)
@@ -175,7 +175,7 @@ fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {
         (o.status.code(), stdout(&o)),
         (
             Some(0),
-            "Route 1 wires on 3: 1 routed, 0 not routed.\n".to_owned()
+            "Route 1 wire on folio 3: 1 routed, 0 not routed.\n".to_owned()
         ),
         "{}",
         stderr(&o)

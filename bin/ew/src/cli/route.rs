@@ -176,17 +176,20 @@ fn page_result(
     }
 }
 
-/// The text of one page: its summary line (WP-S2.19 §12a), then one line per unrouted wire.
+/// The text of one page: its summary line (WP-S2.19 §12a, the page as "folio <label>" as the window words it), then
+/// one line per unrouted wire.
 fn page_text(page: &results::RoutePageResult, plan: &RoutePlan) -> String {
     let (routed, unrouted) = (page.routed.len(), page.unrouted.len());
-    let mut out = if routed + unrouted == 0 {
-        format!("Every wire on {} has a route.\n", page.folio)
-    } else {
-        format!(
-            "Route {} wires on {}: {routed} routed, {unrouted} not routed.\n",
-            routed + unrouted,
+    let mut out = match routed + unrouted {
+        0 => format!("Every wire on folio {} has a route.\n", page.folio),
+        1 => format!(
+            "Route 1 wire on folio {}: {routed} routed, {unrouted} not routed.\n",
             page.folio
-        )
+        ),
+        n => format!(
+            "Route {n} wires on folio {}: {routed} routed, {unrouted} not routed.\n",
+            page.folio
+        ),
     };
     for ((_, why), u) in plan.unrouted.iter().zip(&page.unrouted) {
         out.push_str(&format!("  {}\n", reason(*why, &u.wire).1));
@@ -211,14 +214,14 @@ mod tests {
         let page = page_result("101", &plan, words);
         assert_eq!(
             page_text(&page, &plan),
-            "Route 3 wires on 101: 1 routed, 2 not routed.\n  No route keeps clear of texts: -K2:1 → -X1:2.\n  The \
+            "Route 3 wires on folio 101: 1 routed, 2 not routed.\n  No route keeps clear of texts: -K2:1 → -X1:2.\n  The \
              junction would join four wires: -K3:1 → -X1:3.\n"
         );
         assert_eq!(page.unrouted[1].reason, "four_arms");
         let empty = page_result("102", &RoutePlan::default(), words);
         assert_eq!(
             page_text(&empty, &RoutePlan::default()),
-            "Every wire on 102 has a route.\n"
+            "Every wire on folio 102 has a route.\n"
         );
     }
 }
