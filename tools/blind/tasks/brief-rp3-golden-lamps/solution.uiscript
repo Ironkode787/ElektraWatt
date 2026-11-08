@@ -23,7 +23,6 @@
 {"action":"cursor.set","params":{"x_mm":257.696,"y_mm":112.867}}
 {"action":"canvas.activate","params":{}}
 {"action":"route.selection","params":{}}
-{"action":"preview.apply","params":{}}
 {"action":"ui.dismiss","params":{}}
 {"action":"messages.check","params":{}}
 {"action":"file.save","params":{}}
