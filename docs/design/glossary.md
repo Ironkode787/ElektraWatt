@@ -78,7 +78,7 @@ The IEC 81346 prefixes that appear in tags:
 |---|---|---|---|---|
 | **Address (`PlcAddress`, `AddrSpec`)** | A PLC I/O address derived from the module start and channel offset by an address profile, or set manually (`AddrSpec::Manual`, a frozen value). | PLC address | — | [10 §2.5](10-plc-and-bus.md) |
 | **Address profile** | A data set that says how addresses are formed for a PLC family (byte and bit, symbolic prefixes). | Address profile | — | [10 §2.5](10-plc-and-bus.md) |
-| **AI-moderate / AI-strong scenario** | Two AI-assisted planning scenarios of the global plan. Development work in streams S1–S7 is divided by 1.4 (AI-moderate) or 1.8 (AI-strong); S0, people-bound WPs and the review and decision share of each WP are not accelerated. AI-moderate is the internal target; AI-strong is an upside and not planned. Neither replaces the plan of record in external communication. | — | — | [plan/01](../plan/01-global-plan.md) §3.7, GA-14 |
+| **AI-moderate / AI-strong scenario** | Two AI-assisted planning scenarios of the global plan. Development work in streams S1–S7 is divided by 1.4 (AI-moderate) or 1.8 (AI-strong); S0, people-bound WPs and the review and decision share of each WP are not accelerated. AI-moderate is the internal target; AI-strong is an upside and not planned. Neither replaces the plan of record in external communication. | — | — | plan/01 §3.7, GA-14 |
 | **Alias (structure node)** | An alternative spelling of a structure code, such as "JE2416" for J-E-2416, stored on the one canonical `StructureNode`. Importers map aliases to the node; aliases are never printed. | — (identifiers are picked from a central table) | — (free strings) | [03 §1.2](03-domain-model.md) |
 | **AML (AutomationML)** | IEC 62714 data exchange format. EW writes CAEX 2.15 with the AR APC 1.4.0 and 1.2.0 PLC recommendations and reads 2.15 and 3.0. | AutomationML export | — | [10 §4.3](10-plc-and-bus.md) |
 | **Anchor cell** | The frame-grid cell (for example 101-B8) that a representation reports for cross-references and tags, computed by integer arithmetic from the symbol's anchor policy. It is derived, never typed in. | Cross-reference position (grid reference) | Cell computed from the element position | [06 §5.1](06-schematic-editor.md) |
@@ -107,7 +107,7 @@ The IEC 81346 prefixes that appear in tags:
 | **BCP 47 language tag** | The tag format (nl-NL, en-GB) used as `LangTag` in `MlText` to select the display and output language. | Language code | — | [03 §3.3](03-domain-model.md) |
 | **Black box** | A function without a library symbol whose outline, device connection points and inner graphics are page geometry (`Representation.box`). A function placed inside it becomes an auxiliary function of its device. | Black box | Rectangle shape without semantics | [06 §2.7](06-schematic-editor.md) |
 | **Blanking plate** | A device kind (`DeviceKind::BlankingPlate`) for an empty manifold or valve-terminal position, so that the position map stays complete. | Blanking plate part | — | [11 §2.7](11-fluid-power.md) |
-| **Blind drafter** | An agent that drafts in EW without seeing pixels, through the headless shell (`ui.describe`, `page.describe`) and the harness `cargo xtask blind`, as a user would; its gate run is G-PP's recorded rehearsal, never a criterion. | — | — | [18 §3.17](18-quality-security-release.md), [WP-S6.13 spec](../plan/specs/WP-S6.13-blind-drafter-harness.md) |
+| **Blind drafter** | An agent that drafts in EW without seeing pixels, through the headless shell (`ui.describe`, `page.describe`) and the harness `cargo xtask blind`, as a user would; its gate run is G-PP's recorded rehearsal, never a criterion. | — | — | [18 §3.17](18-quality-security-release.md), WP-S6.13 spec |
 | **Bond** | A declared electrical link of two potentials that does not merge them, for example 0 V to PE through a wire. Its physical wire is recorded in `Bond.via`. | Potential definition with separate potentials | — | [03 §9.6](03-domain-model.md), [08 §3.7](08-connections-terminals-cables.md) |
 | **Bound text** | A free text (a `page_item` of variant `free_text`) whose `bind` names a title-block value (`project.description`, `page.title`, `page.full_name`, …) and prints that value instead of its own text. | Special text | — | [03 §6](03-domain-model.md) |
 | **Branch-safe counter** | A "next free" counter (tag, wire number) whose result stays unique and stable after a git merge of parallel branches. | — | — | [15 §6.4](15-checks-revisions-collaboration.md) |
@@ -189,7 +189,7 @@ The IEC 81346 prefixes that appear in tags:
 
 | Term | Definition | EPLAN | QElectroTech | Defined in |
 |---|---|---|---|---|
-| **Edit route** | How the property grid edits one field: through `fields.set` on its settable path, through one `project.settings.set` member, or not at all (read-only, with the reason: identity, another command, a `HumanOnly` command, no command yet, or the narrowing table). A route whose command is `HumanOnly` is always read-only; the grid builds no other command. | — | — | [WP-S2.05](../plan/specs/WP-S2.05-property-grid-find-replace-clipboard.md) §6.1.3 |
+| **Edit route** | How the property grid edits one field: through `fields.set` on its settable path, through one `project.settings.set` member, or not at all (read-only, with the reason: identity, another command, a `HumanOnly` command, no command yet, or the narrowing table). A route whose command is `HumanOnly` is always read-only; the grid builds no other command. | — | — | WP-S2.05 §6.1.3 |
 | **EDZ** | EPLAN's exchange container for manufacturer part data (a 7-Zip or ZIP archive with XML and macros). EW reads it at 1.0 to update library parts through a previewed command. | EDZ (Data Portal download) | — | [14 §5.2](14-interop.md) |
 | **Empty state** | What a pane, navigator or list shows when it has nothing to show: an icon, one line saying why and, where one exists, the action that fills it. | — | — | [16a §6.17](16a-design-language.md) |
 | **EN 81346-2:2009** | The classification with single-letter codes used by default for device tags in new projects (the legacy letters F, G, S, T, E, X, W, U, Q, K, M). | DT letter table | — | [ADR-0026](../adr/0026-default-device-tag-identifier-set.md) |
@@ -211,7 +211,7 @@ The IEC 81346 prefixes that appear in tags:
 | Term | Definition | EPLAN | QElectroTech | Defined in |
 |---|---|---|---|---|
 | **Ferrule** | A wire-end sleeve; the end-treatment engine chooses ferrule, twin ferrule, ring, fork or pin lug from csa, clamp and part data. | Wire-end ferrule (Smart Wiring) | — | [13 §4](13-manufacturing-outputs.md) |
-| **Field catalogue** | The list of every field of a record kind that the property grid can show, generated by one walker over the kind's JSON schema (`ew_api::output::field_catalogue`): path, value type, category and edit route per node; its record is the expected catalogue file of `ew-api`'s tests. | Property definitions | — | [WP-S2.05](../plan/specs/WP-S2.05-property-grid-find-replace-clipboard.md) §6.1 |
+| **Field catalogue** | The list of every field of a record kind that the property grid can show, generated by one walker over the kind's JSON schema (`ew_api::output::field_catalogue`): path, value type, category and edit route per node; its record is the expected catalogue file of `ew-api`'s tests. | Property definitions | — | WP-S2.05 §6.1 |
 | **Finding** | One result of a rule: rule ID, severity, target entity, message, fingerprint and state (open, waived, possibly resolved). | Message (in message management) | — | [15 §2.5](15-checks-revisions-collaboration.md) |
 | **Fingerprint (finding)** | A stable hash of a finding's rule and target that lets a finding be recognised after edits, for waivers and revision diffs. | — | — | [15 §2.5](15-checks-revisions-collaboration.md) |
 | **Fluid line** | A `Connection{kind: Fluid}` that carries a `TubeSpec`; it exists only between fluid ports. | Fluid connection / tube | Conductor drawn on a pneumatic page | [11 §2.4](11-fluid-power.md) |
@@ -286,9 +286,9 @@ The IEC 81346 prefixes that appear in tags:
 | Term | Definition | EPLAN | QElectroTech | Defined in |
 |---|---|---|---|---|
 | **JSON Lines (JSONL)** | A text format with one JSON record per line. | — | — | [05 §3](05-project-format-and-persistence.md) |
-| **Job** | A unit of background work that `ew-jobs` runs on a thread of its own over a snapshot of the session, with progress, named checkpoints, cooperative cancel and a result that names the revision it ran on; it never blocks edits. As built (cycle 30, WP-S2.09 part 1; decision log ID-692, ID-714) the PDF export is the one job, listed in the Jobs pane and the status bar's job field. | Background job | — | [04 §2](04-architecture.md), [WP-S2.09 spec](../plan/specs/WP-S2.09-messages-bulk-previews-history-jobs-and-recovery-ui.md) §6.1 |
+| **Job** | A unit of background work that `ew-jobs` runs on a thread of its own over a snapshot of the session, with progress, named checkpoints, cooperative cancel and a result that names the revision it ran on; it never blocks edits. As built (cycle 30, WP-S2.09 part 1; decision log ID-692, ID-714) the PDF export is the one job, listed in the Jobs pane and the status bar's job field. | Background job | — | [04 §2](04-architecture.md), WP-S2.09 spec §6.1 |
 | **Junction** | A T-node on a drawn connection with a style and a wiring mode (Star or Chain) that fixes the order of the physical wires behind it. | Junction point | Conductor junction | [08 §3.2](08-connections-terminals-cables.md) |
-| **Junction ordinal** | The `#n` suffix that names one of several junctions sharing a frame cell in the shell's text (`C11#1`, `C11#2`), numbered by position, top to bottom then left to right, ties by ID; a junction alone in its cell is named by the cell (decision log ID-635). | — | — | [WP-S2.04 spec §8.5](../plan/specs/WP-S2.04-placement-wiring-drawing-tools.md) |
+| **Junction ordinal** | The `#n` suffix that names one of several junctions sharing a frame cell in the shell's text (`C11#1`, `C11#2`), numbered by position, top to bottom then left to right, ties by ID; a junction alone in its cell is named by the cell (decision log ID-635). | — | — | WP-S2.04 spec §8.5 |
 | **Junction style** | The visual style of a T-node junction, Dot or Bevel (the wiring mode Star or Chain is a separate property). | Junction point | Conductor junction | [08 §2.1](08-connections-terminals-cables.md) |
 
 ### K
@@ -305,7 +305,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Layout space (`LayoutSpace`)** | A named physical space for a panel layout, with enclosures, install state and routing settings. | Layout space | Panel page (shapes only) | [03 §16](03-domain-model.md) |
 | **Lenient mode** | A project mode in which prevent rules report findings instead of rejecting the transaction; it is how legacy QET projects load. Strict mode rejects. | — | — (QET accepts anything) | [15 §3.5](15-checks-revisions-collaboration.md), [14 §3.3](14-interop.md) |
 | **Level (terminal)** | A layer of a multi-level terminal; each level has its own clamps. | Terminal level | Terminal level | [08 §6.3](08-connections-terminals-cables.md) |
-| **Lean scope** | The scope of the plan of record: the full v1 scope minus three levers recorded per WP in the `milestone_lean` and `lever` columns of the work-package CSV. (a) The MVP's Should and Could WPs move to 1.0; (b) QET project migration ships in the 0.x release after the MVP; (c) 13 WPs that are not among the four binding v1 additions move to 1.x. PLC/I-O, manufacturing outputs, 3D layout with routing and QET/EDZ/DXF import stay in 1.0. | — | — | [plan/01](../plan/01-global-plan.md) §1, [plan/02](../plan/02-work-packages.md) §7 |
+| **Lean scope** | The scope of the plan of record: the full v1 scope minus three levers recorded per WP in the `milestone_lean` and `lever` columns of the work-package CSV. (a) The MVP's Should and Could WPs move to 1.0; (b) QET project migration ships in the 0.x release after the MVP; (c) 13 WPs that are not among the four binding v1 additions move to 1.x. PLC/I-O, manufacturing outputs, 3D layout with routing and QET/EDZ/DXF import stay in 1.0. | — | — | plan/01 §1, plan/02 §7 |
 | **Library copy (kind L)** | A library item embedded in the project and updated only by a previewed "Update from library" command. | Project master data copy | Embedded collection element | [03 §1.1](03-domain-model.md), [07 §3.1](07-symbols-parts-macros.md) |
 | **Library linter** | The batch run of the EW-LIB rules over a library before contribution or release. | — | — | [15 §4.11](15-checks-revisions-collaboration.md) |
 | **Library (tiers)** | Master data in tiers (shipped, company, user, project copy). A project always holds `PartCopy` or `SymbolDef` copies identified by `{library_id, item_id, version, sha256}`. | Master data | Collection (elements) | [07 §2.1](07-symbols-parts-macros.md), [05 §13](05-project-format-and-persistence.md) |
@@ -323,8 +323,8 @@ The IEC 81346 prefixes that appear in tags:
 | **Magazine** | The set of wire types and ferrule reels loaded on a machine, declared in its profile. | Wire magazine | — | [13 §2.1](13-manufacturing-outputs.md) |
 | **Main function** | The function that stands for its device in listings and takes the main representation; there is exactly one per device. | Main function | Master element | [06 §2.6](06-schematic-editor.md), [ADR-0006](../adr/0006-function-device-representation-model.md) |
 | **Manifest** | `manifest.json`: the sorted list of project files with SHA-256 hashes, the format and the generation. It is written last, so a save is complete or absent. | — | — | [05 §4](05-project-format-and-persistence.md) |
-| **Marker mode** | The project's drawing setting `marker_mode` (`all`, `deviations`, `explicit`, `none`; absent means the as-built `show_marker` rule) that decides which connections print a wire marker. | — | — | [WP-S2.04 spec](../plan/specs/WP-S2.04-placement-wiring-drawing-tools.md) §10.2 |
-| **Marker line** | A view-state line that the shell adds to the history by revision for a save, an export ("Exported PDF to <name>") or a recovery ("Recovered <n> changes from the journal"); not an undo step and nothing in the model; the history panel shows them among the steps (WP-S2.09 part 3). Not to be confused with a wire marker. | — | — | [WP-S2.09 spec](../plan/specs/WP-S2.09-messages-bulk-previews-history-jobs-and-recovery-ui.md) D13, §6.3, §8.4 |
+| **Marker mode** | The project's drawing setting `marker_mode` (`all`, `deviations`, `explicit`, `none`; absent means the as-built `show_marker` rule) that decides which connections print a wire marker. | — | — | WP-S2.04 spec §10.2 |
+| **Marker line** | A view-state line that the shell adds to the history by revision for a save, an export ("Exported PDF to <name>") or a recovery ("Recovered <n> changes from the journal"); not an undo step and nothing in the model; the history panel shows them among the steps (WP-S2.09 part 3). Not to be confused with a wire marker. | — | — | WP-S2.09 spec D13, §6.3, §8.4 |
 | **Marking scheme** | A rule for what a wire or device marker says (source, destination, both) and how it is abbreviated. | Labelling settings | — | [13 §5.1](13-manufacturing-outputs.md) |
 | **MCP (Model Context Protocol server)** | An optional, off-by-default interface (`ew mcp`) through which agents read the model and preview or commit commands; commits ask first, and `HumanOnly` commands are refused. | — | — | [17](17-extensibility.md), [ADR-0020](../adr/0020-extensibility-tiers-and-security-model.md) |
 | **Medium (`MediumDef`)** | The fluid in a line (compressed air, vacuum), propagated from sources like a potential. | Medium | — | [11 §2.5](11-fluid-power.md) |
@@ -384,17 +384,17 @@ The IEC 81346 prefixes that appear in tags:
 | **PE terminal** | A protective-earth terminal; its bridge and PE bonding follow special rules. | PE terminal | Ground terminal | [08 §6.4](08-connections-terminals-cables.md) |
 | **Physical net (`PhysicalNet`)** | A derived set of physically connected points; for buses it has an order hint and a medium. | — | — | [03 §14](03-domain-model.md) |
 | **Physical wire** | What the shop cuts: one connection-point-to-connection-point piece, resolved through junctions and IP pairs. | Wire (connection) | Conductor | [08 §3.8](08-connections-terminals-cables.md) |
-| **Pilot user (pilot panel builder)** | The first real user and acceptance authority; it provides the reference drawing set and tests each milestone. | — | — | [00](00-vision-and-scope.md), [plan/01 §12](../plan/01-global-plan.md) |
+| **Pilot user (pilot panel builder)** | The first real user and acceptance authority; it provides the reference drawing set and tests each milestone. | — | — | [00](00-vision-and-scope.md), plan/01 §12 |
 | **Placeholder** | A named slot in a form or macro, replaced by a model value at output or insertion. | Placeholder object | — | [09 §2.6](09-reports-forms-output.md), [07 §2.7](07-symbols-parts-macros.md) |
 | **Placement3D** | A 3D pose of a device or part on a carrier or surface; the 2D panel layout uses the same record. | Placement (Pro Panel) | — | [03 §16](03-domain-model.md), [12 §2.3](12-panel-layout.md) |
-| **Plan of record** | The baseline schedule: three developers, lean scope with levers (a), (b) and (c), M1 at month 16, M-PP at month 26, M2 (MVP) at month 41 and M6 (1.0) at month 65, with a ±20 % band. Each gate review replaces it with a re-forecast from actuals. | — | — | [plan/01](../plan/01-global-plan.md) §3.4, §5.1 |
+| **Plan of record** | The baseline schedule: three developers, lean scope with levers (a), (b) and (c), M1 at month 16, M-PP at month 26, M2 (MVP) at month 41 and M6 (1.0) at month 65, with a ±20 % band. Each gate review replaces it with a re-forecast from actuals. | — | — | plan/01 §3.4, §5.1 |
 | **PLC configuration project (`PlcConfigProject`)** | The record that holds an address profile, ownership and exchange snapshot of one PLC project. | PLC project | — | [10 §2.2](10-plc-and-bus.md) |
 | **PLC module (`PlcModule`)** | A device aspect for an I/O card, a valve sub-base or a device with channels and an address window. | PLC card | — | [10 §2.3](10-plc-and-bus.md) |
 | **PLC station (`PlcStation`)** | A device aspect for a PLC or I/O station that owns a bus port and an address window. | PLC box | — | [10 §2.3](10-plc-and-bus.md) |
 | **PLCopen XML** | An exchange format for PLC variables and tags, written for CODESYS. | — | — | [10 §4.6](10-plc-and-bus.md) |
 | **Plug** | A connector device with pins that can be assigned to cores and wires (1.0). | Plug | — | [08 §6.10](08-connections-terminals-cables.md) |
 | **Plugin (WASM component)** | A sandboxed extension (1.x tier) that talks to the host through WIT interfaces with query and submit capabilities. | — | — | [04 §10.4](04-architecture.md), [ADR-0020](../adr/0020-extensibility-tiers-and-security-model.md) |
-| **Pilot preview (M-PP)** | The milestone, release 0.0.x and light gate G-PP at which the pilot can draw new projects interactively (place, wire, terminals, cables, title block, core reports, PDF, online checks, save and load). Unsigned, handed to the pilot only; it shortens the wait for the MVP (R-067, R-068). Plan of record: month 26. | — | — | [plan/01](../plan/01-global-plan.md) §5.3, [plan/03](../plan/03-gates.md) |
+| **Pilot preview (M-PP)** | The milestone, release 0.0.x and light gate G-PP at which the pilot can draw new projects interactively (place, wire, terminals, cables, title block, core reports, PDF, online checks, save and load). Unsigned, handed to the pilot only; it shortens the wait for the MVP (R-067, R-068). Plan of record: month 26. | — | — | plan/01 §5.3, plan/03 |
 | **Pose3** | A 3D translation in `Nm` plus a unit quaternion stored as integers. | Placement | — | [03 §3.1](03-domain-model.md) |
 | **Potential** | The electrically equal set of signals joined by bridges and rail bonding. It has a stable `PotentialId`, a name, a type and a circuit class. | Potential | — (per-conductor properties) | [03 §9.3](03-domain-model.md), [08 §3.3](08-connections-terminals-cables.md) |
 | **Potential definition (`PotentialDef`)** | The authored definition of a potential's name, type and properties, the root of the property chain. | Potential definition point | — | [03 §9.4](03-domain-model.md) |
@@ -411,7 +411,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Project (`Project`)** | The root record: master data, parties, settings and profiles. | Project | Project | [03 §5](03-domain-model.md) |
 | **Project fragment (`#ew-fragment v1`)** | The text form in which copy, cut, duplicate and paste carry records: a comment line, a JSON header, canonical record lines, the library copies and the structure nodes they use; the format of window and page macros too. Its records keep their source IDs as data, and paste mints new ones. | Clipboard content, window macro | Clipboard content | [05 §12](05-project-format-and-persistence.md), [04 §5.5](04-architecture.md) |
 | **Project settings (`ProjectSettings`)** | All settings that derivations read: schemes, identifier sets, profiles, language, manufacturing options. | Project settings (schemes) | `<newdiagrams>` defaults | [03 §5](03-domain-model.md) |
-| **Property sheet** | What the property grid shows for a selection: a header with the title, location and finding chips, and one section per record kind that every selected record reaches, each row with its value (one value, `‹varies›` or absent), provenance chip, actions and edit route (`Session::property_sheet`). | Properties dialog | Element properties | [WP-S2.05](../plan/specs/WP-S2.05-property-grid-find-replace-clipboard.md) §6.2 to §6.4 |
+| **Property sheet** | What the property grid shows for a selection: a header with the title, location and finding chips, and one section per record kind that every selected record reaches, each row with its value (one value, `‹varies›` or absent), provenance chip, actions and edit route (`Session::property_sheet`). | Properties dialog | Element properties | WP-S2.05 §6.2 to §6.4 |
 | **Pt2** | A point on a page in `Nm` with origin at the top left, x right, y down (QET's convention). | Coordinates | Point (px) | [03 §3.1](03-domain-model.md) |
 
 ### Q
@@ -460,12 +460,12 @@ The IEC 81346 prefixes that appear in tags:
 | **Single-line representation** | A representation type for single-line drawings; at 1.0 it maps onto multi-line connections via `SingleLine{conductors}`. | Single-line diagram | — | [06 §2.2](06-schematic-editor.md) |
 | **Size class (S, M, L, XL)** | Project size classes used for performance budgets: from small projects to XL with about 20 k terminals and 10 k channels. | — | — | [ADR-0022](../adr/0022-platform-matrix-and-performance-budgets.md), [04 §6.7](04-architecture.md) |
 | **Spare** | A channel or terminal state (Spare) for unused points; spares are reported but not errors. | Spare | Spare terminal | [08 §6.6](08-connections-terminals-cables.md) |
-| **Spine** | The first phase of work, up to milestone M1: two parallel lanes that build the model and derivation core and the documents, symbols and forms, ending at the headless golden PDF (Golden A rendered without a GUI). Its dates follow [plan/milestones.csv](../plan/milestones.csv) (plan of record: M1 at month 16); the 12 weeks of [04](04-architecture.md) §15.1 are an indicative lane sizing, not a calendar. | — | — | [plan/01](../plan/01-global-plan.md), [plan/02](../plan/02-work-packages.md), [04 §15.1](04-architecture.md) |
+| **Spine** | The first phase of work, up to milestone M1: two parallel lanes that build the model and derivation core and the documents, symbols and forms, ending at the headless golden PDF (Golden A rendered without a GUI). Its dates follow plan/milestones.csv (plan of record: M1 at month 16); the 12 weeks of [04](04-architecture.md) §15.1 are an indicative lane sizing, not a calendar. | — | — | plan/01, plan/02, [04 §15.1](04-architecture.md) |
 | **Spine lane** | One of the two parallel work lanes of the spine: lane 1 model and derivation, lane 2 documents, symbols and forms. | — | — | [04 §15](04-architecture.md) |
 | **SQL projection (`ew-sqlview`)** | A read-only SQLite view of the model with versioned `api_v1_*` views for user reports, rules, MCP and tests; never a write path. | Report/SQL queries in the form generator | — | [04 §10.2](04-architecture.md), [ADR-0017](../adr/0017-read-only-sql-projection-api-v1.md) |
 | **Stale badge** | A visual mark on Class II results ("810 mm, re-routing…", "as of revision n") whose inputs changed. | — | — | [ADR-0003](../adr/0003-freshness-contract.md), [16 §8.3](16-ux-ui.md) |
 | **Star pairing and chain pairing** | Two modes of pairing interruption points: one source with many sinks, or a chain of partners. | Interruption point partners | Folio report pairs | [06 §2.8](06-schematic-editor.md), [03 §10](03-domain-model.md) |
-| **Starter library** | The symbols and function definitions that ship with the application (`content/symbols`, `content/fndefs`), compiled into `ew_library::starter`. A new project holds no symbol copies, so the symbol picker lists the starter symbols too, and placing one embeds it with its FnDef as its own undo step first (WP-S2.04 D8). | The symbol library delivered with the software | The built-in element collection | [WP-S2.04](../plan/specs/WP-S2.04-placement-wiring-drawing-tools.md) D8, [07](07-symbols-parts-macros.md) |
+| **Starter library** | The symbols and function definitions that ship with the application (`content/symbols`, `content/fndefs`), compiled into `ew_library::starter`. A new project holds no symbol copies, so the symbol picker lists the starter symbols too, and placing one embeds it with its FnDef as its own undo step first (WP-S2.04 D8). | The symbol library delivered with the software | The built-in element collection | WP-S2.04 D8, [07](07-symbols-parts-macros.md) |
 | **Status badge** | A small label with an icon and one word on a subtle semantic fill that states an object's state, such as "Pending", "Stale", "Read-only" or a finished job's "Done". | — | — | [16a §6.16](16a-design-language.md) |
 | **STEP** | ISO 10303 CAD exchange (AP214, AP242); used for 3D parts and ECAD-to-MCAD export. | STEP import and export | — | [12 §6.2](12-panel-layout.md) |
 | **STEP worker (`ew-step-worker`)** | An out-of-process program using OCCT that tessellates STEP files and returns meshes over a defined protocol; results are cached by content hash (freshness Class III). | — | — | [04 §8.6](04-architecture.md), [ADR-0016](../adr/0016-3d-renderer-wgpu-and-out-of-process-step-worker.md) |
@@ -508,7 +508,7 @@ The IEC 81346 prefixes that appear in tags:
 
 | Term | Definition | EPLAN | QElectroTech | Defined in |
 |---|---|---|---|---|
-| **Velocity ratio** | The baseline effort of the finished WPs divided by the effort actually spent (the "equivalent velocity ratio" of a scenario). It is measured over the spine WPs at G-M1 to re-baseline the plan; a ratio of 0.90 means effort +11 %. | — | — | [plan/01](../plan/01-global-plan.md) §3.7, §11.2 |
+| **Velocity ratio** | The baseline effort of the finished WPs divided by the effort actually spent (the "equivalent velocity ratio" of a scenario). It is measured over the spine WPs at G-M1 to re-baseline the plan; a ratio of 0.90 means effort +11 %. | — | — | plan/01 §3.7, §11.2 |
 | **Value set** | A named set of variable values used on macro insertion. | Value set (macro variants) | — | [07 §2.7](07-symbols-parts-macros.md) |
 | **Valve model (`ValveModel`)** | The data of a valve: ports, positions, sections and actuation. | Valve model | — | [11 §2.3](11-fluid-power.md) |
 | **Valve terminal** | A manifold of valves with sub-bases and a bus node, modelled as one device with four aspects (-201U1). | Valve terminal | — | [11 §3.2](11-fluid-power.md) |
@@ -545,25 +545,25 @@ The IEC 81346 prefixes that appear in tags:
 | U | `U-nn` | Entry of the unknowns register: a value not determinable from the reference set, marked with a triangle in the golden tables | [20](20-golden-project.md) §1.2 |
 | ADR | `ADR-nnnn` | Architecture decision record 0001 … 0030, with status Accepted or Proposed | [adr/](../adr/) |
 | EW rule | `EW-<FAMILY>-<nnn>` | Check rule ID (EW-POT-013, EW-CORE-031); each rule also has a six-digit code (005013) | [15](15-checks-revisions-collaboration.md) §2.2 |
-| WP | `WP-S<s>.<nn>` | Work package nn of stream s (S0 … S7), for example WP-S1.04 | [plan/02](../plan/02-work-packages.md) |
-| S | `S0` … `S7` | Work stream: foundation and governance, core model, interaction and UI, documents and migration, physical, manufacturing, quality and release, content | [plan/02](../plan/02-work-packages.md) §2.1 |
-| M | `M0` … `M6`, `M-PP` | Milestone (M0 kick-off, M1 spine exit, M-PP pilot preview 0.0.x, M2 MVP, M3 automation and migration, M4 manufacturing and panel, M5 1.0 feature complete, M6 1.0 release). Dates in [plan/milestones.csv](../plan/milestones.csv) | [plan/01](../plan/01-global-plan.md) §5 |
-| G-M, G-PP, G-SP | `G-M0` … `G-M6`, `G-PP`, `G-SP` | Gate of milestone M0 … M6; `G-PP` is the light gate of the pilot preview M-PP; `G-SP` is the optional performance-spike gate (formerly the "gate minus one" spike gate). Gates are never written as bare G0 … G6, which are research gap topics. Exit criteria are numbered `G-M<n>-<nn>`, `G-PP-<nn>`, `G-SP-<nn>` | [plan/03](../plan/03-gates.md) |
-| H, M, S | criterion type | Type of a gate exit criterion: H hard (never waived), M must (may become a condition with owner and deadline), S should (a gap needs a dated plan) | [plan/03](../plan/03-gates.md) introduction |
-| KT | `KT-1` … `KT-n` | Kill trigger: a condition that forces the stop, pivot or descope options of the gate system (KT-1 acceptance truth lost, KT-2 legal basis lost). Not the vision constraints K-n | [plan/03](../plan/03-gates.md) §6 |
-| CP | `CP-01` … `CP-nn` | Gate checkpoint: a dated external item between gates (decision, data, statement). Not the research corrections C-n | [plan/03](../plan/03-gates.md) §2.5 |
-| GP | `GP-01` … `GP-nn` | Gate-pack item: a piece of evidence handed to a gate review (GP-01 acceptance-runner report). Not the personas P1 … P6 | [plan/03](../plan/03-gates.md) §4 |
-| GB | `GB-n` | Planning basis of the gates document | [plan/03](../plan/03-gates.md) |
-| R-nnn | `R-001` … | Risk of the risk register, scored by probability and impact (e.g. R-001: superseded indicative dates keep being quoted) | [plan/04](../plan/04-risk-register.md) |
-| RA | `RA-n` | Assumption of the risk scoring (date, horizon, baseline scores) | [plan/04](../plan/04-risk-register.md) §1.2 |
-| R | `R0`, `R1`, `R2` | Usability rounds (R1 passed at the MVP, R2 before 1.0); not to be confused with release labels | [16](16-ux-ui.md) §19, [plan/01](../plan/01-global-plan.md) |
+| WP | `WP-S<s>.<nn>` | Work package nn of stream s (S0 … S7), for example WP-S1.04 | plan/02 |
+| S | `S0` … `S7` | Work stream: foundation and governance, core model, interaction and UI, documents and migration, physical, manufacturing, quality and release, content | plan/02 §2.1 |
+| M | `M0` … `M6`, `M-PP` | Milestone (M0 kick-off, M1 spine exit, M-PP pilot preview 0.0.x, M2 MVP, M3 automation and migration, M4 manufacturing and panel, M5 1.0 feature complete, M6 1.0 release). Dates in plan/milestones.csv | plan/01 §5 |
+| G-M, G-PP, G-SP | `G-M0` … `G-M6`, `G-PP`, `G-SP` | Gate of milestone M0 … M6; `G-PP` is the light gate of the pilot preview M-PP; `G-SP` is the optional performance-spike gate (formerly the "gate minus one" spike gate). Gates are never written as bare G0 … G6, which are research gap topics. Exit criteria are numbered `G-M<n>-<nn>`, `G-PP-<nn>`, `G-SP-<nn>` | plan/03 |
+| H, M, S | criterion type | Type of a gate exit criterion: H hard (never waived), M must (may become a condition with owner and deadline), S should (a gap needs a dated plan) | plan/03 introduction |
+| KT | `KT-1` … `KT-n` | Kill trigger: a condition that forces the stop, pivot or descope options of the gate system (KT-1 acceptance truth lost, KT-2 legal basis lost). Not the vision constraints K-n | plan/03 §6 |
+| CP | `CP-01` … `CP-nn` | Gate checkpoint: a dated external item between gates (decision, data, statement). Not the research corrections C-n | plan/03 §2.5 |
+| GP | `GP-01` … `GP-nn` | Gate-pack item: a piece of evidence handed to a gate review (GP-01 acceptance-runner report). Not the personas P1 … P6 | plan/03 §4 |
+| GB | `GB-n` | Planning basis of the gates document | plan/03 |
+| R-nnn | `R-001` … | Risk of the risk register, scored by probability and impact (e.g. R-001: superseded indicative dates keep being quoted) | plan/04 |
+| RA | `RA-n` | Assumption of the risk scoring (date, horizon, baseline scores) | plan/04 §1.2 |
+| R | `R0`, `R1`, `R2` | Usability rounds (R1 passed at the MVP, R2 before 1.0); not to be confused with release labels | [16](16-ux-ui.md) §19, plan/01 |
 | G | `G1` … `G13` | Gap topics of the research corrections (G1 storage, G2 versioning, G3 undo, G4 coordinates, G5 connections, G6 performance baseline, G7 text, G10 inspection, G11 supply chain); also `G6 baseline machine` | [gaps-and-corrections](../research/gaps-and-corrections.md) |
 | C | `C-n` | Correction C-1 … of the research set (for example C-1 EDZ container, C-4 DWG route); gate checkpoints are CP-nn | [gaps-and-corrections](../research/gaps-and-corrections.md) |
 | K | `K-1` … `K-7` | Constraint of the vision (K-1 team of 2–4 developers plus AI assistance); kill triggers are KT-n | [00](00-vision-and-scope.md) §10 |
 | PR | `PR-n` | Design principle of the vision (PR-1 store intent, derive presentation) | [00](00-vision-and-scope.md) §8 |
 | AS | `AS-n` | Assumption of the vision (AS-1 the pilot's customers accept PDF documentation) | [00](00-vision-and-scope.md) §10 |
 | SC | `SC-n` | Success criterion of the vision (SC-1 golden reproduction … SC-13 community) | [00](00-vision-and-scope.md) §3.2 |
-| PQ | `PQ-01` … `PQ-53` | Pilot question to be answered by the pilot user. PQ-01 … PQ-36 originate in the brainstorm, PQ-37 … PQ-52 were added by the consolidation and PQ-53 by the decision log; the list is [01](01-brainstorm.md) §7, the prioritised questionnaire is Part C of the decision log | [01](01-brainstorm.md) §7, [plan/06](../plan/06-decision-log.md) §4 |
+| PQ | `PQ-01` … `PQ-53` | Pilot question to be answered by the pilot user. PQ-01 … PQ-36 originate in the brainstorm, PQ-37 … PQ-52 were added by the consolidation and PQ-53 by the decision log; the list is [01](01-brainstorm.md) §7, the prioritised questionnaire is Part C of the decision log | [01](01-brainstorm.md) §7, plan/06 §4 |
 | IDEA | `IDEA-nnn` | Idea in the brainstorm backlog, starred when a differentiator | [01](01-brainstorm.md) |
 | OQ | `OQ<n>` | Open question numbered inside one document | each document's Open questions |
 | ST | `ST-01` … `ST-10` | Steward checklist item (ST-01 cybersecurity policy published), checked by release-checklist item RC-10 | [19](19-open-source-governance.md) §3.10 |
@@ -571,17 +571,17 @@ The IEC 81346 prefixes that appear in tags:
 | LG | `LG-1` … `LG-6` | Legal gate (employer statement, exceptions, trademark, steward, fixture consent, steward review) | [19](19-open-source-governance.md) §3 |
 | LR | `LR-nn` | Licensing rule (SPDX headers, licence map, DCO) | [19](19-open-source-governance.md) |
 | GV | `GV-nn` | Governance rule (lazy consensus, review, schema steward) | [19](19-open-source-governance.md) |
-| PA | `PA-n` | Planning assumption of the work breakdown (PA-1 … PA-11). The decision log cites these by their WBS meaning | [plan/02](../plan/02-work-packages.md) |
-| GA | `GA-n` | Assumption of the global plan (GA-8 committed dates, GA-14 AI-assisted scenarios) | [plan/01](../plan/01-global-plan.md) §1.2 |
-| PI | `PI-n` | Planning input of the decision log (formerly numbered PA-n there; a different list from the WBS planning assumptions) | [plan/06](../plan/06-decision-log.md) §2.3 |
-| NL | `NL-n` | NLnet milestone of the funding plan (proposal 1 covers NL-1 … NL-4), tied to WPs and AC | [plan/01](../plan/01-global-plan.md) §13.3 |
-| PD | `PD-n` | Plan decision needed at M0 (PD-1 adopt the plan of record) | [plan/01](../plan/01-global-plan.md) §14 |
-| SR | `SR-n` | Schedule risk of the plan | [plan/01](../plan/01-global-plan.md) §9.3 |
-| DS | `DS-n` | Descoping step; DS-1 … DS-3 correspond to levers (a), (b) and (c) | [plan/01](../plan/01-global-plan.md) §16 |
+| PA | `PA-n` | Planning assumption of the work breakdown (PA-1 … PA-11). The decision log cites these by their WBS meaning | plan/02 |
+| GA | `GA-n` | Assumption of the global plan (GA-8 committed dates, GA-14 AI-assisted scenarios) | plan/01 §1.2 |
+| PI | `PI-n` | Planning input of the decision log (formerly numbered PA-n there; a different list from the WBS planning assumptions) | plan/06 §2.3 |
+| NL | `NL-n` | NLnet milestone of the funding plan (proposal 1 covers NL-1 … NL-4), tied to WPs and AC | plan/01 §13.3 |
+| PD | `PD-n` | Plan decision needed at M0 (PD-1 adopt the plan of record) | plan/01 §14 |
+| SR | `SR-n` | Schedule risk of the plan | plan/01 §9.3 |
+| DS | `DS-n` | Descoping step; DS-1 … DS-3 correspond to levers (a), (b) and (c) | plan/01 §16 |
 | CI | `CI-<stage>-nn` | Continuous-integration job ID (CI-PR-10, CI-R-09) | [18](18-quality-security-release.md) |
 | T, J, P | `T1` … `T11`, `J1` … `J6`, `P1` … `P6` | Usability task, user journey and persona (P1 panel-building engineer … P6 library maintainer) | [16](16-ux-ui.md) §19, [00](00-vision-and-scope.md) §5, §6 |
-| UD | `UD-1` … `UD-8` | The binding user decisions of 2026-10-17 (UD-1 language Rust … UD-8 public repository and anonymisation); not re-litigated | [plan/06](../plan/06-decision-log.md) §2.1, [00](00-vision-and-scope.md) §11 |
-| DEC | `DEC-001` … `DEC-085` | A numbered open or taken decision of the decision log, with options, recommendation, owner and the gate by which it is due | [plan/06](../plan/06-decision-log.md) |
+| UD | `UD-1` … `UD-8` | The binding user decisions of 2026-10-17 (UD-1 language Rust … UD-8 public repository and anonymisation); not re-litigated | plan/06 §2.1, [00](00-vision-and-scope.md) §11 |
+| DEC | `DEC-001` … `DEC-085` | A numbered open or taken decision of the decision log, with options, recommendation, owner and the gate by which it is due | plan/06 |
 | Release labels | MVP, 1.0, 1.x, Later | MVP: the pilot can stop using QElectroTech for new projects; 1.0: full v1 scope; 1.x: after 1.0; Later: not planned | [00](00-vision-and-scope.md) |
 | Priority | Must, Should, Could | MoSCoW priority within a release | [02a](02a-requirements-core.md) §1.1 |
 | ▲, ▲U-nn | triangle marker | A value that is a test input, not a fact from the reference set | [20](20-golden-project.md) §1.2 |
@@ -766,10 +766,10 @@ what changes in behaviour, not only in name. The authoritative mappings are [03]
 | TOC | Table of contents (a generated page) | [09 §2.4](09-reports-forms-output.md) |
 | UUID | Universally unique identifier | [ADR-0004](../adr/0004-identity-uuidv7-uuidv5.md) |
 | WASM | WebAssembly | [ADR-0020](../adr/0020-extensibility-tiers-and-security-model.md) |
-| WBS | Work breakdown structure | [plan/02](../plan/02-work-packages.md) |
-| WBSO | Dutch R&D payroll-tax credit | [plan/01 §13](../plan/01-global-plan.md) |
+| WBS | Work breakdown structure | plan/02 |
+| WBSO | Dutch R&D payroll-tax credit | plan/01 §13 |
 | WIT | WebAssembly Interface Types | [04 §10.4](04-architecture.md) |
-| WP | Work package | [plan/02](../plan/02-work-packages.md) |
+| WP | Work package | plan/02 |
 | XL | The largest project size class | [ADR-0022](../adr/0022-platform-matrix-and-performance-budgets.md) |
 | XLIFF | Translation exchange format (2.1) | [14 §8.5](14-interop.md) |
 | XLSX | Spreadsheet format used for tables and the TIA tag table | [14 §8](14-interop.md) |

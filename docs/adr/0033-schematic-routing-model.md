@@ -99,7 +99,7 @@
 
 ## Related
 
-- **Work package:** [WP-S2.19 specification](../plan/specs/WP-S2.19-schematic-autorouter.md); WP-S2.04 (the router's
+- **Work package:** WP-S2.19 specification; WP-S2.04 (the router's
   origin, §8.1); FT-18, FT-517, FT-1434.
 - **ADRs:** [ADR-0003](0003-freshness-contract.md), [ADR-0007](0007-explicit-connections-and-autoconnect.md) (amendment
   3 records decision 8), [ADR-0008](0008-transactions-undo-preview.md), [ADR-0021](0021-importers-emit-format-level-records.md),

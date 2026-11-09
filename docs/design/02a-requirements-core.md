@@ -958,8 +958,8 @@ Defects D-01 … D-42 ([reference analysis](../research/reference-drawing.md) §
 Generated from the tables above. The staged row FR-CHK-005 ("MVP / 1.0") is counted under MVP. Amended 2026-11-05
 (decision log ID-1402): FR-SYM-017 moved from a Should of the MVP to a Must of 0.2.0, the column added for it. The counts are for
 the **full-scope release labels**; the plan's lean variant moves rows between the release columns if PD-1 is adopted
-([vision and scope](00-vision-and-scope.md) §9.1, [global plan](../plan/01-global-plan.md) §14,
-[decision log](../plan/06-decision-log.md)). The five rows FR-DEV-040, FR-CBL-021, FR-PRT-036, FR-REP-052 and
+([vision and scope](00-vision-and-scope.md) §9.1, global plan §14,
+decision log). The five rows FR-DEV-040, FR-CBL-021, FR-PRT-036, FR-REP-052 and
 FR-CHK-062 were added for the scope boundaries of vision §9.2 (02b adds FR-LAY-067 and FR-EXP-012).
 
 | Area | Total | Must | Should | Could | MVP | 0.2.0 | 1.0 | 1.x | Later |

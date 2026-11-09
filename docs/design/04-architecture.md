@@ -1899,8 +1899,8 @@ The critical path to the golden PDF is not only the model. It is also **symbols,
 
 **Effort, not calendar.** The first column below counts *effort weeks* of two full-time lanes. It fixes the order
 and the dependencies of the spine's work, not dates. The calendar is the plan of record: the spine ends at milestone
-M1, which the [global plan](../plan/01-global-plan.md) dates in §5.1 and §7 and
-[milestones.csv](../plan/milestones.csv) (month 16 for three developers and the lean scope, because the same work
+M1, which the global plan dates in §5.1 and §7 and
+milestones.csv (month 16 for three developers and the lean scope, because the same work
 shares the team with the rest of S0, S1, S3, S6 and S7).
 
 | Effort weeks | Lane 1: core (dev 1) | Lane 2: output (dev 2) |
@@ -1912,7 +1912,7 @@ shares the team with the rest of S0, S1, S3, S6 and S7).
 | 6–9 | `ew-format` and `ew-store`: JSONL writer and reader, manifest, save protocol, journal, lock | krilla PDF: outline, links, named destinations, page labels, PDF/A-2b |
 | 9–12 | `ew-sqlview` v0 and the acceptance runner; `ew query --explain`; perf gate in CI | Integration: `ew export pdf golden/`; visual and PDF structure tests |
 
-**Spine exit (M1).** The exit criteria are the content of gate G-M1 ([gates](../plan/03-gates.md) §5):
+**Spine exit (M1).** The exit criteria are the content of gate G-M1 (gates §5):
 - `ew export pdf golden/J-E-2416.ew` produces the 18 folios plus report folios 903–911.
 - §4.15 criteria 1–7 and 9 pass: pages, frame, xrefs, tags, BOM, terminals, wire data, PDF structure.
 - The acceptance SQL/CSV pairs pass with the oracle on, still without a GUI.
@@ -1934,7 +1934,7 @@ and golden data, not mocks.
 | **S4 Physical** | Layout model, STEP worker, `ew-render3d`, collision reconciler, routing, lengths, duct fill, 2D panel projection | Folio 902 driven by placements; wire lengths in the wire list | dev B, from the start of WP-S4.01 | dev 2, from the start of WP-S4.01 | dev 4 (joins at month 4 in the plan) |
 
 **Milestones.** The content of each milestone is below; the dates are the plan's (see
-[global plan](../plan/01-global-plan.md) §3.4 and §5.1 and [milestones.csv](../plan/milestones.csv)). The "plan of
+global plan §3.4 and §5.1 and milestones.csv). The "plan of
 record" column quotes month *n* counted from November 2026 for three developers and the lean scope; other team sizes
 and the re-baseline at G-M1 are in the plan.
 

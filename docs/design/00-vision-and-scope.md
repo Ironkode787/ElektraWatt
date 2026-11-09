@@ -101,8 +101,8 @@ the baseline machine (4-core 2018+ x64, 8 GB RAM, integrated GPU).
 |---|---|---|---|
 | SC-1 | **Golden reproduction.** From the model alone, EW regenerates the 18 folios plus report folios 903–911, and all nine acceptance criteria of [reference analysis](../research/reference-drawing.md) §4.15 pass (frame ±0.2 mm; 22 interruption-point pairs and 9 main/aux sets exact; no -4W1, no T51) | MVP (headless at M1) | Acceptance SQL/CSV runner, PDF structure tests |
 | SC-2 | **Defect prevention.** No command can produce a D-nn of class S or I ([architecture](04-architecture.md) §14); `ew check --scheme pre-delivery` reports every class-C defect present in a source project (assisted D-39, D-40 excluded) | MVP (2D); 1.0 (layout, PLC, fluid) | Golden B renumber, command fuzzer, imported-defect fixture |
-| SC-3 | **Pilot switch.** The pilot user completes three consecutive new production projects in EW without QET, with no hand-maintained report page, no slower than their own QET baseline on a reference-size project | From the MVP: the clock starts at G-M2, the criterion closes at G-M3 (target within six months of 0.1.0), at G-M6 at the latest ([gates](../plan/03-gates.md#83-success-criteria-by-gate) §8.3) | Pilot log and timing |
-| SC-4 | **QET migration.** ≥ 22 of the 24 QET example projects and every pilot project import without structural errors; cross-reference texts identical; every lenient-mode violation (D-11, D-12 …) in the migration report | MVP at full scope; closed at G-M3 in the plan of record, where lever (b) ships the migration in the 0.x release after the MVP (§9.1, [gates](../plan/03-gates.md#83-success-criteria-by-gate) §8.3) | QET corpus fixture |
+| SC-3 | **Pilot switch.** The pilot user completes three consecutive new production projects in EW without QET, with no hand-maintained report page, no slower than their own QET baseline on a reference-size project | From the MVP: the clock starts at G-M2, the criterion closes at G-M3 (target within six months of 0.1.0), at G-M6 at the latest (gates §8.3) | Pilot log and timing |
+| SC-4 | **QET migration.** ≥ 22 of the 24 QET example projects and every pilot project import without structural errors; cross-reference texts identical; every lenient-mode violation (D-11, D-12 …) in the migration report | MVP at full scope; closed at G-M3 in the plan of record, where lever (b) ships the migration in the 0.x release after the MVP (§9.1, gates §8.3) | QET corpus fixture |
 | SC-5 | **Performance.** Frame ≤ 16 ms while editing; open S ≤ 0.5 s, M ≤ 2 s, L ≤ 5 s, XL ≤ 20 s; full check S ≤ 2 s, XL ≤ 60 s; XL peak memory ≤ 4 GB; ≥ 30 fps for an A4 page on the CPU renderer | MVP (S/M), 1.0 (L/XL) | Nightly gate, fails on > 15 % regression |
 | SC-6 | **Determinism and longevity.** Byte-identical project files and PDF on all platforms; every released format fixture opens in every later build; a pinned derivation profile reproduces tags, xrefs and wire numbers after an upgrade | MVP; 1.0 (format freeze) | Shuffle-order tests, fixture corpus, per-profile goldens |
 | SC-7 | **Manufacturing.** The golden `.ewpp` holds the wire list with routed lengths and ferrules; Komax and Rittal WT files load in the machine software without manual edits; printed wire list and machine file are row-identical | 1.0 | Golden 3D fixture; machine acceptance with a partner shop |
@@ -311,13 +311,13 @@ schematics reproducing the reference set, QET import, core reports, PDF, checks.
 PLC/bus/fluid breadth, manufacturing outputs, 3D panel, EDZ/DXF/AML exchange. **1.x** = after 1.0. **Later** =
 parked. A **pilot preview** (milestone M-PP, release 0.0.x, an unsigned build for the pilot only) sits before the
 MVP: interactive 2D editing of *new* projects with the starter symbols, the core reports, PDF and the core online
-checks; it adds no release column, because it is a slice of MVP rows ([global plan](../plan/01-global-plan.md)
+checks; it adds no release column, because it is a slice of MVP rows (global plan
 §5.3). The mapping to milestones is MVP = M2, 1.0 = M6 ([architecture](04-architecture.md) §15.2). *Amended
 2026-11-05 (decision log ID-1402):* the symbol editor is milestone **M2.5**, its own release **0.2.0** right after the
 MVP's 0.1.0 and before M3's first release; it is the only item of that release.
 
-**Dates are not set here.** The calendar is the plan of record: see [global plan](../plan/01-global-plan.md)
-§3.4 and §5.1 and [milestones.csv](../plan/milestones.csv). For the plan of record (three developers, lean scope,
+**Dates are not set here.** The calendar is the plan of record: see global plan
+§3.4 and §5.1 and milestones.csv. For the plan of record (three developers, lean scope,
 month 1 = November 2026) these are M-PP at month 26, M2 (MVP) at month 41 and M6 (1.0) at month 65; the plan
 re-baselines them from measured velocity at G-M1.
 
@@ -355,11 +355,11 @@ re-baselines them from measured velocity at G-M1.
 
 > **Note (pending decision PD-1).** The release labels in the table above and in every FR row of
 > [02a](02a-requirements-core.md) and [02b](02b-requirements-extended.md) describe the **full v1 scope**. The
-> [global plan](../plan/01-global-plan.md) plans a **lean variant** of that scope (its plan of record, decision
-> PD-1 in §14 of the plan, not yet taken by the owner; see also the [decision log](../plan/06-decision-log.md)).
+> global plan plans a **lean variant** of that scope (its plan of record, decision
+> PD-1 in §14 of the plan, not yet taken by the owner; see also the decision log).
 > If PD-1 is adopted, the labels of the items below move as listed and a single catalogue edit applies them; until
 > then the labels stand and the plan's milestone columns carry the difference
-> ([WBS](../plan/02-work-packages.md#7-scope-levers) §7).
+> (WBS §7).
 
 | Lever | Moves | Items affected (area) |
 |---|---|---|
@@ -397,7 +397,7 @@ the requirement rows carry the source "EPLAN feature inventory; scope-boundary d
 
 | ID | Constraint |
 |---|---|
-| K-1 | **Team:** 2–4 developers plus AI assistance. The spine runs as two lanes (core, output); its effort is in [architecture](04-architecture.md) §15.1, its calendar in the [global plan](../plan/01-global-plan.md) |
+| K-1 | **Team:** 2–4 developers plus AI assistance. The spine runs as two lanes (core, output); its effort is in [architecture](04-architecture.md) §15.1, its calendar in the global plan |
 | K-2 | **Rust:** core and application in Rust. FFI only where justified: OCCT in an out-of-process STEP worker, bundled SQLite |
 | K-3 | **Licences** (ADR-0024): application GPL-3.0-or-later with a plugin exception (wording pending, ADR-0025); a closed permissive layer; QET-derived code only in `ew-import-qet`; QET elements not merged into EW libraries |
 | K-4 | **Platforms** (ADR-0022): Windows 10 22H2+ and 11 x64, Ubuntu 22.04+ and Debian 12+ (macOS is not supported, decision log ID-880); GPU-less operation through DX12 WARP or the CPU renderer |
@@ -472,7 +472,7 @@ its substance:
 4. **What is the pilot's QET baseline for SC-3?** *Recommendation:* time two reference-size projects in QET during
    M0–M1.
 5. **Are the G6 size classes right?** *Recommendation:* recalibrate L/XL from the pilot's three largest projects
-   before the re-test of the performance spike (gate G-SP, [global plan](../plan/01-global-plan.md) §14, PD-8).
+   before the re-test of the performance spike (gate G-SP, global plan §14, PD-8).
    G-SP was held on 2026-10-20 on the assumed bounds with the outcome Recycle (ADR-0002 amendment 4); the
    recalibration (G-SP-08, CP-03) was an owner action due before the re-test (decision log ID-224). **Resolved**
    2026-10-20 (decision log ID-272): the pilot's three projects all sit inside class S, so the bounds stay; S is
@@ -487,7 +487,7 @@ its substance:
 8. **UI languages at MVP?** *Recommendation:* English and Dutch at MVP, German by 1.0, via Weblate.
 9. **When must the open ADRs be decided?** *Recommendation:* ADR-0025 and ADR-0030 before the first external
    contribution and the first signed release; ADR-0027 and ADR-0028 before spine lane 2 builds the symbol set
-   (PD-4 and PD-5, [global plan](../plan/01-global-plan.md) §14).
+   (PD-4 and PD-5, global plan §14).
 10. **Headless MCP in the MVP?** QET already ships one. **Resolved:** read-only `ew mcp` (query, SQL, checks) is
     MVP Could (FR-EXT-016) and ask-first writes are 1.0 Should (FR-EXT-017), both in
     [02b](02b-requirements-extended.md).

@@ -160,7 +160,7 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, 
    overview rows, 154 report row links) and 185 named destinations (`golden/J-E-2416/expected/pdf/structure.json`).
 10. **The canvas's GPU path as built** (2026-10-22, cycle 22, lead ruling the owner may reverse, applied and accepted at
     the cycle-22 design pass; decision log ID-506, ID-507, ID-539 to ID-543;
-    [WP-S2.02 specification](../plan/specs/WP-S2.02-canvas-renderer.md) §3, §7). This applies the amendment that was
+    WP-S2.02 specification §3, §7). This applies the amendment that was
     pending since cycle 21. Decision 2 changes in two points, as built by part 2 of WP-S2.02:
     - **An offscreen texture instead of a paint callback.** `ew-render2d` tessellates the display list with lyon
       (fills and strokes, with the caps, joins and miter limit of `ew-dl`; dashes split first with kurbo) and draws it,

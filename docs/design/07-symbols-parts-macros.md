@@ -10,7 +10,7 @@ SYM, PRT and MAC rows of [02a](02a-requirements-core.md). Every example comes fr
 cabinet J-E-2416, held as Golden A of the [golden project](20-golden-project.md).
 
 The symbol editor's authoring profile is specified in [07a: Symbol design standard](07a-symbol-design-standard.md).
-Its implementation and import compatibility scope are recorded in [WP-S2.10](../plan/specs/WP-S2.10-symbol-editor.md).
+Its implementation and import compatibility scope are recorded in WP-S2.10.
 
 **Contents**
 
@@ -1107,7 +1107,7 @@ the current page's by default; on a page whose grid is neither (an imported one)
 still takes the current page's grid. A page's grid changes only while the page is empty. "Fork from QET import" is Fork existing symbol in the Library panel, over project copies and installed
 libraries; Open or import reads QElectroTech `.elmt`, EPLAN EDZ/PXF and the supported SLK subset into a draft with
 its import report, and an EPLAN draft saves only once its review is acknowledged. Every edit is a `symbol.*` action that scripts and AI tools share
-([WP-S2.10](../plan/specs/WP-S2.10-symbol-editor.md) §10 and §11).
+(WP-S2.10 §10 and §11).
 
 **Accessibility (NFR-A11Y-02).** Previews expose an accessible name built from the item name, its representation
 type and its CP designations, for example "MCB 1P+N, multi-line, connection points 1, 2, N, N". Quality levels are

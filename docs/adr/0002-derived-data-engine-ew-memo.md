@@ -122,7 +122,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    promoting a family after the spike (decision 3) changes its `POLICY` and the tracker, never the query body.
 4. **G-SP outcome: Recycle; incremental connectivity replaces the coarse fallback** (2026-10-20, project owner
    (delegated); decision log ID-218 to ID-226; spike report
-   [`spike-g-sp-2026-10.md`](../research/spike-g-sp-2026-10.md); [gates](../plan/03-gates.md) §5.1;
+   [`spike-g-sp-2026-10.md`](../research/spike-g-sp-2026-10.md); gates §5.1;
    [architecture](../design/04-architecture.md) §6.1 to §6.4). This closes PD-8 and is the amendment G-SP-02 asks
    for.
    - **Outcome.** Recycle: one re-spike of at most four weeks after the reshaped queries below exist. On S, M and L
@@ -197,7 +197,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      there, and per-member settings keys are projection memos over the one project-row stamp. Page-scoped stamps in
      `ew-model` remain the fallback, to be proposed as an ADR-0001 amendment only if page-level keys in the index do
      not bring it within 40 MB at XL.
-   - **Plan impact** (G-SP-06; [work breakdown](../plan/02-work-packages.md)): WP-S1.05 +3 pw, WP-S1.07 +4 pw and
+   - **Plan impact** (G-SP-06; work breakdown): WP-S1.05 +3 pw, WP-S1.07 +4 pw and
      WP-S1.08 +0.5 pw (likely); M1 of the plan of record moves from month 15 to month 16 (+3 to +5 weeks on the
      critical chain); the likelihood of SR-7 (R-018) rises. Cycle 9 takes WP-S1.07's incremental connectivity with
      the `ew-memo` integration as its lead item.
@@ -420,8 +420,8 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 - There is no parallel speed-up on the interactive path. Global connectivity remains the hotspot at 5–10 ms per
   committed wire edit in the XL-A estimate case; live highlighting during a drag uses page-local nets only.
 - Promotion decisions need profiling infrastructure before the performance spike (G-SP): the synthetic S/M/L/XL
-  fixtures and the perf gate (ADR-0022). The date of the spike is the plan's ([global plan](../plan/01-global-plan.md)
-  §14, PD-8; [milestones.csv](../plan/milestones.csv)), not a calendar week of the spine.
+  fixtures and the perf gate (ADR-0022). The date of the spike is the plan's (global plan
+  §14, PD-8; milestones.csv), not a calendar week of the spine.
 - Memory must be actively policed (granularity rules, LRU, memory gate).
 
 ## Alternatives considered

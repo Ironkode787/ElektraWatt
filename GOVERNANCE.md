@@ -19,10 +19,9 @@ Nothing is sold under the ElektraWatt name.
 
 - **Architecture and policy decisions** are architecture decision records (ADRs) in [docs/adr/](docs/adr/README.md).
   A decision that the maintainer takes is recorded there, with its status, before the work that depends on it ships.
-- **Planning and design decisions** are one-line entries in [docs/plan/decisions.md](docs/plan/decisions.md), with the
-  older ones in the [decision log](docs/plan/06-decision-log.md). A commit that implements a decision names it in a
-  `Decision:` trailer ([CONTRIBUTING.md](CONTRIBUTING.md), "Records: commit trailers").
-- **Requirements** are in [docs/design/](docs/design/), and the plan, the milestones and the gates are in
+- **Design decisions** are written into the design document they change, so that it states what is true now; the
+  commit message says why ([CONTRIBUTING.md](CONTRIBUTING.md), "Decisions and open work").
+- **Requirements** are in [docs/design/](docs/design/), and the running milestone and the open work are in
   [docs/plan/](docs/plan/README.md).
 
 ## The RFC process is the ADR process

@@ -444,7 +444,7 @@ veraPDF is a test tool run from a pinned container image with a checked digest. 
 
 ### 3.10 Acceptance runner
 
-`ew-testkit accept golden/J-E-2416 --gate <M1|M-PP|M2|M3|M4|M5|M6>` (`MVP` and `1.0` are aliases of `M2` and `M6`; the rows per gate are those of [20](20-golden-project.md) §22 and [gates](../plan/03-gates.md) §8):
+`ew-testkit accept golden/J-E-2416 --gate <M1|M-PP|M2|M3|M4|M5|M6>` (`MVP` and `1.0` are aliases of `M2` and `M6`; the rows per gate are those of [20](20-golden-project.md) §22 and gates §8):
 1. builds GP through the three paths of 20 §3.2 and checks their equivalence (AC-15);
 2. builds the SQL projection and runs every `acceptance/*.sql`;
 3. diffs the results row by row against `expected/*.csv` (natural order, exact);
@@ -872,7 +872,7 @@ below).
   `ew-viewmodel`'s test `replay_order` runs one creating script under ascending and descending new IDs and compares
   both.
 - **Specified (cycle 25, WP-S6.13; decision log ID-610 to ID-619, the fix round ID-621 to ID-624).** The
-  [closed specification](../plan/specs/WP-S6.13-blind-drafter-harness.md) turns this section into a harness in three
+  closed specification turns this section into a harness in three
   parts. `cargo xtask blind` lives in `xtask` and drives the built binaries as processes (no new edge); a run folder
   outside the repository holds copies of the binaries and the user guide, and the agent may run only the run's copy of
   the harness. A loopback session keeper, the copied `xtask` (the product itself opens no socket, so §12.2 and
@@ -1522,7 +1522,7 @@ state which format a release writes and which it reads.
 The release structure in time is: nightlies and signed source tags (`m1`, `pp`) before the pilot preview; the
 pilot preview 0.0.x at milestone M-PP (gate G-PP), which is not a public release; the first binary release
 0.1.0 at M2 (MVP), unsigned (ID-1187); then monthly 0.x, the betas and release candidates of 1.0 (M5, M6) and quarterly minors. The
-dates are the plan's ([global plan](../plan/01-global-plan.md) §5.1 and §6, [milestones.csv](../plan/milestones.csv)).
+dates are the plan's (global plan §5.1 and §6, milestones.csv).
 The pipeline and checklist of §7.4 apply from 0.1.0; a pilot preview needs the CI build and the release notes only.
 Whether a pilot-only preview counts as "made available on the market" under the CRA is to be verified with counsel
 (§13.1, ADR-0030).
@@ -1632,7 +1632,7 @@ procedure around it. RC-01 holds WP-S6.05 D18's review line and RC-05 its manual
 - **Rule** (NFR-COMP-03, ADR-0030 as proposed). The latest minor gets all fixes; each minor gets security and
   data-loss fixes for 6 months after its successor ships. With quarterly minors, up to two older lines can be in
   that window at the same time, and security backports go to each of them (open question 14).
-  Illustrative example (the real calendar is in the [global plan](../plan/01-global-plan.md) §6.4): 1.1 (released 2028-06-20) receives all fixes until 1.2 ships (planned 2028-09-19) and security and
+  Illustrative example (the real calendar is in the global plan §6.4): 1.1 (released 2028-06-20) receives all fixes until 1.2 ships (planned 2028-09-19) and security and
   data-loss fixes until 6 months later (2029-03-19).
 - **Majors.** After N.0, the last minor of N−1 gets the same 6-month window.
 - **Pre-1.0.** Only the latest 0.x is supported.
@@ -2073,8 +2073,8 @@ The statements of when the regulation applies below stand as written. This docum
 - **Dates.** The CRA (Regulation (EU) 2024/2847) has applied its reporting obligations for actively exploited
   vulnerabilities and severe incidents (Art. 14) since **2026-09-11**, which is already the case today. All other
   obligations apply from **2027-12-11** (G11).
-- **What falls after 2027-12-11.** The plan of record ([global plan](../plan/01-global-plan.md) §5.1 and §6;
-  [milestones.csv](../plan/milestones.csv)) has no public binary release before 0.1.0 at M2, in March 2030, and
+- **What falls after 2027-12-11.** The plan of record (global plan §5.1 and §6;
+  milestones.csv) has no public binary release before 0.1.0 at M2, in March 2030, and
   1.0 in February 2032. Every public release therefore ships under full application, as does everything after it. The
   pilot preview 0.0.x (M-PP, December 2028, handed to the pilot only) and the nightly CLI builds for the pilot also
   fall after the date; whether such pilot-only builds are "made available on the market" is a question for counsel
@@ -2318,7 +2318,7 @@ CI-PR-10) and NFR-REL-15 (release atomicity, the fault-injection test of §3.13)
    ships unsigned, so this question is 1.0's, or earlier when the owner holds a signing identity. No Windows
    release can be signed with Artifact Signing without an organisation (ADR-0030, 19 LG-4); macOS needs no Apple
    enrolment, since it is not a supported platform (decision log ID-880). *Recommendation:* name the phase-1 identity holder in the first
-   90 days (PD-7a, WP-S0.05a of the [global plan](../plan/01-global-plan.md) §14), because enrolment takes at least 12 months, and decide
+   90 days (PD-7a, WP-S0.05a of the global plan §14), because enrolment takes at least 12 months, and decide
    ADR-0030 in full by gate G-M1 (PD-7), so that the phase-1 steward (the pilot panel builder's company) can enrol in time for the MVP. Until then publish only nightlies
    labelled "unsigned development build" and no binary release (ADR-0023). Keep the SignPath Foundation OSS
    programme as the documented Windows fallback that ADR-0023 names (2026 eligibility **verify**).

@@ -6,7 +6,7 @@ SPDX-License-Identifier: CC-BY-4.0
 # Manual tests
 
 The protocols of the checks that no pipeline can run: a screen reader on each platform and the Linux clipboard
-between two instances ([WP-S2.11](../plan/specs/WP-S2.11-gui-test-suite.md) D13). The automated suite proves what it
+between two instances (WP-S2.11 D13). The automated suite proves what it
 can: every interactive widget's name, role and state on every surface (`crates/ew-ui/tests/it/census.rs`) and the
 five core tasks from the keyboard (`keyboard_core.rs`). The runs belong to the release: RC-05 of the
 [release checklist](checklist.md) asks for one report per protocol, on the candidate's build. Later manual protocols

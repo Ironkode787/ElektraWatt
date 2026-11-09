@@ -731,7 +731,7 @@ on three pages of 23, 23 and 5 rows, as doc 20 §16 counts them since decision l
 4 headings = 20 rows; 903, 904 and 905: 3, 20 and 5 terminals), and the bridges BR1 … BR6 with their terminals and potentials, the terminals' groups, parts, states, bridges and targets of
 doc 20 §9, the cable cores with colours and cross-sections, and the wire ends of doc 20 §8.2 except the points below.
 The expectations were not adjusted to the output; each difference is a gap of the derivation or the model, listed
-here, with the follow-up task of the [work breakdown](../../docs/plan/02-work-packages.md) Appendix B that closes it:
+here, with the follow-up task of the work breakdown Appendix B that closes it:
 
 - **Wire list (907).**
   - Rows are in the numbering order of FR-NUM-028 (doc 08 §5.2): the page of the From end, the From end's frame

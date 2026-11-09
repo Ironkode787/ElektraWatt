@@ -475,9 +475,9 @@ first run. The About dialog's line reads "This version has no update check and s
 ### 3.9 As built: the shell (cycles 19 to 21)
 
 WP-S2.01 built a subset of this section in two parts on its
-[closed specification](../plan/specs/WP-S2.01-application-shell.md): part 1 in cycle 19 (decision log ID-473 to
+closed specification: part 1 in cycle 19 (decision log ID-473 to
 ID-475) and part 2 in cycle 20 (ID-486 to ID-493); WP-S2.02 part 1 replaced its page view with the canvas in cycle 21
-([specification](../plan/specs/WP-S2.02-canvas-renderer.md); ID-517 to ID-522); part 2 added the GPU path in cycle 22 (ID-539 to ID-544), which completes WP-S2.02. The design text of §3.1 to §3.8 stays
+(specification; ID-517 to ID-522); part 2 added the GPU path in cycle 22 (ID-539 to ID-544), which completes WP-S2.02. The design text of §3.1 to §3.8 stays
 the target of the whole work package; this subsection records what exists and where it differs. **The shell is a
 viewer** (the owner's reading, ID-513): until WP-S2.03 (navigation and the tool framework), WP-S2.04 (the editing
 gestures) and WP-S2.05 (the property grid) land, it opens, creates and exports projects and shows their pages, and
@@ -1936,9 +1936,9 @@ findings (06 OQ7), the EPLAN-like bindings (FR-UI-014), the glossary (NFR-DOC-05
 
 | Round | When | Participants | Build | Tasks |
 |---|---|---|---|---|
-| R0 formative | as soon as the R0 viewer build and the place and wire tools exist (WP-S2.03, WP-S2.04), within WP-S2.12 before M2 of the [work breakdown](../plan/02-work-packages.md#wp-s212-usability-rounds-r0-and-r1) | ≥ 2 (the pilot user and a colleague) | development build | T1, T2, T8; think-aloud only (NFR-UX-09) |
+| R0 formative | as soon as the R0 viewer build and the place and wire tools exist (WP-S2.03, WP-S2.04), within WP-S2.12 before M2 of the work breakdown | ≥ 2 (the pilot user and a colleague) | development build | T1, T2, T8; think-aloud only (NFR-UX-09) |
 | R1 summative | before M2 exit | ≥ 2 EPLAN users, ≥ 1 QET user (PQ-27) | M2 release candidate | T1–T8; T6 for QET users |
-| R2 summative | before 1.0 (M6, [WP-S2.16](../plan/02-work-packages.md#wp-s216-usability-round-r2-and-fixes)) | ≥ 5: ≥ 2 EPLAN, ≥ 2 QET, ≥ 1 PLC programmer (P3); a wireman (P2) for T11 | 1.0 release candidate | T1–T11 |
+| R2 summative | before 1.0 (M6, WP-S2.16) | ≥ 5: ≥ 2 EPLAN, ≥ 2 QET, ≥ 1 PLC programmer (P3); a wireman (P2) for T11 | 1.0 release candidate | T1–T11 |
 
 **Screening.** At least one year of production work in EPLAN Electric P8 or QET; at least one participant per
 summative round on a QWERTZ or AZERTY keyboard (NFR-I18N-06); at R2 one session on a GPU-less RDP host

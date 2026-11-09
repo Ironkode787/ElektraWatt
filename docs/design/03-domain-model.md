@@ -698,7 +698,7 @@ Not shaped here, and kept in `extra` until their work packages: `checks` (WP-S1.
 *Amended 2026-10-30 ([ADR-0032](../adr/0032-per-project-text-styles.md), decision log ID-837):* text styles are shaped
 as `ProjectSettings.text_styles`, overrides of the built-in table keyed by style key (`size` as em height in nm, an
 optional `weight`); an absent member means the built-in table; new projects write `cp.small` and `marker` at 7 px.
-Built by the lane of [WP-S1.12's text-style specification](../plan/specs/WP-S1.12-project-text-styles.md) (FT-662). *As built (cycle 37, decision log ID-855):* the member is typed in `ew-schema` (`TextStyleSpec`, `BUILTIN_TEXT_STYLES`, `effective_text_styles`); an override whose size lies outside 0.5 … 50 mm is ignored on reading and a weight of a newer format reads as absent.
+Built by the lane of WP-S1.12's text-style specification (FT-662). *As built (cycle 37, decision log ID-855):* the member is typed in `ew-schema` (`TextStyleSpec`, `BUILTIN_TEXT_STYLES`, `effective_text_styles`); an override whose size lies outside 0.5 … 50 mm is ignored on reading and a weight of a newer format reads as absent.
 
 ---
 
@@ -1241,7 +1241,7 @@ derived:
    letter or device kind) matches, else the default format. Tokens: `{letter}`, `{counter}`, `{subcounter}`,
    `{page}` (folio label of the main representation's page), `{column}`, `{row}` (FR-NUM-005, FR-NUM-006). A
    token whose value cannot be derived (no counter yet, an unplaced device) prints `?`, and an unknown token prints
-   verbatim ([decision log](../plan/06-decision-log.md) ID-86). *Until WP-S1.11* `ew-derive` applies only the
+   verbatim (decision log ID-86). *Until WP-S1.11* `ew-derive` applies only the
    schemes the command layer's numbering implements: a project or named scheme whose `counter_scope` is not
    `"page"`, or whose format has no `{page}` token, is not applied; the device keeps the profile's default scheme
    and a derivation note reports it (decision log ID-103).

@@ -509,7 +509,7 @@ and accepted only while its refusal is still under the field on the same revisio
 | 12 | **Online wire numbering** | New wires get the next number of the active wire-numbering scheme when online numbering is on, otherwise they stay `Unassigned` and print "?" (FR-NUM-019, FR-NUM-021) | [08](08-connections-terminals-cables.md) §5.2 |
 | 13 | **Solenoid binding** (N2 = N-FL-3) | Binds each declared solenoid's coil to the channel the part's position map assigns, if that channel is unbound and no channel binds the coil; an existing binding wins, and only the valves and channels of the transaction are considered (FR-PLC-051) | [10](10-plc-and-bus.md) §3.3 |
 | 14 | **Module pin binding** (N3) | Binds a new physical channel to the module pin whose designation the part's channel → pin map gives | [10](10-plc-and-bus.md) §3.3 |
-| 14a | **Bus ports** (N5, as built in cycle 40, decision log ID-927) | On a new device or a changed bus part, or a bus-port function (FnDef contact kind `bus_port`) added to or moved onto a device with a bus part: the part's ports that no function of the device carries (by interface and label) go in list order to its port-less bus-port functions by ID, address `tbd` (`not_applicable` when passive), the part's termination, no nets. Never rewrites or removes a port; a disagreement gives a notice; a part port without a function seeds nothing. Duplicates are dropped first and unknown buses or roles filtered after, so a newer-format first port drops its whole (interface, label) pair. Runs after `module_pin_binding` | [WP-S1.21 spec](../plan/specs/WP-S1.21-plc-and-bus-model.md) §8a.2 |
+| 14a | **Bus ports** (N5, as built in cycle 40, decision log ID-927) | On a new device or a changed bus part, or a bus-port function (FnDef contact kind `bus_port`) added to or moved onto a device with a bus part: the part's ports that no function of the device carries (by interface and label) go in list order to its port-less bus-port functions by ID, address `tbd` (`not_applicable` when passive), the part's termination, no nets. Never rewrites or removes a port; a disagreement gives a notice; a part port without a function seeds nothing. Duplicates are dropped first and unknown buses or roles filtered after, so a newer-format first port drops its whole (interface, label) pair. Runs after `module_pin_binding` | WP-S1.21 spec §8a.2 |
 | 15 | **Logical-net inheritance** (N4) | A bus connection to a port without a logical net assigns the net of the other port | [10](10-plc-and-bus.md) §3.3 |
 | 16 | **Drives link** (N-FL-4) | The first tube from a valve working port to a consumer port of another device adds `DeviceLink{Drives}` | [11](11-fluid-power.md) §4.2 |
 | 17 | **Tube counter** (N-FL-5) | A new tube connection gets its counter when a line-tag scheme is active | [11](11-fluid-power.md) §4.2 |
@@ -545,7 +545,7 @@ commands still never route (ID-564): the router, now `ew_derive::routing` reache
 the tools and in Route page and Route selection, which store their plan with `connection.route_many`; autoconnect
 hints store their straight run; `rep.move` takes the routes the Select tool re-solved (FT-18). A new row 18,
 *interruption-point form*, gives an interruption point drawn with EW's IP symbol the arrow form of its direction
-([WP-S2.19 specification](../plan/specs/WP-S2.19-schematic-autorouter.md) D16).
+(WP-S2.19 specification D16).
 
 *As built (cycle 53; WP-S2.19, decision log ID-1499).* The commands that store a route are `connection.draw`,
 `connection.draw_many`, `connection.draw_to_ip`, `connection.route`, `connection.route_many` (1 to 10,000 entries,
@@ -1141,7 +1141,7 @@ direct route through a free representation in line; only without any route does 
 
 *Decided for WP-S2.19 (2026-11-07, cycle 53; decision log ID-1498, [ADR-0033](../adr/0033-schematic-routing-model.md)).*
 This section's router is replaced by the page router of the
-[WP-S2.19 specification](../plan/specs/WP-S2.19-schematic-autorouter.md) §5: the search moves to
+WP-S2.19 specification §5: the search moves to
 `ew_derive::routing`; only the Clear pass remains, as hard rules; integer costs for steps, bends, crossings and
 parallel mates; a page or a selection routed in a fixed order (supply potentials first, then by span) with at most two
 rip-up rounds; no fallback L: a connection without a clear route stays unrouted and is reported. Step 4 of the list

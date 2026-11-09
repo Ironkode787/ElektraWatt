@@ -99,7 +99,7 @@ lags egui.
   §10.3 (the selection colour and the four highlight slots), §11.1 (the tokens have values in 16a §4) are amended by
   notes that point here; its §1 non-goal narrows to "no multi-row Office ribbon and no contextual tabs", and
   [ARCH](../design/04-architecture.md) §16 says the same. The plan gains WP-S2.17
-  ([specification](../plan/specs/WP-S2.17-design-language-and-ui-polish.md)); FT-338, FT-348, FT-390, FT-391,
+  (specification); FT-338, FT-348, FT-390, FT-391,
   FT-425, FT-506, FT-507, FT-508, FT-509, FT-510 and FT-512's tooltip half are absorbed by it. Its 5.7 pw come from
   WP-S2.08 (4.0 pw: the theming, colour-vision and contrast half and the look of the palette, tooltips and menus) and
   WP-S2.16 (1.7 pw), so the MVP gate stays at month 41 (the specification's §15.5). *Amended 2026-10-28:* 16a v1.1

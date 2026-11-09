@@ -393,7 +393,7 @@ slot per position and map entry, with the channel, the valve (the lowest ID when
 the valve's coil CP. Until N-FL-1, a valve declares solenoid s when one of its functions has a non-physical CP named s
 ([11](11-fluid-power.md) §3.1, decision log ID-469). The part-data confidence of `[plc.meta]` is FT-323.
 
-**The bus section: specified, cycle 40; built by I40** ([WP-S1.21](../plan/specs/WP-S1.21-plc-and-bus-model.md) §8a,
+**The bus section: specified, cycle 40; built by I40** (WP-S1.21 §8a,
 D15 to D17; decision log ID-920; FT-770). A part's bus interfaces are `sections.bus`, typed within format 0.1
 (ADR-0011 amendment 4, ID-334), appended to `PartSections` after `mounting_plate`:
 

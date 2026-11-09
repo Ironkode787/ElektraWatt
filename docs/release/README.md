@@ -11,7 +11,7 @@ ID-1519), and the release builds carry no SBOM, no build provenance and no insta
 [`ci/release-verify.py`](../../ci/release-verify.py) and the per-artefact steps of
 [`package.yml`](../../.github/workflows/package.yml); the items a pipeline cannot prove are the
 [release checklist](checklist.md). The specification is
-[WP-S6.07](../plan/specs/WP-S6.07-release-pipeline.md); the first release, its notes, its candidates and its dossier
+WP-S6.07; the first release, its notes, its candidates and its dossier
 are WP-S6.08's. The next release, 0.2.0, carries the symbol editor (milestone M2.5, ID-1402) and goes through this
 procedure in the same form; it is the first after the format locks at 0.1.0, so its notes name every format change
 and its migration.

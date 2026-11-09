@@ -756,7 +756,7 @@ XRF, CHK, OUT, REV, PRJ).
 
 ## 14. Counts
 
-The catalogue holds **434 requirements** (353 in v0.1, 79 adopted from the feature documents and 2 added for the scope boundaries of [vision and scope](00-vision-and-scope.md) §9.2). The counts are for the **full-scope release labels**; the plan's lean variant moves rows between the release columns if PD-1 is adopted (vision §9.1, [global plan](../plan/01-global-plan.md) §14, [decision log](../plan/06-decision-log.md)). Counts are
+The catalogue holds **434 requirements** (353 in v0.1, 79 adopted from the feature documents and 2 added for the scope boundaries of [vision and scope](00-vision-and-scope.md) §9.2). The counts are for the **full-scope release labels**; the plan's lean variant moves rows between the release columns if PD-1 is adopted (vision §9.1, global plan §14, decision log). Counts are
 generated from the tables above; IDs are unique and contiguous in every area.
 
 **By area and priority**
@@ -911,7 +911,7 @@ Rows this catalogue depends on that belong to [02a](02a-requirements-core.md) or
    criterion 8 expecting the EW-PLC-012 finding until then.
 3. **DWG in v1.** The user decision lists "DXF (DWG)" import in v1, while [vision and scope](00-vision-and-scope.md)
    §9 places DWG at 1.x. *Recommendation:* the ODA-converter route (FR-IMP-036) at 1.0 Should, because it reuses
-   the DXF importer at little cost, and native `acadrust` reading (FR-IMP-037) at 1.x. **Adopted:** VIS §9 now reads this way; the project owner confirms it as DEC-075 of the [decision log](../plan/06-decision-log.md) before WP-S3.19.
+   the DXF importer at little cost, and native `acadrust` reading (FR-IMP-037) at 1.x. **Adopted:** VIS §9 now reads this way; the project owner confirms it as DEC-075 of the decision log before WP-S3.19.
 4. **QETZ timing.** FR-IMP-024 is 1.x because the pilot uses QET 0.100.0-dev. *Recommendation:* move it to MVP if
    the pilot or their customers switch to QET 0.200 before migration (BS PQ-03); the effort is low because QETZ
    re-joins into the `.qet` importer.

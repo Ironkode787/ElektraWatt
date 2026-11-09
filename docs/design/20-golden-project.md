@@ -673,7 +673,7 @@ In marker mode "only explicit overrides" exactly the four reference marker group
 | J5 | 102 | Bevel | Star (set), from the PSU CP -102G1:−#1 | -102G1:−#1 → W22, W27 |
 | J6 | 102 | Bevel | Star (set), from the PSU CP -102G1:−#2 | -102G1:−#2 → W23, W26 |
 
-For a Chain junction the shared CP stands in the middle of the sequence, so that joining consecutive CPs gives the drawn wires ([03](03-domain-model.md) §9.2; [decision log](../plan/06-decision-log.md) ID-68); the drawn stubs J3.1 and J4.1 are the first members.
+For a Chain junction the shared CP stands in the middle of the sequence, so that joining consecutive CPs gives the drawn wires ([03](03-domain-model.md) §9.2; decision log ID-68); the drawn stubs J3.1 and J4.1 are the first members.
 
 A new branch's default place in the sequence follows [08](08-connections-terminals-cables.md): the parts of a split
 connection are ordered by flow distance from the source, with reading order (row, then column of the far
@@ -1490,8 +1490,8 @@ Commands run on `golden/J-E-2416.ew` unless stated. "Exact" means the comparison
 ## 22. Milestone gates
 
 The gates are those of the plan: G-M1 … G-M6 for the milestones M1 … M6, G-PP for the pilot preview M-PP
-([gates](../plan/03-gates.md) §8.1 is the assignment of acceptance criteria to gates and wins where this table could
-differ). The dates are the plan's ([global plan](../plan/01-global-plan.md) §5.1, [milestones.csv](../plan/milestones.csv)),
+(gates §8.1 is the assignment of acceptance criteria to gates and wins where this table could
+differ). The dates are the plan's (global plan §5.1, milestones.csv),
 not this document's. The release names are M2 = MVP (0.1.0) and M6 = 1.0.
 
 | Gate | Milestone | Must pass |
@@ -1520,7 +1520,7 @@ closed:
 | Page order: 34 of 36 folios present (908.1 and 908.2 need PLC channel records) | AC-03 | FT-111 (cycle 13, ID-333): 36 of 36 folios, 908 split 23, 23 and 10 rows |
 | 18 of 19 potentials; DP via Bus connections | AC-10 | FT-105 (cycle 13, ID-336): 19 of 19 potentials; the DP row prints 3 members and "(cable)" |
 
-D-06's property grid (a UI entry that comes with M-PP) gates at G-M2 with AC-18 (GUI) since the G-M1 readiness rulings, and the runner reports it `not_applicable` with that reason since cycle 17; D-06's headless entries stay at G-M1 ([gates](../plan/03-gates.md) §8.2, decision log ID-422, ID-433). The typed revision is built (FT-165, closed in cycle 17): path (b)'s `unwritten` list is empty. What remains before G-M1 are the items of the G-M1 readiness run: the gate evidence still owed by development and the owner-side items of the plan (decision log ID-420, ID-438, ID-439). Closed in cycle 17: the second D-05 entry (no page record holds a revision value; ID-433). Closed in cycle 16: AC-15 path (b) passes with both BOM exports compared (decision log ID-392 to ID-401). Closed in cycle 15: AC-07's assembly export, D-17, D-36 and D-41 (ID-371 to ID-377), the AC-15 entry of `ew export pdf` over the fixture (ID-362 to ID-364) and AC-15 path (b) through the builder DSL after the owner's page-type ruling (ID-384, ID-385). `ew export pdf golden/J-E-2416.ew` is built since cycle 15 (FT-59, G-M1-01): the shipped export job writes the digest of `expected/pdf/sha256.txt`, and the AC-15 entry of the runner holds it over the checked-in fixture.
+D-06's property grid (a UI entry that comes with M-PP) gates at G-M2 with AC-18 (GUI) since the G-M1 readiness rulings, and the runner reports it `not_applicable` with that reason since cycle 17; D-06's headless entries stay at G-M1 (gates §8.2, decision log ID-422, ID-433). The typed revision is built (FT-165, closed in cycle 17): path (b)'s `unwritten` list is empty. What remains before G-M1 are the items of the G-M1 readiness run: the gate evidence still owed by development and the owner-side items of the plan (decision log ID-420, ID-438, ID-439). Closed in cycle 17: the second D-05 entry (no page record holds a revision value; ID-433). Closed in cycle 16: AC-15 path (b) passes with both BOM exports compared (decision log ID-392 to ID-401). Closed in cycle 15: AC-07's assembly export, D-17, D-36 and D-41 (ID-371 to ID-377), the AC-15 entry of `ew export pdf` over the fixture (ID-362 to ID-364) and AC-15 path (b) through the builder DSL after the owner's page-type ruling (ID-384, ID-385). `ew export pdf golden/J-E-2416.ew` is built since cycle 15 (FT-59, G-M1-01): the shipped export job writes the digest of `expected/pdf/sha256.txt`, and the AC-15 entry of the runner holds it over the checked-in fixture.
 
 Closed in cycle 12: AC-04 and D-05 (FT-62, FT-160), AC-07 and D-04 (27 rows, FT-110), AC-12 (FT-159), D-12 (both entries, FT-161), D-18 and D-33 (FT-162), D-37, and the page goldens built with the colour and size profiles (FT-65). Folio 911 is still a placeholder (deriving `revision_overview` from the revision records is FT-207).
 

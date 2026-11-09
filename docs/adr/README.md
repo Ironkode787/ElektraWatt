@@ -49,7 +49,7 @@
    consequences, and the work packages and documents it touches.
 4. Open it as Proposed; it becomes Accepted when the deciders named in it agree. Never rewrite an Accepted ADR
    silently: amend it with a dated note, or supersede it with a new ADR that links back.
-5. Add a row to the table above, and to Part A or Part B of the [decision log](../plan/06-decision-log.md).
+5. Add a row to the table above, and to Part A or Part B of the decision log.
 6. Run `python3 -I docs/plan/tools/doccheck.py` to check links and tables.
 
 See [open-source governance](../design/19-open-source-governance.md) §3.4 for the RFC and ADR process.

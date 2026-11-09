@@ -92,7 +92,7 @@ reverse it)
   project data, as built), doc 20 §17.5 (a note: new projects override
   `cp.small` and `marker` to 7 px), doc 07 §2.3 (a slot's `style` may name a project-extended key), FR-SYM-013's
   acceptance unchanged. The implementation is specified in
-  [WP-S1.12 project text styles](../plan/specs/WP-S1.12-project-text-styles.md); FT-662 closes with it.
+  WP-S1.12 project text styles; FT-662 closes with it.
 - **The wizard's choice** (2026-11-05, cycle 51; WP-S7.03 D11, decision log ID-1332, ID-1375). The company-standard
   wizard's step 2 offers "Readable (new projects)", the default, which writes the built-in basic project's
   `text_styles`, and "As in the sample project", which writes none, so a basic project can reproduce Golden A

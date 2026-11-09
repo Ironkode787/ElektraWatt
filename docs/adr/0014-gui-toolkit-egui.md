@@ -65,7 +65,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    [architecture](../design/04-architecture.md) §3). The read-only `.ewpp` wiring viewer of 1.0 is built on
    `ew-ui` widgets. Rule 3 therefore reads: only `ew-ui`, `ew-viewer`, the app binary and the `ew-wiring-viewer`
    binary know egui; only the renderers know wgpu.
-4. **Tables and trees** (2026-10-28; decision log ID-686, [WP-S2.06's specification](../plan/specs/WP-S2.06-navigators-and-table-mode.md)
+4. **Tables and trees** (2026-10-28; decision log ID-686, WP-S2.06's specification
    D9). Tables use **egui_table 0.11.0**, the release for egui 0.37 (the 0.10.0 of the context table needs egui 0.36,
    as egui_tiles 0.17.1 did, ID-490); it adds `egui_table` and `vec1`, both `MIT OR Apache-2.0`, to the shipped graph,
    and `enumn` (`MIT OR Apache-2.0`, a proc-macro without dependencies of its own) through egui's `serde` feature,

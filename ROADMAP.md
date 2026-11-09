@@ -5,11 +5,8 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Roadmap
 
-This page lists the milestones of ElektraWatt by name and content, in order. It carries no dates: the dates of the
-plan are a forecast that moves with the work, and the current forecast is in [docs/plan/](docs/plan/README.md). The
-full definition of each milestone, with its exit criteria and the gate that closes it, is in the
-[work breakdown](docs/plan/02-work-packages.md#22-milestones) and in the [gates](docs/plan/03-gates.md). The reasons
-behind the order are in the [global plan](docs/plan/01-global-plan.md).
+This page lists the milestones of ElektraWatt by name and content, in order. It carries no dates. The milestone
+that is running and the open work are in [docs/plan/](docs/plan/README.md).
 
 ## Milestones
 
@@ -29,24 +26,18 @@ behind the order are in the [global plan](docs/plan/01-global-plan.md).
 
 ## Where it stands
 
-Development runs in short AI-assisted cycles. A cycle ends as a checkpoint, which pushes the working branch, or as a
-delivery, which runs the full continuous-integration gate on Windows and Linux and then fast-forwards `main`; a
-delivery comes every second cycle. Measured by content, not by date:
-
 | Milestone | State |
 |---|---|
-| M0 | Technical part delivered: the workspace, CI on Linux and Windows, licensing and the licence-boundary check. The remaining gate items are the project owner's |
-| M1 | Delivered with follow-up tasks: the model, the commands, the derived data, the checks, the reports and the PDF of the reference project are produced headlessly |
-| M-PP | Closed: the pilot-preview gate was recorded as Go |
-| M2 | Closed: 0.1.0 was released on 2026-11-08 for Windows and Linux, unsigned and with no network code |
-| M2.5 | Not started: the maintenance step starts when the project owner lifts the hold after 0.1.0 |
-| M2.5-Fix | Not started: follows M2.5 |
+| M0 to M2 | Closed: 0.1.0 was released on 2026-11-08 for Windows and Linux, unsigned and with no network code |
+| M2.5 | Running: the maintenance step ([plan](docs/plan/m2.5.md)) |
+| M2.5-Fix | Next: the fixes that make the program work well in the hand ([backlog](docs/plan/backlog.md)) |
 | M3 to M6, 1.x | Not started |
 
 What works today, in short: the desktop window opens, edits and checks a project, with navigators, table mode, a
 history, the 2D panel layout and printing; the `ew` command-line tool imports QElectroTech projects, checks, exports
-PDF/A-2b, SVG and tables (with the Excel round trip), prints and upgrades a project of an older format. The
-[README](README.md#status) lists it in full, and the [global plan](docs/plan/01-global-plan.md) records each cycle.
+PDF/A-2b, SVG and tables (with the Excel round trip), prints and upgrades a project of an older format. 0.1.0 is an
+early alpha: hands-on use found basic flows that do not work well yet, and M2.5-Fix is there to fix them. The
+[README](README.md#status) lists what is built.
 
 ## What is not on the roadmap
 
@@ -54,4 +45,4 @@ The non-goals of the project are in the [vision](docs/design/00-vision-and-scope
 
 ## Keeping this page right
 
-This page is reviewed with the plan, at least once a quarter, and changes by a pull request like any other file.
+This page changes with the plan, by a commit like any other file.

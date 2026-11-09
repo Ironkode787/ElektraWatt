@@ -1694,7 +1694,7 @@ proposal review queue and acknowledged findings are WP-S3.10's (FT-1465, FT-1466
 These labels describe the full scope. The plan's lean variant, if PD-1 is adopted, moves the QET project migration
 from the MVP to the 0.x release after it (M3) and the XLIFF and CSV translation exchange, the GSD/GSDML/IODD import and
 the glTF/STL/STEP export from 1.0 to 1.x; see [vision](00-vision-and-scope.md) §9.1 and
-[global plan](../plan/01-global-plan.md) §14.
+global plan §14.
 
 ---
 

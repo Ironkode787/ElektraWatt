@@ -710,7 +710,7 @@ Golden results: 571334 → "-201U3-Q1 … -202U2-Q4" (all 28 valve children are 
   key and the TOC layout (23 data rows per page, which drives the page-count fixpoint of `page_order`). Report layouts
   and font versions join the profile with WP-S3.03 and WP-S3.02. `project.control_voltage` and `project.consumption`
   are in the binding set but stay unbound, and so render empty (§2.6), until `Quantity` has a text formatter (task
-  FT-28 of the [work breakdown](../plan/02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles)).
+  FT-28 of the work breakdown).
 - Report outputs of a released revision are frozen into the as-built archive as `reports/<block id>.csv` plus the
   PDF ([05](05-project-format-and-persistence.md) §14.2, FR-REV-011). Re-rendering the archived project with its
   release context and derivation profile reproduces the page content (FR-REV-010).

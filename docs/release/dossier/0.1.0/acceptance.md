@@ -6,7 +6,7 @@ SPDX-License-Identifier: CC-BY-4.0
 # Acceptance run: ElektraWatt 0.1.0
 
 The acceptance of gate G-M2 for the release 0.1.0 (WP-S6.08 D12): one row per item G-M2-01 to G-M2-26 of
-[the gates](../../../plan/03-gates.md#55-g-m2-mvp-release-010-m2) §5.5, and per AC-21, AC-23, AC-40 and AC-41 of
+the gates §5.5, and per AC-21, AC-23, AC-40 and AC-41 of
 [the golden project](../../../design/20-golden-project.md) and NFR-REL-11. Each row names its criterion by reference,
 the evidence that proves it and the result: **met**, **met with a declared gap** (the gap named), **not met**, **not
 applicable** (by the ruling named), or **open** while its evidence does not exist yet.
