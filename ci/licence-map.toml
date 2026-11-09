@@ -197,38 +197,6 @@ glob = "crates/ew-py/**"
 allowed = ["GPL-3.0-or-later"]
 crate = true
 
-# The cargo-fuzz crate (FT-297): GPL-3.0-or-later like the crates it fuzzes (it includes the GPL test modules of
-# ew-testkit). It is not a workspace member (its own workspace, excluded in the root Cargo.toml), so the rule is
-# not `crate = true`; its manifest carries the licence all the same. Its lock file, its toolchain file, the seed
-# corpora (made from the golden project) and the committed crash inputs are CC0-1.0, its README CC-BY-4.0 (L9).
-[[path]]
-glob = "fuzz/**"
-allowed = ["GPL-3.0-or-later"]
-
-[[path]]
-glob = "fuzz/Cargo.lock"
-allowed = ["CC0-1.0"]
-
-[[path]]
-glob = "fuzz/rust-toolchain.toml"
-allowed = ["CC0-1.0"]
-
-[[path]]
-glob = "fuzz/deny.toml"
-allowed = ["CC0-1.0"]
-
-[[path]]
-glob = "fuzz/corpus/**"
-allowed = ["CC0-1.0"]
-
-[[path]]
-glob = "fuzz/regressions/**"
-allowed = ["CC0-1.0"]
-
-[[path]]
-glob = "fuzz/**.md"
-allowed = ["CC-BY-4.0"]
-
 # The binaries elektrawatt, ew, ew-step-worker (and ew-wiring-viewer when it exists).
 [[path]]
 glob = "bin/**"
@@ -529,11 +497,6 @@ allowed = ["CC0-1.0"]
 
 [[path]]
 glob = ".github/**"
-allowed = ["CC0-1.0"]
-
-# cargo-vet rewrites these files and drops comments, so they are annotated in REUSE.toml.
-[[path]]
-glob = "supply-chain/**"
 allowed = ["CC0-1.0"]
 
 # The AI-assistance configuration (agent roles, settings, workflows).

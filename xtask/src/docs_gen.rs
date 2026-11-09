@@ -186,7 +186,7 @@ fn plan(root: &Path) -> Result<Plan> {
     let policy = read_lf(&root.join(DEP_RULES))?.with_context(|| format!("{DEP_RULES} is missing"))?;
     let table = crate_table(&policy)?;
     let wanted_doc =
-        crate::records::replace_block(&doc, CRATE_TABLE_BEGIN, CRATE_TABLE_END, &table, ARCHITECTURE)?;
+        crate::repo::replace_block(&doc, CRATE_TABLE_BEGIN, CRATE_TABLE_END, &table, ARCHITECTURE)?;
     if wanted_doc != doc {
         partial.push((ARCHITECTURE.to_owned(), wanted_doc));
     }
@@ -261,34 +261,19 @@ fn tracked_built(root: &Path) -> Result<Vec<String>> {
     args.extend(GENERATED_PAGES.iter().map(|page| format!("{BOOK_SRC}/{page}")));
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let prefix = format!("{BOOK_SRC}/");
-    Ok(
-        crate::affected::nul_paths(&crate::affected::git_output(root, &args)?)
-            .into_iter()
-            .filter_map(|f| f.strip_prefix(&prefix).map(str::to_owned))
-            .filter(|rel| is_built(rel))
-            .collect(),
-    )
-}
-
-/// The violations of `docs-gen --check` for the repository at `root`: the generated pages, and the work-package
-/// counts that the plan states by hand (`plan_counts.rs`).
-pub(crate) fn violations(root: &Path) -> Result<Vec<String>> {
-    let plan = plan(root)?;
-    let mut found = violations_of(&plan.differing, &tracked_built(root)?, &plan.partial);
-    found.extend(plan.notes);
-    found.extend(crate::plan_counts::violations(root)?);
-    Ok(found)
+    Ok(crate::repo::nul_paths(&crate::repo::git_output(root, &args)?)
+        .into_iter()
+        .filter_map(|f| f.strip_prefix(&prefix).map(str::to_owned))
+        .filter(|rel| is_built(rel))
+        .collect())
 }
 
 /// `docs-gen [--check]` for the repository at `root`.
 pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
     let plan = plan(root)?;
-    // The plan's hand-written WP counts: checked in both modes, never rewritten (they are prose).
-    let counts = crate::plan_counts::violations(root)?;
     if check {
         let mut violations = violations_of(&plan.differing, &tracked_built(root)?, &plan.partial);
         violations.extend(plan.notes);
-        violations.extend(counts);
         if violations.is_empty() {
             println!(
                 "docs-gen: ok ({} commands, {} rule packs)",
@@ -315,7 +300,7 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
         std::fs::remove_file(&path).with_context(|| format!("removing {}", path.display()))?;
     }
     for (rel, text) in &plan.partial {
-        crate::records::write_atomic(&root.join(rel), text)?;
+        crate::repo::write_atomic(&root.join(rel), text)?;
     }
     println!(
         "docs-gen: {} page(s) written, {} removed, {} unchanged; {} generated part(s) outside the book written",
@@ -330,16 +315,6 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
             plan.notes.len()
         );
         for v in &plan.notes {
-            eprintln!("  - {v}");
-        }
-        return Ok(false);
-    }
-    if !counts.is_empty() {
-        eprintln!(
-            "docs-gen: {} stated WP count(s) differ from docs/plan/work-packages.csv; fix them by hand",
-            counts.len()
-        );
-        for v in &counts {
             eprintln!("  - {v}");
         }
         return Ok(false);
@@ -2355,7 +2330,7 @@ fn golden_findings(root: &Path) -> Result<Vec<GoldenFinding>> {
     let text =
         read_lf(&root.join(GOLDEN_FINDINGS))?.with_context(|| format!("{GOLDEN_FINDINGS} is missing"))?;
     let mut lines = text.lines().filter(|l| !l.trim().is_empty());
-    let header = crate::plan_counts::csv_fields(
+    let header = crate::repo::csv_fields(
         lines
             .next()
             .with_context(|| format!("{GOLDEN_FINDINGS} is empty"))?,
@@ -2375,7 +2350,7 @@ fn golden_findings(root: &Path) -> Result<Vec<GoldenFinding>> {
     let (subjects, targets, defect) = (column("subjects")?, column("targets")?, column("defect")?);
     Ok(lines
         .map(|line| {
-            let fields = crate::plan_counts::csv_fields(line);
+            let fields = crate::repo::csv_fields(line);
             let get = |i: usize| fields.get(i).cloned().unwrap_or_default();
             GoldenFinding {
                 ef: get(ef),
@@ -3181,7 +3156,7 @@ row = "g-worker"
         let doc = format!("# 4\n\nText.\n\n{CRATE_TABLE_BEGIN}\n| old |\n{CRATE_TABLE_END}\n\nAfter.\n");
         let table = crate_table(CRATE_POLICY).unwrap();
         assert_eq!(
-            crate::records::replace_block(&doc, CRATE_TABLE_BEGIN, CRATE_TABLE_END, &table, ARCHITECTURE)
+            crate::repo::replace_block(&doc, CRATE_TABLE_BEGIN, CRATE_TABLE_END, &table, ARCHITECTURE)
                 .unwrap(),
             format!("# 4\n\nText.\n\n{CRATE_TABLE_BEGIN}\n{table}{CRATE_TABLE_END}\n\nAfter.\n")
         );

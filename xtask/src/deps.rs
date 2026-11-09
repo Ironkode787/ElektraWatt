@@ -1049,7 +1049,6 @@ mod tests {
             ]
         );
         let real = Policy::load(&crate::workspace_root().join("ci/dep-rules.toml")).unwrap();
-        assert!(real.confined.iter().any(|r| r.manifests == ["fuzz/Cargo.toml"]));
         assert_eq!(
             check_confined_manifests(&real, &crate::workspace_root()).unwrap(),
             Vec::<String>::new()

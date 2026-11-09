@@ -1,55 +1,57 @@
 # ElektraWatt — notes for Claude
 
-ElektraWatt is a cross-platform desktop ECAD application in Rust, for electrical control-cabinet design. It is open
-source: GPL-3.0-or-later for the app, MIT OR Apache-2.0 for the format crates. The documentation starts at
-`docs/README.md`.
+ElektraWatt is a desktop ECAD application in Rust for electrical control-cabinet design. It is open source:
+GPL-3.0-or-later for the app, MIT OR Apache-2.0 for the format crates. It is an early alpha: 0.1.0 is released.
 
-## Who reads what
+## Read first
 
-- **The orchestrating (main) session** follows `.claude/orchestration.md`. Read it at the start of every session.
-- **Subagents** follow their agent definition in `.claude/agents/` (`lane`, `reviewer`, `checker`, `scout`) and their
-  brief. From this file they need only the rules below.
+- `docs/plan/README.md`: the milestone that is running and the open work.
+- `CONTRIBUTING.md`, "The development loop": how a change is checked.
+- `docs/README.md`: the map of the documents. Read a design document only for the area you change.
+- `.claude/orchestration.md`: only when you hand work to subagents.
+
+## The loop
+
+```sh
+cargo xtask check -p <crate> [-p <crate>]...   # format, lint, test what changed, repository rules
+cargo xtask gen                                 # regenerate generated files after changing a command, rule, text, icon
+cargo xtask rules                               # the repository rules alone
+```
+
+- Run `check` on the crates you changed and the crates that show the change. The whole workspace (`check` without
+  `-p`, about twelve minutes) runs at the start and the end of a milestone and before a release, not per change.
+- There is no CI until 1.0 (owner, 2026-11-08). `check` is the check.
+- No performance tests and no timing assertions during development (owner, 2026-10-22); a performance claim is
+  marked "not measured".
+- A test never pins the total of a growing set, a generated name or a path.
+- One place for every item: no list kept in step by hand, no committed copy of something the code can produce.
+
+## Proportion
+
+This is an alpha of a desktop tool with one developer and one pilot (owner, 2026-11-08 and 2026-11-09: "lean,
+efficient, and streamlined"). Before you add a check, a test, a rule, a document or an abstraction, say what it
+catches or who reads it. Delete before you fix, fix before you add. The owner's hands-on test is the gate that
+counts; a passing suite is not proof that the program works.
 
 ## Repository rules
 
-- **Branches.** Commit on the working branch. At a delivery, fast-forward `main` and push both; at a checkpoint, push
-  the working branch only (owner's standing instruction, amended 2026-10-31).
-  - A release has its own branch, `release/<X.Y>`, cut at a delivery. Its candidates are tagged on it, and only fixes
-    for them land there, each also on the working branch (owner, 2026-11-05, ID-1412).
-  - The symbol editor (WP-S2.10, M2.5) is built on its own branch, `feature/symbol-editor`, cut from the working
-    branch (owner, 2026-11-05, ID-1445). It ships in 0.1.0: its fixes integrate on `m25/integration`, which merges
-    into the working branch once its review is accepted, before `release/0.1` is re-cut for the first candidate
-    (owner, 2026-11-06, ID-1466).
-- **Public repository.** Never commit any of these:
-  - customer or end-user names, addresses, project or drawing numbers;
-  - personal names or e-mail addresses;
-  - the reference drawing PDF;
-  - local filesystem paths or agent IDs.
-- **Golden A.** Never open `golden/J-E-2416.ew` in a writing or locking mode.
-- **Where things live.** Design decisions are in `docs/adr/`, the requirements in `docs/design/02a/02b/02c-*.md`, and
-  the plan in `docs/plan/`.
-- **The licence boundary.** Permissive crates (`MIT OR Apache-2.0`) never depend on GPL crates. `cargo deny`,
-  `cargo vet` and the licence map guard it.
-- **Downloads.** Fetch crates, tools and images without asking (owner, 2026-10-22). Keep pins and digests,
-  `cargo deny`/`cargo vet`, the licence boundary and the permissive MSRV. The private corpus never enters the
-  repository.
-- **Commits.** No AI `Signed-off-by`. Commit messages end with `Co-Authored-By: Claude Opus 5.5
-  <noreply@anthropic.com>`.
+- **Branches.** Commit on the working branch, `claude/m0-foundations`. At a delivery, fast-forward `main` and push
+  both; at a checkpoint, push the working branch only. A release is cut from its own branch `release/<X.Y>`; only
+  fixes for its candidates land there, each also on the working branch.
+- **Public repository.** Never commit customer or end-user names, addresses, project or drawing numbers, personal
+  names or e-mail addresses, the reference drawing PDF, local filesystem paths or agent IDs.
+- **Golden A.** Never open `golden/J-E-2416.ew` in a writing or locking mode. Copy it first.
+- **The licence boundary.** Permissive crates (`MIT OR Apache-2.0`) never depend on GPL crates, and they build on
+  the Rust version their manifest names. `cargo xtask rules` and `cargo deny` guard it.
+- **Downloads.** Fetch crates, tools and images without asking (owner, 2026-10-22). Keep versions pinned. The
+  private corpus never enters the repository.
+- **Decisions.** A decision that changes how something works goes into the document that describes it. Open work is
+  a row of `docs/plan/backlog.md`; a finished row is deleted.
+- **Commits.** Conventional subjects; the message says what changed and why. No AI `Signed-off-by`. Messages end
+  with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
-## Testing policy (owner, 2026-10-18; amended 2026-10-22, 2026-10-31, 2026-11-01)
+## Build and disk
 
-- **Agents run targeted tests only.** Never the workspace suite, never `cargo xtask ci`. The agent definitions give
-  the edit loop (one package set, `--all-features`, the nextest `lane` profile) and the hand-back checks.
-- **CI is off until 1.0** (owner, 2026-11-08, ID-1519): no workflow runs on a push, a pull request or a schedule, and
-  no full-suite run replaces it. The lane checks are the test runs.
-- **No performance tests during development** (2026-10-22: "Assume it passed"):
-  - no `#[ignore]`d release-profile tests, no timing assertions, no `cargo xtask perf-gate`;
-  - perf claims are marked "not measured (owner's rule)".
-- **Tests never pin the total of a growing set** (CONTRIBUTING.md).
-
-## Build and disk (owner, 2026-10-21; amended 2026-10-28, -29, -31, 2026-11-01)
-
-- **Environment.** `.claude/settings.json` sets the build environment: no debug info (ID-1440) and 8 jobs. Local
-  builds are incremental. Do not override these settings in a worktree.
-- **Builders.** At most three at once. A subagent's cargo run, a verify and a gate each count as one.
-- **Disk.** Agents delete nothing outside their own worktree. If the disk runs short, they stop and report.
+- `.claude/settings.json` sets the build environment (no debug info, 8 jobs). Do not override it in a worktree.
+- At most three builds at once, counting every subagent's cargo run.
+- A subagent deletes nothing outside its own worktree. If the disk runs short, stop and report.

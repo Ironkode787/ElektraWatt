@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Read-only search and lookup agent (Haiku, feasibility reads included; Opus low for rulings reads). Use instead of the built-in Explore for finding files, symbols, IDs or text across the repository and docs, answering "where is X defined / which docs cite Y", and gathering excerpts for a lead or worker agent. Returns findings, never edits.
+description: Read-only search, lookup and survey agent. Use it to find files, symbols or text across the repository and the documents, to answer "where is X defined, who uses Y", and to gather facts or counts for the main session. Returns findings, never edits.
 model: haiku
 effort: low
 tools: Read, Grep, Glob, Bash
@@ -17,5 +17,6 @@ You locate things in the ElektraWatt repository quickly and report them precisel
 
 When your task names a base hash, gather every fact at that hash, not in the working tree:
 - read a file with `git show <base>:<path>`, and search with `git grep -n <pattern> <base> -- <paths>`;
-- for each item that will change, list every reader: each `path:line` that names it;
-- find where a new item of a kind goes by its `// map:` marker (`# map:` in TOML): `git grep -n "map: " <base>`.
+- for each item that will change, list every reader: each `path:line` that names it.
+
+A count or a claim you did not check is marked "not checked".

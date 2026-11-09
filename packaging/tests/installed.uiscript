@@ -1,7 +1,0 @@
-{"$schema":"ew.uiscript/1","label":"WP-S6.06 D13: the installed resources"}
-{"action":"help.notices"}
-{"action":"ui.describe"}
-{"action":"ui.dismiss"}
-{"action":"file.import_qet","params":{"file":"example.qet","dir":"imported.ew"}}
-{"action":"file.import_qet_apply","params":{"confirm":true}}
-{"action":"file.open_sample"}

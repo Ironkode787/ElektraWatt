@@ -155,7 +155,7 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
 /// The guard against the merge base of `base` and `HEAD`, with [`FROZEN`] and the event file of
 /// `$GITHUB_EVENT_PATH`.
 pub(crate) fn guard_at(root: &Path, base: &str) -> Result<Report> {
-    let merge_base = crate::affected::merge_base(root, base)?;
+    let merge_base = crate::repo::merge_base(root, base)?;
     let event = if FROZEN {
         read_event(std::env::var_os("GITHUB_EVENT_PATH").as_deref().map(Path::new))?
     } else {
@@ -285,15 +285,6 @@ fn is_snapshot_file(path: &str) -> bool {
             .and_then(|rest| rest.strip_prefix('/'))
             .is_some_and(|name| !name.contains('/') && name.ends_with(".json"))
     }) || [CLI, QUERIES, API_V1, RELEASE_NOTES].contains(&path)
-}
-
-/// Whether `path` is a file `api-guard` reads: a snapshot file, or a file under the format surface's published
-/// schemas or frozen fixtures (FT-1517, ID-1464).
-pub(crate) fn reads(path: &str) -> bool {
-    is_snapshot_file(path)
-        || [SCHEMAS_DIR, FIXTURES_DIR]
-            .iter()
-            .any(|dir| path.strip_prefix(dir).is_some_and(|rest| rest.starts_with('/')))
 }
 
 /// The snapshot files of the working tree.

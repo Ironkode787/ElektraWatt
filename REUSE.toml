@@ -8,9 +8,9 @@
 
 version = 1
 
-# L11: generated or tool-rewritten configuration (CC0-1.0). cargo-vet rewrites supply-chain/ without comments.
+# L11: generated or tool-rewritten configuration (CC0-1.0).
 [[annotations]]
-path = ["Cargo.lock", "fuzz/Cargo.lock", ".github/renovate.json", "supply-chain/**", "docs/plan/tools/.gitignore"]
+path = ["Cargo.lock", "docs/plan/tools/.gitignore"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC0-1.0"
@@ -86,26 +86,6 @@ path = "docs/book/src/reference/release-notes/**"
 precedence = "override"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC-BY-4.0"
-
-# L12: the installed-resources script of the packaging (WP-S6.06 D13), JSON lines, which cannot carry a header
-# (MIT OR Apache-2.0, like packaging/).
-[[annotations]]
-path = "packaging/tests/*.uiscript"
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
-SPDX-License-Identifier = "MIT OR Apache-2.0"
-
-# The network sandbox's headless flow and its QElectroTech projects (WP-S6.05 D4; WP-S6.04 D14 the hostile one and the
-# sibling file it names; FT-1376 the include-only one), JSON lines and the projects as the importer reads them, which
-# carry no header (MIT OR Apache-2.0, like ci/).
-[[annotations]]
-path = [
-  "ci/sandbox/flows.ewui", "ci/sandbox/fixture.qet", "ci/sandbox/fixture-hostile.qet", "ci/sandbox/fixture-include.qet",
-  "ci/sandbox/sibling.txt",
-]
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
-SPDX-License-Identifier = "MIT OR Apache-2.0"
 
 # L9: the blind drafter's prompts, personas, task sheets, recordings and help (WP-S6.13, ID-622); data files and the
 # composed prompt cannot carry a header (CC-BY-4.0, like docs/).
@@ -224,10 +204,9 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC0-1.0"
 
-# L8: the seed corpora of the fuzz targets (FT-297), made from the golden project by `fuzz/src/bin/seed_corpus.rs`,
-# and the crash inputs committed as regressions: binary or headerless inputs.
+# L8: binary test inputs kept from the former fuzz corpus: three command sequences and one EPLAN archive.
 [[annotations]]
-path = ["fuzz/corpus/**", "fuzz/regressions/**"]
+path = ["crates/ew-testkit/tests/fixtures/command_fuzz/**", "crates/ew-import-eplan/tests/fixtures/lzma2-7z.edz"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC0-1.0"

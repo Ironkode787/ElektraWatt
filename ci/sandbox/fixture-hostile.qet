@@ -1,3 +1,0 @@
-<?xml version="1.0"?>
-<!DOCTYPE project [<!ENTITY sibling SYSTEM "sibling.txt">]>
-<project version="0.100" title="&sibling;" xmlns:xi="http://www.w3.org/2001/XInclude"><diagram order="1" folio="1" title="P"><xi:include href="sibling.txt" parse="text"/><elements/><conductors/></diagram></project>

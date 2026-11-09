@@ -673,8 +673,7 @@ fn seven_zip_lzma2_members_read_under_an_lzma_encoded_header() {
             "byte {at}"
         );
     }
-    let seed = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../fuzz/corpus/symbol_authoring/lzma2-7z.edz");
+    let seed = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lzma2-7z.edz");
     if bless() {
         std::fs::write(&seed, &archive).unwrap();
     }

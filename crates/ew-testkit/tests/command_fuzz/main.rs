@@ -1630,8 +1630,7 @@ fn ft468_a_structure_box_survives_a_save_and_reload() {
 /// fuzz target and passes the oracle that checks the centre instead.
 #[test]
 fn rep_transform_of_a_black_box_keeps_the_centre_of_its_bounding_box() {
-    let input: &[u8] =
-        include_bytes!("../../../../fuzz/regressions/command_sequence/rep-transform-black-box-pivot");
+    let input: &[u8] = include_bytes!("../fixtures/command_fuzz/rep-transform-black-box-pivot");
     let (seed, rest) = input.split_first_chunk::<8>().expect("a seed");
     let (&steps, tape) = rest.split_first().expect("a step count");
     let cadence = Cadence {
@@ -1660,7 +1659,7 @@ fn rep_transform_of_a_black_box_keeps_the_centre_of_its_bounding_box() {
 #[test]
 fn device_create_with_a_valve_part_counts_its_valve_functions() {
     replay_drawing(
-        include_bytes!("../../../../fuzz/regressions/command_sequence/device-create-valve-part-functions"),
+        include_bytes!("../fixtures/command_fuzz/device-create-valve-part-functions"),
         r#"{"cmd":"device.create","params":{"letter":"A","main_fndef":"2c38898e-6848-5acc-95e5-d8c5b8f702ab","parts":[{"part":{"copy":"2b23f42b-b502-5f8b-aab9-6200eb76adcf"},"qty":"1"}]}}"#,
     );
 }
@@ -1674,9 +1673,7 @@ fn device_create_with_a_valve_part_counts_its_valve_functions() {
 #[test]
 fn valve_add_of_a_plc_module_part_is_attached_to_the_station() {
     replay_drawing(
-        include_bytes!(
-            "../../../../fuzz/regressions/command_sequence/valve-add-plc-module-part-attached-to-station"
-        ),
+        include_bytes!("../fixtures/command_fuzz/valve-add-plc-module-part-attached-to-station"),
         r#"{"cmd":"valve.add","params":{"module":"eec54bc9-3da2-5515-bd80-29bf50425002","part":{"part":{"copy":"496e2ad0-fbe2-5733-bb7c-b950ab527a14"},"qty":"1"},"position":21}}"#,
     );
 }

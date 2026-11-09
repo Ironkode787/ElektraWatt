@@ -3,11 +3,6 @@
 
 /target
 
-# The cargo-fuzz crate (fuzz/): its build output, the crash inputs libFuzzer writes and the coverage output. A
-# finding is committed by hand under fuzz/regressions/.
-/fuzz/target
-/fuzz/artifacts
-/fuzz/coverage
 **/*.rs.bk
 .DS_Store
 # The bytecode a `python` run of the ci/ or tools/ scripts leaves (FT-1303).
@@ -29,6 +24,3 @@ __pycache__/
 
 # Claude Code agent worktrees (local only)
 .claude/worktrees/
-
-# DeepSeek coder runs: task texts, dsh event logs and run state (local only)
-.claude/deepseek/runs/

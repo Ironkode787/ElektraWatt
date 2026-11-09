@@ -1,73 +1,22 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: CC0-1.0
 
-# PR CI never retries a test (NFR-MAINT-13, docs/design/18-quality-security-release.md §3.14). A
-# nondeterministic test is quarantined with an issue and an owner instead.
+# One profile. A test is never retried: a test that fails now and then is fixed or removed.
 [profile.default]
 retries = 0
 fail-fast = false
-# FT-524, FT-538: an intermittent failure's output is printed again at the end of the run (a long run's scrollback
-# loses it) and kept in target/nextest/default/junit.xml with the test's stdout and stderr, so the next sighting of a
-# failure seen only under load leaves its log.
-failure-output = "immediate-final"
-
-[profile.default.junit]
-path = "junit.xml"
-
-# Two slow test binaries run ONCE per CI test job (decision log ID-381, ID-437):
-#   - the headless acceptance tests (crates/ew-api/tests/acceptance.rs: the report equality test, in three shards
-#     that run in parallel since cycle 32, the derived-CSV test and their helper tests; FT-268);
-#   - the command fuzzer (crates/ew-testkit/tests/command_fuzz: `fuzz_smoke`, 15 to 19 s in a debug build, and the
-#     binary's other tests; FT-306).
-# The rule (FT-1132, decision log ID-1217):
-#   - the default-features run of the Linux job test-linux-default runs the whole workspace, so they run there;
-#   - the all-features run of test-linux covers only the packages with a feature that the default run leaves off
-#     (`cargo xtask all-features-set`), which hold neither of them; the Windows job has only an all-features run
-#     (FT-330, decision log ID-482), whole, in which they run in part 1 of the three (a test of xtask keeps it so).
-# `cargo xtask ci` follows the same rule locally. A single crate is not affected: `cargo nextest run -p ew-api`
-# still runs the acceptance tests and `cargo nextest run -p ew-testkit` the fuzzer. `cargo xtask acceptance` runs
-# the full gate (`gate`, the raster comparison) on its own.
-
-# Used by agent lanes in their edit loop and hand-back checks (workflow redesign, owner, 2026-11-01): only failures
-# and the summary are printed, so a lane never pipes the output and never re-runs a test to see a cut-off failure.
-[profile.lane]
-retries = 0
-fail-fast = false
+# Only failures and the summary are printed, each failure once more at the end.
 status-level = "fail"
 final-status-level = "fail"
-failure-output = "final"
+failure-output = "immediate-final"
 success-output = "never"
-# As in local-dev: no performance measurements during development (ID-664).
+# No performance measurements during development.
 default-filter = 'not binary(perf) and not test(/(^|::)perf_/)'
-# FT-1120: a test that runs longer than 2 minutes is ended and fails under its name, instead of holding the lane for
-# as long as the lane's own timeout (cycle 47: one test of ew-viewmodel hung for 1,441 s).
+# A hung test is ended after two minutes and fails under its name.
 slow-timeout = { period = "60s", terminate-after = 2 }
 
-# The lane's longer tests keep the `ci` profile's bound (10 minutes): the acceptance tests and the command fuzzer take
-# about 2 minutes (ID-1217), and the memo oracle and the page output tests of ew-api a similar time under load.
-[[profile.lane.overrides]]
+# The long tests: the acceptance run, the command fuzzer, the memo oracle and the page output take about two minutes
+# on a busy machine.
+[[profile.default.overrides]]
 filter = 'binary(acceptance) or binary(command_fuzz) or binary(memo_oracle) or binary(page_output)'
 slow-timeout = { period = "60s", terminate-after = 10 }
-
-# Used by the CI test jobs: same behaviour, plus a JUnit report at target/nextest/ci/junit.xml.
-[profile.ci]
-retries = 0
-fail-fast = false
-# A test that runs longer than 10 minutes is ended and fails under its name, instead of holding the job until the job
-# timeout cancels it without a log (cycle-39 delivery, run 41169864175: test-linux's all-features run passed its usual
-# 18 to 20 minutes and was cancelled at 50). The longest CI tests, the acceptance shards, take about 2 minutes.
-slow-timeout = { period = "60s", terminate-after = 10 }
-
-[profile.ci.junit]
-path = "junit.xml"
-
-# Local development and cycle gates omit performance measurements (ID-664).
-# Select with NEXTEST_PROFILE=local-dev; hosted CI and performance profiles stay unchanged.
-[profile.local-dev]
-default-filter = 'not binary(perf) and not test(/(^|::)perf_/)'
-
-# A hung test of the ew-viewmodel `jobs` binary is ended after 5 minutes instead of blocking the run (cycle 31
-# review R3-1). Overrides of the default profile apply to every profile.
-[[profile.default.overrides]]
-filter = 'package(ew-viewmodel) and binary(jobs)'
-slow-timeout = { period = "60s", terminate-after = 5 }

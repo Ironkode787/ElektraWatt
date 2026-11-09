@@ -1,6 +1,0 @@
-{"$schema":"ew.uiscript/1","label":"A small script"}
-{"action":"file.new","params":{"dir":"seed.ew"}}
-{"action":"tool.place"}
-{"action":"cursor.set","params":{"x_mm":20,"y_mm":30}}
-
-{"action":"script.expect_refused","params":{"action":"tool.place","params":{}}}

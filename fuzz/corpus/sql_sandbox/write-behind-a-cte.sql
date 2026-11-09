@@ -1,1 +1,0 @@
-WITH a AS (SELECT 1) DELETE FROM t_item

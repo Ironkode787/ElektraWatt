@@ -1,1 +1,0 @@
-WITH RECURSIVE s(t) AS (SELECT 'x' UNION ALL SELECT t || t FROM s) SELECT length(t) FROM s

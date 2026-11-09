@@ -5,9 +5,8 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Contributing to ElektraWatt
 
-Thank you for your interest in ElektraWatt. The project is in milestone M0: the repository holds the workspace
-skeleton and the CI, and no functionality yet. This guide covers the workflow that applies today. It grows with the
-code, and the roles and decision rules behind it are in the
+Thank you for your interest in ElektraWatt. The project is an early alpha: 0.1.0 is released, and the work now is
+to make it lean and to make it work well. The roles and decision rules are in the
 [open-source governance document](docs/design/19-open-source-governance.md).
 
 ## Where to ask
@@ -15,53 +14,49 @@ code, and the roles and decision rules behind it are in the
 - Open an issue with one of the templates: bug, feature, part data or symbol. Blank issues are disabled.
 - Security reports never go into public issues, discussions or pull requests. See [SECURITY.md](SECURITY.md).
 
-## Building and testing
+## The development loop
+
+Three commands, run from the repository root:
 
 ```sh
-cargo build --workspace --locked
-cargo nextest run --workspace
-cargo xtask ci
+cargo xtask check -p <crate> [-p <crate>]...   # format, lint and test what you changed, then the repository rules
+cargo xtask gen                                 # regenerate the generated files
+cargo xtask rules                               # the repository rules alone, in seconds
 ```
 
-`cargo xtask ci` runs fmt, clippy, nextest and the policy checks, as CI does. [ci/README.md](ci/README.md) lists
-the full per-PR CI set and how to reproduce each job locally.
+- **`check`** formats every Rust file, runs clippy with warnings as errors and the tests of the crates you name,
+  with all features, and then the repository rules. Name the crates you changed and the crates that show the
+  change (a command usually shows in `ew-api` and `ew-viewmodel`). Without `-p` it takes the whole workspace,
+  about twelve minutes: do that before a release, not for every change.
+- **`gen`** rewrites every file that is generated from code or data. Run it after you change a command, a check
+  rule, a text key, a keymap, an icon or a library symbol, and commit what it changed with your change.
+- **`rules`** checks the crate layers and the licence boundary, test-only features, raw reads of the model,
+  confidential tokens, and that the generated files xtask writes are current. It builds nothing.
 
-Run `cargo xtask settle` before you push: it formats the changed Rust files and regenerates the derived reference files
-your change reaches (schemas, keymaps, the book's table of contents, the fuzz table, the self-test recordings, ...);
-`cargo xtask settle --check` is what the verify runs (a lane's `lane-check` runs `cargo xtask settle` in write mode);
-the merge point runs `cargo xtask settle --merge`, which adds the allow-list gates, `check-brief` and the MSRV check.
-The book's reference pages are built, not committed: `cargo xtask docs-gen` writes them from the committed contract
-files, and `mdbook build docs/book` needs them.
-An agent lane runs its hand-back checks with `cargo xtask lane-check --base <rev> -p <pkg>...`, which picks, in this
-order, fmt, settle (write mode), clippy, doc with the doctests, one bounded nextest run and the policy checks (with
-`api-guard` when a file it reads changed) from the diff (`--plan` prints them). A rewrite by fmt or settle stops the
-run: commit the rewrites and run it again. `--trailers "Decision: ID-n"` (repeatable) adds a step that fails when no
-commit since the merge base carries an item. On a clean worktree it skips a step that passed before on the same tree
-with the same commands; `--fresh` runs every step.
-
-A new integration test goes into its crate's one test binary: `tests/it/<name>.rs`, which `automod::dir!` in
-`tests/it/main.rs` declares. Touch `tests/it/main.rs` once after adding the file: cargo does not notice a new file in
-that directory until `main.rs` changes.
-
-A registry or list that is still kept by hand carries a marker comment, `// map: <name>: a new <X> goes <where>.`, one
-line above it; `cargo xtask map --crates <a,b>` prints a crate's modules, tests, features, edges and markers, and
-`cargo xtask map --check` keeps the markers honest. No new list kept by hand is added: register a new kind of item
-where it is defined (a macro, a derive, or generation from one source). The existing lists are being removed.
-
-The golden-project commands (`ew export pdf golden/J-E-2416.ew --out out/J-E-2416.pdf`, and the acceptance runner
-`ew-testkit accept`) follow with M1.
+There is no continuous integration until 1.0. `check` is the check.
 
 ### Tests
 
-A test must not break because an unrelated feature added a command, word, action, rule, part, row or file.
+- A test must not break because an unrelated feature added a command, a word, an action, a rule, a part, a row or a
+  file. Do not write the total of a set that grows, a generated name or a path as a literal: read it from its
+  source, or assert a relation (equal sets, a subset, "one per command", "not empty"). Counts of the test's own
+  fixture are fine.
+- A new integration test goes into its crate's one test binary, `tests/it/<name>.rs`. Touch `tests/it/main.rs`
+  once after you add the file, since cargo does not see a new file in that folder until `main.rs` changes.
+- No performance tests and no timing assertions during development.
 
-- Do not pin the total of a set that grows: the number of registered commands, vocabulary words, actions, rules,
-  starter parts, menu entries or kinds.
-- Derive such a number from its source (`CommandRegistry::builtin()`, the enum's `ALL`, the rule catalogue, the
-  committed golden table or expected file), or assert a relation instead (set equality, subset, "one example per
-  command", "not empty").
-- Counts of the test's own fixture, and numbers a design document gives as the oracle (such as the Golden A
-  finding rows of doc 20 §18.1), are fine to write as literals.
+### One place for every item
+
+A command, an action, a rule, a text or an icon is declared in one place, and everything else follows from it at
+build time or through `cargo xtask gen`. Do not add a list that has to be kept in step by hand; if a change seems to
+need one, generate it or derive it instead.
+
+## Decisions and open work
+
+- Open work is a row of [`docs/plan/backlog.md`](docs/plan/backlog.md). A finished row is deleted.
+- A decision that changes how something works is written into the document that describes it (a design document
+  under `docs/design/` or an ADR under `docs/adr/`), so that the document states what is true now.
+- The commit message says what changed and why. No trailer is required.
 
 ## Branches, commits and pull requests
 
@@ -71,7 +66,7 @@ squash commit and the changelog line, so it is a conventional-commit title, for 
 
 ## Developer Certificate of Origin
 
-Every commit carries a sign-off trailer. `git commit -s` adds it:
+Every commit of a contributor carries a sign-off trailer. `git commit -s` adds it:
 
 ```text
 Signed-off-by: Your Name <address>
@@ -87,33 +82,8 @@ The sign-off certifies the [Developer Certificate of Origin 1.1](https://develop
 4. You understand that the contribution and your sign-off are public and are kept in the project history.
 
 The name must be one you are commonly known by. Anonymous contributions are not accepted.
-The `Signed-off-by:` is always a human's.
-
-A CI check (`cargo xtask check-dco`) rejects pull requests with unsigned commits. To fix a branch, run
+The `Signed-off-by:` is always a human's. A maintainer checks the sign-offs at review; to fix a branch, run
 `git commit --amend -s` for the last commit, or `git rebase --signoff main` for the whole branch.
-
-## Records: commit trailers
-
-Decisions, follow-up tasks and golden changes are recorded in commit trailers, beside the sign-off, and in one line
-per new entry of [`docs/plan/decisions.md`](docs/plan/decisions.md) and
-[`docs/plan/follow-ups.md`](docs/plan/follow-ups.md). A trailer, not an edit, follows an entry up or closes it.
-
-| Trailer | Meaning |
-|---|---|
-| `Decision: ID-n[, …]` (also `DEC-n`, `ADR-n`) | The decisions the commit implements or records |
-| `FT-Opens: FT-n[, …]` | The follow-up tasks of `follow-ups.md` it opens |
-| `FT-Closes: FT-n[, …]` | The follow-up tasks it closes (either list) |
-| `Golden: ID-n <one-line reason>` | The decision behind a change of `golden/**`; such a commit needs it |
-| `Spec: <docs path>[, …]` | The specification it follows |
-
-Beside these, a commit may carry `Co-Authored-By:`, `Signed-off-by:` and `Assisted-by:` (see the AI-use policy
-below). Any other key is unknown; `Claude-Session:` is one of them and is refused.
-
-No trailer is required otherwise. `cargo xtask check-trailers --range <a>..<b>` refuses an unknown key, a malformed
-value, an ID or path that does not exist at that commit, a change of `golden/**` without `Golden:` and a record line
-above a blank line, outside the trailer block (git then drops it from the trailers); CI runs it on
-pull requests. `cargo xtask records` generates [`docs/plan/records.md`](docs/plan/records.md), the decision index and
-the open follow-up tasks, from the two files and the trailers.
 
 ## Licences: the licence of the path you touch
 
@@ -125,35 +95,27 @@ changes. There is no CLA and no copyright assignment. The main rows:
 | Application and GPL-layer crates, `bin/` | `GPL-3.0-or-later` (the plugin exception follows with ADR-0025) |
 | `crates/ew-import-qet/` | `GPL-3.0-or-later`, no exception |
 | `crates/ew-import-qet/src/qet_port/` (ported QET code only) | `GPL-2.0-or-later` |
-| Permissive crates: `ew-units`, `ew-ids`, `ew-mltext`, `ew-rds`, `ew-schema`, `ew-format`, `ew-interop-api`, `ew-dl`, `ew-step-proto`, `ew-memo`, `ew-plcaddr`, `ew-caex`, `ew-devdesc`, `ew-ewpp` | `MIT OR Apache-2.0` |
-| CI workflows, `ci/`, `xtask/` | `MIT OR Apache-2.0` |
+| Permissive crates: the file format, identifiers, units and the other crates whose manifest says so | `MIT OR Apache-2.0` |
+| Release workflows, `ci/`, `xtask/` | `MIT OR Apache-2.0` |
 | Documentation | `CC-BY-4.0` |
 | Repository configuration | `CC0-1.0` |
 
 [LICENSE.md](LICENSE.md) is the full index. The path-to-licence map is in
-[governance §2.1](docs/design/19-open-source-governance.md#21-licence-layers).
+[governance §2.1](docs/design/19-open-source-governance.md#21-licence-layers), and `cargo xtask rules` checks it.
 
 - Every new file carries a header with the collective copyright notice "The ElektraWatt contributors", the year,
   and the SPDX licence identifier of its path. A file that cannot carry a header gets an entry in `REUSE.toml`.
   Headers name no person and no employer.
-- Permissive crates may depend only on crates with permissive licences (the licence-boundary check, NFR-MAINT-02).
-- Code copied or ported from another project is declared in the PR (provenance) and keeps its original notices
-  (LR-05).
+- Permissive crates may depend only on crates with permissive licences, and they build on the Rust version their
+  manifest names.
+- Code copied or ported from another project is declared in the PR (provenance) and keeps its original notices.
 
 ## Review
 
-- Every PR needs one approving review by someone other than the author. CODEOWNERS routes the reviews. Critical
-  paths get a second owner by M1.
-- A change to the file format needs the schema steward's review.
-- A released format changes only additively (ADR-0011 amendment 6): from its release tag on, `cargo xtask api-guard`
-  fails any other change to `schemas/<format>/` and any change to its frozen copy `fixtures/format/<format>/`, and a
-  new enum value or `oneOf`/`anyOf` branch passes only with the line `- format-variant: <kind> <path> <value>` in
-  `docs/release-notes/unreleased.md`, and the reviewer checks the type's `Unknown(Value)` arm (ADR-0011 amendment 1).
-- Licence, governance, format-major and API-break changes need an accepted RFC in `rfcs/`, referenced from the PR.
-  The RFC process opens with the first binary release. Until then the decision is an ADR in `docs/adr/`.
-
-The decision matrix is in
-[governance §3.4](docs/design/19-open-source-governance.md#34-decision-making-rfcs-adrs-schema-steward-roadmap).
+- Every PR needs one approving review by someone other than the author.
+- A released file format changes only additively (ADR-0011): `cargo xtask api-guard` names any other change to
+  `schemas/<format>/` and any change to its frozen copy `fixtures/format/<format>/`.
+- Licence, governance, format-major and API-break changes are decided in an ADR in `docs/adr/`.
 
 ## Pull request checklist
 
@@ -161,14 +123,10 @@ The [pull request template](.github/PULL_REQUEST_TEMPLATE.md) asks you to confir
 
 - a conventional-commit PR title;
 - signed-off commits;
-- provenance of any copied or ported code (LR-05);
+- provenance of any copied or ported code;
 - AI assistance, disclosed;
-- whether the PR changes the file format, so the schema steward is requested;
-- documentation and rule pages updated where behaviour changes;
-- a new shipped rule has its notes, `docs/book/rule-notes/<id in lower case>.md` with the six headings, and declares
-  its page in `docs` (`cargo xtask docs-gen --check` fails without them; WP-S7.05 D5, D6);
-- a new parser of external bytes or a new extension point adds its row to the
-  [threat model](docs/security/threat-model.md) in the same change (NFR-SEC-01);
+- whether the PR changes the file format;
+- documentation updated where behaviour changes;
 - no customer data, personal data, confidential drawings or local paths.
 
 ## AI-use policy
@@ -184,8 +142,8 @@ The core team works with AI assistance. This policy regulates the use of AI tool
    content. QET example projects are excluded from any data set used with AI tools. Confidential material, such as
    customer projects, goes into an AI tool only with its owner's permission and in a configuration that excludes
    it from training.
-4. **No laundering.** Asking a tool to reproduce another project's code is porting, and LR-05 applies. Output
-   derived from QET code may only go into `qet_port/`.
+4. **No laundering.** Asking a tool to reproduce another project's code is porting, and the provenance rule
+   applies. Output derived from QET code may only go into `qet_port/`.
 5. **Agents and the repository.** No AI agent holds merge rights or pushes to protected branches. A PR written by
    an agent follows the same review rules as any other.
 
@@ -195,31 +153,14 @@ The repository is public. Never attach customer drawings, project files, screens
 personal data to an issue or PR. Use the placeholders `<customer>`, `<end user>`, `<project ref>`, `<drawing id>`
 and `<engineer>`. Do not commit local filesystem paths.
 
-A CI anonymisation guard (`cargo xtask check-anonymisation`) compares every committed word n-gram (n ≤ 3) with
-hashes of confidential tokens that the maintainers hold (`ci/denylist.sha256`; NFR-PRIV-09). If it fires, replace
-the token with a placeholder. Do not paste the token into the PR discussion.
+`cargo xtask rules` compares every committed word n-gram (n ≤ 3) with hashes of confidential tokens that the
+maintainers hold (`ci/denylist.sha256`). If it fires, replace the token with a placeholder. Do not paste the token
+into the PR discussion.
 
 ## Dependencies
 
-A new crates.io dependency must pass:
-
-- `cargo deny check` (licence allowlist);
-- `cargo vet`: each new crate gets an audit or an exemption, reviewed by a maintainer;
-- if the crate has a build script, the build-script allowlist (`ci/build-scripts.allowlist`, one `name@version`
-  per line), after you have read its `build.rs`. A version bump of such a crate fails the check until you have read
-  the new `build.rs` and run `cargo xtask check-build-scripts --bless`; name the re-read crates in the commit
-  message.
-
-The `who` field of a cargo-vet audit is the contributor's GitHub handle, never a personal name or e-mail address;
-an audit an AI agent performed says "AI-performed, owner-delegated (date)" in `notes`. The project imports published audit sets, but `supply-chain/imports.lock`
-must not carry the auditors' names or addresses: after any `cargo vet` run that fetches imports, run
-`cargo xtask check-vet-imports --bless`, which strips them (CI fails otherwise).
-
-## Adding a rule, report, importer or machine profile
-
-This guide follows with the first implementation of each (NFR-MAINT-08). Until then the design documents describe
-them: [checks](docs/design/15-checks-revisions-collaboration.md), [interop](docs/design/14-interop.md) and
-[manufacturing outputs](docs/design/13-manufacturing-outputs.md).
+A new crates.io dependency must pass `cargo deny check` (licences, advisories and sources). Add one only when
+writing the few lines yourself is clearly worse.
 
 ## Code of Conduct
 

@@ -1,1 +1,0 @@
-A sibling of the import fixtures (WP-S6.04 D14): no import may open this file.

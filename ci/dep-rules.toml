@@ -327,13 +327,11 @@ pattern = "ew-import-*"
 
 # ADR-0024 decision 4 and NFR-LIC-05: QET-derived code is confined. Only ew-api depends on ew-import-qet;
 # ew-plugin-host and the permissive crates never reach it, directly or transitively ("@permissive" stands
-# for every crate of the permissive layer). The fuzz crate, outside the workspace, is read from its manifest
-# (ID-1374): it reaches the importers through ew-api only.
+# for every crate of the permissive layer).
 [[confined]]
 crate = "ew-import-qet"
 only_direct_dependents = ["ew-api"]
 never_reached_from = ["ew-plugin-host", "@permissive"]
-manifests = ["fuzz/Cargo.toml"]
 reason = "ADR-0024 decision 4 (QET-derived code)"
 
 # `cargo xtask check-raw-read` (ADR-0001 amendment 2, decision log ID-50, FT-01) guards the raw readers that
@@ -375,31 +373,31 @@ exempt_packages = ["xtask"]
 path = "bin/ew/src/cli.rs"
 item = "disallowed_methods"
 count = 4
-reason = "the helpers source_date_epoch, content_dir and appimage, the CLI's program-boundary environment reads, and debug_panic, a debug build's test fault (WP-S6.04 D15); reviewed in ci/disallowed-methods-allow.toml"
+reason = "the helpers source_date_epoch, content_dir and appimage, the CLI's program-boundary environment reads, and debug_panic, a debug build's test fault (WP-S6.04 D15)"
 
 [[raw_read.allow]]
 path = "bin/elektrawatt/src/main.rs"
 item = "disallowed_methods"
 count = 1
-reason = "the helper dbus_env_path, the portal availability heuristic (two D-Bus variables); reviewed in ci/disallowed-methods-allow.toml"
+reason = "the helper dbus_env_path, the portal availability heuristic (two D-Bus variables)"
 
 [[raw_read.allow]]
 path = "crates/ew-viewmodel/src/settings.rs"
 item = "disallowed_methods"
 count = 1
-reason = "the helper env_path, the shell's program-boundary environment read (EW_CONFIG_DIR and the platform directories, read once at start-up); reviewed in ci/disallowed-methods-allow.toml"
+reason = "the helper env_path, the shell's program-boundary environment read (EW_CONFIG_DIR and the platform directories, read once at start-up)"
 
 [[raw_read.allow]]
 path = "crates/ew-sqlview/src/sandbox.rs"
 item = "disallowed_methods"
 count = 1
-reason = "the helper deadline_now, the monotonic deadline of a sandboxed query; reviewed in ci/disallowed-methods-allow.toml"
+reason = "the helper deadline_now, the monotonic deadline of a sandboxed query"
 
 [[raw_read.allow]]
 path = "crates/ew-testkit/src/bench.rs"
 item = "disallowed_methods"
 count = 2
-reason = "the helpers class_var and timer_start of the bench harness; reviewed in ci/disallowed-methods-allow.toml"
+reason = "the helpers class_var and timer_start of the bench harness"
 
 # [[raw_read.allow]]
 # path = "crates/ew-example/src/lib.rs"   # relative to the workspace root, forward slashes

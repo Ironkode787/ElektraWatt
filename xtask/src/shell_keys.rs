@@ -73,7 +73,7 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
             println!("shell-keys: ok");
             return Ok(true);
         }
-        eprintln!("shell-keys: {OUTPUT} differs from {SOURCE}; run `cargo xtask settle`");
+        eprintln!("shell-keys: {OUTPUT} differs from {SOURCE}; run `cargo xtask gen`");
         return Ok(false);
     }
     std::fs::write(&path, wanted).with_context(|| format!("writing {}", path.display()))?;

@@ -325,7 +325,7 @@ mod tests {
         let v = crate::check_anonymisation_at(&dir, true).unwrap();
         std::fs::remove_dir_all(&dir).unwrap();
         assert_eq!(v.len(), 1, "{v:#?}");
-        assert!(v[0].contains("--require-entries"), "{v:#?}");
+        assert!(v[0].contains("has no entries"), "{v:#?}");
         assert!(
             EMPTY_WARNING.starts_with("check-anonymisation: WARNING: ci/denylist.sha256 has no entries;"),
             "{EMPTY_WARNING}"
