@@ -14,24 +14,22 @@ use crate::common;
 use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
-    AddCarrier, CarrierKindParam, CarrierParamsParam, CreateEnclosure, CreateLayoutSpace, LockPlacement,
-    MovePlacement, PlaceDevice, PlaceMode, PlaceOnParam,
+    AddCarrier, CarrierKindParam, CarrierParamsParam, LockPlacement, MovePlacement, PlaceDevice, PlaceMode,
+    PlaceOnParam,
 };
 use ew_commands::{CmdError, Engine, Origin};
 use ew_derive::Q;
 use ew_derive::layout::{
     Quarter, RailItem, RailOccupancy, Resolution, SnapMode, bracket_part, rail_extent, rail_items, resolve,
 };
-use ew_ids::{Id, v5};
+use ew_ids::Id;
 use ew_model::Model;
 use ew_schema::{
-    Carrier, Clearance, Device, EnclosureSection, LibCopy, LibDocument, MechData, MountKind, MountingSurface,
-    Part, PartRef, PartUse, Placement, PlateSection, RailSection, Record,
+    Carrier, Clearance, Device, LibCopy, LibDocument, MechData, MountKind, MountingSurface, Part, PartUse,
+    Placement, Record,
 };
-use ew_units::{Dec3, Nm, Pose3, Pt2, Quat9};
+use ew_units::{Nm, Pose3, Quat9};
 use proptest::prelude::*;
-
-const MM: i64 = 1_000_000;
 
 const LIB_S: u128 = 0xd100;
 const ITEM_ENCL: u128 = 0xd101;
@@ -56,14 +54,7 @@ const DEV_B1: Id<Device> = id(0xa23);
 const DEV_A1: Id<Device> = id(0xa24);
 
 fn copy_id(item: u128) -> Id<Part> {
-    v5::lib_copy_id(uuid(LIB_S), uuid(item))
-}
-
-fn copy(item: u128, number: &str) -> LibCopy<Part> {
-    let mut c = part(copy_id(item), number);
-    c.library_id = Id::from_uuid(uuid(LIB_S));
-    c.item_id = Id::from_uuid(uuid(item));
-    c
+    lib_part_id(LIB_S, item)
 }
 
 fn mech(w: i64, clearance: Option<(i64, i64)>) -> MechData {
@@ -81,28 +72,11 @@ fn mech(w: i64, clearance: Option<(i64, i64)>) -> MechData {
 }
 
 fn copies() -> Vec<LibCopy<Part>> {
-    let mut encl = copy(ITEM_ENCL, "ENCL");
-    encl.item.sections.enclosure = Some(EnclosureSection {
-        width: Some(Nm(750 * MM)),
-        height: Some(Nm(1000 * MM)),
-        depth: Some(Nm(420 * MM)),
-        plate: Some(lib_ref_to(uuid(LIB_S), uuid(ITEM_PLATE))),
-        ..EnclosureSection::default()
-    });
-    let mut plate = copy(ITEM_PLATE, "PLATE");
-    plate.item.sections.mounting_plate = Some(PlateSection {
-        width: Some(Nm(650 * MM)),
-        height: Some(Nm(900 * MM)),
-        ..PlateSection::default()
-    });
-    let mut rail = copy(ITEM_RAIL, "RAIL");
-    rail.item.sections.rail = Some(RailSection {
-        profile: MountKind::Ts35x7_5,
-        stock_length: None,
-        extra: Default::default(),
-    });
+    let encl = enclosure_part(LIB_S, ITEM_ENCL, ITEM_PLATE, "ENCL");
+    let plate = plate_part(LIB_S, ITEM_PLATE, "PLATE");
+    let rail = rail_part(LIB_S, ITEM_RAIL, MountKind::Ts35x7_5);
     let device = |item, number, m| {
-        let mut c = copy(item, number);
+        let mut c = lib_part(LIB_S, item, number);
         c.item.mech = Some(m);
         c
     };
@@ -119,11 +93,7 @@ fn copies() -> Vec<LibCopy<Part>> {
 }
 
 fn uses(item: u128) -> Vec<PartUse> {
-    vec![PartUse {
-        part: PartRef::new(copy_id(item)),
-        qty: Dec3::ONE,
-        extra: Default::default(),
-    }]
+    part_uses(LIB_S, &[item])
 }
 
 fn model() -> Model {
@@ -154,10 +124,6 @@ fn model() -> Model {
     let mut lib = library();
     lib.extend(copies().into_iter().map(LibDocument::Part));
     Model::from_records(p, records, lib).expect("valid")
-}
-
-fn p(u: i64, v: i64) -> Pt2 {
-    Pt2::new(Nm(u * MM), Nm(v * MM))
 }
 
 /// A rail pose at clip point `s` (in tenths of a millimetre), turned `k` quarter turns.
@@ -195,38 +161,12 @@ struct Fx {
     rail2: Id<Carrier>,
 }
 
-fn created<T>(r: ew_commands::Receipt) -> Id<T> {
-    r.outcome.primary.expect("a primary record").1.cast()
-}
-
 fn fx() -> Fx {
     let mut e = engine(model());
-    let space = created(
-        e.execute(&CreateLayoutSpace {
-            location: LOC,
-            name: None,
-        })
-        .unwrap(),
-    );
-    created::<ew_schema::Enclosure>(
-        e.execute(&CreateEnclosure {
-            space,
-            device: DEV_UC1,
-            pose: None,
-            pe_bond: None,
-        })
-        .unwrap(),
-    );
-    let surface: Id<MountingSurface> = e
-        .model()
-        .table::<MountingSurface>()
-        .iter()
-        .map(|(id, _)| *id)
-        .next()
-        .expect("the plate surface");
+    let (_, _, surface) = space_with_enclosure(&mut e, DEV_UC1, None);
     // Rail 2 is added first: its label comes from its place (top to bottom), not from its ID or its order.
-    let rail2 = created(e.execute(&rail_cmd(surface, 600)).unwrap());
-    let rail1 = created(e.execute(&rail_cmd(surface, 800)).unwrap());
+    let rail2 = made(e.execute(&rail_cmd(surface, 600)).unwrap());
+    let rail1 = made(e.execute(&rail_cmd(surface, 800)).unwrap());
     Fx {
         e,
         surface,
@@ -256,13 +196,6 @@ fn mv(placement: Id<Placement>, pose: Pose3, mode: Option<PlaceMode>) -> MovePla
     }
 }
 
-fn rejected(r: Result<ew_commands::Receipt, CmdError>) -> String {
-    match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
-        other => panic!("expected a refusal, got {other:?}"),
-    }
-}
-
 /// The clip point of a placement in tenths of a millimetre.
 fn clip10(e: &Engine, pl: Id<Placement>) -> i64 {
     e.model()
@@ -279,7 +212,7 @@ fn clip10(e: &Engine, pl: Id<Placement>) -> i64 {
 impl Fx {
     /// Places a device on rail 1 at clip `s` mm without a mode.
     fn put(&mut self, device: Id<Device>, s: i64) -> Id<Placement> {
-        created(
+        made(
             self.e
                 .execute(&place(device, PlaceOnParam::Carrier(self.rail1), at(s), None))
                 .unwrap(),
@@ -296,7 +229,7 @@ fn free_takes_the_nearest_gap() {
     let k2 = f.put(k(2), 118); // [109, 127]
     let cursor = f.e.history().cursor();
     // K3 at clip 112 mm (left edge 103): the left gap ends at 73 mm (30 away), the right one starts at 127 mm (24 away).
-    let k3: Id<Placement> = created(
+    let k3: Id<Placement> = made(
         f.e.execute(&place(
             k(3),
             PlaceOnParam::Carrier(f.rail1),
@@ -308,7 +241,7 @@ fn free_takes_the_nearest_gap() {
     assert_eq!(clip10(&f.e, k3), 1360);
     assert_eq!((clip10(&f.e, k1), clip10(&f.e, k2)), (1000, 1180));
     assert_eq!(f.e.history().cursor(), cursor + 1);
-    let k4: Id<Placement> = created(
+    let k4: Id<Placement> = made(
         f.e.execute(&place(
             k(4),
             PlaceOnParam::Carrier(f.rail1),
@@ -319,7 +252,7 @@ fn free_takes_the_nearest_gap() {
     );
     assert_eq!(clip10(&f.e, k4), 3000, "a place that fits is kept");
     // Gaps of 91, 146 and 291 mm: the 300 mm device fits none.
-    let refused = rejected(f.e.execute(&place(
+    let refused = reason(f.e.execute(&place(
         DEV_B1,
         PlaceOnParam::Carrier(f.rail1),
         at(400),
@@ -331,7 +264,7 @@ fn free_takes_the_nearest_gap() {
         f.e.execute(&place(k(n), PlaceOnParam::Carrier(f.rail2), at(s), None))
             .unwrap();
     }
-    let refused = rejected(f.e.execute(&place(
+    let refused = reason(f.e.execute(&place(
         DEV_B1,
         PlaceOnParam::Carrier(f.rail2),
         at(300),
@@ -350,7 +283,7 @@ fn push_inserts_and_moves_the_right_neighbours() {
     let k3 = f.put(k(3), 136); // [127, 145]
     let before = lines(f.e.model());
     // K4 at clip 118 mm: K2's centre is exactly under it, so K2 counts as right and moves.
-    let k4: Id<Placement> = created(
+    let k4: Id<Placement> = made(
         f.e.execute(&place(
             k(4),
             PlaceOnParam::Carrier(f.rail1),
@@ -372,7 +305,7 @@ fn push_inserts_and_moves_the_right_neighbours() {
         locked: true,
     })
     .unwrap();
-    let refused = rejected(f.e.execute(&place(
+    let refused = reason(f.e.execute(&place(
         k(4),
         PlaceOnParam::Carrier(f.rail1),
         at(118),
@@ -383,7 +316,7 @@ fn push_inserts_and_moves_the_right_neighbours() {
 
     // K5 near the end [581, 599]; the 300 mm device at clip 450 mm ends at 600 mm and pushes K5 18 mm past the end.
     let k5 = f.put(k(5), 590);
-    let refused = rejected(f.e.execute(&place(
+    let refused = reason(f.e.execute(&place(
         DEV_B1,
         PlaceOnParam::Carrier(f.rail1),
         at(450),
@@ -393,7 +326,7 @@ fn push_inserts_and_moves_the_right_neighbours() {
     // Alone past the end, the device itself is named.
     f.e.execute(&ew_commands::commands::RemovePlacement { placement: k5 })
         .unwrap();
-    let refused = rejected(f.e.execute(&place(
+    let refused = reason(f.e.execute(&place(
         DEV_B1,
         PlaceOnParam::Carrier(f.rail1),
         at(500),
@@ -416,7 +349,7 @@ fn a_locked_placement_moves_by_itself_only() {
     })
     .unwrap();
     for mode in [PlaceMode::Push, PlaceMode::Swap] {
-        let refused = rejected(f.e.execute(&mv(k1, at(300), Some(mode))));
+        let refused = reason(f.e.execute(&mv(k1, at(300), Some(mode))));
         assert_eq!(refused, "Unlock -?K1 to push or swap it.");
     }
     f.e.execute(&mv(k1, at(200), Some(PlaceMode::Free))).unwrap();
@@ -444,7 +377,7 @@ fn swap_exchanges_within_one_rail() {
         "W1 [91, 136], K2 keeps its 0 mm gap [136, 154], K1 keeps the 50.5 mm gap [204.5, 222.5]"
     );
     assert_eq!(f.e.history().cursor(), cursor + 1);
-    let refused = rejected(f.e.execute(&mv(k1, at(300), Some(PlaceMode::Swap))));
+    let refused = reason(f.e.execute(&mv(k1, at(300), Some(PlaceMode::Swap))));
     assert_eq!(refused, "Drop onto a placement to swap with it.");
     let across = MovePlacement {
         placement: k1,
@@ -454,20 +387,20 @@ fn swap_exchanges_within_one_rail() {
         part: None,
     };
     let swap_text = "Swap works within one rail; use push or free to place it there.";
-    assert_eq!(rejected(f.e.execute(&across)), swap_text);
+    assert_eq!(reason(f.e.execute(&across)), swap_text);
     let new = place(
         k(6),
         PlaceOnParam::Carrier(f.rail1),
         at(400),
         Some(PlaceMode::Swap),
     );
-    assert_eq!(rejected(f.e.execute(&new)), swap_text);
+    assert_eq!(reason(f.e.execute(&new)), swap_text);
     f.e.execute(&LockPlacement {
         placement: k5,
         locked: true,
     })
     .unwrap();
-    let refused = rejected(f.e.execute(&mv(k2, at(400), Some(PlaceMode::Swap))));
+    let refused = reason(f.e.execute(&mv(k2, at(400), Some(PlaceMode::Swap))));
     assert_eq!(refused, "Swapping would move -?K5, which is locked.");
 }
 
@@ -481,10 +414,10 @@ fn modes_on_a_surface() {
         q: Quat9::IDENTITY,
     };
     for mode in [PlaceMode::Push, PlaceMode::Swap] {
-        let refused = rejected(f.e.execute(&place(k(1), PlaceOnParam::Surface(f.surface), pose, Some(mode))));
+        let refused = reason(f.e.execute(&place(k(1), PlaceOnParam::Surface(f.surface), pose, Some(mode))));
         assert_eq!(refused, "Push and swap work on a rail.");
     }
-    let pl: Id<Placement> = created(
+    let pl: Id<Placement> = made(
         f.e.execute(&place(
             k(1),
             PlaceOnParam::Surface(f.surface),
@@ -502,7 +435,7 @@ fn modes_on_a_surface() {
 fn clearance_pads_space_the_snapping() {
     let mut f = fx();
     let c1 = f.put(DEV_C1, 300); // [291, 309]
-    let c2: Id<Placement> = created(
+    let c2: Id<Placement> = made(
         f.e.execute(&place(
             DEV_C2,
             PlaceOnParam::Carrier(f.rail1),
@@ -553,7 +486,7 @@ fn a_neighbours_concurrent_edit_conflicts_at_merge() {
         !preview.read_set().unchanged_since(f.e.model(), base),
         "the push read K1's row"
     );
-    let k3: Id<Placement> = created(f.e.commit(preview).unwrap());
+    let k3: Id<Placement> = made(f.e.commit(preview).unwrap());
     // Re-run on the current rail: K3 starts after K1's new end (121 mm), K2 is pushed to 139 mm.
     assert_eq!([k1, k3, k2].map(|p| clip10(&f.e, p)), [1120, 1300, 1480]);
     // An edit on another rail does not conflict.
@@ -591,7 +524,7 @@ fn a_concurrent_insert_onto_the_rail_conflicts_at_merge() {
         !preview.read_set().unchanged_since(f.e.model(), base),
         "the push read the rail's placements"
     );
-    let k3: Id<Placement> = created(f.e.commit(preview).unwrap());
+    let k3: Id<Placement> = made(f.e.commit(preview).unwrap());
     assert_eq!(
         [k1, k3, k2, k4].map(|p| clip10(&f.e, p)),
         [1000, 1180, 1360, 4000]
@@ -713,7 +646,7 @@ proptest! {
         let mut placed = Vec::new();
         for (n, (s, wide, locked)) in setup.iter().enumerate() {
             let device = if *wide && n == 0 { DEV_W1 } else { k(n as u128 + 1) };
-            let pl: Id<Placement> = created(
+            let pl: Id<Placement> = made(
                 f.e.execute(&place(device, PlaceOnParam::Carrier(f.rail1), at(*s), None)).unwrap(),
             );
             if *locked && lock {
@@ -736,7 +669,7 @@ proptest! {
         let expected = ghost(&before, f.rail1, device, placement, &pose, snap);
         let result = match placement {
             Some(pl) => f.e.execute(&mv(pl, pose, Some(param))).map(|_| pl),
-            None => f.e.execute(&place(device, PlaceOnParam::Carrier(f.rail1), pose, Some(param))).map(created),
+            None => f.e.execute(&place(device, PlaceOnParam::Carrier(f.rail1), pose, Some(param))).map(made),
         };
         match (expected, result) {
             (Ok((r, width, items)), Ok(pl)) => {

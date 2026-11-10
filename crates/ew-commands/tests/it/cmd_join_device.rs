@@ -351,13 +351,7 @@ fn a_black_box_is_refused_before_the_join_reads_its_cps() {
 // What the removed source carries (FX37a)
 
 fn set_device(device: Id<Device>, path: &str, value: serde_json::Value) -> SetFields {
-    SetFields {
-        kind: KindName::Device,
-        targets: vec![device.cast()],
-        path: path.into(),
-        value,
-        copies: Vec::new(),
-    }
+    set_fields(KindName::Device, device.cast(), path, value)
 }
 
 /// A source device in a device link is refused at `/rep`: the link would go with the device (it cascades).
@@ -381,9 +375,11 @@ fn a_source_device_in_a_device_link_is_refused_and_nothing_is_written() {
     assert!(get(&e, DEV_K2).is_some(), "the source device stays");
 }
 
-/// The join goes ahead and its notice names each member of the source device that goes with it.
+/// The join goes ahead and its notice names each member of the source device that goes with it; a source with nothing
+/// but its tag gives no notice, in either way; in the slot case the old function's own members go with its record, and
+/// a kind the target does not share goes with the source device: one notice each.
 #[test]
-fn a_join_that_drops_the_function_text_says_so() {
+fn a_join_names_what_the_source_carries_with_it() {
     let mut e = engine(join_model());
     e.execute(&set_device(DEV_K2, "function_text", serde_json::json!("Pump on")))
         .expect("fields.set function_text");
@@ -394,25 +390,13 @@ fn a_join_that_drops_the_function_text_says_so() {
         r.outcome.notices,
         vec!["the joined device's function text and process tag were dropped with it".to_owned()]
     );
-}
 
-/// A join from a source with nothing but its tag has no notice, in either way.
-#[test]
-fn a_join_that_drops_nothing_has_no_notice() {
-    let mut e = engine(join_model());
-    let r = e
-        .execute(&join(REP_K2, DEV_K1))
-        .expect("rep.join_device (auxiliary)");
-    assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
-    let mut e = engine(join_model());
-    let r = e.execute(&join(REP_K2, DEV_K3)).expect("rep.join_device (slot)");
-    assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
-}
+    for (target, way) in [(DEV_K1, "auxiliary"), (DEV_K3, "slot")] {
+        let mut e = engine(join_model());
+        let r = e.execute(&join(REP_K2, target)).expect("rep.join_device");
+        assert!(r.outcome.notices.is_empty(), "{way}: {:?}", r.outcome.notices);
+    }
 
-/// In the slot case the old function's own members go with its record, and a kind the target does not share goes
-/// with the source device: one notice each.
-#[test]
-fn a_slot_join_names_the_old_functions_dropped_members() {
     let mut e = engine(join_model_with(|records| {
         for r in records.iter_mut() {
             match r {

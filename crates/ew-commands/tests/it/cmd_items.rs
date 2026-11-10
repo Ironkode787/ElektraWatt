@@ -14,7 +14,7 @@ use common::*;
 use ew_commands::commands::{
     BoxStyleParam, CreateExternalRef, CreateStructureBox, DeleteSelection, FreeTextParam, GraphicParam,
     ImageParam, ItemKindParam, KindName, MarkerModeParam, MoveReps, PlaceItem, PlaceMarker, SetCompany,
-    SetDrawing, SetFields, SetManyFields, SetProjectSettings, ShapeParam, StrokeParam, TargetRef,
+    SetDrawing, SetManyFields, SetProjectSettings, ShapeParam, StrokeParam, TargetRef,
 };
 use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::Id;
@@ -130,13 +130,30 @@ fn mv(reps: Vec<Id<ew_schema::Representation>>, items: Vec<AnyId>, delta: Pt2) -
     }
 }
 
-fn set(kind: KindName, target: AnyId, path: &str, value: Value) -> SetFields {
-    SetFields {
-        kind,
-        targets: vec![target],
-        path: path.into(),
-        value,
-        copies: Vec::new(),
+/// The project's colour profile declares the company code `DBU` (a bulk command).
+fn declare_house_colour(e: &mut Engine) {
+    let profile = SetProjectSettings {
+        member: "colour_profile".into(),
+        value: json!({"key": "house", "codes": [{"code": "DBU", "base": "BU", "shade": "dark"}],
+            "rows": [{"colour": ["DBU"]}]}),
+    };
+    let preview = e.preview(&profile).expect("a colour profile (a bulk command)");
+    e.commit(preview).expect("committed");
+}
+
+/// The message of the `fields.set` refusal at `/value` of `path` on `target`.
+fn refused_value(e: &mut Engine, kind: KindName, target: AnyId, path: &str, value: Value) -> String {
+    match e.execute(&set_fields(kind, target, path, value)).unwrap_err() {
+        CmdError::InvalidParams {
+            command,
+            path,
+            message,
+            ..
+        } => {
+            assert_eq!((command.as_str(), path.as_str()), ("fields.set", "/value"));
+            message
+        }
+        other => panic!("expected InvalidParams, got {other:?}"),
     }
 }
 
@@ -647,13 +664,7 @@ fn marker_place_rejections() {
     no_page.page = id(0x3f);
     assert!(matches!(e.execute(&no_page), Err(CmdError::NotFound { .. })));
     // A company code the project's colour profile declares is accepted.
-    let profile = SetProjectSettings {
-        member: "colour_profile".into(),
-        value: json!({"key": "house", "codes": [{"code": "DBU", "base": "BU", "shade": "dark"}],
-            "rows": [{"colour": ["DBU"]}]}),
-    };
-    let preview = e.preview(&profile).expect("a colour profile (a bulk command)");
-    e.commit(preview).expect("committed");
+    declare_house_colour(&mut e);
     e.execute(&PlaceMarker {
         colours: vec![serde_json::from_value(json!(["DBU"])).unwrap()],
         ..marker(vec![CON_W22])
@@ -669,20 +680,8 @@ fn fields_set_refuses_a_colour_the_profile_does_not_know() {
     let mut e = engine(golden_model());
     let target: AnyId = CON_W22.cast();
     let before = conn(&e, CON_W22).overrides.colour.clone();
-    let refused = |e: &mut Engine, value: Value| match e
-        .execute(&set(KindName::Connection, target, "overrides.colour", value))
-        .unwrap_err()
-    {
-        CmdError::InvalidParams {
-            command,
-            path,
-            message,
-            ..
-        } => {
-            assert_eq!((command.as_str(), path.as_str()), ("fields.set", "/value"));
-            message
-        }
-        other => panic!("expected InvalidParams, got {other:?}"),
+    let refused = |e: &mut Engine, value: Value| {
+        refused_value(e, KindName::Connection, target, "overrides.colour", value)
     };
     assert_eq!(
         refused(&mut e, json!(["DBU"])),
@@ -697,28 +696,22 @@ fn fields_set_refuses_a_colour_the_profile_does_not_know() {
         before,
         "a refusal changes nothing"
     );
-    e.execute(&set(
+    e.execute(&set_fields(
         KindName::Connection,
         target,
         "overrides.colour",
         json!(["GN", "YE"]),
     ))
     .expect("an IEC code");
-    let profile = SetProjectSettings {
-        member: "colour_profile".into(),
-        value: json!({"key": "house", "codes": [{"code": "DBU", "base": "BU", "shade": "dark"}],
-            "rows": [{"colour": ["DBU"]}]}),
-    };
-    let preview = e.preview(&profile).expect("a colour profile (a bulk command)");
-    e.commit(preview).expect("committed");
-    e.execute(&set(
+    declare_house_colour(&mut e);
+    e.execute(&set_fields(
         KindName::Connection,
         target,
         "overrides.colour",
         json!(["DBU"]),
     ))
     .expect("a declared company code");
-    e.execute(&set(
+    e.execute(&set_fields(
         KindName::Connection,
         target,
         "overrides.colour",
@@ -744,21 +737,8 @@ fn fields_set_refuses_a_conductor_colour_the_profile_does_not_know() {
             .clone()
     };
     let before = colour(&e);
-    let refused = |e: &mut Engine, value: Value| match e
-        .execute(&set(KindName::Conductor, target, "colour", value))
-        .unwrap_err()
-    {
-        CmdError::InvalidParams {
-            command,
-            path,
-            message,
-            ..
-        } => {
-            assert_eq!((command.as_str(), path.as_str()), ("fields.set", "/value"));
-            message
-        }
-        other => panic!("expected InvalidParams, got {other:?}"),
-    };
+    let refused =
+        |e: &mut Engine, value: Value| refused_value(e, KindName::Conductor, target, "colour", value);
     assert_eq!(
         refused(&mut e, json!(["DBU"])),
         "`DBU` is neither an IEC 60757 colour code nor a company code of the project's colour profile"
@@ -767,7 +747,7 @@ fn fields_set_refuses_a_conductor_colour_the_profile_does_not_know() {
     assert_eq!(colour(&e), before, "a refusal changes nothing");
     match e
         .execute(&SetManyFields {
-            edits: vec![set(KindName::Conductor, target, "colour", json!(["DBU"]))],
+            edits: vec![set_fields(KindName::Conductor, target, "colour", json!(["DBU"]))],
             copies: Vec::new(),
         })
         .unwrap_err()
@@ -780,18 +760,17 @@ fn fields_set_refuses_a_conductor_colour_the_profile_does_not_know() {
         }
         other => panic!("expected InvalidParams, got {other:?}"),
     }
-    e.execute(&set(KindName::Conductor, target, "colour", json!(["GN", "YE"])))
-        .expect("an IEC code");
-    let profile = SetProjectSettings {
-        member: "colour_profile".into(),
-        value: json!({"key": "house", "codes": [{"code": "DBU", "base": "BU", "shade": "dark"}],
-            "rows": [{"colour": ["DBU"]}]}),
-    };
-    let preview = e.preview(&profile).expect("a colour profile (a bulk command)");
-    e.commit(preview).expect("committed");
-    e.execute(&set(KindName::Conductor, target, "colour", json!(["DBU"])))
+    e.execute(&set_fields(
+        KindName::Conductor,
+        target,
+        "colour",
+        json!(["GN", "YE"]),
+    ))
+    .expect("an IEC code");
+    declare_house_colour(&mut e);
+    e.execute(&set_fields(KindName::Conductor, target, "colour", json!(["DBU"])))
         .expect("a declared company code");
-    e.execute(&set(KindName::Conductor, target, "colour", Value::Null))
+    e.execute(&set_fields(KindName::Conductor, target, "colour", Value::Null))
         .expect("null removes the colour");
     assert_eq!(colour(&e), None);
 }
@@ -1175,21 +1154,21 @@ fn fields_set_edits_items_and_boxes_with_the_place_checks() {
         .unwrap()
         .1
         .cast();
-    e.execute(&set(
+    e.execute(&set_fields(
         KindName::PageItem,
         t.cast(),
         "kind.free_text.text",
         json!("50x70"),
     ))
     .unwrap();
-    e.execute(&set(KindName::PageItem, t.cast(), "layer", json!("notes")))
+    e.execute(&set_fields(KindName::PageItem, t.cast(), "layer", json!("notes")))
         .unwrap();
     let it = item(&e, t);
     assert_eq!(it.layer.as_ref().map(Ident::as_str), Some("notes"));
     // Another variant's path, `kind` as a whole and a marker's connections are refused at `/path`.
     for path in ["kind.graphic.shape", "kind", "kind.wire_marker.connections"] {
         let err = e
-            .execute(&set(KindName::PageItem, t.cast(), path, json!(null)))
+            .execute(&set_fields(KindName::PageItem, t.cast(), path, json!(null)))
             .unwrap_err();
         assert!(
             matches!(&err, CmdError::InvalidParams { path: p, .. } if p == "/path"),
@@ -1210,7 +1189,12 @@ fn fields_set_edits_items_and_boxes_with_the_place_checks() {
     ];
     for (target, path, value) in refusals {
         let err = e
-            .execute(&set(KindName::PageItem, target.cast(), path, value.clone()))
+            .execute(&set_fields(
+                KindName::PageItem,
+                target.cast(),
+                path,
+                value.clone(),
+            ))
             .unwrap_err();
         assert!(
             matches!(&err, CmdError::InvalidParams { path: p, .. } if p == "/value"),
@@ -1218,8 +1202,13 @@ fn fields_set_edits_items_and_boxes_with_the_place_checks() {
         );
     }
     // A box: outline, style, caption, assigns, external; the checks at `/value`.
-    e.execute(&set(KindName::StructureBox, b.cast(), "style", json!("dash_dot")))
-        .unwrap();
+    e.execute(&set_fields(
+        KindName::StructureBox,
+        b.cast(),
+        "style",
+        json!("dash_dot"),
+    ))
+    .unwrap();
     for (path, value) in [
         ("outline", json!([[0, 0], [1, 1]])),
         ("assigns", json!({"location": FUNC_P01.to_string()})),
@@ -1227,7 +1216,7 @@ fn fields_set_edits_items_and_boxes_with_the_place_checks() {
         ("style", json!("wavy")),
     ] {
         let err = e
-            .execute(&set(KindName::StructureBox, b.cast(), path, value.clone()))
+            .execute(&set_fields(KindName::StructureBox, b.cast(), path, value.clone()))
             .unwrap_err();
         assert!(
             matches!(&err, CmdError::InvalidParams { path: p, .. } if p == "/value"),
@@ -1247,7 +1236,7 @@ fn an_edit_of_a_stale_marker_writes_a_clean_list() {
     .unwrap();
     records.push(Record::PageItem(stale));
     let mut e = engine(Model::from_records(project, records, lib).expect("a stale list loads"));
-    e.execute(&set(
+    e.execute(&set_fields(
         KindName::PageItem,
         id::<()>(0x4300),
         "kind.wire_marker.angle",

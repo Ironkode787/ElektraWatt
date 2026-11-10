@@ -76,9 +76,10 @@ fn conflicts(e: &Engine) -> usize {
     e.model().table::<Conflict>().iter().count()
 }
 
-/// Theirs writes the conflicting member into W29 and removes the conflict; one undo restores both.
+/// Theirs writes the conflicting member into W29 and removes the conflict, one undo restores both; ours keeps W29
+/// as it is and removes the conflict.
 #[test]
-fn taking_theirs_writes_the_member_and_removes_the_conflict_in_one_undo_step() {
+fn taking_a_side_resolves_the_conflict_in_one_undo_step() {
     let mut e = engine(colour_conflict());
     let before = lines(e.model());
     e.execute(&resolve("theirs")).expect("theirs is taken");
@@ -86,11 +87,7 @@ fn taking_theirs_writes_the_member_and_removes_the_conflict_in_one_undo_step() {
     assert_eq!(conflicts(&e), 0);
     e.undo(&Origin::Gui).expect("one undo step");
     assert_eq!(lines(e.model()), before);
-}
 
-/// Ours keeps W29 as it is and removes the conflict.
-#[test]
-fn taking_ours_keeps_the_record_and_removes_the_conflict() {
     let mut e = engine(colour_conflict());
     e.execute(&resolve("ours")).expect("ours is taken");
     assert_eq!(w29(&e).expect("W29")["overrides"], json!({"colour": ["BU"]}));

@@ -11,12 +11,12 @@ use crate::common;
 
 use common::fixture::*;
 use common::*;
-use ew_commands::commands::{EditPartCopy, KindName, SetFields, SetManyFields, library_copy_hash};
+use ew_commands::commands::{EditPartCopy, KindName, SetManyFields, library_copy_hash};
 use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::{Id, v5};
 use ew_model::Model;
 use ew_schema::{
-    AnyId, Connection, Device, LibCopy, LibDocument, LibItem, Manufacturer, Part, PotentialDef, Sha256,
+    Connection, Device, LibCopy, LibDocument, LibItem, Manufacturer, Part, PotentialDef, Sha256,
 };
 use serde_json::{Value, json};
 
@@ -78,16 +78,6 @@ fn model() -> Model {
     Model::from_records(p, r, lib).expect("valid")
 }
 
-fn set(kind: KindName, target: AnyId, path: &str, value: Value) -> SetFields {
-    SetFields {
-        kind,
-        targets: vec![target],
-        path: path.into(),
-        value,
-        copies: Vec::new(),
-    }
-}
-
 fn copy_of(e: &Engine, id: Id<Part>) -> Option<LibCopy<Part>> {
     e.model().table::<LibCopy<Part>>().get(&id).map(|c| (**c).clone())
 }
@@ -123,24 +113,17 @@ fn pointer(err: CmdError) -> String {
     }
 }
 
-/// D20: `part.edit_copy` is Bulk: it runs only through a preview.
-#[test]
-fn edit_copy_is_bulk() {
-    let mut e = engine(model());
-    let c = local_copy();
-    let err = e
-        .execute(&edit(c.id, described(&c, "Changed"), None))
-        .unwrap_err();
-    assert!(matches!(err, CmdError::NeedsPreview { .. }), "{err:?}");
-}
-
 /// PS6's command half: a project-local copy is rewritten in place (same IDs and version, the hash of the new item);
-/// undo restores the records byte for byte.
+/// undo restores the records byte for byte. D20: `part.edit_copy` is Bulk: it runs only through a preview.
 #[test]
 fn a_project_local_copy_is_edited_in_place() {
     let mut e = engine(model());
     let before = lines(e.model());
     let c = local_copy();
+    let err = e
+        .execute(&edit(c.id, described(&c, "Changed"), None))
+        .unwrap_err();
+    assert!(matches!(err, CmdError::NeedsPreview { .. }), "{err:?}");
     let receipt = run(&mut e, &edit(c.id, described(&c, "MCB 1P+N C4"), None)).expect("in place");
     assert_eq!(
         receipt.outcome.primary,
@@ -170,28 +153,28 @@ fn a_library_copy_forks_and_every_part_copy_link_is_repointed() {
     let mut e = engine(model());
     let mcb = PART_MCB;
     let copy_ref = json!({"copy": mcb.to_string()});
-    e.execute(&set(
+    e.execute(&set_fields(
         KindName::Device,
         DEV_X1031.cast(),
         "strip.accessories",
         json!([{"after_seq": 0, "kind": "end_clamp", "part": copy_ref}]),
     ))
     .expect("accessory");
-    e.execute(&set(
+    e.execute(&set_fields(
         KindName::Device,
         DEV_102G1.cast(),
         "assembly",
         json!({"configs": [{"order_code": "X1", "part": copy_ref}]}),
     ))
     .expect("assembly");
-    e.execute(&set(
+    e.execute(&set_fields(
         KindName::Connection,
         CON_W11A.cast(),
         "overrides.wire_part",
         copy_ref.clone(),
     ))
     .expect("wire part");
-    e.execute(&set(
+    e.execute(&set_fields(
         KindName::PotentialDef,
         PD_24V.cast(),
         "props",
@@ -397,7 +380,7 @@ fn fields_set_embeds_its_copies() {
     let before = lines(e.model());
     let q = part_copy(uuid(LIB_Q), uuid(ITEM_Q), "FX-BRG-1");
     let doc = serde_json::to_value(LibDocument::Part(q.clone())).unwrap();
-    let mut cmd = set(
+    let mut cmd = set_fields(
         KindName::Connection,
         CON_W11A.cast(),
         "overrides.wire_part",
@@ -409,7 +392,7 @@ fn fields_set_embeds_its_copies() {
     e.execute(&cmd).expect("embedded and set");
     assert_eq!(copy_of(&e, q.id), Some(q.clone()));
     // The same document again is reused.
-    let mut again = set(
+    let mut again = set_fields(
         KindName::Connection,
         CON_W11B.cast(),
         "overrides.wire_part",
@@ -422,7 +405,7 @@ fn fields_set_embeds_its_copies() {
     v2.version = "1.1.0".into();
     v2.item.description = ew_mltext::MlText::neutral("changed");
     let v2 = with_hash(v2, LibDocument::Part);
-    let mut other = set(
+    let mut other = set_fields(
         KindName::Connection,
         CON_W22.cast(),
         "overrides.wire_part",
@@ -441,7 +424,7 @@ fn fields_set_embeds_its_copies() {
     assert_eq!(lines(e.model()), before);
     // fields.set_many: the command's copies embed; an entry's are refused.
     let mut many = SetManyFields {
-        edits: vec![set(
+        edits: vec![set_fields(
             KindName::Connection,
             CON_W11A.cast(),
             "overrides.wire_part",

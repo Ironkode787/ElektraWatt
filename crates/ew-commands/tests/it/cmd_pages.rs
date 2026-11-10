@@ -41,13 +41,6 @@ fn bulk(e: &mut Engine, cmd: &dyn DynCommand) -> Result<Receipt, CmdError> {
     e.commit(p)
 }
 
-fn rejected(r: Result<Receipt, CmdError>) -> String {
-    match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
-        other => panic!("expected a rejection, got {other:?}"),
-    }
-}
-
 fn delete(pages: &[Id<Page>], delete_devices: bool) -> DeletePages {
     DeletePages {
         pages: pages.to_vec(),
@@ -111,11 +104,11 @@ fn create_page_rejections() {
     let mut e = engine(golden_model());
     let mut none = CreatePage::at(Some(SEC1), 0);
     none.number = None;
-    assert!(rejected(e.execute(&none)).contains("explicit folio"));
+    assert!(reason(e.execute(&none)).contains("explicit folio"));
     let mut report = CreatePage::at(Some(SEC1), 120);
     report.kind = ew_schema::PageType::Report;
-    assert!(rejected(e.execute(&report)).contains("report"));
-    assert!(rejected(e.execute(&CreatePage::at(Some(SEC1), 101))).contains("already exists"));
+    assert!(reason(e.execute(&report)).contains("report"));
+    assert!(reason(e.execute(&CreatePage::at(Some(SEC1), 101))).contains("already exists"));
 }
 
 fn labelled(section: Option<Id<Section>>, number: u32, label: &str) -> CreatePage {
@@ -130,10 +123,10 @@ fn labelled(section: Option<Id<Section>>, number: u32, label: &str) -> CreatePag
 fn create_page_refuses_a_folio_outside_the_section_range() {
     let mut e = engine(golden_model());
     assert_eq!(
-        rejected(e.execute(&CreatePage::at(Some(SEC1), 210))),
+        reason(e.execute(&CreatePage::at(Some(SEC1), 210))),
         "folio 210 lies outside section 1's folio range 100 to 199; choose a folio in the range"
     );
-    assert!(rejected(e.execute(&CreatePage::at(Some(SEC1), 99))).contains("outside section 1's folio range"));
+    assert!(reason(e.execute(&CreatePage::at(Some(SEC1), 99))).contains("outside section 1's folio range"));
     e.execute(&CreatePage::at(Some(SEC1), 199))
         .expect("the range's last folio");
     e.execute(&CreatePage::at(None, 5000))
@@ -152,7 +145,7 @@ fn create_page_refuses_the_divider_folio() {
             .unwrap(),
     );
     assert_eq!(
-        rejected(e.execute(&CreatePage::at(Some(sec2), 200))),
+        reason(e.execute(&CreatePage::at(Some(sec2), 200))),
         "folio 200 is the divider page of section 2; choose another folio"
     );
     e.execute(&labelled(Some(sec2), 200, "200.1"))
@@ -172,16 +165,16 @@ fn create_page_refuses_a_folio_a_report_block_generates() {
     next.continuation = ContinuationPolicy::NextFolio;
     bulk(&mut e, &next).expect("a next-folio block at 180");
     assert_eq!(
-        rejected(e.execute(&CreatePage::at(Some(SEC1), 190))),
+        reason(e.execute(&CreatePage::at(Some(SEC1), 190))),
         "folio 190 is a page the report block at folio 190 generates; choose another folio"
     );
     assert_eq!(
-        rejected(e.execute(&labelled(Some(SEC1), 190, "190.2"))),
+        reason(e.execute(&labelled(Some(SEC1), 190, "190.2"))),
         "folio 190.2 is a page the report block at folio 190 generates; choose another folio"
     );
     e.execute(&labelled(Some(SEC1), 190, "190a"))
         .expect("190a is not a continuation");
-    assert!(rejected(e.execute(&CreatePage::at(Some(SEC1), 180))).contains("report block at folio 180"));
+    assert!(reason(e.execute(&CreatePage::at(Some(SEC1), 180))).contains("report block at folio 180"));
     e.execute(&labelled(Some(SEC1), 180, "180.1"))
         .expect("a next-folio block has no sub-pages");
     e.execute(&CreatePage::at(None, 190))
@@ -205,12 +198,12 @@ fn create_page_names_the_first_of_several_refusals() {
     let mut e = engine(ew_model::Model::from_records(p, records, library()).expect("a loadable project"));
     // Range before divider: number 300 is outside 200 to 299, and its label prints the divider's folio "200".
     assert_eq!(
-        rejected(e.execute(&labelled(Some(sec2), 300, "200"))),
+        reason(e.execute(&labelled(Some(sec2), 300, "200"))),
         "folio 200 lies outside section 2's folio range 200 to 299; choose a folio in the range"
     );
     // Divider before report block: folio 200 is the divider page and the page the block at 200 generates.
     assert_eq!(
-        rejected(e.execute(&CreatePage::at(Some(sec2), 200))),
+        reason(e.execute(&CreatePage::at(Some(sec2), 200))),
         "folio 200 is the divider page of section 2; choose another folio"
     );
     // Report block before duplicate: no command makes a page that prints "190" beside a block at 190,
@@ -224,12 +217,12 @@ fn create_page_names_the_first_of_several_refusals() {
     records.push(ew_schema::Record::ReportBlock(report_block(id(0xf191), 190)));
     let mut both = engine(ew_model::Model::from_records(p, records, library()).expect("a loadable project"));
     assert_eq!(
-        rejected(both.execute(&CreatePage::at(Some(SEC1), 190))),
+        reason(both.execute(&CreatePage::at(Some(SEC1), 190))),
         "folio 190 is a page the report block at folio 190 generates; choose another folio"
     );
     // The duplicate alone, last in the order.
     assert_eq!(
-        rejected(e.execute(&CreatePage::at(Some(SEC1), 101))),
+        reason(e.execute(&CreatePage::at(Some(SEC1), 101))),
         "folio 101 already exists in this section; choose a free folio"
     );
 }
@@ -239,11 +232,11 @@ fn create_page_names_the_first_of_several_refusals() {
 fn create_page_refuses_a_printed_folio_another_page_prints() {
     let mut e = engine(golden_model());
     assert_eq!(
-        rejected(e.execute(&labelled(Some(SEC1), 102, "101"))),
+        reason(e.execute(&labelled(Some(SEC1), 102, "101"))),
         "folio 101 already exists in this section; choose a free folio"
     );
     e.execute(&labelled(Some(SEC1), 101, "101.1")).unwrap();
-    assert!(rejected(e.execute(&labelled(Some(SEC1), 101, "101.1"))).contains("folio 101.1 already exists"));
+    assert!(reason(e.execute(&labelled(Some(SEC1), 101, "101.1"))).contains("folio 101.1 already exists"));
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -293,7 +286,7 @@ fn delete_devices_skips_a_strip_with_terminals() {
 #[test]
 fn delete_pages_rejections() {
     let mut e = engine(golden_model());
-    assert!(rejected(bulk(&mut e, &delete(&[], false))).contains("at least one"));
+    assert!(reason(bulk(&mut e, &delete(&[], false))).contains("at least one"));
     let missing: Id<Page> = id(0xdead);
     assert!(matches!(
         bulk(&mut e, &delete(&[missing], false)),
@@ -341,23 +334,16 @@ fn with_page_105() -> (Engine, Id<Page>) {
 }
 
 #[test]
-fn renumber_keep_gaps() {
-    let (mut e, gap) = with_page_105();
-    bulk(&mut e, &renumber(PageScope::Section(SEC1), 110, 2, true)).unwrap();
-    assert_eq!(
-        [PAGE_101, PAGE_102, gap].map(|p| folio_of(&e, p).1),
-        [110, 112, 118]
-    );
-}
-
-#[test]
-fn renumber_without_gaps_compacts() {
-    let (mut e, gap) = with_page_105();
-    bulk(&mut e, &renumber(PageScope::Section(SEC1), 110, 2, false)).unwrap();
-    assert_eq!(
-        [PAGE_101, PAGE_102, gap].map(|p| folio_of(&e, p).1),
-        [110, 112, 114]
-    );
+fn renumber_keeps_gaps_or_compacts() {
+    for (keep_gaps, want) in [(true, [110, 112, 118]), (false, [110, 112, 114])] {
+        let (mut e, gap) = with_page_105();
+        bulk(&mut e, &renumber(PageScope::Section(SEC1), 110, 2, keep_gaps)).unwrap();
+        assert_eq!(
+            [PAGE_101, PAGE_102, gap].map(|p| folio_of(&e, p).1),
+            want,
+            "keep_gaps {keep_gaps}"
+        );
+    }
 }
 
 #[test]
@@ -437,7 +423,7 @@ fn renumber_refuses_a_rewritten_label_that_collides() {
     let mut e = engine(golden_model());
     e.execute(&labelled(Some(SEC1), 101, "101.1")).unwrap();
     e.execute(&labelled(Some(SEC1), 150, "120.1")).unwrap();
-    let reason = rejected(bulk(
+    let reason = reason(bulk(
         &mut e,
         &renumber(PageScope::Pages(vec![PAGE_101]), 120, 1, false),
     ));
@@ -447,14 +433,14 @@ fn renumber_refuses_a_rewritten_label_that_collides() {
 #[test]
 fn renumber_rejections() {
     let mut e = engine(golden_model());
-    let reason = rejected(bulk(&mut e, &renumber(PageScope::Section(SEC1), 10, 0, false)));
-    assert!(reason.contains("step"));
-    let empty = rejected(bulk(&mut e, &renumber(PageScope::Pages(vec![]), 10, 1, false)));
+    let zero_step = reason(bulk(&mut e, &renumber(PageScope::Section(SEC1), 10, 0, false)));
+    assert!(zero_step.contains("step"));
+    let empty = reason(bulk(&mut e, &renumber(PageScope::Pages(vec![]), 10, 1, false)));
     assert!(empty.contains("no pages"));
     // A page outside the scope holds the target folio.
     e.execute(&CreatePage::at(Some(SEC1), 151)).unwrap();
     let scope = PageScope::Pages(vec![PAGE_101, PAGE_102]);
-    let clash = rejected(bulk(&mut e, &renumber(scope, 150, 1, false)));
+    let clash = reason(bulk(&mut e, &renumber(scope, 150, 1, false)));
     assert!(clash.contains("151"), "{clash}");
 }
 
@@ -564,84 +550,82 @@ fn reorder_front_matter() {
 }
 
 #[test]
-fn reorder_rejects_an_empty_list() {
+fn reorder_refusals() {
     let mut e = engine(golden_model());
-    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[], None, Some(SEC1))));
-    assert_eq!(
-        (path.as_str(), message.as_str()),
-        ("/pages", "name at least one page")
-    );
-}
-
-#[test]
-fn reorder_rejects_more_than_1000_pages() {
-    let mut e = engine(golden_model());
+    let missing_page: Id<Page> = id(0x9999);
+    let missing_section: Id<Section> = id(0x9998);
     let many: Vec<Id<Page>> = (0..1001).map(|n| id(0x9000 + n)).collect();
-    let (path, message) = reorder_error(bulk(&mut e, &reorder(&many, None, Some(SEC1))));
-    assert_eq!(
-        (path.as_str(), message.as_str()),
-        ("/pages", "at most 1000 pages may be moved at once")
-    );
-}
-
-#[test]
-fn reorder_rejects_a_page_listed_twice() {
-    let mut e = engine(golden_model());
-    let (path, message) = reorder_error(bulk(
-        &mut e,
-        &reorder(&[PAGE_101, PAGE_102, PAGE_101], None, Some(SEC1)),
-    ));
-    assert_eq!(path, "/pages/2");
-    // The page by its folio, never its ID
-    assert_eq!(message, "page 101 is listed twice");
-}
-
-#[test]
-fn reorder_rejects_an_unknown_page() {
-    let mut e = engine(golden_model());
-    let missing: Id<Page> = id(0x9999);
-    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101, missing], None, Some(SEC1))));
-    assert_eq!(path, "/pages/1");
-    assert_eq!(message, "the page is not in the project");
-}
-
-#[test]
-fn reorder_rejects_an_unknown_before() {
-    let mut e = engine(golden_model());
-    let missing: Id<Page> = id(0x9999);
-    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101], Some(missing), None)));
-    assert_eq!(path, "/before");
-    assert_eq!(message, "the page is not in the project");
-}
-
-#[test]
-fn reorder_rejects_before_together_with_section() {
-    let mut e = engine(golden_model());
-    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101], Some(PAGE_102), Some(SEC1))));
-    assert_eq!(
-        (path.as_str(), message.as_str()),
-        ("/section", "give either before or section, not both")
-    );
-}
-
-#[test]
-fn reorder_rejects_an_unknown_section() {
-    let mut e = engine(golden_model());
-    let missing: Id<Section> = id(0x9998);
-    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101], None, Some(missing))));
-    assert_eq!(path, "/section");
-    assert_eq!(message, format!("no section {missing}"));
-}
-
-#[test]
-fn reorder_rejects_a_before_that_is_moved() {
-    let mut e = engine(golden_model());
-    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101], Some(PAGE_101), None)));
-    assert_eq!(path, "/before");
-    assert_eq!(
-        message,
-        "the page to put the pages before is one of the moved pages; name a page that stays"
-    );
+    let cases: Vec<(&str, ReorderPages, &str, String)> = vec![
+        (
+            "an empty list",
+            reorder(&[], None, Some(SEC1)),
+            "/pages",
+            "name at least one page".into(),
+        ),
+        (
+            "more than 1000 pages",
+            reorder(&many, None, Some(SEC1)),
+            "/pages",
+            "at most 1000 pages may be moved at once".into(),
+        ),
+        (
+            // The page by its folio, never its ID
+            "a page listed twice",
+            reorder(&[PAGE_101, PAGE_102, PAGE_101], None, Some(SEC1)),
+            "/pages/2",
+            "page 101 is listed twice".into(),
+        ),
+        (
+            "an unknown page",
+            reorder(&[PAGE_101, missing_page], None, Some(SEC1)),
+            "/pages/1",
+            "the page is not in the project".into(),
+        ),
+        (
+            "an unknown before",
+            reorder(&[PAGE_101], Some(missing_page), None),
+            "/before",
+            "the page is not in the project".into(),
+        ),
+        (
+            "before together with section",
+            reorder(&[PAGE_101], Some(PAGE_102), Some(SEC1)),
+            "/section",
+            "give either before or section, not both".into(),
+        ),
+        (
+            "an unknown section",
+            reorder(&[PAGE_101], None, Some(missing_section)),
+            "/section",
+            format!("no section {missing_section}"),
+        ),
+        (
+            "a before that is moved",
+            reorder(&[PAGE_101], Some(PAGE_101), None),
+            "/before",
+            "the page to put the pages before is one of the moved pages; name a page that stays".into(),
+        ),
+        (
+            "an order that does not change (before)",
+            reorder(&[PAGE_101], Some(PAGE_102), None),
+            "/pages",
+            "the pages are already in this order".into(),
+        ),
+        (
+            "an order that does not change (section end)",
+            reorder(&[PAGE_102], None, Some(SEC1)),
+            "/pages",
+            "the pages are already in this order".into(),
+        ),
+    ];
+    for (case, cmd, want_path, want_message) in cases {
+        let (path, message) = reorder_error(bulk(&mut e, &cmd));
+        assert_eq!(
+            (path.as_str(), message.as_str()),
+            (want_path, want_message.as_str()),
+            "{case}"
+        );
+    }
 }
 
 #[test]
@@ -660,21 +644,6 @@ fn reorder_rejects_a_page_of_another_section() {
     assert_eq!(
         message,
         "page 102 is in another section; move pages between sections by changing their section first"
-    );
-}
-
-#[test]
-fn reorder_rejects_an_order_that_does_not_change() {
-    let mut e = engine(golden_model());
-    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101], Some(PAGE_102), None)));
-    assert_eq!(
-        (path.as_str(), message.as_str()),
-        ("/pages", "the pages are already in this order")
-    );
-    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_102], None, Some(SEC1))));
-    assert_eq!(
-        (path.as_str(), message.as_str()),
-        ("/pages", "the pages are already in this order")
     );
 }
 
@@ -704,10 +673,10 @@ fn create_structure_node() {
 #[test]
 fn create_structure_node_rejections() {
     let mut e = engine(golden_model());
-    assert!(rejected(e.execute(&node(Aspect::Product, "X", None))).contains("product"));
-    let wrong = rejected(e.execute(&node(Aspect::Location, "X", Some(FUNC_P01))));
+    assert!(reason(e.execute(&node(Aspect::Product, "X", None))).contains("product"));
+    let wrong = reason(e.execute(&node(Aspect::Location, "X", Some(FUNC_P01))));
     assert!(wrong.contains("another aspect"));
-    let dup = rejected(e.execute(&node(Aspect::Function, "P01", None)));
+    let dup = reason(e.execute(&node(Aspect::Function, "P01", None)));
     assert!(dup.contains("already exists"));
     let missing: Id<StructureNode> = id(0xdead);
     assert!(matches!(
@@ -748,10 +717,10 @@ fn create_section() {
 #[test]
 fn create_section_rejections() {
     let mut e = engine(golden_model());
-    assert!(rejected(e.execute(&section_cmd(2, 299, 200))).contains("folio_range"));
-    assert!(rejected(e.execute(&section_cmd(1, 200, 299))).contains("number 1"));
-    assert!(rejected(e.execute(&section_cmd(2, 150, 250))).contains("overlaps"));
-    assert!(rejected(e.execute(&section_cmd(2, 0, 100))).contains("overlaps"));
+    assert!(reason(e.execute(&section_cmd(2, 299, 200))).contains("folio_range"));
+    assert!(reason(e.execute(&section_cmd(1, 200, 299))).contains("number 1"));
+    assert!(reason(e.execute(&section_cmd(2, 150, 250))).contains("overlaps"));
+    assert!(reason(e.execute(&section_cmd(2, 0, 100))).contains("overlaps"));
     e.execute(&section_cmd(2, 200, 200)).unwrap();
 }
 
@@ -778,7 +747,7 @@ fn create_report_block() {
 #[test]
 fn create_report_block_rejections() {
     let mut e = engine(golden_model());
-    assert!(rejected(e.execute(&block(None))).contains("first_folio"));
+    assert!(reason(e.execute(&block(None))).contains("first_folio"));
     let mut bad_form = block(Some(907));
     bad_form.form = id(0xdead);
     assert!(matches!(e.execute(&bad_form), Err(CmdError::NotFound { .. })));
@@ -794,19 +763,19 @@ fn create_report_block_rejections() {
 fn create_report_block_refuses_a_folio_a_page_holds() {
     let mut e = engine(golden_model());
     assert_eq!(
-        rejected(e.execute(&block(Some(101)))),
+        reason(e.execute(&block(Some(101)))),
         "folio 101 already exists in this section; choose a free folio"
     );
     e.execute(&labelled(Some(SEC1), 150, "150.2")).unwrap();
     assert_eq!(
-        rejected(e.execute(&block(Some(150)))),
+        reason(e.execute(&block(Some(150)))),
         "folio 150.2 already exists in this section; choose a free folio"
     );
     let mut next = block(Some(150));
     next.continuation = ContinuationPolicy::NextFolio;
     e.execute(&next).expect("a next-folio block has no sub-pages");
     assert_eq!(
-        rejected(e.execute(&next)),
+        reason(e.execute(&next)),
         "folio 150 already exists in this section; choose a free folio"
     );
     let mut elsewhere = block(Some(101));
@@ -844,13 +813,7 @@ fn report_block(block: Id<ReportBlock>, first: u32) -> ReportBlock {
 
 /// `fields.set` of a report block's `path` to `value`.
 fn set_block(block: Id<ReportBlock>, path: &str, value: serde_json::Value) -> SetFields {
-    SetFields {
-        kind: KindName::ReportBlock,
-        targets: vec![block.cast()],
-        path: path.into(),
-        value,
-        copies: Vec::new(),
-    }
+    set_fields(KindName::ReportBlock, block.cast(), path, value)
 }
 
 /// `fields.set` of a block's first folio or continuation refuses, in `page.create`'s words, the
@@ -866,18 +829,18 @@ fn set_fields_refuses_a_report_block_folio_a_page_holds() {
     let moved: Id<ReportBlock> = typed(bulk(&mut e, &next).unwrap().outcome.primary.unwrap());
     let before = e.model().table::<ReportBlock>().get(&moved).unwrap().clone();
     assert_eq!(
-        rejected(e.execute(&set_block(moved, "first_folio", serde_json::json!(190)))),
+        reason(e.execute(&set_block(moved, "first_folio", serde_json::json!(190)))),
         "folio 190 already exists in this section; choose a free folio"
     );
     e.execute(&labelled(Some(SEC1), 189, "189.1"))
         .expect("a page that prints 189.1");
     assert_eq!(
-        rejected(e.execute(&set_block(moved, "continuation", serde_json::json!("sub_page")))),
+        reason(e.execute(&set_block(moved, "continuation", serde_json::json!("sub_page")))),
         "folio 189.1 already exists in this section; choose a free folio"
     );
     bulk(&mut e, &block(Some(185))).expect("another block at 185");
     assert_eq!(
-        rejected(e.execute(&set_block(moved, "first_folio", serde_json::json!(185)))),
+        reason(e.execute(&set_block(moved, "first_folio", serde_json::json!(185)))),
         "folio 185 already exists in this section; choose a free folio"
     );
     assert_eq!(*e.model().table::<ReportBlock>().get(&moved).unwrap(), before);
@@ -903,7 +866,7 @@ fn every_folio_path_refuses_the_divider_folio() {
     let mut on_divider = block(Some(200));
     on_divider.section = Some(sec2);
     assert_eq!(
-        rejected(e.execute(&on_divider)),
+        reason(e.execute(&on_divider)),
         "folio 200 already exists in this section; choose a free folio"
     );
     let mut next = block(Some(201));
@@ -911,7 +874,7 @@ fn every_folio_path_refuses_the_divider_folio() {
     let moved: Id<ReportBlock> = typed(bulk(&mut e, &next).unwrap().outcome.primary.unwrap());
     let before = e.model().table::<ReportBlock>().get(&moved).unwrap().clone();
     assert_eq!(
-        rejected(e.execute(&set_block(moved, "first_folio", serde_json::json!(200)))),
+        reason(e.execute(&set_block(moved, "first_folio", serde_json::json!(200)))),
         "folio 200 already exists in this section; choose a free folio"
     );
     assert_eq!(*e.model().table::<ReportBlock>().get(&moved).unwrap(), before);
@@ -923,7 +886,7 @@ fn every_folio_path_refuses_the_divider_folio() {
             .unwrap(),
     );
     assert_eq!(
-        rejected(bulk(
+        reason(bulk(
             &mut e,
             &renumber(PageScope::Pages(vec![page]), 200, 1, false)
         )),
@@ -931,7 +894,7 @@ fn every_folio_path_refuses_the_divider_folio() {
     );
     assert_eq!(folio_of(&e, page), (Some(sec2), 250, None));
     assert_eq!(
-        rejected(e.execute(&CreatePage::at(Some(sec2), 200))),
+        reason(e.execute(&CreatePage::at(Some(sec2), 200))),
         "folio 200 is the divider page of section 2; choose another folio"
     );
     bulk(&mut e, &renumber(PageScope::Pages(vec![page]), 260, 1, false)).expect("a free folio");
@@ -946,7 +909,7 @@ fn renumber_refuses_a_folio_a_report_block_generates() {
     bulk(&mut e, &block(Some(190))).expect("a sub-page block at 190");
     let before = lines(e.model());
     assert_eq!(
-        rejected(bulk(
+        reason(bulk(
             &mut e,
             &renumber(PageScope::Pages(vec![PAGE_101]), 190, 1, false)
         )),
@@ -964,7 +927,7 @@ fn renumber_refuses_a_folio_a_report_block_generates() {
         .expect("a sub-page of 160");
     let with_pages = lines(e.model());
     assert_eq!(
-        rejected(bulk(
+        reason(bulk(
             &mut e,
             &renumber(PageScope::Pages(vec![lettered]), 190, 1, false)
         )),
@@ -981,7 +944,7 @@ fn renumber_refuses_a_folio_outside_its_section() {
     let mut e = engine(golden_model());
     let before = lines(e.model());
     assert_eq!(
-        rejected(bulk(
+        reason(bulk(
             &mut e,
             &renumber(PageScope::Pages(vec![PAGE_101, PAGE_102]), 199, 1, false)
         )),
@@ -1001,18 +964,12 @@ fn renumber_refuses_a_folio_outside_its_section() {
 #[test]
 fn set_fields_refuses_a_divider_onto_a_held_folio() {
     let mut e = engine(golden_model());
-    let set = |path: &str, value: serde_json::Value| SetFields {
-        kind: KindName::Section,
-        targets: vec![SEC1.cast()],
-        path: path.into(),
-        value,
-        copies: Vec::new(),
-    };
+    let set = |path: &str, value: serde_json::Value| set_fields(KindName::Section, SEC1.cast(), path, value);
     e.execute(&set("folio_range", serde_json::json!([101, 199])))
         .expect("no divider");
     let before = lines(e.model());
     assert_eq!(
-        rejected(e.execute(&set("divider", serde_json::json!(true)))),
+        reason(e.execute(&set("divider", serde_json::json!(true)))),
         "folio 101 is held by a page; choose another folio for section 1's divider"
     );
     assert_eq!(lines(e.model()), before);
@@ -1023,7 +980,7 @@ fn set_fields_refuses_a_divider_onto_a_held_folio() {
     bulk(&mut e, &block(Some(150))).expect("a block at 150");
     let before = lines(e.model());
     assert_eq!(
-        rejected(e.execute(&set("folio_range", serde_json::json!([150, 199])))),
+        reason(e.execute(&set("folio_range", serde_json::json!([150, 199])))),
         "folio 150 is held by a report block; choose another folio for section 1's divider"
     );
     assert_eq!(lines(e.model()), before);
@@ -1133,5 +1090,5 @@ fn report_block_create_refuses_a_form_copy_that_does_not_fit() {
     let parsed = ew_schema::LibDocument::from_value(other.clone()).unwrap();
     let hash = ew_commands::commands::library_copy_hash(&parsed).unwrap();
     other["sha256"] = serde_json::json!(ew_schema::Sha256(hash).to_string());
-    assert!(rejected(e.execute(&with_copy(960, form, &other))).contains("update from library"));
+    assert!(reason(e.execute(&with_copy(960, form, &other))).contains("update from library"));
 }

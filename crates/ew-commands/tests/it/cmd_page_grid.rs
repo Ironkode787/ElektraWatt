@@ -17,13 +17,7 @@ use ew_schema::Page;
 use serde_json::{Value, json};
 
 fn set_grid(page: Id<Page>, grid: Value) -> SetFields {
-    SetFields {
-        kind: KindName::Page,
-        targets: vec![page.cast()],
-        path: "grid".into(),
-        value: grid,
-        copies: Vec::new(),
-    }
+    set_fields(KindName::Page, page.cast(), "grid", grid)
 }
 
 #[test]

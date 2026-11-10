@@ -11,20 +11,17 @@ use crate::common;
 
 use common::fixture::*;
 use common::*;
-use ew_commands::commands::{
-    CreateEnclosure, CreateLayoutSpace, KindName, LabelModeParam, SetFields, SetManyFields, SetSurfaceView,
-};
+use ew_commands::commands::{KindName, LabelModeParam, SetFields, SetManyFields, SetSurfaceView};
 use ew_commands::{AnyCommand, CommandRegistry, Engine, Origin};
-use ew_ids::{Id, v5};
+use ew_ids::Id;
 use ew_model::{AnyKey, Model};
 use ew_schema::{
-    Device, EnclosureSection, Kind, LibCopy, LibDocument, MountingSurface, Page, PageItem, PageItemKind,
-    PageType, Part, PartRef, PartUse, PlateSection, Record, Scale,
+    Device, Kind, LibDocument, MountingSurface, Page, PageItem, PageItemKind, PageType, PartUse, Record,
+    Scale,
 };
-use ew_units::{Dec3, Nm, Pt2};
+use ew_units::{Nm, Pt2};
 use serde_json::{Value, json};
 
-const MM: i64 = 1_000_000;
 const LIB_V: u128 = 0xe100;
 const ITEM_ENCL: u128 = 0xe101;
 const ITEM_PLATE: u128 = 0xe102;
@@ -33,23 +30,8 @@ const DEV_PLATE: Id<Device> = id(0xb01);
 /// The panel-layout page, folio 902 (as Golden A's).
 const PAGE_902: Id<Page> = id(0xb10);
 
-fn copy_id(item: u128) -> Id<Part> {
-    v5::lib_copy_id(uuid(LIB_V), uuid(item))
-}
-
-fn copy(item: u128, number: &str) -> LibCopy<Part> {
-    let mut c = part(copy_id(item), number);
-    c.library_id = Id::from_uuid(uuid(LIB_V));
-    c.item_id = Id::from_uuid(uuid(item));
-    c
-}
-
 fn uses(item: u128) -> Vec<PartUse> {
-    vec![PartUse {
-        part: PartRef::new(copy_id(item)),
-        qty: Dec3::ONE,
-        extra: Default::default(),
-    }]
+    part_uses(LIB_V, &[item])
 }
 
 fn model() -> Model {
@@ -63,20 +45,8 @@ fn model() -> Model {
     let mut panel = page(PAGE_902, None, 902, "Panel layout");
     panel.kind = PageType::PanelLayout;
     records.push(Record::Page(panel));
-    let mut encl = copy(ITEM_ENCL, "ENCL");
-    encl.item.sections.enclosure = Some(EnclosureSection {
-        width: Some(Nm(750 * MM)),
-        height: Some(Nm(1000 * MM)),
-        depth: Some(Nm(420 * MM)),
-        plate: Some(lib_ref_to(uuid(LIB_V), uuid(ITEM_PLATE))),
-        ..EnclosureSection::default()
-    });
-    let mut plate_copy = copy(ITEM_PLATE, "PLATE");
-    plate_copy.item.sections.mounting_plate = Some(PlateSection {
-        width: Some(Nm(650 * MM)),
-        height: Some(Nm(900 * MM)),
-        ..PlateSection::default()
-    });
+    let encl = enclosure_part(LIB_V, ITEM_ENCL, ITEM_PLATE, "ENCL");
+    let plate_copy = plate_part(LIB_V, ITEM_PLATE, "PLATE");
     let mut lib = library();
     lib.extend([encl, plate_copy].map(LibDocument::Part));
     Model::from_records(p, records, lib).expect("valid")
@@ -95,31 +65,7 @@ fn run(e: &mut Engine, name: &str, params: Value) {
 /// The fixture: 902 with its surface view and two free texts, and page 101 with a free text.
 fn fx() -> (Engine, AnyKey) {
     let mut e = engine(model());
-    let space = e
-        .execute(&CreateLayoutSpace {
-            location: LOC,
-            name: None,
-        })
-        .unwrap()
-        .outcome
-        .primary
-        .expect("the space")
-        .1
-        .cast();
-    e.execute(&CreateEnclosure {
-        space,
-        device: DEV_UC1,
-        pose: None,
-        pe_bond: None,
-    })
-    .unwrap();
-    let surface: Id<MountingSurface> = e
-        .model()
-        .table::<MountingSurface>()
-        .iter()
-        .map(|(id, _)| *id)
-        .next()
-        .expect("the plate surface");
+    let (_, _, surface) = space_with_enclosure(&mut e, DEV_UC1, None);
     let view = e
         .execute(&SetSurfaceView {
             page: PAGE_902,
@@ -149,13 +95,7 @@ fn fx() -> (Engine, AnyKey) {
 }
 
 fn set_kind(page: Id<Page>, kind: &str) -> SetFields {
-    SetFields {
-        kind: KindName::Page,
-        targets: vec![page.cast()],
-        path: "kind".into(),
-        value: json!(kind),
-        copies: Vec::new(),
-    }
+    set_fields(KindName::Page, page.cast(), "kind", json!(kind))
 }
 
 /// The surface views of `page`.

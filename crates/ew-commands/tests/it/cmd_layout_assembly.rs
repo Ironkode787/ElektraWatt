@@ -13,26 +13,24 @@ use crate::common;
 use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
-    AddCarrier, AttachChildren, AutoFill, CarrierKindParam, CarrierParamsParam, ChildSpec, CreateEnclosure,
+    AddCarrier, AttachChildren, AutoFill, CarrierKindParam, CarrierParamsParam, ChildSpec,
     CreateEnclosureFromPart, CreateLayoutSpace, DeleteSelection, EditEnclosure, EditLayoutSpace, EditSurface,
     FillOrder, KindName, MovePlacement, PageScope, PlaceAssembly, PlaceDevice, PlaceMode, PlaceOnParam,
-    RemovePlacement, RenumberPages, SetFields, TargetRef,
+    RemovePlacement, RenumberPages, TargetRef,
 };
 use ew_commands::{CmdError, Command, Cost, Engine, Origin};
 use ew_derive::Q;
 use ew_derive::layout::member_order;
-use ew_ids::{Id, v5};
+use ew_ids::Id;
 use ew_model::Model;
 use ew_rds::Aspect;
 use ew_schema::{
-    Carrier, Clearance, Device, Enclosure, EnclosureSection, FnRole, FrozenTag, Kind, LayoutSpace, LibCopy,
-    LibDocument, MechData, MountKind, MountingSurface, Part, PartRef, PartUse, Placement, PlateSection,
-    RailSection, Record, Slot, StructureNode, SurfaceKind, TagScheme, TagSign, TagSpec,
+    Carrier, Clearance, Device, Enclosure, FnRole, FrozenTag, Kind, LayoutSpace, LibCopy, LibDocument,
+    MountKind, MountingSurface, Part, PartRef, PartUse, Placement, Record, Slot, StructureNode, SurfaceKind,
+    TagScheme, TagSign, TagSpec,
 };
-use ew_units::{Dec3, Nm, Pose3, Pt2, Quat9};
+use ew_units::{Nm, Pose3, Pt2, Quat9};
 use serde_json::{Value, json};
-
-const MM: i64 = 1_000_000;
 
 const LIB_A: u128 = 0xd200;
 const ITEM_ENCL: u128 = 0xd201;
@@ -74,56 +72,21 @@ const fn many(n: u128) -> Id<Device> {
 const LOC_206: Id<StructureNode> = id(0xa10);
 
 fn copy_id(item: u128) -> Id<Part> {
-    v5::lib_copy_id(uuid(LIB_A), uuid(item))
-}
-
-fn copy(item: u128, number: &str) -> LibCopy<Part> {
-    let mut c = part(copy_id(item), number);
-    c.library_id = Id::from_uuid(uuid(LIB_A));
-    c.item_id = Id::from_uuid(uuid(item));
-    c
-}
-
-fn mech(kind: MountKind, w: i64, h: i64) -> MechData {
-    MechData {
-        width: Some(Nm(w * MM)),
-        height: Some(Nm(h * MM)),
-        mount_kind: Some(kind),
-        ..MechData::default()
-    }
+    lib_part_id(LIB_A, item)
 }
 
 fn enclosure_copy() -> LibCopy<Part> {
-    let mut encl = copy(ITEM_ENCL, "NSYS3D10840P");
-    encl.item.sections.enclosure = Some(EnclosureSection {
-        width: Some(Nm(750 * MM)),
-        height: Some(Nm(1000 * MM)),
-        depth: Some(Nm(420 * MM)),
-        plate: Some(lib_ref_to(uuid(LIB_A), uuid(ITEM_PLATE))),
-        ..EnclosureSection::default()
-    });
-    encl
+    enclosure_part(LIB_A, ITEM_ENCL, ITEM_PLATE, "NSYS3D10840P")
 }
 
 fn plate_copy() -> LibCopy<Part> {
-    let mut plate = copy(ITEM_PLATE, "NSYMM108");
-    plate.item.sections.mounting_plate = Some(PlateSection {
-        width: Some(Nm(650 * MM)),
-        height: Some(Nm(900 * MM)),
-        ..PlateSection::default()
-    });
-    plate
+    plate_part(LIB_A, ITEM_PLATE, "NSYMM108")
 }
 
 fn device_copies() -> Vec<LibCopy<Part>> {
-    let mut rail = copy(ITEM_RAIL, "RAIL");
-    rail.item.sections.rail = Some(RailSection {
-        profile: MountKind::Ts35x7_5,
-        stock_length: None,
-        extra: Default::default(),
-    });
+    let rail = rail_part(LIB_A, ITEM_RAIL, MountKind::Ts35x7_5);
     let device = |item, number, m| {
-        let mut c = copy(item, number);
+        let mut c = lib_part(LIB_A, item, number);
         c.item.mech = Some(m);
         c
     };
@@ -144,14 +107,7 @@ fn device_copies() -> Vec<LibCopy<Part>> {
 }
 
 fn uses(items: &[u128]) -> Vec<PartUse> {
-    items
-        .iter()
-        .map(|i| PartUse {
-            part: PartRef::new(copy_id(*i)),
-            qty: Dec3::ONE,
-            extra: Default::default(),
-        })
-        .collect()
+    part_uses(LIB_A, items)
 }
 
 /// What the fixture model holds.
@@ -267,17 +223,6 @@ fn model(spec: &Spec) -> Model {
     Model::from_records(p, records, lib).expect("valid")
 }
 
-fn p(u: i64, v: i64) -> Pt2 {
-    Pt2::new(Nm(u * MM), Nm(v * MM))
-}
-
-fn at(s: i64) -> Pose3 {
-    Pose3 {
-        t: [Nm(s * MM), Nm(0), Nm(0)],
-        q: Quat9::IDENTITY,
-    }
-}
-
 fn rail_cmd(surface: Id<MountingSurface>, y: i64, length: i64) -> AddCarrier {
     AddCarrier {
         surface,
@@ -292,34 +237,11 @@ fn rail_cmd(surface: Id<MountingSurface>, y: i64, length: i64) -> AddCarrier {
     }
 }
 
-fn created<T>(r: ew_commands::Receipt) -> Id<T> {
-    r.outcome.primary.expect("a primary record").1.cast()
-}
-
-fn rejected(r: Result<ew_commands::Receipt, CmdError>) -> String {
-    match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
-        other => panic!("expected a refusal, got {other:?}"),
-    }
-}
-
 fn invalid(r: Result<ew_commands::Receipt, CmdError>) -> (String, String) {
     match r {
         Err(CmdError::InvalidParams { path, message, .. }) => (path, message),
         other => panic!("expected invalid parameters, got {other:?}"),
     }
-}
-
-fn get<T: ew_model::Entity<Marker = T> + Clone>(e: &Engine, id: Id<T>) -> Option<T> {
-    e.model().table::<T>().get(&id).map(|r| (**r).clone())
-}
-
-fn rows<T: ew_model::Entity + Clone>(e: &Engine) -> Vec<T> {
-    e.model()
-        .table::<T>()
-        .iter()
-        .map(|(_, r)| (**r).clone())
-        .collect()
 }
 
 /// The layout of the fixture: the space of +J-E-2416, -UC1's enclosure and plate, rail 1 (y = 800 mm) and rail 2
@@ -337,27 +259,11 @@ struct Fx {
 
 fn fx_with(spec: &Spec) -> Fx {
     let mut e = engine(model(spec));
-    let space = created(
-        e.execute(&CreateLayoutSpace {
-            location: LOC,
-            name: None,
-        })
-        .unwrap(),
-    );
-    let enclosure = created(
-        e.execute(&CreateEnclosure {
-            space,
-            device: DEV_UC1,
-            pose: None,
-            pe_bond: None,
-        })
-        .unwrap(),
-    );
-    let surface = rows::<MountingSurface>(&e)[0].id;
-    let rail1 = created(e.execute(&rail_cmd(surface, 800, 600)).unwrap());
-    let rail2 = created(e.execute(&rail_cmd(surface, 600, 600)).unwrap());
-    let rail3 = created(e.execute(&rail_cmd(surface, 400, 30)).unwrap());
-    let duct = created(
+    let (space, enclosure, surface) = space_with_enclosure(&mut e, DEV_UC1, None);
+    let rail1 = made(e.execute(&rail_cmd(surface, 800, 600)).unwrap());
+    let rail2 = made(e.execute(&rail_cmd(surface, 600, 600)).unwrap());
+    let rail3 = made(e.execute(&rail_cmd(surface, 400, 30)).unwrap());
+    let duct = made(
         e.execute(&AddCarrier {
             surface,
             kind: CarrierKindParam::Duct,
@@ -447,7 +353,7 @@ fn as2_a_block_lands_in_member_order() {
     let order = member_order(&Q::new(f.e.model()), DEV_A1);
     assert_eq!(order, vec![DEV_A1, DEV_M3, DEV_M1, DEV_M2]);
     assert_eq!(clips(&f.e, &order), vec![29, 47, 65, 83]);
-    let first: Id<Placement> = created(r);
+    let first: Id<Placement> = made(r);
     assert_eq!(
         get(&f.e, first).unwrap().device,
         DEV_A1,
@@ -464,7 +370,7 @@ fn as2_a_block_lands_in_member_order() {
     // Placed: nothing left to place.
     f.e.execute(&assembly(DEV_A1, f.rail1, Some(20), None)).unwrap();
     assert_eq!(
-        rejected(f.e.execute(&assembly(DEV_M1, f.rail1, Some(20), None))),
+        reason(f.e.execute(&assembly(DEV_M1, f.rail1, Some(20), None))),
         "Every member of -?A1 that mounts is already placed."
     );
 }
@@ -527,11 +433,11 @@ fn as2_place_assembly_refusals() {
     let mut f = fx();
     let before = lines(f.e.model());
     assert_eq!(
-        rejected(f.e.execute(&assembly(DEV_A1, f.rail1, Some(20), Some(PlaceMode::Swap)))),
+        reason(f.e.execute(&assembly(DEV_A1, f.rail1, Some(20), Some(PlaceMode::Swap)))),
         "Swap works with one placement; place an assembly in free or push mode."
     );
     assert_eq!(
-        rejected(f.e.execute(&assembly(DEV_A1, f.duct, Some(20), None))),
+        reason(f.e.execute(&assembly(DEV_A1, f.duct, Some(20), None))),
         "An assembly is placed on a rail."
     );
     let on_surface = PlaceAssembly {
@@ -539,7 +445,7 @@ fn as2_place_assembly_refusals() {
         ..assembly(DEV_A1, f.rail1, Some(20), None)
     };
     assert_eq!(
-        rejected(f.e.execute(&on_surface)),
+        reason(f.e.execute(&on_surface)),
         "An assembly is placed on a rail."
     );
     assert_eq!(
@@ -550,11 +456,11 @@ fn as2_place_assembly_refusals() {
         )
     );
     assert_eq!(
-        rejected(f.e.execute(&assembly(k(1), f.rail1, Some(20), None))),
+        reason(f.e.execute(&assembly(k(1), f.rail1, Some(20), None))),
         "-?K1 is not part of an assembly; place it on its own."
     );
     assert_eq!(
-        rejected(f.e.execute(&assembly(DEV_B2, f.rail1, Some(20), None))),
+        reason(f.e.execute(&assembly(DEV_B2, f.rail1, Some(20), None))),
         "-?B2 (TS 32) does not fit a TS 35×7.5 rail"
     );
     assert_eq!(
@@ -655,15 +561,15 @@ fn as3_auto_fill_refusals() {
     assert_eq!(clip10(&f.e, k(1)), 90);
     assert_eq!(r.outcome.notices, vec!["-?K2: no room left on rail 3".to_owned()]);
     assert_eq!(
-        rejected(f.e.execute(&fill(f.rail1, Some(vec![DEV_X5, k(1)]), FillOrder::Dt))),
+        reason(f.e.execute(&fill(f.rail1, Some(vec![DEV_X5, k(1)]), FillOrder::Dt))),
         "Nothing was placed on rail 1: -?X5: TS 32 does not fit a TS 35×7.5 rail; -?K1: already placed"
     );
     assert_eq!(
-        rejected(f.e.execute(&fill(f.rail1, Some(vec![]), FillOrder::Dt))),
+        reason(f.e.execute(&fill(f.rail1, Some(vec![]), FillOrder::Dt))),
         "Nothing was placed on rail 1: no device to place."
     );
     assert_eq!(
-        rejected(f.e.execute(&fill(f.duct, None, FillOrder::Dt))),
+        reason(f.e.execute(&fill(f.duct, None, FillOrder::Dt))),
         "Auto-fill works on a rail."
     );
     assert_eq!(
@@ -824,7 +730,7 @@ fn as5_an_enclosure_from_its_part() {
     let before = lines(e.model());
     let cursor = e.history().cursor();
     let cmd = from_part(vec![copy_json(enclosure_copy()), copy_json(plate_copy())]);
-    let enclosure: Id<Enclosure> = created(e.execute(&cmd).unwrap());
+    let enclosure: Id<Enclosure> = made(e.execute(&cmd).unwrap());
     assert_eq!(e.history().cursor(), cursor + 1, "one step");
     let spaces = rows::<LayoutSpace>(&e);
     assert_eq!(spaces.len(), 1);
@@ -889,7 +795,7 @@ fn as5_an_enclosure_from_its_part() {
             .is_some()
     );
     assert_eq!(
-        rejected(e.execute(&from_part(vec![]))),
+        reason(e.execute(&from_part(vec![]))),
         "location +J-E-2416 already has enclosure -UC1; a location has one enclosure. \
          Choose another location, or edit -UC1"
     );
@@ -911,11 +817,11 @@ fn as5_create_from_part_refusals_and_reuse() {
         ..from_part(vec![])
     };
     assert_eq!(
-        rejected(e.execute(&no_section)),
+        reason(e.execute(&no_section)),
         "MCB has no enclosure section; choose an enclosure part."
     );
     assert_eq!(
-        rejected(e.execute(&from_part(vec![copy_json(enclosure_copy())]))),
+        reason(e.execute(&from_part(vec![copy_json(enclosure_copy())]))),
         "the enclosure part names a plate part that the project does not hold; add it to copies"
     );
     assert_eq!(invalid(e.execute(&from_part(vec![]))).0, "/part");
@@ -935,17 +841,17 @@ fn as5_create_from_part_refusals_and_reuse() {
         ..from_part(vec![copy_json(enclosure_copy()), copy_json(plate_copy())])
     };
     assert_eq!(
-        rejected(e.execute(&not_location)),
+        reason(e.execute(&not_location)),
         "node P01 is not a location; a layout space lays out a location"
     );
-    let space: Id<LayoutSpace> = created(
+    let space: Id<LayoutSpace> = made(
         e.execute(&CreateLayoutSpace {
             location: LOC,
             name: Some(ident("Cabinet")),
         })
         .unwrap(),
     );
-    let enclosure: Id<Enclosure> = created(
+    let enclosure: Id<Enclosure> = made(
         e.execute(&from_part(vec![
             copy_json(enclosure_copy()),
             copy_json(plate_copy()),
@@ -1017,7 +923,7 @@ fn as6_the_edits_change_one_member() {
         ..moved
     };
     assert_eq!(
-        rejected(f.e.execute(&EditEnclosure {
+        reason(f.e.execute(&EditEnclosure {
             enclosure: f.enclosure,
             pose: turned
         })),
@@ -1095,33 +1001,27 @@ fn as7_edit_delete_on_layout_kinds() {
         placement_of(&f.e, k(3)),
     );
     // fields.set refuses the layout kinds (they have no settable fields).
-    let set = SetFields {
-        kind: KindName::Placement,
-        targets: vec![p1.cast()],
-        path: "locked".into(),
-        value: json!(true),
-        copies: vec![],
-    };
+    let set = set_fields(KindName::Placement, p1.cast(), "locked", json!(true));
     assert_eq!(invalid(f.e.execute(&set)).0, "/path");
     let rail1 = (KindName::Carrier, f.rail1.cast());
     assert_eq!(
-        rejected(f.e.execute(&delete(&[rail1]))),
+        reason(f.e.execute(&delete(&[rail1]))),
         "Rail 1 holds 2 placements; use Delete carrier… to remove or rehome them."
     );
     assert_eq!(
-        rejected(f.e.execute(&delete(&[rail1, (KindName::Placement, p1.cast())]))),
+        reason(f.e.execute(&delete(&[rail1, (KindName::Placement, p1.cast())]))),
         "Rail 1 holds 1 placement; use Delete carrier… to remove or rehome them."
     );
     assert_eq!(
-        rejected(f.e.execute(&delete(&[(KindName::Enclosure, f.enclosure.cast())]))),
+        reason(f.e.execute(&delete(&[(KindName::Enclosure, f.enclosure.cast())]))),
         "Rail 1 holds 2 placements; use Delete carrier… to remove or rehome them."
     );
     assert_eq!(
-        rejected(f.e.execute(&delete(&[(KindName::LayoutSpace, f.space.cast())]))),
+        reason(f.e.execute(&delete(&[(KindName::LayoutSpace, f.space.cast())]))),
         "Rail 1 holds 2 placements; use Delete carrier… to remove or rehome them."
     );
     assert_eq!(
-        rejected(f.e.execute(&delete(&[
+        reason(f.e.execute(&delete(&[
             (KindName::LayoutSpace, f.space.cast()),
             (KindName::Placement, p1.cast()),
             (KindName::Placement, p2.cast()),
@@ -1129,18 +1029,18 @@ fn as7_edit_delete_on_layout_kinds() {
         "The plate of -?UC1 holds 1 placement; remove them first."
     );
     assert_eq!(
-        rejected(f.e.execute(&delete(&[(KindName::Device, DEV_UC1.cast())]))),
+        reason(f.e.execute(&delete(&[(KindName::Device, DEV_UC1.cast())]))),
         "-?UC1 carries an enclosure; delete the enclosure first."
     );
     assert_eq!(
-        rejected(f.e.execute(&delete(&[
+        reason(f.e.execute(&delete(&[
             (KindName::Device, DEV_UC1.cast()),
             (KindName::Enclosure, f.enclosure.cast()),
         ]))),
         "-?UC1 carries an enclosure; delete the enclosure first."
     );
     assert_eq!(
-        rejected(f.e.execute(&delete(&[(KindName::MountingSurface, f.surface.cast())]))),
+        reason(f.e.execute(&delete(&[(KindName::MountingSurface, f.surface.cast())]))),
         "The plate goes with its enclosure; delete the enclosure of -?UC1."
     );
     // A placement; an empty carrier; a carrier with all its placements.
@@ -1182,7 +1082,7 @@ fn as8_move_realises_another_part() {
         part: Some(copy_id(ITEM_MCB)),
         ..place(DEV_KM, f.rail1, 30)
     };
-    let pl: Id<Placement> = created(f.e.execute(&km).unwrap()); // [21, 39]
+    let pl: Id<Placement> = made(f.e.execute(&km).unwrap()); // [21, 39]
     f.e.execute(&place(k(1), f.rail1, 50)).unwrap(); // [41, 59]
     f.e.execute(&mv(pl, 30, None, None)).unwrap();
     assert_eq!(get(&f.e, pl).unwrap().part, Some(PartRef::new(copy_id(ITEM_MCB))));
@@ -1199,7 +1099,7 @@ fn as8_move_realises_another_part() {
         ("/part".to_owned(), "-?KM1 does not use this part".to_owned())
     );
     assert_eq!(
-        rejected(f.e.execute(&mv(pl, 30, Some(ITEM_TS32), None))),
+        reason(f.e.execute(&mv(pl, 30, Some(ITEM_TS32), None))),
         "-?KM1 (TS 32) does not fit a TS 35×7.5 rail"
     );
     let second = PlaceDevice {
@@ -1208,7 +1108,7 @@ fn as8_move_realises_another_part() {
     };
     f.e.execute(&second).unwrap();
     assert_eq!(
-        rejected(f.e.execute(&mv(pl, 30, Some(ITEM_MCB), None))),
+        reason(f.e.execute(&mv(pl, 30, Some(ITEM_MCB), None))),
         "-?KM1 is already placed with this part and function; move its placement instead"
     );
 }

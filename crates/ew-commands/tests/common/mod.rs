@@ -10,12 +10,17 @@
 
 pub mod fixture;
 
+use ew_commands::commands::{CreateEnclosure, CreateLayoutSpace, KindName, SetFields};
 use ew_commands::{CmdError, Engine, EngineOptions, HistoryLimits, Receipt};
 use ew_ids::{Id, Uuid};
 use ew_model::{AnyKey, Entity, Model};
-use ew_schema::{Dir4, Extra, FnDef, KeyedList, Kind, LibDocument, Project, SymbolCp, SymbolDef};
+use ew_schema::{
+    AnyId, Device, Dir4, Enclosure, EnclosureSection, Extra, FnDef, KeyedList, Kind, LayoutSpace, LibCopy,
+    LibDocument, MechData, MountKind, MountingSurface, Part, PartRef, PartUse, PlateSection, Project,
+    RailSection, SymbolCp, SymbolDef,
+};
 use ew_testids::SeededSource;
-use ew_units::{Nm, Pt2};
+use ew_units::{Dec3, Nm, Pose3, Pt2, Quat9};
 
 use fixture::*;
 
@@ -183,4 +188,158 @@ pub fn invalid_path<T: std::fmt::Debug>(r: Result<T, CmdError>, command: &str) -
         }
         other => panic!("expected InvalidParams, got {other:?}"),
     }
+}
+
+/// The reason of a `Rejected` refusal; panics on anything else.
+#[track_caller]
+pub fn reason<T: std::fmt::Debug>(r: Result<T, CmdError>) -> String {
+    match r {
+        Err(CmdError::Rejected { reason, .. }) => reason,
+        other => panic!("expected a refusal, got {other:?}"),
+    }
+}
+
+/// `fields.set` of `path` on one target.
+pub fn set_fields(kind: KindName, target: AnyId, path: &str, value: serde_json::Value) -> SetFields {
+    SetFields {
+        kind,
+        targets: vec![target],
+        path: path.into(),
+        value,
+        copies: Vec::new(),
+    }
+}
+
+/// The primary record of a receipt, typed.
+pub fn made<T>(r: Receipt) -> Id<T> {
+    r.outcome.primary.expect("a primary record").1.cast()
+}
+
+/// A row of the engine's model, cloned.
+pub fn get<T: Entity<Marker = T> + Clone>(e: &Engine, id: Id<T>) -> Option<T> {
+    e.model().table::<T>().get(&id).map(|r| (**r).clone())
+}
+
+/// Every row of one table, cloned.
+pub fn rows<T: Entity + Clone>(e: &Engine) -> Vec<T> {
+    e.model()
+        .table::<T>()
+        .iter()
+        .map(|(_, r)| (**r).clone())
+        .collect()
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Layout fixtures: part copies of one library, millimetre points and rail poses
+
+/// One millimetre in nanometres.
+pub const MM: i64 = 1_000_000;
+
+/// A point in millimetres.
+pub fn p(u: i64, v: i64) -> Pt2 {
+    Pt2::new(Nm(u * MM), Nm(v * MM))
+}
+
+/// A rail pose at clip point `s` mm, not turned.
+pub fn at(s: i64) -> Pose3 {
+    Pose3 {
+        t: [Nm(s * MM), Nm(0), Nm(0)],
+        q: Quat9::IDENTITY,
+    }
+}
+
+/// Mechanical data of `width` × `height` mm with a mount kind.
+pub fn mech(kind: MountKind, width: i64, height: i64) -> MechData {
+    MechData {
+        width: Some(Nm(width * MM)),
+        height: Some(Nm(height * MM)),
+        mount_kind: Some(kind),
+        ..MechData::default()
+    }
+}
+
+/// The copy identity of `item` of `library`.
+pub fn lib_part_id(library: u128, item: u128) -> Id<Part> {
+    ew_ids::v5::lib_copy_id(uuid(library), uuid(item))
+}
+
+/// A part copy of `item` of `library` with its copy identity.
+pub fn lib_part(library: u128, item: u128, number: &str) -> LibCopy<Part> {
+    let mut c = part(lib_part_id(library, item), number);
+    c.library_id = Id::from_uuid(uuid(library));
+    c.item_id = Id::from_uuid(uuid(item));
+    c
+}
+
+/// One use of each part copy of `items`, quantity one.
+pub fn part_uses(library: u128, items: &[u128]) -> Vec<PartUse> {
+    items
+        .iter()
+        .map(|i| PartUse {
+            part: PartRef::new(lib_part_id(library, *i)),
+            qty: Dec3::ONE,
+            extra: Default::default(),
+        })
+        .collect()
+}
+
+/// An enclosure part (750 × 1000 × 420 mm) whose plate part is `plate_item`.
+pub fn enclosure_part(library: u128, item: u128, plate_item: u128, number: &str) -> LibCopy<Part> {
+    let mut c = lib_part(library, item, number);
+    c.item.sections.enclosure = Some(EnclosureSection {
+        width: Some(Nm(750 * MM)),
+        height: Some(Nm(1000 * MM)),
+        depth: Some(Nm(420 * MM)),
+        plate: Some(lib_ref_to(uuid(library), uuid(plate_item))),
+        ..EnclosureSection::default()
+    });
+    c
+}
+
+/// A mounting plate part of 650 × 900 mm.
+pub fn plate_part(library: u128, item: u128, number: &str) -> LibCopy<Part> {
+    let mut c = lib_part(library, item, number);
+    c.item.sections.mounting_plate = Some(PlateSection {
+        width: Some(Nm(650 * MM)),
+        height: Some(Nm(900 * MM)),
+        ..PlateSection::default()
+    });
+    c
+}
+
+/// A rail part of `profile`.
+pub fn rail_part(library: u128, item: u128, profile: MountKind) -> LibCopy<Part> {
+    let mut c = lib_part(library, item, "RAIL");
+    c.item.sections.rail = Some(RailSection {
+        profile,
+        stock_length: None,
+        extra: Default::default(),
+    });
+    c
+}
+
+/// The layout space of [`LOC`] with the enclosure of `device`: the space, the enclosure and its plate surface.
+pub fn space_with_enclosure(
+    e: &mut Engine,
+    device: Id<Device>,
+    pe_bond: Option<bool>,
+) -> (Id<LayoutSpace>, Id<Enclosure>, Id<MountingSurface>) {
+    let space = made(
+        e.execute(&CreateLayoutSpace {
+            location: LOC,
+            name: None,
+        })
+        .unwrap(),
+    );
+    let enclosure = made(
+        e.execute(&CreateEnclosure {
+            space,
+            device,
+            pose: None,
+            pe_bond,
+        })
+        .unwrap(),
+    );
+    let surface = rows::<MountingSurface>(e)[0].id;
+    (space, enclosure, surface)
 }
