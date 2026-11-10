@@ -450,7 +450,9 @@ fn only_part(cx: &dyn ParseCx, kinds: &[&str]) -> Result<String, StripEditError>
         .collect();
     fits.sort_by(part_order);
     match fits.len() {
-        0 => Err(StripEditError::Refused("reason-no-accessory-part")),
+        0 => Err(StripEditError::Refused(ew_commands::text_key!(
+            "reason-no-accessory-part"
+        ))),
         1 => Ok(fits.remove(0).id),
         _ => Err(StripEditError::Ambiguous(choices(fits))),
     }
@@ -638,7 +640,7 @@ fn bridge_part(
     for t in terminals {
         let id: Id<Device> = Id::from_uuid(*t);
         let Some((_, _, g)) = groups.iter().find(|(_, _, g)| g.terminals.contains(&id)) else {
-            return Err(StripEditError::Refused("table-no-bridge"));
+            return Err(StripEditError::Refused(ew_commands::text_key!("table-no-bridge")));
         };
         let carrier = g.carrier.as_uuid();
         match work.carriers.iter_mut().find(|(c, _)| *c == carrier) {
@@ -757,7 +759,9 @@ fn insert(
         .and_then(|f| q.functions().get(f).map(|f| f.def))
         .or_else(|| starter_terminal_def(q));
     let Some(fndef) = fndef else {
-        return Err(StripEditError::Refused("reason-no-terminal-def"));
+        return Err(StripEditError::Refused(ew_commands::text_key!(
+            "reason-no-terminal-def"
+        )));
     };
     let parts: Vec<Value> = reference
         .and_then(|r| q.devices().get(r))

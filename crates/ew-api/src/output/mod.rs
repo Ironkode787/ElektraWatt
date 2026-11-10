@@ -194,8 +194,8 @@ pub use rows::{
 // WP-S3.08 part 2: the table round trip.
 pub use table_io::{
     CellOutcome, IO_LIST_ROUTES, ImportCell, ImportCounts, ImportFinding, ImportTableOptions,
-    MAX_IMPORT_CELLS, REASON_KEYS, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport,
-    TableImportError, guard_table_read, reason_words,
+    MAX_IMPORT_CELLS, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport, TableImportError,
+    guard_table_read, reason_words,
 };
 // WP-S2.07 part 1
 pub use strip_edit::{

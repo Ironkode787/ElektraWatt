@@ -16,7 +16,7 @@
 //! (kind, member, value), else one `fields.set_many` with one entry per (kind, member, value) in the order of first
 //! appearance ([`compile`]).
 //!
-//! **Texts** (ID-1174 ruling 3): every text an item here returns is a text key of [`crate::TEXT_KEYS`]
+//! **Texts** (ID-1174 ruling 3): every text an item here returns is a text key, checked by `text_key!`
 //! ([`cell_reason_key`], [`GestureCell::reason_text`], [`GestureKind::word_key`], [`rows_word_key`]); the view model
 //! gives the texts under the old names.
 
@@ -89,14 +89,14 @@ fn strip_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<Optio
     let c = table.columns.get(column)?;
     let editable = strip_route(table, node, column).is_some();
     if node.role == NavRole::Accessory {
-        return Some((!editable).then_some("table-accessory-row"));
+        return Some((!editable).then_some(ew_commands::text_key!("table-accessory-row")));
     }
     if c.key == "pos" {
-        return Some(Some("table-pos-move"));
+        return Some(Some(ew_commands::text_key!("table-pos-move")));
     }
     if node.role == NavRole::Terminal {
         return match c.strip_cell {
-            Some(StripCell::BridgePart) if !editable => Some(Some("table-no-bridge")),
+            Some(StripCell::BridgePart) if !editable => Some(Some(ew_commands::text_key!("table-no-bridge"))),
             Some(StripCell::Group | StripCell::BridgePart) => Some(None),
             _ => None,
         };
@@ -254,7 +254,7 @@ const TYPED_PLC: [(&str, &str); 3] = [
     ("device", "plc_module.slot"),
 ];
 
-/// Why a cell is read-only (§8.2's precedence), as a text key of [`crate::TEXT_KEYS`], `None` for an editable cell:
+/// Why a cell is read-only (§8.2's precedence), as a text key, `None` for an editable cell:
 /// "derived", "generated", "no record of this kind", "edit in the property grid", "no command yet" (the view model's
 /// `cell_reason` gives the text). A column without a route reads its [`NavColumn::read_only`](super::NavColumn): the
 /// builder's "derived" is `table-reason-derived`, any other `table-reason-no-command`.
@@ -264,19 +264,19 @@ pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Optio
         return reason;
     }
     if c.derived {
-        return Some("table-reason-derived");
+        return Some(ew_commands::text_key!("table-reason-derived"));
     }
     if table.kind == NavKind::Pages && node.badges.iter().any(|b| b == "generated") {
-        return Some("table-reason-generated");
+        return Some(ew_commands::text_key!("table-reason-generated"));
     }
     let Some((kind, path)) = &c.route else {
         return Some(match c.read_only.as_deref() {
-            Some("derived") => "table-reason-derived",
-            _ => "table-reason-no-command",
+            Some("derived") => ew_commands::text_key!("table-reason-derived"),
+            _ => ew_commands::text_key!("table-reason-no-command"),
         });
     };
     if row_targets(node, kind).is_empty() && define_point(node, kind, path).is_none() {
-        return Some("table-no-record");
+        return Some(ew_commands::text_key!("table-no-record"));
     }
     match route_type(kind, path) {
         Some(ty) if is_scalar(&ty) => None,
@@ -284,8 +284,8 @@ pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Optio
         Some(_) if (kind.as_str(), path.as_str()) == ("device", "cable.length") => None,
         // WP-S2.07 §8 (FT-429, FT-690): the PLC grid's typed editors.
         Some(_) if TYPED_PLC.contains(&(kind.as_str(), path.as_str())) => None,
-        Some(_) => Some("table-reason-property-grid"),
-        None => Some("table-reason-no-command"),
+        Some(_) => Some(ew_commands::text_key!("table-reason-property-grid")),
+        None => Some(ew_commands::text_key!("table-reason-no-command")),
     }
 }
 
@@ -357,17 +357,23 @@ impl GestureCell {
                 .as_ref()
                 .is_some_and(|(k, p)| k == STRIP_ROUTE && p.starts_with("bridge_part:"))
             {
-                "table-same-bridge"
+                ew_commands::text_key!("table-same-bridge")
             } else {
-                "table-same-record"
+                ew_commands::text_key!("table-same-record")
             };
             return Some(CellText::Key(key, vec![n.to_string()]));
         }
         if self.define_clash {
-            return Some(CellText::Key("table-define-alone", Vec::new()));
+            return Some(CellText::Key(
+                ew_commands::text_key!("table-define-alone"),
+                Vec::new(),
+            ));
         }
         if self.define_unnamed {
-            return Some(CellText::Key("table-define-name-first", Vec::new()));
+            return Some(CellText::Key(
+                ew_commands::text_key!("table-define-name-first"),
+                Vec::new(),
+            ));
         }
         match &self.value {
             CellValue::Invalid(r) => Some(CellText::Given(r.clone())),
@@ -379,7 +385,7 @@ impl GestureCell {
 /// A text a moved item hands a front-end (ID-1174 ruling 3: text keys, never English).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CellText {
-    /// A text key of [`crate::TEXT_KEYS`] and its arguments, in its placeholders' order (`{0}`, …).
+    /// A text key and its arguments, in its placeholders' order (`{0}`, …).
     Key(&'static str, Vec<String>),
     /// A text given with the cell (a parser's reason), shown as it is.
     Given(String),
@@ -404,11 +410,11 @@ impl GestureKind {
     /// The text key of the word of the card's title (`paste`, `fill down`).
     pub fn word_key(self) -> &'static str {
         match self {
-            GestureKind::Edit => "table-gesture-edit",
-            GestureKind::FillDown => "table-gesture-fill-down",
-            GestureKind::PatternFill => "table-gesture-pattern-fill",
-            GestureKind::Paste => "table-gesture-paste",
-            GestureKind::Clear => "table-gesture-clear",
+            GestureKind::Edit => ew_commands::text_key!("table-gesture-edit"),
+            GestureKind::FillDown => ew_commands::text_key!("table-gesture-fill-down"),
+            GestureKind::PatternFill => ew_commands::text_key!("table-gesture-pattern-fill"),
+            GestureKind::Paste => ew_commands::text_key!("table-gesture-paste"),
+            GestureKind::Clear => ew_commands::text_key!("table-gesture-clear"),
         }
     }
 }
@@ -733,22 +739,67 @@ fn compile_define(cells: &[&GestureCell]) -> Option<Compiled> {
 /// The text key of the word of a navigator's table rows, singular for one (`terminal`, `structure nodes`).
 pub fn rows_word_key(kind: NavKind, n: usize) -> &'static str {
     let (one, many) = match kind {
-        NavKind::Pages => ("table-row-pages", "table-rows-pages"),
-        NavKind::Devices => ("table-row-devices", "table-rows-devices"),
-        NavKind::Connections => ("table-row-connections", "table-rows-connections"),
-        NavKind::Strips => ("table-row-strips", "table-rows-strips"),
-        NavKind::Cables => ("table-row-cables", "table-rows-cables"),
-        NavKind::Plc => ("table-row-plc", "table-rows-plc"),
-        NavKind::Potentials => ("table-row-potentials", "table-rows-potentials"),
-        NavKind::Ips => ("table-row-ips", "table-rows-ips"),
-        NavKind::Structure => ("table-row-structure", "table-rows-structure"),
-        NavKind::Parts => ("table-row-parts", "table-rows-parts"),
-        NavKind::Blocks => ("table-row-blocks", "table-rows-blocks"),
-        NavKind::Unplaced => ("table-row-unplaced", "table-rows-unplaced"),
-        NavKind::Macros => ("table-row-macros", "table-rows-macros"),
-        NavKind::Libraries => ("table-row-libraries", "table-rows-libraries"),
+        NavKind::Pages => (
+            ew_commands::text_key!("table-row-pages"),
+            ew_commands::text_key!("table-rows-pages"),
+        ),
+        NavKind::Devices => (
+            ew_commands::text_key!("table-row-devices"),
+            ew_commands::text_key!("table-rows-devices"),
+        ),
+        NavKind::Connections => (
+            ew_commands::text_key!("table-row-connections"),
+            ew_commands::text_key!("table-rows-connections"),
+        ),
+        NavKind::Strips => (
+            ew_commands::text_key!("table-row-strips"),
+            ew_commands::text_key!("table-rows-strips"),
+        ),
+        NavKind::Cables => (
+            ew_commands::text_key!("table-row-cables"),
+            ew_commands::text_key!("table-rows-cables"),
+        ),
+        NavKind::Plc => (
+            ew_commands::text_key!("table-row-plc"),
+            ew_commands::text_key!("table-rows-plc"),
+        ),
+        NavKind::Potentials => (
+            ew_commands::text_key!("table-row-potentials"),
+            ew_commands::text_key!("table-rows-potentials"),
+        ),
+        NavKind::Ips => (
+            ew_commands::text_key!("table-row-ips"),
+            ew_commands::text_key!("table-rows-ips"),
+        ),
+        NavKind::Structure => (
+            ew_commands::text_key!("table-row-structure"),
+            ew_commands::text_key!("table-rows-structure"),
+        ),
+        NavKind::Parts => (
+            ew_commands::text_key!("table-row-parts"),
+            ew_commands::text_key!("table-rows-parts"),
+        ),
+        NavKind::Blocks => (
+            ew_commands::text_key!("table-row-blocks"),
+            ew_commands::text_key!("table-rows-blocks"),
+        ),
+        NavKind::Unplaced => (
+            ew_commands::text_key!("table-row-unplaced"),
+            ew_commands::text_key!("table-rows-unplaced"),
+        ),
+        NavKind::Macros => (
+            ew_commands::text_key!("table-row-macros"),
+            ew_commands::text_key!("table-rows-macros"),
+        ),
+        NavKind::Libraries => (
+            ew_commands::text_key!("table-row-libraries"),
+            ew_commands::text_key!("table-rows-libraries"),
+        ),
         // The Messages pane has no table mode (`navigator.table` fails); its rows are findings.
-        NavKind::Messages => ("table-row-messages", "table-rows-messages"),
+        NavKind::Messages => (
+            ew_commands::text_key!("table-row-messages"),
+            ew_commands::text_key!("table-rows-messages"),
+        ),
     };
     if n == 1 { one } else { many }
 }

@@ -1132,7 +1132,8 @@ fn test_modules(files: &[(String, String)]) -> TestModules {
     out
 }
 
-/// Whether `path` lies in a test directory of the package at `package_dir`.
+/// Whether `path` lies in a test directory of the package at `package_dir`, or is its build script, which runs
+/// before the package is built and links none of its dependencies.
 fn is_test_path(package_dir: &str, path: &str) -> bool {
     let rel = if package_dir.is_empty() {
         path
@@ -1141,6 +1142,9 @@ fn is_test_path(package_dir: &str, path: &str) -> bool {
             .and_then(|r| r.strip_prefix('/'))
             .unwrap_or(path)
     };
+    if rel == "build.rs" {
+        return true;
+    }
     rel.split('/')
         .next()
         .is_some_and(|first| rel.contains('/') && TEST_DIRS.contains(&first))

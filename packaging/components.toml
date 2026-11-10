@@ -17,7 +17,6 @@
 # (FT-1223). A new snapshot, the image digest (`LINUX_BUILD_IMAGE`) and these versions are updated together, in a
 # commit of their own (doc 18 §5.3's rule for images).
 
-# map: packaging-components: a new downloaded or image-provided packaging tool or runtime goes here with its version, licence, URL and SHA-256.
 [[component]]
 name = "gcc"
 version = "4:11.2.0-1ubuntu1"
@@ -156,7 +155,6 @@ snapshot = "20261102T000000Z"
 # only) squashfs-tools fetches into the pinned image at that snapshot (the image holds the rest), each at the version
 # and the SHA-256 of the snapshot's index; stage.py debs refuses a downloaded file that is not one of them, gcc,
 # libc6-dev or squashfs-tools.
-# map: packaging-debs: a new package that the container's apt fetches goes here with its name, version and SHA-256.
 [[apt.deb]]
 name = "binutils"
 version = "2.38-4ubuntu2.12"
@@ -312,7 +310,6 @@ sha256 = "447c6d8f7624a3d728a12232440d3f10e6e53bbf60cc202b7beb8a3bc9f7acc9"
 # binutils-aarch64-linux-gnu and libhwasan0 in place of binutils-x86-64-linux-gnu and libquadmath0 (no squashfs-tools,
 # no liblzo2-2: no AppImage for arm64), each with the SHA-256 of the snapshot's arm64 index; stage.py debs --arch arm64
 # compares the download with this list alone.
-# map: packaging-arm64-debs: a new package that the arm64 container's apt fetches goes here with its name, version and SHA-256.
 [[apt.arm64]]
 name = "binutils"
 version = "2.38-4ubuntu2.12"

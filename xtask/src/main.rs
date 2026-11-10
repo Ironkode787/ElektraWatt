@@ -25,7 +25,6 @@ mod icons;
 mod licence;
 mod raw_read;
 mod repo;
-mod shell_keys;
 mod symbols;
 mod ui_strings;
 
@@ -42,7 +41,7 @@ the loop:
                        checks a change: formats every Rust file, then clippy and the tests of the named packages
                        (the whole workspace without -p) with all features, then the repository rules. --no-test
                        leaves the tests out
-  gen [--check]        regenerates every generated file: the text keys, the reference of the commands, rules,
+  gen [--check]        regenerates every generated file: the reference of the commands, rules,
                        keymaps, CLI, queries and views (target/reference, not committed), the book's contents and
                        reference pages, the icon table, the lint list and the QET symbol edition; --check writes
                        nothing and fails when a committed file that needs no build to compare is stale

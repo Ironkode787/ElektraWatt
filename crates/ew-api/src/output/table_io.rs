@@ -933,18 +933,18 @@ impl Merge<'_> {
         if let (Some(nav), Some(&i)) = (&self.current.nav, self.current.nodes.get(r)) {
             let node: &NavNode = &nav.nodes[i as usize];
             if strip_route(nav, node, c).is_some() {
-                return Err("table-reason-window");
+                return Err(ew_commands::text_key!("table-reason-window"));
             }
             if let Some(reason) = cell_reason_key(nav, node, c) {
                 return Err(reason);
             }
             let Some((kind, path)) = nav.columns[c].route.clone() else {
-                return Err("table-reason-no-command");
+                return Err(ew_commands::text_key!("table-reason-no-command"));
             };
             let targets = row_targets(node, &kind);
             if targets.is_empty() || define_point(node, &kind, &path).is_some() {
                 // A potential's defining cell (WP-S1.16 D4) is defined in the window.
-                return Err("table-reason-window");
+                return Err(ew_commands::text_key!("table-reason-window"));
             }
             return Ok(((kind, path), targets));
         }
@@ -964,8 +964,8 @@ impl Merge<'_> {
             (Some((_, kind, path)), Some(channel)) => {
                 Ok((((*kind).to_owned(), (*path).to_owned()), vec![channel]))
             }
-            (Some(_), None) => Err("table-no-record"),
-            (None, _) => Err("table-reason-derived"),
+            (Some(_), None) => Err(ew_commands::text_key!("table-no-record")),
+            (None, _) => Err(ew_commands::text_key!("table-reason-derived")),
         }
     }
 
@@ -1168,35 +1168,11 @@ fn is_lossy(file: &str, exported: &str) -> bool {
     file.trim() != exported.trim() && number(file).is_some() && number(file) == number(exported)
 }
 
-/// The English words of a read-only reason key, as the CLI prints a round trip's findings (the shell's
-/// `strings.rs` has the same texts; its test compares them).
+/// The English words of a read-only reason key, as the CLI prints a round trip's findings: the key's text of the
+/// window's en-GB locale file.
 pub fn reason_words(key: &str) -> &'static str {
-    match key {
-        "table-accessory-row" => "accessory row",
-        "table-pos-move" => "move rows with Alt+Up and Alt+Down",
-        "table-no-bridge" => "the terminal has no bridge",
-        "table-reason-derived" => "derived",
-        "table-reason-generated" => "generated",
-        "table-no-record" => "no record of this kind",
-        "table-reason-property-grid" => "edit in the property grid",
-        "table-reason-window" => "edit in the window",
-        _ => "no command yet",
-    }
+    ew_commands::text_english(key).unwrap_or("no command yet")
 }
-
-/// The text keys [`reason_words`] words, for the shell's test that its texts are the same.
-// map: round-trip-reasons: a new read-only reason of a round trip goes in REASON_KEYS, in reason_words' match with its English words, and under the same key in crates/ew-viewmodel/locales/en-GB/shell.ftl with the same words (in nl-NL/shell.ftl in Dutch).
-pub const REASON_KEYS: &[&str] = &[
-    "table-accessory-row",
-    "table-pos-move",
-    "table-no-bridge",
-    "table-reason-derived",
-    "table-reason-generated",
-    "table-no-record",
-    "table-reason-property-grid",
-    "table-reason-window",
-    "table-reason-no-command",
-];
 
 #[cfg(test)]
 mod tests {

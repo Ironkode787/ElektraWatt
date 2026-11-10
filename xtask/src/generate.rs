@@ -8,9 +8,9 @@
 //!   as JSON, for the user guide's reference pages. xtask may not link the product (it is permissive, the product
 //!   GPL), so each registry's own crate has a test that writes its file when `EW_REFERENCE_DIR` is set, and
 //!   [`reference`] runs those tests.
-//! - **Committed files** that a generator of xtask writes from data in the tree: the text keys, the book's contents
-//!   and reference pages, the icon table, the lint list, the QET symbol edition, and the persona harness's action
-//!   list. `--check` compares the ones that need no build.
+//! - **Committed files** that a generator of xtask writes from data in the tree: the book's contents and reference
+//!   pages, the icon table, the lint list, the QET symbol edition, and the persona harness's action list. `--check`
+//!   compares the ones that need no build.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -41,10 +41,8 @@ const REFERENCE: &[(&str, &[&str])] = &[
 /// A generator of xtask: `(root, check) -> up to date or written`.
 type Own = fn(&Path, bool) -> Result<bool>;
 
-/// The generators of xtask in their order. The text keys come first, since the reference tests build
-/// `ew-viewmodel`; the book's pages come after the reference they read.
-const BEFORE_REFERENCE: &[(&str, Own)] = &[("shell-keys", crate::shell_keys::run)];
-const AFTER_REFERENCE: &[(&str, Own)] = &[
+/// The generators of xtask that write a committed file from data in the tree, in their order.
+const OWN: &[(&str, Own)] = &[
     ("gen-icons", crate::icons::run),
     // The rule `raw-read` compares the list; here it is only written.
     ("lint-list", |root, check| {
@@ -62,18 +60,13 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
     if check {
         return check_own(root);
     }
-    let mut ok = true;
-    for (name, step) in BEFORE_REFERENCE {
-        println!("==> gen: {name}");
-        ok &= step(root, false)?;
-    }
     println!("==> gen: reference");
-    ok &= reference(root)?;
+    let mut ok = reference(root)?;
     println!("==> gen: blind-reference");
     ok &= blind_reference(root)?;
     println!("==> gen: docs-gen");
     ok &= crate::docs_gen::run(root, false)?;
-    for (name, step) in AFTER_REFERENCE {
+    for (name, step) in OWN {
         println!("==> gen: {name}");
         ok &= step(root, false)?;
     }
@@ -93,7 +86,7 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
 /// left out: comparing them needs the reference, and so a build.
 pub(crate) fn check_own(root: &Path) -> Result<bool> {
     let mut ok = true;
-    for (name, step) in BEFORE_REFERENCE.iter().chain(AFTER_REFERENCE) {
+    for (name, step) in OWN {
         if !step(root, true)? {
             eprintln!("gen: {name} is stale; run `cargo xtask gen`");
             ok = false;

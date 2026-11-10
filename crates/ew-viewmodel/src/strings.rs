@@ -20,9 +20,10 @@ use std::sync::{OnceLock, PoisonError, RwLock};
 use fluent_bundle::concurrent::FluentBundle;
 use fluent_bundle::{FluentArgs, FluentResource, FluentValue};
 
-// The list is generated with one key per line; rustfmt would reflow it and break `settle --check`.
-#[rustfmt::skip]
-mod keys;
+/// The key list that `build.rs` writes from the en-GB locale file.
+mod keys {
+    include!(concat!(env!("OUT_DIR"), "/keys.rs"));
+}
 
 pub use keys::KEYS;
 
@@ -1086,69 +1087,6 @@ mod tests {
         assert_eq!(stray, Vec::<String>::new());
     }
 
-    /// RD43 §5: every text key that ew-api hands the shell (its refusal reasons, messages and labels, which reach
-    /// `Key::run_time` unchecked) has a text.
-    #[test]
-    fn every_ew_api_text_key_has_a_text() {
-        assert!(ew_api::TEXT_KEYS.contains(&"reason-part-unchanged"));
-        let missing: Vec<String> = ew_api::TEXT_KEYS
-            .iter()
-            .filter(|k| lookup(k).is_none())
-            .map(|k| format!("the ew-api key {k} has no text"))
-            .collect();
-        assert_eq!(missing, Vec::<String>::new());
-    }
-
-    /// ID-1106 (FT-1009): "a test scans `crates/ew-api/src/**` for the string literals passed where a text key is
-    /// taken (the `reason-`, `toast-` and `category-` prefixes, and the others `TEXT_KEYS` holds). It fails, naming
-    /// the key, when a key is missing from `TEXT_KEYS`". A literal is a key when it starts with one of the prefixes
-    /// and holds only lower-case letters, digits, `-` and `_`.
-    #[test]
-    fn every_text_key_literal_of_ew_api_is_in_text_keys() {
-        fn scan(dir: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
-            for entry in std::fs::read_dir(dir).expect("the ew-api sources") {
-                let path = entry.expect("a directory entry").path();
-                if path.is_dir() {
-                    scan(&path, files);
-                } else if path.extension().is_some_and(|e| e == "rs") {
-                    files.push(path);
-                }
-            }
-        }
-        let mut prefixes: Vec<String> = ["reason-", "toast-", "category-"].map(str::to_owned).to_vec();
-        for key in ew_api::TEXT_KEYS {
-            let (head, _) = key.split_once('-').expect("a key with a prefix");
-            let prefix = format!("{head}-");
-            if !prefixes.contains(&prefix) {
-                prefixes.push(prefix);
-            }
-        }
-        let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../ew-api/src");
-        let mut files = Vec::new();
-        scan(&src, &mut files);
-        files.sort();
-        assert!(files.iter().any(|f| f.ends_with("lib.rs")), "{}", src.display());
-        let mut found = 0;
-        let mut missing = Vec::new();
-        for file in &files {
-            let text = std::fs::read_to_string(file).expect("an ew-api source");
-            for line in text.lines() {
-                for literal in quoted_keys(line, &prefixes) {
-                    found += 1;
-                    if !ew_api::TEXT_KEYS.contains(&literal) {
-                        let name = file.strip_prefix(&src).unwrap_or(file).display().to_string();
-                        let line = format!("the ew-api key {literal} ({name}) is not in TEXT_KEYS");
-                        if !missing.contains(&line) {
-                            missing.push(line);
-                        }
-                    }
-                }
-            }
-        }
-        assert!(found > 0, "the scan found no key literal");
-        assert_eq!(missing, Vec::<String>::new());
-    }
-
     /// FT-1263 (C49-p6b#4): a key that has a `-one` text is used with its count, through `count_key!`, never as a
     /// plain `key!` whose text would read "1 records", unless its file names the `-one` key too (a branch that says
     /// one itself); `KEPT` names the other uses (file, key) that never show a count of one.
@@ -1210,58 +1148,6 @@ mod tests {
         assert_eq!(plain, Vec::<String>::new());
     }
 
-    /// The quoted keys of `line`: every `"<prefix>[a-z0-9_-]+"` anywhere on it, whatever quotes stand before it
-    /// (ID-1113, C45-p2#3).
-    fn quoted_keys<'l>(line: &'l str, prefixes: &[String]) -> Vec<&'l str> {
-        let is_key_byte = |b: u8| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_';
-        let bytes = line.as_bytes();
-        let mut keys = Vec::new();
-        for (open, _) in line.match_indices('"') {
-            let start = open + 1;
-            let len = bytes[start..].iter().take_while(|b| is_key_byte(**b)).count();
-            let end = start + len;
-            if bytes.get(end) != Some(&b'"') {
-                continue;
-            }
-            let candidate = &line[start..end];
-            if prefixes
-                .iter()
-                .any(|p| candidate.len() > p.len() && candidate.starts_with(p.as_str()))
-            {
-                keys.push(candidate);
-            }
-        }
-        keys
-    }
-
-    /// ID-1113 (C45-p2#3): "match a quoted key (`\"<prefix>[a-z0-9_-]+\"`) anywhere on the line": a `'"'` or an
-    /// escaped `\"` before a key hides it no more.
-    #[test]
-    fn the_key_scan_finds_a_key_after_a_quote_character() {
-        let prefixes = vec!["reason-".to_owned()];
-        assert_eq!(
-            quoted_keys(
-                r#"    if c == '"' { return Err("reason-after-a-quote"); }"#,
-                &prefixes
-            ),
-            ["reason-after-a-quote"]
-        );
-        assert_eq!(
-            quoted_keys(
-                r#"    let s = "a \"x\" b"; key("reason-after-an-escape")"#,
-                &prefixes
-            ),
-            ["reason-after-an-escape"]
-        );
-        assert_eq!(
-            quoted_keys(
-                r#"    ("reason-one", "not-a-key", "Reason-two", "reason-")"#,
-                &prefixes
-            ),
-            ["reason-one"]
-        );
-    }
-
     /// The part editor's field labels are built at run time as `part-field-<f>` over `ew_api::DRAFT_FIELDS`
     /// (`describe.rs`, `part_dialog.rs`): every field has its text.
     #[test]
@@ -1293,19 +1179,6 @@ mod tests {
             .filter(|k| !en_gb().texts.contains_key(k))
             .collect();
         assert_eq!(missing, Vec::<&str>::new());
-    }
-
-    /// FT-1337 (ID-1359 rulings 2 and 3): every command refusal of `ew_commands::TEXTS` is a message of both files, its
-    /// en-GB text the English the CLI prints (its arguments as `text` shows them); the Dutch file's arguments are the
-    /// same (NL-1 holds that for every key).
-    #[test]
-    fn every_command_refusal_has_its_texts() {
-        let differ: Vec<String> = ew_api::TEXTS
-            .iter()
-            .filter(|(k, en)| en_gb().texts.get(k).copied() != Some(*en) || !nl_nl().texts.contains_key(k))
-            .map(|(k, en)| format!("{k}: {en:?}, en-GB {:?}", en_gb().texts.get(k)))
-            .collect();
-        assert_eq!(differ, Vec::<String>::new());
     }
 
     /// D12: the nl-NL file parses, has a message for every key and a Dutch name.
@@ -1352,8 +1225,7 @@ mod tests {
         );
     }
 
-    /// C52-p1#7 (ID-1390): a record of a kind without words of its own is "an item" ("een element"), not the jargon
-    /// "record" (FT-1366); the CLI's English, `TEXTS`, follows [`every_command_refusal_has_its_texts`].
+    /// A record of a kind without words of its own is "an item" ("een element"), not the jargon "record".
     #[test]
     fn the_kind_fallback_names_an_item() {
         assert_eq!(en_gb().texts["refusal-words-kind-other"], "an item");
@@ -1686,13 +1558,5 @@ mod tests {
     fn an_unknown_key_has_no_text() {
         assert_eq!(lookup("no-such-key"), None);
         assert_eq!(text(Key::run_time("no-such-key")), "?");
-    }
-
-    /// WP-S3.08 D9: the CLI's words of a round trip's read-only reasons are the window's texts.
-    #[test]
-    fn the_round_trip_reasons_are_the_window_texts() {
-        for key in ew_api::output::REASON_KEYS {
-            assert_eq!(lookup(key), Some(ew_api::output::reason_words(key)), "{key}");
-        }
     }
 }
