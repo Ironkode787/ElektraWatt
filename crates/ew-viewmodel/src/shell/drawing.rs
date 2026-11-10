@@ -94,9 +94,7 @@ impl ShellModel {
     /// `text.bind {bind}`: the Text tool's binding; `""` or `null` clears it, a name of [`BINDABLE`] sets it.
     pub(crate) fn act_text_bind(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "text" {
-            return Outcome::Refused {
-                reason_key: key!("reason-text-tool-only"),
-            };
+            return Outcome::refused(key!("reason-text-tool-only"));
         }
         let bind = match p.get("bind") {
             None => return failed(key!("error-missing-param"), &["bind"]),
@@ -185,9 +183,7 @@ impl ShellModel {
     /// whitespace into one entry per connection and each entry on `+` into one or two codes.
     pub(crate) fn act_marker_fields(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "marker" {
-            return Outcome::Refused {
-                reason_key: key!("reason-marker-tool-only"),
-            };
+            return Outcome::refused(key!("reason-marker-tool-only"));
         }
         if !p.contains_key("csa") && !p.contains_key("colours") {
             return failed(key!("error-missing-param"), &["csa"]);
@@ -248,9 +244,7 @@ impl ShellModel {
     /// a text, `null` or `""` clears the external reference. Every given member is checked before any is applied.
     pub(crate) fn act_structure_box_fields(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "structure_box" {
-            return Outcome::Refused {
-                reason_key: key!("reason-structure-box-tool-only"),
-            };
+            return Outcome::refused(key!("reason-structure-box-tool-only"));
         }
         if !["style", "caption", "location", "external"]
             .iter()
@@ -380,9 +374,7 @@ impl ShellModel {
             }
         };
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let held = project.session.asset(&reference.sha256).is_some();
         let asset = ImageAsset {
@@ -416,9 +408,7 @@ impl ShellModel {
     /// is armed with it and its intrinsic size. A hash the project does not hold fails and changes nothing.
     pub(crate) fn act_image_pick(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "image" {
-            return Outcome::Refused {
-                reason_key: key!("reason-image-tool-only"),
-            };
+            return Outcome::refused(key!("reason-image-tool-only"));
         }
         let text = match string_param(p, "asset") {
             Ok(Some(t)) => t,
@@ -429,9 +419,7 @@ impl ShellModel {
             return failed(key!("error-bad-param"), &["asset"]);
         };
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let Some((reference, _)) = project.session.asset(&sha256) else {
             return failed(key!("error-image-asset-missing"), &[text]);

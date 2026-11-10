@@ -145,12 +145,10 @@ impl ShellModel {
     /// `ew.gen.ip@qet10`), and the library documents a command drawing it carries (a starter symbol the project lacks,
     /// with its FnDef; FT-673).
     fn family_shape(&mut self, base: &str) -> Result<(Arc<SymbolShape>, Vec<Value>), Outcome> {
-        let none = Outcome::Refused {
-            reason_key: key!("reason-no-ip-symbol"),
-        };
-        let cat = self.catalogue().ok_or(Outcome::Refused {
-            reason_key: key!("reason-no-catalogue"),
-        })?;
+        let none = Outcome::refused(key!("reason-no-ip-symbol"));
+        let cat = self
+            .catalogue()
+            .ok_or(Outcome::refused(key!("reason-no-catalogue")))?;
         let key = cat
             .symbols
             .iter()
@@ -255,10 +253,7 @@ impl ShellModel {
         if self.tools.tool.name() == "wire" && self.tools.tool.state() == "routing" {
             return self.wire_end_in_ip();
         }
-        let (shape, target, copies) = match self.ip_forms() {
-            Ok(s) => s,
-            Err(e) => return e,
-        };
+        let (shape, target, copies) = or_return!(self.ip_forms());
         let area = self.focused_area();
         let mut tool = IpTool::new(shape, self.tools.ip_memory.clone(), area)
             .with_target(target)
@@ -277,10 +272,7 @@ impl ShellModel {
 
     /// P while the Wire tool routes: `connection.draw_to_ip` at the routed end (one transaction, one undo step).
     fn wire_end_in_ip(&mut self) -> Outcome {
-        let (shape, target, copies) = match self.ip_forms() {
-            Ok(s) => s,
-            Err(e) => return e,
-        };
+        let (shape, target, copies) = or_return!(self.ip_forms());
         let memory = self.tools.ip_memory.clone();
         let area = self.focused_area();
         let project = self.project_ips();
@@ -334,9 +326,7 @@ impl ShellModel {
                 outcome
             }
             Some(Err(reason_key)) => Outcome::Refused { reason_key },
-            None => Outcome::Refused {
-                reason_key: key!("reason-ip-end-grid"),
-            },
+            None => Outcome::refused(key!("reason-ip-end-grid")),
         }
     }
 
@@ -346,17 +336,13 @@ impl ShellModel {
         let external = match self.ip_tool() {
             Some(t) => t.external().is_some(),
             None => {
-                return Outcome::Refused {
-                    reason_key: key!("reason-ip-tool-only"),
-                };
+                return Outcome::refused(key!("reason-ip-tool-only"));
             }
         };
         if key == ToolKey::ToggleStar && external {
             self.tools.notice = Some(strings::text(key!("reason-external-never-pairs")).to_owned());
             self.tools.notice_sticky = false;
-            return Outcome::Refused {
-                reason_key: key!("reason-external-never-pairs"),
-            };
+            return Outcome::refused(key!("reason-external-never-pairs"));
         }
         self.send_tool(&CanvasEvent::Key(key))
     }
@@ -380,9 +366,7 @@ impl ShellModel {
             Err(e) => return e,
         };
         if self.ip_tool().is_none() {
-            return Outcome::Refused {
-                reason_key: key!("reason-ip-tool-only"),
-            };
+            return Outcome::refused(key!("reason-ip-tool-only"));
         }
         let overlay = self
             .with_tool(|t, cx| {
@@ -407,9 +391,7 @@ impl ShellModel {
     /// so the next point takes its automatic name (cycle 41 review); a missing `text` is `error-missing-param`.
     pub(crate) fn act_ip_name(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.ip_tool().is_none() {
-            return Outcome::Refused {
-                reason_key: key!("reason-ip-tool-only"),
-            };
+            return Outcome::refused(key!("reason-ip-tool-only"));
         }
         match string_param(p, "text") {
             Ok(Some(t)) => {
@@ -479,9 +461,7 @@ impl ShellModel {
                 };
                 Err(failed(key!("error-no-external"), &[s, &known]))
             }
-            _ => Err(Outcome::Refused {
-                reason_key: key!("reason-external-ambiguous"),
-            }),
+            _ => Err(Outcome::refused(key!("reason-external-ambiguous"))),
         }
     }
 
@@ -502,9 +482,7 @@ impl ShellModel {
     /// `null` is accepted too). While set, the ghost and the commit use the external arrow of the page's grid family.
     pub(crate) fn act_ip_external(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.ip_tool().is_none() {
-            return Outcome::Refused {
-                reason_key: key!("reason-ip-tool-only"),
-            };
+            return Outcome::refused(key!("reason-ip-tool-only"));
         }
         let external = match p.get("external") {
             None => return failed(key!("error-missing-param"), &["external"]),
@@ -522,10 +500,7 @@ impl ShellModel {
         } else {
             self.ip_forms().map(|(shape, _, copies)| (shape, copies))
         };
-        let (shape, copies) = match found {
-            Ok(s) => s,
-            Err(e) => return e,
-        };
+        let (shape, copies) = or_return!(found);
         let overlay = self
             .with_tool(|t, cx| {
                 t.as_any_mut().and_then(|a| a.downcast_mut::<IpTool>()).map(|ip| {
@@ -594,9 +569,7 @@ impl ShellModel {
         // As a refused tool output's: the press's point, or (Enter) kept until the pointer or the cursor moves.
         self.tools.notice_at = Some(at.unwrap_or((i64::MIN, i64::MIN)));
         self.notify_toned(text, crate::notifications::NoteTone::Warning);
-        Some(Outcome::Refused {
-            reason_key: key!("reason-ip-not-placed"),
-        })
+        Some(Outcome::refused(key!("reason-ip-not-placed")))
     }
 
     /// FT-822: the IP tool's commit that the model refused (a prevent rule: EW-CORE-052 for a second source of a name)
@@ -618,12 +591,7 @@ impl ShellModel {
         self.tools.notice = Some(text.clone());
         self.tools.notice_sticky = true;
         self.notify_toned(text, crate::notifications::NoteTone::Warning);
-        (
-            Outcome::Refused {
-                reason_key: key!("reason-ip-not-placed"),
-            },
-            true,
-        )
+        (Outcome::refused(key!("reason-ip-not-placed")), true)
     }
 
     /// The words of an EW-CORE-052 refusal of the IP tool's point (H40 item 6): "Not placed: 0V already has a source
@@ -676,34 +644,23 @@ impl ShellModel {
                 {
                     Some(f) => f,
                     None => {
-                        return Outcome::Refused {
-                            reason_key: key!("reason-no-next-page"),
-                        };
+                        return Outcome::refused(key!("reason-no-next-page"));
                     }
                 }
             }
             Err(e) => return e,
         };
-        let point = match point_mm(p) {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
+        let point = or_return!(point_mm(p));
         let Some(c) = self.canvas() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let tables = Arc::clone(&c.page().tables);
         let [ip] = selected_ips(self, &tables)[..] else {
-            return Outcome::Refused {
-                reason_key: key!("reason-select-one-ip"),
-            };
+            return Outcome::refused(key!("reason-select-one-ip"));
         };
         let (function, original) = (ip.functions.first().copied(), ip.pos);
         let Some(function) = function else {
-            return Outcome::Refused {
-                reason_key: key!("reason-select-one-ip"),
-            };
+            return Outcome::refused(key!("reason-select-one-ip"));
         };
         let here = self.focused_area();
         let target: Arc<CanvasPage> = match self.page_for(&folio) {
@@ -711,9 +668,7 @@ impl ShellModel {
             Err(_) => return failed(key!("error-bad-param"), &["folio"]),
         };
         if target.tables.page.is_nil() {
-            return Outcome::Refused {
-                reason_key: key!("reason-not-editable"),
-            };
+            return Outcome::refused(key!("reason-not-editable"));
         }
         let grid = PageGridMap::new(target.tables.grid);
         let pos = match point {
@@ -768,16 +723,12 @@ impl ShellModel {
             Err(e) => return e,
         };
         let Some(c) = self.canvas() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let tables = Arc::clone(&c.page().tables);
         let ips = selected_ips(self, &tables);
         if ips.len() < 2 {
-            return Outcome::Refused {
-                reason_key: key!("reason-select-ips"),
-            };
+            return Outcome::refused(key!("reason-select-ips"));
         }
         let mut keyed: Vec<ArrangeKey> = ips
             .iter()
@@ -844,21 +795,15 @@ impl ShellModel {
 
     /// The one selected black box and the grid cursor's page point.
     fn box_and_cursor(&self) -> Result<(TableRep, (i64, i64)), Outcome> {
-        let c = self.canvas().ok_or(Outcome::Refused {
-            reason_key: key!("reason-no-page"),
-        })?;
+        let c = self.canvas().ok_or(Outcome::refused(key!("reason-no-page")))?;
         let t = &c.page().tables;
         let rep = match self.selection().items.as_slice() {
             [one] => t.reps.iter().find(|r| r.id == one.0 && r.black_box.is_some()),
             _ => None,
         }
         .cloned()
-        .ok_or(Outcome::Refused {
-            reason_key: key!("reason-one-black-box"),
-        })?;
-        let cursor = c.cursor().ok_or(Outcome::Refused {
-            reason_key: key!("reason-no-cursor"),
-        })?;
+        .ok_or(Outcome::refused(key!("reason-one-black-box")))?;
+        let cursor = c.cursor().ok_or(Outcome::refused(key!("reason-no-cursor")))?;
         Ok((rep, c.page().snapper.snap_grid(cursor).page_nm))
     }
 
@@ -872,14 +817,9 @@ impl ShellModel {
         else {
             return failed(key!("error-missing-param"), &["grip"]);
         };
-        let (rep, to) = match self.box_and_cursor() {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
+        let (rep, to) = or_return!(self.box_and_cursor());
         let Some(b) = &rep.black_box else {
-            return Outcome::Refused {
-                reason_key: key!("reason-one-black-box"),
-            };
+            return Outcome::refused(key!("reason-one-black-box"));
         };
         match reshape_by_grip(&b.outline, grip, to) {
             Ok(outline) => {
@@ -897,24 +837,15 @@ impl ShellModel {
     /// on its outline, with the smallest function CP index the box does not use, leaving along the edge's outward
     /// normal; committed as `box.reshape` with `cps`.
     pub(crate) fn act_box_add_cp(&mut self) -> Outcome {
-        let (rep, at) = match self.box_and_cursor() {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
+        let (rep, at) = or_return!(self.box_and_cursor());
         let Some(b) = &rep.black_box else {
-            return Outcome::Refused {
-                reason_key: key!("reason-one-black-box"),
-            };
+            return Outcome::refused(key!("reason-one-black-box"));
         };
         if !on_outline(&b.outline, at) {
-            return Outcome::Refused {
-                reason_key: key!("reason-cp-off-outline"),
-            };
+            return Outcome::refused(key!("reason-cp-off-outline"));
         }
         let Some(idx) = (0..=u16::MAX).find(|i| !b.cps.iter().any(|(j, ..)| j == i)) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-cp-off-outline"),
-            };
+            return Outcome::refused(key!("reason-cp-off-outline"));
         };
         let n = b.outline.len();
         let area = signed_area2(&b.outline);

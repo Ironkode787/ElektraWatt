@@ -144,9 +144,7 @@ impl ShellModel {
     /// The table of navigator `kind`'s view, cut to its rows and columns on show (ruling 3).
     fn restricted_table(&self, kind: NavKind) -> Result<Table, Outcome> {
         let (Some((key, rows, columns)), Some(project)) = (self.shown_table(kind), &self.project) else {
-            return Err(Outcome::Refused {
-                reason_key: key!("reason-table-off"),
-            });
+            return Err(Outcome::refused(key!("reason-table-off")));
         };
         let full = project
             .session
@@ -182,10 +180,7 @@ impl ShellModel {
     /// job writing `path` (XLSX, or CSV with `format: csv` or a `.csv` name) through its hidden sibling. A CSV takes
     /// the preset `excel-en` unless `preset` names another; `ew` writes no `id` column and is refused (ID-1252).
     pub(crate) fn act_export_table(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.file_table_kind() {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.file_table_kind());
         let path = match string_param(p, "path") {
             Err(e) => return e,
             Ok(Some(path)) => absolute_target(PathBuf::from(path)),
@@ -211,41 +206,28 @@ impl ShellModel {
             Ok(Some(_)) if !csv => return failed(key!("error-table-preset-csv"), &[]),
             Ok(Some(name)) => match Preset::parse(name) {
                 Some(Preset::Ew) => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-table-preset-ew"),
-                    };
+                    return Outcome::refused(key!("reason-table-preset-ew"));
                 }
                 Some(preset) => Some(preset),
                 None => return failed(key!("error-table-preset"), &[name]),
             },
         };
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else {
             return failed(key!("error-bad-param"), &["path"]);
         };
         if self.jobs.running() > 0 {
-            return Outcome::Refused {
-                reason_key: key!("reason-export-running"),
-            };
+            return Outcome::refused(key!("reason-export-running"));
         }
         if inside(&project.dir, &path) {
-            return Outcome::Refused {
-                reason_key: key!("reason-export-into-project"),
-            };
+            return Outcome::refused(key!("reason-export-into-project"));
         }
         if path.exists() && !replace {
-            return Outcome::Refused {
-                reason_key: key!("reason-file-exists"),
-            };
+            return Outcome::refused(key!("reason-file-exists"));
         }
-        let table = match self.restricted_table(kind) {
-            Ok(t) => t,
-            Err(e) => return e,
-        };
+        let table = or_return!(self.restricted_table(kind));
         let Some(project) = &self.project else {
             return Outcome::Done;
         };
@@ -280,24 +262,17 @@ impl ShellModel {
     /// `navigator.import_table {path?}`: reads the file against the focused navigator's table (a CSV against the
     /// view's key) and opens the import's card in the Preview tab; nothing is committed until its Apply.
     pub(crate) fn act_import_table(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.file_table_kind() {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.file_table_kind());
         let path = match string_param(p, "path") {
             Err(e) => return e,
             Ok(Some(path)) => PathBuf::from(path),
             Ok(None) => return self.need_path("navigator.import_table", Prompt::OpenTable, "path", p),
         };
         let Some((key, _, _)) = self.shown_table(kind) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-table-off"),
-            };
+            return Outcome::refused(key!("reason-table-off"));
         };
         let Some(rev) = self.revision() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let input = match ew_api::catalog::read_input(&path, &ew_api::catalog::table_limits()) {
             Ok(i) => i,
@@ -312,10 +287,7 @@ impl ShellModel {
             }
             Err(e) => return failed(key!("error-table-import-read"), &[&e.to_string()]),
         };
-        let take_file = match bool_param(p, "take_file", false) {
-            Ok(on) => on,
-            Err(e) => return e,
-        };
+        let take_file = or_return!(bool_param(p, "take_file", false));
         let bytes = std::sync::Arc::new(input.bytes().to_vec());
         self.open_table_import(input.name().to_owned(), bytes, key, take_file, rev)
     }
@@ -325,23 +297,16 @@ impl ShellModel {
     /// both takes the file's value; the card shows the new reading.
     pub(crate) fn act_preview_take_file(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(CardOrigin::TableImport(c)) = self.props.card.as_ref().map(|c| &c.origin) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-card"),
-            };
+            return Outcome::refused(key!("reason-no-card"));
         };
-        let on = match bool_param(p, "on", !c.take_file) {
-            Ok(on) => on,
-            Err(e) => return e,
-        };
+        let on = or_return!(bool_param(p, "on", !c.take_file));
         let (source, bytes, table) = (
             c.source.clone(),
             std::sync::Arc::clone(&c.bytes),
             c.import.table.clone(),
         );
         let Some(rev) = self.revision() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         self.open_table_import(source, bytes, table, on, rev)
     }
@@ -443,9 +408,7 @@ impl ShellModel {
         // FT-1193 (ID-1391): a file that changes nothing has no Apply; the card stays.
         if c.nothing_to_import() {
             self.props.card = Some(card);
-            return Outcome::Refused {
-                reason_key: key!("reason-table-import-nothing"),
-            };
+            return Outcome::refused(key!("reason-table-import-nothing"));
         }
         let submit = Submit::from(self.origin());
         let Some(project) = &mut self.project else {
@@ -470,9 +433,7 @@ impl ShellModel {
             }
             Err(TableApplyError::Stale(..)) => {
                 self.props.card = Some(card);
-                Outcome::Refused {
-                    reason_key: key!("reason-table-import-stale"),
-                }
+                Outcome::refused(key!("reason-table-import-stale"))
             }
             Err(TableApplyError::Command(e)) => {
                 let message = e.to_string();

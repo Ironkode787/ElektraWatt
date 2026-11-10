@@ -252,10 +252,7 @@ impl ShellModel {
     /// `preview.show {on?}`: shows or closes the Preview tab; closing it with a card pending cancels the card.
     pub(crate) fn act_preview_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let shown = self.preview_shown();
-        let want = match super::jobs::bool_param(p, "on", !shown) {
-            Ok(w) => w,
-            Err(e) => return e,
-        };
+        let want = or_return!(super::jobs::bool_param(p, "on", !shown));
         let layout = if want {
             self.layout
                 .with_bottom(PaneKind::Preview)
@@ -292,9 +289,7 @@ impl ShellModel {
         origin: CardOrigin,
     ) -> Outcome {
         let Some(rev) = self.revision() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let cmd = AnyCommand {
             name: name.to_owned(),
@@ -501,14 +496,8 @@ impl ShellModel {
             Err(e) => return e,
             Ok(s) => s.unwrap_or(1),
         };
-        let keep_gaps = match bool_text_param(p, "keep_gaps", false) {
-            Err(e) => return e,
-            Ok(k) => k,
-        };
-        let pages = match self.section_pages(section) {
-            Err(e) => return e,
-            Ok(v) => v,
-        };
+        let keep_gaps = or_return!(bool_text_param(p, "keep_gaps", false));
+        let pages = or_return!(self.section_pages(section));
         let scope = if section == "front" {
             json!({ "pages": pages.iter().map(|(id, _)| id.to_string()).collect::<Vec<_>>() })
         } else {
@@ -648,14 +637,8 @@ impl ShellModel {
         if !SCHEMES.contains(&scheme) {
             return failed(key!("error-bad-param"), &["scheme"]);
         }
-        let include_frozen = match bool_text_param(p, "include_frozen", false) {
-            Err(e) => return e,
-            Ok(b) => b,
-        };
-        let only = match bool_text_param(p, "only_nonconforming", true) {
-            Err(e) => return e,
-            Ok(b) => b,
-        };
+        let include_frozen = or_return!(bool_text_param(p, "include_frozen", false));
+        let only = or_return!(bool_text_param(p, "only_nonconforming", true));
         let scope = match scope {
             "project" => json!("project"),
             "page" => {
@@ -667,18 +650,14 @@ impl ShellModel {
                 match page {
                     Some(r) => json!({ "pages": [r.id.to_string()] }),
                     None => {
-                        return Outcome::Refused {
-                            reason_key: key!("reason-no-page"),
-                        };
+                        return Outcome::refused(key!("reason-no-page"));
                     }
                 }
             }
             "selection" => {
                 let devices = self.selected_devices();
                 if devices.is_empty() {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-devices-selected"),
-                    };
+                    return Outcome::refused(key!("reason-no-devices-selected"));
                 }
                 json!({ "selection": devices })
             }
@@ -704,18 +683,11 @@ impl ShellModel {
     /// plan refuses; headless the action refuses (`HumanOnly`).
     pub(crate) fn act_purge_assets(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
-            return Outcome::Refused {
-                reason_key: key!("reason-human-only"),
-            };
+            return Outcome::refused(key!("reason-human-only"));
         }
-        let confirm = match super::jobs::bool_param(p, "confirm", false) {
-            Ok(c) => c,
-            Err(e) => return e,
-        };
+        let confirm = or_return!(super::jobs::bool_param(p, "confirm", false));
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         if !confirm {
             let plan = match project.session.purge_preview() {
@@ -723,9 +695,7 @@ impl ShellModel {
                 Err(e) => return failed(key!("error-purge"), &[&purge_reason(&e)]),
             };
             if plan.remove.is_empty() {
-                return Outcome::Refused {
-                    reason_key: key!("reason-nothing-to-purge"),
-                };
+                return Outcome::refused(key!("reason-nothing-to-purge"));
             }
             let files = plan
                 .remove
@@ -742,16 +712,12 @@ impl ShellModel {
         // window no person drives (the visual driver) opens and frames the confirmation, but its confirm is refused,
         // and the purge commits from `self.origin()`, never a hard-coded GUI origin.
         if !self.person {
-            return Outcome::Refused {
-                reason_key: key!("reason-human-only"),
-            };
+            return Outcome::refused(key!("reason-human-only"));
         }
         // `confirm` purges exactly the files the open confirmation lists; without it nothing is purged (an empty
         // `project.assets.purge` would remove every purgeable file unconfirmed; R1-5 of cycle 31).
         let Some(Dialog::ConfirmPurge { assets, .. }) = &self.dialog else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-purge-dialog"),
-            };
+            return Outcome::refused(key!("reason-no-purge-dialog"));
         };
         let cmd = AnyCommand {
             name: "project.assets.purge".to_owned(),

@@ -248,6 +248,13 @@ pub enum Outcome {
     },
 }
 
+impl Outcome {
+    /// The refusal whose reason is the text of `reason_key`.
+    pub const fn refused(reason_key: Key<'static>) -> Self {
+        Self::Refused { reason_key }
+    }
+}
+
 /// How the open project can be used.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum AccessMode {
@@ -1726,9 +1733,7 @@ impl ShellModel {
             Ok(None) => match self.current_folio() {
                 Some(f) => f.to_owned(),
                 None => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-page"),
-                    };
+                    return Outcome::refused(key!("reason-no-page"));
                 }
             },
         };
@@ -2190,9 +2195,7 @@ impl ShellModel {
 
     fn save_project(&mut self) -> Outcome {
         let Some(p) = &mut self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         match p.session.save() {
             Ok(saved) => {
@@ -2258,9 +2261,7 @@ impl ShellModel {
         };
         let store = self.store_options();
         let Some(project) = &mut self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         match project.session.create(&dir, store) {
             Ok(()) => {
@@ -2303,9 +2304,7 @@ impl ShellModel {
     /// A refusal (another session holding the project among them) is a banner in words, nothing written.
     pub(crate) fn act_update_damaged(&mut self) -> Outcome {
         let Some(project) = self.project.as_mut() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let dir = project.dir.clone();
         let done = match project.session.update_damaged_copies() {
@@ -2396,9 +2395,7 @@ impl ShellModel {
             return self.act_symbol("undo", &Map::new());
         }
         let Some(p) = &mut self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let origin = Self::origin_of(self.mode, self.person, &self.origin_file);
         let before = p.session.history().cursor();
@@ -2424,9 +2421,7 @@ impl ShellModel {
                 self.tools.reread_designation = true;
                 Outcome::Done
             }
-            Err(CmdError::Exposure { .. }) => Outcome::Refused {
-                reason_key: key!("reason-human-only-history"),
-            },
+            Err(CmdError::Exposure { .. }) => Outcome::refused(key!("reason-human-only-history")),
             Err(e) => tools::command_failed(&e, &Value::Null),
         }
     }
@@ -2436,9 +2431,7 @@ impl ShellModel {
             return self.act_symbol("redo", &Map::new());
         }
         let Some(p) = &mut self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let origin = Self::origin_of(self.mode, self.person, &self.origin_file);
         let before = p.session.history().cursor();
@@ -2464,9 +2457,7 @@ impl ShellModel {
                 self.tools.reread_designation = true;
                 Outcome::Done
             }
-            Err(CmdError::Exposure { .. }) => Outcome::Refused {
-                reason_key: key!("reason-human-only-history"),
-            },
+            Err(CmdError::Exposure { .. }) => Outcome::refused(key!("reason-human-only-history")),
             Err(e) => tools::command_failed(&e, &Value::Null),
         }
     }
@@ -2486,10 +2477,7 @@ impl ShellModel {
     }
 
     pub(crate) fn act_palette(&mut self, p: &Map<String, Value>) -> Outcome {
-        let query = match string_param(p, "query") {
-            Err(e) => return e,
-            Ok(q) => q,
-        };
+        let query = or_return!(string_param(p, "query"));
         if self.palette.is_some() && query.is_none() {
             self.palette = None;
         } else {
@@ -2701,9 +2689,7 @@ impl ShellModel {
         };
         let file = self.origin_file.clone();
         let Some(project) = &mut self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         // FT-1425 (ID-1395): the `library.embed` that a `plc.set_profile` naming a library's profile runs first (WP-S7.03
         // D8), an undo step of its own, joins the record before it, so the recorded script replays without the library.

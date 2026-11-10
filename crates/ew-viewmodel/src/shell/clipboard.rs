@@ -103,14 +103,10 @@ impl ShellModel {
     fn copy_selection(&mut self) -> Result<CopiedFragment, Outcome> {
         let ids: Vec<_> = self.copy_targets().iter().map(|e| e.0).collect();
         if ids.is_empty() {
-            return Err(Outcome::Refused {
-                reason_key: key!("reason-nothing-selected"),
-            });
+            return Err(Outcome::refused(key!("reason-nothing-selected")));
         }
         let Some(project) = &self.project else {
-            return Err(Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            });
+            return Err(Outcome::refused(key!("reason-no-project")));
         };
         let copied = project.session.copy_fragment(&ids);
         bump(&self.calls, |c| c.copy_fragment += 1);
@@ -127,10 +123,7 @@ impl ShellModel {
 
     /// `edit.copy` (Ctrl+C): the selection's fragment to the clipboard.
     pub(crate) fn act_copy(&mut self) -> Outcome {
-        let copied = match self.copy_selection() {
-            Ok(c) => c,
-            Err(out) => return out,
-        };
+        let copied = or_return!(self.copy_selection());
         self.write_copied_fragment(copied);
         Outcome::Done
     }
@@ -152,14 +145,9 @@ impl ShellModel {
     /// `edit.cut` (Ctrl+X): copy, then `edit.delete` of the selection through `edit.delete_selection`'s path (one undo
     /// step); the clipboard keeps the fragment.
     pub(crate) fn act_cut(&mut self) -> Outcome {
-        let copied = match self.copy_selection() {
-            Ok(c) => c,
-            Err(out) => return out,
-        };
+        let copied = or_return!(self.copy_selection());
         if copied.incomplete_page_items > 0 {
-            return Outcome::Refused {
-                reason_key: key!("reason-cut-incomplete-items"),
-            };
+            return Outcome::refused(key!("reason-cut-incomplete-items"));
         }
         self.write_copied_fragment(copied);
         let targets = self.copy_targets();
@@ -176,21 +164,15 @@ impl ShellModel {
     pub(crate) fn act_copy_tags(&mut self) -> Outcome {
         let ids: Vec<_> = self.tools.selection.items.iter().map(|e| e.0).collect();
         if ids.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-nothing-selected"),
-            };
+            return Outcome::refused(key!("reason-nothing-selected"));
         }
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let text = project.session.tag_list(&ids);
         bump(&self.calls, |c| c.tag_list += 1);
         if text.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-tags"),
-            };
+            return Outcome::refused(key!("reason-no-tags"));
         }
         self.write_clipboard(text, None, 0);
         Outcome::Done
@@ -217,9 +199,7 @@ impl ShellModel {
         if let Some(reason) = self.paste_page_reason() {
             self.tools.notice = Some(reason);
             self.tools.notice_sticky = false;
-            return Outcome::Refused {
-                reason_key: key!("reason-paste-page-kind"),
-            };
+            return Outcome::refused(key!("reason-paste-page-kind"));
         }
         let text = match string_param(p, "text") {
             Ok(Some(t)) => {
@@ -233,9 +213,7 @@ impl ShellModel {
             Ok(None) => match self.clip.text() {
                 Some(t) => t.to_owned(),
                 None => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-clipboard-empty"),
-                    };
+                    return Outcome::refused(key!("reason-clipboard-empty"));
                 }
             },
             Err(e) => return e,
@@ -255,9 +233,7 @@ impl ShellModel {
         let f = match parsed {
             Ok(f) => f,
             Err(FragmentError::NotAFragment) => {
-                return Outcome::Refused {
-                    reason_key: key!("reason-not-a-fragment"),
-                };
+                return Outcome::refused(key!("reason-not-a-fragment"));
             }
             Err(e) => {
                 let message = fragment_banner(&e);
@@ -292,9 +268,7 @@ impl ShellModel {
         conflicts: &[ew_api::VersionConflict],
     ) -> Outcome {
         let Some(rev) = self.revision() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let class_word = |c: ew_api::ChangeClass| match c {
             ew_api::ChangeClass::Patch => "patch",
@@ -360,9 +334,7 @@ impl ShellModel {
         // holds the choice; a stale tool notice must not stand over it.
         self.tools.notice = None;
         self.tools.notice_sticky = false;
-        Outcome::Refused {
-            reason_key: key!("reason-paste-versions"),
-        }
+        Outcome::refused(key!("reason-paste-versions"))
     }
 
     /// The prompt an open card of the paste choice puts in the HUD and the status hint in place of the tool's own
@@ -401,9 +373,7 @@ impl ShellModel {
             Err(e) => return e,
         };
         let Some(CardOrigin::PasteVersions(pending)) = self.props.card().map(|c| c.origin.clone()) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-paste-choice"),
-            };
+            return Outcome::refused(key!("reason-no-paste-choice"));
         };
         match choice.as_str() {
             "adapt" => {
@@ -424,9 +394,7 @@ impl ShellModel {
                         match &self.project {
                             Some(project) => project.session.paste_update(&f.params),
                             None => {
-                                return Outcome::Refused {
-                                    reason_key: key!("reason-no-project"),
-                                };
+                                return Outcome::refused(key!("reason-no-project"));
                             }
                         }
                     }
@@ -471,10 +439,7 @@ impl ShellModel {
     /// `edit.duplicate` (Ctrl+D): the selection's fragment without touching the clipboard, floating in the paste tool
     /// two grid steps right and down of its anchor.
     pub(crate) fn act_duplicate(&mut self) -> Outcome {
-        let copied = match self.copy_selection() {
-            Ok(c) => c,
-            Err(out) => return out,
-        };
+        let copied = or_return!(self.copy_selection());
         let parsed = parse_fragment(&copied.text);
         bump(&self.calls, |c| c.parse_fragment += 1);
         let f = match parsed {

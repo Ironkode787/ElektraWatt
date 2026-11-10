@@ -140,9 +140,7 @@ impl ShellModel {
     /// [`QUIESCENCE`], as the window's timer would.
     pub(crate) fn act_check_disk(&mut self) -> Outcome {
         if self.project.is_none() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         }
         for _ in 0..CHECK_POLLS {
             if !self.poll_disk() {
@@ -256,15 +254,11 @@ impl ShellModel {
     /// `external.review` (the held-saves banner's Choose…): the collision dialog again, mine chosen.
     pub(crate) fn act_external_review(&mut self) -> Outcome {
         if !self.external_choice_waiting() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-external-change"),
-            };
+            return Outcome::refused(key!("reason-no-external-change"));
         }
         // D24: never over another dialog (C49-p10b#6).
         if self.dialog.is_some() {
-            return Outcome::Refused {
-                reason_key: key!("reason-dialog-open"),
-            };
+            return Outcome::refused(key!("reason-dialog-open"));
         }
         self.open_collisions();
         Outcome::Done
@@ -407,9 +401,7 @@ impl ShellModel {
             .and_then(Value::as_u64)
             .and_then(|r| usize::try_from(r).ok());
         let Some(Dialog::ExternalChange { rows }) = &mut self.dialog else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-external-change"),
-            };
+            return Outcome::refused(key!("reason-no-external-change"));
         };
         match row.and_then(|r| r.checked_sub(1)).and_then(|r| rows.get_mut(r)) {
             Some(r) => {
@@ -445,23 +437,17 @@ impl ShellModel {
             (_, None) => Vec::new(),
         };
         let Some(project) = self.project.as_mut() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         if project.session.external_collisions().is_none() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-external-change"),
-            };
+            return Outcome::refused(key!("reason-no-external-change"));
         }
         match project.session.apply_external(&choices) {
             Ok(applied) => {
                 self.external_applied(&applied);
                 Outcome::Done
             }
-            Err(ExternalError::Nothing) => Outcome::Refused {
-                reason_key: key!("reason-no-external-change"),
-            },
+            Err(ExternalError::Nothing) => Outcome::refused(key!("reason-no-external-change")),
             // The collisions changed since they were shown: the dialog shows the new ones for a new choice.
             Err(ExternalError::Changed) => {
                 self.open_collisions();
@@ -582,20 +568,13 @@ impl ShellModel {
     /// the four keys in the repository's git configuration and the managed blocks in the project folder, as
     /// `ew git setup` writes them (D28).
     pub(crate) fn act_git_setup(&mut self, p: &Map<String, Value>) -> Outcome {
-        let confirm = match bool_param(p, "confirm", false) {
-            Ok(c) => c,
-            Err(e) => return e,
-        };
+        let confirm = or_return!(bool_param(p, "confirm", false));
         let Some(project) = self.project.as_ref() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let dir = project.dir.clone();
         let Ok(Some(root)) = ew_api::git::worktree_root(&ew_api::OsVfs, &dir) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-not-in-git"),
-            };
+            return Outcome::refused(key!("reason-not-in-git"));
         };
         if !confirm {
             self.palette = None;
@@ -606,9 +585,7 @@ impl ShellModel {
             return Outcome::Done;
         }
         let Some(ew) = self.collab.ew_exe.clone().or_else(ew_beside_program) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-ew"),
-            };
+            return Outcome::refused(key!("reason-no-ew"));
         };
         if matches!(self.dialog, Some(Dialog::ConfirmGitSetup { .. })) {
             self.dialog = None;
@@ -652,9 +629,7 @@ impl ShellModel {
     /// beside the project folder first.
     pub(crate) fn act_upgrade(&mut self) -> Outcome {
         let Some(p) = self.project.as_mut() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         p.session.confirm_upgrade();
         if matches!(self.dialog, Some(Dialog::ConfirmUpgrade { .. })) {
@@ -685,24 +660,15 @@ impl ShellModel {
                 return self.need_path("file.export_ewz", Prompt::SaveEwz, "path", &rest);
             }
         };
-        let replace = match bool_param(p, "replace", false) {
-            Ok(r) => r,
-            Err(e) => return e,
-        };
+        let replace = or_return!(bool_param(p, "replace", false));
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         if super::jobs::inside(&project.dir, &path) {
-            return Outcome::Refused {
-                reason_key: key!("reason-export-into-project"),
-            };
+            return Outcome::refused(key!("reason-export-into-project"));
         }
         if path.exists() && !replace {
-            return Outcome::Refused {
-                reason_key: key!("reason-file-exists"),
-            };
+            return Outcome::refused(key!("reason-file-exists"));
         }
         let name = path
             .file_name()

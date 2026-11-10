@@ -156,9 +156,7 @@ impl ShellModel {
     /// `tool.route_edit` (§8.4): the keyboard route editor of exactly one selected connection.
     pub(crate) fn act_route_edit(&mut self) -> Outcome {
         let Some(c) = self.canvas() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let tables = Arc::clone(&c.page().tables);
         let cursor = c.cursor();
@@ -168,14 +166,10 @@ impl ShellModel {
             .map(|(e, _)| e)
             .collect();
         let [one] = connections.as_slice() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-one-connection"),
-            };
+            return Outcome::refused(key!("reason-one-connection"));
         };
         let Some(row) = tables.connections.iter().find(|x| x.id == one.0) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-one-connection"),
-            };
+            return Outcome::refused(key!("reason-one-connection"));
         };
         let tool = RouteEditTool::new(row, cursor);
         self.activate_tool(Box::new(tool));
@@ -255,9 +249,7 @@ impl ShellModel {
     /// what to select). A script selects the junction first (`select.set` with its ID).
     pub(crate) fn act_junction_open(&mut self) -> Outcome {
         let Some(c) = self.canvas() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let tables = Arc::clone(&c.page().tables);
         let js: Vec<EntityRef> = selection_kinds(&self.tools.selection, &tables)
@@ -266,9 +258,7 @@ impl ShellModel {
             .map(|(e, _)| e)
             .collect();
         let [j] = js.as_slice() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-one-junction"),
-            };
+            return Outcome::refused(key!("reason-one-junction"));
         };
         match self.read_junction_editor(*j, 0) {
             Some(e) => {
@@ -277,18 +267,14 @@ impl ShellModel {
                 self.tools.junction_editor = Some(e);
                 Outcome::Done
             }
-            None => Outcome::Refused {
-                reason_key: key!("reason-one-junction"),
-            },
+            None => Outcome::refused(key!("reason-one-junction")),
         }
     }
 
     /// Commits `junction.edit` of the open editor with `members`, then reads the editor again with `row` focused.
     fn junction_commit(&mut self, members: Value, row: usize) -> Outcome {
         let Some(editor) = self.tools.junction_editor.clone() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-junction-editor"),
-            };
+            return Outcome::refused(key!("reason-no-junction-editor"));
         };
         let cmd = ew_api::AnyCommand {
             name: "junction.edit".into(),
@@ -306,9 +292,7 @@ impl ShellModel {
     /// `junction.member {from, to}` (Alt+Up, Alt+Down in the popup): moves a member of the sequence.
     pub(crate) fn act_junction_member(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(editor) = &self.tools.junction_editor else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-junction-editor"),
-            };
+            return Outcome::refused(key!("reason-no-junction-editor"));
         };
         let index = |name: &str| {
             p.get(name)
@@ -319,9 +303,7 @@ impl ShellModel {
             return failed(key!("error-missing-param"), &["from"]);
         };
         let Some(seq) = editor.reordered(from, to) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-junction-member"),
-            };
+            return Outcome::refused(key!("reason-junction-member"));
         };
         let ids: Vec<String> = seq.iter().map(|c| c.0.to_string()).collect();
         self.junction_commit(json!({ "sequence": ids }), to)
@@ -330,9 +312,7 @@ impl ShellModel {
     /// `junction.style {style, orient?}`: `dot` or `bevel` with its orientation (0 to 7).
     pub(crate) fn act_junction_style(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(editor) = &self.tools.junction_editor else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-junction-editor"),
-            };
+            return Outcome::refused(key!("reason-no-junction-editor"));
         };
         let style = match string_param(p, "style") {
             Ok(Some(s)) => s.to_owned(),
@@ -356,9 +336,7 @@ impl ShellModel {
     /// `junction.wiring {wiring}`: `star`, `chain` or `style_default`.
     pub(crate) fn act_junction_wiring(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(editor) = &self.tools.junction_editor else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-junction-editor"),
-            };
+            return Outcome::refused(key!("reason-no-junction-editor"));
         };
         let wiring = match string_param(p, "wiring") {
             Ok(Some(w @ ("star" | "chain" | "style_default"))) => w.to_owned(),
@@ -436,19 +414,14 @@ impl ShellModel {
             Ok(None) => return failed(key!("error-missing-param"), &["x_mm"]),
             Err(e) => return e,
         };
-        let g = match self.group_param(p) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let g = or_return!(self.group_param(p));
         if let Some(a) = &mut self.area
             && a.focused != g
         {
             a.focused = g;
         }
         let Some(c) = self.canvas() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let (page, ppn, pane) = (Arc::clone(c.page()), c.points_per_nm(), c.pane());
         let cx = crate::tools::ToolCx {
@@ -463,14 +436,10 @@ impl ShellModel {
         let crate::tools::wire::WireTarget::Cp { function, idx, .. } =
             crate::tools::wire::resolve_target(&cx, at, false)
         else {
-            return Outcome::Refused {
-                reason_key: key!("reason-drop-on-cp"),
-            };
+            return Outcome::refused(key!("reason-drop-on-cp"));
         };
         let Some(pr) = self.project.as_ref() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         // (where the channel binds, the device wired to that card pin, the attachment: device, tag, card, card tag,
         // position)
@@ -490,9 +459,7 @@ impl ShellModel {
                             &[&device, &card, &pins.len().to_string(), &list.join(", ")],
                         );
                         self.notify_toned(text, crate::notifications::NoteTone::Warning);
-                        return Outcome::Refused {
-                            reason_key: key!("reason-bind-wired-pins"),
-                        };
+                        return Outcome::refused(key!("reason-bind-wired-pins"));
                     }
                 },
                 Some(OffCardBind::Attach {
@@ -519,9 +486,7 @@ impl ShellModel {
                         (false, true) => strings::format(key!("toast-bind-no-position"), &[&device, &card]),
                     };
                     self.notify_toned(text, crate::notifications::NoteTone::Warning);
-                    return Outcome::Refused {
-                        reason_key: key!("reason-bind-off-card"),
-                    };
+                    return Outcome::refused(key!("reason-bind-off-card"));
                 }
             };
         // FT-757: the channels the bind unbinds (FR-PLC-005), named in the toast by their addresses.
@@ -628,15 +593,11 @@ impl ShellModel {
     /// selected representation, routed ones routed again, in the preview card.
     pub(crate) fn act_route_selection(&mut self) -> Outcome {
         if self.canvas().is_none() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         }
         let ids = self.route_selection_ids();
         if ids.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-route-selection"),
-            };
+            return Outcome::refused(key!("reason-route-selection"));
         }
         self.route_card(ew_api::routing::RouteScope::Selection(ids))
     }
@@ -659,19 +620,13 @@ impl ShellModel {
     fn route_card(&mut self, scope: ew_api::routing::RouteScope) -> Outcome {
         use ew_api::routing::{Unrouted, route_many_params};
         let Some(folio) = self.current_folio().map(str::to_owned) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let Some(session) = self.project.as_ref().map(|p| &p.session) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let Some(plan) = session.route_plan(&folio, &scope) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let page = strings::format(key!("route-folio"), &[&folio]);
         let total = plan.routes.len() + plan.unrouted.len();

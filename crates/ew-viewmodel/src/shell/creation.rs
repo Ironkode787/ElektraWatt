@@ -625,14 +625,7 @@ impl ShellModel {
             Ok(v) => v,
             Err(e) => return (super::tools::command_failed(&e, &cmd.params), Vec::new()),
         };
-        let refused = || {
-            (
-                Outcome::Refused {
-                    reason_key: key!("reason-no-project"),
-                },
-                Vec::new(),
-            )
-        };
+        let refused = || (Outcome::refused(key!("reason-no-project")), Vec::new());
         let Some(base_rev) = self.revision() else {
             return refused();
         };
@@ -806,9 +799,7 @@ impl ShellModel {
         }
         if !section.is_empty() {
             let Some(project) = &self.project else {
-                return Outcome::Refused {
-                    reason_key: key!("reason-no-project"),
-                };
+                return Outcome::refused(key!("reason-no-project"));
             };
             match project.session.resolve_reference(&format!("section:{section}")) {
                 Ok(id) => params["section"] = Value::String(id.to_string()),
@@ -1018,9 +1009,7 @@ impl ShellModel {
             crate::wizard::shipped_form_id(crate::wizard_data::NOGRID_FRAME),
             &self.project,
         ) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let held = form.as_str().is_some_and(|id| {
             project

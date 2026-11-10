@@ -107,9 +107,7 @@ impl ShellModel {
         let nav = self
             .generic(kind)
             .ok_or_else(|| failed(key!("error-nav-closed"), &[kind.word()]))?;
-        let table = Arc::clone(nav.table().ok_or(Outcome::Refused {
-            reason_key: key!("reason-no-nav-row"),
-        })?);
+        let table = Arc::clone(nav.table().ok_or(Outcome::refused(key!("reason-no-nav-row")))?);
         let mut rows: Vec<usize> = nav
             .marked()
             .iter()
@@ -122,9 +120,7 @@ impl ShellModel {
         }
         rows.sort_unstable();
         if rows.is_empty() {
-            return Err(Outcome::Refused {
-                reason_key: key!("reason-no-nav-row"),
-            });
+            return Err(Outcome::refused(key!("reason-no-nav-row")));
         }
         Ok((table, rows))
     }
@@ -148,9 +144,7 @@ impl ShellModel {
             return failed(key!("error-nav-closed"), &[NavKind::Cables.word()]);
         };
         let Some(table) = nav.table().map(Arc::clone) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-swap-two-cores"),
-            };
+            return Outcome::refused(key!("reason-swap-two-cores"));
         };
         let rows: Vec<&NavNode> = nav
             .marked()
@@ -158,19 +152,13 @@ impl ShellModel {
             .filter_map(|k| nav.node_of(k).map(|(i, _)| &table.nodes[i as usize]))
             .collect();
         let [a, b] = rows.as_slice() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-swap-two-cores"),
-            };
+            return Outcome::refused(key!("reason-swap-two-cores"));
         };
         let (Some(ca), Some(cb)) = (a.records.get(1), b.records.get(1)) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-swap-two-cores"),
-            };
+            return Outcome::refused(key!("reason-swap-two-cores"));
         };
         if a.role != NavRole::Conductor || b.role != NavRole::Conductor {
-            return Outcome::Refused {
-                reason_key: key!("reason-swap-two-cores"),
-            };
+            return Outcome::refused(key!("reason-swap-two-cores"));
         }
         let cable = a
             .parent
@@ -179,9 +167,7 @@ impl ShellModel {
             .unwrap_or_default();
         let (la, lb) = (a.label.clone(), b.label.clone());
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let cmd = match project.session.swap_cores(*ca, *cb) {
             Ok(cmd) => cmd,
@@ -203,14 +189,9 @@ impl ShellModel {
 
     /// `navigator.delete {kind?}` (FT-490): one `edit.delete` of the acted rows' records, on the host card.
     pub(crate) fn act_navigator_delete(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         if !self.is_writable() {
-            return Outcome::Refused {
-                reason_key: key!("reason-read-only"),
-            };
+            return Outcome::refused(key!("reason-read-only"));
         }
         let targets: Vec<Value> = if kind == NavKind::Pages && self.generic(NavKind::Pages).is_none() {
             match self.marked_pages() {
@@ -221,18 +202,13 @@ impl ShellModel {
                 Err(e) => return e,
             }
         } else {
-            let (table, rows) = match self.acted_rows(kind) {
-                Ok(r) => r,
-                Err(e) => return e,
-            };
+            let (table, rows) = or_return!(self.acted_rows(kind));
             let mut targets = Vec::new();
             for i in rows {
                 match delete_target(&table.nodes[i]) {
                     Some(t) => targets.push(t),
                     None => {
-                        return Outcome::Refused {
-                            reason_key: key!("reason-nav-not-deletable"),
-                        };
+                        return Outcome::refused(key!("reason-nav-not-deletable"));
                     }
                 }
             }
@@ -248,10 +224,7 @@ impl ShellModel {
     /// `navigator.rename {kind?, text?, cancel?}` (FT-490): opens the cursor row's label editor, commits `text` to the
     /// row's route, or (`cancel`) closes the editor.
     pub(crate) fn act_navigator_rename(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         if flag(p, "cancel") {
             self.rename = None;
             return Outcome::Done;
@@ -261,9 +234,7 @@ impl ShellModel {
             Err(e) => return e,
         };
         if !self.is_writable() {
-            return Outcome::Refused {
-                reason_key: key!("reason-read-only"),
-            };
+            return Outcome::refused(key!("reason-read-only"));
         }
         let legacy_pages = kind == NavKind::Pages && self.generic(NavKind::Pages).is_none();
         // The row: the open editor's, else the cursor row; its route, targets and current label.
@@ -288,9 +259,7 @@ impl ShellModel {
             };
         };
         let Some(key) = key else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-nav-row"),
-            };
+            return Outcome::refused(key!("reason-no-nav-row"));
         };
         // FT-633(b): a device's tag goes through the Properties Tag field's own path.
         let (route_kind, path) = match route {
@@ -302,16 +271,12 @@ impl ShellModel {
             match crate::navigator::PageNavigator::page_of(&key, rows) {
                 Some(i) if !rows[i].generated => (vec![rows[i].id], rows[i].title.clone()),
                 _ => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-nav-not-renamable"),
-                    };
+                    return Outcome::refused(key!("reason-nav-not-renamable"));
                 }
             }
         } else {
             let Some(node) = node else {
-                return Outcome::Refused {
-                    reason_key: key!("reason-no-nav-row"),
-                };
+                return Outcome::refused(key!("reason-no-nav-row"));
             };
             let targets = row_targets(&node, route_kind);
             let label = match (kind, route_kind) {
@@ -333,9 +298,7 @@ impl ShellModel {
             (targets, label)
         };
         if targets.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-nav-not-renamable"),
-            };
+            return Outcome::refused(key!("reason-nav-not-renamable"));
         }
         let Some(text) = text else {
             self.rename = Some(NavRename {
@@ -397,9 +360,7 @@ impl ShellModel {
     fn rename_tag(&mut self, kind: NavKind, key: String, device: Uuid, text: Option<String>) -> Outcome {
         let Some(text) = text else {
             let Some(label) = self.tag_rename_sheet(device) else {
-                return Outcome::Refused {
-                    reason_key: key!("reason-nav-not-renamable"),
-                };
+                return Outcome::refused(key!("reason-nav-not-renamable"));
             };
             self.rename = Some(NavRename {
                 kind,

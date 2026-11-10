@@ -17,6 +17,17 @@
 /// (architecture section 3, rule 7).
 pub use ew_api;
 
+/// The value of an `Ok`, or the enclosing function returns the `Err`'s value as it is: for an action that reads a
+/// parameter with a reader whose error is already the action's outcome.
+macro_rules! or_return {
+    ($e:expr) => {
+        match $e {
+            Ok(v) => v,
+            Err(e) => return e,
+        }
+    };
+}
+
 pub mod about;
 pub mod actions;
 // FT-422 (ID-630): the ID alias `@n`.

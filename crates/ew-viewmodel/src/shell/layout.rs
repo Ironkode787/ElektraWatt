@@ -259,9 +259,7 @@ impl ShellModel {
     /// end in words, as a selected placement does ("Blocked by -102F2", "At the rail end"; FT-992); the ghost stays.
     fn step_layout_ghost(&mut self, dx: i64, dy: i64) -> Outcome {
         let Some(panel) = self.panel_tables() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-panel-page"),
-            };
+            return Outcome::refused(key!("reason-no-panel-page"));
         };
         let grid = self.tools.layout_options.grid();
         let (p, exact) = match self
@@ -299,9 +297,7 @@ impl ShellModel {
     /// of the focused rail (the selected placement's rail, else Rail 1) in carrier order (by `s0`), wrapping.
     pub(crate) fn act_layout_step(&mut self, step: i64) -> Outcome {
         let Some(panel) = self.panel_tables() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-panel-page"),
-            };
+            return Outcome::refused(key!("reason-no-panel-page"));
         };
         let current = self.selected_placement().map(|(_, r)| r);
         let rail = current
@@ -309,9 +305,7 @@ impl ShellModel {
             .and_then(|r| r.carrier)
             .or_else(|| panel.carriers.iter().find(|c| c.axis.is_some()).map(|c| c.id));
         let Some(rail) = rail else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-placement"),
-            };
+            return Outcome::refused(key!("reason-no-placement"));
         };
         let mut on: Vec<&PanelPlacement> = panel
             .placements
@@ -320,9 +314,7 @@ impl ShellModel {
             .collect();
         on.sort_by_key(|p| (i128::from(p.pose.0) - p.clip, p.id));
         if on.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-placement"),
-            };
+            return Outcome::refused(key!("reason-no-placement"));
         }
         let n = on.len();
         let at = current.and_then(|c| on.iter().position(|p| p.id == c.id));
@@ -349,9 +341,7 @@ impl ShellModel {
             return self.step_layout_ghost(dx, dy);
         }
         let Some((panel, row)) = self.selected_placement() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-placement"),
-            };
+            return Outcome::refused(key!("reason-no-placement"));
         };
         let grid = self.tools.layout_options.grid();
         let mode = self.tools.layout_options.mode;
@@ -359,9 +349,7 @@ impl ShellModel {
         let cmd = match row.carrier.and_then(|c| panel.carrier(c)) {
             Some(rail) => {
                 let (Some(axis), Some(length)) = (rail.axis, rail.length) else {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-placement"),
-                    };
+                    return Outcome::refused(key!("reason-no-placement"));
                 };
                 // The page's y grows downwards, the surface's v upwards.
                 let sign = i128::from(dx) * axis.dir.0 + i128::from(-dy) * axis.dir.1;
@@ -373,9 +361,7 @@ impl ShellModel {
                     .iter()
                     .find(|i| i.placement.is_some_and(|x| x.as_uuid() == row.id))
                 else {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-placement"),
-                    };
+                    return Outcome::refused(key!("reason-no-placement"));
                 };
                 let s0 = own.s0;
                 let target = s0 + sign * grid;
@@ -424,9 +410,7 @@ impl ShellModel {
             return self.send_tool(&CanvasEvent::Key(key));
         }
         let Some((panel, row)) = self.selected_placement() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-placement"),
-            };
+            return Outcome::refused(key!("reason-no-placement"));
         };
         let on_rail = row.carrier.and_then(|c| panel.carrier(c)).is_some();
         let cmd = match (key, on_rail) {
@@ -464,9 +448,7 @@ impl ShellModel {
     /// placement): `layout.lock {placement, locked}` of the selected placement.
     pub(crate) fn act_layout_lock(&mut self, locked: bool) -> Outcome {
         let Some((_, row)) = self.selected_placement() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-placement"),
-            };
+            return Outcome::refused(key!("reason-no-placement"));
         };
         self.commit_layout(
             "layout.lock",
@@ -701,9 +683,7 @@ impl ShellModel {
     /// duct's width and height in millimetres; the choice stays for the next drawing, and the running tool takes it.
     pub(crate) fn act_layout_draw_options(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(kind) = draw_kind(self.tools.tool.name()) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-draw-tool"),
-            };
+            return Outcome::refused(key!("reason-no-draw-tool"));
         };
         self.forget_draw_offers();
         if let Some(number) = p.get("part").and_then(Value::as_str) {
@@ -758,9 +738,7 @@ impl ShellModel {
         if let Some(reason) = self.enclosure_new_reason() {
             self.tools.notice = Some(reason);
             self.tools.notice_sticky = false;
-            return Outcome::Refused {
-                reason_key: key!("enclosure-new-no-location"),
-            };
+            return Outcome::refused(key!("enclosure-new-no-location"));
         }
         let given = |name: &str| {
             p.get(name)
@@ -791,9 +769,7 @@ impl ShellModel {
         };
         let page = self.focused_page_id();
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let found = project.session.layout_locations().into_iter().find(|(id, code)| {
             id.to_string() == location || *code == location || code.trim_start_matches('+') == location
@@ -984,9 +960,7 @@ impl ShellModel {
     pub(crate) fn act_layout_auto_fill_rail(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "layout.auto_fill_rail";
         let Some(panel) = self.panel_tables() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-panel-page"),
-            };
+            return Outcome::refused(key!("reason-no-panel-page"));
         };
         let given = |name: &str| {
             p.get(name)

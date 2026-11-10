@@ -330,14 +330,9 @@ impl ShellModel {
     /// false`) the project's scheme again; without `on` it switches. Refused when the project holds no import.
     pub(crate) fn act_messages_migration(&mut self, p: &Map<String, Value>) -> Outcome {
         if !self.messages_offers_migration() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-lineage"),
-            };
+            return Outcome::refused(key!("reason-no-lineage"));
         }
-        let on = match super::jobs::bool_param(p, "on", !self.messages.migration) {
-            Ok(on) => on,
-            Err(e) => return e,
-        };
+        let on = or_return!(super::jobs::bool_param(p, "on", !self.messages.migration));
         self.messages.migration = on;
         if let Some(n) = self.navs.get_mut(&NavKind::Messages) {
             n.table = None;
@@ -353,10 +348,7 @@ impl ShellModel {
         // FX38d (doc 16a §5.7): the command that opens the pane closes it again; `on` sets it. FT-916: only a pane in
         // front closes; one behind another tab of its group (History) is brought to front.
         let in_front = self.layout().shown_in_place_of(pane) == Some(pane);
-        let on = match super::jobs::bool_param(p, "on", !in_front) {
-            Ok(on) => on,
-            Err(e) => return e,
-        };
+        let on = or_return!(super::jobs::bool_param(p, "on", !in_front));
         let mut q = Map::new();
         q.insert("kind".into(), Value::from(NavKind::Messages.word()));
         q.insert("on".into(), Value::from(on));
@@ -414,9 +406,7 @@ impl ShellModel {
             (1..=n).map(|i| (start - i) % n).find(|&i| is_finding(i))
         };
         let Some(i) = pick else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-findings"),
-            };
+            return Outcome::refused(key!("reason-no-findings"));
         };
         let key = keys[i].to_owned();
         let node = rows[i].node;
@@ -526,9 +516,9 @@ impl ShellModel {
             Some(k) => k.to_owned(),
             None => match self.messages.waive.as_ref().filter(|_| self.in_waive_form()) {
                 Some((k, _)) => k.clone(),
-                None => self.nav_cursor(NavKind::Messages).ok_or(Outcome::Refused {
-                    reason_key: key!("reason-no-nav-row"),
-                })?,
+                None => self
+                    .nav_cursor(NavKind::Messages)
+                    .ok_or(Outcome::refused(key!("reason-no-nav-row")))?,
             },
         };
         let Some(nav) = self.navs.get(&NavKind::Messages) else {
@@ -577,14 +567,9 @@ impl ShellModel {
     /// the preference. `check.waive` is `HumanOnly`: headless the action refuses.
     pub(crate) fn act_messages_waive(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
-            return Outcome::Refused {
-                reason_key: key!("reason-human-only"),
-            };
+            return Outcome::refused(key!("reason-human-only"));
         }
-        let (key, rule, fingerprint, subject) = match self.finding_row(p, "open") {
-            Ok(r) => r,
-            Err(e) => return e,
-        };
+        let (key, rule, fingerprint, subject) = or_return!(self.finding_row(p, "open"));
         let text = |name: &str| -> Result<String, Outcome> {
             Ok(string_param(p, name)?.unwrap_or_default().trim().to_owned())
         };
@@ -673,21 +658,14 @@ impl ShellModel {
     /// (`HumanOnly`).
     pub(crate) fn act_messages_unwaive(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
-            return Outcome::Refused {
-                reason_key: key!("reason-human-only"),
-            };
+            return Outcome::refused(key!("reason-human-only"));
         }
-        let (_, _, fingerprint, _) = match self.finding_row(p, "waived") {
-            Ok(r) => r,
-            Err(e) => return e,
-        };
+        let (_, _, fingerprint, _) = or_return!(self.finding_row(p, "waived"));
         let Some(waiver) = self
             .with_online(|o| o.waivers.get(&fingerprint).cloned())
             .flatten()
         else {
-            return Outcome::Refused {
-                reason_key: key!("reason-not-waived"),
-            };
+            return Outcome::refused(key!("reason-not-waived"));
         };
         let cmd = AnyCommand {
             name: "check.unwaive".to_owned(),
@@ -708,9 +686,7 @@ impl ShellModel {
             Ok(None) => match self.nav_cursor(NavKind::Messages) {
                 Some(k) => k,
                 None => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-nav-row"),
-                    };
+                    return Outcome::refused(key!("reason-no-nav-row"));
                 }
             },
         };
@@ -721,20 +697,14 @@ impl ShellModel {
             return failed(key!("error-nav-key"), &[&key, NavKind::Messages.word()]);
         };
         if node.role != NavRole::Finding {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-fix"),
-            };
+            return Outcome::refused(key!("reason-no-fix"));
         }
         let Some(fp) = messages::fingerprint_of(&key).map(str::to_owned) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-fix"),
-            };
+            return Outcome::refused(key!("reason-no-fix"));
         };
         let migration = self.messages_shows_migration();
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         // ID-1392 (FT-1386): a row of the migration report is found in the run that lists it.
         let report = if migration {
@@ -747,14 +717,10 @@ impl ShellModel {
                 .check(project.session.online_scheme(), CheckMode::Online)
         };
         let Some(finding) = report.findings.iter().find(|f| f.fingerprint.to_string() == fp) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-fix"),
-            };
+            return Outcome::refused(key!("reason-no-fix"));
         };
         let Some(fix) = finding.fix.clone() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-fix"),
-            };
+            return Outcome::refused(key!("reason-no-fix"));
         };
         let rule = finding.rule.to_owned();
         let targets = finding.targets.len();

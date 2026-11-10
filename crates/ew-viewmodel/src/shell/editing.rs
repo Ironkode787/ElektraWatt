@@ -379,12 +379,10 @@ impl ShellModel {
     /// carries, so that the embedding is part of that command's transaction (FT-656, FT-673: one undo step, and the
     /// recorded command replays without a library). Nothing is committed here.
     pub(super) fn starter_row(&mut self, key: &str) -> Result<(CatalogueSymbol, Vec<Value>), Outcome> {
-        let no_row = Outcome::Refused {
-            reason_key: key!("reason-unknown-symbol"),
-        };
-        let cat = self.catalogue().ok_or(Outcome::Refused {
-            reason_key: key!("reason-no-catalogue"),
-        })?;
+        let no_row = Outcome::refused(key!("reason-unknown-symbol"));
+        let cat = self
+            .catalogue()
+            .ok_or(Outcome::refused(key!("reason-no-catalogue")))?;
         let mut row = cat
             .symbols
             .iter()
@@ -493,14 +491,10 @@ impl ShellModel {
                     box_cps = Some(f.cps.clone());
                 }
                 let Some(key) = &f.symbol else {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-symbol-for-function"),
-                    };
+                    return Outcome::refused(key!("reason-no-symbol-for-function"));
                 };
                 let Some(i) = cat.symbols.iter().position(|s| s.key == *key) else {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-symbol-for-function"),
-                    };
+                    return Outcome::refused(key!("reason-no-symbol-for-function"));
                 };
                 (
                     i,
@@ -523,9 +517,7 @@ impl ShellModel {
             };
         }
         if !row.allowed {
-            return Outcome::Refused {
-                reason_key: key!("reason-rep-type-not-allowed"),
-            };
+            return Outcome::refused(key!("reason-rep-type-not-allowed"));
         }
         // A black box (a black-box symbol, or a template function that is one) arms the black box tool (WP-S2.04 §9.5);
         // `tool.black_box` arms nothing else.
@@ -567,16 +559,12 @@ impl ShellModel {
         }
         if is_box {
             let Some(copy) = row.copy else {
-                return Outcome::Refused {
-                    reason_key: key!("reason-unknown-symbol"),
-                };
+                return Outcome::refused(key!("reason-unknown-symbol"));
             };
             let target = match part {
                 Some((part, template, number)) => {
                     let Some(letter) = letter_param.or(part_letter).or(row.letter.clone()) else {
-                        return Outcome::Refused {
-                            reason_key: key!("reason-letter-needed"),
-                        };
+                        return Outcome::refused(key!("reason-letter-needed"));
                     };
                     BoxTarget::Part {
                         part,
@@ -588,9 +576,7 @@ impl ShellModel {
                 }
                 None => {
                     let Some(letter) = letter_param.or(row.letter.clone()) else {
-                        return Outcome::Refused {
-                            reason_key: key!("reason-letter-needed"),
-                        };
+                        return Outcome::refused(key!("reason-letter-needed"));
                     };
                     BoxTarget::NewDevice { letter }
                 }
@@ -602,9 +588,7 @@ impl ShellModel {
             return Outcome::Done;
         }
         let Some(shape) = self.row_shape(&row) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-unknown-symbol"),
-            };
+            return Outcome::refused(key!("reason-unknown-symbol"));
         };
         // A terminal: a terminal symbol (a PE terminal's category `TerminalEarth` counts too, FT-618), or any symbol or
         // part given a strip or a designation. A part-first terminal joins the strip and carries its part (G-PP
@@ -621,9 +605,7 @@ impl ShellModel {
             },
             (_, Some((part, template, number))) if !terminal => {
                 let Some(letter) = letter_param.or(row.letter.clone()) else {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-letter-needed"),
-                    };
+                    return Outcome::refused(key!("reason-letter-needed"));
                 };
                 PlaceTarget::Part {
                     part,
@@ -633,17 +615,12 @@ impl ShellModel {
                 }
             }
             (_, part) if terminal => {
-                let strip = match string_param(p, "strip") {
-                    Ok(v) => v,
-                    Err(e) => return e,
-                };
+                let strip = or_return!(string_param(p, "strip"));
                 // Without a strip in the project a terminal has nowhere to go. Chosen in the picker (the window's
                 // path) the strip chooser opens on its empty state, which says why and offers New terminal strip
                 // (FT-605); `strip.new` then lists the new strip as the current row. A direct `place.pick` refuses.
                 if cat.strips.is_empty() && (strip.is_some() || self.tools.picker.is_none()) {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-strip"),
-                    };
+                    return Outcome::refused(key!("reason-no-strip"));
                 }
                 // Without a strip the picker asks for one (FT-421): its strip chooser.
                 let Some(strip) = strip else {
@@ -678,9 +655,7 @@ impl ShellModel {
             }
             _ => {
                 let Some(letter) = letter_param.or(row.letter.clone()) else {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-letter-needed"),
-                    };
+                    return Outcome::refused(key!("reason-letter-needed"));
                 };
                 PlaceTarget::NewDevice { letter }
             }
@@ -704,29 +679,20 @@ impl ShellModel {
     /// Arms the change-symbol tool for the representation the picker was opened for and symbol row `i`.
     fn arm_exchange(&mut self, cat: Arc<PlaceCatalogue>, i: usize) -> Outcome {
         let Some(rep) = self.tools.exchange_rep else {
-            return Outcome::Refused {
-                reason_key: key!("reason-one-rep"),
-            };
+            return Outcome::refused(key!("reason-one-rep"));
         };
         let key = cat.symbols[i].key.clone();
         // FT-673: a starter symbol the project lacks travels in the exchange itself (one undo step).
-        let (row, copies) = match self.starter_row(&key) {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
+        let (row, copies) = or_return!(self.starter_row(&key));
         let Some(shape) = self.row_shape(&row) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-unknown-symbol"),
-            };
+            return Outcome::refused(key!("reason-unknown-symbol"));
         };
         // The FnDef the representation's current symbol draws.
         let old = self
             .canvas()
             .and_then(|c| c.page().tables.reps.iter().find(|r| r.id == rep.0).cloned());
         let Some(old) = old else {
-            return Outcome::Refused {
-                reason_key: key!("reason-one-rep"),
-            };
+            return Outcome::refused(key!("reason-one-rep"));
         };
         // The shape of the representation's current symbol: the function CPs it draws and their designations.
         let old_symbol = old.symbol;
@@ -736,9 +702,7 @@ impl ShellModel {
         let Some(tool) = self.with_tool(|_, cx| {
             ExchangeTool::new(rep, Arc::clone(&shape), current.as_deref(), cx).with_copies(copies)
         }) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let overlay = tool.overlay();
         self.activate_tool(Box::new(tool));
@@ -752,9 +716,7 @@ impl ShellModel {
     /// `tool.place` and `tool.place_part` (§7.6): opens the picker of the focused page.
     pub(crate) fn act_open_picker(&mut self, mode: PickerMode) -> Outcome {
         let Some(cat) = self.catalogue() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-catalogue"),
-            };
+            return Outcome::refused(key!("reason-no-catalogue"));
         };
         let folio = self.current_folio().unwrap_or_default().to_owned();
         self.palette = None;
@@ -806,9 +768,7 @@ impl ShellModel {
     /// a new page with its grid and selected; the picker closes.
     pub(crate) fn act_picker_new_page(&mut self) -> Outcome {
         let Some(picker) = &self.tools.picker else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-picker"),
-            };
+            return Outcome::refused(key!("reason-no-picker"));
         };
         let symbol = match picker.rows.get(picker.row) {
             Some(PickerRow::Symbol(i)) => picker.catalogue.symbols.get(*i),
@@ -817,9 +777,7 @@ impl ShellModel {
         let Some((key, letter, [(num, den), _])) =
             symbol.and_then(|s| Some((s.key.clone(), s.letter.clone(), s.grid_mismatch?)))
         else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-grid-mismatch"),
-            };
+            return Outcome::refused(key!("reason-no-grid-mismatch"));
         };
         self.tools.picker = None;
         if let Err(message) = self.new_page_with_grid(json!({"num": num, "den": den}), None) {
@@ -850,14 +808,10 @@ impl ShellModel {
     /// `picker.choose`: the current row (§7.1).
     pub(crate) fn act_picker_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(picker) = &self.tools.picker else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-picker"),
-            };
+            return Outcome::refused(key!("reason-no-picker"));
         };
         let Some(&row) = picker.rows.get(picker.row) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-picker-row"),
-            };
+            return Outcome::refused(key!("reason-no-picker-row"));
         };
         if let Some(reason_key) = picker.disabled(row) {
             // SM25b m3: the grids' reason names both grids.
@@ -886,14 +840,10 @@ impl ShellModel {
             // The strip chooser (FT-421): the pending terminal placement with the chosen strip.
             (_, PickerRow::Strip(i)) => {
                 let Some(pending) = pending else {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-picker-row"),
-                    };
+                    return Outcome::refused(key!("reason-no-picker-row"));
                 };
                 let Some(symbol) = cat.symbols.iter().position(|r| r.key == pending.symbol) else {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-unknown-symbol"),
-                    };
+                    return Outcome::refused(key!("reason-unknown-symbol"));
                 };
                 // The parameters of this choice (`designation`, `letter`, `strip`) win over those of the choice that
                 // opened the chooser; the strip is the current row's unless this choice names one.
@@ -932,13 +882,9 @@ impl ShellModel {
     /// takes `<tag>:<slot>` or `<tag>` (with `symbol`): see [`super::join`].
     pub(crate) fn act_place_pick(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(cat) = self.catalogue() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-catalogue"),
-            };
+            return Outcome::refused(key!("reason-no-catalogue"));
         };
-        let unknown = Outcome::Refused {
-            reason_key: key!("reason-unknown-symbol"),
-        };
+        let unknown = Outcome::refused(key!("reason-unknown-symbol"));
         let symbol = match string_param(p, "symbol") {
             Ok(v) => v.map(str::to_owned),
             Err(e) => return e,
@@ -1068,9 +1014,7 @@ impl ShellModel {
         let frozen = !tag.is_empty() && example.as_deref() != Some(tag.as_str());
         if frozen {
             let Some(project) = &self.project else {
-                return Outcome::Refused {
-                    reason_key: key!("reason-no-project"),
-                };
+                return Outcome::refused(key!("reason-no-project"));
             };
             match project.session.parse_field_input("device", "tag.frozen", &tag) {
                 Ok(parsed) if !parsed.value.is_null() => params["frozen_tag"] = parsed.value,
@@ -1158,19 +1102,13 @@ impl ShellModel {
             }
             match key {
                 ToolKey::NextRepType => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-place-only"),
-                    };
+                    return Outcome::refused(key!("reason-place-only"));
                 }
                 ToolKey::NextVariant if reps > 1 => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-one-rep"),
-                    };
+                    return Outcome::refused(key!("reason-one-rep"));
                 }
                 _ if reps == 0 => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-nothing-selected"),
-                    };
+                    return Outcome::refused(key!("reason-nothing-selected"));
                 }
                 _ => {}
             }
@@ -1190,9 +1128,7 @@ impl ShellModel {
     /// definition and the page allows; an embedded one only (a starter symbol is chosen through the picker).
     fn next_rep_type(&mut self) -> Outcome {
         let Some(cat) = self.catalogue() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-catalogue"),
-            };
+            return Outcome::refused(key!("reason-no-catalogue"));
         };
         let current = self
             .with_tool(|t, _| {
@@ -1205,9 +1141,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         let Some(at) = cat.symbols.iter().position(|s| s.key == current) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-next-rep-type"),
-            };
+            return Outcome::refused(key!("reason-no-next-rep-type"));
         };
         let fndef = cat.symbols[at].fndef_key.clone();
         let n = cat.symbols.len();
@@ -1216,14 +1150,10 @@ impl ShellModel {
             .find(|s| s.fndef_key == fndef && s.allowed && s.copy.is_some())
             .cloned();
         let Some(row) = next else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-next-rep-type"),
-            };
+            return Outcome::refused(key!("reason-no-next-rep-type"));
         };
         let Some(shape) = self.row_shape(&row) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-unknown-symbol"),
-            };
+            return Outcome::refused(key!("reason-unknown-symbol"));
         };
         let out = self
             .with_tool(|t, cx| {
@@ -1249,9 +1179,7 @@ impl ShellModel {
             self.activate_tool(select);
         }
         let Some(c) = self.canvas() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let tables = Arc::clone(&c.page().tables);
         let mut movable = transform::selected_movable(&self.tools.selection, c.page());
@@ -1272,14 +1200,10 @@ impl ShellModel {
             }
         }
         let Some(c) = self.canvas() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         if movable.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-nothing-to-move"),
-            };
+            return Outcome::refused(key!("reason-nothing-to-move"));
         }
         if c.cursor().is_none() {
             let primary = self
@@ -1328,9 +1252,7 @@ impl ShellModel {
                 if let Some((before, _)) = replaced {
                     self.tools.selection = before;
                 }
-                Outcome::Refused {
-                    reason_key: key!("reason-no-cursor"),
-                }
+                Outcome::refused(key!("reason-no-cursor"))
             }
         }
     }
@@ -1371,9 +1293,7 @@ impl ShellModel {
         // a device never placed) is deleted itself. A device drawn only on other pages is refused, never deleted there.
         let targets = self.copy_targets();
         let Some(page) = self.canvas().map(|c| Arc::clone(c.page())) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-nothing-selected"),
-            };
+            return Outcome::refused(key!("reason-nothing-selected"));
         };
         // WP-S4.02 part 3 (D10, E2-2): on a panel page the selected placements and carriers, without the undrawn-device
         // step (a placement's device is never deleted by it).
@@ -1384,9 +1304,7 @@ impl ShellModel {
                 .map(|(e, k)| json!({"kind": k.kind_name(), "id": e.0.to_string()}))
                 .collect();
             if list.is_empty() {
-                return Outcome::Refused {
-                    reason_key: key!("reason-nothing-selected"),
-                };
+                return Outcome::refused(key!("reason-nothing-selected"));
             }
             let cmd = AnyCommand {
                 name: "edit.delete".into(),
@@ -1630,9 +1548,7 @@ impl ShellModel {
     /// without `symbol` the picker opens in exchange mode, with one the tool is armed at once.
     pub(crate) fn act_rep_exchange(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(c) = self.canvas() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let tables = Arc::clone(&c.page().tables);
         let reps: Vec<EntityRef> = selection_kinds(&self.tools.selection, &tables)
@@ -1642,26 +1558,18 @@ impl ShellModel {
             .collect();
         let rep = match reps.as_slice() {
             [] => {
-                return Outcome::Refused {
-                    reason_key: key!("reason-nothing-selected"),
-                };
+                return Outcome::refused(key!("reason-nothing-selected"));
             }
             [one] => *one,
             _ => {
-                return Outcome::Refused {
-                    reason_key: key!("reason-one-rep"),
-                };
+                return Outcome::refused(key!("reason-one-rep"));
             }
         };
         if tables.reps.iter().any(|r| r.id == rep.0 && r.ip.is_some()) {
-            return Outcome::Refused {
-                reason_key: key!("reason-ip-exchange"),
-            };
+            return Outcome::refused(key!("reason-ip-exchange"));
         }
         let Some(cat) = self.catalogue() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-catalogue"),
-            };
+            return Outcome::refused(key!("reason-no-catalogue"));
         };
         self.tools.exchange_rep = Some(rep);
         match string_param(p, "symbol") {
@@ -1672,9 +1580,7 @@ impl ShellModel {
                     .iter()
                     .position(|r| r.allowed && (r.key == s || r.copy.is_some_and(|c| c.to_string() == s)))
                 else {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-unknown-symbol"),
-                    };
+                    return Outcome::refused(key!("reason-unknown-symbol"));
                 };
                 self.arm_exchange(cat, i)
             }

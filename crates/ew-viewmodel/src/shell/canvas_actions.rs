@@ -176,18 +176,13 @@ impl ShellModel {
 
     /// Runs `f` on the canvas of the group the optional `group` parameter names (default: the focused group).
     fn with_canvas(&mut self, p: &Map<String, Value>, f: impl FnOnce(&mut CanvasModel)) -> Outcome {
-        let g = match self.group_param(p) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let g = or_return!(self.group_param(p));
         match self.canvas_mut(g) {
             Some(c) => {
                 f(c);
                 Outcome::Done
             }
-            None => Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            },
+            None => Outcome::refused(key!("reason-no-page")),
         }
     }
 
@@ -216,14 +211,8 @@ impl ShellModel {
     }
 
     pub(crate) fn act_zoom_to(&mut self, p: &Map<String, Value>) -> Outcome {
-        let percent = match positive(p, "percent") {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
-        let anchor = match point_mm(p) {
-            Ok(a) => a,
-            Err(e) => return e,
-        };
+        let percent = or_return!(positive(p, "percent"));
+        let anchor = or_return!(point_mm(p));
         self.with_canvas(p, |c| {
             let a = anchor.unwrap_or(c.centre());
             c.zoom_about(percent / 100.0, a);
@@ -246,16 +235,10 @@ impl ShellModel {
             (Ok(w), Ok(h)) => (w, h),
             (Err(e), _) | (_, Err(e)) => return e,
         };
-        let g = match self.group_param(p) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let g = or_return!(self.group_param(p));
         let ppp = match p.get("ppp") {
             None => self.group_pane(g).1,
-            Some(_) => match positive(p, "ppp") {
-                Ok(v) => v,
-                Err(e) => return e,
-            },
+            Some(_) => or_return!(positive(p, "ppp")),
         };
         // The blind drafter drives this action: a pane beyond the bounds is refused, never allocated.
         if let Some(name) = pane_out_of_bounds(width, height, ppp) {
@@ -313,14 +296,8 @@ impl ShellModel {
 
     /// The pointer part of `canvas.pointer`.
     fn set_pointer_of(&mut self, p: &Map<String, Value>) -> Outcome {
-        let point = match point_mm(p) {
-            Ok(point) => point,
-            Err(e) => return e,
-        };
-        let g = match self.group_param(p) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let point = or_return!(point_mm(p));
+        let g = or_return!(self.group_param(p));
         let out = self.with_canvas(p, |c| c.set_pointer(point));
         if let Some(area) = &mut self.area {
             for (k, group) in area.groups.iter_mut().enumerate() {

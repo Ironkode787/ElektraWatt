@@ -99,20 +99,12 @@ impl ShellModel {
             (Ok(a), Ok(b)) => (a.map(str::to_owned), b.map(str::to_owned)),
         };
         let Some(tables) = self.canvas().map(|c| std::sync::Arc::clone(&c.page().tables)) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let (end_a, end_b, via) = match (a, b) {
             (Some(a), Some(b)) => {
-                let end_a = match cp_by_label(&tables, &a) {
-                    Ok(e) => e,
-                    Err(out) => return out,
-                };
-                let end_b = match cp_by_label(&tables, &b) {
-                    Ok(e) => e,
-                    Err(out) => return out,
-                };
+                let end_a = or_return!(cp_by_label(&tables, &a));
+                let end_b = or_return!(cp_by_label(&tables, &b));
                 if end_a == end_b {
                     return failed(key!("error-bond-same-end"), &[&a]);
                 }
@@ -131,14 +123,10 @@ impl ShellModel {
             (None, None) => {
                 let kinds = selection_kinds(&self.tools.selection, &tables);
                 let [(e, EntityKind::Connection)] = kinds.as_slice() else {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-bond-selection"),
-                    };
+                    return Outcome::refused(key!("reason-bond-selection"));
                 };
                 let Some(c) = tables.connections.iter().find(|c| c.id == e.0) else {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-bond-selection"),
-                    };
+                    return Outcome::refused(key!("reason-bond-selection"));
                 };
                 (c.a, c.b, Some(c.id))
             }
@@ -210,17 +198,13 @@ impl ShellModel {
             Err(reason_key) => return Outcome::Refused { reason_key },
         };
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let mut params = json!({ "at": end_param(at) });
         for (param, path, text) in texts {
             let Some(text) = text.map(str::trim).filter(|t| !t.is_empty()) else {
                 if path == "name" {
-                    return Outcome::Refused {
-                        reason_key: key!("table-define-name-first"),
-                    };
+                    return Outcome::refused(key!("table-define-name-first"));
                 }
                 continue;
             };
@@ -320,9 +304,7 @@ impl ShellModel {
             .and_then(|t| t.nodes.iter().find(|n| n.key == row))
             .and_then(|n| n.define_at);
         let Some((function, idx)) = at else {
-            return Outcome::Refused {
-                reason_key: key!("reason-potential-row"),
-            };
+            return Outcome::refused(key!("reason-potential-row"));
         };
         let out = self.open_potential_form();
         self.potential_at = Some(TableEnd::Cp { function, idx });

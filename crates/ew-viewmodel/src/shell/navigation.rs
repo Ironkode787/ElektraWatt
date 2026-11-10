@@ -567,9 +567,7 @@ impl ShellModel {
             .page_rows()
             .get(index.min(self.page_count().saturating_sub(1)))
         else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-pages"),
-            };
+            return Outcome::refused(key!("reason-no-pages"));
         };
         let page = PageId::of(row);
         let Some(g) = self.area.as_ref().map(|a| a.focused) else {
@@ -730,9 +728,7 @@ impl ShellModel {
         param: &str,
     ) -> Outcome {
         let Some(area) = &mut self.area else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-pages"),
-            };
+            return Outcome::refused(key!("reason-no-pages"));
         };
         match f(area) {
             Ok(()) => Outcome::Done,
@@ -762,15 +758,9 @@ impl ShellModel {
 
     pub(crate) fn act_tab_activate(&mut self, p: &Map<String, Value>) -> Outcome {
         let groups = self.area.as_ref().map_or(0, |a| a.groups.len());
-        let g = match index_param(p, "group", groups) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let g = or_return!(index_param(p, "group", groups));
         let tabs = self.area.as_ref().map_or(0, |a| a.groups[g].tabs.len());
-        let i = match index_param(p, "index", tabs) {
-            Ok(i) => i,
-            Err(e) => return e,
-        };
+        let i = or_return!(index_param(p, "index", tabs));
         let out = self.area_op(|a| a.activate(g, i), "index");
         if out == Outcome::Done && matches!(self.focus, Some(Focus::Canvas(_))) {
             self.focus = Some(Focus::Canvas(g));
@@ -788,10 +778,7 @@ impl ShellModel {
             (Err(e), _) | (_, Err(e)) => return e,
         };
         let tabs = self.area.as_ref().map_or(0, |a| a.groups[g].tabs.len());
-        let i = match index_param(p, "index", tabs) {
-            Ok(i) => i,
-            Err(e) => return e,
-        };
+        let i = or_return!(index_param(p, "index", tabs));
         let to_i = match p.get("to_index").and_then(Value::as_u64) {
             Some(n) => usize::try_from(n).unwrap_or(usize::MAX),
             None => return failed(key!("error-missing-param"), &["to_index"]),
@@ -805,10 +792,7 @@ impl ShellModel {
             Ok(Some(f)) => f.to_owned(),
             Ok(None) => return failed(key!("error-missing-param"), &["folio"]),
         };
-        let g = match self.group_param(p) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let g = or_return!(self.group_param(p));
         let Some(row) = self.page_rows().iter().find(|r| r.folio == folio) else {
             return failed(key!("error-no-folio"), &[&folio]);
         };
@@ -822,9 +806,7 @@ impl ShellModel {
 
     pub(crate) fn act_side_by_side(&mut self) -> Outcome {
         let Some(area) = &self.area else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-pages"),
-            };
+            return Outcome::refused(key!("reason-no-pages"));
         };
         if area.side_by_side() {
             if let Some(a) = &mut self.area {
@@ -852,9 +834,7 @@ impl ShellModel {
 
     pub(crate) fn act_history(&mut self, back: bool) -> Outcome {
         let Some(g) = self.area.as_ref().map(|a| a.focused) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-history-empty"),
-            };
+            return Outcome::refused(key!("reason-history-empty"));
         };
         let Some(current) = self.location(g) else {
             return Outcome::Done;
@@ -873,9 +853,7 @@ impl ShellModel {
             }
         };
         let Some(entry) = entry else {
-            return Outcome::Refused {
-                reason_key: key!("reason-history-empty"),
-            };
+            return Outcome::refused(key!("reason-history-empty"));
         };
         self.remember_view(g);
         self.show(g, entry.page, Arrival::Exact(entry.viewport));
@@ -883,18 +861,10 @@ impl ShellModel {
     }
 
     pub(crate) fn act_follow(&mut self, p: &Map<String, Value>) -> Outcome {
-        let point = match point_mm(p) {
-            Ok(point) => point,
-            Err(e) => return e,
-        };
-        let g = match self.group_param(p) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let point = or_return!(point_mm(p));
+        let g = or_return!(self.group_param(p));
         let Some(c) = self.canvas_of(g) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let index = match (point, c.cursor()) {
             (Some(at), _) | (None, Some(at)) => c.link_at(at),
@@ -902,23 +872,17 @@ impl ShellModel {
         };
         match index {
             Some(i) => self.follow_link(g, i),
-            None => Outcome::Refused {
-                reason_key: key!("reason-no-link"),
-            },
+            None => Outcome::refused(key!("reason-no-link")),
         }
     }
 
     /// Follows link `index` of group `g`'s page: a jump to its target, the cursor at the target point.
     pub(super) fn follow_link(&mut self, g: usize, index: usize) -> Outcome {
         let Some(link) = self.canvas_of(g).and_then(|c| c.page().links.get(index)) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-link"),
-            };
+            return Outcome::refused(key!("reason-no-link"));
         };
         let Some(target) = link.target.clone() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-link-external"),
-            };
+            return Outcome::refused(key!("reason-link-external"));
         };
         let page = PageId::of_target(&target);
         match target.at_nm {
@@ -932,10 +896,7 @@ impl ShellModel {
     /// `row` (else the focused row) as the Devices navigator opens the device: its main page shows in the focused
     /// group and its drawings there are selected.
     pub(crate) fn act_props_follow(&mut self, p: &Map<String, Value>) -> Outcome {
-        let key = match self.props_row_param(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let key = or_return!(self.props_row_param(p));
         let device = self
             .props_find(&key)
             .and_then(|(_, row)| match (row.ty.inner(), &row.value) {
@@ -949,14 +910,10 @@ impl ShellModel {
                 _ => None,
             });
         let Some((device, tag)) = device else {
-            return Outcome::Refused {
-                reason_key: key!("reason-row-no-link"),
-            };
+            return Outcome::refused(key!("reason-row-no-link"));
         };
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         // The device's row of the Devices navigator (a terminal's of the Strips navigator) knows its main page and
         // its drawings there (§6.1 item 6 of WP-S2.06: main function first, then page order).
@@ -979,9 +936,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         if self.row_index(page).is_none() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         }
         self.jump_to(g, page);
         let items: Vec<ew_api::output::ew_dl::EntityRef> = open
@@ -1000,20 +955,13 @@ impl ShellModel {
     }
 
     pub(crate) fn act_link_step(&mut self, p: &Map<String, Value>, forward: bool) -> Outcome {
-        let g = match self.group_param(p) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let g = or_return!(self.group_param(p));
         let Some(c) = self.canvas_mut(g) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let page = Arc::clone(c.page());
         if page.links.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-link"),
-            };
+            return Outcome::refused(key!("reason-no-link"));
         }
         let from = c.cursor().unwrap_or(c.centre());
         let here = reading_key(page.cells.as_ref(), from);
@@ -1044,9 +992,7 @@ impl ShellModel {
             }
         };
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let resolved = project.session.resolve_goto(&text);
         self.count(|c| c.resolve_goto += 1);
@@ -1135,9 +1081,7 @@ impl ShellModel {
                 self.dismiss_export_toasts();
                 Outcome::Done
             }
-            None => Outcome::Refused {
-                reason_key: key!("reason-no-parts-list"),
-            },
+            None => Outcome::refused(key!("reason-no-parts-list")),
         }
     }
 
@@ -1180,10 +1124,7 @@ impl ShellModel {
     // The grid cursor (§6.6)
 
     pub(crate) fn act_cursor(&mut self, p: &Map<String, Value>, dx: i64, dy: i64, cell: bool) -> Outcome {
-        let g = match self.group_param(p) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let g = or_return!(self.group_param(p));
         match self.canvas_mut(g) {
             Some(c) => {
                 if cell {
@@ -1194,21 +1135,13 @@ impl ShellModel {
                 self.cursor_moved(g);
                 Outcome::Done
             }
-            None => Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            },
+            None => Outcome::refused(key!("reason-no-page")),
         }
     }
 
     pub(crate) fn act_cursor_set(&mut self, p: &Map<String, Value>) -> Outcome {
-        let point = match point_mm(p) {
-            Ok(point) => point,
-            Err(e) => return e,
-        };
-        let g = match self.group_param(p) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let point = or_return!(point_mm(p));
+        let g = or_return!(self.group_param(p));
         match self.canvas_mut(g) {
             Some(c) => {
                 match point {
@@ -1218,9 +1151,7 @@ impl ShellModel {
                 self.cursor_moved(g);
                 Outcome::Done
             }
-            None => Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            },
+            None => Outcome::refused(key!("reason-no-page")),
         }
     }
 
@@ -1411,10 +1342,7 @@ impl ShellModel {
                 Outcome::Done
             }
             "canvas" => {
-                let g = match self.group_param(p) {
-                    Ok(g) => g,
-                    Err(e) => return e,
-                };
+                let g = or_return!(self.group_param(p));
                 if let Some(a) = &mut self.area {
                     a.focused = g;
                 }

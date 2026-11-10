@@ -310,9 +310,7 @@ impl ShellModel {
             (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => return e,
         };
         let Some(mut map) = self.parts_map.take() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-parts-map"),
-            };
+            return Outcome::refused(key!("reason-no-parts-map"));
         };
         let outcome = (|| {
             if let Some(source) = source {
@@ -360,9 +358,7 @@ impl ShellModel {
     /// table).
     pub(crate) fn act_parts_map_import(&mut self) -> Outcome {
         let Some(map) = self.parts_map.clone() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-parts-map"),
-            };
+            return Outcome::refused(key!("reason-no-parts-map"));
         };
         let columns = match map.column_map() {
             Ok(c) => c,

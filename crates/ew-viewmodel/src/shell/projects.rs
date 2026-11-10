@@ -261,10 +261,7 @@ impl ShellModel {
         {
             return outcome;
         }
-        let template = match self.template_dir(p) {
-            Ok(t) => t,
-            Err(e) => return e,
-        };
+        let template = or_return!(self.template_dir(p));
         let dir = match string_param(p, "dir") {
             Err(e) => return e,
             Ok(Some(dir)) => PathBuf::from(dir),
@@ -637,9 +634,7 @@ impl ShellModel {
     /// opened. Without an import card it is refused.
     pub(crate) fn act_import_qet_apply(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(Dialog::ImportQet { file, confirm, .. }) = self.dialog.as_mut() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-import"),
-            };
+            return Outcome::refused(key!("reason-no-import"));
         };
         if !flag(p, "confirm") {
             return match self.mode {
@@ -664,9 +659,7 @@ impl ShellModel {
         }
         self.dialog = None;
         let Some(pending) = self.import_pending.take() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-import"),
-            };
+            return Outcome::refused(key!("reason-no-import"));
         };
         self.close_project();
         let outcome = self.create_and_install(
@@ -713,9 +706,7 @@ impl ShellModel {
             Ok(None) => return self.need_path("file.reimport_qet", Prompt::OpenQet, "file", p),
         };
         if !self.is_writable() {
-            return Outcome::Refused {
-                reason_key: key!("reason-read-only"),
-            };
+            return Outcome::refused(key!("reason-read-only"));
         }
         let name = file
             .file_name()
@@ -726,9 +717,7 @@ impl ShellModel {
         let (library, _) = self.import_library();
         let accept = flag(p, "accept");
         let Some(project) = self.project.as_ref() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let epoch = project.epoch;
         let lineages = match project.session.qet_lineages() {
@@ -932,25 +921,17 @@ impl ShellModel {
     pub(crate) fn act_reimport_qet_apply(&mut self) -> Outcome {
         // C51-p2#10: the card is checked before it is taken, so a refusal closes no other dialog.
         if !matches!(self.dialog, Some(Dialog::Reimport { .. })) {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-reimport"),
-            };
+            return Outcome::refused(key!("reason-no-reimport"));
         }
         // ID-1427 (W52 F8): a re-import that writes nothing has no Apply; the card stays.
         if matches!(self.dialog, Some(Dialog::Reimport { nothing: true, .. })) {
-            return Outcome::Refused {
-                reason_key: key!("reason-table-import-nothing"),
-            };
+            return Outcome::refused(key!("reason-table-import-nothing"));
         }
         let Some(Dialog::Reimport { file, .. }) = self.dialog.take() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-reimport"),
-            };
+            return Outcome::refused(key!("reason-no-reimport"));
         };
         let (Some(pending), Some(project)) = (self.reimport_pending.take(), self.project.as_mut()) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-reimport"),
-            };
+            return Outcome::refused(key!("reason-no-reimport"));
         };
         let outcome = match project.session.apply_reimport(pending) {
             Ok(_) => {
@@ -986,9 +967,7 @@ impl ShellModel {
         }
         self.recovery_stash = None;
         let Some(dir) = self.project.as_ref().map(|p| p.dir.clone()) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         // The read-only session goes (it holds no lock and owns no journal), then the project opens for editing and
         // deletes the leftover journal on the way (doc 05 section 8.3: "Open without recovering" is the other path).

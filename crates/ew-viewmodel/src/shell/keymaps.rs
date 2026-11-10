@@ -166,10 +166,7 @@ impl ShellModel {
     /// `keymap.record {action, keys}`: `keys` becomes the action's one binding in the user's keymap, in the action's
     /// context. Refused (and listed in the editor) when the result has an error of D8.
     pub(crate) fn act_keymap_record(&mut self, p: &Map<String, Value>) -> Outcome {
-        let meta = match Self::keymap_action(p) {
-            Err(e) => return e,
-            Ok(m) => m,
-        };
+        let meta = or_return!(Self::keymap_action(p));
         let keys = match string_param(p, "keys") {
             Err(e) => return e,
             Ok(k) => k.unwrap_or_default(),
@@ -183,9 +180,7 @@ impl ShellModel {
                     chord: keys.to_owned(),
                     errors: vec![reason],
                 });
-                return Outcome::Refused {
-                    reason_key: key!("reason-keymap-conflict"),
-                };
+                return Outcome::refused(key!("reason-keymap-conflict"));
             }
         };
         let mut user = self.user_keymap.clone().unwrap_or_else(|| Keymap {
@@ -204,10 +199,7 @@ impl ShellModel {
 
     /// `keymap.reset {action}`: the action's bindings return to the preset's.
     pub(crate) fn act_keymap_reset(&mut self, p: &Map<String, Value>) -> Outcome {
-        let meta = match Self::keymap_action(p) {
-            Err(e) => return e,
-            Ok(m) => m,
-        };
+        let meta = or_return!(Self::keymap_action(p));
         self.keymap_editor.recording = None;
         let Some(mut user) = self.user_keymap.clone() else {
             self.keymap_editor.refusal = None;
@@ -227,9 +219,7 @@ impl ShellModel {
                 chord: chord.to_owned(),
                 errors: errors.iter().map(|f| keymap::refusal_text(f, action)).collect(),
             });
-            return Outcome::Refused {
-                reason_key: key!("reason-keymap-conflict"),
-            };
+            return Outcome::refused(key!("reason-keymap-conflict"));
         }
         self.keymap_editor.refusal = None;
         self.set_user_keymap(user);

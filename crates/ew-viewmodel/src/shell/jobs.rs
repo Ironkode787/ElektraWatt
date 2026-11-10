@@ -239,10 +239,7 @@ impl ShellModel {
 
     /// `notifications.show {on?}` (View ▸ Notifications, the status bar's field): the log popup.
     pub(crate) fn act_notifications_show(&mut self, p: &Map<String, Value>) -> Outcome {
-        let want = match bool_param(p, "on", !self.notes.popup) {
-            Ok(w) => w,
-            Err(e) => return e,
-        };
+        let want = or_return!(bool_param(p, "on", !self.notes.popup));
         self.notes.popup = want;
         Outcome::Done
     }
@@ -278,18 +275,14 @@ impl ShellModel {
     fn run_note_action(&mut self, entry: &Notification) -> Outcome {
         match entry.action() {
             Some(action) => self.run_action_of(entry, action),
-            None => Outcome::Refused {
-                reason_key: key!("reason-no-toast"),
-            },
+            None => Outcome::refused(key!("reason-no-toast")),
         }
     }
 
     /// Runs `entry`'s action `action`: refused `reason-action-expired` when it is no longer valid.
     fn run_action_of(&mut self, entry: &Notification, action: NoteAction) -> Outcome {
         if !self.note_action_valid(entry, action) {
-            return Outcome::Refused {
-                reason_key: key!("reason-action-expired"),
-            };
+            return Outcome::refused(key!("reason-action-expired"));
         }
         match Some(action) {
             Some(NoteAction::Undo) => {
@@ -298,16 +291,12 @@ impl ShellModel {
                 self.dispatch("edit.undo", &Value::Null)
             }
             Some(NoteAction::Open) => match (self.mode, entry.open_path(action)) {
-                (Mode::Headless, _) => Outcome::Refused {
-                    reason_key: key!("reason-no-opener"),
-                },
+                (Mode::Headless, _) => Outcome::refused(key!("reason-no-opener")),
                 (Mode::Gui, Some(path)) => {
                     self.jobs.open_request = Some(file_url_of(path));
                     Outcome::Done
                 }
-                (Mode::Gui, None) => Outcome::Refused {
-                    reason_key: key!("reason-action-expired"),
-                },
+                (Mode::Gui, None) => Outcome::refused(key!("reason-action-expired")),
             },
             // WP-S2.08 part 6 (D17): the tips' actions.
             Some(NoteAction::Convert | NoteAction::Renumber | NoteAction::ShowBlock) => {
@@ -318,9 +307,7 @@ impl ShellModel {
                 let Some(Validity::History { entry: index, .. }) =
                     entry.validity(NoteAction::ShowChanges).cloned()
                 else {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-action-expired"),
-                    };
+                    return Outcome::refused(key!("reason-action-expired"));
                 };
                 let shown = self.dispatch("history.show", &serde_json::json!({ "on": true }));
                 if shown != Outcome::Done {
@@ -333,23 +320,17 @@ impl ShellModel {
                 self.notes.dismiss(entry.serial);
                 self.dispatch("symbol.new", &serde_json::json!({}))
             }
-            None => Outcome::Refused {
-                reason_key: key!("reason-no-toast"),
-            },
+            None => Outcome::refused(key!("reason-no-toast")),
         }
     }
 
     /// `toast.undo`: the newest visible toast's Undo (the registry's undo); the toast goes.
     pub(crate) fn act_toast_undo(&mut self) -> Outcome {
         let Some(toast) = self.notes.newest_visible().cloned() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-toast"),
-            };
+            return Outcome::refused(key!("reason-no-toast"));
         };
         if toast.action() != Some(NoteAction::Undo) {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-toast-undo"),
-            };
+            return Outcome::refused(key!("reason-no-toast-undo"));
         }
         self.run_note_action(&toast)
     }
@@ -382,9 +363,7 @@ impl ShellModel {
             (Err(e), _) | (_, Err(e)) => return e,
         };
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else {
             return failed(key!("error-bad-param"), &["path"]);
@@ -395,20 +374,14 @@ impl ShellModel {
             .entries()
             .any(|e| e.is_running() && e.kind != JobKind::Print)
         {
-            return Outcome::Refused {
-                reason_key: key!("reason-export-running"),
-            };
+            return Outcome::refused(key!("reason-export-running"));
         }
         // A PDF renamed over a file of the open project would damage it (review finding 5 of cycle 30).
         if inside(&project.dir, &path) {
-            return Outcome::Refused {
-                reason_key: key!("reason-export-into-project"),
-            };
+            return Outcome::refused(key!("reason-export-into-project"));
         }
         if path.exists() && !replace {
-            return Outcome::Refused {
-                reason_key: key!("reason-file-exists"),
-            };
+            return Outcome::refused(key!("reason-file-exists"));
         }
         let rev = project.session.world().rev.0;
         let epoch = project.epoch;
@@ -638,10 +611,7 @@ impl ShellModel {
     /// `jobs.show {on?}` (View ▸ Jobs, the status bar's job field): the Jobs pane in the bottom dock (D14).
     pub(crate) fn act_jobs_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let shown = self.jobs_shown();
-        let want = match bool_param(p, "on", !shown) {
-            Ok(w) => w,
-            Err(e) => return e,
-        };
+        let want = or_return!(bool_param(p, "on", !shown));
         if want != shown {
             let layout = if want {
                 self.layout.with_bottom(PaneKind::Jobs)
@@ -664,9 +634,7 @@ impl ShellModel {
             Err(e) => return e,
         };
         let Some(entry) = self.jobs.get(number) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-job-finished"),
-            };
+            return Outcome::refused(key!("reason-job-finished"));
         };
         match (&entry.handle, &entry.cancel) {
             (Some(h), _) => {
@@ -678,9 +646,7 @@ impl ShellModel {
                 cancel.store(true, std::sync::atomic::Ordering::Relaxed);
                 Outcome::Done
             }
-            _ => Outcome::Refused {
-                reason_key: key!("reason-job-finished"),
-            },
+            _ => Outcome::refused(key!("reason-job-finished")),
         }
     }
 
@@ -709,24 +675,15 @@ impl ShellModel {
                 .last()
                 .map(|e| e.number)
         };
-        let number = match self.job_number(p, newest_done, key!("reason-no-result")) {
-            Ok(n) => n,
-            Err(e) => return e,
-        };
+        let number = or_return!(self.job_number(p, newest_done, key!("reason-no-result")));
         let Some(entry) = self.jobs.get(number) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-result"),
-            };
+            return Outcome::refused(key!("reason-no-result"));
         };
         if !matches!(entry.status, JobStatus::Done { .. }) {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-result"),
-            };
+            return Outcome::refused(key!("reason-no-result"));
         }
         if self.mode == Mode::Headless {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-opener"),
-            };
+            return Outcome::refused(key!("reason-no-opener"));
         }
         self.jobs.open_request = Some(file_url_of(&entry.path));
         Outcome::Done
@@ -757,14 +714,10 @@ impl ShellModel {
             failed: None,
         }) = self.dialog.clone()
         else {
-            return Outcome::Refused {
-                reason_key: key!("reason-recovery-failed"),
-            };
+            return Outcome::refused(key!("reason-recovery-failed"));
         };
         let Some(dir) = self.project.as_ref().map(|p| p.dir.clone()) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         self.dialog = None;
         // The read-only session holds no lock and owns no journal.

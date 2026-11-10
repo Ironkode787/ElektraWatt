@@ -442,17 +442,18 @@ impl ShellModel {
     pub(super) fn props_row_param(&self, p: &Map<String, Value>) -> Result<String, Outcome> {
         match string_param(p, "row")? {
             Some(r) => {
-                let sheet = self.props.sheet().ok_or(Outcome::Refused {
-                    reason_key: key!("reason-no-sheet"),
-                })?;
+                let sheet = self
+                    .props
+                    .sheet()
+                    .ok_or(Outcome::refused(key!("reason-no-sheet")))?;
                 if find_row(sheet, r).is_none() {
                     return Err(failed(key!("error-no-row"), &[r]));
                 }
                 Ok(r.to_owned())
             }
-            None => self.properties_row().ok_or(Outcome::Refused {
-                reason_key: key!("reason-no-row"),
-            }),
+            None => self
+                .properties_row()
+                .ok_or(Outcome::refused(key!("reason-no-row"))),
         }
     }
 
@@ -536,9 +537,7 @@ impl ShellModel {
     /// entry refuses the whole action with the resolver's message.
     pub(crate) fn act_select_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let mut items: Vec<EntityRef> = Vec::new();
         match (p.get("ids"), p.get("refs")) {
@@ -591,9 +590,7 @@ impl ShellModel {
             return Err(failed(key!("error-wire-reference"), &[ends]));
         };
         let Some(c) = self.canvas() else {
-            return Err(Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            });
+            return Err(Outcome::refused(key!("reason-no-page")));
         };
         let hits: Vec<EntityRef> = crate::describe::page_wires(c.page())
             .into_iter()
@@ -610,9 +607,7 @@ impl ShellModel {
     /// `props.row`: `step` (±n, clamped) or `to` (a row key, `first`, `last`).
     pub(crate) fn act_props_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(sheet) = self.props.sheet.clone() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-sheet"),
-            };
+            return Outcome::refused(key!("reason-no-sheet"));
         };
         let collapsed = self.properties_collapsed();
         let filter = self.properties_filter().to_owned();
@@ -623,9 +618,7 @@ impl ShellModel {
             &filter,
         );
         if rows.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-row"),
-            };
+            return Outcome::refused(key!("reason-no-row"));
         }
         let here = self
             .properties_row()
@@ -657,9 +650,7 @@ impl ShellModel {
     /// (else it toggles). Collapse states persist per (kind, category) in the settings file.
     pub(crate) fn act_props_category(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(sheet) = self.props.sheet.clone() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-sheet"),
-            };
+            return Outcome::refused(key!("reason-no-sheet"));
         };
         let focused = self.properties_row();
         let (section, row) = match focused.as_deref().and_then(|k| find_row(&sheet, k)) {
@@ -671,9 +662,7 @@ impl ShellModel {
             {
                 Some(x) => x,
                 None => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-row"),
-                    };
+                    return Outcome::refused(key!("reason-no-row"));
                 }
             },
         };
@@ -702,10 +691,7 @@ impl ShellModel {
 
     /// `props.edit`: opens the editor of `row` (else the focused row) with its value's text.
     pub(crate) fn act_props_edit(&mut self, p: &Map<String, Value>) -> Outcome {
-        let key = match self.props_row_param(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let key = or_return!(self.props_row_param(p));
         // A derived row edits its authored partner: Enter or F2 is its Override (§6.4).
         let overrides = self.props_find(&key).is_some_and(|(_, r)| {
             !r.actions.contains(&RowAction::Edit) && r.actions.contains(&RowAction::Override)
@@ -932,9 +918,7 @@ impl ShellModel {
         };
         if self.props.edit.is_none() {
             let Some(key) = self.properties_row() else {
-                return Outcome::Refused {
-                    reason_key: key!("reason-no-row"),
-                };
+                return Outcome::refused(key!("reason-no-row"));
             };
             let started = self.begin_edit(&key, RowAction::Edit, Some(String::new()));
             if started != Outcome::Done {
@@ -975,9 +959,7 @@ impl ShellModel {
     /// `props.commit` (Enter, Tab, focus loss): the buffer is parsed and committed.
     pub(crate) fn act_props_commit(&mut self) -> Outcome {
         let Some(edit) = self.props.edit.clone() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-not-editing"),
-            };
+            return Outcome::refused(key!("reason-not-editing"));
         };
         // The stored value's text committed unchanged: nothing to write (its display form need not parse back).
         if edit.initial.as_deref() == Some(edit.buffer.as_str()) {
@@ -988,10 +970,7 @@ impl ShellModel {
 
     /// `props.set`: `row`, `value` (the text as typed), optional `choice` (an index for an ambiguous value).
     pub(crate) fn act_props_set(&mut self, p: &Map<String, Value>) -> Outcome {
-        let key = match self.props_row_param(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let key = or_return!(self.props_row_param(p));
         let value = match string_param(p, "value") {
             Err(e) => return e,
             Ok(Some(v)) => v.to_owned(),
@@ -1056,9 +1035,7 @@ impl ShellModel {
             self.props.choices = None;
         }
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let parsed = project
             .session
@@ -1139,9 +1116,7 @@ impl ShellModel {
             return self.commit_layout_row(&section, &row, &text);
         }
         let Some(member) = member_path(&row.route) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-read-only"),
-            };
+            return Outcome::refused(key!("reason-read-only"));
         };
         // The member's value on every target as the sheet shows it (the base of the edit).
         let member_key = format!("{}/{member}", section.kind);
@@ -1212,9 +1187,7 @@ impl ShellModel {
             return Outcome::Done;
         }
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let Some(target) = section.targets.first().copied() else {
             return failed(key!("error-no-row"), &[&row.key]);
@@ -1268,9 +1241,7 @@ impl ShellModel {
             return Outcome::Done;
         }
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let edit = ew_api::output::StripEdit::GroupLabel {
             terminals: section.targets.clone(),
@@ -1380,22 +1351,16 @@ impl ShellModel {
         self.props.tag_proposal = None;
         let row = edit.row.clone();
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let Some(meta) = project.session.command_meta(&edit.name) else {
             return failed(key!("error-unknown-action"), &[&edit.name]);
         };
         if meta.exposure != Exposure::Edit {
-            return Outcome::Refused {
-                reason_key: key!("reason-human-only"),
-            };
+            return Outcome::refused(key!("reason-human-only"));
         }
         if !self.is_writable() {
-            return Outcome::Refused {
-                reason_key: key!("reason-read-only"),
-            };
+            return Outcome::refused(key!("reason-read-only"));
         }
         let Some(rev) = self.revision() else {
             return Outcome::Done;
@@ -1651,17 +1616,13 @@ impl ShellModel {
     /// in one undo step; the tag stays unfrozen and the toast names the new tag and its counter.
     pub(crate) fn act_props_accept_tag_proposal(&mut self) -> Outcome {
         let Some(proposal) = self.props.tag_proposal.take() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-tag-proposal"),
-            };
+            return Outcome::refused(key!("reason-no-tag-proposal"));
         };
         // A proposal is accepted only while its refusal is on show and the project has not changed since (a stale
         // proposal would set another device's or another state's tag).
         let on_show = self.props.error.as_ref().is_some_and(|(r, _)| *r == proposal.row);
         if !on_show || self.revision() != Some(proposal.base_rev) {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-tag-proposal"),
-            };
+            return Outcome::refused(key!("reason-no-tag-proposal"));
         }
         let section = self.props_find(&proposal.row).map(|(s, _)| s);
         let name = if proposal.join {
@@ -1742,9 +1703,7 @@ impl ShellModel {
     /// ([`ShellModel::nav_rename_error`] shows them under the inline field).
     pub(super) fn tag_rename_commit(&mut self, device: ew_api::output::Uuid, text: &str) -> Outcome {
         let Some(shown) = self.tag_rename_sheet(device) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-nav-not-renamable"),
-            };
+            return Outcome::refused(key!("reason-nav-not-renamable"));
         };
         let row_text = |s: &Self, key: &str| match s.props_find(key).map(|(_, r)| r.value) {
             Some(RowValue::One { text, .. }) => text,
@@ -1790,12 +1749,7 @@ impl ShellModel {
             return (Outcome::Done, Vec::new());
         };
         if !self.is_writable() {
-            return (
-                Outcome::Refused {
-                    reason_key: key!("reason-read-only"),
-                },
-                Vec::new(),
-            );
+            return (Outcome::refused(key!("reason-read-only")), Vec::new());
         }
         let cmd = AnyCommand {
             name: name.to_owned(),
@@ -1840,9 +1794,7 @@ impl ShellModel {
                 return failed(key!("error-bad-param"), &["step"]);
             };
             let Some(c) = &mut self.props.choices else {
-                return Outcome::Refused {
-                    reason_key: key!("reason-no-choices"),
-                };
+                return Outcome::refused(key!("reason-no-choices"));
             };
             if c.items.is_empty() {
                 return Outcome::Done;
@@ -1899,9 +1851,7 @@ impl ShellModel {
             };
         }
         let Some(choices) = self.props.choices.take() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-choices"),
-            };
+            return Outcome::refused(key!("reason-no-choices"));
         };
         let Some((_, value)) = choices.items.get(index).cloned() else {
             self.props.choices = Some(choices);
@@ -1956,15 +1906,11 @@ impl ShellModel {
             return Outcome::Done;
         }
         let Some(key) = self.properties_row() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-row"),
-            };
+            return Outcome::refused(key!("reason-no-row"));
         };
         let has_actions = !self.row_menu(&key).is_empty();
         if !has_actions {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-actions"),
-            };
+            return Outcome::refused(key!("reason-no-actions"));
         }
         self.props.popup = Some(Popup::Actions { row: key, index: 0 });
         Outcome::Done
@@ -1973,10 +1919,7 @@ impl ShellModel {
     /// `props.action`: `action` (`edit`, `clear`, `override`, `reset`, `freeze`, `unfreeze`) on `row` (else the
     /// focused row).
     pub(crate) fn act_props_action(&mut self, p: &Map<String, Value>) -> Outcome {
-        let key = match self.props_row_param(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let key = or_return!(self.props_row_param(p));
         let action = match string_param(p, "action") {
             Err(e) => return e,
             Ok(None) => return failed(key!("error-missing-param"), &["action"]),
@@ -2049,9 +1992,7 @@ impl ShellModel {
     /// own sheet: one `Session::property_sheet` call per device, on this action only (as "set all", ruling 7).
     fn freeze_devices(&mut self, section: &SheetSection, row: &PropRow) -> Outcome {
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let mut edits = Vec::new();
         for t in &section.targets {
@@ -2108,10 +2049,7 @@ impl ShellModel {
 
     /// `props.list`: `row` and `op` (`add` on a list row; `remove`, `up`, `down` on an item row).
     pub(crate) fn act_props_list(&mut self, p: &Map<String, Value>) -> Outcome {
-        let key = match self.props_row_param(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let key = or_return!(self.props_row_param(p));
         let op = match string_param(p, "op") {
             Err(e) => return e,
             Ok(Some(op)) => op.to_owned(),
@@ -2165,17 +2103,12 @@ impl ShellModel {
     /// `props.mltext`: without `text` it opens the multi-language popup of the focused row; with it, `text` becomes
     /// the neutral text (no `lang`) or the text of `lang`. Switching between the forms asks first (FR-I18N-001).
     pub(crate) fn act_props_mltext(&mut self, p: &Map<String, Value>) -> Outcome {
-        let key = match self.props_row_param(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let key = or_return!(self.props_row_param(p));
         let Some((section, row)) = self.props_find(&key) else {
             return failed(key!("error-no-row"), &[&key]);
         };
         if !matches!(row.ty.inner(), crate::properties::FieldType::MlText) {
-            return Outcome::Refused {
-                reason_key: key!("reason-not-mltext"),
-            };
+            return Outcome::refused(key!("reason-not-mltext"));
         }
         if let Some(out) = self.props_refusal(&section, &row, RowAction::Edit)
             && !(is_derived(&row) && row.actions.contains(&RowAction::Override))
@@ -2274,9 +2207,7 @@ impl ShellModel {
     /// `preview.apply` (the card's Apply, Ctrl+Enter): a fresh card commits; a stale one is checked and rebuilt.
     pub(crate) fn act_preview_apply(&mut self) -> Outcome {
         let Some(card) = self.props.card.take() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-card"),
-            };
+            return Outcome::refused(key!("reason-no-card"));
         };
         // WP-S3.08 part 3: a table import card commits the import's own command (ruling 6 of ID-1224).
         if matches!(card.origin, CardOrigin::TableImport(_)) {
@@ -2301,9 +2232,7 @@ impl ShellModel {
         // WP-S2.07 D22: the paste choice card previews nothing; its choices are `paste.resolve`.
         if matches!(card.origin, CardOrigin::PasteVersions(_)) {
             self.props.card = Some(card);
-            return Outcome::Refused {
-                reason_key: key!("reason-paste-versions"),
-            };
+            return Outcome::refused(key!("reason-paste-versions"));
         }
         // WP-S2.07 D22: Update the project's copy commits, then the pending paste is armed again.
         if matches!(card.origin, CardOrigin::PasteUpdate { .. }) {
@@ -2357,9 +2286,7 @@ impl ShellModel {
                 buffer: edit.typed.clone(),
                 initial: None,
             });
-            return Outcome::Refused {
-                reason_key: key!("reason-changed-meanwhile"),
-            };
+            return Outcome::refused(key!("reason-changed-meanwhile"));
         }
         // WP-S2.05 part 2: a freeze on several devices is built again from the current sheet (a second Apply).
         if edit.name == "fields.set_many" {
@@ -2390,9 +2317,7 @@ impl ShellModel {
     /// `preview.cancel` (the card's Cancel, Escape): the preview is dropped.
     pub(crate) fn act_preview_cancel(&mut self) -> Outcome {
         if self.props.card.take().is_none() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-card"),
-            };
+            return Outcome::refused(key!("reason-no-card"));
         }
         Outcome::Done
     }
@@ -2488,9 +2413,7 @@ pub(super) mod tests {
         };
         assert_eq!(
             shell.run_edit(edit, false),
-            Outcome::Refused {
-                reason_key: key!("reason-human-only")
-            }
+            Outcome::refused(key!("reason-human-only"))
         );
         let after = shell.session_calls();
         assert_eq!(after.preview_with, before.preview_with, "no preview");
@@ -2567,9 +2490,7 @@ pub(super) mod tests {
         let cursor = |shell: &ShellModel| shell.project.as_ref().unwrap().session.history().cursor();
         let rev = |shell: &ShellModel| shell.project.as_ref().unwrap().session.world().rev;
         let (applied, at) = (cursor(&shell), rev(&shell));
-        let refused = Outcome::Refused {
-            reason_key: key!("reason-human-only-history"),
-        };
+        let refused = Outcome::refused(key!("reason-human-only-history"));
         assert_eq!(shell.dispatch("edit.undo", &Value::Null), refused);
         assert_eq!(
             (cursor(&shell), rev(&shell)),

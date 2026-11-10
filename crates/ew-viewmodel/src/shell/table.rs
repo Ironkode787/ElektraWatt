@@ -252,12 +252,8 @@ impl ShellModel {
     pub(super) fn table_nav(&self, kind: NavKind) -> Result<&Navigator, Outcome> {
         match self.generic(kind) {
             Some(n) if n.table_mode.is_some() => Ok(n),
-            Some(_) => Err(Outcome::Refused {
-                reason_key: key!("reason-table-off"),
-            }),
-            None if kind == NavKind::Pages => Err(Outcome::Refused {
-                reason_key: key!("reason-table-off"),
-            }),
+            Some(_) => Err(Outcome::refused(key!("reason-table-off"))),
+            None if kind == NavKind::Pages => Err(Outcome::refused(key!("reason-table-off"))),
             None => Err(failed(key!("error-nav-closed"), &[kind.word()])),
         }
     }
@@ -483,9 +479,7 @@ impl ShellModel {
     /// the card with that reason when the policy would commit (a rebuilt card).
     fn run_gesture(&mut self, mut gesture: Gesture, card: Option<Key<'static>>) -> Outcome {
         if !self.is_writable() {
-            return Outcome::Refused {
-                reason_key: key!("reason-read-only"),
-            };
+            return Outcome::refused(key!("reason-read-only"));
         }
         let Some(rev) = self.revision() else {
             return Outcome::Done;
@@ -522,9 +516,7 @@ impl ShellModel {
             return failed(key!("error-unknown-action"), &[c.name]);
         };
         if meta.exposure != Exposure::Edit {
-            return Outcome::Refused {
-                reason_key: key!("reason-human-only"),
-            };
+            return Outcome::refused(key!("reason-human-only"));
         }
         let cmd = AnyCommand {
             name: c.name.to_owned(),
@@ -691,9 +683,7 @@ impl ShellModel {
     /// on the current table and shows a fresh card.
     pub(super) fn apply_table_card(&mut self, card: Card) -> Outcome {
         let CardOrigin::Table { gesture } = &card.origin else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-card"),
-            };
+            return Outcome::refused(key!("reason-no-card"));
         };
         let blocking = gesture.blocking();
         if blocking > 0 {
@@ -817,10 +807,7 @@ impl ShellModel {
     /// `navigator.table {kind, on?}`: switches a navigator between its tree (or flat list) and its table; without
     /// `on` it toggles.
     pub(crate) fn act_navigator_table(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         // WP-S2.09 part 2 meets WP-S2.06 part 3: the Messages pane's rows are read-only findings with their own
         // header, detail block and quick-fix card, so it has no table mode.
         if kind == NavKind::Messages {
@@ -854,10 +841,7 @@ impl ShellModel {
     /// removes them (the key column stays), `order` puts the listed columns first, in that order (showing them), the
     /// other shown ones after them.
     pub(crate) fn act_table_columns(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.table_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.table_kind(p));
         let (show, hide, order) = match (
             list_param(p, "show"),
             list_param(p, "hide"),
@@ -997,10 +981,7 @@ impl ShellModel {
 
     /// `table.cell {kind?, row?, column?, step?, across?}`: moves the cell cursor (arrows, Tab, Home, End).
     pub(crate) fn act_table_cell(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.table_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.table_kind(p));
         match self.move_cell(kind, p) {
             Ok(()) => Outcome::Done,
             Err(e) => e,
@@ -1014,9 +995,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         let (Some(r), Some(col)) = (view.cursor_row, view.cursor_col) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-nav-row"),
-            };
+            return Outcome::refused(key!("reason-no-nav-row"));
         };
         let i = view.rows[r];
         if let Err(reason) = self.cell_route(&view, i, col) {
@@ -1044,10 +1023,7 @@ impl ShellModel {
     /// `table.edit {kind?, row?, column?}` (F2): edits the cursor cell (or the given one), the buffer starting with the
     /// cell's text.
     pub(crate) fn act_table_edit(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.table_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.table_kind(p));
         if (p.contains_key("row") || p.contains_key("column"))
             && let Err(e) = self.move_cell(kind, p)
         {
@@ -1059,10 +1035,7 @@ impl ShellModel {
     /// `table.input {text}`: the whole buffer of the edited cell (typing a character starts editing the cursor cell
     /// with it), or the pattern dialog's pattern while that is open.
     pub(crate) fn act_table_input(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.table_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.table_kind(p));
         let text = match string_param(p, "text") {
             Err(e) => return e,
             Ok(None) => return failed(key!("error-missing-param"), &["text"]),
@@ -1087,10 +1060,7 @@ impl ShellModel {
     /// `table.commit {all?}` (Enter, Ctrl+Enter while editing): the buffer for the cursor row, or (`all`) for every
     /// marked row; with the pattern dialog open, the pattern fill.
     pub(crate) fn act_table_commit(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.table_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.table_kind(p));
         let Some(mode) = self.generic(kind).and_then(|n| n.table_mode.clone()) else {
             return Outcome::Done;
         };
@@ -1098,9 +1068,7 @@ impl ShellModel {
             return self.pattern_fill(kind, &pattern);
         }
         let Some(edit) = mode.edit else {
-            return Outcome::Refused {
-                reason_key: key!("reason-table-not-editing"),
-            };
+            return Outcome::refused(key!("reason-table-not-editing"));
         };
         let Some(view) = self.table_view(kind) else {
             return Outcome::Done;
@@ -1143,10 +1111,7 @@ impl ShellModel {
     /// marked rows when any are marked, else the cursor row (`all` is the same, ID-1497); the column by its key or its
     /// header label.
     pub(crate) fn act_table_set(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.table_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.table_kind(p));
         let column = match string_param(p, "column") {
             Err(e) => return e,
             Ok(None) => return failed(key!("error-missing-param"), &["column"]),
@@ -1157,10 +1122,7 @@ impl ShellModel {
             Ok(None) => return failed(key!("error-missing-param"), &["value"]),
             Ok(Some(v)) => v.to_owned(),
         };
-        let listed = match list_param(p, "rows") {
-            Ok(l) => l,
-            Err(e) => return e,
-        };
+        let listed = or_return!(list_param(p, "rows"));
         let Some(view) = self.table_view(kind) else {
             return Outcome::Done;
         };
@@ -1204,9 +1166,7 @@ impl ShellModel {
             None => view.acted.clone(),
         };
         if rows.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-nav-row"),
-            };
+            return Outcome::refused(key!("reason-no-nav-row"));
         }
         let cells = self.column_cells(&view, &rows, col, &value);
         self.run_gesture(Self::gesture(GestureKind::Edit, kind, cells), None)
@@ -1214,10 +1174,7 @@ impl ShellModel {
 
     /// `table.fill_down` (Ctrl+D): the first marked row's cell of the cursor column into every marked row (§8.4).
     pub(crate) fn act_table_fill_down(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.table_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.table_kind(p));
         let Some(view) = self.table_view(kind) else {
             return Outcome::Done;
         };
@@ -1226,9 +1183,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         if marked < 2 || view.acted.len() < 2 {
-            return Outcome::Refused {
-                reason_key: key!("reason-table-mark-fill"),
-            };
+            return Outcome::refused(key!("reason-table-mark-fill"));
         }
         let text = view.table.nodes[view.acted[0] as usize]
             .cells
@@ -1242,10 +1197,7 @@ impl ShellModel {
     /// `table.pattern_fill {pattern?}` (Ctrl+Shift+D): without a pattern it opens the dialog; with one it fills the
     /// cursor column of the marked rows (§8.5).
     pub(crate) fn act_table_pattern_fill(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.table_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.table_kind(p));
         match string_param(p, "pattern") {
             Err(e) => e,
             Ok(Some(pattern)) => {
@@ -1292,9 +1244,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         if view.acted.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-nav-row"),
-            };
+            return Outcome::refused(key!("reason-no-nav-row"));
         }
         let texts = pattern_texts(nav, &template, None);
         let cells: Vec<GestureCell> = view
@@ -1313,19 +1263,14 @@ impl ShellModel {
     /// first row naming at least half of the columns on show is a header and maps the columns by label (in any shipped
     /// language) or key (C50-p5#1); otherwise they map by position from the cursor column. A cell whose text equals the cell's own is unchanged and left out.
     pub(crate) fn act_table_paste(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.table_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.table_kind(p));
         let text = match string_param(p, "text") {
             Err(e) => return e,
             Ok(Some(t)) => t.to_owned(),
             Ok(None) => match self.clip.text() {
                 Some(t) => t.to_owned(),
                 None => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-clipboard-empty"),
-                    };
+                    return Outcome::refused(key!("reason-clipboard-empty"));
                 }
             },
         };
@@ -1444,17 +1389,12 @@ impl ShellModel {
     /// `table.copy` (Ctrl+C): the marked rows' cells on show (else the cursor row's) as tab-separated text with a
     /// header row of the column labels, onto the clipboard (§8.6).
     pub(crate) fn act_table_copy(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.table_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.table_kind(p));
         let Some(view) = self.table_view(kind) else {
             return Outcome::Done;
         };
         if view.acted.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-nav-row"),
-            };
+            return Outcome::refused(key!("reason-no-nav-row"));
         }
         let mut grid: Vec<Vec<String>> = vec![
             view.shown
@@ -1478,10 +1418,7 @@ impl ShellModel {
 
     /// `table.clear` (Delete): the cursor column of the marked rows (else the cursor row) cleared (§8.3).
     pub(crate) fn act_table_clear(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.table_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.table_kind(p));
         let Some(view) = self.table_view(kind) else {
             return Outcome::Done;
         };
@@ -1489,9 +1426,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         if view.acted.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-nav-row"),
-            };
+            return Outcome::refused(key!("reason-no-nav-row"));
         }
         let cells: Vec<GestureCell> = view
             .acted
@@ -1536,9 +1471,7 @@ impl ShellModel {
             (Err(e), _) | (_, Err(e)) => return e,
         };
         let Some(g) = self.table_card() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-card"),
-            };
+            return Outcome::refused(key!("reason-no-card"));
         };
         let value = match g.cells.get(cell - 1) {
             None => return failed(key!("error-bad-param"), &["cell"]),
@@ -1561,14 +1494,9 @@ impl ShellModel {
     /// `table.drop {cell}`: removes the card's cell `cell` (from 1) from the gesture and rebuilds the command and its
     /// preview.
     pub(crate) fn act_table_drop(&mut self, p: &Map<String, Value>) -> Outcome {
-        let cell = match index_param(p, "cell") {
-            Ok(c) => c,
-            Err(e) => return e,
-        };
+        let cell = or_return!(index_param(p, "cell"));
         let Some(g) = self.table_card() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-card"),
-            };
+            return Outcome::refused(key!("reason-no-card"));
         };
         if !g.cells.get(cell - 1).is_some_and(|c| !c.dropped) {
             return failed(key!("error-bad-param"), &["cell"]);

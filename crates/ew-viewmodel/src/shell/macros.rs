@@ -520,17 +520,13 @@ impl ShellModel {
     /// Arms the macro tool with the macro of row `key` (Enter on the row, Insert macro…).
     pub(super) fn arm_macro(&mut self, key: &str) -> Outcome {
         if self.macro_page().is_none() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         }
         let Some(detail) = self.project.as_ref().and_then(|p| p.session.macro_detail(key)) else {
             return failed(key!("error-nav-key"), &[key, NavKind::Macros.word()]);
         };
         if detail.reference.is_none() {
-            return Outcome::Refused {
-                reason_key: key!("reason-macro-not-installed"),
-            };
+            return Outcome::refused(key!("reason-macro-not-installed"));
         }
         if self.navs.contains_key(&NavKind::Macros) {
             self.set_cursor(NavKind::Macros, key);
@@ -560,23 +556,16 @@ impl ShellModel {
             Ok(v) => v.filter(|v| !v.is_empty()).map(str::to_owned),
             Err(e) => return e,
         };
-        let g = match self.group_param(p) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let g = or_return!(self.group_param(p));
         if let Some(a) = &mut self.area {
             a.focused = g;
         }
         let Some(c) = self.canvas() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let page_nm = c.page().snapper.snap_grid(at).page_nm;
         let Some(page) = self.macro_page() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         self.open_macro_card(&key, page, page_nm, value_set, BTreeMap::new())
     }
@@ -585,9 +574,7 @@ impl ShellModel {
     /// the tool returns to Select.
     pub(super) fn macro_place_from_tool(&mut self, key: &str, at: (i64, i64)) -> Outcome {
         let Some(page) = self.macro_page() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let out = self.open_macro_card(key, page, at, None, BTreeMap::new());
         let _ = self.act_tool("select");
@@ -607,9 +594,7 @@ impl ShellModel {
         typed: BTreeMap<String, String>,
     ) -> Outcome {
         let Some(rev) = self.revision() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let submit = Submit::from(super::ShellModel::origin_of(
             self.mode,
@@ -625,9 +610,7 @@ impl ShellModel {
             return failed(key!("error-nav-key"), &[key, NavKind::Macros.word()]);
         };
         let Some(reference) = detail.reference.clone() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-macro-not-installed"),
-            };
+            return Outcome::refused(key!("reason-macro-not-installed"));
         };
         if let Some(v) = &value_set
             && !detail.value_sets.contains(v)
@@ -756,9 +739,7 @@ impl ShellModel {
             Err(e) => return e,
         };
         let Some(CardOrigin::Macro(m)) = self.props.card().map(|c| c.origin.clone()) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-card"),
-            };
+            return Outcome::refused(key!("reason-no-card"));
         };
         let typed = literals(&m);
         self.open_macro_card(&m.key, m.page, m.at, name, typed)
@@ -778,9 +759,7 @@ impl ShellModel {
             Err(e) => return e,
         };
         let Some(CardOrigin::Macro(m)) = self.props.card().map(|c| c.origin.clone()) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-card"),
-            };
+            return Outcome::refused(key!("reason-no-card"));
         };
         if !m.fields.iter().any(|f| f.name == name) {
             return failed(key!("error-bad-param"), &["name"]);
@@ -833,14 +812,9 @@ impl ShellModel {
     /// `keys`, else of the marked copy rows, else of the copy row under the cursor, else of every copy with an update,
     /// and opens the bulk card.
     pub(crate) fn act_libraries_update(&mut self, p: &Map<String, Value>) -> Outcome {
-        let keys = match super::table::list_param(p, "keys") {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let keys = or_return!(super::table::list_param(p, "keys"));
         let Some(table) = self.libraries_table() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let copy_rows: Vec<&ew_api::output::NavNode> = table
             .nodes
@@ -880,9 +854,7 @@ impl ShellModel {
             .filter_map(|n| n.records.first().copied())
             .collect();
         if copies.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-updates"),
-            };
+            return Outcome::refused(key!("reason-no-updates"));
         }
         let Some(project) = &self.project else {
             return Outcome::Done;
@@ -896,9 +868,7 @@ impl ShellModel {
             }
         };
         if plan.copies.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-updates"),
-            };
+            return Outcome::refused(key!("reason-no-updates"));
         }
         self.preview_host_card(
             &plan.command.name,
@@ -913,22 +883,15 @@ impl ShellModel {
     /// `props.make_variable {row?, name?}` (the property row's Make variable): remembers the row's field of the one
     /// record it shows as a variable of the next Save as macro… (`name` default: the field's last member).
     pub(crate) fn act_props_make_variable(&mut self, p: &Map<String, Value>) -> Outcome {
-        let key = match self.props_row_param(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let key = or_return!(self.props_row_param(p));
         let Some((section, row)) = self.props_find(&key) else {
             return failed(key!("error-no-row"), &[&key]);
         };
         let [record] = section.targets.as_slice() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-variable-one-record"),
-            };
+            return Outcome::refused(key!("reason-variable-one-record"));
         };
         if row.path.starts_with("derived.") {
-            return Outcome::Refused {
-                reason_key: key!("reason-variable-derived"),
-            };
+            return Outcome::refused(key!("reason-variable-derived"));
         }
         let field = format!("{}.{}", section.kind, row.path);
         let default_name = key_of(row.path.rsplit('.').next().unwrap_or(&row.path)).replace('-', "_");
@@ -1013,9 +976,7 @@ impl ShellModel {
     /// front-end operation, §13.2 item 7).
     pub(crate) fn act_macros_save(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
-            return Outcome::Refused {
-                reason_key: key!("reason-library-write-window"),
-            };
+            return Outcome::refused(key!("reason-library-write-window"));
         }
         let text = |name: &str| -> Result<String, Outcome> {
             Ok(string_param(p, name)?
@@ -1081,9 +1042,7 @@ impl ShellModel {
                 Err(e) => return self.save_done(e),
             }
         } else if selection.is_empty() {
-            return self.save_done(Outcome::Refused {
-                reason_key: key!("reason-nothing-selected"),
-            });
+            return self.save_done(Outcome::refused(key!("reason-nothing-selected")));
         } else {
             MacroScope::Window(selection)
         };
@@ -1106,15 +1065,11 @@ impl ShellModel {
             }
         };
         if self.project.is_none() {
-            return self.save_done(Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            });
+            return self.save_done(Outcome::refused(key!("reason-no-project")));
         }
         let comma = self.decimal_comma();
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let libraries = project.session.libraries().libraries();
         if !confirm || name.is_empty() {
@@ -1198,25 +1153,19 @@ impl ShellModel {
             // FX38b: an empty library field means "the first writable one"; with none installed that is the reason,
             // not a library called "".
             if library.is_empty() {
-                return self.save_done(Outcome::Refused {
-                    reason_key: key!("reason-no-writable-library"),
-                });
+                return self.save_done(Outcome::refused(key!("reason-no-writable-library")));
             }
             return self.save_done(failed(key!("error-no-library"), &[&library]));
         };
         if !target.writable {
-            return self.save_done(Outcome::Refused {
-                reason_key: key!("reason-library-read-only"),
-            });
+            return self.save_done(Outcome::refused(key!("reason-library-read-only")));
         }
         let (target, target_name) = (target.id, target.name.clone());
         let key = if key.is_empty() { key_of(&name) } else { key };
         // FX38b: a name without a letter or digit gives no key; refused in words before any write, not left
         // to the library's identifier error.
         if key.is_empty() {
-            return self.save_done(Outcome::Refused {
-                reason_key: key!("reason-macro-no-key"),
-            });
+            return self.save_done(Outcome::refused(key!("reason-macro-no-key")));
         }
         let variables = match serde_json::from_value(Value::Array(
             self.macros

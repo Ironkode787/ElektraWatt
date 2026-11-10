@@ -309,9 +309,7 @@ impl ShellModel {
     /// longer there is refused in the offer (S7), which stays.
     pub(crate) fn act_startup_recover(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(offer) = &mut self.startup else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-startup"),
-            };
+            return Outcome::refused(key!("reason-no-startup"));
         };
         let n = match p.get("project") {
             None => return failed(key!("error-missing-param"), &["project"]),
@@ -342,14 +340,10 @@ impl ShellModel {
             .and_then(StartupOffer::log_folder)
             .map(Path::to_path_buf)
         else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-crash-log"),
-            };
+            return Outcome::refused(key!("reason-no-crash-log"));
         };
         if self.mode == Mode::Headless {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-opener"),
-            };
+            return Outcome::refused(key!("reason-no-opener"));
         }
         self.startup_folder_request = Some((super::file_url_of(&folder), folder));
         Outcome::Done
@@ -358,14 +352,10 @@ impl ShellModel {
     /// `startup.delete_log`: the crash log is deleted; the offer closes when no project is left in it.
     pub(crate) fn act_startup_delete_log(&mut self) -> Outcome {
         let Some(offer) = &mut self.startup else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-startup"),
-            };
+            return Outcome::refused(key!("reason-no-startup"));
         };
         let Some(log) = offer.log.take() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-crash-log"),
-            };
+            return Outcome::refused(key!("reason-no-crash-log"));
         };
         let _ = std::fs::remove_file(&log.path);
         for path in std::mem::take(&mut offer.earlier_logs) {
@@ -381,9 +371,7 @@ impl ShellModel {
     /// `startup.dismiss` (Not now): the offer closes.
     pub(crate) fn act_startup_dismiss(&mut self) -> Outcome {
         if self.startup.is_none() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-startup"),
-            };
+            return Outcome::refused(key!("reason-no-startup"));
         }
         self.close_startup();
         Outcome::Done

@@ -95,10 +95,7 @@ impl ShellModel {
     /// `help.glossary {on?}` (Help ▸ Glossary): opens or closes the pane in the bottom dock.
     pub(crate) fn act_help_glossary(&mut self, p: &Map<String, Value>) -> Outcome {
         let shown = self.glossary_shown();
-        let want = match super::jobs::bool_param(p, "on", !shown) {
-            Ok(w) => w,
-            Err(e) => return e,
-        };
+        let want = or_return!(super::jobs::bool_param(p, "on", !shown));
         let layout = if want {
             self.layout
                 .with_bottom(PaneKind::Glossary)

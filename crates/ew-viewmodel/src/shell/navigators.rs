@@ -915,10 +915,7 @@ impl ShellModel {
     /// `navigator.show {kind, on?}`: shows a navigator as a tab beside the Pages pane and focuses it, or (`on: false`)
     /// closes it.
     pub(crate) fn act_navigator_show(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.kind_param(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.kind_param(p));
         let on = p.get("on").and_then(Value::as_bool).unwrap_or(true);
         let pane = match kind {
             NavKind::Pages => PaneKind::Pages,
@@ -968,9 +965,7 @@ impl ShellModel {
             },
         };
         if side == crate::rail::Side::Right {
-            return Outcome::Refused {
-                reason_key: key!("reason-rail-no-palettes"),
-            };
+            return Outcome::refused(key!("reason-rail-no-palettes"));
         }
         let pane = match string_param(p, "pane") {
             Err(e) => return e,
@@ -1012,10 +1007,7 @@ impl ShellModel {
 
     /// `navigator.view {kind, view}`: Pages takes its modes (`pages.mode`), the others `tree` or `flat`.
     pub(crate) fn act_navigator_view(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         let view = match string_param(p, "view") {
             Err(e) => return e,
             Ok(None) => return failed(key!("error-missing-param"), &["view"]),
@@ -1037,10 +1029,7 @@ impl ShellModel {
 
     /// `navigator.sort {kind, by, descending?}`: Pages takes `folio` or `type`, the others `label` or a column key.
     pub(crate) fn act_navigator_sort(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         let by = match string_param(p, "by") {
             Err(e) => return e,
             Ok(None) => return failed(key!("error-missing-param"), &["by"]),
@@ -1082,10 +1071,7 @@ impl ShellModel {
 
     /// `navigator.filter {kind, text}`.
     pub(crate) fn act_navigator_filter(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         if self.as_built_pages(kind) {
             return self.act_pages_filter(p);
         }
@@ -1106,10 +1092,7 @@ impl ShellModel {
 
     /// `navigator.toggle {kind, key}`: expands or collapses a node with children.
     pub(crate) fn act_navigator_toggle(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         if self.as_built_pages(kind) {
             return self.act_pages_toggle(p);
         }
@@ -1159,10 +1142,7 @@ impl ShellModel {
     /// path, FT-528); `extend` marks the range from the anchor to the new cursor in visible order (Shift+Up,
     /// Shift+Down, Shift+click).
     pub(crate) fn act_navigator_row(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         let before = self.nav_cursor(kind);
         let mut q = p.clone();
         q.remove("kind");
@@ -1231,10 +1211,7 @@ impl ShellModel {
     /// `navigator.open {kind, key?, new_tab?}`: opens a row's target in the focused tab as a jump (a page row its page;
     /// a device row the page of its first drawable with its drawables there selected); a node without a target toggles.
     pub(crate) fn act_navigator_open(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         if self.as_built_pages(kind) {
             let mut q = p.clone();
             q.remove("kind");
@@ -1260,9 +1237,7 @@ impl ShellModel {
             Ok(None) => match self.nav_cursor(kind) {
                 Some(k) => k,
                 None => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-nav-row"),
-                    };
+                    return Outcome::refused(key!("reason-no-nav-row"));
                 }
             },
         };
@@ -1289,9 +1264,7 @@ impl ShellModel {
             && let Some(terminal) = node.records.first().copied()
         {
             if self.current_folio().is_none() {
-                return Outcome::Refused {
-                    reason_key: key!("reason-no-page"),
-                };
+                return Outcome::refused(key!("reason-no-page"));
             }
             self.set_cursor(kind, &key);
             let mut q = Map::new();
@@ -1340,10 +1313,7 @@ impl ShellModel {
 
     /// `navigator.select {kind, keys, add?}`: marks the rows (`add`: to the marked ones) and synchronises the selection.
     pub(crate) fn act_navigator_select(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         let Some(Value::Array(list)) = p.get("keys") else {
             return failed(key!("error-missing-param"), &["keys"]);
         };
@@ -1373,19 +1343,14 @@ impl ShellModel {
 
     /// `navigator.mark {kind?, key?}` (Space): toggles the mark of a row (default the cursor row).
     pub(crate) fn act_navigator_mark(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         let key = match self.nav_key_param(kind, p, "key") {
             Err(e) => return e,
             Ok(Some(k)) => k,
             Ok(None) => match self.nav_cursor(kind) {
                 Some(k) => k,
                 None => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-nav-row"),
-                    };
+                    return Outcome::refused(key!("reason-no-nav-row"));
                 }
             },
         };
@@ -1402,10 +1367,7 @@ impl ShellModel {
     /// `navigator.jump {kind, prefix}`: moves the cursor to the next visible row (after the cursor, wrapping) whose label
     /// starts with `prefix`, case-folded (type-ahead without a clock).
     pub(crate) fn act_navigator_jump(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         let prefix = match string_param(p, "prefix") {
             Err(e) => return e,
             Ok(None) => return failed(key!("error-missing-param"), &["prefix"]),
@@ -1413,9 +1375,7 @@ impl ShellModel {
         };
         let keys = self.vis_keys(kind);
         if keys.is_empty() || prefix.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-nav-row"),
-            };
+            return Outcome::refused(key!("reason-no-nav-row"));
         }
         let here = self
             .nav_cursor(kind)
@@ -1436,9 +1396,7 @@ impl ShellModel {
                 self.set_cursor(kind, &key);
                 Outcome::Done
             }
-            None => Outcome::Refused {
-                reason_key: key!("reason-no-nav-row"),
-            },
+            None => Outcome::refused(key!("reason-no-nav-row")),
         }
     }
 
@@ -1451,9 +1409,7 @@ impl ShellModel {
                 CardOrigin::Reorder { .. } | CardOrigin::QuickFix { .. } | CardOrigin::Table { .. }
             )
         }) {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-card"),
-            };
+            return Outcome::refused(key!("reason-no-card"));
         }
         self.act_preview_apply()
     }
@@ -1493,9 +1449,7 @@ impl ShellModel {
         out.sort_unstable();
         out.dedup();
         if out.is_empty() {
-            return Err(Outcome::Refused {
-                reason_key: key!("reason-no-pages-marked"),
-            });
+            return Err(Outcome::refused(key!("reason-no-pages-marked")));
         }
         Ok(out.into_iter().map(|i| rows[i].clone()).collect())
     }
@@ -1504,10 +1458,7 @@ impl ShellModel {
     /// shows its card in the Pages pane.
     pub(crate) fn act_pages_reorder(&mut self, p: &Map<String, Value>) -> Outcome {
         let pages: Vec<PageRow> = match p.get("pages") {
-            None => match self.marked_pages() {
-                Ok(v) => v,
-                Err(e) => return e,
-            },
+            None => or_return!(self.marked_pages()),
             Some(Value::Array(list)) => {
                 let mut v = Vec::new();
                 for x in list {
@@ -1545,9 +1496,7 @@ impl ShellModel {
             None => {
                 if let Some((n, _)) = pages.first().and_then(|r| r.section.clone()) {
                     let Some(project) = &self.project else {
-                        return Outcome::Refused {
-                            reason_key: key!("reason-no-project"),
-                        };
+                        return Outcome::refused(key!("reason-no-project"));
                     };
                     match project.session.resolve_reference(&format!("section:{n}")) {
                         Ok(id) => params["section"] = Value::String(id.to_string()),
@@ -1640,10 +1589,7 @@ impl ShellModel {
     /// `pages.move_up` (Alt+Up) and `pages.move_down` (Alt+Down): the marked page records (else the cursor row's page)
     /// one position up or down within their section.
     pub(crate) fn act_pages_move(&mut self, up: bool) -> Outcome {
-        let moved = match self.marked_pages() {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
+        let moved = or_return!(self.marked_pages());
         let section = moved[0].section.clone();
         if moved.iter().any(|r| r.section != section) {
             return failed(key!("error-pages-sections"), &[]);
@@ -1665,17 +1611,13 @@ impl ShellModel {
                     let b = b.clone();
                     self.reorder(&moved, Some(&b))
                 }
-                None => Outcome::Refused {
-                    reason_key: key!("reason-page-at-start"),
-                },
+                None => Outcome::refused(key!("reason-page-at-start")),
             }
         } else {
             // After the page below the last moved one: before the page after it, else at the end.
             let below = s[last + 1..].iter().position(|r| !ids.contains(&r.id));
             match below {
-                None => Outcome::Refused {
-                    reason_key: key!("reason-page-at-end"),
-                },
+                None => Outcome::refused(key!("reason-page-at-end")),
                 Some(k) => {
                     let after = s[last + 1 + k + 1..]
                         .iter()
@@ -2054,19 +1996,14 @@ impl ShellModel {
     /// the cursor row), or removes its highlight when it is shown (always with `off: true`). A fifth highlight replaces
     /// the oldest. View state: no command, no undo entry.
     pub(crate) fn act_navigator_highlight(&mut self, p: &Map<String, Value>) -> Outcome {
-        let kind = match self.open_kind(p) {
-            Ok(k) => k,
-            Err(e) => return e,
-        };
+        let kind = or_return!(self.open_kind(p));
         let key = match self.nav_key_param(kind, p, "key") {
             Err(e) => return e,
             Ok(Some(k)) => k,
             Ok(None) => match self.nav_cursor(kind) {
                 Some(k) => k,
                 None => {
-                    return Outcome::Refused {
-                        reason_key: key!("reason-no-nav-row"),
-                    };
+                    return Outcome::refused(key!("reason-no-nav-row"));
                 }
             },
         };

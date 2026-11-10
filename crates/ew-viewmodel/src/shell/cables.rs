@@ -85,15 +85,11 @@ impl ShellModel {
     /// library, is refused in words.
     pub(crate) fn act_cable_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let offers = project.session.layout_part_offers("cable");
         if offers.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-cable-part"),
-            };
+            return Outcome::refused(key!("reason-no-cable-part"));
         }
         let Some(part) = given(p, "part") else {
             return match self.mode {
@@ -195,20 +191,14 @@ impl ShellModel {
     pub(crate) fn act_cable_connect_cores(&mut self, p: &Map<String, Value>) -> Outcome {
         let wires = self.selected_wires();
         if wires.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-cores-no-wires"),
-            };
+            return Outcome::refused(key!("reason-cores-no-wires"));
         }
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let cables = project.session.cables();
         if cables.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-cores-no-cable"),
-            };
+            return Outcome::refused(key!("reason-cores-no-cable"));
         }
         let Some(cable) = given(p, "cable") else {
             return match self.mode {

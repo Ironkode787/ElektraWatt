@@ -396,9 +396,7 @@ impl ShellModel {
         }
         // A place tool that asks for the next designation refuses a click or Enter with the reason (WP-S2.04 §7.2).
         if matches!(ev, CanvasEvent::Press { .. } | CanvasEvent::Activate) && self.place_needs_designation() {
-            return Outcome::Refused {
-                reason_key: key!("reason-designation-needed"),
-            };
+            return Outcome::refused(key!("reason-designation-needed"));
         }
         // FIXPT41: the IP tool's click on another interruption point, or an external point's on a pin, is refused in
         // words before it reaches the tool; the ghost stays.
@@ -439,9 +437,7 @@ impl ShellModel {
                 }
                 out
             }
-            None => Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            },
+            None => Outcome::refused(key!("reason-no-page")),
         }
     }
 
@@ -786,9 +782,7 @@ impl ShellModel {
             .and_then(|c| c.page().links.iter().position(|l| l.dest == dest));
         match index {
             Some(i) => self.follow_link(g, i),
-            None => Outcome::Refused {
-                reason_key: key!("reason-no-link"),
-            },
+            None => Outcome::refused(key!("reason-no-link")),
         }
     }
 
@@ -890,9 +884,7 @@ impl ShellModel {
         let origin = self.origin();
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let result = match kept.map(|p| p.result) {
             Some(Ok(preview)) => {
@@ -1039,27 +1031,20 @@ impl ShellModel {
             if !release && self.strip_chooser_open() {
                 self.tools.press_held = false;
                 self.tools.drop_release = true;
-                return Outcome::Refused {
-                    reason_key: key!("reason-choose-strip"),
-                };
+                return Outcome::refused(key!("reason-choose-strip"));
             }
             // ID-1497 (5): so does the symbol chooser of a part without a symbol (FT-1375).
             if !release && self.tools.picker.as_ref().is_some_and(|p| p.part.is_some()) {
                 self.tools.press_held = false;
                 self.tools.drop_release = true;
-                return Outcome::Refused {
-                    reason_key: key!("reason-choose-symbol"),
-                };
+                return Outcome::refused(key!("reason-choose-symbol"));
             }
             // A new press: a release that never came is forgotten (before the focus moves, so the press's own
             // context change drops nothing).
             self.tools.press_held = false;
             self.tools.drop_release = false;
         }
-        let g = match self.group_param(p) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let g = or_return!(self.group_param(p));
         if let Some(a) = &mut self.area
             && a.focused != g
         {
@@ -1070,9 +1055,7 @@ impl ShellModel {
         }
         self.sync_tool_context();
         let Some(c) = self.canvas_mut(g) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         c.set_pointer(Some(at));
         if let Some(area) = &mut self.area {
@@ -1109,9 +1092,7 @@ impl ShellModel {
             },
         };
         let Some(c) = self.canvas() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         if ms >= LINK_PREVIEW_DWELL_MS && self.tools.tool.wants_hover() {
             let target = c.hovered_link().and_then(|l| l.target.clone());
@@ -1151,9 +1132,7 @@ impl ShellModel {
             return self.act_activate();
         }
         let Some(at) = self.canvas().and_then(CanvasModel::cursor) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-cursor"),
-            };
+            return Outcome::refused(key!("reason-no-cursor"));
         };
         let mods = Mods {
             alt: true,
@@ -1196,9 +1175,7 @@ impl ShellModel {
             return self.send_tool(&CanvasEvent::Activate);
         }
         let Some(at) = self.canvas().and_then(CanvasModel::cursor) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-cursor"),
-            };
+            return Outcome::refused(key!("reason-no-cursor"));
         };
         let _ = self.send_tool(&CanvasEvent::CursorMove { at });
         self.send_tool(&CanvasEvent::Activate)
@@ -1213,15 +1190,10 @@ impl ShellModel {
     /// connection point of the page in reading order after the cursor (from the view centre without one), wrapping;
     /// `cp.next_unconnected` only to a connection point no connection ends at.
     pub(crate) fn act_cp_step(&mut self, p: &Map<String, Value>, step: CpStep) -> Outcome {
-        let g = match self.group_param(p) {
-            Ok(g) => g,
-            Err(e) => return e,
-        };
+        let g = or_return!(self.group_param(p));
         let last = self.tools.last_cp.clone();
         let Some(c) = self.canvas_mut(g) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         let page = Arc::clone(c.page());
         let candidates: Vec<usize> = (0..page.cps.len())

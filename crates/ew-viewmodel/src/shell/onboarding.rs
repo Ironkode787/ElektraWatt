@@ -386,9 +386,7 @@ impl ShellModel {
             Ok(None) => return failed(key!("error-missing-param"), &["value"]),
         };
         let Some(w) = &mut self.wizard else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-wizard"),
-            };
+            return Outcome::refused(key!("reason-no-wizard"));
         };
         if field == "preview" {
             match value.as_str() {
@@ -399,9 +397,7 @@ impl ShellModel {
             return Outcome::Done;
         }
         if w.finished.is_some() {
-            return Outcome::Refused {
-                reason_key: key!("reason-wizard-finished"),
-            };
+            return Outcome::refused(key!("reason-wizard-finished"));
         }
         match w.draft.set(&field, &value) {
             Ok(()) => {
@@ -468,14 +464,10 @@ impl ShellModel {
 
     pub(crate) fn act_wizard_finish(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(draft) = self.wizard.as_ref().map(|w| w.draft.clone()) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-wizard"),
-            };
+            return Outcome::refused(key!("reason-no-wizard"));
         };
         if self.wizard.as_ref().is_some_and(|w| w.finished.is_some()) {
-            return Outcome::Refused {
-                reason_key: key!("reason-wizard-finished"),
-            };
+            return Outcome::refused(key!("reason-wizard-finished"));
         }
         let dir = match string_param(p, "dir") {
             Err(e) => return e,
@@ -524,19 +516,13 @@ impl ShellModel {
             let dir = w.finished.clone()?;
             Some((dir, w.draft.get(CHECK_SCHEME_FIELD).to_owned()))
         }) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-wizard-not-finished"),
-            };
+            return Outcome::refused(key!("reason-wizard-not-finished"));
         };
         if !self.wizard.as_ref().is_some_and(Wizard::can_apply_check_scheme) {
-            return Outcome::Refused {
-                reason_key: key!("reason-check-scheme-written"),
-            };
+            return Outcome::refused(key!("reason-check-scheme-written"));
         }
         if self.mode == Mode::Headless {
-            return Outcome::Refused {
-                reason_key: key!("reason-human-only"),
-            };
+            return Outcome::refused(key!("reason-human-only"));
         }
         if !flag(p, "confirm") {
             return self.open_dialog(Dialog::ConfirmCheckScheme { scheme });

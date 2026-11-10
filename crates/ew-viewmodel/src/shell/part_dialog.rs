@@ -162,12 +162,8 @@ fn matches_text(text: &str, number: &str, manufacturer: &str, description: &str)
 
 fn api_refusal(e: ApiError) -> Outcome {
     match e {
-        ApiError::OtherVersionHeld { .. } => Outcome::Refused {
-            reason_key: key!("reason-part-other-version"),
-        },
-        ApiError::Library { .. } => Outcome::Refused {
-            reason_key: key!("reason-part-not-installed"),
-        },
+        ApiError::OtherVersionHeld { .. } => Outcome::refused(key!("reason-part-other-version")),
+        ApiError::Library { .. } => Outcome::refused(key!("reason-part-not-installed")),
         ApiError::Strip(ew_api::output::StripEditError::Refused(reason_key)) => Outcome::Refused {
             reason_key: Key::run_time(reason_key),
         },
@@ -423,10 +419,7 @@ impl ShellModel {
 
     /// `part.choose {target?, use?, add?}` (§9.4): opens the part dialog for its target.
     pub(crate) fn act_part_choose(&mut self, p: &Map<String, Value>) -> Outcome {
-        let want = match string_param(p, "target") {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
+        let want = or_return!(string_param(p, "target"));
         let use_ = match p.get("use") {
             None => None,
             Some(v) => match v.as_u64().and_then(|i| usize::try_from(i).ok()) {
@@ -468,9 +461,7 @@ impl ShellModel {
             }
         };
         let Some(t) = target else {
-            return Outcome::Refused {
-                reason_key: key!("reason-part-choose-target"),
-            };
+            return Outcome::refused(key!("reason-part-choose-target"));
         };
         let chooser = PartChooser {
             target: t.target,
@@ -502,9 +493,7 @@ impl ShellModel {
             None => None,
         };
         let Some(Dialog::PartChoose(c)) = &mut self.dialog else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-part-dialog"),
-            };
+            return Outcome::refused(key!("reason-no-part-dialog"));
         };
         if let Some(t) = t {
             c.query.text = t;
@@ -539,18 +528,20 @@ impl ShellModel {
 
     /// The offer `index` (1-based), else the offer the part text names, else the active row.
     fn part_offer_param(&self, p: &Map<String, Value>) -> Result<PartOffer, Outcome> {
-        let c = self.part_chooser().ok_or(Outcome::Refused {
-            reason_key: key!("reason-no-part-dialog"),
-        })?;
+        let c = self
+            .part_chooser()
+            .ok_or(Outcome::refused(key!("reason-no-part-dialog")))?;
         if let Some(v) = p.get("index") {
             let i = v
                 .as_u64()
                 .and_then(|i| usize::try_from(i).ok())
                 .filter(|i| *i >= 1)
                 .ok_or_else(|| failed(key!("error-bad-param"), &["index"]))?;
-            return c.offers.get(i - 1).cloned().ok_or(Outcome::Refused {
-                reason_key: key!("reason-part-choose-none"),
-            });
+            return c
+                .offers
+                .get(i - 1)
+                .cloned()
+                .ok_or(Outcome::refused(key!("reason-part-choose-none")));
         }
         if let Some(text) = string_param(p, "part")? {
             let hits: Vec<&PartOffer> = c
@@ -571,17 +562,15 @@ impl ShellModel {
                 )),
             };
         }
-        c.offers.get(c.cursor).cloned().ok_or(Outcome::Refused {
-            reason_key: key!("reason-part-choose-none"),
-        })
+        c.offers
+            .get(c.cursor)
+            .cloned()
+            .ok_or(Outcome::refused(key!("reason-part-choose-none")))
     }
 
     /// `part.pick {index?, part?}` (Enter): commits the choice (D16) and records a library part as recently used (D18).
     pub(crate) fn act_part_pick(&mut self, p: &Map<String, Value>) -> Outcome {
-        let offer = match self.part_offer_param(p) {
-            Ok(o) => o,
-            Err(e) => return e,
-        };
+        let offer = or_return!(self.part_offer_param(p));
         let Some(c) = self.part_chooser() else {
             return Outcome::Done;
         };
@@ -605,14 +594,9 @@ impl ShellModel {
 
     /// `part.favourite {index?}`: toggles a library part among the favourites (D18).
     pub(crate) fn act_part_favourite(&mut self, p: &Map<String, Value>) -> Outcome {
-        let offer = match self.part_offer_param(p) {
-            Ok(o) => o,
-            Err(e) => return e,
-        };
+        let offer = or_return!(self.part_offer_param(p));
         let Some(item) = offer.item else {
-            return Outcome::Refused {
-                reason_key: key!("reason-part-favourite-local"),
-            };
+            return Outcome::refused(key!("reason-part-favourite-local"));
         };
         self.settings.toggle_favourite_part(&item_text(item));
         self.save_settings();
@@ -688,9 +672,7 @@ impl ShellModel {
         let copy = match self.part_edit_copy(p) {
             Ok(Some(c)) => c,
             Ok(None) => {
-                return Outcome::Refused {
-                    reason_key: key!("reason-part-edit-target"),
-                };
+                return Outcome::refused(key!("reason-part-edit-target"));
             }
             Err(e) => return e,
         };
@@ -698,9 +680,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         let Ok(draft) = project.session.part_draft(copy) else {
-            return Outcome::Refused {
-                reason_key: key!("reason-part-edit-target"),
-            };
+            return Outcome::refused(key!("reason-part-edit-target"));
         };
         let name = format!("{} ({})", draft.text("part_number"), draft.text("manufacturer"));
         let manufacturers = project.session.part_manufacturers();
@@ -724,9 +704,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         let Some(Dialog::PartEdit(editor)) = &mut self.dialog else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-part-editor"),
-            };
+            return Outcome::refused(key!("reason-no-part-editor"));
         };
         editor.error = None;
         match project.session.set_draft_field(&mut editor.draft, &field, &value) {
@@ -741,9 +719,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         let Some(Dialog::PartEdit(editor)) = &mut self.dialog else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-part-editor"),
-            };
+            return Outcome::refused(key!("reason-no-part-editor"));
         };
         let plan = match project.session.part_edit_plan(&editor.draft) {
             Ok(plan) => plan,

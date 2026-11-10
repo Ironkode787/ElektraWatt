@@ -197,9 +197,7 @@ impl ShellModel {
     /// `find.run` (Enter in the text): exactly one `Session::find` call. An error of the query shows in the pane.
     pub(crate) fn act_find_run(&mut self) -> Outcome {
         if self.find.in_selection && self.tools.selection.is_empty() {
-            return Outcome::Refused {
-                reason_key: key!("reason-find-no-selection"),
-            };
+            return Outcome::refused(key!("reason-find-no-selection"));
         }
         let query = self.find_query();
         self.find.note = None;
@@ -211,9 +209,7 @@ impl ShellModel {
     pub(crate) fn act_find_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let n = self.find.results().map_or(0, |r| r.hits.len());
         if n == 0 {
-            return Outcome::Refused {
-                reason_key: key!("reason-find-no-results"),
-            };
+            return Outcome::refused(key!("reason-find-no-results"));
         }
         let at = if let Some(step) = p.get("step") {
             let Some(step) = step.as_i64() else {
@@ -241,9 +237,7 @@ impl ShellModel {
             .row()
             .and_then(|r| self.find.results().and_then(|res| res.hits.get(r)).cloned())
         else {
-            return Outcome::Refused {
-                reason_key: key!("reason-find-no-results"),
-            };
+            return Outcome::refused(key!("reason-find-no-results"));
         };
         let change = crate::tools::SelectionChange::Replace(vec![EntityRef(hit.record)]);
         if self.tools.selection.apply(&change) {
@@ -268,9 +262,7 @@ impl ShellModel {
     /// always through the card (§7.4). Stale results, or results of another query, are searched again first.
     pub(crate) fn act_find_replace_all(&mut self) -> Outcome {
         if !self.find.replace_mode {
-            return Outcome::Refused {
-                reason_key: key!("reason-find-no-replace"),
-            };
+            return Outcome::refused(key!("reason-find-no-replace"));
         }
         let (Some(epoch), Some(rev)) = (self.project_epoch(), self.revision()) else {
             return Outcome::Done;
@@ -285,9 +277,7 @@ impl ShellModel {
             self.find.ran.as_ref().map(|r| r.results.clone())
         } else {
             if self.find.in_selection && self.tools.selection.is_empty() {
-                return Outcome::Refused {
-                    reason_key: key!("reason-find-no-selection"),
-                };
+                return Outcome::refused(key!("reason-find-no-selection"));
             }
             self.run_find(query.clone())
         };
@@ -307,14 +297,10 @@ impl ShellModel {
             };
         }
         if results.truncated {
-            return Outcome::Refused {
-                reason_key: key!("reason-find-truncated"),
-            };
+            return Outcome::refused(key!("reason-find-truncated"));
         }
         let Some(params) = results.replace_command() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-find-nothing"),
-            };
+            return Outcome::refused(key!("reason-find-nothing"));
         };
         let Some(project) = &self.project else {
             return Outcome::Done;
@@ -323,16 +309,12 @@ impl ShellModel {
         match project.session.command_meta(name) {
             Some(meta) if meta.exposure == Exposure::Edit => {}
             Some(_) => {
-                return Outcome::Refused {
-                    reason_key: key!("reason-human-only"),
-                };
+                return Outcome::refused(key!("reason-human-only"));
             }
             None => return failed(key!("error-unknown-action"), &[name]),
         }
         if !self.is_writable() {
-            return Outcome::Refused {
-                reason_key: key!("reason-read-only"),
-            };
+            return Outcome::refused(key!("reason-read-only"));
         }
         let Some(rev) = self.revision() else {
             return Outcome::Done;

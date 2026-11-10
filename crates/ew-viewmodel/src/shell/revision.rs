@@ -495,14 +495,10 @@ impl ShellModel {
     /// passed (kept for the confirm). `Some` when the action is done.
     fn revision_start(&mut self, action: &str, p: &Map<String, Value>) -> Option<Outcome> {
         if !self.has_project() {
-            return Some(Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            });
+            return Some(Outcome::refused(key!("reason-no-project")));
         }
         if !self.is_writable() {
-            return Some(Outcome::Refused {
-                reason_key: key!("reason-read-only"),
-            });
+            return Some(Outcome::refused(key!("reason-read-only")));
         }
         match super::jobs::bool_param(p, "cancel", false) {
             Err(e) => return Some(e),
@@ -648,9 +644,7 @@ impl ShellModel {
             return out;
         }
         let Some(label) = self.open_revision_label() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-open-revision"),
-            };
+            return Outcome::refused(key!("reason-no-open-revision"));
         };
         if !self.in_form_of(APPROVE) {
             self.open_approve(&label);
@@ -658,10 +652,7 @@ impl ShellModel {
         if let Err(e) = self.fill_form(p, &["role", "typed"]) {
             return e;
         }
-        let confirm = match super::jobs::bool_param(p, "confirm", false) {
-            Ok(c) => c,
-            Err(e) => return e,
-        };
+        let confirm = or_return!(super::jobs::bool_param(p, "confirm", false));
         if !confirm {
             return Outcome::Done;
         }
@@ -675,10 +666,7 @@ impl ShellModel {
         if self.form_value("typed") != label {
             return self.revision_failed(strings::format(key!("error-revision-typed"), &[&label]));
         }
-        let date = match self.revision_date() {
-            Ok(d) => d,
-            Err(e) => return e,
-        };
+        let date = or_return!(self.revision_date());
         let gate = match self
             .project
             .as_ref()
@@ -808,9 +796,7 @@ impl ShellModel {
             return out;
         }
         let Some(label) = self.open_revision_label() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-open-revision"),
-            };
+            return Outcome::refused(key!("reason-no-open-revision"));
         };
         if !self.in_form_of(RELEASE) {
             let found = self
@@ -826,10 +812,7 @@ impl ShellModel {
         if let Err(e) = self.fill_form(p, &["typed", "git"]) {
             return e;
         }
-        let confirm = match super::jobs::bool_param(p, "confirm", false) {
-            Ok(c) => c,
-            Err(e) => return e,
-        };
+        let confirm = or_return!(super::jobs::bool_param(p, "confirm", false));
         if !confirm {
             return Outcome::Done;
         }
@@ -861,10 +844,7 @@ impl ShellModel {
         {
             return self.revision_failed(strings::format(key!("error-revision-git"), &[tag]));
         }
-        let date = match self.revision_date() {
-            Ok(d) => d,
-            Err(e) => return e,
-        };
+        let date = or_return!(self.revision_date());
         if let Err(e) = self.person_gate() {
             return e;
         }
@@ -1031,9 +1011,7 @@ impl ShellModel {
             .filter(|f| f.foreign.is_none());
         let Some(found) = found else {
             self.revision.incomplete = None;
-            return Outcome::Refused {
-                reason_key: key!("reason-no-incomplete-release"),
-            };
+            return Outcome::refused(key!("reason-no-incomplete-release"));
         };
         self.revision.incomplete = Some(found);
         let how = match string_param(p, "how") {
@@ -1043,10 +1021,7 @@ impl ShellModel {
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["how"]),
             Ok(None) => None,
         };
-        let confirm = match super::jobs::bool_param(p, "confirm", false) {
-            Ok(c) => c,
-            Err(e) => return e,
-        };
+        let confirm = or_return!(super::jobs::bool_param(p, "confirm", false));
         let Some(how) = how else {
             if confirm {
                 return failed(key!("error-missing-param"), &["how"]);
@@ -1249,9 +1224,7 @@ impl ShellModel {
         }
         let labels = self.released_labels();
         let Some(last) = labels.last().cloned() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-released-revision"),
-            };
+            return Outcome::refused(key!("reason-no-released-revision"));
         };
         if !self.in_form_of(WITHDRAW) {
             self.revision.label = last.clone();
@@ -1281,10 +1254,7 @@ impl ShellModel {
         if let Err(e) = self.fill_form(p, &["revision", "reason"]) {
             return e;
         }
-        let confirm = match super::jobs::bool_param(p, "confirm", false) {
-            Ok(c) => c,
-            Err(e) => return e,
-        };
+        let confirm = or_return!(super::jobs::bool_param(p, "confirm", false));
         if !confirm {
             return Outcome::Done;
         }
@@ -1337,9 +1307,7 @@ impl ShellModel {
             .as_ref()
             .and_then(|p| p.session.open_revision_roles())
         else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-open-revision"),
-            };
+            return Outcome::refused(key!("reason-no-open-revision"));
         };
         let label = self.open_revision_label().unwrap_or_default();
         if !self.in_form_of(SET_AUTHOR) {
@@ -1365,10 +1333,7 @@ impl ShellModel {
         if let Err(e) = self.fill_form(p, &["role"]) {
             return e;
         }
-        let confirm = match super::jobs::bool_param(p, "confirm", false) {
-            Ok(c) => c,
-            Err(e) => return e,
-        };
+        let confirm = or_return!(super::jobs::bool_param(p, "confirm", false));
         if !confirm {
             return Outcome::Done;
         }

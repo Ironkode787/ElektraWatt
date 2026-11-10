@@ -121,10 +121,7 @@ impl ShellModel {
     /// `history.show {on?}` (Edit, History): opens or closes the panel in the bottom dock.
     pub(crate) fn act_history_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let shown = self.history_shown();
-        let want = match super::jobs::bool_param(p, "on", !shown) {
-            Ok(w) => w,
-            Err(e) => return e,
-        };
+        let want = or_return!(super::jobs::bool_param(p, "on", !shown));
         let layout = if want {
             self.layout
                 .with_bottom(PaneKind::History)
@@ -145,10 +142,7 @@ impl ShellModel {
     /// through its own action and remembers them; opening reopens the remembered panes, or Messages.
     pub(crate) fn act_bottom_dock(&mut self, p: &Map<String, Value>) -> Outcome {
         let shown = self.bottom_dock_shown();
-        let want = match super::jobs::bool_param(p, "on", !shown) {
-            Ok(w) => w,
-            Err(e) => return e,
-        };
+        let want = or_return!(super::jobs::bool_param(p, "on", !shown));
         if want == shown {
             return Outcome::Done;
         }
@@ -202,18 +196,10 @@ impl ShellModel {
     pub(crate) fn act_history_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let len = self.history_len();
         if len == 0 {
-            return Outcome::Refused {
-                reason_key: key!("reason-undo-history-empty"),
-            };
+            return Outcome::refused(key!("reason-undo-history-empty"));
         }
-        let to = match super::string_param(p, "to") {
-            Err(e) => return e,
-            Ok(t) => t,
-        };
-        let step = match int_param(p, "step") {
-            Err(e) => return e,
-            Ok(s) => s,
-        };
+        let to = or_return!(super::string_param(p, "to"));
+        let step = or_return!(int_param(p, "step"));
         let index = match (to, step) {
             (Some("first"), None) => len - 1,
             (Some("last"), None) => 0,
@@ -252,10 +238,7 @@ impl ShellModel {
     /// entry's number, or redoes while it is below; stops at the first refusal (a barrier, a `HumanOnly` step from a
     /// script) with its reason. Only the last step crossed restores its context.
     pub(crate) fn act_history_undo_to(&mut self, p: &Map<String, Value>) -> Outcome {
-        let index = match self.history_entry(p) {
-            Ok(i) => i,
-            Err(e) => return e,
-        };
+        let index = or_return!(self.history_entry(p));
         let target = index + 1;
         self.history.quiet = true;
         self.history.crossed = None;
@@ -281,14 +264,9 @@ impl ShellModel {
     /// `history.changes {entry?}` (Show changes): the entry's records with their labels and changed members, in a
     /// popup that Escape closes.
     pub(crate) fn act_history_changes(&mut self, p: &Map<String, Value>) -> Outcome {
-        let index = match self.history_entry(p) {
-            Ok(i) => i,
-            Err(e) => return e,
-        };
+        let index = or_return!(self.history_entry(p));
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let records = project.session.history_entities(index);
         self.history.changes = Some((index, records));

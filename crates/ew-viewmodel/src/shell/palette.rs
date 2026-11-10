@@ -381,16 +381,10 @@ impl ShellModel {
                                 .unwrap_or(key!("reason-parameters-later")),
                         },
                     },
-                    None => Outcome::Refused {
-                        reason_key: key!("reason-parameters-later"),
-                    },
+                    None => Outcome::refused(key!("reason-parameters-later")),
                 },
-                PaletteRun::Rule(_) => Outcome::Refused {
-                    reason_key: key!("reason-no-project"),
-                },
-                _ => Outcome::Refused {
-                    reason_key: key!("reason-parameters-later"),
-                },
+                PaletteRun::Rule(_) => Outcome::refused(key!("reason-no-project")),
+                _ => Outcome::refused(key!("reason-parameters-later")),
             };
         }
         match entry.run.clone() {

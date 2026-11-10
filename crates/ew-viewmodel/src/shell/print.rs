@@ -382,9 +382,7 @@ impl ShellModel {
     /// print pre-dialog with these options and starts its build.
     pub(crate) fn act_file_print(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return Outcome::refused(key!("reason-no-project"));
         };
         let sections = ew_api::output::print::sections(&project.session.query())
             .into_iter()
@@ -440,14 +438,9 @@ impl ShellModel {
             (Ok(s), Ok(t)) => (s.map(str::to_owned), t.map(str::to_owned)),
             (Err(e), _) | (_, Err(e)) => return e,
         };
-        let wait = match bool_param(p, "wait", true) {
-            Ok(w) => w,
-            Err(e) => return e,
-        };
+        let wait = or_return!(bool_param(p, "wait", true));
         let Some(d) = self.print_dialog_mut() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-print-dialog"),
-            };
+            return Outcome::refused(key!("reason-no-print-dialog"));
         };
         let flags = [("fit", d.fit), ("mono", d.monochrome)].map(|(name, now)| bool_param(p, name, now));
         let [fit, mono] = match flags {
@@ -494,10 +487,7 @@ impl ShellModel {
 
     /// `print.page {to?: next|previous, page?}`: the preview's page, `page` counted from 1, clamped to the set.
     pub(crate) fn act_print_page(&mut self, p: &Map<String, Value>) -> Outcome {
-        let step = match page_step(p) {
-            Ok(s) => s,
-            Err(e) => return e,
-        };
+        let step = or_return!(page_step(p));
         let page = match p.get("page") {
             None => None,
             Some(v) => match v.as_u64().filter(|n| *n >= 1) {
@@ -507,9 +497,7 @@ impl ShellModel {
         };
         let pages = self.print_set().map_or(0, |s| s.pages.len());
         let Some(d) = self.print_dialog_mut() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-print-dialog"),
-            };
+            return Outcome::refused(key!("reason-no-print-dialog"));
         };
         let last = pages.saturating_sub(1);
         let mut at = page.unwrap_or(d.page);
@@ -532,9 +520,7 @@ impl ShellModel {
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["via"]),
         };
         let Some(set) = self.print_set().cloned() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-print-not-built"),
-            };
+            return Outcome::refused(key!("reason-print-not-built"));
         };
         let monochrome = self.print_dialog().is_some_and(|d| d.monochrome);
         // As `ew print`: the project directory's name without its extension.
