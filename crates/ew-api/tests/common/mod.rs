@@ -91,3 +91,22 @@ pub fn source_key(r: &Record) -> Option<&str> {
     }?;
     Some(s.key.as_str())
 }
+
+/// A PNG of `w × h` opaque red pixels (synthetic).
+pub fn red_png(w: u32, h: u32) -> Vec<u8> {
+    let mut out = Vec::new();
+    let mut enc = png::Encoder::new(&mut out, w, h);
+    enc.set_color(png::ColorType::Rgba);
+    enc.set_depth(png::BitDepth::Eight);
+    let mut writer = enc.write_header().unwrap();
+    writer
+        .write_image_data(&[255, 0, 0, 255].repeat((w * h) as usize))
+        .unwrap();
+    writer.finish().unwrap();
+    out
+}
+
+/// How often `needle` occurs in `hay`.
+pub fn count(hay: &[u8], needle: &[u8]) -> usize {
+    hay.windows(needle.len()).filter(|w| *w == needle).count()
+}

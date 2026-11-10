@@ -6,6 +6,8 @@
 //! image XObject (the JPEG unchanged). Golden A's fixture with placeholder logos, in a read-only session (a test copy:
 //! nothing is written back).
 
+use crate::common::{count, red_png};
+
 use std::path::Path;
 
 use ew_api::output::{ExportOptions, PageSelection};
@@ -32,20 +34,6 @@ fn cover() -> ExportOptions {
         pages: PageSelection::Folios(vec!["1".to_owned()]),
         ..ExportOptions::default()
     }
-}
-
-/// A PNG of `w × h` opaque red pixels (synthetic).
-fn red_png(w: u32, h: u32) -> Vec<u8> {
-    let mut out = Vec::new();
-    let mut enc = png::Encoder::new(&mut out, w, h);
-    enc.set_color(png::ColorType::Rgba);
-    enc.set_depth(png::BitDepth::Eight);
-    let mut writer = enc.write_header().unwrap();
-    writer
-        .write_image_data(&[255, 0, 0, 255].repeat((w * h) as usize))
-        .unwrap();
-    writer.finish().unwrap();
-    out
 }
 
 #[test]
@@ -85,10 +73,6 @@ fn red_blue_jpeg() -> Vec<u8> {
         0x00, 0x3f, 0x00, 0x92, 0xfa, 0x54, 0xea, 0xfe, 0x12, 0x87, 0x5d, 0x50, 0x5b, 0x5f, 0x7f, 0xff, 0xd9,
     ]);
     b
-}
-
-fn count(hay: &[u8], needle: &[u8]) -> usize {
-    hay.windows(needle.len()).filter(|w| *w == needle).count()
 }
 
 #[test]

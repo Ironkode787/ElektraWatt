@@ -5,6 +5,7 @@
 //! vector paths in the page's display list and in the exported PDF (no raster image object for it); a PNG is an image
 //! object; an unknown hash is refused. The assets are placeholders written here (no company's artwork).
 
+use crate::common::{count, red_png};
 use crate::golden_common;
 
 use ew_api::output::{ExportOptions, PageSelection};
@@ -21,20 +22,6 @@ fn cmd(name: &str, params: Value) -> AnyCommand {
         name: name.into(),
         params,
     }
-}
-
-/// A PNG of `w × h` opaque red pixels (synthetic).
-fn red_png(w: u32, h: u32) -> Vec<u8> {
-    let mut out = Vec::new();
-    let mut enc = png::Encoder::new(&mut out, w, h);
-    enc.set_color(png::ColorType::Rgba);
-    enc.set_depth(png::BitDepth::Eight);
-    let mut writer = enc.write_header().unwrap();
-    writer
-        .write_image_data(&[255, 0, 0, 255].repeat((w * h) as usize))
-        .unwrap();
-    writer.finish().unwrap();
-    out
 }
 
 /// Brings `bytes` into the session's asset store through the company logo command (the one command that stores an
@@ -74,10 +61,6 @@ fn flat(items: &[Item], out: &mut Vec<Item>) {
             flat(&g.items, out);
         }
     }
-}
-
-fn count(hay: &[u8], needle: &[u8]) -> usize {
-    hay.windows(needle.len()).filter(|w| *w == needle).count()
 }
 
 /// IM1: an SVG image item reaches the page's display list as paths (its fill, no image item is left) and the PDF
