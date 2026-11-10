@@ -41,22 +41,6 @@ fn code_display_and_parse() {
 }
 
 #[test]
-fn input_accessors_and_file_name_rule() {
-    let input = ImportInput::new("x.elmt", b"abc".to_vec()).unwrap();
-    assert_eq!(input.name(), "x.elmt");
-    assert_eq!(&input.bytes()[..], b"abc");
-    assert_eq!(
-        hex(&input.sha256()),
-        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-    );
-    assert_eq!(check_file_name(""), Err(InputNameError::Empty));
-    for bad in ["a/b", "a\\b", "c:x", "a\0b"] {
-        assert_eq!(check_file_name(bad), Err(InputNameError::NotAFileName), "{bad:?}");
-    }
-    assert_eq!(check_file_name("x.elmt"), Ok(()));
-}
-
-#[test]
 fn input_new_hashes_and_validates_names() {
     let empty = ImportInput::new("a.elmt", b"".to_vec()).unwrap();
     assert_eq!(
@@ -83,6 +67,11 @@ fn input_new_hashes_and_validates_names() {
         );
     }
     assert!(ImportInput::new("a b.elmt", Vec::new()).is_ok());
+    assert_eq!(check_file_name(""), Err(InputNameError::Empty));
+    for bad in ["a/b", "a\\b", "c:x", "a\0b"] {
+        assert_eq!(check_file_name(bad), Err(InputNameError::NotAFileName), "{bad:?}");
+    }
+    assert_eq!(check_file_name("x.elmt"), Ok(()));
     assert_eq!(InputNameError::Empty.to_string(), "file name is empty");
     assert_eq!(
         InputNameError::NotAFileName.to_string(),
@@ -161,10 +150,18 @@ fn limits_default() {
     assert_eq!(l.max_xml_attributes, 1_048_576);
     assert_eq!(l.max_xml_attribute_work, 67_108_864);
     assert_eq!(l.max_text_bytes, 1_048_576);
+    // The archive, file-set and table members (doc 14 §11).
+    assert_eq!(l.max_archive_entries, 100_000);
+    assert_eq!(l.max_expanded_bytes, 2 * 1024 * 1024 * 1024);
+    assert_eq!(l.max_entry_bytes, 512 * 1024 * 1024);
+    assert_eq!(l.max_entry_ratio, 200);
+    assert_eq!(l.max_input_files, 64);
+    assert_eq!(l.max_table_rows, 1_000_000);
+    assert_eq!(l.max_table_columns, 1_024);
 }
 
 #[test]
-fn limits_element_definition_and_stricter() {
+fn limits_element_definition() {
     let e = Limits::element_definition();
     assert_eq!(e.max_input_bytes, 16_777_216);
     assert_eq!(e.max_xml_attributes, 131_072);
@@ -178,31 +175,6 @@ fn limits_element_definition_and_stricter() {
             ..Limits::default()
         }
     );
-    // The stricter of each field, whichever side it comes from.
-    let ctx = Limits {
-        max_input_bytes: 1000,
-        max_xml_nodes: 5_000_000,
-        ..Limits::default()
-    };
-    let m = ctx.stricter(e);
-    assert_eq!(m.max_input_bytes, 1000);
-    // The preset's node and attribute caps win over the default's.
-    assert_eq!(m.max_xml_nodes, 262_144);
-    assert_eq!(m.max_xml_attributes, 131_072);
-    assert_eq!(Limits::default().stricter(e), e);
-}
-
-/// The archive, file-set and table members and their defaults (doc 14 §11).
-#[test]
-fn limits_default_archives_inputs_and_tables() {
-    let l = Limits::default();
-    assert_eq!(l.max_archive_entries, 100_000);
-    assert_eq!(l.max_expanded_bytes, 2 * 1024 * 1024 * 1024);
-    assert_eq!(l.max_entry_bytes, 512 * 1024 * 1024);
-    assert_eq!(l.max_entry_ratio, 200);
-    assert_eq!(l.max_input_files, 64);
-    assert_eq!(l.max_table_rows, 1_000_000);
-    assert_eq!(l.max_table_columns, 1_024);
 }
 
 /// IC-1: `stricter` takes the smaller of every member, whichever side it comes from.

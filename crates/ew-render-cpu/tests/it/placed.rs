@@ -43,6 +43,17 @@ fn options(dpi: u32) -> RenderOptions {
     }
 }
 
+/// A placement on a `width × height` paper at `scale`, without offset or overlay.
+fn placement(width: Nm, height: Nm, scale: (u64, u64)) -> PagePlacement {
+    PagePlacement {
+        width,
+        height,
+        scale,
+        offset: Pt2::ORIGIN,
+        overlay: DisplayList::default(),
+    }
+}
+
 /// The pixel of the paper point `p` (mm) at `dpi`.
 fn at(img: &RgbaImage, p: (f64, f64), dpi: u32) -> [u8; 4] {
     let px = |v: f64| (v / 25.4 * f64::from(dpi)).floor() as u32;
@@ -61,13 +72,7 @@ fn ink_rows(img: &RgbaImage) -> Option<(u32, u32)> {
 fn an_identity_placement_renders_exactly_as_render() {
     let list = sheet();
     let sheet_size = a4();
-    let identity = PagePlacement {
-        width: sheet_size.width,
-        height: sheet_size.height,
-        scale: (1, 1),
-        offset: Pt2::ORIGIN,
-        overlay: DisplayList::default(),
-    };
+    let identity = placement(sheet_size.width, sheet_size.height, (1, 1));
     let fonts = bundled_fonts();
     let (plain, plain_report) = render(&list, sheet_size, &options(100), &fonts, None).unwrap();
     let (placed, placed_report) = render_placed(&list, &identity, &options(100), &fonts, None).unwrap();
@@ -125,13 +130,7 @@ fn glyphs_are_sized_by_the_composed_scale() {
     let fonts = bundled_fonts();
     let dpi = 300;
     let (full, _) = render(&text, a4(), &options(dpi), &fonts, None).unwrap();
-    let half = PagePlacement {
-        width: a4().width,
-        height: a4().height,
-        scale: (1, 2),
-        offset: Pt2::ORIGIN,
-        overlay: DisplayList::default(),
-    };
+    let half = placement(a4().width, a4().height, (1, 2));
     let (scaled, _) = render_placed(&text, &half, &options(dpi), &fonts, None).unwrap();
     let (a, b) = ink_rows(&full).expect("ink");
     let (c, d) = ink_rows(&scaled).expect("ink");
@@ -141,13 +140,7 @@ fn glyphs_are_sized_by_the_composed_scale() {
 
 #[test]
 fn a_paper_without_extent_is_a_size_error() {
-    let flat = PagePlacement {
-        width: Nm(0),
-        height: Nm::from_mm(148),
-        scale: (1, 1),
-        offset: Pt2::ORIGIN,
-        overlay: DisplayList::default(),
-    };
+    let flat = placement(Nm(0), Nm::from_mm(148), (1, 1));
     let e = render_placed(&sheet(), &flat, &options(100), &bundled_fonts(), None).unwrap_err();
     assert_eq!(
         e,
@@ -249,13 +242,7 @@ fn the_bands_of_a_placed_page_stack_to_its_image() {
 /// A band with no row of the paper is a size error naming the paper's width; a band past the last row ends with it.
 #[test]
 fn a_band_outside_the_paper_is_a_size_error() {
-    let identity = PagePlacement {
-        width: a4().width,
-        height: a4().height,
-        scale: (1, 1),
-        offset: Pt2::ORIGIN,
-        overlay: DisplayList::default(),
-    };
+    let identity = placement(a4().width, a4().height, (1, 1));
     let fonts = bundled_fonts();
     let (w, h) = pixel_size(a4(), 100);
     let band = |first_row: u32, rows: u32| {

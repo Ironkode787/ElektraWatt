@@ -5,10 +5,6 @@
 //! rules.
 
 #![cfg(feature = "bundled-fonts")]
-// A wall-clock timer of this test, asserted only with EW_PERF_ASSERT (the timing rule of doc 18 §3.16); no timestamp reaches a compared result.
-#![allow(clippy::disallowed_methods)]
-
-use std::time::Instant;
 
 use ew_text::{
     Family, FontError, FontSet, FontSource, NOTO_SANS_BOLD_SHA256, NOTO_SANS_MATH_REGULAR_SHA256,
@@ -296,14 +292,8 @@ fn long_text_sanity() {
         .cycle()
         .take(1_000)
         .collect();
-    let start = std::env::var_os("EW_PERF_ASSERT").is_some().then(Instant::now);
     let s = bundled().shape(&text, &style("text.normal"), None);
     assert_eq!(s.run.glyphs.len(), 1_000);
-    // No budget is asserted (debug builds vary); timing acquisition and reporting are opt-in.
-    if let Some(start) = start {
-        let took = start.elapsed();
-        println!("1000 characters shaped in {took:?}");
-    }
 }
 
 #[test]
