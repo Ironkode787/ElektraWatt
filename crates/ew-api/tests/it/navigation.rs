@@ -301,15 +301,24 @@ fn v1_link_targets_print_the_eplan_preset() {
     assert_eq!(text.text, "/103.A1");
 }
 
-/// Switches the `ip` format to the EPLAN cell preset (doc 06 §2.8) through `project.settings.set`.
+/// Sets the cross-reference format `key` with the `ip` and `aux_to_main` templates through `project.settings.set`.
+fn set_xref_format(s: &mut Session, key: &str, ip: &str, aux_to_main: &str) {
+    let line = serde_json::json!({"cmd": "project.settings.set", "params": {"member": "xref_format", "value": {
+        "key": key, "ip": ip, "aux_to_main": aux_to_main, "main_to_aux": "∞ {list}",
+        "structure": "when_different", "same_page": "full",
+        "matrix": {"per_row": 3, "max": 9, "overflow": "…"}}}});
+    let log = format!("{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"{key}\"}}\n{line}\n");
+    run_log(s, &log, &format!("{key}.ewcmd")).unwrap();
+}
+
+/// Switches the `ip` format to the EPLAN cell preset (doc 06 §2.8).
 fn eplan(s: &mut Session) {
-    let log = concat!(
-        r#"{"$schema":"ew.cmdlog/1","label":"eplan"}"#,
-        "\n",
-        r#"{"cmd":"project.settings.set","params":{"member":"xref_format","value":{"key":"eplan-cell","ip":"/{page}.{row}{column}","aux_to_main":"(/{page}.{row}{column})","main_to_aux":"∞ {list}","structure":"when_different","same_page":"full","matrix":{"per_row":3,"max":9,"overflow":"…"}}}}"#,
-        "\n"
+    set_xref_format(
+        s,
+        "eplan-cell",
+        "/{page}.{row}{column}",
+        "(/{page}.{row}{column})",
     );
-    run_log(s, log, "eplan.ewcmd").unwrap();
 }
 
 /// `page_index_of` is the navigator's copy of the xref engine's private `{page_index}` (the engine's function is
@@ -322,13 +331,12 @@ fn v1_the_navigators_page_index_is_the_xref_engines() {
     let b = batch();
     let ids = ids_by_key(&b);
     let mut s = golden_common::session(&b);
-    let log = concat!(
-        r#"{"$schema":"ew.cmdlog/1","label":"page-index"}"#,
-        "\n",
-        r#"{"cmd":"project.settings.set","params":{"member":"xref_format","value":{"key":"page-index","ip":"{page_index}.{row}{column}","aux_to_main":"({page_index}.{row}{column})","main_to_aux":"∞ {list}","structure":"when_different","same_page":"full","matrix":{"per_row":3,"max":9,"overflow":"…"}}}}"#,
-        "\n"
+    set_xref_format(
+        &mut s,
+        "page-index",
+        "{page_index}.{row}{column}",
+        "({page_index}.{row}{column})",
     );
-    run_log(&mut s, log, "page-index.ewcmd").unwrap();
     let q = s.query();
     let order = q.get::<PageOrder>(());
     // The order has a continuation page (a generated page with an index above 0) before the drawn pages.
@@ -548,13 +556,7 @@ fn v1_resolve_goto() {
     assert_eq!((e.folio.as_str(), e.rect_nm), ("103", Some(rect)));
     assert_eq!(s.resolve_goto("103-A1"), Err(GotoError::NotFound));
     // A `{page_index}` format (QET `%f`, 1-based): folio 102 is the sixth page record.
-    let indexed = concat!(
-        r#"{"$schema":"ew.cmdlog/1","label":"index"}"#,
-        "\n",
-        r#"{"cmd":"project.settings.set","params":{"member":"xref_format","value":{"key":"qet","ip":"%f-%l%c","aux_to_main":"({page}-{row}{column})","main_to_aux":"∞ {list}","structure":"when_different","same_page":"full","matrix":{"per_row":3,"max":9,"overflow":"…"}}}}"#,
-        "\n"
-    );
-    run_log(&mut s, indexed, "index.ewcmd").unwrap();
+    set_xref_format(&mut s, "qet", "%f-%l%c", "({page}-{row}{column})");
     let six = s.resolve_goto("6-A1").unwrap();
     assert_eq!(six.folio, "102");
     assert_eq!(

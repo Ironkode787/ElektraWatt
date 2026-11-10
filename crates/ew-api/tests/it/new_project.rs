@@ -29,6 +29,29 @@ fn options(seed: u64) -> SessionOptions {
     }
 }
 
+/// Golden A, read only.
+fn open_golden() -> Session {
+    Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test")
+        .unwrap()
+        .0
+}
+
+/// A project directory reopened for editing with the store state in `state`; the open is sound: it has write access
+/// and no finding above Info.
+fn reopen_sound(dir: &Path, state: &Path) -> Session {
+    let (session, report) =
+        Session::open(dir, store(state), SessionOptions::default(), Recovery::Keep).unwrap();
+    assert!(matches!(report.access, ew_api::Access::Edit));
+    assert!(
+        ew_api::integrity_items(&report)
+            .iter()
+            .all(|i| i.severity == ew_api::checks::Severity::Info),
+        "{:?}",
+        ew_api::integrity_items(&report)
+    );
+    session
+}
+
 fn project_text(dir: &Path) -> String {
     std::fs::read_to_string(dir.join("project.jsonl")).unwrap()
 }
@@ -64,14 +87,7 @@ fn the_built_in_basic_project_has_one_empty_page_and_round_trips() {
         "a schematic project writes no kind: {text}"
     );
 
-    let (reopened, report) = Session::open(
-        &dir,
-        store(&work.join("state")),
-        SessionOptions::default(),
-        Recovery::Keep,
-    )
-    .unwrap();
-    assert!(matches!(report.access, ew_api::Access::Edit));
+    let reopened = reopen_sound(&dir, &work.join("state"));
     assert_eq!(reopened.page_labels(), ["1"]);
     // The page derives and exports on the built-in frame.
     let pdf = reopened
@@ -113,7 +129,7 @@ fn the_kind_basic_is_written_and_a_basic_project_is_a_template() {
 #[test]
 fn a_directory_template_copies_the_records_under_new_ids() {
     let work = temp("golden");
-    let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
+    let golden = open_golden();
     let mut copy = Session::new_project(
         ProjectTemplate::Directory(Path::new(GOLDEN_A)),
         NewProjectKind::Schematic,
@@ -135,21 +151,7 @@ fn a_directory_template_copies_the_records_under_new_ids() {
     let dir = work.join("copy.ew");
     copy.create(&dir, store(&work.join("state"))).unwrap();
     copy.close();
-    let (reopened, report) = Session::open(
-        &dir,
-        store(&work.join("state")),
-        SessionOptions::default(),
-        Recovery::Keep,
-    )
-    .unwrap();
-    assert!(matches!(report.access, ew_api::Access::Edit));
-    assert!(
-        ew_api::integrity_items(&report)
-            .iter()
-            .all(|i| i.severity == ew_api::checks::Severity::Info),
-        "{:?}",
-        ew_api::integrity_items(&report)
-    );
+    let reopened = reopen_sound(&dir, &work.join("state"));
     assert_eq!(reopened.page_labels(), golden.page_labels());
     reopened.close();
     let _ = std::fs::remove_dir_all(&work);
@@ -232,7 +234,7 @@ fn copy_of_golden(seed: u64) -> Session {
 
 #[test]
 fn ordered_lists_keep_their_order_in_a_copy() {
-    let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
+    let golden = open_golden();
     let copy = copy_of_golden(4);
     let (old, new) = (lines_of(&golden), lines_of(&copy));
     let new_project = uuid_of(new.iter().find(|v| v["$k"] == "project").unwrap(), "id").unwrap();
@@ -345,7 +347,7 @@ fn two_copies_with_one_seed_are_byte_equal() {
 
 #[test]
 fn a_copy_derives_the_page_texts_of_the_original() {
-    let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
+    let golden = open_golden();
     let copy = copy_of_golden(4);
     let options = ew_api::output::ExportOptions::default();
     let (a, b) = (
@@ -441,22 +443,14 @@ fn a_page_without_a_form_takes_the_frame_defaults_in_the_page_output() {
     let mut session =
         Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Basic, options(3)).unwrap();
     assert_eq!(frame_of_folio_1(&session), (None, None), "no form in the project");
-    let forms = shipped_forms();
-    let id_of = |key: &str| {
-        forms
-            .iter()
-            .find(|f| f["meta"]["key"] == key)
-            .unwrap_or_else(|| panic!("{key}"))["id"]
-            .clone()
-    };
     let (grid, cover) = (
-        id_of("ew.frame.qet-a4-landscape-grid"),
-        id_of("ew.frame.qet-a4-landscape-cover"),
+        shipped_id("ew.frame.qet-a4-landscape-grid"),
+        shipped_id("ew.frame.qet-a4-landscape-cover"),
     );
     run_cmd(
         &mut session,
         "library.embed",
-        serde_json::json!({ "copies": forms }),
+        serde_json::json!({ "copies": shipped_forms() }),
     );
     let nogrid = (
         Some("ew.frame.qet-a4-landscape-nogrid".to_owned()),
@@ -691,11 +685,7 @@ fn a_project_from_a_basic_project_records_it() {
     assert!(text.contains("\"basic_project\":{"), "{text}");
 
     // Golden A as a template: its project ID and the generation of its manifest.
-    let golden = project_line(
-        &Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test")
-            .unwrap()
-            .0,
-    );
+    let golden = project_line(&open_golden());
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(Path::new(GOLDEN_A).join("manifest.json")).unwrap()).unwrap();
     assert_eq!(
@@ -733,19 +723,10 @@ fn folio_1_frame(
 fn golden_a_saved_as_basic_without_devices_keeps_its_conventions() {
     let work = temp("bp2");
     let state = work.join("state");
-    let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
+    let golden = open_golden();
     let dir = work.join("basic.ew");
     golden.save_as_basic(&dir, false, true, store(&state)).unwrap();
-    let (basic, report) =
-        Session::open(&dir, store(&state), SessionOptions::default(), Recovery::Keep).unwrap();
-    assert!(matches!(report.access, ew_api::Access::Edit));
-    assert!(
-        ew_api::integrity_items(&report)
-            .iter()
-            .all(|i| i.severity == ew_api::checks::Severity::Info),
-        "{:?}",
-        ew_api::integrity_items(&report)
-    );
+    let basic = reopen_sound(&dir, &state);
     let (g, b) = (project_line(&golden), project_line(&basic));
     assert_eq!(b["kind"], "basic");
     assert_ne!(b["id"], g["id"], "a new project ID");
@@ -844,7 +825,7 @@ fn a_basic_project_without_devices_keeps_only_the_layout_space() {
     ];
     let work = temp("bp2-layout");
     let state = work.join("state");
-    let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
+    let golden = open_golden();
     // Golden A's layout, by name: 1 space, 1 enclosure, 1 surface, 8 carriers, 20 placements.
     let golden_layout: Vec<(&str, usize)> = vec![
         ("layout_space", 1),
@@ -860,15 +841,7 @@ fn a_basic_project_without_devices_keeps_only_the_layout_space() {
 
     let dir = work.join("without.ew");
     golden.save_as_basic(&dir, false, true, store(&state)).unwrap();
-    let (basic, report) =
-        Session::open(&dir, store(&state), SessionOptions::default(), Recovery::Keep).unwrap();
-    assert!(
-        ew_api::integrity_items(&report)
-            .iter()
-            .all(|i| i.severity == ew_api::checks::Severity::Info),
-        "{:?}",
-        ew_api::integrity_items(&report)
-    );
+    let basic = reopen_sound(&dir, &state);
     let bc = kind_counts(&basic);
     assert_eq!(bc.get("layout_space"), Some(&1), "the layout space stays");
     for kind in &layout_kinds[1..] {
@@ -900,7 +873,7 @@ fn a_basic_project_without_devices_keeps_only_the_layout_space() {
 fn a_basic_project_without_pages_and_devices() {
     let work = temp("bp2-nopages");
     let state = work.join("state");
-    let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
+    let golden = open_golden();
     let before = kind_counts(&golden);
     let dir = work.join("basic.ew");
     golden.save_as_basic(&dir, true, true, store(&state)).unwrap();

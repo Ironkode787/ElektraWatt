@@ -16,7 +16,7 @@
 //!   on their CPs.
 //! - **MC-7** for both: twice-run determinism of the saved documents and the composed commands.
 
-use crate::common::{Dir, tiers};
+use crate::common::{self, Dir, tiers};
 use crate::golden_common;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -28,7 +28,7 @@ use ew_api::{BomMode, Export, SessionOptions};
 use ew_derive::{ChannelAddr, ChannelAddresses, DeviceTag, Q};
 use ew_ids::{Id, Uuid};
 use ew_mltext::MlText;
-use ew_schema::{Device, Endpoint, Function, LibDocument, Page, Record, Representation};
+use ew_schema::{Device, Endpoint, Function, LibDocument, Page, Representation};
 use ew_units::{Orient2, Pt2};
 use serde_json::{Value, json};
 
@@ -47,15 +47,7 @@ fn user_library(name: &str) -> (Dir, LibraryTiers, Uuid) {
 /// with the libraries of `tiers`.
 fn golden(tiers: Option<LibraryTiers>) -> Session {
     let batch = golden_common::batch();
-    let mut project = None;
-    let mut records = Vec::new();
-    for r in &batch.records {
-        match r {
-            Record::Project(p) => project = Some(p.clone()),
-            other => records.push(other.clone()),
-        }
-    }
-    let mut project = project.expect("the batch holds the project");
+    let (mut project, records) = common::split(&batch);
     golden_common::with_profiles(&mut project);
     let options = SessionOptions {
         libraries: tiers,
@@ -63,6 +55,35 @@ fn golden(tiers: Option<LibraryTiers>) -> Session {
         ..SessionOptions::default()
     };
     Session::from_records(project, records, batch.lib.clone(), options).unwrap()
+}
+
+/// The page macro saved from Golden A (with the user library `name` kept alive by the returned directory).
+fn page_macro_session(name: &str) -> (Dir, Session, SavedMacro) {
+    let (root, t, lib) = user_library(name);
+    let mut s = golden(Some(t));
+    let saved = s.save_macro(lib, &page_spec(&s)).unwrap();
+    (root, s, saved)
+}
+
+/// The values of an insertion under `assembly`: the value set `set` or none.
+fn assembly_values(assembly: Uuid, set: Option<&str>) -> MacroValues {
+    MacroValues {
+        value_set: set.map(str::to_owned),
+        values: [("assembly".to_owned(), json!(assembly.to_string()))].into(),
+    }
+}
+
+/// The section of folio `folio`, as a `page.create` parameter.
+fn section_of(s: &Session, folio: &str) -> Value {
+    serde_json::to_value(
+        s.query()
+            .pages()
+            .get(Id::<Page>::from_uuid(page_of(s, folio)))
+            .unwrap()
+            .folio
+            .section,
+    )
+    .unwrap()
 }
 
 fn run(s: &mut Session, name: &str, params: Value) {
@@ -594,10 +615,7 @@ fn mc4_the_valve_manifold_macro_reproduces_folios_203_to_206() {
             .insert_macro(
                 &saved.reference,
                 &r0(after),
-                &MacroValues {
-                    value_set: Some(set.to_string()),
-                    values: [("assembly".to_owned(), json!(assembly.to_string()))].into(),
-                },
+                &assembly_values(assembly, Some(&set.to_string())),
                 instance(set),
             )
             .unwrap();
@@ -645,10 +663,9 @@ fn mc4_the_valve_manifold_macro_reproduces_folios_203_to_206() {
     let local = |tag: &str| device(&original, tag);
     let mut expected_missing = BTreeSet::new();
     let q = s.query();
-    for (set, from, to) in &modules {
+    for (set, from, _) in &modules {
         let new = Uuid::new_v5(&instance(*set), local(from).hyphenated().to_string().as_bytes());
         expected_missing.insert(tag_of(&q, Id::from_uuid(new)));
-        let _ = to;
     }
     drop(q);
     assert_eq!(missing, expected_missing);
@@ -771,17 +788,12 @@ fn by_tag_now(q: &Q, tag: &str) -> Option<Id<Device>> {
 /// exactly.
 #[test]
 fn mc5_a_second_typical_lists_the_doubled_addresses_and_undoes_in_one_step() {
-    let (_root, t, lib) = user_library("ew-api-mc5");
-    let mut s = golden(Some(t));
-    let saved = s.save_macro(lib, &page_spec(&s)).unwrap();
+    let (_root, mut s, saved) = page_macro_session("ew-api-mc5");
     let cmd = s
         .insert_macro(
             &saved.reference,
             &r0(page_of(&s, "206")),
-            &MacroValues {
-                value_set: Some("1".into()),
-                values: [("assembly".to_owned(), json!(device(&s, "-201U1").to_string()))].into(),
-            },
+            &assembly_values(device(&s, "-201U1"), Some("1")),
             instance(5),
         )
         .unwrap();
@@ -834,18 +846,13 @@ fn mc5_a_second_typical_lists_the_doubled_addresses_and_undoes_in_one_step() {
 /// refused by EW-FL-013's prevent half, in its words, and nothing changes.
 #[test]
 fn a_macro_module_at_a_held_position_is_refused() {
-    let (_root, t, lib) = user_library("ew-api-mc-fi07");
-    let mut s = golden(Some(t));
-    let saved = s.save_macro(lib, &page_spec(&s)).unwrap();
+    let (_root, mut s, saved) = page_macro_session("ew-api-mc-fi07");
     let before = ew_commands::rows::model_lines(&s.world().model).unwrap();
     let cmd = s
         .insert_macro(
             &saved.reference,
             &r0(page_of(&s, "206")),
-            &MacroValues {
-                value_set: Some("4".into()),
-                values: [("assembly".to_owned(), json!(device(&s, "-201U1").to_string()))].into(),
-            },
+            &assembly_values(device(&s, "-201U1"), Some("4")),
             instance(6),
         )
         .unwrap();
@@ -860,9 +867,7 @@ fn a_macro_module_at_a_held_position_is_refused() {
 /// FR-MAC-018: value set 4 inserts one module and no field devices, and leaves no dangling connection or link.
 #[test]
 fn value_set_4_inserts_one_module_without_field_devices() {
-    let (_root, t, lib) = user_library("ew-api-mc4-set4");
-    let mut s = golden(Some(t));
-    let saved = s.save_macro(lib, &page_spec(&s)).unwrap();
+    let (_root, mut s, saved) = page_macro_session("ew-api-mc4-set4");
     // -202U2 leaves position 10 of -201U1, where the inserted module goes
     let free = free_slot(&s, "-202U2", 12);
     commit(&mut s, &free);
@@ -872,10 +877,7 @@ fn value_set_4_inserts_one_module_without_field_devices() {
         .insert_macro(
             &saved.reference,
             &r0(page_of(&s, "206")),
-            &MacroValues {
-                value_set: Some("4".into()),
-                values: [("assembly".to_owned(), json!(device(&s, "-201U1").to_string()))].into(),
-            },
+            &assembly_values(device(&s, "-201U1"), Some("4")),
             instance(6),
         )
         .unwrap();
@@ -887,7 +889,6 @@ fn value_set_4_inserts_one_module_without_field_devices() {
         "one module and its four valves"
     );
     assert_eq!(q.table::<ew_schema::DeviceLink>().iter().count(), links);
-    let p207 = page_of(&s, "207");
     let t = s.page_tables("207").unwrap();
     assert_eq!(t.reps.len(), 5, "the module's aux symbol and four valves");
     assert!(t.connections.is_empty());
@@ -898,7 +899,6 @@ fn value_set_4_inserts_one_module_without_field_devices() {
             }
         }
     }
-    let _ = p207;
 }
 
 /// The window macro "valve module typical" saves with its variables and inserts on a new fluid page at R0 and at 90°:
@@ -913,16 +913,7 @@ fn the_valve_module_typical_inserts_turned_about_its_anchor() {
         panic!("a macro")
     };
     let anchor: Pt2 = serde_json::from_value(m.item.variants[0].fragment["anchor"].clone()).unwrap();
-    let p206 = page_of(&s, "206");
-    let section = serde_json::to_value(
-        s.query()
-            .pages()
-            .get(Id::<Page>::from_uuid(p206))
-            .unwrap()
-            .folio
-            .section,
-    )
-    .unwrap();
+    let section = section_of(&s, "206");
     run(
         &mut s,
         "page.create",
@@ -1048,16 +1039,7 @@ fn a_window_macro_at_90_degrees_keeps_its_wires_on_their_cps() {
     };
     let fragment = &m.item.variants[0].fragment;
     let anchor: Pt2 = serde_json::from_value(fragment["anchor"].clone()).unwrap();
-    let p102 = page_of(&s, "102");
-    let section = serde_json::to_value(
-        s.query()
-            .pages()
-            .get(Id::<Page>::from_uuid(p102))
-            .unwrap()
-            .folio
-            .section,
-    )
-    .unwrap();
+    let section = section_of(&s, "102");
     run(
         &mut s,
         "page.create",
@@ -1227,15 +1209,7 @@ fn a_window_macro_with_interruption_points_is_refused_turned() {
         value_sets: Vec::new(),
     };
     let saved: SavedMacro = s.save_macro(lib, &spec).unwrap();
-    let section = serde_json::to_value(
-        s.query()
-            .pages()
-            .get(Id::<Page>::from_uuid(page_of(&s, "102")))
-            .unwrap()
-            .folio
-            .section,
-    )
-    .unwrap();
+    let section = section_of(&s, "102");
     run(
         &mut s,
         "page.create",
@@ -1316,10 +1290,7 @@ fn saved_twice(name: &str, spec: fn(&Session) -> MacroSpec, orient: Orient2) -> 
                 at,
                 orient,
             },
-            &MacroValues {
-                value_set: None,
-                values: [("assembly".to_owned(), json!(device(&s, "-201U1").to_string()))].into(),
-            },
+            &assembly_values(device(&s, "-201U1"), None),
             instance(9),
         )
         .unwrap();
@@ -1356,9 +1327,7 @@ fn mc7_the_typicals_save_and_insert_deterministically() {
 /// with an orientation is refused at `/orient`.
 #[test]
 fn a_log_without_orient_replays_unchanged_and_a_page_macro_takes_no_orient() {
-    let (_root, t, lib) = user_library("ew-api-orient-old");
-    let mut s = golden(Some(t));
-    let saved = s.save_macro(lib, &page_spec(&s)).unwrap();
+    let (_root, mut s, saved) = page_macro_session("ew-api-orient-old");
     // -202U2 leaves position 10 of -201U1, where the inserted module goes
     let free = free_slot(&s, "-202U2", 12);
     commit(&mut s, &free);
@@ -1366,10 +1335,7 @@ fn a_log_without_orient_replays_unchanged_and_a_page_macro_takes_no_orient() {
         .insert_macro(
             &saved.reference,
             &r0(page_of(&s, "206")),
-            &MacroValues {
-                value_set: Some("4".into()),
-                values: [("assembly".to_owned(), json!(device(&s, "-201U1").to_string()))].into(),
-            },
+            &assembly_values(device(&s, "-201U1"), Some("4")),
             instance(7),
         )
         .unwrap();

@@ -17,7 +17,7 @@ use ew_api::{
 };
 use ew_derive::PageOrder;
 use ew_ids::{Id, Uuid, v5};
-use ew_schema::{Device, LibDocument, LibRef, Part, Record};
+use ew_schema::{Device, LibDocument, LibRef, Part};
 use ew_units::Dec3;
 use serde_json::{Value, json};
 
@@ -110,15 +110,8 @@ fn options(libraries: Option<LibraryTiers>) -> SessionOptions {
 /// Golden A with the libraries of `tiers`.
 fn golden(tiers: Option<LibraryTiers>) -> Session {
     let batch = golden_common::batch();
-    let mut project = None;
-    let mut records = Vec::new();
-    for r in &batch.records {
-        match r {
-            Record::Project(p) => project = Some(p.clone()),
-            other => records.push(other.clone()),
-        }
-    }
-    Session::from_records(project.unwrap(), records, batch.lib.clone(), options(tiers)).unwrap()
+    let (project, records) = common::split(&batch);
+    Session::from_records(project, records, batch.lib.clone(), options(tiers)).unwrap()
 }
 
 fn lib_ref(lib: Uuid, item: Uuid) -> LibRef {
@@ -175,6 +168,34 @@ fn part_uses(s: &Session, d: Id<Device>) -> Vec<Uuid> {
         .iter()
         .map(|u| u.part.copy.as_uuid())
         .collect()
+}
+
+/// A library document as JSON with the hash of its item (as a copy carries it).
+fn with_hash(v: Value) -> Value {
+    let doc = LibDocument::from_value(v).unwrap();
+    let hash = ew_commands::commands::library_copy_hash(&doc).unwrap();
+    let mut v = serde_json::to_value(&doc).unwrap();
+    v["sha256"] = json!(ew_schema::Sha256(hash).to_string());
+    v
+}
+
+/// -102G1 takes the company library's 2904602 in place of Golden A's copy: the library, the item and the part use
+/// that the project holds afterwards.
+fn replace_2904602_on_g1(s: &mut Session, lib: Uuid) -> (Id<Device>, Uuid) {
+    let g1 = device(s, "-102G1");
+    let item = item_of("2904602");
+    let cmd = s
+        .assign_part(
+            &[g1.as_uuid()],
+            &lib_ref(lib, item),
+            AssignMode::Replace {
+                from: golden_copy("2904602"),
+            },
+            Dec3::ONE,
+        )
+        .unwrap();
+    s.execute(&cmd).unwrap();
+    (g1, item)
 }
 
 /// Commits a command, through a preview when it is bulk.
@@ -330,10 +351,7 @@ fn em2_every_rejection_of_part_assign_names_its_pointer() {
     let mut other = copies[0].clone();
     other["version"] = json!("1.0.1");
     other["description"] = json!("Miniature circuit breaker 1P+N, C10");
-    let doc = LibDocument::from_value(other).unwrap();
-    let hash = ew_commands::commands::library_copy_hash(&doc).unwrap();
-    let mut other = serde_json::to_value(&doc).unwrap();
-    other["sha256"] = json!(ew_schema::Sha256(hash).to_string());
+    let other = with_hash(other);
     let (p, m) = run(
         &mut s,
         json!({"devices": [f1], "part": lib_part, "copies": [other]}),
@@ -435,19 +453,7 @@ fn em4_replacing_a_part_across_devices_lists_them_and_commits_once() {
 fn em5_a_patch_update_shows_the_field_diff_and_the_device() {
     let (_root, t, lib) = company("ew-api-em5");
     let mut s = golden(Some(t));
-    let g1 = device(&s, "-102G1");
-    let item = item_of("2904602");
-    let cmd = s
-        .assign_part(
-            &[g1.as_uuid()],
-            &lib_ref(lib, item),
-            AssignMode::Replace {
-                from: golden_copy("2904602"),
-            },
-            Dec3::ONE,
-        )
-        .unwrap();
-    s.execute(&cmd).unwrap();
+    let (g1, item) = replace_2904602_on_g1(&mut s, lib);
     let copy = copy_in(lib, item);
     let state = |s: &Session| {
         s.library_status()
@@ -514,19 +520,7 @@ fn em5_a_patch_update_shows_the_field_diff_and_the_device() {
 fn em9_an_update_embeds_the_new_versions_missing_closure_or_is_refused() {
     let (_root, t, lib) = company("ew-api-em9");
     let mut s = golden(Some(t));
-    let g1 = device(&s, "-102G1");
-    let item = item_of("2904602");
-    let cmd = s
-        .assign_part(
-            &[g1.as_uuid()],
-            &lib_ref(lib, item),
-            AssignMode::Replace {
-                from: golden_copy("2904602"),
-            },
-            Dec3::ONE,
-        )
-        .unwrap();
-    s.execute(&cmd).unwrap();
+    let (_, item) = replace_2904602_on_g1(&mut s, lib);
     let copy = copy_in(lib, item);
     // The next version names a new manufacturer of the library.
     let maker_item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_0640);
@@ -589,11 +583,7 @@ fn held_symbol(s: &Session, key: &str) -> Value {
 /// A changed library document: version 9.0.0 and the hash of its item.
 fn rehashed(mut v: Value) -> Value {
     v["version"] = json!("9.0.0");
-    let doc = LibDocument::from_value(v).unwrap();
-    let hash = ew_commands::commands::library_copy_hash(&doc).unwrap();
-    let mut v = serde_json::to_value(&doc).unwrap();
-    v["sha256"] = json!(ew_schema::Sha256(hash).to_string());
-    v
+    with_hash(v)
 }
 
 /// EM-6 (FR-SYM-016, D9): a symbol update that moves the anchor is minor and changes cross-reference texts, which the
@@ -807,10 +797,7 @@ fn library_update_refuses_what_it_cannot_update() {
     profile["library_id"] = json!(lib.to_string());
     profile["item_id"] = json!(profile_item.to_string());
     profile["id"] = json!(copy_in(lib, profile_item).to_string());
-    let doc = LibDocument::from_value(profile).unwrap();
-    let mut profile = serde_json::to_value(&doc).unwrap();
-    profile["sha256"] =
-        json!(ew_schema::Sha256(ew_commands::commands::library_copy_hash(&doc).unwrap()).to_string());
+    let profile = with_hash(profile);
     for (doc, want) in [
         (
             symbol,
@@ -828,13 +815,9 @@ fn library_update_refuses_what_it_cannot_update() {
     }
     let mut lower = golden_part("2904602");
     lower["description"] = json!("older");
-    let mut lower = rehashed(lower);
     lower["version"] = json!("0.9.0");
-    let doc = LibDocument::from_value(lower).unwrap();
-    let mut lower = serde_json::to_value(&doc).unwrap();
-    lower["sha256"] =
-        json!(ew_schema::Sha256(ew_commands::commands::library_copy_hash(&doc).unwrap()).to_string());
-    let (p, m) = run(&mut s, json!({"copies": [lower.clone()]}));
+    let lower = with_hash(lower);
+    let (p, m) = run(&mut s, json!({"copies": [lower]}));
     assert_eq!(p, "/copies/0/version");
     assert!(m.contains("downgrade"), "{m}");
     let (p, _) = run(
@@ -881,10 +864,7 @@ fn em8_a_deprecated_part_offers_its_successor() {
     v["id"] = json!(copy_in(lib, item).to_string());
     v["manufacturer"]["library"] = json!(lib.to_string());
     v["manufacturer"]["version_req"] = json!("^1");
-    let doc = LibDocument::from_value(v).unwrap();
-    let mut v = serde_json::to_value(&doc).unwrap();
-    v["sha256"] =
-        json!(ew_schema::Sha256(ew_commands::commands::library_copy_hash(&doc).unwrap()).to_string());
+    let v = with_hash(v);
     let maker = serde_json::to_value(s.libraries().closure(&lib_ref(lib, item)).unwrap()[1].clone()).unwrap();
     s.execute(&AnyCommand {
         name: "part.assign".into(),
@@ -951,11 +931,7 @@ fn before_ft698(doc: &LibDocument) -> LibDocument {
         a["slots"].as_array_mut().unwrap().retain(|i| *i != index);
     }
     v["version"] = json!("0.1.0");
-    let doc = LibDocument::from_value(v).unwrap();
-    let hash = ew_commands::commands::library_copy_hash(&doc).unwrap();
-    let mut v = serde_json::to_value(&doc).unwrap();
-    v["sha256"] = json!(ew_schema::Sha256(hash).to_string());
-    LibDocument::from_value(v).unwrap()
+    LibDocument::from_value(with_hash(v)).unwrap()
 }
 
 /// The key of a symbol document.
@@ -992,15 +968,8 @@ fn ft698_update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
         *doc = before;
     }
     assert_eq!(current.len(), GOLDEN_PRE_FT698.len());
-    let mut project = None;
-    let mut records = Vec::new();
-    for r in &batch.records {
-        match r {
-            Record::Project(p) => project = Some(p.clone()),
-            other => records.push(other.clone()),
-        }
-    }
-    let mut s = Session::from_records(project.unwrap(), records, lib, options(None)).unwrap();
+    let (project, records) = common::split(&batch);
+    let mut s = Session::from_records(project, records, lib, options(None)).unwrap();
     let copies: Vec<Uuid> = current
         .iter()
         .map(|d| match d {
@@ -1070,19 +1039,7 @@ fn ft698_update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
 fn a_damaged_copy_is_named_by_its_installed_part() {
     let (root, t, lib) = company("ew-api-damaged-named");
     let mut s = golden(Some(t.clone()));
-    let g1 = device(&s, "-102G1");
-    let item = item_of("2904602");
-    let cmd = s
-        .assign_part(
-            &[g1.as_uuid()],
-            &lib_ref(lib, item),
-            AssignMode::Replace {
-                from: golden_copy("2904602"),
-            },
-            Dec3::ONE,
-        )
-        .unwrap();
-    s.execute(&cmd).unwrap();
+    let (_, item) = replace_2904602_on_g1(&mut s, lib);
     let dir = root.0.join("project");
     s.create(&dir, ew_api::StoreOptions::new("0.0.0-test")).unwrap();
     s.close();

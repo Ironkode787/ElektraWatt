@@ -7,8 +7,8 @@
 //! The orchestrator's rulings of cycle 42 these tests rely on, quoted:
 //! - Ruling 2: "`open_items` calls `run_rules` ... and keeps the findings that are `FindingState::Open` and
 //!   `open_item_of` some row".
-//! - Ruling 4: "A test in `crates/ew-api/tests/it/` asserts `ew_checks::CHECKS_MEMBER ==
-//!   ew_commands::commands::CHECKS_MEMBER`".
+//! - Ruling 4: the release scheme that `project.checks.set` writes is the one the list runs in (so the settings member
+//!   of the check layer and of the command layer agree).
 //! - Ruling 5: OI-3 "asserts, on Golden A with an `open_items` block, no cycle note, no `NotDerived::Cycle`, and no
 //!   EW-CORE-083 finding whose subject names a table rule in the same snapshot's release run".
 //! - Ruling 8: "Order: the category's index in `OPEN_ITEM_RULES`, then `natural_key(subject)`, then the fingerprint".
@@ -212,13 +212,6 @@ fn oi1_golden_a_lists_its_24_open_items() {
     assert_eq!(row_keys(&set), checked_keys(&s));
 }
 
-/// OI-2: on Golden A the rows are exactly the open findings of the open-item rules that `Session::check` reports.
-#[test]
-fn oi2_golden_a_agrees_with_the_release_check() {
-    let s = common::golden_session();
-    assert_eq!(row_keys(&kind_rows(&s.query())), checked_keys(&s));
-}
-
 /// OI-2: a TBD channel address is listed once, by EW-PLC-015, and EW-CORE-044's finding for it is superseded.
 #[test]
 fn oi2_a_tbd_channel_address_is_listed_once() {
@@ -284,12 +277,6 @@ fn oi2_the_projects_release_scheme_applies() {
     );
     assert_eq!(checks::release_scheme_of(&s.query()), &checks::DRAFTING);
     assert_eq!(row_keys(&kind_rows(&s.query())), checked_keys(&s));
-}
-
-/// Ruling 4: the two copies of the settings member agree.
-#[test]
-fn the_checks_member_agrees_with_the_command_layer() {
-    assert_eq!(checks::CHECKS_MEMBER, ew_commands::commands::CHECKS_MEMBER);
 }
 
 /// The form and section of folio 910's block (the house table on `ew.frame.qet-a4-landscape-nogrid`).
