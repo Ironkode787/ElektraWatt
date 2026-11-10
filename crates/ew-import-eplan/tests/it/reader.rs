@@ -6,43 +6,7 @@
 use ew_import_eplan::read;
 
 fn zip(name: &str, data: &[u8]) -> Vec<u8> {
-    let mut out = Vec::new();
-    let crc = crc32fast::hash(data);
-    out.extend(b"PK\x03\x04");
-    for n in [20u16, 0, 0, 0, 0] {
-        out.extend(n.to_le_bytes());
-    }
-    for n in [crc, data.len() as u32, data.len() as u32] {
-        out.extend(n.to_le_bytes());
-    }
-    out.extend((name.len() as u16).to_le_bytes());
-    out.extend(0u16.to_le_bytes());
-    out.extend(name.as_bytes());
-    out.extend(data);
-    let start = out.len() as u32;
-    out.extend(b"PK\x01\x02");
-    for n in [20u16, 20, 0, 0, 0, 0] {
-        out.extend(n.to_le_bytes());
-    }
-    for n in [crc, data.len() as u32, data.len() as u32] {
-        out.extend(n.to_le_bytes());
-    }
-    for n in [name.len() as u16, 0, 0, 0, 0] {
-        out.extend(n.to_le_bytes());
-    }
-    for n in [0u32, 0] {
-        out.extend(n.to_le_bytes());
-    }
-    out.extend(name.as_bytes());
-    let size = out.len() as u32 - start;
-    out.extend(b"PK\x05\x06");
-    for n in [0u16, 0, 1, 1] {
-        out.extend(n.to_le_bytes());
-    }
-    out.extend(size.to_le_bytes());
-    out.extend(start.to_le_bytes());
-    out.extend(0u16.to_le_bytes());
-    out
+    zip_of(&[Entry::stored(name, data)], None)
 }
 
 #[test]

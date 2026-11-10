@@ -36,7 +36,7 @@ pub(crate) fn faces() -> BTreeMap<FontKey, SvgFace> {
         .collect()
 }
 
-fn options() -> SvgOptions {
+pub(crate) fn options() -> SvgOptions {
     SvgOptions {
         faces: faces(),
         ..SvgOptions::default()

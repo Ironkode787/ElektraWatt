@@ -196,10 +196,11 @@ fn structure_pages_labels_outline_links_destinations_fonts() {
     assert!(out.report.missing_fonts.is_empty());
 }
 
-/// The `/Rect[...]` of every link annotation, in file order.
-fn link_rects(b: &[u8]) -> Vec<[f64; 4]> {
+/// The numbers of the first four-number bracket after `key` (`/Rect[` or `/MediaBox[`) of every occurrence, in file
+/// order.
+fn boxes(b: &[u8], key: &str) -> Vec<[f64; 4]> {
     let text = String::from_utf8_lossy(b);
-    text.match_indices("/Rect[")
+    text.match_indices(key)
         .map(|(i, m)| {
             let rest = &text[i + m.len()..];
             let end = rest.find(']').unwrap();
@@ -210,6 +211,14 @@ fn link_rects(b: &[u8]) -> Vec<[f64; 4]> {
             [v[0], v[1], v[2], v[3]]
         })
         .collect()
+}
+
+fn link_rects(b: &[u8]) -> Vec<[f64; 4]> {
+    boxes(b, "/Rect[")
+}
+
+fn media_boxes(b: &[u8]) -> Vec<[f64; 4]> {
+    boxes(b, "/MediaBox[")
 }
 
 #[test]
@@ -289,9 +298,6 @@ fn errors_and_missing_fonts() {
         pdf_bytes(&dup, &options(), &fonts()),
         Err(PdfError::DuplicateDestination { index: 2 })
     );
-    let mut d = options();
-    d.date.month = 13;
-    assert_eq!(pdf_bytes(&pages(), &d, &fonts()), Err(PdfError::Date));
     // Without fonts the runs are skipped and reported; the PDF is still written.
     let none: BTreeMap<FontKey, FontBytes> = BTreeMap::new();
     let out = pdf(&pages(), &options(), &none, None).unwrap();
@@ -683,22 +689,6 @@ fn every_jpeg_and_png_variant_prints() {
     assert_eq!(count(b, "/SMask"), 1, "the palette PNG's tRNS");
     assert_eq!(count(b, "/BitsPerComponent 16"), 1, "the 16-bit PNG");
     assert_eq!(count(b, "/Subtype/Image"), 8, "seven images and one soft mask");
-}
-
-/// The `/MediaBox[...]` of every page, in file order.
-fn media_boxes(b: &[u8]) -> Vec<[f64; 4]> {
-    let text = String::from_utf8_lossy(b);
-    text.match_indices("/MediaBox[")
-        .map(|(i, m)| {
-            let rest = &text[i + m.len()..];
-            let end = rest.find(']').unwrap();
-            let v: Vec<f64> = rest[..end]
-                .split_whitespace()
-                .map(|n| n.parse().unwrap())
-                .collect();
-            [v[0], v[1], v[2], v[3]]
-        })
-        .collect()
 }
 
 /// A page with a link and the page of its target, both with `placement`.

@@ -10,13 +10,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_dl::{Destination, DisplayList, FontKey, Item};
-use ew_export::{Parallelism, SvgFace, SvgOptions, svg};
+use ew_export::{Parallelism, SvgFace, svg};
 use ew_text::{Family, TextStyle, Weight, bundled};
 use ew_units::{Nm, Pt2};
 use uuid::Uuid;
 
 use crate::font_subset::{glyph_bytes, glyph_of, outline_commands};
-use crate::svg::faces;
+use crate::svg::{faces, options};
 
 fn style(family: Family, weight: Weight) -> TextStyle {
     TextStyle {
@@ -44,13 +44,6 @@ fn page(n: u128, items: Vec<Item>) -> ew_export::PdfPage {
         height: Nm::from_mm(210),
         content: DisplayList { items },
         placement: None,
-    }
-}
-
-fn options() -> SvgOptions {
-    SvgOptions {
-        faces: faces(),
-        ..SvgOptions::default()
     }
 }
 
