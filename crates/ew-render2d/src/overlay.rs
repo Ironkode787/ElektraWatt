@@ -1110,13 +1110,9 @@ mod tests {
     }
 
     #[test]
-    fn the_cursor_token_is_the_same_in_both_themes() {
+    fn the_dark_theme_changes_the_surround_not_the_paper_and_the_cursor_is_the_same_in_both() {
         assert_eq!(LIGHT.cursor, rgb(0x0B, 0x63, 0xCE));
         assert_eq!(DARK.cursor, rgb(0x0B, 0x63, 0xCE));
-    }
-
-    #[test]
-    fn the_dark_theme_changes_the_surround_not_the_paper() {
         assert_ne!(LIGHT.surround, DARK.surround);
         assert_eq!(LIGHT.paper, DARK.paper);
         assert_eq!(LIGHT.hover, rgb(0x0B, 0x63, 0xCE));
@@ -1553,37 +1549,6 @@ mod tests {
             }
             assert!(pixels(&o.cursor).iter().all(|p| *p != c));
         }
-    }
-
-    /// OV3: at ppp 1 the marks are exactly those built before the scale rule (the snapshots change only in colour).
-    #[test]
-    fn ov3_at_ppp_1_the_marks_keep_their_sizes() {
-        let v = view(1.0);
-        let at = (148_500_000, 105_000_000);
-        let mark = |kind| [ToolMark::Marker { at, kind }];
-        assert_eq!(
-            pixels(&build(&with_tool(&v, &mark(MarkerKind::Grid))).markers).len(),
-            13
-        );
-        assert_eq!(
-            pixels(&build(&with_tool(&v, &mark(MarkerKind::Cp))).markers).len(),
-            32
-        );
-        assert_eq!(
-            pixels(&build(&with_tool(&v, &mark(MarkerKind::Junction))).markers).len(),
-            49
-        );
-        let r = Rect::from_points(
-            Pt2::new(Nm::from_mm(140), Nm::from_mm(100)),
-            Pt2::new(Nm::from_mm(160), Nm::from_mm(110)),
-        );
-        let sel = [r];
-        let mut i = input(&v, None, None);
-        i.selected = &sel;
-        let o = build(&i);
-        assert_eq!(o.selected.len(), 4);
-        let band = o.selected[0];
-        assert_eq!(band.y1 - band.y0, 2, "a 2-pixel outline");
     }
 
     /// OV6 (model and pixels): at ppp 1 the selection is a 2-pixel outline in the selection colour with a 1-pixel

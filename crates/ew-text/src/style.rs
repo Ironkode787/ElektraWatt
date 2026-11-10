@@ -269,13 +269,12 @@ mod tests {
     #[test]
     fn rows_keys_and_order() {
         let rows = builtin_rows();
-        assert_eq!(rows.len(), 14);
         let keys: Vec<&str> = rows.iter().map(|r| r.key).collect();
         assert_eq!(keys, KEYS);
         let mut sorted = keys.clone();
         sorted.sort_unstable();
         sorted.dedup();
-        assert_eq!(sorted.len(), 14);
+        assert_eq!(sorted.len(), keys.len());
         let table: Vec<(&str, Nm, Weight)> = builtin()
             .rows()
             .iter()
