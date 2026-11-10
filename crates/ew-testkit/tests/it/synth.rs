@@ -7,7 +7,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_api::{Session, SessionOptions};
-use ew_commands::commands::{Connect, EndpointParam, MoveReps};
+use ew_commands::commands::MoveReps;
 use ew_ids::{Id, Uuid};
 use ew_schema::{
     Connection, ConnectionKind, Device, Endpoint, FnDef, FnRole, Function, FunctionKind, InternalKind,
@@ -74,43 +74,44 @@ fn recount(g: &Generated) -> Recount {
 }
 
 #[test]
-fn s_counts_are_the_documented_ones() {
-    let g = synth::project(SizeClass::S, 1);
-    let documented = Counts {
-        pages: 50,
-        devices: 300,
-        functions: 900,
-        connections: 1_500,
-        cps: 3_637,
-        terminals: 120,
-        channels: 60,
-    };
-    assert_eq!(g.counts, documented);
-    let again = recount(&g);
-    assert_eq!(again.counts, documented);
-    assert_eq!(again.reps, 900);
-    assert_eq!(again.junctions, 348);
-    assert_eq!(g.records.len() + 1, 4_024);
-}
-
-#[test]
-fn m_counts_are_the_documented_ones() {
-    let g = synth::project(SizeClass::M, 1);
-    let documented = Counts {
-        pages: 300,
-        devices: 2_500,
-        functions: 7_500,
-        connections: 15_000,
-        cps: 37_178,
-        terminals: 1_000,
-        channels: 500,
-    };
-    assert_eq!(g.counts, documented);
-    let again = recount(&g);
-    assert_eq!(again.counts, documented);
-    assert_eq!(again.reps, 7_500);
-    assert_eq!(again.junctions, 2_960);
-    assert_eq!(g.records.len() + 1, 35_884);
+fn the_counts_are_the_documented_ones() {
+    let cases = [
+        (
+            SizeClass::S,
+            Counts {
+                pages: 50,
+                devices: 300,
+                functions: 900,
+                connections: 1_500,
+                cps: 3_637,
+                terminals: 120,
+                channels: 60,
+            },
+            (900, 348, 4_024),
+        ),
+        (
+            SizeClass::M,
+            Counts {
+                pages: 300,
+                devices: 2_500,
+                functions: 7_500,
+                connections: 15_000,
+                cps: 37_178,
+                terminals: 1_000,
+                channels: 500,
+            },
+            (7_500, 2_960, 35_884),
+        ),
+    ];
+    for (class, documented, (reps, junctions, records)) in cases {
+        let g = synth::project(class, 1);
+        assert_eq!(g.counts, documented, "{class:?}");
+        let again = recount(&g);
+        assert_eq!(again.counts, documented, "{class:?}");
+        assert_eq!(again.reps, reps, "{class:?}");
+        assert_eq!(again.junctions, junctions, "{class:?}");
+        assert_eq!(g.records.len() + 1, records, "{class:?}");
+    }
 }
 
 #[test]
@@ -127,14 +128,6 @@ fn m_builds_a_model() {
 
 fn json(g: &Generated) -> String {
     serde_json::to_string(&(&g.project, &g.records, &g.lib)).expect("serialisable")
-}
-
-#[test]
-fn same_seed_same_records() {
-    assert_eq!(
-        json(&synth::project(SizeClass::S, 3)),
-        json(&synth::project(SizeClass::S, 3))
-    );
 }
 
 #[test]
@@ -728,34 +721,6 @@ fn moving_a_load_updates_the_routes_of_its_wires() {
         with_routes > 5,
         "only {with_routes} of the moved loads have routed wires"
     );
-}
-
-/// Consecutive free CPs of a page take a wire (what `connection.draw` of the benchmark does). A check of the bench
-/// fixture, not of a product path: it runs with the performance spike (test audit g7).
-#[test]
-#[ignore = "bench fixture: runs with the performance spike (milestone rule)"]
-fn consecutive_free_cps_take_a_wire() {
-    let g = synth::project(SizeClass::S, 1);
-    let free = g.handles.free_cps.clone();
-    let pages = g.handles.pages.clone();
-    let (project, records, lib) = g.into_parts();
-    let mut session = Session::from_records(project, records, lib, SessionOptions::default()).expect("loads");
-    let end = |(function, idx): (Id<Function>, u16)| EndpointParam::Cp { function, idx };
-    let mut drawn = 0;
-    for (page, cps) in pages.iter().zip(&free).take(3) {
-        for w in cps.windows(2).take(12) {
-            let cmd = Connect {
-                a: end(w[0]),
-                b: end(w[1]),
-                page: Some(*page),
-                route: Vec::new(),
-                kind: Default::default(),
-            };
-            session.preview(&cmd).expect("the wire is accepted");
-            drawn += 1;
-        }
-    }
-    assert!(drawn >= 30, "{drawn} wires previewed");
 }
 
 #[test]

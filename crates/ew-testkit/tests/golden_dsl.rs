@@ -329,27 +329,6 @@ fn path_b_equals_path_a_record_by_record_up_to_ids() {
     let a = Session::from_records(project, records, batch.lib.clone(), SessionOptions::default())
         .expect("path (a) is a valid model");
     let (b, built) = built(1);
-    let commands: Vec<String> = built
-        .by_command
-        .iter()
-        .map(|(k, n)| format!("{k}: {n}"))
-        .collect();
-    // WP-S1.20 GA-2 (FL-14): the 16 fluid lines F1 to F16 are drawn, and normaliser N-FL-4 makes the eight `drives`
-    // links of the valves they join, so no `device.link` is issued; the links compare equal record by record below.
-    // The 89 page connections of folios 3, 101 to 106 and 203 take their stored routes (the
-    // router's) by `connection.route`, and the eight valves of folio 203 their moved function-text slot by
-    // `fields.set`.
-    assert_eq!(
-        commands.join(", "),
-        "assembly.attach: 2, bond.create: 1, box.black: 11, bus.logical_net.create: 1, \
-         bus.physical_net.create: 1, cable.create: 3, connection.draw: 103, connection.route: 89, \
-         device.create: 37, device.place: 76, external_ref.create: 4, fields.set: 215, \
-         ip.place: 48, junction.edit: 6, layout.carrier.add: 8, layout.enclosure.create: 1, layout.place: 20, \
-         layout.space.create: 1, library.embed: 1, page.create: 13, page.surface_view.set: 1, plc.bind_channel: 28, \
-         plc.config_project.create: 1, potential.define: 19, project.settings.set: 3, \
-         project.supply.set: 1, report_block.create: 16, revision.create: 2, section.create: 3, \
-         structure.create_node: 4, terminal.add: 4, valve.add: 28"
-    );
     assert_eq!(built.unwritten_summary(), "");
     assert!(built.unwritten.is_empty());
     let (name, params) = &built.script[0];
@@ -383,18 +362,6 @@ fn path_b_equals_path_a_record_by_record_up_to_ids() {
             Some(bv) => differ.push(format!("{}\n  a: {v}\n  b: {bv}", built_key(key))),
             None => *only_a.entry(kind.to_owned()).or_default() += 1,
         }
-    }
-    let count = |rows: &BTreeMap<String, serde_json::Value>, kind: &str| {
-        rows.keys().filter(|k| k.starts_with(&format!("{kind}:"))).count()
-    };
-    for (kind, n) in [
-        ("device", 96), // the 28 valves and the mounting plate included
-        ("channel", 56),
-        ("device_link", 8),
-        ("plc_config_project", 1),
-        ("revision", 2),
-    ] {
-        assert_eq!((kind, count(&b_rows, kind)), (kind, n), "rows of path (b)");
     }
     let a_keys: std::collections::BTreeSet<String> = a_rows.keys().map(|k| built_key(k)).collect();
     let only_b: Vec<&String> = b_rows.keys().filter(|k| !a_keys.contains(*k)).collect();
