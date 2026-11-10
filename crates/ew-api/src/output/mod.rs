@@ -43,14 +43,8 @@
 //! **The print set** ([`mod@print`]): the same pages placed on a paper ([`ew_export::PagePlacement`]),
 //! stamped when scaled, and written by the same writer; [`PageSelection::Sections`] selects pages by section for both.
 
-// The edit-cable table's gestures (§7).
-mod cable_edit;
-pub(crate) mod clipboard;
 mod editing;
 mod fields;
-mod find;
-// The history panel's rows (§4.2).
-mod history;
 // The export as a job (D4).
 mod job;
 // The devices a placed symbol can join (D1, D2).
@@ -62,15 +56,13 @@ mod navigation;
 mod navigators;
 // The surface view of a panel-layout page (D9, D10).
 pub(crate) mod panel;
-// What a PLC channel dropped on a field device can do.
-mod plc_bind;
 // The labelled entity list of a preview (§4.2).
-mod preview;
+pub(crate) mod preview;
 // The print set (D5 to D7).
 pub mod print;
 // `ew diff` and its textconv (D26, D27)
 mod project_diff;
-mod properties;
+pub(crate) mod properties;
 // Page rasters (D7) and the row exports (D8); WP-S3.08 part 1: their XLSX and CSV presets.
 mod raster;
 mod rows;
@@ -100,10 +92,6 @@ use ew_scene::page::PageFinding;
 use ew_schema::Section;
 use sha2::{Digest, Sha256};
 
-pub use clipboard::{
-    CopiedFragment, CopyError, FRAGMENT_HEADER, FragmentError, ParsedFragment, parse_fragment,
-    parse_fragment_with,
-};
 pub use editing::{
     CatalogueSymbol, JunctionWire, PageTables, PlaceCatalogue, SymbolShape, TableConnection, TableCp,
     TableEnd, TableItem, TableJunction, TablePotential, TableRep, TableStructureBox, exchange_map,
@@ -117,8 +105,6 @@ pub use fields::{
     Category, EditRoute, FieldReadOnly, FieldType, InputError, ParsedInput, field_catalogue,
     field_catalogue_for, format_field_value,
 };
-pub use find::{FindError, FindField, FindHit, FindQuery, FindResults};
-pub use history::{HistoryRow, HistoryView};
 pub use job::{ExportJob, PrintSetJob};
 pub use layers::{
     CarriersLayer, FrameLayer, LabelsLayer, PageLayer, PlacementsLayer, SurfaceLayer, SymbolsLayer,
@@ -147,7 +133,6 @@ pub use navigators::{
     NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key, tokens as nav_tokens,
 };
 pub use panel::{PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page};
-pub use plc_bind::OffCardBind;
 pub use preview::PreviewEntity;
 pub use project_diff::textconv;
 pub use properties::{

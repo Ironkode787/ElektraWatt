@@ -680,7 +680,7 @@ impl Session {
 }
 
 /// The device's tag as displayed on its main page, else its short tag.
-pub(super) fn device_tag_text(q: &Q, device: Id<Device>) -> String {
+pub(crate) fn device_tag_text(q: &Q, device: Id<Device>) -> String {
     let main_page = (*q.get::<MainRep>(device)).and_then(|r| q.reps().get(r).map(|rep| rep.page));
     match main_page {
         Some(page) => q.get::<DisplayedTag>((device, page)).as_ref().clone(),

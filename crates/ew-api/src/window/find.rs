@@ -31,8 +31,8 @@ use ew_derive::{Cell, DeviceTag, MainRep, PageOrder, PageRef, Q, RepAnchorCell, 
 use ew_schema::{Device, Function, Kind, Page, Representation};
 use serde_json::{Value, json};
 
-use super::fields::{FieldType, format_field_value};
 use crate::Session;
+use crate::output::{FieldType, format_field_value};
 
 /// The most hits a search returns; beyond, the results are `truncated` and replace is refused.
 const MAX_HITS: usize = 10_000;
@@ -466,7 +466,7 @@ impl Session {
                 continue;
             }
             let cell = main.and_then(|r| (*q.get::<RepAnchorCell>(r)).clone());
-            let subject = super::properties::device_tag_text(&q, d);
+            let subject = crate::output::properties::device_tag_text(&q, d);
             let Ok(json) = serde_json::to_value(&**device) else {
                 continue;
             };

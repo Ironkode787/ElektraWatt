@@ -13,7 +13,7 @@ use crate::golden_common;
 use std::path::{Path, PathBuf};
 
 use ew_api::library::{LibraryTiers, Registry};
-use ew_api::output::parse_fragment;
+use ew_api::window::parse_fragment;
 use ew_api::{
     AnyCommand, CmdError, CmdLog, InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, MacroValues,
     SavedMacro, Session, SessionOptions,

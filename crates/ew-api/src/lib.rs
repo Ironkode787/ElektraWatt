@@ -27,6 +27,11 @@
 //! The PDF export also runs as a job ([`Session::export_job`], WP-S2.09 part 1): a snapshot with a cold `Q` on a
 //! thread of [`ew_jobs`], with progress and cooperative cancel.
 //!
+//! **What only the window shows and edits** ([`window`]): the clipboard, find and replace, the history rows, the
+//! cable-core swap and the PLC drop. [`output`] holds what both front ends reach, the property sheet and the
+//! navigators included, because the command line's table export and import go through them; it never names
+//! [`window`].
+//!
 //! **The release gate and the sign-off**. [`Session::release_gate`] runs the gate on the saved
 //! generation with its content digest; [`Session::approve`] records the checker's sign-off (`revision.approve`, which
 //! only it submits).
@@ -101,6 +106,7 @@ pub mod output;
 mod part_editor;
 mod part_offers;
 pub mod symbols;
+pub mod window;
 // The public queries of `ew query` and `--explain` (D11, D12).
 pub mod queries;
 // The release gate and the sign-off (D8 to D10).

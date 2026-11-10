@@ -13,7 +13,7 @@ use crate::golden_common;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use ew_api::output::{CopyError, FragmentError, parse_fragment};
+use ew_api::window::{CopyError, FragmentError, parse_fragment};
 use ew_api::{
     AnyCommand, CmdError, NewProjectKind, Origin, ProjectTemplate, Receipt, Session, SessionOptions,
 };
@@ -1385,7 +1385,7 @@ fn at_v0(text: &str) -> String {
 /// format, refuses it with the text it always had, as it refuses an older record of the current format.
 #[test]
 fn mg6_ft403_an_older_fragment_pastes_through_the_test_chain() {
-    use ew_api::output::parse_fragment_with;
+    use ew_api::window::parse_fragment_with;
     let older_text =
         "copied from an older ElektraWatt format; open and save that project with this version first";
     let text = valid_text();
@@ -1436,7 +1436,7 @@ static ITEM_CHAIN: ew_store::ew_format::Migrations = ew_store::ew_format::Migrat
 /// copy (one copy).
 #[test]
 fn a_migrated_copy_takes_its_migrated_items_hash_and_pastes_as_the_held_copy() {
-    use ew_api::output::parse_fragment_with;
+    use ew_api::window::parse_fragment_with;
     use ew_store::ew_format::{library_copy_hash, sha256};
     const ENVELOPE: [&str; 6] = ["$v", "id", "library_id", "item_id", "version", "sha256"];
     let text = valid_text();

@@ -108,7 +108,7 @@ pub(super) fn library_name(q: &Q, kind: ew_schema::Kind, id: Uuid, source: Optio
 
 /// The lines of `diff` in §4.2's order: labels from `current`, an added record's from `candidate` (else from
 /// `current`, where it has none and its label is empty).
-pub(super) fn entities_of(diff: &ModelDiff, current: &Q, candidate: Option<&Q>) -> Vec<PreviewEntity> {
+pub(crate) fn entities_of(diff: &ModelDiff, current: &Q, candidate: Option<&Q>) -> Vec<PreviewEntity> {
     let mut out: Vec<PreviewEntity> = diff
         .changes
         .iter()

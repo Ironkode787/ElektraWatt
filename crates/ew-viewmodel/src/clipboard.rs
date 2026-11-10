@@ -52,7 +52,7 @@ pub struct ClipboardState {
 /// `$lib` or `$node` lines; else plain text with its line count.
 pub fn classify(text: &str) -> ClipKind {
     let mut lines = text.lines();
-    if lines.next() == Some(ew_api::output::FRAGMENT_HEADER) {
+    if lines.next() == Some(ew_api::window::FRAGMENT_HEADER) {
         let body: Vec<&str> = lines.skip(1).filter(|l| !l.trim().is_empty()).collect();
         let copies = body.iter().filter(|l| l.starts_with("{\"$lib\"")).count();
         let nodes = body.iter().filter(|l| l.starts_with("{\"$node\"")).count();
@@ -113,21 +113,21 @@ impl ClipboardState {
 }
 
 /// The reason key of a copy refusal.
-pub fn copy_refusal(e: ew_api::output::CopyError) -> Key<'static> {
+pub fn copy_refusal(e: ew_api::window::CopyError) -> Key<'static> {
     match e {
-        ew_api::output::CopyError::Empty => key!("reason-nothing-selected"),
-        ew_api::output::CopyError::NotOnePage => key!("reason-copy-pages"),
-        ew_api::output::CopyError::Generated => key!("reason-copy-generated"),
+        ew_api::window::CopyError::Empty => key!("reason-nothing-selected"),
+        ew_api::window::CopyError::NotOnePage => key!("reason-copy-pages"),
+        ew_api::window::CopyError::Generated => key!("reason-copy-generated"),
     }
 }
 
 /// The banner text of a fragment that does not read (other than plain text, which is refused quietly).
-pub fn fragment_banner(e: &ew_api::output::FragmentError) -> String {
+pub fn fragment_banner(e: &ew_api::window::FragmentError) -> String {
     strings::format(key!("banner-paste-refused"), &[&fragment_words(e)])
 }
 
 /// A fragment's error in the window's language.
-pub fn fragment_words(e: &ew_api::output::FragmentError) -> String {
+pub fn fragment_words(e: &ew_api::window::FragmentError) -> String {
     crate::shell::tools::rejected_words(&e.to_string(), Some(&e.text()))
 }
 

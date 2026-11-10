@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use ew_api::output::{FindError, FindField, FindQuery, FindResults};
+use ew_api::window::{FindError, FindField, FindQuery, FindResults};
 use ew_api::{AnyCommand, Session};
 use serde_json::{Value, json};
 
@@ -152,7 +152,7 @@ fn errors_and_empty_queries() {
 }
 
 /// Every string of Golden A matched (an empty match at the start of each): fewer than 10,000, none truncated (the cap
-/// itself is the unit test `beyond_the_cap_the_results_are_truncated_and_replace_is_refused` of `output::find`).
+/// itself is the unit test `beyond_the_cap_the_results_are_truncated_and_replace_is_refused` of `window::find`).
 #[test]
 fn every_string_and_the_cap() {
     let s = golden();

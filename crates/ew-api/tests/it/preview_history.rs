@@ -7,7 +7,8 @@
 
 use crate::golden_common;
 
-use ew_api::output::{HistoryRow, PreviewEntity};
+use ew_api::output::PreviewEntity;
+use ew_api::window::HistoryRow;
 use ew_api::{AnyCommand, NewProjectKind, Origin, ProjectTemplate, Session, SessionOptions, Submit};
 use ew_derive::ew_ids::Uuid;
 use serde_json::json;

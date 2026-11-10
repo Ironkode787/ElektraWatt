@@ -176,14 +176,14 @@ impl Session {
 
     /// The records the history entry `index` changes, labelled as [`Session::preview_entities`] labels them, from the
     /// current model (Show changes, §8.4); empty for an index out of range.
-    pub fn history_entities(&self, index: usize) -> Vec<super::PreviewEntity> {
+    pub fn history_entities(&self, index: usize) -> Vec<crate::output::PreviewEntity> {
         let Some(entry) = self.history().entry(index) else {
             return Vec::new();
         };
         let Ok(diff) = entry.changes() else {
             return Vec::new();
         };
-        super::preview::entities_of(&diff, &self.query(), None)
+        crate::output::preview::entities_of(&diff, &self.query(), None)
     }
 }
 

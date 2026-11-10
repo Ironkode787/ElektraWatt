@@ -19,7 +19,8 @@
 
 use std::collections::BTreeMap;
 
-use ew_api::output::{HistoryRow, HistoryView, PreviewEntity};
+use ew_api::output::PreviewEntity;
+use ew_api::window::{HistoryRow, HistoryView};
 
 use ew_api::output::ew_dl::EntityRef;
 

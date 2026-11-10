@@ -12,8 +12,8 @@
 
 use std::sync::Arc;
 
-use ew_api::output::OffCardBind;
 use ew_api::output::ew_dl::EntityRef;
+use ew_api::window::OffCardBind;
 use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel, failed, flag, string_param};

@@ -15,7 +15,7 @@
 use std::sync::Arc;
 
 use ew_api::AnyCommand;
-use ew_api::output::ParsedFragment;
+use ew_api::window::ParsedFragment;
 use serde_json::json;
 
 use super::{

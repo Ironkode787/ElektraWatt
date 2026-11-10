@@ -313,7 +313,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     }
 
     /// `edit.paste`: pastes `fragment` (the command's `fragment` member, what
-    /// `ew_api::output::parse_fragment` reads from clipboard text) onto `page` with its anchor at `at` (nm, a grid point
+    /// `ew_api::window::parse_fragment` reads from clipboard text) onto `page` with its anchor at `at` (nm, a grid point
     /// of the page).
     ///
     /// # Errors

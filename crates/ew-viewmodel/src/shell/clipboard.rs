@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::ew_dl::ew_units::{Grid, Nm};
-use ew_api::output::{CopiedFragment, FragmentError, parse_fragment};
+use ew_api::window::{CopiedFragment, FragmentError, parse_fragment};
 use serde_json::{Map, Value};
 
 use super::navigation::bump;

@@ -800,7 +800,7 @@ fn f55_fragment(s: &Session) -> Value {
         .collect();
     assert!(!reps.is_empty(), "F55 is drawn on 101");
     let copied = s.copy_fragment(&reps).unwrap();
-    ew_api::output::parse_fragment(&copied.text).unwrap().params
+    ew_api::window::parse_fragment(&copied.text).unwrap().params
 }
 
 /// `edit.paste` of `fragment` on folio 101 at its own anchor, with `adapt`.

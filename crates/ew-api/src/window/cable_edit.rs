@@ -11,7 +11,7 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Conductor, ConnectionKind, Part};
 use serde_json::json;
 
-use super::navigators::Uuid;
+use crate::output::Uuid;
 use crate::{AnyCommand, Session};
 
 impl Session {

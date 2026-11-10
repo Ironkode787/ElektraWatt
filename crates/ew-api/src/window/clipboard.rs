@@ -1117,7 +1117,7 @@ impl Session {
         }
         let mut tags: Vec<String> = devices
             .into_iter()
-            .map(|d| super::properties::device_tag_text(&q, d))
+            .map(|d| crate::output::properties::device_tag_text(&q, d))
             .filter(|t| !t.is_empty())
             .collect();
         tags.sort_by(|a, b| ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)));

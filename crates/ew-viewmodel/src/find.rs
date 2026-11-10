@@ -13,7 +13,7 @@ use crate::key;
 use crate::strings::Key;
 use std::sync::Arc;
 
-pub use ew_api::output::{FindField, FindHit, FindQuery, FindResults};
+pub use ew_api::window::{FindField, FindHit, FindQuery, FindResults};
 
 use crate::strings;
 
@@ -54,7 +54,7 @@ pub fn field_label_key(f: FindField) -> Key<'static> {
 }
 
 /// Why a search could not run, in the UI language: the error's own text by its key, never the parser's.
-pub fn error_text(e: &ew_api::output::FindError) -> String {
+pub fn error_text(e: &ew_api::window::FindError) -> String {
     let args = e.args();
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     strings::format(Key::run_time(e.key()), &args)

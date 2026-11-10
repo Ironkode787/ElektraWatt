@@ -23,8 +23,8 @@ use ew_schema::{
 use ew_units::Pt2;
 use serde_json::{Value, json};
 
-use crate::output::clipboard::{named_nodes, node_path};
-use crate::output::{CopyError, parse_fragment};
+use crate::window::clipboard::{named_nodes, node_path};
+use crate::window::{CopyError, parse_fragment};
 use crate::{AnyCommand, Session, library};
 
 /// What a macro is saved from.

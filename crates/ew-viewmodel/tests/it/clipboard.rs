@@ -12,7 +12,7 @@ use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::actions::{MenuEntry, find, menu_model, parse_signature};
-use ew_viewmodel::ew_api::output::parse_fragment;
+use ew_viewmodel::ew_api::window::parse_fragment;
 use ew_viewmodel::ew_api::{AnyCommand, CmdError, Origin, Session, Submit};
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -714,7 +714,7 @@ fn cut_partially_copied_marker_is_refused_without_changes() {
         .collect();
     done(&mut s, "select.set", json!({"ids":all}));
     done(&mut s, "edit.copy", json!({}));
-    let fragment = ew_viewmodel::ew_api::output::parse_fragment(s.clipboard().text().unwrap()).unwrap();
+    let fragment = ew_viewmodel::ew_api::window::parse_fragment(s.clipboard().text().unwrap()).unwrap();
     let records = fragment.params["records"].as_array().unwrap();
     assert_eq!(
         records
@@ -832,7 +832,7 @@ fn complete_page_item_cut_still_undoes_and_redoes_once() {
     assert_eq!(s.revision(), rev.map(|r| r + 1));
     assert_eq!(s.recorded_commands().len(), recorded + 1);
     let clipped = s.clipboard().text().unwrap().to_owned();
-    let records = ew_viewmodel::ew_api::output::parse_fragment(&clipped)
+    let records = ew_viewmodel::ew_api::window::parse_fragment(&clipped)
         .unwrap()
         .params["records"]
         .clone();

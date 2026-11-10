@@ -29,7 +29,7 @@
 //! by their actions, with the name as the tooltip.
 
 use egui::{Align, Context, Key, Layout, Modifiers, Rect, RichText, Sense, Ui, Vec2};
-use ew_viewmodel::ew_api::output::HistoryRow;
+use ew_viewmodel::ew_api::window::HistoryRow;
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
