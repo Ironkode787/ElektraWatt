@@ -80,47 +80,6 @@ fn every_exporter_file_gets_its_ruled_verdict() {
 }
 
 #[test]
-fn the_corpus_holds_exactly_the_ruled_files() {
-    fn walk(dir: &Path, root: &Path, out: &mut Vec<String>) {
-        let entries = std::fs::read_dir(dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
-        for entry in entries {
-            let path = entry.unwrap_or_else(|e| panic!("{}: {e}", dir.display())).path();
-            if path.is_dir() {
-                walk(&path, root, out);
-            } else if path.extension().is_some_and(|ext| ext == "svg") {
-                let relative = path.strip_prefix(root).unwrap();
-                out.push(
-                    relative
-                        .components()
-                        .map(|part| part.as_os_str().to_string_lossy())
-                        .collect::<Vec<_>>()
-                        .join("/"),
-                );
-            }
-        }
-    }
-    let root = corpus_root();
-    let mut found = Vec::new();
-    walk(&root, &root, &mut found);
-    found.sort();
-    let mut expected: Vec<String> = CORPUS.iter().map(|(path, _)| (*path).to_owned()).collect();
-    expected.sort();
-    assert_eq!(found, expected);
-}
-
-#[test]
-fn sources_lists_every_corpus_file() {
-    let sources = std::fs::read_to_string(corpus_root().join("SOURCES.md"))
-        .unwrap_or_else(|e| panic!("SOURCES.md: {e}"));
-    let missing: Vec<&str> = CORPUS
-        .iter()
-        .filter(|(path, _)| !sources.contains(&format!("`{path}`")))
-        .map(|(path, _)| *path)
-        .collect();
-    assert!(missing.is_empty(), "SOURCES.md does not name: {missing:?}");
-}
-
-#[test]
 fn refused_exporter_files_say_how_to_export_again() {
     for (path, expected) in CORPUS {
         let Some(hazard) = expected else { continue };

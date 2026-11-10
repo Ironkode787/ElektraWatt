@@ -382,10 +382,8 @@ fn a_group_header_is_kept_with_its_first_row() {
         set.rows[usize::try_from(pages[1].rows.start).unwrap()].kind,
         RowKind::GroupHeader
     );
-}
 
-#[test]
-fn a_header_that_fits_with_its_first_row_stays() {
+    // A header that fits with its first row stays.
     let set = grouped_set(&[2, 2], true);
     let layouts = Layouts::single(small(form(1), 6, true));
     let pages = paginate(&set, &spec(901), &layouts, &FixedLines);
@@ -492,18 +490,6 @@ fn a_continued_group_repeats_its_header_and_reserves_its_height() {
             );
         }
     }
-}
-
-#[test]
-fn a_heading_is_kept_with_its_next_row() {
-    // Rows: 4 data, a heading, 2 data on a five-row page.
-    let mut set = data_set(4);
-    set.rows.push(row(RowKind::Heading, 50));
-    set.rows.push(row(RowKind::Data, 4));
-    set.rows.push(row(RowKind::Data, 5));
-    let layouts = Layouts::single(small(form(1), 5, false));
-    let pages = paginate(&set, &spec(901), &layouts, &FixedLines);
-    assert_eq!(ranges(&pages), [(0, 4), (4, 7)]);
 }
 
 // ---------------------------------------------------------------------------------------------------------

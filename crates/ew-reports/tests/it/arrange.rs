@@ -149,15 +149,18 @@ fn not_derived_passes_through_unchanged() {
 
 #[test]
 fn default_arrangement_keeps_the_kinds_order() {
-    let s = set(vec![
+    let mut s = set(vec![
         row(2, "c", "x", 1),
         row(0, "a", "x", 1),
         row(1, "b", "x", 1),
     ]);
+    s.as_of = Some(Rev(7));
     let out = Args::new().run(s.clone());
     assert_eq!(out.rows, s.rows);
     assert!(out.groups.is_empty());
     assert_eq!(out.columns, s.columns);
+    assert_eq!(out.as_of, Some(Rev(7)));
+    assert_eq!(out.status, RowSetStatus::Derived);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -672,16 +675,6 @@ fn group_text_and_header_ids_of_other_key_types() {
     let out = a.run(s);
     assert_eq!(out.groups[0].text, "2025-12-31");
     assert_eq!(out.groups[1].text, "2026-03-04");
-}
-
-#[test]
-fn arrange_leaves_columns_status_and_as_of_alone() {
-    let mut s = set(vec![row(0, "a", "L", 1)]);
-    s.as_of = Some(Rev(7));
-    let out = Args::new().run(s.clone());
-    assert_eq!(out.as_of, Some(Rev(7)));
-    assert_eq!(out.columns, s.columns);
-    assert_eq!(out.status, RowSetStatus::Derived);
 }
 
 // ---------------------------------------------------------------------------------------------------------
