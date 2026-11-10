@@ -212,7 +212,7 @@ fn draw_at_an_existing_junction_appends_to_its_sequence() {
 }
 
 #[test]
-fn draw_rejects_the_same_endpoint_at_both_ends() {
+fn draw_rejects_the_same_endpoint_at_both_ends_and_a_page_less_connection() {
     let mut e = engine(golden_model());
     let before = lines(e.model());
     let r = e.execute(&draw(cp_param(FN_T1, 1), cp_param(FN_T1, 1), None));
@@ -223,19 +223,6 @@ fn draw_rejects_the_same_endpoint_at_both_ends() {
         None,
     ));
     assert!(is_rejected(r));
-    assert_eq!(lines(e.model()), before);
-}
-
-#[test]
-fn draw_rejects_both_ends_on_the_same_connection() {
-    let mut e = engine(model_with_wire());
-    let r = e.execute(&draw(on_w(1), on_w(3), None));
-    assert!(is_rejected(r));
-}
-
-#[test]
-fn draw_on_a_page_less_connection_is_rejected() {
-    let mut e = engine(golden_model());
     let cmd = draw(
         EndpointParam::OnConnection {
             connection: CON_BR1,
@@ -245,6 +232,14 @@ fn draw_on_a_page_less_connection_is_rejected() {
         None,
     );
     assert!(is_rejected(e.execute(&cmd)));
+    assert_eq!(lines(e.model()), before);
+}
+
+#[test]
+fn draw_rejects_both_ends_on_the_same_connection() {
+    let mut e = engine(model_with_wire());
+    let r = e.execute(&draw(on_w(1), on_w(3), None));
+    assert!(is_rejected(r));
 }
 
 #[test]
@@ -350,7 +345,7 @@ fn draw_many_cost_and_entry_limit() {
 // connection.route
 
 #[test]
-fn route_replaces_the_route_only() {
+fn route_replaces_the_route_only_and_refuses_a_missing_connection() {
     let mut e = engine(golden_model());
     let before = row(&e, CON_W29);
     let route = vec![pt(0, 0), pt(0, G), pt(G, G)];
@@ -370,17 +365,15 @@ fn route_replaces_the_route_only() {
         },
         before
     );
-}
-
-#[test]
-fn route_of_a_missing_connection_is_not_found() {
-    let mut e = engine(golden_model());
     let ghost: Id<Connection> = id(0xdead);
     let r = e.execute(&RouteConnection {
         connection: ghost,
         route: vec![],
     });
-    assert!(matches!(r, Err(CmdError::NotFound { .. })));
+    assert!(
+        matches!(r, Err(CmdError::NotFound { .. })),
+        "a missing connection"
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -534,24 +527,22 @@ fn assigned_junction_refusal(first: Id<Connection>, second: Id<Connection>, gone
 }
 
 /// FT-848 (ID-1108: "the junction refusal names the printed number, the counter only where the printed labels
-/// coincide"): the two members of one physical wire print the same number, so the refusal adds their counters.
+/// coincide"): the two members of one physical wire print the same number, so the refusal adds their counters; two
+/// wires that print different numbers are named by the printed numbers alone.
 #[test]
-fn a_junction_that_cannot_merge_two_assigned_numbers_names_both() {
+fn a_junction_that_cannot_merge_two_assigned_numbers_names_the_printed_numbers() {
     assert_eq!(
         assigned_junction_refusal(CON_J5_IN, CON_W22, CON_W27),
         "the junction at x 120, y 45.5 mm on page 102 would merge a wire numbered \"102.1\" with assigned number 3 \
          and a wire numbered \"102.1\" with assigned number 4, which carry different numbers; clear one of the numbers \
-         or delete the wires separately"
+         or delete the wires separately",
+        "the same printed number"
     );
-}
-
-/// FT-848 (as above): two wires that print different numbers are named by the printed numbers alone.
-#[test]
-fn a_junction_refusal_names_the_printed_numbers_where_they_differ() {
     assert_eq!(
         assigned_junction_refusal(CON_W22, CON_W27, CON_J5_IN),
         "the junction at x 120, y 45.5 mm on page 102 would merge a wire numbered \"102.1\" and a wire numbered \
-         \"102.3\", which carry different numbers; clear one of the numbers or delete the wires separately"
+         \"102.3\", which carry different numbers; clear one of the numbers or delete the wires separately",
+        "different printed numbers"
     );
 }
 
@@ -573,14 +564,9 @@ fn delete_of_two_members_removes_the_junction_with_the_last() {
 }
 
 #[test]
-fn delete_rejects_an_empty_list() {
+fn delete_rejects_an_empty_list_and_names_a_missing_connection() {
     let mut e = engine(golden_model());
     assert!(is_rejected(e.execute(&DeleteConnections { connections: vec![] })));
-}
-
-#[test]
-fn delete_names_a_missing_connection() {
-    let mut e = engine(golden_model());
     let before = lines(e.model());
     let ghost: Id<Connection> = id(0xdead);
     let r = e.execute(&DeleteConnections {
@@ -639,7 +625,7 @@ fn edit_junction_wiring_choices() {
 }
 
 #[test]
-fn edit_junction_rejects_a_sequence_that_is_not_a_permutation() {
+fn edit_junction_rejects_a_sequence_that_is_not_a_permutation_and_a_missing_junction() {
     let mut e = engine(golden_model());
     for seq in [
         vec![CON_J5_IN, CON_W22],
@@ -651,11 +637,6 @@ fn edit_junction_rejects_a_sequence_that_is_not_a_permutation() {
         cmd.sequence = Some(seq);
         assert!(is_rejected(e.execute(&cmd)));
     }
-}
-
-#[test]
-fn edit_missing_junction_is_not_found() {
-    let mut e = engine(golden_model());
     let ghost: Id<Junction> = id(0xdead);
     assert!(matches!(e.execute(&edit(ghost)), Err(CmdError::NotFound { .. })));
 }
@@ -901,7 +882,7 @@ fn define(at: EndpointParam, name: &str) -> DefinePotential {
 }
 
 #[test]
-fn define_potential_at_a_cp() {
+fn define_potential_at_a_cp_and_at_a_junction() {
     let mut e = engine(golden_model());
     let r = e
         .execute(&define(cp_param(FN_102G1, 4), "L1"))
@@ -914,11 +895,6 @@ fn define_potential_at_a_cp() {
     assert_eq!(d.ptype, Some(PotentialType::L1));
     assert_eq!(d.voltage, Some(dec3("230")));
     assert_eq!(r.created, vec![key]);
-}
-
-#[test]
-fn define_potential_at_a_junction() {
-    let mut e = engine(golden_model());
     let r = e
         .execute(&define(EndpointParam::Junction { junction: J5 }, "N"))
         .unwrap();

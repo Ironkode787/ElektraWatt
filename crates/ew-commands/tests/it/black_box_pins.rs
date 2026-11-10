@@ -490,9 +490,10 @@ fn move_tag(e: &mut Engine, rep: Id<Representation>) {
 }
 
 /// A half turn of a black box writes no text override; the drawing places its texts as on the same
-/// box unturned (`ew_derive::text_frame`, tested through the page scene in `ew-api`'s `half_turned_black_box`).
+/// box unturned (`ew_derive::text_frame`, tested through the page scene in `ew-api`'s `half_turned_black_box`). A
+/// second half turn gives back the record as it was before the first.
 #[test]
-fn ft867_a_half_turn_of_a_black_box_writes_no_text_override() {
+fn ft867_a_half_turn_of_a_black_box_writes_no_text_override_and_a_second_gives_the_record_back() {
     for moved in [false, true] {
         let mut e = engine(texts_model());
         let (pos, spec) = play_box();
@@ -500,25 +501,14 @@ fn ft867_a_half_turn_of_a_black_box_writes_no_text_override() {
         if moved {
             move_tag(&mut e, rep);
         }
-        let start = row(&e, rep).text_slots;
+        let start = row(&e, rep);
         e.execute(&transform(rep, 2, false)).expect("a half turn");
         let after = row(&e, rep);
         assert_eq!(after.orient, Orient2::R180);
-        assert_eq!(after.text_slots, start, "moved tag: {moved}");
+        assert_eq!(after.text_slots, start.text_slots, "moved tag: {moved}");
+        e.execute(&transform(rep, 2, false)).expect("a second half turn");
+        assert_eq!(row(&e, rep), start, "moved tag: {moved}");
     }
-}
-
-/// A second half turn gives back the record as it was before the first.
-#[test]
-fn ft867_a_second_half_turn_gives_back_the_original_record() {
-    let mut e = engine(texts_model());
-    let (pos, spec) = play_box();
-    let (rep, _) = place_box(&mut e, pos, spec);
-    move_tag(&mut e, rep);
-    let start = row(&e, rep);
-    e.execute(&transform(rep, 2, false)).expect("a half turn");
-    e.execute(&transform(rep, 2, false)).expect("a second half turn");
-    assert_eq!(row(&e, rep), start);
 }
 
 #[test]

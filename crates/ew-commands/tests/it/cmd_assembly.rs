@@ -25,48 +25,8 @@ use ew_schema::{
 };
 use serde_json::{Value, json};
 
-fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
-    e.model().table::<T>().get(&id).expect("row exists").clone()
-}
-
 fn exists<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> bool {
     e.model().table::<T>().get(&id).is_some()
-}
-
-fn created<T>(r: &Receipt, kind: Kind) -> Vec<Id<T>> {
-    r.created
-        .iter()
-        .filter(|k| k.0 == kind)
-        .map(|k| typed(*k))
-        .collect()
-}
-
-fn primary<T>(r: &Receipt) -> Id<T> {
-    typed(r.outcome.primary.expect("primary outcome"))
-}
-
-fn rejected<T: std::fmt::Debug>(r: Result<T, CmdError>) {
-    match r {
-        Err(CmdError::Rejected { .. }) => {}
-        other => panic!("expected a rejection, got {other:?}"),
-    }
-}
-
-fn not_found<T: std::fmt::Debug>(r: Result<T, CmdError>) {
-    match r {
-        Err(CmdError::NotFound { .. }) => {}
-        other => panic!("expected NotFound, got {other:?}"),
-    }
-}
-
-fn invalid_path<T: std::fmt::Debug>(r: Result<T, CmdError>, command: &str) -> String {
-    match r {
-        Err(CmdError::InvalidParams { command: c, path, .. }) => {
-            assert_eq!(c, command);
-            path
-        }
-        other => panic!("expected InvalidParams, got {other:?}"),
-    }
 }
 
 fn child(device: Id<Device>, position: Option<u32>) -> ChildSpec {

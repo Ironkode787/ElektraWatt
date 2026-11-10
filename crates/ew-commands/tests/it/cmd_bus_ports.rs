@@ -18,7 +18,7 @@ use ew_commands::commands::{
 use ew_commands::normalise::ORDER;
 use ew_commands::{CmdError, Engine, Receipt};
 use ew_ids::Id;
-use ew_model::{Entity, Model};
+use ew_model::Model;
 use ew_schema::{
     AddrValue, BusPort, BusSection, BusSystem, ContactKind, Device, FnDef, FnRole, Function, Kind, LibCopy,
     LibDocument, NetAddress, OnOff, Part, PartRef, PartUse, PortRole, Record,
@@ -163,10 +163,6 @@ fn model() -> Model {
     Model::from_records(p, records, lib).expect("the bus model is valid")
 }
 
-fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
-    e.model().table::<T>().get(&id).expect("row exists").clone()
-}
-
 fn port(e: &Engine, f: Id<Function>) -> Option<BusPort> {
     row(e, f).bus_port.clone()
 }
@@ -286,7 +282,7 @@ fn bu7j_bus_ports_runs_after_module_pin_binding_and_before_revision_ensure_open(
 /// BU-7g: assigning the CPU to a black box with two DP-port functions gives the lower-ID function the port and leaves
 /// the other port-less, without a notice; the black box itself (no bus-port FnDef) gets nothing.
 #[test]
-fn bu7g_assign_gives_the_lower_id_function_the_port() {
+fn bu7g_assign_gives_the_lower_id_function_the_port_and_a_device_without_one_gets_nothing() {
     let mut e = engine(model());
     let r = e
         .execute(&assign(vec![DEV_BOX], CPU, AssignModeParam::Append, None))
@@ -295,12 +291,7 @@ fn bu7g_assign_gives_the_lower_id_function_the_port() {
     assert_eq!(port(&e, FN_P2), None, "a surplus function stays port-less");
     assert_eq!(port(&e, FN_BOX), None, "the black box is no bus-port function");
     assert_eq!(bus_notices(&r), Vec::<String>::new());
-}
-
-/// BU-7g: a device without a bus-port function gets no port and no notice.
-#[test]
-fn bu7g_assign_onto_a_device_without_a_bus_port_function_gives_nothing() {
-    let mut e = engine(model());
+    // A device without a bus-port function gets no port and no notice.
     let r = e
         .execute(&assign(vec![DEV_NOBUS], CPU, AssignModeParam::Append, None))
         .expect("part.assign");

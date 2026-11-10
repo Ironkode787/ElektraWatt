@@ -14,7 +14,7 @@ use common::fixture::*;
 use common::*;
 use ew_commands::commands::{ArrangeIps, DrawToIp, EndpointParam, IpAtEnd, ReshapeBox};
 use ew_commands::geometry::point_on_grid;
-use ew_commands::{CmdError, Engine, Origin, Receipt};
+use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::{Id, Uuid};
 use ew_model::{Entity, Model};
 use ew_schema::{
@@ -34,17 +34,8 @@ fn has<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> bool {
     e.model().table::<T>().get(&id).is_some()
 }
 
-fn created<T>(r: &Receipt, kind: Kind) -> Vec<Id<T>> {
-    r.created
-        .iter()
-        .filter(|k| k.0 == kind)
-        .map(|k| typed(*k))
-        .collect()
-}
-
-/// A rejection whose reason contains `needle`.
-#[track_caller]
 /// The reason of a rejection, or a panic naming what came back instead.
+#[track_caller]
 fn rejection<T: Debug>(r: Result<T, CmdError>) -> String {
     match r {
         Err(CmdError::Rejected { reason, .. }) => reason,
@@ -52,20 +43,14 @@ fn rejection<T: Debug>(r: Result<T, CmdError>) -> String {
     }
 }
 
+/// A rejection whose reason contains `needle`.
+#[track_caller]
 fn rejected_with<T: Debug>(r: Result<T, CmdError>, needle: &str) {
     match r {
         Err(CmdError::Rejected { reason, .. }) => {
             assert!(reason.contains(needle), "reason `{reason}` lacks `{needle}`");
         }
         other => panic!("expected a rejection mentioning `{needle}`, got {other:?}"),
-    }
-}
-
-#[track_caller]
-fn not_found<T: Debug>(r: Result<T, CmdError>) {
-    match r {
-        Err(CmdError::NotFound { .. }) => {}
-        other => panic!("expected NotFound, got {other:?}"),
     }
 }
 
@@ -214,21 +199,6 @@ fn reps_of(e: &Engine, f: Id<Function>) -> Vec<Representation> {
         .collect()
 }
 
-/// On a fluid page the tool sends the fluid kind; an interruption point's CP is no fluid port, so the line is
-/// refused in words (T1) before EW-INV-024, and nothing is made.
-#[test]
-fn draw_to_ip_refuses_a_fluid_line_in_words() {
-    let mut e = engine(ip_model(|_| {}));
-    let before = lines(e.model());
-    let mut cmd = draw_to_ip(cp_param(FN_102G1, 1), pt(5 * G, 0), vec![pt(0, 0), pt(6 * G, 0)]);
-    cmd.kind = Some(ew_schema::ConnectionKind::Fluid(Default::default()));
-    assert_eq!(
-        rejection(e.execute(&cmd)),
-        "a fluid line joins fluid ports only; an interruption point is not a fluid port"
-    );
-    assert_eq!(lines(e.model()), before);
-}
-
 #[test]
 fn draw_to_ip_from_a_cp_creates_function_representation_and_connection_in_one_undo_step() {
     let mut e = engine(ip_model(|_| {}));
@@ -331,6 +301,14 @@ fn draw_to_ip_rejections_write_nothing() {
     let rev = e.model().rev();
     let before = lines(e.model());
     let good = || draw_to_ip(cp_param(FN_102G1, 1), pt(5 * G, 0), vec![pt(0, 0), pt(6 * G, 0)]);
+    // On a fluid page the tool sends the fluid kind; an interruption point's CP is no fluid port, so the line is
+    // refused in words (T1) before EW-INV-024.
+    let mut cmd = good();
+    cmd.kind = Some(ew_schema::ConnectionKind::Fluid(Default::default()));
+    assert_eq!(
+        rejection(e.execute(&cmd)),
+        "a fluid line joins fluid ports only; an interruption point is not a fluid port"
+    );
     // A missing page.
     let mut cmd = good();
     cmd.page = id::<Page>(0xdead);
@@ -1167,55 +1145,50 @@ fn draw_to_ip_cmd(
     cmd
 }
 
-/// `ip.place` refuses a starred target or undirected point and a starred external point, in words, nothing made; a
-/// starred source and an unstarred external point are placed.
+/// `ip.place` and `connection.draw_to_ip` refuse a starred target or undirected point and a starred external point,
+/// in words, nothing made; a starred source is placed (and `ip.place` places an unstarred external point).
 #[test]
-fn ft980_ip_place_refuses_a_star_on_a_point_that_is_no_source_or_is_external() {
-    let mut e = engine(ip_model(|r| r.push(xref_record())));
-    let (rev, before) = (e.model().rev(), lines(e.model()));
-    for direction in [IpDirection::Target, IpDirection::Undirected] {
+fn ft980_ip_place_and_draw_to_ip_refuse_a_star_on_a_point_that_is_no_source_or_is_external() {
+    type Make = fn(IpDirection, bool, Option<Id<ew_schema::ExternalRef>>) -> Box<dyn ew_commands::DynCommand>;
+    let makers: [(&str, Make); 2] = [
+        ("ip.place", |d, s, x| Box::new(place_ip_cmd(d, s, x))),
+        ("connection.draw_to_ip", |d, s, x| {
+            Box::new(draw_to_ip_cmd(d, s, x))
+        }),
+    ];
+    for (name, make) in makers {
+        let mut e = engine(ip_model(|r| r.push(xref_record())));
+        let (rev, before) = (e.model().rev(), lines(e.model()));
+        for direction in [IpDirection::Target, IpDirection::Undirected] {
+            assert_eq!(
+                rejection(e.execute(&*make(direction, true, None))),
+                NOT_SOURCE,
+                "{name}"
+            );
+        }
         assert_eq!(
-            rejection(e.execute(&place_ip_cmd(direction, true, None))),
-            NOT_SOURCE
+            rejection(e.execute(&*make(IpDirection::Source, true, Some(XREF)))),
+            EXTERNAL,
+            "{name}"
         );
+        if name == "ip.place" {
+            assert_eq!(
+                rejection(e.execute(&*make(IpDirection::Target, true, Some(XREF)))),
+                EXTERNAL,
+                "the external refusal first: clearing the star answers both"
+            );
+        }
+        assert_eq!(e.model().rev(), rev, "{name}");
+        assert_eq!(lines(e.model()), before, "{name}");
+        e.execute(&*make(IpDirection::Source, true, None))
+            .expect("a starred source");
+        if name == "ip.place" {
+            e.execute(&*make(IpDirection::Target, false, Some(XREF)))
+                .expect("an unstarred external point");
+        } else {
+            assert!(spec_of(&e, new_ips(&e)[0].id).star_source);
+        }
     }
-    assert_eq!(
-        rejection(e.execute(&place_ip_cmd(IpDirection::Source, true, Some(XREF)))),
-        EXTERNAL
-    );
-    assert_eq!(
-        rejection(e.execute(&place_ip_cmd(IpDirection::Target, true, Some(XREF)))),
-        EXTERNAL,
-        "the external refusal first: clearing the star answers both"
-    );
-    assert_eq!(e.model().rev(), rev);
-    assert_eq!(lines(e.model()), before);
-    e.execute(&place_ip_cmd(IpDirection::Source, true, None))
-        .expect("a starred source");
-    e.execute(&place_ip_cmd(IpDirection::Target, false, Some(XREF)))
-        .expect("an unstarred external point");
-}
-
-/// `connection.draw_to_ip` refuses the same states with the same words, nothing made.
-#[test]
-fn ft980_draw_to_ip_refuses_a_star_on_a_point_that_is_no_source_or_is_external() {
-    let mut e = engine(ip_model(|r| r.push(xref_record())));
-    let (rev, before) = (e.model().rev(), lines(e.model()));
-    for direction in [IpDirection::Target, IpDirection::Undirected] {
-        assert_eq!(
-            rejection(e.execute(&draw_to_ip_cmd(direction, true, None))),
-            NOT_SOURCE
-        );
-    }
-    assert_eq!(
-        rejection(e.execute(&draw_to_ip_cmd(IpDirection::Source, true, Some(XREF)))),
-        EXTERNAL
-    );
-    assert_eq!(e.model().rev(), rev);
-    assert_eq!(lines(e.model()), before);
-    e.execute(&draw_to_ip_cmd(IpDirection::Source, true, None))
-        .expect("a starred source");
-    assert!(spec_of(&e, new_ips(&e)[0].id).star_source);
 }
 
 /// `connection.draw_to_ip` takes an external target as `ip.place` does: the point is external and wired, in

@@ -18,8 +18,7 @@ use ew_ids::Id;
 use ew_mltext::MlText;
 use ew_model::{AnyKey, Model};
 use ew_schema::{
-    AnyId, Connection, Csa, Device, FrozenTag, Function, Kind, LabelMode, Page, Record, Representation,
-    TagSign,
+    AnyId, Connection, Csa, Device, FrozenTag, Function, Kind, LabelMode, Page, Record, TagSign,
 };
 use serde_json::{Value, json};
 
@@ -117,27 +116,16 @@ fn set_page_title() {
 }
 
 #[test]
-fn set_rejects_an_unknown_path() {
+fn set_rejects_an_unknown_path_a_kind_without_settable_fields_and_an_absent_aspect() {
     let mut e = engine(golden_model());
     for path in ["nope", "id", "tag", "tag.letter.x", "strip.groups.0", ""] {
         let err = e.execute(&set_device(DEV_102F2, path, json!(1))).unwrap_err();
         assert_eq!(invalid_path(err), "/path", "{path}");
     }
-    assert_eq!(e.model().rev().0, 0);
-}
-
-#[test]
-fn set_rejects_a_kind_without_settable_fields() {
-    let mut e = engine(golden_model());
     let err = e
         .execute(&set(KindName::Junction, &[J5.cast()], "style", json!("dot")))
         .unwrap_err();
-    assert_eq!(invalid_path(err), "/path");
-}
-
-#[test]
-fn set_rejects_an_aspect_path_on_a_device_without_the_aspect() {
-    let mut e = engine(golden_model());
+    assert_eq!(invalid_path(err), "/path", "a kind without settable fields");
     for path in ["strip.label_mode", "terminal.seq", "cable.pre_assembled"] {
         let err = e.execute(&set_device(DEV_102F2, path, json!(1))).unwrap_err();
         assert_eq!(invalid_path(err), "/path", "{path}");
@@ -293,8 +281,10 @@ fn delete_a_strip_with_terminals_is_forbidden() {
 }
 
 #[test]
-fn delete_a_missing_target_is_not_found_and_changes_nothing() {
+fn delete_needs_a_target_and_a_missing_target_is_not_found_and_changes_nothing() {
     let mut e = engine(golden_model());
+    let err = e.execute(&delete(vec![])).unwrap_err();
+    assert!(matches!(err, CmdError::InvalidParams { .. }), "{err:?}");
     let missing: AnyId = id::<()>(0xbeef);
     let err = e
         .execute(&delete(vec![
@@ -324,13 +314,6 @@ fn delete_skips_a_target_that_an_earlier_cascade_removed() {
     assert!(!exists(&e, (Kind::Function, FN_102F2.cast())));
 }
 
-#[test]
-fn delete_needs_at_least_one_target() {
-    let mut e = engine(golden_model());
-    let err = e.execute(&delete(vec![])).unwrap_err();
-    assert!(matches!(err, CmdError::InvalidParams { .. }), "{err:?}");
-}
-
 /// The golden model plus `n` extra representations of `FN_102F2` on page 102.
 fn model_with_extra_reps(n: usize) -> Model {
     let (p, mut records, _) = mini_golden_parts();
@@ -350,11 +333,19 @@ fn delete_is_bulk_above_500_records() {
     let model = model_with_extra_reps(BULK_ABOVE + 100);
     let cmd = delete(vec![target(KindName::Device, DEV_102F2.cast())]);
     assert_eq!(Command::cost(&cmd, &model), Cost::Bulk);
+    let before = lines(&model);
     let mut e = engine(model);
     let err = e.execute(&cmd).unwrap_err();
     assert!(matches!(err, CmdError::NeedsPreview { .. }), "{err:?}");
     // the golden model's own cascade is small
     assert_eq!(Command::cost(&cmd, &golden_model()), Cost::Interactive);
+    // a bulk delete runs through preview and commit, and undoes whole
+    let p = e.preview(&cmd).unwrap();
+    e.commit(p).unwrap();
+    assert!(!exists(&e, (Kind::Device, DEV_102F2.cast())));
+    assert!(!exists(&e, (Kind::Representation, id::<()>(0x20_000))));
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!(lines(e.model()), before);
 }
 
 #[test]
@@ -381,21 +372,6 @@ fn missing_targets_cost_interactive_and_fail_not_found() {
     let mut e = engine(golden_model());
     let err = e.execute(&cmd).unwrap_err();
     assert!(matches!(err, CmdError::NotFound { .. }), "{err:?}");
-}
-
-#[test]
-fn bulk_delete_runs_through_preview_and_commit() {
-    let model = model_with_extra_reps(BULK_ABOVE + 100);
-    let cmd = delete(vec![target(KindName::Device, DEV_102F2.cast())]);
-    assert_eq!(Command::cost(&cmd, &model), Cost::Bulk);
-    let before = lines(&model);
-    let mut e = engine(model);
-    let p = e.preview(&cmd).unwrap();
-    e.commit(p).unwrap();
-    assert!(!exists(&e, (Kind::Device, DEV_102F2.cast())));
-    assert!(!exists(&e, (Kind::Representation, id::<()>(0x20_000))));
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -453,19 +429,34 @@ fn topology(model: &Model) -> Vec<(AnyKey, String)> {
         .collect()
 }
 
+/// Counters follow the position order; only counters change (no identity, no reference, nothing else of the
+/// device); a second run changes nothing.
 #[test]
-fn renumber_assigns_counters_in_position_order() {
+fn renumber_assigns_counters_in_position_order_and_touches_only_counters() {
     let mut e = engine(two_f_model(|_, _| {}));
     e.execute(&set_device(DEV_102F2, "tag.counter", json!(7)))
         .unwrap();
     assert_eq!(counter(&e, DEV_102F2), Some(7));
+    let topology_before = topology(e.model());
+    let device_before = device(&e, DEV_102F2);
     let p = e.preview(&project_scope()).unwrap();
+    assert!(!p.ops().is_empty());
     e.commit(p).unwrap();
     // Page 102, letter F: DEV_102F2 is left of DEV_102G1 although its ID is larger.
     assert_eq!(counter(&e, DEV_102F2), Some(1));
     assert_eq!(counter(&e, DEV_102G1), Some(2));
     // Page 101 is a group of its own.
     assert_eq!(counter(&e, DEV_101F1), Some(1));
+    assert_eq!(
+        topology(e.model()),
+        topology_before,
+        "functions, reps, connections, junctions"
+    );
+    let mut expected = (*device_before).clone();
+    expected.tag.counter = Some(1);
+    assert_eq!(*device(&e, DEV_102F2), expected, "only the counter changed");
+    let again = e.preview(&project_scope()).unwrap();
+    assert!(again.ops().is_empty(), "{:?}", again.ops());
 }
 
 #[test]
@@ -486,71 +477,20 @@ fn renumber_a_lone_device_becomes_one() {
 }
 
 #[test]
-fn renumber_changes_no_identity_and_no_reference() {
-    let mut e = engine(two_f_model(|_, _| {}));
-    e.execute(&set_device(DEV_102F2, "tag.counter", json!(7)))
-        .unwrap();
-    let before = topology(e.model());
-    let p = e.preview(&project_scope()).unwrap();
-    e.commit(p).unwrap();
-    assert_eq!(
-        topology(e.model()),
-        before,
-        "functions, reps, connections, junctions"
-    );
-    let ids_before: Vec<_> = before.iter().map(|(k, _)| *k).collect();
-    let ids_after: Vec<_> = topology(e.model()).iter().map(|(k, _)| *k).collect();
-    assert_eq!(ids_before, ids_after);
-}
-
-#[test]
-fn renumber_touches_only_counters() {
-    let mut e = engine(two_f_model(|_, _| {}));
-    e.execute(&set_device(DEV_102F2, "tag.counter", json!(7)))
-        .unwrap();
-    let before = device(&e, DEV_102F2);
-    let p = e.preview(&project_scope()).unwrap();
-    e.commit(p).unwrap();
-    let after = device(&e, DEV_102F2);
-    let mut expected = (*before).clone();
-    expected.tag.counter = Some(1);
-    assert_eq!(*after, expected);
-}
-
-#[test]
-fn renumber_twice_changes_nothing_the_second_time() {
-    let mut e = engine(two_f_model(|_, _| {}));
-    e.execute(&set_device(DEV_102F2, "tag.counter", json!(7)))
-        .unwrap();
-    let p = e.preview(&project_scope()).unwrap();
-    assert!(!p.ops().is_empty());
-    e.commit(p).unwrap();
-    let again = e.preview(&project_scope()).unwrap();
-    assert!(again.ops().is_empty(), "{:?}", again.ops());
-}
-
-#[test]
-fn renumber_only_nonconforming_keeps_conforming_counters() {
-    // F2 = 7 and G1 (now F) = 1 do not collide: nothing changes.
-    let mut e = engine(two_f_model(|f2, _| f2.tag.counter = Some(7)));
+fn renumber_only_nonconforming_keeps_conforming_counters_and_fixes_a_collision_and_a_missing_counter() {
     let only = RenumberOptions {
         only_nonconforming: true,
         ..RenumberOptions::default()
     };
+    // F2 = 7 and G1 (now F) = 1 do not collide: nothing changes.
+    let mut e = engine(two_f_model(|f2, _| f2.tag.counter = Some(7)));
     let p = e.preview(&renumber(DeviceScope::Project, only)).unwrap();
     assert!(p.ops().is_empty(), "{:?}", p.ops());
-}
 
-#[test]
-fn renumber_only_nonconforming_fixes_a_collision_and_a_missing_counter() {
     let mut e = engine(two_f_model(|f2, g1| {
         f2.tag.counter = Some(2);
         g1.tag.counter = Some(2);
     }));
-    let only = RenumberOptions {
-        only_nonconforming: true,
-        ..RenumberOptions::default()
-    };
     let p = e.preview(&renumber(DeviceScope::Project, only)).unwrap();
     e.commit(p).unwrap();
     // The first in position order keeps 2; the second takes the lowest free counter.
@@ -710,7 +650,7 @@ fn renumber_scopes_selection_and_pages() {
 }
 
 #[test]
-fn renumber_rejects_unknown_scope_members() {
+fn renumber_rejects_unknown_scope_members_and_is_refused_by_execute() {
     let mut e = engine(golden_model());
     let missing: Id<Device> = id(0xdead);
     let r = e.preview(&renumber(
@@ -723,11 +663,6 @@ fn renumber_rejects_unknown_scope_members() {
         RenumberOptions::default(),
     ));
     assert!(matches!(r, Err(CmdError::NotFound { .. })));
-}
-
-#[test]
-fn renumber_is_refused_by_execute() {
-    let mut e = engine(golden_model());
     let err = e.execute(&project_scope()).unwrap_err();
     assert!(matches!(err, CmdError::NeedsPreview { .. }), "{err:?}");
 }
@@ -750,5 +685,4 @@ fn representation_positions_are_read_from_the_main_representation() {
     e.commit(pv).unwrap();
     assert_eq!(counter(&e, DEV_102G1), Some(1));
     assert_eq!(counter(&e, DEV_102F2), Some(2));
-    let _: Option<std::sync::Arc<Representation>> = None;
 }

@@ -5,13 +5,15 @@
 //! engines with a seeded ID source.
 
 #![allow(dead_code)]
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 pub mod fixture;
 
-use ew_commands::{Engine, EngineOptions, HistoryLimits};
+use ew_commands::{CmdError, Engine, EngineOptions, HistoryLimits, Receipt};
 use ew_ids::{Id, Uuid};
-use ew_model::{AnyKey, Model};
-use ew_schema::{Dir4, Extra, FnDef, KeyedList, LibDocument, Project, SymbolCp, SymbolDef};
+use ew_model::{AnyKey, Entity, Model};
+use ew_schema::{Dir4, Extra, FnDef, KeyedList, Kind, LibDocument, Project, SymbolCp, SymbolDef};
 use ew_testids::SeededSource;
 use ew_units::{Nm, Pt2};
 
@@ -132,4 +134,53 @@ pub fn typed<T>(key: AnyKey) -> Id<T> {
 /// A UUID from a number (placeholder IDs).
 pub fn uuid(n: u128) -> Uuid {
     Uuid::from_u128(n)
+}
+
+/// A row of the engine's model; panics when it does not exist.
+pub fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
+    e.model().table::<T>().get(&id).expect("row exists").clone()
+}
+
+/// The IDs of the rows of `kind` that a receipt created.
+pub fn created<T>(r: &Receipt, kind: Kind) -> Vec<Id<T>> {
+    r.created
+        .iter()
+        .filter(|k| k.0 == kind)
+        .map(|k| typed(*k))
+        .collect()
+}
+
+/// The primary outcome of a receipt, typed.
+pub fn primary<T>(r: &Receipt) -> Id<T> {
+    typed(r.outcome.primary.expect("primary outcome"))
+}
+
+/// Panics unless the result is a rejection.
+#[track_caller]
+pub fn rejected<T: std::fmt::Debug>(r: Result<T, CmdError>) {
+    match r {
+        Err(CmdError::Rejected { .. }) => {}
+        other => panic!("expected a rejection, got {other:?}"),
+    }
+}
+
+/// Panics unless the result is `NotFound`.
+#[track_caller]
+pub fn not_found<T: std::fmt::Debug>(r: Result<T, CmdError>) {
+    match r {
+        Err(CmdError::NotFound { .. }) => {}
+        other => panic!("expected NotFound, got {other:?}"),
+    }
+}
+
+/// The path of an `InvalidParams` refusal of `command`; panics on anything else.
+#[track_caller]
+pub fn invalid_path<T: std::fmt::Debug>(r: Result<T, CmdError>, command: &str) -> String {
+    match r {
+        Err(CmdError::InvalidParams { command: c, path, .. }) => {
+            assert_eq!(c, command);
+            path
+        }
+        other => panic!("expected InvalidParams, got {other:?}"),
+    }
 }

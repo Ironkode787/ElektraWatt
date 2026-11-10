@@ -9,57 +9,16 @@ use crate::common;
 
 use common::fixture::*;
 use common::*;
+use ew_commands::CmdError;
 use ew_commands::commands::{
     CreateBond, CreateExternalRef, EndpointParam, KindName, PlaceBlackBox, PlaceTarget, SetFields,
 };
-use ew_commands::{CmdError, Engine, Receipt};
 use ew_ids::Id;
-use ew_model::Entity;
 use ew_schema::{
     Bond, BondKind, BoxCp, BoxSpec, Dir4, ExternalRef, Extra, FnRole, Function, FunctionKind, Kind,
     Representation,
 };
 use ew_units::{Orient2, Pt2};
-
-fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
-    e.model().table::<T>().get(&id).expect("row exists").clone()
-}
-
-fn created<T>(r: &Receipt, kind: Kind) -> Vec<Id<T>> {
-    r.created
-        .iter()
-        .filter(|k| k.0 == kind)
-        .map(|k| typed(*k))
-        .collect()
-}
-
-fn primary<T>(r: &Receipt) -> Id<T> {
-    typed(r.outcome.primary.expect("primary outcome"))
-}
-
-fn rejected<T: std::fmt::Debug>(r: Result<T, CmdError>) {
-    match r {
-        Err(CmdError::Rejected { .. }) => {}
-        other => panic!("expected a rejection, got {other:?}"),
-    }
-}
-
-fn not_found<T: std::fmt::Debug>(r: Result<T, CmdError>) {
-    match r {
-        Err(CmdError::NotFound { .. }) => {}
-        other => panic!("expected NotFound, got {other:?}"),
-    }
-}
-
-fn invalid_path<T: std::fmt::Debug>(r: Result<T, CmdError>, command: &str) -> String {
-    match r {
-        Err(CmdError::InvalidParams { command: c, path, .. }) => {
-            assert_eq!(c, command);
-            path
-        }
-        other => panic!("expected InvalidParams, got {other:?}"),
-    }
-}
 
 // ---------------------------------------------------------------------------------------------------------
 // box.black
@@ -168,48 +127,33 @@ fn black_box_existing_function_must_be_a_black_box() {
 }
 
 #[test]
-fn black_box_outline_needs_three_points() {
+fn black_box_invalid_specs_are_named_by_their_path() {
     let mut e = engine(golden_model());
     let mut b = spec();
     b.outline = vec![pt(0, 0), pt(G, G)];
     let path = invalid_path(e.execute(&black(pt(0, 0), Some(b), new_device("A"))), "box.black");
-    assert_eq!(path, "/box/outline");
-}
-
-#[test]
-fn black_box_duplicate_cp_index_is_invalid() {
-    let mut e = engine(golden_model());
+    assert_eq!(path, "/box/outline", "an outline of two points");
     let mut b = spec();
     b.cps = vec![box_cp(0, pt(G, 3 * G)), box_cp(0, pt(2 * G, 3 * G))];
     let path = invalid_path(e.execute(&black(pt(0, 0), Some(b), new_device("A"))), "box.black");
-    assert_eq!(path, "/box/cps/1/idx");
+    assert_eq!(path, "/box/cps/1/idx", "a duplicate CP index");
 }
 
 #[test]
-fn black_box_cp_off_grid_is_refused() {
+fn black_box_refusals_change_nothing() {
     let mut e = engine(golden_model());
     let before = lines(e.model());
+    // A CP off the grid.
     let mut b = spec();
     b.cps = vec![box_cp(0, pt(G, 3 * G)), box_cp(1, pt(2 * G + 1000, 3 * G))];
     rejected(e.execute(&black(pt(0, 0), Some(b), new_device("A"))));
-    assert_eq!(lines(e.model()), before);
-}
-
-#[test]
-fn black_box_off_grid_pos_and_disallowed_rep_type_are_refused() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
+    // A position off the grid.
     rejected(e.execute(&black(pt(G + 1000, 0), Some(spec()), new_device("A"))));
+    // A representation type the box does not allow.
     let mut cmd = black(pt(3 * G, 4 * G), Some(spec()), new_device("A"));
     cmd.rep_type = Some(ew_schema::RepType::Overview);
     rejected(e.execute(&cmd));
-    assert_eq!(lines(e.model()), before);
-}
-
-#[test]
-fn black_box_second_main_function_is_refused_by_ew_inv_002() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
+    // A second main function of a device (EW-INV-002).
     let target = PlaceTarget::JoinDevice {
         device: DEV_102F2,
         fndef: None,
@@ -266,7 +210,7 @@ fn bond_create_inserts_the_bond() {
 }
 
 #[test]
-fn bond_create_rejects_on_connection_end_and_equal_ends() {
+fn bond_create_refusals_write_nothing() {
     let mut e = engine(golden_model());
     let on_conn = EndpointParam::OnConnection {
         connection: CON_W27,
@@ -274,23 +218,13 @@ fn bond_create_rejects_on_connection_end_and_equal_ends() {
     };
     rejected(e.execute(&bond(on_conn, cp_param(FN_102G1, 1), None)));
     rejected(e.execute(&bond(cp_param(FN_102G1, 1), cp_param(FN_102G1, 1), None)));
-}
-
-#[test]
-fn bond_create_rejects_an_unknown_kind_and_a_missing_function() {
-    let mut e = engine(golden_model());
     let mut cmd = bond(cp_param(FN_102F2, 1), cp_param(FN_102G1, 1), None);
     cmd.kind = BondKind::Unknown(serde_json::json!("future_kind"));
     assert_eq!(invalid_path(e.execute(&cmd), "bond.create"), "/kind");
     not_found(e.execute(&bond(cp_param(id(0xbeef), 0), cp_param(FN_102G1, 1), None)));
+    let missing_via = bond(cp_param(FN_102F2, 1), cp_param(FN_102G1, 1), Some(id(0xdead)));
+    not_found(e.execute(&missing_via));
     assert_eq!(e.model().rev().0, 0);
-}
-
-#[test]
-fn bond_create_missing_via_is_not_found() {
-    let mut e = engine(golden_model());
-    let cmd = bond(cp_param(FN_102F2, 1), cp_param(FN_102G1, 1), Some(id(0xdead)));
-    not_found(e.execute(&cmd));
 }
 
 // ---------------------------------------------------------------------------------------------------------

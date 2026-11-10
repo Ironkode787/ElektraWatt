@@ -98,33 +98,30 @@ fn refusal(e: &mut Engine, cmd: &Connect) -> String {
     }
 }
 
+/// T1: a fluid line to an electrical CP; T2: a wire to a fluid port; T3: a hydraulic port with a pneumatic one.
 #[test]
-fn a_fluid_line_between_two_pneumatic_ports_is_drawn() {
+fn the_fluid_refusals_t1_to_t3_are_in_words() {
     let mut e = engine(fluid_model());
-    e.execute(&draw(cp_param(FN_Q1, 1), cp_param(FN_Q2, 0), fluid()))
-        .expect("a fluid line");
-}
-
-/// T1: a fluid line to an electrical CP.
-#[test]
-fn a_fluid_line_to_an_electrical_cp_is_refused_in_words() {
-    let mut e = engine(fluid_model());
-    let cmd = draw(cp_param(FN_Q1, 1), cp_param(FN_102G1, 0), fluid());
-    assert_eq!(
-        refusal(&mut e, &cmd),
-        "a fluid line joins fluid ports only; -102G1:L is not a fluid port"
-    );
-}
-
-/// T2: a wire to a fluid port.
-#[test]
-fn a_wire_to_a_fluid_port_is_refused_in_words() {
-    let mut e = engine(fluid_model());
-    let cmd = draw(cp_param(FN_102G1, 0), cp_param(FN_Q1, 1), ConnectionKind::Wire);
-    assert_eq!(
-        refusal(&mut e, &cmd),
-        "-?Q71:2 is a fluid port; only a fluid line joins it"
-    );
+    let cases = [
+        (
+            "T1",
+            draw(cp_param(FN_Q1, 1), cp_param(FN_102G1, 0), fluid()),
+            "a fluid line joins fluid ports only; -102G1:L is not a fluid port",
+        ),
+        (
+            "T2",
+            draw(cp_param(FN_102G1, 0), cp_param(FN_Q1, 1), ConnectionKind::Wire),
+            "-?Q71:2 is a fluid port; only a fluid line joins it",
+        ),
+        (
+            "T3",
+            draw(cp_param(FN_Q1, 0), cp_param(FN_Q3, 0), fluid()),
+            "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: -?Q71:1, -?Q73:1",
+        ),
+    ];
+    for (case, cmd, words) in cases {
+        assert_eq!(refusal(&mut e, &cmd), words, "{case}");
+    }
 }
 
 /// FL-3: a pasted fragment whose wire ends at a fluid port fails EW-INV-024 (the paste path has no refusal of its
@@ -159,17 +156,6 @@ fn a_pasted_wire_to_a_fluid_port_fails_the_fluid_invariant() {
         }
         other => panic!("expected EW-INV-024, got {other:?}"),
     }
-}
-
-/// T3: a hydraulic port with a pneumatic one.
-#[test]
-fn a_hydraulic_to_pneumatic_line_is_refused_in_words() {
-    let mut e = engine(fluid_model());
-    let cmd = draw(cp_param(FN_Q1, 0), cp_param(FN_Q3, 0), fluid());
-    assert_eq!(
-        refusal(&mut e, &cmd),
-        "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: -?Q71:1, -?Q73:1"
-    );
 }
 
 const JF: Id<ew_schema::Junction> = id(0x7700);

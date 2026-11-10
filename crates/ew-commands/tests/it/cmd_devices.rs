@@ -31,38 +31,8 @@ fn golden_with(f: impl FnOnce(&mut Vec<Record>)) -> Model {
     Model::from_records(p, records, library()).expect("valid model")
 }
 
-fn row<T: Entity<Marker = T>>(e: &Engine, id: ew_ids::Id<T>) -> std::sync::Arc<T> {
-    e.model().table::<T>().get(&id).expect("row exists").clone()
-}
-
 fn maybe_row<T: Entity<Marker = T>>(e: &Engine, id: ew_ids::Id<T>) -> Option<std::sync::Arc<T>> {
     e.model().table::<T>().get(&id).cloned()
-}
-
-fn created<T>(r: &Receipt, kind: Kind) -> Vec<ew_ids::Id<T>> {
-    r.created
-        .iter()
-        .filter(|k| k.0 == kind)
-        .map(|k| typed(*k))
-        .collect()
-}
-
-fn primary<T>(r: &Receipt) -> ew_ids::Id<T> {
-    typed(r.outcome.primary.expect("primary outcome"))
-}
-
-fn rejected<T: std::fmt::Debug>(r: Result<T, CmdError>) {
-    match r {
-        Err(CmdError::Rejected { .. }) => {}
-        other => panic!("expected a rejection, got {other:?}"),
-    }
-}
-
-fn not_found<T: std::fmt::Debug>(r: Result<T, CmdError>) {
-    match r {
-        Err(CmdError::NotFound { .. }) => {}
-        other => panic!("expected NotFound, got {other:?}"),
-    }
 }
 
 fn create(letter: &str) -> CreateDevice {
@@ -296,40 +266,27 @@ fn online_numbering_fills_the_page_scope() {
     assert_eq!(row(&e, d).tag.counter, Some(1));
 }
 
+/// An unplaced device with no counter gets the lowest free one when its main function is placed; an explicit
+/// counter is kept.
 #[test]
-fn unplaced_device_gets_its_counter_when_its_main_function_is_placed() {
-    let mut e = engine(golden_model());
-    let mut cmd = create("F");
-    cmd.main_fndef = Some(fndef_two());
-    let r = e.execute(&cmd).unwrap();
-    let dev: ew_ids::Id<Device> = primary(&r);
-    let f: ew_ids::Id<Function> = created(&r, Kind::Function)[0];
-    assert_eq!(row(&e, dev).tag.counter, None, "unplaced");
-    e.execute(&place(
-        PAGE_102,
-        pt(0, 0),
-        PlaceTarget::ExistingFunction { function: f },
-    ))
-    .unwrap();
-    assert_eq!(row(&e, dev).tag.counter, Some(1));
-}
-
-#[test]
-fn explicit_counter_is_kept_when_placed() {
-    let mut e = engine(golden_model());
-    let mut cmd = create("F");
-    cmd.counter = Some(7);
-    cmd.main_fndef = Some(fndef_two());
-    let r = e.execute(&cmd).unwrap();
-    let dev: ew_ids::Id<Device> = primary(&r);
-    let f: ew_ids::Id<Function> = created(&r, Kind::Function)[0];
-    e.execute(&place(
-        PAGE_102,
-        pt(0, 0),
-        PlaceTarget::ExistingFunction { function: f },
-    ))
-    .unwrap();
-    assert_eq!(row(&e, dev).tag.counter, Some(7));
+fn placing_the_main_function_numbers_an_unplaced_device_and_keeps_an_explicit_counter() {
+    for (given, placed) in [(None, Some(1)), (Some(7), Some(7))] {
+        let mut e = engine(golden_model());
+        let mut cmd = create("F");
+        cmd.counter = given;
+        cmd.main_fndef = Some(fndef_two());
+        let r = e.execute(&cmd).unwrap();
+        let dev: ew_ids::Id<Device> = primary(&r);
+        let f: ew_ids::Id<Function> = created(&r, Kind::Function)[0];
+        assert_eq!(row(&e, dev).tag.counter, given, "unplaced, given {given:?}");
+        e.execute(&place(
+            PAGE_102,
+            pt(0, 0),
+            PlaceTarget::ExistingFunction { function: f },
+        ))
+        .unwrap();
+        assert_eq!(row(&e, dev).tag.counter, placed, "placed, given {given:?}");
+    }
 }
 
 #[test]
@@ -605,28 +562,20 @@ fn assert_not_split(e: &Engine, r: &Receipt, wire: ew_ids::Id<Connection>, befor
 }
 
 #[test]
-fn ft1020_a_two_pin_symbol_dropped_on_an_unrouted_wire_does_not_split_it() {
+fn ft1020_a_two_pin_symbol_or_a_terminal_dropped_on_an_unrouted_wire_does_not_split_it() {
     // The unrouted wire's straight line runs up from B's CP 0 at (0, 6G) to A's CP 1 at (0, 10 mm).
-    let (mut e, wire, _, _) = hinted_wire(pt(0, 6 * G));
-    let before = (*row(&e, wire)).clone();
-    let r = e
-        .execute(&place(PAGE_102, pt(0, 2 * G), new_device("F")))
-        .unwrap();
-    assert_not_split(&e, &r, wire, &before);
-}
-
-#[test]
-fn ft1020_a_terminal_dropped_on_an_unrouted_wire_does_not_split_it() {
-    let (mut e, wire, _, _) = hinted_wire(pt(0, 6 * G));
-    let before = (*row(&e, wire)).clone();
     let terminal = PlaceTarget::NewTerminal {
         strip: DEV_X1031,
         designation: ident("9"),
         seq: None,
         part: None,
     };
-    let r = e.execute(&place(PAGE_102, pt(0, 2 * G), terminal)).unwrap();
-    assert_not_split(&e, &r, wire, &before);
+    for target in [new_device("F"), terminal] {
+        let (mut e, wire, _, _) = hinted_wire(pt(0, 6 * G));
+        let before = (*row(&e, wire)).clone();
+        let r = e.execute(&place(PAGE_102, pt(0, 2 * G), target)).unwrap();
+        assert_not_split(&e, &r, wire, &before);
+    }
 }
 
 #[test]
@@ -1117,19 +1066,6 @@ fn set_anchor_policy_overrides_one_representation_and_undoes() {
 }
 
 #[test]
-fn set_anchor_policy_null_resets_to_the_symbol_copy() {
-    let mut e = engine(golden_model());
-    e.execute(&set_anchor(vec![REP_102F2], Some(AnchorPolicy::GraphicCentre)))
-        .unwrap();
-    e.execute(&AnyCommand {
-        name: "rep.set_anchor_policy".into(),
-        params: serde_json::json!({ "reps": [REP_102F2.to_string()], "anchor": null }),
-    })
-    .unwrap();
-    assert_eq!(anchor_of(&e, REP_102F2), None);
-}
-
-#[test]
 fn set_anchor_policy_rejections() {
     let mut e = engine(golden_model());
     invalid_at(
@@ -1177,4 +1113,11 @@ fn set_anchor_policy_parses_from_json() {
     };
     e.execute(&cmd).unwrap();
     assert!(matches!(anchor_of(&e, REP_102F2), Some(AnchorPolicy::Slot(_))));
+    // `null` resets to the symbol copy's policy.
+    let cmd = AnyCommand {
+        name: "rep.set_anchor_policy".into(),
+        params: serde_json::json!({ "reps": [REP_102F2.to_string()], "anchor": null }),
+    };
+    e.execute(&cmd).unwrap();
+    assert_eq!(anchor_of(&e, REP_102F2), None);
 }
