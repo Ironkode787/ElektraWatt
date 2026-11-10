@@ -9,10 +9,10 @@
 
 use crate::common;
 
-use std::sync::Arc;
-
-use common::{Tmp, at, done, refused, state};
-use ew_viewmodel::ew_api::output::PageTables;
+use common::{
+    Tmp, actual_size, assert_moves_read_nothing, at, canvas, click_at, describe_line, done, grid_point,
+    refused, sheet, tables,
+};
 use ew_viewmodel::shell::{Mode, Outcome, Prompt, ShellModel};
 use ew_viewmodel::tools::{Ghost, fit_rect};
 use serde_json::{Value, json};
@@ -21,13 +21,6 @@ use serde_json::{Value, json};
 const SVG: &[u8] = br##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 10"><rect width="40" height="10" fill="#123456"/></svg>"##;
 /// Its hash.
 const SVG_HASH: &str = "sha256:ec57251790a327f9afde596a256f674c950610537531d4ed0b07bb248882a5d1";
-
-/// A headless shell with a writable copy of Golden A on `folio`, at actual size.
-fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, folio);
-    done(&mut s, "view.zoom_actual", json!({}));
-    s
-}
 
 /// Brings the placeholder asset into the project (the company logo command is the one that stores an asset) and takes
 /// the logo off again: the asset stays in the project's store.
@@ -41,38 +34,6 @@ fn hold_asset(s: &mut ShellModel) {
     }
 }
 
-fn tables(s: &ShellModel) -> Arc<PageTables> {
-    Arc::clone(&s.canvas().unwrap().page().tables)
-}
-
-fn sheet(s: &ShellModel, p: (i64, i64)) -> (i64, i64) {
-    s.canvas().unwrap().page().snapper.page_to_sheet(p)
-}
-
-/// The page point of grid index `k`.
-fn grid_point(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
-    let sn = &s.canvas().unwrap().page().snapper;
-    (sn.page_of_index(k.0), sn.page_of_index(k.1))
-}
-
-/// A click at page point `p` through the grid cursor.
-fn click_at(s: &mut ShellModel, p: (i64, i64)) {
-    let q = sheet(s, p);
-    done(s, "cursor.set", at(q, json!({})));
-    done(s, "canvas.activate", json!({}));
-}
-
-fn canvas(s: &ShellModel) -> Value {
-    state(s)["canvas"].clone()
-}
-
-fn describe_line(s: &ShellModel, prefix: &str) -> Option<String> {
-    s.describe()
-        .lines()
-        .find(|l| l.starts_with(prefix))
-        .map(str::to_owned)
-}
-
 fn item_count(s: &ShellModel) -> usize {
     tables(s).items.len()
 }
@@ -80,7 +41,7 @@ fn item_count(s: &ShellModel) -> usize {
 /// A shell with the Image tool armed with the placeholder asset.
 fn armed(tag: &str) -> (Tmp, ShellModel) {
     let tmp = Tmp::new(tag);
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     hold_asset(&mut s);
     done(&mut s, "tool.image", json!({}));
     done(&mut s, "image.pick", json!({ "asset": SVG_HASH }));
@@ -92,7 +53,7 @@ fn armed(tag: &str) -> (Tmp, ShellModel) {
 #[test]
 fn the_image_tool_places_the_asset_by_two_corners_keeping_its_aspect() {
     let tmp = Tmp::new("image-place");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     hold_asset(&mut s);
     let page = tables(&s).page.to_string();
 
@@ -216,7 +177,7 @@ fn the_dwell_previews_the_placement() {
 #[test]
 fn image_pick_refusals_and_failures() {
     let tmp = Tmp::new("image-pick");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     hold_asset(&mut s);
     assert_eq!(
         refused(&mut s, "image.pick", json!({ "asset": SVG_HASH })),
@@ -261,20 +222,9 @@ fn image_pick_refusals_and_failures() {
 fn a_page_change_ends_the_tool_and_moves_read_nothing() {
     let (_tmp, mut s) = armed("image-moves");
     let p = grid_point(&s, (40, 30));
-    let step = |k: i64| (p.0 + k * 300_000, p.1 + k * 200_000);
-    let calls = s.session_calls();
-    for k in 0..20 {
-        let q = sheet(&s, step(k));
-        done(&mut s, "canvas.pointer", at(q, json!({})));
-    }
-    assert_eq!(s.session_calls(), calls, "the armed Image tool reads nothing");
+    assert_moves_read_nothing(&mut s, p, "the armed Image tool");
     click_at(&mut s, p);
-    let calls = s.session_calls();
-    for k in 0..20 {
-        let q = sheet(&s, step(k));
-        done(&mut s, "canvas.pointer", at(q, json!({})));
-    }
-    assert_eq!(s.session_calls(), calls, "the placing Image tool reads nothing");
+    assert_moves_read_nothing(&mut s, p, "the placing Image tool");
     done(&mut s, "page.goto", json!({"folio": "102"}));
     assert_eq!(s.tool().name(), "select");
 }
@@ -324,7 +274,7 @@ fn failed_message(s: &mut ShellModel, action: &str, params: Value) -> String {
 #[test]
 fn a_new_file_is_placed_as_data_and_arms_the_tool_from_any_tool() {
     let tmp = Tmp::new("image-file-new");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let png = tiny_png();
     let file = write_file(&tmp, "pick.png", &png);
     let reference = ew_viewmodel::ew_api::asset_ref_of(&png).unwrap();
@@ -369,7 +319,7 @@ fn a_new_file_is_placed_as_data_and_arms_the_tool_from_any_tool() {
 #[test]
 fn a_held_file_is_armed_by_hash_and_pick_clears_pending_bytes() {
     let tmp = Tmp::new("image-file-held");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     hold_asset(&mut s);
     done(&mut s, "tool.image", json!({}));
     let file = write_file(&tmp, "logo.svg", SVG);
@@ -392,11 +342,11 @@ fn a_held_file_is_armed_by_hash_and_pick_clears_pending_bytes() {
 }
 
 /// A file the store does not accept fails with the store's text and changes nothing: not an image, a hostile SVG, a
-/// file over the limit, a path that does not exist; a missing `path` fails headless and raises the dialog in the window.
+/// file over the limit, a path that does not exist, a directory; a missing `path` fails headless and raises the dialog in the window.
 #[test]
 fn files_the_store_refuses_fail_and_change_nothing() {
     let tmp = Tmp::new("image-file-refused");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.image", json!({}));
     let hostile: &[u8] =
         br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><script>alert(1)</script></svg>"#;
@@ -418,6 +368,15 @@ fn files_the_store_refuses_fail_and_change_nothing() {
     assert!(message.contains("larger than 512 KiB"), "{message}");
     let message = failed_message(&mut s, "image.file", json!({ "path": missing }));
     assert!(message.contains("Cannot read"), "{message}");
+    // Only a regular file is read: a directory is refused with the reason, whatever the platform's own error says.
+    let message = failed_message(&mut s, "image.file", json!({ "path": tmp.0.to_string_lossy() }));
+    assert_eq!(
+        message,
+        format!(
+            "Cannot read the image file {}: not a regular file.",
+            tmp.0.display()
+        )
+    );
     assert_eq!(s.tool().state(), "picking", "a refused file arms nothing");
     assert_eq!(s.tool_ghost(), Some(Ghost::Image { asset: None }));
     match s.dispatch("image.file", &json!({})) {
@@ -434,7 +393,7 @@ fn files_the_store_refuses_fail_and_change_nothing() {
 #[test]
 fn the_pixel_refusal_reads_in_a_dutch_window() {
     let tmp = Tmp::new("image-file-pixels");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.image", json!({}));
     let mut wide = tiny_png();
     wide[16..20].copy_from_slice(&70_000u32.to_be_bytes());
@@ -459,25 +418,6 @@ fn the_pixel_refusal_reads_in_a_dutch_window() {
     );
 }
 
-/// Cycle-29 review 6: only a regular file is read. A directory is refused with `error-image-file` and the reason, whatever
-/// the platform's own error for reading it would say.
-#[test]
-fn a_directory_is_not_an_image_file() {
-    let tmp = Tmp::new("image-file-dir");
-    let mut s = shell(&tmp, "101");
-    done(&mut s, "tool.image", json!({}));
-    let dir = tmp.0.to_string_lossy().into_owned();
-    let message = failed_message(&mut s, "image.file", json!({ "path": dir }));
-    assert_eq!(
-        message,
-        format!(
-            "Cannot read the image file {}: not a regular file.",
-            tmp.0.display()
-        )
-    );
-    assert_eq!(s.tool().state(), "picking", "a refused path arms nothing");
-}
-
 /// Cycle-29 review 6: a character device is no file to read: `metadata().len()` is 0 for `/dev/zero`, and reading it to
 /// the end would never finish. It is refused without being read, with `error-image-file`; nothing is armed and the model
 /// is untouched.
@@ -485,7 +425,7 @@ fn a_directory_is_not_an_image_file() {
 #[test]
 fn a_device_is_refused_without_being_read() {
     let tmp = Tmp::new("image-file-device");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.image", json!({}));
     let revision = s.revision();
     // No timer (FT-317 disallows `Instant::now`, tests included): a read that never ends is caught by nextest's timeout.
@@ -521,7 +461,7 @@ fn the_window_asks_for_a_file_and_headless_does_not() {
     );
     gui.shutdown();
     let tmp = Tmp::new("image-noprompt");
-    let mut headless = shell(&tmp, "101");
+    let mut headless = actual_size(&tmp, "101");
     done(&mut headless, "tool.image", json!({}));
     assert!(headless.take_prompt().is_none());
 }

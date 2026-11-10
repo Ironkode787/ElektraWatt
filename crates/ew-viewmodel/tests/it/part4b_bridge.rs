@@ -11,12 +11,12 @@ use crate::common;
 
 use std::path::Path;
 
-use common::{GOLDEN_A, Tmp, at, done, refused};
+use common::{GOLDEN_A, Tmp, actual_size, cursor, done, refused, select_ids, tables};
 use ew_viewmodel::actions::{ActionItem, Menu, menu_model};
 use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
 use ew_viewmodel::ew_api::Session;
-use ew_viewmodel::ew_api::output::{PageTables, TableRep};
-use ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::ew_api::output::TableRep;
+use ew_viewmodel::shell::ShellModel;
 use serde_json::{Value, json};
 
 /// -X1031's terminal functions 1 to 4, in sequence order (verified in [`assert_golden_endpoints`]).
@@ -38,30 +38,6 @@ const BR1: [&str; 3] = [
 const X1032_1: &str = "7f6b83c0-d75e-58da-864c-7f2fd5ed3b06";
 /// The symbol Golden A's terminals use.
 const TERMINAL_SYMBOL: &str = "ew.iec.terminal@qet10";
-
-/// A headless shell with a writable copy of Golden A on `folio`, at actual size.
-fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, folio);
-    done(&mut s, "view.zoom_actual", json!({}));
-    s
-}
-
-fn tables(s: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
-}
-
-fn sheet(s: &ShellModel, p: (i64, i64)) -> (i64, i64) {
-    s.canvas().unwrap().page().snapper.page_to_sheet(p)
-}
-
-fn cursor(s: &mut ShellModel, p: (i64, i64)) {
-    let q = sheet(s, p);
-    done(s, "cursor.set", at(q, json!({})));
-}
-
-fn select_ids(s: &mut ShellModel, ids: &[String]) {
-    done(s, "select.set", json!({ "ids": ids }));
-}
 
 /// Deletes the connections with these ID texts (`edit.delete`).
 fn delete_connections(s: &mut ShellModel, connections: &[&str]) {
@@ -260,7 +236,7 @@ fn largest_x1031_bridge_group(dir: &Path) -> u64 {
 
 /// -X1031 and BR1 deleted, four terminals placed, three bridges drawn.
 fn three_bridges(tmp: &Tmp) -> (ShellModel, Vec<TableRep>, Vec<u64>) {
-    let mut s = shell(tmp, "103");
+    let mut s = actual_size(tmp, "103");
     delete_connections(&mut s, &BR1);
     let reps = place_terminals(&mut s, &X1031);
     let mut groups = Vec::new();
@@ -283,7 +259,7 @@ fn three_bridges(tmp: &Tmp) -> (ShellModel, Vec<TableRep>, Vec<u64>) {
 fn pi10_three_bridges_join_four_terminals_in_one_group() {
     assert_golden_endpoints();
     let tmp = Tmp::new("bridge-pi10");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     delete_connections(&mut s, &BR1);
     let reps = place_terminals(&mut s, &X1031);
     // The remaining -X1031 bridges (BR2 to BR5) are read from the saved modified copy, not from pristine Golden A.
@@ -364,7 +340,7 @@ fn each_bridge_is_one_undo_step() {
 fn a_bridge_extends_the_group_of_an_existing_bridge() {
     assert_golden_endpoints();
     let tmp = Tmp::new("bridge-extend");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     delete_connections(&mut s, &BR1[2..]);
     let reps = place_terminals(&mut s, &X1031[2..]);
     select_ids(&mut s, &[reps[0].id.to_string(), reps[1].id.to_string()]);
@@ -386,7 +362,7 @@ fn bridging_twice_is_refused() {
     assert_golden_endpoints();
     // The bridge drawn first counts.
     let tmp = Tmp::new("bridge-twice");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     delete_connections(&mut s, &BR1);
     let reps = place_terminals(&mut s, &X1031[..2]);
     select_ids(&mut s, &[reps[0].id.to_string(), reps[1].id.to_string()]);
@@ -396,7 +372,7 @@ fn bridging_twice_is_refused() {
     assert_eq!(s.revision(), rev, "a refused bridge commits nothing");
     // Golden A's own BR1 1–2 counts.
     let tmp = Tmp::new("bridge-twice-golden");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     let reps = place_terminals(&mut s, &X1031[..2]);
     select_ids(&mut s, &[reps[0].id.to_string(), reps[1].id.to_string()]);
     assert_eq!(refused(&mut s, "strip.bridge", json!({})), "reason-bridge-exists");
@@ -409,7 +385,7 @@ fn bridging_twice_is_refused() {
 fn the_selection_must_be_terminals_of_one_strip() {
     assert_golden_endpoints();
     let tmp = Tmp::new("bridge-selection");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     let reps = place_terminals(&mut s, &[X1031[0], X1032_1]);
     // One terminal.
     select_ids(&mut s, &[reps[0].id.to_string()]);
@@ -456,7 +432,7 @@ fn the_selection_must_be_terminals_of_one_strip() {
 fn four_terminals_draw_the_chain_in_one_undo_step() {
     assert_golden_endpoints();
     let tmp = Tmp::new("bridge-chain");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     delete_connections(&mut s, &BR1);
     let reps = place_terminals(&mut s, &X1031);
     // Selected out of order: the chain follows the strip's order, :1-:2, :2-:3, :3-:4.
@@ -509,7 +485,7 @@ fn four_terminals_draw_the_chain_in_one_undo_step() {
 fn a_chain_draws_only_the_pairs_not_bridged_yet() {
     assert_golden_endpoints();
     let tmp = Tmp::new("bridge-chain-gap");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     // BR1 loses its middle bridge :2-:3; :1-:2 and :3-:4 stay in group 1.
     delete_connections(&mut s, &BR1[1..2]);
     let reps = place_terminals(&mut s, &X1031);
@@ -586,7 +562,7 @@ fn function_of(rep: &TableRep) -> String {
 #[test]
 fn partless_terminals_bridge_at_their_side1_cp() {
     let tmp = Tmp::new("bridge-partless");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     let reps = partless_strip(&mut s, 2);
     select_ids(&mut s, &[reps[1].id.to_string(), reps[0].id.to_string()]);
     let rev = s.revision();
@@ -614,7 +590,7 @@ fn partless_terminals_bridge_at_their_side1_cp() {
 #[test]
 fn folio_103_bridges_draw_on_terminals_placed_by_symbol() {
     let tmp = Tmp::new("bridge-gpp-103");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     let reps = partless_strip(&mut s, 9);
     let mut groups = Vec::new();
     for (range, cmd) in [
@@ -651,7 +627,7 @@ fn folio_103_bridges_draw_on_terminals_placed_by_symbol() {
 #[test]
 fn se12_a_part_added_after_a_partless_bridge_keeps_the_pair_bridged() {
     let tmp = Tmp::new("bridge-partless-then-part");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     let reps = partless_strip(&mut s, 3);
     let ids: Vec<String> = reps.iter().map(|r| r.id.to_string()).collect();
     select_ids(&mut s, &ids[..2]);
@@ -744,7 +720,7 @@ fn strip_rows(s: &mut ShellModel, strip: &str, designations: &[&str]) -> Vec<Str
 #[test]
 fn se10_bridge_terminals_by_reps_tags_marks_and_functions() {
     let tmp = Tmp::new("bridge-se10");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     delete_connections(&mut s, &BR1);
     let reps = place_terminals(&mut s, &X1031[..2]);
     let mut results: Vec<(&str, String, Value)> = Vec::new();
@@ -811,7 +787,7 @@ fn se11_terminals_without_a_shaft_or_a_side1_cp_refuse() {
             .expect("a definition without side-1 CPs")
     };
     let tmp = Tmp::new("bridge-se11");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     done(
         &mut s,
         "command.run",
@@ -839,7 +815,7 @@ fn se11_terminals_without_a_shaft_or_a_side1_cp_refuse() {
 fn se13_remove_bridge() {
     assert_golden_endpoints();
     let tmp = Tmp::new("bridge-se13");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     done(&mut s, "navigator.show", json!({"kind": "strips"}));
     let select = |s: &mut ShellModel, terminals: &[&str]| {
         let refs: Vec<String> = terminals.iter().map(|t| format!("tag:-X1031:{t}")).collect();

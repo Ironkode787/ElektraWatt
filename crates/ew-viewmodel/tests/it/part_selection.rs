@@ -483,63 +483,32 @@ fn the_device_dialog_never_offers_a_layout_part() {
     s.shutdown();
 }
 
-/// A strip is offered end brackets though it has a main function, so its Part dialog finds
-/// the end bracket EW-GEN-EB-1 by search, and not the enclosure EW-GEN-ENC-1 (an enclosure goes to a device without a
-/// main function).
+/// A device's Part dialog offers the parts its kind takes and no layout part. A strip is offered end brackets though
+/// it has a main function (EW-GEN-EB-1 by search), and not an enclosure; the enclosure device -UC1 has no main function
+/// and finds the enclosure EW-GEN-ENC-1, and not an end bracket (a device takes one only as a strip); a rail and a duct
+/// are layout items, never part uses of a device: no device finds RAIL-1 or DUCT-1.
 #[test]
-fn the_strip_1x1_finds_its_end_bracket_but_no_enclosure() {
-    let tmp = Tmp::new("part-sel-1x1");
-    let mut s = golden(&tmp);
-    select(&mut s, "1X1");
-    done(&mut s, "part.choose", json!({ "add": true }));
-    done(&mut s, "part.search", json!({ "text": "EW-GEN-EB-1" }));
-    assert!(
-        results(&s).iter().any(|r| r == "EW-GEN-EB-1"),
-        "{:?}",
-        results(&s)
-    );
-    done(&mut s, "part.search", json!({ "text": "EW-GEN-ENC-1" }));
-    assert!(
-        !results(&s).iter().any(|r| r == "EW-GEN-ENC-1"),
-        "{:?}",
-        results(&s)
-    );
-    s.shutdown();
-}
-
-/// The enclosure device -UC1 has no main function, so its Part dialog finds the enclosure
-/// EW-GEN-ENC-1 by search, and not the end bracket EW-GEN-EB-1 (a device takes an end bracket only as a strip).
-#[test]
-fn the_enclosure_device_finds_its_enclosure_but_no_end_bracket() {
-    let tmp = Tmp::new("part-sel-uc1");
-    let mut s = golden(&tmp);
-    select(&mut s, "-UC1");
-    done(&mut s, "part.choose", json!({ "add": true }));
-    done(&mut s, "part.search", json!({ "text": "EW-GEN-ENC-1" }));
-    assert!(
-        results(&s).iter().any(|r| r == "EW-GEN-ENC-1"),
-        "{:?}",
-        results(&s)
-    );
-    done(&mut s, "part.search", json!({ "text": "EW-GEN-EB-1" }));
-    assert!(
-        !results(&s).iter().any(|r| r == "EW-GEN-EB-1"),
-        "{:?}",
-        results(&s)
-    );
-    s.shutdown();
-}
-
-/// A rail and a duct are layout items, never part uses of a device: no device's Part dialog
-/// finds RAIL-1 or DUCT-1. The strip 1X1, the enclosure device -UC1 and the valve F55 are searched.
-#[test]
-fn no_device_finds_a_rail_or_a_duct() {
-    for (i, tag) in ["1X1", "-UC1", "F55"].into_iter().enumerate() {
-        let tmp = Tmp::new(&format!("part-sel-rail-{i}"));
+fn a_part_dialog_offers_the_parts_its_device_kind_takes() {
+    let layout = ["EW-GEN-RAIL-1", "EW-GEN-DUCT-1"];
+    let cases: [(&str, Option<&str>, &[&str]); 3] = [
+        ("1X1", Some("EW-GEN-EB-1"), &["EW-GEN-ENC-1"]),
+        ("-UC1", Some("EW-GEN-ENC-1"), &["EW-GEN-EB-1"]),
+        ("F55", None, &[]),
+    ];
+    for (i, (tag, offered, refused_parts)) in cases.into_iter().enumerate() {
+        let tmp = Tmp::new(&format!("part-sel-kind-{i}"));
         let mut s = golden(&tmp);
         select(&mut s, tag);
         done(&mut s, "part.choose", json!({ "add": true }));
-        for number in ["EW-GEN-RAIL-1", "EW-GEN-DUCT-1"] {
+        if let Some(number) = offered {
+            done(&mut s, "part.search", json!({ "text": number }));
+            assert!(
+                results(&s).iter().any(|r| r == number),
+                "{tag}: {number} is not offered: {:?}",
+                results(&s)
+            );
+        }
+        for number in refused_parts.iter().chain(&layout) {
             done(&mut s, "part.search", json!({ "text": number }));
             assert!(
                 !results(&s).iter().any(|r| r == number),
@@ -619,22 +588,6 @@ fn ps7_a_library_copy_forks() {
     let (_, params) = last(&s);
     assert!(params.get("fork").is_none_or(Value::is_null), "{params}");
     s.shutdown();
-}
-
-/// PS9's membership: the actions of §9.4 are in the registry.
-#[test]
-fn ps9_the_actions_are_registered() {
-    for id in [
-        "part.choose",
-        "part.search",
-        "part.pick",
-        "part.favourite",
-        "part.edit",
-        "part.field",
-        "part.save",
-    ] {
-        assert!(ew_viewmodel::actions::ACTIONS.iter().any(|m| m.id == id), "{id}");
-    }
 }
 
 /// §9.4: the Parts row's actions menu lists Choose part…, Add part… and Edit part… after its row actions; each

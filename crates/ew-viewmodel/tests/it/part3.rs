@@ -10,42 +10,18 @@
 
 use crate::common;
 
-use common::{Tmp, at, done, refused, state};
+use common::{
+    Tmp, actual_size, at, canvas, cursor, describe_line, done, grid_point, refused, select_ids, sheet, tables,
+};
 use ew_viewmodel::ew_api::output::{PageTables, TableEnd, TableRep};
-use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::shell::{Outcome, ShellModel};
 use ew_viewmodel::tools::black_box::on_outline;
 use serde_json::{Value, json};
-
-/// A headless shell with a writable copy of Golden A on `folio`, at actual size.
-fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, folio);
-    done(&mut s, "view.zoom_actual", json!({}));
-    s
-}
-
-fn tables(s: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
-}
-
-fn sheet(s: &ShellModel, p: (i64, i64)) -> (i64, i64) {
-    s.canvas().unwrap().page().snapper.page_to_sheet(p)
-}
-
-/// The page point of grid index `k`.
-fn grid_point(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
-    let sn = &s.canvas().unwrap().page().snapper;
-    (sn.page_of_index(k.0), sn.page_of_index(k.1))
-}
 
 /// The grid index of a page point.
 fn index_of(s: &ShellModel, p: (i64, i64)) -> (i64, i64) {
     let sn = &s.canvas().unwrap().page().snapper;
     (sn.grid_index_of(p.0), sn.grid_index_of(p.1))
-}
-
-fn cursor(s: &mut ShellModel, p: (i64, i64)) {
-    let q = sheet(s, p);
-    done(s, "cursor.set", at(q, json!({})));
 }
 
 fn enter_at(s: &mut ShellModel, p: (i64, i64)) {
@@ -63,17 +39,6 @@ fn cursor_k(s: &mut ShellModel, k: (i64, i64)) {
 fn enter_k(s: &mut ShellModel, k: (i64, i64)) {
     let p = grid_point(s, k);
     enter_at(s, p);
-}
-
-fn canvas(s: &ShellModel) -> Value {
-    state(s)["canvas"].clone()
-}
-
-fn describe_line(s: &ShellModel, prefix: &str) -> Option<String> {
-    s.describe()
-        .lines()
-        .find(|l| l.starts_with(prefix))
-        .map(str::to_owned)
 }
 
 /// The interruption point of the page with this name and direction.
@@ -102,10 +67,6 @@ fn ips(t: &PageTables) -> Vec<(String, String, (i64, i64))> {
     v
 }
 
-fn select_ids(s: &mut ShellModel, ids: &[String]) {
-    done(s, "select.set", json!({ "ids": ids }));
-}
-
 /// Every connection of `t` at a CP of function `f`: (connection ID, the CP's index, the route's end at it).
 fn ends_at(
     t: &PageTables,
@@ -131,7 +92,7 @@ fn ends_at(
 #[test]
 fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     let tmp = Tmp::new("ip-tool");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     let before = ips(&tables(&s));
     done(&mut s, "tool.ip", json!({}));
     assert_eq!(s.tool().name(), "ip");
@@ -213,7 +174,7 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
 #[test]
 fn ib2_the_name_proposal_is_the_potential_under_the_ghost_cp() {
     let tmp = Tmp::new("ip-potential");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     let t = tables(&s);
     // A CP with a derived potential, the source form's CP one grid step left of its insertion point, the arrow's tip.
     let cp = t
@@ -240,7 +201,7 @@ fn ib2_the_name_proposal_is_the_potential_under_the_ghost_cp() {
 #[test]
 fn ib2_ending_a_wire_in_an_ip_is_one_transaction_and_one_undo_step() {
     let tmp = Tmp::new("wire-ip");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     let before = tables(&s);
     let start = before
         .cps
@@ -331,7 +292,7 @@ fn links_to(s: &ShellModel, folio: &str) -> usize {
 #[test]
 fn ib3_continue_on_page_103_places_the_paired_ip_at_the_default_position() {
     let tmp = Tmp::new("continue");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     let paired = links_to(&s, "103");
     // Delete 24VDC-2's partner on 103.
     done(&mut s, "page.goto", json!({"folio": "103"}));
@@ -407,7 +368,7 @@ fn xref_of_partner(s: &mut ShellModel, name: &str) -> String {
 #[test]
 fn ib4_arrange_by_name_puts_l1_in_the_upper_slot() {
     let tmp = Tmp::new("arrange");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     let t = tables(&s);
     let (l1, n1) = (ip(&t, "L-1", "target"), ip(&t, "N-1", "target"));
     assert!(n1.pos.1 < l1.pos.1, "on Golden A N-1 is above L-1 (ID-1504)");
@@ -465,7 +426,7 @@ fn ib4_arrange_by_name_puts_l1_in_the_upper_slot() {
 #[test]
 fn ib5_the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_device() {
     let tmp = Tmp::new("box-tool");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     done(
         &mut s,
         "command.run",
@@ -573,7 +534,7 @@ fn ib5_the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_devic
 #[test]
 fn ft714_the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
     let tmp = Tmp::new("box-escape");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     done(
         &mut s,
         "tool.black_box",
@@ -668,7 +629,7 @@ fn check_widened(s: &ShellModel, before: &TableRep, connected: usize) {
 #[test]
 fn ib6_widening_g1_by_two_grid_steps_keeps_its_cps_on_the_outline_and_connected() {
     let tmp = Tmp::new("grips");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     let t = tables(&s);
     let before = g1(&t);
     let f = ew_viewmodel::ew_api::output::ew_dl::EntityRef(before.functions[0]);
@@ -716,7 +677,7 @@ fn ib6_widening_g1_by_two_grid_steps_keeps_its_cps_on_the_outline_and_connected(
 #[test]
 fn an_inside_out_grip_drag_is_refused_and_leaves_the_box_alone() {
     let tmp = Tmp::new("grip-inside-out");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     let before = g1(&tables(&s));
     select_ids(&mut s, &[before.id.to_string()]);
     let grips = s.tool_overlay().clone();
@@ -764,7 +725,7 @@ fn an_inside_out_grip_drag_is_refused_and_leaves_the_box_alone() {
 #[test]
 fn a_cp_is_added_on_the_outline_and_dragged_along_it() {
     let tmp = Tmp::new("box-cp");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     let before = g1(&tables(&s));
     let b = before.black_box.clone().unwrap();
     select_ids(&mut s, &[before.id.to_string()]);
@@ -796,30 +757,6 @@ fn a_cp_is_added_on_the_outline_and_dragged_along_it() {
 // ---------------------------------------------------------------------------------------------------------------
 // IB7: the picker, the transcript, the words and the counts
 
-#[test]
-fn the_pickers_black_box_rows_arm_the_black_box_tool() {
-    let tmp = Tmp::new("box-picker");
-    let mut s = shell(&tmp, "102");
-    done(&mut s, "tool.place", json!({}));
-    done(&mut s, "picker.filter", json!({"text": "blackbox"}));
-    let row = s
-        .picker()
-        .unwrap()
-        .rows
-        .iter()
-        .position(|r| matches!(r, ew_viewmodel::tools::PickerRow::Symbol(_)))
-        .expect("the black-box symbol row");
-    done(&mut s, "picker.row", json!({"to": row}));
-    done(&mut s, "picker.choose", json!({}));
-    assert_eq!(s.tool().name(), "black_box");
-    assert!(s.picker().is_none());
-    assert_eq!(
-        canvas(&s)["ghost"]["cps"],
-        0,
-        "a symbol without a part has no CPs"
-    );
-}
-
 /// Every way of arming the black box tool ends with the hint that names both corner clicks, its key
 /// from the keymap (the keycap form): the picker `tool.black_box` opens, `tool.black_box` with a part, and
 /// `place.pick` of a black-box symbol (which the Symbol tool's picker sends).
@@ -839,7 +776,7 @@ fn assert_armed_hint(s: &ShellModel) {
 #[test]
 fn ft1093_the_black_box_picker_arms_the_tool_with_the_two_corner_hint() {
     let tmp = Tmp::new("box-hint-picker");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     done(&mut s, "tool.black_box", json!({}));
     let row = s
         .picker()
@@ -856,7 +793,7 @@ fn ft1093_the_black_box_picker_arms_the_tool_with_the_two_corner_hint() {
 #[test]
 fn ft1093_the_black_box_tool_with_a_part_arms_with_the_two_corner_hint() {
     let tmp = Tmp::new("box-hint-part");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     done(
         &mut s,
         "tool.black_box",
@@ -868,7 +805,7 @@ fn ft1093_the_black_box_tool_with_a_part_arms_with_the_two_corner_hint() {
 #[test]
 fn ft1093_place_pick_of_a_black_box_symbol_arms_with_the_two_corner_hint() {
     let tmp = Tmp::new("box-hint-pick");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     done(&mut s, "tool.place", json!({}));
     done(&mut s, "picker.filter", json!({"text": "blackbox"}));
     let row = s
@@ -880,6 +817,12 @@ fn ft1093_place_pick_of_a_black_box_symbol_arms_with_the_two_corner_hint() {
         .expect("the black-box symbol row");
     done(&mut s, "picker.row", json!({"to": row}));
     done(&mut s, "picker.choose", json!({}));
+    assert!(s.picker().is_none());
+    assert_eq!(
+        canvas(&s)["ghost"]["cps"],
+        0,
+        "a symbol without a part has no CPs"
+    );
     assert_armed_hint(&s);
     // The same through `place.pick` itself, the action the Symbol tool's picker sends.
     done(&mut s, "ui.dismiss", json!({}));
@@ -890,7 +833,7 @@ fn ft1093_place_pick_of_a_black_box_symbol_arms_with_the_two_corner_hint() {
 #[test]
 fn ib7_the_tools_read_nothing_while_moving() {
     let tmp = Tmp::new("words");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     done(&mut s, "tool.ip", json!({}));
     let calls = s.session_calls();
     for k in 0..6 {
@@ -921,25 +864,27 @@ fn ib7_the_tools_read_nothing_while_moving() {
     assert_eq!(after.symbol_shape, calls.symbol_shape);
 }
 
+/// A location node of Golden A, read from its external references (the copy keeps every ID).
+fn external_location() -> String {
+    let (session, _) =
+        ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test")
+            .unwrap();
+    let q = session.query();
+    let id = q
+        .external_refs()
+        .iter()
+        .next()
+        .map(|(_, x)| x.location.to_string())
+        .expect("Golden A has external references");
+    drop(q);
+    id
+}
+
 #[test]
 fn ip_external_refuses_a_printed_text_two_references_share_and_takes_an_id() {
-    // A location node of Golden A, read from its external references (the copy keeps every ID).
-    let location = {
-        let (session, _) =
-            ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test")
-                .unwrap();
-        let q = session.query();
-        let id = q
-            .external_refs()
-            .iter()
-            .next()
-            .map(|(_, x)| x.location.to_string())
-            .expect("Golden A has external references");
-        drop(q);
-        id
-    };
+    let location = external_location();
     let tmp = Tmp::new("ip-external");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     for _ in 0..2 {
         done(
             &mut s,
@@ -972,22 +917,9 @@ fn ip_external_refuses_a_printed_text_two_references_share_and_takes_an_id() {
 /// proposes its own (`IP`), and committing it leaves the IP series where it was.
 #[test]
 fn an_external_point_after_an_ip_does_not_inherit_its_name() {
-    let location = {
-        let (session, _) =
-            ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test")
-                .unwrap();
-        let q = session.query();
-        let id = q
-            .external_refs()
-            .iter()
-            .next()
-            .map(|(_, x)| x.location.to_string())
-            .expect("Golden A has external references");
-        drop(q);
-        id
-    };
+    let location = external_location();
     let tmp = Tmp::new("ip-external-name");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     done(
         &mut s,
         "command.run",
@@ -1029,7 +961,7 @@ fn an_external_point_after_an_ip_does_not_inherit_its_name() {
 #[test]
 fn a_refused_grip_drag_keeps_its_notice_through_dwell_and_release() {
     let tmp = Tmp::new("grip-notice");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     let before = g1(&tables(&s));
     select_ids(&mut s, &[before.id.to_string()]);
     let grips = s.tool_overlay().clone();
@@ -1093,7 +1025,7 @@ fn a_refused_grip_drag_keeps_its_notice_through_dwell_and_release() {
 #[test]
 fn a_refused_grip_drag_leaves_no_band_on_the_next_hover() {
     let tmp = Tmp::new("grip-no-band");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     let before = g1(&tables(&s));
     select_ids(&mut s, &[before.id.to_string()]);
     let b = before.black_box.as_ref().unwrap();

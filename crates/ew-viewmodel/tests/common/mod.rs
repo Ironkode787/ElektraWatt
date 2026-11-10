@@ -127,6 +127,70 @@ pub fn tables(s: &ShellModel) -> std::sync::Arc<ew_viewmodel::ew_api::output::Pa
     std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
 }
 
+/// A headless shell with a writable copy of Golden A on `folio`, at actual size.
+pub fn actual_size(tmp: &Tmp, folio: &str) -> ShellModel {
+    let mut s = tmp.shell_in(Mode::Headless, true, folio);
+    done(&mut s, "view.zoom_actual", json!({}));
+    s
+}
+
+/// The sheet point of the page point `p` of the focused page.
+pub fn sheet(s: &ShellModel, p: (i64, i64)) -> (i64, i64) {
+    s.canvas().unwrap().page().snapper.page_to_sheet(p)
+}
+
+/// The page point of grid index `k` of the focused page.
+pub fn grid_point(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
+    let sn = &s.canvas().unwrap().page().snapper;
+    (sn.page_of_index(k.0), sn.page_of_index(k.1))
+}
+
+/// The grid cursor to page point `p`.
+pub fn cursor(s: &mut ShellModel, p: (i64, i64)) {
+    let q = sheet(s, p);
+    done(s, "cursor.set", at(q, json!({})));
+}
+
+/// A click at page point `p` through the grid cursor.
+pub fn click_at(s: &mut ShellModel, p: (i64, i64)) {
+    cursor(s, p);
+    done(s, "canvas.activate", json!({}));
+}
+
+/// The `canvas` member of the shell's state.
+pub fn canvas(s: &ShellModel) -> Value {
+    state(s)["canvas"].clone()
+}
+
+/// The first describe line that starts with `prefix`.
+pub fn describe_line(s: &ShellModel, prefix: &str) -> Option<String> {
+    s.describe()
+        .lines()
+        .find(|l| l.starts_with(prefix))
+        .map(str::to_owned)
+}
+
+pub fn select_ids(s: &mut ShellModel, ids: &[String]) {
+    done(s, "select.set", json!({ "ids": ids }));
+}
+
+/// A dispatch that must fail.
+#[track_caller]
+pub fn assert_failed(s: &mut ShellModel, action: &str, params: Value) {
+    failed(s, action, params);
+}
+
+/// Twenty pointer moves from page point `p` change no `Session` read count.
+#[track_caller]
+pub fn assert_moves_read_nothing(s: &mut ShellModel, p: (i64, i64), what: &str) {
+    let calls = s.session_calls();
+    for k in 0..20 {
+        let q = sheet(s, (p.0 + k * 300_000, p.1 + k * 200_000));
+        done(s, "canvas.pointer", at(q, json!({})));
+    }
+    assert_eq!(s.session_calls(), calls, "{what} reads nothing");
+}
+
 /// The toast's text, empty without one.
 pub fn toast(s: &ShellModel) -> String {
     state(s)["toast"]["text"].as_str().unwrap_or_default().to_owned()

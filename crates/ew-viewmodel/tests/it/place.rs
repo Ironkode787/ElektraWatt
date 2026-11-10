@@ -9,8 +9,8 @@
 use crate::common;
 use ew_viewmodel::key;
 
-use common::{Tmp, at, click, done, refused, state};
-use ew_viewmodel::ew_api::output::{PageTables, TableRep};
+use common::{Tmp, at, click, done, grid_point, refused, sheet, state, tables};
+use ew_viewmodel::ew_api::output::TableRep;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_viewmodel::tools::OverlayItem;
 use serde_json::{Value, json};
@@ -18,10 +18,6 @@ use serde_json::{Value, json};
 /// A headless shell with a writable copy of Golden A on `folio`.
 fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
     tmp.shell_in(Mode::Headless, true, folio)
-}
-
-fn tables(shell: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&shell.canvas().unwrap().page().tables)
 }
 
 /// The representation of the page drawing the symbol `key` (the first in ID order).
@@ -34,11 +30,6 @@ fn rep_with(shell: &ShellModel, key: &str) -> TableRep {
         .clone()
 }
 
-/// The sheet point of the page point `p` of the focused page.
-fn sheet(shell: &ShellModel, p: (i64, i64)) -> (i64, i64) {
-    shell.canvas().unwrap().page().snapper.page_to_sheet(p)
-}
-
 /// The sheet point `k` grid steps from the sheet point of the page point `p`.
 fn steps_from(shell: &ShellModel, p: (i64, i64), k: (i64, i64)) -> (i64, i64) {
     let s = &shell.canvas().unwrap().page().snapper;
@@ -47,12 +38,6 @@ fn steps_from(shell: &ShellModel, p: (i64, i64), k: (i64, i64)) -> (i64, i64) {
         s.sheet_of_index(ix + k.0, 0) - s.sheet_of_index(ix, 0) + s.to_sheet(p.0, 0),
         s.sheet_of_index(iy + k.1, 1) - s.sheet_of_index(iy, 1) + s.to_sheet(p.1, 1),
     )
-}
-
-/// The page point of grid index `k` of the focused page.
-fn grid_point(shell: &ShellModel, k: (i64, i64)) -> (i64, i64) {
-    let s = &shell.canvas().unwrap().page().snapper;
-    (s.page_of_index(k.0), s.page_of_index(k.1))
 }
 
 /// A free grid point of folio 101's empty lower right area.

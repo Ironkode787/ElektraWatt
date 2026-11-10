@@ -9,7 +9,7 @@
 
 use crate::common;
 
-use common::{Tmp, at, done, state};
+use common::{Tmp, actual_size, at, canvas, done, grid_point, select_ids, sheet, tables};
 use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
 use ew_viewmodel::ew_api::output::{PageTables, TableEnd, TableItem, TableRep, TableStructureBox};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -31,31 +31,10 @@ const TWO_STARTER_FNDEF_PART: &str = concat!(
     "/../ew-api/tests/expected/two_starter_fndef_part.json"
 );
 
-/// A headless shell with a writable copy of Golden A on `folio`, at actual size.
-fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, folio);
-    done(&mut s, "view.zoom_actual", json!({}));
-    s
-}
-
-fn tables(s: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
-}
-
-fn sheet(s: &ShellModel, p: (i64, i64)) -> (i64, i64) {
-    s.canvas().unwrap().page().snapper.page_to_sheet(p)
-}
-
 /// The sheet point of grid index `k`.
 fn grid_sheet(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
     let sn = &s.canvas().unwrap().page().snapper;
     (sn.sheet_of_index(k.0, 0), sn.sheet_of_index(k.1, 1))
-}
-
-/// The page point of grid index `k`.
-fn grid_point(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
-    let sn = &s.canvas().unwrap().page().snapper;
-    (sn.page_of_index(k.0), sn.page_of_index(k.1))
 }
 
 /// The sheet point `k` grid steps from the sheet point `from` (the displacement a drag of `k` steps has).
@@ -67,14 +46,6 @@ fn step_sheet(s: &ShellModel, from: (i64, i64), k: (i64, i64)) -> (i64, i64) {
         from.0 + sn.sheet_of_index(ix + k.0, 0) - sn.sheet_of_index(ix, 0),
         from.1 + sn.sheet_of_index(iy + k.1, 1) - sn.sheet_of_index(iy, 1),
     )
-}
-
-fn canvas(s: &ShellModel) -> Value {
-    state(s)["canvas"].clone()
-}
-
-fn select_ids(s: &mut ShellModel, ids: &[String]) {
-    done(s, "select.set", json!({ "ids": ids }));
 }
 
 /// The representation of the page drawing the symbol `key` (the first in ID order).
@@ -203,7 +174,7 @@ fn connection_between<'a>(
 #[test]
 fn a_free_text_dragged_alone_moves_by_grid_steps() {
     let tmp = Tmp::new("part4b-text");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let p = grid_point(&s, (60, 30));
     let text = place_text(&mut s, p, "40x60");
     let before = text.bounds;
@@ -238,7 +209,7 @@ fn a_free_text_dragged_alone_moves_by_grid_steps() {
 #[test]
 fn a_rep_an_item_and_a_box_move_in_one_command() {
     let tmp = Tmp::new("part4b-three");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let s51 = rep_with(&s, "ew.iec.switch-2p-manual@qet10");
     let p = grid_point(&s, (62, 30));
     let text = place_text(&mut s, p, "together");
@@ -292,7 +263,7 @@ fn a_rep_an_item_and_a_box_move_in_one_command() {
 #[test]
 fn the_keyboard_move_moves_items_and_boxes() {
     let tmp = Tmp::new("part4b-keys");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let p = grid_point(&s, (60, 30));
     let text = place_text(&mut s, p, "keys");
     let (outline, _) = free_rectangle(&s);
@@ -325,7 +296,7 @@ fn the_keyboard_move_moves_items_and_boxes() {
 #[test]
 fn delete_removes_a_rep_an_item_and_a_box_in_one_step() {
     let tmp = Tmp::new("part4b-delete");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let s51 = rep_with(&s, "ew.iec.switch-2p-manual@qet10");
     let p = grid_point(&s, (62, 32));
     let text = place_text(&mut s, p, "deleted");
@@ -353,7 +324,7 @@ fn delete_removes_a_rep_an_item_and_a_box_in_one_step() {
 #[test]
 fn a_press_inside_a_box_starts_a_band_and_its_outline_picks_it() {
     let tmp = Tmp::new("part4b-box-pick");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let (outline, centre) = free_rectangle(&s);
     let b = place_box(&mut s, &outline, "Pick");
     // Inside, away from the outline: nothing is picked, a band starts.
@@ -385,7 +356,7 @@ fn a_press_inside_a_box_starts_a_band_and_its_outline_picks_it() {
 #[test]
 fn a_two_fndef_part_places_with_its_missing_fndef_in_one_step() {
     let tmp = Tmp::new("part4b-part-fndef");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let fixture: Value =
         serde_json::from_str(&std::fs::read_to_string(TWO_FNDEF_PART).expect("the fixture")).expect("JSON");
     done(
@@ -454,7 +425,7 @@ fn a_two_fndef_part_places_with_its_missing_fndef_in_one_step() {
 #[test]
 fn a_part_function_with_a_starter_symbol_embeds_symbol_and_fndefs_in_one_step() {
     let tmp = Tmp::new("part4b-part-first");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     // Golden A embeds neither FnDef the fixture's template names.
     let fixture: Value =
         serde_json::from_str(&std::fs::read_to_string(TWO_STARTER_FNDEF_PART).expect("the fixture"))
@@ -514,7 +485,7 @@ fn a_part_function_with_a_starter_symbol_embeds_symbol_and_fndefs_in_one_step() 
 #[test]
 fn a_part_whose_fndef_no_library_holds_fails_naming_it() {
     let tmp = Tmp::new("part4b-missing");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     embed_fixture(&mut s, MISSING_FNDEF_PART);
     let rev = s.revision();
     match s.dispatch(
@@ -534,7 +505,7 @@ fn a_part_whose_fndef_no_library_holds_fails_naming_it() {
 #[test]
 fn page_describe_lists_items_and_boxes() {
     let tmp = Tmp::new("part4b-describe");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let page = tables(&s).page.to_string();
     done(
         &mut s,
@@ -634,7 +605,7 @@ fn tool_epoch_tracks_replacements_without_session_reads() {
         ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("blank"), "0.0.0-test"),
     );
     assert_eq!(blank.tool_epoch(), 0);
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let initial = s.tool_epoch();
     let calls = s.session_calls();
     assert_eq!(s.tool_epoch(), initial);

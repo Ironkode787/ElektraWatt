@@ -9,47 +9,16 @@
 use crate::common;
 
 use std::path::Path;
-use std::sync::Arc;
 
-use common::{GOLDEN_A, Tmp, at, done, refused, state};
+use common::{
+    GOLDEN_A, Tmp, actual_size, assert_failed, at, canvas, click_at, cursor, describe_line, done, grid_point,
+    refused, sheet, tables,
+};
 use ew_viewmodel::actions::{ActionItem, Menu, Submenu, menu_model};
 use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableEnd};
-use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::shell::{Outcome, ShellModel};
 use ew_viewmodel::tools::{FineKind, crossed_connections};
 use serde_json::{Value, json};
-
-/// A headless shell with a writable copy of Golden A on `folio`, at actual size.
-fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, folio);
-    done(&mut s, "view.zoom_actual", json!({}));
-    s
-}
-
-fn tables(s: &ShellModel) -> Arc<PageTables> {
-    Arc::clone(&s.canvas().unwrap().page().tables)
-}
-
-fn sheet(s: &ShellModel, p: (i64, i64)) -> (i64, i64) {
-    s.canvas().unwrap().page().snapper.page_to_sheet(p)
-}
-
-/// The page point of grid index `k`.
-fn grid_point(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
-    let sn = &s.canvas().unwrap().page().snapper;
-    (sn.page_of_index(k.0), sn.page_of_index(k.1))
-}
-
-/// The grid cursor to page point `p`.
-fn cursor(s: &mut ShellModel, p: (i64, i64)) {
-    let q = sheet(s, p);
-    done(s, "cursor.set", at(q, json!({})));
-}
-
-/// A click at page point `p` through the grid cursor.
-fn click_at(s: &mut ShellModel, p: (i64, i64)) {
-    cursor(s, p);
-    done(s, "canvas.activate", json!({}));
-}
 
 /// A primary press at page point `p`.
 fn press(s: &mut ShellModel, p: (i64, i64)) {
@@ -67,17 +36,6 @@ fn pointer(s: &mut ShellModel, p: (i64, i64)) {
 fn release(s: &mut ShellModel, p: (i64, i64)) {
     let q = sheet(s, p);
     done(s, "canvas.release", at(q, json!({})));
-}
-
-fn canvas(s: &ShellModel) -> Value {
-    state(s)["canvas"].clone()
-}
-
-fn describe_line(s: &ShellModel, prefix: &str) -> Option<String> {
-    s.describe()
-        .lines()
-        .find(|l| l.starts_with(prefix))
-        .map(str::to_owned)
 }
 
 /// The label of the connection end `e`.
@@ -182,7 +140,7 @@ fn cross_w4_w5(s: &mut ShellModel) -> ((i64, i64), (i64, i64), Vec<String>) {
 #[test]
 fn a_press_and_a_release_without_moves_mark_the_crossed_wires() {
     let tmp = Tmp::new("marker-press-release");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.marker", json!({}));
     let (from, to, order) = w4_w5_line(&s);
     press(&mut s, from);
@@ -250,20 +208,13 @@ fn checked_mode(s: &ShellModel, mode: &str) -> bool {
         .checked
 }
 
-fn assert_failed(s: &mut ShellModel, action: &str, params: Value) {
-    match s.dispatch(action, &params) {
-        Outcome::Failed { .. } => {}
-        other => panic!("{action}: {other:?}"),
-    }
-}
-
 // ---------------------------------------------------------------------------------------------------------------
 // PI7: the Wire marker tool
 
 #[test]
 fn the_marker_tool_takes_w4_and_w5_in_line_order() {
     let tmp = Tmp::new("marker-w4w5");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.marker", json!({}));
     assert_eq!(s.tool().name(), "marker");
     assert_eq!(s.tool().state(), "armed");
@@ -310,7 +261,7 @@ fn the_marker_tool_takes_w4_and_w5_in_line_order() {
     // The same line drawn right to left (a fresh copy) lists the two the other way round; the keyboard commit
     // needs a grid cursor even though the pointer drew the line.
     let tmp = Tmp::new("marker-w4w5-rev");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.marker", json!({}));
     let (from, to, order) = w4_w5_line(&s);
     press(&mut s, to);
@@ -328,7 +279,7 @@ fn the_marker_tool_takes_w4_and_w5_in_line_order() {
 #[test]
 fn a_crossing_of_horizontal_segments_places_the_marker_at_90_degrees() {
     let tmp = Tmp::new("marker-angle");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let t = tables(&s);
     // The horizontal segments of the page, by connection.
     let mut segments: Vec<(usize, i64, i64, i64)> = Vec::new();
@@ -389,7 +340,7 @@ fn a_crossing_of_horizontal_segments_places_the_marker_at_90_degrees() {
 #[test]
 fn a_crossing_of_no_wire_returns_to_armed() {
     let tmp = Tmp::new("marker-empty");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let (from, to) = empty_marker_line(&s);
     let rev = s.revision();
     done(&mut s, "tool.marker", json!({}));
@@ -408,7 +359,7 @@ fn a_crossing_of_no_wire_returns_to_armed() {
 #[test]
 fn marker_fields_parse_colours_and_are_refused_outside_the_tool() {
     let tmp = Tmp::new("marker-fields");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     assert_eq!(
         refused(&mut s, "marker.fields", json!({"csa": "2.5"})),
         "reason-marker-tool-only"
@@ -450,7 +401,7 @@ fn marker_fields_parse_colours_and_are_refused_outside_the_tool() {
 #[test]
 fn the_structure_box_tool_draws_a_rectangle_with_its_fields() {
     let tmp = Tmp::new("structure-box");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.structure_box", json!({}));
     assert_eq!(s.tool().name(), "structure_box");
     assert_eq!(s.tool().state(), "armed");
@@ -504,7 +455,7 @@ fn the_structure_box_tool_draws_a_rectangle_with_its_fields() {
 #[test]
 fn the_structure_box_tool_draws_a_polygon() {
     let tmp = Tmp::new("structure-polygon");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.structure_box", json!({}));
     let points = [
         grid_point(&s, (40, 20)),
@@ -533,7 +484,7 @@ fn the_structure_box_tool_draws_a_polygon() {
 #[test]
 fn structure_box_fields_refuse_an_unknown_node_and_change_nothing() {
     let tmp = Tmp::new("structure-fields");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     assert_eq!(
         refused(&mut s, "structure_box.fields", json!({"caption": "X"})),
         "reason-structure-box-tool-only"
@@ -569,7 +520,7 @@ fn structure_box_fields_refuse_an_unknown_node_and_change_nothing() {
 #[test]
 fn the_marker_mode_action_sets_clears_and_skips_an_equal_mode() {
     let tmp = Tmp::new("marker-mode");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     assert_eq!(s.marker_mode_word(), "per_wire");
     assert!(checked_mode(&s, "per_wire"));
     let rev = s.revision();
@@ -603,7 +554,7 @@ fn the_marker_mode_action_sets_clears_and_skips_an_equal_mode() {
 #[test]
 fn escape_and_back_in_the_marker_and_structure_box_tools() {
     let tmp = Tmp::new("marker-escape");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     // Escape from crossing.
     done(&mut s, "tool.marker", json!({}));
     let (from, to, _) = w4_w5_line(&s);
@@ -663,7 +614,7 @@ fn escape_and_back_in_the_marker_and_structure_box_tools() {
 #[test]
 fn the_marker_and_structure_box_ghost_lines_describe_the_tools() {
     let tmp = Tmp::new("marker-words");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.marker", json!({}));
     assert_eq!(
         describe_line(&s, "canvas ghost marker ").as_deref(),
@@ -698,100 +649,41 @@ fn the_marker_and_structure_box_ghost_lines_describe_the_tools() {
     assert!(describe_line(&s, "canvas ghost box outline 4").is_some());
 }
 
+/// Twenty cursor and pointer moves around grid point (40, 30) change no `Session` read count.
+fn assert_grid_moves_read_nothing(s: &mut ShellModel, what: &str) {
+    let p = grid_point(s, (40, 30));
+    let calls = s.session_calls();
+    for k in 0..20 {
+        let c = grid_point(s, (40 + k % 3, 30 + k % 2));
+        cursor(s, c);
+        let q = sheet(s, (p.0 + k * 300_000, p.1 + k * 200_000));
+        done(s, "canvas.pointer", at(q, json!({})));
+    }
+    assert_eq!(s.session_calls(), calls, "{what} reads nothing");
+}
+
 #[test]
 fn pointer_moves_with_the_marker_and_structure_box_tools_call_no_session() {
     let tmp = Tmp::new("marker-counts");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let p = grid_point(&s, (40, 30));
-    let step = |k: i64| (p.0 + k * 300_000, p.1 + k * 200_000);
-    // The armed marker tool.
     done(&mut s, "tool.marker", json!({}));
-    let calls = s.session_calls();
-    for k in 0..20 {
-        let c = grid_point(&s, (40 + k % 3, 30 + k % 2));
-        cursor(&mut s, c);
-        let q = sheet(&s, step(k));
-        done(&mut s, "canvas.pointer", at(q, json!({})));
-    }
-    assert_eq!(
-        s.session_calls(),
-        calls,
-        "the armed Wire marker tool reads nothing"
-    );
-    // The crossing marker tool.
+    assert_grid_moves_read_nothing(&mut s, "the armed Wire marker tool");
     let (from, to, _) = w4_w5_line(&s);
     press(&mut s, from);
-    let calls = s.session_calls();
-    for k in 0..20 {
-        let c = grid_point(&s, (40 + k % 3, 30 + k % 2));
-        cursor(&mut s, c);
-        let q = sheet(&s, step(k));
-        done(&mut s, "canvas.pointer", at(q, json!({})));
-    }
-    assert_eq!(
-        s.session_calls(),
-        calls,
-        "the crossing Wire marker tool reads nothing"
-    );
+    assert_grid_moves_read_nothing(&mut s, "the crossing Wire marker tool");
     release(&mut s, to);
-    // The typing marker tool.
-    let calls = s.session_calls();
-    for k in 0..20 {
-        let c = grid_point(&s, (40 + k % 3, 30 + k % 2));
-        cursor(&mut s, c);
-        let q = sheet(&s, step(k));
-        done(&mut s, "canvas.pointer", at(q, json!({})));
-    }
-    assert_eq!(
-        s.session_calls(),
-        calls,
-        "the typing Wire marker tool reads nothing"
-    );
+    assert_grid_moves_read_nothing(&mut s, "the typing Wire marker tool");
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "ui.dismiss", json!({}));
-    // The armed Structure box tool.
     done(&mut s, "tool.structure_box", json!({}));
-    let calls = s.session_calls();
-    for k in 0..20 {
-        let c = grid_point(&s, (40 + k % 3, 30 + k % 2));
-        cursor(&mut s, c);
-        let q = sheet(&s, step(k));
-        done(&mut s, "canvas.pointer", at(q, json!({})));
-    }
-    assert_eq!(
-        s.session_calls(),
-        calls,
-        "the armed Structure box tool reads nothing"
-    );
-    // The drawing and typing Structure box tool.
+    assert_grid_moves_read_nothing(&mut s, "the armed Structure box tool");
     click_at(&mut s, p);
-    let calls = s.session_calls();
-    for k in 0..20 {
-        let c = grid_point(&s, (40 + k % 3, 30 + k % 2));
-        cursor(&mut s, c);
-        let q = sheet(&s, step(k));
-        done(&mut s, "canvas.pointer", at(q, json!({})));
-    }
-    assert_eq!(
-        s.session_calls(),
-        calls,
-        "the drawing Structure box tool reads nothing"
-    );
+    assert_grid_moves_read_nothing(&mut s, "the drawing Structure box tool");
     let b = grid_point(&s, (46, 34));
     click_at(&mut s, b);
     done(&mut s, "tool.finish", json!({}));
-    let calls = s.session_calls();
-    for k in 0..20 {
-        let c = grid_point(&s, (40 + k % 3, 30 + k % 2));
-        cursor(&mut s, c);
-        let q = sheet(&s, step(k));
-        done(&mut s, "canvas.pointer", at(q, json!({})));
-    }
-    assert_eq!(
-        s.session_calls(),
-        calls,
-        "the typing Structure box tool reads nothing"
-    );
+    assert_grid_moves_read_nothing(&mut s, "the typing Structure box tool");
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -802,7 +694,7 @@ fn a_page_change_ends_every_part_4b_tool() {
     // Text, Graphic, Wire marker and Structure box while armed.
     for tool in ["tool.text", "tool.graphic", "tool.marker", "tool.structure_box"] {
         let tmp = Tmp::new(&format!("page-change-{tool}"));
-        let mut s = shell(&tmp, "101");
+        let mut s = actual_size(&tmp, "101");
         done(&mut s, tool, json!({}));
         assert_ne!(s.tool().name(), "select", "{tool}");
         let rep = tables(&s).reps[0].id.to_string();
@@ -814,7 +706,7 @@ fn a_page_change_ends_every_part_4b_tool() {
     }
     // Text edit, reached through `text.edit` on a placed free text.
     let tmp = Tmp::new("page-change-text-edit");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let p = grid_point(&s, (44, 32));
     let page = tables(&s).page.to_string();
     done(

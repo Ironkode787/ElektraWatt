@@ -10,20 +10,10 @@
 
 use crate::common;
 
-use common::{Tmp, at, done, state};
+use common::{Tmp, at, done, grid_point, state, tables};
 use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableCp, TableEnd};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
-
-/// The page point of grid index `k` on the shown page.
-fn page_point(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
-    let sn = &s.canvas().unwrap().page().snapper;
-    (sn.page_of_index(k.0), sn.page_of_index(k.1))
-}
-
-fn tables(s: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
-}
 
 /// The CP with `label`.
 fn cp(s: &ShellModel, label: &str) -> TableCp {
@@ -38,7 +28,7 @@ fn cp(s: &ShellModel, label: &str) -> TableCp {
 /// Places `pick` with its insertion point at grid index `k`, without autoconnect.
 fn place(s: &mut ShellModel, pick: serde_json::Value, k: (i64, i64)) {
     done(s, "place.pick", pick);
-    let p = page_point(s, k);
+    let p = grid_point(s, k);
     let sheet = s.canvas().unwrap().page().snapper.page_to_sheet(p);
     done(s, "cursor.set", at(sheet, json!({})));
     done(s, "canvas.activate_alt", json!({}));
@@ -62,24 +52,7 @@ fn click(s: &mut ShellModel, p: (i64, i64), alt: bool) {
 /// A shell at actual size on folio 103 with a switch at grid index (60, 20), a terminal of -X1031 below it at
 /// (60, 30) and a coil at `coil`, none of them wired.
 fn circuit(tmp: &Tmp, coil: (i64, i64)) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
-    done(&mut s, "view.zoom_actual", json!({}));
-    place(
-        &mut s,
-        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "S"}),
-        (60, 20),
-    );
-    place(
-        &mut s,
-        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "terminal_designation": "70"}),
-        (60, 30),
-    );
-    place(
-        &mut s,
-        json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
-        coil,
-    );
-    s
+    circuit_with(tmp, &[((60, 30), "70")], coil)
 }
 
 /// The labels of a connection's ends, in its order.
@@ -128,7 +101,7 @@ fn a_vertical_run_through_a_terminal_draws_two_connections_in_one_undo_step() {
     assert_eq!(s.tool().state(), "routing");
     // The drafter's bends straight down over the terminal (the router alone would go round its body).
     for k in [29, 30, 31] {
-        let p = page_point(&s, (60, k));
+        let p = grid_point(&s, (60, k));
         click(&mut s, p, true);
     }
     // The preview is the very command: two connections in one.
@@ -185,7 +158,7 @@ fn a_run_over_one_free_cp_of_another_symbol_stays_one_connection() {
     click(&mut s, switch.at, false);
     // Down over the terminal's top CP to its middle, then left and down to the coil.
     for k in [(60, 29), (60, 30), (56, 30)] {
-        let p = page_point(&s, k);
+        let p = grid_point(&s, k);
         click(&mut s, p, true);
     }
     click(&mut s, coil.at, false);
@@ -254,7 +227,7 @@ fn a_double_click_on_the_pin_a_wire_just_ended_on_starts_the_next_wire_there() {
     // Armed on the empty grid, it is nothing either: a wire needs a start.
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "tool.wire", json!({}));
-    let empty = page_point(&s, (80, 25));
+    let empty = grid_point(&s, (80, 25));
     let q = s.canvas().unwrap().page().snapper.page_to_sheet(empty);
     done(&mut s, "canvas.pointer", at(q, json!({})));
     done(&mut s, "tool.finish", json!({}));
@@ -397,7 +370,7 @@ fn a_direct_route_on_another_wire_s_track_is_left_to_the_router() {
     done(&mut s, "tool.wire", json!({}));
     click(&mut s, s2.at, false);
     for k in [(66, 40), (60, 40), (60, 44), (54, 44)] {
-        let p = page_point(&s, k);
+        let p = grid_point(&s, k);
         click(&mut s, p, true);
     }
     click(&mut s, k2.at, false);
@@ -406,7 +379,7 @@ fn a_direct_route_on_another_wire_s_track_is_left_to_the_router() {
     let on_line = other.iter().any(|c| {
         c.polyline
             .windows(2)
-            .any(|w| w[0].0 == w[1].0 && w[0].0 == page_point(&s, (60, 0)).0)
+            .any(|w| w[0].0 == w[1].0 && w[0].0 == grid_point(&s, (60, 0)).0)
     });
     assert!(on_line, "the other wire runs on the line");
     let (switch, coil) = (cp(&s, "-103S1:14"), cp(&s, "-103K1:A1"));
@@ -430,7 +403,7 @@ fn a_direct_route_on_another_wire_s_track_is_left_to_the_router() {
 fn black_box_caption(s: &mut ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<[i64; 4]> {
     done(s, "tool.black_box", json!({"part": "MICO 4.10", "template": 0}));
     for k in [a, b] {
-        let p = page_point(s, k);
+        let p = grid_point(s, k);
         let q = s.canvas().unwrap().page().snapper.page_to_sheet(p);
         done(s, "cursor.set", at(q, json!({})));
         done(s, "canvas.dwell", json!({"ms": 80}));
@@ -468,7 +441,7 @@ fn the_through_route_passes_a_black_box_whose_caption_stands_beside_the_line() {
     let caption = black_box_caption(&mut s, (68, 34), (72, 40));
     let (switch, coil) = (cp(&s, "-103S1:14"), cp(&s, "-103K1:A1"));
     let x = switch.at.0;
-    let g = page_point(&s, (1, 0)).0 - page_point(&s, (0, 0)).0;
+    let g = grid_point(&s, (1, 0)).0 - grid_point(&s, (0, 0)).0;
     // The case: the caption stands level with the run, within two grid steps of it, not on it.
     assert_eq!(caption.len(), 3, "tag, part number, manufacturer");
     assert!(
@@ -551,7 +524,7 @@ fn an_interruption_point_at_the_area_edge_still_routes() {
         json!({"cmd": "rep.transform", "params": {"reps": [feed.clone()], "mirror": true}}),
     );
     let area = ew_viewmodel::tools::ip::drawing_area(s.canvas().unwrap().page()).expect("the drawing area");
-    let g = page_point(&s, (1, 0)).0 - page_point(&s, (0, 0)).0;
+    let g = grid_point(&s, (1, 0)).0 - grid_point(&s, (0, 0)).0;
     // And moved so that its connection point lies one step inside the area's left edge.
     let steps = (area[0] + g - cp(&s, "J-E-206-L").at.0) / g;
     done(
@@ -585,7 +558,7 @@ fn a_wire_keeps_out_of_the_title_block() {
     let area = ew_viewmodel::tools::ip::drawing_area(s.canvas().unwrap().page()).expect("the drawing area");
     // Folio 103's drawing area ends at grid row 66; a black box reaching down to a step above it leaves no way
     // round below it inside the area.
-    assert_eq!(page_point(&s, (0, 66)).1, area[3]);
+    assert_eq!(grid_point(&s, (0, 66)).1, area[3]);
     black_box_caption(&mut s, (70, 54), (80, 65));
     place(
         &mut s,
@@ -611,9 +584,22 @@ fn a_wire_keeps_out_of_the_title_block() {
         "inside the drawing area {area:?}: {line:?}"
     );
     assert!(
-        line.iter().any(|p| p.1 < page_point(&s, (0, 54)).1),
+        line.iter().any(|p| p.1 < grid_point(&s, (0, 54)).1),
         "over the box: {line:?}"
     );
+}
+
+/// The ends of the connections at terminal -X1031:71, sorted.
+fn split_at_terminal_71(s: &ShellModel) -> Vec<[String; 2]> {
+    let after = tables(s);
+    let mut split: Vec<[String; 2]> = after
+        .connections
+        .iter()
+        .map(|c| ends(&after, c))
+        .filter(|e| e.iter().any(|l| l.starts_with("-X1031:71/")))
+        .collect();
+    split.sort();
+    split
 }
 
 /// FT-759 (rv-vis-2): a terminal dropped on a wire is split into it (normaliser 7, beside FX38c's through route, which
@@ -653,16 +639,8 @@ fn ft759_a_terminal_dropped_on_a_wire_says_it_is_in_the_circuit() {
         json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "terminal_designation": "71"}),
         (60, 30),
     );
-    let after = tables(&s);
-    let mut split: Vec<[String; 2]> = after
-        .connections
-        .iter()
-        .map(|c| ends(&after, c))
-        .filter(|e| e.iter().any(|l| l.starts_with("-X1031:71/")))
-        .collect();
-    split.sort();
     assert_eq!(
-        split,
+        split_at_terminal_71(&s),
         [
             ["-103S1:14".to_owned(), "-X1031:71/b".to_owned()],
             ["-X1031:71/a".to_owned(), "-103K1:A1".to_owned()],
@@ -696,7 +674,7 @@ fn ft1020_a_terminal_dropped_on_an_autoconnected_wire_is_split_into_it() {
         "place.pick",
         json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
     );
-    let p = page_point(&s, (60, 40));
+    let p = grid_point(&s, (60, 40));
     let sheet = s.canvas().unwrap().page().snapper.page_to_sheet(p);
     done(&mut s, "cursor.set", at(sheet, json!({})));
     done(&mut s, "canvas.activate", json!({}));
@@ -717,16 +695,8 @@ fn ft1020_a_terminal_dropped_on_an_autoconnected_wire_is_split_into_it() {
         json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "terminal_designation": "71"}),
         (60, 30),
     );
-    let after = tables(&s);
-    let mut split: Vec<[String; 2]> = after
-        .connections
-        .iter()
-        .map(|c| ends(&after, c))
-        .filter(|e| e.iter().any(|l| l.starts_with("-X1031:71/")))
-        .collect();
-    split.sort();
     assert_eq!(
-        split,
+        split_at_terminal_71(&s),
         [
             ["-103K1:A1".to_owned(), "-X1031:71/a".to_owned()],
             ["-X1031:71/b".to_owned(), "-103S1:14".to_owned()],

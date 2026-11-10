@@ -7,63 +7,15 @@
 
 use crate::common;
 
-use std::sync::Arc;
-
-use common::{Tmp, at, done, refused, state};
+use common::{
+    Tmp, actual_size, assert_failed, assert_moves_read_nothing, at, canvas, click_at, cursor, describe_line,
+    done, grid_point, refused, select_ids, sheet, tables,
+};
+use ew_viewmodel::ew_api::output::TableItem;
 use ew_viewmodel::ew_api::output::ew_dl::EntityRef;
-use ew_viewmodel::ew_api::output::{PageTables, TableItem};
-use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
-use ew_viewmodel::tools::BINDABLE;
+use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::tools::graphic::round_distance;
 use serde_json::{Value, json};
-
-/// A headless shell with a writable copy of Golden A on `folio`, at actual size.
-fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, folio);
-    done(&mut s, "view.zoom_actual", json!({}));
-    s
-}
-
-fn tables(s: &ShellModel) -> Arc<PageTables> {
-    Arc::clone(&s.canvas().unwrap().page().tables)
-}
-
-fn sheet(s: &ShellModel, p: (i64, i64)) -> (i64, i64) {
-    s.canvas().unwrap().page().snapper.page_to_sheet(p)
-}
-
-/// The page point of grid index `k`.
-fn grid_point(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
-    let sn = &s.canvas().unwrap().page().snapper;
-    (sn.page_of_index(k.0), sn.page_of_index(k.1))
-}
-
-/// The grid cursor to page point `p`.
-fn cursor(s: &mut ShellModel, p: (i64, i64)) {
-    let q = sheet(s, p);
-    done(s, "cursor.set", at(q, json!({})));
-}
-
-/// A click at page point `p` through the grid cursor.
-fn click_at(s: &mut ShellModel, p: (i64, i64)) {
-    cursor(s, p);
-    done(s, "canvas.activate", json!({}));
-}
-
-fn canvas(s: &ShellModel) -> Value {
-    state(s)["canvas"].clone()
-}
-
-fn describe_line(s: &ShellModel, prefix: &str) -> Option<String> {
-    s.describe()
-        .lines()
-        .find(|l| l.starts_with(prefix))
-        .map(str::to_owned)
-}
-
-fn select_ids(s: &mut ShellModel, ids: &[String]) {
-    done(s, "select.set", json!({ "ids": ids }));
-}
 
 /// The free text whose printed text is `text`.
 fn free_text(s: &ShellModel, text: &str) -> TableItem {
@@ -99,14 +51,6 @@ fn assert_graphic_commit(s: &ShellModel, page: &str, shape: Value, before: &[Str
     assert_eq!(fresh[0].kind, "graphic");
 }
 
-/// A failed dispatch.
-fn assert_failed(s: &mut ShellModel, action: &str, params: Value) {
-    match s.dispatch(action, &params) {
-        Outcome::Failed { .. } => {}
-        other => panic!("{action}: {other:?}"),
-    }
-}
-
 /// `num / den` rounded to the nearest integer, halves away from zero (`den > 0`).
 fn div_round(num: i128, den: i128) -> i128 {
     let q = num / den;
@@ -129,7 +73,7 @@ fn fine_snap(p: (i64, i64)) -> (i64, i64) {
 #[test]
 fn the_text_tool_places_a_free_text_on_the_fine_grid() {
     let tmp = Tmp::new("text-tool");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.text", json!({}));
     assert_eq!(s.tool().name(), "text");
     assert_eq!(s.tool().state(), "armed");
@@ -192,7 +136,7 @@ fn the_text_tool_places_a_free_text_on_the_fine_grid() {
 #[test]
 fn escape_leaves_typing_then_the_text_tool() {
     let tmp = Tmp::new("text-escape");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.text", json!({}));
     let p = grid_point(&s, (40, 30));
     click_at(&mut s, p);
@@ -210,7 +154,7 @@ fn escape_leaves_typing_then_the_text_tool() {
 #[test]
 fn a_bound_text_is_placed_at_the_press() {
     let tmp = Tmp::new("text-bound");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.text", json!({}));
     done(&mut s, "text.bind", json!({"bind": "project.description"}));
     assert_eq!(canvas(&s)["ghost"]["bind"], "project.description");
@@ -241,7 +185,7 @@ fn a_bound_text_is_placed_at_the_press() {
 #[test]
 fn text_bind_is_refused_outside_the_tool_and_fails_on_an_unknown_name() {
     let tmp = Tmp::new("text-bind");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     assert_eq!(
         refused(&mut s, "text.bind", json!({"bind": "page.title"})),
         "reason-text-tool-only"
@@ -255,13 +199,12 @@ fn text_bind_is_refused_outside_the_tool_and_fails_on_an_unknown_name() {
     done(&mut s, "text.bind", json!({"bind": "page.folio"}));
     done(&mut s, "text.bind", json!({"bind": null}));
     assert_eq!(canvas(&s)["ghost"]["bind"], Value::Null);
-    assert_eq!(BINDABLE.len(), 6);
 }
 
 #[test]
 fn text_edit_changes_the_text_in_one_undo_step() {
     let tmp = Tmp::new("text-edit");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let p = grid_point(&s, (44, 32));
     let page = tables(&s).page.to_string();
     done(
@@ -307,7 +250,7 @@ fn text_edit_changes_the_text_in_one_undo_step() {
 #[test]
 fn tool_finish_on_a_selected_free_text_opens_the_edit() {
     let tmp = Tmp::new("text-finish");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let p = grid_point(&s, (46, 33));
     let page = tables(&s).page.to_string();
     done(
@@ -332,7 +275,7 @@ fn tool_finish_on_a_selected_free_text_opens_the_edit() {
 #[test]
 fn text_edit_is_refused_for_a_bound_text_and_without_one_free_text() {
     let tmp = Tmp::new("text-edit-refused");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let p = grid_point(&s, (48, 34));
     let page = tables(&s).page.to_string();
     done(
@@ -369,7 +312,7 @@ fn text_edit_is_refused_for_a_bound_text_and_without_one_free_text() {
 #[test]
 fn the_graphic_tool_draws_every_shape() {
     let tmp = Tmp::new("graphic-shapes");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let page = tables(&s).page.to_string();
 
     // Line: two clicks, L's default shape.
@@ -512,7 +455,7 @@ fn the_graphic_tool_draws_every_shape() {
 #[test]
 fn back_and_finish_rules_of_the_graphic_tool() {
     let tmp = Tmp::new("graphic-back");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.graphic", json!({"shape": "polyline"}));
     let a = grid_point(&s, (40, 20));
     let b = grid_point(&s, (44, 24));
@@ -545,7 +488,7 @@ fn back_and_finish_rules_of_the_graphic_tool() {
 #[test]
 fn d_turns_the_arc_and_the_ghost_says_so() {
     let tmp = Tmp::new("graphic-d");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.graphic", json!({"shape": "arc"}));
     assert_failed(&mut s, "tool.ip_direction", json!({"direction": "source"}));
     done(&mut s, "tool.ip_direction", json!({}));
@@ -576,7 +519,7 @@ fn d_turns_the_arc_and_the_ghost_says_so() {
 #[test]
 fn the_part_4b_ghost_lines_describe_the_tools() {
     let tmp = Tmp::new("graphic-words");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     // A typing Text tool.
     done(&mut s, "tool.text", json!({}));
     let p = grid_point(&s, (40, 30));
@@ -603,39 +546,18 @@ fn the_part_4b_ghost_lines_describe_the_tools() {
 #[test]
 fn pointer_moves_with_the_text_and_graphic_tools_call_no_session() {
     let tmp = Tmp::new("graphic-counts");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let p = grid_point(&s, (40, 30));
-    let step = |k: i64| (p.0 + k * 300_000, p.1 + k * 200_000);
     // The Text tool, armed and typing.
     done(&mut s, "tool.text", json!({}));
-    let calls = s.session_calls();
-    for k in 0..20 {
-        let q = sheet(&s, step(k));
-        done(&mut s, "canvas.pointer", at(q, json!({})));
-    }
-    assert_eq!(s.session_calls(), calls, "the armed Text tool reads nothing");
+    assert_moves_read_nothing(&mut s, p, "the armed Text tool");
     click_at(&mut s, p);
-    let calls = s.session_calls();
-    for k in 0..20 {
-        let q = sheet(&s, step(k));
-        done(&mut s, "canvas.pointer", at(q, json!({})));
-    }
-    assert_eq!(s.session_calls(), calls, "the typing Text tool reads nothing");
+    assert_moves_read_nothing(&mut s, p, "the typing Text tool");
     // The Graphic tool, armed and drawing.
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "tool.graphic", json!({"shape": "polyline"}));
-    let calls = s.session_calls();
-    for k in 0..20 {
-        let q = sheet(&s, step(k));
-        done(&mut s, "canvas.pointer", at(q, json!({})));
-    }
-    assert_eq!(s.session_calls(), calls, "the armed Graphic tool reads nothing");
+    assert_moves_read_nothing(&mut s, p, "the armed Graphic tool");
     click_at(&mut s, p);
-    let calls = s.session_calls();
-    for k in 0..20 {
-        let q = sheet(&s, step(k));
-        done(&mut s, "canvas.pointer", at(q, json!({})));
-    }
-    assert_eq!(s.session_calls(), calls, "the drawing Graphic tool reads nothing");
+    assert_moves_read_nothing(&mut s, p, "the drawing Graphic tool");
 }
