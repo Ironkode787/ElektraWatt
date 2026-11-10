@@ -136,6 +136,13 @@ pub fn session_oracle_with(
         .expect("the golden batch passes the model's integrity check")
 }
 
+/// Golden A's committed fixture, read-only (no lock; commands run in memory).
+pub fn read_only() -> Session {
+    Session::open_read_only(&repo().join("golden/J-E-2416.ew"), "ElektraWatt test")
+        .expect("the golden fixture opens")
+        .0
+}
+
 /// A session over the batch as imported (the bootstrap emits the colour and size profiles).
 pub fn session(batch: &ImportBatch) -> Session {
     session_with(batch, |_, _| {})

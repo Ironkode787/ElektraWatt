@@ -9,6 +9,7 @@
 //! structure-box cases run on the golden batch, so that a record of an unknown page-item variant can be added.
 
 use crate::golden_common;
+use crate::golden_common::read_only as golden;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -23,12 +24,15 @@ use ew_testids::seeded_ids;
 use ew_units::{Grid, Nm};
 use serde_json::{Value, json};
 
-/// Golden A's fixture, read-only (no lock; commands run in memory).
-fn golden() -> Session {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-    Session::open_read_only(&dir, "ElektraWatt test")
-        .expect("the golden fixture opens")
-        .0
+/// The representation of the terminal 1X1:1 on folio 101.
+fn terminal_1x1_1(s: &Session) -> ew_api::output::TableRep {
+    s.page_tables("101")
+        .unwrap()
+        .reps
+        .iter()
+        .find(|r| r.device.is_some_and(|d| s.tag_list(&[d]) == "1X1:1\n"))
+        .expect("1X1:1 on 101")
+        .clone()
 }
 
 /// A new project as the wizard makes it (one empty multi-line page `1` on the QET grid).
@@ -227,20 +231,7 @@ fn cb1_the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
 #[test]
 fn cb1_a_terminal_brings_its_strip() {
     let s = golden();
-    let rep = s
-        .page_tables("101")
-        .unwrap()
-        .reps
-        .iter()
-        .find(|r| {
-            r.device.is_some_and(|d| {
-                s.tag_list(&[d])
-                    == "1X1:1
-"
-            })
-        })
-        .expect("1X1:1 on 101")
-        .clone();
+    let rep = terminal_1x1_1(&s);
     let terminal = rep.device.unwrap();
     let frag = fragment(&s, &[rep.id]);
     let devices: Vec<&Value> = frag["records"]
@@ -1003,21 +994,7 @@ fn cb_items_a_marker_keeps_the_copied_wires_only() {
     );
     let marker_id = marker.outcome.primary.expect("the marker").1.as_uuid();
     let mut selected = reps_of(&s, "101", &["S51"]);
-    let terminal = s
-        .page_tables("101")
-        .unwrap()
-        .reps
-        .iter()
-        .find(|r| {
-            r.device.is_some_and(|d| {
-                s.tag_list(&[d])
-                    == "1X1:1
-"
-            })
-        })
-        .expect("1X1:1 on 101")
-        .id;
-    selected.push(terminal);
+    selected.push(terminal_1x1_1(&s).id);
     selected.push(marker_id);
     let frag = fragment(&s, &selected);
     let copied_marker = frag["records"]
@@ -1270,16 +1247,8 @@ fn copy_fragment_reports_incomplete_page_items() {
     assert_eq!(omitted.records, 0);
     // With no record lines, each retains the exact same fragment bytes as an empty known-item selection's header.
     assert_eq!(omitted.text, empty.text);
-    let terminal = s
-        .page_tables("101")
-        .unwrap()
-        .reps
-        .iter()
-        .find(|r| r.device.is_some_and(|d| s.tag_list(&[d]) == "1X1:1\n"))
-        .unwrap()
-        .id;
     let mut partial = reps_of(&s, "101", &["S51"]);
-    partial.extend([terminal, marker]);
+    partial.extend([terminal_1x1_1(&s).id, marker]);
     let copied = s.copy_fragment(&partial).unwrap();
     assert_eq!(copied.incomplete_page_items, 1);
     assert!(copied.skipped.is_empty());

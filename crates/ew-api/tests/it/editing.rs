@@ -5,6 +5,8 @@
 //! and on a new project, the starter embedding, symbol shapes against the drawn CPs and `Orient2`, and the page
 //! tables of folios 101 to 103 against the golden tables, `cp_point` and the scene's wires.
 
+use crate::golden_common::read_only as golden;
+
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -16,14 +18,6 @@ use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_schema::{Device, Function, Representation};
 use ew_derive::ew_units::{Nm, Orient2, Pt2};
 use ew_derive::{PageOrder, cp_point};
-
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-
-fn golden() -> Session {
-    Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test")
-        .unwrap()
-        .0
-}
 
 fn fresh() -> Session {
     let options = SessionOptions {
@@ -76,6 +70,10 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
     // letter F shows.
     let mcb = row("ew.iec.mcb-1p@qet10");
     assert!(mcb.copy.is_some(), "embedded");
+    assert!(
+        s.starter_embed("ew.iec.mcb-1p@qet10").is_none(),
+        "an embedded symbol needs no embedding"
+    );
     assert_eq!(mcb.fndef_key, "ew.fn.mcb-1p");
     assert_eq!(mcb.rep_type, "multi_line");
     assert!(mcb.allowed && !mcb.black_box && !mcb.terminal);
@@ -240,12 +238,6 @@ fn a_new_project_lists_starter_rows_only_and_embeds_a_starter_symbol_once() {
     // Not a starter symbol, or a FnDef key: none.
     assert!(s.starter_embed("ew.fn.mcb-1p").is_none());
     assert!(s.starter_embed("no.such.symbol").is_none());
-}
-
-#[test]
-fn the_golden_symbols_already_embedded_need_no_embedding() {
-    let s = golden();
-    assert!(s.starter_embed("ew.iec.mcb-1p@qet10").is_none());
 }
 
 #[test]

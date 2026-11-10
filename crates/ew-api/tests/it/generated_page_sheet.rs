@@ -5,17 +5,10 @@
 //! derived title ("901 Partlist 1"), not by its report block's title format; the block's own Title row keeps the
 //! format, which is what the block stores.
 
-use std::path::Path;
+use crate::golden_common::read_only as golden;
 
 use ew_api::Session;
 use ew_api::output::{PropertySheet, RowValue};
-
-fn golden() -> Session {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-    Session::open_read_only(&dir, "ElektraWatt test")
-        .expect("the golden fixture opens")
-        .0
-}
 
 /// The sheet of the page of the navigator labelled `folio`.
 fn sheet_of(s: &Session, folio: &str) -> PropertySheet {

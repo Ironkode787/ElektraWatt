@@ -268,10 +268,8 @@ fn exit_codes_follow_doc_17() {
     assert_eq!((failed.exit_code(), failed.committed()), (1, 1));
     let malformed = CmdLog::parse("{\"cmd\":\"page.create\"}\n").unwrap_err();
     assert_eq!(malformed.exit_code(), 2);
-}
 
-#[test]
-fn usage_and_internal_errors_of_a_line_exit_2() {
+    // Usage errors of a line exit 2 too, on a fresh session.
     let mut s = session();
     // Invalid parameters: a usage error.
     let invalid = s

@@ -9,7 +9,7 @@
 //!
 //! W45.1 F1: EW-TERM-006's Messages row and its detail card (which shows the message cell) name the terminal once.
 
-use std::path::Path;
+use crate::golden_common::read_only as golden;
 
 use ew_api::output::ew_dl::{ItemKind, Layer, PathEl};
 use ew_api::output::{NavKind, NavRole, PageLayer, TableCp, page_layer};
@@ -21,14 +21,6 @@ use ew_derive::{PageOrder, drawn_path};
 use ew_scene::route::{RouteEnd, connection_polyline};
 use proptest::prelude::*;
 use serde_json::json;
-
-/// Golden A's fixture, read-only (no lock; commands run in memory).
-fn golden() -> Session {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-    Session::open_read_only(&dir, "ElektraWatt test")
-        .expect("the golden fixture opens")
-        .0
-}
 
 fn pts(path: &[Pt2]) -> Vec<(i64, i64)> {
     path.iter().map(|p| (p.x.0, p.y.0)).collect()

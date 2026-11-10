@@ -6,19 +6,11 @@
 //! rule, the folio and selection scopes, the errors, the truncation, the hits that are found but not replaced, and the
 //! one `fields.set_many` a replace commits.
 
-use std::path::Path;
+use crate::golden_common::read_only as golden;
 
 use ew_api::window::{FindError, FindField, FindQuery, FindResults};
 use ew_api::{AnyCommand, Session};
 use serde_json::{Value, json};
-
-/// Golden A's fixture, read-only (no lock; commands run in memory).
-fn golden() -> Session {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-    Session::open_read_only(&dir, "ElektraWatt test")
-        .expect("the golden fixture opens")
-        .0
-}
 
 fn query(text: &str) -> FindQuery {
     FindQuery {
@@ -305,19 +297,11 @@ fn a_replace_is_one_set_many_and_one_undo_step() {
 #[test]
 fn a_technical_value_is_replaced_in_its_list() {
     let mut s = golden();
-    let tag = s.find(&FindQuery {
-        fields: vec![FindField::Tag],
-        match_case: true,
-        whole_word: true,
-        ..query("-101F1")
-    });
-    let device = tag.hits.iter().find(|h| h.subject == "-101F1").unwrap().record;
-    let set = AnyCommand {
-        name: "fields.set".into(),
-        params: json!({"kind": "device", "targets": [device.to_string()], "path": "tech_data",
-            "value": [{"key": "In", "value": {"value": "16", "unit": "A"}}, {"key": "curve", "value": "C"}]}),
-    };
-    s.execute(&set).expect("tech data");
+    let device = device_with_tech_data(
+        &mut s,
+        "-101F1",
+        json!([{"key": "In", "value": {"value": "16", "unit": "A"}}, {"key": "curve", "value": "C"}]),
+    );
     let within = |q: FindQuery| FindQuery {
         within: vec![device],
         fields: vec![FindField::Property],
@@ -351,15 +335,20 @@ fn a_technical_value_is_replaced_in_its_list() {
     assert_eq!(key.replace_command(), None);
 }
 
-/// A device of Golden A with `tech_data` set to `items` (JSON), by its tag.
-fn device_with_tech_data(s: &mut Session, tag: &str, items: Value) -> ew_derive::ew_ids::Uuid {
+/// The device of Golden A printed as `tag`.
+fn device_of(s: &Session, tag: &str) -> ew_derive::ew_ids::Uuid {
     let found = s.find(&FindQuery {
         fields: vec![FindField::Tag],
         match_case: true,
         whole_word: true,
         ..query(tag)
     });
-    let device = found.hits.iter().find(|h| h.subject == tag).unwrap().record;
+    found.hits.iter().find(|h| h.subject == tag).unwrap().record
+}
+
+/// A device of Golden A with `tech_data` set to `items` (JSON), by its tag.
+fn device_with_tech_data(s: &mut Session, tag: &str, items: Value) -> ew_derive::ew_ids::Uuid {
+    let device = device_of(s, tag);
     let set = AnyCommand {
         name: "fields.set".into(),
         params: json!({"kind": "device", "targets": [device.to_string()], "path": "tech_data", "value": items}),
@@ -409,13 +398,7 @@ fn a_replacement_that_merges_with_the_key_is_refused() {
 #[test]
 fn a_match_in_the_structure_prefix_names_prefix_and_cp() {
     let mut s = golden();
-    let found = s.find(&FindQuery {
-        fields: vec![FindField::Tag],
-        match_case: true,
-        whole_word: true,
-        ..query("-101F1")
-    });
-    let device = found.hits.iter().find(|h| h.subject == "-101F1").unwrap().record;
+    let device = device_of(&s, "-101F1");
     let freeze = AnyCommand {
         name: "fields.set".into(),
         params: json!({"kind": "device", "targets": [device.to_string()], "path": "tag.frozen",
