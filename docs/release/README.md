@@ -6,13 +6,13 @@ SPDX-License-Identifier: CC-BY-4.0
 # Releasing ElektraWatt
 
 The procedure of a binary release in its 0.1.x form (WP-S6.07 D14; [doc 18](../design/18-quality-security-release.md)
-§5.1, §7.4, §9.2), slimmed to an early alpha's size (ID-1520): no CI run is waited for (CI is off until 1.0,
-ID-1519), and the release builds carry no SBOM, no build provenance and no install tests. The workflow is [`release.yml`](../../.github/workflows/release.yml), its scripts are
+§5.1, §7.4, §9.2), slimmed to an early alpha's size: no CI run is waited for (there is no CI until 1.0,
+one developer cuts the release by hand), and the release builds carry no SBOM, no build provenance and no install tests. The workflow is [`release.yml`](../../.github/workflows/release.yml), its scripts are
 [`ci/release-verify.py`](../../ci/release-verify.py) and the per-artefact steps of
 [`package.yml`](../../.github/workflows/package.yml); the items a pipeline cannot prove are the
 [release checklist](checklist.md). The specification is
 WP-S6.07; the first release, its notes, its candidates and its dossier
-are WP-S6.08's. The next release, 0.2.0, carries the symbol editor (milestone M2.5, ID-1402) and goes through this
+are WP-S6.08's. The next release, 0.2.0, goes through this
 procedure in the same form; it is the first after the format locks at 0.1.0, so its notes name every format change
 and its migration.
 
@@ -24,7 +24,7 @@ No final tag is built again and no pushed tag is ever moved or deleted: a tag on
 and a rebuild would not give the same bytes (builds are not reproducible before 1.0). A blocker is fixed on the release
 branch and the next candidate, `-rc.<n+1>`, is cut.
 
-**The release branch** (ID-1412). A minor release `X.Y` is cut from its own branch `release/<X.Y>`, branched from the
+**The release branch.** A minor release `X.Y` is cut from its own branch `release/<X.Y>`, branched from the
 working branch at the delivery that starts the release: the version, the notes, the candidates' commits and their
 fixes are on it, and only candidate fixes land there. The promote is dispatched from `main` (the environment `release`
 allows `main` and `v*` tags) and publishes the candidate's own files; no job requires the tagged commit to be on
@@ -32,8 +32,8 @@ allows `main` and `v*` tags) and publishes the candidate's own files; no job req
 
 The release files of 0.1.0 are the x86_64 CLI archives (`ew-<X.Y.Z>-x86_64-pc-windows-msvc.zip`,
 `ew-<X.Y.Z>-x86_64-unknown-linux-gnu.tar.gz`), the per-user Windows setup (`ElektraWatt-<X.Y.Z>-x64-user-setup.exe`)
-and the Linux AppImage (`ElektraWatt-<X.Y.Z>-x86_64.AppImage`), and `SHA256SUMS` over them: five files. ID-476's distribution hold is lifted for the release (ID-1331 (2)); the
-aarch64 archives are not built at 0.1.x. Nothing is signed at 0.1.0 (ID-1187): no signed tag, no
+and the Linux AppImage (`ElektraWatt-<X.Y.Z>-x86_64.AppImage`), and `SHA256SUMS` over them: five files. The
+aarch64 archives are not built at 0.1.x. Nothing is signed at 0.1.0: no signed tag, no
 Authenticode, no signed `SHA256SUMS`.
 
 ## 2. Before the first candidate: the repository's settings
@@ -47,7 +47,7 @@ These are the owner's (WP-S6.07 §13 O1). Check each before the first tag:
    the repository's only writers are its maintainers.
 3. Immutable releases are on, if the repository offers them.
 4. The default workflow token is read-only.
-5. The required checks of `main` hold WP-S6.06's `c-only` job and FT-960's `api-guard`.
+5. No status check is required: there is no CI until 1.0.
 
 ## 3. Before the tag
 
@@ -58,7 +58,7 @@ These are the owner's (WP-S6.07 §13 O1). Check each before the first tag:
 
 The workflow's `verify` job refuses the candidate when 1 or 2 does not hold, with one of these texts: "the tag v<t>
 does not match the workspace version <w>", "no release notes: docs/release-notes/<X.Y.Z>.md is missing or empty". It
-asks for no CI run (ID-1519, ID-1520).
+asks for no CI run.
 
 ## 4. Cutting the candidate
 
@@ -116,7 +116,7 @@ once more. The draft stays as the record of the candidate.
 ## 8. A blocker
 
 Fix it on the release branch `release/<X.Y>`, then cherry-pick the fix onto the working branch, so that the next
-release has it too (ID-1412); then cut the next candidate, `v<X.Y.Z>-rc.<n+1>`, from §3. Leave the earlier candidate's
+release has it too; then cut the next candidate, `v<X.Y.Z>-rc.<n+1>`, from §3. Leave the earlier candidate's
 tag and draft as they are: they record what was tested.
 
 ## 9. How a user verifies a download
@@ -130,7 +130,7 @@ sha256sum --check --ignore-missing SHA256SUMS
 
 ## 10. What the workflow proves
 
-| Job (doc 18 §7.4) | Where | 0.1.x's form (ID-1520) |
+| Job (doc 18 §7.4) | Where | 0.1.x's form |
 |---|---|---|
 | CI-R-01 | `release.yml` `verify` | The tag's version is the workspace version; the release notes exist; no tag signature |
 | CI-R-03 | `package.yml` `windows`, `linux` | `cargo build --release --locked`, network-less on Linux; `ci/release-check.sh env` on both OSes, `scan` and glibc 2.35 at most on Linux |

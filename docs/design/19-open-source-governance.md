@@ -1,6 +1,13 @@
 # Open-source governance
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-11-02: the first binary release 0.1.0 is unsigned, so the release pipeline's checks of §3.3 and the interim steward's signing identity read from 1.0, or earlier when the owner holds a signing identity; `TRADEMARKS.md` is 1.0's, `FUNDING.yml` is dropped and the RFC process is the ADR process, §2.4, §3.4; amended 2026-10-30: no Apple signing identity, macOS is not a supported platform; amended 2026-10-25, cycle-27 design pass: the `tools/blind/` rows of §2.1, decision log ID-645) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+
+> **State during the alpha.** The project has one developer and one pilot user. This document is the governance design
+> for 1.0: its per-PR CI checks, the DCO check, required reviews and the two-maintainer rules (GV-02, §3.4) are the 1.0
+> target and apply when a second maintainer exists. There is no CI until 1.0; the checks that exist are `cargo xtask
+> check` and `cargo xtask rules` ([`CONTRIBUTING.md`](../../CONTRIBUTING.md), "The development loop"). Every contributor
+> signs off commits (§3.2) and the maintainer reads the sign-offs at review. A release is cut by hand with `release.yml`
+> and `package.yml` ([`docs/release/README.md`](../release/README.md)).
 
 **Purpose.** This document specifies how ElektraWatt (EW) is run as an open-source project: the licence of every
 layer and how CI enforces it, contributor terms under the DCO, copyright ownership and the legal gates that come
@@ -79,7 +86,7 @@ texts in `LICENSES/` are exempt, as the REUSE specification provides.
 | L6 | Built-in rule packs, report packs and machine profiles: data files (TOML, rhai, SQL, Fluent) | `packs/` | `MIT OR Apache-2.0` | ADR-0024 decision 1 (answers [15](15-checks-revisions-collaboration.md) OQ16; open question 12) |
 | L7 | Symbols, FnDefs, frames, forms, page and report templates, macros, basic-project examples | system library in `content/`; repositories `elektrawatt-symbols`, `elektrawatt-macros` | `CC-BY-SA-4.0 WITH <design exception>` (§3.1, LR-07; open question 2) | ADR-0024, [07](07-symbols-parts-macros.md) §3.8 |
 | L8 | Project-authored part facts, the manufacturer master, example and tutorial projects, the golden fixture, the hostile test corpus, the crates' own test fixtures | `elektrawatt-parts`, `examples/`, `golden/`, `fuzz/corpus/own/`, `crates/*/tests/fixtures/` | `CC0-1.0` | ADR-0024, NFR-DOC-04 |
-| L9 | Documentation: design docs, ADRs, RFCs, the mdBook, the format-specification prose, rule pages, the root prose files (`README.md`, `GOVERNANCE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `PRIVACY.md`, `TRADEMARKS.md`, `ROADMAP.md`) | `docs/`, `rfcs/`, `book/`, root `*.md` except `LICENSE.md`, `tools/blind/` (the blind-drafter harness's guides, prompts and tasks) | `CC-BY-4.0` | ADR-0024; the generated command and rule reference pages of the user guide (`docs/book/src/reference/commands/`, `…/rules/`) are the exception of cycle 16: their text is the doc comments of the GPL crates `ew-commands` and `ew-checks`, so they keep `GPL-3.0-or-later` (owner ruling; `REUSE.toml`, `ci/licence-map.toml`); `CODE_OF_CONDUCT.md` is the other exception: the Contributor Covenant 3.0 text is `CC-BY-SA-4.0` and keeps the Covenant's copyright line (§2.3) |
+| L9 | Documentation: design docs, ADRs, RFCs, the mdBook, the format-specification prose, rule pages, the root prose files (`README.md`, `GOVERNANCE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `PRIVACY.md`, `TRADEMARKS.md`, `ROADMAP.md`) | `docs/`, `rfcs/`, `book/`, root `*.md` except `LICENSE.md`, `tools/blind/` (the blind-drafter harness's guides, prompts and tasks) | `CC-BY-4.0` | ADR-0024; the generated command and rule reference pages of the user guide (`docs/book/src/reference/commands/`, `…/rules/`) are an exception: their text is the doc comments of the GPL crates `ew-commands` and `ew-checks`, so they keep `GPL-3.0-or-later` (owner ruling; `REUSE.toml`, `ci/licence-map.toml`); `CODE_OF_CONDUCT.md` is the other exception: the Contributor Covenant 3.0 text is `CC-BY-SA-4.0` and keeps the Covenant's copyright line (§2.3) |
 | L10 | UI translations (`.ftl`) and documentation translations (PO) | inside L1 crates; `book/po/` | the licence of the containing path (L1 or L9) | §3.7 |
 | L11 | Repository metadata and configuration without creative content: `.gitignore`, `.gitattributes`, `REUSE.toml`, `deny.toml`, workspace `Cargo.toml` and `Cargo.lock`, `rust-toolchain.toml`, `CODEOWNERS`, `FUNDING.yml`, issue and PR templates, `LICENSE.md` | `.github/` (except `workflows/`), root files | `CC0-1.0` | no creative content to protect |
 | L12 | CI workflows, scripts and tools | `.github/workflows/`, `ci/`, `xtask/` | `MIT OR Apache-2.0` | ADR-0024 ("CI scripts"); others may copy the gates |
@@ -228,20 +235,20 @@ prose files is NFR-DOC-08.
 | LR-11 | Fixtures from third parties (QET examples, vendor AML or GSDML samples) are fetched by CI at a pinned commit into the cache and never committed ([14](14-interop.md) OQ8). Own test files are CC0-1.0 (L8), including `crates/*/tests/fixtures/` inside GPL crates; the licence map gives that path its own, longer rule than the crate's row. | `.gitignore` plus the licence-map check (unknown files fail) |
 | LR-12 | Nothing confidential is committed: no customer or person identifiers, no reference PDF, no local paths. | Anonymisation guard (`ci/denylist.sha256`, NFR-PRIV-09, [20](20-golden-project.md) §3.5, AC-39) |
 
-*Development-only crates*. NFR-LIC-04's allowlist governs the application's
-dependencies. The cargo-fuzz crate `fuzz/` is its own cargo workspace that no distributed artefact contains; its
-`fuzz/deny.toml` uses the same allowlist (an `xtask` test keeps them equal) plus one per-crate exception, NCSA for
-libfuzzer-sys (`(MIT OR Apache-2.0) AND NCSA`, LLVM's libFuzzer runtime), checked report-only by the deep nightly's
-`fuzz-deny` job ([18](18-quality-security-release.md) §5.4). The allowlist itself is unchanged, and a crate that ships
-may not use the exception.
+*Development-only crates*. NFR-LIC-04's allowlist governs the application's dependencies. A development-only cargo
+workspace that no distributed artefact contains (the cargo-fuzz crate `fuzz/` of the 1.0 target,
+[18](18-quality-security-release.md) §3.12; it is not in the repository during the alpha) uses the same allowlist plus one
+per-crate exception, NCSA for libfuzzer-sys (`(MIT OR Apache-2.0) AND NCSA`, LLVM's libFuzzer runtime), checked
+report-only by a nightly job ([18](18-quality-security-release.md) §5.4). The allowlist itself is unchanged, and a crate
+that ships may not use the exception.
 
 ### 3.2 Contributions under the DCO, and what this means for relicensing
 
 - **Mechanics.**
   - Every commit carries `Signed-off-by:` certifying the Developer Certificate of Origin 1.1 (NFR-LIC-03).
-  - A DCO check runs on every PR. The repository setting that requires sign-off on web-based commits is on.
+  - A DCO check runs on every PR (target for 1.0; today the maintainer reads the sign-offs at review). The repository setting that requires sign-off on web-based commits is on.
   - PRs are squash-merged (§3.5). The squash message keeps every `Signed-off-by:` trailer of the PR's commits, and
-    a check on `main` after each merge verifies that the resulting commit carries the author's sign-off.
+    a check on `main` after each merge (target for 1.0) verifies that the resulting commit carries the author's sign-off.
   - The name must be one the contributor is commonly known by. Anonymous contributions are not accepted (open
     question 9).
   - An AI tool is never the signer (§3.5).
@@ -267,14 +274,14 @@ may not use the exception.
 ### 3.3 Legal and organisational gates
 
 *Owner ruling.* The project owner ruled in chat: "Regarding all the licensing, and legal items, this is no longer relevant." The gates of the plan no longer carry LG-1 to LG-6 as criteria, and
-the enrolments, counsel's opinions and ADR-0030 are no longer gate items; ID-383 (the CC-BY-SA-4.0 symbols in the GPL
-binary) is accepted by the owner as a distribution fact, without a counsel brief. The text below is kept as the
+the enrolments, counsel's opinions and ADR-0030 are no longer gate items; the CC-BY-SA-4.0 symbols in the GPL
+binary are accepted by the owner as a distribution fact, without a counsel brief. The text below is kept as the
 record of the design. The repository's licence rules are unchanged: REUSE headers, the licence map (§2.1), the
 permissive/GPL boundary and the dependency checks stay in force. The signing identities that sign release binaries
-stay a release item (WP-S6.07). The `blocked:LG-2` merge block was removed in cycle 19.
+stay a release item (WP-S6.07). The `blocked:LG-2` merge block was removed.
 
 These gates belong in the global plan as milestone conditions. The release pipeline checks LG-1 as a checklist item at 0.1.0 and, from 1.0, also LG-4 and the
-steward checklist of §3.10 (RC-10 of [18](18-quality-security-release.md); NFR-COMP-01; decision log ID-1187, ID-1188).
+steward checklist of §3.10 (RC-10 of [18](18-quality-security-release.md); NFR-COMP-01).
 "First binary release" means the first release with installers, 0.1.0 at M2 (MVP): an unsigned build from an unsigned
 tag. Before it, only unsigned nightlies carrying the banner "unsigned development build" are published
 (ADR-0023, ADR-0030): no version tags (`vX.Y.Z`) and no tagged release. The first signed release, and with it LG-4 as a
@@ -323,7 +330,7 @@ carry no binaries.
 | ID | Rule |
 |---|---|
 | GV-01 | Normal decisions use lazy consensus with a 72-hour objection window. An objection must state a reason and an alternative. Unresolved objections go to an RFC or to the project lead's tie-break. |
-| GV-02 | No one approves their own PR. With two maintainers, each reviews the other's work. A single-maintainer merge is allowed only for a security release under embargo, and it is reviewed afterwards within 7 days. |
+| GV-02 | No one approves their own PR. With two maintainers (from 1.0), each reviews the other's work. A single-maintainer merge is allowed only for a security release under embargo, and it is reviewed afterwards within 7 days. |
 | GV-03 | Before the first binary release, decisions are recorded as ADRs by the owner and maintainers. From the first binary release on, the RFC process applies to the matrix rows above (the RFC process is the ADR process, `GOVERNANCE.md`). |
 | GV-04 | **Schema-steward duties.** The steward reviews every PR labelled `format`. They decide minor versus major, check that the migration, fixture, regenerated JSON Schemas and docs are present ([04](04-architecture.md) §7.6), maintain the format changelog for the release notes (NFR-DOC-07), and check `api_v1` view changes against the `Preview` policy ([17](17-extensibility.md) OQ12). After 1.0 they run the yearly format window: they collect accepted format-major RFCs and freeze them one month before the major. The role rotates every quarter, together with the UI-stack upgrade of NFR-MAINT-04. |
 | GV-05 | Funded work keeps the normal review rules. A funder never receives merge rights, a veto or private roadmap influence. Funded items are labelled `funded:<source>` on the public roadmap. |
@@ -354,7 +361,7 @@ stateDiagram-v2
 flowchart LR
   I["Issue or Discussion<br/>(template: bug, feature,<br/>part data, symbol)"] --> B["Branch, DCO-signed commits,<br/>conventional-commit titles"]
   B --> T["PR template: provenance (LR-05),<br/>AI disclosure, format change?,<br/>docs and rule page updated?"]
-  T --> C["Per-PR CI (NFR-MAINT-05): fmt, clippy, tests,<br/>golden oracle, reuse lint, licence map,<br/>boundary, DCO, anonymisation guard"]
+  T --> C["Check (per-PR CI from 1.0, NFR-MAINT-05):<br/>fmt, clippy, tests, golden oracle, reuse lint,<br/>licence map, boundary, DCO, anonymisation guard"]
   C --> R["Review per decision matrix:<br/>CODEOWNERS, schema steward"]
   R --> M["Squash merge; changelog via git-cliff"]
 ```
@@ -368,14 +375,14 @@ remedy key, a report, an importer, a machine profile and a migration (NFR-MAINT-
 non-programmers (§3.6, §3.7); the AI-use policy; and the confidentiality rules (LR-12): never attach customer
 drawings, and use the placeholders `<customer>`, `<project ref>` and so on.
 
-**Dependency audits** (resolved 2026-10-18, open question 18). Every new crates.io dependency passes cargo-deny,
-cargo-vet 0.10.2 and, if it has a build script, the build-script allowlist (ADR-0023). The `who` field of a
-cargo-vet audit is the contributor's GitHub handle, never a personal name or e-mail address (ADR-0023 amendment 3),
-and an audit an agent performed says "AI-performed, owner-delegated (date)" in its `notes`: such an audit is the project's by delegation until the owner confirms it, and the owner may later confirm and own it. Since cycle 20 the project imports the published audit sets of
-mozilla, google, bytecode-alliance, embark-studios, zcash and isrg, but `imports.lock` keeps no auditor identity:
-`cargo xtask check-vet-imports` fails on auditor names, e-mail addresses and notes, and its `--bless` strips them
-after an import refresh, so the public-repository rule (UD-8 of the decision log) holds (ADR-0023 amendment 5).
-`CONTRIBUTING.md` states it in its dependency section.
+**Dependency audits** (resolved 2026-10-18, open question 18; target for 1.0: `cargo vet` is not in the repository during
+the alpha, and a new dependency passes `cargo deny`). Every new crates.io dependency passes cargo-deny, cargo-vet 0.10.2
+and, if it has a build script, the build-script allowlist (ADR-0023). The `who` field of a cargo-vet audit is the
+contributor's GitHub handle, never a personal name or e-mail address (ADR-0023 amendment 3), and an audit an agent
+performed says "AI-performed, owner-delegated (date)" in its `notes`: such an audit is the project's by delegation until
+the owner confirms it, and the owner may later confirm and own it. The project imports the published audit sets of
+mozilla, google, bytecode-alliance, embark-studios, zcash and isrg, but the lock keeps no auditor identity, so the
+repository holds no auditor name or e-mail address (ADR-0023 amendment 5).
 
 **AI-use policy.** The core team itself works with AI assistance, so the policy regulates use and does not ban it.
 1. **Disclose.** PRs disclose AI assistance in the template. Commits may name the tool in a trailer such as
@@ -697,7 +704,7 @@ trademark line of the font's name table (name ID 7), which `NOTICE` gains for No
 |---|---|---|
 | 1 | **The SPDX syntax for custom exceptions.** SPDX 2.3 allows only listed exception IDs after `WITH`; SPDX 3.0 introduced `AdditionRef-` for custom ones (**verify**). `WITH LicenseRef-…` may fail strict tools | Verify what reuse-tool and cargo-deny accept, and fix the identifier when ADR-0025 is accepted (open question 1) |
 | 2 | A downstream distributor removes the §7 plugin exception (GPL-3.0 §7 allows it) | Plugins rely on the project's own builds; `TRADEMARKS.md` reserves the name for builds that keep the project's licence terms |
-| 3 | CC-BY-SA-4.0 symbols compiled into the GPL binary | CC-BY-SA-4.0 is one-way compatible with GPL-3.0 (Creative Commons compatibility declaration, **verify**). GPL content must never flow into L7. Since cycle 15 three generic symbols of `content/symbols/qet10` (junction dot, junction bevel, wire marker; CC-BY-SA-4.0 by `REUSE.toml`) are compiled into the GPL binary by `ew-api`, sealed by their SHA-256. Recorded as an owner and counsel item: Creative Commons declares CC BY-SA 4.0 one-way compatible with GPLv3, so the combination is expected to be permitted; counsel confirms it with the LG-2 brief, and the attribution of the compiled-in symbols is listed in `NOTICE` and assembled with the other non-crate notices |
+| 3 | CC-BY-SA-4.0 symbols compiled into the GPL binary | CC-BY-SA-4.0 is one-way compatible with GPL-3.0 (Creative Commons compatibility declaration, **verify**). GPL content must never flow into L7. Three generic symbols of `content/symbols/qet10` (junction dot, junction bevel, wire marker; CC-BY-SA-4.0 by `REUSE.toml`) are compiled into the GPL binary by `ew-api`, sealed by their SHA-256. Recorded as an owner and counsel item: Creative Commons declares CC BY-SA 4.0 one-way compatible with GPLv3, so the combination is expected to be permitted; counsel confirms it with the LG-2 brief, and the attribution of the compiled-in symbols is listed in `NOTICE` and assembled with the other non-crate notices |
 | 4 | A company modifies EW symbols in its company library | Internal use is free; distributing the modified library outside the company is CC-BY-SA-4.0. Projects using them stay covered by the design exception |
 | 5 | MPL-2.0 `imbl` inside the permissive closure | Allowed (NFR-MAINT-02); binary distributors of the permissive crates must offer imbl's source. Stated in the crates' READMEs |
 | 6 | An employee contributes on their own time but within their job's scope | The employer may still be the maker (Auteurswet art. 7); the LG-1 statement covers it explicitly |
@@ -870,7 +877,7 @@ as:
     `ew-checks` stay in L1 (GPL-3.0-or-later), so company packs derived from built-in data files need no copyleft
     review while the engine stays GPL.
 13. **QET contact timing.** The [vision](00-vision-and-scope.md) OQ3 recommends contact after MVP, but ported code
-    may be public from the spine (QET element reader in spine lane 2). *Recommendation:* send a short courtesy note
+    may be public from the spine (the QET element reader). *Recommendation:* send a short courtesy note
     when the first ported file is merged, and start coordination proper after MVP, subject to PQ-34.
 14. **NLnet timing and scope.** Call schedules and NGI budgets after 2025 are unverified. *Recommendation:* check
     the open calls at M0 and submit proposal 1 at the first call after LG-1 is signed (plan month 3), scoped to the
@@ -894,4 +901,4 @@ as:
     costs reviewer time that imports would save (§3.5). Revisit when a steward exists, for example by importing
     through a steward-held mirror that strips personal data. **Revised** (2026-10-22, lead programmer on the owner's
     delegated direction; ADR-0023 amendment 5): the sets are imported and the personal data is stripped in the
-    repository itself, enforced by `cargo xtask check-vet-imports`.
+    repository itself, enforced by a `cargo xtask` check (target for 1.0).
