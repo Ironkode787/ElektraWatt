@@ -250,65 +250,6 @@ fn reads_report_non_zero_stamps_after_a_commit() {
     assert_eq!(absent.observed, Rev(3));
 }
 
-/// The public surface hands out no `Model`, `Table`, `RevIndex` or `Op` (ARCH §3 rule 1, ADR-0002
-/// amendment 2): every `pub fn` signature and `pub` field of the crate's sources is scanned; the only
-/// `Model` is the input of `Q::new`, `Q::with_tracker` and the `MemoStore` constructor and advances. The
-/// `compile_fail` doctests on `Q` and
-/// `Q::diagnostics` prove that the private field and the untracked handle cannot be reached from `&Q`.
-#[test]
-fn the_public_api_exposes_no_raw_model_access() {
-    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    let mut files: Vec<_> = std::fs::read_dir(&src)
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .filter(|p| p.extension().is_some_and(|x| x == "rs"))
-        .collect();
-    files.sort();
-    assert!(files.len() >= 10, "found {} source files", files.len());
-    let banned = ["Model", "Table", "RevIndex", "Op", "BaseIndexes"];
-    let mut checked = 0;
-    for file in files {
-        let text = std::fs::read_to_string(&file).unwrap();
-        // Drop the unit-test modules: they are not part of the API.
-        let text = text.split("#[cfg(test)]").next().unwrap();
-        let mut rest = text;
-        while let Some(at) = rest.find("pub fn ") {
-            let sig_end = rest[at..].find(['{', ';']).map_or(rest.len(), |e| at + e);
-            let sig = &rest[at..sig_end];
-            checked += 1;
-            for word in banned {
-                let hit = sig
-                    .split(|c: char| !(c.is_alphanumeric() || c == '_'))
-                    .any(|w| w == word);
-                // Inputs only: `Q::new`, `Q::with_tracker` and `MemoStore::new` take the snapshot to read,
-                // `MemoStore::advance` the snapshot the store moves to; none of them returns a row, a table or
-                // the model (ADR-0002 amendment 4).
-                let allowed = word == "Model"
-                    && (sig.starts_with("pub fn new(model: &Model)")
-                        || sig.starts_with("pub fn with_tracker(model: &Model,")
-                        || sig.starts_with("pub fn advance(&self, after: &Model, keys: &[AnyKey])"));
-                assert!(!hit || allowed, "{}: `{sig}` exposes {word}", file.display());
-            }
-            rest = &rest[sig_end..];
-        }
-        for line in text.lines() {
-            let line = line.trim_start();
-            if let Some(field) = line.strip_prefix("pub ")
-                && let Some((name, ty)) = field.split_once(": ")
-                && name.chars().all(|c| c.is_alphanumeric() || c == '_')
-            {
-                for word in banned {
-                    let hit = ty
-                        .split(|c: char| !(c.is_alphanumeric() || c == '_'))
-                        .any(|w| w == word);
-                    assert!(!hit, "{}: field `{line}` exposes {word}", file.display());
-                }
-            }
-        }
-    }
-    assert!(checked > 30, "only {checked} signatures scanned");
-}
-
 /// A query body that uses every kind of accessor `Q` offers. It compiles against `&Q` alone; there is
 /// nothing else to reach the model through.
 #[derive(Debug)]

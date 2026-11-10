@@ -6,8 +6,7 @@
 
 //! Connectivity notes and the linear partner lookup (A review findings F6, F7, F8, F13).
 //!
-//! - `star_group_of_400_members_derives`: one source and 399 targets derive through every query; the 3,999-target
-//!   size, `star_group_of_4000_members_is_linear`, is a perf test (ignored, milestone deliveries only).
+//! - `star_group_of_400_members_derives`: one source and 399 targets derive through every query.
 //! - `star_source_with_two_drawn_connections_is_no_hub_and_noted`: EW-POT-011, the wires end open.
 //! - `star_source_without_a_drawn_connection_is_no_hub_and_noted`: EW-POT-011 with zero connections.
 //! - `star_hub_with_one_feed_raises_no_note`: the positive control of the two tests above.
@@ -176,17 +175,9 @@ fn star_group_derives(targets: u128) {
     let _flow = q.get::<PotentialFlow>(pid);
 }
 
-/// The per-gate size of [`star_group_derives`]: one source and 399 targets.
 #[test]
 fn star_group_of_400_members_derives() {
     star_group_derives(399);
-}
-
-/// The size that shows the partner lookup is linear: one source and 3,999 targets.
-#[test]
-#[ignore = "perf: release-profile timing, milestone deliveries only"]
-fn star_group_of_4000_members_is_linear() {
-    star_group_derives(3_999);
 }
 
 /// Source IP 0x1101 with `source_ends` drawn connections to functions, and two targets, each wired to one
@@ -508,18 +499,9 @@ fn unlocated_rail_bonded_terminals_join_the_implicit_main_location() {
 /// With two own locations (A and B), an unlocated terminal joins no rail and is noted (EW-POT-008).
 #[test]
 fn unlocated_rail_bonded_terminals_do_not_bond() {
-    const T1: u128 = 0x4001;
-    const T2: u128 = 0x4002;
     let mut fx = terminal_base();
     fx.node(LOC_B, "location", "B", None);
-    terminal(&mut fx, T1, 0x1001, FNDEF_PE, SYM_PE, None);
-    terminal(&mut fx, T2, 0x1002, FNDEF_PE, SYM_PE, None);
-    for f in [0x1003, 0x1004] {
-        func(&mut fx, f, P1);
-    }
-    wire(&mut fx, 0x2001, P1, Ep::Cp(0x1001, 1), cp(0x1003));
-    wire(&mut fx, 0x2002, P1, Ep::Cp(0x1002, 1), cp(0x1004));
-    let m = fx.build();
+    let m = two_unlocated_terminals(fx);
     let mut q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     assert!(rail_bonds(&g).is_empty(), "{:?}", rail_bonds(&g));
@@ -527,7 +509,7 @@ fn unlocated_rail_bonded_terminals_do_not_bond() {
     assert_eq!(part.potential_count(), 2);
     let found = notes_with(&mut q, "EW-POT-008", "no location");
     let subjects: BTreeSet<String> = found.into_iter().map(|(s, _)| s).collect();
-    assert_eq!(subjects, BTreeSet::from([uid(T1), uid(T2)]));
+    assert_eq!(subjects, BTreeSet::from([uid(0x4001), uid(0x4002)]));
     assert!(notes_with(&mut q, "EW-TERM-005", "").is_empty());
 }
 

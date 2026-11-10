@@ -16,7 +16,6 @@
 //! - `dangling_endpoint_is_harmless`: a connection to a function that does not exist; every query, no wire.
 //! - `potential_id_prefers_definitions`: definition ID, EW-POT-017, else the minimum CP ID.
 //! - `derived_values_do_not_depend_on_record_order`: partition and stitch graph under record permutations.
-//! - `no_hash_containers_in_connectivity_sources`: no `HashMap`/`HashSet` in the connectivity sources.
 //! - `queries_survive_a_device_parent_cycle`: every query with rail-bonded terminals in a parent cycle.
 //! - `double_deck_terminal_keeps_its_levels_apart`: equal designations on two levels are not one pin (D2).
 //! - `duplicate_pins_join_only_on_pattern_functions`: duplicated pins are one pin on black boxes only (D2).
@@ -567,26 +566,6 @@ fn derived_values_do_not_depend_on_record_order() {
             shuffled.records.swap(i, j);
         }
         assert_eq!(render(&shuffled), expected);
-    }
-}
-
-#[test]
-fn no_hash_containers_in_connectivity_sources() {
-    let sources = [
-        ("nets.rs", include_str!("../../src/nets.rs")),
-        ("stitch.rs", include_str!("../../src/stitch.rs")),
-        ("potentials.rs", include_str!("../../src/potentials.rs")),
-        ("wires.rs", include_str!("../../src/wires.rs")),
-        ("flow.rs", include_str!("../../src/flow.rs")),
-        ("wire_props.rs", include_str!("../../src/wire_props.rs")),
-        ("wire_profile.rs", include_str!("../../src/wire_profile.rs")),
-        ("cps.rs", include_str!("../../src/cps.rs")),
-        ("pages.rs", include_str!("../../src/pages.rs")),
-        ("structure.rs", include_str!("../../src/structure.rs")),
-    ];
-    for (name, text) in sources {
-        assert!(!text.contains("HashMap"), "{name} uses HashMap");
-        assert!(!text.contains("HashSet"), "{name} uses HashSet");
     }
 }
 

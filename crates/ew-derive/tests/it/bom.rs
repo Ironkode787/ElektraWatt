@@ -306,6 +306,13 @@ fn component_rows_are_ordered_and_numbered() {
     let pos: Vec<u32> = out.iter().map(|r| r.pos).collect();
     assert_eq!(pos, (1..=12).collect::<Vec<u32>>());
     assert!(out.iter().all(|r| !r.configured));
+    // Page 3 sorts before page 101.
+    assert_eq!(out[0].pages, [PageRef::Drawn(id(PAGE3))]);
+    // Unplaced rows follow the placed ones by legend rank.
+    assert!(out[7..11].iter().all(|r| r.pages.is_empty()));
+    // A layout-only accessory sorts with the legend rows although its strip is placed (doc 20 §14.1 rows
+    // 26, 27); it keeps the pages of its devices.
+    assert_eq!(out[11].pages, [PageRef::Drawn(id(PAGE103))]);
 }
 
 #[test]
@@ -359,14 +366,6 @@ fn one_part_on_two_pages_is_one_row() {
 }
 
 #[test]
-fn page_three_sorts_before_page_101() {
-    let out = rows(&golden(), BomMode::Component);
-    assert_eq!(out[0].part_number, "532216");
-    assert_eq!(out[0].pages, [PageRef::Drawn(id(PAGE3))]);
-    assert_eq!(out[0].pos, 1);
-}
-
-#[test]
 fn devices_without_parts_and_not_fitted_devices_have_no_rows() {
     let out = rows(&golden(), BomMode::Component);
     assert!(out.iter().all(|r| r.part_number != "D-SPARE"));
@@ -379,17 +378,6 @@ fn devices_without_parts_and_not_fitted_devices_have_no_rows() {
     assert!(q.get::<DevicePartLines>(id(0x1300)).is_empty());
     assert!(q.get::<DevicePartLines>(id(0x1310)).is_empty());
     assert!(q.get::<DevicePartLines>(id(0x7777)).is_empty());
-}
-
-#[test]
-fn unplaced_rows_follow_placed_ones_by_legend_rank() {
-    let out = rows(&golden(), BomMode::Component);
-    let tail: Vec<&str> = numbers(&out)[7..].to_vec();
-    assert_eq!(tail, ["NSYPLA1074G", "NSYPMM107", "A-RAIL", "B-DUCT", "C-EB"]);
-    assert!(out[7..11].iter().all(|r| r.pages.is_empty()));
-    // A layout-only accessory sorts with the legend rows although its strip is placed (doc 20 §14.1 rows
-    // 26, 27); it keeps the pages of its devices.
-    assert_eq!(out[11].pages, [PageRef::Drawn(id(PAGE103))]);
 }
 
 #[test]

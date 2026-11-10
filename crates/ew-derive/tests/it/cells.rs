@@ -47,6 +47,12 @@ fn qet_page(fx: &mut Fx) {
     fx.record(PAGE)["grid"] = json!({"num": 7_937_500, "den": 3});
 }
 
+/// Adds a multi-line page `n` with folio `folio` on the QET 10 px grid and no form.
+fn grid_page(fx: &mut Fx, n: u128, folio: u32) {
+    fx.page(n, folio, None, "multi_line", &[], "P");
+    fx.record(n)["grid"] = json!({"num": 7_937_500, "den": 3});
+}
+
 fn pt(x: i64, y: i64) -> Pt2 {
     Pt2::new(Nm(x), Nm(y))
 }
@@ -191,8 +197,7 @@ fn rounding_left_of_the_boundary_stays_in_the_right_cell() {
 fn outside_the_drawing_area_and_without_a_frame() {
     let mut fx = golden();
     qet_page(&mut fx);
-    fx.page(0x102, 102, None, "multi_line", &[], "No frame");
-    fx.record(0x102)["grid"] = json!({"num": 7_937_500, "den": 3});
+    grid_page(&mut fx, 0x102, 102);
     let m = fx.build();
     // Left of column 0 (k_x = 1 is inside the 20 px header band), above row A.
     assert_eq!(cell_str(&m, PAGE, qet_at(1, 10)), None);
@@ -291,8 +296,7 @@ fn malformed_frame_settings_fall_back_to_the_default() {
     ] {
         let mut fx = golden();
         fx.project_set("settings", json!({"frames": frames}));
-        fx.page(PAGE, 101, None, "multi_line", &[], "P");
-        fx.record(PAGE)["grid"] = json!({"num": 7_937_500, "den": 3});
+        grid_page(&mut fx, PAGE, 101);
         let m = fx.build();
         let (cell, notes) = cell_and_notes(&m, PAGE, qet_at(101, 62));
         assert_eq!(cell.as_deref(), Some("H16"), "{frames}");
@@ -304,8 +308,7 @@ fn malformed_frame_settings_fall_back_to_the_default() {
         "settings",
         json!({"frames": {"default": FRAME_COPY, "per_page_type": [7, {"page_type": "fluid", "form": 1}]}}),
     );
-    fx.page(PAGE, 101, None, "multi_line", &[], "P");
-    fx.record(PAGE)["grid"] = json!({"num": 7_937_500, "den": 3});
+    grid_page(&mut fx, PAGE, 101);
     let m = fx.build();
     let (cell, notes) = cell_and_notes(&m, PAGE, qet_at(101, 62));
     assert_eq!(cell.as_deref(), Some("H16"));
@@ -379,8 +382,7 @@ fn default_frame_matches_the_shipped_qet_frame() {
     assert_eq!(shipped.extra.keys().collect::<Vec<_>>(), ["ew.frame.line_width"]);
     // A project without frame settings and without a copy of the frame form uses it.
     let mut fx = Fx::new();
-    fx.page(PAGE, 101, None, "multi_line", &[], "P");
-    fx.record(PAGE)["grid"] = json!({"num": 7_937_500, "den": 3});
+    grid_page(&mut fx, PAGE, 101);
     let m = fx.build();
     let mut q = Q::new(&m);
     assert_eq!(frame_grid(&q, id::<Page>(PAGE)), Some(default));
@@ -413,8 +415,7 @@ fn form_without_grid_has_no_cells_and_no_default() {
         "settings",
         json!({"frames": {"default": uid(0x777), "per_page_type": [{"page_type": "multi_line", "form": uid(0x778)}]}}),
     );
-    fx.page(PAGE, 101, None, "multi_line", &[], "P");
-    fx.record(PAGE)["grid"] = json!({"num": 7_937_500, "den": 3});
+    grid_page(&mut fx, PAGE, 101);
     let m = fx.build();
     let (cell, notes) = cell_and_notes(&m, PAGE, qet_at(101, 62));
     assert_eq!(cell.as_deref(), Some("H16"));
@@ -438,8 +439,7 @@ fn form_without_grid_has_no_cells_and_no_default() {
 fn frame_grid_is_evaluated_once_per_page() {
     let mut fx = golden();
     qet_page(&mut fx);
-    fx.page(0x102, 102, None, "multi_line", &[], "No frame");
-    fx.record(0x102)["grid"] = json!({"num": 7_937_500, "den": 3});
+    grid_page(&mut fx, 0x102, 102);
     let m = fx.build();
     let mut q = Q::new(&m);
     for k in 0..20 {

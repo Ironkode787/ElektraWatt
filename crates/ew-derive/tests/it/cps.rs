@@ -69,12 +69,20 @@ fn designations(cps: &[Cp]) -> Vec<(u16, &str)> {
     cps.iter().map(|c| (c.idx, c.designation.as_str())).collect()
 }
 
-#[test]
-fn fndef_cps_with_duplicate_designations() {
+/// The CPs of function 0x1001 of the MCB FnDef, with `cp_overrides` when given.
+fn mcb_cps(overrides: Option<Value>) -> Vec<Cp> {
     let mut fx = base();
     fx.device(0x1000, "F", Some(1))
         .function(0x1001, Some(0x1000), FNDEF_MCB, true);
-    let out = cps(&fx, 0x1001);
+    if let Some(o) = overrides {
+        fx.with("cp_overrides", o);
+    }
+    cps(&fx, 0x1001)
+}
+
+#[test]
+fn fndef_cps_with_duplicate_designations() {
+    let out = mcb_cps(None);
     assert_eq!(designations(&out), [(0, "1"), (1, "2"), (2, "N"), (3, "N")]);
     for c in &out {
         assert_eq!(c.alias, None);
@@ -87,14 +95,9 @@ fn fndef_cps_with_duplicate_designations() {
 
 #[test]
 fn override_replaces_designation_and_alias() {
-    let mut fx = base();
-    fx.device(0x1000, "F", Some(1))
-        .function(0x1001, Some(0x1000), FNDEF_MCB, true)
-        .with(
-            "cp_overrides",
-            json!([{"idx": 0, "designation": "L1", "alias": "1 / L1", "description": {"en": "Phase"}}]),
-        );
-    let out = cps(&fx, 0x1001);
+    let out = mcb_cps(Some(
+        json!([{"idx": 0, "designation": "L1", "alias": "1 / L1", "description": {"en": "Phase"}}]),
+    ));
     assert_eq!(designations(&out), [(0, "L1"), (1, "2"), (2, "N"), (3, "N")]);
     assert_eq!(out[0].alias.as_deref(), Some("1 / L1"));
     assert!(out[0].description.is_some());
@@ -104,11 +107,7 @@ fn override_replaces_designation_and_alias() {
 
 #[test]
 fn override_without_designation_keeps_it_and_sets_unused() {
-    let mut fx = base();
-    fx.device(0x1000, "F", Some(1))
-        .function(0x1001, Some(0x1000), FNDEF_MCB, true)
-        .with("cp_overrides", json!([{"idx": 3, "unused": true}]));
-    let out = cps(&fx, 0x1001);
+    let out = mcb_cps(Some(json!([{"idx": 3, "unused": true}])));
     assert_eq!(out[3].designation, "N");
     assert!(out[3].unused);
     assert!(out[3].overridden);
@@ -117,11 +116,7 @@ fn override_without_designation_keeps_it_and_sets_unused() {
 
 #[test]
 fn override_of_a_missing_idx_is_ignored() {
-    let mut fx = base();
-    fx.device(0x1000, "F", Some(1))
-        .function(0x1001, Some(0x1000), FNDEF_MCB, true)
-        .with("cp_overrides", json!([{"idx": 9, "designation": "Z"}]));
-    let out = cps(&fx, 0x1001);
+    let out = mcb_cps(Some(json!([{"idx": 9, "designation": "Z"}])));
     assert_eq!(out.len(), 4);
     assert!(out.iter().all(|c| !c.overridden));
 }
