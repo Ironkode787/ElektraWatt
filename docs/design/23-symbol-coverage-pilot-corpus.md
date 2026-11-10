@@ -302,9 +302,9 @@ empty until verified.
 |---|---|---|---|---|---|---|---|
 | S-01 | A connectors and cabling | `ew.iec.plug-socket` | F-01 | 224 | D2 | Female contact beside `ew.iec.plug-pin`, two CPs, same text slots; first in order | Starter set, FT-148 |
 | S-02 | A | `ew.gen.screen` | F-02 | 8 | D2 | Graphic bound to the cable's shield `Conductor`, `rep_type` graphic like `ew.gen.cable-marker` | Starter set, FT-148 |
-| S-03 | B protection and switching | `ew.iec.mcb-2p` | F-04 | 3 | D2 | Internal linkage drawn as in `ew.iec.mcb-1pn` (0.13 mm dashed) | Starter set, FT-148 (via the family generator FT-149) |
+| S-03 | B protection and switching | `ew.iec.mcb-2p` | F-04 | 3 | D2 | Internal linkage drawn as in `ew.iec.mcb-1pn` (0.13 mm dashed) | Starter set, FT-148 (via the family generator) |
 | S-04 | B | `ew.iec.disconnector-1p` | F-05 | 2 | D2 | | Starter set, FT-148 |
-| S-05 | B | `ew.iec.switch-disconnector-4p` | F-06 | 2 | D3 | Needs the decision between fixed symbols and a parametric family (§7); link points per pole as `ew.iec.switch-2p-manual` | Starter set, FT-148 (via the family generator FT-149) |
+| S-05 | B | `ew.iec.switch-disconnector-4p` | F-06 | 2 | D3 | Needs the decision between fixed symbols and a parametric family (§7); link points per pole as `ew.iec.switch-2p-manual` | Starter set, FT-148 (via the family generator) |
 | S-06 | B | `ew.iec.rcd` | F-08 | 1 | D2 | | WP-S7.04 |
 | S-07 | B | `ew.iec.estop-nc` | F-10 | 1 | D2 | Mushroom actuator, positive opening | WP-S7.04 |
 | S-08 | C sensing, supply and electronics | `ew.iec.sensor-temp` | F-03 | 5 | D2 | Two CPs; FnDef with a sensor category | Starter set, FT-148 |
@@ -360,8 +360,8 @@ The paragraph below is the text that [07](07-symbols-parts-macros.md) §2.3 carr
 > requirement and changes no key. The seven types that a pilot project uses at least twice join the starter set
 > (`ew.iec.plug-socket`, `ew.gen.screen`, `ew.iec.sensor-temp`, `ew.iec.mcb-2p`, `ew.iec.disconnector-1p`,
 > `ew.iec.switch-disconnector-4p`, `ew.iec.socket`; follow-up task FT-148); the end-terminal and the other variants
-> follow the same rule after inspection (FT-150), and the rest go to WP-S7.04. The starter set grows from 36 to 43
-> native symbols (decision log ID-294). A QET cross-section mark that disagrees with the derived wire property is
+> follow the same rule after inspection, and the rest go to WP-S7.04. The starter set grows from 36 to 43
+> native symbols. A QET cross-section mark that disagrees with the derived wire property is
 > reported as EW-IMP-123 with the mark's value ([14](14-interop.md) §4.12; ID-284).
 
 ---
@@ -370,17 +370,17 @@ The paragraph below is the text that [07](07-symbols-parts-macros.md) §2.3 carr
 
 1. **Starter set or full library.** FR-SYM-007 fixes the starter set to the golden project's list and FR-SYM-008 puts the
    full library at 1.0. The corpus argues for pulling S-01 and S-02 forward (the female connector half is 89 % of the
-   missing uses), but that changes the scope of WP-S7.02 and is not decided here. **Resolved** (decision log ID-294): the seven types used at least twice in a pilot project join WP-S7.02, the rest go to WP-S7.04.
+   missing uses), but that changes the scope of WP-S7.02 and is not decided here. **Resolved**: the seven types used at least twice in a pilot project join WP-S7.02, the rest go to WP-S7.04.
 2. **Fixed or parametric.** S-03 to S-06 are pole-count variants. Draw four fixed symbols now, or wait for the parametric
-   families of FR-SYM-027 (1.x)? **Resolved** (ID-295): neither; pole counts are generated from a family source at
-   content-build time (07 §3.2 rule 10, FT-149).
+   families of FR-SYM-027 (1.x)? **Resolved**: neither; pole counts are generated from a family source at
+   content-build time (07 §3.2 rule 10).
 3. **Marks that disagree.** M-03 drops a cross-section mark when its text equals the wire's property. What the importer
    does when it differs (keep as free text and report, or override the property) is open; the first option is the safe
-   default. **Resolved** (ID-284): the derived property is kept, the mark is dropped, and EW-IMP-123 reports the mark's
-   value (FT-132).
+   default. **Resolved**: the derived property is kept, the mark is dropped, and EW-IMP-123 reports the mark's
+   value.
 4. **Inspection before drawing.** The ranking of §3.3 puts 153 uses behind one name reading. The symbol tickets
    of groups B to D can start at once, since their rows have confidence M or H, but nothing should be drawn for a
-   candidate family before T-01. **Resolved:** T-01 is FT-146 and gates S-13 and S-14 (FT-150) and the candidate
+   candidate family before T-01. **Resolved:** T-01 is FT-146 and gates S-13 and S-14 and the candidate
    families.
 
 ---

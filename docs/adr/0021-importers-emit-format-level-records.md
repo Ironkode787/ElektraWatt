@@ -77,7 +77,7 @@
    neutral table image through `ImportCx`, so that the importer links no rusqlite (ARCH §3 rules 2 and 4;
    [14](../design/14-interop.md) OQ15).
 5. **EPLAN data (1.0).**
-   - **EDZ parts** through sevenz-rust2 0.24.2 (decision log ID-1460), plus zip for ZIP-format packages (FR-IMP-025,
+   - **EDZ parts** through sevenz-rust2 0.24.2, plus zip for ZIP-format packages (FR-IMP-025,
      FR-IMP-026). EDZ import is part data only (`*.part.xml` article fields, function templates as pin lists),
      user-initiated and local, and shows the Data Portal terms notice. EW never bundles EDZ content.
    - **Other EPLAN sources:** EPLAN parts XML (FR-IMP-028), report spreadsheets through a column mapper
@@ -107,7 +107,7 @@ Accepted on 2026-10-18 ([14](../design/14-interop.md) §2.1–§2.4, open questi
 is unchanged; these entries refine it.
 
 1. **Assets in the batch** (2026-10-18). `ImportBatch` carries `assets: Vec<AssetBlob>`: content-addressed logos
-   and images, written by the host to `assets/<sha256>.<ext>`. *As built (cycle 23, FT-337; decision log ID-573):* the
+   and images, written by the host to `assets/<sha256>.<ext>`. *As built:* the
    host side exists: the project's content-addressed asset store, which a transaction fills through
    `TxBuilder::put_asset` (ADR-0008 amendment 5) and a save writes through the save protocol without ever removing a
    file ([project format](../design/05-project-format-and-persistence.md) §13.3). `ApplyImport` will put a batch's
@@ -138,10 +138,9 @@ is unchanged; these entries refine it.
    the first such importer. Its importer ID is `csv`, the `<importer>` of its lineage `csv␟fixed␟golden`
    (ADR-0004 amendment 4); `golden-csv` in decision 1's comment is the name of its report format, not an importer
    ID.
-7. **Decision 1's batch as built** (2026-11-05, cycle-52 design pass; WP-S3.09 D1 and D17; decision log ID-1360,
-   ID-1432). The decision text is unchanged; it is read so: `ImportBatch` is `{records, lib, report}`, and
+7. **Decision 1's batch as built**. The decision text is unchanged; it is read so: `ImportBatch` is `{records, lib, report}`, and
    decision 1's `provenance` is each record's own `source_ref` member, which no parallel vector could contradict;
-   amendment 1's `assets` waits for the first importer that emits an image (FT-1468). Every host reaches an importer
+   amendment 1's `assets` waits for the first importer that emits an image. Every host reaches an importer
    through one front door that applies the limits, isolates a panic and checks the batch's contract (IDs re-derived
    from source keys, one lineage, sorted records) before `ApplyImport`; the import run of amendment 2 is typed with
    two hashes per record, the record as imported and as committed ([14](../design/14-interop.md) §2.3 and §2.4's

@@ -1,6 +1,6 @@
 # ADR-0015: One display-list IR; wgpu canvas plus an always-built CPU renderer; krilla PDF/A-2b; PDF as print master
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20, 2026-10-22, 2026-10-30 (no macOS print adapter, decision log ID-880), 2026-11-02 (amendment 7: the `ew-scene` → `ew-derive` edge as built, decision log ID-1111) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20, 2026-10-22, 2026-10-30 (no macOS print adapter), 2026-11-02 (amendment 7: the `ew-scene` → `ew-derive` edge as built) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -56,8 +56,7 @@ flowchart LR
    (PDF/UA-1). **No optional-content layers in v1.**
 6. **Other outputs.** An own SVG writer; DXF (AC1015, layer mapping) via dxf 0.6.2; PNG via vello_cpu.
 7. **Printing.** PDF is the print master. Small per-OS adapters hand it to the OS: the xdg Print portal or CUPS on
-   Linux, `PrintDlgEx` with banded vello_cpu rendering on Windows (no macOS adapter: macOS is not supported, decision
-   log ID-880). Scale-to-fit stamps the scale;
+   Linux, `PrintDlgEx` with banded vello_cpu rendering on Windows (no macOS adapter: macOS is not supported, decision log). Scale-to-fit stamps the scale;
    folio ranges and monochrome mode are supported; `ew print` prints from the CLI.
 
 **Scope by release.** MVP: the wgpu canvas with the CPU fallback, PDF/A-2b with outline, links, named destinations,
@@ -109,7 +108,7 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, 
      destinations are processed in input order, every map is a `BTreeMap`, and krilla numbers objects in first-use
      order and sorts the name tree.
    - **Destinations.** Every page has its own named destination: a drawn page its page ID, a divider its section's
-     ID, a generated page its `v5(block, index)`; a duplicate destination is an export error (decision log ID-163).
+     ID, a generated page its `v5(block, index)`; a duplicate destination is an export error.
      A target item gets a destination only when a link of the export points at it; the first target in page order
      wins.
    - **Text.** Glyphs are subset-embedded (CID, Identity-H) with ToUnicode from the run's text: one char per glyph
@@ -117,19 +116,17 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, 
      glyphs are dropped, as PDF/A requires.
    - **Not yet.** Link annotations use a rectangle, not QuadPoints; images are skipped until assets reach the
      scene; links out of a partial export are plain text (FR-OUT-020's remote links follow).
-6. **PNG determinism per build target** (2026-10-19, project owner, delegated; decision log ID-138; refines
-   amendment 3). `ew-render-cpu` runs vello_cpu on `Level::baseline()`, the portable SIMD level, so a PNG is
+6. **PNG determinism per build target** (2026-10-19, project owner, delegated; refines amendment 3). `ew-render-cpu` runs vello_cpu on `Level::baseline()`, the portable SIMD level, so a PNG is
    byte-identical across runs and machines of one build target; across targets PNGs still compare within the dify
    tolerance. (`Level::fallback()`, the scalar path, needs a further fearless_simd feature and is not used.) The
    golden PNGs are rendered at 150 dpi (doc 20 §3.3).
-7. **Page layers over a caller-filled view** (2026-10-19, core team; decision log ID-125, ID-136; refines
-   amendment 2). `ew-scene` has no edge to `ew-derive`. Its layer function `page_display_list(view, layer, fonts)`
+7. **Page layers over a caller-filled view** (2026-10-19, core team; refines amendment 2). `ew-scene` has no edge to `ew-derive`. Its layer function `page_display_list(view, layer, fonts)`
    is a pure function of a `PageView` that the caller fills with the page's records and derived texts; each layer
    reads only its own inputs, so the frame layer never sees a wire edit. The memoised
    `page_display_list(page, layer, lang)` family of amendment 2 is built by the export job in the crate that fills
    the view, with one view and one query per layer that reads only that layer's inputs, so a wire edit never
    rebuilds the title block in practice; until then the CPU renderer and the PDF writer take the layers directly.
-   *Amended 2026-11-02 (cycle 45, as built; decision log ID-1111, ID-1137):* `ew-scene` has a direct edge to
+   *Amended 2026-11-02:* `ew-scene` has a direct edge to
    `ew-derive`, so that the page, normaliser 7 and EW-TERM-006 share one drawn path: the scene's provisional route
    builds on `ew_derive::provisional_path`, and a half-turned black box's slot texts take their frame from
    `ew_derive::text_frame`. The substance of this amendment stands: `ew-scene` calls only pure functions of
@@ -153,14 +150,12 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, 
    or the parentheses), after the text's own items, with the text's `EntityRef` and a `LinkSource`; a text with one
    item keeps its link on the text, and a slot value sets one kind or the other, never both. `ew-dl` and the
    backends are unchanged: `ew-export` writes one link annotation per link item over the axis-aligned box of the
-   path's control points, exact at 0° and 90°; a free-angle text needs `QuadPoints` (follow-up task FT-122), and
+   path's control points, exact at 0° and 90°; a free-angle text needs `QuadPoints` (follow-up task), and
    exact item ends from the shaped clusters replace the prefix re-shaping, which ignores kerning across the item
-   boundary (FT-123). The golden PDF has 64 cross-reference link annotations and 96 named destinations. *Since
-   cycle 44* (WP-S3.06 part 3, decision log ID-1091) it has 246 link annotations (64 cross-reference items, 28 PLC
+   boundary. The golden PDF has 64 cross-reference link annotations and 96 named destinations. *Since
+   cycle 44* it has 246 link annotations (64 cross-reference items, 28 PLC
    overview rows, 154 report row links) and 185 named destinations (`golden/J-E-2416/expected/pdf/structure.json`).
-10. **The canvas's GPU path as built** (2026-10-22, cycle 22, lead ruling the owner may reverse, applied and accepted at
-    the cycle-22 design pass; decision log ID-506, ID-507, ID-539 to ID-543;
-    WP-S2.02 specification §3, §7). This applies the amendment that was
+10. **The canvas's GPU path as built** (2026-10-22, lead ruling the owner may reverse, applied and accepted at the; to ; specification §3, §7). This applies the amendment that was
     pending since cycle 21. Decision 2 changes in two points, as built by part 2 of WP-S2.02:
     - **An offscreen texture instead of a paint callback.** `ew-render2d` tessellates the display list with lyon
       (fills and strokes, with the caps, joins and miter limit of `ew-dl`; dashes split first with kurbo) and draws it,
@@ -173,12 +168,12 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, 
       a glyph by (font, glyph ID), tessellated from its unhinted skrifa outline in font units with a tolerance of
       em/2000. Scene preparation runs on a worker; a second preparation of the same page tessellates nothing. **Every
       group with a transform or a clip is a mesh context** (one mesh per content key, instanced), which settles the
-      cycle-21 wording that named the transform only (ID-540).
-    - **Translucency** is exact in paint order between instances and approximate inside one mesh (ID-541): opaque
+      cycle-21 wording that named the transform only.
+    - **Translucency** is exact in paint order between instances and approximate inside one mesh: opaque
       items are depth-tested in any order, translucent items are drawn last in paint order, and the order of
       translucent primitives inside one mesh is the mesh's own. The parity test (WP-S2.02 §8) states its bounds
       accordingly.
-    - **The mapped-view rule** (from the cycle-21 audit of wgpu 30.0.1; ADR-0014's as-built note): uploads use
+    - **The mapped-view rule** (from the audit of wgpu 30.0.1; ADR-0014's as-built note): uploads use
       `Queue::write_buffer` and `Queue::write_texture`, and the only mapped view in the renderer is the readback in
       `GpuCanvas::read_back`, held inside the scope that maps it and dropped before `unmap`.
     - **The CPU path stays the golden reference** (decision 3, amendment 6): `ew-render-cpu` is unchanged, no golden
@@ -187,7 +182,7 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, 
       pure function (the switch rule, architecture §8.2); on a host without an adapter the window does not open
       (exit code 3) and the CPU renderer remains the headless and fallback path. Supply chain: lyon_tessellation,
       lyon_path, lyon_geom and float_next_after are cargo-vet exemptions under ID-476's hold until FT-326 audits them
-      (ID-543).
+     .
 
 ## Consequences
 
@@ -213,7 +208,7 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, 
 The page-label amendment that was pending here (from
 [reports, forms and output](../design/09-reports-forms-output.md), open question 11) is settled by amendment 5.
 
-No amendment is pending. The GPU-path amendment that was pending from cycle 21 (decision log ID-506, ID-507) is
+No amendment is pending. The GPU-path amendment that was pending from cycle 21 is
 applied and accepted as amendment 10.
 
 ## Alternatives considered

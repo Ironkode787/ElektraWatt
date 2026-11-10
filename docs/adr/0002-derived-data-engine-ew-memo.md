@@ -102,7 +102,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      level after the change) let a library-durable memo skip its verification wrongly, which the property test
      found. Conversely, every verification that finds a memo green recomputes its durability as the minimum of its
      dependencies' **current** durabilities, so a memo whose input became less durable cannot keep skipping on the
-     old level (a stale-memo path found in the review; task FT-33).
+     old level (a stale-memo path found in the review; task).
    - **Cut-off and eviction.** A cut-off of a held `Eq` value keeps the old `Arc`. An LRU-evicted memo keeps its dependencies and its
      fingerprint, so its dependents can still be verified without recomputing it; when an evicted `Eq` value is
      recomputed because it is read again and its dependencies are unchanged, the new value is treated as unchanged
@@ -116,7 +116,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    - **Forks.** `fork()` is O(1) (`imbl`), and `adopt_if_unchanged` is the decision-5 exception and nothing more.
      "Unchanged" is exact: a fork is adopted only when the store's mutation token still equals the fork's base
      token, and the store's revision and the fork's revision both equal the base revision, so a fork that advanced
-     on its own is never adopted (task FT-33).
+     on its own is never adopted (task).
    - **Determinism.** No hash-map iteration, floating point or clock.
    `ew-derive`'s `Q` does not use `ew-memo` yet: phase 1 runs every family cold behind a no-op `Tracker`, so that
    promoting a family after the spike (decision 3) changes its `POLICY` and the tracker, never the query body.
@@ -213,9 +213,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      architecture §2: the `Session` lives on the UI thread, and a job receives an O(1) fork, never the session;
      the job-model work makes the fork it hands out sendable.
    - **Coarse registration keys.** A read is registered in the reverse-dependency index under `Db::coarse` of the
-     input, computed in the snapshot the read observed (the page a row is drawn on, a 4,096-way ID or index-key
-     shard, or the read itself for whole tables, whole indexes, the project row and the reserved records; decision
-     log ID-226). The touch contract: a commit reports, for every put row, its coarse keys before and after the
+     input, computed in the snapshot the read observed (the page a row is drawn on, a 4,096-way ID or index-key shard, or the read itself for whole tables, whole indexes, the project row and the reserved records; decision log). The touch contract: a commit reports, for every put row, its coarse keys before and after the
      change. As first built the registrations were not kept with the memo, so a row that moved to another page left
      a stale registration (over-marking only); the fix round **stores each memo's registrations with it**
      (`Memo::reg`) and replaces them when the memo re-executes, so nothing leaks. Their memory at XL is measured in
@@ -260,13 +258,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      removed: a new history (another lineage of snapshots) needs a new store, and a store never moves to an
      arbitrary snapshot.
    - **Value bytes and the query shapes.** The five connectivity families implement `Query::bytes` (amendment 4
-     item (d)), tested on a small wired fixture because `ew-derive`'s golden fixture has no connections (FT-116),
-     and `potential_flow` is Cold, a lookup into `potential_flow_bfs` (decision log ID-221).
+     item (d)), tested on a small wired fixture because `ew-derive`'s golden fixture has no connections,
+     and `potential_flow` is Cold, a lookup into `potential_flow_bfs`.
    - **Page order inside pagination.** The connectivity queries (`physical_wires_of`, the potential queries and
      the stitch graph) read `drawn_page_order`, never `page_order`, so they can run inside the report engine's
-     pagination without a cycle; the cross-reference token `{page_index}` still reads `page_order` (decision log
-     ID-189).
-   - **Still whole-project** (WP-S1.07 part 2, cycle 10): `stitch_graph` and `potential_partition` are memoised as
+     pagination without a cycle; the cross-reference token `{page_index}` still reads `page_order`.
+   - **Still whole-project**: `stitch_graph` and `potential_partition` are memoised as
      one value each and read whole tables; the hub specification scans every interruption-point group per
      potential, `wire_props_of` parses the profile per potential, the PE rule scans the whole strip per wire end,
      and the bond vias, the interruption-point pairing and the flow BFS are global. Part 2 makes the partition a
@@ -342,7 +339,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      families through `Index::set`, the partition per component, page list and bonds), and `ip_pairing` and
      `potential_flow_bfs` count theirs once when built, so their `bytes` is O(1). Amendment 4 item (d) stands: the
      memory gate counts values.
-   - **Compaction and collection** (as fixed in cycle 10; `ew-memo` additions). `Store::forget` and
+   - **Compaction and collection** (as fixed in ; `ew-memo` additions). `Store::forget` and
      `Store::drop_carried` (also on `Cx`) let a producer forget the dependencies of deleted keys and drop every
      carried dependency before it rebuilds whole (the index families drop theirs, because the table stamp covers
      every row; the partition forgets the nets of deleted pages and the links of functions that left the graph). A
@@ -350,7 +347,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      advance collects orphans: a memo with no reader left, which lost its last reader or was marked, and which the
      host did not read in the revision just closed, is dropped with its registrations, marks, part stamps and LRU
      entry (`Counters::collected`; incremental families are exempt). Collected slots stay interned, so the store is
-     bounded by the distinct keys ever read (slot reuse is follow-up task FT-126). The review measured the growth
+     bounded by the distinct keys ever read (slot reuse is follow-up task). The review measured the growth
      before the fix over 300 page create and delete cycles: the partition's dependencies from 110 to 410, those of
      `page_ids` from 1 to 301, the `page_local_nets` memos from 13 to 313 and the push index from 9,526 to 10,726
      entries; after it the committed test holds every count flat (110, 2, 14 and 1,065).
@@ -359,7 +356,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      incremental family, which then pushes no note). `a_part_reader_follows_the_producers_notes` tests the `Notes`
      part. The note families `ip_notes` and `flow_notes` are read whole as value parts, so their fan-out is bounded
      by the cut-off; keying them per point and per potential is a design decision about which notes one reader
-     shows (follow-up task FT-125).
+     shows (follow-up task).
    - **Forks.** `MemoStore::fork` is public: an O(1) snapshot for a benchmark sample or a job. A fork advances only
      along its own descendants (snapshots derived from the one it was taken at), never touches the store it came
      from, and returns its memos only through adopt-if-unchanged (decision 5).
@@ -378,7 +375,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      algorithm. The spike benchmark runs on `MemoStore` (one smoke run, not evidence) with the composite NFR-PERF-05
      family (`memo.composite.move`, `.wire`: the partition, the names and the cross-reference texts after the edit),
      notes compared by its oracle, and timed samples on the second commit of a fork; the G-SP re-test runs it on a
-     BM-class runner (decision log ID-265).
+     BM-class runner.
 7. **Orphan collection keeps the memos of live keys** (2026-10-21, project owner (delegated); decision log ID-297;
    follow-up task FT-157). Amendment 6's collection was too aggressive: a memo read only by the host was dropped after
    one unread revision following a mark, cascading to its unshared dependencies. On the golden project one

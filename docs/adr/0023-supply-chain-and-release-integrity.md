@@ -1,6 +1,6 @@
 # ADR-0023: Supply chain and release integrity
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21, 2026-10-22, 2026-10-30 (no macOS signing, decision log ID-880), 2026-11-02 (the pilot release 0.1.0 is unsigned; the signed tag, the second approval, Authenticode, the release key and the signed sums are 1.0's, decision log ID-1187, ID-1188) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21, 2026-10-22, 2026-10-30 (no macOS signing), 2026-11-02 (the pilot release 0.1.0 is unsigned; the signed tag, the second approval, Authenticode, the release key and the signed sums are 1.0's) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -62,7 +62,7 @@
 
    A threat model is kept in the repository and reviewed every minor release.
 
-   *As built (2026-11-05, cycle 51; WP-S6.04, decision log ID-1363).* The threat model's file is
+   *As built.* The threat model's file is
    `docs/security/threat-model.md` (TM-01 to TM-19, each with its 0.1.0 state, controls and evidence, and a review
    log), which `SECURITY.md` links; its review at each minor release is a row of its log.
 5. **Updates** are installed only on a user action, after signature verification. There is no silent auto-update
@@ -124,7 +124,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    amendment 1). macOS is not a supported platform, so decision 2 no longer signs or notarises macOS builds: the
    rcodesign (apple-codesign) step with its `codesign` and `notarytool` fallback is removed, and no Apple Developer ID
    is needed.
-7. **Amended 2026-11-02 (ID-1187): the pilot release 0.1.0** (project owner; decision log ID-1187, ID-1188). The first
+7. **Amended 2026-11-02: the pilot release 0.1.0** (project owner). The first
    binary release, 0.1.0, is built by one release workflow from a tag in the protected `release` environment, with
    short-lived OIDC credentials. Of decision 2 it carries the CycloneDX SBOM, the `cargo-auditable` metadata, the
    third-party notices, the SLSA build provenance and a `SHA256SUMS`. It is unsigned: the tag is unsigned (the

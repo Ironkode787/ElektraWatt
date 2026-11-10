@@ -1,6 +1,6 @@
 # Fluid power
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-18 design pass: the interim valve-declaration rule in §3.1, N-FL-3 as built in §4.2, §4.3; decision log ID-466, ID-467, ID-469) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, : the interim valve-declaration rule in §3.1, N-FL-3 as built in §4.2, §4.3) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) represents and checks fluid power: pneumatics in v1 and
 hydraulics later. Fluid power runs on the same connection graph as the electrical schematic. It uses typed ports, valve
@@ -96,7 +96,7 @@ defined in §5.
 | `Representation{rep_type: Fluid \| Overview}` | A | page file | Fluid symbols on 203–206 and the generated overview on 201/202 |
 | `PartCopy.sections.fluid` | L | `lib/parts/` | §2.6 |
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* The fluid MVP uses these records with the members of §2.7 as
+*As built.* The fluid MVP uses these records with the members of §2.7 as
 built; the closure's part is optional (a plug's part enters the BOM at 1.0).
 
 ### 2.2 Fluid ports
@@ -215,10 +215,10 @@ This is the fluid entry of `PartCopy.sections` (FR-PRT-010). It is owned by this
 | `fitting{port_thread, tube_od}` | push-in fittings | EW-FL-006, BOM |
 | `transform` | regulator, ejector, silencer | §5.3 |
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* Of this section only `solenoids` is typed
+*As built.* Of this section only `solenoids` is typed
 (`PartSections.fluid`), with the part's template: the k-th `function_template` entry on a FnDef of contact kind `coil`
 is solenoid k (WP-S1.20 D4); the other members stay in the section's `extra`. A module's position count is read from
-its PLC section's `plc.positions.count`, since `positions` is not typed here at the MVP (FT-1330).
+its PLC section's `plc.positions.count`, since `positions` is not typed here at the MVP.
 
 ### 2.7 Schema additions
 
@@ -237,7 +237,7 @@ This document added the following to the first draft of [03](03-domain-model.md)
 | `Junction.fitting: PartRef?` on fluid pages | A drawn fluid T is a physical tee (§5.1) |
 | `DeviceKind::BlankingPlate` with a CP-less FnDef | A blank position is a BOM item with one main function (FR-DEV-004) |
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* Format 0.1 holds, each optional with an `Unknown` arm and
+*As built.* Format 0.1 holds, each optional with an `Unknown` arm and
 `schemas/0.1` re-blessed with additions only (ADR-0011 amendment 4): `CpDef.port_role` (`FluidPortRole`: `supply1`,
 `working2`, `working4`, `exhaust3`, `exhaust5`, the pilot and pilot-exhaust roles, `external_pilot`, `consumer`,
 `sensing`, `generic`); `ConnectionKind::Fluid(FluidLine)` with `line_kind` (`working`, the default, omitted;
@@ -270,15 +270,15 @@ per declared solenoid (FR-FLU-003). Assigning the part creates both through the 
   question 5). Used valves carry no function text of their own; "Spare" stays a manual function text.
 - **`CpDesignation(idx)`** prints the port designations.
 
-**Interim declaration rule (cycle 18; decision log ID-469).** Until N-FL-1 and the typed `solenoids` of the valve
-part's fluid section (§2.6) exist (FT-322), a valve **declares** solenoid s exactly when one of its functions, in ID
+**Interim declaration rule.** Until N-FL-1 and the typed `solenoids` of the valve
+part's fluid section (§2.6) exist, a valve **declares** solenoid s exactly when one of its functions, in ID
 order, has a CP named s with `physical = false`: the internal coil CP of the table above, which the valve's FnDef
-copy carries (`valve.add`'s interim `fndef`, decision log ID-394). The derivation's `solenoid_positions`, step 4 of
+copy carries (`valve.add`'s interim `fndef`). The derivation's `solenoid_positions`, step 4 of
 [10](10-plc-and-bus.md) §3.2 and N2 share this one rule (`ew_derive::coil_cp_idx`). Golden A's 571334 declares
 solenoid 14 this way. When N-FL-1 lands, the part's `solenoids` decide, the coil functions come from the part, and the
 CP rule goes.
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* ID-469's interim rule is gone: a valve declares solenoid s
+*As built.* ID-469's interim rule is gone: a valve declares solenoid s
 exactly when s is in `fluid.solenoids` of its valve part, and its coil CP is the first non-physical CP with the
 effective designation s among the device's functions on a FnDef of contact kind `coil` (`ew_derive::solenoid_coil`,
 read by the solenoid positions, N2 and the PLC address slot); a physical coil gives no coil CP. The solenoid left the
@@ -376,11 +376,10 @@ the transaction. P means a prevent rule: strict mode rejects, lenient mode (impo
 | FI-06 | A `Drives` link from a valve targets neither the valve nor an assembly ancestor | S | Reject |
 | FI-07 | Module children of a `ValveTerminal` assembly have unique positions | P | Strict rejects; lenient reports EW-FL-013 |
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* FI-01 is the structural invariant **EW-INV-024** (ADR-0009
+*As built.* FI-01 is the structural invariant **EW-INV-024** (ADR-0009
 amendment 9): a `fluid` connection ends at fluid CPs of one medium family, or at junctions whose every connection is
 `fluid`, and no other connection but `overview` ends at a fluid CP; `connection.draw` and the Wire tool refuse first
-in words at connection-point ends (elsewhere the invariant's ID shows, FT-1321; the media are read one junction deep,
-FT-1318). FI-06 is `device.link`'s refusal of a second `drives` link, not an invariant (FT-1332). FI-02 and FI-07 are
+in words at connection-point ends (elsewhere the invariant's ID shows, the media are read one junction deep). FI-06 is `device.link`'s refusal of a second `drives` link, not an invariant. FI-02 and FI-07 are
 EW-FL-013's prevent half.
 
 ### 4.2 Normalisers
@@ -396,18 +395,18 @@ deterministic, with ties broken by ID.
 | N-FL-4 | First tube from a valve working port to a `Consumer` port of another device | Adds `DeviceLink{Drives}` unless one exists |
 | N-FL-5 | Tube connection created | Assigns the tube counter when a line-tag scheme is active |
 
-**As built (cycle 18; decision log ID-466, ID-467).** N-FL-3 is N2 of [10](10-plc-and-bus.md) §3.3, registry row 13
+**As built.** N-FL-3 is N2 of [10](10-plc-and-bus.md) §3.3, registry row 13
 in `ew-commands`: it binds a coil only when the channel the map assigns is unbound and no channel binds the coil. A
 moved valve keeps the binding of its coil (with a notice), pairs the transaction did not touch are never re-examined,
 and a rebinding is `plc.bind_channel` (FR-PLC-051 as reworded). A valve moved out of its module keeps its coil bound
-to a channel of the old module, outside that module's subtree; the move is to unbind it (FT-320). N-FL-1, N-FL-2 (as a
+to a channel of the old module, outside that module's subtree; the move is to unbind it. N-FL-1, N-FL-2 (as a
 normaliser), N-FL-4 and N-FL-5 are not built.
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* **N-FL-1** is `valve_functions`, first in `ORDER`: for a
+*As built.* **N-FL-1** is `valve_functions`, first in `ORDER`: for a
 new device or one whose parts changed, with a valve part, it adds the valve function from the part's template when
 missing and each template coil function (ID `v5(device, template_index)`), removes a coil function that the current
 part's template lacks and unbinds its channel (notice T20), and never replaces or removes the valve function (notice
-T21; FT-1333); a new coil whose ID the old part's valve function holds is FT-1313. **N-FL-4** is `drives_link`,
+T21); a new coil whose ID the old part's valve function holds is FT-1313. **N-FL-4** is `drives_link`,
 after `bus_ports`: a new `fluid` line whose net joins a valve's working port to the `consumer` port of exactly one
 other device outside the valve's parent chain adds `DeviceLink {kind: drives}` unless the valve has one (T22); two or
 more such devices give T23 and no link.
@@ -425,20 +424,20 @@ more such devices give T23 and no link.
 | `device.link{from, to, Drives}` | Manual driven-device link | 1 step |
 | `fluid.length.set{lines, length: Nm}`; `RouteTubes` (1.x) | Manual length; committed routing | 1 step |
 
-**As built (cycle 16; decision log ID-392 to ID-395).** `valve.add` and `device.link` are registered commands
+**As built.** `valve.add` and `device.link` are registered commands
 ([06](06-schematic-editor.md) §3.1). `valve.add{module, position?, part, letter?, fndef?, structure?}` creates the
 valve child with the child tag scheme and its counter equal to its position (the lowest free position by default; a
 held one is refused, no push insert). Because N-FL-1 is not built, the interim parameter `fndef` names the FnDef copy
 of the valve's main function and `letter` its letter code (default Q); the coil functions are not created, and when
 N-FL-1 lands `fndef` is ignored for a part that declares solenoids and removed at the command's next schema version
-(ID-394). N-FL-2 is not a normaliser yet: its counter rule is applied inside `valve.add` and `assembly.attach` (a child
+. N-FL-2 is not a normaliser yet: its counter rule is applied inside `valve.add` and `assembly.attach` (a child
 tag of the child scheme, not frozen, whose counter equalled its old position follows the new one), and its push
 insert, with `assembly.detach`, is FT-273. `device.link{from, to, kind}` refuses a self-link and a duplicate of the same
 kind; N-FL-4 is not built. `valve.set_occupancy` and the other commands of the table are not built; the coil-to-channel
-binding was the explicit `plc.bind_channel` of [10](10-plc-and-bus.md) §3.9 until N2 (built in cycle 18, §4.2); the
+binding was the explicit `plc.bind_channel` of [10](10-plc-and-bus.md) §3.9 until N2 (built in , §4.2); the
 golden builder keeps its 28 explicit bindings, because under H1 the map and the drawing differ.
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* `valve.set_occupancy {module, position, occupancy, copies?}`
+*As built.* `valve.set_occupancy {module, position, occupancy, copies?}`
 (`{"valve": {state, part?}}`, `{"blank": {part?}}` or `"empty"`, one undo step; a blank removes the valve with its
 delete plan and makes a `blanking_plate` child with the position's tag) and `fluid.port.close {function, idx,
 closure?}` (refused on a port that is no fluid port or has a fluid line) are built; `valve.add` with a part whose
@@ -567,7 +566,7 @@ content is derived as follows:
 4. **Tags and references.** Above each module: its tag and the "∞" list of its auxiliary representations
    ("∞ 203-B4"; FR-XRF-015). Each child slot has a v5 ID `(rep, child)` that serves as anchor, PDF destination and
    main representation (so -201U3 is page-based on 201).
-5. **Breaks.** Break marks at each segment's open end (right on 201, left on 202), derived from the members' pages, never stored (decision log ID-373).
+5. **Breaks.** Break marks at each segment's open end (right on 201, left on 202), derived from the members' pages, never stored.
 6. **PART DATA.** The box is an embedded report block over `Assembly.configs` ("Order Code 1: 51E-F13GCQP-D+H2GG",
    "Order Code 2: 32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS") on 201 and 202 (D-36).
 
@@ -577,7 +576,7 @@ break marks follow from the pages. At 1.0 `valve_terminal.generate_overview` bui
 into segments by the frame's usable width, never inside a module, and previews the tag changes a new break would
 cause, because modules are page-based ([06](06-schematic-editor.md) §8).
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* Step 3 is built: the scene derives one glyph
+*As built.* Step 3 is built: the scene derives one glyph
 per position of a module from `valve_slots`, a valve as a rectangle with a circle and its part's number, a blank with
 both diagonals, an empty position dashed, in a band above the module glyph; the glyphs are derived items, never
 records. Golden A's folio 201 shows 24 and 202 four, each printing 571334 (AC-32's MVP part, FT-263 closed).
@@ -629,10 +628,9 @@ The core rule FR-CHK-022 ([02a](02a-requirements-core.md)) covers hand-drawn or 
 with the children (MF-14). Generated overviews cannot disagree. EW-PLC-012, the address-map rule, is in
 [10](10-plc-and-bus.md).
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* EW-FL-001, -002, -004, -011 and -013 are built
+*As built.* EW-FL-001, -002, -004, -011 and -013 are built
 in pack EW-FL, on in every shipped scheme, with their catalogue rows, rule pages and messages in both languages.
-**EW-FL-004 runs in `o r`**, not `o` alone, so that the pre-delivery release run counts EF-14 (decision log ID-1316
-O2); EW-FL-013's prevent half refuses a strict transaction for FI-02 and FI-07.
+**EW-FL-004 runs in `o r`**, not `o` alone, so that the pre-delivery release run counts EF-14 (O2); EW-FL-013's prevent half refuses a strict transaction for FI-02 and FI-07.
 
 ---
 
@@ -842,7 +840,7 @@ keep the manual function text "Spare". Reports keep function text and process ta
   as the medium. EF-20 clears. The default tube PU 6×4 BU clears EF-21, the plugs on the spare valves' ports 2 and 4
   clear EF-13, and the tube list has 17 rows F1–F17 at 1,200 mm (`expected/fluid.csv`).
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* EF-13 and EF-14 are found with their 20 subjects each,
+*As built.* EF-13 and EF-14 are found with their 20 subjects each,
 and AC-21 compares the whole `findings_mvp.csv`; F1 to F16 are drawn on folio 203 as working lines (doc 20 §12), and
 the valve glyphs print on 201 and 202. EW-FL-004 counts in the release run (`o r`, §6).
 
@@ -883,10 +881,10 @@ the valve glyphs print on 201 and 202. EW-FL-004 counts in the release run (`o r
 | Configurator decoders and EW-FL-003 (FR-FLU-022) | | | ● | |
 | Hydraulics (FR-FLU-025), P&ID process symbols | | | | ● |
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* The MVP row is built (WP-S1.20). Left for 1.0 (WP-S1.25):
+*As built.* The MVP row is built (WP-S1.20). Left for 1.0 (WP-S1.25):
 the device navigator's fluid actions, autoconnect and a line-kind picker on fluid ports, the flexible line's arc,
-`fluid.positions` and FI-06 as an invariant (FT-1327 to FT-1330, FT-1332), and a previewed replacement of the valve
-function on a part change (FT-1333).
+`fluid.positions` and FI-06 as an invariant, and a previewed replacement of the valve
+function on a part change.
 
 ---
 

@@ -116,7 +116,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    are additive and may still be renamed or dropped before the freeze; `ew sql schema` and `api_v1_meta`
    (`api_status`, `preview_additions`) list them, so a user query can tell a Preview column from a stable one. The
    v0 build has `api_v1_meta` and `api_v1_bond`; `api_v1_cp`, `api_v1_structure`, `api_v1_xref` and
-   `api_v1_revision` follow (FT-216).
+   `api_v1_revision` follow.
 3. **Load current per pin and CP roles** (2026-10-18; [17](../design/17-extensibility.md), open question 20). Parts
    gain an optional electrical load current per supply CP (part data in decimal A,
    [07](../design/07-symbols-parts-macros.md)), and `api_v1_cp` exposes it as `i_load` (decimal text in A, empty

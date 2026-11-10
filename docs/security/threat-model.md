@@ -81,10 +81,10 @@ States: *in force* (the control ships in 0.1.0), *1.0* or *1.x* (the threat arri
 | TM-09 | Silent tampering with a received project's engineering data | in force as documentation | `ew diff` and its textconv (`bin/ew/src/cli/diff.rs:4 (ew diff --textconv)`); the as-built archive's SHA-256 in the revision tag (`crates/ew-api/src/release_run.rs:20 (ew/rev/<label>)`); the install guide's verification steps | Documentation |
 | TM-10 | Debug or remote-control endpoints in release binaries | in force | `EW_DEBUG_PANIC` only under `debug_assertions` (`bin/elektrawatt/src/main.rs:739 (debug_assertions)`); the canary scan (`ci/sandbox-check.py:148 (canary)`); a binary listing a test-only crate fails (`ci/audit-data.py:31 (BANNED)`); no `listen` call in the installed tree (`ci/no-listen.sh:5 (listening-socket canary)`) | CI-R-09, CI-N-06 |
 | TM-11 | Dependency compromise or typosquatting | in force | `cargo deny` and `cargo vet` on every pull request (`.github/workflows/ci.yml:1141 (cargo vet --locked)`, `:1137 (cargo deny --locked check)`); the reviewed build scripts (`ci/build-scripts.allowlist:64 (libsqlite3-sys)`) | CI-PR-09 |
-| TM-12 | CI or release pipeline compromise | in force without the two-person publish (1.0) | Read-only default permissions (`.github/workflows/ci.yml:23 (permissions)`); actions pinned by commit; `persist-credentials: false` (`.github/workflows/ci.yml:69 (persist-credentials: false)`); the one write scope, `contents: write`, in the `release` job (`.github/workflows/release.yml:125 (contents: write)`); no build provenance at 0.1.x (ID-1520) | Scorecard, review |
+| TM-12 | CI or release pipeline compromise | in force without the two-person publish (1.0) | Read-only default permissions (`.github/workflows/ci.yml:23 (permissions)`); actions pinned by commit; `persist-credentials: false` (`.github/workflows/ci.yml:69 (persist-credentials: false)`); the one write scope, `contents: write`, in the `release` job (`.github/workflows/release.yml:125 (contents: write)`); no build provenance at 0.1.x | Scorecard, review |
 | TM-13 | Update spoofing or MITM | 1.0 | 0.1.0 has no update check and no network code (WP-S6.05 D3; the network clients banned at `ci/dep-rules.toml:35 (banned_crates)`) | — |
 | TM-14 | Local disclosure through journal, recovery snapshots, crash logs or logs | in force | User-only modes on Unix: the project writer (`crates/ew-store/src/vfs.rs:238 (0o600)`), the settings (`crates/ew-viewmodel/src/settings.rs:683 (user_only_options)`, `:699 (write_user_only)`), the crash log (`bin/elektrawatt/src/crash.rs:176 (append)`); no automatic upload (NFR-PRIV-04) | CI-PR-02, WP-S6.05's tests |
-| TM-15 | Signing-key compromise | 1.0 | 0.1.0 is unsigned and holds no signing key (ID-1187) | — |
+| TM-15 | Signing-key compromise | 1.0 | 0.1.0 is unsigned and holds no signing key | — |
 | TM-16 | A user-configured external converter fed a hostile file | 1.0 | No converter runs at 0.1.0 | — |
 | TM-17 | Unexpected process spawn by a dependency: rfd starts `zenity` from `PATH` when the desktop portal fails | in force, FT-332 open | The shell asks rfd only when a session bus is there for the portal (`bin/elektrawatt/src/main.rs:206 (session_bus_present)`); removing the fallback is FT-332 | Review; FT-332 |
 | TM-18 | A hostile SVG in the asset store | in force | `sniff` (`crates/ew-schema/src/asset.rs:273 (sniff)`) runs `svg_hazard` (`crates/ew-schema/src/asset.rs:662 (svg_hazard)`) before any parse: internal subsets, entities, scripts, `on*`, `foreignObject` and external `href`s refused; usvg parses inside `catch_unwind` (`crates/ew-scene/src/images.rs:92 (catch_unwind)`) | The SVG hazard tests and the exporter corpus (`crates/ew-schema/tests/fixtures/svg-exporters/`); `svg_asset` |
@@ -111,12 +111,12 @@ in plain sight.
 | SQL text | `ew-sqlview`, `Reader::query` (`crates/ew-sqlview/src/sandbox.rs:434 (query)`) | `crates/ew-sqlview/src/sandbox.rs:106 (LIMITS)` | `sql_sandbox` | WP-S6.04 |
 | Command logs (`.ewcmd`) | `ew-api`, `Session::run_script` (`crates/ew-api/src/cmdlog.rs:287 (run_script)`) | The command schemas | `command_log` | WP-S6.04 |
 | Library documents of a project's `lib/` | `ew-format`, the `LibDocument` reader of the loader | The loader's | `jsonl_loader` | WP-S0.05a, built |
-| A `.ewlib` folder: `library.json`, the record shards, `library.lock` | `ew-library`, `LibManifest::parse` (`crates/ew-library/src/manifest.rs:65 (parse)`), the shard reader (`crates/ew-library/src/record.rs:314 (parse_records)`), `LockRecord::parse` (`crates/ew-library/src/lock.rs:125 (parse)`), through `Registry::open` (`crates/ew-library/src/registry.rs:447 (open)`) | The loader's (`crates/ew-library/src/lib.rs:15 (the limits of doc 05)`) | `ewlib_read` | WP-S6.04 (ID-1354) |
+| A `.ewlib` folder: `library.json`, the record shards, `library.lock` | `ew-library`, `LibManifest::parse` (`crates/ew-library/src/manifest.rs:65 (parse)`), the shard reader (`crates/ew-library/src/record.rs:314 (parse_records)`), `LockRecord::parse` (`crates/ew-library/src/lock.rs:125 (parse)`), through `Registry::open` (`crates/ew-library/src/registry.rs:447 (open)`) | The loader's (`crates/ew-library/src/lib.rs:15 (the limits of doc 05)`) | `ewlib_read` | WP-S6.04 |
 | `ew.symbol/1` authoring JSON | `ew-api`, `SymbolDraft::parse` (`crates/ew-api/src/symbols.rs:405 (parse)`), through `symbols::open` and the front door (`crates/ew-api/src/symbols.rs:202 (front_door)`) under `Limits::element_definition()` | `crates/ew-api/src/symbols.rs:27 (MAX_BYTES)`, `:29 (MAX_ITEMS)` | `symbol_authoring` | WP-S2.10 |
 | EDZ archives, 7z and ZIP | `ew-import-eplan`, `read` (`crates/ew-import-eplan/src/lib.rs:56 (read)`) and `archive::read` (`crates/ew-import-eplan/src/archive.rs:23 (read)`); a 7z header is walked by EW first (`crates/ew-import-eplan/src/seven.rs:401 (check)`), then read by sevenz-rust2 0.24.2; through `symbols::import_eplan` (`crates/ew-api/src/symbols.rs:1213 (import_eplan)`) and the front door | `crates/ew-import-eplan/src/lib.rs:17 (MAX_INPUT)`, `:19 (MAX_FILE)`, `:21 (MAX_TOTAL)`; the 7z counts, coders, dictionaries and ratio (`crates/ew-import-eplan/src/seven.rs:18 (MAX_COUNT)`); the element preset's 16 MiB | `symbol_authoring` | WP-S2.10 |
 | PXF macro XML (`.pxf`, `.ema`, `.ems`, `.esl`) | `ew-import-eplan`, `pxf::xml` (`crates/ew-import-eplan/src/pxf.rs:75 (xml)`) and `pxf::read` (`:134 (read)`), through `read` | The counts of `pxf::xml` and its scan before parsing of the depth and of each element's attributes (`crates/ew-import-eplan/src/pxf.rs:12 (MAX_DEPTH)`, `:15 (MAX_ATTRIBUTES)`); the read budget (`crates/ew-import-eplan/src/lib.rs:139 (Budget)`) | `symbol_authoring` | WP-S2.10 |
 | EPLAN parts XML | `ew-import-eplan`, `parts` (`crates/ew-import-eplan/src/lib.rs:164 (parts)`), through `read` | As PXF's | `symbol_authoring` | WP-S2.10 |
-| EPLAN SLK 1.2 libraries: the descriptor and the eight tables of its `.sdb` folder | `ew-import-eplan`, `slk::directory` (`crates/ew-import-eplan/src/slk.rs:32 (directory)`) and `slk::read` (`:312 (read)`), through `symbols::open` (`crates/ew-api/src/symbols.rs:1120 (open)`) and the front door | 8 KiB for the descriptor, `MAX_FILE` for each table and `MAX_TOTAL` for all; only the tables of `crates/ew-import-eplan/src/slk.rs:14 (FILES)`, in the descriptor's own folder, never through a parent path or a link (NFR-SEC-18, ID-1461); the read budget | `symbol_slk` | WP-S2.10 |
+| EPLAN SLK 1.2 libraries: the descriptor and the eight tables of its `.sdb` folder | `ew-import-eplan`, `slk::directory` (`crates/ew-import-eplan/src/slk.rs:32 (directory)`) and `slk::read` (`:312 (read)`), through `symbols::open` (`crates/ew-api/src/symbols.rs:1120 (open)`) and the front door | 8 KiB for the descriptor, `MAX_FILE` for each table and `MAX_TOTAL` for all; only the tables of `crates/ew-import-eplan/src/slk.rs:14 (FILES)`, in the descriptor's own folder, never through a parent path or a link (NFR-SEC-18); the read budget | `symbol_slk` | WP-S2.10 |
 
 ## 4. Extension points
 
@@ -124,7 +124,7 @@ in plain sight.
 |---|---|---|---|
 | SQL through `ew sql` | in force | The sandbox of TM-05 under the `ew sql` profile (`bin/ew/src/cli.rs:835 (EW_SQL)`) | `sql_sandbox`; the sandbox tests |
 | Command logs through `ew apply` | in force | Every line looked up and checked against its exposure class before line 1 runs, so a `HumanOnly` command is refused (`crates/ew-api/src/cmdlog.rs:297 (exposure)`) | `command_log`; the `HumanOnly` replay test (doc 18 §11.5) |
-| The headless script runner (`--headless --script`) | in force | Actions only, through the same action table as the window (`crates/ew-viewmodel/src/script.rs:233 (parse)`) | The script tests; the fuzz target `ewui_script` (FT-1452) |
+| The headless script runner (`--headless --script`) | in force | Actions only, through the same action table as the window (`crates/ew-viewmodel/src/script.rs:233 (parse)`) | The script tests; the fuzz target `ewui_script` |
 | git's merge driver and textconv, run by git on fetched content (TM-01) | in force | The merge under `catch_unwind` (`bin/ew/src/cli/merge_driver.rs:67 (drive)`); textconv is pure over the bytes | `merge_file`, `textconv` |
 | rhai | not shipped | WP-S1.15's remainder adds the engine with its limits (NFR-SEC-06) | — |
 | The trust gate | not shipped | WP-S1.15's remainder (NFR-SEC-05) | — |
@@ -150,7 +150,7 @@ connection points per symbol, 65,536 of both per read, 512 symbols. Unsupported 
 block publication. Downloading does not grant a licence: EPLAN imports require source terms.
 
 Native SLK import reads only eight fixed drawing-table filenames beneath the descriptor's single sibling `.sdb`
-directory (NFR-SEC-18 as ID-1461 amends it). Traversal, links (the folder or a table), unknown table layouts, duplicate
+directory (NFR-SEC-18 as amends it). Traversal, links (the folder or a table), unknown table layouts, duplicate
 identities/continuation chunks, invalid compressed data and excessive records/bytes are refused. It never reads
 user/lock tables or invokes EPLAN. Each file is bounded to 4 MiB, decoded streams to 64 MiB total, and the read budget
 holds. Source provenance hashes the descriptor and all consumed tables; no embedded workstation data enters the draft.
@@ -158,7 +158,7 @@ Unsupported native graphics and connection structures are explicit findings and 
 
 Evidence: `ew-import-eplan/tests/it/reader.rs`, `ew-api/tests/it/symbol_authoring.rs`, the hostile corpus's `eplan/`
 class, the `symbol_authoring` and `symbol_slk` fuzz targets. The downloaded manufacturer sample stays outside the public
-repository. sevenz-rust2 0.24.2 and lzma-rust2 0.23.0 carry `cargo vet` audits (`supply-chain/audits.toml`, ID-1460).
+repository. sevenz-rust2 0.24.2 and lzma-rust2 0.23.0 carry `cargo vet` audits (`supply-chain/audits.toml`).
 
 ## 5. Native code and `unsafe`
 
@@ -169,11 +169,11 @@ repository. sevenz-rust2 0.24.2 and lzma-rust2 0.23.0 carry `cargo vet` audits (
   `crates/ew-testkit/src/lib.rs:7 (forbid)`).
   `cargo xtask check-unsafe` (`.github/workflows/ci.yml:129 (check-unsafe)`) fails on the keyword in a file outside
   the list, in the workspace and in the fuzz crate, and on a listed file whose count differs from the list's
-  (NFR-SEC-04, FT-1151).
+  (NFR-SEC-04).
 - **Third-party `unsafe` on a hostile-input path.** lzma-rust2 0.23.0 decodes 7z streams of EDZ archives in process.
   The `optimization` feature that sevenz-rust2 forces adds `unsafe`: two inline-assembly loops of its range decoder
   (`decode_direct_bits` for x86_64 and aarch64), which clamp every read to the buffer, and the encoder's match
-  finders, which decoding never reaches. Its `cargo vet` audit (`supply-chain/audits.toml`, ID-1460) records what was
+  finders, which decoding never reaches. Its `cargo vet` audit (`supply-chain/audits.toml`) records what was
   read; EW bounds the 7z header before it decodes (§3's EDZ row) and runs the import under `catch_unwind`.
 - **Test-only crates.** `egui_mcp`, `ew-testids` and `ew-testkit` are banned from the shipped binaries' normal and
   build graph (`ci/dep-rules.toml:35 (banned_crates)`); the fuzz crate is outside the workspace.
@@ -188,4 +188,4 @@ extension point adds its row to §3 or §4 in the same change ([CONTRIBUTING](..
 
 | Date | Release | Reviewer | Parsers and extension points added since the last review | Result |
 |---|---|---|---|---|
-| 2026-11-04 | 0.1.0 (in progress) | WP-S6.04's lanes, read by the cycle's reviewer | First review: every row of §3 and §4, the importer rows from WP-S3.09's code (its front door, limits, purity check and four targets; IC-4 its panic evidence). Found: `ew-library`'s `.ewlib` reader parses `library.json`, its shards and `library.lock` with its own code, not through the loader's `LibDocument` reader; it gained the target `ewlib_read` (ID-1354). Added: the hostile corpus with its allocation bound, the sandbox's rule `foreign-file`, the panic guards of `ew sql` and the table round trip's read | Every parser of §3 has a target; complete for 0.1.0 once the delivery's CI runs `fuzz-smoke`, the deep nightly and the network sandbox green |
+| 2026-11-04 | 0.1.0 (in progress) | WP-S6.04's lanes, read by the cycle's reviewer | First review: every row of §3 and §4, the importer rows from WP-S3.09's code (its front door, limits, purity check and four targets; IC-4 its panic evidence). Found: `ew-library`'s `.ewlib` reader parses `library.json`, its shards and `library.lock` with its own code, not through the loader's `LibDocument` reader; it gained the target `ewlib_read`. Added: the hostile corpus with its allocation bound, the sandbox's rule `foreign-file`, the panic guards of `ew sql` and the table round trip's read | Every parser of §3 has a target; complete for 0.1.0 once the delivery's CI runs `fuzz-smoke`, the deep nightly and the network sandbox green |

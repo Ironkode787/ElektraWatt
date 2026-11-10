@@ -1,6 +1,6 @@
 # ADR-0032: Per-project text styles as overrides of the built-in table
 
-**Status:** Accepted · **Date:** 2026-10-30 · **Deciders:** lead designer (cycle-36 design lane; the project owner may
+**Status:** Accepted · **Date:** 2026-10-30 · **Deciders:** lead designer (design lane; the project owner may
 reverse it)
 
 ## Context
@@ -13,16 +13,15 @@ reverse it)
   kinds, so that changing the "device tag" style changes every tag. Doc 09 §2.1 places project-level text styles in
   `project.jsonl`; doc 03 §5.1 keeps them in `extra` "until their work packages". `ew-text`'s own module comment says
   project styles "will override or extend this table".
-- **The defect (FT-662, ID-833).** `cp.small` and `marker` at 5 px have an em of 1.323 mm and a printed cap height of
+- **The defect.** `cp.small` and `marker` at 5 px have an em of 1.323 mm and a printed cap height of
   0.94 mm (cap ratio 0.714, doc 20 §18.1), below EW-CORE-061's 1.2 mm minimum (U-31). EW-CORE-061 reports only styles
-  a drawn text uses (ID-825), so an empty project is clean, but the first wire marker or MCB pin number in a **fresh
+  a drawn text uses, so an empty project is clean, but the first wire marker or MCB pin number in a **fresh
   project** raises the warning: the product's own default violates its own rule. 7 px gives an em of 1.852 mm and a
   cap height of 1.32 mm, the smallest pixel size that passes.
 - **Fidelity.** Golden A reproduces the reference drawings, where these texts are 3.70 pt (EF-12 expects the two
   EW-CORE-061 findings). Golden A must not change, and neither may any existing project file or its output. Golden C
   (the QET import) reproduces the source's sizes.
-- **Constraints.** Format 0.1 is unreleased, so additive members are allowed without a version step (ADR-0011
-  amendment 4, decision log ID-334). Copies of the same data in two crates drift (FT-648 is one such drift already).
+- **Constraints.** Format 0.1 is unreleased, so additive members are allowed without a version step (ADR-0011 amendment 4). Copies of the same data in two crates drift (is one such drift already).
   The team is two to four people: the smallest model that meets FR-SYM-013 wins.
 
 ## Decision
@@ -93,11 +92,11 @@ reverse it)
   `cp.small` and `marker` to 7 px), doc 07 §2.3 (a slot's `style` may name a project-extended key), FR-SYM-013's
   acceptance unchanged. The implementation is specified in
   WP-S1.12 project text styles; FT-662 closes with it.
-- **The wizard's choice** (2026-11-05, cycle 51; WP-S7.03 D11, decision log ID-1332, ID-1375). The company-standard
+- **The wizard's choice**. The company-standard
   wizard's step 2 offers "Readable (new projects)", the default, which writes the built-in basic project's
   `text_styles`, and "As in the sample project", which writes none, so a basic project can reproduce Golden A
   (NFR-UX-08) while every new user keeps this ADR's legibility.
-- **Work packages.** WP-S1.12 (FT-662's owner) carries the lane; FR-SYM-013 stays traced to WP-S3.01, which delivered
+- **Work packages.** WP-S1.12 ('s owner) carries the lane; FR-SYM-013 stays traced to WP-S3.01, which delivered
   the style binding.
 - **Risk.** A renderer path that still calls `ew_text::builtin()` ignores the project's overrides. The specification's
   acceptance renders an override through every text source and asserts that only the project-less callers name

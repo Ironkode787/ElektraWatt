@@ -136,7 +136,7 @@ part's accessories, a macro's parts.
   `LibCopy<T>{id, library_id, item_id, version, sha256, item: T}` (`id` is the copy ID, typed `Id<T>`) with `item`
   flattened on write.
 
-*As built (cycle 35, WP-S2.18 parts 2 and 3; decision log ID-818, ID-830).* The system tier holds two compiled-in
+*As built.* The system tier holds two compiled-in
 libraries: the starter (`ew-starter`: symbols, FnDefs, forms) and **`ew-starter-parts`**, the generic starter parts.
 `ew-starter-parts` (`content/libraries/ew-starter-parts.ewlib`, version 0.1.0, CC0-1.0) holds the manufacturer
 "Generic" and sixteen parts numbered `EW-GEN-<kind>-<n>`: a relay with four change-over contacts (RLY-1), a contactor
@@ -148,7 +148,7 @@ functions on starter FnDefs, its CP pattern, contact data and the technical data
 order or catalogue data; item IDs are `v5(library, "<kind>:<key>")`. The directory is written by a test
 (`crates/ew-library/tests/starter_parts.rs`) with the library writer and compiled in, so every session holds it with
 or without configured tiers; a directory library of the same ID replaces the compiled-in copy. The relay and the
-contactor template their coil only and list their contacts as contact data (FT-655).
+contactor template their coil only and list their contacts as contact data.
 
 ### 2.2 Library directory and index
 
@@ -181,7 +181,7 @@ library's manifest generation changes, and from scratch when it is missing or co
 ARCH §7.7 and the tier table of [05](05-project-format-and-persistence.md) §13.1 use the same form (Open
 question 1).
 
-*As built (cycle 35, WP-S1.19 part 2; decision log ID-818).* `ew-library` opens the four tiers (system: the
+*As built.* `ew-library` opens the four tiers (system: the
 compiled-in libraries of §2.1 and `content/libraries/*.ewlib`; community; company, from the settings' paths and a
 repeatable `--company`; user). The `.ewlib` reader applies the project loader's limits; the writer writes the shards
 first and `library.json` last; a library lock follows [05](05-project-format-and-persistence.md) §7.4: a live lock is
@@ -224,9 +224,9 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   explicitly because PDF defaults to 10 and SVG to 4. In the display list, `ew-dl`'s `Stroke` carries the stroke
   colour as a `brush` (default black); lowering resolves `ByLayer` to a concrete colour, so wire colours render
   (ADR-0015 amendment 4).
-- **Pens on QET-grid pages** (2026-10-19, decision log ID-165). The `@qet10` edition (§3.2 rule 2) expresses its pens
+- **Pens on QET-grid pages**. The `@qet10` edition (§3.2 rule 2) expresses its pens
   in QET px rather than scaling the house pens: 0.26 mm becomes 1.0 px (264,583 nm), 0.13 mm 0.5 px and 0.52 mm
-  2.0 px (and 0.18 mm 0.7 px, 0.42 mm 1.6 px, 1.30 mm 5.0 px; decision log ID-183), and wires and junction graphics
+  2.0 px (and 0.18 mm 0.7 px, 0.42 mm 1.6 px, 1.30 mm 5.0 px), and wires and junction graphics
   on QET-grid pages use the 1.0 px pen. After the QET frame's page-to-sheet
   scale they print 0.261, 0.130 and 0.522 mm, as [20](20-golden-project.md) §17.4 requires. Native-grid pages keep the
   house pens.
@@ -241,17 +241,17 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   - OrderCode (added in cycle 15): the order code of the device's first assembly config (doc 20 §11.1, D-36).
 
   Text height comes from the project's text style bound to the slot kind (FR-SYM-013); a slot may name its own
-  text style in the optional member `style`, which replaces that binding for the slot (decision log ID-197). A
+  text style in the optional member `style`, which replaces that binding for the slot. A
   `style` that names no known text style falls back to the slot kind's style and is reported as a note naming the
-  symbol, the slot and the name, never as an error (decision log ID-227). As built (cycle 10, FT-84): `style` is
+  symbol, the slot and the name, never as an error. As built: `style` is
   an optional identifier, absent by default, and `ew-scene` reports an unknown name as
-  `PageFinding::UnknownSlotStyle` (decision log ID-266). The styles of the golden project are `tag.main`,
+  `PageFinding::UnknownSlotStyle`. The styles of the golden project are `tag.main`,
   `data.small`, `cp.small` and the others listed in [20](20-golden-project.md) §17.5, which removes D-29. *As built (cycle 37, [ADR-0032](../adr/0032-per-project-text-styles.md), decision log ID-855):* a slot's `style` resolves against the project's effective table, so it may name a key the project's `text_styles` adds; the scene resolves keys through `ew_text::TextStyleTable::from_rows` over the rows its caller passes (the first row of a duplicated key wins).
 - **Built-in symbols.** The interruption point `ew.gen.ip`, the black-box frame `ew.gen.blackbox` (its outline and
   CPs live in the representation's `box: BoxSpec`, [03](03-domain-model.md) §6, [06](06-schematic-editor.md) §2.7),
   the junction dot and bevel, and the derived linkage are system symbols with fixed keys. Importers and the engine
   rely on these keys.
-- **Keys and item IDs of the starter library** (decision log ID-33). An item ID is v5(library, key), and a symbol
+- **Keys and item IDs of the starter library**. An item ID is v5(library, key), and a symbol
   and a FnDef must never share one, so FnDefs are keyed `ew.fn.<name>`: the interruption point is the symbol
   `ew.gen.ip` with the FnDef `ew.fn.ip`. Every starter item is version 0.1.0 with status `draft`. Importers
   reference a built-in FnDef by key with `version_req` `^0.1`: `ew-import-qet` has exactly one, `ew.fn.ip`
@@ -270,11 +270,11 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   requirement and changes no key. The seven types that a pilot project uses at least twice join the starter set
   (`ew.iec.plug-socket`, `ew.gen.screen`, `ew.iec.sensor-temp`, `ew.iec.mcb-2p`, `ew.iec.disconnector-1p`,
   `ew.iec.switch-disconnector-4p`, `ew.iec.socket`; follow-up task FT-148); the end-terminal and the other variants
-  follow the same rule after inspection (FT-150), and the rest go to WP-S7.04. The starter set grows from 36 to 43
-  native symbols (decision log ID-294). A QET cross-section mark that disagrees with the derived wire property is
+  follow the same rule after inspection, and the rest go to WP-S7.04. The starter set grows from 36 to 43
+  native symbols. A QET cross-section mark that disagrees with the derived wire property is
   reported as EW-IMP-123 with the mark's value ([14](14-interop.md) §4.12; ID-284).
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* A text slot may carry `fallback: process_tag`: it prints the
+*As built.* A text slot may carry `fallback: process_tag`: it prints the
 function text and, when that is empty, the tracked target's process tag (doc 11 §3.3); `ew.iso.valve-5-2-sol-spring`
 0.3.0 (both editions) sets it on its function-text slot. Pilot and drain lines are drawn with this section's `dashed`
 pattern, `verified = false`.
@@ -317,7 +317,7 @@ sets it (lowest number wins):
 - **Aliases** print as "1 / L1" (FR-DEV-007).
 - **Terminal CPs** carry level, side and clamp. PT 2.5-TWIN has level 1, clamp a on side 1 and clamps b and c on
   side 2 ([03](03-domain-model.md) §11).
-- **Template-origin functions** (decision log ID-67, ID-108). A function is template-origin when its device carries
+- **Template-origin functions**. A function is template-origin when its device carries
   a part whose function template declares a function with the same FnDef (and role, if given). Its CP index space is
   then the part's CP pattern, not the FnDef's CPs: PT 2.5-TWIN gives a, b, c and the shaft, and the starter FnDef
   `ew.fn.terminal` with its two CPs applies only to a terminal without such a part
@@ -390,7 +390,7 @@ pub struct Part {
 }
 ```
 
-**Technical-data keys** (decided 2026-10-18, decision log ID-15). `tech_data` uses the one `TechValue{key, value}`
+**Technical-data keys** (decided 2026-10-18). `tech_data` uses the one `TechValue{key, value}`
 encoding of [05](05-project-format-and-persistence.md) §3.2 on parts and devices alike. A key qualified by a
 classification scheme is spelled `"<scheme>:<id>"` inside `key` (`etim:EF001234`; schemes `etim`, `eclass`,
 `iec_cdd`), and a plain key without a colon is a native or project property (`i_out`, `curve`). Booleans and
@@ -398,16 +398,16 @@ enumeration values are `Ident` values (`"true"`, `"false"`, the enumeration memb
 encoding for every property keeps the v0 schema small; ETIM features arrive only with WP-S1.28 (FR-PRT-018), which
 may append a typed value variant without changing stored keys.
 
-**As built (cycle 12; decision log ID-315).** Typed technical data on parts and devices use the native plain keys
-`characteristic`, `rated_current`, `channel_current` and `setpoint` (ID-15's plain-key form). A slot text follows
+**As built.** Typed technical data on parts and devices use the native plain keys
+`characteristic`, `rated_current`, `channel_current` and `setpoint` ('s plain-key form). A slot text follows
 these rules: a device's own value wins over its part's; a miniature circuit-breaker prints characteristic and rated
 current composed as "C10" (the reading of U-32); other values print as value and unit ("40 A", "15 °C"); several
 values are joined with ", " in key order. Two interims apply. The main part of a device is its first part use, not
-yet "the use that provides the main function" (FT-208); the manufacturer name is read from the manufacturer
-`LibRef`'s `extra["key"]`, a stopgap until typed manufacturer copies exist (FT-39). The helpers `tech_data_text`,
+yet "the use that provides the main function"; the manufacturer name is read from the manufacturer
+`LibRef`'s `extra["key"]`, a stopgap until typed manufacturer copies exist. The helpers `tech_data_text`,
 `main_part` and `manufacturer_name` are built in `ew-derive` (`part_text.rs`); the slot-text mapping is a product
-query of the `Session` export job since cycle 15 (`ew_api::output::PageSlotsOf`, FT-59; FT-206 asked for it in
-`ew-derive`). *Cycle 14 (decision log ID-352).* The 24 V DC
+query of the `Session` export job since cycle 15 (`ew_api::output::PageSlotsOf`, asked for it in
+`ew-derive`). *Cycle 14.* The 24 V DC
 output of part 2904602 is recorded under the plain key `output_voltage` ("24 V") beside `rated_current`; a typed key for
 an output voltage is FT-244.
 
@@ -443,7 +443,7 @@ Projects embed the manufacturers they use as copies under `lib/manufacturers/` (
 [05](05-project-format-and-persistence.md) §2.2); a part references its manufacturer by `LibRef`, as in the part
 copy example of 05 §3.5.
 
-**As built (cycle 34, WP-S1.19 part 1; decision log ID-334, ID-783).** `ew-schema` types the MVP members of the
+**As built.** `ew-schema` types the MVP members of the
 struct above within the unreleased format 0.1 (ADR-0011 amendment 4), in this order: `meta, kind, manufacturer,
 part_number, type_designation, order_number, gtin, description, category, tech_data, free_props, unit, cp_pattern,
 function_template, contacts, mech, sections, alternatives, configured, macros`, then `extra`. The order is fixed now
@@ -471,16 +471,16 @@ EW-CORE-014 reports it where the canonical order differs, which is accepted with
 ([05](05-project-format-and-persistence.md) §10.3). The manufacturer is the kind `manufacturer`, `{meta, key, name:
 MlText, aliases, brands}`, embedded under `lib/manufacturers/` by `library.embed` with the checks of the other kinds;
 the slot texts still read the manufacturer name from the `LibRef`'s `extra["key"]` until WP-S1.19 part 3 resolves the
-`LibRef` to the embedded copy (FT-39). No Golden A copy uses a typed member, so no golden file or hash changed.
-*As built (cycle 40, WP-S1.21 part 4b, D15; decision log ID-927).* **The part bus section** `sections.bus` is typed
+`LibRef` to the embedded copy. No Golden A copy uses a typed member, so no golden file or hash changed.
+*As built.* **The part bus section** `sections.bus` is typed
 after `mounting_plate`: `{ports: [...], extra}`, each port written in the order `interface`, `port_label`, `bus`,
 `role`, `termination`, then its `extra`; `interface`, `bus` and `role` are required and the enums keep `Unknown`. A
 section `{"ports": []}` is written `{}`. The station address, the nets, the address range, rates, connector and
-signal map are not typed (they stay in `extra`; FT-829). An older build's copy is rewritten canonically, and a
+signal map are not typed (they stay in `extra`). An older build's copy is rewritten canonically, and a
 pre-cycle-40 build reports EW-CORE-014 on a copy this build wrote (WP-S1.21 §8a.1 as amended). EW-GEN-CPU-1 0.1.1
 carries one port `DP`, `profibus_dp`, `master`.
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* The fluid section is typed with one member,
+*As built.* The fluid section is typed with one member,
 `solenoids`, whose k-th entry is the part's k-th template entry on a coil FnDef (doc 11 §2.6 as built).
 
 ### 2.6 Classification: ETIM bundled, ECLASS identifiers only
@@ -525,11 +525,11 @@ pub struct Fragment {                        // project-format records, ids loca
 - `State` (used, spare, reserved, not fitted), `Part` (a `LibRef`), `ProcessTag`;
 - `ChannelBinding` (channel number in the module), `Address` (sets `AddrSpec::Manual`), `TagCounter`;
 - `DeviceRef` (an existing device chosen at insertion, such as the assembly head a module is added to);
-- `TextSlots` (as built in cycle 52, FT-1420; decision log ID-1397, ID-1408, ID-1433): a representation's text-slot
+- `TextSlots`: a representation's text-slot
   overrides as a list, so a value set may move, turn, show or hide a symbol's texts; MC-4 keeps one `<group>_slots`
   variable per placeholder group.
 
-*As built (2026-11-05, cycle-52 design pass; FT-1477, FT-1420, decision log ID-1408, ID-1419, ID-1424, ID-1433).* A
+*As built.* A
 `text_slots` value is typed and shown in words in the macro value table, in the window's language: "as the symbol"
 for the empty list, else one clause per slot, "; " between clauses, each clause `slot <n>: at <x>; <y> mm, turned
 <a>°, hidden` (or "shown") with every part optional and in any order, slots counted from 1. A number is written with
@@ -546,15 +546,14 @@ id)>}`. It is a record of [03](03-domain-model.md) §7, stored in the anchor pag
 rank 46 of [05](05-project-format-and-persistence.md) §2.2), and gives the macro's provenance and "where used".
 From 1.0 it is also the placeholder object that a different value set can be re-applied to (FR-MAC-008).
 
-**As built (cycle 34, WP-S1.19 part 1; decision log ID-334, ID-783).** The kinds `macro` and `macro_instance` are
+**As built.** The kinds `macro` and `macro_instance` are
 typed in `ew-schema` within format 0.1; no command creates or inserts a macro yet (WP-S1.19 part 5).
 - **`MacroDef`** is written in the member order of the struct above: `meta, name, description, kind (window | symbol
   | page), variants, variables, groups, value_sets, thumbnail`, then `extra`. A variant is `{rep_type, key,
   fragment}`; the `fragment` is the `#ew-fragment v1` text format of ARCH §5.5, kept as JSON in the permissive schema
   crate and parsed by `ew-commands`, so the `Fragment` struct above is not a schema type. A variable is `{name, ty,
   bindings: Vec<{record (fragment-local ID), field}>, default?}` with `VarType` `text, ident, number, bool, state,
-  part, process_tag, channel_binding, address, tag_counter, device_ref, text_slots` (`text_slots`, a representation's
-  text slots as a list, ID-1397); the 1.0 `formula` stays in `extra`. A
+  part, process_tag, channel_binding, address, tag_counter, device_ref, text_slots` (`text_slots`, a representation's text slots as a list); the 1.0 `formula` stays in `extra`. A
   placeholder group is `{name, members (fragment-local IDs), include?}` and lives only inside the macro, so the
   project kind `placeholder_group` (rank 47) stays reserved (WP-S1.19 D15). The copy lives under `lib/macros/` and
   `library.embed` embeds it with the checks of the other kinds.
@@ -597,7 +596,7 @@ leave out pages, devices or both (FR-MAC-011).
 - keeps library copies unchanged, because their IDs derive from library and item, not from the project;
 - records `Project.basic_project = {id, version}` for later comparison.
 
-*As built (cycle 34, WP-S1.19 part 1, the schema half of D14; decision log ID-783).* The member is typed as
+*As built (the schema half of D14).* The member is typed as
 `Project.basic_project = {id, generation}`: the basic project's project ID and its manifest generation when it was
 copied, because a basic project has no semantic version. Nothing writes it yet; WP-S1.19 part 4 records it and adds
 "save as basic project".
@@ -614,7 +613,7 @@ copied, because a basic project has no semantic version. Nothing writes it yet; 
 - Within a project a `LibRef{library, item, version_req}` resolves to the embedded copy of `(library, item)`.
   If that copy's version does not satisfy `version_req`, the embedding command stops and proposes "update from
   library" instead of embedding a second copy silently (§2.1, keeping two versions).
-- *As built (cycle 35, WP-S1.19 part 3 and WP-S2.18 part 2; decision log ID-820, ID-830).* `library.embed` takes the
+- *As built.* `library.embed` takes the
   copies themselves; `ew-api`'s `embed_command` builds them from library references with their closure.
   `part.assign` carries the missing closure in its `copies` and embeds it in its own transaction, reusing a held copy
   of the same hash. The tables
@@ -666,7 +665,7 @@ preview shows:
    scaling is `v · 7_937_500 / 12_000_000` rounded with ties toward zero; 0.5 mm becomes 1.25 px, so the edition's
    graphics lie on no whole-pixel grid, and its lint requires instead that every graphic, slot and link-point
    coordinate equals the scaled value of its native twin, while every CP lies exactly on the QET 10 px grid
-   (decision log ID-34). Its pens are QET px, not scaled house pens (§2.3, decision log ID-165). The
+  . Its pens are QET px, not scaled house pens (§2.3). The
    edition has its own item IDs (key suffix `@qet10`), is linted like the native edition, is never drawn by hand,
    and is checked visually on the Golden A pages before the starter set is frozen (FR-SYM-030; ADR-0027
    recommendation 8). The full 1.0 library gets no such edition.
@@ -683,13 +682,13 @@ preview shows:
    at R180 they render at R0, on a symbol at R90 at R270, reading from the bottom or the right of the sheet
    ([06](06-schematic-editor.md) §2.5). Under a mirroring variant the glyphs stay unmirrored; instead the text's
    alignment flips as §4.1 decides for all eight variants (left ↔ right for the plain mirror E), so the text stays
-   on the same side of the symbol and readable (decision log ID-49).
+   on the same side of the symbol and readable.
 7. **Exchange** (FR-SYM-022) maps CPs by `fn_cp`, then by designation. The preview lists unmapped CPs, and a CP that
    carries a connection must be mapped.
 8. **Linkages** (FR-SYM-014) are derived lines between `link_points` of the functions related by a `DeviceLink`
    or by one device's actuator and contacts. A symbol without a link point gets its anchor as the fallback. A
    `SymbolDef` never draws a mechanical linkage in its graphics: pole to pole, pole to handle, actuator to contacts
-   and actuator to process valve are all derived (decision log ID-35). A multi-pole symbol therefore declares a link
+   and actuator to process valve are all derived. A multi-pole symbol therefore declares a link
    point per pole and one for its actuator: `ew.iec.switch-2p-manual` declares `pole1`, `pole2` and `handle` at
    (11, 6) mm, and the derived chain runs pole1 → pole2 → handle. The one exception is the internal pole linkage
    of the MCB, which is part of the MCB graphic ([20](20-golden-project.md) §17.4: 0.13 mm, dashed 4:2).
@@ -698,7 +697,7 @@ preview shows:
    and machine files, otherwise a project-specific exception (`AdditionRef-…`, SPDX 3.0 syntax, verify)
    (ADR-0024; [19](19-open-source-governance.md) LR-07). They carry no IEC description text (FR-SYM-019,
    NFR-LIC-07).
-10. **Pole-count families (generated)** (decision log ID-295, follow-up task FT-149). One family source generates the
+10. **Pole-count families (generated)** (follow-up task). One family source generates the
     concrete pole-count variants at content-build time; there is no run-time parameter and no new record kind.
     - *Source.* `content/families/<family>.json` declares the pole template (one pole's graphics, CPs and slots, and
       the pole pitch in connection-grid steps), the actuator and internal-linkage geometry, the pole counts to
@@ -741,15 +740,14 @@ preview shows:
 **Replace part** (FR-PRT-023) is `AssignPart` over a set of devices, as one previewed transaction. **Configured
 products** (FR-PRT-006) assign like parts; their components feed the component-mode BOM (FR-REP-005).
 
-*As built (cycle 35, WP-S1.19 part 3; decision log ID-820, ID-830).* The command is **`part.assign`** `{devices, part,
+*As built.* The command is **`part.assign`** `{devices, part,
 copies?, mode?, from?, qty?}` with `mode` `append` (the default: a further part use), `replace_all` (the part becomes
 the devices' only use) or `replace` with `from` (each use of `from` swapped, its quantity kept); it is Interactive below
 50 devices and `Bulk` from 50. It carries the library documents it needs in `copies` and never reads a library, so it
 replays without one; it embeds what the project lacks, reuses a held copy of the same hash and refuses a held copy of another version ("update
-from library first"). A device's main part is the part use whose template provides the main function (rule 6,
-FT-208). The Properties Parts row sends `part.assign` (`replace_all`) when its new value is one use of a system
+from library first"). A device's main part is the part use whose template provides the main function (rule 6). The Properties Parts row sends `part.assign` (`replace_all`) when its new value is one use of a system
 library's part the project does not hold, else its own `fields.set`. Rules 2 and 3's matching is not changed by the
-command. *Cycle 36 (FT-655):* a function made from a template records its entry index (`Function.template_entry`, an
+command. *Cycle 36:* a function made from a template records its entry index (`Function.template_entry`, an
 optional member appended within 0.1 under ADR-0011 amendment 1), and the CP derivation reads that entry, falling back
 to the first entry of the function's FnDef when the member is absent or names no such entry; an entry whose `cps` list
 as many pattern CPs as its FnDef has CPs pairs them by position, so each function keeps the FnDef's CP indices (a
@@ -820,9 +818,9 @@ company library**, never directly into a project. A project then picks the resul
 | BMEcat 2005, ETIM xChange | 1.x | product identification, ETIM or ECLASS feature blocks (feature system name, class, feature name, value, unit), order and price details (element names to verify against the specification) | FR-PRT-020; prices go to L4 with source and as-of date |
 | DXF blocks | 1.0 | DXF-to-symbol wizard (FR-IMP-034); vendor DXF as 2D front outline or drilling pattern (FR-IMP-035) | CPs snap to the target library's connection grid (FR-IMP-034) |
 
-*As built (cycle 35, WP-S1.19 part 4; decision log ID-824, ID-827).* The CSV/XLSX row is built in
+*As built.* The CSV/XLSX row is built in
 `ew-import-catalog`: a column map (`member ← header`, saved as TOML per source key), a CSV reader (UTF-8 with or without
-a BOM, comma or semicolon from the header line, RFC 4180 quoting), an own bounded XLSX reader (no calamine, ID-827),
+a BOM, comma or semicolon from the header line, RFC 4180 quoting), an own bounded XLSX reader (no calamine),
 and rows into part copies with item IDs `v5(lineage(catalog, library), parts|<maker key>|<pn_norm>)`, deduplicated on
 manufacturer and normalised part number; manufacturers resolve through the libraries' master list (every tier's,
 the starter parts' "Generic" included), an alias reported EW-IMP-007, an unknown name EW-IMP-005, "A / B" split into two
@@ -877,7 +875,7 @@ waives Article 3 of CC-BY-SA-4.0 (attribution and ShareAlike) for designs, drawi
 and projects that use or embed library items. NFR-LIC-09 states the same for EW outputs. Redistributing the
 library itself, modified or not, stays under CC-BY-SA-4.0.
 
-*As built (2026-11-05, cycle 51; WP-S7.03 D1 and D2, decision log ID-1332, ID-1375).* Every shipped record carries a
+*As built.* Every shipped record carries a
 licence and a source: `ew-library`'s test `content_audit` reads every library document under `content/` and every copy
 under `golden/J-E-2416.ew/lib/` as bytes and fails, naming the file and the item, on a missing or empty `meta.licence`,
 a licence other than its kind's row above (the record's, not its file's), or an empty `meta.sources`; under
@@ -899,7 +897,7 @@ Variant `v ∈ {R0, R90, R180, R270, M0, M90, M180, M270}` maps a point by an in
 Geometry, CP positions and CP directions transform exactly in `i64` nm. Arcs swap their sweep direction under
 mirror. Text anchors transform; text glyphs do not.
 
-**Text under a variant** (decision log ID-49, decided by the project owner for all eight variants). A text
+**Text under a variant** (decided by the project owner for all eight variants). A text
 primitive or slot is laid out in the symbol frame with its
 anchor, rotation and alignment, and placed in three steps:
 1. The anchor transforms with the variant's matrix like any point.
@@ -1015,7 +1013,7 @@ For each embedded copy `c` with a newer library version `n`:
    only where step 3 remaps them. Show `diff_model` (entities), `diff_query` (BOM, wires, xref texts) and the
    rendered pages that changed.
 
-*As built (cycle 35, WP-S1.19 part 3; decision log ID-820).* `classify_update` in `ew-commands` gives patch, minor or
+*As built.* `classify_update` in `ew-commands` gives patch, minor or
 major with the field diff: major by step 2's list (a CP gone or re-designated, a FnDef or category change, a template
 function added or removed by FnDef reference, a macro variable removed), patch when only data that no derived structure
 or geometry reads differs (`meta`, a part's manufacturer, numbers, description, technical data and free properties, a
@@ -1024,7 +1022,7 @@ in use. **`library.update`** `{copies, cp_maps?}` (`Bulk`, so always previewed) 
 CPs by the explicit pairs, else by index with the same designation, else designation k-th to k-th; it rewrites
 connection, potential, bond and channel endpoints and CP overrides, and refuses a connected CP left without a CP (an
 overridden one does not block), a downgrade and a copy the project does not hold. `ew-api`'s `update_from_library`
-plans it from a preview on a throwaway engine. It does not yet embed the new version's missing closure (FT-640).
+plans it from a preview on a throwaway engine. It does not yet embed the new version's missing closure.
 
 ### 4.6 Macro insertion pipeline
 
@@ -1049,7 +1047,7 @@ the topological order of variable dependencies, and a cycle is a save-time error
 every connection to it. Folio 206 uses this to omit the second module, and folios 204–206 to omit the field
 devices that only folio 203 draws (§9.3).
 
-*As built (cycle 38, decision log ID-878; FT-672).* `macro.insert` takes `orient` (default r0, left out of the log at r0) and turns the fragment about its anchor before the move: representations compose it, route vertices, junctions, page items and box outlines turn as points in whole grid steps, text and arc angles turn as directions, markers modulo 180°, and route ends follow their CPs. A page macro refuses a non-default orient at `/orient`. A record a `DeviceRef` variable names stays referenced, a child tag's counter stays when its parent comes along, and a module landing on an occupied slot lists the addresses it doubles in the conflict list.
+*As built.* `macro.insert` takes `orient` (default r0, left out of the log at r0) and turns the fragment about its anchor before the move: representations compose it, route vertices, junctions, page items and box outlines turn as points in whole grid steps, text and arc angles turn as directions, markers modulo 180°, and route ends follow their CPs. A page macro refuses a non-default orient at `/orient`. A record a `DeviceRef` variable names stays referenced, a child tag's counter stays when its parent comes along, and a module landing on an occupied slot lists the addresses it doubles in the conflict list.
 
 ### 4.7 Library index build
 
@@ -1062,7 +1060,7 @@ On start-up and on a watcher event:
 A full rebuild is the same loop with an empty file table. The index stores `(library_id, generation)`, so a stale
 index is detected, never trusted. The target is NFR-PERF-21.
 
-*As built (cycle 35, WP-S1.19 part 2; decision log ID-818).* The index is one SQLite FTS5 database per user in the
+*As built.* The index is one SQLite FTS5 database per user in the
 cache directory (rusqlite bundled), rebuilt by `ew lib index --rebuild`; search ranks by the specification's rank tiers
 and tie-breaks (WP-S1.19 D6), and `Session::part_search` marks the hits the project holds. The compiled-in libraries
 are indexed under a pseudo path. IX-1 to IX-8 run in `crates/ew-library/tests/registry.rs`; the 500,000-part test IX-9
@@ -1084,9 +1082,9 @@ is `#[ignore]`d (not measured, the owner's rule).
 | **Company-standard wizard** (FR-PRJ-010, FR-UI-030) | steps: logo SVG, title-block form, colour and size profile (with stated basis, D-37), identifier set (ADR-0026 default), numbering rules, structure nodes, sections, revision format, languages, report blocks; writes a basic project and offers it as the default template | P1, J1 |
 | **Import dialogs** | CSV/XLSX column mapper; EDZ with the terms notice; parts XML; BMEcat (1.x); each ends in an import report with jump-to-record | P6, J2 |
 
-*As built (cycle 38, WP-S1.19 part 6; decision log ID-885, ID-886).* The **Macro browser** is the Macros navigator (`NavKind::Macros`): the macros of every tier, then the project's own macro copies under "In this project"; its detail shows name, version and library, description, the devices and the variables, with "No preview" where the thumbnail should be (FT-754). Enter on a row, its drop on a canvas or Insert macro… (Draw ▸ Place) arms the macro tool; its click opens the `macro` card in the Preview tab with the value set and the conflicts, and Apply is one undo step; a held macro without an installed source is not inserted. **Save as macro** (Edit menu) is a window-only dialog of name, key, description and library, which is the confirmation of a write that cannot be undone; kind, insertion point and the value-set table are FT-754, and "make variable" is the hidden action `props.make_variable`. The **Library manager** is the Libraries navigator (`NavKind::Libraries`): the libraries by tier with version, licence, access and index state, then "In this project" with each copy's state in words (Current, Update available, Source missing, Deprecated, Local fork) and the devices that use it; Update… opens `library.update`'s bulk card; "purge unused" is not in it. Its rows still show IDs rather than names (FT-755).
+*As built.* The **Macro browser** is the Macros navigator (`NavKind::Macros`): the macros of every tier, then the project's own macro copies under "In this project"; its detail shows name, version and library, description, the devices and the variables, with "No preview" where the thumbnail should be. Enter on a row, its drop on a canvas or Insert macro… (Draw ▸ Place) arms the macro tool; its click opens the `macro` card in the Preview tab with the value set and the conflicts, and Apply is one undo step; a held macro without an installed source is not inserted. **Save as macro** (Edit menu) is a window-only dialog of name, key, description and library, which is the confirmation of a write that cannot be undone; kind, insertion point and the value-set table are FT-754, and "make variable" is the hidden action `props.make_variable`. The **Library manager** is the Libraries navigator (`NavKind::Libraries`): the libraries by tier with version, licence, access and index state, then "In this project" with each copy's state in words (Current, Update available, Source missing, Deprecated, Local fork) and the devices that use it; Update… opens `library.update`'s bulk card; "purge unused" is not in it. Its rows still show IDs rather than names.
 
-*As built (cycle 53, WP-S2.10, milestone M2.5; decision log ID-1402, ID-1463).* The **Symbol editor** opens from
+*As built (milestone M2.5).* The **Symbol editor** opens from
 Draw ▸ Place ▸ Symbol editor… (`symbol.new`) and takes the place of the page, with its own command bar (the drawing tools,
 Save to library, Open or import, Test on a new page, Close editor) and three panels: Drawing, Electrical data and
 Library. Its canvas is on the symbol's grid: a click places a connection point on the 4 mm connection grid, a graphic
@@ -1097,7 +1095,7 @@ roles and flags, and Pin mapping, where a function pin is dragged onto a connect
 live A–H strip is Variants, drawn through the placement's own lowering. The lint panel is Validation: the editor's
 validation, shared with `ew symbol validate`, not WP-S7.04's library lint. "Test place" is Test on a new page
 (`symbol.scratch`): a new page on the symbol's grid with an embedded test copy, one undo step for the page and one for
-the placement. *As built (cycle 53, PL25b and part 7's fixes; decision log ID-1477).* A page on another connection
+the placement. *As built (and part 7's fixes).* A page on another connection
 grid refuses the placement, naming both grids as the status bar does ("4 mm", "QET 10 px"), and offers a new page with
 the symbol's grid: **Place on a new page with its grid** places the published symbol there at 40/40 mm and selects
 it, from the Insert symbol picker's greyed row (`picker.new_page`) and from the editor while its draft is saved to a
@@ -1245,13 +1243,13 @@ native-grid projects place the native edition.
 | `ew.iec.terminal`, `ew.iec.terminal-pe`, `ew.gen.strip-segment` | feed-through `Short` per level; PE with rail contact; the segment gives each terminal it draws one CP per side, one grid step apart along its axis, terminals shared out over the strip's segments ([08](08-connections-terminals-cables.md) §6.7, decision log ID-143, ID-180) | 1X1 (three terminal symbols), -X1031 (two segments at 103-A3 and 103-A10), -X1032 |
 | `ew.iec.pe`, `ew.iec.fe`, `ew.iec.plug-pin` | earth roles PE and FE; plug pin. PE is the earth sign inside a circle (IEC 60417-5019), FE the plain earth sign (IEC 60417-5018), as the ruling of decision log ID-36 identifies them (not yet verified against the standard, like every `iec60617_ref`); their text slots sit at x = 6 mm (PE, clear of the circle) and 4 mm (FE), and a content lint guards the assignment | folio 101 earth ([reference drawing](../research/reference-drawing.md) §1.5); CPX FE screw; X1 pins on 106 |
 | `ew.gen.blackbox` | from the part pattern; without drawn geometry the bootstrap derives the outline and CP positions from the pattern ([14](14-interop.md) §8.4, decision log ID-181); text slots tag, function text, cross-reference, part number and manufacturer ("Murrelektronik", D-18; the manufacturer slot was appended in cycle 12, decision log ID-314) | -102G1, -102F2, CPX power blocks on 106 |
-| `ew.gen.ip`, `ew.gen.external-arrow`, junction dot and bevel, cable marker, wire marker | built in (the interruption point's FnDef is `ew.fn.ip`, §2.3; it prints its pairing name in the function-text slot, decision log ID-166); the wire marker is the graphic of a `PageItem::WireMarker` ([03](03-domain-model.md) §6) | L-1, N-1, 24VDC-1 …; J-E-206 points; -106W1 marker; "2.5 BK" on W7 |
-| `ew.bus.dp-port`, `ew.bus.dp-connector` | BusPort | -201U1 on folio 3; anchor at graphics gives "3-B2" (D-14); the port's `manufacturer` and `order_code` slots (appended in cycle 15, slots 5 and 6) print "Festo" and order code 1 (doc 20 §11.1, D-36) |
+| `ew.gen.ip`, `ew.gen.external-arrow`, junction dot and bevel, cable marker, wire marker | built in (the interruption point's FnDef is `ew.fn.ip`, §2.3; it prints its pairing name in the function-text slot); the wire marker is the graphic of a `PageItem::WireMarker` ([03](03-domain-model.md) §6) | L-1, N-1, 24VDC-1 …; J-E-206 points; -106W1 marker; "2.5 BK" on W7 |
+| `ew.bus.dp-port`, `ew.bus.dp-connector` | BusPort | -201U1 on folio 3; anchor at graphics gives "3-B2" (D-14); the port's `manufacturer` and `order_code` slots (appended in , slots 5 and 6) print "Festo" and order code 1 (doc 20 §11.1, D-36) |
 | `ew.ovw.module`, `ew.ovw.valve-top` | overview of the assembly view | generated overview on 201/202 |
 | `ew.iso.valve-5-2-sol-spring` | fluid 5/2, ports 1–5, solenoid 14 with manual override, spring | 28 valves, 203–206 |
 | `ew.iso.cylinder-double-acting`, `ew.iso.process-valve-2way` | fluid; linkage points | TA05-V-15 … TA05-V-37 on 203 |
 
-Seven further symbols join the starter set for the pilot corpus (§2.3, decision log ID-294); they are not on the golden folios and have no row here.
+Seven further symbols join the starter set for the pilot corpus (§2.3); they are not on the golden folios and have no row here.
 
 ### 9.2 Parts and data
 
@@ -1262,7 +1260,7 @@ Seven further symbols join the starter set for the pilot corpus (§2.3, decision
 - **-102G1.** 2904602 defines a PSU function with L, N, PE, +, +, −, −. The potential roles are + = L+, − = M and
   PE = PE, so the 24 V potentials get their type from the part (FR-CON-011). The same pin list arrives from a vendor
   EDZ at 1.0 (AC-38). The part description carries no rating; the output voltage lives in the technical data
-  (decision log ID-352).
+ .
 - **-201U1.** 195740 + 550208: two part uses on one device. The 550208 pattern declares pin 3 as FE (▲U-18), so
   FR-CHK-030 reports -201U1:3 on PE (EF-10, D-16).
 - **-106W1, -106W2.** NEBU-G78W5-K-2-N-LE5 has the cable cores BK, BU, GNYE, WH, BN. Conductors are generated from
@@ -1285,17 +1283,17 @@ Seven further symbols join the starter set for the pilot corpus (§2.3, decision
   ▲U-26. Without dimensions they stay below "layout-ready" and folio 902 warns.
 - **S56, E56.** They have no parts, so FR-CHK-024 reports them (EF-04). Golden A-R assigns `TEST-DOORSW-1` and
   `TEST-LAMP-1` with confidence `test`.
-- *As built (cycle 35, WP-S1.19 part 3; decision log ID-820).* **Manufacturer copies.** Golden A holds eight
+- *As built.* **Manufacturer copies.** Golden A holds eight
   project-local manufacturer copies, one per manufacturer name, and its 29 part copies name them with no `key`; the
   readers take the name from the held copy and fall back to a legacy `key`, so a file written before part 3 derives
   the same. Every exported output stayed byte-equal ([20](20-golden-project.md) ▲U-45).
 
-*As built (2026-11-04, cycle 50; WP-S1.20, decision log ID-1340).* The content versions after WP-S1.20, each checked against
+*As built.* The content versions after WP-S1.20, each checked against
 `main` before its bump: `ew.fn.valve-5-2-sol-spring` 0.2.0, `ew.fn.cylinder-double-acting` 0.1.1, the new
 `ew.fn.valve-solenoid` 0.1.0, `ew.iso.valve-5-2-sol-spring` 0.3.0 in both editions, `ew.ovw.module@qet10` 0.2.0,
 `EW-GEN-VLV-1` 0.2.0, `ew-starter-parts` 0.4.0 and the starter library 0.4.0; Golden A's 571334 declares solenoid 14.
 
-*As built (2026-11-05, cycle 51; WP-S7.03 D3 and D4, decision log ID-1332).* The sample project's catalogue parts ship
+*As built.* The sample project's catalogue parts ship
 as the system library `ew-sample-parts` 0.1.0 (`content/libraries/ew-sample-parts.ewlib`, "Sample project parts",
 CC0-1.0), read by the installation's system tier and not compiled in: 23 parts and their 7 manufacturers, Golden A's 29
 less the four `TBD` test parts and the two configured order codes, written by the generator test `sample_parts` from
@@ -1352,7 +1350,7 @@ section) as `test` where doc 20 gives the value as a test input and `unverified`
   `@qet10` starter symbols through `symbol-map.csv`, keeping CPs by index, and step 5 assigns starter-catalogue
   parts ([20](20-golden-project.md) §20.2).
 
-*As built (cycle 38, decision log ID-878; FT-671).* The valve-manifold page macro is saved from folio 203 with the groups A, B (`$has_b`) and `field` (`$has_field`). Because Golden A's modules use positional slots (`SlotPath::Positional`), each module group binds a position and a tag counter (`$a_pos`, `$a_counter`; the window macro `$pos`) instead of `$slot`, besides `$assembly`, the states, the function texts and the process tags: value set 1 places groups A and B at positions 2 and 3 (counters 3 and 4), value set 4 places -202U2 at position 10 (counter 2). Inserted four times into Golden A without folios 203 to 206, it rebuilds them with every report-row block equal (MC-4); the overview on 201 and 202 does not regenerate yet (FT-741). Golden A draws no fluid lines on 203 to 206, so the typical carries none (FT-744).
+*As built.* The valve-manifold page macro is saved from folio 203 with the groups A, B (`$has_b`) and `field` (`$has_field`). Because Golden A's modules use positional slots (`SlotPath::Positional`), each module group binds a position and a tag counter (`$a_pos`, `$a_counter`; the window macro `$pos`) instead of `$slot`, besides `$assembly`, the states, the function texts and the process tags: value set 1 places groups A and B at positions 2 and 3 (counters 3 and 4), value set 4 places -202U2 at position 10 (counter 2). Inserted four times into Golden A without folios 203 to 206, it rebuilds them with every report-row block equal (MC-4); the overview on 201 and 202 does not regenerate yet (FT-741). Golden A draws no fluid lines on 203 to 206, so the typical carries none.
 
 ### 9.4 Defects prevented
 
@@ -1384,7 +1382,7 @@ section) as `test` where doc 20 gives the value as a test input and `unverified`
 | Symbol model, variants A–H, text slots, arrangements, anchors, link points | ● | | | |
 | Starter set of about 40 symbols (FR-SYM-007), native edition and generated QET 10 px edition (FR-SYM-030) | ● | | | |
 | Full IEC 60617-style and ISO 1219 library; symbol lint in CI (FR-SYM-008, FR-SYM-020) | | ● | | |
-| Symbol editor (Should). *Amended 2026-11-05 (decision log ID-1402):* a Must of release 0.2.0 (milestone M2.5), right after the MVP and before M3's first release; until then ● in the MVP column, which lever (a) had moved to 1.0 | 0.2.0 | | | |
+| Symbol editor (Should). *Amended 2026-11-05:* a Must of release 0.2.0 (milestone M2.5), right after the MVP and before M3's first release; until then ● in the MVP column, which lever (a) had moved to 1.0 | 0.2.0 | | | |
 | QET project elements → "QET import" library; `symbol-map.csv` | ● | | | |
 | QET element collection conversion on demand (FR-SYM-029) | | ● | | |
 | Parametric symbol families | | | ● | |
@@ -1551,10 +1549,10 @@ The eleven rows this document proposed are in the catalogues:
     document names yet; `ew-import-qet` uses a provisional constant (`BUILTIN_LIBRARY`). *Recommendation:*
     WP-S1.19a mints the system library's fixed UUID, held by `ew-ids` beside `NS_LIBCOPY`, before format 0.1 is
     released; the importer then switches to it, which changes the copy IDs of imported built-in references once,
-    while no released file exists (decision log ID-24). *Still open (2026-10-18):* the starter content of WP-S7.02
+    while no released file exists. *Still open (2026-10-18):* the starter content of WP-S7.02
     uses the same provisional UUID 7202fd8b-1024-4bf1-9e99-670772eaa589 for its symbols and FnDefs, so content and
     importer switch together; the importer's one built-in FnDef key is `ew.fn.ip` with `version_req` `^0.1`
-    (decision log ID-33). **Resolved (WP-S1.19 D4, FT-24; as built in cycle 34):** the system library is the
+   . **Resolved:** the system library is the
     compiled-in starter `ew-starter`, and its ID is the constant `ew_interop_api::SYSTEM_LIBRARY`, held in the
     permissive contract crate rather than in `ew-ids` because importers may depend neither on each other nor on the
     library crate. The value is the provisional UUID above, so no copy ID moved. `ew-import-qet` and

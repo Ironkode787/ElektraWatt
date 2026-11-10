@@ -79,7 +79,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    kinds of edge: a terminal from its strip, a `Child`-scheme device from its parent, and an unplaced device from its
    parent. The combined graph of these edges is acyclic: a new structural invariant of `ew-model`'s catalogue
    (decision 5), so a derivation never meets an inheritance cycle. The fix round adds it with the next free number
-   (EW-INV-015 at the cycle-6 integration) and names that number in its commit (task FT-36).
+   (EW-INV-015 at the integration) and names that number in its commit (task).
 5. **Prevent rules at MVP; EW-RDS-004 without prevent** (2026-10-21, project owner (delegated), after the
    independent review of cycle 12; decision log ID-306, ID-311). Decision 3 lists "device tag unique within its
    structure scope" among the prevent rules; at MVP EW-RDS-004 runs online and in release only and declares no
@@ -90,10 +90,10 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    candidate, touched)`), so only violations a batch creates are refused and a violation the model already held does
    not block an edit that leaves it alone (decision 4, FR-CHK-011). The hook is implemented by `ew-api`, which may
    depend on `ew-checks`; `ew-commands` may not. The one shipped prevent rule is EW-TERM-002 (unique per strip,
-   D-12); EW-TERM-001 cannot fire while designations are non-empty identifiers (FT-141), and EW-CORE-052's prevent
+   D-12); EW-TERM-001 cannot fire while designations are non-empty identifiers, and EW-CORE-052's prevent
    mode (amendment 1) follows with FT-194. Reading the project's strictness and the import origin is FT-199. The
-   base-snapshot rule is the MVP rule for every project (decision log ID-323); for `Strict` projects the target is
-   restore-on-touch, where a transaction that touches a key with an existing violation must restore it (FT-210).
+   base-snapshot rule is the MVP rule for every project; for `Strict` projects the target is
+   restore-on-touch, where a transaction that touches a key with an existing violation must restore it.
 6. **The released revision's checker and its immutability** (2026-10-22, project owner (delegated ruling R3), at
    the cycle-17 design pass after the typed revision, FT-165; decision log ID-430;
    [domain model](../design/03-domain-model.md) §18). Decision 2's last bullet, "a released revision has a checker

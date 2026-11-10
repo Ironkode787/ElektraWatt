@@ -81,8 +81,7 @@ Accepted on 2026-10-19. The decision text above is unchanged; these entries refi
    the profile is unknown; the pin is resolved only by the opt-in, previewed profile upgrade, which shows its diff
    against the display profile as usual. `ew-derive` exposes the state as `ProfileStatus::Unknown { requested }`
    and reports it through its request-scoped note channel (`DeriveNote`), which `ew-api`'s `Session` surfaces as
-   findings; the same channel carries the other derivation notes (a numbering scheme not applied, the default frame
-   used, a malformed `extra` shim; decision log ID-99).
+   findings; the same channel carries the other derivation notes (a numbering scheme not applied, the default frame used, a malformed `extra` shim).
 2. **Profiles are data in `ew-derive`** (2026-10-19, core team; decision log ID-84;
    [architecture](../design/04-architecture.md) §6.6). The shipped profiles are TOML files in
    `crates/ew-derive/profiles/` (the first is `2027.1.toml`), compiled into the crate and parsed once. They are not

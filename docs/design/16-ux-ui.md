@@ -1,6 +1,6 @@
 # User experience and user interface
 
-**Status:** Draft v0.1 · Amended 2026-11-02 (ID-1187, ID-1188): the policy row of §2.5, the start page's privacy line (§3.7) and step 3 of the first run (§9.1) are marked as specified for 1.0, because 0.1.0 has no update check and no crash upload; the window's own texts change by follow-up tasks. · Amended 2026-10-31, cycle-40 design pass, part 3: §2.5 and §4.4, a refused keymap copied aside once and key caps in every keymap text as built (FIX40d, decision log ID-939). · Amended 2026-10-31, cycle-40 design pass, part 2: §4.4 and §15.5, KM-4's ruling and the editor's findings as built (lane H40, decision log ID-934). · Amended 2026-10-31, cycle-40 design pass, part 1: keymaps as built, §2.5, §4.4 and §15.5 (the editor is Help ▸ Keyboard shortcuts; WP-S2.08 part 2, decision log ID-923). · Amended 2026-10-30: macOS is not a supported platform (decision log ID-880); the shell row, §3.2's platform behaviour, the macOS key column as a portability note, the screen-reader test. · Amended 2026-10-29, cycle 35: J (`place.join`) and the Join chooser's keys as built, §4.4 (WP-S2.18 part 1, decision log ID-817). · Amended 2026-10-29, cycle 34: the strip editor's keys and row gestures as built, and the ruling on Alt+Up and Alt+Down in the Terminal strips navigator, §4.4 and §7.2 (WP-S2.07 part 1). · Amended 2026-10-29, cycle-32 design pass: the shell as built after WP-S2.17 (command bar, rails, panel headers, status bar, HUD), §3.10 (decision log ID-747 to ID-757). · Amended 2026-10-28, design language: the look of the window is governed by [16a](16a-design-language.md) under [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md) (Accepted; the owner-approved mockup is its visual reference); the ribbon non-goal is withdrawn, §1; notes in §3.1, §3.2, §3.3, §3.6, §6.2, §10.3 and §11.1 point to what changes. · Amended 2026-10-28, cycle 30: the navigators as built, the docking of navigators and the bottom dock, the filter and the selection synchronisation, §3.4, §5.2 to §5.4, decision log ID-709, ID-712, ID-713; the job and notifications fields, notifications and jobs as built, §3.6, §8.2, §8.3, decision log ID-714, ID-715; the highlight slots as built and their contrast departure (FT-506), §10.3, decision log ID-712. · Amended 2026-10-27, cycle 29: the native file dialogs on a thread of their own, §4.4, decision log ID-676 (FT-467 closed). · Amended 2026-10-26, cycle 28: accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; scoped follow-ups (ID-659 to ID-666); merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the part-1 shell and its headless mode as built, §3.9, decision log ID-473 to ID-475, ID-485; amended 2026-10-22, cycle-20 design pass: the toolkit-neutral workspace file, §2.5; the part-2 shell as built, §3.9; first run and the wizard as built, §9.1, §9.2; decision log ID-486 to ID-493, ID-504; amended 2026-10-22, cycle-21 design pass: the zoom field, §3.6; the canvas as built and the viewer note, §3.9; the canvas node, §10.1; what 100 % means under the UI scale, §17; decision log ID-513, ID-517 to ID-522; amended 2026-10-22, cycle-22 design pass: the GPU canvas, its switch rule, the status bar's backend field and the UI scale as built, §3.6, §3.9, §17; the wizard's fields as built with the confirmed check-scheme step, §9.2; the rulings of WP-S2.03's specification (Back and Forward per tab, the canvas area, the tool host), §2.5, §3.4, §3.5, §4.5; decision log ID-532, ID-533, ID-536, ID-539 to ID-542, ID-544 to ID-547; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, the viewer's tabs, navigator, links, Go to and grid cursor, §2.5, §3.2, §3.4 to §3.6, §3.9, §4.2, §4.4, §4.5, §5.1, §5.2, §10.1, decision log ID-556 to ID-560; the wizard's logo, shipped colour profiles and golden report blocks as built and its colour default, §9.2, ID-572 to ID-578; `PRIVACY.md` and its link, the web-URL exception of the opener, §3.9, §9.1, §13, ID-579; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool host, Select and Measure, the Escape chain, the pointer rule, the keys and the live region, §3.6, §4.2, §4.4 to §4.6, §10.1, decision log ID-586 to ID-590; the provenance chip names its profile, §6.2, §18.1, ID-598; the mixed-selection rule, §17, ID-593; the check scheme's selection for `ew check`, §9.2, ID-602; amended 2026-10-24, cycle-25 design pass: WP-S2.04 part 1 and WP-S2.05 part 1 as built, the property sheet and its provenance, the Insert menu, the keys and the tool strip, the property grid, its editors and its preview policy, the mixed-selection rule as built, §2.1, §2.2, §3.2, §4.4, §4.5, §6.1 to §6.3, §7.5, §17, decision log ID-625 to ID-630; amended 2026-10-24, cycle-26 design pass: the find pane's place, the keys per context and the find pane's Tab, the wiring tools with the page-change, tool-strip and chip rules, the replace card, §3.4, §4.4, §4.5, §7.6, decision log ID-634, ID-635, ID-638, ID-639; amended 2026-10-25, cycle-27 design pass: the keys of the IP, black box and clipboard tools and Shift+Delete on Windows, §4.4; FT-405's notice, §9.2, decision log ID-646, ID-648, ID-649) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1
 
 **Purpose.** This document specifies how people work with ElektraWatt (EW): the main window and its docking
 workspace, navigators, canvas tabs, the property grid with provenance, the command palette and keymaps, table
@@ -117,7 +117,7 @@ pub struct EditTarget { entities: SmallVec<[EntityRef; 1]>, field: FieldPath }  
   `Command` (FR-UI-008, FR-UI-009); `ew-ui` never builds commands itself. Headless tests of this mapping run
   without egui (ARCH §13).
 
-*As built (cycle 25, WP-S2.05 part 1; decision log ID-626).* The contract above is built in two layers. Below the shell, `ew_api::output` has the **field catalogue** (`field_catalogue(kind)`, one `FieldNode` per schema node from one walker over `ew_schema::kind_schema`: 19 kinds, 406 nodes, 167 editable; `crates/ew-api/tests/expected/field_catalogue.txt` is its record) and the **property sheet** (`Session::property_sheet`: a header, one section per record kind that every selected record reaches, rows with `key`, `path`, `category`, `ty`, `value` (one value, `Varies` with up to eight texts, or `Absent`), `provenance`, `actions`, `route` and `identifier`; the unread `label_key` was removed in cycle 45, FT-1010). The `EditTarget` of the sketch is the row's **edit route**: `FieldsSet { kind, path }` (compiles to one `fields.set` over the section's targets), `SettingsMember { member }` (one `project.settings.set`) or `ReadOnly(reason)`; no other command is ever built by the grid, and a route whose command is `HumanOnly` is read-only whatever the tables say. `Session::parse_field_input`, `field_choices`, `command_meta` and `resolve_reference` serve the editors, the exposure check and `select.set`. In `ew-viewmodel` the panel model turns a sheet into rows, the edit buffer, the preview card and the toast, and compiles every edit into exactly one command, as above.
+*As built.* The contract above is built in two layers. Below the shell, `ew_api::output` has the **field catalogue** (`field_catalogue(kind)`, one `FieldNode` per schema node from one walker over `ew_schema::kind_schema`: 19 kinds, 406 nodes, 167 editable; `crates/ew-api/tests/expected/field_catalogue.txt` is its record) and the **property sheet** (`Session::property_sheet`: a header, one section per record kind that every selected record reaches, rows with `key`, `path`, `category`, `ty`, `value` (one value, `Varies` with up to eight texts, or `Absent`), `provenance`, `actions`, `route` and `identifier`; the unread `label_key` was removed in cycle 45, FT-1010). The `EditTarget` of the sketch is the row's **edit route**: `FieldsSet { kind, path }` (compiles to one `fields.set` over the section's targets), `SettingsMember { member }` (one `project.settings.set`) or `ReadOnly(reason)`; no other command is ever built by the grid, and a route whose command is `HumanOnly` is read-only whatever the tables say. `Session::parse_field_input`, `field_choices`, `command_meta` and `resolve_reference` serve the editors, the exposure check and `select.set`. In `ew-viewmodel` the panel model turns a sheet into rows, the edit buffer, the preview card and the toast, and compiles every edit into exactly one command, as above.
 
 ### 2.2 Provenance
 
@@ -141,7 +141,7 @@ pub enum Provenance {
 The `via` chain is the short form of `ew query --explain` (FR-EXT-005); for wire properties it names the winning
 level of the seven-level chain of [03](03-domain-model.md) §9.5.
 
-*As built (cycle 25, WP-S2.05 part 1; decision log ID-626).* The sheet produces `Authored`, `Inherited` ("from colour profile …", "project description"), `Derived` (with its chip text), `Overridden`, `Frozen`, `Library` (the chip shows only the item and its version), `Generated` and `Varies`; each carries its chip text as a string, not the typed `via` chain sketched above. `Committed` and `Async` are not produced yet (routes and Class II results have no grid rows before WP-S2.04 part 2 and the jobs panel). The derived tag's row shows the product designation, which is what Freeze writes (ruling 6).
+*As built.* The sheet produces `Authored`, `Inherited` ("from colour profile …", "project description"), `Derived` (with its chip text), `Overridden`, `Frozen`, `Library` (the chip shows only the item and its version), `Generated` and `Varies`; each carries its chip text as a string, not the typed `via` chain sketched above. `Committed` and `Async` are not produced yet (routes and Class II results have no grid rows before WP-S2.04 part 2 and the jobs panel). The derived tag's row shows the product designation, which is what Freeze writes (ruling 6).
 
 ### 2.3 Selection
 
@@ -182,36 +182,36 @@ CLI, rhai, MCP and plugins; `ActionMeta` adds only what the GUI needs. The palet
 predicate that fails carries a reason key ("needs a selected device", "project is read-only") shown in the
 palette and in tooltips.
 
-*As built from WP-S2.01 (decision log ID-444):* the toolkit-neutral part of the registry (ID, kind, label key,
+*As built from WP-S2.01:* the toolkit-neutral part of the registry (ID, kind, label key,
 category, default chords as text, the predicate with its reason key) and the shell model that every action is
 dispatched on live in `ew-viewmodel`; `ew-ui` binds keys and paints menus, palette and toolbar from it. The same
 dispatch serves the headless mode `elektrawatt --headless --script`, so CI and agents can drive every action without
-a display (ID-443).
+a display.
 
 ### 2.5 Settings and view state
 
 | Data | Location | Format | Notes |
 |---|---|---|---|
 | User settings: UI language, theme, scale, minimum font size, reduce motion, keymap preset, first-run answers, update-check opt-in, recent projects, default basic project, user display name | OS configuration directory, `elektrawatt/settings.toml` | TOML with `version` | Unknown keys preserved; an unreadable file yields defaults, a `.bad-<n>` copy and a banner (FR-UI-049) |
-| Keymaps | `elektrawatt/keymaps/<name>.toml` | TOML (§4.4) | Import and export (FR-UI-013). *As built (cycle 40, ID-923):* the user's keymap is one `keymap.toml` beside `settings.toml`, over the preset the `keymap` setting names; a refused file is copied to `keymap.toml.bad-<n>`; *as built (FIX40d, ID-939):* once: a copy that already holds the same bytes is named instead of a new one (keymap only), and the banner reads "The keymap file was refused: it is not valid TOML. The EW preset applies; the file was kept as keymap.toml.bad-1." |
-| Workspaces | `elektrawatt/workspaces/<name>.json` | JSON `ew.workspace/1`: a toolkit-neutral tree of panes, tab groups and splits with integer shares, members sorted, no floating point, so a layout saved twice is the same bytes; `ew-ui` converts it to and from egui_tiles (amended 2026-10-22, decision log ID-489: the serialised egui_tiles tree keeps its tiles in a hash map and would tie a user file to one toolkit) | FR-UI-002 |
+| Keymaps | `elektrawatt/keymaps/<name>.toml` | TOML (§4.4) | Import and export (FR-UI-013). *As built:* the user's keymap is one `keymap.toml` beside `settings.toml`, over the preset the `keymap` setting names; a refused file is copied to `keymap.toml.bad-<n>`; *as built (FIX40d):* once: a copy that already holds the same bytes is named instead of a new one (keymap only), and the banner reads "The keymap file was refused: it is not valid TOML. The EW preset applies; the file was kept as keymap.toml.bad-1." |
+| Workspaces | `elektrawatt/workspaces/<name>.json` | JSON `ew.workspace/1`: a toolkit-neutral tree of panes, tab groups and splits with integer shares, members sorted, no floating point, so a layout saved twice is the same bytes; `ew-ui` converts it to and from egui_tiles (amended 2026-10-22, : the serialised egui_tiles tree keeps its tiles in a hash map and would tie a user file to one toolkit) | FR-UI-002 |
 | Per-project view state: open tabs, viewport per page, jump history (last 50), last selection, navigator expansion and filters, table column layouts, active workspace, highlight sets | `<name>.ew/.ew/u-<hash>/view.json`, `<hash>` from `user@host` ([05](05-project-format-and-persistence.md) §1) | JSON | git-ignored; per user, so users of a shared folder do not overwrite each other; never project data (FR-UI-033) |
 | Policy (MSI deployments; as specified for 1.0) | registry policy keys | — | update check off (NFR-PRIV-03) |
 
 Opening the golden project, changing the viewport and saving therefore changes no tracked file (FR-UI-033).
 
-*Decided for WP-S2.03 (cycle 22; decision log ID-532, ID-533); as-built text after part 1.* The jump history is **per
+*Decided for WP-S2.03; as-built text after part 1.* The jump history is **per
 tab and is not persisted**: at most 50 entries back, a jump clears the forward list, closing a tab drops its history
 (the "jump history (last 50)" of the table above is therefore not stored in `view.json`). Open tabs and the viewport
 per page remain the target of `view.json`, but WP-S2.03 keeps them in memory for the session of the open project and
 outside `ew.workspace/1`; writing them to `view.json` (`ew.view/1`, with a `Store` accessor for the per-user state
 directory) is FT-357.
 
-*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-557).* The tabs and their history are in `ShellModel`'s
+*As built.* The tabs and their history are in `ShellModel`'s
 canvas area, in memory for the open project, as decided. **A tab holds the identity of its page**, not its folio and not
 a bare UUID: the type `PageId` wraps the page's destination (`Destination::Page(uuid)`, the identity that the xref
 engine and the link targets already use), its field is private, and `ew-viewmodel` takes no `uuid` dependency for it
-(ID-557). **The page-content cache** keeps one `Arc<CanvasPage>` per page and is keyed by (epoch, revision), the epoch
+. **The page-content cache** keeps one `Arc<CanvasPage>` per page and is keyed by (epoch, revision), the epoch
 being the number of the opened project in the shell's life, so a project closed and opened again never reads the old
 entries. At the end of each dispatch it keeps every page a tab shows plus the 8 most recently shown other pages and
 drops the rest; a revision change empties it. Two tabs on one page share an entry, and Back, Forward and a tab switch to
@@ -287,18 +287,18 @@ Menus are generated from the action registry (§2.4) and show the active keymap'
 | Window | Workspaces, panels list, open canvas tabs | Move to new window |
 | Help | Help for this context (F1), Documentation, Tutorials, Glossary, Keyboard shortcuts, Rule catalogue, Verify derived data, First-run setup, About | — |
 
-*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-557).* The shell's menu bar now has seven menus: File,
+*As built.* The shell's menu bar now has seven menus: File,
 Edit, View, Page, Tools, **Window** and Help. **Window** holds New tab (Ctrl+T), Close tab (Ctrl+W), Next tab
 (Ctrl+Tab), Previous tab (Ctrl+Shift+Tab), Other tab group (Ctrl+F6) and then the list of the focused group's open
 tabs, one checked item per tab; the workspaces and the panels list of the design join with their panels. **View** gains
 Side by side (checked while two tab groups exist) and Page navigator, a submenu of the navigator's three modes (flat,
 by section, by structure) and two sort orders (by folio, by type). **Page** gains Go to page or cell (Ctrl+G), Back
 (Alt+Left), Forward (Alt+Right), Follow cross-reference (F), Next link (Shift+F) and Previous link (Ctrl+Shift+F). **File
-▸ Close project moves from Ctrl+W to Ctrl+Shift+W**, because Ctrl+W now closes a tab (ID-557; §4.4). The hidden action
+▸ Close project moves from Ctrl+W to Ctrl+Shift+W**, because Ctrl+W now closes a tab (§4.4). The hidden action
 `page.goto` (a folio only) stays for scripts. A refused tab or history action names its reason ("32 tabs are open", "The last tab
 stays open", "The tab group has one tab", "Only one tab group is shown", "No page to return to").
 
-*As built (cycle 25, WP-S2.04 part 1 and WP-S2.05 part 1; decision log ID-625, ID-626).* The menu bar has eight menus: File, Edit, View, **Insert**, Page, Tools, Window and Help, Insert standing between View and Page as in the table. **Insert** holds Symbol… (I), Device from part… (Shift+I) and, after a separator, Terminal strip…; the rest of its row arrives with WP-S2.04's later parts. **Edit** gains Properties of selection (E, Alt+Enter) and Project properties (`props.project`; there is no Project menu yet, so it sits in Edit, ruling 4), and, after a separator, Rotate clockwise (R), Rotate counter-clockwise (Shift+R), Mirror left to right (X), Mirror top to bottom (Y), Next variant (V), Next representation type (Shift+V), Move (M), Delete (Delete) and Change symbol…. **View** gains Properties, which shows the property grid in the Schematic workspace. The Project menu's "Drawing" item of WP-S2.04 part 2 needs that menu first; until it exists the crossings setting is reached through `project.drawing.set`.
+*As built.* The menu bar has eight menus: File, Edit, View, **Insert**, Page, Tools, Window and Help, Insert standing between View and Page as in the table. **Insert** holds Symbol… (I), Device from part… (Shift+I) and, after a separator, Terminal strip…; the rest of its row arrives with WP-S2.04's later parts. **Edit** gains Properties of selection (E, Alt+Enter) and Project properties (`props.project`; there is no Project menu yet, so it sits in Edit, ruling 4), and, after a separator, Rotate clockwise (R), Rotate counter-clockwise (Shift+R), Mirror left to right (X), Mirror top to bottom (Y), Next variant (V), Next representation type (Shift+V), Move (M), Delete (Delete) and Change symbol…. **View** gains Properties, which shows the property grid in the Schematic workspace. The Project menu's "Drawing" item of WP-S2.04 part 2 needs that menu first; until it exists the crossings setting is reached through `project.drawing.set`.
 
 *As built (cycles 47 and 48, WP-S3.07 part 3 and WP-S3.08 part 3; decision log ID-1197, ID-1237; written in cycle 48,
 ID-1248).* The Output menu holds Print… (Ctrl+P, `file.print`) beside Export PDF…, opening the print pre-dialog
@@ -307,7 +307,7 @@ ID-1248).* The Output menu holds Print… (Ctrl+P, `file.print`) beside Export P
 Columns menu; each has a predicate and gives its reason while no table navigator is shown in table mode.
 
 **Platform behaviour.**
-- **macOS:** not built; macOS is not a supported platform (decision log ID-880). (The plan was a muda 0.21.2 global menu bar with the
+- **macOS:** not built; macOS is not a supported platform. (The plan was a muda 0.21.2 global menu bar with the
   standard application menu and the system Window and Help menus.)
 - **Windows:** muda menu on the window's HWND, with Alt mnemonics from the Fluent labels (**verify** HWND access
   through eframe).
@@ -352,31 +352,31 @@ pub enum Pane {
 - **Keyboard.** F6 and Shift+F6 cycle dock areas; Ctrl+PageDown and Ctrl+PageUp switch tabs in the focused dock;
   Ctrl+Tab cycles canvas tabs; Ctrl+W closes a canvas tab; F11 maximises the canvas.
 
-*Decided for WP-S2.03 (cycle 22; decision log ID-533); as-built text after part 1.* **The canvas area** (the workspace's
+*Decided for WP-S2.03; as-built text after part 1.* **The canvas area** (the workspace's
 `page-view` pane) is per-project state in its own **nested `egui_tiles` tree**, built by `ew-ui` from a toolkit-neutral
 `CanvasArea` of `ew-viewmodel`: **one or two tab groups side by side** and **at most 32 tabs** over both groups. It lives
-outside the workspace file, so `ew.workspace/1` is unchanged and stays deterministic (ID-489). Two groups are two
-canvases over one `Session` (ID-532), never a second model. egui_tiles 0.18.0 cannot refuse a drop, so the tree is
+outside the workspace file, so `ew.workspace/1` is unchanged and stays deterministic. Two groups are two
+canvases over one `Session`, never a second model. egui_tiles 0.18.0 cannot refuse a drop, so the tree is
 rebuilt from the `CanvasArea` after every structural change and a third group or a vertical split cannot persist.
 
-*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-558, ID-559).* The nested tree is built as decided: one
+*As built.* The nested tree is built as decided: one
 `Tabs` container per group in a horizontal split, rebuilt from the model whenever its version changes. **Only tabs are
-draggable** in the canvas area (ID-558): a tab drag within a group or into the other one is the action `tab.move`, while
+draggable** in the canvas area: a tab drag within a group or into the other one is the action `tab.move`, while
 a tab bar's own drag area, which egui_tiles gives no name, is switched off through `is_tile_draggable`. The splitter's
 position is host state: it is carried across a rebuild while the number of groups is unchanged, and the groups share
 equally again after a group appears or disappears; the model learns only each pane's size (`view.canvas_resize`). A tab
 moved into the other group takes that group's pane size. Egui_tiles' keyboard tab cycling is off
 (`cycle_tabs_with_keyboard` returns false, here and in the dock), so Ctrl+Tab is the registry action `tab.next` and
-nothing else. **The second group's canvas** is a second GPU canvas on the leader's device (ID-558): it is made only
+nothing else. **The second group's canvas** is a second GPU canvas on the leader's device: it is made only
 while two groups show, shares the render state through a clone and is released when the area collapses to one group;
 the one tile pool serves both canvases, the focused group first. A shell without a render state (headless, kittest)
 draws both on the CPU. The keyboard focus is `Focus::Navigator` or `Focus::Canvas(group)`; F6 and Shift+F6 cycle it
 (navigator, group 1, group 2), a press in a canvas focuses its group, and the focused group's active tab is what the
-shell calls the current page. The splitter has no accessible name yet (FT-338).
+shell calls the current page. The splitter has no accessible name yet.
 
-*As built (cycle 26, WP-S2.05 part 2; decision log ID-634).* The **Find pane** ("Find and replace", `PaneKind::Find`) opens with Ctrl+F or Ctrl+H **below the page view** in the Schematic workspace, not across the full-width bottom dock that the placement rule above names; it is a pane of the workspace file like the others (a build that predates it refuses a workspace file that names it). F6 and Shift+F6 include it, and closing it (or a workspace reset, load or dock layout change that removes it) drops a replace card it holds.
+*As built.* The **Find pane** ("Find and replace", `PaneKind::Find`) opens with Ctrl+F or Ctrl+H **below the page view** in the Schematic workspace, not across the full-width bottom dock that the placement rule above names; it is a pane of the workspace file like the others (a build that predates it refuses a workspace file that names it). F6 and Shift+F6 include it, and closing it (or a workspace reset, load or dock layout change that removes it) drops a replace card it holds.
 
-*As built (cycle 30, WP-S2.06 part 1 and WP-S2.09 part 1; decision log ID-709, ID-714).* A shown navigator docks as a
+*As built.* A shown navigator docks as a
 tab beside Pages (`PaneKind::Navigator(kind)`, workspace key = the kind word). **Dock tab groups are not draggable as a
 whole**, only panes, as in the canvas area, so a tab bar is never an unnamed drag area. **The bottom dock:** Find and
 Jobs share one tab group below the page view (`Layout::with_bottom`, renamed from `with_find`; `PaneKind::ALL` has five
@@ -396,11 +396,11 @@ entries and `BOTTOM = [Find, Jobs]`); Messages, Preview and History join it with
 Two pages can be shown side by side with their own viewports (FR-UI-035). Back and Forward walk the jump history
 per window (FR-UI-019).
 
-*Decided for WP-S2.03 (cycle 22; decision log ID-532); as-built text after part 1.* Back and Forward walk a history
+*Decided for WP-S2.03; as-built text after part 1.* Back and Forward walk a history
 **per tab** (not per window), at most 50 entries, not persisted (§2.5); walks with Page Up and Page Down add no entry,
 and following a link, Go to and the navigator's Open do.
 
-*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-557).* Page2D tabs, generated pages included, are the only
+*As built.* Page2D tabs, generated pages included, are the only
 kind the viewer opens. A tab's title is `<folio> <title>` with the badges `QET grid` and `generated`. **At most 32 tabs**
 are open over one or two groups; the limit is enforced in the model, so a script meets it as a refusal ("32 tabs are
 open") exactly as the window does, and the project's last tab cannot be closed. A tab is made by New tab (Ctrl+T, on the
@@ -425,11 +425,11 @@ centres the point. `cycle_tabs_with_keyboard` is false (§3.4).
 | Selection | "1 selected" / "3 devices" | show selection list | FR-UI-034 |
 | Findings | "E 42 W 32 I 28 (+3 pending)" | open messages | FR-UI-021, 06 §3.10 |
 | Jobs | "PDF 40 %" / "Warming up" | open jobs panel | FR-UI-024 |
-| Render backend | `GPU DX12`, `GPU Vulkan`, `GPU Metal`, `GPU GL`, `WARP` or `CPU`; as built (cycle 22) the field names the backend the canvas is actually drawn with, so it reads `CPU` after a fallback (§3.9) | About | FR-UI-028, NFR-PLAT-03 |
+| Render backend | `GPU DX12`, `GPU Vulkan`, `GPU Metal`, `GPU GL`, `WARP` or `CPU`; as built the field names the backend the canvas is actually drawn with, so it reads `CPU` after a fallback (§3.9) | About | FR-UI-028, NFR-PLAT-03 |
 | Save state | dirty dot, "saved gen 214", share/cloud/read-only badges, "merge driver missing" | storage settings | [05](05-project-format-and-persistence.md) §16 |
 | UI language | "EN" | language switch | FR-UI-032 |
 
-*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-560; FT-345 closed).* The cursor field reads
+*As built.* The cursor field reads
 `102-H15 · x 255.0 y 172.5 mm`, the cell in the project's cross-reference format (`PageCells::text`) and then the
 millimetres, for the focused group's point: the pointer while it is over the canvas, else the grid cursor while that
 shows, else the field is left out. On a page without a cell at that point, or without cells, only the millimetres show
@@ -437,13 +437,13 @@ shows, else the field is left out. On a page without a cell at that point, or wi
 view`, or, over a link, `Click or F: go to <cell or folio>` and `Link to another project` for a link that leads out of
 the project. The page field is `<folio> (<n> of <total>)` of the focused tab. The page's cells are fetched once per
 page and revision with its other content (§2.5), not per frame. The exact edge between columns 15
-and 16 of the golden frame is 265.525 mm, not the rounded 265.6 mm (ID-560).
+and 16 of the golden frame is 265.525 mm, not the rounded 265.6 mm.
 
-*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-587).* The hint field shows the active tool's status
+*As built.* The hint field shows the active tool's status
 hint (Select: `Click to select; drag for a rubber band`), and while a link preview shows (§4.5) it reads `Click or F: go
 to <target>`.
 
-*As built (cycle 30, WP-S2.09 part 1; decision log ID-714, ID-715).* The **job field** appears 200 ms after a job starts
+*As built.* The **job field** appears 200 ms after a job starts
 and reads `PDF export <p> %` in the window (headless `PDF export`, without a percentage, so transcripts carry no
 timing); a click opens the Jobs pane. The **`Notifications <n>`** field shows while the session's notifications log is
 not empty and opens the log. The findings field of the table above is not built: the message panel's counts stand in
@@ -454,10 +454,10 @@ its pane header (WP-S2.09 D8). The cycle-19 `status-exporting` text is removed w
 With no project open the window shows: recent projects, **New project from basic project** (the default basic
 project first), Open, **Open sample project** (Golden A, CC0, NFR-DOC-04), **Import QET project**, **Create company
 standard** (§9.2), Tutorials, quick switches for language and keymap, and one privacy line (as specified for 1.0: "Update check: off ·
-change"; 0.1.0 has no update check, ID-1187). It contains no news feed and opens no connection (NFR-PRIV-01). It must appear within 1.5 s
+change"; 0.1.0 has no update check). It contains no news feed and opens no connection (NFR-PRIV-01). It must appear within 1.5 s
 (NFR-PERF-02).
 
-*As built (cycle 48; decision log ID-1229, FT-1117).* The privacy line reads "This version has no update check ·
+*As built.* The privacy line reads "This version has no update check ·
 change", whatever the stored `update_check` setting says (it stays, unused, until 1.0); "change" opens step 3 of the
 first run. The About dialog's line reads "This version has no update check and sends no crash reports."
 
@@ -475,14 +475,13 @@ first run. The About dialog's line reads "This version has no update check and s
 ### 3.9 As built: the shell (cycles 19 to 21)
 
 WP-S2.01 built a subset of this section in two parts on its
-closed specification: part 1 in cycle 19 (decision log ID-473 to
-ID-475) and part 2 in cycle 20 (ID-486 to ID-493); WP-S2.02 part 1 replaced its page view with the canvas in cycle 21
-(specification; ID-517 to ID-522); part 2 added the GPU path in cycle 22 (ID-539 to ID-544), which completes WP-S2.02. The design text of §3.1 to §3.8 stays
+closed specification: part 1 in cycle 19 and part 2 in cycle 20; WP-S2.02 part 1 replaced its page view with the canvas in cycle 21
+(specification; ID-517 to ID-522); part 2 added the GPU path in cycle 22, which completes WP-S2.02. The design text of §3.1 to §3.8 stays
 the target of the whole work package; this subsection records what exists and where it differs. **The shell is a
-viewer** (the owner's reading, ID-513): until WP-S2.03 (navigation and the tool framework), WP-S2.04 (the editing
+viewer** (the owner's reading): until WP-S2.03 (navigation and the tool framework), WP-S2.04 (the editing
 gestures) and WP-S2.05 (the property grid) land, it opens, creates and exports projects and shows their pages, and
 edits nothing on the canvas; a visual pass (theme, icons, toolbar, window memory, thumbnails) is FT-348, for the owner
-to schedule. *Updated in cycle 23 (WP-S2.03 part 1 delivered; ID-556):* the shell now **navigates**: canvas tabs in one
+to schedule. *Updated in cycle 23 (delivered):* the shell now **navigates**: canvas tabs in one
 or two groups, the page navigator, cross-reference links, Back and Forward, Go to page or cell and a keyboard grid
 cursor (§3.2 to §3.6, §4.2, §5.2, §10.1). It stays **read-only** until WP-S2.04 brings the editing gestures; the tool
 framework (WP-S2.03 part 2) was delivered in cycle 24 (§4.2, §4.5, §4.6).
@@ -490,23 +489,23 @@ framework (WP-S2.03 part 2) was delivered in cycle 24 (§4.2, §4.5, §4.6).
 | Element | As built | Differs from the design by |
 |---|---|---|
 | Window | `elektrawatt [<project-dir>]`: eframe 0.37.0 on the wgpu renderer, 1280 × 800 at start; the title `<directory name> - ElektraWatt`, with `*` while unsaved | No toolbar (§3.3), no canvas tabs (§3.5) |
-| Menus | Drawn with egui on every OS from the toolkit-neutral registry of `ew-viewmodel`: File, Edit, View, Page, Tools, Help, each entry with its accelerator text; a disabled entry shows its reason as a tooltip, and an entry with a documentation topic ends its tooltip with "F1: learn more" | Six menus of §3.2's twelve (seven from cycle 23, with Window, §3.2); muda on macOS and Windows is deferred (decision log ID-446, FT-310) |
-| Start page | New project (from the default basic project, else the built-in one), Open..., the recent projects (at most 10; an entry is dropped only when its path no longer exists), Open sample project (Golden A, read-only), Import QET project, Create company standard (Edit company standard once a default basic project is set), Tutorials (a fresh copy of the sample project in an empty directory), the language and keymap quick switches and the line "Update check: off" (part 2, ID-486) | The privacy line has no "change" link yet; one tutorial, not the tutorial pages of §13 |
-| New project | File ▸ New project (Ctrl+N) through `Session::new_project` (ID-487): the built-in basic project (the shipped defaults, one empty folio 1) or a company basic project, whose records are copied with new identities `v5(new project ID, source ID)`; the target is an empty or absent directory, checked before the open project closes (ID-488) | The project does not record which basic project it came from (`Project.basic_project`, FT-339) |
-| Project view | Docking with egui_tiles 0.18.0 (ID-490): the Schematic workspace with the panes that exist, the page list (printed folio labels; a click goes to the page) and the page view, in splits and tab groups the user rearranges; View ▸ Workspace saves, loads and resets named workspaces (§2.5, `ew.workspace/1`, ID-489), saved one second after the last change and at shutdown | The page list became the page navigator in cycle 23 (§5.2); the property grid, navigators and message panels of §2.6 join with their work packages; the splitter handles have no accessible name yet (FT-338) |
-| Canvas (cycle 21) | The current page read-only as a canvas on the CPU tile path: 256-pixel tiles of `ew-render-cpu` shown as egui textures, a coarse level first and the exact resolution once the view has been still for 150 ms. **Zoom** 5 % to 5000 % in √2 steps around the pointer (the wheel one step per line, a pinch continuously; Ctrl+Plus or Ctrl+Equals, Ctrl+Minus, Ctrl+0 for 100 %, Home to fit with 16-point margins; View ▸ Zoom in, Zoom out, Actual size, Fit page); a fitted view refits on resize until the first zoom or pan. **Pan** with the middle button, Space and drag, trackpad scroll or Ctrl+Arrow (View ▸ Pan, one eighth of the pane). **Overlays:** the page bounds on a grey surround, the page's connection grid as dots under the frame's page-to-sheet map (View ▸ Grid; the pitch doubles below 8 points), a dashed hover outline over the entity under the pointer; View ▸ Frame statistics shows the frame rate, the p99 of each phase, the pending tiles and the backend in the corner. The canvas is one AccessKit node (§10.1). The wizard's preview keeps the fitted raster of cycle 19 | No GPU path (WP-S2.02 part 2, the backend is always `CPU`): closed in cycle 22, see the next row; a click selects nothing and the hover outline is a placeholder over display-list boxes (WP-S2.03); no tabs or per-page views (tabs, a viewport per page and the link hover outline came in cycle 23, §3.5); 100 % includes the UI scale until FT-349 (§17 item 7): closed in cycle 22 |
-| Canvas (cycle 22) | **The GPU path** (WP-S2.02 part 2, decision log ID-539): `ew_render2d::gpu` draws the page with wgpu into an offscreen texture of the pane's size (4× MSAA, 1× where the adapter cannot), which egui shows as it shows a CPU tile; the page is prepared on a worker, and the previous revision of the same folio stands in while a new one prepares. **The switch rule** (ID-507, as the pure function `gpu::choose`): the canvas is the CPU canvas when `--no-gpu` is given, when View ▸ Use the CPU renderer for the canvas is checked (the setting `canvas_backend`, `auto` by default or `cpu`; `settings.set` accepts it), when no wgpu render state exists (headless, kittest), or when the adapter is a software adapter other than DX12 WARP; otherwise it is the GPU canvas, WARP included. The status bar's backend field names the result (§3.6). **Failures end on the CPU canvas with one banner:** an initialisation failure shows "The GPU canvas could not start (...)" with the reason in the brackets; a device lost or uncaptured error (the GPU canvas records them instead of wgpu's default panic) switches the canvas to the CPU for the rest of the session with one banner. **A caveat (ID-544):** the canvas shares one device with egui's own chrome (ADR-0014), so a real device loss also ends the window; the fallback helps for uncaptured errors only, and recovery from a lost device is FT-310 and WP-S2.11. A pane larger than the device's limits ends the GPU path for the session with the banner today; a per-frame CPU fallback is FT-363. **`--no-gpu`** gives the CPU canvas and asks for a software adapter for the window (none: the default adapter, with a banner). **No adapter at all:** the window cannot open, so `elektrawatt` writes one message to stderr naming `elektrawatt --headless`, `ew` and, on Linux, Mesa's llvmpipe or lavapipe, and exits with code 3 (ID-542; the count honours `WGPU_BACKEND` while eframe's instance does not, FT-364). **FT-349:** the UI scale enlarges the chrome only; the canvas's display resolution is `D = zoom × 96 × ppp / ui_scale` dpi (`ppp` is egui's pixels per point, which includes the UI scale), so 100 % no longer includes the UI scale and the gap noted for cycle 21 (ID-521, §17 item 7) is closed. **FT-356:** a page pane hidden behind another dock tab keeps its tiles within a quarter of the cache and frees its GPU targets. Parity with the CPU canvas is tested (ID-541: translucent primitives are exact in paint order between instances and approximate inside one mesh); no timing is claimed (not measured, owner's rule) | The GPU canvas is a read-only viewer like the CPU one; the interactive gestures, tabs and per-page views are WP-S2.03 and WP-S2.04; the per-layer buffers and the tile-scene digest are WP-S2.04 (FT-347); mipmaps are deferred until a visual defect is reported (FT-354); the Linux and macOS GUI look is an owner item |
-| Status bar | The hint "Read-only view", the page as `<folio> (<n> of <total>)`, the cursor `x 255.0 y 172.5 mm` while the pointer is over the canvas, the zoom, the grid (`QET 10 px`, a pitch in mm, or `Grid off`), the save state, the render backend (`CPU` in cycle 21; from cycle 22 `GPU DX12`, `GPU Vulkan`, `GPU Metal`, `GPU GL`, `WARP` or `CPU`, §3.6), the language `EN`, and "Exporting PDF..." during an export (cycle 21 added the cursor, zoom and grid) | The cursor field gained its cell in cycle 23 (§3.6; FT-345 closed); no snap, selection, findings or jobs fields (§3.6) |
-| Banner | One line for a read-only reason, the integrity findings of the open report, a leftover journal ([05](05-project-format-and-persistence.md) §8.3, as built) with File ▸ Discard leftover journal (a confirmation, then the editing open; FT-313's first part), or a missing file-dialog portal on Linux, with its own close button | The recovery dialog and the notification classes of §8.2 come with WP-S2.09 |
+| Menus | Drawn with egui on every OS from the toolkit-neutral registry of `ew-viewmodel`: File, Edit, View, Page, Tools, Help, each entry with its accelerator text; a disabled entry shows its reason as a tooltip, and an entry with a documentation topic ends its tooltip with "F1: learn more" | Six menus of §3.2's twelve (seven from , with Window, §3.2); muda on macOS and Windows is deferred |
+| Start page | New project (from the default basic project, else the built-in one), Open..., the recent projects (at most 10; an entry is dropped only when its path no longer exists), Open sample project (Golden A, read-only), Import QET project, Create company standard (Edit company standard once a default basic project is set), Tutorials (a fresh copy of the sample project in an empty directory), the language and keymap quick switches and the line "Update check: off" | The privacy line has no "change" link yet; one tutorial, not the tutorial pages of §13 |
+| New project | File ▸ New project (Ctrl+N) through `Session::new_project`: the built-in basic project (the shipped defaults, one empty folio 1) or a company basic project, whose records are copied with new identities `v5(new project ID, source ID)`; the target is an empty or absent directory, checked before the open project closes | The project does not record which basic project it came from (`Project.basic_project`, FT-339) |
+| Project view | Docking with egui_tiles 0.18.0: the Schematic workspace with the panes that exist, the page list (printed folio labels; a click goes to the page) and the page view, in splits and tab groups the user rearranges; View ▸ Workspace saves, loads and resets named workspaces (§2.5, `ew.workspace/1`), saved one second after the last change and at shutdown | The page list became the page navigator in cycle 23 (§5.2); the property grid, navigators and message panels of §2.6 join with their work packages; the splitter handles have no accessible name yet |
+| Canvas | The current page read-only as a canvas on the CPU tile path: 256-pixel tiles of `ew-render-cpu` shown as egui textures, a coarse level first and the exact resolution once the view has been still for 150 ms. **Zoom** 5 % to 5000 % in √2 steps around the pointer (the wheel one step per line, a pinch continuously; Ctrl+Plus or Ctrl+Equals, Ctrl+Minus, Ctrl+0 for 100 %, Home to fit with 16-point margins; View ▸ Zoom in, Zoom out, Actual size, Fit page); a fitted view refits on resize until the first zoom or pan. **Pan** with the middle button, Space and drag, trackpad scroll or Ctrl+Arrow (View ▸ Pan, one eighth of the pane). **Overlays:** the page bounds on a grey surround, the page's connection grid as dots under the frame's page-to-sheet map (View ▸ Grid; the pitch doubles below 8 points), a dashed hover outline over the entity under the pointer; View ▸ Frame statistics shows the frame rate, the p99 of each phase, the pending tiles and the backend in the corner. The canvas is one AccessKit node (§10.1). The wizard's preview keeps the fitted raster of cycle 19 | No GPU path (WP-S2.02 part 2, the backend is always `CPU`): closed in cycle 22, see the next row; a click selects nothing and the hover outline is a placeholder over display-list boxes (WP-S2.03); no tabs or per-page views (tabs, a viewport per page and the link hover outline came in , §3.5); 100 % includes the UI scale until FT-349 (§17 item 7): closed in cycle 22 |
+| Canvas | **The GPU path**: `ew_render2d::gpu` draws the page with wgpu into an offscreen texture of the pane's size (4× MSAA, 1× where the adapter cannot), which egui shows as it shows a CPU tile; the page is prepared on a worker, and the previous revision of the same folio stands in while a new one prepares. **The switch rule** (as the pure function `gpu::choose`): the canvas is the CPU canvas when `--no-gpu` is given, when View ▸ Use the CPU renderer for the canvas is checked (the setting `canvas_backend`, `auto` by default or `cpu`; `settings.set` accepts it), when no wgpu render state exists (headless, kittest), or when the adapter is a software adapter other than DX12 WARP; otherwise it is the GPU canvas, WARP included. The status bar's backend field names the result (§3.6). **Failures end on the CPU canvas with one banner:** an initialisation failure shows "The GPU canvas could not start (...)" with the reason in the brackets; a device lost or uncaptured error (the GPU canvas records them instead of wgpu's default panic) switches the canvas to the CPU for the rest of the session with one banner. **A caveat:** the canvas shares one device with egui's own chrome (ADR-0014), so a real device loss also ends the window; the fallback helps for uncaptured errors only, and recovery from a lost device is FT-310 and WP-S2.11. A pane larger than the device's limits ends the GPU path for the session with the banner today; a per-frame CPU fallback is FT-363. **`--no-gpu`** gives the CPU canvas and asks for a software adapter for the window (none: the default adapter, with a banner). **No adapter at all:** the window cannot open, so `elektrawatt` writes one message to stderr naming `elektrawatt --headless`, `ew` and, on Linux, Mesa's llvmpipe or lavapipe, and exits with code 3 (the count honours `WGPU_BACKEND` while eframe's instance does not). **FT-349:** the UI scale enlarges the chrome only; the canvas's display resolution is `D = zoom × 96 × ppp / ui_scale` dpi (`ppp` is egui's pixels per point, which includes the UI scale), so 100 % no longer includes the UI scale and the gap noted for cycle 21 (§17 item 7) is closed. **FT-356:** a page pane hidden behind another dock tab keeps its tiles within a quarter of the cache and frees its GPU targets. Parity with the CPU canvas is tested (translucent primitives are exact in paint order between instances and approximate inside one mesh); no timing is claimed (not measured, owner's rule) | The GPU canvas is a read-only viewer like the CPU one; the interactive gestures, tabs and per-page views are WP-S2.03 and WP-S2.04; the per-layer buffers and the tile-scene digest are WP-S2.04; mipmaps are deferred until a visual defect is reported; the Linux and macOS GUI look is an owner item |
+| Status bar | The hint "Read-only view", the page as `<folio> (<n> of <total>)`, the cursor `x 255.0 y 172.5 mm` while the pointer is over the canvas, the zoom, the grid (`QET 10 px`, a pitch in mm, or `Grid off`), the save state, the render backend (`CPU` in ; from `GPU DX12`, `GPU Vulkan`, `GPU Metal`, `GPU GL`, `WARP` or `CPU`, §3.6), the language `EN`, and "Exporting PDF..." during an export (added the cursor, zoom and grid) | The cursor field gained its cell in cycle 23 (§3.6; closed); no snap, selection, findings or jobs fields (§3.6) |
+| Banner | One line for a read-only reason, the integrity findings of the open report, a leftover journal ([05](05-project-format-and-persistence.md) §8.3, as built) with File ▸ Discard leftover journal (a confirmation, then the editing open; 's first part), or a missing file-dialog portal on Linux, with its own close button | The recovery dialog and the notification classes of §8.2 come with WP-S2.09 |
 | Palette | Ctrl+K or Ctrl+Shift+P: a case-insensitive substring search over the registry actions and the registered model commands, disabled entries last with their reason; model commands are listed but disabled until parameter forms exist | Ranking, aliases, prefixes and forms of §4.3 are WP-S2.08 |
-| Dialogs | About (version, renderer, privacy line, licence, repository, the engineering-verification disclaimer, the support status computed offline, the third-party notices; part 2), keyboard shortcuts, go to page (Ctrl+G), save workspace, the leftover-journal confirmation, and Save / Discard / Cancel when Close, Quit or Open meets unsaved changes; Open, Save As and Export PDF use the operating system's dialogs through rfd 0.17.2 (on Linux the XDG portal) | `PRIVACY.md` exists and About links it from cycle 23 (FT-342 closed, the paragraph after this table); a pre-1.0 build shows "pre-release build" and no support-end banner (ID-492 R5); §3.8's "Open in new window" is not offered |
-| Help | F1 resolves the context in §13's order as far as the shell has contexts (wizard, first run, palette, dialog, project view, start page, else the guide's home) and opens the topic's page of the user guide in the system browser (on Windows through `rundll32 url.dll,FileProtocolHandler`, no shell; ID-492 R8); the anchors are tested against the book | No build bundles the built guide yet, so without one F1 shows a banner (ID-492 R6); no property-row, finding or tool contexts yet |
+| Dialogs | About (version, renderer, privacy line, licence, repository, the engineering-verification disclaimer, the support status computed offline, the third-party notices; part 2), keyboard shortcuts, go to page (Ctrl+G), save workspace, the leftover-journal confirmation, and Save / Discard / Cancel when Close, Quit or Open meets unsaved changes; Open, Save As and Export PDF use the operating system's dialogs through rfd 0.17.2 (on Linux the XDG portal) | `PRIVACY.md` exists and About links it from cycle 23 (closed, the paragraph after this table); a pre-1.0 build shows "pre-release build" and no support-end banner (R5); §3.8's "Open in new window" is not offered |
+| Help | F1 resolves the context in §13's order as far as the shell has contexts (wizard, first run, palette, dialog, project view, start page, else the guide's home) and opens the topic's page of the user guide in the system browser (on Windows through `rundll32 url.dll,FileProtocolHandler`, no shell; R8); the anchors are tested against the book | No build bundles the built guide yet, so without one F1 shows a banner (R6); no property-row, finding or tool contexts yet |
 | Onboarding | First run (§9.1) and the company-standard wizard (§9.2), as built in §9 | See §9 |
 | Keyboard | Routing: a focused text field, then the topmost popup or dialog, then the shell's shortcuts; Escape closes the topmost popup or dialog (the registry action `ui.dismiss`) and otherwise does nothing; on macOS `Ctrl` reads `Cmd` | No keymap files (§4.4, WP-S2.08); the quick switch stores the preset |
 | Fonts and scale | The bundled faces of `ew-text` (Noto Sans, with Noto Sans Math as the last fallback) are the only UI fonts; UI scale 1.0, 1.25, 1.5 or 2.0 through egui's zoom factor | Up to 300 % (§10.4) later |
-| Exit | A clean project is closed at exit; a dirty one keeps its journal, and the next open is read-only with the recovery banner (decision log ID-475) | The recovery dialog is the rest of FT-313 (WP-S2.09) |
+| Exit | A clean project is closed at exit; a dirty one keeps its journal, and the next open is read-only with the recovery banner | The recovery dialog is the rest of FT-313 (WP-S2.09) |
 
-**The privacy link** (cycle 23, FT-342 closed; decision log ID-579). `PRIVACY.md` at the repository root lists what the
+**The privacy link** (closed). `PRIVACY.md` at the repository root lists what the
 application stores on the computer (settings with the recent-projects list, workspace layouts, the crash journal, the
 project lock file and the project directory with its assets) and every network flow the design foresees (update check,
 crash upload, help and community links, plugin network, `ew mcp`, the ODA converter), each marked as not implemented in
@@ -521,7 +520,7 @@ click, and the application itself sends nothing. When the browser cannot be open
 a banner shows the address ("PRIVACY.md could not be opened in a browser; it is at <address>."). `ui.describe` lists
 the button in both places.
 
-*As built (2026-11-04, cycle 50; WP-S6.05, decision log ID-1338, ID-1339; FT-386 closed).* **The privacy button**
+*As built (2026-11-04, closed).* **The privacy button**
 opens the bundled `PRIVACY.md` of the installed tree (`Resources::privacy_file`) as a local file, and `PRIVACY_URL`
 only when no bundled copy is found; `privacy-open-failed` no longer says "in a browser". **The start-up dialog**
 (FR-UI-050's 0.1.0 part, 05 §8.3 as built): after a session that ended with unsaved work or a crash, the next start
@@ -531,7 +530,7 @@ a line when the session crashed, and the buttons Recover (the Primary with a pro
 (secondary buttons, with a log) and Not now (the Primary for a log alone; Escape means the same). The Primary takes
 the first focus, so Enter runs it. Headless, the dialog is a pending prompt that does not block the script.
 
-**The headless mode** (decision log ID-474, ID-493). `elektrawatt --headless --script <file|->` runs the same registry
+**The headless mode**. `elektrawatt --headless --script <file|->` runs the same registry
 actions on the same shell model with no window, no GPU and no display, and writes a deterministic transcript: the
 script is JSON Lines `ew.uiscript/1`, the transcript JSON Lines `ew.uitranscript/1` with the observable state after
 each step, `ui.describe` returns the visible UI as text for agents and `view.snapshot` a PNG; `--record` keeps the
@@ -540,17 +539,17 @@ committed model commands as an `ew.cmdlog/1` log, and a headless run uses no use
 `ew-viewmodel`'s `describe.rs` (`VOCABULARY`, with `FREE_TEXT_MARKERS` for the markers after which a line is user text)
 and checked by a test; quoted text is user text, including the option lists of a choice, every dialog-text line and an
 unavailable preview's reason. The hidden actions `settings.set`, `first_run.*` and `wizard.*` let a script drive the
-first run and the wizard. Whatever the headless mode cannot do, the shell does not do (decision log ID-443).
-*Cycle 22 (ID-540):* the transcript's `canvas` member gains `renderer` (`auto` or `cpu`, the setting `canvas_backend`) as its last member, and `ui.describe` prints `canvas renderer auto|cpu`; the words `renderer`, `auto` and `cpu` join the vocabulary (ID-474). A headless run has no render state, so its canvas is always the CPU canvas. The registry action `wizard.apply_check_scheme` and its `reason-human-only` refusal are described in §9.2.
+first run and the wizard. Whatever the headless mode cannot do, the shell does not do.
+*Cycle 22:* the transcript's `canvas` member gains `renderer` (`auto` or `cpu`, the setting `canvas_backend`) as its last member, and `ui.describe` prints `canvas renderer auto|cpu`; the words `renderer`, `auto` and `cpu` join the vocabulary. A headless run has no render state, so its canvas is always the CPU canvas. The registry action `wizard.apply_check_scheme` and its `reason-human-only` refusal are described in §9.2.
 `elektrawatt --smoke <project-dir>` opens a project read-only, draws its first page and exits.
 
 **Resources.** The sample project, the content packs and the built guide are found next to the executable, in
 `share/elektrawatt` one level up, or in the source tree of a development build; `EW_SAMPLE_DIR`, `EW_CONTENT_DIR` and
-`EW_DOCS_DIR` override them, and a missing one disables only the feature that needs it (ID-492 R6).
+`EW_DOCS_DIR` override them, and a missing one disables only the feature that needs it (R6).
 
-### 3.10 As built: the command bar, rails, panels, status bar and HUD (cycle 32)
+### 3.10 As built: the command bar, rails, panels, status bar and HUD
 
-WP-S2.17 parts 2 to 5 (decision log ID-747 to ID-750) replace the menu bar, toolbar and hint strip of §3.2, §3.3 and
+WP-S2.17 parts 2 to 5 replace the menu bar, toolbar and hint strip of §3.2, §3.3 and
 §3.9 with the layout of [16a](16a-design-language.md) §5; where this section and §3.2 to §3.6 differ, this section
 holds.
 
@@ -566,8 +565,8 @@ holds.
 | Status bar | The state at the left; findings, job, selection, cursor, grid, zoom, save state ("Saved", "Unsaved changes", "Read-only"), renderer and notifications at the right (16a §5.8). |
 
 F6 cycles command bar, navigator, canvas and Properties (and History while it is shown). The headless describe output
-gains the `commandbar` section and the `hud` line; the dock tabs' restyle (FT-540) and the Properties filter for more
-than twelve rows (FT-541) are not built.
+gains the `commandbar` section and the `hud` line; the dock tabs' restyle and the Properties filter for more
+than twelve rows are not built.
 
 ---
 
@@ -600,8 +599,8 @@ Key events go to the first consumer in this order:
 Single-key bindings without modifiers (W, R, M) are inactive while a text field has focus. Each window has one
 focused pane, shown by a 2 px focus ring in the `focus` token (§11) and announced through AccessKit.
 
-*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-560).* Steps 3 and 4 were not reachable in cycle 23: there
-was no active tool before WP-S2.03 part 2 (step 3 is reachable since cycle 24, below), and the page navigator takes its
+*As built.* Steps 3 and 4 were not reachable in cycle 23: there
+was no active tool before WP-S2.03 part 2 (step 3 is reachable since , below), and the page navigator takes its
 keys through its own context. Every registry action
 has a **context**: `global` (every action that existed before), `canvas` (the grid-cursor actions, F, Shift+F and
 Ctrl+Shift+F) and `navigator` (its row keys). The window binds a context's chords only while the model's focus is in
@@ -615,9 +614,9 @@ slope separates a click from the start of a drag. **The mouse's back and forward
 FT-371. The navigator's row cursor follows the focused tab's page until the user
 moves it with the arrow keys, and then stays on the row the user chose while that row is shown, also after a jump made
 from the canvas or a link; making it follow such jumps is FT-371. The transcript's `navigator.row` is `null` while the
-cursor follows the current page (ID-557).
+cursor follows the current page.
 
-*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-587, ID-589).* Step 3 is reachable: the active tool of the
+*As built.* Step 3 is reachable: the active tool of the
 focused canvas takes the keys of the `canvas` context (§4.4) and the pointer events (§4.5). A click on a link is now
 the Select tool's `Follow` output; F stays the shell action `nav.follow` (above). **The Escape chain** runs in this
 order: a popup or dialog, then the link preview, then the tool's own step, then back to Select, then clearing the
@@ -644,7 +643,7 @@ code editors.
 | `:` | a cell in the project's xref format | ":103-A1" opens folio 103 with A1 centred (FR-UI-039) |
 | `?` | help topics and rule IDs | "?EW-POT-013" |
 
-*As built (cycle 53, decision log ID-1497).* Without a prefix the search ("Search commands and devices") lists, after
+*As built.* Without a prefix the search ("Search commands and devices") lists, after
 the actions, the devices, terminal strips and cables whose tag holds the query ("X1031" → -X1031); `>` keeps to the
 actions.
 
@@ -682,7 +681,7 @@ alt = "Alt+N"                  # second binding for keyboards without that key; 
 
 - **Presets.** "EW" and "KiCad-like" (M move, R rotate, W wire, E properties) at MVP (FR-UI-013); "EPLAN-like" at
   1.0, once two EPLAN users confirm its bindings (FR-UI-014, 02b Open question 14). The canvas bindings are
-  [06](06-schematic-editor.md) §6. This document adds the shell set. In the macOS column the key display is kept in `ew-ui` for portability only: macOS is not a supported platform and this is not tested (decision log ID-880):
+  [06](06-schematic-editor.md) §6. This document adds the shell set. In the macOS column the key display is kept in `ew-ui` for portability only: macOS is not a supported platform and this is not tested:
 
 | Action | EW preset | macOS |
 |---|---|---|
@@ -700,10 +699,10 @@ alt = "Alt+N"                  # second binding for keyboards without that key; 
 | Cycle dock areas | F6, Shift+F6 (as built: the page navigator, then each canvas group) | F6, ⇧F6 |
 | Maximise canvas | F11 | ⌃⌘F |
 | Settings | Ctrl+, | ⌘, |
-| Close project (cycle 23: moved here from Ctrl+W, decision log ID-557) | Ctrl+Shift+W | ⇧⌘W |
+| Close project (moved here from Ctrl+W) | Ctrl+Shift+W | ⇧⌘W |
 | New tab, close tab | Ctrl+T, Ctrl+W | ⌘T, ⌘W |
-| Next tab, previous tab (as built: the focused group, wrapping) | Ctrl+Tab, Ctrl+Shift+Tab | Control+Tab, Control+Shift+Tab, as in macOS browsers (⌘Tab belongs to the system; lead ruling, decision log ID-557) |
-| Other tab group | Ctrl+F6 | Control+F6 (ID-557) |
+| Next tab, previous tab (as built: the focused group, wrapping) | Ctrl+Tab, Ctrl+Shift+Tab | Control+Tab, Control+Shift+Tab, as in macOS browsers (⌘Tab belongs to the system; lead ruling) |
+| Other tab group | Ctrl+F6 | Control+F6 |
 | Back, Forward (per tab, 06 §6) | Alt+←, Alt+→ | ⌥←, ⌥→ |
 | Go to page or cell | Ctrl+G | ⌘G |
 | Follow cross-reference; next, previous link in reading order (canvas) | F; Shift+F, Ctrl+Shift+F | F; ⇧F, ⇧⌘F |
@@ -716,52 +715,52 @@ alt = "Alt+N"                  # second binding for keyboards without that key; 
 - **Keymap editor** (Tools ▸ Keymap): search actions, record a chord, show conflicts and shadowing (§15.5), reset
   per action, import and export. A keymap file from a newer version keeps unknown action IDs and marks them unused.
 
-*As built (cycle 40, WP-S2.08 part 2; decision log ID-923).* The presets are `crates/ew-viewmodel/keymaps/ew.toml`,
+*As built.* The presets are `crates/ew-viewmodel/keymaps/ew.toml`,
 generated from the action registry and kept equal by a test, and `kicad.toml` (the EW preset with A for Place instead
 of I and G beside M for Move); the contexts are the registry's five (`global`, the parent, and four children); `Plus`,
 `Minus` and `Equals` bind by logical key, punctuation by physical key. The user's `keymap.toml` replaces the preset's
 bindings of the actions it names. **The keymap editor is Help ▸ Keyboard shortcuts** (`help.shortcuts` made
 editable), not Tools ▸ Keymap: search, Record (the one recorded chord replaces the action's bindings, in its registry
 context), Reset per action, refused edits with their errors, what a changed binding shadows, the unused bindings, the
-Menu-key note (FT-428), Import keymap… and Export keymap… (the full effective keymap). An edit applies at once and is
+Menu-key note, Import keymap… and Export keymap… (the full effective keymap). An edit applies at once and is
 written only when the keymap has no error; while the file could not be read, or a refused one could not be copied
 aside, edits apply for the session and the file is left as it is. Renumber devices… has Ctrl+Shift+N; Print, Maximise
-canvas and Settings wait for their actions (FT-813). The keymap sheet `keymaps/sheet.json` feeds the generated page
+canvas and Settings wait for their actions. The keymap sheet `keymaps/sheet.json` feeds the generated page
 `reference/keymaps.md`.
 
-*As built (cycle 40, lane H40; decision log ID-934).* Zoom to 100 % binds `Ctrl+phys:Digit0`; the window shows a
+*As built (lane H40).* Zoom to 100 % binds `Ctrl+phys:Digit0`; the window shows a
 physical digit or letter as its key cap ("Ctrl+0"), never the `phys:` grammar. In the editor an action is Changed
 when its effective bindings differ from the preset's, so Reset, a user binding equal to the preset's and a
 re-imported export mark nothing; the Menu-key note shows under the list only while a chord is being recorded; a
 refused recording names what is in the way ("M is already Move in the canvas."). The editor lists conflicts and
 shadowing only, not the reachability infos (FT-846).
 
-*As built (cycle 40, FIX40d; decision log ID-939).* One display function (`keymap::display`) shows every physical key
+*As built (FIX40d).* One display function (`keymap::display`) shows every physical key
 the `phys:` grammar accepts as its US key cap (`phys:Minus` reads "-", `Shift+phys:BracketLeft` "Shift+[") in every
 text a person reads: the editor's refusal, conflict, shadow, Ctrl+Alt, reserved and needs-Shift texts, the unused
 bindings, the chips, the menus and the HUD; the grammar stays in the keymap file, and the book's keymap page explains
 it. A text that names a key for a way out takes the user's binding: EW-CORE-052's notice says "Press D for a target"
 with the EW preset, and names the action by its title when nothing is bound.
 
-*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-587).* The canvas context gains `]` and `[` (`cp.next`,
+*As built.* The canvas context gains `]` and `[` (`cp.next`,
 `cp.previous`), matched as physical keys so that they need no AltGr on QWERTZ and AZERTY, with Alt+N and Alt+Shift+N
 as the alternatives; N (`cp.next_unconnected`); Enter (`canvas.activate`, a click at the grid cursor, refused without a
 grid cursor); and Backspace (`tool.back`). Tools ▸ Select (`tool.select`) and Tools ▸ Measure (`tool.measure`) have no
 default keys. Checking `]` and `[` on German and French layouts is an owner item, not covered by the automated checks.
 
-*As built (cycle 25, WP-S2.04 part 1 and WP-S2.05 part 1; decision log ID-625, ID-626, ID-628).* The canvas keys of part 1 are in [06](06-schematic-editor.md) §6. The property grid has its own keyboard context: F2 edits the row, Shift+F10 opens the row menu (the Menu key is not reported by egui, FT-428), Shift+Enter opens the multi-language editor and Ctrl+Enter applies the preview card; the pane itself takes the arrows, Home, End, Enter (Override on a derived row), Space (a checkbox) and the keys that start an edit, and F6 moves the focus between the page navigator, the canvas groups and the grid. **Shortcuts are unique per shell context** (WP-S2.01 A1): one chord may be bound in two contexts, and a context's binding shadows a global one, which is §15.5's rule; Shift+Enter is "finish the tool" on the canvas and "multi-language editor" in the grid. The registry tests check uniqueness per context and keep the Ctrl+Alt+letter ban (ID-628).
+*As built.* The canvas keys of part 1 are in [06](06-schematic-editor.md) §6. The property grid has its own keyboard context: F2 edits the row, Shift+F10 opens the row menu (the Menu key is not reported by egui), Shift+Enter opens the multi-language editor and Ctrl+Enter applies the preview card; the pane itself takes the arrows, Home, End, Enter (Override on a derived row), Space (a checkbox) and the keys that start an edit, and F6 moves the focus between the page navigator, the canvas groups and the grid. **Shortcuts are unique per shell context** (WP-S2.01 A1): one chord may be bound in two contexts, and a context's binding shadows a global one, which is §15.5's rule; Shift+Enter is "finish the tool" on the canvas and "multi-language editor" in the grid. The registry tests check uniqueness per context and keep the Ctrl+Alt+letter ban.
 
-*As built (cycle 26, WP-S2.04 part 2 and WP-S2.05 part 2; decision log ID-634, ID-635, ID-638).* The wiring keys (W, Tab for the next proposal, C, Backspace in the Wire tool, Enter on a selected junction, Alt+Up and Alt+Down in the junction popup) and the find keys (Ctrl+F, Ctrl+H, and in the pane Enter, the arrows and Ctrl+Enter) are listed in [06](06-schematic-editor.md) §6. **Ctrl+Enter has one meaning per context:** `canvas.activate_alt` in the canvas (a click with Alt held at the grid cursor), `preview.apply` in the property grid and `find.replace_all` in the find pane (`preview.apply` there when a replace card is open). A find field that takes the keyboard focus makes the pane the shell's focus, so Tab and Shift+Tab move between its fields and never reach a canvas chord (the window check's defect, fixed in cycle 26; the focus report is one helper in `ew-ui`, which the property grid's editor field also calls). The table above gives Find and replace ⌥⌘F on macOS; as built it is Ctrl+H on every OS, and ⌘H hides an application on macOS, so the per-platform binding is FT-431.
+*As built.* The wiring keys (W, Tab for the next proposal, C, Backspace in the Wire tool, Enter on a selected junction, Alt+Up and Alt+Down in the junction popup) and the find keys (Ctrl+F, Ctrl+H, and in the pane Enter, the arrows and Ctrl+Enter) are listed in [06](06-schematic-editor.md) §6. **Ctrl+Enter has one meaning per context:** `canvas.activate_alt` in the canvas (a click with Alt held at the grid cursor), `preview.apply` in the property grid and `find.replace_all` in the find pane (`preview.apply` there when a replace card is open). A find field that takes the keyboard focus makes the pane the shell's focus, so Tab and Shift+Tab move between its fields and never reach a canvas chord (the window check's defect, fixed in ; the focus report is one helper in `ew-ui`, which the property grid's editor field also calls). The table above gives Find and replace ⌥⌘F on macOS; as built it is Ctrl+H on every OS, and ⌘H hides an application on macOS, so the per-platform binding is FT-431.
 
-*As built (cycle 27, WP-S2.04 part 3, WP-S2.05 part 3, FT-408 to FT-410; decision log ID-646, ID-648, ID-650, ID-651).* The canvas gains P (the IP tool; while the Wire tool routes, P ends the wire in an interruption point), D (the IP's direction) and B (the black box tool); Ctrl+C, Ctrl+X, Ctrl+V and Ctrl+D copy, cut, paste and duplicate on the canvas through the platform's clipboard events, and a focused text field keeps its own copy and paste; on Windows egui-winit also turns Shift+Delete into the Cut event, so Shift+Delete cuts there; while the IP tool's name field has the focus, P, D and B type into it. The creation form of `page.new`, `structure.new` and `external_ref.new` takes Enter to create, Escape to cancel and Tab to move on; the parts import's card applies with Apply or Ctrl+Enter. Cycle 28 correction `2a6ab87` shows the existing refusal banner only for incomplete-item Cut, preserving the marker, selection, external clipboard and pre-side-effect guard; Ctrl+X and Edit ▸ Cut passed the normal Windows recheck. Failed precedence and other Refused behavior remain unchanged. A later check reproduced missing OS publication despite successful Cut removal; `6ecc9e7` enables and guards the shipped clipboard feature. Keyboard Ctrl+C and Edit ▸ Cut then published the fragment to the OS clipboard, independently read through Win32, and Ctrl+V plus placement rendered changed external fragment text (ID-660).
+*As built.* The canvas gains P (the IP tool; while the Wire tool routes, P ends the wire in an interruption point), D (the IP's direction) and B (the black box tool); Ctrl+C, Ctrl+X, Ctrl+V and Ctrl+D copy, cut, paste and duplicate on the canvas through the platform's clipboard events, and a focused text field keeps its own copy and paste; on Windows egui-winit also turns Shift+Delete into the Cut event, so Shift+Delete cuts there; while the IP tool's name field has the focus, P, D and B type into it. The creation form of `page.new`, `structure.new` and `external_ref.new` takes Enter to create, Escape to cancel and Tab to move on; the parts import's card applies with Apply or Ctrl+Enter. Cycle 28 correction `2a6ab87` shows the existing refusal banner only for incomplete-item Cut, preserving the marker, selection, external clipboard and pre-side-effect guard; Ctrl+X and Edit ▸ Cut passed the normal Windows recheck. Failed precedence and other Refused behavior remain unchanged. A later check reproduced missing OS publication despite successful Cut removal; `6ecc9e7` enables and guards the shipped clipboard feature. Keyboard Ctrl+C and Edit ▸ Cut then published the fragment to the OS clipboard, independently read through Win32, and Ctrl+V plus placement rendered changed external fragment text.
 
-*As built (cycle 29, FT-467; decision log ID-676).* Every native file dialog (open folder, new folder, open .qet, open parts table, open image, save PDF) runs on a thread of its own, and its answer returns to the shell by a channel and a repaint request, so the card or dialog raised after it (the parts import's card among them) is painted at once without pointer input; on Windows the dialog is owned by the main window, which takes no input while it is open. This closes FT-467's note that such a card was painted only after the mouse moved.
+*As built.* Every native file dialog (open folder, new folder, open .qet, open parts table, open image, save PDF) runs on a thread of its own, and its answer returns to the shell by a channel and a repaint request, so the card or dialog raised after it (the parts import's card among them) is painted at once without pointer input; on Windows the dialog is owned by the main window, which takes no input while it is open. This closes FT-467's note that such a card was painted only after the mouse moved.
 
-*As built (cycle 28, ID-659):* T starts Text, F2 edits a selected free text, L starts a line, Shift+W starts Wire marker and Shift+B starts Structure box. D changes arc direction in Graphic; Shift+Enter or double click finishes a Graphic/Structure box outline. Edit ▸ Bridge terminals has no shortcut.
+*As built:* T starts Text, F2 edits a selected free text, L starts a line, Shift+W starts Wire marker and Shift+B starts Structure box. D changes arc direction in Graphic; Shift+Enter or double click finishes a Graphic/Structure box outline. Edit ▸ Bridge terminals has no shortcut.
 
-*As built (cycle 34, WP-S2.07 part 1; decision log ID-782).* **The strip editor's keys.** In the Terminal strips navigator (open and focused; headless: open) Insert is `strip.insert` (Insert terminal, before the cursor terminal row) and Ctrl+Delete is `strip.delete_rows` (Delete rows; terminal rows through the table card, accessory rows directly). Edit ▸ Strip editor (`strip.edit`), Add accessory (`strip.add_accessory`), Remove bridge (`strip.unbridge`) and Bridge terminals (`strip.bridge`) have no shortcut. **Alt+Up and Alt+Down are `strip.move` (`step` −1 and +1) while the Terminal strips navigator has the focus, and `pages.move_up` and `pages.move_down` elsewhere** (the lead's ruling, built in ce9bad22: the shell maps the page-move chords to `strip.move` in that focus, so the keymap conflict test of §15.5 still sees one binding per chord). The Pos cell's read-only reason reads "move rows with Alt+Up and Alt+Down". Enter on an unplaced terminal row (placing it) is part 2 as well.
+*As built.* **The strip editor's keys.** In the Terminal strips navigator (open and focused; headless: open) Insert is `strip.insert` (Insert terminal, before the cursor terminal row) and Ctrl+Delete is `strip.delete_rows` (Delete rows; terminal rows through the table card, accessory rows directly). Edit ▸ Strip editor (`strip.edit`), Add accessory (`strip.add_accessory`), Remove bridge (`strip.unbridge`) and Bridge terminals (`strip.bridge`) have no shortcut. **Alt+Up and Alt+Down are `strip.move` (`step` −1 and +1) while the Terminal strips navigator has the focus, and `pages.move_up` and `pages.move_down` elsewhere** (the lead's ruling, built in ce9bad22: the shell maps the page-move chords to `strip.move` in that focus, so the keymap conflict test of §15.5 still sees one binding per chord). The Pos cell's read-only reason reads "move rows with Alt+Up and Alt+Down". Enter on an unplaced terminal row (placing it) is part 2 as well.
 
-*As built (cycle 35, WP-S2.18 part 1; decision log ID-817).* **J is `place.join`** in the canvas context, enabled only while the Place tool's armed symbol can be an auxiliary function (the HUD names it: "J Join device…"). It opens the Join chooser ([16a](16a-design-language.md) §6.22, [06](06-schematic-editor.md) §3.3), whose actions `chooser.row`, `chooser.type` and `chooser.choose` have no default keymap entry: the chooser takes Up, Down, Home, End, type-ahead, Enter and Escape (`ui.dismiss`) itself. **275 actions.**
+*As built.* **J is `place.join`** in the canvas context, enabled only while the Place tool's armed symbol can be an auxiliary function (the HUD names it: "J Join device…"). It opens the Join chooser ([16a](16a-design-language.md) §6.22, [06](06-schematic-editor.md) §3.3), whose actions `chooser.row`, `chooser.type` and `chooser.choose` have no default keymap entry: the chooser takes Up, Down, Home, End, type-ahead, Enter and Escape (`ui.dismiss`) itself. **275 actions.**
 
 ### 4.5 Tool host
 
@@ -773,23 +772,23 @@ region: "Wire: routing from -102F1:2. Click a connection point; Backspace remove
 Tool options (Place: variant A–H, representation type, autoconnect; Wire: orthogonal, sticky) sit in a strip
 above the canvas, never in a dialog. Layout and 3D tools ([12](12-panel-layout.md) §12) use the same contract.
 
-*Decided for WP-S2.03 (cycle 22; decision log ID-536); as-built text for part 2 follows below (cycle 24).* The tool host and the tools live in
+*Decided for WP-S2.03; as-built text for part 2 follows below.* The tool host and the tools live in
 **`ew-viewmodel`**, toolkit-neutral and drivable headless; `ew-ui` only paints (the overlay, the status hint and the
 live region). The host keeps **one active tool per window**, acting on the focused group's canvas, not one per canvas:
 activating another tool cancels the current one, and focusing the other group sends Escape to a tool that is not in
 its first state. Two consequences amend the paragraph above: a tool's `Preview` is evaluated through `Session::preview`
 on the UI thread after the pointer has rested 80 ms (the action `canvas.dwell`, so no timing lives in the model), and a
 fork job off the UI thread is FT-358; and tools receive the prepared page tables and no `World` (doc 06 §4.1). The
-shipped Select and Measure tools commit nothing: the shell stays a viewer until WP-S2.04 (ID-532).
+shipped Select and Measure tools commit nothing: the shell stays a viewer until WP-S2.04.
 
-*Cycle 23 (WP-S2.03 part 1 delivered; decision log ID-556).* Part 1 builds no tool host: the tool framework is part 2
-(delivered in cycle 24, below), and its specification above is unchanged. What part 1 added for it is the canvas area
+*Cycle 23 (delivered).* Part 1 builds no tool host: the tool framework is part 2
+(delivered in , below), and its specification above is unchanged. What part 1 added for it is the canvas area
 (§3.4), the focus areas with their keyboard contexts (§4.2), the grid cursor (§10.1) and the per-page content cache that
 part 2's `page_cps` and tool context extend (§2.5). In cycle 23 a click on a link and F were handled by the shell's own
 actions `nav.follow` and its siblings, not by a tool's `Follow` output; since cycle 24 a click is the Select tool's
 `Follow` output.
 
-*As built (cycle 24, WP-S2.03 part 2; decision log ID-586 to ID-589).* The host is in `ew-viewmodel` (the shell), with
+*As built.* The host is in `ew-viewmodel` (the shell), with
 one active tool per window acting on the focused group's canvas; Select is the default tool. It handles the tool's
 output as follows: overlay items go to the canvas overlay, `Select` replaces the selection, `Follow` navigates the
 focused group, and a preview or commit goes to the session (one output per event). **Previews** run on the UI thread
@@ -798,8 +797,8 @@ a stale state when the revision moves on; the fork job off the UI thread is FT-3
 through `Session::commit` of a fresh equal preview, else `Session::execute_with`; headless they go through
 `Session::run_script`, the `command.run` path, where a `HumanOnly` command is refused and `--record` holds the line. A
 commit is refused on a read-only project (`reason-read-only`). A tool's preview does run on a read-only project and
-shows as ready, since a preview is a read; only the commit is refused, and no extra badge shows (ruling, ID-589). The
-shipped Select and Measure tools neither preview nor commit: the shell stays read-only until WP-S2.04 (ID-513).
+shows as ready, since a preview is a read; only the commit is refused, and no extra badge shows. The
+shipped Select and Measure tools neither preview nor commit: the shell stays read-only until WP-S2.04.
 
 The window measures the pointer's rest and sends the hidden action `canvas.dwell` after 80 ms and after 300 ms, so no
 timing lives in the model. At 300 ms over a link, while the tool wants hover (Select yes, Measure no), a preview popup of
@@ -809,7 +808,7 @@ hint reads `Click or F: go to <target>` (§3.6). Headless, `canvas.preview_snaps
 a PNG, as `canvas.snapshot` does for the page, and is refused without a preview. Under Measure the entity hover
 outline and the link hover and preview are not drawn, while the transcript's `hover` member and describe's `canvas
 hover` line still report the entity under the pointer: the transcript reports the model's truth, the tool only decides
-what is drawn (ruling, ID-589).
+what is drawn.
 
 **The status hint and its announcement.** The canvas node's polite live region (§10.1) announces the active tool's hint
 only when its text changes. "<n> selected" wins in the same step and stays until the cursor moves; an identical text
@@ -817,15 +816,15 @@ only when its text changes. "<n> selected" wins in the same step and stays until
 (NFR-A11Y-01).
 
 **Preview chips.** The semantic ghost (the `before -> after` texts and the stale badge) shows as chips in the canvas's
-top-left corner, because the derived diff carries no positions. This is an interim rule (ID-587): placing the chips by
+top-left corner, because the derived diff carries no positions. This is an interim rule: placing the chips by
 the tag's position once WP-S2.04's page tables exist is FT-389. The chips must not cover the statistics panel. The link
-preview popup has no AccessKit node yet (FT-390; the status hint already names the target).
+preview popup has no AccessKit node yet (the status hint already names the target).
 
-*As built (cycle 25, WP-S2.04 part 1; decision log ID-625).* The first committing tools ship: **Place** (armed from the picker, a dashed outline with connection-point marks and a label with the variant letter, the target and, after the 80 ms preview, the predicted tag; it stays armed after a placement; Escape disarms), the **keyboard move** (M) and Select's **drag rows** (a ghost, rubber bands and the readout `dx … dy … mm`, in grid steps), the **transforms** and Delete on a selection, and **Change symbol** (the exchange ghost names the unmapped connection points from the command's notices, an interim until FT-424). The **tool strip** above the canvas shows, as read-only text, the active tool's label and what it floats or drags as the transcript's `ghost` says it (Place: the symbol, the variant letter, the target, the letter or strip and the predicted tag; "(new strip)" until the first terminal prints a new strip's tag, FT-421); the options themselves are set by keys and hidden actions, and nothing is shown for Select at rest. A **double click** finishes the active tool: its second press is sent as `tool.finish` and its release dropped, measured by the window on egui's input clock with egui's 0.5 s interval (the platform's interval is FT-426); no timing reaches the model. A pending move is cancelled when the selection, the revision or one of its representations changes, and Delete cancels it before deleting. Previews, commits and the read-only refusal are as above; a preview's chips stay in the top-left corner until FT-389.
+*As built.* The first committing tools ship: **Place** (armed from the picker, a dashed outline with connection-point marks and a label with the variant letter, the target and, after the 80 ms preview, the predicted tag; it stays armed after a placement; Escape disarms), the **keyboard move** (M) and Select's **drag rows** (a ghost, rubber bands and the readout `dx … dy … mm`, in grid steps), the **transforms** and Delete on a selection, and **Change symbol** (the exchange ghost names the unmapped connection points from the command's notices, an interim until FT-424). The **tool strip** above the canvas shows, as read-only text, the active tool's label and what it floats or drags as the transcript's `ghost` says it (Place: the symbol, the variant letter, the target, the letter or strip and the predicted tag; "(new strip)" until the first terminal prints a new strip's tag, FT-421); the options themselves are set by keys and hidden actions, and nothing is shown for Select at rest. A **double click** finishes the active tool: its second press is sent as `tool.finish` and its release dropped, measured by the window on egui's input clock with egui's 0.5 s interval (the platform's interval is FT-426); no timing reaches the model. A pending move is cancelled when the selection, the revision or one of its representations changes, and Delete cancels it before deleting. Previews, commits and the read-only refusal are as above; a preview's chips stay in the top-left corner until FT-389.
 
-*As built (cycle 26, WP-S2.04 part 2; decision log ID-635, ID-639).* The **Wire tool** (W) snaps a connection point, a junction, a point on a wire segment or the grid (Alt suppresses object snaps), draws a dashed routed ghost with the length readout, fixes a bend on each grid click, removes the last bend with Backspace and commits exactly the ghost's route; it draws the page type's kind and is disabled where that kind is not built ([06](06-schematic-editor.md) §2.2). The live region announces "Wire: routing from <label>. Click a connection point; Backspace removes the last bend; Escape cancels". **Proposals** are dashed stubs on the Place ghost, Tab cycles them, and Alt (Ctrl+Enter from the keyboard) places without them; a move shows its proposals and never commits them. **Route edit** drags a middle segment of a selected connection; the first and last segments of a route never move, so a press there is a rubber band, and an L-shaped wire has no movable segment until bend insertion (FT-374). The **junction sequence editor** is a popup on exactly one selected junction. **Three rules from the window check:** a page or tab change ends Wire, Edit route, Place and Change symbol and Select takes over, the selection kept; the **tool strip's row is always reserved** (Select shows a hint there at rest), so the canvas is one row shorter at rest and never shifts under the pointer when a gesture starts; and a ready preview that changes no tag and no cross-reference text paints **no chip** (a route edit, a move, a wire that changes only potentials or wire numbers): the readout and the strip carry it. An undo or redo drops the tool's overlay and preview. A refused action writes its reason in the status bar (C, connect on move, FT-373), and Edit ▸ Edit route and Edit ▸ Junction sequence… say "Select exactly one connection" and "Select exactly one junction" while disabled.
+*As built.* The **Wire tool** (W) snaps a connection point, a junction, a point on a wire segment or the grid (Alt suppresses object snaps), draws a dashed routed ghost with the length readout, fixes a bend on each grid click, removes the last bend with Backspace and commits exactly the ghost's route; it draws the page type's kind and is disabled where that kind is not built ([06](06-schematic-editor.md) §2.2). The live region announces "Wire: routing from <label>. Click a connection point; Backspace removes the last bend; Escape cancels". **Proposals** are dashed stubs on the Place ghost, Tab cycles them, and Alt (Ctrl+Enter from the keyboard) places without them; a move shows its proposals and never commits them. **Route edit** drags a middle segment of a selected connection; the first and last segments of a route never move, so a press there is a rubber band, and an L-shaped wire has no movable segment until bend insertion (FT-374). The **junction sequence editor** is a popup on exactly one selected junction. **Three rules from the window check:** a page or tab change ends Wire, Edit route, Place and Change symbol and Select takes over, the selection kept; the **tool strip's row is always reserved** (Select shows a hint there at rest), so the canvas is one row shorter at rest and never shifts under the pointer when a gesture starts; and a ready preview that changes no tag and no cross-reference text paints **no chip** (a route edit, a move, a wire that changes only potentials or wire numbers): the readout and the strip carry it. An undo or redo drops the tool's overlay and preview. A refused action writes its reason in the status bar (C, connect on move, FT-373), and Edit ▸ Edit route and Edit ▸ Junction sequence… say "Select exactly one connection" and "Select exactly one junction" while disabled.
 
-*As built (cycle 53; WP-S2.19 D13 to D15, decision log ID-1499, ID-1506).* Draw ▸ Connect gains **Route page** and
+*As built.* Draw ▸ Connect gains **Route page** and
 **Route selection**, with no default key, stacked in one column of the Connect group after Interruption. Each shows
 its plan as a card in the Preview tab, "Route 3 wires on folio 101: 2 routed, 1 not routed.", with one row per wire
 left unrouted and its reason ("No route keeps clear of other wires: -101F1:2 → -101E55:L."), and Apply commits the
@@ -840,7 +839,7 @@ keymap; Alt held at a drag's release moves without them, and the keyboard move (
 since only a drag's release reads the modifier. On the release of a move the wires whose followed route would break
 a hard rule, bend more or stay unrouted are routed again in the same undo step.
 
-*As built (cycle 28, ID-659).* Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every part-4b tool. These statements describe accepted corrected code; window evidence and remaining checks are recorded in ID-665. Text edit uses F2/double click on a free text and refuses a read-only page; Tools ▸ Wire markers selects the checked project marker mode.
+*As built.* Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every part-4b tool. These statements describe accepted corrected code; window evidence and remaining checks are recorded in ID-665. Text edit uses F2/double click on a free text and refuses a read-only page; Tools ▸ Wire markers selects the checked project marker mode.
 
 ### 4.6 Selection
 
@@ -854,13 +853,13 @@ a hard rule, bend more or stay unrouted are routed again in the same undo step.
 - The selection survives page switches. Undo restores the selection of its entry. Entities removed by undo or an
   external change are dropped with a status message.
 
-*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-589).* Click selects, Shift adds and Ctrl toggles. A
+*As built.* Click selects, Shift adds and Ctrl toggles. A
 left-to-right drag draws a solid band that selects what it encloses; a right-to-left drag draws a dashed band that
 selects what it touches. An entity with several rectangles is enclosed only if all of them are inside the band and
 touched if any is. A click on empty canvas clears the selection (Shift keeps it). Selected items carry a 2-pixel solid
 blue outline (#0072B2). The live region says `<n> selected`. Not built: the rich announcement above, Ctrl+A, and undo
 restoring the selection; they are follow-ups of WP-S2.04 and WP-S2.05 (specification WP-S2.03 §12).
-*As built (cycle 53, decision log ID-1497).* Ctrl+A is built for a navigator's table only: it marks every row of the
+*As built.* Ctrl+A is built for a navigator's table only: it marks every row of the
 filtered table. The canvas's Ctrl+A is not built. The canvas's status field and HUD count a selection only when part
 of it is drawn on the page shown: a page chosen in the page list (its page record) or a device selected by its tag
 with nothing drawn there is not counted, and the HUD offers no Delete for it; the live region and the page list's
@@ -918,7 +917,7 @@ the device navigator" (06 §8, D-10).
 - **Keyboard:** arrows; Left and Right collapse and expand; Enter opens the main representation; Space toggles
   selection; F2 edits an authored label; Delete runs the domain delete command, with a preview when it cascades;
   typing jumps to the next row starting with the typed prefix (reset after 1 s).
-- **Accessible names:** `"<label>, <kind>, <badges>, level n, m of k"`, for example "-X1031, terminal strip, 12 spare, level 1, 2 of 3". *As built for the Pages navigator (cycle 23, §5.2):* the level, position and set size are AccessKit properties of the tree item, not words of its name.
+- **Accessible names:** `"<label>, <kind>, <badges>, level n, m of k"`, for example "-X1031, terminal strip, 12 spare, level 1, 2 of 3". *As built for the Pages navigator (§5.2):* the level, position and set size are AccessKit properties of the tree item, not words of its name.
 
 ### 5.2 Catalogue
 
@@ -939,7 +938,7 @@ the device navigator" (06 §8, D-10).
 | Report blocks | section → block | kind, folio, filter, pages | — | 11 page blocks (2, 901, 903 … 911) plus embedded blocks (PART DATA on 201, 202, 902; cover tables on 1) | MVP | 09 |
 | Bus networks, fluid, layout, comments | per FR-UI-006 | — | — | 28 valves and lines F1–F16; carriers and placements | 1.0 | 10, [11](11-fluid-power.md), 12, 15 |
 
-*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-557, ID-560): the Pages navigator.* The `pages` pane
+*As built: the Pages navigator.* The `pages` pane
 (its workspace key is unchanged) is now a navigator, built from `Session::page_rows` once per revision, in place of the
 page list of cycle 19. **Views:** flat (one level), by section (the default: a node per section in section order, front
 matter first, then its pages) or by structure (function nodes, location nodes inside them, section nodes inside those; a
@@ -957,12 +956,12 @@ with row virtualisation. **Accessibility** (§10.1): the list is a `Tree`; a pag
 in the set, the set size and the expanded state are AccessKit's own properties, which a screen reader speaks in its own
 way (they carry the "level n, m of k" of §5.1 instead of words in the name). **Golden A** lists its 36 entries (13 page
 records and 23 generated pages, in the order of the catalogue row above) in every view, and FR-PAG-024's viewing part is
-met. **Not built:** multi-selection and drag to reorder with the renumber preview (FT-360), type-ahead, the thumbnail
+met. **Not built:** multi-selection and drag to reorder with the renumber preview, type-ahead, the thumbnail
 mode and the facet filter. **Open items (FT-371):** the row cursor stays where the user put it after a jump made
 elsewhere (§4.2), and the visible rows are rebuilt from the page rows on every call instead of being cached per
 revision and navigator state.
 
-*As built (cycle 30, WP-S2.06 parts 1 and 2; decision log ID-709, ID-712, ID-713): eleven navigators on one framework.*
+*As built: eleven navigators on one framework.*
 Pages and Devices (part 1) and Connections, Terminal strips, Cables, PLC, Potentials, Interruption points, Structure
 identifiers, Parts in use and Report blocks (part 2) are shown from View ▸ Navigators and read their rows from
 `Session::navigator_table`, the last nine through `ew_reports::project_rows`, so each equals its stored report block on
@@ -975,8 +974,8 @@ CP drawn on the page; an unnumbered wire reads `<from> <cp> → <to> <cp>`; ever
 least once, shared only by junction arms. **Structure identifiers:** aspect groups in the Function and Location roles;
 aliases are filter tokens. **PLC:** a channel's label is its address, else its number; it opens its representation's
 page with nothing selected. **Report blocks:** an embedded block shows its host page as first folio, a page count of 0
-and no open target; a block's section is that of its first page. **Not built:** Messages (WP-S2.09's panel, FT-493),
-Unplaced devices (WP-S4.02, FT-486), the library status of parts (FT-487), finding badges and `has:finding`
+and no open target; a block's section is that of its first page. **Not built:** Messages ('s panel),
+Unplaced devices, the library status of parts, finding badges and `has:finding`
 (FT-488), thumbnails (FT-492), persisted navigator state (FT-489), Delete and F2 in trees (FT-490).
 
 Symbol, part and macro **browsers** are library views, specified in [07](07-symbols-parts-macros.md) §5; they
@@ -990,7 +989,7 @@ autocompletion: `page:103`, `potential:24VDC-1`, `state:spare`, `kind:terminal`,
 per keystroke at XL (NFR-PERF-15; §15.2). Filters are saved per navigator instance in the per-user view state
 `.ew/u-<hash>/view.json` (§2.5).
 
-*As built (cycle 30, WP-S2.06 part 1; decision log ID-684, ID-709).* A row matches when every query token is a prefix
+*As built.* A row matches when every query token is a prefix
 of one of its tokens, in any order (so `-12k4` also matches -49K12), or when the whole case-folded query is a substring
 of its label; the facets are the closed list `page:`, `potential:`, `state:`, `kind:`, `part:` and the flags
 `unplaced` and `frozen` (`has:finding` waits for FT-488); always on the UI thread. Filters are not yet saved (FT-489).
@@ -1004,7 +1003,7 @@ Selection is synchronised both ways (FR-UI-007; algorithm in §15.3):
   this page: 201-E1, 3-B2, 106-G3, 902", and Enter opens the page of the main representation (lowest page order,
   row, column, ID; [03](03-domain-model.md) §8.2).
 
-*As built (cycle 30, WP-S2.06 part 1; decision log ID-684, ID-709).* Marking rows selects the drawables on the shown
+*As built.* Marking rows selects the drawables on the shown
 page, else the records, and never switches the page; the chip line above the canvas area lists at most 12 places (main
 first) as buttons named `Open <folio>-<cell>`, and a selection or page change clears it. Every open navigator follows a
 foreign selection once (the deepest node per record, ancestors expanded, the cursor on the first), guarded by a
@@ -1022,9 +1021,9 @@ selection generation; a page switch puts the Pages cursor on the current page.
   user properties, Extra (unknown fields, read-only). They come from `ew-schema` metadata (type, unit, enum options,
   Fluent label key; FR-UI-009). Collapse states persist per entity kind.
 
-*As built (cycle 25, WP-S2.05 part 1; decision log ID-626).* The **Properties** pane (View ▸ Properties; Edit ▸ Properties of selection moves the focus to it) shows the selection, or the page on show when nothing is selected or when the selection was made on another page (the selection survives page switches, §4.6; the pane shows it again on returning to its page; cycle-27 window fix round, ID-652). The header carries the title (a record's tag, wire number, folio and title or name; for several records `<n> <kinds>`), the device's function text, the main location as folio and cell, and the finding chips of the drafting scheme on the shown records (rule, severity, message). Below it, one **section per record kind** (a representation reaches its representation, its functions and their devices), each with collapsible categories by the specification's table: Identity, Part, Electrical, Connection points, Texts, Structure, Placement, Terminal, Cable, PLC, Assembly, Other and Extra; Manufacturing and user properties have no members yet. Labels are English from `ew_viewmodel::strings` (an exact entry, else the humanised last path segment); Fluent keys come with WP-S2.08. Collapse states persist per kind and category. Rows are named AccessKit groups (label, then value, chip, read-only reason and error as the description), and a long value is ellipsised in the middle with the whole text in its tooltip.
+*As built.* The **Properties** pane (View ▸ Properties; Edit ▸ Properties of selection moves the focus to it) shows the selection, or the page on show when nothing is selected or when the selection was made on another page (the selection survives page switches, §4.6; the pane shows it again on returning to its page; window fix round). The header carries the title (a record's tag, wire number, folio and title or name; for several records `<n> <kinds>`), the device's function text, the main location as folio and cell, and the finding chips of the drafting scheme on the shown records (rule, severity, message). Below it, one **section per record kind** (a representation reaches its representation, its functions and their devices), each with collapsible categories by the specification's table: Identity, Part, Electrical, Connection points, Texts, Structure, Placement, Terminal, Cable, PLC, Assembly, Other and Extra; Manufacturing and user properties have no members yet. Labels are English from `ew_viewmodel::strings` (an exact entry, else the humanised last path segment); Fluent keys come with WP-S2.08. Collapse states persist per kind and category. Rows are named AccessKit groups (label, then value, chip, read-only reason and error as the description), and a long value is ellipsised in the middle with the whole text in its tooltip.
 
-*Cycle 28 (FT-450, ID-659):* non-settable page-item/structure-box rows give specific reasons: changing a variant or marker group requires delete/place; geometry uses the canvas routes. The initial actual Windows sheets exposed a missing entity lookup despite the FT-450 catalogue check. Accepted correction `e9e9600` adds the PageItem/StructureBox lookup kinds; selected text, graphic, box and marker now show populated narrowed Properties in the focused normal Windows recheck. No selection or entity loss occurred.
+*Cycle 28:* non-settable page-item/structure-box rows give specific reasons: changing a variant or marker group requires delete/place; geometry uses the canvas routes. The initial actual Windows sheets exposed a missing entity lookup despite the FT-450 catalogue check. Accepted correction `e9e9600` adds the PageItem/StructureBox lookup kinds; selected text, graphic, box and marker now show populated narrowed Properties in the focused normal Windows recheck. No selection or entity loss occurred.
 
 ### 6.2 Rows and provenance
 
@@ -1056,9 +1055,9 @@ Part           2904602    book library 'ew-parts' v3 · update available        
 | Varies | `‹varies›` | "3 values" (listed on hover) | set all | — |
 
 The chip names the profile that supplied the value: the cross-section from the size profile, the colour from the colour
-profile (amended in cycle 24, WP-S2.05 D15; decision log ID-598).
+profile.
 
-*As built (cycle 25; decision log ID-626).* The chips are a glyph and words, never colour alone, and D15's golden chips match (W29's cross-section and colour name their profiles; W20's override; S51 frozen; page 101's description inherited from the project). The `Committed` and `Async` rows and the "Why?" action are not built (§2.2, FT-393); a row's actions are the ones its route allows (edit, clear, override, reset, freeze, unfreeze, set all), and a read-only row has none.
+*As built.* The chips are a glyph and words, never colour alone, and D15's golden chips match (W29's cross-section and colour name their profiles; W20's override; S51 frozen; page 101's description inherited from the project). The `Committed` and `Async` rows and the "Why?" action are not built (§2.2, FT-393); a row's actions are the ones its route allows (edit, clear, override, reset, freeze, unfreeze, set all), and a read-only row has none.
 
 Every state is distinguished by icon and text, not by colour (FR-UI-025). The examples above are the golden
 values: W29 (FR-UI-010, AC-28), W20 with its CDP, frozen S51 (Golden B maps it to -101S1), Q0.1 from
@@ -1078,7 +1077,7 @@ values: W29 (FR-UI-010, AC-28), W20 with its CDP, frozen S51 (Golden B maps it t
 - **Read-only reasons** are stated in place: "generated", "defined at -102F2:Out1 (potential definition) · Go to",
   `project locked by <user>@<host>`, "released in V1.0; edits go to the open revision".
 
-*As built (cycle 25, WP-S2.05 part 1; decision log ID-626).* **Commit:** Enter, Tab or leaving the field commits; typing commits nothing, Escape reverts, and Enter without a change writes nothing, so a display form that does not parse (a part's "number (manufacturer)") is never written back. One edit is one command and one undo step (no coalescing is needed). **Routes:** a row is edited through `fields.set` on its settable path or through one `project.settings.set` member; every other row is read-only and says why: the record's identity; another command ("set on the canvas", the wizard, a named command); a `HumanOnly` command (`settings.checks`: the wizard's check-scheme step); "no command yet"; or the narrowing table (revision `author` and `checker`, which decide the four-eyes sign-off, [15](15-checks-revisions-collaboration.md) §5.4). A read-only project offers no action on any row. **Override and freeze** as above; Enter on a derived row is Override. **Multi-language text:** the field edits the source language (the project's first language, else the object's first, which is the alphabetically first key when the project names no languages); committing writes that language inside the stored object and keeps the others, and an emptied text removes only that language; Shift+Enter opens the per-language editor. **Typed editors:** enums, colours, part references and structure slots list their options (`Session::field_choices`) in a list box under the field, filtered by what is typed (Up and Down move the highlight while the field keeps the focus; Enter or a click chooses, and the field's focus loss commits nothing while the pointer is on the list, lane B's last fix); a boolean is a named checkbox; an ambiguous number ("1,500") offers its two readings. The editable values the schema types only as JSON (the catalogue file lists them) are edited as JSON text until FT-429. **Refusals** show the command's message under the field with the typed text kept; a refusal at a target names it by its label, and pages by folio.
+*As built.* **Commit:** Enter, Tab or leaving the field commits; typing commits nothing, Escape reverts, and Enter without a change writes nothing, so a display form that does not parse (a part's "number (manufacturer)") is never written back. One edit is one command and one undo step (no coalescing is needed). **Routes:** a row is edited through `fields.set` on its settable path or through one `project.settings.set` member; every other row is read-only and says why: the record's identity; another command ("set on the canvas", the wizard, a named command); a `HumanOnly` command (`settings.checks`: the wizard's check-scheme step); "no command yet"; or the narrowing table (revision `author` and `checker`, which decide the four-eyes sign-off, [15](15-checks-revisions-collaboration.md) §5.4). A read-only project offers no action on any row. **Override and freeze** as above; Enter on a derived row is Override. **Multi-language text:** the field edits the source language (the project's first language, else the object's first, which is the alphabetically first key when the project names no languages); committing writes that language inside the stored object and keeps the others, and an emptied text removes only that language; Shift+Enter opens the per-language editor. **Typed editors:** enums, colours, part references and structure slots list their options (`Session::field_choices`) in a list box under the field, filtered by what is typed (Up and Down move the highlight while the field keeps the focus; Enter or a click chooses, and the field's focus loss commits nothing while the pointer is on the list, lane B's last fix); a boolean is a named checkbox; an ambiguous number ("1,500") offers its two readings. The editable values the schema types only as JSON (the catalogue file lists them) are edited as JSON text until FT-429. **Refusals** show the command's message under the field with the typed text kept; a refusal at a target names it by its label, and pages by folio.
 
 **Typed editors.**
 
@@ -1124,9 +1123,9 @@ and tube table are table models with domain commands for insert, delete and move
 | Pattern fill (Ctrl+Shift+D) | `fields.set` with per-row values | 1 | rule §7.5 |
 | Paste from Excel (Ctrl+V) | `fields.set`, plus inserts where the table allows them | 1 | rule §7.5 |
 | Clear cells (Delete) | `fields.set` to empty, which removes overrides | 1 | no |
-| Insert, delete, move rows | the table's domain commands (strip editor: insert, delete, move, re-designate; as built in cycle 34: `terminal.insert`, `edit.delete` of the terminal devices, `terminal.move`, the Terminal cell for re-designation as built, and `fields.set` of `strip.accessories` for accessory rows) | 1 each | ghost of prevent-rule violations (08 §9); as built, a terminal-row delete always opens the table card, the other row gestures commit directly with a toast and an undo step |
+| Insert, delete, move rows | the table's domain commands (strip editor: insert, delete, move, re-designate; as built in : `terminal.insert`, `edit.delete` of the terminal devices, `terminal.move`, the Terminal cell for re-designation as built, and `fields.set` of `strip.accessories` for accessory rows) | 1 each | ghost of prevent-rule violations (08 §9); as built, a terminal-row delete always opens the table card, the other row gestures commit directly with a toast and an undo step |
 | Sort, filter, resize, reorder columns | none | 0 | — |
-| Excel round-trip import | `table.apply_changes` ([14](14-interop.md) §8.2); as built (cycle 47, ID-1193): one `fields.set_many` | 1 | always |
+| Excel round-trip import | `table.apply_changes` ([14](14-interop.md) §8.2); as built: one `fields.set_many` | 1 | always |
 
 ### 7.3 Pattern fill
 
@@ -1152,7 +1151,7 @@ the bulk preview opens (FR-UI-044):
 3. a cell failed validation or was ambiguous;
 4. it comes from an external file (Excel round trip, FR-EXP-004).
 
-*As built for the property grid (cycle 25, WP-S2.05 part 1; decision log ID-626).* The policy is evaluated on the command's preview (one `preview_with` per commit): rule 1 by the preview's target count (`reason-bulk`, more than 500) and by the command's cost (`project.settings.set` is `Bulk` and always shows the card, `reason-bulk-command`), rule 2 by the route's identifier flag on more than one target, including a leaf below an identifier member (`reason-identifiers`); rule 3 applies to tables (WP-S2.06) and rule 4 to imports. Until WP-S2.09's bulk-preview tab exists the preview is an **inline card** in the pane (Apply with Ctrl+Enter, Cancel, up to 20 changed tags, a stale badge); a stale card rebuilds the command from the current values and needs a second Apply, and refuses with "Changed meanwhile: edit again" when the edited member changed on a target. A direct commit on several records shows the toast ("Set Part on 20 devices · Undo"), which closes after 8 s measured on the window's clock (never in the transcript).
+*As built for the property grid.* The policy is evaluated on the command's preview (one `preview_with` per commit): rule 1 by the preview's target count (`reason-bulk`, more than 500) and by the command's cost (`project.settings.set` is `Bulk` and always shows the card, `reason-bulk-command`), rule 2 by the route's identifier flag on more than one target, including a leaf below an identifier member (`reason-identifiers`); rule 3 applies to tables (WP-S2.06) and rule 4 to imports. Until WP-S2.09's bulk-preview tab exists the preview is an **inline card** in the pane (Apply with Ctrl+Enter, Cancel, up to 20 changed tags, a stale badge); a stale card rebuilds the command from the current values and needs a second Apply, and refuses with "Changed meanwhile: edit again" when the edited member changed on a target. A direct commit on several records shows the toast ("Set Part on 20 devices · Undo"), which closes after 8 s measured on the window's clock (never in the transcript).
 
 ### 7.6 Bulk preview
 
@@ -1171,7 +1170,7 @@ replace (FR-UI-020), multi-target quick fixes, structure rename and merge (FR-PR
 +-------------------------------------------------------------------------------------------------------+
 ```
 
-*As built (cycle 53, decision log ID-1497).* In the Pages list a page whose folio the command changes is named by both
+*As built.* In the Pages list a page whose folio the command changes is named by both
 folios, "106 → 104"; the others by their folio. The lists open and close in place: the dock is sized for every list
 open, and past its room the lists scroll. Renumber pages' dialog says "Section dividers keep their numbers." under
 Start.
@@ -1191,7 +1190,7 @@ why the preview shows them as query diffs rather than entity changes. The BOM de
 - **Example.** This is Golden B step B2 (folio 106 → 104): exactly 2 tags and 14 xref texts change, and one undo
   restores the previous state ([20](20-golden-project.md) §2.2, AC-18).
 
-*As built for find and replace (cycle 26, WP-S2.05 part 2; decision log ID-634, ID-639).* A replace does not open the dockable tab yet: like the property grid's (§7.5), its preview is the inline card, shown **inside the find pane** ("Preview: replace 20 results on 20 records · 0 tags, 0 cross-reference texts"); Ctrl+Enter or Apply commits the one `fields.set_many`, one undo step, and the card counts only the hits that change. No toast follows, because the toast belongs to direct commits (WP-S2.05 §6.6): the results are marked `[stale]` and the pane notes "Replaced <n>; run again to refresh". A card made at an older revision is not applied: Apply runs the search again and shows a fresh card ("Preview updated: 1 fewer results") that needs a second Apply, as the Accept rule above.
+*As built for find and replace.* A replace does not open the dockable tab yet: like the property grid's (§7.5), its preview is the inline card, shown **inside the find pane** ("Preview: replace 20 results on 20 records · 0 tags, 0 cross-reference texts"); Ctrl+Enter or Apply commits the one `fields.set_many`, one undo step, and the card counts only the hits that change. No toast follows, because the toast belongs to direct commits (WP-S2.05 §6.6): the results are marked `[stale]` and the pane notes "Replaced <n>; run again to refresh". A card made at an older revision is not applied: Apply runs the search again and shows a fresh card ("Preview updated: 1 fewer results") that needs a second Apply, as the Accept rule above.
 
 ### 7.7 Excel round trip
 
@@ -1204,7 +1203,7 @@ conflicts, defaulting to "keep EW" with "take file" per cell or per column; edit
 effective colour) are refused with the hint of [14](14-interop.md) §8.2; unknown and missing rows are listed, never
 deleted. Applying is one `table.apply_changes` command (FR-EXP-004).
 
-*As built (cycle 48, WP-S3.08 part 3; decision log ID-1224, ID-1237; written in this cycle, ID-1248).* Import table…
+*As built (written in this cycle).* Import table…
 reads the file and opens the import card in the Preview tab (`CardOrigin::TableImport`): the counts (changed, kept,
 conflicts, refused, unknown, missing) and the per-cell list. Accept applies through `preview.apply` as one
 `fields.set_many`, one undo step; a stale import is refused in words and the card stays; Escape commits nothing. A
@@ -1258,7 +1257,7 @@ History                                        oldest kept: step 1 · 12 MB of 2
 - At most three toasts are visible; repeated toasts of one kind coalesce ("3 external changes applied"). EW makes
   no sounds. OS notifications are a 1.x Could, opt-in.
 
-*As built (cycle 30, WP-S2.09 part 1; decision log ID-693, ID-714, ID-715).* `notify_with(text, key, undo)` raises a
+*As built.* `notify_with(text, key, undo)` raises a
 toast and logs it; at most three toasts show, a toast of a visible key replaces it, each lasts 8 s on the window's
 clock, and the log holds the session's last 100 notifications, newest first, opened from the `Notifications <n>` field
 (§3.6) and View ▸ Notifications. Undo stays usable while the step it undoes is the next undo step of the same project
@@ -1287,7 +1286,7 @@ partial file (FR-UI-024). After opening a project the status bar shows "Warming 
 possible (NFR-PERF-03). An export reports the revision it ran on ("exported rev 214; the model is now at rev
 216"), as information, not as an error.
 
-*As built (cycle 30, WP-S2.09 part 1; decision log ID-692, ID-714, ID-715).* The PDF export is the first job: one named
+*As built.* The PDF export is the first job: one named
 `std` thread of `ew-jobs` over a snapshot, with a checkpoint per page and per drawn item. The Jobs pane is a group named
 "Jobs" whose running entry is a progress bar labelled `PDF export <name>` with Cancel; a finished entry shows its
 result ("cancelled; no file written", a failure with its cause, or Done with Open). The file is written to a hidden
@@ -1327,18 +1326,18 @@ flowchart LR
   the matching vocabulary as secondary palette labels and enables the matching tips (§9.4).
 - Step 3, as specified for 1.0, states exactly what an update check sends: product version, OS and architecture, at most
   once a day (NFR-PRIV-03). Crash reports stay local (NFR-PRIV-04); `PRIVACY.md` is one click away (NFR-PRIV-07). At 0.1.0
-  there is no update check and no crash upload (ID-1187), so the step says that (the built step changes by a follow-up task of ID-1188).
+  there is no update check and no crash upload, so the step says that (the built step changes by a follow-up task of ID-1188).
 - Every step can be skipped and rerun from Help ▸ First-run setup. The whole flow works offline; under the network
   sandbox it makes no connection attempt (FR-UI-030).
 
-*As built (cycle 20, WP-S2.01 part 2; decision log ID-486).* The five steps exist as drawn, each skippable, and Help ▸
+*As built.* The five steps exist as drawn, each skippable, and Help ▸
 First-run setup reruns them. The answers are settings written as given (`language`, `comes_from`, `update_check`,
 `theme`, `ui_scale`); step 2 sets the keymap preset (KiCad-like for KiCad users, EW otherwise), which takes effect with
 the keymap files of WP-S2.08; the flow opens no connection. Not yet: the secondary palette labels and tips of step 2
-(§9.4, WP-S2.08) and, until cycle 23, the `PRIVACY.md` link of step 3 (the file did not exist, FT-342). The headless mode
+(§9.4, WP-S2.08) and, until cycle 23, the `PRIVACY.md` link of step 3 (the file did not exist). The headless mode
 drives the flow through `first_run.*`.
 
-*As built (cycle 23; decision log ID-579; FT-342 closed).* Step 3 has a button **Privacy (PRIVACY.md)** beside the
+*As built.* Step 3 has a button **Privacy (PRIVACY.md)** beside the
 update-check choice, the same button as the About dialog's. It raises the shell event `OpenPrivacy`, and the window opens
 `PRIVACY_URL` (the web address of `PRIVACY.md` on the repository's default branch) in the system browser through the
 platform's `open_url`; when that fails a banner shows the address. This is the documented exception to the opener's
@@ -1346,7 +1345,7 @@ platform's `open_url`; when that fails a banner shows the address. This is the d
 local copy. `ui.describe` lists `button "Privacy (PRIVACY.md)"` under the step's update-check choice. The step opens no
 connection by itself: the click is the user's action and the application sends nothing (NFR-PRIV-01).
 
-*As built (cycle 48; decision log ID-1229, FT-1117).* Step 3 says "ElektraWatt makes no network connection by itself.
+*As built.* Step 3 says "ElektraWatt makes no network connection by itself.
 This version has no update check and sends no crash reports." and has no update-check box: the **Privacy
 (PRIVACY.md)** button is its one control, and `ui.describe` lists it under the step's text. The `update_check` setting
 stays stored and unused until 1.0; `first_run.set` still takes it.
@@ -1362,7 +1361,7 @@ sample project, rendered with the current choices on a fork by `ew-render-cpu`.
 |---|---|---|---|---|
 | 1 Company | panel-builder name, logo (SVG; PNG accepted with a warning that it prints rasterised, D-07), the company's own notice text for the title-block notice cell | `Party{role: PanelBuilder}`, content-addressed asset | — | the pilot panel builder's logo and notice (kept in the pilot's private basic project, never in the public sample) |
 | 2 Frame and title block | shipped frame and title-block form; mapping of cells to bound fields (descriptions, drawing id, revision, =/+, parties by role, page, Prev/Next, dates); unmapped cells listed | `FormDef` copies, `FrameDefaults` | QET-compatible A4 landscape, 17 columns 0–16, rows A–H | the reproduced title block (±0.2 mm) |
-| 3 Colour profile | start from a shipped profile ("EN 60204-1 machine" or "IEC 60445 installation", [08](08-connections-terminals-cables.md) §4.3) or a company convention; rows voltage class × function → IEC 60757 code and name; a mandatory "basis" text | `ColourProfile` (D-37) | the sample project's convention, "DBU/WH 24 V" (cycle 23, ID-577: not EN 60204-1 machine, the reason is under the as-built table) | "DBU/WH 24 V", 15 rows, basis "company convention; codes per IEC 60757, DBU is a company code" |
+| 3 Colour profile | start from a shipped profile ("EN 60204-1 machine" or "IEC 60445 installation", [08](08-connections-terminals-cables.md) §4.3) or a company convention; rows voltage class × function → IEC 60757 code and name; a mandatory "basis" text | `ColourProfile` (D-37) | the sample project's convention, "DBU/WH 24 V" (not EN 60204-1 machine, the reason is under the as-built table) | "DBU/WH 24 V", 15 rows, basis "company convention; codes per IEC 60757, DBU is a company code" |
 | 4 Size profile | csa per circuit class; PE rule; the cover note toggle | `SizeProfile` | control 0.75 mm², mains 1.5 mm² | as default |
 | 5 Identifiers and numbering | identifier set; device, strip and child schemes; order; wire numbering; xref format; IP pairing | `ProjectSettings` | EN 81346-2:2009 letters (ADR-0026); page-based `{page}{letter}{counter}` (tokens of [03](03-domain-model.md) §8.2) | strips `{letter}{page}{counter}` (-X1031); xref `{page}-{row}{column}` (102-A1); wire numbers `{page}.{counter}`, not printed |
 | 6 Structure and sections | function and location templates, aspect signs, sections with folio ranges and dividers | `StructureNode` templates, `Section` | `=`, `+`, `-` | =P01; sections 1 (100–199), 2 (200–299), 9 (900–999) |
@@ -1377,14 +1376,14 @@ the basic project itself. Existing projects keep the copy they were created from
 to an existing project is a previewed command planned for 1.x. NFR-UX-08 is met when Golden A reproduces from the
 shipped defaults plus the pilot's basic project made with this wizard.
 
-*As built (cycle 20, WP-S2.01 part 2; decision log ID-486, ID-491, ID-492).* Ten steps (1 to 9 and 11; step 10 is
+*As built.* Ten steps (1 to 9 and 11; step 10 is
 1.0), each with its fields validated as typed; the draft `ew.wizard-draft/1` lives in the configuration directory until
 the wizard finishes; the live preview renders the cover and folio 102 of the sample project with the current choices
 on a fork. The defaults are the sample project's conventions (numbering `{page}{letter}{counter}`, strips
 `{letter}{page}{counter}`, the colour profile "DBU/WH 24 V", the size profile "0.75/1.5", the QET-style
 cross-reference format, `=P01`, sections 1, 2 and 9); a numbering format must contain `{page}`, `{letter}` and
-`{counter}` until the numbering engine of WP-S1.11 (ID-492 R2). **What the wizard writes** (ID-491): `wizard.finish`
-needs an empty or absent directory (ID-488) and builds a basic project from the built-in one through registered
+`{counter}` until the numbering engine of WP-S1.11 (R2). **What the wizard writes**: `wizard.finish`
+needs an empty or absent directory and builds a basic project from the built-in one through registered
 commands only, in one script. *Updated in cycle 22 (FT-336 closed in part; decision log ID-545 to ID-547):* four commands
 were added (`project.company.set`, `project.frames.set`, `project.languages.set` and `project.checks.set`, 38 to 42
 commands, no new record kind and no schema change), so every field has a command except the logo, the title-block cell mapping and the
@@ -1395,37 +1394,37 @@ table shows each field's state:
 
 | Step | Written now, by | Kept in the draft until |
 |---|---|---|
-| 1 Company | `project.company.set`: the panel builder's name (the first `Party` with the role panel builder, else a new one), the notice text (kept in `Project.extra["ew.company"].notice`, which the provisional `title_block` member already reads) and `personal_data` (true by default, NFR-PRIV-06; nothing reads it yet); only non-empty members are sent, so a typed notice alone leaves the name alone. **The logo (cycle 23, ID-572 to ID-574):** the `logo` member takes the base64 of an SVG, PNG or JPEG file and writes `ew.company.logo = {sha256, format, size}`, the bytes going to the project's asset store (doc 05 §13.3); the file is at most `MAX_LOGO_BYTES` = 512 KiB, checked from the file size before it is read and again after, and an empty value removes the logo; a raster logo gets the notice that it prints rasterised (D-07) | — |
+| 1 Company | `project.company.set`: the panel builder's name (the first `Party` with the role panel builder, else a new one), the notice text (kept in `Project.extra["ew.company"].notice`, which the provisional `title_block` member already reads) and `personal_data` (true by default, NFR-PRIV-06; nothing reads it yet); only non-empty members are sent, so a typed notice alone leaves the name alone. **The logo:** the `logo` member takes the base64 of an SVG, PNG or JPEG file and writes `ew.company.logo = {sha256, format, size}`, the bytes going to the project's asset store (doc 05 §13.3); the file is at most `MAX_LOGO_BYTES` = 512 KiB, checked from the file size before it is read and again after, and an empty value removes the logo; a raster logo gets the notice that it prints rasterised (D-07) | — |
 | 2 Frame and title block | `project.frames.set`: the default form and the per-page-type forms, chosen among the four shipped forms (frame, cover, divider; compiled in from `content/forms` and embedded as copies), merged into `settings.extra.frames`; `per_page_type` is always written, `[]` when empty; a page without a form of its own takes the frame defaults | the mapping of cells to bound fields (FT-365: a command that forks a form copy, so that the mapping can be edited) |
-| 3 Colour profile | `project.settings.set`: the chosen shipped profile, "EN 60204-1 machine" or "IEC 60445 installation" (our own tables from doc 08 §4.3, shipped with `verified: false` and the project's basis note), or the sample project's convention "DBU/WH 24 V" (cycle 23, ID-573, ID-577) | — |
+| 3 Colour profile | `project.settings.set`: the chosen shipped profile, "EN 60204-1 machine" or "IEC 60445 installation" (our own tables from doc 08 §4.3, shipped with `verified: false` and the project's basis note), or the sample project's convention "DBU/WH 24 V" | — |
 | 4 Size profile | `project.settings.set` | — |
 | 5 Identifiers and numbering | `project.settings.set` (the numbering schemes and the cross-reference format) | — |
 | 6 Structure and sections | `structure.create_node`, `section.create` | — |
 | 7 Revisions | `revision.create` (the first revision) | — |
-| 8 Languages and formats | `project.languages.set`: the source and translation languages (`Project.languages`) and the date format and decimal separator (`settings.formatting`); the decimal separator prints in the tables of the generated pages when no output language is set (FT-366) | — |
-| 9 Reports and checks | report blocks (cycle 23, ID-572): the golden layout through `report_block.create`, each call with `form_copies` (the form and the title block the form names, embedded from the library in the same transaction; a copy already held at the same version is reused, another version is refused; one undo step removes the block and its new copies): the table of contents on folio 2, the part list on 901, **one** terminal-diagram block on 903 (a basic project has no terminal strips and one block covers all of them, so 904 and 905 are absent), and 906 to 911 (cables, wires, PLC, potentials, device tags, revisions); a title that named a strip or a device uses `{n}` | the check scheme: **kept, "apply after finishing"**, until the review step's confirmed action (below) |
+| 8 Languages and formats | `project.languages.set`: the source and translation languages (`Project.languages`) and the date format and decimal separator (`settings.formatting`); the decimal separator prints in the tables of the generated pages when no output language is set | — |
+| 9 Reports and checks | report blocks: the golden layout through `report_block.create`, each call with `form_copies` (the form and the title block the form names, embedded from the library in the same transaction; a copy already held at the same version is reused, another version is refused; one undo step removes the block and its new copies): the table of contents on folio 2, the part list on 901, **one** terminal-diagram block on 903 (a basic project has no terminal strips and one block covers all of them, so 904 and 905 are absent), and 906 to 911 (cables, wires, PLC, potentials, device tags, revisions); a title that named a strip or a device uses `{n}` | the check scheme: **kept, "apply after finishing"**, until the review step's confirmed action (below) |
 | 11 Review and create | the basic project directory; the default basic project in the user settings | — |
 
 **The check scheme is applied by a confirmed step, not by `wizard.finish`.** `project.checks.set` is the first
 registered `HumanOnly` command (Interactive; shipped schemes only, stored in `settings.extra.checks`; ADR-0008
-amendment 3 and decision log ID-443 stand, ID-546), because the scheme decides check outcomes and release. So
+amendment 3 and stand), because the scheme decides check outcomes and release. So
 `wizard.finish` writes everything else and the check scheme stays in the draft. After `wizard.finish` the wizard stays
 on the review step, whose row for the check scheme reads "kept: apply after finishing" and which offers the action
 **Apply the check scheme** (registry action `wizard.apply_check_scheme`). Its confirmation names the scheme; on Apply
 the GUI runs the `HumanOnly` `project.checks.set` and saves, and the row then reads `written`. Headless, the same
 action is refused with `reason-human-only` and the refusal is recorded in the transcript (doc 18 §3.17; two tests pin
 both outcomes); no new `ui.describe` word is needed. **The headless-reachable human path** is the CLI subcommand `ew
-project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]`, never a UI script (ID-546): it asks for
+project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]`, never a UI script: it asks for
 the scheme's name on the controlling terminal and writes only on an exact answer; without a terminal it exits 2 and
 has no flag that skips the question (FR-EXT-030, doc 17 §2.3; FT-369 closed in cycle 22).
 
 The review step lists every field with `written` or `kept in the draft`; from cycle 23 every row reads `written`
-except the check scheme, which keeps its own wording above until the confirmed step (ID-546). The preview applies the same commands to the sample project, so the cover and
+except the check scheme, which keeps its own wording above until the confirmed step. The preview applies the same commands to the sample project, so the cover and
 folio 102 show the notice, the ISO date format and the chosen frame (a test pins all three). A test checks that the
 settings commands of the defaults leave the sample project unchanged, and the build path of the golden project
 stays at 609 commands and 607 undo steps: moving its formatting into `project.languages.set` and `project.company.set`
-(FT-367) would change the committed acceptance report (AC-15) and waits for the owner's acceptance of that change
-(ID-547).
+ would change the committed acceptance report (AC-15) and waits for the owner's acceptance of that change
+.
 
 *As built (cycle 23, FT-336, FT-337 and FT-341 closed; decision log ID-572 to ID-578).* **The check scheme's confirmed
 step is the designed path, so FT-336 is closed in full.** The rest of the cycle's wizard changes:
@@ -1436,26 +1435,26 @@ step is the designed path, so FT-336 is closed in full.** The rest of the cycle'
   format with "The logo must be a readable SVG, PNG or JPEG file of at most 512 KiB"). A saved draft whose logo file has
   since gone drops the logo and says so when the wizard opens ("The logo file of the saved draft could not be read;
   choose the logo again", `wizard-notice-logo-gone`). The 512 KiB bound keeps the command's base64 text under the
-  1 MiB parameter-string limit (ID-574).
+  1 MiB parameter-string limit.
 - **The preview** shows the logo on the sample project's cover: the title block places it in the display list by its
-  reference; since cycle 24 an SVG or PNG logo appears (the CPU path draws both; FT-384, ID-605), while a JPEG logo
+  reference; since cycle 24 an SVG or PNG logo appears (the CPU path draws both), while a JPEG logo
   waits for FT-406's decoder.
-- **The colour default** stays the sample project's convention, "DBU/WH 24 V", and not "EN 60204-1 machine" (ID-577):
+- **The colour default** stays the sample project's convention, "DBU/WH 24 V", and not "EN 60204-1 machine":
   the shipped profiles are our own tables, unverified, and a profile cannot yet select by circuit class, so an
   AC control line typed `L` would print black instead of red under the shipped EN 60204-1 table (doc 08 §4.3). The
   default changes when the shipped profiles are verified and the selector can use the circuit class.
-- **No size profile ships** (ID-577): step 4 has a default, "0.75/1.5", not a shipped choice, and is not part of
+- **No size profile ships**: step 4 has a default, "0.75/1.5", not a shipped choice, and is not part of
   FT-337.
 - **Open:** `report_block.delete` and `report_block.set`, and an editable list of report blocks in the wizard instead of
   the fixed golden layout, are FT-385 (before G-PP); the title-block cell mapping is FT-365.
 
-*Decided for the check scheme's selection (cycle 24; decision log ID-602; FT-366).* `ew check` without `--scheme` uses
+*Decided for the check scheme's selection.* `ew check` without `--scheme` uses
 the project's `release_scheme` in mode `release` and `active_scheme` in mode `online`, else `pre-delivery`. A project
-that names a scheme this build does not ship gets `pre-delivery` with a notice on stderr (FT-405). *As built (cycle 27; ID-649):* `notice: project scheme '<name>' is not shipped by this build; using pre-delivery`.
+that names a scheme this build does not ship gets `pre-delivery` with a notice on stderr. *As built:* `notice: project scheme '<name>' is not shipped by this build; using pre-delivery`.
 
-*Cycle 28 (ID-661):* The four SVG wizard refusal texts were observed wrapped, readable and actionable in the actual Windows window, including the plain-SVG/re-export routes. This is scoped Windows evidence; exhaustive DPI, other-OS and assistive-technology checks remain unestablished.
+*Cycle 28:* The four SVG wizard refusal texts were observed wrapped, readable and actionable in the actual Windows window, including the plain-SVG/re-export routes. This is scoped Windows evidence; exhaustive DPI, other-OS and assistive-technology checks remain unestablished.
 
-*As built (2026-11-05, cycle 51; WP-S7.03 D10 and D11, decision log ID-1354, ID-1375).* Step 2 gains the field "Pin
+*As built.* Step 2 gains the field "Pin
 numbers and markers" (nl "Pinnummers en markeringen") with two choices: "Readable (new projects)", the default, which
 writes the built-in basic project's `text_styles` explicitly through `project.settings.set`, and "As in the sample
 project", which writes no `text_styles` member, so the base table that Golden A prints applies. NFR-UX-08 is proven by
@@ -1477,7 +1476,7 @@ title-block cell mapping (FT-365), report block 908's title (a selection names i
 | Navigator | Tree, TreeItem | §5.1 | expanded, selected, level, position in set |
 | Table | Grid, Row, Cell, ColumnHeader | column label, cell value | sort state, editable, provenance as description |
 | Property grid row | Group with label and input | field label | value, unit, provenance text, error text |
-| Canvas | Canvas | "Page 102, Power Supply 2 - Control Current" | description: tool hint; child live region with the selection. *As built (cycle 21):* one focusable node, name `Page <folio>, <page title>`, description `<hint>, zoom <zoom>`; no selection region yet (WP-S2.03) |
+| Canvas | Canvas | "Page 102, Power Supply 2 - Control Current" | description: tool hint; child live region with the selection. *As built:* one focusable node, name `Page <folio>, <page title>`, description `<hint>, zoom <zoom>`; no selection region yet (WP-S2.03) |
 | Toolbar, menu, tabs | Toolbar, MenuBar, TabList, Tab | Fluent label | shortcut as keyboard shortcut property |
 | Status bar | Status | field names | values |
 | Toasts, banners | Alert / Status | message | live polite (banners assertive once) |
@@ -1489,7 +1488,7 @@ title-block cell mapping (FT-365), report block 908's title (a selection names i
 - **Large lists** expose position and set size (`position_in_set`, `size_of_set`, **verify**), so a screen reader
   says "row 5 of 20" without walking 100,000 rows.
 
-*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-559, ID-560).* **The canvas node** (one per visible
+*As built.* **The canvas node** (one per visible
 group) keeps its role and name `Page <folio>, <title>`; its description is `<hint>, zoom <zoom>` and, while the grid
 cursor shows, `, cursor <cell> x <x> y <y> mm` (one decimal; `, cursor x <x> y <y> mm` where the point has no cell), so
 a screen reader announces the cell of the keyboard cursor. **A polite live region** is a child node of the canvas with
@@ -1501,14 +1500,14 @@ cursor shows**, so a screen reader keeps following it. **Tabs and the tree:** ea
 its title with the selected state on the active tab, and its close button is named `Close <folio>` (egui_tiles names
 every close button "Close"); the Pages navigator is a `Tree` of `TreeItem` nodes (§5.2). egui_tiles 0.18.0 exposes no
 node for a tab bar, so the `TabList` role is not set; it joins FT-338 with the splitter names, and the accessible-name
-walker still skips exactly the splitters of the dock and of the canvas area (ID-490). The walker passes after each
+walker still skips exactly the splitters of the dock and of the canvas area. The walker passes after each
 step of the viewer's kittest flows. Not yet in cycle 23: the selection announcement (the Select tool, delivered in
-cycle 24, below) and the `TabList`.
+, below) and the `TabList`.
 
-*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-587).* The canvas node's live region now also carries the
+*As built.* The canvas node's live region now also carries the
 active tool's status hint, announced only when its text changes; `<n> selected`, which wins in the same step and stays
 until the cursor moves; and Measure's readout, announced on Press and on Activate (§4.5; NFR-A11Y-01). The link preview
-popup has no node yet (FT-390; the status hint already names the target).
+popup has no node yet (the status hint already names the target).
 
 ### 10.2 Keyboard
 
@@ -1519,7 +1518,7 @@ dock → status bar (F6). Nothing traps focus, and Escape closes every dialog (N
 
 ### 10.3 Colour, patterns and icons
 
-**Design language (2026-10-28).** The selection on the canvas takes the accent colour, and the four highlight slots take the hues of [16a](16a-design-language.md) §4.6, which all reach 3:1 on the sheet (FT-506).
+**Design language (2026-10-28).** The selection on the canvas takes the accent colour, and the four highlight slots take the hues of [16a](16a-design-language.md) §4.6, which all reach 3:1 on the sheet.
 
 The sheet stays white (§11.2), so overlay colours are chosen for ≥ 3:1 contrast against white (NFR-A11Y-03),
 using Okabe–Ito hues. Contrast ratios are WCAG 2.1 relative-luminance values against #FFFFFF:
@@ -1542,7 +1541,7 @@ Okabe–Ito orange #E69F00 (2.25:1), sky blue #56B4E9 (2.31:1) and yellow #F0E44
 are used only on dark chrome surfaces, where they reach 7.4:1, 7.2:1 and 12.6:1 against #1E1E1E; on the sheet the
 darkened orange #A86F00 (not an Okabe–Ito value) replaces them.
 
-*Amended (cycle 49; decision log ID-1277, ID-1296).* No highlight slot takes dark orange #A86F00 any more: the table's
+No highlight slot takes dark orange #A86F00 any more: the table's
 Highlight 4 row and the sentence above describe the design before WP-S2.08's colour-vision test, which found it beside
 vermillion for protanopes; the slots as built are in the paragraph below (slot 1 violet #9878FC). #A86F00 stays the
 Warning colour of the table.
@@ -1550,12 +1549,12 @@ Warning colour of the table.
 *As built (cycle 30, WP-S2.06 part 2; decision log ID-687, ID-712, ID-713; colours amended in cycle 31, FT-506, and in
 cycle 49, ID-1277).* Highlights are view state, never a model
 edit, composited into `canvas.snapshot` and listed by `ui.describe`. The four slots use violet #9878FC, reddish purple
-#CC79A7, bluish green #009E73 and vermillion #D55E00 (cycle 31, FT-506: every one at
+#CC79A7, bluish green #009E73 and vermillion #D55E00 (every one at
 least 3:1 on white, checked by a unit test), with the hatch angles 45°, 135°, 0° and 90°: a band 8 pt wide with a
 translucent fill at alpha 77 and hatch lines 2 pt wide at a 6 pt pitch (points × ppp, square caps); a fifth highlight
 replaces the oldest; they are painted above the overlays and below the statistics panel and the preview chips. The
-slot order and the hatch shapes differ from the table above: slot 1 takes violet (not an Okabe–Ito value; ID-1277: the
-dark orange #A86F00 it had since FT-506 met vermillion for protanopes, ΔE00 0.74 under WP-S2.08 D15's simulation, and
+slot order and the hatch shapes differ from the table above: slot 1 takes violet (not an Okabe–Ito value; : the
+dark orange #A86F00 it had since met vermillion for protanopes, ΔE00 0.74 under 's simulation, and
 4.47 and 9.77 for deuteranopes and tritanopes; violet keeps every pair of the four slots and the selection at ΔE00 10
 or more under all three), slot 2 takes
 reddish purple in place of sky blue (a darker blue would be the selection's #0072B2), slots 3 and 4 keep bluish green
@@ -1569,7 +1568,7 @@ view (FR-UI-047) strokes each connection in its effective colour, labels it with
 and YE wires a 1 px dark casing so they stay visible on white, and draws GNYE as alternating green and yellow 2 mm
 dashes (FR-UI-025). The view never reaches the PDF.
 
-*As built (cycle 49, WP-S2.08 part 6 and its fix rounds; decision log ID-1286, ID-1300, ID-1301).* View ▸ Wire colours
+*As built (and its fix rounds).* View ▸ Wire colours
 is session state, off by default. Each stroke is 3 pt wide with its codes at the midpoint of its drawn path. A code's
 colour is its IEC 60757 colour, or, for a company code, the base and shade the colour profile declares (FR-CON-019),
 never guessed from its spelling; a code that resolves to no colour is drawn as the **unresolved pattern**, 1 mm
@@ -1580,7 +1579,7 @@ well as WH and YE, which the paragraph above names as examples. **Wires that sha
 stands off the shared line by `3 pt + 2 pt` per lane, alternately to one side and the other, along one normal per line,
 so wires drawn in opposite directions keep apart. Two-colour wires alternate in 2 mm dashes walked over the path clipped
 to the sheet. `canvas.snapshot` composites the view; the PDF and PNG exports never see it. Labels on dense pages
-(FT-1277) and lanes at corners (FT-1283) are open.
+ and lanes at corners are open.
 
 ### 10.4 Display and motion
 
@@ -1601,7 +1600,7 @@ on automatically on the CPU renderer. No interaction has a time limit (NFR-A11Y-
 | Automated WCAG 2.1 AA scan of the built HTML documentation; alternative text on every screenshot | NFR-A11Y-06 | N, 1.0 |
 | Accessibility Conformance Report against EN 301 549 clauses 11 and 12, gaps listed | NFR-COMP-06 | 1.0 |
 
-*As built (2026-11-05, cycle 51; WP-S2.11 D3 and D13, decision log ID-1375).* The first row is the accessibility
+*As built.* The first row is the accessibility
 census (`crates/ew-ui/tests/it/census.rs`) in place of a walker over flows: every menu path, dialog, pane and
 navigator of the window opened, each interactive node checked for its name, role and state (R1 to R6), context menus
 not yet (a row). The NVDA and Orca row and the Linux clipboard are protocols MT-1 to MT-3 of
@@ -1675,7 +1674,7 @@ renderer's final pass, applied to the screen only. Thumbnails, PNG export, PDF a
   documentation home (FR-UI-031).
 - **Opening.** Bundled pages open in the system browser through a local `file://` URL, as a user action with no
   network traffic (NFR-PRIV-01). Links to the online version are labelled as external. Sandboxed Linux packages
-  open them through the OpenURI portal (**verify**; Open question 4). *Exception (cycle 23, decision log ID-579):* the
+  open them through the OpenURI portal (**verify**; Open question 4). *Exception:* the
   "Privacy (PRIVACY.md)" button of About and of the first-run privacy step opens the repository's web address of
   `PRIVACY.md` instead, because no build bundles the file yet; on failure a banner shows the address, and FT-386
   bundles `PRIVACY.md` with the user guide and replaces the web address by the local `file://` copy (§3.9).
@@ -1688,12 +1687,12 @@ renderer's final pass, applied to the screen only. Thumbnails, PNG export, PDF a
   an automated WCAG 2.1 AA scan without critical violations (NFR-A11Y-06, 1.0).
 - **Tutorials** (Help ▸ Tutorials) open the tutorial page and a fresh copy of its sample project; at MVP tutorials
   1, 2, 4 and 6, at 1.0 also 3 and 5 (NFR-DOC-03).
-- **About** shows the version, render backend, privacy state, a button to `PRIVACY.md` (as built, cycle 23), third-party notices, the
+- **About** shows the version, render backend, privacy state, a button to `PRIVACY.md`, third-party notices, the
   engineering-verification disclaimer and the support status computed offline from the planned support end
   (FR-UI-038; [18](18-quality-security-release.md) §7.5; NFR-COMP-04). Help ▸ Verify derived data runs
   `ew verify-derived` as a job (ARCH §6.8).
 
-*As built (2026-11-05, cycle 51; WP-S7.05 D8, D14 and FP-4, decision log ID-1362, ID-1364, ID-1370).* Help ▸ Tutorials
+*As built (2026-11-05, and FP-4).* Help ▸ Tutorials
 opens the tutorials page and one fresh copy of the sample project for every tutorial (each tutorial's own start is
 WP-S7.05 FP-4, a row); with no installed guide it shows a "user guide is not installed" banner over the copy (a row).
 F1 resolves a topic for every `tool.` action, every dialog (an exhaustive match), every pane and navigator, through
@@ -1797,10 +1796,10 @@ for layout in {QWERTY-US, QWERTZ-DE, AZERTY-FR}:
   every action bound in the preset has ≥ 1 binding typable on that layout without AltGr, else error
 ```
 
-*As built (cycle 40, ID-923).* The rules run over the effective bindings in `ew_viewmodel::keymap`; reachability is a
+*As built.* The rules run over the effective bindings in `ew_viewmodel::keymap`; reachability is a
 preset rule (a user's keymap is checked for conflicts, shadowing, Ctrl+Alt and the reserved chords). A binding whose
 character needs Shift on a layout while the chord has none is an error there, unless another binding of the same
-action types on that layout: then it is an info (the orchestrator's ruling on KM-4, built by lane H40, ID-934). Zoom to
+action types on that layout: then it is an info (the orchestrator's ruling on KM-4, built by lane H40). Zoom to
 100 % binds `Ctrl+phys:Digit0`, so it types on AZERTY-FR; zoom in's Ctrl+Plus and Ctrl+Equals each cover the other
 where one needs Shift. No preset has a needs-Shift error on any of the three layouts.
 
@@ -1842,18 +1841,16 @@ where one needs Shift. No preset has a needs-Shift error on any of the three lay
 4. **Long identifiers and German strings** in narrow panels are ellipsised in the middle ("=P01+J-E…-102G1"); the
    full text is in the tooltip and the accessible name. The pseudo-locale catches truncation in CI.
 5. **Mixed-kind multi-selection** (terminals and wires) shows only fields common to all kinds, for example function
-   text; a field that exists on some of them is not shown as `‹varies›`. *Decided for WP-S2.05 (cycle 24, D8; decision
-   log ID-593):* the property grid builds its sections by record kind, and a mixed selection shows only the sections
+   text; a field that exists on some of them is not shown as `‹varies›`. *Decided for WP-S2.05 (D8; decision log):* the property grid builds its sections by record kind, and a mixed selection shows only the sections
    every selected entity reaches: a representation reaches its representation, its functions and their devices, and a
    function reaches its device. The targets of a section are deduplicated, so two representations of one device edit
-   the device once. *Built so in cycle 25 (ID-626):* a representation and a connection share no section, and the grid says so instead of guessing a common field; "Set all" on a `‹varies›` list reads the first target once more.
+   the device once. *Built so in cycle 25:* a representation and a connection share no section, and the grid says so instead of guessing a common field; "Set all" on a `‹varies›` list reads the first target once more.
 6. **Focus stealing:** a job finishing, an external change or a toast never takes focus or switches the page.
 7. **Mixed-DPI monitors:** moving a viewport from 100 % to 200 % re-lays out on the new scale factor; canvas zoom is
-   kept in paper units, so the page keeps its physical size. **The UI scale does not scale the page** (decision log
-   ID-521): canvas 100 % is one paper millimetre as 96/25.4 physical pixels times the operating system's scale factor,
+   kept in paper units, so the page keeps its physical size. **The UI scale does not scale the page**: canvas 100 % is one paper millimetre as 96/25.4 physical pixels times the operating system's scale factor,
    so the UI scale of §10.4 enlarges the chrome only, and a user who wants a larger page zooms. The CPU canvas of
    cycle 21 still included the UI scale in that factor (egui's pixels per point); WP-S2.02 part 2 removed it in cycle 22
-   (FT-349, decision log ID-539): the display resolution is `zoom × 96 × ppp / ui_scale`, for the GPU and the CPU canvas
+  : the display resolution is `zoom × 96 × ppp / ui_scale`, for the GPU and the CPU canvas
    alike.
 8. **RDP and the CPU renderer:** animations switch off and repaint is strictly on demand; the 3D tab explains why it
    is unavailable when no adapter exists (NFR-PLAT-03).
@@ -1881,7 +1878,7 @@ where one needs Shift. No preset has a needs-Shift error on any of the three lay
 2. **Messages.** The status bar reads "E 42 W 32 I 28" and the panel lists one waived finding (EF-19, waiver W-1 on
    -XPE). F8 jumps to EF-01, EW-POT-013 on T55 at folio 101; F1 opens the rule page; "Waive…" needs a reason.
 3. **Provenance.** Selecting W29 on folio 102 shows "0.75 mm² · potential 24VDC-1 · size profile '0.75/1.5' · class
-   control" and the colour "DBU · colour profile 'DBU/WH 24 V'" (ID-598; AC-28); W20 shows "1.5 mm² · override (CDP) · derived would be 0.75 mm²"; S51 shows its frozen tag and the
+   control" and the colour "DBU · colour profile 'DBU/WH 24 V'" (AC-28); W20 shows "1.5 mm² · override (CDP) · derived would be 0.75 mm²"; S51 shows its frozen tag and the
    rule value -101S1 (FR-NUM-010).
 4. **Navigation.** On folio 101, F on "102-A1" at L-1 (101-H16) opens folio 102 at A1; Alt+← returns with the
    previous viewport (FR-UI-019, AC-28). Ctrl+G with "103-A1" opens folio 103 at A1, where 24VDC-1 from 102-H15

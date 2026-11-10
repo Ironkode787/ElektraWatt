@@ -158,7 +158,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      newer edits as saved.
 
    The fault-injection harness runs on the in-memory `Vfs` in kill and power-loss modes; its run on real ext4, NTFS
-   and APFS volumes is a milestone task (FT-92). On Windows the directory sync is a no-op and the NTFS metadata log
+   and APFS volumes is a milestone task. On Windows the directory sync is a no-op and the NTFS metadata log
    is relied on, as the negative consequence below says.
 
 ## Consequences

@@ -1,6 +1,6 @@
 # ADR-0029: Network, telemetry and crash-reporting policy
 
-**Status:** Proposed · amended 2026-10-30 (macOS not supported, decision log ID-880), 2026-11-02 (the pilot release 0.1.0 holds no network code; the update check and the crash upload are 1.0's, decision log ID-1187, ID-1188) · **Date:** 2026-10-17 · **Deciders:** project owner
+**Status:** Proposed · amended 2026-10-30 (macOS not supported), 2026-11-02 (the pilot release 0.1.0 holds no network code; the update check and the crash upload are 1.0's) · **Date:** 2026-10-17 · **Deciders:** project owner
 
 ## Context
 
@@ -33,7 +33,7 @@
 - crash reports are local only;
 - the network-sandbox CI job already enforces this.
 
-**Amended 2026-11-02 (ID-1187).** The interim rule now covers the pilot release 0.1.0 as well as development builds:
+**Amended 2026-11-02.** The interim rule now covers the pilot release 0.1.0 as well as development builds:
 0.1.0 holds no network code, so it has no update check and no crash upload, and its crash evidence is a local log with
 the panic's message and backtrace (NFR-REL-13). The update check (Recommendation 2, NFR-PRIV-03, NFR-SEC-15), the
 local minidump and the upload (Recommendation 3, NFR-PRIV-04) are 1.0's, and so are the first-run choice and the
@@ -42,10 +42,10 @@ this note is the ADR that NFR-PRIV-07 asks for. 0.1.0 still opens no connection 
 (NFR-PRIV-01): help links, `ew mcp` on loopback and plugins granted network access stay allowed, as they are in that
 requirement.
 
-**As built (2026-11-04, cycle 50; WP-S6.05, decision log ID-1338).** "The network-sandbox CI job" is CI-N-06, built
+**As built.** "The network-sandbox CI job" is CI-N-06, built
 by WP-S6.05 as the deep nightly's job `network-sandbox` (doc 18 §12.2); its first run is still to come. The crash
 evidence is the local crash log of doc 18 §12.3, and the network-client crates are banned from every shipped graph
-(`ci/dep-rules.toml`). The ADR stays Proposed under this amendment until before 1.0 (decision log ID-1316).
+(`ci/dep-rules.toml`). The ADR stays Proposed under this amendment until before 1.0.
 
 ## Recommendation
 
@@ -93,7 +93,7 @@ evidence is the local crash log of doc 18 §12.3, and the network-client crates 
      fails on any `AF_INET`/`AF_INET6` socket or DNS attempt outside the allowlisted `ew mcp --listen 127.0.0.1:0`
      test (loopback only; any non-loopback address is refused).
    - A second run with the update check opted in asserts the exact request against a mock server.
-   - Windows is observed manually for each minor (macOS is not a supported platform, decision log ID-880).
+   - Windows is observed manually for each minor (macOS is not a supported platform).
 
 **The owner decides:**
 - whether "zero by default" is acceptable, given that it limits product analytics;
@@ -134,7 +134,7 @@ If the recommendation is accepted:
 
 **Decision needed from:** the project owner (PQ-33).
 - The policy must be accepted before the first binary release (MVP), because the first-run prompt and `PRIVACY.md`
-  ship with it. *Amended 2026-11-02 (ID-1187):* before 1.0; the release 0.1.0 follows the interim rule of the Decision.
+  ship with it. *Amended 2026-11-02:* before 1.0; the release 0.1.0 follows the interim rule of the Decision.
 - The crash-endpoint question is due by 1.0.
 
 ## Related

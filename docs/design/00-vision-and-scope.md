@@ -1,6 +1,6 @@
 # ElektraWatt vision and scope
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-11-05: the symbol editor is milestone M2.5, release 0.2.0 right after the MVP, a Must, and leaves lever (a), decision log ID-1402, §9; 2026-10-30: Windows and Linux only, macOS is not a supported platform (decision log ID-880), the vision, §3, §5, K-4; cycle 11: the QET project import spike, §9.1; cycle 14: product principle PR-13, §8; the 1.0 month of the plan of record, §9) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-11-05: the symbol editor is milestone M2.5, release 0.2.0 right after the MVP, a Must, and leaves lever (a), decision log ID-1402, §9; 2026-10-30: Windows and Linux only, macOS is not a supported platform, the vision, §3, §5, K-4; cycle 11: the QET project import spike, §9.1; cycle 14: product principle PR-13, §8; the 1.0 month of the plan of record, §9) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document states why ElektraWatt (EW) exists, who it is for, what it must achieve and what it
 deliberately leaves out. It fixes the release targets (MVP, 1.0, 1.x, Later) per capability area, so that the
@@ -238,7 +238,7 @@ EPLAN restructured its portfolio in 2026; Electric P8 now has four tiers
 | API extensions | Premium | CLI and rhai formulas MVP, read-only `ew mcp` MVP (Could); rhai automation and ask-first MCP writes 1.0; WASM plugins and Python 1.x |
 | Data Portal (> 2 million device data sets, about 500 manufacturers) | All tiers | No equivalent (see below) |
 | AI assistant (Copilot, Platform 2027) | Platform | MCP for a user-chosen agent; nothing bundled |
-| Linux | Not available | Supported (macOS is not supported, ID-880) |
+| Linux | Not available | Supported (macOS is not supported) |
 
 **The Data Portal is EPLAN's moat**, with company macros, OEM-mandated EPLAN deliverables, 30+ mature report
 types, the Rittal/Komax machine chain and a large trained user base
@@ -272,7 +272,7 @@ Consequences for EW:
 |---|---|
 | Open, git-diffable format | JSONL directory, UUID identity, JSON Schemas, permissive reader crates, semantic merge and diff (ADR-0010, ADR-0012) |
 | No tiers, page limits or dongles | Every feature in one edition |
-| Windows and Linux | Windows, Linux (macOS is not supported, ID-880); GPU-less fallback for RDP/VDI |
+| Windows and Linux | Windows, Linux (macOS is not supported); GPU-less fallback for RDP/VDI |
 | Correct by construction, gated in CI | Derived outputs, prevent rules, `ew check` exit codes, jobsets |
 | Reports and rules without Rust | Read-only SQL projection (`api_v1_*`, ADR-0017), beyond EPLAN's predefined report types |
 | Scripting and AI without a licence | CLI, rhai, MCP, later WASM and Python, all on one command path |
@@ -300,7 +300,7 @@ product decisions. When two requirements conflict, the lower-numbered principle 
 | PR-10 | **Conventions are data** | Identifier sets, colour and size profiles, forms, rule packs, xref formats and machine profiles are versioned data |
 | PR-11 | **Migration is a feature** | Lenient import, migration report as a check run, legacy tags kept as frozen tags |
 | PR-12 | **Reuse, do not rebuild; prove it in CI** | No own UI toolkit or B-rep kernel; golden, oracle, fuzz and performance gates from month one |
-| PR-13 | **The pilot's drawings are the content target, never the style or process target** | The pilot's QElectroTech projects show the content EW must be able to create; they are examples of a design language that QET limits (no proper BOMs, imprecise layouts, possible errors), never a hard comparison of style or of the way of working. The product's measure is that designing a cabinet becomes easier, faster and more fun than in QET: SC-3 (no slower than the pilot's own QET baseline), SC-9 and NFR-UX-04 (unassisted core tasks; folio 102 within 30 minutes for a QET user), checked early by the blind drafter of [18](18-quality-security-release.md) §3.17 (owner statement 2026-10-20, reaffirmed 2026-10-21; decision log ID-340) |
+| PR-13 | **The pilot's drawings are the content target, never the style or process target** | The pilot's QElectroTech projects show the content EW must be able to create; they are examples of a design language that QET limits (no proper BOMs, imprecise layouts, possible errors), never a hard comparison of style or of the way of working. The product's measure is that designing a cabinet becomes easier, faster and more fun than in QET: SC-3 (no slower than the pilot's own QET baseline), SC-9 and NFR-UX-04 (unassisted core tasks; folio 102 within 30 minutes for a QET user), checked early by the blind drafter of [18](18-quality-security-release.md) §3.17 (owner statement 2026-10-20, reaffirmed 2026-10-21) |
 
 ---
 
@@ -313,7 +313,7 @@ parked. A **pilot preview** (milestone M-PP, release 0.0.x, an unsigned build fo
 MVP: interactive 2D editing of *new* projects with the starter symbols, the core reports, PDF and the core online
 checks; it adds no release column, because it is a slice of MVP rows (global plan
 §5.3). The mapping to milestones is MVP = M2, 1.0 = M6 ([architecture](04-architecture.md) §15.2). *Amended
-2026-11-05 (decision log ID-1402):* the symbol editor is milestone **M2.5**, its own release **0.2.0** right after the
+2026-11-05:* the symbol editor is milestone **M2.5**, its own release **0.2.0** right after the
 MVP's 0.1.0 and before M3's first release; it is the only item of that release.
 
 **Dates are not set here.** The calendar is the plan of record: see global plan
@@ -325,7 +325,7 @@ re-baselines them from measured velocity at G-M1.
 |---|---|---|---|---|
 | **PRJ** project & structure | Master data, party roles (D-30), structured supply, IEC 81346 structure nodes (=P01, +J-E-2416), sections, company basic project | Multiple structure aspects in navigators, external project references resolved when open | Multi-project workspaces | — |
 | **PAG** pages & frames | Page types, sparse folios, sub-pages for report continuations (901.1), generated section dividers, 17 × 8 frame, Prev/Next, page navigator | Frame/form editor, A3 and other sheet sizes | — | — |
-| **SYM** symbols | Starter IEC 60617 and ISO 1219 set for the golden project; QET element import; symbol editor (Should). *Amended 2026-11-05 (ID-1402):* the symbol editor is a Must of release 0.2.0 (M2.5), right after the MVP | Full IEC 60617 and ISO 1219 library, symbol linting | Generated symbol families | — |
+| **SYM** symbols | Starter IEC 60617 and ISO 1219 set for the golden project; QET element import; symbol editor (Should). *Amended 2026-11-05:* the symbol editor is a Must of release 0.2.0 (M2.5), right after the MVP | Full IEC 60617 and ISO 1219 library, symbol linting | Generated symbol families | — |
 | **DEV** devices | Devices, functions, main/aux, black boxes, assemblies with children (valve terminal), spares | Device selection by function, aspects for all PLC and bus roles | Safety-function records (required PL/SIL, category, subsystems) | — |
 | **NUM** tags & numbering | Identifier sets (EN 81346-2:2009 default, IEC 81346-2:2019, IEC 60750), page-based rule -101F1, frozen tags, previewed renumber | Wire-number and terminal-numbering schemes per profile | Numbering from PLC data | — |
 | **CON** connections | Explicit connections, junctions with sequence, potentials, bonds, wire properties with provenance, wire numbers | Net definitions per signal, clamp-capacity data | — | — |
@@ -363,11 +363,11 @@ re-baselines them from measured velocity at G-M1.
 
 | Lever | Moves | Items affected (area) |
 |---|---|---|
-| (a) | MVP Should and Could work to 1.0 | Headless read-only `ew mcp` (EXT), QET migration assistants for cables, fluid map, layout binding and reconstruction (IMP). *Amended 2026-11-05 (ID-1402):* the symbol editor (SYM) left this lever; it is milestone M2.5, release 0.2.0 |
+| (a) | MVP Should and Could work to 1.0 | Headless read-only `ew mcp` (EXT), QET migration assistants for cables, fluid map, layout binding and reconstruction (IMP). *Amended 2026-11-05:* the symbol editor (SYM) left this lever; it is milestone M2.5, release 0.2.0 |
 | (b) | QET project migration from the MVP to the 0.x release after it (M3) | QET project import, formulas, strips, tables, corpus and migration verifier (IMP; SC-4 closes at G-M3); QET element import stays in the MVP |
 | (c) | Breadth beyond the four binding v1 additions (PLC/I-O, manufacturing outputs, 3D panel with routing and lengths, EPLAN/QET/DXF import) from 1.0 to 1.x | Thermal calculation (THM), project translations and XLIFF (I18N), revision compare, change lists, clouds and the review and merge UI (REV), forms editor and ISO 5457 frames (PAG), macro placeholders and variants (MAC), automation scripts, jobsets and MCP writes (EXT), editor completion (UI), GSD/GSDML/IODD import (PLC), model views, busbars, bonding and glTF/STL/STEP export (LAY, EXP), verification checklists and the read-only wiring viewer (MFG), the full IEC 60617 and ISO 1219 libraries (SYM) |
 
-**Status of lever (b) after cycle 11** (decision log ID-273). The lenient QET project import was pulled forward
+**Status of lever (b) after cycle 11**. The lenient QET project import was pulled forward
 as a spike and runs on the pilot's three projects with no lost connection ([14](14-interop.md) §4.16). This moves
 work earlier, not the milestone: the QET migration (formulas, strips from 0.100+ data, tables, the migration report
 with its passes, Golden C's fix script, the corpus and the verifier) still ships with M3 in the plan of record, and
@@ -400,7 +400,7 @@ the requirement rows carry the source "EPLAN feature inventory; scope-boundary d
 | K-1 | **Team:** 2–4 developers plus AI assistance. The spine runs as two lanes (core, output); its effort is in [architecture](04-architecture.md) §15.1, its calendar in the global plan |
 | K-2 | **Rust:** core and application in Rust. FFI only where justified: OCCT in an out-of-process STEP worker, bundled SQLite |
 | K-3 | **Licences** (ADR-0024): application GPL-3.0-or-later with a plugin exception (wording pending, ADR-0025); a closed permissive layer; QET-derived code only in `ew-import-qet`; QET elements not merged into EW libraries |
-| K-4 | **Platforms** (ADR-0022): Windows 10 22H2+ and 11 x64, Ubuntu 22.04+ and Debian 12+ (macOS is not supported, decision log ID-880); GPU-less operation through DX12 WARP or the CPU renderer |
+| K-4 | **Platforms** (ADR-0022): Windows 10 22H2+ and 11 x64, Ubuntu 22.04+ and Debian 12+ (macOS is not supported); GPU-less operation through DX12 WARP or the CPU renderer |
 | K-5 | **Third-party data:** no Data Portal content shipped; EDZ import user-initiated, part data only, no macro geometry; ECLASS content not redistributed; licensed standard texts and threshold tables never shipped |
 | K-6 | **Regulation:** CRA reporting obligations apply since 2026-09-11 and the rest from 2027-12-11; EW stays non-monetised with an open-source steward (ADR-0030, proposed); Machinery Regulation retention drives 10-year readability |
 | K-7 | **Public repository:** no customer, end-user, project or person identifiers from the reference set in any committed file |
@@ -474,8 +474,8 @@ its substance:
 5. **Are the G6 size classes right?** *Recommendation:* recalibrate L/XL from the pilot's three largest projects
    before the re-test of the performance spike (gate G-SP, global plan §14, PD-8).
    G-SP was held on 2026-10-20 on the assumed bounds with the outcome Recycle (ADR-0002 amendment 4); the
-   recalibration (G-SP-08, CP-03) was an owner action due before the re-test (decision log ID-224). **Resolved**
-   2026-10-20 (decision log ID-272): the pilot's three projects all sit inside class S, so the bounds stay; S is
+   recalibration (G-SP-08, CP-03) was an owner action due before the re-test. **Resolved**
+   2026-10-20: the pilot's three projects all sit inside class S, so the bounds stay; S is
    the pilot's working range and M to XL remain engineering margins.
 6. **Where do thermal calculation (THM) and the read-only wiring viewer live?** **Resolved:** THM runs as queries
    in `ew-panel` ([12](12-panel-layout.md) §1.2); the viewer is the `ew-viewer` crate, used by a small

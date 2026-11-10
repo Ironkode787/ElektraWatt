@@ -116,7 +116,7 @@ conflict, while the same symbol renamed on both sides gives one conflict row. Ow
 field group whose owner is then `Plc`: before that import, EW edits of the DP station address (Golden A-R sets 3)
 are ordinary edits, flagged "export pending".
 
-**As built (cycle 13; decision log ID-333).** `plc_config_project` (rank 11, `project.jsonl`) is typed in `ew-schema` with `name`, `profile` (the pinned reference `id@version`, here `siemens-tia-intl@2027.1`) and `cpu`, plus the import-provenance member `source_ref`. The address grammar lives in the new permissive crate `ew-plcaddr` (addresses, the built-in TIA address profile, unit intervals and the part map language of §2.6). `allocation`, `ownership`, `symbols` and `exchange` are not typed yet and stay in `extra` until their work packages, so the ownership table above and the protection of §3.9 are design only. Golden A has one configuration project, `PLC1`, without a CPU. The kind was already reserved with its rank and ownership, so it was implemented additively within format 0.1 (decision log ID-334). Deleting the CPU device unlinks `cpu`; a configuration project cannot be deleted while a `plc_station` aspect still names it.
+**As built.** `plc_config_project` (rank 11, `project.jsonl`) is typed in `ew-schema` with `name`, `profile` (the pinned reference `id@version`, here `siemens-tia-intl@2027.1`) and `cpu`, plus the import-provenance member `source_ref`. The address grammar lives in the new permissive crate `ew-plcaddr` (addresses, the built-in TIA address profile, unit intervals and the part map language of §2.6). `allocation`, `ownership`, `symbols` and `exchange` are not typed yet and stay in `extra` until their work packages, so the ownership table above and the protection of §3.9 are design only. Golden A has one configuration project, `PLC1`, without a CPU. The kind was already reserved with its rank and ownership, so it was implemented additively within format 0.1. Deleting the CPU device unlinks `cpu`; a configuration project cannot be deleted while a `plc_station` aspect still names it.
 
 ### 2.3 Stations and modules
 
@@ -156,7 +156,7 @@ on a tag or on the page a child is drawn on (D-41).
 **A module's I/O widths come from part data** (§2.6). A module may have an input and an output range at once, so
 `start` holds one `AddrSpec` per direction. AR APC carries the same list of `{StartAddress, Length, IoType}`.
 
-**As built (cycle 13; decision log ID-333, ID-337).** `plc_station` carries `config_project`, `role` (`StationRole`, all seven variants) and `order`. `plc_module` carries `slot` (`SlotPath`: `positional`, the default, or `rack` with rack, slot and subslot), `start` (`IoStarts`; `auto` for both directions by default), `part_use` and `integrated`. Not typed, and kept in `extra` until their work packages: `PlcStation.firmware`, `PlcStation.dd` (§2.8), `PlcModule.type_ident` (with the `plc_card_list` of §5) and `PlcModule.safety` (§2.9). The aspects are written in the member order of [05](05-project-format-and-persistence.md) §3.1: `assembly` (held verbatim until its work package) before `plc_station` before `plc_module`. The module order of `module_order` is: stations by (`order`, ID); within a station, rack slots first by (rack, slot, subslot), then positional modules in manifold order, whose slot is their 1-based rank. Golden A has seven modules (-201U3 … -201U8, -202U2).
+**As built.** `plc_station` carries `config_project`, `role` (`StationRole`, all seven variants) and `order`. `plc_module` carries `slot` (`SlotPath`: `positional`, the default, or `rack` with rack, slot and subslot), `start` (`IoStarts`; `auto` for both directions by default), `part_use` and `integrated`. Not typed, and kept in `extra` until their work packages: `PlcStation.firmware`, `PlcStation.dd` (§2.8), `PlcModule.type_ident` (with the `plc_card_list` of §5) and `PlcModule.safety` (§2.9). The aspects are written in the member order of [05](05-project-format-and-persistence.md) §3.1: `assembly` (held verbatim until its work package) before `plc_station` before `plc_module`. The module order of `module_order` is: stations by (`order`, ID); within a station, rack slots first by (rack, slot, subslot), then positional modules in manifold order, whose slot is their 1-based rank. Golden A has seven modules (-201U3 … -201U8, -202U2).
 
 ### 2.4 Channels
 
@@ -198,17 +198,17 @@ pub struct Channel {                     // shard of its module device; id = v5(
 | Comment | `Channel.comment` | `{function_text}` at export, if empty | 1.0 |
 | Target | `Channel.target` (FR-PLC-054) | target tracking (§3.5) | MVP direct; 1.0 traced (FR-PLC-018) |
 
-**As built (cycle 13; decision log ID-333, ID-335).** `channel` (rank 37, in the shard of its module device) is typed with `module`, `number`, `designation`, `kind`, `address` (`AddrSpec`: `auto`, the default, `manual`, `excluded`, `tbd`), `state`, `symbol`, `comment`, `binding`, `target` and the import-provenance member `source_ref`. `ChannelKind` has `di`, `do`, `ai`, `ao`, `counter`, `io_link_port` and `power_supply`; `multi_function` (§3.8) is additive. Not members of the record, and kept in `extra` until their work packages: `data_type`, `aux_pins`, `signal_range` and `safety`. Until then the data type is the part's (`ChannelSpec.data_type` in the part section, §2.6), not a channel member. **Channel IDs** are `v5(module, "channel", number)` (ADR-0004 amendment 2; `ew_ids::v5::plc_channel_id`); the golden importer maps each `channels.csv` row to that ID, not to the `v5(ns, "channels|key")` of the other golden tables, so two branches that add the same module mint the same channel IDs (decision log ID-335). `source_ref.key` still reads `channels|<label>`. Until cycle 16 channels came only from import; since then normaliser N1 of §3.3 creates them from a module's part data with the same IDs (decision log ID-399), and a channel exists when one with the same module and number exists. Link policy: a channel is deleted with its module; deleting the bound function or the target function unlinks the member. An older 0.1 build keeps channel records verbatim but does not enforce these links; a check for orphan channels is FT-229, and FT-230 tests the older-build case (decision log ID-334).
+**As built.** `channel` (rank 37, in the shard of its module device) is typed with `module`, `number`, `designation`, `kind`, `address` (`AddrSpec`: `auto`, the default, `manual`, `excluded`, `tbd`), `state`, `symbol`, `comment`, `binding`, `target` and the import-provenance member `source_ref`. `ChannelKind` has `di`, `do`, `ai`, `ao`, `counter`, `io_link_port` and `power_supply`; `multi_function` (§3.8) is additive. Not members of the record, and kept in `extra` until their work packages: `data_type`, `aux_pins`, `signal_range` and `safety`. Until then the data type is the part's (`ChannelSpec.data_type` in the part section, §2.6), not a channel member. **Channel IDs** are `v5(module, "channel", number)` (ADR-0004 amendment 2; `ew_ids::v5::plc_channel_id`); the golden importer maps each `channels.csv` row to that ID, not to the `v5(ns, "channels|key")` of the other golden tables, so two branches that add the same module mint the same channel IDs. `source_ref.key` still reads `channels|<label>`. Until cycle 16 channels came only from import; since then normaliser N1 of §3.3 creates them from a module's part data with the same IDs, and a channel exists when one with the same module and number exists. Link policy: a channel is deleted with its module; deleting the bound function or the target function unlinks the member. An older 0.1 build keeps channel records verbatim but does not enforce these links; a check for orphan channels is FT-229, and FT-230 tests the older-build case.
 
-**As built (cycle 18; decision log ID-464 to ID-468).** A channel's `kind` is instantiated part data: N1 restores the
-part's channel kind when the module's part changes (FT-276). Its `binding` is set by N2 (a valve coil, by the
+**As built.** A channel's `kind` is instantiated part data: N1 restores the
+part's channel kind when the module's part changes. Its `binding` is set by N2 (a valve coil, by the
 position map), N3 (a module pin, by `pin_of`) or `plc.bind_channel` (§3.3). The automatic designation and `pin_of`
-expand the part's pattern with one shared function, `ew_derive::expand_pattern` (FT-318, cycle 21): every
+expand the part's pattern with one shared function, `ew_derive::expand_pattern`: every
 `{<expression in n>}` of §2.6 is expanded (`"X2:{n+1}"` prints `X2:1` for channel 0), and a pattern that does not
 expand (an unclosed `{`, a stray `}`, an expression that does not parse, one in `p`, an overflow) gives no
 designation and one derivation note per module, as it gives no pin and a notice in N3. The map language has no
 subtraction, so `{n-1}` does not parse. Since cycle 21 the derivation finds a module's channels as N1 keys them, by (module, number) and not by their v5
-IDs: the channels-by-module index (FT-319, below). Of two channels with one number the lower ID is the channel.
+IDs: the channels-by-module index (below). Of two channels with one number the lower ID is the channel.
 
 ### 2.5 Addresses and address profiles
 
@@ -272,11 +272,11 @@ absolute profile. Tag-based profiles render from the station and slot model inst
 | `siemens-de`, `step7-classic` | 1.x | A0.1 / Q4.0 | EW64 / PIW256 | absolute | Mnemonics; slot-based allocation (FR-PLC-010) |
 | `mitsubishi`, `omron`, `schneider` | 1.x | Y1 / CIO 100.00 / %Q0.2.1 | D0 / D0 (data registers) / %IW0.3.0 | absolute or topological | Octal or hexadecimal base; word.bit; rack.slot.channel; all (unverified) |
 
-*As built (cycle-38 fix round, decision log ID-884; FT-746).* The `iec-61131-3` profile reads a bit address without
+*As built (fix round).* The `iec-61131-3` profile reads a bit address without
 its size as X: `%Q0.1` parses as `%QX0.1`, and because the prefix is optional `Q0.1` parses as the same bit. A unit
 address must name its size (`%Q10` is no address), because the row above covers only the bit case.
 
-*As built (2026-11-05, cycle 51; WP-S7.03 D7 and D8, decision log ID-1375).* A profile is a JSON library document of
+*As built.* A profile is a JSON library document of
 kind `plc_profile`, not the TOML above: `PlcProfileDef` with the members `profile` (`{id, version}`, the pin),
 `label`, `absolute`, `base`, `unit_bits`, `word_align`, `mnemonics`, `render`, `parse` and `allocation`, and the item
 meta. Its item version is the library's semver; its `profile.version` is the pin, and a change in what it renders is a
@@ -284,7 +284,7 @@ new `profile.version`. The built-ins `siemens-tia-intl@2027.1` and `iec-61131-3`
 (CC-BY-SA-4.0), compiled into `ew-derive` and parsed once through `AddressProfile::new`, the one validating
 constructor of `ew-plcaddr`; a user's file reaches a project through `library.embed`, which refuses one that does not
 validate with "the address profile <key> cannot be read: <reason>". One lookup order holds everywhere: the project's
-own copy of a pin first, then the built-in, so a project prints and parses in one notation (ID-1375).
+own copy of a pin first, then the built-in, so a project prints and parses in one notation.
 `plc.set_profile` refuses a pin that is neither, naming the profiles at hand.
 
 ### 2.6 PLC and bus part data
@@ -339,7 +339,7 @@ The valve part 571334 declares `solenoids = ["14"]` in its fluid section ([11](1
 - **Map language.** `bit_of` and `channel` accept `"<k>n[+<c>]"` (`"n"`, `"16n"`), `"<k>p[+<c>]"` (`"2p"`,
   `"2p+1"`) or an explicit list (`[1, 3, 5, 7]`). Analog channels use `"16n"` with `size = word`. The part
   linter rejects anything else. There is no scripting: maps are data, deterministic and safe to merge.
-  **Grammar** (normative; decision log ID-523). An expression is
+  **Grammar** (normative). An expression is
 
   ```text
   expr   = [factor] var ["+" const]
@@ -355,7 +355,7 @@ The valve part 571334 declares `solenoids = ["14"]` in its fluid section ([11](1
   explicit list. The same expressions appear inside braces in a designation pattern (`ChannelSpec.designation`,
   `pin_of`, §2.4), where only `n` is allowed: `"X2:{n+1}"` is valid and `"X2:{n-1}"` is not. Every reader parses an
   expression with `ew_plcaddr::MapExpr`, and a designation pattern with the one expander built on it,
-  `ew_derive::expand_pattern` (FT-318); what a reader does with an invalid one is its rule
+  `ew_derive::expand_pattern`; what a reader does with an invalid one is its rule
   (no address, no designation with a derivation note, no pin with N3's notice), and the part linter's rejection at
   import is FT-351.
 - **Supply groups** type the card-supply CPs (FR-PLC-024) and say which channels they feed. EW-PLC-013 and EW-PLC-014
@@ -363,9 +363,9 @@ The valve part 571334 declares `solenoids = ["14"]` in its fluid section ([11](1
 - **The bus-port signal map** resolves per-core pins where a multi-line representation of the port exists. It
   answers [08](08-connections-terminals-cables.md) Open question 5 (FR-BUS-023).
 
-**As built (cycle 13; decision log ID-333).** The part section is `sections.plc` (`PlcSection`): `role` (`station` or `module`), `io` (a list of `IoRange{dir, bits, class}`), `channels` (`ChannelSpec{count, kind, data_type, designation}`), `bit_of` and `unbound` (the state of channels neither bound nor claimed; absent: spare). `bit_of` is a `MapSpec`: `MapSpec::Expr` holds the expression text of the map language (`"n"`, `"16n"`, `"2p+1"`) and `MapSpec::List` an explicit list. The schema stores the text; `ew-plcaddr` (`MapExpr`) parses it and the derivation gives an unresolved address for a map it cannot parse. Not modelled yet, and kept in `extra`: the solenoid-position map `[plc.positions]` (typed in cycle 18, below), the supply groups, the earth pin, the bus ports and the `meta` confidence. Golden A has one `part_plc` row, part 533361: module, `out:8`, 8 `do` channels, `Bool`, designation `{n}`, `bit_of = "n"`, `unbound = deactivated`.
+**As built.** The part section is `sections.plc` (`PlcSection`): `role` (`station` or `module`), `io` (a list of `IoRange{dir, bits, class}`), `channels` (`ChannelSpec{count, kind, data_type, designation}`), `bit_of` and `unbound` (the state of channels neither bound nor claimed; absent: spare). `bit_of` is a `MapSpec`: `MapSpec::Expr` holds the expression text of the map language (`"n"`, `"16n"`, `"2p+1"`) and `MapSpec::List` an explicit list. The schema stores the text; `ew-plcaddr` (`MapExpr`) parses it and the derivation gives an unresolved address for a map it cannot parse. Not modelled yet, and kept in `extra`: the solenoid-position map `[plc.positions]` (typed in , below), the supply groups, the earth pin, the bus ports and the `meta` confidence. Golden A has one `part_plc` row, part 533361: module, `out:8`, 8 `do` channels, `Bool`, designation `{n}`, `bit_of = "n"`, `unbound = deactivated`.
 
-**As built (cycle 18; decision log ID-464, ID-465; format decisions under ADR-0011 amendments 1 and 4).** Two optional
+**As built (format decisions under ADR-0011 amendments 1 and 4).** Two optional
 members are appended to `PlcSection`, in this order, additive within the unreleased format 0.1 (`schemas/0.1`
 re-blessed); a build from before keeps them in `extra`.
 
@@ -393,9 +393,8 @@ slot per position and map entry, with the channel, the valve (the lowest ID when
 the valve's coil CP. Until N-FL-1, a valve declares solenoid s when one of its functions has a non-physical CP named s
 ([11](11-fluid-power.md) §3.1, decision log ID-469). The part-data confidence of `[plc.meta]` is FT-323.
 
-**The bus section: specified, cycle 40; built by I40** (WP-S1.21 §8a,
-D15 to D17; decision log ID-920; FT-770). A part's bus interfaces are `sections.bus`, typed within format 0.1
-(ADR-0011 amendment 4, ID-334), appended to `PartSections` after `mounting_plate`:
+**The bus section: specified, cycle 40; built by I40** (D15 to D17). A part's bus interfaces are `sections.bus`, typed within format 0.1
+(ADR-0011 amendment 4), appended to `PartSections` after `mounting_plate`:
 
 ```rust
 pub struct BusSection  { pub ports: Vec<PartBusPort>, pub extra: Extra }     // `ports` omitted when empty
@@ -413,7 +412,7 @@ pub struct PartBusPort {
   termination switch. The station address and the nets belong to the drawn port (§2.7), never to the part. The
   connector type, the signal map of the example above (FR-BUS-023) and the address range and supported rates
   (FR-BUS-009, the GSD facts of §2.8) are 1.0 data, kept in `extra` with the example's shape until WP-S1.24 types them
-  (FT-829). Readers take the first port of an (`interface`, `port_label`) pair.
+ . Readers take the first port of an (`interface`, `port_label`) pair.
 - **Part to function (N5, "bus ports from the part").** A part names no function or CP. A port is carried by a function
   of the device whose FnDef has contact kind `bus_port` (the DP port and the DP plug), and that function's CPs are the
   port's connection points. The normaliser N5 runs after N3 and before N4: when a device is new or its bus part (the
@@ -522,13 +521,13 @@ configuration project or network (ARCH §6.3).
 `ew query channel_addresses -201U3 --explain` prints the dependency trail and provenance of each address
 (ARCH §6.8).
 
-**As built (cycle 13; decision log ID-333).** `ew-derive` implements `module_order(cfg)`, `module_starts(cfg)`, `channel_addresses(module)`, `channel_states(module)`, `channel_targets(module)`, `channel_texts(module)` and `plc_rows(station)` (the queries `ModuleOrder`, `ModuleStarts`, `ChannelAddresses`, `ChannelStates`, `ChannelTargets`, `ChannelTexts` and `PlcRows`), with algorithms A1 and A2 of §3.1, A3 of §3.2 (without step 4) and the direct targets of §3.5. Not built: `address_index`, `bus_segments`, `net_members` and `exchange_image`. A module reads its own channels by ID, but the per-module early cut-off of `module_starts` is not built: an edit re-runs `channel_addresses` for every module of the configuration project (FT-224; FR-PLC-012, AC-29). `plc_rows` feeds the `plc_overview` report kind (§5).
+**As built.** `ew-derive` implements `module_order(cfg)`, `module_starts(cfg)`, `channel_addresses(module)`, `channel_states(module)`, `channel_targets(module)`, `channel_texts(module)` and `plc_rows(station)` (the queries `ModuleOrder`, `ModuleStarts`, `ChannelAddresses`, `ChannelStates`, `ChannelTargets`, `ChannelTexts` and `PlcRows`), with algorithms A1 and A2 of §3.1, A3 of §3.2 (without step 4) and the direct targets of §3.5. Not built: `address_index`, `bus_segments`, `net_members` and `exchange_image`. A module reads its own channels by ID, but the per-module early cut-off of `module_starts` is not built: an edit re-runs `channel_addresses` for every module of the configuration project (FR-PLC-012, AC-29). `plc_rows` feeds the `plc_overview` report kind (§5).
 
-**As built (cycle 18; decision log ID-464).** One family joins: `solenoid_positions(module)` (`SolenoidPositions`,
+**As built.** One family joins: `solenoid_positions(module)` (`SolenoidPositions`,
 Memo), the module part's position map applied to its valve children (§2.6), which `channel_states` reads for step 4
 (§3.2) and EW-PLC-012 is to read (FT-192); `ew verify-derived` and AC-16 sweep it (66 families).
 
-**As built (cycle 21; FT-319, FT-318).** Three families join, taking `ew verify-derived` and AC-16 to 69 families:
+**As built.** Three families join, taking `ew verify-derived` and AC-16 to 69 families:
 `channels_by_module()` (`ChannelsByModule`, Memo, incremental over the channel table: every channel by (module, number,
 ID)), `module_channel_ids(module)` (`ModuleChannelIds`, Memo: one module's slice of it, the channels by number with the
 lowest ID where two share a number, read as a cut-off point) and `channels_by_cp()` (`ChannelsByCp`, Memo, incremental:
@@ -542,7 +541,7 @@ fan-out and is not built. In a transaction, N1, N2, N3, `plc.bind_channel` and `
 the model's base indexes with read-your-writes (`TxBuilder::channels_of_module`, `channels_at_cp`: the generic
 referrer index of the links `Channel.module` and `Channel.binding`), because a transaction has no memoising `Q` over
 its pending state; no whole-table read of the channel table is left on a binding edit. The designation pattern has one
-expander (FT-318, §2.4).
+expander (§2.4).
 
 ---
 
@@ -629,17 +628,17 @@ monostable 571334 declares. **Both hypotheses therefore give 8 used, 20 spare an
 ([20](20-golden-project.md) §11.2). The PLC overview lists all 56. New I/O-list blocks default to
 `state != Deactivated` and list 28 rows (FR-PLC-019, FR-PLC-023).
 
-**As built (cycle 13; decision log ID-333; step 4 superseded by the cycle-18 paragraph).** `channel_states` applies steps 1, 2, 3 and 5. Step 4 (the position map claims a channel) is not modelled, because the part section has no solenoid-position map yet (FT-228, with EW-PLC-012 from FT-192). On Golden A step 4 changes nothing under either hypothesis, so the counts above (8 used, 20 spare, 28 deactivated) hold.
+**As built (step 4 superseded by the paragraph).** `channel_states` applies steps 1, 2, 3 and 5. Step 4 (the position map claims a channel) is not modelled, because the part section has no solenoid-position map yet (FT-228, with EW-PLC-012 from FT-192). On Golden A step 4 changes nothing under either hypothesis, so the counts above (8 used, 20 spare, 28 deactivated) hold.
 
-**As built (cycle 18; FT-228; decision log ID-464).** `channel_states` applies all five steps; step 4 reads
+**As built.** `channel_states` applies all five steps; step 4 reads
 `solenoid_positions(module)`. "s is unbound" means that **no channel of any module** binds the coil CP, whatever that
-channel's ID: the CP → channel index is read (before cycle 21 the whole channel table, as N2 and `plc.bind_channel`
+channel's ID: the CP → channel index is read (before the whole channel table, as N2 and `plc.bind_channel`
 read it), so a valve moved to another
 module and a duplicate channel never make a channel `Reserved`. Only an unbound channel reaches step 4, so the case
 "bound to c" cannot arise there. On Golden A under H1 no channel is claimed and the counts stay 8 used, 20 spare and
 28 deactivated (tested under H1 and H2, memoised against cold). EW-FL-002, which step 4 names, and EW-PLC-012 are not
 built (FT-192). Since cycle 21 step 4 reads the CP → channel index instead of scanning the channel table per module
-(FT-319).
+.
 
 ### 3.3 Binding and normalisers
 
@@ -676,21 +675,21 @@ configuration project's profile (prefixes "" and "%"):
 3. **Ambiguous or no module.** The text goes to the import review list (FR-IMP-017 uncertain matches); nothing is
    bound.
 
-**As built (cycle 13; decision log ID-333; superseded for N1 by the cycle-16 paragraph below).** The channel-creating normaliser N1 was not built: channels came only from import (the golden importer reads `channels.csv`, §2.4), and a change of a module's part created or removed none. `Channel.binding` is stored as an `Endpoint` (a CP of the module or of the served coil); the golden project binds channel 2p + 1 to coil 14 of valve position p + 1, as drawn.
+**As built (superseded for N1 by the paragraph below).** The channel-creating normaliser N1 was not built: channels came only from import (the golden importer reads `channels.csv`, §2.4), and a change of a module's part created or removed none. `Channel.binding` is stored as an `Endpoint` (a CP of the module or of the served coil); the golden project binds channel 2p + 1 to coil 14 of valve position p + 1, as drawn.
 
-**As built (cycle 16; FT-270).** N1 is built in `ew-commands` (registry row 3 of [06](06-schematic-editor.md) §3.2):
+**As built.** N1 is built in `ew-commands` (registry row 3 of [06](06-schematic-editor.md) §3.2):
 adding the `plc_module` aspect (`fields.set`), creating a device with it, or changing its parts or `part_use`
 creates the missing channels of the part's channel spec with their v5 IDs and the spec's kind; surplus channels
 stay. `plc.bind_channel` and `plc.config_project.create` are built (§3.9; the latter has no row there: it creates
 the configuration project that `ew new` gives a new project). N2 (the solenoid-position map) and N3 are not built:
-the map is not typed part data yet (FT-228), so the golden builder binds the 28 coils with explicit `plc.bind_channel`
-commands, which win over the map by definition (FT-275). `plc.bind_channel` refuses a CP outside the channel's module
+the map is not typed part data yet, so the golden builder binds the 28 coils with explicit `plc.bind_channel`
+commands, which win over the map by definition. `plc.bind_channel` refuses a CP outside the channel's module
 and its descendants and unbinds another channel on the same CP (FR-PLC-005). N1 keys existing channels on (module,
-number), keeps their authored members, applies no kind change (FT-276) and removes no surplus channel until
-FR-PLC-053's confirmation exists (FT-277). The channel members are not yet settable by `fields.set` (FT-226).
+number), keeps their authored members, applies no kind change and removes no surplus channel until
+FR-PLC-053's confirmation exists. The channel members are not yet settable by `fields.set`.
 Decision log ID-395, ID-399.
 
-**As built (cycle 18; FT-275 to FT-277; decision log ID-466 to ID-468).** Rows 3, 13 and 14 of the registry run;
+**As built.** Rows 3, 13 and 14 of the registry run;
 normaliser notices are merged once into the command's outcome.
 - **N1** (`channel_instantiation`) picks the module's PLC section by the derivation's rule (`plc_module.part_use`,
   else the first part use whose part has a PLC section), creates the missing channels, and gives an existing channel
@@ -716,8 +715,8 @@ normaliser notices are merged once into the command's outcome.
 
 The golden builder keeps its 28 explicit `plc.bind_channel` commands: under H1 the map assigns coil 14 of position p
 to channel 2p, while the drawing binds it to 2p + 1, and an explicit binding wins. Not built: the confidence marker
-(FT-323), the exchange records in the surplus preview (FT-324), the unbinding when a valve leaves its module (FT-320),
-N3 after a part change (FT-321) and N-FL-1 (FT-322).
+(FT-323), the exchange records in the surplus preview, the unbinding when a valve leaves its module,
+N3 after a part change and N-FL-1.
 
 ### 3.4 Symbols, designations and function texts
 
@@ -807,7 +806,7 @@ them are internal valve-coil channels.
 - **Placing a channel symbol binds it**; it never copies properties (PBF §2.7, rule 2). Every representation
   renders the same determined values.
 
-*As built (cycles 37 and 38; decision log ID-860, ID-874, ID-876).* The `PlcAddress` slot prints as above; Golden A's embedded valve, lamp and position-switch symbols carry it since FT-698, so folios 203 to 206 print Q0.1 … Q6.7. A black box's pin text is the function CP's designation as stored and, for a CP bound to a channel, the printed address after one space ("1 I0.0"); a designation the symbol's `cp_designation` slot prints is left out. Pin texts never move; a cross-reference text that would overlap one drops below it (FT-707; folios 102 and 106 of Golden A).
+*As built (cycles 37 and 38).* The `PlcAddress` slot prints as above; Golden A's embedded valve, lamp and position-switch symbols carry it since FT-698, so folios 203 to 206 print Q0.1 … Q6.7. A black box's pin text is the function CP's designation as stored and, for a CP bound to a channel, the printed address after one space ("1 I0.0"); a designation the symbol's `cp_designation` slot prints is left out. Pin texts never move; a cross-reference text that would overlap one drops below it (FT-707; folios 102 and 106 of Golden A).
 
 ### 3.7 Valve terminals
 
@@ -871,7 +870,7 @@ data type: the Balluff sample's 88 input bits give an 11-byte input window and a
 I/O width is the sum of its port windows in their current modes, so a mode change re-runs A1 for the following
 Auto modules (§8, item 10). EW-IOL-002 compares the IODD lengths with the window.
 
-**As built (cycle 13; decision log ID-333, ID-336; FT-105).** The `BusPort`, `LogicalNet` and `PhysicalNet` kinds and `bus_segments` are not built (FT-225), so Golden A models the DP line as an interim. A1 of the plug's In entry and A of the DP port are the representative CPs of the single-line bus line. `DP.1` (page 3, cable -3W1) is the whole cable from the external end to -3X1 In. `DP.2` is the plug-on mating, a page-less `Bus` connection without a cable (§2.7). The DP potential is defined at -201U1:A with circuit class `bus` and no voltage; the pages of a bus potential come from its `Bus` connections, because a bus line joins nets but is no wire. Its colour and size come from the cable (`BusLine.cable`), so the colour/size cell of folio 909 prints "(cable)". Folio 909's DP row has 3 members where doc 20 prints 4: the cable is an edge of the segment graph, not a member (A5 above), which is a model limit until FT-225. The station address "TBD" waits for `BusPort` as well (§5).
+**As built.** The `BusPort`, `LogicalNet` and `PhysicalNet` kinds and `bus_segments` are not built, so Golden A models the DP line as an interim. A1 of the plug's In entry and A of the DP port are the representative CPs of the single-line bus line. `DP.1` (page 3, cable -3W1) is the whole cable from the external end to -3X1 In. `DP.2` is the plug-on mating, a page-less `Bus` connection without a cable (§2.7). The DP potential is defined at -201U1:A with circuit class `bus` and no voltage; the pages of a bus potential come from its `Bus` connections, because a bus line joins nets but is no wire. Its colour and size come from the cable (`BusLine.cable`), so the colour/size cell of folio 909 prints "(cable)". Folio 909's DP row has 3 members where doc 20 prints 4: the cable is an edge of the segment graph, not a member (A5 above), which is a model limit until FT-225. The station address "TBD" waits for `BusPort` as well (§5).
 
 ### 3.9 Commands, freezing and ownership
 
@@ -897,9 +896,9 @@ strict mode with the message "address owned by PLC1 (TIA import of <date>)" and 
 mode it is reported. Inserting the same module after an import moves nothing: the five later starts are
 `Manual` (PLC-owned), so A1 gives the new module the first free byte, Q7, and the preview lists only its 8 channels.
 
-*As built (cycle 38, WP-S1.21 part 3, decision log ID-870).* `plc.set_start` and `plc.set_profile` are built (Interactive; the IEC profile prints `%QX0.1`); a start edit re-derives only its own module's channel addresses (`ModuleStartOf`). `plc.readdress` and `plc.convert_manual_to_auto` are not built: both need A1 over the whole configuration project inside one transaction, which ADR-0008 amendment 4 forbids (FT-725). `plc.bind_channel` also takes tags in a command log: a channel as `<module tag>#<number>` or `<module tag>:<designation>`, a function as `<tag>` or `<tag>:<slot>` (FT-721).
+*As built.* `plc.set_start` and `plc.set_profile` are built (Interactive; the IEC profile prints `%QX0.1`); a start edit re-derives only its own module's channel addresses (`ModuleStartOf`). `plc.readdress` and `plc.convert_manual_to_auto` are not built: both need A1 over the whole configuration project inside one transaction, which ADR-0008 amendment 4 forbids (FT-725). `plc.bind_channel` also takes tags in a command log: a channel as `<module tag>#<number>` or `<module tag>:<designation>`, a function as `<tag>` or `<tag>:<slot>`.
 
-*As built (cycle-38 fix round, decision log ID-884; FT-750).* `plc.bind_channel` checks the CP against the CPs the function draws, by the one accessor the commands share with the join (`common::function_cp_indices`): the template entry's pattern, else a black box's part pattern, else the FnDef. A black-box card's pins therefore bind; before, the check read the generic black-box FnDef, which defines no CPs, and refused every pin (found by the play-test brief `brief-plc-io`, ID-882).
+*As built (fix round).* `plc.bind_channel` checks the CP against the CPs the function draws, by the one accessor the commands share with the join (`common::function_cp_indices`): the template entry's pattern, else a black box's part pattern, else the FnDef. A black-box card's pins therefore bind; before, the check read the generic black-box FnDef, which defines no CPs, and refused every pin (found by the play-test brief `brief-plc-io`).
 
 ### 3.10 Check rules
 
@@ -964,9 +963,9 @@ EW-PLC-015 supersedes EW-CORE-044 for module starts and channel addresses. EW-PL
 channel addresses, so it never reports the bus `Tbd`, and each `Tbd` yields exactly one finding. Every rule ID has
 its documentation page (NFR-DOC-02).
 
-*As built (cycle 38, WP-S1.21 part 3, decision log ID-870).* EW-PLC-001, -002, -003, -007, -008, -012 and -015 are built in the scopes `module` and `cfg`, with en-GB and nl-NL messages; EW-PLC-007 compares symbols exactly, and findings name a channel as `<full tag>:<designation>`. Their prevent half (EW-PLC-001, -007) is not built (FT-726). EW-PLC-012 offers "rebind to the map's channel" and carries the unverified-data marker; "open the part's PLC section" is FT-727; Golden A reports its 28 findings under H1 (EF-02). Two channels of one module with one number are reported by EW-CORE-008 `duplicate_number`, and the channel whose ID is v5 of its module and number wins (FT-350).
+*As built.* EW-PLC-001, -002, -003, -007, -008, -012 and -015 are built in the scopes `module` and `cfg`, with en-GB and nl-NL messages; EW-PLC-007 compares symbols exactly, and findings name a channel as `<full tag>:<designation>`. Their prevent half (EW-PLC-001, -007) is not built (FT-726). EW-PLC-012 offers "rebind to the map's channel" and carries the unverified-data marker; "open the part's PLC section" is FT-727; Golden A reports its 28 findings under H1 (EF-02). Two channels of one module with one number are reported by EW-CORE-008 `duplicate_number`, and the channel whose ID is v5 of its module and number wins.
 
-*As built (cycle-38 fix round, decision log ID-884; FT-747).* `address_index(cfg)` holds overlap groups, not pairs: each connected run of channel addresses in one area whose bit ranges overlap in a chain, once, so N channels on one address make one group of N. EW-PLC-001 reports one finding per group, with every member channel as a target and the first in address order as the subject; the text names the first five channels with their addresses and counts the rest (`addresses overlap in configuration project <cfg>: <channel> (<address>), …; and <N> more channels; give all but one of them another address`, the "and N more" clause only beyond five), in en-GB and nl-NL.
+*As built (fix round).* `address_index(cfg)` holds overlap groups, not pairs: each connected run of channel addresses in one area whose bit ranges overlap in a chain, once, so N channels on one address make one group of N. EW-PLC-001 reports one finding per group, with every member channel as a target and the first in address order as the subject; the text names the first five channels with their addresses and counts the rest (`addresses overlap in configuration project <cfg>: <channel> (<address>), …; and <N> more channels; give all but one of them another address`, the "and N more" clause only beyond five), in en-GB and nl-NL.
 
 ---
 
@@ -989,9 +988,9 @@ its documentation page (NFR-DOC-02).
 Every exporter implements the permissive `Exporter` contract over an `ExportView` of a snapshot fork, never blocks
 editing and records the revision it reflects (FR-EXP-001). Release-mode exports refuse a stale Class II input.
 
-*Note (cycle 18).* No exchange record exists yet (the kinds `exchange_record` and `foreign_id` of §4.2 are reserved,
+*Note.* No exchange record exists yet (the kinds `exchange_record` and `foreign_id` of §4.2 are reserved,
 not typed). The confirmation of FR-PLC-053, the preview of `plc.set_module_part` (§3.3), therefore lists the surplus
-channels with their bindings and symbols only; it lists their exchange records once §4.2 is built (FT-324).
+channels with their bindings and symbols only; it lists their exchange records once §4.2 is built.
 
 ### 4.2 Exchange image and identity
 
@@ -1262,7 +1261,7 @@ Q6.7; valve DTs; printed function texts TA05-V-15 … (the driven devices' proce
 20 spare, 28 deactivated; one link per bound row to the valve on 203–206 (AC-29). The network address list has two
 rows: JE-N1000-03 (master, external) and -201U1 (slave, `Tbd` flagged).
 
-**As built (cycle 13; decision log ID-333).** `plc_overview` is a report kind in `ew-reports` over `plc_rows(station)`. Folio 908 prints the column set of the table above (module, part, address, channel number, designation, kind, symbol, function text, process tag, target, state and the page cell), a superset of the table of doc 20 §11.3. Every row whose channel is bound to a coil (8 used and 20 spare) links with `LinkTarget::Cp` to the coil position, the "link to the main representation" of the table; the golden PDF has 92 link annotations, 64 cross-reference links plus these 28. The station address "TBD" is not printed, because there is no `BusPort` record yet (FT-225). The station list is the block's manual selection of stations, else every station in natural tag order.
+**As built.** `plc_overview` is a report kind in `ew-reports` over `plc_rows(station)`. Folio 908 prints the column set of the table above (module, part, address, channel number, designation, kind, symbol, function text, process tag, target, state and the page cell), a superset of the table of doc 20 §11.3. Every row whose channel is bound to a coil (8 used and 20 spare) links with `LinkTarget::Cp` to the coil position, the "link to the main representation" of the table; the golden PDF has 92 link annotations, 64 cross-reference links plus these 28. The station address "TBD" is not printed, because there is no `BusPort` record yet. The station list is the block's manual selection of stations, else every station in natural tag order.
 
 ---
 
@@ -1280,7 +1279,7 @@ rows: JE-N1000-03 (master, external) and -201U1 (slave, `Tbd` flagged).
 | Bus navigator | logical nets → ports; physical nets → derived segments with ends; termination toggles; rate at the net | 1.0 | FR-UI-006 |
 | Exchange dialog | format and version (CAEX 2.15 or 3.0 read; AR APC 1.4.0 or 1.2.0), station scope, document date, personal-data option; import preview tabs: added, removed, changed, conflicts, parking | 1.0 | FR-PLC-029 … -036, FR-EXP-009 |
 
-*As built (cycle 38, WP-S2.07 part 3, decision log ID-877).* The PLC navigator's tree is configuration project → station (role word) → module → channel, without racks and bus ports (FT-739); the grid has 14 columns without rack, data type, safety and signal range (FT-737), the flags spare, unplaced, unassigned, tbd and duplicate and the config facet, without safety and bus facets (FT-738); a channel row dropped on a CP binds it with one `plc.bind_channel`. Golden A's valve coils have no drawn CP to drop on (FT-740).
+*As built.* The PLC navigator's tree is configuration project → station (role word) → module → channel, without racks and bus ports (FT-739); the grid has 14 columns without rack, data type, safety and signal range (FT-737), the flags spare, unplaced, unassigned, tbd and duplicate and the config facet, without safety and bus facets (FT-738); a channel row dropped on a CP binds it with one `plc.bind_channel`. Golden A's valve coils have no drawn CP to drop on (FT-740).
 
 - **Persona and journey.** The PLC grid is the main surface of persona P3 and of journey J4
   ([vision](00-vision-and-scope.md) §5, §6).
@@ -1359,7 +1358,7 @@ rows: JE-N1000-03 (master, external) and -201U1 (slave, `Tbd` flagged).
 | 203–206 | 28 valve representations, each drawing fluid function + coil function; 28 bindings | Q0.1 … Q6.7 from `channel_addresses`; TA05-V-xx from the driven device's process tag (used valves carry no function text), or the manual function text "Spare" | FR-PLC-011, FR-FLU-005 |
 | 908 (new) | `plc_overview` report block | 56 rows on 908–908.2 | FR-PLC-022 |
 
-**As built (cycle 13; decision log ID-333).** The coil addresses on folios 203–206 (Q0.1 … Q6.7) are not printed yet; their text slot is FT-227. Folio 908 is built (§5). Folio 3's "Node TBD" waits for the `BusPort` record (FT-225; §3.8).
+**As built.** The coil addresses on folios 203–206 (Q0.1 … Q6.7) are not printed yet; their text slot is FT-227. Folio 908 is built (§5). Folio 3's "Node TBD" waits for the `BusPort` record (§3.8).
 
 ### 9.2 Module -201U3 under H1 and H2
 

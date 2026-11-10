@@ -84,7 +84,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    the `tests/` and `benches/` directories and `#[cfg(test)]` items. The check takes the gated item names from
    `ew-model`'s own source, so a newly gated reader is covered without a list to maintain; a false positive gets an
    allowlist entry with a reason in `ci/dep-rules.toml`, never an inline suppression. It runs in `cargo xtask ci`
-   beside `check-features` (CI-PR-09). *As implemented in cycle 6 (2026-10-19, decision log ID-77):* the check
+   beside `check-features` (CI-PR-09). *As implemented in cycle 6:* the check
    scans only packages whose normal-dependency closure reaches `ew-model`, because a package that cannot reach it
    cannot name the raw readers; its configuration and allowlist are the `[raw_read]` section and its
    `[[raw_read.allow]]` entries (path, item, reason) in `ci/dep-rules.toml`, where `exempt_packages = ["xtask"]`
@@ -109,7 +109,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    `allow(clippy::disallowed_methods)` in non-test source of any other package (core team, 2026-10-19). The lexical
    check keeps what needs no types: `raw_read!`, the feature name, the manifest rules, the reachability scope and
    the allowlist. Integration-test targets of non-reader crates that drive `ew-model` directly carry the same opt-out
-   line at their root (core team, 2026-10-19, decision log ID-121); it is stricter than exempting all test code and
+   line at their root (core team, 2026-10-19); it is stricter than exempting all test code and
    consistent with it, and applies to the clippy guard only.
 
 ## Consequences

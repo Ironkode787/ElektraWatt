@@ -1,6 +1,6 @@
 # ADR-0022: Platform matrix and performance budgets (S/M/L/XL) as CI-enforced requirements
 
-**Status:** Accepted · amended 2026-10-30 (macOS not supported, decision log ID-880) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-30 (macOS not supported) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -28,8 +28,8 @@
    | Ubuntu 22.04+ and Debian 12+ (x64), Wayland and X11 | Supported |
    | Windows ARM64, Linux arm64 | Best effort |
    | Other Linux distributions through Flatpak or AppImage | Community |
-   | macOS on Apple silicon | Not supported (ID-880) |
-   | macOS on Intel | Not supported (ID-880) |
+   | macOS on Apple silicon | Not supported |
+   | macOS on Intel | Not supported |
 
    - **Supported** platforms are built and tested in CI, and a failure blocks the release.
    - **Best-effort** platforms are built for every release and fixed when reported.
@@ -92,7 +92,7 @@
 
 ## Amendments
 
-1. **macOS is not supported** (2026-10-30, project owner; decision log ID-880). macOS on Apple silicon (Supported
+1. **macOS is not supported** (2026-10-30, project owner). macOS on Apple silicon (Supported
    before) and on Intel (Best effort before) become **Not supported**: no CI job, no artefact, no installer, no
    signing or notarisation, no Metal testing. The reasons: the two macOS CI jobs were the slowest of the pull-request
    set and caused the cycle-36 float-drift incident; notarisation, an Apple Developer ID, a Mac installer and Metal

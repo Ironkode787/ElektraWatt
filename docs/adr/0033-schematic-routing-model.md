@@ -1,7 +1,7 @@
 # ADR-0033: Schematic routing: stored routes written by one page router, unrouted connections and one route convention
 
-**Status:** Accepted; built in cycle 53 (WP-S2.19, decision log ID-1499 to ID-1505) · **Date:** 2026-11-07 ·
-**Deciders:** lead designer (cycle-53 design lane, decision log ID-1498; the project owner may reverse it)
+**Status:** Accepted; built in cycle 53 · **Date:** 2026-11-07 ·
+**Deciders:** lead designer (design lane, the project owner may reverse it)
 
 ## Context
 
@@ -9,10 +9,9 @@
   path (`ew_derive::provisional_path`), an L chosen from the two ends alone, one connection at a time. Wires ran
   through connection points they do not join, along other wires and through symbols. The owner asked for "a proper,
   intelligent, autorouter" that "should intelligently set up wires based on standard electrical drawing theory"
-  (ID-1498). FT-517, FT-1434 (R0-F5) and ID-1421 record the same defect; ID-1421 found that no rule for one wire at a
+ . FT-517, FT-1434 (R0-F5) and ID-1421 record the same defect; ID-1421 found that no rule for one wire at a
   time avoids the overlaps.
-- **Two routers.** The Wire tool already routes with obstacles (`ew_commands::route`, FT-706: bodies, texts, other
-  wires, other CPs, frame bands), but only for the wire being drawn; every other route-less connection is drawn by the
+- **Two routers.** The Wire tool already routes with obstacles (`ew_commands::route`, : bodies, texts, other wires, other CPs, frame bands), but only for the wire being drawn; every other route-less connection is drawn by the
   provisional path. The router and the drawing disagree.
 - **Where text boxes exist.** A text box needs the scene's text measurement (`ew-text`), which only `ew-scene` and the
   crates above it have. `ew-scene` cannot depend on `ew-commands`; normaliser 7 (`ew-commands`) and EW-TERM-006
@@ -25,8 +24,7 @@
 - **Interruption points.** The owner: "the arrows all pointing to the right. But incoming signals connected to the tip
   of the arrow, and outgoing to the line." EW's IP symbol has its one connection point on the tail, so no orientation
   puts a target's wire on the tip.
-- **Constraints.** The format is free until the 0.1.0 release (ID-1325); the commands never route (ID-564: the tool
-  computes, the command stores, replay never runs the router); ADR-0007: explicit connections, moves never change
+- **Constraints.** The format is free until the 0.1.0 release; the commands never route (the tool computes, the command stores, replay never runs the router); ADR-0007: explicit connections, moves never change
   connectivity, autoconnect an editing aid with its open question 2 on moves; importers emit format-level records
   (ADR-0021); determinism (NFR-REL-07).
 
@@ -54,7 +52,7 @@
    beside a parallel mate, then the tie rule of WP-S2.04 (fewest bends, then the move sequence right < down < left <
    up). A page is routed in a fixed order (supply potentials first, then by span), mates together in the order L1,
    L2, L3, L, N, PEN, PE, FE, L+, M, L−, with at most two bounded rip-up rounds.
-6. **Commands store, never route** (ID-564 kept). `connection.route_many` stores a plan in one transaction;
+6. **Commands store, never route** (kept). `connection.route_many` stores a plan in one transaction;
    `rep.move` takes optional re-solved `routes` and autoconnect `connect` hints; autoconnect hints store their
    straight run, which the proposal rule already guarantees to be clear.
 7. **Interruption points follow their direction.** EW's IP symbol has two forms, both drawn with the arrow pointing

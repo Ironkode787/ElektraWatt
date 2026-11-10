@@ -1,6 +1,6 @@
 # Project format and persistence
 
-**Status:** Draft v0.3 · Amended 2026-11-05, cycle-52 design pass: §2.1's `imports/` as built (WP-S3.09, decision log ID-1432) and §13.3's raster pixel limit at the insertion gates only (FT-1378, decision log ID-1426, ID-1433). · Amended 2026-10-31, cycle-41 design pass, part 2: §2.2's `surface_view` page item variant as built (WP-S4.01 part 3, decision log ID-951, ID-996). · Amended 2026-10-31, cycle-40 design pass, part 1: §1's state directory holds the release runs' records, §14.1 steps 4 and 5 and "On failure" as built after FT-814 (a discard needs this project directory's own run record; temps owned by the directory's key; decision log ID-921); §2.2's layout kinds as built (ranks 50 to 54, WP-S4.01 part 1, ID-924). · Amended 2026-10-31, cycle-39 design pass, part 2: §14.1 step 4 and "On failure" as built, the archive temp named by its owner and a discard that keeps another project's archive and tag (decision log ID-914). · Amended 2026-10-29, cycle-35 design pass: the library tiers as built, with the compiled-in generic starter parts, §13.1 (decision log ID-818, ID-830). · Amended 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: `macro_instance`, `macro` and `manufacturer` implemented, a part copy with `mech`, the typed part members within 0.1 and manufacturer and macro copies, §2.2, §3.5, §10.3, §13.2, decision log ID-334, ID-783. · Amended 2026-10-28, cycle 30: the journal recovery dialog as built, §8.3, decision log ID-714, ID-715. · Amended 2026-10-26, cycle 28: accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; scoped follow-ups (ID-659 to ID-666); merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-21 (amended 2026-10-25, cycle 27: the page-item records as written and an older build's lines rewritten canonically, §2.2, §10.3, decision log ID-647; the project fragment, §12, ID-648; the parts import's copies, §13.2, ID-651; amended 2026-10-24, cycle 24: the purge command (`HumanOnly`, the data-safety rules of lane C's fix round, ID-620), the export's image findings, the SVG hazard checks, the drawn image subset and the mechanical asset-presence guard as built, §13.3, decision log ID-605; amended 2026-10-23, cycle 23: the asset store as built and the rule that a save never removes an asset file, §13.3; the asset temps, the journal's assets and the logo reference form, §2.1, §8.1, §10.3, §17.2; `page_item` and `structure_box` specified and implemented additively under ADR-0011 amendment 4, §2.2, §10.3, decision log ID-566, ID-573 to ID-575; amended 2026-10-22, cycle 22: the members written by the four commands of FT-336 stay in `extra`, no schema change, §10.3, §17.2, decision log ID-545, ID-547; amended 2026-10-22, cycle 19: the journal kept on a dirty exit and the shell's read-only open with the recovery banner, §8.1, §8.3, decision log ID-475; the replay on a moved base and a removed library copy that a `LibRef` still names, §8.2 step 4, ID-479; amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
+**Status:** Draft v0.3
 ADR-0010 amendment 3, decision log ID-200 to ID-217; cycle 11: journal granularity of `project.settings.set`, Golden B1 files, ID-290) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
@@ -64,7 +64,7 @@ Apache-2.0), `ew-store` and `ew-library` (GPL-3.0-or-later).
 | `<name>.ew/.ew/u-<hash>/` | Per-user view state in `view.json`: open pages, viewports, jump history, workspace (FR-UI-033). `<hash>` = 8 hex digits of SHA-256(`user@host`), so the users of a shared folder do not overwrite each other. From 1.0 also `base.ewz`, the base generation of a work copy ([15](15-checks-revisions-collaboration.md) §6.8) | Ignored |
 | `<name>.ew/.~ew.lock` | Lock record (§7); `.~ew.lock.stale-<session>` after a takeover | Ignored |
 | `<name>.ew/.~ew.requests/` | "Request edit" files (1.x, [15](15-checks-revisions-collaboration.md) §6.2) | Ignored |
-| OS state directory | Journal and recovery snapshots (§8); user-only permissions; removed on clean close, leftovers pruned after 30 days (NFR-PRIV-05). *As built (cycle 40, ID-921):* also `releases/`, one record per release run of a project directory and archive (§14.1), removed when the run is settled or found stale | Never |
+| OS state directory | Journal and recovery snapshots (§8); user-only permissions; removed on clean close, leftovers pruned after 30 days (NFR-PRIV-05). *As built:* also `releases/`, one record per release run of a project directory and archive (§14.1), removed when the run is settled or found stale | Never |
 | OS cache directory | STEP meshes, thumbnails, the file-backed SQL projection at XL, read-only `.ewz` extractions, the derived per-user library search index (§13.1) | Never |
 | OS data directory | User library and installed community packs ([07](07-symbols-parts-macros.md) §2.1) | Never |
 | OS configuration directory | Settings, recent projects, **trust decisions** (§13.4) | Never |
@@ -128,7 +128,7 @@ Optional directories and files are absent in the golden project:
 - `imports/<run-uuid>.jsonl` (MVP): one file per import run (kind `import_run`), so import runs never conflict with
   project data; the lineage they belong to is an `import_lineage` record in `project.jsonl`
   ([14](14-interop.md) §2.3, ADR-0004 amendment 1);
-  *as built (2026-11-05, cycle 51, WP-S3.09 D6 and D13; decision log ID-1360, ID-1432):* the QET project import writes
+  *as built:* the QET project import writes
   one such file, one line, per import into a lineage, never changed after its transaction and deleted by no command;
   `ImportLineage.last_run` links the lineage's last run; the golden CSV bootstrap, the parts table import and the
   table round trip write none, so Golden A has no `imports/` folder;
@@ -143,21 +143,21 @@ Optional directories and files are absent in the golden project:
 - from 1.0, `trust.sig` at the root (a signature over the trust hash, §13.4) and opt-in embeddable meshes
   `assets/<sha256>.glb` ([12](12-panel-layout.md) §6.2).
 
-*Amended 2026-11-04 (cycle 50; decision log ID-1332, WP-S7.03 §13 O5).* User PLC address profiles in
+*Amended 2026-11-04 (O5).* User PLC address profiles in
 `lib/plc-profiles/<copy_id>.json` (kind `plc_profile`, §2.2's row) are the MVP's, not 1.0's: FR-PLC-008 (MVP) binds
 over this list's date, and WP-S7.03 D7 types the kind with the built-in profiles as library documents. The machine
 and label profiles of `lib/profiles/` stay 1.0's.
 
-*As built (2026-11-05, cycle 51; WP-S7.03 D7 and D8, decision log ID-1354, ID-1375).* The kind `plc_profile` is
+*As built.* The kind `plc_profile` is
 implemented: `PlcProfileDef` in `ew-schema` (doc 10 §2.5's members), `LibDocument::PlcProfile`, the record directory
 `plc-profiles` of a library and `lib/plc-profiles/<copy_id>.json` of a project, item keys `ew.plc-profile.<id>`, the
 schema in `schemas/0.1`. The two built-in profiles are compiled into `ew-derive` from `content/plc-profiles/`
 (`siemens-tia-intl.json`, `iec-61131-3.json`); a project's copy of a profile is found before the built-in of the same
-pin everywhere (ID-1375). §2.2's row reads "MVP" for the kind.
+pin everywhere. §2.2's row reads "MVP" for the kind.
 
 None of the rule, report, script or job content runs until the user trusts the project (NFR-SEC-05, §13.4).
 
-**Temps, orphans and strays** (2026-10-20, ADR-0010 amendment 3; decision log ID-203, ID-214). The save protocol's
+**Temps, orphans and strays** (2026-10-20, ADR-0010 amendment 3). The save protocol's
 own temps ("our temps") are the intents `manifest.json.tmp-<g>` and the `.tmp-<g>` files of record files, library
 documents and assets (`assets/<sha256>.<ext>.tmp-<g>`, as built in cycle 23, decision log ID-573); an editing open
 deletes or rolls forward only those (§5.3, §6.1). Every other file that the
@@ -194,18 +194,18 @@ rule**. Ranks are never reused or renumbered.
 | 70, 71 | `exchange_record`, `foreign_id` (1.0) | `exchange/<config-project-uuid>.jsonl` | configuration project |
 | 72 | `import_run` | `imports/<run-uuid>.jsonl` | own ID |
 | — | `part`, `symbol`, `fndef`, `form`, `macro`, `manufacturer` (library copies) | `lib/<kind>s/<id>.json`, one pretty document each (§3.4) | own ID |
-| — | `plc_profile` (library copy, 1.0; implemented at the MVP, cycle 51, WP-S7.03 D7) | `lib/plc-profiles/<id>.json` (§3.4) | own ID |
+| — | `plc_profile` (library copy, 1.0; implemented at the MVP) | `lib/plc-profiles/<id>.json` (§3.4) | own ID |
 | — | `machine_profile`, `label_profile` (library copies, 1.0) | `lib/profiles/<id>.toml`, the TOML source form; the `schema` key tells the kinds apart | own ID |
 | 255 | `conflict` | file of its target | target |
 
-**The project record's text styles** (as built in cycle 37, [ADR-0032](../adr/0032-per-project-text-styles.md), decision log ID-855). `ProjectSettings.text_styles` is an optional member of the `project` record in `project.jsonl`: an object keyed by style key, each value `{"size": <em height in nm>, "weight": "regular" | "bold"}` (weight optional) plus unknown members kept verbatim, written in key order. It is additive within format 0.1 (ADR-0011 amendment 4): `schemas/0.1` re-blessed, no version step, an older 0.1 build keeps it in `settings.extra`. An absent or empty member means the built-in table; nothing writes it into a file that lacks it except `Session::new_project`, which writes `cp.small` and `marker` at 1,852,083 nm (7 QET px). On reading, an override whose size lies outside 500,000 … 50,000,000 nm is ignored (the built-in row stays) and a weight of a newer format reads as absent; `project.settings.set` refuses both at `/text_styles/<key>/size` or the member's path. `ProjectSettings.revision_label` (WP-S1.18 part 1, ID-856) is declared before `text_styles`, in byte order of the names, so a line that held both as unknown members stays canonical when a newer build types them.
+**The project record's text styles** (as built in cycle 37, [ADR-0032](../adr/0032-per-project-text-styles.md), decision log ID-855). `ProjectSettings.text_styles` is an optional member of the `project` record in `project.jsonl`: an object keyed by style key, each value `{"size": <em height in nm>, "weight": "regular" | "bold"}` (weight optional) plus unknown members kept verbatim, written in key order. It is additive within format 0.1 (ADR-0011 amendment 4): `schemas/0.1` re-blessed, no version step, an older 0.1 build keeps it in `settings.extra`. An absent or empty member means the built-in table; nothing writes it into a file that lacks it except `Session::new_project`, which writes `cp.small` and `marker` at 1,852,083 nm (7 QET px). On reading, an override whose size lies outside 500,000 … 50,000,000 nm is ignored (the built-in row stays) and a weight of a newer format reads as absent; `project.settings.set` refuses both at `/text_styles/<key>/size` or the member's path. `ProjectSettings.revision_label` is declared before `text_styles`, in byte order of the names, so a line that held both as unknown members stays canonical when a newer build types them.
 
-**`page_item` and `structure_box`** (specified 2026-10-23, WP-S2.04 §10.1; decision log ID-566). Both kinds have had
+**`page_item` and `structure_box`** (specified 2026-10-23). Both kinds have had
 their rank and ownership since the registry was written: `page_item` is rank 43 and `structure_box` rank 44, each
 owned by the page file of its `page` member. In `ew-schema` both are `KindStatus::Reserved`, so a record of either
 kind is kept verbatim as a reserved kind (§10.3) **until WP-S2.04 part 4a implements them**, which makes them
 `Implemented`. Their typed tables are additive within format 0.1 on the basis of ADR-0011 amendment 4 (decision log
-ID-334, §10.3 rule 2), which applies again: `schemas/0.1` is re-blessed, with no format bump and no `$v` bump, and an
+, §10.3 rule 2), which applies again: `schemas/0.1` is re-blessed, with no format bump and no `$v` bump, and an
 older 0.1 build keeps the records verbatim. The shapes below are those of WP-S2.04 §10.1; the domain model's
 [03](03-domain-model.md) §5 (`StructureBox`) and §6 (`PageItem`) carry the fields. Illustrative records, on folio 101
 of the golden project (Golden A has neither kind; IDs shortened, the connection is W7):
@@ -228,16 +228,16 @@ of the golden project (Golden A has neither kind; IDs shortened, the connection 
   FR-PAG-025), and the connections a wire marker lists are held by two new structural invariants of ADR-0009
   (EW-INV-022 and EW-INV-023, [03](03-domain-model.md) §6): a deleted connection leaves the list, and a marker left
   empty is deleted in the same plan. `StructureBox.external` (an `ExternalRef` ID) is an unlink
-  link: deleting the reference clears the member (lead ruling, decision log ID-566).
+  link: deleting the reference clears the member (lead ruling).
 - **Load finding.** A build from before part 4a keeps `page_item` records verbatim and does not enforce that delete
   link, so a project can arrive with a wire marker that lists a deleted connection or a connection on another page.
   This is **reported, not refused**: a load finding that names the marker and the connection, among the other load
   findings of `Session::load_findings` (a derivation finding, not an integrity rule of §6.3). The stale entry is ignored
   by the derivation and the drawing, and the project opens; the next edit of that marker writes a clean list.
 - **Migration test.** A page file that holds both kinds and an unknown `page_item` variant is read and written back byte
-  for byte (an unknown variant is `Unknown(Value)`, written back unchanged, §10.3). *As built (cycle 27, decision log ID-647):* that file round-trips byte for byte; the same records as a build before part 4a wrote them (reserved kinds, so every object's members in byte-wise order) load typed with a `NonCanonical` finding and are rewritten in the typed kinds' member order (§10.3; the revision precedent, FT-165). `free_text.text` is omitted when empty, `arc.start` when 0 and `$v` when 1, so an explicit `"$v": 1` is not canonical.
+  for byte (an unknown variant is `Unknown(Value)`, written back unchanged, §10.3). *As built:* that file round-trips byte for byte; the same records as a build before part 4a wrote them (reserved kinds, so every object's members in byte-wise order) load typed with a `NonCanonical` finding and are rewritten in the typed kinds' member order (§10.3; the revision precedent). `free_text.text` is omitted when empty, `arc.start` when 0 and `$v` when 1, so an explicit `"$v": 1` is not canonical.
 
-**`macro_instance`, `macro` and `manufacturer`** (as built, cycle 34, WP-S1.19 part 1; decision log ID-334, ID-783).
+**`macro_instance`, `macro` and `manufacturer`**.
 The three kinds turn `Implemented`, each at schema version 1, under the same rule (ADR-0011 amendment 4, §10.3 rule 2):
 `schemas/0.1` is re-blessed with the new `macro.schema.json`, `macro_instance.schema.json` and
 `manufacturer.schema.json`, no format and no `$v` bump, no `required` list changed and no property removed.
@@ -253,7 +253,7 @@ The three kinds turn `Implemented`, each at schema version 1, under the same rul
 Channel IDs are `v5(module, "channel", number)` ([10](10-plc-and-bus.md) §2.4, ADR-0004 amendment 2), so a channel
 keeps its file and line position however often its module is re-addressed.
 
-**Anchor fallbacks** (2026-10-20, format level; decision log ID-205). Every record of a known kind has exactly one
+**Anchor fallbacks** (2026-10-20, format level). Every record of a known kind has exactly one
 deterministic file, also when its anchor cannot be resolved the normal way:
 - a page-less record anchored at a connection point of an interruption-point function (which has no device), such
   as a page-less connection or a potential definition at that point, follows the function into its page file;
@@ -279,7 +279,7 @@ source fields re-keys the dependent records, and the writer marks both their old
 | `Function.device` | page-less connections, potential, net and medium definitions and bonds at the function's CPs |
 | `Carrier.surface`, `MountingSurface.enclosure`, `Enclosure.space` | dependent layout records |
 
-*As built (cycle 40, WP-S4.01 part 1; decision log ID-924).* Ranks 50 to 54 (`layout_space`, `enclosure`,
+*As built.* Ranks 50 to 54 (`layout_space`, `enclosure`,
 `mounting_surface`, `carrier`, `placement`) are implemented in `layout/<space>.jsonl`: a space owns itself, an
 enclosure names its space, and a surface, carrier and placement reach it through carrier → surface → enclosure. The
 follow closure re-keys the dependants of `Carrier.surface`, `MountingSurface.enclosure` and `Enclosure.space`, so a
@@ -302,7 +302,7 @@ numbers live in `Connection.number`. A released revision's report snapshots live
 
 - **Files.** UTF-8 without BOM, LF line endings on every platform, one record per line, a final LF, no blank lines.
   The reader accepts one leading BOM in a JSONL file and in a library document (§3.4) and the next save rewrites the
-  file without it: a reader tolerance, not a format change (decision log ID-552; no ADR).
+  file without it: a reader tolerance, not a format change (no ADR).
   A file that would be empty is not written; if it exists, it is deleted.
 - **Lines.** Each line is a compact JSON object: no whitespace outside strings. String escaping equals serde_json's
   compact output:
@@ -314,15 +314,14 @@ numbers live in `Connection.number`. A released revision's report snapshots live
   The form is close to RFC 8785 (JCS), but members follow the schema order and numbers are integers only. The
   byte-wise key order of `extra` relies on serde_json's sorted `Map`; its feature `preserve_order`, which would
   switch every `Map` in the build to insertion order, is banned by `ci/dep-rules.toml` and guarded by a unit test
-  (decision log ID-215).
+ .
 - **Strings are NFC** (ARCH §7.3). A non-NFC string read from disk is normalised in memory, and its file counts as
   non-canonical, so it is rewritten at the next save; `ew fmt --check` reports it.
 - **Member order:**
   1. `"$k"`, `"id"`, `"$v"` (per-kind schema version, omitted when 1, §10.2);
   2. known members in **schema declaration order**;
   3. flattened device aspects (`strip`, `terminal`, `cable`, `assembly`, `plc_station`, `plc_module`, `bus_node`,
-     `valve_terminal`), as in the ARCH §7.3 example (as built, cycle 13: `assembly` is written before
-     `plc_station`; decision log ID-337);
+     `valve_terminal`), as in the ARCH §7.3 example (as built, : `assembly` is written before `plc_station`);
   4. the `extra` map (unknown members and namespaced `plugin.<id>.*` keys, FR-EXT-021), in byte-wise key order.
 - **Defaults omitted.** A member equal to its schema default is not written: `None`, empty arrays and maps, `false`
   flags and default enum variants. Where the default is not the type's zero value the schema names it. The v0
@@ -452,7 +451,7 @@ rank but no table yet (such as `import_run`, or the layout kinds before WP-S4.01
 order: by rank where the registry knows the kind, else after every known kind, ordered by the `$k` text byte-wise,
 and then by the ID order above. A duplicate `($k, id)` among them is EW-CORE-009 like any other (§6.3). Records of
 a **reserved** kind are kept verbatim without a finding, because this format version defines them; only kinds,
-members and variants the reader does not know at all are EW-CORE-016 (decision log ID-206).
+members and variants the reader does not know at all are EW-CORE-016.
 
 ### 3.4 Library documents
 
@@ -472,7 +471,7 @@ over the item's own text equals that of the published item. The copy metadata `{
 sha256}` is a leading `[copy]` table, which the hash excludes as it excludes the JSON copy metadata
 ([13](13-manufacturing-outputs.md) open question 3).
 
-*Reader tolerance (as built, cycle 22; decision log ID-552).* The writer never writes a BOM (§3.1), but the reader
+*Reader tolerance.* The writer never writes a BOM (§3.1), but the reader
 forgives one, as it does in a JSONL file: one leading BOM before a library copy is stripped and the copy is marked
 non-canonical, so the next save rewrites it without the BOM; a second BOM is a syntax error and the copy stays opaque.
 A copy with a BOM whose content is malformed is a kept document: it is preserved byte for byte, BOM included, and
@@ -495,12 +494,12 @@ Folio 101's page file holds the page row, the -101F1 representation and wire W7 
   uses `title` and `description_override` as the [domain model](03-domain-model.md) §1.2 amends ARCH §4.2.
 - **Representation.** Its position (10 px grid indices 52, 12) lies in cell B8. The optional member `anchor` (an
   `AnchorPolicy`, absent here) overrides the anchor policy of the symbol copy for this one representation; adding it
-  is additive within 0.1 (ADR-0011 amendment 4, decision log ID-334, ID-351).
+  is additive within 0.1 (ADR-0011 amendment 4).
 - **W7.** Its 2.5 mm² BK is an explicit override (CDP) with a marker. W8 (-101F1:1 → F55:1) has **no**
   `overrides` member: its 1.5 mm² BK is derived (D-08).
-  *As built (cycle 53; WP-S2.19 D2, D20, decision log ID-1499).* `route` is, in the schema's words, "the orthogonal
+  *As built.* `route` is, in the schema's words, "the orthogonal
   route in nm, in model order: every vertex from end a's point to end b's, both included. Empty: the connection is
-  not routed." W7's two vertices are its two ends. The meaning changed before format 0.1 locks (ID-1325), so no
+  not routed." W7's two vertices are its two ends. The meaning changed before format 0.1 locks, so no
   record shape and no migration changed; `schemas/0.1/connection.schema.json` carries the text.
 
 Shard `devices/c2.jsonl` holds -102G1 (ID ending `c2`) and, after it (rank 32 after 31), its main function:
@@ -551,7 +550,7 @@ copy of that item under `lib/manufacturers/` ([07](07-symbols-parts-macros.md) �
 
 `meta` is the part's provenance object (§3.4); the part's version is the copy metadata `version` alone.
 
-**A part with `mech`** (as built, cycle 34, WP-S1.19 part 1; decision log ID-334, ID-783). Golden A's part copies
+**A part with `mech`**. Golden A's part copies
 carry no L3 data, so this excerpt is the `ew-format` test fixture of 2904602 (dimensions and offsets are test values,
 not checked against a datasheet), with an alternative and a macro link; library IDs and the hash abbreviated. Lengths
 are nanometres, the mass grams. The typed members follow `cp_pattern` in the order of
@@ -595,7 +594,7 @@ order) is read typed, reported not canonical and rewritten in this order at the 
 The JSONL loader is a hardened parser under NFR-SEC-02 and is fuzzed together with the migration chain
 (NFR-SEC-03). Its limits:
 - lines ≤ 16 MiB, files ≤ 512 MiB, ≤ 100,000 files, JSON nesting ≤ 64; a file or line beyond a limit is not
-  read and is EW-CORE-019 (error, read-only; decision log ID-207), checked by a linear pre-scan before any parse;
+  read and is EW-CORE-019 (error, read-only), checked by a linear pre-scan before any parse;
   reading the manifest, the lock and an intent with the same bound before their size is checked follows with
   FT-90;
 - duplicate member names rejected;
@@ -633,7 +632,7 @@ The JSONL loader is a hardened parser under NFR-SEC-02 and is fuzzed together wi
 | `generator` | Program and version that wrote this generation |
 | `project` | The project row's ID: key for the journal, the trust store and "two copies open" warnings |
 | `generation` | +1 per save; after a git merge, max(ours, theirs) + 1 (§11.3) |
-| `base` | `"sha256:<hex>"` of the raw bytes of the `manifest.json` that this generation's save replaced (ADR-0010 amendment 3; decision log ID-202). Written into the intent (§5.2 step 5) and therefore present in every manifest a save writes; absent in a first generation (the golden fixture has none). The comparison that skips writing an unchanged project ignores it, and no save copies an earlier `base` forward. It conflicts in text merges like `generation` (§11.3, §11.4) |
+| `base` | `"sha256:<hex>"` of the raw bytes of the `manifest.json` that this generation's save replaced (ADR-0010 amendment 3). Written into the intent (§5.2 step 5) and therefore present in every manifest a save writes; absent in a first generation (the golden fixture has none). The comparison that skips writing an unchanged project ignores it, and no save copies an earlier `base` forward. It conflicts in text merges like `generation` (§11.3, §11.4) |
 | `files` | Every EW file except the manifest, the git files, `.ew/`, the lock files, `.~ew.requests/` and temps |
 | `merged` | `true` only when written by the merge driver: the hashes are not authoritative |
 | `unstable` | `true` when written by a development build with an unreleased schema (§10.4) |
@@ -683,12 +682,11 @@ sequenceDiagram
    G1). Before it writes the temp of a path that the baseline manifest does not list, the writer checks the target:
    an existing file there (another user's file, a sync client's copy) is **moved aside**, never renamed over, by a
    rename without replacement to `<stem>.unlisted-<g+1>[-<n>].<ext>` (§2.1, a stray), with the next free `n` when
-   the name is taken. The save reports EW-CORE-004 naming the new path in its save report and continues (owner
-   ruling, decision log ID-203). The move is made durable together with the temps.
+   the name is taken. The save reports EW-CORE-004 naming the new path in its save report and continues. The move is made durable together with the temps.
 5. **Intent:** the complete new manifest as `manifest.json.tmp-<g+1>`, with `base` = the SHA-256 of the raw bytes
    of the `manifest.json` the save started from (§4; absent when there was none), `sync_all`. Then the directories
    are synced in this order: the temps' directories first, the root (which holds the intent) last, so that a
-   durable intent name implies durable temp names (ADR-0010 amendment 3, decision log ID-200). On Windows,
+   durable intent name implies durable temp names (ADR-0010 amendment 3). On Windows,
    directory sync is unavailable and the NTFS metadata log is relied on **(verify)**. The writer then journals
    `save-begin{gen, writes, removes}` (§8.1) and syncs the journal.
 6. **Renames:** each temp over its target, then a sync of the target directories other than the root. On Windows,
@@ -701,11 +699,11 @@ sequenceDiagram
    by the power-loss mode of §5.6).
 8. **Clean-up:** delete the files that left the manifest (deleted pages, emptied shards) and our stale temps (§2.1).
    A normal save deletes them after the manifest rename and relies on the journal's `save-begin{removes}` after a
-   crash; a roll-forward deletes them before it renames the intent (§5.3, decision log ID-201).
+   crash; a roll-forward deletes them before it renames the intent (§5.3).
 9. **Bookkeeping:** journal `save-done`, start a new segment (§8), and move the saved marker to rev r. Later commits
    stay dirty.
 
-**Incomplete saves** (decision log ID-213). A save that fails after the commit point is *incomplete*: generation
+**Incomplete saves**. A save that fails after the commit point is *incomplete*: generation
 g+1 is decided, and the writer retries the roll-forward before the next save. A retry that fails again is
 reported as "pending incomplete" (`SaveError::PendingIncomplete`) and writes nothing new. The `Session` clears its
 unsaved state only when a save succeeds, or when it ends incomplete with a generation above the one before the
@@ -713,7 +711,7 @@ call; a failed retry therefore never marks newer edits as saved.
 
 The save never blocks the UI. Budgets: S/M ≤ 200 ms, L ≤ 500 ms, XL ≤ 2 s (NFR-PERF-12).
 
-*Cycle 28 (FT-468, ID-663):* file-key enumeration comes from `Model::keys`, generated from the entity list and including page items and structure boxes; no format bump or format change is needed.
+*Cycle 28:* file-key enumeration comes from `Model::keys`, generated from the entity list and including page items and structure boxes; no format bump or format change is needed.
 
 ### 5.3 Commit point and roll-forward (ADR-0010 amendments 1 and 3)
 
@@ -735,7 +733,7 @@ durable. A crash at any point therefore leaves a state that resolves to g or g+1
 an interrupted save; an older one is a leftover that the next editing open deletes with our other temps. A torn
 intent (unreadable) never committed and is deleted with its temps.
 
-**Base check** (ADR-0010 amendment 3; decision log ID-202). Wherever an intent is applied (the roll-forward at an
+**Base check** (ADR-0010 amendment 3). Wherever an intent is applied (the roll-forward at an
 editing open, a read-only opener's in-memory read of §6.1, the retry of an incomplete save), its `base` is compared
 with the SHA-256 of the raw bytes of `manifest.json` on disk, never with parsed generations. A conflicted or
 unparseable manifest whose bytes are unchanged therefore still rolls forward; without a parsed manifest every
@@ -783,10 +781,10 @@ and APFS. Every reopen must yield g or g+1.
   never as a silent mixed generation (NFR-REL-01).
 - **Error mode.** ENOSPC, EACCES, EROFS and, on Windows, `ERROR_SHARING_VIOLATION` are injected at each call: g
   stays intact, the project stays dirty, and the message names cause and remedy (NFR-REL-03).
-- **As built (WP-S1.09, cycle 8).** The kill, power-loss and error modes run in-process on the in-memory `MemVfs`,
+- **As built.** The kill, power-loss and error modes run in-process on the in-memory `MemVfs`,
   which numbers, fails and "powers off" calls; the power-loss mode found the sync order that §5.2 steps 5 to 7 now
   prescribe, and an extra probe of 2,944 double-crash roll-forward cases found no failure (the roll-forward is
-  idempotent). The child-process run on real ext4, NTFS and APFS volumes is a milestone task (FT-92).
+  idempotent). The child-process run on real ext4, NTFS and APFS volumes is a milestone task.
 
 ---
 
@@ -818,8 +816,8 @@ flowchart TD
 ```
 
 - **Only listed files are read.** With a manifest present the loader reads exactly the files it lists; any other
-  file in the layout is EW-CORE-004 and is not read (§6.2, decision log ID-203).
-- **Read-only openers never roll forward** (ADR-0010 amendment 3; decision log ID-204). Behind a stale or
+  file in the layout is EW-CORE-004 and is not read (§6.2).
+- **Read-only openers never roll forward** (ADR-0010 amendment 3). Behind a stale or
   live-looking lock, one that meets an intent above the manifest's generation retries every 200 ms for up to 5 s
   for the save to finish. If the intent is still there after the wait (a writer that crashed or stalls), the
   opener reads the intent's generation **in memory**: each listed file from its target or from its temp, whichever
@@ -840,7 +838,7 @@ A mismatch is classified, loaded anyway and explained (FR-COL-004):
 | `merged: true`, or `MERGE_HEAD` or rebase state in an ancestor `.git` | Git merge or rebase | Integrity check; manifest rewritten at the next save |
 | Files differ, valid, no temps | Foreign edit (hand edit, checkout, a tool) | "Changed outside ElektraWatt: 2 files" notice; integrity check |
 | A listed file is missing | Partial copy, sparse checkout, sync unfinished | EW-CORE-003, read-only. On cloud paths, re-check after 5 s first |
-| An unlisted file matching an EW or sync-conflict name pattern (§15), or a stray `.unlisted-<g>` name | Orphan, conflict copy or a file moved aside by a save | EW-CORE-004. Not read while a manifest exists, never deleted. A save or roll-forward that needs its path moves it aside first (§5.2 step 4) and reports EW-CORE-004 in its save report; the save continues (decision log ID-203) |
+| An unlisted file matching an EW or sync-conflict name pattern (§15), or a stray `.unlisted-<g>` name | Orphan, conflict copy or a file moved aside by a save | EW-CORE-004. Not read while a manifest exists, never deleted. A save or roll-forward that needs its path moves it aside first (§5.2 step 4) and reports EW-CORE-004 in its save report; the save continues |
 
 **As built (WP-S1.09).** The format layer loads anyway as above, but `Model::from_records` still refuses a record
 set it cannot build (for example one that breaks a structural invariant, EW-CORE-012), so such a project fails to
@@ -858,7 +856,7 @@ reconciliation after merges (§11.5) is FR-COL-016 (1.0). The findings are the i
 waivable). A finding marked **R** blocks release: EW-CORE-002, -003, -005 … -009, -011, -012, -013, -015, -017,
 -018 and -019, and EW-CORE-016 only where outputs are affected.
 
-**Read-only findings** (decision log ID-207). EW-CORE-002, -003, -005, -006 and -019 force a read-only session,
+**Read-only findings**. EW-CORE-002, -003, -005, -006 and -019 force a read-only session,
 because a save could otherwise drop or overwrite data the reader did not see (EW-CORE-006 until its conflict
 records are loaded, FR-COL-025). The flag counts every such finding, also those beyond the findings cap.
 
@@ -868,7 +866,7 @@ records are loaded, FR-COL-025). The flag counts every such finding, also those 
 | EW-CORE-002 | Mixed generation that cannot roll forward | error; R | Journal recovery; best-effort read-only load |
 | EW-CORE-003 | A listed file is missing | error; R | Restore it from git or the sync client; drop the entry |
 | EW-CORE-004 | Orphan or sync-conflict copy, an unlisted file, or a file a save moved aside to a stray `.unlisted-<g>` name (§5.2 step 4) | warning | Compare; merge the copy as an external change (§9); delete by hand (EW never deletes it) |
-| EW-CORE-005 | JSON syntax error at file:line | error; R; read-only | `ew fmt --repair`: discard the line (one that is not JSON or not UTF-8), after packing the files as found, the line and any edit outside EW since the last save included, as `<project folder>.before-repair-g<generation>.ewz` beside the project folder (§12; a file of that name is reused only when it holds that pack); refused for a library document that is not UTF-8, while another finding forces read-only, and when the files cannot be packed: no manifest, an incomplete save, a file that cannot be read or that changed since the repair opened it (ID-1185, ID-1186) |
+| EW-CORE-005 | JSON syntax error at file:line | error; R; read-only | `ew fmt --repair`: discard the line (one that is not JSON or not UTF-8), after packing the files as found, the line and any edit outside EW since the last save included, as `<project folder>.before-repair-g<generation>.ewz` beside the project folder (§12; a file of that name is reused only when it holds that pack); refused for a library document that is not UTF-8, while another finding forces read-only, and when the files cannot be packed: no manifest, an incomplete save, a file that cannot be read or that changed since the repair opened it |
 | EW-CORE-006 | Git conflict markers in a JSONL file | error; R | Converted into conflict records (§11.4) |
 | EW-CORE-007 | Schema violation: wrong type, missing member, a float, an unparseable value such as a `Dec3` with four fraction digits. An undeclared company colour code such as "BR" parses as a company code and is reported by EW-CORE-031; a lenient import writes `{"foreign":"BR"}` (§3.2) | error; R | The line is quarantined verbatim and references to it are reported |
 | EW-CORE-008 | Dangling reference | error; R | The link's delete policy, as a previewed fix |
@@ -882,9 +880,9 @@ records are loaded, FR-COL-025). The flag counts every such finding, also those 
 | EW-CORE-016 | Unknown kinds, members or variants from a newer format (a malformed value of a known variant is EW-CORE-017). Records of a reserved kind (a rank but no table yet, §3.3) are kept verbatim and are not reported | info; R where outputs are affected | Upgrade EW |
 | EW-CORE-017 | Malformed value of a known variant: an enum value whose tag names a variant this reader knows but whose payload does not parse, such as `{"core": 5}` or `{"cp": ["<id>"]}`. The value is kept verbatim as `Unknown` (ADR-0011 amendment 2) and derivations treat it as unknown (§10.3) | error; R | Re-enter the value in the property grid, which shows the raw value |
 | EW-CORE-018 | The project pins a derivation profile this build does not ship (a newer file or a hand edit). The pin is kept; the newest shipped profile is used for display only, and profile-dependent commands are refused (§10.1, ADR-0003 amendment 1) | error; R | The opt-in, previewed profile upgrade; or open the project in a build that ships the profile |
-| EW-CORE-019 | A hostile-input limit of §3.6 exceeded (line, file, file count or nesting); the file or line is not read (2026-10-20, decision log ID-207) | error; R; read-only | Split or repair the file outside EW; check the source of the project |
+| EW-CORE-019 | A hostile-input limit of §3.6 exceeded (line, file, file count or nesting); the file or line is not read | error; R; read-only | Split or repair the file outside EW; check the source of the project |
 
-**Notices without a rule ID** (decision log ID-208). Four results of the reader are not catalogue rules and carry
+**Notices without a rule ID**. Four results of the reader are not catalogue rules and carry
 no EW-CORE ID: a hash that matches after CRLF → LF (line endings, §6.2), a listed file changed outside EW (foreign
 edit, §6.2), a valid but non-canonical file (§3.1), and the note that more findings than the cap (1,000) were
 counted (truncated). The first three classify the open and resolve themselves at the next save; the fourth is
@@ -898,7 +896,7 @@ number left for them.
 read-only (§6.1): they read the manifest and then the listed files, and verify the hashes. While a save is in
 progress they retry for up to 5 s; if the save's intent is still there after the wait, they read the intent's
 generation in memory, after its base check (§5.3), instead of failing. They never exit with code 2 because of a
-save in progress (amended 2026-10-20, decision log ID-204). Their output therefore reflects exactly one generation
+save in progress. Their output therefore reflects exactly one generation
 (FR-COL-027): the manifest's, or the one a crashed or stalled save had decided.
 
 **Writing commands take the lock or refuse:** `ew apply`, `ew import` into an existing project, `ew fmt` (when it
@@ -954,7 +952,7 @@ editing".
    replacement left both), the copy is redundant: it is pruned and the rename is tried once more.
 2. The winner **restamps** the renamed file's modification time to the takeover time, so the age rule below counts
    from the takeover; otherwise it keeps the holder's last heartbeat, and the winner's own open would prune it at
-   once and reopen the race (decision log ID-210). It then creates its own lock with `create_new` and re-reads it
+   once and reopen the race. It then creates its own lock with `create_new` and re-reads it
    after 2 s.
 3. Where a file system cannot rename without replacement (some CIFS and NFS mounts **(verify)**), EW falls back to
    the plain rename, and the re-read of step 2 plus the heartbeat's session check (§7.2) detect the loser.
@@ -962,7 +960,7 @@ editing".
 A laptop that wakes after a takeover detects the loss at its next heartbeat (§7.2). `.~ew.lock.stale-*` files
 older than `lock.stale_after` (counted from the takeover, step 2) are deleted at the next editing open.
 
-**PID liveness as built** (decision log ID-216). Only Linux probes the PID (through `/proc/<pid>`, without its
+**PID liveness as built**. Only Linux probes the PID (through `/proc/<pid>`, without its
 start time). On Windows and macOS a crashed holder's lock is stale only by age, so after a crash on the same host the
 project opens read-only for up to 60 minutes (`lock.stale_after`) before a takeover is offered. The probe of PID
 and start time on Windows and macOS (and the start time on Linux) comes with the small `ew-sysprobe` crate
@@ -976,7 +974,7 @@ and start time on Windows and macOS (and the start time on Linux) comes with the
 
 The journal lives in `<state>/journal/<project id>-<8 hex of SHA-256(canonical path)>/`. The canonical path is the
 absolute path with links, `.` and `..` resolved and, on Windows, the verbatim prefix `\\?\` stripped, so one project
-reached through two paths has one journal (decision log ID-211); journals of pre-release builds kept under a
+reached through two paths has one journal; journals of pre-release builds kept under a
 non-canonical path are not found. It holds one JSONL segment per base generation and three snapshot slots (the
 slots, group commit and the undo rebuild of §8.2 step 5 follow with FT-88; v0 replays the whole segment onto its
 base generation). The example records W20's colour change from DBU to BU
@@ -994,9 +992,9 @@ base generation). The example records W20's colour change from DBU to BU
 - **Entries.**
   - `tx` holds field-level diffs: `set` for the after-values, `was` for the before-values, and `put` or `del` with
     whole records.
-  - Field diffs are per top-level member of a record. `project.settings.set` (decision log ID-290) therefore journals the whole `settings` value of the project record in `set` and `was`, not only the edited member; settings are a few kilobytes, so per-member paths are not planned.
+  - Field diffs are per top-level member of a record. `project.settings.set` therefore journals the whole `settings` value of the project record in `set` and `was`, not only the edited member; settings are a few kilobytes, so per-member paths are not planned.
   - Undo and redo are journalled as the transactions they are.
-  - **Assets** (as built in cycle 23, FT-337; decision log ID-573 to ID-575). A `tx` line carries in `assets`, each as
+  - **Assets**. A `tx` line carries in `assets`, each as
     `{"ref": <AssetRef>, "b64": <base64 of the bytes>}`, every asset that the model after the transaction names
     (`Model::referenced_assets`, today the company logo, §10.3) unless its file is on disk with that hash or an earlier
     line of the segment carried it. The second condition is a per-segment set, reset when a segment starts, to which a
@@ -1013,7 +1011,7 @@ base generation). The example records W20's colour change from DBU to BU
     replayed.
   - The base64 form is acceptable at the logo bound (512 KiB, §13.3: a line of about 683 KiB). Larger rasters and
     meshes (`glb`) will use side files, `journal/<segment>.assets/<sha256>`, synced before the transaction line that
-    names them (FT-381, before images above that bound).
+    names them (before images above that bound).
   - `t` (epoch ms) and the absolute `path` serve only the recovery dialog. The journal is not project data and
     never leaves the user-only state directory (NFR-PRIV-05).
 - **Durability.** Group commit syncs every entry within 1 s of its commit (NFR-REL-02). It also syncs at once on
@@ -1029,18 +1027,17 @@ base generation). The example records W20's colour change from DBU to BU
 - **Lifecycle.**
   - A successful save starts a new segment; the old one goes after the next snapshot.
   - A clean close deletes the directory (NFR-PRIV-05).
-  - A dirty session that ends without a clean close or an explicit discard keeps its journal. The shell (since
-    cycle 19, decision log ID-475) closes a clean session at exit but drops a dirty one without closing it: a window
+  - A dirty session that ends without a clean close or an explicit discard keeps its journal. The shell (since) closes a clean session at exit but drops a dirty one without closing it: a window
     closed or a log-off while dirty, and the end of a headless script with unsaved changes (which exits 1), all leave
     the journal for the next open; only the unsaved-changes dialog's Discard, or `file.close` or `app.quit` with
     `discard: true`, deletes it.
   - At the next editing open, leftover segments of other sessions that hold no unsaved transaction (a session that
     crashed or was dropped right after a save) are deleted; only segments with unsaved transactions reach the
-    recovery dialog (decision log ID-211).
+    recovery dialog.
   - At start-up, leftovers older than 30 days are pruned and logged.
   - If the state directory is unavailable, EW shows "unsaved changes are not crash-protected" and editing continues.
 
-*As built (2026-11-04, cycle 50; WP-S6.05 D8, D10, decision log ID-1338, ID-1339).* **Pruning at start:** every
+*As built.* **Pruning at start:** every
 start (window and headless, not smoke) deletes the leftover journals older than 30 days of every project, after
 reading each project's lock, so a live session keeps its journal, and the crash logs older than 30 days or beyond the
 20 newest; the store's clock decides the age. **Panics:** there is no abort path and no flush from the hook: every
@@ -1063,8 +1060,7 @@ directories are 0700 and its segments 0600 on Unix.
    transaction against G. A field whose current value differs from `was` is a collision, resolved in the merge panel
    (§9). The replay's net removals are judged against the moved base as a candidate transaction against G, as an edit
    on G would be: a library copy that the replay removes while a `LibRef` of the result still names it is also a
-   collision, its member being the link (the delete-time rule EW-INV-021, ADR-0009 amendment 7; decision log
-   ID-479). It is reported only when no field collision exists, which is harmless, because nothing is applied either
+   collision, its member being the link (the delete-time rule EW-INV-021, ADR-0009 amendment 7; decision log). It is reported only when no field collision exists, which is harmless, because nothing is applied either
    way. The judgement is net, so a copy that the journal embeds and then undoes is no collision.
 5. **Open dirty.** The recovered model opens with unsaved changes. Its transactions are rebuilt into the undo
    history from `set` and `was` (FR-COL-028).
@@ -1075,13 +1071,13 @@ At start-up, and when opening a project with a leftover journal, EW shows projec
 the number of unsaved transactions. The choices are "Recover", "Open without recovering" (the journal is kept 30
 days) and "Discard". The CLI equivalent is `ew recover <project> [--list | --apply | --discard]`.
 
-*As built (cycle 19; decision log ID-475).* Neither the dialog nor `ew recover` exists yet (FT-313, FT-252). The
+*As built.* Neither the dialog nor `ew recover` exists yet. The
 shell opens a project with a leftover journal read-only, with the banner "This project has unsaved changes from a
 session that ended unexpectedly. It is open read-only; recovery comes with a later version.", and keeps the journal;
 `ew apply` refuses such a project. Because every dirty exit of the shell now leaves a journal, discarding it in the
-application comes first, with WP-S2.01 part 2 (FT-313); recovery follows with WP-S2.09.
+application comes first, with WP-S2.01 part 2; recovery follows with WP-S2.09.
 
-*As built (cycle 30, WP-S2.09 part 1; decision log ID-694, ID-714, ID-715; FT-313 closed).* A project with a leftover
+*As built.* A project with a leftover
 journal still opens read-only first, and the recovery dialog then shows the unsaved transactions, the time of the last
 change (in UTC; local time is FT-503) and whether the project changed on disk since. **Recover** re-opens it with
 `Recovery::Apply`, editable and dirty with the edits; a failed recovery (the leftover still present, a collision with
@@ -1089,11 +1085,11 @@ another session's save, or a re-open that is not an editing one) re-opens read-o
 Open read-only and Discard…. **Open read-only** keeps the journal and the read-only access (Escape means the same).
 **Discard…** asks for confirmation, then opens editable without the edits; its Cancel returns to the dialog. Nothing
 is written before a choice. Headless, `journal.recover`, `journal.keep` and `file.discard_journal { confirm: true }`
-answer the dialog. `ew recover` is not built (FT-252). Save As closes the original cleanly once the copy exists (its
+answer the dialog. `ew recover` is not built. Save As closes the original cleanly once the copy exists (its
 journal of the edits that went into the copy deleted, its lock released), so reopening the original does not show this
 dialog; a failed Save As keeps the original's journal (FT-499, fixed in the cycle-30 review round).
 
-*As built (2026-11-04, cycle 50; WP-S6.05 D11, decision log ID-1338, ID-1339), the start-up half.* At start the
+*As built, the start-up half.* At start the
 shell lists the leftover journals with unsaved transactions of every project whose lock is not live, each with its
 directory name, path, unsaved count (the transactions after the segment's last save) and last change, and the newest
 crash log that ends a session and was not offered. The start-up dialog offers Recover per project (several projects
@@ -1155,18 +1151,18 @@ In the table, R is the reader's format, F the file's format and M its `min_reade
 | F.major < R.major | Migrate in memory. The first save asks first and writes `<name>.ew.pre-<F>.ewz` beside the project (NFR-REL-06) |
 | `unstable: true` in a release build | Read-only with a warning |
 
-*As built (cycle 48, WP-S1.17 part 3; decision log ID-1221, ID-1230; written in this cycle, ID-1248).* An
+*As built (written in this cycle).* An
 older-major project (each `0.x` is its own major) opens migrated in memory through the loader's `Access::Migrate`,
 and a missing step refuses the open. The consent gate stands in the store's save, so every writer meets it: `ew
 upgrade` asks for the word `upgrade` on a terminal or takes `--yes`; the window's banner and consent dialog are
-WP-S1.17 part 7's (FT-1148). Once confirmed, `Session::save` first packs the project's files and the manifest's
+WP-S1.17 part 7's. Once confirmed, `Session::save` first packs the project's files and the manifest's
 bytes as found as `<project folder>.pre-<from>.ewz` beside the project folder (`-2`, `-3` and so on past a name that
 holds other bytes, a name holding the same bytes reused), reads it back, and then saves in this build's format,
 rewriting only the files a step changed; a failed backup refuses the save with nothing written. Review part 2's
-rulings (ID-1230: the file's `unstable` flag kept under `keep_format`, a migrated library document that ends opaque
+rulings (the file's `unstable` flag kept under `keep_format`, a migrated library document that ends opaque
 refused, a migrated copy's hash recomputed) are built by its fixer.
 
-**Unknown derivation profile** (ADR-0003 amendment 1; decision log ID-72). A project whose `derivation_profile`
+**Unknown derivation profile** (ADR-0003 amendment 1). A project whose `derivation_profile`
 this build does not ship (a newer file or a hand edit) opens under the rules above, but the pin is never silently
 replaced: it stays as stored, EW-CORE-018 reports it as an error and blocks release, and the newest shipped profile is used for
 display only. Every profile-dependent command (device and wire numbering, renumbering, every upgrade except the profile
@@ -1188,13 +1184,13 @@ upgrade) is refused until the opt-in, previewed profile upgrade resolves the pin
   yields a small git diff (FR-EXT-008).
 - **Same chain everywhere.** Macros, catalogue items and archives carry `$v` and use the same chain.
 
-*As built (cycle 48, WP-S1.17 part 3; decision log ID-1221, ID-1230).* The chain is `ew_format::migrate`: kind steps
+*As built.* The chain is `ew_format::migrate`: kind steps
 (`$v` n to n + 1, the chain setting `$v`) and format steps (one on the manifest's `Value`, one on each record's and
 library document's), run on the `Value` between a line's parse and its typed reading, only on an older-major open;
 the format record steps run before the kind steps, which FT-1153 interleaves before a second format step ships. The
 shipped chain (`MIGRATIONS`) is empty while 0.1 is the first format, and tests pass their own. A step's error
 carries its JSON Pointer and the loader adds the file and the line. A clipboard fragment of an older format
-migrates through the same chain (`ew-api`'s `parse_fragment`, FT-403).
+migrates through the same chain (`ew-api`'s `parse_fragment`).
 
 ### 10.3 Additive change rules and preservation
 
@@ -1205,14 +1201,14 @@ amendment 1):
 1. **New members** are optional with a default, are **appended** after the existing members of their kind, and
    carry `since = "1.n"`, which feeds `min_reader`.
 2. **New kinds** take a new rank and declare their ownership.
-   *As built (cycle 13; decision log ID-334, ADR-0011 amendment 4).* A kind that the registry already reserves with a rank and ownership (§2.2), and a device aspect or part section that this document already names, may get its typed table within the current unreleased 0.x format: no format bump, no `$v` bump, and `schemas/0.1` is re-blessed. This is additive. An older 0.1 build keeps such records verbatim (a reserved kind, ID-206) or their members in `extra`, but it does not enforce their links: an older build that deletes a module leaves its channels dangling (FT-229 reports them, FT-230 tests that case). *Cycle 15 (decision log ID-378):* the typed assembly aspect adds the unlink cascade of `configs[].covers[]` and the forbid link of `configs[].part.copy`. An older 0.1 build that deletes a covered device leaves a dangling cover, and `Model::from_records` then refuses the project (`OpenError::Model`); the current build must open it, report the dangling cover and then unlink it (FT-266, the analogue of FT-229 and FT-230). Exposure is nil: no earlier build wrote covers. *Cycle 17 (decision log ID-428, FT-165):* the reserved kind `revision` (rank 60, `revisions.jsonl`) is typed. A `revisions.jsonl` of an earlier build opens as typed records with every member kept, is reported not canonical (info) and is rewritten at the next save; one whose revisions break EW-INV-016, EW-INV-018 or EW-INV-019 fails to open with `OpenError::Model`, accepted for the unreleased 0.1 because no released build wrote revisions. After a format release, typing a reserved kind that adds cascade links or other semantics an older reader must apply is a minor bump that raises `min_reader`; typing without such semantics stays additive. Precedent: FT-84, decision log ID-197. *Cycle 23 (decision log ID-566):* the rule applies again to the reserved kinds `page_item` and `structure_box` (§2.2). An older 0.1 build keeps their records verbatim and does not enforce their delete links (the cascade of a deleted page, the wire marker's connection list), so the current build opens a project whose marker lists a deleted connection or one on another page, reports it and ignores the stale entry; it neither refuses the project nor rewrites the record. *Cycle 34 (WP-S1.19 part 1; decision log ID-783):* the rule
+   *As built (ADR-0011 amendment 4).* A kind that the registry already reserves with a rank and ownership (§2.2), and a device aspect or part section that this document already names, may get its typed table within the current unreleased 0.x format: no format bump, no `$v` bump, and `schemas/0.1` is re-blessed. This is additive. An older 0.1 build keeps such records verbatim (a reserved kind) or their members in `extra`, but it does not enforce their links: an older build that deletes a module leaves its channels dangling (FT-229 reports them, FT-230 tests that case). *Cycle 15:* the typed assembly aspect adds the unlink cascade of `configs[].covers[]` and the forbid link of `configs[].part.copy`. An older 0.1 build that deletes a covered device leaves a dangling cover, and `Model::from_records` then refuses the project (`OpenError::Model`); the current build must open it, report the dangling cover and then unlink it (FT-266, the analogue of FT-229 and FT-230). Exposure is nil: no earlier build wrote covers. *Cycle 17:* the reserved kind `revision` (rank 60, `revisions.jsonl`) is typed. A `revisions.jsonl` of an earlier build opens as typed records with every member kept, is reported not canonical (info) and is rewritten at the next save; one whose revisions break EW-INV-016, EW-INV-018 or EW-INV-019 fails to open with `OpenError::Model`, accepted for the unreleased 0.1 because no released build wrote revisions. After a format release, typing a reserved kind that adds cascade links or other semantics an older reader must apply is a minor bump that raises `min_reader`; typing without such semantics stays additive. Precedent: FT-84, decision log ID-197. *Cycle 23:* the rule applies again to the reserved kinds `page_item` and `structure_box` (§2.2). An older 0.1 build keeps their records verbatim and does not enforce their delete links (the cascade of a deleted page, the wire marker's connection list), so the current build opens a project whose marker lists a deleted connection or one on another page, reports it and ignores the stale entry; it neither refuses the project nor rewrites the record. *Cycle 34:* the rule
    applies to the reserved kinds `macro_instance`, `macro` and `manufacturer` (§2.2) and to the part members of
    [07](07-symbols-parts-macros.md) §2.5 that the document already named. The new part members take their places in
    07 §2.5's member order rather than being appended (WP-S1.19 D2), which is possible only while 0.1 is unreleased: a
    part copy of an older build that carries them in `extra` is read typed, reported not canonical (info) and rewritten
    in the typed order at the next save, with its stored `sha256` kept, so EW-CORE-014 reports the copy where the
-   canonical order differs; this is accepted within 0.1 (ID-334). Golden A carries none of the new members, so no
-   golden copy hash moved. *Cycle 50 (WP-S1.20; decision log ID-1316, ID-1340):* the rule applies again to the fluid members of 0.1, each optional with a catch-all: `CpDef.port_role`, `ConnectionKind::Fluid` with its `line_kind`, `CpOverride.closure` (a new link to a part copy, which an older 0.1 build does not enforce), `PartSections.fluid` with `solenoids` and `TextSlot.fallback`; `schemas/0.1` was re-blessed with additions only. The format locks at the 0.1.0 release (ADR-0011 amendment 6).
+   canonical order differs; this is accepted within 0.1. Golden A carries none of the new members, so no
+   golden copy hash moved. *Cycle 50:* the rule applies again to the fluid members of 0.1, each optional with a catch-all: `CpDef.port_role`, `ConnectionKind::Fluid` with its `line_kind`, `CpOverride.closure` (a new link to a part copy, which an older 0.1 build does not enforce), `PartSections.fluid` with `solenoids` and `TextSlot.fallback`; `schemas/0.1` was re-blessed with additions only. The format locks at the 0.1.0 release (ADR-0011 amendment 6).
 3. **Enums.** Every persisted enum has an `Unknown(serde_json::Value)` catch-all, so adding a variant is additive.
    Derivations treat `Unknown` conservatively: an unknown connection kind joins no net and is drawn grey and dashed.
    It blocks release where it affects outputs, as here (EW-CORE-016).
@@ -1231,21 +1227,21 @@ Unknown data is preserved as follows:
 Original lines are held only for records with unknown content. A project in the current format costs no extra
 memory.
 
-**As built (v0, WP-S1.09; decision log ID-217).** Unknown kinds and the lines of EW-CORE-007 and EW-CORE-017 are
+**As built (v0).** Unknown kinds and the lines of EW-CORE-007 and EW-CORE-017 are
 kept byte for byte, but an untouched record with unknown *members* is re-emitted canonically (its members kept in
 `extra`, in byte-wise order) instead of by its original line; the original-line rule above follows with FT-96.
 `min_reader` is written equal to `format` and `unstable` is never written (§4, §10.4); the computed values follow
 with FT-95.
 
-**As built (cycle 22; decision log ID-545, ID-547).** The four commands of FT-336 add no record kind and change no
+**As built.** The four commands of FT-336 add no record kind and change no
 schema: `frames` and `checks` (in `ProjectSettings.extra`) and `ew.company` (in `Project.extra`) are existing `extra`
 members that commands now write, and the company is an ordinary `Party` of role `panel_builder`. Their stored shapes
 are in [03](03-domain-model.md) §5.1. `ew.company` is a provisional member (the basic project's company data, with the
-logo and the title-block notice; decision log ID-78), so the work package that types it must read old files that carry
+logo and the title-block notice), so the work package that types it must read old files that carry
 it in `extra`, written by these commands or by the importer, without a migration step. A command that writes into one of
 these members merges into the existing object, so members it does not know survive (the rule above).
 
-**As built (cycle 23; decision log ID-573).** The logo of the provisional `ew.company` member is an asset reference:
+**As built.** The logo of the provisional `ew.company` member is an asset reference:
 `"logo": {"sha256": "sha256:<64 hex>", "format": "svg" | "png" | "jpeg", "size": [w, h]}`, with `size` absent when the
 intrinsic size is unknown, written by `project.company.set` and naming the file `assets/<sha256>.<ext>` (ext `svg`,
 `png` or `jpg`, §13.3). The earlier form, a bare `"logo": "sha256:<64 hex>"` (read before the asset store existed as a
@@ -1254,7 +1250,7 @@ when it sets or removes the logo. A bare reference takes its format and size fro
 reads it (`Q::logo_asset`), so a bare hash that names an SVG file prints as SVG. The new `logo` object is an existing
 `extra` member's value, not a schema change, like the other members of this paragraph.
 
-**As built (cycle 27; decision log ID-647).** Implementing a reserved kind changes how an older build's lines read: a build before WP-S2.04 part 4a kept `page_item` and `structure_box` records as reserved kinds and wrote their members in byte-wise order, so this build loads them typed, reports the file with a `NonCanonical` finding (info) and schedules its rewrite in the typed kinds' member order (`Loaded::rewrite`; the revision precedent, FT-165); a canonical line, and an unknown `page_item` variant, are written back byte for byte. A newer build's file read by the older build follows the reserved-kind path and is kept line for line.
+**As built.** Implementing a reserved kind changes how an older build's lines read: a build before WP-S2.04 part 4a kept `page_item` and `structure_box` records as reserved kinds and wrote their members in byte-wise order, so this build loads them typed, reports the file with a `NonCanonical` finding (info) and schedules its rewrite in the typed kinds' member order (`Loaded::rewrite`; the revision precedent); a canonical line, and an unknown `page_item` variant, are written back byte for byte. A newer build's file read by the older build follows the reserved-kind path and is kept line for line.
 
 ### 10.4 Schemas, fixtures and development builds
 
@@ -1276,8 +1272,8 @@ reads it (`Q::logo_asset`), so a bare hash that names an SVG file prints as SVG.
 - **Development builds** with an unreleased schema write `"unstable": true` and warn on every save. Release builds
   open such projects read-only, because an unreleased member may still be renamed.
 
-*As built (cycle 48, WP-S1.17 part 3; decision log ID-1221).* A save writes `unstable: true` when the released list
-(`RELEASED_FORMATS`) is not empty and lacks the format it writes, so with the list empty nothing changes (FT-95);
+*As built.* A save writes `unstable: true` when the released list
+(`RELEASED_FORMATS`) is not empty and lacks the format it writes, so with the list empty nothing changes;
 the warning on every such save is FT-1154. D12's steward check is `ew_format::migrate::steward_problems`, run as a
 test in `ew-format` and `ew-store` rather than as an xtask check; the corpus test opens, saves and compares each
 `fixtures/format/<format>/<project>/` and passes while the folder is absent (WP-S6.08 adds it).
@@ -1393,16 +1389,16 @@ The driver writes:
 - `files` merged three-way per path, with `"sha256:pending"` where both sides changed;
 - `merged: true`;
 - no `base`: a merged manifest is not the result of a save, and the next save records the hash of the merged
-  manifest's bytes as its `base` (§4, decision log ID-202).
+  manifest's bytes as its `base` (§4).
 
 The open path treats the result as in §6.2, and the next save writes a clean manifest. As built (v0), that save
-restarts at generation 1 after a conflicted manifest instead of continuing at max(ours, theirs) + 1 (FT-97).
+restarts at generation 1 after a conflicted manifest instead of continuing at max(ours, theirs) + 1.
 
 ### 11.4 Without the driver
 
 GitHub web merges and clones without `ew git setup` fall back to git's text merge:
 - **Merges mostly succeed:** one record per line, ordered by random bits, keeps conflicts rare (ADR-0012).
-- **The manifest conflicts** on the `generation` and `base` lines (amended 2026-10-20, decision log ID-203). Any
+- **The manifest conflicts** on the `generation` and `base` lines. Any
   resolution of these two lines is acceptable: either side, or `base` dropped; the next save records the hash of
   the resolved manifest's bytes, and an interrupted save whose `base` still matches those bytes rolls forward
   (§5.3). The resolution does not make other files acceptable: only the files the resolved manifest lists are
@@ -1473,7 +1469,7 @@ J-E-2416.ewz
                   by path, Deflate; never .ew/, the lock files, .~ew.requests/, temps, strays or .git/
 ```
 
-*As built (cycle 47, WP-S1.17 part 2; decision log ID-1175, ID-1191):* the file is one verified generation, the one
+*As built:* the file is one verified generation, the one
 `Store::read_generation` reads back from the disk, never a model in memory; `pack` reads its bytes back through the
 reader before it hands them out and refuses an archive the reader would refuse.
 
@@ -1518,10 +1514,9 @@ reader before it hands them out and refuses an archive the reader would refuse.
   - The repair's backup (§6.3, `ew fmt --repair`): the generation's files as found, a file edited outside EW since the
     last save included, with its manifest the loaded one and each listed file's hash set to those bytes, so that it
     verifies and extracts to the project as the repair found it. It is the one `.ewz` that is not a verified
-    generation; `ew export ewz` still refuses a file that differs from the manifest (WP-S1.17 D8, decision log
-    ID-1186).
+    generation; `ew export ewz` still refuses a file that differs from the manifest.
 
-**The project fragment `#ew-fragment v1`** (as built, cycle 27, WP-S2.05 part 3; decision log ID-596, ID-648; ARCH §5.5). Copy, cut, duplicate and paste carry records as text: UTF-8, LF line ends (CRLF is read), line 1 `#ew-fragment v1`, line 2 the header `{"$fragment": {"format", "project", "grid", "page_kind", "anchor", "ghost"}}`, then one canonical record line per record (§3.1) in (kind rank, position, ID) order, then one `{"$lib": …}` line per library copy (the `lib/` form) in (kind, copy ID) order, then one `{"$node": {"id", "aspect", "path", "aliases"}}` line per referenced structure node in ID order. Within v1 the header is open (unknown members are ignored) and a `$node` line closed; a leading byte-order mark and empty lines are skipped. The records keep their source IDs as data; `edit.paste` mints new IDs, remaps the references by `ew_model::LINKS` and their delete policy, drops a record's import lineage (`source_ref`) and refuses a fragment of another `format` or `$v` until WP-S1.17's migration chain exists (FT-403). The parser's limits are 4 MiB, 10,000 records, 1 MiB per line and nesting 64. Since cycle 28 the fragment also carries page items and structure boxes (ranks 43/44); marker associations retain and remap copied connections, empty markers/unknown variants are skipped and counted, and cross-project structure-box paste clears `external`. Copy remains partial-selection tolerant; Cut refuses an incomplete selected page-item transfer before side effects (ID-660; WP-S2.05 §8). The full rules are the WP-S2.05 specification's §8.
+**The project fragment `#ew-fragment v1`** (as built, ARCH §5.5). Copy, cut, duplicate and paste carry records as text: UTF-8, LF line ends (CRLF is read), line 1 `#ew-fragment v1`, line 2 the header `{"$fragment": {"format", "project", "grid", "page_kind", "anchor", "ghost"}}`, then one canonical record line per record (§3.1) in (kind rank, position, ID) order, then one `{"$lib": …}` line per library copy (the `lib/` form) in (kind, copy ID) order, then one `{"$node": {"id", "aspect", "path", "aliases"}}` line per referenced structure node in ID order. Within v1 the header is open (unknown members are ignored) and a `$node` line closed; a leading byte-order mark and empty lines are skipped. The records keep their source IDs as data; `edit.paste` mints new IDs, remaps the references by `ew_model::LINKS` and their delete policy, drops a record's import lineage (`source_ref`) and refuses a fragment of another `format` or `$v` until WP-S1.17's migration chain exists. The parser's limits are 4 MiB, 10,000 records, 1 MiB per line and nesting 64. Since cycle 28 the fragment also carries page items and structure boxes (ranks 43/44); marker associations retain and remap copied connections, empty markers/unknown variants are skipped and counted, and cross-project structure-box paste clears `external`. Copy remains partial-selection tolerant; Cut refuses an incomplete selected page-item transfer before side effects. The full rules are the WP-S2.05 specification's §8.
 
 ---
 
@@ -1550,7 +1545,7 @@ Libraries are `.ewlib` text directories in the project format at every tier
 - **Immutable versions.** A published version never changes: `ew lib pack` refuses different content under an
   existing version, so `(library_id, item_id, version)` determines the content ([07](07-symbols-parts-macros.md)
   §2.1). The starter library's draft items (status `draft`, every one at 0.1.0, [07](07-symbols-parts-macros.md)
-  §2.3) are not published before the first release and may change in place (ID-733). The consequence: a project
+  §2.3) are not published before the first release and may change in place. The consequence: a project
   made before such a change refuses a cross-project paste of the changed item (a terminal, after FT-505) until
   "update from library" (FR-PRT-014) exists.
 - **Foreign SQLite files** (QETZ, third-party catalogues) open read-only with `trusted_schema=OFF`, defensive mode
@@ -1559,7 +1554,7 @@ Libraries are `.ewlib` text directories in the project format at every tier
   (`part`, `symbol`, `fndef`, `form`, `macro`, `manufacturer`; from 1.0 also the profile kinds of §2.2) are the
   same in every tier, so embedding is a copy.
 
-*As built (cycle 35, WP-S1.19 part 2 and WP-S2.18 part 2; decision log ID-818, ID-830).* `ew-library` implements the
+*As built.* `ew-library` implements the
 tiers above except the project row, which is `ew-store`'s. The system tier is the compiled-in starter, the compiled-in
 generic starter parts `ew-starter-parts` (a `.ewlib` whose files are compiled in; a directory of the same ID replaces
 it) and `content/libraries/*.ewlib`; community, company (settings' paths) and user follow. Reading applies the project
@@ -1580,19 +1575,19 @@ writes to the system and community tiers are refused.
   - Project-local items, including the per-project "QET import" library, use UUIDv7 or element-hash UUIDv5 IDs,
     with `library_id` = the project ID. The "QET import" library's human key is `qet-import`; the importer
     receives the project ID as `ImportCx.project` ([14](14-interop.md) §2.1), because importers never read the
-    model (decision log ID-24).
-  - Manufacturer and macro copies (as built, cycle 34, WP-S1.19 part 1; decision log ID-783) follow the same
+    model.
+  - Manufacturer and macro copies follow the same
     identity, metadata and hash rules under `lib/manufacturers/` and `lib/macros/`. `library.embed` embeds them with
     the checks of parts, symbols, FnDefs and forms (a copy listed twice, copy identity, hash, an edited member, a
     project-local item), refuses one that is already held; `edit.paste` refuses a fragment that carries either kind, since a fragment's
     closure names neither. A
     part's `manufacturer` `LibRef` is not yet resolved to the embedded manufacturer copy (WP-S1.19 part 3); a
     `macro_instance` names its macro copy by copy ID, a forbid link (§2.2).
-  - Project-local part copies made by the parts import (FT-410; decision log ID-651) take the IDs the golden emitter mints: `library_id` = the project ID, `item_id` = `v5(ns, "parts|{key}")` from the part's key in the namespace of `ew-import-tables`' bootstrap, so an import and the bootstrap give the same copy; `meta.source` is the file's base name, no import date is stored (FR-PRT-017's reading, [02a](02a-requirements-core.md)), and an absent licence is `NOASSERTION`. `library.embed` still refuses project-local items.
+  - Project-local part copies made by the parts import take the IDs the golden emitter mints: `library_id` = the project ID, `item_id` = `v5(ns, "parts|{key}")` from the part's key in the namespace of `ew-import-tables`' bootstrap, so an import and the bootstrap give the same copy; `meta.source` is the file's base name, no import date is stored (FR-PRT-017's reading, [02a](02a-requirements-core.md)), and an absent licence is `NOASSERTION`. `library.embed` still refuses project-local items.
 - **Metadata** is `{library_id, item_id, version, sha256}` (ARCH §4.2), with `version` the item's semantic version.
   `ItemMeta` carries no `version`. An embedded copy stores the version once, in this metadata; a library record
   (`.ewlib`, [07](07-symbols-parts-macros.md) §2.2) stores it once, in its own top-level `version` member after `id`.
-  The hash rule therefore needs no exception (decision log ID-14).
+  The hash rule therefore needs no exception.
   `sha256` is computed over the canonical compact JSON of the item's own fields, without `id`, `library` and these
   four members, so the copy's hash equals the published item's; EW-CORE-014 checks it. A project therefore opens,
   renders and exports without its libraries (NFR-REL-11).
@@ -1611,14 +1606,14 @@ writes to the system and community tiers are refused.
 
 ### 13.3 Assets
 
-*As built (cycle 23, FT-337; decision log ID-573 to ID-576; ADR-0021 amendment 1).* The asset store below exists in
+*As built (to ; ADR-0021 amendment 1).* The asset store below exists in
 `ew-model`, `ew-commands` and `ew-store`; where a bullet says "as built" it states the code, and the rest is design.
 
 - **Naming.** `assets/<sha256>.<ext>`, with `ext` ∈ {svg, png, jpg} at MVP (the format names in JSON are `svg`, `png`,
   `jpeg`) and `glb` from 1.0 (opt-in embeddable meshes, [12](12-panel-layout.md) §6.2; ADR-0010 amendment 2). Raster
   images are at most 16 MiB; SVG files at most 8 MiB and 100,000 elements. *As built* the limits are applied by the
   sniffer (below), which counts SVG elements textually; since cycle 24 an SVG is also parsed by `ew_schema::svg_hazard`
-  inside the sniff (FT-383) and drawn through usvg with external references refused ([14](14-interop.md) §11; FT-384,
+  inside the sniff and drawn through usvg with external references refused ([14](14-interop.md) §11; FT-384,
   decision log ID-576, ID-605).
 - **The store in the model (as built).** The model keeps image bytes by hash in an asset store beside its tables
   (`Model::asset`, `Model::assets`, `Model::put_asset`). Assets are not rows and not ops: putting an asset the model
@@ -1630,8 +1625,8 @@ writes to the system and community tiers are refused.
   Bytes under a hash never change, so reading them by hash is no freshness hazard and sits outside the raw-read gate;
   the **presence** of an asset can change without a revision, so no memoised query may read it, with one named
   exception, `Q::logo_asset`, which is safe today only because an asset becomes present at open or through
-  `project.company.set`, which also changes the project row (decision log ID-575). The rule is mechanical since cycle
-  24 (FT-382, ID-605): `check-raw-read`'s `[raw_read.asset_presence]` flags the asset accessors in non-test `ew-derive`
+  `project.company.set`, which also changes the project row. The rule is mechanical since cycle
+  24: `check-raw-read`'s `[raw_read.asset_presence]` flags the asset accessors in non-test `ew-derive`
   source, with that query as its one allowlisted site.
 - **What a save writes (as built).** The assets the records name (`Model::referenced_assets`: today the company logo
   of the project row, §10.3) that have no file on disk with that hash, through the **full save protocol** of §5: a temp
@@ -1646,18 +1641,17 @@ writes to the system and community tiers are refused.
 - **Open (as built).** Every file under `assets/` whose name is its SHA-256 and whose bytes sniff as the format of its
   extension is loaded into the model. Any other asset file stays an opaque file listed in the manifest, never rewritten
   or deleted; EW-CORE-015 reports bytes that do not match the hash in the name (§6.3).
-- **Lifetime (amended 2026-10-23; decision log ID-574).** **A save never removes an asset file.** The model keeps the
+- **Lifetime.** **A save never removes an asset file.** The model keeps the
   bytes of every asset it holds while the session lasts; a save writes the named assets that have no file and deletes
   none. EW cannot know every reference: kept unknown members and lines (§10.3) and future kinds that name assets (`glb`
   meshes, images in forms, `image` page items) may name a file that no known record does, so deleting on save could
   destroy a file that a newer writer's record still uses, and a hidden deletion is a model change, as with library
   copies (§13.2: saving never removes a copy). The earlier rule, that a save deletes unreferenced asset files, is
-  withdrawn. Cleanup is the **explicit, previewed purge command** (FT-380, before the first release): it deletes only
+  withdrawn. Cleanup is the **explicit, previewed purge command** (before the first release): it deletes only
   asset files whose hash appears in no project file, the kept lines included, and in no undo entry; it is refused in
   read-only sessions and while lines are quarantined; and the deletions go through the save protocol's removal list
-  (§5.2 step 8). *As built (cycle 24, FT-380 and lane C's fix round; decision log ID-605, ID-620):* the command is
-  `project.assets.purge`, `Bulk`, a non-undoable marker line of ADR-0008 amendment 1, and **`HumanOnly`** (amendment
-  3; owner ruling, ID-620): the `Session` checks its origin before touching any file (`PurgeError::HumanOnly`), the
+  (§5.2 step 8). *As built (and lane C's fix round):* the command is
+  `project.assets.purge`, `Bulk`, a non-undoable marker line of ADR-0008 amendment 1, and **`HumanOnly`** (amendment 3; owner ruling): the `Session` checks its origin before touching any file (`PurgeError::HumanOnly`), the
   CLI `ew project assets purge [<dir>]` confirms with the typed word `purge` on a terminal (`--preview` lists only and
   needs none), and the GUI's confirmed step under Project settings → Storage is FT-417. The file side runs in the
   `Session` (`purge_preview`, `purge_assets`). An asset file goes only if its bytes match its name, **re-hashed at
@@ -1670,7 +1664,7 @@ writes to the system and community tiers are refused.
   pending journal, an incomplete save, or a manifest changed on disk; if a hash the preview listed is no longer
   purgeable, nothing is removed. Roll-forward and the journal's removals finish a purged asset's deletion after a
   crash, and when a save is incomplete the marker records the planned hashes.
-- **Format and size** (decision log ID-61). When an asset is imported, the asset store sniffs its magic bytes and
+- **Format and size**. When an asset is imported, the asset store sniffs its magic bytes and
   records its format (PNG, JPEG or SVG) and its intrinsic size (PNG `IHDR`, JPEG `SOF`, SVG `viewBox` or
   `width`/`height`). Readers such as the forms layer trust the resulting `AssetRef {sha256, format, size}` and never
   sniff; an asset without a known size fills its cell's inset area instead of being fitted. *As built* (`ew_schema::sniff`,
@@ -1678,35 +1672,34 @@ writes to the system and community tiers are refused.
   zero dimension or a cut-short header is `AssetError::Damaged`; an SVG is recognised by its root element `svg` after an
   optional byte-order mark, XML declaration, comments and a doctype, and takes its size from the root's `viewBox`, else
   `width` and `height` (a percentage gives none); other bytes are `UnknownFormat`.
-- **The logo bound** (decision log ID-574). `ew_schema::MAX_LOGO_BYTES` is **512 KiB** (re-exported by `ew-api`). The
+- **The logo bound**. `ew_schema::MAX_LOGO_BYTES` is **512 KiB** (re-exported by `ew-api`). The
   logo travels as base64 inside the command parameter of `project.company.set` and inside a journal line (§8.1), and the
   base64 JSON string must stay under the command layer's `MAX_PARAM_STRING` of 1 MiB: 512 KiB is 699,052 base64
   characters. The bound is checked on the text length before decoding and again on the bytes; the wizard checks the file
   size before and after reading. Base64 in the journal is acceptable at this bound; larger rasters and meshes need the
-  side files of §8.1 (FT-381).
-- **SVG** is rendered by EW's own pipeline and never executed. **Sniffing is not sanitising** (decision log ID-576),
-  so *as built (cycle 24; FT-383, FT-384, decision log ID-605)* `ew_schema::svg_hazard` runs inside the sniff and
+  side files of §8.1.
+- **SVG** is rendered by EW's own pipeline and never executed. **Sniffing is not sanitising**,
+  so *as built* `ew_schema::svg_hazard` runs inside the sniff and
   refuses DOCTYPE internal subsets, entities, scripts, `on*` attributes, `foreignObject`, any `href` that is not
   `#…` (embedded `data:` images too, until FT-407), nesting deeper than 64, reference cycles, expansion past 200,000
   elements, markers inside markers, numbers above 1e9, overly complex CSS, `transform-origin` and `feConvolveMatrix`;
   the parse runs inside `catch_unwind` (threat-model row TM-18, [18](18-quality-security-release.md) §11). An accepted
   SVG is parsed by usvg 0.48.1 in `ew-scene` and drawn as `ew-dl` paths. **What renders:** SVG logos are drawn as vector paths by the CPU renderer, the PDF writer, the SVG writer and the viewer (the export job resolves them before any writer runs); PNG is drawn on the CPU path; the SVG writer embeds PNG and JPEG; JPEG on the CPU path and rasters in the PDF are FT-406. The
   golden PDF bytes are unchanged. **The drawn SVG subset:** gradients are drawn in their mean colour, even-odd fills as
-  non-zero; text, embedded images, clip paths, masks and filters are not drawn. **No silent loss** (lane C's fix round,
-  ID-620): an image an export cannot draw (its asset missing, or refused by the sniff) is reported as
+  non-zero; text, embedded images, clip paths, masks and filters are not drawn. **No silent loss** (lane C's fix round): an image an export cannot draw (its asset missing, or refused by the sniff) is reported as
   `PageFinding::Image` (missing or refused) among the export's findings. The rejecter's limits are calibrated against
   real exporters' output with FT-418, and a viewer-side parse cache by hash is FT-419.
-- **The raster pixel limit** (*as built 2026-11-05, cycle 52, FT-1378; decision log ID-1417, ID-1426, ID-1433*). A PNG
+- **The raster pixel limit** (*as built 2026-11-05, *). A PNG
   or JPEG that declares more than `ew_schema::MAX_RASTER_PIXELS` (16 Mi pixels, the renderers' decode limit) or a side
   over 65,535 is refused, in words, **at the gates that bring an image in only**: `ew_api::asset_ref_of` (a file the
   user picks or drops) and the commands' `store_image` (the company logo and an image given as data to `item.place`);
   a held image placed again by its hash (`item.place {asset}`, the window's `image.pick`) is refused in the same words
-  (*as built cycle 53, FT-1523; ID-1458*). `TxBuilder::put_asset` does not apply it, so `external.apply` keeps another
+  (*as built, *). `TxBuilder::put_asset` does not apply it, so `external.apply` keeps another
   build's assets as they are. **At open**, in a journal replay and in a template's copy, an over-limit image an earlier
   build accepted is **kept, never dropped**: the renderers still refuse to decode it, and the window's open banner and
   the banner of a project made from a template name each such image in words, by its folio or folios or as the company
   logo, with its pixel size and what to do (scale it down and add it again). `ew` says the same words
-  (`Session::undrawn_image_notices`; *as built cycle 53, FT-1503; ID-1458, ID-1459*): `ew check --integrity` and `ew
+  (`Session::undrawn_image_notices`; *as built, *): `ew check --integrity` and `ew
   check` as a `notice:` line on stderr outside the counts, their JSON in the result's optional `notices` array, and a
   writer's open as a `notice:` line on stderr; no check rule reports it.
 - **STEP** files are not embedded by default (open question 8). `PartCopy` references `sha256(STEP)`; meshes live in
@@ -1749,8 +1742,7 @@ a signature over this hash; it counts only for a signer key the user has trusted
    commits only that directory as "Release V2.0" and records commit C (open question 7).
 4. **Archive.**
    - Build it from snapshot g plus the explicit **release context** (date, label).
-   - Write `V2.0.ewarchive.tmp-<owner>-<g>` and sync it. The owner is the key of the project directory (as built
-     in cycle 40, decision log ID-921; before, the project's ID): the first 16 hex digits of the SHA-256 of the
+   - Write `V2.0.ewarchive.tmp-<owner>-<g>` and sync it. The owner is the key of the project directory (as built in, before, the project's ID): the first 16 hex digits of the SHA-256 of the
      directory's path made absolute, cleaned and canonicalised where it exists, in the stored case. A leftover
      temp of the same archive name and owner, a crashed release of this directory, is removed first, and a temp
      of any other owner is never touched, because an archive root may be shared and another project's release,
@@ -1758,7 +1750,7 @@ a signature over this hash; it counts only for a signer key the user has trusted
      of a project directory writes at a time (its write lock), so a temp that carries the owner is never a live
      run's. An existing archive of the name is never replaced.
    - Verify it: re-read the ZIP, check the sums, and check that the canonical text hashes equal manifest g.
-   - **Record the run** (as built in cycle 40, FT-814): write durably, in the per-user state directory, the record
+   - **Record the run**: write durably, in the per-user state directory, the record
      `<state>/releases/<key of the directory>-<key of the archive>.json`: the project directory and the archive
      (as path texts), the project, revision, label and generation, the archive's SHA-256 and modification time
      (the temp's, which the archive keeps), and the run's mark (a new session ID). It is the positive evidence
@@ -1781,13 +1773,13 @@ a signature over this hash; it counts only for a signer key the user has trusted
   The freeze of step 2 stays, as an ordinary undoable transaction in the history.
 - A crash leaves at most a complete but unreferenced archive. The next open offers "incomplete release V2.0: discard
   or complete".
-- *As built (cycle 39, decision log ID-914).* Discard and complete act only on an archive whose `ARCHIVE.json`
+- *As built.* Discard and complete act only on an archive whose `ARCHIVE.json`
   names this project and the open revision. Any other (another project's, another revision's, a damaged one, or one
   whose `ARCHIVE.json` does not read) is kept and the action refused in words ("…; it is kept"); the person removes
   it or names another archive root (`--archive-dir`). The tag `ew/rev/V2.0` is deleted by a discard, or reused by a
   completion, only when its message carries the archive's `SHA-256:` line; a completion refuses another archive's
   tag before it commits. A discard removes only this project's leftover temps of the name.
-- *As built (cycle 40, FT-814; decision log ID-921, ID-929).* Two copies of one project directory carry the same
+- *As built.* Two copies of one project directory carry the same
   project ID and, at the same generation, write the same archive bytes, so the archive cannot tell whose run wrote
   it. **Discard** therefore also needs this directory's run record naming that archive, its SHA-256 and its time;
   without it (a copy, a wiped state directory, a session without one) nothing is removed and the refusal says why
@@ -1797,8 +1789,8 @@ a signature over this hash; it counts only for a signer key the user has trusted
   settled run removes its record. A record left **stale** (its archive gone, or its revision released with the
   archive's SHA-256 by a roll-forward or a completion) is removed when the project opens for editing and when the
   incomplete release is looked up; a removal or rewrite that fails is kept as release trouble for the front-end
-  (the CLI prints it as a warning; the window does not yet, FT-842). A temp of the cycle-39 form
-  `<label>.ewarchive.tmp-<project id>-<g>` is never cleaned (FT-833).
+  (the CLI prints it as a warning; the window does not yet). A temp of the cycle-39 form
+  `<label>.ewarchive.tmp-<project id>-<g>` is never cleaned.
 
 This is the release atomicity of NFR-REL-15.
 
@@ -1874,7 +1866,7 @@ Screens are specified in [UX and UI](16-ux-ui.md). Persistence provides:
 | External-change toast | "External change applied: 12 records on folios 103 and 106 (git a1b2c3d)", with Undo and Show changes (the history at the step) |
 | Merge panel | Base, ours and theirs per field, with derived tags. External-change collisions at MVP as a form dialog (mine or theirs per field, All mine, All theirs, Decide later, which leaves a banner and held saves; WP-S1.17 D24); conflict records at 1.0 (FR-COL-015) |
 | Banners | Integrity (read-only on EW-CORE-005); newer minor, newer major, older major (with backup), unstable format; untrusted rules, reports or scripts |
-| Project settings → Storage | Save mode, lock stale age, archive roots, git status with "Set up merge driver", purge unused library copies; purge unused assets (the confirmed `HumanOnly` step with the preview in the `Destructive` dialog, FT-417) |
+| Project settings → Storage | Save mode, lock stale age, archive roots, git status with "Set up merge driver", purge unused library copies; purge unused assets (the confirmed `HumanOnly` step with the preview in the `Destructive` dialog) |
 
 ---
 
@@ -1892,7 +1884,7 @@ The golden project has about 200 files and is well under 1 MB:
 The fixture comparison of [golden project](20-golden-project.md) §3.2 ignores only the manifest's `generator`
 member, so an EW version bump does not invalidate the checked-in fixture.
 
-**As generated** (cycle 8, WP-S1.09; decision log ID-212). `golden/J-E-2416.ew/` is written by the bootstrap and
+**As generated**. `golden/J-E-2416.ew/` is written by the bootstrap and
 checked in: 164 files, about 0.8 MB, generation 1 (so its manifest has no `base`). It opens with no finding, and a
 full save of it writes nothing. It has no revisions, waivers, layout or manufacturer copies yet, because those
 kinds are reserved in `ew-schema` v0, which is why it holds fewer files than the estimate above. One test compares
@@ -1907,7 +1899,7 @@ writes files, so a file that is no longer produced is removed by hand.
 | Golden B2: folio 106 → 104 | Folio 106's page file only. Two tags and 14 xref texts change in the outputs; none of them is in a file |
 | Golden B1: page-based renumbering of 10 tags | `project.jsonl` (the `numbering` settings line drops the strip rule, which renames -X1031/-X1032 without touching their records) and the shards of the devices whose `TagSpec` changes (frozen text cleared, counter set). After undo and save, every data file is byte-identical to Golden A again; only `generation` differs (AC-18) |
 | 24 V DC colour changed in the profile (AC-12) | `project.jsonl` only. No wire record stores a derived colour |
-| Company, frame defaults, languages or check scheme set by `project.company.set`, `project.frames.set`, `project.languages.set` or `project.checks.set` (cycle 22) | `project.jsonl` only: the `Party` rows, `languages` and `settings` (with the `frames` and `checks` members in `extra`) are all inside the project record. Exception (cycle 23, decision log ID-573): a company logo also writes `assets/<sha256>.<ext>` at the first save that finds no file with that hash, and the manifest lists it (§13.3) |
+| Company, frame defaults, languages or check scheme set by `project.company.set`, `project.frames.set`, `project.languages.set` or `project.checks.set` | `project.jsonl` only: the `Party` rows, `languages` and `settings` (with the `frames` and `checks` members in `extra`) are all inside the project record. Exception: a company logo also writes `assets/<sha256>.<ext>` at the first save that finds no file with that hash, and the manifest lists it (§13.3) |
 | W29 colour override set, then undone | Nothing, not even the manifest: step 3 of §5.2 drops the unchanged file, so the dirty set is empty |
 | Valve-manifold macro inserted on a new page | The new page file, the new devices' shards, and `lib/macros/…` if not yet embedded |
 
@@ -2079,7 +2071,7 @@ The eleven rows this document proposed are in the catalogues:
     (decision log DEC-080 item 1).
 14. **macOS package bundle.** A `.ew` bundle would show the project as one document in Finder, but would hinder git
     tools. *Recommendation:* no bundle in v1; reconsider at 1.x if macOS pilot users ask. **Decided** 2026-10-18 as
-    recommended (decision log DEC-080 item 2). Moot since 2026-10-30: macOS is not a supported platform (ID-880).
+    recommended (decision log DEC-080 item 2). Moot since 2026-10-30: macOS is not a supported platform.
 15. **Catalogue storage form.** ARCH §7.7 and FR-PRT-012 described SQLite catalogues per tier, which an earlier
     draft of §13.1 followed with a versioned publication scheme on shares, while [07](07-symbols-parts-macros.md)
     §2.2 made `.ewlib` text directories canonical at every tier and SQLite a derived per-user index in the cache.
@@ -2113,5 +2105,4 @@ The eleven rows this document proposed are in the catalogues:
     EW-CORE-004 and continues; EW never reads or deletes the moved file. §11.4 is amended accordingly.
 21. **Intents and changed manifests.** An intent was checked against the manifest's parsed generation, so a
     conflicted but otherwise unchanged manifest could not roll forward, and a manifest replaced by a pull with the
-    same generation number could be overwritten. **Resolved** (2026-10-20; ADR-0010 amendment 3, decision log
-    ID-202): the intent records the raw-byte hash of its base manifest as `base`, and only a byte comparison decides.
+    same generation number could be overwritten. **Resolved** (2026-10-20; ADR-0010 amendment 3, decision log): the intent records the raw-byte hash of its base manifest as `base`, and only a byte comparison decides.

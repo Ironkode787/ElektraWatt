@@ -1,6 +1,6 @@
 # ADR-0014: GUI toolkit: egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel`
 
-**Status:** Accepted · amended 2026-10-18 and 2026-10-28 (amendment 4) · as-built notes 2026-10-22 (cycles 19, 20 and 22), 2026-10-23 (cycle 23) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 and 2026-10-28 (amendment 4) · as-built notes 2026-10-22 (cycles 19, 20 and 22), 2026-10-23 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -55,7 +55,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    *input* widgets, while NFR-A11Y-02 covers all interactive widgets. An `ew-ui` test helper therefore walks the
    AccessKit tree after every kittest flow and fails on any unnamed focusable node.
 
-   *As built (2026-11-05, cycle 51; WP-S2.11 D3, decision log ID-1375).* The helper is `assert_accessible` with role
+   *As built.* The helper is `assert_accessible` with role
    and state as well as the name: on every visible, enabled, interactive node, a name, label or placeholder (R1); the
    toggled state of a check box, switch, radio button or toggle (R2); the expanded state of a combo box, a pop-up or a
    tree item with children (R3); the selected state of an option, tab, row or tree item (R4); a value on a text input or spin button (R5); and a
@@ -65,46 +65,44 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    [architecture](../design/04-architecture.md) §3). The read-only `.ewpp` wiring viewer of 1.0 is built on
    `ew-ui` widgets. Rule 3 therefore reads: only `ew-ui`, `ew-viewer`, the app binary and the `ew-wiring-viewer`
    binary know egui; only the renderers know wgpu.
-4. **Tables and trees** (2026-10-28; decision log ID-686, WP-S2.06's specification
-   D9). Tables use **egui_table 0.11.0**, the release for egui 0.37 (the 0.10.0 of the context table needs egui 0.36,
-   as egui_tiles 0.17.1 did, ID-490); it adds `egui_table` and `vec1`, both `MIT OR Apache-2.0`, to the shipped graph,
+4. **Tables and trees** (2026-10-28; 's specification D9). Tables use **egui_table 0.11.0**, the release for egui 0.37 (the 0.10.0 of the context table needs egui 0.36, as egui_tiles 0.17.1 did); it adds `egui_table` and `vec1`, both `MIT OR Apache-2.0`, to the shipped graph,
    and `enumn` (`MIT OR Apache-2.0`, a proc-macro without dependencies of its own) through egui's `serde` feature,
    which egui_table turns on, and `accesskit/serde`: enumn accepted by the orchestrator, cycle 31, transitive via
    egui/serde (three new packages; the feature adds `serde` edges to egui's crates and no other package).
    **egui_ltreeview is not adopted:** navigator trees are rows that `ew-ui` draws itself on egui's virtualised
-   `ScrollArea::show_rows` with AccessKit tree roles, as the Pages navigator has done since cycle 23 (ID-556), so a tree
+   `ScrollArea::show_rows` with AccessKit tree roles, as the Pages navigator has done since cycle 23, so a tree
    crate would add a quarterly upgrade and a second selection model without adding a capability. Decision 1 reads
    "egui/eframe 0.37 with egui_tiles and egui_table".
 
-## As built (cycle 19)
+## As built
 
-A note, not an amendment: the decision is unchanged. WP-S2.01 part 1 (decision log ID-473 to ID-477) built the first
+A note, not an amendment: the decision is unchanged. WP-S2.01 part 1 built the first
 shell on this ADR: egui, eframe and egui_kittest `=0.37.0`, eframe on the wgpu renderer (decision 1's shared device)
 without glow, persistence or egui's default fonts, rfd `=0.17.2` on the XDG portal. Three facts the decision text did
 not foresee: AccessKit is a hard dependency of egui 0.37, not a feature, so it is always on; muda is deferred, so the
-menu bar is drawn with egui on every OS until FT-310 (amendment 1 stays the target; decision log ID-446); and the
+menu bar is drawn with egui on every OS until FT-310 (amendment 1 stays the target); and the
 crates that name egui declare `rust-version = "1.95"` (decision 5). Only `ew-ui` and `elektrawatt` name egui or
 eframe, and neither depends on wgpu directly (decision 2). The accessible-name walker of amendment 2 runs after every
-kittest flow. The UI graph adds 296 crates, all cargo-vet exemptions until the lead's audit (FT-326).
+kittest flow. The UI graph adds 296 crates, all cargo-vet exemptions until the lead's audit.
 
-## As built (cycle 20)
+## As built
 
-A note, not an amendment: the decision is unchanged. WP-S2.01 part 2 (decision log ID-486 to ID-493) added docking with
+A note, not an amendment: the decision is unchanged. WP-S2.01 part 2 added docking with
 **egui_tiles 0.18.0, not the 0.17.1 of the context table**: 0.17.1 needs egui 0.36, and 0.18.0 is the release for egui
-0.37, the version of decision 1 (ID-490). It is pinned `=0.18.0` with default features off, so no serde: the workspace
+0.37, the version of decision 1. It is pinned `=0.18.0` with default features off, so no serde: the workspace
 files are not the serialised egui_tiles tree but the toolkit-neutral `ew.workspace/1` that `ew-viewmodel` owns and
 `ew-ui` converts (ID-489; [UX/UI](../design/16-ux-ui.md) §2.5), which keeps egui behind `ew-ui` as rule 3 asks. The
 dock's splitter handles have no accessible name in 0.18.0, so amendment 2's walker skips exactly as many unnamed handles
-as the dock has splitters until they are named (FT-338). The lead's audit (FT-326, decision log ID-498) audited the
+as the dock has splitters until they are named. The lead's audit audited the
 native-boundary crates that FT-326 named or found them covered by an imported set; the rest of the graph, egui,
-eframe and egui_tiles among it, stays exempt. *Corrected at the cycle-21 design pass (decision log ID-515):* the wgpu
+eframe and egui_tiles among it, stays exempt. *Corrected at the cycle-21 design pass:* the wgpu
 30.0.1 front-end crate, exempt at cycle 20's tip (385 exemptions), was audited `safe-to-deploy` in cycle 21 with a
 caveat on mapped views across `Buffer::destroy` and device loss, which the WP-S2.02 specification's §7.1 turns into a
 rule for ElektraWatt's own renderers; its exemption is gone, leaving 384 (374 `safe-to-deploy`, 10 `safe-to-run`).
 
-## As built (cycle 22)
+## As built
 
-A note, not an amendment: the decision is unchanged. WP-S2.02 part 2 (decision log ID-539 to ID-544) built the GPU
+A note, not an amendment: the decision is unchanged. WP-S2.02 part 2 built the GPU
 canvas on decision 1's shared device and recorded these facts about the toolkit:
 
 - **egui-wgpu is a direct dependency of `ew-ui`** (`=0.37.0`, default features off), the version eframe already locks:
@@ -118,36 +116,35 @@ canvas on decision 1's shared device and recorded these facts about the toolkit:
 - **One shared device, so row 8 of the switch rule helps for uncaptured errors only.** The canvas runs on eframe's
   device, so a real device loss also ends egui's own window; the canvas's "CPU for the rest of the session" answers an
   uncaptured error, and the handlers it installs log through `tracing` instead of swallowing egui-wgpu's errors.
-  Recovery from a real device loss belongs to FT-310 and WP-S2.11 (ID-544).
+  Recovery from a real device loss belongs to FT-310 and WP-S2.11.
 - **Supply chain.** `lyon_tessellation`, `lyon_path`, `lyon_geom` and `float_next_after` entered the graph as four
-  dated cargo-vet exemptions (no audit written; they join FT-326 under ID-476's hold), and `termcolor` and
-  `wgpu-core-deps-wasm` left it: the exemptions rose from 384 to 387 (ID-543).
+  dated cargo-vet exemptions (no audit written; they join under 's hold), and `termcolor` and
+  `wgpu-core-deps-wasm` left it: the exemptions rose from 384 to 387.
 
-*Specified, built with WP-S2.03 part 1 (ID-533):* the canvas area is a nested egui_tiles 0.18.0 tree that `ew-ui`
+*Specified, built with WP-S2.03 part 1:* the canvas area is a nested egui_tiles 0.18.0 tree that `ew-ui`
 rebuilds from the toolkit-neutral model after every structural change, because 0.18 cannot refuse a drop; the keyboard
 cycling of tabs (`cycle_tabs_with_keyboard`) is off, so the app's own tab keys are the only ones. The tree lives
-outside `ew.workspace/1`. *Decision 4 read with WP-S2.03 (ID-536):* the tool state machines and their host are
+outside `ew.workspace/1`. *Decision 4 read with WP-S2.03:* the tool state machines and their host are
 toolkit-neutral and live in `ew-viewmodel`, with no `World` in their context; `ew-ui` maps pointer and keys onto tool
 events and paints the overlay. The outputs of decision 4 are unchanged.
 
-## As built (cycle 23)
+## As built
 
-A note, not an amendment: the decision is unchanged. WP-S2.03 part 1, the read-only viewer (decision log ID-556 to
-ID-560), built the canvas area as ID-533 specified it:
+A note, not an amendment: the decision is unchanged. WP-S2.03 part 1, the read-only viewer, built the canvas area as ID-533 specified it:
 
 - **The nested egui_tiles tree.** At most 32 canvas tabs in one or two groups, the limit enforced in the
   toolkit-neutral model; `ew-ui` rebuilds the egui_tiles 0.18.0 tree from that model after every structural change and
   carries the splitter shares across a rebuild when the group count is unchanged (host state). Only tabs are draggable in
-  the canvas area, because a tab bar's unnamed drag node would otherwise count as an unnamed widget (ID-558).
+  the canvas area, because a tab bar's unnamed drag node would otherwise count as an unnamed widget.
   `cycle_tabs_with_keyboard` stays off.
 - **A second GPU canvas on the shared device.** While two groups show, the second group gets its own GPU canvas on the
   leader's device, shared through the render-state clone and released when the groups collapse; with one group the
   canvases' scenes are merged into one submission (`ew-render2d`'s `submit_many`, latest request wins). Decision 1's
-  one device holds; no test covers the second canvas without a device (ID-558).
+  one device holds; no test covers the second canvas without a device.
 - **Accessibility.** The canvas's live region and the navigator's tree items are parented through egui's
   `UiBuilder::accessibility_parent`, asserted in kittest. egui_tiles 0.18.0 exposes no tab-bar node, so the `TabList`
   role is not set: it joins FT-338 with the splitter names (amendment 2's walker counts the canvas area's splitter).
-- **No new dependency.** The view models stay free of `uuid`: tabs hold `PageId` values (ID-557).
+- **No new dependency.** The view models stay free of `uuid`: tabs hold `PageId` values.
 
 ## Consequences
 

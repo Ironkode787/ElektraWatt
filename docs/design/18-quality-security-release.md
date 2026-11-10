@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · Amended 2026-11-02 (ID-1187, ID-1188): the scope of the pilot release 0.1.0, which is built from an unsigned tag, with `SHA256SUMS` and SLSA provenance, as a per-user Windows setup, a Linux AppImage and the CLI archives, and holds no update check and no crash upload; CI-R-01, CI-R-06, CI-R-10, CI-R-11 and RC-10 (§7.4), the packaging and signing tables (§8, §9), the update check and the crash reports (§9.3, §12, §14), the CRA placement (§13) and the scope table (§18) say what is 0.1.0's and what moves to 1.0. · Amended 2026-11-01, cycle 43 (RD43 T1): the seeded ID source is the dev-only crate `ew-testids`, `ew-commands/testkit` and `ew-viewmodel/testkit` are uniform test features, and `check-features` reads the shipped binaries' graph (§2.2, CI-PR-09, CI-R-09). · Amended 2026-10-31, cycle-40 design pass, part 1: CI-PR-05 renders folio 103 in the container (WP-S1.22 part 2, decision log ID-925); CI-PR-14's label is `api-break` (ID-931, FT-795). · Amended 2026-10-30: macOS is not a supported platform, so the CI catalogue, runners, packaging, signing, updates, the manual tests and the release scope drop it; CI-PR-04 removed (decision log ID-880). · Amended 2026-10-29, cycle 34: the counts after WP-S2.07 part 1 (58 commands, 268 actions, 357 words). · Amended 2026-10-26, cycle 28: accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; scoped follow-ups (ID-659 to ID-666); merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4; amended 2026-10-22, cycle-19 lane C: the `disallowed-methods` rule as built in §3.5, CI-N-12 and the retired LG-2 merge block in §5.2; amended 2026-10-22, cycle-19 design pass: the scan's gaps and the sites at the integration tip in §3.5, the shell's UI tests in §3.11, the CI time after cycle 18 and the Windows cut in §3.14, the headless mode for the blind drafter in §3.17, CI-PR-02 to CI-PR-04 and CI-N-12 in §5.2, the UI crates' `rust-version` in §6.2; amended 2026-10-22, cycle 20 lane C: the supply-chain bullets of §5.4 (audit imports, version-keyed build scripts, the manifest advisory hold, x11-dl and reproducible builds) and the cargo-vet and build-script rows of §10; amended 2026-10-22, cycle-20 lane B: the cargo-fuzz crate, the deep nightly and ASan as built in §3.6, §3.12 and §5.2; amended 2026-10-22, cycle-20 design pass: the ODR justification in §3.6, the fuzz crate's PR check, deny job and NCSA exception in §3.12 and §5.4, FT-330 applied in §3.14, CI-PR-01, CI-PR-08 and CI-N-02 with the proptest budget in §5.2, the exemption count at the integration tip in §5.4 and §10; decision log ID-494 to ID-500; amended 2026-10-22, cycle-21 design pass: the canvas bench families in §4.2, the owner's ruling on performance runs and the bench-failure rule in §4.3, the canvas bench in §4.7, decision log ID-512, ID-518, ID-520; amended 2026-10-22, cycle-22 design pass: a test's program boundary in §3.5, the `renderer` words, the `HumanOnly` refusal and the WP-S2.03 vocabulary in §3.17, the CI time after cycles 20 and 21 in §3.14, the GPU bench families and `EW_REQUIRE_GPU_ADAPTER` in §4.2, FT-353 as built, the adapter in the test jobs, the required-check names and the golden change list in §5.2, the lyon exemptions and the count of 387 in §5.4, the first `fuzz-smoke` finding in §3.12; decision log ID-537, ID-540, ID-542, ID-543, ID-546, ID-548, ID-549, ID-551, ID-552; amended 2026-10-23, cycle-23 design pass: the viewer's headless actions and the transcript's `navigator` member in §3.17, the viewer's kittest flows in §3.11, the tile-count rule in §3.14, the CI time with the split proven, the two CI hotfixes and their lessons and the first Linux B2 proof in §3.14 and §5.2, the SVG row TM-18 in §11.1, `PRIVACY.md`, the stored-data table and the lock row in §12.1; decision log ID-556, ID-557, ID-559, ID-560, ID-576, ID-579 to ID-582; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2's headless actions, transcript members and vocabulary in §3.17, the CI time of the cycle-23 delivery in §3.14, usvg's six audits in §5.4, TM-18 as built and hardened in §11.1; decision log ID-586, ID-588, ID-605, ID-606; amended 2026-10-24, cycle-25 design pass: WP-S6.13 specified in §3.17 (the harness, the gate run kind, `page.describe`, `--keep-going`, the pinned reference files); decision log ID-610 to ID-619, the fix round ID-621 to ID-624; the editing tools and the property grid for the drafter, the vocabulary test over real output, 192 words and 145 actions, the alias grammar, §3.17, decision log ID-625, ID-626, ID-628, ID-630; three Windows partitions and the cycle-24 delivery chain, §3.14, §5.2, decision log ID-627; cycle-26 design pass 2026-10-24: FT-387 closed with the partition by time and the measured chain of 20:24, `test-macos` at 30:04, §3.14, §5.2; the wiring tools and find and replace for the drafter, 227 words and 167 actions, §3.17; the regex family, the raster crates and the exemption count, §5.4; the raster threat row TM-19, §11.1; decision log ID-633 to ID-638; amended 2026-10-25, cycle-27 design pass: the fuzzer sample's undo origin, §3.6; the cycle-26 delivery run and the re-balanced Windows partitions, §3.14, §5.2; 252 words and 188 actions at the integration tip, §3.17; decision log ID-644, ID-649, ID-652; amended in cycle 28, lane B: TM-18 and TM-19 as built after FT-418 and FT-436, §11.1; amended 2026-10-27, cycle-29 design pass: `test-macos` split into two parallel jobs, §5.2, decision log ID-672; amended 2026-10-28, cycle-30 design pass: FT-479's causes and changes and FT-438 measured, §5.2, decision log ID-706; TM-18 bounded (FT-470, FT-471, the path-segment caps), §11.1, decision log ID-708; the blind help v4, §3.17, decision log ID-703, ID-714) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -93,7 +93,7 @@ None of these is project model data. They are repository, CI or local diagnostic
 - **Test-build hooks.** Two features exist only for tests: `ew-commands/testkit` (the row dumps, `Preview::ops` and
   the history's ops, ARCH §3 rule 1) and `ew-viewmodel/testkit` (the shell's tool, ID-source and job hooks). The
   confirmation hook of `HumanOnly` subcommands (§3.15) is realised as an injected terminal, not a feature; the
-  `ew/test-confirm` ban stays as a guard. Both features are *uniform test features* (RD43 T1): every workspace package whose test build reaches the crate requests the feature on a
+  `ew/test-confirm` ban stays as a guard. Both features are *uniform test features* (T1): every workspace package whose test build reaches the crate requests the feature on a
   dev-dependency edge, so every test build compiles the crate the same way and a change rebuilds the crates above it
   once, whatever the package set. `cargo xtask check-features` fails on a missing request, naming the manifest line
   to add, and on any request outside a dev edge. A build without dev-dependencies (`cargo build -p elektrawatt`,
@@ -163,11 +163,11 @@ copying one file.
 | Re-importing the same source yields identical IDs and an empty diff (FR-IMP-002) | QET corpus |
 | A hit-test result lies in the item's bounding box; a routed length ≥ the Euclidean distance (1.0) | S, layout fixture |
 
-*As built (cycle 16; decision log ID-405).* The model-level property tests of `ew-model` (`src/tests/props.rs`) generate
+*As built.* The model-level property tests of `ew-model` (`src/tests/props.rs`) generate
 batches of steps over a fixture with named rows. **A step whose fixture row is gone is a no-op**: a generated step that
 names a fixture row (an FnDef copy, a page, a location node) which an earlier delete plan of the sequence removed is
 skipped, not issued, because the model rightly refuses it and the generator's "rejected unexpectedly" assertion would
-report a test defect as a model defect (the cycle-15 gate finding: `AddAuxFunction` after the FnDef copy had been
+report a test defect as a model defect (the finding: `AddAuxFunction` after the FnDef copy had been
 removed). Proptest regression seeds are committed (`proptest-regressions/`) with the crate's SPDX header, which the
 licence-map check requires of every committed file, and every shrunk counterexample also becomes a named,
 deterministic replay test.
@@ -205,7 +205,7 @@ after Session::commit(tx) in oracle mode:
 | Platform | Same commit on Windows and Linux | SHA-256 of GP PDF, SVG, CSV, XLSX, JSONL and `.ewpp`; PNG within the dify tolerance (09 OQ 12; this relaxes the PNG part of NFR-REL-07 and FR-OUT-014, open question 9) | N; release gate (AC-14, FR-OUT-019) |
 | Locale, time zone | `LC_ALL` en_US, nl_NL, de_DE, tr_TR; `TZ` UTC−10 and UTC+14 | File and PDF digests | N |
 | Wall clock | Two runs with the clock faked 24 h apart; `SOURCE_DATE_EPOCH` unset | Output digests | PR |
-| Build-time data | Every CI and release build asserts that `ICU4X_DATA_DIR` is unset: the build scripts of the ICU4X data crates read it, and other segmentation data would change line breaks and so every text layout (decision log ID-52). Every release build of `elektrawatt` also asserts `PKG_CONFIG=false` and no target-specific `PKG_CONFIG_*` variable, so x11-dl's build script bakes no build-host library directory into the binary (§5.4; FT-333) | The assertion itself | PR; release (CI-R-03) |
+| Build-time data | Every CI and release build asserts that `ICU4X_DATA_DIR` is unset: the build scripts of the ICU4X data crates read it, and other segmentation data would change line breaks and so every text layout. Every release build of `elektrawatt` also asserts `PKG_CONFIG=false` and no target-specific `PKG_CONFIG_*` variable, so x11-dl's build script bakes no build-host library directory into the binary (§5.4) | The assertion itself | PR; release (CI-R-03) |
 | Project path | The same project opened from two directories, one named with spaces and non-ASCII | Digests (no absolute path in any output) | PR |
 
 **Static rules** (NFR-MAINT-12). In crates that produce persisted or exported bytes (`ew-format`, `ew-model`,
@@ -217,7 +217,7 @@ after Session::commit(tx) in oracle mode:
   seeded source of `ew-testids` replaces in tests, and the allowlisted tracing wrapper), `rand::thread_rng`, `Uuid::new_v4`, `Uuid::now_v7`
   outside `ew-ids`, and `std::env::var` outside the settings module.
 
-*As built (cycle 18, FT-271, WP-S6.02).* The `disallowed-types` rule is workspace-wide, not limited to the output
+*As built.* The `disallowed-types` rule is workspace-wide, not limited to the output
 crates, and is part of the generated root `clippy.toml` (`cargo xtask check-raw-read --bless`; the list is
 `DISALLOWED_TYPES` in `xtask/src/raw_read.rs`): `std::collections::HashMap` and `HashSet`, and `imbl::HashMap` and
 `HashSet`. `hashbrown` is not listed, because no workspace crate names it (a path of a crate that a package does not
@@ -228,7 +228,7 @@ allowed with `#[allow(clippy::disallowed_types)]` and a one-line justification; 
 `ci/ordered-collections-allow.toml`, so a new allow is a reviewed change (`ci/README.md`). At the introduction nine
 sites in four crates allow the lint, all lookup-only; no hash container whose order reached output was found.
 
-*As built (cycle 19, FT-317, WP-S6.02).* The `disallowed-methods` half is built the same way and is workspace-wide:
+*As built.* The `disallowed-methods` half is built the same way and is workspace-wide:
 the generated `clippy.toml` lists, after the raw readers of ADR-0001 amendment 2, `std::time::SystemTime::now` and
 `Instant::now`, `std::env::var`, `var_os`, `vars` and `vars_os`, `std::hash::RandomState::new` and `getrandom::fill`,
 `fill_uninit`, `u32` and `u64` (`DISALLOWED_METHODS` in `xtask/src/raw_read.rs`, reasons citing this section).
@@ -256,9 +256,9 @@ whole body. No call reaches project data or an export, except the sanctioned `SO
 the journal are persisted by design. At the integration tip of cycle 19 the list holds 45 sites in 20 crates: lane
 A's shell adds two program-boundary helpers, `env_path` in `ew-viewmodel` (`EW_CONFIG_DIR` and the platform directories, read once at
 start-up) and `dbus_env_path` in `elektrawatt` (the D-Bus variables of the portal heuristic), each also a counted
-`[[raw_read.allow]]` entry of `ci/dep-rules.toml` (decision log ID-481).
+`[[raw_read.allow]]` entry of `ci/dep-rules.toml`.
 
-*A test's program boundary* (as built, cycle 22; decision log ID-548, ID-542). The sanctioned sources of environment
+*A test's program boundary*. The sanctioned sources of environment
 reads gain a third place beside the ID generator and the production program boundary: the boundary of a test binary,
 where the test run's own configuration enters. Two uses exist, both reviewed allow sites of
 `ci/disallowed-methods-allow.toml` on one-line helpers. (1) `bin_exe()`, one per test crate that starts a CLI binary
@@ -269,7 +269,7 @@ an archive (the Windows jobs, §5.2, CI-PR-03), and falls back to `env!("CARGO_B
 `EW_REQUIRE_GPU_ADAPTER`, the switch of §4.2 that turns a missing graphics adapter from a skip into a failure. Neither
 value reaches a persisted, exported or printed result.
 
-*What the scan misses* (cycle 19; decision log ID-481). The source scan of the four reader crates is lexical: it does
+*What the scan misses*. The source scan of the four reader crates is lexical: it does
 not see a call through an alias or a re-export, a fully qualified `<SystemTime>::now`, a call produced by a macro, or a
 second call under one counted `use` import. In every crate the list does not name `RandomState::default` (the
 `disallowed-types` entry for `RandomState` covers it), `std::env::temp_dir`, `current_dir` and `home_dir`, which read
@@ -278,7 +278,7 @@ mechanism of ADR-0001 amendment 2) let the reader crates drop their root opt-out
 by path resolution, which closes the alias, qualified-path and macro gaps; the same task adds `temp_dir`,
 `current_dir`, `home_dir` and `process::id` to the list.
 
-*What the lint does not catch* (decision log ID-463). Group lints (`clippy::all`, `clippy::style`, `warnings`) and the
+*What the lint does not catch*. Group lints (`clippy::all`, `clippy::style`, `warnings`) and the
 lint keys of a manifest, in either spelling, count as allow sites, so a broad allow cannot hide a site. Three gaps
 stay and are covered by review: a hash map or set that a third-party API returns (its type is the crate's, not a
 listed path); the hash containers of `hashbrown`, `ahash`, `rustc-hash` and `dashmap` (none is a dependency today; a
@@ -312,7 +312,7 @@ fuzz_target!(|input: (u8, Vec<FuzzCmd>)| {
 The corpus starts from the AC-16 script, the Golden B steps and the Golden C fix script. PR runs use no sanitizer,
 for throughput. Nightly runs use AddressSanitizer, because the dependency closure contains `unsafe` code.
 
-*As built (cycle 15, lane C; WP-S6.02).* A first fuzzer is the test `crates/ew-testkit/tests/command_fuzz.rs`, not yet a
+*As built (lane C).* A first fuzzer is the test `crates/ew-testkit/tests/command_fuzz.rs`, not yet a
 cargo-fuzz target: a seeded SplitMix64 generator picks, by index into the live records read through `Session::query`,
 `rep.move`, `rep.transform`, `fields.set`, `connection.delete`, `edit.delete`, `page.renumber`,
 `numbering.renumber`, `junction.edit`, `terminal.designate`, `connection.draw`, `potential.define`, undo and redo over
@@ -326,7 +326,7 @@ log. `fuzz_smoke` (1 seed × 30 steps since the test audit of 2026-10-29; seed 2
 426 undo/redo) found no defect. The fuzzer picks its targets by index into the live records, so the no-op rule of §3.3
 holds by construction.
 
-*As built (cycle 17, lane B; FT-272, FT-279).* The test is now the directory `crates/ew-testkit/tests/command_fuzz/`
+*As built (lane B).* The test is now the directory `crates/ew-testkit/tests/command_fuzz/`
 (`arms.rs`, `live.rs`, `step.rs`, `roundtrip.rs`, `import.rs`, `rng.rs`, `main.rs`). **Every registered command** (37,
 `revision.create` and `fields.set`/`edit.delete` on revisions included) has a generator arm (`ARMS`); `every_registered_command_has_a_generator_arm` compares the table with the registry and
 fails with a message that names the commands without an arm, so a command added later (the `revision.*` commands) fails
@@ -341,17 +341,17 @@ closing undo-all a run that saved saves again and must reload the initial model)
 golden tables intact or damaged, strict and lenient: the batch always loads into a model, lenient differs from strict
 only in foreign colour codes, the intact tables give the records of path (a)). An Accept step that commits as a no-op meets the same after-commit checks, so an expected count change on a no-op is
 a finding; the save-and-reload comparison includes the title block's revision label. Not built: **macro insertion**,
-because no `macro.insert` command or macro record exists yet (FR-MAC-005; FT-305). The nightly form is `fuzz_long` with
+because no `macro.insert` command or macro record exists yet (FR-MAC-005). The nightly form is `fuzz_long` with
 seeds × steps from `EW_FUZZ_SEEDS` and `EW_FUZZ_STEPS` (and the cadences, the step mix, `EW_FUZZ_BUDGET_SECS` and
 `EW_FUZZ_REPORT`), run by `.github/workflows/fuzz.yml` (03:47 UTC and on dispatch) in the release profile with debug assertions and
 overflow checks on, by default 12 seeds × 200 steps from a seed range that changes every night, with no new seed after
 75 minutes; it is red for a finding, a failed build, a seed that was still running when the run ended (a hang or an
-abort) and a missing verdict (`ci/README.md`; decision log ID-434, ID-435). In the catalogue of §5.2 it is the
+abort) and a missing verdict (`ci/README.md`). In the catalogue of §5.2 it is the
 command-fuzzer part of CI-N-02; `fuzz.yml` runs it on the stable toolchain without ASan, and the deep nightly runs it
-again under ASan (below). `fuzz_smoke` takes 15 to 19 s in a debug build (12.5 s before cycle 17), on the Windows test
-job's critical path (§3.14, FT-306).
+again under ASan (below). `fuzz_smoke` takes 15 to 19 s in a debug build (12.5 s before), on the Windows test
+job's critical path (§3.14).
 
-*As built (cycle 20, lane B; FT-297, FT-304, FT-272 closed).* The cargo-fuzz form of the fuzzer is the target
+*As built (lane B; closed).* The cargo-fuzz form of the fuzzer is the target
 `command_sequence` of the new crate `fuzz/` (§3.12; `fuzz/README.md`). Its input is a seed, a step count (1 to 8) and a
 tape of bytes: the generator of the test above is included as it is (the modules of `command_fuzz` through
 `#[path]`), and every draw of its SplitMix64 stream is XORed with the next eight tape bytes (`SplitMix64::with_tape`),
@@ -360,26 +360,26 @@ is the plain seeded run. The run is `fuzz_long`'s with a cheap cadence: the stru
 the validity oracle of every command, the save-and-reload round trip and the closing undo-all (the undo law). The memo
 sample, `verify_derived`, the prevent check and the CSV imports are left to the test (a sample reads the derived values
 cold in oracle mode and costs seconds against the milliseconds of a step), so the target runs about two inputs a second
-in a sanitized build. **ASan** (FT-304) is on in two forms, both in `.github/workflows/deep-nightly.yml` on the nightly
+in a sanitized build. **ASan** is on in two forms, both in `.github/workflows/deep-nightly.yml` on the nightly
 toolchain pinned by date in `fuzz/rust-toolchain.toml`: the cargo-fuzz targets (AddressSanitizer is cargo-fuzz's
 default) and the test `fuzz_long` itself, built with `RUSTFLAGS=-Zsanitizer=address` for `x86_64-unknown-linux-gnu`
 and run with the seeds, steps and budget variables of `fuzz.yml` (a range offset from `fuzz.yml`'s, 100 steps, 55 minutes: AddressSanitizer makes a seed 7.7 times slower, so a night runs about four). This is
 CI-N-02's "command fuzzer 1 h with ASan". `detect_odr_violation=0` is set because AddressSanitizer reports a false ODR violation for
 `aiOff` of the bundled SQLite (one copy is linked; `sqlite3.c` has two identical function-local `aiOff` tables, the FTS3
 and FTS5 case folders, which the linker merges into one address). The job is red for what `fuzz.yml` is red for and for an AddressSanitizer report.
-*The justification (decision log ID-495).* The suppression was allowed only after the report was proved false, because a
+*The justification.* The suppression was allowed only after the report was proved false, because a
 real second SQLite copy would be a data-integrity defect (two copies with separate state over one database file):
 `nm` shows the two read-only symbols `aiOff.4` and `aiOff.13` at one address, `Cargo.lock` and `fuzz/Cargo.lock` hold
 one `libsqlite3-sys` 0.38.2 each, and the binary has one `sqlite3_open`. Level 1 (`detect_odr_violation=1`) reports only
 size mismatches, so it would keep the equal tables silent and still catch a second copy of another version; a trial on
-a dispatch run is FT-343. *As built (cycle 21, FT-343).* The dispatch input `asan_odr_level1` (boolean, default off) of
+a dispatch run is FT-343. *As built.* The dispatch input `asan_odr_level1` (boolean, default off) of
 `deep-nightly.yml` sets `ASAN_OPTIONS=detect_odr_violation=1` for the `asan-command-fuzz` job's test step; a nightly and a
 dispatch without it keep `=0`. The trial's verdict is the job's (an `ERROR: AddressSanitizer: odr-violation` is red); adopting
 level 1 for the nightly is a change of the workflow's `ASAN_OPTIONS` once a dispatch run is clean.
 
-*As built (cycle 28, FT-468, FT-469; ID-663).* The save-and-reload oracle compares full model content and, on a mismatch, prints Model::content_diff's first differing project row, typed row (kind/ID), unknown-record/library-document position or base-index key. The diagnostic follows content_eq's ordering, ignores revision/change stamps and is None exactly when the models are content-equal; rendered row lines are supplementary evidence, not an independent table inventory. Model::keys, generated from the entity list and gated by raw-read, supplies both store keys and command row rendering, including page items and structure boxes. The preserved structure-box-dropped-by-save input and a plain API regression guard the data-loss fix. The second preserved input, non-cable-refusal-picked-a-cable, exposed a generator classification error: only that expected non-cable refusal branch now excludes live cables; production conductor.add is unchanged. Plain tests and exact sanitized replay guard it; hosted fuzz-smoke at the delivery tip is separate evidence.
+*As built.* The save-and-reload oracle compares full model content and, on a mismatch, prints Model::content_diff's first differing project row, typed row (kind/ID), unknown-record/library-document position or base-index key. The diagnostic follows content_eq's ordering, ignores revision/change stamps and is None exactly when the models are content-equal; rendered row lines are supplementary evidence, not an independent table inventory. Model::keys, generated from the entity list and gated by raw-read, supplies both store keys and command row rendering, including page items and structure boxes. The preserved structure-box-dropped-by-save input and a plain API regression guard the data-loss fix. The second preserved input, non-cable-refusal-picked-a-cable, exposed a generator classification error: only that expected non-cable refusal branch now excludes live cables; production conductor.add is unchanged. Plain tests and exact sanitized replay guard it; hosted fuzz-smoke at the delivery tip is separate evidence.
 
-*As built (cycle 43, R9; RD43).* The command decides acceptance; the fuzzer asserts invariants. A step's verdict is
+*As built (R9).* The command decides acceptance; the fuzzer asserts invariants. A step's verdict is
 `Either` (the command decides) or `Refuse`, which stays only where the arm built the step to name a record that does
 not exist (or no record of its kind) or to fail the registry's schema check or parse; the verdicts that restated a
 command's own rule (`rep.move` of a surface view, `conductor.add` on a device that is no cable, grid steps beside a
@@ -422,8 +422,8 @@ arms stay as generators of well-formed steps and deep states. `every_hand_arm_na
 
 | Check | Method | GP expectation |
 |---|---|---|
-| Frame geometry | The in-repo PDF reader (`crates/ew-api/tests/page_output/pdf_read.rs`, test code, no dependency; decision log ID-343) extracts the stroked lines in printed mm, compared with `geometry/frame.json` | ±0.2 mm (AC-01) |
-| Raster parity | hayro (the candidate, FT-235) rasterises each page, dify compares it with the vello_cpu PNG | Within tolerance (FR-OUT-018) |
+| Frame geometry | The in-repo PDF reader (`crates/ew-api/tests/page_output/pdf_read.rs`, test code, no dependency) extracts the stroked lines in printed mm, compared with `geometry/frame.json` | ±0.2 mm (AC-01) |
+| Raster parity | hayro (the candidate) rasterises each page, dify compares it with the vello_cpu PNG | Within tolerance (FR-OUT-018) |
 | Outline | Entry count and titles | Front matter, sections 1, 2, 9, every folio (FR-OUT-004) |
 | Links | Link annotations and named destinations | 64 xref links (one per listed item: 63 linked texts with 64 targets; a link covers the item's glyph span only) plus report back-links; every destination resolves (AC-13) |
 | Page labels | `/PageLabels` | Physical page 6 is labelled "101" (D-33) |
@@ -432,13 +432,13 @@ arms stay as generators of well-formed steps and deep states. `every_hand_arm_na
 | Metadata | XMP and Info dates from the model or `SOURCE_DATE_EPOCH`; document ID a hash of the export input | No wall-clock value (NFR-REL-07) |
 | Conformance | veraPDF, PDF/A-2b profile; PDF/UA-1 profile at 1.0 (**verify**, 02c OQ 9) | Pass |
 
-*As built (cycle 14; decision log ID-343):* the frame-geometry and text rows run in the headless acceptance run over the written PDF
+*As built:* the frame-geometry and text rows run in the headless acceptance run over the written PDF
 with an in-repo reader (`crates/ew-api/tests/page_output/pdf_read.rs`: indirect objects, Flate streams, page tree,
 content streams, ToUnicode maps; test code only, no dependency), not hayro: AC-01 compares the frame lines of `geometry/frame.json` per
 page within 0.2 mm, AC-13 the text layer with the printed glyph runs, AC-06 the tag occurrences in it. hayro stays
-the candidate for the raster-parity row (FT-235). `frame.json` now lists the stroked lines of a form's own `graphics` too (the cover's rules and project data box; pinned to [20](20-golden-project.md) §17.3 by `crates/ew-scene/tests/forms_content.rs`), so AC-01 compares 489 lines (12 pages × 30 + 1 × 14 + 23 × 5; decision log ID-358). The SVG SHA-256 printed in the AC-14 entry of the headless report is an SVG golden: a change to the SVG output re-blesses the headless report in the same commit, with the reason in the commit message, like the PDF SHA-256 (decision log ID-345). Comparing the PDF and SVG digests across platforms is FT-234 (MVP).
+the candidate for the raster-parity row. `frame.json` now lists the stroked lines of a form's own `graphics` too (the cover's rules and project data box; pinned to [20](20-golden-project.md) §17.3 by `crates/ew-scene/tests/forms_content.rs`), so AC-01 compares 489 lines (12 pages × 30 + 1 × 14 + 23 × 5). The SVG SHA-256 printed in the AC-14 entry of the headless report is an SVG golden: a change to the SVG output re-blesses the headless report in the same commit, with the reason in the commit message, like the PDF SHA-256. Comparing the PDF and SVG digests across platforms is FT-234 (MVP).
 
-*As built (cycle 15; decision log ID-364, ID-370):* the metadata row holds: the document ID is krilla's hash of `ew-pdf/1 <project id> <profile> <date> <pages>[ mono] ew <version> sha256:<digest>`, the digest covering every exported page's display list, label, titles, size and destination and the pinned SHA-256 of every bundled font, so a content change changes the ID and the same content loaded any way gives the same ID; `ew export pdf golden/J-E-2416.ew` writes the digest of `expected/pdf/sha256.txt` (G-M1-01). The PDF is written to a temporary file, synced and renamed; `ew export svg` replaces its `--out` directory as a whole and refuses one that holds anything but SVG files.
+*As built:* the metadata row holds: the document ID is krilla's hash of `ew-pdf/1 <project id> <profile> <date> <pages>[ mono] ew <version> sha256:<digest>`, the digest covering every exported page's display list, label, titles, size and destination and the pinned SHA-256 of every bundled font, so a content change changes the ID and the same content loaded any way gives the same ID; `ew export pdf golden/J-E-2416.ew` writes the digest of `expected/pdf/sha256.txt` (G-M1-01). The PDF is written to a temporary file, synced and renamed; `ew export svg` replaces its `--out` directory as a whole and refuses one that holds anything but SVG files.
 
 veraPDF is a test tool run from a pinned container image with a checked digest. It is never distributed. The headless acceptance run (§3.10) does not require it: krilla's PDF/A-2b validator covers AC-13 there, and the veraPDF cross-check runs in the CI job that has it.
 
@@ -457,7 +457,7 @@ veraPDF is a test tool run from a pinned container image with a checked digest. 
 The PR job runs the subset of the current milestone gate. Rows of later gates run as reported, non-blocking tests,
 so progress is visible. Golden C and the migration verifier (AC-25 … AC-27) run in the private job CI-N-10.
 
-**As built (cycle 11; decision log ID-285).** `cargo xtask acceptance <report.md> [--milestone]` replaces the
+**As built.** `cargo xtask acceptance <report.md> [--milestone]` replaces the
 `ew-testkit accept` entry until WP-S6.01's CLI form exists. It runs the headless M1 subset as the `#[ignore]`d `gate`
 test of `ew-api` through nextest with `--profile ci` (JUnit XML), with the oracle on, writes the Markdown report and
 exits non-zero when a blocking entry exists. `--milestone` runs it in the release profile with `EW_PERF_ASSERT=1` and
@@ -474,36 +474,35 @@ measures AC-17; without it AC-17 is `not_applicable`. Steps 1 (path (b), the bui
 A criterion that passes in part is split into its own entries (one per check), so partial passes are visible. The
 committed headless report `golden/J-E-2416/expected/acceptance_headless.md` is compared by the ordinary
 (non-ignored) test, which runs the runner once; the ordinary tests never run it more than once (testing policy).
-As built (cycle 13, WP-S1.10): step 2 runs: the runner builds the SQL projection and the SQL halves of AC-08 … AC-11 compare `acceptance/*.sql` with `expected/csv/` (pass), and an AC-15 entry compares the acceptance SQL over path (a) and path (c); path (b) stays `not_built`. Counts at the cycle-15 tip (the export job, the assembly aspect and the import modes, the builder DSL of path (b); decision log ID-390): **93 entries: 86 pass, 1 fail (AC-15 path (b): the builder DSL does not build the valve-terminal assembly, FT-169), 1 not_built (D-06 property grid, a UI entry of M-PP), 5 not_applicable; 0 oracle mismatches** (lanes A and B alone: 86 pass, 2 not_built). The runner is `cargo xtask acceptance`; an `ew-testkit accept --gate` binary would need a normal edge from `ew-testkit` to `ew-api` and is not built (owner ruling, decision log ID-387). **The "(a) ≠ (b)" gap class** (decision log ID-389): path (a) bootstraps records directly and path (b) goes through the commands, so a rule that the command surface enforces and the bootstrap bypasses shows up only on path (b); the page-type rule of [06](06-schematic-editor.md) §2.2 was the first instance (ID-385). A path (b) difference is triaged as a bypassed rule (fix the data or rule on the rule) or a command gap (a follow-up task), never by injecting records into path (b). Counts at the cycle-14 tip (the written PDF read back for AC-01, AC-06 and AC-13; the SVG export and the parallel page phase for AC-14; the cover; the per-edit verify of AC-16; decision log ID-360): **92 entries: 81 pass, 0 fail, 6 not_built (AC-07 assembly, AC-15 path (b), D-06 property grid, D-17, D-36, D-41), 5 not_applicable; 0 oracle mismatches**. AC-16 applies `variants/ac16-freshness.ewcmd` edit by edit in one session with the oracle on (one memoised read in 8 re-run cold) and runs the `verify-derived` sweep after every edit, requiring the memoised snapshot to equal the cold one byte for byte (decision log ID-357). AC-14's record-shuffle entry is evaluated on the platform of the run (the gate platform is Linux). Counts at the cycle-13 tip (wire numbering, the SQL projection v0, the PLC records and the DP bus potential; decision log ID-338): **85 entries: 61 pass, 0 fail, 18 not_built, 6 not_applicable; 0 oracle mismatches**. Counts at the cycle-12 tip: **83 entries: 51 pass, 2 fail, 24 not_built, 6 not_applicable; 0 oracle mismatches** (decision log
-ID-320). Its 2 fails, the M1 gap list of [20](20-golden-project.md) §22, closed in cycle 13: AC-03 page order (36 of
-36 folios with the PLC channel records, FT-111) and AC-10 (19 of 19 potentials with the Bus connections, FT-105). Acceptance criteria compare against doc 20's data (committed expected files generated from doc 20), never
-against the importer's own output (decision log ID-320).
+As built: step 2 runs: the runner builds the SQL projection and the SQL halves of AC-08 … AC-11 compare `acceptance/*.sql` with `expected/csv/` (pass), and an AC-15 entry compares the acceptance SQL over path (a) and path (c); path (b) stays `not_built`. Counts at the cycle-15 tip (the export job, the assembly aspect and the import modes, the builder DSL of path (b); decision log ID-390): **93 entries: 86 pass, 1 fail (AC-15 path (b): the builder DSL does not build the valve-terminal assembly, FT-169), 1 not_built (D-06 property grid, a UI entry of M-PP), 5 not_applicable; 0 oracle mismatches** (lanes A and B alone: 86 pass, 2 not_built). The runner is `cargo xtask acceptance`; an `ew-testkit accept --gate` binary would need a normal edge from `ew-testkit` to `ew-api` and is not built. **The "(a) ≠ (b)" gap class**: path (a) bootstraps records directly and path (b) goes through the commands, so a rule that the command surface enforces and the bootstrap bypasses shows up only on path (b); the page-type rule of [06](06-schematic-editor.md) §2.2 was the first instance. A path (b) difference is triaged as a bypassed rule (fix the data or rule on the rule) or a command gap (a follow-up task), never by injecting records into path (b). Counts at the cycle-14 tip (the written PDF read back for AC-01, AC-06 and AC-13; the SVG export and the parallel page phase for AC-14; the cover; the per-edit verify of AC-16): **92 entries: 81 pass, 0 fail, 6 not_built (AC-07 assembly, AC-15 path (b), D-06 property grid, D-17, D-36, D-41), 5 not_applicable; 0 oracle mismatches**. AC-16 applies `variants/ac16-freshness.ewcmd` edit by edit in one session with the oracle on (one memoised read in 8 re-run cold) and runs the `verify-derived` sweep after every edit, requiring the memoised snapshot to equal the cold one byte for byte. AC-14's record-shuffle entry is evaluated on the platform of the run (the gate platform is Linux). Counts at the cycle-13 tip (wire numbering, the SQL projection v0, the PLC records and the DP bus potential): **85 entries: 61 pass, 0 fail, 18 not_built, 6 not_applicable; 0 oracle mismatches**. Counts at the cycle-12 tip: **83 entries: 51 pass, 2 fail, 24 not_built, 6 not_applicable; 0 oracle mismatches**. Its 2 fails, the M1 gap list of [20](20-golden-project.md) §22, closed in cycle 13: AC-03 page order (36 of
+36 folios with the PLC channel records) and AC-10 (19 of 19 potentials with the Bus connections). Acceptance criteria compare against doc 20's data (committed expected files generated from doc 20), never
+against the importer's own output.
 
-*As built (cycle 15, lane C; WP-S6.01).* Step 1's path (b) exists: `ew_testkit::golden` holds both golden builders, `bootstrap` (path (a)) and `build` (path (b)), which issues one command per record of the bootstrap batch (its typed description) from the project shell (the project row and the embedded library copies, which no command creates yet) through a `CommandSink`, a function from a command name and its JSON parameters (the command-log form of doc 17 §3.5) to the created keys. `ew-testkit` keeps `ew-api` and `ew-commands` as dev-only edges; the runner in `ew-api`'s tests implements the sink over its `Session` (`ew-api` → `ew-testkit` is a dev edge). What no command writes is listed, never injected. The AC-15 path (b) entry compares the six acceptance SQL files and `bom_parts.csv` over the built project by content (`bom_assembly.csv` excluded until FT-169), with the page-type rule amended by the owner ruling on decision log ID-55 (graphic representations on MultiLine and BusTopology pages, multi-line ones on Fluid pages); the six SQL results match, the parts list does not until the valve-terminal assembly can be built (FT-169), so the entry fails and the counts are 93 entries: 86 pass, 1 fail, 1 not_built (D-06), 5 not_applicable. A representation the command layer refuses fails the entry. Owner ruling (cycle 15): no `ew-testkit accept --gate` binary and no normal edge from `ew-testkit` to `ew-api`; WP-S6.01's runner deliverable is `cargo xtask acceptance`.
+*As built (lane C).* Step 1's path (b) exists: `ew_testkit::golden` holds both golden builders, `bootstrap` (path (a)) and `build` (path (b)), which issues one command per record of the bootstrap batch (its typed description) from the project shell (the project row and the embedded library copies, which no command creates yet) through a `CommandSink`, a function from a command name and its JSON parameters (the command-log form of doc 17 §3.5) to the created keys. `ew-testkit` keeps `ew-api` and `ew-commands` as dev-only edges; the runner in `ew-api`'s tests implements the sink over its `Session` (`ew-api` → `ew-testkit` is a dev edge). What no command writes is listed, never injected. The AC-15 path (b) entry compares the six acceptance SQL files and `bom_parts.csv` over the built project by content (`bom_assembly.csv` excluded until FT-169), with the page-type rule amended by the owner ruling on decision log ID-55 (graphic representations on MultiLine and BusTopology pages, multi-line ones on Fluid pages); the six SQL results match, the parts list does not until the valve-terminal assembly can be built, so the entry fails and the counts are 93 entries: 86 pass, 1 fail, 1 not_built (D-06), 5 not_applicable. A representation the command layer refuses fails the entry. Owner ruling: no `ew-testkit accept --gate` binary and no normal edge from `ew-testkit` to `ew-api`; WP-S6.01's runner deliverable is `cargo xtask acceptance`.
 
-*As built (cycle 16; decision log ID-392 to ID-401).* **AC-15 path (b) passes.** With the seven commands of the
+*As built.* **AC-15 path (b) passes.** With the seven commands of the
 device tree, the PLC records, the supply origin and library copies, the builder issues 606 commands of 23 names from the
 project shell (the project row and the library copies): the valve-terminal assembly (`assembly.attach`, `valve.add`,
 the `assembly` aspect), the PLC configuration project, the `plc_station` and `plc_module` aspects (normaliser N1
 creates the 56 channels), the 28 coil bindings, the 8 device links and the supply origin. The entry compares the six
-acceptance SQL files and both BOM exports (`bom_parts.csv` and `bom_assembly.csv`; the cycle-15 exclusion is removed);
+acceptance SQL files and both BOM exports (`bom_parts.csv` and `bom_assembly.csv`; the exclusion is removed);
 a test of `ew-testkit` compares path (b) with path (a) record for record, both ways, up to the minted IDs (`source_ref`,
 the import lineage and the project lineage aside; `extra` compared). `Built::unwritten` holds only the 2 revisions, a
-reserved kind no command can create (FT-165, a D5 package of its own, ID-400). Counts at the cycle-16 tip:
+reserved kind no command can create (a D5 package of its own). Counts at the cycle-16 tip:
 **93 entries: 87 pass, 0 fail, 1 not_built (D-06 property grid, a UI entry of M-PP), 5 not_applicable; 0 oracle
 mismatches**: the headless M1 acceptance list is complete apart from the UI entry.
 
-*As built (cycle 17; decision log ID-433, ID-438).* `revision.create` writes the 2 revisions (FT-165), so
+*As built.* `revision.create` writes the 2 revisions, so
 `Built::unwritten` is empty and path (b) issues 608 commands. A second D-05 entry checks that no page record holds a
-revision value, and D-06's property-grid entry is `not_applicable` at the headless M1 gate (ID-422). Counts at the
+revision value, and D-06's property-grid entry is `not_applicable` at the headless M1 gate. Counts at the
 cycle-17 tip: **94 entries: 88 pass, 0 fail, 0 not_built, 6 not_applicable; 0 oracle mismatches**: no entry blocks
 the headless M1 gate.
 
-**PDF/A-2b** (decision log ID-287): AC-13's conformance passes through krilla's PDF/A-2b validator
+**PDF/A-2b**: AC-13's conformance passes through krilla's PDF/A-2b validator
 (`Conformance::PdfA2b`) in every run; the veraPDF cross-check of §3.9 is `not_applicable` in the headless run
 (external tool) and runs in the CI job that has veraPDF.
 
-*As built (2026-11-05, cycle 51; WP-S2.11 D2, decision log ID-1354, ID-1375).* The requirement table: a hand-kept
+*As built.* The requirement table: a hand-kept
 map, `golden/J-E-2416/acceptance/requirements.toml`, names each GP-named requirement's tests as `<binary ID> <test
 path>` (`[[requirement]]`) and each criterion proven outside `ew-api`'s runner (`[[criterion]]`); `xtask/src/requirements.rs`
 writes `golden/J-E-2416/expected/acceptance_requirements.md` from it and Golden A's requirement IDs. A row is
@@ -511,7 +510,7 @@ writes `golden/J-E-2416/expected/acceptance_requirements.md` from it and Golden 
 and does not block (WP-S2.11 §13 O3). `cargo xtask acceptance --gate M1|M2` checks the map first, runs the gate and the
 mapped tests in one nextest run, reads the JUnit results per binary and appends the pass, fail and missing sections.
 A `mapped` row whose test does not assert its criterion is a false pass, so FR-CHK-016 stays `missing` until a test
-asserts it (ID-1375).
+asserts it.
 
 ### 3.11 UI tests
 
@@ -526,7 +525,7 @@ tasks of NFR-A11Y-01, Escape cancelling every tool for NFR-UX-07). This document
   pseudo-locale build (+35 % length); keymap reachability per layout; 300 % scale snapshots.
 - **Watchdog.** A `tracing` subscriber fails any test in which a UI-thread span exceeds 100 ms (NFR-PERF-19).
 
-*As built (cycle 19, WP-S2.01 part 1; decision log ID-473, ID-474).* The shell's tests are ordinary nextest tests of
+*As built.* The shell's tests are ordinary nextest tests of
 `ew-viewmodel` (37: the registry invariants, the shell transitions on a copy of Golden A, settings, the UI-script
 parser), `ew-ui` (22: kittest interaction flows without rendering, each followed by the accessible-name walker, and unit
 tests of the render worker, the keys and the fonts) and `elektrawatt` (12: the headless smoke script through the built binary with the snapshot of folio
@@ -535,15 +534,15 @@ tests of the render worker, the keys and the fonts) and `elektrawatt` (12: the h
 watchdog and the other jobs of this list are WP-S2.11. The macOS build and kittest run first on CI at the cycle-19
 delivery.
 
-*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-559).* The viewer adds three kittest flows and four
+*As built.* The viewer adds three kittest flows and four
 headless checks (V6, V7, V8, V12) whose transcripts and snapshots are byte-identical between runs (§3.17). V10 is the
 exact counts of the multi-canvas host while a script runs `nav.next_link` and then follows, goes back and goes forward
-(each must succeed at least once, not only run); V11 is the retention of hidden canvas tabs (FT-356): a tab returned
+(each must succeed at least once, not only run); V11 is the retention of hidden canvas tabs: a tab returned
 to draws complete in its first frame; V12 is the viewer without a pointer (Go to, links, Back, tabs, side by side, the
 navigator and the grid cursor with its AccessKit announcement), with the accessible-name walker after every step. A
 kittest assertion on tiles follows the rule of §3.14: it never counts tiles by delivery timing.
 
-*As built (2026-11-05, cycle 51; WP-S2.11 D1, D3 to D7, decision log ID-1354, ID-1375).* AC-28 runs as one kittest
+*As built.* AC-28 runs as one kittest
 flow (`crates/ew-ui/tests/it/ac28.rs`). The walker over flows gives way to a census (`tests/it/census.rs`): every
 surface of the window (each menu path, the command-bar groups and submenus included, every dialog by `DialogKind`'s
 own list, the panes and navigators) opened on a writable `Tmp` copy of Golden A that it never commits, and on each
@@ -571,7 +570,7 @@ tolerance. The suite asserts no time and runs no UI-thread watchdog (WP-S2.11 FP
   and a view, and a GP copy whose page file is a symlink (NFR-SEC-16).
 - **Toolchain.** cargo-fuzz needs nightly, so `fuzz/rust-toolchain.toml` pins a dated nightly, advanced by the upgrade
   train (§6.3).
-- **As built (cycle 20, lane B; FT-297).** The crate `fuzz/` (GPL-3.0-or-later, `publish = false`, outside the
+- **As built (lane B).** The crate `fuzz/` (GPL-3.0-or-later, `publish = false`, outside the
   workspace: its own `[workspace]`, listed under `exclude` in the root manifest, so no stable-toolchain step sees it;
   `cargo-fuzz` 0.13.2, nightly 2026-10-08) has three targets: `jsonl_loader` (arbitrary bytes through
   `ew_format::{Manifest::parse, plan, load}`: no panic, a parsed manifest survives its text form, a valid input
@@ -589,14 +588,14 @@ tolerance. The suite asserts no time and runs no UI-thread watchdog (WP-S2.11 FP
   order, CRLF, a BOM, a missing final LF, a blank line) must open with a model `content_eq` to the golden project's, so
   the open of an old shape is lossless, not only idempotent. libFuzzer stops at the first panic; `fuzz/tests/replay.rs`
   replays `fuzz/regressions/` with the seed and step context.
-- **The crate in CI** (decision log ID-496). On every pull request the `lint` job (CI-PR-01) and `cargo xtask ci` run
+- **The crate in CI**. On every pull request the `lint` job (CI-PR-01) and `cargo xtask ci` run
   `cargo fmt --check`, `cargo check` and `cargo clippy -D warnings` on `fuzz/Cargo.toml` from the repository root, where
   rustup takes the stable toolchain, so a workspace change that breaks the crate fails the pull request; the fuzzing
-  itself needs the pinned nightly and runs in the deep nightly and, for 60 s per affected target, in the pull-request job CI-PR-08 `fuzz-smoke` (§5.2, FT-335). The
+  itself needs the pinned nightly and runs in the deep nightly and, for 60 s per affected target, in the pull-request job CI-PR-08 `fuzz-smoke` (§5.2). The
   crate's own dependencies are outside the workspace's cargo-deny and cargo-vet runs (a development tool never built
   into a distributed artefact); the nightly job `fuzz-deny` checks their licences and advisories against
   `fuzz/deny.toml`, report-only (§5.4).
-- **The first hosted finding (cycle 22, lane F; decision log ID-552).** CI-PR-08's first hosted run, on the cycle-21
+- **The first hosted finding (lane F).** CI-PR-08's first hosted run, on the cycle-21
   delivery, stopped `migration_chain` on an assertion of the lossless-open oracle; a local reproduction with the job's
   flags found 12 such inputs of two classes, and no out-of-memory, timeout, leak or panic in the loader or the store.
   (a) A BOM before a library copy made the project fail to open: the reader now strips one leading BOM in a library
@@ -615,28 +614,28 @@ tolerance. The suite asserts no time and runs no UI-thread watchdog (WP-S2.11 FP
   stop: FT-370 puts the artefact's prefix (`crash`, `oom`, `timeout`, `leak`) into the annotation.
 - **Release rule.** An open fuzz crash blocks the release (RC-02).
 
-*Cycle 28 (ID-662):* `png_pdf` (max_len 16,384) exercises PNGs accepted by `decode_image` through PDF writing/drawing. This records target coverage, without a fresh campaign or hosted-success claim.
+*Cycle 28:* `png_pdf` (max_len 16,384) exercises PNGs accepted by `decode_image` through PDF writing/drawing. This records target coverage, without a fresh campaign or hosted-success claim.
 
-*As built (2026-11-05, cycle 51; WP-S6.04 and WP-S3.09, decision log ID-1360, ID-1363, ID-1379).* The fuzz crate holds
-seventeen targets: WP-S6.04's `sql_sandbox` (FT-223's hostile SQL among its seeds), `svg_asset`, `image_decode`,
+*As built.* The fuzz crate holds
+seventeen targets: WP-S6.04's `sql_sandbox` ('s hostile SQL among its seeds), `svg_asset`, `image_decode`,
 `textconv`, `table_round_trip` (a selector byte picks whether the table key is given; the bytes' own signature picks
 CSV or XLSX) and `command_log`, and `ewlib_read` (`ew-library`'s own `.ewlib` reader); WP-S3.09's `qet_project`,
 `qet_element` (through `ew_api::import::import_qet_element`, the fuzz crate holding no edge to `ew-import-qet`),
 `golden_tables` and `parts_table`, whose checks live in `fuzz/src/importers.rs` so that the replay test runs their
 seeds; beside the earlier `jsonl_loader`, `migration_chain`, `command_sequence`, `ewz_read`, `merge_file` and
 `png_pdf`. `fuzz/tests/replay.rs` runs every target's seeds in CI and, when `fuzz/**` or `golden/**` changes, in the
-merge point's verify (FT-1374, ID-1378). The hostile corpus is `crates/ew-testkit/hostile/` (`qet`, `elmt`, `xlsx`,
+merge point's verify. The hostile corpus is `crates/ew-testkit/hostile/` (`qet`, `elmt`, `xlsx`,
 `ewz`, `jsonl`, `svg`, `raster`, with an index), read through each parser's public entry point by the test binary
 `hostile_corpus`, whose counting global allocator holds every input under 256 MiB; the counting allocator is that
 binary's only, none is in `fuzz/` (WP-S6.04 D10, FP-4). The `.elmt` files reach it through `import_qet`. ZIP64 is not
 read, so the archive entry limit equals the format's 16-bit count and its hostile case is refused by the end record
 (a row).
 
-*Cycle 52 (ID-1397).* An eighteenth target, `ewui_script`, reads `.ewui` scripts through the headless runner's parser
-(FT-1452); its replay test runs the user guide's tutorial scripts as seeds, read where they are. `ewlib_read` reads its
-library through `ew-library`'s in-memory entry, `Registry::in_memory`, with the index in memory (FT-1382).
+*Cycle 52.* An eighteenth target, `ewui_script`, reads `.ewui` scripts through the headless runner's parser
+; its replay test runs the user guide's tutorial scripts as seeds, read where they are. `ewlib_read` reads its
+library through `ew-library`'s in-memory entry, `Registry::in_memory`, with the index in memory.
 
-*Cycle 53 (ID-1463; M25-p1#8, M25-p2#6).* The symbol editor's readers have two targets: `symbol_authoring` (the
+*Cycle 53 (M25-p1#8, M25-p2#6).* The symbol editor's readers have two targets: `symbol_authoring` (the
 portable `ew.symbol/1` draft, and the EPLAN EDZ, PXF and parts-XML import through the front door, its caught panic a
 failure) and `symbol_slk` (an SLK descriptor and its eight `.sdb` tables through `ew-import-eplan`'s SLK reader, the
 read budget an oracle), with hand-made seeds that the replay test runs. The hostile corpus gains `eplan/`. A 7z input
@@ -666,9 +665,9 @@ provisioning. A test that fails nondeterministically is quarantined within one w
 owner. Quarantined tests keep running nightly. More than 10 quarantined tests block the next release
 (NFR-MAINT-13). A randomised test (proptest, the command fuzzer) that fails on one platform and not on another is not
 flaky: its committed regression seed (§3.3) replays the counterexample first on every run and platform, and the cause is
-fixed or triaged before the gate re-runs (decision log ID-405; the cycle-15 gate's counterexample was a generator gap).
+fixed or triaged before the gate re-runs (the 's counterexample was a generator gap).
 
-*Tile-count assertions (rule, cycle 23; decision log ID-559).* A test that counts the tiles of a canvas (or of the page
+*Tile-count assertions (rule).* A test that counts the tiles of a canvas (or of the page
 pool) must not depend on delivery timing: tiles reach the cache when the render worker's results arrive, which a
 loaded runner or a full parallel run delays, so an assertion such as "N tiles are cached after M frames" passes alone
 and fails under load. Two kinds of tile assertion are allowed: a **structural** one (the frame the pane draws is
@@ -680,35 +679,35 @@ after another tab was shown) and `ft_356_a_page_pane_behind_another_tab_keeps_it
 asserts that the returned-to hidden tab draws complete in its first frame, which is deterministic, and the other
 follows the same rule (§3.11).
 
-**CI time budget** (2026-10-22; decision log ID-381). The per-PR budget stays 30 min wall time (NFR-MAINT-05). Measured by the GitHub jobs API at d3ecf70: the Linux test job 23 min 18 s, macOS 26 min 04 s, and the Windows job past 30 min, when its all-features nextest run hit the old 30-minute job timeout; at 95149ab, with the new guard, Windows 21 min 14 s, Linux 21 min 13 s and macOS 22 min 37 s; GitHub reports a job stopped by its timeout as "cancelled", so a cancelled test job is read as a timeout, not as a user cancel. The three test jobs have `timeout-minutes: 50` as a guard, not as the budget. Until cycle 16 the headless acceptance tests ran in both nextest runs of a job (default features and all features); since FT-268 they run once per job, in the all-features run only (the default-features run builds the acceptance binary and skips it through a nextest filter). WP-S6.03 adds the CI-time trend to its gate (FT-269).
+**CI time budget**. The per-PR budget stays 30 min wall time (NFR-MAINT-05). Measured by the GitHub jobs API at d3ecf70: the Linux test job 23 min 18 s, macOS 26 min 04 s, and the Windows job past 30 min, when its all-features nextest run hit the old 30-minute job timeout; at 95149ab, with the new guard, Windows 21 min 14 s, Linux 21 min 13 s and macOS 22 min 37 s; GitHub reports a job stopped by its timeout as "cancelled", so a cancelled test job is read as a timeout, not as a user cancel. The three test jobs have `timeout-minutes: 50` as a guard, not as the budget. Until cycle 16 the headless acceptance tests ran in both nextest runs of a job (default features and all features); since FT-268 they run once per job, in the all-features run only (the default-features run builds the acceptance binary and skips it through a nextest filter). WP-S6.03 adds the CI-time trend to its gate.
 
-*As built (cycle 16, lane B; FT-268, FT-269).* The first nextest run of each test job, and the first nextest step of `cargo xtask ci`, skips the headless acceptance tests with the filterset `not (package(ew-api) and binary(acceptance))`; the all-features run, a superset, runs them, so they run once per job. The rule is documented in `.config/nextest.toml`, and a test of `xtask` keeps the filter of `ci.yml`, the constant of `xtask/src/main.rs` and the comment equal. The binary's long pole is the headless report: since cycle 32 (ID-746) it runs as three shards by entry index, `the_headless_report_equals_the_committed_report_shard_1_of_3`, `_shard_2_of_3` and `_shard_3_of_3`, which nextest runs in parallel, plus `the_headless_report_shards_cover_the_committed_report`, which shows that every row of the committed report is evaluated by exactly one shard. (In cycle 16 the report was one test of 112 s in the debug build, so the skip saved a job about 2 min, about 9 % of the 21-minute jobs of ID-381; the sharded report has not been timed against that.) The default-features run still builds the acceptance binary but no longer runs it, so the acceptance tests are only exercised against the all-features build of `ew-api`. The CI-time trend is `ci/ci-times.py`, appended to the nightly performance report (§4.7).
+*As built (lane B).* The first nextest run of each test job, and the first nextest step of `cargo xtask ci`, skips the headless acceptance tests with the filterset `not (package(ew-api) and binary(acceptance))`; the all-features run, a superset, runs them, so they run once per job. The rule is documented in `.config/nextest.toml`, and a test of `xtask` keeps the filter of `ci.yml`, the constant of `xtask/src/main.rs` and the comment equal. The binary's long pole is the headless report: since cycle 32 it runs as three shards by entry index, `the_headless_report_equals_the_committed_report_shard_1_of_3`, `_shard_2_of_3` and `_shard_3_of_3`, which nextest runs in parallel, plus `the_headless_report_shards_cover_the_committed_report`, which shows that every row of the committed report is evaluated by exactly one shard. (In the report was one test of 112 s in the debug build, so the skip saved a job about 2 min, about 9 % of the 21-minute jobs of ; the sharded report has not been timed against that.) The default-features run still builds the acceptance binary but no longer runs it, so the acceptance tests are only exercised against the all-features build of `ew-api`. The CI-time trend is `ci/ci-times.py`, appended to the nightly performance report (§4.7).
 
-*Cycle 17 (decision log ID-437).* At de23b55 the Windows test job took 30 min 54 s, 54 s over the 30-minute budget of NFR-MAINT-05 and inside the 50-minute guard. Since cycle 17 `fuzz_smoke` takes 15 to 19 s in a debug build (12.5 s before), with all 37 commands and the save-and-reload and import steps, and it runs in both nextest runs of each test job. The budget stays; running `fuzz_smoke` once per job, in the all-features run, as FT-268 did for the acceptance tests, is FT-306.
+*Cycle 17.* At de23b55 the Windows test job took 30 min 54 s, 54 s over the 30-minute budget of NFR-MAINT-05 and inside the 50-minute guard. Since cycle 17 `fuzz_smoke` takes 15 to 19 s in a debug build (12.5 s before), with all 37 commands and the save-and-reload and import steps, and it runs in both nextest runs of each test job. The budget stays; running `fuzz_smoke` once per job, in the all-features run, as FT-268 did for the acceptance tests, is FT-306.
 
-*As built (cycle 18, lane A; FT-306, FT-294, FT-295, FT-296).* The filterset of the default-features run is now `not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))` (the constant `ONCE_PER_JOB_FILTER` of `xtask/src/main.rs`; the guard test of `xtask`, `.config/nextest.toml` and `ci/README.md` follow): the `command_fuzz` binary (`fuzz_smoke` and its other tests) runs in the all-features run only, so once per job and once in `cargo xtask ci`; the saving is `fuzz_smoke`'s 15 to 19 s per job, not measured on CI yet. The cycle also adds two jobs that run on every pull request in parallel with the test jobs and so do not lengthen the 30-minute wall time: `headless` (CI-PR-05, `ci.yml`: one `ew` build, a 30-minute timeout) and `verapdf` (CI-N-09, `ci.yml`: one `ew` build and an image pull, a 20-minute timeout), each about 5 minutes expected with a warm cache and not measured before their first runs; the weekly `coverage.yml` (CI-PR-13) is outside the PR set. The CI-time trend of the nightly performance report (FT-269) reads the jobs of `ci.yml`, so it lists `headless` and `verapdf` from their first runs (that is why `verapdf` is in `ci.yml`, not in `docs.yml`).
+*As built (cycle 18, lane A; FT-306, FT-294, FT-295, FT-296).* The filterset of the default-features run is now `not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))` (the constant `ONCE_PER_JOB_FILTER` of `xtask/src/main.rs`; the guard test of `xtask`, `.config/nextest.toml` and `ci/README.md` follow): the `command_fuzz` binary (`fuzz_smoke` and its other tests) runs in the all-features run only, so once per job and once in `cargo xtask ci`; the saving is `fuzz_smoke`'s 15 to 19 s per job, not measured on CI yet. The cycle also adds two jobs that run on every pull request in parallel with the test jobs and so do not lengthen the 30-minute wall time: `headless` (CI-PR-05, `ci.yml`: one `ew` build, a 30-minute timeout) and `verapdf` (CI-N-09, `ci.yml`: one `ew` build and an image pull, a 20-minute timeout), each about 5 minutes expected with a warm cache and not measured before their first runs; the weekly `coverage.yml` (CI-PR-13) is outside the PR set. The CI-time trend of the nightly performance report reads the jobs of `ci.yml`, so it lists `headless` and `verapdf` from their first runs (that is why `verapdf` is in `ci.yml`, not in `docs.yml`).
 
 *Cycle 48 (ID-1217; FT-1132, "feat(xtask): limit the all-features test run to the packages it changes").* `ONCE_PER_JOB_FILTER` and its guard test are gone: the default-features run is whole, the acceptance tests and the command fuzzer included (`test-linux-default` and `cargo xtask ci`), and the all-features run takes only the packages that `cargo xtask all-features-set` prints, those with a feature the default run leaves off (`ew-ui` alone at the cycle's base).
 
-*The CI time after cycle 18 (decision log ID-482).* CI for the cycle-18 delivery f316d4d was green, including the first runs of `verapdf` (2 min 14 s) and `headless` (1 min 28 s), both under the five minutes expected. The test jobs took 17 min 09 s (Linux), 20 min 50 s (macOS) and 37 min 53 s (Windows): the Windows job is 7 min 53 s over the 30-minute budget and inside the 50-minute guard, up from 30 min 54 s at de23b55, while Linux and macOS stayed below their times at 95149ab. The growth is Windows-only and is attributed to the Windows all-features build and test of the cycle-18 additions (the record has no step times). From cycle 19 the UI crates add about 100 s of debug build to every test job (a clean `cargo build -p elektrawatt` takes 103 s on four jobs; not yet measured on CI). Under ID-448 the Windows test job runs only the all-features nextest run from FT-330 on; the default-features build and run stay in the Linux and macOS jobs and in `cargo xtask ci`. If the Windows job still exceeds 30 minutes, it is split into two parallel jobs. FT-330 (ID-482): the job took 45 min 29 s at the cycle-19 delivery (run 39771243693), against the 30-minute budget and the 50-minute guard; the default-features build, nextest run and doctest run are removed from it, which saves about the build and test time of that run (expected to bring the job back under 30 minutes; not yet measured). Applied in cycle 20 (decision log ID-500): the job runs the ICU4X assertion, the all-features nextest run, the annotations and the all-features doctests; the first measurement comes with the cycle-20 CI run, and if the job still exceeds 30 minutes it is split into two parallel jobs (ID-482).
+*The CI time after cycle 18.* CI for the cycle-18 delivery f316d4d was green, including the first runs of `verapdf` (2 min 14 s) and `headless` (1 min 28 s), both under the five minutes expected. The test jobs took 17 min 09 s (Linux), 20 min 50 s (macOS) and 37 min 53 s (Windows): the Windows job is 7 min 53 s over the 30-minute budget and inside the 50-minute guard, up from 30 min 54 s at de23b55, while Linux and macOS stayed below their times at 95149ab. The growth is Windows-only and is attributed to the Windows all-features build and test of the cycle-18 additions (the record has no step times). From cycle 19 the UI crates add about 100 s of debug build to every test job (a clean `cargo build -p elektrawatt` takes 103 s on four jobs; not yet measured on CI). Under ID-448 the Windows test job runs only the all-features nextest run from FT-330 on; the default-features build and run stay in the Linux and macOS jobs and in `cargo xtask ci`. If the Windows job still exceeds 30 minutes, it is split into two parallel jobs. FT-330: the job took 45 min 29 s at the cycle-19 delivery (run 39771243693), against the 30-minute budget and the 50-minute guard; the default-features build, nextest run and doctest run are removed from it, which saves about the build and test time of that run (expected to bring the job back under 30 minutes; not yet measured). Applied in cycle 20: the job runs the ICU4X assertion, the all-features nextest run, the annotations and the all-features doctests; the first measurement comes with the cycle-20 CI run, and if the job still exceeds 30 minutes it is split into two parallel jobs.
 
-*The CI time after cycles 20 and 21 (decision log ID-527, ID-551; cycle 22).* The cycle-20 delivery (ci run
+*The CI time after cycles 20 and 21.* The cycle-20 delivery (ci run
 39797238020) took 33 min 20 s on Windows, 30 min 23 s on Linux and 18 min 40 s on macOS; the step times are in
 `ci/README.md`, and FT-353 split the Windows and Linux jobs (§5.2). The cycle-21 delivery e28eb08 (ci run
 39824718577, docs run 39824718589, which was green) ran on the unsplit jobs: Windows 35 min 38 s, Linux 25 min 16 s,
 macOS 30 min 22 s, `headless` 1 min 45 s, `verapdf` 2 min 17 s, `lint` 3 min 19 s and `supply-chain` 3 min 36 s. Every
-test job was green; the run was red on `fuzz-smoke` only, its first hosted run (§3.12 and ID-552 record the finding;
+test job was green; the run was red on `fuzz-smoke` only, its first hosted run (§3.12 and record the finding;
 the job's verdict rule worked as designed). The macOS job grew by 11 min 42 s from 18 min 40 s: the canvas tests and
 the kittest flows of the cycle-21 shell now run there (the attribution is not measured per step). Windows is 5 min
 38 s over the 30-minute budget of NFR-MAINT-05, which the split answers; the first times of the split jobs come with
 the cycle-22 delivery run.
 
-*The CI time with the split proven (decision log ID-582; cycle 23).* The first run of the split (run 39846775852) was
+*The CI time with the split proven.* The first run of the split (run 39846775852) was
 red in `test-windows-1` through the archive's place in the checkout, the next in `test-windows-build` through a
-backslash path in a bash step (§5.2, ID-580, ID-581); the run of 8b19a12 (39857566843) was green with every job under
+backslash path in a bash step (§5.2); the run of 8b19a12 (39857566843) was green with every job under
 the 30 minutes per job: `test-windows-build` 21 min 53 s, `test-windows-1` 7 min 51 s, `test-windows-2` 10 min 58 s, `test-linux`
 28 min 53 s, `test-linux-default` 23 min 11 s, `test-macos` 24 min 25 s. Counted as a chain, the Windows jobs need 32 min 51 s of job time (the two partitions start
-when the build job ends: 21:53 plus the longer partition, 10:58). **Lead ruling (ID-582):** NFR-MAINT-05 says "within
+when the build job ends: 21:53 plus the longer partition, 10:58). **Lead ruling:** NFR-MAINT-05 says "within
 30 min wall time", so the budget is the wall time of the pull request's checks, which is its longest chain of jobs;
 per-job times are the diagnostic. ID-482's split condition is closed (the split is built and green), but the Windows
 chain is still 2 min 51 s over the budget and `test-linux` (28:53) is at its edge: FT-387 takes the next levers: the
@@ -716,16 +715,16 @@ build job's step times (build, archive, upload) from the jobs API first, then th
 requests hit `main`'s rust-cache, a slimmer archive); dropping `test-linux`'s default-features doctest step, which
 `cargo xtask ci` keeps; a second split only if those do not suffice.
 
-*The CI time of the cycle-23 delivery (decision log ID-606; cycle 24).* Run 39866735085 for 2d1b8ff was green in
+*The CI time of the cycle-23 delivery.* Run 39866735085 for 2d1b8ff was green in
 every job: `test-windows-build` 17 min 34 s, `test-windows-1` 8 min 47 s, `test-windows-2` 9 min 46 s, `test-linux`
 22 min 06 s, `test-linux-default` 22 min 26 s, `test-macos` 23 min 01 s, `fuzz-smoke` 9 min 36 s. The Windows chain,
 17:34 plus 9:46 = 27 min 20 s, is under the budget, so G-M0-04's wall-time clause is met in this run. The chain varies
 with the cache (32:51 in run 39857566843) and the margin is small, so FT-387's levers stay listed and are taken when a
-delivery run is over again. Job times are CI facts, not product performance measurements (ID-512).
+delivery run is over again. Job times are CI facts, not product performance measurements.
 
-*The CI time of the cycle-24 delivery (decision log ID-627; cycle 25).* Run 39892594457 on `main` (the build job also saves the rust-cache there) had the Windows chain at `test-windows-build` 20:01 plus the longer partition 10:00 = **30 min 01 s**, one second over the budget, against 21:53 + 10:58 = 32:51 in run 39857566843 and 27:20 in the cycle-23 delivery run (ID-582's two chains and ID-606's). FT-387 took the cheapest lever that needs no step-time data: a **third partition** (`test-windows-1` to `test-windows-3`, `--partition count:1/3` to `count:3/3`, together a complete and disjoint cover), projected at about 27:00 on `main` and less on a pull request, which saves no cache. The projection is **not measured**; the cycle-25 delivery run records the chain, and FT-387 stays open until it does. Next levers if over again: a fourth part, then the cache save moved off the build job's critical path.
+*The CI time of the cycle-24 delivery.* Run 39892594457 on `main` (the build job also saves the rust-cache there) had the Windows chain at `test-windows-build` 20:01 plus the longer partition 10:00 = **30 min 01 s**, one second over the budget, against 21:53 + 10:58 = 32:51 in run 39857566843 and 27:20 in the cycle-23 delivery run ('s two chains and 's). FT-387 took the cheapest lever that needs no step-time data: a **third partition** (`test-windows-1` to `test-windows-3`, `--partition count:1/3` to `count:3/3`, together a complete and disjoint cover), projected at about 27:00 on `main` and less on a pull request, which saves no cache. The projection is **not measured**; the cycle-25 delivery run records the chain, and FT-387 stays open until it does. Next levers if over again: a fourth part, then the cache save moved off the build job's critical path.
 
-*FT-387 closed: the CI time of the cycle-25 delivery and the partition by time (decision log ID-633; cycle 26).* The
+*FT-387 closed: the CI time of the cycle-25 delivery and the partition by time.* The
 cycle-25 delivery run 39914507884 had `test-windows-build` 16:20 and the `count:N/3` parts 12:22, 14:54 and 7:46, a
 chain of **31:14**: `count` balances the number of tests, not their time. The second lever (69f072e): part 1 runs the
 six slowest test binaries named by `binary_id`, parts 2 and 3 the complement by `count:1/2` and `count:2/2`; since cycle 27
@@ -734,9 +733,9 @@ in §5.2; `ci/README.md` keeps the per-binary table and the lesson "partition by
 builds with `CARGO_PROFILE_DEV_DEBUG=line-tables-only`. **Measured** in run 39985050322 on 69f072e: `test-windows-build`
 10:49, parts 8:13, 5:37 and 9:35, so the Windows chain is **20:24**; `test-linux` 26:25, `test-linux-default` 18:03.
 FT-387 is closed. `test-macos` took **30:04**, four seconds over the budget as a chain of one job, so G-M0-04's
-wall-time clause is not met in that run; its levers are FT-438. *Cycle 27 (decision log ID-644):* the cycle-26 delivery run 40041990698 had `test-windows-build` 14:33 and the longest part 15:01, a chain of **29:34**, with `test-macos` at 23:12, so G-M0-04's clause is met in that run, narrowly; the two lists of nine binaries (542acc2) come from that run's per-binary times and project the parts at about 13:36, 13:12 and 14:37 (measured 15:01, 7:52 and 13:35), a chain of about 29:10: a balance of the parts only, because the build job is the other half; the first CI run after gate 27 measures it, and the next lever is the build job.
+wall-time clause is not met in that run; its levers are FT-438. *Cycle 27:* the cycle-26 delivery run 40041990698 had `test-windows-build` 14:33 and the longest part 15:01, a chain of **29:34**, with `test-macos` at 23:12, so G-M0-04's clause is met in that run, narrowly; the two lists of nine binaries (542acc2) come from that run's per-binary times and project the parts at about 13:36, 13:12 and 14:37 (measured 15:01, 7:52 and 13:35), a chain of about 29:10: a balance of the parts only, because the build job is the other half; the first CI run after gate 27 measures it, and the next lever is the build job.
 
-*Retries in the evidence jobs (cycle 18; decision log ID-458).* The image pulls of `headless` and `verapdf` are named infrastructure steps in the sense of the first paragraph: each is tried three times with a back-off. When the third try fails, the job fails with an error saying that it has no evidence without the image; an evidence job never passes, skips or turns neutral without its evidence. A test inside such a job is never retried.
+*Retries in the evidence jobs.* The image pulls of `headless` and `verapdf` are named infrastructure steps in the sense of the first paragraph: each is tried three times with a back-off. When the third try fails, the job fails with an error saying that it has no evidence without the image; an evidence job never passes, skips or turns neutral without its evidence. A test inside such a job is never retried.
 
 ### 3.15 Test-build confirmation hook
 
@@ -759,7 +758,7 @@ must still run these subcommands in CI. The hook makes that possible without wea
 
 ### 3.16 Cross-platform source rules
 
-Added 2026-10-20 (decision log ID-270) after the CI of cycle 9 went red on Linux and macOS while every local check on
+Added 2026-10-20 after the CI of cycle 9 went red on Linux and macOS while every local check on
 Windows passed. Four rules, because the hosted runners only report what a local run on one OS cannot see:
 - **No `#[path]` attribute inside an inline module.** Inside `mod tests { … }` of `src/foo.rs` a `#[path]` is
   resolved against the directory `src/foo/tests/`, which need not exist. Windows normalises `..` lexically and
@@ -773,45 +772,44 @@ Windows passed. Four rules, because the hosted runners only report what a local 
   CI-PR-01 and CI-PR-02 (fmt, clippy, the workspace tests) in a local Linux environment, for example WSL with the
   pinned toolchain, in addition to the Windows run, before `main` is fast-forwarded; the hosted CI stays the gate
   of record. A `cargo xtask` lint for the first two rules is follow-up task FT-124.
-- **Wall-clock bounds only under `EW_PERF_ASSERT=1`** (2026-10-21, decision log ID-298). An ordinary test never
+- **Wall-clock bounds only under `EW_PERF_ASSERT=1`**. An ordinary test never
   asserts a wall-clock bound; it may measure and print. Bounds are asserted only when `EW_PERF_ASSERT=1` is set,
   which the milestone runs set. Origin: `crates/ew-import-qet/tests/hostile_input.rs` asserted budgets in ordinary
   tests and flaked on Linux under load; it now prints unless the variable is set. A `cargo xtask` lint that finds
   `elapsed` or `Instant` comparisons in assertions outside `#[ignore]` tests or an `EW_PERF_ASSERT` guard is
   follow-up task FT-158.
-- **Disk and build concurrency of agent sessions** (decision log ID-359): agent sessions follow the rule recorded in `CLAUDE.md` (no debug info since ID-1440, incremental local builds, eight build jobs; a lane's worktree target is deleted at integration, the main target after every gate; at most three builders at once).
-- **rustdoc in the gate on both platforms** (2026-10-21; decision log ID-380). The integrating session runs `cargo doc` with `-D warnings` on Windows and in the local Linux environment before `main` moves: a redundant explicit link target is a warning on the Linux toolchain only, and it broke the hosted docs workflow once. Intra-doc links are fully qualified (for example ``[`crate::module::Item`]``) and carry no explicit target that repeats the path.
-- **Hotfixes** (2026-10-21; decision log ID-382). A fix to a red `main` is made on a branch from `main` (`hotfix/<topic>`), `main` fast-forwards to that branch only, and the hotfix is then merged into the integration branch; `main` is never fast-forwarded to the integration branch to carry a hotfix, because that would publish unreviewed lane commits.
+- **Disk and build concurrency of agent sessions**: agent sessions follow the rule recorded in `CLAUDE.md` (no debug info since , incremental local builds, eight build jobs; a lane's worktree target is deleted at integration, the main target after every gate; at most three builders at once).
+- **rustdoc in the gate on both platforms**. The integrating session runs `cargo doc` with `-D warnings` on Windows and in the local Linux environment before `main` moves: a redundant explicit link target is a warning on the Linux toolchain only, and it broke the hosted docs workflow once. Intra-doc links are fully qualified (for example ``[`crate::module::Item`]``) and carry no explicit target that repeats the path.
+- **Hotfixes**. A fix to a red `main` is made on a branch from `main` (`hotfix/<topic>`), `main` fast-forwards to that branch only, and the hotfix is then merged into the integration branch; `main` is never fast-forwarded to the integration branch to carry a hotfix, because that would publish unreviewed lane commits.
 
 ### 3.17 Blind drafter (gate agent)
 
-Added 2026-10-21 (owner ruling; decision log ID-341). **Purpose.** An outside view of large UI changes: an agent draws a cabinet with EW alone, as a user would, and reports what it could and could not do. The method is modelled on the blind player of a game-playtesting practice (the blind-player method): the player knows nothing the product does not teach, so every point where it gets lost is a finding. It gives early signals on NFR-UX-04, NFR-UX-05 and SC-9 and on product principle PR-13 of [00](00-vision-and-scope.md) §8 (the pilot's QET drawings are the content target, never the style or process target; designing a cabinet must become easier, faster and more fun than in QET). It does not replace the moderated rounds of WP-S2.12.
+Added 2026-10-21. **Purpose.** An outside view of large UI changes: an agent draws a cabinet with EW alone, as a user would, and reports what it could and could not do. The method is modelled on the blind player of a game-playtesting practice (the blind-player method): the player knows nothing the product does not teach, so every point where it gets lost is a finding. It gives early signals on NFR-UX-04, NFR-UX-05 and SC-9 and on product principle PR-13 of [00](00-vision-and-scope.md) §8 (the pilot's QET drawings are the content target, never the style or process target; designing a cabinet must become easier, faster and more fun than in QET). It does not replace the moderated rounds of WP-S2.12.
 
 - **What it may read.** Only user-facing material: the user documentation, the UI, the CLI help and the output of its harness. Never the design documents, the code or the tests.
 - **Run protocol.** The agent chooses its own task ("it can run whatever it wants") and writes a live note after every action. It keeps a patience score and a flow score; each has a quit rule. A step that fails twice is marked "broken" and the agent moves on. A run has a time cap and an action cap.
 - **Fixed hand-back.** (1) A keep/drop score; (2) where it lost me; (3) what the tool is, in the agent's own words; (4) broken; (5) the drawing set compared against the project's design language, including the time a QET veteran would need for the same set; (6) a flow chart; (7) good.
 - **Personas.** The QET veteran (modelled on the pilot's engineers, never named), the switcher from EPLAN or E3, and later the apprentice. A persona is a short brief that fixes habits and vocabulary, not knowledge of EW.
-- **Harness.** `cargo xtask blind` with `start`, `do`, `note`, `stop` and `check`. One folder per run holds `drafter.md` (the notes), the replayable `.ewcmd`, the PDF and PNGs and the check report. The prompt is `tools/blind/BLIND_DRAFTER.md`, the personas are under `tools/blind/personas/`, and a compose script assembles the prompt of a run. *Amended (cycle 25, decision log ID-618, ID-621):* `check` is
+- **Harness.** `cargo xtask blind` with `start`, `do`, `note`, `stop` and `check`. One folder per run holds `drafter.md` (the notes), the replayable `.ewcmd`, the PDF and PNGs and the check report. The prompt is `tools/blind/BLIND_DRAFTER.md`, the personas are under `tools/blind/personas/`, and a compose script assembles the prompt of a run. `check` is
 `start --kind check`; the run folder lies outside the repository; the replayable artefact is the UI script, and the
-`.ewcmd` is kept as evidence; the reader reads the exported PDF instead of PNGs (the bullet "Specified (cycle 25)"
+`.ewcmd` is kept as evidence; the reader reads the exported PDF instead of PNGs (the bullet "Specified"
 below).
 - **When.** Never in the headless run (it is skipped while no editor exists) and never blocking. It runs only after a large UI change or a large feature implementation; G-PP and G-M2 are its natural occasions, and the first possible run is at M-PP, when the editor exists. It uses task sheets and placeholder data only, never customer data.
 - **Who.** The drafters run on Sonnet; an Opus lead reads the logs. Findings become follow-up tasks through the next design pass.
 - **Work package.** WP-S6.13 (harness, personas, prompt; about 1.6 pw PERT, M-PP).
-- **What it drives (cycle 19).** The shell's headless mode exists: `elektrawatt --headless --script -` reads a UI
+- **What it drives.** The shell's headless mode exists: `elektrawatt --headless --script -` reads a UI
   script (`ew.uiscript/1`) line by line from stdin and answers each step with a transcript line (`ew.uitranscript/1`),
   `ui.describe` gives the visible UI as text and `view.snapshot` a PNG, and `--record` keeps the run's `.ewcmd`
-  (decision log ID-474). `cargo xtask blind do` is to drive it (FT-314); the harness's help documents the
+ . `cargo xtask blind do` is to drive it; the harness's help documents the
   `ui.describe` vocabulary, which is machine text, because the drafter may not read the design documents. Until the
   editor of WP-S2.04 exists the shell offers viewing, undo, save and export only, so the first real run stays at M-PP.
   Since cycle 21 the drafter can also zoom, pan and point on the canvas and read back what it shows without a
   screenshot: the transcript's `canvas` member and the `canvas` lines of `ui.describe` (zoom and visible rectangle,
-  grid, pointer, the hovered entity with its box, backend), with `canvas.snapshot` for an image (WP-S2.02 §6.6, ID-511).
-  *As built (cycle 22, WP-S2.02 part 2; decision log ID-540).* The transcript's `canvas` member gains `renderer`
+  grid, pointer, the hovered entity with its box, backend), with `canvas.snapshot` for an image.
+  *As built.* The transcript's `canvas` member gains `renderer`
   (`auto` or `cpu`, the setting `canvas_backend`) as its last member, and `ui.describe` the line
-  `canvas renderer auto|cpu`; the three words `renderer`, `auto` and `cpu` join the vocabulary of ID-474 (so the
-  drafter's harness help of FT-314 lists them).
-  *The `HumanOnly` refusal (cycle 22, FT-336; decision log ID-546).* A UI script that dispatches the wizard's action
+  `canvas renderer auto|cpu`; the three words `renderer`, `auto` and `cpu` join the vocabulary of ID-474 (so the drafter's harness help of lists them).
+  *The `HumanOnly` refusal.* A UI script that dispatches the wizard's action
   `wizard.apply_check_scheme`, or reaches `project.checks.set` (the first registered `HumanOnly` command), is refused
   with `reason-human-only`, and the refusal is recorded in the transcript. The drafter and any other headless run
   therefore never change the check scheme. The headless-reachable human path is the CLI subcommand
@@ -819,9 +817,9 @@ below).
   on the controlling terminal; without a terminal (stdin or stdout not a terminal) it exits 2 before the project is
   opened, and `--confirm` or `--yes` is a usage error, so neither the drafter nor a pipeline can reach it (FR-EXT-030;
   FT-369 closed in cycle 22).
-  *Specified for WP-S2.03 (cycle 22; decision log ID-537).* The viewer and the tool framework add 44 words to the
-  `ui.describe` vocabulary (27 in part 1, 17 in part 2; FT-314 extended); each part's as-built text follows its delivery.
-  *As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-557, ID-559, ID-560).* The viewer's actions are all
+  *Specified for WP-S2.03.* The viewer and the tool framework add 44 words to the
+  `ui.describe` vocabulary (27 in part 1, 17 in part 2; extended); each part's as-built text follows its delivery.
+  *As built.* The viewer's actions are all
   headless, so the drafter can do everything a user can on the read-only shell and read it back without a screenshot:
   tabs (`tab.new`, `tab.close`, `tab.next`, `tab.previous`, `tab.focus_other`, and the scripted `tab.activate`,
   `tab.move`, `tab.open`), side by side (`view.side_by_side`), the link follow (`nav.next_link`, `nav.previous_link`,
@@ -832,11 +830,10 @@ below).
   `{"external": true}` for an external link. **`navigator.row` is `null` while the row cursor follows the current
   page**, and holds the row key only after the cursor was moved: a fresh project's pages carry random UUIDs, so a key
   taken from the current page would differ between two runs of one script and break the byte equality of transcripts
-  (ID-557). The vocabulary of ID-474 grew by 27 words and lost one: **"list" is dropped** (+27/−1; part 2's
-  words came in cycle 24, below). The `ui.describe` line `link external` is
-  unreachable on Golden A, which has no external link; the vocabulary test allows it (ID-560). The scripted checks
+ . The vocabulary of ID-474 grew by 27 words and lost one: **"list" is dropped** (+27/−1; part 2's words came in , below). The `ui.describe` line `link external` is
+  unreachable on Golden A, which has no external link; the vocabulary test allows it. The scripted checks
   V10 and V11 are described in §3.11.
-  *As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-588).* The drafter can now select and measure and read
+  *As built.* The drafter can now select and measure and read
   the result back. It selects by click or band through `canvas.press` and `canvas.release` (`x_mm`, `y_mm`, and
   optionally `button` primary or middle, `shift`, `ctrl`, `alt` and `group`), and it measures with the keyboard alone
   through `]`, `[`, N and Enter. `canvas.dwell` (`ms`) stands in for the pointer's rest, and `canvas.preview_snapshot`
@@ -849,9 +846,9 @@ below).
   **The vocabulary of ID-474 grows by 18 words in part 2, so WP-S2.03 adds 45 in all** (the specification said 17 for
   part 2; the fix round added `junction`, a marker kind). Still no shipped tool commits:
   Select and Measure neither preview nor commit, and the probe tool that does is behind the dev-only `ew-viewmodel`
-  feature `testkit`, so no shipped binary can install a committing tool (ID-513).
-  *As built (cycle 25, WP-S2.04 part 1 and WP-S2.05 part 1; decision log ID-625, ID-626, ID-628).* **The drafter can now draw and edit.** It opens the picker (`tool.place`, `tool.place_part`), filters and chooses a row (`picker.filter`, `picker.row`, `picker.choose`) or picks directly (`place.pick` with `symbol`, `part` or `function`, and `strip` or `designation` for a terminal), places with `canvas.press` or the grid cursor and Enter, transforms with `tool.rotate_cw` to `tool.next_rep_type`, moves with drags or `tool.move` and the arrow keys, deletes (`edit.delete_selection`), exchanges a symbol (`rep.exchange`), finishes with `tool.finish`, and creates a strip (`strip.new`); in the property grid it selects by reference (`select.set` with `tag:`, `folio:` or `id:`), moves the row cursor, edits, chooses an option, commits and applies or cancels a preview card (`props.*`, `preview.apply`, `preview.cancel`, `toast.undo`). The transcript's `canvas` member gains `ghost` and `picker`, and the state gains the grid's members; `ui.describe` gains the `canvas picker`, `row`, `canvas ghost` lines and the property-grid lines. **The vocabulary of ID-474 is 192 words** (111 at the cycle-24 delivery, plus 28 of WP-S2.04 part 1 and 53 of WP-S2.05 part 1, `function` once) and the action registry has **145 actions** (107, plus 18 and 20), as `VOCABULARY` and `ACTIONS` read at the integration tip. **The token test:** the vocabulary tests no longer compare a word list with itself; they take every structural token of real describe output (the canvas lines of the place, move and exchange states, the picker's rows, the property-grid lines of every kind a section can have) and assert that it is a vocabulary word or a free-text marker, and that each of part 1's 28 words is reached. No UUID reaches the text: the grid names pages by folio, and every other record ID is printed as its alias `@n` (as built in cycle 26 by FT-422, which replaced part 1's mask; see the next item). The editor still cannot wire, place interruption points, draw boxes, texts or markers, create pages or structure nodes, or import parts (WP-S2.04 parts 2 to 5, FT-408 to FT-411), so the G-PP task's prelude still does those steps.
-- **The ID alias as built (cycle 26, FT-422; decision log ID-630).** Every UUID the shell writes into a transcript line
+  feature `testkit`, so no shipped binary can install a committing tool.
+  *As built.* **The drafter can now draw and edit.** It opens the picker (`tool.place`, `tool.place_part`), filters and chooses a row (`picker.filter`, `picker.row`, `picker.choose`) or picks directly (`place.pick` with `symbol`, `part` or `function`, and `strip` or `designation` for a terminal), places with `canvas.press` or the grid cursor and Enter, transforms with `tool.rotate_cw` to `tool.next_rep_type`, moves with drags or `tool.move` and the arrow keys, deletes (`edit.delete_selection`), exchanges a symbol (`rep.exchange`), finishes with `tool.finish`, and creates a strip (`strip.new`); in the property grid it selects by reference (`select.set` with `tag:`, `folio:` or `id:`), moves the row cursor, edits, chooses an option, commits and applies or cancels a preview card (`props.*`, `preview.apply`, `preview.cancel`, `toast.undo`). The transcript's `canvas` member gains `ghost` and `picker`, and the state gains the grid's members; `ui.describe` gains the `canvas picker`, `row`, `canvas ghost` lines and the property-grid lines. **The vocabulary of ID-474 is 192 words** (111 at the delivery, plus 28 of of , `function` once) and the action registry has **145 actions** (107, plus 18 and 20), as `VOCABULARY` and `ACTIONS` read at the integration tip. **The token test:** the vocabulary tests no longer compare a word list with itself; they take every structural token of real describe output (the canvas lines of the place, move and exchange states, the picker's rows, the property-grid lines of every kind a section can have) and assert that it is a vocabulary word or a free-text marker, and that each of part 1's 28 words is reached. No UUID reaches the text: the grid names pages by folio, and every other record ID is printed as its alias `@n` (as built in by , which replaced part 1's mask; see the next item). The editor still cannot wire, place interruption points, draw boxes, texts or markers, create pages or structure nodes, or import parts, so the G-PP task's prelude still does those steps.
+- **The ID alias as built.** Every UUID the shell writes into a transcript line
   (`state`, `message`, a buffer, an error) or into the describe text is printed as `@n`: `@` and a decimal number from 1
   without a leading zero, numbered in the order of first appearance in the run's output (`ew_viewmodel::alias`). The
   table lives in the shell model for the whole script run, across every project the run opens or creates (so an
@@ -866,7 +863,7 @@ below).
   printer gives a link field; free text that merely contains `@3` stays text. An alias the table does not hold fails
   the step with "No record has the alias `@9` in this session." Because minted IDs no longer reach the output, a script
   that selects a record it created by a label or by a single alias gives byte-identical transcripts on two runs (the
-  folio-101 wiring test proves it). **Ordering rule (FT-439, decision log ID-640):** wherever shell output lists
+  folio-101 wiring test proves it). **Ordering rule:** wherever shell output lists
   records it orders them by what a person sees and a replay reproduces (the printed label, else the place: page, then
   y, then x, a record drawn nowhere after the drawn ones), the ID only as the last key, so an alias names the same record in every replay;
   `ew-viewmodel`'s test `replay_order` runs one creating script under ascending and descending new IDs and compares
@@ -891,13 +888,13 @@ below).
   parameter signatures in the action registry, and `tools/blind/reference/actions.txt` and `vocabulary.txt` pinned by
   an `ew-viewmodel` test, which closes FT-314. **Scoring:** the hard checks include the agent's own PDF export and
   save; the harness's 1-versus-4-thread PDF comparison is a protocol observation. **Evidence:** the UI script is the
-  replay artefact (the `.ewcmd` of a new project references random minted IDs and stays evidence; FT-416), transcripts
+  replay artefact (the `.ewcmd` of a new project references random minted IDs and stays evidence), transcripts
   are compared after UUID and path normalisation, an ordinary test replays the committed self-test recording twice in
-  fresh folders in CI (it is never marked stale) and the deep nightly the G-PP recording (FT-414); git keeps the replay
-  inputs, notes and score, and the full transcript is a nightly artefact and a release attachment (FT-420); the reader
+  fresh folders in CI (it is never marked stale) and the deep nightly the G-PP recording; git keeps the replay
+  inputs, notes and score, and the full transcript is a nightly artefact and a release attachment; the reader
   reads the exported PDF instead of PNGs and checks the agents' tool logs. Gaps for the pilot's task: FT-408 to FT-412,
-  all due before G-PP (ID-623).
-- **As built (cycle 26, WP-S2.04 part 2 and WP-S2.05 part 2; decision log ID-634, ID-635, ID-638).** The drafter can
+  all due before G-PP.
+- **As built.** The drafter can
   wire and find: `tool.wire` with the grid cursor, `]`, `[` and Enter (FR-UI-015's keyboard wiring), the proposals'
   Tab (`tool.next_proposal`), `canvas.activate {alt}` or `canvas.activate_alt` to place without proposals,
   `tool.route_edit`, the junction sequence editor (`junction.open` on exactly one selected junction, then
@@ -908,37 +905,35 @@ below).
   (the junction named by its frame cell, `#n` when a cell holds several), and the state gains `find`. **The
   vocabulary of ID-474 is 227 words** (192, plus WP-S2.05 part 2's 14 and WP-S2.04 part 2's 21) and the action
   registry has **167 actions** (145, plus 12 and 10), as `VOCABULARY` and the registry read at the integration tip
-  c4b60ce; the alias `@n` of FT-422 adds no word (ID-640). The editor still cannot place interruption points, draw
-  boxes, texts or markers, create pages or structure nodes, or import parts (WP-S2.04 parts 3 to 5, FT-408 to
-  FT-411).
-  *As built (cycle 27, WP-S6.13 part 1; decision log ID-610 to ID-624).* The harness `cargo xtask blind` exists
+  c4b60ce; the alias `@n` of FT-422 adds no word. The editor still cannot place interruption points, draw
+  boxes, texts or markers, create pages or structure nodes, or import parts.
+  *As built.* The harness `cargo xtask blind` exists
   (`xtask/src/blind/`, std only: a loopback keeper that is the run's copied `xtask`, `--stateless`, the filter, the
   protocol with notes, broken steps, quit rules and caps, `compose`, `stop`, `bless`, `replay`, `selftest`; the
   procedure is `tools/blind/README.md`). The product gained `elektrawatt --headless --keep-going` (a refused or failed
   step does not end the run; exit 1 when any step was not done), a parameter signature on every action
-  (`ActionMeta.params`; `tools/blind/reference/actions.txt` and `vocabulary.txt` are generated and compared by the
-  `blind_reference` test, which closes FT-314) and the headless-only action `page.describe` (the page's content as
+  (`ActionMeta.params`; `tools/blind/reference/actions.txt` and `vocabulary.txt` are generated and compared by the `blind_reference` test, which closes) and the headless-only action `page.describe` (the page's content as
   text, from the cached page tables). **`page.describe` adds 11 words** (`reps`, `connections`, `junctions`, `wires`,
   `stored`, `provisional`, `ip`, `direction`, `source`, `undirected`, `potential`): the other 11 of the 22 that the
   specification counted were WP-S2.04 part 2's, delivered before part 1. **The vocabulary of ID-474 is 238 words and the
   action registry 168 actions.** CI replays the committed self-test recording twice in fresh folders
   (`bin/elektrawatt/tests/blind_replay.rs`).
 
-  *As built (cycle 27, the integration; decision log ID-645 to ID-652).* At the cycle-27 integration tip the vocabulary of ID-474 is **252 words** (238 + WP-S2.04 part 3's 5, the clipboard's 6, the parts import's 3) and the action registry **188 actions** (168 + part 3's 10, the clipboard's 6, FT-408 and FT-409's 3, FT-410's 1); the reference files and the self-test recording are regenerated once on the merged tip (ID-652). The drafter can now place interruption points and black boxes, copy and paste, create pages, structure nodes and external references, and import parts; texts, graphics, wire markers and structure boxes have commands but no tools until WP-S2.04 part 4b, strip bridges come with FT-411 and images with part 5. A check run's canvas actions are FT-442; `ew export bom` on the self-test's project is FT-465.
+  *As built (cycle 27, the integration; decision log ID-645 to ID-652).* At the cycle-27 integration tip the vocabulary of ID-474 is **252 words** (238 + WP-S2.04 part 3's 5, the clipboard's 6, the parts import's 3) and the action registry **188 actions** (168 + part 3's 10, the clipboard's 6, and 's 3, 's 1); the reference files and the self-test recording are regenerated once on the merged tip. The drafter can now place interruption points and black boxes, copy and paste, create pages, structure nodes and external references, and import parts; texts, graphics, wire markers and structure boxes have commands but no tools until WP-S2.04 part 4b, strip bridges come with FT-411 and images with part 5. A check run's canvas actions are FT-442; `ew export bom` on the self-test's project is FT-465.
 
-*Cycle 28 (ID-659, ID-660):* Text/Text edit, Graphic, Wire marker and Structure box are available; Select moves/deletes items/boxes with representations. `TableItem` exposes text/binding and `page.describe` includes item/box lines only when present. The merged, unblessed blind-reference tests passed 3/3: 198 actions and 266 structural words, with 54 commands (ten actions/fourteen words added). WP-S6.13 parts 2/3 remain open; automated G-PP rehearsal is content evidence, with final local validation and publication status in ID-665.
+*Cycle 28:* Text/Text edit, Graphic, Wire marker and Structure box are available; Select moves/deletes items/boxes with representations. `TableItem` exposes text/binding and `page.describe` includes item/box lines only when present. The merged, unblessed blind-reference tests passed 3/3: 198 actions and 266 structural words, with 54 commands (ten actions/fourteen words added). WP-S6.13 parts 2/3 remain open; automated G-PP rehearsal is content evidence, with final local validation and publication status in ID-665.
 
-*Amended (cycle 30; decision log ID-703, ID-714):* `tools/blind/HELP.md` is at version 4. Version 3 says that the page text's positions are the coordinates `canvas.press` and `cursor.set` take, that a `wire` line's `at X Y mm` point selects that wire, and that `select.set refs='["wire:<one end> -> <other end>"]'` selects a wire by its ends (FT-485); version 4 adds the `jobs` and `notifications` describe sections of WP-S2.09 part 1, which the drafter reads. The D16 guard digests the golden project fixture only (FT-484, ID-705).
+`tools/blind/HELP.md` is at version 4. Version 3 says that the page text's positions are the coordinates `canvas.press` and `cursor.set` take, that a `wire` line's `at X Y mm` point selects that wire, and that `select.set refs='["wire:<one end> -> <other end>"]'` selects a wire by its ends; version 4 adds the `jobs` and `notifications` describe sections of WP-S2.09 part 1, which the drafter reads. The D16 guard digests the golden project fixture only.
 
 
-*As built (cycle 32, WP-S2.17; decision log ID-739, ID-747 to ID-750, ID-757).* **What the drafter reads.** The UI it
+*As built.* **What the drafter reads.** The UI it
 drives is the command bar of doc 16a §5.2: `ui.describe` gains the `commandbar` section (the active tab, its groups and
 the next step) and the `hud` line (the active tool and its prompt), and `view.command_tab` and `view.command_bar` join
 the registry. At the merged tip the counts are **55 commands, 258 actions and 354 words**; the blind reference
 (`tools/blind/reference/actions.txt`, `vocabulary.txt`) was re-blessed once over the new labels and the app menu by tab
 and group, and NP6 asserts both counts.
 
-*As built (cycle 34, WP-S2.07 part 1 and WP-S1.19 part 1).* `terminal.insert` and `terminal.move` join the registry,
+*As built.* `terminal.insert` and `terminal.move` join the registry,
 the strip editor adds six actions and its describe lines (the Terminal strips table's Pos cell among them), and
 WP-S1.19 part 1 adds the word `macro_instance`: **58 commands, 268 actions and 357 words** at the merged tip, with the
 blind reference re-blessed. The strip editor's acceptance checks run headless and in kittest (WP-S2.07 SE1 to
@@ -946,7 +941,7 @@ SE15); SE6 exports the parts list of the blind task's H4 rows through a headless
 bracket and Plug-in bridge rows with the oracle's.
 
 **The pixel gate.** The chrome is checked by an in-house offscreen pixel gate, not by `egui_kittest`'s `snapshot` and
-`wgpu` features (rejected for the 13 packages they bring into the lock, ID-739): egui-wgpu on `ew-render2d`'s headless
+`wgpu` features (rejected for the 13 packages they bring into the lock): egui-wgpu on `ew-render2d`'s headless
 device renders the window, and each image is compared with its blessed PNG within a channel tolerance of 4/255 and a
 small bound on differing pixels (at most 10 for the chrome images; at most one in 2,000 for the canvas images). It is
 compiled behind `ew-ui`'s `snapshots` feature, runs on **Windows only** (WARP), in the `test-windows-3` job through
@@ -955,13 +950,13 @@ compiled behind `ew-ui`'s `snapshots` feature, runs on **Windows only** (WARP), 
 | Gated images (`crates/ew-ui/tests/expected/`) | Count |
 |---|---|
 | `snapshots/main-{light,dark}-{comfortable,compact}`: the main window on Golden A folio 101 at 1280 × 800 | 4 |
-| `snapshots/main-light-comfortable-300`: the main window at 300 % (DK7, FT-537) | 1 |
+| `snapshots/main-light-comfortable-300`: the main window at 300 % (DK7) | 1 |
 | `snapshots/gallery-*-ppp1`: the component gallery in the four themes at ppp 1 (the only gated high-contrast images) | 4 |
 | `snapshots/command-bar-<tab>-light-comfortable`: the command bar cropped per tab (CB7) | 6 |
 | `snapshots/part4-*`: dialog with toast, menu, palette and the Preview tab, light and dark (part 4; the scrim is measured per theme) | 8 |
 | `snapshots/dk12-{messages,messages-detail,history}-light-comfortable`, `dk12-messages-detail-dark-compact`: Messages and History cropped to their pane (DK12) | 4 |
-| `snapshots/dk12-{grid,grid-edit}-{light-comfortable,dark-compact}`: the Terminal strips grid cropped to its pane (DK12, FT-532) | 4 |
-| `snapshots/cp6-dialog-*-light`: every dialog cropped to its frame, the four fixture dialogs included (CP6, FT-533, FT-571) | 14 |
+| `snapshots/dk12-{grid,grid-edit}-{light-comfortable,dark-compact}`: the Terminal strips grid cropped to its pane (DK12) | 4 |
+| `snapshots/cp6-dialog-*-light`: every dialog cropped to its frame, the four fixture dialogs included (CP6) | 14 |
 | `snapshots/cp9-{fix-card,table-card}-light`: the quick-fix card and the table card (CP9) | 2 |
 | `snapshots/{dock-tabs,chip-line,join-chooser}-light-comfortable`, `tooltip-save-light`: single widgets (doc 16a §6.4, §6.24, §6.22, §6.18) | 4 |
 | `snapshots/ft625-*-light-comfortable`: the FT-625 window details | 5 |
@@ -998,7 +993,7 @@ more. Nothing is rendered for review only: the high-contrast main windows, the g
 The generator version is part of the cache key and of every performance-history row. Changing the generator resets
 the baselines (§4.4).
 
-**Private pilot corpus (decision log ID-299).** The pilot's three QElectroTech projects, all class S (the largest has
+**Private pilot corpus.** The pilot's three QElectroTech projects, all class S (the largest has
 34 folios, about 1,000 devices and 645 connections), are private test input. They are kept outside the repository and
 in the private CI store, never in fixtures, logs or AI data sets beyond the agents that need them. Agents read only
 sanitised derived lists; documents carry counts only. The corpus tokens are SHA-256 digests in `ci/denylist.sha256`,
@@ -1015,14 +1010,14 @@ budgets on real projects and exercises the importer ([14](14-interop.md) §12, [
 | `commit.move`, `commit.wire` | NFR-PERF-05 | S–XL | p99 over 1,000 gestures |
 | `render.pan` | NFR-PERF-06 | Dense A3; GP folio 103 | fps on GPU and on the CPU renderer |
 
-*As built (cycle 21, WP-S2.02 part 1; decision log ID-509, ID-518).* The `canvas` bench of `ew-ui` (class GP, 1,000
+*As built.* The `canvas` bench of `ew-ui` (class GP, 1,000
 scripted frames per scene) prints `frame.gesture.pan`, `frame.gesture.zoom` and `frame.gesture.point` (pointer frames
 count only into the last), each with the per-phase families `.<phase>` for `input`, `scene`, `render` and `paint`, and
 `render.pan.cpu` and `render.zoom.cpu` (time until every visible tile of a frame's wanted resolution is cached); the
 dense-A3 scene's families carry the suffix `.dense_a3`. Part 2 adds `render.pan.gpu` and `render.zoom.gpu`. Report-only
-(§4.7); the first measurement is a release-phase item (FT-355).
+(§4.7); the first measurement is a release-phase item.
 
-*As built (cycle 22, WP-S2.02 part 2; decision log ID-539, ID-542).* The GPU frame families of the `canvas` bench are
+*As built.* The GPU frame families of the `canvas` bench are
 `render.pan.gpu` and `render.zoom.gpu` (the dense-A3 pair with the suffix `.dense_a3`): per frame of the same pan and
 zoom scripts, the render encoded and submitted and the wait for the device. They print only when an adapter is found
 (the bench prints the adapter's kind and API); report-only, not measured (owner's rule). The GPU tests of
@@ -1059,22 +1054,22 @@ allow site of the environment lint (§3.5).
   API and timed with `tracing` spans.
 - **Milestone runs.** Milestone runs set `EW_PERF_ASSERT=1` (the `#[ignore]`d release-profile tests and `cargo xtask
   acceptance --milestone`); performance tests run only at milestone deliveries (testing policy, §3.16).
-- **No performance runs during development** (owner ruling 2026-10-22, decision log ID-512). Since this ruling the
+- **No performance runs during development**. Since this ruling the
   measurements of this section do not run in cycles, cycle gates or milestone deliveries either: the G-SP re-test, the
   class-M and class-XL benches, a local `perf-gate`, the release-profile timing tests and the hostile-input timings run
   in the **release phase**, before a binary release gate, on the BM-class runner; until then a gate's performance
   criteria are assumed to pass. The timing rule of §3.16, the exact counts of §4.5 per pull request and the nightly
   report-only job of §4.7 are unchanged.
-- **A bench that cannot run is a defect** (decision log ID-520). A bench that crashes, cannot be built or cannot be read
+- **A bench that cannot run is a defect**. A bench that crashes, cannot be built or cannot be read
   fails the nightly job as an infrastructure failure even where its values are report-only; for the `canvas` bench that
   includes its 120-second wait for a frame's tiles running out.
 - **Deviation accepted once (G-SP, 2026-10-20).** The first G-SP evidence ran on a non-dedicated Windows desktop
   and took 100 instead of 1,000 timed samples for a latency family whose warm-up median exceeded ten times its
   budget (decided by its median, rows flagged "clamped"). Both were accepted for the Recycle outcome only, because
   every gap was an order of magnitude beyond the machine factor; the re-test after the recycle and every later gate
-  follow this section (ADR-0002 amendment 4, decision log ID-222).
+  follow this section (ADR-0002 amendment 4).
 
-*Cycle 28 (ID-664, FT-474 closed):* local development and cycle gates select nextest `local-dev`, whose default filter is `not binary(perf) and not test(/^perf_/)`; nextest intersects explicit crate/test filters and xtask's existing once-per-job filter. Default/ci, hosted jobs and report-only nightly performance behavior stay unchanged. Local gates select this profile (Windows via `NEXTEST_PROFILE`, Linux explicitly in both runs); functional/hostile-input checks remain selected, acceptance and command_fuzz run in all-features, and local logs need no JUnit block. Optional measurement acquisition/calculation/reporting/assertions in ew-commands limits/history_budget, ew-derive xref, ew-text shaping, ew-scene forms_overflow and ew-import-qet hostile_input are lazy-guarded by `EW_PERF_ASSERT`; correctness assertions remain unconditional. Gate launches leave `EW_PERF_ASSERT`, `EW_FUZZ_TRACE` and milestone/perf opt-ins unset. No retries, inputs, thresholds or release criteria are relaxed; no ignore-default-filter or ignored/release performance runs are used. Ignored/release/perf-gate/G-SP/hostile-timing measurements remain excluded; performance acceptance is not measured (owner's rule). The initial A28 review accidentally ran four unignored small timing cases: a process deviation with no performance conclusion. Final local validation and publication status are recorded in ID-665.
+*Cycle 28 (closed):* local development and cycle gates select nextest `local-dev`, whose default filter is `not binary(perf) and not test(/^perf_/)`; nextest intersects explicit crate/test filters and xtask's existing once-per-job filter. Default/ci, hosted jobs and report-only nightly performance behavior stay unchanged. Local gates select this profile (Windows via `NEXTEST_PROFILE`, Linux explicitly in both runs); functional/hostile-input checks remain selected, acceptance and command_fuzz run in all-features, and local logs need no JUnit block. Optional measurement acquisition/calculation/reporting/assertions in ew-commands limits/history_budget, ew-derive xref, ew-text shaping, ew-scene forms_overflow and ew-import-qet hostile_input are lazy-guarded by `EW_PERF_ASSERT`; correctness assertions remain unconditional. Gate launches leave `EW_PERF_ASSERT`, `EW_FUZZ_TRACE` and milestone/perf opt-ins unset. No retries, inputs, thresholds or release criteria are relaxed; no ignore-default-filter or ignored/release performance runs are used. Ignored/release/perf-gate/G-SP/hostile-timing measurements remain excluded; performance acceptance is not measured (owner's rule). The initial A28 review accidentally ran four unignored small timing cases: a process deviation with no performance conclusion. Final local validation and publication status are recorded in ID-665.
 
 ### 4.4 Gate decision
 
@@ -1089,8 +1084,8 @@ for each (benchmark b, class c, metric m) measured tonight on runner R:
 red if any (over and gating) or regress
 ```
 
-*Interim as built (cycle 16; decision log ID-412, ID-413).* The gate compares medians for every family; p99 is parsed
-and reported, and p99 gating of the latency families comes with the rolling baseline (FT-287). Until then `base` is the
+*Interim as built.* The gate compares medians for every family; p99 is parsed
+and reported, and p99 gating of the latency families comes with the rolling baseline. Until then `base` is the
 committed baseline `ci/perf-baseline.toml`, keyed by runner, mode and generator version (its provenance fields
 `generator_version`, `commit`, `toolchain`, `date`); a run with another generator version is "not compared". The
 memory estimates and entry counts are deterministic, so their floor is 0; the 16 MiB floor applies to the peak RSS.
@@ -1122,16 +1117,16 @@ A change in these counts is a reviewed snapshot change, never a silent one.
   ≤ 300 MB, undo ≤ 256 MB and the projection ≤ 500 MB file-backed (NFR-PERF-13).
 - **Allocation counting.** The counting allocator of §3.12 checks the parser limits in the same job.
 
-### 4.7 As built: the nightly gate on the hosted runner (cycle 16, lane B; WP-S6.03)
+### 4.7 As built: the nightly gate on the hosted runner (lane B)
 
 `.github/workflows/perf.yml` (nightly and `workflow_dispatch`) runs `cargo xtask perf-gate` and `ci/ci-times.py`; `ci/README.md` describes both. What exists and how it differs from §4.4 and §4.6:
 
-- **Benchmarks.** The `spike` and `cold_ops` benches of `ew-testkit`, full mode, run from their executables. The nightly run measures class S only (owner ruling, cycle 16): the class M baseline does not exist yet and M takes over an hour; M runs on a manual dispatch (`classes: S,M`) until its baseline exists. The gate parses the `bench …` lines (median, p99, the memo counters of the engine statistics of §4.5, as counts per family of the last commit) and the `memory:` lines.
-- **Decision.** A committed baseline (`ci/perf-baseline.toml`, class S only for now, from a developer machine: medians in ms, memory estimates, peak RSS, the threshold of 15 %, a noise floor of 0.05 ms for medians and of 16 MiB for the peak RSS only, 0 for the memory estimates and entry counts, which are deterministic (§4.4; ID-413), the runner, the mode and the provenance: fixture generator version, commit, toolchain and date; a run with another generator version is not compared) instead of the median of the last 7 green nightly values: a value more than 15 % above its baseline and above the noise floor is a regression; the same test applies to the memory estimates and the peak RSS. The unit test `a_seeded_slowdown_of_twenty_percent_turns_the_gate_red_and_ten_percent_does_not` seeds the slowdown into parsed bench output (`open.session_from_records`, multiplied by 1.2 and by 1.1) and asserts that the comparison turns red at 20 % and stays green at 10 %. The seeded slowdown of §4.4, which slows `potential_partition` inside a running gate and asserts that the whole gate turns red, is not built.
-- **Report-only.** The hosted runner never gates (§4.3). `EW_PERF_ASSERT` (or `--enforce`) is the one switch that makes a regression a failing exit status; the nightly job does not set it. A baseline from another runner (`EW_PERF_RUNNER`, else `hosted:<os>-<arch>`), from the quick mode or with another generator version is reported as not comparable and never enforced. Under enforcement a baseline value that the run did not measure fails the gate (a removed family: re-bless); values new in the run never do; both are listed in the report. A bench that does not run (build failure, non-zero exit, unreadable output) is recorded in the report with the tail of its output, the others still run, and the command fails whatever `EW_PERF_ASSERT` says: an infrastructure failure, not a performance verdict. The report (job summary and artifact `perf-report`) carries the verdict, the regressions, the medians against the baseline, the memory table, the engine statistics and the CI-time trend of `ci.yml` against the 30-minute budget (FT-269). The trend reads the GitHub jobs API with the automatic, read-only job token (`actions: read` on the job, passed to that one step as `github.token`; there is no configured secret), because the hosted runners share egress addresses and the unauthenticated limit of 60 calls an hour is often used up.
-- **Memory.** The peak RSS is `VmHWM` of the bench process, polled every 50 ms, on Linux; Windows is a gap until `ew-sysprobe` (FT-89) provides `PeakWorkingSetSize`. There is no counting allocator yet: the workspace forbids `unsafe` in its own code, and a vetted bench-only dependency (dhat or stats_alloc) stays an option (ID-418, FT-292); the memory gate rests on the benches' deterministic estimates and on the peak RSS. The phases of §4.6 (after open, warm-up, full check, PDF export) and the XL budgets are not measured.
-- **The `canvas` bench** (cycle 21, WP-S2.02 part 1; ID-509, ID-520). `perf-gate` runs the `canvas` bench of `ew-ui` once per gate run, not per class (class GP, Golden A's folio 103 and a dense A3 page), and reports its families (§4.2) without ever gating on them: a new family never fails the gate, the CPU families enter a baseline only by a bless on the BM-class runner in the release phase (FT-355), and the GPU families of part 2 never enter a hosted runner's baseline. Like every bench, a crash or its tile-wait limit running out fails the job (§4.3).
-- **Not built.** The BM-class runner (an owner item, DEC-034; a release-phase item since ID-512) and the class M baseline (FT-291), the rolling baseline with its MAD noise and p99 gating for latency (FT-287), the budget check (`over`) of §4.4 (FT-288), the bisect job on red (FT-289), the `perf-baseline-reset` label rule (FT-290), the counting allocator (FT-292), the peak RSS on Windows (FT-89), the in-gate seeded slowdown of §4.4 (FT-287), L and XL, and the benchmarks of §4.2 that the two benches do not cover (`open` to the first frame, `check.full`, `pdf.export`, `save.*`, `sql.*`).
+- **Benchmarks.** The `spike` and `cold_ops` benches of `ew-testkit`, full mode, run from their executables. The nightly run measures class S only: the class M baseline does not exist yet and M takes over an hour; M runs on a manual dispatch (`classes: S,M`) until its baseline exists. The gate parses the `bench …` lines (median, p99, the memo counters of the engine statistics of §4.5, as counts per family of the last commit) and the `memory:` lines.
+- **Decision.** A committed baseline (`ci/perf-baseline.toml`, class S only for now, from a developer machine: medians in ms, memory estimates, peak RSS, the threshold of 15 %, a noise floor of 0.05 ms for medians and of 16 MiB for the peak RSS only, 0 for the memory estimates and entry counts, which are deterministic (§4.4), the runner, the mode and the provenance: fixture generator version, commit, toolchain and date; a run with another generator version is not compared) instead of the median of the last 7 green nightly values: a value more than 15 % above its baseline and above the noise floor is a regression; the same test applies to the memory estimates and the peak RSS. The unit test `a_seeded_slowdown_of_twenty_percent_turns_the_gate_red_and_ten_percent_does_not` seeds the slowdown into parsed bench output (`open.session_from_records`, multiplied by 1.2 and by 1.1) and asserts that the comparison turns red at 20 % and stays green at 10 %. The seeded slowdown of §4.4, which slows `potential_partition` inside a running gate and asserts that the whole gate turns red, is not built.
+- **Report-only.** The hosted runner never gates (§4.3). `EW_PERF_ASSERT` (or `--enforce`) is the one switch that makes a regression a failing exit status; the nightly job does not set it. A baseline from another runner (`EW_PERF_RUNNER`, else `hosted:<os>-<arch>`), from the quick mode or with another generator version is reported as not comparable and never enforced. Under enforcement a baseline value that the run did not measure fails the gate (a removed family: re-bless); values new in the run never do; both are listed in the report. A bench that does not run (build failure, non-zero exit, unreadable output) is recorded in the report with the tail of its output, the others still run, and the command fails whatever `EW_PERF_ASSERT` says: an infrastructure failure, not a performance verdict. The report (job summary and artifact `perf-report`) carries the verdict, the regressions, the medians against the baseline, the memory table, the engine statistics and the CI-time trend of `ci.yml` against the 30-minute budget. The trend reads the GitHub jobs API with the automatic, read-only job token (`actions: read` on the job, passed to that one step as `github.token`; there is no configured secret), because the hosted runners share egress addresses and the unauthenticated limit of 60 calls an hour is often used up.
+- **Memory.** The peak RSS is `VmHWM` of the bench process, polled every 50 ms, on Linux; Windows is a gap until `ew-sysprobe` (FT-89) provides `PeakWorkingSetSize`. There is no counting allocator yet: the workspace forbids `unsafe` in its own code, and a vetted bench-only dependency (dhat or stats_alloc) stays an option; the memory gate rests on the benches' deterministic estimates and on the peak RSS. The phases of §4.6 (after open, warm-up, full check, PDF export) and the XL budgets are not measured.
+- **The `canvas` bench**. `perf-gate` runs the `canvas` bench of `ew-ui` once per gate run, not per class (class GP, Golden A's folio 103 and a dense A3 page), and reports its families (§4.2) without ever gating on them: a new family never fails the gate, the CPU families enter a baseline only by a bless on the BM-class runner in the release phase, and the GPU families of part 2 never enter a hosted runner's baseline. Like every bench, a crash or its tile-wait limit running out fails the job (§4.3).
+- **Not built.** The BM-class runner (an owner item, DEC-034; a release-phase item since) and the class M baseline, the rolling baseline with its MAD noise and p99 gating for latency, the budget check (`over`) of §4.4, the bisect job on red, the `perf-baseline-reset` label rule, the counting allocator, the peak RSS on Windows (FT-89), the in-gate seeded slowdown of §4.4, L and XL, and the benchmarks of §4.2 that the two benches do not cover (`open` to the first frame, `check.full`, `pdf.export`, `save.*`, `sql.*`).
 
 ---
 
@@ -1149,56 +1144,54 @@ flowchart LR
   R --> PUB["Publish (after two-maintainer approval from 1.0)"]
 ```
 
-The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration report flags the slowest jobs. As built (cycle 15): see §3.14 for the measured durations and the 50-minute job timeouts (decision log ID-381).
+The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration report flags the slowest jobs. As built: see §3.14 for the measured durations and the 50-minute job timeouts.
 
-*As built (2026-11-04, cycle 50; WP-S6.07, decision log ID-1336, ID-1337).* At 0.1.0 the release starts from a candidate tag `v<X.Y.Z>-rc.<n>`: `release.yml` builds and checks it, writes `SHA256SUMS`, attests every file and creates a **draft prerelease** with those files; the go is a dispatch of the same workflow with `candidate` and `dry` (default `true`), which verifies the draft's files again and publishes them byte for byte as `v<X.Y.Z>` on the candidate's commit, never rebuilding and never moving a tag. A blocker is fixed on `main` and the next candidate is cut. The green nightly is read, not re-run: `verify` requires a successful `ci.yml` and `deep-nightly.yml` run on the tagged commit.
+*As built.* At 0.1.0 the release starts from a candidate tag `v<X.Y.Z>-rc.<n>`: `release.yml` builds and checks it, writes `SHA256SUMS`, attests every file and creates a **draft prerelease** with those files; the go is a dispatch of the same workflow with `candidate` and `dry` (default `true`), which verifies the draft's files again and publishes them byte for byte as `v<X.Y.Z>` on the candidate's commit, never rebuilding and never moving a tag. A blocker is fixed on `main` and the next candidate is cut. The green nightly is read, not re-run: `verify` requires a successful `ci.yml` and `deep-nightly.yml` run on the tagged commit.
 
 ### 5.2 Job catalogue
 
 | Job | Content | Runner | Blocks |
 |---|---|---|---|
-| CI-PR-01 lint | `cargo fmt --check`; clippy `--workspace --all-targets -D warnings` with the §3.5 rules; `ew fmt --check` on fixtures; Fluent string-literal lint on `ew-ui` and `ew-checks`. Since cycle 20 also `cargo fmt`, `cargo check` and `cargo clippy` on the cargo-fuzz crate `fuzz/Cargo.toml` on the stable toolchain (§3.12, decision log ID-496) | Linux | Merge |
-| CI-PR-02 test-linux, test-linux-default | nextest, split by feature set from FT-353 (`test-linux`: the all-features run, with the acceptance tests and the fuzzer, and both doctest runs; `test-linux-default`: the default-features run without them; decision log ID-527; since cycle 48, ID-1217: `test-linux` runs the all-features nextest and doctests over `cargo xtask all-features-set`'s packages and the default doctests, `test-linux-default` the default-features run whole, with the acceptance tests and the fuzzer) (since cycle 19 including the shell's tests: kittest flows, the headless smoke and `elektrawatt --smoke`, §3.11); insta check; proptest short; oracle on GP; engine-statistics counts; acceptance (gate subset); SQL compile test; schema/fixture check; permissive-only sample reader (FR-COL-012, SC-11); forced-panic test; release fault injection, one kill point per step (§3.13); hostile corpus; the security tests of §11.5 (trust, SQL sandbox and statement gate, MCP binding, `HumanOnly`); UI-thread watchdog | Linux container (C compiler only, NFR-MAINT-09) | Merge |
+| CI-PR-01 lint | `cargo fmt --check`; clippy `--workspace --all-targets -D warnings` with the §3.5 rules; `ew fmt --check` on fixtures; Fluent string-literal lint on `ew-ui` and `ew-checks`. Since cycle 20 also `cargo fmt`, `cargo check` and `cargo clippy` on the cargo-fuzz crate `fuzz/Cargo.toml` on the stable toolchain (§3.12) | Linux | Merge |
+| CI-PR-02 test-linux, test-linux-default | nextest, split by feature set from FT-353 (`test-linux`: the all-features run, with the acceptance tests and the fuzzer, and both doctest runs; `test-linux-default`: the default-features run without them; decision log ID-527; since cycle 48, ID-1217: `test-linux` runs the all-features nextest and doctests over `cargo xtask all-features-set`'s packages and the default doctests, `test-linux-default` the default-features run whole, with the acceptance tests and the fuzzer) (since including the shell's tests: kittest flows, the headless smoke and `elektrawatt --smoke`, §3.11); insta check; proptest short; oracle on GP; engine-statistics counts; acceptance (gate subset); SQL compile test; schema/fixture check; permissive-only sample reader (FR-COL-012, SC-11); forced-panic test; release fault injection, one kill point per step (§3.13); hostile corpus; the security tests of §11.5 (trust, SQL sandbox and statement gate, MCP binding, `HumanOnly`); UI-thread watchdog | Linux container (C compiler only, NFR-MAINT-09) | Merge |
 | CI-PR-03 test-windows-build, test-windows-1, test-windows-2, test-windows-3 | nextest; kittest interaction; NTFS path and permission tests. From FT-330 only the all-features nextest run, from FT-353 no doctests, and the run is split: `test-windows-build` writes a `cargo nextest archive` and, since FT-387, three jobs run it: since cycle 27 parts 1 and 2 each run an explicit list of nine heavy test binaries named by `binary_id` and part 3 the complement of both (cycle 26: six binaries plus `count:1/2` and `count:2/2` of the complement; the filters built from `WINDOWS_PART1_BINARIES` and `WINDOWS_PART2_BINARIES` and checked complementary by an `xtask` test; `count:1/3` to `count:3/3` in cycle 25, two halves before; the acceptance tests and the fuzzer run once in total, in part 1; each run job sets `EW_REQUIRE_GPU_ADAPTER=1` on WARP; the chain measured at 20:24, then 29:34 in the cycle-26 delivery run; decision log ID-482, ID-527, ID-627, ID-633, ID-644) | windows-2025 | Merge |
-| CI-PR-04 (removed) | Removed by decision log ID-880: macOS is not a supported platform. The jobs `test-macos` and `test-macos-all-features` (FT-438) ran the filtered default-features nextest run, the unfiltered all-features run and both doctest runs on macos-15; all of these also run in CI-PR-02. The ID is not reused | — | — |
-| CI-PR-05 headless | `ew export pdf` and `ew render --page 103 --png` on GP with no display, no GPU, no system fonts and empty library directories (NFR-PLAT-04, NFR-REL-11); the PDF's SHA-256 equals that of the kittest GUI export of CI-PR-07 (FR-OUT-022, FR-EXT-001). *As built (cycle 18, FT-295; in part):* `ci.yml` job `headless` runs `ew export pdf golden/J-E-2416.ew` in a bare `ubuntu:24.04` container (image pinned by digest; `--network none`, a read-only root, no device; `ci/headless-export.sh` proves inside it that there is no display, GPU, font file or user-directory content) on one and four threads and compares both PDFs with `expected/pdf/sha256.txt`. The checks run as root with `DAC_READ_SEARCH` (the font search reads every directory and fails on any read error), and the export runs as the runner's user through `setpriv` with a cleared environment; the job keeps no other capability (decision log ID-457). `ew render --page 103 --png` (FT-254) and the equality with the GUI export wait for their commands and for CI-PR-07. *As built (cycle 40, WP-S1.22 part 2, OU-5; decision log ID-925):* the same job also runs `ew render --page 103 --png` on the golden project inside the container (`ci/headless-export.sh`), and the next step compares the PNG's SHA-256 with the digest of the committed `expected/png/103.png` (NFR-PLAT-04); the renderer's bytes are proven equal on a Linux host in cycle 40 (decision log ID-937) and the container digest is proven by CI at cycle 41's delivery (cycle 40 ends at a checkpoint, ID-938). The equality with the GUI export still waits for CI-PR-07 | Linux container | Merge, once in the required checks after three green runs on `main` (FT-325, owner) |
+| CI-PR-04 (removed) | Removed by decision log ID-880: macOS is not a supported platform. The jobs `test-macos` and `test-macos-all-features` ran the filtered default-features nextest run, the unfiltered all-features run and both doctest runs on macos-15; all of these also run in CI-PR-02. The ID is not reused | — | — |
+| CI-PR-05 headless | `ew export pdf` and `ew render --page 103 --png` on GP with no display, no GPU, no system fonts and empty library directories (NFR-PLAT-04, NFR-REL-11); the PDF's SHA-256 equals that of the kittest GUI export of CI-PR-07 (FR-OUT-022, FR-EXT-001). *As built:* `ci.yml` job `headless` runs `ew export pdf golden/J-E-2416.ew` in a bare `ubuntu:24.04` container (image pinned by digest; `--network none`, a read-only root, no device; `ci/headless-export.sh` proves inside it that there is no display, GPU, font file or user-directory content) on one and four threads and compares both PDFs with `expected/pdf/sha256.txt`. The checks run as root with `DAC_READ_SEARCH` (the font search reads every directory and fails on any read error), and the export runs as the runner's user through `setpriv` with a cleared environment; the job keeps no other capability. `ew render --page 103 --png` (FT-254) and the equality with the GUI export wait for their commands and for CI-PR-07. *As built (OU-5):* the same job also runs `ew render --page 103 --png` on the golden project inside the container (`ci/headless-export.sh`), and the next step compares the PNG's SHA-256 with the digest of the committed `expected/png/103.png` (NFR-PLAT-04); the renderer's bytes are proven equal on a Linux host in cycle 40 and the container digest is proven by CI at cycle 41's delivery (ends at a checkpoint). The equality with the GUI export still waits for CI-PR-07 | Linux container | Merge, once in the required checks after three green runs on `main` |
 | CI-PR-06 output | Golden PNGs; PDF structure; veraPDF when `ew-scene`, `ew-export`, fonts or forms change; GPU smoke per backend where available (NFR-PLAT-02) | Linux, Windows | Merge |
-| CI-PR-07 ui-a11y | kittest flows and image snapshots; name walker; CVD renders; contrast lint; pseudo-locale; keymap reachability; 300 %. *As built (2026-11-05, cycle 51; WP-S2.11 D4, ID-1354, ID-1375):* the Linux pixel gate runs inside `test-linux` (and the other Linux job), with `mesa-vulkan-drivers` at the version in `ci/mesa-lavapipe.txt` installed by `ci/mesa-lavapipe.sh` from Ubuntu's snapshot archive, an apt preferences file pinning the snapshot origin at 1001 so lavapipe's LLVM comes from it too; the Linux overrides are blessed in WSL on the merged tip at each merge point | Linux (lavapipe) | Merge |
-| CI-PR-08 fuzz-smoke | 60 s per changed parser target; 60 s command fuzzer. *As built (cycle 21, FT-335):* `ci.yml` job `fuzz-smoke` runs 60 s of each cargo-fuzz target of `fuzz/` that the change can reach (`-max_total_time=60`, the committed corpus as seeds, libFuzzer's `-timeout=120` and `-rss_limit_mb=4096` per input) on the nightly of `fuzz/rust-toolchain.toml` (the job only; `RUSTUP_TOOLCHAIN`, equal to `NIGHTLY_TOOLCHAIN`, which a test of xtask keeps equal to the file's date), AddressSanitizer on. The path filter `ci/fuzz-smoke-targets.py` maps the changed paths (the pull request's against its base; a push against `before`; a dispatch and a push without a usable base run every target) to the targets whose path-dependency closure holds the changed crate (`ci/fuzz-smoke-targets.toml`: `jsonl_loader` six crates, `migration_chain` eight, `command_sequence` forty through the `ew-api` facade; a test of xtask recomputes the closures from the `Cargo.toml` files; a crate's tests, benches, examples and Markdown are not built into a target, but the command generator `crates/ew-testkit/tests/command_fuzz` is), and a change inside `fuzz/` to the target it names or, for the harness, the manifest and the toolchain file, to all three (the README, the deny policy and tool output run nothing). A change that reaches no target runs the filter and nothing else, so the job is always present for a required check. **Red** for a finding (a libFuzzer `crash-`, `oom-`, `leak-` or `timeout-` input: one input over 120 s is a finding), a failed build, and a run that ends without a verdict, the run's own bound included (`timeout 8m`, exit code 124: libFuzzer's `-timeout=120` bounds one input, so a target still running after 8 minutes is a hang the oracle missed or a broken setup). The crash inputs and logs are uploaded with `if: always()` as the artifact `fuzz-smoke` and the first kilobyte of each input is in the job summary; a finding is committed under `fuzz/regressions/<target>/` and reported, not fixed in the change that finds it (§3.12). Until the first pull request that reaches a target has run it, the job is exercised by `workflow_dispatch` only; the command fuzzer's seeded `fuzz_smoke` of every test job (§3.6, FT-306) stays as the cheap run of the command fuzzer | Linux | Merge |
+| CI-PR-07 ui-a11y | kittest flows and image snapshots; name walker; CVD renders; contrast lint; pseudo-locale; keymap reachability; 300 %. *As built:* the Linux pixel gate runs inside `test-linux` (and the other Linux job), with `mesa-vulkan-drivers` at the version in `ci/mesa-lavapipe.txt` installed by `ci/mesa-lavapipe.sh` from Ubuntu's snapshot archive, an apt preferences file pinning the snapshot origin at 1001 so lavapipe's LLVM comes from it too; the Linux overrides are blessed in WSL on the merged tip at each merge point | Linux (lavapipe) | Merge |
+| CI-PR-08 fuzz-smoke | 60 s per changed parser target; 60 s command fuzzer. *As built:* `ci.yml` job `fuzz-smoke` runs 60 s of each cargo-fuzz target of `fuzz/` that the change can reach (`-max_total_time=60`, the committed corpus as seeds, libFuzzer's `-timeout=120` and `-rss_limit_mb=4096` per input) on the nightly of `fuzz/rust-toolchain.toml` (the job only; `RUSTUP_TOOLCHAIN`, equal to `NIGHTLY_TOOLCHAIN`, which a test of xtask keeps equal to the file's date), AddressSanitizer on. The path filter `ci/fuzz-smoke-targets.py` maps the changed paths (the pull request's against its base; a push against `before`; a dispatch and a push without a usable base run every target) to the targets whose path-dependency closure holds the changed crate (`ci/fuzz-smoke-targets.toml`: `jsonl_loader` six crates, `migration_chain` eight, `command_sequence` forty through the `ew-api` facade; a test of xtask recomputes the closures from the `Cargo.toml` files; a crate's tests, benches, examples and Markdown are not built into a target, but the command generator `crates/ew-testkit/tests/command_fuzz` is), and a change inside `fuzz/` to the target it names or, for the harness, the manifest and the toolchain file, to all three (the README, the deny policy and tool output run nothing). A change that reaches no target runs the filter and nothing else, so the job is always present for a required check. **Red** for a finding (a libFuzzer `crash-`, `oom-`, `leak-` or `timeout-` input: one input over 120 s is a finding), a failed build, and a run that ends without a verdict, the run's own bound included (`timeout 8m`, exit code 124: libFuzzer's `-timeout=120` bounds one input, so a target still running after 8 minutes is a hang the oracle missed or a broken setup). The crash inputs and logs are uploaded with `if: always()` as the artifact `fuzz-smoke` and the first kilobyte of each input is in the job summary; a finding is committed under `fuzz/regressions/<target>/` and reported, not fixed in the change that finds it (§3.12). Until the first pull request that reaches a target has run it, the job is exercised by `workflow_dispatch` only; the command fuzzer's seeded `fuzz_smoke` of every test job (§3.6) stays as the cheap run of the command fuzzer | Linux | Merge |
 | CI-PR-09 supply-chain | cargo-deny; cargo-audit; cargo-vet; build-script allowlist; licence-boundary check over every permissive crate of ARCH §3 (§10); dependency-rule check; `unsafe` allowlist; feature bans over the resolved graph (rhai `unchecked` anywhere, 17 §5.2; serde_json `preserve_order` anywhere, because the canonical writer needs sorted maps, 05 §3.1; egui `inspection`, `egui_mcp`, `ew-testids`, `ew-commands/testkit`, `ew-viewmodel/testkit` and `ew/test-confirm` in any non-test target; the uniform test features requested by every test build that reaches their crate, §2.2); MSRV build of permissive crates (NFR-SEC-10, NFR-MAINT-03) | Linux | Merge |
 | CI-PR-10 legal-docs | `reuse lint` (NFR-LIC-01, NFR-LIC-02; 19 LR-01); licence-map check against `ci/licence-map.toml` (19 LR-02), including the collective copyright notice (NFR-LIC-10); no committed third-party fixture (19 LR-11); DCO (NFR-LIC-03); governance-file presence (NFR-DOC-08); RFC reference on PRs labelled `format-major`, `api-break` or `licence` (NFR-DOC-09); anonymisation guard (NFR-PRIV-09; 20 §3.5, 19 LR-12); mdBook and rustdoc build with link check (NFR-MAINT-08); F1 anchors (NFR-DOC-01); rule pages (NFR-DOC-02); generated references unchanged (NFR-DOC-06) | Linux | Merge |
-| CI-PR-10 docs-book | The user guide (§5.5): `cargo xtask docs-gen --check`; mdBook 0.5.4 from its release archive, pinned by version and SHA-256; `mdbook build docs/book` without network (`unshare --net`); `ci/check-book-links.py` over the built pages; the built book as an artifact (NFR-DOC-01, NFR-DOC-06) | Linux | Merge, once in the required checks (FT-284) |
+| CI-PR-10 docs-book | The user guide (§5.5): `cargo xtask docs-gen --check`; mdBook 0.5.4 from its release archive, pinned by version and SHA-256; `mdbook build docs/book` without network (`unshare --net`); `ci/check-book-links.py` over the built pages; the built book as an artifact (NFR-DOC-01, NFR-DOC-06) | Linux | Merge, once in the required checks |
 | CI-PR-11 storage | Samba share save/reopen and a case-sensitive APFS image (NFR-PLAT-05); ENOSPC/EACCES injection; read-only installation directory (NFR-PLAT-07); longest internal path ≤ 120; project path `Projecten Ü ñ 测试` (NFR-I18N-04) | Linux, Windows | Merge |
 | CI-PR-12 step-worker | Path-filtered: worker build with cached OCCT; IPC fuzz smoke; worker-kill test | Linux | Merge |
-| CI-PR-13 coverage | cargo-llvm-cov 0.9.1 on core crates, ≥ 80 % (NFR-MAINT-06). *As built (cycle 18, FT-296; in part):* the weekly `coverage.yml` runs the workspace tests with instrumentation and reports the line coverage of `ew-model`, `ew-commands`, `ew-memo`, `ew-derive`, `ew-format` and `ew-store` (`ci/coverage-summary.py`); report-only, red only when the tool fails, not a required check until the owner sets the dated plan (G-M1-15) | Linux | Merge (core crates) |
-| CI-PR-14 api-guard | The API compatibility guard of NFR-MAINT-10, implementing the CI guards of 17 §11: command-catalogue snapshot and rename test (FR-EXT-015); query output-schema snapshot; CLI `--help`, exit-code and result-schema snapshots; `api_v1` column snapshot; MCP tool-list snapshot; WIT diff against the last release (1.x); a semver check on the public API of the permissive crates (tool **verify**, e.g. cargo-semver-checks) | Linux | Merge (a reviewed snapshot change is allowed only with the label `api-break` and a release-notes entry; the label is `api-break` as in NFR-MAINT-10 and 17 §11, decision log ID-931) |
+| CI-PR-13 coverage | cargo-llvm-cov 0.9.1 on core crates, ≥ 80 % (NFR-MAINT-06). *As built:* the weekly `coverage.yml` runs the workspace tests with instrumentation and reports the line coverage of `ew-model`, `ew-commands`, `ew-memo`, `ew-derive`, `ew-format` and `ew-store` (`ci/coverage-summary.py`); report-only, red only when the tool fails, not a required check until the owner sets the dated plan (G-M1-15) | Linux | Merge (core crates) |
+| CI-PR-14 api-guard | The API compatibility guard of NFR-MAINT-10, implementing the CI guards of 17 §11: command-catalogue snapshot and rename test (FR-EXT-015); query output-schema snapshot; CLI `--help`, exit-code and result-schema snapshots; `api_v1` column snapshot; MCP tool-list snapshot; WIT diff against the last release (1.x); a semver check on the public API of the permissive crates (tool **verify**, e.g. cargo-semver-checks) | Linux | Merge (a reviewed snapshot change is allowed only with the label `api-break` and a release-notes entry; the label is `api-break` as in NFR-MAINT-10 and 17 §11) |
 | CI-PR-15 docs-diagrams | Path-filtered on Markdown under `docs/`, `book/` and the root: renders every Mermaid block with a pinned mermaid-cli (container image pinned by digest, never distributed) and fails on any parse or render error, because GitHub shows a broken diagram as an error box without failing anything | Linux container | Merge |
 | CI-N-01 perf | §4 gate, all classes; bisect on red | Dedicated BM runner | Release |
-| CI-N-02 deep | Full oracle; proptest 20,000 cases; command fuzzer 1 h with ASan. *As built (cycle 20, FT-297, FT-304):* `.github/workflows/deep-nightly.yml` (06:07 UTC and on dispatch; four parallel jobs, the workflow under two hours): `full-oracle` (the memo oracle over Golden A with the oracle on every read, `memo_oracle`'s ignored twin, and over Golden B, `golden_b`, in the release profile with debug assertions; since the test audit g7 also every ignored `nightly_*` test of `ew-api`, `ew-testkit` and `elektrawatt`, the exhaustive twin of a pull-request test that runs a fixed sample of reads or pages), `proptest` (every test of `ew-model`, `ew-commands`, `ew-store`, `ew-format`, `ew-memo`, `ew-derive` and `ew-schema` with `PROPTEST_CASES=20000`), the three fuzz jobs of CI-N-03, and `asan-command-fuzz` (`fuzz_long` built with `-Zsanitizer=address` on the nightly pinned by date, 55-minute budget; §3.6). Red only for a finding, a failed build or a hang. The earlier `fuzz.yml` (`fuzz_long`, 12 seeds × 200 steps, 75-minute budget, stable toolchain, no ASan; §3.6, ID-435) stays as the plain run. *The proptest budget (decision log ID-497):* `PROPTEST_CASES` reaches the two hand-built runners of `ew-derive` through `contextualize_config`; the long pole is the partition oracle, about 33 minutes at 20,000 cases in the release profile; the nextest run is bounded at 95 minutes in a 110-minute job, and a run over the bound splits the job by crate rather than lowering the case count. A fifth job, `fuzz-deny`, runs `cargo deny check licenses advisories` over the fuzz crate's graph, report-only (§5.4). What the first scheduled run must show: the proptest duration, the ASan job's cold build against its 115-minute limit, LeakSanitizer at `fuzz_long`'s exit and cargo-fuzz's build on the pin (ID-494) | Linux | Release |
-| CI-N-03 fuzz | ≥ 30 min per parser target; crash triage issues. *As built (cycle 20, FT-297, FT-272):* the crate `fuzz/` (§3.12) with the targets `jsonl_loader`, `migration_chain` and `command_sequence` (the command-sequence cargo-fuzz target of §3.6), 30 minutes each in the three `fuzz` jobs of `deep-nightly.yml` (AddressSanitizer, `-timeout=120`, `-rss_limit_mb=4096`; the crash inputs and the grown corpus are uploaded as artifacts, the status file is written first). The parser targets of §3.12 beyond these three, the counting allocator and the automatic triage issues are not built | Linux (ClusterFuzzLite-style batch) | Release |
+| CI-N-02 deep | Full oracle; proptest 20,000 cases; command fuzzer 1 h with ASan. *As built:* `.github/workflows/deep-nightly.yml` (06:07 UTC and on dispatch; four parallel jobs, the workflow under two hours): `full-oracle` (the memo oracle over Golden A with the oracle on every read, `memo_oracle`'s ignored twin, and over Golden B, `golden_b`, in the release profile with debug assertions; since the test audit g7 also every ignored `nightly_*` test of `ew-api`, `ew-testkit` and `elektrawatt`, the exhaustive twin of a pull-request test that runs a fixed sample of reads or pages), `proptest` (every test of `ew-model`, `ew-commands`, `ew-store`, `ew-format`, `ew-memo`, `ew-derive` and `ew-schema` with `PROPTEST_CASES=20000`), the three fuzz jobs of CI-N-03, and `asan-command-fuzz` (`fuzz_long` built with `-Zsanitizer=address` on the nightly pinned by date, 55-minute budget; §3.6). Red only for a finding, a failed build or a hang. The earlier `fuzz.yml` (`fuzz_long`, 12 seeds × 200 steps, 75-minute budget, stable toolchain, no ASan; §3.6) stays as the plain run. *The proptest budget:* `PROPTEST_CASES` reaches the two hand-built runners of `ew-derive` through `contextualize_config`; the long pole is the partition oracle, about 33 minutes at 20,000 cases in the release profile; the nextest run is bounded at 95 minutes in a 110-minute job, and a run over the bound splits the job by crate rather than lowering the case count. A fifth job, `fuzz-deny`, runs `cargo deny check licenses advisories` over the fuzz crate's graph, report-only (§5.4). What the first scheduled run must show: the proptest duration, the ASan job's cold build against its 115-minute limit, LeakSanitizer at `fuzz_long`'s exit and cargo-fuzz's build on the pin | Linux | Release |
+| CI-N-03 fuzz | ≥ 30 min per parser target; crash triage issues. *As built:* the crate `fuzz/` (§3.12) with the targets `jsonl_loader`, `migration_chain` and `command_sequence` (the command-sequence cargo-fuzz target of §3.6), 30 minutes each in the three `fuzz` jobs of `deep-nightly.yml` (AddressSanitizer, `-timeout=120`, `-rss_limit_mb=4096`; the crash inputs and the grown corpus are uploaded as artifacts, the status file is written first). The parser targets of §3.12 beyond these three, the counting allocator and the automatic triage issues are not built | Linux (ClusterFuzzLite-style batch) | Release |
 | CI-N-04 digests | GP outputs from all three OSs compared (AC-14, FR-OUT-019, NFR-REL-07) | All | Release |
 | CI-N-05 gpu-less | Windows WARP flows and fps sample; lavapipe 3D smoke (from M4, 12 OQ 9) | Windows, Linux | Release |
-| CI-N-06 network | Network sandbox (§12.2) and listening-socket scan. *As built (cycle 50, WP-S6.05; decision log ID-1338, ID-1339):* the job `network-sandbox` of `deep-nightly.yml` builds the release binaries and the kittest binary, runs each flow of `ci/sandbox/` in a loopback-only network namespace (`unshare --net` through `sudo`, the flows as the runner's user with `sudo -H` and `HOME` and `XDG_*` in the work folder) under strace, judges the traces with `ci/sandbox-check.py` and runs its canary over the release binaries; `ci/sandbox/run.sh` fails unless nextest's "N passed" equals the number of named tests. The listening-socket scan of the installed tree is WP-S6.07's `ci/no-listen.sh` in `package.yml` (CI-R-09). The job has not run yet | Linux | Release |
+| CI-N-06 network | Network sandbox (§12.2) and listening-socket scan. *As built:* the job `network-sandbox` of `deep-nightly.yml` builds the release binaries and the kittest binary, runs each flow of `ci/sandbox/` in a loopback-only network namespace (`unshare --net` through `sudo`, the flows as the runner's user with `sudo -H` and `HOME` and `XDG_*` in the work folder) under strace, judges the traces with `ci/sandbox-check.py` and runs its canary over the release binaries; `ci/sandbox/run.sh` fails unless nextest's "N passed" equals the number of named tests. The listening-socket scan of the installed tree is WP-S6.07's `ci/no-listen.sh` in `package.yml` (CI-R-09). The job has not run yet | Linux | Release |
 | CI-N-07 reliability | Fault injection on ext4, NTFS, APFS; kill-and-replay loop | All | Release |
 | CI-N-08 locale | Locale and time-zone matrix (NFR-I18N-03) | Linux | Release |
-| CI-N-09 pdf | veraPDF on every GP export variant; PDF/UA-1 at 1.0. *As built (cycle 18, FT-294; in part):* the job `verapdf` of `ci.yml` (on every pull request and push, not nightly) validates three exports of the golden PDF (all pages, dated by `SOURCE_DATE_EPOCH`, a page selection) against PDF/A-2b with veraPDF 1.30.3 (the `verapdf/cli` image pinned by digest, no network); `ci/verapdf-check.py` is the verdict over the XML report; AC-13's veraPDF entry of the acceptance runner reads that report through `EW_VERAPDF_REPORT` in the gate path only (the committed headless report keeps the entry `not_applicable`); the full export must equal the committed digest; PDF/UA-1 is not built (decision log ID-456) | Linux | Release; per push it blocks merge once in the required checks after three green runs on `main` (FT-325, owner) |
+| CI-N-09 pdf | veraPDF on every GP export variant; PDF/UA-1 at 1.0. *As built:* the job `verapdf` of `ci.yml` (on every pull request and push, not nightly) validates three exports of the golden PDF (all pages, dated by `SOURCE_DATE_EPOCH`, a page selection) against PDF/A-2b with veraPDF 1.30.3 (the `verapdf/cli` image pinned by digest, no network); `ci/verapdf-check.py` is the verdict over the XML report; AC-13's veraPDF entry of the acceptance runner reads that report through `EW_VERAPDF_REPORT` in the gate path only (the committed headless report keeps the entry `not_applicable`); the full export must equal the committed digest; PDF/UA-1 is not built | Linux | Release; per push it blocks merge once in the required checks after three green runs on `main` |
 | CI-N-10 private | Golden C, pilot QET projects, migration verifier; public log shows pass/fail and anonymised diffs only | Private runner | Release |
 | CI-N-11 corpora | QET corpus (24 examples at a pinned commit), DXF and EDZ corpora (14 §12) | Linux | Release |
-| CI-N-12 cli-artefact | The nightly `ew` CLI artefact. *As built (cycle 19, FT-299):* `.github/workflows/cli-artefact.yml` builds `ew` in the release profile on ubuntu-24.04 and windows-2025 (the macos-15 entry was removed by ID-880) and runs `ew --version` and `ew --help` as a smoke test and uploads `ew-<os>-<arch>-unsigned-dev-<short sha>` with the licence texts (GPL-3.0-or-later, CC-BY-SA-4.0, OFL-1.1), `NOTICE`, `THIRD-PARTY-NOTICES.txt` from cargo-about 0.9.2 and a README that says "unsigned development build, not a release" (90-day retention; no signing, no release, no secret; gate criterion G-M1-22); publishing and signing stay release items (WP-S6.07). *As built (cycle 48, I49; WP-S6.06 part 1, decision log ID-1251, ID-1265):* `.github/workflows/package.yml` replaces `cli-artefact.yml`, which is removed: its nightly run (04:37 UTC, and on dispatch) builds both programs in the release profile, stages the installed tree with `packaging/stage.py` and uploads only the CLI archive, still named `ew-<os>-<arch>-unsigned-dev-<short sha>` for 90 days (G-M1-22), after `ew --version` and `ew export pdf` of the archive's sample against Golden A's PDF digests | Both hosted (Linux, Windows) | — |
+| CI-N-12 cli-artefact | The nightly `ew` CLI artefact. *As built:* `.github/workflows/cli-artefact.yml` builds `ew` in the release profile on ubuntu-24.04 and windows-2025 (the macos-15 entry was removed by ID-880) and runs `ew --version` and `ew --help` as a smoke test and uploads `ew-<os>-<arch>-unsigned-dev-<short sha>` with the licence texts (GPL-3.0-or-later, CC-BY-SA-4.0, OFL-1.1), `NOTICE`, `THIRD-PARTY-NOTICES.txt` from cargo-about 0.9.2 and a README that says "unsigned development build, not a release" (90-day retention; no signing, no release, no secret; gate criterion G-M1-22); publishing and signing stay release items (WP-S6.07). *As built (I49):* `.github/workflows/package.yml` replaces `cli-artefact.yml`, which is removed: its nightly run (04:37 UTC, and on dispatch) builds both programs in the release profile, stages the installed tree with `packaging/stage.py` and uploads only the CLI archive, still named `ew-<os>-<arch>-unsigned-dev-<short sha>` for 90 days (G-M1-22), after `ew --version` and `ew export pdf` of the archive's sample against Golden A's PDF digests | Both hosted (Linux, Windows) | — |
 | CI-W-01 soak | 8 h on M (1.0) | Dedicated runner, idle window | Release |
 | CI-W-02 fuzz-maint | Corpus minimisation, coverage of fuzz targets | Linux | — |
 | CI-W-03 dependency age | Lag against the limits of NFR-MAINT-04; advisory waivers expiring within 14 days | Linux | — (issues) |
 | CI-W-04 timings | Informational Windows timings | Hosted | — |
-| CI-R-03 (pre-release assertion) release-check | *As built before the release pipeline (cycle 21, FT-333; WP-S6.07 takes it over):* the job `release-check` of `.github/workflows/cli-artefact.yml` (nightly with CI-N-12, and on dispatch) builds `elektrawatt` with `cargo build -p elektrawatt --release --locked` with `PKG_CONFIG=false` and `--remap-path-prefix` for the cargo home, the rustup home and the checkout (Cargo's `trim-paths` is not stable on the pinned toolchain); `ci/release-check.sh env` first fails if `PKG_CONFIG` is not `false`, if any `PKG_CONFIG_*`, `HOST_PKG_CONFIG*` or `TARGET_PKG_CONFIG*` variable reaches the build, if `ICU4X_DATA_DIR` (§3.5) or `CARGO_ENCODED_RUSTFLAGS` is set, or if a cargo configuration file of the checkout or the cargo home has an `[env]` table; `ci/release-check.sh scan` then fails on any build-host path in the binary (`strings`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, the checkout, cargo and rustup homes, the runner's temp directory; a legitimate run-time search path passes only through the script's reviewed exception list, empty today), on a `NEEDED` entry for libwayland*, libxkbcommon*, libX11*, libxcb*, libEGL*, libGL* or libvulkan* (`readelf -d`; these are `dlopen`ed, and a hard link breaks NFR-PLAT-03's fallback chain) and on any `Some` library directory in x11-dl's generated `config.rs` (§5.4). It uploads its Markdown report (30 days), never the binary (ID-476). Report-only: it gates nothing, red on any hit. *As built (cycle 48, I49; decision log ID-1251, ID-1265):* the check moved with `cli-artefact.yml`'s removal into the `linux` job of `.github/workflows/package.yml`, which runs `ci/release-check.sh` on both binaries inside the digest-pinned `ubuntu:22.04` build container (`ci/linux-container.sh`) and uploads the reports only. *As built (cycle 50, WP-S6.07; decision log ID-1336):* folded into the release builds: `ci/release-check.sh env` runs before `cargo auditable build` in both OS jobs of `package.yml` (on Windows with `PKG_CONFIG=false` and setup-python's `PKG_CONFIG_PATH` unset) and `scan` after the Linux build, the reports under `target/`, so `release.yml`'s `package` job runs CI-R-03 (§7.4) | ubuntu-24.04 | — |
-| CI-R-01 … CI-R-11 | Release pipeline (§7.4); at 0.1.0 without the tag signature of CI-R-01, the signing of CI-R-06 and the approval of CI-R-11 (ID-1187) | All | Publishing |
+| CI-R-03 (pre-release assertion) release-check | *As built before the release pipeline (takes it over):* the job `release-check` of `.github/workflows/cli-artefact.yml` (nightly with CI-N-12, and on dispatch) builds `elektrawatt` with `cargo build -p elektrawatt --release --locked` with `PKG_CONFIG=false` and `--remap-path-prefix` for the cargo home, the rustup home and the checkout (Cargo's `trim-paths` is not stable on the pinned toolchain); `ci/release-check.sh env` first fails if `PKG_CONFIG` is not `false`, if any `PKG_CONFIG_*`, `HOST_PKG_CONFIG*` or `TARGET_PKG_CONFIG*` variable reaches the build, if `ICU4X_DATA_DIR` (§3.5) or `CARGO_ENCODED_RUSTFLAGS` is set, or if a cargo configuration file of the checkout or the cargo home has an `[env]` table; `ci/release-check.sh scan` then fails on any build-host path in the binary (`strings`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, the checkout, cargo and rustup homes, the runner's temp directory; a legitimate run-time search path passes only through the script's reviewed exception list, empty today), on a `NEEDED` entry for libwayland*, libxkbcommon*, libX11*, libxcb*, libEGL*, libGL* or libvulkan* (`readelf -d`; these are `dlopen`ed, and a hard link breaks NFR-PLAT-03's fallback chain) and on any `Some` library directory in x11-dl's generated `config.rs` (§5.4). It uploads its Markdown report (30 days), never the binary. Report-only: it gates nothing, red on any hit. *As built (I49):* the check moved with `cli-artefact.yml`'s removal into the `linux` job of `.github/workflows/package.yml`, which runs `ci/release-check.sh` on both binaries inside the digest-pinned `ubuntu:22.04` build container (`ci/linux-container.sh`) and uploads the reports only. *As built:* folded into the release builds: `ci/release-check.sh env` runs before `cargo auditable build` in both OS jobs of `package.yml` (on Windows with `PKG_CONFIG=false` and setup-python's `PKG_CONFIG_PATH` unset) and `scan` after the Linux build, the reports under `target/`, so `release.yml`'s `package` job runs CI-R-03 (§7.4) | ubuntu-24.04 | — |
+| CI-R-01 … CI-R-11 | Release pipeline (§7.4); at 0.1.0 without the tag signature of CI-R-01, the signing of CI-R-06 and the approval of CI-R-11 | All | Publishing |
 
-*As built (cycle 30, FT-479 and FT-438; decision log ID-706).* FT-479 (cycle 30): `test-linux-default` took 28:40 and 26:35 in two runs because the lavapipe install step stalled (7:20 and 8:55, against 10 s for the same step in `test-linux`); both Linux jobs now run `apt-get` with 3 retries and 20-second timeouts. The Windows chain varied from 27:44 to 40:37 with the 2.1 GB archive's download (1:33 to 22:10 per run job), not with test time; `ew-store::fault_injection` moved from part 1 to part 2 and parts 1 and 2 skip `cargo fetch`, projected (not measured) 24:32 and 26:54 for the two latest runs. The download and the cache save are the next levers; FT-479 stays open until two delivery runs measure the chain. FT-438 is closed: run 40611786232 measured `test-macos` at 20:16 and `test-macos-all-features` at 24:26 (40607950237: 22:50 and 18:22, both red from a failing test), both halves under 25 minutes.
+*As built.* FT-479: `test-linux-default` took 28:40 and 26:35 in two runs because the lavapipe install step stalled (7:20 and 8:55, against 10 s for the same step in `test-linux`); both Linux jobs now run `apt-get` with 3 retries and 20-second timeouts. The Windows chain varied from 27:44 to 40:37 with the 2.1 GB archive's download (1:33 to 22:10 per run job), not with test time; `ew-store::fault_injection` moved from part 1 to part 2 and parts 1 and 2 skip `cargo fetch`, projected (not measured) 24:32 and 26:54 for the two latest runs. The download and the cache save are the next levers; FT-479 stays open until two delivery runs measure the chain. FT-438 is closed: run 40611786232 measured `test-macos` at 20:16 and `test-macos-all-features` at 24:26 (40607950237: 22:50 and 18:22, both red from a failing test), both halves under 25 minutes.
 
-*As built (cycle 22; decision log ID-542, ID-548, ID-549, ID-551).*
+*As built.*
 - **FT-353** (CI-PR-02, CI-PR-03) is built and CI-proven with the cycle-22 delivery run: the Windows archive split
-  (`test-windows-build` with `cargo nextest archive --all-features`, then `test-windows-1` and `test-windows-2` with
-  `--partition count:1/2` and `count:2/2`, replaced in cycle 27 by two explicit binary lists and their complement; the archive is passed with `actions/download-artifact` v7.0.0, pinned by
-  SHA) and the Linux split by feature set (`test-linux`, `test-linux-default`). The run proves what a review cannot:
+  (`test-windows-build` with `cargo nextest archive --all-features`, then `test-windows-1` and `test-windows-2` with `--partition count:1/2` and `count:2/2`, replaced in by two explicit binary lists and their complement; the archive is passed with `actions/download-artifact` v7.0.0, pinned by SHA) and the Linux split by feature set (`test-linux`, `test-linux-default`). The run proves what a review cannot:
   the archive's remap on Windows paths, the junit report after the remap, the partition balance and the real times.
   ID-482's split condition is closed.
 - **A graphics adapter in the test jobs** (WP-S2.02 part 2). The two Linux test jobs install Mesa's lavapipe
@@ -1208,22 +1201,19 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
   purpose (CI-PR-05), keeps the skip, as does a developer's host without the variable.
 - **Required checks.** FT-353 renamed and split the test jobs: `test-linux`, `test-linux-default`,
   `test-windows-build`, `test-windows-1`, `test-windows-2` and `test-macos` replace `test-linux`, `test-windows` and
-  `test-macos` of the older list. The owner's required-check list (FT-284, FT-325, set after three green runs on
-  `main`) must use the new names; a check still required under an old name never reports and blocks every merge. *Cycle 25 (FT-387,
-  ID-627):* `test-windows-3` joins the list (`ci/README.md`), which the owner sets. *Cycle 29 (FT-438, ID-672):* `test-macos-all-features` joins the list, which the owner sets. *Cycle 38 (ID-880):* `test-macos` and `test-macos-all-features` are removed and leave the list; the owner removes them from the repository settings, or every merge waits on them.
-- **The golden-table change list** (FT-300; `docs/plan/tools/golden_changes.py`, the list
-  `docs/plan/gate-records/golden-change-list.md`). Its `--check` runs at every delivery gate and not in `docs.yml`: the
+  `test-macos` of the older list. The owner's required-check list (set after three green runs on `main`) must use the new names; a check still required under an old name never reports and blocks every merge. *Cycle 25:* `test-windows-3` joins the list (`ci/README.md`), which the owner sets. *Cycle 29:* `test-macos-all-features` joins the list, which the owner sets. *Cycle 38:* `test-macos` and `test-macos-all-features` are removed and leave the list; the owner removes them from the repository settings, or every merge waits on them.
+- **The golden-table change list** (`docs/plan/tools/golden_changes.py`, the list `docs/plan/gate-records/golden-change-list.md`). Its `--check` runs at every delivery gate and not in `docs.yml`: the
   list embeds commit hashes and a shallow checkout lacks the history. The decision log is read at HEAD on purpose, so
   a later ID for a listed commit makes `--check` stale until `--write`.
 
-*As built (cycle 23; decision log ID-580, ID-581, ID-582).* The first runs of the FT-353 split found two defects in
-`ci.yml`, both fixed on `main` as hotfixes (§3.16, ID-382) and both CI-only:
-- **Hotfix 1, 7c295c4 (ID-580).** The run jobs downloaded `nextest-archive.tar.zst` into the workspace root, where the
+*As built.* The first runs of the FT-353 split found two defects in
+`ci.yml`, both fixed on `main` as hotfixes (§3.16) and both CI-only:
+- **Hotfix 1, 7c295c4.** The run jobs downloaded `nextest-archive.tar.zst` into the workspace root, where the
   xtask test `licence::tests::real_repository_passes` (the licence-map walk of the working tree) flagged it as an
   unmapped path, and `test-windows-1` went red (run 39846775852). The archive now lives in the runner's temporary
   directory: the build job writes it there, the upload takes it from there, and the run jobs download it to
   `<temp>/nextest-archive` and point `--archive-file` at that.
-- **Hotfix 2, 8b19a12 (ID-581).** `test-windows-build` then failed at `cargo nextest archive` with exit code 103
+- **Hotfix 2, 8b19a12.** `test-windows-build` then failed at `cargo nextest archive` with exit code 103
   (run 39853048475): every `run:` step of `ci.yml` is bash, and the expression `${{ runner.temp }}` expands to a path
   with backslashes, which bash treats as escapes. The three bash steps use the environment variable `$RUNNER_TEMP`
   (its value keeps the backslashes, because the shell reads a variable, not source text); the inputs of an action
@@ -1235,16 +1225,13 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
   paths.** A path that reaches a shell comes from the `RUNNER_*` or `GITHUB_*` environment variables (`RUNNER_TEMP`,
   `GITHUB_WORKSPACE`, `GITHUB_STEP_SUMMARY`), quoted; expressions are for action inputs and for values that are not
   paths (an event field, a matrix key). The first lesson is a candidate for the job-level check of `check-workflows`.
-- **The split is CI-proven (ID-582).** CI run 39857566843 for 8b19a12 was green in every job: `test-windows-build`
+- **The split is CI-proven.** CI run 39857566843 for 8b19a12 was green in every job: `test-windows-build`
   21:53 (archive and upload), `test-windows-1` 7:51, `test-windows-2` 10:58, `test-linux` 28:53,
   `test-linux-default` 23:11, `test-macos` 24:25, `lint` 3:04, `supply-chain` 2:11, `headless` 1:19, `verapdf` 1:36 and
   `fuzz-smoke` 0:09 (no changed targets, so the filter ran and nothing else); the docs run 39857566882 was green. Every
   job is under 30 minutes, but NFR-MAINT-05 counts wall time, so the critical path is the Windows chain, build 21:53
-  plus the longer partition 10:58 = 32:51, 2:51 over the budget, with `test-linux` at 28:53 next (lead ruling, ID-582,
-  §3.14). ID-482's split condition is closed; FT-387 takes the next levers (closed in cycle 26 at 20:24, ID-633; the build job's step times
-  first, then the cheapest cut they show; dropping `test-linux`'s default-features doctest step; a second split only
-  if needed). The earlier runs gave `test-linux` 31:26 and 27:40, `test-linux-default` 16:40 and
-  19:50 and `test-macos` 26:52 and 26:34. These are CI job times, not product performance measurements (ID-512).
+  plus the longer partition 10:58 = 32:51, 2:51 over the budget, with `test-linux` at 28:53 next (lead ruling, §3.14). ID-482's split condition is closed; FT-387 takes the next levers (closed in at 20:24, the build job's step times first, then the cheapest cut they show; dropping `test-linux`'s default-features doctest step; a second split only if needed). The earlier runs gave `test-linux` 31:26 and 27:40, `test-linux-default` 16:40 and
+  19:50 and `test-macos` 26:52 and 26:34. These are CI job times, not product performance measurements.
 - **First Linux proof of B2.** The Linux test jobs set `EW_REQUIRE_GPU_ADAPTER=1`, under which a missing adapter fails
   the GPU tests instead of skipping them (§4.2), and `test-linux` and `test-linux-default` were green in this run and
   in the two before it; the GPU parity tests therefore ran on Mesa's lavapipe. The Windows partitions (WARP) and
@@ -1254,8 +1241,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 ### 5.3 Runners and GPU-less coverage
 
 - **Hosted runners.** windows-2025 and ubuntu-24.04 (RE §10.3; confirmed valid in
-  [gaps-and-corrections](../research/gaps-and-corrections.md) §3.3); macos-15 was dropped with macOS (decision log
-  ID-880). Best-effort artefacts build on the hosted `windows-11-arm` image and an Ubuntu `-arm` image, which the
+  [gaps-and-corrections](../research/gaps-and-corrections.md) §3.3); macos-15 was dropped with macOS. Best-effort artefacts build on the hosted `windows-11-arm` image and an Ubuntu `-arm` image, which the
   same check lists. Images are pinned by label. A runner-image change that breaks the build is fixed in its own
   PR, never mixed with feature work.
 - **GPU-less paths.** Three paths are covered: DX12 WARP (Windows hosted runners have no hardware GPU), the CPU
@@ -1275,12 +1261,12 @@ NFR-SEC-19:
 - **Self-hosted runners** (performance, private corpus) never run fork PRs. They run only on `main` and on PRs of
   maintainers that carry the `perf` label. They hold no signing secret.
 - **Signing.** Credentials live in the protected `release` environment, which requires approval by a second
-  maintainer from 1.0 (the 0.1.0 environment has no second approval, ID-1187). Windows signing, when it comes in (1.0, or
+  maintainer from 1.0 (the 0.1.0 environment has no second approval). Windows signing, when it comes in (1.0, or
   earlier when the owner holds a signing identity), authenticates through OIDC federation, so no long-lived credential
   exists.
 - **CI tools.** cargo-deny, cargo-vet, cargo-about and the others are installed at pinned versions with checksum
   verification.
-- **Container images** (as built, cycle 18; decision log ID-458). Every container image a workflow names is pinned
+- **Container images**. Every container image a workflow names is pinned
   by `@sha256:` digest: the value of an `image:` key, of a `*_IMAGE` variable and of `docker run`, `docker pull` and
   `docker create`; `cargo xtask check-workflows` fails on any other reference. A tool that publishes no checksum for
   its download (veraPDF) is taken from its project's image, pinned the same way.
@@ -1291,45 +1277,44 @@ NFR-SEC-19:
 - **Secrets.** GitHub secret scanning with push protection is on. Fixtures and logs never contain tokens.
 - **Dependency bots.** Renovate updates actions only. Cargo dependencies move in the upgrade train (§6.3) or for an
   advisory, and never by bot auto-merge, because every bump needs a cargo-vet audit.
-- **Supply chain** (as built, cycle 20; ADR-0023 amendment 5, FT-326).
+- **Supply chain** (as built, ADR-0023 amendment 5).
   - *Audit imports.* `supply-chain/config.toml` imports the published cargo-vet sets of mozilla, google,
     bytecode-alliance, embark-studios, zcash and isrg; `supply-chain/imports.lock` keeps no auditor identity
     (`cargo xtask check-vet-imports`, and `--bless` after any `cargo vet` run that fetches the sets). Only the built-in
     criteria count. The cycle-20 lead audit recorded the project's own audits of winit, zbus, zvariant, x11rb,
     x11rb-protocol, x11-dl, accesskit_windows, accesskit_unix and rfd, and delta audits of the wgpu 30.0.0 to 30.0.1
-    family and libloading 0.9.0 to 0.8.9. The cycle-21 lead audit (FT-326) added the wgpu 30.0.1 front-end crate
+    family and libloading 0.9.0 to 0.8.9. The cycle-21 lead audit added the wgpu 30.0.1 front-end crate
     (`safe-to-deploy`, as eframe builds it; caveat: the safe `Buffer::destroy`, and device loss in wgpu-core, ignore
     live `BufferView`s, so code that holds a mapped view across `destroy` touches freed memory; upstream
     gfx-rs/wgpu#10256, fixed on trunk by #10307 for v31, the v30 backport #10593 open. egui-wgpu 0.37 never calls
     `Buffer::destroy` and drops its one capture view inside the map callback before `unmap`; device loss is outside
     its control, and ElektraWatt's own renderers must not hold a view across `destroy`) and removed its exemption.
-  - *Native clipboard helper* (cycle 28, `6ecc9e7`; ID-660). The explicitly enabled eframe clipboard feature adds smithay-clipboard 0.7.2. Its full source audit is AI-performed by a coder and independent lead and remains pending owner confirmation before a distributed binary. The exact compatibility pin retains the existing SCTK 0.19.2/calloop 0.13.0/calloop-wayland-source 0.3.0 graph; their exemptions and owner-confirmation debt are unchanged. No new exemption or licence-policy relaxation is introduced. Windows clipboard-win 5.4.3 and error-code 3.4.0 are BSL-1.0, admitted under NFR-LIC-04’s existing conditional admission (ADR-0024 amendment 3); the synchronized policies and generated notices include the Boost licence text. The delivery correction replaces yanked clipboard-win 5.4.1 with non-yanked 5.4.3, retaining the HTML bounds fix first released in 5.4.2. Its full nine-file source audit by a GPT-6.1 Sol coder and independent GPT-6.1 Sol lead review are complete and AI-performed, pending owner confirmation before a distributed binary; the obsolete 5.4.1 exemption is removed. The reached Windows path includes Unicode text and automatic image-paste fallback through raw PNG/CF_DIBV5 bytes, while clipboard-win's bitmap helpers and HTML API are not called. The audit records their unsafe caveats, unbounded clipboard buffers and Win32 conversion assumptions; error-code remains exempt. No application-source changes are made; final Windows build and real OS clipboard validation remain delivery checks.
+  - *Native clipboard helper* (`6ecc9e7`). The explicitly enabled eframe clipboard feature adds smithay-clipboard 0.7.2. Its full source audit is AI-performed by a coder and independent lead and remains pending owner confirmation before a distributed binary. The exact compatibility pin retains the existing SCTK 0.19.2/calloop 0.13.0/calloop-wayland-source 0.3.0 graph; their exemptions and owner-confirmation debt are unchanged. No new exemption or licence-policy relaxation is introduced. Windows clipboard-win 5.4.3 and error-code 3.4.0 are BSL-1.0, admitted under NFR-LIC-04’s existing conditional admission (ADR-0024 amendment 3); the synchronized policies and generated notices include the Boost licence text. The delivery correction replaces yanked clipboard-win 5.4.1 with non-yanked 5.4.3, retaining the HTML bounds fix first released in 5.4.2. Its full nine-file source audit by a GPT-6.1 Sol coder and independent GPT-6.1 Sol lead review are complete and AI-performed, pending owner confirmation before a distributed binary; the obsolete 5.4.1 exemption is removed. The reached Windows path includes Unicode text and automatic image-paste fallback through raw PNG/CF_DIBV5 bytes, while clipboard-win's bitmap helpers and HTML API are not called. The audit records their unsafe caveats, unbounded clipboard buffers and Win32 conversion assumptions; error-code remains exempt. No application-source changes are made; final Windows build and real OS clipboard validation remain delivery checks.
   - *Count.* The cycle-20 audit took the exemptions from 485 to 384 (374 `safe-to-deploy`, 10 `safe-to-run`); lane A's
     egui_tiles 0.18.0 added one in the same cycle (385); the wgpu audit of cycle 21 brings them back to 384 (374 and 10).
-    Cycle 22 (WP-S2.02 part 2; decision log ID-543) adds four and prunes one: 387 (377 `safe-to-deploy`, 10
+    Cycle 22 adds four and prunes one: 387 (377 `safe-to-deploy`, 10
     `safe-to-run`; `[[exemptions.` entries of `supply-chain/config.toml`). Cycle 24's usvg crates and cycle 26's
     raster crates came with audits and left it at 387; cycle 26's regex family brings it to **386** (380
     `safe-to-deploy`, 6 `safe-to-run`; below). The cycle-28 clipboard-win full audit removes its old exemption,
-    leaving **385** current exemptions (379 `safe-to-deploy`, 6 `safe-to-run`). Cycle 31's table widget (WP-S2.06 part
-    3; decision log ID-728) adds three `safe-to-deploy` exemptions, `egui_table` 0.11.0, `vec1` 1.12.1 and `enumn`
+    leaving **385** current exemptions (379 `safe-to-deploy`, 6 `safe-to-run`). Cycle 31's table widget adds three `safe-to-deploy` exemptions, `egui_table` 0.11.0, `vec1` 1.12.1 and `enumn`
     0.1.14 (through egui's `serde` feature): **388** (382 `safe-to-deploy`, 6 `safe-to-run`); WP-S2.17's parts 1 and 6
-    add none. **The owner confirmed the approach on 2026-10-28** (decision log ID-723): the AI-performed audits and the
+    add none. **The owner confirmed the approach on 2026-10-28**: the AI-performed audits and the
     recorded exemptions stand for the pilot preview's 0.0.x builds, and later crates follow the same rule without a
     per-crate confirmation; the burn-down below stays the rule before the first signed release.
-  - *The GPU canvas's tessellation crates* (cycle 22; decision log ID-543, FT-326). `lyon_tessellation` 1.0.22,
+  - *The GPU canvas's tessellation crates*. `lyon_tessellation` 1.0.22,
     `lyon_path` 1.0.19 and `lyon_geom` 1.0.20 (MIT OR Apache-2.0) and `float_next_after` 1.0.0 (MIT) join the graph
     through `ew-render2d`. None has a build script and the build-script allowlist is unchanged. They are recorded as
     four dated `safe-to-deploy` exemptions (2026-10-22), which is the form this section provides for a crate whose audit
     is not yet written; the exemptions stand until FT-326 audits them (an "AI-performed, owner-delegated" audit under
     the attestation rule below) and that is complete before any distributed binary (the hold of decision log ID-476).
     The same change pruned the `termcolor` exemption, and `wgpu-core-deps-wasm` left the graph.
-  - *usvg and its five crates* (cycle 24, FT-384; decision log ID-605). usvg 0.48.1 (pinned `=0.48.1`, default
+  - *usvg and its five crates*. usvg 0.48.1 (pinned `=0.48.1`, default
     features off; its licence for this version is Apache-2.0 OR MIT), svgtypes 0.16.1, simplecss 0.2.2, data-url
     0.3.2, imagesize 0.15.0 and pico-args 0.5.0 (MIT and/or Apache-2.0) join the graph through `ew-scene`, about
     279 KB of source, none with a build script. They carry **six "AI-performed, owner-delegated" `safe-to-deploy`
     audits**, so the exemption count stayed 387 at that point (the regex family below brings it to 386); the owner confirms and owns these audits as with the earlier ones
     (an owner item).
-  - *The regex family* (cycle 26, WP-S2.05 part 2 fix round). `regex` 1.13.1 became a normal dependency of `ew-api`
+  - *The regex family* (fix round). `regex` 1.13.1 became a normal dependency of `ew-api`
     (`Session::find`), so it and `aho-corasick` 1.1.5, `regex-automata` 0.4.18 and `regex-syntax` 0.8.11 ship and need
     `safe-to-deploy`; their exemptions were `safe-to-run`. No import the policy allows covers these versions (the
     imported sets audit older versions and have no base for the deltas), so: `regex-syntax` carries an "AI-performed,
@@ -1338,8 +1323,8 @@ NFR-SEC-19:
     `safe-to-deploy` exemptions, not audited line by line** (about 21k, 11k and 66k lines, 227, 1 and 57 `unsafe` sites;
     no build script, no file, network, process, environment or FFI use in `src`). **Owner item:** confirm these three
     or audit them before any distributed binary. At cycle 26 the exemptions were **386** (380 `safe-to-deploy`, 6 `safe-to-run`).
-    The confirmation or audit is FT-435 (decision log ID-634).
-  - *The raster crates* (cycle 26, FT-406; decision log ID-636, ID-637). krilla's `raster-images` feature (on in
+    The confirmation or audit is FT-435.
+  - *The raster crates*. krilla's `raster-images` feature (on in
     `ew-export`) brings **four new packages**: gif 0.14.2 and image-webp 0.2.4 (MIT OR Apache-2.0), imagesize 0.14.0
     (MIT OR Apache-2.0, a **duplicate** beside usvg's 0.15.0, because krilla asks for ^0.14: a cargo-deny duplicate
     warning only) and color_quant 1.1.0 (MIT; its source carries the 1994 NeuQuant permission notice, which
@@ -1351,9 +1336,9 @@ NFR-SEC-19:
     `Image::from_gif` and `Image::from_webp`, so the audits' "never called" holds mechanically. zune-jpeg 0.5.15
     (MIT OR Apache-2.0 OR Zlib), already in the graph, became a direct dependency of `ew-render-cpu` (an edge, no
     package); it and png 0.18.1 are exemptions that now decode user bytes, and their audit is FT-435. No unused direct
-    dependency pins a transitive version (ID-637 ruling 6). The owner confirms and owns the four audits as the earlier
+    dependency pins a transitive version. The owner confirms and owns the four audits as the earlier
     ones (an owner item).
-  - *The fuzz crate* (decision log ID-496). `fuzz/` is its own cargo workspace, a development tool that no distributed
+  - *The fuzz crate*. `fuzz/` is its own cargo workspace, a development tool that no distributed
     artefact contains, so its dependencies are outside the workspace's cargo-deny and cargo-vet runs and need no
     exemptions. The mitigation is the deep nightly's report-only job `fuzz-deny` over `fuzz/Cargo.lock` with
     `fuzz/deny.toml`: the workspace policy (an `xtask` test keeps the licence allowlists equal) plus one exception,
@@ -1382,21 +1367,20 @@ NFR-SEC-19:
     enables both x11-dl and x11rb; no feature keeps X11 without x11-dl), and x11-dl's build script writes the build
     machine's `pkg-config` libdir of 16 X libraries into the binary as a run-time fallback after the soname lookup.
     A distributed Linux build of `elektrawatt` therefore runs with `PKG_CONFIG=false` and no target-specific
-    `PKG_CONFIG_*` override (CI-R-03 asserts both, like `ICU4X_DATA_DIR`, with WP-S6.07: FT-333; before the release
-    pipeline, the nightly job `release-check` of §5.2 asserts them and scans the binary), so every libdir is `None`:
+    `PKG_CONFIG_*` override (CI-R-03 asserts both, like `ICU4X_DATA_DIR`, with : ; before the release pipeline, the nightly job `release-check` of §5.2 asserts them and scans the binary), so every libdir is `None`:
     the binary carries no build-host path, loads the X libraries by soname only (x11-dl's first attempt anyway), and
     no world-writable build prefix can become a library-planting path on users' machines. The release build also
     runs in the digest-pinned build image, so an independent rebuild sees the same environment. No other build
     script in the release graph needs `pkg-config` (wayland-sys runs with `dlopen`, khronos-egl without `static`).
 - **Scorecard.** The OpenSSF Scorecard runs weekly and its result is published; the OpenSSF Best Practices badge is
   targeted at 1.0 (19 §6).
-- **The `release` environment** (as built, cycle 50; WP-S6.07 D4, decision log ID-1336, ID-1337). Only `release.yml`'s
+- **The `release` environment**. Only `release.yml`'s
   `attest` (`id-token: write`, `attestations: write`) and `release` (`contents: write`) hold write scopes, both in the
   environment `release`, which has no reviewer at 0.1.0; no job uses a secret. `cargo xtask check-workflows` refuses a
   job that grants a write scope outside that environment, in the block form and the inline map form alike, and any
   other inline `permissions:` form but `read-all`.
 
-### 5.5 Documentation toolchain (as built, cycle 16)
+### 5.5 Documentation toolchain
 
 *Decision log ID-402 to ID-404; WP-S0.06 delivered in part.* The user guide is an mdBook in `docs/book` in the
 Diátaxis structure (tutorials, how-to guides, reference, explanation; a landing page per section). Design documents,
@@ -1423,12 +1407,12 @@ were executed when it was written.
 | Requirement | Status at the cycle-16 tip |
 |---|---|
 | NFR-DOC-01 | In part: mdBook in the Diátaxis structure, built and link-checked per PR, offline. Not yet: versioning per release, the bundle in the application and the F1 anchors (WP-S7.05, with the UI) |
-| NFR-DOC-02 | In part: a reference page per shipped rule pack with each rule's metadata; the what, why, example, quick-fix and waiver text come with the rule messages (FT-181, WP-S7.05) |
+| NFR-DOC-02 | In part: a reference page per shipped rule pack with each rule's metadata; the what, why, example, quick-fix and waiver text come with the rule messages |
 | NFR-DOC-03 | Not met: one headless tutorial exists; the four MVP tutorials and their scripted CI runs are WP-S7.05 |
 | NFR-DOC-06 | In part: the command catalogue with its parameter schemas and the rule catalogue are generated and checked for staleness; the CLI reference, the format specification, the `api_v1` view reference, the WIT docs and the keymap sheets are not generated yet (WP-S1.22, WP-S7.05) |
-| NFR-I18N-07 | Not met: the book declares its source language only; mdbook-i18n-helpers (FT-282) and Weblate (FT-281) are open |
+| NFR-I18N-07 | Not met: the book declares its source language only; mdbook-i18n-helpers and Weblate are open |
 
-*As built (2026-11-05, cycle 51; WP-S7.05, decision log ID-1362, ID-1364, ID-1370, ID-1376).* The offline build
+*As built.* The offline build
 runs one preprocessor, mdbook-i18n-helpers 0.4.0's `mdbook-gettext` (Apache-2.0, pinned by its crate's SHA-256 in
 `packaging/components.toml` and installed by `ci/build-book.sh` with `--locked` before the network-less builds). The
 states now: **NFR-DOC-01** met for 0.1.0: the book is bundled offline, every page names its release (the title
@@ -1465,15 +1449,15 @@ message, and Weblate comes at 1.0 (ID-1331 (1)). `build-book.sh`'s Linux run is 
   (`resolver = "3"`, `incompatible-rust-versions = "fallback"`). The application lockfile can therefore move ahead
   without breaking downstream users.
 - **Versioning.** Raising a crate's MSRV is a minor version bump of that crate.
-- **GPL crates** (2026-10-19, decision log ID-141). The MSRV binds the permissive crates only. GPL application crates
+- **GPL crates**. The MSRV binds the permissive crates only. GPL application crates
   and binaries need only the pinned toolchain (§6.1) and declare the `rust-version` their dependencies require:
   `ew-export`, `ew-render-cpu` and their dependents declare 1.92 for krilla 0.8.2 (vello_cpu 0.3.0 needs 1.89,
   parley 0.12.0 1.88). As applied: `ew-export`, `ew-render-cpu`, `ew-api`, `ew-print`, `ew-testkit`, `ew-ui`,
-  `ew-viewmodel` and both binaries (decision log ID-183); since cycle 19 `ew-ui`, `ew-viewmodel` and `elektrawatt`
-  declare 1.95, which egui 0.37 needs (decision log ID-477); since cycle 53 `ew-import-eplan`, `ew-api`,
-  `ew-testkit` and `ew` declare 1.93, which sevenz-rust2 0.24.2 needs (decision log ID-1460). The workspace value
+  `ew-viewmodel` and both binaries; since cycle 19 `ew-ui`, `ew-viewmodel` and `elektrawatt`
+  declare 1.95, which egui 0.37 needs; since cycle 53 `ew-import-eplan`, `ew-api`,
+  `ew-testkit` and `ew` declare 1.93, which sevenz-rust2 0.24.2 needs. The workspace value
   1.85 is the permissive crates' MSRV, not a promise for the application.
-- **The workspace hack** (cycle 43, RD43 R17). The GPL crates depend on the workspace-hack crate `ew-hack` of
+- **The workspace hack**. The GPL crates depend on the workspace-hack crate `ew-hack` of
   cargo-hakari (§5, `ci/README.md`); the permissive crates never do, so the MSRV job and their publication see no hack.
 
 ### 6.3 The quarterly upgrade train
@@ -1521,7 +1505,7 @@ state which format a release writes and which it reads.
 
 The release structure in time is: nightlies and signed source tags (`m1`, `pp`) before the pilot preview; the
 pilot preview 0.0.x at milestone M-PP (gate G-PP), which is not a public release; the first binary release
-0.1.0 at M2 (MVP), unsigned (ID-1187); then monthly 0.x, the betas and release candidates of 1.0 (M5, M6) and quarterly minors. The
+0.1.0 at M2 (MVP), unsigned; then monthly 0.x, the betas and release candidates of 1.0 (M5, M6) and quarterly minors. The
 dates are the plan's (global plan §5.1 and §6, milestones.csv).
 The pipeline and checklist of §7.4 apply from 0.1.0; a pilot preview needs the CI build and the release notes only.
 Whether a pilot-only preview counts as "made available on the market" under the CRA is to be verified with counsel
@@ -1565,21 +1549,21 @@ gantt
 
 | Job | Content |
 |---|---|
-| CI-R-01 | From 1.0, verify the tag signature against `.github/allowed_signers` (the 0.1.0 tag is unsigned, because `allowed_signers` would carry a personal address, ID-1187); a clean tree and version consistency (Cargo, installers, About; from 1.0 the manifest); release and migration notes present (NFR-DOC-07; drafted with git-cliff, 19 §6, then edited) |
+| CI-R-01 | From 1.0, verify the tag signature against `.github/allowed_signers` (the 0.1.0 tag is unsigned, because `allowed_signers` would carry a personal address); a clean tree and version consistency (Cargo, installers, About; from 1.0 the manifest); release and migration notes present (NFR-DOC-07; drafted with git-cliff, 19 §6, then edited) |
 | CI-R-02 | Collect gates: a green nightly on this commit (perf, memory, full oracle, fuzz with no open crash), acceptance of every reached milestone row, no unwaived high or critical advisory; from 1.0 the Golden A-R as-built archive passes `sha256sum -c` and veraPDF and validates with the permissive-only reader, and joins the fixture corpus (NFR-REL-10) |
-| CI-R-03 | Hermetic build: `cargo fetch --locked`, then a network-less build on Linux (§10); `cargo auditable build --release --locked` for every target; the build fails if `ICU4X_DATA_DIR` is set (§3.5), or if `PKG_CONFIG` is not `false` or any `PKG_CONFIG_*` target override is set (§5.4, x11-dl; FT-333) |
+| CI-R-03 | Hermetic build: `cargo fetch --locked`, then a network-less build on Linux (§10); `cargo auditable build --release --locked` for every target; the build fails if `ICU4X_DATA_DIR` is set (§3.5), or if `PKG_CONFIG` is not `false` or any `PKG_CONFIG_*` target override is set (§5.4, x11-dl) |
 | CI-R-04 | `ew-step-worker` per target with cached OCCT artefacts (1.0) |
 | CI-R-05 | Packaging (§8) |
 | CI-R-06 | `SHA256SUMS` over every artefact (0.1.0: unsigned). From 1.0, or earlier when the owner holds a signing identity: signing, with `SHA256SUMS` and the update manifest signed (§9) |
 | CI-R-07 | CycloneDX SBOM per artefact (cargo-cyclonedx 0.5.9), merged with the non-Rust components (SQLite, OCCT, fonts); completeness check against `cargo metadata`; SBOM vulnerability scan; cargo-about notices for the crates plus the non-crate notices (fonts, with their copyright, licence and trademark lines) assembled from `NOTICE`, because cargo-about lists crates only; failing on any SBOM component without a notice (19 §5.3; NFR-SEC-13, NFR-LIC-08) |
 | CI-R-08 | SLSA provenance through `actions/attest-build-provenance` for every artefact; `gh attestation verify` on each (NFR-SEC-12) |
-| CI-R-09 | Assertions: the inspection canary string and the `test-confirm` canary string (§3.15) absent from every binary; the `ew-commands/testkit`, `ew-viewmodel/testkit`, `ew/test-confirm` and egui `inspection` features and the `ew-testkit`, `ew-testids` and `egui_mcp` crates absent from the release dependency graph; smoke start opens no listening socket (NFR-SEC-09). *As built (cycle 43, RD43 T1), the graph half at PR time:* `cargo xtask check-features` reads the graph of every shipped binary for every target (`cargo tree --target all -e normal,build` since cycle 43, C43-p2#7, over the workspace packages with a binary target) and fails on a banned crate or on a feature banned outside dev edges; the release job itself is not built |
+| CI-R-09 | Assertions: the inspection canary string and the `test-confirm` canary string (§3.15) absent from every binary; the `ew-commands/testkit`, `ew-viewmodel/testkit`, `ew/test-confirm` and egui `inspection` features and the `ew-testkit`, `ew-testids` and `egui_mcp` crates absent from the release dependency graph; smoke start opens no listening socket (NFR-SEC-09). *As built (T1), the graph half at PR time:* `cargo xtask check-features` reads the graph of every shipped binary for every target (`cargo tree --target all -e normal,build` since, over the workspace packages with a binary target) and fails on a banned crate or on a feature banned outside dev edges; the release job itself is not built |
 | CI-R-10 | Clean-VM offline installation on Windows 10 22H2, Windows 11, Ubuntu 22.04 and Debian 12 (0.1.0: the per-user setup on Windows and the AppImage on Linux; from 1.0 also the MSI and the `.deb`): install, open the GP sample, pass its acceptance CSVs, and from 1.0 open the GP `.ewpp` in `ew-wiring-viewer`; uninstall (NFR-PLAT-06, AC-40). An upgrade over the previous release's installer keeps user settings, keymaps, the trust store and company catalogues; uninstall leaves them in place |
 | CI-R-11 | Publish the GitHub release. From 1.0: after two-maintainer approval, with the update manifest, crates.io through trusted publishing (**verify**) and the Flathub PR |
 
-*0.1.x follows the slim workflow (cycle 53, decision log ID-1520):* CI-R-01, CI-R-03 with a plain `cargo build`, CI-R-05 with one smoke test, CI-R-06 and CI-R-11 without provenance; the rest of this table, and of the as-built text below, is not run at 0.1.x ([`docs/release/README.md`](../release/README.md) §10).
+*0.1.x follows the slim workflow:* CI-R-01, CI-R-03 with a plain `cargo build`, CI-R-05 with one smoke test, CI-R-06 and CI-R-11 without provenance; the rest of this table, and of the as-built text below, is not run at 0.1.x ([`docs/release/README.md`](../release/README.md) §10).
 
-*As built (2026-11-04, cycle 50; WP-S6.07, decision log ID-1336, ID-1337), the jobs in 0.1.0's form.* `release.yml`
+*As built, the jobs in 0.1.0's form.* `release.yml`
 runs on a candidate tag. **CI-R-01:** `ci/release-verify.py tag` requires the tag's `X.Y.Z` to equal the workspace
 version and `docs/release-notes/<X.Y.Z>.md` to exist and not be empty; `clean` requires an empty `git status
 --porcelain` after the builds. **CI-R-02:** `runs` requires a successful `ci.yml` and `deep-nightly.yml` run on the
@@ -1592,10 +1576,10 @@ for the artefact's binaries and target (for the CLI archive, what `ew` reaches i
 each component it drops, adds the non-crate components (`NOTICE`'s file blocks, SQLite from `sqlite3.h`, the shipped
 entries of `packaging/components.toml`), and fails a non-crate component without a `NOTICE` section unless that file
 records `no_notice` with its reason. *NFR-SEC-13's "complete against `cargo metadata`"* is met through that graph
-(decision log ID-1317, ID-1318): `cargo metadata`'s resolve also turns on optional dependencies that only a weak
+: `cargo metadata`'s resolve also turns on optional dependencies that only a weak
 feature names, which no binary compiles, so `complete` checks the SBOM against the feature-resolved set and checks
 that every package of the set lies in `cargo metadata`'s closure; the SBOM vulnerability scan at 0.1.0 is SQLite's
-version checked by hand at RC-03 (FT-1299). **CI-R-08:** `attest` runs `actions/attest-build-provenance` v4.2.2 over
+version checked by hand at RC-03. **CI-R-08:** `attest` runs `actions/attest-build-provenance` v4.2.2 over
 every release file (§9.2). **CI-R-09** in D12's form instead of the canary strings: `check-features` in the commit's
 green `ci.yml` run for the graph; `ci/audit-data.py` reads each binary's `cargo-auditable` list and fails on a missing
 list or a test-only crate; `ew/test-confirm` is not declared and egui's `inspection` holds no string of EW's; and
@@ -1604,7 +1588,7 @@ list or a test-only crate; `ew/test-confirm` is not declared and egui's `inspect
 `gh attestation verify`; the promote is a dispatch (§5.1). `package.yml` runs 12 and 13 prove CI-R-03's build half,
 CI-R-07 and CI-R-09; CI-R-01's tag half and the draft and promote are proven at WP-S6.08's first candidate. The
 release files are the CLI archives, `SHA256SUMS` and every artefact's SBOM, and the setup and the AppImage join them
-when ID-476's hold lifts before the first candidate (decision log ID-1331).
+when ID-476's hold lifts before the first candidate.
 
 The release checklist holds the items that a pipeline cannot prove:
 
@@ -1619,13 +1603,13 @@ The release checklist holds the items that a pipeline cannot prove:
 | RC-07 | Content audit of bundled assets: licences, provenance, no standards text (NFR-LIC-06, NFR-COMP-05) |
 | RC-08 | New derivation profiles, format changes and CLI/API changes listed in the release notes |
 | RC-09 | Engineering-verification disclaimer present in About, check panel, docs and release report (NFR-COMP-04) |
-| RC-10 | Governance gates of [19](19-open-source-governance.md) §3.3 met before the first binary release: LG-1 (employer copyright statement). From 1.0 also LG-4 (steward, signing identity and repository organisation, NFR-COMP-08) and the steward checklist ST-01 … ST-10 of [19](19-open-source-governance.md) §3.10 complete with evidence (NFR-COMP-01); afterwards the checklist is re-reviewed every minor (ID-1187, ID-1188) |
+| RC-10 | Governance gates of [19](19-open-source-governance.md) §3.3 met before the first binary release: LG-1 (employer copyright statement). From 1.0 also LG-4 (steward, signing identity and repository organisation, NFR-COMP-08) and the steward checklist ST-01 … ST-10 of [19](19-open-source-governance.md) §3.10 complete with evidence (NFR-COMP-01); afterwards the checklist is re-reviewed every minor |
 | RC-11 | 1.0 only: the Accessibility Conformance Report against EN 301 549 clauses 11 and 12 is updated with known gaps (NFR-COMP-06) |
 
-*As built (2026-11-04, cycle 50; WP-S6.07 D14, decision log ID-1336).* The checklist is the template
+*As built.* The checklist is the template
 `docs/release/checklist.md` (RC-01 to RC-10 in their 0.1.0 form, each with its check, the evidence it asks for and
 who signs), which WP-S6.08 copies into the release dossier for each candidate; `docs/release/README.md` is the
-procedure around it. RC-01 holds WP-S6.05 D18's review line and RC-05 its manual checks (decision log ID-1338).
+procedure around it. RC-01 holds WP-S6.05 D18's review line and RC-05 its manual checks.
 
 ### 7.5 Support policy
 
@@ -1662,10 +1646,10 @@ backing in 2025, and its 2026 maintenance status is unconfirmed (RE §10.1; open
 | All (1.0) | `ew-wiring-viewer` in every installer, plus a portable archive per target | Shop PCs; per user, no administrator rights | The read-only `.ewpp` wiring viewer (ARCH §3, [13](13-manufacturing-outputs.md) §11); signed and covered by SBOM and provenance like `elektrawatt` |
 | All | CLI archives, split debug symbols (PDB, DWARF), SBOMs, notices | — | Symbols are public, so users can symbolicate their own crash dumps |
 
-**0.1.0 ships** the per-user setup, the AppImage and the CLI archives (decision log ID-1187). The per-machine MSI with its
+**0.1.0 ships** the per-user setup, the AppImage and the CLI archives. The per-machine MSI with its
 policy keys and the `.deb` are 1.0's, and Flathub stays at 1.0.
 
-There is no macOS artefact: macOS is not a supported platform (decision log ID-880).
+There is no macOS artefact: macOS is not a supported platform.
 
 **Every installer is offline and complete** (NFR-PLAT-06): application, `ew` CLI, `ew-step-worker` (1.0, LGPL OCCT
 as a replaceable separate binary, NFR-LIC-08), `ew-wiring-viewer` (1.0), bundled fonts (ADR-0028), starter symbols, frames and forms, the GP
@@ -1678,7 +1662,7 @@ Installation needs no network. The installed tree is read-only at run time (NFR-
 
 ### 9.1 Code signing
 
-**0.1.0 ships unsigned** (decision log ID-1187): its Windows binaries and installers carry no Authenticode signature,
+**0.1.0 ships unsigned**: its Windows binaries and installers carry no Authenticode signature,
 its tag is unsigned and its `SHA256SUMS` is unsigned. The provenance of §9.2 and the sums are its integrity evidence. The
 rows below apply from 1.0, or earlier when the owner holds a signing identity.
 
@@ -1688,7 +1672,7 @@ rows below apply from 1.0, or earlier when the owner holds a signing identity.
 | Linux and all artefacts | `SHA256SUMS` signed with the project release key (ed25519, minisign-compatible) | Release key (§9.2) |
 | Git | Release tags signed with maintainers' SSH keys listed in `.github/allowed_signers`; CI-R-01 verifies | Maintainers |
 
-**No macOS signing.** macOS is not a supported platform (decision log ID-880), so there is no Developer ID, no
+**No macOS signing.** macOS is not a supported platform, so there is no Developer ID, no
 notarisation and no entitlement question (open question 13 here is moot).
 
 ### 9.2 Provenance, sums and the release key
@@ -1704,7 +1688,7 @@ notarisation and no entitlement question (open question 13 here is moot).
 - **Custody** (1.0). The private key lives only in the protected `release` environment, behind second-maintainer approval
   (open question 6).
 
-*As built (2026-11-04, cycle 50; WP-S6.07 D10, decision log ID-1336, ID-1337).* `actions/attest-build-provenance`
+*As built.* `actions/attest-build-provenance`
 v4.2.2, pinned by commit SHA, attests every release file, `SHA256SUMS` included, in the one job that holds
 `id-token: write`. Every check runs `gh attestation verify <file> --repo <owner>/<repo> --signer-workflow
 <owner>/<repo>/.github/workflows/release.yml`, and the promote adds `--source-digest <the candidate's commit>`, so the
@@ -1714,7 +1698,7 @@ download" gives `sha256sum -c SHA256SUMS` and that command, after `gh auth login
 
 ### 9.3 Update check
 
-**The update check is 1.0's** (decision log ID-1187, ADR-0029 as amended). 0.1.0 has no update check and no crash upload,
+**The update check is 1.0's** (ADR-0029 as amended). 0.1.0 has no update check and no crash upload,
 and the interim rule of ADR-0029 for development builds now covers it, which CI-N-06 enforces.
 
 **1.0, first stage: notice only.**
@@ -1758,7 +1742,7 @@ only.
 | Lockfile and toolchain | `Cargo.lock` committed; `--locked`; exact toolchain | All |
 | cargo-deny 0.20.2 | **Licences:** the NFR-LIC-04 allowlist, with LGPL-2.1 only for `ew-step-worker`. **Advisories:** vulnerabilities deny; "unmaintained" and "unsound" notices need an owner decision within 90 days. **Bans:** duplicate-version warnings and a list of banned crates (downloader build scripts). **Sources:** crates.io only, git sources allowlisted per crate | CI-PR-09 |
 | cargo-audit 0.22.2 | RUSTSEC on the lockfile per PR and on the shipped binaries' embedded `cargo-auditable` data at release | CI-PR-09, CI-R-07 |
-| cargo-vet 0.10.2 | Every crate in the graph is covered by an audit for the criteria its use needs: the project's own audits in `supply-chain/audits.toml` (the `who` field is the contributor's GitHub handle, never a personal name or e-mail address; an audit an agent performed says "AI-performed, owner-delegated (date)" in `notes`), or the imported sets of mozilla, google, bytecode-alliance, embark-studios, zcash and isrg, kept without auditor identities and checked by `cargo xtask check-vet-imports` (ADR-0023 amendment 5; only the built-in criteria count). Exemptions are added per work package (ADR-0023 amendment 4, decision log ID-332): the commit that adds or updates a crate adds one `[[exemptions.<crate>]]` entry per crate and exact version to `supply-chain/config.toml`, `safe-to-deploy` for shipped code and `safe-to-run` for build and test only, and lists the exempted crates in its message; the review checks them, and `cargo vet` fails a crate with neither audit nor exemption. The list is burned down by audits and imports: every exemption is audited, covered or replaced before the first signed release, and until then a work package exempts only the crates it introduces. State after the cycle-20 UI audit (FT-326): 384 exemptions (374 `safe-to-deploy`, 10 `safe-to-run`), down from 485 (472 and 13); 385 (375 and 10) at the integration tip, with lane A's egui_tiles 0.18.0 (decision log ID-498) | CI-PR-09 |
+| cargo-vet 0.10.2 | Every crate in the graph is covered by an audit for the criteria its use needs: the project's own audits in `supply-chain/audits.toml` (the `who` field is the contributor's GitHub handle, never a personal name or e-mail address; an audit an agent performed says "AI-performed, owner-delegated (date)" in `notes`), or the imported sets of mozilla, google, bytecode-alliance, embark-studios, zcash and isrg, kept without auditor identities and checked by `cargo xtask check-vet-imports` (ADR-0023 amendment 5; only the built-in criteria count). Exemptions are added per work package (ADR-0023 amendment 4): the commit that adds or updates a crate adds one `[[exemptions.<crate>]]` entry per crate and exact version to `supply-chain/config.toml`, `safe-to-deploy` for shipped code and `safe-to-run` for build and test only, and lists the exempted crates in its message; the review checks them, and `cargo vet` fails a crate with neither audit nor exemption. The list is burned down by audits and imports: every exemption is audited, covered or replaced before the first signed release, and until then a work package exempts only the crates it introduces. State after the cycle-20 UI audit: 384 exemptions (374 `safe-to-deploy`, 10 `safe-to-run`), down from 485 (472 and 13); 385 (375 and 10) at the integration tip, with lane A's egui_tiles 0.18.0 | CI-PR-09 |
 | Build scripts | `cargo metadata` lists every crate with a `custom-build` target; each must appear in `build-scripts.allowlist` as `name@version` with a review comment, and no entry may be stale, so a new version of a crate with a build script fails `cargo xtask check-build-scripts` until its `build.rs` is read again and `--bless` re-versions the line (bless never adds a crate; ADR-0023 amendment 5). A Linux job builds the whole workspace with all features inside a network namespace without connectivity, so any build-time download fails (C-5) | CI-PR-09, CI-R-03 |
 | Low-adoption crates | Test-only, or vendored with a named owner (C-9) | Review |
 | Licence boundary | For each crate declared permissive in `[workspace.metadata.ew]`, which must list exactly the P crates of ARCH §3 (`ew-units`, `ew-ids`, `ew-mltext`, `ew-rds`, `ew-schema`, `ew-format`, `ew-interop-api`, `ew-dl`, `ew-step-proto`, `ew-memo`, `ew-plcaddr`, `ew-caex`, `ew-devdesc`, `ew-ewpp`; `ew-plugin-wit` and `ew-plugin-sdk` from 1.x), the closure of normal and build dependencies (and dev-dependencies, so that published crates stay self-contained) contains only NFR-MAINT-02 licences and no GPL workspace crate | CI-PR-09 |
@@ -1767,7 +1751,7 @@ only.
 | Provenance and signing | §9 | CI-R-06, CI-R-08 |
 | CI integrity | §5.4 | All |
 
-*As built (2026-11-04, cycle 50; WP-S6.07 D11, decision log ID-1336).* The advisory gate runs in `package.yml`:
+*As built.* The advisory gate runs in `package.yml`:
 `cargo deny check advisories` and `cargo audit` on `Cargo.lock` in the Linux job, and `cargo audit bin
 --max-binary-size 536870912` on every shipped binary in both OS jobs (the release binaries are larger than
 cargo-audit's 100 MiB default). A waiver is the same `ignore` entry in two files, `deny.toml` and
@@ -1781,12 +1765,12 @@ cargo-audit's 100 MiB default). A waiver is the same `ignore` entry in two files
 
 ### 11.1 Threat model
 
-*As built (2026-11-05, cycle 51; WP-S6.04, decision log ID-1363, ID-1369).* The maintained copy is
+*As built.* The maintained copy is
 `docs/security/threat-model.md` (NFR-SEC-01): the threats TM-01 to TM-19, each with its 0.1.0 state (in force, not
 shipped, or another package's), the controls as built and the evidence that proves them, every control and evidence
 named by `path:line`, which `docs/plan/tools/doccheck.py` checks exists and holds more than white space or brackets;
 a parser and extension table, the importer and `.ewlib` rows and a review log. This section stays the design; where
-the two differ, the threat model states the release. *Amended (cycle 52, FT-1381, decision log ID-1394):* each
+the two differ, the threat model states the release. each
 reference is written `path:line (symbol)`, and doccheck also checks that the symbol stands on that line.
 
 **Assets:**
@@ -1833,16 +1817,16 @@ flowchart LR
 | TM-07 | MCP misuse, including prompt injection through project text ("rename all devices…") | Off by default; stdio or loopback with a per-session token; ask-first writes with a diff; project-scoped access; `origin=mcp` in the journal (NFR-SEC-08) | CI-PR-02 |
 | TM-08 | Exploitation of OCCT (C++) through a vendor STEP file | Separate process, timeouts, memory cap, quarantine after two crashes, fuzzed IPC decoder; OS sandbox in 1.x (NFR-SEC-21) | CI-PR-12 |
 | TM-09 | Silent tampering with a received project's engineering data | Not preventable by EW. Mitigations: `ew diff`; revision compare against the as-built archive; archive SHA-256 sums; documentation advice to compare a received project with its released archive | Docs; FR-COL-013 |
-| TM-10 | Debug or remote-control endpoints in release binaries | Test-only features; canary assertion; socket scan (NFR-SEC-09). *As built (cycle 50; decision log ID-1336, ID-1338):* `EW_DEBUG_PANIC` exists only under `debug_assertions`, and `ci/sandbox-check.py canary` fails a release binary that holds it; `ci/audit-data.py` fails a binary that lists a test-only crate; `ci/no-listen.sh` fails a `listen` call of the installed Linux tree | CI-R-09, CI-N-06 |
+| TM-10 | Debug or remote-control endpoints in release binaries | Test-only features; canary assertion; socket scan (NFR-SEC-09). *As built:* `EW_DEBUG_PANIC` exists only under `debug_assertions`, and `ci/sandbox-check.py canary` fails a release binary that holds it; `ci/audit-data.py` fails a binary that lists a test-only crate; `ci/no-listen.sh` fails a `listen` call of the installed Linux tree | CI-R-09, CI-N-06 |
 | TM-11 | Dependency compromise or typosquatting | §10 | CI-PR-09 |
 | TM-12 | CI or release pipeline compromise | §5.4; provenance; two-person publish (from 1.0) | Scorecard, review |
 | TM-13 | Update spoofing or MITM (1.0: 0.1.0 has no update check) | HTTPS, signed manifest, OS signature, no silent install | CI-R-06, the tampered-package test |
 | TM-14 | Local disclosure through journal, recovery snapshots, crash dumps or logs | User-only permissions; pruning; redacted logs; no automatic upload (NFR-PRIV-04, NFR-PRIV-05) | CI-PR-02 |
 | TM-15 | Signing-key compromise (1.0: 0.1.0 has no signing key) | Incident runbook (§11.4) | Tabletop exercise |
 | TM-16 | User-configured external converter (ODA File Converter for DWG, 1.0) fed a hostile file, or a converter path planted by a received project | The converter path is a user setting, never read from a project; it runs as a separate process on a copy in a temporary directory with a 120 s timeout, and its output is parsed under the DXF limits (14 §11) | Hostile-corpus test with a stub converter that hangs and one that writes a DXF bomb |
-| TM-17 | Unexpected process spawn by a dependency: rfd 0.17.2 starts `zenity` from `PATH` when the XDG desktop portal call fails (no portal service, malformed response), so a same-user process that controls `PATH` or plants a `zenity` earlier on it runs code when the user opens a file dialog. Low risk: it needs same-user access, which already allows more | The portal first (the shell checks for a session bus before calling rfd); a future rfd feature set without the zenity fallback, or a check that the portal answers, removes the spawn (FT-332). The cycle-20 audit records it in rfd's audit note | Review; FT-332 |
-| TM-18 | A hostile SVG in the asset store (`assets/`, the company logo and later image items; ID-576). *Sniffing is not sanitising:* `ew-schema` recognises an SVG by its root element and takes its size from the header (an 8 MiB limit, 512 KiB for the logo), but it does not parse or clean the document. A DOCTYPE with an internal subset (entity expansion, a billion-laughs variant), `<script>`, `on*` event attributes, `foreignObject` and external `href`s (a file, a network address) would reach whatever draws the file. Today the DOCTYPE case is refused only by accident of the sniffer (`svg_root` stops at the first `>`, which ends inside an internal subset, so such a root is not found), not by a rule | Until cycle 24 no renderer drew SVG; since FT-384 the renderers draw SVG logos, so the rule below is in force. **Before any renderer draws SVG** the file is rejected or normalised through `usvg` in `ew-scene` (default features off: no text, no system fonts; the tree becomes `ew-dl` paths; no `resvg`; admission with the cargo-deny and cargo-vet audit, ID-576): DOCTYPE internal subsets, `<script>`, `on*` attributes, `foreignObject` and external hrefs are refused or dropped, and an SVG is never handed to a web view or an OS renderer (FT-383) | *As built (cycle 24, FT-383, FT-384; decision log ID-605):* `ew_schema::svg_hazard` runs inside `sniff` and refuses DOCTYPE internal subsets, entities, scripts, `on*` attributes, `foreignObject` and any `href` that is not `#…` (embedded `data:` images too; accepting raster data URIs that pass the raster sniff is FT-407); after the usvg audit it also refuses nesting deeper than 64, reference cycles, expansion past 200,000 elements, markers inside markers, numbers above 1e9, overly complex CSS, `transform-origin` and `feConvolveMatrix`, the constructs the audit found to crash or hang the parser or renderer; the parse runs inside `catch_unwind`. Synthetic hostile SVGs test each refusal. The renderers now draw SVG logos (usvg in `ew-scene`, `ew-dl` paths). *Hardened in lane C's fix round (ID-620):* numeric character references and the five predefined entities are decoded in attribute values and character data before the checks (an `&#48;`-spelled huge number and an `&#45;`-spelled `transform-origin` were bypasses), and any other reference is refused; a letter directly before a number no longer hides it (`A1e30`); `id`, `class` and `href` are not read as numbers; the `href` chains of gradients, patterns and filters join the cycle check, because a test proves that usvg 0.48.1 never returns on g1 → g2 → g3 → g2 without stops (a hang that `catch_unwind` cannot catch); reference chains are capped at `MAX_SVG_REF_DEPTH` = 32 (usvg recurses to 1024, and the viewer parses on the model's thread). Calibrating the limits and the refusal messages against real exporters' output is FT-418 *Calibrated against real exporters (cycle 28, FT-418):* a corpus of 27 real files (Illustrator, Inkscape, Affinity, CorelDRAW, Visio, draw.io, LibreOffice; public domain or CC0, `crates/ew-schema/tests/fixtures/svg-exporters/`) fixes each verdict in a test. A hex colour or a fragment name is no longer read as a number (`#D63E25`); a DOCTYPE internal subset is named (`Entity`) instead of "not an SVG"; style sheets are read once per `style` element on its whole text (CDATA sections joined, as roxmltree does), bounded without parsing (selector groups at most commas + braces, `MAX_SVG_CSS_RULES` = 4,096; cloned declarations at most groups × colons, `MAX_SVG_CSS_DECLARATIONS` = 262,144, after the simplecss audit's "selector-group x declaration clone growth"), and their references follow the classes that use them; a sheet with strings, escapes, at-rules, braces in comments, a brace, `;` or comment inside parentheses, or a `url(` or `marker` outside its rule bodies counts as one rule for every element; markers are refused when any marker's content, its references, its classes or its ancestors can carry a marker property (usvg inherits them and stops only a marker re-entering itself), replacing the blanket rule that refused every Visio arrowhead; a repeated id, a `style` inside a `style` and two different hrefs on one element are refused; every relevant local id/class/href value is checked, conflicting duplicate local-name values fail closed independent of prefix/order, and equal duplicate values preserve calibrated behavior; case is preserved for duplicate comparisons before conservative lowercase checks. In every XML attribute raw CRLF normalizes to one space and standalone literal CR/LF/TAB to spaces before character-reference decoding; numeric-reference whitespace is preserved. Graph ids/references use these parser-normalized values so whitespace decoys cannot hide cycles; stylesheet text decoding stays distinct; `url(…)` targets are read as svgtypes reads a funcIRI (a quoted id keeps its spaces) and numbers with the SVG grammar (`0.5.5e39` is two numbers); namespace declarations are not attributes. Refusals carry re-export advice (`SvgHazard::advice`). The wizard and `ew apply` display the re-export advice. Export records a page-associated typed `PageFinding::Image`; the CLI reports aggregate finding counts only. In the normal Windows window a refused logo is omitted and the cover remains usable; there is no textual per-finding export list or banner. The controlled valid/refused-logo comparison gave five/six export findings respectively; it did not prove individual finding text on either export surface. The four wizard texts were wrapped, readable and actionable in the actual Windows window; `ew apply` advice was plain and actionable, with exit 2 and no structured dump. Typed tests separately cover image-finding semantics; no screenshot of individual export finding text is claimed. Four DeepSeek review rounds found the bypasses this list closes; the limits with a parser threshold (depth 64, reference depth 32, expansion 200,000, number 1e9, close-path runs 16) are unchanged. *Bounded (cycle 30, FT-470, FT-471; decision log ID-708):* the pre-scan refuses marker work beyond `MAX_SVG_MARKER_WORK` = 200,000 converted elements (shape segments, including kurbo's arc pieces, × the largest marker content per property, over every conversion that can carry a marker) and style work beyond `MAX_SVG_CSS_WORK` = 2^34 steps (simplecss's backtracking per depth, plus declaration application and `style` attributes, over every element conversion). Corpus maxima are 48 and 430,667,782. Non-plain sheets use every span that can end a valid selector, which closes a six-part-cap bypass through a comma in an attribute string. The expansion now counts references inside unreferenced ids. A usvg oracle checks the path-segment bound. *Path segments (cycle 30, FT-470 follow-up):* the pre-scan also refuses a document whose shape conversions (the document's and every reference's, markers or not) make more than `MAX_SVG_PATH_SEGMENTS` = 2^22 path segments (one per command, the move-to after a close-path, every kurbo cubic piece of an arc; a radius in `em`, `ex` or `%` counts as `f32::MAX`), and any arc of path data of more than `MAX_SVG_ARC_PIECES` = 64 pieces (svgtypes drains an arc's pieces quadratically; a radius within the number limit makes at most 55). The corpus maximum is 33,896. Kurbo cuts an arc whose radii are scaled up over a long chord, or an `em` radius under nested font sizes, into thousands to millions of pieces; this hang is now refused before usvg. A shape with an `em`, `ex` or `%` radius is refused (conservative; resolving the font-size chain is FT-501). Performance not measured (owner's rule). Conservative CSS/namespace refusals and missing KiCad/QElectroTech evidence remain FT-473. |
-| TM-19 | A hostile raster in the asset store (a PNG or JPEG logo or image item; FT-406): a decompression bomb (a huge declared size), a truncated or corrupt stream, a decoder panic, a CMYK or progressive JPEG on an unexpected path, or a GIF or WebP disguised as an image item | The asset store's sniff admits PNG and JPEG as its only raster formats (`AssetFormat`, beside SVG of TM-18); `ew-render-cpu`'s `decode_image` is the one decoder of both paths: `MAX_IMAGE_PIXELS` (16 Mi pixels) checked before allocation, zune-jpeg in strict mode, the EOI marker required after the last scan (ID-637), the decode inside `catch_unwind`, once per asset; the PDF and SVG writers embed an image only when that decode succeeds, and an undecodable one is the page finding `ImageProblem::Undecodable` with its bytes withdrawn from the export; krilla's GIF and WebP paths are disallowed methods; EXIF orientation is ignored and an ICC profile is embedded by krilla only (recorded limitations) | Hostile-input tests (truncated at every byte of the last 59, huge sizes, GIF and WebP bytes), the variant tests and the cross-platform decode hash; `check-disallowed-methods`; the real-exporter corpus of FT-436; the audits of FT-435 *Real-exporter corpus (cycle 28, FT-436):* eight public-domain raster files from Photoshop, GIMP, Illustrator, Inkscape and others (`crates/ew-export/tests/fixtures/raster-exporters/`: GIMP's public-domain sRGB ICC profile, progressive JPEGs, translucent, palette and grey PNGs) pass the asset sniff, decode, print on a PDF/A-2b page (a JPEG unchanged as DCT) and are inputs to the raster PDF/A-2b validation job, whose expected count is eight. All eight retained fixture PDFs generated from merged code passed external veraPDF 1.30.3 validation as PDF/A-2b (8/8 compliant), and the checker passed with `--expect-jobs 8`. Hosted validator results remain pending; the fuzz target `png_pdf` checks that a PNG `decode_image` accepts is written and drawn by the PDF writer. Five files with Adobe/HP ICC copyright notices were excluded because the image's public-domain declaration does not cover third-party profiles; real-exporter Adobe/HP ICC, PNG iCCP and grey-JPEG coverage remains a follow-up gap (FT-472), with separately verified image and embedded-profile licences required for replacements. No licence-clean CMYK or YCCK JPEG, 16-bit, grey-and-alpha or interlaced PNG, and no real JPEG without its EOI marker was found, so ID-637's EOI rule stands and these real-exporter gaps remain FT-472; generated fixtures/fuzz seeds remain separate evidence and do not fill them. EXIF-oriented real-exporter evidence also remains FT-472; orientation stays ignored. The original 13/13 local veraPDF result is historical evidence for the superseded candidate, not the corrected corpus or hosted steps (ID-662). |
+| TM-17 | Unexpected process spawn by a dependency: rfd 0.17.2 starts `zenity` from `PATH` when the XDG desktop portal call fails (no portal service, malformed response), so a same-user process that controls `PATH` or plants a `zenity` earlier on it runs code when the user opens a file dialog. Low risk: it needs same-user access, which already allows more | The portal first (the shell checks for a session bus before calling rfd); a future rfd feature set without the zenity fallback, or a check that the portal answers, removes the spawn. The cycle-20 audit records it in rfd's audit note | Review; FT-332 |
+| TM-18 | A hostile SVG in the asset store (`assets/`, the company logo and later image items). *Sniffing is not sanitising:* `ew-schema` recognises an SVG by its root element and takes its size from the header (an 8 MiB limit, 512 KiB for the logo), but it does not parse or clean the document. A DOCTYPE with an internal subset (entity expansion, a billion-laughs variant), `<script>`, `on*` event attributes, `foreignObject` and external `href`s (a file, a network address) would reach whatever draws the file. Today the DOCTYPE case is refused only by accident of the sniffer (`svg_root` stops at the first `>`, which ends inside an internal subset, so such a root is not found), not by a rule | Until cycle 24 no renderer drew SVG; since FT-384 the renderers draw SVG logos, so the rule below is in force. **Before any renderer draws SVG** the file is rejected or normalised through `usvg` in `ew-scene` (default features off: no text, no system fonts; the tree becomes `ew-dl` paths; no `resvg`; admission with the cargo-deny and cargo-vet audit): DOCTYPE internal subsets, `<script>`, `on*` attributes, `foreignObject` and external hrefs are refused or dropped, and an SVG is never handed to a web view or an OS renderer | *As built:* `ew_schema::svg_hazard` runs inside `sniff` and refuses DOCTYPE internal subsets, entities, scripts, `on*` attributes, `foreignObject` and any `href` that is not `#…` (embedded `data:` images too; accepting raster data URIs that pass the raster sniff is FT-407); after the usvg audit it also refuses nesting deeper than 64, reference cycles, expansion past 200,000 elements, markers inside markers, numbers above 1e9, overly complex CSS, `transform-origin` and `feConvolveMatrix`, the constructs the audit found to crash or hang the parser or renderer; the parse runs inside `catch_unwind`. Synthetic hostile SVGs test each refusal. The renderers now draw SVG logos (usvg in `ew-scene`, `ew-dl` paths). *Hardened in lane C's fix round:* numeric character references and the five predefined entities are decoded in attribute values and character data before the checks (an `&#48;`-spelled huge number and an `&#45;`-spelled `transform-origin` were bypasses), and any other reference is refused; a letter directly before a number no longer hides it (`A1e30`); `id`, `class` and `href` are not read as numbers; the `href` chains of gradients, patterns and filters join the cycle check, because a test proves that usvg 0.48.1 never returns on g1 → g2 → g3 → g2 without stops (a hang that `catch_unwind` cannot catch); reference chains are capped at `MAX_SVG_REF_DEPTH` = 32 (usvg recurses to 1024, and the viewer parses on the model's thread). Calibrating the limits and the refusal messages against real exporters' output is FT-418 *Calibrated against real exporters:* a corpus of 27 real files (Illustrator, Inkscape, Affinity, CorelDRAW, Visio, draw.io, LibreOffice; public domain or CC0, `crates/ew-schema/tests/fixtures/svg-exporters/`) fixes each verdict in a test. A hex colour or a fragment name is no longer read as a number (`#D63E25`); a DOCTYPE internal subset is named (`Entity`) instead of "not an SVG"; style sheets are read once per `style` element on its whole text (CDATA sections joined, as roxmltree does), bounded without parsing (selector groups at most commas + braces, `MAX_SVG_CSS_RULES` = 4,096; cloned declarations at most groups × colons, `MAX_SVG_CSS_DECLARATIONS` = 262,144, after the simplecss audit's "selector-group x declaration clone growth"), and their references follow the classes that use them; a sheet with strings, escapes, at-rules, braces in comments, a brace, `;` or comment inside parentheses, or a `url(` or `marker` outside its rule bodies counts as one rule for every element; markers are refused when any marker's content, its references, its classes or its ancestors can carry a marker property (usvg inherits them and stops only a marker re-entering itself), replacing the blanket rule that refused every Visio arrowhead; a repeated id, a `style` inside a `style` and two different hrefs on one element are refused; every relevant local id/class/href value is checked, conflicting duplicate local-name values fail closed independent of prefix/order, and equal duplicate values preserve calibrated behavior; case is preserved for duplicate comparisons before conservative lowercase checks. In every XML attribute raw CRLF normalizes to one space and standalone literal CR/LF/TAB to spaces before character-reference decoding; numeric-reference whitespace is preserved. Graph ids/references use these parser-normalized values so whitespace decoys cannot hide cycles; stylesheet text decoding stays distinct; `url(…)` targets are read as svgtypes reads a funcIRI (a quoted id keeps its spaces) and numbers with the SVG grammar (`0.5.5e39` is two numbers); namespace declarations are not attributes. Refusals carry re-export advice (`SvgHazard::advice`). The wizard and `ew apply` display the re-export advice. Export records a page-associated typed `PageFinding::Image`; the CLI reports aggregate finding counts only. In the normal Windows window a refused logo is omitted and the cover remains usable; there is no textual per-finding export list or banner. The controlled valid/refused-logo comparison gave five/six export findings respectively; it did not prove individual finding text on either export surface. The four wizard texts were wrapped, readable and actionable in the actual Windows window; `ew apply` advice was plain and actionable, with exit 2 and no structured dump. Typed tests separately cover image-finding semantics; no screenshot of individual export finding text is claimed. Four DeepSeek review rounds found the bypasses this list closes; the limits with a parser threshold (depth 64, reference depth 32, expansion 200,000, number 1e9, close-path runs 16) are unchanged. *Bounded:* the pre-scan refuses marker work beyond `MAX_SVG_MARKER_WORK` = 200,000 converted elements (shape segments, including kurbo's arc pieces, × the largest marker content per property, over every conversion that can carry a marker) and style work beyond `MAX_SVG_CSS_WORK` = 2^34 steps (simplecss's backtracking per depth, plus declaration application and `style` attributes, over every element conversion). Corpus maxima are 48 and 430,667,782. Non-plain sheets use every span that can end a valid selector, which closes a six-part-cap bypass through a comma in an attribute string. The expansion now counts references inside unreferenced ids. A usvg oracle checks the path-segment bound. *Path segments (follow-up):* the pre-scan also refuses a document whose shape conversions (the document's and every reference's, markers or not) make more than `MAX_SVG_PATH_SEGMENTS` = 2^22 path segments (one per command, the move-to after a close-path, every kurbo cubic piece of an arc; a radius in `em`, `ex` or `%` counts as `f32::MAX`), and any arc of path data of more than `MAX_SVG_ARC_PIECES` = 64 pieces (svgtypes drains an arc's pieces quadratically; a radius within the number limit makes at most 55). The corpus maximum is 33,896. Kurbo cuts an arc whose radii are scaled up over a long chord, or an `em` radius under nested font sizes, into thousands to millions of pieces; this hang is now refused before usvg. A shape with an `em`, `ex` or `%` radius is refused (conservative; resolving the font-size chain is FT-501). Performance not measured (owner's rule). Conservative CSS/namespace refusals and missing KiCad/QElectroTech evidence remain FT-473. |
+| TM-19 | A hostile raster in the asset store (a PNG or JPEG logo or image item): a decompression bomb (a huge declared size), a truncated or corrupt stream, a decoder panic, a CMYK or progressive JPEG on an unexpected path, or a GIF or WebP disguised as an image item | The asset store's sniff admits PNG and JPEG as its only raster formats (`AssetFormat`, beside SVG of TM-18); `ew-render-cpu`'s `decode_image` is the one decoder of both paths: `MAX_IMAGE_PIXELS` (16 Mi pixels) checked before allocation, zune-jpeg in strict mode, the EOI marker required after the last scan, the decode inside `catch_unwind`, once per asset; the PDF and SVG writers embed an image only when that decode succeeds, and an undecodable one is the page finding `ImageProblem::Undecodable` with its bytes withdrawn from the export; krilla's GIF and WebP paths are disallowed methods; EXIF orientation is ignored and an ICC profile is embedded by krilla only (recorded limitations) | Hostile-input tests (truncated at every byte of the last 59, huge sizes, GIF and WebP bytes), the variant tests and the cross-platform decode hash; `check-disallowed-methods`; the real-exporter corpus of FT-436; the audits of FT-435 *Real-exporter corpus:* eight public-domain raster files from Photoshop, GIMP, Illustrator, Inkscape and others (`crates/ew-export/tests/fixtures/raster-exporters/`: GIMP's public-domain sRGB ICC profile, progressive JPEGs, translucent, palette and grey PNGs) pass the asset sniff, decode, print on a PDF/A-2b page (a JPEG unchanged as DCT) and are inputs to the raster PDF/A-2b validation job, whose expected count is eight. All eight retained fixture PDFs generated from merged code passed external veraPDF 1.30.3 validation as PDF/A-2b (8/8 compliant), and the checker passed with `--expect-jobs 8`. Hosted validator results remain pending; the fuzz target `png_pdf` checks that a PNG `decode_image` accepts is written and drawn by the PDF writer. Five files with Adobe/HP ICC copyright notices were excluded because the image's public-domain declaration does not cover third-party profiles; real-exporter Adobe/HP ICC, PNG iCCP and grey-JPEG coverage remains a follow-up gap, with separately verified image and embedded-profile licences required for replacements. No licence-clean CMYK or YCCK JPEG, 16-bit, grey-and-alpha or interlaced PNG, and no real JPEG without its EOI marker was found, so ID-637's EOI rule stands and these real-exporter gaps remain FT-472; generated fixtures/fuzz seeds remain separate evidence and do not fill them. EXIF-oriented real-exporter evidence also remains FT-472; orientation stays ignored. The original 13/13 local veraPDF result is historical evidence for the superseded candidate, not the corrected corpus or hosted steps. |
 
 ### 11.2 `unsafe` and native code
 
@@ -1857,7 +1841,7 @@ flowchart LR
   has a `SAFETY:` comment, and CODEOWNERS requires a second maintainer's review (NFR-SEC-04).
 - **Native code.** It is limited to bundled SQLite in process and OCCT out of process.
 
-*As built (cycle 48, WP-S3.07 part 4; decision log ID-1218, ID-1226, ID-1233).* The allowlist is
+*As built.* The allowlist is
 `ci/unsafe-allowlist.toml`: `[crates]` names each crate that may use `unsafe` with the files where it may stand,
 today `ew-print` with `src/windows.rs` (17 blocks, each with its `SAFETY:` comment, reviewed by the cycle's
 independent reviewer, NFR-SEC-04). `cargo xtask check-unsafe` accepts a crate whose root forbids `unsafe_code` or
@@ -1865,7 +1849,7 @@ whose lints are the workspace's (amending the default above) and finds the keywo
 runs in `cargo xtask ci`, in lane-check's policy step and in CI's lint job. A listed crate's manifest copies the
 workspace's lints with `unsafe_code = "deny"`, and the listed module allows it.
 
-*As built (2026-11-05, cycle 51; WP-S6.04 D8, decision log ID-1363).* The allowlist names two crates: `ew-print`
+*As built.* The allowlist names two crates: `ew-print`
 (`src/windows.rs`) and `ew-testkit` (`tests/hostile_corpus/alloc.rs`, the counting `GlobalAlloc` and its four blocks,
 each with its `SAFETY:` comment, in the `hostile_corpus` test binary only; the library keeps `forbid`). The other
 candidates above enter the list when a package needs them. `check-unsafe` also lexes the fuzz crate, which holds no
@@ -1885,10 +1869,10 @@ candidates above enter the list when a package needs them. `check-unsafe` also l
 | Disclose | Publish the GitHub advisory; CVE through GitHub as CNA; RUSTSEC advisory for published crates; release notes | At release; embargo ≤ 90 days |
 | Learn | Post-mortem; threat-model update | Next minor |
 
-*As built (2026-11-05, cycle 51; WP-S6.04, decision log ID-1324, ID-1363, ID-1368).* `SECURITY.md` states the 0.1.0
+*As built.* `SECURITY.md` states the 0.1.0
 process in full: reports through GitHub's private vulnerability reporting only (on, read back by ID-1368), no role
 mailbox until the project has a domain (WP-S6.04 FP-5), the acknowledgement and triage deadlines above, the supported
-versions (0.1.x until 0.2.0, the latest 0.x release only before 1.0, ID-1324), the disclosure by GitHub advisory
+versions (0.1.x until 0.2.0, the latest 0.x release only before 1.0), the disclosure by GitHub advisory
 with a CVE per fixed vulnerability, and the CRA notification by 1.0 (WP-S6.10).
 
 ### 11.4 Incident runbook: key or pipeline compromise
@@ -1926,7 +1910,7 @@ network rules by §12.2:
 
 ### 12.1 Data-flow inventory (the content of `PRIVACY.md`)
 
-**0.1.0 has no update check and no crash upload** (decision log ID-1187): the first two flows below are 1.0's, and
+**0.1.0 has no update check and no crash upload**: the first two flows below are 1.0's, and
 `PRIVACY.md` reads "From 1.0" for them, under ADR-0029 as amended. The other flows are user-initiated and unchanged.
 
 | Flow | Trigger | Content | Endpoint | Default |
@@ -1941,7 +1925,7 @@ network rules by §12.2:
 There are no other flows: no telemetry or analytics, no install ID (NFR-PRIV-02), no font, symbol or part downloads,
 no licence check and no AI or translation service (NFR-PRIV-08). Changing this table requires an ADR (NFR-PRIV-07).
 
-*As built (cycle 23; decision log ID-579).* `PRIVACY.md` at the repository root now exists (FT-342 closed), with the
+*As built.* `PRIVACY.md` at the repository root now exists (closed), with the
 CC-BY-4.0 header of `SECURITY.md`, and the About dialog and the first-run privacy step each have a "Privacy
 (PRIVACY.md)" button that opens it. It has two tables. The network flows above are in it with an "In this version"
 column that says NOT IMPLEMENTED for every row (no flow is built: the update-check setting is stored and sends
@@ -1953,11 +1937,11 @@ not built). The second table is what EW **stores on the computer**, which this s
 |---|---|---|---|---|
 | Settings (including the recent-projects list) | Preferences; the list of recently opened projects | Per-user OS configuration directory | Until deleted | Project directory names and paths in the recent list |
 | Workspace layouts | Panes and docks | Per-user OS configuration directory | Until deleted | None about projects |
-| Crash journal (`journal/`) | Recovery of unsaved work | Per-user OS state directory, user-only permissions | Removed on a clean close; leftovers pruned after 30 days (NFR-PRIV-05) | **Project content, and the bytes of an asset such as the logo** (the journal carries each transaction's new assets in base64, ID-574, ID-578) |
+| Crash journal (`journal/`) | Recovery of unsaved work | Per-user OS state directory, user-only permissions | Removed on a clean close; leftovers pruned after 30 days (NFR-PRIV-05) | **Project content, and the bytes of an asset such as the logo** (the journal carries each transaction's new assets in base64) |
 | `.~ew.lock` | Who holds the project (05 §7) | In the project directory | Removed on close; `.~ew.lock.stale-*` after a takeover | **The OS user name and the host name** (and process ID and times) |
-| The project directory with its `assets/` | The project itself; image bytes by hash (05 §13.3) | Where the user saved it | Until the user deletes it; a save never removes an asset file (ID-574) | The project's content; the logo file |
+| The project directory with its `assets/` | The project itself; image bytes by hash (05 §13.3) | Where the user saved it | Until the user deletes it; a save never removes an asset file | The project's content; the logo file |
 
-Each row in `PRIVACY.md` also says how to delete it. Two rulings (ID-579):
+Each row in `PRIVACY.md` also says how to delete it. Two rulings:
 - **`.~ew.lock` is kept as it is.** It holds the OS user name and the host name, written into the project directory:
   that is its purpose, because a colleague who finds the project locked sees who holds it and from where (05 §7). The
   lock is not project data and is ignored by the marked block of the project's `.gitignore` (05 §11.1), but a project directory committed to a
@@ -1991,7 +1975,7 @@ ignored: other AF_UNIX traffic (D-Bus, AT-SPI, Wayland) and AF_NETLINK (interfac
 - **Smoke flag.** `elektrawatt --smoke <project>`, as listed in the CLI catalogue of [17](17-extensibility.md)
   §3.3, opens the project, renders its pages and exits. It accepts no remote input, so it is no control endpoint.
 
-*As built (2026-11-04, cycle 50; WP-S6.05 D4, decision log ID-1338, ID-1339).* The namespace is made with `unshare
+*As built.* The namespace is made with `unshare
 --net` through `sudo`, loopback up, and the flows then run as the runner's user; instead of an `LD_PRELOAD` shim, a
 read of the name-lookup files (`/etc/resolv.conf`, `/etc/hosts`, `/etc/gai.conf`) and a `connect` to the resolver's socket is the DNS signal, from strace's
 `openat` lines. The flows are `ci/sandbox/`'s: `elektrawatt --smoke` on Golden A, a headless script (open, edit,
@@ -2003,7 +1987,7 @@ release binaries. The job has not run yet (PV-2).
 
 ### 12.3 Crash reports and logs
 
-**0.1.0 writes a local log only** (decision log ID-1187, NFR-REL-13): on a panic the hook below logs the message and
+**0.1.0 writes a local log only** (NFR-REL-13): on a panic the hook below logs the message and
 location with a backtrace and flushes the journal, and the next start offers recovery. It writes no minidump, runs no crash
 monitor and has no upload. The capture, the storage of minidumps, the upload payload and the scrubber below are 1.0's
 (NFR-PRIV-04).
@@ -2048,24 +2032,24 @@ payload := allowlisted fields only; anything else is dropped
 - Project-derived strings are logged through a `Sensitive<T>` wrapper that prints `<redacted:len>`. Help ▸
   Diagnostics can enable full text for the current session only. The setting resets on restart (NFR-PRIV-05).
 
-*As built (2026-11-04, cycle 50; WP-S6.05, decision log ID-1338, ID-1339), 0.1.0's form.* The panic hook of
+*As built, 0.1.0's form.* The panic hook of
 `bin/elektrawatt/src/crash.rs` logs **every** panic: it appends an entry (the lines L1 to L7: version, OS and architecture,
 time, thread, location, message and a forced backtrace) to one log per process in `<state>/crashes/`, and the end mark L8
 is written by `main` after its outer `catch_unwind`, which then exits 101; a panic caught in place (a rule run,
 tessellation, an image) leaves an entry without L8, which is never offered. There is **no abort and no journal
 flush**: every journal entry is synced as it is appended, so the hook leaves the journal alone, and the unwind reaches
 no clean close. One process's log takes at most 50 entries or 1 MiB, then the line "further panics not logged" (past
-the cap the session-ending panic gets no entry yet: FT-1311). The directories are 0700 and the logs 0600 on Unix; at
+the cap the session-ending panic gets no entry yet). The directories are 0700 and the logs 0600 on Unix; at
 start logs older than 30 days or beyond the 20 newest are pruned, and the newest unoffered log with L8 is offered with
-the leftover journals (05 §8.3). The log stays English, being read by support (decision log ID-1319). No other log is
+the leftover journals (05 §8.3). The log stays English, being read by support. No other log is
 written at 0.1.0; panics on other threads and a log for `ew` are FT-1304 and FT-1305.
 
 ---
 
 ## 13. EU Cyber Resilience Act readiness
 
-The owner ruled on 2026-10-22 that the legal and licensing items are "no longer relevant" as gate items (ID-454) and on
-2026-11-02 that the steward's CRA processes leave G-M2 (ID-1187); ID-1188 places them, and the signing conditions, at 1.0.
+The owner ruled on 2026-10-22 that the legal and licensing items are "no longer relevant" as gate items and on
+2026-11-02 that the steward's CRA processes leave G-M2; ID-1188 places them, and the signing conditions, at 1.0.
 The statements of when the regulation applies below stand as written. This document adds no legal reading of its own.
 
 ### 13.1 Dates and roles
@@ -2118,7 +2102,7 @@ and any commercial edition needs a liability review first.
 
 | Touchpoint | Behaviour | Owner |
 |---|---|---|
-| First-run privacy step | As specified for 1.0: update check off by default; crash reports local; `PRIVACY.md` one click away (0.1.0 has no update check and no crash upload, ID-1187) | 16 §9.1 |
+| First-run privacy step | As specified for 1.0: update check off by default; crash reports local; `PRIVACY.md` one click away (0.1.0 has no update check and no crash upload) | 16 §9.1 |
 | About dialog | Version, channel, build ID, render backend, privacy state, **support status** ("security fixes until 2029-03-19", computed offline), links to `PRIVACY.md`, `SECURITY.md`, notices and the bundled SBOM, engineering-verification disclaimer | FR-UI-038 |
 | Update notice (1.0) | Non-modal notification, "ElektraWatt 1.1.2 is available (security fix)", with Release notes and Download; never installs by itself | Here |
 | Crash dialog at next start | Recover project (05), Show report folder, Copy summary, Show upload content, Upload (only with an endpoint), Delete (FR-UI-050) | Here, 16 |
@@ -2150,7 +2134,7 @@ and any commercial edition needs a liability review first.
 2. **Short-lived certificates.** Artifact Signing certificates are short-lived. Without an RFC 3161 timestamp a
    signature stops validating when its certificate expires.
 3. **Notarisation outages delay releases.** Moot: macOS is not a supported platform and nothing is notarised
-   (decision log ID-880).
+  .
 4. **Self-hosted runners and fork PRs.** Running fork PRs on the performance runner would be remote code execution
    on project hardware (§5.4).
 5. **glibc drift.** A Linux binary built on ubuntu-24.04 needs glibc 2.39 and fails on Ubuntu 22.04. Release builds
@@ -2223,15 +2207,15 @@ prevention mechanisms from regressing.
 |---|---|---|---|
 | Test layers | 1–14 on GP, S and M, without the soak test; kittest flows of the MVP tasks; usability study before M2 (NFR-UX-01) | Layers for PLC, fluid, 3D, routing and `.ewpp`; 8 h soak (NFR-REL-14); PDF/UA-1 | Plugin sandbox tests (NFR-SEC-07); mutation testing of `ew-memo` (Could) |
 | Performance gate | S/M gating; L/XL measured and reported | L/XL gating; routing, collision, STEP benchmarks | — |
-| Platforms and CI | Windows, Linux (macOS not supported, ID-880); WARP and CPU-renderer jobs; best-effort Windows ARM64 and Linux arm64 artefacts built per release, non-gating (NFR-PLAT-01) | lavapipe 3D smoke (from M4) | — |
-| Packaging | Per-user setup, AppImage, CLI archives (ID-1187) | MSI with its policy keys, `.deb`, Flathub; `ew-step-worker` and `ew-wiring-viewer` in every package, plus portable viewer archives | — |
-| Signing and provenance | SLSA provenance and unsigned `SHA256SUMS`; an unsigned tag and unsigned Windows binaries (ID-1187) | Authenticode, the signed tag and signed `SHA256SUMS` (ADR-0030; earlier when the owner holds a signing identity); reproducible Linux builds (NFR-SEC-20) | — |
-| Updates | None: no update check (ID-1187) | Opt-in check, signed manifest, browser download; in-app download with verification; policy mirror | — |
+| Platforms and CI | Windows, Linux (macOS not supported); WARP and CPU-renderer jobs; best-effort Windows ARM64 and Linux arm64 artefacts built per release, non-gating (NFR-PLAT-01) | lavapipe 3D smoke (from M4) | — |
+| Packaging | Per-user setup, AppImage, CLI archives | MSI with its policy keys, `.deb`, Flathub; `ew-step-worker` and `ew-wiring-viewer` in every package, plus portable viewer archives | — |
+| Signing and provenance | SLSA provenance and unsigned `SHA256SUMS`; an unsigned tag and unsigned Windows binaries | Authenticode, the signed tag and signed `SHA256SUMS` (ADR-0030; earlier when the owner holds a signing identity); reproducible Linux builds (NFR-SEC-20) | — |
+| Updates | None: no update check | Opt-in check, signed manifest, browser download; in-app download with verification; policy mirror | — |
 | Supply chain | Full §10 set from the first commit | crates.io trusted publishing | — |
 | Security | `SECURITY.md`, threat model, fuzzing, `unsafe` allowlist, per-PR security tests (§11.5) | CRA runbook; tabletop exercise; OSS-Fuzz application | Worker OS sandbox (NFR-SEC-21) |
 | Privacy | Zero network (no update check, no crash upload), network sandbox, a local crash log with the panic's backtrace, redacted logs | Local minidump; opt-in scrubbed upload if ADR-0029 creates an endpoint | — |
-| *Security, as built for 0.1.0 (2026-11-05, cycle 51; WP-S6.04, ID-1363)* | `SECURITY.md` in full; `docs/security/threat-model.md` (TM-01 to TM-19 with their 0.1.0 state); seventeen fuzz targets with their seeds replayed in CI; the hostile corpus under its allocation bound; the `unsafe` allowlist of two crates; the import flows' file-access trace (`foreign-file`); the engineering-verification disclaimer (S3) on the approve and release dialogs and the reports | — | — |
-| CRA | None: the steward's processes apply from 1.0 (ID-1187, ID-1188) | Steward-grade processes (NFR-COMP-01); full application is already in force (2027-12-11 falls before 0.1.0 in the plan of record, §13.1); the 1.0 documentation set and the support-period declaration are complete | Manufacturer path only with a commercial decision |
+| *Security, as built for 0.1.0* | `SECURITY.md` in full; `docs/security/threat-model.md` (TM-01 to TM-19 with their 0.1.0 state); seventeen fuzz targets with their seeds replayed in CI; the hostile corpus under its allocation bound; the `unsafe` allowlist of two crates; the import flows' file-access trace (`foreign-file`); the engineering-verification disclaimer (S3) on the approve and release dialogs and the reports | — | — |
+| CRA | None: the steward's processes apply from 1.0 | Steward-grade processes (NFR-COMP-01); full application is already in force (2027-12-11 falls before 0.1.0 in the plan of record, §13.1); the 1.0 documentation set and the support-period declaration are complete | Manufacturer path only with a commercial decision |
 
 ---
 
@@ -2314,10 +2298,10 @@ CI-PR-10) and NFR-REL-15 (release atomicity, the fault-injection test of §3.13)
    timings informational.
 3. **Windows per-user installer format.** The candidates are NSIS, a dual-purpose MSI and MSIX. *Recommendation:*
    NSIS through cargo-packager at MVP. Consider MSIX only if enterprise users ask for it.
-4. **Signing identity and steward timing** (ADR-0030, [brainstorm](01-brainstorm.md) PQ-31). *Update (ID-1187):* 0.1.0
+4. **Signing identity and steward timing** (ADR-0030, [brainstorm](01-brainstorm.md) PQ-31). *Update:* 0.1.0
    ships unsigned, so this question is 1.0's, or earlier when the owner holds a signing identity. No Windows
    release can be signed with Artifact Signing without an organisation (ADR-0030, 19 LG-4); macOS needs no Apple
-   enrolment, since it is not a supported platform (decision log ID-880). *Recommendation:* name the phase-1 identity holder in the first
+   enrolment, since it is not a supported platform. *Recommendation:* name the phase-1 identity holder in the first
    90 days (PD-7a, WP-S0.05a of the global plan §14), because enrolment takes at least 12 months, and decide
    ADR-0030 in full by gate G-M1 (PD-7), so that the phase-1 steward (the pilot panel builder's company) can enrol in time for the MVP. Until then publish only nightlies
    labelled "unsigned development build" and no binary release (ADR-0023). Keep the SignPath Foundation OSS
@@ -2332,7 +2316,7 @@ CI-PR-10) and NFR-REL-15 (release atomicity, the fault-injection test of §3.13)
    [19](19-open-source-governance.md) ST-08, LG-4), so custody never depends on a personal account.
 7. **CRA reporting for stewards.** It is unclear whether Art. 24 brings the Art. 14 reporting duty from 2026-09-11
    for a steward. *Recommendation:* confirm with counsel. Set up the single-reporting-platform account and operate
-   the 24 h / 72 h / 14-day runbook from the steward's processes (1.0, ID-1188) either way.
+   the 24 h / 72 h / 14-day runbook from the steward's processes (1.0) either way.
 8. **Fuzzing infrastructure.** *Recommendation:* run ClusterFuzzLite-style batches on GitHub Actions from MVP, which
    needs no eligibility check, and apply to OSS-Fuzz after the first public release (eligibility **verify**,
    RE §11).
@@ -2343,14 +2327,13 @@ CI-PR-10) and NFR-REL-15 (release atomicity, the fault-injection test of §3.13)
    spike (G-SP) finds a deterministic scalar mode of vello_cpu, `ew render` and the CI goldens use it and PNG is
    byte-identical again on the same platform.
 10. **Windows ARM64 artefacts.** *Recommendation:* build and sign them as separate best-effort artefacts that do not
-    gate a release. (Intel macOS was part of this question; macOS is not a supported platform, decision log ID-880.)
+    gate a release. (Intel macOS was part of this question; macOS is not a supported platform, .)
 11. **Flatpak sandbox.** Projects on SMB shares and in arbitrary directories conflict with portal-only file access.
-    *Recommendation:* ship the AppImage at 0.1.0 and the `.deb` with it from 1.0 (ID-1187). At 1.0 ship Flathub with `--filesystem=home` and documented
+    *Recommendation:* ship the AppImage at 0.1.0 and the `.deb` with it from 1.0. At 1.0 ship Flathub with `--filesystem=home` and documented
     limits for network shares, tested through GVFS in CI-PR-11.
 12. **kittest image snapshots on CI.** Software adapters can change rendering with Mesa updates. *Recommendation:*
     pin the Mesa version in the CI image and take image snapshots only on Linux (lavapipe) and Windows (WARP).
-13. **wasmtime on hardened-runtime macOS** (1.x). **Moot** while macOS is not a supported platform (decision log
-    ID-880). This is the same question as [17](17-extensibility.md) open question 19, which owns it; §9.1 follows its outcome. JIT code generation needs an entitlement that weakens the
+13. **wasmtime on hardened-runtime macOS** (1.x). **Moot** while macOS is not a supported platform. This is the same question as [17](17-extensibility.md) open question 19, which owns it; §9.1 follows its outcome. JIT code generation needs an entitlement that weakens the
     hardened runtime. *Recommendation (as in 17):* measure wasmtime's portable interpreter (**verify**) on the
     sample importer and rule plugins before the plugin launch; ship the interpreter on macOS if a rule scope stays
     within the online budget of [17](17-extensibility.md) §8.4, otherwise add the JIT entitlement with an ADR.

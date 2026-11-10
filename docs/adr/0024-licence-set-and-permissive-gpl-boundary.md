@@ -100,7 +100,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    BSL-1.0 is added only if `cargo deny list` at M0 shows it; the osifont licence expression is added only if
    ADR-0028 bundles that font, with the exact SPDX expression verified with counsel.
 
-   *As built (cycle 28):* native clipboard support reaches clipboard-win 5.4.3 and error-code 3.4.0, both
+   *As built:* native clipboard support reaches clipboard-win 5.4.3 and error-code 3.4.0, both
    BSL-1.0. Their reviewed licence declarations/text satisfy NFR-LIC-04’s existing graph-triggered admission;
    `deny.toml`, `about.toml` and `fuzz/deny.toml` admit BSL-1.0 consistently so generated dependency notices
    include its text. The delivery correction updates only clipboard-win from withdrawn 5.4.1 to non-yanked
@@ -126,7 +126,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    only: the project importer through `import_qet` and the front door, one `.elmt` through
    `ew_api::import::import_qet_element`. Neither holds an edge to `ew-import-qet`, and the confinement rule of
    `ci/dep-rules.toml`, which `check-deps` enforces, reads `fuzz/Cargo.toml`'s direct dependencies as well as the
-   workspace's. A direct edge allowed elsewhere (ID-1328) never overrides decision 4.
+   workspace's. A direct edge allowed elsewhere never overrides decision 4.
 
 ## Consequences
 

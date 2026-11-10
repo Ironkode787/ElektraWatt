@@ -1,6 +1,6 @@
 # ADR-0011: Format versioning, per-kind migration and format-change windows
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23), 2026-10-30 (amendment 5, the project fragment's version rule, WP-S1.19 part 5), 2026-11-05 (amendment 4 annotated as applied again for `import_run`, cycle-52 design pass) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23), 2026-10-30 (amendment 5, the project fragment's version rule, WP-S1.19 part 5), 2026-11-05 (amendment 4 annotated as applied again for `import_run`) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -95,32 +95,31 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    document already names, may get its typed table within the current, unreleased 0.x format as an additive change:
    no format bump, no `$v` bump, the published schemas of that format re-blessed, and the additive rules of
    decision 1 and amendment 1 followed (optional members, catch-all enums, no type change of an existing member).
-   A build from before the change keeps such records verbatim (a reserved kind is not EW-CORE-016, decision log
-   ID-206) and their unknown members in `extra`, so no data is lost; it does not enforce the delete links of the
+   A build from before the change keeps such records verbatim (a reserved kind is not EW-CORE-016, decision log) and their unknown members in `extra`, so no data is lost; it does not enforce the delete links of the
    newly typed kind, so an older build that deletes a module leaves that module's channels dangling, which the newer
    build reports (FT-229, FT-230). Once a format is released, typing a reserved kind that adds cascade links, or any
    other semantics an older reader must apply to keep the file consistent, is a minor bump that raises
    `min_reader`, so an older build no longer writes such a file; typing without such semantics stays additive under
    decision 1 and amendment 1. First use: the PLC kinds `plc_config_project`, `channel` and `device_link`, the aspects
-   `plc_station` and `plc_module` and the part section `plc` in format 0.1 (cycle 13, decision log ID-333); the
-   precedent is the optional `TextSlot.style` member (decision log ID-197). Applied again in cycle 14 to the optional
-   member `Representation.anchor` (decision log ID-351): an optional member without cascade semantics, additive
+   `plc_station` and `plc_module` and the part section `plc` in format 0.1; the
+   precedent is the optional `TextSlot.style` member. Applied again in cycle 14 to the optional
+   member `Representation.anchor`: an optional member without cascade semantics, additive
    within 0.1. Applied again in cycle 18 to the members `positions` and `pin_of` of the part section `plc`, appended
    in that order (decision log ID-464, ID-465; [PLC](../design/10-plc-and-bus.md) §2.6). `pin_of` persists a small
    text language (a designation pattern with `{<expression in n>}` placeholders, or a list of designations); its
    forms are part of the format contract like a member's type: a later minor may add a form only as a new variant (a
    one-member object, kept verbatim by older readers under amendment 1), never by giving an existing string a new
    meaning, and a reader gives no pin for a pattern it cannot expand. Applied again in cycle 23, as a specification for
-   WP-S2.04 part 4a (decision log ID-566), to the reserved kinds `page_item` (rank 43) and `structure_box` (rank 44),
+   WP-S2.04 part 4a, to the reserved kinds `page_item` (rank 43) and `structure_box` (rank 44),
    both owned by their page's file: typed within the unreleased format 0.1, `schemas/0.1` re-blessed, no format or `$v`
    bump, every `page_item` variant the reader does not type kept as `Unknown(Value)`. They add cascade and unlink links
    (ADR-0009 amendment 8), which an older 0.1 build does not enforce; because no format is released, the newer build
    reports a stale wire-marker entry as a load finding instead of raising `min_reader`.
-   Applied again in cycle 50 (WP-S1.20; decision log ID-1316, ID-1340) to the fluid members `CpDef.port_role`,
+   Applied again in cycle 50 to the fluid members `CpDef.port_role`,
    `ConnectionKind::Fluid` with `line_kind`, `CpOverride.closure`, `PartSections.fluid` and `TextSlot.fallback`, each
    optional with an `Unknown` arm, `schemas/0.1` re-blessed with additions only; `closure.part` is a new link to a
    part copy that an older 0.1 build does not enforce, accepted for the unreleased format (amendment 6).
-   Applied again in cycle 51 (WP-S3.09 D6; decision log ID-1360, ID-1432) to the reserved kind `import_run` (rank 72,
+   Applied again in cycle 51 to the reserved kind `import_run` (rank 72,
    `imports/<run-uuid>.jsonl`), typed within 0.1 with `schemas/0.1` re-blessed with additions only, and to
    `ImportLineage.last_run`, now a link to the run without cascade; a build from before the change keeps the runs
    verbatim as a reserved kind.
@@ -128,7 +127,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    delegated; [architecture](../design/04-architecture.md) §5.5, [project format](../design/05-project-format-and-persistence.md)
    §12, [symbols, parts and macros](../design/07-symbols-parts-macros.md) §2.7). WP-S1.19 D12 makes a macro variant a
    project fragment that also carries the record kinds `channel` and `device_link` and, for a page macro, the page
-   records. `#ew-fragment v1` was defined for the clipboard (cycle 27) with eight record kinds; no amendment so far
+   records. `#ew-fragment v1` was defined for the clipboard with eight record kinds; no amendment so far
    said how the fragment itself is versioned. The rule is:
    - **A fragment version is bumped (`#ew-fragment v2`; the object form would then gain a version member, absent
      meaning v1) only when a reader of the previous version would misread new content or drop it silently.** New content that every older reader refuses

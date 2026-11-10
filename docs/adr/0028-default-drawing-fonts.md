@@ -91,7 +91,7 @@ entry records what is already built and in force.
      font per run ([ADR-0015](0015-display-list-renderers-pdf.md) amendment 8).
    - **Result.** The golden PDF embeds two subset fonts (Noto Sans Regular and Noto Sans Math Regular), drops no
      `.notdef` glyph and keeps its 63 link annotations; the nine "∞" cross-reference texts and "0V ⇄ PE" print with
-     real glyphs, so the first PNG approval (FT-10) can proceed.
+     real glyphs, so the first PNG approval can proceed.
 
 ## Consequences
 

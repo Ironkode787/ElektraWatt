@@ -116,10 +116,7 @@ these entries refine it.
      (an empty transaction, amendment 2).
    - **Validated twice.** The parameter schema first, then semantically by the parser the derivation reads the member
      with (`ew_derive::check_settings_member`): a value the derivation would only note as malformed or not apply is
-     refused with `CmdError::InvalidParams` at `/value` (a `numbering` scheme the derivation would not apply, decision
-     log ID-99 and ID-103; a `default` naming no scheme; unknown or unclosed format tokens; colour codes that are
-     neither IEC 60757 nor company codes on an IEC 60757 base; cross-sections that are not positive mm², AWG or
-     kcmil). Any other member is refused at `/member`. Ambiguous token sequences are refused once follow-up task
+     refused with `CmdError::InvalidParams` at `/value` (a `numbering` scheme the derivation would not apply, decision log and ; a `default` naming no scheme; unknown or unclosed format tokens; colour codes that are neither IEC 60757 nor company codes on an IEC 60757 base; cross-sections that are not positive mm², AWG or kcmil). Any other member is refused at `/member`. Ambiguous token sequences are refused once follow-up task
      FT-163 lands.
    - **Bulk, previewed, one undo step.** One stored value changes derived values on every page, so the command is
      `Cost::Bulk`; the preview shows the derived diff (`Session::derived_diff`: tags and cross-reference texts; wire
@@ -135,13 +132,13 @@ these entries refine it.
    - *Note (2026-10-24, lead designer; decision log ID-603; closed by FT-404 in cycle 27, ID-649).* The `HumanOnly` rule covers **undo
      and redo** too: undoing or redoing a step whose command is `HumanOnly` (today `project.checks.set`) is itself a
      `HumanOnly` act, refused from a script, command-log, MCP, plugin or Python origin and from an unconfirmed CLI. It
-     is not enforced as built (cycle 24): `Engine::undo` and `Session::undo` take no origin and the exposure check
-     lives only in command dispatch, so a scripted undo can revert a check-scheme change. **The fix route (FT-404):**
+     is not enforced as built: `Engine::undo` and `Session::undo` take no origin and the exposure check
+     lives only in command dispatch, so a scripted undo can revert a check-scheme change. **The fix route:**
      the history step records the strictest exposure of the commands it holds at commit (a coalesced step takes the
      strictest of its parts), and `undo` and `redo` take the caller's origin and refuse a `HumanOnly` step from a
      non-GUI origin or an unconfirmed CLI. Recording at commit rather than looking the command up at undo time keeps
      the check independent of what the registry holds then (a plugin command may be gone).
-     *As built (cycle 27, FT-404; decision log ID-649):* the history step records the strictest exposure class of its
+     *As built:* the history step records the strictest exposure class of its
      commands at commit (`Transaction.exposure`; Edit < Import < `HumanOnly` < Internal, a coalesced step the strictest
      of its parts), and `Engine::undo` and `redo` and `Session::undo` and `redo` take the caller's `&Origin` and refuse a
      `HumanOnly` step from every origin but the GUI and a confirmed CLI subcommand with `CmdError::Exposure`; a
@@ -165,8 +162,7 @@ these entries refine it.
    - **Soundness.** Every lookup is recorded in the transaction's read set, so `ReadSet::unchanged_since` and the
      optimistic rebase of amendment 2 see a change to a looked-up link as a conflict; a rebase test pins it.
    - **Cost.** A lookup scans the transaction's fresh rows besides the base index, so a transaction that creates many
-     referrers and looks them up (a bulk import) is O(fresh²) within that transaction. Recorded, not measured (decision
-     log ID-512); a bulk path that shows it gets a batched lookup.
+     referrers and looks them up (a bulk import) is O(fresh²) within that transaction. Recorded, not measured (decision log); a bulk path that shows it gets a batched lookup.
 5. **A transaction carries assets beside its ops** (2026-10-23, project owner (delegated), on FT-337 as built; decision
    log ID-573 to ID-575; [project format](../design/05-project-format-and-persistence.md) §8.1, §13.3,
    [architecture](../design/04-architecture.md) §3 rule 1). Image bytes are content-addressed and immutable, so they are
@@ -176,7 +172,7 @@ these entries refine it.
      nothing.
    - **Undo keeps assets.** Undo and redo move references, never bytes: the model keeps every asset it was given for the
      session, so undoing a logo change restores the reference with its bytes. A save never removes an asset file
-     (cleanup is an explicit, previewed purge, FT-380). *Note (2026-10-24, project owner (delegated) on lane C's
+     (cleanup is an explicit, previewed purge). *Note (2026-10-24, project owner (delegated) on lane C's
      review; decision log ID-605, ID-620):* the purge is built as `project.assets.purge`, a `Bulk`, **non-undoable
      marker line** in the sense of amendment 1 (it deletes files, not rows), and it is **`HumanOnly`** in the sense of
      amendment 3, not `Edit` with a `Destructive` confirmation: `Confirmation::Destructive` is metadata that no
@@ -188,10 +184,9 @@ these entries refine it.
      re-hashes each file before deleting it, so no undo can need a purged asset.
    - **Dirty and journal.** A transaction whose only content is an asset (no ops) still marks the project dirty and is
      journalled; the journal carries every asset the model after the transaction names unless it is on disk or already
-     in the segment (base64 at the 512 KiB logo bound; side files later, FT-381). A damaged journal asset is a recovery
+     in the segment (base64 at the 512 KiB logo bound; side files later). A damaged journal asset is a recovery
      finding (EW-CORE-015), not a refused replay.
-   - **Freshness.** Asset presence can change without a revision, so no memoised query reads it (ARCH §3 rule 1; the one
-     named exception `Q::logo_asset` until FT-382 makes the restriction mechanical).
+   - **Freshness.** Asset presence can change without a revision, so no memoised query reads it (ARCH §3 rule 1; the one named exception `Q::logo_asset` until makes the restriction mechanical).
 
 ## Consequences
 

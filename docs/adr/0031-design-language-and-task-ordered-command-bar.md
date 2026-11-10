@@ -1,6 +1,6 @@
 # ADR-0031: Design language and the task-ordered command bar
 
-**Status:** Accepted · amended 2026-10-30 (no macOS menu bar, decision log ID-880) · **Date:** 2026-10-28 · **Deciders:** lead designer; the project owner approved the look on
+**Status:** Accepted · amended 2026-10-30 (no macOS menu bar) · **Date:** 2026-10-28 · **Deciders:** lead designer; the project owner approved the look on
 [the mockup](../design/assets/design-language-mockup.html) (2026-10-28), and the orchestrator decided the remaining taste choices under the owner's delegation
 
 ## Context
@@ -9,9 +9,9 @@
   of eight menus and no toolbar, a hint strip under the menu that repeats the status bar, pane titles that repeat
   their tabs ("Pages" over a tab "Pages", "Page view" over the canvas tabs), a property grid whose every row carries
   "= authored" and an "edit" button and that lists internal fields (`$v`, keys, UUIDs), navigator rows without icons
-  and with "[QET grid]" in the text, a left tab strip that hides navigators behind an overflow arrow (FT-509),
-  dialogs with grey centred titles and buttons of equal weight, chips that collide on the canvas (FT-507, FT-508) and
-  highlight colours below the sheet's contrast floor (FT-506). The owner calls it "a great big mess" and asks for a
+  and with "[QET grid]" in the text, a left tab strip that hides navigators behind an overflow arrow,
+  dialogs with grey centred titles and buttons of equal weight, chips that collide on the canvas and
+  highlight colours below the sheet's contrast floor. The owner calls it "a great big mess" and asks for a
   design language: sleek, clear, minimalist, the eye drawn to what matters, a logical menu progression
   ([16a](../design/16a-design-language.md) §1).
 - **Who uses it.** Panel builders who know EPLAN (a ribbon since EPLAN 2022, which replaced its menus and toolbars),
@@ -19,7 +19,7 @@
   passed by people who find commands without help.
 - **What is already fixed.** egui/eframe behind `ew-ui` (ADR-0014); one action registry from which menus, palette,
   keymaps and tooltips are built ([16](../design/16-ux-ui.md) §2.4); docking with egui_tiles; Noto Sans as the bundled
-  face (ADR-0028, ID-37); print-true sheet colours (FR-UI-043); the accessibility NFRs (NFR-A11Y-01 to -04); the
+  face (ADR-0028); print-true sheet colours (FR-UI-043); the accessibility NFRs (NFR-A11Y-01 to -04); the
   semantic token list of doc 16 §11.1, which was never given values.
 - **Doc 16 §1 and ARCH §16 say "no ribbon".** The reasons recorded then (`docs/research/gaps-and-corrections.md`):
   a ribbon is costly and non-native in egui, and QET only added command search. Neither holds for a single-row
@@ -49,8 +49,8 @@
    selection's surface. The command bar is generated from the action registry (`ActionMeta` gains its tab, group,
    size and icon), so menus, bar, palette and keys cannot disagree.
 4. **The menu bar becomes the app menu** on Windows and Linux (one button, the same tree as today, opened by its
-   button, Alt or F10). The macOS global menu bar (muda, FT-310) is not built: macOS is not a supported platform
-   (2026-10-30, decision log ID-880).
+   button, Alt or F10). The macOS global menu bar (muda) is not built: macOS is not a supported platform
+  .
    Nothing is reachable only from the bar or only from the menu.
 5. **The window layout:** command bar on top; on the left an icon rail of navigators and one navigator panel with
    Properties docked below it; the canvas in the centre with its tabs and a floating tool HUD; a right rail with the

@@ -1,6 +1,6 @@
 # Panel layout: 2D, 3D, routing, wire lengths and thermal
 
-**Status:** Draft v0.1 · Amended 2026-10-31, cycle 40 (WP-S4.01 part 2, decision log ID-932): §2.6's MVP queries, §2.7's predicate and Open question 3 as built · Amended 2026-10-31, cycle 41 (WP-S4.01 parts 3 and 5, decision log ID-951 to ID-955, ID-977, ID-978, ID-996): §5.1 to §5.3 as built · Amended 2026-11-02, cycle 46 (FT46c, decision log ID-1148, ID-1159): §5.1's scale series gains 1:1, 1:50 and 1:100, the fitting scale of a new panel page as built · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1
 
 **Purpose.** This document designs the physical side of an ElektraWatt (EW) project: layout spaces, enclosures and
 mounting surfaces modelled at 1:1 in nanometres, rails and ducts as parametric carriers, placements bound to
@@ -258,7 +258,7 @@ Optional accuracy fields for robot wiring stay out of v1 (PARK-07); the record i
 | `wire_length(wire)` | `LengthBreakdown`, source | I (reads committed) | committed route, policy, overrides |
 | `thermal(space)` | `ThermalResult` | II, job | placements, loss models, load model, enclosure, inputs, coefficient set |
 
-*As built (cycle 40, WP-S4.01 part 2; decision log ID-932).* The MVP's queries are in `ew_derive::layout` (D2: no
+*As built.* The MVP's queries are in `ew_derive::layout` (D2: no
 `ew-panel` crate yet), and none is stored: a footprint, a label, the unplaced list and an occupancy are derived from
 the placement records and the part data each time. Values are integer nanometres in the mounting surface's frame
 (u right, v up), exact, since carriers are axis-parallel and turns are quarter turns. `mountable(dev)` (D8, cold; §2.7
@@ -292,7 +292,7 @@ location":
 | Enclosure and surface devices | Exempt: they are the layout | -UC1, NSYPMM107 plate |
 | Integral device (kind `PeStud`, no part, parent = a surface's device) | Exempt; its CPs take their 3D position from the parent part's CP3D (the plate's PE stud), so wires to it stay routable | -XPE (waiver W-1); W6 ends on the plate's PE stud |
 
-*As built (cycle 40, WP-S4.01 D8; decision log ID-932).* `ew_derive::layout::Mountable`, first match wins: (1) a device
+*As built.* `ew_derive::layout::Mountable`, first match wins: (1) a device
 whose location has no layout space is not considered (*supplied by others* waits for its attribute, FT-209); (2) the
 device of an enclosure or a surface is exempt; (3) a strip with terminals is mountable as one placement without a
 part; (4) a terminal of a strip, a cable and a device without functions are exempt; (5) a part use whose part has a
@@ -378,17 +378,16 @@ snap_on_rail(rail, device, cursor, mode):
   accessories, and recomputes on every strip change. Adding a terminal in the schematic lengthens the placed strip in
   the next derivation; if the rail overflows, EW-LAY-010 reports it. A strip may be split across carriers with
   `segment` ranges, and it stays one BOM row (D-42).
-  *As built (cycle 52, FT-1441; decision log ID-1416).* A strip that grows by `terminal.insert` or by a new terminal
+  *As built.* A strip that grows by `terminal.insert` or by a new terminal
   placed in the schematic shifts the items after it on its rail by the overlap, cascading as push does (§3.3), in the
   same transaction: free space after the strip is used first, a locked item stops the cascade (EW-LAY-010 then reports
   the overlap), and past the rail end the positions are written and EW-LAY-010 reports `bracket_outside`. The command
   is never refused for the layout's sake. A strip whose footprint is unknown before or after (a terminal without a
   part, so every `terminal.add`) pushes nothing. A strip turned 180° grows left, so it pushes the items before it,
   leftwards, by the same cascade on the rail's coordinates mirrored: the gaps stay the real frame's, so between two
-  strips the bracket of the strip on the left, as EW-LAY-010 judges it (C53-p2#3, ID-1480), a locked item stops the
-  cascade, and past the rail's start the positions are written and EW-LAY-010 reports `bracket_outside` (cycle 53,
-  FT-1495; ID-1455). The pushes of one command cascade from one another: each reads the positions and the strip
-  widths the transaction holds (C53-p2#2).
+  strips the bracket of the strip on the left, as EW-LAY-010 judges it, a locked item stops the
+  cascade, and past the rail's start the positions are written and EW-LAY-010 reports `bracket_outside`. The pushes of one command cascade from one another: each reads the positions and the strip
+  widths the transaction holds.
 - **Group accessories** (FR-LAY-060, MVP). A group is a maximal run of abutting strip placements on one rail.
   Wherever strips are placed, `rail_occupancy` derives one end bracket per strip boundary in the run plus one at each
   run end, so k abutting strips need k + 1 brackets. GP rail R2 holds 1X1, -X1031 and -X1032 abutting: **4**
@@ -406,14 +405,14 @@ snap_on_rail(rail, device, cursor, mode):
 
 | Event | Effect | Never |
 |---|---|---|
-| Device part changes (wider MCB on -102F1) | `placement_geometry` re-derives the footprint at the same pose; an overlap with -102F2 is reported (EW-LAY-006, FR-LAY-007) | neighbours are moved, except by a strip placed as a whole whose terminal the change widened: it pushes as a growing strip does (§3.4; cycle 53, FT-1497, ID-1455) |
+| Device part changes (wider MCB on -102F1) | `placement_geometry` re-derives the footprint at the same pose; an overlap with -102F2 is reported (EW-LAY-006, FR-LAY-007) | neighbours are moved, except by a strip placed as a whole whose terminal the change widened: it pushes as a growing strip does (§3.4) |
 | Device renumbered (T55 → T57) | the label changes in the same commit; no file under `layout/` changes (FR-LAY-006, D-01, D-02) | stored label text |
 | Device deleted | placement cascades; the transaction lists it in the preview; routes of its wires become unrouted | orphan placement |
 | Device location changes (+J-E-2416 → +J-E-206) | placement kept; EW-LAY-004 with quick fixes "remove placement" and "move to the layout space of +J-E-206" | silent move |
 | Terminal added to a placed strip | strip length grows; EW-LAY-010 on overflow | rail auto-extension |
 | Part use removed that a placement names | EW-LAY-003; quick fix "realise the primary part" | silent retarget |
 
-*As built (cycle 52, FT-1441; decision log ID-1416).* "Terminal added to a placed strip" now also moves the items after
+*As built.* "Terminal added to a placed strip" now also moves the items after
 the strip on its rail by the overlap, as §3.4's as-built note says; the strip's length still grows and EW-LAY-010 still
 reports an overflow, and the rail is still never extended.
 
@@ -477,8 +476,8 @@ unverified constant reports at most a warning (FR-CHK-046).
 
 A `PanelLayout` page ([06](06-schematic-editor.md) §2.2) shows one mounting surface (FR-LAY-010). It carries:
 
-- `Page.scale`: a ratio from the configured series (1:1, 1:2, 1:5, 1:10, 1:20, 1:50, 1:100, after ISO 5455; ID-1148) or
-  `NotToScale`; the title block binds it (FR-REP-033, REF-070); *as built (cycle 46, ID-1159):* a page still not to
+- `Page.scale`: a ratio from the configured series (1:1, 1:2, 1:5, 1:10, 1:20, 1:50, 1:100, after ISO 5455) or
+  `NotToScale`; the title block binds it (FR-REP-033, REF-070); *as built:* a page still not to
   scale takes, with its first surface view, the first ratio of the series at which the surface's usable outline fits
   the drawing area (a chosen scale kept), a page without a frame form reading the default frame grid's area;
 - a `SurfaceView` page item **(add)** `{surface, side: Front | Back, datum_at: Pt2, clip: Rect?, label_mode:
@@ -497,7 +496,7 @@ rounding to the nearest nm. At 1:10 the GP enclosure (W 750 × H 1000 mm ▲U-26
 which leaves the grid columns right of the plate for the legend. Changing the scale changes no stored pose
 (FR-LAY-002).
 
-*As built (cycle 41, WP-S4.01 part 3; decision log ID-951, ID-952, ID-955, ID-977).* The page item `surface_view`
+*As built.* The page item `surface_view`
 is typed with `surface`, `datum_at` and `label_mode`; `side`, `clip` and `layers` stay verbatim until typed
 ([03](03-domain-model.md) §6). `page.surface_view.set {page, surface, datum_at, label_mode?}` sets it on a
 `panel_layout` page and is refused on another kind; a second set replaces the view in place; the view cascades with
@@ -506,7 +505,7 @@ every frame of Golden A and the starters), so the projection divides by it too, 
 (10⁹ without a map), i128, one rounding half away from zero; the datum stays in page coordinates. On 902 the
 enclosure measures 75.0 × 100.0 mm printed (76.043 mm on the page for its 750 mm edge). A page without a scale draws
 the surface at 1:1 on the page. The projection is built in `ew-scene`'s `panel` module from a view that `ew-api` fills
-from the layout queries (arch §3, ID-957).
+from the layout queries (arch §3).
 
 ### 5.2 Layers of the display list
 
@@ -530,7 +529,7 @@ move rebuilds `placements` and `labels` only, never `frame` or `tables`.
 Every item carries an `EntityRef` (placement, carrier, feature), so hit-testing, selection sync and "show all
 representations" work on folio 902 as on schematic pages (FR-UI-007).
 
-*As built (cycle 41, WP-S4.01 part 3; decision log ID-951, ID-955, ID-978).* The `surface`, `carriers`, `placements`
+*As built.* The `surface`, `carriers`, `placements`
 and `labels` layers are drawn, each its own memo family (`page_display_list_surface`, `_carriers`, `_placements`,
 `_labels`); `features` and `dims` stay empty until 1.0, and the embedded blocks of a panel page are drawn by WP-S4.01
 part 4b. `surface`: the enclosure outline, the plate outline and the usable polygon thin dashed; `carriers`: per
@@ -557,12 +556,12 @@ placed (a cut, not a paper-coloured fill), so the carriers layer reads the label
   paper. "-101F1" in `xref.device` (1.83 mm em, ink height ≈ 1.31 mm with the default font's cap height of 0.714 em,
   length ≈ 5.8 mm) does not fit horizontally but fits rotated: 1.31 + 0.2 = 1.51 mm ≤ 1.8 mm.
 
-*As built (cycle 41, WP-S4.01 part 3; decision log ID-953, ID-954, ID-978).* `layout.label` is a constant of
+*As built.* `layout.label` is a constant of
 `ew-scene` bound to the `xref.device` style, not a slot kind of the symbol library. The ink box is estimated as the
 shaped text's advance + 0.2 mm by the face's cap height + 0.2 mm, plus the descent only when the text has a descender
 (a true ink-box query is FT-870), and compared with the footprint in page space; a label placed outside starts its
 leader 1.5 mm off the footprint, above it, or below when above leaves the surface. Balloons are not built (1.0, FP-3).
-A function's placement adds no ":" suffix, since functions carry no designation member (ID-932).
+A function's placement adds no ":" suffix, since functions carry no designation member.
 
 ### 5.4 Legend and PART DATA
 
@@ -572,7 +571,7 @@ layout-only accessories. Positions are derived and renumber when rows are added;
 same query, so they cannot disagree. Rows come from the same `RowSet` as XLSX and CSV (FR-REP-030). The embedded
 PART DATA box of folio 902 is kept for fidelity with the reference and is bound to -UC1's part lines (REF-069).
 
-*As built (cycle 42, WP-S4.01 part 4b; decision log ID-1001 to ID-1003).* The legend is the embedded report block
+*As built.* The legend is the embedded report block
 `legend-902` of kind `enclosure_legend` on 902, rect 108.00–278.00 × 19.50–167.50 mm printed (doc 20 §17.3), drawn as
 a boxed table titled "LEGEND" in two flow columns of a header and up to 20 rows of 6.52 mm each (40 rows; Golden A's
 30 print as 20 + 10); printed columns position, DT, quantity without its unit and part number at weights
@@ -1302,7 +1301,7 @@ for:
 3. **Golden plate and rail geometry.** U-26 fixes the enclosure test size and the scale but not the plate's usable
    area, the rail lengths or the gland plate. *Recommendation:* add test values to [20](20-golden-project.md) §13
    (for example a 650 × 900 mm usable plate and a bottom gland surface ▲) and confirm the real NSYPMM107 data with
-   the pilot (PQ-24). **Resolved (cycle 40, WP-S4.01 D13; decision log ID-932):** [20](20-golden-project.md) §13's
+   the pilot (PQ-24). **Resolved:** [20](20-golden-project.md) §13's
    test geometry (▲U-50): the plate 650 × 900 mm, centred at plate frame (50, 50) mm in the 750 × 1000 × 420 mm
    enclosure, the eight carriers in plate millimetres (rails 1.71 m, ducts 3.17 m) and the twenty placements; no gland
    surface at the MVP; the real NSYPMM107 data stay a pilot question (PQ-24).
