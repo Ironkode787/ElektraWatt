@@ -172,45 +172,6 @@ fn step_b1_previews_list_the_derived_changes() {
 }
 
 #[test]
-fn step_b1_keeps_the_topology_and_one_undo_per_step_returns_to_golden_a_byte_for_byte() {
-    let b = batch();
-    let mut s = session_oracle(&b);
-    let before = s.world();
-    let records_before = ew_commands::rows::model_lines(&before.model).unwrap();
-    let (partition, connections) = {
-        let q = s.query();
-        (
-            q.get::<PotentialPartition>(()),
-            q.connections()
-                .iter()
-                .map(|(_, c)| (**c).clone())
-                .collect::<Vec<Connection>>(),
-        )
-    };
-
-    run(&mut s, "b1-page-based-tags.ewcmd");
-    assert_eq!(s.history().entries().len(), 2, "one undo step per script line");
-    {
-        let q = s.query();
-        assert_eq!(*q.get::<PotentialPartition>(()), *partition);
-        let wires: Vec<Connection> = q.connections().iter().map(|(_, c)| (**c).clone()).collect();
-        assert_eq!(wires, connections);
-    }
-
-    s.undo(&ew_api::Origin::Gui).expect("undo the renumber");
-    let after_settings = ew_commands::rows::model_lines(&s.world().model).unwrap();
-    assert_ne!(after_settings, records_before, "the strip rule is still dropped");
-    s.undo(&ew_api::Origin::Gui).expect("undo the settings edit");
-    assert_eq!(
-        ew_commands::rows::model_lines(&s.world().model).unwrap(),
-        records_before,
-        "two undos restore Golden A record for record"
-    );
-    assert!(s.world().model.content_eq(&before.model));
-    assert!(s.take_oracle_mismatches().is_empty());
-}
-
-#[test]
 fn steps_b1_then_b2_give_the_final_tag_map_and_three_undos_return_to_golden_a() {
     let b = batch();
     let mut s = golden_common::session(&b);
@@ -310,51 +271,53 @@ fn step_b2_moves_folio_106_to_104_and_changes_exactly_two_tags_and_fourteen_xref
     assert_eq!(folios_before.len(), folios_after.len());
 }
 
+/// A variant script keeps the topology (the potential partition and every connection record) and each of its lines
+/// is one undo step; the undos restore Golden A record for record. The oracle is on.
 #[test]
-fn step_b2_keeps_the_topology_and_one_undo_restores_the_records_byte_for_byte() {
-    let b = batch();
-    let mut s = session_oracle(&b);
-    let before = s.world();
-    let records_before = ew_commands::rows::model_lines(&before.model).unwrap();
-    let (partition, connections) = {
-        let q = s.query();
-        (
-            q.get::<PotentialPartition>(()),
-            q.connections()
-                .iter()
-                .map(|(_, c)| (**c).clone())
-                .collect::<Vec<Connection>>(),
-        )
-    };
-    assert_eq!(
-        connections.len(),
-        72 + 19 + 2 + 16, // WP-S1.20 GA-2: the fluid lines F1 to F16
-        "wires, bridges and the two bus connections"
-    );
+fn the_steps_keep_the_topology_and_one_undo_per_line_returns_to_golden_a_byte_for_byte() {
+    for (script, lines) in [("b1-page-based-tags.ewcmd", 2), ("b2-renumber-pages.ewcmd", 1)] {
+        let b = batch();
+        let mut s = session_oracle(&b);
+        let before = s.world();
+        let records_before = ew_commands::rows::model_lines(&before.model).unwrap();
+        let (partition, connections) = {
+            let q = s.query();
+            (
+                q.get::<PotentialPartition>(()),
+                q.connections()
+                    .iter()
+                    .map(|(_, c)| (**c).clone())
+                    .collect::<Vec<Connection>>(),
+            )
+        };
 
-    run(&mut s, "b2-renumber-pages.ewcmd");
-    assert_eq!(s.history().entries().len(), 1, "the script line is one undo step");
-    {
-        // Identical topology: the potential partition and every connection record, compared by UUID.
-        let q = s.query();
-        let after = q.get::<PotentialPartition>(());
-        assert_eq!(*after, *partition);
-        assert_eq!(after.potential_count(), partition.potential_count());
-        let wires: Vec<Connection> = q.connections().iter().map(|(_, c)| (**c).clone()).collect();
-        assert_eq!(wires, connections);
+        run(&mut s, script);
+        assert_eq!(
+            s.history().entries().len(),
+            lines,
+            "{script}: one undo step per script line"
+        );
+        {
+            let q = s.query();
+            assert_eq!(*q.get::<PotentialPartition>(()), *partition, "{script}");
+            let wires: Vec<Connection> = q.connections().iter().map(|(_, c)| (**c).clone()).collect();
+            assert_eq!(wires, connections, "{script}");
+        }
+
+        for undone in 1..=lines {
+            assert_ne!(
+                ew_commands::rows::model_lines(&s.world().model).unwrap(),
+                records_before,
+                "{script}: still changed before undo {undone}"
+            );
+            s.undo(&ew_api::Origin::Gui).expect("undo");
+        }
+        assert_eq!(
+            ew_commands::rows::model_lines(&s.world().model).unwrap(),
+            records_before,
+            "{script}: the undos restore Golden A record for record"
+        );
+        assert!(s.world().model.content_eq(&before.model), "{script}");
+        assert!(s.take_oracle_mismatches().is_empty(), "{script}");
     }
-    assert_ne!(
-        ew_commands::rows::model_lines(&s.world().model).unwrap(),
-        records_before,
-        "the folio numbers changed"
-    );
-
-    s.undo(&ew_api::Origin::Gui).expect("one undo");
-    assert_eq!(
-        ew_commands::rows::model_lines(&s.world().model).unwrap(),
-        records_before,
-        "one undo restores Golden A record for record"
-    );
-    assert!(s.world().model.content_eq(&before.model));
-    assert!(s.take_oracle_mismatches().is_empty());
 }

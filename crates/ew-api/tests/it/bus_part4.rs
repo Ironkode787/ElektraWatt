@@ -20,8 +20,10 @@ use ew_ids::Id;
 use ew_schema::{Device, Function, LogicalNet, PhysicalNet};
 use serde_json::json;
 
-fn ids() -> BTreeMap<String, String> {
-    golden_common::ids_by_key(&golden_common::batch())
+/// The golden batch's IDs by key and a session over it.
+fn golden() -> (BTreeMap<String, String>, Session) {
+    let batch = golden_common::batch();
+    (golden_common::ids_by_key(&batch), golden_common::session(&batch))
 }
 
 fn id<T>(ids: &BTreeMap<String, String>, key: &str) -> Id<T> {
@@ -59,8 +61,7 @@ const EXTERNAL_END: &str = "external end DP (+J-E-206 / JE-N1000-03)";
 /// on the logical net DP.
 #[test]
 fn bu2_one_segment_from_the_external_end_to_the_station_port() {
-    let ids = ids();
-    let s = golden_common::session(&golden_common::batch());
+    let (ids, s) = golden();
     let q: Q = s.query();
     let pnet: Id<PhysicalNet> = id(&ids, "physical_nets|DP");
     let lnet: Id<LogicalNet> = id(&ids, "logical_nets|DP");
@@ -95,8 +96,7 @@ fn bu2_one_segment_from_the_external_end_to_the_station_port() {
 /// is in neither BOM.
 #[test]
 fn bu4_the_external_partner_is_the_master_and_in_no_bom() {
-    let ids = ids();
-    let s = golden_common::session(&golden_common::batch());
+    let (ids, s) = golden();
     let q: Q = s.query();
     let lnet: Id<LogicalNet> = id(&ids, "logical_nets|DP");
     let members = q.get::<NetMembersOf>(lnet);
@@ -122,8 +122,7 @@ fn bu4_the_external_partner_is_the_master_and_in_no_bom() {
 /// plug's termination derives "Switch to "ON"" (drawn by no slot of folio 3 yet).
 #[test]
 fn bu5_the_port_texts() {
-    let ids = ids();
-    let s = golden_common::session(&golden_common::batch());
+    let (ids, s) = golden();
     let q: Q = s.query();
     let functions = q.functions();
     let port = functions
@@ -144,8 +143,7 @@ fn bu5_the_port_texts() {
 /// info stays, and On again clears the error.
 #[test]
 fn bu6_ac31_the_bus_checks_on_golden_a() {
-    let ids = ids();
-    let mut s = golden_common::session(&golden_common::batch());
+    let (ids, mut s) = golden();
     let report = s.check(&PRE_DELIVERY, CheckMode::Release);
     assert_eq!(
         open(&report, "EW-BUS-004"),
