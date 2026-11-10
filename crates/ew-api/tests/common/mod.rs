@@ -8,6 +8,7 @@
 
 use std::path::{Path, PathBuf};
 
+use ew_api::library::LibraryTiers;
 use ew_api::{Session, SessionOptions};
 use ew_import_tables::ew_interop_api::{ImportBatch, ImportInput};
 use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
@@ -109,4 +110,24 @@ pub fn red_png(w: u32, h: u32) -> Vec<u8> {
 /// How often `needle` occurs in `hay`.
 pub fn count(hay: &[u8], needle: &[u8]) -> usize {
     hay.windows(needle.len()).filter(|w| *w == needle).count()
+}
+
+/// A temporary directory, removed on drop.
+pub struct Dir(pub PathBuf);
+
+impl Drop for Dir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// The library tiers under `root`, with no company tier.
+pub fn tiers(root: &Path) -> LibraryTiers {
+    LibraryTiers {
+        system: Vec::new(),
+        community: root.join("data").join("packs"),
+        company: Vec::new(),
+        user: root.join("data").join("libraries"),
+        cache: root.join("cache"),
+    }
 }

@@ -16,10 +16,10 @@
 //!   on their CPs.
 //! - **MC-7** for both: twice-run determinism of the saved documents and the composed commands.
 
+use crate::common::{Dir, tiers};
 use crate::golden_common;
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path, PathBuf};
 
 use ew_api::library::{LibraryTiers, Registry};
 use ew_api::output::TableEnd;
@@ -31,24 +31,6 @@ use ew_mltext::MlText;
 use ew_schema::{Device, Endpoint, Function, LibDocument, Page, Record, Representation};
 use ew_units::{Orient2, Pt2};
 use serde_json::{Value, json};
-
-struct Dir(PathBuf);
-
-impl Drop for Dir {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn tiers(root: &Path) -> LibraryTiers {
-    LibraryTiers {
-        system: Vec::new(),
-        community: root.join("data").join("packs"),
-        company: Vec::new(),
-        user: root.join("data").join("libraries"),
-        cache: root.join("cache"),
-    }
-}
 
 /// A fresh, empty user library.
 fn user_library(name: &str) -> (Dir, LibraryTiers, Uuid) {

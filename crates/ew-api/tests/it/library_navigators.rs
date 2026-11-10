@@ -6,9 +6,8 @@
 //! lists a saved macro under its tier and its detail lists the devices (UI-1); a new macro instance ID is
 //! deterministic and skips held IDs.
 
+use crate::common::{Dir, tiers};
 use crate::golden_common;
-
-use std::path::{Path, PathBuf};
 
 use ew_api::library::{LibraryTiers, Registry};
 use ew_api::output::{NavKind, NavNode, NavRole, NavTable};
@@ -17,24 +16,6 @@ use ew_ids::Uuid;
 use ew_mltext::MlText;
 use ew_schema::{LibDocument, Record};
 use serde_json::json;
-
-struct Dir(PathBuf);
-
-impl Drop for Dir {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn tiers(root: &Path) -> LibraryTiers {
-    LibraryTiers {
-        system: Vec::new(),
-        community: root.join("data").join("packs"),
-        company: Vec::new(),
-        user: root.join("data").join("libraries"),
-        cache: root.join("cache"),
-    }
-}
 
 /// Golden A with the libraries of `tiers`, in memory.
 fn golden(tiers: Option<LibraryTiers>) -> Session {

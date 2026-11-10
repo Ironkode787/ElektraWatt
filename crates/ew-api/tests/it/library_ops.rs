@@ -5,9 +5,10 @@
 //! with the golden parts 2904602 and A9P52610 (and an MCB A9P52616 made up for the replacement), their manufacturers;
 //! `Session::embed_command`, `assign_part`, `update_from_library` and `library_status` over it and over Golden A.
 
+use crate::common::{self, Dir};
 use crate::golden_common;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ew_api::library::{LibraryTiers, Registry};
 use ew_api::output::page_view;
@@ -25,21 +26,10 @@ const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivatio
 /// The item of the made-up MCB A9P52616 (C16).
 const A9P52616: Uuid = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_a916);
 
-struct Dir(PathBuf);
-
-impl Drop for Dir {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
 fn tiers(root: &Path) -> LibraryTiers {
     LibraryTiers {
-        system: Vec::new(),
-        community: root.join("data").join("packs"),
         company: vec![root.join("company")],
-        user: root.join("data").join("libraries"),
-        cache: root.join("cache"),
+        ..common::tiers(root)
     }
 }
 

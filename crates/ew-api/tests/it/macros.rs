@@ -8,9 +8,8 @@
 //! fragment forms (ADR-0011 amendment 5). MC-4 and MC-5 (the valve typical of folios 203 to 206 with its value sets)
 //! are not built in this part.
 
+use crate::common::{Dir, tiers};
 use crate::golden_common;
-
-use std::path::{Path, PathBuf};
 
 use ew_api::library::{LibraryTiers, Registry};
 use ew_api::window::parse_fragment;
@@ -22,24 +21,6 @@ use ew_ids::Uuid;
 use ew_mltext::MlText;
 use ew_schema::{LibDocument, Record};
 use serde_json::{Value, json};
-
-struct Dir(PathBuf);
-
-impl Drop for Dir {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn tiers(root: &Path) -> LibraryTiers {
-    LibraryTiers {
-        system: Vec::new(),
-        community: root.join("data").join("packs"),
-        company: Vec::new(),
-        user: root.join("data").join("libraries"),
-        cache: root.join("cache"),
-    }
-}
 
 /// A fresh, empty user library.
 fn user_library(name: &str) -> (Dir, LibraryTiers, Uuid) {
