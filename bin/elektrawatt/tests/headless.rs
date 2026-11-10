@@ -6,11 +6,12 @@
 //! in a temporary directory; nothing is written into the repository.
 
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Output, Stdio};
 
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
+use support::{Tmp, bin_exe};
 
 /// The property grid's headless checks (PG9 and PG10).
 #[path = "grid/properties.rs"]
@@ -56,45 +57,6 @@ mod image_placement;
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
-
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-headless-test"))
-    }
-
-    fn path(&self, name: &str) -> PathBuf {
-        self.0.join(name)
-    }
-
-    /// A copy of Golden A named `J-E-2416.ew` in a subdirectory of its own.
-    fn golden(&self, sub: &str) -> PathBuf {
-        let target = self.0.join(sub).join("J-E-2416.ew");
-        copy_dir(Path::new(GOLDEN_A), &target);
-        target
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
 
 fn elektrawatt(tmp: &Tmp, args: &[&std::ffi::OsStr]) -> Output {
     support::elektrawatt(&bin_exe())
@@ -280,7 +242,7 @@ fn the_smoke_script_runs_on_golden_a() {
     // Transcripts carry no path.
     let all = String::from_utf8_lossy(&out.stdout).into_owned();
     assert!(
-        !all.contains(&*tmp.0.to_string_lossy()),
+        !all.contains(&*tmp.dir().to_string_lossy()),
         "an absolute path in the transcript"
     );
 
@@ -394,7 +356,7 @@ fn exit_codes_follow_the_spec() {
     assert_eq!(lines[1]["outcome"], "failed");
     let message = lines[1]["message"].as_str().unwrap();
     assert!(message.contains("nothing-here"), "{message}");
-    assert!(!message.contains(&*tmp.0.to_string_lossy()), "{message}");
+    assert!(!message.contains(&*tmp.dir().to_string_lossy()), "{message}");
 
     // 2: an unknown action ID is found before the first step runs: no transcript at all.
     let out = run_script_file(
@@ -684,17 +646,6 @@ fn a_headless_run_leaves_the_users_settings_alone() {
     let settings = std::fs::read_to_string(config.join("settings.toml")).unwrap();
     assert!(settings.contains("recent_projects"), "{settings}");
     assert!(listing(&home).is_empty());
-}
-
-/// The path of the `elektrawatt` binary under test. nextest sets `NEXTEST_BIN_EXE_elektrawatt` at run time (the binaries of a
-/// `--archive-file` run are unpacked elsewhere than the compile-time path, FT-353); a plain `cargo test` falls back
-/// to the compile-time path.
-// Allowed: the program boundary of a test — nextest's binary path is read once, never persisted or printed.
-#[allow(clippy::disallowed_methods)]
-fn bin_exe() -> std::path::PathBuf {
-    std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
 }
 
 /// CI-N-02's deep nightly: the script tests of this package run their script once per gate (with their checks and

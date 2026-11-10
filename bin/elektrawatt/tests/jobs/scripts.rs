@@ -7,43 +7,17 @@
 //! script replayed onto a fresh copy gives equal records. The flows with a held gate run in `ew-viewmodel`'s
 //! `tests/jobs.rs` (feature `testkit`). A module of `tests/headless.rs`, whose `bin_exe` it uses.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Output, Stdio};
 
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
+use super::support::{Tmp, copy_dir};
+
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
-
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-jobs-script"))
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
 
 fn script(steps: &[(&str, Value)]) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"jobs\"}\n");
@@ -123,7 +97,7 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pd
     let tmp = Tmp::new();
     let mut transcripts = Vec::new();
     for side in super::support::runs(twice) {
-        let dir = tmp.0.join(side);
+        let dir = tmp.dir().join(side);
         copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
         // The first export, before the edit, is the golden PDF: kept aside before the replace overwrites it.
         let first = run(&dir, "first", &export_steps(&dir)[..3], None);
@@ -171,7 +145,7 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pd
         assert_eq!(d.matches("\ntoast \"Exported out.pdf").count(), 1, "{d}");
         // No path, no time.
         let all = String::from_utf8_lossy(&out.stdout);
-        assert!(!all.contains(&*path(&tmp.0)), "a path in the transcript");
+        assert!(!all.contains(&*path(tmp.dir())), "a path in the transcript");
         assert!(!all.contains(".ew-part"), "the sibling is never named");
         assert!(!dir.join(".out.pdf.ew-part").exists());
         // The record replayed onto a fresh copy: the records of the saved project (the export changed none).
@@ -202,7 +176,7 @@ pub(crate) fn jb7_the_recovery_script_is_byte_identical_twice_case(twice: bool) 
     let tmp = Tmp::new();
     let mut transcripts = Vec::new();
     for side in super::support::runs(twice) {
-        let dir = tmp.0.join(side);
+        let dir = tmp.dir().join(side);
         let project = dir.join("g.ew");
         copy_dir(Path::new(GOLDEN_A), &project);
         // A run that ends with unsaved changes exits 1 and keeps its journal.
@@ -288,7 +262,7 @@ fn jb4_an_export_that_did_not_wait_is_written_at_the_end_of_the_run() {
     let mut transcripts = Vec::new();
     let mut pdfs = Vec::new();
     for side in ["a", "b"] {
-        let dir = tmp.0.join(side);
+        let dir = tmp.dir().join(side);
         copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
         let pdf = dir.join("out.pdf");
         let steps = [
@@ -333,7 +307,7 @@ fn jb5_an_export_that_did_not_wait_and_failed_exits_1_with_its_notification() {
     let tmp = Tmp::new();
     let mut outputs = Vec::new();
     for side in ["a", "b"] {
-        let dir = tmp.0.join(side);
+        let dir = tmp.dir().join(side);
         copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
         let pdf = dir.join("missing").join("out.pdf");
         let steps = [

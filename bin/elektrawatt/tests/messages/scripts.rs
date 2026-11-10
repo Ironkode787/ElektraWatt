@@ -9,41 +9,15 @@
 //! the saved project's records. The model half of each flow runs in `ew-viewmodel`'s `tests/messages.rs`. A module of
 //! `tests/headless.rs`, whose `bin_exe` it uses.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Output, Stdio};
 
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
+use super::support::{Tmp, copy_dir};
+
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-messages-script"))
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
 
 fn script(steps: &[(&str, Value)]) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"messages\"}\n");
@@ -117,7 +91,7 @@ fn run_flow(
     let mut first = None;
     let mut commands = 0;
     for side in super::support::runs(twice) {
-        let dir = tmp.0.join(side);
+        let dir = tmp.dir().join(side);
         copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
         let out = run(&dir, name, &steps(&dir.join("g.ew")));
         assert_eq!(
@@ -132,7 +106,7 @@ fn run_flow(
             assert_eq!(s["outcome"], "done", "{s}");
         }
         let all = String::from_utf8(out.stdout.clone()).unwrap();
-        assert!(!all.contains(&*path(&tmp.0)), "a path in the transcript");
+        assert!(!all.contains(&*path(tmp.dir())), "a path in the transcript");
         transcripts.push(all);
         // The record replayed onto a fresh copy: the records of the saved project.
         let log = CmdLog::parse(&std::fs::read_to_string(dir.join("record.ewcmd")).unwrap()).unwrap();

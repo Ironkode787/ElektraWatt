@@ -8,56 +8,17 @@
 //! `tests/grid/find_log.rs`, which `bin/ew/tests/cli.rs` applies with `ew apply`. No UUID in the `find` member or the
 //! find lines. A module of `tests/headless.rs`, whose `bin_exe` it uses.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Output, Stdio};
 
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+use super::support::Tmp;
 
 /// The script's command log as `--record` writes it after its header: the constant `FIND_LOG` of
 /// `tests/grid/find_log.rs`, which `bin/ew/tests/cli.rs` includes and replays through `ew apply`.
 const FIND_LOG_FILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/grid/find_log.rs");
-
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-find-test"))
-    }
-
-    fn path(&self, name: &str) -> PathBuf {
-        self.0.join(name)
-    }
-
-    /// A copy of Golden A in this directory.
-    fn golden(&self, name: &str) -> PathBuf {
-        let target = self.path(name);
-        copy_dir(Path::new(GOLDEN_A), &target);
-        target
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
 
 fn script(steps: &[(&str, Value)]) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"find and replace\"}\n");
@@ -165,7 +126,7 @@ fn fr3_to_fr6_find_and_replace_headless_twice_and_replayed() {
 
 pub(crate) fn fr3_to_fr6_find_and_replace_headless_twice_and_replayed_case(twice: bool) {
     let tmp = Tmp::new();
-    let a = tmp.golden("a.ew");
+    let a = tmp.golden_dir("a.ew");
     let record = tmp.path("find.ewcmd");
     let out = run(&tmp, "find.jsonl", &script(&steps(&a)), &record);
     let t = all_done(&out);
@@ -219,7 +180,7 @@ pub(crate) fn fr3_to_fr6_find_and_replace_headless_twice_and_replayed_case(twice
     }
     if twice {
         // Twice: the same bytes.
-        let b = tmp.golden("b.ew");
+        let b = tmp.golden_dir("b.ew");
         let record_b = tmp.path("find_b.ewcmd");
         let out_b = run(&tmp, "find_b.jsonl", &script(&steps(&b)), &record_b);
         assert_eq!(
@@ -231,7 +192,7 @@ pub(crate) fn fr3_to_fr6_find_and_replace_headless_twice_and_replayed_case(twice
     let log = CmdLog::parse(&std::fs::read_to_string(&record).unwrap()).unwrap();
     let names: Vec<&str> = log.commands().map(|c| c.name.as_str()).collect();
     assert_eq!(names, ["fields.set_many"; 3]);
-    let fresh = tmp.golden("fresh.ew");
+    let fresh = tmp.golden_dir("fresh.ew");
     let (mut replayed, _) = Session::open_read_only(&fresh, "test").unwrap();
     replayed.run_script(&log, "find.ewcmd").unwrap();
     let (saved, _) = Session::open_read_only(&a, "test").unwrap();

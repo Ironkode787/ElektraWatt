@@ -14,49 +14,9 @@ use std::process::{Command, Output, Stdio};
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
-pub(crate) const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
-
-/// A fresh temporary directory, removed on drop.
-pub(crate) struct Tmp(pub(crate) PathBuf);
-
-impl Tmp {
-    pub(crate) fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-create-test"))
-    }
-
-    pub(crate) fn path(&self, name: &str) -> PathBuf {
-        self.0.join(name)
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-pub(crate) fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
-
-pub(crate) fn path(p: &Path) -> String {
-    p.to_string_lossy().into_owned()
-}
+pub(crate) use super::support::{CONTENT, Tmp, bin_exe, copy_dir, path, steps};
 
 pub(crate) type Steps = Vec<(String, Value)>;
-
-pub(crate) fn steps(list: &[(&str, Value)]) -> Steps {
-    list.iter().map(|(a, p)| ((*a).to_owned(), p.clone())).collect()
-}
 
 pub(crate) fn script_text(steps: &Steps) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"create script\"}\n");
@@ -65,15 +25,6 @@ pub(crate) fn script_text(steps: &Steps) -> String {
         text.push('\n');
     }
     text
-}
-
-/// The path of the `elektrawatt` binary under test (nextest sets it at run time; see `tests/headless.rs`).
-// Allowed: the program boundary of a test — nextest's binary path is read once, never persisted or printed.
-#[allow(clippy::disallowed_methods)]
-pub(crate) fn bin_exe() -> PathBuf {
-    std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
 }
 
 /// Runs a script headless (with the content of the source tree, a configuration folder of its own), optionally recording
@@ -184,7 +135,7 @@ pub(crate) fn page_new_creates_folios_101_to_103_twice_identically_and_the_recor
         let record = tmp.path(&format!("{n}.ewcmd"));
         let text = all_done(&run(&tmp, n, &script(&dir), Some(&record)));
         assert!(
-            !text.contains(&*tmp.0.to_string_lossy()),
+            !text.contains(&*tmp.dir().to_string_lossy()),
             "a path in the transcript"
         );
         super::support::assert_no_uuid(&text);
@@ -278,7 +229,7 @@ pub(crate) fn a_navigator_script_runs_twice_identically_and_its_record_replays_c
         let record = tmp.path(&format!("{n}.ewcmd"));
         let text = all_done(&run(&tmp, n, &script(&dir), Some(&record)));
         assert!(
-            !text.contains(&*tmp.0.to_string_lossy()),
+            !text.contains(&*tmp.dir().to_string_lossy()),
             "a path in the transcript"
         );
         super::support::assert_no_uuid(&text);
@@ -373,7 +324,7 @@ pub(crate) fn a_highlight_script_runs_twice_identically_and_records_nothing_case
         let record = tmp.path(&format!("{n}.ewcmd"));
         let text = all_done(&run(&tmp, n, &script(&dir), Some(&record)));
         assert!(
-            !text.contains(&*tmp.0.to_string_lossy()),
+            !text.contains(&*tmp.dir().to_string_lossy()),
             "a path in the transcript"
         );
         super::support::assert_no_uuid(&text);
@@ -471,7 +422,7 @@ pub(crate) fn a_table_script_runs_twice_identically_and_its_record_replays_case(
         let record = tmp.path(&format!("{n}.ewcmd"));
         let text = all_done(&run(&tmp, n, &script(&dir), Some(&record)));
         assert!(
-            !text.contains(&*tmp.0.to_string_lossy()),
+            !text.contains(&*tmp.dir().to_string_lossy()),
             "a path in the transcript"
         );
         super::support::assert_no_uuid(&text);

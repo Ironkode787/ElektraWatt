@@ -13,7 +13,7 @@ mod support;
 #[path = "canvas/folio_scripts.rs"]
 mod folio_cases;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Output, Stdio};
 
 use ew_ui::ew_viewmodel::canvas::{HOVER_SLOP_PT, pick, rect_centre};
@@ -22,48 +22,9 @@ use ew_ui::ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect;
 use ew_ui::ew_viewmodel::ew_api::output::{ExportOptions, PageSelection};
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
+use support::{Tmp, bin_exe};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
-
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-canvas-test"))
-    }
-
-    fn path(&self, name: &str) -> PathBuf {
-        self.0.join(name)
-    }
-
-    /// A copy of Golden A named `J-E-2416.ew` in a subdirectory of its own.
-    fn golden(&self, sub: &str) -> PathBuf {
-        let target = self.0.join(sub).join("J-E-2416.ew");
-        copy_dir(Path::new(GOLDEN_A), &target);
-        target
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
 
 fn script(steps: &[(&str, Value)]) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"canvas\"}\n");
@@ -477,17 +438,6 @@ fn v8_side_by_side_headless() {
     let (rw, rh, r) = decode_rgba(&std::fs::read(out_dir.join("right.png")).unwrap());
     assert_eq!((lw, lh, rw, rh), (1200, 800, 1200, 800));
     assert_ne!(l, r);
-}
-
-/// The path of the `elektrawatt` binary under test. nextest sets `NEXTEST_BIN_EXE_elektrawatt` at run time (the binaries of a
-/// `--archive-file` run are unpacked elsewhere than the compile-time path, FT-353); a plain `cargo test` falls back
-/// to the compile-time path.
-// Allowed: the program boundary of a test — nextest's binary path is read once, never persisted or printed.
-#[allow(clippy::disallowed_methods)]
-fn bin_exe() -> std::path::PathBuf {
-    std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
 }
 
 // -----------------------------------------------------------------------------------------------------------------

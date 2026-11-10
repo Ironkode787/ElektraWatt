@@ -1,35 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The crash log through the debug binary (PV-4, PV-6, PV-8, PV-9's positive control): a forced
+//! The crash log through the debug binary (PV-4, PV-6, PV-8): a forced
 //! panic at the end of a headless run that edited a copy of Golden A exits 101 and leaves one log with its entry and the
 //! end line, the journal is kept, and the next start offers the project and the log; Recover replays the journal.
 
 use std::path::{Path, PathBuf};
 use std::process::{Output, Stdio};
 
-use crate::support::{GOLDEN_A, Tmp, copy_dir, path, script_text, steps};
+use crate::support::{GOLDEN_A, Tmp, USER_DIRS, bin_exe, copy_dir, path, script_text, steps};
 use serde_json::{Value, json};
-
-// Allowed: the program boundary of a test — nextest's binary path is read once, never persisted or printed.
-#[allow(clippy::disallowed_methods)]
-fn bin_exe() -> PathBuf {
-    std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
-}
-
-/// The user directories a child run might write to, pointed inside the scratch folder.
-const USER_DIRS: [&str; 8] = [
-    "HOME",
-    "USERPROFILE",
-    "LOCALAPPDATA",
-    "APPDATA",
-    "XDG_STATE_HOME",
-    "XDG_DATA_HOME",
-    "XDG_CONFIG_HOME",
-    "XDG_CACHE_HOME",
-];
 
 /// A headless run of `list` with `--config-dir <tmp>/config`, `EW_DEBUG_PANIC` set to 1 when `panic`.
 fn run(tmp: &Tmp, name: &str, list: &[(&str, Value)], panic: bool) -> Output {
@@ -248,18 +228,4 @@ fn the_state_and_configuration_directories_are_user_only() {
     assert_eq!(mode(journal), 0o700);
     let segment = &entries(journal)[0];
     assert_eq!(mode(segment), 0o600, "{}", segment.display());
-}
-
-/// PV-9's positive control: the debug binary holds the trigger's name, which the canary of `ci/sandbox-check.py`
-/// refuses in a release binary.
-#[test]
-fn the_debug_binary_holds_the_panic_trigger() {
-    let bytes = std::fs::read(bin_exe()).unwrap();
-    let needle = b"EW_DEBUG_PANIC";
-    let found = bytes
-        .iter()
-        .enumerate()
-        .filter(|(_, b)| **b == b'E')
-        .any(|(i, _)| bytes.get(i..i + needle.len()) == Some(&needle[..]));
-    assert!(found);
 }

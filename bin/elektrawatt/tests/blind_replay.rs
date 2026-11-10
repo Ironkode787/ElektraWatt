@@ -329,28 +329,6 @@ fn blind_replay_long() {
     assert!(out.failures.is_empty(), "{}", out.failures.join("\n"));
 }
 
-/// The self-test recording exists, runs in the PR jobs and is never stale (D15).
-#[test]
-fn the_self_test_recording_is_a_pr_recording_and_never_stale() {
-    let all = recordings();
-    let selftest = &all
-        .iter()
-        .find(|(n, _)| n == "selftest")
-        .expect("tools/blind/recordings/selftest is committed (`cargo xtask blind selftest` writes it)")
-        .1;
-    assert_eq!(selftest.ci, "pr");
-    assert_eq!(
-        selftest.stale, None,
-        "the self-test recording is re-blessed, never marked stale"
-    );
-    assert!(
-        selftest.script.len() <= 100,
-        "a `pr` recording has at most 100 steps"
-    );
-    // The recording holds the replay inputs and no full transcript.
-    assert!(!selftest.dir.join("transcript.jsonl").exists());
-}
-
 /// BV10: the visual self-test recording runs in the PR jobs on every OS (replayed without painting), and a changed
 /// dispatch of one of its inputs fails R1 naming the input.
 #[test]

@@ -8,13 +8,13 @@
 //! no GPU, no display; every run on a temporary copy of Golden A. A module of `tests/headless.rs`, whose `bin_exe` it
 //! uses.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Output, Stdio};
 
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+use super::support::Tmp;
 
 /// W29 on folio 103 and W20 on 102 (`connections|W29`, `connections|W20`), the potential definition 24VDC-1.
 const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
@@ -27,45 +27,6 @@ const IP_PE_1_2: &str = "6198cbd3-a6a2-569c-8284-2d39ba05bfae";
 /// The pilot's command log as `--record` writes it after its header: the constant `PILOT_LOG` of
 /// `tests/grid/pilot_log.rs`, which `bin/ew/tests/cli.rs` includes and replays through `ew apply`.
 const PILOT_LOG_FILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/grid/pilot_log.rs");
-
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-props-test"))
-    }
-
-    fn path(&self, name: &str) -> PathBuf {
-        self.0.join(name)
-    }
-
-    /// A copy of Golden A in this directory.
-    fn golden(&self, name: &str) -> PathBuf {
-        let target = self.path(name);
-        copy_dir(Path::new(GOLDEN_A), &target);
-        target
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
 
 fn script(steps: &[(&str, Value)]) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"property grid\"}\n");
@@ -278,7 +239,7 @@ fn pg10_the_pilot_script_is_deterministic_and_replays() {
 
 pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: bool) {
     let tmp = Tmp::new();
-    let a = tmp.golden("a.ew");
+    let a = tmp.golden_dir("a.ew");
     let record = tmp.path("pilot.ewcmd");
     let out_a = run(&tmp, "a.jsonl", &script(&pilot_steps(&a)), Some(&record));
     let steps = all_done(&out_a);
@@ -288,7 +249,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
     let text_a = String::from_utf8_lossy(&out_a.stdout).into_owned();
     super::support::assert_no_uuid(&text_a);
     if twice {
-        let b = tmp.golden("b.ew");
+        let b = tmp.golden_dir("b.ew");
         let lines_a: Vec<&str> = text_a.lines().skip(1).collect();
         let mut steps_b = pilot_steps(&b);
         let mut aliased = Vec::new();
@@ -372,7 +333,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
         log.commands().all(|c| c.name == "fields.set"),
         "the grid commits fields.set only here"
     );
-    let fresh = tmp.golden("fresh.ew");
+    let fresh = tmp.golden_dir("fresh.ew");
     let (mut replayed, _) = Session::open_read_only(&fresh, "test").unwrap();
     replayed.run_script(&log, "pilot.ewcmd").unwrap();
     let (saved, _) = Session::open_read_only(&a, "test").unwrap();
@@ -448,7 +409,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
 #[test]
 fn pg8_a_counter_collision_stops_the_script_with_its_remedy() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("collision.ew");
+    let dir = tmp.golden_dir("collision.ew");
     let steps = vec![
         ("file.open", json!({ "dir": dir.to_string_lossy() })),
         ("select.set", json!({"refs": ["tag:-102F1"]})),
@@ -480,7 +441,7 @@ fn pg9_d06_headless() {
 
 pub(crate) fn pg9_d06_headless_case(twice: bool) {
     let tmp = Tmp::new();
-    let dir = tmp.golden("d06.ew");
+    let dir = tmp.golden_dir("d06.ew");
     let steps = vec![
         ("file.open", json!({ "dir": dir.to_string_lossy() })),
         ("page.goto", json!({"folio": "101"})),
@@ -523,7 +484,7 @@ pub(crate) fn pg9_d06_headless_case(twice: bool) {
     assert_eq!(t[7]["state"]["focus"], "properties");
     if twice {
         // Twice: the same bytes.
-        let dir2 = tmp.golden("d06b.ew");
+        let dir2 = tmp.golden_dir("d06b.ew");
         let steps2: Vec<(&str, Value)> = steps
             .iter()
             .map(|(a, p)| {

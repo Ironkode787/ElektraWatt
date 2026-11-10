@@ -764,6 +764,20 @@ impl Tmp {
     pub fn dir(&self) -> &Path {
         &self.0
     }
+
+    /// A copy of Golden A named `J-E-2416.ew` in a subdirectory `sub` of the directory.
+    pub fn golden(&self, sub: &str) -> PathBuf {
+        let target = self.0.join(sub).join("J-E-2416.ew");
+        copy_dir(Path::new(GOLDEN_A), &target);
+        target
+    }
+
+    /// A copy of Golden A at `name` in the directory.
+    pub fn golden_dir(&self, name: &str) -> PathBuf {
+        let target = self.path(name);
+        copy_dir(Path::new(GOLDEN_A), &target);
+        target
+    }
 }
 
 impl Drop for Tmp {
@@ -784,6 +798,17 @@ pub fn copy_dir(from: &Path, to: &Path) {
             std::fs::copy(entry.path(), target).unwrap();
         }
     }
+}
+
+/// The path of the `elektrawatt` binary under test. nextest sets `NEXTEST_BIN_EXE_elektrawatt` at run time (the
+/// binaries of an `--archive-file` run are unpacked elsewhere than the compile-time path, FT-353); a plain
+/// `cargo test` falls back to the compile-time path.
+// Allowed: the program boundary of a test — nextest's binary path is read once, never persisted or printed.
+#[allow(clippy::disallowed_methods)]
+pub fn bin_exe() -> PathBuf {
+    std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
 }
 
 /// A path as the text a script line carries.

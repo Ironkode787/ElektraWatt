@@ -9,53 +9,14 @@
 //! (-102G1 and -102F1 with the wires between them pasted into a new project in the other); the tag list. A module of
 //! `tests/headless.rs`, whose `bin_exe` it uses.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Output, Stdio};
 
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-clip-test"))
-    }
-
-    fn path(&self, name: &str) -> PathBuf {
-        self.0.join(name)
-    }
-
-    /// A copy of Golden A in this directory.
-    fn golden(&self, name: &str) -> PathBuf {
-        let target = self.path(name);
-        copy_dir(Path::new(GOLDEN_A), &target);
-        target
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
+use super::support::{Tmp, copy_dir};
 
 fn script(steps: &[(&str, Value)]) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"clipboard\"}\n");
@@ -162,7 +123,7 @@ pub(crate) fn cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed_case(t
     for d in [&new_a, &new_b, &fresh_dir] {
         copy_dir(&start, d);
     }
-    let a = tmp.golden("a.ew");
+    let a = tmp.golden_dir("a.ew");
     let record = tmp.path("clip.ewcmd");
     let out = run(&tmp, "clip.jsonl", &script(&steps(&a, &new_a)), &record);
     let t = all_done(&out);
@@ -178,7 +139,7 @@ pub(crate) fn cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed_case(t
     super::support::assert_no_uuid(&transcript);
     if twice {
         // Twice: the same bytes (the directories aside).
-        let b = tmp.golden("b.ew");
+        let b = tmp.golden_dir("b.ew");
         let out_b = run(
             &tmp,
             "clip_b.jsonl",
@@ -236,7 +197,7 @@ fn done(shell: &mut ShellModel, action: &str, params: Value) {
 #[test]
 fn cb6_two_instances_and_the_tag_list() {
     let tmp = Tmp::new();
-    let golden = tmp.golden("g.ew");
+    let golden = tmp.golden_dir("g.ew");
     let mut one = shell(&tmp, "one");
     done(&mut one, "file.open", json!({ "dir": golden.to_string_lossy() }));
     done(&mut one, "page.goto", json!({"folio": "102"}));

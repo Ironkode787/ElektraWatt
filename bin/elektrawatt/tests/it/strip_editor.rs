@@ -18,16 +18,7 @@ use std::path::Path;
 use ew_ui::ew_viewmodel::ew_api::{BomMode, Export, Session};
 use serde_json::json;
 
-use support::{GOLDEN_A, Tmp, all_done, copy_dir, path, run, steps};
-
-/// The path of the `elektrawatt` binary under test (nextest sets it at run time; see `tests/headless.rs`).
-// Allowed: the program boundary of a test — nextest's binary path is read once, never persisted or printed.
-#[allow(clippy::disallowed_methods)]
-fn bin_exe() -> std::path::PathBuf {
-    std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
-}
+use support::{GOLDEN_A, Tmp, all_done, bin_exe, copy_dir, path, run, steps};
 
 const ORACLE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),

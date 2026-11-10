@@ -24,24 +24,13 @@ use ew_ui::ew_viewmodel::tools::wire::{WireTarget, resolve_target};
 use serde_json::json;
 
 use support::{
-    GOLDEN_A, GppStart, MarkerFallback, SheetMap, Tmp, all_done, demo_103_bridges, demo_103_pi10,
+    GOLDEN_A, GppStart, MarkerFallback, SheetMap, Tmp, all_done, bin_exe, demo_103_bridges, demo_103_pi10,
     demo_103_strips, demo_103_wiring, demo_terminal_part_steps, demo_terminal_steps,
     external_connection_anchors, golden_wiring, gpp_start, gpp_start_demo, junction_style_steps,
     marker_steps, part_steps, path, placement_steps, placement_steps_with, potential_steps,
     rehearsal_connection_id, run, steps, structure_box_steps, typed_tag_steps, wiring_oracle, wiring_steps,
     xref_texts,
 };
-
-/// The path of the `elektrawatt` binary under test. nextest sets `NEXTEST_BIN_EXE_elektrawatt` at run time (the
-/// binaries of an `--archive-file` run are unpacked elsewhere than the compile-time path, FT-353); a plain
-/// `cargo test` falls back to the compile-time path.
-// Allowed: the program boundary of a test — nextest's binary path is read once, never persisted or printed.
-#[allow(clippy::disallowed_methods)]
-fn bin_exe() -> std::path::PathBuf {
-    std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
-}
 
 /// The far ends of a junction's sequence, by their printed labels (the oracle's naming of a junction).
 fn junction_far_ends(t: &PageTables, j: &TableJunction) -> Vec<String> {
