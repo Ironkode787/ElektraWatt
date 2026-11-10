@@ -24,8 +24,8 @@ with its offscreen renderer (`elektrawatt --headless --visual`), the same one it
 ## Status
 
 **0.1.0, an early alpha, was released on 2026-11-08** for Windows and Linux, unsigned and with no network code.
-Hands-on use found basic flows that do not work well yet. The work now is maintenance (milestone M2.5: a leaner
-code base, tests and documents), then a milestone of fixes that ends in 0.2.0. The [roadmap](ROADMAP.md) lists the
+Hands-on use found basic flows that do not work well yet. A maintenance milestone (M2.5: a leaner code base, tests
+and documents) followed; the work now is a milestone of fixes that ends in 0.2.0. The [roadmap](ROADMAP.md) lists the
 milestones and [docs/plan](docs/plan/README.md) the open work.
 
 What works today:

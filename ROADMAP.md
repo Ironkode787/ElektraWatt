@@ -29,7 +29,7 @@ that is running and the open work are in [docs/plan/](docs/plan/README.md).
 | Milestone | State |
 |---|---|
 | M0 to M2 | Closed: 0.1.0 was released on 2026-11-08 for Windows and Linux, unsigned and with no network code |
-| M2.5 | Running: the maintenance step ([plan](docs/plan/m2.5.md)) |
+| M2.5 | Closed on 2026-11-11: the maintenance step ([plan and exit record](docs/plan/m2.5.md)) |
 | M2.5-Fix | Next: the fixes that make the program work well in the hand ([backlog](docs/plan/backlog.md)) |
 | M3 to M6, 1.x | Not started |
 

@@ -1,11 +1,13 @@
 # The plan
 
-**Now:** milestone **M2.5**, maintenance. Its plan, its log and its exit record are in [m2.5.md](m2.5.md).
-**Next:** M2.5-Fix, a properly working program, release 0.2.0. Then M3, new development.
+**Done:** milestone **M2.5**, maintenance, closed on 2026-11-11. Its plan, its log and its exit record are in
+[m2.5.md](m2.5.md).
+**Next:** M2.5-Fix, a properly working program, release 0.2.0: the rows of [backlog.md](backlog.md). Then M3, new
+development.
 
 | File | What it is |
 |---|---|
-| [m2.5.md](m2.5.md) | The running milestone: principles, steps, assessment, what was cut and why |
+| [m2.5.md](m2.5.md) | The maintenance milestone: principles, steps, assessment, what was cut and why, the exit record |
 | [backlog.md](backlog.md) | Open work, one row each, by milestone. A finished row is deleted |
 | [backlog-later.md](backlog-later.md) | Unscheduled rows for M3 and after: a seed for planning, not a commitment |
 | [work-packages.csv](work-packages.csv) | The work breakdown: one row per work package, built and unbuilt, with its milestone |
