@@ -140,15 +140,6 @@ fn create_is_undoable() {
     assert_eq!(lines(e.model()), after);
 }
 
-#[test]
-fn create_refuses_a_second_open_revision() {
-    let (mut e, _, _) = with_history();
-    let err = e.execute(&create("V3.0", NewRevisionState::Open)).unwrap_err();
-    assert!(rejected(&err), "{err:?}");
-    // A further historic released revision is fine.
-    assert!(e.execute(&create("V0.9", NewRevisionState::Released)).is_ok());
-}
-
 /// The refusals name a revision by its label and a page by its folio, never by an ID.
 #[test]
 fn create_refusals_name_revisions_and_pages_in_words() {
@@ -177,15 +168,6 @@ fn create_refusals_name_revisions_and_pages_in_words() {
         reason(e.execute(&twice).unwrap_err()),
         "page 101 has a note already; one note per page"
     );
-}
-
-#[test]
-fn create_refuses_a_label_in_use() {
-    let (mut e, _, _) = with_history();
-    let err = e
-        .execute(&create("V1.0", NewRevisionState::Released))
-        .unwrap_err();
-    assert!(rejected(&err), "{err:?}");
 }
 
 #[test]

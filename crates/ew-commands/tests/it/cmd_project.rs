@@ -316,15 +316,6 @@ fn company_set_refuses_a_logo_above_the_limit() {
     assert!(ew_schema::company_logo(&e.model().project().extra).is_some());
 }
 
-#[test]
-fn company_set_refuses_a_logo_that_is_no_image() {
-    let mut e = engine(golden_model());
-    for logo in ["not base64!", "R0lGODlh", "PGh0bWw+PC9odG1sPg=="] {
-        let (path, _) = invalid(&mut e, &any("project.company.set", json!({"logo": logo})));
-        assert_eq!(path, "/logo", "{logo}");
-    }
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // project.frames.set
 
@@ -816,17 +807,22 @@ fn the_history_names_the_assets_of_its_entries() {
     assert!(named.contains(&second), "the redo branch is named too");
 }
 
-/// A hostile SVG logo (synthetic) never reaches the asset store: the command refuses it at `/logo` with the
-/// rejecter's reason, and the model holds no new asset.
+/// A logo that is no image, and a hostile SVG logo (synthetic), never reach the asset store: the command refuses
+/// them at `/logo` (a hostile SVG with the rejecter's reason), and the model holds no new asset.
 #[test]
-fn company_set_refuses_a_hostile_svg_logo() {
+fn company_set_refuses_a_logo_that_is_no_image_or_a_hostile_svg() {
     let mut e = engine(golden_model());
     let before = e.model().assets().count();
-    for svg in [
+    let hostile = [
         r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4" onload="x()"/>"#,
         r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><script>x()</script></svg>"#,
         r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><image href="file:///etc/hostname"/></svg>"#,
-    ] {
+    ];
+    for logo in ["not base64!", "R0lGODlh", "PGh0bWw+PC9odG1sPg=="] {
+        let (path, _) = invalid(&mut e, &any("project.company.set", json!({"logo": logo})));
+        assert_eq!(path, "/logo", "{logo}");
+    }
+    for svg in hostile {
         let (path, message) = invalid(
             &mut e,
             &any(

@@ -16,7 +16,7 @@ use ew_commands::commands::{
 use ew_commands::normalise::ORDER;
 use ew_commands::{CmdError, Engine, Origin, Receipt};
 use ew_ids::Id;
-use ew_model::{Entity, Model};
+use ew_model::Model;
 use ew_schema::{
     AddrSpec, Channel, ChannelState, Device, DeviceLink, DeviceLinkKind, Kind, LibCopy, LibDocument, Part,
     PartRef, PartUse, PlcArea, PlcConfigProject, PlcSection, PlcSize, StationRole,
@@ -92,10 +92,6 @@ fn create(letter: &str, counter: u32, part: Id<Part>) -> CreateDevice {
 fn make(e: &mut Engine, letter: &str, counter: u32, part: Id<Part>) -> (Id<Device>, Receipt) {
     let r = e.execute(&create(letter, counter, part)).expect("device.create");
     (typed(r.outcome.primary.expect("the device")), r)
-}
-
-fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
-    e.model().table::<T>().get(&id).expect("row exists").clone()
 }
 
 fn set(kind: KindName, target: ew_schema::AnyId, path: &str, value: Value) -> SetFields {

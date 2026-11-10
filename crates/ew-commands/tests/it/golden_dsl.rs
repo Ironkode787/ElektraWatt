@@ -74,19 +74,6 @@ struct Dsl {
     e: Engine,
 }
 
-fn primary<T>(r: &Receipt) -> Id<T> {
-    typed(r.outcome.primary.expect("the command has a primary outcome"))
-}
-
-/// The IDs of the records of `kind` that the command created, in insertion order.
-fn created<T>(r: &Receipt, kind: Kind) -> Vec<Id<T>> {
-    r.created
-        .iter()
-        .filter(|k| k.0 == kind)
-        .map(|k| typed::<T>(*k))
-        .collect()
-}
-
 fn at_loc(loc: Id<StructureNode>) -> StructureAssignment {
     StructureAssignment {
         location: Some(Slot::Node(loc)),

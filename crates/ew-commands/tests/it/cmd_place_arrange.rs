@@ -17,7 +17,7 @@ use ew_commands::commands::{
     Crossings, DeleteConnections, ExchangePin, ExchangeSymbol, MoveReps, PlaceBlackBox, PlaceSymbol,
     PlaceTarget, SetDrawing, TerminalSpec,
 };
-use ew_commands::{AnyCommand, CmdError, Engine, Receipt};
+use ew_commands::{AnyCommand, CmdError, Engine};
 use ew_ids::{Id, Uuid};
 use ew_model::{Entity, Model};
 use ew_schema::{
@@ -30,22 +30,6 @@ use serde_json::{Value, json};
 
 // ---------------------------------------------------------------------------------------------------------
 // Helpers
-
-fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
-    e.model().table::<T>().get(&id).expect("row exists").clone()
-}
-
-fn created<T>(r: &Receipt, kind: Kind) -> Vec<Id<T>> {
-    r.created
-        .iter()
-        .filter(|k| k.0 == kind)
-        .map(|k| typed(*k))
-        .collect()
-}
-
-fn primary<T>(r: &Receipt) -> Id<T> {
-    typed(r.outcome.primary.expect("primary outcome"))
-}
 
 /// A rejection whose reason contains `needle`.
 #[track_caller]
@@ -64,14 +48,6 @@ fn rejection<T: Debug>(r: Result<T, CmdError>) -> String {
     match r {
         Err(CmdError::Rejected { reason, .. }) => reason,
         other => panic!("expected a rejection, got {other:?}"),
-    }
-}
-
-#[track_caller]
-fn not_found<T: Debug>(r: Result<T, CmdError>) {
-    match r {
-        Err(CmdError::NotFound { .. }) => {}
-        other => panic!("expected NotFound, got {other:?}"),
     }
 }
 
@@ -865,13 +841,21 @@ fn steps_model_at(ymid: Nm) -> Model {
 
 fn steps_cmd(reps: Vec<Id<Representation>>, steps: [i64; 2]) -> MoveReps {
     MoveReps {
+        steps: Some(steps),
+        ..delta_cmd(reps, pt(0, 0), None)
+    }
+}
+
+/// `rep.move` by `delta`, to `page` when given.
+fn delta_cmd(reps: Vec<Id<Representation>>, delta: Pt2, page: Option<Id<ew_schema::Page>>) -> MoveReps {
+    MoveReps {
         routes: Vec::new(),
         connect: Vec::new(),
         items: Vec::new(),
         reps,
-        delta: pt(0, 0),
-        page: None,
-        steps: Some(steps),
+        delta,
+        page,
+        steps: None,
     }
 }
 
@@ -1169,15 +1153,7 @@ fn the_same_move_as_one_nm_delta_is_refused() {
     let reps = vec![REP_102F2, REP_T1, REP_102G1];
     let mut e = engine(steps_model());
     let rev = e.model().rev();
-    let delta = MoveReps {
-        routes: Vec::new(),
-        connect: Vec::new(),
-        items: Vec::new(),
-        reps: reps.clone(),
-        delta: p(one_step, Nm(0)),
-        page: None,
-        steps: None,
-    };
+    let delta = delta_cmd(reps.clone(), p(one_step, Nm(0)), None);
     match e.execute(&delta) {
         Err(CmdError::Rejected { reason, .. }) => assert_eq!(
             reason,
@@ -1210,26 +1186,16 @@ fn move_by_steps_rejections() {
     // Steps with a non-zero delta: invalid at /steps.
     invalid_at(
         e.execute(&MoveReps {
-            routes: Vec::new(),
-            connect: Vec::new(),
-            items: Vec::new(),
-            reps: vec![REP_102F2],
-            delta: pt(G, 0),
-            page: None,
             steps: Some([1, 0]),
+            ..delta_cmd(vec![REP_102F2], pt(G, 0), None)
         }),
         "/steps",
     );
     // Steps with a page.
     invalid_at(
         e.execute(&MoveReps {
-            routes: Vec::new(),
-            connect: Vec::new(),
-            items: Vec::new(),
-            reps: vec![REP_102F2],
-            delta: pt(0, 0),
-            page: Some(PAGE_101),
             steps: Some([1, 0]),
+            ..delta_cmd(vec![REP_102F2], pt(0, 0), Some(PAGE_101))
         }),
         "/steps",
     );
@@ -1244,15 +1210,7 @@ fn move_by_steps_rejections() {
     // FT-864 (as above): a move to another page that leaves one end of a wire behind names the wire.
     let mut split = engine(arrange_model(|_| {}));
     assert_eq!(
-        rejection(split.execute(&MoveReps {
-            routes: Vec::new(),
-            connect: Vec::new(),
-            items: Vec::new(),
-            reps: vec![REP_102F2],
-            delta: pt(0, 0),
-            page: Some(PAGE_101),
-            steps: None,
-        })),
+        rejection(split.execute(&delta_cmd(vec![REP_102F2], pt(0, 0), Some(PAGE_101)))),
         "the move would keep one end of wire 102.1 behind on the old page; move both ends together"
     );
     // A representation off the grid cannot be moved by steps, and the refusal names it.
@@ -1808,15 +1766,7 @@ fn drawing_set_json_distinguishes_null_from_absent() {
 
 #[test]
 fn rep_move_without_steps_serialises_as_before() {
-    let cmd = MoveReps {
-        routes: Vec::new(),
-        connect: Vec::new(),
-        items: Vec::new(),
-        reps: vec![REP_102F2],
-        delta: pt(7_937_500, -3),
-        page: None,
-        steps: None,
-    };
+    let cmd = delta_cmd(vec![REP_102F2], pt(7_937_500, -3), None);
     let text = serde_json::to_string(&cmd).unwrap();
     assert_eq!(
         text,
@@ -1826,9 +1776,6 @@ fn rep_move_without_steps_serialises_as_before() {
     assert!(!text.contains("steps"));
     // With a page, as before.
     let with_page = MoveReps {
-        routes: Vec::new(),
-        connect: Vec::new(),
-        items: Vec::new(),
         page: Some(PAGE_101),
         ..cmd.clone()
     };
@@ -1841,9 +1788,6 @@ fn rep_move_without_steps_serialises_as_before() {
     assert_eq!(back, cmd);
     // With steps the key is there, and `delta` can be left out.
     let steps = MoveReps {
-        routes: Vec::new(),
-        connect: Vec::new(),
-        items: Vec::new(),
         delta: pt(0, 0),
         steps: Some([1, -2]),
         ..cmd
@@ -2033,15 +1977,7 @@ fn run_follow_op(e: &mut Engine, op: &FollowOp) {
     let _ = match op {
         FollowOp::Steps(reps, steps) => e.execute(&steps_cmd(reps.clone(), *steps)).map(|_| ()),
         FollowOp::Delta(reps, d) => e
-            .execute(&MoveReps {
-                routes: Vec::new(),
-                connect: Vec::new(),
-                items: Vec::new(),
-                reps: reps.clone(),
-                delta: pt(d[0], d[1]),
-                page: None,
-                steps: None,
-            })
+            .execute(&delta_cmd(reps.clone(), pt(d[0], d[1]), None))
             .map(|_| ()),
         FollowOp::Transform(reps, rotate, mirror) => e
             .execute(&ew_commands::commands::TransformReps {
@@ -2144,16 +2080,8 @@ proptest! {
 #[test]
 fn a_route_whose_ends_met_moves_one_end_only() {
     let mut e = engine(follow_model([(2, 2), (13, 28), (19, 28)], [0, 0, 0]));
-    e.execute(&MoveReps {
-        routes: Vec::new(),
-        connect: Vec::new(),
-        items: Vec::new(),
-        reps: vec![REP_102G1],
-        delta: pt(-2 * G, 0),
-        page: None,
-        steps: None,
-    })
-    .unwrap();
+    e.execute(&delta_cmd(vec![REP_102G1], pt(-2 * G, 0), None))
+        .unwrap();
     let met = row(&e, CON_P3).route.clone();
     assert_eq!((met.len(), met[0]), (2, met[1]), "the two ends meet: {met:?}");
     e.execute(&steps_cmd(vec![REP_T1], [0, 1])).unwrap();

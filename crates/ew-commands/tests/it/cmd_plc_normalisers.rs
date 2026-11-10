@@ -16,7 +16,7 @@ use ew_commands::commands::{
 };
 use ew_commands::{ChangeKind, CmdError, Engine, Receipt};
 use ew_ids::Id;
-use ew_model::{Entity, Model};
+use ew_model::Model;
 use ew_schema::{
     Channel, ChannelKind, Device, Endpoint, Extra, Function, Kind, LibCopy, LibDocument, Part, PartRef,
     PartUse, PlcSection, Record,
@@ -38,14 +38,6 @@ const VALVE_BI: Id<Part> = id(0x6a);
 const PLAIN: Id<Part> = id(0x6b);
 /// A valve body of another type than the 5/2 of [`solenoid_valve_part`].
 const OTHER_VALVE: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x9303);
-
-fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
-    e.model().table::<T>().get(&id).expect("row exists").clone()
-}
-
-fn primary<T>(r: &Receipt) -> Id<T> {
-    typed(r.outcome.primary.expect("primary outcome"))
-}
 
 fn channel_id(device: Id<Device>, n: u16) -> Id<Channel> {
     ew_ids::v5::plc_channel_id(device, n)
@@ -620,30 +612,26 @@ fn pinned(part_id: Id<Part>, pin_of: Value) -> LibCopy<Part> {
 }
 
 /// N3 binds each new channel of a module with a pin map to the pin of that designation on the module's
-/// main function (`FN_102F2`, FnDef MICO: 24VDC, 24VDC, GND, GND, 13, 14, Out1 … Out4 at CPs 0 … 9).
+/// main function (`FN_102F2`, FnDef MICO: 24VDC, 24VDC, GND, GND, 13, 14, Out1 ... Out4 at CPs 0 ... 9): a pattern
+/// names each pin by its channel number; a list names each pin, and a designation printed twice resolves to its
+/// lowest CP index.
 #[test]
 fn n3_binds_new_channels_to_the_module_pins_by_designation() {
     const PINNED: Id<Part> = id(0x70);
-    let mut e = engine(model_with(vec![pinned(PINNED, json!("Out{n+1}"))]));
-    let r = make_module(&mut e, PINNED);
-    for n in 0..4u16 {
-        assert_eq!(binding(&e, n), Some(Endpoint::Cp(FN_102F2, 6 + n)), "channel {n}");
-    }
-    assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
-}
-
-/// A list names each pin; a designation printed twice resolves to its lowest CP index.
-#[test]
-fn n3_takes_a_list_and_the_lowest_index_of_a_repeated_designation() {
-    const PINNED: Id<Part> = id(0x76);
-    let mut e = engine(model_with(vec![pinned(
-        PINNED,
-        json!(["GND", "13", "24VDC", "Out4"]),
-    )]));
-    make_module(&mut e, PINNED);
-    let pins: Vec<_> = (0..4u16).map(|n| binding(&e, n)).collect();
     let cp = |idx| Some(Endpoint::Cp(FN_102F2, idx));
-    assert_eq!(pins, vec![cp(2), cp(4), cp(0), cp(9)]);
+    for (pin_of, expected) in [
+        (json!("Out{n+1}"), [cp(6), cp(7), cp(8), cp(9)]),
+        (
+            json!(["GND", "13", "24VDC", "Out4"]),
+            [cp(2), cp(4), cp(0), cp(9)],
+        ),
+    ] {
+        let mut e = engine(model_with(vec![pinned(PINNED, pin_of.clone())]));
+        let r = make_module(&mut e, PINNED);
+        let pins: Vec<_> = (0..4u16).map(|n| binding(&e, n)).collect();
+        assert_eq!(pins, expected, "{pin_of}");
+        assert!(r.outcome.notices.is_empty(), "{pin_of}: {:?}", r.outcome.notices);
+    }
 }
 
 /// The part's CP pattern, when present, holds the pin designations (black boxes, doc 07 §4.2).

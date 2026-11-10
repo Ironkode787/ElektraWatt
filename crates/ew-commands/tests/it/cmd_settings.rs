@@ -84,34 +84,20 @@ fn settings_set_unknown_member_lists_the_settable_ones() {
     );
 }
 
+/// Values that are not a settings member, or that the derivation would not apply or would print wrongly, are refused
+/// at `/value` (every case of `ew_derive::check_settings_member` reaches it).
 #[test]
 fn settings_set_refuses_invalid_values() {
     let mut e = engine(golden_model());
-    let (path, _) = invalid(&mut e, &set("numbering", json!(7)));
-    assert_eq!(path, "/value");
-
-    let bad = json!({"default":"x","schemes":[{"key":"x","format":"{letter}{counter}","rules":[]}]});
-    let (path, message) = invalid(&mut e, &set("numbering", bad));
-    assert_eq!(path, "/value");
-    assert!(message.contains("{page}"), "{message}");
-
-    let xref = json!({"ip":"{page}-{row}{column}","aux_to_main":"x","main_to_aux":"y",
-        "matrix":{"per_row":2,"max":6,"overflow":"…"},"structure":"sometimes"});
-    let (path, message) = invalid(&mut e, &set("xref_format", xref));
-    assert_eq!(path, "/value");
-    assert!(message.contains("sometimes"), "{message}");
-
-    let (path, _) = invalid(&mut e, &set("colour_profile", json!({"rows": 3})));
-    assert_eq!(path, "/value");
-}
-
-/// Values the derivation would not apply, or would print wrongly, are refused through the command too
-/// (review cycle 11 B2): every case of `ew_derive::check_settings_member` reaches `/value`.
-#[test]
-fn settings_set_refuses_what_the_derivation_would_not_apply() {
-    let mut e = engine(golden_model());
     let scheme = json!({"key": "page-based", "format": "{page}{letter}{counter}"});
+    let bad_scheme = json!({"default":"x","schemes":[{"key":"x","format":"{letter}{counter}","rules":[]}]});
+    let bad_xref = json!({"ip":"{page}-{row}{column}","aux_to_main":"x","main_to_aux":"y",
+        "matrix":{"per_row":2,"max":6,"overflow":"…"},"structure":"sometimes"});
     let cases = [
+        ("numbering", json!(7), ""),
+        ("numbering", bad_scheme, "{page}"),
+        ("xref_format", bad_xref, "sometimes"),
+        ("colour_profile", json!({"rows": 3}), ""),
         (
             "numbering",
             json!({"default": "other", "schemes": [scheme]}),

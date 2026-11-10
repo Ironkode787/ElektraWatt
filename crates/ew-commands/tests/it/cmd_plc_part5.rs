@@ -28,7 +28,7 @@ use ew_commands::commands::{
 };
 use ew_commands::{Engine, Origin, Receipt};
 use ew_ids::Id;
-use ew_model::{Entity, Model};
+use ew_model::Model;
 use ew_schema::{
     Channel, Device, Endpoint, Extra, Function, LibCopy, LibDocument, Part, PartRef, PartUse, PlcSection,
     Record,
@@ -42,14 +42,6 @@ use serde_json::{Value, json};
 const MODULE_H1: Id<Part> = id(0x6c);
 /// The valve part 571334: solenoid 14.
 const VALVE: Id<Part> = id(0x6e);
-
-fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
-    e.model().table::<T>().get(&id).expect("row exists").clone()
-}
-
-fn primary<T>(r: &Receipt) -> Id<T> {
-    typed(r.outcome.primary.expect("primary outcome"))
-}
 
 fn channel_id(device: Id<Device>, n: u16) -> Id<Channel> {
     ew_ids::v5::plc_channel_id(device, n)

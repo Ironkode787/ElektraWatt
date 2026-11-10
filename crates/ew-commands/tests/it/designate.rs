@@ -78,27 +78,26 @@ fn designate_swaps_two_terminals_in_one_transaction() {
 }
 
 #[test]
-fn designate_rejects_empty_list() {
-    let mut e = engine(golden_model());
-    assert_eq!(invalid_path(e.execute(&cmd(vec![]))), "/assignments");
-    assert_eq!(e.model().rev().0, 0);
-}
-
-#[test]
-fn designate_rejects_duplicate_terminal() {
-    let mut e = engine(golden_model());
-    let r = e.execute(&cmd(vec![assign(DEV_T1, "8"), assign(DEV_T1, "9")]));
-    assert_eq!(invalid_path(r), "/assignments/1/terminal");
-    assert_eq!(designation(&e, DEV_T1), "1");
-}
-
-#[test]
-fn designate_rejects_non_terminal() {
-    let mut e = engine(golden_model());
-    let r = e.execute(&cmd(vec![assign(DEV_T1, "8"), assign(DEV_X1031, "9")]));
-    assert_eq!(invalid_path(r), "/assignments/1/terminal");
-    assert_eq!(designation(&e, DEV_T1), "1");
-    assert_eq!(e.model().rev().0, 0);
+fn designate_rejects_bad_assignments_and_writes_nothing() {
+    let cases = [
+        ("empty list", vec![], "/assignments"),
+        (
+            "duplicate terminal",
+            vec![assign(DEV_T1, "8"), assign(DEV_T1, "9")],
+            "/assignments/1/terminal",
+        ),
+        (
+            "non-terminal",
+            vec![assign(DEV_T1, "8"), assign(DEV_X1031, "9")],
+            "/assignments/1/terminal",
+        ),
+    ];
+    for (case, assignments, path) in cases {
+        let mut e = engine(golden_model());
+        assert_eq!(invalid_path(e.execute(&cmd(assignments))), path, "{case}");
+        assert_eq!(designation(&e, DEV_T1), "1", "{case}");
+        assert_eq!(e.model().rev().0, 0, "{case}");
+    }
 }
 
 #[test]
