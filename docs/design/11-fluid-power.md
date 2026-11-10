@@ -1,6 +1,6 @@
 # Fluid power
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, : the interim valve-declaration rule in §3.1, N-FL-3 as built in §4.2, §4.3) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) represents and checks fluid power: pneumatics in v1 and
 hydraulics later. Fluid power runs on the same connection graph as the electrical schematic. It uses typed ports, valve
@@ -278,7 +278,7 @@ copy carries (`valve.add`'s interim `fndef`). The derivation's `solenoid_positio
 solenoid 14 this way. When N-FL-1 lands, the part's `solenoids` decide, the coil functions come from the part, and the
 CP rule goes.
 
-*As built.* ID-469's interim rule is gone: a valve declares solenoid s
+*As built.* The interim rule above is gone: a valve declares solenoid s
 exactly when s is in `fluid.solenoids` of its valve part, and its coil CP is the first non-physical CP with the
 effective designation s among the device's functions on a FnDef of contact kind `coil` (`ew_derive::solenoid_coil`,
 read by the solenoid positions, N2 and the PLC address slot); a physical coil gives no coil CP. The solenoid left the
@@ -406,7 +406,7 @@ normaliser), N-FL-4 and N-FL-5 are not built.
 new device or one whose parts changed, with a valve part, it adds the valve function from the part's template when
 missing and each template coil function (ID `v5(device, template_index)`), removes a coil function that the current
 part's template lacks and unbinds its channel (notice T20), and never replaces or removes the valve function (notice
-T21); a new coil whose ID the old part's valve function holds is FT-1313. **N-FL-4** is `drives_link`,
+T21); a new coil whose ID the old part's valve function holds is not built. **N-FL-4** is `drives_link`,
 after `bus_ports`: a new `fluid` line whose net joins a valve's working port to the `consumer` port of exactly one
 other device outside the valve's parent chain adds `DeviceLink {kind: drives}` unless the valve has one (T22); two or
 more such devices give T23 and no link.
@@ -434,7 +434,7 @@ N-FL-1 lands `fndef` is ignored for a part that declares solenoids and removed a
 tag of the child scheme, not frozen, whose counter equalled its old position follows the new one), and its push
 insert, with `assembly.detach`, is FT-273. `device.link{from, to, kind}` refuses a self-link and a duplicate of the same
 kind; N-FL-4 is not built. `valve.set_occupancy` and the other commands of the table are not built; the coil-to-channel
-binding was the explicit `plc.bind_channel` of [10](10-plc-and-bus.md) §3.9 until N2 (built in , §4.2); the
+binding was the explicit `plc.bind_channel` of [10](10-plc-and-bus.md) §3.9 until N2 (built, §4.2); the
 golden builder keeps its 28 explicit bindings, because under H1 the map and the drawing differ.
 
 *As built.* `valve.set_occupancy {module, position, occupancy, copies?}`

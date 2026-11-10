@@ -11,7 +11,8 @@
   intelligent, autorouter" that "should intelligently set up wires based on standard electrical drawing theory"
  . FT-517, FT-1434 (R0-F5) and ID-1421 record the same defect; ID-1421 found that no rule for one wire at a
   time avoids the overlaps.
-- **Two routers.** The Wire tool already routes with obstacles (`ew_commands::route`, : bodies, texts, other wires, other CPs, frame bands), but only for the wire being drawn; every other route-less connection is drawn by the
+- **Two routers.** The Wire tool already routes with obstacles (`ew_commands::route`, FT-706: bodies, texts, other
+  wires, other CPs, frame bands), but only for the wire being drawn; every other route-less connection is drawn by the
   provisional path. The router and the drawing disagree.
 - **Where text boxes exist.** A text box needs the scene's text measurement (`ew-text`), which only `ew-scene` and the
   crates above it have. `ew-scene` cannot depend on `ew-commands`; normaliser 7 (`ew-commands`) and EW-TERM-006

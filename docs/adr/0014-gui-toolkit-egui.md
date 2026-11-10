@@ -65,7 +65,8 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    [architecture](../design/04-architecture.md) §3). The read-only `.ewpp` wiring viewer of 1.0 is built on
    `ew-ui` widgets. Rule 3 therefore reads: only `ew-ui`, `ew-viewer`, the app binary and the `ew-wiring-viewer`
    binary know egui; only the renderers know wgpu.
-4. **Tables and trees** (2026-10-28; 's specification D9). Tables use **egui_table 0.11.0**, the release for egui 0.37 (the 0.10.0 of the context table needs egui 0.36, as egui_tiles 0.17.1 did); it adds `egui_table` and `vec1`, both `MIT OR Apache-2.0`, to the shipped graph,
+4. **Tables and trees** (2026-10-28; decision log ID-686, WP-S2.06's specification
+   D9). Tables use **egui_table 0.11.0**, the release for egui 0.37 (the 0.10.0 of the context table needs egui 0.36, as egui_tiles 0.17.1 did); it adds `egui_table` and `vec1`, both `MIT OR Apache-2.0`, to the shipped graph,
    and `enumn` (`MIT OR Apache-2.0`, a proc-macro without dependencies of its own) through egui's `serde` feature,
    which egui_table turns on, and `accesskit/serde`: enumn accepted by the orchestrator, cycle 31, transitive via
    egui/serde (three new packages; the feature adds `serde` edges to egui's crates and no other package).
@@ -109,8 +110,7 @@ canvas on decision 1's shared device and recorded these facts about the toolkit:
   `ew-ui` registers the canvas's resolved texture as an egui native texture through eframe's render state. wgpu types
   stay `ew_render2d::wgpu::…` outside `ew-render2d` (decision 2).
 - **FT-328 is closed.** The `elektrawatt` binary takes eframe's `wgpu_no_default_features` and names the backends per
-  operating system: DX12 with WARP on Windows, Metal on macOS, Vulkan and GL on Linux (the GL path stays on while
-  `wayland-sys` is in the graph, the `required_features` guard of ID-476). The Windows release binary measured
+  operating system: DX12 with WARP on Windows, Metal on macOS, Vulkan and GL on Linux (the GL path stays on while `wayland-sys` is in the graph, the `required_features` guard). The Windows release binary measured
   53,900,288 B before the GPU path, 54,407,168 B with it and every backend, and 52,502,528 B after the trim (-1.8 MiB).
   Build time is not measured (owner's rule).
 - **One shared device, so row 8 of the switch rule helps for uncaptured errors only.** The canvas runs on eframe's
@@ -118,7 +118,7 @@ canvas on decision 1's shared device and recorded these facts about the toolkit:
   uncaptured error, and the handlers it installs log through `tracing` instead of swallowing egui-wgpu's errors.
   Recovery from a real device loss belongs to FT-310 and WP-S2.11.
 - **Supply chain.** `lyon_tessellation`, `lyon_path`, `lyon_geom` and `float_next_after` entered the graph as four
-  dated cargo-vet exemptions (no audit written; they join under 's hold), and `termcolor` and
+  dated cargo-vet exemptions (no audit written; they join FT-326 under ID-476's hold), and `termcolor` and
   `wgpu-core-deps-wasm` left it: the exemptions rose from 384 to 387.
 
 *Specified, built with WP-S2.03 part 1:* the canvas area is a nested egui_tiles 0.18.0 tree that `ew-ui`

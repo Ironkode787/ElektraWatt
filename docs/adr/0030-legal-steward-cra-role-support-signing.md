@@ -1,6 +1,6 @@
 # ADR-0030: Legal steward, CRA role, support period and signing identity
 
-**Status:** Proposed · amended 2026-10-22 (the legal and licensing items are no longer gate items, decision log ID-450 to ID-455), 2026-10-30 (no Apple signing identity), 2026-11-02 (the pilot release 0.1.0 is unsigned; the steward's CRA processes and the signing identity are 1.0's) · **Date:** 2026-10-17 · **Deciders:** project owner, with legal advice
+**Status:** Proposed · amended 2026-10-22 (the legal and licensing items are no longer gate items), 2026-10-30 (no Apple signing identity), 2026-11-02 (the pilot release 0.1.0 is unsigned; the steward's CRA processes and the signing identity are 1.0's) · **Date:** 2026-10-17 · **Deciders:** project owner, with legal advice
 
 ## Context
 

@@ -1,7 +1,6 @@
 # Design language
 
-**Status:** v1.3, accepted 2026-10-28; amended 2026-11-06, cycle 53: §5.5's jump on the sheet and the ring under the texts, §6.8's prose value on up to three lines; amended 2026-11-05, cycle-52 design pass: §5.3's View ▸ Show as built, §5.5's arrival ring, Back beside the page tabs and a page's first view, and §6.8's label column up to half the row; amended 2026-11-02, cycle-47 design pass: §6.26, the print pre-dialog as built, and §8 item 7, the keycap form of a key's name without an exception, three surfaces and the editor still to follow; amended 2026-10-31, cycle-40 design pass, part 3: §2's keyboard-shortcuts list, §6.8's label column and §6.10's toast width and wrapping as built (FIX40e); amended 2026-10-31, cycle-40 design pass, part 2: §2's macro-card value columns and §6.11's one refusal of the interruption point tool as built; amended 2026-10-31, cycle-40 design pass, part 1: §2's widths at the typical size as built, the size tokens of §4.9 and §5.6's right column; amended 2026-10-31, cycle-39 design pass, part 2: §6.23, the Preview tab a card opened closes with its last card; amended 2026-10-31, cycle-39 design pass, part 1: the owner's two-size rule in §2's Screens; amended 2026-10-30, cycle-38 design pass, part 3: the bottom dock's close control, the Messages toggle and Escape, the zoom kept across docks and the clamp at half the client height (§5.7), the last check's counts in the findings field (§5.8), a failed card's lead in words (§6.23), a shared pin by its ordinal (§8), decision log ID-889; amended 2026-10-30, cycle-38 design pass, part 2: the open-CP marker's value (§4.6), the double-click rule and the canvas context menu (§5.5), the one-toast import outcome (§6.10), a terminal in a sentence (§8), decision log ID-883, ID-884; amended 2026-10-30: the macOS notes of the app button, the dialog button order and the key notation kept for portability only; amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built; v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3; v1.2: the bottom dock's height as built, `size.dock.bottom_min`; v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
-Messages pane has no table mode as built, the History keys as built, the follow-ups numbered · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
+**Status:** v1.3, accepted 2026-10-28 · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 WP-S2.17 · **Part of:** ElektraWatt design document set
 
@@ -32,7 +31,7 @@ differ the mockup wins, except for the two corrections that requirements force (
 
 ## 1. Why a design language
 
-The cycle-30 window checks (screenshots in the session's `win30`, `win30b` and `wincheck4` sets, named by file in §10)
+The window checks that preceded this document (screenshots named by file in §10)
 show a window that works and looks unfinished: egui's default dark theme, eight menus and no toolbar, a hint strip under
 the menu that repeats the status bar, pane titles that repeat their own tabs, a property grid where every row says
 "= authored" and carries a clipped "edit" button beside internal fields (`$v`, keys, UUIDs), navigator rows with
@@ -71,7 +70,7 @@ remote desktop sessions are common (no reliance on animation or subtle gradients
 width chosen for 1280. Both sizes render offscreen (`--window`, `--ppp`; the gated snapshot
 `main-light-comfortable-1920`).
 
-*As built (cycle 40, FT-798, FT-816; decision log ID-922).* **Widths at the typical size.** The left column (the
+*As built.* **Widths at the typical size.** The left column (the
 Schematic workspace's navigator and Properties) is `size.panel.left` (280) at the floor and, while the user has not
 dragged it, is shown at 280 + 0.35 × (window width − 1280), up to `size.panel.left_max` (480): display only, the
 user's share stays the layout, like the bottom dock's clamp (§5.7); at 1920 it is 480. The command search takes 0.2
@@ -272,7 +271,7 @@ row. **Text** needs 4.5:1, **non-text** (icons, boundaries, focus) 3:1.
 | `color.surface.chrome` | `slate-50` #F4F5F7 | `slate-900` #1A1D21 | — | — | — | The command bar's tab row, rails, canvas-tab bar, status bar |
 | `color.surface.panel` | `slate-0` #FFFFFF | `slate-850` #212429 | — | — | — | The command row, docked panels, the command search field |
 | `color.surface.raised` | `slate-0` #FFFFFF | `slate-800` #2A2E34 | — | — | — | Menus, popovers, dialogs, toasts, palette |
-| `color.surface.sunken` | `slate-50` #F4F5F7 | `slate-900` #1A1D21 | — | — | — | Table headers, the segmented control's track, the panel's count badges (the dock-tab counts use `color.badge.on_chrome` since , §4.15) |
+| `color.surface.sunken` | `slate-50` #F4F5F7 | `slate-900` #1A1D21 | — | — | — | Table headers, the segmented control's track, the panel's count badges (the dock-tab counts use `color.badge.on_chrome`, §4.15) |
 | `color.surface.inverse` | `slate-900` #1A1D21 | `slate-100` #ECEEF1 | — | — | — | Tooltips, canvas chips, the tool HUD (opaque) |
 | `color.text.primary` | `slate-900` #1A1D21 | `slate-100` #ECEEF1 | panel | 16.9 | 13.4 | Values, labels of rows, body |
 | `color.text.secondary` | `slate-600` #555C66 | `slate-350` #A7AEB8 | panel | 6.75 | 7.0 | Property labels, meta, shortcuts |
@@ -311,7 +310,7 @@ lines of the drawing.
 | `canvas.hover` | `volt-600` | 5.69 | 1s-px dashed outline |
 | `canvas.ghost` | `volt-600` at 60 % | — | The placed symbol's strokes, its label chip (§7.3) |
 | `canvas.snap` | `volt-600` | 5.69 | Crosshair with a 6-px gap; CP ring 8s + 1 px |
-| `canvas.open_cp` | `slate-400` #868E99 (as built, `volt-600` before) | 3.31 | A (4s + 1)-px hollow square with an s-px rim on each connection point without a connection on the page (screen only; drawn while a grid step is at least 4 points on screen). *Ruled in cycle 38:* a subdued neutral ink, not the accent, so the squares on a valve page do not read as selection handles; fluid ports keep the marker; built in the cycle-38 fix round as `slate-400`, 3.31:1 on the sheet, never an accent shade |
+| `canvas.open_cp` | `slate-400` #868E99 | 3.31 | A (4s + 1)-px hollow square with an s-px rim on each connection point without a connection on the page (screen only; drawn while a grid step is at least 4 points on screen). A subdued neutral ink, not the accent, so the squares on a valve page do not read as selection handles; fluid ports keep the marker; `slate-400`, 3.31:1 on the sheet, never an accent shade |
 | `canvas.highlight.1` | violet #9878FC (dark orange #A86F00 before) | 3.27 | 45° hatch halo, name chip filled with the hue |
 | `canvas.highlight.2` | reddish purple #CC79A7 | 3.06 | 135° hatch halo, name chip filled with the hue |
 | `canvas.highlight.3` | bluish green #009E73 | 3.42 | 0° hatch halo, name chip filled with the hue |
@@ -322,7 +321,7 @@ lines of the drawing.
 | `canvas.chip` | `color.surface.inverse` at 94 % | — | Rounded `radius.sm`, `type.small` |
 | `canvas.highlight.label` | #000000 | 6.43, 6.86, 6.14, 5.43 on the four hues | `type.caption` SemiBold on a highlight name chip |
 
-`s` is FT-391's integer scale factor `max(1, ⌊ppp⌋)`. **This settles FT-506**: the highlight slots take doc 16 §10.3's
+`s` is the integer scale factor `max(1, ⌊ppp⌋)`. **The highlight slots** take doc 16 §10.3's
 hues (the as-built Okabe–Ito orange and sky blue are 2.25:1 and 2.31:1 on white), and the slot geometry (an 8-pt band,
 fill alpha 77, 2-pt hatch at a 6-pt pitch) stays as built. **The selection departs from §10.3's #0072B2** for the
 accent #0B63CE, so the tree, the Properties header and the canvas show the selected object in one colour; both are
@@ -396,15 +395,15 @@ padding). Spacing tokens (a subset of Carbon's scale plus `space.icon`):
 | `size.command.large` | 46 × ≥ 52 | 28 high | Comfortable: icon 20 over label, 2-px gap; Compact: icon 20 beside label |
 | `size.command.small` | 24 | 24 | Icon 16 and label beside it |
 | `size.quick_access` | 28 × 24 | 28 × 24 | Save, Undo, Redo |
-| `size.search` | 280 × 24 | 280 × 24 | The command search field; at the floor (as built, : it grows with the tab row, §2) |
+| `size.search` | 280 × 24 | 280 × 24 | The command search field; at the floor (as built, it grows with the tab row, §2) |
 | `size.search.max_width` | 400 | 400 | As built: the widest the command search grows to |
 | `size.panel_header` | 32 | 32 | Navigator, Properties and palette headers |
 | `size.dock_tab_bar` | 32 | 32 | Canvas-tab bar (tabs 28 high) and the bottom dock's tab row |
 | `size.rail` | 40 | 40 | Rail width; rail buttons 32 square |
 | `size.status` | 26 | 26 | Status bar; its fields 22 high |
-| `size.panel.left` | 280 (220 to 480) | 280 | Navigator and Properties column; Properties takes half its height; its width at the floor (as built, : shown wider with the window while not dragged, §2) |
+| `size.panel.left` | 280 (220 to 480) | 280 | Navigator and Properties column; Properties takes half its height; its width at the floor (as built, shown wider with the window while not dragged, §2) |
 | `size.panel.left_max` | 480 | 480 | As built: the widest the left column is shown while it keeps its default share |
-| `size.panel.right` | 280 (220 to 480) | 280 | Palettes. *Not built:* the token was removed in cycle 40 because nothing read it; FT-835 proposes the right column that reads it |
+| `size.panel.right` | 280 (220 to 480) | 280 | Palettes. *Not built:* the token was removed because nothing read it; FT-835 proposes the right column that reads it |
 | `size.text_measure` | 520 | 520 | As built: the line length of running text on a full-window page (the first-run screen), fixed on purpose |
 | `size.dock.bottom` | 184 | 184 | The mockup's reference height of the bottom dock only (the mockup's `.bottom` rule, checked by DL8); as built the dock does not open at it (§5.7) |
 | `size.dock.bottom_min` | 300 | 300 | The bottom dock's least shown height: in the vertical split that holds the page view, the child holding a bottom pane is shown at least this high, at most 2/3 of the split; display only, the user's shares stay the layout (§5.7) |
@@ -438,7 +437,7 @@ barely show on dark grey (Material's dark-theme guidance, with #121212 as its ba
   into a generated Rust table of paths (`crates/ew-ui/src/icons/generated.rs`), drawn through epaint. No icon font and
   no icon crate (the egui wrapper crates track older egui releases).
 - **EW glyphs.** Glyphs Tabler lacks (cable, terminal strip, interruption point, black box, potential, structure box,
-  QET grid, DIN rail, duct; the last two from cycle 45, ID-1107) are drawn by the project on the same grid with the same stroke rules, stored beside the vendored set under
+  QET grid, DIN rail, duct) are drawn by the project on the same grid with the same stroke rules, stored beside the vendored set under
   the application's licence, and go through the same generator.
 - **Sizes and stroke.** `icon.sm` 16 px (rows, menus, small command buttons, quick access, the HUD, status fields,
   dock tabs), `icon.md` 20 px (large command buttons, rails, toasts), `icon.lg` 24 px (dialogs; empty states at 32).
@@ -501,7 +500,7 @@ none of it reads raw egui defaults.
 
 ### 4.15 Component tokens of the built widgets
 
-Added 2026-10-28 for the widgets that WP-S2.06 part 3, WP-S2.09 parts 2 and 3 and FT-500 built alongside this
+These are for the widgets built alongside this
 document (§6.21 to §6.25). Each is a component token (§4.1, layer 3) defined by an alias or an existing size; none
 adds a raw value, so the token test of WP-S2.17 part 1 checks them through their aliases. *As built:* `size.dialog.label` and `size.dialog.preview` are the exceptions, raw 160 px and 1040 px in both densities; `color.badge.on_chrome` is checked as a background of `color.text.secondary` in the token dump.
 
@@ -630,7 +629,7 @@ placed action has an icon, a label and a docs anchor, and that each tab's groups
 |---|---|---|
 | Project | Project: **Properties**, Structure · Parts: Project parts · Standards: Schemes, Company standard · Import: **Import parts**, Import QElectroTech project…, Re-import QElectroTech project… | None · set up once; New, Open and Save are in the app menu and quick access, never duplicated here |
 | Page | Pages: **New page**, Page properties, Delete page · Order: Renumber pages, Move up, Move down · Go: **Go to** (Ctrl+G), Back (Alt+Left), Forward (Alt+Right), Follow reference (F) | None · folio navigation and page set-up |
-| **Draw** (home) | Select: **Select** · Place: **Symbol** (I), **Device** (Shift+I), Terminal, Black box (B), Symbols (Symbol editor…) · Connect: **Wire** (W), Edit route, Potential (Shift+P), Interruption (P), Route page and Route selection (stacked in one column) · Annotate: **Text** (T), Measure · Arrange: Rotate (R), Mirror (X, Y), Align, Renumber | **Check project** (F7) · the core loop and the tab that opens with a project; the mockup's fifteen commands and its next step, with the commands that joined since: Edit route beside Wire, Route page and Route selection and Symbols (the Symbol editor joined Place by , which the editor's persona round asked for; its bar label is "Symbols", the editor's things, since "Editor" names no concept and "New symbol" would mislead when a kept draft reopens; its tooltip, menu entry and palette row are "Symbol editor…"). Move, Delete, Wire marker, Graphic, Image, Structure box, Properties and Change symbol are reached by their keys, the context menu, the app menu's Draw and the palette; Align arrives with its package |
+| **Draw** (home) | Select: **Select** · Place: **Symbol** (I), **Device** (Shift+I), Terminal, Black box (B), Symbols (Symbol editor…) · Connect: **Wire** (W), Edit route, Potential (Shift+P), Interruption (P), Route page and Route selection (stacked in one column) · Annotate: **Text** (T), Measure · Arrange: Rotate (R), Mirror (X, Y), Align, Renumber | **Check project** (F7) · the core loop and the tab that opens with a project; the mockup's fifteen commands and its next step, with the commands that joined since: Edit route beside Wire, Route page and Route selection and Symbols (the Symbol editor joined Place, which the editor's persona round asked for; its bar label is "Symbols", the editor's things, since "Editor" names no concept and "New symbol" would mislead when a kept draft reopens; its tooltip, menu entry and palette row are "Symbol editor…"). Move, Delete, Wire marker, Graphic, Image, Structure box, Properties and Change symbol are reached by their keys, the context menu, the app menu's Draw and the palette; Align arrives with its package |
 | Check | Run: **Check project** (F7), Check scheme ▾ · Findings: **Messages**, Next finding (F8), Previous finding (Shift+F8) · Numbering: Freeze tag, Unfreeze tag · Trace: Highlight potential (Ctrl+Shift+H), Clear highlights | **Export PDF** · make it right before output; Renumber lives on Draw (the mockup) |
 | Output | PDF: **Export PDF**, Print · Reports: **Report blocks**, Open generated page · Lists: Parts list, Wire list, Terminal diagram (open their generated pages) · Jobs: Jobs | None · everything that leaves the project |
 | View | Zoom: **Fit page** (Home), Zoom in, Zoom out, Actual size · Show: Grid, Snap, Frame statistics, Show tips · Panels: Navigators ▾, Properties, Messages, Jobs, History, Notifications · Layout: Side by side, Workspaces ▾, Reset layout · Appearance: Theme ▾, Density ▾, UI scale ▾ | None · never needed for the work itself |
@@ -644,7 +643,7 @@ live in the app menu's Edit, the canvas context menu and their keys, as everywhe
 waiting for its action. The app menu's View ▸ Show is a submenu of the group's switches plus CPU renderer, a setting
 that has no button on the tab: Grid, Frame statistics, Show tips, CPU renderer. Wire colours and Mouse wheel scrolls
 stay items of View itself, outside the group. The palette shows each switch's state after its breadcrumb ("View ·
-Show · On"). Frame statistics drawn with its icon where its siblings show their check is FT-1520.
+Show · On"). Frame statistics is still drawn with its icon where its siblings show their check.
 
 ### 5.4 Left: the rail, the navigator and Properties
 
@@ -698,15 +697,15 @@ Show · On"). Frame statistics drawn with its icon where its siblings show their
   `elevation.1`.
 - **Toasts** appear at the canvas's top right (§6.10).
 
-*As built.* The HUD is one status node holding the zoom control, **centred on the page-view pane** (not on the canvas sheet), on the inverse surface (light in dark mode, as specified). The Place prompt reads "`<target>` · R rotates · V variant · Esc done"; a repeated click on a pick stack reads "`<n>` objects overlap here · click again to select the next" (`hud-stack`, the text as built since). The tool strip's fields are on the tool options card (§5.2).
+*As built.* The HUD is one status node holding the zoom control, **centred on the page-view pane** (not on the canvas sheet), on the inverse surface (light in dark mode, as specified). The Place prompt reads "`<target>` · R rotates · V variant · Esc done"; a repeated click on a pick stack reads "`<n>` objects overlap here · click again to select the next" (`hud-stack`, the text as built). The tool strip's fields are on the tool options card (§5.2).
 
-*As built.* **The double-click rule:** the window turns a double click's second press into `tool.finish` only for a tool that finishes on a double click (`Tool::finishes_on_double_click`): Wire, Select (a free text opens for editing), the polyline and polygon graphics and Structure box. Every other tool sees two plain presses, so two quick clicks with Place place twice (as amended; for the stacked twin). A right-click on the canvas opens a context menu: over an object the selection's Arrange commands in the command bar's order, then Delete; over nothing Paste when it is enabled; no menu when there is nothing to offer. The Black box tool marks its first corner, and after an Escape its hint says that a second Escape leaves the tool.
+*As built.* **The double-click rule:** the window turns a double click's second press into `tool.finish` only for a tool that finishes on a double click (`Tool::finishes_on_double_click`): Wire, Select (a free text opens for editing), the polyline and polygon graphics and Structure box. Every other tool sees two plain presses, so two quick clicks with Place place twice (for the stacked twin). A right-click on the canvas opens a context menu: over an object the selection's Arrange commands in the command bar's order, then Delete; over nothing Paste when it is enabled; no menu when there is nothing to offer. The Black box tool marks its first corner, and after an Escape its hint says that a second Escape leaves the tool.
 
 *As built.* **The tool options card takes the pointer only with its controls (the band they stand in):** a click on its frame or title reaches the sheet beneath, and while the tool's ghost stands under the card (by the card's rectangle of the last frame) the card is drawn at 40 % opacity and is no obstacle to the canvas chips.
 
 *As built.* **A jump's
 arrival.** After a cross-reference jump the target is centred and marked by a ring of `size.control.inline` radius in
-`color.accent`, which fades over 1.5 s of frame time; under reduced motion it stays fully drawn for 1.5 s, then goes. *Ruled 2026-11-06:* a jump keeps the view on
+`color.accent`, which fades over 1.5 s of frame time; under reduced motion it stays fully drawn for 1.5 s, then goes. A jump keeps the view on
 the sheet: when centring the target would show off-sheet space, the view stops at the sheet's edge and the target sits
 off centre, still marked; a sheet smaller than the pane is centred in it. The ring is drawn under the page's texts, so
 it never covers one. This applies to a jump and the link preview, not to panning or fitting. **Back beside the page tabs.** Each canvas tab bar starts with a
@@ -756,7 +755,7 @@ toggle shows). The mockup's table, a data grid (§6.21) with the mockup's five c
 FT-522, not part of the restyle. The other bottom panes as built: Find (table
 rows), Jobs (§6.19 and §6.25), History (§6.24) and Preview (§6.23).
 
-*As amended (fix round FX38d; amending).* **Close.** A bottom pane alone in the dock, without the tab row, carries the dock's close button at its header's right end; the command that opens Messages closes it again (`messages.show` without `on` toggles, as History, Preview and Jobs do), and Escape with the focus in Messages closes it once a tool at work has had its Escape. **The canvas keeps its view.** Opening, closing or dragging a dock keeps each canvas tab's zoom and centre; a fit happens only on the host's first size of a canvas group, a page change or an explicit fit. The trade-off: with the Preview dock open the kept zoom crops the sheet's top row and title block, where the old refit showed the whole page; whether a fitted, untouched view should refit when a dock opens is FT-769. **The clamp.** The display clamp above also leaves the page view at least half the window's client height, so in a short window `size.dock.bottom_min` gives way to it (as amended).
+**Close.** A bottom pane alone in the dock, without the tab row, carries the dock's close button at its header's right end; the command that opens Messages closes it again (`messages.show` without `on` toggles, as History, Preview and Jobs do), and Escape with the focus in Messages closes it once a tool at work has had its Escape. **The canvas keeps its view.** Opening, closing or dragging a dock keeps each canvas tab's zoom and centre; a fit happens only on the host's first size of a canvas group, a page change or an explicit fit. The trade-off: with the Preview dock open the kept zoom crops the sheet's top row and title block, where the old refit showed the whole page; whether a fitted, untouched view should refit when a dock opens is not settled. **The clamp.** The display clamp above also leaves the page view at least half the window's client height, so in a short window `size.dock.bottom_min` gives way to it.
 
 *As built.* **The dock grows with its content.** Messages, Find, Preview,
 Glossary, History and Jobs report their list's height; the dock is shown no higher than the shown pane needs and,
@@ -820,7 +819,7 @@ Every interactive component has these states, drawn the same way everywhere:
 | Pressed | `color.state.pressed` overlay |
 | Selected | `color.accent.subtle` fill; text primary, icon `color.accent`; in lists a 2-px accent bar (`radius.mark`) at the left edge, inset 4 px top and bottom |
 | Focused (keyboard) | 2-px `color.focus` ring, 1 px outside the element, `radius` of the element + 1 |
-| Disabled | `color.text.disabled` text and icon, no hover; the reason as tooltip (doc 16 §2.4). *Amended by cycle 33:* a disabled Primary draws as a Secondary (its fill and border) with `color.text.disabled`, without egui's extra fade; about 2.2 to 2.3:1, exempt as a disabled control. *Ruled in cycle 34:* the exemption stands and there is no 3:1 disabled token; `color.text.disabled` is 2.23:1 (light) and 2.27:1 (dark) on the panel, legible yet clearly under every enabled label, and a test keeps it within [2, 3) and at most half the primary text's ratio, so it can neither fade into illegibility nor make a disabled Primary read as an enabled button |
+| Disabled | `color.text.disabled` text and icon, no hover; the reason as tooltip (doc 16 §2.4). A disabled Primary draws as a Secondary (its fill and border) with `color.text.disabled`, without egui's extra fade; about 2.2 to 2.3:1, exempt as a disabled control. The exemption stands and there is no 3:1 disabled token; `color.text.disabled` is 2.23:1 (light) and 2.27:1 (dark) on the panel, legible yet clearly under every enabled label, and a test keeps it within [2, 3) and at most half the primary text's ratio, so it can neither fade into illegibility nor make a disabled Primary read as an enabled button |
 | Error | `color.error` boundary on fields, the message under the field with an icon |
 | Busy | the label stays; a 12-px spinner replaces the icon; never disables the window |
 
@@ -914,17 +913,17 @@ buttons. The row's actions (Reset to derived, Freeze, Why this value?) are in it
 button that appears on hover and focus. Two rows never share a label: duplicate labels (today "Tag" and "Tag",
 "Parts" and "Parts") get distinct names in the field catalogue.
 
-*As built.* The chip words "inherited" and "varies" were added and "part" dropped, because the model has no part source of its own for a property value. Properties shows Main and Advanced as categories; **the other categories are open by default** (a deviation from the closed default of the spec's D11), and a collapse the user makes is kept in the settings. The header's finding chips and actions popup are FT-530; a filter for more than twelve rows is not built.
+*As built.* The chip words "inherited" and "varies" were added and "part" dropped, because the model has no part source of its own for a property value. Properties shows Main and Advanced as categories; **the other categories are open by default** (a deviation from the closed default of the spec's D11), and a collapse the user makes is kept in the settings. The header's finding chips and actions popup are not built; a filter for more than twelve rows is not built.
 
 *As built.* The header shows one count chip per severity, also for one finding ("1 Warning", "2 Warnings"); glyphs replace the words when the title does not fit. An edit field opened on its stored value starts with the whole text selected, so typing replaces it.
 
-*As built (M39, and , FIX40e).* **The label column fits its labels,
+*As built.* **The label column fits its labels,
 then gives way to a value.** It is as wide as the widest label of the rows on show, from `size.property_label` up to
 40 % of the row (M39); then it gives way, down to half of `size.property_label`, to the widest value it can make
 whole: a value counts whole, or, when too wide for that, by its first word if that word contains a digit (a tag, a
 part number: "EW-GEN-CPU-1 …"), so the tag or the number is not cut while the labels have room. The row's "…" button
-does not count. As built a prose value that fits whole narrows the labels too; the review's ruling is that only
-identifier values do, and that the widths get a 0.5 px margin (FT-861, FT-862, cycle 41).
+does not count. As built a prose value that fits whole narrows the labels too; only
+identifier values should, and the widths should get a 0.5 px margin (FT-861).
 
 *As built.* **A value that names a record is a link.** A placement's Device row is
 drawn in `color.accent` (P4), underlined on hover; a click or F (`props.follow`, the Properties context of every
@@ -942,17 +941,16 @@ only when it is cut.
 *As built.* **The
 label column takes what its labels need, up to half the row.** It is as wide as the widest label of the rows on show,
 up to half the row, the values keeping at least half; a label longer than its column wraps at its word boundaries
-onto further lines instead of being cut, so no nested Dutch label is cut at the 1280 × 800 floor. The cycle-39 note's identifier
+onto further lines instead of being cut, so no nested Dutch label is cut at the 1280 × 800 floor. The identifier
 rule above never narrows the column below the widest single word of a label with its indent, and prose values and
-list counts take no width from the column (only identifiers do). The rule holds at every width. W52 found the Tag
-value cut beside its chip at the floor (identifiers are never cut); the ruling is that an
-identifier keeps its whole width and its chip, the label column yielding first, its labels wrapping and a single
-overlong label word cut with its tooltip, built by the fix round FIXW52. *Ruled 2026-11-06:* a
+list counts take no width from the column (only identifiers do). The rule holds at every width. An
+identifier (the Tag value beside its chip at the floor, for one) keeps its whole width and its chip, the label column
+yielding first, its labels wrapping and a single overlong label word cut with its tooltip. A
 prose value wraps at its words onto up to three lines, its row growing with it, and only a value longer than three
 lines is cut, with its whole text as its tooltip.
 
 *As built (2026-11-05, FIXW52 and its second round).* **Labels give way to
-identifiers only, down to half their width.** The note above is amended as built: the word floor no longer holds for
+identifiers only, down to half their width.** The word floor of the note above does not hold for
 an identifier, so an identifier value (a tag, a part number, any word with a digit) can narrow the label column down to
 half of `size.property_label`, and a label whose longest word no longer fits is then cut on one line with its whole text as
 its tooltip; a nested Dutch label can therefore be cut at the floor beside an identifier. A prose value or choice word
@@ -996,7 +994,7 @@ while the pointer is on it, once the pointer has moved onto it: a toast that app
 fades on time, and a toast already paused stays paused while the pointer is still.
 
 *As built.* **Tips** (WP-S2.08 D17) are toasts with the info icon, whatever
-their action (beside 's rule), and the key `tip`. A toast with two actions (Undo and Show changes after an
+their action (beside ID-750's rule), and the key `tip`. A toast with two actions (Undo and Show changes after an
 external change) shows them on one row while they fit.
 
 *As built.* **The toasts keep clear of a tool at work:** while a
@@ -1013,7 +1011,7 @@ width under the command bar, `size.control` + `space.3` padding, the semantic su
 Primary action and at most one Subtle action, a close button when it may be dismissed. One banner at a time; a second
 state queues behind it with a count ("1 more").
 
-*As built.* The banner lies over the content as an overlay rather than taking a band of its own: along the top edge of the canvas below the page tabs when a page view is shown (full width of the page view), else under the command bar; the toasts start below it. Showing or dismissing it never moves the canvas or a panel (the play-test's clicks missed when it pushed the window down). A refused canvas click (an interruption point that EW-CORE-052's prevent mode refuses) is no project state: it says why in the HUD and a toast, not in the banner. *As built (lane H40):* the refusal is said once, in words, with the source's page and the way out ("Not placed: 0V already has a source on page 101. Press D for a target, or mark one source as the star."): no canvas-top preview strip, the HUD and a toast carry it, and Messages keeps the rule's code.
+*As built.* The banner lies over the content as an overlay rather than taking a band of its own: along the top edge of the canvas below the page tabs when a page view is shown (full width of the page view), else under the command bar; the toasts start below it. Showing or dismissing it never moves the canvas or a panel (the play-test's clicks missed when it pushed the window down). A refused canvas click (an interruption point that EW-CORE-052's prevent mode refuses) is no project state: it says why in the HUD and a toast, not in the banner. *As built:* the refusal is said once, in words, with the source's page and the way out ("Not placed: 0V already has a source on page 101. Press D for a target, or mark one source as the star."): no canvas-top preview strip, the HUD and a toast carry it, and Messages keeps the rule's code.
 
 *As built.* **A state banner stays while its state holds:** the
 held-saves banner (an external change with collisions waiting) and the cloud-folder banner are kept through every
@@ -1041,11 +1039,11 @@ one), and in a destructive confirmation the Primary is Cancel, so the journal-di
 A form whose Primary is disabled at open takes no first focus. **Enter on a focused check box does nothing;
 Space toggles it** ("Enter runs the Primary" gives way there, so Enter never submits a form by accident). **Ctrl+Enter**
 submits a form from any focus; with a disabled Primary its action refuses in its tooltip's words, and a refused submit
-shows its reason inside the form, which stays open (its next step is FT-1256). **A save refused for held collisions
+shows its reason inside the form, which stays open. **A save refused for held collisions
 opens the collision dialog again**: the save is the user's own request and the dialog is the way out, while no poll
 reopens it after Decide later.
 
-*As built (2026-11-04, closed).* **A form whose Primary is disabled
+*As built.* **A form whose Primary is disabled
 at open** (Create enclosure with no part) takes its first focus on its first text field, else on its first enabled
 control, a check box included, with the focus ring shown: "never a check box" and "takes no first focus"
 above give way for that case, and Enter on that check box still does nothing while Space toggles it. The start-up
@@ -1157,7 +1155,7 @@ since no italic face is bundled, §4.8); a read-only cell shows no edit affordan
 | Error | the error line above the grid; a pattern error inside the pattern card |
 
 The grid itself is the focusable node: the focus ring of §6.1 is drawn around the whole grid, inset 1 px into the
-pane, and the cursor cell shows where the keys act. *Amended by cycle 33:* the cursor row's bar sits inside the ring (left edge + 1 + the ring's
+pane, and the cursor cell shows where the keys act. The cursor row's bar sits inside the ring (left edge + 1 + the ring's
 width), at one position with or without focus; the grid's scroll handle is `color.border.control` at rest and
 `color.text.secondary` on hover or drag; the cell editor sits on the cell's text baseline. **Density** changes the row height only; header, column widths
 and padding stay. **Keyboard and accessibility** as built (WP-S2.06 §8.1): arrows, Tab and Shift+Tab, Home, End,
@@ -1191,11 +1189,11 @@ the pointer's 16-px box. A last line in `type.caption` `color.text.tertiary` sho
 everything as it was. AccessKit: a `ListBox` named by the question ("Objects here"), its rows `ListBoxOption`s with
 position and set size; the active row is announced. **Density** changes the row height only.
 
-*Not built* (as of cycle 33). No widget uses it yet: FT-500's pick stack is walked by repeated clicks (§6.25), and its
+*Not built.* No widget uses it yet: FT-500's pick stack is walked by repeated clicks (§6.25), and its
 chooser is a proposed follow-up. The component is fixed here so that the follow-up, and any later "which one?" choice,
 gets this look and not a new one.
 
-*As built (cycles 34 and 35).* **Two uses.** The first is the strip editor's accessory
+*As built.* **Two uses.** The first is the strip editor's accessory
 part choice when several parts fit (WP-S2.07 part 1). The second is the Place tool's **Join chooser** (WP-S2.18 D2, J;
 doc 16 §4.4): "New device" first, then the device's unplaced slots with the kind word "slot 13-14", then the devices
 whose family takes auxiliary functions, in natural tag order, type-ahead on the tag; Enter arms the target (the ghost
@@ -1217,7 +1215,7 @@ as-built "[stale]" text; the summary line in `type.small` `color.text.secondary`
 
 **The Preview tab** (bottom dock): a header row with the title, revision and badge at the left and Apply and Cancel at
 the right, so the actions stay visible above long lists (as built they sit under the summary); the summary line under
-it ("12 items · 4 tags · 6 cross-reference texts · 3 pages" as built since, an import's created
+it ("12 items · 4 tags · 6 cross-reference texts · 3 pages" as built; an import's created
 and skipped counts); then the
 lists **Entities, Tags, Xrefs, Pages** as collapsible sections with headers in the style of the property categories
 (§6.8: 28 px, `type.small` SemiBold `color.text.secondary`, a chevron) and a count badge (§6.16) instead of "(n)".
@@ -1242,7 +1240,7 @@ scrolls, as built. Without a card a tab the user opened by hand shows the empty 
 `alert-triangle` in the warning icon colour (§4.4), info `info-circle` in `color.accent` (as built: a filled circle,
 triangle and square of 10 px; the three shapes stay distinct). Severity group rows ("Errors", "Warnings", "Infos")
 are group rows with the severity icon in place of the folder and their count in the meta column; rule rows show the
-rule ID in the meta column. *Cycle 48 (design pass, ID-1246; FT-1147, built by FT-1186):* a group or rule row's count stands right after the
+rule ID in the meta column. A group or rule row's count stands right after the
 row's name, `space.2` from it, not in the meta column at the row's far end, so the name and its count read together
 at any width. Severity never rests on colour: the shape differs, the group row names it, and the
 accessible name of every finding row carries the severity word, as built. A **pending** finding draws its icon and
@@ -1303,12 +1301,12 @@ states, density and the keyboard and accessibility it keeps. The part column nam
 | Toasts and the notifications log (`notifications.rs`) | §6.10 (complete; it moves the stack to the canvas's top right) | `elevation.2`, `radius.lg` | Action valid or not | None | Polite live; 8 s on the window's clock; the log never takes the focus | 4 |
 | Recovery dialog and the read-only banner | §6.12, §6.11 (complete; wording in WP-S2.17 part 4) | `elevation.2`, the warning subtle fill | — | None | Escape cancels; Enter the Primary | 4 |
 
-**Proposed follow-ups** (behaviour the design language suggests; none is part of the restyle; numbered at the
-cycle-31 design pass, decision log ID-727: 1 is FT-520, 2 FT-521, 3 FT-522, 4 FT-523, 5 FT-519):
+**Proposed follow-ups** (behaviour the design language suggests; none is part of the restyle; follow-up 1 is
+FT-520 and follow-up 3 is FT-522):
 1. **Pick-stack chooser.** Alt+click (or a held click) on overlapping objects opens the chooser list of §6.22 with the
    pick stack, the active row outlined on the canvas; the repeated-click walk stays.
 2. **Pick-stack hint.** While the pointer is over more than one pickable object, the HUD's prompt says so ("3 objects overlap
-   here · click again to select the next", `hud-stack` as built in cycle 42), so the walk can be found.
+   here · click again to select the next", `hud-stack` as built), so the walk can be found.
 3. **Messages opens as the mockup's table.** The Messages pane opens in table mode with Severity, Message, Object,
    Page and Rule on show in that order (fix and state hidden), the tree one toggle away.
 4. **Sort state in the header's name.** A sorted header's accessible name adds ", sorted ascending" or ", sorted
@@ -1344,26 +1342,26 @@ most 56 % of the window's height.
   without a parent window and falls back to `lp`, then to the viewer, with one notice; a cancel in the portal ends the
   chain silently. The dialog's own steps are the hidden actions `print.set`, `print.page` and `print.send`, which the
   palette does not list.
-- **Known gaps** (the window check W47.1): the Pages error shows twice and lacks the field's error border and
+- **Known gaps:** the Pages error shows twice and lacks the field's error border and
   icon; the first focus lands on the chosen Range radio and not on the Primary; an A3 preview
   without a fit draws no paper edge.
 
 ## 7. Canvas overlays
 
-All overlays follow FT-391's scale rule (`s = max(1, ⌊ppp⌋)`), live in the session-only overlay layers (never in the
+All overlays follow the scale rule (`s = max(1, ⌊ppp⌋)`), live in the session-only overlay layers (never in the
 display list), and keep 3:1 on the white sheet.
 
 ### 7.1 Selection, hover and handles
 
 Selection: a 2s-px `canvas.selection` outline around the representation's bounds with a 1s-px white casing on both sides of it
-(as built, : the mockup draws it so and wins), so it reads over black lines; handles are 8s-px squares at the corners, white fill, 1.5s-px accent stroke. Hover: a 1s-px dashed accent
+(as built, the mockup draws it so and wins), so it reads over black lines; handles are 8s-px squares at the corners, white fill, 1.5s-px accent stroke. Hover: a 1s-px dashed accent
 outline (4s on, 4s off). A selected object under the pointer shows the selection only.
 
 ### 7.2 Connection points, snap and the grid cursor
 
 CP rings 8s + 1 px in the accent on hover and while a wire tool is active; the snap target a crosshair with a 6-px gap;
 the keyboard grid cursor a 1s-px accent cross with its cell in the status bar (doc 16 §3.6). A hovered CP shows a
-tooltip with its printed label, its symbol name and its potential ('s tooltip half), in the inverse look:
+tooltip with its printed label, its symbol name and its potential (FT-512's tooltip half), in the inverse look:
 "`<printed label> · <symbol name> · <potential>`", for example "1X1:1/a · terminal · L" on Golden A. *As built (cycle
 32):* this replaces the earlier "-X1031 : 21 · terminal · 24VDC-1" form; a part the page tables
 do not know is left out.
@@ -1392,7 +1390,7 @@ is it drawn at the preferred anchor with 80 % opacity. Chips never cover the tar
 alternative exists. Highlight name chips are the exception to the inverse fill: they take their slot's hue with a black
 label (§4.6).
 
-**Labels on the sheet** (cycle 48 design pass, ID-1244; FT-1080, FT-1128, built by FT-1185). The same aim holds
+**Labels on the sheet** (FT-1185). The same aim holds
 for the drawing's own texts, which the scene places and the print carries: a terminal's label or an external point's
 label never overlaps another symbol's graphics, connection points or tags. The scene tries the label's slot, then
 steps the label outward along the slot's axis by `SLOT_TEXT_GAP`, at most three times, as a black box's caption moves
@@ -1403,10 +1401,10 @@ steps the label outward along the slot's axis by `SLOT_TEXT_GAP`, at most three 
 As built (doc 16 §10.3 as-built note) with the hues of §4.6: halos with hatch patterns and a name chip, at most four,
 painted above the overlays and below the chips.
 
-*Ruled.* **The colour a merged 0 V/PE potential shows.** FT-595 found that
-the potential highlight and the wire colour take the role of the potential's name. The ruling: an unbonded potential
+**The colour a merged 0 V/PE potential shows.** The potential highlight and the wire colour take the role of the
+potential's name. An unbonded potential
 that merges a 0 V and a PE definition shows doc 08 §3.6's PE colour, not the colour of its name 0V ('s natural
-order names it 0V); EW-POT-001's conflict colour overrides it. Not yet built: FT-654.
+order names it 0V); EW-POT-001's conflict colour overrides it. Not yet built.
 
 ### 7.6 Measurement
 
@@ -1498,8 +1496,8 @@ found by search also teaches where it lives in the bar.
 
 ## 10. Migration map from the current window
 
-Screenshots are referenced by file name from the cycle-30 window checks (`win30`), their follow-up (`win30b`) and
-the cycle-29 jobs check (`wincheck4`). The part column names WP-S2.17's part that changes it.
+Screenshots are referenced by file name from the window checks that preceded this document (`win30`, `win30b`,
+`wincheck4`). The part column names WP-S2.17's part that changes it.
 
 | Screenshot | Today | Target | Part |
 |---|---|---|---|

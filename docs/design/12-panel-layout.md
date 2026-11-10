@@ -559,7 +559,7 @@ placed (a cut, not a paper-coloured fill), so the carriers layer reads the label
 *As built.* `layout.label` is a constant of
 `ew-scene` bound to the `xref.device` style, not a slot kind of the symbol library. The ink box is estimated as the
 shaped text's advance + 0.2 mm by the face's cap height + 0.2 mm, plus the descent only when the text has a descender
-(a true ink-box query is FT-870), and compared with the footprint in page space; a label placed outside starts its
+(a true ink-box query is not built), and compared with the footprint in page space; a label placed outside starts its
 leader 1.5 mm off the footprint, above it, or below when above leaves the surface. Balloons are not built (1.0, FP-3).
 A function's placement adds no ":" suffix, since functions carry no designation member.
 

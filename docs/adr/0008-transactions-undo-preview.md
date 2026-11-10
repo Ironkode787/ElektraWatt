@@ -1,6 +1,6 @@
 # ADR-0008: Transactions, undo/redo and preview-as-fork
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings), 2026-10-22 (the transaction-read rule), 2026-10-23 (a transaction carries assets), 2026-10-24 (amendment 3's `HumanOnly` rule covers undo and redo, and amendment 5's purge as a `HumanOnly` marker line, notes), 2026-10-25 (amendment 3's note as built by FT-404) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings), 2026-10-22 (the transaction-read rule), 2026-10-23 (a transaction carries assets), 2026-10-24 (amendment 3's `HumanOnly` rule covers undo and redo, and amendment 5's purge as a `HumanOnly` marker line, notes), 2026-10-25 (amendment 3's note as built) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -116,7 +116,7 @@ these entries refine it.
      (an empty transaction, amendment 2).
    - **Validated twice.** The parameter schema first, then semantically by the parser the derivation reads the member
      with (`ew_derive::check_settings_member`): a value the derivation would only note as malformed or not apply is
-     refused with `CmdError::InvalidParams` at `/value` (a `numbering` scheme the derivation would not apply, decision log and ; a `default` naming no scheme; unknown or unclosed format tokens; colour codes that are neither IEC 60757 nor company codes on an IEC 60757 base; cross-sections that are not positive mm², AWG or kcmil). Any other member is refused at `/member`. Ambiguous token sequences are refused once follow-up task
+     refused with `CmdError::InvalidParams` at `/value` (a `numbering` scheme the derivation would not apply, a `default` naming no scheme; unknown or unclosed format tokens; colour codes that are neither IEC 60757 nor company codes on an IEC 60757 base; cross-sections that are not positive mm², AWG or kcmil). Any other member is refused at `/member`. Ambiguous token sequences are refused once follow-up task
      FT-163 lands.
    - **Bulk, previewed, one undo step.** One stored value changes derived values on every page, so the command is
      `Cost::Bulk`; the preview shows the derived diff (`Session::derived_diff`: tags and cross-reference texts; wire
@@ -162,7 +162,7 @@ these entries refine it.
    - **Soundness.** Every lookup is recorded in the transaction's read set, so `ReadSet::unchanged_since` and the
      optimistic rebase of amendment 2 see a change to a looked-up link as a conflict; a rebase test pins it.
    - **Cost.** A lookup scans the transaction's fresh rows besides the base index, so a transaction that creates many
-     referrers and looks them up (a bulk import) is O(fresh²) within that transaction. Recorded, not measured (decision log); a bulk path that shows it gets a batched lookup.
+     referrers and looks them up (a bulk import) is O(fresh²) within that transaction. Recorded, not measured; a bulk path that shows it gets a batched lookup.
 5. **A transaction carries assets beside its ops** (2026-10-23, project owner (delegated), on FT-337 as built; decision
    log ID-573 to ID-575; [project format](../design/05-project-format-and-persistence.md) §8.1, §13.3,
    [architecture](../design/04-architecture.md) §3 rule 1). Image bytes are content-addressed and immutable, so they are
@@ -186,7 +186,8 @@ these entries refine it.
      journalled; the journal carries every asset the model after the transaction names unless it is on disk or already
      in the segment (base64 at the 512 KiB logo bound; side files later). A damaged journal asset is a recovery
      finding (EW-CORE-015), not a refused replay.
-   - **Freshness.** Asset presence can change without a revision, so no memoised query reads it (ARCH §3 rule 1; the one named exception `Q::logo_asset` until makes the restriction mechanical).
+   - **Freshness.** Asset presence can change without a revision, so no memoised query reads it (ARCH §3 rule 1; the one
+     named exception `Q::logo_asset` until FT-382 makes the restriction mechanical).
 
 ## Consequences
 

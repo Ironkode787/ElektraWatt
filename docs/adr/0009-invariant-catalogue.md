@@ -1,6 +1,6 @@
 # ADR-0009: Invariant catalogue: structural vs configurable prevent rules; lenient import
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-21, 2026-10-22, 2026-10-23 (specified: two invariants for page items and structure boxes), 2026-11-04 (amendment 9: EW-INV-024, fluid lines, built in WP-S1.20; decision log ID-1340) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-21, 2026-10-22, 2026-10-23 (specified: two invariants for page items and structure boxes), 2026-11-04 (amendment 9: EW-INV-024, fluid lines, built) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -79,7 +79,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    kinds of edge: a terminal from its strip, a `Child`-scheme device from its parent, and an unplaced device from its
    parent. The combined graph of these edges is acyclic: a new structural invariant of `ew-model`'s catalogue
    (decision 5), so a derivation never meets an inheritance cycle. The fix round adds it with the next free number
-   (EW-INV-015 at the integration) and names that number in its commit (task).
+   (EW-INV-015 at the cycle-6 integration) and names that number in its commit.
 5. **Prevent rules at MVP; EW-RDS-004 without prevent** (2026-10-21, project owner (delegated), after the
    independent review of cycle 12; decision log ID-306, ID-311). Decision 3 lists "device tag unique within its
    structure scope" among the prevent rules; at MVP EW-RDS-004 runs online and in release only and declares no

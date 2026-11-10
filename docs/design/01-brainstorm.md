@@ -1,6 +1,6 @@
 # Brainstorm: lessons, ideas and open questions
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (PQ-40 note; : the content-not-style maxim, §2) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This is the structured record of the ElektraWatt (EW) brainstorm. It turns the 42 defects of the
 reference drawing set into product ideas, catalogues 109 candidate ideas with value, effort and a suggested release,
@@ -73,7 +73,7 @@ Four root causes explain all 42 defects
 - *If the tool knows it, the tool writes the document* (L9, L10, L12).
 - *Keep the user's style.* The tool let things drift; the engineer's conventions were sound. "Only if different"
   wire markers, page-based tags and the 0-based 17 × 8 frame stay (REF-008, REF-013, REF-023).
-- *Content, not style, is the target* (owner statement 2026-10-20, reaffirmed 2026-10-21; decision log ID-340;
+- *Content, not style, is the target* (owner statement 2026-10-20, reaffirmed 2026-10-21;
   [vision](00-vision-and-scope.md) PR-13). The pilot's QET projects show what EW must be able to draw; they are
   examples of a design language that QET limits (no proper BOMs, imprecise layouts, possible errors), never the style
   or process target and never a hard comparison. The conventions kept above are kept because they are sound, not
@@ -437,7 +437,7 @@ changes. Until a question is answered, the documented defaults and the ▲ test 
 | PQ-37 | May the anonymised technical content of the reference project (tags, part numbers, wiring, order codes) stay in the public repository as CC0? Does the end customer's contract require its consent too? | DEC-013; G-M0 (LG-5, overdue) | plan/06 Part C |
 | PQ-38 | Will the employer sign the copyright statement (LG-1), including one-way consent that its staff's contributions may later move from GPL to MIT OR Apache-2.0 where the permissive layer needs them? | DEC-014; G-M0 target, G-M1 hard (LG-1); WP-S0.04 | plan/06 Part C |
 | PQ-39 | Can the employer fund a fourth developer from month 4 (or later), and will it file the WBSO application for 2027 in December 2026? | DEC-003, DEC-005; G-M0; PD-3 by month 2; WP-S0.07 | plan/06 Part C |
-| PQ-40 | Are your first EW projects new projects, or do you need to continue existing QET projects immediately (which would pull QET project migration into the MVP)? Since cycle 11 a lenient project import exists as a spike; the answer still decides whether the full migration ships with the MVP or with M3. | DEC-002; G-M0; WP-S3.10 to WP-S3.13 | plan/06 Part C |
+| PQ-40 | Are your first EW projects new projects, or do you need to continue existing QET projects immediately (which would pull QET project migration into the MVP)? A lenient project import exists as a spike; the answer still decides whether the full migration ships with the MVP or with M3. | DEC-002; G-M0; WP-S3.10 to WP-S3.13 | plan/06 Part C |
 | PQ-41 | Do you ever have to deliver native EPLAN projects, or do you have UL 508A / NFPA 79 work? | DEC-007; G-M0, re-check G-M3 | plan/06 Part C |
 | PQ-42 | Can you time two reference-size projects in QET (hours per task) during the first months as the baseline for SC-3? | DEC-029; G-M0 to G-M1; SC-3 at G-M3 | plan/06 Part C |
 | PQ-43 | Do you size cabinet climate and heat today? With which method (IEC TR 60890, a vendor tool) and which enclosure data? | DEC-011; G-M1 (lever c); WP-S4.10; thermal calculation is a 1.x item until answered | plan/06 Part C |

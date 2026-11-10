@@ -95,7 +95,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    document already names, may get its typed table within the current, unreleased 0.x format as an additive change:
    no format bump, no `$v` bump, the published schemas of that format re-blessed, and the additive rules of
    decision 1 and amendment 1 followed (optional members, catch-all enums, no type change of an existing member).
-   A build from before the change keeps such records verbatim (a reserved kind is not EW-CORE-016, decision log) and their unknown members in `extra`, so no data is lost; it does not enforce the delete links of the
+   A build from before the change keeps such records verbatim (a reserved kind is not EW-CORE-016) and their unknown members in `extra`, so no data is lost; it does not enforce the delete links of the
    newly typed kind, so an older build that deletes a module leaves that module's channels dangling, which the newer
    build reports (FT-229, FT-230). Once a format is released, typing a reserved kind that adds cascade links, or any
    other semantics an older reader must apply to keep the file consistent, is a minor bump that raises
@@ -154,8 +154,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    Trade-off: one fragment version for clipboard and macros, so a fragment an older build cannot take is refused as a
    whole rather than read in part; against a v2 that would turn away also the clipboard fragments older builds read
    today.
-6. **The format locks at the 0.1.0 release** (2026-11-04, the project owner; decision log ID-1324, corrected by
-   ID-1325). Until 0.1.0 is released, the owner's rule of 2026-10-31 stands: the format changes freely, with no
+6. **The format locks at the 0.1.0 release** (2026-11-04, the project owner; corrected). Until 0.1.0 is released, the owner's rule of 2026-10-31 stands: the format changes freely, with no
    migrations. When WP-S6.08 tags 0.1.0, the format that release ships is locked, and this ADR applies in full from
    there.
    - After the lock, a change is either additive within the released format under this ADR's own rules, or a new

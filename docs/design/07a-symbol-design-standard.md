@@ -5,8 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Symbol design standard
 
-**Status:** Draft v0.1 · **Date:** 2026-11-05 (2026-11-06, : the document set's header and purpose, decision
-log) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-11-05 (2026-11-06, the document set's header and purpose) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document is EW authoring profile 1: the conventions a symbol follows, whoever draws it. It applies
 equally to people in the symbol editor, AI programs and imported drafts, and refines the symbols of

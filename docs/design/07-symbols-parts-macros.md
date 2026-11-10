@@ -1,6 +1,6 @@
 # Symbols, parts and macros
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-11-06, cycle 53, the symbol editor's touchpoint as built and the pointer to doc 07a, §5, decision log ID-1463; 2026-11-05, cycle-52 design pass: the macro variable type `text_slots` and its value in words as built, §2.7's variable types, decision log ID-1433; 2026-11-05, the symbol editor's release is 0.2.0, milestone M2.5, right after the MVP, §10, decision log ID-1402; 2026-10-31, cycle-40 design pass, part 1, the part bus section as built, §2.5, WP-S1.21 part 4b, decision log ID-927; 2026-10-30, cycle-38 design pass, part 3, the Macros and Libraries navigators as built, §5, decision log ID-885; 2026-10-30, cycle-38 design pass, `macro.insert`'s orientation and the valve typical as built, §4.6, §9.3, decision log ID-878; 2026-10-29, cycle-35 design pass, WP-S1.19 parts 2 to 4 and WP-S2.18 parts 2 and 3 as built: the generic starter parts in `ew-starter-parts`, the tiers and the index, `part.assign`, `library.update`, the parts import and the manufacturer copies, §2.1, §2.2, §3.1, §3.3, §3.6, §4.5, §4.7, §9.2, decision log ID-818, ID-820, ID-824, ID-830; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, manufacturer and macro copies, `MacroInstance`, `Project.basic_project` and `SYSTEM_LIBRARY`, §2.5, §2.7, §2.8, open question 17, decision log ID-334, ID-783; cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies ElektraWatt's (EW) master data: symbols and function definitions (FnDefs), the
 parts database, macros with value sets, basic projects (company templates), and the libraries and governance that
@@ -105,7 +105,7 @@ flowchart LR
   `v5(import namespace, source key)` (ADR-0004), so re-importing the same CSV or EDZ updates items in place. The
   version is stored once per document, never in `ItemMeta`: a library record carries it as its top-level `version`
   member after `id` (the item ID), an embedded copy in its copy metadata
-  ([05](05-project-format-and-persistence.md) §13.2; decision log ID-14).
+  ([05](05-project-format-and-persistence.md) §13.2).
 - **Identity is the pair `(library_id, item_id)`, never a name.** Two libraries may both contain a part called
   "2904602" without either one shadowing the other.
 - **Published versions are immutable.** `ew lib pack` refuses to publish different content under an existing
@@ -238,7 +238,7 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
 - **Text slots** are typed. The kinds are:
   - Tag, FunctionText, TechData, Manufacturer, PartNumber, TypeDesignation;
   - CpDesignation(idx), Xref, PlcAddress, ProcessTag, UserProp(key), ContactImage;
-  - OrderCode (added in cycle 15): the order code of the device's first assembly config (doc 20 §11.1, D-36).
+  - OrderCode: the order code of the device's first assembly config (doc 20 §11.1, D-36).
 
   Text height comes from the project's text style bound to the slot kind (FR-SYM-013); a slot may name its own
   text style in the optional member `style`, which replaces that binding for the slot. A
@@ -246,7 +246,7 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   symbol, the slot and the name, never as an error. As built: `style` is
   an optional identifier, absent by default, and `ew-scene` reports an unknown name as
   `PageFinding::UnknownSlotStyle`. The styles of the golden project are `tag.main`,
-  `data.small`, `cp.small` and the others listed in [20](20-golden-project.md) §17.5, which removes D-29. *As built (cycle 37, [ADR-0032](../adr/0032-per-project-text-styles.md), decision log ID-855):* a slot's `style` resolves against the project's effective table, so it may name a key the project's `text_styles` adds; the scene resolves keys through `ew_text::TextStyleTable::from_rows` over the rows its caller passes (the first row of a duplicated key wins).
+  `data.small`, `cp.small` and the others listed in [20](20-golden-project.md) §17.5, which removes D-29. *As built ([ADR-0032](../adr/0032-per-project-text-styles.md)):* a slot's `style` resolves against the project's effective table, so it may name a key the project's `text_styles` adds; the scene resolves keys through `ew_text::TextStyleTable::from_rows` over the rows its caller passes (the first row of a duplicated key wins).
 - **Built-in symbols.** The interruption point `ew.gen.ip`, the black-box frame `ew.gen.blackbox` (its outline and
   CPs live in the representation's `box: BoxSpec`, [03](03-domain-model.md) §6, [06](06-schematic-editor.md) §2.7),
   the junction dot and bevel, and the derived linkage are system symbols with fixed keys. Importers and the engine
@@ -256,7 +256,7 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   `ew.gen.ip` with the FnDef `ew.fn.ip`. Every starter item is version 0.1.0 with status `draft`. Importers
   reference a built-in FnDef by key with `version_req` `^0.1`: `ew-import-qet` has exactly one, `ew.fn.ip`
   ([14](14-interop.md) §4.3). The starter content and the importer use the `library_id`
-  7202fd8b-1024-4bf1-9e99-670772eaa589, since cycle 34 the system library's ID `ew_interop_api::SYSTEM_LIBRARY`
+  7202fd8b-1024-4bf1-9e99-670772eaa589, the system library's ID `ew_interop_api::SYSTEM_LIBRARY`
   (open question 17, resolved by WP-S1.19 D4).
 - **Coverage of the pilot corpus** ([23](23-symbol-coverage-pilot-corpus.md)). Against the 81 QET element types that the
   pilot's three real projects use (2,170 placed elements), the 36-symbol starter set covers 37 types and 74 % of the uses,
@@ -272,7 +272,7 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   `ew.iec.switch-disconnector-4p`, `ew.iec.socket`; follow-up task FT-148); the end-terminal and the other variants
   follow the same rule after inspection, and the rest go to WP-S7.04. The starter set grows from 36 to 43
   native symbols. A QET cross-section mark that disagrees with the derived wire property is
-  reported as EW-IMP-123 with the mark's value ([14](14-interop.md) §4.12; ID-284).
+  reported as EW-IMP-123 with the mark's value ([14](14-interop.md) §4.12).
 
 *As built.* A text slot may carry `fallback: process_tag`: it prints the
 function text and, when that is empty, the tracked target's process tag (doc 11 §3.3); `ew.iso.valve-5-2-sol-spring`
@@ -399,17 +399,17 @@ encoding for every property keeps the v0 schema small; ETIM features arrive only
 may append a typed value variant without changing stored keys.
 
 **As built.** Typed technical data on parts and devices use the native plain keys
-`characteristic`, `rated_current`, `channel_current` and `setpoint` ('s plain-key form). A slot text follows
+`characteristic`, `rated_current`, `channel_current` and `setpoint` (ID-15's plain-key form). A slot text follows
 these rules: a device's own value wins over its part's; a miniature circuit-breaker prints characteristic and rated
 current composed as "C10" (the reading of U-32); other values print as value and unit ("40 A", "15 °C"); several
 values are joined with ", " in key order. Two interims apply. The main part of a device is its first part use, not
 yet "the use that provides the main function"; the manufacturer name is read from the manufacturer
 `LibRef`'s `extra["key"]`, a stopgap until typed manufacturer copies exist. The helpers `tech_data_text`,
 `main_part` and `manufacturer_name` are built in `ew-derive` (`part_text.rs`); the slot-text mapping is a product
-query of the `Session` export job since cycle 15 (`ew_api::output::PageSlotsOf`, asked for it in
-`ew-derive`). *Cycle 14.* The 24 V DC
+query of the `Session` export job (`ew_api::output::PageSlotsOf`, asked for it in
+`ew-derive`). The 24 V DC
 output of part 2904602 is recorded under the plain key `output_voltage` ("24 V") beside `rated_current`; a typed key for
-an output voltage is FT-244.
+an output voltage is not built.
 
 Part data is organised in **data levels**. Each level lists its consumers and the release that first needs it:
 
@@ -476,8 +476,8 @@ the slot texts still read the manufacturer name from the `LibRef`'s `extra["key"
 after `mounting_plate`: `{ports: [...], extra}`, each port written in the order `interface`, `port_label`, `bus`,
 `role`, `termination`, then its `extra`; `interface`, `bus` and `role` are required and the enums keep `Unknown`. A
 section `{"ports": []}` is written `{}`. The station address, the nets, the address range, rates, connector and
-signal map are not typed (they stay in `extra`). An older build's copy is rewritten canonically, and a
-pre-cycle-40 build reports EW-CORE-014 on a copy this build wrote (WP-S1.21 §8a.1 as amended). EW-GEN-CPU-1 0.1.1
+signal map are not typed (they stay in `extra`). An older build's copy is rewritten canonically, and an
+older build reports EW-CORE-014 on a copy this build wrote (WP-S1.21 §8a.1 as amended). EW-GEN-CPU-1 0.1.1
 carries one port `DP`, `profibus_dp`, `master`.
 
 *As built.* The fluid section is typed with one member,
@@ -697,7 +697,7 @@ preview shows:
    and machine files, otherwise a project-specific exception (`AdditionRef-…`, SPDX 3.0 syntax, verify)
    (ADR-0024; [19](19-open-source-governance.md) LR-07). They carry no IEC description text (FR-SYM-019,
    NFR-LIC-07).
-10. **Pole-count families (generated)** (follow-up task). One family source generates the
+10. **Pole-count families (generated)**. One family source generates the
     concrete pole-count variants at content-build time; there is no run-time parameter and no new record kind.
     - *Source.* `content/families/<family>.json` declares the pole template (one pole's graphics, CPs and slots, and
       the pole pitch in connection-grid steps), the actuator and internal-linkage geometry, the pole counts to
@@ -747,7 +747,7 @@ the devices' only use) or `replace` with `from` (each use of `from` swapped, its
 replays without one; it embeds what the project lacks, reuses a held copy of the same hash and refuses a held copy of another version ("update
 from library first"). A device's main part is the part use whose template provides the main function (rule 6). The Properties Parts row sends `part.assign` (`replace_all`) when its new value is one use of a system
 library's part the project does not hold, else its own `fields.set`. Rules 2 and 3's matching is not changed by the
-command. *Cycle 36:* a function made from a template records its entry index (`Function.template_entry`, an
+command. A function made from a template records its entry index (`Function.template_entry`, an
 optional member appended within 0.1 under ADR-0011 amendment 1), and the CP derivation reads that entry, falling back
 to the first entry of the function's FnDef when the member is absent or names no such entry; an entry whose `cps` list
 as many pattern CPs as its FnDef has CPs pairs them by position, so each function keeps the FnDef's CP indices (a
@@ -828,7 +828,7 @@ flagged candidates, unmapped columns EW-IMP-004; every row is reported new, upda
 with its line. Unlike the paragraph above, the import may also target a project (`ew import parts --map`), which embeds
 the parts with project-local manufacturer copies; `ew lib import parts` writes a library and refuses changed content
 under a held version unless `--bump`, taking a stale lock over only with `--take-over`. The window's column-mapping
-card is FT-649.
+card is not built.
 
 **The EDZ terms notice reads, in substance:**
 - files from the EPLAN Data Portal may be subject to terms that restrict their use to EPLAN products;
@@ -1082,7 +1082,7 @@ is `#[ignore]`d (not measured, the owner's rule).
 | **Company-standard wizard** (FR-PRJ-010, FR-UI-030) | steps: logo SVG, title-block form, colour and size profile (with stated basis, D-37), identifier set (ADR-0026 default), numbering rules, structure nodes, sections, revision format, languages, report blocks; writes a basic project and offers it as the default template | P1, J1 |
 | **Import dialogs** | CSV/XLSX column mapper; EDZ with the terms notice; parts XML; BMEcat (1.x); each ends in an import report with jump-to-record | P6, J2 |
 
-*As built.* The **Macro browser** is the Macros navigator (`NavKind::Macros`): the macros of every tier, then the project's own macro copies under "In this project"; its detail shows name, version and library, description, the devices and the variables, with "No preview" where the thumbnail should be. Enter on a row, its drop on a canvas or Insert macro… (Draw ▸ Place) arms the macro tool; its click opens the `macro` card in the Preview tab with the value set and the conflicts, and Apply is one undo step; a held macro without an installed source is not inserted. **Save as macro** (Edit menu) is a window-only dialog of name, key, description and library, which is the confirmation of a write that cannot be undone; kind, insertion point and the value-set table are FT-754, and "make variable" is the hidden action `props.make_variable`. The **Library manager** is the Libraries navigator (`NavKind::Libraries`): the libraries by tier with version, licence, access and index state, then "In this project" with each copy's state in words (Current, Update available, Source missing, Deprecated, Local fork) and the devices that use it; Update… opens `library.update`'s bulk card; "purge unused" is not in it. Its rows still show IDs rather than names.
+*As built.* The **Macro browser** is the Macros navigator (`NavKind::Macros`): the macros of every tier, then the project's own macro copies under "In this project"; its detail shows name, version and library, description, the devices and the variables, with "No preview" where the thumbnail should be. Enter on a row, its drop on a canvas or Insert macro… (Draw ▸ Place) arms the macro tool; its click opens the `macro` card in the Preview tab with the value set and the conflicts, and Apply is one undo step; a held macro without an installed source is not inserted. **Save as macro** (Edit menu) is a window-only dialog of name, key, description and library, which is the confirmation of a write that cannot be undone; kind, insertion point and the value-set table are not built, and "make variable" is the hidden action `props.make_variable`. The **Library manager** is the Libraries navigator (`NavKind::Libraries`): the libraries by tier with version, licence, access and index state, then "In this project" with each copy's state in words (Current, Update available, Source missing, Deprecated, Local fork) and the devices that use it; Update… opens `library.update`'s bulk card; "purge unused" is not in it. Its rows still show IDs rather than names.
 
 *As built (milestone M2.5).* The **Symbol editor** opens from
 Draw ▸ Place ▸ Symbol editor… (`symbol.new`) and takes the place of the page, with its own command bar (the drawing tools,
@@ -1095,7 +1095,7 @@ roles and flags, and Pin mapping, where a function pin is dragged onto a connect
 live A–H strip is Variants, drawn through the placement's own lowering. The lint panel is Validation: the editor's
 validation, shared with `ew symbol validate`, not WP-S7.04's library lint. "Test place" is Test on a new page
 (`symbol.scratch`): a new page on the symbol's grid with an embedded test copy, one undo step for the page and one for
-the placement. *As built (and part 7's fixes).* A page on another connection
+the placement. *As built.* A page on another connection
 grid refuses the placement, naming both grids as the status bar does ("4 mm", "QET 10 px"), and offers a new page with
 the symbol's grid: **Place on a new page with its grid** places the published symbol there at 40/40 mm and selects
 it, from the Insert symbol picker's greyed row (`picker.new_page`) and from the editor while its draft is saved to a
@@ -1237,14 +1237,14 @@ native-grid projects place the native edition.
 | `ew.iec.switch-2p-manual` | 2 poles, PassThrough{opens}, `switches_n_with_l` (1–2, 3–4) | S51, folio 101; dashed linkage derived from the link points `pole1` → `pole2` → `handle` (§3.2 rule 8) |
 | `ew.iec.mcb-1pn` | ProtectionOvercurrent, 1–2 and N–N pass-through (1, 2, N, N) | -101F1, F55 |
 | `ew.iec.mcb-1p` | 1–2 (1 alias L1, 2 alias T1 from part) | -102F1 |
-| `ew.iec.thermostat-nc` | NC pass-through 5–3 ▲U-12; text slots tag, technical data (the setpoint "15 °C") and part number ("SK 3110.000", D-33; the part-number slot was appended in cycle 12, decision log ID-314) | T55; splits N-55 into N-55T (EF-01) |
+| `ew.iec.thermostat-nc` | NC pass-through 5–3 ▲U-12; text slots tag, technical data (the setpoint "15 °C") and part number ("SK 3110.000", D-33) | T55; splits N-55 into N-55T (EF-01) |
 | `ew.iec.position-switch-no` | NO 13–14 | S56 |
 | `ew.iec.lamp`, `ew.iec.heater` | loads (X1, X2), (L, N, PE) | E56, E55 |
-| `ew.iec.terminal`, `ew.iec.terminal-pe`, `ew.gen.strip-segment` | feed-through `Short` per level; PE with rail contact; the segment gives each terminal it draws one CP per side, one grid step apart along its axis, terminals shared out over the strip's segments ([08](08-connections-terminals-cables.md) §6.7, decision log ID-143, ID-180) | 1X1 (three terminal symbols), -X1031 (two segments at 103-A3 and 103-A10), -X1032 |
-| `ew.iec.pe`, `ew.iec.fe`, `ew.iec.plug-pin` | earth roles PE and FE; plug pin. PE is the earth sign inside a circle (IEC 60417-5019), FE the plain earth sign (IEC 60417-5018), as the ruling of decision log ID-36 identifies them (not yet verified against the standard, like every `iec60617_ref`); their text slots sit at x = 6 mm (PE, clear of the circle) and 4 mm (FE), and a content lint guards the assignment | folio 101 earth ([reference drawing](../research/reference-drawing.md) §1.5); CPX FE screw; X1 pins on 106 |
-| `ew.gen.blackbox` | from the part pattern; without drawn geometry the bootstrap derives the outline and CP positions from the pattern ([14](14-interop.md) §8.4, decision log ID-181); text slots tag, function text, cross-reference, part number and manufacturer ("Murrelektronik", D-18; the manufacturer slot was appended in cycle 12, decision log ID-314) | -102G1, -102F2, CPX power blocks on 106 |
+| `ew.iec.terminal`, `ew.iec.terminal-pe`, `ew.gen.strip-segment` | feed-through `Short` per level; PE with rail contact; the segment gives each terminal it draws one CP per side, one grid step apart along its axis, terminals shared out over the strip's segments ([08](08-connections-terminals-cables.md) §6.7) | 1X1 (three terminal symbols), -X1031 (two segments at 103-A3 and 103-A10), -X1032 |
+| `ew.iec.pe`, `ew.iec.fe`, `ew.iec.plug-pin` | earth roles PE and FE; plug pin. PE is the earth sign inside a circle (IEC 60417-5019), FE the plain earth sign (IEC 60417-5018), not yet verified against the standard (like every `iec60617_ref`); their text slots sit at x = 6 mm (PE, clear of the circle) and 4 mm (FE), and a content lint guards the assignment | folio 101 earth ([reference drawing](../research/reference-drawing.md) §1.5); CPX FE screw; X1 pins on 106 |
+| `ew.gen.blackbox` | from the part pattern; without drawn geometry the bootstrap derives the outline and CP positions from the pattern ([14](14-interop.md) §8.4); text slots tag, function text, cross-reference, part number and manufacturer ("Murrelektronik", D-18) | -102G1, -102F2, CPX power blocks on 106 |
 | `ew.gen.ip`, `ew.gen.external-arrow`, junction dot and bevel, cable marker, wire marker | built in (the interruption point's FnDef is `ew.fn.ip`, §2.3; it prints its pairing name in the function-text slot); the wire marker is the graphic of a `PageItem::WireMarker` ([03](03-domain-model.md) §6) | L-1, N-1, 24VDC-1 …; J-E-206 points; -106W1 marker; "2.5 BK" on W7 |
-| `ew.bus.dp-port`, `ew.bus.dp-connector` | BusPort | -201U1 on folio 3; anchor at graphics gives "3-B2" (D-14); the port's `manufacturer` and `order_code` slots (appended in , slots 5 and 6) print "Festo" and order code 1 (doc 20 §11.1, D-36) |
+| `ew.bus.dp-port`, `ew.bus.dp-connector` | BusPort | -201U1 on folio 3; anchor at graphics gives "3-B2" (D-14); the port's `manufacturer` and `order_code` slots (appended, slots 5 and 6) print "Festo" and order code 1 (doc 20 §11.1, D-36) |
 | `ew.ovw.module`, `ew.ovw.valve-top` | overview of the assembly view | generated overview on 201/202 |
 | `ew.iso.valve-5-2-sol-spring` | fluid 5/2, ports 1–5, solenoid 14 with manual override, spring | 28 valves, 203–206 |
 | `ew.iso.cylinder-double-acting`, `ew.iso.process-valve-2way` | fluid; linkage points | TA05-V-15 … TA05-V-37 on 203 |
@@ -1382,7 +1382,7 @@ section) as `test` where doc 20 gives the value as a test input and `unverified`
 | Symbol model, variants A–H, text slots, arrangements, anchors, link points | ● | | | |
 | Starter set of about 40 symbols (FR-SYM-007), native edition and generated QET 10 px edition (FR-SYM-030) | ● | | | |
 | Full IEC 60617-style and ISO 1219 library; symbol lint in CI (FR-SYM-008, FR-SYM-020) | | ● | | |
-| Symbol editor (Should). *Amended 2026-11-05:* a Must of release 0.2.0 (milestone M2.5), right after the MVP and before M3's first release; until then ● in the MVP column, which lever (a) had moved to 1.0 | 0.2.0 | | | |
+| Symbol editor (Should). A Must of release 0.2.0 (milestone M2.5), right after the MVP and before M3's first release | 0.2.0 | | | |
 | QET project elements → "QET import" library; `symbol-map.csv` | ● | | | |
 | QET element collection conversion on demand (FR-SYM-029) | | ● | | |
 | Parametric symbol families | | | ● | |

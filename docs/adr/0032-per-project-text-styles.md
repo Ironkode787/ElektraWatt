@@ -96,7 +96,7 @@ reverse it)
   wizard's step 2 offers "Readable (new projects)", the default, which writes the built-in basic project's
   `text_styles`, and "As in the sample project", which writes none, so a basic project can reproduce Golden A
   (NFR-UX-08) while every new user keeps this ADR's legibility.
-- **Work packages.** WP-S1.12 ('s owner) carries the lane; FR-SYM-013 stays traced to WP-S3.01, which delivered
+- **Work packages.** WP-S1.12 (FT-662's owner) carries the lane; FR-SYM-013 stays traced to WP-S3.01, which delivered
   the style binding.
 - **Risk.** A renderer path that still calls `ew_text::builtin()` ignores the project's overrides. The specification's
   acceptance renders an override through every text source and asserts that only the project-less callers name

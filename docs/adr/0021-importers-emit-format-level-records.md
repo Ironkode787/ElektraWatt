@@ -133,7 +133,7 @@ is unchanged; these entries refine it.
    the set as a whole: the importer opens nothing itself, the limits bound the file count, each file and the total,
    a repeated name is refused, and the batch does not depend on the order of the inputs. A **bootstrap importer**
    creates the project record itself and derives its ID; `ImportContext.project` must be nil or equal to that ID,
-   otherwise the import is refused (review of cycle 6, decision log ID-112), and the batch is applied only into an
+   otherwise the import is refused, and the batch is applied only into an
    empty project, as the checkpoint of decision 3. The golden CSV bootstrap (`TablesImporter` in `ew-import-tables`) is
    the first such importer. Its importer ID is `csv`, the `<importer>` of its lineage `csv␟fixed␟golden`
    (ADR-0004 amendment 4); `golden-csv` in decision 1's comment is the name of its report format, not an importer

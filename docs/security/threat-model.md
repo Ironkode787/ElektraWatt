@@ -150,7 +150,7 @@ connection points per symbol, 65,536 of both per read, 512 symbols. Unsupported 
 block publication. Downloading does not grant a licence: EPLAN imports require source terms.
 
 Native SLK import reads only eight fixed drawing-table filenames beneath the descriptor's single sibling `.sdb`
-directory (NFR-SEC-18 as amends it). Traversal, links (the folder or a table), unknown table layouts, duplicate
+directory (NFR-SEC-18 as ID-1461 amends it). Traversal, links (the folder or a table), unknown table layouts, duplicate
 identities/continuation chunks, invalid compressed data and excessive records/bytes are refused. It never reads
 user/lock tables or invokes EPLAN. Each file is bounded to 4 MiB, decoded streams to 64 MiB total, and the read budget
 holds. Source provenance hashes the descriptor and all consumed tables; no embedded workstation data enters the draft.

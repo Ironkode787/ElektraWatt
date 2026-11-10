@@ -56,7 +56,7 @@ flowchart LR
    (PDF/UA-1). **No optional-content layers in v1.**
 6. **Other outputs.** An own SVG writer; DXF (AC1015, layer mapping) via dxf 0.6.2; PNG via vello_cpu.
 7. **Printing.** PDF is the print master. Small per-OS adapters hand it to the OS: the xdg Print portal or CUPS on
-   Linux, `PrintDlgEx` with banded vello_cpu rendering on Windows (no macOS adapter: macOS is not supported, decision log). Scale-to-fit stamps the scale;
+   Linux, `PrintDlgEx` with banded vello_cpu rendering on Windows (no macOS adapter: macOS is not supported). Scale-to-fit stamps the scale;
    folio ranges and monochrome mode are supported; `ew print` prints from the CLI.
 
 **Scope by release.** MVP: the wgpu canvas with the CPU fallback, PDF/A-2b with outline, links, named destinations,
@@ -150,12 +150,14 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, 
    or the parentheses), after the text's own items, with the text's `EntityRef` and a `LinkSource`; a text with one
    item keeps its link on the text, and a slot value sets one kind or the other, never both. `ew-dl` and the
    backends are unchanged: `ew-export` writes one link annotation per link item over the axis-aligned box of the
-   path's control points, exact at 0° and 90°; a free-angle text needs `QuadPoints` (follow-up task), and
+   path's control points, exact at 0° and 90°; a free-angle text needs `QuadPoints`, and
    exact item ends from the shaped clusters replace the prefix re-shaping, which ignores kerning across the item
    boundary. The golden PDF has 64 cross-reference link annotations and 96 named destinations. *Since
    cycle 44* it has 246 link annotations (64 cross-reference items, 28 PLC
    overview rows, 154 report row links) and 185 named destinations (`golden/J-E-2416/expected/pdf/structure.json`).
-10. **The canvas's GPU path as built** (2026-10-22, lead ruling the owner may reverse, applied and accepted at the; to ; specification §3, §7). This applies the amendment that was
+10. **The canvas's GPU path as built** (2026-10-22, cycle 22, lead ruling the owner may reverse, applied and accepted at
+    the cycle-22 design pass; decision log ID-506, ID-507, ID-539 to ID-543;
+    WP-S2.02 specification §3, §7). This applies the amendment that was
     pending since cycle 21. Decision 2 changes in two points, as built by part 2 of WP-S2.02:
     - **An offscreen texture instead of a paint callback.** `ew-render2d` tessellates the display list with lyon
       (fills and strokes, with the caps, joins and miter limit of `ew-dl`; dashes split first with kurbo) and draws it,
@@ -173,7 +175,7 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, 
       items are depth-tested in any order, translucent items are drawn last in paint order, and the order of
       translucent primitives inside one mesh is the mesh's own. The parity test (WP-S2.02 §8) states its bounds
       accordingly.
-    - **The mapped-view rule** (from the audit of wgpu 30.0.1; ADR-0014's as-built note): uploads use
+    - **The mapped-view rule** (audit of wgpu 30.0.1; ADR-0014's as-built note): uploads use
       `Queue::write_buffer` and `Queue::write_texture`, and the only mapped view in the renderer is the readback in
       `GpuCanvas::read_back`, held inside the scope that maps it and dropped before `unmap`.
     - **The CPU path stays the golden reference** (decision 3, amendment 6): `ew-render-cpu` is unchanged, no golden

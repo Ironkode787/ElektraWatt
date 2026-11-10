@@ -120,9 +120,9 @@ single-line connection must not join nets either: a device drawn single-line and
 its wires twice in the wire list. The tool palette changes with the page type, so a user cannot pick the wire tool
 on a graphic page.
 
-*Owner ruling (2026-10-22; amending).* The reference drawings place cable markers and black boxes as graphics on multi-line and bus-topology pages and draw the CPX blocks multi-line on the fluid pages, so the table offers those combinations; every other combination is still refused at placement. The builder DSL of AC-15 path (b) found the restriction (the "(a) ≠ (b)" gap class, [18](18-quality-security-release.md) §3.10).
+The reference drawings place cable markers and black boxes as graphics on multi-line and bus-topology pages and draw the CPX blocks multi-line on the fluid pages, so the table offers those combinations; every other combination is still refused at placement. The builder DSL of AC-15 path (b) found the restriction (the "(a) ≠ (b)" gap class, [18](18-quality-security-release.md) §3.10).
 
-*As built.* The editing tools refuse a page whose type takes no symbols or wires (TitlePage, PanelLayout, ModelView, ExternalDocument and the generated pages) with the text "This page type takes no symbols or wires: draw on a schematic page" (`reason-page-type-no-symbols`; the remedy added by decision log ID-833); the table above gave no wording. *As built:* the refusal names the page's kind in words where a key exists for it: "A section divider takes no symbols or wires: draw on a schematic page", and likewise "A title page", "A table of contents", "A report page" and "A panel layout page" (`reason-page-type-no-symbols-divider`, `-title`, `-contents`, `-report`, `-panel`); every other such page type keeps the generic text. A page type that takes symbols offers in the picker only the symbols whose representation type it allows; the others are listed disabled with their reason.
+*As built.* The editing tools refuse a page whose type takes no symbols or wires (TitlePage, PanelLayout, ModelView, ExternalDocument and the generated pages) with the text "This page type takes no symbols or wires: draw on a schematic page" (`reason-page-type-no-symbols`); the table above gave no wording. *As built:* the refusal names the page's kind in words where a key exists for it: "A section divider takes no symbols or wires: draw on a schematic page", and likewise "A title page", "A table of contents", "A report page" and "A panel layout page" (`reason-page-type-no-symbols-divider`, `-title`, `-contents`, `-report`, `-panel`); every other such page type keeps the generic text. A page type that takes symbols offers in the picker only the symbols whose representation type it allows; the others are listed disabled with their reason.
 
 *As built.* The Wire tool draws the column "Wire tool creates" where it is built: a `Wire` on MultiLine pages and an `Overview` connection on SingleLine (the MVP kind), Overview and AssemblyOverview pages; on BusTopology and Fluid pages, and on every type whose Wire tool creates nothing, `tool.wire` is disabled with "The Wire tool does not draw this page type's connections yet" (`reason-no-wire-kind`) until the `Bus` and `Fluid` kinds are drawn (FT-434). Autoconnect proposals are offered on MultiLine and SingleLine pages only, a narrowing of the column "Autoconnect": a table connection point carries no discipline yet (FT-434).
 
@@ -197,7 +197,7 @@ resizes it. Texts stay readable from the bottom or the right of the sheet (commo
 clause is unverified), so slot text never renders at R180 or R90: on a symbol at R180 it renders at R0, on a symbol
 at R90 at R270 (reading bottom to top); a mirror never mirrors glyphs. Instead the text's alignment flips: left ↔
 right when the readable rotation turns the text by 180°, top ↔ bottom when exactly one of that turn and a mirror
-applies, so the text keeps its side of the symbol and stays readable (decision log ID-49; the table for all eight
+applies, so the text keeps its side of the symbol and stays readable (the table for all eight
 variants is in [07](07-symbols-parts-macros.md) §4.1).
 
 ### 2.6 Devices, functions, main and auxiliary
@@ -272,7 +272,7 @@ Xref texts are freshness class I: every move, renumber and frame change updates 
 **Text placement** per relation kind (FR-XRF-011, FR-XRF-022): IP partner text below the arrow, right-aligned, style
 `data.small`, and so is the partner text of an external arrow; aux text `(…)` under the device tag and the main
 list after the tag, both style `xref.device` (as built: the xref slots of the IEC contact and coil symbols,
-`ew.ovw.module`, `ew.bus.dp-port` and `ew.gen.blackbox` name it, decision log ID-266; sizes in
+`ew.ovw.module`, `ew.bus.dp-port` and `ew.gen.blackbox` name it; sizes in
 [20](20-golden-project.md) §17.5). Every xref text is a link on screen and in the PDF (FR-XRF-019, FR-OUT-005).
 
 **Interruption-point glyph.** The arrow shows signal flow, not page side (FR-XRF-009): a **Source** point draws its
@@ -312,18 +312,18 @@ and undoable: those of the table except `page.copy`, `page.move`, `rep.exchange_
 placement whose `rep_type` the page type does not allow is refused (§2.2), and an autoconnect hint whose target
 vanished is dropped and reported in the outcome's notices.
 
-*As built (cycle 15, lane C; the golden builder of WP-S6.01).* Three commands join, all `Edit`, `Preview`, undoable,
+*As built.* Three commands join, all `Edit`, `Preview`, undoable,
 with committed schemas: `box.black` (`PlaceBlackBox`: page, black-box symbol, pos, orient, rep type, optional `box:
 BoxSpec`, and the placement target of `device.place`; the created function is of kind `black_box`, an existing one must
 be; an outline has at least three points, box CP indexes are distinct and on the grid; the containment gesture of
 §2.7 is the place tool's, not this command's), `bond.create` (`CreateBond`: a, b as CP or junction, kind, optional
 `via`; the label is derived; the PELV and type rules stay checks) and `external_ref.create` (`CreateExternalRef`:
 location node of the location aspect, device, optional connection and project). 29 commands are registered. The
-page-type admission of ID-55 is amended by the owner ruling of cycle 15: MultiLine and BusTopology pages also take
+page-type admission of §2.2 also lets MultiLine and BusTopology pages take
 graphic representations (cable markers) and Fluid pages multi-line ones (the CPX black boxes of a valve terminal), as
 the reference drawings show (`allowed_rep_types`; AC-15 path (b), [20](20-golden-project.md) §22).
 
-*As built (cycle 16, lane A; FT-169, FT-270, FT-167).* Seven commands join, all `Edit`, `Preview`, Interactive,
+*As built.* Seven commands join, all `Edit`, `Preview`, Interactive,
 undoable, with committed schemas; 36 commands are registered. `assembly.attach` (`AttachChildren`: parent and
 children with optional 1-based positions; sets `Device.parent`/`position`; a held position, two children at one
 position or an ancestor as child are refused, no push insert; a child tag whose counter equals its old position
@@ -333,7 +333,7 @@ gets the child tag scheme with its counter equal to its position); `device.link`
 from, to, kind; no self-link, no duplicate); `plc.config_project.create` (name unique, profile `id@version`,
 optional CPU); `plc.bind_channel` ([10](10-plc-and-bus.md) §3.9: channel and a CP of the function's FnDef on the
 channel's module or one of its descendants, or `null` to unbind; another channel on the same CP is unbound in the
-same transaction, FR-PLC-005); `project.supply.set` (v0: only `origin.source`, by owner ruling; the electrical
+same transaction, FR-PLC-005); `project.supply.set` (v0: only `origin.source`; the electrical
 members wait for an ADR-0008 amendment that makes them Bulk with a preview; a project without a supply is
 refused); `library.embed` (library documents of kind part, symbol, fndef or form, each with its lineage: the ID
 must be the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)`, the `sha256` must be consistent with the item, a
@@ -347,19 +347,19 @@ with them. Two parameters of `valve.add` are interim: `fndef` and
 next schema version, and `letter` stays as an override. Not built: `assembly.detach` and the push insert (FT-273), the
 library-reference form of `library.embed`, the electrical supply members (FT-280).
 
-*As built (cycle 17, lane A; FT-165).* `revision.create` (`CreateRevision`) joins, `Edit`, `Preview`, Interactive,
+*As built.* `revision.create` (`CreateRevision`) joins, `Edit`, `Preview`, Interactive,
 undoable, with a committed schema; **37 commands** are registered. It writes the open revision or a historic released
 one (no release record, no archive) with label, date, author and checker roles, description and page notes
 ([03](03-domain-model.md) §18). Refused: a label that a non-withdrawn revision has (EW-INV-017), a second open
 revision (EW-INV-016), the author as checker (at `/checker`, EW-INV-018), a note on a missing page or a second note
-on one page (EW-INV-019), and `state: released` once any revision has a release record (ruling R4: a historic release
+on one page (EW-INV-019), and `state: released` once any revision has a release record (a historic release
 never follows a release by EW). Label format and order stay EW-REL-004's. `fields.set` gains the `revision` kind
 (`label`, `date`, `author`, `checker`, `description`, `page_notes`; not `state`; unknown note members refused), and
 `edit.delete` takes the open revision; both refuse a released or withdrawn revision at the target (FR-REV-009,
 EW-INV-020). No command changes a revision's state: `revision.approve`, `revision.release` and `revision.withdraw`
-are FT-302.
+are not built yet.
 
-*As built (lane C).* `plc.set_module_part` (`SetModulePart`) joins, `Edit`, `Preview`, **Bulk**,
+*As built.* `plc.set_module_part` (`SetModulePart`) joins, `Edit`, `Preview`, **Bulk**,
 undoable as one step, with a committed schema; **38 commands** are registered. It sets a module's part uses (`parts`,
 the whole list as `fields.set` takes it; absent: the parts stay) and deletes the module's channels numbered at or
 above the channel count of the resulting PLC section, with their bindings, symbols and comments. Being Bulk, it always
@@ -369,19 +369,19 @@ applies the part's channel kind. Refused: a device without the `plc_module` aspe
 `plc_module.part_use` names no entry (at `/parts`: the count would fall to 0). The same parts give an empty
 transaction. A part change of a module in the UI goes through this command; `fields.set` on `parts` never removes a
 channel and N1 names the surplus it leaves, which this command without `parts` removes ([10](10-plc-and-bus.md)
-§3.3; decision log ID-468).
+§3.3).
 
-*As built (cycles 22 to 25).* The commands 39 to 43 are project-level and are described in [17](17-extensibility.md) §2.1 and §2.3: `project.company.set`, `project.frames.set`, `project.languages.set`, the `HumanOnly` `project.checks.set` and the `HumanOnly` `project.assets.purge`. **Cycle 25:** `rep.exchange_symbol` and `project.drawing.set` join, both `Edit`, `Preview`, Interactive and undoable, so **45 commands** are registered (43 `Edit`, two `HumanOnly`). `rep.exchange_symbol` derives the pin map from the function definition or by designation, takes an explicit `pin_map`, and refuses a symbol connection point the map leaves unmatched whose index names a function connection point; routes at the representation follow (`follow_end`). `project.drawing.set` writes `settings.extra.drawing` with `crossings` ([03](03-domain-model.md) §5.1); nothing reads it before WP-S2.04 part 2. `device.place` and `box.black` gain the target `from_part` (a device and one function per template entry of a part copy, the drawn entry placed; a template without exactly one main entry is refused, EW-INV-002), `device.place` gains `new_terminal` (a terminal created as `terminal.add` creates it, then placed), and `rep.move` gains `steps` (grid-step moves, §5.7: a route coordinate equal to an end connection point moves with it, and two end points on one coordinate whose grid indices differ in k mod 3 keep the segment's axis with a jog at the grid point nearest its middle). Every new optional member is `skip_serializing_if`, so existing logs serialise unchanged. The other commands that WP-S2.04 specifies (`connection.draw_to_ip`, `ip.arrange`, `box.reshape`, `box.structure`, `item.place`, `marker.place`) arrive with its later parts.
+*As built.* The commands 39 to 43 are project-level and are described in [17](17-extensibility.md) §2.1 and §2.3: `project.company.set`, `project.frames.set`, `project.languages.set`, the `HumanOnly` `project.checks.set` and the `HumanOnly` `project.assets.purge`. `rep.exchange_symbol` and `project.drawing.set` join, both `Edit`, `Preview`, Interactive and undoable, so **45 commands** are registered (43 `Edit`, two `HumanOnly`). `rep.exchange_symbol` derives the pin map from the function definition or by designation, takes an explicit `pin_map`, and refuses a symbol connection point the map leaves unmatched whose index names a function connection point; routes at the representation follow (`follow_end`). `project.drawing.set` writes `settings.extra.drawing` with `crossings` ([03](03-domain-model.md) §5.1); nothing reads it before WP-S2.04 part 2. `device.place` and `box.black` gain the target `from_part` (a device and one function per template entry of a part copy, the drawn entry placed; a template without exactly one main entry is refused, EW-INV-002), `device.place` gains `new_terminal` (a terminal created as `terminal.add` creates it, then placed), and `rep.move` gains `steps` (grid-step moves, §5.7: a route coordinate equal to an end connection point moves with it, and two end points on one coordinate whose grid indices differ in k mod 3 keep the segment's axis with a jog at the grid point nearest its middle). Every new optional member is `skip_serializing_if`, so existing logs serialise unchanged. The other commands that WP-S2.04 specifies (`connection.draw_to_ip`, `ip.arrange`, `box.reshape`, `box.structure`, `item.place`, `marker.place`) arrive with its later parts.
 
-*As built.* **`fields.set_many`** (`SetFieldsMany`) joins: `{edits: [SetFields…]}`, each entry checked as `fields.set` with its pointer `/edits/<i>`, `Edit`, `Preview`, Interactive, and `Bulk` above 500 targets in all, undoable in one step; find and replace commits one per replace, and Freeze on several devices one per freeze. **46 commands** are registered (44 `Edit`, two `HumanOnly`). WP-S2.04 part 2 added no command: `connection.draw`, `connection.route`, `junction.edit` and `project.drawing.set` existed.
+*As built.* **`fields.set_many`** (`SetFieldsMany`) joins: `{edits: [SetFields…]}`, each entry checked as `fields.set` with its pointer `/edits/<i>`, `Edit`, `Preview`, Interactive, and `Bulk` above 500 targets in all, undoable in one step; find and replace commits one per replace, and Freeze on several devices one per freeze. **46 commands** are registered (44 `Edit`, two `HumanOnly`).
 
-*As built.* Eight commands join: `connection.draw_to_ip`, `ip.arrange` and `box.reshape` (part 3), `box.structure`, `item.place` and `marker.place` (part 4a), `edit.paste` (the clipboard) and `parts.import` (`Bulk`, the parts import), each `Edit`, `Preview` and undoable; part 4a's amendments to `rep.move`, `edit.delete`, `fields.set` and `project.drawing.set` are additive. **54 commands** are registered (52 `Edit`, two `HumanOnly`).
+*As built.* Eight commands join: `connection.draw_to_ip`, `ip.arrange` and `box.reshape`, `box.structure`, `item.place` and `marker.place`, `edit.paste` (the clipboard) and `parts.import` (`Bulk`, the parts import), each `Edit`, `Preview` and undoable; the changes to `rep.move`, `edit.delete`, `fields.set` and `project.drawing.set` are additive. **54 commands** are registered (52 `Edit`, two `HumanOnly`).
 
 *As built.* No command joins; 54 are registered. `item.place` with an image takes either `asset` (a held hash) or `data` (the file's bytes in base64, stored through the logo path's `store_image`). `fields.set` of kind `project`, with the project's ID as the one target, takes `master.description`, and `edit.delete` refuses the project ("the project cannot be deleted"). `fields.set` and `fields.set_many` on a connection's `overrides.colour` apply `marker.place`'s colour check, refused at `/value` (FR-CON-019), and `null` removes the override. `page.create` with an explicit folio is refused when it lies outside the section's folio range, is the section's divider folio, is generated by a report block of the section, or is printed by another page of the section, in strict and lenient projects alike (§5.6, FR-PAG-012).
 
 *As built.* **`page.reorder`** joins: the moved page records go before a page of the same section, or to its end, and the folio keys (number, label) of the range of positions that changed are given to the pages of that range in their new order (106 dragged before 103 turns 106 into 103 and 103 into 106); cost `Bulk`, so always previewed; a move across sections is refused; `section` without `before` names the section (null or absent is the front matter), `section` with `before` is refused at `/section`, and an order that does not change at `/pages`. **55 commands** are registered. `page.renumber` also rewrites the sub-page labels that carry a renumbered page's old number, and `fields.set` checks a conductor's colour as a connection's.
 
-*Amended by cycle 33 (G-PP ruling #4).* **`connection.draw_many`** (`ConnectMany`) joins: `{connections: [Connect…]}`, each entry applied as `connection.draw` in order, in one transaction and one undo step; an entry's parameter error keeps its pointer prefixed by `/connections/<i>` and its refusal its reason prefixed by `entry <i>: `; no entry, or more than 10,000, is refused at `/connections`; cost `Bulk` above 500 entries. Bridge terminals (`strip.bridge`, on the Draw tab) uses it for a chain over three or more selected terminals of one strip and keeps `connection.draw` for a pair. **56 commands** are registered (54 `Edit`, two `HumanOnly`).
+**`connection.draw_many`** (`ConnectMany`) joins: `{connections: [Connect…]}`, each entry applied as `connection.draw` in order, in one transaction and one undo step; an entry's parameter error keeps its pointer prefixed by `/connections/<i>` and its refusal its reason prefixed by `entry <i>: `; no entry, or more than 10,000, is refused at `/connections`; cost `Bulk` above 500 entries. Bridge terminals (`strip.bridge`, on the Draw tab) uses it for a chain over three or more selected terminals of one strip and keeps `connection.draw` for a pair. **56 commands** are registered (54 `Edit`, two `HumanOnly`).
 
 *As built.* **`terminal.insert`** `{strip, before?, fndef, terminals, parts?}` and **`terminal.move`** `{terminals, before?}` join, both `Edit`. Insert: every terminal of the strip with `seq` at or above the insertion point, every group bound and every accessory position at or after it shift by the count, then the new terminals are inserted with consecutive `seq` values (refused: not a strip, `before` not of the strip, an empty list, a `seq` given, a duplicate designation, an overflow past `u32::MAX`). Move: the terminals go before `before` (absent: to the end), and only the sequence values of the range that changed are permuted, so groups and accessories stay and a moved terminal takes the group of its new place (refused: an empty list, a repeat, two strips, a non-terminal, `before` among the moved or of another strip, an order that does not change). `strip.accessories` joins `fields.set`. **58 commands** are registered (56 `Edit`, two `HumanOnly`).
 
@@ -389,7 +389,7 @@ channel and N1 names the surplus it leaves, which this command without `parts` r
 
 *As built (G-PP finding 5).* **Delete removes an orphaned device.** Deleting a device's last representation (Delete, and Cut through the same path) deletes the device in the same `edit.delete` step, so one undo restores the device, its part use and the representation. "Last" means every representation of every function of the device is among the deleted ones, panel-front and contact-image representations included, so a device that keeps a panel-front representation is kept and EW-CORE-047 reports it. The device is also kept when it has another role (a function the deletion leaves drawn, a terminal or strip role, child devices, or a cable, assembly or PLC aspect) or when one of its functions carries other intent: a CP of the device holds a potential definition, a bond, or a connection that is page-less or lies on another page than the deleted representations. A kept device stays unplaced and is left to EW-CORE-047 ([15](15-checks-revisions-collaboration.md) §4.2).
 
-*As built (cycle 40, FT-823).* A PLC module whose `plc_module` aspect holds no setting (the aspect normaliser N0 gives a card's device: positional slot, automatic starts, no part use, not integrated) is no other role: the card's device goes with its last symbol and its channels with it, so deleting a card to draw it again leaves no `-?A1`. A station, or a module with a set slot, start, part use or integrated I/O, is kept as before. A card drawn before the CPU no longer needs that: when a run gives a device `plc_station` and the project then holds exactly one station, N0 attaches every module that waits for a station (not integrated, no station above it) to it, in the order of the modules' anchor cells, in the same transaction; with several stations EW-PLC-008 asks the user.
+*As built (FT-823).* A PLC module whose `plc_module` aspect holds no setting (the aspect normaliser N0 gives a card's device: positional slot, automatic starts, no part use, not integrated) is no other role: the card's device goes with its last symbol and its channels with it, so deleting a card to draw it again leaves no `-?A1`. A station, or a module with a set slot, start, part use or integrated I/O, is kept as before. A card drawn before the CPU no longer needs that: when a run gives a device `plc_station` and the project then holds exactly one station, N0 attaches every module that waits for a station (not integrated, no station above it) to it, in the order of the modules' anchor cells, in the same transaction; with several stations EW-PLC-008 asks the user.
 
 The table lists every registered command and the planned ones (`Cost` is the registered cost; `Bulk` commands run as
 preview jobs). The parameter schemas in `crates/ew-commands/schemas/` and the generated pages of the user guide's
@@ -402,20 +402,20 @@ command reference are the exact form.
 | `page.renumber` | scope, start, step, keep_gaps | Bulk | FR-PAG-007; Golden B2 |
 | `device.place` (`PlaceSymbol`) | page, symbol, pos, orient, rep_type, target, autoconnect hints | Interactive | §3.3; part-first placement is `target = FromPart`; `device.place_from_part` and `symbol.place` are `CommandMeta.aliases` ([17](17-extensibility.md) §2.1), and the journal records `device.place` |
 | `rep.move`, `rep.transform` | reps, delta or page, or `steps`; rotate, mirror, variant | Interactive | routes follow (FR-CON-004); `steps` moves by whole grid steps and is refused with `page` or a non-zero `delta` |
-| `rep.exchange_symbol` | rep, symbol, `pin_map?` | Interactive | FR-SYM-022; built in cycle 25: orientation kept, variant 0, text-slot overrides kept where the new symbol has the slot; refused: a connected function CP the new map does not draw, an unmatched symbol CP that names a function CP, an IP representation, a rep type the page does not allow |
-| `project.drawing.set` | `crossings?` (`plain` or `hops`); `marker_mode?` (WP-S2.04 part 4a) | Interactive | built in cycle 25 with `crossings` ([03](03-domain-model.md) §5.1; ID-625); presentation only |
+| `rep.exchange_symbol` | rep, symbol, `pin_map?` | Interactive | FR-SYM-022: orientation kept, variant 0, text-slot overrides kept where the new symbol has the slot; refused: a connected function CP the new map does not draw, an unmatched symbol CP that names a function CP, an IP representation, a rep type the page does not allow |
+| `project.drawing.set` | `crossings?` (`plain` or `hops`); `marker_mode?` | Interactive | sets `crossings` ([03](03-domain-model.md) §5.1); presentation only |
 | `rep.set_anchor_policy` | reps, anchor (origin, graphic centre, slot, named point) | Interactive | FR-SYM-010; the MF-13 quick fix of EW-CORE-053 (D-14). As built: it writes `Representation.anchor`, a per-representation override of the policy of the symbol copy (null resets it to the copy's policy); it does not touch the symbol copy, so other representations of the same copy keep their policy |
 | `connection.draw` (`Connect`) | a, b (CP, junction or point on a connection), route, kind | Interactive | §4.4 |
-| `connection.draw_many` (`ConnectMany`) | connections: a list of `connection.draw` parameters | Interactive; Bulk above 500 entries | added by cycle 33: one transaction, one undo step; Bridge terminals (Draw tab) draws a chain of bridges with it |
+| `connection.draw_many` (`ConnectMany`) | connections: a list of `connection.draw` parameters | Interactive; Bulk above 500 entries | one transaction, one undo step; Bridge terminals (Draw tab) draws a chain of bridges with it |
 | `connection.route` | connection, route | Interactive | FR-CON-007 |
 | `junction.edit` | style, wiring, sequence | Interactive | FR-CON-005 |
-| `ip.place`, `ip.continue`, `ip.arrange` | name, direction, star source, scope; target page; sort key | Interactive | FR-XRF-006 … FR-XRF-014; `ip.arrange` (`ArrangeIps`) built in cycle 27, with `connection.draw_to_ip` (`DrawToIp`: a wire ending in a new interruption point, one transaction) |
-| `box.black`, `box.structure` | outline, device or assignment, caption, external ref | Interactive | §2.7; `box.structure` (`CreateStructureBox`) built in cycle 27, and `box.reshape` (`ReshapeBox`: a black box's outline replaced, its CPs given or re-projected) |
-| `item.place` | graphic, text, image, wire marker | Interactive | §3.8; built in cycle 27 (`PlaceItem`) for graphics and free texts; wire markers by `marker.place` (`PlaceMarker`: one transaction sets the overrides and places the group), images since cycle 29: `asset` or `data` |
+| `ip.place`, `ip.continue`, `ip.arrange` | name, direction, star source, scope; target page; sort key | Interactive | FR-XRF-006 … FR-XRF-014; `ip.arrange` (`ArrangeIps`), with `connection.draw_to_ip` (`DrawToIp`: a wire ending in a new interruption point, one transaction) |
+| `box.black`, `box.structure` | outline, device or assignment, caption, external ref | Interactive | §2.7; `box.structure` (`CreateStructureBox`), and `box.reshape` (`ReshapeBox`: a black box's outline replaced, its CPs given or re-projected) |
+| `item.place` | graphic, text, image, wire marker | Interactive | §3.8; `PlaceItem` for graphics and free texts; wire markers by `marker.place` (`PlaceMarker`: one transaction sets the overrides and places the group), images: `asset` or `data` |
 | `potential.define` | endpoint, name, type, voltage, props | Interactive | FR-CON-010 |
 | `fields.set` (`SetFields`) | targets, field path, value | Interactive | property grid, multi-select; on a revision only while it is open (FR-REV-009); kind `project` (its ID as the one target) takes `master.description`, and a connection's `overrides.colour` is colour-checked as `marker.place` does |
-| `fields.set_many` (`SetFieldsMany`) | `edits`: a list of `fields.set` parameter sets | Interactive; Bulk above 500 targets in all | built in cycle 26: one replace of find and replace, one Freeze on several devices; one undo step |
-| `edit.delete`, `edit.paste` | selection; fragment, anchor, options | Interactive; Bulk above 500 records | §3.6; `edit.delete` takes the open revision, never a released or withdrawn one, and refuses the project; `edit.paste` (`PasteFragment`) built in cycle 27: the fragment `#ew-fragment v1` as its parameters |
+| `fields.set_many` (`SetFieldsMany`) | `edits`: a list of `fields.set` parameter sets | Interactive; Bulk above 500 targets in all | one replace of find and replace, one Freeze on several devices; one undo step |
+| `edit.delete`, `edit.paste` | selection; fragment, anchor, options | Interactive; Bulk above 500 records | §3.6; `edit.delete` takes the open revision, never a released or withdrawn one, and refuses the project; `edit.paste` (`PasteFragment`): the fragment `#ew-fragment v1` as its parameters |
 | `macro.insert` (`InsertMacro`) | macro, at, value set | Bulk | [07](07-symbols-parts-macros.md), FR-MAC-005 |
 | `numbering.renumber` (`RenumberDevices`) | scope, scheme, options | Bulk | FR-NUM-008, FR-NUM-009 |
 | `terminal.designate` | assignments (terminal, designation), at least one | Interactive | one transaction, swaps without temporary names; uniqueness by the prevent rule EW-TERM-002 (FR-TRM-022, [08](08-connections-terminals-cables.md) §6.8) |
@@ -429,17 +429,17 @@ command reference are the exact form.
 | `project.settings.set` | member, value | Bulk | one settable member per command, previewed (ADR-0008 amendment 3; [17](17-extensibility.md) §2.1) |
 | `bond.create` (`CreateBond`) | a, b (CP or junction), kind, via? | Interactive | label derived; the PELV and type rules are checks (FR-CON-014) |
 | `external_ref.create` (`CreateExternalRef`) | location node, device, connection?, project? | Interactive | a location-aspect node (FR-XRF-011) |
-| `assembly.attach` (`AttachChildren`) | parent, children (device, position?) | Interactive | sets `parent` and `position` of existing devices; no push insert, no detach (FT-273); a child-scheme counter that equalled the old position follows the new one (N-FL-2's rule); decision log ID-393 |
+| `assembly.attach` (`AttachChildren`) | parent, children (device, position?) | Interactive | sets `parent` and `position` of existing devices; no push insert, no detach (FT-273); a child-scheme counter that equalled the old position follows the new one (N-FL-2's rule) |
 | `valve.add` (`AddValve`) | module, position?, part, letter? (default Q), fndef? (interim), structure? | Interactive | [11](11-fluid-power.md) §4.3; child tag with counter = position; `fndef` and `letter` are interim until N-FL-1 |
 | `device.link` (`LinkDevices`) | from, to, kind | Interactive | [11](11-fluid-power.md) §4.3; no self-link, no duplicate of the same kind |
 | `plc.config_project.create` (`CreatePlcConfigProject`) | name, profile (`id@version`), cpu? | Interactive | [10](10-plc-and-bus.md) §2.2; names unique; the command form of what `ew new` creates |
 | `plc.bind_channel` (`BindChannel`) | channel, endpoint (CP or `null`) | Interactive | [10](10-plc-and-bus.md) §3.9; a CP of the module or its descendants; the CP's other channel is unbound (FR-PLC-005) |
-| `project.supply.set` (`SetProjectSupply`) | path, value | Interactive | v0: `origin.source` only; the electrical members wait for an ADR-0008 amendment (FT-280; ID-396) |
+| `project.supply.set` (`SetProjectSupply`) | path, value | Interactive | v0: `origin.source` only; the electrical members wait for an ADR-0008 amendment (FT-280) |
 | `library.embed` (`EmbedLibraryCopies`) | copies (library documents in `lib/` JSON form) | Interactive | part, symbol, FnDef, form; copy identity and `sha256` checked; no project-local or already embedded item; the caller owns the closure |
 | `part.assign` (`AssignPart`) | devices, part, copies?, mode? (`append`, `replace_all`, `replace`), from?, qty? | Interactive; Bulk from 50 devices | [07](07-symbols-parts-macros.md) §3.3; embeds the closure it carries, reuses a held copy of the same hash, refuses another held version |
 | `library.update` (`UpdateLibraryCopies`) | copies, cp_maps? | Bulk | [07](07-symbols-parts-macros.md) §3.1, §4.5; replaces held copies in place, maps CPs and rewrites endpoints; refuses a connected CP left unmapped, a downgrade and a copy not held |
-| `parts.import` (`ImportParts`) | copies (parsed project-local part copies) | Bulk | built in cycle 27: FT-410's parts import; keys the project holds are skipped and counted; [05](05-project-format-and-persistence.md) §13.2 |
-| `revision.create` (`CreateRevision`) | label, state (`open` or historic `released`), date?, author?, checker?, description, page notes | Interactive | [03](03-domain-model.md) §18; EW-INV-016 to EW-INV-019 refused at the parameter path; no historic release after a release record (R4); the state transitions are FT-302 |
+| `parts.import` (`ImportParts`) | copies (parsed project-local part copies) | Bulk | the parts import; keys the project holds are skipped and counted; [05](05-project-format-and-persistence.md) §13.2 |
+| `revision.create` (`CreateRevision`) | label, state (`open` or historic `released`), date?, author?, checker?, description, page notes | Interactive | [03](03-domain-model.md) §18; EW-INV-016 to EW-INV-019 refused at the parameter path; no historic release after a release record; the state transitions are not built yet |
 | `plc.set_module_part` (`SetModulePart`) | module, parts? | Bulk | [10](10-plc-and-bus.md) §3.3, §3.9; removes the channels at or above the new part's count with their bindings; the preview is FR-PLC-053's confirmation; refuses a non-module and a `part_use` the new parts do not name |
 
 ### 3.2 Normalisers that run behind the editor
@@ -455,20 +455,20 @@ for example, works through a worklist, so a dissolve that leaves another junctio
 the same run.
 
 **v0**. `ew-commands` runs rows 2, 4, 7, 8 and 12 in this order (`ORDER`, asserted by
-a test); since cycle 16 row 3 runs between rows 2 and 4 (six rows). Row 2 records nothing, because CPs are derived and no override exists yet. Row 4 numbers within the scope
+a test); row 3 runs between rows 2 and 4 (six rows). Row 2 records nothing, because CPs are derived and no override exists yet. Row 4 numbers within the scope
 (page of the main representation, letter) and skips devices with a terminal aspect, a frozen tag or a scheme other
 than the page-based default. Row 7 splits by an exact integer point-on-route test; W′ keeps its ID and
 number and W″ is new and `Unassigned`. Row 8 keeps, when a junction dissolves, the member that carries an assigned
 wire number (rows 8 and 11, FR-NUM-023); if both members carry different assigned numbers the command is rejected
 rather than losing one. Row 12 leaves every new connection `Unassigned` until a wire-numbering scheme exists
-(WP-S1.11). The other rows arrive with their owners' work packages; the cycle-16 and cycle-18 notes of this paragraph
+(WP-S1.11). The other rows arrive with their owners' work packages; the notes of this paragraph
 give the current order. The prevent hook of the validate step stays
 unwired until WP-S1.15, so M1 accepts, for example, duplicate terminal designations; this is a documented known gap
-. *Cycle 16:* row 3 (N1, `channel_instantiation`) runs between rows 2 and 4: a device of the transaction
+. Row 3 (N1, `channel_instantiation`) runs between rows 2 and 4: a device of the transaction
 that is new with a `plc_module` aspect, gained one, or changed its parts or `part_use` gets the channels 0 … n−1 of
 its part's channel spec with v5 IDs; a channel exists when one with the same (module, number) exists and existing
 channels are kept with their authored members. Row 5 (N-FL-2) is not a normaliser yet: its counter rule is applied
-inside `valve.add` and `assembly.attach`, and its push insert is FT-273. *Cycle 18:* rows 13 (N2, `solenoid_binding`) and 14 (N3, `module_pin_binding`) run after row 12, so `ORDER`
+inside `valve.add` and `assembly.attach`, and its push insert is FT-273. Rows 13 (N2, `solenoid_binding`) and 14 (N3, `module_pin_binding`) run after row 12, so `ORDER`
 holds eight rows: 2, 3, 4, 7, 8, 12, 13, 14. Row 3 now applies the part's channel kind to existing channels
 and names surplus channels in a notice; it still removes none, because FR-PLC-053 removes them only through the
 preview of the Bulk command `plc.set_module_part` (§3.1). N2 binds a declared coil to the channel the part's
@@ -508,27 +508,23 @@ and accepted only while its refusal is still under the field on the same revisio
 | 12 | **Online wire numbering** | New wires get the next number of the active wire-numbering scheme when online numbering is on, otherwise they stay `Unassigned` and print "?" (FR-NUM-019, FR-NUM-021) | [08](08-connections-terminals-cables.md) §5.2 |
 | 13 | **Solenoid binding** (N2 = N-FL-3) | Binds each declared solenoid's coil to the channel the part's position map assigns, if that channel is unbound and no channel binds the coil; an existing binding wins, and only the valves and channels of the transaction are considered (FR-PLC-051) | [10](10-plc-and-bus.md) §3.3 |
 | 14 | **Module pin binding** (N3) | Binds a new physical channel to the module pin whose designation the part's channel → pin map gives | [10](10-plc-and-bus.md) §3.3 |
-| 14a | **Bus ports** (N5, as built in cycle 40, decision log ID-927) | On a new device or a changed bus part, or a bus-port function (FnDef contact kind `bus_port`) added to or moved onto a device with a bus part: the part's ports that no function of the device carries (by interface and label) go in list order to its port-less bus-port functions by ID, address `tbd` (`not_applicable` when passive), the part's termination, no nets. Never rewrites or removes a port; a disagreement gives a notice; a part port without a function seeds nothing. Duplicates are dropped first and unknown buses or roles filtered after, so a newer-format first port drops its whole (interface, label) pair. Runs after `module_pin_binding` | WP-S1.21 spec §8a.2 |
+| 14a | **Bus ports** (N5) | On a new device or a changed bus part, or a bus-port function (FnDef contact kind `bus_port`) added to or moved onto a device with a bus part: the part's ports that no function of the device carries (by interface and label) go in list order to its port-less bus-port functions by ID, address `tbd` (`not_applicable` when passive), the part's termination, no nets. Never rewrites or removes a port; a disagreement gives a notice; a part port without a function seeds nothing. Duplicates are dropped first and unknown buses or roles filtered after, so a newer-format first port drops its whole (interface, label) pair. Runs after `module_pin_binding` | WP-S1.21 spec §8a.2 |
 | 15 | **Logical-net inheritance** (N4) | A bus connection to a port without a logical net assigns the net of the other port | [10](10-plc-and-bus.md) §3.3 |
 | 16 | **Drives link** (N-FL-4) | The first tube from a valve working port to a consumer port of another device adds `DeviceLink{Drives}` | [11](11-fluid-power.md) §4.2 |
 | 17 | **Tube counter** (N-FL-5) | A new tube connection gets its counter when a line-tag scheme is active | [11](11-fluid-power.md) §4.2 |
-| 18 | **Interruption-point form** (as built in , `ip_form`) | An interruption point drawn with one of EW's two arrow forms whose direction the transaction changed takes the other form, the one of its new direction, with the default orientation; a project that does not hold that form refuses the change: "the project does not hold the incoming arrow of symbol Interruption point: place one interruption point of that direction first" | this document §3.5 |
+| 18 | **Interruption-point form** (`ip_form`) | An interruption point drawn with one of EW's two arrow forms whose direction the transaction changed takes the other form, the one of its new direction, with the default orientation; a project that does not hold that form refuses the change: "the project does not hold the incoming arrow of symbol Interruption point: place one interruption point of that direction first" | this document §3.5 |
 
-Auto-routing (§5.4) is not a normaliser: it runs inside `connection.draw` and `rep.move` themselves, so a script
-gets the same route as the mouse.
-
-*Decided for WP-S2.04; as-built text after part 2.* The last paragraph above is
-amended. **Routing is one pure function, `ew_commands::route::auto_route`, re-exported by `ew-api`, and the tools call it;
+**Routing is one pure function, `ew_commands::route::auto_route`, re-exported by `ew-api`, and the tools call it;
 the commands do not.** The Wire tool computes its ghost with it and passes the result as the `route` of
 `connection.draw`, which **stores the route it is given and stays unchanged**: an empty route stays route-less and is
 drawn provisionally by `ew-scene`, so every connection of Golden A (none had a stored route then; folio 203's sixteen
-fluid lines have one since) and its derived output are
+fluid lines have one) and its derived output are
 untouched. `rep.move` keeps moving the route's vertices by `geometry::follow_end` (WP-S2.04 §5.2); a re-solve of a moved connection
 stays FT-18. A script therefore gets the mouse's route by calling the same function and passing the result, not by a
 command that routes. **Normaliser 7 (connection split) works on routes**, so it splits a connection that has a stored
 route, which every connection drawn with the Wire tool has; a route-less connection has no route to test, and the
-route editor's first edit stores its drawn polyline (WP-S2.04 §8.4). The as-built text follows each part's delivery.
-*Amended by decision log ID-1104:* normaliser 7 tests a route-less connection on the provisional
+route editor's first edit stores its drawn polyline (WP-S2.04 §8.4).
+Normaliser 7 tests a route-less connection on the provisional
 path between its ends, so a symbol dropped on the wire of a `connect` hint is split into it; the two parts stay
 route-less, and a routed connection drawn on the same line is split first. *As built:* one rule,
 `ew_derive::provisional_path`; `ew-scene` draws it and then pulls a vertex off the sheet onto the sheet's edge, and
@@ -536,8 +532,7 @@ normaliser 7 places its ends by `ew_derive::rep_cp_end`. Next to an end off the 
 edge, where neither normaliser 7 nor EW-TERM-006 sees it; a wire ending at a strip segment's terminal point is not
 split.
 
-*Decided for WP-S2.19 (2026-11-07, cycle 53; decision log ID-1498, [ADR-0033](../adr/0033-schematic-routing-model.md)).*
-The two paragraphs above are superseded when WP-S2.19 lands. A connection is drawn along its stored route, the full
+[ADR-0033](../adr/0033-schematic-routing-model.md) governs routing. A connection is drawn along its stored route, the full
 vertex list with both ends; the provisional path is retired, and a page connection without a route is *unrouted*:
 drawn as a dashed straight line, not split by normaliser 7, not read by EW-TERM-006, reported by EW-CORE-073. The
 commands still never route: the router, now `ew_derive::routing` reached through `ew_api::routing`, runs in
@@ -612,7 +607,7 @@ device (`crates/ew-viewmodel/tests/starter_symbols.rs`).
 
 *As built.* **Device from part lists the
 project's own part copies first**, then the libraries' parts, each group by maker and part number, so a library part
-moves into the project's group once it is embedded (this supersedes 's one order, 's note), and
+moves into the project's group once it is embedded, and
 its empty state names Edit ▸ Choose part…. **A part without a function template** is placed through the symbols it
 can take: `device.place` with `from_part` accepts such a part at template entry 0 and gives the new device the part
 and one main function of the chosen symbol's function definition.
@@ -725,7 +720,7 @@ devices, for example to draw an existing device on an overview page.
 
 *As built.* Copy, Cut, Paste, Duplicate and Copy tag list exist on the canvas (Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+D; Copy tag list on the Edit menu), with the fragment as built in [05](05-project-format-and-persistence.md) §12. Items 1, 3, 5 and 6 hold as written; item 2's copies are numbered by online numbering in the order of their anchor cells (FR-NUM-028); item 4's three-way choice is a follow-up, and a copy the project holds in another version is refused ("update from library first"). **Cut leaves the device unplaced** (decided): Cut is Copy and then the deletion of the selected representations, so the device and its functions stay in the project, unplaced (FR-DEV-003), and a cut and paste gives a new device; the identity-keeping move across pages is `rep.move` (§3.4). Trade-off: no device data (parts, frozen tags, technical data) is lost by a cut, at the price of an unplaced device that the user deletes from the navigator. On Windows, Shift+Delete also cuts (egui-winit turns it into the Cut event, §6). A fragment representation off the page grid is refused, and a paste on a page that takes no symbols is refused with its reason. The clipboard is text through egui's clipboard (arboard), whose Wayland and X11 behaviour is a manual check.
 
-*Cycle 28:* Since cycle 28 the fragment also carries page items and structure boxes (ranks 43/44); marker associations retain and remap copied connections, empty markers/unknown variants are skipped and counted, and cross-project structure-box paste clears `external`. Copy remains partial-selection tolerant; Cut refuses an incomplete selected page-item transfer before side effects. `CopiedFragment::incomplete_page_items` counts each selected page item omitted or copied with fewer marker associations once. Cut performs one copy and, when that count is nonzero, refuses with `reason-cut-incomplete-items` before any clipboard/outbox, selection, model or revision change: “Cut would lose page items or marker connections; include every marker wire or use Copy”. A complete Cut keeps one delete/undo step and the device-left-unplaced rule. The initial Windows pass preserved the marker, selection and external clipboard but showed no refusal explanation. Accepted correction `2a6ab87` displays the existing translated `reason-cut-incomplete-items` text through banner-if-none, preserving Failed precedence, other Refused behavior and the side-effect-free guard. A later window check reproduced missing OS clipboard publication despite successful Cut removal and an internal fragment; `6ecc9e7` enables and guards the shipped clipboard feature. On that normal Windows build, keyboard Ctrl+C and Edit ▸ Cut each published the fragment to the OS clipboard, and Ctrl+V plus placement rendered changed external fragment text. Incomplete Ctrl+X and Edit ▸ Cut still showed the exact reason and preserved the marker, selection and OS clipboard; ordinary-text Ctrl+V stayed quiet.
+The fragment also carries page items and structure boxes (ranks 43/44); marker associations retain and remap copied connections, empty markers/unknown variants are skipped and counted, and cross-project structure-box paste clears `external`. Copy remains partial-selection tolerant; Cut refuses an incomplete selected page-item transfer before side effects. `CopiedFragment::incomplete_page_items` counts each selected page item omitted or copied with fewer marker associations once. Cut performs one copy and, when that count is nonzero, refuses with `reason-cut-incomplete-items` before any clipboard/outbox, selection, model or revision change: “Cut would lose page items or marker connections; include every marker wire or use Copy”. A complete Cut keeps one delete/undo step and the device-left-unplaced rule. The existing translated `reason-cut-incomplete-items` text is displayed through banner-if-none, preserving Failed precedence, other Refused behavior and the side-effect-free guard. The shipped clipboard feature is enabled and guarded: on the Windows build, keyboard Ctrl+C and Edit ▸ Cut each publish the fragment to the OS clipboard, and Ctrl+V plus placement renders changed external fragment text. An incomplete Ctrl+X or Edit ▸ Cut shows the exact reason and preserves the marker, selection and OS clipboard; ordinary-text Ctrl+V stays quiet.
 
 ### 3.7 Selection, multi-select and bulk edit
 
@@ -760,7 +755,7 @@ Mechanical linkages between related functions (an actuator and its contacts; a v
 derived dashed lines, not graphics (FR-SYM-014, FR-DEV-028). Dragging the actuator moves its linkage, and the
 linkage cannot be selected as a free line.
 
-*Cycle 28:* Text, Text edit, Graphic, Wire marker and Structure box are implemented through the tool host (§4.5); Image remains part 5.
+Text, Text edit, Graphic, Wire marker and Structure box are implemented through the tool host (§4.5); Image remains part 5.
 
 ### 3.9 Undo granularity
 
@@ -783,8 +778,8 @@ One user gesture is one transaction (ARCH §5.3, G3). The history panel names ea
 
 Escape cancels any tool without a model change (FR-UI-016, NFR-UX-07).
 
-*Decided for WP-S2.04; as-built text after part 2.* The "Coalescing" column above is not
-built in WP-S2.04: **there is no undo coalescing**, so each keyboard nudge, each rotate press and each junction reorder
+The "Coalescing" column above is not
+built: **there is no undo coalescing**, so each keyboard nudge, each rotate press and each junction reorder
 is one undo step, in the window and headless alike. Headless commits go through `run_script`, which carries no
 coalescing key, and equal undo stacks in the two front ends weigh more than the merging; FT-372 restores the merging
 for the window and for headless together (a key that `run_script` also carries), before G-PP or with WP-S2.05. The other
@@ -871,22 +866,19 @@ tags, xref texts, potential highlight and finding deltas. Commit sends the same 
 what the commit produces (preview + commit = execute, NFR-REL-08). A semantic ghost computed on an older revision
 carries a staleness badge and is recomputed.
 
-*Decided for WP-S2.03; as-built text after part 2.* Two points of the contract above
+Two points of the contract above
 change. **`ToolCx` carries no `World`:** it carries the prepared page tables (the display list, the entity rectangles,
 the cross-reference links, the cell table, the grid and the connection points of the page) with the snapper and the
 selection, so no `ew-model` name reaches a tool (architecture §3 rule 3) and the same tool runs headless; a tool never
 calls the `Session`, and the tool host in `ew-viewmodel` does (doc 16 §4.5). **Previews run on the UI thread, not in
 the job pool, for now:** after the pointer has rested 80 ms (the action `canvas.dwell`, an input rather than model
 state) the host evaluates the tool's `Preview(cmd)` through `Session::preview`, a dry run on a fork, and the semantic
-ghost is that preview's derived diff; a fork job off the UI thread follows with FT-251. `Select` and `Follow`
+ghost is that preview's derived diff; a fork job off the UI thread is not built yet. `Select` and `Follow`
 join the outputs for the Select tool's result and for a click on a link.
 
-*As built (delivered).* Part 1 builds no tool: the `Tool` trait, `ToolCx`
-(without a `World`, as decided above), the tool host, the overlay layer and the previews were **part 2**, delivered in
-cycle 24 (below); until then this section was the target. What part 1 prepares for them below the shell is the per-page content that a
-tool's context will read: the display list, the entity rectangles, the cross-reference links with their resolved
+*As built (delivered).* A tool's context reads the per-page content below the shell: the display list, the entity rectangles, the cross-reference links with their resolved
 targets, the cell table and the grid, fetched once per (epoch, revision) and page (doc 16 §2.5). The connection points
-of the page (`page_cps`) joined it in part 2.
+of the page (`page_cps`) join it.
 
 *As built.* The contract is built as decided above. The
 events are `CanvasEvent`, with `Mods` and `Button`. The
@@ -895,7 +887,7 @@ outputs are `ToolOutput`, including `Select` (the Select tool's result) and `Fol
 snapper, selection }` and has no `World`. A tool returns one output per event, and its overlay is made of the items
 `Line`, `Polyline`, `Rect`, `Ghost`, `Marker` and `Label`. The page's connection points and their snapper are fetched
 once per (revision, folio) with the page content. Previews run on the UI thread through `Session::preview_with` after
-the 80 ms dwell action (`canvas.dwell`); the fork job off the UI thread stays FT-358. The host, the commit paths and the
+the 80 ms dwell action (`canvas.dwell`); the fork job off the UI thread is not built yet. The host, the commit paths and the
 preview rules are in doc 16 §4.5. The only tools shipped are Select and Measure, and neither previews nor commits.
 
 ### 4.2 Place tool
@@ -946,8 +938,7 @@ three states: idle, pressed and rubber-band. A click (press and release within 3
 pointer, Shift adds it and Ctrl toggles it. A left-to-right drag draws a solid band that selects what it encloses, a
 right-to-left drag a dashed band that selects what it touches; an entity with several rectangles is enclosed only if all
 of them are inside the band and touched if any one is. A click on empty canvas clears the selection (Shift keeps it).
-A click on a link follows it (the `Follow` output; the 3-point slope above), which replaces the shell action of cycle
-23 for the pointer; F stays the shell's action. Activate (Enter, `canvas.activate`) is
+A click on a link follows it (the `Follow` output; the 3-point slope above), which replaces the shell action `nav.follow` for the pointer; F stays the shell's action. Activate (Enter, `canvas.activate`) is
 a press and a release at the grid cursor, so a keyboard user selects as the pointer does. Escape leaves the band, then
 returns to Select, then clears the selection (the chain is in doc 16 §4.2). The drag-move rows are not built: they
 remain WP-S2.04 part 1's, with the probe tool (tests only) as the pattern.
@@ -976,13 +967,13 @@ stateDiagram-v2
 - **Keyboard wiring** (FR-UI-015): arrow keys move the grid cursor, `]` and `[` jump to the next and previous CP,
   `N` to the next unconnected CP, Enter acts as a click. A kittest flow draws -102F1:2 → -102F2:24VDC#1 on folio 102
   without the pointer.
-- *Decided for WP-S2.19.* The auto-route preview is the page router's
+- The auto-route preview is the page router's
   route for the one new wire against the page as drawn (`ew_api::routing::route_one`); it keeps every hard rule of
   [ADR-0033](../adr/0033-schematic-routing-model.md), so the graded passes over texts and bodies are removed. Without a
   clear route the ghost is the unrouted dashed line, the HUD says so, and the wire is stored unrouted unless the user
   fixed a bend. A junction that already joins three wires is not an end target.
 - *As built.* The ghost is `route_one`'s route; the passes
-  and FT-1210's turned IP end are gone. Without a clear route the ghost is the dashed straight line of an unrouted
+  and the turned IP end are gone. Without a clear route the ghost is the dashed straight line of an unrouted
   wire and the HUD says "No clear route: the wire stays unrouted. Click to place bends."; a commit then stores the
   wire without a route, or with the fixed bends and an L tail as the user's route when a bend was fixed. After a click
   that places a bend the HUD says "Bend placed: click a connection point to end the wire." Over a junction that
@@ -1010,7 +1001,7 @@ held. It never previews and never commits, and it does not want hover, so the en
 and preview are not drawn under it. The readout is announced through the canvas's live region on Press and on Activate
 (doc 16 §4.5).
 
-*As built.* Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every part-4b tool. These statements describe accepted corrected code; window evidence and remaining checks are recorded in ID-665. Text edit uses F2/double click on free text and refuses a read-only page. Select moves and deletes mixed representations, page items and structure boxes together in one command. `strip.bridge` (Edit ▸ Bridge terminals, no shortcut) uses the lowest CP of the first part use with a shaft-1 bridge entry, checks bridge connectivity/group selection and draws one page-less connection in one undo step. Disabled reasons distinguish selection, strip, shaft and already-connected conditions.
+*As built.* Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every part-4b tool. These statements describe accepted corrected code. Text edit uses F2/double click on free text and refuses a read-only page. Select moves and deletes mixed representations, page items and structure boxes together in one command. `strip.bridge` (Edit ▸ Bridge terminals, no shortcut) uses the lowest CP of the first part use with a shaft-1 bridge entry, checks bridge connectivity/group selection and draws one page-less connection in one undo step. Disabled reasons distinguish selection, strip, shaft and already-connected conditions.
 
 ---
 
@@ -1076,7 +1067,7 @@ never by an autoconnected wire.
   PQ-27).
 - **Cost:** one spatial-index ray per free CP, O(CPs · log n), well inside the frame budget.
 
-*Decided for WP-S2.04; as-built text after part 2.* The "On move"
+The "On move"
 bullet is narrowed. The proposals are computed in `ew-viewmodel` from the prepared page tables (not from a spatial
 index) and drawn as dashed overlay stubs, on placement and, during a move, **shown only: a move never adds a
 connection in WP-S2.04**, and the action `tool.connect_on_move` (C) is refused with `reason-connect-on-place`.
@@ -1115,7 +1106,7 @@ New connections and the route parts touched by a move are routed on the connecti
 Routes are stored as nm vertices (FR-CON-007). Wire crossings render as plain crossings or hops by project setting
 (FR-CON-031).
 
-*Decided for WP-S2.04; as-built text after part 2.* The router is the pure function
+The router is the pure function
 `ew_commands::route::auto_route` (re-exported by `ew-api`), called by the Wire tool for its ghost and for the route it
 passes to `connection.draw`; it is not run inside the commands (§3.2). Two points of the list above change. **Step 3's
 tie-break is the whole move sequence**, not the first turn: among the paths of least cost the router returns the least by
@@ -1130,16 +1121,15 @@ moved CPs (`rep.move`, §5.7), and the re-solve stays FT-18.
 
 *As built.* `auto_route` is an exact backward Dijkstra over (grid node, heading) from the end, then a forward walk from the start that takes the lowest-ranked move staying on a least path: not A*, but the same least path by (bends, length, move sequence). Ends are exact and interior corners on the grid (a corner next to an end takes that end's coordinate, so a connection point up to 1 nm off a rational grid stays valid); collinear vertices are removed. **Size limit:** the search area holds at most `MAX_NODES` = 262,144 grid nodes (2^18; an A0 sheet at a 2.5 mm grid has 160,412); a larger area, an index at the edge of `i64` and an area without a path all give the L route; the backward search stops once its distance passes the start's. Known minor case: after a fixed bend the router knows no incoming direction and can double back over the last segment. Crossings are drawn as hops by `ew-scene` when `project.drawing.set` sets `crossings` to `hops`: each proper crossing of a horizontal and a vertical segment of two connections, a half circle of 1 mm radius above the horizontal one, a crossing closer than 2 mm to a segment end or another hop drawn plain.
 
-*As built since cycles 38 and 39, noted 2026-11-07.* The obstacles are no longer
+*As built.* The obstacles are no longer
 the bodies alone. The Wire tool's request blocks the other representations' bodies and black-box outlines grown by one
 grid step, their texts (tags, slot texts, pin texts) grown by a quarter step, the frame's bands outside the drawing
 area, the vertices and tracks of the other wires (a right-angle crossing stays allowed) and every other CP with its
 stub; the two ends' own rectangles block except along a CP's escape corridor. The tool tries the passes Clear, then
-without the texts, then the bodies alone, each in an area of 4 and then 16 grid steps around the ends, after FT-705's
+without the texts, then the bodies alone, each in an area of 4 and then 16 grid steps around the ends, after the
 direct route through a free representation in line; only without any route does it draw the L and say so.
 
-*Decided for WP-S2.19 (2026-11-07, cycle 53; decision log ID-1498, [ADR-0033](../adr/0033-schematic-routing-model.md)).*
-This section's router is replaced by the page router of the
+Under [ADR-0033](../adr/0033-schematic-routing-model.md), this section's router is replaced by the page router of the
 WP-S2.19 specification §5: the search moves to
 `ew_derive::routing`; only the Clear pass remains, as hard rules; integer costs for steps, bends, crossings and
 parallel mates; a page or a selection routed in a fixed order (supply potentials first, then by span) with at most two
@@ -1199,22 +1189,20 @@ an end that does not meet its CP. GUI tools snap before they issue the command, 
 rectangles, as in WP-S2.02's hover, until the spatial index: `page_spatial_index` with exact kurbo picking and the
 per-tool priorities of the list above are FT-359, narrowed to that and the rich announcement. Part 1 adds one pick: a
 cross-reference link, found in the link rectangle inflated by 4 points at the current zoom, the smallest area winning
-and the later in paint order breaking a tie; a link wins over the entity under it. Snapping with its indicators was
-WP-S2.03 part 2 (delivered in , below), and the Alt rules of the tools are WP-S2.04's.
+and the later in paint order breaking a tie; a link wins over the entity under it. Snapping with its indicators is below, and the Alt rules of the tools are WP-S2.04's.
 
 *As built.* **Picking** is still on WP-S2.02's entity
 rectangles, inflated by 4 points: the smallest area containing the point wins. `selected_rects` and the band
-selection are O(n·m) over entities and rectangles, and are not measured (owner's rule). **Snapping** follows the specification of WP-S2.03: `Snapper::snap` returns `{at_nm, page_nm,
+selection are O(n·m) over entities and rectangles, and are not measured. **Snapping** follows the specification of WP-S2.03: `Snapper::snap` returns `{at_nm, page_nm,
 grid_index, kind, label}`; a connection point within 8 points wins unless Alt is held, else the point snaps to the grid
 on grid indices in i128, and `page_nm` lies on the page's connection grid. The indicators are overlay markers: a ring
-for a connection point (9 pixels), a cross for a grid point (7 pixels) and a square for a junction. **The mark scale**
-(lead ruling, ID-589; implemented by FT-391): today the markers are fixed at 7 and 9 pixels while lines double at a
+for a connection point (9 pixels), a cross for a grid point (7 pixels) and a square for a junction. **The mark scale**: today the markers are fixed at 7 and 9 pixels while lines double at a
 scale of 2 or more. The rule is one integer overlay factor `s = max(1, floor(ppp))` for every tool mark: lines `s`
 pixels wide, dashes 4s on and 4s off, the grid cross and the junction square 6s+1 pixels, the connection-point ring
 8s+1 pixels, so that marks keep a centre pixel and their proportions and snapshots stay pixel-exact; the selection
-outline is 2s pixels. Until FT-391 the as-built sizes hold.
+outline is 2s pixels. Until it is built the as-built sizes hold.
 
-*Decided for WP-S2.04; as-built text after part 1.* **Moves are in grid steps.**
+**Moves are in grid steps.**
 `rep.move` gains `steps: [kx, ky]`: each moved representation's position becomes the grid point at its index plus the
 steps, exactly, per axis, and the tools always send `steps`, computed from the pointer's page displacement as
 `k = round(displacement × den / num)`. A uniform nm delta cannot keep several representations on `round(k·g)` on the QET
@@ -1247,7 +1235,7 @@ use it (`skip_serializing_if`), so the existing command logs serialise unchanged
   Identifiers never change with the language.
 
 *As built.* The viewer implements this list
-except the hover preview of a cross-reference (delivered in , below) and the snap mode, the selection count and
+except the hover preview of a cross-reference (below) and the snap mode, the selection count and
 the running jobs in the status bar (the fields are in doc 16 §3.6). **Tabs:** at most 32 over one or two groups, each tab with its
 own history and a viewport per page. **Following:** a click or F on a cross-reference jumps to its target page in the
 same tab and centres the target point at no less than twice the zoom that fits the target page (the previous zoom if it
@@ -1263,7 +1251,7 @@ view pans by the least amount that brings it inside the pane inset by 10 % of ea
 Shift+F and Ctrl+Shift+F put the cursor on the next or previous cross-reference in reading order (by cell, then
 position), so a keyboard user reaches every link. The cursor is a crosshair over every other overlay, and the canvas
 announces the cursor's cell, its position and a link at it (doc 16 §10.1). Selecting by pointer, and the connection-point
-jumps with `]`, `[` and N, were part 2's and were delivered in cycle 24 (§4.3, §5.7; keys in doc 16 §4.4). The 300 ms
+jumps with `]`, `[` and N, are built (§4.3, §5.7; keys in doc 16 §4.4). The 300 ms
 hover preview of a link is a 320 × 200 point popup beside the pointer while the active tool wants hover (Select yes,
 Measure no), as built in doc 16 §4.5.
 
@@ -1304,7 +1292,7 @@ reachable without AltGr on QWERTZ and AZERTY layouts.
 | Show all representations of the device | Alt+D | Alt+D |
 | Find, find and replace | Ctrl+F, Ctrl+H | Ctrl+F, Ctrl+H |
 | Undo, redo | Ctrl+Z, Ctrl+Shift+Z (Ctrl+Y on Windows) | Ctrl+Z, Ctrl+Y |
-| Copy, cut, paste, paste as representation, duplicate | Ctrl+C, Ctrl+X (on Windows also Shift+Delete, as built in cycle 27), Ctrl+V, Ctrl+Shift+V, Ctrl+D | Ctrl+C, Ctrl+X, Ctrl+V, —, Ctrl+D |
+| Copy, cut, paste, paste as representation, duplicate | Ctrl+C, Ctrl+X (on Windows also Shift+Delete, as built), Ctrl+V, Ctrl+Shift+V, Ctrl+D | Ctrl+C, Ctrl+X, Ctrl+V, —, Ctrl+D |
 | Delete | Del | Del |
 | Fit page, fit selection | Home, Shift+Home | Home, — |
 | Cancel tool, clear selection | Esc | Esc |
