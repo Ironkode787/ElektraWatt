@@ -173,14 +173,6 @@ impl Dec3 {
         }
     }
 
-    /// `self × n` for an integer `n` (exact), or `None` on overflow.
-    pub const fn checked_mul_int(self, n: i64) -> Option<Dec3> {
-        match self.0.checked_mul(n) {
-            Some(v) => Some(Dec3(v)),
-            None => None,
-        }
-    }
-
     /// `self × rhs`, rounded to the nearest thousandth with exact ties toward zero; `None` on overflow.
     ///
     /// ```
@@ -386,8 +378,6 @@ mod tests {
         assert_eq!(Dec3(i64::MAX).checked_add(Dec3(1)), None);
         assert_eq!(Dec3(i64::MIN).checked_sub(Dec3(1)), None);
         assert_eq!(Dec3(i64::MIN).checked_neg(), None);
-        assert_eq!(Dec3(6_000).checked_mul_int(3), Some(Dec3(18_000)));
-        assert_eq!(Dec3(i64::MAX).checked_mul_int(2), None);
         // Products: 0.75 × 1.5 = 1.125; 0.005 × 0.1 = 0.0005 (tie → 0); 0.015 × 0.1 = 0.0015 (tie → 0.001).
         assert_eq!(Dec3(750).checked_mul(Dec3(1_500)), Some(Dec3(1_125)));
         assert_eq!(Dec3(5).checked_mul(Dec3(100)), Some(Dec3(0)));

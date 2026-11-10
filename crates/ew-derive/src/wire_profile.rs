@@ -36,7 +36,6 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::heap::HeapBytes;
 use crate::names::PotentialAttrsOf;
 use crate::note::DeriveNote;
 use crate::potentials::PotentialId;
@@ -436,10 +435,6 @@ impl Query for WireProfilesQ {
     const FAMILY: &'static str = "wire_profiles";
     const POLICY: Policy = Policy::Memo;
 
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
-
     fn run(q: &Q, _: &()) -> Arc<WireProfiles> {
         let colour = settings::member(q, Member::ColourProfile);
         let size = settings::member(q, Member::SizeProfile);
@@ -462,10 +457,6 @@ impl Query for WireProfileNotes {
     const FAMILY: &'static str = "wire_profile_notes";
     const POLICY: Policy = Policy::Memo;
 
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
-
     fn run(q: &Q, _: &()) -> Arc<Vec<DeriveNote>> {
         let mut notes = q.get::<WireProfilesQ>(()).notes.clone();
         notes.sort();
@@ -484,10 +475,6 @@ impl Query for WireDefaultProps {
     type Value = WireProps;
     const FAMILY: &'static str = "wire_default_props";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<WireProps> {
         Arc::new(q.get::<WireProfilesQ>(()).default.clone())
@@ -641,10 +628,6 @@ impl Query for ProfileRowFor {
     const FAMILY: &'static str = "profile_row_for";
     const POLICY: Policy = Policy::Memo;
 
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
-
     fn run(q: &Q, key: &ProfileKey) -> Arc<ProfileRow> {
         let profiles = q.get::<WireProfilesQ>(());
         let attrs = key.attrs();
@@ -662,45 +645,6 @@ impl Query for ProfileRowFor {
             .as_ref()
             .and_then(|s| s.csa_of(&class).map(|csa| (s.key().to_owned(), csa.clone())));
         Arc::new(ProfileRow { class, colour, csa })
-    }
-}
-
-// --- value sizes: the profile values are private types, so their impls live here (ProfileRow's is in heap.rs)
-
-impl HeapBytes for Select {
-    fn heap_bytes(&self) -> usize {
-        self.ptype.heap_bytes() + self.ac_dc.heap_bytes() + self.discipline.heap_bytes()
-    }
-}
-
-impl HeapBytes for ColourRowRaw {
-    fn heap_bytes(&self) -> usize {
-        self.select.heap_bytes() + self.colour.heap_bytes()
-    }
-}
-
-impl HeapBytes for ClassRuleRaw {
-    fn heap_bytes(&self) -> usize {
-        self.select.heap_bytes() + self.class.heap_bytes()
-    }
-}
-
-impl HeapBytes for SizeRowRaw {
-    fn heap_bytes(&self) -> usize {
-        self.class.heap_bytes() + self.csa.heap_bytes()
-    }
-}
-
-impl HeapBytes for WireProfiles {
-    fn heap_bytes(&self) -> usize {
-        let colour = self
-            .colour
-            .as_ref()
-            .map_or(0, |c| c.0.key.heap_bytes() + c.0.rows.heap_bytes());
-        let size = self.size.as_ref().map_or(0, |s| {
-            s.0.key.heap_bytes() + s.0.class_rules.heap_bytes() + s.0.rows.heap_bytes()
-        });
-        colour + size + self.default.heap_bytes() + self.notes.heap_bytes()
     }
 }
 

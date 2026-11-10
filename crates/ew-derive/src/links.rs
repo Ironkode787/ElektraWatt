@@ -27,7 +27,6 @@ use ew_schema::{
 };
 
 use crate::cps::pattern_origin;
-use crate::heap::HeapBytes;
 use crate::index::{BondIndex, Index, RailTerminals};
 use crate::ip::IpPairingQ;
 use crate::nets::{CpRef, ends};
@@ -89,20 +88,6 @@ impl FunctionLinks {
     }
 }
 
-impl HeapBytes for FunctionLinks {
-    fn heap_bytes(&self) -> usize {
-        self.declared.capacity() * std::mem::size_of::<DeclaredLink>()
-            + self.passes.len() * std::mem::size_of::<(u16, u16)>()
-            + self.dup_groups.heap_bytes()
-            + self
-                .level_groups
-                .iter()
-                .map(|(_, v)| std::mem::size_of::<(u8, Vec<u16>)>() + v.capacity() * 2)
-                .sum::<usize>()
-            + self.source_outputs.capacity() * 2
-    }
-}
-
 /// `function_links(f)`: see the module documentation. Empty for an interruption point, a missing function or
 /// a missing function definition. Policy Memo.
 #[derive(Debug)]
@@ -113,10 +98,6 @@ impl Query for FunctionLinksOf {
     type Value = FunctionLinks;
     const FAMILY: &'static str = "function_links";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, fid: &Id<Function>) -> Arc<FunctionLinks> {
         let fid = *fid;
@@ -278,12 +259,6 @@ pub struct RailTerminal {
     pub cycle: Option<DeriveNote>,
 }
 
-impl HeapBytes for RailTerminal {
-    fn heap_bytes(&self) -> usize {
-        self.pe.capacity() * std::mem::size_of::<CpRef>() + self.notes.heap_bytes()
-    }
-}
-
 /// `rail_terminal(d)`: see [`RailTerminal`]. Policy Memo.
 #[derive(Debug)]
 pub struct RailTerminalOf;
@@ -293,10 +268,6 @@ impl Query for RailTerminalOf {
     type Value = RailTerminal;
     const FAMILY: &'static str = "rail_terminal";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, dev: &Id<Device>) -> Arc<RailTerminal> {
         let dev = *dev;
@@ -386,16 +357,6 @@ impl PartialEq for RailBonds {
     }
 }
 
-impl HeapBytes for RailBonds {
-    fn heap_bytes(&self) -> usize {
-        self.by_location.heap_bytes()
-            + self.location_of.len() * (std::mem::size_of::<CpRef>() + std::mem::size_of::<RailLocation>())
-            + self.notes.heap_bytes()
-            + self.cycles.heap_bytes()
-            + self.terminals.len() * 2 * std::mem::size_of::<usize>()
-    }
-}
-
 fn rail_bonds(q: &Q) -> RailBonds {
     let devices = q.get::<RailTerminals>(());
     let mut out = RailBonds::default();
@@ -432,10 +393,6 @@ impl Query for RailBondsQ {
     const FAMILY: &'static str = "rail_bonds";
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<RailBonds> {
         Arc::new(rail_bonds(q))
@@ -487,20 +444,6 @@ pub struct BondPaths {
     pub on_path: BTreeSet<Id<Function>>,
 }
 
-impl HeapBytes for BondPaths {
-    fn heap_bytes(&self) -> usize {
-        self.paths
-            .values()
-            .map(|p| {
-                std::mem::size_of::<(Id<Bond>, BondPath)>()
-                    + p.ips.capacity() * std::mem::size_of::<Id<Function>>()
-                    + p.names.heap_bytes()
-            })
-            .sum::<usize>()
-            + self.on_path.len() * std::mem::size_of::<Id<Function>>()
-    }
-}
-
 /// `bond_paths()`: see [`BondPaths`]. Policy Memo (bonds are few).
 #[derive(Debug)]
 pub struct BondPathsQ;
@@ -510,10 +453,6 @@ impl Query for BondPathsQ {
     type Value = BondPaths;
     const FAMILY: &'static str = "bond_paths";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<BondPaths> {
         let bonds = q.get::<BondIndex>(());

@@ -142,10 +142,6 @@ impl Query for PhysicalWiresOf {
     const FAMILY: &'static str = "physical_wires_of";
     const POLICY: Policy = Policy::Memo;
 
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
-
     fn run(q: &Q, key: &PotentialId) -> Arc<PhysicalWires> {
         // The partition's parts this wire list depends on (WP-S1.07 part 2): the potential, the bonds, every
         // potential of the bond closure, and the pairing of every interruption point in the scope.

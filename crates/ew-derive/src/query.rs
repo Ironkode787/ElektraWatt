@@ -13,7 +13,7 @@ use crate::note::NoteSet;
 /// How a query family is evaluated (ADR-0002 decisions 2–3, ARCH §6.4 "Initial policy").
 ///
 /// A `Q` without a memo store evaluates every family cold with its request-scoped cache. A `Q` from a
-/// [`MemoStore`](crate::MemoStore) memoises the `Memo` and `MemoLru` families in the store across requests
+/// [`MemoStore`](crate::MemoStore) memoises the `Memo` families in the store across requests
 /// (ADR-0002 amendment 4); promoting or demoting a family is a one-line change of its `POLICY`.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum Policy {
@@ -21,8 +21,6 @@ pub enum Policy {
     Cold,
     /// Memoised with red-green verification, push invalidation and early cut-off.
     Memo,
-    /// Memoised and evicted by the byte-budget LRU (bulky values).
-    MemoLru,
 }
 
 /// What changed for an incremental family since its memo was last verified ([`Query::run_incremental`]):
@@ -68,10 +66,6 @@ pub trait Query: 'static {
     /// Whether memoised evaluations go through [`Query::run_incremental`] (ADR-0002 amendment 4).
     const INCREMENTAL: bool = false;
 
-    /// Whether early cut-off and the oracle compare [`Query::fingerprint`]s (128 bits) instead of the values:
-    /// for bulky values whose comparison would cost as much as the change.
-    const FINGERPRINT: bool = false;
-
     /// Whether the family is a producer of parts (ADR-0002 amendment 5): its memoised executions declare the
     /// parts they changed and its readers read it by part. A family read as a value part (a cut-off point)
     /// must not be one, and only a producer may declare parts; debug builds check both.
@@ -98,29 +92,6 @@ pub trait Query: 'static {
     ) -> Arc<Self::Value> {
         let _ = previous;
         Self::run(q, key)
-    }
-
-    /// The bytes a value occupies (the memory gate, NFR-PERF-13; ADR-0002 amendment 4 item (d)).
-    fn bytes(_value: &Self::Value) -> usize {
-        std::mem::size_of::<Self::Value>()
-    }
-
-    /// The 128-bit fingerprint of a value, for [`FINGERPRINT`](Query::FINGERPRINT) families: equal values have
-    /// equal fingerprints, and different ones differ with overwhelming probability.
-    ///
-    /// A family that sets `FINGERPRINT` must implement it. There is no usable default: a constant would make
-    /// every change look like an unchanged value (an early cut-off) and every memo look equal to the oracle's
-    /// cold run, so the default panics at the first memoised execution of such a family. It is never called
-    /// for a family without `FINGERPRINT`.
-    ///
-    /// # Panics
-    ///
-    /// The default always panics.
-    fn fingerprint(_value: &Self::Value) -> u128 {
-        panic!(
-            "ew-derive: query family `{}` sets FINGERPRINT but does not implement Query::fingerprint",
-            Self::FAMILY
-        )
     }
 }
 

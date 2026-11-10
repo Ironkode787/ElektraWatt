@@ -645,7 +645,7 @@ fn update_damaged_copies_is_refused_beside_another_finding_and_under_another_loc
             &*other.vfs,
             &root,
             &*other.clock,
-            other.stale_after,
+            ew_store::STALE_AFTER,
             &other.identity,
             &*other.probe
         ),

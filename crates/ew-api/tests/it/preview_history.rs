@@ -233,7 +233,7 @@ fn history_view_lists_rows_origins_pages_and_merged_counts() {
     )
     .unwrap();
     let third = s.page_labels()[2].clone();
-    // GUI 3: two title edits of the third page with one coalescing key: one step of two transactions.
+    // GUI 3: a title edit of the third page.
     let third_id = page_id(&s, &third).to_string();
     let title = |text: &str| {
         cmd(
@@ -241,14 +241,7 @@ fn history_view_lists_rows_origins_pages_and_merged_counts() {
             json!({ "kind": "page", "targets": [third_id], "path": "title", "value": text }),
         )
     };
-    let merged = |key: &str| Submit {
-        coalesce_key: Some(key.into()),
-        ..Submit::from(Origin::Gui)
-    };
-    let t1 = title("A");
-    s.execute_with(&t1, merged("title")).unwrap();
-    let t2 = title("AB");
-    s.execute_with(&t2, merged("title")).unwrap();
+    s.execute_with(&title("AB"), gui()).unwrap();
     // A script step and an external change.
     s.execute_with(
         &cmd(
@@ -301,7 +294,7 @@ fn history_view_lists_rows_origins_pages_and_merged_counts() {
     );
     assert!(rows.iter().all(|r| r.2), "every entry is a step");
     let merged: Vec<u32> = rows.iter().map(|r| r.3).collect();
-    assert_eq!(merged, [1, 1, 2, 1, 1, 1]);
+    assert_eq!(merged, [1, 1, 1, 1, 1, 1]);
     assert_eq!(rows[0].4, [second.as_str()]);
     assert_eq!(
         rows[2].4,

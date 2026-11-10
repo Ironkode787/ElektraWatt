@@ -19,12 +19,13 @@ use ew_derive::ew_schema::{
 };
 use ew_derive::{
     CpRef, DeviceTag, EndKind, EndpointKey, IpInfoOf, Member, PhysicalWire, PhysicalWiresOf,
-    PotentialPartition, Q, SettingsMember, StructurePath, WireNumbers, company_codes, csa_text,
+    PotentialPartition, Q, SettingsMember, WireNumbers, company_codes, csa_text,
 };
 
 use crate::engine::touched_ids;
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
+use crate::rules::term::location_text;
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared texts
@@ -327,15 +328,6 @@ pub const EXTERNAL_WITHOUT_CABLE: RuleMeta = RuleMeta {
     release: Release::Mvp,
     docs: "reference/rules/ew-core-034",
 };
-
-/// A location as a designation prints it: `+` and its path's codes (`+J-E-206`).
-fn location_text(q: &Q, node: Id<StructureNode>) -> String {
-    let path = q.get::<StructurePath>(node);
-    if path.codes.is_empty() {
-        return "a location".to_owned();
-    }
-    format!("+{}", path.codes.join("+"))
-}
 
 /// A wire as a message prints it: its wire number, else its connection ID's end texts.
 fn wire_label(q: &Q, w: &PhysicalWire) -> String {

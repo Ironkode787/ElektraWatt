@@ -192,7 +192,7 @@ pub struct KeptLine {
     pub key: LineKey,
     /// The original bytes, without the line end (a trailing CR is removed): UTF-8 text, except for a
     /// [`Kept::Quarantined`] line that is not UTF-8 (EW-CORE-005), which is kept and written back byte for
-    /// byte. [`KeptLine::text_lossy`] gives a printable form.
+    /// byte.
     pub text: Vec<u8>,
     /// Why it is kept.
     pub kept: Kept,
@@ -203,11 +203,6 @@ pub struct KeptLine {
 }
 
 impl KeptLine {
-    /// The line as text for messages and display (invalid UTF-8 replaced by U+FFFD); never for writing.
-    pub fn text_lossy(&self) -> std::borrow::Cow<'_, str> {
-        String::from_utf8_lossy(&self.text)
-    }
-
     /// Whether the line gave EW-CORE-005 (not one JSON value, or not UTF-8): a broken line, which `ew fmt --repair`
     /// discards ([`Finding::is_broken_line`](crate::Finding::is_broken_line)).
     pub fn is_broken(&self) -> bool {

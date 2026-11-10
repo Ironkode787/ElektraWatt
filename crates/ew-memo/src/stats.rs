@@ -5,11 +5,9 @@
 
 use std::collections::BTreeMap;
 
-use crate::Rev;
-
 /// Counters of one query family over a window (one commit, or the store's lifetime).
 ///
-/// The store keeps one [`Stats`] for the current commit (reset by `Store::advance`, which emits it first) and
+/// The store keeps one [`Stats`] for the current commit (reset by `Store::advance`) and
 /// one for its lifetime. NFR-PERF-20 asserts the per-edit counts as exact numbers, so every counter is
 /// deterministic: it counts engine decisions, never time.
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
@@ -26,14 +24,12 @@ pub struct Counters {
     /// A memo marked possibly changed by push invalidation (a touched input, a changed part, or a marked
     /// dependency memo).
     pub marked: u64,
-    /// The query ran (new memo, a changed dependency, or an evicted value).
+    /// The query ran (new memo or a changed dependency).
     pub re_executions: u64,
     /// Re-executions through the incremental hook with the previous value (a subset of `re_executions`).
     pub incremental: u64,
     /// A re-execution produced an equivalent value; `changed_at` was backdated.
     pub cut_offs: u64,
-    /// Values dropped by the LRU.
-    pub evictions: u64,
     /// Cold re-computations compared by the oracle.
     pub oracle_checks: u64,
     /// Oracle checks that differed from the memo.
@@ -68,8 +64,6 @@ pub(crate) enum Event {
     Incremental,
     /// A re-execution produced an equivalent value.
     CutOff,
-    /// A value was dropped by the LRU.
-    Evicted,
     /// The oracle compared a cold re-computation.
     OracleCheck,
     /// The oracle found a difference.
@@ -94,7 +88,6 @@ impl Counters {
             Event::ReExecuted => &mut self.re_executions,
             Event::Incremental => &mut self.incremental,
             Event::CutOff => &mut self.cut_offs,
-            Event::Evicted => &mut self.evictions,
             Event::OracleCheck => &mut self.oracle_checks,
             Event::OracleMismatch => &mut self.oracle_mismatches,
             Event::Cycle => &mut self.cycles,
@@ -114,7 +107,6 @@ impl Counters {
         self.re_executions = self.re_executions.saturating_add(other.re_executions);
         self.incremental = self.incremental.saturating_add(other.incremental);
         self.cut_offs = self.cut_offs.saturating_add(other.cut_offs);
-        self.evictions = self.evictions.saturating_add(other.evictions);
         self.oracle_checks = self.oracle_checks.saturating_add(other.oracle_checks);
         self.oracle_mismatches = self.oracle_mismatches.saturating_add(other.oracle_mismatches);
         self.cycles = self.cycles.saturating_add(other.cycles);
@@ -130,7 +122,7 @@ impl Counters {
 
 /// Counters per query family (by family name), in name order.
 ///
-/// The store keeps one `Stats` for the current commit (reset by `Store::advance`, which emits it first) and
+/// The store keeps one `Stats` for the current commit (reset by `Store::advance`) and
 /// one for its lifetime. NFR-PERF-20 asserts per-edit counts as exact numbers.
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct Stats {
@@ -167,63 +159,17 @@ impl Stats {
         self.families.entry(family).or_default().record(event);
     }
 
-    /// Adds every family of `other` to this one.
-    pub(crate) fn merge(&mut self, other: &Stats) {
-        for (name, counters) in &other.families {
-            self.families.entry(name).or_default().merge(counters);
-        }
-    }
-
     /// Forgets every counter.
     pub(crate) fn clear(&mut self) {
         self.families.clear();
     }
 }
 
-/// Emits one `tracing` event per family with non-zero counters, in name order, at DEBUG level with target
-/// `ew_memo::stats` and the fields `window` (the label: `"commit"` or `"total"`), `rev`, `family` and every
-/// counter by its field name.
-pub(crate) fn emit(rev: Rev, window: &'static str, stats: &Stats) {
-    for (family, c) in stats.families() {
-        if c.is_zero() {
-            continue;
-        }
-        tracing::event!(
-            target: "ew_memo::stats",
-            tracing::Level::DEBUG,
-            window,
-            rev = rev.0,
-            family,
-            hits = c.hits,
-            durability_skips = c.durability_skips,
-            verifications = c.verifications,
-            push_skips = c.push_skips,
-            marked = c.marked,
-            re_executions = c.re_executions,
-            incremental = c.incremental,
-            cut_offs = c.cut_offs,
-            evictions = c.evictions,
-            oracle_checks = c.oracle_checks,
-            oracle_mismatches = c.oracle_mismatches,
-            cycles = c.cycles,
-            volatile = c.volatile,
-            collected = c.collected,
-        );
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-    use std::sync::{Arc, Mutex};
-
-    use tracing::field::{Field, Visit};
-    use tracing::span;
-    use tracing::{Event as TracingEvent, Metadata, Subscriber};
-
     use super::*;
 
-    const ALL_EVENTS: [Event; 14] = [
+    const ALL_EVENTS: [Event; 13] = [
         Event::Hit,
         Event::DurabilitySkip,
         Event::Verified,
@@ -232,7 +178,6 @@ mod tests {
         Event::ReExecuted,
         Event::Incremental,
         Event::CutOff,
-        Event::Evicted,
         Event::OracleCheck,
         Event::OracleMismatch,
         Event::Cycle,
@@ -258,7 +203,6 @@ mod tests {
                 re_executions: 1,
                 incremental: 1,
                 cut_offs: 1,
-                evictions: 1,
                 oracle_checks: 1,
                 oracle_mismatches: 1,
                 cycles: 1,
@@ -295,20 +239,17 @@ mod tests {
         let mut a = Counters {
             hits: 1,
             re_executions: 2,
-            evictions: 3,
             ..Counters::default()
         };
         let b = Counters {
             hits: 10,
             cut_offs: 4,
-            evictions: 5,
             ..Counters::default()
         };
         a.merge(&b);
         assert_eq!(a.hits, 11);
         assert_eq!(a.re_executions, 2);
         assert_eq!(a.cut_offs, 4);
-        assert_eq!(a.evictions, 8);
     }
 
     #[test]
@@ -340,123 +281,11 @@ mod tests {
     }
 
     #[test]
-    fn stats_merge_and_clear() {
+    fn stats_clear() {
         let mut a = Stats::default();
         a.record("x", Event::Hit);
-        let mut b = Stats::default();
-        b.record("x", Event::Hit);
-        b.record("y", Event::CutOff);
-        a.merge(&b);
-        assert_eq!(a.family("x").hits, 2);
-        assert_eq!(a.family("y").cut_offs, 1);
         a.clear();
         assert!(a.is_empty());
         assert_eq!(a, Stats::default());
-    }
-
-    /// One captured event: field name to its rendered value.
-    type Captured = BTreeMap<String, String>;
-
-    #[derive(Default)]
-    struct Collector(Captured);
-
-    impl Visit for Collector {
-        fn record_u64(&mut self, field: &Field, value: u64) {
-            self.0.insert(field.name().to_string(), value.to_string());
-        }
-        fn record_str(&mut self, field: &Field, value: &str) {
-            self.0.insert(field.name().to_string(), value.to_string());
-        }
-        fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
-            self.0.insert(field.name().to_string(), format!("{value:?}"));
-        }
-    }
-
-    /// (target, level, fields) per captured event.
-    type Log = Vec<(String, tracing::Level, Captured)>;
-
-    struct Capture {
-        events: Arc<Mutex<Log>>,
-    }
-
-    impl Subscriber for Capture {
-        fn enabled(&self, _: &Metadata<'_>) -> bool {
-            true
-        }
-        fn new_span(&self, _: &span::Attributes<'_>) -> span::Id {
-            span::Id::from_u64(1)
-        }
-        fn record(&self, _: &span::Id, _: &span::Record<'_>) {}
-        fn record_follows_from(&self, _: &span::Id, _: &span::Id) {}
-        fn event(&self, event: &TracingEvent<'_>) {
-            let mut collector = Collector::default();
-            event.record(&mut collector);
-            let meta = event.metadata();
-            self.events
-                .lock()
-                .unwrap()
-                .push((meta.target().to_string(), *meta.level(), collector.0));
-        }
-        fn enter(&self, _: &span::Id) {}
-        fn exit(&self, _: &span::Id) {}
-    }
-
-    #[test]
-    fn emit_one_event_per_nonzero_family_in_name_order() {
-        let mut s = Stats::default();
-        s.record("beta", Event::Hit);
-        s.record("beta", Event::Hit);
-        s.record("alpha", Event::ReExecuted);
-        // A family whose counters are all zero emits nothing.
-        s.families.insert("gamma", Counters::default());
-
-        let events = Arc::new(Mutex::new(Vec::new()));
-        let subscriber = Capture {
-            events: Arc::clone(&events),
-        };
-        tracing::subscriber::with_default(subscriber, || emit(Rev(7), "commit", &s));
-
-        let events = events.lock().unwrap();
-        assert_eq!(events.len(), 2);
-        for (target, level, _) in events.iter() {
-            assert_eq!(target, "ew_memo::stats");
-            assert_eq!(*level, tracing::Level::DEBUG);
-        }
-        let (_, _, first) = &events[0];
-        assert_eq!(first["family"], "alpha");
-        assert_eq!(first["window"], "commit");
-        assert_eq!(first["rev"], "7");
-        assert_eq!(first["hits"], "0");
-        assert_eq!(first["re_executions"], "1");
-        let (_, _, second) = &events[1];
-        assert_eq!(second["family"], "beta");
-        assert_eq!(second["hits"], "2");
-        assert_eq!(second["re_executions"], "0");
-        for field in [
-            "durability_skips",
-            "verifications",
-            "push_skips",
-            "marked",
-            "incremental",
-            "cut_offs",
-            "evictions",
-            "oracle_checks",
-            "oracle_mismatches",
-            "cycles",
-            "volatile",
-            "collected",
-        ] {
-            assert!(second.contains_key(field), "missing field {field}");
-        }
-    }
-
-    #[test]
-    fn emit_of_empty_stats_emits_nothing() {
-        let events = Arc::new(Mutex::new(Vec::new()));
-        let subscriber = Capture {
-            events: Arc::clone(&events),
-        };
-        tracing::subscriber::with_default(subscriber, || emit(Rev(1), "total", &Stats::default()));
-        assert!(events.lock().unwrap().is_empty());
     }
 }

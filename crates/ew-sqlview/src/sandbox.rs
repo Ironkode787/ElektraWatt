@@ -32,7 +32,7 @@ use crate::result::{ResultSet, Value};
 /// The limits and the deadline of one kind of consumer (doc 17 §6.2).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Profile {
-    /// The consumer, for messages (`ew sql`, `report`).
+    /// The consumer, for messages (`ew sql`).
     pub name: &'static str,
     /// The deadline of one statement, from the start of its first step to its last row.
     pub deadline: Duration,
@@ -51,27 +51,6 @@ impl Profile {
         deadline: Duration::from_secs(60),
         max_rows: 1_000_000,
         max_bytes: 256 * MIB,
-    };
-    /// A user report block: 2 s, 100,000 rows (doc 09 §3.5); the byte cap of `ew sql`.
-    pub const REPORT: Profile = Profile {
-        name: "report",
-        deadline: Duration::from_secs(2),
-        max_rows: 100_000,
-        max_bytes: 256 * MIB,
-    };
-    /// An SQL rule: 10 s; the row and byte caps of `ew sql`.
-    pub const RULE: Profile = Profile {
-        name: "rule",
-        deadline: Duration::from_secs(10),
-        max_rows: 1_000_000,
-        max_bytes: 256 * MIB,
-    };
-    /// The MCP `sql_query` tool: 5 s, 1,000 rows, 1 MiB.
-    pub const MCP: Profile = Profile {
-        name: "mcp",
-        deadline: Duration::from_secs(5),
-        max_rows: 1_000,
-        max_bytes: MIB,
     };
 
     /// The longest deadline a profile may have: one day.
@@ -95,7 +74,10 @@ impl Profile {
 /// The monotonic clock of the query deadline. The deadline is a resource limit: a query that finishes inside it
 /// returns the same rows on every run, one that does not is refused with a timeout, and no timestamp is in a
 /// result (doc 18 §3.5).
-#[allow(clippy::disallowed_methods)]
+#[allow(
+    clippy::disallowed_methods,
+    reason = "the monotonic deadline of a sandboxed query"
+)]
 fn deadline_now() -> Instant {
     Instant::now()
 }

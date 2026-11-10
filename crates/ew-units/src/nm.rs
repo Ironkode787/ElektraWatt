@@ -7,7 +7,6 @@ use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::arith;
 use crate::json::SafeInt;
 
 /// A length or coordinate in nanometres (ADR-0005): the only linear unit in the model and in files.
@@ -34,8 +33,6 @@ pub struct Nm(pub i64);
 impl Nm {
     /// Zero length.
     pub const ZERO: Nm = Nm(0);
-    /// One micrometre.
-    pub const UM: Nm = Nm(1_000);
     /// One millimetre.
     pub const MM: Nm = Nm(1_000_000);
 
@@ -84,25 +81,6 @@ impl Nm {
     /// The absolute value; overflows like [`i64::abs`] for `i64::MIN`.
     pub const fn abs(self) -> Nm {
         Nm(self.0.abs())
-    }
-
-    /// Boundary helper: `mm` millimetres as `Nm`, rounded to the nearest nanometre with exact ties
-    /// **toward zero**; `None` for NaN, infinities and results outside the `i64` range.
-    ///
-    /// The product `mm × 10⁶` is formed in f64 (one rounding), then rounded to an integer. For importers
-    /// and boundary code only; the model never holds f64 lengths.
-    ///
-    /// ```
-    /// use ew_units::Nm;
-    ///
-    /// assert_eq!(Nm::from_mm_f64(2.5), Some(Nm(2_500_000)));
-    /// // 1/128 mm = 7812.5 nm exactly: the tie goes toward zero.
-    /// assert_eq!(Nm::from_mm_f64(0.0078125), Some(Nm(7_812)));
-    /// assert_eq!(Nm::from_mm_f64(-0.0078125), Some(Nm(-7_812)));
-    /// assert_eq!(Nm::from_mm_f64(f64::NAN), None);
-    /// ```
-    pub fn from_mm_f64(mm: f64) -> Option<Nm> {
-        arith::f64_to_i64(mm * 1e6).map(Nm)
     }
 
     /// Boundary helper: this length in millimetres as f64 (`self / 10⁶`, correctly rounded for
@@ -187,22 +165,7 @@ mod tests {
     }
 
     #[test]
-    fn f64_boundary_rounding() {
-        assert_eq!(Nm::from_mm_f64(0.0), Some(Nm(0)));
-        assert_eq!(Nm::from_mm_f64(-0.0), Some(Nm(0)));
-        assert_eq!(Nm::from_mm_f64(1.0), Some(Nm::MM));
-        // Exact ties: 1/128 mm = 7812.5 nm, 3/128 mm = 23437.5 nm.
-        assert_eq!(Nm::from_mm_f64(1.0 / 128.0), Some(Nm(7_812)));
-        assert_eq!(Nm::from_mm_f64(-1.0 / 128.0), Some(Nm(-7_812)));
-        assert_eq!(Nm::from_mm_f64(3.0 / 128.0), Some(Nm(23_437)));
-        assert_eq!(Nm::from_mm_f64(-3.0 / 128.0), Some(Nm(-23_437)));
-        // Not ties: nearest.
-        assert_eq!(Nm::from_mm_f64(0.000_000_7), Some(Nm(1)));
-        assert_eq!(Nm::from_mm_f64(-0.000_000_7), Some(Nm(-1)));
-        assert_eq!(Nm::from_mm_f64(0.000_000_3), Some(Nm(0)));
-        assert_eq!(Nm::from_mm_f64(f64::NAN), None);
-        assert_eq!(Nm::from_mm_f64(f64::INFINITY), None);
-        assert_eq!(Nm::from_mm_f64(1e13), None);
+    fn f64_boundary() {
         assert_eq!(Nm(2_500_000).to_mm_f64(), 2.5);
         assert_eq!(Nm(-1).to_mm_f64(), -1e-6);
     }
@@ -226,19 +189,6 @@ mod tests {
             let s = serde_json::to_string(&Nm(v)).unwrap();
             prop_assert_eq!(s.clone(), v.to_string());
             prop_assert_eq!(serde_json::from_str::<Nm>(&s).unwrap(), Nm(v));
-        }
-
-        /// Integral millimetre values convert exactly in both directions.
-        #[test]
-        fn mm_f64_round_trip(mm in -9_000_000i64..9_000_000) {
-            let nm = Nm::from_mm(mm);
-            prop_assert_eq!(Nm::from_mm_f64(nm.to_mm_f64()), Some(nm));
-        }
-
-        /// Every safe nm value survives the f64 boundary in both directions.
-        #[test]
-        fn nm_f64_round_trip(v in -1_000_000_000_000i64..1_000_000_000_000) {
-            prop_assert_eq!(Nm::from_mm_f64(Nm(v).to_mm_f64()), Some(Nm(v)));
         }
     }
 }

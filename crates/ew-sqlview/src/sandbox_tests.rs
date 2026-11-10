@@ -482,10 +482,4 @@ fn the_profiles_carry_the_documented_limits() {
     assert_eq!(Profile::EW_SQL.deadline, Duration::from_secs(60));
     assert_eq!(Profile::EW_SQL.max_rows, 1_000_000);
     assert_eq!(Profile::EW_SQL.max_bytes, 256 * 1024 * 1024);
-    assert_eq!(Profile::REPORT.deadline, Duration::from_secs(2));
-    assert_eq!(Profile::REPORT.max_rows, 100_000);
-    assert_eq!(Profile::RULE.deadline, Duration::from_secs(10));
-    assert_eq!(Profile::MCP.deadline, Duration::from_secs(5));
-    assert_eq!(Profile::MCP.max_rows, 1_000);
-    assert_eq!(Profile::MCP.max_bytes, 1024 * 1024);
 }

@@ -104,7 +104,7 @@ mod path;
 mod text;
 mod transform;
 
-pub use canonical::{CANONICAL_VERSION, Canonical, canonical_bytes};
+pub use canonical::{CANONICAL_VERSION, Canonical};
 pub use item::{
     DisplayList, GeometryResolver, GroupItem, ImageData, ImageFormat, ImageItem, InstanceItem, Item,
     ItemKind, MAX_INSTANCE_DEPTH, PathItem, SymbolGeomId,

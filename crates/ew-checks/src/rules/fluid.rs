@@ -20,6 +20,7 @@ use ew_derive::{
 use crate::engine::touched_ids;
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
+use crate::rules::term::full_tag;
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared texts
@@ -30,11 +31,6 @@ fn tag(q: &Q, d: Id<Device>) -> String {
         .as_ref()
         .as_ref()
         .map_or_else(|| "device".to_owned(), |t| t.short())
-}
-
-/// A device's full tag, the findings' subject (`=P01+J-E-2416-201U3-Q1`).
-fn full(q: &Q, d: Id<Device>) -> String {
-    super::term::full_tag(q, d, "device")
 }
 
 /// A channel as the messages print it: "channel 1 of -201U3".
@@ -153,7 +149,7 @@ impl Rule for WorkingPortOpen {
                     &WORKING_PORT_OPEN,
                     [Target::new(Kind::Function, f)],
                     "open",
-                    full(q, d),
+                    full_tag(q, d, "device"),
                     format!("{valve}: working port {port} is open; connect, plug or blank it"),
                 )
                 .arg("form", "one")
@@ -162,7 +158,7 @@ impl Rule for WorkingPortOpen {
                     &WORKING_PORT_OPEN,
                     [Target::new(Kind::Function, f)],
                     "open",
-                    full(q, d),
+                    full_tag(q, d, "device"),
                     format!(
                         "{valve}: working ports {} are open; connect, plug or blank them",
                         and_list(ports, "and")
@@ -261,7 +257,7 @@ impl Rule for CoilBindings {
                         &COIL_BINDINGS,
                         targets,
                         format!("excess:{designation}"),
-                        full(q, d),
+                        full_tag(q, d, "device"),
                         format!(
                             "{valve}: solenoid {designation} is bound to {} channels: {}",
                             at.len(),
@@ -283,7 +279,7 @@ impl Rule for CoilBindings {
                             &COIL_BINDINGS,
                             [Target::new(Kind::Function, *f), Target::new(Kind::Channel, *c)],
                             "undeclared",
-                            full(q, d),
+                            full_tag(q, d, "device"),
                             format!(
                                 "{valve}: {} drives a coil that the part does not declare",
                                 channel_text(q, ch)
@@ -307,7 +303,7 @@ impl Rule for CoilBindings {
                         &COIL_BINDINGS,
                         [Target::new(Kind::Device, d)],
                         format!("unbound:{s}"),
-                        full(q, d),
+                        full_tag(q, d, "device"),
                         format!("{valve}: solenoid {s} has no channel"),
                     )
                     .with_severity(Severity::Warning)
@@ -383,7 +379,7 @@ impl Rule for SparePositions {
                     &SPARE_POSITIONS,
                     [Target::new(Kind::Device, device)],
                     form,
-                    full(q, device),
+                    full_tag(q, device, "device"),
                     message,
                 )
                 .arg("form", form)
@@ -441,7 +437,7 @@ impl Rule for DrivesMismatch {
                 &DRIVES_MISMATCH,
                 [Target::new(Kind::Device, d)],
                 "drives",
-                full(q, d),
+                full_tag(q, d, "device"),
                 format!("{valve} drives {target}, but its working-port lines reach {reached}"),
             )
             .arg("valve", valve)
@@ -502,7 +498,7 @@ fn both(q: &Q, parent: Id<Device>, p: u32, a: Id<Device>, b: Id<Device>, form: &
         &OCCUPANCY,
         [Target::new(Kind::Device, b)],
         form,
-        full(q, b),
+        full_tag(q, b, "device"),
         format!("{parent_t}: position {p} holds both {a_t} and {b_t}"),
     )
     .arg("form", form)
@@ -526,7 +522,7 @@ fn outside(q: &Q, module: Id<Device>, n: u16, p: u32, child: Id<Device>, tail: (
         &OCCUPANCY,
         [Target::new(Kind::Device, child)],
         "outside",
-        full(q, child),
+        full_tag(q, child, "device"),
         format!("{module_t}: position {p} is outside its {n} valve positions{suffix}"),
     )
     .arg("form", form)
@@ -578,7 +574,7 @@ impl Rule for Occupancy {
                     &OCCUPANCY,
                     [Target::new(Kind::Device, d)],
                     format!("empty:{p}"),
-                    full(q, d),
+                    full_tag(q, d, "device"),
                     format!("{module}: position {p} is empty; fit a valve or a blanking plate"),
                 )
                 .with_severity(Severity::Warning)

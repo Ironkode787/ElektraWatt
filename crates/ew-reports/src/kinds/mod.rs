@@ -17,13 +17,9 @@
 //! (`layout_legend`, WP-S4.01 part 4; registered, drawn on no page until part 4b). From the check engine:
 //! `open_items` (FR-REP-021, the open findings of the open-item rules, `ew_checks::open_items`; WP-S3.06 D7, D8: none
 //! of those rules reads the page order, so the list paginates inside it). Other schema kinds are not registered; their blocks
-//! report [`NotDerived::Unsupported`]. [`Pending`] registers a kind with its columns before its row source exists.
-
-use ew_derive::Q;
-use ew_derive::ew_schema::ReportBlock;
+//! report [`NotDerived::Unsupported`](crate::rowset::NotDerived::Unsupported).
 
 use crate::kind::ReportKindDef;
-use crate::rowset::{CellType, ColumnDef, NotDerived, RowSet};
 
 mod cable_overview;
 mod conn;
@@ -85,36 +81,4 @@ pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
         &TerminalOverview,
         &OpenItems,
     ]
-}
-
-/// A kind registered with its columns whose row source does not exist yet.
-#[derive(Debug)]
-pub struct Pending {
-    name: &'static str,
-    columns: &'static [(&'static str, CellType, &'static str)],
-    reason: NotDerived,
-}
-
-impl Pending {
-    /// Why the kind has no rows.
-    pub fn reason(&self) -> &NotDerived {
-        &self.reason
-    }
-}
-
-impl ReportKindDef for Pending {
-    fn name(&self) -> &'static str {
-        self.name
-    }
-
-    fn columns(&self) -> Vec<ColumnDef> {
-        self.columns
-            .iter()
-            .map(|(k, t, l)| ColumnDef::new(k, *t, l))
-            .collect()
-    }
-
-    fn rows(&self, _q: &Q, _block: &ReportBlock) -> RowSet {
-        RowSet::not_derived(self.columns(), self.reason.clone())
-    }
 }

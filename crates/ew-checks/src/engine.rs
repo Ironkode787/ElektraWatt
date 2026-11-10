@@ -35,22 +35,6 @@ impl Query for CheckOf {
     const FAMILY: &'static str = "check_findings";
     const POLICY: Policy = Policy::Memo;
 
-    fn bytes(value: &Self::Value) -> usize {
-        // The findings and their owned text, roughly: the memory gate needs an order of magnitude.
-        std::mem::size_of::<Self::Value>()
-            + value
-                .iter()
-                .map(|f| {
-                    std::mem::size_of::<Finding>()
-                        + f.targets.len() * std::mem::size_of::<Target>()
-                        + f.discriminator.len()
-                        + f.subject.len()
-                        + f.message.len()
-                        + f.args.iter().map(|(_, v)| v.len()).sum::<usize>()
-                })
-                .sum::<usize>()
-    }
-
     fn run(q: &Q, key: &(&'static str, Scope)) -> Arc<Vec<Finding>> {
         let (id, scope) = key;
         let mut out = match rule(id) {

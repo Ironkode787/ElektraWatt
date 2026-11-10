@@ -22,7 +22,8 @@ pub(crate) fn div_round(n: i128, d: i128) -> i128 {
     }
 }
 
-/// `v` rounded to the nearest integer, exact ties toward zero. NaN and infinities pass through.
+/// `v` rounded to the nearest integer, exact ties toward zero. NaN and infinities pass through. Test helper.
+#[cfg(test)]
 ///
 /// `v - v.trunc()` is exact in IEEE 754 arithmetic, so the tie test sees the true fraction; no `± 0.5` is
 /// ever added.
@@ -33,7 +34,8 @@ pub(crate) fn round_f64(v: f64) -> f64 {
 }
 
 /// `v` rounded by [`round_f64`] and converted to `i64`; `None` for NaN, infinities and values outside the
-/// `i64` range.
+/// `i64` range. Test helper.
+#[cfg(test)]
 pub(crate) fn f64_to_i64(v: f64) -> Option<i64> {
     if !v.is_finite() {
         return None;

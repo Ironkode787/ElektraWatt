@@ -19,7 +19,7 @@
 //!   the prevent hook), commits it, records it in the [`History`] and appends a [`Change`] to the change
 //!   feed. [`Engine::preview`] and
 //!   [`Engine::commit`] split the same pipeline around a [`Preview`]. `ew_api::Session` wraps the engine.
-//! - **Undo.** One project-wide [`History`] with coalescing, bounds, marker lines and a saved marker; undo
+//! - **Undo.** One project-wide [`History`] with bounds, marker lines and a saved marker; undo
 //!   applies inverse ops as a new revision on the history path (`Model::apply_history`: structural
 //!   invariants only, ARCH §5.3).
 //!
@@ -104,7 +104,7 @@ pub use jsonschema::{
 pub use meta::{CommandMeta, Confirmation, Cost, Exposure, Origin, Stability};
 pub use registry::{AnyCommand, CommandRegistry, RegisteredCommand};
 pub use text::{TEXTS, Text, TextArg, arity as text_arity, english as text_english};
-pub use transaction::{Submit, Transaction, TxContext, Viewport};
+pub use transaction::{Submit, Transaction};
 pub use tx::{IndexRead, ReadSet, TxBuilder};
 pub use words::{comma_joined, damaged_copy as damaged_copy_words};
 

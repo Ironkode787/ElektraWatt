@@ -290,7 +290,7 @@ fn empty_set_cases() {
 
 #[test]
 fn a_not_derived_set_is_one_placeholder_page_with_the_reason() {
-    let set = RowSet::not_derived(columns(), NotDerived::AwaitsQuery("wire_rows"));
+    let set = RowSet::not_derived(columns(), NotDerived::Unsupported("wire_rows".into()));
     // Even a block that omits empty pages prints the placeholder.
     let pages = paginate(&set, &spec(910), &house(), &FixedLines);
     assert_eq!(pages.len(), 1);
@@ -298,7 +298,7 @@ fn a_not_derived_set_is_one_placeholder_page_with_the_reason() {
     assert_eq!(pages[0].rows, 0..0);
     let note = pages[0].note.as_ref().expect("a note");
     let text = note.as_neutral().unwrap();
-    assert!(text.contains("awaits"), "{text}");
+    assert!(text.contains("not supported"), "{text}");
     assert!(text.contains("wire_rows"), "{text}");
     assert!(text.starts_with("Not derived"), "capitalised: {text}");
 }

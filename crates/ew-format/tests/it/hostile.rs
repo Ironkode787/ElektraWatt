@@ -193,7 +193,6 @@ fn invalid_utf8_is_a_syntax_error_kept_byte_for_byte() {
     assert_eq!(loaded.kept[0].kept, Kept::Quarantined);
     // Kept as its bytes, not as U+FFFD: the writer puts the same bytes back (NFR-REL-04).
     assert_eq!(loaded.kept[0].text, b"\xff\xfe");
-    assert_eq!(loaded.kept[0].text_lossy(), "\u{fffd}\u{fffd}");
     assert_eq!(loaded.records.len(), 1);
     let function = LineKey::of(&loaded.records[0]).expect("a keyed record");
     let rewritten = jsonl_file(vec![

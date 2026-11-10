@@ -8,12 +8,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{CaseSensitivity, natural_cmp};
 use ew_derive::ew_schema::{
-    Connection, ConnectionKind, Device, DeviceState, Endpoint, Function, Kind, Side, TagCase,
+    Connection, ConnectionKind, Device, DeviceState, Endpoint, Function, Kind, Side, StructureNode, TagCase,
 };
 use ew_derive::ew_units::Pt2;
 use ew_derive::{
     DeriveNote, DeviceTag, EndpointKey, FunctionCps, PhysicalWiresOf, PotentialPartition, Q, RailTerminalOf,
-    StripBridges, WireNumbers, cp_point, drawn_path, on_segment,
+    StripBridges, StructurePath, WireNumbers, cp_point, drawn_path, on_segment,
 };
 
 use crate::engine::touched_ids;
@@ -35,6 +35,15 @@ pub(crate) fn full_tag(q: &Q, device: Id<Device>, fallback: &str) -> String {
         .as_ref()
         .as_ref()
         .map_or_else(|| fallback.to_owned(), |t| t.full.clone())
+}
+
+/// A location as a designation prints it: `+` and its path's codes (`+J-E-2416`).
+pub(crate) fn location_text(q: &Q, node: Id<StructureNode>) -> String {
+    let path = q.get::<StructurePath>(node);
+    if path.codes.is_empty() {
+        return "a location".to_owned();
+    }
+    format!("+{}", path.codes.join("+"))
 }
 
 /// FT-1480: the `end` argument of EW-TERM-002's pattern: `named` for a strip with a printed designation, `untagged`

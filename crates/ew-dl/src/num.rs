@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Deterministic numerics: rotations, arcs, bulges and the nm → pt conversion.
+//! Deterministic numerics: rotations, arcs and the nm → pt conversion.
 //!
 //! # Why these must be bit-identical
 //!
@@ -31,17 +31,17 @@
 //! direction (product-owner decision of 2026-10-18). Sheet y points down, so a turn by +90° maps
 //! `(x, y) → (y, −x)`: the +x axis goes to "up" on the sheet. This is the opposite sense of
 //! [`Orient2::R90`](ew_units::Orient2::R90), which is a quarter turn clockwise: `R90` equals a turn by −90°.
-//! QET arcs (0° at 3 o'clock, positive span counter-clockwise on screen; doc 14 §4.3) and DXF angles and
-//! bulges (counter-clockwise in DXF's y-up view, which the importer keeps visually) use this sense directly.
+//! QET arcs (0° at 3 o'clock, positive span counter-clockwise on screen; doc 14 §4.3) and DXF angles
+//! (counter-clockwise in DXF's y-up view, which the importer keeps visually) use this sense directly.
 //!
 //! # Rounding
 //!
 //! Every f64 result is rounded to the nearest nanometre with exact ties **toward zero**, like `ew-units`.
 //! The rounded quantity is always an **offset from an integer base point** (the rotation centre, the arc
-//! centre, the bulge start), which is then added exactly; so every helper commutes exactly with integer
+//! centre), which is then added exactly; so every helper commutes exactly with integer
 //! translations. [`nm_to_milli_pt`] is the exception: doc 09 §4.3 rule 4 asks for half to even there.
 
-use std::f64::consts::{FRAC_PI_2, PI};
+use std::f64::consts::PI;
 
 use ew_units::{Angle2, Nm, Pt2};
 
@@ -256,109 +256,6 @@ pub fn arc_to_cubics(center: Pt2, rx: Nm, ry: Nm, start: Angle2, sweep: Angle2) 
     out
 }
 
-/// A DXF bulge segment from `p0` to `p1` as cubic Béziers, in sheet coordinates.
-///
-/// `bulge = tan(θ/4)`, where θ is the included angle of the arc; a positive bulge runs **counter-clockwise
-/// on the sheet** (the crate's angle sense). DXF defines the bulge counter-clockwise in its y-up view; the
-/// importer flips y to keep the drawing's look, so it passes the DXF value unchanged.
-///
-/// Returns only drawing elements (the segment starts at `p0`, where the caller already is). A zero or
-/// non-finite bulge, or `p0 == p1`, gives the straight [`PathEl::LineTo`]`(p1)`. Otherwise the arc is split
-/// into `n = ⌈|θ| / 90°⌉` equal segments (`n ≤ 4`), with handle length `k = 4/3 · tan(θ/(4n))`.
-///
-/// **Rounding, exactly:** with chord `d = p1 − p0` and `h = (1 − b²) / (4b)`, the start offset from the
-/// centre is `v₀ = (−dₓ/2 − h·d_y, −d_y/2 + h·dₓ)`; `vᵢ` is `v₀` turned by `θ·i/n`. Every point other than
-/// `p0` and `p1` is `p0 + round(offset)` with the offset `vᵢ − v₀ ± k·J·vᵢ` (`J(x, y) = (y, −x)`) evaluated
-/// in f64 with [`libm`] and rounded ties toward zero. The end points are `p0` and `p1` themselves, and
-/// adjacent segments share their rounded junction.
-///
-/// ```
-/// use ew_dl::{PathEl, num::bulge_to_cubics};
-/// use ew_units::{Nm, Pt2};
-///
-/// // A half circle (bulge 1) from (−1, 0) mm to (1, 0) mm, counter-clockwise on the sheet: through the
-/// // bottom, since a counter-clockwise turn from the left point goes down first.
-/// let p0 = Pt2::new(Nm(-1_000_000), Nm(0));
-/// let p1 = Pt2::new(Nm(1_000_000), Nm(0));
-/// let els = bulge_to_cubics(p0, p1, 1.0);
-/// assert_eq!(els.len(), 2);
-/// assert!(matches!(els[0], PathEl::CubicTo(_, _, mid) if mid == Pt2::new(Nm(0), Nm(1_000_000))));
-/// assert!(matches!(els[1], PathEl::CubicTo(_, _, end) if end == p1));
-/// ```
-pub fn bulge_to_cubics(p0: Pt2, p1: Pt2, bulge: f64) -> Vec<PathEl> {
-    if !bulge.is_finite() || bulge == 0.0 || p0 == p1 {
-        return vec![PathEl::LineTo(p1)];
-    }
-    let d = p1 - p0;
-    let (dx, dy) = (d.x.0 as f64, d.y.0 as f64);
-    let theta = 4.0 * libm::atan(bulge);
-    let n = (libm::ceil(libm::fabs(theta) / FRAC_PI_2) as i64).clamp(1, 4);
-    let nf = n as f64;
-    let k = 4.0 / 3.0 * libm::tan(theta / nf / 4.0);
-    let h = (1.0 - bulge * bulge) / (4.0 * bulge);
-    let v0 = (-0.5 * dx - h * dy, -0.5 * dy + h * dx);
-    // vᵢ: v₀ turned by φ = θ·i/n (counter-clockwise on the sheet).
-    let v = |i: i64| {
-        if i == 0 {
-            return v0;
-        }
-        let phi = theta * i as f64 / nf;
-        let (s, c) = (libm::sin(phi), libm::cos(phi));
-        (v0.0 * c + v0.1 * s, v0.1 * c - v0.0 * s)
-    };
-    let pt = |x: f64, y: f64| p0 + Pt2::new(Nm(round_tz(x)), Nm(round_tz(y)));
-    let mut out = Vec::with_capacity(n as usize);
-    let mut a = v0;
-    for i in 1..=n {
-        let b = v(i);
-        // Offsets from p0: wᵢ = vᵢ − v₀; tangents J·v = (v.y, −v.x).
-        let c1 = pt(a.0 - v0.0 + k * a.1, a.1 - v0.1 - k * a.0);
-        let c2 = pt(b.0 - v0.0 - k * b.1, b.1 - v0.1 + k * b.0);
-        let end = if i == n { p1 } else { pt(b.0 - v0.0, b.1 - v0.1) };
-        out.push(PathEl::CubicTo(c1, c2, end));
-        a = b;
-    }
-    out
-}
-
-/// The length of the vector `v`, `√(x² + y²)` via [`libm`], rounded ties toward zero.
-///
-/// ```
-/// use ew_dl::num::length;
-/// use ew_units::{Nm, Pt2};
-///
-/// assert_eq!(length(Pt2::new(Nm(3), Nm(-4))), Nm(5));
-/// ```
-pub fn length(v: Pt2) -> Nm {
-    let (x, y) = (v.x.0 as f64, v.y.0 as f64);
-    Nm(round_tz(libm::sqrt(x * x + y * y)))
-}
-
-/// The direction of the vector `v` as an [`Angle2`] in `[0°, 360°)`, in the crate's angle sense (0 = +x,
-/// positive counter-clockwise on the sheet, so "up" on the sheet is 90°): `atan2(−y, x)` via [`libm`], rounded to
-/// 10⁻³ degree ties toward zero. Exact for the axis directions; the zero vector gives 0.
-///
-/// ```
-/// use ew_dl::num::angle_of;
-/// use ew_units::{Angle2, Nm, Pt2};
-///
-/// assert_eq!(angle_of(Pt2::new(Nm(0), Nm(-5))), Angle2(90_000));
-/// assert_eq!(angle_of(Pt2::new(Nm(1), Nm(1))), Angle2(315_000));
-/// ```
-pub fn angle_of(v: Pt2) -> Angle2 {
-    let (x, y) = (v.x.0, v.y.0);
-    match (x.signum(), y.signum()) {
-        (0, 0) | (1, 0) => return Angle2::ZERO,
-        (0, -1) => return Angle2(90_000),
-        (-1, 0) => return Angle2(180_000),
-        (0, 1) => return Angle2(270_000),
-        _ => {}
-    }
-    let rad = libm::atan2(-(y as f64), x as f64);
-    let mdeg = round_tz(rad / RAD_PER_MDEG);
-    Angle2(i32::try_from(mdeg).unwrap_or(0)).normalized()
-}
-
 /// Nanometres to 10⁻³ PostScript point: `nm × 72 / 25 400`, rounded **half to even**, exact in `i128`
 /// (doc 09 §4.3 rule 4). The result always fits, since it is smaller in magnitude than the input.
 ///
@@ -374,23 +271,6 @@ pub fn nm_to_milli_pt(nm: Nm) -> i64 {
     div_round_even(i128::from(nm.0) * 9, 3175) as i64
 }
 
-/// 10⁻³ PostScript point to nanometres: `mpt × 25 400 / 72`, rounded half to even, exact in `i128`; `None`
-/// if the result leaves the `i64` range. The inverse of [`nm_to_milli_pt`] up to its rounding: every
-/// `mpt` survives `nm_to_milli_pt(milli_pt_to_nm(mpt))`.
-///
-/// ```
-/// use ew_dl::num::{milli_pt_to_nm, nm_to_milli_pt};
-/// use ew_units::Nm;
-///
-/// assert_eq!(milli_pt_to_nm(72_000), Some(Nm(25_400_000)));
-/// assert_eq!(nm_to_milli_pt(milli_pt_to_nm(1).unwrap()), 1);
-/// ```
-pub fn milli_pt_to_nm(mpt: i64) -> Option<Nm> {
-    i64::try_from(div_round_even(i128::from(mpt) * 3175, 9))
-        .ok()
-        .map(Nm)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -398,6 +278,12 @@ mod tests {
 
     fn p(x: i64, y: i64) -> Pt2 {
         Pt2::new(Nm(x), Nm(y))
+    }
+
+    /// The length of the vector `v`, rounded ties toward zero.
+    fn length(v: Pt2) -> Nm {
+        let (x, y) = (v.x.0 as f64, v.y.0 as f64);
+        Nm(round_tz(libm::sqrt(x * x + y * y)))
     }
 
     #[test]
@@ -540,51 +426,6 @@ mod tests {
         assert!(arc_to_cubics(Pt2::ORIGIN, r, r, Angle2(10_000), Angle2(0)).is_empty());
     }
 
-    #[test]
-    fn bulge_vectors() {
-        let p0 = p(-1_000_000, 0);
-        let p1 = p(1_000_000, 0);
-        assert_eq!(bulge_to_cubics(p0, p1, 0.0), [PathEl::LineTo(p1)]);
-        assert_eq!(bulge_to_cubics(p0, p1, f64::NAN), [PathEl::LineTo(p1)]);
-        assert_eq!(bulge_to_cubics(p0, p1, f64::INFINITY), [PathEl::LineTo(p1)]);
-        assert_eq!(bulge_to_cubics(p0, p0, 1.0), [PathEl::LineTo(p0)]);
-        // A half circle counter-clockwise on the sheet: from the left point down through the bottom.
-        let half = [
-            cubic((-1_000_000, 552_285), (-552_285, 1_000_000), (0, 1_000_000)),
-            cubic((552_285, 1_000_000), (1_000_000, 552_285), (1_000_000, 0)),
-        ];
-        assert_eq!(bulge_to_cubics(p0, p1, 1.0), half);
-        // A negative bulge mirrors about the chord.
-        let neg = bulge_to_cubics(p0, p1, -1.0);
-        assert_eq!(neg.len(), 2);
-        for (a, b) in neg.iter().zip(half.iter()) {
-            assert_eq!(*a, b.map(|q| Pt2::new(q.x, -q.y)));
-        }
-        // An off-axis segment of 66.8° (radius 3.547 mm).
-        assert_eq!(
-            bulge_to_cubics(p(3_000_000, 1_000_000), p(5_500_000, 4_000_000), 0.3),
-            [cubic(
-                (3_158_333, 2_410_000),
-                (4_141_667, 3_590_000),
-                (5_500_000, 4_000_000)
-            )]
-        );
-    }
-
-    #[test]
-    fn length_and_angle() {
-        assert_eq!(length(p(0, 0)), Nm(0));
-        assert_eq!(length(p(-6, 8)), Nm(10));
-        assert_eq!(length(p(1_000_000, 1_000_000)), Nm(1_414_214));
-        assert_eq!(angle_of(p(0, 0)), Angle2(0));
-        assert_eq!(angle_of(p(5, 0)), Angle2(0));
-        assert_eq!(angle_of(p(-5, 0)), Angle2(180_000));
-        assert_eq!(angle_of(p(0, 5)), Angle2(270_000));
-        assert_eq!(angle_of(p(1, -1)), Angle2(45_000));
-        assert_eq!(angle_of(p(-1, -1)), Angle2(135_000));
-        assert_eq!(angle_of(p(866_025, -500_000)), Angle2(30_000));
-    }
-
     /// The conversion can never meet an exact tie: `nm × 9 / 3175` is a tie only if
     /// `18·nm ≡ 3175 (mod 6350)`, even against odd; the inverse `mpt × 3175 / 9` only if `6350·mpt ≡ 9 (mod 18)`, again even against
     /// odd. Half-to-even is still what doc 09 §4.3 rule 4 asks for, so the helper's ties are tested directly.
@@ -608,10 +449,6 @@ mod tests {
         // i64::MAX × 9 / 3175 = 26 144 991 600 533 222.76…
         assert_eq!(nm_to_milli_pt(Nm(i64::MAX)), 26_144_991_600_533_223);
         assert_eq!(nm_to_milli_pt(Nm(i64::MIN)), -26_144_991_600_533_223);
-        assert_eq!(milli_pt_to_nm(1), Some(Nm(353))); // 352.78 → 353
-        assert_eq!(milli_pt_to_nm(-1), Some(Nm(-353)));
-        assert_eq!(milli_pt_to_nm(9), Some(Nm(3_175)));
-        assert_eq!(milli_pt_to_nm(i64::MAX), None);
     }
 
     proptest! {
@@ -641,38 +478,12 @@ mod tests {
             }
         }
 
+        /// nm → milli-pt is the nearest milli-pt.
         #[test]
-        fn bulge_ends_at_p1(x0 in -1_000_000_000i64..1_000_000_000, y0 in -1_000_000_000i64..1_000_000_000, x1 in -1_000_000_000i64..1_000_000_000, y1 in -1_000_000_000i64..1_000_000_000, b in -20.0f64..20.0) {
-            let els = bulge_to_cubics(p(x0, y0), p(x1, y1), b);
-            prop_assert!(!els.is_empty() && els.len() <= 4);
-            let last = match els.last() { Some(PathEl::CubicTo(_, _, e) | PathEl::LineTo(e)) => *e, _ => unreachable!() };
-            prop_assert_eq!(last, p(x1, y1));
-        }
-
-        /// Every on-curve point of a bulge arc lies on the circle through `p0` and `p1` with the included
-        /// angle `4·atan(b)`, within the rounding of one point.
-        #[test]
-        fn bulge_points_lie_on_the_circle(x1 in -100_000_000i64..100_000_000, y1 in -100_000_000i64..100_000_000, b in 0.05f64..10.0, neg in any::<bool>()) {
-            prop_assume!(x1 != 0 || y1 != 0);
-            let b = if neg { -b } else { b };
-            let (dx, dy) = (x1 as f64, y1 as f64);
-            let h = (1.0 - b * b) / (4.0 * b);
-            let (cx, cy) = (0.5 * dx + h * dy, 0.5 * dy - h * dx);
-            let r = (cx * cx + cy * cy).sqrt();
-            for el in bulge_to_cubics(Pt2::ORIGIN, p(x1, y1), b) {
-                let e = el.end().unwrap();
-                let d = ((e.x.0 as f64 - cx).powi(2) + (e.y.0 as f64 - cy).powi(2)).sqrt();
-                prop_assert!((d - r).abs() <= 1.0, "{e:?}: {d} vs {r}");
-            }
-        }
-
-        /// nm → milli-pt is the nearest milli-pt, and milli-pt → nm → milli-pt is the identity.
-        #[test]
-        fn milli_pt_is_nearest(nm in any::<i64>(), mpt in -1_000_000_000_000i64..1_000_000_000_000) {
+        fn milli_pt_is_nearest(nm in any::<i64>()) {
             let m = i128::from(nm_to_milli_pt(Nm(nm)));
             // |nm·9 − m·3175| ≤ 3175/2.
             prop_assert!((i128::from(nm) * 9 - m * 3175).abs() * 2 <= 3175, "nearest: {}", nm);
-            prop_assert_eq!(nm_to_milli_pt(milli_pt_to_nm(mpt).unwrap()), mpt, "round trip");
         }
     }
 }

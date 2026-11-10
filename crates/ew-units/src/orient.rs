@@ -178,14 +178,6 @@ impl Orient2 {
             Orient2::M270 => 'H',
         }
     }
-
-    /// The variant for an upper-case letter `A`–`H`; `None` for any other character.
-    pub const fn from_letter(c: char) -> Option<Orient2> {
-        match c {
-            'A'..='H' => Some(Orient2::ALL[(c as u32 - 'A' as u32) as usize]),
-            _ => None,
-        }
-    }
 }
 
 #[cfg(test)]
@@ -274,12 +266,6 @@ mod tests {
     fn letters() {
         let letters: String = Orient2::ALL.iter().map(|o| o.letter()).collect();
         assert_eq!(letters, "ABCDEFGH");
-        for o in Orient2::ALL {
-            assert_eq!(Orient2::from_letter(o.letter()), Some(o));
-        }
-        assert_eq!(Orient2::from_letter('I'), None);
-        assert_eq!(Orient2::from_letter('a'), None);
-        assert_eq!(Orient2::from_letter('@'), None);
     }
 
     #[test]

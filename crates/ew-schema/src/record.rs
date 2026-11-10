@@ -218,9 +218,6 @@ pub enum Record {
     Unknown(Value),
 }
 
-/// The name `AnyRecord` used by ARCH §10.6 for the same envelope.
-pub type AnyRecord = Record;
-
 impl Record {
     /// The kind, or `None` for an unknown kind.
     pub fn kind(&self) -> Option<Kind> {

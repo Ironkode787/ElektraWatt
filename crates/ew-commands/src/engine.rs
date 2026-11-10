@@ -10,7 +10,7 @@
 //! normalise the normaliser registry, passes until quiet: at most three productive passes and a
 //!           confirming one (D1)
 //! validate  Model::apply_with: structural invariants, the delete-time rule EW-INV-021, the PreventHook
-//! commit    swap in the candidate Model, Rev + 1, push to History (coalescing)
+//! commit    swap in the candidate Model, Rev + 1, push to History
 //! notify    append a Change {rev, touched keys, touched pages} to the change feed
 //! ```
 //!
@@ -37,7 +37,7 @@ use crate::history::{History, HistoryEntry, HistoryLimits};
 use crate::meta::{CommandMeta, Cost, Exposure, Origin};
 use crate::normalise::{Normaliser, normalise};
 use crate::registry::{AnyCommand, CommandRegistry};
-use crate::transaction::{Submit, Transaction, TxContext};
+use crate::transaction::{Submit, Transaction};
 use crate::tx::{ReadSet, TxBuilder};
 
 /// The prevent hook used when none is plugged in: accepts every candidate.
@@ -91,8 +91,6 @@ pub struct Receipt {
 pub struct Restored {
     /// The new revision.
     pub rev: Rev,
-    /// The editor state recorded with the step, to restore.
-    pub context: TxContext,
     /// The step's label.
     pub label: String,
 }
@@ -349,11 +347,6 @@ impl Engine {
         self.assets_unsaved = false;
     }
 
-    /// Replaces the prevent hook.
-    pub fn set_prevent_hook(&mut self, hook: Box<dyn PreventHook>) {
-        self.prevent = hook;
-    }
-
     /// Marks the current state as saved (the dirty flag, ARCH §5.3).
     pub fn mark_saved(&mut self) {
         self.history.mark_saved();
@@ -504,8 +497,6 @@ impl Engine {
                     ops,
                     command,
                     origin: submit.origin,
-                    context: submit.context,
-                    coalesce_key: submit.coalesce_key,
                     undoable: meta.undoable,
                     exposure: meta.exposure,
                     label: meta.name.into(),
@@ -585,7 +576,7 @@ impl Engine {
     /// so a foreign candidate never replaces the model.
     ///
     /// The commit is submitted as the preview was for a preview of this engine and generation; a foreign
-    /// preview is committed from this engine's default origin (its own origin and context mean nothing
+    /// preview is committed from this engine's default origin (its own origin means nothing
     /// here), so exposure is judged by the committing side. [`Engine::commit_with`] names the submission.
     pub fn commit(&mut self, preview: Preview) -> Result<Receipt, CmdError> {
         let ours = preview.base.engine == self.id && preview.base.generation == self.generation;
@@ -697,11 +688,7 @@ impl Engine {
         let inverse = invert_batch(&tx.ops);
         let rev = self.apply_history_ops(&inverse, &tx.label)?;
         self.history.undone(index);
-        Ok(Restored {
-            rev,
-            context: tx.context,
-            label: tx.label,
-        })
+        Ok(Restored { rev, label: tx.label })
     }
 
     /// Re-applies the step above the cursor as a new revision, on the history path like [`Engine::undo`], with
@@ -718,11 +705,7 @@ impl Engine {
         let tx = entry.tx().clone();
         let rev = self.apply_history_ops(&tx.ops, &tx.label)?;
         self.history.redone(index);
-        Ok(Restored {
-            rev,
-            context: tx.context,
-            label: tx.label,
-        })
+        Ok(Restored { rev, label: tx.label })
     }
 
     fn apply_history_ops(&mut self, ops: &[Op], label: &str) -> Result<Rev, CmdError> {

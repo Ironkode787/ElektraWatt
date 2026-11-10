@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Generic memo engine: revisions, dependency recording, early cut-off, durability levels, LRU, statistics,
-//! oracle hooks and a reverse-dependency API per query family. Knows nothing about ECAD.
+//! Generic memo engine: revisions, dependency recording, early cut-off, durability levels, statistics and
+//! oracle hooks. Knows nothing about ECAD.
 //!
 //! `ew-memo` v1 is exactly what ADR-0002 decision 4 and amendment 1 list (ARCH §6.2):
 //!
@@ -12,10 +12,8 @@
 //!   otherwise the recorded dependencies are verified recursively, and a re-executed value that is
 //!   [equivalent](Equivalence) to the previous one keeps its `changed_at`, so dependents stay green.
 //! - **Durability** ([`Durability`]): library, settings, drawing; the skip rule is in [`Store::advance`].
-//! - **A byte-budget LRU** for bulky families ([`Query::LRU`], [`Store::set_lru_budget`]).
 //! - **Cycle detection** ([`Cycle`]): a panic in debug builds, an error in release builds.
-//! - **Statistics** per family and per commit ([`Stats`], [`Counters`]), emitted through `tracing`.
-//! - **Reverse dependencies** per family ([`Store::dependents`]).
+//! - **Statistics** per family and per commit ([`Stats`], [`Counters`]).
 //! - **Oracle mode** ([`Oracle`], [`Mismatch`]): memoised reads re-run cold and compared.
 //!
 //! The host implements [`Db`] for its snapshot and one [`Query`] per family; a query reads inputs through
@@ -71,9 +69,7 @@
 #![deny(missing_docs)]
 
 mod key;
-mod lru;
 mod query;
-mod rdeps;
 mod rev;
 mod stats;
 mod store;

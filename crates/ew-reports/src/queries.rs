@@ -87,7 +87,7 @@ impl Query for BlockPages {
     type Key = (Id<ReportBlock>, u32);
     type Value = Vec<GeneratedPage>;
     const FAMILY: &'static str = "report_block_pages";
-    const POLICY: Policy = Policy::MemoLru;
+    const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, key: &(Id<ReportBlock>, u32)) -> Arc<Vec<GeneratedPage>> {
         let (id, toc_pages) = *key;

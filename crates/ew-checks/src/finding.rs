@@ -242,13 +242,6 @@ impl Finding {
         self
     }
 
-    /// The same finding marked as resting on library data that is not verified (FR-PRT-031, FT-323's marker).
-    #[must_use]
-    pub fn marked_unverified(mut self) -> Finding {
-        self.unverified_data = true;
-        self
-    }
-
     /// The same finding, marked as resting on unverified data when `confidence` (what the rule read, through
     /// [`ew_derive::part_confidence`]) is not `verified` (WP-S1.19 §8).
     #[must_use]

@@ -3,12 +3,8 @@
 
 //! The memo backend of `Q` (ADR-0002 amendment 4), with test families over a minimal model:
 //!
-//! - `notes_are_shared_not_copied` (review cycle 9, finding 3): the notes of a memoised global value reach
-//!   every reader by reference; a reader's memo does not grow with the number of global notes, and the
-//!   flattened notes equal a cold `Q`'s (same order, no duplicates), on the first read and on memo hits.
-//! - `a_fingerprint_family_must_implement_fingerprint` (finding 8): a family that sets `FINGERPRINT`
-//!   without implementing `Query::fingerprint` panics at its first memoised execution, with a clear message.
-//! - `a_fingerprint_family_cuts_off_by_its_fingerprint`: the implemented case works.
+//! - `memoised_notes_equal_the_cold_notes` (review cycle 9, finding 3): the flattened notes of a memoised
+//!   global value equal a cold `Q`'s (same order, no duplicates), on the first read and on memo hits.
 
 use crate::common;
 
@@ -91,18 +87,8 @@ fn read_all(q: &Q) {
     }
 }
 
-/// The value bytes of a family in the store.
-fn value_bytes(store: &MemoStore, family: &str) -> usize {
-    store
-        .memory()
-        .iter()
-        .find(|m| m.family == family)
-        .map_or_else(|| panic!("no memos of {family}"), |m| m.value_bytes)
-}
-
 #[test]
-fn notes_are_shared_not_copied() {
-    let mut per_reader = Vec::new();
+fn memoised_notes_equal_the_cold_notes() {
     for n in [10, 300] {
         let model = model(n);
         let store = MemoStore::new(&model);
@@ -120,68 +106,7 @@ fn notes_are_shared_not_copied() {
         read_all(&again);
         assert_eq!(again.diagnostics().notes(), notes);
         assert!(store.commit_stats().total().hits > 0);
-
-        // A reader without notes of its own holds the global set itself (no bytes of its own); a reader with a
-        // note owns one note and one reference, whatever the number of global notes.
-        assert_eq!(
-            value_bytes(&store, "test.reader"),
-            READERS as usize * std::mem::size_of::<u32>()
-        );
-        per_reader.push(value_bytes(&store, "test.noting"));
-        assert!(value_bytes(&store, "test.global") > n * std::mem::size_of::<DeriveNote>());
     }
-    assert_eq!(
-        per_reader[0], per_reader[1],
-        "a reader's memo does not grow with the global notes"
-    );
-}
-
-/// A `FINGERPRINT` family that forgot `Query::fingerprint`.
-struct Unhashed;
-impl Query for Unhashed {
-    type Key = ();
-    type Value = usize;
-    const FAMILY: &'static str = "test.unhashed";
-    const POLICY: Policy = Policy::Memo;
-    const FINGERPRINT: bool = true;
-    fn run(q: &Q, _: &()) -> Arc<usize> {
-        Arc::new(note_count(q))
-    }
-}
-
-#[test]
-#[should_panic(
-    expected = "query family `test.unhashed` sets FINGERPRINT but does not implement Query::fingerprint"
-)]
-fn a_fingerprint_family_must_implement_fingerprint() {
-    let model = model(0);
-    let store = MemoStore::new(&model);
-    let _ = store.query().get::<Unhashed>(());
-}
-
-/// A `FINGERPRINT` family with its fingerprint.
-struct Hashed;
-impl Query for Hashed {
-    type Key = ();
-    type Value = usize;
-    const FAMILY: &'static str = "test.hashed";
-    const POLICY: Policy = Policy::Memo;
-    const FINGERPRINT: bool = true;
-    fn run(q: &Q, _: &()) -> Arc<usize> {
-        Arc::new(note_count(q))
-    }
-    fn fingerprint(value: &usize) -> u128 {
-        u128::try_from(*value).unwrap_or(u128::MAX) ^ 0x5eed
-    }
-}
-
-#[test]
-fn a_fingerprint_family_cuts_off_by_its_fingerprint() {
-    let model = model(3);
-    let store = MemoStore::new(&model);
-    assert_eq!(*store.query().get::<Hashed>(()), 3);
-    assert_eq!(*store.query().get::<Hashed>(()), 3);
-    assert_eq!(store.commit_stats().family("test.hashed").hits, 1);
 }
 
 /// The model with the project member `notes` set to `n`, at the next revision of `model` (a raw edit of the

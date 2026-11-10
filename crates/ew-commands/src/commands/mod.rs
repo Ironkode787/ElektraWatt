@@ -65,45 +65,39 @@ mod supply;
 mod terminal;
 
 pub use assembly::ChildSpec;
-pub use assign::{ASSIGN_BULK_FROM, AssignModeParam};
+pub use assign::AssignModeParam;
 pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, WAIVER_REASON_MIN_CHARS};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use company::COMPANY_MEMBER;
 pub use connection::{IpAtEnd, WiringChoice};
 pub use device::{ConnectHint, PlaceTarget, allowed_rep_types};
-pub use drawing::{Crossings, DRAWING_MEMBER, MarkerModeParam};
+pub use drawing::{Crossings, MarkerModeParam};
 pub use edit::BULK_ABOVE;
-pub use exchange::{ExchangePin, PinPairs, derive_pin_map};
+pub use exchange::{ExchangePin, derive_pin_map};
 pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE};
 pub use fluid::{ClosureKindParam, ClosureParam, OccupancyParam, ValveStateParam};
-pub use frames::{FRAMES_MEMBER, FrameForPageType};
+pub use frames::FRAMES_MEMBER;
 pub use import::{
     ApplyImport, MemberChange, ReimportClass, ReimportPlan, ReimportRow, lineage_keys, member_text,
-    name_rows, plan_reimport, record_hash,
+    name_rows, plan_reimport,
 };
 pub use items::{
     AlignParam, DashParam, FreeTextParam, GraphicParam, ImageParam, ItemKindParam, ShapeParam, StrokeParam,
 };
-pub use layout::{
-    CarrierKindParam, CarrierParamsParam, CarrierThen, FillOrder, LAYOUT_BULK_ABOVE, PlaceMode, PlaceOnParam,
-};
+pub use layout::{CarrierKindParam, CarrierParamsParam, CarrierThen, FillOrder, PlaceMode, PlaceOnParam};
 pub use library::library_copy_hash;
 pub use library_update::{ChangeClass, CopyDiff, CpMapParam, FieldChange, classify_update};
-pub use macro_insert::{
-    InstantiateError, Instantiated, MACRO_FIELDS, MACRO_KINDS, binding_field_ok, coerce_value, instantiate,
-    pick_variant,
-};
+pub use macro_insert::{MACRO_KINDS, binding_field_ok, coerce_value, instantiate};
+pub use merge::Take;
 #[cfg(feature = "testkit")]
 pub use merge::record_file_of;
-pub use merge::{ConflictChoice, Take};
 pub use page::{LabelModeParam, PageScope};
-pub use part_edit::PART_EDITABLE;
 pub use parts::import_counts;
 pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS};
-pub use plc::{StartDir, is_on_module};
+pub use plc::is_on_module;
 pub use renumber::{DeviceScope, NumberingScheme, RenumberOptions};
 pub use revision::{ApprovedPack, LABEL_ORDER_RULE, NewRevisionState, ReleasedArchive, RevisionPageNote};
-pub use settings::{SETTABLE_SETTINGS, SettableSetting};
+pub use settings::SETTABLE_SETTINGS;
 pub use structure_box::BoxStyleParam;
 pub use supply::SETTABLE_SUPPLY;
 pub use terminal::{ConductorSpec, TerminalDesignation, TerminalSpec};

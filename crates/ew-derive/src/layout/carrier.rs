@@ -8,7 +8,7 @@ use std::fmt;
 use ew_schema::CarrierKind;
 use ew_units::Pt2;
 
-use super::pose::{Quarter, mm};
+use super::pose::Quarter;
 
 /// Why a carrier path is refused (D5: a rail is two points on one horizontal or vertical line, a duct an orthogonal
 /// polyline; a segment at another angle is refused).
@@ -116,10 +116,5 @@ impl RailAxis {
     pub fn point_at(&self, s: i128) -> (i128, i128) {
         let (du, dv) = self.dir.rotate((s, 0));
         (i128::from(self.start.x.0) + du, i128::from(self.start.y.0) + dv)
-    }
-
-    /// The length as text in millimetres, for refusals.
-    pub fn length_mm(&self) -> String {
-        mm(self.length)
     }
 }

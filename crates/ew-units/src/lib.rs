@@ -30,8 +30,7 @@
 //! - [`Rect`] has no serde implementation, by design. Doc 05 §3.2 defines its JSON encoding as
 //!   `[[x0, y0], [x1, y1]]` (two `Pt2`, minimum corner first; a reversed rectangle is a schema violation),
 //!   and `ew-schema` implements it (its `Bounds` type), keeping this crate free of it.
-//! - The f64 boundary helpers ([`Nm::from_mm_f64`], [`Nm::to_mm_f64`], [`Angle2::from_degrees_f64`]) exist
-//!   for importers and renderers only. They round **half toward zero**.
+//! - The f64 boundary helper [`Nm::to_mm_f64`] exists for renderers only.
 //! - `Quantity`, `Csa` and the unit set are deferred to `ew-schema` (WP-S1.02); this crate provides only
 //!   the number type [`Dec3`].
 //! - f64 and glam conversions of [`Pose3`] are deferred to the crates that need them (`ew-panel`), and
@@ -39,9 +38,8 @@
 //!
 //! # Rounding rule
 //!
-//! Wherever a value is rounded to an integer (grid positions, decimal products and quotients, the f64
-//! helpers), exact ties go **toward zero**: 2.5 → 2, −2.5 → −2. Every other value goes to the nearest
-//! integer.
+//! Wherever a value is rounded to an integer (grid positions, decimal products and quotients), exact
+//! ties go **toward zero**: 2.5 → 2, −2.5 → −2. Every other value goes to the nearest integer.
 //!
 //! # Example
 //!

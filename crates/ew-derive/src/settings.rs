@@ -184,11 +184,6 @@ impl Query for SettingsMember {
     const FAMILY: &'static str = "settings_member";
     const POLICY: Policy = Policy::Memo;
 
-    fn bytes(value: &Self::Value) -> usize {
-        // The JSON text length is a fair estimate of a small JSON tree's heap.
-        std::mem::size_of::<Self::Value>() + value.as_ref().map_or(0, |v| v.to_string().len())
-    }
-
     fn run(q: &Q, member: &Member) -> Arc<Option<Value>> {
         let project = q.project();
         let value = match member {
@@ -255,14 +250,6 @@ impl Query for TextStyles {
     type Value = Vec<EffectiveStyle>;
     const FAMILY: &'static str = "text_styles";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        std::mem::size_of::<Self::Value>()
-            + value
-                .iter()
-                .map(|s| std::mem::size_of::<EffectiveStyle>() + s.key.as_str().len())
-                .sum::<usize>()
-    }
 
     fn run(q: &Q, _: &()) -> Arc<Vec<EffectiveStyle>> {
         Arc::new(ew_schema::effective_text_styles(&q.project().settings))

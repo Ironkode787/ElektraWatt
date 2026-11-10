@@ -46,8 +46,7 @@
 //!
 //! // Translatable text: neutral xor languages.
 //! let en: LangTag = "en-GB".parse().unwrap();
-//! let mut title = MlText::neutral("Wiring Definition");
-//! title.promote_neutral(&en);
+//! let mut title = MlText::with_lang(en.clone(), "Wiring Definition");
 //! title.set_lang("nl-NL".parse().unwrap(), "Bedradingsdefinitie");
 //! assert_eq!(title.text_for(&en), Some("Wiring Definition"));
 //!
@@ -68,7 +67,7 @@ mod mltext;
 mod natural;
 mod nfc;
 
-pub use confusable::{IdentFinding, confusable_skeleton, ident_findings};
+pub use confusable::{IdentFinding, ident_findings};
 pub use error::TextError;
 pub use ident::{CaseSensitivity, Ident};
 pub use langtag::LangTag;

@@ -27,7 +27,7 @@ fn empty(memo: MemoMode) -> Session {
     .expect("an empty model")
 }
 
-/// The guard: the swept families are the `Memo` and `MemoLru` families of the three `FAMILIES` lists, the
+/// The guard: the swept families are the `Memo` families of the three `FAMILIES` lists, the
 /// derived data of `ew-derive`, the report engine of `ew-reports` and the page output of `ew-api` (the views and
 /// the per-layer page display lists, FT-59). A promotion or demotion of a family fails here.
 #[test]
@@ -37,7 +37,7 @@ fn the_swept_families_are_the_memoised_families_of_the_three_lists() {
         .iter()
         .chain(ew_reports::FAMILIES)
         .chain(ew_api::output::FAMILIES)
-        .filter(|(_, p)| matches!(p, Policy::Memo | Policy::MemoLru))
+        .filter(|(_, p)| matches!(p, Policy::Memo))
         .map(|(n, _)| *n)
         .collect();
     memoised.sort_unstable();

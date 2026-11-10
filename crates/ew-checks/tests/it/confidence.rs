@@ -98,5 +98,4 @@ fn a_rule_reading_a_test_section_marks_its_finding() {
 fn a_finding_is_unmarked_unless_a_rule_marks_it() {
     let f = Finding::new(&FIXTURE, [], "", "", "");
     assert!(!f.unverified_data);
-    assert!(f.marked_unverified().unverified_data);
 }

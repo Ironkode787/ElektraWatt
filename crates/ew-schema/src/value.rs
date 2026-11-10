@@ -27,9 +27,7 @@ use crate::json::{Extra, de_extra};
 use crate::proxy::{Dec3S, IdentS, Pt2S, UuidS};
 use crate::set::keyed;
 use crate::track::{buffer, de_here, de_member, invalid, kept_unknown, malformed, not_a_variant, open_enum};
-use crate::{
-    ExternalRef, Function, ImportLineage, Junction, LibItem, Library, Part, SchemaError, StructureNode,
-};
+use crate::{Function, ImportLineage, Junction, LibItem, Library, Part, SchemaError, StructureNode};
 
 // ---------------------------------------------------------------------------------------------------------
 // Quantity and Unit
@@ -976,8 +974,5 @@ pub struct SourceRef {
 
 /// An ID whose target kind is open (a report block's manual selection, an import namespace).
 pub type AnyId = Id<()>;
-
-/// A reference to an external target, used where doc 03 names `ExternalRefId`.
-pub type ExternalRefId = Id<ExternalRef>;
 
 open_enum!(Unit, Endpoint,);

@@ -66,12 +66,6 @@ impl Query for CpFlowDistanceOf {
     const FAMILY: &'static str = "cp_flow_distance";
     const POLICY: Policy = Policy::Memo;
 
-    fn bytes(value: &Self::Value) -> usize {
-        std::mem::size_of::<Self::Value>()
-            + value.distance.len() * (std::mem::size_of::<(CpRef, u32)>() + 2 * std::mem::size_of::<usize>())
-            + value.entries.capacity() * std::mem::size_of::<CpRef>()
-    }
-
     fn run(q: &Q, key: &PotentialId) -> Arc<CpFlowDistances> {
         Arc::new(distances(q, *key))
     }

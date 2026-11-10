@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! The memo store: red-green verification with early cut-off, durability, push invalidation, part
-//! dependencies, the incremental re-execution hook, the LRU, statistics, reverse dependencies, cycle
-//! detection and oracle mode.
+//! dependencies, the incremental re-execution hook, statistics, cycle detection and oracle mode.
 //!
 //! The store is re-entrant: every read takes `&self`, and no internal borrow is held while host code runs
 //! (a query's `execute`, the database's `changed_at`, `durability` and `coarse`). A host whose query bodies
@@ -20,10 +19,8 @@ use std::sync::Arc;
 use imbl::{OrdMap, OrdSet};
 
 use crate::key::{DepKey, FamilyId, MemoRef, SlotId};
-use crate::lru::Lru;
 use crate::query::{Changes, Db, Equivalence, Query};
-use crate::rdeps::RevDeps;
-use crate::stats::{self, Event, Stats};
+use crate::stats::{Event, Stats};
 use crate::{Durability, Rev};
 
 /// The longest `Debug` text a [`Mismatch`] or [`Cycle`] keeps of a key or value.
@@ -106,8 +103,6 @@ pub struct MemoInfo<I> {
     /// What it read, with the revisions observed, in read order (key order for an incremental family's
     /// carried dependencies).
     pub deps: Vec<(DepKey<I>, Rev)>,
-    /// Whether the value is held (false after an LRU eviction).
-    pub has_value: bool,
 }
 
 /// One recorded read of a memo, as [`Store::explain`] reports it: what was read and the revision observed.
@@ -200,8 +195,6 @@ pub struct Explain<I> {
     pub family: &'static str,
     /// The key, as `Debug` text (at most 1,024 bytes).
     pub key: String,
-    /// Whether the family's values live under the byte-budget LRU ([`Query::LRU`]).
-    pub lru: bool,
     /// The store's current revision.
     pub current: Rev,
     /// Whether the key has a memo (it was read since the memo was created and not collected).
@@ -233,22 +226,15 @@ impl<I: Debug> Explain<I> {
     }
 }
 
-/// Memory of one query family (G-SP-04, NFR-PERF-13).
+/// What one query family holds, for the growth checks of the tests.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct FamilyMemory {
     /// The family name.
     pub family: &'static str,
     /// Keys with a memo.
     pub memos: usize,
-    /// Memos that hold their value.
-    pub values: usize,
-    /// Bytes of the held values, as `Query::bytes` reports them (asked for when the report is made, except
-    /// for `Query::LRU` families, whose bytes are kept from the last write).
-    pub value_bytes: usize,
     /// Recorded dependency entries over all memos.
     pub dep_entries: usize,
-    /// (key, memo) pairs of the reverse-dependency index (0 without `Query::RDEPS`).
-    pub rdep_entries: usize,
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -287,23 +273,13 @@ impl<I: Ord + Clone> Deps<I> {
         }
     }
 
-    fn contains(&self, key: &DepKey<I>) -> bool {
-        match self {
-            Deps::List(l) => l.iter().any(|(k, _)| k == key),
-            Deps::Map(m) => m.contains_key(key),
-        }
-    }
-
     fn to_vec(&self) -> Vec<(DepKey<I>, Rev)> {
         self.iter().map(|(k, r)| (k.clone(), r)).collect()
     }
 }
 
 struct Memo<V, I: Ord + Clone> {
-    /// `None` after an LRU eviction; the rest of the memo stays, so dependents can still be verified.
-    value: Option<Arc<V>>,
-    /// The fingerprint, for `Equivalence::Hash128` families.
-    fingerprint: Option<u128>,
+    value: Arc<V>,
     deps: Deps<I>,
     /// The producers (memos whose parts this memo reads, directly or through its memo dependencies) that
     /// must be up to date before push invalidation may call this memo clean. Kept current by every
@@ -317,24 +293,18 @@ struct Memo<V, I: Ord + Clone> {
     verified_at: Rev,
     changed_at: Rev,
     durability: Durability,
-    /// The value's bytes ([`Query::bytes`]) for an [`LRU`](Query::LRU) family, which the budget needs at every
-    /// write; 0 for every other family, whose bytes [`Store::memory`] asks for on demand (review cycle 10,
-    /// finding 2: a value's bytes cost a walk of the value, which an incremental execution must not pay).
-    bytes: usize,
 }
 
 impl<V, I: Ord + Clone> Clone for Memo<V, I> {
     fn clone(&self) -> Self {
         Memo {
-            value: self.value.clone(),
-            fingerprint: self.fingerprint,
+            value: Arc::clone(&self.value),
             deps: self.deps.clone(),
             producers: Arc::clone(&self.producers),
             reg: Arc::clone(&self.reg),
             verified_at: self.verified_at,
             changed_at: self.changed_at,
             durability: self.durability,
-            bytes: self.bytes,
         }
     }
 }
@@ -357,7 +327,6 @@ impl<K: Clone, V, I: Ord + Clone> Clone for Slot<K, V, I> {
 struct FamilyStore<K: Ord + Clone, V, I: Ord + Clone> {
     index: OrdMap<K, SlotId>,
     slots: imbl::Vector<Slot<K, V, I>>,
-    rdeps: Option<RevDeps<I>>,
 }
 
 impl<K: Ord + Clone, V, I: Ord + Clone> Clone for FamilyStore<K, V, I> {
@@ -365,7 +334,6 @@ impl<K: Ord + Clone, V, I: Ord + Clone> Clone for FamilyStore<K, V, I> {
         FamilyStore {
             index: self.index.clone(),
             slots: self.slots.clone(),
-            rdeps: self.rdeps.clone(),
         }
     }
 }
@@ -401,8 +369,6 @@ struct Family<D: Db> {
     incremental: bool,
     storage: AnyStorage,
     verify: VerifyFn<D>,
-    /// Drops a value (LRU eviction).
-    evict: fn(&mut AnyStorage, SlotId),
     /// Drops an unreferenced memo that was not verified at the given (closing) revision, for the collection of
     /// orphans ([`State::collect_orphans`]).
     collect: CollectFn<D::Input>,
@@ -432,7 +398,6 @@ impl<D: Db> Clone for Family<D> {
             incremental: self.incremental,
             storage: (self.clone_storage)(&self.storage),
             verify: self.verify,
-            evict: self.evict,
             collect: self.collect,
             clone_storage: self.clone_storage,
             memory: self.memory,
@@ -563,7 +528,7 @@ struct Parts<I: Ord + Clone> {
 
 /// A memo as a reader receives it.
 struct Got<V> {
-    value: Option<Arc<V>>,
+    value: Arc<V>,
     changed_at: Rev,
     durability: Durability,
     producers: Arc<[MemoRef]>,
@@ -574,8 +539,6 @@ struct Got<V> {
 enum Mode<I> {
     /// From scratch.
     Full,
-    /// An evicted value whose inputs are unchanged: the value is the same by purity.
-    KnownSame,
     /// Through the incremental hook with the previous value.
     Incremental(Changes<I>),
 }
@@ -622,24 +585,12 @@ struct State<D: Db> {
     /// the bump is needed).
     #[cfg(test)]
     skip_incremental_epoch_bump: bool,
-    lru: Lru,
     commit: Stats,
     total: Stats,
     oracle: Oracle,
     oracle_reads: u64,
     mismatches: Vec<Mismatch>,
     panic_on_cycle: bool,
-    /// The identity of the store's current state (adopt-if-unchanged, ADR-0002 decision 5): replaced by
-    /// every mutation that a fork taken before it would not see (an advance, a memo write, a new key, a
-    /// budget change) whenever a fork may hold it. A fork records it as its `base_token`.
-    token: Arc<()>,
-    /// For a fork: the token of the store it was taken from, at the time it was taken.
-    base_token: Option<Arc<()>>,
-    /// For a fork: the revision of the store it was taken from, at the time it was taken.
-    base_rev: Rev,
-    /// For a fork: the LRU's next tick when it was taken from its parent (adopt re-touches what the parent
-    /// touched since).
-    lru_base_tick: u64,
 }
 
 impl<D: Db> State<D> {
@@ -660,25 +611,6 @@ impl<D: Db> State<D> {
     fn record(&mut self, family: &'static str, event: Event) {
         self.commit.record(family, event);
         self.total.record(family, event);
-    }
-
-    /// Marks a mutation that a fork taken before it does not see. A fork may hold the current token as its
-    /// base, so the token is replaced; only then, since a token that nobody else holds can name the new state
-    /// as well (no fork can be compared with it).
-    fn mutated(&mut self) {
-        if Arc::strong_count(&self.token) > 1 {
-            self.token = Arc::new(());
-        }
-    }
-
-    /// Drops the values the LRU evicts while over budget, recording the evictions.
-    fn evict_over_budget(&mut self) {
-        for victim in self.lru.evict_over_budget() {
-            let family = &mut self.families[victim.0.0 as usize];
-            (family.evict)(&mut family.storage, victim.1);
-            let name = family.name;
-            self.record(name, Event::Evicted);
-        }
     }
 
     fn describe(&self, fid: FamilyId, slot: SlotId) -> String {
@@ -779,7 +711,7 @@ impl<D: Db> State<D> {
 
     /// The collection of orphans (review cycle 10, finding 3), run when the store advances from the closing
     /// revision `self.current`: every candidate that no memo reads (whole or by part) and that was not verified
-    /// at the closing revision is dropped, with its registrations, marks, part stamps and LRU entry. Dropping
+    /// at the closing revision is dropped, with its registrations, marks and part stamps. Dropping
     /// a memo can orphan the memos it read; they are collected in the same pass. A candidate verified at the
     /// closing revision (the host read it) stays, and is no candidate any more.
     ///
@@ -808,7 +740,6 @@ impl<D: Db> State<D> {
                         self.record(name, Event::Collected);
                         self.marks.remove(&memo);
                         self.parts.remove(&memo);
-                        self.lru.remove(memo);
                         let reg: BTreeSet<DepKey<D::Input>> = reg.iter().cloned().collect();
                         for key in &reg {
                             unregister(self, key, memo);
@@ -816,7 +747,6 @@ impl<D: Db> State<D> {
                         for p in part_producers(&reg) {
                             remove_part_reader(self, p, memo);
                         }
-                        self.mutated();
                     }
                 }
             }
@@ -854,11 +784,10 @@ fn skip_bump<D: Db>(_: &State<D>) -> bool {
 ///    revision with the observed one, a memo dependency is first brought up to date itself (recursively,
 ///    re-executing it if needed) and compares its `changed_at`, a part dependency compares the part's stamp.
 ///    If nothing changed, the memo is re-stamped. The walk stops at the first changed dependency.
-/// 6. **Re-execution**: otherwise (or for a new key, or for an evicted value) the query runs, recording its
-///    reads. If the new value is equivalent to the previous one ([`Equivalence`]), `changed_at` keeps its old
-///    revision (**early cut-off**: dependents stay green) and the previous `Arc` is kept (for both
-///    equivalences, as long as the previous memo still holds its value), so pointer identity survives
-///    for consumers such as GPU buffers. After an LRU eviction the re-computed value is a new `Arc`.
+/// 6. **Re-execution**: otherwise (or for a new key) the query runs, recording its reads. If the new value is
+///    equivalent to the previous one ([`Equivalence`]), `changed_at` keeps its old revision (**early
+///    cut-off**: dependents stay green) and the previous `Arc` is kept, so pointer identity survives for
+///    consumers such as GPU buffers.
 ///
 /// Reads inside a query ([`Cx::get`], or [`Store::get`] called again from the query's body) follow the same
 /// steps and record the memo as a dependency of the innermost executing query.
@@ -893,21 +822,19 @@ fn skip_bump<D: Db>(_: &State<D>) -> bool {
 /// # Snapshots
 ///
 /// The store is built on persistent maps: [`Clone`] (or [`Store::fork`]) is O(1), and a fork evolves
-/// independently, for jobs on a read-only snapshot. [`Store::adopt_if_unchanged`] takes a fork's memos back
-/// when the store was not touched since the fork (ADR-0002 decision 5).
+/// independently, for jobs on a read-only snapshot.
 ///
 /// # Determinism
 ///
-/// No hash map is iterated, no time or randomness is used; statistics, reports and reverse dependencies are
-/// in a fixed order.
+/// No hash map is iterated, no time or randomness is used; statistics and reports are in a
+/// fixed order.
 pub struct Store<D: Db> {
     st: RefCell<State<D>>,
 }
 
 /// A clone is an O(1) snapshot that evolves independently (see [`Store::fork`]). It starts with empty
 /// statistics (`commit` and `total`: a job's statistics are its own work) and no oracle mismatches; the
-/// oracle mode, the oracle read counter, the LRU (entries and budget), the push index and the memos are
-/// copied.
+/// oracle mode, the oracle read counter, the push index and the memos are copied.
 impl<D: Db> Clone for Store<D> {
     fn clone(&self) -> Self {
         let s = self.st.borrow();
@@ -930,18 +857,12 @@ impl<D: Db> Clone for Store<D> {
                 mark_epoch: s.mark_epoch,
                 #[cfg(test)]
                 skip_incremental_epoch_bump: s.skip_incremental_epoch_bump,
-                lru: s.lru.clone(),
                 commit: Stats::default(),
                 total: Stats::default(),
                 oracle: s.oracle,
                 oracle_reads: s.oracle_reads,
                 mismatches: Vec::new(),
                 panic_on_cycle: s.panic_on_cycle,
-                // A fork is a different store: its own identity, and its parent's as the base.
-                token: Arc::new(()),
-                base_token: Some(Arc::clone(&s.token)),
-                base_rev: s.current,
-                lru_base_tick: s.lru.next_tick(),
             }),
         }
     }
@@ -953,8 +874,6 @@ impl<D: Db> Debug for Store<D> {
         f.debug_struct("Store")
             .field("current", &s.current)
             .field("families", &s.families.iter().map(|x| x.name).collect::<Vec<_>>())
-            .field("lru_values", &s.lru.len())
-            .field("lru_bytes", &s.lru.total_bytes())
             .field("oracle", &s.oracle)
             .finish_non_exhaustive()
     }
@@ -996,7 +915,7 @@ impl<D: Db> Store<D> {
         self.st.borrow_mut().skip_incremental_epoch_bump = true;
     }
 
-    /// An empty store at [`Rev::ZERO`], without LRU budget and with oracle mode off.
+    /// An empty store at [`Rev::ZERO`] with oracle mode off.
     pub fn new() -> Store<D> {
         Store {
             st: RefCell::new(State {
@@ -1017,17 +936,12 @@ impl<D: Db> Store<D> {
                 mark_epoch: 0,
                 #[cfg(test)]
                 skip_incremental_epoch_bump: false,
-                lru: Lru::default(),
                 commit: Stats::default(),
                 total: Stats::default(),
                 oracle: Oracle::Off,
                 oracle_reads: 0,
                 mismatches: Vec::new(),
                 panic_on_cycle: cfg!(debug_assertions),
-                token: Arc::new(()),
-                base_token: None,
-                base_rev: Rev::ZERO,
-                lru_base_tick: 0,
             }),
         }
     }
@@ -1050,8 +964,7 @@ impl<D: Db> Store<D> {
     ///
     /// `changed` must cover the durability of every changed input both before and after the change.
     ///
-    /// The statistics of the closing commit are emitted (`tracing`, target `ew_memo::stats`, window
-    /// `commit`) and reset. Then the orphans are collected (see "Bounded growth" in the type documentation).
+    /// The statistics of the closing commit are reset. Then the orphans are collected (see "Bounded growth" in the type documentation).
     ///
     /// # Panics
     ///
@@ -1096,7 +1009,6 @@ impl<D: Db> Store<D> {
         // abandoned (and the host caught).
         st.active.clear();
         st.frames.clear();
-        stats::emit(st.current, "commit", &st.commit);
         st.commit.clear();
         // Counted in the new commit's statistics.
         st.collect_orphans();
@@ -1104,7 +1016,6 @@ impl<D: Db> Store<D> {
             *level = rev;
         }
         st.current = rev;
-        st.mutated();
     }
 
     /// Reads `Q(key)` at the current revision (see the type documentation). Called from inside a query's
@@ -1135,8 +1046,8 @@ impl<D: Db> Store<D> {
     ) -> Result<Arc<P::Value>, Cycle> {
         let fid = self.family::<P>();
         let slot = self.intern::<P>(fid, key);
-        let got = self.up_to_date::<P>(db, fid, slot, true)?;
-        let value = got.value.clone().expect("a value was requested");
+        let got = self.up_to_date::<P>(db, fid, slot)?;
+        let value = Arc::clone(&got.value);
         {
             let mut st = self.st.borrow_mut();
             let stamp = st.part_stamp((fid, slot), part, got.changed_at);
@@ -1222,11 +1133,6 @@ impl<D: Db> Store<D> {
         }
     }
 
-    /// Whether a query is executing (a read would be recorded as its dependency).
-    pub fn executing(&self) -> bool {
-        !self.st.borrow().frames.is_empty()
-    }
-
     /// Computes `Q(key)` cold: no memo is read or written, nested queries are computed cold too (each at
     /// most once per call). The reference for oracle mode and `ew verify-derived`.
     ///
@@ -1256,24 +1162,6 @@ impl<D: Db> Store<D> {
         std::mem::take(&mut self.st.borrow_mut().mismatches)
     }
 
-    /// Sets the byte budget of the LRU over the values of `Query::LRU` families (`None`: unbounded).
-    /// Values over budget are evicted at the next memo write.
-    pub fn set_lru_budget(&self, bytes: Option<usize>) {
-        let mut st = self.st.borrow_mut();
-        st.lru.set_budget(bytes);
-        st.mutated();
-    }
-
-    /// The LRU budget in bytes (`None`: unbounded).
-    pub fn lru_budget(&self) -> Option<usize> {
-        self.st.borrow().lru.budget()
-    }
-
-    /// The bytes of the values currently under the LRU.
-    pub fn lru_bytes(&self) -> usize {
-        self.st.borrow().lru.total_bytes()
-    }
-
     /// Statistics since the last advance (one commit).
     pub fn commit_stats(&self) -> Stats {
         self.st.borrow().commit.clone()
@@ -1282,12 +1170,6 @@ impl<D: Db> Store<D> {
     /// Statistics over the store's lifetime.
     pub fn total_stats(&self) -> Stats {
         self.st.borrow().total.clone()
-    }
-
-    /// Emits the lifetime statistics as `tracing` events (target `ew_memo::stats`, window `total`).
-    pub fn emit_stats(&self) {
-        let st = self.st.borrow();
-        stats::emit(st.current, "total", &st.total);
     }
 
     /// The dependency key naming the memo of `Q(key)`, if the key was ever read.
@@ -1315,32 +1197,6 @@ impl<D: Db> Store<D> {
             .map(|s| s.key.clone())
     }
 
-    /// The reverse-dependency API (ADR-0002 amendment 1): the keys of family `Q` whose memo's recorded reads
-    /// include `dep` (an input, or a memo named by [`Store::memo_key`]), in key order. Indexed for
-    /// `Query::RDEPS` families, a scan otherwise.
-    pub fn dependents<Q: Query<D>>(&self, dep: &DepKey<D::Input>) -> Vec<Q::Key> {
-        let st = self.st.borrow();
-        let Some(&fid) = st.by_type.get(&TypeId::of::<Q>()) else {
-            return Vec::new();
-        };
-        let s = st.storage::<Q>(fid);
-        let mut keys: Vec<Q::Key> = match &s.rdeps {
-            Some(index) => index
-                .get(dep)
-                .into_iter()
-                .map(|slot| s.slots[slot.index()].key.clone())
-                .collect(),
-            None => s
-                .slots
-                .iter()
-                .filter(|slot| slot.memo.as_ref().is_some_and(|m| m.deps.contains(dep)))
-                .map(|slot| slot.key.clone())
-                .collect(),
-        };
-        keys.sort();
-        keys
-    }
-
     /// The state of the memo of `Q(key)`, if any.
     pub fn memo_info<Q: Query<D>>(&self, key: &Q::Key) -> Option<MemoInfo<D::Input>> {
         let st = self.st.borrow();
@@ -1353,13 +1209,12 @@ impl<D: Db> Store<D> {
             changed_at: m.changed_at,
             durability: m.durability,
             deps: m.deps.to_vec(),
-            has_value: m.value.is_some(),
         })
     }
 
     /// The state and the dependency trail of the memo of `Q(key)` (WP-S1.22 D12, `ew query --explain`): whether a
     /// read now would be a hit, the revisions, the durability and the recorded reads (at most 64). Read-only: no
-    /// memo, statistic, mark or LRU position changes, and nothing is executed or verified, so the answer describes
+    /// memo, statistic or mark changes, and nothing is executed or verified, so the answer describes
     /// the memo as the last read left it. A key that was never read, or whose family the store has not seen, has
     /// no memo (`memoised` false).
     pub fn explain<Q: Query<D>>(&self, key: &Q::Key) -> Explain<D::Input> {
@@ -1367,7 +1222,6 @@ impl<D: Db> Store<D> {
         let mut out = Explain {
             family: Q::NAME,
             key: bounded(format!("{key:?}")),
-            lru: Q::LRU,
             current: st.current,
             memoised: false,
             hit: false,
@@ -1387,7 +1241,7 @@ impl<D: Db> Store<D> {
             return out;
         };
         out.memoised = true;
-        out.hit = m.value.is_some() && m.verified_at == st.current;
+        out.hit = m.verified_at == st.current;
         out.verified_at = m.verified_at;
         out.changed_at = m.changed_at;
         out.durability = m.durability;
@@ -1397,7 +1251,7 @@ impl<D: Db> Store<D> {
         out
     }
 
-    /// Memory per family, in family-name order.
+    /// What each family holds, in family-name order.
     pub fn memory(&self) -> Vec<FamilyMemory> {
         let st = self.st.borrow();
         let mut out: Vec<FamilyMemory> = st
@@ -1415,60 +1269,9 @@ impl<D: Db> Store<D> {
     }
 
     /// An O(1) snapshot that evolves independently (a job's memo store). The fork starts with empty
-    /// statistics and no oracle mismatches (its statistics and findings are its own work; adopting it
-    /// merges them into this store's); the oracle mode, the LRU, the push index and the memos are copied.
+    /// statistics and no oracle mismatches; the oracle mode, the push index and the memos are copied.
     pub fn fork(&self) -> Store<D> {
         self.clone()
-    }
-
-    /// Takes `fork`'s memos when `fork` was taken from this very store and neither side moved on in a way
-    /// the other cannot see: this store is still pointer-equal to the fork's base (no memo written, no key
-    /// added, no budget changed and no revision advanced since [`Store::fork`]; reads that only hit are
-    /// fine), and the fork is still at that base revision (adopt-if-unchanged, ADR-0002 decision 5). A fork
-    /// of a fork, a sibling fork taken after this store changed, or a fork that advanced is refused. Returns
-    /// whether it adopted.
-    ///
-    /// Adopting takes the fork's memos (families, their LRU entries, the push index and marks) and keeps this
-    /// store's configuration: oracle mode, cycle behaviour, LRU budget and oracle read counter. The fork's
-    /// statistics are merged into this store's, its oracle mismatches follow this store's, and the LRU
-    /// recency of what this store hit since the fork is kept (those entries stay the most recent). Values
-    /// over this store's budget are evicted.
-    pub fn adopt_if_unchanged(&mut self, fork: Store<D>) -> bool {
-        let st = self.st.get_mut();
-        let mut fork = fork.st.into_inner();
-        let same_base = fork
-            .base_token
-            .as_ref()
-            .is_some_and(|base| Arc::ptr_eq(base, &st.token));
-        if !same_base || st.current != fork.base_rev || fork.current != fork.base_rev || !st.active.is_empty()
-        {
-            return false;
-        }
-        let parent_touched = st.lru.touched_since(fork.lru_base_tick);
-        let budget = st.lru.budget();
-        st.families = fork.families;
-        st.by_type = fork.by_type;
-        st.lru = fork.lru;
-        st.rdeps = fork.rdeps;
-        st.part_readers = fork.part_readers;
-        st.parts = fork.parts;
-        st.marks = fork.marks;
-        st.orphans = fork.orphans;
-        st.mark_epoch = fork.mark_epoch;
-        for (memo, bytes) in parent_touched {
-            if st.lru.contains(memo) {
-                st.lru.touch(memo, bytes);
-            }
-        }
-        st.lru.set_budget(budget);
-        st.commit.merge(&fork.commit);
-        st.total.merge(&fork.total);
-        st.mismatches.append(&mut fork.mismatches);
-        st.evict_over_budget();
-        // The adopted state is a new state of this store: no earlier fork of either side has it as its base.
-        st.token = Arc::new(());
-        st.base_token = None;
-        true
     }
 
     /// The number of part stamps the producer named by `memo` (a [`DepKey::Memo`]) keeps (tests).
@@ -1506,17 +1309,15 @@ impl<D: Db> Store<D> {
         let storage: FamilyStore<Q::Key, Q::Value, D::Input> = FamilyStore {
             index: OrdMap::new(),
             slots: imbl::Vector::new(),
-            rdeps: Q::RDEPS.then(RevDeps::new),
         };
         st.families.push(Family {
             name: Q::NAME,
             incremental: Q::INCREMENTAL,
             storage: Box::new(storage),
             verify: verify_erased::<D, Q>,
-            evict: evict_erased::<Q::Key, Q::Value, D::Input>,
             collect: collect_erased::<Q::Key, Q::Value, D::Input>,
             clone_storage: clone_erased::<Q::Key, Q::Value, D::Input>,
-            memory: memory_erased::<D, Q>,
+            memory: memory_erased::<Q::Key, Q::Value, D::Input>,
             describe: describe_erased::<Q::Key, Q::Value, D::Input>,
         });
         st.by_type.insert(TypeId::of::<Q>(), fid);
@@ -1535,7 +1336,6 @@ impl<D: Db> Store<D> {
             memo: None,
         });
         s.index.insert(key.clone(), slot);
-        st.mutated();
         slot
     }
 
@@ -1550,8 +1350,8 @@ impl<D: Db> Store<D> {
     fn fetch<Q: Query<D>>(&self, db: &D, key: &Q::Key) -> Result<Arc<Q::Value>, Cycle> {
         let fid = self.family::<Q>();
         let slot = self.intern::<Q>(fid, key);
-        let got = self.up_to_date::<Q>(db, fid, slot, true)?;
-        let value = got.value.clone().expect("a value was requested");
+        let got = self.up_to_date::<Q>(db, fid, slot)?;
+        let value = Arc::clone(&got.value);
         {
             let mut st = self.st.borrow_mut();
             if let Some(frame) = st.frames.last_mut() {
@@ -1573,16 +1373,10 @@ impl<D: Db> Store<D> {
     }
 
     /// Brings the memo of `slot` to the current revision: hit, durability skip, push skip, incremental
-    /// re-execution, verification or re-execution. With `need_value`, an evicted value is re-computed.
-    fn up_to_date<Q: Query<D>>(
-        &self,
-        db: &D,
-        fid: FamilyId,
-        slot: SlotId,
-        need_value: bool,
-    ) -> Result<Got<Q::Value>, Cycle> {
+    /// re-execution, verification or re-execution.
+    fn up_to_date<Q: Query<D>>(&self, db: &D, fid: FamilyId, slot: SlotId) -> Result<Got<Q::Value>, Cycle> {
         let me = (fid, slot);
-        let (prev, current, last_changed, push_from) = {
+        let (prev, last_changed, push_from) = {
             let mut st = self.st.borrow_mut();
             if st.active.contains(&me) {
                 drop(st);
@@ -1590,36 +1384,25 @@ impl<D: Db> Store<D> {
             }
             let current = st.current;
             let hit = match &st.storage::<Q>(fid).slots[slot.index()].memo {
-                None => None,
-                Some(m) if m.verified_at == current && (m.value.is_some() || !need_value) => Some((
-                    Got {
-                        value: m.value.clone(),
-                        changed_at: m.changed_at,
-                        durability: m.durability,
-                        producers: Arc::clone(&m.producers),
-                        volatile: false,
-                    },
-                    m.bytes,
-                )),
-                Some(_) => None,
+                Some(m) if m.verified_at == current => Some(Got {
+                    value: Arc::clone(&m.value),
+                    changed_at: m.changed_at,
+                    durability: m.durability,
+                    producers: Arc::clone(&m.producers),
+                    volatile: false,
+                }),
+                _ => None,
             };
-            if let Some((got, bytes)) = hit {
+            if let Some(got) = hit {
                 st.record(Q::NAME, Event::Hit);
-                if Q::LRU && got.value.is_some() {
-                    st.lru.touch(me, bytes);
-                }
                 return Ok(got);
             }
             let prev = st.storage::<Q>(fid).slots[slot.index()].memo.clone();
-            (prev, current, st.last_changed, st.push_from)
+            (prev, st.last_changed, st.push_from)
         };
         let Some(prev) = prev else {
             return self.execute::<Q>(db, fid, slot, None, Mode::Full);
         };
-        if prev.verified_at == current {
-            // Verified, but the value was evicted: the inputs are the same, so is the value.
-            return self.execute::<Q>(db, fid, slot, Some(prev), Mode::KnownSame);
-        }
         if last_changed[prev.durability.index()] <= prev.verified_at {
             // Nothing of the memo's durability or a more durable one changed since it was verified, so no
             // dependency changed and none changed its durability (a move between levels is a change of the
@@ -1635,7 +1418,7 @@ impl<D: Db> Store<D> {
             }
             let durability = prev.durability;
             let producers = Arc::clone(&prev.producers);
-            return self.green::<Q>(db, fid, slot, prev, durability, producers, need_value);
+            return self.green::<Q>(fid, slot, prev, durability, producers);
         }
         if prev.verified_at >= push_from {
             // Push mode: settle the producers first (their re-execution marks the readers of changed parts),
@@ -1657,9 +1440,9 @@ impl<D: Db> Store<D> {
                     self.record(Q::NAME, Event::PushSkip);
                     let durability = prev.durability;
                     let producers = Arc::clone(&prev.producers);
-                    return self.green::<Q>(db, fid, slot, prev, durability, producers, need_value);
+                    return self.green::<Q>(fid, slot, prev, durability, producers);
                 }
-                Some(mark) if Q::INCREMENTAL && prev.value.is_some() => {
+                Some(mark) if Q::INCREMENTAL => {
                     let touched = self.st.borrow().touched_since(prev.verified_at);
                     let changes = Changes {
                         touched,
@@ -1685,24 +1468,20 @@ impl<D: Db> Store<D> {
                 producers,
             }) => {
                 self.record(Q::NAME, Event::Verified);
-                self.green::<Q>(db, fid, slot, prev, durability, producers, need_value)
+                self.green::<Q>(fid, slot, prev, durability, producers)
             }
             None => self.execute::<Q>(db, fid, slot, Some(prev), Mode::Full),
         }
     }
 
-    /// Re-stamps a memo found unchanged with its current durability and producers, and returns it
-    /// (re-computing an evicted value when one is needed).
-    #[allow(clippy::too_many_arguments)]
+    /// Re-stamps a memo found unchanged with its current durability and producers, and returns it.
     fn green<Q: Query<D>>(
         &self,
-        db: &D,
         fid: FamilyId,
         slot: SlotId,
-        mut prev: Memo<Q::Value, D::Input>,
+        prev: Memo<Q::Value, D::Input>,
         durability: Durability,
         producers: Arc<[MemoRef]>,
-        need_value: bool,
     ) -> Result<Got<Q::Value>, Cycle> {
         {
             let mut st = self.st.borrow_mut();
@@ -1716,22 +1495,14 @@ impl<D: Db> Store<D> {
                 }
             }
             st.marks.remove(&(fid, slot));
-            if Q::LRU && prev.value.is_some() {
-                st.lru.touch((fid, slot), prev.bytes);
-            }
-            st.mutated();
         }
-        prev.producers = producers;
-        if prev.value.is_some() || !need_value {
-            return Ok(Got {
-                value: prev.value,
-                changed_at: prev.changed_at,
-                durability,
-                producers: prev.producers,
-                volatile: false,
-            });
-        }
-        self.execute::<Q>(db, fid, slot, Some(prev), Mode::KnownSame)
+        Ok(Got {
+            value: prev.value,
+            changed_at: prev.changed_at,
+            durability,
+            producers,
+            volatile: false,
+        })
     }
 
     /// Whether no recorded dependency changed since it was observed: `Some` with the minimum of the
@@ -1828,10 +1599,7 @@ impl<D: Db> Store<D> {
             };
             match &mode {
                 Mode::Incremental(changes) => {
-                    let previous = prev
-                        .as_ref()
-                        .and_then(|p| p.value.as_deref())
-                        .map(|v| (v, changes));
+                    let previous = prev.as_ref().map(|p| (&*p.value, changes));
                     Q::execute_incremental(&mut cx, &key, previous)
                 }
                 _ if Q::INCREMENTAL => Q::execute_incremental(&mut cx, &key, None),
@@ -1858,46 +1626,24 @@ impl<D: Db> Store<D> {
             // Context-dependent: returned, never kept; the reader becomes volatile too.
             self.record(Q::NAME, Event::Volatile);
             return Ok(Got {
-                value: Some(Arc::new(value)),
+                value: Arc::new(value),
                 changed_at: current,
                 durability: frame.durability,
                 producers,
                 volatile: true,
             });
         }
-        let known_same = matches!(mode, Mode::KnownSame);
-        let fingerprint = match Q::equivalence() {
-            Equivalence::Hash128(hash) => Some(hash(&value)),
-            Equivalence::Eq(_) => None,
-        };
-        // Early cut-off: an equivalent value keeps its `changed_at` (and the previous `Arc`, when it is held).
+        // Early cut-off: an equivalent value keeps its `changed_at` and the previous `Arc`.
         let (value, changed_at, cut_off) = match prev.as_ref() {
             Some(p) => {
-                let same = match (Q::equivalence(), p.value.as_ref()) {
-                    (Equivalence::Eq(eq), Some(old)) => eq(old, &value),
-                    (Equivalence::Eq(_), None) => known_same,
-                    (Equivalence::Hash128(_), _) => p.fingerprint == fingerprint,
-                };
-                if same {
-                    // The old value is equivalent by definition of the cut-off: keep its identity (both
-                    // equivalences). Without it (evicted), the re-computed value is the only one.
-                    let arc = match &p.value {
-                        Some(old) => Arc::clone(old),
-                        None => Arc::new(value),
-                    };
-                    (arc, p.changed_at, true)
+                let Equivalence::Eq(eq) = Q::equivalence();
+                if eq(&p.value, &value) {
+                    (Arc::clone(&p.value), p.changed_at, true)
                 } else {
                     (Arc::new(value), current, false)
                 }
             }
             None => (Arc::new(value), current, false),
-        };
-        // The bytes of an LRU family only (review cycle 10, finding 2); a cut-off that kept the previous value
-        // keeps its bytes.
-        let bytes = match prev.as_ref() {
-            _ if !Q::LRU => 0,
-            Some(p) if p.value.as_ref().is_some_and(|old| Arc::ptr_eq(old, &value)) => p.bytes,
-            _ => Q::bytes(&value),
         };
         let durability = frame.durability;
         let deps = match frame.deps {
@@ -1952,15 +1698,13 @@ impl<D: Db> Store<D> {
             _ => new_reg.iter().cloned().collect(),
         };
         let memo = Memo {
-            value: Some(Arc::clone(&value)),
-            fingerprint,
+            value: Arc::clone(&value),
             deps,
             producers: Arc::clone(&producers),
             reg,
             verified_at: current,
             changed_at,
             durability,
-            bytes,
         };
         {
             let mut st = self.st.borrow_mut();
@@ -1977,16 +1721,11 @@ impl<D: Db> Store<D> {
             for p in new_producers {
                 st.part_readers.entry(p).or_default().insert(me);
             }
-            {
-                let s = st.storage_mut::<Q>(fid);
-                if let Some(index) = s.rdeps.as_mut() {
-                    if let Some(p) = prev.as_ref() {
-                        index.remove(slot, &p.deps.to_vec());
-                    }
-                    index.add(slot, &memo.deps.to_vec());
-                }
-                s.slots.get_mut(slot.index()).expect("interned slot").memo = Some(memo);
-            }
+            st.storage_mut::<Q>(fid)
+                .slots
+                .get_mut(slot.index())
+                .expect("interned slot")
+                .memo = Some(memo);
             if st.marks.remove(&me).is_some() && unverified_via && !skip_bump(&st) {
                 st.mark_epoch += 1;
             }
@@ -2034,14 +1773,9 @@ impl<D: Db> Store<D> {
                     }
                 }
             }
-            st.mutated();
-            if Q::LRU {
-                st.lru.touch(me, bytes);
-                st.evict_over_budget();
-            }
         }
         Ok(Got {
-            value: Some(value),
+            value,
             changed_at,
             durability,
             producers,
@@ -2096,10 +1830,10 @@ impl<D: Db> Store<D> {
         self.record(Q::NAME, Event::OracleCheck);
         let cold = self.cold::<Q>(db, key);
         let equal = match &cold {
-            Ok(cold) => match Q::equivalence() {
-                Equivalence::Eq(eq) => eq(memoised, cold),
-                Equivalence::Hash128(hash) => hash(memoised) == hash(cold),
-            },
+            Ok(cold) => {
+                let Equivalence::Eq(eq) = Q::equivalence();
+                eq(memoised, cold)
+            }
             Err(_) => false,
         };
         if !equal {
@@ -2290,26 +2024,12 @@ fn bounded(mut text: String) -> String {
 
 fn verify_erased<D: Db, Q: Query<D>>(store: &Store<D>, db: &D, slot: SlotId) -> Result<Verified, Cycle> {
     let fid = store.family::<Q>();
-    store.up_to_date::<Q>(db, fid, slot, false).map(|got| Verified {
+    store.up_to_date::<Q>(db, fid, slot).map(|got| Verified {
         changed_at: got.changed_at,
         durability: got.durability,
         producers: got.producers,
         volatile: got.volatile,
     })
-}
-
-fn evict_erased<K, V, I>(storage: &mut AnyStorage, slot: SlotId)
-where
-    K: Ord + Clone + Send + Sync + 'static,
-    V: Send + Sync + 'static,
-    I: Ord + Clone + Send + Sync + 'static,
-{
-    let s: &mut FamilyStore<K, V, I> = (**storage)
-        .downcast_mut()
-        .expect("family storage of its own type");
-    if let Some(m) = s.slots.get_mut(slot.index()).and_then(|x| x.memo.as_mut()) {
-        m.value = None;
-    }
 }
 
 fn collect_erased<K, V, I>(storage: &mut AnyStorage, slot: SlotId, closing: Rev) -> Collected<I>
@@ -2331,9 +2051,6 @@ where
     let Some(memo) = s.slots.get_mut(slot.index()).and_then(|x| x.memo.take()) else {
         return Collected::Absent;
     };
-    if let Some(index) = s.rdeps.as_mut() {
-        index.remove(slot, &memo.deps.to_vec());
-    }
     Collected::Dropped(memo.reg)
 }
 
@@ -2349,23 +2066,22 @@ where
     Box::new(s.clone())
 }
 
-/// The memory of a family; the bytes of a family without LRU are asked for here, on demand.
-fn memory_erased<D: Db, Q: Query<D>>(storage: &AnyStorage, family: &'static str) -> FamilyMemory {
-    let s: &FamilyStore<Q::Key, Q::Value, D::Input> = (**storage)
+fn memory_erased<K, V, I>(storage: &AnyStorage, family: &'static str) -> FamilyMemory
+where
+    K: Ord + Clone + Send + Sync + 'static,
+    V: Send + Sync + 'static,
+    I: Ord + Clone + Send + Sync + 'static,
+{
+    let s: &FamilyStore<K, V, I> = (**storage)
         .downcast_ref()
         .expect("family storage of its own type");
     let mut out = FamilyMemory {
         family,
-        rdep_entries: s.rdeps.as_ref().map_or(0, RevDeps::entries),
         ..FamilyMemory::default()
     };
     for m in s.slots.iter().filter_map(|x| x.memo.as_ref()) {
         out.memos += 1;
         out.dep_entries += m.deps.len();
-        if let Some(value) = &m.value {
-            out.values += 1;
-            out.value_bytes += if Q::LRU { m.bytes } else { Q::bytes(value) };
-        }
     }
     out
 }

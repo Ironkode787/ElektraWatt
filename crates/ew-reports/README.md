@@ -13,7 +13,7 @@ ADR-0018. Work package WP-S3.03.
 - **`RowSet`** (`rowset.rs`): typed cells with late formatting, a stable `RowId` from source entity IDs, links,
   groups. `RowId` prints as typed, escaped components joined by `/` (`e:<uuid>`, `i:<n>`, `n:<percent-escaped>`),
   an injective form that parses back (`RowId::parse`); it is the hidden `id` column of XLSX (FR-EXP-004).
-- **Arrangement** (`arrange.rs`): manual exclusion, typed filters, natural-order sorting with `RowId` tie-breaks,
+- **Arrangement** (`arrange.rs`): manual exclusion, natural-order sorting with `RowId` tie-breaks,
   grouping with optional header and footer rows. Groups follow the sort direction of the group column and never
   span two heading segments; group texts print a tag in its displayed form for the block's section structure,
   else its short form.
@@ -28,7 +28,7 @@ ADR-0018. Work package WP-S3.03.
   TOC page count from the closed form `n = max(1, ⌈D / (r − k)⌉)` (D other pages, r rows per TOC page, k TOC
   blocks) and never leaves a page out of the TOC.
 - **Queries** (`queries.rs`): `report_rows(block)` (`BlockRows`, Memo) and `report_block_pages(block, toc_pages)`
-  (`BlockPages`, MemoLru). `ReportEngine` implements `ew_derive::ReportPagesProvider`; `ew-api`'s `Session`
+  (`BlockPages`, Memo). `ReportEngine` implements `ew_derive::ReportPagesProvider`; `ew-api`'s `Session`
   installs it on every `Q`, so `page_order` includes the generated pages and settles the TOC page count.
   `tag_class_members()` (`TagClassMembers`, Memo, `render.rs`) groups the tagged devices per tag class once per
   `Q` for the tag-range compression. A row source that reaches the page order from inside the pagination is a

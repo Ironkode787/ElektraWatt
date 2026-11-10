@@ -34,7 +34,6 @@ use ew_ids::Id;
 use ew_schema::{Channel, Device, Endpoint, Function};
 
 use crate::Q;
-use crate::heap::HeapBytes;
 use crate::index::{Index, touched_rows};
 use crate::query::{Changes, Policy, Query};
 
@@ -59,10 +58,7 @@ impl<K: Ord + Clone> Default for ChannelKeyed<K> {
 
 impl<K: Ord + Clone> ChannelKeyed<K> {
     /// Sets the key of a channel (`None`: it has none); an equal key changes nothing.
-    fn set(&mut self, id: Id<Channel>, key: Option<K>)
-    where
-        K: HeapBytes,
-    {
+    fn set(&mut self, id: Id<Channel>, key: Option<K>) {
         if self.of.get(&id) == key.as_ref() {
             return;
         }
@@ -83,12 +79,6 @@ impl<K: Ord + Clone> ChannelKeyed<K> {
     /// Whether no channel has a key.
     pub fn is_empty(&self) -> bool {
         self.of.is_empty()
-    }
-}
-
-impl<K: Ord + Clone + HeapBytes> HeapBytes for ChannelKeyed<K> {
-    fn heap_bytes(&self) -> usize {
-        self.of.heap_bytes() + self.by_key.heap_bytes()
     }
 }
 
@@ -163,7 +153,7 @@ impl ChannelKeyed<(Id<Function>, u16)> {
 /// Cold (no previous value, or no touched list) it reads the table whole. Incremental it re-selects the touched
 /// channels from `previous` and re-reads the table's stamp, the dependency the cold run recorded; the
 /// dependencies carried from the previous execution are dropped first (as `index::table_index` does).
-fn keyed_index<K: Ord + Clone + HeapBytes>(
+fn keyed_index<K: Ord + Clone>(
     q: &Q,
     previous: Option<(&ChannelKeyed<K>, Changes<'_>)>,
     select: impl Fn(&Channel) -> Option<K>,
@@ -196,10 +186,6 @@ impl Query for ChannelsByModule {
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
 
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
-
     fn run(q: &Q, _: &()) -> Arc<Self::Value> {
         Self::run_incremental(q, &(), None)
     }
@@ -226,10 +212,6 @@ impl Query for ModuleChannelIds {
     const FAMILY: &'static str = "module_channel_ids";
     const POLICY: Policy = Policy::Memo;
 
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
-
     fn run(q: &Q, key: &Id<Device>) -> Arc<Self::Value> {
         Arc::new(q.get_value_part::<ChannelsByModule>(()).of_module(*key))
     }
@@ -245,10 +227,6 @@ impl Query for ChannelsByCp {
     const FAMILY: &'static str = "channels_by_cp";
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<Self::Value> {
         Self::run_incremental(q, &(), None)

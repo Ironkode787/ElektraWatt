@@ -5,8 +5,6 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::arith;
-
 /// An angle in units of 10⁻³ degree (ADR-0005 amendment 1), used **only** by free texts and graphics (QET
 /// free texts, DXF `INSERT` and `TEXT`). Symbol representations use [`Orient2`](crate::Orient2).
 ///
@@ -19,7 +17,6 @@ use crate::arith;
 /// use ew_units::Angle2;
 ///
 /// assert_eq!(Angle2(-90_000).normalized(), Angle2(270_000));
-/// assert_eq!(Angle2::from_degrees_f64(45.0), Some(Angle2(45_000)));
 /// assert_eq!(serde_json::to_string(&Angle2(45_000)).unwrap(), "45000");
 /// ```
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default, Serialize, Deserialize)]
@@ -29,8 +26,6 @@ pub struct Angle2(pub i32);
 impl Angle2 {
     /// Zero.
     pub const ZERO: Angle2 = Angle2(0);
-    /// One full turn, 360°.
-    pub const FULL_TURN: Angle2 = Angle2(360_000);
 
     /// Whether the angle is 0 (omitted in JSON). An angle of 360° is not zero; normalise first if that
     /// matters.
@@ -41,28 +36,6 @@ impl Angle2 {
     /// The same direction in `[0°, 360°)`, i.e. `[0, 360_000)`.
     pub const fn normalized(self) -> Angle2 {
         Angle2(self.0.rem_euclid(360_000))
-    }
-
-    /// Boundary helper: `degrees` in 10⁻³ degree, rounded to the nearest unit with exact ties **toward
-    /// zero**; `None` for NaN, infinities and results outside the `i32` range. The product
-    /// `degrees × 1000` is formed in f64 (one rounding) before rounding to an integer.
-    ///
-    /// ```
-    /// use ew_units::Angle2;
-    ///
-    /// // 0.0625° = 62.5 units exactly: the tie goes toward zero.
-    /// assert_eq!(Angle2::from_degrees_f64(0.0625), Some(Angle2(62)));
-    /// assert_eq!(Angle2::from_degrees_f64(-0.0625), Some(Angle2(-62)));
-    /// ```
-    pub fn from_degrees_f64(degrees: f64) -> Option<Angle2> {
-        arith::f64_to_i64(degrees * 1e3)
-            .and_then(|v| i32::try_from(v).ok())
-            .map(Angle2)
-    }
-
-    /// Boundary helper: the angle in degrees as f64.
-    pub fn to_degrees_f64(self) -> f64 {
-        f64::from(self.0) / 1e3
     }
 }
 
@@ -82,20 +55,6 @@ mod tests {
             Angle2(i32::MIN.rem_euclid(360_000))
         );
         assert!(Angle2::default().is_zero());
-        assert!(!Angle2::FULL_TURN.is_zero());
-    }
-
-    #[test]
-    fn f64_boundary_rounding() {
-        assert_eq!(Angle2::from_degrees_f64(0.0625), Some(Angle2(62)));
-        assert_eq!(Angle2::from_degrees_f64(-0.0625), Some(Angle2(-62)));
-        assert_eq!(Angle2::from_degrees_f64(0.1875), Some(Angle2(187))); // 187.5 → 187
-        assert_eq!(Angle2::from_degrees_f64(0.0007), Some(Angle2(1)));
-        assert_eq!(Angle2::from_degrees_f64(-12.3456), Some(Angle2(-12_346)));
-        assert_eq!(Angle2::from_degrees_f64(f64::NAN), None);
-        assert_eq!(Angle2::from_degrees_f64(f64::NEG_INFINITY), None);
-        assert_eq!(Angle2::from_degrees_f64(3e6), None);
-        assert_eq!(Angle2(-90_500).to_degrees_f64(), -90.5);
     }
 
     #[test]
@@ -119,11 +78,6 @@ mod tests {
             let n = Angle2(v).normalized().0;
             prop_assert!((0..360_000).contains(&n));
             prop_assert_eq!((i64::from(v) - i64::from(n)) % 360_000, 0);
-        }
-
-        #[test]
-        fn degrees_round_trip(v in any::<i32>()) {
-            prop_assert_eq!(Angle2::from_degrees_f64(Angle2(v).to_degrees_f64()), Some(Angle2(v)));
         }
     }
 }

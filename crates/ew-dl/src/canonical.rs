@@ -60,25 +60,6 @@ use crate::{
 /// bytes puts it in the digest's prefix.
 pub const CANONICAL_VERSION: u32 = 1;
 
-/// The canonical bytes of `list` (see the [module documentation](self)): [`Canonical::display_list`] alone.
-///
-/// ```
-/// use ew_dl::{DisplayList, Item, Path, canonical_bytes};
-/// use ew_dl::ew_units::{Nm, Pt2};
-///
-/// assert_eq!(canonical_bytes(&DisplayList::new()), 0u64.to_le_bytes());
-/// let line = |x| DisplayList {
-///     items: vec![Item::path(Path::line(Pt2::new(Nm(0), Nm(0)), Pt2::new(Nm(x), Nm(0))), None, None)],
-/// };
-/// assert_eq!(canonical_bytes(&line(5)), canonical_bytes(&line(5)));
-/// assert_ne!(canonical_bytes(&line(5)), canonical_bytes(&line(6)));
-/// ```
-pub fn canonical_bytes(list: &DisplayList) -> Vec<u8> {
-    let mut c = Canonical::new();
-    c.display_list(list);
-    c.into_bytes()
-}
-
 /// A writer of the canonical encoding (see the [module documentation](self)): display lists, symbol geometry
 /// maps and the primitive values a caller appends of its own (the title-block values of a page digest), all in
 /// one byte stream.
@@ -365,6 +346,12 @@ mod tests {
 
     fn p(x: i64, y: i64) -> Pt2 {
         Pt2::new(Nm(x), Nm(y))
+    }
+
+    fn canonical_bytes(list: &DisplayList) -> Vec<u8> {
+        let mut c = Canonical::new();
+        c.display_list(list);
+        c.into_bytes()
     }
 
     fn hex(b: &[u8]) -> String {

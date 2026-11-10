@@ -96,7 +96,7 @@ struct Work {
 impl Work {
     /// Removes the component `key`; its members join the frontier.
     fn remove(&mut self, key: EndpointKey) {
-        let Some(comp) = self.p.remove_comp(&key) else {
+        let Some(comp) = self.p.comps.remove(&key) else {
             return;
         };
         let pid = comp.potential.as_ref().map(|p| p.id);
@@ -611,7 +611,7 @@ pub(crate) fn update(q: &Q, prev: &Partition, changes: Changes<'_>) -> Option<(P
             w.p.by_id.insert(p.id, key);
             added.insert(p.id, Arc::clone(&comp));
         }
-        w.p.insert_comp(key, comp);
+        w.p.comps.insert(key, comp);
     }
     // The links of the functions with a CP in the graph.
     let mut unlinked: Vec<Id<Function>> = Vec::new();
@@ -668,7 +668,7 @@ pub(crate) fn update(q: &Q, prev: &Partition, changes: Changes<'_>) -> Option<(P
         }
     }
     parts.extend(crate::potentials::bond_parts(&w.p.bonds, &bonds));
-    w.p.set_bonds(bonds);
+    w.p.bonds = bonds;
     Some((w.p, parts))
 }
 
@@ -678,12 +678,12 @@ mod tests {
     #![allow(clippy::disallowed_methods)]
 
     use ew_model::{AnyKey, AnyRow, Model, Op};
-    use ew_schema::{Connection, Page};
+    use ew_schema::Page;
     use serde_json::{Value, json};
 
     use crate::memo_keys::test_common::{Fx, uid};
-    use crate::potentials::{ENTRY_BYTES, PotentialPartition};
-    use crate::{MemoStore, Q, Query};
+    use crate::potentials::PotentialPartition;
+    use crate::{MemoStore, Q};
 
     const FN: u128 = 0x500;
     const SYM: u128 = 0x510;
@@ -727,27 +727,17 @@ mod tests {
         AnyRow::of(serde_json::from_value::<T>(v).expect("the row parses"))
     }
 
-    /// Applies `op` to `model`, advances `store` and reads the partition through it; returns the new model and
-    /// the components whose bytes the advance and the memoised read counted.
-    fn step(store: &MemoStore, model: &Model, op: Op) -> (Model, usize) {
+    /// Applies `op` to `model`, advances `store` and reads the partition through it; returns the new model.
+    fn step(store: &MemoStore, model: &Model, op: Op) -> Model {
         let keys: Vec<AnyKey> = vec![op.key()];
         let after = model
             .apply_unchecked(&[op], model.rev().next())
             .expect("the op applies");
-        let before = ENTRY_BYTES.with(std::cell::Cell::get);
         store.advance(&after, &keys);
         let memo = store.query().get::<PotentialPartition>(());
-        let counted = ENTRY_BYTES.with(std::cell::Cell::get) - before;
         let cold = Q::new(&after).get::<PotentialPartition>(());
         assert_eq!(*memo, *cold, "the memoised partition equals the cold one");
-        let ((running, walked), bytes) = (memo.counts(), PotentialPartition::bytes(&memo));
-        assert_eq!(running, walked, "the running byte counts are kept");
-        assert_eq!(
-            bytes,
-            PotentialPartition::bytes(&cold),
-            "the estimate is the cold one's"
-        );
-        (after, counted)
+        after
     }
 
     fn partition_deps(store: &MemoStore) -> usize {
@@ -756,29 +746,6 @@ mod tests {
             .iter()
             .find(|m| m.family == "potential_partition")
             .map_or(0, |m| m.dep_entries)
-    }
-
-    /// Review cycle 10, finding 2: an incremental commit counts the bytes of the components it rebuilt, not of
-    /// every component (the partition's byte count is a running estimate).
-    #[test]
-    fn an_incremental_commit_counts_only_the_rebuilt_components() {
-        let m0 = fixture();
-        let store = MemoStore::new(&m0);
-        let part = store.query().get::<PotentialPartition>(());
-        assert_eq!(part.potential_count(), usize::try_from(PAIRS).expect("small"));
-        let components = part.components().count();
-        // A wire joining two potentials: one component rebuilt.
-        let join = Op::insert(row::<Connection>(wire(0x3100, F0 + 1, F0 + 3)));
-        let (_, counted) = step(&store, &m0, join);
-        assert_eq!(
-            store.commit_stats().family("potential_partition").incremental,
-            1,
-            "the hook ran"
-        );
-        assert!(
-            (1..=2).contains(&counted),
-            "{counted} components counted for a join, of {components}"
-        );
     }
 
     /// Review cycle 10, finding 3: a page added and deleted again leaves no dependency of the partition, no
@@ -801,8 +768,8 @@ mod tests {
                 "id": uid(id), "folio": {"number": 2}, "kind": "multi_line",
                 "title": {"en": "page 2"}, "grid": {"num": 4_000_000, "den": 1},
             }));
-            model = step(&store, &model, Op::insert(page.clone())).0;
-            model = step(&store, &model, Op::delete(page)).0;
+            model = step(&store, &model, Op::insert(page.clone()));
+            model = step(&store, &model, Op::delete(page));
         }
         let nets = store
             .memory()

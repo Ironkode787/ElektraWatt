@@ -102,9 +102,6 @@ pub enum Library {}
 #[derive(Debug)]
 pub enum LibItem {}
 
-/// The project's view of a catalogue part (doc 03 §7).
-pub type PartCopy = LibCopy<Part>;
-
 /// Provenance of a library item (doc 07 §2.1, §2.5). The item's semantic version is the copy metadata
 /// `version` of the [`LibCopy`] and is stored once, there.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
@@ -1117,7 +1114,7 @@ impl FnFlags {
 // ---------------------------------------------------------------------------------------------------------
 // Part
 
-/// A catalogue part (doc 07 §2.5), library item kind `part`; embedded as a [`PartCopy`].
+/// A catalogue part (doc 07 §2.5), library item kind `part`; embedded as a [`LibCopy`]`<`[`Part`]`>`.
 ///
 /// The typed members follow doc 07 §2.5's order (WP-S1.19 D2): a copy's `sha256` is taken over the item's
 /// compact JSON in declaration order, so the order is fixed once, before the first format release, including the

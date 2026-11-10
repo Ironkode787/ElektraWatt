@@ -75,7 +75,7 @@ impl ModelDiff {
     }
 
     /// The summary of a batch of ops: per key, the first op's `before` against the last op's `after` (a
-    /// batch may put a key more than once, as a coalesced history step does). O(ops), independent of the
+    /// batch may put a key more than once). O(ops), independent of the
     /// model's size.
     pub fn of_ops(ops: &[Op]) -> Result<ModelDiff, CmdError> {
         let mut ends: BTreeMap<AnyKey, (Option<&AnyRow>, Option<&AnyRow>)> = BTreeMap::new();

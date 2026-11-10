@@ -5,8 +5,7 @@
 
 #[path = "../common/mod.rs"]
 mod common;
-// The golden fixture of `golden` and `value_bytes` (they import it as `golden`; the name is taken by the module
-// `golden`).
+// The golden fixture of `golden` (it imports it as `golden`; the name is taken by the module `golden`).
 #[path = "../common/golden.rs"]
 mod golden_fixture;
 

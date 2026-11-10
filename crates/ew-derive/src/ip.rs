@@ -25,7 +25,6 @@ use ew_rds::Aspect;
 use ew_schema::{Function, FunctionKind, IpDirection, IpPairingMode, IpPairingScope, IpSpec, Page};
 use ew_schema::{Representation, StructureNode};
 
-use crate::heap::HeapBytes;
 use crate::index::{Index, IpFunctions};
 use crate::memo_keys::PartKey;
 use crate::nets::{CpRef, ip_cp};
@@ -87,12 +86,6 @@ impl IpFnInfo {
     }
 }
 
-impl HeapBytes for IpFnInfo {
-    fn heap_bytes(&self) -> usize {
-        self.spec.as_ref().map_or(0, |s| s.name.as_str().len()) + self.notes.heap_bytes()
-    }
-}
-
 /// The mode and scope aspect of the project's `ip_pairing` setting (absent: star mode, project scope).
 fn pairing_setting(q: &Q) -> (PairMode, Option<Aspect>) {
     match crate::settings::ip_pairing(q) {
@@ -121,10 +114,6 @@ impl Query for IpInfoOf {
     type Value = IpFnInfo;
     const FAMILY: &'static str = "ip_info";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, fid: &Id<Function>) -> Arc<IpFnInfo> {
         let fid = *fid;
@@ -205,9 +194,6 @@ pub struct IpPairing {
     infos: BTreeMap<Id<Function>, Arc<IpFnInfo>>,
     /// The function index read.
     fns: Arc<Index<Id<Function>, IpSpec>>,
-    /// The heap bytes, counted once when the pairing is built (a pairing is built whole; review cycle 10,
-    /// finding 2).
-    heap: usize,
 }
 
 impl PartialEq for IpPairing {
@@ -251,25 +237,6 @@ impl IpPairing {
         let mut info = info.clone();
         info.group = None;
         Some((info, self.partners(ip), self.group_of(ip)))
-    }
-}
-
-impl IpPairing {
-    /// The heap bytes by a walk of the value (once, when it is built).
-    fn walk_heap(&self) -> usize {
-        self.ips.heap_bytes()
-            + self.groups.heap_bytes()
-            + self.notes.heap_bytes()
-            + self.partners.heap_bytes()
-            + self.at.len() * (std::mem::size_of::<CpRef>() + std::mem::size_of::<Id<Function>>())
-            + self.infos.len() * (std::mem::size_of::<Id<Function>>() + std::mem::size_of::<usize>())
-    }
-}
-
-impl HeapBytes for IpPairing {
-    /// Counted when the pairing was built: O(1).
-    fn heap_bytes(&self) -> usize {
-        self.heap
     }
 }
 
@@ -420,7 +387,7 @@ fn pair(q: &Q) -> IpPairing {
         list.sort();
         list.dedup();
     }
-    let mut pairing = IpPairing {
+    IpPairing {
         ips,
         groups: out_groups,
         notes,
@@ -428,10 +395,7 @@ fn pair(q: &Q) -> IpPairing {
         at,
         infos,
         fns,
-        heap: 0,
-    };
-    pairing.heap = pairing.walk_heap();
-    pairing
+    }
 }
 
 /// `ip_pairing()`: every interruption point and its pairing (see the module documentation). Policy Memo,
@@ -446,10 +410,6 @@ impl Query for IpPairingQ {
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
     const PRODUCER: bool = true;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<IpPairing> {
         Arc::new(pair(q))
@@ -504,10 +464,6 @@ impl Query for IpNotes {
     type Value = Vec<DeriveNote>;
     const FAMILY: &'static str = "ip_notes";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<Vec<DeriveNote>> {
         let notes = q.get::<IpPairingQ>(()).notes.clone();

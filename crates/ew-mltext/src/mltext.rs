@@ -16,9 +16,7 @@ use crate::{LangTag, TextError, is_nfc, to_nfc};
 /// [`LangTag`], never both (ADR-0005, FR-I18N-001). This is EPLAN's `MultiLangString` semantics.
 ///
 /// - Setting a neutral text removes all language strings ([`set_neutral`](MlText::set_neutral)).
-/// - Adding a language string removes the neutral text ([`set_lang`](MlText::set_lang)); to keep it as
-///   the source-language string, call [`promote_neutral`](MlText::promote_neutral) first, which is what
-///   the "keep the neutral text?" prompt of FR-I18N-001 does.
+/// - Adding a language string removes the neutral text ([`set_lang`](MlText::set_lang)).
 /// - The display language is a query key ([`text_for`](MlText::text_for)); rendered text is never stored.
 ///
 /// # Invariants
@@ -41,8 +39,7 @@ use crate::{LangTag, TextError, is_nfc, to_nfc};
 /// let en: LangTag = "en-GB".parse().unwrap();
 /// let nl: LangTag = "nl-NL".parse().unwrap();
 ///
-/// let mut t = MlText::neutral("Power Supply 1");
-/// t.promote_neutral(&en);
+/// let mut t = MlText::with_lang(en.clone(), "Power Supply 1");
 /// t.set_lang(nl.clone(), "Voeding 1");
 /// assert_eq!(t.text_for(&nl), Some("Voeding 1"));
 /// assert_eq!(
@@ -196,17 +193,6 @@ impl MlText {
         }
         removed
     }
-
-    /// Turns non-empty neutral text into the string of language `tag` (the project's source language,
-    /// FR-I18N-003). Empty neutral text and language sets are left unchanged.
-    pub fn promote_neutral(&mut self, tag: &LangTag) {
-        if let Repr::Neutral(s) = &mut self.0 {
-            if !s.is_empty() {
-                let text = std::mem::take(s);
-                self.0 = Repr::Langs(BTreeMap::from([(tag.clone(), text)]));
-            }
-        }
-    }
 }
 
 impl Serialize for MlText {
@@ -299,25 +285,6 @@ mod tests {
         assert_eq!(t.languages().count(), 0);
         assert_eq!(t.as_neutral(), Some("PSU"));
         assert_eq!(t.get(&tag("nl-NL")), None);
-    }
-
-    #[test]
-    fn promote_keeps_the_source_text() {
-        let mut t = MlText::neutral("Power Supply");
-        t.promote_neutral(&tag("en-GB"));
-        t.set_lang(tag("nl-NL"), "Voeding");
-        assert_eq!(t.get(&tag("en-GB")), Some("Power Supply"));
-        assert_eq!(
-            t.languages().map(LangTag::as_str).collect::<Vec<_>>(),
-            ["en-GB", "nl-NL"]
-        );
-        // Promoting empty neutral text or a language set changes nothing.
-        let mut e = MlText::new();
-        e.promote_neutral(&tag("en-GB"));
-        assert!(e.is_empty());
-        let before = t.clone();
-        t.promote_neutral(&tag("de-DE"));
-        assert_eq!(t, before);
     }
 
     #[test]
@@ -428,14 +395,13 @@ mod tests {
 
         /// Any sequence of edits keeps the invariants and never holds both forms.
         #[test]
-        fn edits_keep_invariants(ops in proptest::collection::vec((0u8..4, arb_tag(), "[a-z]{0,3}"), 0..20)) {
+        fn edits_keep_invariants(ops in proptest::collection::vec((0u8..3, arb_tag(), "[a-z]{0,3}"), 0..20)) {
             let mut t = MlText::new();
             for (op, tg, text) in ops {
                 match op {
                     0 => t.set_neutral(&text),
                     1 => t.set_lang(tg, &text),
-                    2 => { t.remove_lang(&tg); }
-                    _ => t.promote_neutral(&tg),
+                    _ => { t.remove_lang(&tg); }
                 }
                 match t.view() {
                     MlTextView::Neutral(_) => prop_assert_eq!(t.languages().count(), 0),

@@ -121,10 +121,6 @@ impl Query for RepStructureBox {
     const FAMILY: &'static str = "rep_structure_box";
     const POLICY: Policy = Policy::Memo;
 
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
-
     fn run(q: &Q, key: &Id<Representation>) -> Arc<Option<Id<StructureBox>>> {
         let Some(rep) = q.reps().get(*key) else {
             return Arc::new(None);
@@ -176,21 +172,6 @@ impl Query for IpStructure {
     type Value = ResolvedStructure;
     const FAMILY: &'static str = "ip_structure";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        std::mem::size_of::<ResolvedStructure>()
-            + value
-                .slots
-                .values()
-                .map(|s| {
-                    std::mem::size_of::<(ew_rds::Aspect, ResolvedSlot)>()
-                        + s.codes
-                            .iter()
-                            .map(|c| std::mem::size_of::<String>() + c.len())
-                            .sum::<usize>()
-                })
-                .sum::<usize>()
-    }
 
     fn run(q: &Q, key: &Id<Function>) -> Arc<ResolvedStructure> {
         let is_ip = q

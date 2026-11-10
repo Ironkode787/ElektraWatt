@@ -12,7 +12,7 @@
 //! project settings yet).
 //!
 //! Tests:
-//! - `memo_equals_cold_over_every_state` (`MemoMode::On`): at every state every `Memo`/`MemoLru` family of
+//! - `memo_equals_cold_over_every_state` (`MemoMode::On`): at every state every `Memo` family of
 //!   `ew_derive::FAMILIES` (`potential_flow` is a cold lookup, decision log ID-221), `ew_reports::FAMILIES` and
 //!   `ew_api::output::FAMILIES` (the page views and the page display list of every layer) is read for every key of
 //!   the snapshot through a memoising `Q` and through `Session::query_over`; the values are equal, so are the
@@ -613,7 +613,7 @@ fn assert_family_list() {
         .iter()
         .chain(ew_reports::FAMILIES)
         .chain(ew_api::output::FAMILIES)
-        .filter(|(_, p)| matches!(p, Policy::Memo | Policy::MemoLru))
+        .filter(|(_, p)| matches!(p, Policy::Memo))
         .map(|(n, _)| *n)
         .collect();
     memoised.sort_unstable();

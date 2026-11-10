@@ -33,7 +33,6 @@ use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 
 use ew_derive::Q;
 use ew_derive::StructureOf;
-use ew_derive::StructurePath;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_rds::Aspect;
@@ -51,7 +50,7 @@ use ew_derive::part_confidence;
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
-use crate::rules::term::full_tag;
+use crate::rules::term::{full_tag, location_text};
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared helpers
@@ -100,15 +99,6 @@ fn profile_text(kind: &MountKind) -> String {
         Some(Profile::Ts15) => "TS 15".to_owned(),
         None => "an unknown profile".to_owned(),
     }
-}
-
-/// A location as a designation prints it: `+` and its path's codes (`+J-E-2416`).
-fn location_text(q: &Q, node: Id<StructureNode>) -> String {
-    let path = q.get::<StructurePath>(node);
-    if path.codes.is_empty() {
-        return "a location".to_owned();
-    }
-    format!("+{}", path.codes.join("+"))
 }
 
 /// The device's own location node (its resolved `+` aspect); `None` without one or on a structure cycle.

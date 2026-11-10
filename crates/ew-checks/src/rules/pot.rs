@@ -24,14 +24,14 @@ use ew_derive::ew_units::Dec3;
 use ew_derive::{
     BondCarrierQ, ConnWireProps, CpRef, DeriveNote, DeviceTag, DrawnPageOrder, EndKind, EndpointKey, FlowBfs,
     FunctionCps, FunctionLinksOf, PageRef, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow,
-    PotentialId, PotentialNameOf, PotentialPartition, Q, RailLocation, RailTerminalOf, StructurePath,
-    WireNumbers, bonds_of_potential, colour_text, cp_label, cp_text, csa_text, device_location,
-    potential_id_at, potential_part, ranked_defs, wire_props_below_overrides,
+    PotentialId, PotentialNameOf, PotentialPartition, Q, RailLocation, RailTerminalOf, WireNumbers,
+    bonds_of_potential, colour_text, cp_label, cp_text, csa_text, device_location, potential_id_at,
+    potential_part, ranked_defs, wire_props_below_overrides,
 };
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
-use crate::rules::term::full_tag;
+use crate::rules::term::{full_tag, location_text};
 
 /// A CP as a finding's sentence names it (FT-756, ID-889): a designation the function shares between pins carries
 /// its position in words, "-1A4 pin − (2nd)", never the label's `#2`; any other CP is named by its label. The parts
@@ -1359,15 +1359,6 @@ fn pe_islands(q: &Q) -> Vec<Finding> {
         );
     }
     out
-}
-
-/// A location as a designation prints it: `+` and its path's codes (`+J-E-2416`).
-fn location_text(q: &Q, node: Id<StructureNode>) -> String {
-    let path = q.get::<StructurePath>(node);
-    if path.codes.is_empty() {
-        return "a location".to_owned();
-    }
-    format!("+{}", path.codes.join("+"))
 }
 
 // ---------------------------------------------------------------------------------------------------------

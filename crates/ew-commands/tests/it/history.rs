@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The undo stack (ADR-0008, ARCH §5.3): coalescing, contexts, bounds, the saved marker, the redo branch
+//! The undo stack (ADR-0008, ARCH §5.3): bounds, the saved marker, the redo branch
 //! and marker lines, through the engine and directly on `History`.
 
 use crate::common;
@@ -10,11 +10,10 @@ use common::fixture::*;
 use common::*;
 use ew_commands::commands::MoveReps;
 use ew_commands::{
-    AnyCommand, CmdError, Engine, Exposure, History, HistoryLimits, Origin, Submit, Transaction, TxContext,
+    AnyCommand, CmdError, Engine, Exposure, History, HistoryLimits, Origin, Transaction,
 };
 use ew_model::Op;
 use ew_model::Rev;
-use ew_schema::Kind;
 
 /// `rep.move` of `REP_102F2` by `dx` millimetres times ten.
 fn mv(dx: i64) -> MoveReps {
@@ -29,97 +28,10 @@ fn mv(dx: i64) -> MoveReps {
     }
 }
 
-fn drag(e: &mut Engine, dx: i64, key: &str) {
-    e.execute_with(&mv(dx), Submit::default().coalescing(key))
-        .expect("rep.move");
-}
-
 fn moves(e: &mut Engine, n: i64) {
     for i in 1..=n {
         e.execute(&mv(i)).expect("rep.move");
     }
-}
-
-#[test]
-fn a_drag_coalesces_into_one_step() {
-    let mut e = engine(golden_model());
-    let original = lines(e.model());
-    drag(&mut e, 1, "drag-1");
-    drag(&mut e, 2, "drag-1");
-    assert_eq!(e.history().entries().len(), 1);
-    assert_eq!(e.history().entries()[0].merged(), 1);
-    assert_ne!(lines(e.model()), original);
-    e.undo(&Origin::Gui).expect("one undo");
-    assert_eq!(lines(e.model()), original);
-    assert!(!e.is_dirty());
-    assert!(!e.history().can_undo());
-    e.redo(&Origin::Gui).expect("redo");
-    e.undo(&Origin::Gui).expect("undo again");
-    assert_eq!(lines(e.model()), original);
-}
-
-#[test]
-fn another_key_or_no_key_does_not_coalesce() {
-    let mut e = engine(golden_model());
-    drag(&mut e, 1, "drag-1");
-    drag(&mut e, 2, "drag-2");
-    assert_eq!(e.history().entries().len(), 2);
-    assert!(e.history().entries().iter().all(|h| h.merged() == 0));
-
-    let mut e = engine(golden_model());
-    e.execute(&mv(1)).unwrap();
-    e.execute(&mv(2)).unwrap();
-    assert_eq!(e.history().entries().len(), 2);
-
-    // A keyed step after an unkeyed one starts its own step, and the next keyed one joins it.
-    let mut e = engine(golden_model());
-    e.execute(&mv(1)).unwrap();
-    drag(&mut e, 2, "drag-1");
-    drag(&mut e, 3, "drag-1");
-    assert_eq!(e.history().entries().len(), 2);
-    assert_eq!(e.history().entries()[1].merged(), 1);
-}
-
-#[test]
-fn a_coalesced_step_after_a_save_makes_the_model_dirty_again() {
-    let mut e = engine(golden_model());
-    drag(&mut e, 1, "drag-1");
-    e.mark_saved();
-    assert!(!e.is_dirty());
-    drag(&mut e, 2, "drag-1");
-    assert_eq!(e.history().entries().len(), 1);
-    assert!(e.is_dirty());
-    e.undo(&Origin::Gui).unwrap();
-    assert!(
-        e.is_dirty(),
-        "the saved state was merged away; the original is not it"
-    );
-}
-
-#[test]
-fn undo_returns_the_context_of_the_first_submission() {
-    let first = TxContext {
-        page: Some(PAGE_102),
-        selection: vec![(Kind::Representation, REP_102F2.cast())],
-        ..TxContext::default()
-    };
-    let second = TxContext {
-        page: Some(PAGE_101),
-        ..TxContext::default()
-    };
-    let mut e = engine(golden_model());
-    let submit = |context: &TxContext| Submit {
-        context: context.clone(),
-        ..Submit::default().coalescing("drag-1")
-    };
-    e.execute_with(&mv(1), submit(&first)).unwrap();
-    e.execute_with(&mv(2), submit(&second)).unwrap();
-    assert_eq!(e.history().entries().len(), 1);
-    let undone = e.undo(&Origin::Gui).unwrap();
-    assert_eq!(undone.context, first);
-    assert_eq!(undone.label, "rep.move");
-    let redone = e.redo(&Origin::Gui).unwrap();
-    assert_eq!(redone.context, first);
 }
 
 #[test]
@@ -248,25 +160,21 @@ fn a_failed_command_leaves_the_history_alone() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-404: a coalesced step records the strictest exposure of its parts
+// FT-404: a step records the exposure of its command
 
 #[test]
-fn a_coalesced_step_takes_the_strictest_exposure_of_its_parts() {
+fn a_step_records_the_exposure_of_its_command() {
     let checks = AnyCommand {
         name: "project.checks.set".into(),
         params: serde_json::json!({"release_scheme": "full"}),
     };
     let script = Origin::Script { name: "drag".into() };
-    // An `Edit` drag, then a `HumanOnly` command under the same key: one step, `HumanOnly`.
+    // An `Edit` step below is still the script's to undo once the GUI took the `HumanOnly` one back.
     let mut e = engine(golden_model());
-    drag(&mut e, 1, "k");
+    e.execute(&mv(1)).unwrap();
     assert_eq!(e.history().entries()[0].exposure(), Exposure::Edit);
-    e.execute_with(&checks, Submit::default().coalescing("k"))
-        .expect("checks");
-    drag(&mut e, 2, "k");
-    let entries = e.history().entries();
-    assert_eq!((entries.len(), entries[0].merged()), (1, 2));
-    assert_eq!(entries[0].exposure(), Exposure::HumanOnly);
+    e.execute(&checks).expect("checks");
+    assert_eq!(e.history().entries()[1].exposure(), Exposure::HumanOnly);
     assert!(matches!(
         e.undo(&script),
         Err(CmdError::Exposure {
@@ -274,23 +182,9 @@ fn a_coalesced_step_takes_the_strictest_exposure_of_its_parts() {
             ..
         })
     ));
-    e.undo(&Origin::Gui).expect("the GUI undoes the merged step");
-    assert!(matches!(e.redo(&script), Err(CmdError::Exposure { .. })));
-    // The `HumanOnly` command first: the later `Edit` drags do not relax the step.
-    let mut e = engine(golden_model());
-    e.execute_with(&checks, Submit::default().coalescing("k"))
-        .expect("checks");
-    drag(&mut e, 1, "k");
-    assert_eq!(e.history().entries().len(), 1);
-    assert_eq!(e.history().entries()[0].exposure(), Exposure::HumanOnly);
-    assert!(e.undo(&script).is_err());
-    // An `Edit` step below is still the script's to undo once the GUI took the `HumanOnly` one back.
-    let mut e = engine(golden_model());
-    drag(&mut e, 1, "a");
-    e.execute(&checks).expect("checks");
-    assert!(e.undo(&script).is_err());
     e.undo(&Origin::Gui).expect("checks undone");
-    e.undo(&script).expect("the drag is the script's to undo");
+    assert!(matches!(e.redo(&script), Err(CmdError::Exposure { .. })));
+    e.undo(&script).expect("the move is the script's to undo");
 }
 
 /// FT-404 ruling 3: the exposure check applies only to the step being undone or redone; a transparent marker is
@@ -298,7 +192,7 @@ fn a_coalesced_step_takes_the_strictest_exposure_of_its_parts() {
 #[test]
 fn a_transparent_human_only_marker_does_not_block_a_scripted_undo() {
     let mut e = engine(golden_model());
-    drag(&mut e, 1, "a");
+    e.execute(&mv(1)).unwrap();
     let listed = format!("sha256:{}", "ab".repeat(32));
     let p = e
         .preview(&AnyCommand {
@@ -339,8 +233,6 @@ fn tx(label: &str, ops: Vec<Op>, undoable: bool) -> Transaction {
             params: serde_json::json!({}),
         },
         origin: Origin::Gui,
-        context: TxContext::default(),
-        coalesce_key: None,
         undoable,
         exposure: Exposure::Edit,
         label: label.into(),

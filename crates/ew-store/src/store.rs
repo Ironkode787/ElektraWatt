@@ -80,10 +80,6 @@ pub struct StoreOptions {
     /// The OS state directory for the journal; `None`: no journal ("unsaved changes are not
     /// crash-protected", doc 05 §8.1).
     pub state_dir: Option<PathBuf>,
-    /// `lock.stale_after` (doc 05 §7.4).
-    pub stale_after: Duration,
-    /// The reader limits (doc 05 §3.6).
-    pub limits: Limits,
     /// Whether this is a release build (doc 05 §10.1: `unstable` projects open read-only): [`FORMAT`] is among the
     /// released formats (WP-S1.17 D3).
     pub release_build: bool,
@@ -109,7 +105,7 @@ pub struct StoreOptions {
 
 impl StoreOptions {
     /// The production options: `std::fs`, the system clock, the OS probe, this process with a fresh
-    /// session, edit mode, the default state directory, a 60-minute stale age, the default limits.
+    /// session, edit mode and the default state directory.
     pub fn new(app_version: &str) -> StoreOptions {
         StoreOptions {
             vfs: Arc::new(OsVfs),
@@ -118,8 +114,6 @@ impl StoreOptions {
             identity: Identity::current(app_version),
             mode: OpenMode::Edit,
             state_dir: default_state_dir(),
-            stale_after: STALE_AFTER,
-            limits: Limits::default(),
             release_build: RELEASED_FORMATS.contains(&FORMAT),
             migrations: &ew_format::MIGRATIONS,
             released: RELEASED_FORMATS,
@@ -143,7 +137,7 @@ impl StoreOptions {
         let now = self.clock.now();
         // A project whose lock is live is open in another session: its journal is neither pruned nor offered.
         let live = |project: &Path| {
-            let lock = lock::read_lock(vfs, project, now, self.stale_after, &self.identity, &*self.probe);
+            let lock = lock::read_lock(vfs, project, now, STALE_AFTER, &self.identity, &*self.probe);
             matches!(lock, Ok(Some(info)) if !info.stale)
         };
         journal::scan_projects(vfs, state, now, &live)
@@ -888,49 +882,17 @@ impl Store {
     /// [`Store::open`].
     pub fn take_over(root: &Path, opts: StoreOptions) -> Result<Opened, OpenError> {
         let vfs = &*opts.vfs;
-        match lock::take_over(
-            vfs,
-            root,
-            &*opts.clock,
-            opts.stale_after,
-            &opts.identity,
-            &*opts.probe,
-        )
-        .map_err(io_err(root))?
+        match lock::take_over(vfs, root, &*opts.clock, STALE_AFTER, &opts.identity, &*opts.probe)
+            .map_err(io_err(root))?
         {
             Ok(_) => Store::open_inner(root, opts, true),
             Err(e) => Err(OpenError::Takeover(Box::new(e))),
         }
     }
 
-    fn open_inner(root: &Path, opts: StoreOptions, locked: bool) -> Result<Opened, OpenError> {
-        let vfs = Arc::clone(&opts.vfs);
-        match vfs.stat(root) {
-            Ok(s) if s.kind == EntryKind::Dir => {}
-            Ok(_) => return Err(OpenError::NotADirectory(root.to_path_buf())),
-            Err(e) => return Err(io_err(root)(e)),
-        }
-        let mut access = Access::Edit;
-        let mut holds_lock = locked;
-        if opts.mode == OpenMode::ReadOnly {
-            access = Access::ReadOnly(ReadOnlyReason::Requested);
-        } else if !locked {
-            match lock::acquire(
-                &*vfs,
-                root,
-                &*opts.clock,
-                opts.stale_after,
-                &opts.identity,
-                &*opts.probe,
-            )
-            .map_err(io_err(root))?
-            {
-                Acquire::Held => holds_lock = true,
-                Acquire::HeldBy(info) => access = Access::ReadOnly(ReadOnlyReason::LockedBy(Box::new(info))),
-                Acquire::NotWritable(why) => access = Access::ReadOnly(ReadOnlyReason::NotWritable(why)),
-            }
-        }
-        let mut store = Store {
+    /// A store over `root` that has loaded nothing yet.
+    fn blank(root: &Path, opts: StoreOptions, access: Access, holds_lock: bool) -> Store {
+        Store {
             root: root.to_path_buf(),
             opts,
             access,
@@ -960,7 +922,37 @@ impl Store {
             manifest_bytes: None,
             migrated: None,
             watch: None,
-        };
+        }
+    }
+
+    fn open_inner(root: &Path, opts: StoreOptions, locked: bool) -> Result<Opened, OpenError> {
+        let vfs = Arc::clone(&opts.vfs);
+        match vfs.stat(root) {
+            Ok(s) if s.kind == EntryKind::Dir => {}
+            Ok(_) => return Err(OpenError::NotADirectory(root.to_path_buf())),
+            Err(e) => return Err(io_err(root)(e)),
+        }
+        let mut access = Access::Edit;
+        let mut holds_lock = locked;
+        if opts.mode == OpenMode::ReadOnly {
+            access = Access::ReadOnly(ReadOnlyReason::Requested);
+        } else if !locked {
+            match lock::acquire(
+                &*vfs,
+                root,
+                &*opts.clock,
+                STALE_AFTER,
+                &opts.identity,
+                &*opts.probe,
+            )
+            .map_err(io_err(root))?
+            {
+                Acquire::Held => holds_lock = true,
+                Acquire::HeldBy(info) => access = Access::ReadOnly(ReadOnlyReason::LockedBy(Box::new(info))),
+                Acquire::NotWritable(why) => access = Access::ReadOnly(ReadOnlyReason::NotWritable(why)),
+            }
+        }
+        let mut store = Store::blank(root, opts, access, holds_lock);
         // From here on, an error drops `store`, which releases the lock.
         let result = store.load();
         match result {
@@ -1047,7 +1039,7 @@ impl Store {
                         }
                     }
                 }
-                lock::prune_stale_locks(&*vfs, &self.root, self.opts.clock.now(), self.opts.stale_after);
+                lock::prune_stale_locks(&*vfs, &self.root, self.opts.clock.now(), STALE_AFTER);
                 listing = self.walk().map_err(io_err(&self.root))?;
             }
         } else {
@@ -1083,7 +1075,7 @@ impl Store {
         let mut intent = abandoned.and_then(|g| {
             let bytes = vfs.read(&join(&self.root, &format!("{MANIFEST}.tmp-{g}"))).ok()?;
             // A torn intent never committed: generation g on disk is the truth.
-            Manifest::parse(&bytes, &self.opts.limits)
+            Manifest::parse(&bytes, &Limits::default())
                 .ok()
                 .filter(|m| m.generation == g && !m.merged)
         });
@@ -1131,7 +1123,7 @@ impl Store {
             Err(e) => {
                 if let Ok(bytes) = vfs.read(&join(&self.root, MANIFEST)) {
                     self.manifest_hash = Some(sha256(&bytes));
-                    conflicted = Manifest::conflicted_generation(&bytes, &self.opts.limits);
+                    conflicted = Manifest::conflicted_generation(&bytes, &Limits::default());
                 }
                 findings.push(Finding::new(
                     FindingKind::ManifestUnreadable,
@@ -1169,7 +1161,9 @@ impl Store {
                         .map_err(OpenError::Migration)?;
                     self.migrated = Some(Migrated {
                         from: m.format.clone(),
-                        manifest: way.manifest(m, &self.opts.limits).map_err(OpenError::Migration)?,
+                        manifest: way
+                            .manifest(m, &Limits::default())
+                            .map_err(OpenError::Migration)?,
                         confirmed: false,
                     });
                     migration = Some(way);
@@ -1187,7 +1181,7 @@ impl Store {
         }
 
         // Plan, read, parse (doc 05 §6.1, §6.2, §6.3).
-        let limits = self.opts.limits;
+        let limits = Limits::default();
         let plan = ew_format::plan(manifest.as_ref(), &listing, &limits);
         // The files the interrupted save removes are not orphans.
         findings.extend(plan.findings.into_iter().filter(|f| {
@@ -1469,7 +1463,7 @@ impl Store {
             &*self.opts.vfs,
             &self.root,
             self.opts.clock.now(),
-            self.opts.stale_after,
+            STALE_AFTER,
             &self.opts.identity,
             &*self.opts.probe,
         ) {
@@ -1499,7 +1493,7 @@ impl Store {
     fn read_manifest_bytes(&self) -> Result<Option<FoundManifest>, String> {
         let path = join(&self.root, MANIFEST);
         match self.opts.vfs.read(&path) {
-            Ok(bytes) => Manifest::parse(&bytes, &self.opts.limits)
+            Ok(bytes) => Manifest::parse(&bytes, &Limits::default())
                 .map(|m| {
                     let hash = sha256(&bytes);
                     Some((m, hash, bytes))
@@ -1539,7 +1533,7 @@ impl Store {
                     stack.push((path.clone(), depth + 1));
                 }
                 out.insert(path, kind);
-                if out.len() > self.opts.limits.max_files + 64 {
+                if out.len() > Limits::default().max_files + 64 {
                     return Ok(out);
                 }
             }
@@ -1567,7 +1561,7 @@ impl Store {
             Ok(())
         };
         let intent_bytes = vfs.read(&intent_path)?;
-        let intent = match Manifest::parse(&intent_bytes, &self.opts.limits) {
+        let intent = match Manifest::parse(&intent_bytes, &Limits::default()) {
             Ok(m) if m.generation == g && !m.merged => m,
             _ => {
                 delete_temps(self)?;
@@ -1818,7 +1812,7 @@ impl Store {
             &*vfs,
             root,
             &*opts.clock,
-            opts.stale_after,
+            STALE_AFTER,
             &opts.identity,
             &*opts.probe,
         )
@@ -1828,37 +1822,7 @@ impl Store {
             Acquire::HeldBy(info) => Access::ReadOnly(ReadOnlyReason::LockedBy(Box::new(info))),
             Acquire::NotWritable(why) => Access::ReadOnly(ReadOnlyReason::NotWritable(why)),
         };
-        let store = Store {
-            root: root.to_path_buf(),
-            holds_lock: access == Access::Edit,
-            access: access.clone(),
-            opts,
-            base: Model::new(placeholder_project()),
-            generation: 0,
-            manifest: None,
-            manifest_hash: None,
-            keep_format: false,
-            disk: BTreeMap::new(),
-            opaque: BTreeMap::new(),
-            contents: BTreeMap::new(),
-            kept: BTreeMap::new(),
-            untouched: BTreeMap::new(),
-            untouched_docs: BTreeMap::new(),
-            rewrite: BTreeSet::new(),
-            pending: None,
-            pending_removes: Vec::new(),
-            notes: Vec::new(),
-            all_assets: false,
-            quarantined: BTreeSet::new(),
-            broken: BTreeMap::new(),
-            journal: None,
-            leftovers: Vec::new(),
-            recovery: None,
-            closed: false,
-            manifest_bytes: None,
-            migrated: None,
-            watch: None,
-        };
+        let store = Store::blank(root, opts, access.clone(), access == Access::Edit);
         if let Access::ReadOnly(reason) = access {
             return Err(OpenError::Format(format!("cannot create: {reason:?}")));
         }
@@ -2829,7 +2793,7 @@ impl Store {
                 &*vfs,
                 &self.root,
                 &*self.opts.clock,
-                self.opts.stale_after,
+                STALE_AFTER,
                 &self.opts.identity,
                 &*self.opts.probe,
             )

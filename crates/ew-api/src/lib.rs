@@ -239,7 +239,7 @@ pub use transport::{EwzExport, ExportEwzError};
 pub use ew_commands::{
     AnyCommand, Change, ChangeKind, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand,
     EntityChange, History, HistoryLimits, IdSource, ModelDiff, Origin, Preview, Receipt, Restored, Submit,
-    TxContext, World,
+    World,
 };
 /// A command's registered metadata, its cost and its exposure class (WP-S2.05 §4.2): the property grid's guard that
 /// builds only `Edit` commands and its edit policy read them through [`Session::command_meta`].
@@ -280,7 +280,7 @@ pub struct SessionOptions {
 pub enum MemoMode {
     /// Every [`Session::query`] is cold (request-scoped cache only).
     Off,
-    /// The `Memo` and `MemoLru` families are memoised in the session's [`MemoStore`], advanced with push
+    /// The `Memo` families are memoised in the session's [`MemoStore`], advanced with push
     /// invalidation after every commit.
     #[default]
     On,
@@ -931,7 +931,7 @@ impl Session {
         result
     }
 
-    /// [`Session::execute`] with an explicit origin, editor context or coalescing key.
+    /// [`Session::execute`] with an explicit origin.
     pub fn execute_with(&mut self, cmd: &dyn DynCommand, submit: Submit) -> Result<Receipt, CmdError> {
         self.approval_only(cmd.name(), &submit.origin)?;
         let before = self.engine.model().clone();

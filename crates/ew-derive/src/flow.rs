@@ -20,7 +20,6 @@ use ew_schema::{Function, PotentialEnv, PotentialType};
 use ew_units::Dec3;
 
 use crate::Q;
-use crate::heap::HeapBytes;
 use crate::links::DeclaredLink;
 use crate::memo_keys::PartKey;
 use crate::names::{PotentialAttrsOf, PotentialAttrsV, PotentialNameOf};
@@ -104,38 +103,11 @@ pub struct Flow {
     partition: Option<Arc<Partition>>,
     /// The own attributes it read.
     attrs: BTreeMap<PotentialId, Arc<PotentialAttrsV>>,
-    /// The heap bytes, counted once when the BFS ran (it runs whole; review cycle 10, finding 2).
-    heap: usize,
 }
 
 impl PartialEq for Flow {
     fn eq(&self, other: &Flow) -> bool {
         self.entries == other.entries && self.conflicts == other.conflicts
-    }
-}
-
-impl HeapBytes for Flow {
-    /// Counted when the BFS ran: O(1).
-    fn heap_bytes(&self) -> usize {
-        self.heap
-    }
-}
-
-impl Flow {
-    /// The heap bytes by a walk of the value (once, when it is built).
-    fn walk_heap(&self) -> usize {
-        self.entries
-            .values()
-            .map(|e| {
-                std::mem::size_of::<(PotentialId, FlowEntry)>()
-                    + e.ptype.heap_bytes()
-                    + e.voltage.heap_bytes()
-                    + e.env.heap_bytes()
-                    + e.loads.capacity() * std::mem::size_of::<Load>()
-            })
-            .sum::<usize>()
-            + self.conflicts.len() * std::mem::size_of::<FlowConflict>()
-            + self.attrs.len() * 2 * std::mem::size_of::<usize>()
     }
 }
 
@@ -151,10 +123,6 @@ impl Query for FlowBfs {
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
     const PRODUCER: bool = true;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _key: &()) -> Arc<Flow> {
         Arc::new(run_flow(q))
@@ -438,15 +406,12 @@ fn run_flow(q: &Q) -> Flow {
     }
     conflicts.sort();
     conflicts.dedup();
-    let mut flow = Flow {
+    Flow {
         entries,
         conflicts,
         attrs: potentials.iter().copied().zip(attrs).collect(),
         partition: Some(part),
-        heap: 0,
-    };
-    flow.heap = flow.walk_heap();
-    flow
+    }
 }
 
 /// `flow_notes()`: the EW-POT-001 notes of the pass-through conflicts of the flow, naming the two potentials
@@ -460,10 +425,6 @@ impl Query for FlowNotes {
     type Value = Vec<DeriveNote>;
     const FAMILY: &'static str = "flow_notes";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<Vec<DeriveNote>> {
         let flow = q.get::<FlowBfs>(());

@@ -246,16 +246,11 @@ fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
     let _ = Submit::from(Origin::Gui);
 }
 
-/// FT-404: the strictness order of a coalesced step and who may undo or redo a step of each class.
+/// FT-404: who may undo or redo a step of each exposure class.
 #[test]
-fn exposure_strictness_and_the_history_rule() {
+fn the_history_rule_by_exposure_class() {
     use Exposure::{Edit, HumanOnly, Import, Internal};
     let order = [Edit, Import, HumanOnly, Internal];
-    for (i, a) in order.iter().enumerate() {
-        for (j, b) in order.iter().enumerate() {
-            assert_eq!(a.strictest(*b), order[i.max(j)], "{a:?} {b:?}");
-        }
-    }
     let cli = |confirmed| Origin::Cli {
         subcommand: "apply".into(),
         confirmed,

@@ -1618,7 +1618,6 @@ version = "0.1.0"
 dependencies = [
  "imbl",
  "proptest",
- "tracing",
 ]
 
 [[package]]
@@ -1715,7 +1714,6 @@ dependencies = [
  "ew-checks",
  "ew-derive",
  "ew-hack",
- "ew-interop-api",
  "ew-model",
  "ew-zip",
  "proptest",

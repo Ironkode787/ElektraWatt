@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use proptest::prelude::*;
 
-use crate::{Counters, Cx, Cycle, Db, DepKey, Durability, Equivalence, Mismatch, Oracle, Query, Rev, Store};
+use crate::{Counters, Cx, Cycle, Db, Durability, Equivalence, Mismatch, Oracle, Query, Rev, Store};
 
 /// Cells `k -> (value, changed_at, durability)`; `cycle` makes `Cyc` read itself.
 #[derive(Clone, Default)]
@@ -69,7 +69,6 @@ impl Query<Cells> for Sum {
     type Key = u32;
     type Value = i64;
     const NAME: &'static str = "sum";
-    const RDEPS: bool = true;
     fn equivalence() -> Equivalence<i64> {
         Equivalence::by_eq()
     }
@@ -111,29 +110,14 @@ impl Query<Cells> for Label {
     }
 }
 
-/// A bulky value under the LRU, compared by fingerprint: `n` copies of cell `n`.
+/// A vector value: `n` copies of cell `n`.
 struct Bulk;
 impl Query<Cells> for Bulk {
     type Key = u32;
     type Value = Vec<i64>;
     const NAME: &'static str = "bulk";
-    const LRU: bool = true;
     fn equivalence() -> Equivalence<Vec<i64>> {
-        Equivalence::Hash128(|v| {
-            // A deterministic toy fingerprint: 128-bit FNV-1a over the bytes of the elements. (Xor-ing a whole
-            // sign-extended element per round collides, e.g. `[0; 4]` and `[-2; 4]`.)
-            let mut h: u128 = 0x6c62_272e_07bb_0142_62b8_2175_6295_c58d;
-            for x in v {
-                for byte in x.to_le_bytes() {
-                    h ^= u128::from(byte);
-                    h = h.wrapping_mul(0x0000_0000_0100_0000_0000_0000_0000_013b);
-                }
-            }
-            h
-        })
-    }
-    fn bytes(value: &Vec<i64>) -> usize {
-        value.len() * 8
+        Equivalence::by_eq()
     }
     fn execute(cx: &mut Cx<'_, Cells>, key: &u32) -> Result<Vec<i64>, Cycle> {
         let v = *cx.get::<Cell>(key)?;
@@ -321,45 +305,6 @@ fn durability_skips_verification_across_less_durable_changes() {
 }
 
 #[test]
-fn lru_evicts_over_budget_and_keeps_memo_metadata() {
-    let (mut db, mut store) = setup(8);
-    store.set_lru_budget(Some(10 * 8));
-    store.get::<Bulk>(&db, &4).unwrap(); // 32 bytes
-    store.get::<Bulk>(&db, &5).unwrap(); // 40 bytes: 72 in total
-    assert_eq!(store.lru_bytes(), 72);
-    store.get::<Bulk>(&db, &6).unwrap(); // 48 bytes: evicts 4 and 5 (oldest first) to reach 48
-    assert_eq!(store.lru_bytes(), 48);
-    assert_eq!(counters(&store, "bulk").evictions, 2);
-    let info = store.memo_info::<Bulk>(&4).unwrap();
-    assert!(!info.has_value);
-    // Reading the evicted value re-executes; its inputs are unchanged, so changed_at stays.
-    let changed = info.changed_at;
-    db.commit(&mut store, &[(100, 1, Durability::Drawing)]);
-    assert_eq!(*store.get::<Bulk>(&db, &4).unwrap(), vec![5; 4]);
-    let c = counters(&store, "bulk");
-    assert_eq!((c.verifications, c.re_executions, c.cut_offs), (1, 1, 1));
-    assert_eq!(store.memo_info::<Bulk>(&4).unwrap().changed_at, changed);
-    // Unbounded again: nothing more is evicted.
-    store.set_lru_budget(None);
-    store.get::<Bulk>(&db, &5).unwrap();
-    store.get::<Bulk>(&db, &7).unwrap();
-    assert!(store.memory().iter().any(|m| m.family == "bulk" && m.values >= 3));
-}
-
-#[test]
-fn hash_families_cut_off_after_eviction() {
-    let (mut db, mut store) = setup(8);
-    store.set_lru_budget(Some(1));
-    store.get::<Bulk>(&db, &3).unwrap();
-    store.get::<Bulk>(&db, &2).unwrap(); // evicts Bulk(3)
-    // Cell 3 changes to the value it had: the fingerprint matches, so Bulk(3) cuts off.
-    db.commit(&mut store, &[(3, 4, Durability::Drawing)]);
-    store.get::<Bulk>(&db, &3).unwrap();
-    let c = counters(&store, "bulk");
-    assert_eq!((c.re_executions, c.cut_offs), (1, 1));
-}
-
-#[test]
 #[cfg_attr(not(debug_assertions), ignore = "debug builds panic on a cycle")]
 #[should_panic(expected = "ew-memo: query cycle: cyc(1) -> cyc(1)")]
 fn a_cycle_panics_in_debug_builds() {
@@ -381,24 +326,6 @@ fn a_cycle_is_an_error_when_not_panicking() {
     db.commit(&mut store, &[(1000, 0, Durability::Drawing)]);
     assert_eq!(*store.get::<Cyc>(&db, &1).unwrap(), 1);
     assert!(store.cold::<Cyc>(&db, &1).is_ok());
-}
-
-#[test]
-fn reverse_dependencies_indexed_and_scanned_agree() {
-    let (db, store) = setup(6);
-    for n in 0..6 {
-        store.get::<Label>(&db, &n).unwrap();
-    }
-    let cell2 = store.memo_key::<Cell>(&2).unwrap();
-    // Sum is indexed: the sums over 0..n with n > 2 read Cell(2).
-    assert_eq!(store.dependents::<Sum>(&cell2), vec![3, 4, 5]);
-    // Positive is scanned; it reads Sum only.
-    assert_eq!(store.dependents::<Positive>(&cell2), Vec::<u32>::new());
-    let sum4 = store.memo_key::<Sum>(&4).unwrap();
-    assert_eq!(store.dependents::<Positive>(&sum4), vec![4]);
-    // Inputs: Cell(k) read input k.
-    assert_eq!(store.dependents::<Cell>(&DepKey::Input(3)), vec![3]);
-    assert_eq!(store.dependents::<Label>(&DepKey::Input(3)), Vec::<u32>::new());
 }
 
 #[test]
@@ -458,94 +385,13 @@ fn oracle_sampling_is_deterministic() {
 }
 
 #[test]
-fn a_fork_evolves_independently_and_is_adopted_if_unchanged() {
-    let (db, mut store) = setup(4);
+fn a_fork_evolves_independently() {
+    let (db, store) = setup(4);
     store.get::<Sum>(&db, &2).unwrap();
     let job = store.fork();
     job.get::<Sum>(&db, &4).unwrap();
+    assert!(store.memo_info::<Sum>(&2).is_some() && job.memo_info::<Sum>(&2).is_some());
     assert!(store.memo_info::<Sum>(&4).is_none());
-    assert!(store.adopt_if_unchanged(job));
-    assert!(store.memo_info::<Sum>(&4).is_some());
-
-    // A store that changed since the fork does not adopt it.
-    let job = store.fork();
-    job.get::<Sum>(&db, &3).unwrap();
-    store.get::<Sum>(&db, &1).unwrap();
-    assert!(!store.adopt_if_unchanged(job));
-    assert!(store.memo_info::<Sum>(&3).is_none());
-}
-
-/// Probe A of the cycle 6 review: a fork of a fork is not adopted, even when its epoch-like position matches,
-/// and a store that wrote a memo after the fork keeps it.
-#[test]
-fn a_fork_of_a_fork_and_a_stale_sibling_are_refused() {
-    let (db, mut s) = setup(8);
-    let f = s.fork();
-    f.get::<Sum>(&db, &5).unwrap();
-    let g = f.fork();
-    s.get::<Sum>(&db, &6).unwrap();
-    assert!(
-        !s.adopt_if_unchanged(g),
-        "a grandchild is not a fork of this store"
-    );
-    assert!(s.memo_info::<Sum>(&6).is_some(), "the store's own memo survives");
-
-    // A grandchild is refused even when the store did not change at all.
-    let (db, mut s) = setup(8);
-    let f = s.fork();
-    f.get::<Sum>(&db, &5).unwrap();
-    let g = f.fork();
-    assert!(!s.adopt_if_unchanged(g));
-    assert!(s.memo_info::<Sum>(&5).is_none());
-
-    // Two siblings: the first adopted changes the store, so the second is refused.
-    let (db, mut s) = setup(8);
-    let a = s.fork();
-    let b = s.fork();
-    a.get::<Sum>(&db, &3).unwrap();
-    b.get::<Sum>(&db, &4).unwrap();
-    assert!(s.adopt_if_unchanged(a));
-    assert!(!s.adopt_if_unchanged(b));
-    assert!(s.memo_info::<Sum>(&3).is_some());
-    assert!(s.memo_info::<Sum>(&4).is_none());
-}
-
-/// Probe B of the cycle 6 review: a fork that advanced past its base revision is not adopted, and the
-/// store's revision does not move.
-#[test]
-fn a_fork_that_advanced_is_refused() {
-    let (db, mut s) = setup(4);
-    let base = s.current();
-    let f = s.fork();
-    f.advance(Rev(50), Durability::Drawing);
-    f.get::<Sum>(&db, &4).unwrap();
-    assert!(!s.adopt_if_unchanged(f));
-    assert_eq!(s.current(), base);
-    assert!(s.memo_info::<Sum>(&4).is_none());
-}
-
-/// The legitimate case: a direct fork at the same revision, while the store only had hits, is adopted;
-/// changing the budget, writing a memo or advancing the store after the fork refuses it.
-#[test]
-fn a_direct_fork_is_adopted_after_hits_only() {
-    let (db, mut s) = setup(6);
-    s.get::<Sum>(&db, &2).unwrap();
-    let f = s.fork();
-    f.get::<Sum>(&db, &5).unwrap();
-    s.get::<Sum>(&db, &2).unwrap(); // a hit writes nothing
-    assert!(s.adopt_if_unchanged(f));
-    assert_eq!(*s.get::<Sum>(&db, &5).unwrap(), 1 + 2 + 3 + 4 + 5);
-    assert_eq!(counters(&s, "sum").re_executions, 2, "Sum(5) came from the fork");
-
-    let f = s.fork();
-    f.get::<Sum>(&db, &6).unwrap();
-    s.set_lru_budget(Some(1_000));
-    assert!(!s.adopt_if_unchanged(f), "a budget change after the fork");
-
-    let f = s.fork();
-    f.get::<Sum>(&db, &6).unwrap();
-    s.advance(Rev(s.current().0 + 1), Durability::Drawing);
-    assert!(!s.adopt_if_unchanged(f), "an advance after the fork");
 }
 
 /// Reads library cell 100 (a flag); when it is set, also drawing cell 0. True when the flag is clear or
@@ -683,7 +529,7 @@ fn commit_statistics_reset_on_advance() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Adopting a fork: configuration, statistics, recency (cycle 6 review F4)
+// Forks
 
 /// A store with one oracle mismatch (`Untracked` after cell 7 changed) that has not been taken.
 fn store_with_a_mismatch() -> (Cells, Store<Cells>) {
@@ -693,37 +539,6 @@ fn store_with_a_mismatch() -> (Cells, Store<Cells>) {
     db.commit(&mut store, &[(7, 70, Durability::Drawing)]);
     store.get::<Untracked>(&db, &()).unwrap();
     (db, store)
-}
-
-#[test]
-fn oracle_mismatches_are_not_duplicated_by_a_fork_and_adopt() {
-    let (_, mut store) = store_with_a_mismatch();
-    let job = store.fork();
-    assert!(store.adopt_if_unchanged(job));
-    assert_eq!(
-        store.take_mismatches().len(),
-        1,
-        "the parent's mismatch is reported once"
-    );
-
-    // A mismatch found in the fork is reported once, after the parent's.
-    let (db, mut store) = store_with_a_mismatch();
-    let job = store.fork();
-    job.get::<Untracked>(&db, &()).unwrap();
-    assert!(store.adopt_if_unchanged(job));
-    assert_eq!(
-        store.take_mismatches().len(),
-        2,
-        "one of the parent's, one of the fork's"
-    );
-
-    let (db, mut store) = store_with_a_mismatch();
-    assert_eq!(store.take_mismatches().len(), 1);
-    let job = store.fork();
-    job.get::<Untracked>(&db, &()).unwrap();
-    assert!(store.adopt_if_unchanged(job));
-    assert_eq!(store.take_mismatches().len(), 1, "the fork's finding, once");
-    assert!(store.take_mismatches().is_empty());
 }
 
 #[test]
@@ -737,101 +552,8 @@ fn a_fork_starts_with_empty_statistics_and_mismatches() {
     assert_eq!(store.take_mismatches().len(), 1, "the parent keeps its own");
 }
 
-#[test]
-fn the_parents_configuration_survives_adopt_and_its_budget_applies() {
-    let (db, mut store) = setup(8);
-    store.set_oracle(Oracle::Every);
-    store.set_lru_budget(Some(40));
-    let job = store.fork();
-    job.set_lru_budget(None);
-    job.set_oracle(Oracle::Off);
-    for k in [4, 5, 6] {
-        job.get::<Bulk>(&db, &k).unwrap(); // 32, 40 and 48 bytes, none evicted in the fork
-    }
-    assert_eq!(job.lru_bytes(), 120);
-    assert!(store.adopt_if_unchanged(job));
-    assert_eq!(
-        store.lru_budget(),
-        Some(40),
-        "the fork's budget change is not adopted"
-    );
-    // Over the parent's budget: evicted oldest first, the newest value survives alone.
-    assert_eq!(store.lru_bytes(), 48);
-    assert!(!store.memo_info::<Bulk>(&4).unwrap().has_value);
-    assert!(!store.memo_info::<Bulk>(&5).unwrap().has_value);
-    assert!(store.memo_info::<Bulk>(&6).unwrap().has_value);
-    assert_eq!(counters(&store, "bulk").evictions, 2);
-    // The oracle mode is the parent's: a read checks against cold.
-    store.get::<Cell>(&db, &1).unwrap();
-    assert_eq!(counters(&store, "cell").oracle_checks, 1);
-}
-
-#[test]
-fn the_parents_hits_and_the_forks_work_both_count_after_adopt() {
-    let (db, mut store) = setup(4);
-    store.get::<Sum>(&db, &2).unwrap();
-    let job = store.fork();
-    store.get::<Sum>(&db, &2).unwrap(); // a hit after the fork
-    store.get::<Sum>(&db, &2).unwrap();
-    job.get::<Sum>(&db, &4).unwrap(); // Sum(4): executes; Cell(0), Cell(1) hit; Cell(2), Cell(3) execute
-    assert_eq!(counters(&job, "sum").re_executions, 1);
-    assert_eq!(counters(&job, "sum").hits, 0, "the fork's statistics are its own");
-    assert!(store.adopt_if_unchanged(job));
-    for stats in [store.commit_stats(), store.total_stats()] {
-        let sum = stats.family("sum");
-        assert_eq!((sum.hits, sum.re_executions), (2, 2));
-        let cell = stats.family("cell");
-        assert_eq!((cell.hits, cell.re_executions), (2, 4));
-    }
-}
-
-#[test]
-fn the_parents_hits_since_the_fork_keep_their_lru_recency_after_adopt() {
-    let (db, mut store) = setup(8);
-    store.set_lru_budget(Some(100));
-    store.get::<Bulk>(&db, &2).unwrap(); // 16 bytes
-    store.get::<Bulk>(&db, &3).unwrap(); // 24 bytes
-    let job = store.fork();
-    store.get::<Bulk>(&db, &2).unwrap(); // the parent hits Bulk(2): now the most recent
-    job.get::<Bulk>(&db, &4).unwrap(); // 32 bytes: 72 in the fork, nothing evicted
-    assert!(store.adopt_if_unchanged(job));
-    assert_eq!(store.lru_bytes(), 72);
-    // One more write over the budget (112 > 100): the least recent goes, which is Bulk(3), not Bulk(2).
-    store.get::<Bulk>(&db, &5).unwrap(); // 40 bytes
-    assert!(
-        store.memo_info::<Bulk>(&2).unwrap().has_value,
-        "the parent's hit survives"
-    );
-    assert!(!store.memo_info::<Bulk>(&3).unwrap().has_value);
-    assert!(store.memo_info::<Bulk>(&4).unwrap().has_value);
-    assert!(store.memo_info::<Bulk>(&5).unwrap().has_value);
-}
-
 // ---------------------------------------------------------------------------------------------------------
-// Pointer identity, panics (cycle 6 review F5, F13)
-
-#[test]
-fn a_hash_family_keeps_its_arc_on_cut_off_but_not_across_an_eviction() {
-    let (mut db, mut store) = setup(8);
-    // Bulk(0) is always empty, whatever cell 0 holds: it re-executes and cuts off by fingerprint.
-    let first = store.get::<Bulk>(&db, &0).unwrap();
-    db.commit(&mut store, &[(0, 99, Durability::Drawing)]);
-    let again = store.get::<Bulk>(&db, &0).unwrap();
-    assert_eq!(counters(&store, "bulk").cut_offs, 1);
-    assert!(Arc::ptr_eq(&first, &again), "a cut-off keeps the previous Arc");
-
-    // Once the value was evicted there is no previous Arc: the re-computed value is a new one.
-    store.set_lru_budget(Some(1));
-    store.get::<Bulk>(&db, &2).unwrap(); // evicts Bulk(0)
-    assert!(!store.memo_info::<Bulk>(&0).unwrap().has_value);
-    db.commit(&mut store, &[(0, 5, Durability::Drawing)]);
-    let after = store.get::<Bulk>(&db, &0).unwrap();
-    assert_eq!(*after, *first);
-    assert!(
-        !Arc::ptr_eq(&first, &after),
-        "expected: the old value was dropped"
-    );
-}
+// Panics (cycle 6 review F13)
 
 #[test]
 fn advance_and_reads_work_after_a_caught_panic_in_a_query() {
@@ -862,13 +584,10 @@ enum Step {
     /// Re-sets a cell to its current value at another durability.
     Move(u32, u8),
     Read(u8, u32),
-    Budget(Option<usize>),
     /// Takes a fork of the store, with a snapshot of the database (what a job reads).
     Fork,
     /// Reads through the held fork against its snapshot.
     ReadFork(u8, u32),
-    /// Offers the held fork back.
-    Adopt,
 }
 
 /// Cells `0..8` plus the library flag cell 100 that `Dyn` reads.
@@ -881,10 +600,8 @@ fn step() -> impl Strategy<Value = Step> {
         3 => (cell_key(), -3i64..4, 0u8..3).prop_map(|(k, v, d)| Step::Set(k, v, d)),
         1 => (cell_key(), 0u8..3).prop_map(|(k, d)| Step::Move(k, d)),
         6 => (0u8..7, 0u32..9).prop_map(|(q, k)| Step::Read(q, k)),
-        1 => prop_oneof![Just(None), (1usize..200).prop_map(Some)].prop_map(Step::Budget),
         1 => Just(Step::Fork),
         3 => (0u8..7, 0u32..9).prop_map(|(q, k)| Step::ReadFork(q, k)),
-        1 => Just(Step::Adopt),
     ]
 }
 
@@ -919,18 +636,16 @@ proptest! {
     #![proptest_config(ProptestConfig { cases: 256, ..ProptestConfig::default() })]
 
     /// Under random input mutation sequences (any durability, durability moves, commits of one or more
-    /// changes, LRU budgets, forks read against a snapshot and offered back), every memoised read equals the
-    /// cold computation, the revision never decreases, a fork that missed a commit is refused, and oracle
-    /// mode finds no mismatch.
+    /// changes, forks read against a snapshot), every memoised read equals the cold computation, the revision
+    /// never decreases, and oracle mode finds no mismatch.
     #[test]
     fn memoised_equals_cold(steps in proptest::collection::vec(step(), 1..60)) {
         let mut db = Cells::default();
         let mut store = Store::new();
         store.set_oracle(Oracle::Every);
         let mut pending: Vec<(u32, i64, Durability)> = Vec::new();
-        // A fork with the database snapshot it reads, and whether the store committed since.
+        // A fork with the database snapshot it reads.
         let mut held: Option<(Store<Cells>, Cells)> = None;
-        let mut committed_since_fork = false;
         let mut last_current = store.current();
         for s in steps {
             match s {
@@ -946,36 +661,15 @@ proptest! {
                 Step::Read(q, k) => {
                     if !pending.is_empty() {
                         db.commit(&mut store, &std::mem::take(&mut pending));
-                        committed_since_fork = true;
                     }
                     let memo = read(&mut store, &db, q, k);
                     prop_assert_eq!(memo, cold(&store, &db, q, k));
                 }
-                Step::Budget(b) => store.set_lru_budget(b),
-                Step::Fork => {
-                    held = Some((store.fork(), db.clone()));
-                    committed_since_fork = false;
-                }
+                Step::Fork => held = Some((store.fork(), db.clone())),
                 Step::ReadFork(q, k) => {
                     if let Some((fork, snapshot)) = held.as_mut() {
                         let memo = read(fork, snapshot, q, k);
                         prop_assert_eq!(memo, cold(fork, snapshot, q, k));
-                    }
-                }
-                Step::Adopt => {
-                    if let Some((fork, _)) = held.take() {
-                        let before = store.current();
-                        let adopted = store.adopt_if_unchanged(fork);
-                        prop_assert_eq!(store.current(), before, "adopt does not move the revision");
-                        if committed_since_fork {
-                            prop_assert!(!adopted, "a fork that missed a commit is refused");
-                        }
-                        for q in 0..QUERIES {
-                            for k in [0, 3, 8] {
-                                let memo = read(&mut store, &db, q, k);
-                                prop_assert_eq!(memo, cold(&store, &db, q, k));
-                            }
-                        }
                     }
                 }
             }
@@ -1002,7 +696,7 @@ fn explain(store: &Store<Cells>, q: u8, k: u32) -> String {
     }
 }
 
-/// Everything a read can observe or change of a store: every memo's state, the statistics, the memory and the LRU.
+/// Everything a read can observe or change of a store: every memo's state and the statistics.
 fn observable(store: &Store<Cells>) -> String {
     let mut infos = Vec::new();
     for k in 0..9 {
@@ -1016,14 +710,12 @@ fn observable(store: &Store<Cells>) -> String {
         ));
     }
     format!(
-        "{infos:?} {:?} {:?} {:?} {:?} {:?} {:?} {}",
+        "{infos:?} {:?} {:?} {:?} {:?} {:?}",
         store.memo_info::<Dyn>(&()),
         store.memo_info::<Top>(&()),
         store.commit_stats(),
         store.total_stats(),
-        store.memory(),
-        store.current(),
-        store.lru_bytes()
+        store.current()
     )
 }
 
@@ -1036,7 +728,7 @@ fn explain_of_a_key_never_read_has_no_memo() {
     assert_eq!(e.family, "label");
     assert_eq!(e.key, "2");
     assert_eq!(e.current, Rev(1));
-    assert!(!e.memoised && !e.hit && !e.lru && !e.truncated);
+    assert!(!e.memoised && !e.hit && !e.truncated);
     assert_eq!((e.verified_at, e.changed_at), (Rev::ZERO, Rev::ZERO));
     assert!(e.deps.is_empty());
     assert_eq!(e.lines(), Vec::<String>::new());
@@ -1100,35 +792,13 @@ fn explain_keeps_64_reads_and_marks_the_rest_with_an_ellipsis() {
     assert_eq!(lines[64], "…");
 }
 
-#[test]
-fn explain_names_an_lru_family_and_an_evicted_value_is_no_hit() {
-    let mut db = Cells::default();
-    let mut store = Store::new();
-    db.commit(
-        &mut store,
-        &[(3, 5, Durability::Drawing), (4, 6, Durability::Drawing)],
-    );
-    let _ = store.get::<Bulk>(&db, &3).unwrap();
-    let e = store.explain::<Bulk>(&3);
-    assert!(e.lru && e.hit);
-    // A budget that holds one of the two values evicts the older one.
-    store.set_lru_budget(Some(40));
-    let _ = store.get::<Bulk>(&db, &4).unwrap();
-    let e = store.explain::<Bulk>(&3);
-    assert!(
-        e.memoised && !e.hit,
-        "an evicted value is recomputed on its next read"
-    );
-    assert_eq!(e.lines(), ["cell(3)@r1"]);
-}
-
 proptest! {
     #![proptest_config(ProptestConfig { cases: 128, ..ProptestConfig::default() })]
 
     /// R4 of WP-S1.22: `explain` changes nothing. Two stores run the same random steps; one also explains every
     /// family at several keys before and after each step. Every read answers the same (and equals the cold
-    /// computation), every memo state, statistic, memory figure and LRU byte count stays equal between the twins,
-    /// and an explanation repeated without a step in between is the same.
+    /// computation), every memo state and statistic stays equal between the twins, and an explanation repeated
+    /// without a step in between is the same.
     #[test]
     fn explain_is_read_only(steps in proptest::collection::vec(step(), 1..50)) {
         let mut db = Cells::default();
@@ -1162,11 +832,7 @@ proptest! {
                     prop_assert_eq!(&a, &b);
                     prop_assert_eq!(a, cold(&explained, &db, q, k));
                 }
-                Step::Budget(b) => {
-                    plain.set_lru_budget(b);
-                    explained.set_lru_budget(b);
-                }
-                Step::Fork | Step::ReadFork(..) | Step::Adopt => {}
+                Step::Fork | Step::ReadFork(..) => {}
             }
             let _ = explain_all(&explained);
             prop_assert_eq!(observable(&plain), observable(&explained));

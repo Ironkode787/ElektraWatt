@@ -22,8 +22,7 @@ pub enum SqlError {
     /// The authorizer refused an action; the text names it (`ATTACH`, `PRAGMA table_info`, `read of t_device`,
     /// `function random`).
     Denied(String),
-    /// The deadline of the consumer's profile passed (doc 17 §6.2: report 2 s, rule 10 s, MCP 5 s, `ew sql`
-    /// 60 s).
+    /// The deadline of the consumer's profile passed (`ew sql`: 60 s).
     Deadline {
         /// The deadline in milliseconds.
         ms: u128,

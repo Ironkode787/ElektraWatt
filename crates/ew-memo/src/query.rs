@@ -57,12 +57,8 @@ pub trait Db {
 /// How a query family decides that a re-executed value equals the previous one (early cut-off, ADR-0002
 /// decision 4) and that a memo equals a cold run (oracle mode).
 pub enum Equivalence<V> {
-    /// Compare the values. The previous value is kept while the memo has one; a value evicted by the LRU
-    /// cannot be compared, so its re-execution counts as a change unless its dependencies were unchanged.
+    /// Compare the values.
     Eq(fn(&V, &V) -> bool),
-    /// Compare 128-bit fingerprints computed by the host (bulky values such as display lists). The
-    /// fingerprint outlives an eviction, so a re-computed evicted value still cuts off.
-    Hash128(fn(&V) -> u128),
 }
 
 impl<V: Eq> Equivalence<V> {
@@ -84,7 +80,6 @@ impl<V> Debug for Equivalence<V> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Equivalence::Eq(_) => f.write_str("Eq"),
-            Equivalence::Hash128(_) => f.write_str("Hash128"),
         }
     }
 }
@@ -117,13 +112,6 @@ pub trait Query<D: Db>: 'static {
     /// The family name used in statistics, oracle reports and cycle messages.
     const NAME: &'static str;
 
-    /// Whether the values are bulky and live under the store's byte-budget LRU.
-    const LRU: bool = false;
-
-    /// Whether the store keeps an index of the family's reverse dependencies. Without it,
-    /// [`Store::dependents`](crate::Store::dependents) scans the family's memos; the answer is the same.
-    const RDEPS: bool = false;
-
     /// Whether memoised executions go through [`Query::execute_incremental`] (ADR-0002 amendment 4: the
     /// incremental re-execution hook). Cold evaluations (oracle mode, [`Store::cold`](crate::Store::cold))
     /// always call [`Query::execute`], which stays the reference.
@@ -131,16 +119,6 @@ pub trait Query<D: Db>: 'static {
 
     /// How values are compared.
     fn equivalence() -> Equivalence<Self::Value>;
-
-    /// The bytes a value occupies, as the host counts them (for the LRU budget and memory reports).
-    ///
-    /// The store asks for them at every write of an [`LRU`](Query::LRU) family (the budget needs them; a cut-off
-    /// that keeps the previous value keeps its bytes), and for every other family only when
-    /// [`Store::memory`](crate::Store::memory) reports, never on the execution path. A family whose values are
-    /// large and updated incrementally should still answer cheaply (a running estimate kept in the value).
-    fn bytes(_value: &Self::Value) -> usize {
-        std::mem::size_of::<Self::Value>()
-    }
 
     /// Computes the value.
     ///
@@ -158,7 +136,7 @@ pub trait Query<D: Db>: 'static {
     /// its new value relies on that `changes` names or that is new, and must account for every key in
     /// `changes.via`; anything it does not re-read keeps its old observed revision. A producer of parts
     /// ([`Cx::changed_parts`]) declares the parts the change touched. With `previous` `None` (the first
-    /// execution, an evicted value, or changes the store does not know), the hook computes from scratch.
+    /// execution, or changes the store does not know), the hook computes from scratch.
     ///
     /// The result must equal [`Query::execute`] on the same snapshot; oracle mode checks it.
     ///

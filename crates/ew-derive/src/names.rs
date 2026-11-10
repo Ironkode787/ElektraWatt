@@ -36,7 +36,6 @@ use ew_mltext::natural_cmp;
 use ew_schema::{Endpoint, Function, IpDirection, PotentialDef, PotentialType};
 
 use crate::flow::FlowBfs;
-use crate::heap::HeapBytes;
 use crate::ip::{IpFnInfo, IpInfoOf};
 use crate::links::BondPathsQ;
 use crate::memo_keys::PartKey;
@@ -59,19 +58,6 @@ pub struct PotentialNames {
     pub ip_names: Vec<String>,
     /// The name of each signal of the potential (ID order): the first IP name inside it in page order.
     pub signals: Vec<(NetId, Option<String>)>,
-}
-
-impl HeapBytes for PotentialNames {
-    fn heap_bytes(&self) -> usize {
-        self.name.text.capacity()
-            + self.aliases.heap_bytes()
-            + self.ip_names.heap_bytes()
-            + self
-                .signals
-                .iter()
-                .map(|(_, n)| std::mem::size_of::<(NetId, Option<String>)>() + n.heap_bytes())
-                .sum::<usize>()
-    }
 }
 
 /// The name of an unknown potential.
@@ -101,10 +87,6 @@ impl Query for PotentialNameOf {
     type Value = PotentialNames;
     const FAMILY: &'static str = "potential_name";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, key: &PotentialId) -> Arc<PotentialNames> {
         let partition = q.get_part::<PotentialPartition>((), PartKey::Potential(*key));
@@ -380,16 +362,6 @@ impl std::ops::Deref for PotentialAttrsV {
     }
 }
 
-impl HeapBytes for PotentialAttrsV {
-    fn heap_bytes(&self) -> usize {
-        self.attrs.ptype.heap_bytes()
-            + self.attrs.voltage.heap_bytes()
-            + self.attrs.env.heap_bytes()
-            + self.attrs.circuit_class.heap_bytes()
-            + self.conflicts.heap_bytes()
-    }
-}
-
 /// `potential_attrs(p)`: see the module documentation. Policy Memo; note-free.
 #[derive(Debug)]
 pub struct PotentialAttrsOf;
@@ -399,10 +371,6 @@ impl Query for PotentialAttrsOf {
     type Value = PotentialAttrsV;
     const FAMILY: &'static str = "potential_attrs";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, key: &PotentialId) -> Arc<PotentialAttrsV> {
         let partition = q.get_part::<PotentialPartition>((), PartKey::Potential(*key));

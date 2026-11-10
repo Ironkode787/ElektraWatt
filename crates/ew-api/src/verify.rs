@@ -4,7 +4,7 @@
 //! `ew verify-derived`: the memoised derived data against a cold recomputation (FR-EXT-005, NFR-REL-08,
 //! doc 18 §3.4).
 //!
-//! [`sweep`] reads every `Memo` and `MemoLru` family of `ew_derive::FAMILIES`, `ew_reports::FAMILIES` (the
+//! [`sweep`] reads every `Memo` family of `ew_derive::FAMILIES`, `ew_reports::FAMILIES` (the
 //! report rows, the generated pages and the tag classes) and [`crate::output::FAMILIES`] (the page views and the
 //! per-layer page display lists of the export job) at every key of the snapshot through a memoising [`Q`] and
 //! through a cold one, and lists the keys whose values differ.
@@ -40,7 +40,7 @@ use crate::output::{
 };
 use crate::{Mismatch, Session};
 
-/// The families the sweep reads: the `Memo` and `MemoLru` families of `ew_derive::FAMILIES`,
+/// The families the sweep reads: the `Memo` families of `ew_derive::FAMILIES`,
 /// `ew_reports::FAMILIES` and `ew_api::output::FAMILIES`, sorted.
 pub const SWEPT: &[&str] = &[
     "address_index",

@@ -50,7 +50,7 @@ pub(crate) type DeriveStore = ew_memo::Store<Q>;
 ///
 /// # Memoisation
 ///
-/// A `Q` from [`MemoStore::query`](crate::MemoStore::query) reads the `Memo` and `MemoLru` families through
+/// A `Q` from [`MemoStore::query`](crate::MemoStore::query) reads the `Memo` families through
 /// the store's `ew-memo` engine (ADR-0002 amendment 4): a read of such a family inside another records one
 /// memo dependency, not the nested family's reads; cold families run inside the execution that reads them
 /// (each memo execution has its own request cache, so their reads are recorded where they are used); the
@@ -137,8 +137,6 @@ pub(crate) struct MemoFrameOut<V> {
     pub(crate) value: Arc<V>,
     /// The execution's note set (`None`: no note).
     pub(crate) notes: Option<Arc<NoteSet>>,
-    /// Whether the note set is a new allocation (the value owns its bytes).
-    pub(crate) owned: bool,
     /// Whether the body declared the parts it changed.
     pub(crate) declared: bool,
 }
@@ -300,11 +298,9 @@ impl Q {
         self.cache.borrow_mut().pop();
         let declared = self.parts_declared.borrow_mut().pop().is_some_and(|f| f.declared);
         let frame = self.notes.borrow_mut().pop().unwrap_or_default();
-        let (notes, owned) = frame.into_set();
         MemoFrameOut {
             value,
-            notes,
-            owned,
+            notes: frame.into_set(),
             declared,
         }
     }
@@ -472,7 +468,7 @@ impl Q {
                 self.tracker.exit(Qy::FAMILY);
                 let notes = if capture {
                     let frame = self.notes.borrow_mut().pop().unwrap_or_default();
-                    frame.into_set().0
+                    frame.into_set()
                 } else {
                     None
                 };

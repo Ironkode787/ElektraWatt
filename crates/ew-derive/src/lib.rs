@@ -59,7 +59,6 @@ mod drawn_path;
 mod flow;
 mod flow_distance;
 mod fluid;
-mod heap;
 mod index;
 mod ip;
 mod items;
@@ -131,7 +130,7 @@ pub use links::{
 };
 pub use memo_keys::{MemoInput, PartKey};
 pub use memo_store::MemoStore;
-// The memo engine types a session configures and reads (oracle mode, statistics, memory).
+// The memo engine types a session configures and reads (oracle mode, statistics, memo counts).
 pub use ew_memo::{Counters, FamilyMemory, Mismatch, Oracle, Stats};
 // WP-S1.16 D3: the carrier of a 0 V–PE bond (EW-POT-001's quick fix).
 pub use bond_carrier::{BondCarrierQ, Carrier};

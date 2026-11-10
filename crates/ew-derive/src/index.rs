@@ -31,7 +31,6 @@ use ew_schema::{Bond, BondKind, Connection, ConnectionKind, Device, Function, Fu
 use imbl::OrdMap;
 
 use crate::Q;
-use crate::heap::HeapBytes;
 use crate::memo_keys::MemoInput;
 use crate::nets::{ends, joins_net};
 use crate::query::{Changes, Policy, Query};
@@ -43,14 +42,10 @@ use crate::tracker::DepKey;
 /// A read-only persistent map, the value of an index family: in key order, O(1) to clone, and compared by a
 /// diff that skips the subtrees two versions share.
 ///
-/// It keeps a running estimate of its heap bytes, updated by every change of an entry, so that its byte count is
-/// O(1) whatever its size (review cycle 10, finding 2: a walk of every entry on every incremental execution
-/// cost O(project) again). Two indexes are equal when their entries are.
+/// Two indexes are equal when their entries are.
 #[derive(Clone)]
 pub struct Index<K: Ord + Clone, V: Clone> {
     map: OrdMap<K, V>,
-    /// The heap bytes of the entries ([`entry_bytes`]), a function of the entries alone.
-    heap: usize,
 }
 
 impl<K: Ord + Clone, V: Clone + PartialEq> PartialEq for Index<K, V> {
@@ -63,21 +58,8 @@ impl<K: Ord + Clone, V: Clone + Eq> Eq for Index<K, V> {}
 
 impl<K: Ord + Clone, V: Clone> Default for Index<K, V> {
     fn default() -> Self {
-        Index {
-            map: OrdMap::new(),
-            heap: 0,
-        }
+        Index { map: OrdMap::new() }
     }
-}
-
-/// The estimated heap bytes of one entry: key, value, a node overhead of two words (ARCH §6.3 rule 4) and
-/// what the key and value own.
-fn entry_bytes<K: HeapBytes, V: HeapBytes>(k: &K, v: &V) -> usize {
-    std::mem::size_of::<K>()
-        + std::mem::size_of::<V>()
-        + 2 * std::mem::size_of::<usize>()
-        + k.heap_bytes()
-        + v.heap_bytes()
 }
 
 impl<K: Ord + Clone + fmt::Debug, V: Clone + fmt::Debug> fmt::Debug for Index<K, V> {
@@ -125,22 +107,13 @@ impl<K: Ord + Clone, V: Clone> Index<K, V> {
 
 impl<K: Ord + Clone, V: Clone + PartialEq> Index<K, V> {
     /// Sets the entry of `key` (`None`: removes it). An equal entry is left as it is, so unchanged paths stay
-    /// shared with earlier versions. The byte estimate follows the change.
-    pub(crate) fn set(&mut self, key: K, value: Option<V>)
-    where
-        K: HeapBytes,
-        V: HeapBytes,
-    {
-        let old = self.map.get(&key);
-        if old == value.as_ref() {
+    /// shared with earlier versions.
+    pub(crate) fn set(&mut self, key: K, value: Option<V>) {
+        if self.map.get(&key) == value.as_ref() {
             return;
-        }
-        if let Some(old) = old {
-            self.heap = self.heap.saturating_sub(entry_bytes(&key, old));
         }
         match value {
             Some(v) => {
-                self.heap = self.heap.saturating_add(entry_bytes(&key, &v));
                 self.map.insert(key, v);
             }
             None => {
@@ -168,67 +141,11 @@ impl<K: Ord + Clone, V: Clone + PartialEq> Index<K, V> {
     }
 }
 
-impl<K: Ord + Clone + HeapBytes, V: Clone + HeapBytes> FromIterator<(K, V)> for Index<K, V> {
+impl<K: Ord + Clone, V: Clone> FromIterator<(K, V)> for Index<K, V> {
     fn from_iter<I: IntoIterator<Item = (K, V)>>(iter: I) -> Self {
-        let map: OrdMap<K, V> = iter.into_iter().collect();
-        let heap = map.iter().map(|(k, v)| entry_bytes(k, v)).sum();
-        Index { map, heap }
-    }
-}
-
-impl<K: Ord + Clone + HeapBytes, V: Clone + HeapBytes> HeapBytes for Index<K, V> {
-    /// The running estimate: O(1).
-    fn heap_bytes(&self) -> usize {
-        self.heap
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// The running byte estimate of an index equals a walk of its entries after every change (review cycle
-    /// 10, finding 2).
-    #[test]
-    fn the_running_byte_estimate_follows_every_change() {
-        let walk = |ix: &Index<u32, String>| -> usize { ix.map.iter().map(|(k, v)| entry_bytes(k, v)).sum() };
-        let mut ix: Index<u32, String> = (0..10u32).map(|k| (k, "x".repeat(k as usize))).collect();
-        assert_eq!(ix.heap_bytes(), walk(&ix));
-        for step in 0..200u32 {
-            let key = step * 7 % 23;
-            let value = (step % 3 != 0).then(|| "y".repeat((step % 11) as usize));
-            ix.set(key, value);
-            assert_eq!(ix.heap_bytes(), walk(&ix), "after step {step}");
+        Index {
+            map: iter.into_iter().collect(),
         }
-        let copy = ix.clone();
-        ix.set(1, Some("z".into()));
-        ix.set(1, copy.get(&1).cloned());
-        assert_eq!(ix, copy);
-        assert_eq!(ix.heap_bytes(), copy.heap_bytes());
-    }
-}
-
-impl HeapBytes for () {
-    fn heap_bytes(&self) -> usize {
-        0
-    }
-}
-
-impl HeapBytes for BondRec {
-    fn heap_bytes(&self) -> usize {
-        self.kind.heap_bytes()
-    }
-}
-
-impl HeapBytes for Link {
-    fn heap_bytes(&self) -> usize {
-        0
-    }
-}
-
-impl HeapBytes for IpSpec {
-    fn heap_bytes(&self) -> usize {
-        self.name.heap_bytes() + self.direction.heap_bytes()
     }
 }
 
@@ -257,7 +174,7 @@ pub(crate) fn touched_rows<T: Entity>(touched: &[MemoInput]) -> BTreeSet<RowId<T
 /// The table's stamp covers every row, so the index drops the dependencies carried from its previous execution
 /// first (`Q::drop_carried`): it depends on the table and the rows of this commit, not on every row it ever
 /// re-selected (review cycle 10, finding 3). Called by the index families first thing in their hook.
-pub(crate) fn table_index<T: Entity, V: Clone + PartialEq + HeapBytes>(
+pub(crate) fn table_index<T: Entity, V: Clone + PartialEq>(
     q: &Q,
     previous: Option<(&Index<RowId<T>, V>, Changes<'_>)>,
     select: impl Fn(RowId<T>, &T) -> Option<V>,
@@ -293,10 +210,6 @@ impl Query for PageIds {
     const FAMILY: &'static str = "page_ids";
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<Self::Value> {
         Self::run_incremental(q, &(), None)
@@ -342,10 +255,6 @@ impl Query for BondIndex {
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
 
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
-
     fn run(q: &Q, _: &()) -> Arc<Self::Value> {
         Self::run_incremental(q, &(), None)
     }
@@ -380,10 +289,6 @@ impl Query for BondVias {
     type Value = BTreeSet<Id<Connection>>;
     const FAMILY: &'static str = "bond_vias";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<Self::Value> {
         Arc::new(q.get::<BondIndex>(()).iter().filter_map(|(_, b)| b.via).collect())
@@ -447,12 +352,6 @@ impl PagelessLinksV {
     }
 }
 
-impl HeapBytes for PagelessLinksV {
-    fn heap_bytes(&self) -> usize {
-        self.links.heap_bytes() + self.at.heap_bytes() + self.cut.heap_bytes()
-    }
-}
-
 /// `pageless_links()`: every `Bridge` connection and every page-less joining connection that no bond cuts
 /// (doc 08 §3.3), by ID, with an index by end. Incremental over the connection table; a change of the bond
 /// cut re-selects every row.
@@ -475,10 +374,6 @@ impl Query for PagelessLinks {
     const FAMILY: &'static str = "pageless_links";
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<Self::Value> {
         Self::run_incremental(q, &(), None)
@@ -531,10 +426,6 @@ impl Query for IpFunctions {
     const FAMILY: &'static str = "ip_functions";
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<Self::Value> {
         Self::run_incremental(q, &(), None)
@@ -591,12 +482,6 @@ impl DefPointsV {
     }
 }
 
-impl HeapBytes for DefPointsV {
-    fn heap_bytes(&self) -> usize {
-        self.defs.heap_bytes() + self.at.heap_bytes()
-    }
-}
-
 /// `def_points()`: where each potential definition is placed (incremental over the definition table).
 #[derive(Debug)]
 pub struct DefPoints;
@@ -607,10 +492,6 @@ impl Query for DefPoints {
     const FAMILY: &'static str = "def_points";
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<Self::Value> {
         Self::run_incremental(q, &(), None)
@@ -654,10 +535,6 @@ impl Query for RailTerminals {
     const FAMILY: &'static str = "rail_terminals";
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, _: &()) -> Arc<Self::Value> {
         Self::run_incremental(q, &(), None)

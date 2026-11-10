@@ -8,16 +8,6 @@
 //!   kept.
 //! - Undo applies the inverse ops of a step as a **new** revision; redo applies the step's ops again, also
 //!   as a new revision (the session does both; this type only keeps the entries and the cursor).
-//! - Coalescing: an undoable transaction whose `coalesce_key` equals that of the step directly below the
-//!   cursor merges into it (one drag, one field edit). The merged step keeps the first transaction's
-//!   context and label, the last one's command and origin, and the strictest exposure class of all of them
-//!   ([`Exposure::strictest`]; FT-404). The ops are **compacted by key**: a step has
-//!   one op per key, in key order, with the `before` row of the first transaction that touched the key and
-//!   the `after` row of the last, so 2,000 moves of one representation are one op. The merge happens in
-//!   place (the transaction is cloned only when an entry shares it) and costs O(ops of the incoming
-//!   transaction × log(ops of the step)) plus O(step) for the rare insertion of a new key. A key whose
-//!   first `before` equals its last `after` keeps its (net no-op) op: it is harmless and keeps the step
-//!   effective.
 //! - Non-undoable transactions are **marker lines**. A marker without ops (an export) is transparent:
 //!   undo and redo pass over it. A marker with ops (an empty-project import checkpoint) is a barrier: undo
 //!   stops at it.
@@ -51,7 +41,7 @@ use crate::error::CmdError;
 use crate::meta::{Exposure, Origin};
 use crate::registry::AnyCommand;
 use crate::rows::{after_bytes, before_bytes};
-use crate::transaction::{Transaction, TxContext};
+use crate::transaction::Transaction;
 
 /// The bounds of the undo stack.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -80,17 +70,16 @@ pub struct HistoryEntry {
     before_bytes: usize,
     after_bytes: usize,
     state: u64,
-    merged: u32,
 }
 
 impl HistoryEntry {
-    /// The (possibly coalesced) transaction (feature `testkit` only: its ops carry whole rows, F9).
+    /// The transaction (feature `testkit` only: its ops carry whole rows, F9).
     #[cfg(feature = "testkit")]
     pub fn transaction(&self) -> &Transaction {
         &self.tx
     }
 
-    /// The (possibly coalesced) transaction.
+    /// The transaction.
     pub(crate) fn tx(&self) -> &Transaction {
         &self.tx
     }
@@ -100,30 +89,20 @@ impl HistoryEntry {
         &self.tx.label
     }
 
-    /// Who submitted the (last merged) transaction.
+    /// Who submitted the transaction.
     pub fn origin(&self) -> &Origin {
         &self.tx.origin
     }
 
-    /// The (last merged) command in its JSON form.
+    /// The command in its JSON form.
     pub fn command(&self) -> &AnyCommand {
         &self.tx.command
     }
 
-    /// The strictest exposure class of the commands the step holds, recorded at commit (FT-404): `undo` and
+    /// The exposure class of the command, recorded at commit (FT-404): `undo` and
     /// `redo` refuse a `HumanOnly` step from an origin that [`Exposure::allows_history`] does not admit.
     pub fn exposure(&self) -> Exposure {
         self.tx.exposure
-    }
-
-    /// The editor state an undo or redo of this step restores.
-    pub fn context(&self) -> &TxContext {
-        &self.tx.context
-    }
-
-    /// The coalescing key.
-    pub fn coalesce_key(&self) -> Option<&str> {
-        self.tx.coalesce_key.as_deref()
     }
 
     /// The number of ops of the step.
@@ -136,7 +115,7 @@ impl HistoryEntry {
         ModelDiff::of_ops(&self.tx.ops)
     }
 
-    /// The revision that committed it (for a coalesced step: the last merged transaction's).
+    /// The revision that committed it.
     pub fn rev(&self) -> Rev {
         self.rev
     }
@@ -151,11 +130,6 @@ impl HistoryEntry {
     /// branch.
     pub fn after_bytes(&self) -> usize {
         self.after_bytes
-    }
-
-    /// How many transactions were merged into this step after the first.
-    pub fn merged(&self) -> u32 {
-        self.merged
     }
 
     /// Whether this is an undo step (not a marker line).
@@ -250,48 +224,24 @@ impl History {
         self.bytes
     }
 
-    /// Records a committed transaction at revision `rev`: drops the redo branch, then merges into the
-    /// step below the cursor when the coalescing key matches, else pushes a new entry; finally enforces the
-    /// bounds.
+    /// Records a committed transaction at revision `rev`: drops the redo branch, pushes a new entry and
+    /// enforces the bounds.
     pub fn push(&mut self, tx: Transaction, rev: Rev) {
         for dropped in self.entries.drain(self.cursor..) {
             self.bytes -= dropped.before_bytes + dropped.after_bytes;
         }
-        let coalesce = tx.undoable
-            && tx.coalesce_key.is_some()
-            && self
-                .entries
-                .last()
-                .is_some_and(|top| top.is_step() && top.tx.coalesce_key == tx.coalesce_key);
         let state = self.next_state;
         self.next_state += 1;
-        if coalesce {
-            let top = self.entries.last_mut().expect("checked above");
-            let merged = Arc::make_mut(&mut top.tx);
-            let (before, after) = merge_ops(&mut merged.ops, tx.ops);
-            merged.command = tx.command;
-            merged.origin = tx.origin;
-            merged.exposure = merged.exposure.strictest(tx.exposure);
-            top.before_bytes = top.before_bytes.saturating_add_signed(before);
-            top.after_bytes = top.after_bytes.saturating_add_signed(after);
-            // The step is applied: only its `before` rows count.
-            self.bytes = self.bytes.saturating_add_signed(before);
-            top.rev = rev;
-            top.state = state;
-            top.merged += 1;
-        } else {
-            let before_bytes = tx.ops.iter().map(before_bytes).sum();
-            let after_bytes = tx.ops.iter().map(after_bytes).sum();
-            self.bytes += before_bytes;
-            self.entries.push(HistoryEntry {
-                tx: Arc::new(tx),
-                rev,
-                before_bytes,
-                after_bytes,
-                state,
-                merged: 0,
-            });
-        }
+        let before_bytes = tx.ops.iter().map(before_bytes).sum();
+        let after_bytes = tx.ops.iter().map(after_bytes).sum();
+        self.bytes += before_bytes;
+        self.entries.push(HistoryEntry {
+            tx: Arc::new(tx),
+            rev,
+            before_bytes,
+            after_bytes,
+            state,
+        });
         self.cursor = self.entries.len();
         self.trim();
     }
@@ -417,76 +367,4 @@ impl History {
             self.cursor = cursor;
         }
     }
-}
-
-/// Whether the ops are in strictly ascending key order (one op per key).
-fn is_keyed(ops: &[Op]) -> bool {
-    ops.windows(2).all(|w| w[0].key() < w[1].key())
-}
-
-/// The `before` and `after` bytes of a list of ops.
-fn totals(ops: &[Op]) -> (usize, usize) {
-    (
-        ops.iter().map(before_bytes).sum(),
-        ops.iter().map(after_bytes).sum(),
-    )
-}
-
-/// Brings ops to one op per key in key order: a stable sort, then every run of one key becomes one op with
-/// the first `before` and the last `after`.
-fn compact(ops: &mut Vec<Op>) {
-    if is_keyed(ops) {
-        return;
-    }
-    ops.sort_by_key(Op::key);
-    let mut out: Vec<Op> = Vec::with_capacity(ops.len());
-    for op in ops.drain(..) {
-        match out.last_mut() {
-            Some(Op::Put { key, after, .. }) if *key == op.key() => {
-                let Op::Put { after: last, .. } = op;
-                *after = last;
-            }
-            _ => out.push(op),
-        }
-    }
-    *ops = out;
-}
-
-/// Merges the ops of a later transaction into those of a step by key: an op on a key the step already has
-/// replaces that op's `after` (the first `before` stays), any other op is added. Returns the change of the
-/// step's `before` and `after` bytes.
-fn merge_ops(into: &mut Vec<Op>, mut incoming: Vec<Op>) -> (isize, isize) {
-    let mut before = 0isize;
-    let mut after = 0isize;
-    if !is_keyed(into) {
-        // Only a first transaction that touched a key twice gets here.
-        let old = totals(into);
-        compact(into);
-        let new = totals(into);
-        before += new.0 as isize - old.0 as isize;
-        after += new.1 as isize - old.1 as isize;
-    }
-    compact(&mut incoming);
-    let mut fresh = Vec::new();
-    for op in incoming {
-        match into.binary_search_by_key(&op.key(), Op::key) {
-            Ok(i) => {
-                let Op::Put { after: new, .. } = op;
-                let Op::Put { after: old, .. } = &mut into[i];
-                after -= old.as_ref().map_or(0, crate::heap::row_bytes) as isize;
-                after += new.as_ref().map_or(0, crate::heap::row_bytes) as isize;
-                *old = new;
-            }
-            Err(_) => {
-                before += before_bytes(&op) as isize;
-                after += after_bytes(&op) as isize;
-                fresh.push(op);
-            }
-        }
-    }
-    if !fresh.is_empty() {
-        into.extend(fresh);
-        into.sort_by_key(Op::key);
-    }
-    (before, after)
 }

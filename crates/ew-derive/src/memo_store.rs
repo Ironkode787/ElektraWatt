@@ -8,7 +8,7 @@
 //! - **[`MemoStore`]** holds an `ew_memo::Store` and the snapshot it was last advanced to. The session
 //!   advances it after every commit with the commit's touched keys ([`MemoStore::advance`]): push
 //!   invalidation over the page-level keys of `memo_keys`. [`MemoStore::query`] hands out a `Q` that
-//!   memoises the `Memo` and `MemoLru` families.
+//!   memoises the `Memo` families.
 //! - **The bridge** `MemoOf<F>` runs `F::run` (or `F::run_incremental`) on the reading `Q` inside a memo
 //!   frame: the tracked reads of the body and its cold families go to the execution; a nested memoised family
 //!   is one memo dependency. Its value is the family's value with the notes the execution pushed, so that a
@@ -27,7 +27,7 @@ use ew_model::{AnyKey, Model};
 use crate::memo_keys::{self, MemoInput, PartKey};
 use crate::note::{DeriveNote, NoteSet, same_notes};
 use crate::q::DeriveStore;
-use crate::query::{Changes, Policy, Query};
+use crate::query::{Changes, Query};
 use crate::{Cycle, Q, ReportPagesProvider};
 
 /// A memoised value with the notes of its execution.
@@ -35,21 +35,11 @@ pub(crate) struct Memoised<V> {
     pub(crate) value: Arc<V>,
     /// The execution's notes, sharing the note sets of the memoised values it read (`None`: no note).
     pub(crate) notes: Option<Arc<NoteSet>>,
-    /// The bytes of `notes` this value owns: 0 when the set is a nested value's, shared as is.
-    notes_bytes: usize,
 }
 
 impl<V> Memoised<V> {
-    fn new(value: Arc<V>, notes: Option<Arc<NoteSet>>, owned: bool) -> Memoised<V> {
-        let notes_bytes = match &notes {
-            Some(set) if owned => set.own_bytes(),
-            _ => 0,
-        };
-        Memoised {
-            value,
-            notes,
-            notes_bytes,
-        }
+    fn new(value: Arc<V>, notes: Option<Arc<NoteSet>>) -> Memoised<V> {
+        Memoised { value, notes }
     }
 
     /// Every note of the value, flattened.
@@ -73,26 +63,8 @@ impl<V: fmt::Debug> fmt::Debug for Memoised<V> {
 /// The `ew-memo` query that memoises the `ew-derive` family `F`.
 pub(crate) struct MemoOf<F>(PhantomData<F>);
 
-/// A deterministic 128-bit fingerprint of the notes (FNV-1a over their `Debug` text, in canonical order).
-fn notes_fingerprint(notes: &[DeriveNote]) -> u128 {
-    const PRIME: u128 = 0x0000_0000_0100_0000_0000_0000_0000_013b;
-    let mut h: u128 = 0x6c62_272e_07bb_0142_62b8_2175_6295_c58d;
-    for n in notes {
-        for b in format!("{n:?}").bytes() {
-            h ^= u128::from(b);
-            h = h.wrapping_mul(PRIME);
-        }
-        h = h.wrapping_mul(PRIME);
-    }
-    h
-}
-
 fn same<F: Query>(a: &Memoised<F::Value>, b: &Memoised<F::Value>) -> bool {
     (Arc::ptr_eq(&a.value, &b.value) || a.value == b.value) && same_notes(a.notes.as_ref(), b.notes.as_ref())
-}
-
-fn fingerprint<F: Query>(m: &Memoised<F::Value>) -> u128 {
-    F::fingerprint(&m.value) ^ notes_fingerprint(&m.flat_notes())
 }
 
 /// One memoised (or, in oracle mode, cold) evaluation of `F`.
@@ -112,7 +84,7 @@ fn run<F: Query>(
                 .into_iter()
                 .filter(|n| !matches!(n, DeriveNote::UnknownProfile { .. })),
         );
-        return Memoised::new(value, notes, true);
+        return Memoised::new(value, notes);
     }
     let out = q.memo_frame::<F>(key, || {
         if F::INCREMENTAL {
@@ -136,26 +108,17 @@ fn run<F: Query>(
     {
         cx.changed_parts([MemoInput::Part(PartKey::Notes)]);
     }
-    Memoised::new(out.value, out.notes, out.owned)
+    Memoised::new(out.value, out.notes)
 }
 
 impl<F: Query> ew_memo::Query<Q> for MemoOf<F> {
     type Key = F::Key;
     type Value = Memoised<F::Value>;
     const NAME: &'static str = F::FAMILY;
-    const LRU: bool = matches!(F::POLICY, Policy::MemoLru);
     const INCREMENTAL: bool = F::INCREMENTAL;
 
     fn equivalence() -> Equivalence<Memoised<F::Value>> {
-        if F::FINGERPRINT {
-            Equivalence::Hash128(fingerprint::<F>)
-        } else {
-            Equivalence::Eq(same::<F>)
-        }
-    }
-
-    fn bytes(value: &Memoised<F::Value>) -> usize {
-        F::bytes(&value.value) + value.notes_bytes
+        Equivalence::Eq(same::<F>)
     }
 
     fn execute(cx: &mut Cx<'_, Q>, key: &F::Key) -> Result<Memoised<F::Value>, ew_memo::Cycle> {
@@ -364,7 +327,7 @@ impl MemoStore {
         self.store().total_stats()
     }
 
-    /// Memory per family (G-SP-04): memos, values, value bytes, dependency entries.
+    /// What each family holds: memos and dependency entries.
     pub fn memory(&self) -> Vec<FamilyMemory> {
         self.store().memory()
     }
@@ -375,7 +338,7 @@ impl MemoStore {
     }
 
     /// The state and the dependency trail of the memo of `F(key)` (`ew_memo::Store::explain`; `ew query --explain`,
-    /// WP-S1.22 D12): read-only, nothing is computed. A family whose policy is [`Policy::Cold`] has no memo.
+    /// WP-S1.22 D12): read-only, nothing is computed. A family whose policy is [`Policy::Cold`](crate::Policy::Cold) has no memo.
     pub fn explain<F: Query>(&self, key: &F::Key) -> ew_memo::Explain<MemoInput> {
         self.store().explain::<MemoOf<F>>(key)
     }

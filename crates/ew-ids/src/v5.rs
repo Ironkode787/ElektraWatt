@@ -28,7 +28,6 @@
 //! | [`plc_channel_id`] | `v5(module, "channel", number)` | `"channel\u{1F}3"` |
 //! | [`lib_copy_id`] | `v5(NS_LIBCOPY, library ‖ item)` | `"<library>\u{1F}<item>"` |
 //! | [`lib_copy_keep_both_id`] | `v5(NS_LIBCOPY, library ‖ item ‖ version)` | `"<library>\u{1F}<item>\u{1F}<version>"` |
-//! | [`route_id`] | `v5(connection, "route")` | `"route"` |
 //! | [`plc_config_project_id`] | `v5(station, "plc_config_project")` | `"plc_config_project"` |
 //! | [`revision_next_id`] | `v5(latest released revision, "next")` | `"next"` |
 //! | [`revision_withdrawal_id`] | `v5(revision, "withdrawal")` | `"withdrawal"` |
@@ -217,11 +216,6 @@ pub fn lib_copy_keep_both_id<T>(library: Uuid, item: Uuid, version: &str) -> Id<
     )
 }
 
-/// The ID of the committed route of `connection`: `v5(connection, "route")` (doc 05 §2.2).
-pub fn route_id<C, R>(connection: Id<C>) -> Id<R> {
-    v5(connection.as_uuid(), "route")
-}
-
 /// The ID of the configuration project that the first PLC station of a project creates on demand:
 /// `v5(station, "plc_config_project")` (WP-S1.21 D3, normaliser N0). Stored; computed so that a replay or a redo
 /// of the placement mints the same record.
@@ -267,7 +261,6 @@ mod tests {
     const DEVICE: &str = "0192f3a4-5b6c-7d8e-af01-23456789abce";
     const BLOCK: &str = "0192f3a4-5b6c-7d8e-bf01-23456789abcf";
     const MODULE: &str = "0192f3a4-5b6c-7d8e-8f01-23456789abd0";
-    const CONNECTION: &str = "0192f3a4-5b6c-7d8e-9f01-23456789abd1";
     const LIBRARY: &str = "0192f3a4-5b6c-7d8e-af01-23456789abd2";
     const ITEM: &str = "0192f3a4-5b6c-7d8e-bf01-23456789abd3";
     const REVISION: &str = "0192f3a4-5b6c-7d8e-af01-23456789abd4";
@@ -317,10 +310,6 @@ mod tests {
         assert_eq!(
             s(lib_copy_keep_both_id(uuid(LIBRARY), uuid(ITEM), "2.1.0")),
             "b89c20b8-52f5-5f8b-bd16-3de9f1385a47"
-        );
-        assert_eq!(
-            s(route_id(id(CONNECTION))),
-            "aee2006f-142b-5569-a476-c57094452ca9"
         );
         assert_eq!(
             s(plc_config_project_id(id(DEVICE))),

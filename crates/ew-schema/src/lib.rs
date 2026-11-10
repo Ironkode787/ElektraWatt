@@ -148,8 +148,8 @@ pub use library::{
     FnFlags, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, ImagePrim,
     InternalKind, InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem, Library, LinePrim, MacroDef,
     MacroInstance, MacroKind, MacroLink, MacroVariant, Manufacturer, MechData, MountKind, NamedPoint,
-    OrderUnit, Overflow, Part, PartCopy, PartKind, PartSections, PassThroughSpec, Pen, PlaceholderGroup,
-    PlateSection, PlcAllocation, PlcAllocationStart, PlcAreaMnemonics, PlcMnemonics, PlcParse, PlcProfileDef,
+    OrderUnit, Overflow, Part, PartKind, PartSections, PassThroughSpec, Pen, PlaceholderGroup, PlateSection,
+    PlcAllocation, PlcAllocationStart, PlcAreaMnemonics, PlcMnemonics, PlcParse, PlcProfileDef,
     PlcProfilePin, PlcRender, PlcSizeMnemonics, PolygonPrim, PolylinePrim, Primitive, RailSection, RectPrim,
     RepType, Rgb, RowTemplate, RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback,
     SlotKind, Stroke, SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, ValueSet, VarBinding,
@@ -178,7 +178,7 @@ pub use project::{
     RunEntry, RunFix, RunLocation, RunMode, RunSeverity, RunSource, RunStats, RunTarget, Section,
     StructureNode, SupplyOrigin, SupplySpec, TagCase,
 };
-pub use record::{AnchorRef, AnyRecord, LibDocument, Record, Unknowns};
+pub use record::{AnchorRef, LibDocument, Record, Unknowns};
 pub use revision::{
     ArchiveRef, Digest128, LabelFormat, NOT_CONTENT_FILES, PackVersion, PageNote, ReleaseRecord, Revision,
     RevisionState, SignOff, is_content_kind,
@@ -193,7 +193,7 @@ pub use text_style::{
 };
 pub use track::parse_value;
 pub use value::{
-    AnyId, Bounds, ColourCode, ColourSpec, Csa, Date, Endpoint, ExternalRefId, IecColour, LibRef, PartRef,
-    PartUse, Quantity, Sha256, Slot, SourceRef, StructureAssignment, TechVal, TechValue, Unit,
+    AnyId, Bounds, ColourCode, ColourSpec, Csa, Date, Endpoint, IecColour, LibRef, PartRef, PartUse,
+    Quantity, Sha256, Slot, SourceRef, StructureAssignment, TechVal, TechValue, Unit,
 };
 pub use waiver::{Waiver, WaiverTarget};

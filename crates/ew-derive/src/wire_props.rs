@@ -208,10 +208,6 @@ impl Query for WirePropsOf {
     const FAMILY: &'static str = "wire_props_of";
     const POLICY: Policy = Policy::Memo;
 
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
-
     fn run(q: &Q, key: &PotentialId) -> Arc<WirePropsMap> {
         let physical = q.get::<PhysicalWiresOf>(*key);
         let ctx = Ctx {
@@ -313,10 +309,6 @@ impl Query for EndClass {
     type Value = Option<CircuitClass>;
     const FAMILY: &'static str = "end_class";
     const POLICY: Policy = Policy::Memo;
-
-    fn bytes(value: &Self::Value) -> usize {
-        crate::heap::value_bytes(value)
-    }
 
     fn run(q: &Q, scope: &EndScope) -> Arc<Option<CircuitClass>> {
         let idx = q.idx();

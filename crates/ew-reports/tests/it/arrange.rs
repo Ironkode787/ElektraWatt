@@ -10,7 +10,7 @@ use ew_derive::ew_units::Dec3;
 use ew_derive::{Q, Rev};
 use ew_reports::arrange::{cell_key, cell_text};
 use ew_reports::{
-    Arrangement, Cell, CellType, ColumnDef, Filter, FilterOp, MissingReason, NotDerived, QtyUnit, Row, RowId,
+    Arrangement, Cell, CellType, ColumnDef, MissingReason, NotDerived, QtyUnit, Row, RowId,
     RowKey, RowKind, RowSet, RowSetStatus, arrange,
 };
 use proptest::prelude::*;
@@ -86,7 +86,6 @@ fn set(rows: Vec<Row>) -> RowSet {
 struct Args {
     sort: Vec<SortKey>,
     group: Option<GroupSpec>,
-    filter: Option<Filter>,
     include: Set<AnyId>,
     exclude: Set<AnyId>,
     header: bool,
@@ -98,7 +97,6 @@ impl Args {
         Args {
             sort: Vec::new(),
             group: None,
-            filter: None,
             include: Set::new(),
             exclude: Set::new(),
             header: false,
@@ -112,7 +110,6 @@ impl Args {
         let how = Arrangement {
             sort: &self.sort,
             group: self.group.as_ref(),
-            filter: self.filter.as_ref(),
             include: &self.include,
             exclude: &self.exclude,
             group_header: self.header,
@@ -133,19 +130,12 @@ fn names(set: &RowSet) -> Vec<String> {
         .collect()
 }
 
-fn col(key: &str, op: FilterOp) -> Filter {
-    Filter::Column {
-        key: key.to_owned(),
-        op,
-    }
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // Pass-through
 
 #[test]
 fn not_derived_passes_through_unchanged() {
-    let mut s = RowSet::not_derived(columns(), NotDerived::AwaitsQuery("wire_rows"));
+    let mut s = RowSet::not_derived(columns(), NotDerived::Unsupported("wire_rows".into()));
     s.rows.push(row(1, "b", "x", 1));
     s.rows.push(row(0, "a", "x", 1));
     let mut a = Args::new();
@@ -255,182 +245,6 @@ fn headings_are_not_excluded_by_their_entities() {
     let mut a = Args::new();
     a.exclude = Set::from(vec![aid(1)]);
     assert_eq!(names(&a.run(set(vec![h, d]))), ["H1", "r1"]);
-}
-
-// ---------------------------------------------------------------------------------------------------------
-// Filter
-
-fn located(locs: &[&str]) -> RowSet {
-    set(locs
-        .iter()
-        .zip(0u32..)
-        .map(|(l, i)| row(i, &format!("r{i}"), l, 1))
-        .collect())
-}
-
-fn filtered(rows: RowSet, f: Filter) -> Vec<String> {
-    let mut a = Args::new();
-    a.filter = Some(f);
-    names(&a.run(rows))
-}
-
-/// The column filter (doc 09 §3.3): one case per operator, combinator and cell class.
-#[test]
-fn filter_cases() {
-    let abc = located(&["+A", "+B", "+C"]);
-    let a = || col("loc", FilterOp::Eq("+A".into()));
-    let b = || col("loc", FilterOp::Eq("+B".into()));
-    // (name, rows, filter, the names of the rows that pass)
-    let mut cases: Vec<(String, RowSet, Filter, Vec<&str>)> = vec![
-        // Eq and Ne compare the cell text.
-        (
-            "eq".into(),
-            located(&["+A", "+B", "+A"]),
-            col("loc", FilterOp::Eq("+A".into())),
-            vec!["r0", "r2"],
-        ),
-        (
-            "ne".into(),
-            located(&["+A", "+B", "+A"]),
-            col("loc", FilterOp::Ne("+A".into())),
-            vec!["r1"],
-        ),
-        // Within matches the value and its dotted children only.
-        (
-            "within".into(),
-            located(&[
-                "+J-E-2416",
-                "+J-E-2416.1",
-                "+J-E-24160",
-                "+J-E-2417",
-                "+J-E-2416-x",
-                "",
-                "+J",
-            ]),
-            col("loc", FilterOp::Within("+J-E-2416".into())),
-            vec!["r0", "r1", "r4"],
-        ),
-        // Combinators and unknown columns.
-        (
-            "all of nothing".into(),
-            abc.clone(),
-            Filter::All(vec![]),
-            vec!["r0", "r1", "r2"],
-        ),
-        ("any of nothing".into(), abc.clone(), Filter::Any(vec![]), vec![]),
-        (
-            "any of two".into(),
-            abc.clone(),
-            Filter::Any(vec![a(), b()]),
-            vec!["r0", "r1"],
-        ),
-        (
-            "all of two".into(),
-            abc.clone(),
-            Filter::All(vec![a(), b()]),
-            vec![],
-        ),
-        (
-            "not".into(),
-            abc.clone(),
-            Filter::Not(Box::new(a())),
-            vec!["r1", "r2"],
-        ),
-        (
-            "unknown column present".into(),
-            abc.clone(),
-            col("nope", FilterOp::Present),
-            vec![],
-        ),
-        (
-            "unknown column absent".into(),
-            abc.clone(),
-            col("nope", FilterOp::Absent),
-            vec![],
-        ),
-        (
-            "not unknown column present".into(),
-            abc,
-            Filter::Not(Box::new(col("nope", FilterOp::Present))),
-            vec!["r0", "r1", "r2"],
-        ),
-    ];
-    // The filter works on the text of typed cells.
-    let mut typed = row(0, "x", "y", 1500);
-    typed.cells[NAME] = Cell::Number(42);
-    let typed = set(vec![typed]);
-    cases.push((
-        "typed number".into(),
-        typed.clone(),
-        col("name", FilterOp::Eq("42".into())),
-        vec!["Number(42)"],
-    ));
-    cases.push((
-        "typed quantity".into(),
-        typed,
-        col("qty", FilterOp::Eq("1.5".into())),
-        vec!["Number(42)"],
-    ));
-    // Present and absent judge the value.
-    let mk = |c: Cell| {
-        let mut r = row(0, "x", "", 1);
-        r.cells[LOC] = c;
-        set(vec![r])
-    };
-    let cells = [
-        (Cell::Ident("v".into()), true),
-        (Cell::Empty, false),
-        (Cell::Tbd, false),
-        (Cell::Missing(MissingReason::Length), false),
-        (Cell::Stale(Box::new(Cell::Ident("v".into())), Rev(1)), true),
-        (Cell::Stale(Box::new(Cell::Empty), Rev(1)), false),
-        (Cell::Number(0), true),
-        (Cell::Bool(false), true),
-    ];
-    for (cell, present) in cells {
-        let when = |on: bool| if on { vec!["x"] } else { vec![] };
-        cases.push((
-            format!("present {cell:?}"),
-            mk(cell.clone()),
-            col("loc", FilterOp::Present),
-            when(present),
-        ));
-        cases.push((
-            format!("absent {cell:?}"),
-            mk(cell),
-            col("loc", FilterOp::Absent),
-            when(!present),
-        ));
-    }
-    for (name, rows, f, want) in cases {
-        assert_eq!(filtered(rows, f), want, "case {name}");
-    }
-}
-
-#[test]
-fn an_included_row_survives_the_filter() {
-    let mut r1 = source_row(1, &[1]);
-    r1.cells[LOC] = Cell::Ident("+B".into());
-    let mut r2 = source_row(2, &[2]);
-    r2.cells[LOC] = Cell::Ident("+B".into());
-    let mut a = Args::new();
-    a.filter = Some(col("loc", FilterOp::Eq("+A".into())));
-    a.include = Set::from(vec![aid(2)]);
-    assert_eq!(names(&a.run(set(vec![r1, r2]))), ["r2"]);
-}
-
-#[test]
-fn a_heading_whose_rows_are_all_filtered_out_is_dropped() {
-    let mut keep = row(1, "keep", "+A", 1);
-    keep.cells[LOC] = Cell::Ident("+A".into());
-    let s = set(vec![
-        heading(1, "H1"),
-        row(2, "gone", "+B", 1),
-        heading(2, "H2"),
-        keep,
-        row(3, "gone2", "+B", 1),
-    ]);
-    assert_eq!(filtered(s, col("loc", FilterOp::Eq("+A".into()))), ["H2", "keep"]);
 }
 
 // ---------------------------------------------------------------------------------------------------------

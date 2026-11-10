@@ -297,15 +297,12 @@ fn identity(set: &Arc<NoteSet>) -> usize {
 impl NoteSet {
     /// The notes of one execution: `None` when there are none; the one nested set itself when the
     /// execution pushed no note of its own and read one value with notes (no new allocation); a new set
-    /// otherwise. The second member is whether a new set was allocated (its bytes belong to the caller).
-    pub(crate) fn of(
-        own: BTreeSet<DeriveNote>,
-        mut nested: Vec<Arc<NoteSet>>,
-    ) -> (Option<Arc<NoteSet>>, bool) {
+    /// otherwise.
+    pub(crate) fn of(own: BTreeSet<DeriveNote>, mut nested: Vec<Arc<NoteSet>>) -> Option<Arc<NoteSet>> {
         if own.is_empty() {
             match nested.len() {
-                0 => return (None, false),
-                1 => return (nested.pop(), false),
+                0 => return None,
+                1 => return nested.pop(),
                 _ => {}
             }
         }
@@ -313,12 +310,12 @@ impl NoteSet {
             own: own.into_iter().collect(),
             nested: nested.into(),
         };
-        (Some(Arc::new(set)), true)
+        Some(Arc::new(set))
     }
 
     /// A set of plain notes (a cold evaluation's).
     pub(crate) fn flat(notes: impl IntoIterator<Item = DeriveNote>) -> Option<Arc<NoteSet>> {
-        NoteSet::of(notes.into_iter().collect(), Vec::new()).0
+        NoteSet::of(notes.into_iter().collect(), Vec::new())
     }
 
     /// Adds every note reachable from this set to `out`; `seen` holds the sets already visited.
@@ -337,18 +334,6 @@ impl NoteSet {
         let mut out = BTreeSet::new();
         self.collect(&mut out, &mut BTreeSet::new());
         out
-    }
-
-    /// The bytes this set owns: its own notes and the references to the nested sets (which their own
-    /// values count).
-    pub(crate) fn own_bytes(&self) -> usize {
-        std::mem::size_of::<NoteSet>()
-            + self
-                .own
-                .iter()
-                .map(|n| std::mem::size_of::<DeriveNote>() + crate::heap::HeapBytes::heap_bytes(n))
-                .sum::<usize>()
-            + self.nested.len() * std::mem::size_of::<Arc<NoteSet>>()
     }
 }
 
@@ -418,8 +403,8 @@ impl NoteFrame {
         out
     }
 
-    /// The frame as a memoised value's note set, and whether a new set was allocated.
-    pub(crate) fn into_set(self) -> (Option<Arc<NoteSet>>, bool) {
+    /// The frame as a memoised value's note set.
+    pub(crate) fn into_set(self) -> Option<Arc<NoteSet>> {
         NoteSet::of(self.own, self.nested)
     }
 }

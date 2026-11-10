@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Filtering, manual selection, sorting and grouping of report rows (doc 09 §3.3, FR-REP-027,
+//! Manual selection, sorting and grouping of report rows (doc 09 §3.3, FR-REP-027,
 //! FR-I18N-010).
 //!
-//! [`arrange`] runs, in order: manual exclusion, filter, sort within heading segments, grouping with
+//! [`arrange`] runs, in order: manual exclusion, sort within heading segments, grouping with
 //! optional header and footer rows. Sorting compares [`cell_key`]s, a total order over typed cells that
 //! never reads the page order (pagination runs inside it), with the [`RowId`] as the last tie-break, so the
-//! result does not depend on the order the kind produced the rows in. Group titles and filters use the
+//! result does not depend on the order the kind produced the rows in. Group titles use the
 //! source-language machine text of [`cell_text`]; display formatting is the consumer's.
 
 use std::cmp::Ordering;
@@ -27,42 +27,6 @@ use crate::rowset::{
     Cell, CellType, ColumnDef, GroupRange, MissingReason, QtyUnit, Row, RowId, RowKey, RowKind, RowSet,
 };
 
-/// A typed row predicate (doc 09 §3.3). The persisted encoding of a block's `filter` member is not
-/// decided yet (doc 09 §2.2: deferred, kept in `extra`), so blocks do not carry one; the engine evaluates
-/// filters handed to it.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub enum Filter {
-    /// Every predicate holds (true when empty).
-    All(Vec<Filter>),
-    /// At least one predicate holds (false when empty).
-    Any(Vec<Filter>),
-    /// The predicate does not hold.
-    Not(Box<Filter>),
-    /// A predicate over one column's cell.
-    Column {
-        /// The column key; an unknown key makes the predicate false.
-        key: String,
-        /// The test.
-        op: FilterOp,
-    },
-}
-
-/// A test on one cell, over its text in the project's source language.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub enum FilterOp {
-    /// The text equals the value.
-    Eq(String),
-    /// The text differs from the value.
-    Ne(String),
-    /// The text equals the value or starts with it followed by a character that is not a letter or
-    /// digit: `location within +J-E-2416` holds for `+J-E-2416` and `+J-E-2416.1`, not `+J-E-24160`.
-    Within(String),
-    /// The cell has a value (not `Empty`, `Tbd` or `Missing`).
-    Present,
-    /// The cell has no value (`Empty`, `Tbd` or `Missing`).
-    Absent,
-}
-
 /// How a block arranges its rows.
 #[derive(Clone, Debug)]
 pub struct Arrangement<'a> {
@@ -70,8 +34,6 @@ pub struct Arrangement<'a> {
     pub sort: &'a [SortKey],
     /// The grouping.
     pub group: Option<&'a GroupSpec>,
-    /// The filter.
-    pub filter: Option<&'a Filter>,
     /// Entities whose rows are always included.
     pub include: &'a Set<AnyId>,
     /// Entities whose rows are excluded.
@@ -87,12 +49,11 @@ pub struct Arrangement<'a> {
 }
 
 impl<'a> Arrangement<'a> {
-    /// The arrangement of a block whose first page has `layout`; no filter (see [`Filter`]).
+    /// The arrangement of a block whose first page has `layout`.
     pub fn of_block(block: &'a ReportBlock, layout: &PageLayout) -> Arrangement<'a> {
         Arrangement {
             sort: &block.sort,
             group: block.group.as_ref(),
-            filter: None,
             include: &block.manual.include,
             exclude: &block.manual.exclude,
             group_header: layout.group_header.is_some(),
@@ -112,7 +73,7 @@ impl<'a> Arrangement<'a> {
     }
 }
 
-/// Applies an arrangement to a row set in the kind's default order: manual exclusion, filter, sort within
+/// Applies an arrangement to a row set in the kind's default order: manual exclusion, sort within
 /// heading segments, grouping (see the module documentation). A set that is not derived passes through
 /// unchanged.
 pub fn arrange(q: &Q, set: RowSet, how: &Arrangement<'_>) -> RowSet {
@@ -127,10 +88,10 @@ pub fn arrange(q: &Q, set: RowSet, how: &Arrangement<'_>) -> RowSet {
         status,
     } = set;
 
-    // Steps 1 and 2: manual exclusion and filter, per segment.
+    // Step 1: manual exclusion, per segment.
     let mut segments = split_segments(rows);
     for seg in &mut segments {
-        seg.rows.retain(|r| keep_row(q, &columns, r, how));
+        seg.rows.retain(|r| keep_row(r, how));
         if seg.heading.is_some() && !seg.rows.iter().any(|r| r.kind == RowKind::Data) {
             seg.heading = None;
         }
@@ -221,56 +182,14 @@ fn row_ids(row: &Row) -> Vec<AnyId> {
     }
 }
 
-/// Manual exclusion and filter for one row (headings and group rows are kept here).
-fn keep_row(q: &Q, columns: &[ColumnDef], row: &Row, how: &Arrangement<'_>) -> bool {
+/// Manual exclusion for one row (headings and group rows are kept here).
+fn keep_row(row: &Row, how: &Arrangement<'_>) -> bool {
     if row.kind != RowKind::Data {
         return true;
     }
     let ids = row_ids(row);
     let included = ids.iter().any(|i| how.include.contains(i));
-    if !ids.is_empty() && !included && ids.iter().all(|i| how.exclude.contains(i)) {
-        return false;
-    }
-    match how.filter {
-        Some(f) => included || filter_holds(q, columns, row, f),
-        None => true,
-    }
-}
-
-fn filter_holds(q: &Q, columns: &[ColumnDef], row: &Row, f: &Filter) -> bool {
-    match f {
-        Filter::All(fs) => fs.iter().all(|f| filter_holds(q, columns, row, f)),
-        Filter::Any(fs) => fs.iter().any(|f| filter_holds(q, columns, row, f)),
-        Filter::Not(f) => !filter_holds(q, columns, row, f),
-        Filter::Column { key, op } => {
-            let Some(i) = columns.iter().position(|c| c.key == *key) else {
-                return false;
-            };
-            let cell = row.cells.get(i).unwrap_or(&Cell::Empty);
-            match op {
-                FilterOp::Eq(v) => cell_text(q, cell) == *v,
-                FilterOp::Ne(v) => cell_text(q, cell) != *v,
-                FilterOp::Within(v) => within(&cell_text(q, cell), v),
-                FilterOp::Present => has_value(cell),
-                FilterOp::Absent => !has_value(cell),
-            }
-        }
-    }
-}
-
-fn within(text: &str, prefix: &str) -> bool {
-    match text.strip_prefix(prefix) {
-        Some(rest) => rest.chars().next().is_none_or(|c| !c.is_alphanumeric()),
-        None => false,
-    }
-}
-
-fn has_value(cell: &Cell) -> bool {
-    match cell {
-        Cell::Empty | Cell::Tbd | Cell::Missing(_) => false,
-        Cell::Stale(inner, _) => has_value(inner),
-        _ => true,
-    }
+    ids.is_empty() || included || !ids.iter().all(|i| how.exclude.contains(i))
 }
 
 /// Sorts `rows` by the column keys `(index, descending)`, ties by `RowId`.

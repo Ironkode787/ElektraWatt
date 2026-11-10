@@ -19,7 +19,7 @@ pub enum Cost {
 
 /// Which front-ends may submit a command (doc 17 §2.3, FR-EXT-030).
 ///
-/// The derived order is declaration order, not strictness; compare strictness with [`Exposure::strictest`].
+/// The derived order is declaration order, not strictness.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Exposure {
@@ -47,24 +47,6 @@ impl Exposure {
             Exposure::Import => matches!(origin, Origin::Gui | Origin::Cli { .. } | Origin::Import { .. }),
             Exposure::Internal => matches!(origin, Origin::External),
         }
-    }
-
-    /// The stricter of two classes, by the origins they admit: `Edit` (every origin) < `Import` < `HumanOnly`
-    /// (the GUI and a confirmed CLI subcommand, a subset of `Import`'s) < `Internal` (the external-change apply only). A
-    /// history step records
-    /// the strictest class of the commands it holds (a coalesced step the strictest of its parts; ADR-0008
-    /// amendment 3's note, FT-404).
-    #[must_use]
-    pub fn strictest(self, other: Exposure) -> Exposure {
-        fn rank(e: Exposure) -> u8 {
-            match e {
-                Exposure::Edit => 0,
-                Exposure::Import => 1,
-                Exposure::HumanOnly => 2,
-                Exposure::Internal => 3,
-            }
-        }
-        if rank(other) > rank(self) { other } else { self }
     }
 
     /// Whether an origin may undo or redo a history step of this class (ADR-0008 amendment 3's note, FT-404): a

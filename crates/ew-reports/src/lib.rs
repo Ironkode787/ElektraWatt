@@ -12,7 +12,7 @@
 //!   → manual selection, filter, sort, group                                       [arrange]
 //!   = report_rows(block)                                         (BlockRows, Memo)
 //!   → slice into pages by the form's data area, number the folios, fill titles   [layout, paginate]
-//!   = report_block_pages(block, toc_pages)                    (BlockPages, MemoLru)
+//!   = report_block_pages(block, toc_pages)                    (BlockPages, Memo)
 //!   → ReportEngine: the ReportPagesProvider that page_order calls                 [queries]
 //! ```
 //!
@@ -32,7 +32,6 @@
 pub mod arrange;
 pub mod csv;
 pub mod export;
-pub mod exporter;
 mod kind;
 pub mod kinds;
 pub mod layout;
@@ -43,7 +42,7 @@ mod rowset;
 pub mod table;
 pub mod xlsx;
 
-pub use arrange::{Arrangement, Filter, FilterOp, arrange};
+pub use arrange::{Arrangement, arrange};
 pub use kind::{
     EmbeddedLayout, KindParams, ParamDef, ParamKind, ParamValue, Registry, ReportKindDef, kind_name,
     kind_params,

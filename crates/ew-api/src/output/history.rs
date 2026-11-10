@@ -151,7 +151,7 @@ pub(super) fn view_of(history: &History, q: &Q) -> HistoryView {
             origin: origin_text(e.origin()),
             step: e.is_step(),
             barrier: e.is_barrier(),
-            merged: e.merged().saturating_add(1),
+            merged: 1,
             rev: e.rev().0,
             pages: e
                 .changes()

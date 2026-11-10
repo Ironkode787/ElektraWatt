@@ -133,11 +133,6 @@ impl<S: IdSource> V7Generator<S> {
         V7Generator { source }
     }
 
-    /// The source, for example to inspect a test clock.
-    pub fn source_mut(&mut self) -> &mut S {
-        &mut self.source
-    }
-
     /// A new UUIDv7.
     ///
     /// # Errors

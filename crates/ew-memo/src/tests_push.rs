@@ -186,7 +186,7 @@ fn groups_full(cx: &mut Cx<'_, Grid>) -> BTreeMap<u32, i64> {
     out
 }
 
-/// The incremental hook shared by `Groups` and `GroupsLru`: recomputes the groups of the touched fine cells,
+/// The incremental hook of `Groups`: recomputes the groups of the touched fine cells,
 /// and everything when it cannot tell (no previous value, no touched list, or a group key without a fine key).
 fn groups_incremental(
     cx: &mut Cx<'_, Grid>,
@@ -248,29 +248,6 @@ impl Query<Grid> for Groups {
     fn execute_incremental(
         cx: &mut Cx<'_, Grid>,
         _: &(),
-        previous: Option<(&Self::Value, &Changes<u32>)>,
-    ) -> Result<Self::Value, Cycle> {
-        Ok(groups_incremental(cx, previous))
-    }
-}
-
-/// `Groups` under the LRU, with several keys that share the one body.
-struct GroupsLru;
-impl Query<Grid> for GroupsLru {
-    type Key = u8;
-    type Value = BTreeMap<u32, i64>;
-    const NAME: &'static str = "groups_lru";
-    const LRU: bool = true;
-    const INCREMENTAL: bool = true;
-    fn equivalence() -> Equivalence<Self::Value> {
-        Equivalence::by_eq()
-    }
-    fn execute(cx: &mut Cx<'_, Grid>, _: &u8) -> Result<Self::Value, Cycle> {
-        Ok(groups_full(cx))
-    }
-    fn execute_incremental(
-        cx: &mut Cx<'_, Grid>,
-        _: &u8,
         previous: Option<(&Self::Value, &Changes<u32>)>,
     ) -> Result<Self::Value, Cycle> {
         Ok(groups_incremental(cx, previous))
@@ -893,33 +870,6 @@ fn pull_mode_after_plain_advance() {
 }
 
 #[test]
-fn incremental_without_previous_value_is_full() {
-    let (mut db, store) = setup();
-    store.set_lru_budget(Some(1));
-    assert_cold::<GroupsLru>(&store, &db, &0);
-    assert_cold::<GroupsLru>(&store, &db, &1); // evicts key 0
-    assert!(!store.memo_info::<GroupsLru>(&0).unwrap().has_value);
-    assert!(store.memo_info::<GroupsLru>(&1).unwrap().has_value);
-    clear_hook_runs();
-
-    db.commit_push(&store, &[set(12, 100)]);
-    assert_cold::<GroupsLru>(&store, &db, &1);
-    assert_cold::<GroupsLru>(&store, &db, &0);
-
-    let runs = hook_runs();
-    assert_eq!(runs.len(), 2);
-    assert!(
-        runs[0].had_previous && runs[0].recomputed == 1,
-        "a held value: incremental"
-    );
-    assert!(
-        !runs[1].had_previous && runs[1].recomputed == GROUPS as usize,
-        "an evicted value: full"
-    );
-    assert_eq!(counters(&store, "groups_lru").incremental, 1);
-}
-
-#[test]
 fn changes_name_touched_and_via() {
     let (mut db, store) = setup();
     assert_cold::<Groups>(&store, &db, &());
@@ -1006,14 +956,8 @@ fn key_of_maps_via_entries() {
 
 #[test]
 fn fork_keeps_push_state() {
-    let (mut db, mut store) = setup();
+    let (mut db, store) = setup();
     read_all(&store, &db);
-
-    // A fork that reads a new key and is adopted while the parent did not move.
-    let fork = store.fork();
-    assert_cold::<Cell>(&fork, &db, &44);
-    assert!(store.adopt_if_unchanged(fork));
-    assert!(store.memo_key::<Cell>(&44).is_some());
 
     // A fork on its own snapshot of the database, taken before the parent advances.
     let mut fork_db = db.clone();
@@ -1035,8 +979,7 @@ fn fork_keeps_push_state() {
     assert_eq!(counters(&fork, "group_of").push_skips, 3);
     assert_eq!(hook_runs().len(), 1);
 
-    // The parent advanced after the fork: adopting is refused, and neither side is disturbed.
-    assert!(!store.adopt_if_unchanged(fork));
+    // The parent is not disturbed.
     read_all(&store, &db);
     assert_eq!(*store.get::<Cell>(&db, &25).unwrap(), 100);
 }
@@ -1060,7 +1003,6 @@ enum Step {
     Commit(Style),
     Fork,
     ReadFork(u8, u32),
-    Adopt,
 }
 
 fn style() -> impl Strategy<Value = Style> {
@@ -1078,7 +1020,6 @@ fn step() -> impl Strategy<Value = Step> {
         2 => style().prop_map(Step::Commit),
         1 => Just(Step::Fork),
         3 => (0u8..FAMILIES, 0u32..45).prop_map(|(q, k)| Step::ReadFork(q, k)),
-        1 => Just(Step::Adopt),
     ]
 }
 
@@ -1132,19 +1073,18 @@ proptest! {
     #![proptest_config(ProptestConfig { cases: 256, ..ProptestConfig::default() })]
 
     /// Under random sequences of changes (any durability, durability moves) committed by push, by group keys
-    /// only, or by a plain advance, with forks read against a snapshot and offered back, every memoised read
+    /// only, or by a plain advance, with forks read against a snapshot, every memoised read
     /// equals the cold one, oracle mode finds no mismatch and the revision never decreases. The families
     /// include a reader whose producer depends on data (`Mid`, chosen by cell 44, read through a part) and a
     /// whole reader of it (`Top`), so a producer switch with a cut-off is exercised (review cycle 9).
     #[test]
     fn push_equals_cold(steps in proptest::collection::vec(step(), 1..60)) {
         let mut db = Grid::default();
-        let mut store = Store::new();
+        let store = Store::new();
         store.set_oracle(Oracle::Every);
         let mut pending: Vec<Change> = Vec::new();
         let mut last_style = Style::Push;
         let mut held: Option<(Store<Grid>, Grid)> = None;
-        let mut committed_since_fork = false;
         let mut last_current = store.current();
         for s in steps {
             match s {
@@ -1160,41 +1100,20 @@ proptest! {
                 Step::Commit(style) => {
                     last_style = style;
                     commit_styled(&mut db, &store, style, &std::mem::take(&mut pending));
-                    committed_since_fork = true;
                 }
                 Step::Read(q, k) => {
                     if !pending.is_empty() {
                         commit_styled(&mut db, &store, last_style, &std::mem::take(&mut pending));
-                        committed_since_fork = true;
                     }
                     let memo = read_family(&store, &db, q, k);
                     prop_assert_eq!(memo, cold_family(&store, &db, q, k));
                 }
-                Step::Fork => {
-                    held = Some((store.fork(), db.clone()));
-                    committed_since_fork = false;
-                }
+                Step::Fork => held = Some((store.fork(), db.clone())),
                 Step::ReadFork(q, k) => {
                     if let Some((fork, snapshot)) = held.as_mut() {
                         let memo = read_family(fork, snapshot, q, k);
                         prop_assert_eq!(memo, cold_family(fork, snapshot, q, k));
                         prop_assert_eq!(fork.take_mismatches(), Vec::<Mismatch>::new());
-                    }
-                }
-                Step::Adopt => {
-                    if let Some((fork, _)) = held.take() {
-                        let before = store.current();
-                        let adopted = store.adopt_if_unchanged(fork);
-                        prop_assert_eq!(store.current(), before, "adopt does not move the revision");
-                        if committed_since_fork {
-                            prop_assert!(!adopted, "a fork that missed a commit is refused");
-                        }
-                        for q in 0..FAMILIES {
-                            for k in [0, 13, 44] {
-                                let memo = read_family(&store, &db, q, k);
-                                prop_assert_eq!(memo, cold_family(&store, &db, q, k));
-                            }
-                        }
                     }
                 }
             }

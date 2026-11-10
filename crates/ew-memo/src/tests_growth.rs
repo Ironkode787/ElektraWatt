@@ -5,7 +5,6 @@
 //! growth (finding 3): carried dependencies a hook forgets or drops, part stamps without readers, and the
 //! collection of orphan memos.
 
-use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{Changes, Cx, Cycle, Db, DepKey, Durability, Equivalence, Oracle, Query, Rev, Store};
@@ -273,54 +272,6 @@ impl Query<Book> for Top {
 /// The flag page of [`Top`].
 const FLAG: u32 = 500;
 
-thread_local! {
-    /// The calls of `Heavy::bytes` and `HeavyLru::bytes` on this thread.
-    static BYTES_CALLS: Cell<usize> = const { Cell::new(0) };
-}
-
-fn bytes_calls() -> usize {
-    BYTES_CALLS.with(Cell::get)
-}
-
-/// A page's value, with counted byte accounting; no LRU.
-struct Heavy;
-impl Query<Book> for Heavy {
-    type Key = u32;
-    type Value = i64;
-    const NAME: &'static str = "heavy";
-    fn equivalence() -> Equivalence<i64> {
-        Equivalence::by_eq()
-    }
-    fn bytes(_: &i64) -> usize {
-        BYTES_CALLS.with(|c| c.set(c.get() + 1));
-        100
-    }
-    fn execute(cx: &mut Cx<'_, Book>, p: &u32) -> Result<i64, Cycle> {
-        cx.read(&In::Page(*p));
-        Ok(cx.db().value(*p))
-    }
-}
-
-/// [`Heavy`] under the LRU.
-struct HeavyLru;
-impl Query<Book> for HeavyLru {
-    type Key = u32;
-    type Value = i64;
-    const NAME: &'static str = "heavy_lru";
-    const LRU: bool = true;
-    fn equivalence() -> Equivalence<i64> {
-        Equivalence::by_eq()
-    }
-    fn bytes(_: &i64) -> usize {
-        BYTES_CALLS.with(|c| c.set(c.get() + 1));
-        100
-    }
-    fn execute(cx: &mut Cx<'_, Book>, p: &u32) -> Result<i64, Cycle> {
-        cx.read(&In::Page(*p));
-        Ok(cx.db().value(*p))
-    }
-}
-
 /// A book with pages `0..n` (values `1..`) at revision 1, and a store advanced to it.
 fn setup(n: u32) -> (Book, Store<Book>) {
     let mut db = Book::default();
@@ -330,55 +281,11 @@ fn setup(n: u32) -> (Book, Store<Book>) {
     (db, store)
 }
 
-fn memos(store: &Store<Book>, family: &str) -> usize {
-    store
-        .memory()
-        .iter()
-        .find(|m| m.family == family)
-        .map_or(0, |m| m.memos)
-}
-
-// ---------------------------------------------------------------------------------------------------------
-// Finding 2: byte accounting
-
-/// A family without LRU never has its bytes counted on the execution path; the memory report counts them.
-#[test]
-fn bytes_of_a_family_without_lru_are_counted_on_demand() {
-    let (mut db, store) = setup(4);
-    let before = bytes_calls();
-    for p in 0..4 {
-        store.get::<Heavy>(&db, &p).unwrap();
-    }
-    for round in 0..3 {
-        db.commit(&store, &[(1, Some(10 + round))]);
-        store.get::<Heavy>(&db, &1).unwrap();
-    }
-    assert_eq!(bytes_calls(), before, "no execution counted bytes");
-    let heavy = store.memory().into_iter().find(|m| m.family == "heavy").unwrap();
-    assert_eq!(heavy.value_bytes, 400);
-    assert_eq!(
-        bytes_calls(),
-        before + 4,
-        "the report asked for each value's bytes"
-    );
-}
-
-/// An LRU family counts bytes at every write that changes the value; a cut-off keeps the previous bytes.
-#[test]
-fn bytes_of_an_lru_family_are_kept_through_a_cut_off() {
-    let (mut db, store) = setup(4);
-    let before = bytes_calls();
-    store.get::<HeavyLru>(&db, &1).unwrap();
-    assert_eq!(bytes_calls(), before + 1);
-    // The same value again: the re-execution cuts off and keeps the bytes.
-    db.commit(&store, &[(1, Some(2))]);
-    store.get::<HeavyLru>(&db, &1).unwrap();
-    assert_eq!(store.commit_stats().family("heavy_lru").cut_offs, 1);
-    assert_eq!(bytes_calls(), before + 1, "a cut-off does not count bytes again");
-    db.commit(&store, &[(1, Some(3))]);
-    store.get::<HeavyLru>(&db, &1).unwrap();
-    assert_eq!(bytes_calls(), before + 2);
-    assert_eq!(store.lru_bytes(), 100);
+/// The `Nets` memos the store holds, over every page number the tests use.
+fn nets_memos(store: &Store<Book>) -> usize {
+    (0..1300u32)
+        .filter(|p| store.memo_info::<Nets>(p).is_some())
+        .count()
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -394,7 +301,7 @@ fn adding_and_deleting_a_page_300_times_does_not_grow() {
     let deps0 = store.memo_info::<Partition>(&()).unwrap().deps.len();
     let push0 = store.push_index_entries();
     assert_eq!(deps0, 14, "the page set and 13 pages");
-    assert_eq!(memos(&store, "nets"), 13);
+    assert_eq!(nets_memos(&store), 13);
     for i in 0..300u32 {
         let page = 1000 + i;
         db.commit(&store, &[(page, Some(7))]);
@@ -403,7 +310,7 @@ fn adding_and_deleting_a_page_300_times_does_not_grow() {
         assert_eq!(store.get::<Partition>(&db, &()).unwrap().len(), 13);
     }
     let deps = store.memo_info::<Partition>(&()).unwrap().deps.len();
-    let nets = memos(&store, "nets");
+    let nets = nets_memos(&store);
     let push = store.push_index_entries();
     assert!(deps <= deps0 + 1, "partition deps {deps0} -> {deps}");
     assert!(nets <= 13 + 1, "nets memos 13 -> {nets}");

@@ -545,7 +545,6 @@ impl Cx<'_> {
         let policy_word = match F::POLICY {
             Policy::Cold => "Cold",
             Policy::Memo => "Memo",
-            Policy::MemoLru => "MemoLru",
         };
         let Some(memo) = self.session.memo().filter(|_| F::POLICY != Policy::Cold) else {
             let policy = if F::POLICY == Policy::Cold {

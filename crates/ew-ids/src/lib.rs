@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Typed identifiers `Id<T>`: UUIDv7 for new records, UUIDv5 for instantiated, imported and generated ones,
-//! plus a per-session `u32` interner.
+//! Typed identifiers `Id<T>`: UUIDv7 for new records, UUIDv5 for instantiated, imported and generated ones.
 //!
 //! Implements ADR-0004 (`docs/adr/0004-identity-uuidv7-uuidv5.md`, with amendments 1–3), the identity
 //! table of the domain model (§4.1) and the ID-related rules of the project format
@@ -15,7 +14,6 @@
 //! - The [`v5`] module computes the **UUIDv5** identities of ADR-0004: connection points, generated report
 //!   pages, imported records, template functions, PLC channels, embedded library copies and committed
 //!   routes.
-//! - [`Interner<T>`] maps IDs to dense per-session [`Dense<T>`] indexes for hot structures.
 //!
 //! # What is persisted
 //!
@@ -25,9 +23,7 @@
 //!
 //! # What is not persisted
 //!
-//! [`Dense<T>`] values and the [`Interner<T>`] are session-local and never written to files or exports
-//! (ADR-0004), so they have no serde implementation. Computed v5 identities of connection points are
-//! never stored either; only overrides that carry authored data are.
+//! Computed v5 identities of connection points are never stored; only overrides that carry authored data are.
 //!
 //! # Features
 //!
@@ -59,11 +55,9 @@
 #![deny(missing_docs)]
 
 mod id;
-mod interner;
 pub mod v5;
 pub mod v7;
 
 pub use id::{Id, ParseIdError};
-pub use interner::{Dense, Interner};
 pub use uuid::Uuid;
 pub use v7::{EntropyError, IdSource, SystemSource, UnixTime, V7Generator};

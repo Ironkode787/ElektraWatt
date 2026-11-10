@@ -20,8 +20,8 @@ use uuid::Uuid;
 ///
 /// - **Text and JSON:** the canonical lower-case hyphenated form (doc 05 §3.2). [`FromStr`] and
 ///   deserialisation accept only that form; [`parse_lenient`](Id::parse_lenient) accepts the others.
-/// - **Order:** `Ord` compares the 16 bytes (the natural UUID order). File line order is a different key,
-///   [`line_order_key`](Id::line_order_key).
+/// - **Order:** `Ord` compares the 16 bytes (the natural UUID order). File line order is a different key:
+///   [`sort_key`](Id::sort_key), then the full UUID.
 /// - **Storage keys:** [`shard`](Id::shard) (byte 15) and [`sort_key`](Id::sort_key) (bytes 8–15) use the
 ///   random bits of both UUIDv7 and UUIDv5.
 ///
@@ -81,11 +81,6 @@ impl<T> Id<T> {
     pub const fn sort_key(&self) -> u64 {
         let b = self.uuid.as_bytes();
         u64::from_be_bytes([b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15]])
-    }
-
-    /// The line-order key within a kind (doc 05 §3.3): [`sort_key`](Id::sort_key), then the full UUID.
-    pub const fn line_order_key(&self) -> (u64, Uuid) {
-        (self.sort_key(), self.uuid)
     }
 
     /// Parses any UUID spelling the `uuid` crate accepts: hyphenated or simple, upper or lower case,
@@ -268,7 +263,6 @@ mod tests {
         assert_eq!(i.shard(), 0xc2);
         assert_eq!(i.shard_name(), "c2");
         assert_eq!(i.sort_key(), 0x8b03_9d2e_6f1a_47c2);
-        assert_eq!(i.line_order_key(), (0x8b03_9d2e_6f1a_47c2, i.as_uuid()));
         let low: Id<Device> = "00000000-0000-7000-8000-000000000005".parse().unwrap();
         assert_eq!(low.shard_name(), "05");
     }

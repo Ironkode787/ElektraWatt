@@ -93,19 +93,6 @@ pub fn ident_findings(s: &str) -> Vec<IdentFinding> {
     findings
 }
 
-/// The UTS #39 confusable skeleton of `s`: strings that can be mistaken for each other have equal
-/// skeletons, such as `-KA1` written with a Latin and with a Cyrillic `A`. For "looks like a duplicate"
-/// checks; a skeleton is never displayed or stored.
-///
-/// ```
-/// use ew_mltext::confusable_skeleton;
-///
-/// assert_eq!(confusable_skeleton("-K\u{410}1"), confusable_skeleton("-KA1"));
-/// ```
-pub fn confusable_skeleton(s: &str) -> String {
-    skeleton(s).collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -182,12 +169,6 @@ mod tests {
         }));
     }
 
-    #[test]
-    fn skeletons() {
-        assert_eq!(confusable_skeleton("-K\u{410}1"), confusable_skeleton("-KA1"));
-        assert_ne!(confusable_skeleton("-KB1"), confusable_skeleton("-KA1"));
-    }
-
     proptest! {
         #[test]
         fn ascii_never_has_findings(s in "[ -~]{0,24}") {
@@ -197,7 +178,6 @@ mod tests {
         #[test]
         fn never_panics(s in "\\PC{0,16}") {
             let _ = ident_findings(&s);
-            let _ = confusable_skeleton(&s);
         }
     }
 }

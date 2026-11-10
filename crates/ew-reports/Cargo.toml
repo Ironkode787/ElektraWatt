@@ -24,8 +24,6 @@ serde_json = "1.0.154"
 # The XLSX writer's container (WP-S3.08 D3, decision log ID-1145): the own deterministic ZIP, no ZIP or XLSX crate.
 ew-zip = { path = "../ew-zip" }
 ew-hack = { version = "0.1.0", path = "../ew-hack" }
-# The `Exporter` trait the table writers implement (WP-S3.09 D14, decision log ID-1016); its crates are in the graph.
-ew-interop-api = { path = "../ew-interop-api" }
 
 [dev-dependencies]
 automod.workspace = true

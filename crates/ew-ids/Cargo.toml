@@ -7,7 +7,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Typed identifiers: UUIDv7 for new records, UUIDv5 for instantiated, imported and generated ones, and a per-session interner."
+description = "Typed identifiers: UUIDv7 for new records, UUIDv5 for instantiated, imported and generated ones."
 repository.workspace = true
 publish = false
 
