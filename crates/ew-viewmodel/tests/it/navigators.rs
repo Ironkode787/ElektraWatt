@@ -6,71 +6,33 @@
 //! navigator with selection synchronisation both ways and the chip line, multi-selection and reorder of pages with the
 //! card, the New page pre-fill, the describe window and the transcript's `focus` values.
 
-use crate::common;
+use crate::common::{self, Tmp, done, failed, lines_with, nav_rows, row_key, state};
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ew_viewmodel::navigator::{NavMode, PageNavigator, RowKind};
 use ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
-use serde_json::{Value, json};
+use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use serde_json::json;
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected");
 
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(common::fresh_dir::fresh_dir("ew-vm-navigators"))
+/// A headless shell with a copy of Golden A open (read-only unless `writable`).
+fn open(tmp: &Tmp, writable: bool) -> ShellModel {
+    let dir = tmp.golden_copy();
+    if !dir.exists() {
+        common::copy_dir(Path::new(common::GOLDEN_A), &dir);
     }
-
-    /// A headless shell with a copy of Golden A open (read-only unless `writable`).
-    fn shell(&self, writable: bool) -> ShellModel {
-        let dir = self.0.join("J-E-2416.ew");
-        if !dir.exists() {
-            copy_dir(Path::new(GOLDEN_A), &dir);
-        }
-        let mut shell = ShellModel::new(
-            Mode::Headless,
-            ShellConfig::in_dir(&self.0.join("config"), "0.0.0-test"),
-        );
-        done(
-            &mut shell,
-            "file.open",
-            json!({"dir": dir.to_string_lossy(), "read_only": !writable}),
-        );
-        shell
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
-
-#[track_caller]
-fn done(shell: &mut ShellModel, action: &str, params: Value) {
-    assert_eq!(
-        shell.dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
     );
+    done(
+        &mut shell,
+        "file.open",
+        json!({"dir": dir.to_string_lossy(), "read_only": !writable}),
+    );
+    shell
 }
 
 /// The Pages navigator's lines of the describe text: its header and its row lines.
@@ -95,8 +57,8 @@ fn pages_lines(shell: &ShellModel) -> String {
 /// reaches: the section view, a collapsed section, a filter, the flat view, the type order and a moved cursor.
 #[test]
 fn the_pages_lines_are_the_as_built_lines() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(false);
+    let tmp = Tmp::new("navigators");
+    let mut shell = open(&tmp, false);
     let mut text = String::new();
     let mut take = |shell: &ShellModel, what: &str| {
         text.push_str(&format!("## {what}\n{}\n", pages_lines(shell)));
@@ -125,18 +87,6 @@ fn the_pages_lines_are_the_as_built_lines() {
     assert_eq!(text, expected);
 }
 
-fn state(shell: &ShellModel) -> Value {
-    serde_json::from_str(&ew_viewmodel::script::state_json(shell)).unwrap()
-}
-
-#[track_caller]
-fn failed(shell: &mut ShellModel, action: &str, params: Value) -> String {
-    match shell.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action}: {other:?}"),
-    }
-}
-
 /// The key of the Pages row of folio `folio` in the current view.
 fn page_key(shell: &ShellModel, folio: &str) -> String {
     let rows = shell.page_rows();
@@ -146,49 +96,6 @@ fn page_key(shell: &ShellModel, folio: &str) -> String {
         .find(|r| matches!(r.kind, RowKind::Page(i) if rows[i].folio == folio))
         .map(|r| r.key)
         .unwrap_or_else(|| panic!("no Pages row {folio}"))
-}
-
-/// The key of the row labelled `label` with role `role` in an open navigator.
-fn row_key(shell: &ShellModel, kind: NavKind, role: NavRole, label: &str) -> String {
-    let t = shell
-        .nav(kind)
-        .and_then(|n| n.table())
-        .expect("an open navigator with its table");
-    t.nodes
-        .iter()
-        .find(|n| n.role == role && n.label == label)
-        .map(|n| n.key.clone())
-        .unwrap_or_else(|| panic!("no {role:?} row {label}"))
-}
-
-/// The lines of the describe text that start with `prefix`.
-fn lines_with(shell: &ShellModel, prefix: &str) -> Vec<String> {
-    shell
-        .describe()
-        .lines()
-        .filter(|l| l.starts_with(prefix))
-        .map(str::to_owned)
-        .collect()
-}
-
-/// The row lines under the header of the navigator titled `title`.
-fn nav_rows(shell: &ShellModel, title: &str) -> Vec<String> {
-    let d = shell.describe();
-    let mut out = Vec::new();
-    let mut inside = false;
-    for l in d.lines() {
-        if l.starts_with(&format!("navigator \"{title}\"")) {
-            inside = true;
-            continue;
-        }
-        if inside && !l.starts_with("  row ") {
-            break;
-        }
-        if inside {
-            out.push(l.to_owned());
-        }
-    }
-    out
 }
 
 /// The folios of the pages of section 1 in page order.
@@ -205,8 +112,8 @@ fn section1(shell: &ShellModel) -> Vec<String> {
 /// title substring of Golden A, and the ancestors of a match stay shown and expanded.
 #[test]
 fn the_pages_filter_is_a_superset_of_the_as_built_filter() {
-    let tmp = Tmp::new();
-    let shell = tmp.shell(false);
+    let tmp = Tmp::new("navigators");
+    let shell = open(&tmp, false);
     let rows = shell.page_rows().to_vec();
     let mut queries = std::collections::BTreeSet::new();
     for r in &rows {
@@ -260,8 +167,8 @@ fn the_pages_filter_is_a_superset_of_the_as_built_filter() {
 /// closed navigator none.
 #[test]
 fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(true);
+    let tmp = Tmp::new("navigators");
+    let mut shell = open(&tmp, true);
     let calls = shell.session_calls().navigator_table;
     done(&mut shell, "navigator.show", json!({"kind": "devices"}));
     assert_eq!(
@@ -399,8 +306,8 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
 /// focus stays where it is, and no change is applied twice.
 #[test]
 fn devices_and_the_canvas_keep_the_selection_in_step() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(false);
+    let tmp = Tmp::new("navigators");
+    let mut shell = open(&tmp, false);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "navigator.show", json!({"kind": "devices"}));
     let k = row_key(&shell, NavKind::Devices, NavRole::Device, "-201U3");
@@ -485,8 +392,8 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
 /// step; a generated page refuses; Alt+Up on 106 opens the same card.
 #[test]
 fn pages_are_marked_and_reordered_through_one_previewed_command() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(true);
+    let tmp = Tmp::new("navigators");
+    let mut shell = open(&tmp, true);
     let before = section1(&shell);
     let k103 = page_key(&shell, "103");
     done(&mut shell, "pages.row", json!({ "key": k103 }));
@@ -580,8 +487,8 @@ fn pages_are_marked_and_reordered_through_one_previewed_command() {
 /// section node, else of the current page.
 #[test]
 fn new_page_proposes_the_next_free_folio_and_the_section() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(false);
+    let tmp = Tmp::new("navigators");
+    let mut shell = open(&tmp, false);
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     assert_eq!(shell.new_page_proposal(), ("104".to_owned(), "1".to_owned()));
     done(&mut shell, "page.goto", json!({"folio": "1"}));
@@ -606,8 +513,8 @@ fn new_page_proposes_the_next_free_folio_and_the_section() {
 /// NV10 (§6.10): every navigator opens from View ▸ Navigators.
 #[test]
 fn every_navigator_opens() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(true);
+    let tmp = Tmp::new("navigators");
+    let mut shell = open(&tmp, true);
     for k in NavKind::ALL {
         done(&mut shell, "navigator.show", json!({"kind": k.word()}));
         assert!(shell.navigator_open(k), "{}", k.word());
@@ -743,8 +650,8 @@ fn ten_thousand_nodes_flatten_filter_and_sort() {
 /// overflow).
 #[test]
 fn ft1347_a_huge_navigator_step_stops_at_the_last_row() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(false);
+    let tmp = Tmp::new("navigators");
+    let mut shell = open(&tmp, false);
     let row = |s: &ShellModel| s.nav(NavKind::Devices).and_then(|n| n.cursor_key());
     done(&mut shell, "navigator.show", json!({"kind": "devices"}));
     done(

@@ -11,7 +11,7 @@
 use crate::common;
 use ew_viewmodel::key;
 
-use common::{Tmp, done, refused};
+use common::{Tmp, done, failed, lines_with, refused};
 use ew_viewmodel::navigators::table::commit_all_hint;
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -99,23 +99,6 @@ fn steps(shell: &ShellModel) -> usize {
 fn last(shell: &ShellModel) -> (String, Value) {
     let s = shell.recorded_commands().last().expect("a committed step");
     (s.cmd.clone(), s.params.clone())
-}
-
-fn lines_with(shell: &ShellModel, prefix: &str) -> Vec<String> {
-    shell
-        .describe()
-        .lines()
-        .filter(|l| l.starts_with(prefix))
-        .map(str::to_owned)
-        .collect()
-}
-
-#[track_caller]
-fn failed(shell: &mut ShellModel, action: &str, params: Value) -> String {
-    match shell.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action}: {other:?}"),
-    }
 }
 
 /// TB2 (FR-UI-008, §8.4): Terminal strips in table mode filtered `x1031` and sorted by Terminal list 1, 2, … 10, …
@@ -724,35 +707,6 @@ fn tb5_a_fill_over_more_than_500_rows_opens_the_card() {
     shell.shutdown();
 }
 
-/// TB6 (§8.6): copying -X1032's 5 terminals writes the TSV with the header row, byte-equal to the expected text;
-/// pasting it back into the same rows changes nothing (no command, no preview).
-#[test]
-fn tb6_copy_then_paste_back_changes_nothing() {
-    let tmp = Tmp::new("tb6");
-    let mut shell = strips(&tmp, "x1032");
-    let keys: Vec<String> = column(&shell, NavKind::Strips, "Terminal")
-        .into_iter()
-        .map(|(k, _)| k)
-        .collect();
-    assert_eq!(keys.len(), 5);
-    mark(&mut shell, NavKind::Strips, &keys);
-    done(&mut shell, "table.copy", json!({}));
-    let text = shell.clipboard().text().unwrap().to_owned();
-    assert_eq!(text, EXPECTED_X1032);
-    done(&mut shell, "table.cell", json!({"row": keys[0]}));
-    let (n, calls, rev) = (steps(&shell), shell.session_calls(), shell.revision());
-    done(&mut shell, "table.paste", json!({}));
-    assert_eq!(steps(&shell), n, "nothing committed");
-    assert_eq!(
-        shell.session_calls().preview_with,
-        calls.preview_with,
-        "no command to preview"
-    );
-    assert_eq!(shell.revision(), rev);
-    assert!(shell.properties().card().is_none());
-    shell.shutdown();
-}
-
 /// The TSV of -X1032's five terminals with the header row (CRLF after every row).
 // WP-S2.07 part 1 (§6.1): the Pos and Bridge part columns.
 const EXPECTED_X1032: &str = "\
@@ -1006,10 +960,12 @@ fn ft1240_a_refused_potential_type_names_the_types_in_words() {
     shell.shutdown();
 }
 
-/// A header row is read as a header in either language: -X1032's rows copied in en-GB and pasted back in
-/// nl-NL change nothing, and copied in nl-NL and pasted back in en-GB neither.
+/// TB6 (§8.6): copying -X1032's 5 terminals writes the TSV with the header row, byte-equal to the expected text, and
+/// pasting it back into the same rows changes nothing (no command, no preview); a header row is read as a header in
+/// either language: rows copied in en-GB and pasted back in nl-NL change nothing, and copied in nl-NL and pasted back
+/// in en-GB neither.
 #[test]
-fn a_header_copied_in_one_language_pastes_in_the_other() {
+fn copy_then_paste_back_changes_nothing_in_either_language() {
     let tmp = Tmp::new("paste-header");
     let mut shell = strips(&tmp, "x1032");
     let keys: Vec<String> = column(&shell, NavKind::Strips, "Terminal")
@@ -1017,10 +973,13 @@ fn a_header_copied_in_one_language_pastes_in_the_other() {
         .map(|(k, _)| k)
         .collect();
     assert_eq!(keys.len(), 5);
-    for (copy_in, paste_in) in [("en", "nl"), ("nl", "en")] {
+    for (copy_in, paste_in) in [("en", "en"), ("en", "nl"), ("nl", "en")] {
         done(&mut shell, "view.language", json!({ "value": copy_in }));
         mark(&mut shell, NavKind::Strips, &keys);
         done(&mut shell, "table.copy", json!({}));
+        if copy_in == "en" {
+            assert_eq!(shell.clipboard().text().unwrap(), EXPECTED_X1032);
+        }
         done(&mut shell, "view.language", json!({ "value": paste_in }));
         done(
             &mut shell,
@@ -1043,7 +1002,7 @@ fn a_header_copied_in_one_language_pastes_in_the_other() {
             .clipboard()
             .text()
             .unwrap()
-            .starts_with("Klemmenstrook\tPos\tKlem\t")
+            .starts_with("Klemmenstrook	Pos	Klem	")
     );
     shell.shutdown();
 }

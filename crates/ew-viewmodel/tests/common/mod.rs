@@ -238,3 +238,87 @@ pub fn provisional_overlap_on_101(shell: &mut ShellModel) -> i64 {
     }
     y
 }
+
+/// The key of the row labelled `label` with role `role` in an open navigator.
+pub fn row_key(
+    shell: &ShellModel,
+    kind: ew_viewmodel::navigators::NavKind,
+    role: ew_viewmodel::navigators::NavRole,
+    label: &str,
+) -> String {
+    let t = shell
+        .nav(kind)
+        .and_then(|n| n.table())
+        .expect("an open navigator with its table");
+    t.nodes
+        .iter()
+        .find(|n| n.role == role && n.label == label)
+        .map(|n| n.key.clone())
+        .unwrap_or_else(|| panic!("no {role:?} row {label}"))
+}
+
+/// The lines of the describe text that start with `prefix`.
+pub fn lines_with(shell: &ShellModel, prefix: &str) -> Vec<String> {
+    shell
+        .describe()
+        .lines()
+        .filter(|l| l.starts_with(prefix))
+        .map(str::to_owned)
+        .collect()
+}
+
+/// The row lines under the header of the navigator titled `title`.
+pub fn nav_rows(shell: &ShellModel, title: &str) -> Vec<String> {
+    let d = shell.describe();
+    let mut out = Vec::new();
+    let mut inside = false;
+    for l in d.lines() {
+        if l.starts_with(&format!("navigator \"{title}\"")) {
+            inside = true;
+            continue;
+        }
+        if inside && !l.starts_with("  row ") {
+            break;
+        }
+        if inside {
+            out.push(l.to_owned());
+        }
+    }
+    out
+}
+
+/// The ID (as the commands take it) of the page with folio `folio`.
+pub fn page_id(shell: &ShellModel, folio: &str) -> String {
+    shell
+        .page_rows()
+        .iter()
+        .find(|r| r.folio == folio)
+        .map(|r| r.id.to_string())
+        .unwrap_or_else(|| panic!("no page {folio}"))
+}
+
+/// The library tiers of a fixture under `root`: no system path (the compiled-in libraries), a user directory.
+pub fn library_tiers(root: &Path) -> ew_viewmodel::ew_api::library::LibraryTiers {
+    ew_viewmodel::ew_api::library::LibraryTiers {
+        system: Vec::new(),
+        community: root.join("data").join("packs"),
+        company: Vec::new(),
+        user: root.join("data").join("libraries"),
+        cache: root.join("cache"),
+    }
+}
+
+/// A fresh user library "Mine" under `root`: the tiers and its ID.
+pub fn user_library(
+    root: &Path,
+) -> (
+    ew_viewmodel::ew_api::library::LibraryTiers,
+    ew_viewmodel::ew_api::output::Uuid,
+) {
+    let t = library_tiers(root);
+    let mut reg = ew_viewmodel::ew_api::library::Registry::open(&t).unwrap();
+    let lib = reg
+        .create(&t.user.join("mine.ewlib"), "mine", "Mine", "CC0-1.0")
+        .unwrap();
+    (t, lib)
+}

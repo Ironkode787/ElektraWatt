@@ -13,36 +13,14 @@ use ew_viewmodel::key;
 
 use std::path::Path;
 
-use common::{Tmp, done, refused};
+use common::{Tmp, done, refused, row_key, user_library};
 use ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
-use ew_viewmodel::ew_api::output::Uuid;
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::json;
-
-/// The tiers of a fixture under `root`: no system path (the compiled-in libraries), a user directory.
-fn tiers(root: &Path) -> LibraryTiers {
-    LibraryTiers {
-        system: Vec::new(),
-        community: root.join("data").join("packs"),
-        company: Vec::new(),
-        user: root.join("data").join("libraries"),
-        cache: root.join("cache"),
-    }
-}
-
-/// A fresh user library "Mine" under `root`: the tiers and its ID.
-fn user_library(root: &Path) -> (LibraryTiers, Uuid) {
-    let t = tiers(root);
-    let mut reg = Registry::open(&t).unwrap();
-    let lib = reg
-        .create(&t.user.join("mine.ewlib"), "mine", "Mine", "CC0-1.0")
-        .unwrap();
-    (t, lib)
-}
 
 /// A shell in `mode` with the tiers `t` and a writable copy of Golden A (`copy` names the copy's directory) on
 /// `folio`.
@@ -89,19 +67,6 @@ fn save_psu(shell: &mut ShellModel, name: &str, ips: bool) {
         "macros.save",
         json!({"name": name, "library": "Mine", "description": "Power supply with two output breakers", "confirm": true}),
     );
-}
-
-/// The key of the table row of navigator `kind` with role `role` labelled `label`.
-fn row_key(shell: &ShellModel, kind: NavKind, role: NavRole, label: &str) -> String {
-    let t = shell
-        .nav(kind)
-        .and_then(|n| n.table())
-        .expect("an open navigator");
-    t.nodes
-        .iter()
-        .find(|n| n.role == role && n.label == label)
-        .map(|n| n.key.clone())
-        .unwrap_or_else(|| panic!("no {role:?} row {label}"))
 }
 
 /// A new folio 105 after 104, shown.
@@ -382,7 +347,7 @@ fn a_refused_save_keeps_the_typed_name() {
 #[test]
 fn fx38b_save_without_a_writable_library_names_the_reason() {
     let tmp = Tmp::new("macros-nowritable");
-    let t = tiers(&tmp.0);
+    let t = common::library_tiers(&tmp.0);
     let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
     let ids = psu_ids(&shell, false);
     done(&mut shell, "select.set", json!({ "ids": ids }));

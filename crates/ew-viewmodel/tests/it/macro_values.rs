@@ -10,35 +10,14 @@ use crate::common;
 
 use std::path::Path;
 
-use common::{Tmp, done};
-use ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
+use common::{Tmp, done, user_library};
+use ew_viewmodel::ew_api::library::LibraryTiers;
 use ew_viewmodel::ew_api::output::Uuid;
 use ew_viewmodel::ew_api::{MacroScope, MacroSpec, Recovery, Session, SessionOptions, StoreOptions};
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::properties::{CardOrigin, MacroInsert};
 use ew_viewmodel::shell::{Dialog, FormDialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
-
-/// The tiers of a fixture under `root`: no system path (the compiled-in libraries), a user directory.
-fn tiers(root: &Path) -> LibraryTiers {
-    LibraryTiers {
-        system: Vec::new(),
-        community: root.join("data").join("packs"),
-        company: Vec::new(),
-        user: root.join("data").join("libraries"),
-        cache: root.join("cache"),
-    }
-}
-
-/// A fresh user library "Mine" under `root`: the tiers and its ID.
-fn user_library(root: &Path) -> (LibraryTiers, Uuid) {
-    let t = tiers(root);
-    let mut reg = Registry::open(&t).unwrap();
-    let lib = reg
-        .create(&t.user.join("mine.ewlib"), "mine", "Mine", "CC0-1.0")
-        .unwrap();
-    (t, lib)
-}
 
 /// A window shell with the tiers `t` on a writable copy `copy` of Golden A, on `folio`.
 fn shell_with(tmp: &Tmp, copy: &str, t: &LibraryTiers, folio: &str) -> ShellModel {

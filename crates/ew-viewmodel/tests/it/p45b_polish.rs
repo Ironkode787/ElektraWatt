@@ -6,7 +6,7 @@
 
 use crate::common;
 
-use common::{Tmp, done, state};
+use common::{Tmp, done, state, toast};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
@@ -34,10 +34,6 @@ fn new_project(tmp: &Tmp) -> ShellModel {
 
 fn ghost(s: &ShellModel) -> Value {
     state(s)["canvas"]["ghost"].clone()
-}
-
-fn toast(s: &ShellModel) -> String {
-    state(s)["toast"]["text"].as_str().unwrap_or_default().to_owned()
 }
 
 fn hud(s: &ShellModel) -> String {
@@ -112,35 +108,28 @@ fn refused(tmp: &Tmp) -> ShellModel {
     s
 }
 
-/// "a tool's refusal notice clears when the state it refused changes: a committed command".
+/// "a tool's refusal notice clears when the state it refused changes": a committed command, a Properties edit, a
+/// selection change.
 #[test]
-fn ft1032_a_committed_command_clears_the_refusal() {
-    let tmp = Tmp::new("p45b-notice-commit");
-    let mut s = refused(&tmp);
-    done(&mut s, "strip.new", json!({"letter": "X"}));
-    assert_eq!(s.tool_notice(), None);
-}
-
-/// "... a Properties edit".
-#[test]
-fn ft1032_a_properties_edit_clears_the_refusal() {
-    let tmp = Tmp::new("p45b-notice-props");
-    let mut s = refused(&tmp);
-    done(
-        &mut s,
-        "props.set",
-        json!({"row": "device/tag.counter", "value": "9"}),
-    );
-    assert_eq!(s.tool_notice(), None);
-}
-
-/// "... a selection change".
-#[test]
-fn ft1032_a_selection_change_clears_the_refusal() {
-    let tmp = Tmp::new("p45b-notice-select");
-    let mut s = refused(&tmp);
-    done(&mut s, "select.set", json!({"refs": ["tag:-102F1"]}));
-    assert_eq!(s.tool_notice(), None);
+fn ft1032_a_commit_a_properties_edit_or_a_selection_change_clears_the_refusal() {
+    type Change = fn(&mut ShellModel);
+    let changes: [(&str, Change); 3] = [
+        ("a committed command", |s| {
+            done(s, "strip.new", json!({"letter": "X"}))
+        }),
+        ("a Properties edit", |s| {
+            done(s, "props.set", json!({"row": "device/tag.counter", "value": "9"}));
+        }),
+        ("a selection change", |s| {
+            done(s, "select.set", json!({"refs": ["tag:-102F1"]}));
+        }),
+    ];
+    for (what, change) in changes {
+        let tmp = Tmp::new("p45b-notice");
+        let mut s = refused(&tmp);
+        change(&mut s);
+        assert_eq!(s.tool_notice(), None, "{what}");
+    }
 }
 
 /// "... undo or redo".

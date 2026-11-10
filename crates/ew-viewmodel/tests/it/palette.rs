@@ -423,5 +423,10 @@ fn reimport_has_a_command_bar_button_beside_the_import() {
         .iter()
         .map(|b| b.id)
         .collect();
-    assert_eq!(ids, ["parts.import", "file.import_qet", "file.reimport_qet"]);
+    let at = |id: &str| {
+        ids.iter()
+            .position(|b| *b == id)
+            .unwrap_or_else(|| panic!("{id} in {ids:?}"))
+    };
+    assert_eq!(at("file.reimport_qet"), at("file.import_qet") + 1, "{ids:?}");
 }

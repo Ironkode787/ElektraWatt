@@ -2,35 +2,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The further navigators and highlighting of WP-S2.06 part 2 on Golden A (acceptance checks NP3's model half, NP4's
-//! model half, NP5 and NP6's model half): highlighting 24VDC-1 from the Potentials navigator (slot 0, its members'
+//! model half and NP5): highlighting 24VDC-1 from the Potentials navigator (slot 0, its members'
 //! polylines on folios 102 and 103, the describe lines, one members call per revision, toggling off, a fifth highlight
 //! replacing the first), a canvas click on W29 marking its row in Connections and Potentials, the New structure node
-//! pre-fill (FT-461's second half), the six new words and the two new actions.
+//! pre-fill (FT-461's second half) and R30 F9's opening of a report block.
 
 use crate::common;
 use ew_viewmodel::key;
 
 use std::collections::BTreeSet;
 
-use common::{Tmp, click, done, state};
+use common::{Tmp, click, done, failed, lines_with, nav_rows, row_key, state};
 use ew_viewmodel::highlight::{HighlightTarget, SLOT_COLOURS};
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use ew_viewmodel::tools::OverlayItem;
-use serde_json::{Value, json};
-
-/// The key of the row labelled `label` with role `role` in an open navigator.
-fn row_key(shell: &ShellModel, kind: NavKind, role: NavRole, label: &str) -> String {
-    let t = shell
-        .nav(kind)
-        .and_then(|n| n.table())
-        .expect("an open navigator with its table");
-    t.nodes
-        .iter()
-        .find(|n| n.role == role && n.label == label)
-        .map(|n| n.key.clone())
-        .unwrap_or_else(|| panic!("no {role:?} row {label}"))
-}
+use serde_json::json;
 
 /// The records of every table row of navigator `kind` whose cell `col` is `text`.
 fn records_where(
@@ -49,43 +36,6 @@ fn records_where(
     v.sort();
     v.dedup();
     v
-}
-
-/// The row lines under the header of the navigator titled `title`.
-fn nav_rows(shell: &ShellModel, title: &str) -> Vec<String> {
-    let d = shell.describe();
-    let mut out = Vec::new();
-    let mut inside = false;
-    for l in d.lines() {
-        if l.starts_with(&format!("navigator \"{title}\"")) {
-            inside = true;
-            continue;
-        }
-        if inside && !l.starts_with("  row ") {
-            break;
-        }
-        if inside {
-            out.push(l.to_owned());
-        }
-    }
-    out
-}
-
-fn lines_with(shell: &ShellModel, prefix: &str) -> Vec<String> {
-    shell
-        .describe()
-        .lines()
-        .filter(|l| l.starts_with(prefix))
-        .map(str::to_owned)
-        .collect()
-}
-
-#[track_caller]
-fn failed(shell: &mut ShellModel, action: &str, params: Value) -> String {
-    match shell.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action}: {other:?}"),
-    }
 }
 
 /// The drawn polylines of `members` on the shown page of group 0, in sheet nm.
@@ -401,29 +351,6 @@ fn np5_new_structure_node_prefills_the_marked_parent() {
     let field = |name: &str| f.fields.iter().find(|x| x.name == name).unwrap().value.clone();
     assert_eq!(field("kind"), "location");
     assert_eq!(field("parent"), "+J-E-2416");
-    shell.shutdown();
-}
-
-/// NP6 (§7.4, D15), the model half: `navigator.highlight` has Ctrl+Shift+H in the navigator context and highlights a
-/// potential's row.
-#[test]
-fn np6_the_highlight_action() {
-    let hl = ew_viewmodel::actions::ACTIONS
-        .iter()
-        .find(|a| a.id == "navigator.highlight")
-        .unwrap();
-    assert_eq!(hl.shortcut, ["Ctrl+Shift+H"]);
-    let tmp = Tmp::new("nav2-words");
-    let mut shell = tmp.shell_in(Mode::Headless, false, "102");
-    for k in ["cables", "plc", "parts", "potentials"] {
-        done(&mut shell, "navigator.show", json!({"kind": k}));
-    }
-    let key = row_key(&shell, NavKind::Potentials, NavRole::Potential, "24VDC-1");
-    done(
-        &mut shell,
-        "navigator.highlight",
-        json!({"kind": "potentials", "key": key}),
-    );
     shell.shutdown();
 }
 

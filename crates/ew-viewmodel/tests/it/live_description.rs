@@ -9,9 +9,7 @@
 
 use crate::common;
 
-use std::sync::Arc;
-
-use common::{Tmp, done};
+use common::{Tmp, done, tables};
 use ew_viewmodel::ew_api::Session;
 use ew_viewmodel::ew_api::output::{NavKind, NavRole, PageTables, TableEnd};
 use ew_viewmodel::shell::{Mode, ShellModel};
@@ -30,11 +28,6 @@ fn live_line(shell: &ShellModel) -> Option<String> {
         .lines()
         .find(|l| l.starts_with("canvas live "))
         .map(str::to_owned)
-}
-
-/// The shown page's tables.
-fn tables(shell: &ShellModel) -> Arc<PageTables> {
-    Arc::clone(&shell.canvas().expect("a canvas").page().tables)
 }
 
 /// The label of a connection's end on the shown page: its CP's label.

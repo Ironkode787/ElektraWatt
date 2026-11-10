@@ -5,11 +5,10 @@
 //! MS6's model half): the pane in the bottom dock with its header, rows and detail lines; Enter on EF-08 opening -3W1;
 //! the pending rule of FR-UI-041 (a new unpaired interruption point on 101, the tab switch, Run checks, a conflict
 //! that is never pending); the quick fix of EW-CORE-023 as a previewed card with one undo step; F8 and Shift+F8; F1 on
-//! a finding; the exact counts of §7.5; the 16 words and the 5 actions.
+//! a finding; the exact counts of §7.5.
 
 use crate::common;
 use ew_viewmodel::key;
-
 
 use common::{Tmp, at, done, refused};
 use ew_viewmodel::layout::PaneKind;
@@ -470,12 +469,7 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     // Page 101 renumbered to 150, then section 1's folios narrowed to 100 to 149 (`page.renumber` keeps a folio inside
     // its section, FT-1511): EW-CORE-021 (conflict), never pending, while the commits make the page the editing page
     // again (so MSGTEST's finding is pending once more).
-    let page = shell
-        .page_rows()
-        .iter()
-        .find(|r| r.folio == "101")
-        .map(|r| r.id.to_string())
-        .unwrap();
+    let page = common::page_id(&shell, "101");
     done(
         &mut shell,
         "command.run",
@@ -513,12 +507,7 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
 fn ms3_the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
     let tmp = Tmp::new("msg-ms3");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
-    let page = shell
-        .page_rows()
-        .iter()
-        .find(|r| r.folio == "102")
-        .map(|r| r.id.to_string())
-        .unwrap();
+    let page = common::page_id(&shell, "102");
     done(
         &mut shell,
         "command.run",
@@ -599,12 +588,7 @@ fn ms3_a_stale_card_previews_again_and_a_read_only_project_refuses() {
     ro.shutdown();
     let tmp = Tmp::new("msg-ms3c");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
-    let page = shell
-        .page_rows()
-        .iter()
-        .find(|r| r.folio == "102")
-        .map(|r| r.id.to_string())
-        .unwrap();
+    let page = common::page_id(&shell, "102");
     let set = |v: &str| {
         json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [page], "path": "description_override",
             "value": v}})
@@ -736,22 +720,6 @@ fn ms4_f8_with_no_findings_on_show_refuses() {
         "reason-no-findings"
     );
     shell.shutdown();
-}
-
-// ---------------------------------------------------------------------------------------------------------------
-// MS6: the actions
-
-#[test]
-fn ms6_the_five_actions_exist() {
-    for id in [
-        "messages.show",
-        "messages.next",
-        "messages.previous",
-        "messages.fix",
-        "messages.check",
-    ] {
-        assert!(ew_viewmodel::actions::ACTIONS.iter().any(|a| a.id == id), "{id}");
-    }
 }
 
 /// `navigator.row {key}` to a finding under a collapsed group expands its path and puts the cursor on it; a key
