@@ -181,22 +181,18 @@ fn solenoid_positions_apply_the_map_to_the_valve_children() {
 }
 
 /// Step 4 under H1: V1's coil 14 is bound to channel 1, so the map's channel 0 is not claimed; V2's unbound
-/// coil 14 claims channel 2 (reserved); nothing declares solenoid 12.
+/// coil 14 claims channel 2 (reserved); nothing declares solenoid 12. Under H2 (coil 14 on 2p + 1) V1's binding is
+/// the map's and V2 claims channel 3.
 #[test]
-fn step_4_under_h1_reserves_the_channel_of_an_unbound_declared_coil() {
-    let m = fixture(H1).build();
-    let s = states(&Q::new(&m));
+fn step_4_reserves_the_channel_of_an_unbound_declared_coil() {
     use EffectiveState::{Deactivated as D, Reserved as R, Used as U};
-    assert_eq!(s, vec![D, U, R, D, D, D, D, D]);
-}
-
-/// Step 4 under H2 (coil 14 on 2p + 1): V1's binding is the map's, V2 claims channel 3.
-#[test]
-fn step_4_under_h2_claims_channel_2p_plus_1() {
-    let m = fixture(H2).build();
-    let s = states(&Q::new(&m));
-    use EffectiveState::{Deactivated as D, Reserved as R, Used as U};
-    assert_eq!(s, vec![D, U, D, R, D, D, D, D]);
+    for (name, map, want) in [
+        ("H1", H1, vec![D, U, R, D, D, D, D, D]),
+        ("H2", H2, vec![D, U, D, R, D, D, D, D]),
+    ] {
+        let m = fixture(map).build();
+        assert_eq!(states(&Q::new(&m)), want, "{name}");
+    }
 }
 
 /// A map that does not resolve (an `n` expression where `p` is expected, a hostile constant) claims

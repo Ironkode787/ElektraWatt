@@ -16,9 +16,7 @@
 //! - `scope_location_separates_names`
 //! - `external_point_prints_location_and_device`
 //! - `target_without_anchor_cell_prints_question_marks`
-//! - `device_with_two_main_functions_is_refused_at_load`
 //! - `device_with_two_main_functions_is_noted_on_a_raw_model`
-//! - `aux_without_placed_main_prints_nothing`
 //! - `aux_inside_its_own_black_box_prints_nothing`
 //! - `same_page_zone_only`
 //! - `structure_prefix_when_different`
@@ -32,13 +30,11 @@
 //! - `empty_formats_print_nothing`
 //! - `star_formats_only_the_shown_items`
 //! - `page_index_counts_dividers_but_not_continuations`
-//! - `dangling_external_ref_is_refused_at_load`
 //! - `dangling_external_ref_prints_nothing_and_is_noted_on_a_raw_model`
-//! - `hostile_shapes_are_refused_at_load`
+//! - `the_model_refuses_dangling_references_and_a_second_main_function_at_load`
 //! - `hostile_shapes_on_raw_models_print_nothing`
 //! - `same_function_reps_refer_to_the_main_rep`
-//! - `twelve_hundred_targets_are_formatted` (per gate) and `ten_thousand_targets_are_formatted_without_quadratic_work`
-//!   (perf, ignored: milestone deliveries only)
+//! - `twelve_hundred_targets_are_formatted`
 //! - `xref_texts_do_not_depend_on_record_order`
 //! - `hostile_shapes_do_not_panic`
 
@@ -492,15 +488,6 @@ fn external_fixture() -> Fx {
 }
 
 #[test]
-fn dangling_external_ref_is_refused_at_load() {
-    // The model refuses a connection point that names a missing external reference (EW-INV-001): the
-    // derivation's fallback is reached on a raw model only, see the next test.
-    let mut fx = external_fixture();
-    fx.records.retain(|r| r["$k"] != "external_ref");
-    assert_eq!(refused_with(&fx), "EW-INV-001");
-}
-
-#[test]
 fn dangling_external_ref_prints_nothing_and_is_noted_on_a_raw_model() {
     let m = external_fixture().build();
     assert_eq!(text(&Q::new(&m), rep_of(0x1101)), "+J-E-206 / JE-N1000-03");
@@ -547,6 +534,12 @@ fn target_without_anchor_cell_prints_question_marks() {
     assert_eq!(text(&q, rep_of(0x1102)), format!("1-{}", cell(1, 1)));
 }
 
+/// Device 0x2000 with its main function 0x1001, which is not drawn.
+fn main_function(fx: &mut Fx) {
+    fx.device(0x2000, "K", Some(1));
+    fx.function(0x1001, Some(0x2000), FNDEF, true);
+}
+
 /// A device 0x2000 with a main function 0x1001 drawn on page 1 at A1 and an auxiliary 0x1002 drawn on
 /// page 2 at C3.
 fn device_fixture() -> Fx {
@@ -562,15 +555,6 @@ fn two_mains_fixture() -> Fx {
     let mut fx = device_fixture();
     func(&mut fx, 0x1003, 0x2000, (FNDEF, SYM), false, pg(3), (0, 1));
     fx
-}
-
-#[test]
-fn device_with_two_main_functions_is_refused_at_load() {
-    // EW-INV-002: the model refuses a second main function; the derivation's note is reached on a raw model
-    // only, see the next test.
-    let mut fx = device_fixture();
-    func(&mut fx, 0x1003, 0x2000, (FNDEF, SYM), true, pg(3), (0, 1));
-    assert_eq!(refused_with(&fx), "EW-INV-002");
 }
 
 #[test]
@@ -592,26 +576,6 @@ fn device_with_two_main_functions_is_noted_on_a_raw_model() {
     assert_eq!(
         text(&q, rep_of(0x1001)),
         format!("∞ 2-{}, 3-{}", cell(3, 2), cell(0, 1))
-    );
-}
-
-#[test]
-fn aux_without_placed_main_prints_nothing() {
-    let mut fx = base();
-    fx.device(0x2000, "K", Some(1));
-    fx.function(0x1001, Some(0x2000), FNDEF, true);
-    func(&mut fx, 0x1002, 0x2000, (FNDEF, SYM), false, pg(2), (3, 2));
-    let m = fx.build();
-    let mut q = Q::new(&m);
-    let t = q.get::<XrefTextOf>(rid(0x1002));
-    assert_eq!(t.text, "");
-    assert!(t.links.is_empty());
-    assert_eq!(q.get::<XrefRelationOf>(rid(0x1002)).kind, XrefKind::None);
-    assert_eq!(
-        xref_notes(&mut q, "EW-CORE-053").len(),
-        1,
-        "{:?}",
-        q.diagnostics().notes()
     );
 }
 
@@ -826,8 +790,7 @@ fn contact_rows_sort_by_sequence_then_designation() {
 /// representation (page 2 at B1).
 fn same_function_fixture() -> Fx {
     let mut fx = base();
-    fx.device(0x2000, "K", Some(1));
-    fx.function(0x1001, Some(0x2000), FNDEF, true);
+    main_function(&mut fx);
     let (x, y) = at(0, 0);
     fx.rep(0x1_0001, pg(1), SYM, &[0x1001], x, y);
     fx.with("rep_type", json!("overview"));
@@ -895,23 +858,6 @@ fn many_targets_are_formatted(q: &Q, n: i64) {
 fn twelve_hundred_targets_are_formatted() {
     let m = many_targets(1_200);
     many_targets_are_formatted(&Q::new(&m), 1_200);
-}
-
-#[test]
-#[ignore = "perf: release-profile timing, milestone deliveries only"]
-fn ten_thousand_targets_are_formatted_without_quadratic_work() {
-    const N: i64 = 10_000;
-    let m = many_targets(N);
-    let q = Q::new(&m);
-    // Timing acquisition and reporting are opt-in; no time reaches the compared text.
-    let start = std::env::var_os("EW_PERF_ASSERT")
-        .is_some()
-        // Opt-in test timing only; the clock never reaches the model, exports or compared text.
-        .then(std::time::Instant::now);
-    many_targets_are_formatted(&q, N);
-    if let Some(start) = start {
-        eprintln!("10 000 targets: {:?}", start.elapsed());
-    }
 }
 
 /// The texts, links and kinds of every representation of `m`, sorted by representation ID.
@@ -991,18 +937,44 @@ fn hostile_shapes_do_not_panic() {
     assert_no_xref(&fx.build(), &[rep_of(0x1101)]);
 }
 
+/// The model refuses these records at load (EW-INV-001, EW-INV-002); the derivation's fallbacks for them are
+/// reached on raw models only.
 #[test]
-fn hostile_shapes_are_refused_at_load() {
+fn the_model_refuses_dangling_references_and_a_second_main_function_at_load() {
     let (x, y) = at(1, 1);
-    // A representation naming a missing function (EW-INV-001).
-    let mut fx = base();
-    fx.rep(0x8002, pg(1), SYM, &[0x7777], x, y);
-    assert_eq!(refused_with(&fx), "EW-INV-001");
-
-    // A function whose device is missing (EW-INV-001).
-    let mut fx = base();
-    func(&mut fx, 0x1001, 0x2999, (FNDEF, SYM), false, pg(1), (1, 1));
-    assert_eq!(refused_with(&fx), "EW-INV-001");
+    let mut no_external = external_fixture();
+    no_external.records.retain(|r| r["$k"] != "external_ref");
+    let mut two_mains = device_fixture();
+    func(&mut two_mains, 0x1003, 0x2000, (FNDEF, SYM), true, pg(3), (0, 1));
+    let mut missing_function = base();
+    missing_function.rep(0x8002, pg(1), SYM, &[0x7777], x, y);
+    let mut missing_device = base();
+    func(
+        &mut missing_device,
+        0x1001,
+        0x2999,
+        (FNDEF, SYM),
+        false,
+        pg(1),
+        (1, 1),
+    );
+    let cases = [
+        (
+            "a connection point naming a missing external reference",
+            no_external,
+            "EW-INV-001",
+        ),
+        ("a second main function of a device", two_mains, "EW-INV-002"),
+        (
+            "a representation naming a missing function",
+            missing_function,
+            "EW-INV-001",
+        ),
+        ("a function whose device is missing", missing_device, "EW-INV-001"),
+    ];
+    for (name, fx, code) in cases {
+        assert_eq!(refused_with(&fx), code, "{name}");
+    }
 }
 
 #[test]
@@ -1056,8 +1028,7 @@ fn partial_xref_settings_apply_with_defaults() {
 /// a schematic symbol (page 2 at B1), with an auxiliary 0x1002 on page 3 at C3.
 fn strip_segment_fixture() -> Fx {
     let mut fx = base();
-    fx.device(0x2000, "K", Some(1));
-    fx.function(0x1001, Some(0x2000), FNDEF, true);
+    main_function(&mut fx);
     let (x, y) = at(0, 0);
     fx.rep(0x8001, pg(1), SYM, &[0x1001], x, y);
     fx.with("rep_type", json!("strip_segment"));
@@ -1102,8 +1073,7 @@ fn strip_segments_are_never_main_representations_or_targets() {
 fn aux_without_main_representation_is_noted_by_how_the_main_is_drawn() {
     // The main function is drawn only as a strip segment: the note says so.
     let mut fx = base();
-    fx.device(0x2000, "K", Some(1));
-    fx.function(0x1001, Some(0x2000), FNDEF, true);
+    main_function(&mut fx);
     let (x, y) = at(0, 0);
     fx.rep(0x8001, pg(1), SYM, &[0x1001], x, y);
     fx.with("rep_type", json!("strip_segment"));
@@ -1117,12 +1087,14 @@ fn aux_without_main_representation_is_noted_by_how_the_main_is_drawn() {
 
     // The main function is unplaced: it has no representation at all.
     let mut fx = base();
-    fx.device(0x2000, "K", Some(1));
-    fx.function(0x1001, Some(0x2000), FNDEF, true);
+    main_function(&mut fx);
     func(&mut fx, 0x1002, 0x2000, (FNDEF, SYM), false, pg(2), (3, 2));
     let m = fx.build();
     let mut q = Q::new(&m);
-    assert_eq!(text(&q, rep_of(0x1002)), "");
+    let t = q.get::<XrefTextOf>(rid(0x1002));
+    assert_eq!(t.text, "");
+    assert!(t.links.is_empty());
+    assert_eq!(q.get::<XrefRelationOf>(rid(0x1002)).kind, XrefKind::None);
     let notes = xref_notes(&mut q, "EW-CORE-053");
     assert_eq!(notes.len(), 1, "{notes:?}");
     assert!(notes[0].1.contains("has no representation"), "{notes:?}");

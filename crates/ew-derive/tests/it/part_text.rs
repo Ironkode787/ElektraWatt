@@ -91,36 +91,24 @@ fn fixture() -> Fx {
     fx
 }
 
+/// An MCB prints its characteristic and rated current as `C10`, quantities print with their unit symbol, the
+/// device's own value wins over the part's (C16 over the part's 10 A), and a device without data or part, or a
+/// missing device, prints nothing.
 #[test]
-fn an_mcb_prints_its_characteristic_and_rated_current_as_c10() {
+fn tech_data_text_prints_characteristic_current_and_units() {
     let m = fixture().build();
     let q = Q::new(&m);
-    assert_eq!(tech_data_text(&q, id(0x1000)), "C10");
-}
-
-#[test]
-fn quantities_print_with_their_unit_symbol() {
-    let m = fixture().build();
-    let q = Q::new(&m);
-    assert_eq!(tech_data_text(&q, id(0x1010)), "40 A");
-    assert_eq!(tech_data_text(&q, id(0x1020)), "15 °C");
-}
-
-#[test]
-fn the_devices_own_value_wins_over_the_part() {
-    let m = fixture().build();
-    let q = Q::new(&m);
-    // The part says C and 10 A, the device 16 A: B16-style notation with the device's current.
-    assert_eq!(tech_data_text(&q, id(0x1030)), "C16");
-}
-
-#[test]
-fn a_device_without_data_or_part_prints_nothing() {
-    let m = fixture().build();
-    let q = Q::new(&m);
-    assert_eq!(tech_data_text(&q, id(0x1040)), "");
-    assert_eq!(tech_data_text(&q, id(0x7777)), "");
-    assert!(main_part(&q, id(0x1040)).is_none());
+    let cases = [
+        ("an MCB", 0x1000, "C10"),
+        ("a switch", 0x1010, "40 A"),
+        ("a thermostat setpoint", 0x1020, "15 °C"),
+        ("the device's own current", 0x1030, "C16"),
+        ("no part, no data", 0x1040, ""),
+        ("a missing device", 0x7777, ""),
+    ];
+    for (name, device, want) in cases {
+        assert_eq!(tech_data_text(&q, id(device)), want, "{name}");
+    }
 }
 
 #[test]
@@ -132,6 +120,7 @@ fn the_main_part_is_the_first_part_use_and_names_its_manufacturer() {
     assert_eq!(manufacturer_name(&q, &p.item.manufacturer), "Eaton");
     let p = main_part(&q, id(0x1020)).expect("a main part");
     assert_eq!(p.item.part_number.as_str(), "SK 3110.000");
+    assert!(main_part(&q, id(0x1040)).is_none(), "a device without a part");
 }
 
 #[test]

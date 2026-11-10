@@ -164,26 +164,24 @@ fn automatic_starts_pack_output_bytes_and_channels_take_bit_n() {
     assert_eq!(texts(&q, M1)[1], "Q0.1");
 }
 
+/// A manual start outside the automatic path moves only its module (the cursor advances by M2's own width, so M3
+/// keeps Q2: doc 10 §3.1 "stable cursor"); one inside the path is skipped by the following modules.
 #[test]
-fn a_manual_start_outside_the_path_moves_only_its_module() {
+fn a_manual_start_moves_its_module_and_the_following_modules_skip_it() {
     let mut fx = fixture();
     set_output(&mut fx, M2, json!({"manual": {"area": "q", "byte": 10}}));
     let m = fx.build();
     let q = Q::new(&m);
-    assert_eq!(texts(&q, M1)[0], "Q0.0");
-    assert_eq!(texts(&q, M2)[7], "Q10.7");
-    // The cursor advances by M2's own width, so M3 keeps Q2 (doc 10 §3.1 "stable cursor").
-    assert_eq!(texts(&q, M3)[0], "Q2.0");
-}
+    assert_eq!(texts(&q, M1)[0], "Q0.0", "outside the path");
+    assert_eq!(texts(&q, M2)[7], "Q10.7", "outside the path");
+    assert_eq!(texts(&q, M3)[0], "Q2.0", "outside the path");
 
-#[test]
-fn a_manual_start_inside_the_path_is_skipped_by_the_following_modules() {
     let mut fx = fixture();
     set_output(&mut fx, M2, json!({"manual": {"area": "q", "byte": 2}}));
     let m = fx.build();
     let q = Q::new(&m);
-    assert_eq!(texts(&q, M2)[0], "Q2.0");
-    assert_eq!(texts(&q, M3)[0], "Q3.0");
+    assert_eq!(texts(&q, M2)[0], "Q2.0", "inside the path");
+    assert_eq!(texts(&q, M3)[0], "Q3.0", "inside the path");
 }
 
 #[test]
