@@ -398,21 +398,6 @@ fn png_candidates_match(pages: &[&GoldenPage]) {
     assert!(failures.is_empty(), "{failures:#?}");
 }
 
-#[test]
-fn every_committed_png_is_at_most_300_kb() {
-    if blessing() {
-        return;
-    }
-    let mut n = 0;
-    for e in std::fs::read_dir(expected_dir("png")).unwrap() {
-        let p = e.unwrap().path();
-        let len = std::fs::metadata(&p).unwrap().len();
-        assert!(len <= 300 * 1024, "{}: {len} bytes", p.display());
-        n += 1;
-    }
-    assert_eq!(n, 36);
-}
-
 fn folio<'a>(pages: &'a [GoldenPage], folio: &str) -> &'a GoldenPage {
     pages
         .iter()

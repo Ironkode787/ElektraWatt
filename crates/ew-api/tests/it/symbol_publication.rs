@@ -4,26 +4,14 @@
 //! A symbol draft's publication: its own item identity, keys held by other items, the owned function
 //! definition's version, unknown members and the portable export.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ew_api::library::Registry;
 use ew_api::symbols::{self, SymbolDraft, schema::LibDocument};
 use ew_derive::ew_ids::Uuid;
 use serde_json::json;
 
-use crate::symbol_authoring::block;
-
-/// A fresh library `symbols.ewlib` in its own directory, with its registry.
-fn library(name: &str) -> (PathBuf, Registry, Uuid) {
-    let dir = ew_testdir::fresh_dir(name);
-    let lib = dir.join("symbols.ewlib");
-    let tiers = ew_api::library::LibraryTiers::under(&dir, &dir.join("cache"), vec![], vec![lib.clone()]);
-    let mut registry = Registry::open(&tiers).unwrap();
-    let id = registry
-        .create(&lib, "symbols", "Symbols", "CC-BY-SA-4.0")
-        .unwrap();
-    (dir, registry, id)
-}
+use crate::symbol_authoring::{block, library};
 
 /// The generation the library's manifest on disk holds, which the registry's agrees with.
 fn generation(registry: &Registry, id: Uuid) -> u64 {

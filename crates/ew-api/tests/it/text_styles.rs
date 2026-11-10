@@ -56,6 +56,11 @@ fn copy_of_golden(seed: u64) -> Session {
     .unwrap()
 }
 
+/// A new built-in project with seeded IDs.
+fn new_basic(seed: u64) -> Session {
+    Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options(seed)).unwrap()
+}
+
 fn set_styles(value: Value) -> AnyCommand {
     AnyCommand {
         name: "project.settings.set".into(),
@@ -120,8 +125,7 @@ fn ts1_golden_a_has_no_member_and_keeps_its_two_findings() {
 #[test]
 fn ts2_a_new_project_writes_the_two_overrides() {
     let work = temp("ts2");
-    let mut s =
-        Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options(1)).unwrap();
+    let mut s = new_basic(1);
     let styles = ew_derive::text_styles(&s.query());
     let em = |key: &str| styles.iter().find(|r| r.key.as_str() == key).unwrap().em.0;
     assert_eq!((em("cp.small"), em("marker"), em("pin")), (PX7, PX7, 2_116_667));
@@ -186,8 +190,7 @@ fn ts3_a_tag_style_override_resizes_every_tag_in_one_undo_step() {
 #[test]
 fn ts5_an_unknown_member_of_an_entry_survives_a_save() {
     let work = temp("ts5");
-    let mut s =
-        Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options(5)).unwrap();
+    let mut s = new_basic(5);
     let value =
         json!({"marker": {"size": PX7, "weight": "bold", "family": "mono"}, "note.big": {"size": 6_000_000}});
     commit_styles(&mut s, value);
@@ -220,8 +223,7 @@ fn ts6_a_basic_project_is_copied_as_it_is() {
     let state = work.join("state");
     let copy = copy_of_golden(6);
     assert!(copy.query().project().settings.text_styles.is_empty());
-    let fresh =
-        Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options(7)).unwrap();
+    let fresh = new_basic(7);
     let basic = work.join("basic.ew");
     fresh.save_as_basic(&basic, false, false, store(&state)).unwrap();
     assert!(project_text(&basic).contains(NEW_PROJECT_MEMBER));

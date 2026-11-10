@@ -89,6 +89,24 @@ fn qet_conversion_details_survive_a_portable_round_trip() {
     assert_eq!(reopened.import_details, draft.import_details);
 }
 
+/// A fresh library `symbols.ewlib` in its own directory, with its registry.
+pub fn library(
+    name: &str,
+) -> (
+    std::path::PathBuf,
+    ew_api::library::Registry,
+    ew_derive::ew_ids::Uuid,
+) {
+    let dir = ew_testdir::fresh_dir(name);
+    let lib = dir.join("symbols.ewlib");
+    let tiers = ew_api::library::LibraryTiers::under(&dir, &dir.join("cache"), vec![], vec![lib.clone()]);
+    let mut registry = ew_api::library::Registry::open(&tiers).unwrap();
+    let id = registry
+        .create(&lib, "symbols", "Symbols", "CC-BY-SA-4.0")
+        .unwrap();
+    (dir, registry, id)
+}
+
 pub fn block() -> SymbolDraft {
     let mut d = serde_json::to_value(SymbolDraft::new("example.power", "Power block").unwrap()).unwrap();
     d["symbol"]["graphics"] =
@@ -171,13 +189,7 @@ fn off_grid_is_retained_and_blocks_save_while_fine_graphics_are_valid() {
 #[test]
 fn authored_symbol_closure_is_carried_when_placing_a_part_without_a_template() {
     use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
-    let dir = ew_testdir::fresh_dir("symbol-part-closure");
-    let lib = dir.join("symbols.ewlib");
-    let tiers = ew_api::library::LibraryTiers::under(&dir, &dir.join("cache"), vec![], vec![lib.clone()]);
-    let mut registry = ew_api::library::Registry::open(&tiers).unwrap();
-    let library = registry
-        .create(&lib, "symbols", "Symbols", "CC-BY-SA-4.0")
-        .unwrap();
+    let (_dir, mut registry, library) = library("symbol-part-closure");
     let mut draft = block();
     draft.publish(&mut registry, library).unwrap();
     let docs = draft.documents(library).unwrap();
