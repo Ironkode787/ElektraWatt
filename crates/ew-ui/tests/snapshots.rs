@@ -11,8 +11,7 @@
 //! `tests/expected/snapshots/`. A pixel differs when a channel differs by more than
 //! [`offscreen::CHANNEL_TOLERANCE`]; an image fails with more than [`offscreen::MAX_DIFFERING_PIXELS`] differing
 //! pixels, and a diff image (differences in red) is written next to the output. `EW_BLESS=1` writes the blessed
-//! files. Behind the `snapshots` feature, on Windows (DX12 WARP) and on Linux (Mesa's lavapipe, the version pinned in
-//! `ci/mesa-lavapipe.txt`; WP-S2.11 D4): one software rasteriser per platform keeps the pixels stable, and no adapter
+//! files. Behind the `snapshots` feature, on Windows (DX12 WARP) and on Linux (Mesa's lavapipe): one software rasteriser per platform keeps the pixels stable, and no adapter
 //! is a failure. On Linux an image is compared with its override `tests/expected/snapshots/linux/<name>` when that
 //! file exists, else with the shared one; a bless on Linux writes an override only for an image that differs from the
 //! shared one beyond the tolerance, and removes an override that no longer differs.
