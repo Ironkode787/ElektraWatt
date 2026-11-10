@@ -18,12 +18,7 @@ use ew_ui::ew_viewmodel::navigators::NavKind;
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_ui::ew_viewmodel::{key, strings};
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, harness_with, settle, wait_for_page};
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    let out = h.state_mut().shell_mut().dispatch(action, &params);
-    assert_eq!(out, Outcome::Done, "{action}: {out:?}");
-}
+use support::{Scripted, Tmp, dispatch, harness, harness_with, settle, wait_for_page};
 
 /// One step of a flow in Dutch: the frame settles, every input is named and every node fits.
 #[track_caller]
@@ -254,73 +249,59 @@ fn settings(scale: f32) {
 }
 
 #[test]
-fn nl3_the_first_run_in_dutch_at_100() {
-    first_run(1.0);
+fn nl3_the_first_run_in_dutch_at_100_and_200() {
+    for scale in [1.0, 2.0] {
+        println!("first_run at the UI scale {scale}");
+        first_run(scale);
+    }
 }
 
 #[test]
-fn nl3_the_first_run_in_dutch_at_200() {
-    first_run(2.0);
+fn nl3_new_project_in_dutch_at_100_and_200() {
+    for scale in [1.0, 2.0] {
+        println!("new_project at the UI scale {scale}");
+        new_project(scale);
+    }
 }
 
 #[test]
-fn nl3_new_project_in_dutch_at_100() {
-    new_project(1.0);
+fn nl3_place_and_wire_in_dutch_at_100_and_200() {
+    for scale in [1.0, 2.0] {
+        println!("place_and_wire at the UI scale {scale}");
+        place_and_wire(scale);
+    }
 }
 
 #[test]
-fn nl3_new_project_in_dutch_at_200() {
-    new_project(2.0);
+fn nl3_a_terminal_strip_in_dutch_at_100_and_200() {
+    for scale in [1.0, 2.0] {
+        println!("terminal_strip at the UI scale {scale}");
+        terminal_strip(scale);
+    }
 }
 
 #[test]
-fn nl3_place_and_wire_in_dutch_at_100() {
-    place_and_wire(1.0);
+fn nl3_renumber_in_dutch_at_100_and_200() {
+    for scale in [1.0, 2.0] {
+        println!("renumber at the UI scale {scale}");
+        renumber(scale);
+    }
 }
 
 #[test]
-fn nl3_place_and_wire_in_dutch_at_200() {
-    place_and_wire(2.0);
+fn nl3_export_pdf_in_dutch_at_100_and_200() {
+    for scale in [1.0, 2.0] {
+        println!("export_pdf at the UI scale {scale}");
+        export_pdf(scale);
+    }
 }
 
 #[test]
-fn nl3_a_terminal_strip_in_dutch_at_100() {
-    terminal_strip(1.0);
-}
-
-#[test]
-fn nl3_a_terminal_strip_in_dutch_at_200() {
-    terminal_strip(2.0);
-}
-
-#[test]
-fn nl3_renumber_in_dutch_at_100() {
-    renumber(1.0);
-}
-
-#[test]
-fn nl3_renumber_in_dutch_at_200() {
-    renumber(2.0);
-}
-
-#[test]
-fn nl3_export_pdf_in_dutch_at_100() {
-    export_pdf(1.0);
-}
-
-#[test]
-fn nl3_export_pdf_in_dutch_at_200() {
-    export_pdf(2.0);
-}
-
-#[test]
-fn nl3_the_settings_surfaces_in_dutch_at_100() {
-    settings(1.0);
-}
-
-#[test]
-fn nl3_the_settings_surfaces_in_dutch_at_200() {
-    settings(2.0);
+fn nl3_the_settings_surfaces_in_dutch_at_100_and_200() {
+    for scale in [1.0, 2.0] {
+        println!("settings at the UI scale {scale}");
+        settings(scale);
+    }
 }
 
 /// Every AccessKit label of the window's last frame.

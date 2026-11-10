@@ -11,19 +11,10 @@ use std::path::Path;
 use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT as _;
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Outcome;
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle};
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, harness, settle};
 
 const RELEASE_MIN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/fixtures/release-min");
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
 
 fn copy_dir(from: &Path, to: &Path) {
     std::fs::create_dir_all(to).unwrap();

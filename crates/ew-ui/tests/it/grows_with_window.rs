@@ -11,9 +11,8 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Outcome;
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
 fn on_golden(tmp: &Tmp, size: egui::Vec2) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");
@@ -25,12 +24,10 @@ fn on_golden(tmp: &Tmp, size: egui::Vec2) -> Harness<'static, App> {
     h
 }
 
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
+/// Device from part on folio 101.
+fn open_part_picker(h: &mut Harness<'_, App>) {
+    dispatch(h, "page.goto", json!({"folio": "101"}));
+    dispatch(h, "tool.place_part", json!({}));
 }
 
 /// The width of the text field with the placeholder `hint`.
@@ -92,8 +89,7 @@ fn the_choose_part_dialog_grows_with_the_window() {
 fn the_part_picker_grows_with_the_window() {
     let (floor, typical) = at_both_sizes(
         |h| {
-            dispatch(h, "page.goto", json!({"folio": "101"}));
-            dispatch(h, "tool.place_part", json!({}));
+            open_part_picker(h);
         },
         |h| field_width(h, "Filter by key, part number or function"),
     );
@@ -111,8 +107,7 @@ fn id1439_the_part_picker_keeps_its_width_and_stays_inside_the_window() {
     for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, size);
-        dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-        dispatch(&mut h, "tool.place_part", json!({}));
+        open_part_picker(&mut h);
         settle(&mut h);
         settle(&mut h);
         let hint = "Filter by key, part number or function";
@@ -150,8 +145,7 @@ fn id1427_part_names_are_whole_in_device_from_part() {
     for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, size);
-        dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-        dispatch(&mut h, "tool.place_part", json!({}));
+        open_part_picker(&mut h);
         settle(&mut h);
         settle(&mut h);
         settle(&mut h);
@@ -195,8 +189,7 @@ fn id1427_part_names_are_whole_in_device_from_part() {
 fn ft1143_a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
-    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-    dispatch(&mut h, "tool.place_part", json!({}));
+    open_part_picker(&mut h);
     // The rows with the longest function texts ("1 of 1 NO position switch 13-14 main").
     dispatch(&mut h, "picker.filter", json!({"text": "switch"}));
     settle(&mut h);
@@ -252,8 +245,7 @@ fn ft1514_a_part_rows_tooltip_ends_with_its_function_in_words() {
     use ew_viewmodel::{key, strings, tools::PickerRow};
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
-    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-    dispatch(&mut h, "tool.place_part", json!({}));
+    open_part_picker(&mut h);
     dispatch(&mut h, "picker.filter", json!({"text": "switch"}));
     settle(&mut h);
     settle(&mut h);
@@ -326,8 +318,7 @@ fn ft1255_the_palette_and_the_picker_mark_their_selected_row() {
     assert_eq!(selected_labels(&h), [entries[at].label.clone()]);
     dispatch(&mut h, "ui.dismiss", json!({}));
     settle(&mut h);
-    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-    dispatch(&mut h, "tool.place_part", json!({}));
+    open_part_picker(&mut h);
     dispatch(&mut h, "picker.filter", json!({"text": "switch"}));
     settle(&mut h);
     settle(&mut h);

@@ -20,7 +20,7 @@ use egui::Vec2;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use ew_ui::app::{App, Pick, Platform, setup};
-use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
+use ew_ui::ew_viewmodel::shell::{Mode, Outcome, Prompt, Resources, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::{key, strings};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
@@ -168,6 +168,29 @@ pub fn wait_for_page(harness: &mut Harness<'_, App>) {
         shell.banner(),
         shell.current_folio()
     );
+}
+
+/// Runs `action` through the shell and asserts it was done.
+#[track_caller]
+pub fn dispatch(harness: &mut Harness<'_, App>, action: &str, params: serde_json::Value) {
+    assert_eq!(
+        harness.state_mut().shell_mut().dispatch(action, &params),
+        Outcome::Done,
+        "{action} {params}"
+    );
+}
+
+/// The window on a writable copy of Golden A with folio `folio` on show and its image arrived.
+pub fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "page.goto", serde_json::json!({ "folio": folio }));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    settle(&mut h);
+    h
 }
 
 /// Waits (bounded) for the render worker's image of the wizard's preview.

@@ -14,21 +14,13 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::canvas::mm1;
 use ew_ui::ew_viewmodel::properties::{Provenance, RowValue, find_row};
-use ew_ui::ew_viewmodel::shell::{Focus, Outcome};
+use ew_ui::ew_viewmodel::shell::Focus;
 use ew_ui::ew_viewmodel::{key, strings};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
 /// W29 on folio 103 (`connections|W29`).
 const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
 
 fn press(h: &mut Harness<'_, App>, key: Key) {
     h.key_press(key);

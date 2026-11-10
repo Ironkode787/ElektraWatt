@@ -13,29 +13,9 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::properties::CardOrigin;
-use ew_ui::ew_viewmodel::shell::{Dialog, Focus, Outcome};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": folio }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
+use ew_ui::ew_viewmodel::shell::{Dialog, Focus};
+use serde_json::json;
+use support::{Tmp, dispatch, on_golden, settle};
 
 /// Types `text` as keyboard input into whatever has the focus.
 fn type_keys(h: &mut Harness<'_, App>, text: &str) {

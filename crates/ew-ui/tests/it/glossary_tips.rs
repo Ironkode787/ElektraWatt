@@ -13,18 +13,9 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_render2d::view::DrawTransform;
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Outcome;
-use serde_json::{Value, json};
+use serde_json::json;
 use sha2::{Digest, Sha256};
-use support::{Scripted, Tmp, assert_accessible, harness, settle};
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
+use support::{Scripted, Tmp, assert_accessible, dispatch, harness, settle};
 
 /// Whether a `Group` node is named `name`.
 fn group(h: &Harness<'_, App>, name: &str) -> bool {
