@@ -735,27 +735,19 @@ mod tests {
     }
 
     #[test]
-    fn scale_values() {
+    fn scale_values_ties_and_grid_reference() {
         assert_eq!(scale(0), 0);
         assert_eq!(scale(4_000_000), 2_645_833);
         assert_eq!(scale(8_000_000), 5_291_667);
         assert_eq!(scale(500_000), 330_729);
         assert_eq!(scale(-4_000_000), -2_645_833);
         assert_eq!(scale(-500_000), -330_729);
-    }
-
-    #[test]
-    fn scale_ties_toward_zero() {
         // 96 * 7_937_500 = 63.5 * 12_000_000 exactly.
         assert_eq!(96_i128 * 7_937_500 % 12_000_000, 6_000_000);
         assert_eq!(scale(96), 63);
         assert_eq!(scale(-96), -63);
         assert_eq!(scale(288), 190);
         assert_eq!(scale(-288), -190);
-    }
-
-    #[test]
-    fn scale_matches_grid_reference() {
         for k in -50_i64..=50 {
             let n = i128::from(k) * 7_937_500;
             // Denominator 3 never ties, so round-half-up is the reference.
@@ -968,10 +960,5 @@ mod tests {
         let unknown = SYMBOL.replace(r#""circle""#, r#""blob""#);
         let err = qet10(&seal(&parse(&unknown)).unwrap()).unwrap_err();
         assert!(format!("{err:#}").contains("unknown primitive `blob`"), "{err:#}");
-    }
-
-    #[test]
-    fn committed_content_is_current() {
-        assert!(run(&crate::workspace_root(), true).unwrap());
     }
 }

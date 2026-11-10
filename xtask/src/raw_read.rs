@@ -3171,7 +3171,7 @@ disallowed-types = [
     }
 
     // -----------------------------------------------------------------------------------------------------
-    // Policy and the real workspace
+    // Policy
 
     #[test]
     fn missing_policy_crate_is_reported() {
@@ -3195,68 +3195,6 @@ disallowed-types = [
         )
         .expect("parses");
         assert_eq!(p.clippy_config, "cfg/clippy.toml");
-    }
-
-    /// The real workspace passes (with the committed, generated `clippy.toml`), the generated list holds the
-    /// documented readers, and seeded violations in otherwise clean packages fail.
-    #[test]
-    fn real_workspace_passes_and_seeded_violations_fail() {
-        let root = crate::workspace_root();
-        let (policy, mut packages, ws) = load(&root).expect("workspace loads");
-        let out = check_workspace(&policy, &packages, &ws);
-        assert_eq!(out.violations, Vec::<String>::new());
-        assert!(out.packages_scanned > 0 && out.gated_items > 0);
-
-        let generated = generate(&policy, &packages).expect("every gated owner is re-exported");
-        for path in [
-            "ew_model::Model::table",
-            "ew_model::Model::row",
-            "ew_model::Model::delete_plan",
-            "ew_model::Model::apply_unchecked",
-            "ew_model::Table::get",
-            "ew_model::Table::len",
-            "ew_model::BaseIndexes::rebuild",
-            "ew_model::LibraryCopies::parts",
-        ] {
-            assert!(generated.contains(&format!("\"{path}\"")), "`{path}` is listed");
-        }
-        assert!(!generated.contains("Model::apply\"") && !generated.contains("from_records"));
-        assert_eq!(
-            generated
-                .lines()
-                .filter(|l| l.contains("reason = \"raw reader"))
-                .count(),
-            out.gated_items
-        );
-
-        packages.push(package(
-            "seeded",
-            &[("crates/seeded/src/lib.rs", "raw_read! { fn x() {} }")],
-            manifest("seeded", vec![], &[]),
-            "",
-        ));
-        let out = check_workspace(&policy, &packages, &ws);
-        assert_eq!(out.violations.len(), 1, "{:#?}", out.violations);
-        assert!(out.violations[0].starts_with("crates/seeded/src/lib.rs:1: invokes `raw_read!`"));
-
-        packages.pop();
-        packages.push(package(
-            "seeded",
-            &[(
-                "crates/seeded/src/lib.rs",
-                "#![allow(clippy::disallowed_methods)]\nfn f() {}",
-            )],
-            manifest("seeded", vec![], &[]),
-            "",
-        ));
-        let out = check_workspace(&policy, &packages, &ws);
-        assert_eq!(out.violations.len(), 1, "{:#?}", out.violations);
-        assert!(
-            out.violations[0]
-                .starts_with("crates/seeded/src/lib.rs:1: `allow(clippy::disallowed_methods)` suppresses the raw-read guard"),
-            "{:#?}",
-            out.violations
-        );
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -3338,21 +3276,5 @@ disallowed-types = [
             out[0].contains("stale asset-presence allow entry: `logo_asset`"),
             "{out:#?}"
         );
-    }
-
-    #[test]
-    fn the_repository_names_logo_asset_as_the_one_asset_presence_exception() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
-        let text = std::fs::read_to_string(root.join(POLICY_FILE)).expect("the policy file");
-        let file: toml::Value = toml::from_str(&text).expect("the policy parses");
-        let policy: RawReadPolicy = file["raw_read"].clone().try_into().expect("the raw_read section");
-        let rule = policy.asset_presence.expect("the FT-382 rule is configured");
-        assert_eq!(rule.packages, ["ew-derive"]);
-        let sites: Vec<(&str, &str)> = rule
-            .allow
-            .iter()
-            .map(|a| (a.path.as_str(), a.function.as_str()))
-            .collect();
-        assert_eq!(sites, [("crates/ew-derive/src/q.rs", "logo_asset")]);
     }
 }

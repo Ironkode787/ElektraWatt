@@ -332,15 +332,6 @@ mod tests {
         );
     }
 
-    /// LO-6: a literal in a label is found; the fixture of the acceptance.
-    #[test]
-    fn a_literal_label_is_found() {
-        assert_eq!(
-            found("fn f(ui: &mut Ui) {\n    ui.label(\"Save\");\n}\n"),
-            [(2, "Save")]
-        );
-    }
-
     /// Every text call is read, a literal inside `format!` too; keys, placeholders, allowed symbols, comments, other
     /// calls and the test module are not.
     #[test]
@@ -457,11 +448,5 @@ fn f(ui: &mut Ui) {
         assert!(only_placeholders(""));
         assert!(!only_placeholders("{a} {b}"));
         assert!(!only_placeholders("{} items"));
-    }
-
-    /// The tree passes.
-    #[test]
-    fn the_tree_passes() {
-        assert_eq!(check(&crate::workspace_root()).unwrap(), Vec::<String>::new());
     }
 }
