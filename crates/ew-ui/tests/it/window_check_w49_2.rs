@@ -22,20 +22,12 @@ use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_ui::ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use ew_ui::ew_viewmodel::strings;
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use support::{Scripted, Tmp, copy_dir, dispatch, harness, on_golden, settle, wait_for_page};
 
 const VIEWMODEL_SRC: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../ew-viewmodel/src");
 const RELEASE_MIN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/fixtures/release-min");
 /// The date the window passes to a revision action.
 const DATE: &str = "2026-10-30";
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
 
 /// Every `.rs` file under `dir`, recursively, with its text.
 fn sources(dir: &Path, out: &mut Vec<String>) {
@@ -108,34 +100,11 @@ pub(crate) fn form_actions() -> BTreeSet<String> {
     out
 }
 
-/// The window on a writable copy of Golden A at `folio`.
-fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    goto(&mut h, folio);
-    h
-}
-
 fn goto(h: &mut Harness<'_, App>, folio: &str) {
     dispatch(h, "page.goto", json!({ "folio": folio }));
     settle(h);
     wait_for_page(h);
     settle(h);
-}
-
-/// A copy of the release fixture at `dir`.
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap().map(Result::unwrap) {
-        let target = to.join(e.file_name());
-        if e.file_type().unwrap().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
 }
 
 /// The window's shell on its own: opens `dir`, runs `actions`, shuts down.

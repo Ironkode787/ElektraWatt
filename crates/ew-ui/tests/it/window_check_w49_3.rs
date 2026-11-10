@@ -16,31 +16,10 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT as _;
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::ew_api::{AnyCommand, Recovery, Session, SessionOptions, StoreOptions};
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
+use ew_ui::ew_viewmodel::shell::Dialog;
 use ew_ui::ew_viewmodel::strings;
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
-
-/// A copy of `from` at `to`.
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap().map(Result::unwrap) {
-        let target = to.join(e.file_name());
-        if e.file_type().unwrap().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
-}
+use support::{Scripted, Tmp, copy_dir, dispatch, harness, settle, wait_for_page};
 
 /// W20's ID, from its source key in the project's page files.
 pub(crate) fn w20(dir: &Path) -> String {

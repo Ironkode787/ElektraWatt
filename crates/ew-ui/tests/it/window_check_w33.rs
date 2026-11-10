@@ -10,17 +10,9 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_ui::ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
-
-fn done(shell: &mut ShellModel, action: &str, params: Value) {
-    assert_eq!(
-        shell.dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
+use support::{Scripted, Tmp, done, harness_with, settle, wait_for_page};
 
 /// The window on a writable copy of Golden A with the Terminal strips navigator in table mode, Properties hidden.
 fn strips(tmp: &Tmp) -> Harness<'static, App> {

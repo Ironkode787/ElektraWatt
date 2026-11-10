@@ -245,6 +245,19 @@ pub fn edit_toast(harness: &mut Harness<'_, App>) {
     );
 }
 
+/// A copy of the directory `from` at `to`.
+pub fn copy_dir(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for e in std::fs::read_dir(from).unwrap().map(Result::unwrap) {
+        let target = to.join(e.file_name());
+        if e.file_type().unwrap().is_dir() {
+            copy_dir(&e.path(), &target);
+        } else {
+            std::fs::copy(e.path(), &target).unwrap();
+        }
+    }
+}
+
 /// The window on a writable copy of Golden A with folio `folio` on show and its image arrived.
 pub fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");

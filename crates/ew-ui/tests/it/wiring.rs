@@ -12,29 +12,8 @@ use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
-use ew_ui::ew_viewmodel::shell::Outcome;
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": folio }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
+use serde_json::json;
+use support::{Tmp, dispatch, on_golden, screen, settle, wait_for_page};
 
 fn press(h: &mut Harness<'_, App>, key: Key) {
     h.key_press(key);
@@ -206,20 +185,15 @@ fn wr10_the_wire_tool_reads_nothing_while_the_cursor_moves_in_the_window() {
 
 /// The window position (points) of the page point `p` on the focused canvas.
 fn screen_of_page(h: &Harness<'_, App>, p: (i64, i64)) -> egui::Pos2 {
-    use egui_kittest::kittest::{NodeT as _, Queryable};
-    let bounds = h
-        .get_all_by_role(egui::Role::Canvas)
-        .next()
-        .expect("the canvas node")
-        .accesskit_node()
-        .raw_bounds()
-        .expect("bounds");
-    let c = h.state().shell().canvas().unwrap();
-    let s = c.page().snapper.page_to_sheet(p);
-    let k = c.points_per_nm();
-    egui::Pos2::new(
-        bounds.x0 as f32 + ((s.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
-        bounds.y0 as f32 + ((s.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
+    screen(
+        h,
+        h.state()
+            .shell()
+            .canvas()
+            .unwrap()
+            .page()
+            .snapper
+            .page_to_sheet(p),
     )
 }
 
@@ -378,24 +352,9 @@ fn c_turns_connect_on_move_off_and_on_and_the_status_bar_says_so() {
 /// The preview says, under its title, how to go there.
 #[test]
 fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
-    use egui_kittest::kittest::{NodeT as _, Queryable as _};
+    use egui_kittest::kittest::Queryable as _;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
-    let screen_of_sheet = |h: &Harness<'_, App>, s: (i64, i64)| {
-        let bounds = h
-            .get_all_by_role(egui::Role::Canvas)
-            .next()
-            .expect("the canvas node")
-            .accesskit_node()
-            .raw_bounds()
-            .expect("bounds");
-        let c = h.state().shell().canvas().unwrap();
-        let k = c.points_per_nm();
-        egui::Pos2::new(
-            bounds.x0 as f32 + ((s.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
-            bounds.y0 as f32 + ((s.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
-        )
-    };
     let (centre, label) = {
         let c = h.state().shell().canvas().unwrap();
         let link = c
@@ -408,7 +367,7 @@ fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
         let (a, b) = (r.min(), r.max());
         (((a.x.0 + b.x.0) / 2, (a.y.0 + b.y.0) / 2), link.label().unwrap())
     };
-    let at = screen_of_sheet(&h, centre);
+    let at = screen(&h, centre);
     h.hover_at(at);
     settle(&mut h);
     assert!(h.state().shell().canvas().unwrap().hovered_link().is_some());
@@ -485,7 +444,7 @@ fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
         egui::CursorIcon::PointingHand
     );
     // Over empty sheet (1 mm inside the sheet's top-left corner, outside the frame): the default cursor, no tooltip.
-    let empty = screen_of_sheet(&h, (1_000_000, 1_000_000));
+    let empty = screen(&h, (1_000_000, 1_000_000));
     h.hover_at(empty);
     settle(&mut h);
     h.step();

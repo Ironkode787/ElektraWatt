@@ -14,8 +14,8 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::navigator::RowKind;
 use ew_ui::ew_viewmodel::shell::{Focus, Outcome};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
 fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");
@@ -32,14 +32,6 @@ fn folio(h: &Harness<'_, App>) -> String {
 
 fn status(h: &Harness<'_, App>) -> Vec<String> {
     h.state().shell().status_fields(false)
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
 }
 
 /// The text of the grid cursor's live region (the one that is not empty: only the focused group shows a cursor here).
