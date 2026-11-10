@@ -3048,7 +3048,10 @@ mod tests {
     #[test]
     fn check_fails_on_a_tracked_built_page_and_a_differing_generated_part() {
         let tracked = ["reference/cli/gone.md".to_owned(), GLOSSARY_PAGE.to_owned()];
-        let partial = [("docs/design/04-architecture.md".to_owned(), "the wanted text\n".to_owned())];
+        let partial = [(
+            "docs/design/04-architecture.md".to_owned(),
+            "the wanted text\n".to_owned(),
+        )];
         assert_eq!(
             violations_of(&[SUMMARY.to_owned()], &tracked, &partial),
             [

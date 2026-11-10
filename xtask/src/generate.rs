@@ -139,7 +139,10 @@ fn workspace_hack(root: &Path) -> Result<bool> {
         println!("gen: cargo-hakari is not installed; ew-hack is left as it is");
         return Ok(true);
     }
-    for args in [&["hakari", "generate"][..], &["hakari", "manage-deps", "--yes"][..]] {
+    for args in [
+        &["hakari", "generate"][..],
+        &["hakari", "manage-deps", "--yes"][..],
+    ] {
         let status = Command::new(crate::cargo())
             .current_dir(root)
             .args(args)

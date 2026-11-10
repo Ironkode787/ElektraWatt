@@ -222,8 +222,20 @@ exempt_packages = ["xtask"]
 [[raw_read.allow]]
 path = "bin/ew/src/cli.rs"
 item = "disallowed_methods"
-count = 4
-reason = "the helpers source_date_epoch, content_dir and appimage, the CLI's program-boundary environment reads, and debug_panic, a debug build's test fault (WP-S6.04 D15)"
+count = 1
+reason = "debug_panic, a debug build's test fault"
+
+[[raw_read.allow]]
+path = "bin/ew/src/cli/export.rs"
+item = "disallowed_methods"
+count = 2
+reason = "the helpers source_date_epoch and appimage, the CLI's program-boundary environment reads"
+
+[[raw_read.allow]]
+path = "bin/ew/src/cli/library.rs"
+item = "disallowed_methods"
+count = 1
+reason = "the helper content_dir, the CLI's program-boundary environment read"
 
 [[raw_read.allow]]
 path = "bin/elektrawatt/src/main.rs"

@@ -991,10 +991,7 @@ mod tests {
         let text = POLICY.replace(r#"owners = ["g-sql"]"#, r#"owners = ["g-sql", "g-nowhere"]"#);
         let p = Policy::parse(&text).unwrap();
         let v = check(&p, &graph(&clean_edges()));
-        assert_violation(
-            &v,
-            "names `g-nowhere`, which is not a workspace package",
-        );
+        assert_violation(&v, "names `g-nowhere`, which is not a workspace package");
     }
 
     #[test]
