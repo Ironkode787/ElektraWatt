@@ -39,7 +39,6 @@
     "tools/blind/tasks/gpp-101-103/task.md": "119c04cca9a572c1524e2a134cfad8dc4b72aa5558c61b4ab51c782ff429d40a"
   },
   "golden": "a2efc2659f7d817cd5fa22e0453653851d73bb6c9c9c47b06ad678ab2e893057",
-  "golden_scope": "project",
   "app_version": "0.0.0",
   "harness_version": "0.0.0",
   "stateless": true,

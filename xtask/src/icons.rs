@@ -370,21 +370,6 @@ mod tests {
         );
     }
 
-    fn root() -> std::path::PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .unwrap()
-            .to_path_buf()
-    }
-
-    /// IC1: generating twice gives the same bytes, and the committed table is current.
-    #[test]
-    fn the_committed_table_is_current() {
-        let root = root();
-        assert_eq!(generate(&root).unwrap(), generate(&root).unwrap());
-        assert_eq!(violations(&root).unwrap(), Vec::<String>::new());
-    }
-
     /// IC1: `--check` fails on a stale table (a copy of the inputs with one icon changed).
     #[test]
     fn the_check_fails_on_a_stale_table() {

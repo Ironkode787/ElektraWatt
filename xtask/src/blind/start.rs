@@ -16,8 +16,8 @@ use anyhow::{Context, Result, bail};
 
 use super::compose::{ComposeIn, REFERENCE_FILES, compose, run_files};
 use super::run::{
-    Counts, GOLDEN_PROJECT_DIR, GOLDEN_SCOPE_PROJECT, HARNESS_VERSION, Kind, RUN_SCHEMA, Run, RunJson,
-    Senses, copy_dir, golden_digest, script_header, turns_header, valid_run_id,
+    Counts, GOLDEN_PROJECT_DIR, HARNESS_VERSION, Kind, RUN_SCHEMA, Run, RunJson, Senses, copy_dir,
+    golden_digest, script_header, turns_header, valid_run_id,
 };
 use super::visual::Geometry;
 
@@ -74,22 +74,16 @@ pub fn inside_repo(root: &Path, dir: &Path) -> bool {
     full.starts_with(&root)
 }
 
-/// Compares the golden digest recorded in `rj` with the fixture now, by the run's `golden_scope` (D16): the golden
-/// project fixture for a run recorded since FT-484, all of `golden/` for an older run (legacy scheme).
+/// Compares the golden digest recorded in `rj` with the fixture now (D16): the golden project fixture.
 ///
 /// # Errors
 ///
 /// The hash cannot be taken, or the fixture changed.
 pub fn check_golden(root: &Path, rj: &RunJson) -> Result<()> {
-    let now = golden_digest(root, rj.golden_scope.as_deref())?;
+    let now = golden_digest(root)?;
     if now != rj.golden {
-        let what = if rj.golden_scope.is_some() {
-            GOLDEN_PROJECT_DIR
-        } else {
-            "golden/"
-        };
         bail!(
-            "golden/ changed during the run ({what} digest {now}, at the start {}): the fixture is read through copies only",
+            "golden/ changed during the run ({GOLDEN_PROJECT_DIR} digest {now}, at the start {}): the fixture is read through copies only",
             rj.golden
         );
     }
@@ -249,7 +243,7 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
         None
     };
     let (start, rounds) = toml.map(|t| (t.start, t.rounds)).unwrap_or_default();
-    let golden = golden_digest(root, Some(GOLDEN_SCOPE_PROJECT))?;
+    let golden = golden_digest(root)?;
     // Every option is validated here, before anything is created: the composition checks the persona, the task and the
     // kind (FT-484), and the sources are looked up now.
     let blind = run.blind_command();
@@ -428,7 +422,6 @@ fn populate(
         caps: a.kind.caps_for(a.senses),
         files: files.clone(),
         golden: golden.clone(),
-        golden_scope: Some(GOLDEN_SCOPE_PROJECT.to_owned()),
         app_version,
         harness_version: HARNESS_VERSION.to_owned(),
         stateless: a.stateless || a.kind == Kind::Check,
@@ -933,8 +926,7 @@ mod tests {
         let tmp = Tmp::new("start-golden");
         let root = fake_repo(&tmp);
         let mut rj = crate::blind::testkit::new_run_json("g", Kind::Free);
-        rj.golden = golden_digest(&root, Some(GOLDEN_SCOPE_PROJECT)).unwrap();
-        rj.golden_scope = Some(GOLDEN_SCOPE_PROJECT.to_owned());
+        rj.golden = golden_digest(&root).unwrap();
         check_golden(&root, &rj).unwrap();
         // Expected outputs and documents beside the project may change during a run.
         std::fs::create_dir_all(root.join("golden/J-E-2416/expected")).unwrap();
@@ -970,37 +962,6 @@ mod tests {
         // A new file (a lock, a journal) is a change too.
         std::fs::write(root.join("golden/J-E-2416.ew/lock"), "").unwrap();
         assert!(check_golden(&root, &rj).is_err());
-    }
-
-    /// A run folder recorded before FT-484 has no `golden_scope`: its digest covers all of `golden/` (legacy scheme).
-    #[test]
-    fn an_old_scheme_run_is_compared_with_the_whole_golden_digest() {
-        let tmp = Tmp::new("start-golden-legacy");
-        let root = fake_repo(&tmp);
-        let mut rj = crate::blind::testkit::new_run_json("g", Kind::Free);
-        assert_eq!(rj.golden_scope, None);
-        rj.golden = tree_sha(&root.join("golden")).unwrap();
-        check_golden(&root, &rj).unwrap();
-        // The field is absent from an old run.json and defaults to the legacy scheme.
-        let text = serde_json::to_string(&rj).unwrap();
-        assert!(!text.contains("golden_scope"), "{text}");
-        let back: RunJson = serde_json::from_str(&text).unwrap();
-        assert_eq!(back.golden_scope, None);
-        // Under the legacy scheme a change beside the project voids the run.
-        std::fs::create_dir_all(root.join("golden/J-E-2416/expected")).unwrap();
-        std::fs::write(
-            root.join("golden/J-E-2416/expected/x.csv"),
-            "a
-",
-        )
-        .unwrap();
-        assert!(check_golden(&root, &rj).is_err());
-        // A new run records the project scope.
-        let run = prepare(&root, &args(&tmp, "new"), &|_| Ok("0".to_owned())).unwrap();
-        assert_eq!(
-            run.load().unwrap().golden_scope.as_deref(),
-            Some(GOLDEN_SCOPE_PROJECT)
-        );
     }
 
     /// FT-484: a refused `start` leaves no run folder behind; the next correct `start` of the same name succeeds.
@@ -1145,7 +1106,6 @@ mod tests {
             transcript: None,
             stale: None,
             visual: false,
-            frames: Vec::new(),
             paint_into: None,
             geometry: Geometry::DEFAULT,
             start: Some("golden-a".to_owned()),

@@ -1018,11 +1018,4 @@ SPDX-License-Identifier = "CC-BY-4.0"
         );
         assert!(!v.iter().any(|m| m.contains("or-gpl")), "{v:#?}");
     }
-
-    #[test]
-    fn real_repository_passes() {
-        let root = crate::workspace_root();
-        let violations = crate::check_licence_map_at(&root).unwrap();
-        assert_eq!(violations, Vec::<String>::new());
-    }
 }

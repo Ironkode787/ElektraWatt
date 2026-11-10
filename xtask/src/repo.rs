@@ -73,16 +73,6 @@ pub(crate) fn nul_paths(stdout: &[u8]) -> Vec<String> {
         .collect()
 }
 
-/// The merge base of `base` and `HEAD` in the repository at `root` (a full commit hash).
-pub(crate) fn merge_base(root: &Path, base: &str) -> Result<String> {
-    git(root, &["merge-base", base, "HEAD"])?
-        .lines()
-        .map(str::trim)
-        .find(|l| !l.is_empty())
-        .map(str::to_owned)
-        .with_context(|| format!("no merge base of `{base}` and HEAD"))
-}
-
 /// Writes `text` to `path` through a temporary file in the same folder, renamed over it; on failure the old file
 /// stays and the temporary file is removed.
 pub(crate) fn write_atomic(path: &Path, text: &str) -> Result<()> {

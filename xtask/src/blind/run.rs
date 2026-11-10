@@ -39,25 +39,17 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
     hex(&Sha256::digest(bytes))
 }
 
-/// The `golden_scope` of a run recorded since FT-484: the golden project fixture only.
-pub const GOLDEN_SCOPE_PROJECT: &str = "project";
-
 /// The golden project fixture, relative to the repository root.
 pub const GOLDEN_PROJECT_DIR: &str = "golden/J-E-2416.ew";
 
-/// The D16 digest of the golden fixture under `root`, by `scope`: `Some("project")` hashes `golden/J-E-2416.ew/` only,
-/// so that a legitimate change to `golden/J-E-2416/expected/` or its README during a run does not void it (FT-484);
-/// `None` is the legacy scheme of run folders recorded before FT-484 and hashes all of `golden/`.
+/// The D16 digest of the golden project fixture under `root`: it hashes `golden/J-E-2416.ew/` only, so that a
+/// legitimate change to `golden/J-E-2416/expected/` or its README during a run does not void it (FT-484).
 ///
 /// # Errors
 ///
-/// An unknown scope, or the tree cannot be read.
-pub fn golden_digest(root: &Path, scope: Option<&str>) -> Result<String> {
-    match scope {
-        Some(GOLDEN_SCOPE_PROJECT) => tree_sha(&root.join(GOLDEN_PROJECT_DIR)),
-        None => tree_sha(&root.join("golden")),
-        Some(other) => anyhow::bail!("run.json: unknown golden_scope `{other}`"),
-    }
+/// The tree cannot be read.
+pub fn golden_digest(root: &Path) -> Result<String> {
+    tree_sha(&root.join(GOLDEN_PROJECT_DIR))
 }
 
 /// The digest over every file under `dir`, in path order: each file's relative path (with `/`), a NUL, its SHA-256 and
@@ -341,14 +333,10 @@ pub struct RunJson {
     /// the evidence, and digests of files that many changes re-bless only made merge conflicts.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub files: BTreeMap<String, String>,
-    /// The SHA-256 at `start` over the files `golden_scope` names (D16, FT-484). Empty, and left out of the file, in a
+    /// The SHA-256 at `start` over the golden project fixture (D16, FT-484). Empty, and left out of the file, in a
     /// self-test recording ([`is_selftest`]); a live run always has it, and `stop` compares it.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub golden: String,
-    /// What `golden` covers: `project` (every file under `golden/J-E-2416.ew/`, the scheme since FT-484); absent in a
-    /// run recorded before FT-484, whose `golden` digests all of `golden/` (the legacy scheme, kept for those runs).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub golden_scope: Option<String>,
     /// `elektrawatt --version`.
     pub app_version: String,
     /// The harness's version.
@@ -773,7 +761,6 @@ mod tests {
             caps: Kind::Free.caps(),
             files: BTreeMap::from([("tools/blind/HELP.md".to_owned(), "ab".to_owned())]),
             golden: "cd".to_owned(),
-            golden_scope: Some(GOLDEN_SCOPE_PROJECT.to_owned()),
             app_version: "0.0.0".to_owned(),
             harness_version: HARNESS_VERSION.to_owned(),
             stateless: false,

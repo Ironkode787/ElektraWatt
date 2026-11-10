@@ -1,2 +1,0 @@
-{"$schema":"ew.blindfriction/1"}
-{"n":1,"turn":2,"step":4,"frame":"t0002.png","region":[1215,495,30,45],"wanted":"Straight vertical wire S56:14 to E56:X1","expected":"A straight line, the terminals are aligned in one column","saw":"The wire takes a rectangular detour to the right and back","severity":"cosmetic","category":"behaviour-bug","workaround":null}

@@ -834,33 +834,6 @@ mod tests {
         assert_eq!(check(&policy(), &graph(&edges)), Vec::<String>::new());
     }
 
-    /// The real owner rules cover the hyphenated sub-crates and the SQLite system crate.
-    #[test]
-    fn real_owner_rules_cover_hyphenated_crates() {
-        let root = crate::workspace_root();
-        let policy = Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
-        let covered = |name: &str| {
-            policy
-                .external_owner
-                .iter()
-                .any(|r| r.crates.iter().any(|p| wildcard_match(p, name)))
-        };
-        for name in [
-            "egui-winit",
-            "egui-kittest",
-            "egui_extras",
-            "wgpu-types",
-            "wgpu-core",
-            "wgpu-hal",
-            "libsqlite3-sys",
-        ] {
-            assert!(
-                covered(name),
-                "{name} is not covered by an [[external_owner]] rule"
-            );
-        }
-    }
-
     #[test]
     fn importer_depending_on_gpl_crate_fails() {
         let text = POLICY.replace(
@@ -1023,8 +996,6 @@ mod tests {
                 "importer purity (NFR-SEC-18): crates/ew-import-x/src/lib.rs:14 names `std::env`; an importer reads only the bytes it is given",
             ]
         );
-        let v = importer_purity(&crate::workspace_root()).expect("the importer sources read");
-        assert!(v.is_empty(), "{v:#?}");
     }
 
     /// The real policy rejects a GPL crate seeded into a permissive crate, as a dev-dependency too

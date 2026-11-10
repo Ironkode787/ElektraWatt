@@ -1,4 +1,0 @@
-{"$schema":"ew.blindfriction/1"}
-{"n":1,"turn":1,"step":2,"frame":null,"region":null,"wanted":"find part A9F78116","expected":"picker filter on part number finds it","saw":"rows 0","severity":"confusing","category":"discoverability","workaround":null}
-{"n":2,"turn":3,"step":4,"frame":null,"region":null,"wanted":"see picker rows","expected":"look canvas shows rows","saw":"rows only appear with a small filter; real part A9F78116 not in device picker, only generic EW-GEN-MCB-1","severity":"confusing","category":"layout-legibility","workaround":null}
-{"n":3,"turn":7,"step":13,"frame":null,"region":null,"wanted":"know whether part.choose/part.search/part.pick worked","expected":"printed change","saw":"bare done, had to look","severity":"annoying","category":"feedback","workaround":null}

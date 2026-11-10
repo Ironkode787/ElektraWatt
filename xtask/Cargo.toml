@@ -7,7 +7,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Repository policy checks (crate-dependency rules, build-script allowlist, workflow pinning, licence map and boundary, anonymisation guard, DCO, governance files) and the local mirror of the per-PR CI set."
+description = "The repository's check, gen and rules commands (crate-dependency rules, licence map and boundary, anonymisation guard, generated files, release checks) and the persona harness."
 repository.workspace = true
 publish = false
 

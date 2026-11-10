@@ -55,8 +55,8 @@ single steps:
   gen-icons [--check]  the icon table of ew-ui from assets/icons/
   symbols-qet10 [--check]
                        seals the library documents and generates the QET edition (content/symbols/qet10)
-  api-guard [--base <rev>]
-                       compares the published file format (schemas/, fixtures/format/) with a base revision and
+  api-guard
+                       compares the published file format (schemas/, fixtures/format/) with its release and
                        names each breaking change
   denylist-hash <phrase>
                        prints the digests of a confidential phrase for ci/denylist.sha256

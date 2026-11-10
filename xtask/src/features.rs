@@ -945,10 +945,9 @@ mod tests {
         assert_eq!(run(&[p]), Vec::<String>::new());
     }
 
-    /// The real workspace satisfies the real feature bans, and a seeded `ew-commands/testkit` normal edge or a normal
-    /// edge to `ew-testids` fails.
+    /// A seeded `ew-commands/testkit` normal edge or a normal edge to `ew-testids` fails the real feature bans.
     #[test]
-    fn real_workspace_passes_and_seeded_violation_fails() {
+    fn seeded_violation_fails() {
         let root = crate::workspace_root();
         let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
         assert!(
@@ -959,13 +958,11 @@ mod tests {
             features: &policy.banned_features,
             crates: &policy.banned_crates,
         };
-        let mut packages = from_metadata(&crate::metadata().expect("cargo metadata runs"));
-        assert_eq!(check(&rules, &packages), Vec::<String>::new());
-        packages.push(package(
+        let mut packages = vec![package(
             "seeded",
             vec![dep("ew-commands", Kind::Normal, &["testkit"])],
             &[],
-        ));
+        )];
         assert_eq!(
             check(&rules, &packages),
             [

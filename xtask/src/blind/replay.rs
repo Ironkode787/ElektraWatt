@@ -97,36 +97,12 @@ pub struct Inputs {
     pub stale: Option<String>,
     /// Whether the run is a visual run (its script has input and frame lines).
     pub visual: bool,
-    /// The recorded `frames.sha256`: `(file, sha256)` of every painted frame, for R4.
-    pub frames: Vec<(String, String)>,
     /// `replay --frames <dir>`: where a visual replay paints its frames (none without).
     pub paint_into: Option<PathBuf>,
     /// A visual run's window size and scale, as its `run.json` records it.
     pub geometry: super::visual::Geometry,
     /// The run's start project (`gp-ut`, `golden-a`; WP-S2.12 D5): the replay makes it as `work/project` first.
     pub start: Option<String>,
-}
-
-/// `frames.sha256` from the lines of a transcript: `<sha256>  <file>` per painted frame line, in order.
-pub fn frames_sha256(transcript: &[String]) -> String {
-    let mut out = String::new();
-    for line in transcript {
-        let Ok(v) = serde_json::from_str::<Value>(line) else {
-            continue;
-        };
-        if let (Some(file), Some(sha)) = (v["frame"].as_str(), v["sha256"].as_str()) {
-            out.push_str(&format!("{sha}  {file}\n"));
-        }
-    }
-    out
-}
-
-/// The `(file, sha256)` pairs of a `frames.sha256` text.
-fn parse_frames_sha256(text: &str) -> Vec<(String, String)> {
-    text.lines()
-        .filter_map(|l| l.split_once("  "))
-        .map(|(sha, file)| (file.trim().to_owned(), sha.trim().to_owned()))
-        .collect()
 }
 
 fn epilogue_range(turns: &[Turn]) -> Option<[u32; 2]> {
@@ -159,10 +135,6 @@ pub fn load_inputs(dir: &Path) -> Result<Inputs> {
             .context("parsing run.json")?;
     let visual = rj.visual();
     let geometry = super::visual::Geometry::of(&rj);
-    // A recording's frames are its `frames.sha256`; a stopped run's the hashes its transcript recorded.
-    let mut frames = std::fs::read_to_string(dir.join("frames.sha256"))
-        .map(|t| parse_frames_sha256(&t))
-        .unwrap_or_default();
     let (outcomes, epilogue, transcript) = if dir.join("outcomes.jsonl").is_file() {
         let outcomes = std::fs::read_to_string(dir.join("outcomes.jsonl"))?
             .lines()
@@ -181,9 +153,6 @@ pub fn load_inputs(dir: &Path) -> Result<Inputs> {
             .map(serde_json::from_str)
             .collect::<std::result::Result<Vec<Value>, _>>()?;
         let epilogue = range.map_or_else(String::new, |r| epilogue_text(&steps, &lines, prelude.len(), r));
-        if frames.is_empty() {
-            frames = parse_frames_sha256(&frames_sha256(&lines));
-        }
         // The run's own lines are normalised like the replay's: with this run folder's path.
         let norm = Normaliser::new(dir);
         (
@@ -201,7 +170,6 @@ pub fn load_inputs(dir: &Path) -> Result<Inputs> {
         transcript,
         stale: rj.stale,
         visual,
-        frames,
         paint_into: None,
         geometry,
         start: rj.start,
@@ -221,9 +189,6 @@ pub struct Replayed {
     pub uuid: Option<(usize, String)>,
     /// R3: the number of lines that differ from the run's own transcript, when it is at hand.
     pub r3: Option<usize>,
-    /// R4 (visual spec §5.3, reported): the number of painted frames whose SHA-256 differs from the recording's, when the
-    /// replay painted frames.
-    pub r4: Option<usize>,
     /// The product's standard output as written, its header line first (for `rescore`).
     pub raw: Vec<String>,
 }
@@ -393,21 +358,6 @@ pub fn replay_in(root: &Path, exe: &Path, inputs: &Inputs, dir: &Path) -> Result
             .r2
             .push("the recording has an epilogue text and no epilogue".to_owned());
     }
-    if inputs.paint_into.is_some() {
-        let painted = frames_sha256(&result.lines);
-        let recorded: std::collections::BTreeMap<&str, &str> = inputs
-            .frames
-            .iter()
-            .map(|(f, s)| (f.as_str(), s.as_str()))
-            .collect();
-        let now = parse_frames_sha256(&painted);
-        let differing = now
-            .iter()
-            .filter(|(f, s)| recorded.get(f.as_str()) != Some(&s.as_str()))
-            .count()
-            + recorded.len().saturating_sub(now.len());
-        result.r4 = Some(differing);
-    }
     if let Some(own) = &inputs.transcript {
         let differing = own.iter().zip(&result.lines).filter(|(a, b)| a != b).count()
             + own.len().abs_diff(result.lines.len());
@@ -477,11 +427,6 @@ pub fn replay_text(report: &ReplayReport) -> String {
     }
     if let Some(at) = report.twice_differs_at {
         out.push_str(&format!("FAIL the two replays differ at transcript line {at}\n"));
-    }
-    if let Some(n) = report.first.r4 {
-        out.push_str(&format!(
-            "R4 {n} frame(s) differ from the recording's frames.sha256 (a report, not a failure)\n"
-        ));
     }
     if let Some(n) = report.first.r3 {
         out.push_str(&format!(
@@ -565,10 +510,6 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
         }
     }
     files.push(("outcomes.jsonl".to_owned(), outcomes_jsonl(&run.transcript()?)?));
-    // A visual run keeps its frames' hashes, never the PNGs (visual spec §5.3).
-    if rj.visual() {
-        files.push(("frames.sha256".to_owned(), frames_sha256(&run.transcript()?)));
-    }
     files.push(("epilogue.txt".to_owned(), norm.text(&inputs.epilogue)));
     // The PDF's digest ties a gate run's recording to the PDF attached to the release (FT-420). It is evidence only,
     // never compared, and not reproducible: a new project mints random IDs that reach the PDF. The self-test
@@ -606,7 +547,7 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
 }
 
 /// The `run.json` a recording keeps of the run `rj`, blessed with `ci`: not stale. A self-test recording keeps no
-/// digests (no `files`, no `golden`, no `golden_scope`): its replay (R1, R2) is the evidence, and the digests of the
+/// digests (no `files`, no `golden`): its replay (R1, R2) is the evidence, and the digests of the
 /// reference and task files, which many changes re-bless, only made merge conflicts. A persona or check recording
 /// keeps both: they mark a recording made under older references.
 fn recorded_run_json(rj: &RunJson, ci: &str) -> RunJson {
@@ -616,7 +557,6 @@ fn recorded_run_json(rj: &RunJson, ci: &str) -> RunJson {
     if is_selftest(&rj.task) {
         recorded.files.clear();
         recorded.golden.clear();
-        recorded.golden_scope = None;
     }
     recorded
 }
@@ -793,7 +733,7 @@ mod tests {
         assert_eq!(run["end"], "handback");
     }
 
-    /// Both committed self-test recordings pin no digest: `run.json` has no `files`, `golden` or `golden_scope` key,
+    /// Both committed self-test recordings pin no digest: `run.json` has no `files` or `golden` key,
     /// and the prompt names its files without a digest.
     #[test]
     fn the_committed_self_test_recordings_pin_no_digests() {
@@ -801,7 +741,7 @@ mod tests {
             let dir = recordings_dir(&crate::workspace_root()).join(name);
             let run: Value =
                 serde_json::from_str(&std::fs::read_to_string(dir.join("run.json")).unwrap()).unwrap();
-            for key in ["files", "golden", "golden_scope"] {
+            for key in ["files", "golden"] {
                 assert_eq!(run.get(key), None, "{name}/run.json: {key}");
             }
             let prompt = std::fs::read_to_string(dir.join("prompt.md")).unwrap();
@@ -813,7 +753,7 @@ mod tests {
         }
     }
 
-    /// A self-test's recorded `run.json` drops the digests (and the scope of `golden`); a persona run's and a check
+    /// A self-test's recorded `run.json` drops the digests; a persona run's and a check
     /// run's keep them. Both are blessed with the given `ci` and are not stale.
     #[test]
     fn a_self_test_bless_drops_the_digests_and_a_persona_bless_keeps_them() {
@@ -823,14 +763,13 @@ mod tests {
             "ab".to_owned(),
         )]);
         rj.golden = "cd".to_owned();
-        rj.golden_scope = Some("project".to_owned());
         rj.stale = Some("old".to_owned());
         for task in ["selftest", "selftest-visual"] {
             rj.task = task.to_owned();
             let recorded = recorded_run_json(&rj, "pr");
             assert_eq!((recorded.ci.as_str(), &recorded.stale), ("pr", &None));
             let json: Value = serde_json::to_value(&recorded).unwrap();
-            for key in ["files", "golden", "golden_scope"] {
+            for key in ["files", "golden"] {
                 assert_eq!(json.get(key), None, "{task}: {key}");
             }
             // The recording still loads: the keys have defaults.
@@ -845,7 +784,6 @@ mod tests {
             serde_json::json!({"tools/blind/reference/actions.txt": "ab"})
         );
         assert_eq!(json["golden"], "cd");
-        assert_eq!(json["golden_scope"], "project");
         assert_eq!(json["stale"], Value::Null);
     }
 
@@ -990,7 +928,7 @@ mod tests {
         assert!(replay_text(&good).ends_with("replay ok: R1 and R2 hold\n"));
     }
 
-    /// BV10: the committed visual self-test recording holds the frames' hashes and never a PNG, no absolute path, no
+    /// BV10: the committed visual self-test recording holds no PNG, no absolute path, no
     /// PDF digest and no full transcript; it is a `pr` recording of a visual run with a friction log.
     #[test]
     fn the_committed_visual_self_test_recording_is_clean() {
@@ -1005,8 +943,6 @@ mod tests {
         }
         assert!(!dir.join("out/project-t1.pdf.sha256").exists());
         assert!(!dir.join("transcript.jsonl").exists());
-        let sums = std::fs::read_to_string(dir.join("frames.sha256")).unwrap();
-        assert!(sums.lines().any(|l| l.ends_with("  t0000.png")), "{sums}");
         assert!(dir.join("friction.jsonl").is_file());
         let run: Value =
             serde_json::from_str(&std::fs::read_to_string(dir.join("run.json")).unwrap()).unwrap();
@@ -1016,11 +952,10 @@ mod tests {
         );
         assert_eq!(run["end"], "handback");
     }
-
-    /// BV5: a visual transcript keeps the input, its dispatch and the frame name in `outcomes.jsonl`, and the frames'
+    /// BV5: a visual transcript keeps the input, its dispatch and the frame name in `outcomes.jsonl`.
     /// hashes in `frames.sha256`; a frame that was not painted has no hash line.
     #[test]
-    fn a_visual_transcript_keeps_inputs_dispatches_and_frame_hashes() {
+    fn a_visual_transcript_keeps_inputs_dispatches_and_frame_names() {
         let a = "ab".repeat(32);
         let lines = vec![
             format!(r#"{{"frame":"t0000.png","sha256":"{a}","dispatched":[]}}"#),
@@ -1035,9 +970,6 @@ mod tests {
              {\"dispatched\":[],\"frame\":\"t0001.png\"}\n\
              {\"closed\":true,\"dispatched\":[],\"input\":{\"chord\":\"alt+f4\",\"input\":\"key\"},\"step\":2}\n"
         );
-        let sums = frames_sha256(&lines);
-        assert_eq!(sums, format!("{a}  t0000.png\n"));
-        assert_eq!(parse_frames_sha256(&sums), vec![("t0000.png".to_owned(), a)]);
     }
     /// Cycle 39: a visual recording replays at its run's window size and scale (a 1920 recording at 1920); at the
     /// default no flag is added.
@@ -1053,7 +985,6 @@ mod tests {
             transcript: None,
             stale: None,
             visual: true,
-            frames: Vec::new(),
             paint_into: None,
             geometry: g,
             start: None,

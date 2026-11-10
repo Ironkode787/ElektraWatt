@@ -1,2 +1,0 @@
-{"$schema":"ew.blindfriction/1"}
-{"n":1,"turn":3,"step":10,"frame":null,"region":null,"wanted":"Know a wire was made","expected":"A line like 'wire -102G1:+#1 -> -102F1:1 created'","saw":"Only the route cleared and the tool re-armed; I had to read the page to be sure","severity":"cosmetic","category":"feedback","workaround":null}

@@ -452,9 +452,9 @@ mod tests {
 
     fn repo_with_golden(f: &crate::blind::protocol::tests::Fixture) -> std::path::PathBuf {
         let root = f.tmp.0.join("repo");
-        std::fs::create_dir_all(root.join("golden")).unwrap();
-        std::fs::write(root.join("golden/x.txt"), "1").unwrap();
-        let sha = tree_sha(&root.join("golden")).unwrap();
+        std::fs::create_dir_all(root.join("golden/J-E-2416.ew")).unwrap();
+        std::fs::write(root.join("golden/J-E-2416.ew/x.txt"), "1").unwrap();
+        let sha = tree_sha(&root.join("golden/J-E-2416.ew")).unwrap();
         f.run.update(|j| j.golden = sha).unwrap();
         root
     }
@@ -558,21 +558,20 @@ mod tests {
         );
     }
 
-    /// FT-484: a run of the project scheme stops cleanly when only `expected/` or a document changed, and fails when the
+    /// FT-484: a run stops cleanly when only `expected/` or a document changed, and fails when the
     /// golden project changed.
     #[test]
-    fn only_the_golden_project_voids_a_run_of_the_project_scheme() {
+    fn only_the_golden_project_voids_a_run() {
         let mut f = fixture(Kind::Free);
         let root = f.tmp.0.join("repo");
         std::fs::create_dir_all(root.join("golden/J-E-2416.ew")).unwrap();
         std::fs::create_dir_all(root.join("golden/J-E-2416/expected")).unwrap();
         std::fs::write(root.join("golden/J-E-2416.ew/p.json"), "1").unwrap();
         std::fs::write(root.join("golden/J-E-2416/README.md"), "a").unwrap();
-        let sha = crate::blind::run::golden_digest(&root, Some("project")).unwrap();
+        let sha = crate::blind::run::golden_digest(&root).unwrap();
         f.run
             .update(|j| {
                 j.golden = sha;
-                j.golden_scope = Some("project".to_owned());
             })
             .unwrap();
         std::fs::write(root.join("golden/J-E-2416/README.md"), "b").unwrap();
@@ -584,11 +583,10 @@ mod tests {
         let root = g.tmp.0.join("repo");
         std::fs::create_dir_all(root.join("golden/J-E-2416.ew")).unwrap();
         std::fs::write(root.join("golden/J-E-2416.ew/p.json"), "1").unwrap();
-        let sha = crate::blind::run::golden_digest(&root, Some("project")).unwrap();
+        let sha = crate::blind::run::golden_digest(&root).unwrap();
         g.run
             .update(|j| {
                 j.golden = sha;
-                j.golden_scope = Some("project".to_owned());
             })
             .unwrap();
         std::fs::write(root.join("golden/J-E-2416.ew/p.json"), "2").unwrap();
@@ -738,7 +736,7 @@ mod tests {
     fn a_golden_that_changed_during_the_run_fails_the_stop() {
         let mut f = fixture(Kind::Free);
         let root = repo_with_golden(&f);
-        std::fs::write(root.join("golden/x.txt"), "2").unwrap();
+        std::fs::write(root.join("golden/J-E-2416.ew/x.txt"), "2").unwrap();
         let err = stop(&root, &f.run, &mut f.backend, "orchestrator").unwrap_err();
         assert!(err.to_string().contains("golden/ changed"), "{err}");
         let report = std::fs::read_to_string(f.run.path("out/report.md")).unwrap();

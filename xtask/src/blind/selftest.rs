@@ -363,23 +363,13 @@ pub fn run(root: &Path, a: &Args) -> Result<bool> {
     let keeper = one_run(root, &out, &bin, task, false, a.visual, &agent)?;
     let dest = replay::bless(root, &keeper, task, "pr")?;
     println!("blessed {}", dest.strip_prefix(root).unwrap_or(&dest).display());
-    let mut inputs = load_inputs(&dest)?;
+    let inputs = load_inputs(&dest)?;
     let exe = bin.join(format!("elektrawatt{}", std::env::consts::EXE_SUFFIX));
     let report = replay::replay(root, &exe, &inputs, true)?;
     print!("{}", replay::replay_text(&report));
     if !report.ok() {
         bail!("the blessed recording does not replay");
     }
-    // R4 (a report): the frames painted again on Windows, the snapshots' platform, against the recorded hashes.
-    if a.visual && cfg!(windows) {
-        let frames = out.join("replay-frames");
-        inputs.paint_into = Some(frames);
-        let painted = replay::replay_once(root, &exe, &inputs)?;
-        if let Some(n) = painted.r4 {
-            println!("R4 {n} frame(s) differ from the recording's frames.sha256 (a report)");
-        }
-    }
-
     // Without it: the same files, transcript and outcomes.
     let stateless = one_run(
         root,

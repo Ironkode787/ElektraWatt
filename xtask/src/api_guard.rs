@@ -1,59 +1,28 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `api-guard [--base <rev>]`: the API stability guard (NFR-MAINT-10, doc 18 CI-PR-14, WP-S1.22 D14).
+//! `api-guard`: the guard of the published file-format surface (ADR-0011 amendment 6).
 //!
-//! Five committed snapshots describe the published surfaces (WP-S1.22 D13), each written by its owner's test and read
-//! here as plain data, so that this permissive-layer tool links no GPL crate; the file format's published schemas are a
-//! sixth surface, below:
+//! Each format folder `schemas/<f>/` is compared with its base, the oldest final release tag (`v<X.Y.Z>`, no `-rc`)
+//! whose tree holds `schemas/<f>/index.json`; without one the format is not released and the guard prints `format <f>:
+//! not released; nothing to compare`. The items are `index.json`, `<kind>` (a schema file or an index entry) and
+//! `<kind> <path>` (a property path through `properties` as `a.b` and through `items` as `a[]`, from the top level and
+//! from each `$defs` entry by its name). Description texts are not compared.
 //!
-//! | Surface | Snapshot | Item |
-//! |---|---|---|
-//! | `commands` | `crates/ew-commands/schemas/` (`index.json` and one parameter schema per command) | `<name>` or `<name>.<property path>` |
-//! | `cli` | `bin/ew/api/cli.json` | `<path words>`, `<path words> <--flag>` or `<path words> exit <code>` |
-//! | `results` | `bin/ew/schemas/` (`index.json` and one schema per result) | `<schema name>` or `<schema name> <property path>` |
-//! | `queries` | `crates/ew-api/api/queries.json` | `<name>` or `<name>.<property path>` |
-//! | `api_v1` | `crates/ew-sqlview/api/api_v1.json` | `<view>` or `<view>.<column>` |
-//!
-//! The guard reads each snapshot at the merge base of `--base` (default `main`) and `HEAD`, and in the working tree; a
-//! snapshot absent at the base counts as empty. It classifies every change:
-//!
-//! - **breaking:** a removed command, query, subcommand path, flag, result schema, view or column (a rename is a
-//!   removal plus an addition); a flag that changed whether it takes a value or lost `repeatable`; an exit code
-//!   removed or its meaning changed; a result schema name changed or removed for a path; a removed property of a
-//!   command's parameters, a result or a query output, or a changed type of one or of a column; a lowered
-//!   `params_version` or `output_version`; a property newly required in a command's parameters (the orchestrator's
-//!   ruling 4, cycle 42: inputs only, an output only gains);
-//! - **additive:** everything else.
-//!
-//! Property paths run through `properties` (`a.b`) and `items` (`a[]`) from the top level and from each `$defs` entry,
-//! which is keyed by its definition name (`Def.a`). Description texts are not a surface and are not compared.
-//!
-//! Before 1.0 every surface is Preview (doc 17 §11): a breaking change passes only when
-//! `docs/release-notes/unreleased.md` gains, in the same diff (base to working tree), a line `- api-break: <surface>
-//! <item>` that ends there or continues with a space (the orchestrator's ruling 5). From the 1.0 freeze ([`FROZEN`]) a
-//! break also needs the pull request's label `api-break` and a `docs/adr/` reference in its description, read from the
-//! event file at `$GITHUB_EVENT_PATH` as docs.yml's RFC step reads them.
-//!
-//! **The sixth surface, `format`** (WP-S6.08 D9; ADR-0011 amendment 6). Each format folder `schemas/<f>/` is compared
-//! with its base, the oldest final release tag (`v<X.Y.Z>`, no `-rc`) whose tree holds `schemas/<f>/index.json`;
-//! without one the format is not released and the guard prints `format <f>: not released; nothing to compare`. Its
-//! items are `index.json`, `<kind>` (a schema file or an index entry) and `<kind> <path>` (a property path as above).
-//! Against the base, **breaking**, which always fails with its own line and no `api-break` line lets pass: a schema
-//! file or a kind removed; a property removed, its type changed or newly required; an `enum` value, a `const` or a
-//! `oneOf`/`anyOf` branch removed; a constraint keyword of a node (`format`, `minimum`, `exclusiveMinimum`, `maximum`,
-//! `exclusiveMaximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `pattern`, `additionalProperties`,
-//! `uniqueItems`, and D29's `minProperties`, `maxProperties`, `propertyNames`) added, removed or changed, also on a
-//! `oneOf`/`anyOf` branch (the item `<kind> <path>|<branch>`, D29), and an `enum` or `const` given to a node that had
-//! none (WP-S6.08 D23); a kind's `file`, `rank`, `v` or `schema` changed (a reserved kind that gains them is additive),
-//! or the index's `format`; any file of `fixtures/format/<f>/<project>/` changed, added or removed (the
-//! `<project>.expected/` folders may change). The walk also enters `prefixItems` (`a[0]`), a map's value schema
-//! (`additionalProperties` as a schema, `a{}`) and its key schema (`propertyNames`, `a{key}`, D29), and sees through a
-//! `$defs` definition renamed with its content unchanged. A new value or branch of a
-//! node the base holds passes only when `docs/release-notes/unreleased.md` gains `- format-variant: <kind> <path>
-//! <value>` (the reviewer checks the type's `Unknown(Value)` arm, ADR-0011 amendment 1); this line check compares with
-//! the **newest** final tag whose tree holds the format, among those whose version is not above the working tree's
-//! `[workspace.package].version` (WP-S6.08 D22), since the promote empties the notes. A new optional property and a
+//! Against the base, **breaking**, which always fails with its own line: a schema file or a kind removed; a property
+//! removed, its type changed or newly required; an `enum` value, a `const` or a `oneOf`/`anyOf` branch removed; a
+//! constraint keyword of a node (`format`, `minimum`, `exclusiveMinimum`, `maximum`, `exclusiveMaximum`, `minLength`,
+//! `maxLength`, `minItems`, `maxItems`, `pattern`, `additionalProperties`, `uniqueItems`, `minProperties`,
+//! `maxProperties`, `propertyNames`) added, removed or changed, also on a `oneOf`/`anyOf` branch (the item
+//! `<kind> <path>|<branch>`), and an `enum` or `const` given to a node that had none; a kind's `file`, `rank`, `v` or
+//! `schema` changed (a reserved kind that gains them is additive), or the index's `format`; any file of
+//! `fixtures/format/<f>/<project>/` changed, added or removed (the `<project>.expected/` folders may change). The walk
+//! also enters `prefixItems` (`a[0]`), a map's value schema (`additionalProperties` as a schema, `a{}`) and its key
+//! schema (`propertyNames`, `a{key}`), and sees through a `$defs` definition renamed with its content unchanged. A new
+//! value or branch of a node the base holds passes only when `docs/release-notes/unreleased.md` gains `- format-variant:
+//! <kind> <path> <value>` (the reviewer checks the type's `Unknown(Value)` arm, ADR-0011 amendment 1); this line check
+//! compares with the **newest** final tag whose tree holds the format, among those whose version is not above the
+//! working tree's `[workspace.package].version`, since the promote empties the notes. A new optional property and a
 //! new kind's schema are additive.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -64,11 +33,6 @@ use std::process::{Command, Stdio};
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
 
-/// Flipped at the 1.0 freeze: a breaking change then also needs the pull request's label and an ADR reference.
-pub(crate) const FROZEN: bool = false;
-
-/// The default base revision.
-const DEFAULT_BASE: &str = "main";
 /// The release notes of the next release.
 const RELEASE_NOTES: &str = "docs/release-notes/unreleased.md";
 /// The published schemas of the file format, one folder per format (WP-S6.08 D9).
@@ -79,15 +43,6 @@ const FIXTURES_DIR: &str = "fixtures/format";
 const FORMAT_SURFACE: &str = "format";
 /// The nesting depth up to which property paths are followed (a bound on hostile input).
 const MAX_DEPTH: usize = 32;
-
-/// The failure without a pull request after the freeze.
-const NO_PULL_REQUEST: &str = "api-guard: a breaking change after the freeze needs a pull request labelled api-break \
-                               whose description references an ADR (docs/adr/...)";
-/// The failure without the label after the freeze.
-const NO_LABEL: &str =
-    "api-guard: a breaking change after the freeze needs the label api-break on its pull request";
-/// The failure without an ADR reference after the freeze.
-const NO_ADR: &str = "api-guard: a breaking change after the freeze needs an ADR reference (docs/adr/...) in its pull request's description";
 
 /// The snapshot files of one side: path relative to the root to its text (LF line ends).
 type Files = BTreeMap<String, String>;
@@ -125,14 +80,12 @@ pub(crate) struct Report {
 // ---------------------------------------------------------------------------------------------------------
 // Entry points
 
-/// `api-guard [--base <rev>]`.
+/// `api-guard`. The base of each format is its own release tag.
 pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
-    let base = match args {
-        [] => DEFAULT_BASE,
-        [flag, rev] if flag == "--base" => rev.as_str(),
-        _ => bail!("usage: cargo xtask api-guard [--base <rev>]"),
-    };
-    let report = guard_at(root, base)?;
+    if !args.is_empty() {
+        bail!("usage: cargo xtask api-guard");
+    }
+    let report = guard(root)?;
     for line in &report.lines {
         println!("{line}");
     }
@@ -142,125 +95,23 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
     Ok(report.failure.is_empty())
 }
 
-/// The guard against the merge base of `base` and `HEAD`, with [`FROZEN`] and the event file of
-/// `$GITHUB_EVENT_PATH`.
-pub(crate) fn guard_at(root: &Path, base: &str) -> Result<Report> {
-    let merge_base = crate::repo::merge_base(root, base)?;
-    let event = if FROZEN {
-        read_event(std::env::var_os("GITHUB_EVENT_PATH").as_deref().map(Path::new))?
-    } else {
-        None
-    };
-    guard(root, &merge_base, FROZEN, event.as_ref())
-}
-
-/// The guard of the working tree at `root` against the commit `base`; `frozen` and the pull request `event` stand in
-/// for [`FROZEN`] and the event file.
-fn guard(root: &Path, base: &str, frozen: bool, event: Option<&Value>) -> Result<Report> {
-    let notes_before = read_blobs(root, base, &[RELEASE_NOTES])
-        .unwrap_or_default()
-        .remove(RELEASE_NOTES)
-        .unwrap_or_default();
+/// The guard of the working tree at `root` against the release tags.
+fn guard(root: &Path) -> Result<Report> {
     let notes_after = std::fs::read_to_string(root.join(RELEASE_NOTES))
         .unwrap_or_default()
         .replace("\r\n", "\n");
     let format = format_guard(root, &notes_after)?;
-    let mut report = report(&format.changes, &notes_before, &notes_after, frozen, event);
-    let summary = report.lines.len() - 1;
-    report.lines.splice(summary..summary, format.notes);
-    report.failure.extend(format.failure);
-    Ok(report)
-}
-
-/// The pull request event at `path`, if a path is given.
-fn read_event(path: Option<&Path>) -> Result<Option<Value>> {
-    let Some(path) = path else {
-        return Ok(None);
-    };
-    let text = std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
-    let value = serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
-    Ok(Some(value))
-}
-
-/// The report of `changes`: the change lines and the summary, and the failure when a break lacks its release-note line
-/// added between `notes_before` and `notes_after`, or, when `frozen`, the label or the ADR reference of `event`.
-fn report(
-    changes: &[Change],
-    notes_before: &str,
-    notes_after: &str,
-    frozen: bool,
-    event: Option<&Value>,
-) -> Report {
-    let mut lines: Vec<String> = changes.iter().map(Change::line).collect();
-    let breaking: Vec<&Change> = changes.iter().filter(|c| c.breaking).collect();
+    let mut lines: Vec<String> = format.changes.iter().map(Change::line).collect();
+    let breaking = format.changes.iter().filter(|c| c.breaking).count();
     lines.push(format!(
-        "api-guard: {} breaking, {} additive",
-        breaking.len(),
-        changes.len() - breaking.len()
+        "api-guard: {breaking} breaking, {} additive",
+        format.changes.len() - breaking
     ));
-
-    // A released format's break fails on its own text, whatever the notes say ([`format_guard`]).
-    let breaking: Vec<&Change> = breaking
-        .into_iter()
-        .filter(|c| c.surface != FORMAT_SURFACE)
-        .collect();
-    let before: BTreeSet<&str> = notes_before.lines().collect();
-    let added: Vec<&str> = notes_after.lines().filter(|l| !before.contains(l)).collect();
-    let uncovered: Vec<&Change> = breaking
-        .iter()
-        .copied()
-        .filter(|c| !covered(c.surface, &c.item, &added))
-        .collect();
-    let mut failure = Vec::new();
-    if !uncovered.is_empty() {
-        failure.push(format!(
-            "api-guard: {} breaking change(s) without a release-note line in {RELEASE_NOTES}; add for each: - \
-             api-break: <surface> <item>",
-            uncovered.len()
-        ));
-        let mut seen = BTreeSet::new();
-        for c in uncovered {
-            let line = format!("- api-break: {} {}", c.surface, c.item);
-            if seen.insert(line.clone()) {
-                failure.push(line);
-            }
-        }
-    }
-    if frozen && !breaking.is_empty() {
-        match event
-            .and_then(|e| e.get("pull_request"))
-            .filter(|p| p.is_object())
-        {
-            None => failure.push(NO_PULL_REQUEST.to_owned()),
-            Some(pr) => {
-                let labelled = pr.get("labels").and_then(Value::as_array).is_some_and(|l| {
-                    l.iter()
-                        .any(|l| l.get("name").and_then(Value::as_str) == Some("api-break"))
-                });
-                if !labelled {
-                    failure.push(NO_LABEL.to_owned());
-                }
-                if !pr
-                    .get("body")
-                    .and_then(Value::as_str)
-                    .is_some_and(|b| b.contains("docs/adr/"))
-                {
-                    failure.push(NO_ADR.to_owned());
-                }
-            }
-        }
-    }
-    Report { lines, failure }
-}
-
-/// Whether one of the `added` release-note lines covers the break of `item` on `surface`: it starts
-/// `- api-break: <surface> <item>` and ends there or continues with a space (the orchestrator's ruling 5).
-fn covered(surface: &str, item: &str, added: &[&str]) -> bool {
-    let prefix = format!("- api-break: {surface} {item}");
-    added.iter().any(|line| {
-        let line = line.trim_end();
-        line.strip_prefix(&prefix)
-            .is_some_and(|rest| rest.is_empty() || rest.starts_with(' '))
+    let summary = lines.len() - 1;
+    lines.splice(summary..summary, format.notes);
+    Ok(Report {
+        lines,
+        failure: format.failure,
     })
 }
 
@@ -1055,9 +906,9 @@ mod tests {
     }
 
     /// The guard of the second commit of `s` against its first, `base`.
-    fn format_report(s: &Scratch, base: &str) -> Report {
+    fn format_report(s: &Scratch) -> Report {
         s.commit("change");
-        guard(&s.dir, base, false, None).unwrap()
+        guard(&s.dir).unwrap()
     }
 
     /// RL-6 (WP-S6.08 D9): without a final release tag (a candidate's `-rc` tag is none) the format is not released:
@@ -1066,11 +917,11 @@ mod tests {
     fn a_format_without_a_release_tag_is_not_compared() {
         let s = Scratch::new("format-unreleased");
         format_state(&s);
-        let base = s.commit("base");
+        s.commit("base");
         s.git(&["tag", "v0.1.0-rc.1"]);
         s.remove_file("schemas/0.1/pin.schema.json");
         s.write("fixtures/format/0.1/p.ew/manifest.json", "{}\n");
-        let report = format_report(&s, &base);
+        let report = format_report(&s);
         s.remove();
         assert_eq!(
             report,
@@ -1092,7 +943,7 @@ mod tests {
     fn a_released_format_changes_only_additively() {
         let s = Scratch::new("format-released");
         format_state(&s);
-        let base = s.commit("base");
+        s.commit("base");
         s.git(&["tag", "v0.1.0-rc.1"]);
         s.git(&["tag", "v0.1.0"]);
         s.write("README.md", "later\n");
@@ -1134,7 +985,7 @@ mod tests {
             RELEASE_NOTES,
             "# Unreleased changes\n\n- format-variant: device Side up (a new side)\n",
         );
-        let report = format_report(&s, &base);
+        let report = format_report(&s);
         s.remove();
         let lines = [
             "breaking: format 0.1 device Side: value right removed",
@@ -1191,7 +1042,7 @@ mod tests {
     fn a_new_value_with_its_line_and_a_new_optional_property_pass() {
         let s = Scratch::new("format-additive");
         format_state(&s);
-        let base = s.commit("base");
+        s.commit("base");
         s.git(&["tag", "v0.1.0"]);
         s.write_json(
             "schemas/0.1/device.schema.json",
@@ -1209,7 +1060,7 @@ mod tests {
             RELEASE_NOTES,
             "# Unreleased changes\n\n- format-variant: device mode c (FT-0, a third mode)\n",
         );
-        let report = format_report(&s, &base);
+        let report = format_report(&s);
         s.remove();
         assert_eq!(
             report,
@@ -1235,7 +1086,7 @@ mod tests {
         let s = Scratch::new("format-line-base");
         format_state(&s);
         s.write("Cargo.toml", "[workspace.package]\nversion = \"0.1.0\"\n");
-        let base = s.commit("base");
+        s.commit("base");
         s.git(&["tag", "v0.1.0"]);
         let modes = |values: Value| {
             device_schema(|d| {
@@ -1262,10 +1113,10 @@ mod tests {
                  device mode {value}\" in docs/release-notes/unreleased.md"
             )
         };
-        let report = format_report(&s, &base);
+        let report = format_report(&s);
         assert_eq!(report.failure, [s6("d", "v0.2.0")]);
         s.write("Cargo.toml", "[workspace.package]\nversion = \"0.1.1\"\n");
-        let report = format_report(&s, &base);
+        let report = format_report(&s);
         s.remove();
         assert_eq!(report.failure, [s6("c", "v0.1.0"), s6("d", "v0.1.0")]);
     }
@@ -1291,7 +1142,7 @@ mod tests {
             })
         };
         s.write_json("schemas/0.1/device.schema.json", &with(&|_| {}));
-        let base = s.commit("base");
+        s.commit("base");
         s.git(&["tag", "v0.1.0"]);
         s.write_json(
             "schemas/0.1/device.schema.json",
@@ -1305,7 +1156,7 @@ mod tests {
                 d["properties"]["side"] = json!({"$ref": "#/$defs/Edge"});
             }),
         );
-        let report = format_report(&s, &base);
+        let report = format_report(&s);
         s.remove();
         let changes = [
             ("device labels{}", "pattern \"^[a-z]+$\" added"),
@@ -1352,7 +1203,7 @@ mod tests {
             })
         };
         s.write_json("schemas/0.1/device.schema.json", &with(&|_| {}));
-        let base = s.commit("base");
+        s.commit("base");
         s.git(&["tag", "v0.1.0"]);
         s.write_json(
             "schemas/0.1/device.schema.json",
@@ -1364,7 +1215,7 @@ mod tests {
                 object["propertyNames"]["pattern"] = json!("^[a-z]{2}$");
             }),
         );
-        let report = format_report(&s, &base);
+        let report = format_report(&s);
         s.remove();
         let changes = [
             ("device Side|{at}", "additionalProperties false added"),
