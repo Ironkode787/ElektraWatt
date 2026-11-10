@@ -147,7 +147,6 @@ macro_rules! count_key {
     };
 }
 
-// map: texts: a new UI text goes in `crates/ew-viewmodel/locales/en-GB/shell.ftl` as `<key> = <text>`; code names it with key!("<key>").
 /// The en-GB Fluent source of the shell's texts: the source language, and the fallback of every other message.
 const EN_GB: &str = include_str!("../locales/en-GB/shell.ftl");
 
@@ -852,7 +851,6 @@ mod tests {
 
     /// FT-964 (ID-1150): the texts that name a key the default keymap binds by its literal name, each with why it stays:
     /// a key no keymap action reaches there (a popup's or a text field's own key), or a letter that is no key.
-    // map: kept-key-texts: a new text that names a bound key literally goes in strings.rs's KEPT_KEYS with why no keymap action reaches it there.
     const KEPT_KEYS: &[(&str, &str)] = &[
         // Letters that are no key.
         ("error-no-external", "L is the connection's name in the example"),

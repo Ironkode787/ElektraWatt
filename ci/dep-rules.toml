@@ -38,7 +38,6 @@ banned_crates = [
   "reqwest", "rustls", "sentry", "trust-dns-resolver", "ureq",
 ]
 
-# map: dep-rules: a new workspace crate goes in [layers], [allowed_edges] (its edges from 04-architecture §3) and a [crates] table (its §3 row); a permissive one also in `.config/hakari.toml` final-excludes.
 [layers]
 # MIT OR Apache-2.0; closed under dependencies (ADR-0024 decision 2).
 permissive = [

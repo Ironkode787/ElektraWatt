@@ -111,7 +111,6 @@ pub enum Reach {
 /// `( ) [ ] , | %` are taken out. A token with a colon keeps it. Each word carries the [`Reach`] of the tests whose own
 /// states reach it, where `tests/part2.rs`'s sequence does not. A change here is a reviewed transcript change
 /// (decision log ID-474).
-// map: describe-words: a new structural word goes in WORDS, with the Reach of the tests that reach it.
 const WORDS: &[(&str, &[Reach])] = &[
     ("title:", &[]),
     ("menu", &[]),

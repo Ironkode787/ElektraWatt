@@ -110,7 +110,6 @@ pub use terminal::{ConductorSpec, TerminalDesignation, TerminalSpec};
 
 use crate::registry::CommandRegistry;
 
-// map: commands: a new command goes in commands! as module::Type; its title is the key command-<name, . as ->.
 /// Declares the built-in commands once: every `module::Type` entry becomes a `pub use` of the command type and one
 /// `register` call in [`register_all`].
 macro_rules! commands {

@@ -252,7 +252,6 @@ pub enum ParamForm {
     CommandRefs,
 }
 
-// map: alias-params: a new aliasable parameter goes in ALIAS_PARAMS as (action, param, ParamForm); the row test checks it names a real parameter.
 /// The action parameters that take a UUID or a reference (ID-630 (c)): action ID, parameter, form.
 pub const ALIAS_PARAMS: &[(&str, &str, ParamForm)] = &[
     ("select.set", "ids", ParamForm::List),

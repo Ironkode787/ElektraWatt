@@ -52,7 +52,6 @@ pub(super) struct Cli {
     command: Top,
 }
 
-// map: cli: a new subcommand or flag goes in this derive tree with its help; its exits go in catalogue::TABLE.
 /// The subcommands of `ew`.
 #[derive(Subcommand, Debug)]
 enum Top {

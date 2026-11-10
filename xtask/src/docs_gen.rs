@@ -467,7 +467,6 @@ fn anchor(name: &str) -> String {
         .replace(' ', "-")
 }
 
-// map: reference-anchors: a new page or anchor rule of the references goes in these fns; help.rs copies it.
 /// The page of a command, relative to [`BOOK_SRC`]: `reference/commands/<name>.md`.
 fn command_page_path(name: &str) -> String {
     format!("{COMMANDS_DIR}/{name}.md")
@@ -1902,7 +1901,6 @@ struct RuleScheme {
     release: bool,
 }
 
-// map: rules-json-mirror: a new catalogue field goes in `crates/ew-checks/tests/catalogue.rs` (generated) and in the structs above, together.
 /// The rule catalogue snapshot; a field the mirror does not know is refused.
 fn parse_catalogue(text: &str) -> Result<Catalogue> {
     serde_json::from_str(text).with_context(|| format!("parsing {CATALOGUE}"))
@@ -2181,7 +2179,6 @@ const NO_STANDARD: &str = "No standard: a project-hygiene rule.";
 /// Golden A's expected findings: the EF rows (rule, count, subjects, targets, defect).
 const GOLDEN_FINDINGS: &str = "crates/ew-api/tests/expected/findings_mvp.csv";
 
-// map: rule-notes: a new shipped rule goes in `docs/book/rule-notes/<id in lower case>.md` as its notes with the six headings of NOTES_HEADINGS, written by the lane that adds the rule.
 /// The notes files of [`RULE_NOTES`], by file name.
 fn read_notes(root: &Path) -> Result<BTreeMap<String, String>> {
     let mut notes = BTreeMap::new();

@@ -948,7 +948,6 @@ const fn parameterless(mut a: ActionMeta) -> ActionMeta {
     a
 }
 
-// map: action-flags: a new banner, recovery or link-preview exception goes on its ACTIONS entry as a keeps_banner, answers_recovery or keeps_link_preview wrapper.
 /// Marks an action whose dispatch leaves the banner standing.
 const fn keeps_banner(mut a: ActionMeta) -> ActionMeta {
     a.keeps_banner = true;
@@ -1151,7 +1150,6 @@ fn selection_editable(m: &ShellModel) -> Result<(), Key<'static>> {
 
 use ActionKind::{Command, View};
 
-// map: actions: a new action goes in ACTIONS as one entry naming its handler; its label key is action-<id, . and _ as ->.
 /// The registry: the part-1 actions of the spec, section 5.2, in menu order, then the headless-only ones.
 pub static ACTIONS: &[ActionMeta] = &[
     with_params(
