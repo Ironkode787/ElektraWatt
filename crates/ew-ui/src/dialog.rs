@@ -212,25 +212,19 @@ mod tests {
     use super::{Platform, Slot, footer_order};
 
     #[test]
-    fn windows_puts_the_primary_first() {
+    fn windows_puts_the_primary_first_linux_last_and_a_lone_primary_is_the_whole_group() {
         assert_eq!(
             footer_order(Platform::Windows, 2),
-            [Slot::Primary, Slot::Other(0), Slot::Other(1)]
+            [Slot::Primary, Slot::Other(0), Slot::Other(1)],
+            "windows"
         );
-    }
-
-    #[test]
-    fn linux_puts_the_primary_last() {
         assert_eq!(
             footer_order(Platform::Linux, 2),
-            [Slot::Other(0), Slot::Other(1), Slot::Primary]
+            [Slot::Other(0), Slot::Other(1), Slot::Primary],
+            "linux"
         );
-    }
-
-    #[test]
-    fn a_lone_primary_is_the_whole_group_everywhere() {
         for p in [Platform::Windows, Platform::Linux] {
-            assert_eq!(footer_order(p, 0), [Slot::Primary]);
+            assert_eq!(footer_order(p, 0), [Slot::Primary], "{p:?} alone");
         }
     }
 

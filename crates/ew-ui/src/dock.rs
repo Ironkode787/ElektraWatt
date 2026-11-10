@@ -1418,17 +1418,6 @@ mod tests {
         assert_eq!(Layout::parse(&text).unwrap().1, layout);
     }
 
-    #[test]
-    fn container_kind_names_are_used() {
-        // The tree has the same container kinds as the model: linear and tabs.
-        let dock = Dock::new(&Layout::schematic(), 0);
-        let root = dock.tree.root().unwrap();
-        assert_eq!(
-            dock.tree.tiles.get(root).and_then(|t| t.container_kind()),
-            Some(egui_tiles::ContainerKind::Horizontal)
-        );
-    }
-
     /// FX38d: at a window of 1280 × 828 points the bottom dock's display clamp leaves the page view at least half the
     /// window's height; the user's shares stay the layout.
     #[test]

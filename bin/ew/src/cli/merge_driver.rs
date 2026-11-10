@@ -219,8 +219,11 @@ mod tests {
     }
 
     /// MD-5, ruling 6: a panic inside the merge is caught: exit 129, `%A` byte-identical, no temporary file left.
+    /// MD-5, ruling 6: a panic inside the merge is caught: exit 129, `%A` byte-identical, no temporary file left.
+    /// Decision log ID-1273: the guard covers everything from the reads to the write, the placing of `%P` in its
+    /// project (which reads the working tree's manifest) too: exit 129, `%A` byte-identical, no merge run.
     #[test]
-    fn a_panic_in_the_merge_exits_129_and_leaves_a_as_it_was() {
+    fn a_panic_in_or_before_the_merge_exits_129_and_leaves_a_as_it_was() {
         let (dir, args) = setup("0.1");
         let code = drive(
             &args,
@@ -228,16 +231,11 @@ mod tests {
             &Limits::default(),
             &|_, _, _, _| panic!("an injected failure"),
         );
-        assert_eq!(code, INTERNAL);
+        assert_eq!(code, INTERNAL, "in the merge");
         assert_eq!(std::fs::read(&args.ours).unwrap(), b"ours\n");
         assert!(!dir.join("a.tmp").exists());
         std::fs::remove_dir_all(&dir).unwrap();
-    }
 
-    /// Decision log ID-1273: the guard covers everything from the reads to the write, the placing of `%P` in its
-    /// project (which reads the working tree's manifest) too: exit 129, `%A` byte-identical, no merge run.
-    #[test]
-    fn a_panic_before_the_merge_exits_129_and_leaves_a_as_it_was() {
         let (dir, args) = setup("0.1");
         let merged = std::cell::Cell::new(false);
         let code = drive(
@@ -252,7 +250,7 @@ mod tests {
                 }
             },
         );
-        assert_eq!((code, merged.get()), (INTERNAL, false));
+        assert_eq!((code, merged.get()), (INTERNAL, false), "before the merge");
         assert_eq!(std::fs::read(&args.ours).unwrap(), b"ours\n");
         assert!(!dir.join("a.tmp").exists());
         std::fs::remove_dir_all(&dir).unwrap();

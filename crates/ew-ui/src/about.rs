@@ -709,19 +709,20 @@ mod tests {
     }
 
     #[test]
-    fn reflow_joins_the_lines_of_a_paragraph() {
+    fn reflow_joins_the_lines_of_a_paragraph_and_keeps_list_items_and_indented_lines() {
         let text =
             "This font is free software; you can give it to any\nuser under the licence.\n\nSecond para.";
         assert_eq!(
             reflow(text),
-            "This font is free software; you can give it to any user under the licence.\n\nSecond para."
+            "This font is free software; you can give it to any user under the licence.\n\nSecond para.",
+            "a paragraph"
         );
-    }
-
-    #[test]
-    fn reflow_keeps_list_items_and_indented_lines() {
         let text = "Terms:\n- one\n- two\n  indented\n1. first\nnext";
-        assert_eq!(reflow(text), "Terms:\n- one\n- two\n  indented\n1. first next");
+        assert_eq!(
+            reflow(text),
+            "Terms:\n- one\n- two\n  indented\n1. first next",
+            "list items and indented lines"
+        );
     }
 
     #[test]

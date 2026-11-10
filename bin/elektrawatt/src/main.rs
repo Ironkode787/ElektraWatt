@@ -832,13 +832,9 @@ mod tests {
     }
 
     #[test]
-    fn no_arguments_is_the_window() {
+    fn no_arguments_is_the_window_and_no_gpu_is_a_flag_of_the_window_only() {
         assert_eq!(parse(&[]), Ok(Cli::Gui(None, false)));
         assert_eq!(parse(&["p.ew"]), Ok(Cli::Gui(Some(PathBuf::from("p.ew")), false)));
-    }
-
-    #[test]
-    fn b6_no_gpu_is_a_flag_of_the_window_only() {
         assert_eq!(parse(&["--no-gpu"]), Ok(Cli::Gui(None, true)));
         assert_eq!(
             parse(&["--no-gpu", "p.ew"]),
@@ -902,58 +898,47 @@ mod tests {
         );
     }
 
+    /// The arguments of a headless run of `script` with every other option at its default.
+    fn headless(script: ScriptSource) -> HeadlessArgs {
+        HeadlessArgs {
+            script,
+            record: None,
+            config_dir: None,
+            keep_going: false,
+            visual: false,
+            frames: None,
+            no_frames: false,
+            geometry: Geometry::DEFAULT,
+        }
+    }
+
     #[test]
     fn the_headless_mode_needs_a_script() {
         assert_eq!(
             parse(&["--headless", "--script", "s.jsonl"]),
-            Ok(Cli::Headless(HeadlessArgs {
-                script: ScriptSource::File(PathBuf::from("s.jsonl")),
-                record: None,
-                config_dir: None,
-                keep_going: false,
-                visual: false,
-                frames: None,
-                no_frames: false,
-                geometry: Geometry::DEFAULT
-            }))
+            Ok(Cli::Headless(headless(ScriptSource::File(PathBuf::from(
+                "s.jsonl"
+            )))))
         );
         assert_eq!(
             parse(&["--headless", "--script", "-", "--record", "r.ewcmd"]),
             Ok(Cli::Headless(HeadlessArgs {
-                script: ScriptSource::Stdin,
                 record: Some(PathBuf::from("r.ewcmd")),
-                config_dir: None,
-                keep_going: false,
-                visual: false,
-                frames: None,
-                no_frames: false,
-                geometry: Geometry::DEFAULT
+                ..headless(ScriptSource::Stdin)
             }))
         );
         assert_eq!(
             parse(&["--headless", "--script", "-", "--keep-going"]),
             Ok(Cli::Headless(HeadlessArgs {
-                script: ScriptSource::Stdin,
-                record: None,
-                config_dir: None,
                 keep_going: true,
-                visual: false,
-                frames: None,
-                no_frames: false,
-                geometry: Geometry::DEFAULT
+                ..headless(ScriptSource::Stdin)
             }))
         );
         assert_eq!(
             parse(&["--headless", "--script", "s", "--config-dir", "c"]),
             Ok(Cli::Headless(HeadlessArgs {
-                script: ScriptSource::File(PathBuf::from("s")),
-                record: None,
                 config_dir: Some(PathBuf::from("c")),
-                keep_going: false,
-                visual: false,
-                frames: None,
-                no_frames: false,
-                geometry: Geometry::DEFAULT
+                ..headless(ScriptSource::File(PathBuf::from("s")))
             }))
         );
         assert!(parse(&["--config-dir", "c"]).is_err());
@@ -983,14 +968,10 @@ mod tests {
                 "--keep-going"
             ]),
             Ok(Cli::Headless(HeadlessArgs {
-                script: ScriptSource::Stdin,
-                record: None,
-                config_dir: None,
                 keep_going: true,
                 visual: true,
                 frames: Some(PathBuf::from("f")),
-                no_frames: false,
-                geometry: Geometry::DEFAULT
+                ..headless(ScriptSource::Stdin)
             }))
         );
         assert!(matches!(

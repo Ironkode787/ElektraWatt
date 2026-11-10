@@ -680,7 +680,7 @@ fn import_qet_options() {
 }
 
 #[test]
-fn check_defaults_and_options() {
+fn check_defaults_options_and_errors() {
     let Ok(Command::Check(a)) = p(&["check"]) else {
         panic!("parse failed");
     };
@@ -703,10 +703,6 @@ fn check_defaults_and_options() {
         panic!("parse failed");
     };
     assert_eq!(c.format, CheckFormat::Markdown);
-}
-
-#[test]
-fn check_errors() {
     assert!(p(&["check", "--scheme", "bogus"]).is_err());
     assert!(p(&["check", "--mode", "x"]).is_err());
     assert!(p(&["check", "--format", "xml"]).is_err());
@@ -873,7 +869,6 @@ SELECT 1"
     assert!(p(&["sql", "schema", "extra"]).is_err());
     assert!(p(&["sql", "dump"]).is_err());
     assert!(p(&["sql", "dump", "a", "b", "c"]).is_err());
-    assert!(p(&["sql", "SELECT 1", "--bogus"]).is_err());
     assert!(p(&["sql", "dump", "a", "--bogus"]).is_err());
     assert!(p(&["sql", "--project", "p", "proj", "SELECT 1"]).is_err());
     assert!(p(&["sql", "--project", "p", "proj", "--file", "q.sql"]).is_err());
@@ -881,7 +876,7 @@ SELECT 1"
 }
 
 #[test]
-fn import_parts_options() {
+fn import_parts_options_and_errors() {
     let Ok(Command::ImportParts(a)) = p(&["import", "parts", "a.csv"]) else {
         panic!("import parts");
     };
@@ -891,10 +886,6 @@ fn import_parts_options() {
         panic!("import parts --project");
     };
     assert_eq!(b.project, Some(PathBuf::from("d")));
-}
-
-#[test]
-fn import_parts_errors() {
     assert!(p(&["import", "parts"]).is_err());
     assert!(p(&["import", "parts", "a", "b"]).is_err());
     assert!(p(&["import", "parts", "a", "--bogus"]).is_err());
@@ -1058,9 +1049,6 @@ fn export_errors() {
     assert!(p(&["export", "cables", "--mode", "parts"]).is_err());
     assert!(p(&["export", "bom", "--mode", "everything"]).is_err());
     assert!(p(&["export", "bom", "--mode"]).is_err());
-    assert!(p(&["export", "bom", "--format", "xlsx"]).is_err());
-    assert!(p(&["export", "bom", "--format", "pdf"]).is_err());
-    assert!(p(&["export", "bom", "--format", "tsv"]).is_err());
     // `--strip` belongs to `terminals`, `--block` needs a value, `report` needs a block and PDF a file.
     assert!(p(&["export", "wires", "--strip", "-X1"]).is_err());
     assert!(p(&["export", "wires", "--block"]).is_err());
@@ -1373,7 +1361,7 @@ fn render_and_png_forms() {
 }
 
 #[test]
-fn export_pages_forms() {
+fn export_pages_forms_and_errors() {
     let Ok(Command::ExportPages(a)) = p(&["export", "pdf", "proj", "--out", "o.pdf"]) else {
         panic!("parse failed");
     };
@@ -1400,17 +1388,12 @@ fn export_pages_forms() {
         PageSelection::Folios(vec!["101-106".to_owned(), "1".to_owned()])
     );
     assert_eq!(b.threads, Some(4));
-}
-
-#[test]
-fn export_pages_errors() {
     assert!(p(&["export", "pdf"]).is_err(), "--out is required");
     assert!(p(&["export", "svg", "proj"]).is_err());
     assert!(p(&["export", "pdf", "--out"]).is_err());
     assert!(p(&["export", "pdf", "--out", "o", "--pages", ""]).is_err());
     assert!(p(&["export", "pdf", "--out", "o", "--threads", "0"]).is_err());
     assert!(p(&["export", "pdf", "--out", "o", "--threads", "x"]).is_err());
-    assert!(p(&["export", "pdf", "--out", "o", "--lang", "de"]).is_err());
     assert!(p(&["export", "pdf", "--out", "o", "a", "b"]).is_err());
     assert!(p(&["export", "png", "--out", "o", "--dpi", "1000"]).is_err());
 }

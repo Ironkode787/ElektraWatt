@@ -2011,19 +2011,15 @@ mod tests {
     }
 
     #[test]
-    fn the_options_open_under_the_row_when_they_fit() {
+    fn the_options_open_under_the_row_when_they_fit_and_over_it_near_the_status_bar() {
         let row = Rect::from_min_max(pos2(60.0, 300.0), pos2(320.0, 328.0));
         let (at, h) = choices_placement(row, bound(), 260.0, 224.0, 9.0, 4.0);
-        assert_eq!(at, pos2(60.0, 332.0));
+        assert_eq!(at, pos2(60.0, 332.0), "under the row");
         assert_eq!(h, 224.0);
-    }
-
-    #[test]
-    fn the_options_open_over_the_row_near_the_status_bar() {
         let row = Rect::from_min_max(pos2(60.0, 600.0), pos2(320.0, 628.0));
         let (at, h) = choices_placement(row, bound(), 260.0, 224.0, 9.0, 4.0);
         // The list and its frame (224 + 2 × 9) end 4 px over the row.
-        assert_eq!(at, pos2(60.0, 600.0 - 4.0 - 242.0));
+        assert_eq!(at, pos2(60.0, 600.0 - 4.0 - 242.0), "over the row");
         assert_eq!(h, 224.0);
     }
 
