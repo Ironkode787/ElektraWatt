@@ -12,46 +12,14 @@
 //! the test writes; the model half in `ew-viewmodel`'s `tests/paste_choice.rs`). A module of `tests/headless.rs`, whose
 //! `bin_exe` it uses.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Output, Stdio};
 
 use ew_testkit::library::starter_version;
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-parts-script"))
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
-
-fn path(p: &Path) -> String {
-    p.to_string_lossy().into_owned()
-}
+use super::support::{GOLDEN_A, Tmp, copy_dir, path};
 
 fn script(name: &str, steps: &[(&str, Value)]) -> String {
     let mut text = json!({"$schema": "ew.uiscript/1", "label": name}).to_string();
@@ -65,16 +33,23 @@ fn script(name: &str, steps: &[(&str, Value)]) -> String {
 
 /// Runs `steps` in `run` with its own configuration and an empty data directory, `--record` into `record.ewcmd`.
 fn run(run: &Path, name: &str, steps: &[(&str, Value)]) -> Output {
-    let file = run.join(format!("{name}.uiscript"));
-    std::fs::write(&file, script(name, steps)).unwrap();
     std::fs::create_dir_all(run.join("data")).unwrap();
+    run_unchecked(run, &run.join("data"), name, steps)
+}
+
+/// Runs `steps` in `dir` with the data directory `data` and the configuration `<dir>/config`, `--record` into
+/// `<dir>/record.ewcmd`; the exit status is the caller's to check.
+fn run_unchecked(dir: &Path, data: &Path, name: &str, steps: &[(&str, Value)]) -> Output {
+    std::fs::create_dir_all(dir).unwrap();
+    let file = dir.join(format!("{name}.uiscript"));
+    std::fs::write(&file, script(name, steps)).unwrap();
     Command::new(super::bin_exe())
         .args(["--headless", "--script"])
         .arg(&file)
         .arg("--record")
-        .arg(run.join("record.ewcmd"))
-        .env("EW_CONFIG_DIR", run.join("config"))
-        .env("EW_DATA_DIR", run.join("data"))
+        .arg(dir.join("record.ewcmd"))
+        .env("EW_CONFIG_DIR", dir.join("config"))
+        .env("EW_DATA_DIR", data)
         // The installation's system libraries (ew-sample-parts) wherever the binary was put (a nextest archive).
         .env("EW_CONTENT_DIR", super::support::CONTENT)
         .env_remove("SOURCE_DATE_EPOCH")
@@ -116,7 +91,7 @@ fn run_flow(
     let mut first = None;
     let mut commands = 0;
     for side in super::support::runs(twice) {
-        let dir = tmp.0.join(side);
+        let dir = tmp.dir().join(side);
         copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
         let out = run(&dir, name, &steps(&dir.join("g.ew")));
         assert_eq!(
@@ -131,7 +106,7 @@ fn run_flow(
             assert_eq!(s["outcome"], "done", "{s}");
         }
         let all = String::from_utf8(out.stdout.clone()).unwrap();
-        assert!(!all.contains(&*path(&tmp.0)), "a path in the transcript");
+        assert!(!all.contains(&*path(tmp.dir())), "a path in the transcript");
         super::support::assert_no_uuid(&all);
         transcripts.push(all);
         let log = CmdLog::parse(&std::fs::read_to_string(dir.join("record.ewcmd")).unwrap()).unwrap();
@@ -362,22 +337,7 @@ fn publish_fixture(data: &Path, description: &str, bump: bool) {
 /// Runs `steps` in `dir` with the data directory `data` and the configuration `<dir>/config`, `--record` into
 /// `<dir>/record.ewcmd`; every step must be done.
 fn run_with_data(dir: &Path, data: &Path, name: &str, steps: &[(&str, Value)]) -> Vec<Value> {
-    std::fs::create_dir_all(dir).unwrap();
-    let file = dir.join(format!("{name}.uiscript"));
-    std::fs::write(&file, script(name, steps)).unwrap();
-    let out = Command::new(super::bin_exe())
-        .args(["--headless", "--script"])
-        .arg(&file)
-        .arg("--record")
-        .arg(dir.join("record.ewcmd"))
-        .env("EW_CONFIG_DIR", dir.join("config"))
-        .env("EW_DATA_DIR", data)
-        // The installation's system libraries (ew-sample-parts) wherever the binary was put (a nextest archive).
-        .env("EW_CONTENT_DIR", super::support::CONTENT)
-        .env_remove("SOURCE_DATE_EPOCH")
-        .stdin(Stdio::null())
-        .output()
-        .unwrap();
+    let out = run_unchecked(dir, data, name, steps);
     assert_eq!(
         out.status.code(),
         Some(0),
@@ -437,7 +397,7 @@ pub(crate) fn ps8_the_paste_choice_script_is_deterministic_and_replays_case(twic
     let tmp = Tmp::new();
     let mut transcripts = Vec::new();
     for side in super::support::runs(twice) {
-        let root = tmp.0.join(side);
+        let root = tmp.dir().join(side);
         let data = root.join("data");
         let (p1, p2) = (root.join("p1.ew"), root.join("p2.ew"));
         copy_dir(Path::new(GOLDEN_A), &p1);
@@ -503,7 +463,10 @@ pub(crate) fn ps8_the_paste_choice_script_is_deterministic_and_replays_case(twic
             "{versions:?}"
         );
         let transcript: String = lines.iter().map(|l| format!("{l}\n")).collect();
-        assert!(!transcript.contains(&*path(&tmp.0)), "a path in the transcript");
+        assert!(
+            !transcript.contains(&*path(tmp.dir())),
+            "a path in the transcript"
+        );
         super::support::assert_no_uuid(&transcript);
         transcripts.push(transcript);
     }

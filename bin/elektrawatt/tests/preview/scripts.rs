@@ -6,41 +6,13 @@
 //! copy of Golden A with byte-identical transcripts; the `--record` log replayed onto a fresh copy gives the records of
 //! the saved project. A module of `tests/headless.rs`, whose `bin_exe` it uses.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Output, Stdio};
 
 use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-preview-script"))
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
+use super::support::{GOLDEN_A, Tmp, copy_dir};
 
 fn script(steps: &[(&str, Value)]) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"golden b\"}\n");
@@ -116,7 +88,7 @@ pub(crate) fn pv2_golden_b_script_is_byte_identical_twice_and_replays_case(twice
     let tmp = Tmp::new();
     let mut transcripts = Vec::new();
     for side in super::support::runs(twice) {
-        let dir = tmp.0.join(side);
+        let dir = tmp.dir().join(side);
         let project = dir.join("g.ew");
         copy_dir(Path::new(GOLDEN_A), &project);
         let record = dir.join("record.ewcmd");
@@ -159,7 +131,7 @@ pub(crate) fn pv2_golden_b_script_is_byte_identical_twice_and_replays_case(twice
         assert!(d.contains("preview none"), "{d}");
         let all = String::from_utf8_lossy(&out.stdout);
         assert!(
-            !all.contains(&*tmp.0.to_string_lossy()),
+            !all.contains(&*tmp.dir().to_string_lossy()),
             "a path in the transcript"
         );
         // The record replayed onto a fresh copy: the records of the saved project.
