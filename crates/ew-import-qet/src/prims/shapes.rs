@@ -451,10 +451,7 @@ mod tests {
         assert_eq!(l.to, Pt2::new(px("10"), px("5.5")));
         assert_eq!(l.stroke, default_stroke());
         assert!(l.extra.is_empty());
-    }
-
-    #[test]
-    fn line_exponent_coordinate() {
+        // A coordinate in Qt's exponent form.
         let (r, out, _) = run(r#"<line x1="1.23457e+01" y1="0" x2="0" y2="0"/>"#, line);
         r.unwrap();
         let Primitive::Line(l) = only_prim(&out) else {

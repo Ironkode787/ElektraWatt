@@ -97,7 +97,7 @@ mod tests {
     }
 
     #[test]
-    fn name_empty_or_absent_and_defaults() {
+    fn name_uuid_and_defaults() {
         let (r, out, _) = run(r#"<terminal x="0" y="0" orientation="n" name=""/>"#);
         r.unwrap();
         assert_eq!(out.terminals[0].name, "");
@@ -106,6 +106,9 @@ mod tests {
         let (r, out, _) = run(r#"<terminal x="0" y="0" orientation="n" name="A1"/>"#);
         r.unwrap();
         assert_eq!(out.terminals[0].name, "A1");
+        let (r, out, _) = run(r#"<terminal x="0" y="0" orientation="s" uuid="{1b2c-3d}"/>"#);
+        r.unwrap();
+        assert_eq!(out.terminals[0].uuid.as_deref(), Some("{1b2c-3d}"));
     }
 
     #[test]
@@ -120,12 +123,5 @@ mod tests {
         assert_eq!(ctx.entries.len(), 1);
         assert_eq!(ctx.entries[0].code, Code::DROPPED_BY_DESIGN);
         assert_eq!(ctx.entries[0].message, "terminal type Weird not supported");
-    }
-
-    #[test]
-    fn uuid_kept_verbatim() {
-        let (r, out, _) = run(r#"<terminal x="0" y="0" orientation="s" uuid="{1b2c-3d}"/>"#);
-        r.unwrap();
-        assert_eq!(out.terminals[0].uuid.as_deref(), Some("{1b2c-3d}"));
     }
 }

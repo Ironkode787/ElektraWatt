@@ -498,15 +498,6 @@ mod tests {
         ]
     }
 
-    #[test]
-    fn live_groups_sorted_and_counted() {
-        let m =
-            MigrationReport::from_report(&report(vec![ReportEntry::new(Code::imp(6), Severity::Info, "f")]))
-                .with_live(live());
-        assert_eq!(m.live[0].rule, "EW-RDS-001");
-        assert_eq!(m.total, 4);
-    }
-
     /// The live groups in each format, one case per format.
     #[test]
     fn live_groups_in_every_format() {

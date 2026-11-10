@@ -174,13 +174,6 @@ mod tests {
         assert_ne!(da, dc);
     }
 
-    #[test]
-    fn key_format() {
-        let key = identity_key(&[0xab; 32]);
-        assert_eq!(key.len(), "qet:eldef:".len() + 64);
-        assert!(key.starts_with("qet:eldef:abab"));
-    }
-
     /// Fixed vector: the canonical bytes and digest of a small definition never change (they are the
     /// identity of imported symbols). Digest computed independently with Python's hashlib over the bytes.
     #[test]

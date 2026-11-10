@@ -565,7 +565,11 @@ mod tests {
     }
 
     #[test]
-    fn tiny_values_round_to_zero() {
+    fn extreme_exponents_round_to_zero_or_are_out_of_range() {
+        for s in ["1e40", "1e+99999999999"] {
+            let v = Decimal::parse(s).unwrap();
+            assert_eq!(v.px_to_nm(), Err(DecimalError::OutOfRange), "{s}");
+        }
         let tiny = format!("0.{}1", "0".repeat(70));
         for s in ["1e-61", "-1e-61", tiny.as_str(), "1e-1000000", "1e-99999999999"] {
             let v = Decimal::parse(s).unwrap();
@@ -579,14 +583,6 @@ mod tests {
                 .is_ok()
         );
         assert_eq!(Decimal::ZERO.checked_sub(d("1e-61")).unwrap(), d("-1e-61"));
-    }
-
-    #[test]
-    fn huge_values_are_out_of_range_on_conversion() {
-        for s in ["1e40", "1e+99999999999"] {
-            let v = Decimal::parse(s).unwrap();
-            assert_eq!(v.px_to_nm(), Err(DecimalError::OutOfRange), "{s}");
-        }
     }
 
     #[test]
