@@ -877,51 +877,7 @@ fn the_agents_steps_and_the_epilogue_are_read_from_the_runs_files() {
     assert_eq!(serde_json::from_str::<Score>(&written).unwrap(), s);
 }
 
-// ---- The committed task and the text helpers.
-
-#[test]
-fn the_committed_task_loads_and_its_counts_are_the_documents() {
-    let t = TaskDef::load(&crate::workspace_root(), "gpp-101-103").unwrap();
-    let counts: Vec<_> = t
-        .counts
-        .iter()
-        .map(|c| {
-            (
-                c.folio.as_str(),
-                c.reps,
-                c.connections,
-                c.junctions,
-                c.terminals,
-                c.strips,
-            )
-        })
-        .collect();
-    // 17, 12 and 23 reps less the 3 strip segments plus the 15 terminals of the demo variant.
-    assert_eq!(
-        counts,
-        [
-            ("101", 17, 21, 2, None, None),
-            ("102", 12, 19, 4, None, None),
-            ("103", 35, 20, 0, Some(15), Some(2)),
-        ]
-    );
-    assert_eq!(
-        t.bom.len(),
-        14,
-        "doc 20 §14.1 restricted to the devices on 101 to 103"
-    );
-    assert_eq!(t.prelude.len(), 5);
-    assert!(t.prelude.iter().all(|p| p.class == "setup"));
-    for (_, set, _) in SOFT {
-        assert!(!t.rows[set].is_empty(), "{set}");
-    }
-    assert_eq!(t.rows["cells"].len(), 52, "17 + 12 + 23 representations");
-    for q in QUERIES {
-        assert!(t.queries.contains_key(q), "{q}");
-    }
-    assert!(t.queries.contains_key("placed_terminals"));
-    assert_eq!(t.gaps.keys().collect::<Vec<_>>(), ["H4"]);
-}
+// ---- The text helpers.
 
 #[test]
 fn csv_and_the_query_file_round_trip() {

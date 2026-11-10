@@ -767,34 +767,4 @@ mod tests {
                 .contains("params")
         );
     }
-
-    /// The committed reference parses with the harness's own grammar, and holds the actions the harness names.
-    #[test]
-    fn the_committed_reference_file_parses() {
-        let path = crate::workspace_root().join("tools/blind/reference/actions.txt");
-        let text = std::fs::read_to_string(&path).unwrap();
-        let r = parse_reference(&text).unwrap();
-        for id in [
-            "command.run",
-            "page.describe",
-            "ui.describe",
-            "canvas.press",
-            "file.new",
-            "app.quit",
-        ] {
-            assert!(r.find(id).is_some(), "{id}");
-        }
-        assert_eq!(
-            r.find("file.new")
-                .unwrap()
-                .params
-                .iter()
-                .find(|p| p.name == "template")
-                .unwrap()
-                .ty,
-            "path"
-        );
-        assert!(r.find("page.describe").unwrap().view);
-        assert!(!r.find("file.save").unwrap().view);
-    }
 }

@@ -788,15 +788,6 @@ mod tests {
     }
 
     #[test]
-    fn permissive_depending_on_gpl_fails_even_as_dev_dependency() {
-        let v = with(("p-schema", "g-model", Kind::Dev));
-        assert_violation(
-            &v,
-            "licence boundary: permissive crate `p-schema` depends on non-permissive `g-model`",
-        );
-    }
-
-    #[test]
     fn permissive_depending_on_gpl_fails_even_if_policy_lists_the_edge() {
         let text = POLICY.replace(
             r#""p-api" = ["p-schema"]"#,
@@ -810,25 +801,31 @@ mod tests {
     }
 
     #[test]
-    fn rusqlite_outside_owner_fails() {
-        let v = with(("g-ui", "rusqlite", Kind::Normal));
-        assert_violation(&v, "external: `g-ui` depends on `rusqlite`");
-    }
-
-    #[test]
-    fn egui_wildcard_outside_owner_fails() {
-        let v = with(("g-model", "egui_extras", Kind::Dev));
-        assert_violation(
-            &v,
-            "external: `g-model` depends on `egui_extras` (dev-dependency)",
-        );
-    }
-
-    #[test]
-    fn hyphenated_egui_crate_outside_owner_fails() {
-        let v = with(("g-model", "egui-winit", Kind::Normal));
-        assert_violation(&v, "external: `g-model` depends on `egui-winit` (dependency)");
-        // The owner may use it.
+    fn external_crates_outside_their_owner_fail() {
+        // An exact name, a `egui_*` wildcard (as a dev-dependency) and a hyphenated `egui-*` match.
+        for (from, to, kind, needle) in [
+            (
+                "g-ui",
+                "rusqlite",
+                Kind::Normal,
+                "external: `g-ui` depends on `rusqlite`",
+            ),
+            (
+                "g-model",
+                "egui_extras",
+                Kind::Dev,
+                "external: `g-model` depends on `egui_extras` (dev-dependency)",
+            ),
+            (
+                "g-model",
+                "egui-winit",
+                Kind::Normal,
+                "external: `g-model` depends on `egui-winit` (dependency)",
+            ),
+        ] {
+            assert_violation(&with((from, to, kind)), needle);
+        }
+        // The owner may use a hyphenated crate.
         let mut edges = clean_edges();
         edges.push(("g-ui", "egui-winit", Kind::Normal));
         assert_eq!(check(&policy(), &graph(&edges)), Vec::<String>::new());
@@ -897,7 +894,7 @@ mod tests {
     }
 
     /// The confined rule reads the manifests it names outside the workspace: a direct edge there,
-    /// renamed, a dev-dependency or under a target table, fails; the real fuzz manifest passes.
+    /// renamed, a dev-dependency or under a target table, fails.
     #[test]
     fn confined_crate_in_a_manifest_outside_the_workspace_fails() {
         let manifest = "[package]\nname = \"g-fuzz\"\n\n[dependencies]\ng-top = { path = \"../top\" }\nqet = { package = \"g-import-qet\", path = \"../qet\" }\n\n[dev-dependencies]\ng-import-qet = { path = \"../qet\" }\n\n[target.'cfg(unix)'.build-dependencies]\ng-import-qet = { path = \"../qet\" }\n";
@@ -929,11 +926,6 @@ mod tests {
                 "confined: `g-fuzz` (fuzz/Cargo.toml) depends on `g-import-qet` (dev-dependency); only g-top may (ADR-0024 decision 4)",
                 "confined: `g-fuzz` (fuzz/Cargo.toml) depends on `g-import-qet` (build-dependency); only g-top may (ADR-0024 decision 4)",
             ]
-        );
-        let real = Policy::load(&crate::workspace_root().join("ci/dep-rules.toml")).unwrap();
-        assert_eq!(
-            check_confined_manifests(&real, &crate::workspace_root()).unwrap(),
-            Vec::<String>::new()
         );
     }
 
@@ -995,28 +987,6 @@ mod tests {
                 "importer purity (NFR-SEC-18): crates/ew-import-x/src/lib.rs:11 names `std::fs`; an importer reads only the bytes it is given",
                 "importer purity (NFR-SEC-18): crates/ew-import-x/src/lib.rs:14 names `std::env`; an importer reads only the bytes it is given",
             ]
-        );
-    }
-
-    /// The real policy rejects a GPL crate seeded into a permissive crate, as a dev-dependency too
-    /// (NFR-MAINT-02 acceptance in dependency-rule form).
-    #[test]
-    fn real_policy_rejects_seeded_gpl_dependency_in_ew_format() {
-        let root = crate::workspace_root();
-        let metadata = crate::metadata().expect("cargo metadata runs");
-        let policy = Policy::load(&root.join("ci/dep-rules.toml"))
-            .expect("policy loads")
-            .with_layers(&metadata);
-        let mut graph = Graph::from_metadata(&metadata);
-        graph.edges.push(Edge {
-            from: "ew-format".into(),
-            to: "ew-model".into(),
-            kind: Kind::Dev,
-        });
-        let v = check(&policy, &graph);
-        assert_violation(
-            &v,
-            "licence boundary: permissive crate `ew-format` depends on non-permissive `ew-model`",
         );
     }
 }

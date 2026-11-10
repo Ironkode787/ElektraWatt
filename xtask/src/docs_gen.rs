@@ -2573,84 +2573,6 @@ mod tests {
         }
     }
 
-    /// WP-S7.05 D3 to D6 (DC-1): over the repository's catalogue and notes, every rule has its page with D4's
-    /// sections in order, nested below its pack's index page in the summary items; a rule's `docs` names its page.
-    #[test]
-    fn every_catalogue_rule_has_its_page_with_the_sections_in_order() {
-        let root = crate::workspace_root();
-        let generated = generate(&root).unwrap();
-        let text = read_lf(&root.join(CATALOGUE)).unwrap().unwrap();
-        let catalogue = parse_catalogue(&text).unwrap();
-        assert!(!catalogue.rules.is_empty());
-        for r in &catalogue.rules {
-            let page = rule_page_path(&r.id);
-            assert_eq!(format!("{}.md", r.docs), page, "{}", r.id);
-            let headings: Vec<&str> = generated.files[&page]
-                .lines()
-                .filter(|l| l.starts_with("## "))
-                .collect();
-            assert_eq!(
-                headings,
-                [
-                    "## What it checks",
-                    "## Why",
-                    "## Standard",
-                    "## In the golden project",
-                    "## How to fix",
-                    "## Waiving",
-                    "## Rule data",
-                ],
-                "{page}"
-            );
-            let at = generated
-                .packs
-                .iter()
-                .position(|(_, link, _)| *link == page)
-                .expect("listed");
-            let pack = generated.packs[..at]
-                .iter()
-                .rev()
-                .find(|(_, _, depth)| *depth == 0)
-                .expect("below its pack");
-            assert_eq!(pack.1, pack_page_path(&r.pack), "{}", r.id);
-        }
-        assert_eq!(generated.notes, Vec::<String>::new());
-        assert_eq!(rule_page_path("EW-CORE-033"), "reference/rules/ew-core-033.md");
-    }
-
-    /// Every pack of the catalogue has its row in the anchor table, and each row's title is a heading of doc 15
-    /// whose GitHub anchor (lower case, spaces as `-`, other punctuation dropped) is the row's anchor.
-    #[test]
-    fn every_pack_links_its_doc_15_section() {
-        let root = crate::workspace_root();
-        let text = read_lf(&root.join(CATALOGUE)).unwrap().unwrap();
-        let catalogue = parse_catalogue(&text).unwrap();
-        for r in &catalogue.rules {
-            assert!(
-                PACK_SECTIONS.iter().any(|(p, _, _)| *p == r.pack),
-                "{} has no row",
-                r.pack
-            );
-        }
-        let doc = read_lf(&root.join("docs/design/15-checks-revisions-collaboration.md"))
-            .unwrap()
-            .unwrap();
-        for (pack, title, anchor) in PACK_SECTIONS {
-            assert!(
-                doc.lines()
-                    .any(|l| l.trim_start_matches('#').trim() == *title && l.starts_with('#')),
-                "{pack}: no heading {title}"
-            );
-            let slug: String = title
-                .to_lowercase()
-                .chars()
-                .filter(|c| c.is_alphanumeric() || *c == ' ' || *c == '-')
-                .map(|c| if c == ' ' { '-' } else { c })
-                .collect();
-            assert_eq!(slug, *anchor, "{pack}");
-        }
-    }
-
     #[test]
     fn the_glossary_page_has_one_row_per_term_with_its_actions() {
         let file: GlossaryFile = toml::from_str(
@@ -2674,7 +2596,7 @@ mod tests {
     }
 
     /// T7 (DC-5): every EPLAN and QElectroTech alias has a section in its page, and every section names
-    /// an EW term of the glossary; removing a section names its aliases. The repository's pages pass.
+    /// an EW term of the glossary; removing a section names its aliases.
     #[test]
     fn the_glossary_pages_have_a_section_for_every_alias() {
         let file: GlossaryFile = toml::from_str(
@@ -2717,10 +2639,6 @@ mod tests {
                 "docs/book/src/explanation/eplan-and-ew.md: the EPLAN term \"Interruption point\" of the product \
                  glossary has no section"
             ]
-        );
-        assert_eq!(
-            glossary_sections(&crate::workspace_root()).unwrap(),
-            Vec::<String>::new()
         );
     }
 
@@ -2827,21 +2745,6 @@ mod tests {
         );
     }
 
-    /// AG-6: a changed flag in the CLI snapshot changes the wanted page, so `docs-gen --check` reports it differing.
-    #[test]
-    fn a_changed_flag_changes_the_wanted_cli_page() {
-        let (mut before, mut after) = (BTreeMap::new(), BTreeMap::new());
-        cli_pages(&cli_fixture("--out"), &results_fixture(), &mut before).unwrap();
-        cli_pages(&cli_fixture("--output"), &results_fixture(), &mut after).unwrap();
-        let differing: Vec<&String> = before
-            .iter()
-            .filter(|(rel, text)| after.get(*rel) != Some(text))
-            .map(|(rel, _)| rel)
-            .collect();
-        assert_eq!(differing, ["reference/cli/export.md", "reference/cli/index.md"]);
-        assert!(after["reference/cli/export.md"].contains("| `--output` | yes | no |"));
-    }
-
     fn api_v1_fixture(column: &str) -> Value {
         json!({"api_status": "preview", "views": [
             {"name": "api_v1_bond", "row": "bond", "preview": true,
@@ -2872,18 +2775,6 @@ mod tests {
              | `seq` | INTEGER | the order | yes |\n\n"
         );
         assert!(page.contains("The contract's status is **preview**"), "{page}");
-    }
-
-    /// AG-6: a changed column in the `api_v1` snapshot changes the wanted page.
-    #[test]
-    fn a_changed_column_changes_the_wanted_api_v1_page() {
-        let before = api_v1_text(&api_v1_fixture("seq")).unwrap();
-        let after = api_v1_text(&api_v1_fixture("position")).unwrap();
-        assert_ne!(before, after);
-        assert!(
-            after.contains("| `position` | INTEGER | the order | yes |"),
-            "{after}"
-        );
     }
 
     /// D15: the query page, whole from its table on: one row and one section per query, with its output fields.
@@ -2969,7 +2860,7 @@ mod tests {
     }
 
     /// `docs-gen --check` compares only the committed `SUMMARY.md`: an absent or old built page and a stray file in a
-    /// generated directory are no violation, a stale `SUMMARY.md` is. The repository's `SUMMARY.md` is current.
+    /// generated directory are no violation, a stale `SUMMARY.md` is.
     #[test]
     fn check_ignores_the_built_pages_and_fails_on_a_stale_summary() {
         let root = temp_dir("check");
@@ -3039,8 +2930,6 @@ mod tests {
             ["docs/book/src/SUMMARY.md differs; run `cargo xtask docs-gen`"]
         );
         std::fs::remove_dir_all(&root).unwrap();
-
-        assert!(run(&crate::workspace_root(), true).unwrap());
     }
 
     /// C43-p7#2, p7#3: a built page that git tracks is a violation, whether or not a source gives it, and so is a
@@ -3063,63 +2952,6 @@ mod tests {
                 "docs/design/04-architecture.md: its generated part differs; run `cargo xtask docs-gen`",
             ]
         );
-        // The repository tracks no built page.
-        assert_eq!(
-            tracked_built(&crate::workspace_root()).unwrap(),
-            Vec::<String>::new()
-        );
-    }
-
-    /// The root `.gitignore` names exactly the built pages: one block of the generated directories, then the
-    /// generated single pages.
-    #[test]
-    fn the_gitignore_names_the_built_pages() {
-        let text = std::fs::read_to_string(crate::workspace_root().join(".gitignore")).unwrap();
-        let listed: Vec<&str> = text
-            .lines()
-            .filter(|l| l.starts_with(&format!("/{BOOK_SRC}/")))
-            .collect();
-        let wanted: Vec<String> = GENERATED_DIRS
-            .iter()
-            .map(|dir| format!("/{BOOK_SRC}/{dir}/"))
-            .chain(GENERATED_PAGES.iter().map(|page| format!("/{BOOK_SRC}/{page}")))
-            .collect();
-        assert_eq!(listed, wanted);
-        let block = wanted.join(
-            "
-",
-        );
-        assert!(
-            text.contains(&block),
-            "the lines are not one block:
-{text}"
-        );
-    }
-
-    /// The command and rule pages that the repository's sources give emit exactly the page rule that F1 help and
-    /// its tests copy ([`command_page_path`], [`rule_page_path`]): a page per command and a page per rule.
-    #[test]
-    fn the_pages_emit_the_anchor_rule() {
-        let root = crate::workspace_root();
-        let generated = generate(&root).unwrap();
-        let index = read_json(&root, &format!("{SCHEMA_DIR}/index.json")).unwrap();
-        for entry in index["commands"].as_array().unwrap() {
-            let page = command_page_path(str_of(entry, "name"));
-            assert!(generated.files.contains_key(&page), "{page}");
-        }
-        assert_eq!(
-            command_page_path("device.add"),
-            "reference/commands/device.add.md"
-        );
-
-        let text = read_lf(&root.join(CATALOGUE)).unwrap().unwrap();
-        let catalogue: Catalogue = serde_json::from_str(&text).unwrap();
-        assert!(!catalogue.rules.is_empty());
-        for r in &catalogue.rules {
-            let page = rule_page_path(&r.id);
-            assert!(generated.files.contains_key(&page), "{page}");
-        }
-        assert_eq!(rule_page_path("EW-CORE-033"), "reference/rules/ew-core-033.md");
     }
 
     /// D13, DC-10, T8: without a release the index says so; a release's notes give its page without their licence

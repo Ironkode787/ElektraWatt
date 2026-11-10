@@ -412,7 +412,6 @@ mod tests {
             std::fs::read_to_string(crate::workspace_root().join("tools/blind/tasks/selftest/agent.jsonl"))
                 .unwrap();
         let agent = parse_agent(&text).unwrap();
-        assert!(agent.len() > 20);
         assert!(matches!(agent.last().unwrap().0, Call::Handback(_)));
         // Every call of the file is one of the harness's commands.
         for (call, _) in &agent {

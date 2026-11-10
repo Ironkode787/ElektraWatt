@@ -322,19 +322,22 @@ mod tests {
     }
 
     #[test]
-    fn a_non_path_element_is_refused() {
-        let err = parse_svg(&svg(r#"<circle cx="12" cy="12" r="3"/>"#)).unwrap_err();
-        assert!(format!("{err:#}").contains("<circle> is not allowed"), "{err:#}");
-        let err = parse_svg(&svg(r#"<g><path d="M1 1h2"/></g>"#)).unwrap_err();
-        assert!(format!("{err:#}").contains("<g> is not allowed"), "{err:#}");
-    }
-
-    #[test]
-    fn a_fill_is_refused() {
-        let err = parse_svg(&svg(r#"<path d="M4 4h4v4z" fill="currentColor"/>"#)).unwrap_err();
-        assert!(format!("{err:#}").contains("stroke-only"), "{err:#}");
-        let err = parse_svg(r#"<svg viewBox="0 0 24 24" fill="black"><path d="M1 1h2"/></svg>"#).unwrap_err();
-        assert!(format!("{err:#}").contains("stroke-only"), "{err:#}");
+    fn a_non_path_element_or_a_fill_is_refused() {
+        for (input, refusal) in [
+            (
+                svg(r#"<circle cx="12" cy="12" r="3"/>"#),
+                "<circle> is not allowed",
+            ),
+            (svg(r#"<g><path d="M1 1h2"/></g>"#), "<g> is not allowed"),
+            (svg(r#"<path d="M4 4h4v4z" fill="currentColor"/>"#), "stroke-only"),
+            (
+                r#"<svg viewBox="0 0 24 24" fill="black"><path d="M1 1h2"/></svg>"#.to_owned(),
+                "stroke-only",
+            ),
+        ] {
+            let err = parse_svg(&input).unwrap_err();
+            assert!(format!("{err:#}").contains(refusal), "{input}: {err:#}");
+        }
     }
 
     #[test]

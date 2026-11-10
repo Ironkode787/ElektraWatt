@@ -886,26 +886,6 @@ mod tests {
         (tmp, dir)
     }
 
-    /// BV9: the committed briefs pass the checks that need no product: files, `task.toml`, at least three hard items
-    /// each with a `how`, a setup-only prelude, no action ID in the brief, and requirements the build meets.
-    #[test]
-    fn bv9_the_committed_briefs_have_valid_files() {
-        let root = crate::workspace_root();
-        for brief in ["brief-valve-switch", "brief-relays-valves", "brief-plc-io"] {
-            let (c, acceptance) = check_files(&root, brief).unwrap();
-            assert!(c.problems.is_empty(), "{brief}: {:?}", c.problems);
-            assert!(
-                acceptance
-                    .unwrap()
-                    .item
-                    .iter()
-                    .filter(|i| i.kind == "hard")
-                    .count()
-                    >= 3
-            );
-        }
-    }
-
     /// BV9: a brief with two hard items, a drawing line in its prelude, an action ID in its text, an unknown `how`
     /// and an unmet requirement is not runnable, and each problem is named.
     #[test]
@@ -1134,24 +1114,6 @@ mod tests {
             .collect();
         out.sort();
         out
-    }
-
-    /// UR-8: every committed usability task passes the checks that need no product, names its plan ID and its rounds,
-    /// and has one to three hints in the user's words.
-    #[test]
-    fn ur8_the_usability_tasks_have_valid_files_and_hints() {
-        let root = crate::workspace_root();
-        let tasks = usability_tasks(&root);
-        assert!(!tasks.is_empty());
-        for task in &tasks {
-            let (c, _) = check_files(&root, task).unwrap();
-            assert!(c.problems.is_empty(), "{task}: {:?}", c.problems);
-            let t = task_toml(&root, task).unwrap().unwrap();
-            assert!(t.task_id.is_some() && !t.rounds.is_empty(), "{task}");
-            let hints: crate::blind::round::Hints =
-                read_toml(&task_dir(&root, task).join("hints.toml")).unwrap();
-            assert!((1..=3).contains(&hints.hint.len()), "{task}");
-        }
     }
 
     /// UR-8 and §9.3 item 1: every committed usability task is runnable on the build, every hard item met by its

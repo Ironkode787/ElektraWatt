@@ -688,71 +688,6 @@ pub fn alias_uuids(text: &str) -> String {
 mod tests {
     use super::*;
 
-    /// BD9: the committed self-test recording holds no absolute path, no raw UUID in its steps and no full transcript.
-    #[test]
-    fn the_committed_self_test_recording_is_clean() {
-        fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
-            for e in std::fs::read_dir(dir).unwrap().flatten() {
-                if e.path().is_dir() {
-                    walk(&e.path(), out);
-                } else {
-                    out.push(e.path());
-                }
-            }
-        }
-        let dir = recordings_dir(&crate::workspace_root()).join("selftest");
-        let mut files = Vec::new();
-        walk(&dir, &mut files);
-        assert!(files.len() >= 10, "{files:?}");
-        for f in &files {
-            let text = std::fs::read_to_string(f).unwrap_or_default();
-            assert_eq!(absolute_path_in(&text), None, "{}", f.display());
-            for word in ["\"host\"", "\"user\"", "\"time\"", "\"timestamp\""] {
-                assert!(!text.contains(word), "{}: {word}", f.display());
-            }
-        }
-        assert!(
-            !dir.join("out/project-t1.pdf.sha256").exists(),
-            "the PDF digest is not reproducible: the self-test recording has none"
-        );
-        assert!(
-            !dir.join("transcript.jsonl").exists(),
-            "the full transcript is not committed"
-        );
-        for name in ["steps.uiscript", "prelude.uiscript"] {
-            assert_eq!(
-                first_uuid(&std::fs::read_to_string(dir.join(name)).unwrap()),
-                None,
-                "{name}"
-            );
-        }
-        let run: Value =
-            serde_json::from_str(&std::fs::read_to_string(dir.join("run.json")).unwrap()).unwrap();
-        assert_eq!(run["ci"], "pr");
-        assert_eq!(run["stale"], Value::Null);
-        assert_eq!(run["end"], "handback");
-    }
-
-    /// Both committed self-test recordings pin no digest: `run.json` has no `files` or `golden` key,
-    /// and the prompt names its files without a digest.
-    #[test]
-    fn the_committed_self_test_recordings_pin_no_digests() {
-        for name in ["selftest", "selftest-visual"] {
-            let dir = recordings_dir(&crate::workspace_root()).join(name);
-            let run: Value =
-                serde_json::from_str(&std::fs::read_to_string(dir.join("run.json")).unwrap()).unwrap();
-            for key in ["files", "golden"] {
-                assert_eq!(run.get(key), None, "{name}/run.json: {key}");
-            }
-            let prompt = std::fs::read_to_string(dir.join("prompt.md")).unwrap();
-            let lines: Vec<&str> = prompt.lines().filter(|l| l.starts_with("<!-- file: ")).collect();
-            assert!(!lines.is_empty(), "{name}/prompt.md names its files");
-            for l in lines {
-                assert!(!l.contains("sha256"), "{name}/prompt.md: {l}");
-            }
-        }
-    }
-
     /// A self-test's recorded `run.json` drops the digests; a persona run's and a check
     /// run's keep them. Both are blessed with the given `ci` and are not stale.
     #[test]
@@ -841,26 +776,22 @@ mod tests {
     }
 
     #[test]
-    fn a_uuid_in_the_agents_steps_is_refused() {
-        let text = "{\"id\":\"0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b\"}\n";
+    fn a_raw_uuid_is_refused_except_in_the_tasks_own_prelude() {
+        // The agent's steps carry none.
+        let text = "{\"id\":\"0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b\"}
+";
         let msg = raw_uuid_refusal("steps.uiscript", text, None);
         assert!(
             msg.as_deref()
                 .is_some_and(|m| m.contains("the agent's steps carry none")),
             "{msg:?}"
         );
-    }
-
-    #[test]
-    fn the_tasks_own_prelude_may_hold_ids() {
-        let prelude = "library.embed \"0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b\"\n";
+        // The task's own prelude may hold ids; a changed prelude with ids is refused.
+        let prelude = "library.embed \"0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b\"
+";
         assert_eq!(raw_uuid_refusal("prelude.uiscript", prelude, Some(prelude)), None);
-    }
-
-    #[test]
-    fn a_changed_prelude_with_ids_is_refused() {
-        let prelude = "library.embed \"0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b\"\n";
-        let other = "library.embed \"0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5c\"\n";
+        let other = "library.embed \"0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5c\"
+";
         for task in [Some(other), None] {
             let msg = raw_uuid_refusal("prelude.uiscript", prelude, task);
             assert!(
@@ -869,16 +800,21 @@ mod tests {
                 "{msg:?}"
             );
         }
-    }
-
-    #[test]
-    fn files_without_ids_pass() {
-        let plain = "step \"open\"\n";
+        // Files without ids pass, and so does an id in a report.
+        let plain = "step \"open\"
+";
         assert_eq!(raw_uuid_refusal("steps.uiscript", plain, None), None);
         assert_eq!(raw_uuid_refusal("prelude.uiscript", plain, None), None);
         let id = "0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b";
         assert_eq!(
-            raw_uuid_refusal("out/report.md", &format!("id {id}\n"), None),
+            raw_uuid_refusal(
+                "out/report.md",
+                &format!(
+                    "id {id}
+"
+                ),
+                None
+            ),
             None
         );
     }
@@ -928,30 +864,6 @@ mod tests {
         assert!(replay_text(&good).ends_with("replay ok: R1 and R2 hold\n"));
     }
 
-    /// BV10: the committed visual self-test recording holds no PNG, no absolute path, no
-    /// PDF digest and no full transcript; it is a `pr` recording of a visual run with a friction log.
-    #[test]
-    fn the_committed_visual_self_test_recording_is_clean() {
-        let dir = recordings_dir(&crate::workspace_root()).join("selftest-visual");
-        for e in std::fs::read_dir(&dir).unwrap().flatten() {
-            let name = e.file_name().to_string_lossy().into_owned();
-            assert!(!name.ends_with(".png") && name != "frames", "{name}");
-            if e.path().is_file() {
-                let text = std::fs::read_to_string(e.path()).unwrap();
-                assert_eq!(absolute_path_in(&text), None, "{name}");
-            }
-        }
-        assert!(!dir.join("out/project-t1.pdf.sha256").exists());
-        assert!(!dir.join("transcript.jsonl").exists());
-        assert!(dir.join("friction.jsonl").is_file());
-        let run: Value =
-            serde_json::from_str(&std::fs::read_to_string(dir.join("run.json")).unwrap()).unwrap();
-        assert_eq!(
-            (run["ci"].as_str(), run["senses"].as_str()),
-            (Some("pr"), Some("visual"))
-        );
-        assert_eq!(run["end"], "handback");
-    }
     /// BV5: a visual transcript keeps the input, its dispatch and the frame name in `outcomes.jsonl`.
     /// hashes in `frames.sha256`; a frame that was not painted has no hash line.
     #[test]

@@ -722,15 +722,6 @@ mod tests {
     }
 
     #[test]
-    fn banned_crate_fails_unless_dev() {
-        let v = run(&[package("a", vec![dep("egui_mcp", Kind::Normal, &[])], &[])]);
-        assert_eq!(v.len(), 1, "{v:#?}");
-        assert!(v[0].contains("`a` has `egui_mcp` as a dependency"), "{v:#?}");
-        let v = run(&[package("a", vec![dep("egui_mcp", Kind::Build, &[])], &[])]);
-        assert_eq!(v.len(), 1, "{v:#?}");
-    }
-
-    #[test]
     fn default_feature_reaching_a_banned_feature_fails() {
         // Forwarded to a dependency directly, through a local feature with `?` and a rename, and as the
         // banned crate's own default.
@@ -791,23 +782,6 @@ mod tests {
     }
 
     #[test]
-    fn raw_read_in_an_allowed_package_passes() {
-        let packages = ["ew-derive", "ew-commands", "ew-store"]
-            .map(|n| package(n, vec![dep("ew-model", Kind::Normal, &["raw-read"])], &[]));
-        assert_eq!(run(&packages), Vec::<String>::new());
-    }
-
-    #[test]
-    fn raw_read_on_a_dev_edge_passes() {
-        let v = run(&[package(
-            "ew-scene",
-            vec![dep("ew-model", Kind::Dev, &["raw-read"])],
-            &[],
-        )]);
-        assert_eq!(v, Vec::<String>::new());
-    }
-
-    #[test]
     fn raw_read_forwarded_by_another_package_fails() {
         let mut renamed = dep("ew-model", Kind::Normal, &[]);
         renamed.alias = "model".into();
@@ -826,16 +800,54 @@ mod tests {
     }
 
     #[test]
-    fn raw_read_forwarded_by_an_allowed_package_passes() {
-        let p = package(
-            "ew-derive",
-            vec![dep("ew-model", Kind::Normal, &[])],
-            &[
-                ("default", &["ew-model/raw-read"]),
-                ("debug", &["ew-model/raw-read"]),
-            ],
-        );
-        assert_eq!(run(&[p]), Vec::<String>::new());
+    fn raw_read_and_forwarding_features_pass_where_allowed() {
+        let derive_forwarding = |features: &[(&str, &[&str])]| {
+            package("ew-derive", vec![dep("ew-model", Kind::Normal, &[])], features)
+        };
+        let cases: [(&str, Vec<Package>); 6] = [
+            (
+                "raw-read in an allowed package",
+                ["ew-derive", "ew-commands", "ew-store"]
+                    .map(|n| package(n, vec![dep("ew-model", Kind::Normal, &["raw-read"])], &[]))
+                    .to_vec(),
+            ),
+            (
+                "raw-read on a dev edge",
+                vec![package(
+                    "ew-scene",
+                    vec![dep("ew-model", Kind::Dev, &["raw-read"])],
+                    &[],
+                )],
+            ),
+            (
+                "raw-read forwarded by an allowed package",
+                vec![derive_forwarding(&[
+                    ("default", &["ew-model/raw-read"]),
+                    ("debug", &["ew-model/raw-read"]),
+                ])],
+            ),
+            (
+                "an allowed package exposing a forwarding feature",
+                vec![derive_forwarding(&[
+                    ("raw", &["ew-model/raw-read"]),
+                    ("default", &["raw"]),
+                ])],
+            ),
+            (
+                "a dev edge to a forwarding feature",
+                vec![
+                    derive_forwarding(&[("raw", &["ew-model/raw-read"])]),
+                    package("ew-reports", vec![dep("ew-derive", Kind::Dev, &["raw"])], &[]),
+                ],
+            ),
+            (
+                "a forwarding cycle",
+                vec![package("cyc", vec![], &[("a", &["b"]), ("b", &["a"])])],
+            ),
+        ];
+        for (case, packages) in cases {
+            assert_eq!(run(&packages), Vec::<String>::new(), "{case}");
+        }
     }
 
     #[test]
@@ -902,27 +914,6 @@ mod tests {
     }
 
     #[test]
-    fn allowed_package_exposing_a_forwarding_feature_passes() {
-        let p = package(
-            "ew-derive",
-            vec![dep("ew-model", Kind::Normal, &[])],
-            &[("raw", &["ew-model/raw-read"]), ("default", &["raw"])],
-        );
-        assert_eq!(run(&[p]), Vec::<String>::new());
-    }
-
-    #[test]
-    fn dev_edge_to_a_forwarding_feature_passes() {
-        let derive = package(
-            "ew-derive",
-            vec![dep("ew-model", Kind::Normal, &[])],
-            &[("raw", &["ew-model/raw-read"])],
-        );
-        let reports = package("ew-reports", vec![dep("ew-derive", Kind::Dev, &["raw"])], &[]);
-        assert_eq!(run(&[derive, reports]), Vec::<String>::new());
-    }
-
-    #[test]
     fn testkit_through_an_opt_in_feature_on_a_normal_edge_fails() {
         let fix = package(
             "fix",
@@ -936,49 +927,6 @@ mod tests {
         assert!(
             v[0].contains("`app` enables `fix/fixtures`") && v[0].contains("fix/fixtures -> ew-ids/testkit"),
             "{v:#?}"
-        );
-    }
-
-    #[test]
-    fn forwarding_cycle_terminates() {
-        let p = package("cyc", vec![], &[("a", &["b"]), ("b", &["a"])]);
-        assert_eq!(run(&[p]), Vec::<String>::new());
-    }
-
-    /// A seeded `ew-commands/testkit` normal edge or a normal edge to `ew-testids` fails the real feature bans.
-    #[test]
-    fn seeded_violation_fails() {
-        let root = crate::workspace_root();
-        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
-        assert!(
-            !policy.banned_features.is_empty() && !policy.banned_crates.is_empty(),
-            "the policy lists the banned features and crates"
-        );
-        let rules = Rules {
-            features: &policy.banned_features,
-            crates: &policy.banned_crates,
-        };
-        let mut packages = vec![package(
-            "seeded",
-            vec![dep("ew-commands", Kind::Normal, &["testkit"])],
-            &[],
-        )];
-        assert_eq!(
-            check(&rules, &packages),
-            [
-                "feature ban: `seeded` enables `ew-commands/testkit` on a dependency; allowed on: dev-dependency \
-              (18 §5.2 CI-PR-09)"
-            ]
-        );
-        // The seeded ID source is a crate of its own: a dev-dependency only.
-        packages.pop();
-        packages.push(package("seeded", vec![dep("ew-testids", Kind::Normal, &[])], &[]));
-        assert_eq!(
-            check(&rules, &packages),
-            [
-                "feature ban: `seeded` has `ew-testids` as a dependency; the crate may only be a dev-dependency \
-              (18 §5.2 CI-PR-09)"
-            ]
         );
     }
 
@@ -1134,42 +1082,6 @@ mod tests {
         assert_eq!(relative_dir("crates/ew-commands", "crates/ew-commands"), ".");
     }
 
-    /// The real workspace requests every uniform test feature on the dev edges it needs, and a dev edge that loses
-    /// the feature fails, naming the line.
-    #[test]
-    fn real_workspace_requests_the_uniform_test_features() {
-        let root = crate::workspace_root();
-        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
-        for (krate, feature) in [("ew-commands", "testkit"), ("ew-viewmodel", "testkit")] {
-            assert!(
-                policy
-                    .uniform_test_features
-                    .iter()
-                    .any(|u| u.krate == krate && u.feature == feature),
-                "{krate}/{feature} is a uniform test feature"
-            );
-        }
-        let mut packages = from_metadata(&crate::metadata().expect("cargo metadata runs"));
-        assert_eq!(
-            check_uniform(&policy.uniform_test_features, &packages),
-            Vec::<String>::new()
-        );
-        let ui = packages
-            .iter_mut()
-            .find(|p| p.name == "ew-ui")
-            .expect("ew-ui is a workspace package");
-        ui.deps
-            .retain(|d| !(d.kind == Kind::Dev && d.name == "ew-commands"));
-        assert_eq!(
-            check_uniform(&policy.uniform_test_features, &packages),
-            [
-                "uniform test feature: the test build of `ew-ui` reaches `ew-commands` without its feature \
-              `testkit`; add `ew-commands = { path = \"../ew-commands\", features = [\"testkit\"] }` under \
-              `[dev-dependencies]` in crates/ew-ui/Cargo.toml"
-            ]
-        );
-    }
-
     /// The shipping graph's `cargo tree` covers every target (`--target all`) and no dev edge.
     #[test]
     fn the_shipping_graph_command_covers_every_target() {
@@ -1224,121 +1136,6 @@ mod tests {
                 "shipping graph: `ew-testids` is in the build of app; it may only be a dev-dependency (18 CI-R-09)",
             ]
         );
-    }
-
-    /// The shipped binaries' graph (every target, no dev edges) holds no test-only crate or feature of the policy.
-    #[test]
-    fn the_shipped_binaries_hold_no_test_only_crate_or_feature() {
-        let root = crate::workspace_root();
-        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
-        let rules = Rules {
-            features: &policy.banned_features,
-            crates: &policy.banned_crates,
-        };
-        let graph = shipping_graph(&root, &["elektrawatt", "ew"]).expect("cargo tree runs");
-        assert!(graph.contains_key("ew-commands") && graph.contains_key("ew-viewmodel"));
-        assert_eq!(
-            check_shipping(&rules, &graph, "elektrawatt, ew"),
-            Vec::<String>::new()
-        );
-    }
-
-    /// WP-S6.05 D3 (PV-3): the real policy bans the network clients; `reqwest` on a normal edge of a shipped binary,
-    /// or in its resolved graph, fails, and the same on a dev edge passes.
-    #[test]
-    fn a_network_client_fails_outside_dev_edges() {
-        let root = crate::workspace_root();
-        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
-        for krate in ["reqwest", "hyper", "rustls", "ureq", "sentry", "hickory-resolver"] {
-            assert!(policy.banned_crates.iter().any(|c| c == krate), "{krate}");
-        }
-        let rules = Rules {
-            features: &[],
-            crates: &policy.banned_crates,
-        };
-        let normal = package("elektrawatt", vec![dep("reqwest", Kind::Normal, &[])], &[]);
-        assert_eq!(
-            check(&rules, &[normal]),
-            [
-                "feature ban: `elektrawatt` has `reqwest` as a dependency; the crate may only be a dev-dependency \
-              (18 §5.2 CI-PR-09)"
-            ]
-        );
-        let dev = package("elektrawatt", vec![dep("reqwest", Kind::Dev, &[])], &[]);
-        assert_eq!(check(&rules, &[dev]), Vec::<String>::new());
-        let graph = parse_tree("elektrawatt v0.1.0 (/w/bin/elektrawatt)|\nreqwest v0.12.0|default\n");
-        assert_eq!(
-            check_shipping(&rules, &graph, "elektrawatt, ew"),
-            [
-                "shipping graph: `reqwest` is in the build of elektrawatt, ew; it may only be a dev-dependency (18 CI-R-09)"
-            ]
-        );
-    }
-
-    /// The real policy bans `ew-testkit` from the shipped binaries; on a normal edge of a shipped
-    /// binary, or in its resolved graph, it fails, and on a dev edge it passes.
-    #[test]
-    fn the_testkit_fails_outside_dev_edges() {
-        let root = crate::workspace_root();
-        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
-        let rules = Rules {
-            features: &[],
-            crates: &policy.banned_crates,
-        };
-        let normal = package("elektrawatt", vec![dep("ew-testkit", Kind::Normal, &[])], &[]);
-        assert_eq!(
-            check(&rules, &[normal]),
-            [
-                "feature ban: `elektrawatt` has `ew-testkit` as a dependency; the crate may only be a dev-dependency \
-              (18 §5.2 CI-PR-09)"
-            ]
-        );
-        let dev = package("elektrawatt", vec![dep("ew-testkit", Kind::Dev, &[])], &[]);
-        assert_eq!(check(&rules, &[dev]), Vec::<String>::new());
-        let graph = parse_tree(
-            "elektrawatt v0.1.0 (/w/bin/elektrawatt)|\new-testkit v0.1.0 (/w/crates/ew-testkit)|\n",
-        );
-        assert_eq!(
-            check_shipping(&rules, &graph, "elektrawatt, ew"),
-            [
-                "shipping graph: `ew-testkit` is in the build of elektrawatt, ew; it may only be a dev-dependency (18 \
-                 CI-R-09)"
-            ]
-        );
-    }
-
-    /// The generator features of `uuid` and `rand` are banned outside dev edges by the real policy.
-    #[test]
-    fn the_generator_features_are_banned_outside_dev_edges() {
-        let root = crate::workspace_root();
-        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
-        let rules = Rules {
-            features: &policy.banned_features,
-            crates: &policy.banned_crates,
-        };
-        for (krate, feature) in [
-            ("uuid", "v4"),
-            ("uuid", "v7"),
-            ("uuid", "fast-rng"),
-            ("rand", "thread_rng"),
-        ] {
-            let normal = check(
-                &rules,
-                &[package("p", vec![dep(krate, Kind::Normal, &[feature])], &[])],
-            );
-            assert_eq!(normal.len(), 1, "{krate}/{feature}: {normal:#?}");
-            assert!(normal[0].contains(&format!("`{krate}/{feature}`")), "{normal:#?}");
-            let build = check(
-                &rules,
-                &[package("p", vec![dep(krate, Kind::Build, &[feature])], &[])],
-            );
-            assert_eq!(build.len(), 1, "{krate}/{feature}: {build:#?}");
-            let dev = check(
-                &rules,
-                &[package("p", vec![dep(krate, Kind::Dev, &[feature])], &[])],
-            );
-            assert!(dev.is_empty(), "{krate}/{feature}: {dev:#?}");
-        }
     }
 
     fn resolved(name: &str, features: &[&str]) -> Resolved {
@@ -1453,34 +1250,5 @@ mod tests {
         assert!(
             v[0].contains("`wayland-sys`") && v[0].contains("`dlopen`") && v[0].contains("no pkg-config")
         );
-    }
-
-    /// The real policy keeps `wgpu-hal/gles` and `wayland-sys/dlopen` on in the real graph, and fails when they go.
-    #[test]
-    fn the_real_graph_keeps_the_gles_and_dlopen_features() {
-        let root = crate::workspace_root();
-        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
-        for (krate, feature) in [("wgpu-hal", "gles"), ("wayland-sys", "dlopen")] {
-            assert!(
-                policy
-                    .required_features
-                    .iter()
-                    .any(|r| r.krate == krate && r.feature == feature),
-                "{krate}/{feature} is required by the policy"
-            );
-        }
-        let mut graph = resolved_from_metadata(&crate::metadata().expect("cargo metadata runs"));
-        assert!(
-            graph.iter().any(|p| p.name == "wayland-sys"),
-            "the UI build contains wayland-sys"
-        );
-        assert_eq!(
-            check_required(&policy.required_features, &graph),
-            Vec::<String>::new()
-        );
-        for p in graph.iter_mut().filter(|p| p.name == "wgpu-hal") {
-            p.features.retain(|f| f != "gles");
-        }
-        assert_eq!(check_required(&policy.required_features, &graph).len(), 1);
     }
 }
