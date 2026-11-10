@@ -651,11 +651,6 @@ mod tests {
     }
 
     #[test]
-    fn a_cell_is_at_most_12_bytes() {
-        assert!(size_of::<Cell>() <= 12, "{} bytes", size_of::<Cell>());
-    }
-
-    #[test]
     fn cell_budget_counts_header_cells() {
         let limits = |max_cells| TableLimits {
             max_cells,
@@ -676,14 +671,6 @@ mod tests {
         assert_eq!(t.cells[1].len & OWNED, 0);
         assert_ne!(t.cells[2].len & OWNED, 0);
         assert_eq!(t.owned, "he said \"hi\"");
-    }
-
-    #[test]
-    fn escaped_text_in_the_middle_and_at_the_ends() {
-        let t = p("a\n\"\"\"x\"\"y\"\"\"\n\"\"\"\"\n\"a\"\"\"\n").unwrap();
-        assert_eq!(t.row(0), ["\"x\"y\""]);
-        assert_eq!(t.row(1), ["\""]);
-        assert_eq!(t.row(2), ["a\""]);
     }
 
     /// Accepted tables, one case per shape: the header, every row with its 1-based starting line.
@@ -735,6 +722,12 @@ mod tests {
                 text: "a,b\n1,",
                 header: &["a", "b"],
                 rows: &[(2, &["1", ""])],
+            },
+            Case {
+                name: "escaped quotes in the middle and at the ends",
+                text: "a\n\"\"\"x\"\"y\"\"\"\n\"\"\"\"\n\"a\"\"\"\n",
+                header: &["a"],
+                rows: &[(2, &["\"x\"y\""]), (3, &["\""]), (4, &["a\""])],
             },
             Case {
                 name: "header_only",

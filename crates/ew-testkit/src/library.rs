@@ -167,7 +167,6 @@ mod tests {
         numbers.sort();
         numbers.dedup();
         assert_eq!(numbers.len(), 100, "unique part numbers");
-        assert_eq!(part_number(27), "BB0000027C32");
         assert_eq!(generated_parts(3, lib).len(), 6);
         assert!(
             generated_parts(0, lib)

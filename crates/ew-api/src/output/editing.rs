@@ -2105,8 +2105,8 @@ mod tests {
     }
 
     #[test]
-    fn exchange_map_by_index_for_the_same_definition() {
-        // The function draws CPs 0, 1 and 2; the new symbol of the same FnDef draws 0 and 2.
+    fn exchange_map_pairs_the_cps_of_the_two_symbols() {
+        // Same FnDef, by index: the function draws CPs 0, 1 and 2; the new symbol draws 0 and 2.
         let current = shape(1, &[(0, 0, "13"), (1, 1, "14"), (2, 2, "21")]);
         let new = shape(1, &[(0, 2, "21"), (1, 0, "13")]);
         assert_eq!(
@@ -2115,14 +2115,12 @@ mod tests {
                 drawn: vec![0, 2],
                 unmapped: vec![1],
                 unmatched: None,
-            }
+            },
+            "the same definition"
         );
-    }
-
-    #[test]
-    fn exchange_map_by_designation_case_insensitively() {
-        // Another FnDef: its CP "a1" draws function CP 0 ("A1"); its CP 1 ("X9", FnDef CP 7) has no counterpart and
-        // its default names no function CP, so it draws nothing; function CP 1 ("A2") is unmapped.
+        // Another FnDef, by designation without regard to case: its CP "a1" draws function CP 0 ("A1"); its CP 1
+        // ("X9", FnDef CP 7) has no counterpart and its default names no function CP, so it draws nothing;
+        // function CP 1 ("A2") is unmapped.
         let current = shape(1, &[(0, 0, "A1"), (1, 1, "A2")]);
         let new = shape(2, &[(0, 3, "a1"), (1, 7, "X9")]);
         assert_eq!(
@@ -2131,15 +2129,12 @@ mod tests {
                 drawn: vec![0],
                 unmapped: vec![1],
                 unmatched: None,
-            }
+            },
+            "by designation"
         );
         // A CP whose FnDef is not embedded (no designation) has no counterpart either.
         let new = shape(2, &[(0, 3, "A1"), (1, 8, "")]);
         assert_eq!(exchange_map(&current, &new).unmapped, vec![1]);
-    }
-
-    #[test]
-    fn exchange_map_names_the_unmatched_cp_the_command_refuses() {
         // The new symbol's CP 1 matches nothing by designation and its default FnDef CP 1 names function CP 1.
         let current = shape(1, &[(0, 0, "1"), (1, 1, "2")]);
         let new = shape(2, &[(0, 0, "X1"), (1, 1, "X2")]);
@@ -2149,7 +2144,8 @@ mod tests {
                 drawn: vec![],
                 unmapped: vec![],
                 unmatched: Some((0, 0)),
-            }
+            },
+            "the unmatched CP the command refuses"
         );
     }
 

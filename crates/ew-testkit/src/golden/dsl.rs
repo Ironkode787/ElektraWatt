@@ -1951,25 +1951,37 @@ fn params_of(m: &mut Map<String, Value>, keys: &[&str]) -> Value {
 mod tests {
     use super::*;
 
+    /// The commands `f` issues through a sink that answers `done(name)` to each, with their parameters, in order.
+    fn issued(
+        done: impl Fn(&str) -> Done,
+        f: impl FnOnce(&mut Builder<'_, dyn CommandSink + '_>),
+    ) -> Vec<(String, Value)> {
+        let mut seen = Vec::new();
+        let mut sink = |name: &str, params: Value| {
+            seen.push((name.to_owned(), params));
+            Ok(done(name))
+        };
+        f(&mut Builder::new(&mut sink as &mut dyn CommandSink));
+        seen
+    }
+
     /// `set_many` issues one `fields.set_many` with the entries in order.
     #[test]
     fn set_many_issues_one_command_with_the_entries_in_order() {
-        let mut seen: Vec<(String, Value)> = Vec::new();
-        let mut sink = |name: &str, params: Value| {
-            seen.push((name.to_owned(), params));
-            Ok(Done::default())
-        };
         let a = AnyId::from_uuid(ew_ids::Uuid::from_u128(1));
         let b = AnyId::from_uuid(ew_ids::Uuid::from_u128(2));
-        let mut builder = Builder::new(&mut sink);
-        builder
-            .set_many(&[
-                ("device", &[a], "function_text", json!("Spare")),
-                ("page", &[b], "title", json!("Main")),
-            ])
-            .unwrap();
-        assert_eq!(builder.script().len(), 1);
-        drop(builder);
+        let seen = issued(
+            |_| Done::default(),
+            |builder| {
+                builder
+                    .set_many(&[
+                        ("device", &[a], "function_text", json!("Spare")),
+                        ("page", &[b], "title", json!("Main")),
+                    ])
+                    .unwrap();
+                assert_eq!(builder.script().len(), 1);
+            },
+        );
         assert_eq!(seen.len(), 1);
         assert_eq!(seen[0].0, "fields.set_many");
         assert_eq!(
@@ -1983,19 +1995,17 @@ mod tests {
     /// `reorder_pages` issues one `page.reorder`, with `before` or `section` and never both.
     #[test]
     fn reorder_pages_issues_one_command_with_before_or_section() {
-        let mut seen: Vec<(String, Value)> = Vec::new();
-        let mut sink = |name: &str, params: Value| {
-            seen.push((name.to_owned(), params));
-            Ok(Done::default())
-        };
         let a: Id<Page> = Id::from_uuid(ew_ids::Uuid::from_u128(1));
         let b: Id<Page> = Id::from_uuid(ew_ids::Uuid::from_u128(2));
         let s: Id<Section> = Id::from_uuid(ew_ids::Uuid::from_u128(3));
-        let mut builder = Builder::new(&mut sink);
-        builder.reorder_pages(&[a], Some(b), Some(s)).unwrap();
-        builder.reorder_pages(&[a, b], None, Some(s)).unwrap();
-        builder.reorder_pages(&[a], None, None).unwrap();
-        drop(builder);
+        let seen = issued(
+            |_| Done::default(),
+            |builder| {
+                builder.reorder_pages(&[a], Some(b), Some(s)).unwrap();
+                builder.reorder_pages(&[a, b], None, Some(s)).unwrap();
+                builder.reorder_pages(&[a], None, None).unwrap();
+            },
+        );
         assert!(seen.iter().all(|(name, _)| name == "page.reorder"));
         assert_eq!(seen[0].1, json!({"pages": [a], "before": b}));
         assert_eq!(seen[1].1, json!({"pages": [a, b], "section": s}));
@@ -2012,28 +2022,26 @@ mod tests {
         let fndef: Id<FnDef> = Id::from_uuid(ew_ids::Uuid::from_u128(4));
         let part: Id<Part> = Id::from_uuid(ew_ids::Uuid::from_u128(5));
         let new: Id<Device> = Id::from_uuid(ew_ids::Uuid::from_u128(6));
-        let mut seen: Vec<(String, Value)> = Vec::new();
-        let mut sink = |name: &str, params: Value| {
-            seen.push((name.to_owned(), params));
-            Ok(Done {
-                primary: (name == "terminal.insert").then_some((Kind::Device, new.cast())),
-                created: Vec::new(),
-            })
-        };
         let parts: Vec<PartUse> =
             serde_json::from_value(json!([{"part": {"copy": part}, "qty": "1"}])).unwrap();
-        let mut builder = Builder::new(&mut sink);
-        let first = builder
-            .terminal_insert(strip, Some(t1), fndef, &[json!({"designation": "21"})], &parts)
-            .unwrap();
-        assert_eq!(first, new);
-        builder
-            .terminal_insert(strip, None, fndef, &[json!({"designation": "22"})], &[])
-            .unwrap();
-        builder.terminal_move(&[t1, t2], Some(strip)).unwrap();
-        builder.terminal_move(&[t2], None).unwrap();
-        assert_eq!(builder.script().len(), 4);
-        drop(builder);
+        let seen = issued(
+            |name| Done {
+                primary: (name == "terminal.insert").then_some((Kind::Device, new.cast())),
+                created: Vec::new(),
+            },
+            |builder| {
+                let first = builder
+                    .terminal_insert(strip, Some(t1), fndef, &[json!({"designation": "21"})], &parts)
+                    .unwrap();
+                assert_eq!(first, new);
+                builder
+                    .terminal_insert(strip, None, fndef, &[json!({"designation": "22"})], &[])
+                    .unwrap();
+                builder.terminal_move(&[t1, t2], Some(strip)).unwrap();
+                builder.terminal_move(&[t2], None).unwrap();
+                assert_eq!(builder.script().len(), 4);
+            },
+        );
         let names: Vec<&str> = seen.iter().map(|(n, _)| n.as_str()).collect();
         assert_eq!(
             names,
@@ -2060,16 +2068,14 @@ mod tests {
     /// `paste` issues one `edit.paste` with the fragment as given.
     #[test]
     fn paste_issues_one_command_with_the_fragment() {
-        let mut seen: Vec<(String, Value)> = Vec::new();
-        let mut sink = |name: &str, params: Value| {
-            seen.push((name.to_owned(), params));
-            Ok(Done::default())
-        };
         let page = AnyId::from_uuid(ew_ids::Uuid::from_u128(3));
         let fragment = json!({"format": "0.1", "records": []});
-        let mut builder = Builder::new(&mut sink);
-        builder.paste(page, [10, 20], fragment.clone()).unwrap();
-        drop(builder);
+        let seen = issued(
+            |_| Done::default(),
+            |builder| {
+                builder.paste(page, [10, 20], fragment.clone()).unwrap();
+            },
+        );
         assert_eq!(seen.len(), 1);
         assert_eq!(seen[0].0, "edit.paste");
         assert_eq!(
@@ -2081,22 +2087,20 @@ mod tests {
     /// `paste_adapt` adds `adapt` when it names copies and leaves it out when empty (the command equals `paste`'s).
     #[test]
     fn paste_adapt_carries_the_adapted_copies() {
-        let mut seen: Vec<(String, Value)> = Vec::new();
-        let mut sink = |name: &str, params: Value| {
-            seen.push((name.to_owned(), params));
-            Ok(Done::default())
-        };
         let page = AnyId::from_uuid(ew_ids::Uuid::from_u128(3));
         let copy = AnyId::from_uuid(ew_ids::Uuid::from_u128(4));
         let fragment = json!({"format": "0.1", "records": []});
-        let mut builder = Builder::new(&mut sink);
-        builder
-            .paste_adapt(page, [10, 20], fragment.clone(), &[copy])
-            .unwrap();
-        builder
-            .paste_adapt(page, [10, 20], fragment.clone(), &[])
-            .unwrap();
-        drop(builder);
+        let seen = issued(
+            |_| Done::default(),
+            |builder| {
+                builder
+                    .paste_adapt(page, [10, 20], fragment.clone(), &[copy])
+                    .unwrap();
+                builder
+                    .paste_adapt(page, [10, 20], fragment.clone(), &[])
+                    .unwrap();
+            },
+        );
         assert_eq!(
             seen[0].1,
             json!({"page": page, "at": [10, 20], "fragment": fragment, "adapt": [copy]})
@@ -2110,11 +2114,6 @@ mod tests {
     /// `insert_macro` issues one `macro.insert` with the orientation, and leaves `r0` out as an old log has it.
     #[test]
     fn insert_macro_issues_one_command_with_its_orientation() {
-        let mut seen: Vec<(String, Value)> = Vec::new();
-        let mut sink = |name: &str, params: Value| {
-            seen.push((name.to_owned(), params));
-            Ok(Done::default())
-        };
         let page = AnyId::from_uuid(ew_ids::Uuid::from_u128(3));
         let m = MacroInsertion {
             macro_copy: AnyId::from_uuid(ew_ids::Uuid::from_u128(4)),
@@ -2123,10 +2122,13 @@ mod tests {
             value_set: Some("spare".into()),
             values: Map::new(),
         };
-        let mut builder = Builder::new(&mut sink);
-        builder.insert_macro(page, Some([10, 20]), "r90", &m).unwrap();
-        builder.insert_macro(page, None, "r0", &m).unwrap();
-        drop(builder);
+        let seen = issued(
+            |_| Done::default(),
+            |builder| {
+                builder.insert_macro(page, Some([10, 20]), "r90", &m).unwrap();
+                builder.insert_macro(page, None, "r0", &m).unwrap();
+            },
+        );
         assert_eq!(seen.len(), 2);
         assert!(seen.iter().all(|(name, _)| name == "macro.insert"));
         let base = json!({"page": page, "macro": m.macro_copy, "copies": m.copies, "instance": m.instance,
@@ -2143,34 +2145,32 @@ mod tests {
     /// The page-item verbs issue their commands with the documented parameters.
     #[test]
     fn page_item_verbs_issue_their_commands() {
-        let mut seen: Vec<(String, Value)> = Vec::new();
-        let mut sink = |name: &str, params: Value| {
-            seen.push((name.to_owned(), params));
-            Ok(Done::default())
-        };
         let page: Id<Page> = Id::from_uuid(ew_ids::Uuid::from_u128(7));
         let c: Id<Connection> = Id::from_uuid(ew_ids::Uuid::from_u128(8));
         let at = Pt2::new(ew_units::Nm(1), ew_units::Nm(2));
-        let mut builder = Builder::new(&mut sink);
-        builder.marker_mode(Some("explicit")).unwrap();
-        // No primary key comes back from this sink: the placing verbs report that as an error, after the run.
-        assert!(
-            builder
-                .place_item(page, json!({"free_text": {"text": "x", "at": [0, 0]}}))
-                .is_err()
+        let seen = issued(
+            |_| Done::default(),
+            |builder| {
+                builder.marker_mode(Some("explicit")).unwrap();
+                // No primary key comes back from this sink: the placing verbs report that as an error, after the run.
+                assert!(
+                    builder
+                        .place_item(page, json!({"free_text": {"text": "x", "at": [0, 0]}}))
+                        .is_err()
+                );
+                assert!(
+                    builder
+                        .place_marker(page, &[c], at, true, Some("2.5"), &[json!(["BK"])])
+                        .is_err()
+                );
+                assert!(
+                    builder
+                        .structure_box(page, &[at, at, at], "dotted", "Box", json!({}), None)
+                        .is_err()
+                );
+                builder.move_with_items(&[], &[c.cast()], at).unwrap();
+            },
         );
-        assert!(
-            builder
-                .place_marker(page, &[c], at, true, Some("2.5"), &[json!(["BK"])])
-                .is_err()
-        );
-        assert!(
-            builder
-                .structure_box(page, &[at, at, at], "dotted", "Box", json!({}), None)
-                .is_err()
-        );
-        builder.move_with_items(&[], &[c.cast()], at).unwrap();
-        drop(builder);
         let names: Vec<&str> = seen.iter().map(|(n, _)| n.as_str()).collect();
         assert_eq!(
             names,

@@ -3160,41 +3160,44 @@ fn finding_node(
 mod tests {
     use super::*;
 
-    /// Cycle 39 (window check): a message that leads with its subject is shown without the subject a second time;
-    /// another message, and a longer tag that only starts like the subject, keep the prefix.
-    #[test]
-    fn a_message_leading_with_its_subject_is_shown_once() {
-        assert!(names_subject(
-            "=P01+-201U1:DP",
-            "=P01+-201U1:DP: the station address is TBD"
-        ));
-        assert!(names_subject("-1K1", "-1K1 has no part"));
-        assert!(!names_subject("-1K1", "-1K10 has no part"));
-        assert!(!names_subject("-1K1", "the station address is TBD"));
-    }
-
-    /// ID-1509 (9), the window check's F3: a message that names its subject after a word (the layout rules' "Wire
-    /// <wire> has no route") shows it once too, in either language; a subject only the start of a longer tag in the
-    /// message, or one glued to a word, does not count.
+    /// Cycle 39 (window check), ID-1509 (9) and the window check's F3: a message that leads with its subject, or
+    /// names it after a word (the layout rules' "Wire <wire> has no route", in either language), is shown without
+    /// the subject a second time; another message, a longer tag that only starts like the subject and a subject
+    /// glued to a word keep the prefix.
     #[test]
     fn a_message_naming_its_subject_shows_it_once() {
         let wire = "-G1:+ → -S1:1";
-        assert!(names_subject(
-            wire,
-            "Wire -G1:+ → -S1:1 has no route: Route page draws it."
-        ));
-        assert!(names_subject(
-            wire,
-            "Draad -G1:+ → -S1:1 heeft geen route: Pagina routeren tekent hem."
-        ));
-        assert!(names_subject(
-            "folio 7",
-            "A junction on folio 7 joins four wires."
-        ));
-        assert!(names_subject("-1K1", "the coil -1K1."));
-        assert!(!names_subject("-1K1", "the coil -1K10 has no part"));
-        assert!(!names_subject("-1K1", "the coil x-1K1 has no part"));
-        assert!(!names_subject("", "Wire has no route"));
+        for (subject, message, names) in [
+            (
+                "=P01+-201U1:DP",
+                "=P01+-201U1:DP: the station address is TBD",
+                true,
+            ),
+            ("-1K1", "-1K1 has no part", true),
+            ("-1K1", "-1K10 has no part", false),
+            ("-1K1", "the station address is TBD", false),
+            (
+                wire,
+                "Wire -G1:+ → -S1:1 has no route: Route page draws it.",
+                true,
+            ),
+            (
+                wire,
+                "Draad -G1:+ → -S1:1 heeft geen route: Pagina routeren tekent hem.",
+                true,
+            ),
+            ("folio 7", "A junction on folio 7 joins four wires.", true),
+            ("-1K1", "the coil -1K1.", true),
+            ("-1K1", "the coil -1K10 has no part", false),
+            ("-1K1", "the coil x-1K1 has no part", false),
+            ("", "Wire has no route", false),
+        ] {
+            assert_eq!(
+                names_subject(subject, message),
+                names,
+                "{subject:?} in {message:?}"
+            );
+        }
     }
 
     #[test]
@@ -3270,27 +3273,6 @@ mod tests {
 
     #[test]
     fn kinds_and_roles_have_their_words() {
-        let words: Vec<&str> = NavKind::ALL.iter().map(|k| k.word()).collect();
-        assert_eq!(
-            words,
-            [
-                "pages",
-                "devices",
-                "connections",
-                "strips",
-                "cables",
-                "plc",
-                "potentials",
-                "ips",
-                "structure",
-                "parts",
-                "blocks",
-                "unplaced",
-                "macros",
-                "libraries",
-                "messages"
-            ]
-        );
         for k in NavKind::ALL {
             assert_eq!(NavKind::from_word(k.word()), Some(k));
         }

@@ -135,10 +135,6 @@ mod tests {
             .map(|p| Pt2::new(Nm(p.x.0 - 500 * MM), Nm(p.y.0 + 900 * MM)))
             .collect();
         assert_eq!(fitting_scale(area, &off), Some(2));
-    }
-
-    #[test]
-    fn no_outline_has_no_fitting_scale() {
-        assert_eq!(fitting_scale((100 * MM, 100 * MM), &[]), None);
+        assert_eq!(fitting_scale(area, &[]), None, "no outline has no fitting scale");
     }
 }

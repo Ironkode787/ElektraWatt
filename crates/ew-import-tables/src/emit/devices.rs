@@ -1044,57 +1044,60 @@ mod tests {
         grid_index(g, Nm(pos.x.0 + b.outline[1].x.0)).unwrap() - grid_index(g, pos.x).unwrap()
     }
 
+    /// Where the CPs of a black box land: two rows (top, bottom) of grid steps, and the width of the box.
     #[test]
-    fn seven_cps_split_three_and_four() {
-        let g = Grid::QET_10PX;
-        let pos = pos_at(g, 11, 23);
-        let b = black_box_geometry(g, pos, &cps(7)).unwrap();
-        let expect = vec![
-            (0, 1, 0, Dir4::Up),
-            (1, 3, 0, Dir4::Up),
-            (2, 5, 0, Dir4::Up),
-            (3, 1, 6, Dir4::Down),
-            (4, 3, 6, Dir4::Down),
-            (5, 5, 6, Dir4::Down),
-            (6, 7, 6, Dir4::Down),
+    fn cps_split_over_two_rows() {
+        use Dir4::{Down, Up};
+        // (cp count, grid position, width in steps, `(idx, i, j, dir)` of the CPs asserted)
+        type Step = (u16, i64, i64, Dir4);
+        type Case = (u16, (i64, i64), i64, &'static [Step]);
+        let cases: [Case; 4] = [
+            (
+                7,
+                (11, 23),
+                10,
+                &[
+                    (0, 1, 0, Up),
+                    (1, 3, 0, Up),
+                    (2, 5, 0, Up),
+                    (3, 1, 6, Down),
+                    (4, 3, 6, Down),
+                    (5, 5, 6, Down),
+                    (6, 7, 6, Down),
+                ],
+            ),
+            (
+                10,
+                (4, 4),
+                10,
+                &[
+                    (0, 1, 0, Up),
+                    (1, 3, 0, Up),
+                    (2, 5, 0, Up),
+                    (3, 7, 0, Up),
+                    (4, 9, 0, Up),
+                    (5, 1, 6, Down),
+                    (6, 3, 6, Down),
+                    (7, 5, 6, Down),
+                    (8, 7, 6, Down),
+                    (9, 9, 6, Down),
+                ],
+            ),
+            (2, (4, 4), 10, &[(0, 1, 0, Up), (1, 1, 6, Down)]),
+            (12, (4, 4), 12, &[(5, 11, 0, Up), (11, 11, 6, Down)]),
         ];
-        assert_eq!(steps(g, pos, &b), expect);
-        assert_eq!(width(g, pos, &b), 10);
-        assert_eq!(b.outline.len(), 4);
-        assert!(b.inner.is_empty());
-    }
-
-    #[test]
-    fn ten_cps_split_five_and_five() {
         let g = Grid::QET_10PX;
-        let pos = pos_at(g, 4, 4);
-        let b = black_box_geometry(g, pos, &cps(10)).unwrap();
-        let s = steps(g, pos, &b);
-        assert_eq!(s.iter().filter(|c| c.2 == 0).count(), 5);
-        assert_eq!(s.iter().filter(|c| c.2 == 6).count(), 5);
-        assert_eq!(s[4], (4, 9, 0, Dir4::Up));
-        assert_eq!(s[5], (5, 1, 6, Dir4::Down));
-        assert_eq!(s[9], (9, 9, 6, Dir4::Down));
-        assert_eq!(width(g, pos, &b), 10);
-    }
-
-    #[test]
-    fn two_cps_keep_the_minimum_width() {
-        let g = Grid::QET_10PX;
-        let pos = pos_at(g, 4, 4);
-        let b = black_box_geometry(g, pos, &cps(2)).unwrap();
-        assert_eq!(steps(g, pos, &b), [(0, 1, 0, Dir4::Up), (1, 1, 6, Dir4::Down)]);
-        assert_eq!(width(g, pos, &b), 10);
-    }
-
-    #[test]
-    fn twelve_cps_widen_the_box() {
-        let g = Grid::QET_10PX;
-        let pos = pos_at(g, 4, 4);
-        let b = black_box_geometry(g, pos, &cps(12)).unwrap();
-        assert_eq!(width(g, pos, &b), 12);
-        assert_eq!(steps(g, pos, &b)[5], (5, 11, 0, Dir4::Up));
-        assert_eq!(steps(g, pos, &b)[11], (11, 11, 6, Dir4::Down));
+        for (n, (kx, ky), want_width, want) in cases {
+            let pos = pos_at(g, kx, ky);
+            let b = black_box_geometry(g, pos, &cps(n)).unwrap();
+            let got = steps(g, pos, &b);
+            assert_eq!(width(g, pos, &b), want_width, "{n} cps: width");
+            for w in want {
+                assert_eq!(got[w.0 as usize], *w, "{n} cps: cp {}", w.0);
+            }
+            assert_eq!(b.outline.len(), 4, "{n} cps: outline");
+            assert!(b.inner.is_empty(), "{n} cps: inner");
+        }
     }
 
     #[test]

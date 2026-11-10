@@ -74,13 +74,9 @@ mod tests {
     }
 
     #[test]
-    fn same_seed_same_ids() {
-        assert_eq!(first_three(9), first_three(9));
-    }
-
-    #[test]
-    fn different_seeds_differ() {
-        assert_ne!(first_three(1), first_three(2));
+    fn the_seed_decides_the_ids() {
+        assert_eq!(first_three(9), first_three(9), "same seed");
+        assert_ne!(first_three(1), first_three(2), "different seeds");
     }
 
     #[test]

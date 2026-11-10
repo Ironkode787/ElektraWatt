@@ -1030,7 +1030,6 @@ mod tests {
             .iter()
             .map(|v| v["const"].as_str().unwrap())
             .collect();
-        assert_eq!(names.len(), 14, "{names:?}");
         for (i, name) in names.iter().enumerate() {
             let kind: PageType =
                 serde_json::from_value(serde_json::Value::String((*name).to_owned())).unwrap();

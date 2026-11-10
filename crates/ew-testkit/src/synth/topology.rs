@@ -1512,14 +1512,10 @@ mod tests {
     }
 
     #[test]
-    fn s_plan_meets_the_class_bounds() {
+    fn s_and_m_plans_meet_the_class_bounds() {
         let plan = Plan::build(SizeClass::S);
         check_shape(&plan);
         assert_eq!(plan.replicas.len(), 3);
-    }
-
-    #[test]
-    fn m_plan_meets_the_class_bounds() {
         check_shape(&Plan::build(SizeClass::M));
     }
 
