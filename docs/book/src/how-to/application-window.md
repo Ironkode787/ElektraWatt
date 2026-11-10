@@ -85,5 +85,5 @@ the basic project is written to a directory you choose and becomes the default f
 ## About
 
 **Help, About ElektraWatt** shows the version, the page-view renderer, the privacy state, the licence, the
-engineering-verification disclaimer, the support status computed from the planned support end, and the third-party
+engineering-verification disclaimer, the support line (before 1.0 only the latest 0.x release is supported), and the third-party
 notices.

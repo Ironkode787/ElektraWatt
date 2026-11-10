@@ -26,7 +26,7 @@
 # immutable releases, the read-only default token) are the owner's, set before the first candidate (WP-S6.07 §13 O1).
 #
 # Hardening (doc 18 §5.4, NFR-SEC-19): top-level `contents: read`; `release` is the only job with a write scope and
-# runs in the protected `release` environment (`cargo xtask check-workflows` refuses a write scope anywhere else); no
+# runs in the protected `release` environment (no other job may hold a write scope); no
 # secret: the GitHub CLI uses the run's short-lived `GITHUB_TOKEN`; actions pinned by commit SHA; the checkout keeps no
 # credentials.
 

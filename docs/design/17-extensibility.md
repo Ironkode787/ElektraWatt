@@ -347,7 +347,7 @@ Python origin (§4). The history step records the strictest exposure of its comm
 caller's origin (`Session::undo(&Origin)`, `Session::redo(&Origin)`) and refuse a `HumanOnly` step from any origin but
 the GUI and a confirmed CLI subcommand. The rule is recorded in ADR-0008 (amendment 3's note).
 
-*As built:* closed as specified: `Transaction.exposure` records the strictest class at commit (Edit < Import < `HumanOnly` < Internal; a coalesced step the strictest of its parts; a transparent `HumanOnly` marker step does not block), `undo(&Origin)` and `redo(&Origin)` refuse a `HumanOnly` step from every origin but the GUI and a confirmed CLI subcommand with `CmdError::Exposure`, and the shell refuses a headless `edit.undo` or `edit.redo` of such a step with `reason-human-only-history`; in memory only, no format change.
+*As built:* closed as specified: `Transaction.exposure` records the strictest class at commit (Edit < Import < `HumanOnly` < Internal; a transparent `HumanOnly` marker step does not block), `undo(&Origin)` and `redo(&Origin)` refuse a `HumanOnly` step from every origin but the GUI and a confirmed CLI subcommand with `CmdError::Exposure`, and the shell refuses a headless `edit.undo` or `edit.redo` of such a step with `reason-human-only-history`; in memory only, no format change.
 
 ### 2.4 Project-resident extension content and trust
 
@@ -704,8 +704,7 @@ impl Session {
 **v0**. `Session` is a thin facade over the `ew-commands` `Engine`, with no
 persistence, no threads and no queries yet: `new` and `from_records` (instead of `open`), `world`, `execute` and
 `execute_with`, `preview` and `preview_with`, `commit`, `undo`, `redo`, `history`, `drain_changes` (the change feed),
-`registry` (instead of `commands`), `mark_saved` and `is_dirty`. It also has `check(&Scheme, CheckMode) -> CheckReport`, evaluated through the session's memo store, and `open_read_only(dir, app_version)`, which takes no lock and does no roll-forward or journal write. The `_with` forms take the origin, the editor context
-and the coalescing key. `execute` and `commit` return a `Receipt {rev, outcome, created, passes}` and `undo` and
+`registry` (instead of `commands`), `mark_saved` and `is_dirty`. It also has `check(&Scheme, CheckMode) -> CheckReport`, evaluated through the session's memo store, and `open_read_only(dir, app_version)`, which takes no lock and does no roll-forward or journal write. The `_with` forms take the origin (the editor context and the coalescing key are specified; not built). `execute` and `commit` return a `Receipt {rev, outcome, created, passes}` and `undo` and
 `redo` a `Restored {rev, context, label}`; `preview` is synchronous until the job pool of WP-S1.05 returns a
 `JobHandle`, and a `Cost::Bulk` command sent to `execute` is refused with `CmdError::NeedsPreview`. `ew-api` depends
 on `ew-commands`, `ew-model` without `raw-read`, and `ew-schema` (ARCH §3).
@@ -1301,7 +1300,7 @@ implement them directly. Third-party importers reach EW as WASM components throu
 interfaces of §8.2, and the SDK provides `ew_plugin_sdk::export_importer!(MyImporter)`, so one Rust implementation
 serves a permissive standalone tool and an EW plugin.
 
-| Rust contract ([14](14-interop.md)) | WIT | Host rule |
+| Rust contract ([14](14-interop.md); the `Importer` and `Exporter` traits are specified for this API and not in the code) | WIT | Host rule |
 |---|---|---|
 | `Importer::id`, `version`; `Exporter::id` | `[exports] importer` and `exporter` entries in `plugin.toml`, with the plugin version | id namespaced `<plugin-id>.<name>`; recorded in the import run and the export report |
 | `sniff(head, path)` | `sniff(importer-id, head, name)` | file name only, never a path; at most 64 KiB of head |

@@ -82,7 +82,7 @@
      quarterly minors, up to two older lines can be in that window at once.
    - After N.0, the last minor of N−1 gets the same 6-month window. Before 1.0, only the latest 0.x is supported.
    - **No LTS line** exists until a commercial decision funds the five-year support period it would imply.
-   - Each build embeds its planned support end, which the About dialog shows without network access.
+   - Each build embeds its planned support end, which the About dialog shows without network access. *State of the code:* specified for 1.0; not built (the dialog shows the pre-release support line only).
 4. **Vulnerability handling.**
    - `SECURITY.md` offers private reporting through GitHub security advisories, acknowledgement within 7 days,
      coordinated disclosure, CVE requests and a supported-versions table (NFR-SEC-14).

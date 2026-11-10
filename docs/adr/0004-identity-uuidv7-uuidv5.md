@@ -35,7 +35,7 @@ Every reference in the model is a typed `Id<T>` (crate `ew-ids`, permissive). Ta
 | Embedded library copies | **`v5(NS_LIBCOPY, library_id ‖ item_id)`** | Amendment 2. One copy per catalogue item and project. Only an explicit "keep both" after a cross-project paste of another version mints `v5(NS_LIBCOPY, library_id ‖ item_id ‖ version)` for the second copy |
 
 - **Interning.** Within a session, IDs are interned to dense `u32` values for union-find arrays and other hot
-  structures. Interned values are never persisted or exported.
+  structures. Interned values are never persisted or exported. *State of the code:* specified; not built (`ew-ids` has no interner).
 - **Encoding.** Files carry the canonical lower-case hyphenated UUID string.
 
 ## Amendments

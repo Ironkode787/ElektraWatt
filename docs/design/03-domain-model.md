@@ -46,7 +46,8 @@ J-E-2416) is the running example; its full acceptance specification lives in [20
   ADR-0004), `T?` is `Option<T>`, and `Vec<T>` stands for any ordered sequence (`SmallVec` in code).
 - A reference to an embedded library copy is typed by the item kind: `Id<Part>`, `Id<SymbolDef>`, `Id<FnDef>`,
   `Id<FormDef>` (the copy ID, [05](05-project-format-and-persistence.md) §13.2). The older names `PartCopyId`,
-  `FnDefRef` and `FormRef` in this document mean these types.
+  `FnDefRef`, `FormRef`, `ExternalRefId` and `PartCopy` in this document mean these types (`Id<Part>`, `Id<FnDef>`,
+  `Id<FormDef>`, `Id<ExternalRef>` and `LibCopy<Part>`); the code has no alias of those names.
 - Field names are the `ew-schema` member names and equal their JSON names, except where the JSON name is a Rust
   keyword: `StructureAssignment.type`, `Representation.box` and `GroupSpec.break` (Rust `type_`, `box_`, `break_`).
 - Every record kind that an importer can create, that is every project record kind except `ImportLineage`, ends
@@ -484,7 +485,7 @@ classDiagram
     +outline: Vec~Pt2~
     +style: dotted or dash_dot
     +assigns: StructureAssignment
-    +external: ExternalRefId?
+    +external: Id<ExternalRef>?
     +caption: MlText?
   }
   class ExternalRef {
@@ -530,7 +531,7 @@ classDiagram
 | `style` | `"dotted"` or `"dash_dot"` | required; the drawing's dash patterns are WP-S2.04 §10.3 |
 | `caption` | `MlText`, optional | printed above the outline's top-left vertex |
 | `assigns` | `StructureAssignment`: one slot per aspect, `Inherit`, `None` or `Node(id)`, encoded as the structure slots of [05](05-project-format-and-persistence.md) §3.2 | a node must exist and have the aspect of its slot (checked by `box.structure` and `fields.set`) |
-| `external` | `ExternalRefId`, optional | the external point the box stands for; printed in the caption as the external xref texts print it (§6, derivation); delete policy unlink: deleting the `ExternalRef` clears the member |
+| `external` | `Id<ExternalRef>`, optional | the external point the box stands for; printed in the caption as the external xref texts print it (§6, derivation); delete policy unlink: deleting the `ExternalRef` clears the member |
 
 The earlier text of this section already names the box, its outline, line style, caption, `assigns` and `external`; the
 shape adds the stored `page`, makes `style` a two-valued enumeration and `caption` optional. Which representation a box
@@ -1638,7 +1639,7 @@ classDiagram
     +direction: Source or Target or Undirected
     +star_source: bool
     +sort: i32?
-    +external: ExternalRefId?
+    +external: Id<ExternalRef>?
   }
   class Representation
   class AnchorCell {

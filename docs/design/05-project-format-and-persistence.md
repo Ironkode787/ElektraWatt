@@ -228,8 +228,8 @@ of the golden project (Golden A has neither kind; IDs shortened, the connection 
   link: deleting the reference clears the member.
 - **Load finding.** A build from before these kinds were typed keeps `page_item` records verbatim and does not enforce that delete
   link, so a project can arrive with a wire marker that lists a deleted connection or a connection on another page.
-  This is **reported, not refused**: a load finding that names the marker and the connection, among the other load
-  findings of `Session::load_findings` (a derivation finding, not an integrity rule of §6.3). The stale entry is ignored
+  This is **reported, not refused**: a load finding that names the marker and the connection (a derivation finding, not
+  an integrity rule of §6.3; specified; not built: `Session::load_findings` is gone, so nothing is reported). The stale entry is ignored
   by the derivation and the drawing, and the project opens; the next edit of that marker writes a clean list.
 - **Migration test.** A page file that holds both kinds and an unknown `page_item` variant is read and written back byte
   for byte (an unknown variant is `Unknown(Value)`, written back unchanged, §10.3). *As built:* that file round-trips byte for byte; the same records as an earlier build wrote them (reserved kinds, so every object's members in byte-wise order) load typed with a `NonCanonical` finding and are rewritten in the typed kinds' member order (§10.3; the revision precedent). `free_text.text` is omitted when empty, `arc.start` when 0 and `$v` when 1, so an explicit `"$v": 1` is not canonical.

@@ -512,7 +512,7 @@ pub struct MacroDef {
     pub thumbnail: Option<Sha256>,
 }
 pub struct Fragment {                        // project-format records, ids local to the fragment
-    pub records: Vec<AnyRecord>,             // devices, functions, reps, connections, junctions, page items,
+    pub records: Vec<Record>,                // devices, functions, reps, connections, junctions, page items,
                                              //   part uses, channels and bindings, IP functions, DeviceLinks
     pub lib: Vec<LibRef>,                    // closure of symbols, FnDefs, parts it uses
     pub structure: Vec<StructRef>,           // PageRelative | Code{aspect, code}

@@ -491,7 +491,7 @@ cross-reference links, Back and Forward, Go to page or cell and a keyboard grid 
 | Status bar | The hint "Read-only view", the page as `<folio> (<n> of <total>)`, the cursor `x 255.0 y 172.5 mm` while the pointer is over the canvas, the zoom, the grid (`QET 10 px`, a pitch in mm, or `Grid off`), the save state, the render backend (`GPU DX12`, `GPU Vulkan`, `GPU Metal`, `GPU GL`, `WARP` or `CPU`, §3.6), the language `EN`, and "Exporting PDF..." during an export | No snap, selection, findings or jobs fields (§3.6) |
 | Banner | One line for a read-only reason, the integrity findings of the open report, a leftover journal ([05](05-project-format-and-persistence.md) §8.3, as built) with File ▸ Discard leftover journal (a confirmation, then the editing open), or a missing file-dialog portal on Linux, with its own close button | The recovery dialog and the notification classes of §8.2 come with WP-S2.09 |
 | Palette | Ctrl+K or Ctrl+Shift+P: a case-insensitive substring search over the registry actions and the registered model commands, disabled entries last with their reason; model commands are listed but disabled until parameter forms exist | Ranking, aliases, prefixes and forms of §4.3 are WP-S2.08 |
-| Dialogs | About (version, renderer, privacy line, licence, repository, the engineering-verification disclaimer, the support status computed offline, the third-party notices), keyboard shortcuts, go to page (Ctrl+G), save workspace, the leftover-journal confirmation, and Save / Discard / Cancel when Close, Quit or Open meets unsaved changes; Open, Save As and Export PDF use the operating system's dialogs through rfd 0.17.2 (on Linux the XDG portal) | `PRIVACY.md` exists and About links it (the paragraph after this table); a pre-1.0 build shows "pre-release build" and no support-end banner (R5); §3.8's "Open in new window" is not offered |
+| Dialogs | About (version, renderer, privacy line, licence, repository, the engineering-verification disclaimer, the support status computed offline (before 1.0 the pre-release line only), the third-party notices), keyboard shortcuts, go to page (Ctrl+G), save workspace, the leftover-journal confirmation, and Save / Discard / Cancel when Close, Quit or Open meets unsaved changes; Open, Save As and Export PDF use the operating system's dialogs through rfd 0.17.2 (on Linux the XDG portal) | `PRIVACY.md` exists and About links it (the paragraph after this table); a pre-1.0 build shows "pre-release build" and no support-end banner (R5); §3.8's "Open in new window" is not offered |
 | Help | F1 resolves the context in §13's order as far as the shell has contexts (wizard, first run, palette, dialog, project view, start page, else the guide's home) and opens the topic's page of the user guide in the system browser (on Windows through `rundll32 url.dll,FileProtocolHandler`, no shell; R8); the anchors are tested against the book | No build bundles the built guide yet, so without one F1 shows a banner (R6); no property-row, finding or tool contexts yet |
 | Onboarding | First run (§9.1) and the company-standard wizard (§9.2), as built in §9 | See §9 |
 | Keyboard | Routing: a focused text field, then the topmost popup or dialog, then the shell's shortcuts; Escape closes the topmost popup or dialog (the registry action `ui.dismiss`) and otherwise does nothing; on macOS `Ctrl` reads `Cmd` | No keymap files (§4.4, WP-S2.08); the quick switch stores the preset |
@@ -701,7 +701,7 @@ alt = "Alt+N"                  # second binding for keyboards without that key; 
 
 - **Rules.** No preset uses Ctrl+Alt+letter, because AltGr equals Ctrl+Alt on Windows and produces characters on
   QWERTZ and AZERTY layouts. Every action of a preset must be reachable on QWERTY, QWERTZ and AZERTY without AltGr
-  (NFR-I18N-06; §15.5). Context-specific bindings shadow general ones: Ctrl+D duplicates on the canvas and fills
+  (NFR-I18N-06; §15.5; the automatic check is specified; not built). Context-specific bindings shadow general ones: Ctrl+D duplicates on the canvas and fills
   down in a table.
 - **Keymap editor** (Tools ▸ Keymap): search actions, record a chord, show conflicts and shadowing (§15.5), reset
   per action, import and export. A keymap file from a newer version keeps unknown action IDs and marks them unused.
@@ -724,7 +724,7 @@ physical digit or letter as its key cap ("Ctrl+0"), never the `phys:` grammar. I
 when its effective bindings differ from the preset's, so Reset, a user binding equal to the preset's and a
 re-imported export mark nothing; the Menu-key note shows under the list only while a chord is being recorded; a
 refused recording names what is in the way ("M is already Move in the canvas."). The editor lists conflicts and
-shadowing only, not the reachability infos (FT-846).
+shadowing only (FT-846).
 
 *As built (FIX40d).* One display function (`keymap::display`) shows every physical key
 the `phys:` grammar accepts as its US key cap (`phys:Minus` reads "-", `Shift+phys:BracketLeft` "Shift+[") in every
@@ -1661,7 +1661,8 @@ renderer's final pass, applied to the screen only. Thumbnails, PNG export, PDF a
   1, 2, 4 and 6, at 1.0 also 3 and 5 (NFR-DOC-03).
 - **About** shows the version, render backend, privacy state, a button to `PRIVACY.md`, third-party notices, the
   engineering-verification disclaimer and the support status computed offline from the planned support end
-  (FR-UI-038; [18](18-quality-security-release.md) §7.5; NFR-COMP-04). Help ▸ Verify derived data runs
+  (FR-UI-038; [18](18-quality-security-release.md) §7.5; NFR-COMP-04; specified for 1.0; not built: the dialog shows the
+  pre-release support line only). Help ▸ Verify derived data runs
   `ew verify-derived` as a job (ARCH §6.8).
 
 *As built (2026-11-05, and FP-4).* Help ▸ Tutorials
@@ -1764,16 +1765,15 @@ for bindings b1 ≠ b2 with equal chords:
   otherwise                       → none (never active together)
 reserved chords (⌘Q, ⌘H, ⌘M, ⌘Tab, Alt+F4, Alt+Tab, Win+…)              → error
 Ctrl+Alt+<key>                                                  → error (AltGr on Windows layouts)
-for layout in {QWERTY-US, QWERTZ-DE, AZERTY-FR}:
+for layout in {QWERTY-US, QWERTZ-DE, AZERTY-FR}:       # reachability: specified; not built
   every action bound in the preset has ≥ 1 binding typable on that layout without AltGr, else error
 ```
 
-*As built.* The rules run over the effective bindings in `ew_viewmodel::keymap`; reachability is a
-preset rule (a user's keymap is checked for conflicts, shadowing, Ctrl+Alt and the reserved chords). A binding whose
-character needs Shift on a layout while the chord has none is an error there, unless another binding of the same
-action types on that layout: then it is an info. Zoom to
-100 % binds `Ctrl+phys:Digit0`, so it types on AZERTY-FR; zoom in's Ctrl+Plus and Ctrl+Equals each cover the other
-where one needs Shift. No preset has a needs-Shift error on any of the three layouts.
+*As built.* The rules run over the effective bindings in `ew_viewmodel::keymap`: conflicts, shadowing, Ctrl+Alt and
+the reserved chords. The reachability rule (a needs-Shift error or info per layout) is specified; not built. By
+construction zoom to
+100 % binds `Ctrl+phys:Digit0`, so it types on AZERTY-FR, and zoom in's Ctrl+Plus and Ctrl+Equals each cover the other
+where one needs Shift.
 
 ### 15.6 Colour-vision and contrast test
 

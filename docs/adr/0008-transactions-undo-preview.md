@@ -22,7 +22,7 @@
 | Layer | What it is | Persisted in |
 |---|---|---|
 | `Command` | Serialisable intent with a stable dotted name (`device.place`, `numbering.renumber`) and a JSON Schema for its parameters (FR-EXT-015) | Journal, macro recorder |
-| `Transaction` | `Vec<Op>` plus `{command, origin, page/viewport/selection, coalesce_key, undoable}`; `origin` is GUI, CLI, script, `plugin:<id>` or MCP | Undo stack, journal |
+| `Transaction` | `Vec<Op>` plus `{command, origin, page/viewport/selection, coalesce_key, undoable}`; `origin` is GUI, CLI, script, `plugin:<id>` or MCP (*State of the code:* the viewport, selection and `coalesce_key` are specified; not built) | Undo stack, journal |
 | `Op` | `Put { key, before: Option<AnyRow>, after: Option<AnyRow> }`, rows as `Arc`s | Undo stack (`Arc`s); journal (field diffs) |
 
 `Command::run(&self, tx: &mut TxBuilder) -> Result<Outcome, CmdError>` is deterministic in (snapshot, command).
@@ -36,7 +36,7 @@
    (ADR-0007) and assign conductors; the full list of normaliser families is the registry in
    [schematic editor](../design/06-schematic-editor.md) §3.2.
 3. **Validate:** structural invariants, then prevent rules in the project's mode (ADR-0009).
-4. **Commit:** swap in the new `Model` (O(1)), bump `Rev`, push to `History` (coalescing on a matching key) and hand
+4. **Commit:** swap in the new `Model` (O(1)), bump `Rev`, push to `History` (coalescing on a matching key: specified; not built) and hand
    the transaction to the writer thread for the journal (ADR-0010).
 5. **Notify:** publish `{rev, touched keys, touched pages}` on the change feed; view-models re-query (ADR-0014).
 
@@ -44,8 +44,8 @@
 
 - Undo applies the inverse ops as a **new revision**, which keeps `changed_at` monotonic and memo verification sound
   (ADR-0002).
-- One project-wide stack, bounded at 500 steps or 256 MB. Each entry restores page, viewport and selection.
-- Coalescing: one drag is one step; typing in one cell merges until focus leaves; a fill-down or Excel paste is one
+- One project-wide stack, bounded at 500 steps or 256 MB. Each entry restores page, viewport and selection (specified; not built: a step restores the model only).
+- Coalescing (specified; not built: each gesture commits its own step): one drag is one step; typing in one cell merges until focus leaves; a fill-down or Excel paste is one
   step.
 - The stack survives saving; a saved marker drives the dirty flag. An external reload arrives as one undoable
   "External change" transaction.
@@ -87,7 +87,7 @@ these entries refine it.
      estimated from the rows' in-memory size, not from their JSON length. The oldest entries go first; a single step
      larger than the budget is kept alone. If the saved state falls off the stack, the model stays dirty until the
      next save.
-   - **Coalescing.** An undoable transaction whose `coalesce_key` equals that of the top step merges into it: the
+   - **Coalescing** (*State of the code:* specified; not built, `Submit` has no coalescing key and the history merges no steps). An undoable transaction whose `coalesce_key` equals that of the top step merges into it: the
      ops are concatenated, the step keeps the first transaction's page, viewport, selection and label, and takes the
      latest command and origin. A marker line or another command on top ends the run. Every new transaction drops
      the redo branch.
@@ -134,13 +134,12 @@ these entries refine it.
      `HumanOnly` act, refused from a script, command-log, MCP, plugin or Python origin and from an unconfirmed CLI. It
      is not enforced as built: `Engine::undo` and `Session::undo` take no origin and the exposure check
      lives only in command dispatch, so a scripted undo can revert a check-scheme change. **The fix route:**
-     the history step records the strictest exposure of the commands it holds at commit (a coalesced step takes the
+     the history step records the strictest exposure of the commands it holds at commit (a coalesced step would take the
      strictest of its parts), and `undo` and `redo` take the caller's origin and refuse a `HumanOnly` step from a
      non-GUI origin or an unconfirmed CLI. Recording at commit rather than looking the command up at undo time keeps
      the check independent of what the registry holds then (a plugin command may be gone).
      *As built:* the history step records the strictest exposure class of its
-     commands at commit (`Transaction.exposure`; Edit < Import < `HumanOnly` < Internal, a coalesced step the strictest
-     of its parts), and `Engine::undo` and `redo` and `Session::undo` and `redo` take the caller's `&Origin` and refuse a
+     commands at commit (`Transaction.exposure`; Edit < Import < `HumanOnly` < Internal), and `Engine::undo` and `redo` and `Session::undo` and `redo` take the caller's `&Origin` and refuse a
      `HumanOnly` step from every origin but the GUI and a confirmed CLI subcommand with `CmdError::Exposure`; a
      transparent `HumanOnly` marker step (amendment 5's purge marker) does not block a scripted undo or redo; the shell
      passes the GUI origin in the window and the command-log origin headless; in memory only, no file-format change

@@ -34,10 +34,14 @@
        fn sniff(&self, head: &[u8], path: &Path) -> Confidence;
        fn import(&self, src: &mut dyn Source, cx: &ImportCx) -> Result<ImportBatch, ImportError>;
    }
-   pub struct ImportBatch { pub records: Vec<ew_schema::AnyRecord>,   // sorted by (kind, id); IDs final
+   pub struct ImportBatch { pub records: Vec<ew_schema::Record>,   // sorted by (kind, id); IDs final
                             pub assets: Vec<AssetBlob>,              // logos, images (amendment 1)
                             pub report: ImportReport, pub provenance: Vec<SourceRef> }
    ```
+
+   *State of the code:* the `Importer` trait, `Source` and `Confidence` are specified for the plugin API; not built:
+   the importers have an inherent `import` method over an `ImportInput` and an `ImportContext`, and the batch has
+   no `assets` or `provenance` vector.
 
    The contract's rules:
    - **Purity.** An importer reads only `src`. It opens no other file, follows no external reference and makes no

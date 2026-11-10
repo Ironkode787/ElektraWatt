@@ -39,7 +39,7 @@ C-15 `%f` versus `%F`).
 
 | Decided here | Delegated |
 |---|---|
-| `ew-interop-api` types (`Importer`, `ImportBatch`, `ImportReport`, `SourceRef`, `Exporter`, `ExportView`) | Record kinds and invariants: [domain model](03-domain-model.md) |
+| `ew-interop-api` types (`ImportInput`, `ImportContext`, `ImportBatch`, `ImportReport`, `SourceRef`; the `Importer` and `Exporter` traits are specified, not built) | Record kinds and invariants: [domain model](03-domain-model.md) |
 | Import lineage, re-import without duplicates, the persisted import run | File layout and merge of the new record kinds: [05](05-project-format-and-persistence.md) |
 | QET `.qet`/`.qetz` mapping, the migration report and its finding codes `EW-IMP-nnn` | Rule engine and live rule IDs (EW-TERM, EW-POT, EW-CORE): [08](08-connections-terminals-cables.md), [15](15-checks-revisions-collaboration.md) |
 | EDZ, EPLAN parts XML, EPLAN report spreadsheets, underlays | Part, symbol and library content and library tiers: [07](07-symbols-parts-macros.md) |
@@ -100,7 +100,7 @@ import edits fields of records EW already owns.
 graph TD
   subgraph PERM["Permissive layer (MIT OR Apache-2.0)"]
     schema[ew-schema records]
-    iapi["ew-interop-api<br/>Importer, ImportBatch, ImportReport,<br/>SourceRef, Exporter, ExportView"]
+    iapi["ew-interop-api<br/>ImportInput, ImportContext, ImportBatch,<br/>ImportReport, SourceRef"]
     rds[ew-rds lenient grammar]
     caex["ew-caex, ew-devdesc (10)"]
   end
@@ -131,6 +131,13 @@ graph TD
 The contract of [architecture](04-architecture.md) §10.6 is kept; this section fixes its members. Everything here
 lives in `ew-interop-api`, which depends directly only on `ew-schema` and `ew-ids` (and `sha2` for the input
 digest); value types reach it through `ew-schema`'s records.
+
+*State of the code:* the `Importer` trait, `Confidence`, `Source` and `TargetHints` below are specified for the plugin
+API ([17](17-extensibility.md) §10); not built. The importers (`QetElementImporter`, `QetProjectImporter`,
+`TablesImporter`) have an inherent `import` method, and the host calls them through `ew_api::import::front_door`.
+What they share is in `ew-interop-api`: `ImportInput`, `ImportContext` (with `ImportMode` and `LineageInfo`), `Limits`,
+`ImportBatch`, `ImportReport` with its entries, codes and `SourceInfo`, `ImportError`, `SourceRef`, `SYSTEM_LIBRARY`
+and `check_archive_name`.
 
 ```rust
 pub trait Importer: Send + Sync {
@@ -176,7 +183,7 @@ pub struct Limits {                    // §11; a violation refuses the file or 
 // crate constant, not a Limits member: MAX_ENTRIES_PER_DEFINITION = 1,000 report entries per element
 // definition; the rest are summarised in one EW-IMP-001 entry
 pub struct ImportBatch {
-    pub records: Vec<ew_schema::AnyRecord>,   // sorted by (kind, id); IDs already final
+    pub records: Vec<ew_schema::Record>,      // sorted by (kind, id); IDs already final
     pub assets: Vec<AssetBlob>,               // {sha256, media_type, bytes}: logos, images (ARCH §10.6)
     pub report: ImportReport,
     pub provenance: Vec<SourceRef>,           // provenance[i] belongs to records[i]
@@ -188,7 +195,7 @@ quadratically, so a document can stay under both attribute counts and still be s
 all elements of the squared attribute count. `max_xml_nodes` counts nodes (the document root, elements, texts, comments and processing instructions), not attributes; the pre-scan counts the root, elements and comments as a lower bound, and the parser's own limit also counts texts and processing instructions; a project
 importer may raise it explicitly under its own budget.
 
-`ew-interop-api` implements `ImportCx` as `ImportContext`, in a minimal form (`project`, `lineage`, `as_of`,
+`ew-interop-api` has `ImportCx` as `ImportContext`, in a minimal form (`project`, `lineage`, `as_of`,
 `limits`); the other members arrive with the importers that need them.
 
 **Importer IDs, input sets and bootstrap importers** ([ADR-0021](../adr/0021-importers-emit-format-level-records.md)
@@ -226,11 +233,15 @@ host call of an importer (the CLI's imports, the window's QET import and parts i
 it; it refuses inputs over the size, total and file-count limits before the importer runs, runs the importer inside
 `catch_unwind` (a panic becomes a refusal with the model untouched, NFR-REL-12) and checks the batch's contract
 (`check_contract`: no repeated `(kind, id)`, no foreign lineage, every ID re-derived from its source key, records
-sorted by rank and ID), never repairing a batch. The purity rule is a step of `cargo xtask check-deps` that refuses
+sorted by rank and ID), never repairing a batch. The purity rule is a repository rule (`cargo xtask rules`) that refuses
 `std::fs`, `std::net`, `std::process`, `std::env` and their kin in `ew-interop-api` and the `ew-import-*` crates, and
 the XLSX walker refuses a DOCTYPE as `roxmltree` does.
 
 ### 2.2 Exporter contract
+
+*State of the code:* the `Exporter` trait and its types (`ExportView`, `ExportContext`, `ExportReport`, `RowTable`) are
+specified for the plugin API; not built, and nothing in `ew-interop-api` exports. The CSV and XLSX writers of
+`ew-reports` (`table_csv`, `xlsx`) are called directly, and `ew-reports` does not depend on `ew-interop-api`.
 
 ```rust
 pub trait Exporter: Send + Sync {
@@ -469,7 +480,7 @@ read, a re-import that writes a run drops the EW-IMP-010 row of a record removed
 flowchart LR
   F["source bytes"] --> S{"sniff()"}
   S --> L["lineage: new, detected<br/>(QET project UUID, name + key overlap)<br/>or chosen"]
-  L --> I["Importer::import (pure, pool job)"]
+  L --> I["importer import (pure, pool job)"]
   I --> B["ImportBatch"]
   B --> R["ApplyImport.resolve:<br/>ID collisions, aliases,<br/>library embedding"]
   R --> P["import passes on the fork (§3.2)"]
@@ -1481,7 +1492,7 @@ repository; every crash becomes a committed regression input ([18](18-quality-se
 
 *As built.* The importer
 targets that exist are `qet_project` (one `.qet` through the front door, then `ApplyImport` on an empty project),
-`qet_element` (one `.elmt` under `Limits::element_definition()`, through `ew_api::import::import_qet_element`),
+`qet_element` (one `.elmt` under `Limits::element_definition()`, through `QetElementImporter::import`),
 `golden_tables` and `parts_table` (a CSV or XLSX supplier table), with WP-S6.04's `table_round_trip` for the table
 import's own read; each asserts no panic, a strict re-read of every emitted record and D3's contract. Their seeds are
 committed in the fuzz crate (`fuzz/corpus/<target>/`, generated by `seed_corpus` and kept current by settle), not in

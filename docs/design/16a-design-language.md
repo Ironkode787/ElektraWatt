@@ -1261,7 +1261,7 @@ card. The footer sentence ("Checks support, but do not replace, engineering veri
 icon column (the current entry `arrow-right` in `color.accent`, an undone entry `arrow-back-up` in
 `color.history.undone`, a done entry none), the entry number right-aligned in a 28-px column in `type.small`
 `color.text.tertiary` with tabular digits, the label in `type.body` (`type.body.strong` for the current entry, as
-built), then in `type.small` `color.text.tertiary` the origin and the pages, then a "merged n" count badge and a "Not
+built), then in `type.small` `color.text.tertiary` the origin and the pages, then a "Not
 undoable" status badge (neutral, `lock` icon) where they apply. Undone entries draw their label in
 `color.history.undone` with the icon, so the state is not colour alone; their accessible name ends ", undone", as built.
 The row cursor takes the Selected state. The row actions **Undo to here** (`history`) and **Show changes**

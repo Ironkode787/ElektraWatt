@@ -571,8 +571,7 @@ more. Nothing is rendered for review only: the high-contrast main windows, the g
 ## 4. Performance and memory gate
 
 *Target for 1.0; not in the repository during the alpha.* No performance gate, `xtask perf`, benchmark harness or
-performance baseline exists, and no performance claim is measured (§4.3). One bench source file,
-`crates/ew-ui/benches/canvas.rs`, remains and is run by no gate.
+performance baseline exists, and no performance claim is measured (§4.3). No bench source file remains.
 
 ### 4.1 Fixtures
 

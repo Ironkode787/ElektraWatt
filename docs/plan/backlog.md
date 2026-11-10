@@ -123,6 +123,8 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### Checks, reports and the format
 
+- FT-1662 `ew-viewmodel, ew-api`: **Medium.** Nothing refreshes the project lock while a project is open: `Session::heartbeat` has no caller in the window or the CLI, so after an hour another session may take the lock as stale (doc 05 §7.2). Call it on the heartbeat interval.
+- FT-1663 `ew-api`: The session's change feed (`Session::drain_changes`) is filled on every commit and never drained by the window, so it grows for as long as a project is open. Drain it, or stop filling it where nothing reads it.
 - FT-903 `ew-reports, ew-derive`: **Medium.** The PLC overview shows all 16 channels "used" with empty Designation and Function columns while the check reports unconnected channels (play-test rv-vis-4, cycle 40).
 - FT-681 `ew-checks`: **Medium.** EW-POT-021 reports a false positive on two loads in series; refine the sourceless test or the load pairing.
 - FT-1559 `ew-library`: `Registry::resolve` (`crates/ew-library/src/registry.rs:904`) never searches the `plc_profile` kind, so a company library's PLC profile cannot be resolved by reference; search it as the other kinds are searched, with a test.

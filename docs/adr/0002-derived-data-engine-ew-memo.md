@@ -49,17 +49,21 @@ Stale memos would recreate the D-01 class invisibly. This is risk 1 of
      rounds);
    - statistics per query and per commit (hits, verifications, re-executions, cut-offs), emitted through
      `tracing`.
+
+   *State of the code:* the byte-budget LRU and all byte accounting of memo values, the 128-bit fingerprint and the
+   `tracing` events are specified for 1.0; not built (the three families that were to sit under the LRU are plain
+   `Memo`). Counters, revisions, early cut-off, durability, cycle detection and the oracle are built.
 5. **Out of v1:** parallel evaluation of the main store, sharded locks, memo merge-back from forks and salsa-style
    reader cancellation. The single exception is **adopt-if-unchanged**: when a job finishes and the main memo store
    is still pointer-equal to the job's base at the same revision, the session adopts the job's store in O(1) (warm-up
-   after open, idle full checks).
+   after open, idle full checks). *State of the code:* adopt-if-unchanged is specified; not built.
 6. **Granularity rules.**
    - No per-CP memos. The finest key is a page, device, potential, strip, module, station, report block or layout
      space.
    - Per-connection values are grouped per potential: `wire_props_of(potential) -> Arc<Map>`, with `wire_props(conn)`
      a cold lookup into it.
    - Memoise only when the cold cost exceeds about 20 µs or the query is read every frame.
-   - CI gates memo count and bytes per query family on the XL fixture.
+   - CI gates memo count and bytes per query family on the XL fixture (*State of the code:* specified for 1.0; not built).
 7. **Fallback.** A query family that cannot meet its budget within the memory limits falls back to page-scoped dirty
    flags with coarse recomputation, still under the oracle.
 8. **Ownership.** `ew-memo` is a generic, permissive crate that knows nothing about ECAD. It has two named owners by
@@ -84,7 +88,8 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    family, the memos whose recorded reads include a given key. It stays ECAD-agnostic. The online check engine
    builds its `rdeps` index from it, so a commit re-evaluates exactly the check scopes whose last evaluation read a
    touched key. The performance spike (G-SP) measures its memory (≤ 40 MB estimated at XL); above budget the engine falls back to
-   coarse page and shard keys with re-verification of the matching scopes.
+   coarse page and shard keys with re-verification of the matching scopes. *State of the code:* the family-level API
+   (`Query::RDEPS`, `Store::dependents`) is specified; not built; the push index, keyed by page-level keys, is built.
 2. **"Does not compile" in practice** (2026-10-18, core team; ADR-0001 amendment 1;
    [architecture](../design/04-architecture.md) §3 rule 1). Rust cannot limit visibility to chosen crates, so
    decision 1's guarantee is carried by two facts: the raw read API of `ew-model` exists only with its cargo feature
@@ -332,7 +337,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      read changed and otherwise runs the BFS whole (a producer of `Flow` parts); the re-pairing of `ip_pairing`
      after a change; `bond_paths`, `bond_vias` and `rail_bonds` (small); and the report kinds, which read the whole
      partition.
-   - **Value bytes** (as fixed). `Query::bytes` walked the whole value on every execution, cut-offs
+   - **Value bytes** (as fixed; *State of the code:* `Query::bytes`, `HeapBytes` and the LRU are specified for 1.0; not built; `Store::memory` counts memos and dependency entries only). `Query::bytes` walked the whole value on every execution, cut-offs
      included (at XL about two million partition entries). Now `ew-memo` asks for it only when a family with an LRU
      budget writes a value (a cut-off keeps the old bytes); every other family's bytes are computed on demand when
      `Store::memory` reports. The incremental producers keep running estimates that their hooks update (the index
