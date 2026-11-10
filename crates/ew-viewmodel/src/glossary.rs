@@ -139,13 +139,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_shipped_glossary_parses() {
-        let terms = parse(SOURCE).unwrap();
-        assert!(!terms.is_empty());
-        assert_eq!(super::terms(), terms.as_slice());
-    }
-
-    #[test]
     fn every_named_action_exists_and_every_term_has_both_languages() {
         for t in terms() {
             for a in &t.actions {

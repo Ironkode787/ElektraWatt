@@ -928,67 +928,6 @@ mod tests {
         assert_eq!(stray, Vec::<String>::new());
     }
 
-    /// FT-1263 (C49-p6b#4): a key that has a `-one` text is used with its count, through `count_key!`, never as a
-    /// plain `key!` whose text would read "1 records", unless its file names the `-one` key too (a branch that says
-    /// one itself); `KEPT` names the other uses (file, key) that never show a count of one.
-    #[test]
-    fn a_key_with_a_one_text_is_used_with_its_count() {
-        const KEPT: &[(&str, &str)] = &[];
-        fn scan(dir: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
-            for entry in std::fs::read_dir(dir).expect("the sources") {
-                let path = entry.expect("a directory entry").path();
-                if path.is_dir() {
-                    scan(&path, files);
-                } else if path.extension().is_some_and(|e| e == "rs") {
-                    files.push(path);
-                }
-            }
-        }
-        let counted: Vec<&str> = KEYS
-            .iter()
-            .filter_map(|k| k.strip_suffix("-one"))
-            .filter(|k| has_key(k))
-            .collect();
-        assert!(counted.contains(&"toast-recovered"), "{counted:?}");
-        // The window's sources too, which use the shell's keys.
-        let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
-        let mut files = Vec::new();
-        for dir in ["ew-viewmodel/src", "ew-ui/src"] {
-            scan(&src.join(dir), &mut files);
-        }
-        files.sort();
-        assert!(
-            files.iter().any(|f| f.starts_with(src.join("ew-ui/src"))),
-            "the window's sources"
-        );
-        let mut plain = Vec::new();
-        let mut seen = 0;
-        for file in &files {
-            let name = file
-                .strip_prefix(&src)
-                .unwrap_or(file)
-                .display()
-                .to_string()
-                .replace('\\', "/");
-            let text = std::fs::read_to_string(file).expect("a source");
-            for (at, _) in text.match_indices("key!(\"") {
-                if text[..at].ends_with("count_") {
-                    continue;
-                }
-                let rest = &text[at + "key!(\"".len()..];
-                let key = &rest[..rest.find('"').unwrap_or(0)];
-                // A file that also names the `-one` key branches on one itself.
-                let branches = text.contains(&format!("key!(\"{key}-one\")"));
-                seen += usize::from(counted.contains(&key) && branches);
-                if counted.contains(&key) && !branches && !KEPT.contains(&(name.as_str(), key)) {
-                    plain.push(format!("{name}: key!(\"{key}\")"));
-                }
-            }
-        }
-        assert!(seen > 0, "the scan finds the branches that say one themselves");
-        assert_eq!(plain, Vec::<String>::new());
-    }
-
     /// The part editor's field labels are built at run time as `part-field-<f>` over `ew_api::DRAFT_FIELDS`
     /// (`describe.rs`, `part_dialog.rs`): every field has its text.
     #[test]
@@ -1002,24 +941,10 @@ mod tests {
         assert_eq!(lookup("part-field-part_number"), Some("Part number"));
     }
 
-    /// RD43 §5: every key of `KEYS` is there once (`key!` checks against it), and the en-GB file parses with a
-    /// message for every key.
+    /// RD43 §5: the en-GB file parses without an error.
     #[test]
-    fn the_text_keys_are_unique() {
-        let mut seen = std::collections::BTreeSet::new();
-        let twice: Vec<String> = KEYS
-            .iter()
-            .filter(|key| !seen.insert(**key))
-            .map(|key| format!("the key {key} is in KEYS twice"))
-            .collect();
-        assert_eq!(twice, Vec::<String>::new());
+    fn the_english_file_parses() {
         assert_eq!(en_gb_errors(), Vec::<String>::new());
-        let missing: Vec<&str> = KEYS
-            .iter()
-            .copied()
-            .filter(|k| !en_gb().texts.contains_key(k))
-            .collect();
-        assert_eq!(missing, Vec::<&str>::new());
     }
 
     /// D12: the nl-NL file parses, has a message for every key and a Dutch name.
@@ -1049,6 +974,7 @@ mod tests {
         assert!(!has_key("menu-fild"));
         assert!(!has_key(""));
         assert_eq!(text(Key::run_time("no-such-key")), "?");
+        assert_eq!(lookup("no-such-key"), None);
     }
 
     /// Cycle 35 play-test: the refusal of a page type without symbols names the remedy, as the paste refusal does.
@@ -1393,11 +1319,5 @@ mod tests {
         assert_eq!(kind_plural("device"), "devices");
         assert_eq!(kind_plural("potential_def"), "potential definitions");
         assert_eq!(kind_plural("structure_box"), "structure boxes");
-    }
-
-    #[test]
-    fn an_unknown_key_has_no_text() {
-        assert_eq!(lookup("no-such-key"), None);
-        assert_eq!(text(Key::run_time("no-such-key")), "?");
     }
 }

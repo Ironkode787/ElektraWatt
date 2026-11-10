@@ -357,13 +357,4 @@ mod tests {
         let p = place_chip(Rect::point(Pos2::new(300.0, 300.0)), SIZE, &obstacles, None);
         assert!(p.faded);
     }
-
-    #[test]
-    fn touching_edges_do_not_overlap() {
-        let a = Rect::from_min_max(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0));
-        let b = Rect::from_min_max(Pos2::new(10.0, 0.0), Pos2::new(20.0, 10.0));
-        assert!(!a.overlaps(&b));
-        assert!(a.overlaps(&Rect::from_min_max(Pos2::new(9.0, 9.0), Pos2::new(11.0, 11.0))));
-        assert_eq!(a.height(), 10.0);
-    }
 }

@@ -126,23 +126,6 @@ fn new_project_asks_for_a_directory_in_the_gui_and_guards_unsaved_changes() {
 }
 
 #[test]
-fn a_new_project_in_an_occupied_directory_fails_without_a_path() {
-    let tmp = Tmp::new();
-    let dir = tmp.0.join("p.ew");
-    let mut shell = tmp.shell();
-    done(&mut shell, "file.new", json!({ "dir": path(&dir) }));
-    done(&mut shell, "file.close", json!({}));
-    match run(&mut shell, "file.new", json!({ "dir": path(&dir) })) {
-        Outcome::Failed { message } => {
-            assert!(message.contains("not empty"), "{message}");
-            assert!(!message.contains(&path(&dir)), "{message}");
-        }
-        other => panic!("{other:?}"),
-    }
-    assert!(!shell.has_project());
-}
-
-#[test]
 fn a_directory_with_anything_in_it_is_refused_before_the_open_project_closes() {
     let tmp = Tmp::new();
     let mut shell = tmp.shell();
@@ -154,8 +137,7 @@ fn a_directory_with_anything_in_it_is_refused_before_the_open_project_closes() {
     let taken = tmp.0.join("taken");
     std::fs::create_dir_all(&taken).unwrap();
     std::fs::write(taken.join("notes.txt"), "mine").unwrap();
-    let qet = tmp.0.join("example.qet");
-    std::fs::write(&qet, QET).unwrap();
+    let qet = example_qet(&tmp);
     let not_empty = |out: Outcome| match out {
         Outcome::Failed { message } => {
             assert!(message.contains("not empty"), "{message}");
@@ -356,11 +338,17 @@ const QET: &str = r#"<project version="0.100" title="Example">
 <diagram title="First page" folio="1" cols="17" colsize="60" rows="8" rowsize="80" height="640"/>
 </project>"#;
 
+/// `example.qet` with the one-page project `QET` in the temporary directory.
+fn example_qet(tmp: &Tmp) -> PathBuf {
+    let qet = tmp.0.join("example.qet");
+    std::fs::write(&qet, QET).unwrap();
+    qet
+}
+
 #[test]
 fn a_qelectrotech_project_is_imported_into_a_new_directory() {
     let tmp = Tmp::new();
-    let qet = tmp.0.join("example.qet");
-    std::fs::write(&qet, QET).unwrap();
+    let qet = example_qet(&tmp);
     let dir = tmp.0.join("imported.ew");
     let mut shell = tmp.shell();
     done(
@@ -489,8 +477,7 @@ fn a_migration_report_row_previews_its_quick_fix() {
 #[test]
 fn the_window_imports_as_a_job() {
     let tmp = Tmp::new();
-    let qet = tmp.0.join("example.qet");
-    std::fs::write(&qet, QET).unwrap();
+    let qet = example_qet(&tmp);
     let dir = tmp.0.join("imported.ew");
     let mut gui = tmp.gui();
     done(
@@ -514,8 +501,7 @@ fn the_window_imports_as_a_job() {
 fn apply_asks_again_about_changes_made_while_the_importer_ran() {
     use ew_viewmodel::shell::ConfirmAnswer;
     let tmp = Tmp::new();
-    let qet = tmp.0.join("example.qet");
-    std::fs::write(&qet, QET).unwrap();
+    let qet = example_qet(&tmp);
     let open = tmp.0.join("open.ew");
     let dir = tmp.0.join("imported.ew");
     let mut gui = tmp.gui();
@@ -566,8 +552,7 @@ fn apply_asks_again_about_changes_made_while_the_importer_ran() {
 #[test]
 fn the_import_card_waits_for_an_open_dialog() {
     let tmp = Tmp::new();
-    let qet = tmp.0.join("example.qet");
-    std::fs::write(&qet, QET).unwrap();
+    let qet = example_qet(&tmp);
     let dir = tmp.0.join("imported.ew");
     let mut gui = tmp.gui();
     done(
@@ -605,8 +590,7 @@ fn the_import_card_waits_for_an_open_dialog() {
 #[test]
 fn a_panicking_import_shows_t1_and_the_window_goes_on() {
     let tmp = Tmp::new();
-    let qet = tmp.0.join("example.qet");
-    std::fs::write(&qet, QET).unwrap();
+    let qet = example_qet(&tmp);
     let dir = tmp.0.join("imported.ew");
     let mut shell = tmp.shell();
     shell.set_job_panic_for_tests(Some("import"));
@@ -635,8 +619,7 @@ fn a_panicking_import_shows_t1_and_the_window_goes_on() {
 #[test]
 fn a_qelectrotech_file_is_re_imported_into_the_open_project() {
     let tmp = Tmp::new();
-    let qet = tmp.0.join("example.qet");
-    std::fs::write(&qet, QET).unwrap();
+    let qet = example_qet(&tmp);
     let dir = tmp.0.join("imported.ew");
     let mut shell = tmp.shell();
     done(
@@ -717,8 +700,7 @@ fn a_qelectrotech_file_is_re_imported_into_the_open_project() {
 #[test]
 fn an_identical_re_import_says_there_is_nothing_to_re_import() {
     let tmp = Tmp::new();
-    let qet = tmp.0.join("example.qet");
-    std::fs::write(&qet, QET).unwrap();
+    let qet = example_qet(&tmp);
     let dir = tmp.0.join("imported.ew");
     let mut shell = tmp.shell();
     done(
@@ -769,8 +751,7 @@ fn an_identical_re_import_says_there_is_nothing_to_re_import() {
 #[test]
 fn an_unchanged_re_import_counts_the_records_kept_with_your_changes() {
     let tmp = Tmp::new();
-    let qet = tmp.0.join("example.qet");
-    std::fs::write(&qet, QET).unwrap();
+    let qet = example_qet(&tmp);
     let dir = tmp.0.join("imported.ew");
     let mut shell = tmp.shell();
     done(
@@ -816,8 +797,7 @@ fn an_unchanged_re_import_counts_the_records_kept_with_your_changes() {
 #[test]
 fn the_window_re_imports_as_a_job() {
     let tmp = Tmp::new();
-    let qet = tmp.0.join("example.qet");
-    std::fs::write(&qet, QET).unwrap();
+    let qet = example_qet(&tmp);
     let mut gui = tmp.gui();
     done(
         &mut gui,
@@ -852,8 +832,7 @@ fn the_window_re_imports_as_a_job() {
 
 /// An imported project open in the window with `example.qet` changed since, so that a re-import proposes T6.
 fn imported_and_changed(tmp: &Tmp) -> (ShellModel, PathBuf) {
-    let qet = tmp.0.join("example.qet");
-    std::fs::write(&qet, QET).unwrap();
+    let qet = example_qet(tmp);
     let mut gui = tmp.gui();
     done(
         &mut gui,
@@ -2057,7 +2036,9 @@ fn workspaces_are_files_in_the_configuration_directory() {
 fn workspace_names_and_files_are_validated() {
     let tmp = Tmp::new();
     let mut shell = tmp.shell();
-    for bad in ["", " x", "x ", "a/b", "..", "a\\b", "x.json"] {
+    for bad in [
+        "", " x", "x ", "a/b", "..", "a\\b", "x.json", "CON", "nul", "Aux", "COM1", "lpt9",
+    ] {
         assert!(
             matches!(
                 run(&mut shell, "view.workspace_save", json!({ "name": bad })),
@@ -2340,18 +2321,9 @@ fn quick_switches_validate_and_persist() {
 }
 
 #[test]
-fn workspace_names_that_windows_reserves_or_that_differ_only_in_case_are_refused() {
+fn workspace_names_that_differ_only_in_case_are_refused() {
     let tmp = Tmp::new();
     let mut shell = tmp.shell();
-    for bad in ["CON", "nul", "Aux", "COM1", "lpt9"] {
-        assert!(
-            matches!(
-                run(&mut shell, "view.workspace_save", json!({ "name": bad })),
-                Outcome::Failed { .. }
-            ),
-            "{bad}"
-        );
-    }
     done(&mut shell, "view.workspace_save", json!({"name": "Review"}));
     match run(&mut shell, "view.workspace_save", json!({"name": "review"})) {
         Outcome::Failed { message } => assert!(message.contains("letter case"), "{message}"),

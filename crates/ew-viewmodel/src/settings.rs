@@ -1274,15 +1274,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn an_unknown_scale_falls_back_to_one() {
-        let s = Settings::parse("ui_scale = 1.1\n").unwrap();
-        assert_eq!(s.ui_scale, 1.0);
-        let s = Settings::parse("ui_scale = 2\n").unwrap();
-        assert_eq!(s.ui_scale, 2.0);
-    }
-
-    /// AX-2: 250 % and 300 % are scales, each with its label, and `settings.toml` round-trips both.
+    /// AX-2: 250 % and 300 % are scales, each with its label, and `settings.toml` round-trips both; an unknown
+    /// scale falls back to one.
     #[test]
     fn ax2_the_scales_reach_300_percent_and_round_trip() {
         for scale in [2.5, 3.0] {
@@ -1295,6 +1288,8 @@ mod tests {
         }
         let labels: Vec<&str> = UI_SCALES.iter().map(|s| scale_label(*s)).collect();
         assert_eq!(labels, ["100 %", "125 %", "150 %", "200 %", "250 %", "300 %"]);
+        assert_eq!(Settings::parse("ui_scale = 1.1\n").unwrap().ui_scale, 1.0);
+        assert_eq!(Settings::parse("ui_scale = 2\n").unwrap().ui_scale, 2.0);
     }
 
     /// `min_font_pt` (0 off, else 8 to 16; out of range loads as 0) and `reduce_motion` (unset, on or
