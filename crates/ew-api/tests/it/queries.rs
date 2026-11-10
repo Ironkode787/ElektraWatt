@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.22 part 4 (D11 to D13): the public queries of `ew query` on Golden A, `--explain`, and the query registry's
-//! snapshot `crates/ew-api/api/queries.json` (blessed with `EW_BLESS=1`).
+//! The public queries of `ew query` on Golden A, `--explain`, and the query registry as `ew queries --json` prints it.
 //!
 //! Golden A is opened read-only, as a reader: no lock, no state directory, nothing written.
 
@@ -27,18 +26,6 @@ fn output(s: &Session, name: &str, key: &str) -> Value {
     s.run_query(name, key, false)
         .unwrap_or_else(|e| panic!("{name} {key}: {e}"))
         .output
-}
-
-/// The snapshot `crates/ew-api/api/queries.json`.
-fn snapshot() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("api/queries.json")
-}
-
-/// Whether `EW_BLESS=1` asks for the snapshot to be rewritten.
-// The flag only chooses whether the committed file is rewritten; the compared result never depends on it.
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
 }
 
 /// The fields of a line of a golden CSV file: commas outside double quotes split, `""` is a quote.
@@ -73,23 +60,18 @@ fn expected_rows(rel: &str) -> Vec<Vec<String>> {
 // ---------------------------------------------------------------------------------------------------------
 // QU-5: the registry and its snapshot
 
-/// QU-5 (D13): `crates/ew-api/api/queries.json` lists the twelve entries with their output schemas: an equality
-/// snapshot of `ew queries --json`, rewritten with `EW_BLESS=1`.
+/// QU-5 (D13): `ew queries --json` lists every entry of the registry with its output schema. The list is written for
+/// the user guide where `EW_REFERENCE_DIR` asks for it.
+// The variable only chooses whether the generated file is also written out.
+#[allow(clippy::disallowed_methods)]
 #[test]
-fn the_query_snapshot_equals_the_registry() {
+fn the_query_list_names_the_registry_with_its_output_schemas() {
     let generated = results::to_text(&results::queries());
-    if bless() {
-        std::fs::create_dir_all(snapshot().parent().unwrap()).unwrap();
-        std::fs::write(snapshot(), &generated).unwrap();
-        return;
+    if let Some(dir) = std::env::var_os("EW_REFERENCE_DIR").map(PathBuf::from) {
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("queries.json"), &generated).unwrap();
     }
-    let committed = std::fs::read_to_string(snapshot()).unwrap_or_default();
-    assert!(
-        committed == generated,
-        "crates/ew-api/api/queries.json is out of date; run `EW_BLESS=1 cargo nextest run -p ew-api --all-features \
-         -E 'test(the_query_snapshot_equals_the_registry)'` and commit the result"
-    );
-    let value: Value = serde_json::from_str(&committed).unwrap();
+    let value: Value = serde_json::from_str(&generated).unwrap();
     assert_eq!(value["$schema"], results::QUERIES);
     let names: Vec<&str> = value["queries"]
         .as_array()

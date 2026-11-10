@@ -205,114 +205,34 @@ fn stderr(o: &Output) -> String {
     String::from_utf8_lossy(&o.stderr).into_owned()
 }
 
-fn schema_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("schemas")
-}
-
-/// The committed schemas by file name. Only `*.json` names are read, so the bless writer's temporary files are not
-/// listed, and a file gone between listing and reading (removed by a concurrent bless) is skipped (FT-1050, ID-1138:
-/// "the reader of the committed schemas reads only `*.json` names and skips a file gone between listing and
-/// reading").
-fn committed() -> BTreeMap<String, String> {
-    let mut files = BTreeMap::new();
-    if let Ok(entries) = std::fs::read_dir(schema_dir()) {
-        for entry in entries.flatten() {
-            let name = entry.file_name().to_string_lossy().into_owned();
-            if !name.ends_with(".json") {
-                continue;
-            }
-            match std::fs::read_to_string(entry.path()) {
-                Ok(text) => {
-                    files.insert(name, text);
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-                Err(e) => panic!("{name} is unreadable: {e}"),
-            }
-        }
-    }
-    files
-}
-
-/// Writes `text` to `dir/name` through a temporary file in the same folder renamed over the old one, so a concurrent
-/// reader sees the old schema or the new one, never a partial file (FT-1050, ID-1138: "the bless writer writes each
-/// schema to a temporary file and renames it").
-fn write_atomically(dir: &std::path::Path, name: &str, text: &str) {
-    let tmp = dir.join(format!(".{name}.{}.tmp", std::process::id()));
-    std::fs::write(&tmp, text).unwrap();
-    if let Err(e) = std::fs::rename(&tmp, dir.join(name)) {
-        let _ = std::fs::remove_file(&tmp);
-        panic!("{name} could not replace the committed schema: {e}");
-    }
-}
-
-/// Removes the committed schema `file` that no result generates any more. A file already gone (a second bless running
-/// at the same time removed it) counts as removed; any other error fails (C46-p1#7, FT-1050).
-fn remove_stale(file: &std::path::Path) {
-    match std::fs::remove_file(file) {
-        Ok(()) => {}
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => panic!("the stale schema {} could not be removed: {e}", file.display()),
-    }
-}
-
-/// C46-p1#7: a stale schema is removed, and one that a concurrent bless already removed counts as removed.
-#[test]
-fn a_stale_schema_already_gone_counts_as_removed() {
-    let t = Tmp::new();
-    let file = t.0.join("stale.schema.json");
-    std::fs::write(&file, "{}\n").unwrap();
-    remove_stale(&file);
-    assert!(!file.exists());
-    remove_stale(&file);
-    assert!(!file.exists());
-}
-
-/// Whether `EW_CLI_BLESS` asks for the committed schemas to be rewritten.
-// The flag only chooses whether the committed files are rewritten; the compared results never depend on it.
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_CLI_BLESS").is_some()
+/// The result schemas by file name, as `ew-api` generates them.
+fn schema_files() -> BTreeMap<String, String> {
+    results::schema_files().into_iter().collect()
 }
 
 // ---------------------------------------------------------------------------------------------------------
 // The published schemas (D5)
 
-/// D5: the committed result schemas equal the generated ones (an equality snapshot, blessed with `EW_CLI_BLESS=1`).
+/// The result schemas are written for the user guide where `EW_REFERENCE_DIR` asks for them.
+// The variable only chooses whether the generated files are also written out.
+#[allow(clippy::disallowed_methods)]
 #[test]
-fn committed_result_schemas_match_the_generated_ones() {
-    let generated: BTreeMap<String, String> = results::schema_files().into_iter().collect();
-    if bless() {
-        let dir = schema_dir();
-        std::fs::create_dir_all(&dir).unwrap();
-        for name in committed().keys() {
-            if !generated.contains_key(name) {
-                remove_stale(&dir.join(name));
-            }
-        }
-        for (name, text) in &generated {
-            write_atomically(&dir, name, text);
-        }
+fn the_result_schemas_are_written_where_the_reference_is_asked_for() {
+    let Some(dir) = std::env::var_os("EW_REFERENCE_DIR").map(|d| PathBuf::from(d).join("results")) else {
         return;
+    };
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    for (name, text) in schema_files() {
+        std::fs::write(dir.join(name), text).unwrap();
     }
-    let committed = committed();
-    let stale: Vec<&String> = committed.keys().filter(|n| !generated.contains_key(*n)).collect();
-    let differing: Vec<&String> = generated
-        .iter()
-        .filter(|(name, text)| committed.get(*name) != Some(text))
-        .map(|(name, _)| name)
-        .collect();
-    assert!(
-        stale.is_empty() && differing.is_empty(),
-        "bin/ew/schemas/ is out of date (differing or missing: {differing:?}; stale: {stale:?}); run \
-         `EW_CLI_BLESS=1 cargo nextest run -p ew --test it -E 'test(/^conventions::/)'` and commit the result"
-    );
 }
 
-/// The committed schema files and their index: every result of the index has its file, every file is a draft
-/// 2020-12 document the independent validator compiles, LF with a final newline.
+/// The schema files and their index: every result of the index has its file, every file is a draft 2020-12
+/// document the independent validator compiles, LF with a final newline.
 #[test]
-fn every_committed_schema_compiles() {
-    let files = committed();
+fn every_result_schema_compiles() {
+    let files = schema_files();
     let index: serde_json::Value = serde_json::from_str(&files["index.json"]).unwrap();
     for r in index["results"].as_array().unwrap() {
         let file = r["schema"].as_str().unwrap();
@@ -324,12 +244,12 @@ fn every_committed_schema_compiles() {
     }
 }
 
-/// The schema `name` from its committed file, compiled by the independent validator.
+/// The schema `name`, compiled by the independent validator.
 fn compile(name: &str) -> (boon::Schemas, boon::SchemaIndex) {
     let file = results::file_name(name);
-    let text = committed()
+    let text = schema_files()
         .remove(&file)
-        .unwrap_or_else(|| panic!("{file} is not committed under bin/ew/schemas/"));
+        .unwrap_or_else(|| panic!("no result schema {file}"));
     let schema: serde_json::Value = serde_json::from_str(&text).unwrap();
     let mut schemas = boon::Schemas::new();
     let mut compiler = boon::Compiler::new();
@@ -348,7 +268,7 @@ pub(super) fn assert_result<T: Serialize + DeserializeOwned>(out: &str, name: &s
         out.starts_with(&format!("{{\n  \"$schema\": \"{name}\"")),
         "the first member names {name}: {out}"
     );
-    let index: serde_json::Value = serde_json::from_str(&committed()["index.json"]).unwrap();
+    let index: serde_json::Value = serde_json::from_str(&schema_files()["index.json"]).unwrap();
     assert!(
         index["results"]
             .as_array()
@@ -1049,13 +969,16 @@ fn the_lib_json_change_has_its_release_note_line() {
 }
 
 /// CL-5: `ew commands --json` lists the command registry's index in its order; `ew schema` prints a command's
-/// parameter schema and a result schema byte for byte as committed; an unknown name exits 2 naming it.
+/// parameter schema and a result schema byte for byte as the registries generate them; an unknown name exits 2
+/// naming it.
 #[test]
-fn registry_subcommands_print_the_committed_files() {
+fn registry_subcommands_print_the_registries_files() {
     let t = Tmp::new();
-    let commands_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/ew-commands/schemas");
-    let index: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(commands_dir.join("index.json")).unwrap()).unwrap();
+    let commands: BTreeMap<String, String> = ew_commands::CommandRegistry::builtin()
+        .schema_files()
+        .into_iter()
+        .collect();
+    let index: serde_json::Value = serde_json::from_str(&commands["index.json"]).unwrap();
     let o = t.ew(&args([&"commands", &"--json"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let listed: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
@@ -1070,13 +993,10 @@ fn registry_subcommands_print_the_committed_files() {
     );
     let o = t.ew(&args([&"schema", &"fields.set"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert_eq!(
-        stdout(&o),
-        std::fs::read_to_string(commands_dir.join("fields.set.schema.json")).unwrap()
-    );
+    assert_eq!(stdout(&o), commands["fields.set.schema.json"]);
     let o = t.ew(&args([&"schema", &"ew.check-result/1"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert_eq!(stdout(&o), committed()["ew.check-result-1.schema.json"]);
+    assert_eq!(stdout(&o), schema_files()["ew.check-result-1.schema.json"]);
     let o = t.ew(&args([&"schema", &"no.such"]));
     assert_eq!(o.status.code(), Some(2));
     assert!(stderr(&o).contains("`no.such`"), "{}", stderr(&o));

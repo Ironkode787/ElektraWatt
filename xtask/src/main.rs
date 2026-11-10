@@ -42,22 +42,23 @@ the loop:
                        checks a change: formats every Rust file, then clippy and the tests of the named packages
                        (the whole workspace without -p) with all features, then the repository rules. --no-test
                        leaves the tests out
-  gen [--check]        regenerates every generated file: the text keys, the command, CLI and rule snapshots, the
-                       keymaps, the book's contents, the icon table, the lint list and the QET symbol edition;
-                       --check writes nothing and fails when a file xtask writes itself is stale (the snapshots
-                       are compared by their tests)
+  gen [--check]        regenerates every generated file: the text keys, the reference of the commands, rules,
+                       keymaps, CLI, queries and views (target/reference, not committed), the book's contents and
+                       reference pages, the icon table, the lint list and the QET symbol edition; --check writes
+                       nothing and fails when a committed file that needs no build to compare is stale
   rules                the repository rules alone, in seconds: the crate layers and the licence boundary
                        (ci/dep-rules.toml, ci/licence-map.toml), test-only features, raw reads of the model,
                        confidential tokens (ci/denylist.sha256), UI texts outside the text keys, and `gen --check`
 
 single steps:
-  docs-gen [--check]   the generated reference pages of the user guide (docs/book/src/reference/)
+  docs-gen             the reference (target/reference) and from it the generated reference pages of the user
+                       guide (docs/book/src/reference/) and the lists of its SUMMARY.md
   gen-icons [--check]  the icon table of ew-ui from assets/icons/
   symbols-qet10 [--check]
                        seals the library documents and generates the QET edition (content/symbols/qet10)
   api-guard [--base <rev>]
-                       compares the published surfaces (command and result schemas, the CLI, queries, api_v1, the
-                       file format) with a base revision and names each breaking change
+                       compares the published file format (schemas/, fixtures/format/) with a base revision and
+                       names each breaking change
   denylist-hash <phrase>
                        prints the digests of a confidential phrase for ci/denylist.sha256
   blind <subcommand>   the persona harness (`cargo xtask blind help`)
@@ -75,10 +76,7 @@ fn main() -> ExitCode {
             None => usage("gen takes only --check"),
         },
         "rules" => rules(&root),
-        "docs-gen" => match flag(&args[1..], "--check") {
-            Some(check) => docs_gen::run(&root, check),
-            None => usage("docs-gen takes only --check"),
-        },
+        "docs-gen" => generate::reference(&root).and_then(|ok| Ok(ok && docs_gen::run(&root, false)?)),
         "gen-icons" => match flag(&args[1..], "--check") {
             Some(check) => icons::run(&root, check),
             None => usage("gen-icons takes only --check"),

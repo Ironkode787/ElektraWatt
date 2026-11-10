@@ -1,16 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The committed rule catalogue `crates/ew-checks/catalogue/rules.json` equals what the registry and the shipped
-//! schemes generate (NFR-DOC-06).
-//!
-//! The file is the data source of the generated rule reference of the user documentation
-//! (`cargo xtask docs-gen`, `docs/book/src/reference/rules/`): `xtask` is a permissive-layer development tool and
-//! may not link this GPL crate, so it reads this snapshot instead, as it reads the command schemas of
-//! `ew-commands`. The test regenerates the text in memory and fails when the committed file differs;
-//! `EW_CHECKS_BLESS=1 cargo test -p ew-checks --test catalogue` rewrites it.
+//! The rule catalogue that the registry and the shipped schemes generate: the data of the user guide's rule
+//! reference (`cargo xtask docs-gen`, `docs/book/src/reference/rules/`). `xtask` is a permissive-layer tool and may
+//! not link this GPL crate, so it reads the catalogue as JSON. The file is not committed: `cargo xtask gen` runs this
+//! test with `EW_REFERENCE_DIR` set, and the test then writes `rules.json` there.
 
-// Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
+// Test target: `EW_REFERENCE_DIR` only chooses whether the generated file is also written out.
 #![allow(clippy::disallowed_methods)]
 
 use std::path::PathBuf;
@@ -18,10 +14,6 @@ use std::path::PathBuf;
 use ew_checks::rules::core::INTEGRITY;
 use ew_checks::{CheckMode, Modes, OPEN_ITEM_RULES, RuleKind, RuleMeta, SCHEMES, rules};
 use serde_json::{Value, json};
-
-fn path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("catalogue/rules.json")
-}
 
 /// The mode letters of the catalogue (doc 15 §3.1) in a fixed order, as words.
 fn modes(m: Modes) -> Vec<&'static str> {
@@ -98,29 +90,19 @@ fn generated() -> String {
 }
 
 #[test]
-fn committed_catalogue_matches_the_registry() {
-    let generated = generated();
-    if std::env::var_os("EW_CHECKS_BLESS").is_some() {
-        let path = path();
-        std::fs::create_dir_all(path.parent().expect("the catalogue has a directory"))
-            .expect("create the catalogue directory");
-        std::fs::write(&path, generated).expect("write the catalogue");
+fn the_catalogue_is_written_where_the_reference_is_asked_for() {
+    let Some(dir) = std::env::var_os("EW_REFERENCE_DIR").map(PathBuf::from) else {
         return;
-    }
-    let committed = std::fs::read_to_string(path()).unwrap_or_default();
-    assert!(
-        committed == generated,
-        "catalogue/rules.json is out of date; run `EW_CHECKS_BLESS=1 cargo test -p ew-checks --test catalogue` \
-         and commit the result (then `cargo xtask docs-gen`)"
-    );
+    };
+    std::fs::create_dir_all(&dir).expect("create the reference directory");
+    std::fs::write(dir.join("rules.json"), generated()).expect("write the catalogue");
 }
 
-/// OI-4 (WP-S3.06 D8): the committed snapshot's `open_item` marks exactly the open-item rules, each with its category,
+/// OI-4 (WP-S3.06 D8): the catalogue's `open_item` marks exactly the open-item rules, each with its category,
 /// and EW-BUS-001 with the discriminator `address`.
 #[test]
 fn the_catalogue_marks_exactly_the_open_item_rules() {
-    let committed: Value = serde_json::from_str(&std::fs::read_to_string(path()).expect("the catalogue"))
-        .expect("the catalogue is JSON");
+    let committed: Value = serde_json::from_str(&generated()).expect("the catalogue is JSON");
     let marked: Vec<(String, Value)> = committed["rules"]
         .as_array()
         .expect("rules")

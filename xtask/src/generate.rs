@@ -3,160 +3,79 @@
 
 //! `gen [--check]`: every generated file of the repository, written by one command in one order.
 //!
-//! Two kinds of step. An *own* step is a generator inside xtask (`shell_keys`, `docs_gen`, `icons`, `raw_read`,
-//! `symbols`): it writes its file, or with `--check` compares it. A *snapshot* step is a test of a product crate
-//! that compares a committed file with what the code produces and rewrites it when its environment variable is set;
-//! `gen` runs that one test with the variable set. `--check` leaves the snapshot steps to the test run, which
-//! compares the same files.
+//! Two kinds of output:
+//! - **The reference** (`target/reference/`, never committed): what the product's registries say about themselves
+//!   as JSON, for the user guide's reference pages. xtask may not link the product (it is permissive, the product
+//!   GPL), so each registry's own crate has a test that writes its file when `EW_REFERENCE_DIR` is set, and
+//!   [`reference`] runs those tests.
+//! - **Committed files** that a generator of xtask writes from data in the tree: the text keys, the book's contents
+//!   and reference pages, the icon table, the lint list, the QET symbol edition, and the persona harness's action
+//!   list. `--check` compares the ones that need no build.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{Context, Result};
 
-/// What a step runs.
-enum Step {
-    /// A generator of xtask: `(root, check) -> up to date or written`.
-    Own(fn(&Path, bool) -> Result<bool>),
-    /// One nextest call that rewrites committed snapshots: the package, the target arguments, an optional filter
-    /// and the environment variable that makes the test write.
-    Snapshot {
-        package: &'static str,
-        target: &'static [&'static str],
-        filter: Option<&'static str>,
-        env: &'static str,
-    },
-}
+/// Where the reference is written, relative to the root.
+pub(crate) const REFERENCE_DIR: &str = "target/reference";
 
-/// The steps in their order: the text keys first, since every later step builds `ew-viewmodel`; the command
-/// schemas before the CLI schemas and the book, which read them.
-const STEPS: &[(&str, Step)] = &[
-    ("shell-keys", Step::Own(crate::shell_keys::run)),
-    (
-        "command-schemas",
-        Step::Snapshot {
-            package: "ew-commands",
-            target: &["--test", "schemas"],
-            filter: None,
-            env: "EW_COMMANDS_BLESS",
-        },
-    ),
-    (
-        "cli-schemas",
-        Step::Snapshot {
-            package: "ew",
-            target: &["--test", "it"],
-            filter: Some("test(/^conventions::/)"),
-            env: "EW_CLI_BLESS",
-        },
-    ),
-    (
-        "rule-catalogue",
-        Step::Snapshot {
-            package: "ew-checks",
-            target: &["--test", "catalogue"],
-            filter: None,
-            env: "EW_CHECKS_BLESS",
-        },
-    ),
-    (
-        "keymaps",
-        Step::Snapshot {
-            package: "ew-viewmodel",
-            target: &["--test", "keymaps"],
-            filter: None,
-            env: "EW_BLESS",
-        },
-    ),
-    (
-        "blind-reference",
-        Step::Snapshot {
-            package: "ew-viewmodel",
-            target: &["--test", "blind_reference"],
-            filter: None,
-            env: "EW_BLESS",
-        },
-    ),
-    (
-        "cli-snapshot",
-        Step::Snapshot {
-            package: "ew",
-            target: &["--bin", "ew"],
-            filter: Some("test(/^catalogue::/)"),
-            env: "EW_CLI_BLESS",
-        },
-    ),
-    (
-        "api-v1-snapshot",
-        Step::Snapshot {
-            package: "ew-sqlview",
-            target: &["--test", "it"],
-            filter: Some("test(/^api_v1::/)"),
-            env: "EW_BLESS",
-        },
-    ),
-    (
-        "query-snapshot",
-        Step::Snapshot {
-            package: "ew-api",
-            target: &["--test", "it"],
-            filter: Some("test(the_query_snapshot_equals_the_registry)"),
-            env: "EW_BLESS",
-        },
-    ),
-    ("docs-gen", Step::Own(crate::docs_gen::run)),
-    ("gen-icons", Step::Own(crate::icons::run)),
+/// The tests that write the reference: the package, then the arguments that choose the test target and the test.
+const REFERENCE: &[(&str, &[&str])] = &[
+    // commands/: one parameter schema per command and index.json
+    ("ew-commands", &["--test", "schemas"]),
+    // rules.json
+    ("ew-checks", &["--test", "catalogue"]),
+    // keymap-sheet.json
+    ("ew-viewmodel", &["--test", "keymaps", "the_keymap_sheet"]),
+    // cli.json
+    ("ew", &["--bin", "ew", "catalogue::tests::the_cli_reference"]),
+    // results/: one schema per `--json` result and index.json
+    ("ew", &["--test", "it", "conventions::the_result_schemas"]),
+    // api_v1.json
+    ("ew-sqlview", &["--test", "it", "api_v1::the_api_v1_reference"]),
+    // queries.json
+    ("ew-api", &["--test", "it", "queries::the_query_list"]),
+];
+
+/// A generator of xtask: `(root, check) -> up to date or written`.
+type Own = fn(&Path, bool) -> Result<bool>;
+
+/// The generators of xtask in their order. The text keys come first, since the reference tests build
+/// `ew-viewmodel`; the book's pages come after the reference they read.
+const BEFORE_REFERENCE: &[(&str, Own)] = &[("shell-keys", crate::shell_keys::run)];
+const AFTER_REFERENCE: &[(&str, Own)] = &[
+    ("gen-icons", crate::icons::run),
     // The rule `raw-read` compares the list; here it is only written.
-    (
-        "lint-list",
-        Step::Own(|root, check| {
-            if check {
-                Ok(true)
-            } else {
-                crate::raw_read::run(root, true)
-            }
-        }),
-    ),
-    ("symbols-qet10", Step::Own(crate::symbols::run)),
+    ("lint-list", |root, check| {
+        if check {
+            Ok(true)
+        } else {
+            crate::raw_read::run(root, true)
+        }
+    }),
+    ("symbols-qet10", crate::symbols::run),
 ];
 
 /// `gen [--check]`.
 pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
     if check {
-        let ok = check_own(root)?;
-        println!("gen: the snapshots are compared by their tests (`cargo xtask check`)");
-        return Ok(ok);
+        return check_own(root);
     }
     let mut ok = true;
-    for (name, step) in STEPS {
+    for (name, step) in BEFORE_REFERENCE {
         println!("==> gen: {name}");
-        let passed = match step {
-            Step::Own(run) => run(root, false)?,
-            Step::Snapshot {
-                package,
-                target,
-                filter,
-                env,
-            } => {
-                let mut command = Command::new(crate::cargo());
-                command
-                    .current_dir(root)
-                    .env(env, "1")
-                    .args(["nextest", "run", "--cargo-quiet", "--all-features", "-p", package])
-                    .args(*target);
-                if let Some(filter) = filter {
-                    command.args(["-E", filter]);
-                }
-                command
-                    .status()
-                    .with_context(|| format!("running the snapshot test of {name}"))?
-                    .success()
-            }
-        };
-        if !passed {
-            eprintln!("gen: {name} FAILED");
-            ok = false;
-        }
+        ok &= step(root, false)?;
+    }
+    println!("==> gen: reference");
+    ok &= reference(root)?;
+    println!("==> gen: blind-reference");
+    ok &= blind_reference(root)?;
+    println!("==> gen: docs-gen");
+    ok &= crate::docs_gen::run(root, false)?;
+    for (name, step) in AFTER_REFERENCE {
+        println!("==> gen: {name}");
+        ok &= step(root, false)?;
     }
     let changed = crate::repo::git(root, &["status", "--porcelain"])?;
     if changed.trim().is_empty() {
@@ -170,16 +89,63 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
     Ok(ok)
 }
 
-/// The own steps in check mode: `true` when every file xtask writes itself is up to date.
+/// The generators of xtask in check mode: `true` when every file they write is up to date. The book's contents are
+/// left out: comparing them needs the reference, and so a build.
 pub(crate) fn check_own(root: &Path) -> Result<bool> {
     let mut ok = true;
-    for (name, step) in STEPS {
-        if let Step::Own(run) = step
-            && !run(root, true)?
-        {
+    for (name, step) in BEFORE_REFERENCE.iter().chain(AFTER_REFERENCE) {
+        if !step(root, true)? {
             eprintln!("gen: {name} is stale; run `cargo xtask gen`");
             ok = false;
         }
     }
     Ok(ok)
+}
+
+/// Writes the reference under [`REFERENCE_DIR`]: runs each test of [`REFERENCE`] with `EW_REFERENCE_DIR` set. Plain
+/// `cargo test`, so that it also runs where nextest is not installed (the release's book build).
+pub(crate) fn reference(root: &Path) -> Result<bool> {
+    let dir: PathBuf = root.join(REFERENCE_DIR);
+    if dir.exists() {
+        std::fs::remove_dir_all(&dir).with_context(|| format!("removing {}", dir.display()))?;
+    }
+    std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
+    for (package, args) in REFERENCE {
+        let (target, test) = args.split_at(2);
+        let mut command = Command::new(crate::cargo());
+        command
+            .current_dir(root)
+            .env("EW_REFERENCE_DIR", &dir)
+            .args(["test", "--quiet", "--all-features", "-p", package])
+            .args(target)
+            .arg("--")
+            .args(test);
+        let status = command
+            .status()
+            .with_context(|| format!("running the reference test of {package}"))?;
+        if !status.success() {
+            eprintln!("gen: the reference test of {package} ({}) FAILED", args.join(" "));
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+/// The persona harness's committed action and vocabulary lists (`tools/blind/reference/`), rewritten by their test.
+fn blind_reference(root: &Path) -> Result<bool> {
+    Ok(Command::new(crate::cargo())
+        .current_dir(root)
+        .env("EW_BLESS", "1")
+        .args([
+            "test",
+            "--quiet",
+            "--all-features",
+            "-p",
+            "ew-viewmodel",
+            "--test",
+            "blind_reference",
+        ])
+        .status()
+        .context("running the blind reference test")?
+        .success())
 }

@@ -6,48 +6,23 @@
 //! the actions it names, keeps unknown actions as unused, and a file with a conflict is refused with a banner while the
 //! preset applies; KM-3 the editor records, refuses a conflict, lists shadowing, resets and exports a file that imports
 //! back equal; KM-4 the reachability of both presets on QWERTY-US, QWERTZ-DE and AZERTY-FR; KM-5 Ctrl+Shift+N is
-//! Renumber devices…; KM-6 the keymap sheet. `EW_BLESS=1` rewrites the generated files:
-//!
-//! ```text
-//! EW_BLESS=1 cargo nextest run -p ew-viewmodel --test keymaps
-//! ```
+//! Renumber devices…; KM-6 the keymap sheet, which `cargo xtask gen` has this test write for the user guide (it sets
+//! `EW_REFERENCE_DIR`).
 
 mod common;
 
 use std::path::{Path, PathBuf};
 
-use common::{Tmp, bless, done, refused};
+use common::{Tmp, done, refused};
 use ew_viewmodel::actions::{self, Context};
 use ew_viewmodel::keymap::{self, Chord, Finding, Keymap, Layout, Preset, Severity};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::json;
 
-const BLESS_HINT: &str = "EW_BLESS=1 cargo nextest run -p ew-viewmodel --test keymaps";
-
-fn keymaps_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("keymaps")
-}
-
-/// The committed file `name` under `keymaps/` equals `text`; `EW_BLESS=1` rewrites it.
-fn assert_file(name: &str, text: &str) {
-    let path = keymaps_dir().join(name);
-    if bless() {
-        std::fs::create_dir_all(keymaps_dir()).unwrap();
-        std::fs::write(&path, text).unwrap();
-        return;
-    }
-    let committed = std::fs::read_to_string(&path)
-        .unwrap_or_else(|_| panic!("keymaps/{name} is missing; run {BLESS_HINT}"))
-        .replace("\r\n", "\n");
-    assert!(committed == text, "keymaps/{name} is stale; run {BLESS_HINT}");
-}
-
-/// The text of a preset's file: the licence header, then the keymap.
+/// A preset written as a keymap file: a comment, then the keymap.
 fn preset_file(preset: Preset) -> String {
     format!(
-        "# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors\n# SPDX-License-Identifier: GPL-3.0-or-later\n\n\
-         # The {} keymap preset (WP-S2.08 D6), generated from the action registry by ew-viewmodel's `keymaps` test.\n\
-         # Do not edit: change the registry (or the preset's rule in keymap.rs) and run {BLESS_HINT}.\n\n{}",
+        "# The {} keymap preset, as the action registry gives it.\n\n{}",
         preset.name(),
         preset.keymap().to_toml()
     )
@@ -57,19 +32,19 @@ fn chord(text: &str) -> Chord {
     Chord::parse(text).unwrap()
 }
 
-/// KM-1: `keymaps/ew.toml` equals what the registry generates, `keymaps/kicad.toml` parses into the KiCad-like preset.
+/// KM-1: a preset written as a keymap file parses back into the preset.
 #[test]
-fn the_preset_files_equal_the_registry() {
+fn a_preset_file_parses_back_into_its_preset() {
     for preset in Preset::ALL {
         let text = preset_file(preset);
-        assert_file(&format!("{}.toml", preset.word()), &text);
         let parsed = Keymap::parse(&text).unwrap();
         assert_eq!(parsed, preset.keymap(), "{preset:?}");
         assert_eq!(parsed.name, preset.name());
         assert!(parsed.unused().is_empty());
     }
     // The file writes punctuation by physical key (D6): `]` is `phys:BracketRight`.
-    let ew = std::fs::read_to_string(keymaps_dir().join("ew.toml")).unwrap();
+    let ew = preset_file(Preset::ALL[0]);
+    assert_eq!(Preset::ALL[0].word(), "ew");
     assert!(
         ew.contains("keys = \"phys:BracketRight\"\naction = \"cp.next\""),
         "{ew}"
@@ -396,12 +371,17 @@ fn ctrl_shift_n_is_renumber_devices() {
     assert_eq!(on, ["devices.renumber"]);
 }
 
-/// KM-6 (NFR-DOC-06): the keymap sheet `keymaps/sheet.json` equals what the presets generate, and holds each bound
-/// action once with its bindings per preset.
+/// KM-6 (NFR-DOC-06): the keymap sheet holds each bound action once with its bindings per preset. It is written
+/// where `EW_REFERENCE_DIR` asks for the reference.
+// The variable only chooses whether the generated file is also written out.
+#[allow(clippy::disallowed_methods)]
 #[test]
-fn the_keymap_sheet_equals_the_presets() {
+fn the_keymap_sheet_holds_each_bound_action_once() {
     let text = keymap::sheet_json();
-    assert_file("sheet.json", &text);
+    if let Some(dir) = std::env::var_os("EW_REFERENCE_DIR").map(PathBuf::from) {
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("keymap-sheet.json"), &text).unwrap();
+    }
     let sheet: serde_json::Value = serde_json::from_str(&text).unwrap();
     let place = sheet["actions"]
         .as_array()

@@ -369,8 +369,6 @@ fn focus_topic(model: &ShellModel) -> Option<&'static str> {
     })
 }
 
-// WP-S2.09 part 2
-// map: reference-rules-anchor: a new rule page or anchor rule goes here, as docs_gen.rs gives it.
 /// The page of a shipped rule in the book (§7.3; WP-S7.05 D3, D6): the rule's declared `docs` reference as a page,
 /// `reference/rules/<id in lower case>.md` (`reference/rules/ew-core-033.md`); `None` for a rule this build does not
 /// ship.
@@ -411,37 +409,19 @@ mod tests {
     use super::*;
 
     const BOOK_SRC: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/book/src");
-    /// The command index that the built command pages render.
-    const COMMAND_INDEX: &str = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../crates/ew-commands/schemas/index.json"
-    );
-    /// The rule catalogue that the built rule pages render.
-    const RULE_CATALOGUE: &str = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../crates/ew-checks/catalogue/rules.json"
-    );
     /// The built directory of the command pages.
     const COMMANDS_DIR: &str = "reference/commands/";
 
-    // map: reference-commands-page: a new command page rule goes here, as docs_gen.rs gives it.
     /// The built page of a command, below `docs/book/src`.
     fn command_page(name: &str) -> String {
         format!("{COMMANDS_DIR}{name}.md")
     }
 
-    fn read_json(path: &str) -> serde_json::Value {
-        let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{path}: {e}"));
-        serde_json::from_str(&text).unwrap_or_else(|e| panic!("{path}: {e}"))
-    }
-
-    /// The names of the commands of the command index.
+    /// The names of the registered commands, each of which gets a built page.
     fn command_names() -> Vec<String> {
-        let index = read_json(COMMAND_INDEX);
-        let commands = index["commands"].as_array().expect("a `commands` list");
-        commands
-            .iter()
-            .map(|c| c["name"].as_str().expect("a command name").to_owned())
+        ew_api::CommandRegistry::builtin()
+            .names()
+            .map(str::to_owned)
             .collect()
     }
 
@@ -521,25 +501,16 @@ mod tests {
         }
     }
 
-    /// WP-S2.09 MS4, WP-S7.05 DC-1: every shipped rule, the integrity rules of opening a project included (decision
-    /// log ID-1376), has its page in `SUMMARY.md`, and the rule catalogue that the built rule pages render holds the
-    /// rule with the same `docs` reference, so docs-gen writes the page its `docs` declares.
+    /// Every shipped rule, the integrity rules of opening a project included, has a page under the built rule
+    /// reference, named after its ID.
     #[test]
-    fn every_shipped_rule_has_its_anchor_in_the_book() {
-        let summary = std::fs::read_to_string(Path::new(BOOK_SRC).join("SUMMARY.md")).expect("SUMMARY.md");
-        let catalogue = read_json(RULE_CATALOGUE);
-        let entries = catalogue["rules"].as_array().expect("a `rules` list");
+    fn every_shipped_rule_has_its_page() {
         let rules = ew_api::checks::rules();
         assert!(!rules.is_empty());
         let integrity = ew_api::checks::rules::core::INTEGRITY;
         for meta in rules.iter().map(|r| r.meta()).chain(integrity) {
             let page = rule_page(meta.id).expect("a shipped rule");
-            assert!(summary.contains(&page), "{page} is not in SUMMARY.md");
-            let entry = entries
-                .iter()
-                .find(|e| e["id"].as_str() == Some(meta.id))
-                .unwrap_or_else(|| panic!("{}: not in the rule catalogue", meta.id));
-            assert_eq!(entry["docs"].as_str(), Some(meta.docs), "{}", meta.id);
+            assert_eq!(page, format!("reference/rules/{}.md", meta.id.to_lowercase()));
         }
         assert_eq!(
             rule_page("EW-CORE-033").as_deref(),

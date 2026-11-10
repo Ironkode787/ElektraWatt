@@ -770,18 +770,10 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------------------------------------
-    // The CLI snapshot (WP-S1.22 D13, AG-1)
+    // The CLI reference
     //
-    // The orchestrator's ruling 1 (cycle 42): "The CLI snapshot's generator lives in a binary": the catalogue is a
-    // module of the `ew` binary, which has no library target, so this unit test writes `bin/ew/api/cli.json`,
-    // blessed with `EW_CLI_BLESS=1` (the flag of the result schemas).
-
-    /// The committed CLI snapshot.
-    const SNAPSHOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/api/cli.json");
-
-    /// The command that rewrites the snapshot.
-    const BLESS: &str =
-        "EW_CLI_BLESS=1 cargo nextest run -p ew --all-features --bin ew -E 'test(/^catalogue::/)'";
+    // The catalogue is a module of the `ew` binary, which has no library target, so this unit test writes the
+    // reference (`cli.json`: paths, flags, exits, results) where `EW_REFERENCE_DIR` asks for it, for the user guide.
 
     #[derive(serde::Serialize)]
     struct SnapshotFile {
@@ -846,55 +838,15 @@ mod tests {
         text
     }
 
-    /// The comparison of the committed snapshot with the generated text: `Err` with the whole message when they
-    /// differ or the file is missing.
-    fn compare(committed: Option<&str>, generated: &str) -> Result<(), String> {
-        if committed == Some(generated) {
-            Ok(())
-        } else {
-            Err(format!(
-                "bin/ew/api/cli.json is out of date; run `{BLESS}` and commit the result"
-            ))
-        }
-    }
-
-    /// Whether `EW_CLI_BLESS=1` asks for the snapshot to be rewritten.
-    // The flag only chooses whether the committed file is rewritten; the compared result never depends on it.
+    // The variable only chooses whether the generated file is also written out.
     #[allow(clippy::disallowed_methods)]
-    fn bless() -> bool {
-        std::env::var_os("EW_CLI_BLESS").is_some_and(|v| v == "1")
-    }
-
-    /// AG-1 (D13): `bin/ew/api/cli.json` equals the snapshot of the catalogue (an equality snapshot, blessed with
-    /// `EW_CLI_BLESS=1`).
     #[test]
-    fn the_cli_snapshot_equals_the_table() {
-        let generated = snapshot_text(&catalogue());
-        if bless() {
-            std::fs::create_dir_all(std::path::Path::new(SNAPSHOT).parent().unwrap()).unwrap();
-            std::fs::write(SNAPSHOT, &generated).unwrap();
+    fn the_cli_reference_is_written_where_it_is_asked_for() {
+        let Some(dir) = std::env::var_os("EW_REFERENCE_DIR").map(std::path::PathBuf::from) else {
             return;
-        }
-        let committed = std::fs::read_to_string(SNAPSHOT)
-            .ok()
-            .map(|t| t.replace("\r\n", "\n"));
-        if let Err(message) = compare(committed.as_deref(), &generated) {
-            panic!("{message}");
-        }
-    }
-
-    /// AG-1: a one-character edit of the snapshot fails the comparison with the bless command in its message; a
-    /// missing file fails the same way.
-    #[test]
-    fn an_edited_cli_snapshot_fails_naming_the_bless_command() {
-        let generated = snapshot_text(&catalogue());
-        assert_eq!(compare(Some(&generated), &generated), Ok(()));
-        let edited = generated.replacen("\"--json\"", "\"--jsom\"", 1);
-        assert_ne!(edited, generated);
-        let want = "bin/ew/api/cli.json is out of date; run `EW_CLI_BLESS=1 cargo nextest run -p ew --all-features \
-                    --bin ew -E 'test(/^catalogue::/)'` and commit the result";
-        assert_eq!(compare(Some(&edited), &generated), Err(want.to_owned()));
-        assert_eq!(compare(None, &generated), Err(want.to_owned()));
+        };
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("cli.json"), snapshot_text(&catalogue())).unwrap();
     }
 
     /// The snapshot's form: entries sorted by path, flags and exits in table order, the result name or `null`.

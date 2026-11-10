@@ -13,10 +13,6 @@ use ew_api::cli_results as results;
 use serde_json::{Value, json};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-const QUERIES_JSON: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../../crates/ew-api/api/queries.json"
-);
 
 /// A fresh temporary directory with its own user directories, removed on drop.
 struct Tmp(PathBuf);
@@ -137,12 +133,14 @@ fn compile(url: &str, schema: Value) -> (boon::Schemas, boon::SchemaIndex) {
     (schemas, index)
 }
 
-/// The committed result schema `name` (`bin/ew/schemas/`), compiled.
+/// The result schema `name`, compiled.
 fn result_schema(name: &str) -> (boon::Schemas, boon::SchemaIndex) {
     let file = results::file_name(name);
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("schemas").join(&file);
-    let text = std::fs::read_to_string(&path)
-        .unwrap_or_else(|_| panic!("{file} is not committed under bin/ew/schemas/"));
+    let text = results::schema_files()
+        .into_iter()
+        .find(|(f, _)| *f == file)
+        .unwrap_or_else(|| panic!("no result schema {file}"))
+        .1;
     compile(&format!("urn:ew:{file}"), serde_json::from_str(&text).unwrap())
 }
 
@@ -321,7 +319,7 @@ fn queries_prints_the_committed_registry() {
     let t = Tmp::new();
     let o = t.ew(&args([&"queries", &"--json"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert_eq!(stdout(&o), std::fs::read_to_string(QUERIES_JSON).unwrap());
+    assert_eq!(stdout(&o), results::to_text(&results::queries()));
     let value: Value = serde_json::from_str(&stdout(&o)).unwrap();
     let (schemas, index) = result_schema(results::QUERIES);
     schemas.validate(&value, index).unwrap();
