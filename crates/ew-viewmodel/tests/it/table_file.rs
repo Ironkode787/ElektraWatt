@@ -11,15 +11,15 @@
 use std::path::Path;
 
 use crate::common;
-use common::{Tmp, done, refused};
+use common::{Tmp, done, failed, refused};
 use ew_viewmodel::ew_api;
 use ew_viewmodel::ew_api::ew_jobs::Gate;
 use ew_viewmodel::ew_api::output::{NavKind, NavRole};
 use ew_viewmodel::ew_api::zip::{Method, ZipLimits, read as unzip, write as zip};
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::script::card_summary;
-use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
-use serde_json::{Value, json};
+use ew_viewmodel::shell::{Mode, ShellModel};
+use serde_json::json;
 
 /// A writable copy of Golden A, headless, with the Terminal strips table on show, filtered `-X1031`, in node order.
 fn strips(tmp: &Tmp) -> ShellModel {
@@ -45,14 +45,6 @@ fn strips(tmp: &Tmp) -> ShellModel {
 
 fn text(p: &Path) -> String {
     p.to_string_lossy().into_owned()
-}
-
-#[track_caller]
-fn failed(shell: &mut ShellModel, action: &str, params: Value) -> String {
-    match shell.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action}: {other:?}"),
-    }
 }
 
 /// The workbook `ew export table strips --strip -X1031` writes without `SOURCE_DATE_EPOCH`, by the CLI's own calls

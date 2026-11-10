@@ -9,30 +9,11 @@
 use crate::common;
 use ew_viewmodel::key;
 
-use common::{Tmp, done, refused, state};
+use common::{Tmp, done, new_project, refused, state, strip_at, strip_cursor, strip_row, strip_texts, toast};
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::PickerMode;
 use serde_json::json;
-
-/// A headless shell with a new project (the builtin template) and a new folio 101 shown.
-fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    done(
-        &mut s,
-        "page.new",
-        json!({"folio": "101", "type": "multi_line", "title": "Power"}),
-    );
-    s
-}
 
 /// Opens the picker filtered to `filter` and chooses its first row.
 fn choose(s: &mut ShellModel, filter: &str) {
@@ -133,54 +114,11 @@ fn ft621_the_page_description_lists_a_strips_bridges() {
     s.shutdown();
 }
 
-// ---------------------------------------------------------------------------------------------------------------
-// Strip editor helpers (as in strip_editor.rs)
-
-/// The texts of the Terminal strips column labelled `label` on show, with the row keys.
-fn column(s: &ShellModel, label: &str) -> Vec<(String, String)> {
-    let n = s.nav(NavKind::Strips).unwrap();
-    let t = n.table().unwrap();
-    let c = t.columns.iter().position(|c| c.label == label).unwrap();
-    n.visible()
-        .iter()
-        .map(|r| {
-            let node = &t.nodes[r.node as usize];
-            (node.key.clone(), node.cells[c].clone())
-        })
-        .collect()
-}
-
-fn texts(s: &ShellModel, label: &str) -> Vec<String> {
-    column(s, label).into_iter().map(|(_, t)| t).collect()
-}
-
-fn row(s: &ShellModel, label: &str, text: &str) -> String {
-    column(s, label)
-        .into_iter()
-        .find(|(_, t)| t == text)
-        .unwrap_or_else(|| panic!("no row with {label} {text}"))
-        .0
-}
-
-fn cursor(s: &ShellModel) -> String {
-    s.nav(NavKind::Strips)
-        .and_then(|n| n.cursor_key())
-        .expect("a cursor row")
-}
-
-fn toast(s: &ShellModel) -> String {
-    state(s)["toast"]["text"].as_str().unwrap_or_default().to_owned()
-}
-
 /// A writable copy of Golden A, headless, with the strip editor open on `strip` (table mode, filtered).
 fn editor(tmp: &Tmp, strip: &str) -> ShellModel {
     let mut s = tmp.shell_in(Mode::Headless, true, "103");
     done(&mut s, "strip.edit", json!({ "strip": strip }));
     s
-}
-
-fn at(s: &mut ShellModel, key: &str) {
-    done(s, "table.cell", json!({"kind": "strips", "row": key}));
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -193,27 +131,27 @@ fn at(s: &mut ShellModel, key: &str) {
 fn ft600_add_accessory_before_the_first_terminal_in_table_mode() {
     let tmp = Tmp::new("s207p2-600");
     let mut s = editor(&tmp, "-X1031");
-    let k1 = row(&s, "Terminal", "1");
-    assert_eq!(cursor(&s), k1);
+    let k1 = strip_row(&s, "Terminal", "1");
+    assert_eq!(strip_cursor(&s), k1);
     let steps = s.recorded_commands().len();
     done(&mut s, "strip.add_accessory", json!({"before": true}));
     assert_eq!(s.recorded_commands().len(), steps + 1, "one command");
     assert_eq!(toast(&s), "Added end bracket before terminal 1 of -X1031.");
-    assert_eq!(texts(&s, "Pos")[..2], ["0.1", "1"]);
-    assert_eq!(cursor(&s), row(&s, "Pos", "0.1"));
+    assert_eq!(strip_texts(&s, "Pos")[..2], ["0.1", "1"]);
+    assert_eq!(strip_cursor(&s), strip_row(&s, "Pos", "0.1"));
     // Before terminal 5: after terminal 4.
-    let k5 = row(&s, "Terminal", "5");
-    at(&mut s, &k5);
+    let k5 = strip_row(&s, "Terminal", "5");
+    strip_at(&mut s, &k5);
     done(&mut s, "strip.add_accessory", json!({"before": true}));
-    let pos = texts(&s, "Pos");
+    let pos = strip_texts(&s, "Pos");
     let i = pos.iter().position(|p| p == "4.1").expect("4.1");
     assert_eq!(pos[i - 1..=i + 1], ["4", "4.1", "5"]);
     // An undo removes the last one only.
     done(&mut s, "edit.undo", json!({}));
-    assert!(!texts(&s, "Pos").contains(&"4.1".to_owned()));
-    assert_eq!(texts(&s, "Pos")[0], "0.1");
+    assert!(!strip_texts(&s, "Pos").contains(&"4.1".to_owned()));
+    assert_eq!(strip_texts(&s, "Pos")[0], "0.1");
     // Without `before`, after the terminal, named in words.
-    at(&mut s, &k5);
+    strip_at(&mut s, &k5);
     done(&mut s, "strip.add_accessory", json!({}));
     assert_eq!(toast(&s), "Added end bracket after terminal 5 of -X1031.");
     s.shutdown();
@@ -233,10 +171,10 @@ fn s68_enter_on_an_unplaced_terminal_row_arms_place_with_its_function() {
     done(&mut s, "view.zoom_actual", json!({}));
     done(&mut s, "strip.edit", json!({"strip": "1X1"}));
     // A new terminal at the end of 1X1 (it has no strip segment): unplaced.
-    let last = row(&s, "Terminal", "PE");
-    at(&mut s, &last);
+    let last = strip_row(&s, "Terminal", "PE");
+    strip_at(&mut s, &last);
     done(&mut s, "strip.insert", json!({"designation": "9"}));
-    let new = row(&s, "Terminal", "9");
+    let new = strip_row(&s, "Terminal", "9");
     let rows = s.shown_rows(NavKind::Strips);
     let r = rows.iter().find(|r| r.key == new).expect("the new row");
     assert!(r.badges.iter().any(|b| b == "unplaced"), "{:?}", r.badges);
@@ -244,7 +182,7 @@ fn s68_enter_on_an_unplaced_terminal_row_arms_place_with_its_function() {
         &r.drag,
         Some(ew_viewmodel::shell::DragSource::Function(_))
     ));
-    let placed = row(&s, "Terminal", "1");
+    let placed = strip_row(&s, "Terminal", "1");
     let r1 = rows.iter().find(|r| r.key == placed).unwrap();
     assert!(!r1.badges.iter().any(|b| b == "unplaced"));
     // Enter on the row (in the tree view) arms Place with the terminal's function.

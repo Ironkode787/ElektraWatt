@@ -8,7 +8,7 @@
 
 use crate::common;
 
-use common::{Tmp, done, refused};
+use common::{Tmp, done, failed, refused};
 use ew_viewmodel::navigators::{NavKind, NavNode, NavRole};
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use serde_json::json;
@@ -45,13 +45,6 @@ fn state(shell: &ShellModel, key: &str) -> String {
 
 fn waived(shell: &ShellModel) -> usize {
     shell.messages_counts().expect("the counts").waived
-}
-
-fn failed(shell: &mut ShellModel, action: &str, params: serde_json::Value) -> String {
-    match shell.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action} {params}: {other:?}"),
-    }
 }
 
 /// The reason, author and date of the waiver the last committed step recorded.

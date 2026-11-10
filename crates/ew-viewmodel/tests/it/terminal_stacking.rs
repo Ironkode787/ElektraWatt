@@ -7,15 +7,9 @@
 
 use crate::common;
 
-use common::{Tmp, done, state};
+use common::{Tmp, done, grid_point, toast};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
-
-/// The page point of grid index `k` on the shown page.
-fn page_point(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
-    let sn = &s.canvas().unwrap().page().snapper;
-    (sn.page_of_index(k.0), sn.page_of_index(k.1))
-}
 
 /// The insertion point of the representation whose connection points print `label` (a terminal's with its clamp, `/a`).
 fn pos_of(s: &ShellModel, label: &str) -> (i64, i64) {
@@ -38,13 +32,13 @@ fn place(s: &mut ShellModel, strip: &str, designation: &str, k: (i64, i64)) -> S
         "place.pick",
         json!({"symbol": "ew.iec.terminal@qet10", "strip": strip, "terminal_designation": designation}),
     );
-    let p = page_point(s, k);
+    let p = grid_point(s, k);
     let sheet = s.canvas().unwrap().page().snapper.page_to_sheet(p);
     done(s, "cursor.set", common::at(sheet, json!({})));
     done(s, "canvas.activate_alt", json!({}));
-    let toast = state(s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
+    let text = toast(s);
     done(s, "tool.select", json!({}));
-    toast
+    text
 }
 
 #[test]
@@ -53,7 +47,7 @@ fn terminals_of_one_strip_on_one_point_stack_two_grid_steps_apart() {
     let mut s = tmp.shell_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
     let k = (110, 30);
-    let p = page_point(&s, k);
+    let p = grid_point(&s, k);
     // Two grid steps along per terminal already there, by grid index (QET's 10 px is a fractional step in nm).
     for (i, d) in ["50", "51", "52"].into_iter().enumerate() {
         let toast = place(&mut s, "-X1031", d, k);
@@ -62,7 +56,7 @@ fn terminals_of_one_strip_on_one_point_stack_two_grid_steps_apart() {
             "{toast}"
         );
         let at = pos_of(&s, &format!("-X1031:{d}"));
-        assert_eq!(at, page_point(&s, (k.0 + 2 * i as i64, k.1)), "-X1031:{d}");
+        assert_eq!(at, grid_point(&s, (k.0 + 2 * i as i64, k.1)), "-X1031:{d}");
     }
     // A terminal of another strip of folio 103 on the same point is not moved.
     let toast = place(&mut s, "-X1032", "60", k);

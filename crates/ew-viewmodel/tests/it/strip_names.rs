@@ -8,24 +8,10 @@
 
 use crate::common;
 
-use common::{Tmp, done};
+use common::{Tmp, done, failed, strip_col};
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
-
-/// The column key of the column labelled `label` in the Terminal strips table.
-fn col(shell: &ShellModel, label: &str) -> String {
-    let t = shell
-        .nav(NavKind::Strips)
-        .and_then(|n| n.table())
-        .expect("a table");
-    t.columns
-        .iter()
-        .find(|c| c.label == label)
-        .unwrap_or_else(|| panic!("no column {label}"))
-        .key
-        .clone()
-}
 
 /// The internal key of -X1031's terminal `n`: the node labelled `n` whose parent is labelled `-X1031`.
 fn x1031(shell: &ShellModel, n: &str) -> String {
@@ -55,18 +41,11 @@ fn strips(tmp: &Tmp, table: bool) -> ShellModel {
     shell
 }
 
-fn failed(shell: &mut ShellModel, action: &str, params: serde_json::Value) -> String {
-    match shell.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action} {params}: {other:?}"),
-    }
-}
-
 #[test]
 fn table_set_takes_a_terminal_row_by_its_tag() {
     let tmp = Tmp::new("k33-strip-keys");
     let mut shell = strips(&tmp, true);
-    let function_text = col(&shell, "Function text");
+    let function_text = strip_col(&shell, "Function text");
     let rows = [x1031(&shell, "1"), x1031(&shell, "2")];
     let steps = shell.recorded_commands().len();
     done(

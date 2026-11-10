@@ -25,18 +25,33 @@ impl Tmp {
         Tmp(fresh_dir::fresh_dir(&format!("ew-vm-{tag}")))
     }
 
-    /// A shell in `mode` with a copy of Golden A open (read-only unless `writable`), showing `folio`.
-    pub fn shell_in(&self, mode: Mode, writable: bool, folio: &str) -> ShellModel {
+    /// A shell in `mode` with no project open, its settings in this directory.
+    pub fn empty_shell(&self, mode: Mode) -> ShellModel {
+        ShellModel::new(mode, ShellConfig::in_dir(&self.0.join("config"), "0.0.0-test"))
+    }
+
+    /// A headless shell with a copy of Golden A open (read-only unless `writable`), on the page it opens on.
+    pub fn open(&self, writable: bool) -> ShellModel {
+        self.open_in(Mode::Headless, writable)
+    }
+
+    fn open_in(&self, mode: Mode, writable: bool) -> ShellModel {
         let dir = self.golden_copy();
         if !dir.exists() {
             copy_dir(Path::new(GOLDEN_A), &dir);
         }
-        let mut shell = ShellModel::new(mode, ShellConfig::in_dir(&self.0.join("config"), "0.0.0-test"));
+        let mut shell = self.empty_shell(mode);
         done(
             &mut shell,
             "file.open",
             json!({"dir": dir.to_string_lossy(), "read_only": !writable}),
         );
+        shell
+    }
+
+    /// A shell in `mode` with a copy of Golden A open (read-only unless `writable`), showing `folio`.
+    pub fn shell_in(&self, mode: Mode, writable: bool, folio: &str) -> ShellModel {
+        let mut shell = self.open_in(mode, writable);
         done(&mut shell, "page.goto", json!({ "folio": folio }));
         shell
     }
@@ -198,10 +213,7 @@ pub fn toast(s: &ShellModel) -> String {
 
 /// A headless shell with a new project (the builtin template) and a new folio 101 shown.
 pub fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
     done(
         &mut s,
         "file.new",
@@ -385,4 +397,59 @@ pub fn user_library(
         .create(&t.user.join("mine.ewlib"), "mine", "Mine", "CC0-1.0")
         .unwrap();
     (t, lib)
+}
+
+/// The column key of the Terminal strips column labelled `label`.
+pub fn strip_col(shell: &ShellModel, label: &str) -> String {
+    let t = shell
+        .nav(ew_viewmodel::navigators::NavKind::Strips)
+        .and_then(|n| n.table())
+        .expect("a table");
+    t.columns
+        .iter()
+        .find(|c| c.label == label)
+        .unwrap_or_else(|| panic!("no column {label}"))
+        .key
+        .clone()
+}
+
+/// The Terminal strips rows on show in display order: (key, the cell of the column labelled `label`).
+pub fn strip_column(shell: &ShellModel, label: &str) -> Vec<(String, String)> {
+    let n = shell.nav(ew_viewmodel::navigators::NavKind::Strips).unwrap();
+    let t = n.table().unwrap();
+    let c = t.columns.iter().position(|c| c.label == label).unwrap();
+    n.visible()
+        .iter()
+        .map(|r| {
+            let node = &t.nodes[r.node as usize];
+            (node.key.clone(), node.cells[c].clone())
+        })
+        .collect()
+}
+
+/// The texts of the Terminal strips column labelled `label` on show.
+pub fn strip_texts(shell: &ShellModel, label: &str) -> Vec<String> {
+    strip_column(shell, label).into_iter().map(|(_, t)| t).collect()
+}
+
+/// The key of the Terminal strips row on show whose cell in column `label` is `text`.
+pub fn strip_row(shell: &ShellModel, label: &str, text: &str) -> String {
+    strip_column(shell, label)
+        .into_iter()
+        .find(|(_, t)| t == text)
+        .unwrap_or_else(|| panic!("no row with {label} {text}"))
+        .0
+}
+
+/// The Terminal strips cursor row's key.
+pub fn strip_cursor(shell: &ShellModel) -> String {
+    shell
+        .nav(ew_viewmodel::navigators::NavKind::Strips)
+        .and_then(|n| n.cursor_key())
+        .expect("a cursor row")
+}
+
+/// Puts the Terminal strips cursor on the row `key`.
+pub fn strip_at(shell: &mut ShellModel, key: &str) {
+    done(shell, "table.cell", json!({"kind": "strips", "row": key}));
 }

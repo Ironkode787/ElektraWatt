@@ -11,23 +11,13 @@
 use crate::common;
 use ew_viewmodel::key;
 
-use common::{Tmp, at, done, refused, state};
+use common::{
+    Tmp, actual_size, at, canvas, click_at, cursor, describe_line, done, grid_point, refused, sheet, tables,
+};
 use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableCp, TableEnd};
-use ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::tools::{MarkerKind, OverlayItem};
 use serde_json::{Value, json};
-
-/// A headless shell with a writable copy of Golden A on `folio`, at actual size (8 points are less than one grid step,
-/// so a grid point next to a connection point is a point of its own).
-fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, folio);
-    done(&mut s, "view.zoom_actual", json!({}));
-    s
-}
-
-fn tables(s: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
-}
 
 /// The CP with `label` (the first in ID order).
 fn cp(s: &ShellModel, label: &str) -> TableCp {
@@ -37,40 +27,6 @@ fn cp(s: &ShellModel, label: &str) -> TableCp {
         .find(|c| c.label == label)
         .unwrap_or_else(|| panic!("no CP {label}"))
         .clone()
-}
-
-/// The sheet point of a page point.
-fn sheet(s: &ShellModel, p: (i64, i64)) -> (i64, i64) {
-    s.canvas().unwrap().page().snapper.page_to_sheet(p)
-}
-
-/// The page point of grid index `k`.
-fn grid_point(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
-    let sn = &s.canvas().unwrap().page().snapper;
-    (sn.page_of_index(k.0), sn.page_of_index(k.1))
-}
-
-/// The grid cursor to the page point `p`.
-fn cursor(s: &mut ShellModel, p: (i64, i64)) {
-    let q = sheet(s, p);
-    done(s, "cursor.set", at(q, json!({})));
-}
-
-/// The cursor to `p`, then Enter.
-fn enter_at(s: &mut ShellModel, p: (i64, i64)) {
-    cursor(s, p);
-    done(s, "canvas.activate", json!({}));
-}
-
-fn canvas(s: &ShellModel) -> Value {
-    state(s)["canvas"].clone()
-}
-
-fn describe_line(s: &ShellModel, prefix: &str) -> Option<String> {
-    s.describe()
-        .lines()
-        .find(|l| l.starts_with(prefix))
-        .map(str::to_owned)
 }
 
 /// The label of a connection end on the page (`@` for a junction).
@@ -117,7 +73,7 @@ fn orthogonal(r: &[(i64, i64)]) -> bool {
 #[test]
 fn wr2_the_wire_tool_draws_a_routed_connection_from_cp_to_cp_by_keyboard() {
     let tmp = Tmp::new("wire");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     let (a, b) = (cp(&s, "-102F1:2"), cp(&s, "-102F2:24VDC#1"));
     let before = tables(&s);
     let rev = s.revision();
@@ -187,20 +143,20 @@ fn wr2_the_wire_tool_draws_a_routed_connection_from_cp_to_cp_by_keyboard() {
 #[test]
 fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
     let tmp = Tmp::new("ends");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     done(&mut s, "tool.wire", json!({}));
     // A wire needs two endpoints: Enter on the empty grid does not start one.
     let empty = grid_point(&s, (20, 60));
     let rev = s.revision();
-    enter_at(&mut s, empty);
+    click_at(&mut s, empty);
     assert_eq!(canvas(&s)["snap"]["kind"], "grid");
     assert_eq!(s.tool().state(), "armed");
     assert_eq!(s.revision(), rev);
     // From a free CP, a bend on the grid, Backspace, the bend again, then onto a junction.
     let start = cp(&s, "-102F2:13");
-    enter_at(&mut s, start.at);
+    click_at(&mut s, start.at);
     let bend = grid_point(&s, (58, 33));
-    enter_at(&mut s, bend);
+    click_at(&mut s, bend);
     assert_eq!(canvas(&s)["route"]["bends"], 1);
     done(&mut s, "tool.back", json!({}));
     assert_eq!(canvas(&s)["route"]["bends"], 0);
@@ -211,7 +167,7 @@ fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
         "Backspace without a bend does nothing"
     );
     let bend = grid_point(&s, (58, 33));
-    enter_at(&mut s, bend);
+    click_at(&mut s, bend);
     let junction = tables(&s)
         .junctions
         .iter()
@@ -244,7 +200,7 @@ fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
     let x = s.canvas().unwrap().page().snapper.page_of_index(76);
     let point = (x, 15_875_000);
     let free = cp(&s, "-102F2:14");
-    enter_at(&mut s, free.at);
+    click_at(&mut s, free.at);
     cursor(&mut s, point);
     assert_eq!(
         canvas(&s)["snap"]["kind"],
@@ -273,14 +229,14 @@ fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
 #[test]
 fn backspace_after_two_collinear_bends_keeps_the_first() {
     let tmp = Tmp::new("bends");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     done(&mut s, "tool.wire", json!({}));
     let start = cp(&s, "-102F2:13");
-    enter_at(&mut s, start.at);
+    click_at(&mut s, start.at);
     // Bends straight above the CP, on rows no wire runs along.
     let (b1, b2) = (grid_point(&s, (58, 33)), grid_point(&s, (58, 32)));
-    enter_at(&mut s, b1);
-    enter_at(&mut s, b2);
+    click_at(&mut s, b1);
+    click_at(&mut s, b2);
     assert_eq!(canvas(&s)["route"]["bends"], 2);
     done(&mut s, "tool.back", json!({}));
     assert_eq!(canvas(&s)["route"]["bends"], 1);
@@ -304,7 +260,7 @@ fn backspace_after_two_collinear_bends_keeps_the_first() {
 #[test]
 fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
     let tmp = Tmp::new("kinds");
-    let mut s = shell(&tmp, "3");
+    let mut s = actual_size(&tmp, "3");
     assert_eq!(refused(&mut s, "tool.wire", json!({})), "reason-no-wire-kind");
     assert!(s.describe().contains("item tool.wire \"Wire\" [W] disabled: "));
     done(&mut s, "page.goto", json!({"folio": "201"}));
@@ -323,8 +279,8 @@ fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
     done(&mut s, "tool.wire", json!({}));
     let t = tables(&s);
     let (a, b) = (cp(&s, "-102F2:13"), cp(&s, "-102F2:14"));
-    enter_at(&mut s, a.at);
-    enter_at(&mut s, b.at);
+    click_at(&mut s, a.at);
+    click_at(&mut s, b.at);
     let new = new_connections(&t, &tables(&s));
     assert_eq!(new.len(), 1);
     assert_eq!(new[0].kind, "wire");
@@ -333,15 +289,15 @@ fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
 #[test]
 fn fr_con_006_two_wires_to_one_cp_are_listed_in_drawing_order() {
     let tmp = Tmp::new("order");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     let target = cp(&s, "-102F1:1");
     done(&mut s, "tool.wire", json!({}));
     let mut drawn = Vec::new();
     for from in ["-102F2:13", "-102F2:14"] {
         let before = tables(&s);
         let start = cp(&s, from);
-        enter_at(&mut s, start.at);
-        enter_at(&mut s, target.at);
+        click_at(&mut s, start.at);
+        click_at(&mut s, target.at);
         let new = new_connections(&before, &tables(&s));
         assert_eq!(new.len(), 1, "{from}");
         drawn.push(new[0].id);
@@ -376,7 +332,7 @@ fn ghost_cps(s: &ShellModel, p: (i64, i64)) -> Vec<(i64, i64)> {
 #[test]
 fn wr4_a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_commits_none() {
     let tmp = Tmp::new("auto");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     done(
         &mut s,
         "place.pick",
@@ -418,7 +374,7 @@ fn wr4_a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_co
     assert_eq!(tables(&s).connections.len(), before, "Alt commits no connection");
     // Undo; without Alt the placement brings its two connections.
     done(&mut s, "edit.undo", json!({}));
-    enter_at(&mut s, mid);
+    click_at(&mut s, mid);
     assert_eq!(tables(&s).connections.len(), before + 2);
     done(&mut s, "ui.dismiss", json!({}));
     // Undo again and place the middle contact with Alt: a drag of it shows the proposals and commits none.
@@ -497,7 +453,7 @@ fn wr4_a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_co
 fn rm1_a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_clean_one() {
     use ew_viewmodel::ew_api::routing::measure;
     let tmp = Tmp::new("rm1");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     for k in [(55, 20), (65, 20), (60, 29)] {
         done(
             &mut s,
@@ -505,7 +461,7 @@ fn rm1_a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_c
             json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
         );
         let p = grid_point(&s, k);
-        enter_at(&mut s, p);
+        click_at(&mut s, p);
         done(&mut s, "ui.dismiss", json!({}));
     }
     let page = tables(&s).page.to_string();
@@ -602,7 +558,7 @@ fn rm1_a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_c
 #[test]
 fn a_followed_route_along_an_unrouted_line_is_kept() {
     let tmp = Tmp::new("rt3");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     coils_and_wires(
         &mut s,
         &[(55, 20), (65, 20), (58, 30), (62, 30)],
@@ -654,7 +610,7 @@ fn a_followed_route_along_an_unrouted_line_is_kept() {
 #[test]
 fn a_move_onto_a_wire_lists_no_split() {
     let tmp = Tmp::new("rt12");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     coils_and_wires(
         &mut s,
         &[(60, 20), (60, 40)],
@@ -696,7 +652,7 @@ fn a_move_onto_a_wire_lists_no_split() {
 fn the_connect_on_move_key_keeps_the_move_s_readout() {
     use ew_viewmodel::command_bar::hud;
     let tmp = Tmp::new("c2");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     coils_and_wires(&mut s, &[(60, 20)], &[]);
     let t = tables(&s);
     let r = t
@@ -777,7 +733,7 @@ fn card_line(s: &ShellModel) -> String {
 #[test]
 fn rw1_route_page_previews_the_plan_and_applies_it_in_one_step() {
     let tmp = Tmp::new("rw1");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     coils_and_wires(
         &mut s,
         &[(55, 20), (55, 29), (70, 20), (70, 25)],
@@ -830,7 +786,7 @@ fn rw1_route_page_previews_the_plan_and_applies_it_in_one_step() {
 #[test]
 fn route_selection_with_a_plan_that_changes_nothing_opens_no_card() {
     let tmp = Tmp::new("f2");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     coils_and_wires(&mut s, &[(55, 20), (55, 29)], &[("-103K1:A2", "-103K2:A1", &[])]);
     done(&mut s, "route.page", json!({}));
     done(&mut s, "preview.apply", json!({}));
@@ -885,7 +841,7 @@ fn done_outcome(s: &mut ShellModel, action: &str) -> String {
 #[test]
 fn rw2_route_selection_re_routes_a_selected_wire_and_nothing_else() {
     let tmp = Tmp::new("rw2");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     coils_and_wires(
         &mut s,
         &[(55, 20), (65, 20)],
@@ -946,7 +902,7 @@ fn rw2_route_selection_re_routes_a_selected_wire_and_nothing_else() {
 #[test]
 fn route_selection_needs_a_selection() {
     let tmp = Tmp::new("rt6");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     coils_and_wires(&mut s, &[(55, 20), (55, 29)], &[("-103K1:A2", "-103K2:A1", &[])]);
     done(&mut s, "ui.dismiss", json!({}));
     assert_eq!(
@@ -963,7 +919,7 @@ fn route_selection_needs_a_selection() {
 #[test]
 fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire() {
     let tmp = Tmp::new("split");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     // W13: from J1 to E55:L, routed by Golden A's route tool.
     let e55 = cp(&s, "E55:L");
     let w13 = tables(&s)
@@ -1087,7 +1043,7 @@ fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire()
 #[test]
 fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
     let tmp = Tmp::new("drag");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     // -102G1:PE to PE-1.2 given a Z route with a middle segment on grid row 8.
     let w = tables(&s)
         .connections
@@ -1158,7 +1114,7 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
 #[test]
 fn wr7_the_junction_editor_lists_reorders_and_restyles() {
     let tmp = Tmp::new("junction");
-    let mut s = shell(&tmp, "101");
+    let mut s = actual_size(&tmp, "101");
     let f55 = cp(&s, "F55:2");
     let j1 = tables(&s)
         .junctions
@@ -1235,7 +1191,7 @@ fn wr7_the_junction_editor_lists_reorders_and_restyles() {
 #[test]
 fn crossings_toggle_the_drawing_setting() {
     let tmp = Tmp::new("hops");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     assert!(!s.crossings_hops());
     assert!(describe_line(&s, "canvas crossings").is_none());
     done(&mut s, "project.crossings", json!({}));
@@ -1268,10 +1224,10 @@ fn crossings_toggle_the_drawing_setting() {
 #[test]
 fn wr10_the_wire_tool_routes_once_per_changed_target_and_reads_nothing() {
     let tmp = Tmp::new("counts");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     done(&mut s, "tool.wire", json!({}));
     let a = cp(&s, "-102F1:2");
-    enter_at(&mut s, a.at);
+    click_at(&mut s, a.at);
     let calls = s.session_calls();
     let routes = s.wire_route_calls().unwrap();
     // Ten cursor steps: ten changed targets, ten routes; the same point again routes nothing.
@@ -1307,7 +1263,7 @@ fn wr10_the_wire_tool_routes_once_per_changed_target_and_reads_nothing() {
 #[test]
 fn the_rubber_band_of_a_move_is_the_route_rep_move_stores() {
     let tmp = Tmp::new("band");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     // The routed wire from -102F2:Out1 to 24VDC-1, then -102F2's box moved one step right: the far end stays and the
     // wire's route follows, in the rubber band and in the stored route alike.
     let a = cp(&s, "-102F2:Out1");
@@ -1355,7 +1311,7 @@ fn the_rubber_band_of_a_move_is_the_route_rep_move_stores() {
 #[test]
 fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
     let tmp = Tmp::new("window");
-    let mut s = shell(&tmp, "102");
+    let mut s = actual_size(&tmp, "102");
     // Headless: without a selection `junction.open` is refused with the reason naming what to select.
     assert_eq!(refused(&mut s, "junction.open", json!({})), "reason-one-junction");
     assert_eq!(
@@ -1411,7 +1367,7 @@ fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
 #[test]
 fn escape_and_undo_leave_no_tool_mark_and_keep_the_grid_cursor() {
     let tmp = Tmp::new("marks");
-    let mut s = shell(&tmp, "103");
+    let mut s = actual_size(&tmp, "103");
     done(&mut s, "tool.wire", json!({}));
     done(&mut s, "cp.next", json!({}));
     done(&mut s, "canvas.activate", json!({}));

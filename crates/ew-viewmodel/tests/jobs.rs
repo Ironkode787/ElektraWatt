@@ -10,15 +10,15 @@ mod common;
 
 use std::path::Path;
 
-use common::{Tmp, done, refused, state};
+use common::{Tmp, done, failed, refused, state};
 use ew_viewmodel::ew_api::ew_jobs::Gate;
 use ew_viewmodel::jobs::JobStatus;
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
-use serde_json::{Value, json};
+use ew_viewmodel::shell::{Mode, ShellModel};
+use serde_json::json;
 
 /// A headless shell with a new one-page project (the builtin template, folio 101).
 fn small(tmp: &Tmp, mode: Mode) -> ShellModel {
-    let mut s = ShellModel::new(mode, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"));
+    let mut s = tmp.empty_shell(mode);
     done(
         &mut s,
         "file.new",
@@ -39,13 +39,6 @@ fn path_text(p: &Path) -> String {
 fn sibling(target: &Path) -> std::path::PathBuf {
     let name = target.file_name().unwrap().to_string_lossy();
     target.with_file_name(format!(".{name}.ew-part"))
-}
-
-fn failed(shell: &mut ShellModel, action: &str, params: Value) -> String {
-    match shell.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action} {params}: {other:?}"),
-    }
 }
 
 fn last_status(shell: &ShellModel) -> String {

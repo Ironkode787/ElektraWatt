@@ -8,60 +8,13 @@
 use crate::common;
 use ew_viewmodel::key;
 
-use common::{Tmp, done, refused};
+use common::{
+    Tmp, done, failed, lines_with, refused, strip_at, strip_col, strip_column, strip_cursor, strip_row,
+    strip_texts,
+};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
-
-/// The column key of the Terminal strips column labelled `label`.
-fn col(shell: &ShellModel, label: &str) -> String {
-    let t = shell
-        .nav(NavKind::Strips)
-        .and_then(|n| n.table())
-        .expect("a table");
-    t.columns
-        .iter()
-        .find(|c| c.label == label)
-        .unwrap_or_else(|| panic!("no column {label}"))
-        .key
-        .clone()
-}
-
-/// The rows on show in display order: (key, the cell of the column labelled `label`).
-fn column(shell: &ShellModel, label: &str) -> Vec<(String, String)> {
-    let n = shell.nav(NavKind::Strips).unwrap();
-    let t = n.table().unwrap();
-    let c = t.columns.iter().position(|c| c.label == label).unwrap();
-    n.visible()
-        .iter()
-        .map(|r| {
-            let node = &t.nodes[r.node as usize];
-            (node.key.clone(), node.cells[c].clone())
-        })
-        .collect()
-}
-
-/// The texts of the column labelled `label` on show.
-fn texts(shell: &ShellModel, label: &str) -> Vec<String> {
-    column(shell, label).into_iter().map(|(_, t)| t).collect()
-}
-
-/// The key of the row on show whose cell in column `label` is `text`.
-fn row(shell: &ShellModel, label: &str, text: &str) -> String {
-    column(shell, label)
-        .into_iter()
-        .find(|(_, t)| t == text)
-        .unwrap_or_else(|| panic!("no row with {label} {text}"))
-        .0
-}
-
-/// The cursor row's key.
-fn cursor(shell: &ShellModel) -> String {
-    shell
-        .nav(NavKind::Strips)
-        .and_then(|n| n.cursor_key())
-        .expect("a cursor row")
-}
 
 fn steps(shell: &ShellModel) -> usize {
     shell.recorded_commands().len()
@@ -72,33 +25,11 @@ fn last(shell: &ShellModel) -> (String, Value) {
     (s.cmd.clone(), s.params.clone())
 }
 
-fn lines_with(shell: &ShellModel, prefix: &str) -> Vec<String> {
-    shell
-        .describe()
-        .lines()
-        .filter(|l| l.starts_with(prefix))
-        .map(str::to_owned)
-        .collect()
-}
-
-#[track_caller]
-fn failed(shell: &mut ShellModel, action: &str, params: Value) -> String {
-    match shell.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action}: {other:?}"),
-    }
-}
-
 /// A writable copy of Golden A, headless, with the strip editor open on `strip`.
 fn editor(tmp: &Tmp, strip: &str) -> ShellModel {
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut shell, "strip.edit", json!({ "strip": strip }));
     shell
-}
-
-/// Puts the cursor on the row `key`.
-fn at(shell: &mut ShellModel, key: &str) {
-    done(shell, "table.cell", json!({"kind": "strips", "row": key}));
 }
 
 /// Marks the rows `keys`.
@@ -127,13 +58,13 @@ fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
     );
     let header = lines_with(&shell, "navigator \"Terminal strips\"");
     assert!(header[0].contains(" sort \"Order\" ascending "), "{header:?}");
-    let mut strips = texts(&shell, "Strip");
+    let mut strips = strip_texts(&shell, "Strip");
     strips.dedup();
     // The as-built natural order of the tags (`ew_mltext::natural_cmp`): `-` sorts before a digit.
     assert_eq!(strips, ["-X1031", "-X1032", "1X1"]);
-    let x1031: Vec<String> = column(&shell, "Strip")
+    let x1031: Vec<String> = strip_column(&shell, "Strip")
         .into_iter()
-        .zip(texts(&shell, "Pos"))
+        .zip(strip_texts(&shell, "Pos"))
         .filter(|((_, s), _)| s == "-X1031")
         .map(|(_, p)| p)
         .collect();
@@ -146,22 +77,22 @@ fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
         header[0].contains(" sort \"Order\" ascending filter \"strip:-X1031\" rows 20 showing 1 to 20"),
         "{header:?}"
     );
-    assert_eq!(texts(&shell, "Pos"), SEQ_1_TO_20);
-    assert_eq!(texts(&shell, "Terminal"), SEQ_1_TO_20);
-    assert_eq!(cursor(&shell), row(&shell, "Terminal", "1"));
+    assert_eq!(strip_texts(&shell, "Pos"), SEQ_1_TO_20);
+    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_20);
+    assert_eq!(strip_cursor(&shell), strip_row(&shell, "Terminal", "1"));
 
     // Accessories: after 20, two after 4 (the second added on the first one's row), and at the start (the strip row,
     // reached in the tree view).
-    let k20 = row(&shell, "Terminal", "20");
-    at(&mut shell, &k20);
+    let k20 = strip_row(&shell, "Terminal", "20");
+    strip_at(&mut shell, &k20);
     done(&mut shell, "strip.add_accessory", json!({}));
-    assert_eq!(cursor(&shell), row(&shell, "Pos", "20.1"));
-    let k4 = row(&shell, "Terminal", "4");
-    at(&mut shell, &k4);
+    assert_eq!(strip_cursor(&shell), strip_row(&shell, "Pos", "20.1"));
+    let k4 = strip_row(&shell, "Terminal", "4");
+    strip_at(&mut shell, &k4);
     done(&mut shell, "strip.add_accessory", json!({}));
-    assert_eq!(cursor(&shell), row(&shell, "Pos", "4.1"));
+    assert_eq!(strip_cursor(&shell), strip_row(&shell, "Pos", "4.1"));
     done(&mut shell, "strip.add_accessory", json!({}));
-    assert_eq!(cursor(&shell), row(&shell, "Pos", "4.2"));
+    assert_eq!(strip_cursor(&shell), strip_row(&shell, "Pos", "4.2"));
     done(
         &mut shell,
         "navigator.table",
@@ -184,16 +115,16 @@ fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
     expected.extend(["4.1", "4.2"]);
     expected.extend(&SEQ_1_TO_20[4..]);
     expected.push("20.1");
-    assert_eq!(texts(&shell, "Pos"), expected);
-    let labels = texts(&shell, "Function text");
+    assert_eq!(strip_texts(&shell, "Pos"), expected);
+    let labels = strip_texts(&shell, "Function text");
     assert_eq!(labels[0], "End bracket");
     assert_eq!(labels[5], "End bracket");
-    assert_eq!(texts(&shell, "Part")[0], "TBD");
-    assert_eq!(texts(&shell, "Terminal")[0], "");
+    assert_eq!(strip_texts(&shell, "Part")[0], "TBD");
+    assert_eq!(strip_texts(&shell, "Terminal")[0], "");
 
     // The read-only reasons (§6.2).
-    let k13 = row(&shell, "Terminal", "13");
-    let pos = col(&shell, "Pos");
+    let k13 = strip_row(&shell, "Terminal", "13");
+    let pos = strip_col(&shell, "Pos");
     let message = failed(
         &mut shell,
         "table.edit",
@@ -203,8 +134,8 @@ fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
         message.contains("move rows with Alt+Up and Alt+Down"),
         "{message}"
     );
-    let acc = row(&shell, "Pos", "20.1");
-    let label = col(&shell, "Function text");
+    let acc = strip_row(&shell, "Pos", "20.1");
+    let label = strip_col(&shell, "Function text");
     let message = failed(
         &mut shell,
         "table.edit",
@@ -212,7 +143,7 @@ fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
     );
     assert!(message.contains("accessory row"), "{message}");
     // The accessory row's Part cell is editable (D5).
-    let part = col(&shell, "Part");
+    let part = strip_col(&shell, "Part");
     done(
         &mut shell,
         "table.edit",
@@ -224,11 +155,11 @@ fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
     );
     done(&mut shell, "ui.dismiss", json!({}));
     // A terminal without a bridge: a new terminal at the end of -X1031.
-    let k20 = row(&shell, "Pos", "20.1");
-    at(&mut shell, &k20);
+    let k20 = strip_row(&shell, "Pos", "20.1");
+    strip_at(&mut shell, &k20);
     done(&mut shell, "strip.insert", json!({}));
-    let new = cursor(&shell);
-    let bridge_part = col(&shell, "Bridge part");
+    let new = strip_cursor(&shell);
+    let bridge_part = strip_col(&shell, "Bridge part");
     let message = failed(
         &mut shell,
         "table.edit",
@@ -246,9 +177,12 @@ fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
 fn se8_group_labels_through_the_table_and_the_properties_row() {
     let tmp = Tmp::new("se8");
     let mut shell = editor(&tmp, "-X1031");
-    let before = texts(&shell, "Group");
-    let group = col(&shell, "Group");
-    let keys: Vec<String> = ["7", "8"].iter().map(|n| row(&shell, "Terminal", n)).collect();
+    let before = strip_texts(&shell, "Group");
+    let group = strip_col(&shell, "Group");
+    let keys: Vec<String> = ["7", "8"]
+        .iter()
+        .map(|n| strip_row(&shell, "Terminal", n))
+        .collect();
     let n = steps(&shell);
     done(
         &mut shell,
@@ -259,13 +193,13 @@ fn se8_group_labels_through_the_table_and_the_properties_row() {
     let (cmd, params) = last(&shell);
     assert_eq!(cmd, "fields.set", "{params}");
     assert_eq!(params["path"], "strip.groups");
-    let after = texts(&shell, "Group");
+    let after = strip_texts(&shell, "Group");
     let mut expected = before.clone();
     expected[6] = "Reserve".into();
     expected[7] = "Reserve".into();
     assert_eq!(after, expected);
     done(&mut shell, "edit.undo", json!({}));
-    assert_eq!(texts(&shell, "Group"), before, "one undo step");
+    assert_eq!(strip_texts(&shell, "Group"), before, "one undo step");
 
     // The Properties Group row of the same two terminals.
     done(
@@ -289,7 +223,7 @@ fn se8_group_labels_through_the_table_and_the_properties_row() {
     let (cmd, params) = last(&shell);
     assert_eq!(cmd, "fields.set", "{params}");
     assert_eq!(params["path"], "strip.groups");
-    assert_eq!(texts(&shell, "Group"), expected);
+    assert_eq!(strip_texts(&shell, "Group"), expected);
     // The same text again builds no command.
     done(
         &mut shell,
@@ -299,10 +233,10 @@ fn se8_group_labels_through_the_table_and_the_properties_row() {
     assert_eq!(steps(&shell), n + 1, "no command for the same text");
 
     // The Bridge part over BR1 (terminals 1 to 4): one `fields.set` on the group's carrier.
-    let bridge_part = col(&shell, "Bridge part");
+    let bridge_part = strip_col(&shell, "Bridge part");
     let keys: Vec<String> = ["1", "2", "3", "4"]
         .iter()
-        .map(|n| row(&shell, "Terminal", n))
+        .map(|n| strip_row(&shell, "Terminal", n))
         .collect();
     let n = steps(&shell);
     done(
@@ -319,7 +253,7 @@ fn se8_group_labels_through_the_table_and_the_properties_row() {
     assert_eq!(params["path"], "overrides.wire_part");
     assert_eq!(params["targets"].as_array().map(Vec::len), Some(1), "{params}");
     assert_eq!(
-        &texts(&shell, "Bridge part")[..5],
+        &strip_texts(&shell, "Bridge part")[..5],
         ["TBD", "TBD", "TBD", "TBD", ""]
     );
     shell.shutdown();
@@ -335,8 +269,8 @@ fn se9_insert_delete_and_move_rows() {
     let tmp = Tmp::new("se9");
     let mut shell = editor(&tmp, "-X1031");
     // Insert.
-    let k5 = row(&shell, "Terminal", "5");
-    at(&mut shell, &k5);
+    let k5 = strip_row(&shell, "Terminal", "5");
+    strip_at(&mut shell, &k5);
     let n = steps(&shell);
     done(&mut shell, "strip.insert", json!({}));
     assert_eq!(steps(&shell), n + 1);
@@ -346,16 +280,19 @@ fn se9_insert_delete_and_move_rows() {
         lines_with(&shell, "toast "),
         ["toast \"Inserted 1 terminal before terminal 5 of -X1031.\" undo"]
     );
-    let terminals = texts(&shell, "Terminal");
+    let terminals = strip_texts(&shell, "Terminal");
     assert_eq!(terminals[..6], ["1", "2", "3", "4", "21", "5"]);
-    assert_eq!(cursor(&shell), row(&shell, "Terminal", "21"));
+    assert_eq!(strip_cursor(&shell), strip_row(&shell, "Terminal", "21"));
     let pos: Vec<String> = (1..=21).map(|n| n.to_string()).collect();
-    assert_eq!(texts(&shell, "Pos"), pos);
+    assert_eq!(strip_texts(&shell, "Pos"), pos);
     done(&mut shell, "edit.undo", json!({}));
-    assert_eq!(texts(&shell, "Terminal"), SEQ_1_TO_20);
+    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_20);
 
     // Delete two terminal rows: the card, nothing committed.
-    let keys: Vec<String> = ["5", "6"].iter().map(|n| row(&shell, "Terminal", n)).collect();
+    let keys: Vec<String> = ["5", "6"]
+        .iter()
+        .map(|n| strip_row(&shell, "Terminal", n))
+        .collect();
     mark(&mut shell, &keys);
     let (n, rev) = (steps(&shell), shell.revision());
     done(&mut shell, "strip.delete_rows", json!({}));
@@ -368,10 +305,10 @@ fn se9_insert_delete_and_move_rows() {
     done(&mut shell, "preview.cancel", json!({}));
 
     // Delete an accessory row: committed with the toast.
-    let k20 = row(&shell, "Terminal", "20");
-    at(&mut shell, &k20);
+    let k20 = strip_row(&shell, "Terminal", "20");
+    strip_at(&mut shell, &k20);
     done(&mut shell, "strip.add_accessory", json!({}));
-    let acc = row(&shell, "Pos", "20.1");
+    let acc = strip_row(&shell, "Pos", "20.1");
     mark(&mut shell, std::slice::from_ref(&acc));
     let n = steps(&shell);
     done(&mut shell, "strip.delete_rows", json!({}));
@@ -383,11 +320,11 @@ fn se9_insert_delete_and_move_rows() {
         lines_with(&shell, "toast "),
         ["toast \"Removed 1 accessory.\" undo"]
     );
-    assert_eq!(texts(&shell, "Pos"), SEQ_1_TO_20);
+    assert_eq!(strip_texts(&shell, "Pos"), SEQ_1_TO_20);
     // A mix: refused.
     done(&mut shell, "edit.undo", json!({}));
-    let acc = row(&shell, "Pos", "20.1");
-    let k20 = row(&shell, "Terminal", "20");
+    let acc = strip_row(&shell, "Pos", "20.1");
+    let k20 = strip_row(&shell, "Terminal", "20");
     mark(&mut shell, &[acc.clone(), k20]);
     assert_eq!(
         refused(&mut shell, "strip.delete_rows", json!({})),
@@ -400,7 +337,7 @@ fn se9_insert_delete_and_move_rows() {
     done(&mut shell, "edit.undo", json!({}));
 
     // Move :15 up three times: it stays inside BR5 (11 to 20), so every bridge group stays consecutive (CI-06).
-    let k15 = row(&shell, "Terminal", "15");
+    let k15 = strip_row(&shell, "Terminal", "15");
     mark(&mut shell, std::slice::from_ref(&k15));
     let n = steps(&shell);
     for k in 1..=3 {
@@ -412,11 +349,11 @@ fn se9_insert_delete_and_move_rows() {
         lines_with(&shell, "toast "),
         ["toast \"Moved terminal 15 of -X1031.\" undo"]
     );
-    let terminals = texts(&shell, "Terminal");
+    let terminals = strip_texts(&shell, "Terminal");
     assert_eq!(terminals[10..15], ["11", "15", "12", "13", "14"]);
-    assert_eq!(cursor(&shell), k15, "the cursor follows the row");
+    assert_eq!(strip_cursor(&shell), k15, "the cursor follows the row");
     // The first row cannot move up.
-    let k1 = row(&shell, "Terminal", "1");
+    let k1 = strip_row(&shell, "Terminal", "1");
     mark(&mut shell, std::slice::from_ref(&k1));
     assert_eq!(
         refused(&mut shell, "strip.move", json!({"step": -1})),
@@ -425,12 +362,12 @@ fn se9_insert_delete_and_move_rows() {
     for _ in 0..3 {
         done(&mut shell, "edit.undo", json!({}));
     }
-    assert_eq!(texts(&shell, "Terminal"), SEQ_1_TO_20, "three undo steps");
+    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_20, "three undo steps");
     // Down, and before a designation / the end.
-    let k2 = row(&shell, "Terminal", "2");
+    let k2 = strip_row(&shell, "Terminal", "2");
     mark(&mut shell, std::slice::from_ref(&k2));
     done(&mut shell, "strip.move", json!({"step": 1}));
-    assert_eq!(texts(&shell, "Terminal")[..4], ["1", "3", "2", "4"]);
+    assert_eq!(strip_texts(&shell, "Terminal")[..4], ["1", "3", "2", "4"]);
     // To the end: :2 would leave bridge group BR1 (1 to 4); terminal.move refuses, naming the group and the way
     // out (CI-06); nothing is committed.
     let n = steps(&shell);
@@ -444,9 +381,9 @@ fn se9_insert_delete_and_move_rows() {
         other => panic!("{other:?}"),
     }
     assert_eq!(steps(&shell), n, "nothing committed");
-    assert_eq!(texts(&shell, "Terminal")[..4], ["1", "3", "2", "4"]);
+    assert_eq!(strip_texts(&shell, "Terminal")[..4], ["1", "3", "2", "4"]);
     done(&mut shell, "strip.move", json!({"before": "1"}));
-    assert_eq!(texts(&shell, "Terminal")[..3], ["2", "1", "3"]);
+    assert_eq!(strip_texts(&shell, "Terminal")[..3], ["2", "1", "3"]);
     shell.shutdown();
 }
 
@@ -500,25 +437,25 @@ fn alt_arrows_move_strip_rows_while_the_strips_navigator_has_the_focus() {
         json!({"area": "navigator", "kind": "strips"}),
     );
     assert_eq!(shell.focused_navigator(), Some(NavKind::Strips));
-    let k2 = row(&shell, "Terminal", "2");
+    let k2 = strip_row(&shell, "Terminal", "2");
     mark(&mut shell, std::slice::from_ref(&k2));
     let n = steps(&shell);
     // Alt+Down: the row moves down one place, one step.
     assert_eq!(key(&mut shell, "pages.move_down"), "strip.move");
-    assert_eq!(texts(&shell, "Terminal")[..4], ["1", "3", "2", "4"]);
+    assert_eq!(strip_texts(&shell, "Terminal")[..4], ["1", "3", "2", "4"]);
     assert_eq!(steps(&shell), n + 1);
     assert_eq!(last(&shell).0, "terminal.move");
     // Alt+Up: back.
     assert_eq!(key(&mut shell, "pages.move_up"), "strip.move");
-    assert_eq!(texts(&shell, "Terminal"), SEQ_1_TO_20);
+    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_20);
     assert_eq!(steps(&shell), n + 2);
     // At the first row Alt+Up is refused as `strip.move` is; nothing changes.
-    let k1 = row(&shell, "Terminal", "1");
+    let k1 = strip_row(&shell, "Terminal", "1");
     mark(&mut shell, std::slice::from_ref(&k1));
     let (a, p) = shell.shortcut_action("pages.move_up");
     assert_eq!((a, &p), ("strip.move", &json!({"step": -1})));
     assert_eq!(refused(&mut shell, a, p), "reason-strip-move-none");
-    assert_eq!(texts(&shell, "Terminal"), SEQ_1_TO_20);
+    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_20);
     assert_eq!(steps(&shell), n + 2);
     // The Pages navigator or the canvas focused: the page moves keep the keys.
     for area in [
@@ -549,8 +486,8 @@ fn alt_arrows_move_strip_rows_while_the_strips_navigator_has_the_focus() {
 fn se14_describe_lines() {
     let tmp = Tmp::new("se14");
     let mut shell = editor(&tmp, "-X1031");
-    let k20 = row(&shell, "Terminal", "20");
-    at(&mut shell, &k20);
+    let k20 = strip_row(&shell, "Terminal", "20");
+    strip_at(&mut shell, &k20);
     done(&mut shell, "strip.add_accessory", json!({}));
     let d = shell.describe();
     assert!(
@@ -641,12 +578,12 @@ fn ft1289_the_strip_editor_and_its_accessory_toast_read_in_dutch() {
             "Status",
         ]
     );
-    let k4 = row(&shell, "Klem", "4");
-    at(&mut shell, &k4);
+    let k4 = strip_row(&shell, "Klem", "4");
+    strip_at(&mut shell, &k4);
     done(&mut shell, "strip.add_accessory", json!({}));
-    let accessory = cursor(&shell);
-    assert_eq!(accessory, row(&shell, "Pos", "4.1"));
-    let word = column(&shell, "Functietekst")
+    let accessory = strip_cursor(&shell);
+    assert_eq!(accessory, strip_row(&shell, "Pos", "4.1"));
+    let word = strip_column(&shell, "Functietekst")
         .into_iter()
         .find(|(k, _)| *k == accessory)
         .expect("the accessory row")
@@ -657,14 +594,14 @@ fn ft1289_the_strip_editor_and_its_accessory_toast_read_in_dutch() {
         ["toast \"Eindsteun toegevoegd na klem 4 van -X1031.\" undo"]
     );
     // The insert and the move name the terminal in words, in Dutch too.
-    let k5 = row(&shell, "Klem", "5");
-    at(&mut shell, &k5);
+    let k5 = strip_row(&shell, "Klem", "5");
+    strip_at(&mut shell, &k5);
     done(&mut shell, "strip.insert", json!({}));
     assert_eq!(
         lines_with(&shell, "toast "),
         ["toast \"1 klem ingevoegd vóór klem 5 van -X1031.\" undo"]
     );
-    let k15 = row(&shell, "Klem", "15");
+    let k15 = strip_row(&shell, "Klem", "15");
     mark(&mut shell, std::slice::from_ref(&k15));
     done(&mut shell, "strip.move", json!({"step": -1}));
     assert_eq!(

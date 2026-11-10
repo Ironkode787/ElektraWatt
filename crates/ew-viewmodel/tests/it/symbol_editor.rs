@@ -1,17 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use crate::common::{Tmp, done};
+use crate::common::{Tmp, done, failed};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
 
 #[test]
 fn published_symbol_is_available_in_insert_and_scratch_retains_its_own_identity() {
     let tmp = Tmp::new("symbol-publish-insert");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(
         &mut shell,
         "file.new",
@@ -122,10 +119,7 @@ fn published_symbol_is_available_in_insert_and_scratch_retains_its_own_identity(
     );
     drop(session);
     // A fresh shell has no in-memory tiers from the publication operation.
-    let mut reopened = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut reopened = tmp.empty_shell(Mode::Headless);
     done(&mut reopened, "symbol.new", json!({"key":"example.next"}));
     assert!(
         reopened
@@ -142,7 +136,7 @@ fn published_symbol_is_available_in_insert_and_scratch_retains_its_own_identity(
 fn pin_mapping_swaps_atomically_without_changing_function_data() {
     for mode in [Mode::Headless, Mode::Gui] {
         let tmp = Tmp::new("symbol-map");
-        let mut shell = ShellModel::new(mode, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"));
+        let mut shell = tmp.empty_shell(mode);
         done(
             &mut shell,
             "symbol.new",
@@ -187,10 +181,7 @@ fn pin_mapping_swaps_atomically_without_changing_function_data() {
 #[test]
 fn authored_qet_symbol_without_key_suffix_keeps_grid_and_shape_after_insertion() {
     let tmp = Tmp::new("symbol-qet-catalogue");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(
         &mut shell,
         "file.new",
@@ -279,10 +270,7 @@ fn authored_qet_symbol_without_key_suffix_keeps_grid_and_shape_after_insertion()
 #[test]
 fn standalone_library_chooser_and_fork_keep_the_source_independent() {
     let tmp = Tmp::new("symbol-fork");
-    let mut shell = ShellModel::new(
-        Mode::Gui,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Gui);
     done(
         &mut shell,
         "symbol.new",
@@ -324,10 +312,7 @@ fn standalone_library_chooser_and_fork_keep_the_source_independent() {
 fn project_and_library_sources_with_the_same_key_fork_the_selected_copy() {
     use ew_viewmodel::ew_api::symbols;
     let tmp = Tmp::new("symbol-source-identity");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(
         &mut shell,
         "file.new",
@@ -385,10 +370,7 @@ fn project_and_library_sources_with_the_same_key_fork_the_selected_copy() {
 #[test]
 fn equal_function_keys_in_two_libraries_retain_their_own_pin_data() {
     let tmp = Tmp::new("symbol-function-identity");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     let mut first = String::new();
     for designation in ["A", "B"] {
         done(
@@ -460,7 +442,7 @@ fn equal_function_keys_in_two_libraries_retain_their_own_pin_data() {
 fn editor_f1_opens_its_reference_in_both_frontends() {
     for mode in [Mode::Headless, Mode::Gui] {
         let tmp = Tmp::new("symbol-help");
-        let mut shell = ShellModel::new(mode, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"));
+        let mut shell = tmp.empty_shell(mode);
         done(
             &mut shell,
             "symbol.new",
@@ -489,7 +471,7 @@ fn editor_f1_opens_its_reference_in_both_frontends() {
 fn editor_power_block_history_export_save_and_place_in_both_frontends() {
     for mode in [Mode::Headless, Mode::Gui] {
         let tmp = Tmp::new("symbol-editor");
-        let mut shell = ShellModel::new(mode, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"));
+        let mut shell = tmp.empty_shell(mode);
         done(
             &mut shell,
             "file.new",
@@ -614,7 +596,7 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
 fn moving_an_assigned_pin_keeps_its_mapping_and_scratch_uses_a_free_folio() {
     for mode in [Mode::Headless, Mode::Gui] {
         let tmp = Tmp::new("symbol-scratch");
-        let mut shell = ShellModel::new(mode, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"));
+        let mut shell = tmp.empty_shell(mode);
         done(
             &mut shell,
             "file.new",
@@ -678,10 +660,7 @@ fn project_save_confirmation_saves_the_project_with_a_symbol_open() {
     use ew_viewmodel::shell::ConfirmAnswer;
     for pending in ["file.close", "app.quit"] {
         let tmp = Tmp::new("symbol-project-confirm");
-        let mut shell = ShellModel::new(
-            Mode::Gui,
-            ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-        );
+        let mut shell = tmp.empty_shell(Mode::Gui);
         done(
             &mut shell,
             "file.new",
@@ -717,20 +696,10 @@ fn drawn(shell: &mut ShellModel, key: &str, name: &str) {
     done(shell, "symbol.cp", json!({"x":0,"y":0,"designation":"1"}));
 }
 
-fn failed(shell: &mut ShellModel, action: &str, params: serde_json::Value) -> String {
-    match shell.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action}: {other:?}"),
-    }
-}
-
 #[test]
 fn a_second_symbol_saved_on_the_same_key_is_refused_and_the_first_stays() {
     let tmp = Tmp::new("symbol-same-key");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     let library = json!({"directory":tmp.0.join("symbols.ewlib")});
     drawn(&mut shell, "example.shared", "First");
     done(&mut shell, "symbol.save", library.clone());
@@ -766,10 +735,7 @@ fn a_second_symbol_saved_on_the_same_key_is_refused_and_the_first_stays() {
 #[test]
 fn a_new_symbol_has_no_shared_default_key() {
     let tmp = Tmp::new("symbol-no-default-key");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "symbol.new", json!({}));
     done(
         &mut shell,
@@ -808,10 +774,7 @@ fn a_new_symbol_has_no_shared_default_key() {
 #[test]
 fn an_assigned_function_is_required_as_compatible() {
     let tmp = Tmp::new("symbol-function-caret");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(
         &mut shell,
         "symbol.new",
@@ -861,10 +824,7 @@ fn saving_without_configured_tiers_keeps_the_index_in_the_settings_folder() {
 #[test]
 fn refusals_of_export_and_unknown_members_are_in_words() {
     let tmp = Tmp::new("symbol-refusals");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     drawn(&mut shell, "example.words", "Words");
     let file = json!({"file":tmp.0.join("words.symbol.json")});
     done(&mut shell, "symbol.export", file.clone());
@@ -893,10 +853,7 @@ fn refusals_of_export_and_unknown_members_are_in_words() {
 #[test]
 fn closing_the_editor_keeps_the_draft_and_its_history_until_discarded() {
     let tmp = Tmp::new("symbol-keep");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     drawn(&mut shell, "example.kept", "Kept");
     let draft = shell.symbol_editor().unwrap().draft.clone();
     done(&mut shell, "symbol.close", json!({}));
@@ -920,10 +877,7 @@ fn closing_the_editor_keeps_the_draft_and_its_history_until_discarded() {
 fn the_draft_state_says_unsaved_only_after_an_edit_and_saved_only_once_stored() {
     use ew_viewmodel::strings;
     let tmp = Tmp::new("symbol-state");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     let words = |shell: &ShellModel| strings::text(shell.symbol_editor().unwrap().state_key()).to_owned();
     done(
         &mut shell,
@@ -998,10 +952,7 @@ fn symbol_paths_are_refused_when_empty_and_resolve_against_the_user_library_fold
 fn the_window_asks_the_pickers_for_a_missing_symbol_path() {
     use ew_viewmodel::shell::Prompt;
     let tmp = Tmp::new("symbol-pickers");
-    let mut shell = ShellModel::new(
-        Mode::Gui,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Gui);
     done(
         &mut shell,
         "symbol.new",
@@ -1023,10 +974,7 @@ fn the_window_asks_the_pickers_for_a_missing_symbol_path() {
 #[test]
 fn a_test_placement_shows_the_page_and_its_toast_returns_to_the_editor() {
     let tmp = Tmp::new("symbol-back");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(
         &mut shell,
         "file.new",
@@ -1135,10 +1083,7 @@ fn quitting_with_an_unsaved_draft_asks_and_discard_discards_it() {
 fn the_file_menu_names_save_symbol_and_keeps_save_project_while_the_editor_shows() {
     use ew_viewmodel::actions::{MenuEntry, menu_model};
     let tmp = Tmp::new("symbol-menu");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(
         &mut shell,
         "file.new",
@@ -1175,10 +1120,7 @@ fn the_file_menu_names_save_symbol_and_keeps_save_project_while_the_editor_shows
 #[test]
 fn saving_a_published_draft_under_another_key_adds_a_symbol_and_says_so() {
     let tmp = Tmp::new("symbol-renamed-key");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     let library = json!({"directory":tmp.0.join("symbols.ewlib")});
     drawn(&mut shell, "example.a", "A");
     done(&mut shell, "symbol.save", library.clone());
@@ -1247,10 +1189,7 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
     use ew_viewmodel::strings;
     use ew_viewmodel::tools::PickerRow;
     let tmp = Tmp::new("symbol-picker-grid");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(
         &mut shell,
         "file.new",
@@ -1320,10 +1259,7 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
 fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
     use ew_viewmodel::tools::PickerRow;
     let tmp = Tmp::new("symbol-new-page");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(
         &mut shell,
         "file.new",
@@ -1402,10 +1338,7 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
 fn the_editors_offer_places_the_published_symbol_only_while_the_draft_is_as_saved() {
     let tmp = Tmp::new("symbol-offer-published");
     let dir = tmp.0.join("project.ew");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
     drawn(&mut shell, "example.offered", "Offered");
     let not_published = "Symbol editor: The symbol is not in a library as drawn. Save it to a library first.";
@@ -1476,10 +1409,7 @@ fn a_new_text_is_centred_in_the_style_chosen_last() {
     use ew_viewmodel::shell::symbol_editor::text_style_words;
     use ew_viewmodel::strings;
     let tmp = Tmp::new("symbol-text-style");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     drawn(&mut shell, "example.texts", "Texts");
     let texts = |shell: &ShellModel| -> Vec<serde_json::Value> {
         let d = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
@@ -1537,10 +1467,7 @@ fn a_new_text_is_centred_in_the_style_chosen_last() {
 #[test]
 fn an_edit_the_reader_refuses_is_refused_in_words() {
     let tmp = Tmp::new("symbol-edit-words");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     drawn(&mut shell, "example.words", "Words");
     let before = shell.symbol_editor().unwrap().draft.clone();
     let sentence = "That change would leave the symbol incomplete, so it was not made. Fill in what it needs and try \
@@ -1564,10 +1491,7 @@ fn an_edit_the_reader_refuses_is_refused_in_words() {
 #[test]
 fn save_without_a_folder_saves_to_the_default_user_library() {
     let tmp = Tmp::new("symbol-default-library");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     drawn(&mut shell, "example.default", "Default library");
     let library = std::path::absolute(tmp.0.join("config").join("libraries").join("symbols.ewlib")).unwrap();
     assert_eq!(
@@ -1585,10 +1509,7 @@ fn save_without_a_folder_saves_to_the_default_user_library() {
 #[test]
 fn saving_a_copy_under_its_own_key_announces_no_new_symbol() {
     let tmp = Tmp::new("symbol-own-key");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "symbol.new", json!({"key":"example.empty"}));
     let source = shell
         .symbol_editor()
@@ -1628,10 +1549,7 @@ fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
     use ew_viewmodel::ew_api::{output::Uuid, symbols};
     let tmp = Tmp::new("symbol-v5");
     let dir = tmp.0.join("project.ew");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
     drawn(&mut shell, "example.v5", "Five");
     let library = json!({"directory": tmp.0.join("v5.ewlib")});
@@ -1672,10 +1590,7 @@ fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
 fn the_editor_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {
     use ew_viewmodel::command_bar::{Group, Tab};
     let tmp = Tmp::new("symbol-draw-tab");
-    let mut shell = ShellModel::new(
-        Mode::Gui,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Gui);
     let place = ew_viewmodel::actions::find("symbol.new")
         .unwrap()
         .placement
@@ -1708,8 +1623,7 @@ fn the_editor_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {
 fn the_quit_questions_save_symbol_saves_the_draft_and_quits() {
     use ew_viewmodel::shell::ConfirmAnswer;
     let tmp = Tmp::new("symbol-quit-save");
-    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
-    let mut shell = ShellModel::new(Mode::Gui, config);
+    let mut shell = tmp.empty_shell(Mode::Gui);
     drawn(&mut shell, "example.quit-save", "Quit save");
     done(&mut shell, "symbol.directory", json!({"directory": "quit.ewlib"}));
     done(&mut shell, "app.quit", json!({}));
@@ -1727,9 +1641,8 @@ fn the_titles_name_the_symbol_in_the_windows_language() {
     use ew_viewmodel::dialogs::spec;
     use ew_viewmodel::strings;
     let tmp = Tmp::new("symbol-language");
-    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
     let dir = tmp.0.join("project.ew");
-    let mut shell = ShellModel::new(Mode::Gui, config);
+    let mut shell = tmp.empty_shell(Mode::Gui);
     done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
     drawn(&mut shell, "example.language", "Supply block");
     let mut named = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
@@ -1762,10 +1675,7 @@ fn the_titles_name_the_symbol_in_the_windows_language() {
 #[test]
 fn symbol_role_sets_and_clears_a_connection_points_potential_role() {
     let tmp = Tmp::new("symbol-role");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     drawn(&mut shell, "example.role", "Role");
     let role = |shell: &ShellModel| {
         let draft = &shell.symbol_editor().unwrap().draft;
@@ -1797,10 +1707,7 @@ fn symbol_role_sets_and_clears_a_connection_points_potential_role() {
 fn refusals_of_the_editors_actions_are_in_words() {
     use ew_viewmodel::strings;
     let tmp = Tmp::new("symbol-words");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     drawn(&mut shell, "example.words", "Words");
     for (action, params, text) in [
         (
@@ -1838,9 +1745,8 @@ fn refusals_of_the_editors_actions_are_in_words() {
 #[test]
 fn the_same_content_placed_twice_reuses_one_copy() {
     let tmp = Tmp::new("symbol-twice");
-    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
     let dir = tmp.0.join("project.ew");
-    let mut shell = ShellModel::new(Mode::Headless, config);
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
     drawn(&mut shell, "example.twice", "Twice");
     done(&mut shell, "symbol.scratch", json!({}));
@@ -1873,10 +1779,7 @@ fn the_same_content_placed_twice_reuses_one_copy() {
 fn version_refusals_of_a_save_name_the_symbol_and_its_versions() {
     use ew_viewmodel::strings;
     let tmp = Tmp::new("symbol-versions");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     drawn(&mut shell, "example.versions", "Versions block");
     let library = json!({"directory": tmp.0.join("versions.ewlib")});
     done(&mut shell, "symbol.save", library.clone());
@@ -1914,10 +1817,7 @@ fn version_refusals_of_a_save_name_the_symbol_and_its_versions() {
 #[test]
 fn a_new_symbol_with_discard_starts_a_fresh_draft() {
     let tmp = Tmp::new("symbol-fresh");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     drawn(&mut shell, "example.kept", "Kept");
     done(&mut shell, "symbol.close", json!({}));
     done(&mut shell, "symbol.new", json!({}));
@@ -1936,10 +1836,7 @@ fn new_symbol_over_unsaved_changes_asks_save_discard_or_cancel() {
     use ew_viewmodel::dialogs::spec;
     use ew_viewmodel::shell::{ConfirmAnswer, Dialog};
     let tmp = Tmp::new("symbol-ask");
-    let mut shell = ShellModel::new(
-        Mode::Gui,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Gui);
     drawn(&mut shell, "example.ask", "Ask block");
     let fresh = json!({"discard": true});
     assert_eq!(

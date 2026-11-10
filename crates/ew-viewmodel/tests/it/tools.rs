@@ -63,6 +63,23 @@ fn band_oracle(shell: &ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<EntityRe
     picked.into_iter().map(|(_, e)| e).collect()
 }
 
+/// The first link on folio 101 whose target is on another folio and has a position.
+fn link_off_101(shell: &ShellModel) -> ew_viewmodel::canvas::PageLink {
+    shell
+        .canvas()
+        .unwrap()
+        .page()
+        .links
+        .iter()
+        .find(|l| {
+            l.target
+                .as_ref()
+                .is_some_and(|t| t.folio != "101" && t.at_nm.is_some())
+        })
+        .unwrap()
+        .clone()
+}
+
 #[test]
 fn t4_select_clicks_shift_and_ctrl() {
     let tmp = Tmp::new("tools-t4");
@@ -190,18 +207,7 @@ fn t4_a_click_on_a_link_follows_it_and_the_selection_survives_tabs() {
     let points = entity_points(shell.canvas().unwrap());
     click(&mut shell, points[0].1, json!({}));
     let sel = selected(&shell);
-    let c = shell.canvas().unwrap();
-    let link = c
-        .page()
-        .links
-        .iter()
-        .find(|l| {
-            l.target
-                .as_ref()
-                .is_some_and(|t| t.folio != "101" && t.at_nm.is_some())
-        })
-        .unwrap()
-        .clone();
+    let link = link_off_101(&shell);
     let p = ew_viewmodel::canvas::rect_centre(link.rect);
     click(&mut shell, p, json!({}));
     let target = link.target.unwrap();
@@ -429,18 +435,7 @@ fn t8_the_registry_flag_decides_whether_an_action_clears_the_link_preview() {
     assert!(!find("view.grid").unwrap().keeps_link_preview);
     let tmp = Tmp::new("tools-t8-flag");
     let mut shell = tmp.shell("101");
-    let c = shell.canvas().unwrap();
-    let link = c
-        .page()
-        .links
-        .iter()
-        .find(|l| {
-            l.target
-                .as_ref()
-                .is_some_and(|t| t.folio != "101" && t.at_nm.is_some())
-        })
-        .unwrap()
-        .clone();
+    let link = link_off_101(&shell);
     let p = ew_viewmodel::canvas::rect_centre(link.rect);
     done(&mut shell, "canvas.pointer", at(p, json!({})));
     done(&mut shell, "canvas.dwell", json!({"ms": 300}));
@@ -456,18 +451,7 @@ fn t8_the_registry_flag_decides_whether_an_action_clears_the_link_preview() {
 fn t8_the_link_hover_preview() {
     let tmp = Tmp::new("tools-t8");
     let mut shell = tmp.shell("101");
-    let c = shell.canvas().unwrap();
-    let link = c
-        .page()
-        .links
-        .iter()
-        .find(|l| {
-            l.target
-                .as_ref()
-                .is_some_and(|t| t.folio != "101" && t.at_nm.is_some())
-        })
-        .unwrap()
-        .clone();
+    let link = link_off_101(&shell);
     let target = link.target.clone().unwrap();
     assert!(!shell.cached_pages().contains(&target.folio), "not cached yet");
     let p = ew_viewmodel::canvas::rect_centre(link.rect);

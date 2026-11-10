@@ -5,66 +5,18 @@
 //! V5, V9 and the model half of V10): the canvas area, walks, jumps and the per-tab history, the page navigator, the
 //! keyboard grid cursor, links, Go to, the transcript and describe members and the exact counts.
 
-use ew_testdir as fresh_dir;
+use crate::common;
 
 use std::collections::BTreeSet;
-use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU32;
 
+use common::{Tmp, fresh_dir, refused, state};
 use ew_viewmodel::area::MAX_TABS;
 use ew_viewmodel::canvas::{AUTO_PAN_INSET, PageId, rect_centre};
 use ew_viewmodel::navigator::{NavMode, NavSort, PageNavigator, RowKind};
 use ew_viewmodel::script;
-use ew_viewmodel::shell::{Focus, Mode, Outcome, RECENT_PAGES, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Focus, Outcome, RECENT_PAGES, ShellModel};
 use serde_json::{Value, json};
-
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(fresh_dir::fresh_dir("ew-vm-viewer"))
-    }
-
-    /// A headless shell with a copy of Golden A open (read-only unless `writable`).
-    fn shell(&self, writable: bool) -> ShellModel {
-        let dir = self.0.join("J-E-2416.ew");
-        if !dir.exists() {
-            copy_dir(Path::new(GOLDEN_A), &dir);
-        }
-        let mut shell = ShellModel::new(
-            Mode::Headless,
-            ShellConfig::in_dir(&self.0.join("config"), "0.0.0-test"),
-        );
-        done(
-            &mut shell,
-            "file.open",
-            json!({"dir": dir.to_string_lossy(), "read_only": !writable}),
-        );
-        shell
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
 
 #[track_caller]
 fn done(shell: &mut ShellModel, action: &str, params: Value) {
@@ -78,20 +30,18 @@ fn done(shell: &mut ShellModel, action: &str, params: Value) {
     }
 }
 
-#[track_caller]
-fn refused(shell: &mut ShellModel, action: &str, params: Value) -> &'static str {
-    match shell.dispatch(action, &params) {
-        Outcome::Refused { reason_key } => reason_key.as_str(),
-        other => panic!("{action}: {other:?}"),
-    }
+/// Changes a project setting, so the revision moves and nothing else does.
+fn change_xref_format(shell: &mut ShellModel) {
+    let xref = json!({"key":"qet-style","ip":"{page}-{row}{column}","aux_to_main":"[{page}-{row}{column}]","main_to_aux":"∞ {list}","structure":"when_different","same_page":"full","matrix":{"per_row":3,"max":9,"overflow":"…"}});
+    done(
+        shell,
+        "command.run",
+        json!({"cmd": "project.settings.set", "params": {"member": "xref_format", "value": xref}}),
+    );
 }
 
 fn mm(nm: i64) -> f64 {
     nm as f64 / 1e6
-}
-
-fn state(shell: &ShellModel) -> Value {
-    serde_json::from_str(&script::state_json(shell)).unwrap()
 }
 
 fn view_nm(shell: &ShellModel) -> [i64; 4] {
@@ -112,8 +62,8 @@ fn link_to(shell: &ShellModel, cell: &str) -> (i64, i64) {
 
 #[test]
 fn v2_the_canvas_area_keeps_its_invariants_under_every_tab_action() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(false);
+    let tmp = Tmp::new("viewer");
+    let mut shell = tmp.open(false);
     let a = shell.area().unwrap();
     assert_eq!((a.groups.len(), a.tab_count(), a.current().id), (1, 1, 1));
     assert_eq!(shell.focus(), Some(Focus::Canvas(0)));
@@ -196,8 +146,8 @@ fn v2_the_canvas_area_keeps_its_invariants_under_every_tab_action() {
 
 #[test]
 fn v2_a_tab_keeps_its_page_by_identity_across_a_renumber() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(true);
+    let tmp = Tmp::new("viewer");
+    let mut shell = tmp.open(true);
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     let page = shell.current_page().unwrap();
     let id = page.uuid_text();
@@ -216,8 +166,8 @@ fn v2_a_tab_keeps_its_page_by_identity_across_a_renumber() {
 
 #[test]
 fn v3_walks_jumps_back_and_forward_with_the_exact_view() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(true);
+    let tmp = Tmp::new("viewer");
+    let mut shell = tmp.open(true);
     // Walks record nothing.
     done(&mut shell, "page.goto", json!({"folio": "101"}));
     assert_eq!(shell.area().unwrap().current().history.back_len(), 1);
@@ -318,8 +268,8 @@ fn v3_walks_jumps_back_and_forward_with_the_exact_view() {
 
 #[test]
 fn v4_the_navigator_on_golden_a() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(false);
+    let tmp = Tmp::new("viewer");
+    let mut shell = tmp.open(false);
     let rows = shell.page_rows().to_vec();
     assert_eq!(
         rows.len(),
@@ -458,17 +408,12 @@ fn v4_the_navigator_on_golden_a() {
 
 #[test]
 fn v4_navigator_keys_are_stable_across_a_revision() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(true);
+    let tmp = Tmp::new("viewer");
+    let mut shell = tmp.open(true);
     done(&mut shell, "pages.mode", json!({"mode": "structure"}));
     let before: Vec<String> = shell.navigator_rows().iter().map(|r| r.key.clone()).collect();
     let rev = shell.revision();
-    let xref = json!({"key":"qet-style","ip":"{page}-{row}{column}","aux_to_main":"[{page}-{row}{column}]","main_to_aux":"∞ {list}","structure":"when_different","same_page":"full","matrix":{"per_row":3,"max":9,"overflow":"…"}});
-    done(
-        &mut shell,
-        "command.run",
-        json!({"cmd": "project.settings.set", "params": {"member": "xref_format", "value": xref}}),
-    );
+    change_xref_format(&mut shell);
     assert_ne!(shell.revision(), rev);
     let after: Vec<String> = shell.navigator_rows().iter().map(|r| r.key.clone()).collect();
     assert_eq!(before, after);
@@ -477,8 +422,8 @@ fn v4_navigator_keys_are_stable_across_a_revision() {
 
 #[test]
 fn v5_the_grid_cursor() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(false);
+    let tmp = Tmp::new("viewer");
+    let mut shell = tmp.open(false);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     let c = shell.canvas().unwrap();
     let centre = c.centre();
@@ -593,8 +538,8 @@ fn v5_the_grid_cursor() {
 
 #[test]
 fn v6_follow_back_forward_and_links_at_the_model() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(false);
+    let tmp = Tmp::new("viewer");
+    let mut shell = tmp.open(false);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "view.zoom_to", json!({"percent": 200}));
     done(&mut shell, "view.pan", json!({"dx": 40, "dy": -25}));
@@ -681,8 +626,8 @@ fn v6_follow_back_forward_and_links_at_the_model() {
 
 #[test]
 fn v7_go_to_and_its_errors_at_the_model() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(false);
+    let tmp = Tmp::new("viewer");
+    let mut shell = tmp.open(false);
     let fail = |shell: &mut ShellModel, text: &str| match shell.dispatch("nav.goto", &json!({"text": text})) {
         Outcome::Failed { message } => message,
         other => panic!("{other:?}"),
@@ -706,8 +651,8 @@ fn v7_go_to_and_its_errors_at_the_model() {
 
 #[test]
 fn v9_the_transcript_members_and_describe_lines() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(false);
+    let tmp = Tmp::new("viewer");
+    let mut shell = tmp.open(false);
     let text = script::state_json(&shell);
     let order = ["\"canvas\"", "\"tabs\"", "\"focus\"", "\"navigator\""];
     let at: Vec<usize> = order.iter().map(|k| text.find(k).unwrap()).collect();
@@ -794,8 +739,8 @@ fn v9_the_transcript_members_and_describe_lines() {
 
 #[test]
 fn v10_exact_counts_and_the_page_content_cache() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(false);
+    let tmp = Tmp::new("viewer");
+    let mut shell = tmp.open(false);
     // Two tabs (102, 103) in group 1, 104 in group 2; every page shown once.
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "tab.new", json!({}));
@@ -917,17 +862,12 @@ fn v10_exact_counts_and_the_page_content_cache() {
 
 #[test]
 fn v10_a_revision_change_empties_the_cache() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(true);
+    let tmp = Tmp::new("viewer");
+    let mut shell = tmp.open(true);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     assert!(shell.cached_pages().contains(&"102".to_owned()));
-    let xref = json!({"key":"qet-style","ip":"{page}-{row}{column}","aux_to_main":"[{page}-{row}{column}]","main_to_aux":"∞ {list}","structure":"when_different","same_page":"full","matrix":{"per_row":3,"max":9,"overflow":"…"}});
-    done(
-        &mut shell,
-        "command.run",
-        json!({"cmd": "project.settings.set", "params": {"member": "xref_format", "value": xref}}),
-    );
+    change_xref_format(&mut shell);
     assert_eq!(
         shell.cached_pages(),
         ["103"],
@@ -939,8 +879,8 @@ fn v10_a_revision_change_empties_the_cache() {
 
 #[test]
 fn a_tab_moved_across_the_groups_takes_its_new_groups_pane() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell(false);
+    let tmp = Tmp::new("viewer");
+    let mut shell = tmp.open(false);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(
         &mut shell,
@@ -982,14 +922,14 @@ fn a_tab_moved_across_the_groups_takes_its_new_groups_pane() {
 /// always one this process created; the leftover is skipped and left alone.
 #[test]
 fn ft_524_a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
-    let parent = Tmp::new();
+    let parent = Tmp::new("viewer");
     // The killed run: its copy of Golden A open for editing, then gone without a shutdown (the lock stays).
     let killed = Tmp(fresh_dir::fresh_dir_in(&parent.0, "run", &AtomicU32::new(0)));
-    Box::leak(Box::new(killed.shell(true)));
+    Box::leak(Box::new(killed.open(true)));
     assert!(killed.0.join("J-E-2416.ew").join(".~ew.lock").is_file());
     // Adopting the leftover (the old behaviour): the copy is read-only.
     assert!(
-        !killed.shell(true).is_writable(),
+        !killed.open(true).is_writable(),
         "a leftover lock makes the copy read-only"
     );
     // The next process starts its numbers again: the leftover's name is skipped, the new directory is empty and its
@@ -997,7 +937,7 @@ fn ft_524_a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
     let fresh = Tmp(fresh_dir::fresh_dir_in(&parent.0, "run", &AtomicU32::new(0)));
     assert_ne!(fresh.0, killed.0);
     assert_eq!(std::fs::read_dir(&fresh.0).unwrap().count(), 0);
-    assert!(fresh.shell(true).is_writable());
+    assert!(fresh.open(true).is_writable());
     assert!(
         killed.0.join("J-E-2416.ew").join(".~ew.lock").is_file(),
         "the leftover is not touched"
