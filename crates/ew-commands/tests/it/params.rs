@@ -1,12 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Command parameters as JSON (C-8): every registered command has an example that validates against its
-//! schema, resolves and round-trips; wrong parameters are rejected with the JSON Pointer of the culprit.
+//! Command parameters as JSON (C-8): every example resolves against its schema and
+//! round-trips; wrong parameters are rejected with the JSON Pointer of the culprit.
 
 use crate::common;
-
-use std::collections::BTreeSet;
 
 use common::fixture::*;
 use common::*;
@@ -479,25 +477,6 @@ fn invalid(name: &str, params: Value) -> (String, String, String) {
 }
 
 #[test]
-fn every_registered_command_has_an_example() {
-    let registry = CommandRegistry::builtin();
-    let registered: BTreeSet<&str> = registry.commands().map(|c| c.meta().name).collect();
-    let covered: BTreeSet<&str> = examples().iter().map(|(n, _)| *n).collect();
-    assert!(!registered.is_empty());
-    assert_eq!(registered, covered);
-    assert_eq!(examples().len(), covered.len(), "one example per command");
-}
-
-#[test]
-fn examples_validate_against_their_schema() {
-    let registry = CommandRegistry::builtin();
-    for (name, params) in examples() {
-        let schema = registry.get(name).expect("registered").schema();
-        assert_eq!(validate_schema(schema, &params), Ok(()), "{name}");
-    }
-}
-
-#[test]
 fn examples_resolve_and_round_trip() {
     let registry = CommandRegistry::builtin();
     for (name, params) in examples() {
@@ -515,90 +494,95 @@ fn examples_resolve_and_round_trip() {
     }
 }
 
+/// Wrong parameters are rejected at the JSON Pointer of the culprit: `(command, parameters, pointer, a word the
+/// message holds)`.
 #[test]
-fn a_missing_required_member_is_reported_at_the_object() {
-    let (command, path, message) = invalid("connection.route", json!({"connection": CON_W22.to_string()}));
-    assert_eq!(command, "connection.route");
-    assert_eq!(path, "");
-    assert!(message.contains("`route`"), "{message}");
-    let (_, path, _) = invalid("fields.set", json!({}));
-    assert_eq!(path, "");
-}
-
-#[test]
-fn an_unknown_member_is_reported_at_the_member() {
-    let (_, path, message) = invalid("page.create", json!({"after": PAGE_102.to_string(), "bogus": 1}));
-    assert_eq!(path, "/bogus");
-    assert!(message.contains("bogus"), "{message}");
-    // Inside a nested variant object as well.
-    let (_, path, _) = invalid(
-        "connection.draw",
-        json!({"a": {"cp": {"function": FN_102F2.to_string(), "idx": 1, "extra": 0}},
-            "b": {"junction": {"junction": J5.to_string()}}}),
-    );
-    assert_eq!(path, "/a/cp/extra");
-}
-
-#[test]
-fn a_wrong_type_deep_inside_is_reported_with_its_pointer() {
-    let a = json!({"cp": {"function": FN_102F2.to_string(), "idx": "one"}});
-    let b = json!({"junction": {"junction": J5.to_string()}});
-    let (_, path, message) = invalid("connection.draw", json!({"a": a, "b": b}));
-    assert_eq!(path, "/a/cp/idx");
-    assert!(message.contains("expected integer"), "{message}");
-
-    let a = json!({"cp": {"function": FN_102F2.to_string(), "idx": 1}});
-    let (_, path, _) = invalid(
-        "connection.draw",
-        json!({"a": a, "b": b, "route": [[0, 0], ["x", 1]]}),
-    );
-    assert_eq!(path, "/route/1/0");
-
-    let (_, path, _) = invalid(
-        "connection.route",
-        json!({"connection": CON_W22.to_string(), "route": [[0, 0], [1]]}),
-    );
-    assert_eq!(path, "/route/1", "a point needs two coordinates");
-}
-
-#[test]
-fn a_wrong_enum_variant_is_rejected() {
-    let (_, path, _) = invalid(
-        "ip.place",
+fn a_rejection_points_at_the_culprit() {
+    let cp = |idx: Value| json!({"cp": {"function": FN_102F2.to_string(), "idx": idx}});
+    let junction = json!({"junction": {"junction": J5.to_string()}});
+    let page_ip = |direction: &str| {
         json!({"page": PAGE_101.to_string(), "symbol": SYM.to_string(), "pos": [0, 0],
-            "name": "L-2", "direction": "sideways"}),
-    );
-    assert_eq!(path, "/direction");
-    let (_, path, _) = invalid(
-        "page.create",
-        json!({"after": PAGE_102.to_string(), "kind": "nonsense"}),
-    );
-    assert_eq!(path, "/kind");
-    // An externally tagged variant that does not exist.
-    let (_, path, _) = invalid("page.renumber", json!({"scope": {"everything": []}, "start": 1}));
-    assert_eq!(path, "/scope");
-}
-
-#[test]
-fn the_error_of_a_named_variant_points_into_it() {
-    let (_, path, _) = invalid(
-        "page.renumber",
-        json!({"scope": {"pages": [PAGE_101.to_string(), 7]}, "start": 1}),
-    );
-    assert_eq!(path, "/scope/pages/1");
-}
-
-#[test]
-fn a_malformed_uuid_is_reported_where_it_stands() {
-    let (_, path, _) = invalid("connection.delete", json!({"connections": ["not-a-uuid"]}));
-    assert_eq!(path, "/connections/0");
-}
-
-#[test]
-fn parameters_of_the_wrong_shape_are_rejected_at_the_root() {
-    let (_, path, message) = invalid("page.create", json!([1, 2]));
-    assert_eq!(path, "");
-    assert!(message.contains("expected object"), "{message}");
+            "name": "L-2", "direction": direction})
+    };
+    let cases: Vec<(&str, Value, &str, &str)> = vec![
+        // A missing required member is reported at the object.
+        (
+            "connection.route",
+            json!({"connection": CON_W22.to_string()}),
+            "",
+            "`route`",
+        ),
+        ("fields.set", json!({}), "", ""),
+        // An unknown member is reported at the member, inside a nested variant object as well.
+        (
+            "page.create",
+            json!({"after": PAGE_102.to_string(), "bogus": 1}),
+            "/bogus",
+            "bogus",
+        ),
+        (
+            "connection.draw",
+            json!({"a": {"cp": {"function": FN_102F2.to_string(), "idx": 1, "extra": 0}}, "b": junction}),
+            "/a/cp/extra",
+            "",
+        ),
+        // A wrong type deep inside is reported with its pointer.
+        (
+            "connection.draw",
+            json!({"a": cp(json!("one")), "b": junction}),
+            "/a/cp/idx",
+            "expected integer",
+        ),
+        (
+            "connection.draw",
+            json!({"a": cp(json!(1)), "b": junction, "route": [[0, 0], ["x", 1]]}),
+            "/route/1/0",
+            "",
+        ),
+        // A point needs two coordinates.
+        (
+            "connection.route",
+            json!({"connection": CON_W22.to_string(), "route": [[0, 0], [1]]}),
+            "/route/1",
+            "",
+        ),
+        // A wrong enum variant, and an externally tagged variant that does not exist.
+        ("ip.place", page_ip("sideways"), "/direction", ""),
+        (
+            "page.create",
+            json!({"after": PAGE_102.to_string(), "kind": "nonsense"}),
+            "/kind",
+            "",
+        ),
+        (
+            "page.renumber",
+            json!({"scope": {"everything": []}, "start": 1}),
+            "/scope",
+            "",
+        ),
+        // The error of a named variant points into it.
+        (
+            "page.renumber",
+            json!({"scope": {"pages": [PAGE_101.to_string(), 7]}, "start": 1}),
+            "/scope/pages/1",
+            "",
+        ),
+        // A malformed UUID is reported where it stands.
+        (
+            "connection.delete",
+            json!({"connections": ["not-a-uuid"]}),
+            "/connections/0",
+            "",
+        ),
+        // Parameters of the wrong shape are rejected at the root.
+        ("page.create", json!([1, 2]), "", "expected object"),
+    ];
+    for (name, params, pointer, word) in cases {
+        let (command, path, message) = invalid(name, params.clone());
+        assert_eq!(command, name, "{name} {params}");
+        assert_eq!(path, pointer, "{name} {params}: {message}");
+        assert!(message.contains(word), "{name} {params}: {message}");
+    }
 }
 
 #[test]

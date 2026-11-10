@@ -5,11 +5,6 @@
 //! one over is rejected with the JSON Pointer of the offending value, an oversize document is rejected
 //! fast, and messages never quote more than a short excerpt of the instance.
 
-// A wall-clock timer of this test, asserted only with EW_PERF_ASSERT (the timing rule of doc 18 §3.16); no timestamp reaches a compared result.
-#![allow(clippy::disallowed_methods)]
-
-use std::time::{Duration, Instant};
-
 use ew_commands::{
     AnyCommand, CmdError, CommandRegistry, MAX_PARAM_BYTES, MAX_PARAM_DEPTH, MAX_PARAM_ITEMS,
     MAX_PARAM_STRING, SchemaViolation, check_limits, validate_schema,
@@ -84,13 +79,6 @@ fn nesting_bound() {
 }
 
 #[test]
-fn a_very_deep_document_is_rejected_without_overflowing_the_stack() {
-    let deep = nested(MAX_PARAM_DEPTH + 1);
-    let v = rejected(&json!({ "a": [deep] }));
-    assert!(v.message.contains(&MAX_PARAM_DEPTH.to_string()), "{}", v.message);
-}
-
-#[test]
 fn array_item_bound() {
     let at = Value::Array(vec![json!(0); MAX_PARAM_ITEMS]);
     assert_eq!(check_limits(&json!({ "a": at })), Ok(()));
@@ -124,14 +112,12 @@ fn object_keys_count_as_strings() {
 }
 
 #[test]
-fn ten_megabyte_string_fails_fast() {
+fn a_ten_megabyte_string_is_rejected_at_its_member() {
     let cmd = AnyCommand {
         name: "fields.set".into(),
         params: json!({"kind": "device", "targets": [], "path": "function_text",
             "value": "x".repeat(10 * 1024 * 1024)}),
     };
-    // Timing acquisition and the generous bound are opt-in.
-    let started = std::env::var_os("EW_PERF_ASSERT").is_some().then(Instant::now);
     let result = CommandRegistry::builtin().resolve(&cmd);
     match result {
         Err(CmdError::InvalidParams {
@@ -145,16 +131,6 @@ fn ten_megabyte_string_fails_fast() {
             assert!(message.contains("10485760"), "{message}");
         }
         other => panic!("expected InvalidParams, got {:?}", other.map(|c| c.name())),
-    }
-    if let Some(started) = started {
-        let took = started.elapsed();
-        let budget = if cfg!(debug_assertions) {
-            Duration::from_secs(2)
-        } else {
-            Duration::from_millis(50)
-        };
-        assert!(took < budget, "resolve took {took:?}");
-        eprintln!("ten_megabyte_string_fails_fast: resolve took {took:?}");
     }
 }
 

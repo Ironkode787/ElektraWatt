@@ -9,6 +9,7 @@
 use crate::common;
 
 use common::fixture::*;
+use common::reason as rejection;
 use common::*;
 use ew_commands::commands::{Connect, ConnectHint, CreatePage, EndpointParam, PlaceSymbol, PlaceTarget};
 use ew_commands::geometry::on_grid;
@@ -17,7 +18,7 @@ use ew_commands::{
     Submit, TxBuilder,
 };
 use ew_ids::Id;
-use ew_model::{Entity, Model};
+use ew_model::Model;
 use ew_schema::{
     Connection, ConnectionKind, Device, FnRole, Function, Junction, Kind, Record, Representation,
 };
@@ -27,21 +28,6 @@ use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------------------------------------
 // Helpers
-
-fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
-    e.model().table::<T>().get(&id).expect("row exists").clone()
-}
-
-fn rejection<T: std::fmt::Debug>(r: Result<T, CmdError>) -> String {
-    match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
-        other => panic!("expected a rejection, got {other:?}"),
-    }
-}
-
-fn cp_param(function: Id<Function>, idx: u16) -> EndpointParam {
-    EndpointParam::Cp { function, idx }
-}
 
 // ---------------------------------------------------------------------------------------------------------
 // N1: a split point on a wire at a CP-exact coordinate that is off the rational grid

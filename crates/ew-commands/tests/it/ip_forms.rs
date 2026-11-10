@@ -11,8 +11,9 @@
 use crate::common;
 
 use common::fixture::*;
+use common::reason as rejection;
 use common::*;
-use ew_commands::CmdError;
+
 use ew_commands::commands::{ContinueIp, KindName, PlaceIp, SetFields, TransformReps};
 use ew_ids::{Id, Uuid};
 use ew_mltext::MlText;
@@ -65,15 +66,6 @@ fn place(symbol: &str, direction: IpDirection, orient: Orient2) -> PlaceIp {
         sort: None,
         external: None,
         copies: Vec::new(),
-    }
-}
-
-/// The reason of a rejection.
-#[track_caller]
-fn rejection<T: std::fmt::Debug>(r: Result<T, CmdError>) -> String {
-    match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
-        other => panic!("expected a rejection, got {other:?}"),
     }
 }
 

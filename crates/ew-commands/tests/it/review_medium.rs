@@ -10,6 +10,7 @@
 use crate::common;
 
 use common::fixture::*;
+use common::reason as rejection_reason;
 use common::*;
 use ew_commands::commands::{
     ConnectHint, CreateDevice, DefinePotential, DeleteSelection, EndpointParam, KindName, MoveReps,
@@ -22,18 +23,8 @@ use ew_schema::{Connection, Junction, Kind, NumberSpec, Page, PageType, Record, 
 use ew_testids::SeededSource;
 use ew_units::Orient2;
 
-fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
-    e.model().table::<T>().get(&id).expect("row exists").clone()
-}
-
 fn exists<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> bool {
     e.model().table::<T>().get(&id).is_some()
-}
-
-fn golden_with(f: impl FnOnce(&mut Vec<Record>)) -> Model {
-    let (p, mut records, _) = mini_golden_parts();
-    f(&mut records);
-    Model::from_records(p, records, library()).expect("valid model")
 }
 
 /// The golden model with `PAGE_101` turned into a page of the given type.
@@ -64,13 +55,6 @@ fn place(page: Id<Page>, rep_type: Option<RepType>) -> PlaceSymbol {
             kind: None,
         },
         connect: vec![],
-    }
-}
-
-fn rejection_reason<T: std::fmt::Debug>(r: Result<T, CmdError>) -> String {
-    match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
-        other => panic!("expected a rejection, got {other:?}"),
     }
 }
 

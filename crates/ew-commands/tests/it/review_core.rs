@@ -10,6 +10,7 @@
 use crate::common;
 
 use common::fixture::*;
+use common::reason as rejection;
 use common::*;
 use ew_commands::commands::{
     BULK_ABOVE, Connect, CreatePage, DeleteConnections, DeleteSelection, EditJunction, EndpointParam,
@@ -19,7 +20,7 @@ use ew_commands::geometry::MAX_COORD;
 use ew_commands::rows::{row_json, row_text};
 use ew_commands::{CmdError, Command, Cost, DynCommand, Engine};
 use ew_ids::Id;
-use ew_model::{AnyRow, Entity, Model};
+use ew_model::{AnyRow, Entity};
 use ew_schema::{
     Connection, ConnectionKind, Device, Endpoint, FnRole, Function, IpDirection, Junction, JunctionStyle,
     Kind, Page, Record, Representation,
@@ -36,24 +37,6 @@ fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> T {
 
 fn has<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> bool {
     e.model().table::<T>().get(&id).is_some()
-}
-
-fn golden_with(f: impl FnOnce(&mut Vec<Record>)) -> Model {
-    let (p, mut records, _) = mini_golden_parts();
-    f(&mut records);
-    Model::from_records(p, records, library()).expect("valid model")
-}
-
-/// The reason of a rejection, or a panic naming what came back instead.
-fn rejection<T: std::fmt::Debug>(r: Result<T, CmdError>) -> String {
-    match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
-        other => panic!("expected a rejection, got {other:?}"),
-    }
-}
-
-fn cp_param(f: Id<Function>, idx: u16) -> EndpointParam {
-    EndpointParam::Cp { function: f, idx }
 }
 
 fn target(kind: KindName, id: ew_schema::AnyId) -> TargetRef {
@@ -140,35 +123,25 @@ fn largest_on_grid(grid: Grid) -> i64 {
     }
 }
 
+/// A move that would end outside the drawable range is refused in words and changes nothing: a second move by
+/// the largest grid coordinate, and a single move by `MAX_COORD` from a positive position.
 #[test]
-fn f1_two_moves_by_max_safe_integer_reject_the_second() {
+fn f1_a_move_out_of_the_drawable_range_is_refused_and_changes_nothing() {
     let d = largest_on_grid(Grid::QET_10PX);
-    let mut e = engine(golden_model());
-    // The aux representation sits at the origin and has no connections.
-    e.execute(&move_reps(vec![REP_102F2_AUX], pt(d, 0)))
-        .expect("the first move stays in range");
-    assert_eq!(row(&e, REP_102F2_AUX).pos, pt(d, 0));
-    let before = lines(e.model());
-    let reason = rejection(e.execute(&move_reps(vec![REP_102F2_AUX], pt(d, 0))));
-    assert_eq!(
-        reason,
-        "the move takes the symbol of -102F2 outside the drawable range; move it less far"
-    );
-    assert_eq!(lines(e.model()), before, "a refused move changes nothing");
-}
-
-#[test]
-fn f1_a_single_move_by_max_coord_from_a_positive_position_is_rejected() {
-    let mut e = engine(golden_model());
-    e.execute(&move_reps(vec![REP_102F2_AUX], pt(G, 0)))
-        .expect("move to G");
-    let before = lines(e.model());
-    let reason = rejection(e.execute(&move_reps(vec![REP_102F2_AUX], pt(MAX_COORD, 0))));
-    assert_eq!(
-        reason,
-        "the move takes the symbol of -102F2 outside the drawable range; move it less far"
-    );
-    assert_eq!(lines(e.model()), before);
+    for (first, second) in [(d, d), (G, MAX_COORD)] {
+        let mut e = engine(golden_model());
+        // The aux representation sits at the origin and has no connections.
+        e.execute(&move_reps(vec![REP_102F2_AUX], pt(first, 0)))
+            .expect("the first move stays in range");
+        assert_eq!(row(&e, REP_102F2_AUX).pos, pt(first, 0));
+        let before = lines(e.model());
+        let reason = rejection(e.execute(&move_reps(vec![REP_102F2_AUX], pt(second, 0))));
+        assert_eq!(
+            reason, "the move takes the symbol of -102F2 outside the drawable range; move it less far",
+            "{first} then {second}"
+        );
+        assert_eq!(lines(e.model()), before, "{first} then {second}");
+    }
 }
 
 /// A step move that keeps the position in range but takes a connection point outside it is

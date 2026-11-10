@@ -10,14 +10,14 @@
 
 pub mod fixture;
 
-use ew_commands::commands::{CreateEnclosure, CreateLayoutSpace, KindName, SetFields};
+use ew_commands::commands::{CreateEnclosure, CreateLayoutSpace, EndpointParam, KindName, SetFields};
 use ew_commands::{CmdError, Engine, EngineOptions, HistoryLimits, Receipt};
 use ew_ids::{Id, Uuid};
 use ew_model::{AnyKey, Entity, Model};
 use ew_schema::{
-    AnyId, Device, Dir4, Enclosure, EnclosureSection, Extra, FnDef, KeyedList, Kind, LayoutSpace, LibCopy,
-    LibDocument, MechData, MountKind, MountingSurface, Part, PartRef, PartUse, PlateSection, Project,
-    RailSection, SymbolCp, SymbolDef,
+    AnyId, Device, Dir4, Enclosure, EnclosureSection, Extra, FnDef, Function, KeyedList, Kind, LayoutSpace,
+    LibCopy, LibDocument, MechData, MountKind, MountingSurface, Part, PartRef, PartUse, PlateSection,
+    Project, RailSection, Record, SymbolCp, SymbolDef,
 };
 use ew_testids::SeededSource;
 use ew_units::{Dec3, Nm, Pose3, Pt2, Quat9};
@@ -96,6 +96,18 @@ pub fn empty_model() -> Model {
 pub fn golden_model() -> Model {
     let (p, r, _) = mini_golden_parts();
     Model::from_records(p, r, library()).expect("mini golden is valid")
+}
+
+/// The mini golden model with `f` applied to its records first.
+pub fn golden_with(f: impl FnOnce(&mut Vec<Record>)) -> Model {
+    let (p, mut records, _) = mini_golden_parts();
+    f(&mut records);
+    Model::from_records(p, records, library()).expect("valid model")
+}
+
+/// Connection point `idx` of `function`, as a command parameter.
+pub fn cp_param(function: Id<Function>, idx: u16) -> EndpointParam {
+    EndpointParam::Cp { function, idx }
 }
 
 /// An engine over `model` with a seeded ID source ([`SEED`]) and default history limits.
