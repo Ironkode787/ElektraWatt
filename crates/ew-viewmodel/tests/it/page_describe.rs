@@ -96,7 +96,7 @@ fn no_record_id_reaches_the_text_and_every_token_is_a_vocabulary_word() {
         }
     }
     // The three folios reach the words the page text adds, except the two states Golden A does not have: an unrouted
-    // connection (every page connection of the fixture has the router's route, WP-S2.19) and an undirected
+    // connection (every page connection of the fixture has the router's route) and an undirected
     // interruption point.
     let missing: Vec<&str> = words(Reach::Page)
         .into_iter()
@@ -213,7 +213,7 @@ fn page_describe_reads_the_cached_page_tables() {
     shell.shutdown();
 }
 
-/// FT-660: a generated list page prints its table: on Golden A's parts list, the `table` line with the column and row
+/// A generated list page prints its table: on Golden A's parts list, the `table` line with the column and row
 /// counts, the column headers and one `row` line per printed row, each data row with one quoted cell per column; a
 /// drawn page prints no table. Every token is a vocabulary word.
 #[test]

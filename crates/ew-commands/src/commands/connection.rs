@@ -94,7 +94,7 @@ fn new_ip(
     orient: Orient2,
     rep_type: RepType,
 ) -> Result<Id<Function>, CmdError> {
-    // WP-S2.19 D16: one of EW's forms is never turned, and is its direction's.
+    // One of EW's forms is never turned, and is its direction's.
     crate::normalise::ip_form::check_new(tx, symbol, orient, &spec.direction)?;
     let function: Id<Function> = tx.mint();
     let rep: Id<Representation> = tx.mint();
@@ -344,7 +344,7 @@ fn line_words(tx: &TxBuilder<'_>, id: Id<Connection>) -> Text {
 
 /// The refusals of WP-S1.20 §5 T1 to T3 before EW-INV-024 judges the drawn connection: a fluid line to an end that is
 /// no fluid port, another kind (except an overview connection or a kind of a newer format) to a fluid end, and a fluid
-/// line between a hydraulic and a pneumatic or vacuum port. Every end kind is judged in words (FT-1321): a CP, a
+/// line between a hydraulic and a pneumatic or vacuum port. Every end kind is judged in words: a CP, a
 /// junction (by the connections at it) and a point on a connection (by its kind); the media are those the fluid lines
 /// reach across any number of junctions.
 fn refuse_fluid_mismatch(
@@ -411,7 +411,7 @@ fn refuse_fluid_mismatch(
 /// The most entries one `connection.draw_many` takes.
 pub const DRAW_MANY_MAX: usize = 10_000;
 
-/// `connection.draw_many` (`ConnectMany`, cycle 33): several [`Connect`]s, in the given order, in **one**
+/// `connection.draw_many` (`ConnectMany`): several [`Connect`]s, in the given order, in **one**
 /// transaction (one undo step). Edit ▸ Bridge terminals draws the chain of bridges over three or more terminals of
 /// a strip with it (BR1 = 1-2, 2-3, 3-4).
 ///
@@ -522,7 +522,7 @@ impl Command for RouteConnection {
 /// The most entries one `connection.route_many` takes.
 pub const ROUTE_MANY_MAX: usize = 10_000;
 
-/// `connection.route_many` (WP-S2.19 D12): several [`RouteConnection`]s, in the given order, in **one** transaction
+/// `connection.route_many`: several [`RouteConnection`]s, in the given order, in **one** transaction
 /// (one undo step): Route page and Route selection commit the plan their preview showed with it, so replay never
 /// runs the router.
 ///
@@ -580,7 +580,7 @@ impl Command for RouteMany {
 }
 
 /// Applies `routes` in order, each exactly as `connection.route` with those parameters would be, for the command
-/// `command` (`connection.route_many`, and `rep.move`'s `routes`, WP-S2.19 D14): an entry's own parameter error keeps
+/// `command` (`connection.route_many`, and `rep.move`'s `routes`): an entry's own parameter error keeps
 /// its message with its JSON Pointer prefixed by `/routes/<i>`, its refusal keeps its reason prefixed by `entry <i>: `,
 /// every other error passes through. The first connection.
 pub(crate) fn run_routes(
@@ -721,10 +721,10 @@ impl Command for EditJunction {
 /// external}}` and `Representation {functions: [f], page, symbol, pos, orient, rep_type: multi_line}`.
 /// `def` is `fndef` or the copy the symbol's `fndef` resolves to (must be embedded). The page, the symbol
 /// copy and an external reference must exist. The pairing scope is the project's `ip_pairing` setting, not
-/// a record field. `copies` (FT-673): library documents (`lib/` JSON form) embedded first, in the same transaction,
+/// a record field. `copies`: library documents (`lib/` JSON form) embedded first, in the same transaction,
 /// as `device.place` embeds its `copies` (checked as `library.embed` checks them, at `/copies/i`), so placing a starter
 /// IP symbol is one undo step and replays without a library. A star source is a source point and an external point
-/// takes no star (ID-1146): a starred point with another direction, and a starred external point, are refused
+/// takes no star: a starred point with another direction, and a starred external point, are refused
 /// before anything is made. Outcome: the IP function.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -761,7 +761,7 @@ pub struct PlaceIp {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub external: Option<Id<ExternalRef>>,
-    /// The library documents to embed with the placement (`lib/` JSON form; FT-673): the IP symbol and its FnDef as
+    /// The library documents to embed with the placement (`lib/` JSON form): the IP symbol and its FnDef as
     /// the caller resolved them; empty when the project holds them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
@@ -775,7 +775,7 @@ impl Command for PlaceIp {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        // FT-673: the copies first, so that the symbol and its FnDef resolve below.
+        // The copies first, so that the symbol and its FnDef resolve below.
         embed_closure(Self::NAME, tx, &self.copies)?;
         tx.require::<Page>(self.page)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;
@@ -820,7 +820,7 @@ impl Command for PlaceIp {
 /// Creates an IP function with the same name, def, `sort` and no `external`, the direction reversed
 /// (source ↔ target; undirected stays), `star_source: false`, and its representation on `page` with the
 /// original representation's symbol, orientation and rep type, at `pos` (default: the original's position); a point
-/// drawn with one of EW's forms gives its partner the other form, unturned (WP-S2.19 D16), which the project must
+/// drawn with one of EW's forms gives its partner the other form, unturned, which the project must
 /// hold (else refused in words).
 /// Rejected: `ip` is not an interruption point; `page` is the original's page; an external connection
 /// point (it never pairs). Outcome: the new IP function.
@@ -873,7 +873,7 @@ impl Command for ContinueIp {
         };
         let pos = self.pos.unwrap_or(rep.pos);
         require_on_grid(tx, self.page, pos, "/pos")?;
-        // WP-S2.19 D16: the partner of a point drawn with one of EW's forms takes the other form.
+        // The partner of a point drawn with one of EW's forms takes the other form.
         let symbol = crate::normalise::ip_form::symbol_for(tx, rep.symbol, &direction)?;
         let orient = if symbol == rep.symbol {
             rep.orient
@@ -946,7 +946,7 @@ impl Command for DefinePotential {
         };
         self.at.check(tx)?;
         // A potential may hold several definitions (doc 08 §3.4, §3.5: EW-POT-017 when their names differ), but one
-        // point defines it once (decision log ID-1312).
+        // point defines it once.
         let existing = EndpointKey::of(&at)
             .and_then(|key| tx.potential_defs_at(key).into_iter().min())
             .and_then(|d| tx.get::<PotentialDef>(d));
@@ -1093,13 +1093,13 @@ pub struct IpAtEnd {
     /// Chain order.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sort: Option<i32>,
-    /// An external target (an external connection point; FT-946: one dropped on a pin).
+    /// An external target (an external connection point; one dropped on a pin).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub external: Option<Id<ExternalRef>>,
 }
 
-/// `connection.draw_to_ip` (`DrawToIp`, doc 06 §4.4 "P", WP-S2.04 §5.1, §9.2): a wire that ends in a new
+/// `connection.draw_to_ip` (`DrawToIp`, doc 06 §4.4 "P", §9.2): a wire that ends in a new
 /// interruption point, in one transaction and one undo step.
 ///
 /// - First the IP function and its representation exactly as `ip.place` creates them (`ip` holds `ip.place`'s
@@ -1117,8 +1117,8 @@ pub struct IpAtEnd {
 /// grid, a starred point that is no source or is external, ID-1146), as `connection.draw` (a missing endpoint record,
 /// off-grid geometry, a route that does not meet its CPs) and an `a` end that no representation of `page` draws; an IP
 /// symbol whose FnDef has not exactly one CP, or that does not draw it; a fluid line, and another kind from a fluid
-/// end, in words (WP-S1.20 §5 T1, T2; FT-1322).
-/// `copies` (FT-673): library documents (`lib/` JSON form) embedded first, in the same transaction, as `ip.place`
+/// end, in words (T1, T2).
+/// `copies`: library documents (`lib/` JSON form) embedded first, in the same transaction, as `ip.place`
 /// embeds them, so ending a wire in a starter IP symbol is one undo step. Interactive. Outcome: the connection.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1137,7 +1137,7 @@ pub struct DrawToIp {
     pub kind: Option<ConnectionKind>,
     /// The interruption point at the wire's end.
     pub ip: IpAtEnd,
-    /// The library documents to embed with the wire (`lib/` JSON form; FT-673): the IP symbol and its FnDef as the
+    /// The library documents to embed with the wire (`lib/` JSON form): the IP symbol and its FnDef as the
     /// caller resolved them; empty when the project holds them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
@@ -1151,7 +1151,7 @@ impl Command for DrawToIp {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        // FT-673: the copies first, so that the IP symbol and its FnDef resolve below.
+        // The copies first, so that the IP symbol and its FnDef resolve below.
         embed_closure(Self::NAME, tx, &self.copies)?;
         tx.require::<Page>(self.page)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.ip.symbol)?;
@@ -1180,14 +1180,14 @@ impl Command for DrawToIp {
             }
         };
         self.a.check(tx)?;
-        // FT-1322: an interruption point's CP is no fluid port (T1), and its start is judged as `connection.draw`
+        // An interruption point's CP is no fluid port (T1), and its start is judged as `connection.draw`
         // judges an end (T2), in words before EW-INV-024 would judge it.
         let kind = self.kind.clone().unwrap_or_default();
         if matches!(kind, ConnectionKind::Fluid(_)) {
             return tx.reject(text!("refusal-draw-to-ip-fluid"));
         }
         refuse_fluid_mismatch(tx, &kind, &[&self.a])?;
-        // FT-446: the start must be drawn on the page the wire and the IP are drawn on; refuse another page (or none)
+        // The start must be drawn on the page the wire and the IP are drawn on; refuse another page (or none)
         // before anything is inserted.
         let (drawn, other) = match &self.a {
             EndpointParam::Cp { function, .. } => {
@@ -1281,7 +1281,7 @@ impl Command for DrawToIp {
     }
 }
 
-/// `ip.arrange` (`ArrangeIps`, FR-XRF-013, WP-S2.04 §5.1, D12): interruption points of one page exchanged into a new
+/// `ip.arrange` (`ArrangeIps`, FR-XRF-013, D12): interruption points of one page exchanged into a new
 /// order.
 ///
 /// - `ips` are IP functions in the new order: at least two, none twice, each with exactly one representation, all
@@ -1292,7 +1292,7 @@ impl Command for DrawToIp {
 /// - With `set_sort`, the `sort` of `ips[i]` becomes `i + 1` (the chain order).
 ///
 /// The order is the caller's (the tool sorts by name or by the derived potential name): nothing derived is read
-/// inside the transaction (the transaction-read rule, ID-525). Rejected: fewer than two IPs; an IP listed twice; a
+/// inside the transaction (the transaction-read rule). Rejected: fewer than two IPs; an IP listed twice; a
 /// function that is not an interruption point or that has not exactly one representation; representations on
 /// different pages; a missing function. Interactive. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]

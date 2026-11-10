@@ -15,8 +15,8 @@ use crate::{UnitsError, arith};
 ///
 /// Holds cross-sections (mm²), currents (A), voltages (V), frequencies (Hz), pressures, temperatures,
 /// masses, losses and part quantities, so sums and comparisons in checks are exact. The unit is not part
-/// of this type: `Quantity { value: Dec3, unit }`, `Csa` and the unit set are deferred to `ew-schema`
-/// (WP-S1.02). Rendering for people ("0,75 mm²" in nl and de) is a query, never stored text.
+/// of this type: `Quantity { value: Dec3, unit }`, `Csa` and the unit set are deferred to `ew-schema`.
+/// Rendering for people ("0,75 mm²" in nl and de) is a query, never stored text.
 ///
 /// # Canonical text form (doc 05 §3.2)
 ///

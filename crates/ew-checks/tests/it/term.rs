@@ -163,7 +163,7 @@ fn term002_prevent_cases() {
                 assert!(v[0].message.contains("taken"), "case {c}: {}", v[0].message);
                 assert!(v[0].message.contains("use 3"), "case {c}: {}", v[0].message);
                 assert!(v[0].message.contains("swap 3"), "case {c}: {}", v[0].message);
-                // FT-1417: the prevent finding carries its pattern's arguments: nl-NL words it, never falls back.
+                // The prevent finding carries its pattern's arguments: nl-NL words it, never falls back.
                 assert_eq!(
                     ew_checks::messages::format(&v[0], ew_checks::messages::DEFAULT_LANGUAGE).as_deref(),
                     Some(v[0].message.as_str()),
@@ -223,7 +223,7 @@ fn term002_prevent_cases() {
     }
 }
 
-/// FT-1399 (ID-1392): EW-TERM-001 runs in prevent mode too (doc 15 §4.4). `Ident` refuses an empty or blank
+/// EW-TERM-001 runs in prevent mode too (doc 15 §4.4). `Ident` refuses an empty or blank
 /// designation, so no snapshot holds the violation; a batch that designates, renumbers or adds terminals passes it.
 #[test]
 fn term001_prevent_passes_every_designated_batch() {
@@ -475,9 +475,9 @@ fn term006_reports(wire: u128, number: &'static str) -> impl Fn(&str, &[ew_check
     }
 }
 
-/// FT-1020 (decision log ID-1104): a terminal whose connection points lie on a routed wire it does not join is one
+/// A terminal whose connection points lie on a routed wire it does not join is one
 /// warning; once the wire is split at the terminal, or with the terminal beside it, there is none. An unrouted wire
-/// (no route) has no wire geometry and is not seen (WP-S2.19 D3). The message leads with the terminal (ID-1110), so the
+/// (no route) has no wire geometry and is not seen. The message leads with the terminal, so the
 /// Messages row, which prints the subject before a message that does not lead with it, names it once.
 #[test]
 fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
@@ -527,9 +527,9 @@ fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
     );
 }
 
-/// C45-p1#3 and #4 (decision log ID-1110): each branch of EW-TERM-006, with the whole finding. A horizontal wire (the
+/// C45-p1#3 and #4: each branch of EW-TERM-006, with the whole finding. A horizontal wire (the
 /// horizontal lines), a slanted route segment (tested one by one), an L-shaped route, a cable core (no wire number:
-/// "?"); every wire routed, as an unrouted one is not seen (WP-S2.19 D3); silent when the wire
+/// "?"); every wire routed, as an unrouted one is not seen; silent when the wire
 /// ends at another function of the terminal's device, or at a junction standing on the terminal's CP that a connection
 /// joins to the terminal; a junction on the CP that is not joined to it, or one joined to it beside its CPs, does not
 /// join the wire.

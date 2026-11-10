@@ -70,7 +70,7 @@ pub struct Scheme {
     /// is always lenient in this sense (it reports and never rejects); the flag records the scheme's intent
     /// for the reports.
     pub lenient: bool,
-    /// The pack content the scheme runs (doc 15 §4.1, owner ruling of cycle 14): only rules whose
+    /// The pack content the scheme runs (doc 15 §4.1, owner): only rules whose
     /// [`RuleMeta::release`] is at most this. Every shipped scheme runs the MVP content until 1.0, so a 1.0
     /// rule such as EW-CORE-065 runs only in a scheme that enables the 1.0 content
     /// ([`Scheme::with_content`]), as the 1.0 expectations of doc 20 §18.2 do.
@@ -145,7 +145,7 @@ pub const PRE_DELIVERY: Scheme = Scheme {
 };
 
 /// `migration`: `extends = "pre-delivery"` at its severities, lenient, the run behind an import's
-/// migration report (doc 15 §10.2), with the import runs' EW-IMP findings (WP-S3.09 D9), which `pre-delivery` switches
+/// migration report (doc 15 §10.2), with the import runs' EW-IMP findings, which `pre-delivery` switches
 /// off.
 pub const MIGRATION: Scheme = Scheme {
     name: "migration",
@@ -173,8 +173,8 @@ pub fn scheme(name: &str) -> Option<&'static Scheme> {
 }
 
 /// The member of the project settings (`settings.extra`) that holds the project's check schemes, as
-/// `project.checks.set` writes it (FT-366). The same text as `ew_commands::commands::CHECKS_MEMBER`, which this crate
-/// may not name (`ci/dep-rules.toml`); a test of `ew-api` keeps the two equal (WP-S3.06 part 2, ruling 4).
+/// `project.checks.set` writes it. The same text as `ew_commands::commands::CHECKS_MEMBER`, which this crate
+/// may not name (`ci/dep-rules.toml`); a test of `ew-api` keeps the two equal.
 pub const CHECKS_MEMBER: &str = "checks";
 
 /// The name the project gives the check scheme of a run in `mode`, whether or not this build ships it: the member
@@ -194,7 +194,7 @@ pub fn project_scheme_name(q: &Q, mode: CheckMode) -> Option<String> {
         .map(str::to_owned)
 }
 
-/// The scheme of a release-mode run of the project (WP-S3.06 D7, D8): the release scheme the project names when this
+/// The scheme of a release-mode run of the project: the release scheme the project names when this
 /// build ships it, else [`PRE_DELIVERY`].
 pub fn release_scheme_of(q: &Q) -> &'static Scheme {
     project_scheme_name(q, CheckMode::Release)

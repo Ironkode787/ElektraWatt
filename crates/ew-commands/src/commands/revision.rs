@@ -7,7 +7,7 @@
 //! (`ReleaseRevision`, the release's stamp), with the checks that `fields.set`, `edit.delete` and `page.delete` share.
 //!
 //! The editable members of the open revision (`label`, `date`, `description`, `page_notes`) are set with
-//! `fields.set` on the `revision` kind. **The roles have one confirmed path each** (WP-S1.18 D4, FT-402):
+//! `fields.set` on the `revision` kind. **The roles have one confirmed path each**:
 //! `fields.set` refuses `author` and `checker` from every origin; the author of the open revision is set by
 //! `revision.set_author` (`HumanOnly`) and its checker only by `revision.approve` (`HumanOnly`, with the sign-off);
 //! `revision.create` takes both roles for a historic released revision only. A released or withdrawn revision is
@@ -17,7 +17,7 @@
 //!
 //! The open revision that appears with the first content edit after a release is the normaliser
 //! `revision_ensure_open`'s ([`crate::normalise::RevisionEnsureOpen`], WP-S1.18 D3). Deleting a page drops the open
-//! revision's note on it in the same transaction (`drop_notes_on_removed_pages`, FT-303); the notes of released
+//! revision's note on it in the same transaction (`drop_notes_on_removed_pages`); the notes of released
 //! and withdrawn revisions stay.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -67,7 +67,7 @@ pub struct RevisionPageNote {
     pub description: MlText,
 }
 
-/// `revision.create` (`CreateRevision`): a project revision (doc 03 §18, FR-REV-001, FT-165): the open
+/// `revision.create` (`CreateRevision`): a project revision (doc 03 §18, FR-REV-001): the open
 /// revision that collects the current edits, or a historic released revision (released before the project
 /// came to ElektraWatt: no release record, no as-built archive).
 ///
@@ -77,7 +77,7 @@ pub struct RevisionPageNote {
 /// `/checker`, EW-INV-018); a page note on a page that does not exist (at `/page_notes/<i>/page`) or a second
 /// note on one page (at `/page_notes/<i>`, EW-INV-019); a label that another revision has, other than a
 /// withdrawal record (EW-INV-017); state `open` while another revision is open (EW-INV-016); state `released`
-/// once a revision has a release record (the typed `release` member, FT-302): a historic release precedes
+/// once a revision has a release record (the typed `release` member): a historic release precedes
 /// ElektraWatt's first release and never bypasses the release gate of `revision.release`. Prevented by
 /// **EW-REL-004** (the prevent half of the label rule, doc 15 §4.8 and §5.2; its release-gate half is WP-S1.18 part
 /// 3): a label that is not in the project's label format (`settings.revision_label`, absent meaning
@@ -228,7 +228,7 @@ fn refuse_label_out_of_order(
     }
     let opening = *state == RevisionState::Open;
     let current = || revisions.iter().filter(|r| !r.is_withdrawal());
-    // FT-1488 (ID-1457): the finding by key, its English the one the CLI prints.
+    // The finding by key, its English the one the CLI prints.
     let next = || -> crate::text::TextArg {
         let n = if opening {
             format.next_after(current().map(|r| r.label.as_str()))
@@ -284,7 +284,7 @@ fn refuse_label_out_of_order(
     Err(prevented(finding, vec![(Kind::Revision, r.id.cast())]))
 }
 
-/// `revision.set_author` (`SetRevisionAuthor`): sets the author of the open revision (WP-S1.18 D4, FT-402), the one
+/// `revision.set_author` (`SetRevisionAuthor`): sets the author of the open revision, the one
 /// path that writes it once the revision exists (`fields.set` refuses `author` and `checker`). The GUI's Revision ▸
 /// Set author dialog is WP-S1.18 part 5.
 ///
@@ -329,7 +329,7 @@ impl Command for SetRevisionAuthor {
     }
 }
 
-/// `revision.withdraw` (`WithdrawRevision`): withdraws a released revision (doc 15 §5.10, FR-REV-009; WP-S1.18 D5).
+/// `revision.withdraw` (`WithdrawRevision`): withdraws a released revision (doc 15 §5.10, FR-REV-009).
 /// The CLI's `ew revision withdraw <label> --reason <text>` and the GUI's Revision ▸ Withdraw are WP-S1.18 parts 3
 /// and 5.
 ///
@@ -441,7 +441,7 @@ pub struct ApprovedPack {
 
 /// `revision.approve` (`ApproveRevision`): the checker's sign-off on the open revision (doc 15 §5.4; FR-REV-005,
 /// FR-REV-021; WP-S1.18 D9): writes the revision's `checker` and its `sign_off {checker, content_digest, date, packs,
-/// scheme, waivers_ack}`, the one path that writes the checker of an open revision (D4, FT-402). A later content edit
+/// scheme, waivers_ack}`, the one path that writes the checker of an open revision (D4). A later content edit
 /// changes the content digest, and EW-REL-001 then reports the sign-off as stale; approving again replaces it.
 ///
 /// The session submits it after the release gate on the saved generation (`ew_api::Session::approve`): the gate's
@@ -787,7 +787,7 @@ pub(crate) fn refuse_closed_revision(
     ))
 }
 
-/// FT-303 (WP-S1.18 D5): drops the open revision's notes on the pages this transaction removed, so a deleted page
+/// Drops the open revision's notes on the pages this transaction removed, so a deleted page
 /// leaves no note behind in the revision that collects the current edits. The notes of released and withdrawn
 /// revisions stay: they are history (EW-INV-020; a note is not a link). Called by the commands that delete pages
 /// (`page.delete`, `edit.delete`) after their deletions.

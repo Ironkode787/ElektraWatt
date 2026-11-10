@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rule system's own findings (doc 15 §4.2; WP-S1.16 part 4): EW-CORE-083 "Rule not evaluated" for a rule that
+//! The rule system's own findings (doc 15 §4.2): EW-CORE-083 "Rule not evaluated" for a rule that
 //! panicked, and EW-CORE-084 "Rule pack not evaluated" for a pack whose data table does not load. Both are integrity
 //! findings: never waivable, never pending, at warning online and error in release mode, so a silent rule failure can
 //! never look like "no findings" (doc 15 §13 pitfall 5).
@@ -9,7 +9,7 @@
 //! The engine reports them ([`run`](crate::run), [`prevent`](crate::prevent)); the registered rules report nothing
 //! per scope.
 //!
-//! # Determinism (WP-S1.16 §10)
+//! # Determinism
 //!
 //! Texts name the rule, the scope by its printed text (a folio, a tag, a potential name) and the pack's data file;
 //! the panic's payload is left out, since it may print record IDs. IDs enter only targets and fingerprints.
@@ -95,7 +95,7 @@ impl Rule for PackNotEvaluated {
     }
 }
 
-/// A data table a shipped rule needs (WP-S1.16 D5): the rule, its pack, the file and whether it loads.
+/// A data table a shipped rule needs: the rule, its pack, the file and whether it loads.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DataTable {
     /// The rule that reads it.

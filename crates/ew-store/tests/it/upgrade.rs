@@ -285,7 +285,7 @@ fn the_consent_changes_nothing_for_a_read_only_or_current_store() {
     store.close();
 }
 
-/// FT-1489 (WP-S6.08 D19): `Store::create` reports the marker as a save does: `writes_unstable` says what the manifest
+/// `Store::create` reports the marker as a save does: `writes_unstable` says what the manifest
 /// it wrote holds, by the released list.
 #[test]
 fn a_created_project_reports_its_unstable_marker() {
@@ -324,7 +324,7 @@ fn the_unstable_marker_follows_the_released_list() {
         let saved = store.save(&model, Changes::All).expect("saves");
         assert_eq!(saved.manifest_written, marked, "{released:?}");
         assert_eq!(manifest_on(&vfs, &root).unstable, marked, "{released:?}");
-        // FT-1154 (WP-S6.08 D3): the save's result says so, for the front ends' warning.
+        // The save's result says so, for the front ends' warning.
         assert_eq!(saved.unstable, marked, "{released:?}");
         store.close();
         if !marked {

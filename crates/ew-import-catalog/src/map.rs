@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The column map (FT-463, D11): which column of a supplier's table fills which member of a part, `member ← header`,
+//! The column map (D11): which column of a supplier's table fills which member of a part, `member ← header`,
 //! and the TOML file it is saved as per source (`<config dir>/imports/<source key>.toml`; the host reads and writes
 //! the file, this crate only parses and prints its text).
 //!
@@ -22,7 +22,7 @@ use std::fmt;
 use ew_interop_api::ew_schema::{FreeProp, TechValue};
 use serde::{Deserialize, Serialize};
 
-/// A member of a part that a column can fill (WP-S1.19 §9).
+/// A member of a part that a column can fill.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum Member {
     /// `manufacturer`: the manufacturer's name, key, alias or brand, resolved through the master list. Required.
@@ -48,7 +48,7 @@ pub enum Member {
 }
 
 impl Member {
-    /// The members without a key, in declaration order (the column-mapping step's choices, FT-649); a description
+    /// The members without a key, in declaration order (the column-mapping step's choices); a description
     /// per language, technical data and free properties take a key ([`Member::parse`]).
     pub const FIXED: [Member; 8] = [
         Member::Manufacturer,
@@ -185,7 +185,7 @@ impl fmt::Display for MapError {
 
 impl std::error::Error for MapError {}
 
-/// A column map: `member ← header`, and the sheet of a workbook (D11, FT-463). Several members may read one column
+/// A column map: `member ← header`, and the sheet of a workbook (D11). Several members may read one column
 /// (a supplier whose order number is the part number). Columns the map does not name are reported, never guessed.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ColumnMap {

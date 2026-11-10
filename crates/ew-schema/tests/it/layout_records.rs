@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The layout kinds typed within format 0.1 (WP-S4.01 D3, LM-1; ADR-0011 amendment 4): `layout_space`,
+//! The layout kinds typed within format 0.1 (LM-1; ADR-0011 amendment 4): `layout_space`,
 //! `enclosure`, `mounting_surface`, `carrier` and `placement` round-trip byte for byte with every typed member, the
 //! members and variants of later packages survive a load and a save verbatim, a malformed known variant is kept by
 //! the loader (EW-CORE-017), and each record names the anchor its layout file is resolved from.
@@ -38,7 +38,7 @@ fn the_layout_kinds_are_implemented_layout_file_kinds() {
         assert_eq!(kind.schema_version(), 1);
         assert_eq!(kind.file_rule(), FileRule::LayoutFile);
     }
-    // Routing and machining kinds stay reserved (WP-S4.05, WP-S4.07).
+    // Routing and machining kinds stay reserved.
     for kind in [
         Kind::RouteOverride,
         Kind::CommittedRoute,

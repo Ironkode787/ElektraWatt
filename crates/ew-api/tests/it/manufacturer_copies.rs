@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 3, EM-10 (D10, FT-39): Golden A's manufacturer copies. The bootstrap emits one project-local
+//! WP-S1.19 part 3, EM-10 (D10): Golden A's manufacturer copies. The bootstrap emits one project-local
 //! manufacturer copy per manufacturer name and the part references carry no `key`; every page, report and export
 //! derives exactly as from a file written before part 3, whose references keep the name in `key` and which holds no
 //! manufacturer copy (the readers' fallback). The committed outputs under `golden/J-E-2416/expected/` are unchanged

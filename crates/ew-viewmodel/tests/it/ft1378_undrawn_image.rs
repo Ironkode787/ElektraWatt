@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1378 as ruled by ID-1417 (C52-p5#7): the pixel limit of a raster image applies at the gates that bring an image
+//! FT-1378 as ruled by ID-1417: the pixel limit of a raster image applies at the gates that bring an image
 //! in, never at open. A project holding an image over the limit, which an earlier build took in, opens with the image
 //! kept, not drawn, and named in words; inserting such an image is refused.
 
@@ -130,7 +130,7 @@ fn an_image_over_the_pixel_limit_is_kept_at_open_and_refused_at_insertion() {
     }
 }
 
-/// FT-1523 (ID-1458): an image over the pixel limit that the project already holds is refused when it is placed again
+/// An image over the pixel limit that the project already holds is refused when it is placed again
 /// by its hash (`item.place {asset}`, `image.pick`), as its data and its file are; a project made from a template that
 /// holds it names it as an open does.
 #[test]
@@ -175,7 +175,7 @@ fn ft1523_a_held_image_over_the_limit_is_refused_by_its_hash_and_named_after_a_t
         }
     );
     assert_eq!(s.tool().state(), "picking", "the tool is unchanged");
-    // C53-p3#2 (ID-1481): both refusals in a Dutch window's language.
+    // Both refusals in a Dutch window's language.
     done(&mut s, "view.language", json!({ "value": "nl" }));
     assert_eq!(
         s.dispatch(

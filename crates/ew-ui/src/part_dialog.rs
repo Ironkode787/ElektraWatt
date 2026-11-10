@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The bodies of the part selection dialog and the part editor (WP-S2.07 part 4a, D19 to D21) inside the 640-px form
+//! The bodies of the part selection dialog and the part editor inside the 640-px form
 //! dialog frame (`crate::dialog`).
 //!
 //! **Choose a part.** The search field (first focus), a filter row (Only parts that fit, the four views as a segmented
@@ -25,7 +25,7 @@ use serde_json::json;
 use crate::app::Event;
 use crate::theme;
 
-/// The share of the window's height the result list takes once that is more than ten rows (FT-1040): ten rows at the
+/// The share of the window's height the result list takes once that is more than ten rows: ten rows at the
 /// 800-px floor, more in a taller window.
 const LIST_SHARE: f32 = 0.35;
 

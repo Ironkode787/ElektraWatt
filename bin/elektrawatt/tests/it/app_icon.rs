@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The application icon (WP-S6.06 §13 O5, decision log ID-1280): `assets/icons/app/elektrawatt.png` is the
+//! The application icon (O5): `assets/icons/app/elektrawatt.png` is the
 //! rendering of `assets/icons/app/elektrawatt.svg` at 256 × 256 pixels, RGBA with transparent corners, through the
 //! workspace's own SVG path (`ew_scene::images::svg_items`, usvg) and CPU renderer (`ew-render-cpu`, vello_cpu), on
 //! a transparent background. The test renders the SVG and compares the PNG's bytes; `EW_BLESS=1` writes the PNG.

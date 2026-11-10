@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Recording, bless and replay (WP-S6.13 §5.10, D14, D15).
+//! Recording, bless and replay (D14, D15).
 //!
 //! The UI script is the replay artefact: a run's `steps.uiscript` (prelude, the agent's steps, the epilogue) replayed
 //! through the built binary reproduces the run's outcomes and its `page.describe` epilogue. **R1** every step's action,
@@ -101,7 +101,7 @@ pub struct Inputs {
     pub paint_into: Option<PathBuf>,
     /// A visual run's window size and scale, as its `run.json` records it.
     pub geometry: super::visual::Geometry,
-    /// The run's start project (`gp-ut`, `golden-a`; WP-S2.12 D5): the replay makes it as `work/project` first.
+    /// The run's start project (`gp-ut`, `golden-a`): the replay makes it as `work/project` first.
     pub start: Option<String>,
 }
 
@@ -511,7 +511,7 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
     }
     files.push(("outcomes.jsonl".to_owned(), outcomes_jsonl(&run.transcript()?)?));
     files.push(("epilogue.txt".to_owned(), norm.text(&inputs.epilogue)));
-    // The PDF's digest ties a gate run's recording to the PDF attached to the release (FT-420). It is evidence only,
+    // The PDF's digest ties a gate run's recording to the PDF attached to the release. It is evidence only,
     // never compared, and not reproducible: a new project mints random IDs that reach the PDF. The self-test
     // recording therefore leaves it out, or every bless would change a committed file.
     if !is_selftest(&rj.task)
@@ -561,7 +561,7 @@ fn recorded_run_json(rj: &RunJson, ci: &str) -> RunJson {
     recorded
 }
 
-/// `rescore <recording> [--bin <dir>] [--write]` (FT-555): scores a committed recording again against its task's
+/// `rescore <recording> [--bin <dir>] [--write]`: scores a committed recording again against its task's
 /// current oracle through the harness's own scoring path. The recording is replayed into a scratch run folder (R1 and
 /// R2 must hold), the run's exports are made with the built `ew` as `stop` makes them, and [`score_run`] scores the
 /// folder. With `write` the recording's `out/score.json` and the score section of its `out/report.md` are replaced.
@@ -883,7 +883,7 @@ mod tests {
         );
     }
 
-    /// FT-555: `rescore --write` replaces only the report's score section.
+    /// `rescore --write` replaces only the report's score section.
     #[test]
     fn the_score_section_of_a_report_is_replaced_in_place() {
         let report = "# Run r\n\nkind gate\n\n## Score\n\nold\n\n## Protocol\n\nturns 1\n";

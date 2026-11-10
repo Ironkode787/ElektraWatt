@@ -12,14 +12,14 @@
 //! A strip without a segment takes the main representation of its first placed terminal, and a device whose main
 //! function is not drawn takes the smallest-ID representation of its other functions ([`main_rep`]).
 //! `ew_derive::MainRep` applies the same rules; its `tests/agreement.rs` holds the two together. A cable without a
-//! drawn definition line is placed on the page of its first connected core ([`main_page`], FT-1406), as
+//! drawn definition line is placed on the page of its first connected core ([`main_page`]), as
 //! `ew_derive::cable_core_page` places it.
 //!
 //! **Which devices take part.** A device takes part in page-based numbering when it has no terminal
 //! aspect (a terminal is named by its strip and designation), no frozen tag and the default scheme. An
 //! unplaced device (no main representation) has no scope: it keeps its counter, and a device without a
 //! counter gets one when it is placed. An unplaced cable (no definition line, no connected core) takes the project's
-//! counter: the scope of the cables on no page (FT-1406), whose tags print no page.
+//! counter: the scope of the cables on no page, whose tags print no page.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -39,7 +39,7 @@ use crate::tx::TxBuilder;
 pub enum CounterScope {
     /// The devices whose main representation is on this page.
     Page(Id<Page>),
-    /// The cables placed on no page: no definition line and no connected core (FT-1406).
+    /// The cables placed on no page: no definition line and no connected core.
     Project,
 }
 
@@ -131,7 +131,7 @@ fn strip_main_rep(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Arc<Represen
 }
 
 /// The page of a device's main representation; for a cable without a drawn definition line, the page of its first
-/// connected core (FT-1406): of the core connections that name one of its conductors and lie on a page, the one of
+/// connected core: of the core connections that name one of its conductors and lie on a page, the one of
 /// the smallest ID (`ew_derive::cable_core_page`).
 pub fn main_page(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Id<Page>> {
     if let Some(rep) = main_rep(tx, device) {
@@ -244,7 +244,7 @@ fn frame_grid_with(rows: &impl Rows, page: &Page) -> Option<FrameGrid> {
     }
 }
 
-/// The order online numbering gives the devices it numbers (FR-NUM-028, FT-456): by the anchor cell of the main
+/// The order online numbering gives the devices it numbers (FR-NUM-028): by the anchor cell of the main
 /// representation ([`anchor_cell`]: column, then row; a device without a cell after those with one), ties by the
 /// anchor point (x, then y), then by ID (devices anchored on the same point). Unplaced devices are not numbered;
 /// they sort with the devices without a cell. Never by ID alone: the IDs one transaction mints are not monotonic,
@@ -336,7 +336,7 @@ fn own_main_page_in(model: &Model, device: Id<Device>) -> Option<Id<Page>> {
 }
 
 /// Whether two devices held the same page-based tag in a snapshot: both numbered, the same letter and
-/// counter, and the same page of the main representation, or both cables on no page (FT-1406).
+/// counter, and the same page of the main representation, or both cables on no page.
 pub fn collided_in(model: &Model, a: Id<Device>, b: Id<Device>) -> bool {
     let devices = model.table::<Device>();
     let (Some(da), Some(db)) = (devices.get(&a), devices.get(&b)) else {
@@ -497,7 +497,7 @@ impl ScopeCounters {
 /// date. `renumber` sees the device, its record and its scope's counters. Returns whether a counter changed.
 ///
 /// The one loop of online numbering: normaliser #4 calls it with its candidates in [`PlaceKey`] order and its
-/// collision rule (FR-NUM-028, FT-456; `edit.paste` no longer numbers its copies itself).
+/// collision rule (FR-NUM-028, `edit.paste` no longer numbers its copies itself).
 ///
 /// # Errors
 ///
@@ -527,7 +527,7 @@ pub fn number_devices(
             .or_insert_with(|| ScopeCounters::load(tx, &dev.tag.letter, scope));
         if renumber(tx, *d, &dev, group) {
             let next = group.next_free(Some(*d));
-            // A device that keeps its counter changes nothing (FT-1406: a cable placed from the project's scope).
+            // A device that keeps its counter changes nothing (a cable placed from the project's scope).
             if dev.tag.counter != Some(next) {
                 tx.update::<Device>(*d, |dev| dev.tag.counter = Some(next))?;
                 changed = true;

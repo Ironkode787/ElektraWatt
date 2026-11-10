@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The visual run's side of the protocol (WP-S6.13 part 4, visual spec §3 and §4): `do` sends mouse and key inputs and
+//! The visual run's side of the protocol (visual spec §3 and §4): `do` sends mouse and key inputs and
 //! answers with one frame, `look` paints the current frame again (or a zoom of it), and nothing textual reaches the
 //! agent. The inputs are checked here with the texts of the visual driver (`elektrawatt --headless --visual`), so that
 //! a line the driver would refuse never reaches it: the harness has no edge to the product crates (D2), so the checks
@@ -29,7 +29,7 @@ pub const MAX_INPUTS: usize = 12;
 /// The most milliseconds the `wait` inputs of one `do` may add up to.
 pub const MAX_WAIT_MS: u64 = 10_000;
 
-/// The window size and scale of a visual run (cycle 39): the window in points and the pixels per point in hundredths.
+/// The window size and scale of a visual run: the window in points and the pixels per point in hundredths.
 /// It mirrors the driver's `Geometry` (the harness has no edge to the product crates), with its texts; the product's
 /// tests hold the same frame sizes. A `run.json` without `window` or `ppp` reads as [`Geometry::DEFAULT`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

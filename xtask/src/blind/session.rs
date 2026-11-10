@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The product as a session the harness feeds: one step in, one transcript line out (WP-S6.13 §5.4, §6 item 1).
+//! The product as a session the harness feeds: one step in, one transcript line out (§6 item 1).
 //!
 //! [`Product`] is the child `elektrawatt --headless --script - --keep-going`; [`Backend`] is what the protocol sends
 //! steps through: the keeper's client, the stateless replay, or a fake in a test. Nothing here waits on time: the
@@ -173,7 +173,7 @@ impl ProcessProduct {
     }
 
     /// The product's command line of [`ProcessProduct::spawn`]: a visual run's adds `--visual --frames` and, at a
-    /// window size or scale other than the default, `--window` and `--ppp` (cycle 39).
+    /// window size or scale other than the default, `--window` and `--ppp`.
     pub fn command(run: &Run, record: &str) -> Command {
         let mut command = Command::new(run.product_exe("elektrawatt"));
         command
@@ -372,7 +372,7 @@ pub mod fake {
         dirty: bool,
         changed: bool,
         quit: bool,
-        /// What `select.set` selected (its parameters), shown as the canvas selection (FT-582).
+        /// What `select.set` selected (its parameters), shown as the canvas selection.
         selection: Option<String>,
         /// A visual input closed the application.
         closed: bool,

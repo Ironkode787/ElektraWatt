@@ -4,13 +4,13 @@
 //! The `Session` facade shared by every front-end: registers the SQL and plugin rule implementations at
 //! session start and composes `.ewpp` export jobs.
 //!
-//! v0 (WP-S1.04) is the editing facade of ARCH §5.1: [`Session`] owns one project model and hands commands
+//! v0 is the editing facade of ARCH §5.1: [`Session`] owns one project model and hands commands
 //! to the commit pipeline of `ew-commands` ([`ew_commands::Engine`]): `execute` for interactive commands,
 //! `preview` and `commit` for bulk ones, `undo`, `redo`, the history and the change feed. Front-ends set
 //! the origin of their transactions; the exposure check, the normalisers and validation live in
 //! `ew-commands`, so no front-end can bypass them.
 //!
-//! **Persistence** (WP-S1.09). [`Session::open`] opens a project directory through `ew-store` (lock,
+//! **Persistence**. [`Session::open`] opens a project directory through `ew-store` (lock,
 //! roll-forward, verification, integrity findings, leftover journal); [`Session::create`] writes the
 //! session's model as a new project. With a store attached, every committed transaction (execute, commit,
 //! undo, redo) is journalled as its field-level diff (doc 05 §8.1), its touched keys join the dirty set,
@@ -20,23 +20,23 @@
 //! **Command logs** (doc 17 §3.5). [`Session::run_script`] replays a parsed [`CmdLog`] (`.ewcmd`, JSON Lines):
 //! one transaction per line with origin [`Origin::CmdLog`], so one [`Session::undo`] takes back one line.
 //!
-//! **Page output** (FT-59, [`output`]). [`Session::export_pdf`] and [`Session::export_svg`] run the export job: the
+//! **Page output** ([`output`]). [`Session::export_pdf`] and [`Session::export_svg`] run the export job: the
 //! page views and one memoised `page_display_list` family per layer through the session's memo store, the page
 //! phase on `ew_export::par_map`, then the PDF or SVG writer with the bundled fonts.
 //!
 //! The PDF export also runs as a job ([`Session::export_job`], WP-S2.09 part 1): a snapshot with a cold `Q` on a
 //! thread of [`ew_jobs`], with progress and cooperative cancel.
 //!
-//! **The release gate and the sign-off** (WP-S1.18 part 3). [`Session::release_gate`] runs the gate on the saved
+//! **The release gate and the sign-off**. [`Session::release_gate`] runs the gate on the saved
 //! generation with its content digest; [`Session::approve`] records the checker's sign-off (`revision.approve`, which
 //! only it submits).
 //!
-//! **The release and the as-built archive** (WP-S1.18 part 4). [`Session::release`] runs the six steps of doc 05 §14.1
+//! **The release and the as-built archive**. [`Session::release`] runs the six steps of doc 05 §14.1
 //! (gate, freeze, git commit, archive, tag, stamp) atomically; [`Session::incomplete_release`] finds the archive a
 //! crashed release left, which [`Session::complete_release`] or [`Session::discard_incomplete_release`] settles.
 //!
-//! Not in v0: the memo snapshot in [`World`] and the job pool for previews (WP-S1.05, FT-497), rule registration
-//! (WP-S1.15), the save on a writer thread, and the undo history of a recovered session (FR-COL-028: a recovered
+//! Not in v0: the memo snapshot in [`World`] and the job pool for previews, rule registration,
+//! the save on a writer thread, and the undo history of a recovered session (FR-COL-028: a recovered
 //! session opens dirty with an empty history).
 //!
 //! # Example
@@ -64,7 +64,7 @@
 
 #![forbid(unsafe_code)]
 
-/// The keyed [`Text`] of a refusal of `ew-api`'s own (FT-1421), as `ew-commands`' own `text!` gives one: a key that
+/// The keyed [`Text`] of a refusal of `ew-api`'s own, as `ew-commands`' own `text!` gives one: a key that
 /// [`TEXTS`] lacks, or a wrong number of arguments, fails the build.
 macro_rules! api_text {
     ($k:literal $(, $a:expr)* $(,)?) => {
@@ -84,12 +84,12 @@ macro_rules! api_text {
     };
 }
 
-// WP-S1.19 part 4: the CSV and XLSX parts import with its column maps (D11).
+// The CSV and XLSX parts import with its column maps (D11).
 pub mod catalog;
-// WP-S1.22 part 1: the JSON results of the `ew` subcommands and their published schemas (D3, D5).
+// The JSON results of the `ew` subcommands and their published schemas (D3, D5).
 pub mod cli_results;
 mod cmdlog;
-// WP-S1.17 part 6: external change (D20 to D23)
+// External change (D20 to D23)
 mod external_change;
 pub mod fmt;
 pub mod geometry;
@@ -101,15 +101,15 @@ pub mod output;
 mod part_editor;
 mod part_offers;
 pub mod symbols;
-// WP-S1.22 part 4: the public queries of `ew query` and `--explain` (D11, D12).
+// The public queries of `ew query` and `--explain` (D11, D12).
 pub mod queries;
-// WP-S1.18 part 3: the release gate and the sign-off (D8 to D10).
+// The release gate and the sign-off (D8 to D10).
 mod release;
-// WP-S1.18 part 4: the atomic release and the as-built archive (D11 to D13).
+// The atomic release and the as-built archive (D11 to D13).
 mod release_run;
-// WP-S2.04 part 2: the router the canvas tools call (§4.3, §8.1).
+// The router the canvas tools call (§4.3, §8.1).
 pub mod routing;
-// WP-S1.17 part 2: `.ewz` opened read-only and the export of the saved generation (D8, D9).
+// `.ewz` opened read-only and the export of the saved generation (D8, D9).
 mod transport;
 pub mod verify;
 
@@ -130,7 +130,7 @@ pub use part_editor::{DRAFT_FIELDS, PART_KINDS, PartDraft, PartDraftError};
 pub use part_offers::{Fit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};
 
 /// The reference of an image file as the asset store makes it ([`sniff_asset`] and the SHA-256 of the bytes): what a
-/// front-end reads from a file the user picked or dropped before it asks `item.place` to store it (WP-S2.04 part 5).
+/// front-end reads from a file the user picked or dropped before it asks `item.place` to store it.
 /// It is a gate that brings an image in, so it applies the pixel limit ([`ew_schema::pixel_limit`], ID-1417).
 ///
 /// # Errors
@@ -163,9 +163,9 @@ pub struct UndrawnImage {
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
 pub use ew_checks as checks;
 pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch};
-/// The job runner (WP-S2.09 part 1, D3): the shell names it through `ew-api` (no workspace edge of its own).
+/// The job runner: the shell names it through `ew-api` (no workspace edge of its own).
 pub use ew_jobs;
-/// The libraries (WP-S1.19 part 2): tiers, the `.ewlib` reader and writer, the index and search. The shell and the
+/// The libraries: tiers, the `.ewlib` reader and writer, the index and search. The shell and the
 /// CLI name them through `ew-api` (no workspace edge of their own).
 pub use ew_library as library;
 /// NFC normalisation (the form every `Ident` and text key takes): the shell names it through `ew-api` (no workspace
@@ -173,11 +173,11 @@ pub use ew_library as library;
 pub use ew_mltext::to_nfc;
 /// The row sources of `ew export cables|bom` (doc 17 §3.3): what to export and why it could not.
 pub use ew_reports::export::{Export, ExportError, Exported};
-/// The project's decimal separator (`settings.formatting.decimal_separator`, FT-366): the shell writes millimetres
+/// The project's decimal separator (`settings.formatting.decimal_separator`): the shell writes millimetres
 /// with it.
 pub use ew_schema::DecimalSeparator;
-/// The format this version writes, and the migration chain a project of an older format runs through at open
-/// (WP-S1.17 D10, D11): `ew upgrade` names the format, and a test passes its own chain in [`StoreOptions`].
+/// The format this version writes, and the migration chain a project of an older format runs through at open:
+/// `ew upgrade` names the format, and a test passes its own chain in [`StoreOptions`].
 pub use ew_schema::FORMAT;
 /// The project's revision label format (doc 15 §5.2, FR-REV-002): the new-project wizard checks the first label
 /// against it, as `revision.create` does (EW-REL-004).
@@ -185,18 +185,18 @@ pub use ew_schema::LabelFormat;
 /// The party roles of a revision's author and checker (doc 03 `Party`): `ew revision approve --as <role>` names one.
 pub use ew_schema::PartyRole;
 /// The text styles the built-in basic project of a new project writes (ADR-0032 decision 3): the wizard's readable
-/// choice of "Pin numbers and markers" (WP-S7.03 D11).
+/// choice of "Pin numbers and markers".
 pub use ew_schema::new_project_text_styles;
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
 pub use ew_schema::{
     AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, SvgHazard, base64_encode, pixel_limit,
     sniff as sniff_asset,
 };
-/// The conflict records a merge leaves (doc 05 §11.2; WP-S1.17 D17): `ew merge resolve` selects them by kind and member.
+/// The conflict records a merge leaves (doc 05 §11.2): `ew merge resolve` selects them by kind and member.
 pub use ew_schema::{Conflict, ConflictBody, FILE_CONFLICT_KIND};
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
-/// The three-way merge of one project file that `ew merge-driver` runs (WP-S1.17 D15), with the reader's limits, the
+/// The three-way merge of one project file that `ew merge-driver` runs, with the reader's limits, the
 /// shipped migration chain and the manifest reader that gives ours its format.
 pub use ew_store::ew_format::{
     FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, holds_newer_records, merge_file,
@@ -209,9 +209,9 @@ pub use ew_store::{
     Access, Clock, OpenError, OpenMode, OpenReport, OsVfs, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason,
     RecoverError, SaveError, SaveStep, StoreOptions, SystemClock, Vfs,
 };
-/// The as-built archive's layout and atomic write, and the git port of a release (doc 05 §14; WP-S1.18 D11 to D13):
+/// The as-built archive's layout and atomic write, and the git port of a release (doc 05 §14):
 /// the CLI and the shell name them through `ew-api` (no workspace edge of their own); likewise `.ewz` transport
-/// (doc 05 §12; WP-S1.17 D8, D9).
+/// (doc 05 §12).
 pub use ew_store::{archive, cloud, ewz, external, git, zip};
 pub use external_change::{DiskPoll, ExternalApplied, ExternalError};
 pub use new_project::{NewProjectKind, ProjectTemplate, SaveAsBasicError};
@@ -227,10 +227,10 @@ pub use ew_commands::{
     EntityChange, History, HistoryLimits, IdSource, ModelDiff, Origin, Preview, Receipt, Restored, Submit,
     World,
 };
-/// A command's registered metadata, its cost and its exposure class (WP-S2.05 §4.2): the property grid's guard that
+/// A command's registered metadata, its cost and its exposure class: the property grid's guard that
 /// builds only `Edit` commands and its edit policy read them through [`Session::command_meta`].
 pub use ew_commands::{CommandMeta, Cost, Exposure, HistoryBlock};
-/// A command's refusal by key (FT-1337): the window renders it in its language, the CLI prints its English.
+/// A command's refusal by key: the window renders it in its language, the CLI prints its English.
 pub use ew_commands::{
     TEXTS, Text, TextArg, asset_error_text, comma_joined, ident_error_text, path_error_text,
     schema_error_text, serde_error_text,
@@ -255,7 +255,7 @@ pub struct SessionOptions {
     pub prevent: Option<Box<dyn PreventHook>>,
     /// Whether [`Session::query`] memoises across requests (ADR-0002 amendment 4), and with oracle mode.
     pub memo: MemoMode,
-    /// The library tiers [`Session::libraries`] opens (WP-S1.19 part 2); `None`: the compiled-in starter only, with
+    /// The library tiers [`Session::libraries`] opens; `None`: the compiled-in starter only, with
     /// an in-memory index and no file read (tests, `ew apply`). The GUI and the CLI pass
     /// [`library::LibraryTiers::for_user`].
     pub libraries: Option<library::LibraryTiers>,
@@ -325,7 +325,7 @@ impl PreventHook for ShippedPrevent {
                 rule: f.rule.to_owned(),
                 message: f.message,
                 keys: f.targets.iter().map(|t| (t.kind, t.id)).collect(),
-                // FT-1488: the window renders the rule's message from them in its language.
+                // The window renders the rule's message from them in its language.
                 args: f.args,
             }),
         }
@@ -362,7 +362,7 @@ pub fn integrity_items(report: &OpenReport) -> Vec<checks::IntegrityItem> {
         .collect()
 }
 
-/// The library copies the open dropped as damaged (FT-1500): a loader finding names the copy's file and the model
+/// The library copies the open dropped as damaged: a loader finding names the copy's file and the model
 /// lacks the copy. In key order.
 fn dropped_copies(q: &Q, report: &OpenReport) -> Vec<AnyKey> {
     use ew_schema::{Kind, LibCopy, MacroDef};
@@ -400,20 +400,20 @@ pub struct DamagedCopy {
     /// The tag of the device that names the copy (`-101K1`); `None` for a record of no device.
     pub device: Option<String>,
     /// The copy's file, relative to the project folder (`lib/parts/<id>.json`): the finding's detail, never a user
-    /// text's (FT-1396).
+    /// text's.
     pub file: String,
     /// The part the copy holds, as an installed library gives it: its part number and the library's name; `None` when
     /// no installed library holds it, or the copy is no part's.
     pub part: Option<(String, String)>,
-    /// The copy in words, keyed for the reader's language (FT-1500, ID-1458): its kind word and its own name or key as
+    /// The copy in words, keyed for the reader's language: its kind word and its own name or key as
     /// an installed library gives them, else its kind, and the record that names it ("the library copy of form A3
     /// named by page 103").
     pub words: Text,
-    /// Whether no record names the copy and the model passes its integrity check (FT-1500): only another library
+    /// Whether no record names the copy and the model passes its integrity check: only another library
     /// copy's link names it, or nothing does, so a Save As makes a project without it rather than being refused.
     pub left_out: bool,
     /// When [`DamagedCopy::left_out`]: every copy the open dropped that a Save As leaves out, each in words as
-    /// [`DamagedCopy::words`] names the first, in key order (C53-p3#6, ID-1481); empty otherwise.
+    /// [`DamagedCopy::words`] names the first, in key order; empty otherwise.
     pub left_out_words: Vec<Text>,
     /// Whether an installed library holds a readable document of the copy the banner names (FT-1499, ID-1486; of any
     /// copy the open dropped when [`DamagedCopy::left_out`], whose banner names them all, C53-p4#5): the banner then
@@ -426,7 +426,7 @@ pub struct DamagedCopy {
 /// [`DamagedCopy::words`] names a copy, in key order. Both empty for a project without a damaged copy.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct CopiesUpdated {
-    /// The copies written from their libraries, each with the version written ("… at version 0.1.1", C53-p4#4).
+    /// The copies written from their libraries, each with the version written ("… at version 0.1.1").
     pub updated: Vec<Text>,
     /// The copies left damaged.
     pub not_updated: Vec<Text>,
@@ -456,14 +456,14 @@ struct Persistence {
     /// journal is kept and the disk state is open.
     refusal: Option<RecoverError>,
     /// Whether the user consented to converting a project migrated from an older format ([`Session::confirm_upgrade`]):
-    /// in memory only, so a session closed before its save leaves the next open asking again (WP-S1.17 D11).
+    /// in memory only, so a session closed before its save leaves the next open asking again.
     consented: bool,
     /// The upgrade's backup, once written ([`Session::upgrade_backup`]).
     backup: Option<std::path::PathBuf>,
-    /// The external-change state: the held change, the cloud rechecks (WP-S1.17 D20 to D22).
+    /// The external-change state: the held change, the cloud rechecks.
     watch: external_change::Watch,
     /// The library copies the open dropped as damaged (a loader finding names the file, the model lacks the copy), in
-    /// key order (FT-1500); none for a project Save As wrote.
+    /// key order; none for a project Save As wrote.
     dropped: Vec<AnyKey>,
 }
 
@@ -477,7 +477,7 @@ const INTEGRITY_RUN: checks::Scheme = checks::Scheme {
     content: checks::Release::Mvp,
 };
 
-/// A purge refusal by key (FT-1421), which the window renders in its language; its English is the store's own text,
+/// A purge refusal by key, which the window renders in its language; its English is the store's own text,
 /// [`PurgeError`]'s.
 pub fn purge_refusal(e: &PurgeError) -> Text {
     match e {
@@ -490,7 +490,7 @@ pub fn purge_refusal(e: &PurgeError) -> Text {
         PurgeError::Recovery => api_text!("refusal-purge-recovery"),
         PurgeError::Incomplete(_) => api_text!("refusal-purge-incomplete"),
         PurgeError::ExternalChange => api_text!("refusal-purge-external"),
-        // C52-p5#5: one image has its own form.
+        // One image has its own form.
         PurgeError::Stale(hashes) if hashes.len() == 1 => api_text!("refusal-purge-stale-one"),
         PurgeError::Stale(hashes) => api_text!("refusal-purge-stale", hashes.len().to_string()),
         PurgeError::Io { .. } => api_text!("refusal-purge-unreadable"),
@@ -502,7 +502,7 @@ pub fn purge_refusal(e: &PurgeError) -> Text {
 /// The most names an upgrade's backup tries: `.pre-<format>`, then `-2` up to this.
 const UPGRADE_BACKUP_NAMES: u32 = 1_000;
 
-/// Writes the backup of a project migrated from the older format `from` (WP-S1.17 D11, decision log ID-1221 ruling 5):
+/// Writes the backup of a project migrated from the older format `from`:
 /// the generation as found ([`ewz::pack_as_found`], its manifest's bytes as read) at `<project folder>.pre-<from>.ewz`
 /// beside the project folder, read back and verified ([`fmt::write_backup`]); past a name that holds another file,
 /// at `.pre-<from>-2.ewz`, `-3` and so on; a name that holds these bytes is reused. Its path.
@@ -568,7 +568,7 @@ fn write_upgrade_backup(store: &Store, from: &str) -> Result<std::path::PathBuf,
 /// ```
 pub struct Session {
     engine: Engine,
-    /// The report engine installed on every `Q` the session builds (WP-S3.03).
+    /// The report engine installed on every `Q` the session builds.
     reports: Arc<dyn ReportPagesProvider>,
     /// The memo store of [`Session::query`] (`None`: [`MemoMode::Off`]).
     memo: Option<MemoStore>,
@@ -661,7 +661,7 @@ impl Session {
             .map(|a| (*a.reference(), Arc::clone(a.bytes())))
     }
 
-    /// The images of the project that no drawing shows (FT-1378, decision log ID-1417): a PNG or JPEG over the pixel
+    /// The images of the project that no drawing shows: a PNG or JPEG over the pixel
     /// limit ([`ew_schema::pixel_limit`]) that an earlier build took in, which the open keeps and never drops. Each is
     /// named by where it shows, the company logo or the folios of the pages whose image items show it; in hash order.
     pub fn undrawn_images(&self) -> Vec<UndrawnImage> {
@@ -713,7 +713,7 @@ impl Session {
         found.into_values().collect()
     }
 
-    /// [`Session::undrawn_images`] one sentence each, keyed for the reader's language (FT-1503, decision log ID-1458):
+    /// [`Session::undrawn_images`] one sentence each, keyed for the reader's language:
     /// the window's open banner and `ew`'s notices say the same words. Which image (the company logo, or the folios
     /// that show it), its size in pixels, that it is kept but not drawn, and the remedy.
     pub fn undrawn_image_notices(&self) -> Vec<Text> {
@@ -742,7 +742,7 @@ impl Session {
         notices
     }
 
-    /// The libraries of [`SessionOptions::libraries`] (WP-S1.19 §5.2), opened (and reindexed where they changed) at
+    /// The libraries of [`SessionOptions::libraries`], opened (and reindexed where they changed) at
     /// the first call. When they cannot be opened the session falls back to the compiled-in starter
     /// ([`library::Registry::starter_only`]) and [`Session::library_error`] says why: a project never depends on
     /// its libraries (NFR-REL-11).
@@ -756,7 +756,7 @@ impl Session {
     }
 
     /// The libraries for a write ([`library::Registry::write`], `create`, `take_over_stale`, `rebuild_index`); a
-    /// library write is a Session operation, not a project command (WP-S1.19 D12).
+    /// library write is a Session operation, not a project command.
     pub fn libraries_mut(&mut self) -> &mut library::Registry {
         self.opened_libraries();
         &mut self.libraries.get_mut().expect("opened above").0
@@ -816,7 +816,7 @@ impl Session {
             .collect()
     }
 
-    /// The layout spaces of the project with their locations, in ID order (WP-S4.01, FR-LAY-001).
+    /// The layout spaces of the project with their locations, in ID order (FR-LAY-001).
     pub fn layout_spaces(
         &self,
     ) -> Vec<(
@@ -830,7 +830,7 @@ impl Session {
             .collect()
     }
 
-    /// `unplaced(space)` (FR-LAY-013, doc 12 §2.6; WP-S4.01 part 2): the mountable devices of the space's location
+    /// `unplaced(space)` (FR-LAY-013, doc 12 §2.6): the mountable devices of the space's location
     /// without a placement, in natural order of their full tag ([`ew_derive::layout::Unplaced`]). Empty for a space
     /// that is not in the project.
     pub fn unplaced(
@@ -926,7 +926,7 @@ impl Session {
     /// Undoes the last step as a new revision; returns the editor context to restore.
     ///
     /// `origin` is who asks: a step that holds a `HumanOnly` command (`project.checks.set`) is undone only from the GUI
-    /// and a confirmed CLI subcommand (ADR-0008 amendment 3's note, FT-404); a command log, script, MCP, plugin or
+    /// and a confirmed CLI subcommand (ADR-0008 amendment 3's note); a command log, script, MCP, plugin or
     /// Python origin gets [`CmdError::Exposure`] and the session is unchanged.
     ///
     /// # Errors
@@ -976,13 +976,13 @@ impl Session {
         self.registry().get(name).map(|e| *e.meta())
     }
 
-    /// Marks the current state as saved (the store calls this after a save, WP-S1.09).
+    /// Marks the current state as saved (the store calls this after a save).
     pub fn mark_saved(&mut self) {
         self.engine.mark_saved();
     }
 
     /// Whether the model differs from the last saved state: a project migrated from an older format differs until its
-    /// first save in an editing session (WP-S1.17 D11, decision log ID-1230 ruling 4); a read-only one never saves it.
+    /// first save in an editing session; a read-only one never saves it.
     pub fn is_dirty(&self) -> bool {
         self.engine.is_dirty()
             || self.persistence.as_ref().is_some_and(|p| {
@@ -991,7 +991,7 @@ impl Session {
     }
 
     // ---------------------------------------------------------------------------------------------------------
-    // Persistence (WP-S1.09)
+    // Persistence
 
     /// After a mutating call: takes the change feed's new entries (kept for [`Session::drain_changes`]),
     /// advances the memo store with their keys (push invalidation), adds them to the dirty set and journals
@@ -1000,7 +1000,7 @@ impl Session {
         let changes = self.engine.drain_changes();
         if changes.is_empty() {
             // A transaction without row changes that brought an asset (a lost logo picked again; assets are only
-            // ever added): journal it, so that a crash before the save does not lose its bytes (FT-337), and bring the
+            // ever added): journal it, so that a crash before the save does not lose its bytes, and bring the
             // memo store along, whose readers of the asset store answer differently now (the revision is the same).
             let arrived = self.engine.model().assets_stamp() != before.assets_stamp();
             if arrived && let Some(memo) = &self.memo {
@@ -1080,7 +1080,7 @@ impl Session {
             watch: external_change::Watch::default(),
             dropped,
         });
-        // FT-814: this directory's stale release-run records (archive gone or released) go now.
+        // This directory's stale release-run records (archive gone or released) go now.
         session.remove_stale_run_records();
         Ok((session, report))
     }
@@ -1174,8 +1174,8 @@ impl Session {
 
     /// The name the project gives the check scheme of a run in `mode` (the member [`Session::project_check_scheme`]
     /// reads), whether or not this build ships it; `None` when the project names none. `ew check` prints a notice for
-    /// a name this build does not ship before it falls back to `pre-delivery` (FT-405, decision log ID-602). The lookup
-    /// is `ew-checks`' ([`checks::project_scheme_name`]), which the open-items list shares (WP-S3.06 D8).
+    /// a name this build does not ship before it falls back to `pre-delivery`. The lookup
+    /// is `ew-checks`' ([`checks::project_scheme_name`]), which the open-items list shares.
     pub fn project_check_scheme_name(&self, mode: checks::CheckMode) -> Option<String> {
         checks::project_scheme_name(&self.query(), mode)
     }
@@ -1183,7 +1183,7 @@ impl Session {
     /// Runs the check scheme `scheme` in `mode` over the current snapshot through the session's memo store
     /// (doc 15 §3): the findings, the totals and `ew check`'s exit code ([`checks::CheckReport`]). With merge evidence the
     /// model does not hold ([`Session::merge_evidence`]), EW-CORE-013's groups join a run in a mode that runs the rule,
-    /// online (the window: the message panel, its counts, the property grid's chips) and release (WP-S1.17 D29).
+    /// online (the window: the message panel, its counts, the property grid's chips) and release.
     pub fn check(&self, scheme: &checks::Scheme, mode: checks::CheckMode) -> checks::CheckReport {
         self.check_over(&self.query(), scheme, mode)
     }
@@ -1203,7 +1203,7 @@ impl Session {
         }
     }
 
-    /// The project-integrity check of `ew check --integrity` (FR-CHK-012; WP-S1.17 D29, decision log ID-1284 ruling 5):
+    /// The project-integrity check of `ew check --integrity` (FR-CHK-012; ruling 5):
     /// the store's integrity findings of opening it (`opened`) and every registered rule whose ID lies in EW-CORE-001
     /// to -019 (EW-CORE-011's conflict records and EW-CORE-013's collisions after a merge), in release mode, with merge
     /// evidence as [`Session::check`] takes it. Its exit code is 1 on any error.
@@ -1233,7 +1233,7 @@ impl Session {
         report.with_integrity(integrity_items(opened))
     }
 
-    /// Whether the project carries merge evidence the model does not hold (WP-S1.17 D29): its manifest is a merged one
+    /// Whether the project carries merge evidence the model does not hold: its manifest is a merged one
     /// (`merged: true`), a merge or rebase is in progress in its git worktree, or [`Session::assume_merged`] was called
     /// (`ew check --integrity --after-merge`, the post-merge hook). Conflict records, the model's own evidence, are
     /// EW-CORE-013's rule's.
@@ -1305,7 +1305,7 @@ impl Session {
 
     /// FT-1383 (ID-1418): the first record, in the integrity check's order, that names a library copy the open
     /// dropped as damaged, as the device's tag, the copy's project-relative file and, from the installed libraries, the
-    /// copy's part (FT-1396), with the copy and that record in words (FT-1500); when the model passes the check, the
+    /// copy's part, with the copy and that record in words; when the model passes the check, the
     /// first copy the open dropped that no record names ([`DamagedCopy::left_out`]); `None` when there is neither. A
     /// project with a named one is read-only, and [`Session::create`] refuses it: a copy without the damaged file would
     /// not open.
@@ -1320,7 +1320,7 @@ impl Session {
                 (Some(referrer), kind, copy)
             }
             Err(_) => return None,
-            // FT-1500 (ID-1458): a dropped copy that only another copy's library link names, or nothing.
+            // A dropped copy that only another copy's library link names, or nothing.
             Ok(()) => {
                 let &(kind, copy) = self.persistence.as_ref()?.dropped.first()?;
                 (None, kind, copy)
@@ -1351,7 +1351,7 @@ impl Session {
         };
         let words =
             ew_commands::damaged_copy_words(model, kind, installed.as_ref().map(|(d, _)| d), referrer);
-        // C53-p3#6 (ID-1481): a Save As leaves out every dropped copy no record names, and names them all.
+        // A Save As leaves out every dropped copy no record names, and names them all.
         let left_out_words = match referrer {
             Some(_) => Vec::new(),
             None => self
@@ -1366,7 +1366,7 @@ impl Session {
                 })
                 .collect(),
         };
-        // C53-p4#5: the update is offered for the copy the banner names, or for any copy of a banner that names them all.
+        // The update is offered for the copy the banner names, or for any copy of a banner that names them all.
         let in_library = match referrer {
             Some(_) => installed.is_some(),
             None => self.persistence.as_ref().is_some_and(|p| {
@@ -1425,7 +1425,7 @@ impl Session {
                 done.not_updated.push(words);
                 continue;
             };
-            // The library's current version is written, named by its version (C53-p4#4, ID-1491): the damaged copy's
+            // The library's current version is written, named by its version: the damaged copy's
             // own version cannot be read, so the change is not classified.
             let version = value["version"].as_str().unwrap_or_default().to_owned();
             let cmd = ew_commands::commands::EmbedLibraryCopies { copies: vec![value] };
@@ -1440,7 +1440,7 @@ impl Session {
                         .push(api_text!("refusal-words-copy-at-version", words, version));
                 }
                 // The library's version breaks a record of the project (an invariant or a prevent rule of the
-                // engine's own check): the misfit, nothing written (C53-p4#3).
+                // engine's own check): the misfit, nothing written.
                 Err(ew_commands::CmdError::Model(..) | ew_commands::CmdError::Prevented { .. }) => {
                     return Err(api_text!("refusal-update-copies-misfit"));
                 }
@@ -1520,10 +1520,10 @@ impl Session {
         let Some(p) = &mut self.persistence else {
             return Err(SaveError::ReadOnly(ew_store::ReadOnlyReason::Requested));
         };
-        // A held external change (WP-S1.17 D21, D22): nothing is written until it is applied or reads.
+        // A held external change: nothing is written until it is applied or reads.
         Session::external_hold(p)?;
-        // The first save of a migrated project after the consent: the backup, verified, before any project byte
-        // (WP-S1.17 D11, decision log ID-1221 ruling 5); a read-only session writes neither.
+        // The first save of a migrated project after the consent: the backup, verified, before any project byte;
+        // a read-only session writes neither.
         if p.consented
             && p.backup.is_none()
             && *p.store.access() == Access::Edit
@@ -1590,7 +1590,7 @@ impl Session {
     }
 
     // ---------------------------------------------------------------------------------------------------------
-    // The asset purge (FT-380)
+    // The asset purge
 
     /// What `project.assets.purge` would delete now (the preview, doc 05 §13.3): the asset files of the project
     /// directory whose hash no project file and no undo or redo entry of this session mentions. A session without a
@@ -1611,7 +1611,7 @@ impl Session {
         p.store.purge_plan(&keep)
     }
 
-    /// Runs the asset purge (doc 05 §13.3, FT-380): deletes the files of [`Session::purge_preview`], or only those of
+    /// Runs the asset purge (doc 05 §13.3): deletes the files of [`Session::purge_preview`], or only those of
     /// `only` (every one must still be purgeable, else [`PurgeError::Stale`] and nothing goes), through the save
     /// protocol, and records `project.assets.purge` as a marker line in the history. The model does not change.
     ///
@@ -1750,7 +1750,7 @@ impl Session {
 
     /// "Discard" after the user confirmed it (`ew recover --discard`): deletes the summarised journal of a crashed
     /// session ([`OpenReport::recovery`]) and only that one; the other crashed sessions' journals stay and are offered
-    /// at the next open, one at a time (ruling 2 of cycle 41). Returns whether a journal was deleted.
+    /// at the next open, one at a time. Returns whether a journal was deleted.
     pub fn discard_recovery(&mut self) -> bool {
         let Some(p) = self.persistence.as_mut() else {
             return false;

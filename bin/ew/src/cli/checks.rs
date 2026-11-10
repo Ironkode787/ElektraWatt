@@ -6,7 +6,7 @@
 use super::*;
 
 /// `ew project checks set`: `project.checks.set` from a confirmed CLI subcommand, the human origin the command's
-/// exposure class `HumanOnly` accepts (ADR-0008 amendment 3, FT-336), after the confirmation typed on a controlling
+/// exposure class `HumanOnly` accepts (ADR-0008 amendment 3), after the confirmation typed on a controlling
 /// terminal (doc 17 section 2.3, FR-EXT-030); without a terminal nothing is opened.
 pub(super) fn run_checks_set(a: &ChecksSetArgs) -> i32 {
     use std::io::IsTerminal;
@@ -198,9 +198,9 @@ pub(super) fn run_check(a: &CheckArgs) -> i32 {
         let result = report::localise(&session.check_integrity(&opened), &a.lang);
         return print_check(a, &result, &undrawn_notices(&session));
     }
-    // `--scheme`, else the scheme the project names for the mode (FT-366), else the shipped default. A project naming a
+    // `--scheme`, else the scheme the project names for the mode, else the shipped default. A project naming a
     // scheme this build does not ship (a newer writer, a hand edit) gets the default and a notice; the exit status is
-    // the check's (FT-405, decision log ID-602).
+    // the check's.
     let sch = match &a.scheme {
         Some(name) => scheme(name),
         None => {
@@ -239,7 +239,7 @@ pub(super) fn run_check(a: &CheckArgs) -> i32 {
     print_check(a, &result, &undrawn_notices(&session))
 }
 
-/// The notices of the images the project keeps but no drawing shows, in the window's words (FT-1503, ID-1458).
+/// The notices of the images the project keeps but no drawing shows, in the window's words.
 pub(super) fn undrawn_notices(session: &ew_api::Session) -> Vec<String> {
     session
         .undrawn_image_notices()
@@ -249,7 +249,7 @@ pub(super) fn undrawn_notices(session: &ew_api::Session) -> Vec<String> {
 }
 
 /// Prints a check report as `ew check` does, to `--out` or stdout with the totals on stderr; its exit code. The
-/// `notices` stand outside the findings and their counts (FT-1503): the JSON's `notices`, else a `notice:` line each on
+/// `notices` stand outside the findings and their counts: the JSON's `notices`, else a `notice:` line each on
 /// stderr.
 pub(super) fn print_check(a: &CheckArgs, result: &ew_api::checks::CheckReport, notices: &[String]) -> i32 {
     let result = result.clone();

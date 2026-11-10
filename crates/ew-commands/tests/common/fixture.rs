@@ -524,7 +524,7 @@ pub fn part_using(part_id: Id<Part>, part_number: &str, library: Uuid, item: Uui
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Solenoid valves (WP-S1.20 D4, D5)
+// Solenoid valves
 
 /// The library of the solenoid-valve FnDefs.
 pub const LIBRARY_VALVE: Uuid = Uuid::from_u128(0x9300);

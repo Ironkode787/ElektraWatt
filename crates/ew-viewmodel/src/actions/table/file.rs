@@ -33,7 +33,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_open(p),
         ),
     ),
-    // WP-S1.17 part 7 (D24): File ▸ Open .ewz…, asking Extract and open or Open read-only.
+    // File ▸ Open .ewz…, asking Extract and open or Open read-only.
     with_params(
         "path?:path, how?:enum(extract|read_only), discard?:bool",
         act(
@@ -87,7 +87,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // WP-S3.09 D8: the import card's Apply and the checkpoint confirmation's Create project.
+    // The import card's Apply and the checkpoint confirmation's Create project.
     with_params(
         "confirm?:bool",
         hidden(act(
@@ -100,8 +100,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_import_qet_apply(p),
         )),
     ),
-    // WP-S3.09 D10 to D12: Project, Import, Re-import QElectroTech project (the open project's earlier import), its
-    // proposal's Re-import (`accept`) and the re-import card's Apply. FT-1388 (ID-1392): a command-bar button beside
+    // Project, Import, Re-import QElectroTech project (the open project's earlier import), its
+    // proposal's Re-import (`accept`) and the re-import card's Apply. FT-1388: a command-bar button beside
     // the import's.
     with_params(
         "file?:path, accept?:bool",
@@ -133,7 +133,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_reimport_qet_apply(),
     )),
-    // FT-410: File, Import, Parts table…
+    // File, Import, Parts table…
     with_params(
         "path?:path",
         placed(
@@ -156,7 +156,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // FT-649: the parts import's column mapping step (the card's fields and its Import button).
+    // The parts import's column mapping step (the card's fields and its Import button).
     with_params(
         "source?:text, column?:text, member?:text",
         hidden(act(
@@ -190,7 +190,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_save(),
         ),
     ),
-    // ID-1463: while the symbol editor shows, Save is the symbol's and the File menu keeps Save project.
+    // While the symbol editor shows, Save is the symbol's and the File menu keeps Save project.
     hidden(act(
         "file.save_project",
         Command,
@@ -224,7 +224,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_discard_journal(p),
         ),
     ))),
-    // WP-S2.09 part 1: the export runs as a job (§6.3); `replace` confirms an existing file, `wait` (headless) returns at
+    // The export runs as a job (§6.3); `replace` confirms an existing file, `wait` (headless) returns at
     // once.
     with_params(
         "path?:path, replace?:bool, wait?:bool",
@@ -242,7 +242,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // WP-S1.17 part 7 (D24): File ▸ Export .ewz…, the saved generation as one file.
+    // File ▸ Export .ewz…, the saved generation as one file.
     with_params(
         "path?:path, replace?:bool",
         act(
@@ -255,7 +255,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_export_ewz(p),
         ),
     ),
-    // WP-S1.17 part 7 (D20, D24): an external change now, as the window's poll finds it; the upgrade dialog's Upgrade
+    // An external change now, as the window's poll finds it; the upgrade dialog's Upgrade
     // and save; the collision dialog's buttons and choices; Set up merge driver.
     keeps_banner(act(
         "project.check_disk",
@@ -330,7 +330,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_git_setup(p),
         ),
     ),
-    // WP-S3.07 part 3 (D10, ruling 5 of ID-1180): the print pre-dialog, its options settable at once; it builds its
+    // The print pre-dialog, its options settable at once; it builds its
     // print set as a job (`wait`, headless: return at once).
     with_params(
         "range?:enum(all|current|sections|pages), sections?:text, pages?:text, paper?:text, fit?:bool, mono?:bool, wait?:bool",

@@ -23,7 +23,7 @@ pub struct Binding {
     pub physical: bool,
     /// The action ID.
     pub action: &'static str,
-    /// Where the chord applies (WP-S2.03 §6.6).
+    /// Where the chord applies.
     pub context: Context,
 }
 
@@ -230,7 +230,7 @@ mod tests {
         assert_eq!(display("Ctrl+phys:Digit0"), "Ctrl+0");
         assert_eq!(display("phys:KeyA"), "A");
         assert_eq!(display("Ctrl+Shift+W"), "Ctrl+Shift+W");
-        // Every physical key of the grammar reads as its US key cap (cycle-40 review).
+        // Every physical key of the grammar reads as its US key cap.
         assert_eq!(display("phys:Minus"), "-");
         assert_eq!(display("Shift+phys:BracketLeft"), "Shift+[");
         assert_eq!(display("Alt+phys:Digit7"), "Alt+7");

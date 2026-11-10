@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `fields.set` (`SetFields`): the property grid's command, also over a multi-selection (doc 06 §3.1, §3.7); and
-//! `fields.set_many` (`SetManyFields`, WP-S2.05 part 2): one value per target set, the command of find and replace and
+//! `fields.set_many` (`SetManyFields`): one value per target set, the command of find and replace and
 //! of "freeze" on several devices, one transaction of `fields.set` steps.
 
 use std::collections::BTreeSet;
@@ -35,12 +35,12 @@ use crate::tx::TxBuilder;
 /// `parent` and `position`).
 ///
 /// The device aspects `assembly`, `plc_station` and `plc_module` are set as a whole (a JSON object adds
-/// or replaces the aspect, `null` removes it) or member by member once they exist (FT-169, FT-270).
+/// or replaces the aspect, `null` removes it) or member by member once they exist.
 /// Adding a `plc_module` (or changing the module's parts) instantiates its channels from the part data
 /// (normaliser N1, `channel_instantiation`). An assembly configuration's `covers` names the assembly
 /// device itself or its descendants only (doc 03 §7); any other device is rejected.
 ///
-/// A page item's members (WP-S2.04 part 4a) are settable within its own variant only (`kind.free_text.text` on a
+/// A page item's members are settable within its own variant only (`kind.free_text.text` on a
 /// free text, refused at `/path` on a graphic), never `kind` as a whole or a wire marker's `connections` (a group is
 /// changed by deleting and placing it); after the value is read back, the checks of `item.place`, `marker.place` and
 /// `box.structure` apply (degenerate shapes, an unknown `bind`, an empty text without `bind`, the angles, fewer than
@@ -50,24 +50,24 @@ use crate::tx::TxBuilder;
 ///
 /// A revision's members are settable while it is open; a released or withdrawn revision is immutable
 /// (FR-REV-009) and refused at `/targets/<i>`. Its `state` is not settable (Open → Released is
-/// `revision.release`), nor are its roles (WP-S1.18 D4, FT-402): `author` and `checker` are refused at `/path` from
+/// `revision.release`), nor are its roles: `author` and `checker` are refused at `/path` from
 /// every origin, because the author is set by `revision.set_author` and the checker by approval. A `page_notes`
 /// value names existing pages, one note per page (EW-INV-019), and its notes take no member other than `page` and
 /// `description`. A `label` runs EW-REL-004's prevent half as `revision.create` does for an open revision
 /// (`CmdError::Prevented`): it is in the project's label format and follows every other revision's label.
 ///
 /// An interruption point's `name`, `direction`, `sort` and `star_source` are settable on its function as
-/// `kind.ip.<member>` (FT-399: renaming an interruption point from the grid); on any other function they are refused
+/// `kind.ip.<member>` (renaming an interruption point from the grid); on any other function they are refused
 /// at `/path`. Its `external` keeps `ip.place`'s route. A star source is a source point and an external point takes no
-/// star (ID-1146): judged on each point whose direction or star the call sets, after all of the call's changes (so a
+/// star: judged on each point whose direction or star the call sets, after all of the call's changes (so a
 /// `fields.set_many` that clears the star and sets the direction to target passes), a starred point with another
 /// direction or a starred external point refuses the whole call, naming the first such point.
 ///
 /// The project row (kind `project`, its one ID as the target) takes `master.description`, the project
-/// description that title blocks and bound free texts print (FT-447, FR-SYM-024); the other project members
+/// description that title blocks and bound free texts print (FR-SYM-024); the other project members
 /// keep their own commands.
 ///
-/// The PLC kinds (WP-S1.21 D6, FT-226): a channel's `designation`, `address`, `state`, `symbol`, `comment` and
+/// The PLC kinds: a channel's `designation`, `address`, `state`, `symbol`, `comment` and
 /// `target`; a configuration project's `name` (unique, as `plc.config_project.create` requires; its profile
 /// changes only through its own command); a device link's `kind` (its devices are chosen by `device.link`). A
 /// channel's `address` takes `auto`, `excluded`, `tbd` or an address text in the notation of the channel's
@@ -76,7 +76,7 @@ use crate::tx::TxBuilder;
 /// (`expected an address like Q0.1`). The stored JSON form is accepted as well. A value of a newer format
 /// (an unknown state, area, size or link kind) is refused at `/value`: an edit writes only what this build knows.
 ///
-/// The bus model (WP-S1.21 D11): a function's `bus_port` is set as a whole (a JSON object adds or replaces the
+/// The bus model: a function's `bus_port` is set as a whole (a JSON object adds or replaces the
 /// port, `null` removes it) or member by member once it exists (a member of a function without a port is refused
 /// at `/path`); a logical net's `name`, `bus`, `master` and `rate`; a physical net's `name`, `medium` and
 /// `order_hint`. Net names are unique per kind, as `bus.logical_net.create` and `bus.physical_net.create` require.
@@ -160,7 +160,7 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
         KindName::Connection,
         &[
             "kind",
-            // WP-S1.20 D18: the line kind of a fluid line (`kind.fluid.line_kind`), refused on another connection.
+            // The line kind of a fluid line (`kind.fluid.line_kind`), refused on another connection.
             "line_kind",
             "number",
             "overrides.csa",
@@ -251,12 +251,12 @@ pub const ASPECTS: &[&str] = &[
 /// and put. Rejected with [`CmdError::InvalidParams`] at `/path`: a path not in [`SETTABLE`] for the kind;
 /// at `/value`: a value the record type does not accept (the deserialisation error as message), and a
 /// connection's `overrides.colour` or a conductor's `colour` with a code that is neither IEC 60757 nor a company
-/// code of the project's colour profile (FR-CON-019, `marker.place`'s check and text; FT-451, FT-476). Targets
+/// code of the project's colour profile (FR-CON-019, `marker.place`'s check and text). Targets
 /// must exist and be distinct; there is at least one. Invariants and prevent rules apply at the end of the
 /// transaction, so a swap of two terminal designations over two commands is not possible here, but one
 /// `fields.set` that leaves a duplicate is caught later by prevent rules (ADR-0009). Outcome: none.
 /// Coalesce typing in one cell with a key (FR-UI-009). A page whose kind moves away from `panel_layout` loses its
-/// surface views in the same transaction (FT-869; `fields.set_many` judges the page's final kind).
+/// surface views in the same transaction (`fields.set_many` judges the page's final kind).
 ///
 /// `copies` (WP-S2.07 D16, as `device.place` since FT-656): library documents (`lib/` JSON form) that the value names
 /// and the project lacks (a catalogue part chosen for a strip's bridge or accessory), embedded first, in the same
@@ -298,7 +298,7 @@ impl Command for SetFields {
     }
 }
 
-/// FT-869 (ID-1080): a page of `targets` whose kind this command moves away from `panel_layout` (judged on the
+/// A page of `targets` whose kind this command moves away from `panel_layout` (judged on the
 /// page's kind at the end of the command against the base) loses its surface views in the same transaction, so the
 /// preview lists them and one undo restores them. A page without a view, or one that ends as a panel layout, keeps
 /// everything.
@@ -430,7 +430,7 @@ impl SetFields {
                 KindName::StructureNode => set_one::<StructureNode>(tx, *t, path, value)?,
                 KindName::Section => {
                     set_one::<Section>(tx, *t, path, value)?;
-                    // FT-1510 (WP-S6.08 D27): a divider onto a folio a page or a page-oriented report block of the
+                    // A divider onto a folio a page or a page-oriented report block of the
                     // section holds is refused, as `page.create` and `report_block.create` keep the divider's free.
                     if path == "divider" || path == "folio_range" {
                         refuse_held_divider(tx, t.cast())?;
@@ -438,7 +438,7 @@ impl SetFields {
                 }
                 KindName::ReportBlock => {
                     set_one::<ReportBlock>(tx, *t, path, value)?;
-                    // ID-1417 (C52-p2#1): a first folio or a continuation whose generated pages a page of the section
+                    // A first folio or a continuation whose generated pages a page of the section
                     // already holds is refused, as `report_block.create` refuses it.
                     if path == "first_folio" || path == "continuation" {
                         let b = tx.require::<ReportBlock>(t.cast())?;
@@ -528,7 +528,7 @@ impl SetFields {
                     set_one::<PhysicalNet>(tx, *t, path, value)?;
                     check_physical_net(tx, t.cast())?;
                 }
-                // Junctions, bonds and the layout kinds (WP-S4.02 D7) have no settable fields: rejected above.
+                // Junctions, bonds and the layout kinds have no settable fields: rejected above.
                 KindName::Junction
                 | KindName::Bond
                 | KindName::LayoutSpace
@@ -583,7 +583,7 @@ fn set_project_member(
     tx.set_project(next)
 }
 
-/// FR-CON-019 for `fields.set` on a connection's `overrides.colour` (FT-451): the colour as read back must be IEC
+/// FR-CON-019 for `fields.set` on a connection's `overrides.colour`: the colour as read back must be IEC
 /// 60757 codes or company codes of the project's colour profile, the same check and text as `marker.place`'s;
 /// refused at `/value`. A removed colour (`null`) passes.
 fn refuse_unknown_colour(tx: &TxBuilder<'_>, conn: ew_ids::Id<Connection>) -> Result<(), CmdError> {
@@ -597,7 +597,7 @@ fn refuse_unknown_colour(tx: &TxBuilder<'_>, conn: ew_ids::Id<Connection>) -> Re
     Ok(())
 }
 
-/// `fields.set` on a section's `divider` or `folio_range` (FT-1510, WP-S6.08 D27): with a divider, the range's first
+/// `fields.set` on a section's `divider` or `folio_range`: with a divider, the range's first
 /// folio, which the divider page prints, may not be printed by a page of the section or be the first folio of one of
 /// its page-oriented report blocks.
 fn refuse_held_divider(tx: &TxBuilder<'_>, section: ew_ids::Id<Section>) -> Result<(), CmdError> {
@@ -631,7 +631,7 @@ fn refuse_held_divider(tx: &TxBuilder<'_>, section: ew_ids::Id<Section>) -> Resu
     Ok(())
 }
 
-/// `fields.set` on a page's `scale` (FT-1065): the scale as read back must be one `page.surface_view.set` takes, with
+/// `fields.set` on a page's `scale`: the scale as read back must be one `page.surface_view.set` takes, with
 /// its text ([`crate::commands::page::scale_problem`]); refused at `/value`.
 fn refuse_bad_scale(tx: &TxBuilder<'_>, page: AnyId) -> Result<(), CmdError> {
     let p = tx.require::<Page>(page.cast())?;
@@ -641,7 +641,7 @@ fn refuse_bad_scale(tx: &TxBuilder<'_>, page: AnyId) -> Result<(), CmdError> {
     }
 }
 
-/// ID-1477 (1): a page's connection grid changes only while the page holds no item, since the items keep their
+/// A page's connection grid changes only while the page holds no item, since the items keep their
 /// positions and would stand off the new grid; refused at `/value` in words, the page by its printed folio.
 fn refuse_grid_under_items(tx: &TxBuilder<'_>, page: AnyId, before: ew_units::Grid) -> Result<(), CmdError> {
     let id: ew_ids::Id<Page> = page.cast();
@@ -662,7 +662,7 @@ fn refuse_grid_under_items(tx: &TxBuilder<'_>, page: AnyId, before: ew_units::Gr
     ))
 }
 
-/// [`refuse_unknown_colour`] for a conductor's `colour` (FT-476): the same check and text, refused at `/value`.
+/// [`refuse_unknown_colour`] for a conductor's `colour`: the same check and text, refused at `/value`.
 fn refuse_unknown_conductor_colour(
     tx: &TxBuilder<'_>,
     conductor: ew_ids::Id<Conductor>,
@@ -677,7 +677,7 @@ fn refuse_unknown_conductor_colour(
     Ok(())
 }
 
-// WP-S1.21 D6: the PLC kinds ------------------------------------------------------------------------------------
+// The PLC kinds ------------------------------------------------------------------------------------
 
 /// The value `fields.set` writes for a channel's `address`: the words `auto`, `excluded` and `tbd` (in any ASCII
 /// case, trimmed) as they are; any other text parsed by the profile of the channel's configuration project into a
@@ -698,7 +698,7 @@ fn channel_address_value(
     let c = tx.require::<Channel>(channel)?;
     let profile = channel_profile(tx, c.module);
     let at_hand = profiles_in(tx);
-    // FT-1494: the parser's refusal by key.
+    // The parser's refusal by key.
     let address = ew_derive::parse_plc_address(&at_hand, &profile, text).map_err(|_| {
         let why = crate::error::plc_text_refusal(&at_hand, &profile, text, false);
         CmdError::invalid_params(SetFields::NAME, "/value", text!("refusal-params-detail", why))
@@ -707,7 +707,7 @@ fn channel_address_value(
         .map_err(|e| CmdError::internal(format!("fields.set: cannot serialise an address ({e})")))
 }
 
-/// The address profiles at hand in the transaction's model (WP-S7.03 D8): the built-ins, then the project's copies.
+/// The address profiles at hand in the transaction's model: the built-ins, then the project's copies.
 pub(crate) fn profiles_in(tx: &TxBuilder<'_>) -> Vec<std::sync::Arc<ew_derive::ew_plcaddr::AddressProfile>> {
     let copies = tx.iter::<ew_schema::LibCopy<ew_schema::PlcProfileDef>>();
     ew_derive::profiles_at_hand(copies.iter().map(|c| &**c))
@@ -782,7 +782,7 @@ fn refuse_duplicate_config_name(
 /// The most entries one `fields.set_many` takes.
 pub const SET_MANY_MAX_EDITS: usize = 10_000;
 
-/// `fields.set_many` (`SetManyFields`, WP-S2.05 part 2; FR-DEV-032, FR-UI-020): sets one value per (kind, targets,
+/// `fields.set_many` (`SetManyFields`, FR-DEV-032, FR-UI-020): sets one value per (kind, targets,
 /// path) entry, the entries in the given order, in **one** transaction (one undo step).
 ///
 /// Each entry is applied exactly as `fields.set` with those parameters would be: the same [`SETTABLE`] paths, the same
@@ -794,7 +794,7 @@ pub const SET_MANY_MAX_EDITS: usize = 10_000;
 /// Cost: `Bulk` when the entries name more than 500 targets in total (`BULK_ABOVE`, as `edit.delete`),
 /// else interactive. Outcome: none.
 ///
-/// `copies` (WP-S2.07 D16): library documents the values name that the project lacks, embedded first as
+/// `copies`: library documents the values name that the project lacks, embedded first as
 /// `fields.set`'s `copies` (refused at `/copies/i`); an entry carries none of its own (refused at `/edits/<i>/copies`).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -873,7 +873,7 @@ impl Command for SetManyFields {
             })?;
         }
         refuse_bad_stars(tx, &self.edits)?;
-        // FT-869: judged on each page's final kind; a batch that sets the kind away and back is refused (one entry per
+        // Judged on each page's final kind; a batch that sets the kind away and back is refused (one entry per
         // target and path), so the view stays.
         let pages: BTreeSet<AnyId> = self
             .edits
@@ -889,7 +889,7 @@ impl Command for SetManyFields {
 /// Doc 03 §7: an assembly configuration covers the assembly device itself or its descendants, each named
 /// explicitly. A covered device outside that subtree that **this edit adds** (absent from every
 /// configuration of the base row) is refused at `/value`; a cover that was out of scope already (a child
-/// moved away by `assembly.attach`) is a check finding (decision log ID-371, FT-260), never a refusal, so an
+/// moved away by `assembly.attach`) is a check finding, never a refusal, so an
 /// unrelated assembly edit such as `assembly.bom_basis` still commits.
 fn refuse_foreign_covers(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Result<(), CmdError> {
     let Some(dev) = tx.get::<Device>(device) else {
@@ -936,7 +936,7 @@ fn refuse_foreign_covers(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Resu
     Ok(())
 }
 
-/// A page-item path names a variant (`kind.<variant>.<member>`): it must be the record's own (WP-S2.04 §5.2).
+/// A page-item path names a variant (`kind.<variant>.<member>`): it must be the record's own.
 fn refuse_other_variant(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), CmdError> {
     let Some(variant) = path.strip_prefix("kind.").and_then(|r| r.split('.').next()) else {
         return Ok(());
@@ -958,7 +958,7 @@ fn refuse_other_variant(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result
     Ok(())
 }
 
-/// An interruption point's members (`kind.ip.*`, FT-399) on a function that is not one: refused at `/path`.
+/// An interruption point's members (`kind.ip.*`) on a function that is not one: refused at `/path`.
 fn refuse_not_ip(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), CmdError> {
     if !path.starts_with("kind.ip.") {
         return Ok(());
@@ -978,7 +978,7 @@ fn refuse_not_ip(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), Cm
     Ok(())
 }
 
-// WP-S1.21 D11: the bus kinds ------------------------------------------------------------------------------------
+// The bus kinds ------------------------------------------------------------------------------------
 
 /// A member of a function's `bus_port` needs the port to exist (as a device aspect's members do): refused at `/path`.
 fn refuse_no_port(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), CmdError> {
@@ -1092,7 +1092,7 @@ fn refuse_unknown_direction(tx: &TxBuilder<'_>, target: AnyId) -> Result<(), Cmd
     Ok(())
 }
 
-/// ID-1146: after all of a call's entries, each interruption point whose direction or star an entry sets must be an
+/// After all of a call's entries, each interruption point whose direction or star an entry sets must be an
 /// unstarred point or a starred source that is not external; the first that is not, in entry and target order,
 /// refuses the whole call, named in words ("interruption point L-1: a star source is a source point; …").
 fn refuse_bad_stars(tx: &TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdError> {
@@ -1123,7 +1123,7 @@ fn refuse_bad_stars(tx: &TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdEr
 }
 
 /// Sets `value` at the dotted `path` of one record: serialise, edit the JSON, read it back, put.
-/// `fields.set` path `line_kind` of a connection (WP-S1.20 D18): the line kind of a fluid line, one of `working`,
+/// `fields.set` path `line_kind` of a connection: the line kind of a fluid line, one of `working`,
 /// `pilot`, `exhaust`, `drain` and `flexible`. Refused on a connection that is no fluid line (§5 T11).
 fn set_line_kind(tx: &mut TxBuilder<'_>, id: ew_ids::Id<Connection>, value: &Value) -> Result<(), CmdError> {
     let c = tx.require::<Connection>(id)?;
@@ -1197,7 +1197,7 @@ fn set_one<T: Entity + Serialize + DeserializeOwned>(
 /// D2: a counter or letter set through `fields.set` that makes the device's page-based tag collide on its
 /// page is refused with the next free counter as the remedy, never replaced silently (automatic
 /// renumbering, FR-NUM-029, applies only to new devices, moves and page changes). A cable on no page is checked in
-/// the project's scope, in words that name no page (FT-1406, ID-1418). A tag that the edit leaves unchanged, another
+/// the project's scope, in words that name no page. A tag that the edit leaves unchanged, another
 /// unplaced device and a device outside page-based numbering are not checked.
 fn refuse_tag_collision(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Result<(), CmdError> {
     use crate::numbering::{CounterScope, devices_in_scope, main_page, next_free_counter, numbered};

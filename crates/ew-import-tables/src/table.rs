@@ -465,7 +465,7 @@ impl<'t> Rd<'t> {
         std::mem::take(&mut self.foreign)
     }
 
-    /// A length in millimetres (a `Dec3` cell), in nanometres (WP-S4.01 part 2).
+    /// A length in millimetres (a `Dec3` cell), in nanometres.
     pub(crate) fn mm(&mut self, col: &str) -> Option<Nm> {
         let v = self.text(col);
         self.parse(col, v, parse_mm)

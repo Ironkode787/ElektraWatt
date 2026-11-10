@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The supply groups of a part's PLC section (WP-S1.21 D13, FR-PLC-024; PX-2): `PlcSection.supply_groups` types
+//! The supply groups of a part's PLC section (FR-PLC-024; PX-2): `PlcSection.supply_groups` types
 //! `kind`, `cps {l_plus, m}` and `feeds`, keeps every other member in the group's own `extra` and every newer enum
 //! value as `Unknown`, writes byte-equal after `pin_of` and before the section's unknown members, omits an empty list,
 //! and refuses a group without one of its pins, naming the member.

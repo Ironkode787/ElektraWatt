@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.09 part 3: the Preview tab's host duties (§8.1, D11), the renumber dialogs and their `bulk` card (§8.2, §8.3,
-//! D12) and the GUI purge step (§8.6, FT-417).
+//! The Preview tab's host duties (§8.1, D11), the renumber dialogs and their `bulk` card (§8.2, §8.3,
+//! D12) and the GUI purge step (§8.6).
 //!
 //! **The Preview tab.** [`ShellModel::sync_preview`] runs at the end of every dispatch and after the window changed the
 //! layout: a new card (by [`crate::preview::card_key`]) fetches its lists once (`Session::preview_entities`, counted) and
@@ -12,8 +12,8 @@
 //!
 //! **The renumber dialogs** build `page.renumber` and `numbering.renumber` with explicit values (UUIDs, never
 //! references), preview them through the host's path and open the `bulk` card; Apply commits one transaction through
-//! [`ShellModel::commit_kept`] (headless one command-log line, so `--record` replays it). Like the creation dialogs
-//! (FT-408), a dialog opens only in the window, when the action lacks its required parameter (`start`, `scheme`);
+//! [`ShellModel::commit_kept`] (headless one command-log line, so `--record` replays it). Like the creation dialogs,
+//! a dialog opens only in the window, when the action lacks its required parameter (`start`, `scheme`);
 //! headless the step fails naming it.
 //!
 //! **The purge step** lists `Session::purge_preview`'s files in a confirmation and commits `project.assets.purge` with
@@ -88,7 +88,7 @@ fn folio_number(folio: &str) -> Option<u32> {
     digits.parse().ok()
 }
 
-/// The text of a purge refusal in the window's language (FT-1421): its keyed text, which names no path.
+/// The text of a purge refusal in the window's language: its keyed text, which names no path.
 fn purge_reason(e: &PurgeError) -> String {
     super::tools::rejected_words("", Some(&ew_api::purge_refusal(e)))
 }
@@ -104,10 +104,10 @@ impl ShellModel {
 
     /// The Preview tab's summary line of the open card (§8.1): its records, tags, cross-reference texts and pages
     /// (`preview-summary`), or `None` without a card. The window paints it under the tab's header; the text interface
-    /// prints it for a bulk or table card, which has no inline card of its own (FT-580).
+    /// prints it for a bulk or table card, which has no inline card of its own.
     pub fn preview_summary(&self) -> Option<String> {
         let card = self.props.card()?;
-        // FT-759: a parts import says what it imports in words ("29 new parts · 3 already in the project"), from
+        // A parts import says what it imports in words ("29 new parts · 3 already in the project"), from
         // the importer's counts, not the records of its diff (the parts and their manufacturers).
         if let crate::properties::CardOrigin::Import { created, skipped, .. } = &card.origin {
             return Some(strings::format(
@@ -118,7 +118,7 @@ impl ShellModel {
                 ],
             ));
         }
-        // WP-S2.19 D13: a route card's summary is its plan's lead (§12a).
+        // A route card's summary is its plan's lead (§12a).
         if let crate::properties::CardOrigin::Route { lead, .. } = &card.origin {
             return Some(lead.clone());
         }
@@ -142,7 +142,7 @@ impl ShellModel {
 
     /// The Preview tab follows the card (module documentation): a new card fetches its lists and shows the tab; a card
     /// whose tab was closed is cancelled; no card forgets the lists and, when the card chain opened the tab, closes it
-    /// (a tab the user opened by hand stays; a fitted, untouched view refits to the freed space, ID-904).
+    /// (a tab the user opened by hand stays; a fitted, untouched view refits to the freed space).
     pub(super) fn sync_preview(&mut self) {
         let Some(key) = self.props.card().map(card_key) else {
             let close = self.preview.key.is_some() && self.preview.opened_by_card;
@@ -198,7 +198,7 @@ impl ShellModel {
             .filter_map(|p| position(p.as_uuid()))
             .collect();
         pages.sort_unstable();
-        // ID-1497 (4): a page whose folio the card changes is named by both folios, read from the candidate model.
+        // A page whose folio the card changes is named by both folios, read from the candidate model.
         let after = project.session.preview_folios(preview);
         self.preview.pages = pages
             .into_iter()
@@ -280,7 +280,7 @@ impl ShellModel {
         self.preview_host_card_as(name, params, reason, CardOrigin::Bulk)
     }
 
-    /// [`ShellModel::preview_host_card`] with the card's origin (WP-S2.07 part 4a: the part card).
+    /// [`ShellModel::preview_host_card`] with the card's origin (the part card).
     pub(super) fn preview_host_card_as(
         &mut self,
         name: &str,
@@ -307,7 +307,7 @@ impl ShellModel {
         bump(calls, |c| c.preview_with += 1);
         let preview = match project.session.preview_with(&cmd, submit) {
             Ok(p) => p,
-            // FT-1337: a refusal in the window's language, as every command error shows
+            // A refusal in the window's language, as every command error shows
             Err(e) => return super::tools::command_failed(&e, &cmd.params),
         };
         let derived = project.session.derived_diff(&preview);
@@ -553,7 +553,7 @@ impl ShellModel {
         };
         let Some(scheme) = scheme else {
             if self.mode == Mode::Headless || self.in_form_of(ACTION) {
-                // ID-1497 (7): headless, the refusal names the schemes it takes.
+                // Headless, the refusal names the schemes it takes.
                 let message = if self.in_form_of(ACTION) {
                     self.missing_text("scheme")
                 } else {
@@ -654,7 +654,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The purge step (FT-417)
+    // The purge step
 
     /// `project.purge_assets {confirm?}` (Tools, Purge unused images…): without `confirm` the confirmation lists
     /// `Session::purge_preview`'s image files; with it `project.assets.purge` of exactly those files is committed from
@@ -748,7 +748,7 @@ mod tests {
         assert_eq!(folio_number("A"), None);
     }
 
-    /// C52-p5#5: the stale purge refusal has a form for one image, in both languages; the count decides.
+    /// The stale purge refusal has a form for one image, in both languages; the count decides.
     #[test]
     fn the_stale_purge_refusal_counts_its_images() {
         let stale = |n: u8| PurgeError::Stale((0..n).map(|i| ew_api::Sha256([i; 32])).collect());

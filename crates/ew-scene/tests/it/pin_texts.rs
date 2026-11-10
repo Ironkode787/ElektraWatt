@@ -173,7 +173,7 @@ fn a_representation_without_a_box_prints_no_pin_text() {
     assert!(runs(&v).is_empty());
 }
 
-/// FT-707: a pin text is a fixed obstacle of the cross-reference text. A pin near the box's top-left corner prints
+/// A pin text is a fixed obstacle of the cross-reference text. A pin near the box's top-left corner prints
 /// its text where the box's cross-reference slot sits; the cross-reference drops below it, `SLOT_TEXT_GAP` apart,
 /// and the pin text stays 1 mm from its pin.
 #[test]
@@ -222,7 +222,7 @@ fn a_cross_reference_drops_below_a_pin_text_it_would_overlap() {
     assert!(ya.1 < pb.1, "{ya:?}");
 }
 
-/// FT-1138 (ID-1228 item 6): a black box's caption that would stand over a neighbour box's pin text rises
+/// FT-1138 (item 6): a black box's caption that would stand over a neighbour box's pin text rises
 /// `SLOT_TEXT_GAP` above it; the pin text stays 1 mm from its pin. The neighbour stands on the box's top edge, its
 /// one pin leaving down one grid step right of the box's left edge, where the caption starts.
 #[test]
@@ -280,7 +280,7 @@ fn a_black_box_caption_rises_above_a_neighbours_pin_text() {
     );
 }
 
-/// FT-1215: the same caption near the sheet's top edge would rise off the sheet above the neighbour's pin text; it
+/// The same caption near the sheet's top edge would rise off the sheet above the neighbour's pin text; it
 /// stays at its slot, its anchor `BLACK_BOX_CAPTION_GAP` above the box, inside the page.
 #[test]
 fn a_black_box_caption_never_rises_off_the_sheet() {

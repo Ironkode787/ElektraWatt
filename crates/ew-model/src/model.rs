@@ -65,7 +65,7 @@ pub struct Model {
     pub(crate) revisions: Table<Revision>,
     pub(crate) waivers: Table<Waiver>,
     pub(crate) import_runs: Table<ImportRun>,
-    /// The conflict records of a merge (WP-S1.17 D17), by ID: a record-level conflict shares its target's ID, so this
+    /// The conflict records of a merge, by ID: a record-level conflict shares its target's ID, so this
     /// is the one table whose IDs repeat another table's.
     pub(crate) conflicts: Table<Conflict>,
     pub(crate) lib: LibraryCopies,
@@ -147,7 +147,7 @@ impl Model {
     /// [`Model::from_records`] for a project whose library copies `missing` could not be read (FT-1383, ID-1395): a
     /// record that names one of them is no EW-INV-001 here, so the project opens (read-only, the loader's finding
     /// naming the copy); an edit that touches such a record is still refused by EW-INV-001. Nor is a violation of
-    /// another rule whose records include such a referrer (ID-1484, [`unexplained_by_dropped_copies`]): any other
+    /// another rule whose records include such a referrer ([`unexplained_by_dropped_copies`]): any other
     /// violation is the error.
     ///
     /// [`unexplained_by_dropped_copies`]: crate::unexplained_by_dropped_copies
@@ -226,7 +226,7 @@ impl Model {
         invariants::check(self, &Scope::full(self))
     }
 
-    /// Every violation [`Model::integrity_check`] finds, in its order, the first being its error (FT-1540): each
+    /// Every violation [`Model::integrity_check`] finds, in its order, the first being its error: each
     /// rule reports every record at fault, EW-INV-024 the first fault of each connection. Empty when it passes.
     pub fn integrity_violations(&self) -> Vec<ModelError> {
         invariants::check_all(self, &Scope::full(self))
@@ -487,7 +487,7 @@ impl Model {
                     work.push(f);
                 }
             }
-            // A record's conflict goes with it (WP-S1.17 D17): it shares the record's ID, and its target's kind varies,
+            // A record's conflict goes with it: it shares the record's ID, and its target's kind varies,
             // so this is a rule of the plan, not a link.
             let conflicts: Vec<AnyKey> = deleted
                 .iter()

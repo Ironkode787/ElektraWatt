@@ -67,7 +67,7 @@ fn mg6_the_shipped_chain_and_corpus_pass_the_steward_check() {
     assert!(words.is_empty(), "{words:#?}");
 }
 
-/// FT-96 (WP-S6.08 D5 and D24, RL-4; ADR-0011 amendment 1, doc 05 §10.3): a project of this format whose record lines
+/// FT-96 (RL-4; ADR-0011 amendment 1, doc 05 §10.3): a project of this format whose record lines
 /// carry members this reader does not know, appended as a later additive release writes them (after a record's members,
 /// two of them out of byte order, and after a nested object's), opens; an edit of another record of the same file
 /// saves, and every untouched line of that file is written as it was, byte for byte, the edited record keeping its
@@ -148,7 +148,7 @@ fn ft96_untouched_lines_with_later_members_are_kept_byte_for_byte() {
     assert_eq!(&written[1..], &lines[1..]);
 }
 
-/// WP-S6.08 D30 (C53-p1#5, ID-1470; ADR-0011 amendment 1): a project of this format whose function lines carry a role
+/// WP-S6.08 D30 (ADR-0011 amendment 1): a project of this format whose function lines carry a role
 /// this reader does not know, its payload's members out of byte order (`zeta`, then `alpha`) as a later minor writes
 /// them, opens; an edit of one function saves, and every untouched line of that file is written as it was, byte for
 /// byte, while the edited function's line is the canonical one, its unknown role in byte order.
@@ -247,7 +247,7 @@ fn the_corpus_job_saves_each_fixture_to_its_expected_files() {
                 .save(&model, Changes::All)
                 .unwrap_or_else(|e| panic!("{} saves: {e}", project.display()));
             store.close();
-            // `EW_BLESS=1` writes the save as the expected folder (WP-S6.08 D13); the fixture itself never changes.
+            // `EW_BLESS=1` writes the save as the expected folder; the fixture itself never changes.
             if std::env::var_os("EW_BLESS").is_some() {
                 let expected = Path::new(&expected);
                 let _ = std::fs::remove_dir_all(expected);

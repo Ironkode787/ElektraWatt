@@ -13,7 +13,7 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::ew_viewmodel::shell::Dialog;
 use support::{Scripted, Tmp, harness, settle};
 
-/// The text field labelled `name` (FT-566: the form fields have no placeholder; their label names them).
+/// The text field labelled `name` (the form fields have no placeholder; their label names them).
 fn field<'a, 'h>(h: &'h egui_kittest::Harness<'a, ew_ui::app::App>, name: &str) -> egui_kittest::Node<'h> {
     h.get_all_by_role(egui::Role::TextInput)
         .find(|n| n.accesskit_node().label().as_deref() == Some(name))
@@ -21,7 +21,7 @@ fn field<'a, 'h>(h: &'h egui_kittest::Harness<'a, ew_ui::app::App>, name: &str) 
 }
 
 /// Runs the frame until `done` holds of the shell, bounded like `support::wait_for_page` (600 frames, 20 ms apart),
-/// then settles. ID-1106 (FT-1018): after Create or Enter the test waits on the state, not on one `settle` frame.
+/// then settles. ID-1106: after Create or Enter the test waits on the state, not on one `settle` frame.
 #[track_caller]
 fn wait_until(
     h: &mut egui_kittest::Harness<'_, ew_ui::app::App>,
@@ -69,7 +69,7 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "page.new"));
     // The navigator's button and the dialog's title.
     assert_eq!(h.query_all_by_label("New page").count(), 2);
-    // WP-S2.06 part 1 (FT-461): the folio field holds the proposal after the current page 1 (2 is the generated table
+    // The folio field holds the proposal after the current page 1 (2 is the generated table
     // of contents, 3 a page record).
     assert_eq!(form_values(&h)[0], ("folio".into(), "4".into()));
     h.state_mut().shell_mut().set_form_field("folio", "");
@@ -158,7 +158,7 @@ fn the_insert_entries_open_the_structure_and_external_reference_dialogs() {
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    // WP-S4.02 part 4: Enclosure… makes the Project group four entries, a submenu (doc 16a §9.2).
+    // Enclosure… makes the Project group four entries, a submenu (doc 16a §9.2).
     support::open_menu(&mut h, &["Project", "Setup"]);
     settle(&mut h);
     h.get_by_label("Structure node…").click();

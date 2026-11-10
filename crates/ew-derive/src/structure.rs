@@ -117,7 +117,7 @@ pub enum SlotSource {
     Parent,
     /// The page of the device's main representation.
     MainRepPage,
-    /// The structure box around the device's main representation (FR-PRJ-020, WP-S2.04 §10.2), or around an
+    /// The structure box around the device's main representation (FR-PRJ-020), or around an
     /// interruption point's representation (`ip_structure`).
     StructureBox,
 }

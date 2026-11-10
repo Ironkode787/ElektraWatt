@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The bus model's derived data (doc 10 §2.7, §2.10, §3.8; WP-S1.21 D11): the segments of a physical net
+//! The bus model's derived data (doc 10 §2.7, §2.10, §3.8): the segments of a physical net
 //! (`bus_segments(pnet)`, algorithm A5), the members of a logical net (`net_members(lnet)`), the texts of a bus port
 //! (its station address and termination, FR-BUS-004, FR-BUS-006) and the member count of a potential that a bus
 //! segment carries (folio 909).

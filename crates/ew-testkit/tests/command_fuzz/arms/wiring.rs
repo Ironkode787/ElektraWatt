@@ -164,7 +164,7 @@ pub(super) fn connection_draw_to_ip(live: &Live, rng: &mut SplitMix64) -> Option
     let name = format!("FZ-{}", rng.below(1000));
     let direction = *rng.pick(&["source", "target", "undirected"])?;
     let pos = on_page(page, rng);
-    // FT-980 (ID-1146): a star source is a source point; a star with another direction is refused.
+    // A star source is a source point; a star with another direction is refused.
     let star_source = rng.chance(4) && direction == "source";
     let sort = rng.chance(3).then(|| rng.range(1, 9));
     let idx = small_idx(rng);
@@ -187,7 +187,7 @@ pub(super) fn connection_draw_to_ip(live: &Live, rng: &mut SplitMix64) -> Option
             let p = step(cp_end(a, idx), &json!(rng.uuid()), ip(&symbol, &def));
             Some(Step::cmd("connection.draw_to_ip", p).refuse())
         }
-        // The command refuses (FT-1064, ID-1146): a starred point whose direction is not source.
+        // The command refuses: a starred point whose direction is not source.
         10 => {
             let (symbol, def) = end?;
             let mut ip = ip(&symbol, &def);
@@ -196,7 +196,7 @@ pub(super) fn connection_draw_to_ip(live: &Live, rng: &mut SplitMix64) -> Option
             let p = step(cp_end(a, idx), &page.id, ip);
             Some(Step::cmd("connection.draw_to_ip", p))
         }
-        // The command refuses (FT-1064, ID-1146): a starred external point, with a live external reference.
+        // The command refuses: a starred external point, with a live external reference.
         11 => {
             let (symbol, def) = end?;
             let mut ip = ip(&symbol, &def);
@@ -243,7 +243,7 @@ pub(super) fn connection_draw_to_ip(live: &Live, rng: &mut SplitMix64) -> Option
             Some(Step::cmd("connection.draw_to_ip", p))
         }
         // The wire and its interruption point: one function, one representation, one connection; some of the time
-        // an external point, unstarred (an external point takes no star, ID-1146). Either: the generator does not
+        // an external point, unstarred (an external point takes no star). Either: the generator does not
         // model the prevent rules.
         _ => {
             let (symbol, def) = end?;
@@ -399,7 +399,7 @@ pub(super) fn ip_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let mut p = json!({
         "page": page.id, "symbol": symbol, "fndef": def, "pos": on_page(page, rng),
         "name": format!("FZ-{}", rng.below(1000)), "direction": direction,
-        // FT-980 (ID-1146): a star source is a source point.
+        // A star source is a source point.
         "star_source": rng.chance(4) && direction == "source",
     });
     match rng.below(12) {
@@ -419,7 +419,7 @@ pub(super) fn ip_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         k => {
             if k == 3 {
                 p["external"] = json!(rng.pick(&live.ext_refs)?);
-                // An external point takes no star (ID-1146).
+                // An external point takes no star.
                 p["star_source"] = json!(false);
             }
             Some(Step::cmd("ip.place", p).counts(&[
@@ -454,7 +454,7 @@ pub(super) fn ip_continue(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .filter(|p| p.kind == "multi_line" && p.id != ip.page && p.grid == ip.grid)
                 .collect();
             let page = *rng.pick(&pages)?;
-            // The command refuses (FT-194): the partner of a target is a source, a second one of a name that has a source.
+            // The command refuses: the partner of a target is a source, a second one of a name that has a source.
             if !ip.continues_cleanly {
                 return Some(Step::cmd(
                     "ip.continue",
@@ -498,7 +498,7 @@ pub(super) fn connection_route(live: &Live, rng: &mut SplitMix64) -> Option<Step
         })
     };
     let (a, b, n) = (r.a, r.b, r.grid_num);
-    // A well-formed route is tidy (FT-437): no vertex repeats the one before it and no segment runs over another.
+    // A well-formed route is tidy: no vertex repeats the one before it and no segment runs over another.
     // A bend line through an end (or ends on one vertical or horizontal line) would repeat a vertex, and a Z whose
     // ends share an x doubles back on that line; such routes become the straight route between the ends.
     let tidy = |route: Vec<(i64, i64)>| -> Vec<(i64, i64)> {
@@ -577,7 +577,7 @@ pub(super) fn connection_route(live: &Live, rng: &mut SplitMix64) -> Option<Step
     }
 }
 
-// WP-S2.19 D12: several routes in one transaction, each as `connection.route` takes it.
+// Several routes in one transaction, each as `connection.route` takes it.
 pub(super) fn connection_route_many(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let r = rng.pick(&live.routes)?;
     let conn = r.connection.clone();

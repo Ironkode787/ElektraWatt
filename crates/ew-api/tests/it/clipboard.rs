@@ -6,7 +6,7 @@
 //! `parse_fragment`'s refusals of hostile text, and `edit.paste` (every rejection at its pointer, the child device, the
 //! library copies, the structure rebinding, the exact grid-step translation, one undo step). The LINKS oracle of CB3 is
 //! the unit test `mandatory_and_optional_follow_the_oracle_for_every_link` of `ew-commands`. The page-item and
-//! structure-box cases (FT-452) run on the golden batch, so that a record of an unknown page-item variant can be added.
+//! structure-box cases run on the golden batch, so that a record of an unknown page-item variant can be added.
 
 use crate::golden_common;
 
@@ -157,7 +157,7 @@ fn structure_box(s: &Session, id: Uuid) -> StructureBox {
     .clone()
 }
 
-/// Whether `EW_BLESS=1` asks the golden-text tests to rewrite their expected files (WP-S6.13).
+/// Whether `EW_BLESS=1` asks the golden-text tests to rewrite their expected files.
 // Allowed: the program boundary of a test, read once; the value never reaches a result.
 #[allow(clippy::disallowed_methods)]
 fn bless() -> bool {
@@ -177,7 +177,7 @@ fn cb1_the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
     let a = s.copy_fragment(&reps).unwrap();
     let b = golden().copy_fragment(&reps).unwrap();
     assert_eq!(a.text, b.text, "two runs give equal bytes");
-    // The part, its manufacturer (WP-S1.19 D10), the symbol and the FnDef.
+    // The part, its manufacturer, the symbol and the FnDef.
     assert_eq!((a.records, a.copies, a.dropped_connections), (4, 4, 0));
     assert!(a.skipped.is_empty());
     assert!(
@@ -357,7 +357,7 @@ fn header_with(text: &str, f: impl Fn(&mut Value)) -> String {
     with_line(text, 2, &h.to_string())
 }
 
-/// FT-1488 (ID-1457): a fragment's refusal by key keeps its English, so the CLI and a script read what they read.
+/// A fragment's refusal by key keeps its English, so the CLI and a script read what they read.
 #[test]
 fn a_fragment_refusal_keeps_its_english_through_its_key() {
     let text = valid_text();
@@ -812,7 +812,7 @@ fn cb3_the_numbering_follows_the_fragment_order_not_the_minted_ids() {
     assert!(e[1].trim_end().ends_with("E2"), "{a:?}");
 }
 
-/// FT-456: a fragment of five breakers built from -102F1's device, function and representation, at the QET grid
+/// A fragment of five breakers built from -102F1's device, function and representation, at the QET grid
 /// indexes below, listed in this (fragment) order; the cells are those of the wizard page's frame.
 const FIVE_BREAKERS: [(i64, i64); 5] = [(41, 14), (17, 46), (17, 14), (29, 30), (19, 14)];
 
@@ -931,7 +931,7 @@ fn ft456_new_devices_are_numbered_in_cell_order_not_id_order() {
     assert!(out_of_order > 0, "some seed mints the IDs out of cell order");
 }
 
-/// FT-456: a replay of the paste (the same command in a session that mints other IDs, as `ew apply` replays a command
+/// A replay of the paste (the same command in a session that mints other IDs, as `ew apply` replays a command
 /// log) gives every breaker the number it had in the first session, also when the replay's IDs fall in another
 /// order (at least one of the replays below does).
 #[test]
@@ -951,7 +951,7 @@ fn ft456_a_replay_numbers_the_new_devices_alike() {
 // ---------------------------------------------------------------------------------------------------------------------
 // FT-452: page items and structure boxes in the fragment
 
-/// FT-452: a free text alone copies (no representation is needed) and pastes by the same grid steps.
+/// A free text alone copies (no representation is needed) and pastes by the same grid steps.
 #[test]
 fn cb_items_a_free_text_alone_copies_and_pastes_by_grid_steps() {
     let batch = golden_common::batch();
@@ -985,7 +985,7 @@ fn cb_items_a_free_text_alone_copies_and_pastes_by_grid_steps() {
     );
 }
 
-/// FT-452: a marker keeps the copied connections only (W4 joins 1X1:1 and S51:2; W5 ends at 1X1:2, which is not
+/// A marker keeps the copied connections only (W4 joins 1X1:1 and S51:2; W5 ends at 1X1:2, which is not
 /// copied), and a marker without either wire is left out of the fragment and counted.
 #[test]
 fn cb_items_a_marker_keeps_the_copied_wires_only() {
@@ -1053,7 +1053,7 @@ fn cb_items_a_marker_keeps_the_copied_wires_only() {
     assert!(!alone.text.contains(&marker_id.to_string()));
 }
 
-/// FT-452: a page item of an unknown variant is counted by a copy and left out by a paste, with a notice.
+/// A page item of an unknown variant is counted by a copy and left out by a paste, with a notice.
 #[test]
 fn cb_items_an_unknown_page_item_is_skipped_on_copy_and_on_paste() {
     let batch = golden_common::batch();
@@ -1107,7 +1107,7 @@ fn cb_items_an_unknown_page_item_is_skipped_on_copy_and_on_paste() {
     );
 }
 
-/// FT-452: a structure box keeps its `external` in its own project only; its location rebinds as a device's slots
+/// A structure box keeps its `external` in its own project only; its location rebinds as a device's slots
 /// do and clears with the node notice otherwise.
 #[test]
 fn cb_items_a_structure_box_keeps_its_external_in_its_own_project_only() {
@@ -1310,7 +1310,7 @@ fn copy_fragment_reports_incomplete_page_items() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// FT-403: an older fragment through the migration chain (WP-S1.17 D12, decision log ID-1221 ruling 9)
+// FT-403: an older fragment through the migration chain
 
 /// `value` with its top-level member `from` named `to`.
 fn renamed(mut value: Value, from: &str, to: &str) -> Value {
@@ -1380,7 +1380,7 @@ fn at_v0(text: &str) -> String {
     lines.join("\n") + "\n"
 }
 
-/// MG-6's fragment half (FT-403): a fragment of the test format "0.0", its device and FnDef copy at `$v` 0, reads
+/// MG-6's fragment half: a fragment of the test format "0.0", its device and FnDef copy at `$v` 0, reads
 /// through the test chain to the current fragment's parameters and pastes; the shipped chain, which reaches no older
 /// format, refuses it with the text it always had, as it refuses an older record of the current format.
 #[test]
@@ -1430,7 +1430,7 @@ static ITEM_CHAIN: ew_store::ew_format::Migrations = ew_store::ew_format::Migrat
     formats: &[],
 };
 
-/// ID-1250 (C48-p4#2): a fragment's part copy at `$v` 0, its item under an old member name and its `sha256` that of
+/// A fragment's part copy at `$v` 0, its item under an old member name and its `sha256` that of
 /// the old item, reads through a chain whose step changes the item. Its hash follows the migrated item, as the
 /// loader's does: the copy equals the project's, reads without EW-CORE-014's mismatch, and the paste reuses the held
 /// copy (one copy).

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Lint of the starter symbol library (WP-S7.02): `content/symbols/*.json` (native 4 mm edition),
+//! Lint of the starter symbol library: `content/symbols/*.json` (native 4 mm edition),
 //! `content/symbols/qet10/*.json` (generated QET 10 px edition, key suffix `@qet10`) and
 //! `content/fndefs/*.json`.
 //!
@@ -102,12 +102,12 @@ const LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
 /// The version of every starter document that has not changed since its first publication.
 const VERSION: &str = "0.1.0";
 /// The starter documents changed after their first publication on `main` (a published version is immutable; doc 07
-/// §3.1 classifies the change): key (both editions) → version. WP-S1.21 part 2 (cycle 37): the `plc_address` slot, a
-/// minor change; FT-698 (cycle 38): the same slot on the lamp, the position switch and the 5/2 valve; WP-S1.20 (cycle
+/// §3.1 classifies the change): key (both editions) → version. WP-S1.21 part 2: the `plc_address` slot, a
+/// minor change; FT-698: the same slot on the lamp, the position switch and the 5/2 valve; WP-S1.20 (cycle
 /// 50): the 5/2 valve's solenoid CP leaves its FnDef (major) and its symbol's function text falls back to the process
 /// tag (minor), the cylinder's ports gain their role (minor), the module overview's tag moves above the valve glyphs
-/// (minor); FT-1204 (cycle 52, ID-1395): the one-pole on/off switch moves to the manual-command category, class S;
-/// WP-S2.19 D16 (cycle 53): the interruption point is redrawn with its arrow pointing right and its CP on the tail
+/// (minor); FT-1204: the one-pole on/off switch moves to the manual-command category, class S;
+/// WP-S2.19 D16: the interruption point is redrawn with its arrow pointing right and its CP on the tail
 /// (major); ID-1502 (4): the strip segment's tag moves beside the strip, left of its first terminal (minor);
 /// ID-1509 (1): no text of a symbol crosses a stub of its CPs, so the heater's technical data moves down one step
 /// (patch) and the three-phase motor's leads grow one step up, its pin texts beside them (its CPs move: major).
@@ -128,7 +128,7 @@ const BUMPED: &[(&str, &str)] = &[
     ("ew.iso.valve-5-2-sol-spring", "0.3.0"),
     ("ew.ovw.module", "0.2.0"),
 ];
-/// The FnDefs no symbol draws: the internal solenoid coil is drawn in its valve's symbol (WP-S1.20 D3, D5).
+/// The FnDefs no symbol draws: the internal solenoid coil is drawn in its valve's symbol.
 const UNDRAWN_FNDEFS: &[&str] = &["ew.fn.valve-solenoid"];
 /// House pen width of the pen-independent tolerance of on-outline checks, in nm (native edition).
 const OUTLINE_TOL: i64 = 1000;
@@ -680,7 +680,7 @@ fn fndef_references() {
             problems.push(format!("{who}: fndef.extra[\"key\"] is not a string"));
             continue;
         };
-        // the caret requirement of the FnDef's version: "^0.1" for 0.1.x, "^0.2" for 0.2.0 (WP-S1.20)
+        // the caret requirement of the FnDef's version: "^0.1" for 0.1.x, "^0.2" for 0.2.0
         let want_req = by_key.get(key).map_or_else(
             || "^0.1".to_owned(),
             |fd| {
@@ -1027,7 +1027,7 @@ fn text_slots_and_arrangements() {
         }
         // Doc 06 §2.8 and doc 20 §17.5 bind `xref.device` to the cross-reference texts of devices (the aux text
         // "(…)" under the tag, the main list after it). The interruption-point symbols print their partner text
-        // in `data.small`, the default style of the slot kind, and name no style (FT-84).
+        // in `data.small`, the default style of the slot kind, and name no style.
         let base = d.key.strip_suffix("@qet10").unwrap_or(&d.key);
         let want = if INTERRUPTION_POINTS.contains(&base) {
             None
@@ -1537,7 +1537,7 @@ fn sample_text(kind: &SlotKind, def: &SymbolDef, fndef: Option<&FnDef>) -> Strin
 
 #[test]
 fn no_text_of_a_symbol_crosses_a_stub_of_its_connection_points() {
-    // WP-S2.19 §5.1 rule 4 (ID-1509): a wire leaves a CP along its stub, one grid step along the CP's direction, and
+    // 1 rule 4: a wire leaves a CP along its stub, one grid step along the CP's direction, and
     // no route crosses a text, the symbol's own included. A text box across a stub (grown by a quarter grid step, as
     // the router grows it) leaves every wire to that CP unrouted. Each symbol is placed alone at R0 with every slot
     // filled, the texts shown as by default and as in each of its arrangements.

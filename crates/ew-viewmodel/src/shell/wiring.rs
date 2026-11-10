@@ -26,7 +26,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Getters
 
-    /// The junction sequence editor, while open (WP-S2.04 §8.5).
+    /// The junction sequence editor, while open.
     pub fn junction_editor(&self) -> Option<&JunctionEditor> {
         self.tools.junction_editor.as_ref()
     }
@@ -52,7 +52,7 @@ impl ShellModel {
         })
     }
 
-    /// Whether the project draws crossings as hops (`settings.extra.drawing.crossings`, WP-S2.04 §8.6).
+    /// Whether the project draws crossings as hops (`settings.extra.drawing.crossings`).
     pub fn crossings_hops(&self) -> bool {
         self.crossings_word() == Some("hops")
     }
@@ -75,7 +75,7 @@ impl ShellModel {
         }
     }
 
-    /// The project's `marker_mode` setting when it is set (WP-S2.04 §10.2 item 3): `all`, `deviations`,
+    /// The project's `marker_mode` setting when it is set: `all`, `deviations`,
     /// `explicit` or `none`; `per_wire` for an absent or unknown one.
     pub fn marker_mode_word(&self) -> &'static str {
         let Some(p) = &self.project else {
@@ -130,7 +130,7 @@ impl ShellModel {
 
     /// The connection kind the Wire tool draws on the focused page (doc 06 §2.2): `Ok(None)` a wire on a multi-line
     /// page, `Ok(Some("overview"))` on a single-line (the MVP kind), overview or assembly-overview page,
-    /// `Ok(Some("fluid"))` (a working line, `{"fluid": {}}`) on a fluid page (WP-S1.20 D18); refused on a bus-topology
+    /// `Ok(Some("fluid"))` (a working line, `{"fluid": {}}`) on a fluid page; refused on a bus-topology
     /// page (its `Bus` kind is not drawn by this package) and on every page type whose Wire tool creates nothing (fix
     /// round of WP-S2.04 part 2, item 1).
     pub fn wire_kind(&self) -> Result<Option<&'static str>, Key<'static>> {
@@ -196,7 +196,7 @@ impl ShellModel {
             })
             .flatten();
         if let Some(label) = label {
-            // FT-964: the keys from the keymap, as the routing hint names them.
+            // The keys from the keymap, as the routing hint names them.
             let back = crate::command_bar::key_name(self, crate::tools::BACK);
             let escape = crate::command_bar::key_name(self, crate::tools::ESCAPE);
             self.tools.announcement = Some(strings::format(
@@ -387,7 +387,7 @@ impl ShellModel {
         self.run_commit(&cmd)
     }
 
-    /// `navigator.bind {channel, x_mm, y_mm, group?}` (WP-S2.07 §8, FR-PLC-020): a PLC channel row dropped on the
+    /// `navigator.bind {channel, x_mm, y_mm, group?}` (FR-PLC-020): a PLC channel row dropped on the
     /// canvas at the sheet point. The connection point under it, resolved as the Wire tool resolves its targets (the
     /// nearest CP within 8 screen points), takes the channel: one `plc.bind_channel` with `endpoint: {cp: {function,
     /// idx}}`, whose own rules decide. A drop with no CP under it is refused with `reason-drop-on-cp`.
@@ -398,8 +398,7 @@ impl ShellModel {
     /// meant); a device not wired to the card, when the card is a valve terminal with a free position, is attached
     /// there (`assembly.attach`) and then bound where it was dropped, two commands and two undo steps that the toast
     /// names; **neither** is refused before the commit with `reason-bind-off-card` and a toast that says what to do
-    /// (FX38d). A bind that unbinds another channel (FR-PLC-005) names it in the toast by its address and the pin
-    /// (FT-757).
+    /// (FX38d). A bind that unbinds another channel (FR-PLC-005) names it in the toast by its address and the pin.
     pub(crate) fn act_navigator_bind(&mut self, p: &Map<String, Value>) -> Outcome {
         let channel = match string_param(p, "channel") {
             Ok(Some(c)) => c.trim().trim_start_matches("id:").to_owned(),
@@ -489,7 +488,7 @@ impl ShellModel {
                     return Outcome::refused(key!("reason-bind-off-card"));
                 }
             };
-        // FT-757: the channels the bind unbinds (FR-PLC-005), named in the toast by their addresses.
+        // The channels the bind unbinds (FR-PLC-005), named in the toast by their addresses.
         let words = pr.session.channel_words(ch).unwrap_or_default();
         let pin = crate::describe::pin_in_sentence(&pr.session.cp_text(target.0, target.1));
         let displaced: Vec<String> = pr
@@ -530,7 +529,7 @@ impl ShellModel {
             (None, Some(device)) => strings::format(key!("toast-bind-wired"), &[&words, &pin, device]),
             (None, None) => strings::format(key!("toast-bind-done"), &[&words, &pin]),
         };
-        // FT-1505: each displaced channel goes inside the sentence, before its full stop.
+        // Each displaced channel goes inside the sentence, before its full stop.
         for d in &displaced {
             text = format!(
                 "{}{}.",
@@ -582,14 +581,14 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // Route page and Route selection (WP-S2.19 D13)
+    // Route page and Route selection
 
-    /// `route.page` (WP-S2.19 D13): the plan of the page's unrouted connections in the preview card.
+    /// `route.page`: the plan of the page's unrouted connections in the preview card.
     pub(crate) fn act_route_page(&mut self) -> Outcome {
         self.route_card(ew_api::routing::RouteScope::Page)
     }
 
-    /// `route.selection` (WP-S2.19 D13): the plan of the selected connections and of every connection with an end on a
+    /// `route.selection`: the plan of the selected connections and of every connection with an end on a
     /// selected representation, routed ones routed again, in the preview card.
     pub(crate) fn act_route_selection(&mut self) -> Outcome {
         if self.canvas().is_none() {
@@ -614,7 +613,7 @@ impl ShellModel {
         })
     }
 
-    /// The preview card of a page solve of `scope` on the current page (WP-S2.19 D13, §12a): its lead line and one row
+    /// The preview card of a page solve of `scope` on the current page: its lead line and one row
     /// per connection left unrouted, with its reason; Apply commits the plan's one `connection.route_many`. A solve with
     /// nothing to route says so in a toast and opens no card; one that routes nothing fails with its lead.
     fn route_card(&mut self, scope: ew_api::routing::RouteScope) -> Outcome {
@@ -665,7 +664,7 @@ impl ShellModel {
         let Some(params) = route_many_params(&plan) else {
             return Outcome::Failed { message: lead };
         };
-        // ID-1509 (8): a plan whose routes are the ones drawn changes nothing, so it opens no card.
+        // A plan whose routes are the ones drawn changes nothing, so it opens no card.
         let unchanged = self.canvas().is_some_and(|c| {
             plan.routes.iter().all(|(id, route)| {
                 c.page()

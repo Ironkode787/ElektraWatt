@@ -10,7 +10,7 @@
 //! the focused canvas, else the grid cursor, else left out; WP-S2.03 §6.5, FT-345), the zoom `156 %`, the grid (`QET 10 px`, a pitch
 //! such as `4 mm`, or `Grid off`), the save state (`*` unsaved, `saved`, or `read-only: <reason>`), the canvas
 //! backend (`CPU`, `WARP` or `GPU <backend>`), the UI language, `Notifications <n>` while the notifications log is not
-//! empty, and while a job runs the job field (WP-S2.09 part 1). Without a project the page and save fields are left
+//! empty, and while a job runs the job field. Without a project the page and save fields are left
 //! out; without a canvas the cursor, zoom and grid. These text fields stay the transcripts' `status` member.
 //!
 //! The window's status bar and the describe line follow WP-S2.17 D12 instead ([`bar`]): the state at the left, then
@@ -38,7 +38,7 @@ pub fn grid_text(model: &ShellModel) -> String {
 }
 
 /// A connection grid of pitch `num_nm / den` nanometres in the status bar's words: "QET 10 px", else its pitch in mm
-/// ("4 mm"). The Properties sheet's Connection grid row shows the same words (ID-1139).
+/// ("4 mm"). The Properties sheet's Connection grid row shows the same words.
 pub fn grid_words(num_nm: i64, den: i64) -> String {
     let grid = ew_api::output::PageGrid {
         num_nm,
@@ -53,7 +53,7 @@ pub fn grid_words(num_nm: i64, den: i64) -> String {
 }
 
 /// One end of a wire in words: its connection point's label (`-102F1:2`, the device's tag and the point), else what it
-/// is. FT-1250 (ID-1315 ruling 5): only a junction is "a junction".
+/// is. FT-1250: only a junction is "a junction".
 pub(crate) fn end_words(e: &WireEnd) -> String {
     match e {
         WireEnd::Point(label) => label.clone(),
@@ -63,7 +63,7 @@ pub(crate) fn end_words(e: &WireEnd) -> String {
     }
 }
 
-/// What the canvas's live region says of the selection (WP-S2.08 D13, NFR-A11Y-02), and `ui.describe`'s `canvas live`
+/// What the canvas's live region says of the selection (NFR-A11Y-02), and `ui.describe`'s `canvas live`
 /// line: a placement selected on a panel page with where it is (doc 12 §12.4), else the one selected device, wire or
 /// page item in words, else `<n> selected`. A selection change sets it as the tool announcement, which
 /// [`canvas_node`] gives the live region until the cursor moves.
@@ -139,7 +139,7 @@ fn words_text(words: &SelectionWords) -> String {
                 None => label.to_owned(),
             }
         }
-        // FT-1248: a junction, an interruption point and a structure box in words of their own.
+        // A junction, an interruption point and a structure box in words of their own.
         SelectionWords::Junction { folio, wires } => {
             let wires = strings::format_count(count_key!("announce-wires"), *wires);
             match folio {
@@ -164,7 +164,7 @@ fn words_text(words: &SelectionWords) -> String {
     }
 }
 
-/// The accessible texts of a canvas (WP-S2.03 §6.9, doc 16 §10.1).
+/// The accessible texts of a canvas (doc 16 §10.1).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CanvasNodeText {
     /// The node's name: `Page <folio>, <title>`.
@@ -208,7 +208,7 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
             live
         })
         .unwrap_or_default();
-    // A tool's state change or a selection change is said until the cursor moves again (WP-S2.03 §7.2, §7.6); it is
+    // A tool's state change or a selection change is said until the cursor moves again (§7.6); it is
     // the focused group's.
     let focused = model.area().map(|a| a.focused) == Some(group);
     let live = match model.tool_announcement() {
@@ -223,8 +223,8 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
 }
 
 /// The hint of a link to `label` that action `action` follows (`nav.follow` on the canvas, `props.follow` in
-/// Properties): "Click or F: go to -201U7", the key from the keymap (FT-1042); with no key, `nav.follow` by its menu
-/// path, as `link-preview-go-none` names it, and any other action without one (FT-1189).
+/// Properties): "Click or F: go to -201U7", the key from the keymap; with no key, `nav.follow` by its menu
+/// path, as `link-preview-go-none` names it, and any other action without one.
 pub fn follow_hint(model: &ShellModel, label: &str, action: &str) -> String {
     let key = crate::command_bar::key_of(model, action);
     if !key.is_empty() {
@@ -237,7 +237,7 @@ pub fn follow_hint(model: &ShellModel, label: &str, action: &str) -> String {
 }
 
 /// The hint of one canvas: the hovered link's target while the active tool shows the hover, else the tool's status
-/// hint (WP-S2.03 §6.4, §7.2).
+/// hint (§7.2).
 fn hint_of(model: &ShellModel, c: &crate::canvas::CanvasModel) -> String {
     match c.hovered_link().filter(|_| model.tool().wants_hover()) {
         Some(link) => match link.label() {
@@ -252,7 +252,7 @@ fn hint_of(model: &ShellModel, c: &crate::canvas::CanvasModel) -> String {
 }
 
 /// The hint field: the active tool's status hint (`Click to select; drag for a rubber band`), or the hovered link's
-/// `Click or F: go to <label>` (WP-S2.03 §6.4, §7.2).
+/// `Click or F: go to <label>` (§7.2).
 pub fn hint(model: &ShellModel) -> String {
     match model.canvas() {
         Some(c) => hint_of(model, c),
@@ -260,7 +260,7 @@ pub fn hint(model: &ShellModel) -> String {
     }
 }
 
-/// The status-bar fields of `model` (WP-S2.09 §6.4, §6.5): after the language, `Notifications <n>` while the log is
+/// The status-bar fields of `model` (§6.5): after the language, `Notifications <n>` while the log is
 /// not empty, and last, while a job runs and `hide_job` is false, the job field: `PDF export <p> %` in the window,
 /// `PDF export` headless (no progress number in a transcript, §9 item 2).
 pub fn fields(model: &ShellModel, hide_job: bool) -> Vec<String> {
@@ -488,7 +488,7 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
             ),
         ];
     }
-    // ID-1392 (FT-1405): a note the shell made for the open project stands in the state's place.
+    // A note the shell made for the open project stands in the state's place.
     let state = model
         .status_note()
         .unwrap_or_else(|| strings::text(key!("status-ready")));
@@ -611,7 +611,7 @@ pub fn phase_text(phase: &str) -> String {
 mod tests {
     use super::grid_words;
 
-    /// ID-1139: a grid in the status bar's words, which the Properties sheet's Connection grid row shows too.
+    /// A grid in the status bar's words, which the Properties sheet's Connection grid row shows too.
     #[test]
     fn a_grid_reads_as_the_status_bar_writes_it() {
         assert_eq!(
@@ -625,8 +625,8 @@ mod tests {
     }
 
     /// FT-1252 (D13's cases without a test): the `-one` counts, a wire with no number and no potential, the ends that
-    /// are no labelled connection point (FT-1250), and the junction, interruption point and structure box without a
-    /// folio (FT-1248), whole, in en-GB and nl-NL.
+    /// are no labelled connection point, and the junction, interruption point and structure box without a
+    /// folio, whole, in en-GB and nl-NL.
     #[test]
     fn every_live_description_form_reads_whole_in_both_languages() {
         use super::{SelectionWords, WireEnd, words_text};

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rail model and the resolver (WP-S4.02 D3 to D5) over Golden A's rail intervals (doc 20 §13; the spec's SN-1
+//! The rail model and the resolver over Golden A's rail intervals (doc 20 §13; the spec's SN-1
 //! to SN-6 numbers by hand) and over random rails (property tests: every mode's result holds D5's rules).
 
 use ew_ids::{Id, Uuid};

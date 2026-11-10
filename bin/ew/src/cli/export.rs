@@ -5,7 +5,7 @@
 
 use super::*;
 
-/// The message of a refused export (FT-465). A project without the report block of the export's kind has no row source:
+/// The message of a refused export. A project without the report block of the export's kind has no row source:
 /// the export is the rows of that block (doc 17 §3.3), so it is refused, not empty, and the message names the block, the
 /// export and where the block comes from. A block that does not derive keeps the report layer's own text.
 pub(super) fn export_refusal(what: Export, e: &ew_api::ExportError) -> String {
@@ -108,12 +108,12 @@ pub(super) fn run_export(a: &ExportArgs) -> i32 {
     0
 }
 
-/// `csv` (the golden dialect) with the byte-order mark and line end of `options` (WP-S3.08 D6).
+/// `csv` (the golden dialect) with the byte-order mark and line end of `options`.
 pub(super) fn restyle(csv: &str, options: &CsvOptions) -> String {
     ew_api::output::restyle(csv, options.writes_bom(), options.writes_line_end())
 }
 
-/// What the `--json` result of `export cables|bom|wires|terminals` says (WP-S3.08 TX-7).
+/// What the `--json` result of `export cables|bom|wires|terminals` says (TX-7).
 pub(super) struct RowsSummary {
     rows: usize,
     strips: Vec<String>,
@@ -154,7 +154,7 @@ pub(super) fn rows_json(kind: &ExportKind, s: RowsSummary) -> String {
     }
 }
 
-/// A row export in XLSX or a CSV preset other than `ew` (WP-S3.08 D6, D7): [`ew_api::output::row_output`] over the
+/// A row export in XLSX or a CSV preset other than `ew`: [`ew_api::output::row_output`] over the
 /// row choice of the golden path, the file written atomically (`<file>.tmp`, synced, renamed).
 pub(super) fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32 {
     let what = match &a.kind {
@@ -262,7 +262,7 @@ pub(super) fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32
     0
 }
 
-/// `ew export table` (WP-S3.08 D7, D8): a navigator's table unfiltered, as CSV in a preset or as a workbook with the
+/// `ew export table`: a navigator's table unfiltered, as CSV in a preset or as a workbook with the
 /// round-trip sheets (`_ew`, and `_ew_base` with its digest), the file written atomically.
 pub(super) fn run_export_nav_table(a: &ExportTableArgs) -> i32 {
     let Some(dir) = reader_dir(a.project.as_ref()) else {
@@ -379,7 +379,7 @@ pub(super) fn write_rows(a: &ExportArgs, csv: &str, rows: usize) -> i32 {
     0
 }
 
-/// The message of a refused row export of a chosen block (WP-S1.22 D8): as [`export_refusal`] for a project without
+/// The message of a refused row export of a chosen block: as [`export_refusal`] for a project without
 /// the block of the kind, else the report layer's own text.
 pub(super) fn rows_refusal(e: &ew_api::output::RowsError) -> String {
     match e {
@@ -395,13 +395,13 @@ pub(super) fn rows_refusal(e: &ew_api::output::RowsError) -> String {
                 "the project has no report block of kind `{kind}`: {export} is the rows of that block (a project from the built-in template has none), so there is nothing to export"
             )
         }
-        // WP-S3.06 D4: each other refusal of the export is its own whole text.
+        // Each other refusal of the export is its own whole text.
         other => other.to_string(),
     }
 }
 
 /// `ew export report --format csv`: the rows of the block (or of the kind, `--kind`), then the `--json` result; its
-/// `block` is empty for `--kind` (the orchestrator's ruling 2 of cycle 42).
+/// `block` is empty for `--kind` (the orchestrator's).
 pub(super) fn finish_export_report_csv(
     a: &ExportArgs,
     r: &ew_api::output::RowsCsv,
@@ -432,7 +432,7 @@ pub(super) fn finish_export_report_csv(
     0
 }
 
-/// `ew export report --format pdf`: the page export restricted to the block's folios (WP-S1.22 D8).
+/// `ew export report --format pdf`: the page export restricted to the block's folios.
 pub(super) fn run_export_report_pdf(a: &ExportArgs, session: &ew_api::Session, block: &str) -> i32 {
     let Some(out) = &a.out else {
         eprintln!("error: `export report --format pdf` needs `--out <file.pdf>`");
@@ -518,8 +518,7 @@ pub(super) fn source_date_epoch() -> Option<std::ffi::OsString> {
 }
 
 // The program boundary: `$APPIMAGE` and `$APPDIR`, the AppImage this `ew` may run from (ID-1187's Linux package) and its
-// mount, read once and passed in, so that `ew git setup` makes git run the AppImage and never its transient mount
-// (WP-S1.17 D28, C49-p9#5, C49-p10#2).
+// mount, read once and passed in, so that `ew git setup` makes git run the AppImage and never its transient mount.
 #[allow(
     clippy::disallowed_methods,
     reason = "the environment is read at the program boundary"
@@ -546,7 +545,7 @@ pub(super) fn source_date() -> Result<Option<ew_api::output::PdfDate>, String> {
         .ok_or_else(|| format!("SOURCE_DATE_EPOCH is not a date in seconds since 1970: `{text}`"))
 }
 
-/// `ew export ewz` (WP-S1.17 D8, ID-1175 ruling 5): the project's saved generation, read back from the disk and
+/// `ew export ewz`: the project's saved generation, read back from the disk and
 /// verified, packed into `--out` ([`write_atomically`]). The project opens as a reader (no lock); an `.ewz` given as
 /// the project is refused ([`project_dir`]).
 pub(super) fn run_export_ewz(a: &ExportEwzArgs) -> i32 {
@@ -593,7 +592,7 @@ pub(super) fn run_export_ewz(a: &ExportEwzArgs) -> i32 {
     0
 }
 
-/// `ew extract <file.ewz> [--into <dir>]` (WP-S1.17 D9, ID-1175 ruling 4): the archive read whole and checked before
+/// `ew extract <file.ewz> [--into <dir>]`: the archive read whole and checked before
 /// anything is written, then extracted into a new directory, all or nothing (`ew_api::ewz::extract`); without `--into`
 /// the directory is `<stem>.ew` beside the archive.
 pub(super) fn run_extract(a: &ExtractArgs) -> i32 {
@@ -844,7 +843,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
     0
 }
 
-/// `ew render --page <folio> --png` (WP-S1.22 D7, FR-EXT-004): one page as PNG, to `--out` or `<folio>.png` in the
+/// `ew render --page <folio> --png` (FR-EXT-004): one page as PNG, to `--out` or `<folio>.png` in the
 /// current directory, never to stdout.
 pub(super) fn run_render(a: &RenderArgs) -> i32 {
     let Some(dir) = reader_dir(a.project.as_ref()) else {

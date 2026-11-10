@@ -443,7 +443,7 @@ proptest::proptest! {
         }
     }
 
-    /// RT1 among texts, junctions and fixed wires (ID-1509): RT1's page with text boxes near the symbols' stubs
+    /// RT1 among texts, junctions and fixed wires: RT1's page with text boxes near the symbols' stubs
     /// (across one, over one's node, beside one, above a body, below a CP) and near junctions; junctions in the middle
     /// of the lattice's squares, each with one to three fixed wires leaving it along the middle lines; and connections
     /// from free CPs to the junctions. Every route the solve returns keeps measures (a) to (d), no junction has a

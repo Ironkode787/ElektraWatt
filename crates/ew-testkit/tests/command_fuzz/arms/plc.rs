@@ -206,7 +206,7 @@ pub(super) fn plc_bind_channel(live: &Live, rng: &mut SplitMix64) -> Option<Step
     }
 }
 
-/// `plc.set_profile` (WP-S1.21 D8): a shipped profile by its reference or its ID pins that reference; an unknown
+/// `plc.set_profile`: a shipped profile by its reference or its ID pins that reference; an unknown
 /// profile and an unknown configuration project are refused.
 pub(super) fn plc_set_profile(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(8) {
@@ -256,7 +256,7 @@ pub(super) fn plc_set_profile(live: &Live, rng: &mut SplitMix64) -> Option<Step>
     }
 }
 
-/// `plc.set_start` (WP-S1.21 D8): a keyword or a start of the direction's area sets the module's start; an unknown
+/// `plc.set_start`: a keyword or a start of the direction's area sets the module's start; an unknown
 /// module and a start in the other area are refused.
 pub(super) fn plc_set_start(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let m = rng.pick(&live.modules)?.clone();

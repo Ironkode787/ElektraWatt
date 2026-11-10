@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1337 (decision log ID-1359 ruling 5): a command's own refusal reaches the Dutch window in Dutch, whole, a record
+//! A command's own refusal reaches the Dutch window in Dutch, whole, a record
 //! named in words in Dutch too; the same refusal in en-GB is the English text the CLI prints.
 
 use crate::common::{Tmp, done};
@@ -73,7 +73,7 @@ fn a_refused_command_shows_its_reason_in_the_window_language() {
     shell.shutdown();
 }
 
-/// FT-1421 (ID-1397 ruling 6): `ew-api`'s own refusals carry their keyed text: a purge of a project with unsaved
+/// `ew-api`'s own refusals carry their keyed text: a purge of a project with unsaved
 /// changes reaches the Dutch window in Dutch, and the English one in English.
 #[test]
 fn the_api_s_own_refusals_show_in_the_window_language() {

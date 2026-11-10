@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rail model and the mode resolution (WP-S4.02 D3 to D5, doc 12 §3.3, §3.4): pure functions over the items of
+//! The rail model and the mode resolution (doc 12 §3.3, §3.4): pure functions over the items of
 //! one rail, shared by the layout tool's ghost (part 3) and the `layout.place` and `layout.move` commands, so the ghost
 //! and the commit agree by construction (D4).
 //!
@@ -146,7 +146,7 @@ pub struct BracketSpan {
     pub s1: i128,
     /// The index into the items of the strip it is attributed to.
     pub item: usize,
-    /// Before its run or after its strip (C44-p3#4: a bracket of zero length cannot tell it from its interval).
+    /// Before its run or after its strip (a bracket of zero length cannot tell it from its interval).
     pub role: BracketRole,
 }
 
@@ -196,11 +196,11 @@ pub fn free_length(length: i128, items: &[RailItem], brackets: &[BracketSpan]) -
     length.saturating_sub(used)
 }
 
-/// Next-fit (WP-S4.02 D6, `layout.auto_fill`): the smallest left edge `s ≥ floor` at which `item` (its width, strip
+/// Next-fit (`layout.auto_fill`): the smallest left edge `s ≥ floor` at which `item` (its width, strip
 /// flag, bracket width and pads; its `s0`, `s1` are not read as a position) fits on a rail of length `length` holding
 /// `items` (any order), as free mode judges a fit: the minimum gap to the item before it in rail order (by `s0`) and to
 /// the item after it and the rail ends' gaps are held; an earlier item that ends later than the one before it is only
-/// cleared by its bare end (no pad, no bracket; FT-942). `None` when no such place exists. Nothing moves: this is the placement
+/// cleared by its bare end (no pad, no bracket). `None` when no such place exists. Nothing moves: this is the placement
 /// rule of a fill, not a mode ([`resolve`] stays the one resolver of a drop).
 pub fn next_fit(items: &[RailItem], length: i128, item: &RailItem, floor: i128) -> Option<i128> {
     let mut sorted: Vec<RailItem> = items.to_vec();
@@ -283,7 +283,7 @@ pub enum SnapError {
 /// - **Free:** if the item fits at `s_left`, it stays; else it goes to the position in the gap closest to `s_left`
 ///   where it fits, ties to the smaller `s`; no gap fits: [`SnapError::NoGap`]. It fits when the minimum gap to the item
 ///   before it in rail order (by `s0`) and to the item after it and the rail ends' gaps are held; an earlier item that
-///   ends later than the one before it is only cleared by its bare end, without its pad or bracket (FT-942).
+///   ends later than the one before it is only cleared by its bare end, without its pad or bracket.
 /// - **Push:** the occupants whose centre is left of the item's centre stay (one centred exactly on it counts as
 ///   right); the item starts at `max(s_left, the left neighbour's end + minimum gap)` (no left neighbour: the rail
 ///   start's gap); each occupant to the right moves right only as far as its minimum gap to its new left neighbour
@@ -411,7 +411,7 @@ pub fn cascade(
 }
 
 /// [`cascade`] on a rail's coordinates mirrored (`s` read as `−s`, the pads swapped), as a strip turned 180° that grows
-/// left pushes the items before it (`ew-commands`, FT-1495). The gaps are the real frame's (C53-p2#3, ID-1480): between
+/// left pushes the items before it (`ew-commands`). The gaps are the real frame's: between
 /// two strips the bracket of the strip that stands left on the rail, `b` in the mirrored frame, as [`brackets`] and
 /// EW-LAY-010 judge it; every other pair as [`min_gap`] gives it, the mirror already swapping the pads.
 ///

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A synthetic parts library (WP-S1.19 §7.4 IX-9, NFR-PERF-21): `n` parts and their manufacturers as library
+//! A synthetic parts library (IX-9, NFR-PERF-21): `n` parts and their manufacturers as library
 //! documents of one library, deterministic for a given `n` and library ID. `ew-testkit` has no edge to `ew-library`;
 //! the caller writes the documents with `Registry::write` (through `ew_api::library`).
 
@@ -102,8 +102,8 @@ pub fn generated_parts(n: usize, library: Uuid) -> Vec<LibDocument> {
 }
 
 /// The version of starter part `number` in the shipped library `content/libraries/ew-starter-parts.ewlib`, from which
-/// the starter is compiled in: a test reads the version there, so a version bump changes no assertion (ID-1109). One
-/// helper for every test crate (FT-1041). Panics when the library cannot be read or holds `number` other than once.
+/// the starter is compiled in: a test reads the version there, so a version bump changes no assertion. One
+/// helper for every test crate. Panics when the library cannot be read or holds `number` other than once.
 pub fn starter_version(number: &str) -> String {
     let dir = std::path::Path::new(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -130,7 +130,7 @@ pub fn starter_version(number: &str) -> String {
     found.remove(0)
 }
 
-/// An address profile document of `library` (FT-1425): the shipped built-in TIA profile file
+/// An address profile document of `library`: the shipped built-in TIA profile file
 /// `content/plc-profiles/siemens-tia-intl.json` with the pin `<id>@1`, its own item ID and the label "Fixture", for a
 /// test that chooses a library's profile. Panics when the shipped file cannot be read.
 pub fn address_profile(library: Uuid, id: &str) -> LibDocument {

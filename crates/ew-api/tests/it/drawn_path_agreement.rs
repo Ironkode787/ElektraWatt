@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! One drawn path (FT-1020, decision log ID-1104, ID-1110; WP-S2.19 D1 to D3): the path the page scene draws a wire
+//! One drawn path: the path the page scene draws a wire
 //! along is the path `ew_derive::drawn_path` gives, which EW-TERM-006 and normaliser 7 read: the stored route. Over
 //! Golden A's connections (the wire layer as drawn: every page connection has the router's route, so none is
 //! unrouted), and over random ends (a proptest): a connection without a route is unrouted, has no drawn path and is
@@ -62,7 +62,7 @@ fn wire_of(wires: &PageLayer, id: Uuid) -> Vec<(i64, i64)> {
 }
 
 /// Golden A: every connection the wire layer draws is drawn along `drawn_path`, its stored route; no page connection
-/// is unrouted (WP-S2.19 RG1).
+/// is unrouted (RG1).
 #[test]
 fn golden_a_s_wires_are_drawn_along_the_one_path() {
     let s = golden();
@@ -109,7 +109,7 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(256))]
 
     /// Any two ends on a page (equal, on one line or apart; each with any leaving direction or none): without a stored
-    /// route the scene draws the straight line between them (WP-S2.19 D3), nothing where they meet.
+    /// route the scene draws the straight line between them, nothing where they meet.
     #[test]
     fn the_scene_draws_an_unrouted_connection_straight_between_any_two_ends(
         a in (-3i64..=3, -3i64..=3),
@@ -146,7 +146,7 @@ fn run(s: &mut Session, name: &str, params: serde_json::Value) -> Vec<Uuid> {
         .collect()
 }
 
-/// W45.1 F1 (decision log ID-1110): on an empty stretch of Golden A's folio 103, terminal -X1031 71 and two coils
+/// W45.1 F1: on an empty stretch of Golden A's folio 103, terminal -X1031 71 and two coils
 /// above and below it, then a wire drawn from the upper coil to the lower one across the terminal (drawing a wire does
 /// not split it at a symbol it crosses): EW-TERM-006, whose Messages row names the terminal once. Its message leads with
 /// the subject, so the row shows the message alone; the detail card shows the message cell, which names it once too.
@@ -188,7 +188,7 @@ fn ew_term_006_s_row_names_the_terminal_once() {
         (json!({"cp": {"function": f.to_string(), "idx": c.idx}}), c.at)
     };
     let ((a, pa), (b, pb)) = (end(coils[0], true), end(coils[1], false));
-    // A straight stored route (an unrouted wire has no wire geometry, WP-S2.19 D3).
+    // A straight stored route (an unrouted wire has no wire geometry).
     run(
         &mut s,
         "connection.draw",

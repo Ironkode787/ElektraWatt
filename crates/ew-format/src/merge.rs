@@ -106,7 +106,7 @@ enum Who {
     Theirs,
 }
 
-/// Merges one record three-way (doc 05 §11.2; WP-S1.17 D2, D13, D14): `base`, `ours` and `theirs` are the record's
+/// Merges one record three-way (doc 05 §11.2): `base`, `ours` and `theirs` are the record's
 /// values under one `($k, id)` key, `None` where a side does not hold it. The values are read and current already
 /// (the loader's limits, the migration chain); [`merge_file`] reads a file's records so.
 ///
@@ -178,7 +178,7 @@ fn members(value: Option<&Value>) -> impl Iterator<Item = &String> {
         .flat_map(|m| m.keys())
 }
 
-/// One record by D18's no-base rule, for a base that is not empty but does not read (decision log ID-1273): equal on
+/// One record by D18's no-base rule, for a base that is not empty but does not read: equal on
 /// both sides it is kept; different, ours is kept with a conflict of every top-level member that differs; on one side
 /// only, it is kept with a conflict whose other side is `"deleted"`, since the other side may have deleted it. The
 /// base of such a conflict is empty.
@@ -226,7 +226,7 @@ fn both_sides(base: Option<&Value>, a: &Value, b: &Value) -> RecordMerge {
         .get("$k")
         .and_then(Value::as_str)
         .and_then(Kind::from_name)
-        // A conflict record merges as a whole, as it did while its kind was reserved (decision log ID-1279).
+        // A conflict record merges as a whole, as it did while its kind was reserved.
         .filter(|k| k.status() == KindStatus::Implemented && *k != Kind::Conflict);
     let mut conflicts = Vec::new();
     let merged = match (kind, a.as_object(), b.as_object()) {
@@ -454,7 +454,7 @@ fn merge_object(
 }
 
 /// The elements of a keyed list by the compact JSON text of their key, in list order; `None` when an element is not an
-/// object with the key or two elements share a key (the member then merges atomically, decision log ID-1268).
+/// object with the key or two elements share a key (the member then merges atomically).
 fn keyed_elements<'v>(items: &'v [Value], key: &str) -> Option<Vec<(String, &'v Value, &'v Value)>> {
     let mut seen = BTreeSet::new();
     let mut out = Vec::with_capacity(items.len());
@@ -490,7 +490,7 @@ fn key_order(x: &Value, y: &Value) -> Ordering {
 }
 
 /// `keyed(key)`: a map by `key`, each element atomic. Only keys that are all unsigned integers or all strings have a
-/// total order ([`key_order`]); a list with other keys merges atomically (decision log ID-1273).
+/// total order ([`key_order`]); a list with other keys merges atomically.
 fn merge_keyed(
     path: &[String],
     key: &str,
@@ -547,7 +547,7 @@ fn merge_keyed(
 }
 
 /// `set`: (o ∩ a ∩ b) ∪ (a ∖ o) ∪ (b ∖ o), in ours' order then theirs' additions, or sorted by the elements' compact
-/// JSON text (decision log ID-1268 ruling 2).
+/// JSON text.
 fn merge_set(
     order: MergeOrder,
     o: Option<&Value>,
@@ -583,7 +583,7 @@ fn merge_set(
 
 // ---- files ------------------------------------------------------------------------------------------------------
 
-/// Merges one project file three-way (doc 05 §11.2, §11.3; WP-S1.17 D2, D14, D16): the entry point of the merge driver.
+/// Merges one project file three-way (doc 05 §11.2, §11.3): the entry point of the merge driver.
 /// `path` is the file's project-relative path (`/` separators) and selects the handling: a record file merges per
 /// `($k, id)` ([`merge_record`]), a library document as one record, `manifest.json` by doc 05 §11.3; a file of any
 /// other class keeps ours with one conflict when both sides changed it. `chain` migrates an older side ([`MIGRATIONS`]
@@ -596,16 +596,15 @@ fn merge_set(
 /// refuse (D14: "the file stays loadable"). A conflict record nests its partial objects one level below its target,
 /// `$conflict` holds theirs' document one level below ours', and a file-level record holds a side's lines in one line,
 /// so a merge can pass a limit that neither side passes. Then ours is returned as it is with 1 conflict, and theirs
-/// survives only in git's index (stage 3): D14's "nothing of either side is lost" and MD-2 give way for this case
-/// (decision log ID-1273).
+/// survives only in git's index (stage 3): D14's "nothing of either side is lost" and MD-2 give way for this case.
 ///
 /// **The second case.** A library document that neither side reads while ours still parses (a newer `$v`, no `$k`, a
 /// failed step) is kept as ours is with 1 conflict: a file-level record after it would make it a syntax error, so
-/// theirs again survives only in git's stage 3 (decision log ID-1273, ID-1279).
+/// theirs again survives only in git's stage 3.
 ///
 /// **A side that is not UTF-8.** A record file or library document whose ours or theirs is not UTF-8 is a binary
 /// conflict with 1 conflict, its lines not held verbatim as strings: theirs is kept when ours is the side that is not
-/// UTF-8 and theirs reads, else ours as it is; the other side survives in git's index (decision log ID-1312).
+/// UTF-8 and theirs reads, else ours as it is; the other side survives in git's index.
 ///
 /// [`MIGRATIONS`]: crate::MIGRATIONS
 pub fn merge_file(
@@ -630,7 +629,7 @@ pub fn merge_file(
     }
     match classify(path) {
         // A side that is not UTF-8 has no lines to hold verbatim and is never held lossily: the file is a binary
-        // conflict, the side that reads kept and the other in git's index (doc 05 §11.2; decision log ID-1312).
+        // conflict, the side that reads kept and the other in git's index (doc 05 §11.2).
         class @ (PathClass::Records(_) | PathClass::LibDocument { .. })
             if std::str::from_utf8(ours.bytes).is_err() || std::str::from_utf8(theirs.bytes).is_err() =>
         {
@@ -660,7 +659,7 @@ pub fn merge_file(
 
 /// The migration of a side of `format` towards this reader's: none within the reader's major at or below it, the chain
 /// from an older major; `None` for a format newer than the reader's, one that does not parse, or one the chain does not
-/// reach (decision log ID-1268 ruling 6).
+/// reach.
 fn migration<'c>(format: &str, chain: &'c Migrations) -> Option<Migration<'c>> {
     let (side, reader) = (version::parse(format)?, version::parse(FORMAT)?);
     if side > reader {
@@ -687,7 +686,7 @@ fn newer_record(value: &Value) -> bool {
 
 /// Whether a side of the project file `path` holds a record this reader cannot merge: a record file with a line whose
 /// `$v` is above this reader's version of its kind, or a library document whose own `$v` is (MD-4; ADR-0011 amendment
-/// 2), which [`merge_file`] cannot read. The merge driver then merges nothing in that file (WP-S6.08 D20, C53-p1#2). A
+/// 2), which [`merge_file`] cannot read. The merge driver then merges nothing in that file. A
 /// record of a kind or with a member this reader does not know is not one, since the merge keeps every member of a
 /// record's value; nor is a line or a document that does not parse, nor any other file.
 pub fn holds_newer_records(path: &str, sides: [&[u8]; 3], limits: &Limits) -> bool {
@@ -773,7 +772,7 @@ fn line_of(value: &Value) -> (LineKey, String) {
 }
 
 /// The line of a merged record: the own line of a side whose record it is unchanged, so that an unknown kind or the
-/// members of a newer minor keep their order (doc 05 §10.3, FR-COL-010; decision log ID-1273), else its canonical line.
+/// members of a newer minor keep their order (doc 05 §10.3, FR-COL-010), else its canonical line.
 fn merged_line(merged: &Value, sides: [Option<&ReadRecord<'_>>; 2]) -> (LineKey, String) {
     match sides
         .into_iter()
@@ -841,7 +840,7 @@ fn within_file_limits(bytes: &[u8], limits: &Limits) -> bool {
         && bytes.iter().filter(|b| **b == b'\n').count() <= limits.max_lines_per_file
 }
 
-/// Ours as it is: the merged file would pass a reader limit (decision log ID-1273). Theirs survives in git's index.
+/// Ours as it is: the merged file would pass a reader limit. Theirs survives in git's index.
 fn ours_as_it_is(ours: MergeSide<'_>) -> FileMerge {
     FileMerge {
         bytes: ours.bytes.to_vec(),
@@ -930,7 +929,7 @@ fn merge_records_file(
                         };
                     }
                     // A conflict record deleted on one side (resolved) and changed on the other: the changed one is
-                    // kept, still unresolved, with no conflict of its own (C50-p4#2).
+                    // kept, still unresolved, with no conflict of its own.
                     (x, y, Some(_)) if key.0 == "conflict" && (x.is_none() || y.is_none()) => {
                         merged.conflict = None;
                     }
@@ -956,7 +955,7 @@ fn merge_records_file(
             }
             // Where the new conflict would replace a member the held one names with another value, the held record
             // stays as it is and the file is conflicted, so git keeps theirs in its index: nothing pending is dropped
-            // (D14; C50-p4#1).
+            // (D14).
             lines.extend(held.into_values().filter_map(|held| match (held.side, held.own) {
                 (Some((_, line)), None) => Some(line),
                 (Some((side, line)), Some(own)) => {
@@ -1070,7 +1069,7 @@ fn document_text(value: &Value) -> Vec<u8> {
 /// `value` with the top-level member `$conflict` holding `other` (D14). One conflict per document: a `$conflict` that
 /// `value` holds already is held at the end of the chain of `other`'s own `$conflict` members, unless that chain holds
 /// it; an `other` that is no document (the text of a side that does not read) is held at the end of that earlier chain
-/// instead (C50-p4#3). `None` when the chain ends in a value that is not a document.
+/// instead. `None` when the chain ends in a value that is not a document.
 fn with_conflict(mut value: Value, mut other: Value) -> Option<Vec<u8>> {
     if let Value::Object(members) = &mut value {
         let held = match members.remove("$conflict") {
@@ -1138,7 +1137,7 @@ fn merge_document(
         (None, Some(b)) => (with_conflict(b, text(ours)), 1),
         // Neither side reads: theirs is held by the file-level record when ours does not open either (D14's
         // `$conflict` needs a readable ours); an ours that opens stays as it is, since a line after it would make
-        // it a syntax error (decision log ID-1273).
+        // it a syntax error.
         (None, None) => {
             return match parse_document(ours.bytes, limits) {
                 Err(fault) if fault.kind.forces_read_only() => hold_theirs(path, ours, theirs, limits),
@@ -1197,7 +1196,7 @@ fn three_way<T: PartialEq + Clone>(
 
 /// `manifest.json` (doc 05 §11.3, D16): `generation = max(a, b) + 1`, `format` and `min_reader` the later, `generator`
 /// and `project` ours, `files` three-way per path with `sha256:pending` where both changed, `merged: true`, no `base`;
-/// when a side names a format newer than this reader's, ours as it is with 1 conflict (FT-1235).
+/// when a side names a format newer than this reader's, ours as it is with 1 conflict.
 fn merge_manifest(
     base: MergeSide<'_>,
     ours: MergeSide<'_>,
@@ -1210,7 +1209,7 @@ fn merge_manifest(
         read_manifest(ours.bytes, limits, chain),
         read_manifest(theirs.bytes, limits, chain),
     );
-    // FT-1235 (WP-S6.08 D4): a side of a format newer than this reader's is never merged, so the merge never stamps a
+    // A side of a format newer than this reader's is never merged, so the merge never stamps a
     // format this reader cannot read: ours as it is, not clean.
     if [&o, &a, &b]
         .into_iter()

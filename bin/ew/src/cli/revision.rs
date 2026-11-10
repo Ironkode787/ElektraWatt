@@ -15,7 +15,7 @@ pub(super) fn revision_subcommand(action: &RevisionAction) -> &'static str {
 }
 
 /// Today's date (UTC) from the system clock: the date of a sign-off. The CLI is the front-end that reads the clock;
-/// the command takes the date as a parameter (WP-S1.16 §10 rule 2).
+/// the command takes the date as a parameter (rule 2).
 pub(super) fn today() -> ew_api::catalog::Date {
     use ew_api::Clock as _;
     let seconds = ew_api::SystemClock
@@ -27,7 +27,7 @@ pub(super) fn today() -> ew_api::catalog::Date {
         .unwrap_or_else(|| ew_api::catalog::Date::new(1980, 1, 1).expect("a valid date"))
 }
 
-/// `ew revision approve|release|withdraw` (WP-S1.18 part 3, D10): the `HumanOnly` commands of the release workflow,
+/// `ew revision approve|release|withdraw`: the `HumanOnly` commands of the release workflow,
 /// each submitted from the confirmed origin only after the person types the revision label on a controlling terminal
 /// (doc 15 section 5.4, doc 17 section 2.3); without a terminal nothing is opened (exit 2).
 pub(super) fn run_revision(a: &RevisionArgs) -> i32 {
@@ -135,7 +135,7 @@ pub(super) fn run_revision_with(
         }
         (RevisionAction::Approve { .. }, None) => 2,
     };
-    // The release's housekeeping (FT-814): a run record that could not be removed, as the project opened or a run
+    // The release's housekeeping: a run record that could not be removed, as the project opened or a run
     // was settled.
     for trouble in session.take_release_troubles() {
         eprintln!("warning: {trouble}");
@@ -144,11 +144,11 @@ pub(super) fn run_revision_with(
     code
 }
 
-/// The warning after a save that wrote an unreleased format (FT-1154, WP-S6.08 D3).
+/// The warning after a save that wrote an unreleased format.
 pub(crate) const UNRELEASED_SAVE: &str = "warning: saved in a format that is not released yet; released versions of \
                                           ElektraWatt open this project read-only";
 
-/// After a save: [`UNRELEASED_SAVE`] on `errors` when the manifest it wrote is marked `unstable` (FT-1154); the exit
+/// After a save: [`UNRELEASED_SAVE`] on `errors` when the manifest it wrote is marked `unstable`; the exit
 /// code stays the save's.
 pub(crate) fn warn_unreleased(unstable: bool, errors: &mut dyn std::io::Write) {
     if unstable {
@@ -295,7 +295,7 @@ pub(super) fn release_exit(e: &ew_api::ReleaseError) -> i32 {
     }
 }
 
-/// `ew revision release <label>` (doc 05 section 14.1; WP-S1.18 part 4): an incomplete release of the label is settled
+/// `ew revision release <label>` (doc 05 section 14.1): an incomplete release of the label is settled
 /// first ([`settle_release`]); else the plan (the gate on the saved generation, with its blockers when it refuses; the
 /// archive; the git worktree and tag), the typed label, then [`ew_api::Session::release`], which saves.
 pub(super) fn release_revision(
@@ -541,7 +541,7 @@ pub(super) fn withdraw_revision(
 
 #[cfg(test)]
 mod tests {
-    //! `ew revision approve|release|withdraw` (WP-S1.18 part 3, D10) with the injected terminal: the runs work on a
+    //! `ew revision approve|release|withdraw` with the injected terminal: the runs work on a
     //! copy of Golden A in a fresh directory; nothing under `golden/` is opened for writing.
     use super::*;
 
@@ -694,7 +694,7 @@ mod tests {
         run_in(dir, action, terminal, answer, None)
     }
 
-    /// [`run`] with the state directory `state` (the release's run records, FT-814).
+    /// [`run`] with the state directory `state` (the release's run records).
     fn run_in(
         dir: &Path,
         action: RevisionAction,
@@ -932,7 +932,7 @@ mod tests {
         assert_eq!(code, 0, "{shown}");
 
         // B, a copy of A, on A's archive folder with the same state directory: `discard` is not offered, and typed it
-        // removes nothing (FT-814).
+        // removes nothing.
         let archived = std::fs::read(root_a.join("V2.0.ewarchive")).unwrap();
         let before_b = files(&b);
         let (code, shown) = run_in(&b, release_into("V2.0", &root_a), true, "discard\n", Some(&state));
@@ -1011,7 +1011,7 @@ mod tests {
     }
 
     /// Writes the run record a release of the project in `dir` leaves in `state` once it has written the archive of the
-    /// open revision in `root` (FT-814), as if that run had crashed right after; returns the record's file.
+    /// open revision in `root`, as if that run had crashed right after; returns the record's file.
     fn run_record_of(dir: &Path, root: &Path, state: &Path) -> PathBuf {
         let mut options = store();
         options.state_dir = Some(state.to_path_buf());

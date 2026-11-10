@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The colour science of the colour-vision test (WP-S2.08 D15, doc 16 §15.6), in house: sRGB to linear light and
+//! The colour science of the colour-vision test (doc 16 §15.6), in house: sRGB to linear light and
 //! back (IEC 61966-2-1), the dichromacy simulations of Machado, Oliveira and Fernandes 2009 at severity 1.0 in linear
 //! RGB, CIELAB against D65 and the CIEDE2000 colour difference (Sharma, Wu and Dalal 2005).
 

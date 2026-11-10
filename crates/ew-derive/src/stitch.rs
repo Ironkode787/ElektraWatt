@@ -31,7 +31,7 @@
 //! - **Shorts.** A FnDef link joins two instantiated CPs of the function when both indices exist. A
 //!   terminal function (contact kind `terminal`) whose FnDef declares no `PassThrough` link also joins all
 //!   its CPs of one level (doc 08 §6.2, "`Short` over all CPs of a level, shaft included"): a
-//!   template-origin terminal takes its CP indices from the part pattern (decision log ID-67, ID-108),
+//!   template-origin terminal takes its CP indices from the part pattern,
 //!   which the FnDef's link indices do not name. Levels stay separate. A terminal that declares a
 //!   pass-through (disconnect, fuse) joins the CPs of one level *and one side*; the pass-through pair links
 //!   the sides (review decision D3). CPs without a level, or without a side on such a terminal, join nothing.
@@ -47,7 +47,7 @@
 //!   is `Pe` or `Pen`; there is no fallback to another CP. A rail-bonded terminal without a PE CP joins
 //!   nothing (EW-TERM-005); one without a location joins the only own location (or the implicit main location,
 //!   [`RailLocation::Main`], when there is none), and is skipped (EW-POT-008) only when the project has two or
-//!   more own locations (amended by cycle 33).
+//!   more own locations.
 //! - **Cores** join as connections (net level); there is no separate conductor edge. CI-05 makes two
 //!   connections on one conductor parts of one physical wire, which their IP pair joins already.
 //!

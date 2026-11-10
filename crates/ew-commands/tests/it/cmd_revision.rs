@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Revisions (FT-165, doc 03 §18; WP-S1.18 parts 1, 3 and 4): `revision.create`, `revision.set_author`,
+//! Revisions (doc 03 §18): `revision.create`, `revision.set_author`,
 //! `revision.withdraw`, `revision.approve`, `revision.release`, `fields.set` on the revision kind, `edit.delete` of a revision, the automatic open revision (normaliser
 //! `revision_ensure_open`) and the open revision's notes on deleted pages; released and withdrawn revisions are
 //! immutable (FR-REV-009).
@@ -149,7 +149,7 @@ fn create_refuses_a_second_open_revision() {
     assert!(e.execute(&create("V0.9", NewRevisionState::Released)).is_ok());
 }
 
-/// FT-1396 (ID-1415): the refusals name a revision by its label and a page by its folio, never by an ID.
+/// The refusals name a revision by its label and a page by its folio, never by an ID.
 #[test]
 fn create_refusals_name_revisions_and_pages_in_words() {
     let (mut e, _, _) = with_history();
@@ -250,7 +250,7 @@ fn create_parameters_are_closed() {
     }
 }
 
-/// Review ruling R4 (cycle 17), on the typed member since WP-S1.18 part 1 (FT-302): once a revision has a release
+/// Review ruling R4, on the typed member since WP-S1.18 part 1: once a revision has a release
 /// record (written by `revision.release` later), a historic released revision is refused; an open one is still
 /// accepted.
 #[test]
@@ -376,7 +376,7 @@ fn the_open_revision_can_be_deleted_a_released_one_cannot() {
     assert!(revision(&e, v2).is_open());
 }
 
-/// RL-6 (FT-303, WP-S1.18 D5): deleting a page drops the open revision's note on it in the same transaction, by
+/// RL-6: deleting a page drops the open revision's note on it in the same transaction, by
 /// `edit.delete` and by `page.delete`; a released revision's note on it stays (history, not a link); undo restores
 /// the note with the page.
 #[test]
@@ -586,7 +586,7 @@ fn fields_set_label_prevents_a_label_out_of_format_or_order() {
     let before = lines(e.model());
     let (rule, finding) = prevented(e.execute(&set(&[v2], "label", json!("2"))).unwrap_err());
     assert_eq!(rule, LABEL_ORDER_RULE);
-    // FT-909 (ID-1108, as above)
+    // FT-909 (as above)
     assert_eq!(
         finding,
         "the label 2 is not in the project's revision label format V{major}.{minor}; give a label in that format; the \
@@ -724,7 +724,7 @@ fn the_automatic_revision_chains_a_taken_id_and_skips_a_newer_format() {
     );
 }
 
-/// RL-4 (D4, FT-402): `fields.set` refuses `author` and `checker` from every origin with D4's text; an open revision
+/// RL-4 (D4): `fields.set` refuses `author` and `checker` from every origin with D4's text; an open revision
 /// takes no checker when created.
 #[test]
 fn the_roles_are_not_set_by_fields_set() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! ID-1477 (1): `fields.set` of a page's connection grid is refused in words while the page holds any item, which
+//! `fields.set` of a page's connection grid is refused in words while the page holds any item, which
 //! would stand off the new grid, and nothing changes; the same grid again and an empty page's grid are set.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]

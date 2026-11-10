@@ -41,7 +41,7 @@ pub struct Counters {
     /// its value for the request; the oracle does not compare volatile values.
     pub volatile: u64,
     /// Memos dropped by the collection of orphans when the store advanced: no memo read them any more and
-    /// the host did not read them at the closing revision (a deleted key's memos, review cycle 10, finding 3).
+    /// the host did not read them at the closing revision (a deleted key's memos, review, finding 3).
     pub collected: u64,
 }
 

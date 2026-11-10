@@ -16,7 +16,7 @@
 //! (kind, member, value), else one `fields.set_many` with one entry per (kind, member, value) in the order of first
 //! appearance ([`compile`]).
 //!
-//! **Texts** (ID-1174 ruling 3): every text an item here returns is a text key, checked by `text_key!`
+//! **Texts**: every text an item here returns is a text key, checked by `text_key!`
 //! ([`cell_reason_key`], [`GestureCell::reason_text`], [`GestureKind::word_key`], [`rows_word_key`]); the view model
 //! gives the texts under the old names.
 
@@ -27,12 +27,12 @@ use serde_json::{Value, json};
 use super::navigators::{NavKind, NavNode, NavRole, NavTable, Uuid};
 use super::{EditRoute, FieldType, StripCell, field_catalogue};
 
-/// The pseudo-route kind of a strip-editor cell (WP-S2.07 §6.3): its cells compile through `Session::strip_edit`, not
+/// The pseudo-route kind of a strip-editor cell: its cells compile through `Session::strip_edit`, not
 /// through `parse_field_input`. The path is `group`, `bridge_part:<strip>:<bridge>` (one key per bridge group, so that
 /// two rows of one group setting different parts are a conflict, "same bridge as row `<n>`") or `accessory_part:<index>`.
 pub const STRIP_ROUTE: &str = "@strip";
 
-/// The route of a strip-editor cell of `node` in `column` (WP-S2.07 §6.2): Group and Bridge part on a terminal row, the
+/// The route of a strip-editor cell of `node` in `column`: Group and Bridge part on a terminal row, the
 /// accessory's Part on an accessory row; `None` for every other cell.
 pub fn strip_route(table: &NavTable, node: &NavNode, column: usize) -> Option<(String, String)> {
     if table.kind != NavKind::Strips {
@@ -79,7 +79,7 @@ fn cell_of<'n>(table: &NavTable, node: &'n NavNode, key: &str) -> &'n str {
         .map_or("", String::as_str)
 }
 
-/// The strip editor's read-only reasons (WP-S2.07 §6.2), as text keys: `Some(None)` for an editable strip-editor cell,
+/// The strip editor's read-only reasons, as text keys: `Some(None)` for an editable strip-editor cell,
 /// `Some(reason)` for an accessory row's other cells, the Pos column and a Bridge part cell of a terminal without a
 /// bridge; `None` for every other cell (the rules of §8.2 apply).
 fn strip_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<Option<&'static str>> {
@@ -111,9 +111,9 @@ pub fn row_targets(node: &NavNode, route_kind: &str) -> Vec<Uuid> {
     let picked: Vec<Uuid> = match route_kind {
         "conductor" if node.role == NavRole::Conductor => node.records.iter().skip(1).copied().collect(),
         "conductor" => Vec::new(),
-        // A cable's length is edited on its cable row, not on a core row (WP-S2.07 §7).
+        // A cable's length is edited on its cable row, not on a core row.
         "device" if node.role == NavRole::Conductor => Vec::new(),
-        // A PLC channel row (WP-S2.07 §8): the channel, then its module device (the Slot column's record).
+        // A PLC channel row: the channel, then its module device (the Slot column's record).
         "channel" if node.role == NavRole::Channel => node.records.iter().take(1).copied().collect(),
         "device" if node.role == NavRole::Channel => node.records.iter().skip(1).take(1).copied().collect(),
         "potential_def"
@@ -130,9 +130,9 @@ pub fn row_targets(node: &NavNode, route_kind: &str) -> Vec<Uuid> {
     picked.into_iter().filter(|u| seen.insert(*u)).collect()
 }
 
-/// Where a cell of a potential known only at connection points defines it (the G-PP triage's row 8, amending ID-752):
+/// Where a cell of a potential known only at connection points defines it (the G-PP triage's row 8, amending):
 /// the CP (`NavNode::define_at`, the row's minimum member CP). The definition's name is the one typed in the row's Name
-/// cell (WP-S1.16 D4, FT-577), never the name on show.
+/// cell, never the name on show.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DefineAt {
     /// The function of the CP.
@@ -142,7 +142,7 @@ pub struct DefineAt {
 }
 
 /// The paths of a potential definition that a potential without one can be given in table mode: Name, Type and
-/// Voltage (WP-S1.16 D4: the Name cell defines the row; Type and Voltage only with a name in the same gesture).
+/// Voltage (the Name cell defines the row; Type and Voltage only with a name in the same gesture).
 pub const DEFINING_PATHS: [&str; 3] = ["name", "ptype", "voltage"];
 
 /// Where a cell of route (`kind`, `path`) on `node` defines the row's potential: a Potentials row of a potential
@@ -351,7 +351,7 @@ impl GestureCell {
     /// arguments, or the reason an invalid value carries (the view model's `reason` gives the text).
     pub fn reason_text(&self) -> Option<CellText> {
         if let Some(n) = self.conflict {
-            // WP-S2.07 §6.3: two rows of one bridge group with different parts.
+            // Two rows of one bridge group with different parts.
             let key = if self
                 .route
                 .as_ref()
@@ -382,7 +382,7 @@ impl GestureCell {
     }
 }
 
-/// A text a moved item hands a front-end (ID-1174 ruling 3: text keys, never English).
+/// A text a moved item hands a front-end (ruling 3: text keys, never English).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CellText {
     /// A text key and its arguments, in its placeholders' order (`{0}`, …).
@@ -480,7 +480,7 @@ pub struct Compiled {
 }
 
 /// What composing a leaf needs about one target: the stored value of its settable member, and the project's source
-/// language (a language object's text is replaced in the source language, WP-S2.05 §6.5).
+/// language (a language object's text is replaced in the source language).
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct MemberBase {
     /// The member's stored value (`None`: absent).
@@ -536,7 +536,7 @@ pub fn mark_conflicts(gesture: &mut Gesture) {
     for cell in &mut gesture.cells {
         cell.define_clash = live(cell) && cell.define.is_some() && (define_rows.len() > 1 || others);
     }
-    // WP-S1.16 D4 (FT-577): a potential is defined under a name the user types; Type, Voltage or `env.ac_dc` typed on
+    // A potential is defined under a name the user types; Type, Voltage or `env.ac_dc` typed on
     // a row known only at its CPs, without a Name in the same gesture, refuses ("Name the potential first").
     let sets = |c: &GestureCell| {
         live(c) && c.define.is_some() && matches!(&c.value, CellValue::Valid(v) if !v.is_null())
@@ -606,7 +606,7 @@ pub fn compile(gesture: &Gesture, base: &mut dyn FnMut(&str, Uuid, &str) -> Memb
         else {
             continue;
         };
-        // A strip-editor cell compiles through `Session::strip_edit` (WP-S2.07 §6.3), in the shell.
+        // A strip-editor cell compiles through `Session::strip_edit`, in the shell.
         if kind == STRIP_ROUTE {
             continue;
         }
@@ -701,7 +701,7 @@ pub fn compile(gesture: &Gesture, base: &mut dyn FnMut(&str, Uuid, &str) -> Memb
     })
 }
 
-/// The `potential.define` of the defining cells of one row (the G-PP triage's row 8; WP-S1.16 D4): at the row's CP,
+/// The `potential.define` of the defining cells of one row (the G-PP triage's row 8): at the row's CP,
 /// with the name typed in the row's Name cell and the Type, Voltage and `env.ac_dc` the cells set; `None` when no
 /// cell names it (a clear, or Type and Voltage alone, which [`mark_conflicts`] refuses).
 fn compile_define(cells: &[&GestureCell]) -> Option<Compiled> {

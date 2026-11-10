@@ -3,7 +3,7 @@
 
 //! Tests of the command line as a whole: parsing, the refusals, the commands that share helpers.
 
-/// FT-877, ruling 1 of the cycle-42 FT batch: "error: <dir>: the project opens read-only: <reason>; nothing was
+/// "error: <dir>: the project opens read-only: <reason>; nothing was
 /// written", each reason in the window's words; text from the system is printed escaped. The held lock is
 /// `tests/cli.rs`'s `recover_and_apply_refuse_a_held_lock_with_the_same_text`.
 #[test]
@@ -43,7 +43,7 @@ fn a_read_only_refusal_words_each_reason() {
     }
 }
 
-/// FT-943: the Unicode bidirectional controls print escaped, like the control characters; other text is kept.
+/// The Unicode bidirectional controls print escaped, like the control characters; other text is kept.
 #[test]
 fn printable_escapes_the_bidirectional_controls() {
     assert_eq!(super::printable("a\u{202E}b"), "a\\u{202e}b");
@@ -103,7 +103,7 @@ fn invalid(value: &str, flag: &str, message: &str) -> Result<Command, String> {
     ))
 }
 
-/// WP-S3.07 D9: `ew print` lowers its flags, the platform's default adapter resolved (`lp` on Linux, `windows` on
+/// `ew print` lowers its flags, the platform's default adapter resolved (`lp` on Linux, `windows` on
 /// Windows, else the viewer; ruling 4 of ID-1218); `--out` excludes `--via` and `--printer`; `--sections` reaches
 /// `export png` too.
 #[test]
@@ -262,7 +262,7 @@ fn help_and_version_are_clap_s() {
     );
 }
 
-/// C43-p4#2: a positional that takes hyphen values (`query`, `lib search`, `lib create`, `lib import parts`) takes
+/// A positional that takes hyphen values (`query`, `lib search`, `lib create`, `lib import parts`) takes
 /// a word starting with one `-`, but refuses one starting with `--` as a mistyped option (exit 2), as the old
 /// parser did.
 #[test]
@@ -463,7 +463,7 @@ fn the_grammar_of_values_repeats_and_the_option_end() {
             "ew import csv --out <dir> --strict <tables-dir>"
         )
     );
-    // The refused `--lang` takes no flag as its value: `--lang --out o` is still the `--lang` refusal (C43-p4#5).
+    // The refused `--lang` takes no flag as its value: `--lang --out o` is still the `--lang` refusal.
     for args in [
         &["export", "pdf", "--out", "o", "--lang", "de"][..],
         &["export", "pdf", "--lang", "--out", "o"],
@@ -790,7 +790,7 @@ fn sql_dump_and_schema_forms() {
 
 #[test]
 fn sql_errors() {
-    // WP-S3.08 D7 (FT-218): `--format xlsx` writes a file, and the CSV options apply to CSV only.
+    // `--format xlsx` writes a file, and the CSV options apply to CSV only.
     assert_eq!(
         p(&["sql", "SELECT 1", "--format", "xlsx"]),
         usage_error(
@@ -901,7 +901,7 @@ fn import_parts_errors() {
     assert!(p(&["import", "parts", "a", "--project"]).is_err());
 }
 
-/// WP-S1.19 part 4: `import parts --map` and `lib import parts`.
+/// `import parts --map` and `lib import parts`.
 #[test]
 fn mapped_parts_imports() {
     let Ok(Command::ImportParts(a)) = p(&[
@@ -1067,7 +1067,7 @@ fn export_errors() {
     assert!(p(&["export", "report"]).is_err());
     assert!(p(&["export", "report", "--block", "908", "--format", "pdf"]).is_err());
     assert!(p(&["export", "report", "--block", "908", "--format", "svg"]).is_err());
-    // WP-S3.08 D6, D7: `--format xlsx` needs `--out` and takes no CSV option; the value refusals name the choices.
+    // `--format xlsx` needs `--out` and takes no CSV option; the value refusals name the choices.
     for what in ["bom", "cables", "wires", "terminals"] {
         let usage = format!("ew export {what} [OPTIONS] [project-dir]");
         assert_eq!(
@@ -1153,7 +1153,7 @@ fn export_errors() {
     }
 }
 
-/// WP-S3.08 D6, D7: `--format xlsx` with `--out`, `--preset`, `--bom` and `--line-end` lower to the row format;
+/// `--format xlsx` with `--out`, `--preset`, `--bom` and `--line-end` lower to the row format;
 /// the default is the golden dialect.
 #[test]
 fn row_export_formats() {
@@ -1252,7 +1252,7 @@ fn row_export_forms() {
     );
 }
 
-/// WP-S3.06 D4 (the orchestrator's ruling 4 of cycle 42): `export report --kind <kind>` is CSV only and excludes
+/// WP-S3.06 D4 (the orchestrator's): `export report --kind <kind>` is CSV only and excludes
 /// `--block`; each refusal is the report layer's text, whole, given before the project opens.
 #[test]
 fn report_kind_forms_and_refusals() {
@@ -1276,7 +1276,7 @@ fn report_kind_forms_and_refusals() {
         )
     );
     let report = "ew export report <--block <block>|--kind <kind>> [project-dir]";
-    // WP-S3.06 D4's refusal, before the pages refusal (C43-p4#4).
+    // WP-S3.06 D4's refusal, before the pages refusal.
     for args in [
         &["export", "report", "--kind", "device_list", "--block", "910"][..],
         &[

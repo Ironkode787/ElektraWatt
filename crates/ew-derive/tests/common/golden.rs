@@ -10,7 +10,7 @@
 //! assertion tables can name pages, devices, representations and parts. Positions are test inputs: every
 //! main representation sits so that its anchor lands in the cell of doc 20 §6.1 "Main rep.".
 //!
-//! The folios the report engine generates (2, 901, 903 to 911; WP-S3.03) are not part of the fixture.
+//! The folios the report engine generates are not part of the fixture.
 //! Section dividers (100, 200, 900) are not records either: the page order derives them from the sections.
 //! The fixture is a subset of Golden A: -X1031 has 5 of its 20 terminals, -X1032 3 of its 5, -202U1 is the
 //! only device of folio 202, -202U2 and -202U3 are missing and only the valves of -201U3 and -201U4 exist.

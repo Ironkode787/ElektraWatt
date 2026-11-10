@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The pattern fill's template language (WP-S2.06 part 3, §8.5; D12): a closed grammar, parsed once and rendered per
+//! The pattern fill's template language (D12): a closed grammar, parsed once and rendered per
 //! marked row.
 //!
 //! ```text

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 7 in the window's model (XW-1 to XW-4, XW-6, XW-7; D24, D25, decision log ID-1284): the external
+//! WP-S1.17 part 7 in the window's model (XW-1 to XW-4, XW-6, XW-7; D24, D25): the external
 //! change's toast and collision dialog, the read-only reload, the cloud banner, Export and Open .ewz, the upgrade
 //! dialog and the merge driver's status. The external change is a colleague's save made by a session on a copy of the
 //! project, its changed files then copied into the live folder and `manifest.json` last. Golden A is only copied.
@@ -168,7 +168,7 @@ fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     for w in ["chosen", "mine", "theirs"] {
         assert!(reach_words(Reach::Collab).contains(&w));
     }
-    // C49-p9#1: the next poll keeps the dialog and the choice made in it.
+    // The next poll keeps the dialog and the choice made in it.
     done(&mut s, "external.choose", json!({"row": 1, "take": "theirs"}));
     done(&mut s, "project.check_disk", json!({}));
     assert!(describe(&s).contains(
@@ -229,7 +229,7 @@ fn w20_overrides(dir: &Path) -> Value {
     panic!("W20 is on no page");
 }
 
-/// C49-p9#2: a record the colleague deleted while this window changed it is one row for the whole record, each side
+/// A record the colleague deleted while this window changed it is one row for the whole record, each side
 /// in words: present at the base, changed here, deleted on disk.
 #[test]
 fn xw2b_a_deleted_record_shows_each_side_in_words() {
@@ -435,7 +435,7 @@ fn xw6_export_and_open_ewz_and_the_upgrade_dialog() {
     assert!(s.dialog().is_none(), "asked once");
 }
 
-/// FT-1154 (WP-S6.08 D3, RL-2): with a released list that lacks this build's format, every save that writes marks the
+/// FT-1154 (RL-2): with a released list that lacks this build's format, every save that writes marks the
 /// manifest `unstable` and shows S1 as its toast; with the format released, neither.
 #[test]
 fn a_save_in_an_unreleased_format_says_so_every_time() {
@@ -463,7 +463,7 @@ fn a_save_in_an_unreleased_format_says_so_every_time() {
     }
 }
 
-/// FT-1489 (WP-S6.08 D19, RL-2): with a released list that lacks this build's format, Save As, a new project and the
+/// FT-1489 (RL-2): with a released list that lacks this build's format, Save As, a new project and the
 /// wizard's basic project each write a manifest marked `unstable` and show S1 as their toast; with the format released,
 /// none does.
 #[test]
@@ -554,14 +554,14 @@ fn xw7_the_driver_badge_appears_without_the_configuration_and_goes_after_setup()
     };
     assert_eq!(badge(&s).as_deref(), Some("Merge driver not configured"));
     done(&mut s, "git.setup", json!({}));
-    // C49-p9#6: the question names the project folder it writes into.
+    // The question names the project folder it writes into.
     assert_eq!(
         s.dialog(),
         Some(&Dialog::ConfirmGitSetup {
             folder: "J-E-2416.ew".to_owned()
         })
     );
-    // C49-p9#5: from an AppImage, git runs the AppImage with `ew` first, never the program's path in its mount.
+    // From an AppImage, git runs the AppImage with `ew` first, never the program's path in its mount.
     s.set_ew_exe_for_tests(Some(PathBuf::from(
         "/tmp/.mount_ElektrAbc/usr/lib/elektrawatt/ew",
     )));
@@ -617,7 +617,7 @@ fn messages_of(s: &mut ShellModel, rule: &str) -> Vec<String> {
         .collect()
 }
 
-/// C49-p10#1 (D29): the Messages pane lists EW-CORE-013 for a merged copy with a duplicated tag, on open and after a
+/// The Messages pane lists EW-CORE-013 for a merged copy with a duplicated tag, on open and after a
 /// pull of that merge as an external change.
 #[test]
 fn xw8_the_messages_pane_lists_ew_core_013_after_a_merge() {
@@ -647,7 +647,7 @@ fn xw8_the_messages_pane_lists_ew_core_013_after_a_merge() {
     assert_eq!(messages_of(&mut s, "EW-CORE-013"), expected, "after the pull");
 }
 
-/// C49-p10#3: a held change whose disk goes back to the baseline (a pull undone) closes its dialog and banner.
+/// A held change whose disk goes back to the baseline (a pull undone) closes its dialog and banner.
 #[test]
 fn xw2c_the_collision_dialog_closes_when_the_disk_returns() {
     let tmp = Tmp::new("xw2c");
@@ -685,7 +685,7 @@ fn xw2c_the_collision_dialog_closes_when_the_disk_returns() {
     assert_eq!(s.banner(), None);
 }
 
-/// C49-p10#5: a second external change while one is held rebuilds the dialog from the new collisions, mine chosen
+/// A second external change while one is held rebuilds the dialog from the new collisions, mine chosen
 /// again, and nothing is lost: All theirs takes the second change's value, the local edit of another field stays.
 #[test]
 fn xw2d_a_second_change_while_held_rebuilds_the_dialog() {
@@ -846,7 +846,7 @@ fn xw2g_a_mixed_choice_counts_what_came_from_disk() {
     );
 }
 
-/// C50-p1#4: an external change that equals the session's edit (the same colour set on both sides) takes nothing and
+/// An external change that equals the session's edit (the same colour set on both sides) takes nothing and
 /// keeps nothing: its toast says so, never "applied: 0 records".
 #[test]
 fn xw2h_the_same_edit_on_both_sides_takes_nothing() {
@@ -863,7 +863,7 @@ fn xw2h_the_same_edit_on_both_sides_takes_nothing() {
             "value": ["BU"]}}),
     );
     colleague(&tmp, &dir, &[colour(&w20, json!(["BU"]))]);
-    // FT-1348: the toast in Dutch.
+    // The toast in Dutch.
     done(&mut s, "view.language", json!({"value": "nl"}));
     done(&mut s, "project.check_disk", json!({}));
     assert!(s.dialog().is_none(), "no collision: nothing to choose");

@@ -401,8 +401,8 @@ pub(crate) fn all_keys(model: &Model) -> BTreeSet<AnyKey> {
 /// - a representation's page decides the file of the interruption-point functions it represents;
 /// - a junction's page decides the file of page-less connections, definitions and bonds at it;
 /// - an enclosure's space decides the layout file of its surfaces, a surface's enclosure that of its carriers
-///   and of the placements on the surface itself, and a carrier's surface that of its placements (WP-S4.01);
-/// - a record's file decides the file of its conflict record, which shares its ID (WP-S1.17 D17).
+///   and of the placements on the surface itself, and a carrier's surface that of its placements;
+/// - a record's file decides the file of its conflict record, which shares its ID.
 pub(crate) fn follow_closure(keys: &BTreeSet<AnyKey>, base: &Model, next: &Model) -> BTreeSet<AnyKey> {
     let mut closure = BTreeSet::new();
     let mut work: Vec<AnyKey> = keys.iter().copied().collect();
@@ -449,7 +449,7 @@ pub(crate) fn follow_closure(keys: &BTreeSet<AnyKey>, base: &Model, next: &Model
             }
             _ => {}
         }
-        // A record's conflict lives in the record's file (WP-S1.17 D17), and follows it.
+        // A record's conflict lives in the record's file, and follows it.
         let conflict = (Kind::Conflict, key.1);
         if key.0 != Kind::Conflict
             && !closure.contains(&conflict)

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-436: real exporters' raster files through `decode_image` and the PDF writer.
+//! Real exporters' raster files through `decode_image` and the PDF writer.
 
 // EW_RASTER_PDF_DIR names a folder that the test writes each PDF to for veraPDF; it never changes the compared bytes.
 #![allow(clippy::disallowed_methods)]
@@ -98,7 +98,7 @@ struct Ruled {
     cmyk: bool,
 }
 
-/// The real-exporter raster corpus (FT-436), in the table order of `SOURCES.md`.
+/// The real-exporter raster corpus, in the table order of `SOURCES.md`.
 const CORPUS: &[(&str, Ruled)] = &[
     (
         "jpeg-progressive-gimp-icc.jpg",

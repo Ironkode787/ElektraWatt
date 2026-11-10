@@ -7,7 +7,7 @@
 //! - **`potential_name(p)`** (doc 08 §3.5): the name of the first definition in rank order ([`ranked_defs`]: natural
 //!   order of the name, the defining point's printed text, the ID; WP-S1.16 D9) (another name is noted as EW-POT-017); else the first non-external source interruption point in page order (page position, anchor
 //!   row, anchor column, ID); else the first external source interruption point in that order (review decision
-//!   D6); else (doc 08 §3.5 step 2b, WP-S1.16 D1) the supply's name `<root>/<tag>:<designation>` when the
+//!   D6); else (doc 08 §3.5 step 2b) the supply's name `<root>/<tag>:<designation>` when the
 //!   potential is entered through the pass-through pair of a function f (its flow `upstream`): `<root>` is the
 //!   name of the nearest upstream potential named by a definition or a source point (the walk passes potentials
 //!   named by this step), `<tag>` f's displayed tag without its leading aspect sign and `<designation>` the
@@ -18,7 +18,7 @@
 //!   order. The family also pushes the EW-POT-001 notes of the potential's attributes, which name it.
 //! - **`potential_attrs(p)`** (doc 03 §9.4): type, voltage, environment and class from the first definition in
 //!   rank order ([`ranked_defs`]) that sets each; the conflict texts name definitions and CPs by their printed text,
-//!   in printed order, never by ID (FT-587); the type else from the member CPs' `potential_role`; roles that disagree are
+//!   in printed order, never by ID; the type else from the member CPs' `potential_role`; roles that disagree are
 //!   ranked by the fixed role order of `role_rank` (PE, PEN, FE, N, L1, L2, L3, L, L+, L−, M, signal,
 //!   undefined), never by the CP order, which follows the random IDs of a new project.
 //!   Nothing merges silently (doc 08 §3.6): every later definition whose value differs, and every member role
@@ -188,7 +188,7 @@ impl Query for PotentialNameOf {
     }
 }
 
-/// Step 2b of doc 08 §3.5 (WP-S1.16 D1): `<root>/<tag without aspect sign>:<designation>` of the pass-through
+/// Step 2b of doc 08 §3.5: `<root>/<tag without aspect sign>:<designation>` of the pass-through
 /// pair that enters `key` from upstream (its flow entry's `upstream`), the designation the pair's CP on this side.
 /// `<root>` is the name of the nearest upstream potential named by a definition or a source point; potentials
 /// named by this step are walked through. `None` (step 3 applies) when the potential has no upstream, when the
@@ -226,7 +226,7 @@ fn supply_name(q: &Q, key: PotentialId) -> Option<PotentialName> {
 /// A definition and its record, as [`ranked_defs`] lists them.
 pub type RankedDef = (Id<PotentialDef>, Arc<PotentialDef>);
 
-/// The definitions of a potential in their rank (doc 08 §3.6, ID-175; WP-S1.16 D9, FT-587): natural order of the
+/// The definitions of a potential in their rank (doc 08 §3.6): natural order of the
 /// name, then the defining point's printed text (`<tag>:<designation>` of its CP, a junction's after every CP's), then
 /// the ID. The first applies its values and names the potential; the ID decides only between two definitions that
 /// print alike, so the applied values and the texts do not follow the random IDs of a new project. A potential with
@@ -266,7 +266,7 @@ fn def_point_text(q: &Q, def: &PotentialDef) -> Option<String> {
 }
 
 /// A definition as a message prints it: `definition <name> at <tag>:<designation>` (`definition <name>` at a junction),
-/// never its ID (FT-587).
+/// never its ID.
 pub fn def_text(q: &Q, def: &PotentialDef) -> String {
     match def_point_text(q, def) {
         Some(at) => format!("definition {} at {at}", def.name.as_str()),
@@ -294,7 +294,7 @@ pub fn cp_text(q: &Q, cp: CpRef) -> String {
 /// The fallback name `<tag>:<designation>` of the first member CP (not an IP) in (page position, row, column) order
 /// of its function's first representation; ties go to the name in natural order (then bytes) and only then to the CP
 /// ID, so two CPs of one anchor cell (a terminal's two sides) name the potential alike in every fresh copy of a
-/// project (WP-S6.13 §6 item 3: an ID of a new project is random).
+/// project (an ID of a new project is random).
 fn fallback_name(q: &Q, p: &Potential) -> PotentialName {
     let is_ip = |f: Id<Function>| p.ips.binary_search(&f).is_ok();
     let order = q.get::<DrawnPageOrder>(());
@@ -407,7 +407,7 @@ fn attrs_of(q: &Q, p: &Potential) -> PotentialAttrsV {
             .filter(|(_, role)| !role_compatible(&t.value, role))
             .map(|(cp, role)| (cp_text(q, cp), role))
             .collect();
-        // The printed order, never the CP (ID) order (FT-587).
+        // The printed order, never the CP (ID) order.
         contradicting.sort_by(|(a, ra), (b, rb)| {
             natural_cmp(a, b)
                 .then_with(|| a.cmp(b))

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.07 part 3 in the window (D10, ruling 4 of ID-1180): the print pre-dialog's texts at the floor and at 1920,
+//! WP-S3.07 part 3 in the window (D10): the print pre-dialog's texts at the floor and at 1920,
 //! each inside the dialog; the progress line while the set builds and Cancel ending it; the empty state with both
 //! print buttons disabled; Print… on a platform without printing says so in one toast (ruling 3's default). Every
 //! settle runs the accessible-name walker.
@@ -181,7 +181,7 @@ fn shapes(h: &Harness<'_, App>) -> Vec<(egui::Shape, egui::Rect)> {
     out
 }
 
-/// FT-1124 (ID-1225): a Pages text the parser refuses shows one sentence in words, once, under the field, in doc 16a
+/// A Pages text the parser refuses shows one sentence in words, once, under the field, in doc 16a
 /// §6.1's Error state (the field's boundary in `color.error`, the error icon before the sentence); the preview shows
 /// the empty state.
 #[test]
@@ -235,7 +235,7 @@ fn ft1124_a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1125 (ID-1225; doc 16a §6.12): the pre-dialog's first focus is its Primary, Print…, once the set is built.
+/// FT-1125 (doc 16a §6.12): the pre-dialog's first focus is its Primary, Print…, once the set is built.
 #[test]
 fn ft1125_the_first_focus_is_print() {
     let tmp = Tmp::new();
@@ -284,7 +284,7 @@ fn ft1198_the_first_focus_shows_its_focus_ring() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1126 (ID-1225): with paper A3 and no fit the preview draws the paper as a sheet: its whole edge (no clip cuts
+/// With paper A3 and no fit the preview draws the paper as a sheet: its whole edge (no clip cuts
 /// it) in `color.border.control`, which meets the non-text contrast on the dialog's surface (the theme's pairs).
 #[test]
 fn ft1126_the_preview_draws_the_papers_whole_edge() {
@@ -311,7 +311,7 @@ fn ft1126_the_preview_draws_the_papers_whole_edge() {
         .collect();
     assert_eq!(sheets.len(), 1, "one paper edge: {sheets:?}");
     let (sheet, clip) = sheets[0];
-    // ID-1231: the edge with its anti-aliasing feather, which the old clip (the paper grown by 1 point) cut.
+    // The edge with its anti-aliasing feather, which the old clip (the paper grown by 1 point) cut.
     let feather = h.ctx.tessellation_options(|o| o.feathering_size_in_pixels) / h.ctx.pixels_per_point();
     assert!(
         clip.contains_rect(sheet.expand(t.border_width + feather)),
@@ -366,10 +366,10 @@ fn pw4_the_visual_driver_paints_the_three_states_at_both_sizes() {
         );
         frame(&mut d, "built");
         assert!(d.shell_mut().print_set().is_some(), "built at {size}");
-        // FT-1126 (ID-1225): A3 with no fit, the paper's edge whole.
+        // A3 with no fit, the paper's edge whole.
         act(&mut d, "print.set", json!({"paper": "A3", "fit": false}));
         frame(&mut d, "a3");
-        // FT-1124 (ID-1225): a refused Pages text, once, under the field.
+        // A refused Pages text, once, under the field.
         act(
             &mut d,
             "print.set",

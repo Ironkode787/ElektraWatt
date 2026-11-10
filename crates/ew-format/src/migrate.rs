@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The migration chain (doc 05 §10.2; ADR-0011 decision 3; WP-S1.17 D10, decision log ID-1221): pure steps on
+//! The migration chain (doc 05 §10.2; ADR-0011 decision 3): pure steps on
 //! `serde_json::Value`, run between a line's parse and its typed reading, only when a project of an older format opens
 //! ([`Access::Migrate`](crate::Access::Migrate)).
 //!
@@ -17,7 +17,7 @@
 //! the line ([`MigrationError`]). A record whose `$v` is below its kind's with no step, and a format with no step
 //! towards the reader's, are errors too: the open is refused, never a line quarantined.
 //!
-//! [`steward_problems`] is the steward's check of D12 (decision log ID-1221 ruling 8): a released list, the format a
+//! [`steward_problems`] is the steward's check of D12: a released list, the format a
 //! build writes, its chain and its fixture corpus.
 
 use std::fmt;
@@ -67,7 +67,7 @@ pub struct Migrations {
     pub formats: &'static [FormatStep],
 }
 
-/// The shipped chain: empty, since 0.1 is the first format and no file can need a step yet (WP-S1.17 D10).
+/// The shipped chain: empty, since 0.1 is the first format and no file can need a step yet.
 pub static MIGRATIONS: Migrations = Migrations {
     kinds: &[],
     formats: &[],
@@ -258,7 +258,7 @@ impl Migration<'_> {
     }
 }
 
-/// A problem the steward's check finds (WP-S1.17 D12, decision log ID-1221 ruling 8).
+/// A problem the steward's check finds.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum StewardProblem {
     /// The format a build writes is not released, and the chain has no way to it from a released format (decision
@@ -295,7 +295,7 @@ impl fmt::Display for StewardProblem {
 /// The steward's check (WP-S1.17 D12 as ruling 8 of decision log ID-1221 amends it): for the formats `released` so far
 /// (oldest first), the format `format` a build writes, its migration `chain` and the fixture corpus at `corpus`
 /// (`fixtures/format/`): every released format without its folder `<corpus>/<format>/`, and, when `format` is not
-/// released, the missing way from each released format to `format` (decision log ID-1230 ruling 7). Empty while
+/// released, the missing way from each released format to `format`. Empty while
 /// nothing is released.
 ///
 /// ```

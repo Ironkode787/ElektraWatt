@@ -37,7 +37,7 @@ const LICENCE: &str = "CC0-1.0";
 const VERSION: &str = "0.1.0";
 const ZERO: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
 
-/// The ID of the library: `v5(SYSTEM_LIBRARY, "ew-sample-parts")`, as the starter parts' (WP-S2.18).
+/// The ID of the library: `v5(SYSTEM_LIBRARY, "ew-sample-parts")`, as the starter parts'.
 fn library() -> Uuid {
     ew_ids::v5::imported_id::<()>(starter::LIBRARY, KEY).as_uuid()
 }
@@ -268,7 +268,7 @@ fn documents() -> Vec<LibDocument> {
         let key = p["meta"]["key"].as_str().unwrap();
         let item = item_id("part", key);
         let mut v = (*p).clone();
-        // ID-1497 (7): a part that Golden A's copy leaves without a function category gains one, so that a black box
+        // A part that Golden A's copy leaves without a function category gains one, so that a black box
         // placed from it takes the category's letter (the reference drawing's -102G1 and -102F2).
         if v.get("category").is_none()
             && let Some(category) = category_of(key)

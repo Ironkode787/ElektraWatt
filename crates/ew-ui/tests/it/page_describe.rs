@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `page.describe` in the window host (WP-S6.13 part 1, acceptance check BD5; §6 item 4): the exact counts. The first
+//! `page.describe` in the window host (acceptance check; §6 item 4): the exact counts. The first
 //! `page.describe` of a folio that is not in the page-content cache makes exactly one `page_tables` call (with the
 //! page content that carries it), a second makes none and causes no memo re-execution, and neither changes the
 //! interface's state.

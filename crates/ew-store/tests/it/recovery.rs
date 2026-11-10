@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Recovery with more than one crashed session's journal (doc 05 §8.2, WP-S1.22 part 3, ruling 2 of cycle 41):
+//! Recovery with more than one crashed session's journal (doc 05 §8.2):
 //! recovery acts on one journal at a time, the newest, and never deletes a journal it did not replay or discard.
 
 // The writer's tests read the model untracked, ADR-0001 amendment 2.
@@ -100,7 +100,7 @@ fn two_crashes() -> TwoCrashes {
     TwoCrashes { vfs, disk, a, b }
 }
 
-/// Ruling 2 (cycle 41): "`Store::recover` replays the summarised segment (the newest, as now) and removes **only that
+/// Ruling 2: "`Store::recover` replays the summarised segment (the newest, as now) and removes **only that
 /// segment** ... Every other non-empty leftover stays on disk, is offered at the next open (newest first, one at a
 /// time)". And: "Replaying a segment whose base is not the open generation behaves exactly as the existing code does
 /// for that case today (refused or applied); do not invent a merge." Here the second journal's base (generation 1)
@@ -166,7 +166,7 @@ fn recovery_replays_the_newest_journal_and_keeps_the_other_unchanged() {
     e.store.close();
 }
 
-/// Ruling 2 (cycle 41): "`discard_recovery` removes **only the summarised segment**."
+/// Ruling 2: "`discard_recovery` removes **only the summarised segment**."
 #[test]
 fn a_discard_removes_only_the_summarised_journal() {
     let TwoCrashes { vfs, disk, a, b } = two_crashes();
@@ -202,7 +202,7 @@ fn a_discard_removes_only_the_summarised_journal() {
     d.store.close();
 }
 
-/// Ruling 2 (cycle 41), the refused case of "behaves exactly as the existing code does for that case today (refused
+/// Ruling 2, the refused case of "behaves exactly as the existing code does for that case today (refused
 /// or applied)": a journal whose base moved and whose field changed on disk too is refused with its collisions, and
 /// it stays on disk, unchanged, still offered.
 #[test]

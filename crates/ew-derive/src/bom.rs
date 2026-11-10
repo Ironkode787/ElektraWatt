@@ -40,16 +40,16 @@ pub enum LineSource {
     Device,
     /// A strip accessory (`Strip.accessories[].part`), one piece each.
     StripAccessory,
-    /// A bridge group of the strip with a part (the carrier's `overrides.wire_part`, WP-S2.07 D6), one piece
+    /// A bridge group of the strip with a part (the carrier's `overrides.wire_part`), one piece
     /// each.
     Bridge,
     /// An order code of the device's assembly aspect (`Assembly.configs[].part`), one set each; assembly
     /// mode only.
     AssemblyConfig,
     /// The carriers (rails, ducts) with one part copy on the surfaces of an enclosure whose device owns the line,
-    /// by their summed path length in metres (WP-S4.01 D11, FR-LAY-004, FR-LAY-005, FR-LAY-008).
+    /// by their summed path length in metres (FR-LAY-004, FR-LAY-005, FR-LAY-008).
     Carrier,
-    /// The end brackets of a placed strip (WP-S4.02 D13, FR-LAY-060): the line of the part use the strip declares its
+    /// The end brackets of a placed strip (FR-LAY-060): the line of the part use the strip declares its
     /// brackets by, with the number of brackets the rails attribute to it ([`crate::layout::strip_brackets`]) instead
     /// of the authored quantity.
     GroupAccessory,
@@ -79,7 +79,7 @@ pub struct PartLine {
 /// [`LineSource::GroupAccessory`] line whose quantity is the number of brackets attributed to the strip, WP-S4.02
 /// D13; a strip without a bracket on any rail keeps the authored quantity), then, for a strip device, one line of quantity 1 per strip accessory
 /// (mounting order), then one line of quantity 1 per bridge group of the strip that has a part
-/// ([`StripBridges`], group order; WP-S2.07 D6), then, for the device of an enclosure, one **carrier line**
+/// ([`StripBridges`], group order), then, for the device of an enclosure, one **carrier line**
 /// per part ([`LineSource::Carrier`], WP-S4.01 D11 as amended by the orchestrator's ruling 5 of cycle 41): the
 /// carriers with a part on the enclosure's mounting surfaces that share a part copy (and variant) give one line,
 /// whose quantity is the sum of their path lengths in metres exact to the millimetre (summed in nanometres, rounded
@@ -205,8 +205,8 @@ fn carrier_groups(q: &Q, device: Id<Device>) -> Vec<CarrierGroup> {
     groups
 }
 
-/// The surfaces a part line of a layout object shows (WP-S4.01 D11, FT-204): a carrier line's carriers' surfaces; an
-/// end-bracket line, the surfaces of the rails holding its brackets (WP-S4.02 D13); any other line of the device of an
+/// The surfaces a part line of a layout object shows: a carrier line's carriers' surfaces; an
+/// end-bracket line, the surfaces of the rails holding its brackets; any other line of the device of an
 /// enclosure, its enclosures' surfaces; a line of the device of a surface (the plate), that surface. Empty for every
 /// other line.
 fn line_surfaces(q: &Q, line: &PartLine) -> BTreeSet<Id<MountingSurface>> {
@@ -286,7 +286,7 @@ pub struct BomRow {
     pub devices: Vec<Id<Device>>,
     /// The pages of the main representations of the devices with a line other than an end-bracket line and, for a part
     /// line of a layout object (the device of an enclosure or of a surface, a carrier line, an end-bracket line), the
-    /// panel-layout pages whose surface view shows its surface (WP-S4.01 D11, FT-204; WP-S4.02 D13), in page order,
+    /// panel-layout pages whose surface view shows its surface, in page order,
     /// without repeats.
     pub pages: Vec<PageRef>,
 }
@@ -330,7 +330,7 @@ pub struct BomRow {
 ///    head's `assembly` aspect (`DeviceAspects.assembly`, its `configs`, doc 03 §7) whose `part` names the part
 ///    copy, else, after every named part, the index of the part in the head's `Device.parts`.
 /// 5. **Positions:** 1, 2, … over the component rows and, separately, over the configured rows, so in
-///    assembly mode the component rows after the replaced ones renumber (owner ruling, decision log ID-356).
+///    assembly mode the component rows after the replaced ones renumber.
 #[derive(Debug)]
 pub struct BomRows;
 
@@ -343,7 +343,7 @@ impl Query for BomRows {
     fn run(q: &Q, key: &BomMode) -> Arc<Vec<BomRow>> {
         let lines = filtered_lines(q, *key);
         // The drawn-page order, not `page_order`: BOM report pages feed `page_order`, and the two agree on
-        // the relative order of drawn pages (WP-S3.03).
+        // the relative order of drawn pages.
         let order = q.get::<DrawnPageOrder>(());
         let parts = q.parts();
         let views = surface_views(q);

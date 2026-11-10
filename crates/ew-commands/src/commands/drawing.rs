@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `project.drawing.set` (`SetDrawing`, FR-CON-031, WP-S2.04 §5.1): the project's drawing settings, the member
+//! `project.drawing.set` (`SetDrawing`, FR-CON-031): the project's drawing settings, the member
 //! `drawing` of the project settings' `extra` (doc 03 §5.1).
 
 use schemars::JsonSchema;
@@ -27,7 +27,7 @@ pub enum Crossings {
     Hops,
 }
 
-/// Which wires carry a wire marker (FR-CON-024, WP-S2.04 D16); absent: the as-built rule (a connection's
+/// Which wires carry a wire marker (FR-CON-024); absent: the as-built rule (a connection's
 /// `show_marker`).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]

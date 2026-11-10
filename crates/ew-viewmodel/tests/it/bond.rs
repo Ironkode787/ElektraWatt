@@ -78,7 +78,7 @@ fn without_b1(tmp: &Tmp) -> ShellModel {
 }
 
 /// D-22's situation: without B1 the wire W27 joins 0 V and PE into one potential, EW-POT-001 reports, and the merged
-/// potential takes the first of its two definitions in natural order of name, 0V (WP-S1.16 D9, FT-587);
+/// potential takes the first of its two definitions in natural order of name, 0V;
 /// Draw ▸ Bond on W27 previews `bond.create` (pelv_0v_pe, via W27), Apply commits it in one step, EW-POT-001 and
 /// EW-POT-002 are gone, 0 V is WH and PE stays PE; Undo brings the merge back.
 #[test]
@@ -169,7 +169,7 @@ fn the_cp_form_the_kinds_and_the_refusals() {
     let m = failed(&mut shell, "bond.draw", json!({"a": "PE-0VDC", "b": "PE-0VDC"}));
     assert!(m.contains("two different"), "{m}");
     failed(&mut shell, "bond.draw", json!({"a": "PE-0VDC"}));
-    // Without a selection and without ends the action is disabled before its parameters are read (FT-578).
+    // Without a selection and without ends the action is disabled before its parameters are read.
     assert_eq!(
         refused(&mut shell, "bond.draw", json!({"kind": "copper"})),
         "reason-bond-selection"
@@ -197,7 +197,7 @@ fn the_cp_form_the_kinds_and_the_refusals() {
 }
 
 /// Draw ▸ Connect ▸ Bond lists the four kinds of `bond.create`, the default first, each dispatching `bond.draw` with
-/// its kind; they are disabled with their reason until the selection gives the bond two ends (FT-578).
+/// its kind; they are disabled with their reason until the selection gives the bond two ends.
 #[test]
 fn the_bond_submenu_lists_the_four_kinds() {
     let tmp = Tmp::new("bond-menu");
@@ -225,7 +225,7 @@ fn the_bond_submenu_lists_the_four_kinds() {
     assert_eq!(items[0].label, "0 V–PE bond (PELV)");
 }
 
-/// FT-1400 (ID-1392): EW-POT-001's bond hint names the menu path in the registry's words, Draw ▸ Connect ▸ Bond, in
+/// EW-POT-001's bond hint names the menu path in the registry's words, Draw ▸ Connect ▸ Bond, in
 /// both languages.
 #[test]
 fn the_bond_hint_names_the_menu_path_in_the_registrys_words() {

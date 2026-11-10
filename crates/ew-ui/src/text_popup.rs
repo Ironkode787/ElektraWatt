@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The text popup (WP-S2.04 §6.4 item 1, §10.5): the Text tool's and text edit's single-line field. While the Text
+//! The text popup (§10.5): the Text tool's and text edit's single-line field. While the Text
 //! tool types or Text edit is open, a window at the top holds one field; edits send `text.input` for the preview,
 //! and Enter sends the latest `text.input` and `tool.finish`
 //! (so the tool places or changes the text), Escape is the window's popup dismissal (the key routing sends

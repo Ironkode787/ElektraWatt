@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The protocol (WP-S6.13 §5.2, D5): a turn is one `do` call followed by exactly one note; the harness forwards the
+//! The protocol (D5): a turn is one `do` call followed by exactly one note; the harness forwards the
 //! steps in order and stops at the first step that is not done; `look` calls are free within a cap; a step that fails
 //! twice in a row is marked broken; the quit rules end a run on low scores; caps are counts, never wall time.
 //!
@@ -67,7 +67,7 @@ pub struct State {
     pub low_patience: u32,
     /// How many of the last notes in a row had a flow of 2 or less.
     pub low_flow: u32,
-    /// The steps sent by the `do` calls so far (FT-584: the number of the next is one more).
+    /// The steps sent by the `do` calls so far (the number of the next is one more).
     pub do_steps: usize,
 }
 
@@ -226,14 +226,14 @@ pub fn do_steps(
     let mut shown = last_state(run);
     let mut folio: Option<String> = None;
     for (i, s) in steps.iter().enumerate() {
-        // FT-584: the agent's steps are numbered from 1 over its `do` calls (a look's step does not count).
+        // The agent's steps are numbered from 1 over its `do` calls (a look's step does not count).
         let number = st.do_steps + i + 1;
         let stopped = first_not_done.is_some() || refusal.is_some() || cap_hit || lost || diverged.is_some();
         if stopped {
             let _ = writeln!(out, "{number} {} skipped", s.action);
             continue;
         }
-        // FT-582: the selection the step acts on is part of "the same step".
+        // The selection the step acts on is part of "the same step".
         let selection = selection_digest(&shown);
         if let Err(text) = check_step(reference, kind, s, &st.broken, selection.as_deref()) {
             let _ = writeln!(out, "{text}");
@@ -643,7 +643,7 @@ pub fn handback(run: &Run, text: &str) -> Result<String> {
     {
         return Ok(ended(end));
     }
-    // A round task's persona answers the questionnaire first (WP-S2.12 D11).
+    // A round task's persona answers the questionnaire first.
     if !rj.rounds.is_empty() && !run.path("questionnaire.json").is_file() {
         return Ok(format!("{}\n", super::round::handback_first(run, &rj.run)));
     }
@@ -901,7 +901,7 @@ pub mod tests {
         assert_eq!(report(&c.run, "pages").unwrap(), "== page.describe 101 ==\n");
     }
 
-    /// FT-584: the agent's steps are numbered from 1 over its `do` calls; a look's step before them does not count.
+    /// The agent's steps are numbered from 1 over its `do` calls; a look's step before them does not count.
     #[test]
     fn do_steps_are_numbered_from_one_after_a_look() {
         let mut f = fixture(Kind::Free);
@@ -1046,7 +1046,7 @@ pub mod tests {
         let out = f.run_do(&[s("file.open", serde_json::json!({"dir": "other"}))]);
         assert!(out.contains("file.open failed"), "{out}");
         f.note("patience 5 flow 5 other");
-        // FT-582: the same failing step on a changed selection is another step; on the same selection it repeats.
+        // The same failing step on a changed selection is another step; on the same selection it repeats.
         let mut h = fixture(Kind::Free);
         h.run_do(&[fail()]);
         h.note("patience 5 flow 5 a");

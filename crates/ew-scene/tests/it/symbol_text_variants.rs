@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Text under the eight symbol variants (doc 07 §4.1, ID-49): the anchor transforms, glyphs are never
+//! Text under the eight symbol variants (doc 07 §4.1): the anchor transforms, glyphs are never
 //! mirrored, and the alignment flips as the readability turn and the mirror require.
 
 use ew_dl::Transform;

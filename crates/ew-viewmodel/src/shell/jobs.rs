@@ -49,7 +49,7 @@ pub(super) fn bool_param(p: &Map<String, Value>, name: &str, default: bool) -> R
     }
 }
 
-/// An export's pages by kind in words ("1 drawing page and 10 report pages", FT-1212): the drawing pages, the
+/// An export's pages by kind in words ("1 drawing page and 10 report pages"): the drawing pages, the
 /// section divider pages and the report pages that it has, each count with its plural form.
 fn page_words(done: &ExportDone) -> String {
     let kinds = done.kinds;
@@ -166,7 +166,7 @@ impl ShellModel {
                         .and_then(|i| h.entries().get(i))
                         .is_some_and(|e| e.rev().0 == *rev)
             }),
-            // WP-S2.08 part 6: a tip's action without a step, while its project session is open.
+            // A tip's action without a step, while its project session is open.
             Some(Validity::Session { epoch, .. }) => self.project.as_ref().is_some_and(|p| p.epoch == *epoch),
             Some(Validity::SymbolDraft) => self.kept_symbol_editor().is_some(),
         }
@@ -200,7 +200,7 @@ impl ShellModel {
 
     /// A test fault of the export jobs started from now on (feature `testkit`): `Some("sibling")` makes the body panic
     /// right after the sibling file is written and synced, before the rename; `Some("table-read")` makes the table
-    /// import's read panic inside its guard (WP-S6.04 D15).
+    /// import's read panic inside its guard.
     #[cfg(feature = "testkit")]
     pub fn set_job_panic_for_tests(&mut self, at: Option<&'static str>) {
         self.jobs.hooks.panic_at = at;
@@ -298,11 +298,11 @@ impl ShellModel {
                 }
                 (Mode::Gui, None) => Outcome::refused(key!("reason-action-expired")),
             },
-            // WP-S2.08 part 6 (D17): the tips' actions.
+            // The tips' actions.
             Some(NoteAction::Convert | NoteAction::Renumber | NoteAction::ShowBlock) => {
                 self.run_tip_action(entry, action)
             }
-            // WP-S1.17 D24: the history opens with the step's changes.
+            // The history opens with the step's changes.
             Some(NoteAction::ShowChanges) => {
                 let Some(Validity::History { entry: index, .. }) =
                     entry.validity(NoteAction::ShowChanges).cloned()
@@ -315,7 +315,7 @@ impl ShellModel {
                 }
                 self.dispatch("history.changes", &serde_json::json!({ "entry": index + 1 }))
             }
-            // ID-1463: the editor's view again, on the kept draft; the toast is spent.
+            // The editor's view again, on the kept draft; the toast is spent.
             Some(NoteAction::BackToEditor) => {
                 self.notes.dismiss(entry.serial);
                 self.dispatch("symbol.new", &serde_json::json!({}))
@@ -368,7 +368,7 @@ impl ShellModel {
         let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else {
             return failed(key!("error-bad-param"), &["path"]);
         };
-        // FT-1502: a print being spooled writes no file and runs beside the export.
+        // A print being spooled writes no file and runs beside the export.
         if self
             .jobs
             .entries()
@@ -376,7 +376,7 @@ impl ShellModel {
         {
             return Outcome::refused(key!("reason-export-running"));
         }
-        // A PDF renamed over a file of the open project would damage it (review finding 5 of cycle 30).
+        // A PDF renamed over a file of the open project would damage it (review finding 5).
         if inside(&project.dir, &path) {
             return Outcome::refused(key!("reason-export-into-project"));
         }
@@ -406,9 +406,9 @@ impl ShellModel {
     /// Takes the ends of the jobs that have finished (the window every frame, the script runner before every step).
     /// Makes no `Session` call.
     pub fn poll_jobs(&mut self) {
-        // WP-S3.07 part 3: the print pre-dialog's build too.
+        // The print pre-dialog's build too.
         self.poll_print();
-        // WP-S3.09 D4: and the import's.
+        // And the import's.
         self.poll_import();
         let ended: Vec<(u64, JobEnd<ExportDone>)> = self
             .jobs
@@ -428,18 +428,18 @@ impl ShellModel {
     /// Waits for every running job and takes its end (its entry, notification and marker), as `jobs.wait` does for
     /// one. The headless runner calls it at the end of a run, before its unsaved-changes check, so a script whose
     /// export did not wait (`wait: false`) still writes its file, and its transcript, file and log are the same on
-    /// every run (§9 items 1 and 2; review finding 3 of cycle 30).
+    /// every run (§9 items 1 and 2; review finding 3).
     ///
     /// Returns, in job order, the notification texts of the failed, cancelled or panicked ends that no step waited
-    /// for, whether their end was taken now or by an earlier poll (FT-513): the runner prints each as
+    /// for, whether their end was taken now or by an earlier poll: the runner prints each as
     /// `error: <text>` and exits 1. Which poll took an end depends on timing; this list does not.
     pub fn wait_jobs(&mut self) -> Vec<String> {
-        // WP-S3.09 D4: a running import job ends in its card.
+        // A running import job ends in its card.
         if let Some(pending) = self.import_job.take() {
             let end = pending.job.wait();
             let _ = self.finish_import(end, pending.name, pending.dir, pending.library_note);
         }
-        // C51-p2#10: so does a running re-import job.
+        // So does a running re-import job.
         if let Some(pending) = self.reimport_job.take() {
             let end = pending.job.wait();
             let _ = self.finish_reimport(end, pending.name, pending.path, pending.epoch);
@@ -463,7 +463,7 @@ impl ShellModel {
     }
 
     /// Waits for job `number` and takes its end; the step's outcome by the end (§6.3 item 5). The waiting step sees
-    /// the end, so it is not an unseen failure, also when a poll took the end before this step (R1-2 of cycle 31); the
+    /// the end, so it is not an unseen failure, also when a poll took the end before this step (R1-2); the
     /// entry is marked as waited for, whatever its end (R2-1).
     pub(super) fn wait_job(&mut self, number: u64) -> Outcome {
         let Some(handle) = self.jobs.get_mut(number).and_then(|e| e.handle.take()) else {
@@ -506,8 +506,8 @@ impl ShellModel {
                 });
                 // WP-S3.08 ruling 4 of ID-1224: a table has no pages; its end says the size only.
                 let table = entry.kind == JobKind::Table;
-                // ID-1392 (FT-1212): the pages by kind ("1 drawing page and 10 report pages"), each count with its
-                // plural form (ID-1278 ruling 6).
+                // The pages by kind ("1 drawing page and 10 report pages"), each count with its
+                // plural form.
                 let pages = page_words(&done);
                 let text = match (table, again) {
                     (false, false) => {
@@ -641,7 +641,7 @@ impl ShellModel {
                 h.cancel();
                 Outcome::Done
             }
-            // FT-1157 (ID-1417): a print the platform runs ends, aborted, at its next band.
+            // A print the platform runs ends, aborted, at its next band.
             (None, Some(cancel)) if entry.is_running() => {
                 cancel.store(true, std::sync::atomic::Ordering::Relaxed);
                 Outcome::Done
@@ -652,7 +652,7 @@ impl ShellModel {
 
     /// `jobs.wait {job?}` (headless only): waits for a job and takes its end; by default the newest job no step has
     /// waited for, whether it still runs or a poll already took its end, so neither the choice nor the outcome depends
-    /// on which poll took an end (R1-2 and R2-1 of cycle 31). Done at once when there is none.
+    /// on which poll took an end (R1-2 and R2-1). Done at once when there is none.
     pub(crate) fn act_jobs_wait(&mut self, p: &Map<String, Value>) -> Outcome {
         let unseen = |j: &JobsState| j.entries().filter(|e| !e.waited).last().map(|e| e.number);
         let number = match self.job_number(p, unseen, key!("reason-no-running-job")) {

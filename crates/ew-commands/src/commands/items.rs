@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page items (WP-S2.04 part 4a, §5.1, §10.1): `item.place` (`PlaceItem`; graphics and free texts, FR-SYM-023,
+//! Page items (§10.1): `item.place` (`PlaceItem`; graphics and free texts, FR-SYM-023,
 //! FR-SYM-024, and from part 5 images, FR-SYM-025) and `marker.place` (`PlaceMarker`; the group wire marker, FR-CON-023, FR-CON-039), with the checks
 //! that `fields.set` repeats after it writes a page item, and the translation `rep.move` applies to the page items
 //! and structure boxes it moves.
@@ -180,7 +180,7 @@ fn is_zero_angle(a: &Angle2) -> bool {
     *a == Angle2::ZERO
 }
 
-/// An image of `item.place` (WP-S2.04 part 5, FR-SYM-025).
+/// An image of `item.place` (FR-SYM-025).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ImageParam {
@@ -321,7 +321,7 @@ pub(crate) fn item_problem(item: &PageItem) -> Option<Text> {
     }
 }
 
-/// The next edit of a wire marker writes a clean list (WP-S2.04 §10.1): the entries that name a connection which
+/// The next edit of a wire marker writes a clean list: the entries that name a connection which
 /// does not exist or is not drawn on the marker's page (a file of an older build) are dropped.
 pub(crate) fn clean_marker(tx: &TxBuilder<'_>, item: &mut PageItem) {
     let page = item.page;
@@ -406,7 +406,7 @@ fn free_text_of(t: &FreeTextParam) -> FreeText {
     }
 }
 
-/// `item.place` (`PlaceItem`, WP-S2.04 §5.1; FR-SYM-023, FR-SYM-024, FR-SYM-025): creates a page item on a page, a
+/// `item.place` (`PlaceItem`, FR-SYM-023, FR-SYM-024, FR-SYM-025): creates a page item on a page, a
 /// graphic (`{"graphic": {shape, stroke?, dash?, fill?}}`), a free text (`{"free_text": {text, bind?, at, angle?,
 /// style?, align?}}`) or an image (`{"image": {asset | data, rect}}`, part 5: an asset of the project's store, or the
 /// image file as base64 `data`, which the command validates and stores as the company logo is stored, in the
@@ -466,7 +466,7 @@ impl Command for PlaceItem {
                                 text!("refusal-items-image-asset-missing", asset.to_string()),
                             ));
                         };
-                        // FT-1523 (ID-1458): a held image over the pixel limit, which an earlier build took in, is
+                        // A held image over the pixel limit, which an earlier build took in, is
                         // refused as the data gate refuses it.
                         ew_schema::pixel_limit(r.format, r.size).map_err(|e| {
                             CmdError::invalid_params(
@@ -555,7 +555,7 @@ pub(crate) fn company_codes(tx: &TxBuilder<'_>) -> BTreeSet<String> {
         .unwrap_or_default()
 }
 
-/// `marker.place` (`PlaceMarker`, WP-S2.04 §5.1; FR-CON-023, FR-CON-039): places the group wire marker of several
+/// `marker.place` (`PlaceMarker`, FR-CON-023, FR-CON-039): places the group wire marker of several
 /// connections of one page. One transaction: on each connection `overrides.show_marker` becomes true,
 /// `overrides.csa` becomes `csa` when given and `overrides.colour` becomes `colours[i]` when given; then a page item
 /// `{"wire_marker": {connections, at, angle, fields: ["csa", "colour"]}}` lists the connections in the given (printed)

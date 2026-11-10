@@ -443,7 +443,7 @@ fn files_the_store_refuses_fail_and_change_nothing() {
     }
 }
 
-/// FT-1504 (ID-1457): the asset gate's pixel refusal reads in a Dutch window's language, the error keeping its English.
+/// The asset gate's pixel refusal reads in a Dutch window's language, the error keeping its English.
 #[test]
 fn the_pixel_refusal_reads_in_a_dutch_window() {
     let tmp = Tmp::new("image-file-pixels");

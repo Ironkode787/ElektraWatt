@@ -28,13 +28,13 @@ use crate::strings;
 /// The directory of the crash logs under the state directory.
 pub const CRASH_DIR: &str = "crashes";
 
-/// The line a crash log ends with when its last panic ended the session (§5 L8 of WP-S6.05; English, read by support).
+/// The line a crash log ends with when its last panic ended the session (§5 L8; English, read by support).
 pub const ENDED_LINE: &str = "Ended: this panic ended the session";
 
-/// The crash logs kept: the newest 20 (WP-S6.05 D10).
+/// The crash logs kept: the newest 20.
 pub const KEEP_LOGS: usize = 20;
 
-/// The age after which a crash log is deleted at start (WP-S6.05 D10: 30 days, as a leftover journal).
+/// The age after which a crash log is deleted at start (30 days, as a leftover journal).
 pub const KEEP_LOG_AGE: Duration = Duration::from_secs(30 * 24 * 3600);
 
 /// The end of the name of a crash log that was offered.
@@ -72,7 +72,7 @@ pub struct StartupOffer {
     /// The refusal of the last answer (S7), shown in the offer.
     pub refusal: Option<String>,
     /// The older logs that also ended their session and were not offered (a crash loop at start): marked offered with
-    /// the offered one, so that no later start shows an older crash (C50-p3#4).
+    /// the offered one, so that no later start shows an older crash.
     pub earlier_logs: Vec<PathBuf>,
 }
 
@@ -242,7 +242,7 @@ impl ShellModel {
             Some(state) => {
                 let dir = state.join(CRASH_DIR);
                 crate::settings::user_only_dir(&dir);
-                // The store's clock, the one its journal pruning reads (C50-p3#11).
+                // The store's clock, the one its journal pruning reads.
                 prune_logs(&dir, store.clock.now())
             }
             None => (None, Vec::new()),
@@ -294,7 +294,7 @@ impl ShellModel {
         }
     }
 
-    /// A project that opened is no longer offered (C50-p3#9: `elektrawatt <dir>` recovers it at open); an offer left
+    /// A project that opened is no longer offered (`elektrawatt <dir>` recovers it at open); an offer left
     /// with neither a project nor a log closes.
     pub(super) fn opened_offered_project(&mut self, dir: &Path) {
         let Some(offer) = &mut self.startup else { return };

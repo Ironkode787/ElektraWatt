@@ -50,20 +50,20 @@ pub const OUTLINE_TOLERANCE_NM: f64 = 50_000.0;
 // -------------------------------------------------------------------------------------------------------------------
 // The place catalogue
 
-/// What can be placed on a page (WP-S2.04 §4.3, §7.1): symbols and parts.
+/// What can be placed on a page (§7.1): symbols and parts.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PlaceCatalogue {
     /// Embedded symbols and available library symbols on the page's stored grid, in key/address order.
     pub symbols: Vec<CatalogueSymbol>,
-    /// The embedded part copies, then the system libraries' parts with a function template the project does not hold
-    /// (FT-1375), each group by manufacturer, then part number, then copy ID.
+    /// The embedded part copies, then the system libraries' parts with a function template the project does not hold,
+    /// each group by manufacturer, then part number, then copy ID.
     pub parts: Vec<CataloguePart>,
-    /// Every terminal strip of the project, by its tag as the page prints it (FT-421): the strip chooser of a
+    /// Every terminal strip of the project, by its tag as the page prints it: the strip chooser of a
     /// terminal placement (§7.1).
     pub strips: Vec<CatalogueStrip>,
 }
 
-/// A terminal strip of the place catalogue (FT-421): what a terminal placement adds to.
+/// A terminal strip of the place catalogue: what a terminal placement adds to.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CatalogueStrip {
     /// The strip device's ID.
@@ -99,7 +99,7 @@ pub struct CatalogueSymbol {
     /// A published library symbol on a connection grid other than the page's (SM25b m3): the symbol's grid and the
     /// page's, each as its `(num, den)` nanometres per step. The row is listed, not allowed, with this reason.
     pub grid_mismatch: Option<[(u64, u64); 2]>,
-    /// The words the picker's filter matches besides the keys (cycle 36): the symbol's name in every language and its
+    /// The words the picker's filter matches besides the keys: the symbol's name in every language and its
     /// keywords.
     pub words: Vec<String>,
     /// The symbol's name in words (M39: the Place HUD names it): its neutral text, else its first language's; empty
@@ -108,7 +108,7 @@ pub struct CatalogueSymbol {
 }
 
 /// A part row of the place catalogue: an embedded part copy with a function template, or a system library's part the
-/// project does not hold yet (WP-S2.18 D6), which choosing embeds.
+/// project does not hold yet, which choosing embeds.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CataloguePart {
     /// The part copy's ID (for a library part, the ID its copy will have: `v5(NS_LIBCOPY, library ‖ item)`).
@@ -117,15 +117,15 @@ pub struct CataloguePart {
     pub library: Option<(Uuid, Uuid)>,
     /// The part number.
     pub part_number: String,
-    /// The part's description in words (FT-712: the picker row leads with it): its neutral text, else its first
+    /// The part's description in words (the picker row leads with it): its neutral text, else its first
     /// language's; empty when it has none.
     pub description: String,
     /// The manufacturer's name (the library record's, held or not; [`Session::library_manufacturer`]).
     pub manufacturer: String,
     /// The part's ratings in words, its rated current, voltage and power in that order (`4 A · 230 V`), which tell
-    /// two parts of one kind apart (FT-1209, ID-1392); empty when it has none.
+    /// two parts of one kind apart; empty when it has none.
     pub rating: String,
-    /// The template's functions, in template order; empty for a held copy without a function template (FT-1375).
+    /// The template's functions, in template order; empty for a held copy without a function template.
     pub functions: Vec<CatalogueTemplateFn>,
     /// The words the picker's filter matches besides the part number, the manufacturer and the FnDef keys (cycle 36:
     /// "relay" found nothing): the description in every language and the category.
@@ -143,7 +143,7 @@ pub struct CatalogueTemplateFn {
     pub index: u16,
     /// The key of the entry's function definition.
     pub fndef_key: String,
-    /// The entry's function in words, as the Properties grid names a placed one (FT-664, FT-670): the FnDef's last
+    /// The entry's function in words, as the Properties grid names a placed one: the FnDef's last
     /// category entry, the one before it lower-cased and the entry's CP designations (`NO contact 13-14`); the FnDef
     /// key when its category has fewer than two entries or the FnDef is missing.
     pub kind_text: String,
@@ -295,7 +295,7 @@ fn catalogue_part(
                 .iter()
                 .find(|(r, f)| *f == def_id && r.allowed)
                 .map(|(r, _)| r.key.clone());
-            // The CPs a function placed from the entry gets (FT-655): the rule `function_cps` derives.
+            // The CPs a function placed from the entry gets: the rule `function_cps` derives.
             let pattern: Vec<u16> = part.cp_pattern.iter().map(|c| c.idx).collect();
             let def_cps: Vec<u16> = def
                 .as_ref()
@@ -446,7 +446,7 @@ fn symbol_row(
         }) && def
             .as_ref()
             .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox),
-        // A PE terminal's category is `TerminalEarth` (FT-618): it is placed into a strip like every terminal.
+        // A PE terminal's category is `TerminalEarth`: it is placed into a strip like every terminal.
         terminal: def
             .as_ref()
             .is_some_and(|d| matches!(d.item.category.0.as_str(), "Terminal" | "TerminalEarth")),
@@ -485,7 +485,7 @@ impl Session {
             })
     }
 
-    /// What can be placed on the page labelled `folio` (WP-S2.04 §4.3, §7.1); `None` for an unknown folio or a page
+    /// What can be placed on the page labelled `folio` (§7.1); `None` for an unknown folio or a page
     /// that is not drawn (a generated page, a divider).
     ///
     /// `symbols` lists embedded symbols, unembedded starter symbols and installed library masters, filtered by
@@ -494,8 +494,8 @@ impl Session {
     /// `black_box` identifies the built-in resizable placeholder, `terminal` its terminal category, `allowed` whether
     /// the page's type allows the symbol's representation type (`allowed_rep_types`). `parts` lists every embedded
     /// part copy, with or without a function template, then every part of the system libraries with a function
-    /// template the project does not hold (FT-1375, ID-1391: the project's own copies first), each group by
-    /// manufacturer name, part number, copy ID (FT-1087); a template function's `symbol` is the key of the first
+    /// template the project does not hold (the project's own copies first), each group by
+    /// manufacturer name, part number, copy ID; a template function's `symbol` is the key of the first
     /// allowed symbol row that draws its FnDef.
     pub fn place_catalogue(&self, folio: &str) -> Option<PlaceCatalogue> {
         let q = self.query();
@@ -589,9 +589,9 @@ impl Session {
                 .cmp(&b.key)
                 .then_with(|| b.copy.is_some().cmp(&a.copy.is_some()))
         });
-        // FT-1087 (ID-1184): one order for the chooser, (maker, part number, copy), within the embedded copies and
-        // within the system libraries' parts the project does not hold, the embedded ones first (FT-1375, ID-1391).
-        // FT-1170 (ID-1391): an embedded part's maker is named from its own maker field as the Parts row names it
+        // One order for the chooser, (maker, part number, copy), within the embedded copies and
+        // within the system libraries' parts the project does not hold, the embedded ones first.
+        // An embedded part's maker is named from its own maker field as the Parts row names it
         // (`ew_derive::manufacturer_name`); a library part's, which the project does not hold, from its library
         // ([`Session::library_manufacturer`]).
         let mut parts: Vec<CataloguePart> = Vec::new();
@@ -603,7 +603,7 @@ impl Session {
                 });
             }
         }
-        // WP-S2.18 D6: the system libraries' parts the project does not hold.
+        // The system libraries' parts the project does not hold.
         for c in self.library_parts() {
             if q.parts().contains(c.id) {
                 continue;
@@ -614,7 +614,7 @@ impl Session {
                 parts.push(CataloguePart { manufacturer, ..row });
             }
         }
-        // FT-1375 (ID-1391): the project's own copies first, then the libraries' parts, each in that order.
+        // The project's own copies first, then the libraries' parts, each in that order.
         parts.sort_by(|a, b| {
             (a.library.is_some(), &a.manufacturer, &a.part_number, a.copy).cmp(&(
                 b.library.is_some(),
@@ -633,7 +633,7 @@ impl Session {
     /// The `library.embed` parameters (`{"copies": [...]}`) that embed the starter symbol `key` and its function
     /// definition, leaving out what the project has embedded already (by copy ID, which names the item at any
     /// version); `None` when `key` is not a starter symbol or both are embedded. The host commits it through the
-    /// normal path (WP-S2.04 §6.4).
+    /// normal path.
     pub fn starter_embed(&self, key: &str) -> Option<serde_json::Value> {
         let q = self.query();
         let symbol = starter_symbol(key)?;
@@ -815,7 +815,7 @@ impl Session {
 }
 
 /// Every terminal strip of the project with its tag as `page` prints it and the next designation and sequence
-/// number (FT-421), by tag, ties by ID.
+/// number, by tag, ties by ID.
 fn strips_of(q: &Q, page: Id<Page>) -> Vec<CatalogueStrip> {
     // The decimal designations in use (FT-1083, ID-1181: the next one is the lowest number free, so a gap an Undo
     // left is filled), the width of the widest zero-padded spelling (so `01` is followed by `02`) and the largest
@@ -892,7 +892,7 @@ fn starter_id(json: &str) -> Option<Uuid> {
 // -------------------------------------------------------------------------------------------------------------------
 // The symbol shape
 
-/// A symbol copy's shape at orientation A (R0), relative to its insertion point, in page nm (WP-S2.04 §4.3).
+/// A symbol copy's shape at orientation A (R0), relative to its insertion point, in page nm.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SymbolShape {
     /// The symbol copy.
@@ -923,13 +923,13 @@ pub struct ShapeCp {
     pub at: (i64, i64),
     /// The direction a wire leaves it at R0.
     pub dir: Dir,
-    /// The designation of the FnDef CP it draws (`13`, `A1`; FT-424), empty when the symbol's FnDef is not embedded
+    /// The designation of the FnDef CP it draws (`13`, `A1`), empty when the symbol's FnDef is not embedded
     /// or has no such CP.
     pub designation: String,
 }
 
 /// What `rep.exchange_symbol` without `pin_map` does to the function CPs a representation draws, from its current
-/// symbol's shape and the new one ([`exchange_map`], FT-424).
+/// symbol's shape and the new one ([`exchange_map`]).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ExchangeMap {
     /// The function CPs the new symbol draws, ascending.
@@ -1164,8 +1164,8 @@ fn shape_with(copy: Uuid, def: &SymbolDef, fndef: Option<Arc<LibCopy<FnDef>>>) -
 }
 
 impl Session {
-    /// The embedded symbol copy `copy` at orientation A (R0), relative to its insertion point, in page nm
-    /// (WP-S2.04 §4.3): every symbol CP with its FnDef CP and direction, the bounds of its graphics without texts
+    /// The embedded symbol copy `copy` at orientation A (R0), relative to its insertion point, in page nm:
+    /// every symbol CP with its FnDef CP and direction, the bounds of its graphics without texts
     /// (`body`), every stroked or filled path flattened to polylines with a tolerance of 50 000 nm in paint order
     /// (`outline`). A starter symbol the project does not hold yet has the shape of its starter copy (the copy
     /// ID [`Session::starter_symbol_copy`] gives), its designations from the embedded FnDef, else the starter's
@@ -1211,8 +1211,8 @@ impl Session {
 // -------------------------------------------------------------------------------------------------------------------
 // The page tables
 
-/// The records drawn on a page as tables, in page nm (WP-S2.04 §4.3), each list in an order a person can see and a
-/// replay reproduces (FT-439, decision log ID-640): representations, junctions and connections by place (y, then x;
+/// The records drawn on a page as tables, in page nm, each list in an order a person can see and a
+/// replay reproduces: representations, junctions and connections by place (y, then x;
 /// a connection by its first, then its last vertex), connection points by label, ties by the ID as the last key.
 /// Never by ID alone: the IDs one transaction mints are not in creation order, and a tool's first hit or a listed
 /// proposal would then differ between two runs of one script.
@@ -1233,14 +1233,14 @@ pub struct PageTables {
     pub connections: Vec<TableConnection>,
     /// The junctions of the page, by point (y, then x), then ID.
     pub junctions: Vec<TableJunction>,
-    /// The page items of the page (WP-S2.04 part 4a), by position: the top of their bounds, then the left, then ID.
+    /// The page items of the page, by position: the top of their bounds, then the left, then ID.
     pub items: Vec<TableItem>,
-    /// The structure boxes of the page (WP-S2.04 part 4a), by position: their top-left vertex (the smallest `y`,
+    /// The structure boxes of the page, by position: their top-left vertex (the smallest `y`,
     /// then `x`), then ID.
     pub structure_boxes: Vec<TableStructureBox>,
 }
 
-/// A page-item row of the page tables (WP-S2.04 part 4a).
+/// A page-item row of the page tables.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TableItem {
     /// The item's ID.
@@ -1260,7 +1260,7 @@ pub struct TableItem {
     pub bind: Option<String>,
 }
 
-/// A structure-box row of the page tables (WP-S2.04 part 4a).
+/// A structure-box row of the page tables.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TableStructureBox {
     /// The box's ID.
@@ -1353,7 +1353,7 @@ fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
                     None,
                     None,
                 ),
-                // A surface view by its datum point (what it draws is derived, WP-S4.01 D9).
+                // A surface view by its datum point (what it draws is derived).
                 K::SurfaceView(v) => ("surface_view", bounds_of([pt(v.datum_at)]), None, None),
                 K::Unknown(_) => ("unknown", None, None, None),
             };
@@ -1445,7 +1445,7 @@ pub struct TableRep {
     pub pos: (i64, i64),
     /// The symbol's body under the orientation, translated to the insertion point, `[x0, y0, x1, y1]`.
     pub body: [i64; 4],
-    /// Where the printed tag text stands (FT-502): the anchor of the symbol's tag slot where the scene prints it
+    /// Where the printed tag text stands: the anchor of the symbol's tag slot where the scene prints it
     /// (visible by the representation's override, else its arrangement, else the slot's default; at the override's
     /// position or the slot's, under the orientation, translated to the insertion point; FT-771: where the scene's tag
     /// rule moved it, read from the page's labels layer), raised by the em height
@@ -1469,7 +1469,7 @@ pub struct TableIp {
     pub name: String,
     /// Its direction in its JSON spelling (`source`, `target`, `undirected`).
     pub direction: String,
-    /// Where it continues (FT-1437): its printed cross-reference to its partners, as the canvas prints it; empty for
+    /// Where it continues: its printed cross-reference to its partners, as the canvas prints it; empty for
     /// a point without a partner.
     pub continuation: String,
 }
@@ -1483,7 +1483,7 @@ pub struct TableBox {
     pub cps: Vec<(u16, (i64, i64), Dir)>,
 }
 
-/// The derived potential of a [`TableCp`] (FT-950): its name, and whether that name is only the fallback.
+/// The derived potential of a [`TableCp`]: its name, and whether that name is only the fallback.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TablePotential {
     /// The derived name (`PotentialNameOf`).
@@ -1512,7 +1512,7 @@ pub struct TableCp {
     pub dir: Option<Dir>,
     /// The connections on this page ending at it, in the order of [`PageTables::connections`].
     pub connections: Vec<Uuid>,
-    /// The derived name of its potential, and whether that name is a fallback (FT-950).
+    /// The derived name of its potential, and whether that name is a fallback.
     pub potential: Option<TablePotential>,
     /// A terminal CP's side in the model's words (doc 08 §2.1): `field` when its side is the strip's
     /// `field_side`, `internal` for the other side; `None` for a CP without a side.
@@ -1555,7 +1555,7 @@ pub struct TableConnection {
     /// Whether the connection has a stored route.
     pub stored_route: bool,
     /// The polyline's segments (`i` for `polyline[i]` to `polyline[i + 1]`) that the scene's clamp drew along the
-    /// sheet's edge, off the connection's path (an end or a route vertex off the sheet; FT-1049, ID-1148): the wire
+    /// sheet's edge, off the connection's path (an end or a route vertex off the sheet): the wire
     /// does not run there, so the Place tool neither splits nor drops on them. Ascending; empty for a path on the
     /// sheet.
     pub off_sheet: Vec<usize>,
@@ -1702,7 +1702,7 @@ fn page_rect(q: &Q, page: PageRef) -> Rect {
     }
 }
 
-/// The page point of the tag text `rep` prints with `def` (FT-502), by the scene's rules (`ew_scene::page`'s
+/// The page point of the tag text `rep` prints with `def`, by the scene's rules (`ew_scene::page`'s
 /// labels): the first tag slot, visible by the representation's override, else by its named arrangement, else by the
 /// slot's default; the override's position, else the slot's, placed in the representation's text frame
 /// (`ew_derive::text_frame`, FT-867: on a half-turned black box, as on the box unturned). With it the em height (nm)
@@ -1754,7 +1754,7 @@ fn table_end(e: &Endpoint) -> Option<TableEnd> {
 
 impl Session {
     /// Every record drawn on the page labelled `folio`, in page nm, each list in the order of [`PageTables`]
-    /// (WP-S2.04 §4.3, FT-439; the page items and structure boxes of part 4a by position); `None` for an unknown
+    /// (the page items and structure boxes of part 4a by position); `None` for an unknown
     /// folio or a page that is not drawn.
     ///
     /// A representation's `body` is its symbol shape's body under its orientation, translated; a black box's
@@ -1775,7 +1775,7 @@ impl Session {
         );
         let drawn = drawn_cps(&q, page_id);
         let styles = super::layers::text_style_table(&q);
-        // FT-771: the tags where the scene's tag rule placed them, from the labels layer the page draws.
+        // The tags where the scene's tag rule placed them, from the labels layer the page draws.
         let labels = super::layers::page_layer(&q, page_ref, ew_dl::Layer::Labels);
         let mut shapes: BTreeMap<Id<SymbolDef>, Option<SymbolShape>> = BTreeMap::new();
         let mut rep_ids: Vec<(i64, i64, Id<Representation>)> = q
@@ -1962,7 +1962,7 @@ impl Session {
             let (polyline, off_sheet) = match (end(&c.a), end(&c.b)) {
                 (Some(ea), Some(eb)) => {
                     let drawn = connection_polyline(&ea, &eb, &c.route, rect);
-                    // FT-1049: the segments the clamp moved, against the path normaliser 7 reads; only a path with
+                    // The segments the clamp moved, against the path normaliser 7 reads; only a path with
                     // a vertex off the sheet is clamped at all.
                     let (lo, hi) = (rect.min(), rect.max());
                     let off = |p: &Pt2| p.x < lo.x || p.x > hi.x || p.y < lo.y || p.y > hi.y;
@@ -2014,7 +2014,7 @@ impl Session {
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// The physical wires through a junction (WP-S2.04 part 2, §4.3, §8.5)
+// The physical wires through a junction (§8.5)
 
 /// One physical wire through a junction, as the junction sequence editor lists it.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -2029,7 +2029,7 @@ pub struct JunctionWire {
 
 impl Session {
     /// The physical wires through `junction` (`physical_wires_of` of its potential, the wires whose path passes the
-    /// junction, doc 06 §5.5), by printed wire number, then the ends' labels, the ID last (FT-439): the printed number
+    /// junction, doc 06 §5.5), by printed wire number, then the ends' labels, the ID last: the printed number
     /// and the CP labels of both ends. Empty for an unknown
     /// junction or one on no potential. Reads memoised families only.
     pub fn junction_wires(&self, junction: Uuid) -> Vec<JunctionWire> {
@@ -2064,7 +2064,7 @@ impl Session {
     }
 }
 
-/// The order of the junction editor's wires (FT-439): the printed wire number (natural order, then its bytes), then
+/// The order of the junction editor's wires: the printed wire number (natural order, then its bytes), then
 /// the first end's label, then the second's; a wire without a number (`?`) after every numbered one (as
 /// `number_order` in `output/properties.rs` puts an unnumbered wire last); the caller breaks a remaining tie by wire
 /// ID. Never the carrier ID alone: a split mints its new half and the new wire in one transaction, in no visible order.
@@ -2106,7 +2106,7 @@ mod tests {
 
     #[test]
     fn exchange_map_by_index_for_the_same_definition() {
-        // FT-424: the function draws CPs 0, 1 and 2; the new symbol of the same FnDef draws 0 and 2.
+        // The function draws CPs 0, 1 and 2; the new symbol of the same FnDef draws 0 and 2.
         let current = shape(1, &[(0, 0, "13"), (1, 1, "14"), (2, 2, "21")]);
         let new = shape(1, &[(0, 2, "21"), (1, 0, "13")]);
         assert_eq!(
@@ -2198,7 +2198,7 @@ mod tests {
         assert_eq!(placed_body([-1, 0, 2, 10], 1, (100, 200)), [90, 199, 100, 202]);
     }
 
-    /// FT-441: a wire without a printed number (`?`) sorts after every numbered wire; between two `?` wires the ends'
+    /// A wire without a printed number (`?`) sorts after every numbered wire; between two `?` wires the ends'
     /// labels decide as before.
     #[test]
     fn unnumbered_wires_sort_last_in_junction_wires() {

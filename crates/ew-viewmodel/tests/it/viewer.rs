@@ -270,7 +270,7 @@ fn v3_walks_jumps_back_and_forward_with_the_exact_view() {
     done(&mut shell, "nav.back", json!({}));
     let c = shell.canvas().unwrap();
     assert_eq!(c.page().folio, "201");
-    // FT-1443: a page's first view, fit-width in this pane.
+    // A page's first view, fit-width in this pane.
     let width = (600.0 - 32.0) / (297.0 / 25.4 * 96.0);
     assert!(c.is_first_view() && (c.zoom() - width).abs() < 1e-12 && c.pane() == (600.0, 400.0));
     // The jump view: max(current zoom, 2 × fit); a page destination arrives (fitted on a first visit).
@@ -301,7 +301,7 @@ fn v3_walks_jumps_back_and_forward_with_the_exact_view() {
     done(&mut shell, "page.goto", json!({"folio": "101"}));
     done(&mut shell, "edit.undo", json!({}));
     assert!(!shell.page_labels().contains(&"107".to_owned()));
-    // WP-S2.09 §8.5: the undo restores the page the step was made on (103) as a jump from 101.
+    // The undo restores the page the step was made on (103) as a jump from 101.
     assert_eq!(shell.current_folio(), Some("103"), "the step's context");
     done(&mut shell, "nav.back", json!({}));
     assert_eq!(shell.current_folio(), Some("101"), "the restore's back entry");
@@ -614,7 +614,7 @@ fn v6_follow_back_forward_and_links_at_the_model() {
     assert_eq!(c.page().folio, "103");
     let target = c.cursor().unwrap();
     assert_eq!(c.page().cell_text(target).as_deref(), Some("103-A1"));
-    // FT-1506 (ID-1456): the view stops at the sheet's corner, so the target in cell A1 stands off centre, in view.
+    // The view stops at the sheet's corner, so the target in cell A1 stands off centre, in view.
     let [x0, y0, x1, y1] = c.view_nm();
     let (w, h) = c.page().sheet;
     assert_eq!(
@@ -631,7 +631,7 @@ fn v6_follow_back_forward_and_links_at_the_model() {
     );
     assert!((x0..=x1).contains(&target.0) && (y0..=y1).contains(&target.1));
     assert_ne!(c.centre(), target, "off centre");
-    // FT-1435: the arrival is marked; Back and Forward restore a view and mark nothing.
+    // The arrival is marked; Back and Forward restore a view and mark nothing.
     let (arrived, serial) = c.arrival().expect("the arrival is marked");
     assert_eq!(arrived, target);
     done(&mut shell, "nav.back", json!({}));
@@ -745,8 +745,8 @@ fn v9_the_transcript_members_and_describe_lines() {
     assert!(nav < tabs && tabs < pv);
     assert!(!d.contains("page list"));
     assert_eq!(state(&shell)["focus"], "navigator");
-    // F6 cycles navigator, group 1, group 2 and the property grid (WP-S2.05: in the Schematic workspace), then the
-    // command bar (WP-S2.17 part 2, doc 16a §5.9: first in the ring).
+    // F6 cycles navigator, group 1, group 2 and the property grid (in the Schematic workspace), then the
+    // command bar (doc 16a §5.9: first in the ring).
     done(&mut shell, "ui.focus_next", json!({}));
     assert_eq!(shell.focus(), Some(Focus::Canvas(0)));
     done(&mut shell, "ui.focus_next", json!({}));

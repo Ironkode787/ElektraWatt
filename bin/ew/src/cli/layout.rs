@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew layout [<project-dir>] [--page <folio>] [--json]` (WP-S2.19 part 1, decision log ID-1498): the layout measures
+//! `ew layout [<project-dir>] [--page <folio>] [--json]`: the layout measures
 //! of one page or of every schematic page, in text or as `ew.layout-result/1`.
 
 use std::path::PathBuf;

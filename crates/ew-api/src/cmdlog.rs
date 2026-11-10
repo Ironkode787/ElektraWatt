@@ -21,14 +21,14 @@
 //! section's ID), `id:<uuid>` (the text itself, once a record with that ID exists), `tag:<tag>` (the one
 //! device whose derived tag prints `<tag>`, short form such as `-X1031` or `S51`, or full designation) and
 //! `folio:<label>` (the one drawn page whose printed folio label is `<label>`, in `page_order`); any other text
-//! is a bare tag, read as `tag:<text>` (FT-544: `-101Q1`, a terminal as `-X1031:5`). Tag and
+//! is a bare tag, read as `tag:<text>` (`-101Q1`, a terminal as `-X1031:5`). Tag and
 //! folio references match exactly, against the derived values of the then-current model; until the `find`
 //! surface of doc 17 §3.5 exists they do not search patterns. A reference that names nothing, or more than
 //! one device or page (an unnumbered `-101A?`, a duplicate terminal designation), cannot be resolved: it
 //! stops the replay with [`CmdLogError::Reference`] (exit code 2, [`CmdLogError::exit_code`]), never as a
 //! failing command; such targets need `id:<uuid>`, and an ambiguous tag's message names every candidate.
 //!
-//! **Tag forms of `plc.bind_channel`** (FT-721). Beside the IDs, a line of `plc.bind_channel` may name its channel
+//! **Tag forms of `plc.bind_channel`**. Beside the IDs, a line of `plc.bind_channel` may name its channel
 //! as `<module tag>#<number>` (`-201U5#3`) or `<module tag>:<designation>` (the channel's determined designation: the
 //! manual one, else the part's pattern), and the CP's function as `<device tag>` or `<device tag>:<slot>` (the slot is
 //! the function's CP designations joined by `-`, as `place.pick` prints it), with the CP by `designation` (`"14"`) in
@@ -320,7 +320,7 @@ impl Session {
                 name: cmd.name.clone(),
                 params,
             };
-            // WP-S7.03 D8: a profile of a library is embedded first, so that `plc.set_profile` pins a copy the
+            // A profile of a library is embedded first, so that `plc.set_profile` pins a copy the
             // project holds (the command stays pure over the model; the embedding is an undo step of its own, and
             // the line's receipt is the command's).
             if name == "plc.set_profile"
@@ -376,7 +376,7 @@ impl Session {
 
     /// The record a command-log reference names in the current model (`id:<uuid>`, `section:<number>`, `tag:<tag>`,
     /// `folio:<label>`; see the module documentation), with the messages of a replay that cannot resolve it. The
-    /// resolver of [`Session::run_script`], shared with the property grid's `select.set` (WP-S2.05 §4.2).
+    /// resolver of [`Session::run_script`], shared with the property grid's `select.set`.
     ///
     /// # Errors
     ///
@@ -421,7 +421,7 @@ impl Session {
                 )
                 .map(|id| id.cast())
             }
-            // FT-544: a bare tag (`-101Q1`, a CP as `-X1031:5`) stands for `tag:<tag>` when one device prints it.
+            // A bare tag (`-101Q1`, a CP as `-X1031:5`) stands for `tag:<tag>` when one device prints it.
             _ => self.tag_target(text, text).map_err(|reason| {
                 if reason.contains("no device prints this tag") {
                     format!(
@@ -436,7 +436,7 @@ impl Session {
     }
 
     /// The one device whose derived tag prints `tag` (short form or full designation). When several do, the
-    /// error names their full designations, so the caller can pick one; it never guesses (FT-544).
+    /// error names their full designations, so the caller can pick one; it never guesses.
     fn tag_target(&self, tag: &str, text: &str) -> Result<AnyId, String> {
         let q = self.query();
         let mut matches: Vec<(AnyId, String)> = q
@@ -499,7 +499,7 @@ impl Session {
 }
 
 impl Session {
-    /// FT-721: `params` of `command` with the tag forms of `plc.bind_channel` (see the module documentation) replaced
+    /// `params` of `command` with the tag forms of `plc.bind_channel` (see the module documentation) replaced
     /// by IDs; other commands' parameters unchanged.
     fn tag_forms(&self, command: &str, params: Value) -> Result<Value, String> {
         if command != "plc.bind_channel" {
@@ -717,7 +717,7 @@ fn record_exists(q: &Q, id: AnyId) -> bool {
         || q.symbols().contains(id.cast())
         || q.fndefs().contains(id.cast())
         || q.forms().contains(id.cast())
-        // WP-S4.02 part 4 (D12): the layout records, which Properties shows and `select.set` reaches.
+        // The layout records, which Properties shows and `select.set` reaches.
         || q.table::<ew_schema::Placement>().get(id.cast()).is_some()
         || q.table::<ew_schema::Carrier>().get(id.cast()).is_some()
         || q.table::<ew_schema::MountingSurface>().get(id.cast()).is_some()

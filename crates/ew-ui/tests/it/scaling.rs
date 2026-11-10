@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 5 in the window (D14; AX-2 to AX-4; FR-UI-027, NFR-A11Y-04; ID-1272 rulings 4 to 7): View ▸ UI scale
+//! WP-S2.08 part 5 in the window (D14; AX-2 to AX-4; FR-UI-027, NFR-A11Y-04; rulings 4 to 7): View ▸ UI scale
 //! and the first run offer 250 % and 300 % and `settings.toml` keeps them; the in-window core dialogs (New project,
 //! Renumber devices…, Renumber pages…, the print pre-dialog, the find and replace pane, the settings switches, the
 //! first-run steps, the recovery dialog, the parts import card) pass `assert_accessible` and `assert_fits` at 300 % on a
@@ -70,7 +70,7 @@ fn apply(h: &mut Harness<'_, App>, size: Size) {
 }
 
 /// One step of a dialog: the frame settles, every input is named and every node fits, and an open dialog's buttons lie
-/// inside the window down as well (ID-1278 ruling 13).
+/// inside the window down as well.
 #[track_caller]
 fn step(h: &mut Harness<'_, App>) {
     settle(h);
@@ -287,7 +287,7 @@ fn ax3_a_footer_below_the_window_is_reported() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// C49-p6#3: the first run's steps are checked too. Its first step fits at 300 %; in a window too short for it, its
+/// The first run's steps are checked too. Its first step fits at 300 %; in a window too short for it, its
 /// Skip and Next are reported as leaving the window.
 #[test]
 fn ax3_a_first_run_footer_below_the_window_is_reported() {
@@ -478,7 +478,7 @@ fn ax4_reduced_motion_stops_animation_and_the_zoom_jumps() {
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
     settle(&mut h);
     wait_for_page(&mut h);
-    // The harness draws on the CPU, which reduces motion while the setting is unset (ID-1278 ruling 12): motion on.
+    // The harness draws on the CPU, which reduces motion while the setting is unset: motion on.
     dispatch(&mut h, "view.reduce_motion", json!({"on": false}));
     settle(&mut h);
     assert!(!h.state().shell().reduce_motion());
@@ -507,7 +507,7 @@ fn ax4_reduced_motion_stops_animation_and_the_zoom_jumps() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// ID-1278 ruling 12 (C49-p3#2; D14, doc 16 §10.4, doc 16a §4.12): with the setting unset, a canvas that draws on the
+/// ID-1278 ruling 12 (D14, doc 16 §10.4, doc 16a §4.12): with the setting unset, a canvas that draws on the
 /// GPU keeps motion, and a GPU start that fails (FR-UI-028's fallback to the CPU) leaves reduced motion on.
 #[test]
 fn ax4_a_failed_gpu_start_leaves_reduced_motion_on() {

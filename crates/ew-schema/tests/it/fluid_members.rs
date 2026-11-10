@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The fluid members typed inside format 0.1 (WP-S1.20 D2, FL-1): `ConnectionKind::Fluid` with its line kind,
+//! The fluid members typed inside format 0.1 (FL-1): `ConnectionKind::Fluid` with its line kind,
 //! `CpDef.port_role`, `CpOverride.closure`, `PartSections.fluid` and `TextSlot.fallback`. Each round-trips byte-equal,
 //! an unknown value of each new enum survives verbatim as `Unknown`, and a default member is omitted.
 

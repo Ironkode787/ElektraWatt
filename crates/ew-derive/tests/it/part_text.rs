@@ -162,7 +162,7 @@ fn copy_uid(item: u128) -> String {
 
 #[test]
 fn an_embedded_manufacturer_copy_names_the_manufacturer_before_the_key() {
-    // WP-S1.19 D10: the reference resolves to the copy of (library, item); the `key` of an older file is the fallback.
+    // The reference resolves to the copy of (library, item); the `key` of an older file is the fallback.
     let mut fx = fixture();
     fx.lib(json!({
         "$k": "manufacturer", "id": copy_uid(0x9000), "library_id": uid(LIBRARY), "item_id": uid(0x9000),
@@ -219,7 +219,7 @@ fn main_number(main_def: Option<u128>) -> String {
 
 #[test]
 fn the_main_part_provides_the_main_function() {
-    // WP-S1.19 D8 (FT-208): the second use's template has a main function with the main function's FnDef.
+    // The second use's template has a main function with the main function's FnDef.
     assert_eq!(main_number(Some(0x51)), "SECOND");
     // The first use when it provides the main function, or when no use does.
     assert_eq!(main_number(Some(0x50)), "FIRST");

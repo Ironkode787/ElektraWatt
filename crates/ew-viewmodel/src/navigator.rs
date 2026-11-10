@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The page navigator (WP-S2.03 part 1, spec section 6.1; FR-PAG-024, the viewing part): the pages of the derived
+//! The page navigator (spec section 6.1; FR-PAG-024, the viewing part): the pages of the derived
 //! page order as a flat list, by section, or by structure (function, location, section), sorted by folio (page
 //! order) or by page type, with a filter and a row cursor. It replaces WP-S2.01's page list in the `pages` pane.
 //!
@@ -148,7 +148,6 @@ pub struct PageNavigator {
     collapsed: BTreeSet<String>,
     /// The row cursor's key, when the user moved it; else the current page's row.
     row: Option<String>,
-    // WP-S2.06 part 1
     /// The keys of the marked rows (multi-selection, §6.4).
     pub(crate) marked: BTreeSet<String>,
     /// The key a Shift range starts from.
@@ -232,7 +231,7 @@ impl PageNavigator {
         order
     }
 
-    /// Whether a page row passes the filter: the framework's filter (WP-S2.06 §6.3) over the row's label
+    /// Whether a page row passes the filter: the framework's filter over the row's label
     /// `<folio> <title>`, its tokens and its facets (`page:<folio>`, `kind:page`). A substring of the folio or of the
     /// title is a substring of the label, so the as-built matches are kept (D6).
     fn matches(&self, row: &PageRow, query: &crate::navigators::Query) -> bool {
@@ -377,7 +376,7 @@ impl PageNavigator {
             .map(|r| r.key.clone())
     }
 
-    /// The accessible name of a row (WP-S2.03 §6.1): a page `"<folio> <title>, page, <badges>"` (the badges
+    /// The accessible name of a row: a page `"<folio> <title>, page, <badges>"` (the badges
     /// `generated`, `QET grid` and `current`, comma-separated), a node `"<label>, <section|function|location>"`. The
     /// level, the position in its set, the set size and the expanded state are AccessKit properties, not words.
     pub fn accessible_name(row: &NavRow, rows: &[PageRow], current: Option<PageId>) -> String {
@@ -409,7 +408,6 @@ impl PageNavigator {
         self.row.clone().filter(|k| visible.iter().any(|r| &r.key == k))
     }
 
-    // WP-S2.06 part 1
     /// The key of page row `i` in the current view (as [`PageNavigator::visible`] would key it without a filter).
     pub fn key_of(&self, rows: &[PageRow], i: usize) -> String {
         let row = &rows[i];

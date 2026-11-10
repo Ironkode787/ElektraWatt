@@ -553,7 +553,7 @@ fn a_fork_starts_with_empty_statistics_and_mismatches() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Panics (cycle 6 review F13)
+// Panics (F13)
 
 #[test]
 fn advance_and_reads_work_after_a_caught_panic_in_a_query() {
@@ -681,7 +681,7 @@ proptest! {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// `Store::explain` (WP-S1.22 D12): read-only state and trail
+// `Store::explain`: read-only state and trail
 
 /// The explanation of `q`'s key `k`, every field as text (the read-only comparisons of the property below).
 fn explain(store: &Store<Cells>, q: u8, k: u32) -> String {

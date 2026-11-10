@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 5, FT-671 and FT-672: the valve typical of doc 07 §9.3 as macros, and the orientation of an inserted
+//! The valve typical of doc 07 §9.3 as macros, and the orientation of an inserted
 //! window macro.
 //!
 //! - **MC-4.** Folio 203 saved through `Session::save_macro` as the page macro "valve-manifold page" with the groups
@@ -242,7 +242,7 @@ fn value_set(name: &str, title: &str, a: (u32, u32), b: Option<(u32, u32)>, fiel
                 values.insert(format!("{p}_fn{i}"), json!("Spare"));
             }
         }
-        // FT-1420 (ID-1397): spare valves print "Spare" at the symbol's own slot, so the set resets the moved one.
+        // Spare valves print "Spare" at the symbol's own slot, so the set resets the moved one.
         if !field {
             values.insert(format!("{p}_slots"), json!([]));
         }
@@ -276,7 +276,7 @@ fn page_spec(s: &Session) -> MacroSpec {
     ];
     variables.extend(group_variables("a", &t.a));
     variables.extend(group_variables("b", &t.b));
-    // FT-1420 (ID-1397): the text slots of each group's module and valves on 203 (the function-text slot moved below
+    // The text slots of each group's module and valves on 203 (the function-text slot moved below
     // the valve body for the process tags, FT-1323) as a variable, which the spare value sets reset.
     let q = s.query();
     for (p, g) in [("a", &t.a), ("b", &t.b)] {
@@ -629,7 +629,7 @@ fn mc4_the_valve_manifold_macro_reproduces_folios_203_to_206() {
         commit(&mut s, &cmd);
         after = page_of(&s, &(202 + set).to_string());
     }
-    // FT-1420 (ID-1397): the spare value sets reset the typical's moved function-text slot themselves, so no
+    // The spare value sets reset the typical's moved function-text slot themselves, so no
     // representation on 204 to 206 keeps a slot, and the user resets nothing by hand.
     let q = s.query();
     let slotted = ["204", "205", "206"]
@@ -785,7 +785,7 @@ fn by_tag_now(q: &Q, tag: &str) -> Option<Id<Device>> {
 
 /// MC-5 (FR-MAC-005): the folio-203 typical inserted a second time with value set 1 doubles slots 1 and 2: the card
 /// lists exactly the eight bound addresses Q0.1, Q0.3 … Q1.7 and EW-FL-013's two refusals of a module at a held
-/// position (FI-07, ID-1329); with -201U3 and -201U4 moved to free positions the commit is one undo step that undoes
+/// position (FI-07); with -201U3 and -201U4 moved to free positions the commit is one undo step that undoes
 /// exactly.
 #[test]
 fn mc5_a_second_typical_lists_the_doubled_addresses_and_undoes_in_one_step() {
@@ -848,7 +848,7 @@ fn mc5_a_second_typical_lists_the_doubled_addresses_and_undoes_in_one_step() {
 // ---------------------------------------------------------------------------------------------------------
 // Value set 4, the window macro and FT-672
 
-/// ID-1329 (WP-S1.20 D16, FI-07): the valve module of a macro inserted at a position of -201U1 that a module holds is
+/// ID-1329 (FI-07): the valve module of a macro inserted at a position of -201U1 that a module holds is
 /// refused by EW-FL-013's prevent half, in its words, and nothing changes.
 #[test]
 fn a_macro_module_at_a_held_position_is_refused() {
@@ -881,7 +881,7 @@ fn value_set_4_inserts_one_module_without_field_devices() {
     let (_root, t, lib) = user_library("ew-api-mc4-set4");
     let mut s = golden(Some(t));
     let saved = s.save_macro(lib, &page_spec(&s)).unwrap();
-    // ID-1329: -202U2 leaves position 10 of -201U1, where the inserted module goes
+    // -202U2 leaves position 10 of -201U1, where the inserted module goes
     let free = free_slot(&s, "-202U2", 12);
     commit(&mut s, &free);
     let devices = s.query().devices().iter().count();
@@ -919,8 +919,8 @@ fn value_set_4_inserts_one_module_without_field_devices() {
     let _ = p207;
 }
 
-/// The window macro "valve module typical" saves with its variables and inserts on a new fluid page at R0 and at 90°
-/// (FT-672): the representations turn about the anchor, the black box's orientation with them.
+/// The window macro "valve module typical" saves with its variables and inserts on a new fluid page at R0 and at 90°:
+/// the representations turn about the anchor, the black box's orientation with them.
 #[test]
 fn the_valve_module_typical_inserts_turned_about_its_anchor() {
     let (_root, t, lib) = user_library("ew-api-valve-module");
@@ -1023,7 +1023,7 @@ fn the_valve_module_typical_inserts_turned_about_its_anchor() {
     assert_eq!(channels_of_new, 8);
 }
 
-/// FT-672: the PSU block of folio 102 inserted at 90° on a new folio 105: every representation and every route vertex
+/// The PSU block of folio 102 inserted at 90° on a new folio 105: every representation and every route vertex
 /// turns about the anchor, and each wire still ends at its CPs on the inserted functions.
 #[test]
 fn a_window_macro_at_90_degrees_keeps_its_wires_on_their_cps() {
@@ -1219,7 +1219,7 @@ fn a_window_macro_at_90_degrees_keeps_its_wires_on_their_cps() {
     assert_eq!(cp_nets(&old_links), cp_nets(&new_links));
 }
 
-/// ID-1509 (5), WP-S2.19 D16: a window macro holding EW's interruption-point forms (folio 102's points) is refused
+/// A window macro holding EW's interruption-point forms (folio 102's points) is refused
 /// turned, in words, since those points always point right.
 #[test]
 fn a_window_macro_with_interruption_points_is_refused_turned() {
@@ -1377,7 +1377,7 @@ fn a_log_without_orient_replays_unchanged_and_a_page_macro_takes_no_orient() {
     let (_root, t, lib) = user_library("ew-api-orient-old");
     let mut s = golden(Some(t));
     let saved = s.save_macro(lib, &page_spec(&s)).unwrap();
-    // ID-1329: -202U2 leaves position 10 of -201U1, where the inserted module goes
+    // -202U2 leaves position 10 of -201U1, where the inserted module goes
     let free = free_slot(&s, "-202U2", 12);
     commit(&mut s, &free);
     let cmd = s

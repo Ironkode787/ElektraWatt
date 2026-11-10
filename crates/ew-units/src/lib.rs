@@ -31,7 +31,7 @@
 //!   `[[x0, y0], [x1, y1]]` (two `Pt2`, minimum corner first; a reversed rectangle is a schema violation),
 //!   and `ew-schema` implements it (its `Bounds` type), keeping this crate free of it.
 //! - The f64 boundary helper [`Nm::to_mm_f64`] exists for renderers only.
-//! - `Quantity`, `Csa` and the unit set are deferred to `ew-schema` (WP-S1.02); this crate provides only
+//! - `Quantity`, `Csa` and the unit set are deferred to `ew-schema`; this crate provides only
 //!   the number type [`Dec3`].
 //! - f64 and glam conversions of [`Pose3`] are deferred to the crates that need them (`ew-panel`), and
 //!   kurbo conversions of the 2D types to `ew-dl`. Trigonometry for [`Angle2`] lives in `ew-dl`.

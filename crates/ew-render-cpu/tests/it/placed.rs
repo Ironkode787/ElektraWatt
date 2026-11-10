@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `render_placed` (WP-S3.07 D7, ruling 1 of ID-1180): the content at the target resolution times the placement's
+//! `render_placed`: the content at the target resolution times the placement's
 //! scale at its offset, then the overlay at the paper's resolution; an identity placement renders as `render`.
-//! `render_placed_band` (D12, ruling 1 of ID-1218): its rows in bands, as a printer is sent them.
+//! `render_placed_band` (D12): its rows in bands, as a printer is sent them.
 
 use crate::common;
 
@@ -158,10 +158,10 @@ fn a_paper_without_extent_is_a_size_error() {
     );
 }
 
-/// The rows a printer band holds (WP-S3.07 D12).
+/// The rows a printer band holds.
 const BAND: u32 = 256;
 
-/// WN-2 (ruling 1 of ID-1218): an A4 sheet fitted to A5 (148/210, centred) with an overlay, at 300 dpi, rendered in
+/// WN-2: an A4 sheet fitted to A5 (148/210, centred) with an overlay, at 300 dpi, rendered in
 /// bands of 256 rows: each band is the paper's width and at most 256 rows, and the bands stacked equal
 /// `render_placed`'s image within one level per channel. Text, a curve, a diagonal and a filled block cross the band
 /// edges. The count of pixels that differ at all is printed.

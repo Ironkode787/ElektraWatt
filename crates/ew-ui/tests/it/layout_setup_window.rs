@@ -57,7 +57,7 @@ fn the_duct_button_arms_draw_duct_with_its_options_card() {
         "the grid's tab list"
     );
     assert!(h.query_all_by_label("Part").next().is_some(), "the part's label");
-    // Golden A's duct part gives no size, so the card asks for it (C44-p4#3).
+    // Golden A's duct part gives no size, so the card asks for it.
     assert!(
         h.query_all_by_label("Width (mm)").next().is_some(),
         "the width's label"
@@ -419,7 +419,7 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
     out
 }
 
-/// FT-1284 (ID-1315 ruling 4, doc 16a §6.12): Create enclosure with its Create disabled at open (its part emptied
+/// FT-1284 (ruling 4, doc 16a §6.12): Create enclosure with its Create disabled at open (its part emptied
 /// before the first frame) and no text field gives its first focus to its first enabled control, the location list.
 #[test]
 fn create_enclosure_disabled_at_open_focuses_its_first_control() {

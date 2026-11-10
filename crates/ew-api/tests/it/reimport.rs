@@ -140,7 +140,7 @@ fn the_same_file_again_is_unchanged_and_writes_nothing() {
     assert_eq!(s.world().rev, before_rev);
 }
 
-/// ID-1374 (C51-p2#10): a file of the project's own lineage is imported once: the batch the detection made is the
+/// A file of the project's own lineage is imported once: the batch the detection made is the
 /// batch of an import into the lineage, so a job runs the importer once; a proposed lineage gives no batch.
 #[test]
 fn the_detection_of_the_own_lineage_gives_the_re_import_batch() {
@@ -296,7 +296,7 @@ fn a_change_on_both_sides_and_a_removal_are_kept_and_listed() {
     );
 }
 
-/// ID-1392 (FT-1387): a conflict row's member values in words: a multi-language text as its text, a record ID by the
+/// A conflict row's member values in words: a multi-language text as its text, a record ID by the
 /// record's title, an absent value as `-`.
 #[test]
 fn member_values_read_in_words() {
@@ -313,7 +313,7 @@ fn member_values_read_in_words() {
     assert_eq!(s.member_words("device", "function_text", None), "-");
 }
 
-/// ID-1392 (FT-1384): after a re-import that keeps a record removed in the source, the same file again writes
+/// After a re-import that keeps a record removed in the source, the same file again writes
 /// nothing: no run, no undo step, no change.
 #[test]
 fn the_same_file_after_a_removal_writes_nothing() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew layout` (WP-S2.19 part 1, decision log ID-1498) on a copy of Golden A: the text of folio 101 names the
+//! `ew layout` on a copy of Golden A: the text of folio 101 names the
 //! heater's PE wire touching the lamp's X1 and the lamp's feed along the switch's wires, its line of counts agrees
 //! with the `--json` result, and a folio that names no page is refused in words. Named items only, never totals.
 
@@ -84,7 +84,7 @@ fn folio_101_routed_names_no_touch_overlap_or_symbol_crossed() {
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let text = stdout(&o);
     let lines: Vec<&str> = text.lines().collect();
-    // Golden A's routes are the router's (WP-S2.19 RG1, RG2): no line names a broken hard rule.
+    // Golden A's routes are the router's (RG1, RG2): no line names a broken hard rule.
     for word in [
         "  touch: ",
         "  overlap: ",
@@ -143,7 +143,7 @@ fn every_drawn_page_gets_a_line_of_counts_and_an_unknown_folio_is_refused() {
     );
 }
 
-/// `ew route` (WP-S2.19 D13): folio 3's one wire, its route cleared first (Golden A's routes are the router's), is
+/// `ew route`: folio 3's one wire, its route cleared first (Golden A's routes are the router's), is
 /// routed and saved, so a second run has nothing to do; `--dry-run` writes nothing; an unknown folio is refused in words.
 #[test]
 fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {

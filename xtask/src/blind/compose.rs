@@ -1,17 +1,17 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `compose` (WP-S6.13 §5.6, D10): the prompt of a run as the concatenation of its versioned files, deterministically.
+//! `compose` (D10): the prompt of a run as the concatenation of its versioned files, deterministically.
 //!
 //! In this order: the drafter's prompt `tools/blind/BLIND_DRAFTER.md` (the checker's `CHECKER.md` for a check run), the
 //! persona, the task sheet and `tools/blind/HELP.md`, each preceded by a line `<!-- file: <path> sha256 <hex> -->`, with
 //! `{run}`, `{blind}`, `{kind}` and the cap values substituted. Equal inputs give equal bytes. The self-test task is
 //! scripted: its prompt is its task sheet and the help (a scripted agent reads no role).
 //!
-//! A visual run (WP-S6.13 part 4, visual spec §8) is composed of the play-tester's prompt `PLAYTESTER.md`, the persona,
+//! A visual run (visual spec §8) is composed of the play-tester's prompt `PLAYTESTER.md`, the persona,
 //! the task sheet and `HELP-VISUAL.md`, with `{frames}` the run's frames folder. A check run of a brief adds the brief's
 //! `acceptance.toml` after the task sheet: the checker decides the acceptance list. A brief whose `task.toml` names
-//! usability rounds adds `ROUND.md` after the task sheet (WP-S2.12 D11): the hint command and the questionnaire.
+//! usability rounds adds `ROUND.md` after the task sheet: the hint command and the questionnaire.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -374,7 +374,7 @@ mod tests {
         }
     }
 
-    /// D10 and FP-1 (ID-1355): every persona is senses-independent: none tells the agent how it acts (the run's prompt
+    /// D10 and FP-1: every persona is senses-independent: none tells the agent how it acts (the run's prompt
     /// does), so none says it has no mouse.
     #[test]
     fn d10_the_personas_are_senses_independent() {

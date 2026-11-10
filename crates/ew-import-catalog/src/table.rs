@@ -8,7 +8,7 @@
 
 use ew_interop_api::{ImportError, Limits};
 
-/// The longest cell of one table, in bytes: 32 KiB (doc 14 §11, "CSV, XLSX: cell ≤ 32 KiB"; FT-665).
+/// The longest cell of one table, in bytes: 32 KiB (doc 14 §11, "CSV, XLSX: cell ≤ 32 KiB").
 pub const MAX_CELL_BYTES: u32 = 32 * 1024;
 
 /// The input limits of a parts table: the defaults with `max_text_bytes` lowered to [`MAX_CELL_BYTES`], the cell
@@ -267,7 +267,7 @@ pub(crate) fn read_xlsx(bytes: &[u8], sheet: Option<&str>, limits: &Limits) -> R
     sheet_of(crate::xlsx::read(bytes, sheet, limits)?, limits)
 }
 
-/// One column of a parts table as the column-mapping step shows it (FT-649): its header and a sample value.
+/// One column of a parts table as the column-mapping step shows it: its header and a sample value.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TableColumn {
     /// The header, trimmed (empty for a column without one).
@@ -276,7 +276,7 @@ pub struct TableColumn {
     pub sample: String,
 }
 
-/// The columns of the table `input` (the window's column-mapping step, FT-649), read by the readers
+/// The columns of the table `input` (the window's column-mapping step), read by the readers
 /// [`crate::parse_parts`] uses, under the same limits: CSV, or the XLSX `sheet` (the first when `None`).
 ///
 /// # Errors
@@ -389,7 +389,7 @@ fn decode_escapes(text: &str) -> String {
     out
 }
 
-/// Reads a table in `format` (WP-S3.08 D12) with the parts import's readers: CSV, or the XLSX sheet named `sheet`
+/// Reads a table in `format` with the parts import's readers: CSV, or the XLSX sheet named `sheet`
 /// (the first when `None`; CSV has one table and takes no name). Cells are their displayed text as
 /// [`crate::parse_parts`] reads them: a number in its shortest form (`1.10` reads `1.1`), a date as its serial number;
 /// a workbook's `_xHHHH_` escapes are decoded (`_x000D_` a carriage return, `_x005F_` a `_`).
@@ -416,7 +416,7 @@ pub fn read_sheet(
     })
 }
 
-/// Reads every record of a table in `format` whole (WP-S3.08, ID-1174 ruling 2): no header row and no cut to a header's
+/// Reads every record of a table in `format` whole: no header row and no cut to a header's
 /// width, so the round trip's key/value sheets (`_ew`, `_ew_base`) read with every cell. CSV, or the XLSX sheet named
 /// `sheet` (CSV has one table and ignores the name). Records without any text are left out as [`read_sheet`] leaves
 /// them out; a record has its cells as read (a workbook row ends at its last cell), each as [`read_sheet`] gives it.
@@ -462,7 +462,7 @@ pub fn read_rows(
     Ok(out)
 }
 
-/// The names of the sheets of an XLSX workbook in workbook order, hidden sheets included (WP-S3.08 D12).
+/// The names of the sheets of an XLSX workbook in workbook order, hidden sheets included.
 ///
 /// # Errors
 ///
@@ -509,7 +509,7 @@ mod tests {
         );
     }
 
-    /// FT-1107: `max_table_rows` records pass (there is no header row), the next one is refused.
+    /// `max_table_rows` records pass (there is no header row), the next one is refused.
     #[test]
     fn read_rows_takes_max_rows_records_and_refuses_one_more() {
         let rows = read_rows(
@@ -576,7 +576,7 @@ mod tests {
         read_csv(text.as_bytes(), &Limits::default())
     }
 
-    /// FT-649: the columns are the header row with the first non-empty value below each header.
+    /// The columns are the header row with the first non-empty value below each header.
     #[test]
     fn table_columns_give_headers_and_samples() {
         let input = ew_interop_api::ImportInput::new(

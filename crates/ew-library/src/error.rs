@@ -8,7 +8,7 @@ use std::time::SystemTime;
 
 use ew_ids::Uuid;
 
-/// Why a registry operation did not happen (WP-S1.19 §5.2).
+/// Why a registry operation did not happen.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum LibraryError {
     /// A write to a system or community library, or a library created inside a read-only tier (D4).

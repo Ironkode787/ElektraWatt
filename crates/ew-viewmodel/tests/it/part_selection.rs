@@ -451,7 +451,7 @@ fn ps6_an_edit_in_place_is_previewed() {
     s.shutdown();
 }
 
-/// ID-1109 (WP-S4.02 D14): a part dialog opened for a device never offers a layout part (enclosure, mounting plate,
+/// A part dialog opened for a device never offers a layout part (enclosure, mounting plate,
 /// rail, duct, end bracket), which the layout tools offer. The typed search asks for each layout part by its part
 /// number and finds none; the same search finds a device's part (the control).
 #[test]
@@ -483,7 +483,7 @@ fn the_device_dialog_never_offers_a_layout_part() {
     s.shutdown();
 }
 
-/// ID-1112 (WP-S4.02 D3, D14): a strip is offered end brackets though it has a main function, so its Part dialog finds
+/// A strip is offered end brackets though it has a main function, so its Part dialog finds
 /// the end bracket EW-GEN-EB-1 by search, and not the enclosure EW-GEN-ENC-1 (an enclosure goes to a device without a
 /// main function).
 #[test]
@@ -507,7 +507,7 @@ fn the_strip_1x1_finds_its_end_bracket_but_no_enclosure() {
     s.shutdown();
 }
 
-/// ID-1112 (WP-S4.02 D14): the enclosure device -UC1 has no main function, so its Part dialog finds the enclosure
+/// The enclosure device -UC1 has no main function, so its Part dialog finds the enclosure
 /// EW-GEN-ENC-1 by search, and not the end bracket EW-GEN-EB-1 (a device takes an end bracket only as a strip).
 #[test]
 fn the_enclosure_device_finds_its_enclosure_but_no_end_bracket() {
@@ -530,7 +530,7 @@ fn the_enclosure_device_finds_its_enclosure_but_no_end_bracket() {
     s.shutdown();
 }
 
-/// ID-1112 (WP-S4.02 D3, D14): a rail and a duct are layout items, never part uses of a device: no device's Part dialog
+/// A rail and a duct are layout items, never part uses of a device: no device's Part dialog
 /// finds RAIL-1 or DUCT-1. The strip 1X1, the enclosure device -UC1 and the valve F55 are searched.
 #[test]
 fn no_device_finds_a_rail_or_a_duct() {
@@ -551,7 +551,7 @@ fn no_device_finds_a_rail_or_a_duct() {
     }
 }
 
-/// W45.1 F2 (ID-1110): an empty search says so once, in the list and not in the dialog's body, and Choose is disabled
+/// W45.1 F2: an empty search says so once, in the list and not in the dialog's body, and Choose is disabled
 /// with its reason, since it has nothing to choose.
 #[test]
 fn the_empty_search_says_it_once_and_chooses_nothing() {

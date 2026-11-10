@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `plc_address_text(function)` (WP-S1.21 part 2, D7; doc 10 §3.6, FT-227) on one valve-terminal module whose eight
+//! `plc_address_text(function)` (doc 10 §3.6) on one valve-terminal module whose eight
 //! output channels derive Q0.0 … Q0.7: a bistable valve V1 (coil CPs 14 and 12 on its fluid function), a valve V2 whose
 //! coil is a function of its own beside the fluid function, and a plain device V3 bound to an excluded channel and to
 //! an open-item channel. PT-3's fixture is V1.

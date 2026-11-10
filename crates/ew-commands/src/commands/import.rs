@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `import.apply` (`ApplyImport`, WP-S3.09 D7, D11): an import batch as one transaction.
+//! `import.apply` (`ApplyImport`): an import batch as one transaction.
 //!
 //! The command is internal to the import front door: it is not in the command registry, so `ew apply`, command logs
 //! and the command schemas never see it; the host builds it from a batch the front door checked and previews it from
@@ -48,7 +48,7 @@ impl ApplyImport {
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// Re-import (WP-S3.09 D10 to D12)
+// Re-import
 
 /// The class of one record of a re-import (D12), in the order the card lists them.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -101,7 +101,7 @@ pub struct ReimportPlan {
     /// The records applied: added and changed in the source.
     pub apply: Vec<Record>,
     /// The hashes the new run carries for the records kept (unchanged, kept with this project's changes, conflicts);
-    /// a record removed in the source carries none (ID-1392).
+    /// a record removed in the source carries none.
     pub carried: BTreeMap<AnyId, RecordHash>,
     /// The EW-IMP-011 entries of the conflicts and the EW-IMP-010 entries of the removals, in that order.
     pub entries: Vec<ew_schema::RunEntry>,
@@ -152,7 +152,7 @@ pub fn lineage_keys(
 }
 
 /// Names the added records of `rows` as `model` holds them: the re-import's candidate after the normalisers, which
-/// number an added terminal (`-X1:3`). A changed record keeps the name this project gives it (ID-1389).
+/// number an added terminal (`-X1:3`). A changed record keeps the name this project gives it.
 pub fn name_rows(model: &ew_model::Model, rows: &mut [ReimportRow]) {
     let mut ids = ew_ids::SystemSource;
     let tx = TxBuilder::new(model, &mut ids);
@@ -337,7 +337,7 @@ pub fn plan_reimport(
             .copied()
             .collect();
         if !removed.is_empty() {
-            // ID-1392 (FT-1384): a removed record carries no base hash, so the next run's base has the source's
+            // A removed record carries no base hash, so the next run's base has the source's
             // state of it (absent) and the same file again finds nothing to do.
             for key in model.keys().into_iter().filter(|k| removed.contains(&k.1)) {
                 rows.push(ReimportRow {
@@ -379,7 +379,7 @@ pub fn plan_reimport(
 }
 
 /// The hash of D11: the first 128 bits of SHA-256 over the record's canonical line without its `source_ref` member
-/// (doc 05 §3.1: `$k` first, then the members in declaration order; ID-1374), as 32 lower-case hex digits.
+/// (doc 05 §3.1: `$k` first, then the members in declaration order), as 32 lower-case hex digits.
 ///
 /// # Errors
 ///
@@ -548,7 +548,7 @@ impl DynCommand for ApplyImport {
 mod tests {
     use super::*;
 
-    /// ID-1374 (C51-p2#4): D11's hash is taken over the record's canonical line without its `source_ref` member: `$k`
+    /// D11's hash is taken over the record's canonical line without its `source_ref` member: `$k`
     /// first, the members in declaration order.
     #[test]
     fn the_record_hash_is_over_the_canonical_line_without_source_ref() {

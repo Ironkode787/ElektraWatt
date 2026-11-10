@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fixes of window check W49.2 in the form dialogs and the strip editor (cycle 49, ID-1278):
+//! The fixes of window check W49.2 in the form dialogs and the strip editor:
 //!
 //! - F1 (doc 16a §6.12): every form dialog the shell opens, listed from `ew-viewmodel`'s source, takes its first focus
 //!   on its first text field, else on its Primary, which shows its focus ring; Enter on a fresh form submits it or is
 //!   refused with its reason in the form, and never toggles a check box.
-//! - F2 (ID-1278 ruling 7): the strip editor opens a strip without a tag yet by its ID, never by a filter built from
+//! - F2: the strip editor opens a strip without a tag yet by its ID, never by a filter built from
 //!   its placeholder tag, and no text of the window holds that tag.
 
 use crate::support;
@@ -272,7 +272,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     ] {
         checked.insert(check_form(&mut h, action, params));
     }
-    // FT-1371 and FT-1372: New cable… and Report block…; Connect cores… with a wire of the page selected.
+    // New cable… and Report block…; Connect cores… with a wire of the page selected.
     for action in ["cable.new", "report_block.new"] {
         checked.insert(check_form(&mut h, action, json!({})));
     }
@@ -349,7 +349,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     checked.insert(check_form(&mut h, "revision.incomplete", json!({})));
     h.state_mut().shell_mut().shutdown();
 
-    // WP-S2.11 D3: this is the census of the creation forms (§5 U2).
+    // This is the census of the creation forms (§5 U2).
     assert_eq!(
         crate::census::form_problems(&checked, &listed),
         Vec::<String>::new(),
@@ -366,7 +366,7 @@ fn texts(h: &Harness<'_, App>) -> Vec<String> {
         .collect()
 }
 
-/// W49.2-F2 (ID-1278 ruling 7): Edit ▸ Strip editor on a new strip without a terminal opens the table on that strip
+/// W49.2-F2: Edit ▸ Strip editor on a new strip without a terminal opens the table on that strip
 /// by its ID: no filter text, its own rows (none, so the empty state "No terminals yet"), while Golden A's other strips
 /// have rows. No text of the window and no line of `ui.describe` holds the placeholder tag, in English or in Dutch; the
 /// describe header names the strip in words. Before, the filter `strip:-?x?` showed with "Nothing matches".

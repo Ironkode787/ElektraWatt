@@ -68,7 +68,7 @@ pub(crate) struct MacroState {
     /// The variables Make variable remembered.
     variables: Vec<MacroVariable>,
     /// The Libraries navigator's cursor row key, the table it was read from (its identity, never a bare address: a
-    /// new table after a change reads it again) and the copy's detail (`None`: no copy row) (FT-755).
+    /// new table after a change reads it again) and the copy's detail (`None`: no copy row).
     copy_detail: Option<(String, Option<TableRef>, Option<Arc<LibraryCopyDetail>>)>,
 }
 
@@ -79,7 +79,7 @@ fn var_type(path: &str, ty: &ew_api::output::FieldType) -> &'static str {
         "process_tag" => "process_tag",
         "tag.counter" => "tag_counter",
         "state" => "state",
-        // FT-1420: a representation's text slots, which a value set may move or reset.
+        // A representation's text slots, which a value set may move or reset.
         "text_slots" => "text_slots",
         _ => match ty.inner() {
             FieldType::Bool => "bool",
@@ -113,7 +113,7 @@ fn conflict_words(conflicts: &[MacroConflict]) -> Vec<String> {
     refused
 }
 
-/// A typed text as the JSON value `macro.insert` coerces for a variable of type `ty` (FT-785, FT-786): `bool`
+/// A typed text as the JSON value `macro.insert` coerces for a variable of type `ty`: `bool`
 /// `true`/`yes` and `false`/`no` (any case) a boolean; `tag_counter` and `channel_binding` digits an integer; `number`
 /// a decimal text with a comma taken as the point; `part` a copy ID `{"copy": <ID>}`; anything else the text. A text
 /// that does not read as its type stays a text, which the command then refuses in words.
@@ -135,10 +135,10 @@ fn literal_value(ty: &str, text: &str) -> Value {
     }
 }
 
-/// A text-slots value typed in words (FT-1477), in the UI language: `as the symbol` is the empty list (every slot as
+/// A text-slots value typed in words, in the UI language: `as the symbol` is the empty list (every slot as
 /// the symbol draws it), else one clause per slot, `;` between them: `slot 2: at 10; -5.5 mm, turned 90°, hidden`, each
 /// part optional and in any order. The two coordinates are separated by `;` (or, as written before, `, `), and a
-/// number takes a decimal point or comma whatever the project writes (C52-p6#4, ID-1424), so `10; -5,5` and
+/// number takes a decimal point or comma whatever the project writes, so `10; -5,5` and
 /// `10; -5.5` read the same. `None` for a text that does not read so.
 fn slots_value(text: &str) -> Option<Value> {
     let word = |k: Key<'_>| strings::text(k).to_lowercase();
@@ -212,8 +212,8 @@ fn slots_value(text: &str) -> Option<Value> {
     Some(Value::Array(slots))
 }
 
-/// A text-slots value in words (FT-1477), as [`slots_value`] reads them back, its numbers with the project's decimal
-/// separator (`comma`, FT-366) and its two coordinates separated by `; ` in every language (C52-p6#4, ID-1424); `None`
+/// A text-slots value in words, as [`slots_value`] reads them back, its numbers with the project's decimal
+/// separator (`comma`) and its two coordinates separated by `; ` in every language; `None`
 /// for a list that is not one of slot overrides.
 fn slots_text(items: &[Value], comma: bool) -> Option<String> {
     if items.is_empty() {
@@ -256,7 +256,7 @@ fn slots_text(items: &[Value], comma: bool) -> Option<String> {
 }
 
 /// A variable's value as the card and the value-set table show it: a text as it is, a part by its copy ID, a list of
-/// text slots in words (FT-1477) with the project's decimal separator (`comma`), any other value as its JSON text.
+/// text slots in words with the project's decimal separator (`comma`), any other value as its JSON text.
 fn value_text(v: &Value, comma: bool) -> String {
     match v {
         Value::Array(items) => slots_text(items, comma).unwrap_or_else(|| v.to_string()),
@@ -281,7 +281,7 @@ fn literals(m: &MacroInsert) -> BTreeMap<String, String> {
 /// One value set of the `value_sets` parameter: its name and its values by variable name.
 type ValueSetParam = (String, Map<String, Value>);
 
-/// The `value_sets` parameter of `macros.save` (FT-786): an array of `{"name": <text>, "values": {<variable>:
+/// The `value_sets` parameter of `macros.save`: an array of `{"name": <text>, "values": {<variable>:
 /// <value>}}`, `None` when absent.
 fn value_sets_param(p: &Map<String, Value>) -> Result<Option<Vec<ValueSetParam>>, Outcome> {
     let bad = || failed(key!("error-bad-param"), &["value_sets"]);
@@ -304,7 +304,7 @@ fn value_sets_param(p: &Map<String, Value>) -> Result<Option<Vec<ValueSetParam>>
     }
 }
 
-/// A refused save in words (FT-786): a value set's refusal names the set and, for a cell, the variable; any other
+/// A refused save in words: a value set's refusal names the set and, for a cell, the variable; any other
 /// refusal as the library gave it. `sets` are the value sets' names in the order saved.
 fn save_error(e: &ew_api::MacroError, sets: &[String]) -> Outcome {
     if let ew_api::MacroError::Spec { at, message } = e
@@ -367,7 +367,7 @@ fn key_of(name: &str) -> String {
 }
 
 impl ShellModel {
-    /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`, FT-366).
+    /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`).
     fn decimal_comma(&self) -> bool {
         self.project.as_ref().is_some_and(|p| {
             matches!(
@@ -432,7 +432,7 @@ impl ShellModel {
         self.macros.detail = Some((key, detail, thumbnail));
     }
 
-    /// The copy detail follows the Libraries navigator's cursor and table (end of every dispatch, FT-755): one
+    /// The copy detail follows the Libraries navigator's cursor and table (end of every dispatch): one
     /// `Session::library_copy_detail` per new cursor row or new table.
     pub(super) fn sync_library_copy(&mut self) {
         let key = self
@@ -582,7 +582,7 @@ impl ShellModel {
     }
 
     /// Composes `macro.insert` of the macro of row `key` at `at` (page nm) on `page` with `value_set` and the typed
-    /// values `typed` (by variable name; FT-785: literals win over the value set and the defaults), lists its
+    /// values `typed` (by variable name; literals win over the value set and the defaults), lists its
     /// conflicts and shows the `macro` card. A refused composition opens no card; a refused preview opens it with its
     /// conflicts, and a typed value the command does not take shows the command's reason under its field.
     fn open_macro_card(
@@ -623,7 +623,7 @@ impl ShellModel {
             at: Some(Pt2::new(Nm(at.0), Nm(at.1))),
             orient: Orient2::default(),
         };
-        // FT-785: one field per variable; its placeholder is the chosen set's value, else the default.
+        // One field per variable; its placeholder is the chosen set's value, else the default.
         let set_values = value_set
             .as_ref()
             .and_then(|v| detail.value_sets.iter().position(|n| n == v))
@@ -677,7 +677,7 @@ impl ShellModel {
             && let Some(name) = path.strip_prefix("/values/")
             && let Some(f) = fields.iter_mut().find(|f| f.name == name)
         {
-            // FT-1395 (ID-1415): the reason in the window's language, without the `refusal-macro-variable` lead.
+            // The reason in the window's language, without the `refusal-macro-variable` lead.
             f.error = Some(match (text.key(), text.args()) {
                 ("refusal-macro-variable", [_, ew_api::TextArg::Text(why)]) => {
                     super::tools::rejected_words(message, Some(why))
@@ -745,7 +745,7 @@ impl ShellModel {
         self.open_macro_card(&m.key, m.page, m.at, name, typed)
     }
 
-    /// `macros.value {name, value?}` (FT-785): previews the open macro card again with `value` typed for its variable
+    /// `macros.value {name, value?}`: previews the open macro card again with `value` typed for its variable
     /// `name` (absent or blank: none, the value set's or the default's value applies); the value set and the other
     /// typed values stay.
     pub(crate) fn act_macros_value(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -1106,7 +1106,7 @@ impl ShellModel {
                 fields.push(field("x_mm", key!("form-macro-x"), x_text));
                 fields.push(field("y_mm", key!("form-macro-y"), y_text));
             }
-            // FT-786: the value-set table, one column per variable of the next save, prefilled from `value_sets`.
+            // The value-set table, one column per variable of the next save, prefilled from `value_sets`.
             let columns: Vec<(String, String)> = self
                 .macros
                 .variables
@@ -1175,7 +1175,7 @@ impl ShellModel {
             Ok(v) => v,
             Err(e) => return self.save_done(failed(key!("error-macro-save"), &[&e.to_string()])),
         };
-        // FT-786: the value sets, each cell read as its variable's type; a set needs a name.
+        // The value sets, each cell read as its variable's type; a set needs a name.
         let mut set_names = Vec::new();
         let mut sets = Vec::new();
         for (i, (set, values)) in value_sets.iter().enumerate() {
@@ -1250,7 +1250,7 @@ mod tests {
     fn keys_are_lower_case_words_joined_by_dashes() {
         assert_eq!(key_of("PSU 24 V DC"), "psu-24-v-dc");
         assert_eq!(key_of("  Motor (DOL) "), "motor-dol");
-        // FT-763: letters and digits of any script are kept; a name of none gives the empty key `macros.save` refuses.
+        // Letters and digits of any script are kept; a name of none gives the empty key `macros.save` refuses.
         assert_eq!(key_of("Übersicht"), "übersicht");
         assert_eq!(key_of("Ωμέγα"), "ωμέγα");
         assert_eq!(key_of("Schütz K1"), "schütz-k1");
@@ -1282,7 +1282,7 @@ mod tests {
         assert!(words[2].contains("N-1"), "{words:?}");
     }
 
-    /// FT-1477: a text-slots value reads and shows in words in each language, and the words read back.
+    /// A text-slots value reads and shows in words in each language, and the words read back.
     #[test]
     fn a_text_slots_value_reads_in_words() {
         let slots = json!([
@@ -1296,7 +1296,7 @@ mod tests {
         let en = "slot 2: at 10; -5.5 mm, turned 90°, hidden; slot 3: shown; slot 5";
         assert_eq!(value_text(&slots, false), en);
         assert_eq!(literal_value("text_slots", en), slots);
-        // C52-p6#4 (ID-1424): the project's decimal comma, and the form written before, read the same.
+        // The project's decimal comma, and the form written before, read the same.
         assert_eq!(
             value_text(&slots, true),
             "slot 2: at 10; -5,5 mm, turned 90°, hidden; slot 3: shown; slot 5"

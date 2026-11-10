@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The slot for prevent rules (ADR-0009 decisions 3 and 4): the project's [`Strictness`] and the
-//! [`PreventHook`] that `ew-checks` plugs into [`Model::apply_with`](crate::Model::apply_with) (WP-S1.15).
+//! [`PreventHook`] that `ew-checks` plugs into [`Model::apply_with`](crate::Model::apply_with).
 //! `ew-model` implements no prevent rule itself.
 
 use ew_schema::{Date, Project};
@@ -67,7 +67,7 @@ pub struct PreventViolation {
     /// The records involved.
     pub keys: Vec<AnyKey>,
     /// The finding's message arguments, by Fluent variable name, from which the window renders the rule's message
-    /// in its language (FT-1488); empty for a hook without such a catalogue.
+    /// in its language; empty for a hook without such a catalogue.
     pub args: Vec<(&'static str, String)>,
 }
 

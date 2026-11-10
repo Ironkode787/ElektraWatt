@@ -6,11 +6,11 @@
 use std::path::PathBuf;
 use std::process::{Command, Output};
 
-/// The property grid pilot's command log (WP-S2.05 part 1), recorded by `bin/elektrawatt/tests/grid/properties.rs`.
+/// The property grid pilot's command log, recorded by `bin/elektrawatt/tests/grid/properties.rs`.
 #[path = "../../elektrawatt/tests/grid/pilot_log.rs"]
 mod pilot_log;
 
-/// The find-and-replace script's command log (WP-S2.05 part 2), recorded by `bin/elektrawatt/tests/grid/find.rs`.
+/// The find-and-replace script's command log, recorded by `bin/elektrawatt/tests/grid/find.rs`.
 #[path = "../../elektrawatt/tests/grid/find_log.rs"]
 mod find_log;
 
@@ -302,7 +302,7 @@ fn strict_fails_on_error_finding_lenient_does_not() {
     assert!(String::from_utf8_lossy(&strict.stderr).contains("strict:"));
 }
 
-/// ID-1374 (C51-p2#7): `--strict` that fails writes no project into `--out`, as `ew import csv --strict`; without it
+/// `--strict` that fails writes no project into `--out`, as `ew import csv --strict`; without it
 /// the same file is written.
 #[test]
 fn strict_with_out_writes_nothing_when_it_fails() {
@@ -428,7 +428,7 @@ fn check_golden_a_in_each_format() {
         "case check_markdown_title: {}",
         stdout(&o)
     );
-    // WP-S6.04 D13: the About dialog's sentence ends the report.
+    // The About dialog's sentence ends the report.
     assert!(
         stdout(&o).ends_with(
             "\n\nElektraWatt's checks do not replace engineering verification by a competent person.\n"
@@ -484,7 +484,7 @@ fn check_counts_integrity_errors_of_a_damaged_project() {
     assert!(rules.contains(&"EW-CORE-005"), "{rules:?}");
 }
 
-/// FT-366: without `--scheme`, `ew check` runs the scheme the project names in `settings.extra.checks`
+/// Without `--scheme`, `ew check` runs the scheme the project names in `settings.extra.checks`
 /// (`release_scheme` in the default mode `release`, `active_scheme` in mode `online`); `--scheme` still wins and a
 /// project that names none gets `pre-delivery`.
 #[test]
@@ -529,7 +529,7 @@ fn check_uses_the_schemes_the_project_names() {
     assert_eq!(v["scheme"], "pre-delivery");
 }
 
-/// FT-405 (decision log ID-602): a project naming a scheme this build does not ship (a newer writer, a hand edit) is
+/// A project naming a scheme this build does not ship (a newer writer, a hand edit) is
 /// checked with `pre-delivery` and a notice on stderr naming the scheme; the exit status is the check's own, the same
 /// as for the project without the slot. A shipped name in the other slot, or `--scheme`, prints no notice; only the
 /// slot for the run's mode is read (ruling 5).
@@ -605,7 +605,7 @@ fn check_unknown_scheme_is_exit_2() {
     assert_eq!(o.status.code(), Some(2));
 }
 
-/// P5-2 (WP-S1.16 D6): `ew check --lang nl-NL` prints the Dutch text of a rule with an nl-NL pattern (EW-POT-013 on
+/// P5-2: `ew check --lang nl-NL` prints the Dutch text of a rule with an nl-NL pattern (EW-POT-013 on
 /// T55) and the en-GB text of one without (EW-CORE-044 has none; Golden A's EW-CORE-043 has one); the default and
 /// `--lang en-GB` print the en-GB message; an unknown language is a usage error. The counts and the exit status do not
 /// depend on the language.
@@ -756,7 +756,7 @@ fn last_line(o: &Output) -> String {
     stderr(o).lines().last().unwrap_or_default().to_owned()
 }
 
-/// SE-9 at the call site (WP-S6.04 D15, C51-p1#3): `ew sql`'s statement panics inside `run_sql`'s guard; the run ends
+/// SE-9 at the call site: `ew sql`'s statement panics inside `run_sql`'s guard; the run ends
 /// with S1 and exit 2, prints no result, and the copy of Golden A's files are as they were.
 #[test]
 fn sql_a_panicking_statement_ends_with_s1_and_changes_nothing() {
@@ -773,7 +773,7 @@ fn sql_a_panicking_statement_ends_with_s1_and_changes_nothing() {
     assert!(tree(&project) == before, "the copy's files changed");
 }
 
-/// FT-1379 (ID-1394 ruling 1): the writing of `ew sql`'s result (CSV in both presets, JSON, the workbook) panics inside
+/// The writing of `ew sql`'s result (CSV in both presets, JSON, the workbook) panics inside
 /// `run_sql`'s guard; each run ends with S1 and exit 2, prints no result and writes no file.
 #[test]
 fn sql_a_panicking_result_writer_ends_with_s1_and_writes_nothing() {
@@ -800,7 +800,7 @@ fn sql_a_panicking_result_writer_ends_with_s1_and_writes_nothing() {
     }
 }
 
-/// SE-9 at the call site (WP-S6.04 D15, C51-p1#2, C51-p1#3): `ew import table --apply`'s read panics inside
+/// SE-9 at the call site: `ew import table --apply`'s read panics inside
 /// `run_import_table`'s guard; the run ends with `error: ` and S2 with its first letter in lower case, exit 2, and the
 /// copy of Golden A's files are as they were.
 #[test]
@@ -831,7 +831,7 @@ fn import_table_a_panicking_read_ends_with_s2_and_changes_nothing() {
     assert!(tree(&project) == before, "the copy's files changed");
 }
 
-/// SE-9 (WP-S6.04 D15, NFR-REL-12): a recursive-CTE bomb in `ew sql` on a copy of Golden A stops at its deadline with
+/// SE-9 (NFR-REL-12): a recursive-CTE bomb in `ew sql` on a copy of Golden A stops at its deadline with
 /// exit 2, and the copy's files are as they were.
 #[test]
 fn sql_a_recursive_cte_bomb_stops_at_its_deadline_and_changes_nothing() {
@@ -1035,7 +1035,7 @@ fn verify_derived_tiny_project_is_clean() {
     assert!(!dir.join(".~ew.lock").exists());
 }
 
-/// FT-465: the parts list of a project without a `parts_summary` block (a new project from the built-in template, as the
+/// The parts list of a project without a `parts_summary` block (a new project from the built-in template, as the
 /// blind drafter's self-test makes) is a refusal, exit 2, and the one-line message names the block, the export, where the
 /// block comes from, and that there is nothing to export; no file is written.
 #[test]
@@ -1121,7 +1121,7 @@ fn verify_derived_golden_a_is_clean() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// `ew export pdf|svg` (FT-59, G-M1-01) and `ew apply` (FT-156)
+// `ew export pdf|svg` (G-M1-01) and `ew apply`
 
 /// `ew` in the environment of G-M1-01 as far as a test can set it: no display (`DISPLAY`, `WAYLAND_DISPLAY`
 /// removed), no starter content (`EW_CONTENT_DIR` removed), no `SOURCE_DATE_EPOCH`, and the user directories
@@ -1210,7 +1210,7 @@ fn export_pdf_of_golden_a_is_the_committed_pdf() {
     let before = tree(&project);
     let want = expected("pdf/sha256.txt");
     // The committed link count: 64 cross-reference items, 28 PLC overview rows and the report row links, a sum that
-    // `ew-api`'s page-output test counts from the page views (WP-S3.06 D10, ruling 5).
+    // `ew-api`'s page-output test counts from the page views.
     let structure: serde_json::Value = serde_json::from_str(&expected("pdf/structure.json")).unwrap();
     let links = structure["links"].as_u64().expect("the committed link count");
     for threads in ["1", "4"] {
@@ -1458,7 +1458,7 @@ fn apply_preview_of_golden_b1_prints_the_10_tag_changes() {
     assert!(tree(&project) == before);
 }
 
-/// GP-UT (doc 20 section 2, WP-S2.12 D6): `ew apply` of `variants/gp-ut.ewcmd` on a copy of Golden A removes -102F1
+/// GP-UT (doc 20 section 2): `ew apply` of `variants/gp-ut.ewcmd` on a copy of Golden A removes -102F1
 /// (its device, function, representation, layout placement and the potential +24V-F defined at its terminal 2) and
 /// its four wires W20, W21, W24 and W25 (their six connection records, J3.1 and J4.1 being the junction segments, and
 /// the junctions J3 and J4), and nothing else: every other record line is byte for byte Golden A's.
@@ -1648,7 +1648,7 @@ fn apply_refuses_a_project_with_a_crashed_session_journal() {
         )
     );
     assert!(tree(&project) == before, "nothing is applied");
-    // FM-5 (FT-253): the other session's journal is still there, unchanged. The second half, a clean close deletes only
+    // FM-5: the other session's journal is still there, unchanged. The second half, a clean close deletes only
     // its own segment, is `Journal::close` (`crates/ew-store/src/journal.rs`), shown by
     // `recovery_replays_the_newest_journal_and_keeps_the_other_unchanged` (`crates/ew-store/tests/it/recovery.rs`)
     // and `the_app_path_recovers_one_journal_at_a_time` (`crates/ew-api/tests/it/recovery.rs`).
@@ -1772,7 +1772,7 @@ fn bin_exe() -> std::path::PathBuf {
         .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
 }
 
-/// FT-380: `ew project assets purge --preview` lists the asset files nothing names and changes nothing; the purge
+/// `ew project assets purge --preview` lists the asset files nothing names and changes nothing; the purge
 /// itself is human-only (owner ruling, 2026-10-23) and exits 2 off a terminal with nothing deleted; an unknown option is
 /// a usage error.
 #[test]
@@ -1852,7 +1852,7 @@ fn project_assets_purge_previews_and_is_refused_off_a_terminal() {
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
 }
 
-/// WP-S1.18 part 3 (D10): `ew revision approve|release|withdraw` run human-only commands, confirmed by the typed
+/// `ew revision approve|release|withdraw` run human-only commands, confirmed by the typed
 /// revision label; without a terminal (stdout captured here) each exits 2 before opening the project, and nothing is
 /// written. The typed confirmation is a unit test with an injected reader and writer.
 #[test]
@@ -2038,7 +2038,7 @@ fn parts_target(t: &Tmp, name: &str) -> PathBuf {
 }
 
 /// The part copies of a `lib/parts` folder by `item_id`, without the members that legitimately differ between
-/// projects (ids, hash, provenance, the licence that only the golden bootstrap states (WP-S7.03 D1), the library of
+/// projects (ids, hash, provenance, the licence that only the golden bootstrap states, the library of
 /// the manufacturer and of an enclosure's plate part).
 fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String, serde_json::Value> {
     let mut out = std::collections::BTreeMap::new();
@@ -2056,7 +2056,7 @@ fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String,
         if let Some(m) = o.get_mut("manufacturer").and_then(|m| m.as_object_mut()) {
             m.remove("library");
         }
-        // The enclosure section's plate part is project-local too (WP-S4.01 D13).
+        // The enclosure section's plate part is project-local too.
         if let Some(p) = o
             .get_mut("sections")
             .and_then(|s| s.get_mut("enclosure"))
@@ -2253,7 +2253,7 @@ fn import_parts_with_a_bom_prefixed_table_creates_the_same_copies() {
     );
 }
 
-/// `ew lib` (WP-S1.19 part 2): create a user library, list the tiers, search the starter, rebuild the index; the
+/// `ew lib`: create a user library, list the tiers, search the starter, rebuild the index; the
 /// index lives in the cache directory.
 #[test]
 fn lib_create_list_search_and_rebuild() {
@@ -2330,7 +2330,7 @@ fn lib_create_list_search_and_rebuild() {
     let o = run(&["lib", "search", "ew.fn.mcb-1pn", "--kind", "fndef"]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert!(stdout(&o).starts_with("fndef\tew.fn.mcb-1pn\t"), "{}", stdout(&o));
-    // WP-S7.03 D3: the sample project's catalogue parts are a system library of the content.
+    // The sample project's catalogue parts are a system library of the content.
     let o = run(&["lib", "search", "A9P52610"]);
     assert_eq!(
         (o.status.code(), stdout(&o).as_str()),
@@ -2345,7 +2345,7 @@ fn lib_create_list_search_and_rebuild() {
     assert_eq!(stderr(&o).trim(), "nothing found");
     let o = run(&["lib", "index", "--rebuild"]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    // The count includes the compiled-in starter parts (WP-S2.18 D5), so it is not pinned.
+    // The count includes the compiled-in starter parts, so it is not pinned.
     assert!(
         stdout(&o).starts_with("index rebuilt: ") && stdout(&o).contains(" parts, "),
         "{}",
@@ -2379,7 +2379,7 @@ Generic Panels,,No number,device\n";
 const SUPPLIER_MAP: &str = "[columns]\nmanufacturer = \"Maker\"\npart_number = \"Order code\"\n\
 description = \"Text\"\nkind = \"Category\"\n";
 
-/// WP-S1.19 part 4: `ew lib import parts` writes a mapped list into a user library, refuses changed content under
+/// `ew lib import parts` writes a mapped list into a user library, refuses changed content under
 /// the published version unless `--bump`, and `ew import parts --map` imports the same list into a project.
 #[test]
 fn lib_import_parts_and_import_parts_with_a_map() {
@@ -2528,7 +2528,7 @@ fn lib_import_parts_and_import_parts_with_a_map() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// AC-21 through the CLI (WP-S1.22 part 1, CL-6)
+// AC-21 through the CLI (CL-6)
 
 /// The built packs of AC-21's subset, as the `ew-api` test `ac21_four_pack_subset_equals_findings_mvp_csv` names them.
 const AC21_PACKS: [&str; 8] = [
@@ -2961,7 +2961,7 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
         (
             Some(2),
             String::new(),
-            // FT-877, ruling 1 of the cycle-42 FT batch: "error: <dir>: the project opens read-only: <reason>; nothing
+            // "error: <dir>: the project opens read-only: <reason>; nothing
             // was written", with "it has integrity findings; `ew check` lists them".
             format!(
                 "error: {}: the project opens read-only: it has integrity findings; `ew check` lists them; nothing \
@@ -3012,11 +3012,11 @@ fn a_writer_names_the_damaged_copy_a_device_uses() {
     assert!(tree(&project) == before, "nothing is written");
 }
 
-/// `ew apply`'s line that assigns the compiled-in starter part EW-GEN-MCB-2 to Golden A's F55 (FT-1525): its part
+/// `ew apply`'s line that assigns the compiled-in starter part EW-GEN-MCB-2 to Golden A's F55: its part
 /// copy is `lib/parts/4b259878-8a92-56e0-ac8e-8f23e7c66a6b.json`.
 const STARTER_MCB_ASSIGN: &str = r#"{"cmd":"part.assign","params":{"copies":[{"$k":"part","category":["ProtectionOvercurrent","MCB","1P+N"],"cp_pattern":[{"designation":"1","idx":0},{"designation":"2","idx":1},{"designation":"N","idx":2},{"designation":"N","idx":3}],"description":{"en":"Miniature circuit breaker, 1 pole and neutral"},"function_template":[{"cps":[0,1,2,3],"fndef":{"item":"473bc9ca-9b42-5683-ada8-f5f0a4081772","key":"ew.fn.mcb-1pn","library":"7202fd8b-1024-4bf1-9e99-670772eaa589","version_req":"^0.1"},"main":true}],"id":"4b259878-8a92-56e0-ac8e-8f23e7c66a6b","item_id":"eb8a0c03-fd56-5637-b8f9-23434fd03a5d","library_id":"75d07cef-7a38-5814-a2ca-4610c08d9a8b","manufacturer":{"item":"f4260253-4a2b-5c11-a3d6-b01e2aa5efe6","library":"75d07cef-7a38-5814-a2ca-4610c08d9a8b","version_req":"^0.1"},"mech":{"depth":70000000,"height":85000000,"mount_kind":"ts35x7_5","width":36000000},"meta":{"key":"EW-GEN-MCB-2","licence":"CC0-1.0","sources":["ew.original"]},"part_number":"EW-GEN-MCB-2","sha256":"sha256:3eeb8d7541d8f9218a2fe6c5c069ec88a310aab147248f8f39364403bbe249e7","tech_data":[{"key":"characteristic","value":"C"},{"key":"rated_current","value":{"unit":"A","value":"10"}}],"version":"0.1.1"},{"$k":"manufacturer","id":"7ae048b6-63ea-5c01-83b2-e1a83b5b4414","item_id":"f4260253-4a2b-5c11-a3d6-b01e2aa5efe6","key":"Generic","library_id":"75d07cef-7a38-5814-a2ca-4610c08d9a8b","meta":{"licence":"CC0-1.0","sources":["ew.original"]},"name":{"en":"Generic"},"sha256":"sha256:f3df52cb1e83bcc3bda7957948246bcb5a5a958739eca73dce4191db5ad15d9c","version":"0.1.0"}],"devices":["594f6043-5d61-51b2-8f57-db20fe74a517"],"from":"f54fb48e-fc5d-5bd2-9d6a-67edb901dc3f","mode":"replace","part":"4b259878-8a92-56e0-ac8e-8f23e7c66a6b"}}"#;
 
-/// FT-1525 (ID-1458): a writer refused on a project whose damaged library copy is of a part an installed library holds
+/// A writer refused on a project whose damaged library copy is of a part an installed library holds
 /// (the compiled-in starter parts' EW-GEN-MCB-2, assigned to F55 by `ew apply`) names the part and its library, whole.
 #[test]
 fn a_writer_names_the_damaged_copy_of_an_installed_part_whole() {
@@ -3056,7 +3056,7 @@ fn a_writer_names_the_damaged_copy_of_an_installed_part_whole() {
     assert!(tree(&project) == before, "nothing is written");
 }
 
-/// FT-1500 (ID-1458): a writer refused on a project whose damaged library copy no device names (the form page 1 names)
+/// A writer refused on a project whose damaged library copy no device names (the form page 1 names)
 /// names the copy and the record that names it, and writes nothing.
 #[test]
 fn a_writer_names_the_damaged_copy_a_page_names() {
@@ -3102,7 +3102,7 @@ fn starter_mcb_project(t: &Tmp, home: &std::path::Path) -> (PathBuf, PathBuf) {
 }
 
 /// FT-1499 (ID-1486): `ew update-copies` writes a damaged copy of a starter part from the compiled-in library, byte for
-/// byte as the assignment's save wrote it, says so with the version written (C53-p4#4), and the project then opens for
+/// byte as the assignment's save wrote it, says so with the version written, and the project then opens for
 /// editing (`ew fmt` writes nothing).
 #[test]
 fn update_copies_writes_a_damaged_copy_from_its_library() {
@@ -3215,7 +3215,7 @@ fn base64(bytes: &[u8]) -> String {
     out
 }
 
-/// FT-1503 (ID-1458): a project that holds an image over the pixel limit, which an earlier build took in (a small
+/// A project that holds an image over the pixel limit, which an earlier build took in (a small
 /// image placed on folio 101 by `ew apply`, then turned into a big one on disk with the manifest's hashes), is named in
 /// the window's words by `ew check --integrity`, as a `notice:` line outside the counts and in the JSON's `notices`, and
 /// by a writer's open.
@@ -3376,7 +3376,7 @@ fn beside_the_project(project: &std::path::Path) -> Vec<String> {
     names
 }
 
-/// EZ-5 (WP-S1.17, decision log ID-1185): `ew fmt --repair` on a page file of Golden A's copy with one broken line
+/// EZ-5: `ew fmt --repair` on a page file of Golden A's copy with one broken line
 /// prints the line (its text cut at 80 characters) and the backup, writes the backup `.ewz` beside the project folder
 /// (generation 1 as it was, the line included) and a project without the line, which opens editable and canonical; a
 /// second run has nothing to repair and writes nothing; run on the project as it was, it reuses the backup.
@@ -3455,7 +3455,7 @@ fn fmt_repair_discards_a_broken_line_after_a_backup() {
     assert!(journal_files(&home).is_empty(), "the repair's journal is closed");
 }
 
-/// EZ-5 on a hand-edited copy of Golden A (WP-S1.17, decision log ID-1186 ruling 5): the broken line written by hand,
+/// EZ-5 on a hand-edited copy of Golden A: the broken line written by hand,
 /// the manifest untouched (an edit outside ElektraWatt since the last save), and the same with the page file's hash
 /// pending in a merged manifest. `ew export ewz` refuses the project, which is no verified generation; `ew fmt
 /// --repair` writes the backup of the files as found, saying how many differ from the generation as saved, then the
@@ -3603,7 +3603,7 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
 /// ID-1185 ruling 3: the refusals come before anything is written, each named, exit 2, in this order: an `.ewz`; a
 /// crashed session's journal (here before a conflict marker the repair cannot discard); a finding other than a broken
 /// line that forces read-only (EW-CORE-006), also one beyond the findings cap; a project whose backup cannot be packed
-/// (no manifest; a page file edited outside ElektraWatt since the last save is packed as found, ID-1186); a backup name
+/// (no manifest; a page file edited outside ElektraWatt since the last save is packed as found); a backup name
 /// holding another file. And `--repair` with `--check` is refused by the parser.
 #[test]
 fn fmt_repair_refusals_come_first_and_write_nothing() {
@@ -3710,7 +3710,7 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
     );
     assert!(tree(&p) == before, "nothing is written");
 
-    // A project without a manifest: its files cannot be packed as found (ID-1186 ruling 4).
+    // A project without a manifest: its files cannot be packed as found.
     let (t, p, _) = project(&[NOT_JSON], false);
     std::fs::remove_file(p.join("manifest.json")).unwrap();
     let home = t.0.join("home");
@@ -3766,7 +3766,7 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
     drop(t);
 }
 
-/// FM-4 (FT-252): `ew recover` prints the journal's summary and changes nothing; `--discard` off a terminal exits 2
+/// FM-4: `ew recover` prints the journal's summary and changes nothing; `--discard` off a terminal exits 2
 /// before the project is opened (the typed paths are unit tests with the injected terminal, `cli/project_files.rs`);
 /// `--replay` saves the journal's transactions and removes it.
 #[test]
@@ -3936,7 +3936,7 @@ fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
             .is_some_and(|r| !r.user.is_empty() && !r.host.is_empty()),
         "the reason names the holder: {info:?}"
     );
-    // FT-877, ruling 1 of the cycle-42 FT batch: "another session holds the project" plus " (<user> on <host>, since
+    // "another session holds the project" plus " (<user> on <host>, since
     // <time>)" when the lock record is readable (no `@`, no session or process ID).
     let holder_record = info.record.as_ref().unwrap();
     assert_eq!(holder_record.user, "ops\u{202E}fdp.exe");
@@ -4033,7 +4033,7 @@ fn import_csv(
     )
 }
 
-/// FM-6 (FT-27) through the binary: the golden tables import to a new project that is in canonical form and opens at
+/// FM-6 through the binary: the golden tables import to a new project that is in canonical form and opens at
 /// generation 1 (its model and check findings against the bootstrap are `crates/ew-api/tests/import_csv.rs`); the
 /// files that differ from `golden/J-E-2416.ew` are printed (reported, not required). Without the starter content, or
 /// into an `--out` that holds something, nothing is written (exit 2).
@@ -4125,7 +4125,7 @@ fn import_csv_writes_the_golden_tables_as_a_new_project() {
 }
 
 /// FM-6: a row with a foreign colour code is reported as the library reports it, EW-IMP-002 under `--strict` (the
-/// default: nothing is written, exit 1) and EW-IMP-008 under `--lenient` (written, exit 0) (ID-375); an unreadable
+/// default: nothing is written, exit 1) and EW-IMP-008 under `--lenient` (written, exit 0); an unreadable
 /// table exits 2 with its line, and its column where the reader names one, before anything is written.
 #[test]
 fn import_csv_strict_lenient_and_unreadable_tables() {

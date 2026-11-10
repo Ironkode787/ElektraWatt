@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The find pane in the shell (WP-S2.05 part 2, spec §7.3 to §7.6): the query as typed, `find.run` (one
+//! The find pane in the shell (spec §7.3 to §7.6): the query as typed, `find.run` (one
 //! `Session::find` call; typing makes none), the result cursor and the jump, and the replace through the inline
 //! preview card.
 //!
@@ -418,7 +418,7 @@ impl ShellModel {
             ew_api::CmdError::InvalidParams {
                 path, message, text, ..
             } => {
-                // FT-1395 (ID-1415): the reason in the window's language.
+                // The reason in the window's language.
                 let message = super::tools::rejected_words(message, Some(&**text));
                 let mut parts = path.trim_start_matches('/').split('/');
                 match (parts.next(), parts.next().and_then(|i| i.parse::<usize>().ok())) {
@@ -442,7 +442,7 @@ impl ShellModel {
                 super::tools::rejected_words(reason, text.as_ref())
             }
             ew_api::CmdError::NotFound { .. } => strings::text(key!("props-gone")).to_owned(),
-            // FT-1488: a prevent rule, a model or history error in the window's language.
+            // A prevent rule, a model or history error in the window's language.
             other => super::tools::command_error_words(other),
         };
         super::properties::replace_uuids(&text, &name)

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rails (WP-S2.17 part 3, D10, D15; doc 16a §5.4 and §5.6): the left rail's navigator entries and History at its
+//! The rails (doc 16a §5.4 and §5.6): the left rail's navigator entries and History at its
 //! foot, the right rail's palettes, as a toolkit-neutral model.
 //!
 //! The rail is a view of the layout, not a second state: the left rail's active entry is the pane shown in the place
@@ -107,7 +107,7 @@ pub const LEFT: [(&str, &str, PaneKind); 13] = [
     ("ips", "ew-interruption-point", PaneKind::Navigator(NavKind::Ips)),
     ("parts", "packages", PaneKind::Navigator(NavKind::Parts)),
     ("blocks", "report", PaneKind::Navigator(NavKind::Blocks)),
-    // WP-S4.02 part 3 (FT-486, doc 16 §5.2's row): the devices a layout space has not placed yet, the panel tools'
+    // WP-S4.02 part 3 (doc 16 §5.2's row): the devices a layout space has not placed yet, the panel tools'
     // source, after Report blocks and without a Ctrl+<n> key.
     (
         "unplaced",

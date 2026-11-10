@@ -217,27 +217,27 @@ pub fn lib_copy_keep_both_id<T>(library: Uuid, item: Uuid, version: &str) -> Id<
 }
 
 /// The ID of the configuration project that the first PLC station of a project creates on demand:
-/// `v5(station, "plc_config_project")` (WP-S1.21 D3, normaliser N0). Stored; computed so that a replay or a redo
+/// `v5(station, "plc_config_project")` (normaliser N0). Stored; computed so that a replay or a redo
 /// of the placement mints the same record.
 pub fn plc_config_project_id<S, P>(station: Id<S>) -> Id<P> {
     v5(station.as_uuid(), "plc_config_project")
 }
 
 /// The ID of the open revision that the first content edit after a release adds (`revision.ensure_open`):
-/// `v5(latest, "next")`, where `latest` is the latest released revision (WP-S1.18 D3). Computed, so a replay of
+/// `v5(latest, "next")`, where `latest` is the latest released revision. Computed, so a replay of
 /// the edit opens the same record.
 pub fn revision_next_id<R>(latest: Id<R>) -> Id<R> {
     v5(latest.as_uuid(), "next")
 }
 
-/// The ID of the withdrawal record of `revision` (`revision.withdraw`): `v5(revision, "withdrawal")` (WP-S1.18 D5).
+/// The ID of the withdrawal record of `revision` (`revision.withdraw`): `v5(revision, "withdrawal")`.
 /// One withdrawal per revision, so a second one is the same record.
 pub fn revision_withdrawal_id<R>(revision: Id<R>) -> Id<R> {
     v5(revision.as_uuid(), "withdrawal")
 }
 
 /// The ID of the file-level conflict record of the project file at `path` (project-relative, `/`
-/// separators): `v5(NS_CONFLICT, path)` (WP-S1.17 D14). One per file, so two merges that conflict on
+/// separators): `v5(NS_CONFLICT, path)`. One per file, so two merges that conflict on
 /// the same file name the same record.
 pub fn conflict_file_id<T>(path: &str) -> Id<T> {
     v5(NS_CONFLICT, path)

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The session keeper (WP-S6.13 §5.4, D6): the run's copied harness holds the product as a child and serves steps over
+//! The session keeper (D6): the run's copied harness holds the product as a child and serves steps over
 //! a loopback socket with a per-run token. **`xtask` listens, never the product**: `elektrawatt` only reads its
 //! standard input and writes its standard output, so `PRIVACY.md` and the network sandbox of doc 18 §12.2 are
 //! unchanged.

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `ew merge resolve <project> --take ours|theirs [--kind <k>] [--field <path>]`: the conflict records a merge left,
-//! resolved in one transaction of `merge.resolve` and saved (WP-S1.17 D19; decision log ID-1279).
+//! resolved in one transaction of `merge.resolve` and saved.
 
 use std::path::PathBuf;
 

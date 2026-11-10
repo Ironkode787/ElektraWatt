@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! External change in the session (doc 05 §9; WP-S1.17 D20 to D23, decision log ID-1284): [`Session::poll_disk`] polls
+//! External change in the session (doc 05 §9): [`Session::poll_disk`] polls
 //! the manifest, reads a quiet change and merges it three-way with the session's model; a change that collides with
 //! no unsaved edit is committed as one undoable step "External change" (`external.apply`, submitted only here, from
 //! [`Origin::External`]); one that collides is held for [`Session::apply_external`]; one that cannot be read holds

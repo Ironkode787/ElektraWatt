@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command palette's matching (WP-S2.08 part 1, FR-UI-012): the scorer and the ranking of D2 (doc 16 §15.1), the
+//! The command palette's matching (FR-UI-012): the scorer and the ranking of D2 (doc 16 §15.1), the
 //! recents of D3, the prefixes of D4 and the parameter forms of D5 (a). [`crate::shell::ShellModel::palette_entries`]
 //! builds the entries with these pieces; this module holds no shell state.
 //!
@@ -344,7 +344,7 @@ impl PaletteField {
             .unwrap_or_default()
     }
 
-    /// The row's label (ID-1278 ruling 1): the text of `param-<name>` (`_` as `-`) in the UI language, else the name
+    /// The row's label: the text of `param-<name>` (`_` as `-`) in the UI language, else the name
     /// with `_` as spaces and its first letter in upper case (`keep_gaps` → "Keep gaps").
     pub fn label(&self) -> String {
         if let Some(text) = strings::lookup(&format!("param-{}", self.name.replace('_', "-"))) {

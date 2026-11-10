@@ -101,7 +101,7 @@ pub const FROZEN_VALUE_DEVIATES: RuleMeta = RuleMeta {
 /// the numbering rule derives for the wire (`wire_numbers`; FR-CHK-037, FR-NUM-022). The same comparison as the
 /// numbering report's `status` column (`ew-reports`, FR-REP-022): a wire the rule does not number (a cable core, a
 /// wire drawn on no page, a constituent that is not the wire's carrier) has no rule value and deviates. Frozen tags
-/// are EW-NUM-001's (it supersedes this rule for tags); a manual PLC address is EW-PLC-012's (WP-S1.21), which
+/// are EW-NUM-001's (it supersedes this rule for tags); a manual PLC address is EW-PLC-012's, which
 /// supersedes it for addresses. One finding per connection: target the connection, discriminator `wire-number`.
 #[derive(Clone, Copy, Debug)]
 pub struct FrozenValueDeviates;

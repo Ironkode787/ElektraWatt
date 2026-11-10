@@ -3,7 +3,7 @@
 
 //! WP-S1.19 part 6 (§11): the tables of the Macros and Libraries navigators and the macro detail.
 //!
-//! **Libraries** (FT-487): the installed libraries grouped by tier ("System", "Community", "Company", "User"), each
+//! **Libraries**: the installed libraries grouped by tier ("System", "Community", "Company", "User"), each
 //! with its version, licence, access and index state; then the group "In this project" (not a tier) with the
 //! project's library copies, each with its state ([`crate::CopyState`] in words) and the devices that use it. A copy
 //! row carries its state as a badge code (`update_available`, `source_missing`, `deprecated`, `local_fork`; a current
@@ -141,7 +141,7 @@ fn form_kind_word(k: &FormKind) -> &'static str {
     }
 }
 
-/// A form's name in words (FT-755): its kind and the last segment of its key read as words, a segment of up to three
+/// A form's name in words: its kind and the last segment of its key read as words, a segment of up to three
 /// letters and digits in capitals (`ew.titleblock.qet-a4` → "Title block QET A4", `ew.frame.qet-a4-landscape-cover`
 /// → "Frame QET A4 landscape cover"); the kind alone without a key. Forms carry no name of their own.
 fn form_name(kind: &FormKind, key: Option<&str>) -> String {
@@ -167,9 +167,9 @@ fn form_name(kind: &FormKind, key: Option<&str>) -> String {
     }
 }
 
-/// The name a held copy is listed by (FT-755: words, never an ID): a part's number, a symbol's or manufacturer's
+/// The name a held copy is listed by (words, never an ID): a part's number, a symbol's or manufacturer's
 /// name, a function definition's kind text ("Black box", "NO contact 13-14"), a form's [`form_name`], a PLC
-/// profile's label else its `id@version` (FT-1426), else its key.
+/// profile's label else its `id@version`, else its key.
 fn copy_label(q: &Q, kind: Kind, copy: Uuid) -> String {
     fn key<T>(c: &LibCopy<T>, meta: impl Fn(&T) -> &ew_schema::ItemMeta) -> Option<String> {
         meta(&c.item).key.as_ref().map(ToString::to_string)
@@ -325,7 +325,7 @@ fn macro_extent(m: &MacroDef) -> Option<[i64; 4]> {
     })
 }
 
-/// What the Macros navigator's detail shows of a macro (WP-S1.19 §11, FR-MAC-006).
+/// What the Macros navigator's detail shows of a macro (FR-MAC-006).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct MacroDetail {
     /// The name.
@@ -335,7 +335,7 @@ pub struct MacroDetail {
     /// The kind in words (`Window`, `Page`).
     pub kind: &'static str,
     /// The macro's key (`motor-start`), empty without one: secondary text after the kind, as the Libraries navigator's
-    /// copy detail shows it (cycle 39).
+    /// copy detail shows it.
     pub key: String,
     /// The version (`1.2.0`).
     pub version: String,
@@ -349,7 +349,7 @@ pub struct MacroDetail {
     pub variables: Vec<String>,
     /// The value sets' names.
     pub value_sets: Vec<String>,
-    /// The variables as the insert card's fields take them (FT-785): the name, the type's word (`text`, `number`,
+    /// The variables as the insert card's fields take them: the name, the type's word (`text`, `number`,
     /// `bool`, …) and the default, `None` without one; in the macro's order.
     pub variable_fields: Vec<(String, String, Option<serde_json::Value>)>,
     /// The value sets' values by variable name, in the order of [`MacroDetail::value_sets`] (FT-785: a field's
@@ -410,7 +410,7 @@ pub struct MacroThumbnail {
     pub region: [i64; 4],
 }
 
-/// What the Libraries navigator's detail shows of a project's library copy (FT-755): as the Macros navigator's
+/// What the Libraries navigator's detail shows of a project's library copy: as the Macros navigator's
 /// detail shows a macro.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct LibraryCopyDetail {
@@ -579,7 +579,7 @@ impl Session {
     }
 
     /// The project's library copy a row key of the Libraries navigator names (its last segment `copy:<copy>`), as
-    /// its detail shows it (FT-755); `None` for another key or a copy the project no longer holds.
+    /// its detail shows it; `None` for another key or a copy the project no longer holds.
     pub fn library_copy_detail(&self, key: &str) -> Option<LibraryCopyDetail> {
         let copy: Uuid = key.rsplit('/').next()?.strip_prefix("copy:")?.parse().ok()?;
         let s = self.library_status().into_iter().find(|s| s.copy == copy)?;
@@ -631,7 +631,7 @@ impl Session {
             .unwrap_or_else(|| Uuid::new_v5(&copy, b"instance"))
     }
 
-    /// Macros (WP-S1.19 §11): tier → macro of every installed library, then "In this project" → the macro copies the
+    /// Macros: tier → macro of every installed library, then "In this project" → the macro copies the
     /// project holds that no listed row names. A macro the project holds carries its copy's state as a badge
     /// ([`Session::library_status`]: a re-saved macro reads "Update available", FT-754 (e)).
     pub(super) fn macros_table(&self, q: &Q, b: &mut Builder) {
@@ -680,7 +680,7 @@ impl Session {
         }
     }
 
-    /// Libraries (WP-S1.19 §11, FT-487): tier → library, then "In this project" → the project's library copies with
+    /// Libraries: tier → library, then "In this project" → the project's library copies with
     /// their state ([`Session::library_status`]) and the devices that use them.
     pub(super) fn libraries_table(&self, q: &Q, b: &mut Builder) {
         let libs = self.libraries().libraries();
@@ -695,7 +695,7 @@ impl Session {
                 if matches!(lib.index, IndexState::Failed(_)) {
                     badges.push("index_failed".to_owned());
                 }
-                // WP-S7.03 T2 (FT-1426): an address profile that does not render, as `ew lib list` notes it.
+                // WP-S7.03 T2: an address profile that does not render, as `ew lib list` notes it.
                 let unreadable = crate::unreadable_profiles(self.libraries(), lib.id);
                 if !unreadable.is_empty() {
                     badges.push("profile_unreadable".to_owned());

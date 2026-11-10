@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas overlays (WP-S2.02 §6.4, WP-S2.03 §7.4): the surround, the page bounds, the grid dots, the hover and
+//! The canvas overlays: the surround, the page bounds, the grid dots, the hover and
 //! selection outlines, the tool overlay (lines, polylines, rectangles, the ghost of a drag and the snap markers) and
 //! the keyboard grid cursor, as rectangles of whole physical pixels of the pane.
 //!
@@ -9,13 +9,13 @@
 //! mesh), and the headless snapshot composites them into its image with integer pixel fills ([`composite`]), so
 //! the window and the snapshot agree pixel for pixel. No meaning is in colour alone: the hover is dashed, a
 //! selection solid, the keyboard grid cursor a crosshair with a gap at its centre, a snap marker a cross (grid), a
-//! ring (connection point) or a filled square (junction), a free connection point a small hollow square (FT-705), a
+//! ring (connection point) or a filled square (junction), a free connection point a small hollow square, a
 //! rubber band solid while it encloses and dashed while it touches. The paint order is the surround, the page bounds,
 //! the grid dots, the hover, the selection, the open markers of the free connection points, the tool's lines and
 //! ghosts, the snap markers and last the cursor. The tool overlay's text labels are not drawn here: the
-//! window draws them as chips in its own font, and the headless snapshot leaves them out (WP-S2.03 §7.4).
+//! window draws them as chips in its own font, and the headless snapshot leaves them out.
 //!
-//! **FT-391's scale rule** (WP-S2.17 part 5): every mark scales by the integer factor `s = max(1, ⌊ppp⌋)`
+//! **FT-391's scale rule**: every mark scales by the integer factor `s = max(1, ⌊ppp⌋)`
 //! ([`mark_scale`]): lines are `s` pixels wide with dashes of `4s` on and `4s` off, the grid cross and the junction
 //! square are `6s + 1` pixels, the CP ring `8s + 1`, the hover outline `s`, the selection outline `2s` with an
 //! `s`-pixel white casing on both sides and `8s`-pixel corner handles (white with an accent rim), and the grid cursor's
@@ -58,7 +58,7 @@ pub struct Theme {
     pub rubber_band: Color,
     /// The selection's casing and the faces of its handles (white, doc 16a §7.1).
     pub casing: Color,
-    /// The open marker of a connection point without a connection (`canvas.open_cp`, FT-705).
+    /// The open marker of a connection point without a connection (`canvas.open_cp`).
     pub open_cp: Color,
 }
 
@@ -116,17 +116,17 @@ pub const MIN_DOT_SPACING_PT: f64 = 8.0;
 /// The hover and selection outlines stand this many logical points outside the entity's rectangle.
 pub const OUTLINE_OUTSET_PT: f64 = 2.0;
 
-/// The dash of the hover outline at scale 1: this many pixels on, as many off (`4s` at scale `s`, FT-391).
+/// The dash of the hover outline at scale 1: this many pixels on, as many off (`4s` at scale `s`).
 pub const HOVER_DASH_PX: i64 = 4;
 
-/// The dash of a tool line at scale 1: this many pixels on, as many off (WP-S2.03 §7.4; `4s` at scale `s`).
+/// The dash of a tool line at scale 1: this many pixels on, as many off (`4s` at scale `s`).
 pub const TOOL_DASH_PX: i64 = 4;
 
 /// The side of a selection handle at scale 1 (doc 16a §7.1: `8s`).
 pub const HANDLE_PX: i64 = 8;
 
 /// The smallest step of the connection grid on screen, in logical points, at which the open markers of the free
-/// connection points are drawn (FT-705): 4 points, so that they show at the fit zoom of an A3 or A4 page in a usual
+/// connection points are drawn: 4 points, so that they show at the fit zoom of an A3 or A4 page in a usual
 /// window (QET's 2.6 mm step is about 6.8 points at 69 %) and not on a page shrunk to a thumbnail.
 pub const OPEN_CP_MIN_STEP_PT: f64 = 4.0;
 
@@ -220,8 +220,8 @@ pub enum ToolMark {
         /// The displacement.
         offset: (i64, i64),
     },
-    /// A floating symbol's outline (WP-S2.04 §6.3): polylines in sheet nm, drawn as dashed lines in the ghost token
-    /// (`s` pixels wide, FT-391).
+    /// A floating symbol's outline: polylines in sheet nm, drawn as dashed lines in the ghost token
+    /// (`s` pixels wide).
     Paths {
         /// The polylines.
         paths: Vec<Vec<(i64, i64)>>,
@@ -276,13 +276,13 @@ pub struct OverlayInput<'a> {
     pub selected: &'a [Rect],
     /// The keyboard grid cursor (sheet nm), drawn above every other overlay.
     pub cursor: Option<(i64, i64)>,
-    /// The active tool's overlay (WP-S2.03 §7.4): above the selection, below the cursor; markers above lines.
+    /// The active tool's overlay: above the selection, below the cursor; markers above lines.
     pub tool: &'a [ToolMark],
-    /// The connection points without a connection, each marked open (FT-705), and the pitch that gates them.
+    /// The connection points without a connection, each marked open, and the pitch that gates them.
     pub open_cps: OpenCps<'a>,
 }
 
-/// The connection points of the page that have no connection on it (FT-705, the cycle-38 ruling): each is drawn as a
+/// The connection points of the page that have no connection on it: each is drawn as a
 /// small hollow square, so that a wire drawn across one is visibly not connected to it. Screen only: a session overlay
 /// like the CP rings (doc 16a §7), never in the display list, so never in print or PDF. Drawn only while one step of
 /// the page's connection grid is at least [`OPEN_CP_MIN_STEP_PT`] on screen, so that the marks of CPs one step apart
@@ -325,7 +325,7 @@ pub struct Overlay {
     pub tool: Vec<(PxRect, ToolToken)>,
     /// The tool's snap markers.
     pub markers: Vec<PxRect>,
-    /// The rims of the open markers of the free connection points (FT-705), under the tool's lines.
+    /// The rims of the open markers of the free connection points, under the tool's lines.
     pub open_cps: Vec<PxRect>,
 }
 
@@ -359,7 +359,7 @@ fn push_clipped(out: &mut Vec<PxRect>, r: PxRect, pane: &PxRect) {
     }
 }
 
-/// The `s`-pixel dashed outline of `r` (`4s` on, as many off, each edge from its first corner; FT-391).
+/// The `s`-pixel dashed outline of `r` (`4s` on, as many off, each edge from its first corner).
 fn dashed(r: PxRect, s: i64, pane: &PxRect, out: &mut Vec<PxRect>) {
     let dash = HOVER_DASH_PX * s;
     let period = 2 * dash;
@@ -379,7 +379,7 @@ fn dashed(r: PxRect, s: i64, pane: &PxRect, out: &mut Vec<PxRect>) {
     }
 }
 
-/// The selection of the outline rectangle `r` at scale `s` (doc 16a §7.1 and the mockup, FT-391): the `2s` band just
+/// The selection of the outline rectangle `r` at scale `s` (doc 16a §7.1 and the mockup): the `2s` band just
 /// inside its edges, an `s`-pixel white casing outside and inside that band, and an `8s`-pixel handle centred on each
 /// corner of the band's centre line, a rim in the selection colour (`⌈1.5 s⌉` pixels) around a white face.
 fn selection(r: PxRect, s: i64, pane: &PxRect, o: &mut Overlay) {
@@ -764,7 +764,7 @@ fn rect_px(
     line_px(p(x0, y1), p(x0, y0), width, s, dash, pane, out);
 }
 
-/// The pixels of a snap marker centred on the pixel of the screen point `at`, at scale `s` (FT-391).
+/// The pixels of a snap marker centred on the pixel of the screen point `at`, at scale `s`.
 fn marker_px(at: (f64, f64), kind: MarkerKind, s: i64, pane: &PxRect, out: &mut Vec<PxRect>) {
     if !(at.0.is_finite() && at.1.is_finite()) {
         return;
@@ -1127,7 +1127,7 @@ mod tests {
     }
 
     // ---------------------------------------------------------------------------------------------------------------
-    // The tool overlay (WP-S2.03 §7.4, acceptance check T7)
+    // The tool overlay (acceptance check T7)
 
     /// The set of pixels the rectangles cover.
     fn pixels<'a>(rects: impl IntoIterator<Item = &'a PxRect>) -> std::collections::BTreeSet<(i64, i64)> {
@@ -1142,7 +1142,6 @@ mod tests {
         out
     }
 
-    // FT-705
     #[test]
     fn a_free_cp_is_a_hollow_square_drawn_only_at_a_zoom_where_grid_steps_are_4_points_apart() {
         let points = [(100_000_000, 100_000_000), (120_000_000, 100_000_000)];
@@ -1316,7 +1315,7 @@ mod tests {
         for p in points.clone() {
             assert!(px.contains(&px_of(&t, p)));
         }
-        // A floating outline (WP-S2.04 §6.3) is its polylines, dashed in the ghost token: fewer pixels than solid.
+        // A floating outline is its polylines, dashed in the ghost token: fewer pixels than solid.
         let paths = [ToolMark::Paths {
             paths: vec![
                 points.clone(),
@@ -1437,7 +1436,7 @@ mod tests {
     }
 
     // ---------------------------------------------------------------------------------------------------------------
-    // FT-391's scale rule and the selection of doc 16a §7.1 (WP-S2.17 part 5, acceptance checks OV3 and OV6)
+    // FT-391's scale rule and the selection of doc 16a §7.1 (acceptance checks OV3 and OV6)
 
     fn view_at(ppp: f64) -> View {
         View { ppp, ..view(1.0) }

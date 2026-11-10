@@ -140,7 +140,7 @@ fn wire_every_pin(s: &mut ShellModel, rep: &str, what: &str) {
             .expect("the new wire");
         assert_eq!(wire.polyline.first(), Some(&pin.at), "{what}: pin {}", pin.label);
         done(s, "ui.dismiss", json!({}));
-        // Each pin on its own: the point's connection point leaves sideways (WP-S2.19 D16), so a neighbour's point
+        // Each pin on its own: the point's connection point leaves sideways, so a neighbour's point
         // one grid step away would block the next end's stub under the router's hard rules.
         done(s, "edit.undo", json!({}));
     }

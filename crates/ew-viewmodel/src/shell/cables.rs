@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A cable with its cores from the window (FT-1371, ID-1362): Draw ▸ Connect ▸ New cable… (`cable.new`) and Connect
+//! A cable with its cores from the window: Draw ▸ Connect ▸ New cable… (`cable.new`) and Connect
 //! cores… (`cable.connect_cores`), the existing model commands behind a form, as the creation dialogs are.
 //!
 //! - **New cable…** creates a cable device from a cable part with one conductor per core of the part
@@ -65,7 +65,7 @@ impl ShellModel {
         }
     }
 
-    /// `cable.new {part}` (Draw ▸ Connect ▸ New cable…, FT-1371): a cable from the cable part `part` (its number or its
+    /// `cable.new {part}` (Draw ▸ Connect ▸ New cable…): a cable from the cable part `part` (its number or its
     /// ID), with its cores, then the toast naming the new cable. A project with no cable part, here or in an installed
     /// library, is refused in words.
     pub(crate) fn act_cable_new(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -169,7 +169,7 @@ impl ShellModel {
         wires.into_iter().map(|(_, id)| id).collect()
     }
 
-    /// `cable.connect_cores {cable}` (Draw ▸ Connect ▸ Connect cores…, FT-1371): the selected wires become cores of
+    /// `cable.connect_cores {cable}` (Draw ▸ Connect ▸ Connect cores…): the selected wires become cores of
     /// the cable `cable` (its ID, its tag, or its words in the form's list), by order, in one undo step, then the toast.
     /// No wire selected, no cable in the project, a tag that several cables print, a cable with too few free cores:
     /// refused in words.
@@ -209,7 +209,7 @@ impl ShellModel {
                 }
             };
         };
-        // A tag that several cables print names none of them: refused in words, never the first (decision log ID-1376).
+        // A tag that several cables print names none of them: refused in words, never the first.
         let shared = cables.iter().filter(|(_, tag, _)| *tag == cable).count();
         if shared > 1 {
             let message = strings::format(key!("error-cable-ambiguous"), &[&cable, &shared.to_string()]);
@@ -239,7 +239,7 @@ impl ShellModel {
         let out = self.commit_from_host(&cmd);
         match out {
             Outcome::Done => {
-                // FT-1406: the cable is placed through its first core now, so the toast names it as it reads after
+                // The cable is placed through its first core now, so the toast names it as it reads after
                 // the step.
                 let tag = self
                     .project

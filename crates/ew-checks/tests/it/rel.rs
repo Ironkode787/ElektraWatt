@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! EW-REL and the release gate (doc 15 §4.8, §5.4, §5.5; WP-S1.18 part 3, D9, D10).
+//! EW-REL and the release gate (doc 15 §4.8, §5.4, §5.5).
 
 use crate::common;
 
@@ -72,7 +72,7 @@ fn ew_rel_runs_in_the_gate_only() {
     );
 }
 
-/// FT-910: EW-REL-001's author finding names today's menu path (Check ▸ Revision and the action's label
+/// EW-REL-001's author finding names today's menu path (Check ▸ Revision and the action's label
 /// `action-revision-set-author`, "Set revision author…").
 #[test]
 fn ew_rel_001_author_hint_names_the_check_menu() {

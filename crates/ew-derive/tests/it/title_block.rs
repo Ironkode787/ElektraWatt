@@ -177,7 +177,7 @@ fn scale_prints_one_to_n() {
     assert_eq!(tb.get("page.scale"), Some(&text("1:10")));
     let scaled = tb.get("page.title").cloned();
 
-    // FT-881: a stored scale of 0 draws at 1:1: no `page.scale`, and the plain title.
+    // A stored scale of 0 draws at 1:1: no `page.scale`, and the plain title.
     fx.record(PAGE103)["scale"] = json!({"one_to": 0});
     let tb = block(&fx, PageRef::Drawn(id(PAGE103)));
     assert_eq!(tb.get("page.scale"), None);
@@ -298,7 +298,7 @@ fn the_current_revision_is_the_latest_and_a_checker_is_resolved() {
     assert_eq!(tb.get("revision.current.label"), Some(&text("V10.0")));
 }
 
-/// The title block reads the typed revision rows (FT-165): relabelling the open revision re-derives the
+/// The title block reads the typed revision rows: relabelling the open revision re-derives the
 /// memoised title block, and a second read of the same snapshot is a memo hit.
 #[test]
 #[allow(clippy::disallowed_methods)] // a raw edit of the snapshot, as a commit would make it
@@ -486,8 +486,8 @@ fn last_changed_in_follows_page_notes() {
     assert_eq!(last(&fx, PAGE102), Some(text("V2.0")));
     assert_eq!(last(&fx, PAGE103), Some(text("V1.0")));
 
-    // A released revision's `changed_pages` wins over its page notes: the typed release record's member
-    // (WP-S1.18 part 1); an entry that is not a page ID is a schema violation of the line (ew-schema's tests).
+    // A released revision's `changed_pages` wins over its page notes: the typed release record's member;
+    // an entry that is not a page ID is a schema violation of the line (ew-schema's tests).
     fx.record(0x601)["page_notes"] = json!([{"page": uid(PAGE103)}]);
     fx.record(0x601)["release"] = json!({"changed_pages": [uid(PAGE201)]});
     assert_eq!(last(&fx, PAGE201), Some(text("V1.0")));

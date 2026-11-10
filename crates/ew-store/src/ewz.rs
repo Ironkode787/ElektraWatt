@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `.ewz` transport (doc 05 §12; WP-S1.17 D8, D9, decision log ID-1175): one verified generation of a project as a
+//! `.ewz` transport (doc 05 §12): one verified generation of a project as a
 //! deterministic ZIP ([`crate::zip`]), its strict reader, and the all-or-nothing extract through the [`Vfs`] seam.
 //!
 //! **Layout** ([`pack`]). `mimetype` first and stored (`application/vnd.elektrawatt.project+zip`), `manifest.json`
@@ -12,7 +12,7 @@
 //! bytes. At most 65,535 entries (the container has no ZIP64). Before it hands the bytes out, [`pack`] reads them back
 //! through [`read`] and refuses an archive the reader would refuse ([`PackError::Refused`]).
 //!
-//! **As found** ([`pack_as_found`], WP-S1.17 decision log ID-1186), the one exception, used by `ew fmt --repair` alone
+//! **As found** ([`pack_as_found`]), the one exception, used by `ew fmt --repair` alone
 //! for its backup: the generation's files as the store loaded them, a file edited outside ElektraWatt since the last
 //! save included, with `manifest.json` the loaded manifest whose hash of each listed file is that of its bytes (a
 //! pending hash too). It reads every listed file again and refuses one whose bytes are not those the store loaded, so
@@ -40,7 +40,7 @@
 //! **The residual race.** Between the second absence check and the rename, another process can make the target. On
 //! Windows the rename then fails and nothing is left; on Linux and macOS `rename` replaces an empty directory made in
 //! that instant (a non-empty one makes it fail). That window, an empty directory replaced by the complete project, is
-//! accepted (ID-1175 ruling 4): no file of anyone is lost.
+//! accepted: no file of anyone is lost.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -474,12 +474,12 @@ pub struct AsFound {
     pub edited: usize,
 }
 
-/// Packs the store's generation as found (WP-S1.17 decision log ID-1186; the module documentation): every file the
+/// Packs the store's generation as found (the module documentation): every file the
 /// loaded manifest lists, read again through the store's seam and each refused unless its bytes are those the store
 /// loaded, and the git files present ([`pack_store`]'s); `manifest.json` is its bytes as read when no listed file was
 /// edited, else the loaded manifest ([`Store::manifest`], [`Manifest::to_text`]) with each listed file's hash set to
 /// that of its bytes (a pending hash too), its generation and every other member as they are. Unlisted files are
-/// neither read nor packed. For the backups of `ew fmt --repair` and of an upgrade (WP-S1.17 D11) alone: an export
+/// neither read nor packed. For the backups of `ew fmt --repair` and of an upgrade alone: an export
 /// packs a verified generation ([`pack_store`]).
 ///
 /// # Errors
@@ -519,7 +519,7 @@ pub fn pack_as_found(store: &Store) -> Result<AsFound, PackError> {
     }
     let git = git_files(store)?;
     // With no file edited the manifest's bytes are packed as read, so that the archive extracts byte-equal to the
-    // folder (an upgrade's backup, WP-S1.17 D11); else its hashes are set to the files' as above.
+    // folder (an upgrade's backup); else its hashes are set to the files' as above.
     let manifest_text = match store.manifest_bytes() {
         Some(read) if edited == 0 => read.to_vec(),
         _ => manifest.to_text().into_bytes(),

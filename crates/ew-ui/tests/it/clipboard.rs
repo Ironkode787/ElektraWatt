@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The clipboard glue of the window without rendering (WP-S2.05 part 3, §8.5 and §8.7): on the canvas, the platform's
+//! The clipboard glue of the window without rendering (and §8.7): on the canvas, the platform's
 //! copy event runs `edit.copy` and the fragment goes to egui's `copy_text`; the paste event runs `edit.paste_clip`
 //! with the system clipboard's text and arms the paste tool; Ctrl+D duplicates; Escape ends the tool. Keyboard and
 //! clipboard events only.

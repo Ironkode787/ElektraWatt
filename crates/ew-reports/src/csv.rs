@@ -10,7 +10,7 @@
 //! other columns are the block's columns, headed by their neutral labels and holding the printed cells
 //! ([`crate::render::render`] in neutral language).
 //!
-//! **The presets** (WP-S3.08 D6; [`table_csv`] over a [`Table`]): `excel-nl` (`;`, a decimal comma in number cells,
+//! **The presets** ([`table_csv`] over a [`Table`]): `excel-nl` (`;`, a decimal comma in number cells,
 //! a UTF-8 byte-order mark, CR LF), `excel-en` (`,`, a decimal point, a byte-order mark, CR LF) and `rfc4180` (`,`,
 //! CR LF, no byte-order mark, values verbatim). They write the `id` column first (a CSV has no hidden column; a
 //! heading row's is empty) and no `row` column, and quote a field exactly when it holds the delimiter, `"`, CR or LF
@@ -72,7 +72,7 @@ pub fn rows_csv(q: &Q, set: &RowSet) -> String {
     out
 }
 
-/// A CSV dialect of the row exports (WP-S3.08 D6).
+/// A CSV dialect of the row exports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Preset {
     /// The golden dialect (the default): [`rows_csv`].

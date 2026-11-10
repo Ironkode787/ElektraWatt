@@ -299,7 +299,7 @@ fn backspace_after_two_collinear_bends_keeps_the_first() {
 
 /// Fix round item 1: the Wire tool draws the page type's connection kind (doc 06 §2.2): refused on a bus-topology
 /// page (folio 3), `overview` on an assembly overview (folio 201, whose overview symbols draw no connection points in
-/// Golden A, so the kind is read from the host), a fluid line on a fluid page (folio 203, WP-S1.20 D18), a wire (no
+/// Golden A, so the kind is read from the host), a fluid line on a fluid page (folio 203), a wire (no
 /// `kind` sent) on a multi-line page.
 #[test]
 fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
@@ -1285,7 +1285,7 @@ fn structural_tokens(line: &str) -> Vec<String> {
             words.push(token.to_owned());
             break;
         }
-        // An ID alias `@n` is a value token like a number (ID-630).
+        // An ID alias `@n` is a value token like a number.
         let number = token.parse::<f64>().is_ok()
             || ew_viewmodel::alias::is_alias(token)
             || (token.chars().all(|c| !c.is_alphanumeric()) && token != "->");

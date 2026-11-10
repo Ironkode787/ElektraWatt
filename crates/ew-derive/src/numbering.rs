@@ -14,7 +14,7 @@
 //! 2. the From end's frame cell, column then row,
 //! 3. the To end's page, then the To end's frame cell, column then row (the To page compares first: a wire to
 //!    another page sorts after the wires that stay on the From page; ruling of cycle 13),
-//! 4. among wires equal in all of these, what a person sees (FT-440, decision log ID-675): the From end's CP
+//! 4. among wires equal in all of these, what a person sees: the From end's CP
 //!    label, then the To end's CP label (natural order, as [`cp_label`] prints them), then the first route
 //!    vertex of the From end's constituent read from the From end (y, then x; a wire without one after those
 //!    with one),
@@ -122,7 +122,7 @@ type CellKey = (u32, u32);
 type VertexKey = (bool, i64, i64);
 
 /// The sort key of a wire: From page position, From cell, To page position, To cell, then among equal cells
-/// what a person sees (FT-440): the From end's CP label and the To end's (natural order), the first route vertex
+/// what a person sees: the From end's CP label and the To end's (natural order), the first route vertex
 /// (y, then x), and only then the wire ID.
 type Key = (
     usize,
@@ -264,7 +264,7 @@ fn entry(q: &Q, order: &crate::pages::PageOrderV, wire: &PhysicalWire) -> Entry 
 ///    in the wire's one potential and the walk reaches both with different distances;
 /// 3. otherwise the end with the smaller anchor cell (row, then column; of several representations on the page the
 ///    smallest cell), then the smaller CP label in natural order ([`cp_label`]), then the places the function is drawn
-///    at (page order, cell), then the smaller CP ID: what is printed decides, the minted IDs only last (FT-478).
+///    at (page order, cell), then the smaller CP ID: what is printed decides, the minted IDs only last.
 ///
 /// The page of an end is the page of the constituent that ends there. A function that no representation draws
 /// on the page, a terminal drawn only by a strip segment, has no anchor: its cell is that of its CP in the
@@ -299,7 +299,7 @@ pub fn orient_wire(q: &Q, w: &mut PhysicalWire) -> bool {
                         .unwrap_or((u32::MAX, u32::MAX))
                 };
                 // All the places the function is drawn at, as the page order and the cell: what the tie falls
-                // back on when the cells and the CP labels are equal (FT-478).
+                // back on when the cells and the CP labels are equal.
                 let places = |e: &WireEnd| -> Vec<(usize, u32, u32)> {
                     let mut v: Vec<_> = q
                         .idx()

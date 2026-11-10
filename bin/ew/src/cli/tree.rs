@@ -4,7 +4,7 @@
 //! The `ew` command line as one clap derive tree: every subcommand and flag is declared here once, with its help in
 //! its doc comment; [`Cli::into_command`] lowers a parsed line to the [`Command`] that [`super::run`] runs.
 //!
-//! The grammar (doc 17 §3.1, WP-S1.22 D3): a valued flag takes the next word as its value even when it starts with
+//! The grammar (doc 17 §3.1): a valued flag takes the next word as its value even when it starts with
 //! `-`; a second `--project` is an error, `--company` and `lib search --kind` accumulate, every other flag is
 //! last-wins; the positional project directory and `--project` exclude each other; a positional that takes hyphen
 //! values refuses a word starting with `--` as a mistyped option. A rule the relations cannot say is one check in the
@@ -412,7 +412,7 @@ enum Import {
     Table(ImportTableCli),
 }
 
-/// `ew import table` (WP-S3.08 D7, D11).
+/// `ew import table`.
 #[derive(Args, Debug)]
 struct ImportTableCli {
     /// The round-trip file: an XLSX workbook or a CSV.
@@ -900,7 +900,7 @@ struct ReportCli {
     json: bool,
 }
 
-/// `ew export table` (WP-S3.08 D7, D8).
+/// `ew export table`.
 #[derive(Args, Debug)]
 struct TableCli {
     /// The navigator.
@@ -950,7 +950,7 @@ enum ReportPages {
     Pdf,
 }
 
-/// The CSV options of a row export and of `sql` (WP-S3.08 D6).
+/// The CSV options of a row export and of `sql`.
 #[derive(Args, Debug)]
 struct CsvCli {
     /// The CSV preset: ew (default, the golden dialect), excel-nl, excel-en or rfc4180.
@@ -988,7 +988,7 @@ impl CsvCli {
     }
 }
 
-/// The format of a row export (WP-S3.08 D7): `xlsx` takes no CSV option and needs `--out`; `pdf` takes no CSV option.
+/// The format of a row export: `xlsx` takes no CSV option and needs `--out`; `pdf` takes no CSV option.
 fn rows_format(
     path: &[&str],
     format: Option<ReportPages>,
@@ -1885,7 +1885,7 @@ pub(super) fn report(v: &str) -> Result<ReportFormat, String> {
     v.parse::<ReportFormat>().map_err(|e| e.to_string())
 }
 
-/// A `--dpi` value: 72 to 600 (WP-S1.22 D7).
+/// A `--dpi` value: 72 to 600.
 fn dpi(v: &str) -> Result<u32, String> {
     match v.parse::<u32>() {
         Ok(n) if ew_api::output::DPI_RANGE.contains(&n) => Ok(n),
@@ -1920,7 +1920,7 @@ fn paper(v: &str) -> Result<Paper, String> {
     Paper::parse(v).map_err(|e| e.to_string())
 }
 
-/// The selection of `--pages` or `--sections` (WP-S3.07 D6): both together is a usage error, neither is every page.
+/// The selection of `--pages` or `--sections`: both together is a usage error, neither is every page.
 fn selection(
     path: &[&str],
     pages: Option<PageSelection>,
@@ -2000,7 +2000,7 @@ fn table_format(v: &str) -> Result<ReportPages, String> {
     }
 }
 
-/// The `--preset` of `import table` (WP-S3.08 D11): a preset of the round trip, not the golden dialect.
+/// The `--preset` of `import table`: a preset of the round trip, not the golden dialect.
 fn import_preset(v: &str) -> Result<Preset, String> {
     Preset::parse(v).filter(|p| *p != Preset::Ew).ok_or_else(|| {
         let names: Vec<&str> = Preset::ALL
@@ -2012,7 +2012,7 @@ fn import_preset(v: &str) -> Result<Preset, String> {
     })
 }
 
-/// A `--preset` (WP-S3.08 D6).
+/// A `--preset`.
 fn preset(v: &str) -> Result<Preset, String> {
     Preset::parse(v).ok_or_else(|| {
         let names: Vec<&str> = Preset::ALL.iter().map(|p| p.name()).collect();
@@ -2136,7 +2136,7 @@ fn counted_project(
 }
 
 // Every `*Cli` is destructured whole, with no `..`: a field the lowering forgets is E0027, and a binding it does not
-// use is `unused_variables` (C43-p4#3).
+// use is `unused_variables`.
 impl Cli {
     /// The command a parsed line names.
     ///
@@ -2621,7 +2621,7 @@ fn sql(a: SqlCli) -> Result<Command, clap::Error> {
     }))
 }
 
-/// The refusal of `ew export ewz` without `--out` (ID-1175 ruling 5).
+/// The refusal of `ew export ewz` without `--out`.
 pub(super) const EWZ_NEEDS_OUT: &str = "`ew export ewz` writes a file: give `--out <file.ewz>`";
 
 /// `ew export` and its subjects.
@@ -2716,7 +2716,7 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
             let pdf = format == Some(ReportPages::Pdf);
             let kind = match kind {
                 Some(name) => {
-                    // WP-S3.06 D4: the refusals are the report layer's texts, the pair first.
+                    // The refusals are the report layer's texts, the pair first.
                     if block.is_some() {
                         return Err(usage_error(
                             &["export", "report"],

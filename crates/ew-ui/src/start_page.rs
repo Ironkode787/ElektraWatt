@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The start page (WP-S2.01 parts 1 and 2; UX/UI doc 16 section 3.7): New project from the basic project (the
+//! The start page (UX/UI doc 16 section 3.7): New project from the basic project (the
 //! default one first), Open, the recent projects, Open sample project, Import QElectroTech project, Create company
 //! standard, Tutorials, the quick switches for language and keymap, and the privacy line "This version has no
-//! update check" (FT-1197: nothing to change, so no button). Nothing on the page opens a connection (NFR-PRIV-01). It
+//! update check" (nothing to change, so no button). Nothing on the page opens a connection (NFR-PRIV-01). It
 //! appears before any project is touched; no work that could take time runs before the first frame.
 
 use egui::Ui;
@@ -22,7 +22,7 @@ fn action(events: &mut Vec<Event>, id: &'static str, params: Value) {
 }
 
 /// A row of choices for one setting: the label, then one selectable button per option, centred in the page's column
-/// as the rest of the page is (FT-1475).
+/// as the rest of the page is.
 fn quick_switch(
     ui: &mut Ui,
     events: &mut Vec<Event>,
@@ -136,7 +136,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 &KEYMAPS,
             );
             ui.add_space(16.0);
-            // FT-1117 (ID-1229 item 3, ID-1187): this version has no update check; FT-1197 (doc 16a §8 item 2): so
+            // FT-1117 (item 3): this version has no update check; FT-1197 (doc 16a §8 item 2): so
             // there is nothing to change, and no Change button.
             ui.weak(strings::text(key!("start-update-check")));
         });

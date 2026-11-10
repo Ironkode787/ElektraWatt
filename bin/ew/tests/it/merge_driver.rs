@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 4b through the `ew` binary (D15, D29; decision log ID-1271): `ew merge-driver` in a working tree that
+//! WP-S1.17 part 4b through the `ew` binary (D15, D29): `ew merge-driver` in a working tree that
 //! holds a copy of Golden A, as git runs it. MD-5: the exits 0 and 1, the four-argument form, an internal error's 129
 //! with `%A` byte-identical; MD-6: AC-41's driver half on W20 of page 102 and the manifest merge. Golden A is only
 //! read and copied.
@@ -118,7 +118,7 @@ fn md6_the_w20_conflict_variant_writes_one_conflict_record_and_exits_1() {
     let ours = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
     let theirs = page_with(r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#);
     let kept = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
-    // D14's member order (decision log ID-1273).
+    // D14's member order.
     let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
     for five in [true, false] {
         let (out, merged) = t.merge([&base, &ours, &theirs], form(five, REPO_PAGE));
@@ -168,7 +168,7 @@ fn md6_the_manifest_merges_to_max_plus_one_merged_and_no_base() {
     assert_eq!(merged, expected);
 }
 
-/// FT-1235 (WP-S6.08 D4, RL-3): theirs' manifest names a format newer than this reader's: nothing is merged, `%A`
+/// FT-1235 (RL-3): theirs' manifest names a format newer than this reader's: nothing is merged, `%A`
 /// stays ours byte for byte, the driver says so and exits 1. Ours' newer format (the working tree's manifest) keeps a
 /// page of that project as ours the same way.
 #[test]
@@ -207,7 +207,7 @@ fn a_side_newer_than_the_reader_is_left_as_ours() {
     assert_eq!(merged, ours);
 }
 
-/// FT-1490 (WP-S6.08 D20): theirs holds W20 one `$v` above this reader's version of a connection (1): nothing is merged
+/// Theirs holds W20 one `$v` above this reader's version of a connection (1): nothing is merged
 /// in the page, `%A` stays ours byte for byte, the driver says so and exits 1. Theirs holding a member this reader does
 /// not know merges cleanly, the member kept.
 #[test]
@@ -244,7 +244,7 @@ fn a_record_this_reader_cannot_read_leaves_the_file_as_ours() {
     assert_eq!(merged, expected);
 }
 
-/// C53-p1#2 (WP-S6.08 D20, ID-1470): a library document whose theirs is one `$v` above this reader's version of a
+/// A library document whose theirs is one `$v` above this reader's version of a
 /// manufacturer (1) is not merged either: `%A` stays ours byte for byte, the driver prints S3b and exits 1.
 #[test]
 fn a_library_document_this_reader_cannot_read_is_left_as_ours() {
@@ -315,7 +315,7 @@ fn md5_a_side_that_cannot_be_read_exits_129() {
 }
 
 /// The arguments are `%O %A %B %L %P` or `%O %A %B %P`: three are a usage error naming `<P>`, as the usage line shows
-/// it, that exits 129 (git reads 2 as conflicts written; ADR-0012 amendment 2, decision log ID-1273), and nothing is
+/// it, that exits 129 (git reads 2 as conflicts written; ADR-0012 amendment 2), and nothing is
 /// written.
 #[test]
 fn three_arguments_are_a_usage_error() {

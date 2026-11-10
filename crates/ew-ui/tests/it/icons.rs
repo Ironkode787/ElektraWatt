@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The icon set (WP-S2.17 part 6, §12.6 IC2 to IC4 and IC6; doc 16a §4.11). IC1 and the generator half of IC2
+//! The icon set (IC2 to IC4 and IC6; doc 16a §4.11). IC1 and the generator half of IC2
 //! are the `xtask` tests of `gen-icons`; IC5 (the gallery snapshot) needs part 1's component gallery and
 //! snapshot renderer.
 
@@ -41,7 +41,7 @@ const DOC_16A_KEYS: &[&str] = &[
 /// gains an icon control that is not in it.
 const MOCKUP_TITLES: &[(&str, &str)] = &[
     ("Align", "layout-align-left"),
-    // WP-S4.02 part 4 (D10): Draw ▸ Layout.
+    // Draw ▸ Layout.
     ("Auto-fill rail…", "wand"),
     ("Black box", "ew-black-box"),
     ("Cables", "ew-cable"),
@@ -50,9 +50,9 @@ const MOCKUP_TITLES: &[(&str, &str)] = &[
     ("Device from part", "package"),
     ("Duct", "ew-duct"),
     ("Dismiss", "x"),
-    // ID-1497 (10): Edit route beside Wire, a polyline.
+    // Edit route beside Wire, a polyline.
     ("Edit route", "ew-shape-polyline"),
-    // WP-S2.19 D13, ID-1509 (9): one icon per concept, neither the generated badge's.
+    // One icon per concept, neither the generated badge's.
     ("Route page", "file-settings"),
     ("Route selection", "magnet"),
     ("Findings", "circle-x"),
@@ -78,7 +78,7 @@ const MOCKUP_TITLES: &[(&str, &str)] = &[
     ("Sort by Terminal", "arrow-narrow-up"),
     ("Structure", "sitemap"),
     ("Symbol", "circuit-switch-open"),
-    // ID-1477 (7): Draw ▸ Place.
+    // Draw ▸ Place.
     ("Symbol editor…", "pencil"),
     ("Symbols", "category"),
     ("Table", "table"),
@@ -266,7 +266,7 @@ fn ic4_the_notices_list_tabler_icons() {
     assert!(notice.contains("Permission is hereby granted"));
 }
 
-/// FT-1015, ID-1107: Rail, Duct, Auto-fill rail and Enclosure… each show an icon of their own: "Enclosure gets a
+/// Rail, Duct, Auto-fill rail and Enclosure… each show an icon of their own: "Enclosure gets a
 /// Tabler 3.50.0 icon that no other concept uses ... Auto-fill keeps `wand`", and Rail and Duct the project's
 /// glyphs.
 #[test]
@@ -290,7 +290,7 @@ fn ft1015_the_layout_commands_show_their_own_icons() {
     }
 }
 
-/// FT-1015, ID-1107: no icon key serves two concepts. A concept is a placed command of the registry or an entry of a
+/// No icon key serves two concepts. A concept is a placed command of the registry or an entry of a
 /// rail: a right-rail palette is the concept of the command it runs, a left-rail entry that of its pane. A key may
 /// serve two entries only when they are one concept: the list below, each with its reason.
 #[test]
@@ -301,7 +301,7 @@ fn ft1015_no_icon_key_serves_two_concepts() {
         ("ew-interruption-point", &["pane ips", "tool.ip"]),
         // The Structure identifiers navigator and the command that adds one.
         ("sitemap", &["pane structure", "structure.new"]),
-        // A QElectroTech project imported, and the same file imported again into its import (FT-1388).
+        // A QElectroTech project imported, and the same file imported again into its import.
         ("file-import", &["file.import_qet", "file.reimport_qet"]),
     ];
     let mut by_key: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();

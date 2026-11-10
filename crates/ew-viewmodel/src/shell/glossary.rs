@@ -119,14 +119,14 @@ impl ShellModel {
         }
     }
 
-    /// The row cursor of the glossary pane (FT-1281): the index of its row among [`ShellModel::glossary_rows`], none
+    /// The row cursor of the glossary pane: the index of its row among [`ShellModel::glossary_rows`], none
     /// before the first move or a new search.
     pub fn glossary_row(&self) -> Option<usize> {
         let n = self.glossary_rows().len();
         self.glossary_row.filter(|r| *r < n)
     }
 
-    /// `glossary.row {step?, to?}` (Up and Down in the pane's field, FT-1281): moves the row cursor by `step` rows
+    /// `glossary.row {step?, to?}` (Up and Down in the pane's field): moves the row cursor by `step` rows
     /// (from before the first row when there is none) or to row `to` (1-based), kept within the rows; nothing to move
     /// over no row.
     pub(crate) fn act_glossary_row(&mut self, p: &Map<String, Value>) -> Outcome {

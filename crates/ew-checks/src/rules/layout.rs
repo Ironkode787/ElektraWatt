@@ -1,23 +1,23 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The MVP rules of the EW-LAYOUT pack (doc 15 §4.5.4; WP-S4.01 part 5, D12): EW-LAY-001, -003, -004, -006 (2D), -010
+//! The MVP rules of the EW-LAYOUT pack (doc 15 §4.5.4): EW-LAY-001, -003, -004, -006 (2D), -010
 //! and -016. EW-LAY-002 is the structural invariant of D4 (a placement cannot outlive its device) and has no rule run.
 //!
 //! # Scope
 //!
 //! Doc 15 gives these rules the scopes `space`, `surface` and `carrier`, which the engine does not have. As built they
-//! run at the **project** scope until space and surface scope kinds exist (WP-S4.01 part 5, the orchestrator's ruling 1):
+//! run at the **project** scope until space and surface scope kinds exist (the orchestrator's ruling 1):
 //! each `run` enumerates the layout spaces, surfaces, carriers and placements through the layout queries of
 //! `ew_derive::layout` (none of them stores a value), and each finding names its own object as a target (the device,
 //! placement, carrier, layout space or enclosure), shown on the panel-layout page whose surface view shows it.
 //!
-//! # Texts (WP-S1.16 §10, FT-779)
+//! # Texts
 //!
 //! Devices print by their full designation; parts by their part number; a carrier by its kind and its path's first and
 //! last points in millimetres with one decimal (`the rail at (40.0, 740.0)–(610.0, 740.0) mm`: carriers have no
 //! designation member, WP-S4.01 FP-5); a location by its `+` designation. IDs enter only targets and fingerprints.
-//! EW-LAY-010's end-bracket cases (WP-S4.02 part 5, ruling 5) name a rail by its derived label in a sentence ("rail 2",
+//! EW-LAY-010's end-bracket cases name a rail by its derived label in a sentence ("rail 2",
 //! WP-S4.02 D8) and print a length in millimetres without a trailing ".0" ("by 10 mm").
 //! Every finding carries its message arguments; the en-GB patterns of `messages/en-GB/rules.ftl` render the messages
 //! byte for byte.
@@ -58,7 +58,7 @@ use crate::rules::term::{full_tag, location_text};
 /// Nanometres per tenth of a millimetre.
 const NM_PER_TENTH: i128 = 100_000;
 
-/// A length in nanometres as millimetres with one decimal (FT-779): rounded half away from zero (`40.0`, `-0.5`).
+/// A length in nanometres as millimetres with one decimal: rounded half away from zero (`40.0`, `-0.5`).
 fn mm1(nm: i128) -> String {
     let tenths = (nm.unsigned_abs() + (NM_PER_TENTH as u128) / 2) / (NM_PER_TENTH as u128);
     let sign = if nm < 0 && tenths > 0 { "-" } else { "" };
@@ -365,7 +365,7 @@ impl Rule for PartNotOnDevice {
             )
             .arg("device", name)
             .arg("part", part_text);
-            // WP-S4.02 D7: realise the device's primary part again (`layout.move {part}`) at the same pose; no fix
+            // Realise the device's primary part again (`layout.move {part}`) at the same pose; no fix
             // when the device has no primary part (a strip, no mountable part).
             let f = match primary_part(q, device) {
                 Some(primary) => f.with_fix(QuickFix {
@@ -878,7 +878,7 @@ pub const CARRIER_INCOMPATIBLE: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-lay-010",
 };
 
-/// EW-LAY-010 (D12, FT-845), one finding per case, each with its discriminator (the `form` argument):
+/// EW-LAY-010 (D12), one finding per case, each with its discriminator (the `form` argument):
 ///
 /// - per placement, the first of: on a duct (`on_duct`: a duct carries no placements); a rail pose beside the rail's
 ///   axis (`off_axis`), turned other than 0° or 180° (`rail_turn`), or with `s` outside `[0, L]` (`off_rail`); a
@@ -893,7 +893,7 @@ pub const CARRIER_INCOMPATIBLE: RuleMeta = RuleMeta {
 /// - D3's MVP limits: a second layout space of one location (`spaces`), a second enclosure in one layout space
 ///   (`enclosures`), a second plate surface of one enclosure (`plates`); the record with the smallest ID is the one
 ///   the layout uses, every other is reported;
-/// - per derived end bracket of a rail (`group_accessories`, WP-S4.02 D13 and part 5's ruling 5): one that overlaps
+/// - per derived end bracket of a rail (`group_accessories`, and part 5's ruling 5): one that overlaps
 ///   another placement's footprint or a later bracket (`bracket_overlap`, naming the first of them in rail order; a
 ///   touch is no overlap), and one that leaves `[0, L]` (`bracket_outside`, its start before 0 first). Each targets
 ///   the strip it is attributed to and the strip's placement, its subject the strip, its discriminator the form and
@@ -977,7 +977,7 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
                 CarrierKind::Unknown(_) => return,
                 CarrierKind::Rail => {}
             }
-            // a rail whose path breaks D5 has no axis: its own `path` finding reports it (FT-845)
+            // a rail whose path breaks D5 has no axis: its own `path` finding reports it
             let Some(axis) = RailAxis::of(&carrier.path) else {
                 return;
             };
@@ -1140,10 +1140,10 @@ enum Overlapped<'b> {
     Bracket(usize, &'b Bracket),
 }
 
-/// The end-bracket cases of EW-LAY-010 on one rail (WP-S4.02 part 5, ruling 5): a bracket that overlaps another
+/// The end-bracket cases of EW-LAY-010 on one rail: a bracket that overlaps another
 /// placement's footprint or a later bracket, a bracket outside `[0, L]`. A rail without a valid axis has no brackets.
 ///
-/// The work is O((P + B) log P) per rail, P placements and B brackets (WP-S4.02 §9, ruling 11): both lists are in rail
+/// The work is O((P + B) log P) per rail, P placements and B brackets: both lists are in rail
 /// order, so one sweep drops the placements that end at or before a bracket's start and a binary search bounds those
 /// that start before its end; the later bracket it may overlap is the next one of non-zero length. A bracket of zero
 /// length overlaps nothing and still counts in the overflow case (ruling 12). No cap: at most two findings per bracket.
@@ -1163,7 +1163,7 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
     let rail =
         carrier_label(q, id).map_or_else(|| format!("the rail at {}", carrier_at(c)), |l| l.in_sentence());
     // A bracket is "before" its strip when it is its run's start bracket, as `brackets` made it, zero-length ones
-    // included (C44-p3#4): two zero-length brackets at one point read, and fingerprint, apart (ruling 12).
+    // included: two zero-length brackets at one point read, and fingerprint, apart (ruling 12).
     let side = |i: usize| match brackets.get(i).map(|b| b.role) {
         Some(BracketRole::RunStart) => "before",
         _ => "after",
@@ -1430,7 +1430,7 @@ pub const ASSEMBLY_ORDER: RuleMeta = RuleMeta {
 };
 
 /// An assembly member placed on the rail: its full designation (for the texts) and its device. The wanted order is
-/// `ew_derive::layout::member_order` (WP-S4.02 D6): the parent first, then `Device.position` (a PLC module's slot under
+/// `ew_derive::layout::member_order`: the parent first, then `Device.position` (a PLC module's slot under
 /// its station is its position), then the full designation in natural order, then the ID.
 type MemberKey = (String, Id<Device>);
 
@@ -1477,7 +1477,7 @@ impl Rule for AssemblyOrder {
                 if members.len() < 2 {
                     continue;
                 }
-                // WP-S4.02 D6: the one member order of `ew_derive::layout`, which `layout.place_assembly` places by.
+                // The one member order of `ew_derive::layout`, which `layout.place_assembly` places by.
                 let rank: BTreeMap<Id<Device>, usize> = member_order(q, root)
                     .into_iter()
                     .enumerate()

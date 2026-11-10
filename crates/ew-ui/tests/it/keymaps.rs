@@ -179,9 +179,9 @@ fn km3_the_editor_records_a_pressed_chord_and_shows_conflicts_and_shadowing() {
     );
 }
 
-/// FT-1130 (ID-1228 item 5): `ui.dismiss` from a key while the app menu is open closes the menu and nothing else, as
+/// FT-1130 (item 5): `ui.dismiss` from a key while the app menu is open closes the menu and nothing else, as
 /// Escape does; with the menu closed the same key dismisses as before. A physical key of the user's keymap reaches the
-/// window's event loop with `ui.dismiss`; a logical key does too (FT-1187), below.
+/// window's event loop with `ui.dismiss`; a logical key does too, below.
 #[test]
 fn ui_dismiss_with_the_app_menu_open_closes_only_the_menu() {
     let tmp = Tmp::new();
@@ -210,7 +210,7 @@ fn ui_dismiss_with_the_app_menu_open_closes_only_the_menu() {
     assert_eq!(log.first().map(String::as_str), Some("ui.dismiss"), "{log:?}");
 }
 
-/// FT-1187: the logical-key loop matches a `ui.dismiss` the keymap binds to a key other than Escape, as the
+/// The logical-key loop matches a `ui.dismiss` the keymap binds to a key other than Escape, as the
 /// physical-key loop does: with the app menu open it closes only the menu, then it dismisses.
 #[test]
 fn ui_dismiss_on_a_logical_key_reaches_the_window() {

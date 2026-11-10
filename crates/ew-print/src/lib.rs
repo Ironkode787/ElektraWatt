@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! OS print adapters with per-OS features (WP-S3.07 D5, D9; ADR-0015 amendment 1).
+//! OS print adapters with per-OS features (ADR-0015 amendment 1).
 //!
 //! `ew-api` builds the print set (the PDF is the print master); the binaries hand its fields to an adapter here as a
 //! [`PrintJob`], and the adapter hands it to the OS through [`PrintAdapter::print`]. Part 2's adapters are processes,
@@ -16,11 +16,11 @@
 //! Both write their file only as a new one (`create_new`, mode `0o600` on Unix), never through a name already taken.
 //!
 //! Part 3 adds the Linux portal adapter (`Portal`, D11: xdg-desktop-portal Print through `ashpd`, Linux only) and the
-//! [`Chain`] the window prints through (ID-1180 ruling 3): the adapters tried in order, a failure giving way to the
+//! [`Chain`] the window prints through: the adapters tried in order, a failure giving way to the
 //! next with one [`Fallback`] notice; on Linux the portal, `lp`, then the viewer; on Windows the Windows adapter,
 //! then the viewer; elsewhere the viewer.
 //!
-//! Part 4 adds the Windows adapter (`Windows`, D12, ruling 4 of ID-1218, Windows only): the Windows print dialog, or
+//! Part 4 adds the Windows adapter (`Windows`, D12, Windows only): the Windows print dialog, or
 //! the printer [`PrintJob::printer`] names, then each placed page rendered in bands and sent through GDI. Its module
 //! is the product's one place of `unsafe` (doc 18 §11.2): the crate denies `unsafe_code`, and `cargo xtask
 //! check-unsafe` keeps the keyword in that file.
@@ -70,11 +70,11 @@ pub struct PrintJob {
     pub printer: Option<String>,
     /// Whether the set is drawn in black and grey.
     pub monochrome: bool,
-    /// The job's cancel signal (FT-1157, ID-1417): the window's job Cancel and `ew print`'s Ctrl+C set it.
+    /// The job's cancel signal: the window's job Cancel and `ew print`'s Ctrl+C set it.
     pub cancel: PrintCancel,
 }
 
-/// The cancel signal of a [`PrintJob`] (FT-1157, ID-1417), shared by its clones. An adapter that renders (the Windows
+/// The cancel signal of a [`PrintJob`], shared by its clones. An adapter that renders (the Windows
 /// adapter) reads it before each band and aborts the document once it is set; the adapters that hand a file over
 /// cannot take it back. Two signals are equal when they are one.
 #[derive(Clone, Debug, Default)]
@@ -122,7 +122,7 @@ pub enum PrintOutcome {
     },
 }
 
-/// Why a job was not printed; the texts are the CLI's refusals (WP-S3.07 D9).
+/// Why a job was not printed; the texts are the CLI's refusals.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum PrintError {
     /// The CUPS command `lp` is not installed.
@@ -219,7 +219,7 @@ pub trait PrintAdapter {
     fn print(&self, job: &PrintJob) -> Result<PrintOutcome, PrintError>;
 }
 
-/// The adapters tried one after the other (WP-S3.07 D11, ruling 3 of ID-1180): the window's way to print. A failure
+/// The adapters tried one after the other: the window's way to print. A failure
 /// gives way to the next adapter, and the job that prints after a failure carries one [`Fallback`] notice; the
 /// person's cancel of a print dialog ([`PrintError::Cancelled`]) ends the chain, so nothing prints. A panic in an
 /// adapter is a failure like any other.
@@ -254,7 +254,7 @@ impl Chain {
         Chain { adapters }
     }
 
-    /// The window's Print… on this system (ID-1180 ruling 3, ruling 4 of ID-1218): on Linux the portal, then `lp`,
+    /// The window's Print… on this system: on Linux the portal, then `lp`,
     /// then the viewer; on Windows the Windows adapter (its print dialog), then the viewer; on other systems the
     /// viewer. Print files go to `temp_dir`; `project` names the viewer's file.
     pub fn system(temp_dir: PathBuf, project: &str) -> Chain {
@@ -293,7 +293,7 @@ impl Chain {
         let mut failed: Vec<(&'static str, PrintError)> = Vec::new();
         for adapter in &self.adapters {
             let name = adapter.name();
-            // C52-p6#2 (ID-1424): a job cancelled while an earlier way ran asks no further way, whatever that way's
+            // A job cancelled while an earlier way ran asks no further way, whatever that way's
             // error, so the viewer never opens a print the person cancelled.
             if job.cancel.is_set() {
                 failed.push((name, PrintError::Cancelled));
@@ -420,7 +420,7 @@ fn bounded(bytes: &[u8]) -> String {
 /// The most attempts at a fresh print-file name before giving up.
 const NAME_ATTEMPTS: u32 = 64;
 
-/// A fresh file `<stem>-<process>-<n>.pdf` in `dir` holding `bytes` (WP-S3.07 D9): created only if nothing is at
+/// A fresh file `<stem>-<process>-<n>.pdf` in `dir` holding `bytes`: created only if nothing is at
 /// that name, so no other file or link is ever written through, with mode `0o600` on Unix; removed again when the
 /// write fails. A name taken already moves on to the next `n`, at most [`NAME_ATTEMPTS`] times.
 fn fresh_file(dir: &Path, stem: &str, bytes: &[u8]) -> Result<PathBuf, PrintError> {

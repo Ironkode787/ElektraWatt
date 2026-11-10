@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The first-run flow (WP-S2.01 part 2, FT-308; UX/UI doc 16 section 9.1, FR-UI-030): language, what the user
+//! The first-run flow (UX/UI doc 16 section 9.1, FR-UI-030): language, what the user
 //! comes from, the privacy choice, the appearance, and where to start. Every step can be skipped; Help, First-run
 //! setup runs it again. The flow works offline and opens no connection (NFR-PRIV-01).
 //!

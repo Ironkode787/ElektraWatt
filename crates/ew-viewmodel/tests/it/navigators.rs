@@ -4,7 +4,7 @@
 //! The navigators of WP-S2.06 part 1 on Golden A (acceptance checks NV3, NV5, NV7, NV8 and NV10's model half): the
 //! Pages lines byte-equal to the as-built text, the filter as a superset of the as-built Pages filter, the Devices
 //! navigator with selection synchronisation both ways and the chip line, multi-selection and reorder of pages with the
-//! card, the New page pre-fill (FT-461), the describe window and the transcript's `focus` values.
+//! card, the New page pre-fill, the describe window and the transcript's `focus` values.
 
 use crate::common;
 
@@ -91,7 +91,7 @@ fn pages_lines(shell: &ShellModel) -> String {
     out.join("\n")
 }
 
-/// NV10 (D5): the Pages lines are byte-equal to the as-built text (WP-S2.03 §6.10) in the views and states a recording
+/// NV10 (D5): the Pages lines are byte-equal to the as-built text in the views and states a recording
 /// reaches: the section view, a collapsed section, a filter, the flat view, the type order and a moved cursor.
 #[test]
 fn the_pages_lines_are_the_as_built_lines() {
@@ -480,7 +480,7 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
     shell.shutdown();
 }
 
-/// NV7 (FR-PAG-024's rest, FT-360; D8): Shift+Down marks 103 and 106; `pages.reorder` of 106 before 103 opens the
+/// NV7 (FR-PAG-024's rest, D8): Shift+Down marks 103 and 106; `pages.reorder` of 106 before 103 opens the
 /// card "106 → 103, 103 → 106" with its tag and cross-reference counts; Apply commits one `page.reorder`, one undo
 /// step; a generated page refuses; Alt+Up on 106 opens the same card.
 #[test]
@@ -576,7 +576,7 @@ fn pages_are_marked_and_reordered_through_one_previewed_command() {
     shell.shutdown();
 }
 
-/// NV8 (FT-461): Page ▸ New page proposes the next free folio after a page record and the section of the marked
+/// NV8: Page ▸ New page proposes the next free folio after a page record and the section of the marked
 /// section node, else of the current page.
 #[test]
 fn new_page_proposes_the_next_free_folio_and_the_section() {
@@ -783,7 +783,7 @@ fn ten_thousand_nodes_flatten_filter_and_sort() {
     assert_eq!(label(&flat[9_899]), "-0K0");
 }
 
-/// FT-1347 (C51-p6#6): a script's `step` near `i64::MAX` with the cursor past row 0 stops at the last row (no
+/// A script's `step` near `i64::MAX` with the cursor past row 0 stops at the last row (no
 /// overflow).
 #[test]
 fn ft1347_a_huge_navigator_step_stops_at_the_last_row() {

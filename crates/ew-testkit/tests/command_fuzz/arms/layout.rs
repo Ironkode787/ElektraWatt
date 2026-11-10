@@ -20,7 +20,7 @@ pub(super) fn lay_pose(t: [i64; 3], q: [i64; 4]) -> Value {
     json!({"t": t, "q": q})
 }
 
-/// EW-LAY-002, the fuzzer's layout invariant (LM-6): every placement's device exists; and (WP-S4.02 part 2, AS-7)
+/// EW-LAY-002, the fuzzer's layout invariant (LM-6): every placement's device exists; and (AS-7)
 /// every placement's carrier or surface exists.
 pub fn placements_have_devices(q: &ew_derive::Q) -> Result<(), String> {
     let placements = q.table::<ew_schema::Placement>();
@@ -481,10 +481,10 @@ pub(super) fn layout_lock(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     Some(cmd(json!({"placement": p.id, "locked": rng.chance(2)})))
 }
 
-/// `page.surface_view.set` (WP-S4.01 part 3, D9): a panel-layout page shows a surface at a datum, in either label mode
+/// `page.surface_view.set`: a panel-layout page shows a surface at a datum, in either label mode
 /// (accepted: the page's view is replaced in place, or a first one is added), some of the time with a scale the page
-/// takes (FT-1064); refused: a page that does not exist, a page of another kind, a surface that is not in the
-/// project, a scale of 1:0 (the schema's minimum, FT-1065).
+/// takes; refused: a page that does not exist, a page of another kind, a surface that is not in the
+/// project, a scale of 1:0 (the schema's minimum).
 pub(super) fn page_surface_view_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cmd = |p: Value| Step::cmd("page.surface_view.set", p);
     let surface = rng.pick(&live.layout.surfaces)?.clone();
@@ -502,7 +502,7 @@ pub(super) fn page_surface_view_set(live: &Live, rng: &mut SplitMix64) -> Option
         .collect();
     match rng.below(9) {
         0 => Some(cmd(json!({"page": rng.uuid(), "surface": surface, "datum_at": datum})).refuse()),
-        // Refused by the registry's schema check: a scale of 1:0 (FT-1065).
+        // Refused by the registry's schema check: a scale of 1:0.
         3 => {
             let page = rng.pick(&panels)?;
             Some(
@@ -535,7 +535,7 @@ pub(super) fn page_surface_view_set(live: &Live, rng: &mut SplitMix64) -> Option
     }
 }
 
-/// WP-S4.02 part 2: the assembly root of a device, in the text form of its ID: the device itself when it has children,
+/// The assembly root of a device, in the text form of its ID: the device itself when it has children,
 /// else its parent; `None` for a device outside any assembly (the rule of `layout.place_assembly`).
 pub(super) fn assembly_root_text(live: &Live, device: &str) -> Option<String> {
     if live.tree.iter().any(|t| t.parent.as_deref() == Some(device)) {
@@ -597,7 +597,7 @@ pub(super) fn setup_unplace_member(live: &Live, rng: &mut SplitMix64) -> Option<
     Some(Step::cmd("layout.remove", json!({"placement": p.id})))
 }
 
-/// `layout.place_assembly` (WP-S4.02 part 2, D6): the unplaced members of an assembly go onto the rail one of its
+/// `layout.place_assembly`: the unplaced members of an assembly go onto the rail one of its
 /// members sits on, else onto a rail at `s` in free or push mode (either: a member may not mount or fit, the rail may
 /// lack room, every member may be placed); refused: a device that does not exist, a surface, swap, a device outside
 /// any assembly. After a commit every placement has its device and its carrier or surface.
@@ -652,7 +652,7 @@ pub(super) fn layout_place_assembly(live: &Live, rng: &mut SplitMix64) -> Option
     }
 }
 
-/// `layout.auto_fill` (WP-S4.02 part 2, D7): the unplaced devices of a rail's space that fit it, or a listed device,
+/// `layout.auto_fill`: the unplaced devices of a rail's space that fit it, or a listed device,
 /// next-fit in `dt` or `schematic` order (either: nothing may fit or have room); refused: a carrier that does not
 /// exist, a duct, a device listed twice, a device that does not exist. After a commit every placement has its device
 /// and its carrier or surface.
@@ -688,7 +688,7 @@ pub(super) fn layout_auto_fill(live: &Live, rng: &mut SplitMix64) -> Option<Step
     }
 }
 
-/// `layout.enclosure.create_from_part` (WP-S4.02 part 2, D9): a new part copy with an enclosure section (no plate,
+/// `layout.enclosure.create_from_part`: a new part copy with an enclosure section (no plate,
 /// embedded through `copies`) on a location without a layout space gives a space, an enclosure device, an enclosure and
 /// its plate surface (accepted); refused: a location that does not exist, a node of another aspect, a part without an
 /// enclosure section.

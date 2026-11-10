@@ -34,7 +34,7 @@
 //!
 //! # The text (`xref_text`)
 //!
-//! [`XrefSettings`] is the project's `settings.xref_format` (provisional `extra` member, decision log ID-17)
+//! [`XrefSettings`] is the project's `settings.xref_format` (provisional `extra` member)
 //! or the pinned profile's `xref` table. Each target is one **item**, rendered with the `ip` format (an
 //! interruption point's partner, every list entry) or the `aux_to_main` format (on an auxiliary); a list of
 //! items is laid out as the matrix (FR-XRF-008) and substituted into `main_to_aux` ("∞ {list}").
@@ -375,7 +375,7 @@ fn ip_relation(q: &Q, fid: Id<Function>, spec: &IpSpec) -> XrefRelation {
             targets: Vec::new(),
         };
     }
-    // The pairing of this point and of its partners only (parts of `ip_pairing`, WP-S1.07 part 2).
+    // The pairing of this point and of its partners only (parts of `ip_pairing`).
     let stitch = q.get_part::<IpPairingQ>((), PartKey::Ip(fid));
     // The pairing's notes (an unpaired point is noted, EW-CORE-051), as when this read the stitch graph.
     let _ = q.get_value_part::<IpNotes>(());
@@ -688,7 +688,7 @@ impl Query for XrefTextOf {
             return Arc::new(XrefText::default());
         };
         let settings = q.get::<XrefSettingsOf>(());
-        // An interruption point's structure is `ip_structure` (its structure box over its page, WP-S2.04 §10.2).
+        // An interruption point's structure is `ip_structure` (its structure box over its page).
         let source_function = q.reps().get(*key).and_then(|r| r.functions.first().copied());
         let cx = TextCx {
             q,

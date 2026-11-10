@@ -4,7 +4,7 @@
 //! The built-in report kinds (doc 09 §2.4).
 //!
 //! Derived now (Derivation I): `toc`, `parts_summary`, `parts_list`, `part_data`, `structure_overview`, `device_list`
-//! (FR-REP-008, the device rows of `structure_overview`; WP-S3.06 D5), and `profile_tables` (the cover's colour and
+//! (FR-REP-008, the device rows of `structure_overview`), and `profile_tables` (the cover's colour and
 //! size tables, from the profiles in the project settings).
 //! Derived now from the Derivation II queries (potential partition, physical wires, effective wire
 //! properties): `wire_list`, `potential_overview`, `terminal_diagram`, `terminal_overview` (FR-REP-010, one row per
@@ -13,8 +13,8 @@
 //! pagination like the others.
 //! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview` and `io_list` (FR-PLC-023). From the tags and wire numbers:
 //! `numbering_report` (frozen values with their rule values, FR-REP-022). From the revision records:
-//! `revision_overview` (`revision_rows`, FT-207; WP-S1.18 part 2). From the layout: `enclosure_legend`
-//! (`layout_legend`, WP-S4.01 part 4; registered, drawn on no page until part 4b). From the check engine:
+//! `revision_overview` (`revision_rows`). From the layout: `enclosure_legend`
+//! (`layout_legend`, registered, drawn on no page until part 4b). From the check engine:
 //! `open_items` (FR-REP-021, the open findings of the open-item rules, `ew_checks::open_items`; WP-S3.06 D7, D8: none
 //! of those rules reads the page order, so the list paginates inside it). Other schema kinds are not registered; their blocks
 //! report [`NotDerived::Unsupported`](crate::rowset::NotDerived::Unsupported).

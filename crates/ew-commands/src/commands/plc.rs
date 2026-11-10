@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! PLC records (doc 10 §2.2–§2.4, §3.3, §3.9; FT-270, FT-277): `plc.config_project.create`
+//! PLC records (doc 10 §2.2–§2.4, §3.3, §3.9): `plc.config_project.create`
 //! (`CreatePlcConfigProject`), `plc.bind_channel` (`BindChannel`) and `plc.set_module_part`
 //! (`SetModulePart`, Bulk).
 //!
@@ -96,10 +96,10 @@ impl Command for CreatePlcConfigProject {
     }
 }
 
-/// Whether a function on `device` may take a channel of `module` (owner ruling, cycle 16): the device is the module
+/// Whether a function on `device` may take a channel of `module`: the device is the module
 /// itself (a pin of the card) or one of its descendants (the coil of a valve on it), following `parent` up at most
 /// 4096 steps. A function on no device is on no module. [`BindChannel`] refuses a binding outside this rule; a host
-/// asks the same question before it commits, so that it can refuse in words (cycle 38, FX38d).
+/// asks the same question before it commits, so that it can refuse in words (FX38d).
 pub fn is_on_module(
     device: Option<Id<Device>>,
     module: Id<Device>,
@@ -131,8 +131,8 @@ pub fn is_on_module(
 /// and the outcome's notices name it. An explicit binding wins over the solenoid-position map: N2 never
 /// rebinds a coil that a channel binds, nor a channel that is bound. Outcome: the channel.
 ///
-/// In a command log (and the blind harness's `command.run`) the channel and the CP may also be named by tags
-/// (FT-721): the channel as `<module tag>#<number>` or `<module tag>:<designation>`, the function as `<device tag>`
+/// In a command log (and the blind harness's `command.run`) the channel and the CP may also be named by tags:
+/// the channel as `<module tag>#<number>` or `<module tag>:<designation>`, the function as `<device tag>`
 /// or `<device tag>:<slot>` with the CP by `designation` instead of `idx`, as
 /// `{"channel": "-201U5#3", "endpoint": {"cp": {"function": "-201Y3", "designation": "14"}}}`; the replay resolves
 /// them into this ID form before the command runs, and refuses an unknown or ambiguous name with up to five
@@ -170,7 +170,7 @@ impl Command for BindChannel {
         let mut notices = Vec::new();
         if let Some((function, idx)) = binding {
             let f = tx.require::<Function>(function)?;
-            // owner ruling (cycle 16): the signal CP lies on the module itself (a pin) or on one of its
+            // owner ruling: the signal CP lies on the module itself (a pin) or on one of its
             // descendants (the coil of a valve on the module); anything else is refused
             let inside = is_on_module(f.device, channel.module, |d| {
                 tx.get::<Device>(d).and_then(|x| x.parent)
@@ -211,14 +211,14 @@ impl Command for BindChannel {
                     source.to_string()
                 ));
             }
-            // the channels that hold the CP: an index lookup, not a scan of the channel table (FT-319)
+            // the channels that hold the CP: an index lookup, not a scan of the channel table
             let others: Vec<Id<Channel>> = tx
                 .channels_at_cp(function, idx)
                 .into_iter()
                 .filter(|c| *c != self.channel)
                 .collect();
             for other in others {
-                // FT-757: the notice names the displaced channel in words (its number and whether it is on the same
+                // The notice names the displaced channel in words (its number and whether it is on the same
                 // module), never by its record ID; a host that knows the derived address says more (the PLC
                 // navigator's toast names the address and the pin).
                 let words = match tx.get::<Channel>(other) {
@@ -315,7 +315,7 @@ impl Command for SetStart {
                 _ => {
                     let profile = module_profile(tx, *m);
                     let at_hand = crate::commands::fields::profiles_in(tx);
-                    // FT-1494: the parser's refusal by key.
+                    // The parser's refusal by key.
                     let a = ew_derive::parse_plc_start(&at_hand, &profile, &self.spec).map_err(|_| {
                         let why = crate::error::plc_text_refusal(&at_hand, &profile, &self.spec, true);
                         CmdError::invalid_params(Self::NAME, "/spec", text!("refusal-params-detail", why))
@@ -490,7 +490,7 @@ impl Command for SetModulePart {
             return tx.reject(text!("refusal-plc-not-module", crate::words::device(tx, m)));
         };
         if let Some(parts) = &self.parts {
-            // review ruling (cycle 18): a `part_use` that names no entry of the new parts would give a count
+            // review ruling: a `part_use` that names no entry of the new parts would give a count
             // of 0 and delete every channel; it is refused, the part use is changed first
             if let Some(i) = aspect.part_use.filter(|i| usize::from(*i) >= parts.len()) {
                 return Err(CmdError::invalid_params(
@@ -513,7 +513,7 @@ impl Command for SetModulePart {
         let count = module_section(tx, &dev)
             .and_then(|s| s.channels)
             .map_or(0, |c| c.count);
-        // the module's channels from the index (FT-319), not a scan of the channel table
+        // the module's channels from the index, not a scan of the channel table
         let mut surplus: Vec<_> = tx
             .channels_of_module(m)
             .into_iter()
@@ -528,7 +528,7 @@ impl Command for SetModulePart {
                 .symbol
                 .as_ref()
                 .map_or_else(|| "no symbol".to_owned(), |s| format!("symbol {s}"));
-            // FT-952: the module by its tag and the binding in words, as N2's notices name them
+            // The module by its tag and the binding in words, as N2's notices name them
             notices.push(format!(
                 "channel {} of module {} is removed: beyond its part's {count} channels; it was {}, {symbol}",
                 c.number,

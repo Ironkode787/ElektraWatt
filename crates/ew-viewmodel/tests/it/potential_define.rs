@@ -272,7 +272,7 @@ fn name_and_type_in_one_gesture_are_one_potential_define() {
     shell.shutdown();
 }
 
-/// P1-5 (FT-577): Type or Voltage typed on an undefined row without a name refuses with "Name the potential first"
+/// P1-5: Type or Voltage typed on an undefined row without a name refuses with "Name the potential first"
 /// and creates nothing; on a defined row Type sets as built.
 #[test]
 fn type_or_voltage_without_a_name_refuses() {
@@ -312,7 +312,7 @@ fn type_or_voltage_without_a_name_refuses() {
     shell.shutdown();
 }
 
-/// The other definition cells of an undefined row stay read-only (ID-752); a gesture over two undefined rows is
+/// The other definition cells of an undefined row stay read-only; a gesture over two undefined rows is
 /// refused per cell.
 #[test]
 fn the_cells_that_stay_read_only_and_one_row_per_gesture() {
@@ -378,7 +378,7 @@ fn fill_form(shell: &mut ShellModel, fields: [&str; 3]) {
     assert!(shell.palette().is_none(), "the form closes");
 }
 
-/// FT-1202 (ID-1270): Define potential… defines a supply potential from each of its surfaces, the Draw menu beside
+/// Define potential… defines a supply potential from each of its surfaces, the Draw menu beside
 /// Bond on a selected wire (at its `from` end), the canvas context menu over a junction and the palette found by
 /// "supply" on a terminal, each in one step through its parameter form; its name is then the Potentials row's. With no
 /// one point selected the action is disabled with its reason, whole; an empty name is refused; the context menu does
@@ -443,7 +443,7 @@ fn define_potential_from_the_menu_the_context_menu_and_the_palette() {
     );
     assert_eq!(shell.recorded_commands().len(), steps, "nothing commits");
     fill_form(&mut shell, ["FEED-A", "L+", "24 V DC"]);
-    // FT-1242: one undo step, at the wire's `from` end.
+    // One undo step, at the wire's `from` end.
     assert_eq!(shell.recorded_commands().len(), steps + 1, "one step");
     let from = shell
         .canvas()
@@ -533,7 +533,7 @@ fn node(shell: &ShellModel, name: &str) -> ew_viewmodel::navigators::NavNode {
         .unwrap_or_else(|| panic!("no potential {name}"))
 }
 
-/// FT-1239 (ID-1315): a Potentials row with a definition point offers Define potential… in its context menu; the
+/// A Potentials row with a definition point offers Define potential… in its context menu; the
 /// form it opens defines the row's potential at that point in one step, whatever page is on show and whatever is
 /// selected; a row without one offers nothing and is refused in words; a later Define potential… from the menu takes
 /// the selection again.
@@ -579,7 +579,7 @@ fn define_potential_from_a_potentials_row() {
         ew_viewmodel::strings::text(ew_viewmodel::strings::Key::run_time(reason)),
         "This row has no connection point to define its potential at"
     );
-    // FT-1348: in Dutch too.
+    // In Dutch too.
     done(&mut shell, "view.language", json!({"value": "nl"}));
     assert_eq!(
         ew_viewmodel::strings::text(ew_viewmodel::strings::Key::run_time(reason)),

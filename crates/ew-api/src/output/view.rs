@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The glue rules of the page view (doc 09 §4.1; decision log ID-125, ID-144, ID-315; FT-59, FT-206): the parts
+//! The glue rules of the page view (doc 09 §4.1): the parts
 //! of an [`ew_scene::page::PageView`] filled from the tracked read context `Q`.
 //!
 //! `ew-scene` has no `ew-derive` edge (ARCH §3 rule 7), so the session layer fills the view. Each part is its own
@@ -30,15 +30,15 @@
 //!   resolved by `ew_derive::frame_form_of` like the cell grid: the entry of the page's type, else `default`; FT-336), else the
 //!   no-grid frame [`NOGRID_FRAME`] (the form of the project library with that key); a generated page's
 //!   `GeneratedPage::form`, else the no-grid frame; a divider the frame defaults' `section_divider` entry, else the
-//!   no-grid frame (ID-144). A frame-defaults form the project does not hold falls through to the next rule. The
+//!   no-grid frame. A frame-defaults form the project does not hold falls through to the next rule. The
 //!   title block by `FormDef.title_block`.
 //! - **Bindings**: every `title_block(page)` value, the project's date format, no display language (neutral).
-//! - **Report tables** (FT-53): a generated page's rows are the `GeneratedPage::rows` range of
+//! - **Report tables**: a generated page's rows are the `GeneratedPage::rows` range of
 //!   `report_rows(block)`, each cell printed by `ew_reports::render::render` for that page (neutral language,
 //!   displayed tags); a page with a `note` prints the note instead; the column widths are the columns' weights. Every
-//!   row link that resolves is drawn (FR-REP-042; WP-S3.06 D10): a connection point, a page, a device's main
+//!   row link that resolves is drawn (FR-REP-042): a connection point, a page, a device's main
 //!   representation or a representation, over the whole cell or over one listed folio of a `Folios` cell.
-//! - **Embedded blocks** (FR-REP-028; WP-S4.01 D16): every embedded block of a drawn page is drawn into its rectangle.
+//! - **Embedded blocks** (FR-REP-028): every embedded block of a drawn page is drawn into its rectangle.
 //!   A `profile_tables` block draws the cover: the rows split by their `table` column into the colour table, the
 //!   control sizes and the mains sizes; a group-header row is the title of its table, a group-footer row of the
 //!   colours its caption and the group-footer row of the group `note` the note under the tables. Every other block
@@ -47,9 +47,9 @@
 //!   printed columns, title, header rows and flow columns are the kind's `ReportKindDef::embedded_layout` (a source
 //!   without a registered kind prints every column under a header row), the block's own non-empty `title` replaces the
 //!   kind's title, and a block whose rows do not derive prints the reason as its note (capitalised, as a generated
-//!   page's placeholder). An embedded block draws no back-links (WP-S3.06 §1): only a PLC overview box's
+//!   page's placeholder). An embedded block draws no back-links: only a PLC overview box's
 //!   connection-point links.
-//! - **Slot texts** (ID-162, ID-166, ID-228, ID-315, ID-1151; FT-206): `tag` → `displayed_tag(device, page)`,
+//! - **Slot texts**: `tag` → `displayed_tag(device, page)`,
 //!   except that a terminal's own representation prints its label, never the full tag (doc 08 §6.1: its function
 //!   text when its strip's `label_mode` is FunctionText and the text is not empty, its `function_text` slot then
 //!   empty; else its designation), a strip segment of a strip with `tag_print` PerPage prints it only at the strip's
@@ -57,17 +57,17 @@
 //!   `cp_designation(i)` → the designation of the function CP that symbol CP `i` draws; `function_text` → the
 //!   device's function text, or an interruption point's pairing name; `process_tag` → the device's process tag;
 //!   `xref` → `xref_text(rep)` with one link per listed item; `tech_data` → `tech_data_text(device)`;
-//!   `manufacturer`, `part_number` and `type_designation` → the device's main part (its first part use, FT-162);
+//!   `manufacturer`, `part_number` and `type_designation` → the device's main part (its first part use);
 //!   `order_code` → `order_code_text(device)` (the order code of its first assembly config, D-36); `plc_address` →
-//!   the first drawn function's `ew_derive::PlcAddressText` text (WP-S1.21 D7); every other kind has no value. An
+//!   the first drawn function's `ew_derive::PlcAddressText` text; every other kind has no value. An
 //!   empty text is not listed.
-//! - **Strip tags at terminals drawn alone** (doc 08 §6.7, ID-1151; [`page_strip_tags`]): on a page that shows
+//! - **Strip tags at terminals drawn alone** (doc 08 §6.7, [`page_strip_tags`]): on a page that shows
 //!   terminals of a strip and no segment of it, the strip's displayed tag for the page, once, at the strip's first
 //!   terminal representation on the page (designation in natural order, then IDs) whose tag slot is shown
 //!   (`ew_derive::tag_slot_shown`; none shown, no tag); the scene prints it one connection-grid step above that
 //!   terminal's tag-slot anchor, so an unnumbered strip's terminals name it ("-X101?" on page 101 under a strip rule
 //!   with `{page}`, "-X??" without a page token).
-//! - **Pin texts** (WP-S1.21 D7, FT-707): a black box (`Representation.box` with CPs, a symbol without CPs) lists, per
+//! - **Pin texts**: a black box (`Representation.box` with CPs, a symbol without CPs) lists, per
 //!   box CP, the designation of that CP of its first function as stored and, when the function CP is bound to a PLC
 //!   channel, the channel's printed address (`PlcAddressText::pins` of its function) after one space
 //!   (`L+ I0.1`), in [`PageSlotsOf`] beside the slot texts; the scene prints them beside the pins. A designation the
@@ -78,7 +78,7 @@
 //!   absent, connections with `overrides.show_marker` print the explicit cross-section and the colour codes (their
 //!   file spelling, `GNYE`), joined by a space; in a mode, the connections the mode selects print their effective
 //!   values. A connection a wire-marker item lists prints no marker of its own: the item prints the group.
-//! - **Page items and structure boxes** (WP-S2.04 part 4a; [`page_items`], [`page_boxes`]): a drawn page's items and
+//! - **Page items and structure boxes** ([`page_items`], [`page_boxes`]): a drawn page's items and
 //!   boxes in ID order; with texts, a free text prints its text or its bound value (`ew_derive::free_text`), a wire
 //!   marker its group text and whether it is shown (`ew_derive::group_marker`), a box its caption
 //!   (`ew_derive::box_caption`); the symbols layer reads them without texts (geometry only), so a text edit never
@@ -119,7 +119,7 @@ use ew_schema::{
     RepType, ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef, TagPrint,
 };
 
-/// The key of the frame form of dividers, and of pages without a form (ID-144).
+/// The key of the frame form of dividers, and of pages without a form.
 pub const NOGRID_FRAME: &str = "ew.frame.qet-a4-landscape-nogrid";
 
 /// The built-in generic symbols the page view draws without a record naming them.
@@ -300,7 +300,7 @@ impl Query for PageBindingsOf {
             // `title_block(page)` names valid placeholder paths; a path the form layer refuses stays unbound.
             let _ = b.set(path, v);
         }
-        // WP-S1.18 part 2: in the digest branch of doc 15 §5.6 the page's change status comes from its digest, which
+        // In the digest branch of doc 15 §5.6 the page's change status comes from its digest, which
         // `ew-derive` cannot see (the title block keeps the no-digest value).
         if q.get::<TitleBlockValues>(*key)
             .get("page.last_changed_in")
@@ -417,7 +417,7 @@ impl Query for PageConnectionsOf {
     }
 }
 
-/// The page items of a drawn page in ID order (WP-S2.04 part 4a). With `texts`, each with what it prints (a free
+/// The page items of a drawn page in ID order. With `texts`, each with what it prints (a free
 /// text's text or bound value, a wire marker's group text and whether it is shown); without, the records alone
 /// (the geometry the symbols layer draws).
 pub fn page_items(q: &Q, page: Id<Page>, texts: bool) -> Vec<ew_scene::items::ItemView> {
@@ -455,7 +455,7 @@ pub fn page_items(q: &Q, page: Id<Page>, texts: bool) -> Vec<ew_scene::items::It
         .collect()
 }
 
-/// The structure boxes of a drawn page in ID order (WP-S2.04 part 4a), with their captions when `captions` is set.
+/// The structure boxes of a drawn page in ID order, with their captions when `captions` is set.
 pub fn page_boxes(q: &Q, page: Id<Page>, captions: bool) -> Vec<ew_scene::items::StructureBoxView> {
     let boxes = q.structure_boxes();
     let mut ids: Vec<_> = q.idx().structure_boxes_by_page(page).collect();
@@ -522,7 +522,7 @@ impl Query for CpTargetsByPage {
                         continue;
                     };
                     // The smallest-ID representation of the function on each page that draws it.
-                    // WP-S1.20 D5: an internal coil without a representation is drawn in its valve's symbol.
+                    // An internal coil without a representation is drawn in its valve's symbol.
                     let drawn = ew_derive::coil_host(q, function).unwrap_or(function);
                     let mut seen = std::collections::BTreeSet::new();
                     for rid in q.idx().reps_of_function(drawn) {
@@ -563,7 +563,7 @@ pub fn page_break_marks(q: &Q, page: Id<Page>) -> Vec<BreakMarkView> {
         .collect()
 }
 
-/// The valve glyphs of the module overviews on a drawn page (doc 11 §5.5 step 3, WP-S1.20 D19): for each overview
+/// The valve glyphs of the module overviews on a drawn page (doc 11 §5.5 step 3): for each overview
 /// representation of a module with valve positions, one glyph per position from `valve_slots`, in representation-ID
 /// order; a valve prints the part number of its first part use. A plain function of the tracked reads of `q`, like
 /// `page_break_marks`.
@@ -725,7 +725,7 @@ pub(crate) fn page_grid(q: &Q, page: PageRef) -> Grid {
     *q.get::<PageGridOf>(page)
 }
 
-/// The pin texts of a black box (WP-S1.21 D7, FT-707): per box CP of a representation whose symbol has no CPs, the
+/// The pin texts of a black box: per box CP of a representation whose symbol has no CPs, the
 /// designation of that CP of its first function as stored (repeated designations print as they are), then, when the
 /// CP is bound to a PLC channel, the channel's printed address after one space; in box-CP order. A designation that
 /// a `cp_designation` slot of the symbol already prints, or an empty one, is left out (no text twice); a box CP with
@@ -808,7 +808,7 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                 // ID-162, ID-1151 (doc 08 §6.1, §6.7): a terminal's own representation prints its label, never
                 // the full tag.
                 (_, Some(_)) if label.is_some() => label.as_ref().map(|(l, _)| l.clone()),
-                // ID-1151: `tag_print` PerPage prints a strip's tag at its first segment on each page only.
+                // `tag_print` PerPage prints a strip's tag at its first segment on each page only.
                 (_, Some(d)) if !prints_segment_tag(q, d, rep) => None,
                 (_, Some(d)) => Some((*q.get::<DisplayedTag>((d, page))).clone()),
                 _ => None,
@@ -827,12 +827,12 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                     .map(|c| c.designation.clone())
             }
             // Interruption points have `function_text` and `xref` slots, no `tag`; the former prints the pairing
-            // name (ID-166).
+            // name.
             SlotKind::FunctionText => match f.as_ref().map(|f| &f.kind) {
                 Some(FunctionKind::Ip(ip)) => Some(ip.name.as_str().to_owned()),
-                // ID-1151: a terminal labelled by its function text prints it once, in its tag slot.
+                // A terminal labelled by its function text prints it once, in its tag slot.
                 _ if label.as_ref().is_some_and(|(_, by_text)| *by_text) => None,
-                // WP-S1.20 D14: a slot with the fallback `process_tag` prints, when the function text is empty, the
+                // A slot with the fallback `process_tag` prints, when the function text is empty, the
                 // process tag of the valve's tracked target, else the valve's own.
                 _ => {
                     let own = dev.as_ref().map(|d| neutral(&d.function_text));
@@ -848,7 +848,7 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                 .as_ref()
                 .and_then(|d| d.process_tag.as_ref().map(|t| t.as_str().to_owned())),
             SlotKind::TechData => device.map(|d| tech_data_text(q, d)),
-            // FT-265: beside an `order_code` slot the manufacturer is the configured part's of that order code (the
+            // Beside an `order_code` slot the manufacturer is the configured part's of that order code (the
             // DP port of folio 3), else the main part's.
             SlotKind::Manufacturer => device
                 .and_then(|d| {
@@ -859,7 +859,7 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                         .flatten()
                         .or_else(|| main_part(q, d))
                 })
-                // FT-1094 (ID-1184): the starter library's "Generic" names no maker, so the slot prints nothing for it
+                // The starter library's "Generic" names no maker, so the slot prints nothing for it
                 // (the chooser and the tables keep the word; `manufacturer_name` is unchanged).
                 .filter(|p| p.item.manufacturer.item.as_uuid() != ew_library::STARTER_GENERIC_MANUFACTURER)
                 .map(|p| manufacturer_name(q, &p.item.manufacturer)),
@@ -883,7 +883,7 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                     .collect();
                 Some(x.text.clone())
             }
-            // WP-S1.21 D11: the drawn function's bus port, its station address and its termination (FR-BUS-004).
+            // The drawn function's bus port, its station address and its termination (FR-BUS-004).
             SlotKind::BusAddress => f
                 .as_ref()
                 .and_then(|f| f.bus_port.as_ref())
@@ -892,7 +892,7 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                 .as_ref()
                 .and_then(|f| f.bus_port.as_ref())
                 .and_then(ew_derive::bus_termination_text),
-            // WP-S1.21 D7: the first drawn function's derived PLC address text.
+            // The first drawn function's derived PLC address text.
             SlotKind::PlcAddress => rep
                 .functions
                 .iter()
@@ -911,7 +911,7 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
     out
 }
 
-/// The label a terminal's own representation prints in its tag slot (doc 08 §6.1, FR-TRM-021; ID-162, ID-1151):
+/// The label a terminal's own representation prints in its tag slot (doc 08 §6.1, FR-TRM-021):
 /// its function text when its strip's `label_mode` is FunctionText and the text is not empty (then `true`: the
 /// function-text slot stays empty), else its designation; `None` for a device that is not a terminal.
 fn terminal_label(q: &Q, dev: &ew_schema::Device) -> Option<(String, bool)> {
@@ -938,7 +938,7 @@ fn cell_key(q: &Q, rep: Id<Representation>) -> (u32, u32) {
         .map_or((u32::MAX, u32::MAX), |c| (c.row, c.column))
 }
 
-/// Whether strip segment `rep` of device `device` prints the strip's tag (doc 08 §6.7, ID-1151): every segment
+/// Whether strip segment `rep` of device `device` prints the strip's tag (doc 08 §6.7): every segment
 /// with `tag_print` PerSegment; with PerPage only the strip's first segment on its page in (row, column, ID)
 /// order. A representation that is not a strip segment prints its tag.
 fn prints_segment_tag(q: &Q, device: Id<ew_schema::Device>, rep: &Representation) -> bool {
@@ -968,7 +968,7 @@ fn prints_segment_tag(q: &Q, device: Id<ew_schema::Device>, rep: &Representation
     first == Some(rep.id)
 }
 
-/// `page_strip_tags(page)`: the strip tags of the terminals drawn alone on a drawn page (doc 08 §6.7, ID-1151), by
+/// `page_strip_tags(page)`: the strip tags of the terminals drawn alone on a drawn page (doc 08 §6.7), by
 /// representation ID. A strip with a terminal representation on the page and no segment there prints its displayed
 /// tag for the page once, at the first terminal representation on the page whose tag slot is shown
 /// (`ew_derive::tag_slot_shown`), in the strip's own order (designation in natural order, then terminal ID, as
@@ -1124,7 +1124,7 @@ fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> EmbeddedTable {
                         .map(|&(i, _)| r.cells.get(i).map(|c| render(q, c, &opts)).unwrap_or_default())
                         .collect(),
                 };
-                // An embedded block draws no back-links (WP-S3.06 §1, ruling 4): only the connection-point links
+                // An embedded block draws no back-links: only the connection-point links
                 // of a PLC overview box as built (FR-PLC-052), whole-cell, renumbered to their printed position.
                 let links = row_links(q, r)
                     .into_iter()
@@ -1157,7 +1157,7 @@ fn capitalised(s: &str) -> String {
     }
 }
 
-/// The drawn row links of a report row on a generated page (FR-REP-042; WP-S3.06 D10, rulings 1 and 4), in the
+/// The drawn row links of a report row on a generated page (FR-REP-042; rulings 1 and 4), in the
 /// row's link order:
 ///
 /// - `Cp`: the connection point, which the PLC overview sets to the coil of each bound channel (doc 10 §5);
@@ -1265,7 +1265,7 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
     }
 }
 
-/// The `pages` cell of a revision overview row at draw time (WP-S1.18 part 2): the revision's `changed_pages`, which
+/// The `pages` cell of a revision overview row at draw time: the revision's `changed_pages`, which
 /// sees the page digests and the generated pages the row source inside the pagination cannot
 /// (`ew_reports::kinds::revision_rows`); `None` for a row that names no revision.
 pub(super) fn revision_pages(q: &Q, row: &Row) -> Option<Cell> {
@@ -1345,7 +1345,7 @@ fn segment_terminals(q: &Q, rep: &Representation) -> Vec<SegmentTerminal> {
 }
 
 impl crate::Session {
-    /// How many connections carry a wire marker of their own under the project's current marker mode (FT-554): the
+    /// How many connections carry a wire marker of their own under the project's current marker mode: the
     /// count that `project.marker_mode` reports after a switch (`0 wires carry a marker`).
     pub fn marker_wire_count(&self) -> usize {
         let q = self.query();
@@ -1399,7 +1399,7 @@ mod tests {
         );
     }
 
-    /// FT-707: a black box's pin texts carry the CP designation, then (when the CP is bound) the printed address
+    /// A black box's pin texts carry the CP designation, then (when the CP is bound) the printed address
     /// after one space; repeated designations print as stored; an empty designation, or one a `cp_designation` slot
     /// of the symbol already prints, is left out, and a pin with nothing left has no entry.
     #[test]

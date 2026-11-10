@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Table mode (WP-S2.06 part 3, §8; D10 to D13): the state of a navigator's table, its rows, the cell cursor, the
+//! Table mode (D10 to D13): the state of a navigator's table, its rows, the cell cursor, the
 //! closed table of editable cells, and the compile rule that turns one gesture (a cell, a column over several rows, a
 //! fill-down, a pattern fill, a paste or a clear) into exactly one command.
 //!
@@ -20,7 +20,7 @@
 //! value, as the property grid composes it. The result is `fields.set` when every target gets the same (kind, member,
 //! value), else one `fields.set_many` with one entry per (kind, member, value) in the order of first appearance.
 //!
-//! **The pure rule lives in `ew-api`** (WP-S3.08 D10; ID-1174 ruling 3): `ew_api::output::table_edit` holds the
+//! **The pure rule lives in `ew-api`**: `ew_api::output::table_edit` holds the
 //! editable-cell and compile rule, so that the CLI's table round trip compiles the same command. It is re-exported here
 //! under its old paths; the items that return texts give them here from their keys: [`cell_reason`], [`rows_word`],
 //! and the text methods of [`GestureCellText::reason`], [`GestureKindText::word`] and [`GestureText::title`].
@@ -93,7 +93,7 @@ impl GestureKindText for GestureKind {
     }
 }
 
-/// A table card's gesture (WP-S3.08 D10): the moved [`Gesture`], with its title as the card shows it.
+/// A table card's gesture: the moved [`Gesture`], with its title as the card shows it.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TableGesture(pub Gesture);
 
@@ -188,11 +188,11 @@ pub struct TableMode {
     pub(crate) error: Option<String>,
     /// The pattern fill dialog's pattern, while the dialog is open.
     pub(crate) pattern: Option<String>,
-    /// WP-S2.07 §6.5: the chooser list of `strip.add_accessory` while several parts fit (doc 16a §6.22).
+    /// The chooser list of `strip.add_accessory` while several parts fit (doc 16a §6.22).
     pub(crate) chooser: Option<Box<Chooser>>,
 }
 
-/// The chooser list of `strip.add_accessory` (WP-S2.07 §6.5; doc 16a §6.22, its first use): open at a row while
+/// The chooser list of `strip.add_accessory` (doc 16a §6.22, its first use): open at a row while
 /// several part copies fit the accessory; picking an item dispatches `strip.add_accessory` again with `kind` and the
 /// item's `part`.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -205,12 +205,12 @@ pub struct Chooser {
     pub items: Vec<(String, String)>,
 }
 
-/// The columns the Pages table shows when it opens, after the key column Folio (FT-718): the title and "Changed in",
+/// The columns the Pages table shows when it opens, after the key column Folio: the title and "Changed in",
 /// so that the change status fits the default navigator width. Type, Frame and Generated stay in the column chooser.
 pub const PAGES_COLUMNS: [&str; 2] = ["title", "changed_in"];
 
 impl TableMode {
-    /// The Pages table as it opens: [`PAGES_COLUMNS`] on show (FT-718).
+    /// The Pages table as it opens: [`PAGES_COLUMNS`] on show.
     pub(crate) fn pages() -> TableMode {
         TableMode {
             columns: Some(PAGES_COLUMNS.iter().map(|k| (*k).to_owned()).collect()),
@@ -223,7 +223,7 @@ impl TableMode {
         self.edit.as_ref()
     }
 
-    /// The chooser list, while it is open (WP-S2.07 §6.5).
+    /// The chooser list, while it is open.
     pub fn chooser(&self) -> Option<&Chooser> {
         self.chooser.as_deref()
     }
@@ -302,7 +302,7 @@ pub fn table_rows(
     let key = |i: usize| {
         let n = &table.nodes[i];
         if by_order {
-            // `Order` (WP-S2.07 D2): the node order alone, through the tie-break.
+            // `Order`: the node order alone, through the tie-break.
             return None;
         }
         match col {
@@ -367,7 +367,7 @@ pub fn gesture_rows(nav: &Navigator) -> Vec<u32> {
         .collect()
 }
 
-/// ID-1497 (1): what the cell editor says while more than one row is marked: Enter sets the cursor row, Ctrl+Enter
+/// What the cell editor says while more than one row is marked: Enter sets the cursor row, Ctrl+Enter
 /// every marked row on show ("Ctrl+Enter sets all 12 marked rows."); `None` while no cell is edited or at most one row
 /// is marked.
 pub fn commit_all_hint(nav: &Navigator) -> Option<String> {
@@ -591,7 +591,7 @@ mod tests {
         );
     }
 
-    /// The G-PP triage's row 8 as amended by WP-S1.16 D4 (FT-577): defining cells of one row compile to one
+    /// The G-PP triage's row 8 as amended by WP-S1.16 D4: defining cells of one row compile to one
     /// `potential.define` with the typed name and every value they set; Type or Voltage without a Name refuses with
     /// "Name the potential first"; with a cell of another row or a defined record each is a clash; a clear defines
     /// nothing.
@@ -728,7 +728,7 @@ mod tests {
         assert_eq!(rows_word(NavKind::Strips, 1), "terminal");
     }
 
-    /// The straightforward linear-search reference of [`mark_conflicts`] (FT-525).
+    /// The straightforward linear-search reference of [`mark_conflicts`].
     fn reference_mark_conflicts(gesture: &mut Gesture) {
         let mut seen: Vec<((Uuid, String, String), Value, usize)> = Vec::new();
         for cell in &mut gesture.cells {
@@ -755,7 +755,7 @@ mod tests {
         }
     }
 
-    /// The straightforward linear-search reference of [`compile`] (FT-525).
+    /// The straightforward linear-search reference of [`compile`].
     fn reference_compile(
         gesture: &Gesture,
         base: &mut dyn FnMut(&str, Uuid, &str) -> MemberBase,

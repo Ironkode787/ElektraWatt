@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The CUPS adapter (WP-S3.07 D9): `lp [-d <printer>] -t <title> <file>`, spawned with arguments.
+//! The CUPS adapter: `lp [-d <printer>] -t <title> <file>`, spawned with arguments.
 
 use std::ffi::OsString;
 use std::path::PathBuf;

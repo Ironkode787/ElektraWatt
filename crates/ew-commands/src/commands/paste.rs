@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `edit.paste` (WP-S2.05 part 3, spec §8.4; D12): pastes a project fragment (`#ew-fragment v1`, the
+//! `edit.paste` (spec §8.4; D12): pastes a project fragment (`#ew-fragment v1`, the
 //! project-fragment format of architecture §5.5) onto a page in one transaction.
 //!
 //! The fragment arrives as the command's parameter, so a command log replays a paste exactly without a
@@ -90,11 +90,11 @@ pub struct Fragment {
     /// The structure nodes the records name.
     #[serde(default)]
     pub nodes: Vec<FragmentNode>,
-    /// The page records of a page macro (WP-S1.19 D12; ADR-0011 amendment 5): `macro.insert` creates the pages after
+    /// The page records of a page macro (ADR-0011 amendment 5): `macro.insert` creates the pages after
     /// its target page with proposed folios; `edit.paste` refuses them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub pages: Vec<Value>,
-    /// The library references of the closure a macro's records name (WP-S1.19 D7; ADR-0011 amendment 5), in place of
+    /// The library references of the closure a macro's records name (ADR-0011 amendment 5), in place of
     /// `copies`: a library item holds no copies of other items, and the session resolves these into the documents
     /// `macro.insert` carries. A paste does not read them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -114,7 +114,7 @@ pub struct Fragment {
 /// `library.embed` refuses, listed twice, or one the project holds in another version that `adapt` does not name;
 /// `/fragment/nodes/<i>` a node listed twice or without a path; `/adapt/<i>` an ID listed twice, one that names no copy
 /// of the fragment the project holds in another version, or one whose change from the pasted version to the held one
-/// is major (WP-S2.07 D22).
+/// is major.
 ///
 /// **Effects.** (1) A library copy the project holds with the same `sha256` is reused, and so is one that `adapt`
 /// names (the held version stays); any other is embedded. (2)
@@ -135,7 +135,7 @@ pub struct Fragment {
 /// item's points and a structure box's outline vertices move by the same rule. (6) Frozen tags
 /// are cleared and wire numbers become unassigned; tag counters are cleared and the copies that take part in
 /// page-based numbering get the next free counter of their main page's scope from online numbering, in the order of
-/// their anchor cells (FR-NUM-028, FT-456), so the tags follow the pasted positions and not the minted IDs. (7) A page item of a kind this
+/// their anchor cells (FR-NUM-028), so the tags follow the pasted positions and not the minted IDs. (7) A page item of a kind this
 /// version does not know is left out before any ID is minted, and a wire marker whose connection list is empty
 /// after effect 4 is not inserted, each with a notice.
 ///
@@ -321,7 +321,7 @@ fn step_point(grid: Grid, p: Pt2, k: [i64; 2]) -> Result<Pt2, OutOfRange> {
     ))
 }
 
-/// How effect 5 moves the fragment: by grid steps, or (a macro inserted with an orientation, FT-672) turned and
+/// How effect 5 moves the fragment: by grid steps, or (a macro inserted with an orientation) turned and
 /// mirrored about the anchor first.
 #[derive(Clone, Copy, Debug)]
 pub(super) struct Motion {
@@ -529,7 +529,7 @@ type RecordAt = (usize, Kind, Uuid);
 pub(crate) enum NewIds {
     /// `edit.paste`: a minted UUIDv7 per record, in (kind rank, fragment order).
     Mint,
-    /// `macro.insert` (WP-S1.19 D13): `v5(instance, local ID)`, and a PLC channel `plc_channel_id(new module,
+    /// `macro.insert`: `v5(instance, local ID)`, and a PLC channel `plc_channel_id(new module,
     /// number)` (ADR-0004 amendment 2), so a replay reproduces every ID.
     Instance(Uuid),
 }
@@ -544,12 +544,12 @@ impl NewIds {
     }
 }
 
-/// `v5(instance, local)`: the ID `macro.insert` gives the record of local ID `local` (WP-S1.19 D13).
+/// `v5(instance, local)`: the ID `macro.insert` gives the record of local ID `local`.
 pub(crate) fn instance_member_id(instance: Uuid, local: Uuid) -> Uuid {
     Uuid::new_v5(&instance, local.hyphenated().to_string().as_bytes())
 }
 
-/// The insertion engine of `edit.paste` and `macro.insert` (WP-S2.05 §8.4, WP-S1.19 §10): the effects 1 to 7 of
+/// The insertion engine of `edit.paste` and `macro.insert`: the effects 1 to 7 of
 /// [`PasteFragment`] on one fragment, with the differences a macro needs.
 pub(crate) struct Insertion<'f> {
     /// The command, for its errors.
@@ -560,7 +560,7 @@ pub(crate) struct Insertion<'f> {
     pub(crate) page: Id<Page>,
     /// The new position of the fragment's anchor (ignored for a fragment with page records).
     pub(crate) at: Pt2,
-    /// The orientation about the anchor, applied before the move to `at` (`macro.insert`, FT-672); `R0` for a paste
+    /// The orientation about the anchor, applied before the move to `at` (`macro.insert`); `R0` for a paste
     /// and for a fragment with page records.
     pub(crate) orient: Orient2,
     /// The fragment.
@@ -852,7 +852,7 @@ impl Insertion<'_> {
                 LibDocument::Symbol(c) => (c.id.cast(), c.sha256),
                 LibDocument::Fndef(c) => (c.id.cast(), c.sha256),
                 LibDocument::Form(c) => (c.id.cast(), c.sha256),
-                // A part's closure holds its manufacturer (WP-S1.19 D10).
+                // A part's closure holds its manufacturer.
                 LibDocument::Manufacturer(c) => (c.id.cast(), c.sha256),
                 // a fragment carries the closure of its records (doc 07 §3.5), which names no macro and no
                 // address profile
@@ -1292,7 +1292,7 @@ impl Insertion<'_> {
         }
         // The records, in (kind rank, fragment order).
         // Effect 6 is completed by online numbering (normaliser #4), which numbers the new devices in the order
-        // of their anchor cells (FR-NUM-028, FT-456), whatever IDs this transaction mints.
+        // of their anchor cells (FR-NUM-028), whatever IDs this transaction mints.
         let mut out = Inserted::default();
         let mut after = page;
         for (_, old, record) in typed {
@@ -1454,7 +1454,7 @@ mod tests {
                 "assigns": {"functional_assignment": C, "function": C, "installation_site": C,
                     "location": C, "document_kind": C, "user_defined": C, "type": C},
                 "external": F}),
-            // WP-S4.01 part 3: a surface view (left out of a paste whole, but its surface link has its row).
+            // A surface view (left out of a paste whole, but its surface link has its row).
             json!({"$k": "page_item", "id": A, "page": C,
                 "kind": {"surface_view": {"surface": B, "datum_at": [0, 0]}}}),
             // last, as the tests above index the samples
@@ -1494,9 +1494,9 @@ mod tests {
         ("function.device", Some(true)),
         ("function.def", Some(true)),
         ("function.kind.ip.external", Some(false)),
-        // WP-S1.20 D2: a closure's part is optional (the plug enters the bill of materials at 1.0).
+        // A closure's part is optional (the plug enters the bill of materials at 1.0).
         ("function.cp_overrides[].closure.part.copy", Some(false)),
-        // WP-S1.21 D11: a bus port's nets are optional (a port pasted where its net is missing is on no net).
+        // A bus port's nets are optional (a port pasted where its net is missing is on no net).
         ("function.bus_port.logical_net", Some(false)),
         ("function.bus_port.physical_net", Some(false)),
         ("function.source_ref.lineage", None),
@@ -1522,7 +1522,7 @@ mod tests {
         ("potential_def.props.wire_part.copy", Some(false)),
         ("potential_def.source_ref.lineage", None),
         ("page_item.kind.wire_marker.connections[]", Some(false)),
-        // WP-S4.01 part 3: a view without its surface shows nothing (the link cascades); a paste leaves views out.
+        // A view without its surface shows nothing (the link cascades); a paste leaves views out.
         ("page_item.kind.surface_view.surface", Some(true)),
         ("page_item.page", Some(true)),
         ("structure_box.assigns.document_kind", Some(false)),

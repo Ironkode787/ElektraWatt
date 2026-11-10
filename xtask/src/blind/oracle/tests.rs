@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Tests of `check-task` and of the pure parts of `bless-oracle` (WP-S6.13 BD14). The committed task is checked against
+//! Tests of `check-task` and of the pure parts of `bless-oracle`. The committed task is checked against
 //! doc 20 and the golden tables without a product: `bless-oracle` itself, which opens a copy of Golden A with the built
 //! binaries, is the lane's command and is run by hand.
 
@@ -30,7 +30,7 @@ fn the_committed_tasks_are_sound() {
     assert!(check_task(&root, "no-such-task").is_err());
 }
 
-/// BD14: `oracle/counts.toml` equals doc 20 and WP-S2.04 §13.6 where the files can be compared without a product: the
+/// `oracle/counts.toml` equals doc 20 and WP-S2.04 §13.6 where the files can be compared without a product: the
 /// pages' titles are doc 20 §5's, the representations of the oracle's cells are the golden pages' (17, 12 and 23, the
 /// demo variant of folio 103 swapping its 3 strip segments for the 15 terminals), the junctions are the oracle's. The
 /// headers of a copy of Golden A are compared by `bless-oracle`, which fails on a difference.
@@ -88,7 +88,7 @@ fn the_oracles_counts_are_the_documents_and_the_rows_agree_with_them() {
             "doc 20 §14.1 has no row for {maker} {part} {desc}"
         );
     }
-    // Folio 103's demo quantities (WP-S2.04 §13.6): 11 + 4 terminals, 3 bridges, 4 end brackets.
+    // Folio 103's demo quantities: 11 + 4 terminals, 3 bridges, 4 end brackets.
     let qty = |desc: &str, part: &str| {
         bom[1..]
             .iter()
@@ -358,7 +358,7 @@ fn the_describe_script_and_the_row_files() {
     }
 }
 
-/// FT-555: the oracle of `gpp-101-103` ends 1X1's field wires (the external points) on clamp b and its internal wires on
+/// The oracle of `gpp-101-103` ends 1X1's field wires (the external points) on clamp b and its internal wires on
 /// clamp a, as Golden A does since its terminals got their side-2 clamp (a feed-through terminal cannot carry the field
 /// cable and the internal wire on one side).
 #[test]

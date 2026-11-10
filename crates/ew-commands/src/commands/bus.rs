@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The bus records (doc 10 §2.7, §3.9; WP-S1.21 D11): `bus.logical_net.create` (`CreateLogicalNet`) and
+//! The bus records (doc 10 §2.7, §3.9): `bus.logical_net.create` (`CreateLogicalNet`) and
 //! `bus.physical_net.create` (`CreatePhysicalNet`).
 //!
 //! A port is the `bus_port` aspect of a function, set with `fields.set` (`bus_port` as a whole, or member by member

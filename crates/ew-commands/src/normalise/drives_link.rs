@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Normaliser N-FL-4 `drives_link` (doc 06 §3.2 row 16, doc 11 §4.2, WP-S1.20 D15, FR-FLU-029): the first line from a
+//! Normaliser N-FL-4 `drives_link` (doc 06 §3.2 row 16, doc 11 §4.2, FR-FLU-029): the first line from a
 //! valve's working port to an actuator links the valve to the device it drives.
 //!
 //! - **Trigger.** A `fluid` connection new in the transaction.
@@ -13,7 +13,7 @@
 //!   ID `v5(valve, "drives" ␟ device)`, with the notice `<valve> now drives <device>`; with two or more such devices it
 //!   adds no link and says so. An existing link is the user's and stays.
 //!
-//! Idempotent: the valve has its link after the first run. Reads records only (the transaction-read rule, ID-525).
+//! Idempotent: the valve has its link after the first run. Reads records only (the transaction-read rule).
 
 use std::collections::BTreeSet;
 
@@ -33,7 +33,7 @@ use crate::words;
 #[derive(Clone, Copy, Debug, Default)]
 pub struct DrivesLink;
 
-/// The ID of the `drives` link a line adds: `v5(valve, "drives" ␟ device)` (WP-S1.20 D15).
+/// The ID of the `drives` link a line adds: `v5(valve, "drives" ␟ device)`.
 fn link_id(valve: Id<Device>, device: Id<Device>) -> Id<DeviceLink> {
     let name = format!("drives\u{1F}{}", device.as_uuid().hyphenated());
     Id::from_uuid(ew_ids::Uuid::new_v5(&valve.as_uuid(), name.as_bytes()))

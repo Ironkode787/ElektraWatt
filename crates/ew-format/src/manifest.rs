@@ -215,7 +215,7 @@ impl Manifest {
     }
 
     /// The generation a save continues from when `manifest.json` came out of a git text merge with conflict markers
-    /// (doc 05 §11.3, FT-97): the greatest `"generation": <n>` line of the text, the lines of every hunk side and of the
+    /// (doc 05 §11.3): the greatest `"generation": <n>` line of the text, the lines of every hunk side and of the
     /// text the sides share alike, so that the next save writes one more than either side. `None` when the text holds
     /// no conflict marker, holds no such line, is larger than [`Limits::max_manifest_bytes`] or is not UTF-8; a line
     /// whose number is not an integer from 0 to 2⁵³ − 1 counts as none.

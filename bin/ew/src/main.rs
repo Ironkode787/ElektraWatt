@@ -5,7 +5,7 @@
 
 #![forbid(unsafe_code)]
 
-// The CLI table (WP-S1.22 D4): read by its tests today, by the CLI snapshot and reference from part 5.
+// The CLI table: read by its tests today, by the CLI snapshot and reference from part 5.
 #[cfg_attr(not(test), allow(dead_code))]
 mod catalogue;
 mod cli;

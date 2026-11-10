@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The history panel's rows (WP-S2.09 part 3, §4.2, §8.4): every entry of the undo stack with its label, its origin as
+//! The history panel's rows (§8.4): every entry of the undo stack with its label, its origin as
 //! the panel prints it, whether it is an undo step or a marker line, its revision and the folios of
 //! the pages its changes touch in the current model.
 //!
@@ -166,7 +166,7 @@ pub(super) fn view_of(history: &History, q: &Q) -> HistoryView {
 }
 
 impl Session {
-    /// The history panel's view of the undo stack (WP-S2.09 §4.2): every entry, oldest first, with its label, its
+    /// The history panel's view of the undo stack: every entry, oldest first, with its label, its
     /// origin text, its step and barrier flags, its revision and the folios of the pages its changes
     /// touch in the current model; the cursor and the bounds. One call per revision while the panel is open (§9
     /// item 5).

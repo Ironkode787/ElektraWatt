@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The designation pattern language of doc 10 §2.4 and §2.6 (FT-318): one expander for the automatic channel
+//! The designation pattern language of doc 10 §2.4 and §2.6: one expander for the automatic channel
 //! designation of a part (`ChannelSpec.designation`, read by `channel_texts`) and the pin designation of its
 //! channel → pin map (`PlcSection.pin_of`, read by [`channel_pin`](crate::channel_pin), so by normaliser N3).
 //!
@@ -114,7 +114,7 @@ mod tests {
         assert_eq!(ok("{n}é", 1), "1é");
     }
 
-    /// The pin map of `pin_of` and the automatic designation use this expander (FT-318).
+    /// The pin map of `pin_of` and the automatic designation use this expander.
     #[test]
     fn the_pin_map_expands_with_the_same_function() {
         use crate::{channel_pin, pin_pattern_error};

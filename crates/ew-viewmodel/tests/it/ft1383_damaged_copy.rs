@@ -66,7 +66,7 @@ fn ft1383_a_damaged_copy_a_device_names_opens_read_only_and_every_page_shows() {
     done(&mut s, "messages.check", json!({}));
 }
 
-/// C52-p4#1, #2 (ID-1418; FT-1396): the read-only banner names the device, the damaged copy in words and the way out, and Save As
+/// C52-p4#1, #2: the read-only banner names the device, the damaged copy in words and the way out, and Save As
 /// is refused in those words before it asks for a folder: a copy without the damaged file would not open. Nothing is
 /// written. Both languages.
 #[test]
@@ -186,7 +186,7 @@ fn tree(dir: &std::path::Path) -> Vec<(std::path::PathBuf, Vec<u8>)> {
     out
 }
 
-/// FT-1500 (ID-1458): a damaged library copy that no device names, here the form a page names, is named in the banner
+/// A damaged library copy that no device names, here the form a page names, is named in the banner
 /// and the Save As refusal by its kind and by the record that names it, in both languages; nothing is written.
 #[test]
 fn ft1500_a_damaged_copy_a_page_names_is_named_with_its_page() {
@@ -237,7 +237,7 @@ fn ft1500_a_damaged_copy_a_page_names_is_named_with_its_page() {
     assert!(tree(&dir) == before, "nothing is written inside the project");
 }
 
-/// FT-1500 (ID-1458): a damaged library copy that no record names (a manufacturer, which only part copies' library
+/// A damaged library copy that no record names (a manufacturer, which only part copies' library
 /// links name) leaves the project read-only with a banner that names it and the way out; Save As then makes a copy of
 /// the project without it, which opens for editing, and its toast names the copy left out; the banner goes. The
 /// damaged project is never written.
@@ -297,7 +297,7 @@ fn ft1500_save_as_leaves_out_a_damaged_copy_no_record_names() {
     assert!(tree(&dir) == before, "nothing is written inside the project");
 }
 
-/// C53-p3#6 (ID-1481): two damaged copies that no record names are both left out of a Save As, and the banner and the
+/// Two damaged copies that no record names are both left out of a Save As, and the banner and the
 /// toast name both, whole in both languages.
 #[test]
 fn every_damaged_copy_a_save_as_leaves_out_is_named() {
@@ -348,7 +348,7 @@ fn every_damaged_copy_a_save_as_leaves_out_is_named() {
 
 /// ID-1484 (FT-1383): a damaged definition copy whose functions end fluid lines (Golden A's pneumatic cylinders on
 /// folio 203, EW-INV-024 beside the EW-INV-001 that names the copy) opens read-only with FT-1383's banner, where the
-/// open was refused before; Save As is refused in its words as for any copy a record names (ID-1418), nothing being
+/// open was refused before; Save As is refused in its words as for any copy a record names, nothing being
 /// written. Both languages.
 #[test]
 fn id1484_a_damaged_definition_copy_with_fluid_lines_opens_read_only() {
@@ -399,7 +399,7 @@ fn id1484_a_damaged_definition_copy_with_fluid_lines_opens_read_only() {
     assert!(tree(&dir) == before, "nothing is written inside the project");
 }
 
-/// FT-1525 (ID-1458): a damaged copy of a part an installed library holds (the compiled-in starter parts, assigned to
+/// A damaged copy of a part an installed library holds (the compiled-in starter parts, assigned to
 /// F55 and saved) is named in the banner and the Save As refusal by its part number and its library, whole in both
 /// languages.
 #[test]

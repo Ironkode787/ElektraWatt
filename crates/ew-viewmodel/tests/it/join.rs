@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.18 part 1: joining an existing device from the window (FR-DEV-038, FT-599). One test per branch: a new
+//! Joining an existing device from the window (FR-DEV-038). One test per branch: a new
 //! auxiliary function by `place.pick device=<tag>` in one undo step (D1, D4); a slot filled before a new auxiliary
 //! function, the target sticky (D1); the text forms `function=<tag>` and `function=<tag>:<slot>` and their refusals
 //! (D4); a symbol that cannot be an auxiliary function refused (D2, D4); the Join chooser's rows, type-ahead, Escape
@@ -344,7 +344,7 @@ fn the_join_chooser_lists_slots_then_relays_and_arms_the_join() {
     assert_eq!(rep_at(&s, (66, 46)).unwrap().functions, a.functions);
 }
 
-/// WP-S2.18 D3 (FT-628): typing the relay's tag into the Tag field of a contact placed as a device of its own refuses
+/// Typing the relay's tag into the Tag field of a contact placed as a device of its own refuses
 /// the rename and proposes "Join -K1"; accepting it is one `rep.join_device` (one undo step), the contact prints the
 /// relay's tag and the toast names the function's kind and place. A new tag still freezes the typed tag.
 #[test]

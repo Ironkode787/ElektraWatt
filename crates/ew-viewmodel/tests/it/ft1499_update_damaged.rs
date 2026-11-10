@@ -96,7 +96,7 @@ fn tree(dir: &Path) -> Vec<(PathBuf, Vec<u8>)> {
 
 /// The round trip: the banner of a damaged copy of a starter part offers Update from library; the action writes the
 /// library's copy over the damaged file, byte for byte as the assignment's save wrote it, and the project opens for
-/// editing with no banner; the toast names the copy with the version written (C53-p4#4). Both languages.
+/// editing with no banner; the toast names the copy with the version written. Both languages.
 #[test]
 fn ft1499_update_from_library_writes_the_copy_and_opens_the_project_for_editing() {
     let tmp = Tmp::new("ft1499-round-trip");
@@ -178,7 +178,7 @@ fn manifest_entry(dir: &Path, path: &str) -> Value {
     manifest["files"][path].clone()
 }
 
-/// C53-p4#5: the banner offers the update only for the copy it names. It names Golden A's part copy of -201U8-Q1,
+/// The banner offers the update only for the copy it names. It names Golden A's part copy of -201U8-Q1,
 /// which no library holds, so it says so and offers nothing, though a library holds the starter part's damaged copy
 /// too; nothing is written. Both languages.
 #[test]
@@ -216,7 +216,7 @@ fn ft1499_the_banner_offers_the_update_only_for_the_copy_it_names() {
     assert!(tree(&dir) == before, "nothing is written");
 }
 
-/// Several damaged copies (C53-p4#1): the starter part's, which a library holds and the banner names, is updated, and a
+/// Several damaged copies: the starter part's, which a library holds and the banner names, is updated, and a
 /// manufacturer copy of Golden A that no record names and no library holds, whose file is gone, stays damaged with its
 /// manifest entry and is named in the toast; the project opens read-only again with that copy's banner, which offers
 /// nothing. Both languages.
@@ -311,7 +311,7 @@ fn ft1499_every_copy_written_is_named_with_its_version() {
 }
 
 /// Another file of the project changed outside ElektraWatt (a page file, EW-CORE-002) beside the damaged copy: the
-/// update is refused in words, whole in both languages, and nothing is written (C53-p4#2).
+/// update is refused in words, whole in both languages, and nothing is written.
 #[test]
 fn ft1499_other_integrity_findings_refuse_the_update() {
     let tmp = Tmp::new("ft1499-findings");
@@ -351,7 +351,7 @@ fn ft1499_other_integrity_findings_refuse_the_update() {
 }
 
 /// The save fails (the manifest changed on disk after the open): the update is refused in words, whole in both
-/// languages, and nothing more is written (C53-p4#2).
+/// languages, and nothing more is written.
 #[test]
 fn ft1499_a_save_that_fails_refuses_the_update() {
     let tmp = Tmp::new("ft1499-save");
@@ -389,7 +389,7 @@ fn ft1499_a_save_that_fails_refuses_the_update() {
     assert!(strings::set_locale("en"));
 }
 
-/// A project opened read-only on request (C53-p4#6): the window shows no damaged-copy banner there, so it offers no
+/// A project opened read-only on request: the window shows no damaged-copy banner there, so it offers no
 /// update and refuses the action with its reason; the session's own refusal is the read-only one. Each text whole in
 /// both languages; nothing is written.
 #[test]
@@ -445,7 +445,7 @@ fn ft1499_a_project_opened_read_only_on_request_offers_no_update() {
     assert!(tree(&dir) == before, "nothing is written");
 }
 
-/// A library's version of the damaged copy that would break the project (C53-p4#3). Golden A's double-acting cylinder
+/// A library's version of the damaged copy that would break the project. Golden A's double-acting cylinder
 /// -203Q1 gets a wire between its two ports, which its definition, damaged and dropped, does not judge; the starter
 /// library's version makes them fluid ports, which no wire may end at (EW-INV-024). The update is refused with the
 /// misfit's words, whole in both languages, and nothing is written.

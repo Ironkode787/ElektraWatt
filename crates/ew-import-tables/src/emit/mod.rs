@@ -81,7 +81,7 @@ pub(crate) struct PageInfo {
     /// The page grid.
     pub(crate) grid: Grid,
     /// The line of the `pages.csv` row the page was imported from: of a repeated key, the row that imported, which
-    /// is not always the first (FT-871).
+    /// is not always the first.
     pub(crate) line: u32,
 }
 
@@ -182,7 +182,7 @@ pub(crate) struct Cx<'l> {
     /// `connections` keys.
     pub(crate) connections: BTreeMap<String, ConnInfo>,
     /// Where each function CP is drawn on each page by a symbol, the point the stored route of a `connections.csv`
-    /// row starts or ends at (FT-1315): of several representations on one page, the one of the smallest ID, as
+    /// row starts or ends at: of several representations on one page, the one of the smallest ID, as
     /// `ew_derive::cp_end` reads it.
     pub(crate) cp_points: BTreeMap<CpOnPage, (Id<Representation>, Pt2)>,
     /// `plc_config_projects` keys (registered before the devices, whose station aspects name them).

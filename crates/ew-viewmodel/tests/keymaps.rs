@@ -443,7 +443,7 @@ fn a_refused_keymap_that_cannot_be_copied_aside_is_not_written_over() {
     );
 }
 
-/// FIX40d (cycle-40 window check, finding 6): a refused file is copied aside once: the next start with the same bytes
+/// FIX40d (window check, finding 6): a refused file is copied aside once: the next start with the same bytes
 /// names the existing copy and makes none; a changed bad file gets a new copy. The user's file stays.
 #[test]
 fn a_refused_keymap_is_copied_aside_once() {

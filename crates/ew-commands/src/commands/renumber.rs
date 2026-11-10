@@ -146,7 +146,7 @@ impl Command for RenumberDevices {
             DeviceScope::Project => tx.iter::<Device>().into_iter().map(|d| d.id).collect(),
         };
         // Numbered devices by (scope, letter), with the position of the main representation: a placed device in its
-        // page's scope, a cable on no page in the project's (FT-1406, ID-1418). A cable placed through its first core
+        // page's scope, a cable on no page in the project's. A cable placed through its first core
         // has no representation; it follows the drawn devices of its page, and the project's cables follow one
         // another, in ID order.
         let mut groups: BTreeMap<(CounterScope, Ident), Vec<Member>> = BTreeMap::new();

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The complete About dialog (WP-S2.01 part 2, FT-311; FR-UI-038, NFR-PRIV-07, NFR-LIC-08, NFR-COMP-04): the text of
+//! The complete About dialog (FR-UI-038, NFR-PRIV-07, NFR-LIC-08, NFR-COMP-04): the text of
 //! the dialog and of the third-party notices, shared by the egui frame and `ui.describe`.
 //!
 //! It shows the version, the render backend, the privacy state (update check and crash reports), the licence, the
@@ -9,8 +9,8 @@
 //! supported). The notices are the repository's `NOTICE` (the bundled fonts) and, when the
 //! installation has it, the generated `THIRD-PARTY-NOTICES.txt` of the Rust crates (cargo-about, per release).
 //!
-//! `PRIVACY.md` (FT-342) is opened by a button of the dialog and of the first-run privacy step: the bundled copy when
-//! the installation has it, else the repository's ([`privacy_target`], WP-S6.05 D16).
+//! `PRIVACY.md` is opened by a button of the dialog and of the first-run privacy step: the bundled copy when
+//! the installation has it, else the repository's ([`privacy_target`]).
 //!
 //! Not here yet: the dismissible banner after the support end (at most once a month), which needs a clock and a
 //! setting.
@@ -24,7 +24,7 @@ use crate::strings;
 /// to the user guide and open that copy instead.
 pub const PRIVACY_URL: &str = concat!(env!("CARGO_PKG_REPOSITORY"), "/blob/main/PRIVACY.md");
 
-/// What the privacy buttons open (WP-S6.05 D16, FT-386): the bundled `PRIVACY.md` as a `file://` URL when the
+/// What the privacy buttons open: the bundled `PRIVACY.md` as a `file://` URL when the
 /// installation has it ([`crate::shell::Resources::privacy_file`]), offline; else [`PRIVACY_URL`].
 pub fn privacy_target(model: &ShellModel) -> String {
     model
@@ -40,7 +40,7 @@ pub const NOTICE: &str = include_str!("../../../NOTICE");
 
 /// The lines of the About dialog, in order (the title is the dialog's).
 pub fn about_lines(model: &ShellModel) -> Vec<String> {
-    // FT-1117 (ID-1229 item 3, ID-1187): this version has no update check, whatever the stored setting says.
+    // FT-1117 (item 3): this version has no update check, whatever the stored setting says.
     let privacy = strings::text(key!("about-privacy"));
     vec![
         strings::format(key!("about-version"), &[&model.config().app_version]),

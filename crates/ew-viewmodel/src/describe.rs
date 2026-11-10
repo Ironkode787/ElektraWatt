@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The `ui.describe` text (WP-S2.01 part 1, spec section 6.2): the visible user interface as text, one line per
+//! The `ui.describe` text (spec section 6.2): the visible user interface as text, one line per
 //! element, in paint order. It is what an agent reads instead of a screenshot.
 //!
-//! Paint order: the window title, the app menu with every entry and its enabled state (and reason), the command bar
-//! (WP-S2.17 part 2), the banner,
+//! Paint order: the window title, the app menu with every entry and its enabled state (and reason), the command bar,
+//! the banner,
 //! the first-run flow, the wizard, or the project view (the page navigator, the canvas tabs and the focus, the page
 //! view and its canvas lines, the workspace and its layout), or the start page, the status bar, then the palette or a dialog, then the last documentation request.
-//! Directory names appear, paths never. The structural words are fixed English machine text (decision log ID-474):
+//! Directory names appear, paths never. The structural words are fixed English machine text:
 //! the private table `WORDS` lists every one of them with the [`Reach`] of the tests that reach it ([`VOCABULARY`] and
 //! [`words`] are derived from it), [`FREE_TEXT_MARKERS`] the markers after which the rest of a line is user
 //! text, and a test checks that no line the describer writes uses a word that is in neither list. Quoted text is
@@ -37,66 +37,66 @@ use crate::wizard::{FieldKind, Step, fields_of};
 /// that reach it; [`words`] lists the words of one part.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Reach {
-    /// WP-S4.02 part 3: the layout ghost and the Unplaced devices navigator; `tests/it/layout_place.rs`.
+    /// The layout ghost and the Unplaced devices navigator; `tests/it/layout_place.rs`.
     Layout,
-    /// WP-S2.07 part 4b: the paste choice card (§9.6); `tests/it/paste_choice.rs`.
+    /// The paste choice card (§9.6); `tests/it/paste_choice.rs`.
     PasteChoice,
-    /// WP-S2.07 part 4a: the part dialog and the part editor (§9.6); `tests/it/part_selection.rs`.
+    /// The part dialog and the part editor (§9.6); `tests/it/part_selection.rs`.
     Part,
-    /// WP-S1.19 part 6: the Macros and Libraries navigators (§11); `tests/it/macros_libraries.rs`.
+    /// The Macros and Libraries navigators (§11); `tests/it/macros_libraries.rs`.
     Library,
-    /// FT-660: a generated page's `note` line; `tests/it/page_describe.rs`.
+    /// A generated page's `note` line; `tests/it/page_describe.rs`.
     List,
-    /// WP-S2.07 part 1: the strip editor's accessory rows (§6.10); `tests/it/strip_editor.rs`.
+    /// The strip editor's accessory rows (§6.10); `tests/it/strip_editor.rs`.
     StripEditor,
-    /// WP-S2.17 part 3: the rails and the Advanced rows (D15); `tests/it/docks.rs`.
+    /// The rails and the Advanced rows (D15); `tests/it/docks.rs`.
     Rail,
-    /// WP-S2.17 part 2: the command bar and the HUD (D15); `tests/it/command_bar.rs`.
+    /// The command bar and the HUD (D15); `tests/it/command_bar.rs`.
     CommandBar,
-    /// WP-S2.09 part 2: the message panel (§7.6); `tests/it/messages.rs`.
+    /// The message panel (§7.6); `tests/it/messages.rs`.
     Msg,
-    /// WP-S2.09 part 3: the Preview tab and the history panel (§8.7); `tests/it/preview_history.rs`.
+    /// The Preview tab and the history panel (§8.7); `tests/it/preview_history.rs`.
     Preview,
-    /// WP-S2.06 part 3: table mode (§8.8); `tests/it/navigators_table.rs`.
+    /// Table mode (§8.8); `tests/it/navigators_table.rs`.
     Table,
-    /// WP-S3.08 part 3: a navigator table's export and import card; `tests/it/table_file.rs`.
+    /// A navigator table's export and import card; `tests/it/table_file.rs`.
     TableFile,
-    /// WP-S2.09 part 1: jobs, the notifications log and recovery (§6.8); `tests/jobs.rs`, `tests/it/notifications.rs`.
+    /// Jobs, the notifications log and recovery (§6.8); `tests/jobs.rs`, `tests/it/notifications.rs`.
     Job,
-    /// WP-S2.06 part 2: the further navigators and highlighting (§7.4); `tests/it/navigators_part2.rs`.
+    /// The further navigators and highlighting (§7.4); `tests/it/navigators_part2.rs`.
     Nav2,
-    /// WP-S2.06 part 1: the navigators (§6.10); `tests/it/navigators.rs`.
+    /// The navigators (§6.10); `tests/it/navigators.rs`.
     Nav,
-    /// WP-S2.04 part 3: interruption points and black boxes (§9.6); `tests/it/part3.rs`.
+    /// Interruption points and black boxes (§9.6); `tests/it/part3.rs`.
     Ip,
     /// FIXPT41: the IP ghost's pin; `tests/it/ip_on_pin.rs`.
     IpPin,
-    /// WP-S2.05 part 3: the clipboard and the paste ghost (§8.8); `tests/it/clipboard.rs`.
+    /// The clipboard and the paste ghost (§8.8); `tests/it/clipboard.rs`.
     Clip,
-    /// FT-410: the parts import card; `tests/it/parts_import.rs`.
+    /// The parts import card; `tests/it/parts_import.rs`.
     Import,
-    /// FT-649: the parts import's column mapping step; `tests/it/parts_import.rs`.
+    /// The parts import's column mapping step; `tests/it/parts_import.rs`.
     Map,
-    /// WP-S2.04 part 4b: page items and structure boxes (§10.7); `tests/it/part4b.rs`, `tests/it/part4b_text.rs`.
+    /// Page items and structure boxes (§10.7); `tests/it/part4b.rs`, `tests/it/part4b_text.rs`.
     Item,
-    /// WP-S2.04 part 5: the Image tool (§11); `tests/it/part5_image.rs`.
+    /// The Image tool (§11); `tests/it/part5_image.rs`.
     Image,
-    /// WP-S2.05 part 2: find and replace (§7.6); `tests/it/find.rs`.
+    /// Find and replace (§7.6); `tests/it/find.rs`.
     Find,
-    /// WP-S2.04 part 2: wiring (§8.7); `tests/it/wiring.rs`.
+    /// Wiring (§8.7); `tests/it/wiring.rs`.
     Wire,
-    /// WP-S2.04 part 1: place and arrange (§7.7); `tests/it/place.rs`.
+    /// Place and arrange (§7.7); `tests/it/place.rs`.
     Place,
-    /// WP-S6.13 part 1: the page text of `page.describe` (§5.5.3); `tests/it/page_describe.rs`.
+    /// The page text of `page.describe` (§5.5.3); `tests/it/page_describe.rs`.
     Page,
-    /// WP-S2.18 part 1: the Join chooser's line (doc 16a §6.22); `tests/it/join.rs`.
+    /// The Join chooser's line (doc 16a §6.22); `tests/it/join.rs`.
     Join,
-    /// WP-S1.21 part 2: the printed PLC address of the hovered connection point (D7); `tests/it/plc_hover.rs`.
+    /// The printed PLC address of the hovered connection point (D7); `tests/it/plc_hover.rs`.
     PlcHover,
-    /// WP-S2.08 part 6: the glossary pane, the tips' actions and the wire-colour view (D16 to D18);
+    /// The glossary pane, the tips' actions and the wire-colour view (D16 to D18);
     /// `tests/it/glossary_tips.rs`.
     Guide,
-    /// WP-S1.17 part 7: the external change's toast and collision dialog, the merge driver's status; `tests/it/collab.rs`.
+    /// The external change's toast and collision dialog, the merge driver's status; `tests/it/collab.rs`.
     Collab,
     /// The property grid's section kind of a record no test's describe state selects; the unit test
     /// `every_kind_a_section_can_have_is_in_the_vocabulary` checks that every such kind is a word.
@@ -107,10 +107,9 @@ pub enum Reach {
 }
 
 /// The structural words of the describe text: the tokens of a line once the quoted texts, the numbers, the ID aliases
-/// `@n` (value tokens like numbers, ID-630), the action IDs (they contain a dot), the shortcuts and the punctuation
+/// `@n` (value tokens like numbers), the action IDs (they contain a dot), the shortcuts and the punctuation
 /// `( ) [ ] , | %` are taken out. A token with a colon keeps it. Each word carries the [`Reach`] of the tests whose own
-/// states reach it, where `tests/part2.rs`'s sequence does not. A change here is a reviewed transcript change
-/// (decision log ID-474).
+/// states reach it, where `tests/part2.rs`'s sequence does not. A change here is a reviewed transcript change.
 const WORDS: &[(&str, &[Reach])] = &[
     ("title:", &[]),
     ("menu", &[]),
@@ -158,14 +157,14 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("palette", &[]),
     ("query", &[]),
     ("action", &[]),
-    // WP-S2.17 part 4: the palette lists no model command (doc 16a §6.14), so no state prints `command`.
+    // The palette lists no model command (doc 16a §6.14), so no state prints `command`.
     ("command", &[Reach::Unreached]),
     ("dialog", &[]),
     ("pending", &[]),
     ("notices:", &[]),
     ("lines", &[]),
     ("help:", &[]),
-    // The canvas lines (WP-S2.02 part 1, decision log ID-511): a reviewed vocabulary change.
+    // The canvas lines: a reviewed vocabulary change.
     ("canvas", &[]),
     ("zoom", &[]),
     ("view", &[]),
@@ -177,11 +176,11 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("none", &[]),
     ("backend", &[]),
     ("statistics", &[]),
-    // The canvas renderer setting (WP-S2.02 part 2): a reviewed vocabulary change.
+    // The canvas renderer setting: a reviewed vocabulary change.
     ("renderer", &[]),
     ("auto", &[]),
     ("cpu", &[]),
-    // The viewer (WP-S2.03 part 1, decision log ID-537): 27 words, a reviewed vocabulary change.
+    // The viewer: 27 words, a reviewed vocabulary change.
     ("navigator", &[]),
     ("mode", &[]),
     ("flat", &[]),
@@ -210,7 +209,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("link", &[]),
     // A link to another project needs a cross-reference whose target is outside the page order (not in Golden A).
     ("external", &[Reach::Unreached]),
-    // The tool framework (WP-S2.03 part 2, decision log ID-537): 18 words, a reviewed vocabulary change (§7.9's 17
+    // The tool framework: 18 words, a reviewed vocabulary change (§7.9's 17
     // and `junction`).
     ("tool", &[]),
     ("state", &[]),
@@ -224,7 +223,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("cp", &[]),
     ("at", &[]),
     ("selection", &[]),
-    // WP-S2.08 D13: the selection's live description (`canvas live "…"`).
+    // The selection's live description (`canvas live "…"`).
     ("live", &[]),
     ("stale", &[]),
     // A failed preview (`PreviewStatus::Failed`); `tests/part2.rs` checks the word, no state prints it.
@@ -235,7 +234,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     // A snap marker's kind (`canvas snap junction …`), printed by `MarkerKind::word` (the review of part 2).
     // A junction snap marker (`MarkerKind::Junction`); `tests/part2.rs` checks the word, no state prints it.
     ("junction", &[Reach::Unreached]),
-    // Place and arrange (WP-S2.04 part 1, §7.7): 28 words, a reviewed vocabulary change (ID-474 extended).
+    // Place and arrange: 28 words, a reviewed vocabulary change (extended).
     ("picker", &[Reach::Place]),
     ("rows", &[Reach::Place]),
     ("symbol", &[Reach::Place]),
@@ -264,7 +263,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("dragging", &[Reach::Place]),
     ("moving", &[Reach::Place]),
     ("readout", &[Reach::Place]),
-    // The property grid (WP-S2.05 part 1, §6.11; ID-474 extended): 53 words, a reviewed vocabulary change
+    // The property grid (extended): 53 words, a reviewed vocabulary change
     // (`function` is WP-S2.04 part 1's word above).
     ("properties", &[]),
     ("items", &[]),
@@ -319,20 +318,20 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("revision", &[Reach::Kind]),
     ("page_item", &[Reach::Kind]),
     ("structure_box", &[Reach::Kind]),
-    // WP-S1.16 part 5: the typed waiver kind has a property sheet (read-only members); a reviewed vocabulary change.
+    // The typed waiver kind has a property sheet (read-only members); a reviewed vocabulary change.
     ("waiver", &[Reach::Kind]),
-    // WP-S3.09 D6: the typed import run has a property sheet (read-only members); a reviewed vocabulary change.
+    // The typed import run has a property sheet (read-only members); a reviewed vocabulary change.
     ("import_run", &[Reach::Kind]),
-    // WP-S1.21 part 4 (D11): the typed bus nets have property sheets; a reviewed vocabulary change.
+    // The typed bus nets have property sheets; a reviewed vocabulary change.
     ("logical_net", &[Reach::Kind]),
     ("physical_net", &[Reach::Kind]),
-    // WP-S4.01 part 1 (D3): the typed layout kinds have property sheets; a reviewed vocabulary change.
+    // The typed layout kinds have property sheets; a reviewed vocabulary change.
     ("layout_space", &[Reach::Kind]),
     ("enclosure", &[Reach::Kind]),
     ("mounting_surface", &[Reach::Kind]),
     ("carrier", &[Reach::Kind]),
     ("placement", &[Reach::Kind]),
-    // Find and replace (WP-S2.05 part 2, §7.6; ID-474 extended): 13 words and `text`, which no earlier part added,
+    // Find and replace (extended): 13 words and `text`, which no earlier part added,
     // so 14, a reviewed vocabulary change.
     ("find", &[Reach::Find]),
     ("replace", &[Reach::Find]),
@@ -348,7 +347,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("result", &[Reach::Find]),
     ("truncated", &[Reach::Find]),
     ("text", &[Reach::Find]),
-    // Wiring (WP-S2.04 part 2, §8.7; ID-474 extended): 21 words, a reviewed vocabulary change (`junction` is WP-S2.03
+    // Wiring (extended): 21 words, a reviewed vocabulary change (`junction` is WP-S2.03
     // part 2's word above, ID-632).
     ("route", &[Reach::Wire]),
     ("from", &[Reach::Wire]),
@@ -373,7 +372,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("connect", &[Reach::Wire]),
     // FIXPT41: the IP tool's ghost names the pin a click connects the point to (`connects "-102F2:14"`).
     ("connects", &[Reach::IpPin]),
-    // The page text of `page.describe` (WP-S6.13 part 1, §5.5.3; ID-474 extended): 11 words, a reviewed vocabulary
+    // The page text of `page.describe` (extended): 11 words, a reviewed vocabulary
     // change (`wire`, `->`, `route`, `bends`, `style`, `dot`, `bevel`, `wiring`, `star`, `chain` and `sequence` are
     // WP-S2.04 part 2's words above).
     ("reps", &[Reach::Page]),
@@ -387,13 +386,13 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("source", &[Reach::Ip, Reach::Page]),
     ("undirected", &[Reach::Ip, Reach::Page]),
     ("potential", &[Reach::Ip, Reach::Page]),
-    // FT-1437: where an interruption point continues, its printed cross-reference, a reviewed vocabulary change.
+    // Where an interruption point continues, its printed cross-reference, a reviewed vocabulary change.
     ("continues", &[Reach::Page]),
     // G-PP triage row 21: a terminal CP's side, `internal` (`field` is older), a reviewed vocabulary change.
     ("internal", &[Reach::Page]),
-    // FT-621 (WP-S2.07 part 2): the page text's line of a strip's bridge, a reviewed vocabulary change.
+    // The page text's line of a strip's bridge, a reviewed vocabulary change.
     ("bridge", &[Reach::Page]),
-    // The clipboard (WP-S2.05 part 3, §8.8; ID-474 extended): the 6 words of `Reach::Clip`, a reviewed vocabulary change
+    // The clipboard (extended): the 6 words of `Reach::Clip`, a reviewed vocabulary change
     // (`lines`, `none`, `at`, `mm`, `text` and `ghost` are older).
     ("clipboard", &[Reach::Clip]),
     ("fragment", &[Reach::Clip]),
@@ -401,24 +400,24 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("copies", &[Reach::Clip]),
     ("paste", &[Reach::Clip]),
     ("dropped", &[Reach::Clip]),
-    // Interruption points and black boxes (WP-S2.04 part 3, §9.6; ID-474 extended): 5 words, a reviewed vocabulary
+    // Interruption points and black boxes (extended): 5 words, a reviewed vocabulary
     // change (`ip`, `direction`, `source`, `undirected` and `potential` are WP-S6.13 part 1's words above).
     ("name", &[Reach::Ip]),
     ("outline", &[Reach::Ip]),
     ("cps", &[Reach::Ip]),
     ("arrange", &[Reach::Ip]),
     ("by", &[Reach::Ip]),
-    // The parts table import's card (FT-410): 3 words, a reviewed vocabulary change.
+    // The parts table import's card: 3 words, a reviewed vocabulary change.
     ("created", &[Reach::Import]),
     ("skipped", &[Reach::Import]),
     ("errors", &[Reach::Import]),
-    // The parts import's column mapping step (FT-649): 5 words, a reviewed vocabulary change.
+    // The parts import's column mapping step: 5 words, a reviewed vocabulary change.
     ("mapping", &[Reach::Map]),
     ("saved", &[Reach::Map]),
     ("column", &[Reach::Map]),
     ("sample", &[Reach::Map]),
     ("member", &[Reach::Map]),
-    // Page items and structure boxes (WP-S2.04 part 4b, §10.7; ID-474 extended): 14 words, a reviewed vocabulary
+    // Page items and structure boxes (extended): 14 words, a reviewed vocabulary
     // change.
     ("graphic", &[Reach::Item]),
     ("line", &[Reach::Item]),
@@ -434,9 +433,9 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("anticlockwise", &[Reach::Item]),
     ("boxes", &[Reach::Item]),
     ("unknown", &[Reach::Item]),
-    // The Image tool (WP-S2.04 part 5, §11; ID-474 extended): 1 word, a reviewed vocabulary change.
+    // The Image tool (extended): 1 word, a reviewed vocabulary change.
     ("image", &[Reach::Image]),
-    // The navigators (WP-S2.06 part 1, §6.10; ID-474 extended, ID-688): the 18 words of `Reach::Nav`, a reviewed
+    // The navigators (extended): the 18 words of `Reach::Nav`, a reviewed
     // vocabulary change (`connections` and `structure` are older).
     ("kind", &[Reach::Nav]),
     ("pages", &[Reach::Nav]),
@@ -456,7 +455,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("elsewhere", &[Reach::Nav]),
     ("aux", &[Reach::Nav]),
     ("reorder", &[Reach::Nav]),
-    // The further navigators and highlighting (WP-S2.06 part 2, §7.4; ID-474 extended, ID-688): the 6 words of
+    // The further navigators and highlighting (extended): the 6 words of
     // `Reach::Nav2`, a reviewed vocabulary change.
     ("cable", &[Reach::Nav2]),
     ("module", &[Reach::Nav2]),
@@ -464,7 +463,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("manufacturer", &[Reach::Nav2]),
     ("highlight", &[Reach::Nav2]),
     ("slot", &[Reach::Nav2]),
-    // The jobs, the notifications log and the recovery dialog (WP-S2.09 part 1, §6.8; ID-474 extended, ID-698): the 18
+    // The jobs, the notifications log and the recovery dialog (extended): the 18
     // words of `Reach::Job`, a reviewed vocabulary change (`pages` is WP-S2.06 part 1's, `failed`, `undo` and `toast` are
     // older).
     ("jobs", &[Reach::Job]),
@@ -480,7 +479,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("notification", &[Reach::Job]),
     ("open", &[Reach::Job]),
     ("expired", &[Reach::Job]),
-    // WP-S1.17 part 7 (D24): the toast's Show changes and the collision dialog's chosen side.
+    // The toast's Show changes and the collision dialog's chosen side.
     ("show_changes", &[Reach::Collab]),
     ("chosen", &[Reach::Collab]),
     ("mine", &[Reach::Collab]),
@@ -490,7 +489,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("base", &[Reach::Job]),
     ("matches", &[Reach::Job]),
     ("moved", &[Reach::Job]),
-    // The message panel (WP-S2.09 part 2, §7.6; ID-474 extended, ID-698): the 16 words of `Reach::Msg`, a reviewed
+    // The message panel (extended): the 16 words of `Reach::Msg`, a reviewed
     // vocabulary change (`finding`, `error`, `warning`, `info`, `errors` and `pending` are older).
     ("messages", &[Reach::Msg]),
     ("severity", &[Reach::Msg]),
@@ -508,7 +507,7 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("conflict", &[Reach::Msg]),
     ("hygiene", &[Reach::Msg]),
     ("integrity", &[Reach::Msg]),
-    // The Preview tab and the history panel (WP-S2.09 part 3, §8.7; ID-474 extended): the 13 words of `Reach::Preview`,
+    // The Preview tab and the history panel (extended): the 13 words of `Reach::Preview`,
     // a reviewed vocabulary change (the specification's 14 less `saved`: a marker's text is quoted).
     ("summary", &[Reach::Preview]),
     ("entity", &[Reach::Preview]),
@@ -523,27 +522,27 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("origin", &[Reach::Preview]),
     ("merged", &[Reach::Preview]),
     ("redo", &[Reach::Preview]),
-    // Table mode (WP-S2.06 part 3, §8.8; ID-474 extended): the 6 words of `Reach::Table`, a reviewed vocabulary change.
+    // Table mode (extended): the 6 words of `Reach::Table`, a reviewed vocabulary change.
     ("table", &[Reach::Table]),
     ("columns", &[Reach::Table]),
     ("invalid", &[Reach::Table]),
     ("ambiguous", &[Reach::Table]),
     ("pattern", &[Reach::Table]),
     ("values", &[Reach::Table]),
-    // A navigator table's import card (WP-S3.08 part 3, ruling 9 of ID-1224): the 3 words of `Reach::TableFile`, a
+    // A navigator table's import card: the 3 words of `Reach::TableFile`, a
     // reviewed vocabulary change; `taken` is the outcome of a conflict taken from the file, which the window's import
-    // never asks for (FT-1149).
+    // never asks for.
     ("table-import", &[Reach::TableFile]),
     ("conflicts", &[Reach::TableFile]),
     ("applied", &[Reach::TableFile]),
     ("taken", &[Reach::Unreached]),
-    // The command bar and the HUD (WP-S2.17 part 2, D15; ID-474 extended): the 4 words of `Reach::CommandBar`, a
+    // The command bar and the HUD (extended): the 4 words of `Reach::CommandBar`, a
     // reviewed vocabulary change (`tab`, `collapsed`, `group`, `step`, `tool` and `target` are older).
     ("commandbar", &[Reach::CommandBar]),
     ("next", &[Reach::CommandBar]),
     ("hud", &[Reach::CommandBar]),
     ("prompt", &[Reach::CommandBar]),
-    // The rails and the Advanced rows (WP-S2.17 part 3, D15; ID-474 extended): the 6 words of `Reach::Rail`, a reviewed
+    // The rails and the Advanced rows (extended): the 6 words of `Reach::Rail`, a reviewed
     // vocabulary change (`shown`, `collapsed` and `history` are older).
     ("rail", &[Reach::Rail]),
     ("left", &[Reach::Rail]),
@@ -553,14 +552,14 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("hidden", &[Reach::Rail]),
     // WP-S2.07 part 1 (§6.10): the strip editor's accessory rows.
     ("accessory", &[Reach::StripEditor]),
-    // WP-S1.19 part 1: the kind `macro_instance` is implemented, so the property grid has a catalogue for it and a
+    // The kind `macro_instance` is implemented, so the property grid has a catalogue for it and a
     // section of it names the kind.
     ("macro_instance", &[Reach::Kind]),
-    // WP-S2.18 part 1 (D2): the Join chooser's line (doc 16a §6.22), a reviewed vocabulary change.
+    // The Join chooser's line (doc 16a §6.22), a reviewed vocabulary change.
     ("chooser", &[Reach::Join]),
-    // FT-660: a generated page's table in `page.describe` (`table`, `columns`, `rows`, `row` and `group` are older).
+    // A generated page's table in `page.describe` (`table`, `columns`, `rows`, `row` and `group` are older).
     ("note", &[Reach::List]),
-    // WP-S1.21 part 2 (D7): the printed PLC address of the hovered connection point, a reviewed vocabulary change.
+    // The printed PLC address of the hovered connection point, a reviewed vocabulary change.
     ("address", &[Reach::PlcHover]),
     // WP-S1.19 part 6 (§11): the 6 words of `Reach::Library`, a reviewed vocabulary change (`library` and `conflict` are
     // older).
@@ -589,14 +588,14 @@ const WORDS: &[(&str, &[Reach])] = &[
     ("patch", &[Reach::PasteChoice]),
     ("minor", &[Reach::PasteChoice]),
     ("major", &[Reach::PasteChoice]),
-    // WP-S4.02 part 3: the 3 words of `Reach::Layout`, a reviewed vocabulary change.
+    // The 3 words of `Reach::Layout`, a reviewed vocabulary change.
     ("unplaced", &[Reach::Layout]),
     ("layout", &[Reach::Layout]),
     ("refused", &[Reach::Layout]),
-    // FT-882 (ID-1108): a panel page's surface view is an "item surface view" line; 1 word, a reviewed vocabulary
+    // A panel page's surface view is an "item surface view" line; 1 word, a reviewed vocabulary
     // change (`view` is older).
     ("surface", &[Reach::Layout]),
-    // WP-S2.08 part 6 (D16 to D18): the glossary pane's lines, the tips' three actions and the wire-colour view's
+    // The glossary pane's lines, the tips' three actions and the wire-colour view's
     // canvas line; 8 words, a reviewed vocabulary change.
     ("glossary", &[Reach::Guide]),
     ("term", &[Reach::Guide]),
@@ -715,7 +714,7 @@ fn start_page(model: &ShellModel, lines: &mut Vec<String>) {
         quick_label("keymap", &settings.keymap),
         quoted_list(KEYMAPS.iter().map(|k| quick_label("keymap", k)))
     ));
-    // FT-1117 (ID-1229 item 3, ID-1187): this version has no update check, whatever the stored setting says.
+    // FT-1117 (item 3): this version has no update check, whatever the stored setting says.
     let privacy = strings::text(key!("start-update-check"));
     lines.push(format!("  label \"{privacy}\""));
 }
@@ -850,7 +849,7 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
         })
     ));
     if w.finished_dir().is_some() {
-        // FT-336: the basic project is written; what is left is the confirmed check scheme, then Close.
+        // The basic project is written; what is left is the confirmed check scheme, then Close.
         if w.can_apply_check_scheme() {
             lines.push(format!(
                 "  button \"{}\"",
@@ -880,7 +879,7 @@ fn window_start(n: usize, cursor: Option<usize>) -> usize {
         .min(n.saturating_sub(NAV_WINDOW))
 }
 
-/// The navigator lines (WP-S2.03 §6.10): the header, then one line per row on show; with more than 50 rows (WP-S2.06
+/// The navigator lines: the header, then one line per row on show; with more than 50 rows (WP-S2.06
 /// §6.10) the header ends with `showing <a> to <b>` and only the window around the cursor is printed.
 fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let nav = model.navigator();
@@ -921,7 +920,7 @@ fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 if r.qet_grid {
                     line.push_str(&format!(" badge \"{}\"", strings::text(key!("badge-qet-grid"))));
                 }
-                // WP-S1.18 part 2 (D7): the "Changed in" column, the revision that last changed the page.
+                // The "Changed in" column, the revision that last changed the page.
                 if let Some(label) = &r.changed_in {
                     line.push_str(&format!(" changed \"{label}\""));
                 }
@@ -930,7 +929,7 @@ fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 }
             }
         }
-        // WP-S2.06 part 1: a marked row (D5: no Pages line changes while nothing is marked).
+        // A marked row (D5: no Pages line changes while nothing is marked).
         if nav.is_marked(&row.key) {
             line.push_str(" selected");
         }
@@ -941,7 +940,6 @@ fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-// WP-S2.06 part 1
 /// The lines of every open navigator other than Pages (§6.10): the header with the kind, the view, the sort, the
 /// filter, the row count and the window, then one line per row of the window around the cursor.
 fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
@@ -975,7 +973,7 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             rows.len(),
             if rows.is_empty() { 0 } else { start + 1 },
         ));
-        // WP-S2.09 part 2: the Messages pane's header line (§7.6).
+        // The Messages pane's header line (§7.6).
         if kind == crate::navigators::NavKind::Messages
             && let Some(c) = model.messages_counts()
         {
@@ -990,7 +988,7 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             ));
         }
         let table = nav.table();
-        // WP-S2.06 part 3: the table's lines (§8.8).
+        // The table's lines (§8.8).
         if let (Some(mode), Some(t)) = (nav.table_mode(), table) {
             table_lines(
                 model,
@@ -1016,7 +1014,7 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
                     line.push_str(&format!(" badge \"{}\"", user(b)));
                 }
             }
-            // WP-S2.09 part 2: a pending finding's badge follows its others.
+            // A pending finding's badge follows its others.
             if r.finding.is_some_and(|f| f.pending) {
                 line.push_str(" badge \"pending\"");
             }
@@ -1031,13 +1029,13 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             if cursor.as_deref() == Some(r.key.as_str()) {
                 line.push_str(" cursor");
             }
-            // WP-S2.06 part 2: a highlighted row ends with its slot.
+            // A highlighted row ends with its slot.
             if let Some(slot) = model.row_highlight_slot(kind, &r.key) {
                 line.push_str(&format!(" highlight {slot}"));
             }
             lines.push(line);
         }
-        // WP-S2.09 part 2: the detail lines of the cursor's finding (§7.6).
+        // The detail lines of the cursor's finding (§7.6).
         if kind == crate::navigators::NavKind::Messages
             && let Some(d) = model.messages_detail()
         {
@@ -1052,7 +1050,7 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             if let Some(fix) = &d.fix {
                 lines.push(format!("  detail fix \"{}\"", user(fix)));
             }
-            // FT-674: a waived finding (Unwaive in the window).
+            // A waived finding (Unwaive in the window).
             if d.waived {
                 lines.push("  detail waived".to_owned());
             }
@@ -1060,7 +1058,6 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-// WP-S2.06 part 3
 /// A navigator's table (§8.8): the `columns` line of the column labels on show, one `row` line per row of the window
 /// with its cells on show quoted (` selected`, ` cursor "<column label>"`, the highlight slot), then the cell edit
 /// (`editing "<column label>" buffer "<text>"`), its error, and the pattern dialog (`pattern "<pattern>" values
@@ -1089,7 +1086,7 @@ fn table_lines(
         let Some(node) = table.nodes.iter().find(|n| n.key == r.key) else {
             continue;
         };
-        // WP-S2.07 §6.10: an accessory row of the strip editor has its own row word.
+        // An accessory row of the strip editor has its own row word.
         let word = if node.role == crate::navigators::NavRole::Accessory {
             "accessory"
         } else {
@@ -1160,7 +1157,7 @@ fn label_of(table: Option<&std::sync::Arc<crate::navigators::NavTable>>, key: &s
         .unwrap_or_default()
 }
 
-/// The tab lines (WP-S2.03 §6.10): per group its header, then one line per tab; the selected tab with its history.
+/// The tab lines: per group its header, then one line per tab; the selected tab with its history.
 fn tab_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let Some(area) = model.area() else { return };
     let n = area.groups.len();
@@ -1186,22 +1183,19 @@ fn tab_lines(model: &ShellModel, lines: &mut Vec<String>) {
         Some(Focus::Navigator(crate::navigators::NavKind::Pages)) => {
             lines.push("focus navigator".to_owned());
         }
-        // WP-S2.06 part 1
         Some(Focus::Navigator(k)) => lines.push(format!("focus navigator kind {}", k.word())),
         Some(Focus::Canvas(g)) => lines.push(format!("focus canvas group {}", g + 1)),
         Some(Focus::Properties) => lines.push("focus properties".to_owned()),
-        // WP-S2.05 part 2
         Some(Focus::Find) => lines.push("focus find".to_owned()),
-        // WP-S2.17 part 2
         Some(Focus::CommandBar) => lines.push("focus commandbar".to_owned()),
-        // WP-S2.17 part 3 (FT-519)
+        // WP-S2.17 part 3
         Some(Focus::History) => lines.push("focus history".to_owned()),
         None => {}
     }
 }
 
 /// A user text of the property grid's lines as the describe text quotes it: a double quote becomes a single one (the
-/// quoting stays unambiguous). A UUID in it is printed as its alias `@n` with the rest of the text (FT-422).
+/// quoting stays unambiguous). A UUID in it is printed as its alias `@n` with the rest of the text.
 fn user(text: &str) -> String {
     text.replace('"', "'")
 }
@@ -1224,7 +1218,7 @@ fn provenance_words(p: &Provenance) -> String {
     }
 }
 
-/// The property grid's lines (WP-S2.05 §6.11), after the navigator's; none while the pane is closed.
+/// The property grid's lines, after the navigator's; none while the pane is closed.
 fn properties_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let props = model.properties();
     let (true, Some(sheet)) = (model.properties_shown(), props.sheet()) else {
@@ -1288,7 +1282,7 @@ fn properties_lines(model: &ShellModel, lines: &mut Vec<String>) {
             section.kind,
             section.targets.len()
         ));
-        // WP-S2.17 part 3 (D11): Main first, the Advanced rows only while they are shown.
+        // Main first, the Advanced rows only while they are shown.
         for (group, rows) in crate::properties::groups(section, model.properties_show_advanced()) {
             let key = crate::properties::group_key(&section.kind, group);
             let shut = collapsed.contains(&key);
@@ -1343,7 +1337,6 @@ fn properties_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-// WP-S2.05 part 2
 /// The find pane's lines (§7.6), after the property grid's; none while the pane is closed.
 fn find_lines(model: &ShellModel, lines: &mut Vec<String>) {
     if !model.find_shown() {
@@ -1416,7 +1409,7 @@ fn find_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-/// FT-649: the column mapping step while open: `card mapping "list.csv" source "list" saved`, one `column` line per
+/// The column mapping step while open: `card mapping "list.csv" source "list" saved`, one `column` line per
 /// column with its sample and member (`none`: not imported), and the importer's refusal of the map as `error`.
 fn parts_map_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let Some(map) = model.parts_map() else {
@@ -1447,8 +1440,7 @@ fn parts_map_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-// WP-S3.08 part 3
-/// The table import card (ruling 9 of ID-1224): `card <status> "<command>" table-import "<file>" changed <n> kept <n>
+/// The table import card: `card <status> "<command>" table-import "<file>" changed <n> kept <n>
 /// conflicts <n> refused <n> unknown <n> missing <n>` (status `failed` when the import's command does not preview),
 /// then one `cell` line per cell of the file that differs and one `missing` line per table row the file lacks.
 fn table_import_lines(card: &crate::properties::Card, rev: u64, lines: &mut Vec<String>) {
@@ -1490,13 +1482,13 @@ fn table_import_lines(card: &crate::properties::Card, rev: u64, lines: &mut Vec<
     }
 }
 
-/// The inline preview card and the toast (WP-S2.05 §6.11), after the panes' lines: the card of the property grid or of
+/// The inline preview card and the toast, after the panes' lines: the card of the property grid or of
 /// the find pane's replace.
 fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let props = model.properties();
     if let (Some(card), Some(rev)) = (props.card(), model.revision()) {
         match &card.preview.result {
-            // WP-S3.08 part 3: the table import card prints its counts, its cells and its missing rows, also when no
+            // The table import card prints its counts, its cells and its missing rows, also when no
             // cell applies.
             _ if matches!(card.origin, crate::properties::CardOrigin::TableImport(_)) => {
                 table_import_lines(card, rev, lines);
@@ -1532,7 +1524,7 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 }
             }
             Ok(_) => match &card.origin {
-                // FT-410: the parts table import's card counts the part copies, not records, tags or texts.
+                // The parts table import's card counts the part copies, not records, tags or texts.
                 crate::properties::CardOrigin::Import { created, skipped, .. } => lines.push(format!(
                     "card {} \"{}\" created {created} skipped {skipped} errors 0",
                     card.preview.status(rev).word(),
@@ -1548,25 +1540,25 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                         card.preview.derived.tags.len(),
                         card.preview.derived.xrefs.len()
                     );
-                    // WP-S2.06 part 1: the reorder card names its origin and its folio changes.
+                    // The reorder card names its origin and its folio changes.
                     if let crate::properties::CardOrigin::Reorder { notices } = &card.origin {
                         line.push_str(" reorder");
                         for n in notices {
                             line.push_str(&format!(" \"{}\"", user(n)));
                         }
                     }
-                    // WP-S2.19 D13: the route card names its origin, its lead and its unrouted rows.
+                    // The route card names its origin, its lead and its unrouted rows.
                     if let crate::properties::CardOrigin::Route { lead, rows, .. } = &card.origin {
                         line.push_str(&format!(" route \"{}\"", user(lead)));
                         for r in rows {
                             line.push_str(&format!(" \"{}\"", user(r)));
                         }
                     }
-                    // WP-S2.09 part 2: the quick-fix card names its origin and the finding's rule.
+                    // The quick-fix card names its origin and the finding's rule.
                     if let crate::properties::CardOrigin::QuickFix { rule } = &card.origin {
                         line.push_str(&format!(" fix \"{}\"", user(rule)));
                     }
-                    // WP-S2.06 part 3: the table card names its origin.
+                    // The table card names its origin.
                     if matches!(card.origin, crate::properties::CardOrigin::Table { .. }) {
                         line.push_str(" table");
                     }
@@ -1604,7 +1596,7 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 }
             },
         }
-        // WP-S2.06 part 3: the table card's invalid and ambiguous cells (§8.8), numbered by their place in the gesture.
+        // The table card's invalid and ambiguous cells (§8.8), numbered by their place in the gesture.
         if let crate::properties::CardOrigin::Table { gesture } = &card.origin {
             for (i, c) in gesture.cells.iter().enumerate() {
                 if !c.blocking() {
@@ -1633,7 +1625,6 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
     toast_lines(model, lines);
 }
 
-// WP-S2.09 part 1
 /// The visible toasts (§6.8), oldest first and the newest last: `toast "<text>"`, then the action's word and
 /// `expired` when it is no longer valid.
 fn toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
@@ -1683,7 +1674,6 @@ fn jobs_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-// WP-S2.09 part 3
 /// One labelled record of a preview or of Show changes: `entity <change> "<kind>" "<label>" [fields "<f>"...]` (the
 /// kind quoted: the record kinds stay out of the vocabulary).
 fn entity_line(indent: &str, e: &ew_api::output::PreviewEntity) -> String {
@@ -1766,7 +1756,6 @@ fn preview_lines(model: &ShellModel, lines: &mut Vec<String>) {
     });
 }
 
-// WP-S2.08 part 6
 /// The glossary pane while it is open (D16): `glossary filter "<text>" rows <n>`, then one line per row on show,
 /// `  term "<term>" eplan "<terms>" qet "<terms>"` and the actions it offers.
 fn glossary_lines(model: &ShellModel, lines: &mut Vec<String>) {
@@ -1901,26 +1890,21 @@ fn row_line(
 }
 
 fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
-    // WP-S2.06 part 3: the Pages navigator in table mode prints as the other navigators do.
+    // The Pages navigator in table mode prints as the other navigators do.
     if model.nav(crate::navigators::NavKind::Pages).is_none() {
         navigator_lines(model, lines);
     }
-    // WP-S2.06 part 1
     other_navigator_lines(model, lines);
     properties_lines(model, lines);
-    // WP-S2.05 part 2
     find_lines(model, lines);
-    // WP-S2.09 part 1
     jobs_lines(model, lines);
-    // WP-S2.09 part 3
     preview_lines(model, lines);
     history_lines(model, lines);
-    // WP-S2.08 part 6
     glossary_lines(model, lines);
-    // FT-649: the parts import's column mapping step.
+    // The parts import's column mapping step.
     parts_map_lines(model, lines);
     card_and_toast_lines(model, lines);
-    // WP-S2.05 part 3: what the clipboard holds, never its text.
+    // What the clipboard holds, never its text.
     lines.push(model.clipboard().describe_line());
     tab_lines(model, lines);
     match model.current_folio() {
@@ -1930,11 +1914,11 @@ fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     canvas_lines(model, lines);
     lines.push(format!("workspace \"{}\"", model.workspace()));
     lines.push(format!("layout: {}", model.layout().describe()));
-    // WP-S2.17 part 3 (D15): the rails.
+    // The rails.
     lines.extend(crate::rail::describe_lines(model));
 }
 
-/// The menu lines of `entry` at `depth` (WP-S2.17 part 2): an item, a submenu with its items, or a command-bar group
+/// The menu lines of `entry` at `depth`: an item, a submenu with its items, or a command-bar group
 /// with its entries one level deeper.
 fn menu_entry_lines(entry: &MenuEntry, depth: usize, lines: &mut Vec<String>) {
     let indent = "  ".repeat(depth);
@@ -1969,7 +1953,7 @@ fn bar_button(b: &crate::command_bar::CommandButton) -> String {
     text
 }
 
-/// The command bar's lines (WP-S2.17 part 2, D15): the active tab, then one line per group with its commands in bar
+/// The command bar's lines: the active tab, then one line per group with its commands in bar
 /// order, then the next step; a collapsed bar prints its tab line only.
 fn command_bar_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let bar = crate::command_bar::command_bar(model);
@@ -1994,7 +1978,7 @@ fn command_bar_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-/// The HUD's line over the canvas (WP-S2.17 part 2, D15): the tool, what it works on and the prompt (quoted user text).
+/// The HUD's line over the canvas: the tool, what it works on and the prompt (quoted user text).
 fn hud_line(model: &ShellModel, lines: &mut Vec<String>) {
     let hud = crate::command_bar::hud(model);
     let mut line = format!("hud tool {} \"{}\"", hud.tool, hud.tool_label);
@@ -2005,7 +1989,7 @@ fn hud_line(model: &ShellModel, lines: &mut Vec<String>) {
     lines.push(line);
 }
 
-/// The canvas lines after the page-view line (WP-S2.02 section 6.6): millimetres with three decimals from whole
+/// The canvas lines after the page-view line (section 6.6): millimetres with three decimals from whole
 /// nanometres, the zoom with one decimal; the grid and backend labels are quoted user text.
 fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let Some(c) = model.canvas() else { return };
@@ -2023,7 +2007,7 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
     } else {
         lines.push("canvas grid off".to_owned());
     }
-    // WP-S2.08 part 6 (D18): only while the view is on, so a transcript without it keeps its lines.
+    // Only while the view is on, so a transcript without it keeps its lines.
     if model.wire_colours_on() {
         lines.push(format!(
             "canvas wire colours {}",
@@ -2052,7 +2036,7 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
         )),
         None => lines.push("canvas hover none".to_owned()),
     }
-    // WP-S1.21 D7: the printed PLC address of the connection point under the pointer, when it has one.
+    // The printed PLC address of the connection point under the pointer, when it has one.
     if let Some(cp) = c.hovered_cp()
         && let Some(address) = c
             .page()
@@ -2097,7 +2081,7 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
         lines.push("canvas statistics shown".to_owned());
     }
     lines.push(format!("canvas renderer {}", crate::script::renderer_word(model)));
-    // WP-S2.06 part 1: the chip line "Not on this page" (§6.5).
+    // The chip line "Not on this page" (§6.5).
     if !model.chips().is_empty() {
         let chips: Vec<String> = model
             .chips()
@@ -2106,7 +2090,7 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
             .collect();
         lines.push(format!("  elsewhere {}", chips.join(" ")));
     }
-    // WP-S2.06 part 2: the highlights drawn on the shown page (§7.4), oldest first.
+    // The highlights drawn on the shown page (§7.4), oldest first.
     if let Some(group) = model.area().map(|a| a.focused) {
         let shown = model.highlight_overlay(group);
         for h in model.highlights().items() {
@@ -2125,12 +2109,12 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
         }
     }
     tool_lines(model, lines);
-    // WP-S2.17 part 2: the HUD over the canvas.
+    // The HUD over the canvas.
     hud_line(model, lines);
 }
 
-/// The tool lines after the canvas lines (WP-S2.03 §7.9): the active tool, the snap indicator, the selection and its
-/// live description (WP-S2.08 D13), the kept preview, the overlay with its labels and the link preview while shown. The tool's label and hint, a failed
+/// The tool lines after the canvas lines: the active tool, the snap indicator, the selection and its
+/// live description, the kept preview, the overlay with its labels and the link preview while shown. The tool's label and hint, a failed
 /// preview's message and the labels are quoted user text.
 fn tool_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let tool = model.tool();
@@ -2164,14 +2148,14 @@ fn tool_lines(model: &ShellModel, lines: &mut Vec<String>) {
     if selection.is_empty() {
         lines.push("canvas selection none".to_owned());
     } else {
-        // The IDs as value tokens, which the printer turns into aliases `@n` (FT-422).
+        // The IDs as value tokens, which the printer turns into aliases `@n`.
         let ids: Vec<String> = selection.items.iter().map(|e| e.0.to_string()).collect();
         lines.push(format!(
             "canvas selection {} {}",
             selection.items.len(),
             ids.join(" ")
         ));
-        // WP-S2.08 D13: what the live region says of the selection, quoted as user text as the page items' texts are
+        // What the live region says of the selection, quoted as user text as the page items' texts are
         // (ID-1278 ruling 11: a line break or a `"` in a free text never splits or ends the line).
         lines.push(format!(
             "canvas live {}",
@@ -2223,7 +2207,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             lines.push(line);
         }
     }
-    // WP-S2.18 D2: the Join chooser while open (one line, then one line per row with its kind word; the active row
+    // The Join chooser while open (one line, then one line per row with its kind word; the active row
     // ends with `current`).
     if let Some(c) = model.chooser() {
         lines.push(format!("canvas chooser \"{}\" rows {}", c.question, c.rows.len()));
@@ -2370,7 +2354,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             }
             lines.push(line);
         }
-        // WP-S2.04 part 4b: the Wire marker tool's group and the Structure box tool's outline.
+        // The Wire marker tool's group and the Structure box tool's outline.
         Some(crate::tools::Ghost::Marker { connections, text }) => {
             let mut line = format!("canvas ghost marker connections {connections}");
             if let Some(text) = text {
@@ -2389,7 +2373,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             }
             lines.push(line);
         }
-        // WP-S4.02 part 3 (D4): the dragged device on a panel page: `canvas ghost layout "F55" on "Rail 1" mode push at
+        // The dragged device on a panel page: `canvas ghost layout "F55" on "Rail 1" mode push at
         // 158 mm moved 4`, on the plate `on "plate" mode free at 120 300 mm`; a refused drop ends with `refused` and its
         // text.
         Some(crate::tools::Ghost::Layout {
@@ -2483,7 +2467,7 @@ fn on_off(b: bool) -> &'static str {
     if b { "on" } else { "off" }
 }
 
-/// The part dialog's lines (WP-S2.07 §9.6).
+/// The part dialog's lines.
 fn part_choose_lines(
     model: &ShellModel,
     c: &crate::shell::part_dialog::PartChooser,
@@ -2531,7 +2515,7 @@ fn part_choose_lines(
     }
 }
 
-/// The part editor's lines (WP-S2.07 §9.6).
+/// The part editor's lines.
 fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<String>) {
     let d = &e.draft;
     for f in ew_api::DRAFT_FIELDS {
@@ -2597,7 +2581,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
     let Some(d) = model.dialog() else {
         return;
     };
-    // WP-S2.17 part 4: the title and the buttons are the dialog's specification (`dialogs::spec`), the window's too;
+    // The title and the buttons are the dialog's specification (`dialogs::spec`), the window's too;
     // the buttons in the order Primary, the others, the destructive one.
     let spec = crate::dialogs::spec(d, model);
     lines.push(format!("dialog \"{}\"", user(&spec.title)));
@@ -2611,7 +2595,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             let text = crate::about::notices_text(model);
             lines.push(format!("  notices: {} lines", text.lines().count()));
         }
-        // WP-S2.08 part 2: the editor's rows with a binding (the effective keymap, filtered by the search).
+        // The editor's rows with a binding (the effective keymap, filtered by the search).
         Dialog::Shortcuts => {
             for row in model.keymap_rows().iter().filter(|r| !r.chords.is_empty()) {
                 lines.push(format!(
@@ -2633,13 +2617,13 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 lines.push(format!("  label \"{line}\""));
             }
         }
-        // WP-S1.17 part 7 (D24): the paragraphs; the collision dialog's rows with base, mine, theirs and the side chosen.
+        // The paragraphs; the collision dialog's rows with base, mine, theirs and the side chosen.
         Dialog::ConfirmUpgrade { .. } | Dialog::OpenEwz { .. } | Dialog::ConfirmGitSetup { .. } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{}\"", user(line)));
             }
         }
-        // WP-S3.09 D8: the import card's summary and its listed pages; the confirmation's paragraph.
+        // The import card's summary and its listed pages; the confirmation's paragraph.
         Dialog::ImportQet { pages, confirm, .. } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{}\"", user(line)));
@@ -2650,7 +2634,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 }
             }
         }
-        // WP-S3.09 D10, D12: the proposal's paragraph; the re-import card's summary and its listed rows.
+        // The proposal's paragraph; the re-import card's summary and its listed rows.
         Dialog::ReimportMatch { .. } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{}\"", user(line)));
@@ -2736,15 +2720,15 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         // detail.
         Dialog::PartChoose(c) => part_choose_lines(model, c, lines),
         Dialog::PartEdit(e) => part_edit_lines(e, lines),
-        // WP-S3.07 part 3: the options, then the preview: its page and stamp, the progress, the empty state or the
+        // The options, then the preview: its page and stamp, the progress, the empty state or the
         // failure.
         Dialog::Print(d) => print_lines(model, d, lines),
-        // FT-408 and FT-409: a creation dialog, one `field` line per field in order; the refusal of the last attempt
+        // A creation dialog, one `field` line per field in order; the refusal of the last attempt
         // follows the fields as an `error:` line.
         Dialog::Form(form) => {
-            // WP-S1.18 part 5: a revision dialog's paragraphs and its list (the gate's findings, the release's steps)
+            // A revision dialog's paragraphs and its list (the gate's findings, the release's steps)
             // before its fields.
-            // WP-S4.02 part 4: the Auto-fill rail dialog's line about its devices too.
+            // The Auto-fill rail dialog's line about its devices too.
             for line in &spec.body {
                 lines.push(format!("  label \"{}\"", user(line)));
             }
@@ -2769,7 +2753,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             if let Some(e) = &form.error {
                 lines.push(format!("  error: {e}"));
             }
-            // WP-S6.04 D13: the Approve and the Release dialog end with the disclaimer.
+            // The Approve and the Release dialog end with the disclaimer.
             if let Some(line) = model.revision_disclaimer() {
                 lines.push(format!("  label \"{}\"", user(line)));
             }
@@ -2783,7 +2767,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-/// The start-up offer's lines (WP-S6.05 D11): its title, the crash line, one row per project, the refusal of the last
+/// The start-up offer's lines: its title, the crash line, one row per project, the refusal of the last
 /// answer and the buttons, as the window's dialog shows them.
 fn startup_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let Some(offer) = model.startup_offer() else {
@@ -2810,7 +2794,7 @@ fn startup_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-/// The print pre-dialog's lines (WP-S3.07 part 3): `range`, the section rows or the Pages field with its refusal,
+/// The print pre-dialog's lines: `range`, the section rows or the Pages field with its refusal,
 /// `paper`, the two check boxes, then the preview.
 fn print_lines(model: &ShellModel, d: &crate::shell::print::PrintDialog, lines: &mut Vec<String>) {
     use crate::shell::print::{PrintBuild, PrintDialog, PrintRange};
@@ -2884,7 +2868,7 @@ fn page_quoted(text: &str) -> String {
 }
 
 /// `at X Y mm` of a page point in page nm, printed as the sheet point a pointer or the grid cursor reaches it at
-/// (`canvas.press`, `canvas.pointer`, `cursor.set`; FT-485 item 5): the page's own coordinates are offset from the
+/// (`canvas.press`, `canvas.pointer`, `cursor.set`; item 5): the page's own coordinates are offset from the
 /// sheet's by the frame margin, so a page coordinate printed as is missed every click by that margin.
 fn page_at(page: &CanvasPage, p: (i64, i64)) -> String {
     let s = page.snapper.page_to_sheet(p);
@@ -2939,7 +2923,7 @@ fn wire_point(page: &CanvasPage, wire: &ew_api::output::TableConnection) -> Opti
     None
 }
 
-/// A terminal's tag (`-X1011:3`) as a sentence names it (FT-716): "-X1011 terminal 3", so that the strip and the
+/// A terminal's tag (`-X1011:3`) as a sentence names it: "-X1011 terminal 3", so that the strip and the
 /// number read apart. The designation `-X1011:3` stays in tables, Properties and printed labels; a tag without a colon
 /// is returned as it is.
 pub(crate) fn terminal_in_sentence(tag: &str) -> String {
@@ -2951,7 +2935,7 @@ pub(crate) fn terminal_in_sentence(tag: &str) -> String {
     }
 }
 
-/// A connection point's label (`-1A4:-#2`) as a sentence names it (cycle 38, FX38d): a designation the device
+/// A connection point's label (`-1A4:-#2`) as a sentence names it (FX38d): a designation the device
 /// shares between pins carries its position in words, "-1A4 pin - (2nd)", never the label's `#2`. Any other label
 /// (an unshared pin `-1A4:L+`, a terminal's clamp `-X1:1/a#2`, which FT-716's form names) is returned as it is; tags,
 /// tables and printed labels keep the label.
@@ -2996,7 +2980,7 @@ fn variant_letter(orient: u8) -> char {
 /// The tag a representation names: its device's short tag, read off the labels of its connection points (a CP's
 /// label is `tag:designation`, a terminal's `tag/clamp` or, without clamps, its tag alone, an interruption point's
 /// its name); `None` without one. A terminal's tag is the strip's and its own designation (`-X1011:2`), so that two
-/// terminals of one strip never read alike (cycle 36, play-test rv-txt-2).
+/// terminals of one strip never read alike (play-test rv-txt-2).
 pub(crate) fn rep_tag(rep: &TableRep, cps: &[&TableCp]) -> Option<String> {
     let label = &cps.first()?.label;
     // A terminal's label is `-X1031:11/a` (its tag is `-X1031:11`), or `-X1011:2` when its function names no clamps
@@ -3067,7 +3051,7 @@ fn junction_order(page: &CanvasPage) -> Vec<usize> {
 }
 
 /// The drawn connections of `page` with their two ends as the page text names them, without quotes: a CP label or
-/// `junction <n>` (FT-485 item 4: `select.set` takes `wire:<a> -> <b>`).
+/// `junction <n>` (item 4: `select.set` takes `wire:<a> -> <b>`).
 pub fn page_wires(page: &CanvasPage) -> Vec<(ew_api::output::ew_dl::EntityRef, String, String)> {
     let t: &PageTables = &page.tables;
     let order = junction_order(page);
@@ -3091,7 +3075,7 @@ pub fn page_wires(page: &CanvasPage) -> Vec<(ew_api::output::ew_dl::EntityRef, S
         .collect()
 }
 
-/// The lines `page.describe` adds for a generated page (FT-660): its printed table, so a text-only reader can read a
+/// The lines `page.describe` adds for a generated page: its printed table, so a text-only reader can read a
 /// parts list or any other list page.
 ///
 /// ```text
@@ -3134,7 +3118,7 @@ pub fn page_table_lines(table: &ew_api::output::PageListTable) -> Vec<String> {
     lines
 }
 
-/// The text of one page for `page.describe` (WP-S6.13 §5.5.3): the header with the exact counts, then the
+/// The text of one page for `page.describe`: the header with the exact counts, then the
 /// representations with their connection points, the connections, the junctions, the page items and the structure
 /// boxes, each in a named order (reading order of the anchor cell, then the position and the symbol key; connections
 /// by their end labels; junctions in reading order; items and boxes in the page tables' order). The header's
@@ -3199,7 +3183,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
     reps.sort_by(|a, b| a.0.cmp(&b.0));
     for (_, r, cps, tag) in &reps {
         let who = match (&r.ip, tag) {
-            // FT-1437: where the point continues, its printed cross-reference, when it has a partner.
+            // Where the point continues, its printed cross-reference, when it has a partner.
             (Some(ip), _) if !ip.continuation.is_empty() => format!(
                 "ip {} direction {} continues {}",
                 page_quoted(&ip.name),
@@ -3269,7 +3253,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
                 })
                 .count();
             let route = if c.stored_route { "stored" } else { "unrouted" };
-            // A point that picks this wire and nothing else (FT-485 item 4), where there is one.
+            // A point that picks this wire and nothing else (item 4), where there is one.
             let point =
                 wire_point(page, c).map_or_else(String::new, |p| format!(" at {} {} mm", mm3(p.0), mm3(p.1)));
             (
@@ -3311,14 +3295,14 @@ pub fn page_describe(page: &CanvasPage) -> String {
         lines.push(line);
     }
 
-    // The page items, then the structure boxes, in the page tables' order (WP-S2.04 part 4b, §10.7).
+    // The page items, then the structure boxes, in the page tables' order.
     for item in &t.items {
         let word = match item.kind.as_str() {
             "graphic" => "graphic",
             "free_text" => "text",
             "wire_marker" => "marker",
             "image" => "image",
-            // FT-882 (ID-1108: "`ui.describe` names a surface view \"surface view\"")
+            // FT-882 ("`ui.describe` names a surface view \"surface view\"")
             "surface_view" => "surface view",
             _ => "unknown",
         };
@@ -3354,7 +3338,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
     lines.join("\n")
 }
 
-/// The bridge lines `page.describe` appends (FT-621): one `  bridge "BR<n>" "<terminal>" …` per bridge group of which
+/// The bridge lines `page.describe` appends: one `  bridge "BR<n>" "<terminal>" …` per bridge group of which
 /// the strip or a terminal is drawn on `page`, in `BR<n>` order, its terminals in (`seq`, ID) order. Bridges have no page (they are
 /// defined in the strip editor), so the page lists the bridges of the strips it draws.
 pub fn page_bridge_lines(page: &CanvasPage, bridges: &[ew_api::output::BridgeRow]) -> Vec<String> {
@@ -3379,7 +3363,7 @@ pub fn page_bridge_lines(page: &CanvasPage, bridges: &[ew_api::output::BridgeRow
 }
 
 /// The text of the visible user interface of `model`, lines separated by `\n`, without a final newline, with record IDs
-/// as UUIDs: [`ShellModel::describe`] and the transcript print them as aliases `@n` (FT-422).
+/// as UUIDs: [`ShellModel::describe`] and the transcript print them as aliases `@n`.
 pub fn describe(model: &ShellModel) -> String {
     let mut lines: Vec<String> = vec![format!("title: {}", model.title())];
     for menu in actions::menu_model(model) {
@@ -3388,7 +3372,7 @@ pub fn describe(model: &ShellModel) -> String {
             menu_entry_lines(entry, 1, &mut lines);
         }
     }
-    // WP-S2.17 part 2: the command bar under the app menu.
+    // The command bar under the app menu.
     command_bar_lines(model, &mut lines);
     if let Some(banner) = model.banner() {
         lines.push(format!("banner: {banner}"));
@@ -3414,16 +3398,16 @@ pub fn describe(model: &ShellModel) -> String {
         project_view(model, &mut lines);
     } else {
         start_page(model, &mut lines);
-        // WP-S2.09 part 1: a toast can outlive its project (an export's end, a recovery's failure).
+        // A toast can outlive its project (an export's end, a recovery's failure).
         toast_lines(model, &mut lines);
     }
-    // WP-S2.17 part 3 (D12): the status bar's fields in their order.
+    // The status bar's fields in their order.
     let fields: Vec<String> = crate::status::bar(model, false)
         .into_iter()
         .map(|f| f.text)
         .collect();
     lines.push(format!("status bar: {}", fields.join(" | ")));
-    // WP-S2.09 part 1: the notifications log is a popup.
+    // The notifications log is a popup.
     notification_lines(model, &mut lines);
     if let Some(palette) = model.palette() {
         lines.push(format!(
@@ -3454,7 +3438,7 @@ pub fn describe(model: &ShellModel) -> String {
         }
         for (i, entry) in entries.iter().enumerate() {
             let mark = if i == palette.selected { ">" } else { " " };
-            // WP-S2.08 D4: the prefixes' entries reuse words of the vocabulary; their ID is inside the quoted label
+            // The prefixes' entries reuse words of the vocabulary; their ID is inside the quoted label
             // (a folio, a rule ID, a record's alias), so only actions and commands print it bare.
             let (kind, id) = match &entry.run {
                 PaletteRun::Action(_) => ("action", Some(&entry.id)),
@@ -3479,7 +3463,7 @@ pub fn describe(model: &ShellModel) -> String {
         }
     }
     dialog(model, &mut lines);
-    // WP-S6.05 D11: the start-up offer.
+    // The start-up offer.
     startup_lines(model, &mut lines);
     if let Some(target) = model.last_help() {
         lines.push(format!("help: {target}"));
@@ -3489,7 +3473,7 @@ pub fn describe(model: &ShellModel) -> String {
 
 impl ShellModel {
     /// The visible user interface as text, one line per element in paint order (`ui.describe`), every record ID
-    /// printed as its alias `@n` (FT-422, ID-630).
+    /// printed as its alias `@n`.
     pub fn describe(&self) -> String {
         let text = describe(self);
         self.alias_text(&text)
@@ -3516,7 +3500,7 @@ mod tests {
         assert!(!pin_in_sentence("-1A4:-#2").contains('#'));
     }
 
-    /// FT-716: a sentence names a terminal by strip and number in words; a tag without a number stays as it is.
+    /// A sentence names a terminal by strip and number in words; a tag without a number stays as it is.
     #[test]
     fn a_terminal_in_a_sentence_reads_strip_terminal_number() {
         assert_eq!(terminal_in_sentence("-X1011:3"), "-X1011 terminal 3");
@@ -3596,7 +3580,7 @@ mod tests {
         "label_profile",
     ];
 
-    /// WP-S2.05 §6.11: every implemented non-library kind (one the property grid has a catalogue for) names its
+    /// Every implemented non-library kind (one the property grid has a catalogue for) names its
     /// section in the describe text, so its name is in the vocabulary; so are the two kinds of WP-S2.04 part 4a.
     #[test]
     fn every_kind_a_section_can_have_is_in_the_vocabulary() {

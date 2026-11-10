@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The atomic release and the as-built archive (doc 05 §14.1, §14.2; doc 15 §5.5; WP-S1.18 part 4, D11 to D13):
+//! The atomic release and the as-built archive (doc 05 §14.1, §14.2; doc 15 §5.5):
 //! [`Session::release`] runs the six steps, [`Session::incomplete_release`] finds what a crash left, and
 //! [`Session::discard_incomplete_release`] and [`Session::complete_release`] settle it.
 //!
@@ -26,7 +26,7 @@
 //! the session commits it, so a failed save leaves the model as it was. A crash leaves at most one complete archive
 //! that no release record names; [`Session::incomplete_release`] reports it at the next open.
 //!
-//! **Evidence** (FT-814). Two copies of one project directory (an operating-system copy, a restore, a Save as) carry
+//! **Evidence**. Two copies of one project directory (an operating-system copy, a restore, a Save as) carry
 //! the same project ID, and at the same generation write the same archive bytes, so nothing in an archive or in the
 //! project files tells whose run wrote it. Before its archive has its name, the run records it durably in the per-user
 //! state directory ([`ew_store::archive::RunRecord`]: the project directory, the archive, its SHA-256 and modification
@@ -131,8 +131,7 @@ pub struct Released {
     /// Whether the stamp's save passed its commit point but did not complete: generation g+1 is decided and completes
     /// by roll-forward ([`Session::retry_save`], or the next open).
     pub save_incomplete: bool,
-    /// Whether the manifests the release wrote are marked `unstable` (an unreleased format): the front ends warn
-    /// (FT-1489, WP-S6.08 D19).
+    /// Whether the manifests the release wrote are marked `unstable` (an unreleased format): the front ends warn.
     pub unstable: bool,
 }
 
@@ -158,7 +157,7 @@ pub struct IncompleteRelease {
     /// or another revision, or does not read (a root may be shared, and the file name carries only the label). Then it
     /// is neither completed nor discarded: it is kept ([`ReleaseError::Foreign`]).
     pub foreign: Option<String>,
-    /// Why a discard keeps the archive although it names this project and the open revision, if it does (FT-814): no
+    /// Why a discard keeps the archive although it names this project and the open revision, if it does: no
     /// run record of this project directory in the state directory matches it, so it is not provably this directory's
     /// own leftover (a copy of the directory names the same project). Then it is not discarded
     /// ([`ReleaseError::Unproven`]); completing it is unaffected. `None` when the archive is foreign.
@@ -304,7 +303,7 @@ pub struct ReleaseTrouble {
     pub path: PathBuf,
     /// The error, in words (the CLI prints it).
     pub error: String,
-    /// The error's kind: the window words the cause from it, never from the OS text (cycle 41, FIX41b ruling 6).
+    /// The error's kind: the window words the cause from it, never from the OS text (FIX41b ruling 6).
     pub kind: std::io::ErrorKind,
 }
 
@@ -412,7 +411,7 @@ pub enum ReleaseError {
     /// neither completed nor discarded.
     Foreign(String),
     /// The archive names this project and the open revision, but no run record of this project directory shows that
-    /// its own release wrote it (FT-814): a discard removes nothing.
+    /// its own release wrote it: a discard removes nothing.
     Unproven {
         /// Why (it names the archive).
         why: String,
@@ -540,7 +539,7 @@ fn archive_facts(bytes: &[u8]) -> Option<(String, Id<Revision>, Date, u64, Relea
 }
 
 /// The tag message of a release (doc 05 §14.1 step 5): it carries the archive's SHA-256 and, from the release itself,
-/// the run's mark (`Run: <mark>`, FT-814), which the run's record in the state directory holds too.
+/// the run's mark (`Run: <mark>`), which the run's record in the state directory holds too.
 fn tag_message(label: &str, name: &str, sha256: &Sha256, run: Option<&str>) -> String {
     let mut message = format!("Release {label}\n\nArchive: {name}\nSHA-256: {sha256}\n");
     if let Some(run) = run {
@@ -559,7 +558,7 @@ fn tag_carries(message: &str, sha256: &Sha256) -> bool {
 }
 
 /// Whether a tag's message carries the run's mark (the line [`tag_message`] writes): then this project directory's run
-/// created it, and a discard may delete it (FT-814; another copy in the same repository shares the tag names).
+/// created it, and a discard may delete it (another copy in the same repository shares the tag names).
 fn tag_of_run(message: &str, run: &str) -> bool {
     let line = format!("Run: {run}");
     message.lines().any(|l| l.trim() == line)
@@ -613,7 +612,7 @@ impl Session {
 
     /// The owner marker of the project directory's archive temps ([`archive::temp_name`]): the key of the project
     /// directory ([`archive::path_key`]). A copy of the directory elsewhere carries the same project ID but has another
-    /// key, so it never removes a temp of this directory's live run, nor this directory one of its (FT-814).
+    /// key, so it never removes a temp of this directory's live run, nor this directory one of its.
     fn temp_owner(&self) -> Result<String, ReleaseError> {
         let store = self.store().ok_or(ReleaseError::Gate(GateError::NoProject))?;
         Ok(archive::path_key(&**store.vfs(), store.root()))
@@ -632,7 +631,7 @@ impl Session {
         ))
     }
 
-    /// What this project directory's run records for the archive it writes (FT-814), with the run's mark: the record
+    /// What this project directory's run records for the archive it writes, with the run's mark: the record
     /// [`archive::write_atomically`] writes before the archive has its name (it fills in the archive, its SHA-256 and
     /// its modification time). `None` without a state directory: then there is no record, and a discard after a crash
     /// keeps the archive (the release itself goes on).
@@ -692,7 +691,7 @@ impl Session {
         std::mem::take(&mut *self.release_troubles.borrow_mut())
     }
 
-    /// Removes this project directory's stale run records (FT-814): those whose archive is gone (a crash before the
+    /// Removes this project directory's stale run records: those whose archive is gone (a crash before the
     /// archive had its name, a discard by hand) or whose revision is released with the archive's SHA-256 (the run
     /// was settled by the next open's roll-forward or a completion, but its record stayed). A record left behind
     /// would let a restored pre-release copy of this directory at the same path discard the released archive. Only in
@@ -749,8 +748,8 @@ impl Session {
         }
     }
 
-    /// The run record of this project directory that proves its own release wrote the incomplete release's archive
-    /// (FT-814): the record of the directory and the archive, naming this project, the revision, the label, the
+    /// The run record of this project directory that proves its own release wrote the incomplete release's archive:
+    /// the record of the directory and the archive, naming this project, the revision, the label, the
     /// archive's generation, its SHA-256 and its modification time. Else why the archive is not provably this
     /// directory's leftover (it names the archive).
     fn run_evidence(&self, found: &IncompleteRelease) -> Result<archive::RunRecord, String> {
@@ -896,7 +895,7 @@ impl Session {
         })
     }
 
-    /// Releases the open revision (doc 05 §14.1; WP-S1.18 part 4, D11 to D13): the six steps of the module
+    /// Releases the open revision (doc 05 §14.1): the six steps of the module
     /// documentation, from the session's origin, which must be human. Returns the release; the session is saved at
     /// g+1 with the revision released.
     ///
@@ -976,7 +975,7 @@ impl Session {
             archive::check_project(&entries, &manifest.0, &manifest.1)
         };
         let owner = self.temp_owner()?;
-        // The run's record (FT-814), written before the archive has its name: the evidence a discard after a crash
+        // The run's record, written before the archive has its name: the evidence a discard after a crash
         // needs that this directory's run wrote the archive. Its mark goes into the tag's message.
         let run = ew_store::lock::new_session_id();
         let record_at = self.run_record_at(plan.gate.revision, &ctx.label, generation, &run);
@@ -1183,7 +1182,7 @@ impl Session {
                     })
                     .collect(),
             );
-            // WP-S6.04 D13: the waivers in force, each once, beside the packs.
+            // The waivers in force, each once, beside the packs.
             let mut waivers: Vec<&str> = gate
                 .report
                 .findings
@@ -1421,7 +1420,7 @@ impl Session {
     /// lies in a worktree and the tag's message carries the archive's SHA-256 and the crashed run's mark (this project
     /// directory's run created it; any other tag of the label is kept), then the archive, the leftover temps of its
     /// name that this project directory wrote, and the run's record. Only an archive whose `ARCHIVE.json` names this
-    /// project and the open revision, and that a run record of this project directory proves its own (FT-814), is
+    /// project and the open revision, and that a run record of this project directory proves its own, is
     /// discarded. The revision stays open.
     ///
     /// # Errors
@@ -1532,7 +1531,7 @@ impl Session {
         self.complete_release_as(&origin, integrity, options)
     }
 
-    /// [`Session::complete_release`] for a submission from `origin` (cycle 41, ruling 1: judged per submission); the
+    /// [`Session::complete_release`] for a submission from `origin` (ruling 1: judged per submission); the
     /// stamp is submitted from `origin`.
     ///
     /// # Errors
@@ -1679,7 +1678,7 @@ impl Session {
         }
     }
 
-    /// Opens an as-built archive for reproduction (doc 05 §14.3; WP-S1.18 D14, FR-REV-010): the file is read whole
+    /// Opens an as-built archive for reproduction (doc 05 §14.3; FR-REV-010): the file is read whole
     /// (refused above 2 GiB) and checked as the release checks it (the layout, `SHA256SUMS`, and `project/` against its
     /// own manifest), then `project/` opens read-only from memory (no lock, no journal, no state directory) with the
     /// release context of `ARCHIVE.json`. Exporting its PDF with that context gives the archived PDF's bytes

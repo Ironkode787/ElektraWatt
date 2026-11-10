@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! JB6 (WP-S2.09 part 1, D6, §6.5; FR-UI-042): after a direct grid commit on 20 devices the toast's Undo still works
+//! JB6 (FR-UI-042): after a direct grid commit on 20 devices the toast's Undo still works
 //! from the notifications log once the toast is gone, and is expired after another commit; toasts of one key replace
 //! each other. The log's caps (three visible, 100 kept) are the unit tests of `ew_viewmodel::notifications`.
 

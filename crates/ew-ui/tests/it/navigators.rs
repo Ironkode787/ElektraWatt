@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigators in the window without rendering (WP-S2.06 part 1, acceptance checks NV4, NV5, NV7, NV9 and NV11):
+//! The navigators in the window without rendering (acceptance checks NV4, NV5, NV7, NV9 and NV11):
 //! the Devices pane with its AccessKit tree and the chip line, a drag of 106 before 103 that opens the reorder card and
 //! Apply, a drag of an unplaced function onto the canvas that arms the Place tool, the virtualised painting and the
 //! exact counts while scrolling; the accessible-name walker after every step (`settle`).
@@ -140,7 +140,7 @@ fn nv5_the_devices_pane_and_the_chip_line() {
     assert_eq!(chips, ["201-E4", "203-B4"]);
     assert!(h.query_by_label("Open 201-E4").is_some());
     assert!(h.query_by_label("Open 203-B4").is_some());
-    // FT-531: the chips are doc 16a §6.24's pill jump chips, 20 px high (egui's button was the row height).
+    // The chips are doc 16a §6.24's pill jump chips, 20 px high (egui's button was the row height).
     let chip = h.get_by_role_and_label(egui::Role::Button, "Open 201-E4").rect();
     assert!((chip.height() - 20.0).abs() < 0.5, "jump chip {chip:?}");
     let item = h
@@ -179,13 +179,13 @@ fn nv5_the_devices_pane_and_the_chip_line() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// NV7 in the window (FT-360; D8): dragging 106 onto 103 in the Pages navigator opens the reorder card with "106 →
+/// NV7 in the window (D8): dragging 106 onto 103 in the Pages navigator opens the reorder card with "106 →
 /// 103, 103 → 106"; Apply commits one `page.reorder`; one undo restores the folios.
 #[test]
 fn nv7_dragging_106_before_103_opens_the_card_and_apply_commits() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
-    // WP-S2.17 part 3 (D10): Properties sits under Pages, so the page list has half the column; a taller window
+    // Properties sits under Pages, so the page list has half the column; a taller window
     // keeps folio 106 laid out.
     h.set_size(egui::Vec2::new(1000.0, 1000.0));
     settle(&mut h);
@@ -202,7 +202,7 @@ fn nv7_dragging_106_before_103_opens_the_card_and_apply_commits() {
             .is_some(),
         "the card's line"
     );
-    // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
+    // The Preview tab shows the card too; its chip and the tab each have the button.
     h.get_all_by_label("Apply").next().unwrap().click();
     settle(&mut h);
     let rows = h.state().shell().page_rows().to_vec();
@@ -233,7 +233,7 @@ fn nv9_an_unplaced_function_is_dragged_onto_the_canvas() {
             .expect("the copy opens")
             .0;
         let q = s.query();
-        // a drawn function's FnDef, so a symbol of it exists (a valve's internal coil has none, WP-S1.20 D5)
+        // a drawn function's FnDef, so a symbol of it exists (a valve's internal coil has none)
         let (_, f) = q
             .functions()
             .iter()
@@ -296,7 +296,7 @@ fn nv9_an_unplaced_function_is_dragged_onto_the_canvas() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// WP-S2.07 §6.8 in the window: in the strip editor (table mode) a terminal inserted into 1X1 (no strip segment, so
+/// 8 in the window: in the strip editor (table mode) a terminal inserted into 1X1 (no strip segment, so
 /// unplaced) is a drag source; dragging its row onto the canvas of folio 101 arms the Place tool with its function.
 #[test]
 fn s68_an_unplaced_terminal_row_is_dragged_onto_the_canvas() {
@@ -549,7 +549,7 @@ fn marked_folios(h: &Harness<'_, App>) -> Vec<String> {
         .collect()
 }
 
-/// FT-1024, ID-1107: "A single click on a page row opens that page." (doc 16a §6.6)
+/// "A single click on a page row opens that page." (doc 16a §6.6)
 #[test]
 fn ft1024_a_single_click_on_a_page_row_opens_the_page() {
     let tmp = Tmp::new();
@@ -563,7 +563,7 @@ fn ft1024_a_single_click_on_a_page_row_opens_the_page() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1024, ID-1107: "Ctrl-click and Shift-click mark rows without opening."
+/// "Ctrl-click and Shift-click mark rows without opening."
 #[test]
 fn ft1024_ctrl_and_shift_click_mark_page_rows_without_opening() {
     let tmp = Tmp::new();
@@ -585,7 +585,7 @@ fn ft1024_ctrl_and_shift_click_mark_page_rows_without_opening() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1024, ID-1107: "A double click still opens." (one frame, as egui's four events)
+/// "A double click still opens." (one frame, as egui's four events)
 #[test]
 fn ft1024_a_double_click_on_a_page_row_still_opens_the_page() {
     let tmp = Tmp::new();
@@ -617,14 +617,14 @@ fn ft1024_a_double_click_on_a_page_row_still_opens_the_page() {
 fn r30_double_clicking_a_paged_report_block_goes_to_its_first_folio() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
-    // WP-S2.17 part 2: the command bar (85 px) is taller than the menu bar and the tool strip it replaced; at 700 px
+    // The command bar (85 px) is taller than the menu bar and the tool strip it replaced; at 700 px
     // the virtualised pane no longer lays out the Wire List row at all, so this window is 800 px high; WP-S2.17 part 3
     // (D10) gives the navigator half the column (Properties under it), so 1200 px.
     h.set_size(egui::Vec2::new(1000.0, 1200.0));
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     dispatch(&mut h, "navigator.show", json!({"kind": "blocks"}));
-    // FT-567: the list ends on a whole row, so a row under the fold is not laid out at all (it was cut, and so in the
+    // The list ends on a whole row, so a row under the fold is not laid out at all (it was cut, and so in the
     // tree); the filter brings the Wire List row up.
     dispatch(
         &mut h,
@@ -633,7 +633,7 @@ fn r30_double_clicking_a_paged_report_block_goes_to_its_first_folio() {
     );
     settle(&mut h);
     settle(&mut h);
-    // WP-S2.17 part 1: rows of `size.row` (28 px) put the row under the pane's fold in this window; scroll it in.
+    // Rows of `size.row` (28 px) put the row under the pane's fold in this window; scroll it in.
     h.get_all_by_role(egui::Role::TreeItem)
         .find(|n| {
             n.accesskit_node()
@@ -815,7 +815,7 @@ fn pg2_a_channel_row_dragged_onto_a_connection_point_binds_it() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-718: the Pages navigator in table mode shows "Changed in" within the default navigator width: Folio, Title and
+/// The Pages navigator in table mode shows "Changed in" within the default navigator width: Folio, Title and
 /// Changed in on show (the other columns in the chooser), Folio as narrow as its content and Title cut at the starting
 /// column width.
 #[test]

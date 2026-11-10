@@ -239,7 +239,7 @@ pub fn default_frame_grid() -> FrameGrid {
 /// a form copy the project holds. A rule that names a copy the project does not hold falls through to the next;
 /// `None` when none applies (the built-in frame). The one resolution of the cell grid ([`FrameGridOf`], drawn pages
 /// with `with_default`) and of the page output (`ew_api::output::PageFrameOf`, dividers with the `section_divider`
-/// entry and without the default) (FT-336).
+/// entry and without the default).
 pub fn frame_form_of(
     q: &Q,
     own: Option<Id<FormDef>>,
@@ -289,7 +289,7 @@ pub fn frame_form_from_settings(
 /// configured at all the built-in default grid applies ([`default_frame_grid`]) and the query pushes
 /// [`DeriveNote::DefaultFrame`], except on title, table-of-contents and divider pages, whose default is the
 /// no-grid frame variant (`None`, no note; doc 03 §5.1). A rule that names a form copy the project does not hold
-/// falls through to the next ([`frame_form_of`], FT-336). A configured form without a `grid` member has no cells
+/// falls through to the next ([`frame_form_of`]). A configured form without a `grid` member has no cells
 /// (`None`), as has a page that does not exist.
 #[derive(Debug)]
 pub struct FrameGridOf;
@@ -427,7 +427,7 @@ fn letter(r: u32, skip_io: bool) -> Option<String> {
 ///   position, it is a point of the symbol frame that the orientation then transforms (doc 07 §4.1 "the
 ///   anchor transforms with the variant's matrix like any point"; the override only moves the slot,
 ///   doc 06 §2.5).
-///   The slot's point is placed in the representation's [`text_frame`] (FT-867, ID-1137): on a black box turned
+///   The slot's point is placed in the representation's [`text_frame`]: on a black box turned
 ///   by a half turn, as on the same box unturned.
 /// - `GraphicCentre`: the centre of the integer bounding box of the symbol's graphics (lines, polylines,
 ///   polygons, rectangle corners, circle centre ± radius, ellipse and arc bounding rectangles, text
@@ -456,7 +456,7 @@ pub fn anchor_point_of(symbol: &SymbolDef, rep: &Representation) -> Option<Pt2> 
 
 /// The anchor in symbol coordinates, from the representation's own policy (`Representation.anchor`, set by
 /// `rep.set_anchor_policy`) or else its symbol copy's, and whether it is a slot's position: a slot is placed in the
-/// representation's [`text_frame`] (FT-867, ID-1137: on a half-turned black box, as on the box unturned), every other
+/// representation's [`text_frame`] (on a half-turned black box, as on the box unturned), every other
 /// anchor in its own frame.
 fn symbol_anchor(symbol: &SymbolDef, rep: &Representation) -> Option<(Pt2, bool)> {
     match rep.anchor.as_ref().unwrap_or(&symbol.anchor) {

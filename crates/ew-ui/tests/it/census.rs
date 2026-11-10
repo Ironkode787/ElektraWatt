@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The accessibility census (WP-S2.11 D3, D5, D6; NFR-A11Y-02, G-M2-10): every surface of the window is opened on a
+//! The accessibility census (NFR-A11Y-02, G-M2-10): every surface of the window is opened on a
 //! copy of Golden A that the suite's `Tmp` made (the committed project is only read), and the walker's six rules
 //! (`support::accessibility_problems`, `support::availability_problems`) run on each. A failing node is a line of its
 //! surface, and every line of every surface is reported at once.
@@ -104,7 +104,7 @@ fn open_pane(h: &mut Harness<'_, App>, pane: PaneKind) {
         }
         PaneKind::Navigator(kind) => open_navigator(h, kind),
         PaneKind::Jobs => dispatch(h, "jobs.show", json!({})),
-        // The Preview tab with Renumber devices' card (WP-S2.09 PV2's steps): its history then holds the step.
+        // The Preview tab with Renumber devices' card (PV2's steps): its history then holds the step.
         PaneKind::Preview => {
             dispatch(
                 h,
@@ -524,7 +524,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             dispatch(&mut h, "git.setup", json!({}));
             h
         }
-        // WP-S3.09: a QElectroTech file's import card; then, once it is a project, a changed copy of the file matched
+        // A QElectroTech file's import card; then, once it is a project, a changed copy of the file matched
         // to that import by its items (the proposal) and accepted (the re-import card).
         DialogKind::ImportQet | DialogKind::ReimportMatch | DialogKind::Reimport => {
             let qet = tmp.0.join("plant.qet");
@@ -547,7 +547,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
                     "file.reimport_qet",
                     json!({ "file": file, "accept": accept }),
                 );
-                // FT-1472: the re-import runs as a job whose end opens the card; waiting for that end (not for a
+                // The re-import runs as a job whose end opens the card; waiting for that end (not for a
                 // number of frames) makes the census independent of the machine's load.
                 assert!(h.state_mut().shell_mut().wait_jobs().is_empty());
             }
@@ -573,7 +573,7 @@ fn census_every_dialog() {
     census.assert_clean();
 }
 
-/// FT-1424: every context menu that has a registry entry (`command_bar::canvas_menu` over an object, over nothing and
+/// Every context menu that has a registry entry (`command_bar::canvas_menu` over an object, over nothing and
 /// over a placement of a panel page; `command_bar::navigator_row_menu` on a Potentials row), opened by a right click as
 /// a user opens it, is a surface of the census.
 #[test]
@@ -1035,7 +1035,7 @@ fn the_form_check_names_a_form_the_census_does_not_open() {
     assert_eq!(form_problems(&built, &built), Vec::<String>::new());
 }
 
-/// M25-p3#8 (ID-1463): the symbol editor's three panels with a shape, a pin and a slot, each section open.
+/// M25-p3#8: the symbol editor's three panels with a shape, a pin and a slot, each section open.
 #[test]
 fn census_the_symbol_editor() {
     let tmp = Tmp::new();
@@ -1144,7 +1144,7 @@ fn the_symbol_editors_off_grid_refusal_shows_once() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// M25-p5#4 (ID-1463, #8): a control repeated for each pin, slot, link point or the selected shape names the item it
+/// M25-p5#4 (#8): a control repeated for each pin, slot, link point or the selected shape names the item it
 /// belongs to, so no two share a name.
 #[test]
 fn the_symbol_editors_repeated_controls_name_their_item() {

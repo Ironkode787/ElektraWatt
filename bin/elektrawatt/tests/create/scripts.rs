@@ -238,7 +238,6 @@ pub(crate) fn page_new_creates_folios_101_to_103_twice_identically_and_the_recor
     }
 }
 
-// WP-S2.06 part 1
 /// Golden A in the source tree (copied before every run).
 pub(crate) const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
@@ -339,7 +338,6 @@ pub(crate) fn a_navigator_script_runs_twice_identically_and_its_record_replays_c
     );
 }
 
-// WP-S2.06 part 2
 /// WP-S2.06 part 2 through the built binary (acceptance checks NP3 and NP6; §9 items 1 and 2): a script on a copy of
 /// Golden A opens the further navigators, highlights 24VDC-1 from the Potentials navigator (type-ahead, then
 /// `navigator.highlight` on the cursor row), shows folios 102 and 103 and clears the highlights. Two runs give
@@ -421,7 +419,6 @@ page view: {folio}
     assert_eq!(log.commands().count(), 0, "a highlight records nothing");
 }
 
-// WP-S2.06 part 3
 /// The Terminal strips table's cell texts of a project, row by row (the table's nodes in tree order).
 pub(crate) fn strip_cells(dir: &Path) -> Vec<Vec<String>> {
     let (s, _) = Session::open_read_only(dir, "test").unwrap();
@@ -505,7 +502,7 @@ pub(crate) fn a_table_script_runs_twice_identically_and_its_record_replays_case(
         "{filled}"
     );
     for t in ["13", "14", "15", "16", "17"] {
-        // WP-S2.07 D2: the Pos cell (the terminal's seq) after the strip.
+        // The Pos cell (the terminal's seq) after the strip.
         assert!(
             filled.contains(&format!("\n  row \"-X1031\" \"{t}\" \"{t}\" \"Spare\" ")),
             "terminal {t}: {filled}"

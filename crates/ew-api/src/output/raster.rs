@@ -10,7 +10,7 @@
 //! layers, the images resolved from the project's assets) and rasterises the sheets on the same parallelism, so the
 //! threads change the speed, never the bytes.
 //!
-//! Memory is bounded twice (cycle-40 review): a page whose raster would exceed [`MAX_PAGE_PIXELS`] is refused before
+//! Memory is bounded twice: a page whose raster would exceed [`MAX_PAGE_PIXELS`] is refused before
 //! any page is drawn ([`check_page_pixels`]), and `export png` runs only as many rasters at once as keep the pixels in
 //! flight under [`MAX_PIXELS_IN_FLIGHT`] ([`raster_workers`]).
 
@@ -94,7 +94,7 @@ pub fn raster_workers(pixels: &[u64], requested: usize) -> usize {
 }
 
 /// Refuses a file set in which two folio labels give the same file name under `name` (`1/2` and `1_2` both give
-/// `1_2.png`), so that no page of a PNG or SVG set overwrites another (cycle-40 review, part 3, finding 4).
+/// `1_2.png`), so that no page of a PNG or SVG set overwrites another (part 3, finding 4).
 ///
 /// # Errors
 ///

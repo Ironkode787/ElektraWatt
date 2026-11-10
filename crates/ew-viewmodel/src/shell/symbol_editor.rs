@@ -86,7 +86,7 @@ pub struct SymbolEditor {
     saved: Option<SymbolDraft>,
     /// Whether that state was exported or published (an import or a new draft is in no library yet).
     stored: bool,
-    /// Whether the editor's view shows; a draft left with Close is kept with its history (ID-1463).
+    /// Whether the editor's view shows; a draft left with Close is kept with its history.
     pub(crate) shown: bool,
     undo: Vec<SymbolDraft>,
     redo: Vec<SymbolDraft>,
@@ -271,7 +271,7 @@ impl ShellModel {
         self.symbol_editor.as_ref().filter(|e| e.shown)
     }
 
-    /// The symbol editor's draft and history, also while the view is left (Close keeps them, ID-1463).
+    /// The symbol editor's draft and history, also while the view is left (Close keeps them).
     pub fn kept_symbol_editor(&self) -> Option<&SymbolEditor> {
         self.symbol_editor.as_ref()
     }
@@ -291,7 +291,7 @@ impl ShellModel {
     }
 
     /// A path the user typed or picked: refused in words when empty, before any file system call; a relative path
-    /// resolves against the default user library's folder, never the working directory (ID-1463).
+    /// resolves against the default user library's folder, never the working directory.
     fn symbol_path(&self, text: &str, required: strings::Key<'static>) -> Result<PathBuf, String> {
         if text.trim().is_empty() {
             return Err(strings::text(required).into());
@@ -318,7 +318,7 @@ impl ShellModel {
 
     /// New/import/replace/edit/history/save/place share this action implementation.
     pub(crate) fn act_symbol(&mut self, action: &str, p: &Map<String, Value>) -> Outcome {
-        // ID-1463: in the window a missing path opens the house file or folder picker.
+        // In the window a missing path opens the house file or folder picker.
         let prompt = match action {
             "open" => Some(("symbol.open", Prompt::OpenSymbol, "file")),
             "export" => Some(("symbol.export", Prompt::SaveSymbol, "file")),
@@ -357,7 +357,7 @@ impl ShellModel {
 
     /// The window's way to an editor action that drops the draft (New symbol, Open or import, Fork, a candidate,
     /// Discard draft): with unsaved changes it asks Save symbol, Discard or Cancel in the house dialog first, the
-    /// action then running with `discard`; otherwise the action runs at once (ID-1472).
+    /// action then running with `discard`; otherwise the action runs at once.
     pub fn ask_symbol_discard(&mut self, action: &'static str, params: Value) -> Outcome {
         if self.symbol_editor.as_ref().is_some_and(SymbolEditor::dirty) {
             return self.open_dialog(super::Dialog::ConfirmDiscard {
@@ -369,7 +369,7 @@ impl ShellModel {
     }
 
     /// After a test placement the editor's view closes and the page shows with the symbol selected; the toast offers
-    /// the way back to the kept draft (ID-1463).
+    /// the way back to the kept draft.
     fn after_test_placement(&mut self, scratch: bool) {
         if let Some(editor) = &mut self.symbol_editor {
             editor.shown = false;
@@ -497,7 +497,7 @@ impl ShellModel {
         };
         if matches!(action, "new" | "open" | "fork" | "close") {
             let discard = p.get("discard") == Some(&Value::Bool(true));
-            // ID-1463: Close leaves the view and keeps the draft and its history; Discard drops them, explicitly.
+            // Close leaves the view and keeps the draft and its history; Discard drops them, explicitly.
             if action == "close" {
                 if discard {
                     self.symbol_editor = None;
@@ -506,8 +506,7 @@ impl ShellModel {
                 }
                 return Ok(());
             }
-            // Reopening the editor without naming a new symbol returns to the kept draft; `discard` starts a fresh one
-            // (ID-1472).
+            // Reopening the editor without naming a new symbol returns to the kept draft; `discard` starts a fresh one.
             if action == "new"
                 && !discard
                 && text(p, "key").is_empty()
@@ -520,7 +519,7 @@ impl ShellModel {
             if self.symbol_editor.as_ref().is_some_and(SymbolEditor::dirty) && !discard {
                 return Err(strings::text(key!("symbol-unsaved")).into());
             }
-            // No shared default key (ID-1463): a new draft starts without one, an import takes its file's name.
+            // No shared default key: a new draft starts without one, an import takes its file's name.
             let key = text(p, "key");
             if action == "fork" && key.is_empty() {
                 return Err(strings::text(key!("symbol-key-required")).into());
@@ -559,7 +558,7 @@ impl ShellModel {
                 };
                 SymbolDraft::new(key, name).map_err(err)?
             };
-            // ID-1477 (5): without a folder given, Save to library saves to the default user library, which the field
+            // Without a folder given, Save to library saves to the default user library, which the field
             // shows, so "Ready to save" holds.
             let dir = self
                 .symbol_tiers()
@@ -643,7 +642,7 @@ impl ShellModel {
             return self.symbol_operation("place", json!({"x":40,"y":40}).as_object().ok_or_else(damaged)?);
         }
         let configured_libraries = self.configured_libraries();
-        // The paths are resolved, and an empty one refused, before the draft is borrowed (ID-1463).
+        // The paths are resolved, and an empty one refused, before the draft is borrowed.
         let file_path = matches!(action, "export")
             .then(|| self.symbol_path(text(p, "file"), key!("symbol-file-required")))
             .transpose()?;
@@ -915,7 +914,7 @@ impl ShellModel {
                         };
                         json!({"arc":{"rect":[[x.min(x2),y.min(y2)],[x.max(x2),y.max(y2)]],"start":angle("start",0)?,"sweep":angle("sweep",180)?,"stroke":stroke}})
                     }
-                    // ID-1477 (2): centred on its click, in the style last chosen, else the pin designations' small one.
+                    // Centred on its click, in the style last chosen, else the pin designations' small one.
                     "text" => {
                         let style = editor.text_style.as_deref().unwrap_or(NEW_TEXT_STYLE);
                         json!({"text":{"pos":[x,y],"text":{"en":text(p,"text")},"align":"centre","style":style}})
@@ -1100,7 +1099,7 @@ impl ShellModel {
                     }) => strings::format(key!("symbol-version-older"), &[&item(id), &version, &held]),
                     e => err(e),
                 })?;
-                // A key other than the one the library holds for the draft's items published new ones (ID-1474).
+                // A key other than the one the library holds for the draft's items published new ones.
                 // ID-1476 (M25-p6#1): only when the symbol's own identity changed, not when only an owned function
                 // definition took one.
                 let symbol_of = |i: &Option<symbols::DraftIdentity>| i.as_ref().map(|i| i.symbol);
@@ -1194,7 +1193,7 @@ impl ShellModel {
                 let snapper = &canvas.page().snapper;
                 let (num, den) = snapper.grid();
                 if (num, den) != (draft.symbol.grid.num() as i64, draft.symbol.grid.den() as i64) {
-                    // ID-1477 (1): the picker's words, both grids named; the editor then offers Place on a new page
+                    // The picker's words, both grids named; the editor then offers Place on a new page
                     // with its grid.
                     let words = crate::tools::grid_words([
                         (draft.symbol.grid.num(), draft.symbol.grid.den()),

@@ -368,7 +368,7 @@ fn a_format_that_would_change_content_is_refused_and_writes_nothing() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// `ew fmt --repair` (WP-S1.17, decision log ID-1185)
+// `ew fmt --repair`
 
 /// A line that is not one JSON value: EW-CORE-005 at line level.
 const BROKEN: &[u8] = br#"{"$k":"page","id":"#;
@@ -450,7 +450,7 @@ fn open_repair(vfs: &Arc<MemVfs>, pid: u32) -> (Session, ew_api::OpenReport) {
 
 /// EZ-5: `ew fmt --repair` on a page file with one broken line writes the backup `.ewz` (generation 1 as it was on
 /// disk, the broken line included: the pack's read-back takes it), then a project without the line, which opens
-/// editable. An editing open without the repair flag stays read-only (ID-1185 ruling 4).
+/// editable. An editing open without the repair flag stays read-only.
 #[test]
 fn a_repair_discards_the_broken_line_after_a_backup() {
     let (disk, page, canonical) = page_with(&[BROKEN], true);
@@ -601,7 +601,7 @@ fn pend(disk: &mut BTreeMap<String, Vec<u8>>, name: &str, before: &[u8]) {
     disk.insert("manifest.json".to_owned(), merged.into_bytes());
 }
 
-/// EZ-5 on a hand-edited project (decision log ID-1186 rulings 2, 3 and 5): the broken line written by hand with the
+/// EZ-5 on a hand-edited project: the broken line written by hand with the
 /// manifest untouched (an edit outside ElektraWatt since the last save, the case a repair exists for), and the same
 /// with the page file's hash pending in a merged manifest. The backup holds the files as found, its manifest the loaded
 /// one with the page file's hash that of its bytes, and counts the page file as edited; it verifies, opens read-only
@@ -816,7 +816,7 @@ fn a_file_changed_since_the_open_refuses_the_backup() {
 
 /// ID-1185 rulings 5 and 8: a file at the backup's name that does not hold this generation's pack refuses the repair
 /// and stays; one that holds it byte for byte is reused. The project is edited by hand, so the pack is the one of its
-/// files as found (ID-1186 ruling 5).
+/// files as found.
 #[test]
 fn a_backup_name_holding_another_file_refuses_and_this_generations_pack_is_reused() {
     let (disk, page, canonical) = page_with(&[BROKEN], false);
@@ -938,7 +938,7 @@ fn decided_repair(page: &str) -> Decided {
     }
 }
 
-/// C47-p3#1: at the fault sweep's injection points, an error after the save's commit point (the save incomplete, its
+/// At the fault sweep's injection points, an error after the save's commit point (the save incomplete, its
 /// generation decided) yields `RepairError::Save` with what the repair decided, as `Repaired` gives it on success; an
 /// error inside the save before it yields none, and the generation stays as it was.
 #[test]
@@ -1006,8 +1006,8 @@ fn a_save_incomplete_after_its_commit_point_carries_what_the_repair_decided() {
 /// unchanged; after the commit point the next open completes generation 2, which never comes without the backup. A
 /// failed save keeps the broken lines, so the same session repairs again; and a rerun after every fault succeeds,
 /// reusing the backup it finds. Both on a project whose broken line came with the generation and on one edited by hand,
-/// whose backup holds its files as found (ID-1186): the faults reach the backup's reads of every listed file too. And
-/// each again on a file system without hard links (C47-p2#3), where the backup's temporary file is renamed onto its
+/// whose backup holds its files as found: the faults reach the backup's reads of every listed file too. And
+/// each again on a file system without hard links, where the backup's temporary file is renamed onto its
 /// name after the name is checked absent: a power loss leaves at most the temporary file.
 #[test]
 fn a_fault_at_every_call_of_a_repair_leaves_the_old_or_the_new_generation_and_a_rerun_succeeds() {
@@ -1072,7 +1072,7 @@ fn repair_fault_sweep(hashed: bool, no_links: bool) {
                     ..
                 }) => {
                     seen[1] = true;
-                    // Past the commit point the repair took effect, and the error says what it decided (C47-p3#1).
+                    // Past the commit point the repair took effect, and the error says what it decided.
                     if decided.as_deref() != Some(&decided_repair(&page)) {
                         failures.push(format!("{fault:?}: an incomplete save decided {decided:?}"));
                     }

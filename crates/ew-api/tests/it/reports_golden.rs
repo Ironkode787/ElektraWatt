@@ -112,7 +112,7 @@ fn parts_summary_901_derives_the_golden_tables_bom() {
     let rows = q.get::<BlockRows>(b);
 
     // Doc 20 §14.1 lists 27 rows: 901 holds 23 and the continuation page 901.1 holds the 4 TBD rows 24-27
-    // (the rails, ducts, end brackets and bridges, FT-110).
+    // (the rails, ducts, end brackets and bridges).
     assert!(rows.is_derived());
     assert_eq!(rows.rows.len(), 27);
     assert_eq!(
@@ -203,7 +203,7 @@ fn parts_summary_901_derives_the_golden_tables_bom() {
     let placed = |i: usize| matches!(&rows.rows[i].cells[7], Cell::Folios(f) if !f.is_empty());
     assert!((0..25).all(placed));
     // The bridges keep the folios of their strips, 103; the end brackets, derived from R2's strips, print the panel page
-    // that shows R2 (WP-S4.02 EB-1, ruling 2).
+    // that shows R2 (EB-1, ruling 2).
     let folios_of = |i: usize| -> Vec<String> {
         let Cell::Folios(folios) = &rows.rows[i].cells[7] else {
             panic!("folios column")
@@ -366,7 +366,7 @@ fn every_golden_kind_derives_inside_the_pagination() {
     let q = s.query();
     let order = q.get::<PageOrder>(());
     // The connectivity kinds derive inside the pagination (their queries read the drawn page order), the PLC
-    // overview from the channel records, the revision overview from the revision records (FT-207).
+    // overview from the channel records, the revision overview from the revision records.
     for key in ["903", "904", "905", "906", "907", "908", "909", "911"] {
         assert!(q.get::<BlockRows>(block(key)).is_derived(), "{key} is derived");
     }
@@ -378,7 +378,7 @@ fn every_golden_kind_derives_inside_the_pagination() {
     assert!(pages[0].note.is_none(), "{key}: rows, no placeholder note");
 }
 
-/// PD-3 (WP-S1.18 part 2): the revision overview's rows over Golden A, V1.0 (historic, released, no digests) and
+/// PD-3: the revision overview's rows over Golden A, V1.0 (historic, released, no digests) and
 /// V2.0 (open, its page notes on 101 and 106), in label order; the row source inside the pagination prints the page
 /// notes' folios.
 #[test]
@@ -542,7 +542,7 @@ fn embedded_blocks_have_no_page_and_derive_part_data() {
         assert!(pages_of(&order, block(key)).is_empty(), "{key} has no page");
     }
 
-    // The cover's colour and size tables derive from the profiles (FT-159); see `the_cover_tables_...`.
+    // The cover's colour and size tables derive from the profiles; see `the_cover_tables_...`.
     assert!(q.get::<BlockRows>(block("cover-tables")).is_derived());
 
     // Pages 201 and 202 both show devices whose root ancestor is -201U1 (-202U1 is its child), so both boxes
@@ -569,7 +569,7 @@ fn embedded_blocks_have_no_page_and_derive_part_data() {
     assert!(r902.is_derived());
     assert_eq!(part_numbers(&r902), ["NSYPLA1074G", "NSYPMM107"]);
 
-    // The legend on 902 (D17) derives its 31 rows, the end brackets last (WP-S4.02 EB-3).
+    // The legend on 902 (D17) derives its 31 rows, the end brackets last (EB-3).
     let legend = q.get::<BlockRows>(block("legend-902"));
     assert!(legend.is_derived());
     assert_eq!(legend.rows.len(), 31);
@@ -601,7 +601,7 @@ fn rows_and_page_order_do_not_depend_on_record_order() {
     }
 }
 
-/// NV1 (WP-S2.06 §4.2, D3): `project_rows` over an unfiltered block agrees with the stored blocks of Golden A, so a
+/// NV1 (D3): `project_rows` over an unfiltered block agrees with the stored blocks of Golden A, so a
 /// navigator's table and the printed list never disagree; an unknown kind and a terminal diagram without its strip give
 /// `None`; the stored blocks' rows are unchanged by it.
 #[test]

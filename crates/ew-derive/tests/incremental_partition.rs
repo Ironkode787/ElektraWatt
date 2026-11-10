@@ -5,12 +5,12 @@
 // `Model::apply_unchecked`, so the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
-//! The incremental potential partition against the cold one (WP-S1.07 part 2): a memoised value must equal
+//! The incremental potential partition against the cold one: a memoised value must equal
 //! the cold value on every snapshot, whatever the edits and whatever the order the families are read in.
 //!
 //! - `incremental_partition_equals_cold`: a random sequence of edit batches (joins, splits, bridges, page-less
 //!   connections, definitions, interruption-point renames, representation moves, rail-bonding, a second own
-//!   location (cycle 33), an external reference naming it and a page
+//!   location, an external reference naming it and a page
 //!   added and removed) over a fixture with several pages, interruption-point pairs, a bond with a via
 //!   connection, terminals and a junction. After every batch the memoised partition, stitch graph, flow,
 //!   pairing, local nets and the per-potential families equal the cold ones, the notes equal, and a second
@@ -806,7 +806,7 @@ fn incremental_partition_equals_cold() {
         failure_persistence: None,
         ..Config::default()
     });
-    // ID-1496: at most 2,000 cases whatever PROPTEST_CASES asks, so that the deep nightly's 20,000 stay within its
+    // At most 2,000 cases whatever PROPTEST_CASES asks, so that the deep nightly's 20,000 stay within its
     // proptest step's 600 s bound per test.
     config.cases = config.cases.min(2_000);
     let mut runner = TestRunner::new_with_rng(config, TestRng::deterministic_rng(RngAlgorithm::ChaCha));

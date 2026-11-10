@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The devices a placed symbol can join (WP-S2.18 part 1, D1 and D2; FR-DEV-038): the read behind the Place tool's
+//! The devices a placed symbol can join (FR-DEV-038): the read behind the Place tool's
 //! Join chooser and `place.pick`'s printed tags. A tool never calls the `Session`: the shell's tool host fetches
 //! this once per (revision, FnDef) and hands the rows to the chooser.
 //!
@@ -19,7 +19,7 @@ use ew_derive::{DeviceTag, FunctionCps, PageOrder, PageRef, Q, RepAnchorCell};
 
 use crate::Session;
 
-/// What a symbol drawing one FnDef can join (WP-S2.18 D2).
+/// What a symbol drawing one FnDef can join.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct JoinCandidates {
     /// Whether the FnDef can be an auxiliary function: a contact (contact kind NO, NC or change-over). The chooser
@@ -43,7 +43,7 @@ pub struct JoinCandidate {
     pub slot: String,
 }
 
-/// The join the Properties Tag field proposes (WP-S2.18 D3): typing `tag`, an existing device's, into the Tag field of
+/// The join the Properties Tag field proposes: typing `tag`, an existing device's, into the Tag field of
 /// a device whose one representation can join it; accepting it is `rep.join_device {rep, device}`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct JoinProposal {
@@ -168,7 +168,7 @@ fn joinable_rep(q: &Q, device: Id<Device>) -> Option<(Id<Representation>, Id<Fun
 }
 
 impl Session {
-    /// The join that typing `text` into the Tag field of `device` proposes (WP-S2.18 D3): `text` names another
+    /// The join that typing `text` into the Tag field of `device` proposes: `text` names another
     /// existing device (FT-544's reference grammar: a bare tag such as `-K1`, `tag:`, `id:`), `device` has exactly one
     /// function, no part and no other representation, and the named device takes the function's FnDef by D2's rule
     /// (an unplaced function of it, else a contact joining a device whose family takes auxiliary functions). `None`
@@ -194,7 +194,7 @@ impl Session {
         })
     }
 
-    /// The words of the toast after `rep` joined a device (WP-S2.18 D3): the device's tag, the kind of the function
+    /// The words of the toast after `rep` joined a device: the device's tag, the kind of the function
     /// the representation draws (its FnDef's last category entries and CP designations, `NO contact 13-14`) and the
     /// representation's place (`102-C4`). `None` for a representation that draws no function of a device.
     pub fn joined_text(&self, rep: Uuid) -> Option<JoinedText> {
@@ -219,7 +219,7 @@ impl Session {
         })
     }
 
-    /// Whether the FnDef copy `fndef` can be an auxiliary function (WP-S2.18 D2): an embedded contact (contact kind
+    /// Whether the FnDef copy `fndef` can be an auxiliary function: an embedded contact (contact kind
     /// NO, NC or change-over), or a starter one the project does not embed yet (FT-656).
     pub fn auxiliary_fndef(&self, fndef: Uuid) -> bool {
         let id = Id::from_uuid(fndef);
@@ -247,7 +247,7 @@ impl Session {
         ew_derive::strip_format(&self.query(), letter)
     }
 
-    /// What a symbol drawing the FnDef copy `fndef` can join (WP-S2.18 D2): whether the FnDef can be an auxiliary
+    /// What a symbol drawing the FnDef copy `fndef` can join: whether the FnDef can be an auxiliary
     /// function, and the rows of the Join chooser. A slot is an unplaced normal function of the FnDef (no
     /// representation draws it) on a device; its row comes first, so that a slot is filled before a new auxiliary
     /// function is made (D1). The second group is every other device whose main function is a coil, or one of
@@ -308,7 +308,7 @@ impl Session {
         }
     }
 
-    /// The unplaced functions of FnDef copy `fndef` on `device` (WP-S2.18 D1, D4) as `(function, slot)`, in slot
+    /// The unplaced functions of FnDef copy `fndef` on `device` as `(function, slot)`, in slot
     /// order: what `device.place`'s `existing_function` fills before `join_device` makes a new auxiliary function.
     pub fn unplaced_slots(&self, device: Uuid, fndef: Uuid) -> Vec<(Uuid, String)> {
         let q = self.query();

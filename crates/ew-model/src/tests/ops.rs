@@ -1109,7 +1109,7 @@ fn prevent_hook_runs_after_structural_invariants() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Page items and structure boxes (WP-S2.04 part 4a; EW-INV-022, EW-INV-023)
+// Page items and structure boxes (EW-INV-022, EW-INV-023)
 
 /// The mini golden project with a line and a structure box on page 101 and two wire markers on page 102: one
 /// listing W22 and W27, one listing W22 alone; the box stands for an external reference at `LOC`.

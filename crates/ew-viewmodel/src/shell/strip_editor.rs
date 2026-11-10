@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The strip editor (WP-S2.07 part 1, §6): the Terminal strips navigator in table mode, opened by `strip.edit`, and its
+//! The strip editor: the Terminal strips navigator in table mode, opened by `strip.edit`, and its
 //! row gestures `strip.insert`, `strip.delete_rows`, `strip.move` and `strip.add_accessory` (`strip.unbridge` lives with
 //! the bridge rule in `bridge.rs`).
 //!
@@ -65,7 +65,7 @@ impl Rows {
             .map_or("", String::as_str)
     }
 
-    /// Strip node `s` in words (ID-1278 ruling 7: a strip without a tag yet reads in words).
+    /// Strip node `s` in words (ruling 7: a strip without a tag yet reads in words).
     fn words(&self, s: usize) -> String {
         crate::navigators::strip_label(&self.node(s).label)
     }
@@ -157,7 +157,7 @@ impl ShellModel {
         out
     }
 
-    /// A printed tag of device `device` as the window shows it (FT-1285): a strip's tag not derived yet in words
+    /// A printed tag of device `device` as the window shows it: a strip's tag not derived yet in words
     /// ([`crate::navigators::strip_label`]), any other tag (an unnumbered device's `-?K?` too) as it is.
     pub fn device_tag_label(&self, device: Uuid, tag: &str) -> String {
         let strip = self.project.as_ref().is_some_and(|project| {
@@ -261,7 +261,7 @@ impl ShellModel {
         let (filter, scope) = if strip.label.contains('?') {
             (String::new(), Some(strip.key.clone()))
         } else {
-            // FT-1361: the tag as it is written; the filter matches without case.
+            // The tag as it is written; the filter matches without case.
             (format!("strip:{}", strip.label), None)
         };
         let first = (0..table.nodes.len())
@@ -344,7 +344,7 @@ impl ShellModel {
                 } else {
                     key!("toast-strip-inserted")
                 };
-                // FT-1412: the terminal in words, as FT-1360's toast ("terminal 5 of -X1031").
+                // The terminal in words, as FT-1360's toast ("terminal 5 of -X1031").
                 let terminal = strings::format(
                     key!("accessory-at-terminal"),
                     &[&rows.words(s), &rows.node(i).label],
@@ -562,7 +562,7 @@ impl ShellModel {
             let n = moved.len();
             let strip = rows.words(s);
             let text = if n == 1 {
-                // FT-1412: the one terminal in words ("terminal 15 of -X1031").
+                // The one terminal in words ("terminal 15 of -X1031").
                 let terminal = strings::format(
                     key!("accessory-at-terminal"),
                     &[&strip, &rows.node(moved[0]).label],
@@ -578,7 +578,7 @@ impl ShellModel {
 
     /// `strip.add_accessory {kind?, part?, before?}` (Edit ▸ Add accessory, §6.5, D5): an accessory of `kind` (default
     /// `end_clamp`) after the cursor row (a terminal: its `seq`; an accessory: its `after_seq`; the strip row: 0), or
-    /// with `before` directly before the cursor terminal row (FT-600), its
+    /// with `before` directly before the cursor terminal row, its
     /// part parsed by D7 or the one project copy of the kind's part kinds; several: the chooser list in the window, the
     /// error listing them headless.
     pub(crate) fn act_strip_add_accessory(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -629,7 +629,7 @@ impl ShellModel {
                 .and_then(|x| x.parse().ok())
                 .unwrap_or(0)
         };
-        // FT-600: `before` on a terminal row places the accessory directly before it (after the terminal before it,
+        // `before` on a terminal row places the accessory directly before it (after the terminal before it,
         // behind the accessories already there; 0 before the strip's first terminal), so table mode reaches the
         // start of a strip. On an accessory row or the strip row it changes nothing.
         let before = flag(p, "before") && rows.node(cursor).role == NavRole::Terminal;
@@ -698,7 +698,7 @@ impl ShellModel {
         {
             m.chooser = None;
         }
-        // FT-1360: the accessory's word in lower case inside the sentence (doc 16a §8.1), the terminal in words
+        // The accessory's word in lower case inside the sentence (doc 16a §8.1), the terminal in words
         // (§8.8, "terminal 1 of -X1031"); the toast starts with a capital in either language.
         let word = &strings::in_sentence(strings::accessory_text(&kind));
         let terminal = strings::format(

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.18 part 2 (D6, D7, FT-207): page digests, the page change status, the revision overview and the
+//! Page digests, the page change status, the revision overview and the
 //! `{page.last_changed_in}` placeholder over Golden A (acceptance PD-1 to PD-4; PD-5 is the golden page output of
 //! `tests/page_output.rs` and the headless report).
 
@@ -433,7 +433,7 @@ fn pd4_the_placeholder_prints_the_revision_that_last_changed_the_page() {
     }
 }
 
-/// FT-722: the page digest is a memoised query (Class I, doc 15 §5.6). In the digest branch a second read of every
+/// The page digest is a memoised query (Class I, doc 15 §5.6). In the digest branch a second read of every
 /// page's change status runs no digest again, and a move on 102 runs only 102's digest again (101 and 106 are named
 /// by V2.0's page notes, so their status does not read their digests).
 #[test]

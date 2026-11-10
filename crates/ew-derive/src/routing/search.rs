@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The orthogonal router (WP-S2.04 §8.1, D7; doc 06 §5.4): a pure, integer-only function from two ends, obstacle
+//! The orthogonal router (D7; doc 06 §5.4): a pure, integer-only function from two ends, obstacle
 //! rectangles, the connection grid and a search area to a route, the full vertex list from the first end to the
 //! second. The Wire tool calls it (through `ew_api::routing`) for its ghost and passes the result as
 //! `connection.draw`'s `route`, so the command stores what the ghost showed and the router never runs on replay.
@@ -15,10 +15,10 @@
 //! obstacle rectangle is blocked, and a move that runs through the open inside of one is not taken (FT-706: a text
 //! thinner than a grid step lies between two nodes); the two ends, their nearest grid nodes and their stub nodes
 //! are never blocked, nor the move from a CP end to its stub but by a text across it ([`RouteRequest::texts`]:
-//! WP-S2.19 §5.1 rule 4 has no exemption; ID-1509). The nodes of the [`RouteRequest::reserved`] points
-//! (the other CPs and their stubs, FT-706) are blocked. A CP end
+//! 1 rule 4 has no exemption; ID-1509). The nodes of the [`RouteRequest::reserved`] points
+//! (the other CPs and their stubs) are blocked. A CP end
 //! (one with a leaving direction) first leaves one step along its direction (the stub) and is entered along the
-//! opposite of its direction; no move enters the first CP end's node nor leaves the second end's (ID-1493); a
+//! opposite of its direction; no move enters the first CP end's node nor leaves the second end's; a
 //! junction or split end (`dir: None`) has no such constraint. A first end without a direction may carry the
 //! heading the route arrived there with ([`RouteRequest::arrive`], a fixed bend's incoming direction; FT-437): the
 //! first move never takes its opposite, so the route never doubles back over the segment before the bend; a turn
@@ -50,7 +50,7 @@
 //! grid; `geometry::require_route` accepts a coordinate equal to an end CP's), collinear and duplicate interior
 //! vertices removed. Without a path inside the area (or with an unusable grid or an area of more than
 //! [`MAX_NODES`] nodes) there is no route ([`Routed::direct`]): the result is the straight line between the ends, the
-//! line an unrouted connection is drawn with (WP-S2.19 D3), never a wire.
+//! line an unrouted connection is drawn with, never a wire.
 
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
@@ -62,18 +62,17 @@ use ew_units::{Grid, Nm};
 /// part 2, item 3: the distance table is five states per node).
 pub const MAX_NODES: usize = 262_144;
 
-/// The cost of a unit step (WP-S2.19 D6).
+/// The cost of a unit step.
 pub const STEP_COST: u32 = 2;
 
-/// The cost of a bend: four steps (WP-S2.19 D6).
+/// The cost of a bend: four steps.
 pub const BEND_COST: u32 = 8;
 
-/// The cost of a right-angle crossing of another route: six steps (WP-S2.19 D6). A request names it in
+/// The cost of a right-angle crossing of another route: six steps. A request names it in
 /// [`RouteRequest::cross_cost`]; 0 makes a crossing free.
 pub const CROSSING_COST: u32 = 12;
 
-/// The cost of a unit step beside a mate's route, one grid step away in the same heading, instead of [`STEP_COST`]
-/// (WP-S2.19 D6, §5.4).
+/// The cost of a unit step beside a mate's route, one grid step away in the same heading, instead of [`STEP_COST`].
 pub const MATE_STEP_COST: u32 = 1;
 
 /// A heading on the page (y down), in the rank order of the tie rule: right < down < left < up.
@@ -162,18 +161,18 @@ pub struct RouteRequest {
     pub arrive: Option<Heading>,
     /// The rectangles `[x0, y0, x1, y1]` of the first and the second end's own representation (body, black-box
     /// outline, texts; page nm, any corner order, inflated as the caller inflates `obstacles`): obstacles, except
-    /// along a CP end's escape corridor (module documentation; FT-706). Empty for an end without one.
+    /// along a CP end's escape corridor (module documentation). Empty for an end without one.
     pub own: [Vec<[i64; 4]>; 2],
     /// The segments of the other connections on the page, page nm: the route never runs on top of one nor touches
-    /// one of their vertices (module documentation; FT-706). Empty: no other wire.
+    /// one of their vertices (module documentation). Empty: no other wire.
     pub wires: Vec<[(i64, i64); 2]>,
     /// Points no route passes through, page nm: the page's other connection points and their stubs, kept for their
-    /// own wires (FT-706). The node nearest to each is blocked (but for the ends and their stubs).
+    /// own wires. The node nearest to each is blocked (but for the ends and their stubs).
     pub reserved: Vec<(i64, i64)>,
     /// The extra cost of each right-angle crossing of one of [`wires`](Self::wires) (WP-S2.19 D6:
     /// [`CROSSING_COST`]); 0: a crossing costs nothing more than its step.
     pub cross_cost: u32,
-    /// The segments of the routes of this route's mates (WP-S2.19 §5.4), page nm, each from its first vertex to its
+    /// The segments of the routes of this route's mates, page nm, each from its first vertex to its
     /// second in its route's direction: a unit move one grid step beside one, within its extent and in its heading,
     /// costs [`MATE_STEP_COST`] instead of [`STEP_COST`]. Empty: no mate.
     pub mates: Vec<[(i64, i64); 2]>,
@@ -187,7 +186,7 @@ pub struct Routed {
     /// Its cost by the weights of the search (steps, bends, crossings, mates' steps); 0 without a route.
     pub cost: u32,
     /// Whether no route was found: no path inside the area (or an unusable grid or an area over [`MAX_NODES`]); the
-    /// points are then the straight line between the ends, the unrouted line (WP-S2.19 D3), never a wire.
+    /// points are then the straight line between the ends, the unrouted line, never a wire.
     pub direct: bool,
 }
 
@@ -199,12 +198,12 @@ struct Space {
     hi: (i64, i64),
     width: usize,
     blocked: Vec<bool>,
-    /// Why the move right from a node is not taken: [`ON_WIRE`], [`OVER_OWN`], [`OVER_OBSTACLE`] (FT-706),
+    /// Why the move right from a node is not taken: [`ON_WIRE`], [`OVER_OWN`], [`OVER_OBSTACLE`],
     /// [`OVER_TEXT`]; 0 when it is free.
     no_right: Vec<u8>,
     /// Why the move down from a node is not taken.
     no_down: Vec<u8>,
-    /// How many other wires the move right from a node crosses at a right angle (WP-S2.19 D6).
+    /// How many other wires the move right from a node crosses at a right angle.
     cross_right: Vec<u8>,
     /// How many other wires the move down from a node crosses.
     cross_down: Vec<u8>,
@@ -222,13 +221,13 @@ const MATE_FORWARD: u8 = 1;
 /// A mate beside a move in its backward heading (left or up).
 const MATE_BACKWARD: u8 = 2;
 
-/// A move on another wire's track (FT-706).
+/// A move on another wire's track.
 const ON_WIRE: u8 = 1;
-/// A move across one of the ends' own rectangles (FT-706).
+/// A move across one of the ends' own rectangles.
 const OVER_OWN: u8 = 2;
-/// A move across an obstacle rectangle (FT-706).
+/// A move across an obstacle rectangle.
 const OVER_OBSTACLE: u8 = 4;
-/// A move across a text box: never exempt, a CP end's stub move included (§5.1 rule 4; ID-1509).
+/// A move across a text box: never exempt, a CP end's stub move included (§5.1 rule 4).
 const OVER_TEXT: u8 = 8;
 
 impl Space {
@@ -267,7 +266,7 @@ impl Space {
         })
     }
 
-    /// The cost of the unit move `m` from the index point `p` without its bend (WP-S2.19 D6): a step, or a mate's
+    /// The cost of the unit move `m` from the index point `p` without its bend: a step, or a mate's
     /// step, and the crossings it makes.
     fn move_cost(&self, p: (i64, i64), m: Heading) -> u32 {
         let (from, cross, mate, bit) = match m {
@@ -309,7 +308,7 @@ fn weight(h: Option<Heading>, m: Heading, step: u32) -> (u32, u32) {
 }
 
 /// Whether a move with heading `m` from a state that arrived with `h` turns back on itself: never taken, so a route
-/// never doubles back over its last step (FT-437; a U-turn would cost one bend only).
+/// never doubles back over its last step (a U-turn would cost one bend only).
 fn reverses(h: Option<Heading>, m: Heading) -> bool {
     h == Some(m.opposite())
 }
@@ -349,12 +348,12 @@ pub fn route(req: &RouteRequest) -> Routed {
 /// grid nodes the router searches, every unit move is free and lands on a node that is not blocked, by the router's
 /// own rules for `req` (obstacles, texts, the ends' own rectangles but for their corridors, other wires, reserved
 /// points; module documentation); a CP end is left along its direction and entered against the second end's, and no
-/// move enters the first CP end's node nor leaves the second end's (ID-1493); the first move
+/// move enters the first CP end's node nor leaves the second end's; the first move
 /// does not reverse [`RouteRequest::arrive`] and no move reverses the one before it. `req.area` only has to hold the
 /// route. A route that is not orthogonal on the grid, that does not start and end at the ends, or a request the
 /// router would refuse (an unusable grid, an area over [`MAX_NODES`]) is not clear.
 ///
-/// The Wire tool asks it of the direct route through a free terminal in line (FT-705 with FT-706), with the
+/// The Wire tool asks it of the direct route through a free terminal in line, with the
 /// terminal's own body, texts, CPs and stubs left out of `req`.
 pub fn clear(req: &RouteRequest, points: &[(i64, i64)]) -> bool {
     let (Some(&first), Some(&last)) = (points.first(), points.last()) else {
@@ -366,7 +365,7 @@ pub fn clear(req: &RouteRequest, points: &[(i64, i64)]) -> bool {
     let Some(Prepared { space, s, t, .. }) = prepare(req) else {
         return false;
     };
-    // FT-767: a first end without a direction (a fixed bend) starts on its own grid node, which the walk below never
+    // A first end without a direction (a fixed bend) starts on its own grid node, which the walk below never
     // tests: it must be one the search may stand on. (`prepare` frees the ends' nodes, so the router starts from a
     // blocked point too; the check keeps `clear` tied to the search space if that rule ever changes.)
     if req.from.dir.is_none() && space.node(s).is_none_or(|n| space.blocked[n]) {
@@ -400,7 +399,7 @@ pub fn clear(req: &RouteRequest, points: &[(i64, i64)]) -> bool {
     }
     let mut p = s;
     let mut heading: Option<Heading> = None;
-    // The move the router's walk starts with: after a CP end's stub (ID-1493).
+    // The move the router's walk starts with: after a CP end's stub.
     let start_move = usize::from(req.from.dir.is_some());
     for (k, m) in moves.into_iter().enumerate() {
         if reverses(heading, m) || (k > start_move && p == t) {
@@ -482,7 +481,7 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
         cross_cost: req.cross_cost,
     };
     // A node is blocked when its page point lies strictly inside an obstacle; a move is not taken when it runs
-    // through the open inside of one (FT-706: a text thinner than a grid step lies between two nodes).
+    // through the open inside of one (a text thinner than a grid step lies between two nodes).
     let mark = |space: &mut Space, o: &[i64; 4], into: &mut Vec<bool>, flag: u8| {
         let (x0, x1) = (o[0].min(o[2]), o[0].max(o[2]));
         let (y0, y1) = (o[1].min(o[3]), o[1].max(o[3]));
@@ -517,7 +516,7 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
     for o in &req.texts {
         mark(&mut space, o, &mut blocked, OVER_TEXT);
     }
-    // The ends' own representations block too, but for their escape corridors (FT-706): from a CP end along its
+    // The ends' own representations block too, but for their escape corridors: from a CP end along its
     // direction, the stub and every further node while it, or the move on out of it, is inside one of the own
     // rectangles.
     let mut own = vec![false; nodes];
@@ -547,7 +546,7 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
             own[n] = false;
         }
     }
-    // Other wires (FT-706): the node of each of their vertices is blocked, and a move parallel to one of their
+    // Other wires: the node of each of their vertices is blocked, and a move parallel to one of their
     // segments closer than one grid step, overlapping it, is not taken.
     let near = i64::try_from(num / den).unwrap_or(i64::MAX).saturating_sub(1);
     for w in &req.wires {
@@ -590,7 +589,7 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
             }
         }
     }
-    // WP-S2.19 D6: a move across another wire's segment at a right angle, the segment's coordinate in the move's
+    // A move across another wire's segment at a right angle, the segment's coordinate in the move's
     // half-open span (its far node included) and the move's track strictly inside the segment's extent, is a
     // crossing; a move one grid step beside a mate's segment, within its extent, runs beside the mate in the
     // segment's heading.
@@ -648,14 +647,14 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
             }
         }
     }
-    // The other connection points and their stubs are reserved for their own wires (FT-706).
+    // The other connection points and their stubs are reserved for their own wires.
     for p in &req.reserved {
         if let Some(n) = space.node((idx(p.0), idx(p.1))) {
             blocked[n] = true;
         }
     }
     // The corridors' moves are exempt from the own rectangles and from other wires (a second wire on a CP leaves
-    // along the same stub); the stub move from everything but the texts, as the stub node is (ID-1509).
+    // along the same stub); the stub move from everything but the texts, as the stub node is.
     for c in &corridors {
         for (k, pair) in c.windows(2).enumerate() {
             if let Some(f) = space.move_flags(pair[0], pair[1]) {
@@ -681,7 +680,7 @@ fn search(req: &RouteRequest) -> Option<(Vec<(i64, i64)>, u32)> {
         return Some((vec![from.at], 0));
     }
     let Prepared { space, s, t, s1 } = prepare(req)?;
-    // The walk below starts past a first CP end's stub: a text across that stub leaves no route (ID-1509).
+    // The walk below starts past a first CP end's stub: a text across that stub leaves no route.
     if from.dir.is_some_and(|d| !space.move_free(s, d)) {
         return None;
     }
@@ -690,7 +689,7 @@ fn search(req: &RouteRequest) -> Option<(Vec<(i64, i64)>, u32)> {
     // The node of a first CP end, left by its stub (unless it is the second end's too).
     let first_cp = from.dir.and_then(|_| space.node(s)).filter(|&n| n != goal);
     // The state the forward walk starts from: the first end's stub with its heading, else the first end with its
-    // arrival heading (FT-437), else the first end.
+    // arrival heading, else the first end.
     let arrive = if from.dir.is_none() { req.arrive } else { None };
     let start_state = match (from.dir, s1) {
         (Some(d), Some(p)) => state(space.node(p)?, Some(d)),
@@ -763,7 +762,7 @@ fn search(req: &RouteRequest) -> Option<(Vec<(i64, i64)>, u32)> {
             Some(Heading::Up),
         ] {
             let s1 = state(n1, h);
-            // Nothing leaves the second end but from the start, and nothing reaches a first CP end's node (ID-1493):
+            // Nothing leaves the second end but from the start, and nothing reaches a first CP end's node:
             // a route would pass through its own end and loop back to end there, or come back through its start.
             if (n1 == goal && s1 != start_state) || first_cp == Some(n1) {
                 continue;
@@ -1164,9 +1163,9 @@ mod tests {
     #[test]
     fn a_stub_inside_a_foreign_body_gives_no_route() {
         // The first end's stub node lies inside another representation's body. The node itself is free, but every
-        // move out of it runs through the body's open inside (FT-706), which only an end's own corridor may cross
-        // (WP-S2.19 §5.1 rule 3): no route, the unrouted straight line (D3), as for a foreign obstacle across the
-        // corridor below. (Before FT-706 only nodes were blocked and the route left down along the stub.)
+        // move out of it runs through the body's open inside, which only an end's own corridor may cross
+        // (rule 3): no route, the unrouted straight line (D3), as for a foreign obstacle across the
+        // corridor below. (only nodes were blocked and the route left down along the stub.)
         let rq = req(
             end(0, 0, Some(Heading::Down)),
             end(6, 4, Some(Heading::Left)),
@@ -1215,7 +1214,7 @@ mod tests {
 
     #[test]
     fn a_fixed_bend_s_arrival_is_never_reversed() {
-        // FT-437: a bend fixed at (5, 0) after a segment running right, the end at (0, 0) straight behind it. Without
+        // A bend fixed at (5, 0) after a segment running right, the end at (0, 0) straight behind it. Without
         // the arrival heading the route runs straight back over the last segment.
         let base = req(end(5, 0, None), end(0, 0, None), vec![]);
         assert_eq!(auto_route(&base), vec![p(5, 0), p(0, 0)]);
@@ -1226,7 +1225,7 @@ mod tests {
 
     #[test]
     fn a_cp_stub_is_never_run_back_over() {
-        // FT-437: a CP leaving right with the end straight behind it. A U-turn after the stub costs one bend only,
+        // A CP leaving right with the end straight behind it. A U-turn after the stub costs one bend only,
         // so the search would run back over the stub and through the CP; it goes round instead.
         let r = auto_route(&req(end(0, 0, Some(Heading::Right)), end(-10, 0, None), vec![]));
         assert_eq!(r, vec![p(0, 0), p(1, 0), p(1, 1), p(-10, 1), p(-10, 0)]);
@@ -1440,7 +1439,7 @@ mod tests {
 
     #[test]
     fn the_end_devices_tag_blocks_the_last_leg_too() {
-        // FT-1183 (ID-1395): FT-1085's case, a black box below the first end's pin with its tag up-left of the CP.
+        // FT-1085's case, a black box below the first end's pin with its tag up-left of the CP.
         // The tag of the device the run ends at is an obstacle on the last leg as on every other: without it the
         // tie rule turns at once, across the tag; with it the route runs down beside the tag and turns below it.
         let own_box = rect(2, -1, 12, 9);
@@ -1751,7 +1750,7 @@ mod tests {
 
     #[test]
     fn a_route_does_not_pass_its_own_end_on_another_wire_s_vertex() {
-        // Failing inputs of `a_found_route_keeps_off_other_wires` under the deep nightly's case count (ID-1493), in
+        // Failing inputs of `a_found_route_keeps_off_other_wires` under the deep nightly's case count, in
         // its terms (`(x, y, len, horizontal)` per wire): an end is another wire's vertex, and the route ran through
         // the second end before it looped back to end there, or came back through the first.
         type Case = ((i64, i64, usize), (i64, i64, usize), Vec<(i64, i64, i64, bool)>);
@@ -1799,7 +1798,7 @@ mod tests {
 
     #[test]
     fn a_stub_on_the_second_end_leaves_it() {
-        // The first end's stub is the second end's node (ID-1493): the route starts there and may leave it, by the
+        // The first end's stub is the second end's node: the route starts there and may leave it, by the
         // search and by `clear` alike.
         let rq = req(
             end(1, 0, Some(Heading::Left)),
@@ -1813,7 +1812,7 @@ mod tests {
     }
 
     proptest::proptest! {
-        /// FT-706: a route found never runs on another wire's track nor touches one of its
+        /// A route found never runs on another wire's track nor touches one of its
         /// vertices (but for the CP ends' stubs), whatever the wires.
         #[test]
         fn a_found_route_keeps_off_other_wires(
@@ -1843,7 +1842,7 @@ mod tests {
     }
 
     proptest::proptest! {
-        /// FT-437: from a point without a direction and an arrival heading, the first segment of a route found never
+        /// From a point without a direction and an arrival heading, the first segment of a route found never
         /// runs against the arrival, and the route is orthogonal with exact ends, among obstacles too.
         #[test]
         fn the_first_segment_never_reverses_the_arrival(

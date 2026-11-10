@@ -56,7 +56,7 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
             last_change_ms: 0,
             failed: Some("the journal could not be replayed".into()),
         },
-        // ID-1463: quitting with an unsaved symbol draft.
+        // Quitting with an unsaved symbol draft.
         Dialog::ConfirmDiscard {
             pending: Pending {
                 action: "app.quit",
@@ -71,7 +71,7 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
         ("external_ref.new", json!({})),
         ("pages.renumber", json!({})),
         ("devices.renumber", json!({})),
-        // WP-S3.07 part 3: the print pre-dialog (no build waits in the window's mode; the set is not built yet).
+        // The print pre-dialog (no build waits in the window's mode; the set is not built yet).
         ("file.print", json!({ "wait": false })),
     ] {
         let _ = shell.dispatch(action, &params);
@@ -237,20 +237,20 @@ fn ui_strings() -> Vec<String> {
 /// list in the same reviewed commit.
 const OPENS_INPUT: &[&str] = &[
     "file.new",
-    // WP-S4.02 part 4: the Create enclosure and Auto-fill rail dialogs.
+    // The Create enclosure and Auto-fill rail dialogs.
     "layout.enclosure_new",
     "layout.auto_fill_rail",
-    // WP-S2.08 part 2: the keymap editor's Import… and Export… ask for a file.
+    // The keymap editor's Import… and Export… ask for a file.
     "keymap.import",
     "keymap.export",
-    // WP-S3.08 part 3: Export table… and Import table… ask for a file.
+    // Export table… and Import table… ask for a file.
     "navigator.export_table",
     "navigator.import_table",
     "file.open",
     "file.open_ewz",
     "file.save_as",
     "file.import_qet",
-    // WP-S3.09 D10: Re-import QElectroTech project… asks for the file.
+    // Re-import QElectroTech project… asks for the file.
     "file.reimport_qet",
     "parts.import",
     "file.discard_journal",
@@ -280,33 +280,33 @@ const OPENS_INPUT: &[&str] = &[
     "project.purge_assets",
     "table.pattern_fill",
     "messages.fix",
-    // FT-674: Waive… opens the reason and author prompt.
+    // Waive… opens the reason and author prompt.
     "messages.waive",
-    // WP-S2.18 part 1: J opens the Join chooser.
+    // J opens the Join chooser.
     "place.join",
     // WP-S1.19 part 6 (§11): Insert macro… shows the Macros navigator (or floats the macro under its cursor), Save as
     // macro… opens its dialog, Update… opens the bulk card.
     "macros.insert",
     "macros.save",
     "libraries.update",
-    // WP-S2.07 part 4a (D19, D20): Choose part… and Edit part… open the part dialog and the part editor.
+    // Choose part… and Edit part… open the part dialog and the part editor.
     "part.choose",
     "part.edit",
-    // WP-S1.18 part 5: the revision dialogs of Check > Revision and the incomplete-release offer.
+    // The revision dialogs of Check > Revision and the incomplete-release offer.
     "revision.approve",
     "revision.release",
     "revision.withdraw",
     "revision.set_author",
     "revision.incomplete",
-    // FT-1202 (ID-1270): Draw ▸ Define potential… opens its parameter form.
+    // Draw ▸ Define potential… opens its parameter form.
     "potential.draw",
-    // FT-1239: a Potentials row's Define potential… opens the same form.
+    // A Potentials row's Define potential… opens the same form.
     "potential.draw_row",
-    // FT-1371 and FT-1372 (ID-1362): New cable…, Connect cores… and Report block… open their forms.
+    // New cable…, Connect cores… and Report block… open their forms.
     "cable.new",
     "cable.connect_cores",
     "report_block.new",
-    // WP-S2.10: the editor and file actions accept parameters through the shared palette form.
+    // The editor and file actions accept parameters through the shared palette form.
     "symbol.new",
     "symbol.open",
     "symbol.fork",

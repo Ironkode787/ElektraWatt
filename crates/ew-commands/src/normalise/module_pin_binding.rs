@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Normaliser #14, module pin binding (N3; doc 06 §3.2 row 14, doc 10 §3.3; FT-275).
+//! Normaliser #14, module pin binding (N3; doc 06 §3.2 row 14, doc 10 §3.3).
 //!
 //! A channel created in this transaction (by N1 or an import), unbound, on a module whose part carries a
 //! channel → pin map (`PlcSection.pin_of`, doc 10 §3.3) takes `binding = Cp(main, idx)`: the pin designation
@@ -15,7 +15,7 @@
 //! binding in the same transaction) is left as it is. Channels that existed before the transaction are not bound
 //! by this rule, so an explicit unbinding stays.
 //!
-//! **Re-pinning after a part change** (FT-321; WP-S1.21 part 5). A module device of the transaction whose PLC part
+//! **Re-pinning after a part change**. A module device of the transaction whose PLC part
 //! copy (the rule of [`module_part_copy`]) differs from the one of the base snapshot re-pins its existing channels
 //! below the new part's channel count, before the new channels are bound: a channel whose binding is
 //! `Cp(main, i)`, where `i` is the pin that the **old** part's `pin_of` gives its number (resolved by designation in
@@ -102,7 +102,7 @@ fn base_part_copy(tx: &TxBuilder<'_>, dev: &Device) -> Option<Arc<LibCopy<Part>>
 /// A pin a part gives a channel: its designation and its CP index on the main function.
 type Pin = (String, u16);
 
-/// FT-321: re-pins the channels of `dev` after its PLC part changed from `old` to `new` (see the module documentation).
+/// Re-pins the channels of `dev` after its PLC part changed from `old` to `new` (see the module documentation).
 fn repin(
     tx: &mut TxBuilder<'_>,
     dev: &Device,
@@ -178,7 +178,7 @@ impl Normaliser for ModulePinBinding {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
         let mut changed = false;
-        // FT-321: the modules whose PLC part changed re-pin their existing channels, in ID order
+        // The modules whose PLC part changed re-pin their existing channels, in ID order
         for key in tx.changed_of(Kind::Device) {
             let Some(dev) = tx.get::<Device>(key.1.cast()) else {
                 continue;
@@ -235,7 +235,7 @@ impl Normaliser for ModulePinBinding {
                 ));
                 continue;
             };
-            // whether some channel binds the pin: an index lookup with read-your-writes (FT-319)
+            // whether some channel binds the pin: an index lookup with read-your-writes
             if !tx.channels_at_cp(main.id, idx).is_empty() {
                 tx.notice(format!(
                     "channel {} of {} stays unbound: another channel binds its pin {pin}",

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! NFR-UX-08 (WP-S7.03 D10, SC-8): the company-standard wizard with the pilot's choices (its defaults, and "As in the
+//! NFR-UX-08 (SC-8): the company-standard wizard with the pilot's choices (its defaults, and "As in the
 //! sample project" for the text sizes, D11) writes a basic project; a project made from it with `file.new` carries the
 //! effective conventions of the sample project (Golden A), member by member, except the members of [`EXCLUDED`]. With
 //! "Readable (new projects)", the default, the project carries the built-in basic project's text styles.

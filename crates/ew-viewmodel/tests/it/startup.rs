@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The start-up offer (WP-S6.05 D10, D11; PV-6, PV-7): a crashed session's unsaved work and its crash log offered at
+//! The start-up offer (PV-6, PV-7): a crashed session's unsaved work and its crash log offered at
 //! the next start, its four answers, the refusal of a project that is gone, and the start-up pruning of crash logs.
 
 use std::path::{Path, PathBuf};
@@ -282,7 +282,7 @@ fn old_and_surplus_crash_logs_are_pruned_at_start() {
     );
 }
 
-/// The offer in Dutch (WP-S2.08 D12): the title, the crash line and the buttons.
+/// The offer in Dutch: the title, the crash line and the buttons.
 #[test]
 fn the_offer_speaks_dutch() {
     let tmp = Tmp::new("startup-nl");
@@ -316,7 +316,7 @@ fn the_offer_speaks_dutch() {
     );
 }
 
-/// C50-p3#4: after a crash loop at start the offer shows the newest log, and closing it marks the older ones that ended
+/// After a crash loop at start the offer shows the newest log, and closing it marks the older ones that ended
 /// their session as offered too, so no later start shows an older crash.
 #[test]
 fn closing_the_offer_marks_the_earlier_crash_logs_offered() {
@@ -337,7 +337,7 @@ fn closing_the_offer_marks_the_earlier_crash_logs_offered() {
     assert!(started(&tmp).startup_offer().is_none());
 }
 
-/// C50-p3#9: a project the offer lists that opens another way (`elektrawatt <dir>`) leaves the offer.
+/// A project the offer lists that opens another way (`elektrawatt <dir>`) leaves the offer.
 #[test]
 fn a_project_opened_another_way_leaves_the_offer() {
     let tmp = Tmp::new("startup-open");
@@ -354,7 +354,7 @@ fn a_project_opened_another_way_leaves_the_offer() {
     shell.shutdown();
 }
 
-/// C50-p3#12: Open log folder hands the window the folder's whole `file://` URL, and a folder the window could not
+/// Open log folder hands the window the folder's whole `file://` URL, and a folder the window could not
 /// open is named in the offer (S7's second text).
 #[test]
 fn open_log_folder_asks_for_the_folder_and_names_it_when_it_fails() {
@@ -384,13 +384,13 @@ fn open_log_folder_asks_for_the_folder_and_names_it_when_it_fails() {
     assert!(offer_lines(&shell).contains(&format!("  error: {message}")));
 }
 
-/// FT-1309 (WP-S6.05 D10): every file EW creates in its configuration directory, listed here (the settings, the user's
+/// Every file EW creates in its configuration directory, listed here (the settings, the user's
 /// keymap, a named workspace, the wizard's draft), is created through one helper, user-only: on Unix the files 0600
 /// beside the directories' 0700.
 #[test]
 fn the_files_of_the_configuration_directory_are_user_only() {
     let tmp = Tmp::new("config-files-user-only");
-    // A bad settings file that the user made readable by all: its copy aside is user-only all the same (FT-1309).
+    // A bad settings file that the user made readable by all: its copy aside is user-only all the same.
     let dir = tmp.0.join("config");
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("settings.toml"), "not = [toml").unwrap();
@@ -453,7 +453,7 @@ fn the_files_of_the_configuration_directory_are_user_only() {
     shell.shutdown();
 }
 
-/// C52-p1#6 (ID-1390): each writer that may create the configuration directory (the user's keymap, a named workspace,
+/// Each writer that may create the configuration directory (the user's keymap, a named workspace,
 /// the wizard's draft) makes it user-only itself, 0700 on Unix: each runs alone in a fresh folder, with no settings
 /// save before it to tighten the directory first.
 #[test]

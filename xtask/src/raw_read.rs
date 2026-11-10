@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `check-raw-read`: the guard of ADR-0001 amendment 2 (decision log ID-50, task FT-01) for the raw readers of
+//! `check-raw-read`: the guard of ADR-0001 amendment 2 for the raw readers of
 //! `ew-model`, driven by the `[raw_read]` section of `ci/dep-rules.toml`.
 //!
 //! `check-features` stops a crate from *requesting* the `raw-read` feature of `ew-model`, but cargo features
@@ -36,7 +36,7 @@
 //! exported or printed sequence. It is static (not derived from `ew-model`).
 //!
 //! The `disallowed-methods` list also ends with the wall-clock, environment and randomness functions
-//! ([`DISALLOWED_METHODS`]: FT-317, WP-S6.02, doc 18 §3.5), which share the lint `disallowed_methods` with the raw
+//! ([`DISALLOWED_METHODS`]: doc 18 §3.5), which share the lint `disallowed_methods` with the raw
 //! readers. A helper that wraps one such call allows the lint on itself and gives the reason in the attribute
 //! (`#[allow(clippy::disallowed_methods, reason = "...")]`). In non-test source of a package that reaches `ew-model`,
 //! an allow without a reason, a crate-wide allow, an `expect` or an allow of a wider lint group is a suppression of
@@ -75,9 +75,9 @@
 //! fails. Packages whose normal dependencies cannot reach the gated crate are not scanned (they cannot
 //! name its readers).
 //!
-//! # Asset presence (FT-382)
+//! # Asset presence
 //!
-//! `[raw_read.asset_presence]` (decision log ID-575, ARCH §3 rule 1): the bytes under an asset hash never change, so
+//! `[raw_read.asset_presence]` (ARCH §3 rule 1): the bytes under an asset hash never change, so
 //! `Model::asset`'s bytes sit outside the read gate; but whether the model holds an asset changes without a revision,
 //! so no memoised query may read it. In the non-test source of the listed packages (`ew-derive`, whose `Q` holds the
 //! model; reader crates included), a method call `.<accessor>(` or a path `::<accessor>` of the listed accessors
@@ -125,8 +125,8 @@ const REFERENCE: &str = "ADR-0001 amendment 2";
 /// Top-level directories of a package whose files are test code (or build output).
 const TEST_DIRS: [&str; 4] = ["tests", "benches", "examples", "target"];
 
-/// The hash containers of the `disallowed-types` list of the generated clippy configuration (FT-271): their
-/// iteration order is unspecified, so it must not reach a persisted, exported or printed sequence (WP-S6.02).
+/// The hash containers of the `disallowed-types` list of the generated clippy configuration: their
+/// iteration order is unspecified, so it must not reach a persisted, exported or printed sequence.
 /// The persistent hash map and set of `imbl` (a dependency of three crates, doc 18 §3.5) are listed too: clippy
 /// ignores a path whose crate a package does not load, and warns about a path that does not resolve in one
 /// that does (which `cargo xtask ci` and the lint job turn into a failure). No workspace crate names
@@ -156,12 +156,12 @@ const ENV_REASON: &str = "no environment access in model, derive, format or expo
 /// The reason clippy prints with a source of randomness.
 const RANDOM_REASON: &str = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site";
 
-/// The reason clippy prints with a call of krilla's GIF or WebP image constructors (FT-406 review): the cargo-vet audits
+/// The reason clippy prints with a call of krilla's GIF or WebP image constructors: the cargo-vet audits
 /// of gif 0.14.2, image-webp 0.2.4 and imagesize 0.14.0 rest on these paths never being reached.
 const KRILLA_DECODER_REASON: &str = "krilla's GIF and WebP decoders are audited as unreachable (FT-406, supply-chain/audits.toml): only PNG and JPEG reach krilla, after ew_render_cpu::decode_image; a new format needs a decision and a new audit";
 
 /// The randomly keyed hasher of the std hash containers, the generator of their iteration order: a `disallowed-types`
-/// entry after [`DISALLOWED_TYPES`] (FT-317). The one use, the session ID of the lock, is a justified site.
+/// entry after [`DISALLOWED_TYPES`]. The one use, the session ID of the lock, is a justified site.
 pub const RANDOM_STATE: &str = "std::hash::RandomState";
 
 /// The reason clippy prints with a use of [`RANDOM_STATE`].
@@ -179,7 +179,7 @@ pub const OPTIONAL_METHODS: [(&str, &str); 5] = [
 ];
 
 /// The wall-clock, environment and randomness functions of the `disallowed-methods` list of the generated clippy
-/// configuration (FT-317, WP-S6.02, doc 18 §3.5), after the raw readers: the path and the reason clippy prints.
+/// configuration (doc 18 §3.5), after the raw readers: the path and the reason clippy prints.
 ///
 /// Only paths that resolve in every package that loads their crate are listed (clippy warns about one that does
 /// not, which the lint job turns into a failure, and ignores one whose crate a package does not load).
@@ -187,7 +187,7 @@ pub const OPTIONAL_METHODS: [(&str, &str); 5] = [
 /// `Uuid::now_v7` (`uuid` has the `v5` feature only) and `rand::random`, `rand::rng` and `rand::random_range`
 /// (`rand` 0.10 without its `thread_rng` feature, which only `proptest` loads). A crate that enables a generator
 /// feature adds its path here. The last two entries are not about determinism: krilla's GIF and WebP image constructors, whose decoders the cargo-vet
-/// audits assume unreachable (FT-406).
+/// audits assume unreachable.
 pub const DISALLOWED_METHODS: [(&str, &str); 13] = [
     ("std::time::SystemTime::now", CLOCK_REASON),
     ("std::time::Instant::now", CLOCK_REASON),
@@ -262,7 +262,7 @@ pub struct RawReadPolicy {
     pub asset_presence: Option<AssetPresencePolicy>,
 }
 
-/// The asset-presence rule (FT-382, decision log ID-575, ARCH §3 rule 1): the bytes of an asset are outside the read
+/// The asset-presence rule (ARCH §3 rule 1): the bytes of an asset are outside the read
 /// gate (they never change under a hash), but **whether** the model holds an asset can change without a revision, so
 /// no memoised query may read it. The rule is lexical: in the non-test source of `packages` (the crate whose
 /// memoised queries can reach the model, `ew-derive`), a method call `.<accessor>(` or a path `::<accessor>` of one of
@@ -1197,7 +1197,7 @@ fn asset_item(function: Option<&str>) -> String {
     format!("asset_presence:{}", function.unwrap_or("<top level>"))
 }
 
-/// The violations of the asset-presence rule (FT-382) in one source file: every `.<accessor>(` and `::<accessor>`
+/// The violations of the asset-presence rule in one source file: every `.<accessor>(` and `::<accessor>`
 /// outside test code, named by the innermost function around it ([`asset_item`]).
 pub fn asset_presence_violations(path: &str, text: &str, rule: &AssetPresencePolicy) -> Vec<Violation> {
     let p = Parsed::new(text);
@@ -1840,7 +1840,7 @@ fn collect(policy: &RawReadPolicy, packages: &[SourcePackage], ws: Option<&Works
         found.extend(lint_violations("Cargo.toml", &ws.root_manifest, true));
     }
     let mut violations = apply_allow(found, &policy.allow);
-    // FT-382: the asset-presence rule over its packages, the reader crates included.
+    // The asset-presence rule over its packages, the reader crates included.
     if let Some(rule) = &policy.asset_presence {
         let mut presence = Vec::new();
         for pkg in packages.iter().filter(|p| rule.packages.contains(&p.name)) {
@@ -3260,7 +3260,7 @@ disallowed-types = [
     }
 
     // -----------------------------------------------------------------------------------------------------
-    // Asset presence (FT-382)
+    // Asset presence
 
     const DERIVE_Q: &str = "crates/ew-derive/src/q.rs";
 

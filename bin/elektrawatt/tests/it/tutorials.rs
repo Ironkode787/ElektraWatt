@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tutorials of the user guide as scripted tests (WP-S7.05 D10, D12, NFR-DOC-03): each tutorial's script
+//! The tutorials of the user guide as scripted tests (NFR-DOC-03): each tutorial's script
 //! (`docs/book/tutorial-scripts/<page>.ewui`) runs headless through the built binary on a fresh configuration folder,
 //! every step is `done` and the end state is the one its page states; and the page lint (T6) checks that the menu
 //! paths and keys a page names are the window's own.
@@ -69,7 +69,7 @@ fn run_tutorial(tmp: &Tmp, name: &str) -> Output {
 
 /// [`run_tutorial`] with the sample project `sample` (Help ▸ Tutorials copies it; absent: none). No data directory is
 /// given (`EW_DATA_DIR`): the tutorials run on the shipped tier alone, the compiled-in starter parts and the libraries
-/// of `EW_CONTENT_DIR` (the sample parts library among them), as a new installation does (FT-1401).
+/// of `EW_CONTENT_DIR` (the sample parts library among them), as a new installation does.
 fn run_tutorial_with(tmp: &Tmp, name: &str, sample: Option<&str>) -> Output {
     let path = Path::new(BOOK)
         .join("tutorial-scripts")
@@ -372,7 +372,7 @@ fn the_page_lint_names_the_windows_words_for_each_step() {
     );
 }
 
-/// Tutorial 1 (FT-613): a new project from the basic project, a transformer and two lamps placed and wired, the two
+/// Tutorial 1: a new project from the basic project, a transformer and two lamps placed and wired, the two
 /// potentials defined, the Potentials navigator and the Messages pane read, saved: every step done, no error, the
 /// findings the page names, and the page passes the lint.
 #[test]
@@ -380,7 +380,7 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
     let tmp = Tmp::new();
     let out = run_tutorial(&tmp, "first-page");
     let transcript = all_done(&out);
-    // FT-1440 (ID-1397): a finished wire answers with what it changed, never a bare "done".
+    // A finished wire answers with what it changed, never a bare "done".
     let changed: Vec<String> = transcript
         .lines()
         .skip(1)
@@ -417,7 +417,7 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
             "row level 2 rule \"EW-POT-009 Unconnected CP\" badge \"2\" expanded",
         ]
     );
-    // Step 8: "the Messages header shows E 0, W 0 and pending 5" (ID-1376, FT-1407).
+    // Step 8: "the Messages header shows E 0, W 0 and pending 5".
     assert_eq!(
         lines_of(&describe, &["messages scheme"]),
         ["messages scheme \"Drafting\" errors 0 warnings 0 infos 0 waived 0 pending 5"]
@@ -439,7 +439,7 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
     );
 }
 
-/// Tutorial 2 (D10, DC-6, FT-1371): on tutorial 1's project, a strip with two terminals, the cabinet and the field
+/// Tutorial 2 (D10, DC-6): on tutorial 1's project, a strip with two terminals, the cabinet and the field
 /// side wired, a cable from the starter set's part with the field wires as its cores (its tag from its first core's
 /// page, FT-1406), its length set, the strip editor and the Cables navigator read, checked and saved: every step done,
 /// the end state the page names, and the lint.
@@ -448,7 +448,7 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
     let tmp = Tmp::new();
     all_done(&run_tutorial(&tmp, "first-page"));
     let transcript = all_done(&run_tutorial(&tmp, "terminal-strip-and-cable"));
-    // The toasts that steps 6 and 7 quote (ID-1376).
+    // The toasts that steps 6 and 7 quote.
     let [created, connected, describe] = <[String; 3]>::try_from(describes(&transcript)).unwrap();
     assert_eq!(
         lines_of(&created, &["toast"]),
@@ -493,7 +493,7 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
     );
 }
 
-/// Tutorial 4 (D10, DC-6, FT-1372): on Help ▸ Tutorials' copy of the sample project, a parts list and a terminal
+/// Tutorial 4 (D10, DC-6): on Help ▸ Tutorials' copy of the sample project, a parts list and a terminal
 /// overview added as report blocks, the pages exported as PDF, the print preview stepped through and the project
 /// saved: every step done, the pages, the PDF's page count and the preview the page names, and the lint.
 #[test]
@@ -506,7 +506,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
         lines_of(&copied, &["banner:"]),
         ["banner: A fresh copy of the sample project was made for the tutorials."]
     );
-    // Step 2: the report pages of section 9, marked generated, from the parts list to the revision overview (ID-1376).
+    // Step 2: the report pages of section 9, marked generated, from the parts list to the revision overview.
     assert_eq!(
         lines_of(&copied, &["row level 2 page \"90", "row level 2 page \"91"]),
         [
@@ -591,7 +591,7 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
     .unwrap();
     let out = run_tutorial(&tmp, "import-qet");
     let transcript = all_done(&out);
-    // FT-1440 (ID-1397): a part chosen answers with what it changed, never a bare "done".
+    // A part chosen answers with what it changed, never a bare "done".
     let picked: Vec<String> = transcript
         .lines()
         .skip(1)
@@ -623,7 +623,7 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
             "row level 2 rule \"EW-NUM-001 Tag deviates from the scheme\" badge \"2\" expanded",
         ]
     );
-    // Step 4: the return wire drawn, the Messages pane on the project's own scheme, and EW-POT-009 gone (ID-1376).
+    // Step 4: the return wire drawn, the Messages pane on the project's own scheme, and EW-POT-009 gone.
     assert_eq!(
         lines_of(&wired, &["messages scheme", "row level 2 rule \"EW-POT-009"]),
         ["messages scheme \"Drafting\" errors 0 warnings 2 infos 5 waived 0 pending 4"]
@@ -656,7 +656,7 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
     );
 }
 
-/// The symbol editor's tutorial (WP-S2.10, G-M2.5-05; M25-p3#2): a six-pin power block drawn in the symbol editor,
+/// The symbol editor's tutorial (G-M2.5-05; M25-p3#2): a six-pin power block drawn in the symbol editor,
 /// refused off the grid in words, saved to a library, exported, tested on a new page, the project saved and the
 /// exported draft reopened: every step done, the end state the page names, and the page passes the lint.
 #[test]
@@ -681,7 +681,7 @@ fn tutorial_draw_a_six_pin_power_block_runs_as_its_page_says() {
         ]
     );
     // Steps 8 to 11: the library, the portable draft and the saved project with its new page. A name without a
-    // folder is read from the user library folder, never the working directory (ID-1463).
+    // folder is read from the user library folder, never the working directory.
     assert!(!tmp.path("symbols.ewlib").exists() && !tmp.path("power.symbol.json").exists());
     let library = find_named(&tmp.path(""), "symbols.ewlib").expect("the library");
     assert!(library.is_dir());

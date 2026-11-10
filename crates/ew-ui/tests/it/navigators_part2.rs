@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The further navigators and highlighting in the window (WP-S2.06 part 2, acceptance checks NP3 and NP4): the
+//! The further navigators and highlighting in the window (acceptance checks NP3 and NP4): the
 //! highlight of 24VDC-1 composited into `canvas.snapshot` with the slot colour at each drawn segment's midpoint and the
 //! hatch lines at 45°, Ctrl+Shift+H in the Potentials pane, and a selection made on the canvas marking the W29 rows of
 //! the Connections and Potentials panes with the focus left on the canvas; the accessible-name walker after every step
@@ -50,7 +50,7 @@ fn px(img: &ew_render_cpu::RgbaImage, x: i64, y: i64) -> [u8; 4] {
     img.pixels[i..i + 4].try_into().unwrap()
 }
 
-/// NP3 (FR-UI-018, FT-362; D14), the snapshot half: with 24VDC-1 highlighted from the Potentials navigator (slot 0),
+/// NP3 (FR-UI-018, D14), the snapshot half: with 24VDC-1 highlighted from the Potentials navigator (slot 0),
 /// `canvas.snapshot` of folios 102 and 103 shows the slot colour at every drawn member segment's midpoint (the band, or
 /// a hatch line in the full colour within 3 pixels), the hatch lines run at 45° (a full-colour pixel continues
 /// up-right, not down-right), and without the highlight the same pixels are as before.

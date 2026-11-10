@@ -260,7 +260,7 @@ fn every_personal_data_path_exists() {
 
 #[test]
 fn every_merge_strategy_names_a_member_of_its_kind_once() {
-    // WP-S1.17 D13 (decision log ID-1268): each row's path, and a keyed row's key in the list's elements, exists in the
+    // Each row's path, and a keyed row's key in the list's elements, exists in the
     // kind's schema; a (kind, path) has one row.
     let mut seen = BTreeSet::new();
     for row in MERGE_STRATEGIES {
@@ -301,7 +301,7 @@ fn format_number(text: &str) -> Option<(u32, u32)> {
 
 #[test]
 fn every_kind_has_a_since_format_no_newer_than_the_schema() {
-    // The `since` metadata of the computed `min_reader` (WP-S1.17 D3): every kind is "0.1" until a later format adds
+    // The `since` metadata of the computed `min_reader`: every kind is "0.1" until a later format adds
     // one; the kind table lists every kind once, in registry order.
     let format = format_number(FORMAT).expect("FORMAT is major.minor");
     assert_eq!(KIND_SINCE.len(), Kind::ALL.len());
@@ -346,7 +346,7 @@ fn every_member_and_variant_since_row_names_a_path_newer_than_its_kind() {
 
 #[test]
 fn released_formats_are_formats_in_ascending_order() {
-    // "0.1" from the first release on (WP-S6.08 D13); every entry a format, oldest first, none newer than the
+    // "0.1" from the first release on; every entry a format, oldest first, none newer than the
     // schema's.
     let released: Vec<(u32, u32)> = RELEASED_FORMATS
         .iter()

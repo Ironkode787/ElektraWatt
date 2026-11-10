@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `project.languages.set` (`SetProjectLanguages`, FT-336): the project's languages and printed formats (doc 03
+//! `project.languages.set` (`SetProjectLanguages`): the project's languages and printed formats (doc 03
 //! §5 `ProjectLanguages`, `Formatting`; doc 16 §9.2 step 8).
 
 use ew_mltext::LangTag;

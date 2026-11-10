@@ -227,7 +227,7 @@ mod tests {
         assert_eq!(arity("no arguments"), 0);
     }
 
-    /// C51-p5#7: a hand-built text (the macro refuses both at compile time) writes `?` for a missing argument and for
+    /// A hand-built text (the macro refuses both at compile time) writes `?` for a missing argument and for
     /// a key that the table does not hold.
     #[test]
     fn a_hand_built_text_writes_a_question_mark_for_what_is_missing() {

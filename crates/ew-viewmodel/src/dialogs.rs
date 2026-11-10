@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The texts and buttons of every modal dialog of the shell (WP-S2.17 part 4, §8 item 1; doc 16a §6.12): one
+//! The texts and buttons of every modal dialog of the shell (doc 16a §6.12): one
 //! [`DialogSpec`] per [`Dialog`], so the window's dialog frame and `ui.describe` show the same title, body and buttons,
 //! and the rules of the design language are tested headless (CP1).
 //!
@@ -98,8 +98,7 @@ impl DialogSpec {
     }
 }
 
-/// The most pages the import card lists, and the most rows the re-import card lists, before its "and N more" line
-/// (WP-S3.09 D8, D12).
+/// The most pages the import card lists, and the most rows the re-import card lists, before its "and N more" line.
 pub const IMPORT_PAGES_LISTED: usize = 12;
 
 fn close() -> DialogButton {
@@ -148,7 +147,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 close(),
             )
         },
-        // WP-S2.08 D8: the keymap editor; import and export a keymap file beside Close.
+        // The keymap editor; import and export a keymap file beside Close.
         Dialog::Shortcuts => DialogSpec {
             form: true,
             secondary: vec![
@@ -167,7 +166,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 close(),
             )
         },
-        // ID-1463: quitting with an unsaved symbol draft asks Save symbol, Discard or Cancel; ID-1472: so does an editor
+        // Quitting with an unsaved symbol draft asks Save symbol, Discard or Cancel; ID-1472: so does an editor
         // action that drops the draft, in words of its own.
         Dialog::ConfirmDiscard {
             symbol: true,
@@ -271,8 +270,8 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 )
             }
         }
-        // WP-S2.07 part 4a (D19): Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
-        // W45.1 F2 (ID-1110): an empty search is said once, in the list (not here); Choose is disabled while the list is
+        // Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
+        // W45.1 F2: an empty search is said once, in the list (not here); Choose is disabled while the list is
         // empty, with its reason.
         Dialog::PartChoose(c) => {
             let mut choose = DialogButton::new(
@@ -288,7 +287,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 ..small(c.title(), Vec::new(), choose)
             }
         }
-        // WP-S2.07 part 4a (D20): Save (Enter) and Cancel; a fork says that the library is not changed.
+        // Save (Enter) and Cancel; a fork says that the library is not changed.
         Dialog::PartEdit(e) => {
             let body = if e.draft.fork {
                 vec![strings::text(key!("part-edit-fork-note")).to_owned()]
@@ -308,7 +307,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 )
             }
         }
-        // WP-S1.17 part 7 (D24): Apply (the choices, Enter), All mine, All theirs, Decide later (Escape); the list of
+        // Apply (the choices, Enter), All mine, All theirs, Decide later (Escape); the list of
         // fields with base, mine and theirs is the dialog's.
         Dialog::ExternalChange { rows } => DialogSpec {
             secondary: vec![
@@ -356,7 +355,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 ),
             )
         },
-        // WP-S3.09 D8: the import card (Apply, Cancel) with its summary, its pages listed by the dialog; then the
+        // The import card (Apply, Cancel) with its summary, its pages listed by the dialog; then the
         // checkpoint confirmation (Create project, Cancel).
         Dialog::ImportQet {
             file,
@@ -411,7 +410,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 ),
             )
         },
-        // WP-S3.09 D10: the proposal T6 (Re-import, Cancel).
+        // The proposal T6 (Re-import, Cancel).
         Dialog::ReimportMatch {
             path,
             file,
@@ -432,7 +431,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 ),
             )
         },
-        // WP-S3.09 D12: the re-import card (Apply, Cancel) with T8, its rows listed by the dialog.
+        // The re-import card (Apply, Cancel) with T8, its rows listed by the dialog.
         Dialog::Reimport {
             file,
             summary,
@@ -490,7 +489,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 ),
             )
         },
-        // WP-S3.07 part 3 (ruling 4 of ID-1180): Print… the Primary (Enter), Open in PDF viewer and Cancel; both print
+        // Print… the Primary (Enter), Open in PDF viewer and Cancel; both print
         // buttons disabled, with the reason, until the set is built.
         Dialog::Print(_) => {
             let reason = model.print_disabled_reason();
@@ -594,7 +593,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
     }
 }
 
-/// WP-S1.18 part 5: the revision dialogs (forms, 0.45 of the window). Approve, Withdraw and Set author: the step is the
+/// The revision dialogs (forms, 0.45 of the window). Approve, Withdraw and Set author: the step is the
 /// Primary, then Cancel. Release (destructive: it cannot be undone): Cancel is the Primary and Release the danger
 /// button. The incomplete-release offer asks a question: Not now is the Primary, Complete release the other button
 /// and Discard archive the danger one, each only where the release allows it, and each opens its confirmation (Cancel

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `parts.import` (`ImportParts`, FT-410): inserts project-local part copies that a parts table produced
-//! (`ew_import_tables::parse_parts_tables`), with the manufacturer copies they name (WP-S1.19 D10), skipping what the
+//! `parts.import` (`ImportParts`): inserts project-local part copies that a parts table produced
+//! (`ew_import_tables::parse_parts_tables`), with the manufacturer copies they name, skipping what the
 //! project has already.
 
 use std::collections::BTreeSet;
@@ -21,9 +21,9 @@ use crate::tx::TxBuilder;
 
 use super::library::read_copy;
 
-/// `parts.import` (`ImportParts`, FT-410): creates project-local part copies, the one command that does (a copy of
+/// `parts.import` (`ImportParts`): creates project-local part copies, the one command that does (a copy of
 /// another library is embedded with `library.embed`, which refuses project-local items), with the project-local
-/// manufacturer copies the parts name (WP-S1.19 D10).
+/// manufacturer copies the parts name.
 ///
 /// `copies` holds part and manufacturer copies in the `lib/` JSON form (doc 05 §3.4), as a parts table import
 /// produces them: the shell and `ew import parts` read the file and parse it (`ew_import_tables::parse_parts_tables`,

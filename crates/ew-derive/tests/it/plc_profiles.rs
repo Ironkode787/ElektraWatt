@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The built-in address profiles as data (WP-S7.03 D7, SC-6): `content/plc-profiles/*.json` are library documents of
+//! The built-in address profiles as data (SC-6): `content/plc-profiles/*.json` are library documents of
 //! kind `plc_profile` in the starter library, canonical (pretty JSON, the schema's member order, their copy IDs and
 //! hash), compiled in and parsed once; both render and parse every address Golden A's 56 channels print, and a
 //! profile file that does not render is refused with T2's text.

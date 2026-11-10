@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The project-creating and project-recovering actions of the shell (WP-S2.01 part 2): New project (FT-307), Open
-//! sample project and Tutorials (FT-312), Import QElectroTech project (FT-312), and discarding the journal of an
+//! The project-creating and project-recovering actions of the shell: New project, Open
+//! sample project and Tutorials, Import QElectroTech project, and discarding the journal of an
 //! earlier session (FT-313's first part, decision log ID-475).
 //!
 //! All of them end in a `Session` from `ew-api` that the shell holds like an opened project: a new project is
@@ -27,7 +27,7 @@ use crate::key;
 use crate::strings;
 use crate::strings::Key;
 
-/// An imported project the import card shows, not written yet (WP-S3.09 D8).
+/// An imported project the import card shows, not written yet.
 #[derive(Debug)]
 pub(crate) struct PendingImport {
     /// The session of the committed import.
@@ -40,7 +40,7 @@ pub(crate) struct PendingImport {
     waiting: Option<Dialog>,
 }
 
-/// A running import job of the window (WP-S3.09 D4): the importer on its own thread, with what its end needs.
+/// A running import job of the window: the importer on its own thread, with what its end needs.
 #[derive(Debug)]
 pub(crate) struct ImportJob {
     /// The job: the batch, or why the front door refused the file.
@@ -53,7 +53,7 @@ pub(crate) struct ImportJob {
     pub(super) library_note: Option<&'static str>,
 }
 
-/// A running re-import job of the window (C51-p2#10): the importer on its own thread, with what its end needs.
+/// A running re-import job of the window: the importer on its own thread, with what its end needs.
 #[derive(Debug)]
 pub(crate) struct ReimportJob {
     /// The job: what it found, or why the re-import was refused.
@@ -222,7 +222,7 @@ impl ShellModel {
         self.settings.push_recent(&dir.to_string_lossy());
         self.save_settings();
         self.banner = banner;
-        // FT-1523 (ID-1458): a template's image over the pixel limit is named as an open names it.
+        // A template's image over the pixel limit is named as an open names it.
         for extra in self.undrawn_image_notes() {
             self.banner = Some(match self.banner.take() {
                 Some(b) => format!("{b} {extra}"),
@@ -309,7 +309,7 @@ impl ShellModel {
         outcome
     }
 
-    /// `help.tutorials {tutorial?, dir?}` (Help ▸ Tutorials): each tutorial its own start (FT-1458, ID-1397) with its
+    /// `help.tutorials {tutorial?, dir?}` (Help ▸ Tutorials): each tutorial its own start with its
     /// page: `first-page` a new project from the basic project, `reports-and-pdf` (and no `tutorial`, the tutorials
     /// page) a copy of the sample project, the others their page alone (they start from the first tutorial's project,
     /// a QElectroTech file or a terminal).
@@ -379,7 +379,7 @@ impl ShellModel {
         outcome
     }
 
-    /// FT-1458: the first tutorial's start, a new project from the basic project in the folder `dir` (asked for when
+    /// The first tutorial's start, a new project from the basic project in the folder `dir` (asked for when
     /// absent), then its page `page`.
     fn tutorial_from_basic(&mut self, p: &Map<String, Value>, page: String) -> Outcome {
         if self.has_project()
@@ -415,7 +415,7 @@ impl ShellModel {
         outcome
     }
 
-    /// ID-1392 (FT-1405): without an installed guide a tutorial's project opens with no banner over it, and the status
+    /// Without an installed guide a tutorial's project opens with no banner over it, and the status
     /// bar says once that the guide is not installed.
     fn note_missing_guide(&mut self) {
         if self.doc_request.as_ref().is_some_and(|r| r.url.is_none()) {
@@ -455,7 +455,7 @@ impl ShellModel {
             return failed(key!("error-import-read"), &[&name]);
         };
         let (library, library_note) = self.import_library();
-        // WP-S3.09 D4: the importer runs as a job (its own thread and `catch_unwind`), so the window stays responsive;
+        // The importer runs as a job (its own thread and `catch_unwind`), so the window stays responsive;
         // the import's transaction follows on this thread, since a session is not `Send`.
         let options = JobOptions {
             name: "import".to_owned(),
@@ -501,7 +501,7 @@ impl ShellModel {
         {
             let _ = self.open_dialog(card);
         }
-        // C52-p1#2: and the re-import's proposal or card.
+        // And the re-import's proposal or card.
         if self.dialog.is_none()
             && let Some(dialog) = self.reimport_waiting.take()
         {
@@ -513,7 +513,7 @@ impl ShellModel {
         {
             let _ = self.finish_import(end, pending.name, pending.dir, pending.library_note);
         }
-        // C51-p2#10: and the re-import's.
+        // And the re-import's.
         let ended = self
             .reimport_job
             .as_mut()
@@ -538,7 +538,7 @@ impl ShellModel {
             JobEnd::Done(Ok(batch)) => Ok(batch),
             JobEnd::Done(Err(refusal)) => Err(refusal),
             JobEnd::Panicked | JobEnd::Failed(_) => Err(Refusal::Panicked { file: name.clone() }),
-            // C51-p2#10: a cancelled job is no internal error.
+            // A cancelled job is no internal error.
             JobEnd::Cancelled => {
                 let message = strings::format(key!("error-import-cancelled"), &[&name]);
                 self.banner = Some(message.clone());
@@ -562,10 +562,10 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
-        // WP-S3.09 D8: the import card first (its summary and pages); Apply asks the checkpoint confirmation, then
+        // The import card first (its summary and pages); Apply asks the checkpoint confirmation, then
         // writes and opens the project. Cancel writes nothing.
         let (errors, warnings, infos) = migration_counts(&session);
-        // ID-1392 (FT-1397, FT-1391): the banner counts the migration report's findings, as the card does, each count
+        // The banner counts the migration report's findings, as the card does, each count
         // with its plural form; it replaces the "Importing…" banner.
         let mut banner = strings::format(
             key!("banner-imported"),
@@ -587,7 +587,7 @@ impl ShellModel {
         if self.banner.as_deref() == Some(importing.as_str()) {
             self.banner = None;
         }
-        // ID-1376: each count with its plural form ("1 page").
+        // Each count with its plural form ("1 page").
         let summary = strings::format(
             key!("import-card-summary"),
             &[
@@ -613,7 +613,7 @@ impl ShellModel {
             devices: counts.devices,
             confirm: false,
         };
-        // C51-p2#10: a dialog open when the job ends stays; the card waits until it closes (`poll_import`).
+        // A dialog open when the job ends stays; the card waits until it closes (`poll_import`).
         let waiting = if self.dialog.is_some() {
             Some(card)
         } else {
@@ -629,7 +629,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `file.import_qet_apply {confirm?}` (the import card's Apply, WP-S3.09 D8): the checkpoint confirmation T4 (in the
+    /// `file.import_qet_apply {confirm?}` (the import card's Apply): the checkpoint confirmation T4 (in the
     /// window a question, headless the `confirm` parameter), then the project written into the chosen folder and
     /// opened. Without an import card it is refused.
     pub(crate) fn act_import_qet_apply(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -646,7 +646,7 @@ impl ShellModel {
                 }
             };
         }
-        // ID-1374: the project open now (it stayed editable while the importer ran) asks again before it closes; the
+        // The project open now (it stayed editable while the importer ran) asks again before it closes; the
         // question replaces the card, and Cancel returns to it.
         if self.has_project() {
             let card = self.dialog.clone();
@@ -695,10 +695,10 @@ impl ShellModel {
         }
     }
 
-    /// `file.reimport_qet {file?, accept?}` (WP-S3.09 D10 to D12): the QElectroTech file re-imported into its earlier
+    /// `file.reimport_qet {file?, accept?}`: the QElectroTech file re-imported into its earlier
     /// import in the open project. A file matched by its items asks T6 first (`accept: true` answers it); a file of
     /// another project is refused with T7; else the re-import card shows T8 and its rows. Nothing changes until Apply.
-    /// As the import, the importer runs as a job, once (D4, C51-p2#10); the plan and its preview follow on this thread.
+    /// As the import, the importer runs as a job, once (D4); the plan and its preview follow on this thread.
     pub(crate) fn act_reimport_qet(&mut self, p: &Map<String, Value>) -> Outcome {
         let file = match string_param(p, "file") {
             Err(e) => return e,
@@ -738,7 +738,7 @@ impl ShellModel {
         let job_name = name.clone();
         let hooks = self.jobs.hooks.clone();
         let job = Job::spawn(options, move |_| {
-            // A test fault (feature `testkit` only), as the import job has (C52-p1#3).
+            // A test fault (feature `testkit` only), as the import job has.
             hooks.fault("reimport");
             Ok(find_reimport(
                 &lineages, &job_name, bytes, &library, proposed, accept,
@@ -780,9 +780,8 @@ impl ShellModel {
     }
 
     /// The end of a re-import job: a refusal in the banner, T6 for a proposed lineage, else the plan and its preview
-    /// on this thread and the re-import card; T6 and the card wait behind a dialog open now (C52-p1#2). A job of a
-    /// project that closed meanwhile shows nothing, whatever its end, and takes only its own "Importing…" banner away
-    /// (C52-p1#3).
+    /// on this thread and the re-import card; T6 and the card wait behind a dialog open now. A job of a
+    /// project that closed meanwhile shows nothing, whatever its end, and takes only its own "Importing…" banner away.
     pub(super) fn finish_reimport(
         &mut self,
         end: JobEnd<Result<ReimportFound, ReimportError>>,
@@ -790,7 +789,7 @@ impl ShellModel {
         path: PathBuf,
         epoch: u64,
     ) -> Outcome {
-        // ID-1392 (FT-1391): the job's end takes its own "Importing…" banner away, whatever follows.
+        // The job's end takes its own "Importing…" banner away, whatever follows.
         let importing = strings::format(key!("banner-importing"), &[&name]);
         if self.banner.as_deref() == Some(importing.as_str()) {
             self.banner = None;
@@ -841,7 +840,7 @@ impl ShellModel {
         let n = |c: ReimportClass| reimport.plan.count(c).to_string();
         // ID-1427 (W52 F8): a file that writes nothing says so, as a table import does, and its Apply is disabled.
         let nothing = reimport.preview.is_none();
-        // ID-1439 (C52-p8#4): the file has not changed since its last import (records the user edited are kept, and
+        // The file has not changed since its last import (records the user edited are kept, and
         // counted).
         let kept = reimport.plan.count(ReimportClass::EwChanged);
         let summary = if nothing && kept > 0 {
@@ -862,7 +861,7 @@ impl ShellModel {
                 ],
             )
         };
-        // ID-1392 (FT-1387): each member's values in words, as the property grid shows them.
+        // Each member's values in words, as the property grid shows them.
         let session = &project.session;
         let value = |m: &str, v: Option<&Value>, kind: &str| session.member_words(kind, m, v);
         let mut rows = Vec::new();
@@ -874,7 +873,7 @@ impl ShellModel {
                 ReimportClass::Removed => key!("reimport-row-removed"),
                 ReimportClass::EwChanged | ReimportClass::Unchanged => continue,
             };
-            // ID-1374: the record's words in the window's language.
+            // The record's words in the window's language.
             let record = match &row.record {
                 ew_api::TextArg::Plain(s) => s.clone(),
                 ew_api::TextArg::Text(t) => super::tools::rejected_words("", Some(t)),
@@ -903,7 +902,7 @@ impl ShellModel {
     }
 
     /// Opens the re-import's `dialog` (over its own proposal or card), or, while another dialog is open, keeps it until
-    /// that one closes (`poll_import`, C52-p1#2).
+    /// that one closes (`poll_import`).
     fn open_or_wait(&mut self, dialog: Dialog) -> Outcome {
         if self
             .dialog
@@ -916,10 +915,10 @@ impl ShellModel {
         self.open_dialog(dialog)
     }
 
-    /// `file.reimport_qet_apply` (the re-import card's Apply, WP-S3.09 D12): the previewed re-import committed as one
+    /// `file.reimport_qet_apply` (the re-import card's Apply): the previewed re-import committed as one
     /// undo step (nothing when it changes nothing). Without a re-import card it is refused.
     pub(crate) fn act_reimport_qet_apply(&mut self) -> Outcome {
-        // C51-p2#10: the card is checked before it is taken, so a refusal closes no other dialog.
+        // The card is checked before it is taken, so a refusal closes no other dialog.
         if !matches!(self.dialog, Some(Dialog::Reimport { .. })) {
             return Outcome::refused(key!("reason-no-reimport"));
         }
@@ -953,7 +952,7 @@ impl ShellModel {
             return match self.mode {
                 Mode::Headless => failed(key!("error-confirm-needed"), &[]),
                 Mode::Gui => {
-                    // WP-S2.09 §6.6: Discard… of the recovery dialog; Cancel returns to it.
+                    // Discard… of the recovery dialog; Cancel returns to it.
                     if matches!(self.dialog, Some(Dialog::Recovery { .. })) {
                         self.recovery_stash = self.dialog.take();
                     }
@@ -1024,7 +1023,7 @@ mod tests {
     use super::*;
     use crate::shell::ShellConfig;
 
-    /// C51-p2#10: a cancelled import job shows its own text, not T1's internal error.
+    /// A cancelled import job shows its own text, not T1's internal error.
     #[test]
     fn a_cancelled_import_job_shows_the_cancel_text() {
         let dir = super::super::fresh_test_dir("ew-vm-import-cancelled");

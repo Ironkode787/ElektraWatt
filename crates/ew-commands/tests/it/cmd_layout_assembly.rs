@@ -679,7 +679,7 @@ fn as3_auto_fill_refusals() {
     );
 }
 
-/// FT-973 (ID-1108: "`layout.auto_fill` mints placement IDs after the fit, its output unchanged"): a device left
+/// FT-973 ("`layout.auto_fill` mints placement IDs after the fit, its output unchanged"): a device left
 /// without room mints no placement, so the IDs of the fill and of the next command are those of a fill that never
 /// listed it.
 #[test]

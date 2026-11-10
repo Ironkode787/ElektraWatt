@@ -3,7 +3,7 @@
 
 //! Parts import from CSV and XLSX (MVP), BMEcat and ETIM xChange (1.x), behind `ew-interop-api`.
 //!
-//! WP-S1.19 part 4 (D11, FR-PRT-016, FT-463): one general parts import for every supplier list.
+//! WP-S1.19 part 4 (D11, FR-PRT-016): one general parts import for every supplier list.
 //!
 //! - **The column map** ([`ColumnMap`]): `member ← header` for the members `manufacturer`, `part_number`,
 //!   `type_designation`, `order_number`, `gtin`, `description` (one column per language), `kind`, `unit`,
@@ -40,7 +40,7 @@ pub use parts::{
     CatalogTarget, FIRST_VERSION, IMPORTER_ID, IMPORTER_VERSION, PartsImport, RowCounts, RowOutcome,
     RowStatus, manufacturer_item, namespace, parse_parts, part_item, pn_norm,
 };
-/// The readers of the parts import as the table round trip uses them (WP-S3.08 D12; decision log ID-1145, ID-1174): a
+/// The readers of the parts import as the table round trip uses them: a
 /// table of a CSV or an XLSX sheet as header and cell texts ([`sheet::read_sheet`]), every record of one whole, without a
 /// header or a cut to its width ([`sheet::read_rows`], the round trip's key/value sheets), and a workbook's sheet names,
 /// hidden ones included ([`sheet::sheet_names`]). No second reader: these are the readers [`parse_parts`] reads with.

@@ -188,7 +188,7 @@ impl Command for EmbedLibraryCopies {
                 ));
             }
             // WP-S7.03 D8, T2: an address profile that does not render never reaches a project.
-            // FT-1494: its frame by key, as `ew_derive::unreadable_profile` words it; the engine's reason as it prints.
+            // Its frame by key, as `ew_derive::unreadable_profile` words it; the engine's reason as it prints.
             if let LibDocument::PlcProfile(c) = &doc
                 && let Err(reason) = ew_derive::address_profile(&c.item)
             {

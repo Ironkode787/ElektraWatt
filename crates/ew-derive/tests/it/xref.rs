@@ -4,7 +4,7 @@
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
-//! Cross-references (WP-S1.08; doc 06 §2.6-§2.8, FR-XRF-001 ... FR-XRF-025): relation, text, links and the
+//! Cross-references (doc 06 §2.6-§2.8, FR-XRF-001 ... FR-XRF-025): relation, text, links and the
 //! notes, on small models built with `Fx`. Every page uses the built-in default frame (17 columns of
 //! 15.875 mm after a 5.29 mm header band, rows A-H); `at(column, row)` gives a point inside a cell and
 //! `cell(column, row)` the cell's label, so the expected texts are written from the placed cells.

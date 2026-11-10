@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `box.reshape` (`ReshapeBox`, FR-DEV-039, WP-S2.04 §5.1, §9.4): a black box's outline and connection points
+//! `box.reshape` (`ReshapeBox`, FR-DEV-039, §9.4): a black box's outline and connection points
 //! changed, its connections kept.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -190,7 +190,7 @@ impl Command for ReshapeBox {
         let mut new_abs: Vec<Pt2> = Vec::with_capacity(self.outline.len());
         for (i, v) in self.outline.iter().enumerate() {
             let Ok(p) = abs(*v) else { return out_of_range(tx) };
-            // FT-863: a vertex of the old outline is untouched and keeps its place, also off the grid (a drifted box)
+            // A vertex of the old outline is untouched and keeps its place, also off the grid (a drifted box)
             if !old.outline.contains(v) {
                 require_on_grid(tx, rep.page, p, &format!("/outline/{i}"))?;
             }

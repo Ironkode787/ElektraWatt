@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The egui frame over the shell model (WP-S2.01 parts 1 and 2, spec section 5.3): the command bar with the app menu
-//! (WP-S2.17 part 2), the banner, the start page, the first-run screen, the wizard, or the docked project view (the
+//! The egui frame over the shell model (spec section 5.3): the command bar with the app menu,
+//! the banner, the start page, the first-run screen, the wizard, or the docked project view (the
 //! page list and the page canvas of WP-S2.02, with the tool HUD and the zoom control over it), the status bar, the
 //! palette and the dialogs, and the routing of keyboard shortcuts.
 //!
@@ -52,7 +52,7 @@ pub(crate) enum Event {
     PaletteField(usize, String),
     /// An answer to the unsaved-changes dialog.
     Confirm(ConfirmAnswer),
-    /// A symbol editor action that drops its draft, asked first when the draft has unsaved changes (ID-1472).
+    /// A symbol editor action that drops its draft, asked first when the draft has unsaved changes.
     SymbolAsk(&'static str, Value),
     /// The go-to field changed.
     GotoText(String),
@@ -60,26 +60,26 @@ pub(crate) enum Event {
     GotoGo(String),
     /// The save-layout field changed.
     WorkspaceText(String),
-    /// A field of a creation dialog changed (FT-408, FT-409): the parameter and its text.
+    /// A field of a creation dialog changed: the parameter and its text.
     FormField(&'static str, String),
     /// Enter in a creation dialog, or its Create button.
     FormSubmit,
-    /// A cell of the form's table changed (FT-786): the row, the column (`None`: the first, a rename) and its text.
+    /// A cell of the form's table changed: the row, the column (`None`: the first, a rename) and its text.
     FormTableCell(usize, Option<usize>, String),
-    /// The form table's Add (FT-786).
+    /// The form table's Add.
     FormTableAdd,
-    /// The form table's remove button of a row (FT-786).
+    /// The form table's remove button of a row.
     FormTableRemove(usize),
     /// The banner's own button.
     DismissBanner,
     /// The privacy button of the About dialog and of the first-run privacy step: `PRIVACY.md` in the system's viewer
-    /// (WP-S6.05 D16: the bundled copy when there is one).
+    /// (the bundled copy when there is one).
     OpenPrivacy,
-    /// The junction sequence editor's focused row (WP-S2.04 part 2; a view change of the popup).
+    /// The junction sequence editor's focused row (a view change of the popup).
     JunctionRow(usize),
-    /// A toast's Close (WP-S2.09 §6.5): the toast leaves the screen, the log keeps it.
+    /// A toast's Close: the toast leaves the screen, the log keeps it.
     DismissToast(u64),
-    /// A click on a disabled command (FT-1025): its reason in words, as a toast.
+    /// A click on a disabled command: its reason in words, as a toast.
     DisabledClick(String),
 }
 
@@ -99,13 +99,13 @@ pub enum Pick {
 pub enum PickReply {
     /// At once: a test's platform, or a system without a file dialog.
     Now(Pick),
-    /// From the dialog's own thread (FT-467): the frame reads the receiver at the start of every frame, and the thread
+    /// From the dialog's own thread: the frame reads the receiver at the start of every frame, and the thread
     /// requests a repaint once the answer is in it ([`spawn_pick`]).
     Later(Receiver<Pick>),
 }
 
 /// Runs `ask` (a native file dialog) on a thread of its own and returns the receiver of its answer; the thread sends
-/// the answer and then requests a repaint of `ctx`, so the frame that the request starts finds it (FT-467).
+/// the answer and then requests a repaint of `ctx`, so the frame that the request starts finds it.
 ///
 /// A modal dialog run inside the frame spins its own message loop on the window's thread. On Windows that loop
 /// dispatches the repaint which egui requested at the start of the frame to winit, which can only buffer it (its
@@ -142,7 +142,7 @@ pub trait Platform {
 
     /// Starts the file dialog of `prompt` and says how its answer comes. The default answers at once with
     /// [`Platform::pick`]; the application binary runs its native dialogs through [`spawn_pick`], so the window keeps
-    /// its event loop while a dialog is open (FT-467). `ctx` is the context to repaint when the answer is there.
+    /// its event loop while a dialog is open. `ctx` is the context to repaint when the answer is there.
     fn start_pick(&mut self, prompt: Prompt, ctx: &egui::Context) -> PickReply {
         let _ = ctx;
         PickReply::Now(self.pick(prompt))
@@ -154,7 +154,7 @@ pub trait Platform {
         false
     }
 
-    /// Prints a built print set (WP-S3.07 part 3, ruling 3 of ID-1180): `request` holds the PDF, the title and
+    /// Prints a built print set: `request` holds the PDF, the title and
     /// whether Print… or Open in PDF viewer asked. The application binary prints with `ew-print` on a worker thread
     /// and answers later; `ctx` is the context to repaint when the end is there. The default refuses: printing is not
     /// available in this window.
@@ -164,11 +164,11 @@ pub trait Platform {
     }
 }
 
-/// Whether `ui.dismiss` goes to an open menu (FT-1130, ID-1228 item 5; FT-1205): while one is open the menu (with its
+/// Whether `ui.dismiss` goes to an open menu (item 5): while one is open the menu (with its
 /// submenus) closes and nothing else runs, as Escape does. The one place the window's event loop and a visual script's
-/// action line both reach (FT-1188).
+/// action line both reach.
 pub(crate) fn menu_takes_dismiss(ctx: &egui::Context) -> bool {
-    // FT-1205 (ID-1392): any open menu, a context menu among them, takes it, not the app menu alone.
+    // Any open menu, a context menu among them, takes it, not the app menu alone.
     if egui::Popup::is_any_open(ctx) {
         egui::Popup::close_all(ctx);
         return true;
@@ -176,7 +176,7 @@ pub(crate) fn menu_takes_dismiss(ctx: &egui::Context) -> bool {
     false
 }
 
-/// How the end of a print comes to the frame (WP-S3.07 part 3).
+/// How the end of a print comes to the frame.
 #[derive(Debug)]
 pub enum PrintReply {
     /// At once: the platform's default, or a print that could not start.
@@ -195,50 +195,49 @@ impl Platform for NoPlatform {
     }
 }
 
-/// How long a toast stays on screen (WP-S2.09 D6), measured by the window's frame clock.
+/// How long a toast stays on screen, measured by the window's frame clock.
 const TOAST_SECONDS: f64 = 8.0;
 
-/// The opacity of the tool options card while the tool's ghost is under it (FT-1086, doc 16a §5.5).
+/// The opacity of the tool options card while the tool's ghost is under it (doc 16a §5.5).
 const OPTIONS_FADED_OPACITY: f32 = 0.4;
 
-/// A job younger than this shows no status-bar field (WP-S2.09 §6.4).
+/// A job younger than this shows no status-bar field.
 const JOB_FIELD_AFTER: Duration = Duration::from_millis(200);
 
 /// The application frame: the shell model and what the window needs besides it.
 pub struct App {
     shell: ShellModel,
     platform: Box<dyn Platform>,
-    /// The page canvases of the project view (WP-S2.02, WP-S2.03).
+    /// The page canvases of the project view.
     canvas: CanvasHost,
-    /// The canvas area's nested tab tree (WP-S2.03).
+    /// The canvas area's nested tab tree.
     canvas_area: CanvasAreaHost,
-    /// The page navigator pane (WP-S2.03).
+    /// The page navigator pane.
     navigator: NavigatorPane,
-    // WP-S2.06 part 1
     /// The panes of the other open navigators, by kind.
     navigators: std::collections::BTreeMap<ew_viewmodel::navigators::NavKind, NavigatorPane>,
-    /// The property grid pane (WP-S2.05).
+    /// The property grid pane.
     properties: PropertiesPane,
     /// The banner text [`App::report`] raised for a failure, while it stands: the next failure replaces it, where a
     /// banner the shell raised itself keeps precedence (W46.4 F1); with the action that failed, whose next success
-    /// clears it (ID-1278 ruling 8).
+    /// clears it.
     reported: Option<String>,
     /// The action whose failure raised [`App::reported`]: the open palette form's when the form ran it.
     reported_by: Option<String>,
-    /// The find pane (WP-S2.05 part 2).
+    /// The find pane.
     find: FindPane,
     /// The visible toasts by serial and the frame time (egui's `input.time`, seconds) of the frame that first painted
-    /// each: a toast goes after 8 seconds measured by the window, never by the model (WP-S2.09 D6). The frame clock is
+    /// each: a toast goes after 8 seconds measured by the window, never by the model. The frame clock is
     /// the wall clock in the window and the harness's steps in a test, so no test depends on how fast a loaded machine
-    /// runs (FT-524).
+    /// runs.
     toast_since: std::collections::BTreeMap<u64, f64>,
-    /// FT-1027: the opacity each visible toast was painted with in the last frame (its fade in and out on the frame
+    /// The opacity each visible toast was painted with in the last frame (its fade in and out on the frame
     /// clock), and the frame time of that frame (a hovered toast's clock stands still between two frames).
     toast_opacity: std::collections::BTreeMap<u64, f32>,
     toast_clock: Option<f64>,
     /// The toasts the pointer was on in the last frame (their clocks stand still).
     toast_hovered: Vec<u64>,
-    /// FT-1211: the toasts stand at the canvas's bottom right, clear of where a tool works ([`crate::notifications::toasts_low`]),
+    /// The toasts stand at the canvas's bottom right, clear of where a tool works ([`crate::notifications::toasts_low`]),
     /// and the stack's rectangle in the last frame.
     toasts_low: bool,
     toast_stack: Option<egui::Rect>,
@@ -255,22 +254,22 @@ pub struct App {
     dock: Dock,
     initial: Option<PathBuf>,
     bindings: Vec<Binding>,
-    /// The keymap the bindings were built for (WP-S2.08 part 2): the preset and the user keymap's version.
+    /// The keymap the bindings were built for: the preset and the user keymap's version.
     bindings_for: (ew_viewmodel::keymap::Preset, u64),
     title: String,
     palette_was_open: bool,
     /// The picker's step in the previous frame: `None` closed, else the part whose symbol it asks for. Its filter
     /// field takes the focus when it opens and (ID-1497 (5)) when it moves on to a part's symbols.
     picker_was_open: Option<Option<usize>>,
-    /// The Join chooser's type-ahead text (WP-S2.18 D2).
+    /// The Join chooser's type-ahead text.
     chooser_typing: crate::chooser::TypeAhead,
     /// The opening of the dialog the last frame showed ([`ShellModel::dialog_generation`]): a dialog opened since is a
     /// new one, which takes its first focus (doc 16a §6.12), even when it replaced the last in one frame (W49.3-F1: the
     /// collision dialog after Renumber) or is of the same kind (C49-p10b#4: rebuilt by a second change).
     dialog_was: Option<u64>,
-    /// The file dialog that is open off the window's thread, with the request it answers (FT-467).
+    /// The file dialog that is open off the window's thread, with the request it answers.
     pending_pick: Option<(PromptRequest, Receiver<Pick>)>,
-    /// The prints running off the window's thread (WP-S3.07 part 3), each with the receiver of its end.
+    /// The prints running off the window's thread, each with the receiver of its end.
     pending_prints: Vec<Receiver<PrintEnd>>,
     /// The `ui_scale` last given to egui: the zoom is set when the setting changes, not every frame, so that
     /// egui's own zoom keys keep working in between.
@@ -279,36 +278,34 @@ pub struct App {
     window_zoom: Option<f32>,
     /// The theme, density, minimum text size and reduce-motion settings last given to egui.
     applied_theme: Option<(String, String, u8, bool)>,
-    // WP-S2.05 part 3
     /// Edit ▸ Paste (or the palette) asked for the system clipboard: the frame sends `ViewportCommand::RequestPaste`,
     /// and the platform answers with a paste event, which runs `edit.paste_clip` with its text like Ctrl+V.
     request_paste: bool,
-    /// The IP tool's name field in the tool strip (WP-S2.04 §9.1): `ip.name` on Enter.
+    /// The IP tool's name field in the tool strip: `ip.name` on Enter.
     ip_name: String,
-    /// The Wire marker tool's cross-section and colours fields (WP-S2.04 §10.5): `marker.fields` on Enter.
+    /// The Wire marker tool's cross-section and colours fields: `marker.fields` on Enter.
     marker_csa: String,
     marker_colours: String,
-    /// The Structure box tool's caption and location fields (WP-S2.04 §10.5): `structure_box.fields` on Enter.
+    /// The Structure box tool's caption and location fields: `structure_box.fields` on Enter.
     structure_caption: String,
     structure_location: String,
     /// The tool generation whose drawing-field drafts are displayed.
     drawing_fields_epoch: Option<u64>,
-    /// The text popup's field (WP-S2.04 §10.5): `None` while the popup is closed.
+    /// The text popup's field: `None` while the popup is closed.
     text_buffer: Option<String>,
-    // WP-S2.17 part 2
     /// The command bar's window state (the collapsed bar's popover, the search field's place).
     command_bar: CommandBarHost,
     /// The page view pane's rectangle in the last frame: the HUD, the zoom control and the tool options stand on it.
     page_pane: Option<egui::Rect>,
     /// The HUD's rectangle in the last frame.
     hud_rect: Option<egui::Rect>,
-    /// The tool options card's rectangle in the last frame (FT-1086: where the ghost is under it).
+    /// The tool options card's rectangle in the last frame (where the ghost is under it).
     options_rect: Option<egui::Rect>,
-    /// Whether the window had the operating system's focus in the last frame (FT-514).
+    /// Whether the window had the operating system's focus in the last frame.
     window_focused: Option<bool>,
-    /// How many times the window regained the focus and asked for the frames that repaint it (FT-514; tests).
+    /// How many times the window regained the focus and asked for the frames that repaint it (tests).
     focus_repaints: u64,
-    /// When the project on disk was last polled for an external change (WP-S1.17 D20), on the window's clock, and the
+    /// When the project on disk was last polled for an external change, on the window's clock, and the
     /// time to the next poll in seconds.
     disk_polled: (f64, f64),
     /// Alt is down and nothing else was pressed since: its release opens the app menu (doc 16a §5.2).
@@ -415,7 +412,7 @@ impl App {
         self.dispatch_log.iter().cloned().collect()
     }
 
-    /// How many times the window regained the operating system's focus and requested its repaints (FT-514; tests).
+    /// How many times the window regained the operating system's focus and requested its repaints (tests).
     #[doc(hidden)]
     pub fn focus_repaints(&self) -> u64 {
         self.focus_repaints
@@ -448,12 +445,11 @@ impl App {
         self.navigator.rebuilds()
     }
 
-    /// The opacity each visible toast was painted with in the last frame, by serial (FT-1027; tests).
+    /// The opacity each visible toast was painted with in the last frame, by serial (tests).
     pub fn toast_opacities(&self) -> Vec<(u64, f32)> {
         self.toast_opacity.iter().map(|(s, a)| (*s, *a)).collect()
     }
 
-    // WP-S2.06 part 1
     /// How many times navigator `kind`'s pane built its rows, and how many rows its last frame painted (tests).
     pub fn navigator_pane_stats(&self, kind: ew_viewmodel::navigators::NavKind) -> Option<(u64, usize)> {
         match kind {
@@ -480,13 +476,13 @@ impl App {
         self.canvas.cached_tiles()
     }
 
-    /// The frame statistics of the canvas (WP-S2.02 section 9).
+    /// The frame statistics of the canvas (section 9).
     pub fn canvas_stats(&self) -> &ew_render2d::stats::FrameStats {
         self.canvas.stats()
     }
 
     /// Gives the canvas eframe's wgpu render state (`None`: the CPU canvas) and the command line's flags; the
-    /// application binary calls it from eframe's creation closure (WP-S2.02 section 7.2).
+    /// application binary calls it from eframe's creation closure (section 7.2).
     pub fn attach_gpu(
         &mut self,
         render_state: Option<egui_wgpu::RenderState>,
@@ -508,7 +504,7 @@ impl App {
     }
 
     /// The number of splitter handles on screen: the dock's and the canvas area's while the project view shows,
-    /// else none (tests; FT-338: every handle is a named `Splitter` node).
+    /// else none (tests; every handle is a named `Splitter` node).
     #[doc(hidden)]
     pub fn splitter_count(&self) -> usize {
         if self.shell.first_run().is_none() && self.shell.wizard().is_none() && self.shell.has_project() {
@@ -531,14 +527,14 @@ impl App {
     }
 
     /// The preview chips painted in the last frame with their frames in points, and the statistics panel's frame
-    /// when it showed (tests, FT-389).
+    /// when it showed (tests).
     #[doc(hidden)]
     pub fn preview_chips(&self) -> (Vec<(String, egui::Rect)>, Option<egui::Rect>) {
         let (chips, stats) = self.canvas.preview_chips();
         (chips.to_vec(), stats)
     }
 
-    /// The canvas host (tests; WP-S2.17 part 5: the chips of the last frame, the chrome-obstacle seam).
+    /// The canvas host (tests; the chips of the last frame, the chrome-obstacle seam).
     #[doc(hidden)]
     pub fn canvas_host(&mut self) -> &mut CanvasHost {
         &mut self.canvas
@@ -549,7 +545,7 @@ impl App {
         self.dock.panes()
     }
 
-    /// The active pane of the tab group that holds `pane` (tests, FT-509).
+    /// The active pane of the tab group that holds `pane` (tests).
     #[doc(hidden)]
     pub fn dock_active_beside(&self, pane: PaneKind) -> Option<PaneKind> {
         self.dock.active_beside(pane)
@@ -562,10 +558,10 @@ impl App {
     }
 
     fn dispatch(&mut self, action: &'static str, params: &Value) {
-        // WP-S2.05 part 3: a paste without the clipboard's text (Edit ▸ Paste, the palette, a Ctrl+V key press that
+        // A paste without the clipboard's text (Edit ▸ Paste, the palette, a Ctrl+V key press that
         // the platform did not turn into a paste event) asks the platform for the system clipboard first; an action
         // the shell refuses now is dispatched, so its reason shows.
-        // WP-S2.06 part 3: the table's paste likewise.
+        // The table's paste likewise.
         if action == "table.paste"
             && params.get("text").is_none()
             && ew_viewmodel::actions::find(action).is_some_and(|a| (a.enabled)(&self.shell).is_ok())
@@ -592,7 +588,7 @@ impl App {
     /// (raised, replaced or cleared for its own reason): the banner [`App::report`] raised is then forgotten.
     fn run(&mut self, action: Option<&str>, step: impl FnOnce(&mut ShellModel) -> Outcome) {
         let before = self.shell.banner().map(str::to_owned);
-        // The palette form's run is reported as its action (ID-1278 ruling 8), and (FT-1260) the palette's run of
+        // The palette form's run is reported as its action, and the palette's run of
         // its selected action without a form as that action.
         let form = self.shell.palette().and_then(|p| match &p.form {
             Some(f) => Some(f.action),
@@ -626,7 +622,7 @@ impl App {
             Outcome::Refused { reason_key } if reason_key == key!("reason-cut-incomplete-items") => {
                 strings::text(reason_key).to_owned()
             }
-            // FT-1260: an action that opened its parameter form has not run: its banner stays.
+            // An action that opened its parameter form has not run: its banner stays.
             Outcome::Done
                 if ours
                     && action.is_some()
@@ -657,7 +653,7 @@ impl App {
                 .shell
                 .properties()
                 .error()
-                // The pane shows the message with a capital first (FT-1075), so it is that form that is the same.
+                // The pane shows the message with a capital first, so it is that form that is the same.
                 .is_some_and(|(row, shown)| {
                     shown == strings::sentence_start(&message) && self.properties.drew_row(row)
                 });
@@ -681,7 +677,7 @@ impl App {
         }
     }
 
-    /// The banner of doc 16a §6.11 (WP-S2.17 part 4) as an overlay (FT-822): along the top edge of the canvas below the
+    /// The banner of doc 16a §6.11 as an overlay: along the top edge of the canvas below the
     /// page tabs when a page view is shown, else under the command bar, full width of that area. Showing or dismissing
     /// it never moves the canvas or a panel (the play-test's clicks missed when it pushed the window down). Returns its
     /// rectangle.
@@ -796,7 +792,7 @@ impl App {
         let ctx = ui.ctx().clone();
         // `ui_scale` is a factor on the native scale: egui's zoom factor is exactly that, and follows the window
         // to another monitor. It is set once when the setting changes.
-        // WP-S2.08 part 2: the bindings follow the keymap preset and the user's keymap.
+        // The bindings follow the keymap preset and the user's keymap.
         let keymap = (self.shell.keymap_preset(), self.shell.keymap_version());
         if self.bindings_for != keymap {
             self.bindings = keys::bindings(&self.shell.bindings());
@@ -807,9 +803,9 @@ impl App {
             ctx.set_zoom_factor(scale);
             self.applied_scale = Some(scale);
         }
-        // WP-S2.17 part 1: the theme and the density as tokens (doc 16a §4.14), applied when either setting changes;
+        // The theme and the density as tokens (doc 16a §4.14), applied when either setting changes;
         // `system` lets egui follow the operating system between Light and Dark (D5).
-        // WP-S2.08 D14: the minimum text size and reduced motion with them.
+        // The minimum text size and reduced motion with them.
         let appearance = (
             self.shell.settings().theme.clone(),
             self.shell.settings().density.clone(),
@@ -818,20 +814,20 @@ impl App {
         );
         if self.applied_theme.as_ref() != Some(&appearance) {
             crate::theme::apply_setting(&appearance.0, &appearance.1, appearance.2, appearance.3, &ctx);
-            // A visual run draws the caret always (WP-S6.13 part 4 §3.1), so a frame never catches it off.
+            // A visual run draws the caret always, so a frame never catches it off.
             if crate::clock::on_frame_clock() {
                 ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
             }
             self.applied_theme = Some(appearance);
         }
-        // FT-1247: reduced motion ends egui's wheel smoothing too.
+        // Reduced motion ends egui's wheel smoothing too.
         if self.shell.reduce_motion() {
             crate::theme::unsmoothed_scroll(&ctx);
         }
-        // The switch rule (WP-S2.02 section 7.2): the setting is effective at once, a failure moves the canvas to the
+        // The switch rule (section 7.2): the setting is effective at once, a failure moves the canvas to the
         // CPU with one banner, and the status bar shows the result.
         self.canvas.update_backend(&mut self.shell);
-        // WP-S2.17 part 3 (DK6, FT-348): the window's geometry, written at the end of the window.
+        // WP-S2.17 part 3 (DK6): the window's geometry, written at the end of the window.
         crate::window_memory::remember(&ctx, &mut self.shell, &mut self.window_zoom);
         if ctx.input(|i| i.viewport().close_requested()) && !self.shell.should_quit() {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
@@ -840,7 +836,7 @@ impl App {
                 self.dispatch("app.quit", &Value::Null);
             }
         }
-        // FT-514: a native dialog closed, or the user came back from another window: the window regains the focus
+        // A native dialog closed, or the user came back from another window: the window regains the focus
         // without a pointer move, and the status hint it shows may be stale. The frame that sees the focus come back
         // repaints now and twice shortly after (a dialog may still be closing while the first frame paints).
         let focused = ctx.input(|i| i.viewport().focused);
@@ -854,9 +850,9 @@ impl App {
         if focused.is_some() {
             self.window_focused = focused;
         }
-        // WP-S2.17 part 2: Alt pressed and released alone, or F10, opens the app menu (doc 16a §5.2).
+        // Alt pressed and released alone, or F10, opens the app menu (doc 16a §5.2).
         self.app_menu_keys(&ctx);
-        // WP-S2.09 part 1: the jobs wake the window after each progress report and at their end, and every frame takes
+        // The jobs wake the window after each progress report and at their end, and every frame takes
         // the ends that are in (no `Session` call).
         // On the frame clock (a visual run) the driver waits for the jobs itself: no job thread wakes the frame, so
         // which frame sees an end never depends on timing.
@@ -868,7 +864,7 @@ impl App {
         }
         self.shell.poll_jobs();
         let now = ctx.input(|i| i.time);
-        // WP-S1.17 part 7 (D20, D22): the project on disk is polled every 3 s, 750 ms later again while a change settles,
+        // The project on disk is polled every 3 s, 750 ms later again while a change settles,
         // and when the window regains the focus; never while a pointer button is held (a gesture) or on the frame clock
         // (a visual run polls through `project.check_disk`).
         if self.shell.has_project() && !crate::clock::on_frame_clock() {
@@ -914,7 +910,7 @@ impl App {
             self.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() }));
         }
         // The file dialogs are started and answered at the start of a frame, so the menu is already closed and the card
-        // is in the shell before this frame paints (W3); an answer from a dialog's thread starts this frame (FT-467).
+        // is in the shell before this frame paints (W3); an answer from a dialog's thread starts this frame.
         self.answer_prompts(&ctx);
         if self.dock.version() != self.shell.layout_version() {
             self.dock = Dock::new(self.shell.layout(), self.shell.layout_version());
@@ -966,7 +962,7 @@ impl App {
         // Doc 16a §5.5: a fit keeps the sheet above the tool HUD's band.
         self.shell
             .set_canvas_fit_inset(f64::from(crate::hud::fit_inset(&tokens)));
-        // WP-S2.17 part 2: the command bar replaces the menu bar (doc 16a §5.2); the app button opens the app menu.
+        // The command bar replaces the menu bar (doc 16a §5.2); the app button opens the app menu.
         let bar_height = if self.shell.symbol_editor().is_some() {
             tokens.size_tab_row + crate::symbol_editor::toolbar_height(&tokens) + tokens.border_width
         } else {
@@ -989,7 +985,7 @@ impl App {
             ctx.memory_mut(|m| m.request_focus(tab));
         }
         self.bar_had_focus = bar_has_focus;
-        // WP-S2.17 part 3: `size.status` high (doc 16a §5.8).
+        // `size.status` high (doc 16a §5.8).
         Panel::bottom("status-bar")
             .exact_size(tokens.size_status)
             .resizable(false)
@@ -1062,29 +1058,25 @@ impl App {
                 } = self;
                 navigators.retain(|k, _| shell.navigator_open(*k));
                 let collapsed = shell.rail_collapsed();
-                // Doc 16a §5.7: the Messages tab's count chip shows the open findings (FT-710: the status bar's rule).
+                // Doc 16a §5.7: the Messages tab's count chip shows the open findings (the status bar's rule).
                 let counts = [(
                     PaneKind::Navigator(ew_viewmodel::navigators::NavKind::Messages),
                     shell.messages_badge(),
                 )];
                 let headers = dock.show(ui, collapsed, &counts, &mut |ui, pane| match pane {
                     PaneKind::Pages => navigator.show(ui, shell, &mut events),
-                    // WP-S2.06 part 1
                     PaneKind::Navigator(k) => navigators
                         .entry(k)
                         .or_insert_with(|| NavigatorPane::of(k))
                         .show(ui, shell, &mut events),
                     PaneKind::Properties => properties.show(ui, shell, &mut events),
                     PaneKind::Find => find.show(ui, shell, &mut events),
-                    // WP-S2.09 part 1
                     PaneKind::Jobs => crate::jobs::show(ui, shell, job_started, now, &mut events),
-                    // WP-S2.09 part 3
                     PaneKind::Preview => crate::preview::show(ui, shell, &mut events),
                     PaneKind::History => crate::history::show(ui, shell, &mut events),
-                    // WP-S2.08 part 6
                     PaneKind::Glossary => crate::glossary::show(ui, shell, &mut events),
                     PaneKind::PageView => {
-                        // WP-S2.17 part 2: the HUD and the zoom control stand on the page view pane.
+                        // The HUD and the zoom control stand on the page view pane.
                         page_pane = Some(ui.max_rect());
                         canvas_area.show(ui, shell, canvas, &mut events);
                         *area_splitters = canvas_area.splitter_count(shell);
@@ -1097,7 +1089,7 @@ impl App {
                 start_page::show(ui, &self.shell, &mut events);
             }
         });
-        // WP-S2.17 part 2: the HUD, the zoom control and the tool options over the page view (doc 16a §5.5).
+        // The HUD, the zoom control and the tool options over the page view (doc 16a §5.5).
         self.page_pane = page_pane.filter(|_| canvas_shown);
         self.hud_rect = None;
         let mut options_card = None;
@@ -1121,7 +1113,7 @@ impl App {
         let chrome: Vec<egui::Rect> = match (self.page_pane, self.hud_rect) {
             (Some(pane), Some(hud)) => [hud, crate::hud::zoom_rect(&crate::theme::current(&ctx), pane)]
                 .into_iter()
-                // FT-1086: no obstacle for a ghost under the card.
+                // No obstacle for a ghost under the card.
                 .chain(options_card.filter(|(_, faded)| !faded).map(|(rect, _)| rect))
                 .collect(),
             _ => Vec::new(),
@@ -1149,7 +1141,7 @@ impl App {
             &mut events,
         );
         self.picker_was_open = picker_step;
-        // WP-S2.18 D2: the Place tool's Join chooser (doc 16a §6.22).
+        // The Place tool's Join chooser (doc 16a §6.22).
         crate::chooser::show(
             &ctx,
             &self.shell,
@@ -1160,15 +1152,15 @@ impl App {
         crate::junction::show(&ctx, &self.shell, &mut events);
         crate::text_popup::show(&ctx, &self.shell, &mut self.text_buffer, &mut events);
         crate::parts_card::show(&ctx, &self.shell, &mut events);
-        // FT-649: the parts import's column mapping step.
+        // The parts import's column mapping step.
         crate::parts_map::show(&ctx, &self.shell, &mut events);
-        // WP-S2.09 part 3: Show changes of the history panel.
+        // Show changes of the history panel.
         crate::history::show_changes(&ctx, &self.shell, &mut events);
-        // WP-S2.09 part 1: the toasts and the notifications log.
-        // WP-S2.17 part 4: at the canvas's top right (doc 16a §6.10).
+        // The toasts and the notifications log.
+        // At the canvas's top right (doc 16a §6.10).
         let bar_bottom = self.command_bar.bar_rect().map_or(0.0, |r| r.bottom());
         let mut anchor = crate::notifications::toast_anchor(&tokens, &ctx, self.page_pane, bar_bottom);
-        // FT-822: the banner lies over the top edge of the canvas; the toasts start below it.
+        // The banner lies over the top edge of the canvas; the toasts start below it.
         if let Some(banner) = self.banner_overlay(&ctx, &tokens, bar_bottom, &mut events) {
             anchor.y = anchor.y.max(banner.bottom() + tokens.space_4);
         }
@@ -1177,7 +1169,7 @@ impl App {
             self.toasts_low,
             self.shell.tool().name() != "select",
             self.page_pane,
-            // C52-p3#2 (ID-1417): the tool's press decides, never a move of the pointer.
+            // The tool's press decides, never a move of the pointer.
             ctx.input(|i| {
                 i.pointer
                     .any_pressed()
@@ -1200,11 +1192,11 @@ impl App {
             _ => egui::Align2::RIGHT_TOP,
         };
         let dialog_open = self.shell.dialog().is_some();
-        // Doc 16a §6.12: under a modal the toasts go below its backdrop, which dims them with the rest. SM25b m4
-        // (ID-1476): below the Insert symbol picker too, which stands in the foreground and keeps its field clear.
+        // Doc 16a §6.12: under a modal the toasts go below its backdrop, which dims them with the rest. SM25b m4:
+        // below the Insert symbol picker too, which stands in the foreground and keeps its field clear.
         let under_modal =
             dialog_open || self.shell.picker().is_some() || ctx.memory(|m| m.top_modal_layer().is_some());
-        // FT-1027 (ID-1107; doc 16a §4.12, §6.10): each toast fades in and out over `motion.base` on the frame clock.
+        // FT-1027 (doc 16a §4.12, §6.10): each toast fades in and out over `motion.base` on the frame clock.
         let frame_time = ctx.input(|i| i.time);
         let fade = f64::from(tokens.motion_base) / 1000.0;
         // Hovering a toast pauses it (doc 16a §6.10): the clock of a toast the pointer was on in the last frame stands
@@ -1238,9 +1230,9 @@ impl App {
             &self.toast_opacity,
             &mut events,
         );
-        // FT-1088 (ID-1183; doc 16a §6.10): a hover pauses a toast only once the pointer has moved onto it (a
+        // FT-1088 (doc 16a §6.10): a hover pauses a toast only once the pointer has moved onto it (a
         // pointer-moved event in this frame) and keeps it paused while the pointer stays; a toast that appears under a
-        // pointer at rest is not paused, so it fades on time. FT-1137 (ID-1225): a toast that holds the keyboard focus
+        // pointer at rest is not paused, so it fades on time. FT-1137: a toast that holds the keyboard focus
         // is paused too.
         let pointer_moved = ctx.input(|i| i.events.iter().any(|e| matches!(e, egui::Event::PointerMoved(_))));
         self.toast_stack = stack;
@@ -1259,7 +1251,7 @@ impl App {
             &mut events,
         );
         self.dialog_was = opening;
-        // WP-S6.05 D11: the start-up offer, while no other dialog is open.
+        // The start-up offer, while no other dialog is open.
         if self.shell.dialog().is_none() {
             crate::startup::show(&ctx, &self.shell, &mut events);
         }
@@ -1269,7 +1261,7 @@ impl App {
         }
 
         if canvas_shown {
-            // The merged tile submission and the hidden-first eviction of every canvas (WP-S2.03 §6.8).
+            // The merged tile submission and the hidden-first eviction of every canvas.
             self.canvas.finish_frame(&ctx, &self.shell);
         }
         // A native dialog that is open off the window's thread need not be modal (on Linux the portal dialog has no
@@ -1282,7 +1274,7 @@ impl App {
         if !events.is_empty() {
             ctx.request_repaint();
         }
-        // The toasts' timeouts are the window's (WP-S2.09 D6): 8 seconds each after the frame that first showed it.
+        // The toasts' timeouts are the window's: 8 seconds each after the frame that first showed it.
         let visible: Vec<u64> = self
             .shell
             .notifications()
@@ -1305,18 +1297,18 @@ impl App {
         }
         let dispatch_started = crate::clock::now();
         // The window repaints after an action that changed the model or the tool's marks without pointer motion
-        // (an undo, a key-driven commit, a gesture's release; WP-S2.04 part 2, window check): once at once, and once
+        // (an undo, a key-driven commit, a gesture's release; window check): once at once, and once
         // shortly after, when the page's new tiles have had time to arrive.
         let marks_before = (self.shell.revision(), self.shell.tool_overlay().len());
         for event in events {
-            // FT-1130 (ID-1228 item 5): `ui.dismiss` while the app menu is open closes the menu and nothing else, as
-            // Escape does; FT-1205 (ID-1392): so does any menu, a context menu among them.
+            // FT-1130 (item 5): `ui.dismiss` while the app menu is open closes the menu and nothing else, as
+            // Escape does; FT-1205: so does any menu, a context menu among them.
             if matches!(event, Event::Action("ui.dismiss", _)) && menu_takes_dismiss(&ctx) {
                 continue;
             }
             self.apply(event);
         }
-        // WP-S2.05 part 3: what a copy wrote goes to the system clipboard (egui's `copy_text`).
+        // What a copy wrote goes to the system clipboard (egui's `copy_text`).
         if let Some(text) = self.shell.take_clipboard_outbox() {
             ctx.copy_text(text);
         }
@@ -1328,13 +1320,13 @@ impl App {
             ctx.request_repaint_after(Duration::from_millis(100));
         }
         if canvas_shown {
-            // The canvas's input phase includes dispatching the frame's actions (WP-S2.02 section 9).
+            // The canvas's input phase includes dispatching the frame's actions (section 9).
             self.canvas.end_frame(crate::clock::now() - dispatch_started);
         } else if self.shell.has_project()
             && self.shell.first_run().is_none()
             && self.shell.wizard().is_none()
         {
-            // The page pane is behind another tab of the dock: its tiles stay within a share of the cache (FT-356).
+            // The page pane is behind another tab of the dock: its tiles stay within a share of the cache.
             self.canvas.hide();
         } else {
             // No canvas on screen (start page, wizard, first run): its tiles and queued jobs go.
@@ -1367,23 +1359,23 @@ impl App {
 
     /// The shell's shortcuts. Routing order: a focused text field, then an open popup or dialog, then the
     /// shortcuts; Escape closes the topmost popup or dialog and otherwise goes to the active canvas tool through
-    /// `ui.dismiss` (WP-S2.03 §7.2). F1 is handled at the end of the frame, in every state. While a canvas has the
+    /// `ui.dismiss`. F1 is handled at the end of the frame, in every state. While a canvas has the
     /// focus, `[` and `]` are matched as the physical keys (no AltGr on QWERTZ and AZERTY, doc 16 §4.4).
     fn route_keys(&mut self, ctx: &egui::Context, events: &mut Vec<Event>) {
         let palette_open = self.shell.palette().is_some();
         let dialog_open = self.shell.dialog().is_some();
-        // The junction sequence editor is a popup like the picker (WP-S2.04 part 2): Escape closes it, its own keys
-        // stay with it. The text popup is one too (WP-S2.04 part 4b §10.5).
+        // The junction sequence editor is a popup like the picker: Escape closes it, its own keys
+        // stay with it. The text popup is one too.
         let picker_open = self.shell.picker().is_some()
-            // WP-S2.18 D2: the Join chooser is a popup too.
+            // The Join chooser is a popup too.
             || self.shell.chooser().is_some()
             || self.shell.junction_editor().is_some()
             || self.shell.text_popup().is_some()
-            // WP-S2.09 §6.5: the notifications log is a popup too.
+            // The notifications log is a popup too.
             || self.shell.notifications().popup_open();
         let overlay = palette_open || dialog_open || picker_open;
-        // WP-S2.17 part 2: Escape closes the app menu (with its submenus), then the collapsed bar's command-row popover.
-        // FT-1205 (ID-1392): any open menu, a context menu among them, closes and nothing else (the selection stays).
+        // Escape closes the app menu (with its submenus), then the collapsed bar's command-row popover.
+        // Any open menu, a context menu among them, closes and nothing else (the selection stays).
         if egui::Popup::is_any_open(ctx) && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             egui::Popup::close_all(ctx);
             return;
@@ -1399,7 +1391,7 @@ impl App {
             events.push(Event::Action("ui.dismiss", Value::Null));
             return;
         }
-        // WP-S6.05 D11: the start-up offer is modal; Escape is its Not now.
+        // The start-up offer is modal; Escape is its Not now.
         if self.shell.startup_offer().is_some() {
             if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
                 events.push(Event::Action("startup.dismiss", Value::Null));
@@ -1415,7 +1407,7 @@ impl App {
         if self.properties.field_open() && ctx.input(|i| i.key_pressed(Key::Escape)) {
             return;
         }
-        // ID-1463: while the symbol editor shows, Escape is its own (a gesture ends, then Select).
+        // While the symbol editor shows, Escape is its own (a gesture ends, then Select).
         if !palette_open
             && self.shell.has_project()
             && self.shell.symbol_editor().is_none()
@@ -1424,11 +1416,11 @@ impl App {
             events.push(Event::Action("ui.dismiss", Value::Null));
             return;
         }
-        // FT-519: the history panel's row keys while it has the focus.
+        // The history panel's row keys while it has the focus.
         if !palette_open && crate::history::keys(ctx, events) {
             return;
         }
-        // WP-S2.17 part 3: Ctrl+1 to Ctrl+9 pick the left rail's entries (doc 16a §5.4).
+        // Ctrl+1 to Ctrl+9 pick the left rail's entries (doc 16a §5.4).
         if !palette_open
             && self.shell.has_project()
             && self.shell.wizard().is_none()
@@ -1436,7 +1428,7 @@ impl App {
         {
             return;
         }
-        // FT-410: Ctrl+Enter applies an open parts import card from anywhere (the card is a window of its own).
+        // Ctrl+Enter applies an open parts import card from anywhere (the card is a window of its own).
         if !palette_open
             && self.shell.import_card_open()
             && ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::Enter))
@@ -1444,7 +1436,7 @@ impl App {
             events.push(Event::Action("preview.apply", Value::Null));
             return;
         }
-        // The focused context's chords first, then the global ones (WP-S2.03 §6.6); while the navigator has the
+        // The focused context's chords first, then the global ones; while the navigator has the
         // focus its own keys (arrows, Home, End, Enter) stay with it.
         let focused = match self.shell.focus() {
             // ID-1463 (doc 16a P8): the symbol editor's drawing is a canvas; its tools take the canvas's keys.
@@ -1482,7 +1474,7 @@ impl App {
                 return;
             }
         }
-        // The chords bound by physical key (`]` and `[` in the canvas, any `phys:` key of a keymap, WP-S2.08 D6) are
+        // The chords bound by physical key (`]` and `[` in the canvas, any `phys:` key of a keymap) are
         // matched on the key's position, so they need no AltGr on QWERTZ and AZERTY: the focused context's first, the
         // most modifiers first; a chord without Shift also takes the key with Shift.
         if !palette_open {
@@ -1538,7 +1530,7 @@ impl App {
                 return;
             }
         }
-        // WP-S2.05 part 3: the platform layer turns Ctrl+C, Ctrl+X and Ctrl+V into clipboard events, not key presses
+        // The platform layer turns Ctrl+C, Ctrl+X and Ctrl+V into clipboard events, not key presses
         // (egui-winit); on the canvas they run the clipboard actions, a paste with the system clipboard's text. A text
         // field never gets here (the return above), so the grid and the find pane keep egui's own copy and paste.
         if focused == Context::Canvas && !palette_open {
@@ -1569,7 +1561,7 @@ impl App {
                 _ => {}
             }
         }
-        // WP-S2.06 part 3: in a navigator's table the clipboard events run the table's copy and paste (§8.6).
+        // In a navigator's table the clipboard events run the table's copy and paste (§8.6).
         if focused == Context::Navigator
             && !palette_open
             && let Some(kind) = self.shell.focused_navigator()
@@ -1617,7 +1609,7 @@ impl App {
         });
         for binding in candidates {
             // Plain Escape is `ui.dismiss`'s own path above; a `ui.dismiss` the keymap binds to another key is matched
-            // here, as the physical-key loop matches one (FT-1187).
+            // here, as the physical-key loop matches one.
             let escape =
                 binding.shortcut.logical_key == Key::Escape && binding.shortcut.modifiers == Modifiers::NONE;
             if binding.action == "help.documentation"
@@ -1627,7 +1619,7 @@ impl App {
                 || (focused == Context::Properties
                     && binding.context != Context::Properties
                     && crate::properties::is_grid_key(&binding.shortcut))
-                // WP-S2.05 part 2: the find pane's own keys (the arrows, Home, End, Enter) stay with it.
+                // The find pane's own keys (the arrows, Home, End, Enter) stay with it.
                 || (focused == Context::Find
                     && binding.context != Context::Find
                     && crate::properties::is_grid_key(&binding.shortcut))
@@ -1635,7 +1627,7 @@ impl App {
                 continue;
             }
             if ctx.input_mut(|i| i.consume_shortcut(&binding.shortcut)) {
-                // WP-S2.05 part 2: Ctrl+Enter in the find pane applies its open replace card.
+                // Ctrl+Enter in the find pane applies its open replace card.
                 let replace_card =
                     self.shell.properties().card().is_some_and(|c| {
                         matches!(c.origin, ew_viewmodel::properties::CardOrigin::Find { .. })
@@ -1687,9 +1679,9 @@ impl App {
         }
     }
 
-    /// The tool options card at the page view's top left (WP-S2.17 part 2): the fields of the IP tool (WP-S2.04 §9.1),
-    /// the Text tool's binding, the Wire marker's fields and the Structure box's style and fields (WP-S2.04 §10.5),
-    /// which the removed tool strip held, and the layout place options (WP-S4.02 part 3). Shown only while one of those
+    /// The tool options card at the page view's top left: the fields of the IP tool,
+    /// the Text tool's binding, the Wire marker's fields and the Structure box's style and fields,
+    /// which the removed tool strip held, and the layout place options. Shown only while one of those
     /// tools runs (or Select drags a placement); returns the card's frame (the canvas chips keep off it, W40b).
     fn tool_options(
         &mut self,
@@ -1704,12 +1696,12 @@ impl App {
             tool == "marker",
             tool == "structure_box",
         );
-        // WP-S4.02 part 3: the layout place tool, or a placement dragged by Select.
+        // The layout place tool, or a placement dragged by Select.
         let layout = self
             .shell
             .layout_options_shown()
             .then(|| self.shell.layout_card_options());
-        // WP-S4.02 part 4 (D11): Draw rail's and Draw duct's part, grid step and duct size.
+        // Draw rail's and Draw duct's part, grid step and duct size.
         let draw = self
             .shell
             .draw_card()
@@ -1725,13 +1717,13 @@ impl App {
             Vec::new()
         };
         let text_bind = if text { self.shell.text_bind() } else { None };
-        // FT-851: the IP name field shows the typed name, else the ghost's proposal as its hint.
+        // The IP name field shows the typed name, else the ghost's proposal as its hint.
         let ip_typed = self.shell.ip_typed_name().map(str::to_owned);
         let ip_proposal = match self.shell.tool_ghost() {
             Some(ew_viewmodel::tools::Ghost::Ip { name, .. }) if ip && !name.is_empty() => Some(name),
             _ => None,
         };
-        // FT-1086 (ID-1183): see below.
+        // See below.
         let faded = self
             .options_rect
             .zip(self.ghost_screen_point())
@@ -1748,7 +1740,7 @@ impl App {
             structure_location,
             ..
         } = self;
-        // FT-1086 (ID-1183): only the controls take the pointer. The card is two layers: its frame and title, which
+        // Only the controls take the pointer. The card is two layers: its frame and title, which
         // let the pointer through to the canvas beneath (a click on them reaches the sheet), and, over it, a band
         // holding the controls, which are the card's only interactive part. While the tool's ghost is under the card
         // (by the rect the last frame drew, so the card never flips) it is drawn at 40 % and is no chip obstacle.
@@ -1763,10 +1755,10 @@ impl App {
         let margin = frame.total_margin();
         let gap = ctx.global_style().spacing.item_spacing.y;
         let band_at = at + egui::vec2(margin.left, margin.top + title_size.y + gap);
-        // ID-1139: the areas are named per tool, so a tool's card sizes itself on a sizing pass rather than inheriting
+        // The areas are named per tool, so a tool's card sizes itself on a sizing pass rather than inheriting
         // the last tool's size as its bound.
         let id = egui::Id::unique(("tool-options", tool));
-        // FT-1115 (ID-1225): the band takes the pointer only on its controls. A container's hit rectangle is its clip
+        // The band takes the pointer only on its controls. A container's hit rectangle is its clip
         // rectangle cut to its extent, so the band's area (constrained to nothing, and not moved by it) and its row
         // leave a clip of nothing behind them as they end: a click in a gap between the controls reaches the sheet.
         let screen = ctx.content_rect();
@@ -1779,7 +1771,7 @@ impl App {
                 ui.set_clip_rect(screen);
                 ui.set_opacity(opacity);
                 ui.horizontal(|ui| {
-                    // WP-S2.04 §9.1: the IP tool's name field and external-reference field.
+                    // The IP tool's name field and external-reference field.
                     if ip {
                         crate::tool_view::ip_fields(
                             ui,
@@ -1790,11 +1782,11 @@ impl App {
                             events,
                         );
                     }
-                    // WP-S2.04 §10.5: the Text tool's binding.
+                    // The Text tool's binding.
                     if text {
                         crate::tool_view::text_fields(ui, text_bind.as_deref(), events);
                     }
-                    // WP-S2.04 §10.5: the Wire marker's fields and the Structure box's style and fields.
+                    // The Wire marker's fields and the Structure box's style and fields.
                     if marker {
                         crate::tool_view::marker_fields(ui, marker_csa, marker_colours, events);
                     }
@@ -1824,7 +1816,7 @@ impl App {
             .order(egui::Order::Middle)
             .show(ctx, |ui| {
                 ui.set_opacity(opacity);
-                // WP-S2.17 part 4: a card of doc 16a §6.9 (panel fill, a 1-px border, `radius.md`, `space.4` padding,
+                // A card of doc 16a §6.9 (panel fill, a 1-px border, `radius.md`, `space.4` padding,
                 // the title in `type.body.strong`) with `elevation.1`, as it floats over the canvas.
                 frame.show(ui, |ui| {
                     ui.label(
@@ -1842,7 +1834,7 @@ impl App {
     }
 
     /// The screen point of the tool's ghost on the focused canvas as its last frame drew it: its insertion point, else
-    /// the pointer's (FT-1086); `None` without a ghost.
+    /// the pointer's; `None` without a ghost.
     fn ghost_screen_point(&self) -> Option<egui::Pos2> {
         use ew_viewmodel::tools::Ghost;
         let ghost = self.shell.tool_ghost()?;
@@ -1889,7 +1881,7 @@ impl App {
             Event::DismissToast(serial) => self.shell.dismiss_toast(serial),
             Event::DisabledClick(text) => self.shell.explain_disabled(text),
             Event::JunctionRow(row) => self.shell.set_junction_row(row),
-            // WP-S6.05 D16: the bundled copy when there is one, else the repository's.
+            // The bundled copy when there is one, else the repository's.
             Event::OpenPrivacy => {
                 let target = ew_viewmodel::about::privacy_target(&self.shell);
                 if !self.platform.open_url(&target) {
@@ -1911,7 +1903,7 @@ impl App {
     }
 
     /// The file dialogs the shell asked for: their answers are dispatched like any other input. The platform's native
-    /// dialogs run off the window's thread (FT-467), so a dialog's answer is read here, at the start of a frame, once
+    /// dialogs run off the window's thread, so a dialog's answer is read here, at the start of a frame, once
     /// its thread has sent it; while it is open the shell's next prompt waits. A platform that answers at once (the
     /// tests') is answered in the same frame.
     fn answer_prompts(&mut self, ctx: &egui::Context) {
@@ -1958,7 +1950,7 @@ impl App {
             request.param.to_owned(),
             Value::String(path.to_string_lossy().into_owned()),
         );
-        // WP-S2.09 part 1: the PDF export is a job now (its request carries `replace`: the save dialog asked).
+        // The PDF export is a job now (its request carries `replace`: the save dialog asked).
         self.dispatch(request.action, &Value::Object(params));
         self.prompt_answered(ctx);
     }
@@ -1973,7 +1965,7 @@ impl App {
         ctx.request_repaint_after(Duration::from_millis(100));
     }
 
-    /// Open PDF (WP-S2.09 §6.4): the written file in the system's viewer; a banner when it could not be opened.
+    /// Open PDF: the written file in the system's viewer; a banner when it could not be opened.
     fn open_results(&mut self) {
         while let Some(url) = self.shell.take_open_request() {
             if !self.platform.open_url(&url) {
@@ -1982,7 +1974,7 @@ impl App {
         }
     }
 
-    /// The start-up offer's Open log folder (WP-S6.05 D11): the folder in the system's file manager; the offer says
+    /// The start-up offer's Open log folder: the folder in the system's file manager; the offer says
     /// where it is when it could not be opened (S7).
     fn open_log_folder(&mut self) {
         if let Some((url, folder)) = self.shell.take_log_folder_request()
@@ -1992,7 +1984,7 @@ impl App {
         }
     }
 
-    /// The print pre-dialog's Print… and Open in PDF viewer (WP-S3.07 part 3, ruling 3): the ends that are in, each
+    /// The print pre-dialog's Print… and Open in PDF viewer: the ends that are in, each
     /// with its one toast, then the new requests handed to the platform.
     fn print_requests(&mut self, ctx: &egui::Context) {
         let mut ended = Vec::new();

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `selftest` (WP-S6.13 §5.7, BD8 to BD11): a scripted fake agent runs through the real keeper and the copied binaries.
+//! `selftest`: a scripted fake agent runs through the real keeper and the copied binaries.
 //!
 //! The agent is data, `tools/blind/tasks/selftest/agent.jsonl`: one line per call of the harness (`do`, `kv`, `look`,
 //! `note`, `handback`), each with the substrings its output must hold. The self-test starts the run, plays the agent by
@@ -10,7 +10,7 @@
 //! fresh folders (R1 and R2). A second run with `--stateless` must leave the same files, the same transcript and the same
 //! outcomes as the keeper's.
 //!
-//! `selftest-visual` (WP-S6.13 part 4, BV11) does the same for a visual run: the scripted agent of
+//! `selftest-visual` (BV11) does the same for a visual run: the scripted agent of
 //! `tools/blind/tasks/selftest-visual/agent.jsonl` clicks, types and presses keys through the copied harness and the
 //! visual driver, looks and zooms, and logs friction; the recording `tools/blind/recordings/selftest-visual/` replays
 //! without frames (R1v and R2), and on Windows once more with frames for R4.

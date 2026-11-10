@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The JSON results of the `ew` subcommands (doc 17 §3.1, FR-EXT-024; WP-S1.22 part 1, D3 and D5).
+//! The JSON results of the `ew` subcommands (doc 17 §3.1, FR-EXT-024).
 //!
 //! Every subcommand that prints a result takes `--json`: stdout is then one JSON object whose first member is
 //! `"$schema": "ew.<command>-result/1"` (the command's words joined by `-`). Each result is a type here (or, for
@@ -76,7 +76,7 @@ pub const IMPORT_QET: &str = "ew.import-qet-result/1";
 pub const IMPORT_CSV: &str = "ew.import-csv-result/1";
 /// `ew fmt --json`.
 pub const FMT: &str = "ew.fmt-result/1";
-/// `ew fmt --repair --json` (WP-S1.17, decision log ID-1185).
+/// `ew fmt --repair --json`.
 pub const FMT_REPAIR: &str = "ew.fmt-repair-result/1";
 /// `ew recover --json`.
 pub const RECOVER: &str = "ew.recover-result/1";
@@ -94,13 +94,13 @@ pub const EXPORT_CABLES: &str = "ew.export-cables-result/1";
 pub const EXPORT_BOM: &str = "ew.export-bom-result/1";
 /// `ew export pdf --json`.
 pub const EXPORT_PDF: &str = "ew.export-pdf-result/1";
-/// `ew export ewz --json` (WP-S1.17 part 2).
+/// `ew export ewz --json`.
 pub const EXPORT_EWZ: &str = "ew.export-ewz-result/1";
-/// `ew diff --json` (WP-S1.17 part 8).
+/// `ew diff --json`.
 pub const DIFF: &str = "ew.diff-result/1";
-/// `ew extract --json` (WP-S1.17 part 2).
+/// `ew extract --json`.
 pub const EXTRACT: &str = "ew.extract-result/1";
-/// `ew merge resolve --json` (WP-S1.17 D19; decision log ID-1312).
+/// `ew merge resolve --json`.
 pub const MERGE_RESOLVE: &str = "ew.merge-resolve-result/1";
 /// `ew export svg --json`.
 pub const EXPORT_SVG: &str = "ew.export-svg-result/1";
@@ -112,9 +112,9 @@ pub const EXPORT_WIRES: &str = "ew.export-wires-result/1";
 pub const EXPORT_TERMINALS: &str = "ew.export-terminals-result/1";
 /// `ew export report --json`.
 pub const EXPORT_REPORT: &str = "ew.export-report-result/1";
-/// `ew export table --json` (WP-S3.08 D7).
+/// `ew export table --json`.
 pub const EXPORT_TABLE: &str = "ew.export-table-result/1";
-/// `ew import table --json` (WP-S3.08 D7).
+/// `ew import table --json`.
 pub const IMPORT_TABLE: &str = "ew.import-table-result/1";
 /// `ew render --json`.
 pub const RENDER: &str = "ew.render-result/1";
@@ -140,9 +140,9 @@ pub const COMMANDS: &str = "ew.commands-result/1";
 pub const QUERY: &str = "ew.query-result/1";
 /// `ew queries --json`.
 pub const QUERIES: &str = "ew.queries-result/1";
-/// `ew layout --json` (WP-S2.19 part 1, decision log ID-1498).
+/// `ew layout --json`.
 pub const LAYOUT: &str = "ew.layout-result/1";
-/// `ew route --json` (WP-S2.19 D13).
+/// `ew route --json`.
 pub const ROUTE: &str = "ew.route-result/1";
 
 /// Every published result schema, in name order.
@@ -550,7 +550,7 @@ pub struct ExportRowsResult {
     pub out: Option<String>,
     /// The CSV text when there is no `--out`; `null` with one.
     pub csv: Option<String>,
-    /// The format written: `csv` or `xlsx` (WP-S3.08 TX-7).
+    /// The format written: `csv` or `xlsx` (TX-7).
     pub format: Option<String>,
     /// The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX.
     pub preset: Option<String>,
@@ -558,7 +558,7 @@ pub struct ExportRowsResult {
     pub rev: Option<u64>,
 }
 
-/// `ew export ewz --json` ([`EXPORT_EWZ`]; WP-S1.17 D8).
+/// `ew export ewz --json` ([`EXPORT_EWZ`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExportEwzResult {
@@ -575,7 +575,7 @@ pub struct ExportEwzResult {
     pub bytes: u64,
 }
 
-/// `ew diff --json` ([`DIFF`]; WP-S1.17 D26): the records that differ between the two sides.
+/// `ew diff --json` ([`DIFF`]): the records that differ between the two sides.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DiffResult {
@@ -618,7 +618,7 @@ pub struct DiffField {
     pub after: Option<Value>,
 }
 
-/// `ew extract --json` ([`EXTRACT`]; WP-S1.17 D9).
+/// `ew extract --json` ([`EXTRACT`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExtractResult {
@@ -633,7 +633,7 @@ pub struct ExtractResult {
     pub files: usize,
 }
 
-/// `ew merge resolve --json` ([`MERGE_RESOLVE`]; WP-S1.17 D19).
+/// `ew merge resolve --json` ([`MERGE_RESOLVE`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MergeResolveResult {
@@ -663,7 +663,7 @@ pub struct ExportPdfResult {
     pub findings: usize,
 }
 
-/// `ew print --json` ([`PRINT`]; WP-S3.07 D9).
+/// `ew print --json` ([`PRINT`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PrintResult {
@@ -716,7 +716,7 @@ pub struct ExportTerminalsResult {
     pub out: Option<String>,
     /// The CSV text when there is no `--out`; `null` with one.
     pub csv: Option<String>,
-    /// The format written: `csv` or `xlsx` (WP-S3.08 TX-7).
+    /// The format written: `csv` or `xlsx` (TX-7).
     pub format: Option<String>,
     /// The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX.
     pub preset: Option<String>,
@@ -745,13 +745,13 @@ pub struct ExportReportResult {
     pub out: Option<String>,
     /// The CSV text when it goes to stdout; else `null`.
     pub csv: Option<String>,
-    /// The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX and PDF (WP-S3.08 TX-7).
+    /// The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX and PDF (TX-7).
     pub preset: Option<String>,
     /// The session revision the rows or pages were read at.
     pub rev: Option<u64>,
 }
 
-/// `ew export table --json` ([`EXPORT_TABLE`], WP-S3.08 D7, D8).
+/// `ew export table --json` ([`EXPORT_TABLE`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExportTableResult {
@@ -814,7 +814,7 @@ pub struct ImportTableFinding {
     pub message: String,
 }
 
-/// `ew import table --json` ([`IMPORT_TABLE`], WP-S3.08 D11): the preview, and whether it was applied.
+/// `ew import table --json` ([`IMPORT_TABLE`]): the preview, and whether it was applied.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ImportTableResult {
@@ -987,7 +987,7 @@ pub struct LayoutResult {
     pub pages: Vec<crate::output::PageLayout>,
 }
 
-/// `ew route --json` ([`ROUTE`]): the plan of each page routed (WP-S2.19 D13).
+/// `ew route --json` ([`ROUTE`]): the plan of each page routed.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RouteResult {
@@ -1303,7 +1303,7 @@ pub struct FmtResult {
     pub kept: Vec<KeptRow>,
     /// The generation on disk afterwards.
     pub generation: u64,
-    /// The older format of a project that opened migrated (WP-S1.17 D11): only `ew upgrade` converts it, so `--check`
+    /// The older format of a project that opened migrated: only `ew upgrade` converts it, so `--check`
     /// exits 1 with no file listed and `ew fmt` refuses. Absent for a project of this version's format.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub older_format: Option<String>,
@@ -1333,7 +1333,7 @@ pub struct KeptRow {
     pub reason: String,
 }
 
-/// `ew fmt --repair --json` ([`FMT_REPAIR`]; WP-S1.17, decision log ID-1185): the broken lines discarded (EW-CORE-005 at
+/// `ew fmt --repair --json` ([`FMT_REPAIR`]): the broken lines discarded (EW-CORE-005 at
 /// line level), the backup of the generation before, the files the save rewrote, and the lines kept verbatim.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1389,7 +1389,7 @@ pub struct BackupRow {
     /// Whether it was there already, holding this generation's pack byte for byte, and was reused.
     pub reused: bool,
     /// How many of its files were edited outside EW since the generation was saved: the backup holds the files as
-    /// found, its manifest hashed to them (decision log ID-1186). 0 when every file is as saved.
+    /// found, its manifest hashed to them. 0 when every file is as saved.
     pub edited: usize,
 }
 
@@ -1434,7 +1434,7 @@ pub struct JournalSummary {
     pub further: usize,
 }
 
-/// `ew query --json` ([`QUERY`]): the answer of one public query (WP-S1.22 D11, D12).
+/// `ew query --json` ([`QUERY`]): the answer of one public query.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct QueryResult {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The visual play-test driver (WP-S6.13 part 4, visual spec §3 to §5): `elektrawatt --headless --visual` runs the
+//! The visual play-test driver (visual spec §3 to §5): `elektrawatt --headless --visual` runs the
 //! window's own [`App`] over a `ShellModel` in `Mode::Gui`, feeds its frames with egui input built from mouse and key
 //! lines, and paints a frame with the offscreen renderer when the script asks for one. Never a real window, never the
 //! desktop, never a screen capture.
@@ -11,7 +11,7 @@
 //! - an action line (`{"action":…,"params":…}`): dispatched on the shell as in the headless mode (the harness's
 //!   prelude and epilogue; the agent never sends one), one transcript line as `run_step` writes it. `view.zoom_to`'s
 //!   `x_mm` and `y_mm` are a fixed pivot, not the new view centre: the page point there stays where it is on screen
-//!   while the zoom changes about it (absent: the view's centre); to centre a point, pan to it first (FT-939);
+//!   while the zoom changes about it (absent: the view's centre); to centre a point, pan to it first;
 //! - an input line (`{"input":"click","x":412,"y":96}`, spec §4.1): the egui events of the input in one or more
 //!   frames, then frames until the window settles; one transcript line `{"step","input","dispatched","state"}`, with
 //!   `"closed":true` once the application has closed; `{"input":"answer_open","path":"plan.qet"}` runs no frame and
@@ -70,7 +70,7 @@ const MAX_FRAME_SIDE: (u32, u32) = (3840, 2400);
 const FRAME_S: f64 = 1.0 / 60.0;
 /// The pause a double click waits after an earlier click, in seconds: egui's double-click interval (its default
 /// `max_double_click_delay`) and one frame, so that the double click is not counted as a triple click with the click
-/// before it (FT-891).
+/// before it.
 const CLICK_PAUSE_S: f64 = 0.3 + FRAME_S;
 /// At most this many frames settle one input (2 s of frame time).
 const MAX_SETTLE_FRAMES: u32 = 120;
@@ -227,7 +227,7 @@ fn hundredths(text: &str) -> Option<u32> {
 
 /// The file dialogs answered without a dialog (spec §4.3): bare names in the working directory (the run's `work/`;
 /// a test names its own folder): a project `project`, a PDF `project.pdf`; an import or an image is cancelled, unless
-/// an `answer_open` input named the file the next open dialog answers with (FT-1201), and the system browser opens
+/// an `answer_open` input named the file the next open dialog answers with, and the system browser opens
 /// nothing (the trait's default).
 struct VisualPlatform {
     base: PathBuf,
@@ -332,7 +332,7 @@ pub enum Input {
         /// Milliseconds.
         ms: u32,
     },
-    /// The next open file dialog answers with this file, resolved against the script's folder (FT-1201); without
+    /// The next open file dialog answers with this file, resolved against the script's folder; without
     /// one an open dialog answers Cancelled. No frame runs.
     AnswerOpen {
         /// The file, as the script names it.
@@ -685,7 +685,7 @@ pub struct Driver {
     config: ShellConfig,
     ctx: egui::Context,
     frames: u64,
-    /// Time without frames the clock has skipped, in seconds: the pauses before double clicks (FT-891).
+    /// Time without frames the clock has skipped, in seconds: the pauses before double clicks.
     paused_s: f64,
     /// The clock time of the last click's release.
     last_click_s: Option<f64>,
@@ -774,10 +774,10 @@ impl Driver {
             let _ = shell.dispatch("settings.set", &json!({ "key": key, "value": value }));
         }
         let _ = shell.dispatch("view.ui_scale", &json!({ "scale": 1.0 }));
-        // FT-1253: no minimum text size and reduced motion, whatever the settings folder holds.
+        // No minimum text size and reduced motion, whatever the settings folder holds.
         let _ = shell.dispatch("view.min_font", &json!({ "pt": 0 }));
         let _ = shell.dispatch("view.reduce_motion", &json!({ "on": true }));
-        // WP-S6.05 D11: the start-up offer, as the window's start shows it.
+        // The start-up offer, as the window's start shows it.
         shell.start_up();
         shell.set_dispatch_log(true);
         let ctx = egui::Context::default();
@@ -963,7 +963,7 @@ impl Driver {
             let _ = app.shell_mut().wait_jobs();
             self.last_delay = Some(std::time::Duration::ZERO);
         }
-        // So is the print pre-dialog's build (WP-S3.07 part 3), unless a test gate holds it.
+        // So is the print pre-dialog's build, unless a test gate holds it.
         if app.shell().print_waits() {
             app.shell_mut().wait_print();
             self.last_delay = Some(std::time::Duration::ZERO);
@@ -1024,7 +1024,7 @@ impl Driver {
         };
         self.frame(vec![Self::mods_event(mods), moved, press]);
         let release = self.clock_s();
-        // ID-1497 (2): the modifiers are let go in a frame after the release, as a hand lets go of Shift after the
+        // The modifiers are let go in a frame after the release, as a hand lets go of Shift after the
         // click: released in the release's frame, a widget that reads the click (on release) read no modifier, so a
         // Shift+click or Ctrl+click in a table marked nothing.
         let mut up = vec![Event::PointerButton {
@@ -1048,7 +1048,7 @@ impl Driver {
         self.frames as f64 * FRAME_S + self.paused_s
     }
 
-    /// FT-891: before a double click, the clock skips to [`CLICK_PAUSE_S`] after the last click, as a person pauses
+    /// Before a double click, the clock skips to [`CLICK_PAUSE_S`] after the last click, as a person pauses
     /// between two steps. Without it a script's steps run a few frames apart, and a double click right after another
     /// one counted as a triple click (egui's count), so the second row of two double-clicked rows never opened.
     fn pause_after_click(&mut self) {
@@ -1428,8 +1428,8 @@ pub fn run_in_folder(
     err: &mut dyn Write,
 ) -> i32 {
     if let Some(dir) = &args.config_dir {
-        // The library tiers stay (WP-S1.19 §11: `EW_DATA_DIR` names them for a script), and so do the resources the
-        // program found (FT-1266).
+        // The library tiers stay (`EW_DATA_DIR` names them for a script), and so do the resources the
+        // program found.
         config = ShellConfig::in_dir(dir, &config.app_version)
             .with_libraries(config.libraries)
             .with_resources(config.resources);
@@ -1453,7 +1453,7 @@ pub fn run_in_folder(
                 if let Some(name) = path.file_name() {
                     driver.shell_mut().set_origin_file(&name.to_string_lossy());
                 }
-                // FT-1201: an `answer_open` path is the script's folder's.
+                // An `answer_open` path is the script's folder's.
                 if let Some(dir) = path.parent() {
                     driver.set_script_dir(dir.to_path_buf());
                 }
@@ -1531,7 +1531,7 @@ pub fn transcript_header(version: &str, g: Geometry) -> String {
 }
 
 /// The action lines' extension: the headless mode's snapshots, and `ui.dismiss` while the app menu is open, which
-/// closes only the menu as in the window's event loop (FT-1188).
+/// closes only the menu as in the window's event loop.
 struct Steps {
     ctx: egui::Context,
 }

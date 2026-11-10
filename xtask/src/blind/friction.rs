@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The friction log (WP-S6.13 part 4, visual spec §7.1): `friction <run> --severity <s> --category <c> --wanted "…"
+//! The friction log (visual spec §7.1): `friction <run> --severity <s> --category <c> --wanted "…"
 //! --expected "…" --saw "…" [--frame <name>] [--region <x>,<y>,<w>,<h>] [--workaround "…"]` appends one entry to the
 //! run's `friction.jsonl` (`ew.blindfriction/1`), in a text run as in a visual one. The harness fills in the number, the
 //! turn, the step and (in a visual run) the newest frame. The log is append-only; it needs no note and opens no turn.
@@ -100,7 +100,7 @@ pub fn entries(run: &Run) -> Result<Vec<Entry>> {
     Ok(out)
 }
 
-/// A `--region` inside the frame of `g` (the run's, cycle 39).
+/// A `--region` inside the frame of `g` (the run's).
 fn region_in(text: &str, g: super::visual::Geometry) -> Option<[u32; 4]> {
     let v: Vec<u32> = text.split(',').filter_map(|p| p.trim().parse().ok()).collect();
     let [x, y, w, h] = v[..] else { return None };

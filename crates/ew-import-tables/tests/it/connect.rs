@@ -282,7 +282,7 @@ fn a_duplicate_connection_key_keeps_the_first_row_only() {
 fn equal_endpoints_are_malformed() {
     let batch = run(&[("connections.csv", "key,a,b\nW1,-1F1:1,-1F1:1\n")]);
     assert!(connection(&batch, "W1").is_none());
-    // FT-1396: in words, no plan reference.
+    // In words, no plan reference.
     assert_eq!(messages(&batch, 2), ["row dropped: both endpoints are the same"]);
 }
 
@@ -375,7 +375,7 @@ fn a_cable_cell_on_another_kind_is_malformed() {
     );
 }
 
-/// Doc 06 §5.7 (ID-54), doc 14 §9 strict mode: an off-grid junction is refused, never snapped; its
+/// Doc 06 §5.7, doc 14 §9 strict mode: an off-grid junction is refused, never snapped; its
 /// connections go with it. An on-grid one sits exactly on the page grid.
 #[test]
 fn an_off_grid_junction_is_refused_not_snapped() {

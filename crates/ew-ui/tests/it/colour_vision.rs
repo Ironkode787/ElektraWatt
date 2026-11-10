@@ -21,7 +21,7 @@ use serde_json::{Value, json};
 use support::Tmp;
 use support::colour::{Simulation, ciede2000, from_linear, lab, to_linear};
 
-/// `canvas.selection`, read from the renderer's light theme (C49-p5#3), so that a change to it runs D15 again.
+/// `canvas.selection`, read from the renderer's light theme, so that a change to it runs D15 again.
 const SELECTION: [u8; 3] = {
     let c = ew_render2d::overlay::LIGHT.selection;
     [c.r, c.g, c.b]

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1094 (ID-1184): the sheet and print leave the starter library's "Generic" out of a black box's maker slot, since
+//! The sheet and print leave the starter library's "Generic" out of a black box's maker slot, since
 //! it names no maker; the chooser and the tables keep the word. A black box placed from a generic part (as the picker
 //! places it: `box.black` from the part with its closure) prints its tag and its part number only.
 

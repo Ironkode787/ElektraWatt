@@ -160,7 +160,7 @@ fn the_assign_and_update_verbs_change_part_uses_and_copies() {
     );
 }
 
-/// The DSL verb `part_edit_copy` (WP-S2.07 D20): on Golden A, 5SY4204-7's copy is project-local, so the edit is in
+/// The DSL verb `part_edit_copy`: on Golden A, 5SY4204-7's copy is project-local, so the edit is in
 /// place (the same copy ID, the new description, the hash of the new item); a fork for it is refused at `/fork`.
 #[test]
 fn part_edit_copy_edits_a_project_local_copy_in_place() {

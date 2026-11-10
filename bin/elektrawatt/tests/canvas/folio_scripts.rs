@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The bodies of `canvas.rs`'s folio-script tests (WP-S2.04 §13.6), shared with the deep nightly's
+//! The bodies of `canvas.rs`'s folio-script tests, shared with the deep nightly's
 //! `headless::nightly_every_script_transcript_is_byte_identical_twice`: `canvas.rs` runs each with `twice`
 //! false (one run of the script per gate, then the oracle and the `--record` replay), the nightly with `twice`
 //! true (a second run on an equal start and the byte-identical comparison of the two transcripts).
@@ -83,7 +83,7 @@ pub fn folio_101_is_placed_by_a_generated_script_twice_identically_and_replays_c
         }
         assert_eq!(transcripts[0], transcripts[1], "two runs, one transcript");
     }
-    // FT-422: no UUID in any transcript member or describe text.
+    // No UUID in any transcript member or describe text.
     super::support::assert_no_uuid(&transcripts[0]);
     // The oracle of §13.6: 17 representations, each the golden symbol at the golden point and orientation.
     let golden: Vec<(String, (i64, i64), u8)> = {
@@ -240,7 +240,7 @@ pub fn folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_ca
             ("page.goto", json!({"folio": "101"})),
         ]);
         script.extend(placements.iter().cloned());
-        // FT-422: a device the script placed (its ID minted, so different in each run) selected and cleared: the
+        // A device the script placed (its ID minted, so different in each run) selected and cleared: the
         // transcript names it by its alias, the same in both runs.
         script.extend(steps(&[
             ("select.set", json!({"refs": [first_tag.clone()]})),
@@ -279,7 +279,7 @@ pub fn folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_ca
         }
         assert_eq!(transcripts[0], transcripts[1], "two runs, one transcript");
     }
-    // FT-422: no UUID in any transcript member or describe text, and the minted device's alias in both runs.
+    // No UUID in any transcript member or describe text, and the minted device's alias in both runs.
     super::support::assert_no_uuid(&transcripts[0]);
     let selected: Vec<Value> = transcripts[0]
         .lines()
@@ -330,7 +330,7 @@ pub fn folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_ca
         ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
-    // The log names the functions and connections the session minted (a new project's IDs are random, FT-416):
+    // The log names the functions and connections the session minted (a new project's IDs are random):
     // each `connection.draw` end is mapped to the replay's record at the same place before it runs (a CP by its
     // point and index, a wire by its connection point end), every other line replays as recorded.
     let a_tables = scripted.page_tables("101").unwrap();
@@ -671,7 +671,7 @@ pub fn folio_101_structure_box_and_markers_are_drawn_by_a_generated_script_twice
             ("page.goto", json!({"folio": "101"})),
         ]);
         script.extend(placements.iter().cloned());
-        // A device the script placed, selected and cleared: the transcript names it by its alias (FT-422).
+        // A device the script placed, selected and cleared: the transcript names it by its alias.
         script.extend(steps(&[
             ("select.set", json!({"refs": [first_tag.clone()]})),
             ("select.set", json!({"ids": []})),

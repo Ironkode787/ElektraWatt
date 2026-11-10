@@ -83,7 +83,7 @@ pub fn reader_access(manifest: &Manifest, reader: &str, release_build: bool) -> 
             manifest.min_reader
         ));
     }
-    // An unreleased format opens read-write only in a development build of that very format (WP-S1.17 D3).
+    // An unreleased format opens read-write only in a development build of that very format.
     if manifest.unstable && (release_build || manifest.format != reader) {
         return Access::ReadOnly("written by a development build with an unreleased format");
     }
@@ -132,7 +132,7 @@ mod tests {
         assert_eq!(reader_access(&m, "0.1", false), Access::ReadWrite);
     }
 
-    /// SG-1's read side (WP-S1.17 D3): an unstable file opens read-write only in an unreleased reader of its format.
+    /// SG-1's read side: an unstable file opens read-write only in an unreleased reader of its format.
     #[test]
     fn an_unstable_file_is_read_only_in_a_released_or_other_format_reader() {
         let mut m = Manifest::new(

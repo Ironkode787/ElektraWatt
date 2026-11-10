@@ -18,9 +18,9 @@
 //! | `Glyphs` | the glyphs of the shaped run in its font, subset-embedded (CID, Identity-H) with ToUnicode from the run's text, so extraction keeps real spaces (FR-OUT-008); `.notdef` glyphs are dropped (PDF/A forbids them) |
 //! | `Group` | a transform and a clip path |
 //! | `Instance` | the resolved geometry under the instance transform; unresolved: skipped and counted |
-//! | `Image` | PNG and JPEG: an image XObject stretched over the item's rectangle (top-left corner at `rect.min()`, the pixel grid mapped onto the rectangle, as the CPU renderer draws it), through krilla's `raster-images` (FT-406). The bytes must first decode with [`ew_render_cpu::decode_image`] within its pixel bound, so an image the CPU renderer cannot draw is not embedded either; a JPEG is embedded unchanged (DCT) unless it holds CMYK samples, a PNG keeps its bit depth and alpha (a soft mask); when krilla refuses the bytes the decoded pixels are embedded instead. Undrawable images, images without bytes and SVG image items (the export job turns SVG into paths first) are skipped and counted |
+//! | `Image` | PNG and JPEG: an image XObject stretched over the item's rectangle (top-left corner at `rect.min()`, the pixel grid mapped onto the rectangle, as the CPU renderer draws it), through krilla's `raster-images`. The bytes must first decode with [`ew_render_cpu::decode_image`] within its pixel bound, so an image the CPU renderer cannot draw is not embedded either; a JPEG is embedded unchanged (DCT) unless it holds CMYK samples, a PNG keeps its bit depth and alpha (a soft mask); when krilla refuses the bytes the decoded pixels are embedded instead. Undrawable images, images without bytes and SVG image items (the export job turns SVG into paths first) are skipped and counted |
 //! | [`PdfOptions`] | Info and XMP: title, description, keywords, language, creator, producer, authors (empty = omitted, FR-OUT-025), creation date, document ID |
-//! | `PdfPage::placement` | `None` (every export page): the page is its sheet. A [`PagePlacement`] (a print page, WP-S3.07 D7): the `MediaBox` is the paper, the content is drawn under one transform (the placement's scale, then its offset), link rectangles and targets mapped by the same rule, then the overlay (the stamp) in paper coordinates |
+//! | `PdfPage::placement` | `None` (every export page): the page is its sheet. A [`PagePlacement`] (a print page): the `MediaBox` is the paper, the content is drawn under one transform (the placement's scale, then its offset), link rectangles and targets mapped by the same rule, then the overlay (the stamp) in paper coordinates |
 //!
 //! # Determinism (doc 09 §4.3)
 //!
@@ -47,7 +47,7 @@ use ew_dl::{
 };
 use ew_render_cpu::{FontResolver, decode_image, jpeg_is_cmyk, monochrome};
 
-/// A sheet placed on a paper (WP-S3.07 D7): `ew-render-cpu`'s, which draws by the same rule (ID-1180, ruling 1).
+/// A sheet placed on a paper: `ew-render-cpu`'s, which draws by the same rule.
 pub use ew_render_cpu::PagePlacement;
 use krilla::SerializeSettings;
 use krilla::annotation::{Annotation, LinkAnnotation, Target};
@@ -82,7 +82,7 @@ pub struct PdfPage {
     pub height: Nm,
     /// The page's display list on the sheet (exported layers only, page-to-sheet map applied).
     pub content: DisplayList,
-    /// Where the sheet lies on a paper of another size (a print page, WP-S3.07 D7); `None` for every export page,
+    /// Where the sheet lies on a paper of another size (a print page); `None` for every export page,
     /// whose paper is its sheet.
     pub placement: Option<PagePlacement>,
 }
@@ -181,7 +181,7 @@ impl PdfOptions {
 pub struct PdfReport {
     /// Fonts the resolver did not have; their runs were not drawn.
     pub missing_fonts: Vec<FontKey>,
-    /// PNG and JPEG images drawn, counted per drawn occurrence (FT-406).
+    /// PNG and JPEG images drawn, counted per drawn occurrence.
     pub images: usize,
     /// Images not drawn, counted per occurrence: bytes that do not decode as a PNG or JPEG within
     /// [`ew_render_cpu::MAX_IMAGE_PIXELS`], an image without its bytes, an SVG image item (an SVG asset reaches the
@@ -452,7 +452,7 @@ fn settings(conformance: Conformance, compress: bool) -> Result<SerializeSetting
     let configuration = builder.finish().map_err(|e| PdfError::Writer(format!("{e:?}")))?;
     Ok(SerializeSettings {
         configuration,
-        // Every page is built by this writer; nothing needs tagging until tagged PDF (WP-S3.14).
+        // Every page is built by this writer; nothing needs tagging until tagged PDF.
         enable_tagging: false,
         compress_content_streams: compress,
         ..SerializeSettings::default()
@@ -1006,7 +1006,7 @@ mod tests {
         )
     }
 
-    /// FT-406: an image is drawn in its rectangle as the CPU renderer draws it, top-left corner at `rect.min()` and
+    /// An image is drawn in its rectangle as the CPU renderer draws it, top-left corner at `rect.min()` and
     /// the unit square scaled to the rectangle, inside the group transform; read from an uncompressed content stream.
     #[test]
     fn an_image_is_placed_over_its_rectangle_inside_the_group_transform() {

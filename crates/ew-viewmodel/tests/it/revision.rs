@@ -22,7 +22,7 @@ use serde_json::{Value, json};
 const FIXTURE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/fixtures/release-min");
 /// The date the window would pass (the shell never reads a clock).
 const DATE: &str = "2026-10-30";
-/// The refusal of every confirm that no person at the window made (cycle 41, ruling 1), as a whole text.
+/// The refusal of every confirm that no person at the window made, as a whole text.
 const PERSON: &str = "This needs a person at the window: a revision is approved, released, withdrawn or given its \
                       author only by a confirmation made there, never by a script, a replay or a plugin.";
 
@@ -167,7 +167,7 @@ fn ru3_the_revision_dialogs_open_fill_validate_and_cancel_headless() {
     s.shutdown();
 }
 
-/// RU-3, the second step (cycle 41, ruling 1: "the scripted confirm is refused, asserted on its whole text"): every
+/// RU-3, the second step (ruling 1: "the scripted confirm is refused, asserted on its whole text"): every
 /// confirm of a headless shell and of a window a script drives (the visual driver's `ShellModel::new_scripted`) is
 /// refused with the person text and changes nothing.
 #[test]
@@ -378,7 +378,7 @@ fn incomplete_beside(tmp: &Tmp, dir: &Path, other: &Path) {
 ///
 /// Cycle 41, FIX41b ruling 2 ("completing an incomplete release asks, like a release"): Complete release opens its
 /// confirmation, Cancel the Primary and Complete release the danger button; outside a git repository it shows no
-/// consent toggle. A scripted shell's confirm is refused with the person text (cycle 41, ruling 1); the window's
+/// consent toggle. A scripted shell's confirm is refused with the person text; the window's
 /// completes the release.
 #[test]
 fn the_incomplete_release_is_offered_at_open_and_completed_by_a_person() {
@@ -794,7 +794,7 @@ fn ruling1_the_revision_refusals_read_in_words() {
     );
     assert_eq!(
         refusal,
-        // FT-909 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
+        // FT-909 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
         "Set revision author: Role: the author is the checker's party; four eyes need another party: choose another \
          author"
     );

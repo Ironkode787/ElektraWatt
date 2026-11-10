@@ -265,7 +265,7 @@ fn designation_nth(cps: &[crate::Cp], idx: u16, designation: &str) -> Option<u32
 }
 
 impl CpRef {
-    /// A device CP's label in parts, for a sentence that names the pin in words (FT-756, ID-889): the device's short
+    /// A device CP's label in parts, for a sentence that names the pin in words: the device's short
     /// tag, the CP's designation and, when the function's CPs share that designation, the CP's 1-based position
     /// among them (the `#n` of [`cp_label`]). No words of any language: the caller's string table or Fluent pattern
     /// builds the sentence ("-1A4 pin − (2nd)"). `None` for a terminal's clamp, an interruption point, a CP

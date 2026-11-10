@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! WP-S2.17 part 3 in the window without rendering: the rails, the docks and the default workspace (DK1, DK8), the
-//! named splitters (FT-338), the page rows' badges (DK2), the property grid's groups (DK3's window half), the status
-//! bar (DK4's window half), the history panel from the keyboard (FT-519, DK11's keyboard half) and the left column's
+//! named splitters, the page rows' badges (DK2), the property grid's groups (DK3's window half), the status
+//! bar (DK4's window half), the history panel from the keyboard (DK11's keyboard half) and the left column's
 //! collapse to its rail.
 
 use crate::support;
@@ -338,7 +338,7 @@ fn dk4_the_status_bar_fields_in_order() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-519, FT-518: the history panel from the keyboard alone. F6 reaches the panel; Down moves the row cursor to the
+/// The history panel from the keyboard alone. F6 reaches the panel; Down moves the row cursor to the
 /// older entry and Enter runs Undo to here on it; the header names the oldest step kept; the walker passes.
 #[test]
 fn ft519_the_history_panel_from_the_keyboard() {
@@ -355,7 +355,7 @@ fn ft519_the_history_panel_from_the_keyboard() {
     dispatch(&mut h, "history.show", json!({}));
     let cursor = |h: &Harness<'_, App>| h.state().shell().history_pane().view().map(|v| v.cursor);
     assert_eq!(cursor(&h), Some(3));
-    // FT-518: the header names the oldest step kept and the memory against its bound.
+    // The header names the oldest step kept and the memory against its bound.
     assert!(
         h.query_all_by_label_contains("oldest kept: step 1 · ")
             .next()
@@ -388,7 +388,7 @@ fn ft519_the_history_panel_from_the_keyboard() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FX38d (cycle 38, play-test rv-vis-2 t0035–t0039): after Check project the status bar's findings field is there
+/// FX38d (play-test rv-vis-2 t0035–t0039): after Check project the status bar's findings field is there
 /// with the Messages pane closed and its click opens the pane; the pane's own close button (in its header, the pane
 /// alone in the dock) closes it; the canvas keeps its zoom and centre through the open and the close.
 #[test]
@@ -400,7 +400,7 @@ fn fx38d_the_badge_opens_messages_and_its_close_button_closes_it() {
         let c = h.state().shell().canvas().expect("a canvas");
         (c.zoom(), c.centre())
     };
-    // FT-1443: from Fit page (a page's first view is fit-width, which a shorter pane keeps).
+    // From Fit page (a page's first view is fit-width, which a shorter pane keeps).
     dispatch(&mut h, "view.fit_page", json!({}));
     settle(&mut h);
     let before = view(&h);
@@ -416,7 +416,7 @@ fn fx38d_the_badge_opens_messages_and_its_close_button_closes_it() {
         h.state().shell().navigator_open(messages),
         "the badge opens Messages"
     );
-    // FT-769: the untouched fit refits the shorter pane (the whole page stays in view).
+    // The untouched fit refits the shorter pane (the whole page stays in view).
     assert!(h.state().shell().canvas().unwrap().is_fitted());
     assert!(view(&h).0 < before.0, "the fit refits the shorter pane");
     let close = ew_ui::ew_viewmodel::strings::text(key!("dock-close"));
@@ -430,7 +430,7 @@ fn fx38d_the_badge_opens_messages_and_its_close_button_closes_it() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1199: a Jobs entry's title is inset from the pane's edge by `space.4`, as the other panes' rows are, not flush
+/// A Jobs entry's title is inset from the pane's edge by `space.4`, as the other panes' rows are, not flush
 /// with it.
 #[test]
 fn ft1199_a_jobs_entry_is_inset_from_the_panes_edge() {
@@ -465,7 +465,7 @@ fn ft1199_a_jobs_entry_is_inset_from_the_panes_edge() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1415 (ID-1406): at the 1280 × 800 floor the Messages dock grows with its list, so at least five rows of Golden
+/// At the 1280 × 800 floor the Messages dock grows with its list, so at least five rows of Golden
 /// A's findings are on show, and it stays within 40 % of the window's height.
 #[test]
 fn ft1415_messages_shows_five_rows_at_the_floor() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool HUD and the zoom control over the canvas (WP-S2.17 part 2, doc 16a §5.5), from
+//! The tool HUD and the zoom control over the canvas (doc 16a §5.5), from
 //! `ew_viewmodel::command_bar::hud`. The HUD is a pill centred `space.5` above the page view's bottom edge: the active
 //! tool as an accent pill, the three quick tools (Wire, Symbol, Text), a divider and the prompt (the selection and its
 //! keys, the pick stack under the pointer, FT-521, or the tool's target and keys). It never takes the keyboard focus
@@ -112,7 +112,7 @@ pub(crate) fn show(
     let width = natural.min(max_width(&t, pane)).max(natural - prompt_size.x);
     let prompt_room = prompt_size.x - (natural - width);
     let elided = width < natural;
-    // FT-972 (ID-1150): a wrapped prompt takes the narrowest room that keeps its two rows, and the pill narrows with it:
+    // A wrapped prompt takes the narrowest room that keeps its two rows, and the pill narrows with it:
     // egui's wrap is greedy, so at the widest room the second row can be a single word.
     let (width, prompt_room) = if elided {
         let room = balanced_room(ctx, &t, &h.prompt, prompt_room);
@@ -121,7 +121,7 @@ pub(crate) fn show(
         (width, prompt_room)
     };
     let lower = hud_rect(&t, pane, width, false);
-    // ID-1497 (11): raised while the pointer is within `AVOID` of the HUD's place at the bottom, back only once it is
+    // Raised while the pointer is within `AVOID` of the HUD's place at the bottom, back only once it is
     // more than `RETURN` away.
     let raised_id = Id::unique("tool-hud-raised");
     let reach = if ctx.data(|d| d.get_temp::<bool>(raised_id)).unwrap_or(false) {
@@ -244,7 +244,7 @@ pub(crate) fn show(
 }
 
 /// The widest the HUD may be in the page view `pane`: centred, it keeps clear of the zoom column at the right (and
-/// as much at the left), with `space.2` between them (cycle 39, FIX39b-1).
+/// as much at the left), with `space.2` between them (FIX39b-1).
 pub(crate) fn max_width(t: &Tokens, pane: Rect) -> f32 {
     (pane.width() - 2.0 * (t.space_4 + t.size_control + t.space_2)).max(0.0)
 }
@@ -260,7 +260,7 @@ fn prompt_rows(ctx: &egui::Context, t: &Tokens, prompt: &str, room: f32) -> usiz
     ctx.fonts_mut(|f| f.layout_job(job)).rows.len()
 }
 
-/// The narrowest room, at most `room`, at which `prompt` still takes no more rows than at `room` (FT-972): the rows
+/// The narrowest room, at most `room`, at which `prompt` still takes no more rows than at `room`: the rows
 /// balance instead of leaving a last row of one word. A prompt longer than [`PROMPT_LINES`] rows at `room` keeps
 /// `room` (it elides there). A bisection of a bounded number of steps.
 pub(crate) fn balanced_room(ctx: &egui::Context, t: &Tokens, prompt: &str, room: f32) -> f32 {
@@ -401,7 +401,7 @@ mod tests {
     use super::{balanced_room, clear_of_toasts, hud_rect, max_width, zoom_rect};
     use crate::theme::{self, Density, Tokens};
 
-    /// ID-1497 (11): the HUD keeps clear of the toast stack: where they meet it sits above the stack's top, or under its
+    /// The HUD keeps clear of the toast stack: where they meet it sits above the stack's top, or under its
     /// bottom where the page view has no room above it; apart from the stack it keeps its place.
     #[test]
     fn the_hud_keeps_clear_of_the_toast_stack() {
@@ -447,7 +447,7 @@ mod tests {
             .collect()
     }
 
-    /// FT-972 (ID-1150): at the room where egui's greedy wrap leaves one word on the second row, the HUD's prompt takes
+    /// At the room where egui's greedy wrap leaves one word on the second row, the HUD's prompt takes
     /// a narrower room that keeps two rows, neither a single word; a prompt on one row keeps its room.
     #[test]
     fn ft972_a_wrapped_prompt_balances_its_two_rows() {

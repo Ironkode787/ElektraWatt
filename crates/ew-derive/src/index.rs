@@ -173,7 +173,7 @@ pub(crate) fn touched_rows<T: Entity>(touched: &[MemoInput]) -> BTreeSet<RowId<T
 ///
 /// The table's stamp covers every row, so the index drops the dependencies carried from its previous execution
 /// first (`Q::drop_carried`): it depends on the table and the rows of this commit, not on every row it ever
-/// re-selected (review cycle 10, finding 3). Called by the index families first thing in their hook.
+/// re-selected (review, finding 3). Called by the index families first thing in their hook.
 pub(crate) fn table_index<T: Entity, V: Clone + PartialEq>(
     q: &Q,
     previous: Option<(&Index<RowId<T>, V>, Changes<'_>)>,

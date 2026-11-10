@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The supply groups of a part's PLC section through the files (WP-S1.21 D13, FR-PLC-024; PX-2): a part copy in
+//! The supply groups of a part's PLC section through the files (FR-PLC-024; PX-2): a part copy in
 //! `lib/` whose `sections.plc.supply_groups` carries typed members, unknown members and newer enum values loads and
 //! saves byte-equal, and its stored `sha256` (the hash of the item's compact JSON) verifies.
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew import csv`'s library half (WP-S1.22 FM-6, FT-27): the golden tables read from their directory, imported with
+//! `ew import csv`'s library half (FM-6): the golden tables read from their directory, imported with
 //! the starter content and written as a new project, which opens with the model and the check findings of the golden
 //! CSV bootstrap (`tests/golden_csv.rs`), all or nothing at its target.
 
@@ -159,7 +159,7 @@ fn an_unreadable_table_and_a_non_empty_target_are_refused() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-/// FT-1489 (WP-S6.08 D19): the project `ew import csv` writes reports whether its manifest is marked `unstable`: with a
+/// The project `ew import csv` writes reports whether its manifest is marked `unstable`: with a
 /// released list that lacks this build's format it is, with the format released it is not.
 #[test]
 fn a_tables_project_reports_an_unreleased_format() {

@@ -544,7 +544,7 @@ fn structural_words(line: &str, shortcut_keys: &[String]) -> Vec<String> {
             break;
         }
         let skip = token.chars().all(|c| c.is_ascii_digit())
-            // An ID alias `@n` is a value token like a number (ID-630).
+            // An ID alias `@n` is a value token like a number.
             || ew_viewmodel::alias::is_alias(token)
             || token.starts_with('#')
             || token.contains('.')

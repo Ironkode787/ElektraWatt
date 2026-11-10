@@ -5,7 +5,7 @@
 
 use super::*;
 
-/// `ew print` (WP-S3.07 D9): the print set of the selection, written to `--out` or handed to the adapter.
+/// `ew print`: the print set of the selection, written to `--out` or handed to the adapter.
 pub(super) fn run_print(a: &PrintArgs) -> i32 {
     use ew_api::output::print::{Fit, PrintOptions};
     let Some(dir) = reader_dir(a.project.as_ref()) else {
@@ -87,7 +87,7 @@ pub(super) fn run_print(a: &PrintArgs) -> i32 {
     let adapter: Box<dyn ew_print::PrintAdapter> = match a.via {
         PrintVia::Lp => Box::new(ew_print::Lp::new(std::env::temp_dir())),
         PrintVia::Viewer => Box::new(ew_print::Viewer::new(std::env::temp_dir(), &title)),
-        // FT-1157 (ID-1417): Ctrl+C aborts the document at the next band instead of ending the process mid-job.
+        // Ctrl+C aborts the document at the next band instead of ending the process mid-job.
         #[cfg(windows)]
         PrintVia::Windows => {
             ew_print::ctrl_c_cancels(&job.cancel);

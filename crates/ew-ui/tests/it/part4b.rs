@@ -89,7 +89,7 @@ fn the_text_popup_takes_the_text_and_enter_places_it() {
     assert_eq!(h.state().shell().tool().state(), "armed");
 }
 
-/// FT-1206 (decision log ID-1416): opened by a click on the page, as a user opens it (the press and the release in
+/// Opened by a click on the page, as a user opens it (the press and the release in
 /// frames of their own), the popup's field takes the focus, so the first typing, in the next frame, lands in it.
 #[test]
 fn a_click_with_the_text_tool_gives_the_popup_s_field_the_focus() {

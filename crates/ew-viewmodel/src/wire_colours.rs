@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The wire-colour view (WP-S2.08 D18, FR-UI-047, doc 16 §10.3): view state of the window, never a model edit and
+//! The wire-colour view (FR-UI-047, doc 16 §10.3): view state of the window, never a model edit and
 //! never in a display list, so the PDF and the PNG exports never see it.
 //!
 //! While View ▸ Wire colours is on, every connection drawn on the shown page whose effective colour is known is
@@ -17,8 +17,8 @@
 //!   so it is never mistaken for a colour.
 //!
 //! One colour is a solid stroke; two alternate in [`DASH_NM`] (2 mm on the sheet) dashes, the first colour first. The
-//! dashes are walked over the path clipped to the sheet, so their number is bounded by the sheet, not by the path
-//! (C49-p8#5). A stroke with a colour under 3:1 against the white sheet ([`contrast_on_white`], NFR-A11Y-03) is cased:
+//! dashes are walked over the path clipped to the sheet, so their number is bounded by the sheet, not by the path.
+//! A stroke with a colour under 3:1 against the white sheet ([`contrast_on_white`], NFR-A11Y-03) is cased:
 //! a [`CASING_RGB`] outline [`CASING_PX`] physical pixel wide on both sides, painted under it.
 
 pub use ew_api::output::CompanyColour;
@@ -233,7 +233,7 @@ pub fn assign_lanes(strokes: &mut [WireStroke]) {
 }
 
 /// `polyline` with a vertex added on each segment wherever a segment of `earlier` that shares a stretch with it ends
-/// inside it (FT-1344), in the segment's order: the drawn path is the same, and each piece is either shared along its
+/// inside it, in the segment's order: the drawn path is the same, and each piece is either shared along its
 /// whole length or not at all.
 fn split_at_shared(polyline: &[(i64, i64)], earlier: &[WireStroke]) -> Vec<(i64, i64)> {
     let Some(&first) = polyline.first() else {
@@ -346,7 +346,7 @@ impl WireStroke {
         self.lanes.iter().any(|l| *l > 0)
     }
 
-    /// FT-1283: the stroke as it is drawn at `nm_per_pt` sheet nanometres per logical point: each segment moved off
+    /// The stroke as it is drawn at `nm_per_pt` sheet nanometres per logical point: each segment moved off
     /// its path by its lane's offset ([`lane_offset_pt`] along [`normal`]), and the moved segments joined where their
     /// lines cross, so a laned stroke turns its corners in its lane and meets itself at every turn (a lane that ends
     /// at a corner turns onto the next segment's line). Two segments on one line in different lanes are joined by a
@@ -571,7 +571,7 @@ mod tests {
             let s = stroke(&[code], vec![]);
             assert_eq!(s.cased, contrast_on_white(rgb) < MIN_CONTRAST, "{code}");
         }
-        // The ratio itself: white 1:1, black 21:1, the examples of doc 16 §10.3 and the reviewer's (C49-p8#2).
+        // The ratio itself: white 1:1, black 21:1, the examples of doc 16 §10.3 and the reviewer's.
         assert!((contrast_on_white((0xFF, 0xFF, 0xFF)) - 1.0).abs() < 1e-9);
         assert!((contrast_on_white((0, 0, 0)) - 21.0).abs() < 1e-9);
         for code in ["WH", "YE", "OG", "TQ", "GD", "PK", "SR"] {
@@ -606,7 +606,7 @@ mod tests {
 
     #[test]
     fn a_route_point_far_outside_the_sheet_is_clipped_before_dashing() {
-        // C49-p8#5: a value the format allows; unclipped it gave 5e8 dashes.
+        // A value the format allows; unclipped it gave 5e8 dashes.
         let far = 1_000_000_000_000_000_i64;
         let s = stroke(&["GN", "YE"], vec![(10_000_000, 10_000_000), (far, 10_000_000)]);
         let pieces = s.pieces();
@@ -641,7 +641,7 @@ mod tests {
         ];
         assign_lanes(&mut strokes);
         assert_eq!(strokes[0].lanes, [0]);
-        // FT-1344: split where the WH wire ends, only the shared stretch moves.
+        // Split where the WH wire ends, only the shared stretch moves.
         assert_eq!(strokes[1].lanes, [0, 1, 0], "only the shared stretch moves");
         assert_eq!(strokes[2].lanes, [0], "alone on its path");
         assert!(!strokes[0].laned() && strokes[1].laned());
@@ -744,7 +744,7 @@ mod tests {
         assert_eq!(two[0].in_lanes(1_000.0), two[0]);
     }
 
-    /// FT-1344 (ID-1358 ruling 4): a segment that shares only part of its stretch moves only that part into its lane;
+    /// A segment that shares only part of its stretch moves only that part into its lane;
     /// the rest stays on its path, joined to the shared part by a step across.
     #[test]
     fn only_the_shared_part_of_a_segment_takes_its_lane() {

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1425 (ID-1395): choosing a library's address profile (`plc.set_profile` naming a profile only a library holds)
-//! embeds the profile first (WP-S7.03 D8); `--record` now writes that `library.embed` line before the command's own, so
+//! Choosing a library's address profile (`plc.set_profile` naming a profile only a library holds)
+//! embeds the profile first; `--record` now writes that `library.embed` line before the command's own, so
 //! the recorded steps replay on a copy of the project opened without the library.
 
 use crate::common;

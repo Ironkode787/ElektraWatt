@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Draw duct (WP-S4.02 part 4, D11; doc 12 §3.2, §12.1): clicks add the vertices of an orthogonal centreline, each
+//! Draw duct (doc 12 §3.2, §12.1): clicks add the vertices of an orthogonal centreline, each
 //! segment on the dominant axis of its displacement; Backspace removes the last vertex; a double click
 //! (`tool.finish`), or Enter on the last vertex, finishes with `layout.carrier.add`.
 //!

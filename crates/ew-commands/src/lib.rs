@@ -4,7 +4,7 @@
 //! `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews,
 //! macros and `ApplyImport`.
 //!
-//! `ew-commands` v0 (WP-S1.04) implements the editing layer of ADR-0008 (ARCH §5): every change of a
+//! `ew-commands` v0 implements the editing layer of ADR-0008 (ARCH §5): every change of a
 //! project is a [`Command`] that runs against a [`TxBuilder`], is completed by the normalisers, validated
 //! by `ew-model` and committed as one [`Transaction`] of `ew-model` [`Op`](ew_model::Op)s.
 //!
@@ -23,8 +23,8 @@
 //!   applies inverse ops as a new revision on the history path (`Model::apply_history`: structural
 //!   invariants only, ARCH §5.3).
 //!
-//! Not in v0: the full numbering engine (WP-S1.11), persistence and the journal (WP-S1.09), the job pool
-//! (WP-S1.05; previews run synchronously), macros, `ApplyImport` and `edit.paste`.
+//! Not in v0: the full numbering engine, persistence and the journal, the job pool
+//! (previews run synchronously), macros, `ApplyImport` and `edit.paste`.
 //!
 //! # Example
 //!

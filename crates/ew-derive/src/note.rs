@@ -39,7 +39,7 @@ pub enum NoteSeverity {
 /// Why a project numbering scheme was not applied.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum SchemeIssue {
-    /// Its counter scope is not `"page"`, the only scope the command layer numbers (ID-48).
+    /// Its counter scope is not `"page"`, the only scope the command layer numbers.
     CounterScope,
     /// Its format (or a rule's) lacks `{page}`, so counters unique per page would not give unique tags.
     FormatWithoutPage,
@@ -67,7 +67,7 @@ impl SchemeIssue {
 #[non_exhaustive]
 pub enum DeriveNote {
     /// The project pins a derivation profile this build does not ship (ADR-0003). Display uses the newest
-    /// shipped profile; profile-dependent commands are refused (WP-S1.11). Integrity code
+    /// shipped profile; profile-dependent commands are refused. Integrity code
     /// [`EW_CORE_018`].
     UnknownProfile {
         /// The pinned key.
@@ -131,7 +131,7 @@ pub enum DeriveNote {
         /// What happened and which fallback applied, in English.
         detail: String,
     },
-    /// A cross-reference could not be derived as the model asks (WP-S1.08): a target without an anchor
+    /// A cross-reference could not be derived as the model asks: a target without an anchor
     /// cell (`EW-CORE-053`), an auxiliary whose main function is unplaced (`EW-CORE-053`), a device with two
     /// main functions (`EW-INV-002`). The text uses the documented fallback. Severity: `Error` for
     /// `EW-INV-002`, `Warning` otherwise.
@@ -154,8 +154,8 @@ pub enum DeriveNote {
         /// What is wrong with it, in English (`does not exist`, `is not drawn on the marker's page`).
         detail: &'static str,
     },
-    /// The designation pattern of a module's part (`ChannelSpec.designation`, doc 10 §2.4, §2.6) does not expand
-    /// (FT-318): the module's channels get no automatic designation, one note per module.
+    /// The designation pattern of a module's part (`ChannelSpec.designation`, doc 10 §2.4, §2.6) does not expand:
+    /// the module's channels get no automatic designation, one note per module.
     DesignationPattern {
         /// The module device, as text.
         module: String,
@@ -166,7 +166,7 @@ pub enum DeriveNote {
     },
 }
 
-/// The integrity code of an unknown pinned derivation profile (doc 05 §6.3, doc 15 §4; decision log ID-72).
+/// The integrity code of an unknown pinned derivation profile (doc 05 §6.3, doc 15 §4).
 pub const EW_CORE_018: &str = "EW-CORE-018";
 
 /// The integrity code of a device with two main functions (EW-INV-002).

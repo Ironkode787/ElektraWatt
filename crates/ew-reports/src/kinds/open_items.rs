@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `open_items`: the open-items list (FR-REP-021; WP-S3.06 D7, D8).
+//! `open_items`: the open-items list (FR-REP-021).
 
 use ew_checks::{Finding, OPEN_ITEM_RULES, open_item_of, open_items};
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
@@ -99,8 +99,7 @@ fn row_of(columns: &[ColumnDef], f: &Finding, category: &str) -> Row {
     let id = RowId(vec![RowKey::Name(format!("{}/{}", f.rule, f.fingerprint))]);
     let mut r = Row::data(id, cells);
     r.sources = f.targets.iter().map(|t| t.id).collect();
-    // The item links the finding's page, else the main representation of its first device target, else nothing
-    // (WP-S3.06 D10).
+    // The item links the finding's page, else the main representation of its first device target, else nothing.
     let target = match f.page {
         Some(page) => Some(LinkTarget::Page(PageRef::Drawn(page))),
         None => f

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! WP-S1.21 part 1 in the engine: normaliser N0 (`plc_aspects`, D2 to D4) and the channel members through
-//! `fields.set` (D6, FT-226). The window path with the starter parts (PW-1 to PW-6) is `ew-api`'s `plc_window.rs`.
+//! `fields.set` (D6). The window path with the starter parts (PW-1 to PW-6) is `ew-api`'s `plc_window.rs`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -138,7 +138,7 @@ fn invalid(r: Result<Receipt, CmdError>) -> (String, String) {
 // ---------------------------------------------------------------------------------------------------------
 // N0: the registry row
 
-/// N0 runs first after N-FL-1 (`valve_functions`, WP-S1.20 D6), which gives valves their functions, and before N1.
+/// N0 runs first after N-FL-1 (`valve_functions`), which gives valves their functions, and before N1.
 #[test]
 fn n0_is_the_first_row_of_the_registry_before_n1() {
     assert_eq!(ORDER[..2], ["valve_functions", "plc_aspects"]);
@@ -562,7 +562,7 @@ fn channel_values_outside_the_profile_and_this_build_are_refused() {
     ))
     .expect("move the station");
     let (_, message) = invalid(e.execute(&set(KindName::Channel, c0.cast(), "address", json!("I4.0"))));
-    // FT-1427: a project's copy is a profile at hand too, so the text names both.
+    // A project's copy is a profile at hand too, so the text names both.
     assert_eq!(
         message,
         "`vendor-x@1` is not an address profile of this build or of the project, so an address text cannot be read; \
@@ -644,7 +644,7 @@ fn configuration_project_name_and_device_link_kind() {
     );
 }
 
-/// FT-226: a channel edit changes no page (no page draws a channel yet), so the affected pages are empty.
+/// A channel edit changes no page (no page draws a channel yet), so the affected pages are empty.
 #[test]
 fn a_channel_edit_affects_no_page() {
     let (mut e, _, c0) = station_with_card();

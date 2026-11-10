@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The view transform (WP-S2.02 §6.1, §6.3): sheet nanometres (origin top-left, y down) to physical pixels of the
+//! The view transform (§6.3): sheet nanometres (origin top-left, y down) to physical pixels of the
 //! pane (origin at the pane's top-left corner).
 //!
 //! A [`View`] is what the canvas model holds: the sheet point at the pane's centre, the zoom as a factor of paper

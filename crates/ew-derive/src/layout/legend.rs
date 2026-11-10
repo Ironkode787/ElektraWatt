@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The layout legend of a mounting surface (WP-S4.01 D11, doc 12 §5.4), the surface a panel page shows (D9), and the
+//! The layout legend of a mounting surface (doc 12 §5.4), the surface a panel page shows (D9), and the
 //! legend order of carriers that the BOM's carrier lines share (part 4).
 //!
 //! These are plain functions over the tracked reads of `q`, not memo families: the legend is read by one report kind
@@ -107,7 +107,7 @@ pub fn carriers_in_order(q: &Q, surface: Id<MountingSurface>) -> Vec<Id<Carrier>
     out.into_iter().map(|(_, c)| c).collect()
 }
 
-/// The kind word of a carrier label (WP-S4.02 D8).
+/// The kind word of a carrier label.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum CarrierLabelKind {
     /// "Rail".
@@ -116,7 +116,7 @@ pub enum CarrierLabelKind {
     Duct,
 }
 
-/// A carrier's derived label (WP-S4.02 D8): its kind and its number among the surface's carriers of that kind, from 1
+/// A carrier's derived label: its kind and its number among the surface's carriers of that kind, from 1
 /// in legend order ([`carrier_order`]). Never stored: a new carrier may renumber the others, like legend positions.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct CarrierLabel {
@@ -150,7 +150,7 @@ impl std::fmt::Display for CarrierLabel {
     }
 }
 
-/// `carrier_labels(surface)` (WP-S4.02 D8): the surface's rails and ducts in legend order ([`carriers_in_order`]: rails,
+/// `carrier_labels(surface)`: the surface's rails and ducts in legend order ([`carriers_in_order`]: rails,
 /// then ducts, each top to bottom then left to right by `path[0]`), each kind numbered from 1. A carrier of a kind this
 /// build does not know gets no label (it carries no placements). On Golden A: R1 … R3 are Rail 1 … 3 and D1 … D5 are
 /// Duct 1 … 5 (doc 20 §13).
@@ -241,7 +241,7 @@ fn part_use_where(q: &Q, device: &Device, pred: impl Fn(&Part) -> bool) -> Optio
         .map(|u| u.part.clone())
 }
 
-/// `layout_legend(surface)`: the legend of one mounting surface (WP-S4.01 D11, doc 12 §5.4, FR-LAY-012), in order:
+/// `layout_legend(surface)`: the legend of one mounting surface (doc 12 §5.4, FR-LAY-012), in order:
 ///
 /// 1. the enclosure: its device and that device's part use with an enclosure section (else its first part use);
 /// 2. the surface: its device and that device's part use with a mounting-plate section (else its first part use);
@@ -250,7 +250,7 @@ fn part_use_where(q: &Q, device: &Device, pred: impl Fn(&Part) -> bool) -> Optio
 ///    by `path[0]`), the DT empty, the path length in metres as the quantity (none without a derivable length);
 /// 4. the placements on the surface's carriers and on the surface itself, by the device's full designation in natural
 ///    order (then the device ID and the placement ID), each with the part use it realises;
-/// 5. the layout-only accessories (doc 12 §5.4's last group; WP-S4.02 D13): one row per end-bracket part (and variant)
+/// 5. the layout-only accessories (doc 12 §5.4's last group): one row per end-bracket part (and variant)
 ///    of the brackets `group_accessories` derives on the surface's rails, the DT empty, the number of brackets as the
 ///    quantity, by part number in natural order (then the part copy's ID and the variant).
 ///

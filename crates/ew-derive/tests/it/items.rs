@@ -4,7 +4,7 @@
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
-//! Page items and structure boxes, derived (WP-S2.04 part 4a, §10.2; acceptance PI2's derivation half): the
+//! Page items and structure boxes, derived (acceptance PI2's derivation half): the
 //! innermost box around a representation's anchor point, `structure_of` taking the box's slot for an inherited
 //! aspect (`SlotSource::StructureBox`), `ip_structure`, bound texts, captions and the stale-entry load notes.
 

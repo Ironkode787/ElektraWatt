@@ -303,7 +303,7 @@ fn consecutive<T: PartialEq>(order: &[T], group: impl Fn(&T) -> bool) -> bool {
     at.windows(2).all(|w| w[1] == w[0] + 1)
 }
 
-/// The first bridge group (by number) whose terminals are consecutive in `before` but not in `after` (FT-641, CI-06):
+/// The first bridge group (by number) whose terminals are consecutive in `before` but not in `after` (CI-06):
 /// its number and its terminals' designations in `before` order. A group that was not consecutive already (a lenient
 /// import's) is EW-TERM-004's finding, not a refusal here.
 fn split_bridge_group(
@@ -339,14 +339,14 @@ fn designation_of(tx: &TxBuilder<'_>, t: Id<Device>) -> String {
         .unwrap_or_else(|| "?".to_owned())
 }
 
-/// `terminal.insert`: new terminals of a strip at a position, the following terminals moved up (WP-S2.07 §5.1, D4).
+/// `terminal.insert`: new terminals of a strip at a position, the following terminals moved up (D4).
 ///
 /// Let s be the `seq` of `before` (absent: one more than the strip's highest `seq`, or 1 for an empty strip) and n
 /// the number of terminals. In one transaction every terminal of the strip with `seq ≥ s` gets `seq + n` (its tag
 /// and designation stay), every group bound (`from_seq`, `to_seq`) and every accessory `after_seq` at or above s is
 /// raised by n, and the new terminals are inserted as `terminal.add` inserts them, with `seq` s, s + 1, … in list
 /// order and `parts` on each. A placement of the strip on a rail that grows pushes the items after it by the overlap,
-/// cascading (FT-1441); a placement turned 180° grows left and pushes the items before it (FT-1495). Rejected: the
+/// cascading; a placement turned 180° grows left and pushes the items before it. Rejected: the
 /// strip is not a device with the strip aspect; `before` is not a terminal of
 /// the strip; new terminals between two terminals of one consecutive bridge group (FT-641, CI-06: the message names
 /// the group and the places outside it); no terminal; a spec with `seq`; a designation already used in the strip or twice in the list; a
@@ -530,7 +530,7 @@ impl Command for InsertTerminals {
             )?;
             first.get_or_insert(device);
         }
-        // FT-1441: the grown strip pushes the items after it on its rail.
+        // The grown strip pushes the items after it on its rail.
         push_after_growth(tx, self.strip)?;
         Ok(Outcome {
             primary: first.map(|d| (Kind::Device, d.cast())),
@@ -550,7 +550,7 @@ impl Command for InsertTerminals {
 /// designations stay, so a moved terminal takes the group of its new place. Bridges belong to their terminals (they
 /// are connections), so a bridge group follows its terminals: a move that keeps every bridge group consecutive is
 /// accepted, one that splits a group that was consecutive is refused with a message naming the group and the way out
-/// (FT-641, CI-06). Rejected: no terminal; a terminal listed
+/// (CI-06). Rejected: no terminal; a terminal listed
 /// twice; a device that is not a terminal; terminals of two strips; a `before` that is one of the moved terminals or
 /// not a terminal of their strip; an order that does not change. A missing device is `NotFound`. Cost Interactive, Outcome none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -752,7 +752,7 @@ pub struct CreateCable {
     /// The conductors.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub conductors: Vec<ConductorSpec>,
-    /// The library documents to embed first, in the same transaction (`lib/` JSON form; decision log ID-1376): the
+    /// The library documents to embed first, in the same transaction (`lib/` JSON form): the
     /// cable part and its closure; empty when the project holds them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,

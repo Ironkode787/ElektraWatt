@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Waiver recording (doc 15 §2.5, FR-CHK-009; WP-S1.16 D7, FT-494): `check.waive` and `check.unwaive`.
+//! Waiver recording (doc 15 §2.5, FR-CHK-009): `check.waive` and `check.unwaive`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -104,13 +104,13 @@ fn waive_checks_its_parameters_and_refuses_a_second_waiver_of_one_finding() {
     let mut again = w1();
     again["fingerprint"] = json!(FP.to_ascii_lowercase());
     match e.execute(&waive(again)).unwrap_err() {
-        // FT-1396: the waiver by its rule, never by its ID or the finding's fingerprint.
+        // The waiver by its rule, never by its ID or the finding's fingerprint.
         CmdError::Rejected { reason, .. } => {
             assert_eq!(reason, "a waiver of EW-CORE-041 covers this finding already");
         }
         other => panic!("{other:?}"),
     }
-    // FT-1509: with the finding's subject, the refusal names it too.
+    // With the finding's subject, the refusal names it too.
     let mut again = w1();
     again["subject"] = json!("-102G1");
     match e.execute(&waive(again)).unwrap_err() {

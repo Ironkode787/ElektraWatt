@@ -16,7 +16,7 @@
 pub use ew_viewmodel;
 
 mod about;
-// FT-571: the recovery dialog's test clock (the module is private).
+// The recovery dialog's test clock (the module is private).
 #[doc(hidden)]
 pub use about::set_now_for_tests;
 pub mod app;
@@ -24,70 +24,66 @@ pub mod canvas;
 pub mod canvas_area;
 pub mod canvas_chips;
 pub mod clock;
-// WP-S2.17 part 2: the command bar and the tool HUD.
-// WP-S2.18 part 1: the Join chooser (doc 16a §6.22).
+// The command bar and the tool HUD.
+// The Join chooser (doc 16a §6.22).
 mod chooser;
 mod command_bar;
-// WP-S2.17 part 4: the small components (buttons, badges, chips, empty states, cards) and the dialog frame.
+// The small components (buttons, badges, chips, empty states, cards) and the dialog frame.
 mod components;
 mod dialog;
 pub mod dock;
-// WP-S2.05 part 2
 pub mod find;
 pub mod first_run;
 mod focus;
 pub mod fonts;
+pub mod glossary;
 pub mod gpu;
 pub mod headless;
-pub mod icons;
-// WP-S2.09 part 3
 mod history;
-// WP-S2.08 part 6 (D16)
-pub mod glossary;
 mod hud;
-// WP-S2.09 part 1: the Jobs pane, the toasts and the notifications log.
+pub mod icons;
+// The Jobs pane, the toasts and the notifications log.
 mod jobs;
 pub mod keys;
-// WP-S2.08 part 2: the keymap editor (Help ▸ Keyboard shortcuts).
+// The keymap editor (Help ▸ Keyboard shortcuts).
 mod keymap_editor;
 mod latest;
-// WP-S1.19 part 6: the Macros navigator's detail and the Libraries navigator's Update….
+// The Macros navigator's detail and the Libraries navigator's Update….
 mod library_panes;
 mod menu;
-// WP-S2.09 part 2: the message panel's header, card, detail block and icons.
+// The message panel's header, card, detail block and icons.
 mod messages;
 mod nav_table;
 pub mod navigator;
 mod notifications;
 pub mod offscreen;
 pub mod page_view;
-// WP-S2.09 part 3
 mod palette;
 mod preview;
 mod rail;
-// FT-410: the parts table import card.
+// The parts table import card.
 mod part_dialog;
-// WP-S3.07 part 3: the print pre-dialog and its preview.
+// The print pre-dialog and its preview.
 mod parts_card;
 mod parts_map;
 mod print_dialog;
-// WP-S2.04 part 2: the junction sequence editor popup.
+// The junction sequence editor popup.
 mod junction;
 mod picker;
 pub mod properties;
 mod splitter;
 mod start_page;
 mod symbol_editor;
-// WP-S6.05 D11: the start-up offer after a crash.
+// The start-up offer after a crash.
 mod startup;
 mod status_bar;
-// WP-S2.04 part 4b: the text tool's popup.
+// The text tool's popup.
 mod text_popup;
-// WP-S2.17 part 1: the design tokens, themes and their mapping onto egui.
+// The design tokens, themes and their mapping onto egui.
 pub mod theme;
 pub mod tool_view;
 mod value_table;
 pub mod visual;
-// WP-S2.17 part 3 (DK6, FT-348): window memory.
+// WP-S2.17 part 3 (DK6): window memory.
 pub mod window_memory;
 mod wizard;

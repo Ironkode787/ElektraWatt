@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC normalisers beyond channel creation (cycle 18, lane C): N2 `solenoid_binding` (FT-275,
-//! FR-PLC-051), N3 `module_pin_binding` (FT-275), N1's kind change (FT-276) and its surplus notice with the
-//! Bulk command `plc.set_module_part` (FT-277, FR-PLC-053).
+//! The PLC normalisers beyond channel creation (lane C): N2 `solenoid_binding` (FT-275,
+//! FR-PLC-051), N3 `module_pin_binding`, N1's kind change and its surplus notice with the
+//! Bulk command `plc.set_module_part` (FR-PLC-053).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -30,7 +30,7 @@ use serde_json::{Value, json};
 const MODULE_H1: Id<Part> = id(0x6c);
 /// The module part with hypothesis H2 (coil 14 on 2p + 1).
 const MODULE_H2: Id<Part> = id(0x6d);
-/// The valve part 571334: solenoid 14, its template the 5/2 body and one internal coil (WP-S1.20 D4).
+/// The valve part 571334: solenoid 14, its template the 5/2 body and one internal coil.
 const VALVE: Id<Part> = id(0x6e);
 /// A bistable valve part: solenoids 14 and 12.
 const VALVE_BI: Id<Part> = id(0x6a);
@@ -261,7 +261,7 @@ fn an_explicit_rebinding_after_n2_stays() {
     assert_eq!(binding(&e, 0), None);
 }
 
-/// FT-319: `plc.bind_channel` reads the CP → channel index (not the channel table), and a prepared
+/// `plc.bind_channel` reads the CP → channel index (not the channel table), and a prepared
 /// transaction records that read: a preview made while the CP was free is re-run at commit after another
 /// channel took the CP, so FR-PLC-005 (a CP is in at most one channel) still holds.
 #[test]
@@ -276,7 +276,7 @@ fn a_preview_of_a_binding_is_re_run_after_another_channel_took_the_cp() {
     e.execute(&bind(channel_id(DEV_102F2, 2), Some((f, 0))))
         .expect("another channel takes the CP");
     let r = e.commit(preview).expect("commit");
-    // FT-952 (ID-1108: "N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do")
+    // FT-952 ("N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do")
     assert_eq!(
         r.outcome.notices,
         ["channel 2 of the same module was bound to this connection point and is now unbound"]
@@ -344,7 +344,7 @@ fn n2_reports_a_map_that_gives_no_channel() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// N-FL-1: valve functions (WP-S1.20 D6, FL-4)
+// N-FL-1: valve functions (FL-4)
 
 fn functions_of(e: &Engine, device: Id<Device>) -> Vec<(Id<Function>, Option<String>)> {
     let mut out: Vec<(Id<Function>, Option<String>)> = e
@@ -425,9 +425,9 @@ fn n_fl_1_makes_the_valve_and_coil_functions_from_the_part() {
     assert_eq!(binding(&e, 3), None);
 }
 
-/// FT-1313: replacing a part shaped like `EW-GEN-VLV-1` (`[valve-coil, valve]`) by a `[valve, solenoid]` part keeps
+/// Replacing a part shaped like `EW-GEN-VLV-1` (`[valve-coil, valve]`) by a `[valve, solenoid]` part keeps
 /// the valve function `v5(valve, 1)`, so the new coil of entry 1 takes `v5(v5(valve, 1), 1)`, deterministic and free,
-/// instead of failing on an existing record; N2 binds it with no notice that the channel is unbound (FT-1392), and undo
+/// instead of failing on an existing record; N2 binds it with no notice that the channel is unbound, and undo
 /// restores the old coil.
 #[test]
 fn n_fl_1_gives_a_new_coil_a_fresh_id_when_its_own_is_the_kept_valve_function() {
@@ -463,13 +463,13 @@ fn n_fl_1_gives_a_new_coil_a_fresh_id_when_its_own_is_the_kept_valve_function() 
     });
     assert_eq!(row(&e, fresh).template_entry, Some(1));
     assert_eq!(binding(&e, 2), Some(Endpoint::Cp(fresh, 0)));
-    // FT-1392: N2 binds the new coil to channel 2 in the same step, so no notice says it is unbound.
+    // N2 binds the new coil to channel 2 in the same step, so no notice says it is unbound.
     assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
     e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert_eq!(binding(&e, 2), Some(Endpoint::Cp(old_coil, 0)));
 }
 
-/// C51-p5#7 (FT-1313): when the new coil's own ID and the eight derived from it are all taken, the part change is
+/// When the new coil's own ID and the eight derived from it are all taken, the part change is
 /// refused in words, with no panic and no change.
 #[test]
 fn n_fl_1_refuses_in_words_when_no_derived_function_id_is_free() {
@@ -513,7 +513,7 @@ fn n_fl_1_refuses_in_words_when_no_derived_function_id_is_free() {
     assert_eq!(functions_of(&e, v), before);
 }
 
-/// FT-1316 (WP-S1.20 FL-8, T24 whole): emptying a valve's position removes it with its two fluid lines and unbinds
+/// FT-1316 (FL-8, T24 whole): emptying a valve's position removes it with its two fluid lines and unbinds
 /// the channel of its coil, each said in words; one undo step brings the valve, its lines and the binding back.
 #[test]
 fn emptying_a_valve_position_names_its_fluid_lines_and_the_unbound_channel() {
@@ -692,7 +692,7 @@ fn n3_reports_missing_held_and_unexpandable_pins() {
     assert_eq!(binding(&e, 1), None, "Out4 is held");
     assert_eq!(binding(&e, 2), None, "no CP is named Out5");
     assert_eq!(binding(&e, 3), None, "no CP is named Out6");
-    // FT-952 (ID-1108, as above)
+    // FT-952 (as above)
     assert_eq!(
         r.outcome.notices,
         [
@@ -706,7 +706,7 @@ fn n3_reports_missing_held_and_unexpandable_pins() {
     let r = make_module(&mut e, BROKEN);
     assert!((0..4u16).all(|n| binding(&e, n).is_none()));
     assert!(has_notice(&r, "gives no pin"), "{:?}", r.outcome.notices);
-    // the notice names the reason the shared expander gives (FT-318)
+    // the notice names the reason the shared expander gives
     assert!(has_notice(&r, "a `{` is not closed"), "{:?}", r.outcome.notices);
 }
 
@@ -729,7 +729,7 @@ fn n3_leaves_an_unbound_old_channel_alone() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// N1: kind change (FT-276)
+// N1: kind change
 
 /// A part change to a part of another channel kind changes the kind of the existing channels, keeps their
 /// IDs and bindings, and says so.
@@ -761,7 +761,7 @@ fn n1_applies_the_new_kind_to_existing_channels() {
         8,
         "no channel is created or removed"
     );
-    // FT-952 (ID-1108: "N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do")
+    // FT-952 ("N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do")
     let want: Vec<String> = (0..8)
         .map(|n| {
             let stays = if n == 3 { "bound to -102F2:GND" } else { "unbound" };
@@ -793,7 +793,7 @@ fn n1_keeps_a_kind_of_a_newer_format() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Surplus channels (FT-277, FR-PLC-053)
+// Surplus channels (FR-PLC-053)
 
 const NARROW: Id<Part> = id(0x74);
 
@@ -854,7 +854,7 @@ fn a_part_change_removes_surplus_channels_only_through_the_preview() {
     ));
     let preview = e.preview(&set_part(Some(NARROW))).expect("preview");
     assert_eq!(removed(&preview), channel_keys(4..8));
-    // FT-952 (ID-1108: "N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do"): the
+    // FT-952 ("N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do"): the
     // bound channel names its binding in words
     let want: Vec<String> = (4..8)
         .map(|n| {
@@ -918,7 +918,7 @@ fn surplus_left_by_fields_set_is_removed_by_the_bulk_command_without_parts() {
         8,
         "fields.set removes nothing"
     );
-    // FT-952 (ID-1108, as above)
+    // FT-952 (as above)
     assert_eq!(
         r.outcome.notices,
         [
@@ -965,7 +965,7 @@ fn a_part_without_channels_makes_every_channel_surplus() {
     assert_eq!(e.model().table::<Channel>().iter().count(), 0);
 }
 
-/// Review ruling (cycle 18): a device without the `plc_module` aspect is refused, and so are new parts in
+/// Review ruling: a device without the `plc_module` aspect is refused, and so are new parts in
 /// which `plc_module.part_use` names no entry (the count would fall to 0 and every channel go).
 #[test]
 fn set_module_part_refuses_a_non_module_and_a_dangling_part_use() {

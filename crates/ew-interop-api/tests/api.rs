@@ -192,7 +192,7 @@ fn limits_element_definition_and_stricter() {
     assert_eq!(Limits::default().stricter(e), e);
 }
 
-/// WP-S3.09 D2: the archive, file-set and table members and their defaults (doc 14 §11).
+/// The archive, file-set and table members and their defaults (doc 14 §11).
 #[test]
 fn limits_default_archives_inputs_and_tables() {
     let l = Limits::default();

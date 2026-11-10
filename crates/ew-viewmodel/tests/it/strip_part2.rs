@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The strip follow-ups of WP-S2.07 part 2, headless: a terminal chosen with no strip opens the strip chooser on its
-//! empty state (FT-605), the PE terminal asks for its strip (FT-618), the page description lists a strip's bridges
-//! (FT-621), table mode adds an accessory before the first terminal (FT-600), and Enter on an unplaced terminal row
+//! empty state, the PE terminal asks for its strip, the page description lists a strip's bridges,
+//! table mode adds an accessory before the first terminal, and Enter on an unplaced terminal row
 //! arms the Place tool with its function (§6.8).
 
 use crate::common;
@@ -212,7 +212,7 @@ fn ft600_add_accessory_before_the_first_terminal_in_table_mode() {
     done(&mut s, "edit.undo", json!({}));
     assert!(!texts(&s, "Pos").contains(&"4.1".to_owned()));
     assert_eq!(texts(&s, "Pos")[0], "0.1");
-    // FT-1360: without `before`, after the terminal, named in words.
+    // Without `before`, after the terminal, named in words.
     at(&mut s, &k5);
     done(&mut s, "strip.add_accessory", json!({}));
     assert_eq!(toast(&s), "Added end bracket after terminal 5 of -X1031.");

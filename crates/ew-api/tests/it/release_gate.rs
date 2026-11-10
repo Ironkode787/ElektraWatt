@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.18 part 3 (D8 to D10): the release gate on the saved generation and the checker's sign-off bound to its
+//! The release gate on the saved generation and the checker's sign-off bound to its
 //! content digest, through the `Session` facade (RG-1 to RG-5).
 //!
 //! Golden A is opened read-only only (RG-4). The approvals run on a **copy** of Golden A in a fresh directory whose
@@ -59,7 +59,7 @@ const COMMENT_ID: &str = "3b9c1d72-5e48-7a06-8f13-2d6c0e9a4b51";
 
 /// Writes one comment record (the reserved `comment` kind) to `comments.jsonl` of the closed project at `dir` and
 /// lists it in the manifest, as a review tool that adds a comment does.
-// TODO(FT-761): switch to the comment command once one exists, instead of writing comments.jsonl and the manifest by
+// TODO: switch to the comment command once one exists, instead of writing comments.jsonl and the manifest by
 // hand.
 fn add_comment(dir: &Path) {
     use ew_store::ew_format::{FileHash, FilePath, sha256};
@@ -371,7 +371,7 @@ fn rg1_to_rg5_approve_the_saved_revision_bound_to_its_content() {
     s.save().expect("saved");
     assert_eq!(digest_on_disk(&copy), approved.content_digest);
     assert!(s.release_gate("V2.0", &integrity).expect("gate").passes());
-    // RG-3 (FX38a): a comment (comments.jsonl, not content: WP-S1.18 D3) keeps the sign-off too. No command writes
+    // RG-3 (FX38a): a comment (comments.jsonl, not content) keeps the sign-off too. No command writes
     // the reserved `comment` kind yet, so the comment arrives on disk as a review tool writes it, listed in the
     // manifest; the session reopens it, keeps it through a save, and the gate still passes.
     s.close();

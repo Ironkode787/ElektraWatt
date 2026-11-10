@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-483 (WP-S2.03 §6.4, decision log ID-677): the page's link list is in reading order, and links at the same
+//! The page's link list is in reading order, and links at the same
 //! reading key go by what is printed, the label of their target in natural order, before the destination and the
 //! paint order, which follow random IDs.
 

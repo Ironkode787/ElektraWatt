@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The font subsetter (WP-S3.07 D3, SV-2; FT-233): glyph IDs kept, outlines of the used glyphs and their
+//! The font subsetter (SV-2): glyph IDs kept, outlines of the used glyphs and their
 //! components byte for byte, every other glyph empty, `head`'s checksum adjustment valid, the dropped tables
 //! absent; hostile fonts refused with their error, never a panic. The subsets are read back with `skrifa` (D4).
 
@@ -360,7 +360,7 @@ fn the_synthetic_font_subsets() {
     assert_eq!(checksum(&subset), 0xB1B0_AFBA);
 }
 
-/// FT-1045, ID-1138: "the subset keeps `cvt `, `fpgm` and `prep` byte for byte when the face has them". A hinted
+/// "the subset keeps `cvt `, `fpgm` and `prep` byte for byte when the face has them". A hinted
 /// face's kept glyphs keep their instructions, so the subset keeps the tables they call into; a face without the
 /// three gains none of them.
 #[test]

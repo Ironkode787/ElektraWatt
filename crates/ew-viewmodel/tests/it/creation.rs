@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-408 and FT-409: `page.new`, `structure.new` and `external_ref.new` at the view-model level, on a new project (the
+//! `page.new`, `structure.new` and `external_ref.new` at the view-model level, on a new project (the
 //! builtin template) in both modes: the pages 101 to 103 and the node and reference of folio 101's external points, the
 //! refusals, the creation dialog of the window, the menu entries and the vocabulary of the dialog's describe lines.
 
@@ -114,7 +114,7 @@ fn a_label_a_section_and_the_refusals_of_page_new() {
     shell.shutdown();
 }
 
-/// ID-1477 (1): New page's Connection grid, the current page's by default, the grid given otherwise, a wrong word
+/// New page's Connection grid, the current page's by default, the grid given otherwise, a wrong word
 /// refused in words; in Properties an empty page's Connection grid row is a choice outside Advanced, set in its words,
 /// and a page that holds items keeps its grid, refused in words.
 #[test]
@@ -625,7 +625,7 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
     };
     assert_eq!(form.action, "page.new");
     let values: Vec<(&str, &str)> = form.fields.iter().map(|f| (f.name, f.value.as_str())).collect();
-    // WP-S2.06 part 1 (FT-461): the folio field holds the proposal after the current page 1.
+    // The folio field holds the proposal after the current page 1.
     assert_eq!(
         values,
         [
@@ -695,7 +695,7 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
     shell.shutdown();
 }
 
-/// FT-1257: a form names a missing field by its label; FT-1256: a common refusal says what to do next (doc 16a §8
+/// A form names a missing field by its label; FT-1256: a common refusal says what to do next (doc 16a §8
 /// item 5); in both languages.
 #[test]
 fn a_form_names_the_missing_field_and_the_next_step() {
@@ -792,7 +792,7 @@ fn the_menu_entries_are_disabled_with_their_reason() {
     let items = |shell: &ShellModel| {
         let mut out = Vec::new();
         for m in menu_model(shell) {
-            // WP-S4.02 part 4: Enclosure… makes Project's group four entries, a submenu (doc 16a §9.2).
+            // Enclosure… makes Project's group four entries, a submenu (doc 16a §9.2).
             let flat = m.entries.into_iter().flat_map(|e| match e {
                 MenuEntry::Group { entries, .. } => entries,
                 other => vec![other],
@@ -896,7 +896,7 @@ fn a_structure_node_leaves_an_armed_place_tool_and_its_preview_alone() {
     s.shutdown();
 }
 
-/// FT-779 (cycle-40 review): an invalid parameter reads "{title}: {field in words}: {message}" on every shell path
+/// An invalid parameter reads "{title}: {field in words}: {message}" on every shell path
 /// that shows a command error, never with its JSON Pointer: `command.run` (the headless tool commit's path too) and a
 /// creation dialog, whose refusal stays under its fields.
 #[test]

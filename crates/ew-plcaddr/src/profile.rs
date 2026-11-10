@@ -52,7 +52,7 @@ pub struct ProfileFields {
     pub allocation_verified: bool,
 }
 
-/// Why profile data is no address profile this engine renders (WP-S7.03 D7, T2's reasons).
+/// Why profile data is no address profile this engine renders (T2's reasons).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ProfileError {
     /// The bit template has no `{bit}`.
@@ -219,7 +219,7 @@ impl AddressProfile {
         None
     }
 
-    /// The start byte a module-start text names (WP-S1.21 D8, `plc.set_start`): the profile's bit address at bit 0
+    /// The start byte a module-start text names (`plc.set_start`): the profile's bit address at bit 0
     /// (`Q10.0`), a unit address of any size (`QB10`, `%QX10` under IEC) or the area and the byte alone (`Q10`), each
     /// with the optional drawing or exchange prefix, white space and ASCII case as [`AddressProfile::parse`] takes
     /// them. `None` for any other text, a bit address at another bit included.

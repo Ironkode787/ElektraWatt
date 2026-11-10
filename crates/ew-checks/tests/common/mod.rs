@@ -63,7 +63,7 @@ pub fn model_with(settings: Value, records: Vec<Record>) -> Model {
 }
 
 /// The findings of `rule` in an online run of the `full` scheme over `m`. Every finding with message arguments is
-/// checked to render its message byte for byte from the rule's en-GB pattern (WP-S1.16 P5-2), so every rule table
+/// checked to render its message byte for byte from the rule's en-GB pattern (P5-2), so every rule table
 /// exercises the patterns of its rule.
 pub fn findings_of(m: &Model, rule: &str) -> Vec<ew_checks::Finding> {
     let q = ew_derive::Q::new(m);

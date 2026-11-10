@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Linux portal adapter (WP-S3.07 D11): xdg-desktop-portal Print through `ashpd`, the sandbox-safe print path
+//! The Linux portal adapter: xdg-desktop-portal Print through `ashpd`, the sandbox-safe print path
 //! that also works in Flatpak. `PreparePrint` shows the system's print dialog, then `Print` hands the print set's file
 //! descriptor to the portal with the dialog's token. The set is written to a fresh file first (as [`crate::Lp`]
 //! writes it) and removed once the portal has answered, whatever it answered; the portal keeps its own descriptor.

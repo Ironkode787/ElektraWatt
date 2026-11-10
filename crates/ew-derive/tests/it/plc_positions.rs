@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The solenoid-position map (doc 10 §2.6 `[plc.positions]`, FT-228): `solenoid_positions(module)` and
+//! The solenoid-position map (doc 10 §2.6 `[plc.positions]`): `solenoid_positions(module)` and
 //! derivation step 4 of doc 10 §3.2 in `channel_states(module)`, on one valve-terminal module with three
 //! valves: V1 at position 1 (coil 14 bound "as drawn" to channel 1), V2 at position 2 (coil 14 unbound) and
 //! V3 at position 3 (a valve without a valve part, so it declares no solenoid); position 4 is empty. V1 and V2 carry
-//! the valve part, which declares solenoid 14, and an internal coil function (WP-S1.20 D5).
+//! the valve part, which declares solenoid 14, and an internal coil function.
 
 // The oracle test edits a snapshot with the raw op layer, as the other incremental tests do.
 #![allow(clippy::disallowed_methods)]
@@ -41,7 +41,7 @@ const H2: [&str; 2] = ["2p+1", "2p"];
 
 fn fixture(map: [&str; 2]) -> Fx {
     let mut fx = Fx::new();
-    // the valve: ports 1 … 5; its internal coil CP 14 is the coil function's (WP-S1.20 D5)
+    // the valve: ports 1 … 5; its internal coil CP 14 is the coil function's
     fx.lib_item(
         "fndef",
         VALVE_FNDEF,
@@ -235,7 +235,7 @@ fn foreign_binding(module: u128) -> Channel {
     .expect("a channel")
 }
 
-/// Review ruling (cycle 18): a coil counts as bound when any channel binds it, of another module (a valve
+/// Review ruling: a coil counts as bound when any channel binds it, of another module (a valve
 /// moved by `assembly.attach` keeps its binding) or of this module with a non-v5 ID, so the map's channel is
 /// not reserved.
 #[test]
@@ -350,7 +350,7 @@ fn memoised_claims_equal_cold_claims_across_edits() {
     let _: Id<Device> = id(V3);
 }
 
-/// FT-319: step 4 reads the whole CP → channel index (`q.get`, not a slice per CP), so a **binding** edit of any
+/// Step 4 reads the whole CP → channel index (`q.get`, not a slice per CP), so a **binding** edit of any
 /// channel changes `channels_by_cp` and re-runs `channel_states` of every module whose position map claims a
 /// channel; an edit that leaves the CP index equal (a symbol) cuts it off and re-runs no module's states. The counts
 /// are pinned here with the foreign channel of another module, which is an input of the CP index and of no module's

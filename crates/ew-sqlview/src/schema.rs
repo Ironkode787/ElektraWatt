@@ -739,7 +739,7 @@ pub(crate) fn ddl() -> String {
 /// acceptance SQL is its compatibility corpus.
 pub const API_STATUS: &str = "preview";
 
-/// The views and columns beyond the key columns of doc 17 §6.1 (owner ruling, cycle 13): a whole view as
+/// The views and columns beyond the key columns of doc 17 §6.1: a whole view as
 /// `(view, &[])`, columns as `(view, &[columns])`.
 pub const PREVIEW_ADDITIONS: &[(&str, &[&str])] = &[
     (

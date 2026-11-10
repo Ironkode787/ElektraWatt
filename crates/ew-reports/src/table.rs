@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The one table model of the table writers (WP-S3.08 D4): report rows, the `ew sql` result and, from part 2, the
+//! The one table model of the table writers: report rows, the `ew sql` result and, from part 2, the
 //! navigator tables are a [`Table`], which the XLSX writer ([`crate::xlsx`]) and the CSV presets
 //! ([`crate::csv::table_csv`]) write.
 //!
-//! A table has a name (its sheet's), a key (what it is: `block:<uuid>`, `kind:<name>`, `sql`; WP-S3.08 D8), typed
+//! A table has a name (its sheet's), a key (what it is: `block:<uuid>`, `kind:<name>`, `sql`), typed
 //! columns and rows. A row carries its [`RowId`](crate::RowId) text (the hidden `id` column of the round trip), whether
 //! it is a heading, and one cell per column. A cell is text, a number or a date, each as its neutral printed text:
 //! a number with a `.` decimal point and no unit, a date as `yyyy-mm-dd`, so the writers can type them (a numeric cell,
@@ -25,7 +25,7 @@ use crate::rowset::{Cell, CellType, QtyUnit, RowKind, RowSet};
 pub struct Table {
     /// The name: the sheet's name in a workbook (made a valid sheet name by the writer).
     pub name: String,
-    /// What the table is (WP-S3.08 D8): `block:<uuid>`, `kind:<name>`, `kind:parts_summary/<mode>` or `sql`.
+    /// What the table is: `block:<uuid>`, `kind:<name>`, `kind:parts_summary/<mode>` or `sql`.
     pub key: String,
     /// The columns, in order (the `id` column is not one of them: every writer puts it first).
     pub columns: Vec<TableColumn>,
@@ -42,7 +42,7 @@ pub struct TableColumn {
     pub label: String,
     /// The value type of the column.
     pub cell: CellType,
-    /// Whether a round trip may change the column's cells (WP-S3.08 D9; every report column is read-only in part 1).
+    /// Whether a round trip may change the column's cells (every report column is read-only in part 1).
     pub editable: bool,
 }
 
@@ -79,7 +79,7 @@ impl TableCell {
 }
 
 impl Table {
-    /// The table of a row set (WP-S3.08 D4): its columns with their neutral labels (every column read-only), and each
+    /// The table of a row set: its columns with their neutral labels (every column read-only), and each
     /// row with its ID (none for a heading) and its cells as the module documentation says.
     pub fn from_rowset(q: &Q, set: &RowSet, name: &str, key: &str) -> Table {
         let options = RenderOptions::default();

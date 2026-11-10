@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The start-up scan across projects (WP-S6.05 D10, D11; PV-7): every project's leftover journal with unsaved work is
+//! The start-up scan across projects (PV-7): every project's leftover journal with unsaved work is
 //! listed unless its lock is live, and a segment older than 30 days is deleted at start.
 
 // The writer's tests read the model untracked, ADR-0001 amendment 2.
@@ -73,7 +73,7 @@ fn no_state_directory_finds_nothing() {
     assert_eq!(o.start_up_scan(), Vec::new());
 }
 
-/// C50-p3#2: a session that is still open and has not touched its journal for 31 days keeps it: the lock is checked
+/// A session that is still open and has not touched its journal for 31 days keeps it: the lock is checked
 /// before the directory is pruned.
 #[test]
 fn a_live_session_keeps_its_old_journal() {

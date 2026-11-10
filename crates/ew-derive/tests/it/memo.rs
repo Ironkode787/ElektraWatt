@@ -3,7 +3,7 @@
 
 //! The memo backend of `Q` (ADR-0002 amendment 4), with test families over a minimal model:
 //!
-//! - `memoised_notes_equal_the_cold_notes` (review cycle 9, finding 3): the flattened notes of a memoised
+//! - `memoised_notes_equal_the_cold_notes` (review, finding 3): the flattened notes of a memoised
 //!   global value equal a cold `Q`'s (same order, no duplicates), on the first read and on memo hits.
 
 use crate::common;

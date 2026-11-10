@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The migration chain (WP-S1.17 D10, decision log ID-1221 rulings 2, 3 and 8): its steps on `Value`, the loader's
+//! The migration chain: its steps on `Value`, the loader's
 //! migrated reading ([`load_migrated`]) and the steward's check. The test chain goes from the test format `"0.0"` to
 //! `"0.1"`; every shipped kind is at `$v` 1, so its kind steps go from `$v` 0.
 
@@ -494,8 +494,7 @@ impl Drop for Corpus {
     }
 }
 
-/// MG-6 as ruling 8 amends it: the steward's check on injected lists; with two released formats, a way from each
-/// (decision log ID-1230 ruling 7).
+/// MG-6 as ruling 8 amends it: the steward's check on injected lists; with two released formats, a way from each.
 #[test]
 fn the_steward_check_bites_at_the_first_format_change() {
     let corpus = Corpus::with(&["0.0", "0.1"]);

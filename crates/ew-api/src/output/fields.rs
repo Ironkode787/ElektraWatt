@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The field catalogue of the property grid (WP-S2.05 part 1, spec §6.1, §6.5; D2, D3, D4): every field of every
+//! The field catalogue of the property grid (spec §6.1, §6.5; D2, D3, D4): every field of every
 //! implemented record kind with its value type, category, label key and edit route, derived from the committed record
 //! schemas by one walker; and the parse, display and choice rules of the typed editors, which live here and nowhere
 //! else.
@@ -321,7 +321,7 @@ pub enum EditRoute {
 }
 
 /// Why a field is read-only in the grid (§6.8). Named apart from the crate root's `ReadOnlyReason` of a read-only
-/// project (FT-427).
+/// project.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum FieldReadOnly {
     /// The record's identity (`id`, `$v`).
@@ -438,7 +438,7 @@ fn ref_name(node: &Value) -> Option<&str> {
     node.get("$ref")?.as_str()?.rsplit('/').next()
 }
 
-/// The enums whose unit variants the grid leaves out so that the payload variants open as a group (FT-399): a
+/// The enums whose unit variants the grid leaves out so that the payload variants open as a group: a
 /// function's `kind` (`normal` and `black_box` have no member, an interruption point's `ip` has its name, direction,
 /// sort and star). Data, as the narrowing table: the other enums of that shape (a PLC slot, a channel address, a
 /// junction style) keep their JSON editor.
@@ -590,8 +590,7 @@ pub(crate) const FIXED_SETTINGS: [&str; 5] = [
     "xref_format",
 ];
 
-/// The outgoing identifiers of FR-UI-044 rule 2 (§6.1.3), with a potential's name and a structure node's code
-/// (WP-S2.06 §8.2).
+/// The outgoing identifiers of FR-UI-044 rule 2 (§6.1.3), with a potential's name and a structure node's code.
 const IDENTIFIERS: &[(&str, &str)] = &[
     ("device", "tag.letter"),
     ("device", "tag.counter"),
@@ -602,18 +601,18 @@ const IDENTIFIERS: &[(&str, &str)] = &[
     ("connection", "number"),
     ("device", "plc_module.start"),
     ("device", "plc_module.slot"),
-    // WP-S2.06 part 3 (cycle 31, the orchestrator's ruling on §8.2): names that must be unique are identifiers.
+    // WP-S2.06 part 3 (the orchestrator's ruling on §8.2): names that must be unique are identifiers.
     ("potential_def", "name"),
     ("structure_node", "code"),
 ];
 
-/// Why a page item's kind is narrowed (WP-S2.04 §5.2).
+/// Why a page item's kind is narrowed.
 const KIND: &str = "a page item's kind is not changed in place; delete the item and place another";
 
-/// Why a wire marker's wires are narrowed (WP-S2.04 §5.2).
+/// Why a wire marker's wires are narrowed.
 const GROUP: &str = "a marker's wires are changed by deleting the marker and placing another";
 
-/// Why a surface view is narrowed (WP-S4.01 part 3): a panel page has one view, set by its own command.
+/// Why a surface view is narrowed: a panel page has one view, set by its own command.
 const VIEW: &str = "a panel page's view is changed with Set panel view";
 
 /// Why a page item or a structure box does not move across pages.
@@ -639,9 +638,9 @@ const NARROWED: &[(&str, &str, bool, &str)] = &[
     ("page_item", "kind.graphic", false, KIND),
     ("page_item", "kind.free_text", false, KIND),
     ("page_item", "kind.wire_marker", false, KIND),
-    // An image's asset and rectangle are fixed in place (WP-S2.04 part 5): it moves with `rep.move`.
+    // An image's asset and rectangle are fixed in place: it moves with `rep.move`.
     ("page_item", "kind.image", true, KIND),
-    // WP-S4.01 part 3: the view's surface, datum and label mode go through `page.surface_view.set`.
+    // The view's surface, datum and label mode go through `page.surface_view.set`.
     ("page_item", "kind.surface_view", true, VIEW),
     ("page_item", "kind.wire_marker.connections", true, GROUP),
     ("page_item", "kind.wire_marker.fields", true, GROUP),
@@ -682,7 +681,7 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
         Some("the company-standard wizard"),
     ),
     // No menu edits the crossings setting yet (doc 16 §3.2: the Project menu's "Drawing" item needs that menu first), so
-    // the reason names the command (cycle-25 review note).
+    // the reason names the command (note).
     ("project", "settings.drawing", "project.drawing.set", None),
     ("representation", "pos", "rep.move", Some("the canvas")),
     ("representation", "orient", "rep.transform", Some("the canvas")),
@@ -696,7 +695,7 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     ("device", "position", "assembly.attach", None),
     ("project", "supply.origin.source", "project.supply.set", None),
     ("representation", "anchor", "rep.set_anchor_policy", None),
-    // An external connection point's target is chosen when it is placed (the IP tool's external field, FT-399).
+    // An external connection point's target is chosen when it is placed (the IP tool's external field).
     ("function", "kind.ip.external", "ip.place", Some("the canvas")),
 ];
 
@@ -832,7 +831,7 @@ fn walk_kind(kind: Kind, schema: &Value, exposure: &dyn Fn(&str) -> Option<Expos
         }
     }
     if name == "connection" {
-        // WP-S1.20 D18: a fluid line's line kind, `fields.set` path `line_kind` (`kind.fluid.line_kind`); the sheet
+        // A fluid line's line kind, `fields.set` path `line_kind` (`kind.fluid.line_kind`); the sheet
         // shows it on fluid lines only.
         out.push(spec(
             name,
@@ -845,10 +844,10 @@ fn walk_kind(kind: Kind, schema: &Value, exposure: &dyn Fn(&str) -> Option<Expos
     out
 }
 
-/// The `fields.set` path of a fluid line's line kind (WP-S1.20 D18).
+/// The `fields.set` path of a fluid line's line kind.
 pub(crate) const LINE_KIND: &str = "line_kind";
 
-/// The type of a fluid line's line kind (WP-S1.20 D18): the five line kinds in schema order.
+/// The type of a fluid line's line kind: the five line kinds in schema order.
 pub(crate) fn line_kind_type() -> FieldType {
     FieldType::Enum {
         options: ["working", "pilot", "exhaust", "drain", "flexible"]
@@ -1144,7 +1143,7 @@ pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> 
     }
 }
 
-/// A page's drawing scale in the words its title block prints and its editor reads back (FT-1019, ID-1107):
+/// A page's drawing scale in the words its title block prints and its editor reads back:
 /// `{"one_to": n}` as `1:n`, `not_to_scale` as `not to scale`; `None` for any other JSON value.
 fn scale_text(value: &Value) -> Option<String> {
     match value {
@@ -1154,7 +1153,7 @@ fn scale_text(value: &Value) -> Option<String> {
     }
 }
 
-/// A scale typed in the words [`scale_text`] shows (FT-1019): `1:n` (spaces allowed around the colon) is
+/// A scale typed in the words [`scale_text`] shows: `1:n` (spaces allowed around the colon) is
 /// `{"one_to": n}`, `not to scale` is `not_to_scale`; `None` for any other text (a JSON value, parsed as before).
 fn scale_input(text: &str) -> Option<Result<Value, InputError>> {
     let t = text.trim();
@@ -1212,7 +1211,7 @@ pub struct ParsedInput {
 /// Why an editor input does not parse.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum InputError {
-    /// Not a value of the field's type; the text says why, by key (FT-1493): the window shows it in its language.
+    /// Not a value of the field's type; the text says why, by key: the window shows it in its language.
     Invalid(crate::Text),
     /// No part copy of the project has the typed part number (the text as typed, trimmed); the shell says so in a
     /// sentence of its strings table.
@@ -1222,7 +1221,7 @@ pub enum InputError {
         /// The choices.
         choices: Vec<(String, Value)>,
     },
-    /// Not one of an enumerated field's words (FT-1240): the text as typed, trimmed, and the stored words, which the
+    /// Not one of an enumerated field's words: the text as typed, trimmed, and the stored words, which the
     /// shell names in its words ([`InputError::text`] gives the English sentence).
     NotOneOf {
         /// The text as typed, trimmed.
@@ -1257,7 +1256,7 @@ pub struct FieldChoice {
     pub note: Option<String>,
 }
 
-/// One part copy as the part resolver reads it (WP-S2.07 D7).
+/// One part copy as the part resolver reads it.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub(crate) struct PartCopyText {
     /// The copy ID (hyphenated UUID).
@@ -1295,7 +1294,7 @@ pub(crate) trait ParseCx {
     fn company_codes(&self) -> Vec<(String, String)>;
     /// The part copies.
     fn part_copies(&self) -> Vec<PartCopyText>;
-    /// The system libraries' parts the project does not hold, which a Parts row may choose (WP-S2.18 D6); their `id`
+    /// The system libraries' parts the project does not hold, which a Parts row may choose; their `id`
     /// is the copy ID choosing one gives. Empty by default.
     fn library_parts(&self) -> Vec<PartCopyText> {
         Vec::new()
@@ -1512,7 +1511,7 @@ pub(crate) fn parse_input(
             notes: Vec::new(),
         })
     };
-    // FT-1019: a scale is typed as it shows ("1:5").
+    // A scale is typed as it shows ("1:5").
     if matches!(ty, FieldType::Json)
         && let Some(scale) = scale_input(text)
     {
@@ -1667,7 +1666,7 @@ pub(crate) fn parse_input(
 }
 
 /// The copy ID of the part typed as `text`: `id:<uuid>`, a part number, the display form `<part number>
-/// (<manufacturer>)`, or the long display form `<part number> (<manufacturer>) · <description>` (WP-S2.07 D7),
+/// (<manufacturer>)`, or the long display form `<part number> (<manufacturer>) · <description>`,
 /// matched without regard to case, among the copies of the `kinds` given (every kind for `None`). Two or more matches
 /// are [`InputError::Ambiguous`] with every match as a choice (its long form, the value `{"copy": <id>}`).
 pub(crate) fn resolve_part(
@@ -1698,7 +1697,7 @@ pub(crate) enum PartMiss {
     Ambiguous(Vec<PartCopyText>),
 }
 
-/// The order of part choices (WP-S2.07 §10 item 3): natural part number, then manufacturer, description, ID.
+/// The order of part choices: natural part number, then manufacturer, description, ID.
 pub(crate) fn part_order(a: &PartCopyText, b: &PartCopyText) -> std::cmp::Ordering {
     ew_mltext::natural_cmp(&a.number, &b.number)
         .then_with(|| ew_mltext::natural_cmp(&a.manufacturer, &b.manufacturer))
@@ -1889,9 +1888,9 @@ pub(crate) fn choices(cx: &dyn ParseCx, ty: &FieldType, member: &str, filter: &s
     all.into_iter().filter(keep).collect()
 }
 
-/// The project's part copies and the system libraries' parts the project does not hold (WP-S2.18 D6) as options,
+/// The project's part copies and the system libraries' parts the project does not hold as options,
 /// `<part number> (<manufacturer>)`, each writing `value(id)`; in the place chooser's one order, (maker, part number,
-/// copy), embedded and library parts alike, so that embedding a part does not move it (FT-1122, ID-1229 item 4).
+/// copy), embedded and library parts alike, so that embedding a part does not move it (item 4).
 fn part_choices(cx: &dyn ParseCx, value: impl Fn(&str) -> Value) -> Vec<FieldChoice> {
     let mut copies = cx.part_copies();
     copies.extend(cx.library_parts());
@@ -1933,7 +1932,7 @@ pub(crate) fn generic_path(row_path: &str) -> String {
 
 impl crate::Session {
     /// A text by the property grid's quantity rule (`4 A`, `0.75 mm²`; [`FieldType::Quantity`]), as the quantity's
-    /// JSON form: the part editor's technical values (WP-S2.07 D21).
+    /// JSON form: the part editor's technical values.
     pub(crate) fn parse_quantity_text(&self, text: &str) -> Result<Value, InputError> {
         let q = self.query();
         let cx = super::properties::SheetCx::new(&q);
@@ -2315,7 +2314,7 @@ mod tests {
         }
     }
 
-    /// FT-1122 (ID-1229 item 4): the Parts row's choices take the place chooser's order, (maker, part number, copy),
+    /// FT-1122 (item 4): the Parts row's choices take the place chooser's order, (maker, part number, copy),
     /// embedded and library parts alike: a library part sorts among the embedded ones, not after them.
     #[test]
     fn ft1122_the_parts_row_takes_the_choosers_order() {

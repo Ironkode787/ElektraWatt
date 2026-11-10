@@ -104,7 +104,7 @@ fn conflicted(text: &str) -> Option<u64> {
 
 #[test]
 fn a_conflicted_manifest_gives_the_greatest_generation_of_its_sides() {
-    // FT-97 (WP-S1.17 D6): git's two-way and diff3 hunks on the `generation` line; the next save writes one more.
+    // Git's two-way and diff3 hunks on the `generation` line; the next save writes one more.
     let two_way = format!(
         "{{\n  \"format\": \"0.1\",\n  \"project\": \"{PROJECT}\",\n<<<<<<< ours\n  \"generation\": 7,\n=======\n  \
          \"generation\": 9,\n>>>>>>> theirs\n  \"files\": {{}}\n}}\n"
@@ -172,7 +172,7 @@ fn a_conflicted_manifest_without_a_usable_generation_line_gives_none() {
 
 #[test]
 fn a_new_manifest_needs_the_major_floor_of_its_format() {
-    // FT-95 (WP-S1.17 D3): a manifest without files needs no more than its format's major floor; before 1.0 every step
+    // A manifest without files needs no more than its format's major floor; before 1.0 every step
     // is a major, so the floor of 0.1 is 0.1.
     assert_eq!(base().min_reader, "0.1");
     let id = PROJECT.parse().unwrap();

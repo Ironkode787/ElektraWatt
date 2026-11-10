@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The MVP rules of the EW-PLC pack (doc 10 §3.10, doc 15 §4.5.1; WP-S1.21 part 3, D10): EW-PLC-001, -002, -003,
+//! The MVP rules of the EW-PLC pack (doc 10 §3.10, doc 15 §4.5.1): EW-PLC-001, -002, -003,
 //! -007, -008, -012 and -015, in the scopes `module` (a device with the `plc_module` aspect) and `cfg` (a configuration
 //! project).
 //!
@@ -9,7 +9,7 @@
 //! (A1, A2), the address index, the channel states (A3), texts and the solenoid-position slots. None stores or
 //! recomputes an address of its own.
 //!
-//! # Texts (WP-S1.16 §10)
+//! # Texts
 //!
 //! A channel is named `<module tag>:<designation>` (its determined designation, else its number), an address by the
 //! configuration project's profile (`Q0.1`), a device by its derived tag. IDs enter only targets and fingerprints.

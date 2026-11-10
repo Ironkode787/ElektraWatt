@@ -29,7 +29,7 @@
 //!
 //! # Fonts
 //!
-//! Each page embeds the faces its `<text>` elements name (doc 09 §4.4; WP-S3.07 D3, FT-233): one subset per face
+//! Each page embeds the faces its `<text>` elements name (doc 09 §4.4): one subset per face
 //! per page holding the glyphs that face draws on that page (the runs' glyphs and the glyphs the face's `cmap`
 //! gives the characters written, so that a browser that maps the characters itself finds their outlines), so the
 //! pages stay independent of each other. The `<style>` at the top of the page declares
@@ -38,7 +38,7 @@
 //! `sans-serif` after it. A face without bytes in [`SvgOptions::faces`], or whose bytes the subsetter refuses
 //! (a CFF face, a malformed file), is named only and counted in [`SvgReport::named_fonts`].
 //!
-//! *As built (cycle 45):* the fonts were named only from cycle 14 (krilla's subsetter drops the `cmap`); the
+//! *As built:* the fonts were named only from cycle 14 (krilla's subsetter drops the `cmap`); the
 //! embedded subsets come from this crate's own subsetter, which keeps the glyph IDs and the `cmap` (WP-S3.07
 //! part 1). The other rows are as built in cycle 14.
 
@@ -104,7 +104,7 @@ pub struct SvgReport {
     pub named_fonts: Vec<FontKey>,
     /// `.notdef` glyphs dropped.
     pub dropped_notdef_glyphs: usize,
-    /// Images written: PNG and JPEG as `<image>` elements with their bytes embedded (FT-384).
+    /// Images written: PNG and JPEG as `<image>` elements with their bytes embedded.
     pub images: usize,
     /// Images not drawn: without bytes, of another format (an SVG asset reaches the writer as paths), or with bytes
     /// whose magic number is not their format's.
@@ -615,7 +615,7 @@ impl PageWriter<'_> {
             kept.iter()
                 .map(|&i| u16::try_from(run.glyphs[i].id).unwrap_or(u16::MAX)),
         );
-        // The characters as written: `escape` shows a character XML does not allow as U+FFFD (FT-1047).
+        // The characters as written: `escape` shows a character XML does not allow as U+FFFD.
         written.extend(text.chars().map(shown));
         true
     }

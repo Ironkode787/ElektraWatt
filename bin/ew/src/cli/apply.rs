@@ -49,7 +49,7 @@ pub(super) fn run_apply(a: &ApplyArgs) -> i32 {
         subcommand: "apply".to_owned(),
         confirmed: false,
     };
-    // WP-S7.03 D8: a log that pins an address profile reads the libraries of `ew lib` (the content's system
+    // A log that pins an address profile reads the libraries of `ew lib` (the content's system
     // libraries, the user's), so that a line naming a library's profile embeds it first; any other log reads none.
     let tiers = log
         .commands()
@@ -252,7 +252,7 @@ pub(super) fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool
     code
 }
 
-/// `ew commands [--json]` (WP-S1.22 D6): the command registry, one line per command (name, parameters version,
+/// `ew commands [--json]`: the command registry, one line per command (name, parameters version,
 /// exposure, cost, confirmation, undoable, stability, aliases), or its JSON result.
 pub(super) fn run_commands(json: bool) -> i32 {
     let list = results::commands();
@@ -276,7 +276,7 @@ pub(super) fn run_commands(json: bool) -> i32 {
     0
 }
 
-/// `ew schema <name>` (WP-S1.22 D6): the parameter schema of a command (or an alias), byte for byte the file of
+/// `ew schema <name>`: the parameter schema of a command (or an alias), byte for byte the file of
 /// `crates/ew-commands/schemas/`, or a result schema (`ew.<command>-result/<n>`), the file of `bin/ew/schemas/`. An
 /// unknown name exits 2 naming it.
 pub(super) fn run_schema(name: &str) -> i32 {

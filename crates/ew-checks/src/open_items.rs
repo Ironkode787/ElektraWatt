@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The open-items list (doc 15 §2.3 `open_item`, §7; FR-REP-021; WP-S3.06 D7, D8).
+//! The open-items list (doc 15 §2.3 `open_item`, §7; FR-REP-021).
 //!
 //! An open item is an **open** finding (not waived, not superseded) of an **open-item rule** in **release mode** of the
 //! project's release scheme ([`release_scheme_of`]), through the engine's own path ([`run_table_rules`]), so a finding
@@ -11,7 +11,7 @@
 //!
 //! **Contract (D8):** no open-item rule reads the page order (`PageOrder`): the `open_items` report kind of
 //! `ew-reports` paginates the list inside the page order, so a rule that read it would close a query cycle. Adding such
-//! a rule to the table is a stop for the lane (WP-S3.06 §9.2 item 5).
+//! a rule to the table is a stop for the lane.
 
 use ew_derive::{Cycle, Q};
 
@@ -33,7 +33,7 @@ pub struct OpenItemRule {
     pub category: &'static str,
 }
 
-/// The open-item rules (WP-S3.06 D7), by category in the list's order, then by rule ID.
+/// The open-item rules, by category in the list's order, then by rule ID.
 pub const OPEN_ITEM_RULES: &[OpenItemRule] = &[
     OpenItemRule {
         rule: "EW-CORE-043",
@@ -94,7 +94,7 @@ fn table_rules() -> Vec<&'static dyn Rule> {
         .collect()
 }
 
-/// The open items of the snapshot (WP-S3.06 D7): the open findings of the open-item rules in release mode of the
+/// The open items of the snapshot: the open findings of the open-item rules in release mode of the
 /// project's release scheme, else `pre-delivery` ([`release_scheme_of`]), that [`open_item_of`] places, in the
 /// engine's canonical order. Only the table's rules run (D8), every finding of each (EW-BUS-001's `duplicate` ones
 /// take part in supersession), and the filter keeps the open items; the engine's own findings of the run (EW-CORE-081
@@ -133,7 +133,7 @@ mod tests {
         assert_eq!(table_rules().len(), OPEN_ITEM_RULES.len(), "each rule once");
     }
 
-    /// Ruling 3 (cycle 42): "any registered rule whose `supersedes` names a table rule is in the table", so supersession
+    /// Ruling 3: "any registered rule whose `supersedes` names a table rule is in the table", so supersession
     /// inside the subset run equals supersession in `ew check --mode release`.
     #[test]
     fn every_rule_that_supersedes_a_table_rule_is_in_the_table() {

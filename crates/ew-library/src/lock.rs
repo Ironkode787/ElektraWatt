@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `library.lock`, the writer's lock of a `.ewlib` directory (WP-S1.19 §7.2), with the project lock's record and
+//! `library.lock`, the writer's lock of a `.ewlib` directory, with the project lock's record and
 //! stale rule (doc 05 §7.1, §7.4). Readers never take it.
 //!
 //! - **Acquire:** `create_new` of `library.lock` with the record, then sync. A live lock of another session is
 //!   [`LibraryError::Locked`]; a stale one is [`LibraryError::Stale`], and nothing is taken over without the user's
 //!   confirmation.
-//! - **Stale** (as built for the project lock, decision log ID-216): older than `stale_after`, or, on Linux only, on
+//! - **Stale** (as built for the project lock): older than `stale_after`, or, on Linux only, on
 //!   this host with a process that no longer runs.
 //! - **Take over** ([`take_over`], called only after the user confirmed): rename the stale lock **without
 //!   replacement** to `library.lock.stale-<stale session>` (a hard link, then the unlink; a link target that exists
@@ -203,7 +203,7 @@ impl Identity {
     }
 }
 
-/// The stale rule of doc 05 §7.4 as built (ID-216): age, or on Linux a dead process on this host.
+/// The stale rule of doc 05 §7.4 as built: age, or on Linux a dead process on this host.
 fn is_stale(
     record: Option<&LockRecord>,
     modified: Option<SystemTime>,
@@ -419,7 +419,7 @@ fn displace(dir: &Path, me: &Identity, policy: &LockPolicy, found: &Found) -> Re
         }
     }
     if renamed {
-        // Restamp: the age rule of the renamed file counts from the takeover (ID-210).
+        // Restamp: the age rule of the renamed file counts from the takeover.
         if let Ok(f) = File::options().write(true).open(&target) {
             let _ = f.set_modified(now());
         }

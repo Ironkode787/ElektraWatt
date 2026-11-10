@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The inline preview card of File, Import, Parts table… (FT-410): a card floating at the top centre while the card's
+//! The inline preview card of File, Import, Parts table…: a card floating at the top centre while the card's
 //! origin is an import. WP-S2.17 part 4 (doc 16a §6.9, §6.23): "Import parts" with its revision and the Stale or Failed
 //! status badge, the counts of the preview ("parts.csv: 29 created, 0 skipped, 0 errors") as its summary, and Apply
 //! (Primary) and Cancel; `elevation.1`, as it floats.
@@ -20,7 +20,7 @@ use crate::components::{InlineCard, inline_card};
 
 /// Paints the import card when it is open.
 pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
-    // FT-719: while the Preview tab shows the card (it opens with every new card), the tab is the card; no strip
+    // While the Preview tab shows the card (it opens with every new card), the tab is the card; no strip
     // stands in for it over the tab title, and the toast has already said the read's outcome.
     if shell.preview_shown() {
         return;
@@ -48,7 +48,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
         )
         .order(egui::Order::Foreground)
         .show(ctx, |ui| {
-            // C40 (FT-816): kept at `size.dialog.small` on purpose: one summary line ("parts.csv: 29 created, …") and
+            // C40: kept at `size.dialog.small` on purpose: one summary line ("parts.csv: 29 created, …") and
             // two buttons, which a wider window would only pad with empty space.
             ui.set_width(t.size_dialog_small);
             egui::Frame::new()

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Potential and net highlighting (WP-S2.06 §7.3, D14; FR-UI-018, FT-362): view state of the window, never a model
+//! Potential and net highlighting (D14; FR-UI-018): view state of the window, never a model
 //! edit, never an undo entry, never saved.
 //!
 //! A window holds up to [`MAX_HIGHLIGHTS`] highlights, each a potential or the net of a connection
@@ -25,8 +25,8 @@ use ew_api::output::Uuid;
 /// The most highlights a window shows.
 pub const MAX_HIGHLIGHTS: usize = 4;
 
-/// The slot colours, each at least 3:1 on the white sheet (NFR-A11Y-03, doc 16 §10.3; FT-506): violet #9878FC
-/// (3.27:1; ID-1277: the dark orange #A86F00 before it met vermillion for protanopes), reddish purple #CC79A7 (3.06:1),
+/// The slot colours, each at least 3:1 on the white sheet (NFR-A11Y-03, doc 16 §10.3): violet #9878FC
+/// (3.27:1; the dark orange #A86F00 before it met vermillion for protanopes), reddish purple #CC79A7 (3.06:1),
 /// bluish green #009E73 (3.42:1) and vermillion #D55E00 (3.87:1).
 pub const SLOT_COLOURS: [(u8, u8, u8); MAX_HIGHLIGHTS] = [
     (0x98, 0x78, 0xFC),
@@ -300,7 +300,7 @@ mod tests {
         HighlightTarget::Net(Uuid::from_bytes([n; 16]))
     }
 
-    /// FT-506: every slot colour reaches 3:1 against the white sheet (NFR-A11Y-03; WCAG 2.1 relative luminance), and the
+    /// Every slot colour reaches 3:1 against the white sheet (NFR-A11Y-03; WCAG 2.1 relative luminance), and the
     /// slots keep their hatch angles.
     #[test]
     fn ft506_every_slot_colour_is_at_least_3_to_1_on_white() {

@@ -24,11 +24,11 @@ pub(crate) struct EditorView {
     /// The editor's library folder last seen, so a picked or saved folder shows in the field.
     seen_directory: String,
     tool: usize,
-    /// The model's tool last seen, so a key that chooses a tool shows here (ID-1463).
+    /// The model's tool last seen, so a key that chooses a tool shows here.
     seen_tool: &'static str,
     start: Option<[f64; 2]>,
     /// The spot a Text tool click marked while the Text field was empty: the text typed is created there on Enter
-    /// (ID-1483 F2).
+    /// (F2).
     text_mark: Option<[f64; 2]>,
     vertices: Vec<[f64; 2]>,
     selected: Option<usize>,
@@ -127,7 +127,7 @@ fn action(events: &mut Vec<Event>, name: &'static str, value: Value) {
     events.push(Event::Action(name, value));
 }
 /// An action that drops the draft: the model asks Save symbol, Discard or Cancel first while it has unsaved changes,
-/// in the house dialog (ID-1472).
+/// in the house dialog.
 fn ask(events: &mut Vec<Event>, name: &'static str, value: Value) {
     events.push(Event::SymbolAsk(name, value));
 }
@@ -582,7 +582,7 @@ fn function_pins(ui: &mut Ui, cps: &mut [Value]) -> bool {
                     changed = true;
                 }
                 let role = cp["potential_role"].as_str().unwrap_or("").to_owned();
-                // ID-1477 (8): the list opens below its row, which the panel scrolls to its top with room for the
+                // The list opens below its row, which the panel scrolls to its top with room for the
                 // list under it, shows every role without scrolling, and letters typed while it is open choose the
                 // role they name.
                 let button = ui.add(
@@ -709,7 +709,7 @@ impl EditorView {
         let Some(editor) = shell.symbol_editor() else {
             return;
         };
-        // A folder picked or saved to shows in the field; a key that chose a tool lights it (ID-1463).
+        // A folder picked or saved to shows in the field; a key that chose a tool lights it.
         if self.seen_directory != editor.directory {
             self.seen_directory.clone_from(&editor.directory);
             self.directory.clone_from(&editor.directory);
@@ -763,7 +763,7 @@ impl EditorView {
             let save_key = ew_viewmodel::actions::find("file.save")
                 .map(|m| shell.shortcut_text(m))
                 .unwrap_or_default();
-            // ID-1472: a fresh draft, asking first when the kept one has unsaved changes.
+            // A fresh draft, asking first when the kept one has unsaved changes.
             if ribbon_button(
                 ui,
                 "symbol-new-symbol",
@@ -808,7 +808,7 @@ impl EditorView {
             {
                 action(events, "symbol.scratch", json!({}));
             }
-            // ID-1463: Close leaves the draft and its history kept; Discard draft is the explicit way to drop them.
+            // Close leaves the draft and its history kept; Discard draft is the explicit way to drop them.
             if ribbon_button(ui, "symbol-close", "x", false, true, false, String::new()).clicked() {
                 action(events, "symbol.close", json!({}));
             }
@@ -842,7 +842,7 @@ impl EditorView {
         });
     }
 
-    /// The file field's path, or none so that the window's file picker asks for it (ID-1463).
+    /// The file field's path, or none so that the window's file picker asks for it.
     fn file_params(&self) -> Value {
         if self.file.trim().is_empty() {
             json!({})
@@ -915,7 +915,7 @@ impl EditorView {
             && !error.lines().all(|line| issues.iter().any(|i| i == line))
         {
             ui.colored_label(t.error.color32(), error);
-            // ID-1477 (1): a page on another connection grid offers a new page with the symbol's grid. M25-p7#2: a draft
+            // A page on another connection grid offers a new page with the symbol's grid. M25-p7#2: a draft
             // saved to a library and unchanged places the published symbol; any other is tested, each under its own
             // command's label.
             let (text, offer) = if editor.published().is_some() {
@@ -1046,14 +1046,14 @@ impl EditorView {
                     // operation is the header's error, never repeated here.
                     if issues.is_empty() { ui.label(label(strings::Key::run_time("symbol-valid"))); }
                     for issue in &issues { ui.colored_label(t.text_secondary.color32(), issue); }
-                    // ID-1477 (8): room for an open role list below its row.
+                    // Room for an open role list below its row.
                     if self.panel == 1 && ui.data(|d| d.get_temp::<bool>(role_room_id())).unwrap_or(false) { ui.add_space((ROLES.len() + 1) as f32 * (t.size_row + t.space_2)); }
                 });
             });
             ui.separator();
             ui.vertical(|ui| {
                 let tools = TOOLS;
-                // ID-1477 (9): the tool's own fields stand in a band of one height above the canvas, the same for
+                // The tool's own fields stand in a band of one height above the canvas, the same for
                 // every tool, so choosing a tool never moves or shrinks the canvas under the pointer.
                 // Its height holds a text of two lines, which the text tool's field may take (ID-1477 (2)).
                 let band = t.size_control + t.size_row;
@@ -1147,7 +1147,7 @@ impl EditorView {
                         }
                     }
                 }
-                // ID-1477 (4): press, drag and release draws a rectangle (two clicks still do): the press is its first
+                // Press, drag and release draws a rectangle (two clicks still do): the press is its first
                 // corner, the release its second, each on the 0.5 mm step.
                 let on_step = |pos: Pos2| { let at=(pos-origin)/self.zoom; [(f64::from(at.x)*2.0).round()/2.0,(f64::from(at.y)*2.0).round()/2.0] };
                 if editor.variant == 0 && self.tool == 2 {
@@ -1792,7 +1792,7 @@ impl EditorView {
                     changed = true;
                 }
             }
-            // ID-1477 (6): the cross-reference anchor of its own stands in a list with its place and Delete, which
+            // The cross-reference anchor of its own stands in a list with its place and Delete, which
             // returns the anchor to the origin.
             let named = doc["symbol"]["anchor"].get("named").is_some();
             if section(ui, "anchor", "symbol-anchor", Some(usize::from(named)), false) && named {
@@ -2032,7 +2032,7 @@ fn paint(
                 6.0,
                 Stroke::new(t.border_width, t.canvas_snap.color32()),
             );
-            // ID-1477 (6): a cross-reference anchor of its own shows as a marker: its circle crossed, and its name.
+            // A cross-reference anchor of its own shows as a marker: its circle crossed, and its name.
             if matches!(draft.symbol.anchor, symbols::schema::AnchorPolicy::Named(_)) {
                 let p = at(g.anchor);
                 let stroke = Stroke::new(t.border_width, t.canvas_snap.color32());
@@ -2092,7 +2092,7 @@ fn text_style_control(ui: &mut Ui, value: &mut Value, styles: &symbols::TextStyl
         .to_owned();
     let mut selected = before.clone();
     let t = theme::current(ui.ctx());
-    // ID-1477 (2): each style by its name in words and its size ("Pin designation · 1.85 mm").
+    // Each style by its name in words and its size ("Pin designation · 1.85 mm").
     let name = |key: &str| {
         let words = ew_viewmodel::shell::symbol_editor::text_style_words(key);
         match styles.rows().iter().find(|r| r.key == key) {
@@ -2488,7 +2488,7 @@ mod tests {
         assert!(value >= 10.0, "a slow drag stalls: {value}");
     }
 
-    /// ID-1477 (2): in a text's field Shift+Enter starts a new line and Enter alone commits the text with it.
+    /// In a text's field Shift+Enter starts a new line and Enter alone commits the text with it.
     #[test]
     fn shift_enter_breaks_a_texts_line_and_enter_commits_it() {
         let ctx = egui::Context::default();
@@ -2536,7 +2536,7 @@ mod tests {
         assert_eq!((value, commits), (json!({"en": "A\nB"}), 1));
     }
 
-    /// ID-1477 (3): a click on a text's glyphs, drawn before the rectangle around it, picks the text, the smaller item;
+    /// A click on a text's glyphs, drawn before the rectangle around it, picks the text, the smaller item;
     /// a click inside the rectangle elsewhere picks the rectangle.
     #[test]
     fn a_click_picks_the_smallest_item_under_the_pointer() {
@@ -2596,7 +2596,7 @@ mod tests {
         }
     }
 
-    /// ID-1477 (8): letters typed into an open role list choose the role whose words they are, else the first they
+    /// Letters typed into an open role list choose the role whose words they are, else the first they
     /// begin, in any case.
     #[test]
     fn letters_typed_into_a_role_list_choose_the_role_they_name() {
@@ -2614,7 +2614,7 @@ mod tests {
         }
     }
 
-    /// ID-1477 (2): the nine alignments are three horizontal by three vertical positions, each read back as itself.
+    /// The nine alignments are three horizontal by three vertical positions, each read back as itself.
     #[test]
     fn the_nine_alignments_read_back_as_their_positions() {
         for (h, column) in ALIGNS.iter().enumerate() {

@@ -1345,7 +1345,7 @@ const LOGO: &[u8] =
     br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 20"><rect width="80" height="20"/></svg>"#;
 
 /// The sweeps' small fixture ([`small_fixture`]) opened as pid 1, and `g1`: the project row naming a logo asset
-/// that `g1` holds, journalled as committed (FT-337 fix round).
+/// that `g1` holds, journalled as committed (fix round).
 fn logo_setup(mode: DirSync) -> (Arc<MemVfs>, Store, Model, BTreeSet<AnyKey>, ew_model::Asset) {
     use ew_store::ew_format::ew_schema::{AssetRef, COMPANY_MEMBER, sniff};
     let (vfs, root) = mem_project_of(mode, small_fixture());

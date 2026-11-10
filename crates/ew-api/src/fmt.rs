@@ -1,22 +1,22 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew fmt` (WP-S1.22 D9, FR-EXT-008): the project files in their canonical encoding and line order (doc 05 §3).
+//! `ew fmt` (FR-EXT-008): the project files in their canonical encoding and line order (doc 05 §3).
 //!
 //! - **The rewrite set** ([`plan`]) is what the loader found not in canonical form or holding a record of another
 //!   file (`ew_store::Store::canonical_rewrite`): the save plan with no changed record, never a full rewrite, so a file
-//!   already canonical is not written (ruling 6 of cycle 41).
+//!   already canonical is not written.
 //! - **Kept lines** ([`kept_lines`]): quarantined lines, lines of unknown kinds and untouched malformed values stay in
 //!   the files verbatim, as in every save (ADR-0011); the open's findings name them, so they are reported.
 //! - **The content check** ([`verify_content`]) reads each file of the set back and compares the content of its lines
 //!   with the content of the canonical bytes, over the whole set (a record may move to another file): only form may
 //!   change, never content, else nothing is written.
 //! - **The write** ([`format()`]) is a save of the session's store: the save protocol's temps, intent and renames, so a
-//!   crash between files leaves either the old or the new generation, never a torn file (ruling 1 of cycle 41).
+//!   crash between files leaves either the old or the new generation, never a torn file.
 //!
 //! # `ew fmt --repair`
 //!
-//! [`repair`] (WP-S1.17, decision log ID-1185) discards exactly the broken lines, EW-CORE-005 at line level (a line
+//! [`repair`] discards exactly the broken lines, EW-CORE-005 at line level (a line
 //! that is not one JSON value, or not UTF-8, doc 05 §6.3), from a session opened with
 //! [`StoreOptions::repair`](crate::StoreOptions): the integrity demotion let those lines through, and only those. In
 //! order, before anything is written: a store whose files cannot be packed as found refuses (no manifest, an
@@ -332,7 +332,7 @@ pub fn format(session: &mut Session) -> Result<Formatted, FmtError> {
     })
 }
 
-/// The most characters of a discarded line's text that `ew fmt --repair` shows (ID-1185 ruling 7); a longer text is
+/// The most characters of a discarded line's text that `ew fmt --repair` shows; a longer text is
 /// cut there and ends with "…".
 pub const SHOWN_CHARS: usize = 80;
 
@@ -431,7 +431,7 @@ pub enum RepairError {
         /// The backup.
         backup: Backup,
         /// What the repair decided: present only with [`SaveError::Incomplete`] of the new generation, whose next open
-        /// completes it without the broken lines (C47-p3#1); `None` for a failure before the save's commit point, which
+        /// completes it without the broken lines; `None` for a failure before the save's commit point, which
         /// left the generation and its broken lines as they were.
         decided: Option<Box<Decided>>,
     },
@@ -526,7 +526,7 @@ pub fn backup_path(vfs: &dyn Vfs, root: &Path, generation: u64) -> Result<PathBu
 }
 
 /// `<project folder><infix>.ewz` in the parent folder of the project folder at `root`, as the file system names it:
-/// [`backup_path`]'s, and an upgrade's backup's (WP-S1.17 D11).
+/// [`backup_path`]'s, and an upgrade's backup's.
 ///
 /// # Errors
 ///
@@ -561,7 +561,7 @@ fn holds(vfs: &dyn Vfs, path: &Path, bytes: &[u8]) -> io::Result<bool> {
     Ok(true)
 }
 
-/// Writes the backup `bytes` at `target` without replacing anything (ID-1185 ruling 5); `Ok(true)` when a file there
+/// Writes the backup `bytes` at `target` without replacing anything; `Ok(true)` when a file there
 /// already held these bytes and is reused. Otherwise: the temporary name `<target>.tmp` beside it (a leftover of an
 /// interrupted repair of this project removed first: the caller holds its lock), the bytes written, read back and
 /// synced, moved to `target` by [`Vfs::rename_noreplace`] (on a file system without hard links, by [`Vfs::rename`]
@@ -626,7 +626,7 @@ pub(crate) fn write_backup(vfs: &dyn Vfs, target: &Path, bytes: &[u8]) -> Result
             undo(false);
             return Err(taken());
         }
-        // No rename without replacement on this file system (no hard links, C47-p2#3): the target's absence is checked
+        // No rename without replacement on this file system (no hard links): the target's absence is checked
         // again and the temporary file, synced and read back, renamed onto it, so that a power loss leaves at most the
         // temporary file, which a rerun removes. The race between the check and the rename is accepted, as ID-1175
         // accepts it for the extract.

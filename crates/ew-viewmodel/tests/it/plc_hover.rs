@@ -56,7 +56,7 @@ fn describe_reports_the_plc_address_of_the_hovered_cp() {
     let tmp = Tmp::new("plc-hover");
     let mut s = tmp.shell_in(Mode::Headless, true, "203");
     done(&mut s, "view.zoom_actual", json!({}));
-    // A drawn port of the valve -201U3-Q1 (its coil is a function of its own, WP-S1.20 D5) and the spare channel 0 of
+    // A drawn port of the valve -201U3-Q1 (its coil is a function of its own) and the spare channel 0 of
     // its module -201U3 (the row key of the golden tables names it).
     let records = channels(&tmp);
     let cps: Vec<TableCp> = s.canvas().unwrap().page().tables.cps.clone();

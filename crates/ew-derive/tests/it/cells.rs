@@ -407,7 +407,7 @@ fn form_without_grid_has_no_cells_and_no_default() {
         "something is configured: no default ({notes:?})"
     );
     // A `frames` shim that names a form whose copy is missing from the project (Page.form cannot: EW-INV-001): the
-    // rule falls through to the next, here the built-in frame (FT-336 review ruling, as in the page output).
+    // rule falls through to the next, here the built-in frame (review ruling, as in the page output).
     let mut fx = golden();
     fx.project_set(
         "settings",

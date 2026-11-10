@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The save's safeguards of WP-S1.17 part 1 (decision log ID-1115): a save refuses to overwrite or remove a file
+//! The save's safeguards of WP-S1.17 part 1: a save refuses to overwrite or remove a file
 //! changed outside the session (D5, SG-3), a save after a text-conflicted manifest continues from the greatest
-//! generation of its sides (D6, SG-4, FT-97), a move-aside that a retry or a roll-forward repeats leaves one stray of
-//! equal bytes (D7, SG-5, FT-98), and the computed `min_reader` (D3, FT-95).
+//! generation of its sides (D6, SG-4), a move-aside that a retry or a roll-forward repeats leaves one stray of
+//! equal bytes (D7, SG-5), and the computed `min_reader` (D3).
 
 // The writer's tests read the model untracked, ADR-0001 amendment 2.
 #![allow(clippy::disallowed_methods)]
@@ -338,7 +338,7 @@ fn conflicted_manifest(ours: u64, theirs: u64, theirs_file: (&FilePath, &[u8])) 
 
 #[test]
 fn a_save_after_a_conflicted_manifest_continues_from_the_greater_side() {
-    // SG-4 (FT-97): a manifest with conflict markers on its generation line (7 and 9) is followed by a save at
+    // SG-4: a manifest with conflict markers on its generation line (7 and 9) is followed by a save at
     // generation 10, never 1; every file either side lists survives and is listed. Before, the generation restarted at
     // 0 + 1.
     let mut files = fixture();
@@ -505,7 +505,7 @@ fn retried_save(same: bool) -> (Unlisted, Result<ew_store::SaveReport, SaveError
 
 #[test]
 fn a_retried_move_aside_removes_a_stray_of_equal_bytes() {
-    // SG-5 (FT-98): the colleague's file comes back with the same bytes after the first move; the retry moves it to
+    // SG-5: the colleague's file comes back with the same bytes after the first move; the retry moves it to
     // `.unlisted-2-1`, finds `.unlisted-2` equal and removes the new copy.
     let (s, saved) = retried_save(true);
     let saved = saved.expect("the retry saves");
@@ -625,7 +625,7 @@ fn a_roll_forward_removes_a_duplicate_stray_too() {
 
 #[test]
 fn a_save_stamps_the_computed_min_reader() {
-    // FT-95 (D3): with the shipped tables every file of a 0.1 project is at the floor, so a save writes "0.1"; the
+    // With the shipped tables every file of a 0.1 project is at the floor, so a save writes "0.1"; the
     // golden bytes do not move.
     let (vfs, root) = mem_project(DirSync::Explicit);
     let Opened { mut store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
@@ -663,7 +663,7 @@ fn opened_with_crlf(path: &FilePath) -> (Arc<MemVfs>, std::path::PathBuf, Opened
 
 #[test]
 fn a_record_held_as_crlf_and_now_lf_on_disk_saves() {
-    // C46-p1#4 (ID-1144): a page file opened as CRLF and turned into LF by a checkout is the same text, so the save
+    // A page file opened as CRLF and turned into LF by a checkout is the same text, so the save
     // that replaces it goes through. Before, the store held the CRLF bytes' hash only and refused every such save.
     let page = first_page_file();
     let (vfs, root, Opened { mut store, model, .. }, lf) = opened_with_crlf(&page);
@@ -682,7 +682,7 @@ fn a_record_held_as_crlf_and_now_lf_on_disk_saves() {
 
 #[test]
 fn a_record_held_as_crlf_and_changed_on_disk_refuses_the_save() {
-    // C46-p1#4 (ID-1144): the LF form is a second accepted hash, not a looser rule: one character changed refuses the
+    // The LF form is a second accepted hash, not a looser rule: one character changed refuses the
     // save with the file named, and nothing is written.
     let page = first_page_file();
     let (vfs, root, Opened { mut store, model, .. }, lf) = opened_with_crlf(&page);
@@ -717,7 +717,7 @@ fn at_generation(generation: u64) -> BTreeMap<String, Vec<u8>> {
 
 #[test]
 fn a_save_past_the_generation_ceiling_is_refused_before_any_write() {
-    // C46-p1#3 (ID-1144): at 2^53 - 1 the next generation is one the manifest's reader refuses; the save is refused in
+    // At 2^53 - 1 the next generation is one the manifest's reader refuses; the save is refused in
     // words and every file, the manifest included, is byte-identical. A save with nothing to write stays allowed.
     assert_eq!(MAX_GENERATION, (1u64 << 53) - 1);
     let (vfs, root) = mem_project_of(DirSync::Explicit, at_generation(MAX_GENERATION));
@@ -753,7 +753,7 @@ fn a_save_past_the_generation_ceiling_is_refused_before_any_write() {
 
 #[test]
 fn a_save_up_to_the_generation_ceiling_writes_it_and_reopens() {
-    // C46-p1#3 (ID-1144): from 2^53 - 2 the save writes 2^53 - 1, which the next open reads.
+    // From 2^53 - 2 the save writes 2^53 - 1, which the next open reads.
     let (vfs, root) = mem_project_of(DirSync::Explicit, at_generation(MAX_GENERATION - 1));
     let Opened { mut store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
     let (edited, keys) = edit_device(&model, 0, "edited");

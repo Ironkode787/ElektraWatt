@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `Session::new_project` (FT-307, FR-PRJ-009): the built-in basic project, a company basic project directory,
+//! `Session::new_project` (FR-PRJ-009): the built-in basic project, a company basic project directory,
 //! the kind, and the new identities of a copy (doc 07 §2.8).
 
 use std::collections::BTreeSet;
@@ -357,7 +357,7 @@ fn a_copy_derives_the_page_texts_of_the_original() {
     // The page texts: every quoted text of a page's display list (tags, cross references, titles, report rows) as
     // a sorted list, because the drawing order inside a page may follow record IDs. A quoted text ends at its first
     // unescaped quote, so a text holding an escaped quote ("Connecting cable 7/8\"" on 901) does not turn the record
-    // IDs between the texts (a report row link's representation, WP-S3.06 part 3) into texts.
+    // IDs between the texts (a report row link's representation) into texts.
     let texts = |content: &dyn std::fmt::Debug| -> Vec<String> {
         let debug = format!("{content:?}");
         let mut out: Vec<String> = Vec::new();
@@ -434,8 +434,8 @@ fn run_cmd(session: &mut Session, name: &str, params: serde_json::Value) {
     }
 }
 
-/// FT-336: a drawn page without a form of its own takes the frame of the frame defaults (doc 03 §5.1) in the page
-/// output, as in the cell grid; without frame defaults it keeps the no-grid frame (ID-144).
+/// A drawn page without a form of its own takes the frame of the frame defaults (doc 03 §5.1) in the page
+/// output, as in the cell grid; without frame defaults it keeps the no-grid frame.
 #[test]
 fn a_page_without_a_form_takes_the_frame_defaults_in_the_page_output() {
     let mut session =
@@ -829,7 +829,7 @@ fn layout_files(dir: &Path) -> (usize, std::collections::BTreeMap<String, usize>
     (files, counts)
 }
 
-/// Cycle-40 review, part 4, finding 2 (WP-S4.01 with FR-MAC-011): without devices the basic project keeps Golden A's
+/// Cycle-40 review, part 4, finding 2 (with FR-MAC-011): without devices the basic project keeps Golden A's
 /// one layout space and nothing of its panel layout (no enclosure, mounting surface, carrier or placement), its
 /// `layout/<space>.jsonl` reopens without integrity findings and its derived values verify; with the devices kept
 /// the layout is whole.

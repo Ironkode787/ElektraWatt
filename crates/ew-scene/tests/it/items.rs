@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page items and structure boxes drawn (WP-S2.04 part 4a, §10.3): graphics and box outlines in the symbols layer,
+//! Page items and structure boxes drawn: graphics and box outlines in the symbols layer,
 //! free texts, wire-marker groups and captions in the labels layer, each tagged with its entity, in ID order, and a
 //! page without items unchanged; the image item of part 5 (§11) in the symbols layer.
 

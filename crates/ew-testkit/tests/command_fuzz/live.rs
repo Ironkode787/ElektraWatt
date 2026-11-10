@@ -70,7 +70,7 @@ pub struct RepInfo {
     pub ip: bool,
 }
 
-/// A D3-eligible representation for `rep.join_device` (WP-S2.18, FT-628): its device has exactly one function (the
+/// A D3-eligible representation for `rep.join_device`: its device has exactly one function (the
 /// representation's, normal), no part and no other representation, and is no terminal or strip.
 pub struct JoinInfo {
     pub rep: Value,
@@ -123,7 +123,7 @@ pub struct StripInfo {
     /// (terminal device, designation)
     pub terminals: Vec<(Value, String)>,
     pub seqs: BTreeSet<u32>,
-    /// The terminals in mounting order: (seq, terminal device), sorted by seq, then ID (WP-S2.07).
+    /// The terminals in mounting order: (seq, terminal device), sorted by seq, then ID.
     pub order: Vec<(u32, Value)>,
     /// The terminals of each bridge group of the strip.
     pub bridge_groups: Vec<Vec<Value>>,
@@ -305,7 +305,7 @@ pub struct Live {
     pub part_templates: Vec<PartTemplate>,
     /// Every `LibRef` of a symbol or a part's function template whose function definition the project does
     /// not embed (it names nothing), outside the project's own library, by `(library, item)` without repeats:
-    /// what `library.embed` can embed to make the `LibRef` a link (FT-316).
+    /// what `library.embed` can embed to make the `LibRef` a link.
     pub unembedded_fndef_refs: Vec<UnembeddedRef>,
     pub forms: Vec<Value>,
     /// The form copies a page can take as its frame (kind `frame`, `cover` or `divider`), and the others.
@@ -324,7 +324,7 @@ pub struct Live {
     pub links: BTreeSet<(String, String, String)>,
     pub channels: Vec<ChannelInfo>,
     pub cfg_names: BTreeSet<String>,
-    /// The names of the logical and of the physical bus nets (WP-S1.21 D11).
+    /// The names of the logical and of the physical bus nets.
     pub lnet_names: BTreeSet<String>,
     pub pnet_names: BTreeSet<String>,
     pub ip_infos: Vec<IpInfo>,
@@ -346,21 +346,21 @@ pub struct Live {
     /// The location-aspect structure nodes.
     pub locations: Vec<Value>,
     pub revisions: Vec<RevInfo>,
-    /// Whether a revision has a release record (the typed `release` member, FT-302).
+    /// Whether a revision has a release record (the typed `release` member).
     pub any_release: bool,
-    /// WP-S2.04 part 4a: `(item, page)` of every page item of a typed variant, and of every structure box.
+    /// `(item, page)` of every page item of a typed variant, and of every structure box.
     pub page_items: Vec<(Value, Value)>,
     pub structure_boxes: Vec<(Value, Value)>,
     /// The connections drawn on each page that has one: `(page, connections)`.
     pub page_connections: Vec<(Value, Vec<Value>)>,
-    /// WP-S1.16 part 5: `(waiver, rule, fingerprint)` of every waiver.
+    /// `(waiver, rule, fingerprint)` of every waiver.
     pub waivers: Vec<(Value, String, String)>,
-    /// WP-S2.18 D3: the D3-eligible representations, and the representations of devices with several functions.
+    /// The D3-eligible representations, and the representations of devices with several functions.
     pub joins: Vec<JoinInfo>,
     pub join_blocked: Vec<Value>,
     /// The embedded FnDef copies that are contacts (NO, NC, change-over).
     pub contact_fndefs: Vec<Value>,
-    /// WP-S4.01 part 1: the layout records.
+    /// The layout records.
     pub layout: LayoutLive,
     /// Every live record and library copy as `(kind name, ID)`: what the schema-driven default arm
     /// ([`super::schema_arm`]) draws its IDs from.
@@ -434,7 +434,7 @@ pub struct PlacementInfo {
     pub surface: Option<Value>,
 }
 
-/// The layout records the `layout.*` arms pick from (WP-S4.01 part 1).
+/// The layout records the `layout.*` arms pick from.
 pub struct LayoutLive {
     /// The location nodes without a layout space, and with one.
     pub free_locations: Vec<Value>,
@@ -561,7 +561,7 @@ fn entry_def(t: &ew_schema::TemplateFn) -> ew_ids::Id<ew_schema::FnDef> {
     ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid())
 }
 
-/// `rep.join_device`'s sources and targets (WP-S2.18 D1 to D3), by the command's own rules.
+/// `rep.join_device`'s sources and targets, by the command's own rules.
 fn join_infos(q: &Q) -> (Vec<JoinInfo>, Vec<Value>) {
     use ew_schema::{ContactKind, FnRole};
     let idx = q.idx();

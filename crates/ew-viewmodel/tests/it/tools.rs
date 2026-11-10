@@ -41,7 +41,7 @@ fn band_oracle(shell: &ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<EntityRe
     let (y0, y1) = (a.1.min(b.1), a.1.max(b.1));
     let inside = |r: &Rect| r.min().x.0 >= x0 && r.max().x.0 <= x1 && r.min().y.0 >= y0 && r.max().y.0 <= y1;
     let touch = |r: &Rect| r.min().x.0 <= x1 && r.max().x.0 >= x0 && r.min().y.0 <= y1 && r.max().y.0 >= y0;
-    // In reading order of the centre of each entity's rectangles together (y, then x), ties by ID (FT-439).
+    // In reading order of the centre of each entity's rectangles together (y, then x), ties by ID.
     let mut picked: Vec<((i64, i64), EntityRef)> = entities(shell)
         .into_iter()
         .filter(|(_, rs)| {
@@ -100,7 +100,7 @@ fn t4_select_clicks_shift_and_ctrl() {
         .map(|(_, r)| *r)
         .collect();
     assert_eq!(shell.selected_rects(0), rects);
-    // The live region announces the change: one selected record in words (WP-S2.08 D13).
+    // The live region announces the change: one selected record in words.
     assert_eq!(
         shell.tool_announcement(),
         Some("Interruption point 24VDC-4, folio 103")
@@ -658,7 +658,7 @@ fn t10_the_transcript_and_describe_members_of_the_tools() {
     done(&mut shell, "cursor.right", json!({}));
     let node = ew_viewmodel::status::canvas_node(&shell, 0).unwrap();
     assert!(node.live.contains(" x "), "the cursor again: {}", node.live);
-    // The Draw menu checks the active tool (WP-S2.17 part 2: Tools dissolved into Draw).
+    // The Draw menu checks the active tool (Tools dissolved into Draw).
     let menus = ew_viewmodel::actions::menu_model(&shell);
     let draw = menus
         .iter()
@@ -777,7 +777,7 @@ fn t11_tool_events_on_a_cached_page_make_no_session_call() {
     shell.shutdown();
 }
 
-/// FT-715: the canvas context menu over an object lists the command bar's selection commands (the Arrange group, a
+/// The canvas context menu over an object lists the command bar's selection commands (the Arrange group, a
 /// split button followed by its other variant) and Delete, in the bar's order and the registry's words; over nothing
 /// it offers Paste only when Paste is enabled. On a read-only project every entry is disabled and says why.
 #[test]

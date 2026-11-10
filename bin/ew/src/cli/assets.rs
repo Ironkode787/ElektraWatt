@@ -8,7 +8,7 @@ use super::*;
 /// The word a person types to confirm `ew project assets purge`.
 pub(super) const PURGE_WORD: &str = "purge";
 
-/// `ew project assets purge`: the asset purge of doc 05 section 13.3 (`project.assets.purge`, FT-380), a `HumanOnly`
+/// `ew project assets purge`: the asset purge of doc 05 section 13.3 (`project.assets.purge`), a `HumanOnly`
 /// command (owner ruling, 2026-10-23): the preview's list, then, after the word typed on a controlling terminal, the
 /// purge of exactly the listed files. `--preview` needs no terminal; without one the purge itself exits 2 before the
 /// project is opened.

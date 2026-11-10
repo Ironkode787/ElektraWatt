@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rails (WP-S2.17 part 3, D10; doc 16a §5.4 and §5.6): the navigator rail at the window's left with History at its
+//! The rails (doc 16a §5.4 and §5.6): the navigator rail at the window's left with History at its
 //! foot, the palettes rail at its right, both views of `ew_viewmodel::rail::rail`.
 //!
 //! A rail button is a 32-px icon button (`radius.md`, the icon at `icon.md` in `color.text.secondary`); the active
 //! entry takes `color.accent.subtle`, an accent icon and a 2-px accent indicator bar 4 px left of the button. Every
-//! button is a named `Button` node with its key, so every navigator is one click and one name away (FT-509). Ctrl+1 to
+//! button is a named `Button` node with its key, so every navigator is one click and one name away. Ctrl+1 to
 //! Ctrl+9 select the left rail's entries by position.
 
 use egui::{Id, Key, Modifiers, Rect, Sense, Ui, pos2, vec2};

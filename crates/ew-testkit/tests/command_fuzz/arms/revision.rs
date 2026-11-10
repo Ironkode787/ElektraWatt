@@ -91,7 +91,7 @@ pub(super) fn revision_create(live: &Live, rng: &mut SplitMix64) -> Option<Step>
         }
         // Prevented (EW-REL-004): a historic released revision above the open one.
         13 if open && !live.any_release => Some(create(json!({"label": label, "state": "released"}))),
-        // The command refuses (D4, FT-402): a checker on an open revision.
+        // The command refuses (D4): a checker on an open revision.
         14 if !open => Some(create(json!({"label": label, "checker": "checker"}))),
         // The command refuses: a label another revision has (EW-INV-017).
         0 => {
@@ -245,7 +245,7 @@ pub fn revision_fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     .ok_or_else(|| format!("the notes are on {have:?}, expected {pages:?}"))
             }))
         }
-        // The command refuses (D4, FT-402): the roles are set by `revision.set_author` and by approval, never by fields.set.
+        // The command refuses (D4): the roles are set by `revision.set_author` and by approval, never by fields.set.
         11 => Some(one(&r.id, "author", json!(role(rng)))),
         12 => Some(one(&r.id, "checker", json!(role(rng)))),
         // A new label above every other (the order of labels is the release gate's rule); the title block
@@ -264,7 +264,7 @@ pub fn revision_fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
-/// `revision.set_author` (WP-S1.18 D4; `HumanOnly`, the fuzz session's origin is the GUI): the open revision's
+/// `revision.set_author` (`HumanOnly`, the fuzz session's origin is the GUI): the open revision's
 /// author, never the checker's party; a released or withdrawn revision and a missing one are refused.
 pub(super) fn revision_set_author(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let step = |revision: &Value, role: &str| {
@@ -297,7 +297,7 @@ pub(super) fn revision_set_author(live: &Live, rng: &mut SplitMix64) -> Option<S
     }
 }
 
-/// `revision.approve` (WP-S1.18 part 3, D9; `HumanOnly`): the session refuses it on every submit path, from every
+/// `revision.approve` (`HumanOnly`): the session refuses it on every submit path, from every
 /// origin, whatever its parameters; the sign-off is recorded only by `Session::approve`, which runs the release gate on
 /// the saved generation first (a fuzz session is never saved).
 pub(super) fn revision_approve(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -315,7 +315,7 @@ pub(super) fn revision_approve(live: &Live, rng: &mut SplitMix64) -> Option<Step
     )
 }
 
-/// `revision.release` (WP-S1.18 part 4, D13; `HumanOnly`, not undoable): the session refuses it on every submit path,
+/// `revision.release` (`HumanOnly`, not undoable): the session refuses it on every submit path,
 /// from every origin, whatever its parameters; the stamp is written only by `Session::release`, after the gate on the
 /// saved generation, the archive and the tag (a fuzz session is never saved).
 pub(super) fn revision_release(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -334,7 +334,7 @@ pub(super) fn revision_release(live: &Live, rng: &mut SplitMix64) -> Option<Step
     )
 }
 
-/// `revision.withdraw` (WP-S1.18 D5; `HumanOnly`): a released revision gets one withdrawal record and stays as it
+/// `revision.withdraw` (`HumanOnly`): a released revision gets one withdrawal record and stays as it
 /// was; an open revision, a withdrawal record, a revision withdrawn already and a blank reason are refused.
 pub(super) fn revision_withdraw(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let step = |revision: &Value, reason: &str| {

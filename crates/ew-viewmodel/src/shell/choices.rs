@@ -48,7 +48,7 @@ macro_rules! closed_choices {
     ($($(#[$doc:meta])* $name:ident = $values:expr;)*) => {
         $($(#[$doc])* pub static $name: ClosedChoices = ClosedChoices($values);)*
 
-        /// Every closed set of this module (ID-1278 ruling 2: the choice-word test reads it).
+        /// Every closed set of this module (ruling 2: the choice-word test reads it).
         pub static ALL: &[&ClosedChoices] = &[$(&$name),*];
     };
 }
@@ -56,7 +56,7 @@ macro_rules! closed_choices {
 closed_choices! {
     /// New page's page types.
     PAGE_TYPES = super::creation::PAGE_TYPES;
-    /// New page's connection grids (ID-1477).
+    /// New page's connection grids.
     PAGE_GRIDS = super::creation::PAGE_GRIDS;
     /// New structure node's aspects.
     STRUCTURE_KINDS = super::creation::STRUCTURE_KINDS;
@@ -72,6 +72,6 @@ closed_choices! {
     ROLES = super::revision::ROLES;
     /// The part editor's kinds (ew-api's list; not a form field).
     PART_KINDS = &super::part_dialog::PART_KINDS;
-    /// A fluid line's kinds (WP-S1.20 T25; not a form field).
+    /// A fluid line's kinds (T25; not a form field).
     LINE_KINDS = crate::strings::LINE_KINDS;
 }

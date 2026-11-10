@@ -19,7 +19,7 @@
 //! session's segments (NFR-PRIV-05). Snapshot slots (doc 05 §8.1 "Snapshots") are not in v0: recovery
 //! replays the whole segment onto its base generation.
 //!
-//! **Assets** (FT-337). A `tx` line carries in `assets`, each with its reference and its bytes in base64, every
+//! **Assets**. A `tx` line carries in `assets`, each with its reference and its bytes in base64, every
 //! asset that the records of the model after it name and that is neither on disk with its hash nor journalled in
 //! this segment already (the set is reset when a segment starts). So a recovery restores the bytes of every asset
 //! that its replayed model names, also after a save rotated the segment and an undo named an older asset again. A
@@ -390,7 +390,7 @@ impl Journal {
     }
 
     /// The transactions journalled since the current segment started (the last save or the open): the unsaved
-    /// steps a recovery would replay. The asset purge requires none (doc 05 §13.3, FT-380).
+    /// steps a recovery would replay. The asset purge requires none (doc 05 §13.3).
     pub fn unsaved_steps(&self) -> u64 {
         self.segment_txs
     }
@@ -410,7 +410,7 @@ impl Journal {
         Ok(())
     }
 
-    /// The journal after an applied external change (doc 05 §9; WP-S1.17 D23, decision log ID-1284 ruling 9): starts the
+    /// The journal after an applied external change (doc 05 §9; ruling 9): starts the
     /// segment of the incoming generation `base`, journals the net local diff of `keys` from `incoming` to `current` as
     /// one transaction `external.rebase` (with the assets [`Journal::tx`] carries), and only then deletes the session's
     /// previous segment, as after a save. A crash at any point leaves a segment that recovers the live model.
@@ -469,7 +469,7 @@ impl Journal {
     /// written under a second name, so the current one is never truncated first.
     fn begin(&mut self, base: u64, base_manifest: Option<&[u8; 32]>) -> io::Result<Option<PathBuf>> {
         self.vfs.create_dir_all(&self.dir)?;
-        // WP-S6.05 D10: the project's journal directory, `journal/` and the state directory are user-only.
+        // The project's journal directory, `journal/` and the state directory are user-only.
         for dir in self.dir.ancestors().take(3) {
             self.vfs.user_only(dir, true);
         }
@@ -508,7 +508,7 @@ impl Journal {
             }
             Ok::<(), io::Error>(())
         })();
-        // A segment that is not durable is not left behind (C49-p10#7).
+        // A segment that is not durable is not left behind.
         if let Err(e) = written {
             let _ = self.vfs.remove_file(&path);
             return Err(e);
@@ -869,7 +869,7 @@ pub(crate) fn summarise(
     })
 }
 
-/// A project with unsaved work in a leftover journal, as the start-up scan finds it (WP-S6.05 D11).
+/// A project with unsaved work in a leftover journal, as the start-up scan finds it.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct LeftoverProject {
     /// The project directory the journal's `open` line names.
@@ -918,7 +918,7 @@ pub(crate) fn scan_projects(
             let Ok(bytes) = vfs.read(&path) else { continue };
             read.push((path, bytes, modified));
         }
-        // A project another session has open keeps every segment, however old (C50-p3#2): its live segment may not
+        // A project another session has open keeps every segment, however old: its live segment may not
         // have been touched for 30 days, and pruning it would cut the journal under the session.
         if read
             .iter()
@@ -978,7 +978,7 @@ mod tests {
         Segment::parse(PathBuf::from("s-3.jsonl"), text.as_bytes(), None).unwrap()
     }
 
-    /// C49-p10#7: a new segment whose `open` line is not durable is removed: a failure at any call of its start leaves
+    /// A new segment whose `open` line is not durable is removed: a failure at any call of its start leaves
     /// the previous segment alone, as it was.
     #[test]
     fn a_segment_that_fails_to_start_is_not_left_behind() {

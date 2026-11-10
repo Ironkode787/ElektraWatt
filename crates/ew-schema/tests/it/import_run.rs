@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The `import_run` record (WP-S3.09 D6, IC-8): typed within format 0.1, its canonical line round-trips byte for byte,
+//! The `import_run` record (IC-8): typed within format 0.1, its canonical line round-trips byte for byte,
 //! and an unknown member and an unknown `mode` or severity survive a read and a write.
 
 use ew_schema::{Kind, Record, RunMode, RunSeverity};

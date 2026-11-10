@@ -63,7 +63,7 @@
 //!
 //! 90° is [`Angle2`] `90_000`, counter-clockwise on the sheet: text reading bottom to top, which doc 06 calls
 //! "R270". Glyphs are **never mirrored**: a [`PlacedText`] carries a rotation only, so the glyph run built
-//! from it has an unmirrored transform. The alignment flips instead (doc 07 §4.1, ID-49): horizontally
+//! from it has an unmirrored transform. The alignment flips instead (doc 07 §4.1): horizontally
 //! (left ↔ right, centre stays) exactly when the text was turned by 180° to stay readable, vertically
 //! (top ↔ bottom, middle stays) when exactly one of that turn and the variant's mirror applies. For a text
 //! without its own rotation:
@@ -477,7 +477,7 @@ pub fn placed_align(align: &Align, angle: Angle2, variant: Orient2) -> Align {
 }
 
 /// The text-style key of a slot: its own `style` member when it names a style of `styles` (the project's
-/// effective table, ADR-0032), else [`default_style_key`] of its kind (decision log ID-197, ID-227). The second
+/// effective table, ADR-0032), else [`default_style_key`] of its kind. The second
 /// value is the unknown name when the slot's style is not in the table and the kind's style was used instead.
 pub fn slot_style_key<'a>(slot: &'a TextSlot, styles: &TextStyleTable) -> (&'a str, Option<&'a str>) {
     match &slot.style {

@@ -143,7 +143,7 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
         .into_iter()
         .find(|m| m.menu == Menu::View)
         .unwrap();
-    // WP-S2.17 part 2: under the Zoom group.
+    // Under the Zoom group.
     let pan: Vec<&str> = view
         .submenu(Submenu::Pan)
         .expect("View has the Pan submenu")
@@ -198,7 +198,7 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
 fn a1_zoom_pan_fit_and_resize_through_the_shell() {
     let tmp = Tmp::new();
     let mut shell = tmp.shell_on_103();
-    // FT-1443: the page's first view is fit-width (wider than Fit page in this pane); Fit page is one key away.
+    // The page's first view is fit-width (wider than Fit page in this pane); Fit page is one key away.
     let first = shell.canvas().expect("folio 103 is on the canvas");
     assert!(first.is_first_view() && first.zoom() > first.fit_zoom());
     done(&mut shell, "view.fit_page", json!({}));
@@ -352,7 +352,7 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     assert_eq!(lines[pv + 6], "canvas link none");
     assert_eq!(lines[pv + 7], "canvas backend \"CPU\"");
     assert_eq!(lines[pv + 8], "canvas renderer auto");
-    // The tool lines (WP-S2.03 part 2).
+    // The tool lines.
     assert_eq!(
         lines[pv + 9],
         "canvas tool \"Select\" state idle hint \"Click to select; drag for a rubber band\""
@@ -361,7 +361,7 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     assert_eq!(lines[pv + 11], "canvas selection none");
     assert_eq!(lines[pv + 12], "canvas preview none");
     assert_eq!(lines[pv + 13], "canvas overlay 0");
-    // WP-S2.17 part 2: the HUD over the canvas.
+    // The HUD over the canvas.
     assert_eq!(
         lines[pv + 14],
         "hud tool tool.select \"Select\" prompt \"Click to select; drag for a rubber band\""
@@ -384,7 +384,7 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     assert_eq!(s["canvas"]["pointer_nm"], json!([x, y]));
     let describe = shell.describe();
     let hover_line = describe.lines().find(|l| l.starts_with("canvas hover ")).unwrap();
-    // The entity as its alias `@n`, a value token, never its UUID (FT-422).
+    // The entity as its alias `@n`, a value token, never its UUID.
     let alias = shell.alias_number(&hovered.0.to_string()).unwrap();
     assert!(
         hover_line.starts_with(&format!("canvas hover @{alias} box ")),
@@ -404,7 +404,7 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
         ew_viewmodel::canvas::mm3(x),
         ew_viewmodel::canvas::mm3(y)
     )));
-    // The status bar's cursor field: the cell (FT-345), then the millimetres.
+    // The status bar's cursor field: the cell, then the millimetres.
     let status = shell.status_fields(false);
     assert!(
         status
@@ -648,7 +648,7 @@ fn a9_view_steps_fetch_no_page_and_re_execute_no_query() {
 }
 
 /// Revisions restart with every project session: a direct switch to another project at the same revision and
-/// folio is a new canvas page, never the old project's (the fix round of WP-S2.02 part 2).
+/// folio is a new canvas page, never the old project's (the fix round).
 #[test]
 fn a_project_switch_at_the_same_revision_and_folio_is_a_new_page() {
     let tmp = Tmp::new();

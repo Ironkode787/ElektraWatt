@@ -276,7 +276,7 @@ fn bu7j_bus_ports_runs_after_module_pin_binding_and_before_revision_ensure_open(
             .unwrap_or_else(|| panic!("{n} in {ORDER:?}"))
     };
     assert_eq!(at("bus_ports"), at("module_pin_binding") + 1, "{ORDER:?}");
-    // WP-S1.20 D15: N-FL-4 `drives_link` runs between them.
+    // N-FL-4 `drives_link` runs between them.
     assert!(at("revision_ensure_open") > at("bus_ports"), "{ORDER:?}");
 }
 
@@ -323,7 +323,7 @@ fn a_port_function_joining_a_cpu_gets_its_uncarried_port() {
 }
 
 /// BU-7g's `rep.join_device` clause, as the code stands: `rep.join_device` moves a function only as an auxiliary
-/// contact (WP-S2.18 D2), so a DP-port function (no contact) cannot join a CPU that has no unplaced slot of its
+/// contact, so a DP-port function (no contact) cannot join a CPU that has no unplaced slot of its
 /// FnDef; the join is refused and N5 is not reached. Reported to the orchestrator (a contradiction between §8a.5
 /// BU-7g and WP-S2.18 D2).
 #[test]

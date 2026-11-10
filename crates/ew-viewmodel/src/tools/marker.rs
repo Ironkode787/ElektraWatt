@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Wire marker tool (`marker`; WP-S2.04 §10.5, §10.7; doc 06 §4.5): a rubber line across the wires whose
+//! The Wire marker tool (`marker`; §10.7; doc 06 §4.5): a rubber line across the wires whose
 //! crossing places one group marker (`marker.place`) over them, in the order the line crosses them.
 //!
 //! **The crossing rule** ([`crossed_connections`]). For each connection of the page tables, in table order, and each

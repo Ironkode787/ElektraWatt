@@ -5,7 +5,7 @@
 //! doc 10 §5), drawn through WP-S4.01 part 4b's embedded path.
 //!
 //! FR-PLC-052's acceptance: "The overview box of -201U3 shows Q0.0 … Q0.7; its four bound rows print the cells of their
-//! valves on folio 203; drawing on it changes no potential." Golden A has no such box (WP-S3.06 D4 forbids adding one),
+//! valves on folio 203; drawing on it changes no potential." Golden A has no such box (forbids adding one),
 //! so the tests add a `plc_overview` block selecting -201U3 to the session.
 //!
 //! Tests:

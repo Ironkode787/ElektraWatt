@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Frame statistics (WP-S2.02 §9): a ring of the last 1 024 frames with the time of each phase, the tiles
+//! Frame statistics: a ring of the last 1 024 frames with the time of each phase, the tiles
 //! rastered and uploaded, summarised as nearest-rank p50, p99 and maximum.
 //!
 //! The numbers are read against NFR-PERF-04 (frame ≤ 16 ms p99, render ≤ 5 ms) and NFR-PERF-06, reported and never
@@ -10,7 +10,7 @@
 
 use std::time::{Duration, Instant};
 
-/// The canvas's one clock read (WP-S2.02 §4.1 rule 7), listed in `ci/disallowed-methods-allow.toml`.
+/// The canvas's one clock read (rule 7), listed in `ci/disallowed-methods-allow.toml`.
 // Frame-phase timing only: the value feeds the statistics overlay and the `frame` tracing spans, never a persisted,
 // exported or printed result.
 #[allow(clippy::disallowed_methods)]

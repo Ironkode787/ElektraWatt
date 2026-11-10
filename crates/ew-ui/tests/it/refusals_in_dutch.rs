@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1337 in the window (decision log ID-1359 ruling 5), on a writable copy of Golden A with the UI in Dutch: a
+//! FT-1337 in the window, on a writable copy of Golden A with the UI in Dutch: a
 //! command's own refusal shows in the window's banner in Dutch, whole, a record named in words in Dutch too; FT-1241's
 //! refusal (a point that defines a potential already) is one of them.
 

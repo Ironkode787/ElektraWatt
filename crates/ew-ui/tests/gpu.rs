@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The GPU canvas against the CPU raster, render to texture on a headless device (WP-S2.02 part 2, B2 to B4): the
+//! The GPU canvas against the CPU raster, render to texture on a headless device (B2 to B4): the
 //! parity rule of section 8 item 3 on folio 103 at `D = 150` and on the dense A3 page, a filled #0072B2 rectangle
 //! reads back its bytes, a second preparation tessellates nothing and repeated glyphs are one mesh each, and below
 //! 2 pixels of em a glyph run is a bar. On Windows an adapter must be found (DX12 WARP at least), and so wherever
@@ -178,7 +178,7 @@ fn unmatched(a: &RgbaImage, b: &RgbaImage) -> (usize, usize) {
 
 /// The bounds of the mean channel difference between the GPU and the CPU image at 150 dpi (see `assert_parity`):
 /// measured 0.60 on folio 103 and 6.36 on the dense A3 page (its copies overlap, so the widened hairlines add up),
-/// on a hardware DX12 adapter and on WARP alike (cycle 22); the bounds leave a quarter for other adapters' MSAA
+/// on a hardware DX12 adapter and on WARP alike; the bounds leave a quarter for other adapters' MSAA
 /// patterns. A drawing shifted by one pixel or a colour off by 64 on the ink raises the mean several times over.
 const MEAN_BOUND_FOLIO_103: f64 = 0.75;
 const MEAN_BOUND_DENSE_A3: f64 = 8.0;
@@ -550,7 +550,7 @@ fn the_gpu_scene_is_keyed_by_session_revision_and_folio() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Raster images: a page with a PNG or JPEG item is drawn by the GPU path's textured-quad pipeline (FT-480)
+// Raster images: a page with a PNG or JPEG item is drawn by the GPU path's textured-quad pipeline
 
 /// A PNG of `w × h` opaque red pixels (synthetic).
 fn red_png(w: u32, h: u32) -> Vec<u8> {
@@ -651,7 +651,7 @@ fn red_outside(image: &RgbaImage, x_mm: (f64, f64), y_mm: (f64, f64)) -> usize {
         .count()
 }
 
-/// A page with a PNG item is drawn by the GPU path (FT-480; cycle 29 routed such a page to the CPU tiles, ID-679):
+/// A page with a PNG item is drawn by the GPU path (routed such a page to the CPU tiles):
 /// the host keeps the GPU for it and the status bar names the GPU; the host's own path (worker, scene, render) draws
 /// the PNG's pixels inside the item's rectangle, also with the image inside a group, within the parity rule of
 /// WP-S2.02 §8 item 3 against the CPU tiles.
@@ -711,7 +711,7 @@ fn a_page_with_a_png_item_is_drawn_by_the_gpu_path_with_its_pixels() {
     }
 }
 
-/// The company logo as a PNG is a raster image in the title block's list: that page keeps the GPU path too (FT-480)
+/// The company logo as a PNG is a raster image in the title block's list: that page keeps the GPU path too
 /// and the host's GPU image shows the logo as the CPU tiles do.
 #[test]
 fn a_title_block_page_with_a_png_logo_is_drawn_by_the_gpu_path() {
@@ -771,7 +771,7 @@ fn a_title_block_page_with_a_png_logo_is_drawn_by_the_gpu_path() {
     shell.shutdown();
 }
 
-/// FT-363 (WP-S2.11 D8, GT-5): a frame whose target exceeds the device's limits is no fault. The host gives no texture
+/// FT-363 (GT-5): a frame whose target exceeds the device's limits is no fault. The host gives no texture
 /// for it (the canvas host then draws that frame on the CPU), records no fault and tells no banner, and the next frame
 /// renders on the GPU again; a lost device still ends the GPU path for the session with its banner.
 #[test]

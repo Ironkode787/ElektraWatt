@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The keymap editor (WP-S2.08 part 2, D8; doc 16 §4.4): Help ▸ Keyboard shortcuts made editable, inside the form
+//! The keymap editor (doc 16 §4.4): Help ▸ Keyboard shortcuts made editable, inside the form
 //! dialog of doc 16a §6.12 (its width grows with the window, `dialog::form_width`). A search field over the actions'
 //! labels, IDs and keys; one row per action with its label, its key chips, where the keys apply (and what they shadow,
 //! D8's info) and Record and Reset; a refused edit's errors in `color.error` above the list; the user keymap's unused
-//! bindings; the note that the Menu key cannot be bound (FT-428). Import… and Export… are the dialog's footer buttons.
+//! bindings; the note that the Menu key cannot be bound. Import… and Export… are the dialog's footer buttons.
 //!
 //! Every control dispatches a `keymap.*` action; Record makes the shell record, and the next key press (not Escape,
 //! which ends the recording through `ui.dismiss`) is sent as `keymap.record` with the chord's text.
@@ -159,7 +159,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     let width = ui.available_width();
     // Five cells (three columns and two 72-px buttons) with four `space.3` gaps between them. The keys and "where"
     // columns fit their widest content; the action column takes the rest of the dialog's body, which grows with the
-    // window (doc 16a §2, ID-908; W40b).
+    // window (doc 16a §2, W40b).
     let room = (width - 2.0 * BUTTON_WIDTH - 4.0 * t.space_3).max(0.0);
     let (keys_need, where_need) = {
         let painter = ui.painter();

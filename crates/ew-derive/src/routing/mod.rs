@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The schematic router's page model and the layout measures (WP-S2.19, decision log ID-1498): what any router
+//! The schematic router's page model and the layout measures: what any router
 //! design reads first. [`PageGeometry`] is a page as plain values in page nm (the representations' bodies with the
 //! black boxes' outlines, the connection points, the representations' text boxes, the junctions, the frame's bands
 //! and each connection's drawn polyline); [`measure`] says how well the connections are drawn on it. Neither reads
@@ -28,7 +28,7 @@
 //!   positive length. One item per pair of connections, with every stretch they share. Wires of one potential or
 //!   meeting at one junction count as well: a reader cannot tell two wires on one line apart. A stretch within the
 //!   stub of a connection point both end at (one grid step along its leaving direction) is theirs to share
-//!   (WP-S2.19 §9, doc 06 D-20's bevel) and does not count.
+//!   (doc 06 D-20's bevel) and does not count.
 //! - **(c) Through a body.** A segment runs through a representation's body (or a black box's outline) other than
 //!   along its own ends' escapes: for a connection point the connection ends at, the ray from its point along its
 //!   leaving direction is that end's escape, and the part of a segment on it does not count inside the bodies of the

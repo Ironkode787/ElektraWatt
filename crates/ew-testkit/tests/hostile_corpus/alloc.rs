@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The counting allocator of the hostile corpus test (WP-S6.04 D7, D10; ID-1334): the system allocator, with the bytes
+//! The counting allocator of the hostile corpus test: the system allocator, with the bytes
 //! live and their peak counted, so that the test bounds each refusal's extra peak allocation (NFR-SEC-02). It is this
 //! test binary's global allocator only; `ew-testkit`'s library keeps `#![forbid(unsafe_code)]`, and this is the one file
 //! of the crate that `ci/unsafe-allowlist.toml` lists. No time is measured (owner's rule).

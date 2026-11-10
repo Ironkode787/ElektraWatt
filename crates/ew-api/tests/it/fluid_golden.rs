@@ -391,7 +391,7 @@ fn meets(a: Pt2, b: Pt2, lo: Pt2, hi: Pt2) -> bool {
 /// FT-1315 (doc 20 ▲U-51): F1 to F16 carry stored routes on folio 203. Each starts and ends where its CPs are drawn,
 /// runs orthogonally, is taken again by `connection.route` (its ends and the connection grid, D3), keeps clear of
 /// every cylinder body, and the two lines of a valve never meet; F1 runs up from port 2 of its valve in row H, past
-/// the process valve, left over the cylinder and down into A (the router's route, decision log ID-1503).
+/// the process valve, left over the cylinder and down into A (the router's route).
 #[test]
 fn ft1315_the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
     let batch = golden_common::batch();
@@ -461,7 +461,7 @@ fn ft1315_the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
     }
 }
 
-/// FT-1323: on folio 203 the eight used valves move their function-text slot (slot 1, the process tag) to (-30, 45)
+/// On folio 203 the eight used valves move their function-text slot (slot 1, the process tag) to (-30, 45)
 /// px, below the valve body, which ends at 40 px; no other valve representation moves it, so the spare valves on 204
 /// to 206 keep "Spare" at the symbol's (-30, 35) px.
 #[test]

@@ -279,7 +279,7 @@ pub struct Tokens {
     pub success_subtle: Rgba,
     pub info: Rgba,
     pub info_subtle: Rgba,
-    /// The dialog backdrop over the whole window (§6.12: light `slate-900` at 24 %, dark black at 40 %, FT-557).
+    /// The dialog backdrop over the whole window (§6.12: light `slate-900` at 24 %, dark black at 40 %).
     pub backdrop: Rgba,
 
     // Canvas tokens (§4.6); the sheet is white in every theme.
@@ -363,17 +363,17 @@ pub struct Tokens {
     pub size_button_min_width: f32,
     pub size_dialog_small: f32,
     pub size_dialog_form: f32,
-    /// FT-566: the label column of a form dialog's label-and-field rows, the same in every form dialog (a small
+    /// The label column of a form dialog's label-and-field rows, the same in every form dialog (a small
     /// dialog's one field has no label and fills the body).
     pub size_dialog_label: f32,
-    /// WP-S3.07 part 3 (ruling 4 of ID-1180): the print pre-dialog with its preview, a raw size like
+    /// The print pre-dialog with its preview, a raw size like
     /// `size.dialog.label`, growing with the window as form dialogs do.
     pub size_dialog_preview: f32,
     pub size_palette: f32,
     pub size_palette_row: f32,
     pub size_toast: f32,
     pub size_tooltip_max: f32,
-    /// C40 (FT-816): the line length of running text on a full-window page (the first-run screen), a reading
+    /// C40: the line length of running text on a full-window page (the first-run screen), a reading
     /// measure kept fixed on purpose: it does not grow with the window.
     pub size_text_measure: f32,
     // Component tokens of the built widgets (doc 16a v1.1 §4.15).
@@ -393,7 +393,7 @@ pub struct Tokens {
     pub table_cursor_idle: Rgba,
     pub history_undone: Rgba,
     pub card_strip: Rgba,
-    /// FT-561: the fill of a count badge on `color.surface.chrome` (the bottom dock's tab row), where
+    /// The fill of a count badge on `color.surface.chrome` (the bottom dock's tab row), where
     /// `color.surface.sunken` is the chrome itself: `color.border.subtle`; the high-contrast themes keep the sunken
     /// fill and outline the pill with `color.border.default`.
     pub badge_on_chrome: Rgba,
@@ -525,7 +525,7 @@ pub const PAIRS: &[Pair] = &[
     pair("color.success", "color.surface.panel", PairKind::Text),
     pair("color.warning", "color.warning.subtle", PairKind::Text),
     pair("color.border.control", "color.surface.panel", PairKind::NonText),
-    // FT-1126 (ID-1225): the print preview's paper edge on the dialog.
+    // The print preview's paper edge on the dialog.
     pair("color.border.control", "color.surface.raised", PairKind::NonText),
     pair("color.focus", "color.surface.panel", PairKind::NonText),
     pair("color.warning.icon", "color.surface.panel", PairKind::NonText),
@@ -865,7 +865,7 @@ fn palette(theme: Theme) -> Palette {
             success: SUCCESS_DARK,
             success_subtle: SUCCESS_SUBTLE_DARK,
             surround: SURROUND_DARK,
-            // FT-557: black at 40 % (the alpha of the dark `elevation.1` shadow); slate-900 at 24 % left the chrome
+            // Black at 40 % (the alpha of the dark `elevation.1` shadow); slate-900 at 24 % left the chrome
             // (itself slate-900) and the panels undimmed.
             backdrop: BLACK.alpha(102),
             elevation_1: Elevation {
@@ -991,7 +991,7 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         success_subtle: p.success_subtle,
         info: p.accent,
         info_subtle: p.accent_subtle,
-        // Light: slate-900 at 24 % (§6.12); dark: black at 40 % (FT-557). Opaque-free in high contrast is not required
+        // Light: slate-900 at 24 % (§6.12); dark: black at 40 %. Opaque-free in high contrast is not required
         // for a backdrop.
         backdrop: p.backdrop,
         canvas_surround: p.surround,
@@ -1003,14 +1003,14 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         // volt-600 at 60 %.
         canvas_ghost: VOLT_600.alpha(153),
         canvas_snap: VOLT_600,
-        // FT-705: the open marker of a connection point without a connection (screen only). FX38a: slate-400, a
+        // The open marker of a connection point without a connection (screen only). FX38a: slate-400, a
         // subdued neutral ink (3.3:1 on the white sheet), never an accent shade, so it does not read as a handle.
         canvas_open_cp: SLATE_400,
-        // ID-1277: the highlight slots' own colours in their order (doc 16a §4.6), one source with the canvas.
+        // The highlight slots' own colours in their order (doc 16a §4.6), one source with the canvas.
         canvas_highlight: ew_viewmodel::highlight::SLOT_COLOURS.map(|(r, g, b)| Rgba { r, g, b, a: 255 }),
         // `color.text.primary`'s light value in every theme (the sheet is white).
         canvas_measure: SLATE_900,
-        // FT-675: `color.error`'s light value in every theme (the sheet is white): the wires of a potential whose
+        // `color.error`'s light value in every theme (the sheet is white): the wires of a potential whose
         // EW-POT-001 finding stands.
         canvas_conflict: ERROR_LIGHT,
         // slate-400 at 30 %.

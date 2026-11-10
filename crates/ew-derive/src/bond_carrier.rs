@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The carrier of a 0 V–PE bond: `bond_carrier(potential)` (WP-S1.16 D3; doc 08 §3.7; FR-CON-014).
+//! The carrier of a 0 V–PE bond: `bond_carrier(potential)` (doc 08 §3.7; FR-CON-014).
 //!
 //! A potential whose member CPs carry both the role `M` and the role `PE` is a 0 V joined to PE by a plain
 //! connection (EW-POT-001's member-role conflict). The quick fix "Declare 0 V–PE bond (PELV)" declares the bond on
@@ -23,7 +23,7 @@
 //!   in natural order (a wire without a number after those with one), then the two ends' texts (`tag:designation`
 //!   of a CP, the M-side end first; a junction's text is empty). The first is the carrier unless the second
 //!   shares every key with it (a tie on printed keys: no carrier). Nothing in the order is an ID, so a copy of
-//!   the drawing with fresh IDs gets the same carrier (ID-677).
+//!   the drawing with fresh IDs gets the same carrier.
 //! - **The value.** `a` is the carrier's end on the `M` side, `b` its end on the `PE` side. `None` when the
 //!   potential has no `M`-role or no `PE`-role member CP, when no candidate exists, or on a tie.
 

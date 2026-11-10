@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The pivot of a black box's turns (cycle 41 review, finding 1): every box of 1 to 8 by 1 to 8 grid steps, at
+//! The pivot of a black box's turns (finding 1): every box of 1 to 8 by 1 to 8 grid steps, at
 //! positive and negative grid positions and away from the origin, from a plain and from a mirrored orientation, on
 //! the rational QET grid and on a metric one.
 

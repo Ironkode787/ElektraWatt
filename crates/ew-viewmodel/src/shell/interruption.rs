@@ -37,7 +37,7 @@ use crate::tools::{
     black_box, selection_kinds,
 };
 
-/// EW's interruption-point forms (WP-S2.19 D16): the source form, the target form, and the documents to embed.
+/// EW's interruption-point forms: the source form, the target form, and the documents to embed.
 type IpForms = (Arc<SymbolShape>, Option<Arc<SymbolShape>>, Vec<Value>);
 
 /// The natural order of two names: runs of decimal digits compare by their value, other runs by their text.
@@ -158,7 +158,7 @@ impl ShellModel {
         Ok((shape, copies))
     }
 
-    /// EW's interruption-point forms in the page's grid family (WP-S2.19 D16): the source form, the target form when
+    /// EW's interruption-point forms in the page's grid family: the source form, the target form when
     /// the catalogue holds it, and the library documents a command drawing either carries, each once.
     fn ip_forms(&mut self) -> Result<IpForms, Outcome> {
         let (source, mut copies) = self.family_shape("ew.gen.ip")?;
@@ -186,7 +186,7 @@ impl ShellModel {
         })
     }
 
-    /// The project's interruption points: the name of every one (ID-1462), and its source points (FT-822): every
+    /// The project's interruption points: the name of every one, and its source points: every
     /// interruption point of direction `source` that a representation draws, with its page; external connection points
     /// are left out of the sources (they never pair).
     fn project_ips(&self) -> ProjectIps {
@@ -208,7 +208,7 @@ impl ShellModel {
             let Some(name) = ip.get("name").and_then(Value::as_str) else {
                 continue;
             };
-            // ID-1462: every interruption point's name is taken for an automatic name, an external one's too.
+            // Every interruption point's name is taken for an automatic name, an external one's too.
             out.add_name(name);
             if ip.get("direction").and_then(Value::as_str) != Some("source") || ip.get("external").is_some() {
                 continue;
@@ -222,7 +222,7 @@ impl ShellModel {
         out
     }
 
-    /// Gives the armed IP tool the project's source points again when the model changed since it read them (FT-822).
+    /// Gives the armed IP tool the project's source points again when the model changed since it read them.
     pub(super) fn sync_ip_project(&mut self) {
         let rev = self.revision();
         let stale = self.ip_tool().is_some_and(|t| t.project_rev() != rev);
@@ -258,7 +258,7 @@ impl ShellModel {
             .with_copies(copies);
         tool.set_project(self.project_ips(), self.revision());
         self.activate_tool(Box::new(tool));
-        // ID-1139: the ghost's name is computed at once, so the HUD leads with it before the pointer is over the
+        // The ghost's name is computed at once, so the HUD leads with it before the pointer is over the
         // canvas (a cursor already there has refreshed it; the overlay stays the one that move drew).
         let _ = self.with_tool(|t, cx| {
             t.as_any_mut()
@@ -289,9 +289,9 @@ impl ShellModel {
                             propose(typed, true, direction, false, false, &project, tables);
                         return (name, direction.word());
                     }
-                    // FT-950: a given potential name, else the last name placed, else the fallback, as the IP tool's.
+                    // A given potential name, else the last name placed, else the fallback, as the IP tool's.
                     let base = proposal_base(potential_of_end(tables, start), memory.last_name.as_deref());
-                    // ID-1462: the first name of the series that no point of the project has, as the IP tool's.
+                    // The first name of the series that no point of the project has, as the IP tool's.
                     let (name, direction) = propose(&base, false, direction, false, false, &project, tables);
                     (name, direction.word())
                 }))
@@ -299,7 +299,7 @@ impl ShellModel {
             .flatten();
         match result {
             Some(Ok((out, name, direction))) => {
-                // FT-673: the IP symbol the project lacks travels in the wire's command (one undo step).
+                // The IP symbol the project lacks travels in the wire's command (one undo step).
                 let out = match out {
                     ToolOutput::Commit(cmd) if !copies.is_empty() => match cmd.to_json() {
                         Ok(mut params) => {
@@ -347,7 +347,7 @@ impl ShellModel {
 
     /// `tool.ip_direction {direction?}`: D cycles the direction; the headless `direction` (`source`, `target`,
     /// `undirected`) sets it, so a script needs no knowledge of the default. While the Graphic tool draws an arc, D
-    /// toggles the arc's sweep direction (WP-S2.04 §10.5) and a `direction` is refused.
+    /// toggles the arc's sweep direction and a `direction` is refused.
     pub(crate) fn act_ip_direction(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() == "graphic" {
             if p.contains_key("direction") {
@@ -380,13 +380,13 @@ impl ShellModel {
     }
 
     /// The name typed in the IP tool's name field (`ip.name`) that no interruption point has taken yet, which the field
-    /// shows (FT-851); `None` when none is typed or a point took it.
+    /// shows; `None` when none is typed or a point took it.
     pub fn ip_typed_name(&self) -> Option<&str> {
         self.tools.ip_memory.typed.as_deref()
     }
 
     /// `ip.name {text}`: the IP tool's name field. An empty or blank `text` (the field erased) cancels the typed name,
-    /// so the next point takes its automatic name (cycle 41 review); a missing `text` is `error-missing-param`.
+    /// so the next point takes its automatic name; a missing `text` is `error-missing-param`.
     pub(crate) fn act_ip_name(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.ip_tool().is_none() {
             return Outcome::refused(key!("reason-ip-tool-only"));
@@ -407,7 +407,7 @@ impl ShellModel {
     /// the connection) or its label after the location the page prints (`+J-E-206 / JE-N1000-03:L`, the cross-reference
     /// text of the external point followed by the connection; FT-485 item 8): by ID first; by label only when exactly
     /// one reference (at that location, when one is named) has it (fix round, item 7). `Err` carries the outcome: a
-    /// text no reference has fails with a message that lists the labels the project has (FT-485 item 8); a label two
+    /// text no reference has fails with a message that lists the labels the project has (item 8); a label two
     /// references share is refused with `reason-external-ambiguous`.
     pub(super) fn resolve_external(&self, s: &str) -> Result<IpExternal, Outcome> {
         let s = s.strip_prefix("id:").unwrap_or(s).trim();
@@ -447,7 +447,7 @@ impl ShellModel {
                 let mut labels: Vec<&str> = choices.iter().map(|(_, l)| l.as_str()).collect();
                 labels.dedup();
                 let known = if labels.is_empty() {
-                    // FT-1131 (ID-1229 item 7): the command by its menu path, and its key only when one is bound.
+                    // FT-1131 (item 7): the command by its menu path, and its key only when one is bound.
                     let key = crate::command_bar::key_of(self, "external_ref.new");
                     if key.is_empty() {
                         strings::text(key!("external-none")).to_owned()
@@ -492,7 +492,7 @@ impl ShellModel {
             },
             Some(_) => return failed(key!("error-bad-param"), &["external"]),
         };
-        // Back to EW's forms: the copies of both, as the tool was armed with (WP-S2.19 D16).
+        // Back to EW's forms: the copies of both, as the tool was armed with.
         let found = if external.is_some() {
             self.family_shape("ew.gen.external-arrow")
         } else {
@@ -520,7 +520,7 @@ impl ShellModel {
         if self.tools.tool.name() != "ip" {
             return;
         }
-        // ID-1462: the next name is free among the project's points as the commit left them.
+        // The next name is free among the project's points as the commit left them.
         self.sync_ip_project();
         let refreshed = self
             .with_tool(|t, cx| {
@@ -570,7 +570,7 @@ impl ShellModel {
         Some(Outcome::refused(key!("reason-ip-not-placed")))
     }
 
-    /// FT-822: the IP tool's commit that the model refused (a prevent rule: EW-CORE-052 for a second source of a name)
+    /// The IP tool's commit that the model refused (a prevent rule: EW-CORE-052 for a second source of a name)
     /// is a refusal of the tool's click, not a failure: the tool stays armed with its ghost where it was (the second
     /// member: keep the overlay), the reason stands in words in the HUD until the next canvas input and in a warning
     /// toast, and the window shows no banner (a banner is for a state of the whole project, doc 16a §6.11). Every
@@ -761,7 +761,7 @@ impl ShellModel {
                 (None, None) => Ordering::Equal,
             };
             pot.then_with(|| natural_cmp(&a.1, &b.1))
-                // Ties by the current position (y, x), then by ID (FT-439: no UUID-keyed order first).
+                // Ties by the current position (y, x), then by ID (no UUID-keyed order first).
                 .then_with(|| a.3.cmp(&b.3))
                 .then_with(|| a.2.cmp(&b.2))
         });
@@ -892,7 +892,7 @@ impl ShellModel {
 
 /// The EW-CORE-052 notice of the IP tool for the point `name` whose existing source is on page `folio`: the way out
 /// names `key`, the first binding of `tool.ip_direction` (the user may rebind it), or the action by its title when it
-/// has none (cycle-40 review).
+/// has none.
 fn second_source_text(name: &str, folio: &str, key: &str) -> String {
     if key.is_empty() {
         let title = crate::actions::find("tool.ip_direction").map_or("tool.ip_direction", |m| {

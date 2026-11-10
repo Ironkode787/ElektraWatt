@@ -3,7 +3,7 @@
 
 //! WP-S2.17 part 4 in the window (§12.4): Escape closes every dialog without its action (CP1); the toasts stand at
 //! the canvas's top right, 300 px wide, newest on top (CP2, CP7); the palette lists its results with breadcrumbs and
-//! key chips (CP4); the empty states are named groups and a finished job carries its outcome badge (CP5, FT-510); a
+//! key chips (CP4); the empty states are named groups and a finished job carries its outcome badge (CP5); a
 //! stale card shows its "Stale" badge as a node, never a "[stale]" text (CP8). Each followed by the accessible-name
 //! walker.
 
@@ -27,7 +27,7 @@ fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
 
 /// Waits for the running jobs without running frames, then settles. Polling with frames ran the window's clock on for
 /// as long as the export took, so on a loaded machine the edit toast's 8 seconds ran out before the assertions
-/// (FT-524: `cp2_cp7` saw one toast). The window's own path (the job wakes it, a frame takes the end) is `jobs.rs`'s.
+/// (`cp2_cp7` saw one toast). The window's own path (the job wakes it, a frame takes the end) is `jobs.rs`'s.
 fn run_until_jobs_end(h: &mut Harness<'_, App>) {
     h.state_mut().shell_mut().wait_jobs();
     settle(h);
@@ -184,7 +184,7 @@ fn a_modal_dialog_puts_the_toasts_below_its_backdrop() {
     );
 }
 
-/// SM25b m4 (ID-1476): with the Insert symbol picker open a toast lies below it, in the middle order, while the
+/// SM25b m4: with the Insert symbol picker open a toast lies below it, in the middle order, while the
 /// picker stands in the foreground, so no toast covers the picker's field.
 #[test]
 fn the_insert_symbol_picker_stands_above_the_toasts() {
@@ -321,7 +321,7 @@ fn cp8_a_stale_card_shows_its_badge_and_apply_stays_the_primary() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-524: a toast's 8 seconds (WP-S2.09 D6) run on the window's frame clock (egui's `input.time`), which is the wall
+/// A toast's 8 seconds run on the window's frame clock (egui's `input.time`), which is the wall
 /// clock in the window and the harness's steps here, so how long a loaded machine takes between two frames does not
 /// decide whether a test still sees a toast. The toast stays while less than 8 seconds of frames have passed since
 /// the frame that first painted it, and goes in the first frame at 8 seconds.
@@ -363,7 +363,7 @@ fn ft_524_a_toast_lives_8_seconds_of_the_frame_clock() {
 /// A harness on Golden A with one toast (an edit's) painted in its first frame; returns the frame time of that frame.
 fn one_toast(h: &mut Harness<'_, App>) -> f64 {
     settle(h);
-    // The harness draws on the CPU, which reduces motion while the setting is unset (ID-1278 ruling 12).
+    // The harness draws on the CPU, which reduces motion while the setting is unset.
     dispatch(h, "view.reduce_motion", json!({"on": false}));
     dispatch(h, "page.goto", json!({"folio": "101"}));
     dispatch(h, "select.set", json!({"refs": ["tag:-101F1", "tag:-102F1"]}));
@@ -389,7 +389,7 @@ fn opacity_at(h: &mut Harness<'_, App>, shown: f64, t: f64) -> Option<f32> {
     opacities.first().map(|(_, a)| *a)
 }
 
-/// FT-1027, ID-1107: "a toast fades out as it fades in (`motion.base`), on the frame clock." The opacity is 0 in the
+/// "a toast fades out as it fades in (`motion.base`), on the frame clock." The opacity is 0 in the
 /// frame that first paints it and 1 at `motion.base`; 1 at the start of the fade out, `motion.base` before the 8 s,
 /// half way through it, and the toast is gone at the end.
 #[test]
@@ -424,7 +424,7 @@ fn ft1027_a_toast_fades_in_and_out_over_motion_base_on_the_frame_clock() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1027, ID-1107: "Hovering still pauses it." A hovered toast's clock stands still: it is on screen, unfaded, 20 s
+/// "Hovering still pauses it." A hovered toast's clock stands still: it is on screen, unfaded, 20 s
 /// after it came; once the pointer leaves, its 8 s go on from where they stood.
 #[test]
 fn ft1027_hovering_a_toast_pauses_its_fade() {
@@ -454,7 +454,7 @@ fn ft1027_hovering_a_toast_pauses_its_fade() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1137 (ID-1225; doc 16a §6.10, "hovering or focusing one pauses it"): a toast whose Dismiss button holds the
+/// FT-1137 (doc 16a §6.10, "hovering or focusing one pauses it"): a toast whose Dismiss button holds the
 /// keyboard focus is paused for as long as it holds it, the pointer away from it.
 #[test]
 fn ft1137_a_toast_that_holds_the_keyboard_focus_is_paused() {
@@ -482,7 +482,7 @@ fn ft1137_a_toast_that_holds_the_keyboard_focus_is_paused() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1171: while the shell's focus is on the canvas, a toast's Dismiss button that takes the keyboard focus keeps it
+/// While the shell's focus is on the canvas, a toast's Dismiss button that takes the keyboard focus keeps it
 /// (the canvas does not take it back each frame), so the toast stays paused.
 #[test]
 fn ft1171_a_toasts_control_keeps_the_focus_from_the_canvas() {
@@ -524,7 +524,7 @@ fn ft1171_a_toasts_control_keeps_the_focus_from_the_canvas() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// C52-p3#4 (ID-1417): while a toast shows, every key typed into the page navigator's filter field lands there; the
+/// While a toast shows, every key typed into the page navigator's filter field lands there; the
 /// canvas's check for a toast that holds the focus does not take it.
 #[test]
 fn typing_in_a_navigator_filter_while_a_toast_shows_keeps_every_key() {
@@ -551,7 +551,7 @@ fn typing_in_a_navigator_filter_while_a_toast_shows_keeps_every_key() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1195 (doc 16a §6.10, ID-940): a toast of one long text (no title and line) wraps up to three rows and is cut with
+/// FT-1195 (doc 16a §6.10): a toast of one long text (no title and line) wraps up to three rows and is cut with
 /// an ellipsis; its whole text is the tooltip under the pointer.
 #[test]
 fn ft1195_a_long_toast_is_cut_at_three_rows_with_its_whole_text_in_the_tooltip() {
@@ -595,7 +595,7 @@ fn ft1195_a_long_toast_is_cut_at_three_rows_with_its_whole_text_in_the_tooltip()
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1144 (ID-1225; ID-940): a toast whose text is whole shows no tooltip under the pointer (it would only repeat
+/// A toast whose text is whole shows no tooltip under the pointer (it would only repeat
 /// the text); its accessible name stays "Notification".
 #[test]
 fn ft1144_a_toast_with_its_whole_text_shows_no_tooltip() {
@@ -624,7 +624,7 @@ fn ft1144_a_toast_with_its_whole_text_shows_no_tooltip() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1088, ID-1183: a toast that appears under a pointer that does not move fades on time (the hover pauses a toast
+/// A toast that appears under a pointer that does not move fades on time (the hover pauses a toast
 /// only after the pointer moved onto it); once the pointer moves onto it, it is paused and stays paused while the
 /// pointer is still.
 #[test]
@@ -676,7 +676,7 @@ fn ft1088_a_toast_under_a_still_pointer_fades_on_time() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// C46-p1#5 (ID-1139 as drawn): at the 1280 × 800 floor, a click on the greyed Symbol button of a panel layout page
+/// C46-p1#5 (as drawn): at the 1280 × 800 floor, a click on the greyed Symbol button of a panel layout page
 /// shows a toast whose title stands whole on two rows (its text runs as drawn), never cut with an ellipsis.
 #[test]
 fn a_greyed_commands_toast_title_stands_whole_on_two_rows_at_the_floor() {
@@ -700,7 +700,7 @@ fn a_greyed_commands_toast_title_stands_whole_on_two_rows_at_the_floor() {
         .click();
     settle(&mut h);
     // The title's label carries the toast's whole text as its live value; its galley's rows are the rows as drawn
-    // (FT-1507: the toast's labels are not selectable, so they hold no text runs).
+    // (the toast's labels are not selectable, so they hold no text runs).
     let whole = format!("{TITLE}: draw on a schematic page");
     assert!(
         h.get_all_by_role(egui::Role::Label)

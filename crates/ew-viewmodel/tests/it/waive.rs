@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-674: Waive… and Unwaive in the Messages pane on copies of Golden A (the reason prompt, its ten-character rule,
+//! Waive… and Unwaive in the Messages pane on copies of Golden A (the reason prompt, its ten-character rule,
 //! the author preference, the date the window passes, one `check.waive` or `check.unwaive` per step, the check toast's
 //! waived count). FT-675: the canvas's conflict overlay of an unbonded merged 0 V/PE potential (Golden A without its
 //! bond B1), which never reaches the page's display list.
@@ -112,7 +112,7 @@ fn waive_from_the_prompt_commits_one_check_waive_and_unwaive_opens_the_finding_a
     assert_eq!(params["reason"], "Cable length is set on site");
     assert_eq!(params["author"], "A. Engineer");
     assert_eq!(params["date"], DATE);
-    // FT-1509: the finding's subject as the row prints it, which a refusal of a second waiver names.
+    // The finding's subject as the row prints it, which a refusal of a second waiver names.
     assert_eq!(params["subject"], row.cells[3].as_str());
     assert_eq!(shell.settings().author_name.as_deref(), Some("A. Engineer"));
     assert_eq!(state(&shell, &row.key), "waived");
@@ -122,7 +122,7 @@ fn waive_from_the_prompt_commits_one_check_waive_and_unwaive_opens_the_finding_a
     assert!(detail.waiver.is_some(), "the waiver's ID for Unwaive");
     assert!(shell.describe().lines().any(|l| l == "  detail waived"));
 
-    // The check toast's waived count follows (in its title, FT-664).
+    // The check toast's waived count follows (in its title).
     done(&mut shell, "messages.check", json!({}));
     let toast = shell.toast().expect("the check toast").text.clone();
     let expect = if before + 1 == 1 {
@@ -251,7 +251,7 @@ fn without_b1(tmp: &Tmp) -> ShellModel {
     shell
 }
 
-/// FT-675: while EW-POT-001 stands, the wires of the merged potential on 103 are in the conflict overlay; the page's
+/// While EW-POT-001 stands, the wires of the merged potential on 103 are in the conflict overlay; the page's
 /// display list (what the canvas renders, prints and exports) is the same with the finding open and waived; once the
 /// bond is declared the overlay is empty. Golden A itself has no overlay.
 #[test]
@@ -315,7 +315,7 @@ fn the_conflict_overlay_lists_the_merged_potentials_wires_until_the_bond_is_decl
     shell.shutdown();
 }
 
-/// FT-696 (WP-S2.11 D9, GT-6): a connection point an EW-POT-001 finding names (a potential without a definition is
+/// FT-696 (GT-6): a connection point an EW-POT-001 finding names (a potential without a definition is
 /// keyed by one) adds the wires that end at it to the overlay, in the page's connection order; a point without wires
 /// is a closed ring one grid step across, centred on the point; nothing named, nothing drawn.
 #[test]
@@ -364,7 +364,7 @@ fn ft696_a_named_connection_point_draws_its_wires_or_its_ring() {
     shell.shutdown();
 }
 
-/// FT-696 (GT-6, ID-1375): a real EW-POT-001 finding on a potential without a definition (Golden A without B1 and
+/// FT-696 (GT-6): a real EW-POT-001 finding on a potential without a definition (Golden A without B1 and
 /// without its potential definitions, so 0 V and PE merge with no definition to key them) draws, through
 /// `conflict_overlay`, exactly the wires of the connection point its discriminator names: the overlay is that of one
 /// point of the page, and no definition gives members.

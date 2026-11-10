@@ -455,7 +455,7 @@ fn merged(m_extra: Value, pe_extra: Value) -> (Model, BTreeMap<String, Potential
     (model, ps)
 }
 
-/// FT-654 (decision log ID-828; doc 08 §3.6, doc 16a §7.5): a plain wire that merges M and PE without a bond makes
+/// FT-654 (doc 08 §3.6, doc 16a §7.5): a plain wire that merges M and PE without a bond makes
 /// one potential named M (FT-587's natural order) of type M with a type conflict (EW-POT-001); every wire of it shows
 /// the PE colour (the PE colour row, level 2), while the cross-section and the class keep the applied type M. A
 /// colour on the M definition (level 3) does not apply, a colour on the PE definition does. The M potential alone,

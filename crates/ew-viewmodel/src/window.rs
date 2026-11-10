@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Window memory (WP-S2.17 part 3 item 9, check DK6; the rest of FT-348): the main window's size, position and
+//! Window memory (item 9, check DK6; the rest): the main window's size, position and
 //! maximised state, kept in `settings.toml` as `[window]` and restored at the next start, clamped so that the window
 //! opens on a monitor the system still has.
 //!
@@ -9,7 +9,7 @@
 //! pixels divided by the native scale). The position is in the desktop's uniform space, physical pixels on Windows and
 //! X11 (one space for monitors of different scales, where a logical position drifts); Wayland reports no position
 //! (see `ew_ui::window_memory`; macOS is not a supported platform, ID-880). Whole numbers in the file. The position is
-//! the outer top-left corner (title bar included), the size the inner size. Until R2-1 (cycle 32, never released) `x`
+//! the outer top-left corner (title bar included), the size the inner size. Until R2-1 (never released) `x`
 //! and `y` were points everywhere; such a value is read as physical pixels, and the window's first frame clamps it
 //! onto a monitor.
 //!

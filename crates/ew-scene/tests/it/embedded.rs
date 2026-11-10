@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The embedded blocks of a drawn page (FR-REP-028; doc 20 §17.3): the cover tables and the boxed tables of every
-//! other kind (WP-S4.01 D16, D17), drawn into the `tables` layer inside the block's rectangle, with a grid and the
+//! other kind, drawn into the `tables` layer inside the block's rectangle, with a grid and the
 //! texts in reading order.
 
 use std::sync::Arc;
@@ -213,7 +213,7 @@ fn a_text_that_does_not_fit_its_cell_shrinks_and_is_reported_not_clipped() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The boxed table of every other kind (WP-S4.01 D16, D17)
+// The boxed table of every other kind
 
 /// The frame form's page-to-sheet map (doc 20 §17.1).
 const SHEET: SheetMap = SheetMap {

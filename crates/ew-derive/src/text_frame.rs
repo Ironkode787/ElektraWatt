@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The frame a representation's slot texts are placed in: [`text_frame`] (FT-867, decision log ID-1137).
+//! The frame a representation's slot texts are placed in: [`text_frame`].
 //!
 //! A slot text's position and angle (the symbol slot's, else the representation's `SlotOverride`) are points and
 //! angles of this frame: the text sits at `origin + orient(pos)`, its angle is made readable and its alignment flips
@@ -50,7 +50,7 @@ pub fn text_frame(rep: &Representation, symbol: &SymbolDef) -> TextFrame {
 /// Whether slot `slot` of `symbol` is shown on `rep`: the representation's `visible` override of the slot, else its
 /// arrangement (the slot is shown when the named arrangement lists it; an arrangement the symbol does not define
 /// counts as none), else the slot's own `visible` (FR-SYM-012). `false` for a slot the symbol does not have. The page
-/// scene's slot texts and the strip tags of terminals drawn alone (ID-1151) decide by it.
+/// scene's slot texts and the strip tags of terminals drawn alone decide by it.
 pub fn slot_shown(rep: &Representation, symbol: &SymbolDef, slot: u16) -> bool {
     let Some(def) = symbol.text_slots.get(usize::from(slot)) else {
         return false;
@@ -74,7 +74,7 @@ pub fn slot_shown(rep: &Representation, symbol: &SymbolDef, slot: u16) -> bool {
 }
 
 /// The index of the first `tag` slot of `symbol` when [`slot_shown`] on `rep`; `None` when the symbol has no tag
-/// slot or its first one is hidden (decision log ID-1151: where a terminal drawn alone can carry its strip's tag).
+/// slot or its first one is hidden (where a terminal drawn alone can carry its strip's tag).
 pub fn tag_slot_shown(rep: &Representation, symbol: &SymbolDef) -> Option<u16> {
     let i = symbol
         .text_slots

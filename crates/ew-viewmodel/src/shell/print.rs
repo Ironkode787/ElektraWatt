@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.07 part 3 (D10, rulings 2 to 5 of ID-1180): the print pre-dialog and its print job.
+//! WP-S3.07 part 3 (D10, rulings 2 to 5): the print pre-dialog and its print job.
 //!
 //! **The dialog.** `file.print` (Output ▸ Print…, Ctrl+P) opens [`Dialog::Print`] with its options, which its own
 //! parameters may set at once: the Range (All, Current page, Sections with their check list, Pages with a text field),
@@ -208,7 +208,7 @@ pub struct PrintRequest {
     pub via: PrintVia,
     /// Whether the set is drawn in black and grey.
     pub monochrome: bool,
-    /// The print's cancel signal (FT-1157, ID-1417): the Cancel of its entry in the Jobs pane sets it, and the platform
+    /// The print's cancel signal: the Cancel of its entry in the Jobs pane sets it, and the platform
     /// hands it to the print job.
     pub cancel: Arc<std::sync::atomic::AtomicBool>,
 }
@@ -308,7 +308,7 @@ impl ShellModel {
     pub fn take_print_request(&mut self) -> Option<PrintRequest> {
         let request = self.print.request.take()?;
         self.print.printing = Some(request.title.clone());
-        // FT-1157 (ID-1417): the print shows in the Jobs pane while the platform runs it, with its Cancel.
+        // The print shows in the Jobs pane while the platform runs it, with its Cancel.
         let (rev, epoch) = self
             .project
             .as_ref()
@@ -336,7 +336,7 @@ impl ShellModel {
             self.jobs.entries.remove(i);
         }
         let text = match end {
-            // C52-p6#2 (ID-1424): a way that hands a file over cannot take it back; a Cancel that came too late says
+            // A way that hands a file over cannot take it back; a Cancel that came too late says
             // where the print went instead of telling it as done.
             PrintEnd::Printed | PrintEnd::FellBackToPrinter if cancelled => {
                 strings::format(key!("toast-print-cancel-late-printer"), &[&title])
@@ -556,7 +556,7 @@ impl ShellModel {
         let Some(d) = self.print_dialog() else { return };
         let selection = d.selection();
         let parse_error = match (d.range, &selection) {
-            // FT-1124 (ID-1225): the refusal in words, not the engine's.
+            // The refusal in words, not the engine's.
             (PrintRange::Pages, None) if !d.pages.trim().is_empty() => PageSelection::parse(&d.pages)
                 .err()
                 .map(|_| strings::text(key!("print-pages-error")).to_owned()),
@@ -612,7 +612,7 @@ impl ShellModel {
 
     /// The end of build `generation`: the dialog's state, when it still shows that build.
     fn finish_print(&mut self, generation: u64, end: JobEnd<Result<PrintSet, OutputError>>) {
-        // FT-1124 (ID-1225): a selection the page order refuses is the Pages text's refusal, shown once under the field
+        // A selection the page order refuses is the Pages text's refusal, shown once under the field
         // in words while the preview shows the empty state; any other failure shows in the preview only. FT-1190: the
         // refusal is told by its kind, `OutputError::Selection`, never by its text.
         let pages = self.print_dialog().is_some_and(|d| d.range == PrintRange::Pages);
@@ -679,7 +679,7 @@ impl ShellModel {
         let d = self.print_dialog()?;
         match &d.build {
             PrintBuild::Built { .. } if self.print_set().is_some() => None,
-            // FT-1172 (ID-1391): a refused Pages text says why in words.
+            // A refused Pages text says why in words.
             PrintBuild::Empty if d.range == PrintRange::Pages && d.pages_error.is_some() => Some(
                 strings::format(key!("reason-print-not-a-range"), &[d.pages.trim()]),
             ),

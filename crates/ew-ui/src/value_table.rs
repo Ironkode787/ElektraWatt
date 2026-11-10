@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-786: the editable table of a form ([`FormTable`]), Save as macro…'s value sets, in doc 16a §6.21's look without
+//! The editable table of a form ([`FormTable`]), Save as macro…'s value sets, in doc 16a §6.21's look without
 //! the navigator grid's machinery: a sticky-free header (`size.table_header`, `color.surface.sunken`, the labels in
 //! `type.small` SemiBold `color.text.secondary`), the named first column closed by the one vertical line
 //! (`color.table.frozen_edge`), body rows `size.row` high with a 1-px `color.border.subtle` line under each, every cell

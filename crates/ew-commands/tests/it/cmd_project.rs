@@ -210,7 +210,7 @@ fn logo_png() -> Vec<u8> {
     b
 }
 
-/// FT-337: the logo joins the asset store and the company member names it by its reference; undo restores the
+/// The logo joins the asset store and the company member names it by its reference; undo restores the
 /// reference and keeps the bytes; an empty text removes the logo.
 #[test]
 fn company_set_stores_the_logo_as_an_asset_and_undoes() {
@@ -708,7 +708,7 @@ fn checks_set_is_undone_and_redone_only_by_a_human() {
     );
 }
 
-/// FT-404: an `Edit` step is undone and redone from a scripted origin as before.
+/// An `Edit` step is undone and redone from a scripted origin as before.
 #[test]
 fn an_edit_step_is_undone_from_a_script() {
     let mut e = engine(golden_model());
@@ -726,7 +726,7 @@ fn an_edit_step_is_undone_from_a_script() {
     .unwrap();
 }
 
-/// FT-380: `project.assets.purge` is a Bulk `HumanOnly` command with a destructive confirmation and no undo; in the engine
+/// `project.assets.purge` is a Bulk `HumanOnly` command with a destructive confirmation and no undo; in the engine
 /// (which owns no project directory) it commits a transparent marker line: no revision, no change of the model, and
 /// an undo passes over it to the step below.
 #[test]
@@ -784,7 +784,7 @@ fn assets_purge_refuses_malformed_and_repeated_hashes() {
     assert_eq!(path, "/all", "unknown members are refused");
 }
 
-/// FT-380: the history names every asset its entries could bring back, the redo branch included.
+/// The history names every asset its entries could bring back, the redo branch included.
 #[test]
 fn the_history_names_the_assets_of_its_entries() {
     let mut e = engine(golden_model());
@@ -816,7 +816,7 @@ fn the_history_names_the_assets_of_its_entries() {
     assert!(named.contains(&second), "the redo branch is named too");
 }
 
-/// FT-383: a hostile SVG logo (synthetic) never reaches the asset store: the command refuses it at `/logo` with the
+/// A hostile SVG logo (synthetic) never reaches the asset store: the command refuses it at `/logo` with the
 /// rejecter's reason, and the model holds no new asset.
 #[test]
 fn company_set_refuses_a_hostile_svg_logo() {

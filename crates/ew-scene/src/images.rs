@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Image items resolved for drawing (FT-384, decision log ID-576): the display lists place an image by its asset's
+//! Image items resolved for drawing: the display lists place an image by its asset's
 //! hash with **empty bytes** (the forms layer, symbol images); the export job, which is not a memoised query, resolves
 //! them here from the bytes the project holds before any renderer reads the list ([`resolve_images`]).
 //!
@@ -22,7 +22,7 @@
 //! audit of usvg 0.48.1 and its dependencies found it cannot bear (deep nesting, reference cycles, expansion bombs,
 //! huge numbers, the constructs that panic it; [`ew_schema::svg_hazard`]), and the parse runs inside `catch_unwind`.
 //!
-//! Asset presence is read here, outside the memoised queries (FT-382): the caller passes the bytes it holds.
+//! Asset presence is read here, outside the memoised queries: the caller passes the bytes it holds.
 
 use std::sync::Arc;
 
@@ -35,7 +35,7 @@ use usvg::tiny_skia_path::PathSegment;
 /// Why an SVG asset is not drawn.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum SvgError {
-    /// The store's rejecter refuses it (FT-383).
+    /// The store's rejecter refuses it.
     Hazard(ew_schema::SvgHazard),
     /// usvg cannot parse it.
     Parse(String),
@@ -257,7 +257,7 @@ pub enum ImageProblem {
     Refused(SvgError),
     /// The PNG or JPEG bytes are held but do not decode within the renderers' pixel bound (a corrupt or truncated
     /// file, a declared size above the bound, an unsupported variant): the item is left, and renderers skip it. The
-    /// export job adds this after resolving, with the renderers' decoder (FT-406; the sniffer reads headers only).
+    /// export job adds this after resolving, with the renderers' decoder (the sniffer reads headers only).
     Undecodable(ImageFormat),
 }
 
@@ -603,7 +603,7 @@ mod tests {
     }
 }
 
-/// FT-470: the path segment bound of the SVG pre-scan (`ew_schema::svg_path_segment_bound`) is an upper bound of the
+/// The path segment bound of the SVG pre-scan (`ew_schema::svg_path_segment_bound`) is an upper bound of the
 /// segments usvg 0.48.1 makes, the vertices it draws markers at (oracle: usvg itself).
 #[cfg(test)]
 mod path_bound_oracle {
@@ -729,7 +729,7 @@ mod path_bound_oracle {
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(128))]
 
-        /// FT-501: radii in `em`, `ex` and `%` under a `font-size` chain and a root viewport: when the pre-scan
+        /// Radii in `em`, `ex` and `%` under a `font-size` chain and a root viewport: when the pre-scan
         /// admits the document, its segment bound covers what usvg makes.
         #[test]
         fn the_bound_holds_for_relative_radii(
@@ -757,7 +757,7 @@ mod path_bound_oracle {
         }
     }
 
-    /// FT-501: a hand-written `<circle r="40%">` in a 100 x 100 viewBox is admitted, and usvg makes no more segments
+    /// A hand-written `<circle r="40%">` in a 100 x 100 viewBox is admitted, and usvg makes no more segments
     /// than the bound.
     #[test]
     fn a_percent_radius_circle_is_admitted_and_bounded() {

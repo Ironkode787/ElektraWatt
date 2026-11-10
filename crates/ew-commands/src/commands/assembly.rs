@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The device tree of assemblies and valve terminals (doc 03 §7, doc 10 §3.7, doc 11 §3.2, §4.3; FT-169):
+//! The device tree of assemblies and valve terminals (doc 03 §7, doc 10 §3.7, doc 11 §3.2, §4.3):
 //! `assembly.attach` (`AttachChildren`), `valve.add` (`AddValve`) and `device.link` (`LinkDevices`).
 //!
 //! The typed `assembly`, `plc_station` and `plc_module` aspects are set with `fields.set`; adding a
@@ -55,7 +55,7 @@ fn ancestors(tx: &TxBuilder<'_>, device: Id<Device>) -> Vec<Id<Device>> {
 
 /// The positions taken among the children of `parent`, except `skip`: position → child. The children come from the
 /// parent index (`TxBuilder::children_of`), not a scan of the device table, so an edit of an unrelated device leaves a
-/// prepared attach valid (FT-955, ADR-0008).
+/// prepared attach valid (ADR-0008).
 fn taken_positions(
     tx: &TxBuilder<'_>,
     parent: Id<Device>,
@@ -191,7 +191,7 @@ impl Command for AttachChildren {
 /// parts: [part]}` (doc 11 §3.2: the child rule prints `{parent}-{letter}{position}`; normaliser N-FL-2
 /// keeps the counter equal to the position) and, with `fndef`, its main function `{def: fndef, role: main,
 /// kind: normal}`. A part whose template has an entry on a FnDef of contact kind `valve` ignores `fndef`: normaliser
-/// N-FL-1 (`valve_functions`) makes the valve and coil functions from the part (WP-S1.20 D7). The position is the
+/// N-FL-1 (`valve_functions`) makes the valve and coil functions from the part. The position is the
 /// requested one, else the lowest free position of the module (1, 2, …). The module, the part copy and the FnDef
 /// copy must exist. Rejected: position 0 (at `/position`); a requested position another child of the module holds
 /// (no push insert in v0). The slot-count bound of the module's part is EW-FL-013's prevent rule. The
@@ -243,7 +243,7 @@ impl Command for AddValve {
         if let Some(fndef) = self.fndef {
             tx.require::<LibCopy<FnDef>>(fndef)?;
         }
-        // WP-S1.20 D7: a part with a valve entry gives the functions through N-FL-1
+        // A part with a valve entry gives the functions through N-FL-1
         let from_part = part.item.function_template.iter().any(|e| {
             let def: Id<FnDef> = ew_ids::v5::lib_copy_id(e.fndef.library.as_uuid(), e.fndef.item.as_uuid());
             tx.get::<LibCopy<FnDef>>(def)
@@ -253,7 +253,7 @@ impl Command for AddValve {
         let position = match self.position {
             Some(p) => {
                 if let Some(holder) = taken.get(&p) {
-                    // FT-1331: the module and the holder in words.
+                    // The module and the holder in words.
                     return tx.reject(text!(
                         "refusal-valve-position-held",
                         p.to_string(),

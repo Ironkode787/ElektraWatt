@@ -148,7 +148,7 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
     assert_eq!(ghost["star"], false);
     assert_eq!(ghost["at_nm"], json!([left.0, left.1]));
     // In the right quarter the quarters give a source, but 24VDC-1 has its source on another page and none on 103: the
-    // tool offers the target of that name (FT-822, EW-CORE-052 is project-wide).
+    // tool offers the target of that name (EW-CORE-052 is project-wide).
     let area = s.canvas().unwrap().page().sheet;
     let right = s
         .canvas()
@@ -185,7 +185,7 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
     assert_eq!(after.len(), before.len() + 1);
     let placed = ip(&tables(&s), "24VDC-1", "source");
     assert_eq!(placed.pos, right);
-    // FT-547: the direction chosen with D stays after the commit (no flip after a placement), in either quarter; the
+    // The direction chosen with D stays after the commit (no flip after a placement), in either quarter; the
     // star left it alone and is cleared, and the remembered name's series goes on to its first name that no point of
     // the project has (ID-1462: 24VDC-1 to 24VDC-4 stand in Golden A).
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
@@ -215,8 +215,7 @@ fn ib2_the_name_proposal_is_the_potential_under_the_ghost_cp() {
     let tmp = Tmp::new("ip-potential");
     let mut s = shell(&tmp, "102");
     let t = tables(&s);
-    // A CP with a derived potential, the source form's CP one grid step left of its insertion point, the arrow's tip
-    // (WP-S2.19 D16).
+    // A CP with a derived potential, the source form's CP one grid step left of its insertion point, the arrow's tip.
     let cp = t
         .cps
         .iter()
@@ -373,7 +372,7 @@ fn ib3_continue_on_page_103_places_the_paired_ip_at_the_default_position() {
         k
     };
     assert_eq!(continued.pos.0, grid_point(&s, (leftmost, 0)).0);
-    // WP-S2.19 D16: the partner of a source takes the target form.
+    // The partner of a source takes the target form.
     assert_eq!(
         (original.symbol_key.as_str(), continued.symbol_key.as_str()),
         ("ew.gen.ip@qet10", "ew.gen.ip-target@qet10")
@@ -392,7 +391,7 @@ fn xref_of_partner(s: &mut ShellModel, name: &str) -> String {
         .page()
         .links
         .iter()
-        // The point's cross-reference text stands below its arrow (FR-XRF-011's slot, WP-S2.19 §7).
+        // The point's cross-reference text stands below its arrow (FR-XRF-011's slot).
         .filter(|l| l.target.as_ref().is_some_and(|t| t.folio == "102") && l.rect.min().y.0 >= at.1)
         .min_by_key(|l| {
             let c = ew_viewmodel::canvas::rect_centre(l.rect);
@@ -517,7 +516,7 @@ fn ib5_the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_devic
         describe_line(&s, "canvas ghost box ").as_deref(),
         Some("canvas ghost box outline 4 cps 10")
     );
-    // FT-759: the HUD says what the count counts, never a bare "· 10".
+    // The HUD says what the count counts, never a bare "· 10".
     let prompt = ew_viewmodel::command_bar::hud(&s).prompt;
     assert!(prompt.ends_with(" \u{b7} 10 connection points"), "{prompt}");
     done(&mut s, "canvas.dwell", json!({"ms": 80}));
@@ -568,7 +567,7 @@ fn ib5_the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_devic
     done(&mut s, "ui.dismiss", json!({}));
 }
 
-/// FT-714: the first corner's click shows at once (a marker at the corner while the box has no area, the hint names
+/// The first corner's click shows at once (a marker at the corner while the box has no area, the hint names
 /// the opposite corner), the box follows the pointer from that corner, the first Escape drops the corner and says that
 /// a second one leaves the tool, and the second Escape leaves it for Select.
 #[test]
@@ -595,7 +594,7 @@ fn ft714_the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
     enter_k(&mut s, (30, 30));
     assert_eq!(s.tool().state(), "outline");
     // No area yet: the corner marker and the target's label, so the click visibly registered.
-    // FT-759: the corner is a grid cross ringed by a CP marker, visible at 100 % zoom.
+    // The corner is a grid cross ringed by a CP marker, visible at 100 % zoom.
     assert_eq!(
         canvas(&s)["overlay"],
         3,
@@ -821,8 +820,8 @@ fn the_pickers_black_box_rows_arm_the_black_box_tool() {
     );
 }
 
-/// FT-1093 (ID-1182): every way of arming the black box tool ends with the hint that names both corner clicks, its key
-/// from the keymap (the keycap form, FT-1081): the picker `tool.black_box` opens, `tool.black_box` with a part, and
+/// Every way of arming the black box tool ends with the hint that names both corner clicks, its key
+/// from the keymap (the keycap form): the picker `tool.black_box` opens, `tool.black_box` with a part, and
 /// `place.pick` of a black-box symbol (which the Symbol tool's picker sends).
 fn assert_armed_hint(s: &ShellModel) {
     assert_eq!(s.tool().name(), "black_box");
@@ -1026,7 +1025,7 @@ fn ip_external_refuses_a_printed_text_two_references_share_and_takes_an_id() {
     assert_eq!(canvas(&s)["ghost"]["external"], Value::Null);
 }
 
-/// FT-619: an external connection point placed after an interruption point does not inherit the IP's name; it
+/// An external connection point placed after an interruption point does not inherit the IP's name; it
 /// proposes its own (`IP`), and committing it leaves the IP series where it was.
 #[test]
 fn an_external_point_after_an_ip_does_not_inherit_its_name() {

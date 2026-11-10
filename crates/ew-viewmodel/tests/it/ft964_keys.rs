@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-964, FT-949 and FT-850 (ID-1150): the hints, the HUD's prompts and the toasts take the keys they name from the
+//! The hints, the HUD's prompts and the toasts take the keys they name from the
 //! keymap, so a rebound key shows; a keymap file that is not TOML is refused in words.
 
 use crate::common;
@@ -48,7 +48,7 @@ fn cursor(s: &mut ShellModel, k: (i64, i64)) {
     done(s, "cursor.set", at(p, json!({})));
 }
 
-/// FT-964: with the default keymap the texts read as before; Enter rebound to F9 shows in the Measure and the Place
+/// With the default keymap the texts read as before; Enter rebound to F9 shows in the Measure and the Place
 /// hints, Escape rebound to F10 in the Place hint and, in its short form, in the Place HUD.
 #[test]
 fn ft964_a_rebound_key_shows_in_the_hints_and_the_hud() {
@@ -100,7 +100,7 @@ fn ft964_a_rebound_key_shows_in_the_hints_and_the_hud() {
     );
 }
 
-/// FT-949: the toast of a placement that drew its proposed wires names the key of `canvas.activate_alt` from the
+/// The toast of a placement that drew its proposed wires names the key of `canvas.activate_alt` from the
 /// keymap, as the hint does; "Alt+Click" stays. The toast with the key rebound is the default's with that key only.
 #[test]
 fn ft949_the_autoconnect_toast_takes_ctrl_enter_from_the_keymap() {
@@ -149,7 +149,7 @@ fn ft949_the_autoconnect_toast_takes_ctrl_enter_from_the_keymap() {
     assert_eq!(rebound_toast, toast.replace("Ctrl+Enter", &key));
 }
 
-/// FT-850: a keymap file that is not TOML is refused whole, in words.
+/// A keymap file that is not TOML is refused whole, in words.
 #[test]
 fn ft850_a_keymap_file_that_is_not_toml_is_refused_in_words() {
     let tmp = Tmp::new("ft850-import");
@@ -165,7 +165,7 @@ fn ft850_a_keymap_file_that_is_not_toml_is_refused_in_words() {
     );
 }
 
-/// ID-1231: the link preview's line without a key for `nav.follow` names the command by its menu path and label as the
+/// The link preview's line without a key for `nav.follow` names the command by its menu path and label as the
 /// menu table holds them (no keymap of this build unbinds an action, so the words are pinned to the table here).
 #[test]
 fn the_link_previews_line_without_a_key_names_the_menu_path() {
@@ -183,14 +183,14 @@ fn the_link_previews_line_without_a_key_names_the_menu_path() {
         format!("Click the link or use {path} to go there")
     );
     assert_eq!(path, "Page ▸ Follow cross-reference");
-    // FT-1189: the canvas link's hint without a key names the same path.
+    // The canvas link's hint without a key names the same path.
     assert_eq!(
         ew_viewmodel::strings::format(ew_viewmodel::key!("status-hint-follow-none"), &["103-A1"]),
         format!("Click or use {path}: go to 103-A1")
     );
 }
 
-/// FT-1042: a link's hint takes the follow key from the keymap, in Properties (`props.follow`) as on the canvas
+/// A link's hint takes the follow key from the keymap, in Properties (`props.follow`) as on the canvas
 /// (`nav.follow`), the canvas's also once rebound (the keymap editor does not rebind `props.follow`, a key of the
 /// grid's own).
 #[test]

@@ -12,35 +12,35 @@ use std::process::{Output, Stdio};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
-/// The property grid's headless checks (WP-S2.05 part 1, PG9 and PG10).
+/// The property grid's headless checks (PG9 and PG10).
 #[path = "grid/properties.rs"]
 mod grid_properties;
 
-/// Find and replace headless (WP-S2.05 part 2, FR3 to FR6).
+/// Find and replace headless (FR3 to FR6).
 #[path = "grid/find.rs"]
 mod grid_find;
 
-/// The clipboard headless (WP-S2.05 part 3, CB5, CB6 and CB8).
+/// The clipboard headless (CB5, CB6 and CB8).
 #[path = "grid/clipboard.rs"]
 mod grid_clipboard;
 
-/// The export job and the journal recovery headless (WP-S2.09 part 1, JB4 and JB7).
+/// The export job and the journal recovery headless (JB4 and JB7).
 #[path = "jobs/scripts.rs"]
 mod jobs_scripts;
 
-/// The message panel's flows headless (WP-S2.09 part 2, MS1 to MS4; FT-516).
+/// The message panel's flows headless (MS1 to MS4).
 #[path = "messages/scripts.rs"]
 mod messages_scripts;
 
-/// Golden B through the renumber actions, the Preview tab and the history panel headless (WP-S2.09 part 3, PV2).
+/// Golden B through the renumber actions, the Preview tab and the history panel headless (PV2).
 #[path = "preview/scripts.rs"]
 mod preview_scripts;
 
-/// The part dialog's and the part editor's flows headless (WP-S2.07 part 4a, PS1, PS4, PS5 and PS7).
+/// The part dialog's and the part editor's flows headless (PS1, PS4, PS5 and PS7).
 #[path = "parts/scripts.rs"]
 mod parts_scripts;
 
-/// The folio-script support; here for its UUID check (FT-422) and the runs of a script test.
+/// The folio-script support; here for its UUID check and the runs of a script test.
 mod support;
 
 /// The bodies of `canvas.rs`'s folio-script tests, `create.rs`'s script tests and `image.rs`'s IM2, for the deep
@@ -264,7 +264,7 @@ fn the_smoke_script_runs_on_golden_a() {
     assert_eq!(state(5)["dirty"], false);
     assert_eq!(state(6)["project"], Value::Null);
     assert_eq!(state(6)["title"], "ElektraWatt");
-    // The canvas member (WP-S2.02): the page on show, null without a project.
+    // The canvas member: the page on show, null without a project.
     assert_eq!(state(1)["canvas"]["folio"], "103");
     assert_eq!(state(1)["canvas"]["backend"], "CPU");
     assert_eq!(state(6)["canvas"], Value::Null);
@@ -275,7 +275,7 @@ fn the_smoke_script_runs_on_golden_a() {
         "the new page is in the page list"
     );
     assert!(describe.contains("menu File"));
-    // WP-S2.17 part 3 (D12): the state at the left; the tool's hint is the HUD's, the page field left the bar.
+    // The state at the left; the tool's hint is the HUD's, the page field left the bar.
     assert!(describe.contains("status bar: Ready | "), "{describe}");
     // Transcripts carry no path.
     let all = String::from_utf8_lossy(&out.stdout).into_owned();
@@ -607,7 +607,7 @@ fn a_script_that_ends_dirty_exits_one_and_keeps_the_journal() {
     assert_eq!(transcript(&out)[1]["state"]["access"], "edit");
 }
 
-/// FT-1266 (decision log ID-1312): `--config-dir` keeps the resources the program found (here the sample project
+/// `--config-dir` keeps the resources the program found (here the sample project
 /// through `EW_SAMPLE_DIR`): Open sample project opens it.
 #[test]
 fn config_dir_keeps_the_resources_the_program_found() {

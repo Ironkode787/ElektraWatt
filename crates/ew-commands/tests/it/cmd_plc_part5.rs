@@ -40,7 +40,7 @@ use serde_json::{Value, json};
 
 /// The valve-terminal module part: 8 DO channels, the solenoid-position map H1 (coil 14 on 2p, coil 12 on 2p + 1).
 const MODULE_H1: Id<Part> = id(0x6c);
-/// The valve part 571334: solenoid 14 (WP-S1.20 D4).
+/// The valve part 571334: solenoid 14.
 const VALVE: Id<Part> = id(0x6e);
 
 fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
@@ -252,7 +252,7 @@ fn ft320_a_move_within_the_module_keeps_the_binding() {
 // ---------------------------------------------------------------------------------------------------------
 // FT-352
 
-/// FT-352: N2 reads the module's children through the parent index (`TxBuilder::children_of`, recorded in the read
+/// N2 reads the module's children through the parent index (`TxBuilder::children_of`, recorded in the read
 /// set as `IndexRead::DeviceChildren`). A move within the module prepared before a valve was added to the module is
 /// re-run at commit, and the re-run sees the new child.
 #[test]
@@ -310,7 +310,7 @@ fn ft953_a_moved_sub_assembly_unbinds_the_coils_of_its_descendants() {
     assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 0)));
 }
 
-/// FT-955 (ID-1108: "`assembly.attach` reads only the parent's children", ADR-0008): the positions taken under the
+/// FT-955 ("`assembly.attach` reads only the parent's children", ADR-0008): the positions taken under the
 /// parent come from the parent index, so an edit of an unrelated device leaves a prepared attach valid, while a
 /// child added to the parent invalidates it.
 #[test]
@@ -399,7 +399,7 @@ fn cp(idx: u16) -> Option<Endpoint> {
     Some(Endpoint::Cp(FN_102F2, idx))
 }
 
-/// FT-321: re-parted to a part whose pin map is "X2:{n+1}" instead of "{n+1}", every channel moves to the new pin;
+/// Re-parted to a part whose pin map is "X2:{n+1}" instead of "{n+1}", every channel moves to the new pin;
 /// a channel bound elsewhere stays; undo restores the old pins.
 #[test]
 fn ft321_a_part_change_re_pins_the_channels() {
@@ -416,7 +416,7 @@ fn ft321_a_part_change_re_pins_the_channels() {
     assert_eq!(pins(&e), [cp(10), cp(11), cp(12), cp(0)]);
 }
 
-/// FT-321: re-parted to a part without a pin map, the channels on the old pins are unbound, each with the notice.
+/// Re-parted to a part without a pin map, the channels on the old pins are unbound, each with the notice.
 #[test]
 fn ft321_a_part_without_pins_unbinds_the_channels() {
     let mut e = engine(model_with(cards(), vec![]));
@@ -430,7 +430,7 @@ fn ft321_a_part_without_pins_unbinds_the_channels() {
     assert_eq!(r.outcome.notices, want);
 }
 
-/// FT-321: pins that shift between the re-pinned channels never collide ("{n+1}" → "{n+2}": channel 0 takes channel
+/// Pins that shift between the re-pinned channels never collide ("{n+1}" → "{n+2}": channel 0 takes channel
 /// 1's old pin); the last channel has no pin "5"… on the old card, but the new card has one; a pin another module's
 /// channel holds unbinds with N3's FR-PLC-005 notice.
 #[test]

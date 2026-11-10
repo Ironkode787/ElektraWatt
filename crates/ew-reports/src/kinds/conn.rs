@@ -46,7 +46,7 @@ pub(super) fn is_listed_device(dev: &Device) -> bool {
     dev.aspects.terminal.is_none()
 }
 
-/// The state of a terminal as the terminal reports print it (doc 08 §6.6; WP-S3.06 D6): `spare`, `reserved` or
+/// The state of a terminal as the terminal reports print it (doc 08 §6.6): `spare`, `reserved` or
 /// `not fitted` as authored, else `used` when the terminal has a wire (`wired`) or belongs to a bridge (`bridged`),
 /// and `unused` otherwise. `terminal_diagram`'s State column and `terminal_overview`'s counts use this one rule.
 pub(super) fn terminal_state(state: &DeviceState, wired: bool, bridged: bool) -> &'static str {
@@ -405,7 +405,7 @@ pub(super) fn bridges(q: &Q) -> Vec<Bridge> {
         .collect()
 }
 
-/// Every bridge group of the project with its label `BR<n>` and its strip (WP-S2.07 §4.2): the
+/// Every bridge group of the project with its label `BR<n>` and its strip: the
 /// [`StripBridges`] of every strip that a terminal names, numbered over the strips in natural order of the strip
 /// tag, then group number, then strip ID.
 pub fn bridge_groups(q: &Q) -> Vec<(String, Id<Device>, BridgeGroup)> {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Route edit (WP-S2.04 §8.4, FR-CON-007): a segment of a connection's route moved perpendicular to itself in grid
+//! Route edit (FR-CON-007): a segment of a connection's route moved perpendicular to itself in grid
 //! steps, its two neighbours stretching, committed as `connection.route`.
 //!
 //! **Pointer** (Select's `dragging (segment)` rows, [`SelectTool`](super::SelectTool)): a press on a segment of a
@@ -43,7 +43,7 @@ pub fn movable_segments(line: &[(i64, i64)]) -> Vec<usize> {
 
 /// The polyline with segment `seg` moved by `k` grid steps perpendicular to itself (a horizontal segment's y, a
 /// vertical one's x, each from its own grid index), tidied: a segment moved onto a neighbour's coordinate leaves no
-/// duplicate or collinear vertex (fix round of WP-S2.04 part 2, item 5; the ends stay); `None` for a segment that is
+/// duplicate or collinear vertex (fix round, item 5; the ends stay); `None` for a segment that is
 /// not axis-parallel.
 pub fn moved_route(line: &[(i64, i64)], seg: usize, k: i64, grid: PageGridMap) -> Option<Vec<(i64, i64)>> {
     let (a, b) = (*line.get(seg)?, *line.get(seg + 1)?);

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! First run, the company-standard wizard, the quick switches and F1 (WP-S2.01 part 2: FT-308, FT-311, FT-312).
+//! First run, the company-standard wizard, the quick switches and F1.
 //!
 //! The first-run flow and the wizard are screens of their own: `ShellModel` holds their state and the actions
 //! `first_run.*` and `wizard.*` change it, so the headless mode drives them like the window does. Their answers go
@@ -40,7 +40,7 @@ impl ShellModel {
     /// Sets one quick-switch setting; the reason of a failure is an [`Outcome`].
     fn apply_setting(&mut self, key: &str, value: &Value) -> Result<(), Outcome> {
         let text = value.as_str();
-        // FT-1175: a value that is not one of the choices names them (doc 16a §8 item 5).
+        // A value that is not one of the choices names them (doc 16a §8 item 5).
         let choice = |choices: &[&str]| {
             text.filter(|t| choices.contains(t))
                 .map(str::to_owned)
@@ -50,11 +50,11 @@ impl ShellModel {
                 })
         };
         match key {
-            // WP-S2.08 part 3 (D10): the languages View ▸ Language offers; the texts follow at once.
+            // The languages View ▸ Language offers; the texts follow at once.
             "language" => {
                 let tags: Vec<&str> = strings::languages().into_iter().map(|(tag, _)| tag).collect();
                 let language = choice(&tags)?;
-                // FT-1364: a toast keeps the words of its language, so a switch takes the toasts on show off the
+                // A toast keeps the words of its language, so a switch takes the toasts on show off the
                 // screen (the log keeps them).
                 if language != self.settings.language {
                     self.notes.clear_visible();
@@ -62,7 +62,7 @@ impl ShellModel {
                 self.settings.language = language;
                 strings::set_locale(&self.settings.language);
                 self.refetch_for_language();
-                // FT-1297: the Place tool's label in the new language at once, not at the pointer's next move.
+                // The Place tool's label in the new language at once, not at the pointer's next move.
                 let relabelled = self.with_tool(|t, cx| {
                     t.as_any_mut()
                         .and_then(|a| a.downcast_mut::<crate::tools::PlaceTool>())
@@ -100,7 +100,7 @@ impl ShellModel {
         Ok(())
     }
 
-    /// The command bar's active tab (WP-S2.17 part 2).
+    /// The command bar's active tab.
     pub fn command_tab(&self) -> crate::command_bar::Tab {
         self.command_tab
     }
@@ -137,7 +137,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `view.theme { value }` and `view.density { value }` (WP-S2.17 part 1): the setting `key` from the `value`
+    /// `view.theme { value }` and `view.density { value }`: the setting `key` from the `value`
     /// parameter; an unknown value is refused with `error-bad-param`.
     pub(crate) fn act_view_setting(&mut self, key: &str, p: &Map<String, Value>) -> Outcome {
         let Some(value) = p.get("value") else {
@@ -173,7 +173,7 @@ impl ShellModel {
     }
 
     /// Asks the window to open `target`, a page of the built book (`how-to/x.html#fragment`): in a Dutch window the
-    /// Dutch book's page (`<docs_dir>/nl/<target>`, WP-S7.05 D14) when the book has it, else the English one.
+    /// Dutch book's page (`<docs_dir>/nl/<target>`) when the book has it, else the English one.
     pub(super) fn request_doc_target(&mut self, target: String) {
         let (page, url) = self
             .config
@@ -200,7 +200,7 @@ impl ShellModel {
             Err(e) => return e,
             Ok(Some(t)) if help::anchor(t).is_some() => t.to_owned(),
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["topic"]),
-            // WP-S2.09 part 2: F1 on a finding or rule row of the Messages pane opens the rule's page (§7.3).
+            // F1 on a finding or rule row of the Messages pane opens the rule's page (§7.3).
             Ok(None) => match self.messages_help_target() {
                 Some(target) => {
                     self.request_doc_target(target);
@@ -490,7 +490,7 @@ impl ShellModel {
                     let _ = std::fs::remove_file(path);
                 }
                 // The wizard stays on the review step: the check scheme is applied after finishing, by a person
-                // (`wizard.apply_check_scheme`, FT-336).
+                // (`wizard.apply_check_scheme`).
                 if let Some(w) = &mut self.wizard {
                     w.finished = Some(dir.clone());
                     w.step = Step::Review;
@@ -508,7 +508,7 @@ impl ShellModel {
         }
     }
 
-    /// Applies the draft's check scheme to the finished basic project (FT-336): `project.checks.set` is `HumanOnly`
+    /// Applies the draft's check scheme to the finished basic project: `project.checks.set` is `HumanOnly`
     /// (ADR-0008 amendment 3, it decides check outcomes), so only a person in the window applies it, after a
     /// confirmation that names the scheme. The headless mode refuses it (the human-only reason in the transcript).
     pub(crate) fn act_wizard_apply_check_scheme(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -542,7 +542,7 @@ impl ShellModel {
                     .map_err(|e| {
                         strings::format(
                             key!("wizard-error-command"),
-                            // FT-1488 (ID-1457): in the window's language.
+                            // In the window's language.
                             &["project.checks.set", &super::tools::command_error_words(&e)],
                         )
                     })
@@ -581,7 +581,7 @@ impl ShellModel {
     }
 
     /// Builds the basic project of `draft` from the built-in one through model commands and writes it to `dir`; whether
-    /// the manifest written is marked `unstable` (FT-1489).
+    /// the manifest written is marked `unstable`.
     fn write_basic_project(&self, draft: &Draft, dir: &Path) -> Result<bool, String> {
         let commands = draft.commands().map_err(|key| strings::text(key).to_owned())?;
         let mut session = Session::new_project(

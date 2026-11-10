@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The action registry (WP-S2.01 part 1, spec section 5.2; UX/UI doc 16 section 2.4) in toolkit-neutral form.
+//! The action registry (spec section 5.2; UX/UI doc 16 section 2.4) in toolkit-neutral form.
 //!
 //! Every menu item, palette entry, keyboard shortcut and dialog result of the shell is an action of
 //! [`ACTIONS`], dispatched with [`ShellModel::dispatch`]; the headless mode drives the same registry. An action
@@ -46,7 +46,7 @@ pub enum Menu {
     File,
     /// Edit.
     Edit,
-    /// Project: the Project tab's groups (WP-S2.17 part 2).
+    /// Project: the Project tab's groups.
     Project,
     /// Page: the Page tab's groups.
     Page,
@@ -58,7 +58,7 @@ pub enum Menu {
     Output,
     /// View: the View tab's groups.
     View,
-    /// Window: the canvas tabs (WP-S2.03).
+    /// Window: the canvas tabs.
     Window,
     /// Help.
     Help,
@@ -108,38 +108,37 @@ pub enum Submenu {
     OpenRecent,
     /// View, UI scale: one item per scale.
     UiScale,
-    /// View, Theme: one item per theme (WP-S2.17 part 1).
+    /// View, Theme: one item per theme.
     Theme,
-    /// View, Density: Comfortable and Compact (WP-S2.17 part 1).
+    /// View, Density: Comfortable and Compact.
     Density,
     /// View, Workspace: one item per workspace, then save and reset.
     Workspace,
     /// View, Pan: left, right, up, down.
     Pan,
-    /// View, Page navigator: its three views and two sort orders (WP-S2.03).
+    /// View, Page navigator: its three views and two sort orders.
     PageNavigator,
-    // WP-S2.06 part 1
     /// View, Navigators: one checked item per navigator kind (`navigator.show`).
     Navigators,
-    /// Insert, Graphic: one item per shape of the Graphic tool (WP-S2.04 §10.5).
+    /// Insert, Graphic: one item per shape of the Graphic tool.
     Graphic,
-    /// Draw, Connect, Wire markers: the marker mode's four settable modes and the as-built one (WP-S2.04 §10.6).
+    /// Draw, Connect, Wire markers: the marker mode's four settable modes and the as-built one.
     WireMarkers,
-    /// View, Layout, Command tab: one item per tab of the command bar (WP-S2.17 part 2).
+    /// View, Layout, Command tab: one item per tab of the command bar.
     CommandTab,
     /// Draw, Connect, Bond: one item per bond kind of `bond.create` (G-PP triage row 7).
     Bond,
-    /// Check, Revision: Approve, Release, Withdraw, Set author and the incomplete release (WP-S1.18 part 5).
+    /// Check, Revision: Approve, Release, Withdraw, Set author and the incomplete release.
     Revision,
-    /// View, Language: one item per UI language, under its own name (WP-S2.08 part 3).
+    /// View, Language: one item per UI language, under its own name.
     Language,
-    /// View, Minimum text size: off, then one item per size of `MIN_FONT_CHOICES` (WP-S2.08 D14).
+    /// View, Minimum text size: off, then one item per size of `MIN_FONT_CHOICES`.
     MinFont,
-    /// Help, Tutorials: one item per tutorial of [`TUTORIALS`], each with its own start (FT-1458).
+    /// Help, Tutorials: one item per tutorial of [`TUTORIALS`], each with its own start.
     Tutorials,
 }
 
-/// The tutorials of the guide in its order (FT-1458, ID-1397): each its page's name, which `help.tutorials` takes as
+/// The tutorials of the guide in its order: each its page's name, which `help.tutorials` takes as
 /// `tutorial` and whose label is `tutorial-<name>`.
 pub const TUTORIALS: [&str; 5] = [
     "first-page",
@@ -173,7 +172,7 @@ impl Submenu {
     }
 }
 
-/// Where an action's keyboard shortcuts apply (WP-S2.03 §6.6): the window binds a context's chords only while the
+/// Where an action's keyboard shortcuts apply: the window binds a context's chords only while the
 /// shell's focus is in that context; a context's binding shadows a global one with the same chord.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Context {
@@ -183,9 +182,9 @@ pub enum Context {
     Canvas,
     /// While the page navigator has the focus.
     Navigator,
-    /// While the property grid has the focus (WP-S2.05).
+    /// While the property grid has the focus.
     Properties,
-    /// While the find pane has the focus (WP-S2.05 part 2).
+    /// While the find pane has the focus.
     Find,
 }
 
@@ -194,7 +193,7 @@ pub enum Context {
 pub struct MenuSlot {
     /// The menu.
     pub menu: Menu,
-    /// The command-bar group inside a tab's menu, if any (WP-S2.17 part 2): the group's commands first, then the
+    /// The command-bar group inside a tab's menu, if any: the group's commands first, then the
     /// group's menu-only actions in registry order.
     pub group: Option<Group>,
     /// The submenu inside it, if any.
@@ -238,24 +237,24 @@ pub struct ActionMeta {
     pub hidden: bool,
     /// Where its shortcuts apply.
     pub context: Context,
-    /// The parameter signature (WP-S6.13 §5.5.2): `""` for an action without parameters, else a comma-separated list of
+    /// The parameter signature: `""` for an action without parameters, else a comma-separated list of
     /// `name[?]:type` (see `validate_signature`). The blind drafter's harness types its `key=value` arguments by it.
     pub params: &'static str,
-    /// The place in the command bar (WP-S2.17 part 2, D3); `None` for an action the bar does not show.
+    /// The place in the command bar; `None` for an action the bar does not show.
     pub placement: Option<Placement>,
     /// The icon key (`ew-ui` maps it to its icon table; doc 16a §4.11); required for a placed action.
     pub icon: Option<&'static str>,
     /// Dispatching the action leaves the banner standing (popups, dialogs, help, the describe text, the canvas's view
     /// and tool input, the panes' own moves); every other action clears it.
     pub keeps_banner: bool,
-    /// The action goes while the recovery dialog is open (WP-S2.09 §6.6): its answers, Escape, what only observes (the
+    /// The action goes while the recovery dialog is open: its answers, Escape, what only observes (the
     /// describe text, F1) or ends the run (Quit closes the read-only project; the journal stays), and the window's own
     /// canvas geometry (`view.canvas_resize`, which the frame sends until the shell has the pane's size: refused, it
     /// would be sent again every frame). Any other action refuses `reason-dialog-open`.
     pub answers_recovery: bool,
     /// Dispatching the action leaves the link hover preview standing: the rest that shows it, the describe text, the
     /// snapshots and Escape (which closes it as the topmost popup); every other action (a pointer move, a cursor move,
-    /// a view action) clears it (WP-S2.03 §7.8).
+    /// a view action) clears it.
     pub keeps_link_preview: bool,
     /// The parameters that take a UUID or a reference, each with the form it takes it in: an alias `@n` in one of
     /// them resolves before the action reads it ([`crate::alias::resolve_params`]).
@@ -301,7 +300,7 @@ fn writable(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// WP-S1.18 part 5: the project can be written and has an open revision (Approve, Release, Set author).
+/// The project can be written and has an open revision (Approve, Release, Set author).
 fn open_revision(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.open_revision_label().is_some() {
@@ -311,7 +310,7 @@ fn open_revision(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// WP-S1.18 part 5: the project can be written and has a released revision that is not withdrawn (Withdraw).
+/// The project can be written and has a released revision that is not withdrawn (Withdraw).
 fn released_revision(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.released_labels().is_empty() {
@@ -321,7 +320,7 @@ fn released_revision(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// WP-S1.18 part 5: an incomplete release was found when the project opened and is not settled yet.
+/// An incomplete release was found when the project opened and is not settled yet.
 fn incomplete_release(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.has_incomplete_release() {
@@ -350,8 +349,7 @@ fn has_pages(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-// WP-S3.08 part 3
-/// Export table… and Import table… (ruling 2 of ID-1224, ID-1231): a project with a navigator shown as its table, the
+/// Export table… and Import table…: a project with a navigator shown as its table, the
 /// one the actions read (`ShellModel::table_file_nav`); the Messages pane passes, and its action refuses as
 /// `navigator.table` does.
 fn table_shown(m: &ShellModel) -> Result<(), Key<'static>> {
@@ -359,7 +357,6 @@ fn table_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     m.table_file_nav().map(|_| ())
 }
 
-// WP-S2.09 part 3
 /// The history panel's row moves and Show changes: a project with the panel open.
 fn history_open(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
@@ -497,7 +494,6 @@ fn can_go_forward(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-// WP-S4.02 part 3
 /// A panel-layout page of a project that can be changed is on show (D10's reason: "Open a panel layout page").
 pub(crate) fn panel_page(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
@@ -508,7 +504,6 @@ pub(crate) fn panel_page(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-// WP-S4.02 part 4
 /// A panel-layout page with a surface view is on show in a project that can be changed (D10: Draw ▸ Layout is
 /// disabled elsewhere with "Open a panel layout page").
 pub(crate) fn panel_view(m: &ShellModel) -> Result<(), Key<'static>> {
@@ -531,8 +526,8 @@ fn panel_selection(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 /// Why the page on show takes no symbols or wires, by its type, in the words of its kind where one key exists for it
-/// (FT-892) and the generic text otherwise; `None` for a page that takes them. One mapping for the refusal of the
-/// editing tools and the canvas HUD's prompt (FT-1089, ID-1183).
+///  and the generic text otherwise; `None` for a page that takes them. One mapping for the refusal of the
+/// editing tools and the canvas HUD's prompt.
 pub(crate) fn page_type_reason(m: &ShellModel) -> Option<Key<'static>> {
     match m.page_rows().get(m.page_index()).map(|r| r.kind.as_str()) {
         Some("section_divider") => Some(key!("reason-page-type-no-symbols-divider")),
@@ -545,13 +540,13 @@ pub(crate) fn page_type_reason(m: &ShellModel) -> Option<Key<'static>> {
     }
 }
 
-/// A drawn page of a project that can be changed is on show (the editing tools of WP-S2.04 §7.6).
+/// A drawn page of a project that can be changed is on show (the editing tools).
 pub(crate) fn editable_page(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     writable(m)?;
     // The page types without wire or symbol tools (doc 06 §2.2: title page, panel layout, model view, external
     // document; the generated table of contents, dividers and reports are not drawn pages at all).
-    // FT-892: the refusal names the page's kind in words where one key exists for it, the generic text otherwise.
+    // The refusal names the page's kind in words where one key exists for it, the generic text otherwise.
     if let Some(reason) = page_type_reason(m) {
         return Err(reason);
     }
@@ -577,7 +572,7 @@ fn paste_page(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// An editable page whose type has a connection kind the Wire tool draws (WP-S2.04 part 2, fix round item 1).
+/// An editable page whose type has a connection kind the Wire tool draws (fix round item 1).
 fn wire_page(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     m.wire_kind().map(|_| ())
@@ -593,7 +588,7 @@ fn route_selection(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// An editable page with exactly one connection selected (Edit ▸ Edit route; WP-S2.04 part 2, window check).
+/// An editable page with exactly one connection selected (Edit ▸ Edit route; window check).
 fn one_connection(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.one_connection_selected() {
@@ -603,7 +598,7 @@ fn one_connection(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// An editable page whose selection gives a bond its two ends: exactly one selected connection (Draw ▸ Bond, FT-578).
+/// An editable page whose selection gives a bond its two ends: exactly one selected connection (Draw ▸ Bond).
 /// The headless form that names the two ends (`a` and `b`) needs only the editable page ([`enabled_with`]).
 fn bond_ends(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
@@ -614,9 +609,9 @@ fn bond_ends(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// An editable page whose selection names one point a potential is defined at (Draw ▸ Define potential…, FT-1202).
+/// An editable page whose selection names one point a potential is defined at (Draw ▸ Define potential…).
 fn potential_point(m: &ShellModel) -> Result<(), Key<'static>> {
-    // FT-1239: a Potentials row's form defines at the row's point, whatever page is on show.
+    // A Potentials row's form defines at the row's point, whatever page is on show.
     if m.potential_pinned() {
         return writable(m);
     }
@@ -625,7 +620,7 @@ fn potential_point(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 /// Whether the action `meta` can run now with the parameters `p`: its predicate, except where the parameters supply
-/// what the predicate reads from the selection (`bond.draw` with `a` or `b` names its two ends itself, FT-578). The
+/// what the predicate reads from the selection (`bond.draw` with `a` or `b` names its two ends itself). The
 /// menus and the palette, which send no such parameters, read the predicate alone.
 ///
 /// # Errors
@@ -655,7 +650,7 @@ pub fn enabled_with(
     (meta.enabled)(m)
 }
 
-/// An editable page with exactly one junction selected (Edit ▸ Junction sequence…; WP-S2.04 part 2, window check).
+/// An editable page with exactly one junction selected (Edit ▸ Junction sequence…; window check).
 fn one_junction(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.one_junction_selected() {
@@ -665,7 +660,7 @@ fn one_junction(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// An editable page with exactly one interruption point selected (Edit ▸ Continue on page…; WP-S2.04 §9.3).
+/// An editable page with exactly one interruption point selected (Edit ▸ Continue on page…).
 fn one_ip(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.selected_ip_count() == 1 {
@@ -704,25 +699,25 @@ fn one_free_text(m: &ShellModel) -> Result<(), Key<'static>> {
 /// An editable page whose selection is two or more terminals of one strip not all bridged yet (Edit ▸ Bridge
 /// terminals; FT-411, §10.7, cycle 33).
 fn two_strip_terminals(m: &ShellModel) -> Result<(), Key<'static>> {
-    // WP-S2.07 D9: a writable project, not an editable page (the selection may be records).
+    // A writable project, not an editable page (the selection may be records).
     writable(m)?;
     m.bridge_command().map(|_| ())
 }
 
-/// The strip editor's gestures (WP-S2.07 §6.9): a writable project with the Terminal strips navigator open and focused
+/// The strip editor's gestures: a writable project with the Terminal strips navigator open and focused
 /// (headless: open).
 fn strips_editor(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     m.strip_editor_shown()
 }
 
-/// Swap cores (WP-S2.07 §7): a writable project with the Cables navigator open and focused (headless: open).
+/// Swap cores: a writable project with the Cables navigator open and focused (headless: open).
 fn cables_editor(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     m.cables_shown()
 }
 
-/// The junction sequence editor is open on a project that can be changed (WP-S2.04 part 2, §8.5).
+/// The junction sequence editor is open on a project that can be changed.
 fn junction_editor_open(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.junction_editor().is_some() {
@@ -732,7 +727,7 @@ fn junction_editor_open(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// A project with a page is open: `page.describe` reads a page (WP-S6.13 §5.5.3).
+/// A project with a page is open: `page.describe` reads a page.
 fn page_describable(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if m.page_count() > 0 {
@@ -742,7 +737,7 @@ fn page_describable(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// The Place tool is active and its symbol can be an auxiliary function (WP-S2.18 D2: J offers the Join chooser).
+/// The Place tool is active and its symbol can be an auxiliary function (J offers the Join chooser).
 fn place_joinable(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.place_joinable() {
@@ -752,7 +747,7 @@ fn place_joinable(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// The Join chooser is open (WP-S2.18 D2).
+/// The Join chooser is open.
 fn chooser_open(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.chooser().is_some() {
         Ok(())
@@ -761,7 +756,7 @@ fn chooser_open(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// The parts import's column mapping step is open on a writable project (FT-649).
+/// The parts import's column mapping step is open on a writable project.
 fn parts_map_open(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.parts_map().is_some() {
@@ -771,7 +766,7 @@ fn parts_map_open(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// The picker is open (WP-S2.04 §7.1).
+/// The picker is open.
 fn picker_open(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.picker().is_some() {
         Ok(())
@@ -806,7 +801,6 @@ fn damaged_update_offered(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-// WP-S2.09 part 1
 /// The recovery dialog's answers need the dialog (§6.6).
 fn recovery_open(m: &ShellModel) -> Result<(), Key<'static>> {
     if matches!(m.dialog(), Some(crate::shell::Dialog::Recovery { .. })) {
@@ -859,7 +853,7 @@ const fn sub(menu: Menu, submenu: Submenu, separator_before: bool) -> Option<Men
     })
 }
 
-/// A menu-only action in a command-bar group of its tab's menu (WP-S2.17 part 2).
+/// A menu-only action in a command-bar group of its tab's menu.
 const fn grp(group: Group) -> Option<MenuSlot> {
     Some(MenuSlot {
         menu: group.tab().menu(),
@@ -934,7 +928,7 @@ const fn act(
     }
 }
 
-/// Gives an action its parameter signature (WP-S6.13 §5.5.2).
+/// Gives an action its parameter signature.
 const fn with_params(params: &'static str, mut a: ActionMeta) -> ActionMeta {
     a.params = params;
     a
@@ -1010,7 +1004,6 @@ fn grid_writable(m: &ShellModel) -> Result<(), Key<'static>> {
     grid_shown(m)
 }
 
-// WP-S2.05 part 2
 const fn in_find(mut a: ActionMeta) -> ActionMeta {
     a.context = Context::Find;
     a
@@ -1033,7 +1026,7 @@ fn find_writable(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 /// The card's buttons: the card sits in the property grid or the find pane, so one of them is shown; an import card
-/// (FT-410) is a window of its own and needs neither.
+///  is a window of its own and needs neither.
 fn card_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     // WP-S2.09 part 3 (§8.7): the Preview tab shows every card; WP-S2.06 part 3: a table card is in its navigator.
@@ -1055,9 +1048,8 @@ fn card_writable(m: &ShellModel) -> Result<(), Key<'static>> {
     card_shown(m)
 }
 
-// WP-S2.06 part 1
-/// `navigator.apply`: a writable project with the Pages pane's reorder card, (WP-S2.09 part 2) the Messages pane's
-/// quick-fix card or (WP-S2.06 part 3) a navigator's table card on show.
+/// `navigator.apply`: a writable project with the Pages pane's reorder card, the Messages pane's
+/// quick-fix card or a navigator's table card on show.
 fn reorder_card(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.properties().card().is_some_and(|c| {
@@ -1074,7 +1066,6 @@ fn reorder_card(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-// WP-S2.06 part 3
 /// `table.resolve` and `table.drop`: a writable project with a table card on show.
 fn table_card(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
@@ -1085,7 +1076,6 @@ fn table_card(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-// WP-S2.06 part 2
 /// View ▸ Clear highlights: a highlight is shown.
 fn has_highlights(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
@@ -1102,7 +1092,6 @@ fn pages_writable(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)
 }
 
-// WP-S2.05 part 3
 /// Copy and Copy tag list: a page is shown and something is selected (a read-only project copies too).
 fn selection_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     page_shown(m)?;
@@ -1116,7 +1105,7 @@ fn selection_shown(m: &ShellModel) -> Result<(), Key<'static>> {
 /// Edit ▸ Delete (M39): an editable page with something selected; it deletes the canvas selection only (a navigator's
 /// rows have their own Delete, `table.clear`), so with nothing selected it is disabled for that reason, as Cut is.
 fn editable_selection(m: &ShellModel) -> Result<(), Key<'static>> {
-    // WP-S4.02 part 3 (D10): Delete on a panel page deletes the selected placements and carriers.
+    // Delete on a panel page deletes the selected placements and carriers.
     if panel_page(m).is_ok() {
         return if m.selection().is_empty() {
             Err(key!("reason-nothing-selected"))
@@ -1184,7 +1173,6 @@ static JOINED: [ActionMeta; COUNT] = {
 /// declared once, as an entry of a section under `actions/table/`, naming its handler.
 pub static ACTIONS: &[ActionMeta] = &JOINED;
 
-// WP-S2.08 part 2
 /// The keymap editor's controls need the keyboard shortcuts dialog.
 fn keymap_editor_open(m: &ShellModel) -> Result<(), Key<'static>> {
     if matches!(m.dialog(), Some(crate::shell::Dialog::Shortcuts)) {
@@ -1194,7 +1182,6 @@ fn keymap_editor_open(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-// WP-S2.07 part 4b
 /// The paste choice card's choices need the card and a writable project.
 fn paste_choice_open(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
@@ -1208,7 +1195,7 @@ fn paste_choice_open(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// The print pre-dialog's own steps (WP-S3.07 part 3).
+/// The print pre-dialog's own steps.
 fn print_dialog_open(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if m.print_dialog().is_some() {
@@ -1218,7 +1205,6 @@ fn print_dialog_open(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-// WP-S2.07 part 4a
 /// The part selection dialog's own actions need the dialog.
 fn part_dialog_open(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
@@ -1239,7 +1225,7 @@ fn part_editor_open(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// One parameter of an action's signature (WP-S6.13 §5.5.2).
+/// One parameter of an action's signature.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ParamSpec {
     /// The parameter's name, `[a-z][a-z0-9_]*`.
@@ -1445,19 +1431,15 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
         reason: paste_reason.or_else(|| state.err().map(|k| strings::text(k).to_owned())),
         checked: switch_on(model, meta.id).unwrap_or_else(|| match meta.id {
             "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
-            // WP-S2.04 part 2.
             "tool.wire" => model.tool().name() == "wire",
-            // WP-S2.04 part 3.
             "tool.ip" => model.tool().name() == "ip",
             "tool.black_box" => model.tool().name() == "black_box",
-            // WP-S2.04 part 4b.
             "tool.text" => model.tool().name() == "text",
             "tool.marker" => model.tool().name() == "marker",
             "tool.structure_box" => model.tool().name() == "structure_box",
-            // WP-S4.02 part 4.
             "tool.rail_draw" => model.tool().name() == "rail_draw",
             "tool.duct_draw" => model.tool().name() == "duct_draw",
-            // WP-S2.17 part 2: the Place tool lights Symbol in the bar.
+            // The Place tool lights Symbol in the bar.
             "tool.place" => model.tool().name() == "place",
             _ => false,
         }),
@@ -1466,7 +1448,7 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
 }
 
 /// The on or off state of a switch (a view toggle, a pane shown or hidden): the menu item's check, the command-bar
-/// button's lit state and the palette entry's state (FT-1367, ID-1392); `None` for an action that is no switch.
+/// button's lit state and the palette entry's state; `None` for an action that is no switch.
 pub(crate) fn switch_on(model: &ShellModel, id: &str) -> Option<bool> {
     Some(match id {
         "view.grid" => model.grid_on(),
@@ -1480,24 +1462,19 @@ pub(crate) fn switch_on(model: &ShellModel, id: &str) -> Option<bool> {
             .layout()
             .panes()
             .contains(&crate::layout::PaneKind::Properties),
-        // WP-S2.09 part 1.
         "jobs.show" => model.jobs_shown(),
         "notifications.show" => model.notifications().popup_open(),
-        // WP-S2.09 part 2.
         "messages.show" => model.navigator_open(crate::navigators::NavKind::Messages),
         // WP-S3.09 D9 d.
         "messages.migration" => model.messages_shows_migration(),
-        // WP-S2.09 part 3.
         "history.show" => model.history_shown(),
         "preview.show" => model.preview_shown(),
         "view.bottom_dock" => model.bottom_dock_shown(),
-        // WP-S2.08 part 6.
         "help.glossary" => model.glossary_shown(),
         "view.wire_colours" => model.wire_colours_on(),
         "project.crossings" => model.crossings_hops(),
-        // WP-S2.17 part 2: the command bar's collapse.
+        // The command bar's collapse.
         "view.command_bar" => model.command_bar_collapsed(),
-        // WP-S2.17 part 3.
         "props.show_advanced" => model.properties_show_advanced(),
         _ => return None,
     })
@@ -1509,7 +1486,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
         return Vec::new();
     };
     match submenu {
-        // WP-S2.17 part 2: one item per command-bar tab.
+        // One item per command-bar tab.
         Submenu::CommandTab => crate::command_bar::Tab::ALL
             .into_iter()
             .map(|tab| {
@@ -1547,8 +1524,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             }
             items
         }
-        // WP-S2.06 part 1: one checked item per navigator; the message panel has its own item, View ▸ Messages
-        // (WP-S2.09 part 2).
+        // One checked item per navigator; the message panel has its own item, View ▸ Messages.
         Submenu::Navigators => {
             let mut items = Vec::new();
             for kind in crate::navigators::NavKind::ALL
@@ -1569,7 +1545,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             items
         }
         Submenu::Pan | Submenu::Revision => metas.iter().map(|m| item_of(m, model)).collect(),
-        // WP-S2.08 part 3: one item per UI language, under its own name.
+        // One item per UI language, under its own name.
         Submenu::Language => strings::languages()
             .into_iter()
             .map(|(value, name)| {
@@ -1632,7 +1608,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 })
                 .collect()
         }
-        // FT-1458: one item per tutorial, each with its own start.
+        // One item per tutorial, each with its own start.
         Submenu::Tutorials => TUTORIALS
             .iter()
             .map(|name| {
@@ -1726,8 +1702,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
     }
 }
 
-/// The Window menu's list of open tabs: one checked item per tab of the focused group, dispatching `tab.activate`
-/// (WP-S2.03 §6.7).
+/// The Window menu's list of open tabs: one checked item per tab of the focused group, dispatching `tab.activate`.
 fn window_tabs(model: &ShellModel, entries: &mut Vec<MenuEntry>) {
     let Some(area) = model.area() else { return };
     let Some(meta) = find("tab.activate") else { return };
@@ -1769,7 +1744,7 @@ fn entries_of(metas: &[&'static ActionMeta], model: &ShellModel, separate: bool)
             entries.push(MenuEntry::Separator);
         }
         match s.submenu {
-            // ID-1463: while the symbol editor shows, Save names the symbol and Save project follows it.
+            // While the symbol editor shows, Save names the symbol and Save project follows it.
             None if meta.id == "file.save" && model.symbol_editor().is_some() => {
                 let mut item = item_of(meta, model);
                 item.label = strings::text(key!("symbol-save-symbol")).to_owned();
@@ -1905,7 +1880,7 @@ pub fn breadcrumb(meta: &ActionMeta) -> String {
     }
 }
 
-/// [`breadcrumb`] of a palette row labelled `label`, which it never repeats (FT-1174, doc 16a §6.14): "View" on the
+/// [`breadcrumb`] of a palette row labelled `label`, which it never repeats (doc 16a §6.14): "View" on the
 /// row "Language", not "View · Language".
 pub fn breadcrumb_of(meta: &ActionMeta, label: &str) -> String {
     let crumb = breadcrumb(meta);
@@ -1920,7 +1895,7 @@ pub fn breadcrumb_of(meta: &ActionMeta, label: &str) -> String {
 pub enum PaletteRun {
     /// An action of the registry.
     Action(&'static str),
-    /// A page of the `#` prefix (WP-S2.08 D4): its folio; Enter shows it (`page.goto`).
+    /// A page of the `#` prefix: its folio; Enter shows it (`page.goto`).
     Page(String),
     /// The cell of the `:` prefix: the Go to text; Enter goes there (`nav.goto`, FR-UI-039).
     Cell(String),
@@ -2043,7 +2018,7 @@ mod tests {
         for id in ["file.new", "file.open_sample", "file.discard_journal"] {
             assert!(file.contains(&id), "{id} in File");
         }
-        // WP-S2.17 part 2: the imports and the company standard sit in the Project tab's menu.
+        // The imports and the company standard sit in the Project tab's menu.
         let project = ids(Menu::Project);
         for id in ["tools.company_standard", "file.import_qet", "parts.import"] {
             assert!(project.contains(&id), "{id} in Project");

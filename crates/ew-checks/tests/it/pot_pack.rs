@@ -297,7 +297,7 @@ fn pot006_cases() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// EW-POT-008, PE-island half (FT-189)
+// EW-POT-008, PE-island half
 
 const LOC: u128 = 0x900;
 
@@ -580,7 +580,7 @@ fn pot017_cases() {
             Case::silent("one name", named("P", "P")),
         ],
     );
-    // FT-188: the derivation note of the same fact is not reported again as a second finding.
+    // The derivation note of the same fact is not reported again as a second finding.
     let all = run_online(&named("P10", "P2"));
     assert_eq!(
         all.iter().filter(|x| x.rule == "EW-POT-017").count(),

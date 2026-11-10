@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Graphic tool (`graphic`; WP-S2.04 §10.5, §10.7, FR-SYM-023): lines, polylines, rectangles, circles, arcs and
+//! The Graphic tool (`graphic`; §10.7, FR-SYM-023): lines, polylines, rectangles, circles, arcs and
 //! polygons, by fine-snapped points, committed as `item.place` graphics.
 //!
 //! **The states.** All points are page nm, fine-snapped ([`crate::tools::Snapper::snap_fine`],

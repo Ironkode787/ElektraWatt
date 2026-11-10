@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell model of WP-S2.01 part 2 on temporary directories: New project (FT-307), the sample project, the
-//! QElectroTech import and the tutorials copy (FT-312), the journal discard (FT-313's first part), first run, the
-//! company-standard wizard with its preview (FT-308), workspaces (FT-309), F1 and the quick switches (FT-311).
+//! The shell model of WP-S2.01 part 2 on temporary directories: New project, the sample project, the
+//! QElectroTech import and the tutorials copy, the journal discard (FT-313's first part), first run, the
+//! company-standard wizard with its preview, workspaces, F1 and the quick switches.
 
 use ew_testdir as fresh_dir;
 use ew_viewmodel::key;
@@ -256,7 +256,7 @@ fn the_tutorials_open_a_fresh_copy_of_the_sample_project() {
     let (sample, _) = Session::open_read_only(Path::new(GOLDEN_A), VERSION).unwrap();
     assert_eq!(shell.page_labels(), sample.page_labels().as_slice());
     assert_eq!(shell.last_help(), Some("tutorials/index.html"));
-    // ID-1392 (FT-1405): without an installed guide no page is asked for, so no banner covers the copy; the status
+    // Without an installed guide no page is asked for, so no banner covers the copy; the status
     // bar says once that the guide is not installed, until the project changes.
     assert!(shell.doc_request().is_none());
     assert_eq!(
@@ -274,7 +274,7 @@ fn the_tutorials_open_a_fresh_copy_of_the_sample_project() {
     shell.shutdown();
 }
 
-/// FT-1458 (ID-1397): Help ▸ Tutorials offers each tutorial its own start: the first a new project from the basic
+/// Help ▸ Tutorials offers each tutorial its own start: the first a new project from the basic
 /// project, the reports tutorial the sample's copy, the others their page alone; each opens its own page.
 #[test]
 fn each_tutorial_has_its_own_start() {
@@ -368,7 +368,7 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
         "file.import_qet",
         json!({ "file": path(&qet), "dir": path(&dir) }),
     );
-    // WP-S3.09 D8: the import card with T5's summary; nothing is written before Apply and its confirmation.
+    // The import card with T5's summary; nothing is written before Apply and its confirmation.
     let spec = ew_viewmodel::dialogs::spec(shell.dialog().expect("the import card"), &shell);
     assert_eq!(spec.title, "Import example.qet");
     assert_eq!(
@@ -409,7 +409,7 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
     assert_eq!(shell.access(), Some(AccessMode::Edit));
     assert!(!shell.is_dirty());
     assert_eq!(shell.page_count(), 1);
-    // ID-1392 (FT-1397): the banner counts the migration report's findings, as the card does, with plural forms.
+    // The banner counts the migration report's findings, as the card does, with plural forms.
     assert_eq!(
         shell.banner(),
         Some("Imported example.qet: 1 page, 0 devices, 0 findings in the migration report.")
@@ -438,7 +438,7 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
     plain.shutdown();
 }
 
-/// ID-1392 (FT-1386): the migration report's EW-IMP-103 row offers its quick fix, and `messages.fix` previews it from
+/// The migration report's EW-IMP-103 row offers its quick fix, and `messages.fix` previews it from
 /// the report the pane shows.
 #[test]
 fn a_migration_report_row_previews_its_quick_fix() {
@@ -458,7 +458,7 @@ fn a_migration_report_row_previews_its_quick_fix() {
         json!({ "file": path(&qet), "dir": path(&dir) }),
     );
     done(&mut shell, "file.import_qet_apply", json!({ "confirm": true }));
-    // FT-1397: the banner's count is the report's (3 errors, 8 warnings and 5 infos: the file's three conductors
+    // The banner's count is the report's (3 errors, 8 warnings and 5 infos: the file's three conductors
     // have no route, EW-CORE-073, WP-S2.19 D17).
     assert_eq!(
         shell.banner(),
@@ -484,7 +484,7 @@ fn a_migration_report_row_previews_its_quick_fix() {
     shell.shutdown();
 }
 
-/// WP-S3.09 D4: in the window the importer runs as a job: the step returns at once with the banner, and the job's end
+/// In the window the importer runs as a job: the step returns at once with the banner, and the job's end
 /// opens the import card.
 #[test]
 fn the_window_imports_as_a_job() {
@@ -503,12 +503,12 @@ fn the_window_imports_as_a_job() {
     assert!(gui.wait_jobs().is_empty());
     let spec = ew_viewmodel::dialogs::spec(gui.dialog().expect("the import card"), &gui);
     assert_eq!(spec.title, "Import example.qet");
-    // ID-1392 (FT-1391): the job's end takes the "Importing…" banner away while the card is open.
+    // The job's end takes the "Importing…" banner away while the card is open.
     assert_eq!(gui.banner(), None);
     assert!(!dir.exists(), "the card writes nothing");
 }
 
-/// ID-1374 (C51-p2#1): the open project stays editable while the importer runs, so Apply asks the unsaved-changes
+/// The open project stays editable while the importer runs, so Apply asks the unsaved-changes
 /// question again; Cancel keeps the edit and the import card, Save writes the edit and then applies the import.
 #[test]
 fn apply_asks_again_about_changes_made_while_the_importer_ran() {
@@ -561,7 +561,7 @@ fn apply_asks_again_about_changes_made_while_the_importer_ran() {
     assert_eq!(saved.page_labels(), ["1", "2"], "the edit was saved");
 }
 
-/// C51-p2#10: a dialog open when the import job ends stays open, and the import card opens when it closes; Apply of a
+/// A dialog open when the import job ends stays open, and the import card opens when it closes; Apply of a
 /// re-import with another dialog open is refused and closes nothing.
 #[test]
 fn the_import_card_waits_for_an_open_dialog() {
@@ -675,7 +675,7 @@ fn a_qelectrotech_file_is_re_imported_into_the_open_project() {
     };
     assert_eq!(rows, &["Changed in the source: page 1".to_owned()]);
     done(&mut shell, "ui.dismiss", json!({}));
-    // ID-1374 (C51-p2#3): a Dutch window names the record in Dutch.
+    // A Dutch window names the record in Dutch.
     assert!(ew_viewmodel::strings::set_locale("nl"));
     done(
         &mut shell,
@@ -764,7 +764,7 @@ fn an_identical_re_import_says_there_is_nothing_to_re_import() {
     shell.shutdown();
 }
 
-/// ID-1439 (C52-p8#4): after the user edited an imported record, re-importing the unchanged file says the file has
+/// After the user edited an imported record, re-importing the unchanged file says the file has
 /// not changed since its last import and counts the record kept with the user's changes, in both languages.
 #[test]
 fn an_unchanged_re_import_counts_the_records_kept_with_your_changes() {
@@ -811,7 +811,7 @@ fn an_unchanged_re_import_counts_the_records_kept_with_your_changes() {
     shell.shutdown();
 }
 
-/// C51-p2#10: in the window the re-import's importer runs as a job: the step returns at once with the banner, the job's
+/// In the window the re-import's importer runs as a job: the step returns at once with the banner, the job's
 /// end shows the proposal (T6), and its Re-import ends in the card.
 #[test]
 fn the_window_re_imports_as_a_job() {
@@ -866,7 +866,7 @@ fn imported_and_changed(tmp: &Tmp) -> (ShellModel, PathBuf) {
     (gui, qet)
 }
 
-/// ID-1390 (C52-p1#2): a re-import job that ends while the import card's unsaved-changes question is open leaves the
+/// A re-import job that ends while the import card's unsaved-changes question is open leaves the
 /// question; the proposal (T6) opens when the dialogs close, and a later, unrelated Cancel brings nothing back.
 #[test]
 fn the_reimport_proposal_waits_for_an_open_dialog() {
@@ -880,7 +880,7 @@ fn the_reimport_proposal_waits_for_an_open_dialog() {
         "file.import_qet",
         json!({ "file": path(&other), "dir": path(&tmp.0.join("other.ew")) }),
     );
-    // The open project takes an edit while the importer runs (ID-1374).
+    // The open project takes an edit while the importer runs.
     done(
         &mut gui,
         "command.run",
@@ -916,7 +916,7 @@ fn the_reimport_proposal_waits_for_an_open_dialog() {
     gui.shutdown();
 }
 
-/// ID-1390 (C52-p1#3): a re-import job whose project closed meanwhile is dropped whatever its end, a panic too, and
+/// A re-import job whose project closed meanwhile is dropped whatever its end, a panic too, and
 /// takes away only its own "Importing…" banner.
 #[test]
 fn a_reimport_of_a_closed_project_is_dropped_whatever_its_end() {
@@ -953,13 +953,13 @@ fn a_reimport_of_a_closed_project_is_dropped_whatever_its_end() {
         "{:?}",
         gui.dialog()
     );
-    // ID-1392 (FT-1391): the other import's end takes its own banner away once its card is open; the closed project's
+    // The other import's end takes its own banner away once its card is open; the closed project's
     // job takes only a banner of its own file ("Importing example.qet…").
     assert_eq!(gui.banner(), None, "the other import's own end took its banner");
     gui.shutdown();
 }
 
-/// ID-1390 (C52-p1#4): the re-import's proposal is its project's: after a close, an `accept: true` for the same file in
+/// The re-import's proposal is its project's: after a close, an `accept: true` for the same file in
 /// another project is refused in words (T7), in English and in Dutch, and imports nothing.
 #[test]
 fn a_reimport_proposal_of_a_closed_project_is_not_accepted_in_another() {
@@ -1330,7 +1330,7 @@ fn the_wizard_writes_a_basic_project_that_new_projects_start_from() {
     );
     let basic = tmp.0.join("company.ew");
     done(&mut shell, "wizard.finish", json!({ "dir": path(&basic) }));
-    // FT-336: the finished wizard stays on the review step until it is closed (the check scheme is applied after
+    // The finished wizard stays on the review step until it is closed (the check scheme is applied after
     // finishing, by a person); its fields are no longer edited.
     assert!(shell.banner().unwrap_or_default().contains("company.ew"));
     let w = shell.wizard().expect("the finished wizard stays open");
@@ -1605,7 +1605,7 @@ fn render_folio(dir: &Path, folio: &str) -> ew_viewmodel::ew_api::output::Export
         .expect("the folio renders")
 }
 
-/// FT-336: the wizard writes the company, the frame and the formats through their commands. The preview (the
+/// The wizard writes the company, the frame and the formats through their commands. The preview (the
 /// sample project's cover and folio 102 with the choices) prints the notice and the dates in the chosen format; the
 /// finished basic project holds the panel-builder party, the notice, the frame defaults with the embedded forms and
 /// the languages and formats, and its page prints the notice in the frame the wizard chose. The check scheme stays
@@ -1725,7 +1725,7 @@ fn the_wizard_writes_the_company_the_frame_and_the_formats() {
     shell.shutdown();
 }
 
-/// The vector logos of a page output (FT-384): the groups that an SVG image became, clipped to the image's rectangle,
+/// The vector logos of a page output: the groups that an SVG image became, clipped to the image's rectangle,
 /// whose paths are filled; the placeholder logo is one filled rectangle over its whole view box, so its path bounds
 /// equal the clip.
 fn vector_logos(pages: &ew_viewmodel::ew_api::output::ExportPages) -> usize {
@@ -1791,7 +1791,7 @@ fn logo_of(dir: &Path) -> Option<([u8; 32], Value)> {
     Some((sha, logo))
 }
 
-/// FT-337 and FT-341: the wizard writes the logo as a project asset that the title block draws, the shipped EN 60204-1
+/// The wizard writes the logo as a project asset that the title block draws, the shipped EN 60204-1
 /// colour profile, and the report blocks of the golden layout, whose folios render through the page output; the
 /// preview shows the logo on the sample's cover; a project made from the basic project carries the asset; the review
 /// says `written` for every field but the check scheme.
@@ -1813,7 +1813,7 @@ fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
     ] {
         done(&mut shell, "wizard.set", json!({"field": field, "value": value}));
     }
-    // The preview: the sample's cover with the logo in its title block, drawn as vector paths (FT-384).
+    // The preview: the sample's cover with the logo in its title block, drawn as vector paths.
     let cover = shell.wizard_preview_content().expect("the cover");
     assert_eq!(vector_logos(&cover), 1, "the logo on the preview's cover");
     assert!(
@@ -2238,7 +2238,7 @@ fn f1_in_a_dutch_window_opens_the_dutch_page_when_the_book_has_it() {
     shell.shutdown();
 }
 
-/// FT-1267 (WP-S6.08 D6): a headless `help.documentation` step names the file it opens below the installed guide
+/// A headless `help.documentation` step names the file it opens below the installed guide
 /// (`doc`), the Dutch guide's in a Dutch window that has it, and null without a guide.
 #[test]
 fn a_documentation_step_names_the_installed_guide_page_it_opens() {
@@ -2324,7 +2324,7 @@ fn quick_switches_validate_and_persist() {
     assert_eq!(again.settings().keymap, "kicad");
     assert_eq!(again.settings().theme, "light");
     assert!(again.settings().update_check);
-    // The describe text shows the quick switches and the privacy line of the start page. FT-1117 (ID-1229 item 3):
+    // The describe text shows the quick switches and the privacy line of the start page. FT-1117 (item 3):
     // the stored setting stays, unused: this version has no update check.
     let text = again.describe();
     assert!(text.contains("quick \"Keymap\": \"KiCad-like\""), "{text}");
@@ -2390,7 +2390,7 @@ fn structural_words(line: &str, shortcut_keys: &[String]) -> Vec<String> {
             break;
         }
         let skip = token.chars().all(|c| c.is_ascii_digit())
-            // An ID alias `@n` is a value token like a number (ID-630).
+            // An ID alias `@n` is a value token like a number.
             || ew_viewmodel::alias::is_alias(token)
             || token.starts_with('#')
             || token.contains('.')
@@ -2471,10 +2471,10 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     done(&mut shell, "page.goto", json!({}));
     texts.push(shell.describe());
     done(&mut shell, "ui.dismiss", json!({}));
-    // FT-408 and FT-409: the creation dialogs, the first with a refusal under its fields.
+    // The creation dialogs, the first with a refusal under its fields.
     done(&mut shell, "page.new", json!({}));
     texts.push(shell.describe());
-    // WP-S2.06 part 1 (FT-461): the proposed folio is cleared, so Enter is refused.
+    // The proposed folio is cleared, so Enter is refused.
     shell.set_form_field("folio", "");
     assert!(matches!(shell.submit_form(), Outcome::Failed { .. }));
     texts.push(shell.describe());
@@ -2518,7 +2518,7 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     done(&mut shell, "view.workspace_load", json!({"name": "V"}));
     texts.push(shell.describe());
     shell.shutdown();
-    // The canvas on the sample project (WP-S2.02): the statistics shown, the pointer on an entity (its hover line
+    // The canvas on the sample project: the statistics shown, the pointer on an entity (its hover line
     // with the box), the grid off, the pointer gone.
     let mut sample = tmp.gui();
     done(&mut sample, "file.open_sample", json!({}));
@@ -2542,15 +2542,15 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     done(&mut sample, "view.grid", json!({}));
     done(&mut sample, "canvas.pointer", json!({}));
     texts.push(sample.describe());
-    // The CPU renderer setting (WP-S2.02 part 2).
+    // The CPU renderer setting.
     done(&mut sample, "view.cpu_canvas", json!({}));
     texts.push(sample.describe());
-    // The tool framework (WP-S2.03 part 2): Select pressed and its rubber band, Measure armed on a connection point
+    // The tool framework: Select pressed and its rubber band, Measure armed on a connection point
     // and measuring. (The preview words `stale`, `failed`, `tags` and `xrefs` need a tool that previews, which only
     // the test-only probe is: `tests/probe.rs` checks them; `junction`, a snap marker kind, comes with WP-S2.04's
     // Wire tool and is checked above.)
     // An entity whose centre is no link (a press on a link follows it rather than selecting) and that is no
-    // representation (a press on a representation drags it since WP-S2.04; on another entity it starts a band).
+    // representation (a press on a representation drags it; on another entity it starts a band).
     let (x, y) = {
         let c = sample.canvas().unwrap();
         let page = c.page();
@@ -2591,7 +2591,7 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     texts.push(sample.describe());
     done(&mut sample, "ui.dismiss", json!({}));
     done(&mut sample, "ui.dismiss", json!({}));
-    // The page navigator's views, sorts and a collapsed node; side by side and the focus (WP-S2.03 part 1).
+    // The page navigator's views, sorts and a collapsed node; side by side and the focus.
     done(&mut sample, "pages.mode", json!({"mode": "flat"}));
     texts.push(sample.describe());
     done(&mut sample, "pages.mode", json!({"mode": "structure"}));
@@ -2602,7 +2602,7 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     done(&mut sample, "ui.focus", json!({"area": "navigator"}));
     done(&mut sample, "cursor.right", json!({}));
     texts.push(sample.describe());
-    // The property grid (WP-S2.05 part 1): a read-only sheet, then on a writable copy a device with derived, inherited
+    // The property grid: a read-only sheet, then on a writable copy a device with derived, inherited
     // and library rows, a frozen tag, a wire with its chips, an edit with its buffer, an error, choices, the popups, a
     // collapsed category, the card, the toast, a page with an overridden description and its finding, a gone record.
     done(&mut sample, "select.set", json!({"refs": ["tag:-101F1"]}));
@@ -2748,7 +2748,7 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
         }
     }
     // No UUID reaches the describe text: the hovered entity and the selection print as aliases `@n`, value tokens
-    // that the word check above skips (FT-422, ID-630).
+    // that the word check above skips.
     for text in &texts {
         assert_eq!(ew_viewmodel::alias::find_uuid(text), None, "{text}");
     }

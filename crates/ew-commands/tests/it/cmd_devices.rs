@@ -188,7 +188,7 @@ fn create_device_with_main_function_and_explicit_counter() {
     );
 }
 
-/// FT-1090 (ID-1181): a frozen tag given to `device.create` is the new device's, in the creating commit; by JSON too.
+/// A frozen tag given to `device.create` is the new device's, in the creating commit; by JSON too.
 #[test]
 fn create_device_with_a_frozen_tag_freezes_it_in_the_same_commit() {
     let mut e = engine(golden_model());
@@ -475,7 +475,7 @@ fn place_hints_reject_bad_cps_and_connections_and_drop_missing_targets() {
     }];
     // a hint whose target no longer exists is dropped with a notice; the symbol is still placed
     let r = e.execute(&cmd).unwrap();
-    // FT-779: the notice names the gone record in words, never by its ID.
+    // The notice names the gone record in words, never by its ID.
     assert!(
         r.outcome
             .notices
@@ -544,7 +544,7 @@ fn place_on_a_wire_splits_it() {
     assert_eq!(second.page, Some(PAGE_102));
 }
 
-/// FT-1020: a wire that a `connect` hint made, so without a route, on page 102. Device A of `SYM_TWO` stands at
+/// A wire that a `connect` hint made, so without a route, on page 102. Device A of `SYM_TWO` stands at
 /// (0, 0) (CP 1 at (0, 10 mm), leaving down); device B at `b_at` with the hint from its CP 0 (leaving up) to A's CP 1.
 /// Returns the engine, the wire and the functions of A and B.
 fn hinted_wire(
@@ -581,7 +581,7 @@ fn hinted_wire_in(
     let wires: Vec<ew_ids::Id<Connection>> = created(&r, Kind::Connection);
     assert_eq!(wires.len(), 1);
     let w = row(&e, wires[0]);
-    // WP-S2.19 D12: the hint's wire stores its straight run (none for ends off one line); cleared here, it is the wire
+    // The hint's wire stores its straight run (none for ends off one line); cleared here, it is the wire
     // without a route.
     assert_eq!((w.a.clone(), w.b.clone()), (cp(fb, 0), cp(fa, 1)));
     assert!(w.route.is_empty() || w.route.len() == 2, "a straight run or none");
@@ -593,7 +593,7 @@ fn hinted_wire_in(
     (e, wires[0], fa, fb)
 }
 
-/// FT-1020 (decision log ID-1104) under WP-S2.19 D3: `place` dropped a symbol on the hinted wire `wire`, which has no
+/// FT-1020 under WP-S2.19 D3: `place` dropped a symbol on the hinted wire `wire`, which has no
 /// route. An unrouted wire has no wire geometry (it is drawn as the dashed straight line between its ends), so
 /// normaliser 7 does not split it: no new part, and the wire is as it was.
 fn assert_not_split(e: &Engine, r: &Receipt, wire: ew_ids::Id<Connection>, before: &Connection) {
@@ -866,7 +866,7 @@ fn transform_makes_the_route_follow_the_moved_cp() {
     let mut e = engine(two_cp_golden());
     e.execute(&transform(vec![REP_102F2], 1, false)).unwrap();
     assert_eq!(row(&e, REP_102F2).orient, Orient2::R90);
-    // CP 1 at (0, 10 mm) turns to (-10 mm, 0): a displacement of (-10 mm, -10 mm). The far end stays (FT-423), so the
+    // CP 1 at (0, 10 mm) turns to (-10 mm, 0): a displacement of (-10 mm, -10 mm). The far end stays, so the
     // vertical segment keeps its axis with a dog-leg at the grid y nearest the middle.
     let ym = grid().snap_point(ew_units::Nm(3 * MM10 / 2)).expect("in range").0;
     assert_eq!(

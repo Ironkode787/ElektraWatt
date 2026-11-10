@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Poses on carriers (doc 12 §2.3, WP-S4.01 D5): quarter turns about `w`, the degrees of freedom per carrier kind,
+//! Poses on carriers (doc 12 §2.3): quarter turns about `w`, the degrees of freedom per carrier kind,
 //! the surface pose equivalent to a rail pose and the frame of a plate centred in its enclosure.
 
 use std::fmt;

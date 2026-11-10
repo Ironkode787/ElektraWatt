@@ -360,7 +360,7 @@ pub fn frame_json() -> String {
 // ---------------------------------------------------------------------------------------------------------
 // PNG
 
-/// The 150 dpi PNG of a page: the product's raster (`ew render`, `ew export png`; WP-S1.22 D7).
+/// The 150 dpi PNG of a page: the product's raster (`ew render`, `ew export png`).
 pub fn page_png(scene: &PageScene) -> Vec<u8> {
     ew_api::output::page_png(scene, ew_api::output::DEFAULT_DPI).expect("the page renders")
 }

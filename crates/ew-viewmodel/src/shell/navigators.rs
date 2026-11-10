@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigators in the shell (WP-S2.06 part 1, §6.2 to §6.9): the open navigators with their tables, the
+//! The navigators in the shell (to §6.9): the open navigators with their tables, the
 //! `navigator.*` actions (which also take `kind = pages` and then do what the six `pages.*` actions do), multi-selection,
 //! selection synchronisation both ways with the chip line "Not on this page" (§6.5), the reorder of pages through
-//! `page.reorder` and its card (§6.6), and the New page pre-fill (FT-461).
+//! `page.reorder` and its card (§6.6), and the New page pre-fill.
 //!
 //! **Tables.** At the end of every dispatch each open navigator other than Pages whose table is not of the current
 //! revision fetches it with one `Session::navigator_table` call (counted); a closed navigator makes none. Filtering,
@@ -74,17 +74,15 @@ pub enum DragSource {
     /// A page record row of the Pages navigator: its folio.
     Page(String),
     /// An unplaced function row of the Devices navigator (the function's ID text), or an unplaced terminal row of the
-    /// Terminal strips navigator (the terminal device's ID text, WP-S2.07 §6.8).
+    /// Terminal strips navigator (the terminal device's ID text).
     Function(String),
-    /// A channel row of the PLC navigator (the channel's ID text, WP-S2.07 §8): dropped on a connection point of the
+    /// A channel row of the PLC navigator (the channel's ID text): dropped on a connection point of the
     /// canvas, `navigator.bind` binds it there with `plc.bind_channel`.
     Channel(String),
-    // WP-S1.19 part 6
     /// A macro row of the Macros navigator (its row key, §11): dropped on a canvas, `macros.place` opens its card at
     /// the drop point.
     Macro(String),
-    // WP-S4.02 part 3
-    /// A device row of the Unplaced devices navigator (the device's ID text, FT-486): dropped on a panel page, the
+    /// A device row of the Unplaced devices navigator (the device's ID text): dropped on a panel page, the
     /// layout place tool takes it (`tool.place_layout {device}`).
     Device(String),
 }
@@ -102,12 +100,12 @@ pub struct ShownRow {
     pub role: &'static str,
     /// The text with its badges in brackets (the describe lines').
     pub text: String,
-    /// The text without its badges (WP-S2.17 part 3: the window paints the badges as chips, doc 16a §6.6).
+    /// The text without its badges (the window paints the badges as chips, doc 16a §6.6).
     pub label: String,
     /// The badges in the UI language's words (`generated`, `QET grid`, `unplaced`, `pending`), in their order.
     pub badges: Vec<String>,
     /// The badges' codes, aligned with `badges` (`fix`, `waived`, `pending`): what the window paints a status badge
-    /// from (C50-p5#2); the Pages tree's are its words.
+    /// from; the Pages tree's are its words.
     pub badge_codes: Vec<String>,
     /// The accessible name.
     pub name: String,
@@ -125,11 +123,10 @@ pub struct ShownRow {
     pub openable: bool,
     /// What a drag of the row carries.
     pub drag: Option<DragSource>,
-    /// A finding row of the Messages navigator: its severity and whether it is pending (WP-S2.09 §7.3).
+    /// A finding row of the Messages navigator: its severity and whether it is pending.
     pub finding: Option<FindingLook>,
 }
 
-// WP-S2.09 part 2
 /// How a finding row is painted (§7.3, FR-UI-025): the severity's icon and colour, muted and outlined when pending.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct FindingLook {
@@ -174,8 +171,7 @@ impl ShellModel {
         }
     }
 
-    // WP-S4.02 part 3
-    /// The line and sentence of the Unplaced devices navigator's empty state (FT-486, doc 16a §6.17): without a layout
+    /// The line and sentence of the Unplaced devices navigator's empty state (doc 16a §6.17): without a layout
     /// space "No panel layout yet" (ruling 3: no action in this part); with every device placed "All devices placed"
     /// and "Every device of +J-E-2416 is placed." (the table's locations, in order).
     pub fn unplaced_empty(&self) -> (String, String) {
@@ -205,7 +201,7 @@ impl ShellModel {
     }
 
     /// The line and sentence of the Terminal strips table's empty state when the project has strips but no terminal,
-    /// or the strip editor shows a strip without one (ID-1278 ruling 7: the table's rows are terminals), "No terminals
+    /// or the strip editor shows a strip without one (ruling 7: the table's rows are terminals), "No terminals
     /// yet" and how to place one; `None` otherwise.
     pub fn strips_empty(&self) -> Option<(String, String)> {
         let n = self.navs.get(&NavKind::Strips)?;
@@ -231,7 +227,7 @@ impl ShellModel {
         }
     }
 
-    /// Whether `kind` is the Pages navigator as built (WP-S2.03 §6.1), not in table mode.
+    /// Whether `kind` is the Pages navigator as built, not in table mode.
     pub(super) fn as_built_pages(&self, kind: NavKind) -> bool {
         kind == NavKind::Pages && self.pages_table.is_none()
     }
@@ -264,7 +260,7 @@ impl ShellModel {
             return ("symbol.tool", json!({ "tool": tool }));
         }
         let strips = self.focused_navigator() == Some(NavKind::Strips);
-        // WP-S4.02 part 3 (doc 12 §12.4, ID-628): on a panel page the canvas's Tab, R and X place, and the arrows nudge
+        // WP-S4.02 part 3 (doc 12 §12.4): on a panel page the canvas's Tab, R and X place, and the arrows nudge
         // a selected placement; each chord stays unique per context.
         if self.focused_navigator().is_none() && self.panel_tables().is_some() {
             // The arrows nudge a selected placement, or step a floating layout ghost (doc 12 §12.4).
@@ -325,7 +321,7 @@ impl ShellModel {
         }
     }
 
-    /// The key of the row on show in navigator `kind` that `given` names (cycle 33, G-PP finding 7): its key; else
+    /// The key of the row on show in navigator `kind` that `given` names (G-PP finding 7): its key; else
     /// the one row whose printed label is `given`; else the one row whose parent's label, a colon and its own label
     /// is `given` (a strip terminal row prints `terminal "1"` under `strip "-X1031"`, and the tag `-X1031:1` names
     /// it). `None` when nothing or more than one row matches.
@@ -427,7 +423,7 @@ impl ShellModel {
                     return Vec::new();
                 };
                 let Some(t) = n.table() else { return Vec::new() };
-                // WP-S2.09 part 2: a pending finding row carries the badge `pending` after its others.
+                // A pending finding row carries the badge `pending` after its others.
                 let editing = (k == NavKind::Messages).then(|| self.editing_folio()).flatten();
                 n.visible()
                     .iter()
@@ -459,25 +455,25 @@ impl ShellModel {
                             text.push_str(&format!(" [{b}]"));
                         }
                         // An unplaced function row, and an unplaced terminal row of the Terminal strips navigator
-                        // (WP-S2.07 §6.8: its record is the terminal device; `place.pick` takes its main function).
+                        // (its record is the terminal device; `place.pick` takes its main function).
                         let drag = (matches!(
                             node.role,
                             ew_api::output::NavRole::Function | ew_api::output::NavRole::Terminal
                         ) && node.badges.iter().any(|b| b == "unplaced"))
                         .then(|| node.records.first().map(|r| DragSource::Function(r.to_string())))
                         .flatten()
-                        // WP-S2.07 §8: every channel row of the PLC navigator binds by drag-and-drop.
+                        // Every channel row of the PLC navigator binds by drag-and-drop.
                         .or_else(|| {
                             (node.role == ew_api::output::NavRole::Channel)
                                 .then(|| node.records.first().map(|r| DragSource::Channel(r.to_string())))
                                 .flatten()
                         })
-                        // WP-S1.19 part 6: a macro row of an installed library drops onto a canvas (§11).
+                        // A macro row of an installed library drops onto a canvas (§11).
                         .or_else(|| {
                             (node.role == ew_api::output::NavRole::Macro && node.key.contains("macro:"))
                                 .then(|| DragSource::Macro(node.key.clone()))
                         })
-                        // WP-S4.02 part 3: every device row of the Unplaced devices navigator drops onto a panel page.
+                        // Every device row of the Unplaced devices navigator drops onto a panel page.
                         .or_else(|| {
                             (k == NavKind::Unplaced && node.role == ew_api::output::NavRole::Device)
                                 .then(|| node.records.first().map(|r| DragSource::Device(r.to_string())))
@@ -509,7 +505,7 @@ impl ShellModel {
         }
     }
 
-    /// The New page pre-fill (FT-461): the folio proposal and the section number text. The folio: when the current page
+    /// The New page pre-fill: the folio proposal and the section number text. The folio: when the current page
     /// is a page record with number k, the smallest integer n > k whose text is not a folio of the page labels; else
     /// empty. The section: of the marked or cursor section node of the Pages navigator, else the current page's.
     pub fn new_page_proposal(&self) -> (String, String) {
@@ -605,7 +601,7 @@ impl ShellModel {
                 continue;
             }
             let Some(project) = &self.project else { return };
-            // FT-842: the Messages table carries the release's housekeeping warnings.
+            // The Messages table carries the release's housekeeping warnings.
             let table = if k == NavKind::Messages {
                 Self::messages_table_of(project, &self.messages)
             } else {
@@ -614,7 +610,7 @@ impl ShellModel {
                 table
             };
             bump(&self.calls, |c| c.navigator_table += 1);
-            // WP-S2.09 part 2: the Messages pane's header names the scheme its table was built with.
+            // The Messages pane's header names the scheme its table was built with.
             if k == NavKind::Messages {
                 self.messages.scheme = Some(project.session.online_scheme().name);
             }
@@ -622,7 +618,7 @@ impl ShellModel {
                 n.table = Some(Arc::new(table));
             }
         }
-        // WP-S2.06 part 3: the Pages navigator in table mode reads `navigator_table(Pages)`, once per revision.
+        // The Pages navigator in table mode reads `navigator_table(Pages)`, once per revision.
         if self
             .pages_table
             .as_ref()
@@ -636,7 +632,7 @@ impl ShellModel {
                 n.table = Some(Arc::new(table));
             }
         }
-        // WP-S2.06 part 2: the highlights' members, once per highlight and revision (§7.3).
+        // The highlights' members, once per highlight and revision (§7.3).
         if let Some(project) = &self.project {
             for h in self.highlights.stale_mut(rev) {
                 h.members = Arc::new(project.session.highlight_members(&h.target));
@@ -916,7 +912,7 @@ impl ShellModel {
             k => PaneKind::Navigator(k),
         };
         if on {
-            // WP-S2.09 D14: the Messages navigator docks in the bottom dock, the others beside the Pages pane.
+            // The Messages navigator docks in the bottom dock, the others beside the Pages pane.
             let layout = if kind == NavKind::Messages {
                 self.layout().with_bottom(pane)
             } else {
@@ -939,7 +935,6 @@ impl ShellModel {
         Outcome::Done
     }
 
-    // WP-S2.17 part 3
     /// Whether the left column is collapsed to its rail.
     pub fn rail_collapsed(&self) -> bool {
         self.rail_collapsed
@@ -1046,7 +1041,7 @@ impl ShellModel {
         let sort = if by == "label" {
             SortBy::Label
         } else if by == "order" && kind == NavKind::Strips {
-            // WP-S2.07 D2: the mounting order.
+            // The mounting order.
             SortBy::Order
         } else if columns.contains(&by) {
             SortBy::Column(by)
@@ -1076,7 +1071,7 @@ impl ShellModel {
                 if let Some(n) = self.generic_mut(kind) {
                     n.filter = t.to_owned();
                     // A filter of the user's own, or the scope's Clear (an empty filter), ends the strip editor's
-                    // scope (ID-1278 ruling 7, C49-p8b#2).
+                    // scope (ruling 7, b#2).
                     n.scope = None;
                 }
                 Outcome::Done
@@ -1111,7 +1106,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// FT-528: expands the collapsed ancestors of row `key` of generic navigator `kind` when that makes the row show (a
+    /// Expands the collapsed ancestors of row `key` of generic navigator `kind` when that makes the row show (a
     /// row hidden by the filter or unknown leaves the collapsed nodes as they were).
     fn reveal_key(&mut self, kind: NavKind, key: &str) {
         if self.vis_keys(kind).iter().any(|k| k == key) {
@@ -1144,7 +1139,7 @@ impl ShellModel {
         let out = if self.as_built_pages(kind) {
             self.act_pages_row(&q)
         } else {
-            // FT-528: a key under a collapsed node expands its path first, so the cursor lands on a row on show.
+            // A key under a collapsed node expands its path first, so the cursor lands on a row on show.
             if let Ok(Some(key)) = string_param(&q, "key") {
                 let key = key.to_owned();
                 self.reveal_key(kind, &key);
@@ -1238,11 +1233,11 @@ impl ShellModel {
         let Some((_, node)) = self.generic(kind).and_then(|n| n.node_of(&key)) else {
             return failed(key!("error-nav-key"), &[&key, kind.word()]);
         };
-        // WP-S1.19 part 6: Enter on a macro row arms the macro tool (§11).
+        // Enter on a macro row arms the macro tool (§11).
         if kind == NavKind::Macros && node.role == ew_api::output::NavRole::Macro {
             return self.arm_macro(&key);
         }
-        // WP-S4.02 part 3 (FT-486): Enter on an Unplaced devices row arms the layout place tool on the focused panel page.
+        // Enter on an Unplaced devices row arms the layout place tool on the focused panel page.
         if kind == NavKind::Unplaced
             && node.role == ew_api::output::NavRole::Device
             && let Some(device) = node.records.first().copied()
@@ -1250,7 +1245,7 @@ impl ShellModel {
             self.set_cursor(kind, &key);
             return self.place_layout_device(device);
         }
-        // WP-S2.07 §6.8: Enter on an unplaced terminal row arms the Place tool with its terminal's main function on the
+        // Enter on an unplaced terminal row arms the Place tool with its terminal's main function on the
         // page of the focused tab (the drop of the row onto a canvas does the same).
         if kind == NavKind::Strips
             && node.role == ew_api::output::NavRole::Terminal
@@ -1394,8 +1389,8 @@ impl ShellModel {
         }
     }
 
-    /// `navigator.apply` (Ctrl+Enter with a card in the pane): applies the reorder card, (WP-S2.09 part 2) the
-    /// quick-fix card or (WP-S2.06 part 3) a table card.
+    /// `navigator.apply` (Ctrl+Enter with a card in the pane): applies the reorder card, the
+    /// quick-fix card or a table card.
     pub(crate) fn act_navigator_apply(&mut self) -> Outcome {
         if !self.props.card().is_some_and(|c| {
             matches!(
@@ -1523,7 +1518,7 @@ impl ShellModel {
             Err(_) => (Default::default(), Vec::new()),
         };
         if let Err(e) = &result {
-            // A refused reorder opens no card: its reason is the outcome, in the window's language (FT-1337).
+            // A refused reorder opens no card: its reason is the outcome, in the window's language.
             return super::tools::command_failed(e, &cmd.params);
         }
         let result = result.map_err(|e| e.to_string());
@@ -1632,7 +1627,7 @@ fn json_map(v: Value) -> Map<String, Value> {
     }
 }
 
-/// A function's kind text in the UI language (FT-1338, ID-1392): its longest leading words that `ew-api`'s
+/// A function's kind text in the UI language: its longest leading words that `ew-api`'s
 /// `KIND_WORDS` give ("Two-way process valve" of "Two-way process valve 1-2") by their `kind-words-<words>` text, the
 /// CP designations after them kept; else the generic rule's words ([`generic_kind_words`], FT-1483); `None` when
 /// neither has a text.
@@ -1734,9 +1729,9 @@ fn library_in_words(node: &mut NavNode, tier: Option<usize>, access: Option<usiz
     }
 }
 
-/// A navigator table's texts in the UI language (ID-1315 ruling 1: `ew-api` gives the codes, the shell the words),
+/// A navigator table's texts in the UI language (ruling 1: `ew-api` gives the codes, the shell the words),
 /// once per fetch: the column headers by their `column-<navigator>-<key>` text, else `column-<key>` (FT-1264, the
-/// strip editor's columns with them, FT-1289), an accessory row's kind (FT-1289), the Messages pane's group headers
+/// strip editor's columns with them, FT-1289), an accessory row's kind, the Messages pane's group headers
 /// (`messages-group-<severity>`) and, in a language other than en-GB, each rule group's title and each finding's
 /// message as the Messages detail renders it (FT-1162, `ew_api::checks::messages`). The badges keep their codes; the
 /// rows word them ([`super::macros::badge_word`]).
@@ -1758,12 +1753,12 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
     });
     let message = table.columns.iter().position(|c| c.key == "message");
     let fix = table.columns.iter().position(|c| c.key == "fix");
-    // FT-1338 (ID-1357 ruling 1): a yes-or-no column's cells ("Generated", a core's "Shield", a cable's "External").
+    // A yes-or-no column's cells ("Generated", a core's "Shield", a cable's "External").
     let yes_no: Vec<usize> = (table.columns.iter().enumerate())
         .filter(|(_, c)| ["generated", "shield", "external"].contains(&c.key.as_str()))
         .map(|(i, _)| i)
         .collect();
-    // FT-1338 (ID-1392): the closed sets' cells, a device's or a node's kind, a terminal's or a channel's state and an
+    // The closed sets' cells, a device's or a node's kind, a terminal's or a channel's state and an
     // interruption point's direction by their `choice-*` words, a library copy's state by its badge's.
     let closed: Vec<(usize, &str)> = (table.columns.iter().enumerate())
         .filter_map(|(i, c)| match (nav, c.key.as_str()) {
@@ -1791,7 +1786,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
             && let Some(code) = block_kind.and_then(|i| node.cells.get(i)).cloned()
         {
             let words = super::creation::report_kind_words(&code);
-            // C53-p3#5 (ID-1481): the kind column, and the title cell and the label only where `ew-api` put the kind
+            // The kind column, and the title cell and the label only where `ew-api` put the kind
             // there for a block without a title, never a title that happens to read as a code.
             let untitled = node.records.first().is_some_and(|id| {
                 project
@@ -1810,7 +1805,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
                 node.label = words;
             }
         }
-        // FT-1338 (ID-1392): a function's kind, and a function definition's in the Libraries tree, in `KIND_WORDS`'
+        // A function's kind, and a function definition's in the Libraries tree, in `KIND_WORDS`'
         // words.
         let fndef = kind
             .and_then(|i| node.cells.get(i))
@@ -1850,7 +1845,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
                 }
             }
         }
-        // FT-1338: the section groups of the Pages tree and of the report blocks, the front matter's among them, as
+        // The section groups of the Pages tree and of the report blocks, the front matter's among them, as
         // the page navigator words them.
         let segment = node.key.rsplit('/').next().unwrap_or_default();
         let section = segment
@@ -1885,7 +1880,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
                 }
             }
             NavRole::Rule if report.is_some() => {
-                // FT-1314: the row's key is a path (`severity:<word>/rule:<id>`), so the rule is its last segment.
+                // The row's key is a path (`severity:<word>/rule:<id>`), so the rule is its last segment.
                 if let Some(rule) = crate::navigators::messages::rule_of(node)
                     && let Some(title) = ew_api::checks::messages::title(&rule, lang)
                 {
@@ -1910,7 +1905,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
                 if let Some(cell) = message.and_then(|i| node.cells.get_mut(i)) {
                     *cell = text;
                 }
-                // FT-1482: the quick fix's label by its key.
+                // The quick fix's label by its key.
                 if let (Some(q), Some(cell)) = (&f.fix, fix.and_then(|i| node.cells.get_mut(i))) {
                     *cell = ew_api::checks::messages::fix_label(q, lang);
                 }

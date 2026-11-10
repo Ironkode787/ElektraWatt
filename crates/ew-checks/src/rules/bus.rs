@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The EW-BUS rules of the MVP (doc 15 §4.5.2; doc 10 §3.8, §3.10; WP-S1.21 D12): EW-BUS-001 (a station address
+//! The EW-BUS rules of the MVP (doc 15 §4.5.2; doc 10 §3.8, §3.10): EW-BUS-001 (a station address
 //! missing or duplicate in a logical net) and EW-BUS-004 (the termination at the segment ends). They read the bus
 //! model of D11: the ports (`Function.bus_port`), `net_members(lnet)` and `bus_segments(pnet)`.
 
@@ -34,7 +34,7 @@ fn end_name(q: &Q, f: Id<Function>) -> String {
     end_words(q, f).0
 }
 
-/// An end of a segment other than an external one, as the message's arguments word it (FT-1334): the en-GB text, the
+/// An end of a segment other than an external one, as the message's arguments word it: the en-GB text, the
 /// selector `end` (`named` a tagged port or a bare interface, `connector` an untagged connector, `device` an untagged
 /// device's interface, `ip` an interruption point, `segment` an end without either) and the argument `port` (the
 /// printed name, interface or interruption point name; empty for the words alone).
@@ -124,7 +124,7 @@ impl Rule for BusAddress {
             };
             match &port.address {
                 AddrValue::Tbd => {
-                    // FT-1416: an untagged port by the selector `end`, so each language words it.
+                    // An untagged port by the selector `end`, so each language words it.
                     let (name, end, words) = end_words(q, *f);
                     out.push(
                         Finding::new(
@@ -147,7 +147,7 @@ impl Rule for BusAddress {
             if ports.len() < 2 {
                 continue;
             }
-            // FT-1416: the tagged ports by name, the untagged ones counted, so that each language words them.
+            // The tagged ports by name, the untagged ones counted, so that each language words them.
             let mut names: Vec<String> = Vec::new();
             let mut untagged = 0_usize;
             for f in &ports {

@@ -402,7 +402,7 @@ fn image_item(sha: u8, format: ew_dl::ImageFormat, bytes: &[u8]) -> Item {
     )
 }
 
-/// FT-384: a PNG image is decoded and stretched over its rectangle (a 2 × 1 image: red left, blue right); a truncated
+/// A PNG image is decoded and stretched over its rectangle (a 2 × 1 image: red left, blue right); a truncated
 /// JPEG, an image without bytes and bytes that do not decode are counted, not drawn.
 #[test]
 fn png_images_are_drawn_and_the_rest_counted() {
@@ -442,7 +442,7 @@ fn png_images_are_drawn_and_the_rest_counted() {
     assert_eq!(render_a4(&list, 72).1.skipped_images, 1);
 }
 
-/// FT-406: a JPEG image is decoded with zune-jpeg and stretched over its rectangle like a PNG (a 16 × 8 image: red
+/// A JPEG image is decoded with zune-jpeg and stretched over its rectangle like a PNG (a 16 × 8 image: red
 /// left, blue right); a JPEG cut inside its data and one whose header declares more than `MAX_IMAGE_PIXELS` are
 /// counted, not drawn.
 #[test]

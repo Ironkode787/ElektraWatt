@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `bless-oracle` and `check-task` (WP-S6.13 §4.2, §5.7, D16).
+//! `bless-oracle` and `check-task` (§5.7, D16).
 //!
 //! `bless-oracle <task>` makes the expected rows of a task's oracle (`oracle/rows/*.csv`, `oracle/bom.csv`) from a
 //! **temporary copy** of Golden A: the copy is opened by the built `elektrawatt` (the `page.describe` texts: anchor
@@ -57,7 +57,7 @@ pub const BOM_HEADER: [&str; 6] = ["Pos", "Qty", "Unit", "Manufacturer", "Part n
 
 /// The golden parts list restricted to the folios of the oracle (the rows whose `Folios` cells name only those
 /// folios, so a row of a device on another folio or of none is left out), with the quantities of the demo variant of
-/// folio 103 (WP-S2.04 §13.6, ID-571): the terminals counted over the **placed** terminals of each strip and the
+/// folio 103: the terminals counted over the **placed** terminals of each strip and the
 /// plug-in bridges over the bridges between placed terminals. Returns the rows `Pos` renumbered from 1, in the golden
 /// order.
 ///
@@ -421,7 +421,7 @@ pub fn bless_oracle(root: &Path, a: &BlessArgs) -> Result<(String, String)> {
             .map(|r| r[2].clone())
             .collect();
         let findings = finding_rows(&check_json, &tag_set)?;
-        // The marker texts come from counts.toml (WP-S2.04 §13.6): the golden copy prints no marker items.
+        // The marker texts come from counts.toml: the golden copy prints no marker items.
         let markers: Vec<Vec<String>> = counts
             .marker
             .iter()

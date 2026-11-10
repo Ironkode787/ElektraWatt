@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 4 in the window (D12, NL-3, ID-1269 ruling 6): with the UI in Dutch (nl-NL) the first-run flow, the
+//! WP-S2.08 part 4 in the window (D12, NL-3, ruling 6): with the UI in Dutch (nl-NL) the first-run flow, the
 //! core flows of LO-5 (new project, place and wire, a terminal strip, renumber, export PDF) and the Settings surfaces
 //! (the language and keymap quick switches, View ▸ UI scale, the keyboard shortcuts) pass `assert_accessible` and
 //! `assert_fits` after each step, at a UI scale of 100 % and of 200 %.

@@ -84,11 +84,11 @@ impl ShellModel {
         }
     }
 
-    /// The palette entries for the current query (WP-S2.08 part 1).
+    /// The palette entries for the current query.
     ///
     /// By the query's prefix (D4): none or `>` the registry actions the window can list, ranked by label, glossary
     /// alias and ID with the recency boost, and with an empty query the eight most recent distinct actions first
-    /// (D3), then, without `>`, the objects whose tag holds the query (ID-1497); `@` the objects of `Session::find` (at most 50, an exact match first); `#` the pages by folio or title;
+    /// (D3), then, without `>`, the objects whose tag holds the query; `@` the objects of `Session::find` (at most 50, an exact match first); `#` the pages by folio or title;
     /// `:` the cell `Session::resolve_goto` finds; `?` the rules of the shipped catalogue, then the Help menu's
     /// actions. An action that needs parameters is listed: with a form when its signature allows one, disabled with
     /// its reason otherwise (D5 (a)). Disabled entries follow the enabled ones; each carries its breadcrumb.
@@ -98,7 +98,7 @@ impl ShellModel {
         match prefix {
             Prefix::Actions => {
                 let mut entries = self.action_entries(rest, |_| true, true);
-                // ID-1497 (10): without a prefix the search ("commands and devices") also finds the devices, terminal
+                // Without a prefix the search ("commands and devices") also finds the devices, terminal
                 // strips and cables whose tag holds the query, after the actions.
                 if !query.trim_start().starts_with('>') {
                     entries.extend(self.object_entries(rest, &[FindField::Tag]));
@@ -144,7 +144,7 @@ impl ShellModel {
             ) else {
                 continue;
             };
-            // FT-1367 (ID-1392): a View switch says whether it is on, after where it lives ("View · Show · On").
+            // A View switch says whether it is on, after where it lives ("View · Show · On").
             let mut breadcrumb = actions::breadcrumb_of(meta, label);
             if meta.kind == actions::ActionKind::View
                 && let Some(on) = actions::switch_on(self, meta.id)

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.16 part 4: the EW-CORE, EW-RDS, EW-NUM and EW-TERM rules of pages, texts, designations and terminals
+//! The EW-CORE, EW-RDS, EW-NUM and EW-TERM rules of pages, texts, designations and terminals
 //! (EW-CORE-021, -022, -025, -026, -061, -063, -071; EW-RDS-001, -002, -003, -007, -009, -010; EW-NUM-002; EW-TERM-003,
 //! -004), EW-CORE-008's `channel` half (FT-229) and EW-CORE-052's prevent mode (FT-194). One positive and one negative
 //! fixture per rule (P4-1), the prevent rules refusing the candidate and only it, and the ID-permutation test of
@@ -417,7 +417,7 @@ fn ips_fx(sources: &[u128]) -> Fx {
     fx
 }
 
-/// FT-194: EW-CORE-052 refuses a second source point of a name; touching the points of an ambiguity the model
+/// EW-CORE-052 refuses a second source point of a name; touching the points of an ambiguity the model
 /// already holds, without a change, is not refused, and a touch of an ordinary device does not run the rule.
 #[test]
 fn core052_prevent_refuses_a_new_ambiguous_group_only() {
@@ -734,7 +734,7 @@ fn term004_prevent_refuses_a_new_invalid_group_only() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// ID permutation (WP-S1.16 §10)
+// ID permutation
 
 /// One permutation case: the rule, its fixture and the ID pairs to swap.
 type Case = (&'static str, Fx, Vec<(u128, u128)>);
@@ -770,7 +770,7 @@ fn printed(m: &Model) -> Vec<String> {
 }
 
 /// The ID-permutation test of every part-4 rule: swapping record IDs (pages, strips, terminals, connections,
-/// structure nodes, page items) changes no printed finding and no report order (ID-677, WP-S1.16 §10, FT-594).
+/// structure nodes, page items) changes no printed finding and no report order.
 #[test]
 fn part4_findings_do_not_follow_record_ids() {
     let mut two_texts = text_fx(Some("qet.9"));

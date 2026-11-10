@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File, Import, Parts table… in the window without rendering (FT-410): the entry is disabled without a project;
+//! File, Import, Parts table… in the window without rendering: the entry is disabled without a project;
 //! with a new project it raises the file prompt (`Prompt::OpenPartsTable`), the answer opens the column mapping step
-//! (FT-649) and its Import the import card in the Preview tab, the read's outcome in one toast and no strip over the
-//! tab title (FT-719), Ctrl+Enter applies it from anywhere, and the project has the 29 part copies; the accessible-name
+//!  and its Import the import card in the Preview tab, the read's outcome in one toast and no strip over the
+//! tab title, Ctrl+Enter applies it from anywhere, and the project has the 29 part copies; the accessible-name
 //! walker after every step.
 
 use crate::support;
@@ -76,7 +76,7 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     settle(&mut h);
     settle(&mut h);
     assert_eq!(platform.asked.borrow().as_slice(), [Prompt::OpenPartsTable]);
-    // FT-649: the column mapping step first, pre-filled from the golden dialect's headers; Import reads the table.
+    // The column mapping step first, pre-filled from the golden dialect's headers; Import reads the table.
     assert!(h.query_by_label("Map columns").is_some(), "the mapping card");
     assert!(
         h.query_by_label("Imports as part_number").is_some(),
@@ -86,7 +86,7 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     settle(&mut h);
     settle(&mut h);
     assert!(h.state().shell().parts_map().is_none());
-    // FT-719: the read's outcome once, in the toast; the Preview tab shows the card with its title and buttons, and
+    // The read's outcome once, in the toast; the Preview tab shows the card with its title and buttons, and
     // neither a strip over the tab title nor the tab repeats the counts.
     assert_eq!(
         toast(&h).as_deref(),
@@ -157,7 +157,7 @@ fn cancel_drops_the_card_without_a_change() {
     let out = h.state_mut().shell_mut().dispatch("parts.map_import", &json!({}));
     assert_eq!(out, Outcome::Done);
     settle(&mut h);
-    // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
+    // The Preview tab shows the card too; its chip and the tab each have the button.
     h.get_all_by_label("Cancel").next().unwrap().click();
     settle(&mut h);
     assert!(h.state().shell().properties().card().is_none());
@@ -228,7 +228,7 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
                 h.query_by_label("Parts table…").is_none(),
                 "the File menu closes in the frame that answers the pick"
             );
-            // FT-649: the column mapping step is the card that answers the pick.
+            // The column mapping step is the card that answers the pick.
             assert!(
                 h.state().shell().parts_map().is_some(),
                 "the card is in the shell in the frame that answers the pick"
@@ -254,7 +254,7 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
         h.state().shell().banner(),
         h.state().shell().properties().card().map(|c| c.reason)
     );
-    // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
+    // The Preview tab shows the card too; its chip and the tab each have the button.
     h.get_all_by_label("Apply").next().unwrap().click();
     h.step();
     assert_eq!(h.state().shell().banner(), None);
@@ -270,7 +270,7 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-467: a platform whose dialog stays open off the window's thread until the test answers it through the sender.
+/// A platform whose dialog stays open off the window's thread until the test answers it through the sender.
 #[derive(Clone, Default)]
 struct ThreadedPlatform {
     answer: Rc<RefCell<Option<std::sync::mpsc::Sender<Pick>>>>,
@@ -310,7 +310,7 @@ fn harness_with_open_dialog<'a>(tmp: &Tmp, platform: ThreadedPlatform) -> Harnes
     h
 }
 
-/// FT-467: while the dialog is open on its own thread the window keeps painting, nothing is dispatched and no second
+/// While the dialog is open on its own thread the window keeps painting, nothing is dispatched and no second
 /// dialog starts; the frame after the answer arrives has the card in the shell, and the next one paints it.
 #[test]
 fn an_answer_from_the_dialog_thread_opens_the_card_in_the_next_frame() {
@@ -342,7 +342,7 @@ fn an_answer_from_the_dialog_thread_opens_the_card_in_the_next_frame() {
     let tx = platform.answer.borrow_mut().take().unwrap();
     tx.send(Pick::Path(csv)).unwrap();
     h.step();
-    // FT-649: the column mapping step is the card the answer opens.
+    // The column mapping step is the card the answer opens.
     assert!(
         h.state().shell().parts_map().is_some(),
         "the card is in the shell in the frame after the answer"
@@ -363,7 +363,7 @@ fn an_answer_from_the_dialog_thread_opens_the_card_in_the_next_frame() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-467: a dialog thread that ends without an answer (it panicked) counts as a cancel: no card, no change, and the
+/// A dialog thread that ends without an answer (it panicked) counts as a cancel: no card, no change, and the
 /// next prompt starts a new dialog.
 #[test]
 fn a_dialog_thread_without_an_answer_counts_as_cancelled() {
@@ -503,7 +503,7 @@ fn no_input_reaches_the_shell_while_a_file_dialog_is_open() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-467: `spawn_pick` puts the answer in the channel before it requests the repaint, so the frame the request starts
+/// `spawn_pick` puts the answer in the channel before it requests the repaint, so the frame the request starts
 /// finds it.
 #[test]
 fn spawn_pick_sends_the_answer_before_it_requests_a_repaint() {

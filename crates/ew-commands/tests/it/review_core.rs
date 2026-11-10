@@ -171,7 +171,7 @@ fn f1_a_single_move_by_max_coord_from_a_positive_position_is_rejected() {
     assert_eq!(lines(e.model()), before);
 }
 
-/// C45-p3#3 (ID-1137): a step move that keeps the position in range but takes a connection point outside it is
+/// A step move that keeps the position in range but takes a connection point outside it is
 /// refused in words, without the JSON pointer `/steps`, ending with what the user can do.
 #[test]
 fn f1_a_step_move_that_takes_a_connection_point_out_of_range_is_refused_in_words() {
@@ -205,7 +205,7 @@ fn f1_a_step_move_that_takes_a_connection_point_out_of_range_is_refused_in_words
     assert_eq!(lines(e.model()), before);
 }
 
-/// C45-p3#3 (ID-1137): `require_on_grid`'s range refusal names the item and its position in mm, no JSON pointer or
+/// `require_on_grid`'s range refusal names the item and its position in mm, no JSON pointer or
 /// nanometres, and ends with what the user can do.
 #[test]
 fn d3_a_position_outside_the_drawable_range_is_refused_in_words() {
@@ -594,7 +594,7 @@ fn d3_off_grid_positions_are_rejected() {
         rejection(e.execute(&route(vec![pt(G, G), pt(2 * G, G + 1), last]))),
         corner_off("x 15.9, y 7.9 mm")
     );
-    // FT-864 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
+    // FT-864 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
     assert_eq!(
         rejection(e.execute(&route(vec![pt(2 * G, G), last]))),
         "the wire's start at x 15.9, y 7.9 mm on page 102 does not meet connection point -102K1:1 at x 7.9, y 7.9 mm; \
@@ -706,7 +706,7 @@ fn naive_defect(route: &[Pt2]) -> bool {
 fn ft437_a_repeated_vertex_is_refused_by_draw_and_route() {
     let (mut e, fa, fb) = two_devices();
     let dup = vec![pt(G, G), pt(2 * G, G), pt(2 * G, G), pt(4 * G, G)];
-    // FT-864 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
+    // FT-864 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
     let expected = "the wire's corner at x 15.9, y 7.9 mm on page 102 repeats the corner before it; remove the duplicate corner";
     assert_eq!(rejection(e.execute(&draw_between(fa, fb, dup.clone()))), expected);
     let r = e
@@ -734,7 +734,7 @@ fn ft437_a_route_that_doubles_back_is_refused() {
     ];
     assert_eq!(
         rejection(e.execute(&draw_between(fa, fb, back))),
-        // FT-864 (ID-1108, as above)
+        // FT-864 (as above)
         "the wire runs back over itself on page 102: its stretch from x 23.8, y 7.9 mm to x 15.9, y 7.9 mm lies on its \
          stretch from x 7.9, y 7.9 mm to x 23.8, y 7.9 mm; remove the stretch it runs back over"
     );
@@ -760,7 +760,7 @@ fn ft437_a_route_that_doubles_back_is_refused() {
 proptest::proptest! {
     #![proptest_config(proptest::prelude::ProptestConfig::with_cases(64))]
 
-    /// FT-437: for routes between two CPs through interior grid vertices (repeats and overlaps likely), each of
+    /// For routes between two CPs through interior grid vertices (repeats and overlaps likely), each of
     /// `connection.draw` and `connection.route` accepts exactly the routes the naive oracle finds tidy, stores
     /// them as given (a refused `connection.route` leaves the route as it was), and `geometry::route_defect`
     /// agrees with the oracle.

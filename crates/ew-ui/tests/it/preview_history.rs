@@ -157,7 +157,7 @@ fn pv5_the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1078 (ID-1183), as FT-567: the History header starts `space.4` inside the pane, as the Messages header does.
+/// FT-1078, as FT-567: the History header starts `space.4` inside the pane, as the Messages header does.
 #[test]
 fn ft1078_the_history_header_keeps_space_4_from_the_pane_edge() {
     let tmp = Tmp::new();
@@ -186,7 +186,7 @@ fn ft1078_the_history_header_keeps_space_4_from_the_pane_edge() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1362 (ID-1358 ruling 7; W50-F12): with one step the History dock is as high as its one row needs, at the floor
+/// FT-1362 (ruling 7; W50-F12): with one step the History dock is as high as its one row needs, at the floor
 /// and at 1920 × 1080, and the row reads in words: the command's title and its origin, not `fields.set` and `script ui-script`.
 #[test]
 fn ft1362_a_short_history_is_a_short_dock_in_words() {
@@ -357,7 +357,7 @@ fn id1427_a_changed_records_line_reads_in_dutch() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// ID-1497 (4): at 1280 × 800 the renumber of 106 to 104 previews its Pages list as "106 → 104"; a click on a list's
+/// At 1280 × 800 the renumber of 106 to 104 previews its Pages list as "106 → 104"; a click on a list's
 /// header opens it in place, so the headers below stay where they were (R1's second click hit the header the grown dock
 /// had moved under it), and a second click closes it again.
 #[test]

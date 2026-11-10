@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-895: the mouse wheel on the canvas, measured. For each of (dy +3, dy −3, dx +3, dx −3) × (no modifier, Ctrl,
+//! The mouse wheel on the canvas, measured. For each of (dy +3, dy −3, dx +3, dx −3) × (no modifier, Ctrl,
 //! Shift), the zoom and the view's centre before and after one wheel event of three lines, sent (a) as egui's events
 //! straight into the window and (b) by the visual driver's `scroll` step.
 
@@ -200,7 +200,7 @@ fn ft895_the_wheel_table_by_the_visual_driver() {
     assert_eq!(table, expected());
 }
 
-/// FT-1439 (ID-1397): with View ▸ Mouse wheel scrolls on, the plain vertical wheel scrolls three of egui's lines (32 mm
+/// With View ▸ Mouse wheel scrolls on, the plain vertical wheel scrolls three of egui's lines (32 mm
 /// at 100 %) and leaves the zoom, a line down showing more of the bottom; Ctrl with the wheel still zooms.
 #[test]
 fn ft1439_the_wheel_scrolls_by_the_preference() {

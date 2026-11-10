@@ -88,7 +88,7 @@ pub(crate) const PAGES: TableSpec = spec(
         "function",
         "location",
         "scale",
-        // WP-S4.01 part 3: the page's surface view.
+        // The page's surface view.
         "view_surface",
         "view_datum",
         "view_label_mode",
@@ -121,7 +121,7 @@ pub(crate) const PARTS: TableSpec = spec(
         "unit",
         "test_data",
         "tech_data",
-        // WP-S4.01 part 2: the mechanical data (mm) and the carrier sections.
+        // The mechanical data (mm) and the carrier sections.
         "width",
         "height",
         "depth",
@@ -130,7 +130,7 @@ pub(crate) const PARTS: TableSpec = spec(
         "enclosure_plate",
         "plate",
         "rail_profile",
-        // WP-S1.20 D4: the fluid section's solenoids of a valve part ("14", "14;12").
+        // The fluid section's solenoids of a valve part ("14", "14;12").
         "solenoids",
     ],
 );
@@ -356,14 +356,14 @@ pub(crate) const CHANNELS: TableSpec = spec(
 /// `device_links.csv`.
 pub(crate) const DEVICE_LINKS: TableSpec = spec("device_links", &["key", "from", "to", "kind"], &[]);
 
-/// `logical_nets.csv` (WP-S1.21 D11).
+/// `logical_nets.csv`.
 pub(crate) const LOGICAL_NETS: TableSpec = spec("logical_nets", &["key", "bus", "name"], &["master", "rate"]);
 
-/// `physical_nets.csv` (WP-S1.21 D11).
+/// `physical_nets.csv`.
 pub(crate) const PHYSICAL_NETS: TableSpec =
     spec("physical_nets", &["key", "name", "medium"], &["order_hint"]);
 
-/// `bus_ports.csv` (WP-S1.21 D11): the key is the function's.
+/// `bus_ports.csv`: the key is the function's.
 pub(crate) const BUS_PORTS: TableSpec = spec(
     "bus_ports",
     &["key", "interface", "bus", "role", "address"],
@@ -378,24 +378,24 @@ pub(crate) const ASSEMBLY_CONFIGS: TableSpec = spec(
 );
 
 /// Every known table.
-/// `layout_spaces.csv` (WP-S4.01 part 2).
+/// `layout_spaces.csv`.
 pub(crate) const LAYOUT_SPACES: TableSpec = spec("layout_spaces", &["key", "location"], &["name"]);
 
-/// `enclosures.csv`: an enclosure and its plate surface (WP-S4.01 part 2).
+/// `enclosures.csv`: an enclosure and its plate surface.
 pub(crate) const ENCLOSURES: TableSpec = spec(
     "enclosures",
     &["key", "space", "device"],
     &["plate_device", "plate_frame", "plate_usable", "plate_pe_bond"],
 );
 
-/// `carriers.csv` (WP-S4.01 part 2).
+/// `carriers.csv`.
 pub(crate) const CARRIERS: TableSpec = spec(
     "carriers",
     &["key", "surface", "kind", "path"],
     &["part", "profile", "width", "height", "pe_bond"],
 );
 
-/// `placements.csv` (WP-S4.01 part 2).
+/// `placements.csv`.
 pub(crate) const PLACEMENTS: TableSpec = spec("placements", &["key", "device", "carrier", "s"], &["part"]);
 
 pub(crate) const ALL: [TableSpec; 36] = [

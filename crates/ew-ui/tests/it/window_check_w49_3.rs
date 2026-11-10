@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fixes of window check W49.3 in the collision dialog (cycle 49, WP-S1.17 D24, decision log ID-1284):
+//! The fixes of window check W49.3 in the collision dialog:
 //!
 //! - F1 (doc 16a §6.12): every opening of the collision dialog puts its first focus on its Primary, Apply, whatever
 //!   opened it: a poll, a poll in the frame another dialog closed, a refused save. Enter then applies the choices shown

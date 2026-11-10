@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Place tool (`place`; WP-S2.04 §7.2, FR-SYM-015, FR-UI-017, FR-DEV-038): a symbol floating at the snapped
+//! The Place tool (`place`; FR-SYM-015, FR-UI-017, FR-DEV-038): a symbol floating at the snapped
 //! insertion point, committed with `device.place`.
 //!
 //! | State | Event | Next | Output |
@@ -20,10 +20,10 @@
 //! page (even-odd, the boundary inside; the innermost by area, ties by ID) becomes `join_device {device: the box's
 //! device, role: aux}` (doc 06 §2.7). A `new_terminal` target advances its designation after each commit when it is
 //! decimal digits, and lands on the next free point two grid steps to the right while a terminal of the same strip
-//! sits on its point (FT-622; the proposals are then not sent). A join target ([`PlaceTarget::Join`], WP-S2.18 D1) sends `existing_function` with the device's
+//! sits on its point (the proposals are then not sent). A join target ([`PlaceTarget::Join`], WP-S2.18 D1) sends `existing_function` with the device's
 //! next unplaced slot of the symbol's FnDef, else `join_device {device, role: aux}`; its label reads `join -K1`.
 //!
-//! **Autoconnect** (WP-S2.04 part 2, §8.3): on a page whose type autoconnects, every move of the ghost computes the
+//! **Autoconnect**: on a page whose type autoconnects, every move of the ghost computes the
 //! proposals of its free CPs from the page tables ([`super::autoconnect`]) and draws them as dashed stubs; Tab
 //! ([`ToolKey::NextProposal`]) cycles each ray to its next hit. They become the `connect` hints of the committed
 //! `device.place` (a split of a routed wire sends none: normaliser 7 splits it); a press with Alt held, or a move with
@@ -63,7 +63,7 @@ pub enum PlaceTarget {
         /// The function.
         function: String,
     },
-    /// An existing device (WP-S2.18 D1): the next unplaced function of the symbol's FnDef on it (`existing_function`,
+    /// An existing device: the next unplaced function of the symbol's FnDef on it (`existing_function`,
     /// a part's template slot), else a new auxiliary function (`join_device {device, role: aux}`). Armed by the Join
     /// chooser (J) or `place.pick device=<tag>`; sticky across placements, the host refreshes `slots` and `tag` after
     /// each commit.
@@ -90,7 +90,7 @@ pub enum PlaceTarget {
     Terminal {
         /// The strip device.
         strip: String,
-        /// The strip's tag as the page prints it (the label's, `1X1`; the place catalogue's, FT-421).
+        /// The strip's tag as the page prints it (the label's, `1X1`; the place catalogue's).
         strip_tag: String,
         /// The terminal's designation.
         designation: String,
@@ -127,7 +127,7 @@ pub struct PlaceTool {
     proposals: Proposals,
     /// Whether Alt was held at the last move (no proposal is shown or sent).
     suppressed: bool,
-    /// Whether the symbol's FnDef can be an auxiliary function, so that J offers the Join chooser (WP-S2.18 D2).
+    /// Whether the symbol's FnDef can be an auxiliary function, so that J offers the Join chooser.
     joinable: bool,
     /// The target before the Join chooser set a [`PlaceTarget::Join`]: what its "New device" row restores.
     base: Option<PlaceTarget>,
@@ -212,7 +212,7 @@ impl PlaceTool {
         }
     }
 
-    /// The tool with the Join chooser offered or not (WP-S2.18 D2: the symbol's FnDef can be an auxiliary function).
+    /// The tool with the Join chooser offered or not (the symbol's FnDef can be an auxiliary function).
     pub fn with_joinable(mut self, on: bool) -> PlaceTool {
         self.joinable = on;
         self
@@ -229,7 +229,7 @@ impl PlaceTool {
         self.joinable
     }
 
-    /// Sets a join target (the Join chooser's row, WP-S2.18 D2), keeping the target it replaces for "New device";
+    /// Sets a join target (the Join chooser's row), keeping the target it replaces for "New device";
     /// answers the new overlay.
     pub fn join(&mut self, target: PlaceTarget, cx: &ToolCx<'_>) -> ToolOutput {
         if !matches!(self.target, PlaceTarget::Join { .. }) {
@@ -249,7 +249,7 @@ impl PlaceTool {
         self.transient(cx)
     }
 
-    /// A join target's slots and tag as the project has them after a commit (WP-S2.18 D1: the next slot, or none).
+    /// A join target's slots and tag as the project has them after a commit (the next slot, or none).
     pub fn set_join_state(&mut self, new_slots: Vec<String>, new_tag: Option<String>) {
         if let PlaceTarget::Join { slots, tag, .. } = &mut self.target {
             *slots = new_slots;
@@ -272,7 +272,7 @@ impl PlaceTool {
 
     /// The ghost's CPs at the insertion point `pos` (page nm).
     fn ghost_cps(&self, pos: (i64, i64)) -> Vec<GhostCp> {
-        // A terminal's CPs never connect to a terminal of its own strip (FT-1082, ID-1177).
+        // A terminal's CPs never connect to a terminal of its own strip.
         let strip_tag = match &self.target {
             PlaceTarget::Terminal { strip_tag, .. } => Some(strip_tag.clone()),
             _ => None,
@@ -435,7 +435,7 @@ impl PlaceTool {
         }
     }
 
-    /// The insertion point of a placement at `at` (FT-622, the orchestrator's ruling): a new terminal on a page point
+    /// The insertion point of a placement at `at` (the orchestrator's ruling): a new terminal on a page point
     /// where a terminal of the same strip already sits moves to the right, two grid steps at a time, until the point
     /// is free (Golden A's 1X1 draws its three terminals of one cell 20 QET px apart). A terminal of the same strip is
     /// told by [`is_strip_terminal`] (its connection points print `<strip>:…`; autoconnect tells it the same way,
@@ -504,7 +504,7 @@ impl PlaceTool {
             return text;
         }
         let (_, _, mut target) = self.effective_target(cx, pos);
-        // C50-p1#3: a terminal's target already names its strip and designation, so its predicted tag is not added.
+        // A terminal's target already names its strip and designation, so its predicted tag is not added.
         if let Some(tag) = self.tag.as_ref().filter(|_| !self.is_terminal()) {
             target.push(' ');
             target.push_str(tag);
@@ -517,7 +517,7 @@ impl PlaceTool {
         matches!(self.target, PlaceTarget::Terminal { .. })
     }
 
-    /// FT-1297: the overlay at the current point again, in the language now set (View ▸ Language), the predicted tag
+    /// The overlay at the current point again, in the language now set (View ▸ Language), the predicted tag
     /// kept; `None` before the first point.
     pub(crate) fn relabel(&mut self, cx: &ToolCx<'_>) -> Option<ToolOutput> {
         self.at?;
@@ -562,7 +562,7 @@ impl PlaceTool {
         let Some((sheet, pos)) = self.at else {
             return Overlay::default();
         };
-        // FT-1208: the ghost stands where the placement lands, a terminal moved off a terminal of its strip included.
+        // The ghost stands where the placement lands, a terminal moved off a terminal of its strip included.
         let (sheet, pos) = match self.landing {
             Some((landing, steps)) if steps != 0 => (cx.snapper.page_to_sheet(landing), landing),
             _ => (sheet, pos),
@@ -646,7 +646,7 @@ impl PlaceTool {
     }
 
     /// Whether a placement at `pos` lands exactly on an identical representation of the page: the same symbol copy,
-    /// insertion point and orientation (FT-751; a quick double click with Place). One grid step away is not.
+    /// insertion point and orientation (a quick double click with Place). One grid step away is not.
     fn lands_on_twin(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> bool {
         let orient = self.orient % 8;
         cx.page
@@ -656,7 +656,7 @@ impl PlaceTool {
             .any(|r| r.symbol == self.shape.copy && r.pos == pos && r.orient == orient)
     }
 
-    /// Whether the placement at the current point would land on an identical twin (FT-751). A terminal never does:
+    /// Whether the placement at the current point would land on an identical twin. A terminal never does:
     /// one of the same strip moves along it ([`Self::stacked_pos`]), and one of another strip may share the point
     /// (FT-622's ruling).
     fn on_twin(&self, cx: &ToolCx<'_>) -> bool {
@@ -668,7 +668,7 @@ impl PlaceTool {
     }
 
     /// Whether a CP of the placement at the current point lies strictly inside a wire segment the scene's clamp drew
-    /// along the sheet's edge (FT-1049).
+    /// along the sheet's edge.
     fn on_off_sheet(&self, cx: &ToolCx<'_>) -> bool {
         self.at.is_some_and(|(_, at)| {
             on_off_sheet_segment(&self.ghost_cps(self.stacked_pos(cx, at)), &cx.page.tables)
@@ -676,11 +676,11 @@ impl PlaceTool {
     }
 
     fn commit(&mut self, cx: &ToolCx<'_>, alt: bool) -> ToolOutput {
-        // FT-751: refused in words (doc 16a, a refusal leaves the model unchanged), never a stacked twin.
+        // Refused in words (doc 16a, a refusal leaves the model unchanged), never a stacked twin.
         if self.on_twin(cx) {
             return ToolOutput::Refused(key!("reason-place-stacked"));
         }
-        // FT-1049 (ID-1148): never with a CP strictly inside a stretch the scene drew along the sheet's edge, where
+        // Never with a CP strictly inside a stretch the scene drew along the sheet's edge, where
         // the wire does not run (normaliser 7 would not split it there).
         if self.on_off_sheet(cx) {
             return ToolOutput::Refused(key!("reason-place-wire-off-sheet"));
@@ -697,7 +697,7 @@ impl PlaceTool {
         if self.ask { "?".to_owned() } else { d.to_owned() }
     }
 
-    /// The tag of the strip of a `new_terminal` target, as the page prints it now (FT-421).
+    /// The tag of the strip of a `new_terminal` target, as the page prints it now.
     pub fn set_strip_tag(&mut self, tag: String) {
         if let PlaceTarget::Terminal { strip_tag, .. } = &mut self.target {
             *strip_tag = tag;
@@ -749,7 +749,7 @@ impl Tool for PlaceTool {
                 self.tag = None;
                 self.transient(cx)
             }
-            // FT-751, FT-1062: no preview of a stacked twin or of a drop on an off-sheet stretch, which a commit
+            // No preview of a stacked twin or of a drop on an off-sheet stretch, which a commit
             // refuses.
             CanvasEvent::Dwell { ms } if *ms >= super::PREVIEW_DWELL_MS => match self.command(cx, false) {
                 Some(_) if self.on_twin(cx) || self.on_off_sheet(cx) => ToolOutput::None,
@@ -817,7 +817,7 @@ impl Tool for PlaceTool {
         }
     }
 
-    /// FT-1208 (ID-1416): a terminal that moves off a terminal of its strip standing on the click point (FT-622) says
+    /// A terminal that moves off a terminal of its strip standing on the click point says
     /// so, for the placement's toast.
     fn proposal_note(&self) -> Option<String> {
         let (PlaceTarget::Terminal { strip_tag, .. }, Some((_, steps))) = (&self.target, self.landing) else {
@@ -853,7 +853,7 @@ impl Tool for PlaceTool {
             target,
             letter,
             strip,
-            // A join names the device it joins (WP-S2.18 D2) until a preview predicts a tag.
+            // A join names the device it joins until a preview predicts a tag.
             tag: self.tag.clone().or_else(|| match &self.target {
                 PlaceTarget::Join { tag, .. } => Some(tag.clone()),
                 _ => None,
@@ -885,7 +885,7 @@ impl Tool for PlaceTool {
                     text.clone_from(whole);
                     continue;
                 }
-                // C50-p1#3: a terminal's label names its tag already.
+                // A terminal's label names its tag already.
                 if self.is_terminal() {
                     continue;
                 }

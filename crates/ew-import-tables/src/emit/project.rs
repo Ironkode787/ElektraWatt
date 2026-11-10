@@ -335,13 +335,13 @@ pub(crate) fn emit_pages(cx: &mut Cx<'_>, table: Option<&Table>) {
     }
 }
 
-/// The view columns of `pages.csv` → the page's `surface_view` item (WP-S4.01 part 3, D9): `view_surface` (an
+/// The view columns of `pages.csv` → the page's `surface_view` item: `view_surface` (an
 /// `enclosures` key: its plate), `view_datum` (one point `x y`, mm on the page: where the surface origin is drawn) and
 /// `view_label_mode` (`abbreviated` or `full`). Runs after the layout, whose plate surfaces the views name.
 pub(crate) fn emit_surface_views(cx: &mut Cx<'_>, table: Option<&Table>) {
     let Some(table) = table else { return };
     for row in table.rows() {
-        // One view per page, from the row the page was imported from (FT-871): of a repeated key, that is the first
+        // One view per page, from the row the page was imported from: of a repeated key, that is the first
         // row that imported, not always the first row. A row that did not import was reported by `emit_pages`.
         let Some(page) = cx
             .pages
@@ -768,7 +768,7 @@ pub(crate) fn emit_project(
     Some(())
 }
 
-/// `revisions.csv` → `revision` records (doc 03 §18, typed since FT-165).
+/// `revisions.csv` → `revision` records (doc 03 §18, typed).
 ///
 /// `key` is the label and `state` one of `open`, `released`, `withdrawn`. `author` and `checker` name a party
 /// of `parties.csv` by its key or its name; the record keeps the party's role, the only party reference form

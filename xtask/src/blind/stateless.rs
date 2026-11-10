@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `--stateless` (WP-S6.13 §5.4, D6): no keeper and no socket, for agent shells that block loopback or kill detached
+//! `--stateless` (D6): no keeper and no socket, for agent shells that block loopback or kill detached
 //! processes. Every `do` and `look` replays the prelude and the accepted steps in a fresh product, checks that the
 //! outcomes repeat, sends the new steps and quits the product with `app.quit` `discard`; the project is saved only by
 //! the agent's own `file.save` steps, which the replay repeats. It costs a replay per call and is otherwise equal: the

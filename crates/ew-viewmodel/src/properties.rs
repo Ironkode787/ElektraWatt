@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property grid's panel model (WP-S2.05 part 1, spec §6.2 to §6.11): the sheet the shell fetched, the focused
+//! The property grid's panel model (spec §6.2 to §6.11): the sheet the shell fetched, the focused
 //! row, the edit buffer, the choices and popups, the inline preview card and the toast, and the pure rules over them —
 //! the edit policy of FR-UI-044 ([`policy`]), the composition of a leaf into its settable member ([`compose`]), the
 //! read-only reasons ([`read_only_reason`]) and the rows on show ([`visible_rows`]).
@@ -99,7 +99,7 @@ pub struct Choices {
     pub row: String,
     /// The texts and values, in order.
     pub items: Vec<(String, Value)>,
-    /// Each item's secondary line, in the items' order (FT-1478: an address profile's reference under its name); empty
+    /// Each item's secondary line, in the items' order (an address profile's reference under its name); empty
     /// when the items have none.
     pub details: Vec<String>,
     /// What they are for.
@@ -179,7 +179,6 @@ pub struct PendingEdit {
     pub label: String,
 }
 
-// WP-S2.05 part 2
 /// Where a card was opened: the property grid, the find pane's replace, or the parts table import (the transcript's
 /// `origin`).
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -193,7 +192,7 @@ pub enum CardOrigin {
         /// The number of hits the replace writes.
         hits: usize,
     },
-    /// File, Import, Parts table (FT-410): the card of `parts.import`, a window of its own that no selection change
+    /// File, Import, Parts table: the card of `parts.import`, a window of its own that no selection change
     /// and no pane of the layout ends; it goes with the project.
     Import {
         /// The base name of the chosen table (`parts.csv`).
@@ -203,40 +202,33 @@ pub enum CardOrigin {
         /// The copies it skips: their key exists already.
         skipped: usize,
     },
-    // WP-S2.06 part 1
     /// The Pages navigator's reorder (`pages.reorder`, §6.6): the card in the Pages pane, with the preview's folio
     /// changes `"<old> → <new>"` in position order.
     Reorder {
         /// The notices of `page.reorder`'s preview.
         notices: Vec<String>,
     },
-    // WP-S2.09 part 2
     /// A finding's quick fix (`messages.fix`, §7.4): the card in the Messages pane, always previewed.
     QuickFix {
         /// The rule ID of the finding.
         rule: String,
     },
-    // WP-S2.09 part 3
     /// The card of a `Bulk` command a dialog built (§8.2): Page, Renumber pages… (`page.renumber`) and Tools, Renumber
     /// devices… (`numbering.renumber`); its targets and changes are the number of entity changes. Draw ▸ Bond's
     /// `bond.create` (FT row 7 of the G-PP triage) uses the same card with its own reason.
     Bulk,
-    // WP-S2.06 part 3
     /// A gesture of a navigator's table (§8.7): the card in the navigator's pane, with the gesture's cells, so that
     /// `table.resolve` and `table.drop` rebuild the command and a stale card retargets its rows.
     Table {
-        /// The gesture, with its title (WP-S3.08 D10).
+        /// The gesture, with its title.
         gesture: crate::navigators::table::TableGesture,
     },
-    // WP-S1.19 part 6
     /// A macro's insertion from the Macros navigator (`macro.insert`, §11, FR-MAC-005): the card in the Preview tab
     /// with the conflicts the user decides on before Apply; a refused preview (a prevent rule) still shows them.
     Macro(Box<MacroInsert>),
-    // WP-S2.07 part 4a
     /// The part editor's Save (`part.edit_copy`, D20): the card in the Preview tab with the field diff, the devices
     /// that use the copy, the BOM rows that change and, for a fork, the fork note.
     Part(Box<PartCard>),
-    // WP-S2.07 part 4b
     /// FT-396's paste choice (D22): a paste whose fragment carries another version of a held library copy; the card in
     /// the Preview tab lists the copies and offers Use the project's copy and Update the project's copy (`paste.resolve`).
     /// It previews nothing: its result is the refusal, so Apply stays blocked.
@@ -247,12 +239,10 @@ pub enum CardOrigin {
         /// The clipboard text of the pending paste.
         text: String,
     },
-    // WP-S3.08 part 3
     /// A table round trip's file read against a navigator's table (`navigator.import_table`, D14, ruling 6 of
     /// ID-1224): the card in the Preview tab with the counts and the per-cell list; Apply commits the import's one
     /// `fields.set_many`.
     TableImport(Box<TableImportCard>),
-    // WP-S2.19 D13
     /// Route page and Route selection (`route.page`, `route.selection`): the card in the Preview tab with the plan's
     /// lead line and one row per connection left unrouted; Apply commits the plan's `connection.route_many`.
     Route {
@@ -269,16 +259,16 @@ pub enum CardOrigin {
     },
 }
 
-/// What a table import card shows and commits (WP-S3.08 D14).
+/// What a table import card shows and commits.
 #[derive(Clone, PartialEq, Debug)]
 pub struct TableImportCard {
     /// The file's base name (`strips.xlsx`).
     pub source: String,
     /// The file read against the project: the cells, the findings, the missing rows and the command.
     pub import: ew_api::output::TableImport,
-    /// The file's bytes, which the switch "Take the file's values" reads again (FT-1149).
+    /// The file's bytes, which the switch "Take the file's values" reads again.
     pub bytes: std::sync::Arc<Vec<u8>>,
-    /// Whether a cell changed in both takes the file's value (the switch, WP-S3.08 D14).
+    /// Whether a cell changed in both takes the file's value (the switch).
     pub take_file: bool,
 }
 
@@ -286,13 +276,13 @@ pub struct TableImportCard {
 impl Eq for TableImportCard {}
 
 impl TableImportCard {
-    /// Whether the file changes nothing it could apply (no command): its Apply is disabled (FT-1193, ID-1391).
+    /// Whether the file changes nothing it could apply (no command): its Apply is disabled.
     pub fn nothing_to_import(&self) -> bool {
         self.import.command.is_none()
     }
 
     /// The card's counts line: "5 cells changed, 0 cells kept, 1 conflict: the project's value is kept, …", each count
-    /// with its noun (FT-1194); a file that matches the project says so in one sentence (FT-1193, ID-1391).
+    /// with its noun; a file that matches the project says so in one sentence.
     pub fn counts_line(&self) -> String {
         let c = self.import.counts();
         if self.nothing_to_import() && c.kept + c.conflicts + c.refused + c.unknown + c.missing == 0 {
@@ -319,7 +309,7 @@ impl TableImportCard {
     }
 
     /// One cell's line of the per-cell list: `-X1031:1 · Function text · "Valve" → "Valve 1" · Apply takes the
-    /// file's value` (what Apply will do, FT-1194), with the reason of a read-only or refused cell.
+    /// file's value` (what Apply will do), with the reason of a read-only or refused cell.
     pub fn cell_line(cell: &ew_api::output::ImportCell) -> String {
         use ew_api::output::CellOutcome;
         let outcome = match cell.outcome {
@@ -347,7 +337,7 @@ impl TableImportCard {
     }
 }
 
-/// What the paste choice card shows and keeps (WP-S2.07 D22).
+/// What the paste choice card shows and keeps.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PasteChoice {
     /// The clipboard text of the pending paste.
@@ -363,7 +353,7 @@ pub struct PasteChoice {
     pub update: Option<Key<'static>>,
 }
 
-/// One copy of the paste choice card (WP-S2.07 D22).
+/// One copy of the paste choice card.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PasteConflict {
     /// The copy ID.
@@ -389,7 +379,7 @@ impl PasteChoice {
     }
 
     /// The card's text of one conflict (`FX-MCB-1PN (Fixture): this project 1.1.0, pasted 1.0.0, a data change`): the
-    /// change size in words (cycle 39, FIX39b-1), the describe line keeps the class word.
+    /// change size in words (FIX39b-1), the describe line keeps the class word.
     pub fn conflict_text(c: &PasteConflict) -> String {
         let size = match c.class {
             "major" => strings::text(key!("paste-class-major")),
@@ -400,7 +390,7 @@ impl PasteChoice {
     }
 }
 
-/// What a part card shows (WP-S2.07 D20).
+/// What a part card shows.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PartCard {
     /// The editor's title (`Edit part 5SY4204-7 (Siemens)`).
@@ -417,7 +407,7 @@ pub struct PartCard {
     pub fork: bool,
 }
 
-/// What a macro card inserts and the conflicts it lists (WP-S1.19 §11).
+/// What a macro card inserts and the conflicts it lists.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct MacroInsert {
     /// The Macros navigator's row key of the macro.
@@ -434,13 +424,13 @@ pub struct MacroInsert {
     pub value_set: Option<String>,
     /// The macro's value sets.
     pub value_sets: Vec<String>,
-    /// The variables' ad-hoc value fields, in the macro's order (FT-785).
+    /// The variables' ad-hoc value fields, in the macro's order.
     pub fields: Vec<MacroField>,
     /// The conflicts in words, the refusals first (`Session::macro_conflicts`).
     pub conflicts: Vec<String>,
 }
 
-/// One variable's ad-hoc value field on a macro card (FT-785): a typed value is a literal of `macro.insert`, which wins
+/// One variable's ad-hoc value field on a macro card: a typed value is a literal of `macro.insert`, which wins
 /// over the value set and the default.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct MacroField {
@@ -490,7 +480,7 @@ pub struct Card {
     pub changes: usize,
     /// Why the card opened (`reason-identifiers`).
     pub reason: Key<'static>,
-    /// Where it was opened (WP-S2.05 part 2).
+    /// Where it was opened.
     pub origin: CardOrigin,
 }
 
@@ -505,13 +495,13 @@ impl Card {
         }
     }
 
-    /// The lead line of a failed card (cycle 38, FX38d; doc 16a P3, words not IDs) and the rule code that may follow it
+    /// The lead line of a failed card (FX38d; doc 16a P3, words not IDs) and the rule code that may follow it
     /// in secondary text; `None` while the preview stands. A macro card leads with a sentence that says what blocks
     /// the apply and how many conflicts its list shows (the list is the detail, so the lead never repeats a row); the
     /// other cards keep `card-failed` with the command's message.
     pub fn failed_lead(&self) -> Option<FailedLead> {
         let message = self.preview.result.as_ref().err()?;
-        // WP-S2.07 D22: the paste choice card leads with what it asks; its rows and choices are the detail.
+        // The paste choice card leads with what it asks; its rows and choices are the detail.
         if matches!(self.origin, CardOrigin::PasteVersions(_)) {
             return Some(FailedLead {
                 text: strings::text(key!("card-paste-versions-title")).to_owned(),
@@ -524,7 +514,7 @@ impl Card {
                 rule: None,
             });
         };
-        // FT-785: a typed value the command did not take leads in words naming its variable; the reason is under the
+        // A typed value the command did not take leads in words naming its variable; the reason is under the
         // field.
         if let Some(f) = m.fields.iter().find(|f| f.error.is_some()) {
             return Some(FailedLead {
@@ -594,7 +584,7 @@ pub struct PropertiesState {
     /// The selection generation and the page it was made on: the pane shows the selection only while that page is on
     /// show; a page change with nothing selected there shows the page's own sheet (window check, item 6).
     pub(crate) selection_page: Option<(u64, Option<PageId>)>,
-    /// FT-541: the text of the filter field (`props.filter`); it applies only while the field is on show.
+    /// The text of the filter field (`props.filter`); it applies only while the field is on show.
     pub(crate) filter: String,
     /// The proposal of a refused tag-letter edit (FR-NUM-029): accepted by `props.accept_tag_proposal`.
     pub(crate) tag_proposal: Option<TagProposal>,
@@ -615,13 +605,13 @@ pub struct TagProposal {
     pub(crate) params: Value,
     /// The revision the proposal was computed on: accepting it on another is refused.
     pub(crate) base_rev: u64,
-    /// WP-S2.18 D3 (FT-628): a join instead (an existing device's tag typed into the Tag field), whose `params` are
+    /// A join instead (an existing device's tag typed into the Tag field), whose `params` are
     /// `rep.join_device`'s; `tag` is then that device's tag and `counter` empty.
     pub(crate) join: bool,
 }
 
 impl TagProposal {
-    /// Whether it is a join (WP-S2.18 D3) rather than a tag.
+    /// Whether it is a join rather than a tag.
     pub fn join(&self) -> bool {
         self.join
     }
@@ -689,7 +679,7 @@ impl PropertiesState {
         &self.notes
     }
 
-    /// The text of the filter field (FT-541); `ShellModel::properties_filter` is the filter in force.
+    /// The text of the filter field; `ShellModel::properties_filter` is the filter in force.
     pub fn filter(&self) -> &str {
         &self.filter
     }
@@ -788,16 +778,16 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "derived.potential",
             "derived.csa",
             "derived.colour",
-            // FT-554: whether the wire prints its marker, beside the cross-section and the colour it prints.
+            // Whether the wire prints its marker, beside the cross-section and the colour it prints.
             "overrides.show_marker",
         ],
     ),
 ];
 
 /// The internal members shown only under Advanced, by the row's path: the record version, the ID, the source reference
-/// with its key and lineage, the tag counter, the form's UUID and (FT-1019, ID-1107) the members of a page's connection
+/// with its key and lineage, the tag counter, the form's UUID and the members of a page's connection
 /// grid, a fraction of nanometres (`num`, `den`) with no meaning to the user, whose row itself is a choice (ID-1477
-/// (1)), and (ID-1389) a connection's route, drawn on the canvas.
+/// (1)), and a connection's route, drawn on the canvas.
 const ADVANCED: &[&str] = &[
     "$v",
     "id",
@@ -859,7 +849,7 @@ pub fn groups(section: &SheetSection, advanced: bool) -> Vec<(RowGroup, Vec<&Pro
     out
 }
 
-/// The Main rows with a connection's `overrides.show_marker` moved right after the colour it prints (FT-554); the rows
+/// The Main rows with a connection's `overrides.show_marker` moved right after the colour it prints; the rows
 /// as they are when either is absent.
 fn marker_beside_colour(mut rows: Vec<&PropRow>) -> Vec<&PropRow> {
     let Some(from) = rows.iter().position(|r| r.path == "overrides.show_marker") else {
@@ -1022,7 +1012,7 @@ pub fn read_only_reason(sheet: &PropertySheet, section: &SheetSection, row: &Pro
     }
 }
 
-/// The refusal of an edit of read-only row `row` as a sentence (FT-1051): the identity, a command and no command each
+/// The refusal of an edit of read-only row `row` as a sentence: the identity, a command and no command each
 /// have their own; any other reason is wrapped (`props-refused-read-only`). `None` where [`read_only_reason`] is.
 pub fn refusal_text(sheet: &PropertySheet, section: &SheetSection, row: &PropRow) -> Option<String> {
     let reason = read_only_reason(sheet, section, row)?;
@@ -1051,7 +1041,7 @@ pub fn reason_text(reason: &FieldReadOnly) -> String {
         FieldReadOnly::Command {
             action: Some(action), ..
         } => strings::format(key!("props-ro-action"), &[action]),
-        // FT-1353: the command by its title ("Renumber pages"), never its ID.
+        // The command by its title ("Renumber pages"), never its ID.
         FieldReadOnly::Command { command, .. } => {
             strings::format(key!("props-ro-command"), &[strings::command_title(command)])
         }
@@ -1070,8 +1060,8 @@ pub fn member_path(route: &EditRoute) -> Option<String> {
     }
 }
 
-/// The settable member's new value with a leaf replaced (§6.6), moved down to `ew-api` with table mode's pure rule
-/// (WP-S3.08 D10; ID-1174 ruling 3), re-exported under its old path.
+/// The settable member's new value with a leaf replaced (§6.6), moved down to `ew-api` with table mode's pure rule,
+/// re-exported under its old path.
 pub use ew_api::output::table_edit::compose;
 
 /// The kind's plural for the card and the toast (`devices`), in the UI language inside a sentence (FT-1479:
@@ -1083,7 +1073,7 @@ pub fn kind_plural(kind: &str, n: usize) -> String {
     strings::in_sentence(&strings::kinds_heading(kind))
 }
 
-/// The header of a sheet's section of `n` records of `kind` (ID-1139): the kind in sentence case, singular for one,
+/// The header of a sheet's section of `n` records of `kind`: the kind in sentence case, singular for one,
 /// with the count ("Device (1)", "Devices (2)"), in the UI language (FT-1356: "Apparaat (1)"; FT-1411: "Apparaten
 /// (2)").
 pub fn section_header(kind: &str, n: usize) -> String {
@@ -1112,7 +1102,7 @@ pub fn item_default(ty: &FieldType) -> Value {
     }
 }
 
-/// Writes a page's Connection grid rows in words (ID-1139): the group `{ num, den }` has no text of its own, so its
+/// Writes a page's Connection grid rows in words: the group `{ num, den }` has no text of its own, so its
 /// shown value is the grid as the status bar writes it ("QET 10 px", "4 mm"). Its JSON value is unchanged.
 pub fn grid_in_words(sheet: &mut PropertySheet) {
     for row in sheet
@@ -1155,7 +1145,7 @@ pub fn grid_in_words(sheet: &mut PropertySheet) {
     }
 }
 
-/// Writes a connection's ends A and B in words (ID-1389, W51 finding G): each end as the live description says it
+/// Writes a connection's ends A and B in words (W51 finding G): each end as the live description says it
 /// (the device's tag and its connection point, else "a junction"), never its JSON;
 /// `words` gives a record's description values. The JSON values are unchanged.
 pub fn ends_in_words(
@@ -1182,7 +1172,7 @@ pub fn ends_in_words(
     }
 }
 
-/// A choice of a row its own command commits in the UI language's words (ID-1389, W51 finding J): a panel page's Label
+/// A choice of a row its own command commits in the UI language's words (W51 finding J): a panel page's Label
 /// mode as its `choice-label_mode-<mode>` text, a Surface as its enclosure's tag and the keyed word for the plate
 /// ("-UC1 montageplaat", with its ordinal " (2)" kept); any other choice as it is. The option itself is what the
 /// command reads.
@@ -1231,9 +1221,9 @@ pub fn command_choices_in_words(sheet: &mut PropertySheet) {
     }
 }
 
-/// Writes the values of the enumerated rows in the UI language's words (FT-1258): each stored word as
+/// Writes the values of the enumerated rows in the UI language's words: each stored word as
 /// [`strings::choice_text`] gives it ("Multi-line", "Meerlijnschema"), as the row's choices show them. The JSON values
-/// are unchanged, and a word typed in the editor is read back ([`enum_value_of`]). A layout row (WP-S4.02 D12) keeps
+/// are unchanged, and a word typed in the editor is read back ([`enum_value_of`]). A layout row keeps
 /// the texts its sheet built.
 pub fn enums_in_words(sheet: &mut PropertySheet) {
     for section in &mut sheet.sections {
@@ -1260,11 +1250,11 @@ pub fn enums_in_words(sheet: &mut PropertySheet) {
     }
 }
 
-/// The stored word of an enumerated row that `text` names in the UI language's words (FT-1258), else `text` as typed:
+/// The stored word of an enumerated row that `text` names in the UI language's words, else `text` as typed:
 /// the parser reads the stored words.
 pub fn enum_value_of<'t>(kind: &str, row: &PropRow, text: &'t str) -> std::borrow::Cow<'t, str> {
     if matches!(row.route, EditRoute::Command { .. }) {
-        // ID-1389: a Surface view choice typed in the UI language's words is its option.
+        // A Surface view choice typed in the UI language's words is its option.
         let FieldType::Enum { options } = row.ty.inner() else {
             return text.into();
         };
@@ -1277,8 +1267,7 @@ pub fn enum_value_of<'t>(kind: &str, row: &PropRow, text: &'t str) -> std::borro
 }
 
 /// The stored word of a value of the field `path` of `kind`, of type `ty`, that `text` names in the UI language's
-/// words, else `text` as typed: what [`enum_value_of`] reads for a row and a table cell for its column's field
-/// (C50-p5#3).
+/// words, else `text` as typed: what [`enum_value_of`] reads for a row and a table cell for its column's field.
 pub fn enum_word_of<'t>(kind: &str, path: &str, ty: &FieldType, text: &'t str) -> std::borrow::Cow<'t, str> {
     let FieldType::Enum { options } = ty.inner() else {
         return text.into();
@@ -1291,7 +1280,7 @@ pub fn enum_word_of<'t>(kind: &str, path: &str, ty: &FieldType, text: &'t str) -
 }
 
 /// A Properties card's summary line (`card-line`): its targets, then its changes, tags and cross-reference texts each
-/// counted with its own singular (FIX50b, as the quick fix's, FT-1259); the window and the describe text show it.
+/// counted with its own singular (FIX50b, as the quick fix's); the window and the describe text show it.
 pub fn card_line(card: &Card) -> String {
     let (tags, xrefs) = card_counts(card);
     strings::format(
@@ -1313,8 +1302,8 @@ pub fn reorder_line(card: &Card, notices: &[String]) -> String {
     strings::format(key!("card-reorder"), &[&notices.join(", "), &tags, &xrefs])
 }
 
-/// A quick fix card's summary line (`card-fix`): its changes (FT-1366), tags and cross-reference texts each counted
-/// with its own singular (FT-1259); the window and the describe text show it (C50-p6#3).
+/// A quick fix card's summary line (`card-fix`): its changes, tags and cross-reference texts each counted
+/// with its own singular; the window and the describe text show it.
 pub fn fix_line(card: &Card) -> String {
     let (tags, xrefs) = card_counts(card);
     let records = strings::format_count(crate::count_key!("preview-changes-count"), card.changes);
@@ -1335,7 +1324,7 @@ fn card_counts(card: &Card) -> (String, String) {
     )
 }
 
-/// The refusal of a word that is not one of an enumerated field's (FT-1240), in the UI language: a potential's Type
+/// The refusal of a word that is not one of an enumerated field's, in the UI language: a potential's Type
 /// names its printed forms (`error-potential-type`), any other field its words as its choices show them.
 pub fn not_one_of_text(kind: &str, path: &str, typed: &str, options: &[String]) -> String {
     if kind == "potential_def" && path == "ptype" {
@@ -1348,7 +1337,7 @@ pub fn not_one_of_text(kind: &str, path: &str, typed: &str, options: &[String]) 
     strings::format(key!("error-not-one-of"), &[typed, &words.join(", ")])
 }
 
-/// Writes a report block's row source in words on a generated page's sheet (FT-1287, ID-1315 ruling 3): a built-in
+/// Writes a report block's row source in words on a generated page's sheet: a built-in
 /// kind as its `report-kind-<kind>` text ("Table of contents"), a user SQL report with its file, never the JSON. The
 /// JSON value is unchanged; the generated page's rows are read-only.
 pub fn report_source_in_words(sheet: &mut PropertySheet) {
@@ -1361,7 +1350,7 @@ pub fn report_source_in_words(sheet: &mut PropertySheet) {
     {
         if let RowValue::One { json, text } = &mut row.value {
             if let Some(kind) = json.get("kind").and_then(Value::as_str) {
-                // C50-p5#7: a kind of a newer format reads as its words, never as JSON.
+                // A kind of a newer format reads as its words, never as JSON.
                 *text = strings::lookup(&format!("report-kind-{}", kind.replace('_', "-")))
                     .map_or_else(|| strings::choice_words(kind), str::to_owned);
             } else if let Some(file) = json.pointer("/sql_query/file").and_then(Value::as_str) {
@@ -1371,7 +1360,7 @@ pub fn report_source_in_words(sheet: &mut PropertySheet) {
     }
 }
 
-/// Writes the values `ew-api` gives in English words in the UI language's (FT-1357): a yes or no ("ja", "nee"), a
+/// Writes the values `ew-api` gives in English words in the UI language's: a yes or no ("ja", "nee"), a
 /// list's count ("4 elementen") and a project setting's structured value in words, never its JSON (`json_words`).
 /// The JSON values are unchanged, and the CLI keeps the English words (FT-680).
 pub fn values_in_words(sheet: &mut PropertySheet) {
@@ -1415,7 +1404,7 @@ fn value_in_words(row: &mut PropRow, project: bool, yes_no: &dyn Fn(&mut String)
     }
 }
 
-/// A structured value in words (FT-1357): its name (a profile's "DBU/WH 24 V", in the UI language where it has one),
+/// A structured value in words: its name (a profile's "DBU/WH 24 V", in the UI language where it has one),
 /// else its key or its default (a numbering's scheme), else the count of its items or members.
 fn json_words(json: &Value) -> String {
     let named = |v: &Value| match v {
@@ -1444,9 +1433,9 @@ fn json_words(json: &Value) -> String {
     }
 }
 
-/// Writes the sheet's header in words (FT-1357, FT-1319): a record without a title of its own by its kind as a heading
+/// Writes the sheet's header in words: a record without a title of its own by its kind as a heading
 /// in the UI language ("Project", not `project`), a fluid line by its line kind ("Working line", "Werkleiding"), its
-/// ID row likewise, and a selection of several records by its count and kind (ID-1427: "2 apparaten").
+/// ID row likewise, and a selection of several records by its count and kind ("2 apparaten").
 pub fn header_in_words(sheet: &mut PropertySheet) {
     // ID-1427 (W52 F4): a selection of several records is titled by its first section's count and kind in the UI
     // language ("2 apparaten"), as the card lines are (FT52i), or by its count when it has no section.
@@ -1504,16 +1493,16 @@ pub fn value_text(row: &PropRow) -> String {
     }
 }
 
-/// One entry of a row's actions menu (FT-530): a row action of the grid, the shell's Make variable (WP-S1.19 §11,
+/// One entry of a row's actions menu: a row action of the grid, the shell's Make variable (WP-S1.19 §11,
 /// FT-754 (h)), which remembers the row's field as a variable of the next Save as macro…, or a Parts row's Choose
-/// part…, Add part… and Edit part… (WP-S2.07 part 4a, §9.4).
+/// part…, Add part… and Edit part….
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowMenuItem {
     /// A row action of the grid.
     Action(RowAction),
     /// Make variable (`props.make_variable`).
     MakeVariable,
-    /// Choose part… on a Parts row (WP-S2.07 part 4a, §9.4): `part.choose`, replacing the first use when the row
+    /// Choose part… on a Parts row: `part.choose`, replacing the first use when the row
     /// names a part (`use` 0).
     ChoosePart {
         /// Whether the row names a part (then the choice replaces its first use).
@@ -1536,7 +1525,7 @@ pub fn menu_label(item: RowMenuItem) -> &'static str {
     }
 }
 
-/// The label of a row action in the row's actions menu (FT-530; doc 16a §6.8: "Reset to derived", "Freeze").
+/// The label of a row action in the row's actions menu (doc 16a §6.8: "Reset to derived", "Freeze").
 pub fn action_label(action: RowAction) -> &'static str {
     strings::text(match action {
         RowAction::Edit => key!("props-action-edit"),
@@ -1615,7 +1604,7 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("built-in default (", Some(")"), key!("chip-via-built-in-default")),
 ];
 
-/// A provenance chip's words in the UI language (FT-1338, ID-1392): each ` · `-separated part of `ew-api`'s English
+/// A provenance chip's words in the UI language: each ` · `-separated part of `ew-api`'s English
 /// text by its [`CHIP_PHRASES`] key, its argument kept; a part without a phrase stays as it is.
 fn chip_words(text: &str) -> String {
     text.split(" · ")
@@ -1675,7 +1664,7 @@ mod tests {
 
     use super::*;
 
-    /// ID-1139: a section's header names its kind in sentence case, singular for one record.
+    /// A section's header names its kind in sentence case, singular for one record.
     #[test]
     fn a_section_header_reads_in_sentence_case() {
         assert_eq!(
@@ -1686,10 +1675,10 @@ mod tests {
             ],
             ["Device (1)", "Devices (2)", "Potential definitions (3)"]
         );
-        // FT-1356: one record's kind in the UI language.
+        // One record's kind in the UI language.
         assert!(strings::set_locale("nl"));
         assert_eq!(section_header("device", 1), "Apparaat (1)");
-        // FT-1411: several records' kind in the plural of the UI language.
+        // Several records' kind in the plural of the UI language.
         assert_eq!(
             [section_header("device", 2), section_header("potential_def", 3)],
             ["Apparaten (2)", "Potentiaaldefinities (3)"]
@@ -1697,7 +1686,7 @@ mod tests {
         assert!(strings::set_locale("en"));
     }
 
-    /// FT-1479: the card line's and the toast's kind reads in the UI language inside a sentence.
+    /// The card line's and the toast's kind reads in the UI language inside a sentence.
     #[test]
     fn a_card_kind_reads_in_the_ui_language() {
         assert_eq!(
@@ -1718,7 +1707,7 @@ mod tests {
         assert_eq!(dutch, ["apparaat", "apparaten", "potentiaaldefinities"]);
     }
 
-    /// FT-1353: a row another command edits names the command by its title, in the UI language, never its ID.
+    /// A row another command edits names the command by its title, in the UI language, never its ID.
     #[test]
     fn a_read_only_reason_names_the_command_by_its_title() {
         let folio = FieldReadOnly::Command {

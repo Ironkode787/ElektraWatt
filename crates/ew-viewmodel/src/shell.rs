@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell model (WP-S2.01 part 1, spec section 5.1): all application state of the desktop shell and its one
+//! The shell model (spec section 5.1): all application state of the desktop shell and its one
 //! mutating entry point, [`ShellModel::dispatch`].
 //!
 //! The model owns the settings, the optional open project (its `Session`, directory and access mode), the current
@@ -34,94 +34,83 @@ use crate::strings::Key;
 use crate::wizard::Wizard;
 
 mod canvas_actions;
-// FT-408 and FT-409
 mod creation;
-// FT-1521: the closed sets of a form field's choices.
+// The closed sets of a form field's choices.
 pub mod choices;
-pub mod symbol_editor;
-// WP-S2.05 part 3
 mod clipboard;
-// WP-S2.04 part 4b: the text and graphic tools' host duties.
+pub mod symbol_editor;
+// The text and graphic tools' host duties.
 mod drawing;
-// WP-S1.17 part 7: external change, cloud folders, .ewz, the upgrade, the merge driver
+// External change, cloud folders, .ewz, the upgrade, the merge driver
 mod external;
 pub(crate) use external::collision_count;
-// WP-S2.04 part 4b: FT-411, Edit ▸ Bridge terminals.
+// FT-411, Edit ▸ Bridge terminals.
 mod bridge;
 // G-PP triage row 7: Draw ▸ Bond.
 mod bond;
-// FT-1371: Draw ▸ Connect ▸ New cable… and Connect cores….
+// Draw ▸ Connect ▸ New cable… and Connect cores….
 mod cables;
-// WP-S2.09 part 3: the Preview tab, the renumber dialogs and the purge.
+// The Preview tab, the renumber dialogs and the purge.
 mod bulk;
 mod editing;
-// WP-S2.05 part 2
 mod find;
 mod interruption;
-// WP-S2.18 part 1: joining an existing device from the window.
+// Joining an existing device from the window.
 mod join;
 pub(crate) use interruption::natural_cmp;
-// WP-S2.09 part 1: the export job, the notifications, the recovery dialog.
+// The export job, the notifications, the recovery dialog.
 mod jobs;
 pub(crate) use jobs::file_url_of;
-// WP-S4.02 part 3: placing on a panel page.
+// Placing on a panel page.
 mod layout;
-// WP-S2.09 part 2: the message panel.
+// The message panel.
 mod messages;
 mod navigation;
-// WP-S2.06 part 1
 mod navigators;
-// WP-S2.06 part 3
 mod onboarding;
 // WP-S2.07 part 2: swap cores, and Delete and F2 in navigator trees (§7, FT-490).
 mod row_ops;
-// WP-S2.07 part 1: the strip editor's row gestures (§6.4, §6.5).
+// The strip editor's row gestures (§6.4, §6.5).
 mod strip_editor;
 mod table;
-// WP-S3.08 part 3: a navigator table's export and import.
-mod table_file;
-// FT-410
+// A navigator table's export and import.
 mod palette;
 mod parts;
 mod projects;
 mod properties;
+mod table_file;
 pub(crate) mod tools;
-// WP-S2.09 part 3: the history panel and context restore.
+// The history panel and context restore.
 mod undo_panel;
-// WP-S2.04 part 2: the wiring tools' host duties.
+// The wiring tools' host duties.
 mod wiring;
 mod workspaces;
-// WP-S1.19 part 6: the Macros and Libraries navigators, Save as macro… and Make variable.
+// The Macros and Libraries navigators, Save as macro… and Make variable.
 mod macros;
-// WP-S2.07 part 4a
 pub mod part_dialog;
-// WP-S3.07 part 3: the print pre-dialog.
+// The print pre-dialog.
 pub mod print;
-// WP-S2.08 part 2: the user's keymap and the keymap editor.
+// The user's keymap and the keymap editor.
 mod keymaps;
-// WP-S1.18 part 5
 mod revision;
-// WP-S2.08 part 6: the one-time tips (D17), the glossary pane (D16) and the wire-colour view (D18).
+// The one-time tips (D17), the glossary pane (D16) and the wire-colour view (D18).
 mod glossary;
 mod tips;
 mod wire_colours;
-// WP-S6.05: the start-up offer after a crash.
+// The start-up offer after a crash.
 pub mod startup;
 pub use glossary::GlossaryRow;
 pub use macros::MacroVariable;
 pub use tips::Tip;
 
+pub use bond::BOND_KINDS;
+pub use bulk::PURGE_LISTED;
 pub use creation::{FormDialog, FormField, FormRow, FormTable, PAGE_TYPES, STRUCTURE_KINDS};
 pub use drawing::TextPopup;
 pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
-// WP-S2.06 part 1
 pub use navigators::{Chip, DragSource, FindingLook, MAX_CHIPS, ShownRow};
-pub use row_ops::NavRename;
-// FT-649
 pub use parts::{MapColumn, PartsMap};
-// WP-S2.09 part 3
-pub use bond::BOND_KINDS;
-pub use bulk::PURGE_LISTED;
+pub use row_ops::NavRename;
 pub use tools::SnapIndicator;
 
 /// Who drives the shell: the window or the headless runner. They share `dispatch`; the modes differ only where a
@@ -147,7 +136,7 @@ pub struct Resources {
     pub docs_dir: Option<PathBuf>,
     /// The generated third-party notices (`THIRD-PARTY-NOTICES.txt`), shown in the notices dialog.
     pub notices_file: Option<PathBuf>,
-    /// The bundled `PRIVACY.md` (WP-S6.05 D16), which the privacy buttons open; without it they open the repository's
+    /// The bundled `PRIVACY.md`, which the privacy buttons open; without it they open the repository's
     /// copy ([`crate::about::PRIVACY_URL`]).
     pub privacy_file: Option<PathBuf>,
 }
@@ -163,7 +152,7 @@ pub struct ShellConfig {
     pub app_version: String,
     /// The read-only resources.
     pub resources: Resources,
-    /// The library tiers the shell's sessions open (WP-S1.19 §11): the Macros and Libraries navigators, Save as
+    /// The library tiers the shell's sessions open: the Macros and Libraries navigators, Save as
     /// macro… and the parts picker read them. `None`: the compiled-in libraries only, with no file read.
     pub libraries: Option<ew_api::library::LibraryTiers>,
 }
@@ -216,7 +205,7 @@ impl ShellConfig {
         }
     }
 
-    /// The same configuration with these library tiers (WP-S1.19 §11).
+    /// The same configuration with these library tiers.
     #[must_use]
     pub fn with_libraries(mut self, libraries: Option<ew_api::library::LibraryTiers>) -> ShellConfig {
         self.libraries = libraries;
@@ -287,7 +276,7 @@ pub enum Dialog {
     ConfirmDiscard {
         /// What runs after the answer.
         pending: Pending,
-        /// Whether the changes are the symbol editor's draft (Save symbol, Discard, Cancel; ID-1463), not the project's.
+        /// Whether the changes are the symbol editor's draft (Save symbol, Discard, Cancel), not the project's.
         symbol: bool,
     },
     /// Page, Go to page or cell: a folio or a cell typed by the user.
@@ -300,7 +289,7 @@ pub enum Dialog {
     /// Discard the journal of an earlier session that ended with unsaved changes (FT-313's first part): the
     /// changes in it are lost.
     ConfirmJournalDiscard,
-    /// Apply the check scheme to the finished basic project (FT-336): `project.checks.set` is `HumanOnly`, so a
+    /// Apply the check scheme to the finished basic project: `project.checks.set` is `HumanOnly`, so a
     /// person confirms it, with the scheme named and the note that it decides check outcomes.
     ConfirmCheckScheme {
         /// The scheme to apply (`release_scheme`).
@@ -311,10 +300,10 @@ pub enum Dialog {
         /// The text of the field.
         text: String,
     },
-    /// Page ▸ New page, Insert ▸ Structure node, Insert ▸ External reference (FT-408, FT-409): the fields of the
+    /// Page ▸ New page, Insert ▸ Structure node, Insert ▸ External reference: the fields of the
     /// action, which Enter dispatches.
     Form(FormDialog),
-    /// Recover unsaved changes (WP-S2.09 part 1, D7, §6.6): opened with the read-only project when an editing open
+    /// Recover unsaved changes: opened with the read-only project when an editing open
     /// found the journal of a session that ended with unsaved changes. Recover (`journal.recover`), Open read-only
     /// (`journal.keep`, Escape) or Discard… (`file.discard_journal`); after a failed recovery only the last two.
     Recovery {
@@ -329,7 +318,7 @@ pub enum Dialog {
         /// Why the last Recover failed.
         failed: Option<String>,
     },
-    /// Tools, Purge unused images (WP-S2.09 part 3, §8.6): the image files that go, which undo does not bring back;
+    /// Tools, Purge unused images: the image files that go, which undo does not bring back;
     /// Purge (`project.assets.purge` with `confirm`) or Cancel (Escape).
     ConfirmPurge {
         /// The unused image files that are deleted, in their order.
@@ -337,17 +326,14 @@ pub enum Dialog {
         /// The assets they hold (the parameter of the purge).
         assets: Vec<String>,
     },
-    // WP-S2.07 part 4a
     /// Choose part… (D19): the part selection dialog, a 640-px form with the search, the filters, the result list
     /// and Choose.
     PartChoose(Box<part_dialog::PartChooser>),
     /// Edit part… (D20, D21): the part editor, a 640-px form with the editable members, the read-only ones and Save.
     PartEdit(Box<part_dialog::PartEditor>),
-    // WP-S3.07 part 3
-    /// Output ▸ Print… (D10, ruling 4 of ID-1180): the print pre-dialog, its options beside the preview of the print
+    /// Output ▸ Print… (D10): the print pre-dialog, its options beside the preview of the print
     /// set, which builds as a job; Print… and Open in PDF viewer hand the built set to the window's platform.
     Print(Box<print::PrintDialog>),
-    // WP-S1.17 part 7 (D24)
     /// The project changed on disk and the change collides with unsaved edits: each colliding field with its record
     /// in words, its base, mine and theirs, and the side chosen; Apply (the choices), All mine, All theirs, and Decide
     /// later (Escape: saves stay held, the banner says why).
@@ -361,7 +347,7 @@ pub enum Dialog {
         /// The older format.
         from: String,
     },
-    /// Project ▸ Import ▸ QElectroTech project (WP-S3.09 D8): the import card (its summary and pages, Apply or Cancel),
+    /// Project ▸ Import ▸ QElectroTech project: the import card (its summary and pages, Apply or Cancel),
     /// then the checkpoint confirmation (`confirm`: Create project or Cancel). Cancel writes nothing.
     ImportQet {
         /// The source's file name.
@@ -377,7 +363,7 @@ pub enum Dialog {
         /// Whether the confirmation is shown.
         confirm: bool,
     },
-    /// Project ▸ Import ▸ Re-import QElectroTech project (WP-S3.09 D10): a file matched to an earlier import by its
+    /// Project ▸ Import ▸ Re-import QElectroTech project: a file matched to an earlier import by its
     /// items (T6): Re-import or Cancel.
     ReimportMatch {
         /// The file (never printed).
@@ -389,7 +375,7 @@ pub enum Dialog {
         /// The share of the file's items the earlier import holds, in per cent.
         percent: u32,
     },
-    /// The re-import card (WP-S3.09 D12): T8 and the rows of the records added, changed in the source, changed on
+    /// The re-import card: T8 and the rows of the records added, changed in the source, changed on
     /// both sides and removed in the source; Apply (one undo step) or Cancel (nothing changes).
     Reimport {
         /// The file's name.
@@ -398,7 +384,7 @@ pub enum Dialog {
         summary: String,
         /// The rows, in words.
         rows: Vec<String>,
-        /// Whether the re-import writes nothing (ID-1427, W52 F8): Apply is disabled.
+        /// Whether the re-import writes nothing (W52 F8): Apply is disabled.
         nothing: bool,
     },
     /// File ▸ Open .ewz…: Extract and open (into a new folder beside it), Open read-only, or Cancel.
@@ -416,7 +402,7 @@ pub enum Dialog {
     },
 }
 
-/// A marker line of the history (WP-S2.09 D13, view state, never a `History` entry): an export, a recovery.
+/// A marker line of the history (view state, never a `History` entry): an export, a recovery.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct HistoryMarker {
     /// The revision it belongs after.
@@ -440,19 +426,19 @@ pub enum Prompt {
     OpenPartsTable,
     /// An image file the asset store accepts: SVG, PNG or JPEG (Insert, Image).
     OpenImage,
-    /// An existing keymap file (the keymap editor's Import…, WP-S2.08 D8).
+    /// An existing keymap file (the keymap editor's Import…).
     OpenKeymap,
     /// A keymap file name (the keymap editor's Export…).
     SaveKeymap,
-    /// A table file name, XLSX or CSV (a navigator table's Export table…, WP-S3.08 part 3).
+    /// A table file name, XLSX or CSV (a navigator table's Export table…).
     SaveTable,
     /// An existing table file, XLSX or CSV (Import table…).
     OpenTable,
-    /// An `.ewz` file name (File ▸ Export .ewz…, WP-S1.17 D24).
+    /// An `.ewz` file name (File ▸ Export .ewz…).
     SaveEwz,
     /// An existing `.ewz` (File ▸ Open .ewz…).
     OpenEwz,
-    /// A symbol file to open or import in the symbol editor (ID-1463).
+    /// A symbol file to open or import in the symbol editor.
     OpenSymbol,
     /// A symbol authoring file name (the symbol editor's Export draft).
     SaveSymbol,
@@ -468,7 +454,7 @@ pub struct DocRequest {
     /// The `file://` URL, when the built book is installed; `None` when it is not.
     pub url: Option<String>,
     /// The file `url` opens, below the book's directory (`nl/how-to/application-window.html` in a Dutch window that has
-    /// the Dutch book); `None` when the book is not installed (FT-1267: the headless transcript's `doc`).
+    /// the Dutch book); `None` when the book is not installed (the headless transcript's `doc`).
     pub page: Option<String>,
 }
 
@@ -552,9 +538,9 @@ pub struct ShellModel {
     project: Option<Project>,
     banner: Option<String>,
     palette: Option<PaletteState>,
-    /// The palette's recents (WP-S2.08 D3): the last 50 palette or shortcut invocations of this run.
+    /// The palette's recents: the last 50 palette or shortcut invocations of this run.
     recents: crate::palette::Recents,
-    /// The user's keymap (`keymap.toml`, WP-S2.08 D6), when there is one and it was not refused.
+    /// The user's keymap (`keymap.toml`), when there is one and it was not refused.
     user_keymap: Option<crate::keymap::Keymap>,
     /// Bumped when the user's keymap changes: the window rebuilds its bindings.
     keymap_version: u64,
@@ -564,18 +550,18 @@ pub struct ShellModel {
     /// copied aside, at start-up (the editor's edits then apply without being written).
     keymap_keep_file: bool,
     dialog: Option<Dialog>,
-    /// The imported project the import card shows (WP-S3.09 D8).
+    /// The imported project the import card shows.
     import_pending: Option<projects::PendingImport>,
-    /// The import job running for the import card (WP-S3.09 D4).
+    /// The import job running for the import card.
     import_job: Option<projects::ImportJob>,
-    /// The previewed re-import the re-import card shows (WP-S3.09 D12).
+    /// The previewed re-import the re-import card shows.
     reimport_pending: Option<ew_api::import::Reimport>,
-    /// The re-import job running for the re-import card (C51-p2#10).
+    /// The re-import job running for the re-import card.
     reimport_job: Option<projects::ReimportJob>,
     /// The project (its epoch), file and lineage of the re-import's proposal (T6) shown last: its Re-import imports
-    /// into that lineage, in that project only (C52-p1#4).
+    /// into that lineage, in that project only.
     reimport_proposal: Option<(u64, PathBuf, ew_api::import::LineageInfo)>,
-    /// The re-import's proposal (T6) or card that waits behind a dialog open when its job ended (C52-p1#2).
+    /// The re-import's proposal (T6) or card that waits behind a dialog open when its job ended.
     reimport_waiting: Option<Dialog>,
     /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
     /// focus (C49-p10b#4).
@@ -585,13 +571,12 @@ pub struct ShellModel {
     quit: bool,
     origin_file: String,
     first_run: Option<FirstRun>,
-    // WP-S6.05 D11
     /// The start-up offer: leftover journals and the crash log of an earlier session.
     startup: Option<startup::StartupOffer>,
     /// The log folder `startup.open_log_folder` asks the window to open: its `file://` URL and the folder.
     startup_folder_request: Option<(String, PathBuf)>,
     wizard: Option<Wizard>,
-    /// The dock layout of the project view (FT-309) and the workspace it belongs to.
+    /// The dock layout of the project view and the workspace it belongs to.
     layout: Layout,
     /// The bottom-dock panes `view.bottom_dock` closed, reopened by the next open (doc 16a §5.7; view state only).
     bottom_closed: Vec<crate::layout::PaneKind>,
@@ -605,32 +590,30 @@ pub struct ShellModel {
     /// The target of the last documentation request, kept for `ui.describe`.
     last_help: Option<String>,
     /// A note the status bar's state field shows instead of "Ready" while the project it was made for is open at the
-    /// revision it was made at (ID-1392, FT-1405): its text, the project's epoch and revision.
+    /// revision it was made at: its text, the project's epoch and revision.
     status_note: Option<(String, Option<u64>, Option<u64>)>,
-    /// The open pages as tabs in one or two groups (WP-S2.03): each tab's canvas, view memory and history.
+    /// The open pages as tabs in one or two groups: each tab's canvas, view memory and history.
     area: Option<CanvasArea>,
-    /// The page navigator (WP-S2.03 §6.1).
+    /// The page navigator.
     navigator: PageNavigator,
-    // WP-S2.06 part 1
     /// The open navigators other than Pages, by kind.
     navs: std::collections::BTreeMap<crate::navigators::NavKind, crate::navigators::Navigator>,
-    /// WP-S2.06 part 3: the Pages navigator in table mode, a generic navigator over `navigator_table(Pages)` (§8.1).
+    /// The Pages navigator in table mode, a generic navigator over `navigator_table(Pages)` (§8.1).
     pages_table: Option<crate::navigators::Navigator>,
     /// WP-S2.07 part 2 (FT-490): the tree row whose label is being renamed.
     rename: Option<NavRename>,
-    /// FT-649: the column mapping step of the parts import.
+    /// The column mapping step of the parts import.
     parts_map: Option<PartsMap>,
     /// The chips of the line "Not on this page" (§6.5), and the (selection generation, page) they were made for.
     chips: Vec<navigators::Chip>,
     chips_for: Option<(u64, Option<crate::canvas::PageId>)>,
     /// The page the focused tab showed at the end of the last dispatch (a page switch moves the Pages cursor).
     last_page: Option<crate::canvas::PageId>,
-    // WP-S2.06 part 2
     /// The window's potential and net highlights (§7.3, D14): view state.
     highlights: crate::highlight::Highlights,
     /// Where the keyboard focus is.
     focus: Option<Focus>,
-    /// The page content of the current revision by folio (WP-S2.03 §6.2).
+    /// The page content of the current revision by folio.
     cache: navigation::PageCache,
     /// The viewer's `Session` reads, counted.
     calls: Cell<SessionCalls>,
@@ -651,30 +634,27 @@ pub struct ShellModel {
     canvas_error: Option<(u64, u64, String, String)>,
     /// How many sheet display lists the shell has built (engine-statistics tests).
     page_content_calls: Cell<u64>,
-    /// The text of the last `page.describe` step, taken by the script runner for the transcript line (WP-S6.13).
+    /// The text of the last `page.describe` step, taken by the script runner for the transcript line.
     page_text: Option<String>,
     /// The project sessions opened so far (the source of [`Project`]'s epoch).
     epochs: u64,
-    /// The canvas tool host (WP-S2.03 part 2): the active tool, its overlay, the preview, the selection.
+    /// The canvas tool host: the active tool, its overlay, the preview, the selection.
     tools: crate::tools::ToolHost,
     /// Active-tool replacement generation, independent of the replaceable host.
     tool_epoch: u64,
-    /// The property grid (WP-S2.05 part 1): the sheet, the row cursor, the edit, the card and the toast.
+    /// The property grid: the sheet, the row cursor, the edit, the card and the toast.
     props: crate::properties::PropertiesState,
-    /// The find pane (WP-S2.05 part 2): the query, the results, the cursor and the note.
+    /// The find pane: the query, the results, the cursor and the note.
     find: crate::find::FindState,
-    // WP-S2.05 part 3
     /// The clipboard (§8.7): the headless clipboard, and what a copy hands the window.
     clip: crate::clipboard::ClipboardState,
-    /// The ID aliases `@n` of this session's machine text (FT-422, ID-630); never stored.
+    /// The ID aliases `@n` of this session's machine text; never stored.
     aliases: std::cell::RefCell<crate::alias::AliasTable>,
     /// The source of new record IDs for the sessions the shell opens or creates: `None` (the system clock and OS
     /// entropy) except in a test that replays one script under different IDs (FT-439's guard, feature `testkit`).
     id_source: Option<fn() -> Box<dyn IdSource + Send>>,
-    // WP-S2.09 part 1
     /// The jobs (the PDF export) and the Jobs pane's entries.
     jobs: crate::jobs::JobsState,
-    // WP-S3.07 part 3
     /// The print pre-dialog's build, its built set and the print request for the window.
     print: print::PrintState,
     /// The visible toasts and the notifications log.
@@ -682,32 +662,26 @@ pub struct ShellModel {
     /// The history's marker lines of the open project session (exports, recoveries), by revision.
     markers: Vec<HistoryMarker>,
     /// The recovery dialog that Discard… replaced with its confirmation, or the import card that the unsaved-changes
-    /// question of its Apply replaced (ID-1374): Cancel returns to it.
+    /// question of its Apply replaced: Cancel returns to it.
     recovery_stash: Option<Dialog>,
-    // WP-S2.09 part 2
     /// The message panel's view state: the editing page, the scheme of its table, the quick fixes' origin annotations.
     messages: crate::navigators::messages::MessagesState,
-    // WP-S2.09 part 3
     /// The Preview tab's lists of the open card.
     preview: crate::preview::PreviewPane,
     /// The history panel and the contexts of the commits.
     history: crate::undo_history::HistoryPane,
-    // WP-S2.17 part 2
     /// The command bar's active tab (`view.command_tab`); a session state, Draw at start.
     command_tab: crate::command_bar::Tab,
     /// Whether the command bar shows the tab row only (`view.command_bar`, Ctrl+F1).
     command_bar_collapsed: bool,
-    // WP-S2.17 part 3
     /// Whether the left column is collapsed to its rail (`rail.show` on the shown entry); a session state.
     rail_collapsed: bool,
-    // WP-S1.19 part 6
     /// The Macros navigator's detail and the variables of the next Save as macro….
     macros: macros::MacroState,
-    // WP-S6.13 part 4
     /// Every `dispatch` since the log was last taken, in call order, while the log is on (a visual run's evidence;
     /// off by default, so the window and the headless runner keep nothing).
     dispatch_log: Option<Vec<DispatchEntry>>,
-    // WP-S1.18 part 5 (cycle 41, ruling 1)
+    // WP-S1.18 part 5
     /// Whether a person drives this shell: the window's own shell ([`ShellModel::new`] in [`Mode::Gui`]). A headless
     /// shell and a window shell a script drives ([`ShellModel::new_scripted`], the visual driver) are not, and every
     /// `HumanOnly` submission from them is refused. Set at construction only; no action or parameter changes it.
@@ -715,22 +689,21 @@ pub struct ShellModel {
     /// The revision dialogs' view state (the gate's lines of the open dialog) and the integrity items of the opened
     /// project they run the gate with.
     revision: revision::RevisionState,
-    // WP-S2.08 part 6
     /// The glossary pane's search text (D16).
     glossary_filter: String,
-    /// The glossary pane's row cursor (FT-1281), an index into its rows; none before the first move.
+    /// The glossary pane's row cursor, an index into its rows; none before the first move.
     glossary_row: Option<usize>,
-    /// The point a Potentials row's Define potential… pinned for its open form (FT-1239); none otherwise.
+    /// The point a Potentials row's Define potential… pinned for its open form; none otherwise.
     potential_at: Option<ew_api::output::TableEnd>,
     /// Whether the wire-colour view is on (View ▸ Wire colours, D18): view state of the session, off at start.
     wire_colours: bool,
     /// The wire-colour view's Connections table and the (session epoch, revision) it was fetched at.
     wire_colour_cache: std::cell::RefCell<Option<wire_colours::Cached>>,
-    /// WP-S1.17 part 7: the cloud environment, the `ew` executable, the merge driver's status, a held change's banner.
+    /// The cloud environment, the `ew` executable, the merge driver's status, a held change's banner.
     collab: external::CollabState,
 }
 
-/// One `dispatch` in the dispatch log (WP-S6.13 part 4 §4.3): the action as given, the outcome's word (`done`,
+/// One `dispatch` in the dispatch log: the action as given, the outcome's word (`done`,
 /// `refused`, `failed`) and a refusal's reason key. A failure's message is not kept (the log never carries a path).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DispatchEntry {
@@ -773,7 +746,7 @@ fn string_param<'a>(p: &'a Map<String, Value>, name: &str) -> Result<Option<&'a 
 
 /// The banner of a project open read-only because of a damaged library copy (FT-1383, ID-1418): the device that uses
 /// it, the copy's part and its library when an installed library holds it; a copy no device names by its own words and
-/// the record that names it, and one that no record names with the Save As that leaves it out (FT-1500, ID-1458). When
+/// the record that names it, and one that no record names with the Save As that leaves it out. When
 /// no installed library holds a damaged copy, it says so instead of naming the update (FT-1499, ID-1486).
 fn damaged_banner(damaged: &ew_api::DamagedCopy) -> String {
     if !damaged.in_library {
@@ -790,7 +763,7 @@ fn damaged_banner(damaged: &ew_api::DamagedCopy) -> String {
             part: None,
             ..
         } => strings::format(key!("banner-damaged-copy-unnamed"), &[device]),
-        // C53-p3#6 (ID-1481): every copy a Save As leaves out.
+        // Every copy a Save As leaves out.
         ew_api::DamagedCopy {
             words,
             left_out: true,
@@ -836,7 +809,7 @@ fn damaged_banner_no_library(damaged: &ew_api::DamagedCopy) -> String {
     }
 }
 
-/// Two or more damaged copies a Save As leaves out, in words joined by commas (C53-p3#6, ID-1481); `None` for one.
+/// Two or more damaged copies a Save As leaves out, in words joined by commas; `None` for one.
 fn left_out_copies(words: &[ew_api::Text]) -> Option<String> {
     if words.len() < 2 {
         return None;
@@ -882,7 +855,7 @@ fn save_error_key(e: &SaveError) -> Key<'static> {
         SaveError::Incomplete { .. } => key!("saveerr-incomplete"),
         SaveError::PendingIncomplete { .. } => key!("saveerr-pending"),
         SaveError::GenerationLimit => key!("saveerr-generation-limit"),
-        // WP-S1.17 D21, D22: a held external change.
+        // A held external change.
         SaveError::ExternalCollisions => key!("saveerr-external-collisions"),
         SaveError::ExternalUnreadable => key!("saveerr-external-unreadable"),
         _ => key!("saveerr-other"),
@@ -893,7 +866,7 @@ fn save_error_key(e: &SaveError) -> Key<'static> {
 mod save_error_tests {
     use super::{SaveError, key, save_error_key, strings};
 
-    /// ID-1144: a save refused at the manifest's ceiling says so in words and ends with what the user can do.
+    /// A save refused at the manifest's ceiling says so in words and ends with what the user can do.
     #[test]
     fn the_generation_limit_names_the_limit_and_save_as() {
         let message = strings::format(
@@ -912,7 +885,7 @@ mod save_error_tests {
 mod choice_word_tests {
     use crate::strings::{self, choice_text, choice_words};
 
-    /// ID-1278 ruling 2 (W49.1 D; C49-p6#1): every value of the closed sets the window shows through `choice_text` has
+    /// ID-1278 ruling 2 (W49.1 D): every value of the closed sets the window shows through `choice_text` has
     /// its `choice-<value>` in en-GB and nl-NL: every `enum(…)` and `bool` of an `ACTIONS` signature, whatever its
     /// form plan, the form dialogs' choices (New page's types, New structure node's aspects, the yes-or-no fields,
     /// Renumber devices…' scopes and schemes, Save as macro's kinds, the revision forms' roles), the part editor's
@@ -962,7 +935,7 @@ mod choice_word_tests {
             if !nl.contains(key.as_str()) {
                 missing.insert(format!("nl-NL: {key}"));
             }
-            // C50-p5#5: the accessory has one English word, "End bracket" (16a §8 item 4); ID-1477 (1): the connection
+            // The accessory has one English word, "End bracket" (16a §8 item 4); ID-1477 (1): the connection
             // grids read as the status bar writes them, "4 mm" and "QET 10 px".
             if !matches!(v.as_str(), "end_clamp" | "mm4" | "qet_10px") {
                 assert_eq!(choice_text(v), choice_words(v), "{v}");
@@ -979,8 +952,7 @@ mod choice_word_tests {
     }
 }
 
-/// A new, empty directory `<temp>/<stem>-<pid>-<n>` for the unit tests of this crate: [`ew_testdir::fresh_dir`]
-/// (FT-524, FT-538, FT-586).
+/// A new, empty directory `<temp>/<stem>-<pid>-<n>` for the unit tests of this crate: [`ew_testdir::fresh_dir`].
 #[cfg(test)]
 pub(crate) fn fresh_test_dir(stem: &str) -> PathBuf {
     ew_testdir::fresh_dir(stem)
@@ -1000,7 +972,7 @@ mod dispatch_log_tests {
         }
     }
 
-    /// WP-S6.13 part 4 §4.3: the log is off by default; on, it keeps every dispatch in the order the calls started
+    /// The log is off by default; on, it keeps every dispatch in the order the calls started
     /// (an action that dispatches another comes first), with the outcome's word and a refusal's reason key.
     #[test]
     fn the_dispatch_log_is_off_by_default_and_keeps_every_call_in_order() {
@@ -1052,7 +1024,7 @@ impl ShellModel {
             }
             None => Settings::default(),
         };
-        // WP-S2.08 part 3 (D10): the texts in the UI language of the settings.
+        // The texts in the UI language of the settings.
         strings::set_locale(&settings.language);
         // WP-S2.08 D8 (KM-2): a refused keymap file is kept aside with a banner, and the preset applies.
         let mut keymap_keep_file = false;
@@ -1163,7 +1135,7 @@ impl ShellModel {
         model
     }
 
-    /// A window shell that a script drives (the visual driver, WP-S6.13): it lays out, opens dialogs and frames them
+    /// A window shell that a script drives (the visual driver): it lays out, opens dialogs and frames them
     /// as the window does ([`Mode::Gui`]), but no person is at it, so every `HumanOnly` submission from it is refused
     /// as a headless one is (cycle 41, ruling 1: a visual script opens, fills and frames the revision dialogs, and
     /// their confirm is refused). Whoever builds the shell decides this; nothing a script sends can change it.
@@ -1180,7 +1152,7 @@ impl ShellModel {
 
     /// The origin of the shell's model commands, undo and redo: the GUI only in the window a person drives, else the
     /// script's command log (`Origin::CmdLog`: the headless shell and a scripted window, cycle 41 ruling 1);
-    /// `Session::undo` and `Session::redo` refuse a `HumanOnly` step from the latter (FT-404), and every `HumanOnly`
+    /// `Session::undo` and `Session::redo` refuse a `HumanOnly` step from the latter, and every `HumanOnly`
     /// command submitted from it gets the exposure error.
     pub(super) fn origin(&self) -> Origin {
         Self::origin_of(self.mode, self.person, &self.origin_file)
@@ -1222,7 +1194,7 @@ impl ShellModel {
         &self.settings
     }
 
-    /// Records the main window's geometry (WP-S2.17 part 3, FT-348): kept in memory and written to `settings.toml` by
+    /// Records the main window's geometry: kept in memory and written to `settings.toml` by
     /// [`ShellModel::shutdown`], not on every move.
     pub fn set_window(&mut self, geometry: crate::window::WindowGeometry) {
         self.settings.window = Some(geometry);
@@ -1347,7 +1319,7 @@ impl ShellModel {
         )
     }
 
-    /// The status bar's note (ID-1392, FT-1405): shown once, until the project changes or another one opens.
+    /// The status bar's note: shown once, until the project changes or another one opens.
     pub fn status_note(&self) -> Option<&str> {
         let (text, epoch, rev) = self.status_note.as_ref()?;
         (*epoch == self.project.as_ref().map(|p| p.epoch) && *rev == self.revision()).then_some(text.as_str())
@@ -1425,7 +1397,7 @@ impl ShellModel {
         self.prompt.take()
     }
 
-    /// The status-bar fields, left to right (spec section 5.3; WP-S2.09 §6.4, §6.5): with the notifications field
+    /// The status-bar fields, left to right (spec section 5.3; §6.5): with the notifications field
     /// while the log is not empty and, last, the job field while a job runs; `hide_job` leaves the job field out (the
     /// window's 200 ms rule: a job younger than that shows none; the describe text and the transcript pass `false`).
     pub fn status_fields(&self, hide_job: bool) -> Vec<String> {
@@ -1445,7 +1417,7 @@ impl ShellModel {
         &self.record.steps
     }
 
-    /// `text` with every UUID printed as its alias `@n` (FT-422, ID-630): the machine text of the transcript and of
+    /// `text` with every UUID printed as its alias `@n`: the machine text of the transcript and of
     /// `ui.describe`. A UUID first seen here gets the next number (printing is an observation, so it takes `&self`; the
     /// table is a cell like the call counters).
     pub fn alias_text(&self, text: &str) -> String {
@@ -1528,7 +1500,7 @@ impl ShellModel {
         let outcome = self.dispatch_unlogged(action, params);
         // W49.3-F2: a state banner follows its state, and the UI language.
         self.refresh_state_banner();
-        // WP-S2.08 part 6 (D17): tip 3 on an editing tool's, Paste's, a move's or a reorder's generated-page refusal.
+        // Tip 3 on an editing tool's, Paste's, a move's or a reorder's generated-page refusal.
         self.tip_for_outcome(action, params, &outcome);
         if let Some(entry) = slot.and_then(|i| self.dispatch_log.as_mut()?.get_mut(i)) {
             (entry.outcome, entry.reason) = match &outcome {
@@ -1540,7 +1512,7 @@ impl ShellModel {
         outcome
     }
 
-    /// Turns the dispatch log on (an empty log) or off (WP-S6.13 part 4; the visual driver).
+    /// Turns the dispatch log on (an empty log) or off (the visual driver).
     pub fn set_dispatch_log(&mut self, on: bool) {
         self.dispatch_log = on.then(Vec::new);
     }
@@ -1561,7 +1533,7 @@ impl ShellModel {
             Value::Null => &empty,
             _ => return failed(key!("error-params-object"), &[]),
         };
-        // WP-S2.09 §6.6: while the recovery dialog is open only its answers (and what observes or ends the run) go; the
+        // While the recovery dialog is open only its answers (and what observes or ends the run) go; the
         // others refuse (with their own reason when they are disabled anyway, as the script runner's check gives it),
         // and the recovery banner stays.
         if matches!(self.dialog, Some(Dialog::Recovery { .. })) && !meta.answers_recovery {
@@ -1575,7 +1547,7 @@ impl ShellModel {
         if let Err(reason_key) = actions::enabled_with(meta, self, p) {
             return Outcome::Refused { reason_key };
         }
-        // An alias `@n` in a parameter that takes a UUID or a reference resolves before the action reads it (FT-422).
+        // An alias `@n` in a parameter that takes a UUID or a reference resolves before the action reads it.
         let resolved = match crate::alias::resolve_params(&self.aliases.borrow(), meta.aliases, p) {
             Ok(r) => r,
             Err(alias) => return failed(key!("error-unknown-alias"), &[&alias]),
@@ -1584,41 +1556,41 @@ impl ShellModel {
         if !meta.keeps_link_preview {
             self.tools.link_preview = None;
         }
-        // WP-S2.09 D6: a toast stays until it is dismissed, replaced by a toast of its key or pushed out by a fourth
+        // A toast stays until it is dismissed, replaced by a toast of its key or pushed out by a fourth
         // (and, in the window, for 8 seconds); a later commit only expires its Undo (WP-S2.05 §6.6's rule that the next
         // committing action removed it gives way to the stack).
-        // WP-S2.09 part 2: the project session and revision before the action, for the editing page (§7.2).
+        // The project session and revision before the action, for the editing page (§7.2).
         let before = self.epoch_rev();
-        // WP-S2.09 §8.5: the context before the action is kept for the history entries it commits.
+        // The context before the action is kept for the history entries it commits.
         let context = self.take_context();
         let outcome = (meta.handler)(self, p);
         self.keep_contexts(context);
-        // The canvases follow the pages and the revision the action left (WP-S2.02 section 6.1, WP-S2.03 §6.2), and a
-        // busy tool is escaped when its canvas changed (WP-S2.03 §7.2); the property grid fetches its sheet when its
-        // key changed (WP-S2.05 §9 item 4).
+        // The canvases follow the pages and the revision the action left (section 6.1), and a
+        // busy tool is escaped when its canvas changed; the property grid fetches its sheet when its
+        // key changed.
         self.sync_views();
         self.track_editing_page(before);
         self.sync_tool_context();
         self.after_commit();
-        // WP-S2.04 part 4b: a finished text edit returns to Select, the selection kept.
+        // A finished text edit returns to Select, the selection kept.
         self.after_text_edit();
-        // WP-S2.04 part 2: the junction editor follows the revision and the page.
+        // The junction editor follows the revision and the page.
         self.sync_junction_editor();
-        // WP-S2.04 part 3: the grips of a selected black box.
+        // The grips of a selected black box.
         self.sync_box_grips();
-        // WP-S2.06 part 1: the navigators follow the revision, the page and the selection (§6.5).
+        // The navigators follow the revision, the page and the selection (§6.5).
         self.sync_navigators();
         self.sync_properties();
         self.sync_find();
-        // WP-S2.09 part 3: the Preview tab follows the card, the history panel the revision.
+        // The Preview tab follows the card, the history panel the revision.
         self.sync_preview();
         self.sync_history();
-        // FT-759: a check toast whose revision is gone is taken off the screen.
+        // A check toast whose revision is gone is taken off the screen.
         self.sync_check_toast();
-        // WP-S1.19 part 6: the Macros navigator's detail follows its cursor.
+        // The Macros navigator's detail follows its cursor.
         self.sync_macros();
         self.sync_library_copy();
-        // FT-1251: the live region's selection words follow the revision.
+        // The live region's selection words follow the revision.
         self.sync_selection_announcement();
         outcome
     }
@@ -1652,7 +1624,7 @@ impl ShellModel {
         self.act_activate_with(&alt)
     }
 
-    /// Whether a move connects its autoconnect proposals, for the session (WP-S2.19 D15; `tool.connect_on_move`).
+    /// Whether a move connects its autoconnect proposals, for the session (`tool.connect_on_move`).
     pub fn connect_on_move(&self) -> bool {
         self.tools.connect_on_move
     }
@@ -1677,7 +1649,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `help.shortcuts`: the keymap editor opens with an empty search and nothing recording (WP-S2.08 D8).
+    /// `help.shortcuts`: the keymap editor opens with an empty search and nothing recording.
     pub(crate) fn act_help_shortcuts(&mut self, _p: &Map<String, Value>) -> Outcome {
         self.keymap_editor = crate::keymap::EditorState::default();
         self.open_dialog(Dialog::Shortcuts)
@@ -1699,13 +1671,13 @@ impl ShellModel {
         failed(key!("error-unknown-action"), &["script.expect_refused"])
     }
 
-    /// `script.expect_failed` (FT-1409): the script runner runs it before the dispatch; a direct dispatch does not know
+    /// `script.expect_failed`: the script runner runs it before the dispatch; a direct dispatch does not know
     /// it.
     pub(crate) fn act_script_expect_failed(&mut self, _p: &Map<String, Value>) -> Outcome {
         failed(key!("error-unknown-action"), &["script.expect_failed"])
     }
 
-    /// `page.describe {folio?}` (WP-S6.13 §5.5.3): the content of the page `folio` (default the page on show) as text, read
+    /// `page.describe {folio?}`: the content of the page `folio` (default the page on show) as text, read
     /// from the page-content cache (one `page_tables` call when the (revision, folio) is not in it, none when it is);
     /// the script runner takes the text with [`ShellModel::take_page_text`]. Changes no state.
     pub(crate) fn act_page_describe(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -1725,7 +1697,7 @@ impl ShellModel {
         match self.page_for(&folio) {
             Ok(page) => {
                 let mut text = crate::describe::page_describe(&page);
-                // FT-621: the bridges of the strips the page draws, asked only of a page that draws a terminal (a
+                // The bridges of the strips the page draws, asked only of a page that draws a terminal (a
                 // terminal CP has a side) or a strip segment.
                 let draws_strip = page.tables.cps.iter().any(|c| c.side.is_some())
                     || page.tables.reps.iter().any(|r| r.rep_type == "strip_segment");
@@ -1737,7 +1709,7 @@ impl ShellModel {
                     text.push('\n');
                     text.push_str(&line);
                 }
-                // FT-660: a generated page (a parts list and the other lists) prints its table's rows; a drawn page
+                // A generated page (a parts list and the other lists) prints its table's rows; a drawn page
                 // asks nothing more of the session.
                 let generated = self.page_rows().iter().any(|r| r.folio == folio && r.generated);
                 let table = match &self.project {
@@ -1755,7 +1727,7 @@ impl ShellModel {
         }
     }
 
-    /// The text `page.describe` produced in the last step, once (WP-S6.13).
+    /// The text `page.describe` produced in the last step, once.
     pub fn take_page_text(&mut self) -> Option<String> {
         self.page_text.take()
     }
@@ -1928,7 +1900,7 @@ impl ShellModel {
             };
         }
         self.epochs += 1;
-        // WP-S2.09 D7: the read-only project of a leftover journal comes with the recovery dialog.
+        // The read-only project of a leftover journal comes with the recovery dialog.
         if let Some((transactions, base_matches, last_change_ms)) = recovery {
             self.palette = None;
             self.dialog_gen += 1;
@@ -1949,16 +1921,16 @@ impl ShellModel {
             labels,
             rows: Vec::new(),
         });
-        // WP-S6.05 (C50-p3#9): a project the start-up offer lists is no longer offered once it is open.
+        // A project the start-up offer lists is no longer offered once it is open.
         self.opened_offered_project(dir);
-        // WP-S1.17 part 7: the cloud-synced folder and the older format say so; the merge driver's status is read.
+        // The cloud-synced folder and the older format say so; the merge driver's status is read.
         if let Some(extra) = self.opened_extras(dir, report.migrated_from.as_deref()) {
             self.banner = Some(match self.banner.take() {
                 Some(b) => format!("{b} {extra}"),
                 None => extra,
             });
         }
-        // FT-1378 (ID-1417): each image over the pixel limit that an earlier build took in is kept, not drawn, and named.
+        // Each image over the pixel limit that an earlier build took in is kept, not drawn, and named.
         for extra in self.undrawn_image_notes() {
             self.banner = Some(match self.banner.take() {
                 Some(b) => format!("{b} {extra}"),
@@ -1968,20 +1940,20 @@ impl ShellModel {
         self.install_view();
         self.settings.push_recent(&path_text);
         self.save_settings();
-        // WP-S1.18 part 5: the gate's integrity findings, the release's warnings of opening (FT-842) and the offer of
+        // The gate's integrity findings, the release's warnings of opening and the offer of
         // an incomplete release.
         self.revision_opened(integrity);
         Outcome::Done
     }
 
-    /// The open project's images that no drawing shows, one sentence each (FT-1378, decision log ID-1417): which image
+    /// The open project's images that no drawing shows, one sentence each: which image
     /// (the company logo, or the folios that show it), its size in pixels, that it is kept but not drawn, and the
     /// remedy.
     fn undrawn_image_notes(&self) -> Vec<String> {
         let Some(project) = &self.project else {
             return Vec::new();
         };
-        // FT-1503 (ID-1458): `ew-api`'s notices, which `ew` prints in the same words.
+        // `ew-api`'s notices, which `ew` prints in the same words.
         project
             .session
             .undrawn_image_notices()
@@ -2044,8 +2016,7 @@ impl ShellModel {
     /// The source of new record IDs for every session the shell opens or creates from now on (feature `testkit`
     /// only; `None`: the system clock and OS entropy, as in the product, which never sets one). FT-439's guard runs one
     /// script under an ascending and a descending source: a shell output ordered by UUID then differs (decision log
-    /// ID-640). The product's IDs stay UUIDv7 from the system (ADR-0004); this is no seeded ID source for the shell
-    /// (ID-630).
+    /// ID-640). The product's IDs stay UUIDv7 from the system (ADR-0004); this is no seeded ID source for the shell.
     #[cfg(feature = "testkit")]
     pub fn set_id_source_for_tests(&mut self, make: Option<IdSourceFactory>) {
         self.id_source = make;
@@ -2079,7 +2050,7 @@ impl ShellModel {
     ) -> Result<Opened, OpenError> {
         if !read_only && let Some(info) = &report.recovery {
             // The editing session is closed again (its own journal goes, the leftover one stays) and the project
-            // re-opens through `open_read_only`; the recovery dialog answers the rest (WP-S2.09 D7).
+            // re-opens through `open_read_only`; the recovery dialog answers the rest.
             let recovery = Some((info.transactions, info.base_matches, info.last_change_ms));
             session.close();
             let (again, again_report) = Session::open_read_only(dir, &self.config.app_version)?;
@@ -2137,14 +2108,14 @@ impl ShellModel {
         self.reset_tools();
         self.props = crate::properties::PropertiesState::default();
         self.parts_map = None;
-        // WP-S2.09: the toasts of the project go with it (the log keeps them; their Undo expires with the session), and
+        // The toasts of the project go with it (the log keeps them; their Undo expires with the session), and
         // so do its history markers.
         self.notes.clear_visible();
         self.markers.clear();
-        // WP-S2.09 part 3: the Preview tab's lists and the history panel's state are the project's.
+        // The Preview tab's lists and the history panel's state are the project's.
         self.preview.clear();
         self.history.clear();
-        // WP-S1.18 part 5 and FT-842: the revision dialogs' state and the release's warnings are the project's.
+        // The revision dialogs' state and the release's warnings are the project's.
         self.revision = revision::RevisionState::default();
         self.messages.release_notes = None;
         // WP-S3.09 D9 d: the migration report is the choice of the project it was made for.
@@ -2159,14 +2130,14 @@ impl ShellModel {
     /// any other exit leaves it for the next open to offer (crash-recovery semantics, doc 05 section 8).
     pub fn shutdown(&mut self) {
         self.flush_layout();
-        // WP-S2.09: a running export is cancelled and waited for (it stops at its next page), so no job outlives the
+        // A running export is cancelled and waited for (it stops at its next page), so no job outlives the
         // shell and no sibling file is left by a killed thread. Its real end is recorded like any other: its entry,
-        // its notification in the log, its marker (ID-719: Quit cancels running jobs). A headless run waits for its
+        // its notification in the log, its marker (Quit cancels running jobs). A headless run waits for its
         // jobs before it gets here (`wait_jobs`).
         for (number, end) in self.jobs.stop_all() {
             let _ = self.finish_job(number, end);
         }
-        // WP-S3.07 part 3: a print set still building is cancelled and waited for; it wrote no file.
+        // A print set still building is cancelled and waited for; it wrote no file.
         self.stop_print();
         match self.project.take() {
             Some(p) if p.session.is_dirty() => drop(p),
@@ -2175,7 +2146,7 @@ impl ShellModel {
         }
         self.area = None;
         self.focus = None;
-        // FT-348: the window's geometry, recorded only by a real window, is written once at its end, merged into the
+        // The window's geometry, recorded only by a real window, is written once at its end, merged into the
         // file as it is on disk now (R1-5): another instance may have changed other settings meanwhile.
         if self.mode == Mode::Gui
             && let (Some(geometry), Some(dir)) = (self.settings.window, &self.config.config_dir)
@@ -2207,17 +2178,17 @@ impl ShellModel {
         match p.session.save() {
             Ok(saved) => {
                 self.record.saved_steps = self.record.steps.clone();
-                // WP-S2.09 §8.4: a save is a marker line of the history panel.
+                // A save is a marker line of the history panel.
                 let rev = p.session.world().rev.0;
                 self.markers.push(HistoryMarker {
                     rev,
                     text: strings::text(key!("marker-saved")).to_owned(),
                 });
-                // FT-1154 (WP-S6.08 D3): every save that wrote an unreleased format says so.
+                // Every save that wrote an unreleased format says so.
                 self.warn_unreleased(saved.unstable);
                 Outcome::Done
             }
-            // WP-S1.17 D11, D24: the first save of a project of an older format asks once.
+            // The first save of a project of an older format asks once.
             Err(SaveError::UpgradeConsent { from }) => self.ask_upgrade(&from),
             Err(e) => {
                 let message = strings::format(key!("error-save"), &[strings::text(save_error_key(&e))]);
@@ -2231,7 +2202,7 @@ impl ShellModel {
         }
     }
 
-    /// S1 as the toast of a write whose manifest is marked `unstable` (FT-1154, FT-1489; WP-S6.08 D3, D19).
+    /// S1 as the toast of a write whose manifest is marked `unstable`.
     pub(crate) fn warn_unreleased(&mut self, unstable: bool) {
         if unstable {
             self.notify_toned(
@@ -2243,7 +2214,7 @@ impl ShellModel {
 
     pub(crate) fn act_save_as(&mut self, p: &Map<String, Value>) -> Outcome {
         // FT-1383 (ID-1418): a project whose damaged library copy a record names is not copied: the copy would not open.
-        // FT-1500 (ID-1458): one that no record names is left out of the copy, which says so.
+        // One that no record names is left out of the copy, which says so.
         let damaged = self.project.as_ref().and_then(|p| p.session.damaged_copy());
         if let Some(d) = damaged.as_ref().filter(|d| !d.left_out) {
             let message = match (&d.device, &d.part) {
@@ -2329,7 +2300,7 @@ impl ShellModel {
         if outcome != Outcome::Done {
             return outcome;
         }
-        // C53-p4#4 (ID-1491): the toast names each copy written with its version.
+        // The toast names each copy written with its version.
         let updated = ew_api::comma_joined(done.updated);
         match (updated, ew_api::comma_joined(done.not_updated)) {
             (updated, Some(left)) => self.notify_toned(
@@ -2362,13 +2333,13 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `file.save_project`: the project, while the symbol editor shows and Save is the symbol's (ID-1463).
+    /// `file.save_project`: the project, while the symbol editor shows and Save is the symbol's.
     pub(crate) fn act_save_project(&mut self) -> Outcome {
         self.save_project()
     }
 
     pub(crate) fn act_quit(&mut self, p: &Map<String, Value>) -> Outcome {
-        // ID-1463: an unsaved symbol draft asks Save symbol, Discard or Cancel; `discard` discards it.
+        // An unsaved symbol draft asks Save symbol, Discard or Cancel; `discard` discards it.
         if self
             .symbol_editor
             .as_ref()
@@ -2423,7 +2394,7 @@ impl ShellModel {
         match stepped {
             Ok(_) => {
                 let after = p.session.history().cursor();
-                // WP-S2.09 §8.5: the first entry of the step undone or redone.
+                // The first entry of the step undone or redone.
                 let first = if redo {
                     (after > before).then_some(before)
                 } else {
@@ -2440,12 +2411,12 @@ impl ShellModel {
                     }
                 }
                 self.refresh_rows();
-                // The tool's marks belong to the revision undone or redone (WP-S2.04 part 2, window check): the overlay
+                // The tool's marks belong to the revision undone or redone (window check): the overlay
                 // and the preview go; the next pointer or cursor move draws them again.
                 self.tools.overlay = crate::tools::Overlay::default();
                 self.tools.preview = None;
                 self.crossed_step(crossed);
-                // FT-1083: a terminal placement takes the strip's next designation again.
+                // A terminal placement takes the strip's next designation again.
                 self.tools.reread_designation = true;
                 Outcome::Done
             }
@@ -2483,13 +2454,13 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Escape (NFR-UX-07, WP-S2.03 §7.2): closes the topmost popup or dialog (the palette, then a dialog, then the
+    /// Escape (NFR-UX-07): closes the topmost popup or dialog (the palette, then a dialog, then the
     /// link preview); with none open it sends `Escape` to the active tool, and when the tool was in its first state
     /// a tool other than Select is replaced by Select and Select's selection is cleared. A banner has a button of its
     /// own, [`ShellModel::dismiss_banner`].
     pub(crate) fn act_dismiss(&mut self) -> Outcome {
-        // WP-S2.09 §6.6: Escape in the confirmation that Discard… opened returns to the recovery dialog.
-        // ID-1374: and Escape in the unsaved-changes question of the import card's Apply returns to the card.
+        // Escape in the confirmation that Discard… opened returns to the recovery dialog.
+        // And Escape in the unsaved-changes question of the import card's Apply returns to the card.
         if matches!(
             self.dialog,
             Some(Dialog::ConfirmJournalDiscard | Dialog::ConfirmDiscard { .. })
@@ -2503,25 +2474,25 @@ impl ShellModel {
         if self.close_palette_form() {
             return Outcome::Done;
         }
-        // WP-S2.08 D8: Escape while the keymap editor records ends the recording and leaves the dialog open.
+        // Escape while the keymap editor records ends the recording and leaves the dialog open.
         if matches!(self.dialog, Some(Dialog::Shortcuts)) && self.keymap_editor.recording.take().is_some() {
             return Outcome::Done;
         }
-        // WP-S3.07 part 3 (ruling 4 of ID-1180): Escape and Cancel in the print pre-dialog cancel its build and print
+        // Escape and Cancel in the print pre-dialog cancel its build and print
         // nothing.
         if self.palette.is_none() && matches!(self.dialog, Some(Dialog::Print(_))) {
             self.drop_print();
         }
         if self.palette.take().is_some()
             || self.dialog.take().is_some()
-            // WP-S2.09 §6.5: the notifications log is a popup.
+            // The notifications log is a popup.
             || std::mem::take(&mut self.notes.popup)
-            // WP-S2.09 §8.4: so is Show changes.
+            // So is Show changes.
             || self.history.changes.take().is_some()
             || self.tools.picker.take().is_some()
-            // WP-S2.18 D2: Escape closes the Join chooser and leaves the target as it was.
+            // Escape closes the Join chooser and leaves the target as it was.
             || self.tools.chooser.take().is_some()
-            // FT-649: Escape closes the parts import's column mapping step.
+            // Escape closes the parts import's column mapping step.
             || self.parts_map.take().is_some()
             || self.tools.junction_editor.take().is_some()
             || self.tools.link_preview.take().is_some()
@@ -2531,7 +2502,7 @@ impl ShellModel {
         if let Some(outcome) = self.dismiss_properties() {
             return outcome;
         }
-        // WP-S2.06 part 3: Escape in a navigator's table ends the cell edit or the pattern dialog, then the table card.
+        // Escape in a navigator's table ends the cell edit or the pattern dialog, then the table card.
         if let Some(Focus::Navigator(k)) = self.focus
             && let Some(outcome) = self.dismiss_table(k)
         {
@@ -2545,7 +2516,7 @@ impl ShellModel {
         {
             return Outcome::Done;
         }
-        // WP-S2.06 part 1: Escape in a navigator cancels the reorder card (WP-S2.09 part 2: and the quick-fix card;
+        // Escape in a navigator cancels the reorder card (WP-S2.09 part 2: and the quick-fix card;
         // WP-S3.08 part 3: and the table import card).
         if matches!(self.focus, Some(Focus::Navigator(_)))
             && self.props.card().is_some_and(|c| {
@@ -2560,7 +2531,6 @@ impl ShellModel {
             self.props.card = None;
             return Outcome::Done;
         }
-        // WP-S2.05 part 2
         if let Some(outcome) = self.dismiss_find() {
             return outcome;
         }
@@ -2603,13 +2573,12 @@ impl ShellModel {
             return Outcome::Done;
         };
         self.dialog = None;
-        // ID-1463: the symbol draft's question; the pending action then asks about the project as usual.
+        // The symbol draft's question; the pending action then asks about the project as usual.
         if symbol {
             let params = pending.params.clone();
             return match answer {
                 ConfirmAnswer::Cancel => Outcome::Done,
-                // Quitting drops the draft and then asks about the project; an editor action discards the draft itself
-                // (ID-1472).
+                // Quitting drops the draft and then asks about the project; an editor action discards the draft itself.
                 ConfirmAnswer::Discard if pending.action == "app.quit" => {
                     self.symbol_editor = None;
                     self.dispatch(pending.action, &params)
@@ -2633,7 +2602,7 @@ impl ShellModel {
                 },
             };
         }
-        // ID-1374: the import card that the question replaced comes back, for Cancel and for the Apply that follows.
+        // The import card that the question replaced comes back, for Cancel and for the Apply that follows.
         if let Some(card) = self.recovery_stash.take() {
             self.dialog_gen += 1;
             self.dialog = Some(card);
@@ -2667,8 +2636,8 @@ impl ShellModel {
     }
 
     /// One command-log line through the session's own replay: reference resolution, preview and commit for bulk
-    /// commands, one undo step, origin CmdLog (WP-S2.01 spec section 6.3); a committed step joins the record. The
-    /// path of `command.run` and of the tool host's headless commits (WP-S2.03 §7.3).
+    /// commands, one undo step, origin CmdLog (spec section 6.3); a committed step joins the record. The
+    /// path of `command.run` and of the tool host's headless commits.
     fn run_logged(&mut self, cmd: String, params: Value) -> Outcome {
         let text = format!(
             "{}\n{}\n",
@@ -2683,7 +2652,7 @@ impl ShellModel {
         let Some(project) = &mut self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        // FT-1425 (ID-1395): the `library.embed` that a `plc.set_profile` naming a library's profile runs first (WP-S7.03
+        // The `library.embed` that a `plc.set_profile` naming a library's profile runs first (WP-S7.03
         // D8), an undo step of its own, joins the record before it, so the recorded script replays without the library.
         let embed = (cmd == "plc.set_profile")
             .then(|| params.get("profile").and_then(Value::as_str))
@@ -2702,7 +2671,7 @@ impl ShellModel {
                 }
                 Outcome::Done
             }
-            // The one line's command error as every other shell path shows it (FT-779); a malformed line or an
+            // The one line's command error as every other shell path shows it; a malformed line or an
             // unresolved reference as the log prints it.
             Err(CmdLogError::Failed { error, .. } | CmdLogError::Refused { error, .. }) => {
                 tools::command_failed(&error, &params)

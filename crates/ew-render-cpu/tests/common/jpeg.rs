@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! JPEG test fixtures built in the test from given quantised DCT coefficients (FT-406): no encoder, no floating point,
+//! JPEG test fixtures built in the test from given quantised DCT coefficients: no encoder, no floating point,
 //! so the bytes are the same on every platform. The coefficients of each 8 × 8 block (DC and a few AC terms, in zigzag
 //! order) come from a fixed formula over the component and the block position, so the IDCT, the upsampling and the
 //! colour conversion of the decoder all do real work. One Huffman table pair serves every component: DC categories

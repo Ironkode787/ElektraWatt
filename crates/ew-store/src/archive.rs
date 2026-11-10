@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The as-built archive's file (doc 05 §14.1 step 4, §14.2; WP-S1.18 D11, D13): its name, its layout as a
+//! The as-built archive's file (doc 05 §14.1 step 4, §14.2): its name, its layout as a
 //! deterministic ZIP ([`crate::zip`]), its check, and the atomic write through the [`Vfs`] seam.
 //!
 //! **Layout.** `mimetype` first and stored (`application/vnd.elektrawatt.archive+zip`), then every other entry
@@ -32,9 +32,9 @@
 //! The owner is the caller's marker of the project directory (the release uses the directory's key, [`path_key`]):
 //! only one run of a project directory writes at a time (its write lock), so a temp that carries the owner is a crashed
 //! run's, never a live one's. A copy of the directory elsewhere (an operating-system copy, a restore, a Save as)
-//! carries the same project ID but has another key, so neither removes the other's temp (FT-814).
+//! carries the same project ID but has another key, so neither removes the other's temp.
 //!
-//! **The run record** ([`RunRecord`], FT-814). Before its archive has its name (the temp written and verified), a
+//! **The run record** ([`RunRecord`]). Before its archive has its name (the temp written and verified), a
 //! release run records durably in the per-user state directory, outside the project, that this project directory's run
 //! writes it: the archive's path, its SHA-256 and its modification time (the temp's, which the archive keeps), under
 //! `<state>/releases/<key of the directory>-<key of the archive>.json` ([`run_record_path`]), so a crash right after
@@ -208,7 +208,7 @@ pub fn path_text(vfs: &dyn Vfs, path: &Path) -> String {
 
 /// The key of `path`: the first 16 hex digits of the SHA-256 of [`path_text`]. The release names its archive temps
 /// ([`temp_name`]) and its run records ([`run_record_path`]) by the key of the project directory, which a copy of the
-/// directory elsewhere does not share (FT-814).
+/// directory elsewhere does not share.
 ///
 /// ```
 /// use std::path::Path;
@@ -497,7 +497,7 @@ pub struct Written {
     pub record_trouble: Option<io::Error>,
 }
 
-/// The run record [`write_atomically`] writes before the archive has its name (FT-814): the state directory and the
+/// The run record [`write_atomically`] writes before the archive has its name: the state directory and the
 /// record, whose `archive`, `sha256` and `modified` the write fills in (the archive's [`path_text`], the SHA-256 of
 /// its bytes and the temp's modification time, which the archive keeps).
 #[derive(Clone, Debug)]
@@ -612,7 +612,7 @@ pub fn write_atomically(
         .map_err(io_err(WriteStep::Sync, &temp))
         .map_err(cleanup)?
         .modified;
-    // The run's record (FT-814), durable before the archive has its name, so that a crash after the rename leaves an
+    // The run's record, durable before the archive has its name, so that a crash after the rename leaves an
     // archive this directory can prove its own. Best effort: without it a discard after a crash keeps the archive.
     let run_record = record.and_then(|at| {
         let record = RunRecord {
@@ -726,7 +726,7 @@ pub fn remove(vfs: &dyn Vfs, path: &Path) -> io::Result<()> {
 /// The folder of the release runs' records in the per-user state directory: `<state>/releases`.
 pub const RUNS_DIR: &str = "releases";
 
-/// What a release run records once its archive is in place (see the module documentation, FT-814): the positive
+/// What a release run records once its archive is in place (see the module documentation): the positive
 /// evidence that this project directory's own run wrote the archive, which a discard requires.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct RunRecord {
@@ -1139,7 +1139,7 @@ mod tests {
         }
     }
 
-    /// FT-814: the key of a path follows the directory, not its spelling (a `..` path reaches the same key); another
+    /// The key of a path follows the directory, not its spelling (a `..` path reaches the same key); another
     /// directory of the same name has another key, and so has one whose name differs only in case on a case-sensitive
     /// file system (the memory one): nothing is folded (FIX40a, finding 5).
     #[test]
@@ -1185,7 +1185,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&base);
     }
 
-    /// FT-814: a run record is written durably under `<state>/releases/<key>-<key>.json`, read back equal, replaced by
+    /// A run record is written durably under `<state>/releases/<key>-<key>.json`, read back equal, replaced by
     /// a later record of the same directory and archive, and removed; a missing or malformed record reads as `None`.
     #[test]
     fn the_run_record() {
@@ -1236,7 +1236,7 @@ mod tests {
         assert!(!same_time(None, Some(t)));
     }
 
-    /// FT-814: a failing call of the record's write leaves no record behind.
+    /// A failing call of the record's write leaves no record behind.
     #[test]
     fn a_failing_record_write_leaves_nothing() {
         let state = Path::new("/state");

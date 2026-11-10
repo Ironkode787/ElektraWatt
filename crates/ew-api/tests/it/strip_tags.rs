@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Doc 08 §6.1's and §6.7's printing (decision log ID-1151, FT-1026), through the page scene the PDF and SVG writers
+//! Doc 08 §6.1's and §6.7's printing, through the page scene the PDF and SVG writers
 //! draw: a terminal drawn alone prints its designation, or its function text under its strip's `label_mode`
 //! FunctionText; the strip's tag prints once per page at the strip's first terminal when the page holds no segment of
 //! the strip; `tag_print` PerPage prints a strip's tag at its first segment on each page. Golden A's records, edited
@@ -313,7 +313,7 @@ fn per_page_prints_the_strip_tag_once_at_the_first_segment() {
     assert_eq!(at(&texts(&s, 103), &[alone]), strings(&[&["1+"]]));
 }
 
-/// FT-1026: an unnumbered strip's terminals name their strip: its displayed tag, with "?" for the counter it lacks.
+/// An unnumbered strip's terminals name their strip: its displayed tag, with "?" for the counter it lacks.
 /// Golden A's 1X1 is frozen as "1X1"; with its frozen tag and its counter removed, the golden strip rule derives the
 /// tag with the page token: "-X101?" (a strip without a page token reads "-X??").
 #[test]
@@ -352,7 +352,7 @@ fn hide_tag(g: &mut Golden, key: &str) {
     g.rep_mut(key).text_slots.insert(hidden);
 }
 
-/// C46-p4#3: a first terminal whose designation is hidden carries no strip tag; the next terminal in the strip's
+/// A first terminal whose designation is hidden carries no strip tag; the next terminal in the strip's
 /// order does.
 #[test]
 fn a_hidden_first_designation_moves_the_strip_tag_to_the_next_terminal() {
@@ -366,7 +366,7 @@ fn a_hidden_first_designation_moves_the_strip_tag_to_the_next_terminal() {
     );
 }
 
-/// C46-p4#3: a first terminal whose symbol has no tag slot (drawn with the interruption-point symbol, whose slots are
+/// A first terminal whose symbol has no tag slot (drawn with the interruption-point symbol, whose slots are
 /// `function_text` and `xref`) carries no strip tag; the next terminal does.
 #[test]
 fn a_first_terminal_without_a_tag_slot_passes_the_strip_tag_on() {
@@ -381,7 +381,7 @@ fn a_first_terminal_without_a_tag_slot_passes_the_strip_tag_on() {
     );
 }
 
-/// C46-p4#3: with no terminal of the strip showing its tag slot on the page, the page prints no strip tag.
+/// With no terminal of the strip showing its tag slot on the page, the page prints no strip tag.
 #[test]
 fn no_shown_tag_slot_no_strip_tag() {
     let mut g = Golden::new();

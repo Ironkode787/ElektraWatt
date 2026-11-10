@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-410: the golden parts table read through `read_parts_tables` and dispatched as `parts.import` into a new
+//! The golden parts table read through `read_parts_tables` and dispatched as `parts.import` into a new
 //! project: the golden project's 29 part copies, project-local, the starter FnDefs resolved; a second import skips
 //! every key; the picker lists the parts with a function template.
 
@@ -58,8 +58,8 @@ fn the_golden_parts_table_imports_into_a_new_project_once() {
         !cat.parts.is_empty(),
         "the picker lists the parts with a template"
     );
-    // The embedded parts, then the starter parts the project does not hold (WP-S2.18 D6; FT-1375, ID-1391), each by
-    // maker then part number (FT-439, FT-1087).
+    // The embedded parts, then the starter parts the project does not hold, each by
+    // maker then part number.
     let order: Vec<(bool, &str, &str)> = cat
         .parts
         .iter()

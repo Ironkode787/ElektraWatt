@@ -431,7 +431,7 @@ fn report_pdf_writes_the_block_folios_only() {
     assert!(std::fs::read(&report).unwrap() == std::fs::read(&pages).unwrap());
 }
 
-/// OU-3 (WP-S3.08 D7): `--format xlsx` without `--out` exits 2 asking for the file; an unknown block exits 2 naming it.
+/// OU-3: `--format xlsx` without `--out` exits 2 asking for the file; an unknown block exits 2 naming it.
 #[test]
 fn report_refuses_xlsx_without_a_file_and_an_unknown_block() {
     let t = Tmp::new();
@@ -476,7 +476,7 @@ fn kind_csvs() -> Vec<&'static str> {
     kinds
 }
 
-/// RK-1, RK-2, RK-7 and the orchestrator's ruling 10 (cycle 42): `ew export report --kind <kind> --format csv` writes
+/// RK-1, RK-2, RK-7 and the orchestrator's ruling 10: `ew export report --kind <kind> --format csv` writes
 /// `expected/csv/<kind>.csv` byte for byte, twice the same.
 #[test]
 fn report_kind_writes_the_golden_kind_csvs() {
@@ -503,7 +503,7 @@ fn report_kind_writes_the_golden_kind_csvs() {
     }
 }
 
-/// RK-3 (the orchestrator's rulings 4 and 5, cycle 42): the refusals of the export by kind, each whole on stderr with
+/// RK-3 (the orchestrator's rulings 4 and 5): the refusals of the export by kind, each whole on stderr with
 /// exit 2; the unknown-kind refusal lists the registered kinds, each of which but `terminal_diagram` exports.
 #[test]
 fn report_kind_refusals_and_every_listed_kind_exports() {
@@ -580,7 +580,7 @@ fn report_kind_refusals_and_every_listed_kind_exports() {
     }
 }
 
-/// RK-6 (the orchestrator's ruling 7, cycle 42): `--block 911 --format csv` prints the changed pages as folio 911
+/// RK-6 (the orchestrator's ruling 7): `--block 911 --format csv` prints the changed pages as folio 911
 /// does (V1.0 empty, V2.0 "101, 106"); `--kind revision_overview` writes the same bytes.
 #[test]
 fn report_csv_of_folio_911_prints_the_changed_pages() {

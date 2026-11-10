@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! EW-POT rules (doc 15 §4.3; content in doc 08 §3, §8.1, §8.2; WP-S1.16 part 2).
+//! EW-POT rules (doc 15 §4.3; content in doc 08 §3, §8.1, §8.2).
 //!
-//! # Determinism (WP-S1.16 §10)
+//! # Determinism
 //!
 //! Every order, text, target and fingerprint here follows the project's content and printed keys, never the IDs of
-//! a new project (ID-677): definitions rank in natural order of their names (D9, FT-587), the discriminator member
-//! of a potential without a definition is its first member CP by printed text (D8, FT-588), and a note of a bond
-//! closure is reported by the potential of its subject that prints first (FT-188). An ID decides only between two
+//! a new project: definitions rank in natural order of their names (D9), the discriminator member
+//! of a potential without a definition is its first member CP by printed text (D8), and a note of a bond
+//! closure is reported by the potential of its subject that prints first. An ID decides only between two
 //! things that print alike.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -33,7 +33,7 @@ use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::{full_tag, location_text};
 
-/// A CP as a finding's sentence names it (FT-756, ID-889): a designation the function shares between pins carries
+/// A CP as a finding's sentence names it: a designation the function shares between pins carries
 /// its position in words, "-1A4 pin − (2nd)", never the label's `#2`; any other CP is named by its label. The parts
 /// go to the Fluent patterns as `cp_shared`, `cp_tag`, `cp_pin` and `cp_nth` (an ordinal number), so that each
 /// language words the position itself; `cp` stays the label.
@@ -94,7 +94,7 @@ pub(crate) struct PotTargets {
     /// The display targets: every definition (D9), or, without one, the function of every member CP (interruption
     /// points included), so a finding shows on whichever of them is selected.
     pub targets: Vec<Target>,
-    /// The identity the fingerprint is computed from (D8, FT-588): the potential's identity definition (its smallest
+    /// The identity the fingerprint is computed from (D8): the potential's identity definition (its smallest
     /// definition ID, the potential's ID, as before), or the function of its discriminator member. A waiver keeps
     /// matching when a member or a further definition is added or removed.
     pub key: Vec<Target>,
@@ -131,7 +131,7 @@ impl PotTargets {
 /// The discriminator member of a potential without a definition is its first member CP in printed order (WP-S1.16
 /// D8): device CPs before interruption points, then `<tag>:<designation>` in natural order (D1's printed key), then
 /// the CP index, the CP ID only between two CPs that print alike on two functions. Before, it was the smallest CP ID,
-/// random in a new project. The potential is read as its own part of the partition (FT-236).
+/// random in a new project. The potential is read as its own part of the partition.
 pub(crate) fn potential_targets(q: &Q, p: PotentialId) -> PotTargets {
     let part = potential_part(q, p);
     let Some(potential) = part.get(p) else {
@@ -190,14 +190,14 @@ fn by_name(q: &Q, a: PotentialId, b: PotentialId) -> std::cmp::Ordering {
         .then_with(|| a.cmp(&b))
 }
 
-/// The potential, of `candidates`, that reports a finding they share: the first by printed name (FT-188).
+/// The potential, of `candidates`, that reports a finding they share: the first by printed name.
 fn owner(q: &Q, candidates: impl IntoIterator<Item = PotentialId>) -> Option<PotentialId> {
     candidates.into_iter().min_by(|a, b| by_name(q, *a, *b))
 }
 
 /// Whether the potential `p` reports the findings about `wire`: a wire of one potential is its own; a bond wire,
 /// which belongs to both potentials of its bond (and is extracted with every potential of the bond closure), is
-/// reported by the one that prints first (FT-188).
+/// reported by the one that prints first.
 fn owns_wire(q: &Q, p: PotentialId, wire: &PhysicalWire) -> bool {
     owner(q, wire.potentials.iter().copied()) == Some(p)
 }
@@ -251,7 +251,7 @@ fn cp_of(q: &Q, cp: CpRef) -> Option<ew_derive::Cp> {
 ///
 /// `PhysicalWiresOf(p)` extracts the wires of the whole bond closure of `p` (doc 08 §3.8), so every potential of the
 /// closure sees the same notes; each note is reported once, by the potential of its subject that prints first
-/// (FT-188, [`note_owner`]).
+/// ([`note_owner`]).
 fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Finding> {
     let wires = q.get::<PhysicalWiresOf>(p);
     let pt = potential_targets(q, p);
@@ -265,8 +265,8 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
                 subject,
                 detail,
             } if *code == meta.id && note_owner(q, p, &wires.wires, subject) == Some(p) => {
-                // FT-711: EW-POT-011's message in plain words, from its Fluent pattern; the note's detail stays the
-                // derivation's own text. FT-1146 (ID-1229 item 10): the message leads with the potential, so the
+                // EW-POT-011's message in plain words, from its Fluent pattern; the note's detail stays the
+                // derivation's own text. FT-1146 (item 10): the message leads with the potential, so the
                 // Messages row, which shows a subject the message leads with once, names it once.
                 if meta.id == JUNCTION_FEED_AMBIGUOUS.id {
                     let message = format!(
@@ -285,7 +285,7 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
         .collect()
 }
 
-/// The potential that reports a wire note about `subject` (FT-188): of the potentials the subject lies in (a wire's
+/// The potential that reports a wire note about `subject`: of the potentials the subject lies in (a wire's
 /// or a connection's ends, a function's CPs, a junction), the one that prints first; `p` itself when the subject is
 /// none of these.
 fn note_owner(q: &Q, p: PotentialId, wires: &[PhysicalWire], subject: &str) -> Option<PotentialId> {
@@ -349,9 +349,9 @@ pub const TYPE_OR_VOLTAGE_CONFLICT: RuleMeta = RuleMeta {
 ///
 /// - **Attributes:** one finding per potential with conflicts, discriminator `attrs` (plus the CP index
 ///   suffix of a potential without a definition), message the conflict details joined with "; ". The definitions
-///   rank in natural order of their names (D9, FT-587): the first applies its values, every definition is a target,
+///   rank in natural order of their names (D9): the first applies its values, every definition is a target,
 ///   and the texts name definitions and CPs by their printed text in that order.
-/// - **0 V joined to PE** (WP-S1.16 D2, D3): when the member CPs carry both the roles `M` and `PE`, the attribute
+/// - **0 V joined to PE**: when the member CPs carry both the roles `M` and `PE`, the attribute
 ///   finding carries the quick fix "Declare 0 V–PE bond (PELV)", a `bond.create {a, b, kind: pelv_0v_pe, via}` on
 ///   the potential's carrier connection (`bond_carrier`), which keeps 0 V and PE as two potentials; without a
 ///   carrier (none, or a tie on the printed keys) it has no fix and its message ends with the hint "declare the
@@ -414,7 +414,7 @@ impl Rule for TypeOrVoltageConflict {
                     message,
                 )
                 .arg("conflicts", shown)
-                // FT-1370: the shown conflicts one per line, which `messages::format` words one by one.
+                // The shown conflicts one per line, which `messages::format` words one by one.
                 .arg("conflict_list", pieces.join("\n"))
                 .arg(
                     "more",
@@ -433,7 +433,7 @@ impl Rule for TypeOrVoltageConflict {
         }
         let flow = q.get::<FlowBfs>(());
         for c in flow.conflicts.iter().filter(|c| c.a == p) {
-            // The device tag, never the function's ID: no finding text depends on IDs (WP-S1.16 §10.1, ID-677).
+            // The device tag, never the function's ID: no finding text depends on IDs.
             let tag = q
                 .functions()
                 .get(c.function)
@@ -477,7 +477,7 @@ fn shown_conflicts(conflicts: &[String]) -> (Vec<&str>, usize) {
 /// The tail of a definition conflict's text (`potential_attrs`, `ew-derive`).
 const FIRST_DEFINITION: &str = " applies (first definition in natural order)";
 
-/// One EW-POT-001 conflict as the arguments of its pattern (FT-1370): the attribute of `rule-ew-pot-001` that words it
+/// One EW-POT-001 conflict as the arguments of its pattern: the attribute of `rule-ew-pot-001` that words it
 /// (`conflict-type`, `-voltage`, `-environment`, `-class`, `-role`, `-roles`) and its `subject` (a definition or a
 /// member CP), `value` and `applied`. It reads the text `ew-derive`'s `potential_attrs` writes; a text of another shape
 /// is `None`, and the message keeps its en-GB conflicts (the en-GB pattern renders each shape back byte for byte, which
@@ -521,7 +521,7 @@ pub(crate) fn conflict_words(text: &str) -> Option<(&'static str, String, String
 }
 
 /// Whether the member CPs of a potential (interruption points aside) carry both the role `M` and the role `PE`: a
-/// 0 V joined to PE (WP-S1.16 D2).
+/// 0 V joined to PE.
 fn zero_volt_meets_pe(q: &Q, p: PotentialId) -> bool {
     let part = potential_part(q, p);
     let Some(potential) = part.get(p) else {
@@ -583,7 +583,7 @@ pub const PELV_SELV_BONDING: RuleMeta = RuleMeta {
 ///   `Pelv0vPe` bond; one or more are one finding, discriminator `selv`.
 ///
 /// Targets: the potential's (see `potential_targets`) and the bonds counted. The bonds and the potential are read as
-/// their own parts of the partition (`BondsOf`, FT-236), so a topology change elsewhere does not re-run the rule.
+/// their own parts of the partition (`BondsOf`), so a topology change elsewhere does not re-run the rule.
 /// Golden A: 0V is PELV with B1.
 #[derive(Clone, Copy, Debug)]
 pub struct PelvSelvBonding;
@@ -863,7 +863,7 @@ pub const BU_ON_NON_N: RuleMeta = RuleMeta {
 /// The rule judges a colour the project chose (an override, a core's conductor, a potential definition, a colour
 /// profile row, the project default), not the program's built-in fallback (level 0 of doc 08 §4.1): the built-in
 /// table gives BU to L+, L-, M and DC signals by EN 60204-1 13.2.4 (doc 08 §4.3) when the project has no colour of
-/// its own, and a warning on the program's own default is not one the drafter chose (cycle-35 play-test).
+/// its own, and a warning on the program's own default is not one the drafter chose (play-test).
 #[derive(Clone, Copy, Debug)]
 pub struct BuOnNonN;
 
@@ -949,7 +949,7 @@ pub const PE_UNDERSIZED: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-pot-006",
 };
 
-/// The rule data of EW-POT-006 (`data/pe_sizing.toml`, WP-S1.16 D5).
+/// The rule data of EW-POT-006 (`data/pe_sizing.toml`).
 pub(crate) const PE_SIZING_TOML: &str = include_str!("../../data/pe_sizing.toml");
 
 /// One row of the PE sizing table: up to which line cross-section it applies, and the PE it requires.
@@ -1081,7 +1081,7 @@ fn mm2(c: &Csa) -> Option<Dec3> {
 ///   is one whose potential's final type is one of the table's `line_types` (L, L1, L2, L3; L+ excluded).
 /// - **Rule.** The largest associated line cross-section S (mm²) gives the minimum PE from `data/pe_sizing.toml`
 ///   (equal up to 16 mm², then 16, then S/2). Cross-sections in AWG or kcmil are not compared.
-/// - **Unverified data** (WP-S1.16 D5, NFR-COMP-05): while the table is `verified = false`, the message says so.
+/// - **Unverified data** (NFR-COMP-05): while the table is `verified = false`, the message says so.
 /// - One finding per PE wire at the end with the largest requirement, target the wire's carrier connection.
 ///   Golden A: W6 (1.5 mm² at 1X1, next to the 2.5 mm² W4; EF-06).
 #[derive(Clone, Copy, Debug)]
@@ -1251,12 +1251,12 @@ pub const PE_ISLAND: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-pot-008",
 };
 
-/// EW-POT-008 (doc 08 §8.1, FR-CHK-055; decision log ID-185), both halves:
+/// EW-POT-008 (doc 08 §8.1, FR-CHK-055), both halves:
 ///
 /// - **A rail-bonded terminal without a location**, from the `rail_terminal` notes (the terminal joins no location
 ///   PE node; since cycle 33 only in a project with two or more own locations, else it joins the implicit main
 ///   location). One finding per terminal, target the terminal.
-/// - **More than one PE potential in one location** (FT-189): the PE potentials (final type PE) with a member CP
+/// - **More than one PE potential in one location**: the PE potentials (final type PE) with a member CP
 ///   of a device in the location (its own location; without one, the location its rail would join,
 ///   `device_location`); one finding per location that holds two or more, targets the location node and each
 ///   potential's identity, discriminator `island` (the main location `island@main`), the potentials named in
@@ -1888,7 +1888,7 @@ pub(crate) fn duplicate_numbers(numbers: impl IntoIterator<Item = (String, Id<Co
                     wires.len()
                 ),
             )
-            // FT-1334: the arguments of the rule's pattern.
+            // The arguments of the rule's pattern.
             .arg("number", label.clone())
             .arg("count", wires.len().to_string())
         })
@@ -2068,7 +2068,7 @@ impl Rule for TwoPotentialNames {
 // ---------------------------------------------------------------------------------------------------------
 // EW-POT-021
 
-/// EW-POT-021 "Load not returned" (doc 15 §4.4, FT-661): completeness, o r, warning, potential.
+/// EW-POT-021 "Load not returned" (doc 15 §4.4): completeness, o r, warning, potential.
 pub const LOAD_NOT_RETURNED: RuleMeta = RuleMeta {
     id: "EW-POT-021",
     code: "005021",
@@ -2168,7 +2168,7 @@ fn sourceless(q: &Q, p: PotentialId) -> bool {
     loads > 0
 }
 
-/// EW-POT-021: a load fed on one side whose other side reaches no source, an unreturned coil (FT-661; doc 08 §3.6).
+/// EW-POT-021: a load fed on one side whose other side reaches no source, an unreturned coil (doc 08 §3.6).
 /// `scope` is a potential with no source (`sourceless`: unreached by the flow, no CP with a potential role, only
 /// two-terminal loads besides terminals and interruption points), for example the A2 net of two valve coils that was
 /// never linked to 0 V. Each two-terminal load on it whose other CP lies on a potential that has a source is reported
@@ -2286,7 +2286,7 @@ mod tests {
             f[0].message,
             "wire number 101.2 is printed on 2 wires; a wire number names one numbering unit"
         );
-        // FT-1334: the finding's own arguments word it in Dutch (C51-p6#5).
+        // The finding's own arguments word it in Dutch.
         assert_eq!(
             crate::messages::render(&f[0], "nl-NL"),
             "draadnummer 101.2 staat op 2 draden; een draadnummer benoemt één nummeringseenheid"

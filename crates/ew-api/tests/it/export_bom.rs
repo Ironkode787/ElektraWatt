@@ -66,7 +66,7 @@ fn assembly_mode_replaces_rows_16_to_21_by_the_two_configured_products() {
     for (a, c) in lines[1..16].iter().zip(&comp[1..16]) {
         assert_eq!(*a, format!("{c},"), "rows 1-15 stay, with an empty Covers cell");
     }
-    // Rows 22-27 stay, renumbered 16-21: the positions run over the component rows that are left (ID-356).
+    // Rows 22-27 stay, renumbered 16-21: the positions run over the component rows that are left.
     let without_pos = |l: &str| l.splitn(3, ',').collect::<Vec<_>>()[2].to_owned();
     let tail: Vec<String> = lines[18..].iter().map(|l| without_pos(l)).collect();
     let kept: Vec<String> = comp[22..]

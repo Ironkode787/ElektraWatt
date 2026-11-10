@@ -505,7 +505,7 @@ fn rk6_the_revision_overview_csv_prints_the_changed_pages() {
     assert_eq!(export(&q, "revision_overview").csv, by_block.csv);
 }
 
-/// Golden A with `block` added (a block value no command writes: `params`, WP-S3.06 D9).
+/// Golden A with `block` added (a block value no command writes: `params`).
 fn golden_with_block(block: ReportBlock) -> Session {
     golden_common::session_with(&golden_common::batch(), |_, records| {
         records.push(Record::ReportBlock(block))

@@ -6,7 +6,7 @@
 //!
 //! The query resolves exactly the paths of the pinned profile's binding set
 //! ([`crate::TitleBlockBindings`]); a path without a value is absent from [`TitleBlock::values`] and
-//! renders empty (decision log ID-40). No value ever carries placeholder text.
+//! renders empty. No value ever carries placeholder text.
 //!
 //! # Sources
 //!
@@ -15,7 +15,7 @@
 //!   `end_user`, `panel_builder`, `author`, `checker` and `engineer`.
 //! - `page.*` and `doc.*`: [`PageOrder`] (folio, neighbours, position), [`PageTitle`],
 //!   [`PageRefStructure`] and the page row. A page that is not in the page order has none of them.
-//!   `page.title` of a page drawn to scale 1:n reads `"<title> · Scale 1:n"` (WP-S4.01 D9, FR-LAY-010); every other
+//!   `page.title` of a page drawn to scale 1:n reads `"<title> · Scale 1:n"` (FR-LAY-010); every other
 //!   page prints its plain title.
 //!   `page.last_changed_in` (drawn pages only) is the label of the revision that last changed the page
 //!   (doc 09 §2.6, doc 15 §5.6; the no-digest branch, page digests do not exist yet): the current open
@@ -23,7 +23,7 @@
 //!   pages contain it (`release.changed_pages` if present, else the pages of its `page_notes`); else the
 //!   first (lowest ranked) revision. `release.changed_pages` is the typed release record's member (WP-S1.18
 //!   part 1, D2); a line whose entries are not page IDs does not load as a record.
-//! - `revision.current.*`: the typed `revision` records (doc 03 §18, FT-165): `label`, `date`, `state`
+//! - `revision.current.*`: the typed `revision` records (doc 03 §18): `label`, `date`, `state`
 //!   (printed as its stored name; a state of a newer format as its text), `author` and `checker`.
 //!   Withdrawal records (state `withdrawn`) are ignored, and so is the revision whose label a withdrawal
 //!   record names by ID in `withdraws` (it stays `released`, EW-INV-020). The current revision is the greatest by (open
@@ -44,7 +44,7 @@
 //!
 //! # Provisional: company data
 //!
-//! `project.logo` and `project.notice` (the basic project's company data, doc 07 §2.8, ID-40) have no
+//! `project.logo` and `project.notice` (the basic project's company data, doc 07 §2.8) have no
 //! record member yet. **Provisional** source until that decision is made: `Project.extra["ew.company"]`,
 //! an object `{"logo": <AssetRef>, "notice": <MlText JSON>}` (`logo` also in its earlier form, a bare
 //! `"sha256:<64 hex>"`, which takes the held asset's format and size, else reads as a PNG of unknown size:
@@ -86,7 +86,7 @@ pub enum TbValue {
 }
 
 /// The values of every path of the profile's title-block binding set that has a value on one page.
-/// A path without a value is absent (it renders empty, decision log ID-40).
+/// A path without a value is absent (it renders empty).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct TitleBlock {
     /// Path (`page.title`) → value.
@@ -198,9 +198,9 @@ fn project_scope(out: &mut Out, q: &Q, project: &Project) {
     }
 }
 
-/// The title-block title of a page drawn to scale 1:n (WP-S4.01 D9): `"<title> · <Scale> 1:n"` in every language of
+/// The title-block title of a page drawn to scale 1:n: `"<title> · <Scale> 1:n"` in every language of
 /// the title, `"<Scale> 1:n"` for an empty title. The word follows each language entry's primary subtag: "Schaal" for
-/// `nl`, else "Scale" (a neutral title too; FT-881, ID-1080).
+/// `nl`, else "Scale" (a neutral title too).
 fn scaled_title(title: &MlText, n: u32) -> MlText {
     let with = |lang: &str, t: &str| {
         let word = if lang.eq_ignore_ascii_case("nl") {
@@ -294,7 +294,7 @@ fn page_scope(out: &mut Out, q: &Q, project: &Project, page: PageRef) {
     };
     // WP-S4.01 D9 (FR-LAY-010): a page drawn to a scale 1:n prints "<title> · Scale 1:n" in its title block; the
     // TOC keeps the plain title (it reads `PageTitle`), and a not-to-scale page is unchanged. A stored scale of 0 draws
-    // at 1:1, so it prints neither the suffix nor `page.scale` (FT-881).
+    // at 1:1, so it prints neither the suffix nor `page.scale`.
     let title = q.get::<PageTitle>(page);
     let scale = match drawn.map(|p| &p.scale) {
         Some(Scale::OneTo(n)) if *n > 0 => Some(*n),
@@ -348,7 +348,7 @@ struct RevisionView<'q> {
     label: (Option<(u64, u64)>, NaturalKey),
     /// The pages named in `page_notes`.
     noted_pages: Vec<Id<Page>>,
-    /// `release.changed_pages`, if that member is present (the typed release record, WP-S1.18 D2).
+    /// `release.changed_pages`, if that member is present (the typed release record).
     changed_pages: Option<Vec<Id<Page>>>,
 }
 
@@ -449,7 +449,7 @@ fn last_changed_scope(out: &mut Out, q: &Q, page: PageRef) {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The page change status of doc 15 §5.6 over the revision records (WP-S1.18 part 2, D7). The page digests are not
+// The page change status of doc 15 §5.6 over the revision records. The page digests are not
 // here: they are computed in `ew-api` over the page scene and handed to these functions as `changed_now`.
 
 /// The pages a revision records as changed: `release.changed_pages` if its release record has that member, else the
@@ -513,7 +513,7 @@ mod tests {
     use super::*;
     use ew_mltext::LangTag;
 
-    // WP-S4.01 part 3 (D9): the title-block value of a page drawn to scale 1:n.
+    // The title-block value of a page drawn to scale 1:n.
     #[test]
     fn a_scaled_page_title_reads_title_dot_scale_in_every_language() {
         assert_eq!(
@@ -532,7 +532,7 @@ mod tests {
         assert_eq!(scaled.get(&nl), Some("Kastindeling · Schaal 1:10"));
     }
 
-    /// FT-881: the word follows each entry's primary subtag ("Schaal" for `nl`, else "Scale").
+    /// The word follows each entry's primary subtag ("Schaal" for `nl`, else "Scale").
     #[test]
     fn the_scale_word_follows_each_language() {
         let nl: LangTag = "nl".parse().expect("a tag");

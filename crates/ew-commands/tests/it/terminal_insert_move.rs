@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `terminal.insert` and `terminal.move` (WP-S2.07 §5.1, §5.2, D4; acceptance SE1, SE2) and `strip.accessories`
+//! `terminal.insert` and `terminal.move` (§5.2, D4; acceptance SE1, SE2) and `strip.accessories`
 //! through `fields.set` (D5; SE3), on the mini golden's -X1031 grown to Golden A's shape: twenty terminals
 //! designated 1 … 20 at seq 1 … 20, the groups 1–4 "Pneumatics", 5–10 "Spare", 11–14 "Pneumatics" and 15–20
 //! "Spare", and the bridge BR1 from :1 to :3. The same examples on Golden A itself run in `ew-testkit`

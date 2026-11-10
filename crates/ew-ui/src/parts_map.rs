@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The column mapping step of File, Import, Parts table… (FT-649, WP-S1.19 §9): a card floating at the top centre
+//! The column mapping step of File, Import, Parts table…: a card floating at the top centre
 //! while `ShellModel::parts_map` is open, before the import card (doc 16a §6.9, `elevation.1`).
 //!
 //! **Layout.** "Map columns" in `type.title`, one line naming the file, the Source field (the key the map is saved
@@ -36,7 +36,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
         )
         .order(egui::Order::Foreground)
         .show(ctx, |ui| {
-            // C40 (FT-816): a form that grows with the window when its samples need the room: as wide as the column
+            // C40: a form that grows with the window when its samples need the room: as wide as the column
             // table, from `size.dialog.form` up to the grown form width (`dialog::form_width`); nothing is stretched.
             let (names, samples, combo) = column_widths(ui, map);
             let need = names
@@ -120,7 +120,7 @@ fn source_row(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
     });
 }
 
-/// The widths of the column table's columns (C40, FT-816): the widest Column name (`type.body`), the widest sample
+/// The widths of the column table's columns (C40): the widest Column name (`type.body`), the widest sample
 /// (`type.small`), each at least `size.dialog.label` × 0.6, and the drop-downs' (`size.dialog.label` × 1.4).
 fn column_widths(ui: &egui::Ui, map: &PartsMap) -> (f32, f32, f32) {
     let t = crate::components::tokens(ui);
@@ -161,7 +161,7 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                 t.text_tertiary.color32()
             })
     };
-    // C40 (FT-816): the Sample column takes the room the Column names and the drop-downs leave in the (grown) card, so
+    // C40: the Sample column takes the room the Column names and the drop-downs leave in the (grown) card, so
     // a long sample is shown whole where the window has room and elides past that.
     let (names, _, combo) = column_widths(ui, map);
     let narrow = t.size_dialog_label * 0.6;

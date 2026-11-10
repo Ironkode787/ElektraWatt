@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `part.edit_copy` (`EditPartCopy`, WP-S2.07 D20, D21; FT-394): the part editor's command, always previewed.
+//! `part.edit_copy` (`EditPartCopy`): the part editor's command, always previewed.
 
 use std::collections::BTreeSet;
 
@@ -43,7 +43,7 @@ pub const PART_EDITABLE: [&str; 10] = [
 /// The order units a part takes (D21).
 const UNITS: [&str; 3] = ["piece", "m", "set"];
 
-/// `part.edit_copy` (`EditPartCopy`, WP-S2.07 D20, D21; FT-394): edits the identity, description, category, unit
+/// `part.edit_copy` (`EditPartCopy`): edits the identity, description, category, unit
 /// and technical data of a part copy the project holds, in one undo step. Always previewed (`Bulk`).
 ///
 /// - A **project-local copy** (`library_id` is the project ID, local forks included) is rewritten in place: the same
@@ -333,7 +333,7 @@ impl Command for EditPartCopy {
                         }
                     }
                 }
-                // A placement names the part use it realises by its copy (not a link: WP-S4.01 D4); it follows the
+                // A placement names the part use it realises by its copy (not a link); it follows the
                 // use to the fork, as a replaced part follows in `part.assign` (D7).
                 repoint_kind::<ew_schema::Placement>(tx, "part.copy", self.copy, id)?;
                 id
@@ -365,7 +365,7 @@ mod tests {
         assert!(!repoint_at(&mut v, &["overrides", "wire_part", "copy"], "a", "z"));
     }
 
-    /// C53-p3#4 (ID-1481): a technical value that does not deserialise is refused with serde's sentence by key, so the
+    /// A technical value that does not deserialise is refused with serde's sentence by key, so the
     /// window words it in its language; its English is serde's own text.
     #[test]
     fn a_bad_technical_value_is_refused_by_key() {

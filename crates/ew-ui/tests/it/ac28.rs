@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! AC-28 as one flow (WP-S2.11 D1; doc 20 §21): on one copy of Golden A, "102-A1" followed from 101-H16 and back,
+//! AC-28 as one flow (doc 20 §21): on one copy of Golden A, "102-A1" followed from 101-H16 and back,
 //! W29's chips, its colour changed through the editor and undone, and a terminal added to -X1031 with the ghost's
 //! predicted tag shown before the click. `settle` runs the accessibility check after every step. The frame bound
 //! of AC-28 is not measured here (owner's rule). The parts' own tests (PG5, PL6, the viewer's V12) stay.
@@ -239,7 +239,7 @@ fn ac28_the_four_steps_on_one_copy_of_golden_a() {
     let pos = screen(&h, spot);
     h.event(egui::Event::PointerMoved(pos));
     settle(&mut h);
-    // The window's dwell timer, dispatched as the window dispatches it: no clock is read (ID-559).
+    // The window's dwell timer, dispatched as the window dispatches it: no clock is read.
     dispatch(&mut h, "canvas.dwell", json!({"ms": 80}));
     settle(&mut h);
     let Some(ew_ui::ew_viewmodel::tools::Ghost::Place { tag: Some(tag), .. }) =

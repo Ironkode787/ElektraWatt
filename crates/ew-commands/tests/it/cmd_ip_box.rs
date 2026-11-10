@@ -116,7 +116,7 @@ const SYM_IP: Id<SymbolDef> = id(0x80);
 const SYM_IP_BARE: Id<SymbolDef> = id(0x81);
 /// A symbol whose FnDef is not embedded.
 const SYM_IP_GONE: Id<SymbolDef> = id(0x82);
-/// A symbol with one CP at the insertion point drawing FnDef CP 1 (FT-446: a start `connection.draw_to_ip` accepts).
+/// A symbol with one CP at the insertion point drawing FnDef CP 1 (a start `connection.draw_to_ip` accepts).
 const SYM_CP1: Id<SymbolDef> = id(0x83);
 /// The representation of `FN_102G1` by [`SYM_CP1`]: its CP 1 at (0, 0) on page 102.
 const REP_DRAWN_CP1: Id<Representation> = id(0x308);
@@ -144,7 +144,7 @@ fn ip_library() -> Vec<LibDocument> {
 /// The golden records with `f` applied, over [`ip_library`].
 fn ip_model(f: impl FnOnce(&mut Vec<Record>)) -> Model {
     let (project, mut records, _) = mini_golden_parts();
-    // FT-446: a wire may start at `FN_102G1`'s CP 1 on page 102; the mini model's `SYM` draws no CP, so
+    // A wire may start at `FN_102G1`'s CP 1 on page 102; the mini model's `SYM` draws no CP, so
     // [`SYM_CP1`] draws it at the origin.
     let mut drawn = rep(REP_DRAWN_CP1, PAGE_102, vec![FN_102G1]);
     drawn.symbol = SYM_CP1;
@@ -214,8 +214,8 @@ fn reps_of(e: &Engine, f: Id<Function>) -> Vec<Representation> {
         .collect()
 }
 
-/// FT-1322: on a fluid page the tool sends the fluid kind; an interruption point's CP is no fluid port, so the line is
-/// refused in words (WP-S1.20 §5 T1) before EW-INV-024, and nothing is made.
+/// On a fluid page the tool sends the fluid kind; an interruption point's CP is no fluid port, so the line is
+/// refused in words (T1) before EW-INV-024, and nothing is made.
 #[test]
 fn draw_to_ip_refuses_a_fluid_line_in_words() {
     let mut e = engine(ip_model(|_| {}));
@@ -364,7 +364,7 @@ fn draw_to_ip_rejections_write_nothing() {
     // A route that does not end at the IP's CP (6 G).
     let mut cmd = good();
     cmd.route = vec![pt(0, 0), pt(5 * G, 0)];
-    // FT-864 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
+    // FT-864 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
     assert_eq!(
         rejection(e.execute(&cmd)),
         "the wire's end at x 39.7, y 0 mm on page 102 does not meet the connection point of interruption point \
@@ -402,7 +402,7 @@ fn draw_to_ip_rejections_write_nothing() {
     assert_eq!(lines(e.model()), before);
 }
 
-/// FT-446: an `a` end not drawn on the wire's page is refused before anything is inserted, naming the page it is
+/// An `a` end not drawn on the wire's page is refused before anything is inserted, naming the page it is
 /// drawn on and the wire's page; the model stays as it was. A black-box CP and a terminal CP drawn by its strip's
 /// segment on the page are accepted starts.
 #[test]
@@ -445,7 +445,7 @@ fn draw_to_ip_refuses_a_start_on_another_page() {
     let rev = e.model().rev();
     let before = lines(e.model());
     let good = || draw_to_ip(cp_param(FN_102G1, 1), pt(5 * G, 0), vec![pt(0, 0), pt(6 * G, 0)]);
-    // FT-756: the pages by their folios, never their IDs
+    // The pages by their folios, never their IDs
     let refusal = |other: &str| {
         format!("the wire's start is drawn on page {other}, not on page 102; start the wire on page 102")
     };
@@ -608,7 +608,7 @@ fn arrange_ips_rejections_write_nothing() {
     // A missing function.
     not_found(e.execute(&arrange(&[IP_A, id(0xdead)], false)));
     // A function that is not an interruption point.
-    // FT-779: the whole text, the function named by its device's tag.
+    // The whole text, the function named by its device's tag.
     match e.execute(&arrange(&[IP_A, FN_102F2], false)) {
         Err(CmdError::Rejected { reason, .. }) => assert_eq!(
             reason,
@@ -817,7 +817,7 @@ fn reshape_to_a_triangle_moves_the_cp_of_the_vanished_edge_to_the_nearest_edge_w
     );
 }
 
-/// FT-863 (ID-1108: "`box.reshape` reshapes a drifted box's untouched vertices, the drift kept"): the box sits 1 nm
+/// FT-863 ("`box.reshape` reshapes a drifted box's untouched vertices, the drift kept"): the box sits 1 nm
 /// off the grid; widening it moves the right edge to a grid point and keeps the left vertices where they were, off
 /// the grid. A touched vertex off the grid is still refused.
 #[test]
@@ -951,7 +951,7 @@ fn fields_set_renames_an_ip_and_sets_its_direction_sort_and_star() {
     e.execute(&set_ip(IP_A, "direction", serde_json::json!("undirected")))
         .unwrap();
     assert_eq!(spec_of(&e, IP_A).direction, IpDirection::Undirected);
-    // ID-1146: a star source is a source point, so the direction is source before the star.
+    // A star source is a source point, so the direction is source before the star.
     e.execute(&set_ip(IP_A, "direction", serde_json::json!("source")))
         .unwrap();
     e.execute(&set_ip(IP_A, "star_source", serde_json::json!(true)))
@@ -984,7 +984,7 @@ fn fields_set_refuses_ip_members_on_other_functions_and_bad_values() {
         e.execute(&set_ip(FN_T3, "name", serde_json::json!("L-9"))),
         "/path",
     );
-    // FT-756: the refusal names the function by its device's tag, never by its ID.
+    // The refusal names the function by its device's tag, never by its ID.
     match e.execute(&set_ip(FN_T3, "name", serde_json::json!("L-9"))) {
         Err(CmdError::InvalidParams { message, .. }) => {
             assert!(!message.contains(&FN_T3.to_string()), "{message}");
@@ -1085,7 +1085,7 @@ fn ft673_ip_place_embeds_its_copies_in_the_same_undo_step() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-980 (ID-1146): a star source is a source point, and an external point takes no star; FT-946: an external
+// FT-980: a star source is a source point, and an external point takes no star; FT-946: an external
 // point at the end of a wire
 
 /// The refusal of a starred point with another direction.
@@ -1218,7 +1218,7 @@ fn ft980_draw_to_ip_refuses_a_star_on_a_point_that_is_no_source_or_is_external()
     assert!(spec_of(&e, new_ips(&e)[0].id).star_source);
 }
 
-/// FT-946: `connection.draw_to_ip` takes an external target as `ip.place` does: the point is external and wired, in
+/// `connection.draw_to_ip` takes an external target as `ip.place` does: the point is external and wired, in
 /// one undo step; a missing external reference is not found.
 #[test]
 fn ft946_draw_to_ip_writes_the_external_target_in_one_undo_step() {
@@ -1321,7 +1321,7 @@ fn ft980_fields_set_many_judges_each_point_after_all_its_entries() {
     assert_eq!((spec.direction, spec.star_source), (IpDirection::Target, false));
 }
 
-/// FT-1063: the star cleared first and the direction after passes as the other order does; a call that fixes one point
+/// The star cleared first and the direction after passes as the other order does; a call that fixes one point
 /// (A's star cleared with its direction) and breaks another (B made a starred target) is refused whole, naming B.
 #[test]
 fn ft1063_fields_set_many_star_in_either_order_and_one_point_fixed_another_broken() {

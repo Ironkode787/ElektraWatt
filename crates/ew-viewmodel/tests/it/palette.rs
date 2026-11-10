@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 1, the palette (FR-UI-012, NFR-UX-03, FT-361), on Golden A: PL-1 ranking with the shortcut, PL-2
+//! WP-S2.08 part 1, the palette (FR-UI-012, NFR-UX-03), on Golden A: PL-1 ranking with the shortcut, PL-2
 //! determinism and the disabled tail, PL-3 the glossary aliases (one row per NFR-DOC-05 term), PL-4 the recents, PL-5
 //! the prefixes, PL-6 the parameter forms, and PL-7's describe lines of an open form.
 
@@ -243,7 +243,7 @@ fn pl5_the_prefixes_find_pages_cells_objects_and_rules() {
     shell.shutdown();
 }
 
-/// ID-1497 (10): the search without a prefix ("Search commands and devices") finds a terminal strip, a cable and a
+/// The search without a prefix ("Search commands and devices") finds a terminal strip, a cable and a
 /// device by their tags, after the actions; Enter on one selects it. `>` keeps to the actions.
 #[test]
 fn the_search_without_a_prefix_finds_strips_cables_and_devices_by_tag() {
@@ -369,7 +369,7 @@ fn ft1174_the_breadcrumb_never_repeats_the_row_and_both_rows_have_icons() {
     );
 }
 
-/// FT-1367 (ID-1392): Show tips is a switch of the View tab's Show group, lit while tips are on, and the palette's
+/// Show tips is a switch of the View tab's Show group, lit while tips are on, and the palette's
 /// entry says whether it is on, after where it lives, in the UI language.
 #[test]
 fn show_tips_is_a_view_tab_switch_and_the_palette_says_its_state() {
@@ -407,7 +407,7 @@ fn show_tips_is_a_view_tab_switch_and_the_palette_says_its_state() {
     shell.shutdown();
 }
 
-/// FT-1388 (ID-1392): Re-import QElectroTech project… is a button of the Project tab's Import group, beside the
+/// Re-import QElectroTech project… is a button of the Project tab's Import group, beside the
 /// import's.
 #[test]
 fn reimport_has_a_command_bar_button_beside_the_import() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `device_list`: the device list (FR-REP-008; WP-S3.06 D5).
+//! `device_list`: the device list (FR-REP-008).
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
@@ -93,7 +93,7 @@ impl ReportKindDef for DeviceList {
             }
             let mut r = Row::data(RowId::entity(id), cells);
             r.sources = vec![id.cast()];
-            // The tag and the main representation link the main representation (WP-S3.06 D10).
+            // The tag and the main representation link the main representation.
             r.links = ["tag", "main_rep"]
                 .iter()
                 .filter_map(|k| columns.iter().position(|c| c.key == *k))

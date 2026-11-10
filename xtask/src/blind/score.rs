@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Scoring (WP-S6.13 §5.9, D12): the hard and soft checks of a gate run against the oracle of its task.
+//! Scoring (D12): the hard and soft checks of a gate run against the oracle of its task.
 //!
 //! `score.json` (`ew.blindscore/1`) lists the hard checks H1 to H7 and the soft checks S1 to S8, each as `ok`, `miss` or
 //! `gap`, and the protocol's counts and observations. The score never calls a model and never opens the golden
@@ -14,7 +14,7 @@
 //! Every ordering is named (rows sort by their text, checks by their ID) and no map iteration order reaches the
 //! output (NFR-REL-07).
 //!
-//! A brief run's score adds `brief` ([`BriefScore`], WP-S2.12 D7 to D9): each acceptance item decided on the saved
+//! A brief run's score adds `brief` ([`BriefScore`]): each acceptance item decided on the saved
 //! project with `check-brief`'s code, the attempt (unassisted, with help, not completed) and the counts of errors,
 //! undo and assists.
 
@@ -632,7 +632,7 @@ pub struct Score {
     pub soft: Vec<Check>,
     /// The protocol.
     pub protocol: Protocol,
-    /// A brief run's acceptance list decided at `stop` and its attempt (WP-S2.12 D7 to D9); absent for other runs.
+    /// A brief run's acceptance list decided at `stop` and its attempt; absent for other runs.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub brief: Option<BriefScore>,
 }
@@ -1209,7 +1209,7 @@ fn strip_of(row: &[String]) -> Option<&str> {
     label.split_once(':').map(|(strip, _)| strip)
 }
 
-/// FT-555: S1 accepts a strip's terminal at any cell of the strip's column run. The oracle anchors the `n` terminals of
+/// S1 accepts a strip's terminal at any cell of the strip's column run. The oracle anchors the `n` terminals of
 /// a strip at one cell (1X1's three at 101-D2); a terminal drawn in the same row of the frame, in the anchor's column or
 /// one of the `n - 1` columns after it (101-D2 to 101-D4), counts as drawn at the anchor. Every other row of `got` is
 /// returned as it is.
@@ -1292,7 +1292,7 @@ fn device_tags(rows: &[Vec<String>], folios: &[String]) -> BTreeSet<String> {
 
 /// Whether the S2 row `row` (`folio, end_1, end_2, span`) ends at an interruption point (`ext <name>`) whose
 /// cross-reference in the oracle's `xrefs` rows (`folio, tag, xref`, on the row's folio) names a folio outside
-/// `run_folios` (FT-598): the point's partner sits on a folio the task does not draw. An end the oracle has no
+/// `run_folios`: the point's partner sits on a folio the task does not draw. An end the oracle has no
 /// cross-reference for, or one that names no folio (an external point's `+J-E-206 / JE-N1000-03`), is in scope.
 pub fn ends_at_ip_outside(row: &[String], xrefs: &[Vec<String>], run_folios: &[String]) -> bool {
     let Some(folio) = row.first() else {
@@ -1350,7 +1350,7 @@ fn soft_checks(task: &TaskDef, ev: &Evidence, run_folios: &[String]) -> Vec<Raw>
             "junctions" => (want_set(set), Ok(junctions.clone())),
             "markers" => (want_set(set), Ok(markers.clone())),
             "ends" => {
-                // FT-598: a drafted wire that ends at an interruption point whose partner the oracle puts on a folio
+                // A drafted wire that ends at an interruption point whose partner the oracle puts on a folio
                 // outside the run is out of scope. The golden wire runs on through the pair to the partner's folio, so
                 // the query leaves it out of the oracle; the drafted one stops at the point (its partner is not drawn)
                 // and would count as an extra row. The rule holds on both sides, so an oracle row of that form (none in

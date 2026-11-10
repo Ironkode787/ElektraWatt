@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas actions of the shell (WP-S2.02 part 1, spec sections 6.1 and 6.2): zoom, pan, fit, the pointer, the
+//! The canvas actions of the shell (spec sections 6.1 and 6.2): zoom, pan, fit, the pointer, the
 //! pane size, the grid and the frame statistics, and the page content the canvas shows.
 //!
 //! The page content is fetched once per (revision, folio) at the end of a dispatch that changed either
@@ -99,7 +99,7 @@ impl ShellModel {
         self.settings.canvas_backend == CANVAS_BACKENDS[1]
     }
 
-    /// Whether motion is reduced (WP-S2.08 D14, NFR-A11Y-04; View, Reduce motion): the `reduce_motion` setting, and
+    /// Whether motion is reduced (NFR-A11Y-04; View, Reduce motion): the `reduce_motion` setting, and
     /// while it is unset whether the canvas draws on the CPU, because the setting asks for it
     /// ([`ShellModel::cpu_canvas_setting`]) or because the window's canvas is on the CPU path (FR-UI-028's fallback
     /// after a GPU failure, headless, the tests' harness; ID-1278 ruling 12).
@@ -127,13 +127,13 @@ impl ShellModel {
     }
 
     /// The memo store's lifetime counters of the open project: `(hits, re-executions)`; `None` without a project or
-    /// without a memo store (frame statistics, WP-S2.02 section 9).
+    /// without a memo store (frame statistics, section 9).
     pub fn memo_totals(&self) -> Option<(u64, u64)> {
         let total = self.project.as_ref()?.session.memo()?.total_stats().total();
         Some((total.hits, total.re_executions))
     }
 
-    /// The UI scale of the canvas's points: the setting's in the window, always 1 in the headless mode (FT-349), so
+    /// The UI scale of the canvas's points: the setting's in the window, always 1 in the headless mode, so
     /// no transcript, snapshot or golden depends on the UI scale.
     pub fn canvas_ui_scale(&self) -> f64 {
         match self.mode {
@@ -323,7 +323,7 @@ impl ShellModel {
     }
 
     /// View, Use the CPU renderer for the canvas: flips the `canvas_backend` setting between `auto` and `cpu` and
-    /// saves it. The host applies it in the next frame (the switch rule's row 2, WP-S2.02 section 7.2); in the
+    /// saves it. The host applies it in the next frame (the switch rule's row 2, section 7.2); in the
     /// headless mode the canvas is the CPU canvas either way.
     pub(crate) fn act_cpu_canvas(&mut self) -> Outcome {
         let next = if self.cpu_canvas_setting() {
@@ -336,7 +336,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// View, Minimum text size (WP-S2.08 D14): `pt` 0 turns it off, 8 to 16 sets it; another value is refused.
+    /// View, Minimum text size: `pt` 0 turns it off, 8 to 16 sets it; another value is refused.
     pub(crate) fn act_min_font(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(pt) = p.get("pt") else {
             return failed(key!("error-missing-param"), &["pt"]);
@@ -355,7 +355,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// View, Reduce motion (WP-S2.08 D14): `on`, else the opposite of [`ShellModel::reduce_motion`]; the setting is set
+    /// View, Reduce motion: `on`, else the opposite of [`ShellModel::reduce_motion`]; the setting is set
     /// from then on.
     pub(crate) fn act_reduce_motion(&mut self, p: &Map<String, Value>) -> Outcome {
         let on = match p.get("on") {
@@ -372,7 +372,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// View, Mouse wheel scrolls (FT-1439, ID-1397): `on`, else the opposite of the setting; on, the plain wheel
+    /// View, Mouse wheel scrolls: `on`, else the opposite of the setting; on, the plain wheel
     /// scrolls the canvas and Ctrl with the wheel zooms, as in QElectroTech; off, the wheel zooms.
     pub(crate) fn act_wheel_scrolls(&mut self, p: &Map<String, Value>) -> Outcome {
         let on = match p.get("on") {

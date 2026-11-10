@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The revision label format (doc 15 §5.2, FR-REV-002; WP-S1.18 D2, RL-2): the three forms' order and next label,
+//! The revision label format (doc 15 §5.2, FR-REV-002; RL-2): the three forms' order and next label,
 //! and the `revision_label` project setting (absent means `v_major_minor`).
 
 use ew_schema::{LabelFormat, ProjectSettings};

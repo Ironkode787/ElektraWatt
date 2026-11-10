@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The job runner (WP-S2.09 part 1, D3; decision log ID-692): one named `std` thread per job, a progress cell, a
+//! The job runner: one named `std` thread per job, a progress cell, a
 //! cancel flag checked at checkpoints, a waker for the window, `catch_unwind` and a test gate.
 //!
 //! **What it is.** [`Job::spawn`] starts a thread named `ew-job-<name>` and returns at once; the body gets a
@@ -15,7 +15,7 @@
 //! thread goes on. The panic's message is not kept (it may hold project text, doc 18 §12.3). A body holds a snapshot
 //! only, never the session, so a panic leaves the session untouched.
 //!
-//! **Not here** (FT-497): a pool, a scheduler, staleness adoption ("adopt if unchanged"); they wait for a second kind
+//! **Not here**: a pool, a scheduler, staleness adoption ("adopt if unchanged"); they wait for a second kind
 //! of job and a measurement. The crate has no dependency.
 //!
 //! # Example
@@ -564,7 +564,7 @@ mod tests {
         assert_eq!(job.wait(), JobEnd::Done(2));
     }
 
-    /// FT-1120: a checkpoint that no job reaches fails the wait, naming the checkpoint, instead of hanging.
+    /// A checkpoint that no job reaches fails the wait, naming the checkpoint, instead of hanging.
     #[test]
     fn jb1_waiting_for_a_checkpoint_that_nothing_reaches_fails_naming_it() {
         let gate = Gate::new();

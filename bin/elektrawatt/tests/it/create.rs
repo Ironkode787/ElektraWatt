@@ -11,9 +11,9 @@
 //!   two actions on the new project; folio 101's generated placement script then places its interruption points with
 //!   the external reference named by the three external arrows, and the arrows print "+J-E-206 / JE-N1000-03"
 //!   (doc 20 §3.4 item 9, FR-XRF-012).
-//! - **Navigators (WP-S2.06 part 1).** On a copy of Golden A a script marks -201U3 in the Devices navigator, opens it
+//! - **Navigators.** On a copy of Golden A a script marks -201U3 in the Devices navigator, opens it
 //!   and reorders 106 before 103; two runs give byte-identical transcripts and the record replays.
-//! - **Highlighting (WP-S2.06 part 2).** On a copy of Golden A a script highlights 24VDC-1 from the Potentials
+//! - **Highlighting.** On a copy of Golden A a script highlights 24VDC-1 from the Potentials
 //!   navigator, shows folios 102 and 103 and clears it; two runs give byte-identical transcripts and nothing is recorded
 //!   (view state).
 //!
@@ -128,7 +128,7 @@ fn folio_101s_external_points_print_the_structure_node_and_the_external_referenc
     let external = refs[0].0.clone();
     drop(q);
     drop(session);
-    // The placement script of §13.6 (WP-S2.04 part 3: the IP tool) with the three external arrows naming the
+    // The placement script of §13.6 (the IP tool) with the three external arrows naming the
     // reference this project holds by its ID (the golden script names the golden references' printed texts).
     let (mut placements, runs) = placement_steps(101, map, &strip, &BTreeMap::new());
     let mut external_points = 0;
@@ -238,7 +238,6 @@ fn a_navigator_script_runs_twice_identically_and_its_record_replays() {
     scripts::a_navigator_script_runs_twice_identically_and_its_record_replays_case(false);
 }
 
-// WP-S2.06 part 2
 /// WP-S2.06 part 2 through the built binary (acceptance checks NP3 and NP6; §9 items 1 and 2): a script on a copy of
 /// Golden A opens the further navigators, highlights 24VDC-1 from the Potentials navigator (type-ahead, then
 /// `navigator.highlight` on the cursor row), shows folios 102 and 103 and clears the highlights. Two runs give

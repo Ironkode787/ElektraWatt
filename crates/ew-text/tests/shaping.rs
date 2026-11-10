@@ -344,7 +344,7 @@ fn math_face_identity() {
     );
 }
 
-/// Every glyph carries the byte offset of the cluster it belongs to (C44-p5#1): one per character in plain text, a
+/// Every glyph carries the byte offset of the cluster it belongs to: one per character in plain text, a
 /// ligature's glyph and a combining sequence's glyphs at their first character, each line's clusters in its own text,
 /// and a right-to-left run's in visual order (so decreasing).
 #[test]

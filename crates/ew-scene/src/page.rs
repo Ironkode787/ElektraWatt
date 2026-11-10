@@ -28,7 +28,7 @@
 //! | others | — | empty: revision marks, highlights, features and dimensions arrive with their work packages |
 //!
 //! Panel-layout pages ([`PageKind::Panel`]) use [`Layer::PANEL`]; their surface, carrier, placement and label
-//! layers draw the page's surface view (WP-S4.01 part 3), the feature and dimension layers stay empty (1.0).
+//! layers draw the page's surface view, the feature and dimension layers stay empty (1.0).
 //!
 //! All geometry is in **page coordinates** (integer nm, y down). The form's page-to-sheet transform
 //! ([`SheetMap`]) is applied once, by [`PageScene::sheet_list`], for every writer.
@@ -69,7 +69,7 @@
 //!   nothing. Position and angle overrides are in the symbol frame. Placement follows
 //!   [`crate::symbol`] in the representation's text frame (`ew_derive::text_frame`): the position turns with the
 //!   orientation, the angle is made readable, the alignment flips (doc 07 §4.1). The text frame is the
-//!   representation's own, except on a black box turned by a half turn without a mirror (FT-867, ID-1137): its texts
+//!   representation's own, except on a black box turned by a half turn without a mirror: its texts
 //!   are placed as on the same box unturned (origin `2C − pos`, `C` the box's centre on the page, no turn), so they
 //!   keep their place relative to the box and their collision rules; the style is the slot's own `style` when it names a known text style, else
 //!   [`symbol::default_style_key`] of the slot kind (an unknown name is reported as
@@ -77,7 +77,7 @@
 //!   A text that lists several items carries one link per item ([`SlotValue::item_links`], FT-86): an invisible
 //!   path item over the item's glyph span (the pen travel of the text up to the item's ends), after the text's
 //!   own items, with the text's entity and a [`Link::Source`].
-//! - **Slot text collisions** (FT-687). A cross-reference slot (`xref`) without a position override follows rules 1
+//! - **Slot text collisions**. A cross-reference slot (`xref`) without a position override follows rules 1
 //!   and 2, a technical-data slot without one rule 3; every other text stays where its symbol puts it. A black box's
 //!   pin texts ("Pin texts" below) take part as fixed obstacles of the cross-reference texts. (1) A list of
 //!   several lines aligned to the middle keeps its first line where a one-line text would sit and grows downward in
@@ -90,26 +90,26 @@
 //!   when another representation's text is there or it finds no free place. At one-column spacing a contact's back-reference so moves below the neighbour contact's
 //!   tag. (3) A horizontal technical-data text follows rule 2 against other representations' texts only (cycle 37: a
 //!   valve's "24 V" ran into the next valve's tag); within one symbol its author's layout stands. A black box's pin
-//!   texts are fixed obstacles of rule 3 as of rule 2 (FT-701): a technical-data text that overlaps one drops below it.
+//!   texts are fixed obstacles of rule 3 as of rule 2: a technical-data text that overlaps one drops below it.
 //!   (4) A horizontal cross-reference text that a horizontal wire runs through (FT-1436: on folio 101 the "102-A1" of
 //!   L-1 stood across N-1's wire, by N-1's own "102-A1") rises [`SLOT_TEXT_GAP`] above what is in its way, at most
 //!   three times, to the first place the device-tag rule judges free and that overlaps no other representation's
-//!   symbol body (FT-1519), inside the page's drawing area; without one it stays. Printed text order
+//!   symbol body, inside the page's drawing area; without one it stays. Printed text order
 //!   and every other position are unchanged. The rules run after "Black-box captions" and "Device tags" below and
 //!   see those texts where they ended.
-//! - **Black-box captions** (FT-734). A black box's tag, part-number and manufacturer texts without a position or
+//! - **Black-box captions**. A black box's tag, part-number and manufacturer texts without a position or
 //!   angle override, printing horizontally, stack outward from the box's top edge in that order, each
 //!   [`SLOT_TEXT_GAP`] above the one before, the tag's anchor [`BLACK_BOX_CAPTION_GAP`] above the outline. Without a
 //!   CP on the top edge they are left-aligned on the outline's left edge (the tag where the symbol puts it); else
 //!   right-aligned one grid step left of the leftmost top CP, so no caption text stands over a CP, its pin text or
-//!   its wire. A stack that a stored wire's segment crosses (FT-772) moves left in grid steps, at most until its anchor
+//!   its wire. A stack that a stored wire's segment crosses moves left in grid steps, at most until its anchor
 //!   reaches the outline's left edge, to the first place no stored wire crosses; without one it stays. A text with an
 //!   override stays where it says. A stack that collides with another representation's pin
-//!   text (FT-1138) rises [`SLOT_TEXT_GAP`] above what is in its way, at most three times, as a raised device tag
+//!   text rises [`SLOT_TEXT_GAP`] above what is in its way, at most three times, as a raised device tag
 //!   does, to the first place the device-tag rule judges free (ID-1250: no wire runs through it, it collides with no
 //!   text or pin text of another representation; a movable device tag yields to it in its turn) and that stays inside
-//!   the page's drawing area (FT-1215: the frame's drawing area, else the page); without a free place it stays.
-//! - **Device tags** (FT-758). A device tag of a symbol that is no black box, without a position or angle override
+//!   the page's drawing area (the frame's drawing area, else the page); without a free place it stays.
+//! - **Device tags**. A device tag of a symbol that is no black box, without a position or angle override
 //!   and printing horizontally, moves when a wire runs through it, or when it collides (as in rule 2 above) with a
 //!   fixed text of another representation (a black-box caption, a CP designation, a pin text) or with the tag of a
 //!   representation printed before it. It takes the first free place of: turned to read bottom to top on its side of
@@ -119,7 +119,7 @@
 //!   turn). A raise or drop goes [`SLOT_TEXT_GAP`] past the texts and horizontal wires in the way, at most three
 //!   times, and stays within one tag height of the symbol's top or bottom. Without a free place the
 //!   tag stays (at two grid steps' spacing the neighbours leave none).
-//! - **Pin texts** (WP-S1.21 D7). A black box prints each [`RepView::pins`] entry whose index is one of its box CPs
+//! - **Pin texts**. A black box prints each [`RepView::pins`] entry whose index is one of its box CPs
 //!   (drawn as in "Black boxes") in style `data.small`, inside the outline, [`PIN_TEXT_GAP`] from the pin along its
 //!   inward normal: a pin leaving up or down reads bottom to top (90°), its end towards the pin (aligned middle right
 //!   below a pin leaving up, middle left above a pin leaving down), but a text of signs only ("+", "−", no letter or
@@ -127,7 +127,7 @@
 //!   centre below a pin leaving up, bottom centre above a pin leaving down); a pin leaving left or right reads
 //!   horizontally, its start towards the pin (middle left right of a pin leaving left, middle right left of a pin
 //!   leaving right). They print after the slot texts and never move; in the slot-text collision rules they are fixed
-//!   obstacles of the cross-reference texts (FT-707): a cross-reference text that overlaps one drops below it as
+//!   obstacles of the cross-reference texts: a cross-reference text that overlaps one drops below it as
 //!   below a text of its own symbol (rule 2); a device tag yields to one ("Device tags"). An entry without its box
 //!   CP, or a pin of an unknown direction, prints nothing.
 //! - **Wire markers** (FR-OUT-011 keeps them in monochrome): the caller's marker text, centred in style
@@ -220,7 +220,7 @@ pub struct SlotValue {
     /// Where the whole text links to, if anywhere (the text items carry the link). Exclusive with
     /// [`item_links`](SlotValue::item_links): a value sets one of the two kinds, never both.
     pub link: Option<Destination>,
-    /// One link per listed item of the text (a cross-reference list, FT-86): each covers the glyph span of
+    /// One link per listed item of the text (a cross-reference list): each covers the glyph span of
     /// its item, as an invisible path item over the item's box next to the text items. Exclusive with
     /// [`link`](SlotValue::link). A value that sets both is reported as [`PageFinding::ConflictingLinks`]
     /// and prints with its item links only.
@@ -253,7 +253,7 @@ pub struct RepView {
     pub pins: Vec<PinText>,
 }
 
-/// A derived text printed beside one pin of a black box (WP-S1.21 D7, FT-707): the designation of function CP `idx`
+/// A derived text printed beside one pin of a black box: the designation of function CP `idx`
 /// of the box's first function and, when that CP is bound to a PLC channel, the channel's printed address after one
 /// space. Never stored (FR-PLC-007).
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -293,7 +293,7 @@ pub struct JunctionView {
     pub symbol: Option<SymbolRef>,
 }
 
-/// What one valve position of a module's overview glyph shows (doc 11 §5.5 step 3, WP-S1.20 D19).
+/// What one valve position of a module's overview glyph shows (doc 11 §5.5 step 3).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ValveGlyph {
     /// A valve: a rectangle with a circle and the valve part's part number; the entity is `v5(rep, valve)`.
@@ -315,7 +315,7 @@ pub enum ValveGlyph {
     },
 }
 
-/// The valve glyphs of one overview representation of a module (`valve_slots`, WP-S1.20 D19): one per position, the
+/// The valve glyphs of one overview representation of a module (`valve_slots`): one per position, the
 /// p-th from the left, in a band above the module glyph.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ValveGlyphsView {
@@ -395,32 +395,32 @@ pub struct PageView {
     pub junctions: Vec<JunctionView>,
     /// The wire-marker symbol (`ew.gen.wire-marker`); markers draw their text only without it.
     pub wire_marker: Option<SymbolRef>,
-    /// The report table of a generated page (FT-53); `None` on every other page.
+    /// The report table of a generated page; `None` on every other page.
     pub table: Option<TableView>,
     /// The embedded report blocks of a drawn page (FR-REP-028), drawn into the `tables` layer.
     pub embedded: Vec<EmbeddedView>,
     /// The break marks of assembly overviews on this page (doc 11 §5.5, D-41), drawn in [`Layer::Symbols`].
     pub break_marks: Vec<BreakMarkView>,
-    /// The valve glyphs of the module overviews on this page (WP-S1.20 D19), drawn in [`Layer::Symbols`] after the
+    /// The valve glyphs of the module overviews on this page, drawn in [`Layer::Symbols`] after the
     /// break marks.
     pub valve_glyphs: Vec<ValveGlyphsView>,
     /// The connection points of this page that a link of the export points at (a PLC overview row links to
     /// its coil, doc 10 §5): each gets a named destination ([`Destination::Cp`]) at its drawn position, else
     /// at its representation's position (a CP the symbol does not draw, such as the internal coil 14).
     pub cp_targets: Vec<CpTarget>,
-    /// How crossing wires are drawn (FR-CON-031, WP-S2.04 §8.6): the project's drawing setting; the default draws
+    /// How crossing wires are drawn (FR-CON-031): the project's drawing setting; the default draws
     /// them plain, byte-equal to a project without the setting.
     pub crossings: Crossings,
-    /// The page items of a drawn page with what they print (WP-S2.04 part 4a): graphics in [`Layer::Symbols`],
+    /// The page items of a drawn page with what they print: graphics in [`Layer::Symbols`],
     /// free texts and wire-marker groups in [`Layer::Labels`] ([`crate::items`]).
     pub items: Vec<ItemView>,
-    /// The structure boxes of a drawn page with their captions (WP-S2.04 part 4a): outlines in
+    /// The structure boxes of a drawn page with their captions: outlines in
     /// [`Layer::Symbols`], captions in [`Layer::Labels`].
     pub structure_boxes: Vec<StructureBoxView>,
     /// The surface view of a panel-layout page (WP-S4.01 part 3, [`crate::panel`]): drawn into [`Layer::Surface`],
     /// [`Layer::Carriers`], [`Layer::Placements`] and [`Layer::Labels`]; `None` on every other page.
     pub panel: Option<PanelView>,
-    /// The strip tags printed at terminals drawn alone (doc 08 §6.7, decision log ID-1151), drawn into
+    /// The strip tags printed at terminals drawn alone (doc 08 §6.7), drawn into
     /// [`Layer::Labels`] after the slot and pin texts.
     pub strip_tags: Vec<StripTagView>,
 }
@@ -477,7 +477,7 @@ pub enum PageFinding {
         /// The index of the slot in the symbol's `text_slots`.
         slot: u16,
     },
-    /// A text slot whose `style` names no text style; the style of the slot's kind was used (ID-227).
+    /// A text slot whose `style` names no text style; the style of the slot's kind was used.
     UnknownSlotStyle {
         /// The entity the text belongs to.
         entity: Uuid,
@@ -514,8 +514,8 @@ pub struct LayerList {
     pub geometry: BTreeMap<SymbolGeomId, Arc<DisplayList>>,
     /// What to report, in paint order.
     pub findings: Vec<PageFinding>,
-    /// The labels layer's anchor of each representation's device tag where it prints, after the tag rule (ID-898)
-    /// moved it, by representation ID: what `TableRep::tag_at` reports (FT-771, WP-S2.11 D12). Empty in the other
+    /// The labels layer's anchor of each representation's device tag where it prints, after the tag rule
+    /// moved it, by representation ID: what `TableRep::tag_at` reports. Empty in the other
     /// layers.
     pub tags: BTreeMap<Uuid, Pt2>,
 }
@@ -569,7 +569,7 @@ pub fn page_rect(view: &PageView) -> Rect {
     }
 }
 
-/// The page's drawing area in page coordinates (FT-1215): the frame's drawing area inside its grid header, else
+/// The page's drawing area in page coordinates: the frame's drawing area inside its grid header, else
 /// [`page_rect`].
 fn drawing_area(view: &PageView) -> Rect {
     view.frame
@@ -840,7 +840,7 @@ impl Builder<'_> {
         }
     }
 
-    /// The representations' symbols. **A black box drawn with its stored outline** (WP-S2.04 part 3, FR-DEV-039): when
+    /// The representations' symbols. **A black box drawn with its stored outline** (FR-DEV-039): when
     /// `Representation.box` is set and its outline differs from the symbol's rectangle (its first `rect` primitive),
     /// the rectangle is replaced by the outline as a closed polygon in the rectangle's stroke and fill, under a geometry
     /// key of its own (`SymbolGeomId.extra`: a 16-bit value derived from the outline, probed upwards past a key that
@@ -988,7 +988,7 @@ impl Builder<'_> {
                     .with_entity(EntityRef(m.rep.as_uuid())),
             );
         }
-        // The valve glyphs of the module overviews (WP-S1.20 D19): position p of n is the p-th of n equal cells of the
+        // The valve glyphs of the module overviews: position p of n is the p-th of n equal cells of the
         // module glyph's width w / n, twice as high, standing on the glyph's top edge.
         for g in &view.valve_glyphs {
             let Some(rv) = view.reps.iter().find(|r| r.rep.id == g.rep) else {
@@ -1081,7 +1081,7 @@ impl Builder<'_> {
                 );
             }
         }
-        // The page items' graphics and the structure-box outlines (WP-S2.04 part 4a).
+        // The page items' graphics and the structure-box outlines.
         self.item_graphics(view);
     }
 
@@ -1090,8 +1090,8 @@ impl Builder<'_> {
         let page = page_rect(view);
         let stroke = wire_stroke(view.grid);
         // The drawn polylines in connection-ID order (the hop rule of `crate::hops` reads them all first), each with
-        // its stroke: a fluid pilot or drain line is dashed 4:2 in the page's wire pen (WP-S1.20 D17). An unrouted
-        // connection (WP-S2.19 D3) is the dashed straight line between its ends in the thinnest pen, and no wire: it
+        // its stroke: a fluid pilot or drain line is dashed 4:2 in the page's wire pen. An unrouted
+        // connection is the dashed straight line between its ends in the thinnest pen, and no wire: it
         // takes and makes no hop.
         let mut drawn: Vec<(Id<Connection>, Vec<Pt2>)> = Vec::new();
         let mut strokes: Vec<Stroke> = Vec::new();
@@ -1160,7 +1160,7 @@ impl Builder<'_> {
     }
 
     fn labels(&mut self, view: &PageView) {
-        // FT-687: the slot texts of every representation are gathered first, so the placement rules of
+        // The slot texts of every representation are gathered first, so the placement rules of
         // [`SlotText`] can see the other representations' texts; they print in the same order as before.
         let mut texts: Vec<SlotText<'_>> = Vec::new();
         for rv in sorted_reps(view) {
@@ -1168,7 +1168,7 @@ impl Builder<'_> {
             let rep = &rv.rep;
             let entity = EntityRef(rep.id.as_uuid());
             let black_box = def.cps.is_empty() && rep.box_.is_some();
-            // FT-867 (ID-1137): a half-turned black box places its texts as on the same box unturned.
+            // A half-turned black box places its texts as on the same box unturned.
             let frame = ew_derive::text_frame(rep, def);
             let mut values: Vec<&SlotValue> = rv.slots.iter().collect();
             values.sort_by_key(|v| v.slot);
@@ -1207,7 +1207,7 @@ impl Builder<'_> {
             }
         }
         let pins = pin_texts(view);
-        // FT-707: the pin texts never move; they are fixed obstacles of the cross-reference texts.
+        // The pin texts never move; they are fixed obstacles of the cross-reference texts.
         let pin_boxes: Vec<(EntityRef, Rect)> = pins
             .iter()
             .filter_map(|(entity, text, at, angle, align)| {
@@ -1265,7 +1265,7 @@ impl Builder<'_> {
         }
         self.strip_tags(view);
         self.connection_markers(view);
-        // The free texts, wire-marker groups and structure-box captions (WP-S2.04 part 4a).
+        // The free texts, wire-marker groups and structure-box captions.
         self.item_labels(view);
     }
 
@@ -1309,14 +1309,14 @@ impl Builder<'_> {
         }
     }
 
-    /// The caption of each black box (FT-734, module documentation, "Black-box captions"): its tag, part-number and
+    /// The caption of each black box (module documentation, "Black-box captions"): its tag, part-number and
     /// manufacturer texts, each without a position or angle override and printing horizontally, stacked outward from
     /// the box's top edge in that order, [`SLOT_TEXT_GAP`] apart, the tag's anchor [`BLACK_BOX_CAPTION_GAP`] above
     /// the outline. Left-aligned on the outline's left edge when the top edge has no CP; else right-aligned one grid
     /// step left of the leftmost top CP, so that no caption text stands over a CP, its pin text or its wire. A stack
-    /// that collides with another representation's pin text (`pins`, FT-1138) rises [`SLOT_TEXT_GAP`] above what is in
+    /// that collides with another representation's pin text (`pins`) rises [`SLOT_TEXT_GAP`] above what is in
     /// its way, at most [`SLOT_TEXT_DROPS`] times, as a raised device tag does, to the first place the tag rule's free
-    /// test ([`in_the_way`], ID-1250) passes, never above the page's drawing area ([`drawing_area`], FT-1215); without a
+    /// test ([`in_the_way`]) passes, never above the page's drawing area ([`drawing_area`]); without a
     /// free place it stays. The stacks rise after all are stacked.
     fn place_black_box_captions(
         &self,
@@ -1391,7 +1391,7 @@ impl Builder<'_> {
                 }
             }
             if let Some(mut own) = stack {
-                // FT-772 (WP-S2.11 D11): a stack across a stored wire moves left in grid steps, at most to the
+                // A stack across a stored wire moves left in grid steps, at most to the
                 // outline's left edge, to the first place where no caption box crosses one; else it stays.
                 let wires = stored.get_or_insert_with(|| stored_wires(view));
                 let boxes: Vec<Rect> = lines
@@ -1419,7 +1419,7 @@ impl Builder<'_> {
                 stacks.push((entity, lines.iter().map(|&(_, i)| i).collect(), own));
             }
         }
-        // FT-1138 (ID-1228 item 6, ID-1250): a stack over another representation's pin text rises to the first place
+        // FT-1138 (item 6): a stack over another representation's pin text rises to the first place
         // the tag rule judges free. A movable device tag does not count: it yields to the caption in its turn.
         if stacks.is_empty() {
             return;
@@ -1460,7 +1460,7 @@ impl Builder<'_> {
                     Pt2::new(b.min().x, b.min().y + dy),
                     Pt2::new(b.max().x, b.max().y + dy),
                 );
-                // FT-1215: the stack never rises out of the drawing area (into the frame, or off the sheet).
+                // The stack never rises out of the drawing area (into the frame, or off the sheet).
                 if b.min().y < area.min().y {
                     break;
                 }
@@ -1478,7 +1478,7 @@ impl Builder<'_> {
         }
     }
 
-    /// The tag rule (FT-758, module documentation, "Device tags"): a movable device tag that a wire runs through, or
+    /// The tag rule (module documentation, "Device tags"): a movable device tag that a wire runs through, or
     /// that collides with a fixed text of another representation (a black box's caption or pin text, a CP
     /// designation) or with the tag of a representation printed before it, takes the first free place of: turned to
     /// read bottom to top on its side of its symbol; mirrored to the other side; mirrored and turned; raised above
@@ -1488,7 +1488,7 @@ impl Builder<'_> {
     /// wires in the way, at most [`SLOT_TEXT_DROPS`] times, and keeps within one tag height of its symbol's top or
     /// bottom; another wire in the way ends it. Without a free place the tag stays.
     /// A centred device tag whose anchor is inside its own symbol's body but whose text runs out across the body's
-    /// outline (a cable marker's tag, wider than its mark: "-1[06W]1", cycle 39 window check) moves beside the body, as
+    /// outline (a cable marker's tag, wider than its mark: "-1[06W]1", window check) moves beside the body, as
     /// the other tags stand: [`SLOT_TEXT_GAP`] right of it, middle left, at the body's vertical centre. A tag inside its
     /// body, or one already outside it, stays; the tag rule ([`Self::place_tags`]) then judges the new place.
     fn place_tags_off_own_mark(&self, view: &PageView, texts: &mut [SlotText<'_>]) {
@@ -1664,11 +1664,11 @@ impl Builder<'_> {
         }
     }
 
-    /// The placement rules of the slot texts (FT-687, module documentation, "Slot text collisions"): a
+    /// The placement rules of the slot texts (module documentation, "Slot text collisions"): a
     /// horizontal cross-reference text that overlaps another slot text on the page (its own symbol's or another
     /// representation's) drops below the lowest of those texts, [`SLOT_TEXT_GAP`] apart, when it overlaps no
     /// slot text there; texts are taken in print order, each seeing the earlier ones where they ended. The black
-    /// boxes' pin texts (`pins`, FT-707) are fixed obstacles of the cross-reference texts and, since FT-701, of the
+    /// boxes' pin texts (`pins`) are fixed obstacles of the cross-reference texts and, since FT-701, of the
     /// technical-data texts: one that such a text overlaps sends it down like a slot text of the same
     /// representation does.
     fn place_slot_texts(&self, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
@@ -1685,7 +1685,7 @@ impl Builder<'_> {
             // collides (its author placed the texts), between representations also a gap below [`SLOT_TEXT_GAP`].
             // A technical-data text yields only to other representations' texts.
             // A pin text counts as a text of the same representation: only an overlap collides, and it sends the
-            // text further down; FT-701 (WP-S2.11 D10): so for a technical-data text too (`pin`).
+            // text further down; FT-701: so for a technical-data text too (`pin`).
             let others = || {
                 boxes
                     .iter()
@@ -1737,7 +1737,7 @@ impl Builder<'_> {
         }
     }
 
-    /// The wire rule of the cross-reference texts (FT-1436, module documentation, "Slot text collisions" rule 4): a
+    /// The wire rule of the cross-reference texts (module documentation, "Slot text collisions" rule 4): a
     /// horizontal cross-reference text that a horizontal wire runs through rises [`SLOT_TEXT_GAP`] above what is in
     /// its way, at most [`SLOT_TEXT_DROPS`] times, to the first place the device-tag rule judges free (no wire runs
     /// through it, it overlaps no other text of its own symbol and collides with no text or pin text of another
@@ -1759,7 +1759,7 @@ impl Builder<'_> {
             if !texts[i].xref || texts[i].angle != Angle2::ZERO {
                 continue;
             }
-            // The printed text, every line of a list where the list prints (C52-p3#1: grown down from its first line),
+            // The printed text, every line of a list where the list prints (grown down from its first line),
             // is judged against the wires.
             let Some(own) = boxes[i] else {
                 continue;
@@ -1893,7 +1893,7 @@ impl Builder<'_> {
     }
 
     /// [`text`](Builder::text); with `first_line` a text of several lines aligned to the middle keeps its first line
-    /// where a one-line text would sit and grows downward in its own frame (FT-687, module documentation).
+    /// where a one-line text would sit and grows downward in its own frame (module documentation).
     fn text_placed(&mut self, spec: &TextSpec<'_>, first_line: bool) {
         if spec.text.is_empty() {
             return;
@@ -2032,9 +2032,9 @@ impl Builder<'_> {
 /// through the placed line item that holds the span (so it turns with the text). `shaped` is `text` shaped as drawn
 /// and `lines` its placed line items, one per shaped line. `None` for a range that no line holds whole, whose line is
 /// not placed, or that holds no glyph of a line with a right-to-left run. The cross-reference texts' item links and
-/// the report tables' item links (WP-S3.06 ruling 3) both take their boxes from here.
+/// the report tables' item links both take their boxes from here.
 ///
-/// It shapes nothing (C44-p3#1, C44-p5#2, C44-p6#1): the boxes come from the drawn shaping's glyph positions and
+/// It shapes nothing: the boxes come from the drawn shaping's glyph positions and
 /// clusters, line by line ([`LinePens`]), so they lie where the glyphs are drawn whatever the text's base direction.
 pub(crate) fn span_quads(
     m: VerticalMetrics,
@@ -2162,7 +2162,7 @@ fn is_line_break(c: char) -> bool {
     )
 }
 
-/// The distance of a black box's pin text from its pin, inward along the pin's normal (WP-S1.21 D7): 1 mm.
+/// The distance of a black box's pin text from its pin, inward along the pin's normal: 1 mm.
 pub const PIN_TEXT_GAP: Nm = Nm(1_000_000);
 
 /// A placed pin text: its entity, text, point, angle and alignment.
@@ -2189,7 +2189,7 @@ fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
             }
             let at = rep.pos + rep.orient.apply(cp.pos);
             let g = PIN_TEXT_GAP;
-            // FT-758: a text of signs only ("+", "−") reads the same upright, and turned a minus would read as a tick.
+            // A text of signs only ("+", "−") reads the same upright, and turned a minus would read as a tick.
             let signs = !pin.text.chars().any(char::is_alphanumeric);
             let (offset, angle, align) = match symbol::transform_dir(&cp.dir, rep.orient) {
                 Dir4::Up if signs => (Pt2::new(Nm::ZERO, g), Angle2::ZERO, Align::TopCentre),
@@ -2212,18 +2212,18 @@ fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
     out
 }
 
-/// How far a black box's caption stands above its outline (FT-734): the black-box symbol's own tag-slot offset, a
+/// How far a black box's caption stands above its outline: the black-box symbol's own tag-slot offset, a
 /// quarter of a QET grid step (0.661 mm).
 pub const BLACK_BOX_CAPTION_GAP: Nm = Nm(661_458);
 
-/// The gap a dropped cross-reference text keeps below the text it moved away from (FT-687): 0.5 mm.
+/// The gap a dropped cross-reference text keeps below the text it moved away from: 0.5 mm.
 pub const SLOT_TEXT_GAP: Nm = Nm(500_000);
 
-/// The most times one slot text drops (FT-687, cycle 37): below the text it collided with, then below a text it
+/// The most times one slot text drops: below the text it collided with, then below a text it
 /// meets there, and so on.
 const SLOT_TEXT_DROPS: usize = 3;
 
-/// One visible slot text of a representation before it prints (FT-687): what [`TextSpec`] needs and whether the
+/// One visible slot text of a representation before it prints: what [`TextSpec`] needs and whether the
 /// slot is a cross-reference the placement rules may move.
 struct SlotText<'v> {
     symbol: Uuid,
@@ -2237,20 +2237,20 @@ struct SlotText<'v> {
     /// A cross-reference slot at the symbol's own position (no position override).
     xref: bool,
     /// A technical-data slot at the symbol's own position (no position override): it drops like a cross-reference
-    /// when it collides with another representation's text (cycle 37: a valve's "24 V" ran into the next tag).
+    /// when it collides with another representation's text (a valve's "24 V" ran into the next tag).
     data: bool,
     /// A black box's caption line at the symbol's own position and angle (no override): its place in the caption
-    /// stack ([`caption_rank`], FT-734).
+    /// stack ([`caption_rank`]).
     caption: Option<u8>,
     /// A device-tag slot.
     tag: bool,
-    /// A device tag the tag rule may move (FT-758): not a black box's, without a position or angle override.
+    /// A device tag the tag rule may move: not a black box's, without a position or angle override.
     movable_tag: bool,
     /// A CP designation slot: a fixed text the tag rule yields to.
     designation: bool,
 }
 
-/// `align` with its horizontal part kept and its vertical part at the bottom (a strip tag, ID-1151).
+/// `align` with its horizontal part kept and its vertical part at the bottom (a strip tag).
 fn bottom_align(align: &Align) -> Align {
     match align {
         Align::TopLeft | Align::MiddleLeft | Align::BottomLeft => Align::BottomLeft,
@@ -2282,11 +2282,11 @@ fn mirrored_align(align: &Align) -> Align {
     }
 }
 
-/// The angle of a turned device tag (FT-758): it reads bottom to top.
+/// The angle of a turned device tag: it reads bottom to top.
 const TURNED: Angle2 = Angle2(90_000);
 
-/// The alignment of a horizontal tag aligned `align` once turned to read bottom to top on the same side of its symbol
-/// (FT-758): a tag that ends towards its symbol on the left (middle right) keeps its right edge there (its descent
+/// The alignment of a horizontal tag aligned `align` once turned to read bottom to top on the same side of its symbol:
+/// a tag that ends towards its symbol on the left (middle right) keeps its right edge there (its descent
 /// side, bottom centre), one that starts towards it on the right (middle left) its left edge (top centre); `None` for
 /// any other alignment.
 fn turned_align(align: &Align) -> Option<Align> {
@@ -2297,12 +2297,12 @@ fn turned_align(align: &Align) -> Option<Align> {
     }
 }
 
-/// The page's wire segments, connections in ID order (FT-758): the obstacles of the tag rule.
+/// The page's wire segments, connections in ID order: the obstacles of the tag rule.
 fn page_wires(view: &PageView) -> Vec<(Pt2, Pt2)> {
     let cps = cp_map(view);
     let page = page_rect(view);
     let mut wires: Vec<(Pt2, Pt2)> = Vec::new();
-    // An unrouted connection has no wire geometry (WP-S2.19 D3).
+    // An unrouted connection has no wire geometry.
     for cv in sorted_connections(view)
         .into_iter()
         .filter(|cv| !cv.connection.route.is_empty())
@@ -2315,7 +2315,7 @@ fn page_wires(view: &PageView) -> Vec<(Pt2, Pt2)> {
 }
 
 /// The segments of the page's stored wires (a connection with a stored route), connections in ID order: the obstacles
-/// of a black box's caption stack (FT-772).
+/// of a black box's caption stack.
 fn stored_wires(view: &PageView) -> Vec<(Pt2, Pt2)> {
     let cps = cp_map(view);
     let page = page_rect(view);
@@ -2390,7 +2390,7 @@ fn in_the_way(
 
 /// The outline bounds of each representation's symbol on the page (`symbol::lower(def, orient).bounds` at its
 /// position, as the tag rule reads them), with the representation: the symbol bodies the rise of the cross-reference
-/// texts keeps clear of (FT-1519, ID-1455).
+/// texts keeps clear of.
 fn symbol_bodies(view: &PageView) -> Vec<(EntityRef, Rect)> {
     view.reps
         .iter()
@@ -2410,7 +2410,7 @@ fn symbol_bodies(view: &PageView) -> Vec<(EntityRef, Rect)> {
 }
 
 /// [`in_the_way`]'s answer for a place `b` of a text of `entity`, with the vertical extent of each other
-/// representation's symbol body (`bodies`) that the place overlaps added (FT-1519): the rise's free test. Never the
+/// representation's symbol body (`bodies`) that the place overlaps added: the rise's free test. Never the
 /// text's own symbol's body; only the rise reads it, not the captions or the tags.
 fn with_bodies(
     in_way: Option<Vec<(Nm, Nm)>>,
@@ -2428,7 +2428,7 @@ fn with_bodies(
     Some(out)
 }
 
-/// Whether a wire segment `(a, b)` meets the open inside of `r` (FT-758).
+/// Whether a wire segment `(a, b)` meets the open inside of `r`.
 fn wire_through(r: Rect, (a, b): (Pt2, Pt2)) -> bool {
     let (x0, x1) = (a.x.min(b.x), a.x.max(b.x));
     let (y0, y1) = (a.y.min(b.y), a.y.max(b.y));
@@ -2443,7 +2443,7 @@ fn wire_through(r: Rect, (a, b): (Pt2, Pt2)) -> bool {
     meets(x0, x1, r.min().x, r.max().x) && meets(y0, y1, r.min().y, r.max().y)
 }
 
-/// The place of a black box's caption text in its stack, counted from the box outward (FT-734): the tag, the part
+/// The place of a black box's caption text in its stack, counted from the box outward: the tag, the part
 /// number, the manufacturer; `None` for any other slot kind.
 fn caption_rank(kind: &SlotKind) -> Option<u8> {
     match kind {
@@ -2475,7 +2475,7 @@ fn overlaps(a: Rect, b: Rect) -> bool {
     a.min().x < b.max().x && b.min().x < a.max().x && a.min().y < b.max().y && b.min().y < a.max().y
 }
 
-/// Whether two slot-text boxes of two representations collide (FT-687, cycle 37): they share interior points, or they sit side by side
+/// Whether two slot-text boxes of two representations collide: they share interior points, or they sit side by side
 /// (their heights overlap) less than [`SLOT_TEXT_GAP`] apart, so the two texts would read as one ("(101-D6)-101K1").
 /// Texts stacked one above the other at any distance do not collide unless they overlap.
 fn collides(a: Rect, b: Rect) -> bool {
@@ -2494,7 +2494,7 @@ pub(crate) struct TextSpec<'a> {
     pub(crate) style_key: &'a str,
     pub(crate) entity: EntityRef,
     pub(crate) link: Option<Link>,
-    /// One link per listed item of `text` (FT-86).
+    /// One link per listed item of `text`.
     pub(crate) items: &'a [ItemLink],
 }
 
@@ -2522,7 +2522,7 @@ mod tests {
     /// One step of the QET 10 px grid (7937500/3 nm), as `Grid::at(1)` gives it.
     const STEP: Nm = Nm(2_645_833);
 
-    /// C46-p4#1: the strip tag's step up (ID-1151) is exact on the quarter turns and, at any other angle, the
+    /// The strip tag's step up is exact on the quarter turns and, at any other angle, the
     /// deterministic `arc_point` rounded to the nanometre, ties toward zero (doc 09 §4.3 rule 4).
     #[test]
     fn up_by_is_exact_on_quarter_turns_and_deterministic_between() {

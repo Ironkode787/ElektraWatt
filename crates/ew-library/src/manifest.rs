@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `library.json`, the manifest of a `.ewlib` directory (doc 07 §2.2, WP-S1.19 §7.1), written last.
+//! `library.json`, the manifest of a `.ewlib` directory (doc 07 §2.2), written last.
 
 use std::collections::BTreeMap;
 

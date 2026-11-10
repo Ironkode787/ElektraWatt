@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Window memory in the window (WP-S2.17 part 3 item 9, DK6; FT-348): the window builder from the saved geometry, and
+//! Window memory in the window (item 9, DK6): the window builder from the saved geometry, and
 //! the geometry the running window reports, recorded in the shell's settings (written once, at the end of the window,
 //! as a merge of `[window]` into the settings file on disk: `ew_viewmodel::settings::Settings::save_window`).
 //!
@@ -10,7 +10,7 @@
 //! maximised one keeps its last normal size and position with `maximized = true`.
 //!
 //! **Units.** The size is in points at the zoom 1 on every platform; the position is in the desktop's uniform space,
-//! physical pixels (R2-1; macOS, with its global logical points of R3-2, is not a supported platform: ID-880, FT-1501).
+//! physical pixels (R2-1; macOS, with its global logical points of R3-2, is not a supported platform).
 //!
 //! - *The size.* egui reports the window's rectangles in its points at the current zoom (the physical pixels divided
 //!   by the native scale times egui's zoom factor, which is the UI scale); the recorded size is the reported one times
@@ -29,10 +29,10 @@
 //!   [`egui::Context::set_zoom_factor`] at the start of the next pass), so a frame whose zoom differs from the previous
 //!   frame's records nothing.
 //!
-//! `[window] x/y` were points everywhere before R2-1 (cycle 32, never released); such a value is read as physical
+//! `[window] x/y` were points everywhere before R2-1 (never released); such a value is read as physical
 //! pixels, and the clamp of the first frame keeps the window on a monitor whatever it is.
 //!
-//! **The clamp at start** (FT-526). eframe 0.37 without its `persistence` feature knows no monitor before the window
+//! **The clamp at start**. eframe 0.37 without its `persistence` feature knows no monitor before the window
 //! opens, so the builder gets the saved geometry with the size bounds of [`ew_viewmodel::window::restore`] only (and
 //! eframe's own clamp of the size to the largest monitor). On the first frame the executable reads the monitors from
 //! eframe's winit window and [`first_frame`] moves the window to its saved position and runs the same pure clamp
@@ -80,7 +80,7 @@ pub enum FirstFrameStep {
     Maximize,
 }
 
-/// The first frame's steps (FT-526, R3-1): the move of [`first_frame_position`] when the window's position is known
+/// The first frame's steps (R3-1): the move of [`first_frame_position`] when the window's position is known
 /// (`outer_px`; Wayland reports none) and the window must move, then the maximise when the saved state is maximised.
 /// The arguments are those of [`first_frame_position`], with the whole saved geometry.
 pub fn first_frame(
@@ -121,7 +121,7 @@ pub fn placement(at: (f32, f32), size: (f32, f32), monitors: &[MonitorArea]) -> 
     ((g.x, g.y) != at).then_some((g.x, g.y))
 }
 
-/// The first frame's move of the window (FT-526, R2-1, R2-2, R3-2): the `OuterPosition` to send, in points at the
+/// The first frame's move of the window (R2-1, R2-2, R3-2): the `OuterPosition` to send, in points at the
 /// zoom `zoom`, or `None` when the window stays. `saved` is the saved outer position in physical pixels (when there is
 /// one); the window's outer top-left corner `outer_px` and inner size `inner_px` as it opened and the `displays` are
 /// winit's physical values; `scale` is the window's native scale. The window goes to the saved position, clamped onto
@@ -399,7 +399,7 @@ mod tests {
         assert_eq!(nan, None);
     }
 
-    /// R1-4 (FT-526): a window that opened on a monitor that is gone moves onto the primary one; one on any monitor
+    /// R1-4: a window that opened on a monitor that is gone moves onto the primary one; one on any monitor
     /// (the left one at negative x included) stays; without a monitor list nothing moves.
     #[test]
     fn dk6_the_first_frame_moves_an_off_screen_window_onto_the_primary_monitor() {

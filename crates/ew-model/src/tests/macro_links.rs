@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The links of `macro_instance` (WP-S1.19 part 1, L1-4; doc 03 §7): deleting the anchor page removes the instance
+//! The links of `macro_instance` (L1-4; doc 03 §7): deleting the anchor page removes the instance
 //! (cascade), a deleted member leaves it (the kind-erased unlink `members[][1]`), and the macro copy cannot be
 //! removed while an instance names it (a stored copy ID: a structural forbid, as `representation.symbol`). The
 //! manufacturer and macro copies load into their tables.

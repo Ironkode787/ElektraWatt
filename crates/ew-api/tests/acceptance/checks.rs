@@ -407,7 +407,7 @@ fn list(items: impl IntoIterator<Item = String>, limit: usize) -> String {
 }
 
 /// The environment variable that names a veraPDF XML report (`verapdf --format xml`) of the golden PDF exports.
-/// The `verapdf` job of `.github/workflows/ci.yml` (CI-N-09, FT-294) writes the report and uploads it as the
+/// The `verapdf` job of `.github/workflows/ci.yml` (CI-N-09) writes the report and uploads it as the
 /// artifact `verapdf-report`; `EW_VERAPDF_REPORT=<report.xml> cargo xtask acceptance --milestone <report.md>`
 /// makes AC-13's veraPDF entry read it. Only the gate (`tests/acceptance.rs`, `gate`) reads the variable and
 /// passes the path in through [`super::runner::Options`]; the headless run passes none, so the committed
@@ -822,7 +822,7 @@ fn ac06_tags(c: &Ctx) -> Outcome {
 /// `(position, column, doc 20 prints, the parts list prints, why)`. Every other cell must be equal.
 ///
 /// - Row 26, tags: §14.1 lists "1X1, -X1031, -X1032"; the parts list sorts the tags in the order of the ID-9
-///   sign order, "-X1031, -X1032, 1X1" (ruling; ID-1018).
+///   sign order, "-X1031, -X1032, 1X1".
 ///
 /// Row 26's folio is §14.1's 902 since WP-S4.02 part 5 derives the end brackets from R2's strips (FT-204; ID-1081,
 /// ruling 1).
@@ -1207,7 +1207,7 @@ fn run_json(
         .map_err(|e| format!("{e:?}"))
 }
 
-/// AC-15 path (b) (doc 20 §3.2, WP-S6.01): the builder DSL of `ew-testkit` builds Golden A through commands
+/// AC-15 path (b) (doc 20 §3.2): the builder DSL of `ew-testkit` builds Golden A through commands
 /// only, from the project shell (the project row and the project-local parts; the non-local library copies
 /// come from `library.embed`, FT-278), with the bootstrap
 /// batch as its typed description; the acceptance SQL over the built project must return the expected CSVs
@@ -1493,7 +1493,7 @@ fn ac13_structure(c: &Ctx) -> Outcome {
     }
     let r = &c.pdf.report;
     // 64 cross-reference items (doc 20 §15), 28 PLC overview rows linked to their coils (doc 10 §5) and the report
-    // row links the generated pages draw, counted from the page views (WP-S3.06 D10, ruling 5).
+    // row links the generated pages draw, counted from the page views.
     let rows = report_row_link_count(&c.pages);
     let want = 64 + 28 + rows;
     if r.links != want || r.plain_text_links != 0 {
@@ -3797,7 +3797,7 @@ fn ac14_parallel(c: &Ctx) -> Outcome {
 /// A font face as an SVG page names it: family (without the generic fallback), CSS weight, italic.
 type Face = (String, u16, bool);
 
-/// AC-37, SVG half (MVP; FR-OUT-013; WP-S3.07 SV-1, SV-3, FT-233): the SVG export keeps every printed glyph run
+/// AC-37, SVG half (MVP; FR-OUT-013; SV-1, SV-3): the SVG export keeps every printed glyph run
 /// as `<text>` (the runs of AC-14), and every page's `<style>` declares exactly the faces its `<text>` elements
 /// name, each as an embedded subset that loads as a font (`ew_text::FontSet`, through skrifa) with that family's
 /// name and draws every character of the page's texts in that face with a glyph whose outline is the bundled
@@ -4117,7 +4117,7 @@ fn d13(c: &Ctx) -> Outcome {
 }
 
 /// D-15, the MVP part: a `Tbd` channel address is a typed open item; EW-PLC-015 reports it as an error in release mode
-/// and supersedes EW-CORE-044's finding for the same value (WP-S1.21 part 3, PA-4). The TBD DP station address (EF-03,
+/// and supersedes EW-CORE-044's finding for the same value (PA-4). The TBD DP station address (EF-03,
 /// EW-BUS-001) is the entry [`d15_bus`].
 fn d15(c: &Ctx) -> Outcome {
     for rule in ["EW-CORE-044", "EW-PLC-015"] {
@@ -4167,7 +4167,7 @@ fn d15(c: &Ctx) -> Outcome {
     }
 }
 
-/// D-15, the bus part (WP-S1.21 part 4, D12): the DP station address of -201U1 is the open item `Tbd`; EW-BUS-001
+/// D-15, the bus part: the DP station address of -201U1 is the open item `Tbd`; EW-BUS-001
 /// reports it once as an error (EF-03), EW-CORE-044's finding for it is superseded, and folio 3 prints "Node TBD".
 fn d15_bus(c: &Ctx) -> Outcome {
     if let Err(o) = golden_ef(c, "EW-CORE-044", &[], "EW-CORE-044 reports nothing (superseded)") {
@@ -4188,7 +4188,7 @@ fn d15_bus(c: &Ctx) -> Outcome {
     pass(format!("{why}; folio 3 prints \"Node TBD\""))
 }
 
-/// AC-32, MVP part (WP-S1.20 FL-13, FL-11): the 28 valve children of the seven modules (`valve_slots`); folio 201 draws
+/// AC-32, MVP part (FL-13, FL-11): the 28 valve children of the seven modules (`valve_slots`); folio 201 draws
 /// 24 valve glyphs and folio 202 four, on -202U2, each printing the part number 571334; the 16 fluid lines F1 to F16
 /// join the eight used valves to their field devices, the tracked target of each (8 distinct devices); every valve
 /// prints the Q address of its coil's channel (`plc_address_text`).
@@ -4276,7 +4276,7 @@ fn ac32(c: &Ctx) -> Outcome {
 /// The external end of the DP segment as EW-BUS-004 prints it.
 const DP_EXTERNAL_END: &str = "external end DP (+J-E-206 / JE-N1000-03)";
 
-/// AC-31 (WP-S1.21 part 4, BU-3, BU-4, BU-6): on Golden A EW-BUS-004 reports no error and one info for the external
+/// AC-31 (BU-3, BU-4, BU-6): on Golden A EW-BUS-004 reports no error and one info for the external
 /// end; with -3X1 Off it reports an error on -3X1; the master of the logical net DP is the external partner
 /// JE-N1000-03 (`net_members`; the network list report is not built), which is no device and in neither BOM.
 fn ac31(c: &Ctx) -> Outcome {
@@ -4479,7 +4479,7 @@ fn names_a_revision(v: &serde_json::Value) -> bool {
 /// D-05, the second clause of doc 20 §19 ("Page has no revision field"): the page schema has no revision
 /// member, no page record of the golden project keeps one among its unknown members (`extra`, where an
 /// importer keeps a per-page title-block value), and the revision history is the typed records V1.0
-/// (released) and V2.0 (open), none kept untyped (FT-165). The printed label is the first D-05 entry's.
+/// (released) and V2.0 (open), none kept untyped. The printed label is the first D-05 entry's.
 fn d05_no_page_revision(c: &Ctx) -> Outcome {
     let schema = ew_schema::kind_schema(ew_schema::Kind::Page).unwrap_or_default();
     let in_schema: Vec<String> = schema["properties"]
@@ -4533,7 +4533,7 @@ fn d05_no_page_revision(c: &Ctx) -> Outcome {
 
 /// The frozen tags that are ▲U-34 test inputs (doc 20 §2.1 rule 1: -XPE, -UC1 and -UC1-plate are frozen too,
 /// standing in for per-class numbering rules that are not modelled). They deviate from the page rule as the
-/// seven of EF-15 do, so EW-NUM-001 reports them as well: EF-15 counts 10 (owner ruling, cycle 14).
+/// seven of EF-15 do, so EW-NUM-001 reports them as well: EF-15 counts 10.
 const U_34_FROZEN: [&str; 3] = ["-XPE", "-UC1", "-UC1-plate"];
 
 /// D-03: EW-NUM-001 reports the frozen tags of EF-15 at info with their rule-derived values, and the
@@ -4648,7 +4648,7 @@ fn d06_override_info(c: &Ctx) -> Outcome {
     }
 }
 
-/// D-14 (restated by the owner ruling of cycle 14): `rep.set_anchor_policy` gives the bus port -201U1#bus a
+/// D-14 (restated by the owner): `rep.set_anchor_policy` gives the bus port -201U1#bus a
 /// named anchor two columns left of its graphics; -201U1 then prints "3-B0", EW-CORE-053 reports "3-B0: empty
 /// cell", and its quick fix (the graphics centre) restores "3-B2". Golden A reports no EW-CORE-053 finding, and
 /// the override is the representation's own: no other representation's cross-reference text changes. The real
@@ -5004,7 +5004,7 @@ fn d30_cover(c: &Ctx) -> Outcome {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// AC-23 (WP-S1.18 D15, RU-4): the release in two halves
+// AC-23 (RU-4): the release in two halves
 
 /// A git port for a project outside any worktree: it never looks at the disk (the release fixture's copy lies in a
 /// fresh scratch directory, never in a repository).

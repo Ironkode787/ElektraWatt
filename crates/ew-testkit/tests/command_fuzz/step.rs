@@ -3,7 +3,7 @@
 
 //! The steps of a run and the validity oracle each command step carries.
 //!
-//! The command decides whether a step is accepted; the fuzzer asserts invariants (RD43). A command step says
+//! The command decides whether a step is accepted; the fuzzer asserts invariants. A command step says
 //! whether the arm built it to be invalid (a [`Verdict`]) and what must hold afterwards when it committed (the
 //! [`Post`] checks):
 //!

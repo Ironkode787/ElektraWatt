@@ -161,10 +161,10 @@ impl Command for CreateSection {
 /// Creates a `ReportBlock` with the given members (`manual`, `sort`, `group`, `continuation`, `empty`
 /// default). Rejected with a message: a page-oriented block (no `embedded`) without `first_folio`
 /// (EW-INV-014): `first_folio` is required unless `embedded` is set; a first folio whose generated pages a page of the
-/// section, its divider page included, already holds (ID-1389, ID-1427, see `held_folio`). The form copy, the section and the
+/// section, its divider page included, already holds (see `held_folio`). The form copy, the section and the
 /// embedding page must exist (else not found). Outcome: the new block.
 ///
-/// **The form from the library** (FT-341). The block's form is a library item; a project holds it as an embedded
+/// **The form from the library**. The block's form is a library item; a project holds it as an embedded
 /// copy (doc 05 §13.2). `form_copies`, when given, are the library documents of that item and of its closure (the
 /// title-block form a frame names) in the `lib/` JSON form of `library.embed`, each checked by the same rules at
 /// `/form_copies/i` (a document of kind form, the copy identity, not a project-local item, the hash of its item,
@@ -264,9 +264,9 @@ impl CreateReportBlock {
 }
 
 /// The printed folio of a page of `section` that the generated pages of a page-oriented block from `first` on would
-/// take (ID-1389, as `page.create` keeps a folio free, FT-459): a page of folio `first`, with sub-page continuation
+/// take (as `page.create` keeps a folio free): a page of folio `first`, with sub-page continuation
 /// one of `<first>.<k>`, the section's divider page when `first` is the first folio of a section with a divider
-/// (FR-PAG-009, ID-1427), or the first folio of another page-oriented block of the section than `own` (the block
+/// (FR-PAG-009), or the first folio of another page-oriented block of the section than `own` (the block
 /// itself when it is edited, ID-1417). `None` when it is free.
 pub(super) fn held_folio(
     tx: &TxBuilder<'_>,

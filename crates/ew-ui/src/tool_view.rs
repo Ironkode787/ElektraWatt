@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! What the window paints of the tool framework besides the shared marks (WP-S2.03 §7.4, §7.3, §7.8): the tool
+//! What the window paints of the tool framework besides the shared marks (§7.3, §7.8): the tool
 //! overlay's marks in the renderer's form and the tool strip. The overlay's text labels, the kept preview's semantic
 //! ghost and the link preview's frame are canvas chips ([`crate::canvas_chips`], WP-S2.17 part 5).
 
@@ -30,7 +30,7 @@ fn dash(d: tools::Dash) -> Dash {
 }
 
 /// The overlay's marks for `ew-render2d` (labels left out: the window draws them as chips); `snapper` is the page's,
-/// which maps a floating outline (`Paths`, page nm) to the sheet (WP-S2.04 §6.3).
+/// which maps a floating outline (`Paths`, page nm) to the sheet.
 pub fn marks(overlay: &Overlay, snapper: &tools::Snapper) -> Vec<ToolMark> {
     overlay
         .items
@@ -68,7 +68,7 @@ pub fn marks(overlay: &Overlay, snapper: &tools::Snapper) -> Vec<ToolMark> {
                 OverlayItem::Paths { paths, transform } => ToolMark::Paths {
                     paths: tools::paths_on_sheet(paths, *transform, snapper),
                 },
-                // The window's highlights are painted by the canvas (WP-S2.06 §7.3), the labels as chips.
+                // The window's highlights are painted by the canvas, the labels as chips.
                 OverlayItem::Label { .. } | OverlayItem::Highlight { .. } => return None,
             })
         })
@@ -86,7 +86,7 @@ pub fn marks_of(shell: &ShellModel, group: usize) -> Vec<ToolMark> {
     }
 }
 
-/// The Text tool's binding in the tool options (WP-S2.04 §10.5; the tool strip until WP-S2.17 part 2): one choice per [`BINDABLE`] name and "-" for none.
+/// The Text tool's binding in the tool options (the tool strip): one choice per [`BINDABLE`] name and "-" for none.
 pub(crate) fn text_fields(ui: &mut Ui, current_bind: Option<&str>, events: &mut Vec<crate::app::Event>) {
     let combo = egui::ComboBox::from_label(strings::text(key!("action-text-bind")))
         .icon(crate::components::combo_chevron)
@@ -110,7 +110,7 @@ pub(crate) fn text_fields(ui: &mut Ui, current_bind: Option<&str>, events: &mut 
     crate::components::combo_expanded(ui, &combo.response);
 }
 
-/// The Wire marker tool's fields in the tool strip (WP-S2.04 §10.5): the cross-section and the colours, each sent by
+/// The Wire marker tool's fields in the tool strip: the cross-section and the colours, each sent by
 /// Enter as `marker.fields` with its member (`""` clears it).
 pub(crate) fn marker_fields(
     ui: &mut Ui,
@@ -137,7 +137,7 @@ pub(crate) fn marker_fields(
     }
 }
 
-/// The Structure box tool's fields in the tool strip (WP-S2.04 §10.5): the style (`structure_box.fields` at once), the
+/// The Structure box tool's fields in the tool strip: the style (`structure_box.fields` at once), the
 /// caption and location (Enter sends its member; `""` clears it) and the external reference by printed text (a choice
 /// sends its ID, "none" clears it).
 pub(crate) fn structure_box_fields(
@@ -218,10 +218,10 @@ pub(crate) fn structure_box_fields(
     }
 }
 
-/// The IP tool's fields in the tool strip (WP-S2.04 §9.1): the name (every change sends `ip.name`) and the external
+/// The IP tool's fields in the tool strip: the name (every change sends `ip.name`) and the external
 /// reference, offered by printed text (a choice sends `ip.external` with its ID, "none" with `null`).
 ///
-/// FT-851 (ID-1150): while it does not have the focus the field shows `typed`, the name typed for the next point
+/// While it does not have the focus the field shows `typed`, the name typed for the next point
 /// that no point has taken yet ([`ShellModel::ip_typed_name`](ew_viewmodel::shell::ShellModel::ip_typed_name)), so it
 /// keeps the name after the focus leaves it and empties once a point takes it. Empty, it shows `proposal` (the
 /// HUD's name of the ghost) as its hint; with no proposal, no hint.
@@ -239,7 +239,7 @@ pub(crate) fn ip_fields(
         typed.unwrap_or_default().clone_into(name);
     }
     // `lock_focus(true)` keeps Tab from moving the focus to the next widget in the strip (a single-line field inserts no
-    // tab): Tab, like Enter, ends the name and gives the keys back to the tool (FT-1022, ID-1107).
+    // tab): Tab, like Enter, ends the name and gives the keys back to the tool.
     let mut field = egui::TextEdit::singleline(name)
         .id(id)
         .desired_width(120.0)
@@ -261,8 +261,8 @@ pub(crate) fn ip_fields(
     }
     // Every change reaches the tool at once, so the name is the next point's however the field is left: by Enter, or
     // by a click on the canvas, whose press the window dispatches before this card's events and before the field
-    // reports the lost focus (the play-test of cycle 40). Erasing the field sends the empty text, which cancels the
-    // typed name (cycle 41 review). Out of the focus the field follows the tool's typed name (FT-851).
+    // reports the lost focus (the play-test). Erasing the field sends the empty text, which cancels the
+    // typed name. Out of the focus the field follows the tool's typed name.
     if edit.changed() {
         events.push(crate::app::Event::Action(
             "ip.name",
@@ -293,7 +293,6 @@ pub(crate) fn ip_fields(
     }
 }
 
-// WP-S4.02 part 3
 /// The layout place options on the tool options card (doc 16a §5.2, §6.20): the sticky mode Free | Push | Swap and the
 /// grid step 5 mm | 1 mm, each a segmented control that sends `layout.options` with its member.
 pub(crate) fn layout_fields(ui: &mut Ui, options: tools::LayoutOptions, events: &mut Vec<crate::app::Event>) {
@@ -326,7 +325,6 @@ pub(crate) fn layout_fields(ui: &mut Ui, options: tools::LayoutOptions, events: 
     }
 }
 
-// WP-S4.02 part 4
 /// Draw rail's and Draw duct's options on the tool options card (D11): the part (the project's parts of the kind, then
 /// the installed libraries'), the grid step 5 mm | 1 mm, and a duct's width and height in millimetres when its part
 /// gives none; each change sends `layout.draw_options` (the grid `layout.options`), which the next drawing keeps.

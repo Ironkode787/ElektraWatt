@@ -77,7 +77,7 @@ pub struct Ctx {
     /// The written PDF read back (text layer and stroked segments per page), or why it does not read.
     pub pdf_read: Result<Vec<PageRead>, String>,
     pub fonts: BTreeMap<FontKey, FontBytes>,
-    /// The SQL projection of the profiled model with its pre-delivery check run (WP-S1.10), or why it did
+    /// The SQL projection of the profiled model with its pre-delivery check run, or why it did
     /// not build: [`Ctx::sql`], built by the first entry that reads it (about a minute in a debug build: the
     /// check runs on the oracle session).
     sql: std::cell::OnceCell<Result<ew_api::sql::Projection, String>>,

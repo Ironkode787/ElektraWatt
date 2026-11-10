@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool host's state (WP-S2.03 §7.2, §7.3, §7.8): the active tool, the overlay it owns, the kept preview, the
+//! The tool host's state (§7.3, §7.8): the active tool, the overlay it owns, the kept preview, the
 //! selection, the link preview and the live-region announcement. The shell drives it (`ShellModel`'s tool actions);
 //! only the shell calls the `Session`.
 
@@ -16,7 +16,7 @@ use serde_json::Value;
 use super::{Chooser, IpMemory, JunctionEditor, Overlay, Picker, SelectTool, Selection, Tool};
 use crate::canvas::CanvasModel;
 
-/// The pane of the link hover preview, in logical points (WP-S2.03 §7.8).
+/// The pane of the link hover preview, in logical points.
 pub const LINK_PREVIEW_PANE: (f64, f64) = (320.0, 200.0);
 
 /// How long the pointer rests before the semantic ghost's preview runs, in milliseconds (doc 06 §4.1).
@@ -85,7 +85,7 @@ pub struct LinkPreview {
     pub target: LinkTarget,
     /// The target page's view in the preview's pane (its content read through the page-content cache).
     pub canvas: CanvasModel,
-    /// The line under the popup's title that says how to go there, with `nav.follow`'s key (FT-1123, ID-1225).
+    /// The line under the popup's title that says how to go there, with `nav.follow`'s key.
     pub go: String,
 }
 
@@ -104,16 +104,16 @@ pub(crate) struct ToolHost {
     /// What the canvas node's polite live region says instead of the cursor until the cursor moves again: a tool's
     /// state change or a selection change.
     pub announcement: Option<String>,
-    /// The revision, the language generation and the text of an announcement that holds the selection's words
-    /// (FT-1251): another revision or language words it again while the announcement is still that text.
+    /// The revision, the language generation and the text of an announcement that holds the selection's words:
+    /// another revision or language words it again while the announcement is still that text.
     pub selection_announced: Option<(Option<u64>, u64, String)>,
     /// The (group, tab ID, page) the active tool works on: a change escapes a busy tool and clears its overlay.
     pub context: Option<(usize, u32, crate::canvas::PageId)>,
     /// The connection point the last `cp.*` step put the cursor on: (session, revision, folio, index).
     pub last_cp: Option<(u64, u64, String, usize)>,
-    /// The picker popup (WP-S2.04 §7.1, §6.4), while open.
+    /// The picker popup (§6.4), while open.
     pub picker: Option<Picker>,
-    /// The Join chooser of the Place tool (WP-S2.18 D2, doc 16a §6.22), while open.
+    /// The Join chooser of the Place tool (doc 16a §6.22), while open.
     pub chooser: Option<Chooser>,
     /// The representation a picker in exchange mode changes the symbol of.
     pub exchange_rep: Option<EntityRef>,
@@ -125,45 +125,42 @@ pub(crate) struct ToolHost {
     pub last_primary: Option<String>,
     /// The page tables before the last commit, for dropping deleted records from the selection (§6.4 item 3).
     pub before_commit: Option<Arc<PageTables>>,
-    /// The junction sequence editor popup (WP-S2.04 part 2, §8.5), while open.
+    /// The junction sequence editor popup, while open.
     pub junction_editor: Option<JunctionEditor>,
     /// The text of a canvas key the host or a tool refused (C, connect on move; an inside-out grip): the status bar
-    /// shows it in place of the tool's hint until the next canvas input (WP-S2.04 part 2, window check). A tool's
+    /// shows it in place of the tool's hint until the next canvas input (window check). A tool's
     /// refusal is sticky for the rest of its gesture, so a dwell or the release cannot wipe it before it is read.
     pub notice: Option<String>,
     /// Whether `notice` is a tool refusal that survives the gesture's dwell, moves and release: the next primary
     /// press, key press, page change or tool change clears it.
     pub notice_sticky: bool,
     /// The sheet point of the press a sticky refusal answered: a pointer move to that same point (the window reports
-    /// one after every press) and a dwell keep the notice while a tool is busy (FT-751); a refused Enter sets
+    /// one after every press) and a dwell keep the notice while a tool is busy; a refused Enter sets
     /// `(i64::MIN, i64::MIN)`, which no pointer move matches.
     pub notice_at: Option<(i64, i64)>,
     /// The project revision and the selection's generation at the end of the last dispatch: a notice clears when
     /// either changes, since the state it refused is gone (FT-1032: a committed command, a Properties edit, undo or
     /// redo, a selection change).
     pub notice_basis: Option<(Option<u64>, u64)>,
-    // WP-S2.05 part 3
     /// The paste tool committed: at the end of the dispatch Select takes over with the pasted representations selected.
     pub pasted: bool,
     /// An Undo or a Redo ran: at the end of the dispatch a terminal placement takes its strip's next designation from
-    /// the catalogue again (FT-1083, ID-1181).
+    /// the catalogue again.
     pub reread_designation: bool,
-    /// The last committed interruption point's name and direction (WP-S2.04 part 3, §9.1), kept across tools.
+    /// The last committed interruption point's name and direction, kept across tools.
     pub ip_memory: IpMemory,
     /// `tool.black_box` is choosing: a row that is no black box is refused.
     pub black_box_pick: bool,
-    /// The grips overlay of a selected black box the host set last (WP-S2.04 §9.4): cleared while the overlay is it.
+    /// The grips overlay of a selected black box the host set last: cleared while the overlay is it.
     pub grips: Option<Overlay>,
-    // FT-392
     /// Whether the active tool got a primary press whose release has not come yet.
     pub press_held: bool,
     /// Whether the next primary release is dropped: the (group, tab, page) the tool works on changed while a press was
     /// held (its group hidden by View ▸ Side by side off or by closing its last tab, a tab switch, a jump), so the
-    /// tool was escaped and the release belongs to no gesture (FT-392). The next primary press clears it.
+    /// tool was escaped and the release belongs to no gesture. The next primary press clears it.
     pub drop_release: bool,
     /// What the toast says once the page tables of the commit that set it are read, at the end of its dispatch.
     pub result_note: Option<ResultNote>,
-    // WP-S4.02 part 3
     /// The placing options of the tool options card (the sticky mode and the grid step), kept across tools.
     pub layout_options: super::LayoutOptions,
     /// Whether a move connects its autoconnect proposals, kept across tools for the session (WP-S2.19 D15: on until
@@ -178,9 +175,9 @@ pub(crate) struct ToolHost {
     /// The device a layout drop placed: at the end of the dispatch its placement is the selection.
     pub placed_device: Option<ew_api::output::Uuid>,
     /// The pointer point of a layout drop or of a Select drag's drop: the HUD names no pick stack there until the
-    /// pointer moves elsewhere (FT-995).
+    /// pointer moves elsewhere.
     pub quiet_stack_at: Option<(i64, i64)>,
-    // WP-S4.02 part 4 (C44-p2#2)
+    // WP-S4.02 part 4
     /// The draw tools' part offers of (session, revision, kind): computed when Draw rail or Draw duct is armed, and
     /// again only when its options or the revision change (the options card reads them every frame).
     pub draw_offers: std::cell::RefCell<Option<DrawOffers>>,
@@ -189,11 +186,11 @@ pub(crate) struct ToolHost {
 /// The cached part offers of a draw tool: the (session, revision, kind) they were computed for, and the offers.
 pub(crate) type DrawOffers = ((u64, u64, &'static str), Vec<super::DrawPart>);
 
-/// A commit's result line, said in the toast once the page tables show the result (FT-546, FT-547).
+/// A commit's result line, said in the toast once the page tables show the result.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ResultNote {
     /// A `device.place` at the insertion point `pos` (page nm), with the wires its autoconnect hints draw: their
-    /// count and their list in words (FT-485 item 3), or `None` for a placement without wires.
+    /// count and their list in words (item 3), or `None` for a placement without wires.
     Placed {
         /// The insertion point.
         pos: (i64, i64),
@@ -212,14 +209,14 @@ pub enum ResultNote {
         name: String,
         /// The pin, as the ghost named it.
         pin: String,
-        /// Whether the point is external (FT-946), so the toast names it so (FT-1067).
+        /// Whether the point is external, so the toast names it so.
         external: bool,
-        /// The sentence of a proposal whose base is taken, said first (FT-1023).
+        /// The sentence of a proposal whose base is taken, said first.
         taken: Option<String>,
     },
     /// A delete of representations (Delete, the command bar's Delete): the names of the interruption points among
     /// them and the connections at their connection points that the selection did not name (said only for those
-    /// the delete removed, FT-547); and the devices that keep no representation but stay in the project (FT-709),
+    /// the delete removed, FT-547); and the devices that keep no representation but stay in the project,
     /// each with its tag before the delete and whether it has a part (so it stays in the parts list).
     Deleted {
         /// The interruption points' names.

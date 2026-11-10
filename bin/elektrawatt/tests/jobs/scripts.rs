@@ -205,7 +205,7 @@ pub(crate) fn jb7_the_recovery_script_is_byte_identical_twice_case(twice: bool) 
         let dir = tmp.0.join(side);
         let project = dir.join("g.ew");
         copy_dir(Path::new(GOLDEN_A), &project);
-        // A run that ends with unsaved changes exits 1 and keeps its journal (ID-475).
+        // A run that ends with unsaved changes exits 1 and keeps its journal.
         let crash = run(
             &dir,
             "crash",
@@ -325,7 +325,7 @@ fn jb4_an_export_that_did_not_wait_is_written_at_the_end_of_the_run() {
     assert_eq!(pdfs[0], pdfs[1], "two runs give the same PDF");
 }
 
-/// FT-513: a script whose last step is an export that does not wait and fails (a target in a missing folder) prints
+/// A script whose last step is an export that does not wait and fails (a target in a missing folder) prints
 /// the notification text as `error: …` on stderr and exits 1; the transcript's step itself is done, and two runs give
 /// the same transcript and the same stderr.
 #[test]

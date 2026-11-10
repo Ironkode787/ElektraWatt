@@ -185,7 +185,7 @@ fn golden_b(mode: Mode) {
         ],
         "{section:#?}"
     );
-    // FT-580: the bulk card's one summary line, shared by the window's Preview tab and the text interface.
+    // The bulk card's one summary line, shared by the window's Preview tab and the text interface.
     assert_eq!(
         shell.preview_summary().as_deref(),
         Some("8 items · 11 tags · 0 cross-reference texts · 1 page")
@@ -277,7 +277,7 @@ fn golden_b(mode: Mode) {
         section.iter().filter(|l| l.starts_with("  page ")).count(),
         pages.len()
     );
-    // ID-1497 (4): the page whose folio changes is named by both folios; the others by their folio.
+    // The page whose folio changes is named by both folios; the others by their folio.
     assert!(
         pages.contains(&("106".to_owned(), Some("104".to_owned()))),
         "{pages:?}"
@@ -336,7 +336,7 @@ fn pv2_the_dialogs_refuse_in_place_and_headless_names_the_missing_parameter() {
     gui.shutdown();
     let tmp = Tmp::new("pv2-headless");
     let mut s = tmp.shell_in(Mode::Headless, true, "101");
-    // ID-1497 (7): the missing scheme's refusal names the schemes it takes.
+    // The missing scheme's refusal names the schemes it takes.
     for (action, text) in [
         ("pages.renumber", "Missing parameter `start`."),
         (
@@ -760,7 +760,7 @@ fn set_logo(s: &mut ShellModel, bytes: &[u8]) {
     );
 }
 
-/// PV6 (FT-417): the dialog lists `purge_preview`'s files; Purge commits the command's marker from the GUI origin; an
+/// PV6: the dialog lists `purge_preview`'s files; Purge commits the command's marker from the GUI origin; an
 /// empty plan refuses; `confirm` without the open dialog refuses `reason-no-purge-dialog`; headless the action
 /// refuses `reason-human-only`.
 #[test]
@@ -779,7 +779,7 @@ fn pv6_the_purge_step() {
     );
     done(&mut s, "file.close", json!({}));
     done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
-    // `confirm` without the open confirmation purges nothing (R1-5 of cycle 31).
+    // `confirm` without the open confirmation purges nothing (R1-5).
     let unused: Vec<_> = std::fs::read_dir(dir.join("assets"))
         .unwrap()
         .map(|e| e.unwrap().path())

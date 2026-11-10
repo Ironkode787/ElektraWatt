@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The layout files (doc 05 §2.2; WP-S4.01 D3, LM-1): every layout record lives in `layout/<space>.jsonl`, the space
+//! The layout files (doc 05 §2.2; LM-1): every layout record lives in `layout/<space>.jsonl`, the space
 //! reached through carrier → surface → enclosure; a broken chain and a newer carrier form still give one
 //! deterministic file; a directory of layout records loads clean, a file written while the kinds were reserved is
 //! rewritten canonically, and a placement in another space's file is EW-CORE-010.

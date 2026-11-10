@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Carrier paths (WP-S4.01 D5): the axis-parallel check, the length and a rail's axis.
+//! Carrier paths: the axis-parallel check, the length and a rail's axis.
 
 use std::fmt;
 

@@ -291,7 +291,7 @@ fn ui3_save_as_macro_writes_a_user_library_and_refuses_a_system_one() {
         json!({"name": "PSU", "library": "ElektraWatt starter library", "confirm": true}),
     );
     assert_eq!(system, "reason-library-read-only");
-    // FT-755: the refusal leaves its reason in the window's banner.
+    // The refusal leaves its reason in the window's banner.
     assert_eq!(
         shell.banner(),
         Some(strings::text(key!("reason-library-read-only")))
@@ -457,7 +457,7 @@ fn ui4_update_refuses_without_an_update_and_badges_are_words() {
         "navigator.row",
         json!({"kind": "libraries", "key": key}),
     );
-    // FT-755: the cursor row's detail, in words, the key secondary.
+    // The cursor row's detail, in words, the key secondary.
     let detail = shell.library_copy_detail().expect("the copy's detail");
     assert_eq!(detail.name, "Title block QET A4");
     assert_eq!(detail.key, "ew.titleblock.qet-a4");

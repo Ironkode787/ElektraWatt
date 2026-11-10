@@ -7,13 +7,13 @@
 //! record before the record is handed to the builder (`Remap`), so each builder step sees a record of the
 //! built project. The order:
 //!
-//! 0. the non-local library copies of the batch (`library.embed`, one command, FT-278); their IDs are the
+//! 0. the non-local library copies of the batch (`library.embed`, one command); their IDs are the
 //!    copy identities, so no reference to them is rewritten;
 //! 1. the project settings members of [`super::SETTINGS_BY_COMMAND`];
 //! 2. structure nodes (parents first), sections, external references, the supply's origin
 //!    (`project.supply.set`), pages;
 //! 3. devices (with their main normal function), terminals per strip, cables with their conductors; then
-//!    the device tree (FT-169): `assembly.attach` of every child under its parent with its position,
+//!    the device tree: `assembly.attach` of every child under its parent with its position,
 //!    `valve.add` of every valve child (child tag scheme, counter = position) on its module; then the PLC
 //!    configuration projects (`plc.config_project.create`), the `plc_station` and `plc_module` aspects
 //!    (`fields.set`; a new module instantiates its channels, normaliser N1) and the `assembly` aspects
@@ -27,14 +27,14 @@
 //! 6. potential definitions, bonds, report blocks;
 //! 7. channel bindings (`plc.bind_channel`, coil 14 of position p → channel 2p + 1 as drawn) and device
 //!    links (`device.link`);
-//! 8. revisions (`revision.create`, FT-165): the historic released V1.0 and the open V2.0 with its page
+//! 8. revisions (`revision.create`): the historic released V1.0 and the open V2.0 with its page
 //!    notes;
-//! 9. the panel layout (WP-S4.01 D13): `layout.space.create`, `layout.enclosure.create` (which creates the plate
+//! 9. the panel layout: `layout.space.create`, `layout.enclosure.create` (which creates the plate
 //!    surface, its frame and outline derived from the enclosure part), `layout.carrier.add`, `layout.place`;
-//!    then the surface views of the panel-layout pages (`page.surface_view.set`, WP-S4.01 part 3).
+//!    then the surface views of the panel-layout pages (`page.surface_view.set`).
 //!
 //! Not written: the import lineage (path (a) only); a record of a reserved kind without a schema type
-//! (Golden A has none since FT-165) is counted.
+//! (Golden A has none) is counted.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -321,7 +321,7 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         };
     }
 
-    // 0. The non-local library copies (FT-278), in one command: the closure is the batch's.
+    // 0. The non-local library copies, in one command: the closure is the batch's.
     b.embed_library(&super::embedded_copies(batch))?;
 
     // 1. Settings.
@@ -376,7 +376,7 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         let id = b.page(&map.apply(p))?;
         map.insert(p.id, id);
     }
-    // 2b. The bus nets (WP-S1.21 D11), before the functions whose ports name them; their masters and member orders
+    // 2b. The bus nets, before the functions whose ports name them; their masters and member orders
     // name functions and follow in step 7.
     for x in of!(PhysicalNet) {
         let id = b.physical_net(&map.apply(x))?;
@@ -460,7 +460,7 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         }
     }
 
-    // 3b. The device tree (FT-169): every built child under its parent, with its position, one
+    // 3b. The device tree: every built child under its parent, with its position, one
     // `assembly.attach` per parent (children by position, then batch order); then the valve children,
     // parents first.
     let mut by_parent: BTreeMap<Id<Device>, Vec<&Device>> = BTreeMap::new();
@@ -518,7 +518,7 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         if let (Some(main), Some(f)) = (main, f) {
             map.insert(main.id, f);
         }
-        // WP-S1.20 D6: the other template functions (the internal coils) that N-FL-1 made with the valve
+        // The other template functions (the internal coils) that N-FL-1 made with the valve
         for other in functions
             .iter()
             .filter(|f| f.device == Some(d.id) && Some(f.id) != main.map(|m| m.id))
@@ -790,7 +790,7 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
             }
         }
     }
-    // WP-S1.20 D15: a `drives` link whose valve has a fluid line to the driven device was made by normaliser N-FL-4
+    // A `drives` link whose valve has a fluid line to the driven device was made by normaliser N-FL-4
     // when the line was drawn, with the ID `v5(valve, "drives" ␟ device)`.
     let device_of = |f: Id<Function>| functions.iter().find(|x| x.id == f).and_then(|x| x.device);
     let fluid_pairs: BTreeSet<(Id<Device>, Id<Device>)> = of!(Connection)
@@ -835,14 +835,14 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         }
     }
 
-    // 8. Revisions (FT-165), after the pages their notes name.
+    // 8. Revisions, after the pages their notes name.
     for x in of!(Revision) {
         if let Some(id) = b.revision(&map.apply(x))? {
             map.insert(x.id, id);
         }
     }
 
-    // 9. The panel layout (WP-S4.01 D13): spaces, enclosures with their plate surfaces, carriers, placements.
+    // 9. The panel layout: spaces, enclosures with their plate surfaces, carriers, placements.
     for x in of!(LayoutSpace) {
         let id = b.layout_space(&map.apply(x))?;
         map.insert(x.id, id);
@@ -864,7 +864,7 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         let id = b.layout_place(&map.apply(x))?;
         map.insert(x.id, id);
     }
-    // 9b. The surface views of the panel-layout pages (WP-S4.01 part 3, D9), after the surfaces they show.
+    // 9b. The surface views of the panel-layout pages, after the surfaces they show.
     for x in of!(PageItem) {
         if matches!(x.kind, ew_schema::PageItemKind::SurfaceView(_)) {
             let id = b.surface_view(&map.apply(x))?;

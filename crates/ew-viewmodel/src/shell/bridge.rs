@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool host's duty of FT-411 (WP-S2.04 §10.7), widened by cycle 33 (G-PP ruling #4): Edit ▸ Bridge terminals,
+//! The tool host's duty of FT-411, widened by cycle 33 (G-PP ruling #4): Edit ▸ Bridge terminals,
 //! the host command on the selection that draws page-less bridges between two or more selected terminals of one
 //! strip, consecutive in the strip's terminal order (BR1 over :1 to :4 is 1-2, 2-3, 3-4), in one undo step.
 //!
@@ -9,11 +9,11 @@
 //! a shaft-1 entry); a terminal without one (no part chosen yet, or a part without a shaft) bridges at the lowest
 //! side-1 CP of its function definition, so a bridge can be drawn before the parts are chosen.
 //!
-//! **Selection by records (WP-S2.07 D9, FT-548).** The window selection's items of any kind count: a representation
+//! **Selection by records.** The window selection's items of any kind count: a representation
 //! with one function, a function, or a device; each resolves to the terminal function of a terminal device (a device:
 //! its function). No canvas and no page is needed.
 //!
-//! **Terminals, not CPs (D10, FT-585).** Two terminals are bridged when a bridge connection joins any CP of one to any
+//! **Terminals, not CPs (D10).** Two terminals are bridged when a bridge connection joins any CP of one to any
 //! CP of the other; such a pair is kept, and the command is refused when every pair is; the group rule's "touches"
 //! reads terminals. The stored CPs stay what was drawn.
 //!
@@ -230,12 +230,12 @@ impl ShellModel {
         })
     }
 
-    /// `strip.bridge` (Edit ▸ Bridge terminals, FT-411, cycle 33): the page-less bridges between the selected
+    /// `strip.bridge` (Edit ▸ Bridge terminals): the page-less bridges between the selected
     /// terminals, consecutive in the strip's order, one undo step.
     pub(crate) fn act_strip_bridge(&mut self) -> Outcome {
         match self.bridge_command() {
             Ok(cmd) => {
-                // FT-549: the bridges and the terminals they join, counted from the command.
+                // The bridges and the terminals they join, counted from the command.
                 let connections: Vec<&Value> = match cmd.params.get("connections") {
                     Some(Value::Array(many)) => many.iter().collect(),
                     _ => vec![&cmd.params],

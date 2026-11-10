@@ -143,7 +143,7 @@ impl Query for PhysicalWiresOf {
     const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, key: &PotentialId) -> Arc<PhysicalWires> {
-        // The partition's parts this wire list depends on (WP-S1.07 part 2): the potential, the bonds, every
+        // The partition's parts this wire list depends on: the potential, the bonds, every
         // potential of the bond closure, and the pairing of every interruption point in the scope.
         let partition = q.get_part::<PotentialPartition>((), PartKey::Potential(*key));
         let Some(own) = partition.get(*key) else {
@@ -577,7 +577,7 @@ impl Drawing<'_> {
         }
         // The star groups with a point in the scope, in group order (a group whose source is outside the scope
         // is no hub of this scope). Scanning only the scope's points keeps the hub specification linear in the
-        // potential (WP-S1.07 part 2: it scanned every group of the project per potential).
+        // potential (it scanned every group of the project per potential).
         let groups: BTreeSet<usize> = scope
             .iter()
             .filter_map(|n| CpRef::of(*n))

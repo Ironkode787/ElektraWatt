@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Joining an existing device from the window (WP-S2.18 part 1; FR-DEV-038, FR-DEV-005, FR-UI-017).
+//! Joining an existing device from the window (FR-DEV-038, FR-DEV-005, FR-UI-017).
 //!
 //! **One command (D1).** A join is always `device.place`: with `existing_function` while the device has an unplaced
 //! function of the symbol's FnDef (a part's template slot), else with `join_device {device, role: aux}`. The Place
@@ -39,7 +39,7 @@ pub(super) struct JoinPick {
 }
 
 impl ShellModel {
-    /// The Join chooser (WP-S2.18 D2), while open.
+    /// The Join chooser, while open.
     pub fn chooser(&self) -> Option<&Chooser> {
         self.tools.chooser.as_ref()
     }

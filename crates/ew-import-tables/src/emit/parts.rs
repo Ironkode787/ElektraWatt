@@ -68,7 +68,7 @@ pub(crate) const MOUNT_KINDS: &[(&str, MountKind)] = &[
     ("none", MountKind::None),
 ];
 
-/// The mechanical columns of a `parts.csv` row (WP-S4.01 part 2): `mech` and the carrier sections.
+/// The mechanical columns of a `parts.csv` row: `mech` and the carrier sections.
 struct MechCells {
     mech: Option<MechData>,
     enclosure: Option<(Vec<ew_units::Nm>, Option<String>)>,
@@ -210,7 +210,7 @@ pub(crate) fn emit(
         let test_data = r.flag("test_data");
         let tech_data = r.tech_data("tech_data");
         let mech = mech_cells(&mut r);
-        // WP-S1.20 D4: the solenoids a valve part declares (its fluid section)
+        // The solenoids a valve part declares (its fluid section)
         let mut solenoids = Vec::new();
         for s in r.list("solenoids") {
             match parse_ident(s) {
@@ -245,7 +245,7 @@ pub(crate) fn emit(
     let mut tpls = by_part(cx, templates, &keys);
     let mut cable = by_part(cx, cores, &keys);
     let library = Id::<Library>::from_uuid(cx.project.as_uuid());
-    // The manufacturers the emitted parts name (WP-S1.19 D10), by name, with the source of the first part naming
+    // The manufacturers the emitted parts name, by name, with the source of the first part naming
     // each: one project-local manufacturer copy each, after the parts.
     let mut manufacturers: BTreeMap<String, (ew_mltext::Ident, String)> = BTreeMap::new();
 
@@ -342,7 +342,7 @@ pub(crate) fn emit(
             let fndef = r.req("fndef").map(str::to_owned);
             let main = r.flag("main");
             let list: Vec<&str> = r.list("cps");
-            // a part without a CP pattern names none: its functions take their FnDef's CPs (WP-S1.20 D4)
+            // a part without a CP pattern names none: its functions take their FnDef's CPs
             if list.is_empty() && !pattern.is_empty() {
                 r.fail("column `cps` is empty (a template function lists its pattern indexes)");
             }
@@ -505,7 +505,7 @@ pub(crate) fn emit(
         );
         cx.local_lib.push(LibDocument::Part(copy));
     }
-    // WP-S1.19 D10 (FT-39): the manufacturer master copies the parts name, project-local like them (doc 20 ▲U-45:
+    // The manufacturer master copies the parts name, project-local like them (doc 20 ▲U-45:
     // `item_id = v5(ns, "manufacturers|<name>")`), keyed and named by the name the table gives, in name order.
     for (name, (ident, source)) in manufacturers {
         let item = Manufacturer {
@@ -534,7 +534,7 @@ pub(crate) fn emit(
     super::plc::report_unknown_parts(cx, plc);
 }
 
-/// The licence of a part or manufacturer copy (WP-S7.03 D1): `CC0-1.0` for the golden bootstrap, whose copies ship as
+/// The licence of a part or manufacturer copy: `CC0-1.0` for the golden bootstrap, whose copies ship as
 /// the sample project (doc 07 §3.8); none for a user's `ew import parts`, whose licence is the user's to state.
 fn bootstrap_licence(cx: &Cx<'_>) -> Option<String> {
     cx.part_source.is_none().then(|| "CC0-1.0".to_owned())

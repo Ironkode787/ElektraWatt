@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The company logo through the export job (FT-384, FT-406): an SVG logo reaches every writer as vector paths (no image
+//! The company logo through the export job: an SVG logo reaches every writer as vector paths (no image
 //! item is left to skip); a PNG or JPEG logo is embedded by the SVG writer as an `<image>` and by the PDF writer as an
 //! image XObject (the JPEG unchanged). Golden A's fixture with placeholder logos, in a read-only session (a test copy:
 //! nothing is written back).
@@ -125,7 +125,7 @@ fn a_png_logo_is_embedded_by_the_svg_writer_and_the_pdf_writer() {
     );
 }
 
-/// FT-406: a JPEG logo prints on the golden cover in the PDF, embedded unchanged (DCT); the SVG writer embeds it too.
+/// A JPEG logo prints on the golden cover in the PDF, embedded unchanged (DCT); the SVG writer embeds it too.
 #[test]
 fn a_jpeg_logo_is_printed_on_the_cover_in_the_pdf() {
     let mut s = golden();
@@ -185,7 +185,7 @@ fn logos_that_cannot_be_drawn_are_page_findings() {
     assert_eq!(found, [("1".to_owned(), ImageProblem::Missing)]);
 }
 
-/// Review item 1 (FT-406): a JPEG logo that passes the store's sniff (its `SOF` header is intact) but whose data is cut
+/// Review item 1: a JPEG logo that passes the store's sniff (its `SOF` header is intact) but whose data is cut
 /// does not vanish silently: the export reports it as a page finding of the cover (`ImageProblem::Undecodable`) and
 /// the PDF writer skips it.
 #[test]

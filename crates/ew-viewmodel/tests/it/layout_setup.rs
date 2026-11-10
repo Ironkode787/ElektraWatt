@@ -331,7 +331,7 @@ fn ps1_create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosu
     let (xs, ys): (Vec<i64>, Vec<i64>) = corners.iter().copied().unzip();
     let (x0, x1) = (*xs.iter().min().unwrap(), *xs.iter().max().unwrap());
     let (y0, y1) = (*ys.iter().min().unwrap(), *ys.iter().max().unwrap());
-    // FT-1016 (ID-1148): the new page, drawn not to scale, takes the fitting scale with its view, so the plate lies
+    // The new page, drawn not to scale, takes the fitting scale with its view, so the plate lies
     // inside the frame's drawing area; its centre is the sheet's, less the title block's share of the drawing area.
     assert_eq!(row_text(&s, "page/scale"), PS1_SCALE);
     let [a0, b0, a1, b1] =
@@ -345,12 +345,12 @@ fn ps1_create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosu
         (cx - sheet.0 / 2).abs() < sheet.0 / 10 && (cy - sheet.1 / 2).abs() < sheet.1 / 10,
         "centred: ({cx}, {cy}) on {sheet:?}"
     );
-    // C44-p2#5: the datum exactly, the one D12 computes for this frame and plate at the fitting scale.
+    // The datum exactly, the one D12 computes for this frame and plate at the fitting scale.
     assert_eq!(row_text(&s, "page/derived.datum"), PS1_DATUM);
     s.shutdown();
 }
 
-/// FT-1016 (ID-1148) on a new project: the starter's enclosure on a new location, a new panel page and its Surface
+/// FT-1016 on a new project: the starter's enclosure on a new location, a new panel page and its Surface
 /// row: the page takes the fitting scale in the same undo step as its view, and the plate lies inside the frame's
 /// drawing area. A second Surface edit keeps the scale.
 #[test]
@@ -420,12 +420,12 @@ fn ft1016_a_new_projects_panel_page_takes_the_fitting_scale() {
     s.shutdown();
 }
 
-/// The centred datum of the starter's plate on a new project's panel page at 1:5 (FT-1016): the default frame's
+/// The centred datum of the starter's plate on a new project's panel page at 1:5: the default frame's
 /// drawing-area centre (140.229167, 89.958333 mm) less the 600 × 800 mm enclosure's centre in the plate's frame
 /// (offset 40 mm) at 1:5 (52 mm) in x, plus it (72 mm) in y.
 const NEW_PROJECT_DATUM: &str = "88.229167, 161.958333 mm";
 
-/// PS-1's fitting scale of the new plate on folio 950 (FT-1016, ID-1148).
+/// PS-1's fitting scale of the new plate on folio 950.
 const PS1_SCALE: &str = "1:10";
 
 /// PS-1's centred datum of the new plate on folio 950 at [`PS1_SCALE`]: the frame's drawing-area centre on the page,
@@ -659,7 +659,7 @@ fn enclosure_entry(s: &ShellModel) -> (bool, Option<String>) {
 }
 
 /// Library tiers in which the compiled-in starter parts are replaced by an empty library of their ID, so that no
-/// enclosure part is installed: a directory of the starter's ID replaces the compiled-in library (D6, ID-1109).
+/// enclosure part is installed: a directory of the starter's ID replaces the compiled-in library (D6).
 fn tiers_without_starter_parts(root: &Path) -> LibraryTiers {
     let dir = root.join("company").join("ew-starter-parts.ewlib");
     std::fs::create_dir_all(&dir).unwrap();
@@ -681,7 +681,7 @@ fn tiers_without_starter_parts(root: &Path) -> LibraryTiers {
 
 /// W44.2 F1: on a new project without a location, Project ▸ Enclosure… is disabled with its reason, and the action
 /// refuses with it; with a location the dialog opens, and Create is disabled while the part (or the location) is
-/// empty, each with its reason; Create then sends nothing. No enclosure part is installed here (ID-1109).
+/// empty, each with its reason; Create then sends nothing. No enclosure part is installed here.
 #[test]
 fn enclosure_is_disabled_without_a_location_and_create_without_a_part() {
     let tmp = Tmp::new("ps1-new");
@@ -718,7 +718,7 @@ fn enclosure_is_disabled_without_a_location_and_create_without_a_part() {
             Some("Type or choose a part number")
         )
     );
-    // C44-p4#2: the description names the reason whole.
+    // The description names the reason whole.
     assert_eq!(
         create_line(&s),
         "  button \"Create\" disabled: Type or choose a part number"
@@ -744,7 +744,7 @@ fn enclosure_is_disabled_without_a_location_and_create_without_a_part() {
     s.shutdown();
 }
 
-/// ID-1109 (WP-S4.02 D14): with the compiled-in starter parts, the Create enclosure dialog offers the starter's
+/// With the compiled-in starter parts, the Create enclosure dialog offers the starter's
 /// enclosure: its body names no refusal, and Create is enabled.
 #[test]
 fn the_starter_enclosure_is_offered_by_the_create_dialog() {
@@ -766,7 +766,7 @@ fn the_starter_enclosure_is_offered_by_the_create_dialog() {
         ),
         ("Create enclosure", Vec::<String>::new(), "Create", None)
     );
-    // C45-p1#6: the part line names the starter's enclosure, whole.
+    // The part line names the starter's enclosure, whole.
     let describe = s.describe();
     let part_line: Vec<&str> = describe
         .lines()
@@ -789,7 +789,7 @@ fn create_line(s: &ShellModel) -> String {
         .to_owned()
 }
 
-/// C44-p2#1: on 902 at a scale of 1:4 000 000 000 with its datum 10⁹ mm away, every click lies far beyond the `i64`
+/// On 902 at a scale of 1:4 000 000 000 with its datum 10⁹ mm away, every click lies far beyond the `i64`
 /// range on the surface; Draw rail's two clicks and Draw duct's finish are refused by the tool in words, before the
 /// command, and nothing panics (ID-1106: "The draw tools refuse a point outside the drawable range before they send
 /// the command"; ID-1113: the text reads "That point lies too far away to draw; check the page's scale and datum").
@@ -857,7 +857,7 @@ fn free_click_mm(shell: &mut ShellModel, u: f64, v: f64) -> Outcome {
     out
 }
 
-/// C44-p2#5: the draw tools' hints, chips and refusals, each whole: the rail's two hints and its length chip, the
+/// The draw tools' hints, chips and refusals, each whole: the rail's two hints and its length chip, the
 /// duct's two hints and its size chip, the options without a draw tool, the 256-point cap, the one-point duct.
 #[test]
 fn the_draw_tools_texts_read_whole() {
@@ -891,7 +891,7 @@ fn the_draw_tools_texts_read_whole() {
     );
     let p = sheet_mm(&s, 300.0, 100.0);
     done(&mut s, "canvas.pointer", at(p, json!({"shift": true})));
-    // Golden A's duct part gives no size: the card asks for it, 40 × 60 mm (C44-p4#3: the numbers written out).
+    // Golden A's duct part gives no size: the card asks for it, 40 × 60 mm (the numbers written out).
     assert_eq!(
         s.draw_card().and_then(|c| c.size),
         Some(("40".to_owned(), "60".to_owned()))
@@ -945,7 +945,7 @@ fn the_draw_tools_texts_read_whole() {
 /// The size chip of Draw duct with Golden A's duct part, which gives no size: the card's default 40 × 60 mm.
 const DUCT_CHIP: &str = "40 \u{d7} 60 mm";
 
-/// C44-p2#5: Auto-fill rail with one marked device: the dialog's line for one device and the toast without notices;
+/// Auto-fill rail with one marked device: the dialog's line for one device and the toast without notices;
 /// a rail that is not on the page is refused in words.
 #[test]
 fn auto_fill_one_marked_device_says_so_and_toasts_without_notices() {
@@ -981,7 +981,7 @@ fn auto_fill_one_marked_device_says_so_and_toasts_without_notices() {
     s.shutdown();
 }
 
-/// C44-p2#2: the draw tools' part offers are computed when the tool is armed, and a second frame with the tool armed
+/// The draw tools' part offers are computed when the tool is armed, and a second frame with the tool armed
 /// (the options card read again) reuses them; a new revision computes them once more.
 #[test]
 fn the_draw_tools_part_offers_are_kept_between_frames() {
@@ -1013,7 +1013,7 @@ fn the_draw_tools_part_offers_are_kept_between_frames() {
     s.shutdown();
 }
 
-/// C44-p4#3: the Surface row's choices are the surfaces by their IDs (the shell's choose-by-ID arm): each item is a
+/// The Surface row's choices are the surfaces by their IDs (the shell's choose-by-ID arm): each item is a
 /// surface's words with its ID as the value, and choosing one commits `page.surface_view.set` with that ID.
 #[test]
 fn the_surface_row_chooses_a_surface_by_its_id() {

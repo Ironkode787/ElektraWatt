@@ -4,7 +4,7 @@
 //! EW-RDS rules, pack EW-IEC81346 (doc 15 §4.2; numbering in doc 07; the parser and the identifier sets in
 //! `ew-rds`, ADR-0026). WP-S1.16 part 4 adds EW-RDS-001, -002, -003, -007, -009 and -010.
 //!
-//! # Determinism (WP-S1.16 §10)
+//! # Determinism
 //!
 //! Texts name devices by their derived tags and structure nodes by their sign and code; lists inside a message are in
 //! natural order of their printed text. IDs enter only targets and fingerprints.
@@ -676,7 +676,7 @@ pub const STRUCTURE_CODE_VARIANTS: RuleMeta = RuleMeta {
 /// EW-RDS-010: two or more structure nodes of one aspect whose codes differ only in separators or case
 /// (`ew_rds::spelling_key`: `+JE2416` against `+J-E-2416`) (FR-PRJ-018; D-03, MF-02). One finding per group: targets
 /// every node of the group, discriminator `spelling`. The catalogue's merge quick fix waits for a structure-merge
-/// command (none exists; WP-S1.16 §11.2 item 6, §13.1).
+/// command (none exists; §13.1).
 #[derive(Clone, Copy, Debug)]
 pub struct StructureCodeVariants;
 

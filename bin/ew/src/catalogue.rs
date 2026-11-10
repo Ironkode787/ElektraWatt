@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The CLI table (WP-S1.22 D4): one entry per subcommand path of the derive tree ([`crate::cli::command`]) with its
+//! The CLI table: one entry per subcommand path of the derive tree ([`crate::cli::command`]) with its
 //! flags, its exit codes, its result schema and its stability.
 //!
 //! The paths and the flags (name, value, repetition) come from walking clap's tree in declaration order, skipping

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Frames, title blocks and their cells: a [`FormDef`] to the `frame` layer of doc 09 §4.1 (WP-S3.02).
+//! Frames, title blocks and their cells: a [`FormDef`] to the `frame` layer of doc 09 §4.1.
 //!
 //! [`lower_form`] is pure and deterministic: the same form, title block, bindings and font set give an
 //! identical [`LoweredForm`]. It emits **page coordinates**; the page-to-sheet transform of the form

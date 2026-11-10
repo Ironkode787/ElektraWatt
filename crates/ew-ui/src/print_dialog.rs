@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The print pre-dialog (WP-S3.07 part 3, D10 and ruling 4 of ID-1180; doc 16a §6.12): the options on the left on
+//! The print pre-dialog (doc 16a §6.12): the options on the left on
 //! §6.12's form rows, the preview of the print set on the right at the page's aspect ratio, `<n> of <m>` with
 //! Previous and Next under it, the stamp visible. While the set builds, §6.19's progress line stands in the preview's
 //! place; with no page chosen, §6.17's empty state. The dialog is `size.dialog.preview` wide, growing with the window
@@ -284,7 +284,7 @@ fn pages_field(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
         if text != d.pages {
             set(events, json!({ "pages": text }));
         }
-        // FT-1124 (ID-1225): a refused text is shown once, here, in doc 16a §6.1's Error state: the field's boundary in
+        // A refused text is shown once, here, in doc 16a §6.1's Error state: the field's boundary in
         // `color.error` and the sentence under it after the error icon.
         if let Some(e) = &d.pages_error {
             ui.painter().rect_stroke(
@@ -326,7 +326,7 @@ fn preview(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, events: &mut Vec<Ev
         size = Vec2::new(max_height * paper_w / paper_h, max_height);
     }
     let (rect, _) = ui.allocate_exact_size(size, Sense::hover());
-    // FT-1126 (ID-1225): the column's clip, so that the paper's edge and shadow outside `rect` are drawn whole.
+    // The column's clip, so that the paper's edge and shadow outside `rect` are drawn whole.
     let painter = ui.painter().clone();
     painter.rect_filled(rect, theme::radius(t.radius_sm), t.surface_sunken.color32());
     match (&d.build, shell.print_set()) {
@@ -338,7 +338,7 @@ fn preview(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, events: &mut Vec<Ev
                 dpi: fit_dpi(paper_w, rect.width() * ppp),
                 mono: d.monochrome,
             };
-            // FT-1126 (ID-1225): the paper as a sheet: `elevation.1` under it and its whole edge in
+            // The paper as a sheet: `elevation.1` under it and its whole edge in
             // `color.border.control`, the border that meets the non-text contrast on the dialog's surface.
             painter.add(theme::shadow(&t.elevation_1).as_shape(rect, theme::SQUARE));
             if let Some(texture) = image(ui.ctx(), set, tag) {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.08 part 3 (D14, ID-1224) on copies of Golden A: `navigator.export_table` writes the Terminal strips table on
+//! WP-S3.08 part 3 (D14) on copies of Golden A: `navigator.export_table` writes the Terminal strips table on
 //! show byte for byte as `ew export table strips --strip -X1031` writes it (TW-1; the CLI's path, run here through the
 //! same `ew-api` calls on a reader session of the saved project), `navigator.import_table` of a file with five changed
 //! labels opens the card with "5 changed" and Accept commits one undo step, Escape nothing (TW-1); a cell changed in
@@ -246,7 +246,7 @@ fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
         "Import y.xlsx · 5 cells changed, 0 cells kept, 0 conflicts, 0 cells refused, 0 unknown rows, 0 rows not in \
          the file"
     );
-    // FT-1194: a cell line says what Apply will do, never "applied" before it.
+    // A cell line says what Apply will do, never "applied" before it.
     let ew_viewmodel::properties::CardOrigin::TableImport(c) = &shell.properties().card().unwrap().origin
     else {
         panic!("a table import card");
@@ -309,8 +309,8 @@ fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     shell.shutdown();
 }
 
-/// TW-2 restored (FT-1149, ID-1391): a label changed in the project since the export and in the file is "1 conflict",
-/// which keeps the project's value, so the file changes nothing and Apply is refused (FT-1193); with "Take the file's
+/// TW-2 restored: a label changed in the project since the export and in the file is "1 conflict",
+/// which keeps the project's value, so the file changes nothing and Apply is refused; with "Take the file's
 /// values" on, the bytes the card keeps are read again and Accept applies the file's value in one step.
 #[test]
 fn tw2_a_conflict_keeps_the_projects_value_until_the_switch_takes_the_files() {
@@ -498,7 +498,7 @@ fn the_refusals_in_words_and_a_csv() {
     shell.shutdown();
 }
 
-/// ID-1252: a CSV export with no preset takes `excel-en`, which keeps the `id` column, so the file re-imports with
+/// A CSV export with no preset takes `excel-en`, which keeps the `id` column, so the file re-imports with
 /// nothing changed and no refusal; the preset `ew`, which writes no `id` column, is refused in words.
 #[test]
 fn a_csv_export_keeps_its_id_column_and_ew_is_refused() {
@@ -574,7 +574,7 @@ fn headers(bytes: &[u8]) -> Vec<String> {
         .headers
 }
 
-/// ID-1224 ruling 3 (ID-1231): the export is cut to the rows and columns on show: a hidden column is not in the
+/// ID-1224 ruling 3: the export is cut to the rows and columns on show: a hidden column is not in the
 /// header, `id` is kept, only the rows on show are written, in the order on show; the cut file re-imports three-way
 /// with no notice, and one changed cell is the toast's "1 changed cell".
 #[test]
@@ -661,7 +661,7 @@ fn files_of(dir: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
     out
 }
 
-/// SE-9 at the call site (WP-S6.04 D15, C51-p1#3): the window's table read panics inside its guard (the test fault
+/// SE-9 at the call site: the window's table read panics inside its guard (the test fault
 /// `table-read`); `navigator.import_table` fails with S2 whole, opens no card, records no command and leaves the
 /// project's files as they were.
 #[test]
@@ -686,7 +686,7 @@ fn a_panicking_table_read_fails_with_s2_and_changes_nothing() {
     shell.shutdown();
 }
 
-/// Ruling 6 (ID-1231): a project changed after the import's preview refuses its Apply in words, and the card stays.
+/// Ruling 6: a project changed after the import's preview refuses its Apply in words, and the card stays.
 #[test]
 fn a_stale_import_is_refused_and_the_card_stays() {
     let tmp = Tmp::new("tfs");
@@ -712,7 +712,7 @@ fn a_stale_import_is_refused_and_the_card_stays() {
     shell.shutdown();
 }
 
-/// ID-1231 (ID-1224 ruling 2's "shown in table mode"): with the canvas focused, the one navigator shown in table mode
+/// ID-1231 (ruling 2's "shown in table mode"): with the canvas focused, the one navigator shown in table mode
 /// is the one exported; with two shown (Devices beside Pages, Terminal strips moved to the bottom dock) and none
 /// focused, the refusal says to click one; the focused one decides.
 #[test]
@@ -762,7 +762,7 @@ fn the_table_shown_decides_without_the_focus() {
         "navigator.export_table",
         json!({"path": text(&other)}),
     );
-    // FT-1220: the focused Terminal strips table is the one written.
+    // The focused Terminal strips table is the one written.
     assert_eq!(
         column_cells(&std::fs::read(&other).unwrap(), "id"),
         shown_rows(&shell),
@@ -771,7 +771,7 @@ fn the_table_shown_decides_without_the_focus() {
     shell.shutdown();
 }
 
-/// ID-1231 (C48-p5#1): a table-mode navigator behind another tab is not shown and does not count; with the canvas
+/// A table-mode navigator behind another tab is not shown and does not count; with the canvas
 /// focused, the one table shown is exported.
 #[test]
 fn a_table_behind_another_tab_does_not_count() {
@@ -807,7 +807,7 @@ fn a_table_behind_another_tab_does_not_count() {
     shell.shutdown();
 }
 
-/// FT-1219 (ID-1270): F6 onto a navigator behind another tab brings its tab to the front of its pane, so the focused
+/// F6 onto a navigator behind another tab brings its tab to the front of its pane, so the focused
 /// table is the shown one, and Export table writes its rows; `ui.focus` does the same.
 #[test]
 fn focus_brings_a_navigator_behind_another_tab_forward() {
@@ -827,7 +827,7 @@ fn focus_brings_a_navigator_behind_another_tab_forward() {
         "Terminal strips is behind the Devices tab"
     );
     done(&mut shell, "ui.focus", json!({"area": "commandbar"}));
-    // FT-1243: F6 from the command bar reaches every open navigator within one step each, Pages included.
+    // F6 from the command bar reaches every open navigator within one step each, Pages included.
     for _ in 0..=NavKind::ALL.len() {
         if shell.focused_navigator() == Some(NavKind::Strips) {
             break;
@@ -871,7 +871,7 @@ fn focus_brings_a_navigator_behind_another_tab_forward() {
     shell.shutdown();
 }
 
-/// FT-1217 (ID-1270): the Macros navigator in table mode, focused, refuses Export table with its reason, whole.
+/// The Macros navigator in table mode, focused, refuses Export table with its reason, whole.
 #[test]
 fn a_table_without_a_file_form_refuses_its_export() {
     let tmp = Tmp::new("tfm");
@@ -897,7 +897,7 @@ fn a_table_without_a_file_form_refuses_its_export() {
     shell.shutdown();
 }
 
-/// FT-1217 (ID-1270): an XLSX exported from Golden A, imported into a new project's Terminal strips table, fails with
+/// An XLSX exported from Golden A, imported into a new project's Terminal strips table, fails with
 /// the other project's error, whole.
 #[test]
 fn a_file_of_another_project_is_refused() {

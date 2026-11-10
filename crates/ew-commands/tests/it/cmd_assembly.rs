@@ -220,7 +220,7 @@ fn valve_add_checks_positions_and_undo_removes_the_valve() {
     let v: Id<Device> = primary(&r);
     assert_eq!(row(&e, v).position, Some(5));
     let f: Id<Function> = created(&r, Kind::Function)[0];
-    // FT-1331: the module and the holder in words.
+    // The module and the holder in words.
     let reason = |r: Result<_, CmdError>| match r {
         Err(CmdError::Rejected { reason, .. }) => reason,
         other => panic!("expected a rejection, got {other:?}"),
@@ -266,7 +266,7 @@ fn device_link_creates_and_validates() {
         invalid_path(e.execute(&link(DEV_102F2, DEV_102F2)), "device.link"),
         "/to"
     );
-    // FT-1396: the devices by their tags, no link ID.
+    // The devices by their tags, no link ID.
     match e.execute(&link(DEV_102F2, DEV_101F1)) {
         Err(CmdError::Rejected { reason, .. }) => {
             assert_eq!(reason, "device -102F2 already links to -101F1 with this kind");
@@ -299,7 +299,7 @@ fn config_project_create_validates_name_profile_and_cpu() {
     assert_eq!(p.name, ident("PLC1"));
     assert_eq!(p.profile, ident("siemens-tia-intl@2027.1"));
     assert_eq!(p.cpu, None);
-    // FT-1396: the name, no ID.
+    // The name, no ID.
     match e.execute(&config_project("PLC1", "siemens-tia-intl@2027.1", None)) {
         Err(CmdError::Rejected { reason, .. }) => {
             assert_eq!(
@@ -516,7 +516,7 @@ fn bind_channel_rejects_bad_endpoints_and_unknown_channels() {
     not_found(e.execute(&bind(id(0xdead), None)));
 }
 
-/// Owner ruling (cycle 16): a channel binds a CP of its module or of one of the module's descendants.
+/// Owner ruling: a channel binds a CP of its module or of one of the module's descendants.
 #[test]
 fn bind_channel_refuses_a_cp_outside_the_module_and_its_children() {
     let mut e = engine(plc_model());
@@ -540,7 +540,7 @@ fn rebinding_a_held_cp_names_the_unbound_channel_in_the_notice() {
     let (c1, c3) = (channel_id(DEV_102F2, 1), channel_id(DEV_102F2, 3));
     e.execute(&bind(c1, cp_param(FN_102F2, 4))).expect("bind");
     let r = e.execute(&bind(c3, cp_param(FN_102F2, 4))).expect("rebind");
-    // FT-757: the channel in words (its number), no record ID; FT-952 (ID-1108: "N1's and N3's PLC notices drop their
+    // The channel in words (its number), no record ID; FT-952 (ID-1108: "N1's and N3's PLC notices drop their
     // UUIDs and requirement IDs"): no requirement ID.
     assert_eq!(
         r.outcome.notices,
@@ -614,7 +614,7 @@ fn a_part_change_adds_channels_keeps_surplus_and_keeps_authored_data() {
         .expect("narrower part");
     assert!(created::<Channel>(&r, Kind::Channel).is_empty());
     assert_eq!(e.model().table::<Channel>().iter().count(), 16);
-    // FT-952 (ID-1108: "N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do")
+    // FT-952 ("N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do")
     let list: Vec<String> = (4..16).map(|n| format!("channel {n} (unbound)")).collect();
     assert_eq!(
         r.outcome.notices,
@@ -663,7 +663,7 @@ fn n1_keys_existing_channels_on_module_and_number_not_on_the_id() {
 // Owner rulings of the cycle-16 review: covers and child counters
 
 /// Only covers that the edit adds are refused; a cover that fell out of scope (its child moved away by
-/// `assembly.attach`) is a check finding (ID-371, FT-260), so a later unrelated assembly edit commits.
+/// `assembly.attach`) is a check finding, so a later unrelated assembly edit commits.
 #[test]
 fn a_cover_out_of_scope_already_does_not_block_an_unrelated_assembly_edit() {
     let mut e = engine(plc_model());
@@ -758,7 +758,7 @@ fn supply_set_edits_one_member() {
         value,
     };
     assert_eq!(invalid_path(e.execute(&set("bogus", json!(1))), c), "/path");
-    // owner ruling (cycle 16): the electrical members wait for an ADR-0008 amendment
+    // owner ruling: the electrical members wait for an ADR-0008 amendment
     for path in ["phases", "u_nom", "earthing", "origin", "origin.ik_max"] {
         assert_eq!(
             invalid_path(e.execute(&set(path, json!(1))), c),
@@ -863,7 +863,7 @@ fn library_embed_validates_every_copy() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// library.embed and the LibRef keep-alive (FT-316, EW-INV-021, ADR-0009 amendment 7)
+// library.embed and the LibRef keep-alive (EW-INV-021, ADR-0009 amendment 7)
 
 /// The part copy of these tests: its one function template names [`ITEM_Y`] of [`LIBRARY_X`].
 const PART_316: Id<Part> = id(0xa316);
@@ -951,7 +951,7 @@ impl ew_commands::Command for RemoveCopiesRaw {
     }
 }
 
-/// FT-316: `library.embed` of the FnDef copy that a part already names undoes to the state before the
+/// `library.embed` of the FnDef copy that a part already names undoes to the state before the
 /// embedding (the undo law, ARCH §13), redoes and undoes again; every state passes the integrity check.
 #[test]
 fn library_embed_of_a_named_fndef_undoes_to_the_state_before() {

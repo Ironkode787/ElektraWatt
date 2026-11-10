@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.18 part 4 (D11 to D13): the atomic release and the as-built archive through the `Session` facade, RA-1 to
+//! The atomic release and the as-built archive through the `Session` facade, RA-1 to
 //! RA-7, on the release fixture `golden/fixtures/release-min` (one page, two devices, an author and a checker party,
 //! the open revision V1.0 with its author; built by [`build_release_min`] and compared with the checked-in copy).
 //!
@@ -166,7 +166,7 @@ fn build_release_min(dir: &Path, state: &Path) {
             }),
         );
     }
-    // Route page (WP-S2.19 D13): an unrouted wire is an error in release mode (EW-CORE-073).
+    // Route page: an unrouted wire is an error in release mode (EW-CORE-073).
     let plan = s
         .route_plan("1", &ew_api::routing::RouteScope::Page)
         .expect("folio 1");
@@ -401,7 +401,7 @@ fn the_approved_fixture_passes_the_gate() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
-/// FT-1489 (WP-S6.08 D19): a release reports whether the manifest its stamp wrote is marked `unstable`: with a
+/// A release reports whether the manifest its stamp wrote is marked `unstable`: with a
 /// released list that lacks this build's format it is, with the format released it is not.
 #[test]
 fn a_release_reports_an_unreleased_format() {
@@ -601,7 +601,7 @@ fn ra1_ra2_ra6_the_release_writes_the_archive_and_the_record() {
         "ElektraWatt's checks do not replace engineering verification by a competent person."
     );
     assert_eq!(check["packs"].as_array().map(Vec::len), Some(gate.packs.len()));
-    // WP-S6.04 D13: the waivers in force (the fixture has none).
+    // The waivers in force (the fixture has none).
     assert_eq!(check["waivers"], serde_json::json!([]));
 
     // The release is on disk: the project reopens released at g+1.
@@ -614,7 +614,7 @@ fn ra1_ra2_ra6_the_release_writes_the_archive_and_the_record() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
-/// SE-3 (WP-S6.04 D13): with a waiver in force the release report lists it. On a copy of the fixture one connection of
+/// With a waiver in force the release report lists it. On a copy of the fixture one connection of
 /// the loop is deleted, each finding of the release scheme that leaves is waived from the GUI and saved, the checker
 /// approves (acknowledging the safety-kind waivers) and the release's `check/report.json` lists every waiver in force,
 /// each once and sorted, beside the disclaimer.
@@ -960,7 +960,7 @@ fn root_files(vfs: &MemVfs) -> BTreeMap<String, Vec<u8>> {
     vfs.files(Path::new(MEM_ROOT))
 }
 
-/// The folder of the release runs' records in the memory state directory (FT-814).
+/// The folder of the release runs' records in the memory state directory.
 const MEM_RUNS: &str = "/state/releases";
 
 /// The release runs' records in the memory state directory, by name.
@@ -995,7 +995,7 @@ struct Seen {
 /// archive, no tag of the run and no run record (a new release then succeeds); or open with one complete archive that
 /// no release record names, which `incomplete_release` reports as completable and which `discard` removes (with its
 /// tag, temps and run record; a new release then succeeds) or `complete` stamps. Should no run record prove the
-/// archive this directory's (FT-814), `discard` keeps everything in words and `complete` stamps it (counted as kept).
+/// archive this directory's, `discard` keeps everything in words and `complete` stamps it (counted as kept).
 fn after_the_crash(vfs: &Arc<MemVfs>, git: &dyn Git, fake: Option<&FakeGit>, n: u64, seen: &mut Seen) {
     let (mut r, integrity) = mem_open(vfs, 2);
     let rev = revision(&r);
@@ -1389,16 +1389,16 @@ fn a_foreign_archive_in_the_root_is_kept() {
 // FT-814: what a discard may remove when two copies of one project directory share an archive root or a repository
 
 /// Why a discard keeps an archive of this project and the open revision that no run record of this project directory
-/// names (FT-814).
+/// names.
 const NO_RECORD: &str = "the archive V1.0.ewarchive in that folder is not provably a leftover of this project \
                          folder's own release (no release from this folder recorded writing it, and a copy of the \
                          folder names the same project)";
 
-/// Why a discard keeps an archive whose bytes or modification time are not the ones the run recorded (FT-814).
+/// Why a discard keeps an archive whose bytes or modification time are not the ones the run recorded.
 const OTHER_FILE: &str = "the archive V1.0.ewarchive in that folder is not provably a leftover of this project \
                           folder's own release (the release from this folder recorded another file under that name)";
 
-/// What a discard of a completable archive without evidence says (FT-814): `why`, then that it is kept and what to do.
+/// What a discard of a completable archive without evidence says: `why`, then that it is kept and what to do.
 fn kept_text(why: &str) -> String {
     format!(
         "{why}; it is kept: complete the release with it, or remove the file by hand if you know it is a leftover"
@@ -1492,7 +1492,7 @@ fn crashed_at_the_tag(image: &[(String, Vec<u8>)], git: &FakeGit, after: bool) -
     vfs
 }
 
-/// FT-814: two copies of one project directory (an operating-system copy at the same generation, in two places) on one
+/// Two copies of one project directory (an operating-system copy at the same generation, in two places) on one
 /// archive root, with one state directory (one user on one computer) and one tag namespace (two worktrees of one
 /// repository). Copy A releases V1.0 completely; copy B, with V1.0 still open, finds A's archive: it names the same
 /// project and revision and, at the same generation, could be completed, but no run record of B's directory proves it
@@ -1570,7 +1570,7 @@ fn a_copy_of_the_project_never_discards_the_other_copys_archive() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
-/// FT-814: this project directory's own crashed run (it died in the tag step, before creating the tag or right after
+/// This project directory's own crashed run (it died in the tag step, before creating the tag or right after
 /// it) is discarded by the directory: the archive, the tag its run created (its message carries the run's mark) and
 /// the run's record are removed, and a new release then succeeds and leaves no record.
 #[test]
@@ -1609,7 +1609,7 @@ fn the_own_crashed_run_is_discarded_with_its_tag_and_record() {
     }
 }
 
-/// FT-814: a crashed run of this directory whose record is missing (the state directory was wiped) is kept by a
+/// A crashed run of this directory whose record is missing (the state directory was wiped) is kept by a
 /// discard, with the words, and can be completed; so is one whose archive was replaced by another file of the same
 /// bytes written later (the modification time is not the recorded one: a copy's release of the same generation).
 #[test]
@@ -1811,7 +1811,7 @@ fn the_open_removes_a_record_whose_archive_is_gone() {
     }
     let troubles = reported.expect("a failed removal is reported");
     assert_eq!(troubles.len(), 1, "{troubles:?}");
-    // FT-842: the trouble is structured (what happened, the path, the error); its text is the CLI's, unchanged.
+    // The trouble is structured (what happened, the path, the error); its text is the CLI's, unchanged.
     let trouble = &troubles[0];
     assert_eq!(trouble.what, TroubleKind::RecordNotRemoved);
     assert_eq!(trouble.path.file_name(), mine.file_name(), "the record's path");
@@ -1828,10 +1828,10 @@ fn the_open_removes_a_record_whose_archive_is_gone() {
     r.close();
 }
 
-/// FT-814: two copies of one project writing at once in one archive root never remove each other's temps. The temps
+/// Two copies of one project writing at once in one archive root never remove each other's temps. The temps
 /// are named by the key of the project directory, which the copies do not share (at the same generation their names
 /// differ too); a release removes only a leftover temp of its own directory, and keeps a copy's live temp and a temp
-/// named by the project's ID (the owner before FT-814, which every copy shared).
+/// named by the project's ID (the owner, which every copy shared).
 #[test]
 fn two_copies_writing_at_once_keep_each_others_temps() {
     let image = approved_image();
@@ -2123,7 +2123,7 @@ fn a_release_whose_archive_time_cannot_be_set_goes_on() {
         }
         if let Some(t) = troubles.iter().find(|t| t.what == TroubleKind::RecordNotUpdated) {
             assert!(result.is_ok(), "call {n}: {t}");
-            // The whole text (cycle-40 review, part 4, finding 1: one space at the line continuation).
+            // The whole text (part 4, finding 1: one space at the line continuation).
             assert_eq!(
                 t.to_string(),
                 format!(
@@ -2145,7 +2145,7 @@ fn a_release_whose_archive_time_cannot_be_set_goes_on() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Part 5: the per-submission gate (cycle 41, ruling 1) and the archive's use (D14, RU-1, RU-2)
+// Part 5: the per-submission gate and the archive's use (D14, RU-1, RU-2)
 
 /// Cycle 41, ruling 1 ("the `HumanOnly` gate is per submission"): the release, the approval and the settling of an
 /// incomplete release judge the origin of the submission that asks, never the session's. A GUI session refuses every

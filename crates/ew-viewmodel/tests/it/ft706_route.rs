@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-706 (cycle-37 visual play-test, frictions 7 and 8): the Wire tool's auto-route keeps wires apart and out of
+//! FT-706 (visual play-test, frictions 7 and 8): the Wire tool's auto-route keeps wires apart and out of
 //! boxes. In a new project, the play-test's situation is built through the window's own path: a 1P+N breaker from
 //! its starter part, the power supply's black box from its part (two clicks), then the L wire from the breaker's
 //! first pole to the box's L and the N wire from its second pole to the box's N, each a click on the one CP and a
@@ -421,7 +421,7 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
     assert_eq!(new[0].polyline.last(), Some(&to));
 }
 
-/// ID-1497 (11): a click that places a bend instead of ending on a connection point (a miss snaps to the grid) is told
+/// A click that places a bend instead of ending on a connection point (a miss snaps to the grid) is told
 /// in the hint and the HUD's prompt: "Bend placed: click a connection point to end the wire."; the wire then ends on a
 /// connection point as before, and the next wire starts with the routing hint.
 #[test]

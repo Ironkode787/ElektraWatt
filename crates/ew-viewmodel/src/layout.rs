@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The dock layout of the project view (WP-S2.01 part 2, FT-309; UX/UI doc 16 section 2.6 and 3.4): a tree of
+//! The dock layout of the project view (UX/UI doc 16 section 2.6 and 3.4): a tree of
 //! panes in splits and tab groups, toolkit-neutral. `ew-ui` converts it to and from its egui_tiles tree; the
 //! workspace files (`workspaces/<name>.json`) hold it as JSON.
 //!
@@ -12,7 +12,7 @@
 //! twice is the same bytes. This is not the serialised egui_tiles tree that doc 16 section 2.5 names: that tree
 //! keeps its tiles in a hash map, whose order would reach the file.
 //!
-//! The Schematic workspace (WP-S2.17 part 3, D10) is the left column (the navigator group over the property grid) and
+//! The Schematic workspace is the left column (the navigator group over the property grid) and
 //! the page view; the other navigators join the navigator group from the left rail, the bottom panes open below the
 //! page view. A workspace file written before WP-S2.17 loads as saved, its panes in their places; View ▸ Properties
 //! adds the grid under the Pages pane's column.
@@ -24,7 +24,7 @@ use crate::navigators::NavKind;
 use crate::strings;
 use crate::strings::Key;
 
-/// The key of a navigator pane's title in [`crate::strings`] (WP-S2.06 §6.8).
+/// The key of a navigator pane's title in [`crate::strings`].
 pub fn nav_title_key(kind: NavKind) -> Key<'static> {
     match kind {
         NavKind::Pages => key!("pane-pages"),
@@ -55,22 +55,18 @@ pub enum PaneKind {
     Pages,
     /// The page view (the canvas).
     PageView,
-    /// The property grid (WP-S2.05).
+    /// The property grid.
     Properties,
-    /// The find pane (WP-S2.05 part 2): opened by Ctrl+F or Ctrl+H below the page view.
+    /// The find pane: opened by Ctrl+F or Ctrl+H below the page view.
     Find,
-    // WP-S2.06 part 1
     /// A navigator other than Pages (§6.8): docked as a tab beside the Pages pane; its workspace key is the kind word.
     Navigator(NavKind),
-    // WP-S2.09 part 1
     /// The Jobs pane (§6.4): the PDF exports with their progress and results, in the bottom dock (D14).
     Jobs,
-    // WP-S2.09 part 3
     /// The Preview tab (§8.1): the open card's preview, in the bottom dock (D11, D14).
     Preview,
     /// The history panel (§8.4): the undo steps and the marker lines, in the bottom dock (D13, D14).
     History,
-    // WP-S2.08 part 6
     /// The glossary pane (D16, FR-UI-045): the EW terms with their EPLAN and QET terms, in the bottom dock.
     Glossary,
 }
@@ -223,7 +219,7 @@ pub struct Layout {
 }
 
 impl Layout {
-    /// The Schematic workspace (WP-S2.17 part 3, D10; doc 16a §5.1): the left column holds the navigator group (the
+    /// The Schematic workspace (doc 16a §5.1): the left column holds the navigator group (the
     /// Pages pane, driven by the left rail) over the property grid (500 : 500), the page view takes the rest (233 : 767
     /// of the dock's width, so 280 of the 1200 px a 1280-px window leaves between the rails); the bottom dock and the
     /// right column are closed. The shares are written in thousandths, as the dock reads them back.
@@ -248,8 +244,8 @@ impl Layout {
         }
     }
 
-    /// The layout with the property grid (View ▸ Properties): under the left column that holds the Pages pane
-    /// (500 : 500; WP-S2.17 part 3, D10), else appended to a horizontal root split, else the root and the grid side by
+    /// The layout with the property grid (View ▸ Properties): under the left column that holds the Pages pane,
+    /// else appended to a horizontal root split, else the root and the grid side by
     /// side (800 : 200). Unchanged when the grid is in it.
     pub fn with_properties(&self) -> Layout {
         if self.panes().contains(&PaneKind::Properties) {
@@ -287,7 +283,6 @@ impl Layout {
         Layout { root }
     }
 
-    // WP-S2.17 part 3
     /// The pane shown in the place of `pane`: the active tab of the tab group that holds it, else `pane` itself;
     /// `None` when `pane` is not in the layout (the rails' active entry, doc 16a §5.4).
     pub fn shown_in_place_of(&self, pane: PaneKind) -> Option<PaneKind> {
@@ -309,14 +304,12 @@ impl Layout {
         walk(&self.root, pane)
     }
 
-    // WP-S2.05 part 2
     /// The layout with the find pane below the page view (Ctrl+F, Ctrl+H; the bottom dock of doc 16 §3.4): see
     /// [`Layout::with_bottom`].
     pub fn with_find(&self) -> Layout {
         self.with_bottom(PaneKind::Find)
     }
 
-    // WP-S2.09 part 1
     /// The layout with `pane` in the bottom dock (D14; Find, Jobs): beside the bottom pane that is in the layout
     /// already, as a new shown tab of its tab group (its place becomes tabs, or its tabs get one more); with none, the
     /// page view's place becomes a vertical split of the page view and `pane` (650 : 350; W31-1), which the first of them
@@ -399,7 +392,6 @@ impl Layout {
         }
     }
 
-    // WP-S2.06 part 1
     /// The layout with a navigator pane (View ▸ Navigators, §6.8): the Pages pane at the left of a horizontal root
     /// split (160 of the shares), another navigator as a new tab beside the Pages pane (the Pages pane's place becomes
     /// tabs, or the tabs it is in get one more), shown; without a Pages pane, at the left like Pages. Unchanged when
@@ -476,7 +468,6 @@ impl Layout {
         Layout { root }
     }
 
-    // WP-S2.09 part 3
     /// The layout with `pane` shown: the tab group that holds it shows it (D11: opening a card shows the Preview tab).
     /// Unchanged when `pane` is not in it or is already shown.
     pub fn showing(&self, pane: PaneKind) -> Layout {
@@ -839,7 +830,6 @@ mod tests {
         assert_eq!(back.describe(), "tabs [\"Page view\", \"Pages\" (shown)]");
     }
 
-    // WP-S2.05 part 2
     #[test]
     fn the_find_pane_goes_below_the_page_view_and_round_trips() {
         let full = Layout::schematic().with_find();
@@ -852,7 +842,6 @@ mod tests {
         assert_eq!(full.without(PaneKind::Find), Layout::schematic());
     }
 
-    // WP-S2.09 part 1
     #[test]
     fn the_bottom_panes_share_one_tab_group_below_the_page_view() {
         let jobs = Layout::schematic().with_bottom(PaneKind::Jobs);

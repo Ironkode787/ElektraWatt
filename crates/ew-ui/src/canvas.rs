@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The egui host of the page canvases (WP-S2.02, spec sections 6.2 to 6.5, 7 and 9; WP-S2.03 part 1, §6.8): every
+//! The egui host of the page canvases (spec sections 6.2 to 6.5, 7 and 9): every
 //! visible canvas group of the project view, drawn by `ew-render2d`'s GPU path where the switch rule allows
 //! ([`crate::gpu`]) and by its CPU tile path everywhere else, and as the loading state while a GPU scene prepares.
 //!
@@ -11,7 +11,7 @@
 //! group's tiles first in each priority class: the preview level, the visible wanted tiles, the ring), with the
 //! upload limit of 8 per frame shared. A scene not drawn in the frame is hidden: above the 256 MiB budget hidden
 //! scenes' tiles go first, least recently shown first, and hidden scenes together keep at most a quarter of the
-//! budget (FT-356); a scene no open tab shows any more is dropped at once.
+//! budget; a scene no open tab shows any more is dropped at once.
 //!
 //! Every frame, per group, in four measured phases:
 //!
@@ -20,7 +20,7 @@
 //!    and the pointer's rest become registry actions with the group (`view.zoom_to`, `view.pan`, `canvas.pointer`,
 //!    `canvas.press`, `canvas.release`, `canvas.dwell`, `view.canvas_resize`, `nav.back`, `ui.focus`), dispatched by
 //!    the frame after painting like every other input, so a script and the window take the same path; the rest is
-//!    measured on egui's frame time and sent after 80 ms and after 300 ms (D11, FT-570), never kept in the model;
+//!    measured on egui's frame time and sent after 80 ms and after 300 ms (D11), never kept in the model;
 //! 2. **scene**: the page content of the group's canvas becomes a tile scene once per (session, revision, folio);
 //!    the previous scene's tiles stay visible for the same folio until the new ones arrive;
 //! 3. **render**: on the GPU, one render submitted when the view or the scene changed; on the CPU, the planner's
@@ -32,17 +32,17 @@
 //!    semantic ghost, placed by one rule: [`crate::canvas_chips`]), the link preview popup (a small canvas of the
 //!    target page drawn from the same tile pool) and, when View, Frame statistics is on, the statistics.
 //!
-//! **Design language** (WP-S2.17 part 5, doc 16a §7): the marks take the canvas tokens of the theme egui shows
+//! **Design language** (doc 16a §7): the marks take the canvas tokens of the theme egui shows
 //! ([`canvas_theme`]) and FT-391's scale rule (`ew-render2d`'s overlay); the hover outline is drawn around the first
 //! entity of the pick stack under the pointer (FT-500, doc 16a §6.25), never on a selected one; a connection point
 //! under the pointer shows a tooltip in the inverse style (doc 16a §6.18, §7.2); the statistics panel is a diagnostic
 //! chip at the canvas's top right (§7.7). Chrome drawn over the canvas (the tool HUD, the zoom control) reports its
-//! frames with [`CanvasHost::set_chrome_obstacles`], and the chips keep off them (FT-508).
+//! frames with [`CanvasHost::set_chrome_obstacles`], and the chips keep off them.
 //!
 //! No raster and no tessellation happens on the UI thread. Each canvas is one focusable AccessKit node with the
 //! role `Canvas`, named `Page <folio>, <title>` and described `<hint>, zoom <zoom>` and, while the grid cursor
 //! shows, `, cursor <cell> x <x> y <y> mm`; a child node with the role `Status` and polite live updates carries the
-//! cursor (doc 16 section 10.1, WP-S2.03 §6.9).
+//! cursor (doc 16 section 10.1).
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::{Arc, Weak};
@@ -77,7 +77,7 @@ use crate::app::Event;
 use crate::canvas_chips::{CanvasChip, ChipInput, ChipKind};
 use crate::gpu::GpuHost;
 
-/// The share of the tile cache hidden scenes keep (FT-356): a quarter of 256 MiB.
+/// The share of the tile cache hidden scenes keep: a quarter of 256 MiB.
 pub const HIDDEN_CACHE_BYTES: u64 = DEFAULT_CACHE_BYTES / 4;
 
 /// At most this many tile textures are uploaded per frame, over every canvas.
@@ -89,7 +89,7 @@ pub const MAX_UPLOAD_BYTES_PER_FRAME: usize = 2 * 1024 * 1024;
 /// The most canvas groups.
 pub(crate) const GROUPS: usize = 2;
 
-/// The hover outline of a canvas while the active tool shows the hover (WP-S2.03 §6.4, §7.1): the hovered link's
+/// The hover outline of a canvas while the active tool shows the hover (§7.1): the hovered link's
 /// rectangle, else, while an entity is hovered, the rectangle of the first entity of the pick stack under the pointer
 /// (the one a click picks, FT-500; WP-S2.17 part 5, doc 16a §6.25), else the hovered entity's; none on a selected
 /// entity (doc 16a §7.1: the selection only). While the Join chooser is open, its active row's object instead (doc 16a
@@ -158,7 +158,6 @@ fn grid_spec(shell: &ShellModel, c: &CanvasModel) -> Option<GridSpec> {
     })
 }
 
-// FT-705
 /// One step of the page's connection grid on the sheet (nm), whether the grid is shown or not: the gate of the open
 /// markers of the free connection points.
 fn cp_pitch(c: &CanvasModel) -> Option<f64> {
@@ -173,7 +172,7 @@ fn cp_pitch(c: &CanvasModel) -> Option<f64> {
     })
 }
 
-/// `canvas.snapshot` (WP-S2.02 section 6.6) of group `group`: the pane as the canvas shows it once settled, at
+/// `canvas.snapshot` (section 6.6) of group `group`: the pane as the canvas shows it once settled, at
 /// `pane × ppp` pixels, and its resolution `round(D)`: `render_region` at that resolution with the view origin on a
 /// whole pixel, white paper and the surround of the settings' theme (light for `system`), then the overlays (the
 /// grid cursor and the link hover outline included, WP-S2.03 §6.8) composited by integer fills. It never uses tiles
@@ -204,14 +203,14 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         },
     )?;
     let view = view_of(canvas);
-    // WP-S2.08 part 6 (C49-p8#4): the wire-colour view, under the conflicts and the highlights as in the window.
+    // The wire-colour view, under the conflicts and the highlights as in the window.
     composite_wire_colours(
         &mut image,
         &view.settled_transform(),
         view.ppp,
         &shell.wire_colour_overlay(group),
     );
-    // FT-675: the conflict overlay under the highlights.
+    // The conflict overlay under the highlights.
     composite_conflicts(
         &mut image,
         &view.settled_transform(),
@@ -219,7 +218,7 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         &shell.conflict_overlay(group),
         conflict_colour(shell),
     );
-    // WP-S2.06 part 2: the highlights, composited like the ghost (§7.3).
+    // The highlights, composited like the ghost (§7.3).
     let items: Vec<OverlayItem> = shell
         .highlight_overlay(group)
         .into_iter()
@@ -229,10 +228,9 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
     Ok((image, dpi))
 }
 
-// WP-S2.08 part 6
 /// Composites the wire-colour view into a snapshot (D18) by the window's widths: per stroke its casing (the stroke's
 /// half width plus `CASING_PX`) in the casing colour, then its pieces in their colours, each pixel whose centre lies
-/// within the half width of a piece. The codes are chips, which a snapshot leaves out (WP-S2.03 §7.4).
+/// within the half width of a piece. The codes are chips, which a snapshot leaves out.
 fn composite_wire_colours(
     image: &mut ew_render_cpu::RgbaImage,
     t: &DrawTransform,
@@ -277,7 +275,6 @@ fn composite_wire_colours(
     }
 }
 
-// FT-675
 /// The pen width of the conflict overlay in logical points: the selection outline's 2 points, so it covers the black
 /// wire it is drawn over.
 pub const CONFLICT_PT: f64 = 2.0;
@@ -294,7 +291,7 @@ fn conflict_colour(shell: &ShellModel) -> crate::theme::Rgba {
     .canvas_conflict
 }
 
-/// Composites the conflict overlay (FT-675) into a snapshot: every pixel whose centre lies within half of
+/// Composites the conflict overlay into a snapshot: every pixel whose centre lies within half of
 /// [`CONFLICT_PT`] (in pixels) of a segment of `lines` (sheet coordinates) is painted opaque in `colour`, once.
 fn composite_conflicts(
     image: &mut ew_render_cpu::RgbaImage,
@@ -350,7 +347,7 @@ fn segment_distance(p: (f64, f64), a: (f64, f64), b: (f64, f64)) -> f64 {
     ((p.0 - cx).powi(2) + (p.1 - cy).powi(2)).sqrt()
 }
 
-/// Paints the conflict overlay of canvas group `group` in the window (FT-675): each wire of a potential whose
+/// Paints the conflict overlay of canvas group `group` in the window: each wire of a potential whose
 /// EW-POT-001 finding stands as a [`CONFLICT_PT`] line in `canvas.conflict` over the page, under the highlights.
 fn paint_conflicts(
     ui: &egui::Ui,
@@ -382,7 +379,7 @@ fn paint_conflicts(
 /// FT-997): `icon.sm` in `color.text.secondary`, fixed on screen whatever the zoom, standing on the footprint's top
 /// edge at its right end, so it covers none of the device's drawing or labels. An overlay of the window only: the
 /// page's output (SVG, PDF) has no lock. Returns the icons' frames in points.
-/// ID-1497 (9): the hovered link's text underlined, as a link (doc 16a §7.2's hover, P4): a 1-px `canvas.hover` line
+/// The hovered link's text underlined, as a link (doc 16a §7.2's hover, P4): a 1-px `canvas.hover` line
 /// along the bottom of the link's rectangle on screen, when the link leads somewhere.
 fn paint_link_underline(ui: &egui::Ui, rect: Rect, ppp: f32, t: &DrawTransform, canvas: &CanvasModel) {
     let Some(link) = canvas.hovered_link().filter(|l| l.label().is_some()) else {
@@ -452,7 +449,6 @@ fn paint_locks(ui: &egui::Ui, rect: Rect, ppp: f32, t: &DrawTransform, canvas: &
     out
 }
 
-// WP-S2.06 part 2
 /// The bands of a highlight item on screen (physical pixels of the pane), with its slot.
 fn highlight_bands(
     item: &OverlayItem,
@@ -536,7 +532,7 @@ fn paint_highlights(
             continue;
         };
         let (r, g, b) = highlight::SLOT_COLOURS[usize::from(slot) % highlight::MAX_HIGHLIGHTS];
-        // The slot's colour is data of the viewmodel (doc 16 §10.3's hues arrive with WP-S2.17 part 5, D14).
+        // The slot's colour is data of the viewmodel (doc 16 §10.3's hues arrive).
         let fill = crate::theme::rgba(r, g, b, highlight::BAND_ALPHA);
         let stroke = egui::Stroke::new(
             highlight::HATCH_WIDTH_PT as f32,
@@ -555,7 +551,6 @@ fn paint_highlights(
     }
 }
 
-// WP-S2.08 part 6
 /// Paints the wire-colour view's strokes of canvas group `group` (D18, [`wire_colour_shapes`]) and returns them for
 /// their codes ([`paint_wire_codes`]).
 fn paint_wire_colours(
@@ -574,7 +569,7 @@ fn paint_wire_colours(
     strokes
 }
 
-/// The frames, in sheet nm, of the printed texts of `list` (FT-1345): each glyph run at any depth (a device's texts,
+/// The frames, in sheet nm, of the printed texts of `list`: each glyph run at any depth (a device's texts,
 /// the title block's), its layout box through the transforms of the groups that hold it. Symbol instances are not
 /// resolved.
 fn printed_texts(list: &ew_viewmodel::ew_api::output::ew_dl::DisplayList) -> Vec<SheetRect> {
@@ -602,7 +597,7 @@ fn printed_texts(list: &ew_viewmodel::ew_api::output::ew_dl::DisplayList) -> Vec
 
 /// Paints the wire-colour view's codes of `strokes` (D18): each code as a canvas chip (`canvas.chip` at 94 % with
 /// `canvas.chip_text` in `type.caption`, `radius.sm`, `space.1` padding) over every stroke, placed by doc 16a §7.4's
-/// rule from the middle of its stroke in its lane, clear of the codes placed before it (FT-1277), of the chrome
+/// rule from the middle of its stroke in its lane, clear of the codes placed before it, of the chrome
 /// `obstacles` and the other chips, of the `pointer`'s box and of the page's printed texts (FT-1345,
 /// [`crate::canvas_chips::wire_code_chips`]); a code with no free place is drawn faded. Returns the codes' frames with
 /// whether each is faded, and the printed texts' frames.
@@ -717,7 +712,7 @@ pub fn wire_colour_shapes(
     out
 }
 
-/// `canvas.preview_snapshot` (WP-S2.03 §7.8): the link preview's pane as the popup shows it, by the same rule as
+/// `canvas.preview_snapshot`: the link preview's pane as the popup shows it, by the same rule as
 /// [`snapshot_image`]: the target page's region around the target at the jump view's zoom, the page bounds and a
 /// cursor crosshair at the target.
 ///
@@ -897,18 +892,18 @@ struct GroupView {
     /// change on the same page sends it again from the pointer's screen position.
     page: Option<(u64, String)>,
     /// The page model of the previous frame, with [`GroupView::page`]: a weak reference, so a rebuilt model is never
-    /// taken for the old one because it was allocated at the old one's address (FT-1001).
+    /// taken for the old one because it was allocated at the old one's address.
     model: Option<Weak<CanvasPage>>,
     /// The view of the previous frame, with [`GroupView::page`].
     view: Option<Viewport>,
 }
 
-/// The double-click interval of the window in seconds (WP-S2.04 §6.1): the common platform default.
+/// The double-click interval of the window in seconds: the common platform default.
 pub const DOUBLE_CLICK_S: f64 = 0.5;
 
 /// Whether `now` is the page model a group saw in its previous frame (`previous`): the same allocation, still alive
 /// through the weak reference, so a model rebuilt with the same content, even at the old address, is a new model
-/// and replays the pointer (FT-1001, ID-1080).
+/// and replays the pointer.
 fn same_model<T>(previous: Option<&Weak<T>>, now: &Arc<T>) -> bool {
     previous.is_some_and(|w| w.ptr_eq(&Arc::downgrade(now)))
 }
@@ -933,7 +928,7 @@ impl GroupView {
     }
 }
 
-/// The link preview popup's canvas (WP-S2.03 §7.8): drawn from the tile pool like a canvas group, on the CPU path.
+/// The link preview popup's canvas: drawn from the tile pool like a canvas group, on the CPU path.
 #[derive(Default)]
 struct PopupView {
     planner: Planner,
@@ -989,29 +984,29 @@ pub struct CanvasHost {
     popup: PopupView,
     /// The pointer's rest on the focused canvas.
     rest: Option<Rest>,
-    /// The preview chips painted last, with their frames in points, and the statistics panel's frame (tests, FT-389).
+    /// The preview chips painted last, with their frames in points, and the statistics panel's frame (tests).
     chips: (Vec<(String, Rect)>, Option<Rect>),
-    /// Every canvas chip painted last, per group (tests; WP-S2.17 part 5).
+    /// Every canvas chip painted last, per group (tests).
     chip_plans: [Vec<CanvasChip>; GROUPS],
     /// The frames of the chrome drawn over each group's canvas (the tool HUD, the zoom control), points.
     chrome: [Vec<Rect>; GROUPS],
     /// The canvas rectangle (points), the pixels per point and the transform each group's canvas was drawn with last:
     /// the exact one while the view moves, the settled one (whole dpi, whole-pixel origin) once it rests (tests).
     drawn: [Option<(Rect, f32, DrawTransform)>; GROUPS],
-    /// The lock icons painted last per group, points (FT-997; tests).
+    /// The lock icons painted last per group, points (tests).
     locks: [Vec<Rect>; GROUPS],
     /// The wire-colour view's codes painted last per group, each frame (points) and whether it is faded, and the frames
-    /// of the printed texts they kept clear of (FT-1345; tests).
+    /// of the printed texts they kept clear of (tests).
     wire_codes: [WireCodes; GROUPS],
-    /// Per group, the serial of the jump arrival being marked and the frame time its mark started (FT-1435), and
+    /// Per group, the serial of the jump arrival being marked and the frame time its mark started, and
     /// the opacity it was painted at last (tests).
     arrivals: [Option<(u64, f64, f32)>; GROUPS],
 }
 
-/// How long a jump's arrival stays marked, in seconds of frame time (FT-1435): its ring fades out over it.
+/// How long a jump's arrival stays marked, in seconds of frame time: its ring fades out over it.
 pub(crate) const ARRIVAL_SECONDS: f64 = 1.5;
 
-/// The opacity of a jump's arrival mark `elapsed` seconds after it started (FT-1435): from 1 down to 0 over
+/// The opacity of a jump's arrival mark `elapsed` seconds after it started: from 1 down to 0 over
 /// [`ARRIVAL_SECONDS`], or 1 throughout with reduced motion; `None` once it is over.
 pub(crate) fn arrival_opacity(elapsed: f64, reduce_motion: bool) -> Option<f32> {
     if !(0.0..ARRIVAL_SECONDS).contains(&elapsed) {
@@ -1024,7 +1019,7 @@ pub(crate) fn arrival_opacity(elapsed: f64, reduce_motion: bool) -> Option<f32> 
     })
 }
 
-/// The arrival ring of `radius` around `centre` as the polylines it is drawn with (FT-1506): the circle in 96 steps,
+/// The arrival ring of `radius` around `centre` as the polylines it is drawn with: the circle in 96 steps,
 /// each step whose middle lies in one of `texts` left out, so the ring runs under the texts.
 pub(crate) fn ring_runs(centre: Pos2, radius: f32, texts: &[Rect]) -> Vec<Vec<Pos2>> {
     const STEPS: usize = 96;
@@ -1086,7 +1081,7 @@ impl Default for CanvasHost {
 }
 
 /// The wire-colour view's codes painted last on a canvas, each frame (points) and whether it is faded, and the frames of
-/// the printed texts they kept clear of (FT-1345).
+/// the printed texts they kept clear of.
 type WireCodes = (Vec<(Rect, bool)>, Vec<Rect>);
 
 /// The overlay marks both backends share: the page bounds, the grid dots, the hover and selection outlines and the
@@ -1131,7 +1126,7 @@ fn color32(c: Color) -> Color32 {
 }
 
 /// The renderer's view of a canvas: the pane and the pixels per point without the UI scale, so that
-/// `D = zoom × 96 × ppp / ui_scale` (FT-349; at UI scale 1, as headless, the model's own pane and ppp).
+/// `D = zoom × 96 × ppp / ui_scale` (at UI scale 1, as headless, the model's own pane and ppp).
 fn view_of(c: &CanvasModel) -> View {
     View {
         centre: c.centre(),
@@ -1179,7 +1174,7 @@ impl CanvasHost {
         }
     }
 
-    /// The opacity group `group`'s jump arrival mark was painted at last, `None` when none showed (FT-1435; tests).
+    /// The opacity group `group`'s jump arrival mark was painted at last, `None` when none showed (tests).
     pub fn arrival_mark(&self, group: usize) -> Option<f32> {
         self.arrivals
             .get(group)
@@ -1189,7 +1184,7 @@ impl CanvasHost {
             .filter(|a| *a > 0.0)
     }
 
-    /// Paints group `group`'s jump arrival mark (FT-1435): a ring in `color.accent` around the point the jump
+    /// Paints group `group`'s jump arrival mark: a ring in `color.accent` around the point the jump
     /// arrived at, fading out over [`ARRIVAL_SECONDS`] of frame time from the first frame that shows it.
     #[allow(clippy::too_many_arguments)]
     fn paint_arrival(
@@ -1221,7 +1216,7 @@ impl CanvasHost {
         let centre = rect.min + egui::Vec2::new(x as f32, y as f32) / ppp;
         let mut colour = tokens.accent;
         colour.a = (f32::from(colour.a) * opacity).round() as u8;
-        // FT-1506 (ID-1456, doc 16a §5.5): the ring runs under the page's texts: it is left out where it crosses one,
+        // FT-1506 (doc 16a §5.5): the ring runs under the page's texts: it is left out where it crosses one,
         // so it never covers a text.
         let radius = tokens.size_control_inline;
         let stroke = crate::theme::stroke(2.0 * tokens.focus_width, colour);
@@ -1255,7 +1250,7 @@ impl CanvasHost {
     }
 
     /// The preview chips painted in the last frame with their frames (points), and the statistics panel's frame when
-    /// it showed (tests, FT-389).
+    /// it showed (tests).
     pub fn preview_chips(&self) -> (&[(String, Rect)], Option<Rect>) {
         (&self.chips.0, self.chips.1)
     }
@@ -1267,7 +1262,7 @@ impl CanvasHost {
     }
 
     /// The wire-colour view's codes painted on the canvas of `group` in the last frame, each frame (points) and whether
-    /// it is faded, and the frames of the page's printed texts they kept clear of (FT-1345).
+    /// it is faded, and the frames of the page's printed texts they kept clear of.
     pub fn wire_codes(&self, group: usize) -> (&[(Rect, bool)], &[Rect]) {
         self.wire_codes
             .get(group)
@@ -1275,8 +1270,8 @@ impl CanvasHost {
     }
 
     /// The frames (points) of the chrome drawn over the canvas of `group`: the tool HUD and the zoom control (doc 16a
-    /// §5.5). The canvas chips keep off them (doc 16a §7.4, FT-508) from the next frame on; the frames stay until
-    /// replaced. The seam the HUD's painter calls every frame (WP-S2.17 part 2).
+    /// §5.5). The canvas chips keep off them (doc 16a §7.4) from the next frame on; the frames stay until
+    /// replaced. The seam the HUD's painter calls every frame.
     pub fn set_chrome_obstacles(&mut self, group: usize, frames: Vec<Rect>) {
         if let Some(slot) = self.chrome.get_mut(group) {
             *slot = frames;
@@ -1299,7 +1294,7 @@ impl CanvasHost {
         Some(rect.min + Vec2::new(x as f32, y as f32) / ppp)
     }
 
-    /// The lock icons (points) the last frame of `group` painted, one per locked placement in view (FT-997).
+    /// The lock icons (points) the last frame of `group` painted, one per locked placement in view.
     #[doc(hidden)]
     pub fn lock_marks(&self, group: usize) -> &[Rect] {
         self.locks.get(group).map_or(&[], Vec::as_slice)
@@ -1450,14 +1445,14 @@ impl CanvasHost {
             .then(|| canvas.hovered_link().and_then(|l| l.label()))
             .flatten()
         {
-            // FT-902: a link that leads somewhere looks like one (its outline is the hover, `hover_rect`): the pointing
+            // A link that leads somewhere looks like one (its outline is the hover, `hover_rect`): the pointing
             // hand and "Go to <its cell or folio>"; a link without a target stays plain.
             ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
             if !popup_shows {
                 cp_tooltip(&response, strings::format(key!("tip-link"), &[&label]));
             }
         } else if let Some(tip) = canvas.hovered_line_tip() {
-            // FT-1320 (WP-S1.20 D17): a fluid line names its line kind.
+            // A fluid line names its line kind.
             if !popup_shows {
                 cp_tooltip(&response, tip);
             }
@@ -1511,7 +1506,7 @@ impl CanvasHost {
             selected: &selected,
             cursor: canvas.cursor(),
             tool: &tool,
-            // FT-705: the free connection points, marked open on screen only.
+            // The free connection points, marked open on screen only.
             open_cps: OpenCps {
                 points: &open,
                 pitch_nm: cp_pitch(canvas),
@@ -1525,17 +1520,17 @@ impl CanvasHost {
             }
             (None, None) => {}
         }
-        // WP-S2.08 part 6 (D18): the wire-colour view, under the conflicts and the highlights.
+        // The wire-colour view, under the conflicts and the highlights.
         let wire_strokes = paint_wire_colours(ui, rect, ppp, &transform, shell, group);
-        // FT-675: the conflict overlay, under the highlights.
+        // The conflict overlay, under the highlights.
         paint_conflicts(ui, rect, ppp, &transform, shell, group);
-        // WP-S2.06 part 2: the window's highlights on this page (§7.3).
+        // The window's highlights on this page (§7.3).
         paint_highlights(ui, rect, ppp, &transform, shell, group);
-        // FT-1435: a jump's arrival, marked for a moment.
+        // A jump's arrival, marked for a moment.
         self.paint_arrival(ui, rect, ppp, &transform, canvas, group, shell.reduce_motion());
-        // FT-997: a locked placement's lock icon, over the page on either backend.
+        // A locked placement's lock icon, over the page on either backend.
         self.locks[group] = paint_locks(ui, rect, ppp, &transform, canvas);
-        // ID-1497 (9): a hovered link that leads somewhere is underlined.
+        // A hovered link that leads somewhere is underlined.
         if shell.tool().wants_hover() {
             paint_link_underline(ui, rect, ppp, &transform, canvas);
         }
@@ -1561,7 +1556,7 @@ impl CanvasHost {
             shell,
         );
         crate::canvas_chips::paint(ui, rect, &chips);
-        // FT-1345: the wire codes after the other chips, clear of them and of the chrome.
+        // The wire codes after the other chips, clear of them and of the chrome.
         obstacles.extend(chips.iter().map(|c| c.rect));
         self.wire_codes[group] = paint_wire_codes(
             ui,
@@ -1611,7 +1606,7 @@ impl CanvasHost {
                 }
             }
         }
-        // The link preview's page while it shows (WP-S2.03 §7.8).
+        // The link preview's page while it shows.
         if let Some(lp) = shell.link_preview() {
             keep.insert(key_of(lp.canvas.page()));
         }
@@ -1710,7 +1705,7 @@ impl CanvasHost {
         events: &mut Vec<Event>,
     ) {
         let ours = shell.focus() == Some(Focus::Canvas(group));
-        // FT-1171: a toast's control that holds the keyboard focus keeps it until the toast goes or Escape returns it.
+        // A toast's control that holds the keyboard focus keeps it until the toast goes or Escape returns it.
         // (Only while a toast is on show, and evaluated last, C52-p3#4: reading another widget's response is kept off
         // every frame where the canvas would not take the focus anyway, a text field's included.)
         let toast_holds = || {
@@ -1774,7 +1769,7 @@ impl CanvasHost {
         }
     }
 
-    /// The canvas area hidden behind another tab of the dock while its project stays open (FT-356): the pool stops,
+    /// The canvas area hidden behind another tab of the dock while its project stays open: the pool stops,
     /// the scenes stay, and the most recently drawn tiles are kept within [`HIDDEN_CACHE_BYTES`], so that returning
     /// to the tab draws them at once; the GPU canvases keep their meshes and let go of their render targets.
     pub(crate) fn hide(&mut self) {
@@ -1800,7 +1795,7 @@ impl CanvasHost {
         }
     }
 
-    /// Applies the switch rule for this frame (WP-S2.02 section 7.2) and sets the shell's backend label; the second
+    /// Applies the switch rule for this frame (section 7.2) and sets the shell's backend label; the second
     /// group follows the first.
     pub(crate) fn update_backend(&mut self, shell: &mut ShellModel) {
         let (first, rest) = self.views.split_at_mut(1);
@@ -1859,7 +1854,7 @@ impl CanvasHost {
         );
     }
 
-    /// The canvas context menu (FT-715): a right-click with the Select tool opens, at the pointer, the selection's
+    /// The canvas context menu: a right-click with the Select tool opens, at the pointer, the selection's
     /// commands over an object (selecting it first when it is not selected) or Paste over nothing
     /// ([`ew_viewmodel::command_bar::canvas_menu`]); nothing opens when the menu would be empty. A disabled entry shows
     /// its reason in its tooltip; a click on an entry dispatches its action and closes the menu.
@@ -1939,7 +1934,7 @@ impl CanvasHost {
         };
         let mods = ui.input(|i| i.modifiers);
         let point = |p: (i64, i64)| point_with(p, mods);
-        // WP-S2.07 §8: a PLC channel row dropped on this canvas binds the channel at the drop point.
+        // A PLC channel row dropped on this canvas binds the channel at the drop point.
         let dropped = ui.input(|i| i.pointer.any_released().then(|| i.pointer.latest_pos()).flatten());
         // (`take_payload` empties the store whatever its type: a function's drop stays the canvas area's.)
         if let Some(pos) = dropped
@@ -1951,7 +1946,7 @@ impl CanvasHost {
             p["channel"] = json!(channel.0);
             events.push(Event::Action("navigator.bind", p));
         }
-        // WP-S1.19 part 6: a macro row dropped on this canvas opens the macro's card at the drop point.
+        // A macro row dropped on this canvas opens the macro's card at the drop point.
         if let Some(pos) = dropped
             && rect.contains(pos)
             && egui::DragAndDrop::has_payload_of_type::<crate::navigator::MacroDrag>(ui.ctx())
@@ -1961,7 +1956,7 @@ impl CanvasHost {
             p["key"] = json!(key.0);
             events.push(Event::Action("macros.place", p));
         }
-        // WP-S4.02 part 3 (FT-486): an Unplaced devices row dragged over this canvas floats its device (the layout place
+        // An Unplaced devices row dragged over this canvas floats its device (the layout place
         // tool, armed once per drag), follows the pointer with the modifiers held, and drops it on release.
         let armed_id = egui::Id::unique(("layout-drag-armed", group));
         match egui::DragAndDrop::payload::<crate::navigator::DeviceDrag>(ui.ctx()) {
@@ -2034,7 +2029,7 @@ impl CanvasHost {
             }
             None => {}
         }
-        // The primary button is the tool's (WP-S2.03 §7.9): its presses on this canvas and its releases, wherever they
+        // The primary button is the tool's: its presses on this canvas and its releases, wherever they
         // happen, taken from the button events in order with their own positions and modifiers, so a press and its
         // release in one frame (a touchpad tap, a slow frame) are both seen. A press focuses the group first; Space
         // with the primary button pans instead.
@@ -2069,7 +2064,7 @@ impl CanvasHost {
                 // The second press of a double click is `tool.finish`, not a second press, for a tool that finishes
                 // on a double click (`Tool::finishes_on_double_click`: Wire, Select's text edit, the polyline and
                 // polygon graphics, Structure box); its release is dropped too. Every other tool sees two plain
-                // presses: two quick clicks of the Place tool place twice (cycle 38).
+                // presses: two quick clicks of the Place tool place twice.
                 let now = ui.input(|i| i.time);
                 let double = finishes
                     && self.views[group]
@@ -2118,7 +2113,7 @@ impl CanvasHost {
                 json!({"percent": zoom * 100.0, "x_mm": x, "y_mm": y, "group": group}),
             )
         };
-        // FT-895: a wheel line that pans moves the view as far as egui scrolls a line.
+        // A wheel line that pans moves the view as far as egui scrolls a line.
         let (line_pts, zoom_speed) = ui.ctx().options(|o| {
             (
                 o.input_options.line_scroll_speed,
@@ -2148,12 +2143,12 @@ impl CanvasHost {
                         continue;
                     }
                     match unit {
-                        // FT-895: Shift with the wheel and a sideways wheel pan horizontally (a trackpad's way, and
+                        // Shift with the wheel and a sideways wheel pan horizontally (a trackpad's way, and
                         // egui's for a scroll area); the plain vertical wheel steps the zoom.
                         MouseWheelUnit::Line | MouseWheelUnit::Page if modifiers.shift => {
                             pan.x += (delta.x + delta.y) * line_pts;
                         }
-                        // FT-1439 (ID-1397): with View ▸ Mouse wheel scrolls the plain wheel pans as a scroll area
+                        // With View ▸ Mouse wheel scrolls the plain wheel pans as a scroll area
                         // does, and Ctrl with the wheel zooms (above).
                         MouseWheelUnit::Line | MouseWheelUnit::Page if wheel_scrolls => {
                             pan += *delta * line_pts;
@@ -2184,7 +2179,7 @@ impl CanvasHost {
             stepped = true;
         }
         // Pinch (and egui's Ctrl+wheel zoom): continuous, about the pointer. egui spreads a Ctrl+wheel step over several
-        // frames (its wheel smoothing, the canvas's animated zoom); with reduced motion (WP-S2.08 D14) the step's whole
+        // frames (its wheel smoothing, the canvas's animated zoom); with reduced motion the step's whole
         // factor, egui's `exp(scroll_zoom_speed × points)`, applies in this frame, and a pinch as egui reports it.
         let factor = if reduce_motion {
             ui.input(|i| {
@@ -2267,7 +2262,7 @@ impl CanvasHost {
         }
     }
 
-    /// The link preview popup (WP-S2.03 §7.8): a 320 × 200 point canvas of the target page next to the pointer, its
+    /// The link preview popup: a 320 × 200 point canvas of the target page next to the pointer, its
     /// tiles planned and submitted with the canvases' (on the CPU path, from the same pool and cache), the page
     /// bounds and a cursor crosshair at the target.
     fn paint_popup(
@@ -2315,7 +2310,7 @@ impl CanvasHost {
             open_cps: OpenCps::default(),
         });
         crate::canvas_chips::paint_popup_frame(ui, rect, popup, &lp.target.folio, &lp.go);
-        // FT-390: a named, non-focusable image region for the popup, so that a screen reader can tell that it is open
+        // A named, non-focusable image region for the popup, so that a screen reader can tell that it is open
         // and where it leads (a 1-point node at its corner, away from the pointer, which stands 16 points off).
         let node = response.id.with("link-preview");
         let at = Rect::from_min_size(popup.min, Vec2::splat(1.0));
@@ -2653,7 +2648,7 @@ impl CanvasHost {
 
     /// The statistics overlay: fps, the p99 of the frame and of each phase, the pending tiles and the backend.
     /// The frame the statistics panel takes in `rect` (doc 16a §7.7: `space.4` from the canvas's top and right
-    /// edges, `space.2` padding round its `type.caption` text): the canvas chips keep out of it (FT-389, FT-508).
+    /// edges, `space.2` padding round its `type.caption` text): the canvas chips keep out of it.
     fn statistics_frame(&self, ui: &Ui, rect: Rect, shell: &ShellModel) -> Rect {
         let size = statistics_size(ui.ctx(), &self.statistics_values(shell));
         let t = crate::theme::current(ui.ctx());
@@ -2728,7 +2723,7 @@ impl StatValues {
     }
 
     /// The same panel with every number at its widest expected width (four integer digits), so that the panel's
-    /// frame does not follow the live digits (FT-527).
+    /// frame does not follow the live digits.
     fn widest(&self) -> Self {
         Self {
             fps: 9999.0,
@@ -2741,7 +2736,7 @@ impl StatValues {
 }
 
 /// The size of the statistics panel's frame: its text laid out at the widest expected values (and at the live ones
-/// when those are wider still), plus `space.2` padding (FT-527: the frame stays put while the numbers change).
+/// when those are wider still), plus `space.2` padding (the frame stays put while the numbers change).
 fn statistics_size(ctx: &egui::Context, v: &StatValues) -> Vec2 {
     let t = crate::theme::current(ctx);
     let font = crate::theme::font(&t.type_caption);
@@ -2793,7 +2788,7 @@ mod statistics_tests {
 mod model_identity_tests {
     use super::*;
 
-    /// FT-1001: a page model rebuilt with the same content is a new model (the pointer replays); the same model is
+    /// A page model rebuilt with the same content is a new model (the pointer replays); the same model is
     /// not; a group without a previous model sees a new one.
     #[test]
     fn a_rebuilt_model_with_the_same_content_is_a_new_model() {
@@ -2816,7 +2811,7 @@ mod arrival_tests {
         Brush, DisplayList, Glyph, Item, ShapedRun, Transform, ew_units::Rect as R,
     };
 
-    /// FT-1506 (ID-1456): the ring runs under a text: no step of it lies in the text's rectangle, and the rest of the
+    /// The ring runs under a text: no step of it lies in the text's rectangle, and the rest of the
     /// circle is drawn; without a text it is one closed run.
     #[test]
     fn the_arrival_ring_runs_under_the_texts() {
@@ -2836,7 +2831,7 @@ mod arrival_tests {
         assert!(drawn > 48 && drawn < 96, "{drawn} of 96 steps");
     }
 
-    /// FT-1506: the texts of a list are its glyph runs' rectangles, through the groups' transforms; paths are not
+    /// The texts of a list are its glyph runs' rectangles, through the groups' transforms; paths are not
     /// texts.
     #[test]
     fn the_texts_of_a_list_are_its_glyph_runs() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Run folders, the run's files and the formats `ew.blindrun/1` and `ew.blindturns/1` (WP-S6.13 §5.1).
+//! Run folders, the run's files and the formats `ew.blindrun/1` and `ew.blindturns/1`.
 //!
 //! A run is a folder outside the repository. The harness writes no time stamp, host name, user name or process ID
 //! into any file of it, and every list it writes has a named order, so two runs of equal steps leave equal files.
@@ -43,7 +43,7 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
 pub const GOLDEN_PROJECT_DIR: &str = "golden/J-E-2416.ew";
 
 /// The D16 digest of the golden project fixture under `root`: it hashes `golden/J-E-2416.ew/` only, so that a
-/// legitimate change to `golden/J-E-2416/expected/` or its README during a run does not void it (FT-484).
+/// legitimate change to `golden/J-E-2416/expected/` or its README during a run does not void it.
 ///
 /// # Errors
 ///
@@ -160,7 +160,7 @@ pub fn is_visual_line(action: &str) -> bool {
     action == INPUT_LINE || action == FRAME_LINE
 }
 
-/// What the agent perceives the product through (WP-S6.13 part 4, visual spec §2).
+/// What the agent perceives the product through (visual spec §2).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Senses {
     /// `ui.describe` and `page.describe`: the base specification's text runs.
@@ -333,7 +333,7 @@ pub struct RunJson {
     /// the evidence, and digests of files that many changes re-bless only made merge conflicts.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub files: BTreeMap<String, String>,
-    /// The SHA-256 at `start` over the golden project fixture (D16, FT-484). Empty, and left out of the file, in a
+    /// The SHA-256 at `start` over the golden project fixture (D16). Empty, and left out of the file, in a
     /// self-test recording ([`is_selftest`]); a live run always has it, and `stop` compares it.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub golden: String,
@@ -379,11 +379,11 @@ pub struct RunJson {
     /// After `stop`: whether `golden/` changed during the run (D16); such a run is never blessed.
     #[serde(default)]
     pub golden_changed: bool,
-    /// A brief's start project (`gp-ut` or `golden-a`, WP-S2.12 D5): `work/project` is a copy of the project `start`
+    /// A brief's start project (`gp-ut` or `golden-a`): `work/project` is a copy of the project `start`
     /// made in `.harness/start-project`; absent for a run that starts from its prelude alone.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub start: Option<String>,
-    /// The usability rounds of a brief's task (`R0`, `R1`, WP-S2.12 D11): a round task's hand-back waits for the
+    /// The usability rounds of a brief's task (`R0`, `R1`): a round task's hand-back waits for the
     /// questionnaire. Empty, and left out of the file, for every other run.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rounds: Vec<String>,
@@ -415,7 +415,7 @@ pub struct NotDone {
     /// The reason key of a refusal or the message of a failure.
     #[serde(default)]
     pub reason: Option<String>,
-    /// FT-582: the digest of the selection the step acted on ([`selection_digest`]), absent when nothing was selected.
+    /// The digest of the selection the step acted on ([`selection_digest`]), absent when nothing was selected.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selection: Option<String>,
 }
@@ -427,7 +427,7 @@ impl NotDone {
     }
 }
 
-/// The "same step" key of the broken rule (§5.2.2 item 4, FT-582): the action and its canonical parameters, and the
+/// The "same step" key of the broken rule (§5.2.2 item 4): the action and its canonical parameters, and the
 /// digest of the selection when something was selected, so that a step that acts on the selection (`strip.bridge {}`)
 /// is a new step once the selection changed.
 pub fn step_key(action: &str, params: &str, selection: Option<&str>) -> String {
@@ -437,7 +437,7 @@ pub fn step_key(action: &str, params: &str, selection: Option<&str>) -> String {
     }
 }
 
-/// FT-582: the digest of what a step reads besides its parameters, from the transcript state before it: the canvas
+/// The digest of what a step reads besides its parameters, from the transcript state before it: the canvas
 /// selection and the navigator's row (12 hex digits of the SHA-256 of their canonical JSON), `None` when neither holds
 /// anything.
 pub fn selection_digest(state: &Value) -> Option<String> {
@@ -485,7 +485,7 @@ pub struct Turn {
     /// In a visual run, for `do` and `look`: the frame the call wrote (`t0003.png`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frame: Option<String>,
-    /// For `hint`: the number of the hint the call printed (WP-S2.12 D8), from 1.
+    /// For `hint`: the number of the hint the call printed, from 1.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hint: Option<u32>,
 }
@@ -602,7 +602,7 @@ pub fn read_script(path: &Path) -> Result<Vec<(String, Value)>> {
     parse_script(&text).with_context(|| path.display().to_string())
 }
 
-/// The steps of a UI script text after its header. A visual input or frame line (WP-S6.13 part 4) is the pseudo-action
+/// The steps of a UI script text after its header. A visual input or frame line is the pseudo-action
 /// [`INPUT_LINE`] or [`FRAME_LINE`] with the whole line as its parameters.
 pub fn parse_script(text: &str) -> Result<Vec<(String, Value)>> {
     let mut out = Vec::new();

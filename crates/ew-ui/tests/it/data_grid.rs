@@ -249,7 +249,7 @@ fn dk9_every_key_dispatches_the_as_built_actions() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// ID-1497 (1): a value typed into the grid one character a frame loses none: the first character opens the cell
+/// A value typed into the grid one character a frame loses none: the first character opens the cell
 /// editor and the editor takes the next one in the frame it first shows (R1 saw "Reserve" land as "Rserve").
 #[test]
 fn a_value_typed_one_character_a_frame_loses_no_keystroke() {
@@ -393,7 +393,7 @@ fn same_rect(a: egui::Rect, b: egui::Rect) -> bool {
 
 /// DK9: the grid is one `Table` node named "Terminal strips table"; its header cells are buttons "Sort by <column>"
 /// of `size.table_header` on the `color.surface.sunken` band; the sorted one (Terminal, ascending) is named ", sorted
-/// ascending" (FT-523) and paints `arrow-narrow-up` in `color.text.primary` after its label, the others no sort icon;
+/// ascending" and paints `arrow-narrow-up` in `color.text.primary` after its label, the others no sort icon;
 /// after a second click it paints `arrow-narrow-down`. A derived column's header paints `math-function` in
 /// `color.text.tertiary`.
 #[test]
@@ -702,7 +702,7 @@ fn group_named(h: &Harness<'static, App>, name: &str) -> bool {
         .any(|n| n.accesskit_node().label().as_deref() == Some(name))
 }
 
-/// FT-532: a navigator in table mode without rows shows the empty state of the tree mode (CP5) in place of the grid:
+/// A navigator in table mode without rows shows the empty state of the tree mode (CP5) in place of the grid:
 /// with a filter without hits "Nothing matches "…"" and Clear filter, which clears it and brings the grid back; on a
 /// new project the Terminal strips table says "No terminal strips yet".
 #[test]
@@ -1005,7 +1005,7 @@ fn the_scroll_handle_is_a_quiet_boundary_not_the_text_colour() {
     }
 }
 
-/// FT-1167: the Columns menu draws Export table… and Import table… from their predicates: enabled while the strips
+/// The Columns menu draws Export table… and Import table… from their predicates: enabled while the strips
 /// table is the one shown, disabled once a second table shows and neither is focused (the predicate's refusal).
 #[test]
 fn ft1167_export_and_import_table_follow_their_predicates() {
@@ -1021,7 +1021,7 @@ fn ft1167_export_and_import_table_follow_their_predicates() {
     let shell = h.state_mut().shell_mut();
     done(shell, "navigator.show", json!({"kind": "devices"}));
     done(shell, "navigator.table", json!({"kind": "devices", "on": true}));
-    // Terminal strips behind the Devices tab moves to the bottom dock, so both tables are shown (ID-1231).
+    // Terminal strips behind the Devices tab moves to the bottom dock, so both tables are shown.
     let strips_pane = ew_ui::ew_viewmodel::layout::PaneKind::Navigator(NavKind::Strips);
     let moved = shell.layout().without(strips_pane).with_bottom(strips_pane);
     shell.set_layout(moved, 1.0);

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The picker popup (WP-S2.04 §7.1): what can be placed on the focused page, a filter field, one row per symbol
-//! and per template function (or, choosing a terminal, one per strip: FT-421), disabled rows with their reasons. Up, Down, Home and End move the row (`picker.row`),
+//! The picker popup: what can be placed on the focused page, a filter field, one row per symbol
+//! and per template function (or, choosing a terminal, one per strip), disabled rows with their reasons. Up, Down, Home and End move the row (`picker.row`),
 //! Enter chooses (`picker.choose`), typing filters (`picker.filter`), Escape closes it (`ui.dismiss`, the topmost
 //! popup). Every change is a registry action, so the headless mode drives the same model.
 
@@ -19,12 +19,12 @@ use crate::components::Tip as _;
 /// Paints the picker when it is open. `just_opened` puts the keyboard focus into its filter field.
 pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: &mut Vec<Event>) {
     let Some(picker) = shell.picker() else {
-        // ID-1439: the next picker opens at its own width.
+        // The next picker opens at its own width.
         ctx.data_mut(|d| d.remove::<f32>(picker_width_id()));
         return;
     };
     // The list's keys are consumed before the filter field sees them; not while a dialog over the picker has them
-    // (FT-1090: Enter in the New terminal strip form creates the strip).
+    // (Enter in the New terminal strip form creates the strip).
     let (down, up, home, end, enter) = if shell.dialog().is_some() {
         (false, false, false, false, false)
     } else {
@@ -51,7 +51,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     if enter {
         events.push(Event::Action("picker.choose", json!({})));
     }
-    // FT-1375: the symbols for a part without a function template name the part.
+    // The symbols for a part without a function template name the part.
     let part_title = picker
         .part
         .and_then(|p| picker.catalogue.parts.get(p))
@@ -60,7 +60,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         _ if part_title.is_some() => part_title.as_deref().unwrap_or_default(),
         PickerMode::Exchange => strings::text(key!("picker-title-exchange")),
         PickerMode::Place => strings::text(key!("picker-title")),
-        // FT-890: the Device button (`tool.place_part`) picks a part, so its dialog names a device.
+        // The Device button (`tool.place_part`) picks a part, so its dialog names a device.
         PickerMode::Parts => strings::text(key!("picker-title-device")),
         PickerMode::Strip => strings::text(key!("picker-title-strip")),
         PickerMode::BlackBox => strings::text(key!("picker-title-black-box")),
@@ -68,7 +68,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     let t = crate::theme::current(ctx);
     // ID-1427 (W52 F2): the table uses the space it has. The picker's content is as wide as its widest name, its part
     // number column and its function column need, at least its grown width; the window then keeps `space.6` free on
-    // each side. ID-1439 (C52-p8#3): measured over the step's rows without the filter, and never narrower than the
+    // each side. ID-1439: measured over the step's rows without the filter, and never narrower than the
     // width it opened at, so typing does not move the field.
     let spacing = ctx.global_style().spacing.clone();
     let margin = spacing.window_margin.leftf() + spacing.window_margin.rightf();
@@ -109,7 +109,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     ctx.data_mut(|d| d.insert_temp(picker_width_id(), width));
     Window::new(title)
         .id(Id::unique("place-picker"))
-        // SM25b m4 (ID-1476): above the toasts, which stand below it while it is open.
+        // SM25b m4: above the toasts, which stand below it while it is open.
         .order(egui::Order::Foreground)
         .anchor(
             Align2::CENTER_TOP,
@@ -122,7 +122,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         .min_width(width)
         .max_width(width)
         .show(ctx, |ui| {
-            // ID-1497 (5): the symbol chooser of a part without a symbol says why it asks, under its title.
+            // The symbol chooser of a part without a symbol says why it asks, under its title.
             if picker.part.is_some() {
                 ui.add(
                     egui::Label::new(
@@ -153,7 +153,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
             if filter != picker.filter {
                 events.push(Event::Action("picker.filter", json!({ "text": filter })));
             }
-            // FT-605: a terminal chosen in a project without strips opens the strip chooser on an empty state that
+            // A terminal chosen in a project without strips opens the strip chooser on an empty state that
             // says why and offers New terminal strip (doc 16a §6.17), whose form offers the tag (FT-1090, ID-1181:
             // `strip.new {dialog}`); its Create lists the new strip as the current row.
             if picker.mode == PickerMode::Strip && picker.empty_text() == Some(key!("picker-empty-strips")) {
@@ -196,7 +196,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                     let meta_w = meta_w.min(ui.available_width() / 3.0);
                     let small_h = t.type_small.line;
                     for (i, row) in picker.rows.iter().enumerate() {
-                        // FT-1513 (ID-1456): the group's heading above its first part row, "In this project" or
+                        // The group's heading above its first part row, "In this project" or
                         // "From libraries", in `type.body.strong` over the manufacturers' headers.
                         if let Some(g) = picker.group_before(i) {
                             ui.add_space(t.space_2);
@@ -206,7 +206,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                                     .color(t.text_primary.color32()),
                             );
                         }
-                        // FT-425: the manufacturer's header above its first part row.
+                        // The manufacturer's header above its first part row.
                         if let Some(m) = picker.header_before(i) {
                             ui.add_space(t.space_2);
                             ui.label(
@@ -229,7 +229,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                         } else {
                             t.text_tertiary
                         };
-                        // FT-712: a part row leads with its description, cut with an ellipsis at the row's width
+                        // A part row leads with its description, cut with an ellipsis at the row's width
                         // (whole in the tooltip), and shows its part number second in secondary text.
                         let mut atoms = egui::Atoms::new(
                             egui::RichText::new(&name)
@@ -244,7 +244,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                                     .atom_align(egui::Align2::LEFT_CENTER),
                             );
                         }
-                        // FT-1143 (ID-1225): the function column cuts its text with an ellipsis at its width (the
+                        // The function column cuts its text with an ellipsis at its width (the
                         // name is the row's one shrinking atom), whole in the row's tooltip.
                         atoms.push_right(
                             egui::RichText::new(&meta)
@@ -264,12 +264,12 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                             .selected(i == picker.row)
                             .frame_when_inactive(false)
                             .min_size(egui::vec2(ui.available_width(), t.size_row));
-                        // ID-1477 (1): a symbol on another grid stays greyed but takes a click, which makes it the
+                        // A symbol on another grid stays greyed but takes a click, which makes it the
                         // current row: its whole reason and Place on a new page with its grid show under the list.
                         let other_grid = matches!(row, PickerRow::Symbol(k)
                             if picker.catalogue.symbols[*k].grid_mismatch.is_some());
                         let response = ui.add_enabled(enabled || other_grid, button);
-                        // FT-1255: egui maps `selected` to `toggled` only; AccessKit's selected state.
+                        // Egui maps `selected` to `toggled` only; AccessKit's selected state.
                         ui.ctx()
                             .accesskit_node_builder(response.id, |n| n.set_selected(i == picker.row));
                         // A disabled row says its reason in its tooltip too (egui opens `.tip` on enabled widgets
@@ -287,7 +287,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                         }
                     }
                 });
-            // ID-1477 (1): the current row on another connection grid: its reason whole, never cut, and the way out.
+            // The current row on another connection grid: its reason whole, never cut, and the way out.
             if let Some(row @ PickerRow::Symbol(k)) = picker.rows.get(picker.row).copied()
                 && picker.catalogue.symbols[k].grid_mismatch.is_some()
             {
@@ -315,12 +315,12 @@ fn column_reason(picker: &ew_viewmodel::tools::Picker, row: PickerRow) -> Option
     }
 }
 
-/// The key of the open picker's width (ID-1439): it never narrows while the picker is open.
+/// The key of the open picker's width: it never narrows while the picker is open.
 fn picker_width_id() -> Id {
     Id::unique("place-picker-width")
 }
 
-/// A part row's part number (FT-712, FT-759): visibly secondary, `type.small` in `color.text.secondary`
+/// A part row's part number: visibly secondary, `type.small` in `color.text.secondary`
 /// (`color.text.disabled` on a disabled row).
 fn second_text(t: &crate::theme::Tokens, second: &str, enabled: bool) -> egui::RichText {
     let colour = if enabled {
@@ -333,8 +333,8 @@ fn second_text(t: &crate::theme::Tokens, second: &str, enabled: bool) -> egui::R
         .color(colour.color32())
 }
 
-/// A row's name, the text after it (a part row's part number, FT-712), its library or function line (a part's function
-/// in words, FT-664), and its tooltip with the full name and the raw IDs (WP-S2.17 part 4, §8 item 6).
+/// A row's name, the text after it (a part row's part number), its library or function line (a part's function
+/// in words, FT-664), and its tooltip with the full name and the raw IDs.
 fn row_texts(
     picker: &ew_viewmodel::tools::Picker,
     row: PickerRow,
@@ -342,7 +342,7 @@ fn row_texts(
     match row {
         PickerRow::Symbol(k) => {
             let s = &picker.catalogue.symbols[k];
-            // ID-1477 (9): a symbol of an installed or user library is never called "starter".
+            // A symbol of an installed or user library is never called "starter".
             let library = if s.copy.is_some() {
                 strings::text(key!("picker-badge-embedded"))
             } else if s.key.starts_with("library:") {
@@ -375,10 +375,10 @@ fn row_texts(
                 meta.push(' ');
                 meta.push_str(strings::text(key!("picker-main")));
             }
-            // FT-664: the function in words, never an ID (FT-1514: in the tooltip too). FT-712:
+            // The function in words, never an ID (in the tooltip too). FT-712:
             // the description leads (the part number when the part has none), the part number follows it, and the
             // tooltip starts with the whole description.
-            // FT-1209 (ID-1392): the part number and the rating tell two parts of one kind apart ("Fuse holder with
+            // The part number and the rating tell two parts of one kind apart ("Fuse holder with
             // fuse link", "EW-GEN-FUS-1 · 4 A").
             let number = if part.rating.is_empty() {
                 part.part_number.clone()
@@ -395,12 +395,12 @@ fn row_texts(
                 tip.push_str(&part.description);
                 tip.push('\n');
             }
-            // FT-1514 (ID-1415): no FnDef key in a user text; the function's words end the tooltip (the meta line
+            // No FnDef key in a user text; the function's words end the tooltip (the meta line
             // the window adds, which holds the kind text in words).
             tip.push_str(&format!("{} {}", part.manufacturer, part.part_number));
             (name, second, meta, tip)
         }
-        // FT-1375: a held part without a function template; its symbol is chosen next.
+        // A held part without a function template; its symbol is chosen next.
         PickerRow::Part(p) => {
             let part = &picker.catalogue.parts[p];
             let (name, second) = if part.description.is_empty() {
@@ -467,7 +467,7 @@ mod tests {
         );
     }
 
-    /// FT-1196: a symbol row's tooltip is in words, its name, never its keys.
+    /// A symbol row's tooltip is in words, its name, never its keys.
     #[test]
     fn a_symbol_rows_tooltip_is_in_words() {
         use ew_viewmodel::ew_api::output::{CatalogueSymbol, PlaceCatalogue};
@@ -494,7 +494,7 @@ mod tests {
         assert_eq!(tooltip, "Miniature circuit breaker, 1-pole");
     }
 
-    /// FT-759: the part number after a part row's description is `type.small` in `color.text.secondary`.
+    /// The part number after a part row's description is `type.small` in `color.text.secondary`.
     #[test]
     fn the_part_number_is_small_and_secondary() {
         let t = tokens(Theme::Light, Density::Comfortable);

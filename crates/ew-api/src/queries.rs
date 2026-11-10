@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The public queries of `ew query` (doc 17 §3.3 and §3.4, FR-EXT-005; WP-S1.22 part 4, D11 and D12).
+//! The public queries of `ew query` (doc 17 §3.3 and §3.4, FR-EXT-005).
 //!
 //! [`REGISTRY`] is the closed MVP set of twelve named queries. Each entry has a name, the grammar of its key, an
 //! output type (`serde` and `schemars`, as D5 rules for the CLI's results) with `output_version` 1, and a golden
@@ -479,7 +479,7 @@ struct Cx<'s> {
 }
 
 impl Session {
-    /// Answers the public query `name` for `key` (doc 17 §3.4, WP-S1.22 D11), with the explanation of D12 when
+    /// Answers the public query `name` for `key` (doc 17 §3.4), with the explanation of D12 when
     /// `explain` is set. Reads only: no command runs and no memo is written by the explanation (the value itself is
     /// computed, and memoised, as any read of the session's queries is).
     ///
@@ -1372,7 +1372,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(names, sorted);
-        // D11 is closed (WP-S1.22 §10.2 item 6): the twelve names are the oracle.
+        // D11 is closed: the twelve names are the oracle.
         assert_eq!(
             names,
             [

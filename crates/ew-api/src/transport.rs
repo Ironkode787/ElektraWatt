@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `.ewz` in the session (WP-S1.17 part 2, D8 and D9; decision log ID-1175): an `.ewz` opened read-only from memory
+//! `.ewz` in the session: an `.ewz` opened read-only from memory
 //! ([`Session::open_ewz`], which every reader reaches through [`Session::open_reader`]), and the export of the saved
 //! generation ([`Session::export_ewz`]).
 //!
@@ -91,7 +91,7 @@ impl Session {
 
     /// Opens a project from its files by relative path (`/` separators) read-only from memory, the
     /// [`Session::open_ewz_with`] path without the archive: `ew diff`'s `git:<rev>` side, whose files are the blobs of a
-    /// revision (WP-S1.17 D26). No lock, no journal.
+    /// revision. No lock, no journal.
     ///
     /// # Errors
     ///

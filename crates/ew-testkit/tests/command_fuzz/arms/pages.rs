@@ -325,7 +325,7 @@ pub(super) fn report_block_create(live: &Live, rng: &mut SplitMix64) -> Option<S
     let form = rng.pick(&live.forms)?;
     let kind = *rng.pick(kinds)?;
     match rng.below(12) {
-        // FT-341: the form from the library with its closure; the golden project holds the same items, so the
+        // The form from the library with its closure; the golden project holds the same items, so the
         // held copies are used and only the block is new.
         10 => {
             let (nogrid, title_block) = shipped_report_forms();

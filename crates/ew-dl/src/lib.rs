@@ -23,7 +23,7 @@
 //! - [`Layer`]: the schematic and panel-layout layers.
 //! - [`num`]: the deterministic numerics (rotations, arcs, DXF bulges, nm → milli-pt).
 //! - [`canonical`]: the canonical byte encoding of a display list, the input of the page
-//!   digests (doc 15 §5.6, WP-S1.18 D6).
+//!   digests (doc 15 §5.6).
 //!
 //! # Coordinates and angles
 //!

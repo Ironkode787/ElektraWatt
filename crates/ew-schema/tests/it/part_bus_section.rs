@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The part-level bus section (WP-S1.21 §8a.1, D15; BU-7a, BU-7b): `PartSections.bus` with its port list types the
+//! The part-level bus section (.1, D15; BU-7a, BU-7b): `PartSections.bus` with its port list types the
 //! members D15 names, keeps every other member in `extra` and every newer enum value as `Unknown`, writes byte-equal
 //! in §8a.1's member order, omits an empty port list, and refuses a port without a required member.
 

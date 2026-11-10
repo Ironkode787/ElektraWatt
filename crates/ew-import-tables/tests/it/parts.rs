@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-410: `parse_parts_tables`, the strict parts import into an existing project. The golden tables give the
+//! `parse_parts_tables`, the strict parts import into an existing project. The golden tables give the
 //! bootstrap's part copies (but for the provenance), deterministically; a missing or unknown column and a bad row
 //! refuse the whole import with their pointer.
 
@@ -37,7 +37,7 @@ fn parse(
 
 #[test]
 fn the_golden_tables_give_the_bootstraps_manufacturer_copies() {
-    // WP-S1.19 D10 (FT-39): one project-local manufacturer copy per manufacturer name, in name order, the bootstrap's
+    // One project-local manufacturer copy per manufacturer name, in name order, the bootstrap's
     // but for the provenance; the part references name them and keep no `key`.
     let (parts, siblings) = golden();
     let mut s = SiblingTables::default();
@@ -127,7 +127,7 @@ fn the_golden_tables_give_the_bootstraps_part_copies() {
             vec!["parts.csv".to_owned()],
             "the base name only"
         );
-        // WP-S7.03 D1: the bootstrap's copies ship as the sample and carry CC0-1.0; a user's import states none.
+        // The bootstrap's copies ship as the sample and carry CC0-1.0; a user's import states none.
         assert_eq!(c.item.meta.licence, None, "no licence on a user's import");
         assert_eq!(b.item.meta.licence.as_deref(), Some("CC0-1.0"));
         let mut item = c.item.clone();

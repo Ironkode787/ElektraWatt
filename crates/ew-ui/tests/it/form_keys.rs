@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A form dialog's submit keys and refusals (WP-S2.08 part 5b; ID-1276 rulings 2 and 7, window check W49.1-A):
+//! A form dialog's submit keys and refusals (rulings 2 and 7, window check W49.1-A):
 //! Ctrl+Enter submits a form dialog from any focus, and the form takes the key before the Ctrl+Enter of what lies
 //! under it (the find pane's replace); a refused submit says why in the form and keeps it open, whether it came from a
 //! click on the Primary, Enter on the focused Primary or Ctrl+Enter.
@@ -70,7 +70,7 @@ fn ctrl_enter_submits_a_form_from_any_focus_before_the_keys_under_it() {
     h.key_press_modifiers(Modifiers::COMMAND | Modifiers::SHIFT, Key::N);
     settle(&mut h);
     assert_eq!(form(&h), Some(("devices.renumber", None)));
-    // C49-p5#2: a refused submit makes no card, so the find pane's Ctrl+Enter, had it run, would leave its own.
+    // A refused submit makes no card, so the find pane's Ctrl+Enter, had it run, would leave its own.
     scope_selection(&mut h);
     h.key_press_modifiers(Modifiers::COMMAND, Key::Enter);
     settle(&mut h);

@@ -182,7 +182,7 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
         ew_api::unreadable_profiles(s.libraries(), lib),
         ["the address profile fixture-hex@1 cannot be read: only base 10 is rendered"]
     );
-    // FT-1426: the Libraries navigator notes it too, on the library's row.
+    // The Libraries navigator notes it too, on the library's row.
     let (badges, state) = library_row(&s, "PLC profiles");
     assert_eq!(badges, ["profile_unreadable"]);
     assert_eq!(
@@ -231,7 +231,7 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
         1,
         "the project holds its copy"
     );
-    // FT-1426: the copy is listed by its label as a PLC profile, never "Item".
+    // The copy is listed by its label as a PLC profile, never "Item".
     let t = s.navigator_table(NavKind::Libraries);
     let copy = t
         .nodes
@@ -250,7 +250,7 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
     assert_eq!(module_texts(&reopened), texts);
 }
 
-/// ID-1375 (WP-S7.03 D8): an embedded, edited copy of a built-in profile, with the built-in's own pin, is the
+/// An embedded, edited copy of a built-in profile, with the built-in's own pin, is the
 /// project's profile both ways: the channels print in the copy's notation and `fields.set` parses in it.
 #[test]
 fn an_edited_copy_of_a_builtin_profile_prints_and_parses_in_its_own_notation() {

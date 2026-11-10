@@ -46,7 +46,7 @@ pub(crate) fn location_text(q: &Q, node: Id<StructureNode>) -> String {
     format!("+{}", path.codes.join("+"))
 }
 
-/// FT-1480: the `end` argument of EW-TERM-002's pattern: `named` for a strip with a printed designation, `untagged`
+/// The `end` argument of EW-TERM-002's pattern: `named` for a strip with a printed designation, `untagged`
 /// for one without, which each language words itself ("the strip", "de klemmenstrook").
 fn strip_end(q: &Q, strip: Id<Device>) -> &'static str {
     if q.get::<DeviceTag>(strip).as_ref().is_some() {
@@ -197,7 +197,7 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
 /// - **Online and release:** one finding per duplicated designation, targets every terminal of the group,
 ///   no discriminator (renaming a member makes it another defect). A strip whose frozen designation is
 ///   unnumbered (it contains `?`) is skipped: the QET importer's fallback strip `X?<page>` (EW-IMP-005)
-///   collects the unlabelled terminals of a folio, which are not one strip (decision log ID-276).
+///   collects the unlabelled terminals of a folio, which are not one strip.
 /// - **Prevent:** a touched terminal whose (strip, designation) the batch changed, or that the batch
 ///   created, and that now shares its designation within its strip. A duplicate the base snapshot already
 ///   held (a lenient import) does not refuse an edit that leaves it alone. The rule runs on the candidate,
@@ -235,7 +235,7 @@ impl Rule for DuplicateDesignation {
                     subject,
                     message,
                 )
-                // FT-1334: the arguments of the rule's pattern.
+                // The arguments of the rule's pattern.
                 .arg("form", "used")
                 .arg("designation", designation)
                 .arg("count", members.len().to_string())
@@ -248,7 +248,7 @@ impl Rule for DuplicateDesignation {
     fn prevent(&self, before: &Q, after: &Q, touched: &Touched) -> Vec<Finding> {
         let case = case_setting(after);
         let mut reported: BTreeSet<(Id<Device>, String)> = BTreeSet::new();
-        // The designation sets of the strips the batch touched, built once per strip (FT-196): a batch that
+        // The designation sets of the strips the batch touched, built once per strip: a batch that
         // renumbers a whole strip reads it once, not once per terminal.
         let mut strips: BTreeMap<Id<Device>, Groups> = BTreeMap::new();
         let mut out = Vec::new();
@@ -307,7 +307,7 @@ impl Rule for DuplicateDesignation {
                 message.push_str("; ");
                 message.push_str(&remedy.join(" or "));
             }
-            // FT-1417: the arguments of the rule's pattern, so that each language words the prevent finding too.
+            // The arguments of the rule's pattern, so that each language words the prevent finding too.
             let remedy = match (&free, &swap) {
                 (Some(_), Some(_)) => "both",
                 (Some(_), None) => "free",
@@ -770,7 +770,7 @@ impl Line {
     }
 }
 
-/// EW-TERM-006 (FT-1020, decision log ID-1104, ID-1110): a connection point of a terminal, drawn on the page by the
+/// EW-TERM-006: a connection point of a terminal, drawn on the page by the
 /// terminal's own symbol, lies on the path a wire or cable core of the page is drawn along (`ew_derive::drawn_path`:
 /// its stored route; an unrouted connection has none, WP-S2.19 D3), and that wire does not join the terminal: the page
 /// shows the terminal in the wire, but it is not connected. A wire joins the terminal when an end is a CP of any
@@ -868,7 +868,7 @@ impl Rule for TerminalOnUnjoinedWire {
         // Whether an endpoint is a CP of a function of `terminal`'s device.
         let of_terminal = |e: &Endpoint, terminal: Id<Device>| matches!(e, Endpoint::Cp(f, _) if q.functions().get(*f).and_then(|f| f.device) == Some(terminal));
         // Whether connection `c` joins `terminal`: an end at its CP, or at a junction standing on one of its CP points
-        // that a connection joins to its CP (decision log ID-1110).
+        // that a connection joins to its CP.
         let joins = |c: &Connection, terminal: Id<Device>| {
             [&c.a, &c.b].into_iter().any(|e| match e {
                 Endpoint::Junction(j) => {
@@ -979,7 +979,7 @@ mod tests {
         assert_eq!(next_free_number(std::iter::empty()), Some(1));
     }
 
-    /// C45-p1#5: a line's search finds exactly the segments holding a coordinate, ends included, with a long segment
+    /// A line's search finds exactly the segments holding a coordinate, ends included, with a long segment
     /// over short ones, nested and touching segments and empty lines; every coordinate from before the first start to
     /// after the last end, against a scan of every segment.
     #[test]

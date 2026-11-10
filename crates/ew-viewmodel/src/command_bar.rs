@@ -12,7 +12,7 @@
 //! its package.
 //!
 //! **The HUD** ([`hud`]) names the active tool, three quick tools and the prompt: the selection and its keys with
-//! Select, the pick stack under the pointer when it holds more than one object (FT-521), the tool's target and keys
+//! Select, the pick stack under the pointer when it holds more than one object, the tool's target and keys
 //! otherwise.
 
 use crate::actions::{self, ACTIONS, ActionItem, ActionMeta, Menu};
@@ -113,7 +113,7 @@ pub enum Group {
     Place,
     /// Draw: wires, potentials, interruption points.
     Connect,
-    /// Draw: a panel layout page's set-up: rail, duct, auto-fill rail (WP-S4.02 part 4, D10, ruling 1).
+    /// Draw: a panel layout page's set-up: rail, duct, auto-fill rail.
     PanelLayout,
     /// Draw: text and measure.
     Annotate,
@@ -476,12 +476,12 @@ pub fn command_bar(model: &ShellModel) -> CommandBarModel {
     command_bar_of(model, model.command_tab())
 }
 
-/// The Draw tab's groups whose commands act on the selection: the canvas context menu offers them (FT-715).
+/// The Draw tab's groups whose commands act on the selection: the canvas context menu offers them.
 pub const SELECTION_GROUPS: [Group; 1] = [Group::Arrange];
 
-/// The canvas context menu (FT-715): over an object, the commands the command bar offers for the selection (the
+/// The canvas context menu: over an object, the commands the command bar offers for the selection (the
 /// buttons of [`SELECTION_GROUPS`], in the bar's order and as a collapsed group lists them: a split button, then its
-/// other variants), then Define potential… over a wire, a junction or a terminal (FT-1202), then Delete; over nothing,
+/// other variants), then Define potential… over a wire, a junction or a terminal, then Delete; over nothing,
 /// Paste when it is enabled. Empty when there is nothing to offer: the window then opens no menu. A disabled entry
 /// carries its reason, as the bar's button does. No action of its own.
 pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
@@ -492,7 +492,7 @@ pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
             .into_iter()
             .collect();
     }
-    // WP-S4.02 part 3 (D10): over a placement on a panel page, Turn, Flip, Lock or Unlock, and Delete.
+    // Over a placement on a panel page, Turn, Flip, Lock or Unlock, and Delete.
     if model.selected_placements() > 0 {
         let lock = if model.selected_placement_locked() {
             "layout.unlock_selection"
@@ -527,7 +527,7 @@ pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
             items.extend(variants.iter().filter(|v| v.id != b.id).cloned());
         }
     }
-    // FT-1202 (ID-1270): over a wire, a junction or a terminal, Define potential… at its point.
+    // Over a wire, a junction or a terminal, Define potential… at its point.
     if model.potential_point().is_ok() {
         items.extend(actions::find("potential.draw").map(|meta| actions::item_of(meta, model)));
     }
@@ -535,7 +535,7 @@ pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
     items
 }
 
-/// A navigator row's context menu (FT-1239): on a Potentials row with a definition point (`NavNode::define_at`),
+/// A navigator row's context menu: on a Potentials row with a definition point (`NavNode::define_at`),
 /// Define potential… at it (`potential.draw_row`), disabled with its reason in a read-only project. Empty when the row
 /// offers nothing: the window then opens no menu.
 pub fn navigator_row_menu(
@@ -621,14 +621,14 @@ pub fn pointer_stack(model: &ShellModel) -> usize {
 }
 
 /// The first shortcut of action `id` in its keycap form ("Esc", "Del", "Up", "Ctrl+Z"; [`crate::keymap::short_display`]),
-/// or an empty text: the one form every text of the window names a key by (FT-1081, ID-1182, doc 16a §8 item 7).
+/// or an empty text: the one form every text of the window names a key by (doc 16a §8 item 7).
 pub(crate) fn key_of(model: &ShellModel, id: &str) -> String {
     actions::find(id)
         .map(|m| crate::keymap::short_display(&model.shortcut_text(m)))
         .unwrap_or_default()
 }
 
-/// The key a hint, a HUD prompt, a toast or a reason names for action `id` (FT-964, ID-1150; FT-1081, ID-1182): its
+/// The key a hint, a HUD prompt, a toast or a reason names for action `id`: its
 /// first shortcut in the keycap form of [`key_of`], or "(no key)" when the keymap binds it to none.
 pub(crate) fn key_name(model: &ShellModel, id: &str) -> String {
     or_no_key(key_of(model, id))
@@ -643,7 +643,7 @@ fn or_no_key(key: String) -> String {
     }
 }
 
-/// The key of the HUD's text for an interruption point's role (FT-899).
+/// The key of the HUD's text for an interruption point's role.
 fn ip_role_key(d: crate::tools::IpDir) -> Key<'static> {
     match d {
         crate::tools::IpDir::Source => key!("hud-ip-source"),
@@ -652,7 +652,7 @@ fn ip_role_key(d: crate::tools::IpDir) -> Key<'static> {
     }
 }
 
-/// The HUD of `model` (doc 16a §5.5, FT-521).
+/// The HUD of `model` (doc 16a §5.5).
 pub fn hud(model: &ShellModel) -> HudModel {
     let tool = model.tool();
     let name = tool.name();
@@ -662,7 +662,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
     let hint = || crate::status::hint(model);
     let prompt = match model.tool_ghost() {
         None if name == "select" && tool.state() == "idle" => {
-            // FT-995: where a drop left the pointer, the stack is the dropped item and what it sits on; the HUD names
+            // Where a drop left the pointer, the stack is the dropped item and what it sits on; the HUD names
             // it again once the pointer moves on.
             if !model.stack_quiet() {
                 stack = pointer_stack(model);
@@ -672,7 +672,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 strings::format(key!("hud-stack"), &[&stack.to_string()])
             } else if selected > 0 && model.selected_placements() > 0 {
                 // WP-S4.02 part 3 (doc 16a §5.5): a placement selected on a panel page, its keys from the keymap.
-                // FT-996: only the keys the selected placement takes: R on the plate, X on a rail, Delete always.
+                // Only the keys the selected placement takes: R on the plate, X on a rail, Delete always.
                 let delete = key_name(model, "edit.delete_selection");
                 let on_rail = model
                     .selected_placement()
@@ -698,7 +698,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                     ],
                 )
             } else if let Some(reason) = crate::actions::page_type_reason(model) {
-                // FT-1089 (ID-1183; doc 16a P3): on a page that takes no symbols, with no tool armed, the reason stands
+                // FT-1089 (doc 16a P3): on a page that takes no symbols, with no tool armed, the reason stands
                 // where the user looks: the page type's, as a greyed drawing tool says it.
                 strings::text(reason).to_owned()
             } else {
@@ -708,7 +708,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
         None => hint(),
         // Doc 16a §5.5: "Place -X1031:21 · R rotates · V variant · Esc done": the predicted tag or terminal (the symbol
         // until the pointer gives it one), then the keys; the ghost's line in `ui.describe` keeps the rest.
-        // FT-545: while autoconnect proposes wires, the count and the way to place without them come before the keys,
+        // While autoconnect proposes wires, the count and the way to place without them come before the keys,
         // so the strip says it before the first placement does.
         Some(Ghost::Place {
             symbol,
@@ -743,7 +743,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                     )
                 );
             }
-            // WP-S2.18 D2: "J Join device…" while the symbol can be an auxiliary function, before "Esc done".
+            // "J Join device…" while the symbol can be an auxiliary function, before "Esc done".
             let keys = if joinable {
                 strings::format(
                     key!("hud-keys-place-join"),
@@ -766,7 +766,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             };
             format!("{what} \u{b7} {keys}")
         }
-        // WP-S2.19 D15: the move's HUD names connect on move's key and the session's state, which the key turns at once
+        // The move's HUD names connect on move's key and the session's state, which the key turns at once
         // (ID-1509 (9), C2).
         Some(Ghost::Move { readout, .. }) => {
             let state = strings::format(
@@ -798,9 +798,9 @@ pub fn hud(model: &ShellModel) -> HudModel {
             ..
         }) => {
             target = Some(name.clone());
-            // FT-1023 (ID-1107): a proposal other than its base's name says so in the name's place.
+            // A proposal other than its base's name says so in the name's place.
             let mut parts = vec![model.tool().proposal_note().unwrap_or(name)];
-            // FT-822: the role and the key that changes it ("0V · source: the wire continues at its targets · D: target"), so the next
+            // The role and the key that changes it ("0V · source: the wire continues at its targets · D: target"), so the next
             // role is on screen; FT-899: the role says what it does, the key's part keeps the short next word.
             // W42b, ID-1146: a star source is a source point (the tool shows a starred point as a source), so the
             // star's hint stands alone in the role's place.
@@ -820,11 +820,11 @@ pub fn hud(model: &ShellModel) -> HudModel {
             if let Some(cp) = connects {
                 parts.push(strings::format(key!("hud-ip-connects"), &[&cp]));
             }
-            // ID-1139: an empty part (a name not yet computed) never joins the HUD.
+            // An empty part (a name not yet computed) never joins the HUD.
             parts.retain(|p| !p.is_empty());
             parts.join(" \u{b7} ")
         }
-        // FT-759: the count says what it counts ("7 connection points"), never a bare "· 7".
+        // The count says what it counts ("7 connection points"), never a bare "· 7".
         Some(Ghost::Box { cps, .. }) => format!(
             "{} \u{b7} {}",
             hint(),
@@ -873,10 +873,10 @@ pub fn hud(model: &ShellModel) -> HudModel {
             key!("hud-layout-place"),
             &[&device, &key_name(model, crate::tools::ESCAPE)],
         ),
-        // WP-S4.02 part 4 (D11): the draw tools' line; the length stands at the line.
+        // The draw tools' line; the length stands at the line.
         Some(Ghost::Line { .. }) => hint(),
     };
-    // FT-751: a tool's refusal stands in the HUD in place of its prompt, also over a ghost (the stacked twin's
+    // A tool's refusal stands in the HUD in place of its prompt, also over a ghost (the stacked twin's
     // "An identical symbol already stands here"), until the next canvas input ends it.
     // Cycle 39 (FIX39b-1): an open paste choice card's prompt stands in place of the tool's, following the card.
     let prompt = match model.tool_notice() {
@@ -912,8 +912,8 @@ mod tests {
         assert_eq!(Tab::from_word("nope"), None);
     }
 
-    /// FT-1071 (ID-1150, ID-1179): an action the keymap binds to no key (`layout.nudge` ships with none) is named
-    /// "(no key)" in a hint and in the HUD (one form since FT-1081), and a text formatted with it reads whole.
+    /// An action the keymap binds to no key (`layout.nudge` ships with none) is named
+    /// "(no key)" in a hint and in the HUD (one form), and a text formatted with it reads whole.
     #[test]
     fn an_action_with_no_key_is_named_no_key() {
         let model = ShellModel::for_tests();

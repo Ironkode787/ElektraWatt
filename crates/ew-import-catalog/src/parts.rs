@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! [`parse_parts`]: a mapped parts table into part documents, the new manufacturers they name, and the row report
-//! (WP-S1.19 §9, D11, FR-PRT-016).
+//! (D11, FR-PRT-016).
 
 use std::collections::BTreeMap;
 
@@ -83,7 +83,7 @@ pub struct CatalogTarget<'a> {
     /// [`FIRST_VERSION`], the record's content; the parts name the copy. Without it the parts name the master record.
     pub local_manufacturers: bool,
     /// With [`CatalogTarget::local_manufacturers`], the libraries whose master records the parts name directly
-    /// instead of a copy: a library target's manifest `depends` (FT-651, WP-S1.19 part 5).
+    /// instead of a copy: a library target's manifest `depends`.
     pub shared: &'a [Uuid],
 }
 
@@ -391,7 +391,7 @@ impl<'m> Makers<'m> {
         let shared = self.shared;
         let local = self.local;
         let pick = |hits: &[usize], master: &[LibCopy<Manufacturer>]| -> Result<usize, String> {
-            // FT-651: the target's own record wins over another library's of the same name (the copy a first import
+            // The target's own record wins over another library's of the same name (the copy a first import
             // wrote into the target beside the master record it copies), then a single record of a library the
             // target depends on; when the parts name a copy anyway and every hit has the same key, the first hit
             // in master order is copied (the copies other imports wrote are not a choice the user has to make).
@@ -783,7 +783,7 @@ fn same_content(new: &Part, held: &Part) -> bool {
 }
 
 /// Reads a mapped parts table (CSV or XLSX, told apart by content) into part documents of `target.library`
-/// (WP-S1.19 §9, D11, FR-PRT-016).
+/// (D11, FR-PRT-016).
 ///
 /// Every part is `LibCopy<Part>` with the item ID [`part_item`]`(library, manufacturer key, pn_norm)`, the copy ID
 /// `v5(NS_LIBCOPY, library ‖ item)`, `meta.key = "<manufacturer key>.<pn_norm>"` in lower case, `meta.sources` the

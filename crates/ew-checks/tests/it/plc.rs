@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The MVP rules of the EW-PLC pack (WP-S1.21 part 3, D10, PA-4, PA-5, PA-7) and EW-CORE-008's `duplicate_number`
-//! half (FT-350), on a small valve terminal: a station with two eight-channel output modules (`-1U2`, `-1U3`) whose
+//! The MVP rules of the EW-PLC pack (PA-4, PA-5, PA-7) and EW-CORE-008's `duplicate_number`
+//! half, on a small valve terminal: a station with two eight-channel output modules (`-1U2`, `-1U3`) whose
 //! part maps solenoid 14 of the valve at position p to channel 2(p − 1) and solenoid 12 to 2(p − 1) + 1, and one
 //! valve `-1Q1` at position 1 of `-1U2`, solenoid 14 bound to channel 0 as the map says.
 
@@ -22,7 +22,7 @@ const COIL: u128 = 0x1301;
 const VALVE_DEF: u128 = 0x520;
 const VALVE_SYM: u128 = 0x521;
 const PART: u128 = 0x600;
-/// The valve's part: it declares solenoids 14 and 12 (WP-S1.20 D5).
+/// The valve's part: it declares solenoids 14 and 12.
 const VALVE_PART: u128 = 0x601;
 
 /// The record ID text of channel `n` of module `module` (the v5 ID N1 gives it).
@@ -46,7 +46,7 @@ fn fixture_with(meta: &Value) -> Fx {
             (1, "12", json!({"physical": false})),
         ],
         &json!([]),
-        // the valve's internal coils (WP-S1.20 D5)
+        // the valve's internal coils
         &json!({"contact_kind": "coil"}),
     );
     fx.part(
@@ -506,7 +506,7 @@ fn a_module_without_a_station_stays_ew_core_044s() {
     assert_eq!(findings_of(&m, "EW-CORE-044").len(), 1);
 }
 
-/// EW-CORE-008 `duplicate_number` (FT-350, PA-7): a second channel numbered 2 on `-1U3` is reported; the v5 one is kept.
+/// EW-CORE-008 `duplicate_number` (PA-7): a second channel numbered 2 on `-1U3` is reported; the v5 one is kept.
 #[test]
 fn ew_core_008_reports_a_duplicate_channel_number() {
     let mut fx = fixture();

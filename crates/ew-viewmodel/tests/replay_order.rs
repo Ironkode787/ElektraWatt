@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-439's guard (decision log ID-640): no shell output is ordered by UUID. One creating script runs twice on equal
+//! FT-439's guard: no shell output is ordered by UUID. One creating script runs twice on equal
 //! copies of Golden A, once with new IDs that ascend and once with new IDs that descend
 //! (`ShellModel::set_id_source_for_tests`), so every pair of records the script creates sorts the other way round by ID
 //! in the second run. The transcripts must be byte-identical with aliases in them, and each alias `@n` must name the
@@ -382,7 +382,7 @@ fn ascending_c() -> Box<dyn IdSource + Send> {
     ascending_from(3 << 41, 0x2545_F491_4F6C_DD1D)
 }
 
-/// After the blind run `gpp-dry-101` (cycle 29, lane H29): two terminals of a new strip placed on one point (Alt
+/// After the blind run `gpp-dry-101` (lane H29): two terminals of a new strip placed on one point (Alt
 /// places without snapping), the wire tool's cursor on their coincident CPs, a wire between the first terminal's two
 /// sides, and `cp.next` over the coincident CPs.
 fn coincident_steps(dir: &str) -> Vec<(String, Value)> {
@@ -453,7 +453,7 @@ fn run_coincident(tag: &str, ids: Ids) -> String {
     lines.join("\n").replace(&dir, "DIR")
 }
 
-/// The blind replay of `gpp-dry-101` differed between two fresh folders (cycle 29, lane H29): coincident CPs were
+/// The blind replay of `gpp-dry-101` differed between two fresh folders (lane H29): coincident CPs were
 /// ordered by their v5 IDs in `page_cps` (the snap's label, `cp.next`), and a potential's fallback name took the CP
 /// with the smaller v5 ID among the CPs of one anchor cell. Both ties now go to the label or the name in natural
 /// order: four runs under four ID sets print the same bytes, the snap names `-X1991:1/b` and the potential is

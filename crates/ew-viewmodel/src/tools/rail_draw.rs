@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Draw rail (WP-S4.02 part 4, D11; doc 12 §3.2, §12.1): two clicks on a panel page's surface draw a mounting rail
+//! Draw rail (doc 12 §3.2, §12.1): two clicks on a panel page's surface draw a mounting rail
 //! with `layout.carrier.add`. The draw tools' snapping lives here too; the duct tool ([`super::duct_draw`]) shares it.
 //!
 //! **Snapping** (D11, ruling 5: 15 points on screen, D4's radius). Each coordinate of the pointer snaps on its own, in
@@ -164,7 +164,7 @@ pub(crate) fn mm_of(panel: &PanelTables, nm: i128) -> String {
     }
 }
 
-/// A point of the surface as a JSON pair, each coordinate saturated to the `i64` range (C44-p2#1), so that an
+/// A point of the surface as a JSON pair, each coordinate saturated to the `i64` range, so that an
 /// `i128` beyond `i64` still makes a JSON number; the tools refuse such a point first ([`drawable`]).
 pub(crate) fn point_json(p: (i128, i128)) -> Value {
     json!([clamp64(p.0), clamp64(p.1)])
@@ -174,7 +174,7 @@ pub(crate) fn point_json(p: (i128, i128)) -> Value {
 const DRAWABLE: i128 = (1 << 53) - 1;
 
 /// Whether every point lies inside the drawable range. The draw tools refuse a point outside it in words, with
-/// `reason-point-outside-drawing`, before they send the command (ID-1106); the command's own range text stays for
+/// `reason-point-outside-drawing`, before they send the command; the command's own range text stays for
 /// scripts.
 pub(crate) fn drawable(points: &[(i128, i128)]) -> bool {
     points
@@ -182,7 +182,7 @@ pub(crate) fn drawable(points: &[(i128, i128)]) -> bool {
         .all(|p| p.0.abs() <= DRAWABLE && p.1.abs() <= DRAWABLE)
 }
 
-/// The midpoint of two sheet points, computed in `i128` so that two far points cannot overflow (C44-p2#1).
+/// The midpoint of two sheet points, computed in `i128` so that two far points cannot overflow.
 pub(crate) fn midpoint(a: (i64, i64), b: (i64, i64)) -> (i64, i64) {
     let mid = |x: i64, y: i64| clamp64((i128::from(x) + i128::from(y)) / 2);
     (mid(a.0, b.0), mid(a.1, b.1))

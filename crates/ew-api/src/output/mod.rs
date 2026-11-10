@@ -14,7 +14,7 @@
 //!
 //! 1. on the session's thread, through its memoising `Q`: `page_order`, the page selection, and for every
 //!    selected page its memoised layers assembled into a page scene ([`page_scene`]);
-//! 2. the page phase on [`ew_export::par_map`] (scoped `std` threads, results by page index, decision log ID-344):
+//! 2. the page phase on [`ew_export::par_map`] (scoped `std` threads, results by page index):
 //!    each page's layers mapped onto its sheet with their symbol instances inlined, the one list every writer draws,
 //!    and its image items resolved from the project's asset bytes ([`ExportAssets`], FT-384: an SVG asset becomes
 //!    vector paths through `ew_scene::images`, a PNG or JPEG image gets its bytes); this phase is not a memoised
@@ -26,12 +26,12 @@
 //! [`Session::export_pdf`] stays on its thread: the layers are memoised in the session's store and a second export
 //! after an edit rebuilds only the layers the edit touched.
 //!
-//! **The export as a job** (WP-S2.09 part 1, D4; [`ExportJob`], `job.rs`). [`Session::export_job`] takes a snapshot
+//! **The export as a job** ([`ExportJob`], `job.rs`). [`Session::export_job`] takes a snapshot
 //! (the `World`, the report engine, the asset bytes); [`ExportJob::run`] builds a cold `Q` on the job's own thread and
 //! runs the same three phases with a progress report before each page, a checkpoint after each page (`page`), a
 //! cancel check before each page of the page phase (`draw`), and checkpoints after the page phase (`drawn`) and the
 //! writer (`written`). The phases are one function for both ([`export_pages_with`] runs it without the job's controller), so the job's
-//! bytes are the synchronous export's on the same revision. No pool and no memo snapshot in the job (FT-497).
+//! bytes are the synchronous export's on the same revision. No pool and no memo snapshot in the job.
 //!
 //! **Metadata** ([`pdf_options`], doc 09 §4.3). Title: the project description (neutral). Creator: `ElektraWatt
 //! <version>`. Date (FR-OUT-026): the caller's (`SOURCE_DATE_EPOCH` in the CLI), else the model's edited date, else
@@ -40,54 +40,51 @@
 //! rule 2: a hash of the export input), `<pages>` being `all` or the selected folio labels joined by `,` and
 //! `<digest>` the [`content_digest`] of the pages and the bundled fonts.
 //!
-//! **The print set** (WP-S3.07 part 2, [`mod@print`]): the same pages placed on a paper ([`ew_export::PagePlacement`]),
+//! **The print set** ([`mod@print`]): the same pages placed on a paper ([`ew_export::PagePlacement`]),
 //! stamped when scaled, and written by the same writer; [`PageSelection::Sections`] selects pages by section for both.
 
-// WP-S2.07 part 2: the edit-cable table's gestures (§7).
+// The edit-cable table's gestures (§7).
 mod cable_edit;
-// WP-S2.05 part 3
 pub(crate) mod clipboard;
 mod editing;
 mod fields;
-// WP-S2.05 part 2
 mod find;
-// WP-S2.09 part 3: the history panel's rows (§4.2).
+// The history panel's rows (§4.2).
 mod history;
-// WP-S2.09 part 1: the export as a job (D4).
+// The export as a job (D4).
 mod job;
-// WP-S2.18 part 1: the devices a placed symbol can join (D1, D2).
+// The devices a placed symbol can join (D1, D2).
 pub(crate) mod join;
 mod layers;
-// WP-S4.02 part 4: Properties for layout records and the Surface view rows (D12, ruling 3).
+// Properties for layout records and the Surface view rows (D12, ruling 3).
 mod layout_edit;
 mod navigation;
-// WP-S2.06 part 1
 mod navigators;
-// WP-S4.01 part 3: the surface view of a panel-layout page (D9, D10).
+// The surface view of a panel-layout page (D9, D10).
 pub(crate) mod panel;
-// FT-753: what a PLC channel dropped on a field device can do.
+// What a PLC channel dropped on a field device can do.
 mod plc_bind;
-// WP-S2.09 part 3: the labelled entity list of a preview (§4.2).
+// The labelled entity list of a preview (§4.2).
 mod preview;
-// WP-S3.07 part 2: the print set (D5 to D7).
+// The print set (D5 to D7).
 pub mod print;
-// WP-S1.17 part 8: `ew diff` and its textconv (D26, D27)
+// `ew diff` and its textconv (D26, D27)
 mod project_diff;
 mod properties;
-// WP-S1.22 part 2: page rasters (D7) and the row exports (D8); WP-S3.08 part 1: their XLSX and CSV presets.
+// Page rasters (D7) and the row exports (D8); WP-S3.08 part 1: their XLSX and CSV presets.
 mod raster;
 mod rows;
-// WP-S1.18 part 2: page digests and the page change status (D6, D7).
+// Page digests and the page change status (D6, D7).
 mod revisions;
-// WP-S2.19 part 1 (ID-1498): a page's geometry for the router and the layout measures of `ew layout`.
+// A page's geometry for the router and the layout measures of `ew layout`.
 mod route_measures;
-// FT-1016 (ID-1148): the scale a panel page is fitted at.
+// The scale a panel page is fitted at.
 mod scale_fit;
-// WP-S2.07 part 1: the strip editor's gestures (§4.2).
+// The strip editor's gestures (§4.2).
 mod strip_edit;
-// WP-S3.08 part 2 (D10; ID-1174 ruling 3): table mode's pure rule, moved down from the view model.
+// WP-S3.08 part 2 (D10; ruling 3): table mode's pure rule, moved down from the view model.
 pub mod table_edit;
-// WP-S3.08 part 2 (D8, D9, D11): the table round trip.
+// The table round trip.
 mod table_io;
 mod view;
 
@@ -103,7 +100,6 @@ use ew_scene::page::PageFinding;
 use ew_schema::Section;
 use sha2::{Digest, Sha256};
 
-// WP-S2.05 part 3
 pub use clipboard::{
     CopiedFragment, CopyError, FRAGMENT_HEADER, FragmentError, ParsedFragment, parse_fragment,
     parse_fragment_with,
@@ -121,9 +117,7 @@ pub use fields::{
     Category, EditRoute, FieldReadOnly, FieldType, InputError, ParsedInput, field_catalogue,
     field_catalogue_for, format_field_value,
 };
-// WP-S2.05 part 2
 pub use find::{FindError, FindField, FindHit, FindQuery, FindResults};
-// WP-S2.09 part 1
 pub use history::{HistoryRow, HistoryView};
 pub use job::{ExportJob, PrintSetJob};
 pub use layers::{
@@ -131,59 +125,53 @@ pub use layers::{
     TablesLayer, WiresLayer, new_project_text_style_table, page_kind, page_layer, page_scene, page_view,
     text_style_table,
 };
-// WP-S4.01 part 3
 pub use layout_edit::{LayoutEdit, LayoutEditError, parse_mm};
-// FT-1016 (ID-1148)
+// FT-1016
 pub use navigation::{CellLabel, GotoError, LinkTarget, PageCells, PageCp, PageListTable, PageRow};
 pub use scale_fit::fitting_scale;
-// WP-S4.02 part 3 (D9): the panel tables and the pure items of `ew_derive::layout` the layout tool runs, so that
+// The panel tables and the pure items of `ew_derive::layout` the layout tool runs, so that
 // `ew-viewmodel` keeps its one dependency.
 pub use ew_derive::layout::{
     Fit, Profile, RailExtent, RailItem, Resolution, SnapError, SnapMode, brackets, end_gap, fits_rail,
     min_gap, resolve, start_gap,
 };
-pub use panel::{PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page};
-// FT-753
-pub use plc_bind::OffCardBind;
-pub use preview::PreviewEntity;
-pub use project_diff::textconv;
-pub use route_measures::{
-    LayoutBends, LayoutCrossing, LayoutError, LayoutJunction, LayoutPair, LayoutThrough, LayoutTouch,
-    PageLayout,
-};
-// WP-S2.06 parts 1 and 2
-pub use navigators::{
-    Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NaturalKey, NavColumn,
-    NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key, tokens as nav_tokens,
-};
-// WP-S1.18 part 2
-pub use properties::{
-    CompanyColour, FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SelectionWords,
-    SheetHeader, SheetSection, WireColours, WireEnd,
-};
-// WP-S1.22 part 2
-/// The round trip's reader (WP-S3.08 D12): a workbook or CSV read back as header and cell texts.
+/// The round trip's reader: a workbook or CSV read back as header and cell texts.
 pub use ew_import_catalog::sheet;
-/// The table writers of `ew-reports` the row exports name (WP-S3.08 part 1): the CSV presets and their options, the
+/// The table writers of `ew-reports` the row exports name: the CSV presets and their options, the
 /// table model, the workbook's metadata and writer.
 pub use ew_reports::csv::{CsvOptions, LineEnd, Preset, restyle, table_csv};
 pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 pub use ew_reports::xlsx::{WorkbookMeta, base_text, xlsx};
+pub use navigators::{
+    Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NaturalKey, NavColumn,
+    NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key, tokens as nav_tokens,
+};
+pub use panel::{PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page};
+pub use plc_bind::OffCardBind;
+pub use preview::PreviewEntity;
+pub use project_diff::textconv;
+pub use properties::{
+    CompanyColour, FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SelectionWords,
+    SheetHeader, SheetSection, WireColours, WireEnd,
+};
 pub use raster::{DEFAULT_DPI, DPI_RANGE, page_png};
 pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};
+pub use route_measures::{
+    LayoutBends, LayoutCrossing, LayoutError, LayoutJunction, LayoutPair, LayoutThrough, LayoutTouch,
+    PageLayout,
+};
 pub use rows::{
     RowExport, RowsCsv, RowsError, RowsFormat, RowsOutput, block_kind, find_block, report_folios,
     report_kinds, row_export, row_output, sql_table, with_base_digest, workbook_dump,
 };
-// WP-S3.08 part 2: the table round trip.
-pub use table_io::{
-    CellOutcome, ImportCell, ImportTableOptions, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport,
-    TableImportError, guard_table_read,
-};
-// WP-S2.07 part 1
+// The table round trip.
 pub use strip_edit::{
     ACCESSORY_KINDS, BridgeRow, StripCell, StripEdit, StripEditError, accessory_kind_word,
     accessory_part_kinds,
+};
+pub use table_io::{
+    CellOutcome, ImportCell, ImportTableOptions, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport,
+    TableImportError, guard_table_read,
 };
 pub use view::{
     FrameForms, NOGRID_FRAME, PageConnectionsOf, PageEmbeddedOf, PageFrameOf, PageSlotsOf, PageTableOf,
@@ -260,8 +248,7 @@ pub enum PageSelection {
     /// The listed items in page order, each page once: an item is a folio label ("101", "2.1") or a range
     /// `<first>-<last>` of two folio labels, every page from the first to the last in page order.
     Folios(Vec<String>),
-    /// The pages of each named section (by its number, `1`) in page order, its divider included, each page once
-    /// (WP-S3.07 D6).
+    /// The pages of each named section (by its number, `1`) in page order, its divider included, each page once.
     Sections(Vec<String>),
 }
 
@@ -317,7 +304,7 @@ impl PageSelection {
 }
 
 /// The positions of the pages of the named sections, in page order: refused with "no section `<n>` (the sections
-/// are <numbers>)" for a number no section has (WP-S3.07 D6).
+/// are <numbers>)" for a number no section has.
 fn resolve_sections(
     order: &PageOrderV,
     sections: TableView<'_, Section>,
@@ -399,7 +386,7 @@ pub struct ExportOptions {
     pub date: Option<PdfDate>,
 }
 
-/// The asset bytes an export draws its image items with, by SHA-256 (FT-384): a snapshot of the project's asset
+/// The asset bytes an export draws its image items with, by SHA-256: a snapshot of the project's asset
 /// store, taken by the [`Session`] export methods. A [`Q`] holds no asset bytes: the free functions
 /// [`export_pages_with`], [`export_pdf_with`] and [`export_svg_with`] draw no image with [`ExportAssets::default`].
 #[derive(Clone, Default)]
@@ -450,12 +437,12 @@ pub struct ExportPages {
     pub options: PdfOptions,
     /// The findings of the page scenes, in page order.
     pub findings: Vec<PageFindingAt>,
-    /// The drawing pages and the section divider pages among them; the rest are report pages (FT-1212).
+    /// The drawing pages and the section divider pages among them; the rest are report pages.
     pub kinds: PageKinds,
 }
 
 /// How many pages of an export are drawing pages and section divider pages; the rest are generated report pages
-/// (FT-1212, ID-1392: the export toast names its pages by kind).
+/// (the export toast names its pages by kind).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct PageKinds {
     /// The authored pages.
@@ -475,7 +462,7 @@ pub struct PdfExport {
     pub pages: usize,
     /// The findings of the page scenes.
     pub findings: Vec<PageFindingAt>,
-    /// The drawing pages and the section divider pages among them (FT-1212).
+    /// The drawing pages and the section divider pages among them.
     pub kinds: PageKinds,
 }
 
@@ -511,7 +498,7 @@ pub fn font_bytes() -> &'static BTreeMap<FontKey, FontBytes> {
 }
 
 /// The SVG options of an export: the bundled faces by family, weight and style, each with its font file
-/// ([`font_bytes`]) so that every page embeds the subsets of the faces it draws (WP-S3.07 D3).
+/// ([`font_bytes`]) so that every page embeds the subsets of the faces it draws.
 pub fn svg_options(monochrome: bool) -> SvgOptions {
     let bytes = font_bytes();
     SvgOptions {
@@ -791,7 +778,7 @@ pub(crate) fn export_pages_hooked(
         .collect::<Option<Vec<_>>>()
         .ok_or(Halt::Cancelled)?;
     // The images that could not be drawn (bytes not held, a refused SVG, PNG or JPEG bytes that do not decode) are page
-    // findings, after the scene's: no silent loss (decision log ID-620). The raster check uses the renderers' own
+    // findings, after the scene's: no silent loss. The raster check uses the renderers' own
     // decoder, once per asset of the export.
     let mut decodes: BTreeMap<[u8; 32], bool> = BTreeMap::new();
     let mut pages = Vec::with_capacity(resolved.len());

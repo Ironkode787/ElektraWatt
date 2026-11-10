@@ -3,7 +3,7 @@
 
 //! The text-style tables (ADR-0032 decision 5): `ew_text::builtin()` holds the same rows as
 //! `ew_schema::BUILTIN_TEXT_STYLES`, and the renderers of `ew-scene` and `ew-api` resolve styles only through the
-//! table their caller passes (WP-S1.12 text styles, TS-7).
+//! table their caller passes (text styles, TS-7).
 
 use std::path::{Path, PathBuf};
 

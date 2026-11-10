@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Normaliser #0, PLC aspects from the part (N0; WP-S1.21 D2 to D4, doc 06 §3.2, doc 10 §3.3).
+//! Normaliser #0, PLC aspects from the part (N0; doc 06 §3.2, doc 10 §3.3).
 //!
 //! **Trigger.** A device of this transaction that carries neither `plc_module` nor `plc_station` and whose part
 //! with a PLC section is new: the first part use whose part has a PLC section (the rule of

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The ID alias `@n` (FT-422, decision log ID-630) through the headless runner on temporary copies of Golden A: no UUID
+//! The ID alias `@n` through the headless runner on temporary copies of Golden A: no UUID
 //! in a transcript line, aliases numbered by first appearance, `@n` accepted where an action parameter takes a UUID
 //! or a reference (`select.set`, a navigator key, a command's `{"ref": "@n"}`), an unknown alias refused naming it,
 //! `--record` holding the resolved UUID, and two runs of one script giving the same bytes.
@@ -294,7 +294,7 @@ fn the_table_lives_for_the_run_across_projects() {
     shell.shutdown();
 }
 
-/// FT-909 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres"): a command's
+/// FT-909 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres"): a command's
 /// refusal shows its reason alone, never the error's Display form with the command's name before it.
 #[test]
 fn a_refused_command_shows_its_reason_alone() {

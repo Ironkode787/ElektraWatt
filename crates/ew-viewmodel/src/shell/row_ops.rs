@@ -43,7 +43,7 @@ pub struct NavRename {
     pub key: String,
     /// The label's text when the editor opened (after a refused tag, the text as typed).
     pub text: String,
-    /// FT-633: the row is a device whose tag goes through the Properties Tag field's path; its refusal and proposal
+    /// The row is a device whose tag goes through the Properties Tag field's path; its refusal and proposal
     /// are [`ShellModel::nav_rename_error`].
     pub tag: bool,
 }

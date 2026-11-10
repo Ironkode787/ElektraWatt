@@ -343,7 +343,7 @@ fn a_reader_waits_for_a_save_in_progress_and_reads_the_saved_generation() {
 
 /// `ew recover --replay`'s save (`Session::save_and_close`): when the save of a replayed journal fails before its
 /// commit point, the session is dropped without its clean close, so the replayed transactions stay in its journal and
-/// the next open offers them again (ruling 2 of cycle 41: "never deletes an unreplayed one"); a save that succeeds
+/// the next open offers them again ("never deletes an unreplayed one"); a save that succeeds
 /// closes cleanly and leaves no journal.
 #[test]
 fn a_failed_save_of_a_replay_keeps_the_replayed_transactions_in_a_journal() {

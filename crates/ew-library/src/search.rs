@@ -3,7 +3,7 @@
 
 //! Part and item search: the queries, the hits, `pn_norm` and the order of D6 (doc 07 §4.3).
 //!
-//! **Order** (WP-S1.19 D6, deterministic and without a clock):
+//! **Order** (deterministic and without a clock):
 //! 1. with a compatibility filter, compatible parts before the others (doc 07 §4.3: "offers MCB 1P+N parts first");
 //!    when the filter names the function's FnDef ([`FnCompat::fndef`], WP-S2.07 D17), the parts whose function
 //!    template declares that FnDef come before the other compatible ones;
@@ -36,13 +36,13 @@ pub struct FnCompat {
     pub category: [String; 2],
     /// The function's contact kind.
     pub contact_kind: ContactKind,
-    /// `(library, item)` of the function's FnDef (WP-S2.07 D17, FT-629): a part whose function template declares
+    /// `(library, item)` of the function's FnDef: a part whose function template declares
     /// that FnDef, at any version, ranks before the other compatible parts and reports [`PartHit::same_fndef`]; `None`
     /// keeps WP-S1.19 D6's order and meaning unchanged.
     pub fndef: Option<(Uuid, Uuid)>,
 }
 
-/// A part search (WP-S1.19 §5.2, D6).
+/// A part search (D6).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PartQuery {
     /// The typed text: a part number in any spelling, or words of the type, manufacturer and description.
@@ -65,7 +65,7 @@ pub struct PartQuery {
     pub limit: u32,
 }
 
-/// One part found (WP-S1.19 §5.2).
+/// One part found.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PartHit {
     /// The library.
@@ -89,13 +89,13 @@ pub struct PartHit {
     /// Whether the part fits [`PartQuery::compatible_with`]; `None` without that filter.
     pub compatible: Option<bool>,
     /// Whether the part's function template declares [`FnCompat::fndef`] (the same library and item at any version);
-    /// `None` without a filter or without `fndef` (WP-S2.07 D17).
+    /// `None` without a filter or without `fndef`.
     pub same_fndef: Option<bool>,
     /// 0 (no text), 1 exact part number, 2 prefix, 3 trigram, 4 full text.
     pub rank_tier: u8,
 }
 
-/// A search over symbols, FnDefs, macros, manufacturers and forms (WP-S1.19 §5.2).
+/// A search over symbols, FnDefs, macros, manufacturers and forms.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ItemQuery {
     /// The typed text: a key, or words of the name, keywords and aliases.

@@ -27,7 +27,7 @@ pub enum CmdError {
         path: String,
         /// What is wrong, in English.
         message: String,
-        /// The same by key, which the window renders in its language (FT-1395); boxed, so that the error stays small.
+        /// The same by key, which the window renders in its language; boxed, so that the error stays small.
         text: Box<Text>,
     },
     /// A record the command names does not exist.
@@ -41,7 +41,7 @@ pub enum CmdError {
         source: String,
         /// Cause and remedy, in English.
         reason: String,
-        /// The same by key, which the window renders in its language (FT-1337); `None` for a refusal of the
+        /// The same by key, which the window renders in its language; `None` for a refusal of the
         /// API's own, which has only its English text.
         text: Option<Text>,
     },
@@ -71,7 +71,7 @@ pub enum CmdError {
         /// The records involved.
         keys: Vec<AnyKey>,
         /// The finding's message arguments, by Fluent variable name, from which the window renders the rule's message
-        /// from the check catalogue in its language (FT-1488, ID-1457); empty for a rule the catalogue does not word.
+        /// from the check catalogue in its language; empty for a rule the catalogue does not word.
         args: Box<[(&'static str, String)]>,
         /// The finding by key, for a rule of the commands' own (EW-REL-004), which the window renders in its language;
         /// `None` for a rule of the check catalogue.
@@ -79,14 +79,14 @@ pub enum CmdError {
     },
     /// The candidate snapshot was rejected by `Model::apply_with`: a structural invariant, a forbid link, the
     /// delete-time rule EW-INV-021 (a library copy that a `LibRef` names), a prevent rule or a stale op. Beside it the
-    /// error by key, its records in words, which the window renders in its language (FT-1488, ID-1457); `None` for an
+    /// error by key, its records in words, which the window renders in its language; `None` for an
     /// error only a defect reaches (a revision that does not increase, a malformed op), which stays English.
     Model(ModelError, Option<Box<Text>>),
     /// Undo or redo cannot apply: there is no step, a checkpoint blocks it, or the model changed under it.
     History {
         /// What is wrong, in English.
         reason: String,
-        /// Which of the four it is, which the window words in its language (FT-1488, ID-1457).
+        /// Which of the four it is, which the window words in its language.
         block: HistoryBlock,
     },
     /// A bug: normalisers did not converge within three passes, or an internal step failed.
@@ -159,7 +159,7 @@ impl From<ModelError> for CmdError {
                 args,
                 text: None,
             },
-            // FT-1488: without the model at hand, a record by its kind.
+            // Without the model at hand, a record by its kind.
             other => {
                 let text = model_error_text(&other, &|(kind, _)| crate::words::kind_words(kind));
                 CmdError::Model(other, text.map(Box::new))
@@ -202,7 +202,7 @@ impl fmt::Display for CmdError {
 
 impl std::error::Error for CmdError {}
 
-/// A model error by key, its records named by `name` (FT-1488, ID-1457): a record a forbid link still names, a stale
+/// A model error by key, its records named by `name`: a record a forbid link still names, a stale
 /// step, a duplicate, an invariant by its code; `None` for an error only a defect reaches, and for a prevent rule or a
 /// missing record, which [`CmdError`] carries as their own errors.
 pub(crate) fn model_error_text(
@@ -230,9 +230,9 @@ pub(crate) fn model_error_text(
     })
 }
 
-/// [`CmdError::from`] with the records of a model error named in words on `tx`'s model (FT-1488): a device by its tag,
+/// [`CmdError::from`] with the records of a model error named in words on `tx`'s model: a device by its tag,
 /// a page by its folio, as a command's refusal names them; a record `tx` does not hold (one the refused step created)
-/// by its kind (C53-p3#3, ID-1481).
+/// by its kind.
 pub(crate) fn worded(e: ModelError, tx: &crate::tx::TxBuilder<'_>) -> CmdError {
     match CmdError::from(e) {
         CmdError::Model(e, _) => {
@@ -247,7 +247,7 @@ pub(crate) fn worded(e: ModelError, tx: &crate::tx::TxBuilder<'_>) -> CmdError {
     }
 }
 
-/// The statement of the invariant `id` in words (FT-1488); `None` for an ID this build does not know.
+/// The statement of the invariant `id` in words; `None` for an ID this build does not know.
 fn invariant_text(id: &str) -> Option<Text> {
     use ew_model as i;
     Some(match id {
@@ -281,7 +281,7 @@ fn invariant_text(id: &str) -> Option<Text> {
     })
 }
 
-/// A parameter that does not deserialise, by key (FT-1494, ID-1457): serde's sentence, what it got and the expected
+/// A parameter that does not deserialise, by key: serde's sentence, what it got and the expected
 /// value in words where serde names a plain kind, any other part as serde writes it. Its English is serde's own text.
 pub fn serde_error_text(e: &serde_json::Error) -> Text {
     let full = e.to_string();
@@ -377,7 +377,7 @@ fn serde_want(want: &str) -> crate::text::TextArg {
     }
 }
 
-/// A violation of the value encodings, by key (FT-1494, ID-1457): every [`ew_schema::SchemaError`], its English the
+/// A violation of the value encodings, by key: every [`ew_schema::SchemaError`], its English the
 /// error's own text.
 pub fn schema_error_text(e: &ew_schema::SchemaError) -> Text {
     use ew_schema::SchemaError as E;
@@ -416,7 +416,7 @@ pub fn schema_error_text(e: &ew_schema::SchemaError) -> Text {
     }
 }
 
-/// An identifier or a multilingual text that is refused, by key (FT-1494, ID-1457): every [`ew_mltext::TextError`],
+/// An identifier or a multilingual text that is refused, by key: every [`ew_mltext::TextError`],
 /// its English the error's own text.
 pub fn ident_error_text(e: &ew_mltext::TextError) -> Text {
     use ew_mltext::TextError as E;
@@ -435,8 +435,8 @@ pub fn ident_error_text(e: &ew_mltext::TextError) -> Text {
     }
 }
 
-/// An address text (`start` false) or a module-start text (`start` true) of `profile` that does not parse, by key
-/// (FT-1494, ID-1457): the profile not at hand, else the text with the profile's example. Its English is the text of
+/// An address text (`start` false) or a module-start text (`start` true) of `profile` that does not parse, by key:
+/// the profile not at hand, else the text with the profile's example. Its English is the text of
 /// `ew_derive::parse_plc_address` and `ew_derive::parse_plc_start`.
 pub(crate) fn plc_text_refusal(
     at_hand: &[std::sync::Arc<ew_derive::ew_plcaddr::AddressProfile>],
@@ -457,7 +457,7 @@ pub(crate) fn plc_text_refusal(
     }
 }
 
-/// A carrier path that is refused, by key (FT-1494, ID-1457): every [`ew_derive::layout::PathError`], its English the
+/// A carrier path that is refused, by key: every [`ew_derive::layout::PathError`], its English the
 /// error's own text.
 pub fn path_error_text(e: &ew_derive::layout::PathError) -> Text {
     use ew_derive::layout::PathError as E;
@@ -469,7 +469,7 @@ pub fn path_error_text(e: &ew_derive::layout::PathError) -> Text {
     }
 }
 
-/// An image the asset gate refuses, by key (FT-1504, ID-1457): every [`ew_schema::AssetError`], its English the
+/// An image the asset gate refuses, by key: every [`ew_schema::AssetError`], its English the
 /// error's own text, so the CLI prints what it printed.
 pub fn asset_error_text(e: &ew_schema::AssetError) -> Text {
     use ew_schema::{AssetError as E, SvgHazard as H};
@@ -531,7 +531,7 @@ pub fn asset_error_text(e: &ew_schema::AssetError) -> Text {
 mod tests {
     use super::*;
 
-    /// FT-1504: every asset refusal's keyed English is the error's own text, byte for byte.
+    /// Every asset refusal's keyed English is the error's own text, byte for byte.
     #[test]
     fn every_asset_refusal_keeps_its_english() {
         use ew_schema::{AssetError as E, AssetFormat as F, SvgHazard as H};
@@ -572,7 +572,7 @@ mod tests {
         }
     }
 
-    /// FT-1488: a model error carries its text by key beside it, its records by their kind where no model is at hand;
+    /// A model error carries its text by key beside it, its records by their kind where no model is at hand;
     /// its printed form is the model error's, as before; an error only a defect reaches has no text.
     #[test]
     fn a_model_error_carries_its_text_by_key() {
@@ -616,7 +616,7 @@ mod tests {
         );
     }
 
-    /// C53-p3#3 (ID-1481): a record the model does not hold (one the refused step created) is named by its kind, not as
+    /// A record the model does not hold (one the refused step created) is named by its kind, not as
     /// "a device that is not in the project"; the printed form stays the model error's.
     #[test]
     fn a_record_the_model_lacks_is_named_by_its_kind() {
@@ -647,7 +647,7 @@ mod tests {
         }
     }
 
-    /// FT-1494: serde's errors keep their English byte for byte through their keys, a position included; a plain kind
+    /// Serde's errors keep their English byte for byte through their keys, a position included; a plain kind
     /// is worded, any other part kept as serde writes it.
     #[test]
     fn every_serde_refusal_keeps_its_english() {
@@ -708,7 +708,7 @@ mod tests {
         );
     }
 
-    /// FT-1494: every encoding error, identifier error and carrier path error keeps its English through its key.
+    /// Every encoding error, identifier error and carrier path error keeps its English through its key.
     #[test]
     fn every_parse_refusal_keeps_its_english() {
         use ew_schema::{MalformedVariant, SchemaError as S};
@@ -778,7 +778,7 @@ mod tests {
         }
     }
 
-    /// FT-1494: an address or a start text that does not parse, and a profile not at hand, keep the parsers' English.
+    /// An address or a start text that does not parse, and a profile not at hand, keep the parsers' English.
     #[test]
     fn the_plc_text_refusals_keep_their_english() {
         let at_hand = ew_derive::builtin_profiles();

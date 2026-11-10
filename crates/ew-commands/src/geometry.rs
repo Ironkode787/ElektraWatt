@@ -232,7 +232,7 @@ pub fn split_route(route: &[Pt2], at: Pt2) -> Option<(Vec<Pt2>, Vec<Pt2>)> {
 
 /// Moves the route end next to a moved endpoint (the v0 stand-in for re-solving the route parts next to a moved CP,
 /// doc 06 §5.4). `at_start` selects the first vertex (endpoint `a`), otherwise the last (endpoint `b`). The end
-/// vertex moves by `delta`; the far end never moves (FT-423). Every segment that was horizontal or vertical stays
+/// vertex moves by `delta`; the far end never moves. Every segment that was horizontal or vertical stays
 /// so:
 ///
 /// - when the end's segment keeps its axis after the move, nothing else changes;
@@ -244,7 +244,7 @@ pub fn split_route(route: &[Pt2], at: Pt2) -> Option<(Vec<Pt2>, Vec<Pt2>)> {
 ///
 /// A segment that was neither horizontal nor vertical keeps only its moved end; one without length (both ends of the
 /// route at one point) leaves along an L when the end moves on both axes. Consecutive equal vertices are merged, but a
-/// route keeps two vertices, its two ends, also where they meet (FT-1029). On [`OutOfRange`] the route is unchanged.
+/// route keeps two vertices, its two ends, also where they meet. On [`OutOfRange`] the route is unchanged.
 pub fn follow_end(route: &mut Vec<Pt2>, grid: Grid, at_start: bool, delta: Pt2) -> Result<(), OutOfRange> {
     if at_start {
         follow_ends(route, grid, Some(delta), None)
@@ -255,7 +255,7 @@ pub fn follow_end(route: &mut Vec<Pt2>, grid: Grid, at_start: bool, delta: Pt2) 
 
 /// Moves both route ends: end `a` by `da` and end `b` by `db` (each by [`follow_end`]'s rule, end `a` first); equal
 /// displacements translate the whole route. The far end of each step stays where the other displacement put it,
-/// so every end that met its CP before meets the CP's new position after (FT-423). On [`OutOfRange`] the route is
+/// so every end that met its CP before meets the CP's new position after. On [`OutOfRange`] the route is
 /// unchanged.
 pub fn follow_ends(
     route: &mut Vec<Pt2>,
@@ -267,7 +267,7 @@ pub fn follow_ends(
     match (da, db) {
         (Some(a), Some(b)) if a == b => translate(&mut next, a)?,
         _ => {
-            // FT-1029: a route whose two ends met (stored as one vertex) gets its second end back before one end
+            // A route whose two ends met (stored as one vertex) gets its second end back before one end
             // moves, else the far end would move with it.
             if next.len() == 1 {
                 next.push(next[0]);
@@ -281,7 +281,7 @@ pub fn follow_ends(
                 next.reverse();
             }
             next.dedup();
-            // The ends stay two vertices where they meet (FT-1029).
+            // The ends stay two vertices where they meet.
             if next.len() == 1 {
                 next.push(next[0]);
             }
@@ -308,7 +308,7 @@ fn follow_start(route: &mut Vec<Pt2>, grid: Grid, d: Pt2) -> Result<(), OutOfRan
     }
     let nb = route[1];
     if old == nb {
-        // An end segment without length (FT-1029): the end leaves the neighbour along an L, never diagonally.
+        // An end segment without length: the end leaves the neighbour along an L, never diagonally.
         if new.x != nb.x && new.y != nb.y {
             route.insert(1, Pt2::new(new.x, nb.y));
         }
@@ -362,10 +362,9 @@ pub fn point_on_grid(grid: Grid, p: Pt2) -> bool {
     on_grid(grid, p.x) && on_grid(grid, p.y)
 }
 
-/// The refusal of a point off the grid of `page`, in words (a refusal reaches the window's banner, FT-756): what
+/// The refusal of a point off the grid of `page`, in words (a refusal reaches the window's banner): what
 /// the point is, its position in mm and its page, no nm and no JSON Pointer ("the wire's corner at x 77, y 161 mm
-/// on page 101 is not on the drawing grid"). A fragment: each caller ends it with the step the user can take
-/// (FT-1054, ID-1108).
+/// on page 101 is not on the drawing grid"). A fragment: each caller ends it with the step the user can take.
 pub(crate) fn off_grid(tx: &TxBuilder<'_>, what: impl Into<TextArg>, page: Id<Page>, p: Pt2) -> Text {
     text!(
         "refusal-geometry-off-grid",
@@ -458,16 +457,16 @@ pub fn require_split_point(
 ///
 /// - an end at a CP that a representation on `page` draws must be exactly that CP's position (route
 ///   vertex 0 at endpoint `a`, the last vertex at endpoint `b`), and an end at a junction on `page` exactly the
-///   junction's point (WP-S2.19 D2: a route holds both ends);
+///   junction's point (a route holds both ends);
 /// - every coordinate of every vertex lies on the page's connection grid, or equals that coordinate of
 ///   a route end that meets its CP: a CP position can sit up to 1 nm off a rational grid (the rounding
 ///   pitfall of `Grid::cell`), and the segment leaving it stays orthogonal;
 /// - every vertex lies within ±[`MAX_COORD`];
-/// - the route is tidy (FT-437, [`route_defect`]): no vertex repeats the one before it, and no segment
+/// - the route is tidy ([`route_defect`]): no vertex repeats the one before it, and no segment
 ///   runs over another one (a stretch of positive length shared on one line, a doubling back included).
 ///   A collinear vertex where the route runs straight on is no defect.
 ///
-/// Every refusal names the vertex in words, without a JSON Pointer or nanometres (FT-864, ID-1108), and ends with what
+/// Every refusal names the vertex in words, without a JSON Pointer or nanometres, and ends with what
 /// the user can do: "the wire's corner at x 15.9, y 7.9 mm on page 102 is not on the drawing grid" (the first vertex
 /// is the wire's start, the last its end). `_field`, the JSON Pointer of the route parameter (`/route`), is named by
 /// none of them.
@@ -503,7 +502,7 @@ pub fn require_route(
     }
     let mut exact: Vec<Pt2> = Vec::new();
     for (e, v, i) in [(a, first, 0), (b, last, route.len() - 1)] {
-        // WP-S2.19 D2: a junction end's point is the route's end vertex too.
+        // A junction end's point is the route's end vertex too.
         if let Endpoint::Junction(j) = e {
             let Some(at) = tx.get::<Junction>(*j).filter(|j| j.page == page).map(|j| j.at) else {
                 continue;
@@ -591,7 +590,7 @@ pub fn require_route(
     }
 }
 
-/// What makes a route untidy (FT-437, [`route_defect`]).
+/// What makes a route untidy ([`route_defect`]).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RouteDefect {
     /// Vertex `i` equals vertex `i − 1`.

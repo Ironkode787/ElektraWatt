@@ -375,7 +375,7 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
     }
 }
 
-/// The warning for a library write whose search index failed to take the committed write (FT-665): the write
+/// The warning for a library write whose search index failed to take the committed write: the write
 /// stands, and the index is brought up to date on the next open or write.
 pub(super) fn index_warning(w: &ew_api::library::WriteReport) -> Option<String> {
     w.index_error.as_deref().map(|e| {

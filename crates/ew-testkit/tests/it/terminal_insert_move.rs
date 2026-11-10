@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Golden A checks of `terminal.insert` and `terminal.move` (WP-S2.07 §5.1, §5.2; acceptance SE1, SE2), issued
+//! Golden A checks of `terminal.insert` and `terminal.move` (§5.2; acceptance SE1, SE2), issued
 //! through the builder DSL's verbs `terminal_insert` and `terminal_move` against a session over path (a)'s batch
 //! (the committed directory is never opened). The rejections and the accessory case run in `ew-commands`
 //! (`tests/terminal_insert_move.rs`).
@@ -209,7 +209,7 @@ fn insert_before_5_on_golden_a() {
     // One undo step restores the project.
     s.undo(&Origin::Gui).expect("one undo step");
     assert_eq!(lines(&s), before);
-    // Before :3, inside BR1 (1 to 4): refused, naming the group and the places outside it (FT-641).
+    // Before :3, inside BR1 (1 to 4): refused, naming the group and the places outside it.
     let t3 = device(&s, "3");
     let err = with_builder(&mut s, |b| {
         b.terminal_insert(
@@ -249,7 +249,7 @@ fn move_13_before_11_on_golden_a() {
     s.undo(&Origin::Gui).expect("one undo step");
     assert_eq!(lines(&s), before);
     // To the end: :1 would leave bridge group BR1 (1 to 4) over terminals that are not consecutive (CI-06);
-    // terminal.move refuses, naming the group and the way out (FT-641); nothing changes.
+    // terminal.move refuses, naming the group and the way out; nothing changes.
     let t1 = device(&s, "1");
     let err = with_builder(&mut s, |b| b.terminal_move(&[t1], None)).expect_err("the split is refused");
     assert!(

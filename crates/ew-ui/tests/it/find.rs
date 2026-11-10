@@ -101,7 +101,7 @@ fn fr3_find_and_replace_from_the_keyboard() {
         .filter_map(|n| n.accesskit_node().label())
         .filter(|l| l.contains("Function text"))
         .collect();
-    // FT-433: the list box holds the 20; only the rows on show are built.
+    // The list box holds the 20; only the rows on show are built.
     assert!(
         h.get_all_by_role(egui::Role::ListBox)
             .any(|n| n.accesskit_node().label().as_deref() == Some("20 results")),
@@ -211,7 +211,7 @@ fn type_keys(h: &mut Harness<'_, App>, text: &str) {
     settle(h);
 }
 
-/// Tab in the search field moves the focus to "Replace with" and Shift+Tab back (keyboard parity, WP-S2.05 part 2).
+/// Tab in the search field moves the focus to "Replace with" and Shift+Tab back (keyboard parity).
 #[test]
 fn fr3_tab_and_shift_tab_move_between_the_find_fields() {
     let tmp = Tmp::new();
@@ -271,7 +271,7 @@ fn options<'t>(h: &'t Harness<'_, App>) -> Vec<egui_kittest::Node<'t>> {
     h.get_all_by_role(egui::Role::ListBoxOption).collect()
 }
 
-/// AX-7 (FT-433): a result's accessible name is its line in plain text and its description the same line with the
+/// AX-7: a result's accessible name is its line in plain text and its description the same line with the
 /// matches marked; a long list builds only the rows on show, and the cursor's row is built wherever it moves.
 #[test]
 fn ax7_results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
@@ -338,7 +338,7 @@ fn ax7_results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
     assert_eq!(selected, expected);
 }
 
-/// C49-p5#1: a result longer than the pane and a result with a line break keep one line's height (the row truncates),
+/// A result longer than the pane and a result with a line break keep one line's height (the row truncates),
 /// so the cursor, moved past them, sits inside the list at the 1280 × 800 floor and at 1920 × 1080; its name and
 /// description keep the whole line with the replacement, its tooltip shows that line (C49-p5b#1), and it alone is
 /// selected for AccessKit.
@@ -453,7 +453,7 @@ fn a_palette_run_that_fails_is_cleared_by_the_actions_next_success() {
     assert!(h.state().shell().palette().is_none());
     assert_eq!(
         h.state().shell().banner(),
-        // FT-1414: in words, never the parser's own text.
+        // In words, never the parser's own text.
         Some(
             "The regular expression cannot be used: check its brackets, repeats and escapes, or make it simpler"
         ),
@@ -500,7 +500,7 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
                 .size()
                 .x
         });
-        // C49-p5#6: the field's frame keeps a button's padding each side (egui's text edit style).
+        // The field's frame keeps a button's padding each side (egui's text edit style).
         let margin = 2.0 * style.spacing.button_padding.x;
         assert!(
             field.width() >= hint + margin,
@@ -591,7 +591,7 @@ fn w49_2_f4_the_find_fields_take_their_rows_width_at_the_headers_inset() {
     );
 }
 
-/// FT-1288: in a 1280 × 720 window the find pane's empty state shows its two lines whole inside the pane (its icon
+/// In a 1280 × 720 window the find pane's empty state shows its two lines whole inside the pane (its icon
 /// gives way), in Find and in Find and replace, and still shows its icon at 1920 × 1080.
 #[test]
 fn the_empty_state_shows_whole_in_a_short_window() {

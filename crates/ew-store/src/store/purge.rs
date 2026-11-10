@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The asset purge (doc 05 §13.3, FT-380, decision log ID-574): the explicit, previewed removal of asset files that
+//! The asset purge (doc 05 §13.3): the explicit, previewed removal of asset files that
 //! nothing names. A save never removes an asset file; this is the only path that does.
 //!
 //! **The rule.** An asset file `assets/<sha256>.<ext>` that the manifest lists, whose bytes hash to its name **at the
@@ -205,7 +205,7 @@ impl Store {
         None
     }
 
-    /// What a purge would remove now (the preview, doc 05 §13.3, FT-380): the listed asset files whose hash no
+    /// What a purge would remove now (the preview, doc 05 §13.3): the listed asset files whose hash no
     /// project file mentions and that `keep` (the session's undo and redo entries) does not hold.
     ///
     /// # Errors
@@ -263,7 +263,7 @@ impl Store {
                 }
             }
         }
-        // An untouched record's line, written as it was read (WP-S6.08 D24), decoded too.
+        // An untouched record's line, written as it was read, decoded too.
         for (line, _) in self.untouched.values() {
             if let Ok(value) = serde_json::from_slice::<serde_json::Value>(line) {
                 sha256_mentions(value.to_string().as_bytes(), &mut named);
@@ -329,7 +329,7 @@ impl Store {
         Ok(plan)
     }
 
-    /// Purges asset files (doc 05 §13.3, FT-380): [`Store::purge_plan`] at this moment, restricted to `only` when
+    /// Purges asset files (doc 05 §13.3): [`Store::purge_plan`] at this moment, restricted to `only` when
     /// given (every hash of `only` must be in the plan, else [`PurgeError::Stale`] and nothing is removed), then a save
     /// of `model` whose removal list holds the files. `model` must be the saved one (no unsaved steps). A plan
     /// without files writes nothing and reports the current generation.

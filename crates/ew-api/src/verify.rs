@@ -145,7 +145,7 @@ struct Keys {
     /// The report blocks; the flag marks a table of contents (its pages are keyed by their count).
     blocks: Vec<(Id<ReportBlock>, bool)>,
     cfgs: Vec<Id<PlcConfigProject>>,
-    /// The logical and physical bus nets (WP-S1.21 D11).
+    /// The logical and physical bus nets.
     lnets: Vec<Id<ew_schema::LogicalNet>>,
     pnets: Vec<Id<ew_schema::PhysicalNet>>,
     devices: Vec<Id<Device>>,
@@ -156,7 +156,7 @@ struct Keys {
     potentials: Vec<PotentialId>,
     /// The profile keys of the potentials, and the same attributes with each known circuit class.
     profile_keys: BTreeSet<ProfileKey>,
-    /// The layout spaces, carriers and placements (WP-S4.01 part 2).
+    /// The layout spaces, carriers and placements.
     spaces: Vec<Id<ew_schema::LayoutSpace>>,
     carriers: Vec<Id<ew_schema::Carrier>>,
     placements: Vec<Id<ew_schema::Placement>>,
@@ -262,7 +262,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<IpFunctions>(memo, cold, [()], o);
     check::<IpInfoOf>(memo, cold, keys.functions.iter().copied(), o);
     check::<IpPairingQ>(memo, cold, [()], o);
-    // WP-S2.04 part 4a: an interruption point's structure and the structure box around a representation.
+    // An interruption point's structure and the structure box around a representation.
     check::<ew_derive::IpStructure>(memo, cold, keys.functions.iter().copied(), o);
     check::<ew_derive::RepStructureBox>(memo, cold, keys.reps.iter().copied(), o);
     check::<PageIds>(memo, cold, [()], o);
@@ -278,28 +278,28 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<PotentialNameOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<ew_derive::ModuleOrder>(memo, cold, keys.cfgs.iter().copied(), o);
     check::<ew_derive::ModuleStarts>(memo, cold, keys.cfgs.iter().copied(), o);
-    // WP-S1.21 part 3: the per-module start (D9) and the address index (EW-PLC-001).
+    // The per-module start (D9) and the address index (EW-PLC-001).
     check::<ew_derive::ModuleStartOf>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::AddressIndex>(memo, cold, keys.cfgs.iter().copied(), o);
     check::<ew_derive::ChannelAddresses>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::ChannelStates>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::ChannelTargets>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::ChannelTexts>(memo, cold, keys.devices.iter().copied(), o);
-    // FT-319: the channel indexes.
+    // The channel indexes.
     check::<ew_derive::ChannelsByModule>(memo, cold, [()], o);
     check::<ew_derive::ChannelsByCp>(memo, cold, [()], o);
     check::<ew_derive::ModuleChannelIds>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::SolenoidPositions>(memo, cold, keys.devices.iter().copied(), o);
-    // WP-S1.21 D11: the bus segments and the members of a logical net.
+    // The bus segments and the members of a logical net.
     check::<ew_derive::BusSegments>(memo, cold, keys.pnets.iter().copied(), o);
     check::<ew_derive::NetMembersOf>(memo, cold, keys.lnets.iter().copied(), o);
     check::<ew_derive::PlcRows>(memo, cold, keys.devices.iter().copied(), o);
-    // WP-S1.21 part 2 (D7): the printed PLC addresses.
+    // The printed PLC addresses.
     check::<ew_derive::PlcAddressText>(memo, cold, keys.functions.iter().copied(), o);
     check::<DevicePartLines>(memo, cold, keys.devices.iter().copied(), o);
     check::<DeviceTag>(memo, cold, keys.devices.iter().copied(), o);
     check::<DevicesByStructure>(memo, cold, [()], o);
-    // WP-S2.04 part 2: the drawing settings (crossings as hops).
+    // The drawing settings (crossings as hops).
     check::<ew_derive::DrawingSettingsQ>(memo, cold, [()], o);
     check::<DrawnPageOrder>(memo, cold, [()], o);
     check::<EndClass>(
@@ -330,10 +330,10 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<WireProfilesQ>(memo, cold, [()], o);
     check::<WirePropsOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<XrefTextOf>(memo, cold, keys.reps.iter().copied(), o);
-    // WP-S4.01 part 2: the layout queries; a label in both modes on every page (the abbreviated one reads the page).
+    // The layout queries; a label in both modes on every page (the abbreviated one reads the page).
     check::<ew_derive::layout::Unplaced>(memo, cold, keys.spaces.iter().copied(), o);
     check::<ew_derive::layout::RailOccupancy>(memo, cold, keys.carriers.iter().copied(), o);
-    // WP-S4.02 part 1: the derived end brackets of every carrier.
+    // The derived end brackets of every carrier.
     check::<ew_derive::layout::GroupAccessories>(memo, cold, keys.carriers.iter().copied(), o);
     check::<ew_derive::layout::PlacementGeometry>(memo, cold, keys.placements.iter().copied(), o);
     check::<ew_derive::layout::LayoutLabel>(
@@ -350,7 +350,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
         }),
         o,
     );
-    // The page output (FT-59): the memoised parts of the page views and the page display list of every layer.
+    // The page output: the memoised parts of the page views and the page display list of every layer.
     check::<PageFrameOf>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<PageGridOf>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<PageRepsOf>(memo, cold, keys.pages.iter().copied(), o);
@@ -365,7 +365,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<WiresLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<LabelsLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<TablesLayer>(memo, cold, keys.page_refs.iter().copied(), o);
-    // WP-S4.01 part 3: the surface view of a panel-layout page, its three layers and its shaped labels.
+    // The surface view of a panel-layout page, its three layers and its shaped labels.
     check::<PageSurfaceView>(memo, cold, keys.pages.iter().copied(), o);
     check::<SurfaceLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<CarriersLayer>(memo, cold, keys.page_refs.iter().copied(), o);

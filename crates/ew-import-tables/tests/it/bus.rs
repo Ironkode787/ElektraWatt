@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The bus tables (WP-S1.21 D11; doc 20 §11.1): `logical_nets.csv`, `physical_nets.csv` and `bus_ports.csv` on the
+//! The bus tables (doc 20 §11.1): `logical_nets.csv`, `physical_nets.csv` and `bus_ports.csv` on the
 //! golden tables, and the rows that are refused when the golden bus tables are replaced by small ones.
 
 use crate::common;

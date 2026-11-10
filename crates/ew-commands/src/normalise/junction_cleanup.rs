@@ -206,7 +206,7 @@ fn printed_number(
     numbers.number(wire.id).map(|n| n.label.clone())
 }
 
-/// A wire's number in words for a refusal (FT-779, FT-848): `numbered "101"` for a frozen number; for an assigned one
+/// A wire's number in words for a refusal: `numbered "101"` for a frozen number; for an assigned one
 /// the number the drawing prints, `numbered "102.5"`, and its counter only where the two wires' printed numbers
 /// coincide (`numbered "102.5" with assigned number 5`) or it prints none (`with assigned number 5`), so two different
 /// numbers never read the same; or how it is numbered.

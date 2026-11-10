@@ -35,7 +35,7 @@ use serde_json::Value;
 
 /// The release notes of the next release.
 const RELEASE_NOTES: &str = "docs/release-notes/unreleased.md";
-/// The published schemas of the file format, one folder per format (WP-S6.08 D9).
+/// The published schemas of the file format, one folder per format.
 const SCHEMAS_DIR: &str = "schemas";
 /// The frozen copies of each released format's projects (ADR-0011 amendment 6).
 const FIXTURES_DIR: &str = "fixtures/format";
@@ -217,7 +217,7 @@ fn parent(path: &str) -> &str {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The format surface (WP-S6.08 D9)
+// The format surface
 
 /// The guard's lines and failures of the `format` surface.
 #[derive(Default)]
@@ -233,7 +233,7 @@ struct FormatReport {
 /// The `format` surface: each format folder `schemas/<f>/` of the working tree or of a release, against its base, the
 /// oldest final release tag whose tree holds `schemas/<f>/index.json`, with `notes_after` the working tree's release
 /// notes. Without a base the format is not released and nothing is compared. The line check of a new value compares
-/// with the newest such tag whose version is not above the working tree's (WP-S6.08 D22).
+/// with the newest such tag whose version is not above the working tree's.
 fn format_guard(root: &Path, notes_after: &str) -> Result<FormatReport> {
     let mut out = FormatReport::default();
     let mut base: BTreeMap<String, String> = BTreeMap::new();
@@ -327,7 +327,7 @@ fn format_blobs(root: &Path, dir: &str, tag: &str) -> Result<(Files, String)> {
 }
 
 /// The format `f` of the working tree against its release `tag`: the index, every schema, the frozen fixture; a new
-/// value against `line_tag` and its notes (WP-S6.08 D22).
+/// value against `line_tag` and its notes.
 fn compare_format(
     root: &Path,
     f: &str,
@@ -360,7 +360,7 @@ fn compare_format(
             node_changes(item, &b, &a, &mut changes, &mut variants);
         } else {
             // With a newer line base, the values new since the oldest base are reported in `changes` only; S6 reads
-            // the line base's below (C53-p1#7).
+            // the line base's below.
             node_changes(item, &b, &a, &mut changes, &mut Vec::new());
         }
     }
@@ -509,7 +509,7 @@ fn index_changes(before: &Value, after: &Value, out: &mut Vec<(bool, String, Str
 }
 
 /// One node of a format schema: its type, whether it is required, its values (`enum` values, `const`, and the `oneOf`
-/// and `anyOf` branches), its constraint keywords and whether it has an `enum` or a `const` (WP-S6.08 D23).
+/// and `anyOf` branches), its constraint keywords and whether it has an `enum` or a `const`.
 #[derive(Default)]
 struct FormatNode {
     ty: Option<String>,
@@ -517,12 +517,12 @@ struct FormatNode {
     values: BTreeSet<String>,
     constraints: BTreeMap<&'static str, String>,
     enumerated: Option<&'static str>,
-    /// A `oneOf` or `anyOf` branch's own constraints, at `<path>|<branch>` (WP-S6.08 D29): the branch itself is the
+    /// A `oneOf` or `anyOf` branch's own constraints, at `<path>|<branch>`: the branch itself is the
     /// node's value, so only its constraints are compared here.
     branch: bool,
 }
 
-/// The constraint keywords the format guard compares (WP-S6.08 D23, D29): any change to one breaks.
+/// The constraint keywords the format guard compares: any change to one breaks.
 const CONSTRAINTS: [&str; 15] = [
     "format",
     "minimum",
@@ -556,7 +556,7 @@ fn note_constraints(node: &Value, entry: &mut FormatNode) {
 }
 
 /// `before` with each `$defs` definition that `after` holds under a new name, its content unchanged, renamed to that
-/// name, every local `$ref` to it with it: a rename alone is no change (WP-S6.08 D23).
+/// name, every local `$ref` to it with it: a rename alone is no change.
 fn renamed_defs(before: &Value, after: &Value) -> Value {
     fn rewrite(v: &mut Value, renames: &BTreeMap<String, String>) {
         match v {
@@ -750,7 +750,7 @@ fn node_changes(
             (true, false) => out.push((false, item(path), "no longer required".to_owned())),
             _ => {}
         }
-        // WP-S6.08 D23: a constraint added, removed or changed, and a first `enum` or `const`, break either old files
+        // A constraint added, removed or changed, and a first `enum` or `const`, break either old files
         // or old readers.
         let keys: BTreeSet<&str> = node
             .constraints
@@ -911,7 +911,7 @@ mod tests {
         guard(&s.dir).unwrap()
     }
 
-    /// RL-6 (WP-S6.08 D9): without a final release tag (a candidate's `-rc` tag is none) the format is not released:
+    /// RL-6: without a final release tag (a candidate's `-rc` tag is none) the format is not released:
     /// the guard says so and passes, whatever changed.
     #[test]
     fn a_format_without_a_release_tag_is_not_compared() {
@@ -935,7 +935,7 @@ mod tests {
         );
     }
 
-    /// RL-6 (WP-S6.08 D9): against the release tag `v0.1.0` each breaking change of D9's list fails with S5, a new value
+    /// RL-6: against the release tag `v0.1.0` each breaking change of D9's list fails with S5, a new value
     /// without its `- format-variant:` line with S6 (with it, it passes), a changed fixture with S7; a new optional
     /// property, a reserved kind's new schema and a changed expected folder pass. The base is the oldest final tag, the
     /// line check's the newest (D22).
@@ -1037,7 +1037,7 @@ mod tests {
         );
     }
 
-    /// RL-6 (WP-S6.08 D9): a new value with its line, a new optional property and a changed expected folder pass.
+    /// RL-6: a new value with its line, a new optional property and a changed expected folder pass.
     #[test]
     fn a_new_value_with_its_line_and_a_new_optional_property_pass() {
         let s = Scratch::new("format-additive");
@@ -1077,7 +1077,7 @@ mod tests {
         );
     }
 
-    /// FT-1518 (WP-S6.08 D22): the line check reads the newest final tag not above the tree's version. A value added
+    /// The line check reads the newest final tag not above the tree's version. A value added
     /// between `v0.1.0` and `v0.2.0` with its line, the notes emptied after the second promote, passes; one added after
     /// `v0.2.0` without its line fails with S6 naming `v0.2.0`. At version 0.1.1 (a `v0.1.1` cut on the release
     /// branch) the line base is `v0.1.0`, and both values need their lines.
@@ -1101,7 +1101,7 @@ mod tests {
         s.write("Cargo.toml", "[workspace.package]\nversion = \"0.2.0\"\n");
         s.commit("0.2.0");
         s.git(&["tag", "v0.2.0"]);
-        // The promote empties the notes to their head (WP-S6.08 §7 step 9).
+        // The promote empties the notes to their head (step 9).
         s.write(RELEASE_NOTES, NOTES_WITHOUT);
         s.write_json(
             "schemas/0.1/device.schema.json",
@@ -1121,7 +1121,7 @@ mod tests {
         assert_eq!(report.failure, [s6("c", "v0.1.0"), s6("d", "v0.1.0")]);
     }
 
-    /// WP-S6.08 D23 (C52-p2#2): a constraint added to a property, to a `prefixItems` item and to a map's value schema,
+    /// A constraint added to a property, to a `prefixItems` item and to a map's value schema,
     /// and a first `enum`, each fail with S5; a `$defs` definition renamed with its content unchanged is no change.
     #[test]
     fn a_released_format_keeps_its_constraints() {
@@ -1186,7 +1186,7 @@ mod tests {
         );
     }
 
-    /// WP-S6.08 D29 (C53-p1#3, #4; ID-1470): a constraint of a `oneOf` branch (`additionalProperties`), of an `anyOf`
+    /// WP-S6.08 D29 (#4): a constraint of a `oneOf` branch (`additionalProperties`), of an `anyOf`
     /// branch (`minProperties` changed, `maxProperties` added) and of a map's key schema (`propertyNames`' `pattern`)
     /// each fail with S5 under its own item.
     #[test]

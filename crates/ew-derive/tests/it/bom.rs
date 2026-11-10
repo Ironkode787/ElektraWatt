@@ -787,7 +787,7 @@ fn a_bridge_without_any_part_takes_its_first_connection_as_carrier() {
 }
 
 /// A group of mixed kinds takes the kind of its first connection in (lower seq, ID) order, whichever connection has
-/// the smaller ID (ID-677, NFR-REL-07): the kind follows what is printed, not random IDs.
+/// the smaller ID (NFR-REL-07): the kind follows what is printed, not random IDs.
 #[test]
 fn a_mixed_kind_group_takes_the_kind_of_its_first_connection_in_seq_order() {
     use ew_derive::StripBridges;

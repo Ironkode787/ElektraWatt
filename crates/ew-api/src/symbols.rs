@@ -61,9 +61,9 @@ pub struct SymbolDraft {
     pub import_reviewed: bool,
 }
 
-/// The item IDs of a draft's library records, one per kind (ID-1463): UUIDv7s minted at the draft's first
+/// The item IDs of a draft's library records, one per kind: UUIDv7s minted at the draft's first
 /// publication, and kept only by a draft that comes from those items under their key. A draft whose key differs from
-/// the key the target library holds for them publishes new items instead (ID-1474).
+/// the key the target library holds for them publishes new items instead.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DraftIdentity {
@@ -816,9 +816,9 @@ impl SymbolDraft {
 
     /// Publish through the library's existing lock and generation transaction. The first publication mints the
     /// draft's identity and keeps it in the draft. A key the library holds for another item is refused; the owned
-    /// function definition keeps the version the library holds while its content is unchanged (ID-1463). An item of
+    /// function definition keeps the version the library holds while its content is unchanged. An item of
     /// the identity that the library holds under another key is not renamed: the draft publishes a new item with a
-    /// new identity, which it takes, and the report names it as added (ID-1474).
+    /// new identity, which it takes, and the report names it as added.
     ///
     /// # Errors
     /// Validation, unresolved assigned function, stale function, a key of another item, or the writer's
@@ -930,7 +930,7 @@ impl SymbolDraft {
 }
 
 /// The identity a draft keeps from the symbol it comes from: only under the symbol's own key, and its function
-/// definition's only when that is the symbol's own one (ID-1463). Another key makes a new item.
+/// definition's only when that is the symbol's own one. Another key makes a new item.
 fn kept_identity(symbol: &LibCopy<SymbolDef>, function: &LibCopy<FnDef>, key: &str) -> Option<DraftIdentity> {
     let own = |k: Option<&ew_mltext::Ident>, expected: &str| k.is_some_and(|k| k.as_str() == expected);
     own(symbol.item.meta.key.as_ref(), key).then(|| DraftIdentity {
@@ -1095,7 +1095,7 @@ fn qet(bytes: &[u8], name: &str, key: &str) -> Result<SymbolDraft, Error> {
     Ok(draft)
 }
 
-/// The key of a symbol imported from `path` without one (ID-1463: no shared default key): the file's name before its
+/// The key of a symbol imported from `path` without one (no shared default key): the file's name before its
 /// first dot (the whole name when that is empty), each character other than an ASCII letter, a digit, `_` or `-`
 /// replaced by `_`.
 pub fn file_key(path: &Path) -> String {

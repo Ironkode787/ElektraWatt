@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 3 (D9 to D11, ID-1219): the shell's texts through Fluent. LO-1 every key's en-GB text equals the
+//! The shell's texts through Fluent. LO-1 every key's en-GB text equals the
 //! committed snapshot `tests/expected/en-GB-texts.txt` (one `key = text` line per key, a backslash, a line feed and a
 //! tab escaped as `\\`, `\n` and `\t`), taken at the base of part 3 before the table moved to Fluent; a difference is
 //! a stop, never a re-bless. LO-3 the completeness gate; the pseudo-locale en-XA; the run-time switch. Part 4 (D12,
@@ -142,7 +142,7 @@ fn a_test_language_switches_and_falls_back() {
 }
 
 /// The `$pN` arguments of each message of the Fluent file `ftl`, by key: in a placeable `{ $pN }` or a function's
-/// `{ IN_SENTENCE($pN) }` (ID-1278 ruling 9).
+/// `{ IN_SENTENCE($pN) }`.
 fn arguments(ftl: &str) -> std::collections::BTreeMap<String, std::collections::BTreeSet<String>> {
     ftl.lines()
         .filter(|l| !l.starts_with('#'))
@@ -167,7 +167,7 @@ fn shipped_file(locale: &str) -> String {
     std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
 }
 
-/// FT-1505 (ID-1456, doc 16a §8 item 5): in every shipped locale every whole toast text ends with its full stop. Exempt
+/// FT-1505 (doc 16a §8 item 5): in every shipped locale every whole toast text ends with its full stop. Exempt
 /// by name: the toasts' button and label words, and the fragments composed into another toast's sentence.
 #[test]
 fn every_toast_ends_with_its_full_stop() {
@@ -215,7 +215,7 @@ fn every_toast_ends_with_its_full_stop() {
     }
 }
 
-/// NL-1 (ID-1269 ruling 3): every key of every shipped locale takes the arguments of its en-GB message, no more and
+/// NL-1: every key of every shipped locale takes the arguments of its en-GB message, no more and
 /// no fewer, and a locale has no key en-GB lacks.
 #[test]
 fn nl1_every_message_takes_the_arguments_of_en_gb() {
@@ -319,7 +319,7 @@ fn en_uses(texts: &str, term: &str) -> bool {
     })
 }
 
-/// The Dutch forms of a one-word term (FT-1341): the term and its plurals, "klem" "klemmen", "draad" "draden",
+/// The Dutch forms of a one-word term: the term and its plurals, "klem" "klemmen", "draad" "draden",
 /// "kast" "kasten", "ader" "aders", "doorsnede" "doorsneden" ("pagina's" splits into "pagina" and "s").
 fn nl_forms(term: &str) -> Vec<String> {
     let last = term.chars().last().map(String::from).unwrap_or_default();
@@ -336,7 +336,7 @@ fn nl_forms(term: &str) -> Vec<String> {
     forms
 }
 
-/// Whether the Dutch `term` is in `texts` (lower case) as a word or at a compound part's edge (FT-1341), so that a
+/// Whether the Dutch `term` is in `texts` (lower case) as a word or at a compound part's edge, so that a
 /// compound by the table counts ("klemmenstrook" holds "klem", "draadartikel" "artikel", "proceskenmerk" "kenmerk")
 /// and a word that only shares letters does not ("kleur" and "klep" hold no "klem", "kader" no "ader"): a one-word
 /// term or its plural ([`nl_forms`]) starting a word, or after at least three letters ending one or, for a term of
@@ -405,7 +405,7 @@ fn messages_of(ftl: &str) -> std::collections::BTreeMap<String, String> {
 }
 
 /// The message texts of the Fluent file `ftl` in lower case, one per line: each message's value, its attributes
-/// (`.title = …`), the arms of its selectors (`[one] …`, `*[other] …`) and its continuation lines (ID-1278 ruling 4),
+/// (`.title = …`), the arms of its selectors (`[one] …`, `*[other] …`) and its continuation lines,
 /// with the placeables (`{ $cp_tag }`, a selector's head) left out: they are no words of the text.
 fn texts(ftl: &str) -> String {
     ftl.lines()
@@ -442,7 +442,7 @@ fn rule_messages_nl() -> String {
     std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
 }
 
-/// FT-1238: the messages whose en-GB text holds a table term in another sense than the table's, by (key, term, the
+/// The messages whose en-GB text holds a table term in another sense than the table's, by (key, term, the
 /// sense): NL-2 does not ask the row's Dutch term there.
 const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ("action-view-frame-stats", "frame", "a drawn frame of the window"),
@@ -492,8 +492,8 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
         "connection",
         "an external reference's far connection (aansluiting)",
     ),
-    // FT-1341: the release's Git tag, named "the tag" or the verb (Git's own word, "tag").
-    // FT-1421: a computer's terminal, where `ew` runs (de opdrachtregel).
+    // The release's Git tag, named "the tag" or the verb (Git's own word, "tag").
+    // A computer's terminal, where `ew` runs (de opdrachtregel).
     (
         "refusal-purge-human-only",
         "terminal",
@@ -504,13 +504,13 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ("revision-complete-git", "tag", "a Git tag"),
     ("release-error-git-consent", "tag", "a Git tag"),
     ("release-error-tag-exists", "tag", "a Git tag"),
-    // FT-1337: "not part of an assembly", a share (deel).
+    // "not part of an assembly", a share (deel).
     (
         "refusal-layout-not-assembly",
         "part",
         "a share of an assembly (deel)",
     ),
-    // FT-1395: a command, a member, a value or a library kind by its own name, a rule pack's code, a Git tag, a share.
+    // A command, a member, a value or a library kind by its own name, a rule pack's code, a Git tag, a share.
     (
         "refusal-box-black-terminal",
         "device",
@@ -522,7 +522,7 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
         "the rule pack code EW-CORE",
     ),
     ("refusal-library-copy-hash", "core", "the rule code EW-CORE-014"),
-    // FT-1494: another crate's error by its own words, a rule code, a language tag.
+    // Another crate's error by its own words, a rule code, a language tag.
     ("refusal-schema-float", "core", "the rule code EW-CORE-007"),
     ("refusal-ident-lang-tag", "tag", "a language tag (taalcode)"),
     (
@@ -570,7 +570,7 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ("refusal-revision-git-tag", "tag", "a Git tag"),
 ];
 
-/// NL-2 (ID-1269 rulings 1 and 2): the terminology table heads the nl-NL file with the ruling's rows; over the
+/// NL-2: the terminology table heads the nl-NL file with the ruling's rows; over the
 /// messages, each Dutch term is used where its en-GB term is, and no rejected alternative is (one that is the Dutch
 /// term of another row, "kabel" for a cable, is that row's).
 #[test]
@@ -605,7 +605,7 @@ fn nl2_the_terminology_table_is_followed() {
     assert!(nl[..header_ends].contains("# term: device = apparaat (not: toestel, component)\n"));
     // ID-1278 ruling 4: the checks' Dutch messages follow the table too, select arms and attributes included.
     let rules = texts(&rule_messages_nl());
-    // FT-1238: message by message. Each table term an en-GB message holds as whole words (the longest first, a term
+    // Message by message. Each table term an en-GB message holds as whole words (the longest first, a term
     // inside a longer one not counted again) is its Dutch term in the nl-NL message, inside a compound too. A rejected
     // word is refused at the start of a Dutch word: everywhere, or, when it is (in) another row's Dutch term ("kabel"
     // for a cable, "kabelgoot" for a duct), in the messages whose en-GB text holds this row's term and not that row's.
@@ -628,7 +628,7 @@ fn nl2_the_terminology_table_is_followed() {
             let Some(dutch) = dutch_messages.get(&key) else {
                 continue;
             };
-            // FT-1341: a Git tag is Git's own word, "git tag" taken out; a message that names it "the tag" is listed
+            // A Git tag is Git's own word, "git tag" taken out; a message that names it "the tag" is listed
             // in OTHER_SENSES, so a device tag beside Git is still asked for its kenmerk.
             let mut english = en.replace("git tag", " ");
             let mut held = Vec::new();
@@ -669,13 +669,13 @@ fn nl2_the_terminology_table_is_followed() {
     assert!(!uses("een klemmenblok", "klemmenstrook"));
     assert!(uses("het toestel", "toestel"));
     assert!(!uses("de goedkeuring", "goot") && uses("de goot", "goot") && !uses("de kabelgoot", "goot"));
-    // FT-1238: the en-GB side takes whole words and a plural, the Dutch side a compound by the table.
+    // The en-GB side takes whole words and a plural, the Dutch side a compound by the table.
     assert!(en_uses("two terminals", "terminal") && en_uses("a wire's part", "part"));
     assert!(!en_uses("termination", "terminal") && !en_uses("parties", "part"));
     assert!(en_uses("cross-sections", "cross-section") && !en_uses("departure", "part"));
     assert!(nl_has("draadartikel overschreven", "artikel") && nl_has("proceskenmerk", "kenmerk"));
     assert!(nl_has("git-kenmerk", "kenmerk") && !nl_has("een onderdeel", "artikel"));
-    // FT-1341: a term whole, by its plural or at a compound part's edge, never by letters it shares.
+    // A term whole, by its plural or at a compound part's edge, never by letters it shares.
     assert!(!nl_has("de kleur", "klem") && !nl_has("de klep", "klem") && !nl_has("het kader", "ader"));
     assert!(
         nl_has("twee klemmen", "klem") && nl_has("de klemmenstrook", "klem") && nl_has("de draden", "draad")
@@ -697,7 +697,7 @@ fn messages_with(ftl: &str, prefix: &str) -> std::collections::BTreeMap<String, 
         .collect()
 }
 
-/// C49-p10b#1 (ID-1269): the record kinds' and the fields' Dutch headings follow the terminology table message by
+/// C49-p10b#1: the record kinds' and the fields' Dutch headings follow the terminology table message by
 /// message, so a right use elsewhere cannot hide a wrong one: each table term an en-GB heading holds (the longest
 /// first, a term inside a longer one not counted again) is its Dutch term in the nl-NL heading.
 #[test]
@@ -727,7 +727,7 @@ fn nl2b_the_kind_and_field_headings_follow_the_table_each() {
     assert_eq!(wrong, Vec::<String>::new());
 }
 
-/// FT-1238 and C50-p1#2 (ID-1315): with NL-2 by whole words and Dutch compounds, the en-GB words stand as they were
+/// With NL-2 by whole words and Dutch compounds, the en-GB words stand as they were
 /// (English is never changed for a Dutch check) and the Dutch headings are compounds by the table.
 #[test]
 fn nl2c_the_wordings_the_stem_match_forced_are_back() {
@@ -797,7 +797,7 @@ fn lo2_view_language_switches_the_menus_and_back() {
 }
 
 /// LO-4: with the UI in Dutch the Messages detail shows the nl-NL text of a Golden A rule that has one (EW-POT-013)
-/// and the en-GB text of a rule without one (starting with a capital, FT-1140); in English it is the finding's own
+/// and the en-GB text of a rule without one (starting with a capital); in English it is the finding's own
 /// message.
 #[test]
 fn lo4_the_messages_detail_follows_the_ui_language() {
@@ -847,7 +847,7 @@ fn lo4_the_messages_detail_follows_the_ui_language() {
     shell.shutdown();
 }
 
-/// FT-1482 (ID-1457), beside LO-4: with the UI in Dutch a finding's quick fix is labelled in Dutch, in the Messages
+/// FT-1482, beside LO-4: with the UI in Dutch a finding's quick fix is labelled in Dutch, in the Messages
 /// detail and in the table's fix cell; in English it is the fix's English label, the CLI's.
 #[test]
 fn lo4_the_quick_fix_label_follows_the_ui_language() {
@@ -903,7 +903,7 @@ fn lo4_the_quick_fix_label_follows_the_ui_language() {
     shell.shutdown();
 }
 
-/// FT-1526, FT-1528 and FT-1529 (ID-1457), whole in both languages: an imported record is "an item" / "een element";
+/// FT-1526, FT-1528 and FT-1529, whole in both languages: an imported record is "an item" / "een element";
 /// a tutorial is a "zelfstudie" in the Dutch window, as Help ▸ Zelfstudies names it; the Properties card's title puts
 /// the command's title mid-sentence in Dutch (`IN_SENTENCE`), as the Preview tab does.
 #[test]

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The `tables` layer of a generated report page (FT-53; doc 20 §16): the house table drawn from a
+//! The `tables` layer of a generated report page (doc 20 §16): the house table drawn from a
 //! [`TableView`], its findings and its place on the sheet.
 
 use std::sync::Arc;
@@ -311,7 +311,7 @@ fn a_span_link_covers_its_item_only() {
     assert!(pos(&|i| i.link == Some(ew_dl::Link::Source(d1))) > pos(&|i| std::ptr::eq(i, run)));
 }
 
-/// WP-S3.06 ruling 3 (C44-p3#2): a cell that shrinks to fit draws its span boxes at the size the text was laid out
+/// WP-S3.06 ruling 3: a cell that shrinks to fit draws its span boxes at the size the text was laid out
 /// in. In the narrow Folio column a long folio list shrinks; the first span's box starts where the text starts, the
 /// last one's ends where it ends, and both run from the shrunk text's ascent to its descent.
 #[test]

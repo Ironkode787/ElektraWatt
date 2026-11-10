@@ -386,7 +386,7 @@ fn pg8_refusals_notes_and_read_only_rows() {
         "{:?}",
         shell.properties().notes()
     );
-    // The ID row reads its read-only reason (ID-1113: "a row with a read-only reason reads that reason").
+    // The ID row reads its read-only reason ("a row with a read-only reason reads that reason").
     assert_eq!(
         shell.dispatch("props.set", &json!({"row": "device/id", "value": "x"})),
         Outcome::Failed {
@@ -449,7 +449,7 @@ fn pg10_the_transcript_and_describe_members() {
     );
     let d = shell.describe();
     assert!(d.contains("  category \"Identity\" collapsed"), "{d}");
-    // WP-S2.17 part 3 (D11): the tag is a Main row, so the collapsed Identity takes the state row with it.
+    // The tag is a Main row, so the collapsed Identity takes the state row with it.
     assert!(!d.contains("row \"device/state\""), "{d}");
     assert!(d.contains("row \"device/derived.tag\""), "{d}");
     done(
@@ -647,7 +647,7 @@ fn choice_editors_list_options_and_untouched_rows_write_nothing() {
         .iter()
         .map(|(t, _)| t.clone())
         .collect();
-    // FT-1258: the words, not the stored values.
+    // The words, not the stored values.
     assert_eq!(options, ["Used", "Spare", "Reserved", "Not fitted"]);
     let calls = shell.session_calls().field_choices;
     assert!(calls >= 1, "the combo's options are one counted call");
@@ -709,7 +709,7 @@ fn a_read_only_project_offers_no_action() {
         ),
         "reason-read-only"
     );
-    // ID-1106: "A read-only project keeps `reason-read-only`".
+    // "A read-only project keeps `reason-read-only`".
     assert_eq!(
         ew_viewmodel::strings::text(key!("reason-read-only")),
         "The project is open read-only"
@@ -882,7 +882,7 @@ fn selected_page_item_properties_refresh_after_edit() {
             EditRoute::ReadOnly(FieldReadOnly::Narrowed { .. })
         ));
     }
-    // ID-1113: the narrowed row reads its read-only reason; `kind` is a group header (its members are editable), whose
+    // The narrowed row reads its read-only reason; `kind` is a group header (its members are editable), whose
     // row offers no action of its own.
     let set = |shell: &mut ShellModel, path: &str| {
         shell.dispatch(
@@ -967,7 +967,7 @@ fn selected_page_item_properties_refresh_after_edit() {
     shell.shutdown();
 }
 
-/// FT-512: a selected terminal lists its connection points under Properties ▸ Connection points, one read-only row
+/// A selected terminal lists its connection points under Properties ▸ Connection points, one read-only row
 /// each with the label `cp_label` prints, in natural order; a device's CPs likewise.
 #[test]
 fn a_terminal_lists_its_connection_point_labels() {
@@ -1022,7 +1022,7 @@ fn a_terminal_lists_its_connection_point_labels() {
     shell.shutdown();
 }
 
-/// FT-1531 (ID-1457): in a Dutch window a placed device's connection points are labelled in Dutch ("Aansluitpunt 1"),
+/// In a Dutch window a placed device's connection points are labelled in Dutch ("Aansluitpunt 1"),
 /// by `field_label`'s item rule, never the humanised English "Connection point 1".
 #[test]
 fn ft1531_a_dutch_window_labels_the_connection_points_in_dutch() {
@@ -1052,7 +1052,7 @@ fn ft1531_a_dutch_window_labels_the_connection_points_in_dutch() {
     shell.shutdown();
 }
 
-/// FT-544: `select.set` takes a bare tag as the page prints it, a terminal as `TAG:pin` included, and selects the
+/// `select.set` takes a bare tag as the page prints it, a terminal as `TAG:pin` included, and selects the
 /// same record as `tag:<tag>`; a tag no device prints fails with a sentence that lists the reference forms.
 #[test]
 fn ft544_select_set_takes_a_bare_tag() {
@@ -1076,7 +1076,7 @@ fn ft544_select_set_takes_a_bare_tag() {
     }
 }
 
-/// FT-554: a wire's Main rows hold "Wire marker" (`overrides.show_marker`) right after the cross-section and the
+/// A wire's Main rows hold "Wire marker" (`overrides.show_marker`) right after the cross-section and the
 /// colour; switching the marker mode to explicit reports how many wires carry a marker.
 #[test]
 fn ft554_wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
@@ -1119,7 +1119,7 @@ fn ft554_wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
     );
 }
 
-/// ID-1113 (C45-p2#1): "in an editable project, for a row refused an action: a derived row (`is_derived`) reads
+/// "in an editable project, for a row refused an action: a derived row (`is_derived`) reads
 /// `reason-row-computed`; a row with a read-only reason reads that reason: identity, narrowed, command, human-only,
 /// no command, generated; an editable row that does not offer the action reads a new key". Each text whole.
 #[test]
@@ -1169,7 +1169,7 @@ fn a_refused_row_action_names_why_the_row_refuses_it() {
     shell.shutdown();
 }
 
-/// FT-1347 (C51-p6#6): a script's `step` near `i64::MAX` with the cursor past row 0 stops at the last row (no
+/// A script's `step` near `i64::MAX` with the cursor past row 0 stops at the last row (no
 /// overflow).
 #[test]
 fn ft1347_a_huge_properties_step_stops_at_the_last_row() {
@@ -1188,8 +1188,8 @@ fn ft1347_a_huge_properties_step_stops_at_the_last_row() {
     shell.shutdown();
 }
 
-/// FT-1043 (ID-1391): a representation's position reads in millimetres with its grid cell, never in nanometres;
-/// ID-1427 (W52 F5): with one decimal (ID-946) and the project's decimal separator.
+/// A representation's position reads in millimetres with its grid cell, never in nanometres;
+/// ID-1427 (W52 F5): with one decimal and the project's decimal separator.
 #[test]
 fn ft1043_a_representations_position_reads_in_millimetres_with_its_cell() {
     let tmp = Tmp::new("props-ft1043");
@@ -1230,6 +1230,6 @@ fn ft1043_a_representations_position_reads_in_millimetres_with_its_cell() {
     shell.shutdown();
 }
 
-/// The refusal of a page item's narrowed row (ID-1113), whole.
+/// The refusal of a page item's narrowed row, whole.
 const NARROWED: &str =
     "This row cannot be edited: stays on its page; delete it and place it on the other page.";

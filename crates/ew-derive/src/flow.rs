@@ -8,7 +8,7 @@
 //! the own attributes of the potentials (`potential_attrs`), and it is a **producer of parts**
 //! ([`PartKey::Flow`]): `potential_flow(p)` (Cold) reads the entry of `p` only, so a re-run of the BFS reaches
 //! the readers of the entries that changed. It keeps its value when neither the partition nor an attribute it
-//! read changed; otherwise the BFS runs whole (WP-S1.07 part 2: the flow stays global). It is note-free: the
+//! read changed; otherwise the BFS runs whole (the flow stays global). It is note-free: the
 //! pass-through conflicts are values, reported with the potentials' names by `flow_notes()`.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -454,7 +454,7 @@ impl Query for FlowNotes {
 }
 
 /// `potential_flow(potential)`: the potential's entry of [`FlowBfs`]; `None` for an unknown ID. Policy Cold:
-/// a lookup into the memoised `potential_flow_bfs` (ADR-0002 amendment 4, decision log ID-221, ARCH §6.4),
+/// a lookup into the memoised `potential_flow_bfs` (ADR-0002 amendment 4, ARCH §6.4),
 /// depending on the potential's entry only; it surfaces the flow's notes (`flow_notes`).
 #[derive(Debug)]
 pub struct PotentialFlow;

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The message panel on the navigator framework (WP-S2.09 part 2, §7; D8, D9, D10): the view state that the table of
+//! The message panel on the navigator framework (D8, D9, D10): the view state that the table of
 //! `NavKind::Messages` does not hold, and the pure rules over that table.
 //!
 //! **Pending** (§7.2, FR-UI-041). The shell keeps the **editing page**: the focused tab's page after every successful
@@ -32,7 +32,7 @@ const SUBJECT: usize = 3;
 const FIX: usize = 5;
 /// The column of a finding row's state (`open`, `waived`).
 const STATE: usize = 6;
-/// The table a Check project counted (C52-p5#2): the scheme's name and whether it was the migration report.
+/// The table a Check project counted: the scheme's name and whether it was the migration report.
 pub(crate) type CheckedTable = (&'static str, bool);
 
 /// The message panel's view state in the shell.
@@ -42,12 +42,12 @@ pub struct MessagesState {
     pub(crate) editing_page: Option<(u64, PageId)>,
     /// The name of the scheme the table was built with, read with the table (once per revision while the pane is open).
     pub(crate) scheme: Option<&'static str>,
-    /// Whether the pane shows the migration report instead of the project's scheme (WP-S3.09 D9 d).
+    /// Whether the pane shows the migration report instead of the project's scheme (d).
     pub(crate) migration: bool,
     /// The origin annotations of the commits made through a quick fix, by (project session, revision): `quick fix
     /// <rule ID>` for the history panel (§7.4, §8.4).
     pub(crate) annotations: BTreeMap<(u64, u64), String>,
-    /// The finding row and the date the open Waive prompt commits for (FT-674): the row's key and the date the
+    /// The finding row and the date the open Waive prompt commits for: the row's key and the date the
     /// window passed, as `YYYY-MM-DD`.
     pub(crate) waive: Option<(String, Option<String>)>,
     /// What the shell reads from the online report, once per (project session, revision) and only when asked.
@@ -55,21 +55,21 @@ pub struct MessagesState {
     /// The counts of the last Check project, by (project session, revision): the status bar's findings field while
     /// the Messages pane is closed and the revision is the checked one (FX38d: its click opens the pane). With them
     /// the table they were counted from, (the scheme's name, whether it was the migration report): the next check
-    /// counts its changes only from a check of the same table (C52-p5#2).
+    /// counts its changes only from a check of the same table.
     pub(crate) checked: Option<((u64, u64), CheckedTable, MessageCounts)>,
-    /// ID-1497 (3): the findings the last Check project counted ([`counted_findings`]), which the next check compares
+    /// The findings the last Check project counted ([`counted_findings`]), which the next check compares
     /// with its own: equal counts of other findings are a change.
     pub(crate) checked_findings: BTreeSet<CountedFinding>,
     /// The serial of the last Check project's toast and the (project session, revision) it counted: the toast goes
-    /// once the revision leaves that one, so its counts never disagree with the dock's pending ones (FT-759).
+    /// once the revision leaves that one, so its counts never disagree with the dock's pending ones.
     pub(crate) check_toast: Option<((u64, u64), u64)>,
-    /// FT-842: the release's housekeeping warnings in words (the file name only) that the Messages table shows under
+    /// The release's housekeeping warnings in words (the file name only) that the Messages table shows under
     /// Warnings ▸ Release, with the project session they belong to; drained once from the session, kept until the
     /// project closes.
     pub(crate) release_notes: Option<(u64, Vec<String>)>,
 }
 
-/// What the shell reads from the project's online check report (FT-674, FT-675), for one (project session,
+/// What the shell reads from the project's online check report, for one (project session,
 /// revision).
 #[derive(Clone, Debug, Default)]
 pub(crate) struct OnlineFacts {
@@ -79,7 +79,7 @@ pub(crate) struct OnlineFacts {
     pub(crate) waivers: BTreeMap<String, String>,
     /// The connections of the potentials of the open EW-POT-001 findings, sorted (the canvas's conflict overlay).
     pub(crate) conflict: Vec<ew_api::output::Uuid>,
-    /// FT-696 (WP-S2.11 D9): the connection points the open EW-POT-001 findings name, as (function, CP index), sorted:
+    /// The connection points the open EW-POT-001 findings name, as (function, CP index), sorted:
     /// a potential without a definition is keyed by a member CP, which the finding's discriminator names.
     pub(crate) conflict_cps: Vec<(ew_api::output::Uuid, u16)>,
 }
@@ -101,7 +101,7 @@ pub struct MessageCounts {
 }
 
 impl MessageCounts {
-    /// The open findings that count (FT-710): errors, warnings and infos of the project, without the pending and the
+    /// The open findings that count: errors, warnings and infos of the project, without the pending and the
     /// waived ones. The check's toast, the status bar and the Messages tab's count chip all read this rule.
     pub fn open(&self) -> usize {
         self.errors + self.warnings + self.infos
@@ -109,7 +109,7 @@ impl MessageCounts {
 }
 
 /// The finding a detail block shows (§7.3): rule, title, kind, severity, message and the quick fix's label; and what
-/// Waive… and Unwaive need (FT-674): the fingerprint, whether it is waived and the waiver's ID.
+/// Waive… and Unwaive need: the fingerprint, whether it is waived and the waiver's ID.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct FindingDetail {
     /// The rule ID.
@@ -134,7 +134,7 @@ pub struct FindingDetail {
 }
 
 impl FindingDetail {
-    /// The detail's line of kind and severity in the UI language (ID-1278 ruling 3), "Kind: completeness · severity:
+    /// The detail's line of kind and severity in the UI language, "Kind: completeness · severity:
     /// error": the kind the text of `finding-kind-<kind>`, the severity of `severity-<severity>`, both mid-sentence;
     /// a word without a key as it is.
     pub fn kind_line(&self) -> String {
@@ -257,10 +257,10 @@ pub fn fingerprint_of(key: &str) -> Option<&str> {
     key.rsplit('/').next()?.strip_prefix("finding:")
 }
 
-/// The key of the rule group of the release's housekeeping warnings (FT-842) under Warnings.
+/// The key of the rule group of the release's housekeeping warnings under Warnings.
 pub const RELEASE_KEY: &str = "severity:warning/rule:release";
 
-/// Whether a row is one of the release's housekeeping warnings (FT-842) or their group.
+/// Whether a row is one of the release's housekeeping warnings or their group.
 pub fn is_release_note(node: &NavNode) -> bool {
     node.key == RELEASE_KEY || node.key.starts_with(&format!("{RELEASE_KEY}/"))
 }
@@ -389,19 +389,19 @@ pub fn with_release_notes(mut table: NavTable, notes: &[String]) -> NavTable {
     table
 }
 
-/// A finding row's subject as printed (a device's tag; FT-1509), empty for none.
+/// A finding row's subject as printed (a device's tag), empty for none.
 pub(crate) fn subject(node: &NavNode) -> String {
     node.cells.get(SUBJECT).cloned().unwrap_or_default()
 }
 
 /// The detail block of a finding row (§7.3); `None` for any other row and for the release's housekeeping warnings
-/// (FT-842: nothing to waive).
+/// (nothing to waive).
 pub fn detail(node: &NavNode) -> Option<FindingDetail> {
     if is_release_note(node) {
         return None;
     }
     let rule = rule_of(node).filter(|_| node.role == NavRole::Finding)?;
-    // FT-1314: the rule's title in the window's language.
+    // The rule's title in the window's language.
     let title = ew_api::checks::messages::title(&rule, crate::strings::rule_language())
         .or_else(|| ew_api::checks::rule(&rule).map(|r| r.meta().title.to_owned()))
         .unwrap_or_default();
@@ -507,7 +507,7 @@ mod tests {
             ),
             (1, 1, 1, 1, 1)
         );
-        // FT-710: the status bar's field and the tab's chip read the same counts; the pending one is its own part.
+        // The status bar's field and the tab's chip read the same counts; the pending one is its own part.
         assert_eq!(none.open(), 4);
         assert_eq!(on_101.open(), 3);
         let text = |c| {
@@ -564,7 +564,7 @@ mod tests {
         }
     }
 
-    /// FT-842 (cycle 41, ruling 2): the release's warnings go under a Warnings group between Errors and Infos, as one
+    /// The release's warnings go under a Warnings group between Errors and Infos, as one
     /// Release rule with a finding row each (severity warning, rule column "Release", the text, state open), shown
     /// in that order by the default sort; their detail is `None` (nothing to waive); no notes leave the table as is.
     #[test]

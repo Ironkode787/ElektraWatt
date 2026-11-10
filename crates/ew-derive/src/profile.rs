@@ -11,7 +11,7 @@
 //! "Negative"). `content/` holds library items with copy identities (doc 07 §2).
 //!
 //! The project's own schemes win over the profile's defaults (doc 03 §5.1, FR-PRJ-008): until `ew-schema`
-//! types `ProjectSettings.numbering` (WP-S1.11), it is read from `ProjectSettings.extra["numbering"]`
+//! types `ProjectSettings.numbering`, it is read from `ProjectSettings.extra["numbering"]`
 //! with the JSON shape of doc 03 §5.1.
 
 use std::sync::{Arc, OnceLock};
@@ -55,7 +55,7 @@ pub struct NumberingScheme {
     /// Per-class rules, first match wins.
     #[serde(default)]
     pub rules: Vec<NumberingRule>,
-    /// The counter scope (only `"page"` is implemented by the command layer, ID-48).
+    /// The counter scope (only `"page"` is implemented by the command layer).
     #[serde(default = "page_scope")]
     pub counter_scope: CounterScope,
     /// The representation types that can be the main representation; `None` is every type except

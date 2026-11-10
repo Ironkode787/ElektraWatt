@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The switch rule in the window, without rendering (WP-S2.02 part 2, B5, B9, FT-349, FT-356): kittest has no wgpu
+//! The switch rule in the window, without rendering (B5, B9): kittest has no wgpu
 //! render state, so the canvas is the CPU canvas; a test stands in for a device's adapter and initialisation, and
 //! for a lost device, through `App::gpu_host_mut`.
 

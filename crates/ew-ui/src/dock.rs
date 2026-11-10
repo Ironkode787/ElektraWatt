@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Docking (WP-S2.01 part 2, FT-309; UX/UI doc 16 section 3.4): the project view's panes in an egui_tiles tree.
+//! Docking (UX/UI doc 16 section 3.4): the project view's panes in an egui_tiles tree.
 //!
 //! The shell model keeps the layout toolkit-neutral (`ew_viewmodel::layout::Layout`, the content of the workspace
 //! files); this module builds the egui_tiles tree from it, shows the tree, and reads the user's changes (a
@@ -25,12 +25,12 @@ use serde_json::json;
 
 use crate::app::Event;
 
-/// FT-1362 (ID-1358 ruling 7): the key of what a bottom pane's list reported in the last frame.
+/// The key of what a bottom pane's list reported in the last frame.
 fn content_id(pane: PaneKind) -> egui::Id {
     egui::Id::unique(("ew-dock-content", format!("{pane:?}")))
 }
 
-/// FT-1362 (ID-1358 ruling 7): a bottom pane's report of its list this frame: the list's `viewport` (its scroll area as
+/// A bottom pane's report of its list this frame: the list's `viewport` (its scroll area as
 /// shown) and the height of its `content`. The next frame shows the bottom dock no higher than the pane needs down to
 /// the content's end ([`Dock::keep_bottom_min`]); a pane that reports nothing keeps the dock's height.
 pub(crate) fn report_content(ui: &Ui, pane: PaneKind, viewport: Rect, content: f32) {
@@ -42,17 +42,17 @@ pub(crate) fn report_content(ui: &Ui, pane: PaneKind, viewport: Rect, content: f
     }
 }
 
-/// FT-1404: the key of the width the strip editor's grid lacked in the last frame.
+/// The key of the width the strip editor's grid lacked in the last frame.
 fn left_lack_id() -> egui::Id {
     egui::Id::unique("ew-dock-left-lack")
 }
 
-/// FT-1404: the strip editor's report of the width its columns need beyond the grid's this frame (negative: room to
+/// The strip editor's report of the width its columns need beyond the grid's this frame (negative: room to
 /// spare), every frame it is shown. Above the floor the next frame shows the left column that much wider, as far as
 /// [`Dock::keep_left_wide`] lets a default share grow (two thirds of the dock), so that the side columns show without scrolling
 /// sideways in a wide window; without a report the column has its default width again.
 pub(crate) fn report_left_lack(ui: &Ui, lack: f32) {
-    // C52-p4#5: a lack the column cannot take (at the floor, or at two thirds) stays the same; only a change asks
+    // A lack the column cannot take (at the floor, or at two thirds) stays the same; only a change asks
     // for the next frame.
     let last = egui::Id::unique("ew-dock-left-lack-last");
     let changed = ui.ctx().data_mut(|d| {
@@ -217,7 +217,7 @@ impl Dock {
         self.tree.simplify(&options);
     }
 
-    /// Paints the tree; `pane_ui` paints one pane. A tab picked from a tab group's "All tabs" menu (FT-509) becomes
+    /// Paints the tree; `pane_ui` paints one pane. A tab picked from a tab group's "All tabs" menu becomes
     /// that group's active tab. `collapsed` hides the left column (the root's child that holds the navigator group;
     /// doc 16a §5.4). `counts` are the count chips of the dock tabs (doc 16a §5.7: Messages' open findings); a pane
     /// absent or at zero has none. Returns what the panel headers' and the tab bars' controls asked for (the segmented
@@ -235,7 +235,7 @@ impl Dock {
         // FX38d: the page view (the canvas and its tab bar) keeps at least half the window's client height (the
         // default 1536 × 994 included); ID-743's 300-point least height gives way to it in a short window.
         let floor = ui.ctx().content_rect().height() / 2.0;
-        // FT-1362: what each bottom pane's list needed in the last frame, taken once.
+        // What each bottom pane's list needed in the last frame, taken once.
         let reports: BTreeMap<String, (f32, f32)> = PaneKind::BOTTOM
             .iter()
             .filter_map(|p| {
@@ -291,7 +291,6 @@ impl Dock {
         events
     }
 
-    // WP-S2.17 part 3
     /// Hides (or shows again) the left column: the child of a horizontal root split that holds the navigator group,
     /// unless it also holds the page view.
     fn collapse_left(&mut self, collapsed: bool) {
@@ -311,7 +310,7 @@ impl Dock {
         }
     }
 
-    /// The navigator group's tab containers and the header of every pane (WP-S2.17 part 3).
+    /// The navigator group's tab containers and the header of every pane.
     fn chrome(&self) -> Chrome {
         let tiles = &self.tree.tiles;
         let mut chrome = Chrome::default();
@@ -375,11 +374,11 @@ impl Dock {
     /// vertical splits (a column where Messages was docked) are left alone.
     /// The flag is true when a split had no last shown height, so `fallback` was used.
     ///
-    /// FT-1362 (ID-1358 ruling 7): the height follows the content. Where the bottom child's shown pane reported its
+    /// The height follows the content. Where the bottom child's shown pane reported its
     /// list in the last frame (`reports`, by pane: the list's top and its content's height, [`report_content`]), the
     /// child is shown no higher than from its top to the content's end: a short History is a short dock.
     ///
-    /// FT-1415 (ID-1406): while the split keeps the bottom dock's default share ([`default_bottom_share`]; a share the
+    /// While the split keeps the bottom dock's default share ([`default_bottom_share`]; a share the
     /// user dragged stands), a shown pane whose content needs more is shown up to [`BOTTOM_GROW`] of the window's
     /// height (twice `floor`), past the page view's half: at the 1280 × 800 floor Messages shows five findings.
     fn keep_bottom_min(
@@ -491,7 +490,7 @@ impl Dock {
     /// window. A share the user dragged is shown as it is. Display only, like [`Dock::keep_bottom_min`]:
     /// [`Dock::restore`] puts the shares back after the frame, and a drag during the frame keeps the dragged shares
     /// (from then on the share is the user's, not the default). `lack` is what the strip editor's grid lacked in the
-    /// last frame ([`report_left_lack`], FT-1404): the column is then shown at least its last width plus that.
+    /// last frame ([`report_left_lack`]): the column is then shown at least its last width plus that.
     fn keep_left_wide(&mut self, fallback: f32, want: f32, lack: Option<f32>) -> Option<Clamp> {
         let root = self.tree.root()?;
         let width = self.tree.tiles.rect(root).map_or(fallback, |r| r.width());
@@ -510,7 +509,7 @@ impl Dock {
         if !tiles.is_visible(left) {
             return None;
         }
-        // FT-1404: the strip editor in the column asks for its last width plus what its grid lacked, up to two
+        // The strip editor in the column asks for its last width plus what its grid lacked, up to two
         // thirds of the dock (an editing table; the page view keeps a third), else the default grows to half.
         let (want, most) = match (lack, tiles.rect(left)) {
             (Some(lack), Some(r)) => (want.max(r.width() + lack), 2.0 / 3.0),
@@ -558,7 +557,6 @@ impl Dock {
         }
     }
 
-    // FT-509
     /// Makes `child` the active tab of the tab group `group`.
     fn activate(&mut self, group: TileId, child: TileId) {
         if let Some(Tile::Container(Container::Tabs(tabs))) = self.tree.tiles.get_mut(group)
@@ -610,7 +608,7 @@ fn default_left_share() -> f32 {
     }
 }
 
-/// FT-1415 (ID-1406): the most of the window's height the bottom dock grows to for its content while it keeps its
+/// The most of the window's height the bottom dock grows to for its content while it keeps its
 /// default share.
 const BOTTOM_GROW: f32 = 0.4;
 
@@ -745,7 +743,7 @@ fn tab_look(t: &crate::theme::Tokens, active: bool) -> TabLook {
     }
 }
 
-/// What the dock draws around the panes (WP-S2.17 part 3).
+/// What the dock draws around the panes.
 #[derive(Default)]
 struct Chrome {
     /// The tab groups whose tab bar is not drawn (the rail drives them).
@@ -756,7 +754,7 @@ struct Chrome {
 
 struct DockBehavior<'a> {
     pane_ui: &'a mut dyn FnMut(&mut Ui, PaneKind),
-    /// FT-509: the (tab group, tab) picked from the "All tabs" menu this frame.
+    /// The (tab group, tab) picked from the "All tabs" menu this frame.
     chosen: Option<(TileId, TileId)>,
     /// The tokens of the theme on show (doc 16a §4.14's egui_tiles row).
     tokens: std::sync::Arc<crate::theme::Tokens>,
@@ -913,7 +911,7 @@ impl DockBehavior<'_> {
 
 impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
     fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut PaneKind) -> UiResponse {
-        // WP-S2.17 part 3: the panel header is the drag handle; a pane in a tab bar is dragged by its tab.
+        // The panel header is the drag handle; a pane in a tab bar is dragged by its tab.
         let header = self.chrome.headers.remove(&tile_id.0);
         let dragged = match &header {
             Some(h) => self.header(ui, h).drag_started(),
@@ -935,17 +933,17 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
         false
     }
 
-    // WP-S2.17 part 3: the navigator group's tab bar is the rail.
+    // The navigator group's tab bar is the rail.
     fn is_tab_bar_visible(&self, tile_id: TileId, _tabs: &Tabs) -> bool {
         !self.chrome.rail_groups.contains(&tile_id)
     }
 
-    /// FT-338: the dock draws its own named splitter handles (`crate::splitter`); egui_tiles paints the idle line.
+    /// The dock draws its own named splitter handles (`crate::splitter`); egui_tiles paints the idle line.
     fn is_container_resizable(&self, _tiles: &Tiles<PaneKind>, _tile_id: TileId) -> bool {
         false
     }
 
-    // WP-S2.17 part 1: the dock's look from the tokens (doc 16a §4.14).
+    // The dock's look from the tokens (doc 16a §4.14).
     fn tab_bar_height(&self, _style: &egui::Style) -> f32 {
         self.tokens.size_dock_tab_bar
     }
@@ -962,7 +960,7 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
         crate::theme::stroke(self.tokens.border_width, self.tokens.border_subtle)
     }
 
-    /// FT-540: a dock tab (doc 16a §6.4, §5.7): no box; `type.small` with 10-px padding, the inactive one in
+    /// A dock tab (doc 16a §6.4, §5.7): no box; `type.small` with 10-px padding, the inactive one in
     /// `color.text.secondary` with the hover overlay, the active one SemiBold in `color.text.primary` with a 2-px
     /// accent underline inset 10 px; the focus ring. A button node named by the title, selected while active, as
     /// egui_tiles names it.
@@ -1055,20 +1053,18 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
         }
     }
 
-    /// The registry owns Ctrl+Tab (`tab.next`, WP-S2.03 §6.2): egui_tiles' own cycling of the hovered container's tabs
+    /// The registry owns Ctrl+Tab (`tab.next`): egui_tiles' own cycling of the hovered container's tabs
     /// would act outside `dispatch`.
     fn cycle_tabs_with_keyboard(&self) -> bool {
         false
     }
 
-    // WP-S2.06 part 1
     /// Panes are dragged (by their tab or title), containers are not: a tab group (the Pages pane with the navigators
     /// beside it, §6.8) gets no unnamed drag area of its own, as in the canvas area.
     fn is_tile_draggable(&self, tiles: &Tiles<PaneKind>, tile_id: TileId) -> bool {
         matches!(tiles.get(tile_id), Some(egui_tiles::Tile::Pane(_)))
     }
 
-    // FT-509
     /// A tab group of two or more tabs gets an "All tabs" menu at the right of its tab strip, listing every tab by its
     /// title, so that a tab hidden behind the strip's overflow arrows stays reachable and named.
     fn top_bar_right_ui(
@@ -1092,7 +1088,7 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
         if panes.len() < 2 {
             return;
         }
-        // FT-562: "All tabs" is a Subtle 24-px icon button without a border (doc 16a §6.3), its list a menu (§6.13).
+        // "All tabs" is a Subtle 24-px icon button without a border (doc 16a §6.3), its list a menu (§6.13).
         let name = strings::text(key!("dock-all-tabs"));
         let response = crate::components::icon_button(ui, crate::icons::IconId::dots, name);
         egui::Popup::menu(&response)
@@ -1116,7 +1112,7 @@ mod tests {
 
     use super::*;
 
-    /// FT-540: the dock tabs follow doc 16a §6.4: `type.small`, the active one SemiBold in the primary text colour
+    /// The dock tabs follow doc 16a §6.4: `type.small`, the active one SemiBold in the primary text colour
     /// with the accent underline, the others in the secondary colour without it.
     #[test]
     fn the_dock_tabs_follow_the_tab_family() {
@@ -1187,7 +1183,7 @@ mod tests {
         assert!(h >= 299.0, "the Messages pane is shown {h} pt tall");
     }
 
-    /// FT-1415 (ID-1406): at the 1280 × 800 floor a Messages list longer than its dock grows the dock to 40 % of the
+    /// At the 1280 × 800 floor a Messages list longer than its dock grows the dock to 40 % of the
     /// window's height, past the page view's half, while the split keeps its default share; a share the user dragged
     /// (300 : 700) stands.
     #[test]
@@ -1404,7 +1400,7 @@ mod tests {
         dock.tab_together(PaneKind::Pages, PaneKind::PageView);
         let layout = dock.layout().unwrap();
         assert_eq!(layout.panes().len(), 3, "no pane is lost or doubled: {layout:?}");
-        // WP-S2.17 part 3: Properties under Pages; dragged onto the page view, Pages leaves the left column.
+        // Properties under Pages; dragged onto the page view, Pages leaves the left column.
         let LayoutNode::Split { children, .. } = &layout.root else {
             panic!("the property grid stays beside the tab group: {layout:?}");
         };

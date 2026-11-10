@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool framework in the window without rendering (WP-S2.03 part 2, acceptance checks T6, T8, T10 and T11): the
+//! The tool framework in the window without rendering (acceptance checks T6, T8, T10 and T11): the
 //! keyboard-only Select-and-Measure flow with the accessible-name walker after every step, the pointer's press and
 //! release as the tool's input, the dwell timer and the link preview popup, and the exact counts of the window host.
 
@@ -180,7 +180,7 @@ fn t6_t10_select_and_measure_from_the_keyboard_alone() {
         "Enter clicked at the cursor"
     );
     if !shell.selection().is_empty() {
-        // WP-S2.08 D13: the one selected device in words.
+        // The one selected device in words.
         assert_eq!(
             live(&h),
             "-102F2, Black box, folio 102, 10 connection points, 8 wires"
@@ -381,7 +381,7 @@ fn button(h: &mut Harness<'_, App>, pos: Pos2, pressed: bool) {
     h.run_ok();
 }
 
-/// FT-392: a canvas group hidden while a primary press is held on it (View ▸ Side by side off) escapes the tool as a
+/// A canvas group hidden while a primary press is held on it (View ▸ Side by side off) escapes the tool as a
 /// focus change does, and the release that follows reaches no tool, now or from a later click: no selection change,
 /// no focus jump to the group when it shows again.
 #[test]
@@ -553,7 +553,7 @@ fn t8_the_window_reports_the_rest_and_shows_the_popup() {
     );
     h.event(egui::Event::PointerMoved(pos));
     let started = ew_render2d::stats::now();
-    // The rest is measured on egui's frame time (FT-570): the harness's steps, however long the machine takes.
+    // The rest is measured on egui's frame time: the harness's steps, however long the machine takes.
     let rest_from = h.ctx.input(|i| i.time);
     while h.state().shell().link_preview().is_none() && started.elapsed() < Duration::from_secs(5) {
         h.run_ok();
@@ -589,7 +589,7 @@ fn t8_the_window_reports_the_rest_and_shows_the_popup() {
 fn t11_exact_counts_of_tool_events_in_the_window() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
-    // The property grid fetches a sheet per selection change (WP-S2.05, its counts in `tests/properties.rs`): closed
+    // The property grid fetches a sheet per selection change (its counts in `tests/properties.rs`): closed
     // here, so that the tool events alone are counted.
     dispatch(&mut h, "props.show", json!({"on": false}));
     dispatch(&mut h, "tab.new", json!({}));
@@ -915,7 +915,7 @@ fn place_and_rest(h: &mut Harness<'_, App>) -> (i64, i64) {
     }
 }
 
-/// Whether `frame` stands where the chip rule (WP-S2.17 D13) may put a chip by the point `anchor`: one of its four
+/// Whether `frame` stands where the chip rule may put a chip by the point `anchor`: one of its four
 /// candidates, 8 points off.
 fn by_point(frame: egui::Rect, anchor: Pos2) -> bool {
     use ew_ui::ew_viewmodel::canvas::chip::{Pos2 as P, Rect as R, Vec2 as V, candidates};
@@ -955,8 +955,8 @@ fn assert_chips_apart(
     chips
 }
 
-/// FT-389, FT-507 and FT-508 (WP-S2.17 part 5, OV2): the Place ghost of a terminal on Golden A draws one label with
-/// no tag added, even after a second rest (its tag in the change chip, C50-p1#3); the preview's change chip stands by
+/// FT-389, FT-507 and FT-508 (OV2): the Place ghost of a terminal on Golden A draws one label with
+/// no tag added, even after a second rest (its tag in the change chip); the preview's change chip stands by
 /// the floating insertion point, off the label (the rule's next candidate), the header by it; with the frame
 /// statistics shown and the anchor moved beside their panel, no chip covers the panel; no two chips intersect, with
 /// the statistics on and off.
@@ -985,7 +985,7 @@ fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
         .filter(|c| c.kind == ew_ui::canvas_chips::ChipKind::Label)
         .collect();
     assert_eq!(labels.len(), 1, "one ghost label: {all:?}");
-    // C50-p1#3 (ID-1315): a terminal's label names its strip and designation; its tag stands in the preview chip.
+    // A terminal's label names its strip and designation; its tag stands in the preview chip.
     assert_eq!(labels[0].text, "Variant A · terminal 30 on -X1031");
     let anchor = drawn_of(&mut h, tl);
     let (text, frame) = &chips[1];
@@ -1042,7 +1042,7 @@ fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1079 (ID-1183) at the floor: the Place ghost's anchor panned to the canvas's top left corner, where the tool
+/// FT-1079 at the floor: the Place ghost's anchor panned to the canvas's top left corner, where the tool
 /// options card stands, leaves the preview's chips no free candidate; each stands inside the canvas all the same
 /// (clamped), none cut at its edge.
 #[test]
@@ -1128,7 +1128,7 @@ fn r30_the_image_hint_follows_the_file_answer_without_a_pointer_move() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A platform whose Open image dialog answers `path` from its own thread, as the window's native dialog does (FT-467).
+/// A platform whose Open image dialog answers `path` from its own thread, as the window's native dialog does.
 struct ThreadedImage(std::path::PathBuf);
 
 impl ew_ui::app::Platform for ThreadedImage {
@@ -1176,7 +1176,7 @@ fn r30_the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
     wait_for_page(&mut h);
     dispatch(&mut h, "tool.image", json!({}));
     // The dialog's thread answers at once; the frames wait on the answer's state, not on a count of frames, which a
-    // loaded machine outlasted (FT-1156; no wall clock in tests, and nextest's slow-timeout ends a hang).
+    // loaded machine outlasted (no wall clock in tests, and nextest's slow-timeout ends a hang).
     while h.state().shell().tool().state() != "armed" {
         std::thread::yield_now();
         h.step();
@@ -1188,7 +1188,7 @@ fn r30_the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
             .next()
             .is_none()
     );
-    // WP-S2.17 part 2: the hint is the HUD's.
+    // The hint is the HUD's.
     assert!(
         support::hud_value(&h).contains("first corner"),
         "{}",
@@ -1197,14 +1197,14 @@ fn r30_the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-502: the chip of a tag change on an existing device stands above its printed tag text (`TableRep::tag_at`),
+/// The chip of a tag change on an existing device stands above its printed tag text (`TableRep::tag_at`),
 /// not the body's corner. The flow: on a copy of Golden A with a numbering scheme that prints the column (Golden A's
 /// own tags change with no move on a page), -101F1 is selected, moved to the right with the keyboard and rested on.
 #[test]
 fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
-    // WP-S2.17 part 3 (D10): the rails and the wider left column narrow the page view; at 1000 px the chip meets the
+    // The rails and the wider left column narrow the page view; at 1000 px the chip meets the
     // view's edge and is pushed off its candidates, so this window has the reference width.
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
@@ -1277,7 +1277,7 @@ pub(crate) fn right_click(h: &mut Harness<'_, App>, pos: Pos2) {
     settle(h);
 }
 
-/// FT-715: a right-click on an object selects it and opens the menu of the bar's selection commands and Delete at the
+/// A right-click on an object selects it and opens the menu of the bar's selection commands and Delete at the
 /// pointer; an entry runs its action and closes the menu; a right-click on nothing offers Paste.
 #[test]
 fn a_right_click_opens_the_canvas_context_menu() {
@@ -1291,7 +1291,7 @@ fn a_right_click_opens_the_canvas_context_menu() {
         page.entities
             .iter()
             .map(|(e, r)| (*e, rect_centre(*r)))
-            // Not an interruption point: EW's forms are never turned (WP-S2.19 D16).
+            // Not an interruption point: EW's forms are never turned.
             .find(|(e, p)| {
                 c.link_at(*p).is_none()
                     && pick(&page.entities, Some(*p), 0.0).map(|(x, _)| x) == Some(*e)

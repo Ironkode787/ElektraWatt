@@ -11,7 +11,7 @@
 //!   function CP, the smallest representation ID wins.
 //! - A **black box** (a symbol without CPs on a representation that carries `Representation.box`) draws box
 //!   CP `c` of its first function at `pos + orient(c.pos)`.
-//! - A **strip segment** draws the terminals of its strip (doc 08 §6.7, decision log ID-143, ID-180): segment
+//! - A **strip segment** draws the terminals of its strip (doc 08 §6.7): segment
 //!   `j` of the strip's `m` segments, in (page position, y, x, ID) order, draws the terminals
 //!   `⌊jN/m⌋ … ⌊(j+1)N/m⌋ − 1` of its `N` terminals in (`seq`, ID) order. Terminal `k` of the segment has its
 //!   side-1 point `k + 1` grid steps along the segment's x axis and its side-2 point the same distance from

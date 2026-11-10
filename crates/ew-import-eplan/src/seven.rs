@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The 7z header walked under EW's own bounds before `sevenz-rust2` allocates for it (ID-1460): the start header
+//! The 7z header walked under EW's own bounds before `sevenz-rust2` allocates for it: the start header
 //! and its CRC, the entry, folder, coder and stream counts, the declared sizes, the dictionaries and the ratio.
 //! A compressed (encoded) header is decoded here under the same bounds, and its header walked in turn. The walk
 //! follows the grammar `sevenz-rust2` 0.24.2 reads, so the counts it later allocates for are the ones bounded here.

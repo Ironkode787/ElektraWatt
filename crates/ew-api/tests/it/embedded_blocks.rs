@@ -10,7 +10,7 @@
 //!   is row 31; the block holds 2 × 20 rows, asserted first)
 //! - `lb8_the_legend_exports_through_the_named_block_path_and_no_default_export_changes`
 //! - `lb9_part_data_on_201_and_202_draws_both_order_codes_with_no_overflow`
-//! - `an_embedded_block_draws_no_back_links` (WP-S3.06 ruling 4)
+//! - `an_embedded_block_draws_no_back_links`
 //!
 //! Folio 1's byte equality (LB-6) and every other page's (LB-10) are the expected files of `page_output`; LP-5 with the
 //! legend on 902 is `page_output_panel::lp5_…` (a `layout.move` runs no `tables` family).
@@ -116,7 +116,7 @@ fn fixture_block(n: u128, source: ReportSource, page: Id<Page>, rect: Bounds) ->
 }
 
 /// LB-3: "PART DATA on 902 lists exactly NSYPLA1074G and NSYPMM107 (no carrier line) and draws them under the title
-/// "PART DATA"" (the source through the surface view: the orchestrator's ruling 3 of cycle 42).
+/// "PART DATA"" (the source through the surface view: the orchestrator's).
 #[test]
 fn lb3_part_data_on_902_lists_the_enclosure_and_the_plate_under_its_title() {
     let s = common::golden_session();
@@ -232,7 +232,7 @@ fn lb8_the_legend_exports_through_the_named_block_path_and_no_default_export_cha
     let header = out.csv.lines().next().expect("a header");
     assert_eq!(header, "row,Pos,DT,Manufacturer,Part number,Description,Qty,Unit");
     assert_eq!(out.csv.lines().count(), 32);
-    // The last row: the end brackets (WP-S4.02 EB-3), the DT empty, quantity 4 pieces.
+    // The last row: the end brackets (EB-3), the DT empty, quantity 4 pieces.
     let last = out.csv.lines().last().expect("a row");
     assert_eq!(last, "data,31,,TBD,TBD,End bracket,4,pc");
     let embedded: Vec<String> = [
@@ -262,7 +262,7 @@ fn lb8_the_legend_exports_through_the_named_block_path_and_no_default_export_cha
 
 /// LB-9: PART DATA on 201 and 202 draws "Order Code 1" 51E-F13GCQP-D+H2GG and "Order Code 2"
 /// 32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS under the title "PART DATA", whole, with no overflow finding. The ruling on lane
-/// A42's LB-9 stop (cycle 42): "PART DATA's label : part number weights are 3 : 10" (at 1 : 3 the 35-character code
+/// A42's LB-9 stop: "PART DATA's label : part number weights are 3 : 10" (at 1 : 3 the 35-character code
 /// overflows at the 1.8 mm floor).
 #[test]
 fn lb9_part_data_on_201_and_202_draws_both_order_codes_with_no_overflow() {
@@ -286,7 +286,7 @@ fn lb9_part_data_on_201_and_202_draws_both_order_codes_with_no_overflow() {
 }
 
 /// LB-6: a `wire_list` block (a kind that declares no layout) embedded on schematic page 101 draws every column under
-/// a header row (the orchestrator's ruling 2 of cycle 42), the rows its rect holds, and reports the rest.
+/// a header row (the orchestrator's), the rows its rect holds, and reports the rest.
 #[test]
 fn lb6_a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hold() {
     let batch = golden_common::batch();
@@ -373,7 +373,7 @@ fn lb6_the_tables_layer_does_not_depend_on_record_order() {
     }
 }
 
-/// WP-S3.06 ruling 4 (C44-p3#2): an embedded block draws no back-links. `parts_summary`, `toc` and
+/// WP-S3.06 ruling 4: an embedded block draws no back-links. `parts_summary`, `toc` and
 /// `structure_overview` blocks embedded on 101 have rows that link (their generated pages draw those links), and their
 /// boxes on 101 draw none.
 #[test]

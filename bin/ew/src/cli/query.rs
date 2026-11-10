@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew query` and `ew queries` (WP-S1.22 part 4, D11 and D12): the public queries of the session, with `--explain`,
+//! `ew query` and `ew queries`: the public queries of the session, with `--explain`,
 //! and the query registry.
 
 use std::path::PathBuf;

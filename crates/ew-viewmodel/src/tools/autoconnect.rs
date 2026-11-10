@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Autoconnect proposals (WP-S2.04 §8.3, FR-CON-003, FR-CON-008; doc 06 §5.2, ADR-0007): what a floating or dragged
+//! Autoconnect proposals (FR-CON-003, FR-CON-008; doc 06 §5.2, ADR-0007): what a floating or dragged
 //! symbol's free connection points would connect to, computed from the page tables alone (no `Session` call) and
 //! drawn as dashed overlay stubs. They reach the model only as the `connect` hints of the committed `device.place`
 //! (D4); during a move they are shown and never committed.
@@ -12,7 +12,7 @@
 //! connection segment collinear with the ray at the walk point stops it (the line is occupied); a segment crossing
 //! the ray is passed. Several CPs at one walk point are hits in label order (the page tables' order, FT-439; never
 //! the v5 ID, which follows the minted function ID). A terminal's ghost CP never takes a CP of a terminal of its own
-//! strip as a hit (FT-1082, decision log ID-1177): two terminals of one strip are joined by a bridge, never by a
+//! strip as a hit: two terminals of one strip are joined by a bridge, never by a
 //! proposed wire; that terminal's body then stops the walk as any body does. The proposal of a ray is its
 //! first hit; [`ToolKey::NextProposal`](super::ToolKey::NextProposal) (Tab) cycles every ray to its next hit further
 //! along, wrapping.
@@ -20,7 +20,7 @@
 //! **The split.** Two ghost CPs that lie on one segment of a connection W and face its two ends (their directions
 //! along the segment, pointing apart) are the split of W: one proposal that sends no hint, because normaliser 7
 //! splits W when the symbol lands on the path the page draws it along (FR-CON-008, doc 06 §5.3), its stored route or,
-//! for a route-less W, its provisional path (FT-1020, decision log ID-1104).
+//! for a route-less W, its provisional path.
 
 use ew_api::geometry::Dir;
 use ew_api::output::ew_dl::EntityRef;
@@ -46,14 +46,14 @@ pub struct GhostCp {
     /// Whether a connection already ends at it (a moved representation's CP); such a CP proposes nothing.
     pub connected: bool,
     /// The strip tag of the ghost's terminal as the page prints it (`-X1031`), `None` for a non-terminal: a CP of a
-    /// terminal of that strip is never a hit (FT-1082, ID-1177).
+    /// terminal of that strip is never a hit.
     pub strip_tag: Option<String>,
 }
 
 /// Whether the representation `rep` of the page is a terminal of the strip printed `strip_tag`: a terminal
 /// representation whose connection points all print `<strip_tag>:…` (and that has one). The tables carry no strip
 /// identity; two strips printed with one tag are a duplicate tag, which a check reports. Shared by autoconnect
-/// (FT-1082, ID-1177) and the Place tool's stacking of a terminal on one of its strip (FT-622, ID-822).
+///  and the Place tool's stacking of a terminal on one of its strip.
 pub fn is_strip_terminal(tables: &PageTables, rep: &TableRep, strip_tag: &str) -> bool {
     let prefix = format!("{strip_tag}:");
     rep.terminal && {
@@ -179,8 +179,8 @@ fn ray_hits(
         if x < area[0] || x > area[2] || y < area[1] || y > area[3] {
             break;
         }
-        // Free CPs facing the ray at the walk point, in label order (the rows' order, FT-439); never a terminal of the
-        // ghost's own strip (FT-1082).
+        // Free CPs facing the ray at the walk point, in label order (the rows' order); never a terminal of the
+        // ghost's own strip.
         for q in &tables.cps {
             if grid.index(q.at.0) == kx
                 && grid.index(q.at.1) == ky
@@ -260,7 +260,7 @@ pub fn on_off_sheet_segment(cps: &[GhostCp], tables: &PageTables) -> bool {
 }
 
 /// The splits of the ghost: pairs of ghost CPs on one segment of a connection facing its two ends. Only a wire with a
-/// stored route has wire geometry: an unrouted connection is not split (WP-S2.19 D3, as normaliser 7).
+/// stored route has wire geometry: an unrouted connection is not split (as normaliser 7).
 fn splits(cps: &[GhostCp], tables: &PageTables, grid: PageGridMap) -> Vec<Proposal> {
     let mut out: Vec<(bool, Proposal)> = Vec::new();
     for c in tables.connections.iter().filter(|c| c.stored_route) {
@@ -269,7 +269,7 @@ fn splits(cps: &[GhostCp], tables: &PageTables, grid: PageGridMap) -> Vec<Propos
             let (a, b) = (w[0], w[1]);
             let horizontal = a.1 == b.1 && a.0 != b.0;
             let vertical_seg = a.0 == b.0 && a.1 != b.1;
-            // FT-1049: a stretch the clamp drew along the sheet's edge is not the wire's path; nothing splits there.
+            // A stretch the clamp drew along the sheet's edge is not the wire's path; nothing splits there.
             if !(horizontal || vertical_seg) || c.is_off_sheet(a, b) {
                 continue;
             }
@@ -387,7 +387,7 @@ pub fn moved_cps(tables: &PageTables, delta: &dyn Fn(EntityRef) -> Option<(i64, 
     out
 }
 
-/// The strip tag of the terminal representation `rep` (FT-1082): the text before the last colon of its CP labels;
+/// The strip tag of the terminal representation `rep`: the text before the last colon of its CP labels;
 /// `None` for a non-terminal, a representation without CPs, a label without a colon, or labels that disagree.
 fn moved_strip_tag(tables: &PageTables, rep: Uuid) -> Option<String> {
     if !tables.reps.iter().any(|r| r.id == rep && r.terminal) {
@@ -561,7 +561,7 @@ mod tests {
         assert!(matches!(&p.list[0].target, ProposalTarget::Split { .. }));
         assert!(p.hints().is_empty());
         assert_eq!(p.lines(), vec![("\"1\" \"2\"".to_owned(), None)]);
-        // Unrouted: no split (WP-S2.19 D3: normaliser 7 does not split it either).
+        // Unrouted: no split (normaliser 7 does not split it either).
         t.connections[0].stored_route = false;
         assert!(proposals(&g, &t, &[], AREA, 0).list.is_empty());
     }
@@ -590,7 +590,7 @@ mod tests {
         );
     }
 
-    /// FT-1049 (ID-1148): a segment the clamp drew along the sheet's edge proposes no split, and a ghost CP strictly
+    /// A segment the clamp drew along the sheet's edge proposes no split, and a ghost CP strictly
     /// inside it is on it; one at its end, or on the wire's own segment, is not.
     #[test]
     fn a_stretch_drawn_along_the_sheet_edge_is_no_split_and_refuses_a_drop() {
@@ -632,7 +632,7 @@ mod tests {
         );
     }
 
-    /// A representation of the tables (`terminal`: of a terminal) with the CPs `cps` (FT-1082).
+    /// A representation of the tables (`terminal`: of a terminal) with the CPs `cps`.
     fn terminal_rep(t: &mut PageTables, n: u128, terminal: bool, cps: &[(u128, &str)]) {
         t.reps.push(TableRep {
             id: uuid(0x300 + n),

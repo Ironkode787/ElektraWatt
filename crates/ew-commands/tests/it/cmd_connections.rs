@@ -266,7 +266,7 @@ fn draw_names_a_missing_record() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// connection.draw_many (cycle 33)
+// connection.draw_many
 
 fn bridge(a: Id<Function>, b: Id<Function>) -> Connect {
     let mut c = draw(cp_param(a, 1), cp_param(b, 1), None);
@@ -384,7 +384,7 @@ fn route_of_a_missing_connection_is_not_found() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// connection.route_many (WP-S2.19 D12)
+// connection.route_many
 
 #[test]
 fn route_many_sets_every_route_in_one_step_and_names_a_refused_entry() {
@@ -467,7 +467,7 @@ fn delete_of_a_third_member_dissolves_the_junction() {
     assert_eq!(lines(e.model()), before);
 }
 
-/// FT-779: a junction that cannot dissolve because its two remaining wires carry different numbers is named by
+/// A junction that cannot dissolve because its two remaining wires carry different numbers is named by
 /// its position and page, never by its ID.
 #[test]
 fn a_junction_that_cannot_merge_two_numbers_is_named_in_words() {
@@ -545,7 +545,7 @@ fn a_junction_that_cannot_merge_two_assigned_numbers_names_both() {
     );
 }
 
-/// FT-848 (ID-1108, as above): two wires that print different numbers are named by the printed numbers alone.
+/// FT-848 (as above): two wires that print different numbers are named by the printed numbers alone.
 #[test]
 fn a_junction_refusal_names_the_printed_numbers_where_they_differ() {
     assert_eq!(
@@ -926,7 +926,7 @@ fn define_potential_at_a_junction() {
     assert_eq!(d.at, at_junction(J5));
 }
 
-/// FT-1241 (decision log ID-1312): a point that defines a potential already refuses a second definition, naming the
+/// A point that defines a potential already refuses a second definition, naming the
 /// first; nothing is written.
 #[test]
 fn define_potential_twice_at_one_point_is_refused_naming_the_first() {

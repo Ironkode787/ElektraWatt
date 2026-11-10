@@ -222,7 +222,7 @@ impl ShellModel {
         self.arm_paste(text, dropped, &[])
     }
 
-    /// Parses `text` (one `parse_fragment`) and arms the paste tool, with `adapt` (WP-S2.07 D22). A fragment that
+    /// Parses `text` (one `parse_fragment`) and arms the paste tool, with `adapt`. A fragment that
     /// carries another version of a held library copy that `adapt` does not name opens the paste choice card instead
     /// (one `Session::paste_versions`) and is refused with `reason-paste-versions` and the copies in the status bar; the
     /// window shows the card, a script answers it with `paste.resolve`. Plain text is refused (`reason-not-a-fragment`),
@@ -259,7 +259,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Opens the paste choice card (WP-S2.07 D22) for the copies `conflicts` and refuses the paste with
+    /// Opens the paste choice card for the copies `conflicts` and refuses the paste with
     /// `reason-paste-versions`, its list in the status bar.
     fn open_paste_choice(
         &mut self,
@@ -338,7 +338,7 @@ impl ShellModel {
     }
 
     /// The prompt an open card of the paste choice puts in the HUD and the status hint in place of the tool's own
-    /// (cycle 39, FIX39b-1): the choice card names the copies and points at the card; the update card that "Update the
+    /// (FIX39b-1): the choice card names the copies and points at the card; the update card that "Update the
     /// project's copy" opened says the paste follows its Apply. `None` for any other card or none.
     pub fn card_prompt(&self) -> Option<String> {
         match &self.props.card()?.origin {
@@ -361,7 +361,7 @@ impl ShellModel {
         }
     }
 
-    /// `paste.resolve {choice}` (WP-S2.07 D22, the paste choice card's two buttons): `adapt` (Use the project's copy)
+    /// `paste.resolve {choice}` (the paste choice card's two buttons): `adapt` (Use the project's copy)
     /// closes the card and arms the paste tool with `adapt` naming the listed copies, so the paste is one `edit.paste`;
     /// `update` (Update the project's copy) opens the `library.update` card built from the fragment's documents
     /// (`Session::paste_update`), after whose Apply the shell arms the paste again (two commands, two undo steps). A
@@ -420,7 +420,7 @@ impl ShellModel {
         }
     }
 
-    /// Apply on the `library.update` card of "Update the project's copy" (WP-S2.07 D22): the update commits as its own
+    /// Apply on the `library.update` card of "Update the project's copy": the update commits as its own
     /// step (a stale card is previewed again, as every bulk card), then the pending paste is armed again.
     pub(super) fn apply_paste_update_card(&mut self, card: Card) -> Outcome {
         let CardOrigin::PasteUpdate { text } = &card.origin else {
@@ -493,7 +493,7 @@ impl ShellModel {
             })
             .map(|r| EntityRef(r.id))
             .collect();
-        // ID-1470 (C53-p1#6): a pasted interruption point keeps its name, an explicit act like a typed one, so it
+        // A pasted interruption point keeps its name, an explicit act like a typed one, so it
         // continues the points of that name; the toast says which, so nothing joins silently.
         let continued: Vec<String> = now
             .reps

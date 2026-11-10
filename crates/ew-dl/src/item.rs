@@ -287,7 +287,7 @@ impl DisplayList {
     /// the groups that enclose it. In paint order: depth first, a group before its members (pre-order). An item
     /// without a point is left out. Exact for transforms whose angles are multiples of 90°.
     ///
-    /// This is what a viewer picks and highlights over until a spatial index exists (WP-S2.02 §4.2).
+    /// This is what a viewer picks and highlights over until a spatial index exists.
     ///
     /// ```
     /// use ew_dl::{DisplayList, EntityRef, Item, Path, Transform};
@@ -315,7 +315,7 @@ impl DisplayList {
     /// mapped through the transforms of the groups that enclose the item. In paint order: depth first, a group
     /// before its members (pre-order). An item without a point is left out; instances are not resolved.
     ///
-    /// This is what a viewer follows a cross-reference over (WP-S2.03 §4.2).
+    /// This is what a viewer follows a cross-reference over.
     ///
     /// ```
     /// use ew_dl::{Destination, DisplayList, Item, Link, Path, Transform};

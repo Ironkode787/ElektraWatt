@@ -94,7 +94,7 @@ fn an_import_is_written_with_its_run_and_reproducibly() {
     assert_eq!(run["source"]["name"], "synthetic.qet");
     assert!(run["record_hashes"].as_object().is_some_and(|h| !h.is_empty()));
 
-    // IC-9, IC-10 (WP-S3.09 D9): the migration scheme lists every entry of the run once, as an EW-IMP finding with the
+    // IC-9, IC-10: the migration scheme lists every entry of the run once, as an EW-IMP finding with the
     // entry's severity and message, and lists the same after the project is reopened.
     let import_findings = |s: &Session| -> Vec<(String, String, String)> {
         let report = s.check(&ew_api::checks::MIGRATION, ew_api::checks::CheckMode::Release);
@@ -129,7 +129,7 @@ fn an_import_is_written_with_its_run_and_reproducibly() {
     assert_eq!(std::fs::read(a.join(runs[0])).unwrap(), fa[runs[0]]);
 }
 
-/// FT-1489 (WP-S6.08 D19): the project `ew import qet --out` writes reports whether its manifest is marked `unstable`:
+/// The project `ew import qet --out` writes reports whether its manifest is marked `unstable`:
 /// with a released list that lacks this build's format it is, with the format released it is not.
 #[test]
 fn an_imported_project_reports_an_unreleased_format() {

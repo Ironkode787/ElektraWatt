@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The design language's small components (WP-S2.17 part 4; doc 16a §6), drawn from the tokens of the theme on show:
+//! The design language's small components (doc 16a §6), drawn from the tokens of the theme on show:
 //! the four button kinds (§6.2), status and count badges and key chips (§6.16), the empty state (§6.17), the inline
 //! card with its header, status badge and Apply as the Primary (§6.9, §6.23), the "Preview open" strip (§6.23) and a
 //! collapsible section header with a count badge (§6.23). Every other widget of part 4 (dialogs, toasts, menus, the
@@ -68,7 +68,7 @@ pub(crate) fn tip_galley(ui: &Ui, t: &Tokens, text: &str) -> std::sync::Arc<egui
 /// Shows `tooltip` in doc 16a §6.18's style: `color.surface.inverse` with `color.text.on_inverse` in `type.small`,
 /// `radius.md`, `elevation.1`, at most `size.tooltip.max` wide and [`TIP_MAX_LINES`] lines ([`tip_galley`]). egui's
 /// own tooltip (`on_hover_text`) draws on the popup frame, `color.surface.raised` (the window fill), which hardly
-/// stands off the chrome (FT-597).
+/// stands off the chrome.
 pub(crate) fn show_tip(ctx: &egui::Context, tooltip: egui::containers::Tooltip<'_>, text: &str) {
     let t = theme::current(ctx);
     let mut tooltip = tooltip;
@@ -88,7 +88,7 @@ pub(crate) fn show_tip(ctx: &egui::Context, tooltip: egui::containers::Tooltip<'
 }
 
 /// The tooltips of the window in doc 16a §6.18's style ([`show_tip`]), in place of egui's `on_hover_text` and
-/// `on_disabled_hover_text` (FT-597).
+/// `on_disabled_hover_text`.
 pub(crate) trait Tip: Sized {
     /// The tooltip `text` while the widget is enabled and hovered; like `on_hover_text`, the text is also the
     /// widget's accessible description, and its name when it has none (an icon-only button).
@@ -96,7 +96,7 @@ pub(crate) trait Tip: Sized {
     /// The tooltip `text` while the widget is disabled and hovered (its reason).
     fn disabled_tip(self, text: impl Into<String>) -> Self;
     /// As [`Tip::disabled_tip`], beside the widget (right of it, else left) rather than under it, so that the reason
-    /// of a menu entry never covers the next entry (FT-759).
+    /// of a menu entry never covers the next entry.
     fn disabled_tip_beside(self, text: impl Into<String>) -> Self;
 }
 
@@ -158,7 +158,7 @@ pub(crate) fn combo_expanded(ui: &Ui, combo: &Response) {
 }
 
 /// Paints doc 16a §6.13's `chevron-down` (16 px, `color.text.secondary`) as a combo box's icon, in place of egui's
-/// filled triangle (FT-563). The signature is `egui::ComboBox::icon`'s.
+/// filled triangle. The signature is `egui::ComboBox::icon`'s.
 pub(crate) fn combo_chevron(ui: &Ui, rect: egui::Rect, _visuals: &egui::style::WidgetVisuals, _open: bool) {
     let t = tokens(ui);
     icons::paint(
@@ -171,7 +171,7 @@ pub(crate) fn combo_chevron(ui: &Ui, rect: egui::Rect, _visuals: &egui::style::W
 }
 
 /// A submenu row of a menu (doc 16a §6.13): the row's atoms and, at its right end, the 16-px `chevron-right` in
-/// `color.text.secondary`, in place of egui's filled triangle (FT-563). Returns the row's response.
+/// `color.text.secondary`, in place of egui's filled triangle. Returns the row's response.
 pub(crate) fn submenu<'a, R>(
     ui: &mut Ui,
     atoms: impl egui::IntoAtoms<'a>,
@@ -192,7 +192,7 @@ pub(crate) fn submenu<'a, R>(
 
 /// The fill, text colour, border and font of a button of `kind` (doc 16a §6.2). Disabled, every kind takes
 /// `color.text.disabled`; a disabled Primary (or red Primary) loses its fill and draws as a Secondary (the
-/// `color.surface.panel` fill and the 1-px `color.border.default`), so its label stays legible (cycle 33 ruling).
+/// `color.surface.panel` fill and the 1-px `color.border.default`), so its label stays legible.
 pub(crate) fn button_look(
     t: &Tokens,
     kind: Kind,
@@ -411,7 +411,7 @@ pub(crate) enum Badge {
     Stale,
     /// "Failed": the error style.
     Failed,
-    /// "Done": the success style (a finished job, FT-510).
+    /// "Done": the success style (a finished job).
     Done,
     /// "Cancelled": the neutral style.
     Cancelled,
@@ -530,7 +530,7 @@ pub(crate) fn paint_count_badge(
 }
 
 /// [`paint_count_badge`] on the chrome (a dock tab's count chip, doc 16a §5.7): `color.badge.on_chrome`, since
-/// `color.surface.sunken` is the chrome's own colour (FT-561); in the high-contrast themes with a
+/// `color.surface.sunken` is the chrome's own colour; in the high-contrast themes with a
 /// `color.border.default` outline.
 pub(crate) fn paint_count_badge_on_chrome(
     painter: &egui::Painter,
@@ -735,7 +735,7 @@ pub(crate) fn empty_state(
     let node = ui.interact(rect, id, Sense::hover());
     node.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, line));
     let mut clicked = None;
-    // FT-1288: in a pane too low for all of it (a bottom dock in a short window), the icon and the space above it give
+    // In a pane too low for all of it (a bottom dock in a short window), the icon and the space above it give
     // way, so that the two lines show whole.
     let icon_size = 2.0 * t.icon_md - t.space_3;
     let text_height = ui.fonts_mut(|f| {
@@ -817,7 +817,7 @@ pub(crate) fn card_status(shell: &ShellModel) -> CardStatus {
         return CardStatus::Fresh;
     };
     match (&card.preview.result, card.preview.status(rev)) {
-        // WP-S3.08 part 3: a table import with no cell to apply has not failed: its Apply keeps the project's values.
+        // A table import with no cell to apply has not failed: its Apply keeps the project's values.
         (Err(_), PreviewStatus::Stale) if nothing_to_apply(card) => CardStatus::Stale,
         (Err(_), _) if nothing_to_apply(card) => CardStatus::Fresh,
         (Err(m), _) => CardStatus::Failed(m.clone()),
@@ -899,15 +899,15 @@ pub(crate) fn apply_cancel(
 /// disabled with this reason as its tooltip (doc 16a §6.13: a disabled control shows its reason).
 pub(crate) fn apply_blocked(shell: &ShellModel) -> Option<String> {
     let card = shell.properties().card()?;
-    // FT-1193 (ID-1391): a table import that changes nothing has no Apply, and says why.
+    // A table import that changes nothing has no Apply, and says why.
     if nothing_to_apply(card) {
         return Some(strings::text(key!("reason-table-import-nothing")).to_owned());
     }
     card.preview.result.as_ref().err().cloned()
 }
 
-/// Whether `card` is a table import whose file changes no cell it can apply (WP-S3.08 part 3, ruling 7 of ID-1224):
-/// it previews no command, and its Apply is disabled (FT-1193, ID-1391).
+/// Whether `card` is a table import whose file changes no cell it can apply:
+/// it previews no command, and its Apply is disabled.
 pub(crate) fn nothing_to_apply(card: &ew_viewmodel::properties::Card) -> bool {
     matches!(&card.origin, CardOrigin::TableImport(c) if c.import.command.is_none())
 }
@@ -932,7 +932,7 @@ pub(crate) fn apply_cancel_blocked(
     events: &mut Vec<Event>,
 ) {
     let t = tokens(ui);
-    // FT-564: the row is one control high. A right-to-left layout over the rest of the parent would centre the buttons
+    // The row is one control high. A right-to-left layout over the rest of the parent would centre the buttons
     // in all of the room below, so a card in a tall pane stretched to the pane's height (doc 16a §6.9: content-sized).
     let size = Vec2::new(ui.available_width(), t.size_control);
     ui.allocate_ui_with_layout(size, Layout::right_to_left(Align::Center), |ui| {
@@ -1016,7 +1016,7 @@ pub(crate) fn inline_card(
 /// The action Apply dispatches for a card of `origin`: the navigator's own for a reorder, quick-fix or table card.
 pub(crate) fn apply_action(origin: &CardOrigin) -> &'static str {
     match origin {
-        // WP-S2.09 part 2: the quick-fix card is the Messages pane's, applied like the reorder card.
+        // The quick-fix card is the Messages pane's, applied like the reorder card.
         CardOrigin::Reorder { .. } | CardOrigin::QuickFix { .. } => "navigator.apply",
         _ => "preview.apply",
     }
@@ -1025,7 +1025,7 @@ pub(crate) fn apply_action(origin: &CardOrigin) -> &'static str {
 /// The "Preview open" strip of an origin pane while the Preview tab shows its card (doc 16a §6.23): one line
 /// `size.card_strip` high on `color.card.strip`, `radius.md`, `space.3` padding: the `eye` icon, "Preview open:
 /// `<line>`" in `type.small` with an ellipsis and a tooltip when cut, then Apply (Subtle, its label in `color.accent`
-/// SemiBold), Cancel and Show (Subtle). When the whole line does not fit beside the buttons (FT-565), the strip takes
+/// SemiBold), Cancel and Show (Subtle). When the whole line does not fit beside the buttons, the strip takes
 /// two rows: the eye icon and the line without "Preview open:" in at most two lines, then the buttons right-aligned
 /// under it. `false` (and nothing painted) while the tab is not open.
 pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &mut Vec<Event>) -> bool {
@@ -1083,7 +1083,7 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
                     events.push(Event::Action(apply_action(&card.origin), Value::Null));
                 }
             };
-            // The eye icon, then the text in `room`: whole, or (FT-565) without "Preview open:", for which the eye
+            // The eye icon, then the text in `room`: whole, or without "Preview open:", for which the eye
             // stands, in at most two lines, cut with an ellipsis and whole in the tooltip.
             let label = |ui: &mut Ui, shown: &str| {
                 let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_sm), Sense::hover());
@@ -1209,7 +1209,7 @@ pub(crate) fn section_header(
             .max_rect(badge_rect)
             .layout(Layout::left_to_right(Align::Center)),
     );
-    // ID-1477 (9): within the panel's own clip too, so a header scrolled out of a panel paints no badge over the bar.
+    // Within the panel's own clip too, so a header scrolled out of a panel paints no badge over the bar.
     child.set_clip_rect(rect.intersect(ui.clip_rect()));
     if let Some(count) = count {
         count_badge(&mut child, count);
@@ -1222,7 +1222,7 @@ mod tests {
     use super::{Kind, TIP_MAX_LINES, button_look, tip_galley};
     use crate::theme::{Density, Theme, contrast, tokens};
 
-    /// ID-1477 (9): a section header scrolled above its panel paints nothing outside the panel, its count badge
+    /// A section header scrolled above its panel paints nothing outside the panel, its count badge
     /// included, which painted over the editor's command bar.
     #[test]
     fn a_section_headers_count_badge_stays_inside_its_panel() {

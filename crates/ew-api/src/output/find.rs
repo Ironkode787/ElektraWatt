@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Find and replace (WP-S2.05 part 2, spec §7.1 and §7.4; D11, D16): [`Session::find`] searches the strings of the
+//! Find and replace (spec §7.1 and §7.4; D11, D16): [`Session::find`] searches the strings of the
 //! project's records and [`FindResults::replace_command`] turns the replaceable hits into the parameters of one
 //! `fields.set_many`.
 //!
@@ -140,7 +140,7 @@ impl FindResults {
     }
 }
 
-/// Why a query could not run (FT-1414): the front-end words it by [`FindError::key`] and [`FindError::args`] in its
+/// Why a query could not run: the front-end words it by [`FindError::key`] and [`FindError::args`] in its
 /// language, never the regular-expression parser's own text.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum FindError {

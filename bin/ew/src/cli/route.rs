@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew route [<project-dir>] [--page <folio>] [--selection <ids>] [--dry-run] [--json]` (WP-S2.19 D13): the page
+//! `ew route [<project-dir>] [--page <folio>] [--selection <ids>] [--dry-run] [--json]`: the page
 //! router over the CLI. Each page's plan ([`ew_api::Session::route_plan`]) is committed as one
 //! `connection.route_many`, the command the window's Route page commits, and the project is saved once.
 
@@ -29,7 +29,7 @@ pub struct RouteArgs {
     pub json: bool,
 }
 
-/// The reason's key in the JSON result and its sentence in the text (WP-S2.19 §12a).
+/// The reason's key in the JSON result and its sentence in the text.
 fn reason(why: Unrouted, wire: &str) -> (&'static str, String) {
     match why {
         Unrouted::Wires => ("wires", format!("No route keeps clear of other wires: {wire}.")),
@@ -177,7 +177,7 @@ fn page_result(
     }
 }
 
-/// The text of one page: its summary line (WP-S2.19 §12a, the page as `folio <label>`, as the window words it), then
+/// The text of one page: its summary line (the page as `folio <label>`, as the window words it), then
 /// one line per unrouted wire.
 fn page_text(page: &results::RoutePageResult, plan: &RoutePlan) -> String {
     let (routed, unrouted) = (page.routed.len(), page.unrouted.len());

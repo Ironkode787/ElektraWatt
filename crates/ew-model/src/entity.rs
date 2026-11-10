@@ -110,21 +110,21 @@ impl LibraryCopies {
     }
 
     raw_read! {
-        /// Macro copies (WP-S1.19 part 1).
+        /// Macro copies.
         fn macros(&self) -> &Table<LibCopy<MacroDef>> {
             &self.macros
         }
     }
 
     raw_read! {
-        /// Manufacturer copies (WP-S1.19 part 1).
+        /// Manufacturer copies.
         fn manufacturers(&self) -> &Table<LibCopy<Manufacturer>> {
             &self.manufacturers
         }
     }
 
     raw_read! {
-        /// PLC address-profile copies (WP-S7.03 D7).
+        /// PLC address-profile copies.
         fn plc_profiles(&self) -> &Table<LibCopy<PlcProfileDef>> {
             &self.plc_profiles
         }

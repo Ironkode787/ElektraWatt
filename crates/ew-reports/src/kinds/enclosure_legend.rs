@@ -20,9 +20,9 @@ use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowKey
 ///
 /// A block that is not embedded, or embedded on a page without a surface view, has no rows.
 ///
-/// Printed (WP-S4.01 D17, golden 902's `legend-902` block): the title "LEGEND", two flow columns, each with a header
+/// Printed (golden 902's `legend-902` block): the title "LEGEND", two flow columns, each with a header
 /// row, the position, DT, quantity and part number at weights 10 : 22 : 16 : 35. The quantity prints without its unit,
-/// and the manufacturer, description and unit stay in the rows and the CSV (the orchestrator's ruling 6 of cycle 42).
+/// and the manufacturer, description and unit stay in the rows and the CSV (the orchestrator's).
 #[derive(Clone, Copy, Debug)]
 pub struct EnclosureLegend;
 

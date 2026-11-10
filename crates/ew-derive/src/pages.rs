@@ -4,7 +4,7 @@
 //! Page order with sections, dividers and generated pages (doc 09 §3.1, FR-PAG-005, FR-PAG-006,
 //! FR-PAG-008, FR-PAG-009, FR-PAG-012, FR-PAG-013, ARCH §6.4 `page_order()`).
 //!
-//! # Generated pages: the provider hook (WP-S3.03)
+//! # Generated pages: the provider hook
 //!
 //! Report pagination lives in `ew-reports`, which sits above this crate (ARCH §3), so `page_order` reaches it
 //! through the [`ReportPagesProvider`] trait object a [`Q`] carries ([`Q::with_report_pages`]). The session
@@ -124,7 +124,7 @@ impl Query for SectionStructure {
 /// `page_ref_structure(page)`: the structure of any page of the page order: a drawn page's own, the
 /// section's shared structure for a divider and for a generated page of a block in a section, and for a
 /// generated page of a block outside every section (the table of contents, doc 20 §5) the structure all
-/// drawn pages of the project share; empty where they disagree (FT-160).
+/// drawn pages of the project share; empty where they disagree.
 #[derive(Debug)]
 pub struct PageRefStructure;
 
@@ -168,7 +168,7 @@ pub enum PageRef {
     Drawn(Id<Page>),
     /// The divider page of a section (FR-PAG-009).
     Divider(Id<Section>),
-    /// Page `index` (0 = the block's first page) of a report block (WP-S3.03).
+    /// Page `index` (0 = the block's first page) of a report block.
     Generated {
         /// The report block.
         block: Id<ReportBlock>,
@@ -273,7 +273,7 @@ impl fmt::Debug for ProviderSlot {
     }
 }
 
-/// The hook through which report pagination (WP-S3.03) feeds generated pages into the page order: the
+/// The hook through which report pagination feeds generated pages into the page order: the
 /// pages of one block when the table of contents has `toc_pages` pages, from the [`ReportPagesProvider`]
 /// the `Q` carries; none without one.
 pub fn report_pages(q: &Q, block: Id<ReportBlock>, toc_pages: u32) -> Vec<GeneratedPage> {

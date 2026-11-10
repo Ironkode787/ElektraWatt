@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The offscreen renderer (WP-S2.17 part 1, moved here by WP-S6.13 part 4 §4.2): egui's shapes painted by an
+//! The offscreen renderer (moved here): egui's shapes painted by an
 //! `egui_wgpu` renderer on the headless device of `ew-render2d` (the software adapter where there is one, DX12 WARP
 //! on Windows) into a texture that is read back as an RGBA image. The chrome snapshots replay a test harness's
 //! texture changes into a fresh renderer ([`render`]); the visual play-test driver keeps one renderer for the run

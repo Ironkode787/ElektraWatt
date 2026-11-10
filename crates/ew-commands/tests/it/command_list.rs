@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The one list of commands (RD43 §9 item 9): every `impl Command` under `src/commands/` is an entry of the
+//! The one list of commands (§9 item 9): every `impl Command` under `src/commands/` is an entry of the
 //! `commands!` invocation, read from the sources. The macro catches a listed type that does not exist and the
 //! registry a duplicate name; only a type that is never listed would pass silently.
 

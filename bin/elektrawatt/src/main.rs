@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The ElektraWatt desktop application: eframe shell, file dialogs, the headless mode, the crash log and exit codes.
-//! Native menus and clipboard come with a later work package (WP-S2.01 part 2, FT-310).
+//! Native menus and clipboard come with a later work package.
 //!
 //! ```text
 //! elektrawatt [--no-gpu] [<project-dir>]               the window; the project opens after the first frame
@@ -11,10 +11,10 @@
 //! elektrawatt --smoke <project-dir>                    opens read-only, draws page 1 at 36 dpi, exits
 //! ```
 //!
-//! A panic that ends the session in any mode is written to the local crash log ([`crash`], WP-S6.05) and the process
+//! A panic that ends the session in any mode is written to the local crash log ([`crash`]) and the process
 //! exits with 101. Exit codes of the headless mode: 0 every step done, 1 a step was refused or failed (without `--keep-going` the run
 //! stops there; with it the run goes on and the code is 1 when any step was not done), 2 a usage error. The window
-//! exits with 3 when the system has no graphics adapter at all (egui's own chrome needs one; WP-S2.02 section 7.2):
+//! exits with 3 when the system has no graphics adapter at all (egui's own chrome needs one; section 7.2):
 //! the message names the headless mode, the command-line tool `ew` and, on Linux, Mesa's software drivers.
 //! `--no-gpu` draws the canvas on the CPU and asks eframe for a software adapter (WARP, llvmpipe, lavapipe) for the
 //! window.
@@ -191,7 +191,7 @@ enum DialogKind {
 
 impl RfdPlatform {
     /// The dialogs of the window `cc` was made for. On Windows the window is their owner, so it takes no input while
-    /// a dialog is open, as when the dialog ran on the window's thread (FT-467); elsewhere they have no parent, as
+    /// a dialog is open, as when the dialog ran on the window's thread; elsewhere they have no parent, as
     /// before.
     fn new(cc: &eframe::CreationContext<'_>) -> RfdPlatform {
         let base = rfd::FileDialog::new();
@@ -242,7 +242,7 @@ impl RfdPlatform {
                     .add_filter("PDF", &["pdf"]),
                 DialogKind::Save,
             ),
-            // WP-S2.08 D8: the keymap editor's Import… and Export….
+            // The keymap editor's Import… and Export….
             Prompt::OpenKeymap => (
                 base.set_title(strings::text(key!("prompt-open-keymap-title")))
                     .add_filter("TOML", &["toml"]),
@@ -254,7 +254,7 @@ impl RfdPlatform {
                     .add_filter("TOML", &["toml"]),
                 DialogKind::Save,
             ),
-            // WP-S3.08 part 3: a navigator table's Export table… and Import table….
+            // A navigator table's Export table… and Import table….
             Prompt::SaveTable => (
                 base.set_title(strings::text(key!("prompt-export-table-title")))
                     .set_file_name(strings::text(key!("prompt-table-name")))
@@ -268,7 +268,7 @@ impl RfdPlatform {
                     .add_filter("CSV", &["csv"]),
                 DialogKind::File,
             ),
-            // WP-S1.17 part 7 (D24): File ▸ Export .ewz… and Open .ewz….
+            // File ▸ Export .ewz… and Open .ewz….
             Prompt::SaveEwz => (
                 base.set_title(strings::text(key!("prompt-export-ewz-title")))
                     .set_file_name(strings::text(key!("prompt-ewz-name")))
@@ -280,7 +280,7 @@ impl RfdPlatform {
                     .add_filter("EWZ", &["ewz"]),
                 DialogKind::File,
             ),
-            // ID-1463: the symbol editor's file and library folder.
+            // The symbol editor's file and library folder.
             Prompt::OpenSymbol => (
                 base.set_title(strings::text(key!("prompt-open-symbol-title")))
                     .add_filter(
@@ -323,7 +323,7 @@ impl Platform for RfdPlatform {
     }
 
     /// Every dialog runs on a thread of its own, so the window's event loop keeps running and the answer is painted
-    /// at once (FT-467).
+    /// at once.
     fn start_pick(&mut self, prompt: Prompt, ctx: &egui::Context) -> PickReply {
         if !Self::available() {
             return PickReply::Now(Pick::Unavailable);
@@ -340,7 +340,7 @@ impl Platform for RfdPlatform {
         open_in_browser(url)
     }
 
-    /// The print set goes through `ew-print`'s chain on a thread of its own (WP-S3.07 part 3, D11): Print… through the
+    /// The print set goes through `ew-print`'s chain on a thread of its own: Print… through the
     /// system's chain (on Linux the portal, then `lp`, then the viewer; on Windows the Windows print dialog, then the
     /// viewer), Open in PDF viewer through the viewer alone.
     /// The window keeps painting; the end comes back as a toast.
@@ -376,7 +376,7 @@ fn run_print(request: &PrintRequest) -> Result<ew_print::Printed, Vec<(&'static 
         fonts: ew_ui::ew_viewmodel::ew_api::output::font_bytes().clone(),
         printer: None,
         monochrome: request.monochrome,
-        // FT-1157 (ID-1417): the Jobs pane's Cancel of the print sets it.
+        // The Jobs pane's Cancel of the print sets it.
         cancel: ew_print::PrintCancel::of(std::sync::Arc::clone(&request.cancel)),
     })
 }
@@ -424,7 +424,7 @@ fn first_dir(candidates: impl IntoIterator<Item = PathBuf>) -> Option<PathBuf> {
     candidates.into_iter().find(|p| p.is_dir())
 }
 
-/// Finds the application's read-only resources (decision log: part 2 of WP-S2.01). Each has an environment
+/// Finds the application's read-only resources. Each has an environment
 /// override (`EW_SAMPLE_DIR`, `EW_CONTENT_DIR`, `EW_DOCS_DIR`) and then the places an installation or a development
 /// build has it, relative to the executable: next to it, in `share/elektrawatt` one level up, and, in a build from
 /// the source tree (`target/<profile>/elektrawatt`), the repository's own directories. A resource that is not
@@ -448,7 +448,7 @@ fn locate_resources(exe: Option<&Path>) -> Resources {
             .map(|p| p.canonicalize().unwrap_or(p))
     };
     let notices = exe_dir.as_ref().map(|d| d.join("THIRD-PARTY-NOTICES.txt"));
-    // WP-S6.05 D16: `PRIVACY.md` beside the executable (WP-S6.06 D3's tree), else the repository's in a development
+    // `PRIVACY.md` beside the executable (WP-S6.06 D3's tree), else the repository's in a development
     // build.
     let privacy = exe_dir
         .as_ref()
@@ -470,7 +470,7 @@ fn current_exe() -> Option<PathBuf> {
     std::env::current_exe().ok()
 }
 
-/// The library tiers of the shell's sessions (WP-S1.19 §11): the system libraries of the installation's content
+/// The library tiers of the shell's sessions: the system libraries of the installation's content
 /// (`content/libraries`), the user's data and cache directories. An isolated run (a script) reads libraries only when
 /// `EW_DATA_DIR` names its data directory, never the user's own, and keeps its search index in `EW_CACHE_DIR` when
 /// that is set, else in `<EW_DATA_DIR>/cache`, never in the user's own cache (FX38b j1).
@@ -519,7 +519,7 @@ fn shell_config(isolated: bool) -> ShellConfig {
     config.with_resources(resources).with_libraries(libraries)
 }
 
-/// The crash directory of a run with `config` (WP-S6.05 D6): `crashes/` in its state directory, which is the store's
+/// The crash directory of a run with `config`: `crashes/` in its state directory, which is the store's
 /// default when the configuration names none.
 fn crash_dir(config: &ShellConfig) -> Option<PathBuf> {
     config
@@ -597,7 +597,7 @@ fn place_on_screen(ctx: &egui::Context, frame: &eframe::Frame, saved: Option<Win
     }
 }
 
-/// The exit code 3 of a host without any graphics adapter (WP-S2.02 section 7.2, decision log ID-514).
+/// The exit code 3 of a host without any graphics adapter (section 7.2).
 const EXIT_NO_ADAPTER: i32 = 3;
 
 /// Whether eframe failed because no graphics adapter exists, as opposed to any other failure of the window. Any
@@ -645,14 +645,14 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
     let config = shell_config(false);
     crash::set_dir(crash_dir(&config));
     let mut shell = ShellModel::new(Mode::Gui, config);
-    // WP-S6.05 D11: the start-up offer of an earlier session's unsaved work and crash log.
+    // The start-up offer of an earlier session's unsaved work and crash log.
     shell.start_up();
     // The first start (and only that) shows the first-run flow, unless the user named a project to open.
     if initial.is_none() {
         shell.start_first_run_if_needed();
     }
     let flags = Flags { no_gpu };
-    // WP-S2.17 part 3 (DK6, FT-348): the last size, position and maximised state, restored.
+    // WP-S2.17 part 3 (DK6): the last size, position and maximised state, restored.
     let viewport = ew_ui::window_memory::restore(
         egui::ViewportBuilder::default()
             .with_title(strings::text(key!("window-title-start")))
@@ -690,7 +690,7 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
 }
 
 fn main() {
-    // WP-S6.05 D6, D7: the crash log's hook first, for every mode; a panic that reaches this frame ended the session.
+    // The crash log's hook first, for every mode; a panic that reaches this frame ended the session.
     crash::install(VERSION);
     let cli = parse_args(std::env::args_os().skip(1));
     let code = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run(cli))) {
@@ -735,8 +735,8 @@ fn run(cli: Result<Cli, String>) -> i32 {
             };
             crash::set_dir(crash_dir(&state));
             let stdin = std::io::stdin();
-            // WP-S6.05 D9: a debug build ends a headless run with a real panic on the main thread when asked, after the
-            // script's last step and before the shutdown (C50-p3#6), the test of the crash log; a release build
+            // A debug build ends a headless run with a real panic on the main thread when asked, after the
+            // script's last step and before the shutdown, the test of the crash log; a release build
             // compiles none of it.
             let forced_panic = || {
                 #[cfg(debug_assertions)]
@@ -1129,7 +1129,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// WP-S3.07 part 3 (D11): the chain's result reads as the window's end of a print: the notice when an earlier
+    /// The chain's result reads as the window's end of a print: the notice when an earlier
     /// way failed, nothing on a cancel, the last cause when every way failed.
     #[test]
     fn the_chain_result_reads_as_the_print_end() {
@@ -1178,7 +1178,7 @@ mod tests {
         assert_eq!(print_end(Err(Vec::new())), PrintEnd::Unavailable);
     }
 
-    /// The fixture of IN-2 (WP-S6.06 D3, D13) under the system's temporary directory, removed on drop: the flat tree
+    /// The fixture of IN-2 under the system's temporary directory, removed on drop: the flat tree
     /// of D3 beside an executable at `x/flat`, the `share/elektrawatt` tree for an executable at `inst/bin`, an
     /// executable directory with nothing near it at `x/empty`, and the directories the environment names at `env/`.
     /// Each executable sits two levels below the root, so the source-tree fallback (`<exe dir>/../..`) lands on the
@@ -1270,7 +1270,7 @@ mod tests {
         }
     }
 
-    /// IN-2 (WP-S6.06 D13): `locate_resources` over the flat layout of D3 and the `share/elektrawatt` layout, an
+    /// IN-2: `locate_resources` over the flat layout of D3 and the `share/elektrawatt` layout, an
     /// environment variable winning over both, and an absent resource `None`. Each case runs in a child process (this
     /// test binary, `--exact tests::locate_resources_child`) with the variables set or removed by `Command::env`, so
     /// that no variable of this process changes (`set_var` is `unsafe` in edition 2024, and this binary forbids

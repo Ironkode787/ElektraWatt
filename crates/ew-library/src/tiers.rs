@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The four library tiers and where they live (WP-S1.19 D4; doc 07 §2.1; doc 05 §1, §13.1).
+//! The four library tiers and where they live (doc 07 §2.1; doc 05 §1, §13.1).
 
 use std::path::{Path, PathBuf};
 
@@ -46,7 +46,7 @@ impl Tier {
     }
 }
 
-/// Where the tiers live (WP-S1.19 §5.2).
+/// Where the tiers live.
 ///
 /// Every library path names either a library directory itself (it holds `library.json`) or a directory whose
 /// `*.ewlib` children are libraries, read in byte order of their names. The compiled-in starter is always the first

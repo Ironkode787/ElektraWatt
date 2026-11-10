@@ -135,7 +135,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_wizard_apply_check_scheme(p),
         )),
     ),
-    // The property grid's own controls (WP-S2.05 part 1, spec §6.10): the window and the headless mode dispatch them.
+    // The property grid's own controls (spec §6.10): the window and the headless mode dispatch them.
     keeps_banner(with_params(
         "ids?:list(ref), refs?:list(ref)",
         hidden(with_aliases(
@@ -270,7 +270,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_props_row_menu(p),
         ))),
     )),
-    // FT-1030 (ID-1107): F (or a click) on a link row of the grid follows it, as F follows a link on the canvas.
+    // F (or a click) on a link row of the grid follows it, as F follows a link on the canvas.
     keeps_banner(with_params(
         "row?:text",
         hidden(in_properties(act(
@@ -337,7 +337,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_preview_cancel(),
     )))),
-    // FT-1149 (WP-S3.08 D14): the table import card's switch "Take the file's values".
+    // The table import card's switch "Take the file's values".
     keeps_banner(with_params(
         "on?:bool",
         hidden(act(
@@ -484,7 +484,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_journal_keep(),
     )))),
-    // WP-S6.05 D11: the start-up offer's answers.
+    // The start-up offer's answers.
     with_params(
         "project:uint",
         hidden(act(
@@ -524,7 +524,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_startup_dismiss(),
     ))),
-    // WP-S2.05 part 2: the find pane's own controls (§7.6); the pane handles Enter, Up and Down itself.
+    // The find pane's own controls (§7.6); the pane handles Enter, Up and Down itself.
     keeps_banner(hidden(in_find(act(
         "find.close",
         View,
@@ -624,7 +624,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_find_jump(),
     )))),
-    // WP-S6.13 part 1: the page's content as text (FR-UI-046's headless v0).
+    // The page's content as text (FR-UI-046's headless v0).
     with_params(
         "folio?:text",
         headless(act(
@@ -732,7 +732,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_paste_resolve(p),
         )),
     ),
-    // WP-S2.08 part 2 (D8): the keymap editor's own controls (Help ▸ Keyboard shortcuts); the window dispatches them.
+    // The keymap editor's own controls (Help ▸ Keyboard shortcuts); the window dispatches them.
     with_params(
         "text:text",
         hidden(act(
@@ -805,7 +805,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_keymap_export(p),
         )),
     ),
-    // ID-1477 (7): the editor has a button on the Draw tab, whose Place group holds its menu entry and palette row.
+    // The editor has a button on the Draw tab, whose Place group holds its menu entry and palette row.
     with_params(
         "key?:text, name?:text, discard?:bool",
         placed(
@@ -833,7 +833,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             s.act_symbol("open", p)
         })),
     ),
-    // ID-1463: the Library folder, typed or from the folder picker.
+    // The Library folder, typed or from the folder picker.
     with_params(
         "directory?:path",
         hidden(act(

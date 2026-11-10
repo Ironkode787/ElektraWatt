@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Follow-ups of the first blind-drafter dry run (BD16) found while fixing FT-485 (cycle 30, lane O30): the two
+//! Follow-ups of the first blind-drafter dry run (BD16) found while fixing FT-485 (lane O30): the two
 //! clamps of a starter terminal print distinct labels, the strip chooser's `picker.choose` takes its own
 //! `designation`, and the keyboard move of a terminal placed through the text interface moves it by the grid
 //! cursor's displacement.
@@ -72,7 +72,7 @@ fn item1_the_two_clamps_of_a_starter_terminal_print_distinct_labels() {
     let labels = cp_labels(&s);
     assert_eq!(labels.len(), 2, "{labels:?}");
     assert_ne!(labels[0], labels[1], "{labels:?}");
-    // `ew.fn.terminal` names clamp `a` on side 1 and `b` on side 2 (FT-505); a FnDef that repeats a letter takes
+    // `ew.fn.terminal` names clamp `a` on side 1 and `b` on side 2; a FnDef that repeats a letter takes
     // `#n` (ew-derive `a_repeated_clamp_letter_takes_a_suffix_and_distinct_letters_do_not`).
     assert!(labels[0].ends_with(":1/a"), "{labels:?}");
     assert!(labels[1].ends_with(":1/b"), "{labels:?}");

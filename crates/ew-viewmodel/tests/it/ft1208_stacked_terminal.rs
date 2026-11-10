@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1208 (decision log ID-1416): a terminal placed where a terminal of its strip already stands lands two grid steps
+//! A terminal placed where a terminal of its strip already stands lands two grid steps
 //! to the right (FT-622's stacking rule, ID-822). The ghost shows where it lands, not the click, and the "Placed" toast
 //! says why it moved, in en-GB and nl-NL. On a writable copy of Golden A's folio 103: terminal 70 of -X1031 at grid
 //! index (60, 28), then terminals 71 and 72 of -X1031 clicked on the same point.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The start-up dialog and the bundled `PRIVACY.md` in the window (WP-S6.05 D11, D16; PV-6's window half, PV-10): the
+//! The start-up dialog and the bundled `PRIVACY.md` in the window (PV-6's window half, PV-10): the
 //! offer of an earlier session's crash log with its buttons, and the privacy buttons opening the bundled copy.
 
 use crate::support;
@@ -68,7 +68,7 @@ fn the_start_up_dialog_offers_the_crash_log() {
     assert!(log.with_file_name("20261104T101500Z-42.offered.log").exists());
 }
 
-/// C50-p3#3: the Primary takes the first focus, so Enter presses it (Not now for a log alone).
+/// The Primary takes the first focus, so Enter presses it (Not now for a log alone).
 #[test]
 fn enter_presses_the_primary() {
     let tmp = Tmp::new();
@@ -116,7 +116,7 @@ fn crashed_project(tmp: &Tmp, name: &str) -> std::path::PathBuf {
     dir
 }
 
-/// FT-1312 (C50-p8#2): with two leftover projects the dialog offers a choice; the second chosen, Enter recovers it.
+/// With two leftover projects the dialog offers a choice; the second chosen, Enter recovers it.
 #[test]
 fn the_second_of_two_projects_is_chosen_and_recovered() {
     let tmp = Tmp::new();

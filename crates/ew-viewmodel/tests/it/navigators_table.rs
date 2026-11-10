@@ -507,7 +507,7 @@ fn tb4_an_ambiguous_number_is_resolved_on_the_card() {
     assert!(lines_with(&shell, "card ").iter().any(|l| l.ends_with(" table")));
     // WP-S2.09 part 3 (§8.1): the table card opens in the Preview tab like every origin; it stays the navigator's.
     assert!(shell.preview_shown());
-    // FT-580: the text prints the gesture's title and the Preview tab's summary line, as the window shows them.
+    // The text prints the gesture's title and the Preview tab's summary line, as the window shows them.
     let line = ew_viewmodel::script::card_summary(&shell).unwrap();
     let title = shell.table_gesture().unwrap().title();
     assert_eq!(line, format!("{title} · {}", shell.preview_summary().unwrap()));
@@ -624,7 +624,7 @@ fn tb5_the_policy() {
     shell.shutdown();
 }
 
-/// TB5's rule 2 on §8.2's other identifiers (the orchestrator's ruling, cycle 31): a pattern fill of the names of two
+/// TB5's rule 2 on §8.2's other identifiers (the orchestrator's ruling): a pattern fill of the names of two
 /// potentials, and of the codes of two structure nodes, each opens the card with `reason-identifiers` and commits
 /// nothing.
 #[test]
@@ -881,9 +881,9 @@ fn the_messages_pane_has_no_table_mode() {
     shell.shutdown();
 }
 
-/// FT-515: a potential known only by a name at a connection point (its definition deleted) has its CP as the
+/// A potential known only by a name at a connection point (its definition deleted) has its CP as the
 /// Potentials row's record; the row's potential-definition cells other than the defining Name, Type and Voltage
-/// (WP-S1.16 D4) are read-only ("no record of this kind") and compile no `fields.set` on the CP; a potential with a
+///  are read-only ("no record of this kind") and compile no `fields.set` on the CP; a potential with a
 /// definition still edits.
 #[test]
 fn a_potential_without_a_definition_has_read_only_definition_cells() {
@@ -960,7 +960,7 @@ fn a_potential_without_a_definition_has_read_only_definition_cells() {
     shell.shutdown();
 }
 
-/// FT-1240 (ID-1315): a Type cell of the Potentials table that is no potential type is refused naming the types as
+/// A Type cell of the Potentials table that is no potential type is refused naming the types as
 /// they are typed (`L+`, not `l_plus`), in en-GB and nl-NL.
 #[test]
 fn ft1240_a_refused_potential_type_names_the_types_in_words() {
@@ -1006,7 +1006,7 @@ fn ft1240_a_refused_potential_type_names_the_types_in_words() {
     shell.shutdown();
 }
 
-/// C50-p5#1: a header row is read as a header in either language: -X1032's rows copied in en-GB and pasted back in
+/// A header row is read as a header in either language: -X1032's rows copied in en-GB and pasted back in
 /// nl-NL change nothing, and copied in nl-NL and pasted back in en-GB neither.
 #[test]
 fn a_header_copied_in_one_language_pastes_in_the_other() {
@@ -1048,7 +1048,7 @@ fn a_header_copied_in_one_language_pastes_in_the_other() {
     shell.shutdown();
 }
 
-/// C50-p5#3: a table cell of an enumerated field takes the words its refusal lists, in en-GB and nl-NL: Strips ▸
+/// A table cell of an enumerated field takes the words its refusal lists, in en-GB and nl-NL: Strips ▸
 /// State "Not fitted" and "Reserve", stored as `not_fitted` and `spare`.
 #[test]
 fn a_table_cell_takes_the_words_of_an_enumerated_field() {
@@ -1080,7 +1080,7 @@ fn a_table_cell_takes_the_words_of_an_enumerated_field() {
     shell.shutdown();
 }
 
-/// C50-p5#3: PLC ▸ State and Potentials ▸ Class take their words too ("Spare", "Analogue"), on the first row that edits
+/// PLC ▸ State and Potentials ▸ Class take their words too ("Spare", "Analogue"), on the first row that edits
 /// the column.
 #[test]
 fn plc_state_and_potential_class_cells_take_their_words() {
@@ -1123,7 +1123,7 @@ fn plc_state_and_potential_class_cells_take_their_words() {
     shell.shutdown();
 }
 
-/// ID-1497 (1): `table.set` without `rows` sets the marked rows when any are marked, and takes a column's header label
+/// `table.set` without `rows` sets the marked rows when any are marked, and takes a column's header label
 /// as well as its key; while a cell is edited with more than one row marked the editor says that Ctrl+Enter sets them
 /// all.
 #[test]

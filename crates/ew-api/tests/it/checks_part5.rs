@@ -6,7 +6,7 @@
 //!
 //! W-1 lives in a fixture built from a **copy** of the checked-in Golden A (`golden/J-E-2416.ew`): the test opens the
 //! copy, records W-1 with `check.waive` from the GUI origin, saves (the store writes `waivers.jsonl`) and reopens it.
-//! Nothing under `golden/` changes (WP-S1.16 §10.3).
+//! Nothing under `golden/` changes.
 
 use crate::golden_common;
 
@@ -279,7 +279,7 @@ fn w1_waives_ef19_through_the_file_and_only_a_human_can_waive() {
 }
 
 /// P5-4 / D10 (AC-21, built-pack subset): `ew check --scheme pre-delivery` on the W-1 copy of Golden A reports, for the
-/// packs EW-CORE, EW-IEC81346, EW-TERM, EW-POT (EW-CORE-083 and -084 included), EW-PLC (WP-S1.21 part 3, PA-8) and EW-BUS
+/// packs EW-CORE, EW-IEC81346, EW-TERM, EW-POT (EW-CORE-083 and -084 included), EW-PLC (PA-8) and EW-BUS
 /// (part 4, BU-6), exactly the rows of
 /// `findings_mvp.csv` that are not pending, plus the known excess of FT-638; the pending rows name their packages.
 #[test]

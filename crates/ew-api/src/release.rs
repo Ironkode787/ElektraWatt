@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The release gate and the sign-off (doc 15 §5.4, §5.5; WP-S1.18 part 3, D8 to D10): [`Session::release_gate`] runs
+//! The release gate and the sign-off (doc 15 §5.4, §5.5): [`Session::release_gate`] runs
 //! the gate on the saved generation, [`Session::approve`] records the checker's sign-off bound to that generation's
 //! content digest.
 //!
@@ -29,7 +29,7 @@ use crate::{CmdError, Origin, Receipt, Session, Sha256, Submit, checks};
 /// The rule ID of the four-eyes rule, the one gate error an approval may leave open (doc 15 §5.4).
 pub const FOUR_EYES_RULE: &str = "EW-REL-001";
 
-/// The result of the release gate on the saved generation (doc 15 §5.5; WP-S1.18 D10).
+/// The result of the release gate on the saved generation (doc 15 §5.5).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Gate {
     /// The open revision the gate judged.
@@ -257,7 +257,7 @@ impl Session {
             .map(|(_, r)| r.id)
     }
 
-    /// The content digest of the saved generation (doc 15 §5.4; WP-S1.18 D8) with that generation: refused when the
+    /// The content digest of the saved generation (doc 15 §5.4) with that generation: refused when the
     /// session has unsaved edits or no saved generation.
     ///
     /// # Errors
@@ -278,7 +278,7 @@ impl Session {
         Ok((Sha256(digest), manifest.generation))
     }
 
-    /// The release gate on the saved generation for the open revision `label` (doc 15 §5.5; WP-S1.18 D10): the
+    /// The release gate on the saved generation for the open revision `label` (doc 15 §5.5): the
     /// project's release scheme (`pre-delivery` by default) in release mode, cold, with the gate-only EW-REL rules and
     /// the generation's content digest, joined by the integrity findings of opening the project (`integrity`, as `ew
     /// check` joins them). A read-only session may run it; approving and releasing need the write lock.
@@ -310,7 +310,7 @@ impl Session {
         let mut report = self
             .with_layout_findings(&q, checks::gate(&q, scheme, &input))
             .with_integrity(integrity.iter().cloned());
-        // EW-CORE-013 after a merge blocks the gate as `ew check` reports it (WP-S1.17 D29).
+        // EW-CORE-013 after a merge blocks the gate as `ew check` reports it.
         if self.merge_evidence() {
             report = report.with_merge_evidence(&q);
         }
@@ -331,7 +331,7 @@ impl Session {
         })
     }
 
-    /// Records the checker's sign-off on the open revision (doc 15 §5.4; WP-S1.18 D9): after the release gate on the
+    /// Records the checker's sign-off on the open revision (doc 15 §5.4): after the release gate on the
     /// saved generation, `revision.approve` with the gate's content digest, scheme and pack versions, from the
     /// session's origin. Returns the gate it approved; the session is then dirty with the sign-off (in
     /// `revisions.jsonl`, which is not content, so saving it leaves the digest as it is).

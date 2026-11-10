@@ -78,7 +78,7 @@ pub struct ElementsOut {
 pub const FALLBACK_LETTER: &str = "A";
 
 /// EW-IMP-122 (proposed, the next free code of the doc 14 §2.5 catalogue): element without label; its tag
-/// keeps the prefix letter, and the import numbers it (`-1A1`; ID-1376).
+/// keeps the prefix letter, and the import numbers it (`-1A1`).
 pub const UNLABELED: Code = Code::imp(122);
 
 /// The element a link UUID names, seen from `from`: the copy on `from`'s folio when the UUID is repeated
@@ -361,7 +361,7 @@ impl Mx<'_, '_> {
         self.findings.push(code, severity, loc, message);
     }
 
-    /// A finding at element `e` about the device `device` it emits (WP-S3.09 D1: the entry's target).
+    /// A finding at element `e` about the device `device` it emits (the entry's target).
     fn at_device(
         &mut self,
         e: &Elem<'_>,

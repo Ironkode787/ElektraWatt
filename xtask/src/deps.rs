@@ -407,7 +407,7 @@ pub fn manifest_edges(text: &str) -> Result<Vec<Edge>> {
         .unwrap_or("?")
         .to_owned();
     let mut edges = Vec::new();
-    // The manifest's own tables, then each target's (C52-p1#9).
+    // The manifest's own tables, then each target's.
     let targets = doc
         .get("target")
         .and_then(toml::Value::as_table)
@@ -438,7 +438,7 @@ pub fn manifest_edges(text: &str) -> Result<Vec<Edge>> {
     Ok(edges)
 }
 
-/// The confined crates in the manifests outside the workspace that their rules name (`manifests`, ID-1374): a
+/// The confined crates in the manifests outside the workspace that their rules name (`manifests`): a
 /// direct dependency on the confined crate from a package the rule does not allow is a violation.
 ///
 /// # Errors
@@ -896,8 +896,8 @@ mod tests {
         );
     }
 
-    /// ID-1374 (C51-p2#2): the confined rule reads the manifests it names outside the workspace: a direct edge there,
-    /// renamed, a dev-dependency or under a target table (C52-p1#9, ID-1390), fails; the real fuzz manifest passes.
+    /// The confined rule reads the manifests it names outside the workspace: a direct edge there,
+    /// renamed, a dev-dependency or under a target table, fails; the real fuzz manifest passes.
     #[test]
     fn confined_crate_in_a_manifest_outside_the_workspace_fails() {
         let manifest = "[package]\nname = \"g-fuzz\"\n\n[dependencies]\ng-top = { path = \"../top\" }\nqet = { package = \"g-import-qet\", path = \"../qet\" }\n\n[dev-dependencies]\ng-import-qet = { path = \"../qet\" }\n\n[target.'cfg(unix)'.build-dependencies]\ng-import-qet = { path = \"../qet\" }\n";
@@ -984,7 +984,7 @@ mod tests {
     /// module; the workspace's importers pass it.
     #[test]
     fn the_importer_purity_check_finds_file_access_and_passes_the_workspace() {
-        // FT-1385: a one-line `#[cfg(test)] use …;` skips only itself, and a grouped import names its module.
+        // A one-line `#[cfg(test)] use …;` skips only itself, and a grouped import names its module.
         let fixture = "use std::fs;\n// std::net in a comment\nfn f() { let _ = File::open(\"x\"); }\n#[cfg(test)]\nmod tests {\n    use std::env;\n}\nfn g() {}\n#[cfg(test)] use std::net;\nuse std::process;\nuse std::{fs::read, env};\nuse std::{\n    io::Read,\n    env,\n};\nuse std::{collections::HashMap, io::{self, Read}};\n";
         assert_eq!(
             impure_lines("crates/ew-import-x/src/lib.rs", fixture),

@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Records named in words for a command's refusal (FT-756, doc 16a): a refusal reaches the window's toast
+//! Records named in words for a command's refusal (doc 16a): a refusal reaches the window's toast
 //! (`error-command`), so it names a record by its tag, page folio or label, never by its ID. A record that does
-//! not exist has no words: the refusal says so and its JSON Pointer names the parameter. The words are keyed
-//! (FT-1337): a tag or a number is a plain argument, every word around it a [`Text`] in the window's language.
+//! not exist has no words: the refusal says so and its JSON Pointer names the parameter. The words are keyed:
+//! a tag or a number is a plain argument, every word around it a [`Text`] in the window's language.
 
 use ew_derive::layout::{CarrierLabel, CarrierLabelKind};
 use ew_derive::{DeviceTag, Q};
@@ -55,7 +55,7 @@ pub(crate) fn function(tx: &TxBuilder<'_>, id: ew_ids::Id<Function>) -> TextArg 
         )
 }
 
-/// A connection point by its device's tag and its printed designation (`-201U3-Q1:2`, WP-S1.20 §5): the designation
+/// A connection point by its device's tag and its printed designation (`-201U3-Q1:2`): the designation
 /// `function_cps` derives on the transaction's base model, else the FnDef CP's, else the index.
 pub(crate) fn cp(tx: &TxBuilder<'_>, f: ew_ids::Id<Function>, idx: u16) -> Text {
     let q = Q::new(tx.base_model());
@@ -138,7 +138,7 @@ pub(crate) fn symbol_copy(tx: &TxBuilder<'_>, id: ew_ids::Id<ew_schema::SymbolDe
 
 /// Any record by the words of its kind (WP-S3.09 D12's EW-IMP-010 and EW-IMP-011, the re-import card's rows): a device
 /// by its tag, a function or an interruption point, a page, a symbol, a wire or a junction as above, else its kind with
-/// its article (`a conductor`… `an enclosure`). Keyed, so the window shows it in its language (ID-1374).
+/// its article (`a conductor`… `an enclosure`). Keyed, so the window shows it in its language.
 pub(crate) fn record(tx: &TxBuilder<'_>, key: ew_model::AnyKey) -> TextArg {
     let (kind, id) = key;
     match kind {
@@ -152,7 +152,7 @@ pub(crate) fn record(tx: &TxBuilder<'_>, key: ew_model::AnyKey) -> TextArg {
     }
 }
 
-/// A record by its kind with its article only (`a device`… `an enclosure`), where no model is at hand (FT-1488).
+/// A record by its kind with its article only (`a device`… `an enclosure`), where no model is at hand.
 pub(crate) fn kind_words(kind: Kind) -> TextArg {
     match kind {
         Kind::Device => text!("refusal-words-kind-device").into(),
@@ -221,7 +221,7 @@ fn item(tx: &TxBuilder<'_>, kind: Kind, name: Option<String>) -> TextArg {
     )
 }
 
-/// A library copy by its item's name and its version ("2904602 at version 1.2.0", FT-1396): the project holds no
+/// A library copy by its item's name and its version ("2904602 at version 1.2.0"): the project holds no
 /// library's name, so the item's names it.
 pub(crate) fn copy(tx: &TxBuilder<'_>, kind: Kind, name: Option<String>, version: &str) -> Text {
     text!("refusal-words-copy", item(tx, kind, name), version)
@@ -310,7 +310,7 @@ pub(crate) fn document_item(tx: &TxBuilder<'_>, doc: &ew_schema::LibDocument) ->
     )
 }
 
-/// A damaged library copy in words (FT-1500, ID-1458), for the banner and the refusals of a project the open made
+/// A damaged library copy in words, for the banner and the refusals of a project the open made
 /// read-only: by its kind word and its own name or key as `doc` names it (the installed library's document of the
 /// same copy, the project's own file being unreadable), else its kind with its article, and by the record of `model`
 /// that names it, when one does ("the library copy of form A3 named by page 103").
@@ -343,7 +343,7 @@ pub fn damaged_copy(
 }
 
 /// Several texts as one, joined by commas (`a, b, c`), the way `comma_list` joins them; `None` for none: every
-/// damaged copy a Save As leaves out (C53-p3#6, ID-1481).
+/// damaged copy a Save As leaves out.
 pub fn comma_joined(items: Vec<Text>) -> Option<Text> {
     let mut rest = items.into_iter().rev();
     let last = rest.next()?;
@@ -432,12 +432,12 @@ pub(crate) fn wire(tx: &TxBuilder<'_>, id: ew_ids::Id<Connection>) -> Text {
     }
 }
 
-/// Items in a list joined by "; " (FT-1395), each in the reader's language; empty without items.
+/// Items in a list joined by "; ", each in the reader's language; empty without items.
 pub(crate) fn list(items: Vec<TextArg>) -> TextArg {
     joined(items, |a, b| text!("refusal-words-list", a, b))
 }
 
-/// Items in a list joined by ", " (FT-1395), each in the reader's language; empty without items.
+/// Items in a list joined by ", ", each in the reader's language; empty without items.
 pub(crate) fn comma_list(items: Vec<TextArg>) -> TextArg {
     joined(items, |a, b| text!("refusal-words-list-comma", a, b))
 }
@@ -451,7 +451,7 @@ fn joined(items: Vec<TextArg>, pair: impl Fn(TextArg, TextArg) -> Text) -> TextA
     rest.fold(last, |tail, item| pair(item, tail).into())
 }
 
-/// A representation type in words (FT-1395, the window's own wording of the type choice): a type of a newer format
+/// A representation type in words (the window's own wording of the type choice): a type of a newer format
 /// by its stored value.
 pub(crate) fn rep_type(t: &RepType) -> TextArg {
     match t {
@@ -494,7 +494,7 @@ pub(crate) fn page_kind(kind: &PageType) -> TextArg {
 mod tests {
     use super::*;
 
-    /// ID-1374 (C51-p2#3): a record of a kind without words of its own is named by its keyed kind word, never by
+    /// A record of a kind without words of its own is named by its keyed kind word, never by
     /// the kind's internal name.
     #[test]
     fn a_record_of_another_kind_is_named_by_its_keyed_kind_word() {

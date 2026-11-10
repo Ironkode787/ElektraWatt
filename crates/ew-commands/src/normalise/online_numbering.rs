@@ -56,7 +56,7 @@ fn touched(tx: &TxBuilder<'_>) -> BTreeSet<Id<Device>> {
                     }
                 }
             }
-            // FT-1406: a cable without a definition line is placed through its first connected core.
+            // A cable without a definition line is placed through its first connected core.
             Kind::Connection => {
                 for row in [tx.row(&key), tx.base_row(&key)].into_iter().flatten() {
                     if let AnyRow::Connection(c) = row
@@ -130,7 +130,7 @@ impl Normaliser for OnlineNumbering {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
         let candidates = candidates(tx);
-        // The candidates in place order (FR-NUM-028, FT-456), never in ID order: the IDs one transaction mints
+        // The candidates in place order (FR-NUM-028), never in ID order: the IDs one transaction mints
         // are not monotonic. The counters of each (scope, letter) group are loaded once per run (NFR-PERF-08)
         // by the shared loop.
         let mut keyed: Vec<(PlaceKey, Id<Device>)> =
@@ -142,7 +142,7 @@ impl Normaliser for OnlineNumbering {
             None => true,
             Some(counter) => {
                 let base = tx.base_model();
-                // FT-1406: a cable leaving the project's scope for a page takes that page's next free counter; the
+                // A cable leaving the project's scope for a page takes that page's next free counter; the
                 // project's was only for the time it lay on no page. Once, in the pass that places it (the counter it
                 // came with is the base's).
                 let placed_now = dev.aspects.cable.is_some()

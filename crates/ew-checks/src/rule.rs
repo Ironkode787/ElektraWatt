@@ -53,7 +53,7 @@ pub struct Modes {
     /// x: before an exporter writes.
     pub export: bool,
     /// g: the release gate only (doc 15 §3.2, §4.8; the EW-REL rules): never in an online run or a plain release-mode
-    /// run, so `ew check` does not report them; [`gate`](crate::gate) evaluates them (WP-S1.18 D10).
+    /// run, so `ew check` does not report them; [`gate`](crate::gate) evaluates them.
     pub gate: bool,
 }
 
@@ -106,9 +106,9 @@ pub enum ScopeKind {
     Module,
     /// One PLC configuration project (doc 15 §2.3 `cfg`, requested by doc 10 §3.10).
     Cfg,
-    /// One logical bus net (doc 15 §2.3 `lnet`; WP-S1.21 D12).
+    /// One logical bus net (doc 15 §2.3 `lnet`).
     Lnet,
-    /// One physical bus net (doc 15 §2.3 `pnet`; WP-S1.21 D12).
+    /// One physical bus net (doc 15 §2.3 `pnet`).
     Pnet,
 }
 
@@ -201,7 +201,7 @@ pub struct RuleMeta {
     /// The release whose pack ships the rule (the catalogue's release column, doc 15 §4.1): a 1.0 rule of a
     /// pack that is complete at 1.0, such as EW-CORE-065, belongs to the pack's 1.0 content.
     pub release: Release,
-    /// The rule's page of the user guide (FR-CHK-015, WP-S7.05 D6): `reference/rules/<id in lower case>`, a path
+    /// The rule's page of the user guide (FR-CHK-015): `reference/rules/<id in lower case>`, a path
     /// below the book's source without its extension, which `cargo xtask docs-gen` writes from the catalogue.
     pub docs: &'static str,
 }

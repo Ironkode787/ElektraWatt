@@ -232,7 +232,7 @@ fn location_node_uuid() -> String {
 
 /// The items of the Wire markers submenu.
 fn marker_mode_items(s: &ShellModel) -> Vec<ActionItem> {
-    // WP-S2.17 part 2: Draw, Connect, Wire markers.
+    // Draw, Connect, Wire markers.
     let draw = menu_model(s)
         .into_iter()
         .find(|m| m.menu == Menu::Draw)

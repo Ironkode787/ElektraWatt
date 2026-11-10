@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-734 and FT-758: a black box's caption (tag, part number, manufacturer) stacks clear of its top CPs; a pin text of
+//! A black box's caption (tag, part number, manufacturer) stacks clear of its top CPs; a pin text of
 //! signs only prints upright; a device tag that runs into a neighbour's tag or a fixed text, or that a wire runs
 //! through, moves to a free place beside its symbol (module documentation of `ew_scene::page`, "Black-box captions"
 //! and "Device tags").
@@ -189,7 +189,7 @@ fn black_box(cps: &[(u16, (i64, i64), &str)], pins: &[(u16, &str)]) -> RepView {
     }
 }
 
-/// FT-734: with CPs on its top edge, the caption stacks tag, part number and manufacturer from the box upward, each a
+/// With CPs on its top edge, the caption stacks tag, part number and manufacturer from the box upward, each a
 /// gap above the one before, right-aligned one grid step left of the leftmost top CP: no caption text stands over a
 /// CP, its pin text or each other.
 #[test]
@@ -232,7 +232,7 @@ fn a_black_box_caption_stacks_clear_of_its_top_cps() {
     }
 }
 
-/// FT-734: without a CP on its top edge, the tag stands where the symbol puts it (the outline's top-left corner,
+/// Without a CP on its top edge, the tag stands where the symbol puts it (the outline's top-left corner,
 /// `BLACK_BOX_CAPTION_GAP` above it) and the part number and manufacturer stack above it, left-aligned with it.
 #[test]
 fn without_a_top_cp_the_tag_stays_and_the_caption_stacks_above_it() {
@@ -259,7 +259,7 @@ fn without_a_top_cp_the_tag_stays_and_the_caption_stacks_above_it() {
     assert!(!run_into(tag, part) && !run_into(part, maker));
 }
 
-/// FT-758: a pin text of signs only prints upright ("−" would read as a tick turned); one with a letter or a digit
+/// A pin text of signs only prints upright ("−" would read as a tick turned); one with a letter or a digit
 /// turns with a pin leaving up or down, as before.
 #[test]
 fn a_pin_text_of_signs_only_prints_upright() {
@@ -343,7 +343,7 @@ fn neighbouring_tags_do_not_run_into_each_other() {
     }
 }
 
-/// FT-758: tags far enough apart stay where the symbol puts them.
+/// Tags far enough apart stay where the symbol puts them.
 #[test]
 fn tags_with_room_stay_put() {
     let c = symbol(CONTACT_NO);
@@ -409,7 +409,7 @@ fn a_tag_does_not_sit_on_a_wire() {
     assert!(tag.min().y.0 < g(34) && tag.max().y.0 > g(30));
 }
 
-/// FT-771 (WP-S2.11 D12): the labels layer reports each tag's anchor where it prints, after the tag rule. The valve's
+/// The labels layer reports each tag's anchor where it prints, after the tag rule. The valve's
 /// tag that the wire would run through moves off it (here it turns about its anchor), and the reported anchor stands
 /// on the moved text's rectangle; the coils print no tag and report none, and no other layer reports tags. Golden A's
 /// folio 3, where the rule moves an anchor, is `ew-api`'s `ft771_tag_at_is_where_the_labels_layer_prints_the_tag`.
@@ -552,7 +552,7 @@ fn caption_under_a_pin() -> Vec<RepView> {
 /// The caption of `black_box`.
 const CAPTION: [&str; 3] = ["-101A1", "EW-GEN-PSU-1", "Generic"];
 
-/// ID-1250 (FT-1138): a risen caption is judged by the tag rule's free test. The neighbour's pin wire runs up from
+/// A risen caption is judged by the tag rule's free test. The neighbour's pin wire runs up from
 /// grid (34, 26) to a box above, through the place the caption would rise to: the caption never lies across it; with
 /// no free place within three rises it stays in its slot.
 #[test]
@@ -587,7 +587,7 @@ fn a_risen_caption_never_lies_across_a_wire() {
     }
 }
 
-/// ID-1250 (FT-1138): another box's caption stands where the caption would rise to; the caption rises past it, never
+/// Another box's caption stands where the caption would rise to; the caption rises past it, never
 /// onto it.
 #[test]
 fn a_risen_caption_clears_another_caption() {
@@ -608,7 +608,7 @@ fn a_risen_caption_clears_another_caption() {
     }
 }
 
-/// FT-701's rest (WP-S2.11 D10, GT-7): a black box's pin text is a fixed obstacle of a technical-data text, as of a
+/// FT-701's rest (GT-7): a black box's pin text is a fixed obstacle of a technical-data text, as of a
 /// cross-reference text. A valve's "24 V" placed over the box's pin text "Q0.2" drops below it, `SLOT_TEXT_GAP` apart;
 /// the pin text stays where it was.
 #[test]
@@ -654,7 +654,7 @@ fn a_technical_data_text_drops_below_a_pin_text_it_would_overlap() {
 }
 
 /// A connection `n` from `a` to `b` with the stored route `route` (grid points). A route of interior points only is a
-/// stale one: the scene joins each end to it with a straight segment (WP-S2.19 D2); one point on the line between two
+/// stale one: the scene joins each end to it with a straight segment; one point on the line between two
 /// aligned ends makes the straight wire. Without a route a connection is unrouted (D3) and no obstacle of a text.
 fn routed(n: u128, a: (u128, u16), b: (u128, u16), route: &[(i64, i64)]) -> ConnectionView {
     let route: Vec<(i64, i64)> = route.iter().map(|&(x, y)| (g(x), g(y))).collect();
@@ -681,7 +681,7 @@ fn captioned() -> RepView {
     black_box(&[(0, (20, 0), "up")], &[])
 }
 
-/// FT-772 (WP-S2.11 D11, GT-7): a black box's caption stack that a stored wire crosses moves left in grid steps until
+/// FT-772 (GT-7): a black box's caption stack that a stored wire crosses moves left in grid steps until
 /// no caption crosses it, every line by the same step, never past the outline's left edge. The wire runs down at grid
 /// x 47 from a box above to a box on the black box's top edge.
 #[test]
@@ -711,7 +711,7 @@ fn a_caption_stack_moves_left_off_a_stored_wire() {
     }
 }
 
-/// FT-772: a stored wire that crosses the caption stack wherever it could move (a horizontal wire across the whole box)
+/// A stored wire that crosses the caption stack wherever it could move (a horizontal wire across the whole box)
 /// leaves it where it was.
 #[test]
 fn a_caption_stack_without_a_free_place_stays() {
@@ -841,7 +841,7 @@ fn arrow_label(y: i64, ys: &[i64], extra: (Vec<RepView>, Vec<ConnectionView>)) -
     )
 }
 
-/// C52-p3#1 (ID-1417): a coil's two-line contact mirror, which grows down from its first line, is judged where it
+/// A coil's two-line contact mirror, which grows down from its first line, is judged where it
 /// prints: a wire through its second line lifts the whole list off it, both lines by the same step.
 #[test]
 fn a_two_line_list_rises_off_a_wire_through_its_second_line() {
@@ -875,7 +875,7 @@ fn a_two_line_list_rises_off_a_wire_through_its_second_line() {
     assert_eq!(two.min().y.0 - second.min().y.0, dy, "the list keeps its lines");
 }
 
-/// C52-p3#5: a rise that would leave the drawing area (here the sheet: no frame) does not happen; the text stays.
+/// A rise that would leave the drawing area (here the sheet: no frame) does not happen; the text stays.
 #[test]
 fn a_cross_reference_does_not_rise_out_of_the_drawing_area() {
     let (shown, bare) = arrow_label(0, &[g(1)], (Vec::new(), Vec::new()));
@@ -883,7 +883,7 @@ fn a_cross_reference_does_not_rise_out_of_the_drawing_area() {
     assert_eq!(shown, bare, "it stays");
 }
 
-/// C52-p3#5: without a free place above the wire (a vertical wire comes down to the arrow's row) the text stays.
+/// Without a free place above the wire (a vertical wire comes down to the arrow's row) the text stays.
 #[test]
 fn a_cross_reference_without_a_free_place_stays() {
     let blocker = vec![
@@ -901,7 +901,7 @@ fn a_cross_reference_without_a_free_place_stays() {
     assert_eq!(shown, bare, "it stays");
 }
 
-/// FT-1519 (ID-1455): the rise keeps clear of another representation's symbol body. A coil without texts whose
+/// The rise keeps clear of another representation's symbol body. A coil without texts whose
 /// outline bounds cover the place the label would rise to (above the wire) leaves the label clear of the body: it rises
 /// past it, never onto it.
 #[test]
@@ -946,7 +946,7 @@ fn a_cross_reference_does_not_rise_onto_another_symbols_body() {
         !overlap(shown, body),
         "{shown:?} clear of the coil's body {body:?}"
     );
-    // C53-p2#4 (ID-1480): it rises past the body, to SLOT_TEXT_GAP above it, as tall as it stood.
+    // It rises past the body, to SLOT_TEXT_GAP above it, as tall as it stood.
     let height = bare.max().y.0 - bare.min().y.0;
     let top = body.min().y.0 - SLOT_TEXT_GAP.0;
     assert_eq!(
@@ -959,7 +959,7 @@ fn a_cross_reference_does_not_rise_onto_another_symbols_body() {
     );
 }
 
-/// C52-p3#5: a text rises at most three times. Wires one grid step apart send it up past three of them, then it is free;
+/// A text rises at most three times. Wires one grid step apart send it up past three of them, then it is free;
 /// a fourth leaves it where it was.
 #[test]
 fn a_cross_reference_rises_at_most_three_times() {

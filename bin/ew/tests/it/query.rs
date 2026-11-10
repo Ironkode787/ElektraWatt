@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew query` and `ew queries` (WP-S1.22 part 4, D11 to D13) on a copy of Golden A: the text and the `--json` result,
+//! `ew query` and `ew queries` on a copy of Golden A: the text and the `--json` result,
 //! the failure paths, the registry's snapshot, determinism and `--project`.
 
 use std::collections::BTreeMap;
@@ -239,7 +239,7 @@ fn every_example_validates_against_its_output_schema() {
 
 /// The failure paths exit 2 with `error: ` and the message on stderr, nothing on stdout. An unknown query is refused
 /// before the project is opened; a key that names no record prints the replay's message (QU-3); a record of another
-/// kind is named in words ("Every adapter checks the resolved record's kind", ruling 3 of cycle 41).
+/// kind is named in words ("Every adapter checks the resolved record's kind").
 #[test]
 fn failures_exit_2_with_their_message() {
     let t = Tmp::new();

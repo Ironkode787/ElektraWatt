@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 6 (§11, FR-MAC-006, FT-487): what the Macros and Libraries navigators show besides their rows.
+//! WP-S1.19 part 6 (§11, FR-MAC-006): what the Macros and Libraries navigators show besides their rows.
 //!
 //! **The Libraries navigator** has an Update… button (Secondary) above its rows: `libraries.update` previews
 //! `library.update` of the marked copies, else the copy under the cursor, else every copy with an update, and opens
@@ -89,7 +89,7 @@ fn update_bar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     ui.add_space(t.space_2);
 }
 
-/// The detail block of a project's library copy (FT-755): its name (`type.body.strong`), its kind and key, its version
+/// The detail block of a project's library copy: its name (`type.body.strong`), its kind and key, its version
 /// and library, its state; a `Group` named after the copy.
 fn copy_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::LibraryCopyDetail) {
     let t = components::tokens(ui);

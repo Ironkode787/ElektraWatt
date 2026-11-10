@@ -97,7 +97,7 @@ pub trait DynCommand: Send + Sync {
     }
 
     /// Whether the prevent hook judges the transaction (true by default); `import.apply` keeps a prevent rule's
-    /// violation for the lenient findings (WP-S3.09 D7, doc 14 §3.3). The structural invariants hold either way.
+    /// violation for the lenient findings (doc 14 §3.3). The structural invariants hold either way.
     fn prevent(&self) -> bool {
         true
     }

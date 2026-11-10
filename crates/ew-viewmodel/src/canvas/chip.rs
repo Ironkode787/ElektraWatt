@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The one placement function of every canvas chip (WP-S2.17 D13; doc 16a §7.4): preview chips, the ghost's label,
+//! The one placement function of every canvas chip (doc 16a §7.4): preview chips, the ghost's label,
 //! highlight name chips and measurement readouts all stand where [`place_chip`] puts them, so collisions are a
 //! unit-tested rule instead of each painter's own.
 //!
@@ -107,7 +107,7 @@ pub struct ChipPlacement {
 /// The gap between a chip and its target (doc 16a §7.4).
 pub const CHIP_OFFSET: f32 = 8.0;
 
-/// The side of the pointer's box chips keep out of (doc 16a §7.4, FT-508).
+/// The side of the pointer's box chips keep out of (doc 16a §7.4).
 pub const POINTER_BOX: f32 = 16.0;
 
 /// The opacity of a faded chip.
@@ -231,7 +231,7 @@ mod tests {
         covers: Option<Rect>,
     }
 
-    /// The frame-statistics panel (FT-508), the tool HUD and the pointer's 16-point box are obstacles like any
+    /// The frame-statistics panel, the tool HUD and the pointer's 16-point box are obstacles like any
     /// chip.
     #[test]
     fn ov2_the_hud_is_an_obstacle() {

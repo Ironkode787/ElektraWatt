@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The adapters with a stand-in program (WP-S3.07 PR-4): this test binary itself, run with `--exact
+//! The adapters with a stand-in program (PR-4): this test binary itself, run with `--exact
 //! tests::stand_in --nocapture --` before the adapter's arguments, records them in `<last argument>.args`.
 
 use std::collections::BTreeMap;
@@ -191,7 +191,7 @@ fn job_with(pdf: &[u8]) -> PrintJob {
     }
 }
 
-/// PR-4 and D9 (ID-1144): the viewer writes each set to a fresh file `<dir>/<project>-print-<process>-<n>.pdf` and runs
+/// PR-4 and D9: the viewer writes each set to a fresh file `<dir>/<project>-print-<process>-<n>.pdf` and runs
 /// the opener on it, the file left for the viewer; a second print goes to a second file and leaves the first as it
 /// was; a printer is refused before anything is written.
 #[test]
@@ -228,7 +228,7 @@ fn the_viewer_writes_each_set_to_a_fresh_file_and_opens_it() {
     assert_eq!(dir.names(), want, "both files stay for the viewer");
 }
 
-/// D9 (ID-1144): a file already at the next name is left as it is and the set goes to the one after; when every
+/// D9: a file already at the next name is left as it is and the set goes to the one after; when every
 /// attempt finds its name taken, the set is refused with the last name and the system's reason.
 #[test]
 fn the_viewer_never_writes_over_a_file_at_its_next_name() {
@@ -272,7 +272,7 @@ fn the_viewer_never_writes_over_a_file_at_its_next_name() {
     }
 }
 
-/// D9 (ID-1144), Unix: a symbolic link at the viewer's next name is not followed (its target keeps its bytes, the
+/// D9, Unix: a symbolic link at the viewer's next name is not followed (its target keeps its bytes, the
 /// link stays a link) and the set goes to the name after; the viewer's file and the shared fresh file `lp` prints
 /// are readable by their owner only (mode `0o600`).
 #[cfg(unix)]
@@ -346,7 +346,7 @@ fn the_errors_read_as_words() {
     );
 }
 
-// WP-S3.07 part 3 (D11, PW-3; ruling 3 of ID-1180): the fallback chain.
+// WP-S3.07 part 3 (D11, PW-3): the fallback chain.
 
 type Calls = std::sync::Arc<std::sync::Mutex<Vec<PrintJob>>>;
 
@@ -516,7 +516,7 @@ impl PrintAdapter for Never {
     }
 }
 
-/// C52-p6#2 (ID-1424): a job cancelled while a way runs that then fails asks no further way, so the viewer never opens
+/// A job cancelled while a way runs that then fails asks no further way, so the viewer never opens
 /// the print the person cancelled: the list ends with the cancel, in place of the way not asked.
 #[test]
 fn a_cancel_while_a_way_runs_asks_no_further_way() {
@@ -527,8 +527,8 @@ fn a_cancel_while_a_way_runs_asks_no_further_way() {
     );
 }
 
-/// The window's chains: on Linux the portal, `lp`, then the viewer; on Windows the Windows adapter, then the viewer
-/// (ruling 4 of ID-1218); elsewhere the viewer; Open in PDF viewer is the viewer alone.
+/// The window's chains: on Linux the portal, `lp`, then the viewer; on Windows the Windows adapter, then the viewer;
+/// elsewhere the viewer; Open in PDF viewer is the viewer alone.
 #[test]
 fn the_system_chain_is_portal_lp_viewer_on_linux_windows_viewer_on_windows_and_the_viewer_elsewhere() {
     let dir = Dir::new();
@@ -558,7 +558,7 @@ fn portal_child() {
     assert!(matches!(result, Err(PrintError::Portal { .. })), "{result:?}");
 }
 
-/// FT-1111 (ID-1228 item 3): the real portal adapter with `DBUS_SESSION_BUS_ADDRESS` at a missing socket fails with
+/// FT-1111 (item 3): the real portal adapter with `DBUS_SESSION_BUS_ADDRESS` at a missing socket fails with
 /// [`PrintError::Portal`] and leaves its temporary folder empty: the print file is removed on that way out too. The
 /// child runs in its own process, so the variable reaches no other test; it is bounded in time, since how soon a
 /// connect to a missing socket fails is not known.

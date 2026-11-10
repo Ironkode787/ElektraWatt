@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The viewer's state and actions in the shell (WP-S2.03 part 1, spec sections 6.1 to 6.7): the canvas area with its
+//! The viewer's state and actions in the shell (spec sections 6.1 to 6.7): the canvas area with its
 //! tabs and groups, the page-content cache, walks, jumps and the per-tab history, cross-reference links, Go to page
 //! or cell, the keyboard grid cursor, the page navigator and the focus.
 //!
@@ -33,23 +33,20 @@ use crate::strings::Key;
 /// How many pages no tab shows the page-content cache keeps, most recently shown first.
 pub const RECENT_PAGES: usize = 8;
 
-/// Where the keyboard focus is (WP-S2.03 §6.6): it decides which context's shortcuts the window binds.
+/// Where the keyboard focus is: it decides which context's shortcuts the window binds.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Focus {
-    /// A navigator (WP-S2.06 §6.8): the Pages navigator, or another open one.
+    /// A navigator: the Pages navigator, or another open one.
     Navigator(crate::navigators::NavKind),
     /// The canvas of a group.
     Canvas(usize),
-    /// The property grid (WP-S2.05).
+    /// The property grid.
     Properties,
-    // WP-S2.05 part 2
     /// The find pane.
     Find,
-    // WP-S2.17 part 2
     /// The command bar's tab row (doc 16a §5.9: first in the F6 ring).
     CommandBar,
-    // WP-S2.17 part 3
-    /// The history panel (FT-519: its row cursor's keys).
+    /// The history panel (its row cursor's keys).
     History,
 }
 
@@ -67,15 +64,15 @@ pub struct SessionCalls {
     pub link_targets: u64,
     /// `Session::resolve_goto`.
     pub resolve_goto: u64,
-    /// `Session::page_cps` (WP-S2.03 part 2).
+    /// `Session::page_cps`.
     pub page_cps: u64,
-    /// `Session::page_tables` (WP-S2.04 §6.2), fetched with the page content.
+    /// `Session::page_tables`, fetched with the page content.
     pub page_tables: u64,
-    /// `Session::panel_tables` (WP-S4.02 D9): fetched with the page content of a panel-layout page only.
+    /// `Session::panel_tables`: fetched with the page content of a panel-layout page only.
     pub panel_tables: u64,
-    /// `Session::symbol_shape` (WP-S2.04 §6.2): once per symbol copy per revision while a tool holds a shape.
+    /// `Session::symbol_shape`: once per symbol copy per revision while a tool holds a shape.
     pub symbol_shape: u64,
-    /// `Session::place_catalogue` (the picker, WP-S2.04 §7.1): once per (revision, folio) while it is open.
+    /// `Session::place_catalogue` (the picker): once per (revision, folio) while it is open.
     pub place_catalogue: u64,
     /// `Session::preview_with` (the tool host's previews, and a bulk command's preview before its commit).
     pub preview_with: u64,
@@ -85,37 +82,31 @@ pub struct SessionCalls {
     pub execute_with: u64,
     /// `Session::run_script` (`command.run` and the tool host's headless commits).
     pub run_script: u64,
-    /// `Session::property_sheet` (WP-S2.05 part 1).
+    /// `Session::property_sheet`.
     pub property_sheet: u64,
-    /// `Session::field_choices`: a choice editor opened or its filter typed (WP-S2.05 part 1).
+    /// `Session::field_choices`: a choice editor opened or its filter typed.
     pub field_choices: u64,
-    // WP-S2.05 part 2
     /// `Session::find`: `find.run`, and a replace or a stale replace card that runs the search again.
     pub find: u64,
-    /// `Session::junction_wires` (WP-S2.04 part 2, §8.5): once per (revision, junction) while the editor is open.
+    /// `Session::junction_wires`: once per (revision, junction) while the editor is open.
     pub junction_wires: u64,
-    // WP-S2.05 part 3
     /// `Session::copy_fragment`: `edit.copy`, `edit.cut`, `edit.duplicate`.
     pub copy_fragment: u64,
     /// `parse_fragment`: `edit.paste_clip` and `edit.duplicate`.
     pub parse_fragment: u64,
     /// `Session::tag_list`: `edit.copy_tags`.
     pub tag_list: u64,
-    // WP-S2.06 part 1
     /// `Session::navigator_table`: once per open navigator other than Pages and revision.
     pub navigator_table: u64,
-    // WP-S2.06 part 2
     /// `Session::highlight_members`: once per highlight and revision.
     pub highlight_members: u64,
-    // WP-S2.09 part 1
     /// `Session::export_job`: once per started PDF export (§9 item 5); no other `Session` call runs off this thread.
     pub export_job: u64,
-    // WP-S2.09 part 3
     /// `Session::preview_entities`: once per card the Preview tab shows (§9 item 5).
     pub preview_entities: u64,
     /// `Session::history_view`: once per (project session, revision) while the history panel is open.
     pub history_view: u64,
-    // WP-S4.02 part 4 (C44-p2#2)
+    // WP-S4.02 part 4
     /// `Session::layout_part_offers` for Draw rail and Draw duct: when the tool is armed, and again only when its
     /// options or the revision change.
     pub layout_part_offers: u64,
@@ -295,7 +286,7 @@ impl ShellModel {
     /// earlier `@n` never names another record (ID-630 (b), FT-422).
     pub(super) fn install_view(&mut self) {
         self.navigator = PageNavigator::new();
-        // WP-S2.06 part 1: a project's navigator states and chips go with it (the panes stay in the layout).
+        // A project's navigator states and chips go with it (the panes stay in the layout).
         for n in self.navs.values_mut() {
             *n = crate::navigators::Navigator::new(n.kind);
         }
@@ -431,7 +422,7 @@ impl ShellModel {
         if let Some(geometry) = project.session.page_geometry(folio) {
             page.geometry = Arc::new(geometry);
         }
-        // WP-S4.02 D9: a panel-layout page's panel data, once per (session, revision, folio); none for another page.
+        // A panel-layout page's panel data, once per (session, revision, folio); none for another page.
         if self
             .page_rows()
             .iter()
@@ -476,7 +467,7 @@ impl ShellModel {
                 .collect(),
             None => BTreeSet::new(),
         };
-        // The link preview's page is on show too (WP-S2.03 §7.8).
+        // The link preview's page is on show too.
         if let Some(lp) = self.link_preview() {
             shown.insert(lp.target.folio.clone());
         }
@@ -521,7 +512,7 @@ impl ShellModel {
                 Arrival::Exact(v) => c.set_viewport(&v),
                 Arrival::Jump { at, zoom } => {
                     c.jump_view(at, zoom);
-                    // FT-1435: the arrival, centred, is marked for a moment.
+                    // The arrival, centred, is marked for a moment.
                     c.mark_arrival(at);
                 }
             }
@@ -607,13 +598,12 @@ impl ShellModel {
         }
     }
 
-    // WP-S2.09 part 3
     /// The context restore of an undo or redo (§8.5): group `g`'s active tab shows `page` at `viewport` (a fitted view
     /// fits again); the location it leaves goes on the tab's back list unless it is the one it reaches.
     pub(super) fn restore_location(&mut self, g: usize, page: PageId, viewport: Viewport) {
         let Some(from) = self.location(g) else { return };
         if from.page == page {
-            // The same page keeps its canvas (and the keyboard cursor, WP-S2.03 §7.7): only the view moves.
+            // The same page keeps its canvas (and the keyboard cursor): only the view moves.
             if let Some(c) = self.canvas_mut(g) {
                 c.set_viewport(&viewport);
             }
@@ -629,7 +619,6 @@ impl ShellModel {
         }
     }
 
-    // WP-S2.06 part 1
     /// A jump of group `g`'s active tab to `page` (a navigator row's target): one back-history entry.
     pub(super) fn jump_to(&mut self, g: usize, page: PageId) {
         self.jump(g, page, None, CursorAt::None);
@@ -892,7 +881,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `props.follow {row?}` (F or a click on a link row of the grid; FT-1030, ID-1107): follows the device link of
+    /// `props.follow {row?}` (F or a click on a link row of the grid): follows the device link of
     /// `row` (else the focused row) as the Devices navigator opens the device: its main page shows in the focused
     /// group and its drawings there are selected.
     pub(crate) fn act_props_follow(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -916,7 +905,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-project"));
         };
         // The device's row of the Devices navigator (a terminal's of the Strips navigator) knows its main page and
-        // its drawings there (§6.1 item 6 of WP-S2.06: main function first, then page order).
+        // its drawings there (§6.1 item 6: main function first, then page order).
         let open = [ew_api::output::NavKind::Devices, ew_api::output::NavKind::Strips]
             .into_iter()
             .find_map(|kind| {
@@ -1020,7 +1009,7 @@ impl ShellModel {
     }
 
     /// Shows the page whose ID text is `id` in the focused group's active tab, as a jump from where it stands: the page
-    /// a creation action just made (FT-408). Nothing happens when no page has the ID.
+    /// a creation action just made. Nothing happens when no page has the ID.
     pub(super) fn show_page_by_id(&mut self, id: &str) {
         let Some(page) = self
             .page_rows()
@@ -1058,7 +1047,7 @@ impl ShellModel {
     }
 
     /// `lists.parts` (FT-717): opens the first page of the parts list in the focused group, as `page.goto` does.
-    /// FT-1028 (ID-1107): the command ends with that page fitted in the canvas and its row selected in the page tree,
+    /// The command ends with that page fitted in the canvas and its row selected in the page tree,
     /// and the earlier export's toast dismissed, so its effect is in view.
     pub(crate) fn act_lists_parts(&mut self) -> Outcome {
         match self.parts_list_folio() {
@@ -1085,7 +1074,7 @@ impl ShellModel {
         }
     }
 
-    /// Takes the visible toasts of an export off the screen (FT-1028; the log keeps them).
+    /// Takes the visible toasts of an export off the screen (the log keeps them).
     fn dismiss_export_toasts(&mut self) {
         let export: Vec<u64> = self
             .notes
@@ -1165,7 +1154,7 @@ impl ShellModel {
             Ok(Some(w)) => match NavMode::from_word(w) {
                 Some(m) => {
                     if self.navigator.mode != m {
-                        // WP-S2.06 part 1: the keys change with the view, so the marks go.
+                        // The keys change with the view, so the marks go.
                         self.navigator.marked.clear();
                         self.navigator.anchor = None;
                     }
@@ -1309,7 +1298,7 @@ impl ShellModel {
         };
         match area.as_str() {
             "navigator" => {
-                // WP-S2.06 part 1: `kind` names an open navigator (default Pages).
+                // `kind` names an open navigator (default Pages).
                 let kind = match string_param(p, "kind") {
                     Err(e) => return e,
                     Ok(None) => crate::navigators::NavKind::Pages,
@@ -1326,17 +1315,15 @@ impl ShellModel {
                 self.focus = Some(Focus::Properties);
                 Outcome::Done
             }
-            // WP-S2.05 part 2
             "find" => {
                 self.focus = Some(Focus::Find);
                 Outcome::Done
             }
-            // WP-S2.17 part 2
             "commandbar" => {
                 self.focus = Some(Focus::CommandBar);
                 Outcome::Done
             }
-            // WP-S2.17 part 3 (FT-519)
+            // WP-S2.17 part 3
             "history" if self.history_shown() => {
                 self.focus = Some(Focus::History);
                 Outcome::Done
@@ -1353,7 +1340,7 @@ impl ShellModel {
         }
     }
 
-    /// F6 (`step` 1) and Shift+F6 (`step` −1): the command bar (WP-S2.17 part 2), navigator, canvas group 1, canvas
+    /// F6 (`step` 1) and Shift+F6 (`step` −1): the command bar, navigator, canvas group 1, canvas
     /// group 2, then the property grid and the find pane while their panes are in the layout, cyclic. Without a focus
     /// the cycle starts from the navigator, as before the command bar.
     pub(crate) fn act_focus_cycle(&mut self, step: isize) -> Outcome {
@@ -1363,13 +1350,12 @@ impl ShellModel {
             .chain(std::iter::once(Focus::Navigator(
                 crate::navigators::NavKind::Pages,
             )))
-            // WP-S2.06 part 1: the open navigators after Pages.
+            // The open navigators after Pages.
             .chain(self.navs.keys().map(|k| Focus::Navigator(*k)))
             .chain((0..groups).map(Focus::Canvas))
             .chain(self.properties_shown().then_some(Focus::Properties))
-            // WP-S2.05 part 2
             .chain(self.find_shown().then_some(Focus::Find))
-            // WP-S2.17 part 3 (FT-519)
+            // WP-S2.17 part 3
             .chain(self.history_shown().then_some(Focus::History))
             .collect();
         let here = self
@@ -1387,8 +1373,8 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// FT-1219 (ID-1270): a navigator given the focus is the shown one: behind another tab of its pane, its tab comes
-    /// to the front, as the Messages pane does (FT-916).
+    /// A navigator given the focus is the shown one: behind another tab of its pane, its tab comes
+    /// to the front, as the Messages pane does.
     pub(super) fn bring_navigator_to_front(&mut self, kind: crate::navigators::NavKind) {
         let pane = match kind {
             crate::navigators::NavKind::Pages => crate::layout::PaneKind::Pages,

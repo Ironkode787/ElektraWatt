@@ -207,17 +207,17 @@ fn run(texts: &[(String, bool)], tally: &mut Tally) {
 /// The counts observed when the test was written: 259 objects in the examples, 184 of them extensible. The
 /// PLC lines added five refusing enum wrappers and payloads (`address`, `output`, `slot`, `binding`,
 /// `comment`); the assembly line two multi-language `label`s, which are no extensible objects; the revision
-/// line two multi-language `description`s; the page-item lines (WP-S2.04 part 4a) seven enum wrappers (the
+/// line two multi-language `description`s; the page-item lines seven enum wrappers (the
 /// five `kind` variants and two graphic `shape`s); WP-S1.19 part 1 three multi-language texts (the macro's `name`
 /// and `description`, a part fixture's `description`). The survivor floor was raised to the 298 objects counted
 /// then, so the new part, manufacturer, macro and macro-instance objects stay extensible. The waiver line (WP-S1.16
 /// part 5) adds one multi-language `reason`; its record and target objects keep unknown members. The bus lines
-/// (WP-S1.21 part 4) add three enum wrappers (a logical net's `master` endpoint, a port's `address` value and its
-/// `profibus` form); their ports and nets keep unknown members. The layout lines (WP-S4.01 part 1) add four
+///  add three enum wrappers (a logical net's `master` endpoint, a port's `address` value and its
+/// `profibus` form); their ports and nets keep unknown members. The layout lines add four
 /// `Pose3` values (an enclosure's `pose`, a surface's `frame`, two placements' `pose`), which are atomic leaves
 /// of `ew-units` like a `Pt2` (doc 05 §3.2, the `atomic` row of §11), and four enum wrappers (two carriers'
 /// `params`, two placements' `carrier`); their records, rail and duct parameters keep unknown members. The import run
-/// line (WP-S3.09 D6) adds one map keyed by record IDs (`record_hashes`), which takes no other key; its run, source,
+/// line adds one map keyed by record IDs (`record_hashes`), which takes no other key; its run, source,
 /// entry, location, target and hash objects keep unknown members.
 const MIN_SURVIVORS: usize = 300;
 const MAX_REJECTED: usize = 107;

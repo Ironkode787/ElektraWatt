@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The reads a viewer finds its way with (WP-S2.03 part 1, spec §4.2): the rows of the page navigator
+//! The reads a viewer finds its way with (spec §4.2): the rows of the page navigator
 //! ([`Session::page_rows`]), a page's frame cells ([`Session::page_cells`], [`PageCells`]), Go to page or cell
 //! ([`Session::resolve_goto`]) and the targets of cross-reference links ([`Session::link_targets`]); and for the
 //! canvas tools of part 2 the connection points drawn on a page ([`Session::page_cps`], [`PageCp`]).
@@ -46,7 +46,7 @@ const QET_GRID: (u64, u64) = (7_937_500, 3);
 /// Parts per 10⁹: the unit of a page-to-sheet scale.
 const PPB_ONE: i128 = 1_000_000_000;
 
-/// One row of the page navigator: an entry of the derived page order (WP-S2.03 §6.1).
+/// One row of the page navigator: an entry of the derived page order.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PageRow {
     /// The page's stable ID ([`super::page_uuid`]): a drawn page's ID, a divider's section ID, a generated page's
@@ -122,7 +122,7 @@ impl Map {
     }
 }
 
-/// A page's frame cells for a viewer (WP-S2.03 §4.2): opaque, made by [`Session::page_cells`]; evaluating it never
+/// A page's frame cells for a viewer: opaque, made by [`Session::page_cells`]; evaluating it never
 /// touches the `Session`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PageCells {
@@ -261,7 +261,7 @@ impl PageCells {
     }
 }
 
-/// Where Go to lands (WP-S2.03 §6.5).
+/// Where Go to lands.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GotoTarget {
     /// The page's stable ID ([`PageRow::id`]).
@@ -290,7 +290,7 @@ pub enum GotoError {
     },
 }
 
-/// The target of a cross-reference link (WP-S2.03 §4.2).
+/// The target of a cross-reference link.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct LinkTarget {
     /// The target page's stable ID.
@@ -304,7 +304,7 @@ pub struct LinkTarget {
     pub cell: Option<String>,
 }
 
-/// A connection point drawn on a page (WP-S2.03 §4.2, part 2): what the canvas tools snap to and the keyboard
+/// A connection point drawn on a page: what the canvas tools snap to and the keyboard
 /// steps through.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PageCp {
@@ -448,7 +448,7 @@ fn walk(
     }
 }
 
-/// The reading of a Go to text over `candidates`, page order first (WP-S2.03 §4.2): `Ok((candidate, row,
+/// The reading of a Go to text over `candidates`, page order first: `Ok((candidate, row,
 /// column))` for a unique full reading; `Err(Some((candidate, cell)))` when no reading names a cell and exactly
 /// one page reads with an unknown cell part; `Err(None)` otherwise.
 fn read_goto(
@@ -568,7 +568,7 @@ fn grid_index(p: i64, num: i128, den: i128) -> Option<i64> {
 
 /// The reading-order key of a CP: its cell's column and row index and its sheet `(y, x)`. `page_cps` breaks ties by
 /// the label (natural order, then bytes) and only then by the ID, so two coincident CPs keep their order in every
-/// fresh copy of a project (WP-S6.13 §6 item 3: the IDs of a new project are random).
+/// fresh copy of a project (the IDs of a new project are random).
 type ReadingKey = (u32, u32, i64, i64);
 
 /// The function CPs a page may draw: every CP of every function its representations name (their functions and
@@ -771,7 +771,7 @@ impl Session {
     }
 
     /// The printed table of the generated page labelled `folio` (a parts list, a cable list, a table of contents):
-    /// the column headers and the page's rows as the folio prints them (`page_table`, FT-660); `None` when no page has
+    /// the column headers and the page's rows as the folio prints them (`page_table`); `None` when no page has
     /// that folio or the page is drawn or a divider.
     pub fn page_list_table(&self, folio: &str) -> Option<PageListTable> {
         let q = self.query();
@@ -802,7 +802,7 @@ impl Session {
         cells_of(&q, &order, pos)
     }
 
-    /// Go to page or cell (FR-UI-039; WP-S2.03 §4.2): the trimmed `text` is a printed folio label, or a cell in the
+    /// Go to page or cell (FR-UI-039): the trimmed `text` is a printed folio label, or a cell in the
     /// project's `ip` cross-reference format (`103-A1`; `/103.A1` with the EPLAN cell preset).
     ///
     /// The parse tries the folios in page order: `{page}` matches a folio label exactly, `{page_index}` decimal
@@ -867,7 +867,7 @@ impl Session {
         }
     }
 
-    /// The targets of cross-reference link destinations (WP-S2.03 §4.2), one result per input, in order.
+    /// The targets of cross-reference link destinations, one result per input, in order.
     ///
     /// A representation or CP destination resolves to the page whose sheet display list holds its
     /// `Link::Target` item (the first in page order, as the PDF writer resolves it), `at_nm` that item's anchor on
@@ -921,7 +921,7 @@ impl Session {
             .collect()
     }
 
-    /// Every connection point drawn on the page labelled `folio` (WP-S2.03 §4.2, part 2), in reading order: by the
+    /// Every connection point drawn on the page labelled `folio`, in reading order: by the
     /// column index, then the row index of the CP's cell (`cp_cell`; a CP outside the frame grid last), then by the
     /// sheet point's `(y, x)`, then by the label (natural order, then bytes), then by ID (coincident CPs keep their
     /// order in every fresh copy of a project). Empty for an unknown folio, a page that is not drawn, or a page

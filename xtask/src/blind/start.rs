@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `start` (WP-S6.13 §5.1, §5.4): a run folder outside the repository with the copies the run needs, the composed
+//! `start` (§5.4): a run folder outside the repository with the copies the run needs, the composed
 //! prompt, the prelude and, unless `--stateless`, a keeper.
 //!
 //! The agent never needs the repository: the harness, the product binaries, the user guide, the starter content and
@@ -26,7 +26,7 @@ use super::visual::Geometry;
 pub struct StartArgs {
     /// `free`, `gate`, `check` or `brief`.
     pub kind: Kind,
-    /// `text` (the base specification) or `visual` (WP-S6.13 part 4).
+    /// `text` (the base specification) or `visual`.
     pub senses: Senses,
     /// The task (`gpp-101-103`, `free`, `selftest`).
     pub task: String,
@@ -42,7 +42,7 @@ pub struct StartArgs {
     pub out: Option<PathBuf>,
     /// The folder of the built binaries (default `target/debug`).
     pub bin: Option<PathBuf>,
-    /// Whether the run has no keeper; always true for a check run (FT-766).
+    /// Whether the run has no keeper; always true for a check run.
     pub stateless: bool,
     /// `--window` and `--ppp` (a visual run's window size and scale); `None`: the default 1280 × 800 at 1.2.
     pub geometry: Option<Geometry>,
@@ -111,7 +111,7 @@ fn seed_from(drafter: &Run, run: &Run) -> Result<()> {
     copy_dir(&project, &run.path("work/project"))
 }
 
-/// The variant that turns a copy of Golden A into GP-UT (doc 20 §2, WP-S2.12 D6).
+/// The variant that turns a copy of Golden A into GP-UT (doc 20 §2).
 pub const GP_UT_LOG: &str = "golden/J-E-2416/variants/gp-ut.ewcmd";
 
 /// K8: a start project that cannot be made.
@@ -236,7 +236,7 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
         None
     };
     let folios = run_folios(root, a, drafter.as_ref())?;
-    // A brief's start project and rounds (WP-S2.12 D5, D11).
+    // A brief's start project and rounds.
     let toml = if a.kind == Kind::Brief {
         super::brief::task_toml(root, &a.task)?
     } else {
@@ -245,7 +245,7 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
     let (start, rounds) = toml.map(|t| (t.start, t.rounds)).unwrap_or_default();
     let golden = golden_digest(root)?;
     // Every option is validated here, before anything is created: the composition checks the persona, the task and the
-    // kind (FT-484), and the sources are looked up now.
+    // kind, and the sources are looked up now.
     let blind = run.blind_command();
     let frames = run.path("frames").display().to_string();
     let inp = compose_input(root, a, &blind, &frames, &folios);
@@ -351,7 +351,7 @@ fn populate(
         )?;
     }
     copy_file(&root.join("tools/blind/HELP.md"), &run.path(".harness/HELP.md"))?;
-    // The start project (WP-S2.12 D5): made once from a copy of the golden project and kept in `.harness/`, where a
+    // The start project: made once from a copy of the golden project and kept in `.harness/`, where a
     // resume or a stateless call takes it from again; `work/project` is its copy, which the prelude opens.
     if let Some(start) = start {
         make_start_project(
@@ -558,7 +558,7 @@ fn has_offscreen_adapter(run: &Run) -> bool {
     ok
 }
 
-/// The refusal of the `blind start` subcommand when the user guide is not built (FT-936).
+/// The refusal of the `blind start` subcommand when the user guide is not built.
 pub const NO_BOOK: &str =
     "the user guide is not built: run `mdbook build docs/book` first, or pass --no-book to start without it";
 
@@ -697,7 +697,7 @@ mod tests {
         }
     }
 
-    /// FT-936: the `blind start` subcommand refuses a run without the built user guide; `--no-book` starts it with
+    /// The `blind start` subcommand refuses a run without the built user guide; `--no-book` starts it with
     /// an empty book folder; a built guide is copied.
     #[test]
     fn the_start_subcommand_needs_the_built_guide_or_no_book() {
@@ -885,7 +885,7 @@ mod tests {
         assert!(reseed_check_project(&check).is_err());
     }
 
-    /// FT-766: a check run has no keeper whatever the flag says (its `run.json` is stateless); a gate or free run keeps
+    /// A check run has no keeper whatever the flag says (its `run.json` is stateless); a gate or free run keeps
     /// the flag it was started with.
     #[test]
     fn ft766_a_check_run_is_stateless_without_the_flag() {
@@ -919,7 +919,7 @@ mod tests {
         assert!(check.load().unwrap().stateless, "a check run is stateless");
     }
 
-    /// BD10 (FT-484): the golden project fixture is hashed at the start and compared at the stop; a changed byte or a
+    /// The golden project fixture is hashed at the start and compared at the stop; a changed byte or a
     /// new file under it fails the run, a change next to it (`expected/`, the README) does not.
     #[test]
     fn a_changed_golden_fails_the_check() {
@@ -964,7 +964,7 @@ mod tests {
         assert!(check_golden(&root, &rj).is_err());
     }
 
-    /// FT-484: a refused `start` leaves no run folder behind; the next correct `start` of the same name succeeds.
+    /// A refused `start` leaves no run folder behind; the next correct `start` of the same name succeeds.
     #[test]
     fn a_refused_start_leaves_no_run_folder() {
         let tmp = Tmp::new("start-refused-clean");

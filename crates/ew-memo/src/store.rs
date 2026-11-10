@@ -54,7 +54,7 @@ impl fmt::Display for Cycle {
 
 impl std::error::Error for Cycle {}
 
-/// Oracle mode: memoised reads re-run cold and compared (the "memoised equals cold" proof of WP-S1.05).
+/// Oracle mode: memoised reads re-run cold and compared (the "memoised equals cold" proof).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Oracle {
     /// No checks.
@@ -288,7 +288,7 @@ struct Memo<V, I: Ord + Clone> {
     /// The keys this memo is registered under in the push index, sorted: the coarse key of every input read
     /// in the snapshot it was read from, the memos and the parts. Kept with the memo because a coarse key
     /// computed again in a later snapshot can differ (a row moved to another page), which would leave the
-    /// old registration behind (review cycle 9, finding 5).
+    /// old registration behind (review, finding 5).
     reg: Arc<[DepKey<I>]>,
     verified_at: Rev,
     changed_at: Rev,
@@ -633,7 +633,7 @@ impl<D: Db> State<D> {
     ///
     /// `commit` says the marks come from a commit ([`Store::advance_with`]: no memo is verified at `rev` yet)
     /// rather than from a producer inside a revision. A memo whose pending commit mark already walked its
-    /// readers in the current mark epoch is re-marked but not walked again (review cycle 9, finding 4): its
+    /// readers in the current mark epoch is re-marked but not walked again (review, finding 4): its
     /// transitive whole readers all still hold pending marks, so an unread page memo does not cost its whole
     /// reader closure on every commit. The `via` keys are kept for incremental families only.
     fn mark(
@@ -709,7 +709,7 @@ impl<D: Db> State<D> {
         self.rdeps.contains_key(&DepKey::Memo(memo.0, memo.1)) || self.part_readers.contains_key(&memo)
     }
 
-    /// The collection of orphans (review cycle 10, finding 3), run when the store advances from the closing
+    /// The collection of orphans (review, finding 3), run when the store advances from the closing
     /// revision `self.current`: every candidate that no memo reads (whole or by part) and that was not verified
     /// at the closing revision is dropped, with its registrations, marks and part stamps. Dropping
     /// a memo can orphan the memos it read; they are collected in the same pass. A candidate verified at the
@@ -1098,7 +1098,7 @@ impl<D: Db> Store<D> {
     /// execution that carries nothing. Input dependencies are not forgotten (their registration key is coarse
     /// and may be shared with another carried read).
     ///
-    /// Without it an incremental family keeps every dependency it ever read (review cycle 10, finding 3).
+    /// Without it an incremental family keeps every dependency it ever read (review, finding 3).
     pub fn forget(&self, dep: &DepKey<D::Input>) {
         debug_assert!(
             !matches!(dep, DepKey::Input(_)),
@@ -1212,7 +1212,7 @@ impl<D: Db> Store<D> {
         })
     }
 
-    /// The state and the dependency trail of the memo of `Q(key)` (WP-S1.22 D12, `ew query --explain`): whether a
+    /// The state and the dependency trail of the memo of `Q(key)` (`ew query --explain`): whether a
     /// read now would be a hit, the revisions, the durability and the recorded reads (at most 64). Read-only: no
     /// memo, statistic or mark changes, and nothing is executed or verified, so the answer describes
     /// the memo as the last read left it. A key that was never read, or whose family the store has not seen, has
@@ -1516,7 +1516,7 @@ impl<D: Db> Store<D> {
     /// less durable level while the memo it feeds cut off. Keeping the old durability would let a later,
     /// less durable change skip the memo's verification and return a stale value.
     ///
-    /// The producers are recomputed for the same reason (review cycle 9, finding 1): a memo dependency that
+    /// The producers are recomputed for the same reason (review, finding 1): a memo dependency that
     /// re-executed with another producer and cut off leaves this memo green, and push invalidation must then
     /// settle the new producer, whose part changes are what reach this memo. `old` is reused when equal.
     fn deps_unchanged(
@@ -1884,7 +1884,7 @@ fn register<D: Db>(st: &mut State<D>, key: &DepKey<D::Input>, me: MemoRef) {
 /// Removes the registration of `me` under `key`. When `key` loses its last reader:
 ///
 /// - a memo key makes that memo an orphan candidate (unless a part of it is still read);
-/// - a part key drops the part's stamp (review cycle 10, finding 3): no memo observed it, so the part's stamp
+/// - a part key drops the part's stamp (review, finding 3): no memo observed it, so the part's stamp
 ///   may fall back to the producer's base; a later reader observes the base, and a later change of the part
 ///   stamps it again because that reader is registered by then.
 fn unregister<D: Db>(st: &mut State<D>, key: &DepKey<D::Input>, me: MemoRef) {

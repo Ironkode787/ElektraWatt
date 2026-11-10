@@ -30,7 +30,7 @@ pub trait Anchors {
     fn surface_enclosure(&self, s: AnyId) -> Option<AnyId>;
     /// The layout space of enclosure `e`, `None` when no enclosure `e` exists.
     fn enclosure_space(&self, e: AnyId) -> Option<AnyId>;
-    /// The file of the record `(kind, id)`, the target of a conflict record (WP-S1.17 D17); `None` when no such record
+    /// The file of the record `(kind, id)`, the target of a conflict record; `None` when no such record
     /// exists.
     fn target_file(&self, kind: Kind, id: AnyId) -> Option<FilePath>;
 }
@@ -175,7 +175,7 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
     Ok(file)
 }
 
-/// The file of a conflict record (doc 05 §2.2 `TargetFile`; WP-S1.17 D17): its target's, or for a file-level conflict
+/// The file of a conflict record (doc 05 §2.2 `TargetFile`): its target's, or for a file-level conflict
 /// the record file its `path` names. A conflict whose target cannot be found, or whose `path` names no record file,
 /// lives in the shard of its own ID, so that it is still written somewhere deterministic.
 fn conflict_file(conflict: &Conflict, anchors: &dyn Anchors) -> FilePath {

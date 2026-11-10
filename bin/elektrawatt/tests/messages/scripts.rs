@@ -220,7 +220,7 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
         "{d}"
     );
     // Golden A's drafting findings (doc 20 §18.1): EF-08 and the EW-POT errors EF-01 (T55, S56) and EF-06 (W6,
-    // 101.8), the 28 EW-PLC-012 coil bindings of EF-02 (WP-S1.21 part 3); the warnings EF-09, EF-10 and EF-11, two
+    // 101.8), the 28 EW-PLC-012 coil bindings of EF-02; the warnings EF-09, EF-10 and EF-11, two
     // each; the ten EW-NUM-001 infos; WP-S1.21 part 4: the TBD DP station address EF-03 (EW-BUS-001, an error) and
     // EF-16 (EW-BUS-004, an info); WP-S4.01 part 5: EF-05's five EW-LAY-001 findings (warnings online).
     assert_eq!(
@@ -230,7 +230,7 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
     let rows = finding_rows(d);
     // Golden A's findings in their groups: a lower bound, not a total (CONTRIBUTING: no pinned totals).
     assert!(rows.len() >= 35, "{d}");
-    // Folio 3's two errors lead: EF-03 on the DP port (WP-S1.21 part 4), then EF-08 on -3W1.
+    // Folio 3's two errors lead: EF-03 on the DP port, then EF-08 on -3W1.
     assert!(
         rows[0].contains("-201U1:DP") && rows[0].ends_with(" badge \"error\""),
         "{d}"

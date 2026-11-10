@@ -10,7 +10,7 @@ use super::super::*;
 
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // WP-S1.18 part 5 (§9): Check ▸ Revision, the revision dialogs; each answered by its own action with parameters
-    // (`confirm` submits the `HumanOnly` command, only from the window a person drives: cycle 41, ruling 1).
+    // (`confirm` submits the `HumanOnly` command, only from the window a person drives: ruling 1).
     // In the order of the workflow (FIX41b ruling 7): the author, the sign-off, the release, a withdrawal.
     with_params(
         "role?:text, confirm?:bool, cancel?:bool",
@@ -162,7 +162,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         slot(Menu::Help),
         |s, p| s.act_help_shortcuts(p),
     )),
-    // WP-S2.08 part 6 (D16): Help ▸ Glossary, the glossary pane in the bottom dock, and its search text.
+    // Help ▸ Glossary, the glossary pane in the bottom dock, and its search text.
     keeps_banner(with_params(
         "on?:bool",
         act(
@@ -187,7 +187,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_glossary_filter(p),
         )),
     )),
-    // FT-1281: the glossary pane's row cursor (Up and Down in its field).
+    // The glossary pane's row cursor (Up and Down in its field).
     keeps_banner(with_params(
         "step?:int, to?:uint",
         hidden(act(

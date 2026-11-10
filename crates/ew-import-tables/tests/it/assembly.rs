@@ -76,7 +76,7 @@ fn the_golden_valve_terminal_carries_its_two_order_codes() {
             })
             .expect("the part");
         assert_eq!(part.kind, PartKind::Configured, "{key}");
-        // WP-S1.19 D10: the reference names the project-local manufacturer copy of Festo, no longer a `key`.
+        // The reference names the project-local manufacturer copy of Festo, no longer a `key`.
         assert!(part.manufacturer.extra.is_empty(), "{key}");
         let festo = b
             .lib

@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cycle 45's Properties polish in the window (kittest, no rendering), on a writable copy of Golden A (ID-1107): the
-//! Device row's link with its tooltip, its click and F (FT-1030); the editor's text centred (FT-1034); no popup for a
-//! choice list with no match (FT-1035); the list under the value cell (FT-1036); Home and End scrolling the cursor row
-//! into view (FT-1037); a pre-filled form field replaced by what is typed (FT-1021).
+//! Cycle 45's Properties polish in the window (kittest, no rendering), on a writable copy of Golden A: the
+//! Device row's link with its tooltip, its click and F; the editor's text centred; no popup for a
+//! choice list with no match; the list under the value cell; Home and End scrolling the cursor row
+//! into view; a pre-filled form field replaced by what is typed.
 
 use crate::support;
 
@@ -96,7 +96,7 @@ fn text_in(h: &Harness<'_, App>, text: &str, inside: egui::Rect) -> egui::Rect {
         .unwrap_or_else(|| panic!("no text {text} in {inside:?}"))
 }
 
-/// ID-1107 (FT-1030): "Properties' Device row is a link in the accent colour that a click or F ... follows to the
+/// "Properties' Device row is a link in the accent colour that a click or F ... follows to the
 /// device on its main page, its tooltip the canvas link's hint". The row is a link node; hovered, its tooltip is
 /// "Click or F: go to -102F1"; a click shows 102 with -102F1 selected.
 #[test]
@@ -119,7 +119,7 @@ fn the_device_row_is_a_link_that_a_click_follows() {
     assert_eq!(shell.properties().sheet().unwrap().header.title, "-102F1");
 }
 
-/// ID-1107 (FT-1030): "... a click or F (`props.follow`, in the properties context of every keymap ...; typed, not
+/// "... a click or F (`props.follow`, in the properties context of every keymap ...; typed, not
 /// followed, while an editor field has the focus)". F on another row starts its edit with the letter; F in an open
 /// field is typed; F on the Device row follows it and types nothing.
 #[test]
@@ -168,7 +168,7 @@ fn f_follows_the_device_row_and_is_typed_elsewhere() {
     );
 }
 
-/// ID-1107 (FT-1034): "the Properties editor's text is centred in its field as the value's is". The Scale row's text
+/// "the Properties editor's text is centred in its field as the value's is". The Scale row's text
 /// centre, as a value and in its editor, within 1 px.
 #[test]
 fn the_editors_text_is_centred_as_the_values() {
@@ -197,7 +197,7 @@ fn options(h: &Harness<'_, App>) -> Option<egui::Rect> {
     h.query_all_by_role(egui::Role::ListBox).next().map(|n| n.rect())
 }
 
-/// ID-1107 (FT-1035): "a choice list with no match opens no popup". Label mode's list shows for "Ab" and is gone for
+/// "a choice list with no match opens no popup". Label mode's list shows for "Ab" and is gone for
 /// "zzz".
 #[test]
 fn a_choice_list_with_no_match_opens_no_popup() {
@@ -221,7 +221,7 @@ fn a_choice_list_with_no_match_opens_no_popup() {
     assert_eq!(options(&h), None, "no popup for no match");
 }
 
-/// ID-1107 (FT-1036): "the list starts under the value cell". At 1920 × 1080 the list's frame starts at the field's
+/// "the list starts under the value cell". At 1920 × 1080 the list's frame starts at the field's
 /// left edge (the list box inside it by the frame's padding); at 1280 × 800 it stays inside the window.
 #[test]
 fn the_choice_list_starts_under_the_value_cell() {
@@ -251,7 +251,7 @@ fn the_choice_list_starts_under_the_value_cell() {
     }
 }
 
-/// ID-1107 (FT-1037): "Home and End scroll the cursor row into view". At 1280 × 800 -102F1's rows run past the
+/// "Home and End scroll the cursor row into view". At 1280 × 800 -102F1's rows run past the
 /// pane's fold: End shows the last row, Home the first.
 #[test]
 fn home_and_end_scroll_the_cursor_row_into_view() {
@@ -298,7 +298,7 @@ fn home_and_end_scroll_the_cursor_row_into_view() {
     );
 }
 
-/// ID-1107 (FT-1021): "a pre-filled form field selects its text when it takes the focus, as the Properties editor
+/// "a pre-filled form field selects its text when it takes the focus, as the Properties editor
 /// does". Page ▸ New page's folio holds the proposal 4; typing 999 over it, without clearing it, gives 999.
 #[test]
 fn typing_over_a_pre_filled_field_replaces_it() {
@@ -327,7 +327,7 @@ fn typing_over_a_pre_filled_field_replaces_it() {
     assert_eq!(folio, "999");
 }
 
-/// FT-1491 (ID-1456): a configuration project's Address profile row reads the chosen profile's name, never its
+/// A configuration project's Address profile row reads the chosen profile's name, never its
 /// reference; hovered, its tooltip is the reference, the chooser's secondary line.
 #[test]
 fn ft1491_the_address_profile_row_shows_the_name_its_reference_in_the_tooltip() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Placing on a panel page (WP-S4.02 part 3, D4, D9; doc 12 §12.1): the gesture that the layout place tool
+//! Placing on a panel page (doc 12 §12.1): the gesture that the layout place tool
 //! ([`LayoutPlaceTool`], armed by `tool.place_layout {device}` or a drop from the Unplaced devices navigator) and
 //! Select's drag of a placement share, its ghost (doc 16a §7.3) and its command.
 //!
@@ -73,7 +73,7 @@ pub struct LayoutOptions {
     pub mode: SnapMode,
     /// The plate grid's step, in millimetres: 5 or 1.
     pub grid_mm: u8,
-    // WP-S4.02 part 4 (D11): the draw tools' options.
+    // The draw tools' options.
     /// The rail part Draw rail draws with (its part copy's ID); `None`: the first one offered.
     pub rail_part: Option<Uuid>,
     /// The duct part Draw duct draws with; `None`: the first one offered.
@@ -173,7 +173,7 @@ pub struct Resolved {
     /// The same boxes in sheet nm, for the overlay.
     pub sheet: SheetGeom,
     /// On the plate, how far the snapping moved the drawn footprint from where the pointer put it, surface nm: the
-    /// keyboard steps from where the ghost is drawn (FT-994). `(0, 0)` on a rail.
+    /// keyboard steps from where the ghost is drawn. `(0, 0)` on a rail.
     pub drawn_shift: (i128, i128),
 }
 
@@ -183,14 +183,14 @@ pub enum Step {
     /// The surface point the pointer moves to; the ghost snaps there as under the pointer.
     To((i128, i128)),
     /// The surface point the pointer moves to, the ghost resolved there without snapping (as with Shift): one grid
-    /// step on the plate from where the ghost is drawn stays exactly one grid step (FT-994).
+    /// step on the plate from where the ghost is drawn stays exactly one grid step.
     Exact((i128, i128)),
     /// Nothing moves: blocked by this neighbour's placement, or by the rail end (`None`), as a selected placement's
-    /// nudge is (FT-992).
+    /// nudge is.
     Blocked(Option<Uuid>),
 }
 
-/// Where a free nudge along a rail stops (the selected placement's arrows and a floating ghost's, FT-992).
+/// Where a free nudge along a rail stops (the selected placement's arrows and a floating ghost's).
 pub(crate) enum Stop {
     /// At this left edge.
     Free(i128),
@@ -515,9 +515,9 @@ impl LayoutGesture {
     /// The keyboard's step of the floating ghost (doc 12 §12.4, "arrows move by snap step"): where the pointer moves
     /// for the arrow `(dx, dy)` (page directions). Along a rail, the next snap target in that direction (a neighbour
     /// touched at its minimum gap, a rail end at its gap, the next grid point), stopped as a selected placement's free
-    /// nudge is (FT-992): in free mode at a neighbour and at the rail ends, in push and swap mode at the rail ends;
+    /// nudge is: in free mode at a neighbour and at the rail ends, in push and swap mode at the rail ends;
     /// across it, the nearest parallel rail on that side at the same clip point, else one grid step; on the plate, one
-    /// grid step from where the ghost is drawn (FT-994). `None` when nothing floats or nothing lies further that way.
+    /// grid step from where the ghost is drawn. `None` when nothing floats or nothing lies further that way.
     pub fn step(&self, panel: &PanelTables, (dx, dy): (i64, i64), grid: i128) -> Option<Step> {
         let r = self.current.as_ref()?;
         let ptr = self.pointer?;
@@ -1135,7 +1135,7 @@ pub fn snap_left(
     cands.first().map_or(s_left, |c| c.2)
 }
 
-/// The layout place tool (WP-S4.02 part 3): floats an unplaced device over a panel page and places it on release.
+/// The layout place tool: floats an unplaced device over a panel page and places it on release.
 #[derive(Clone, Debug)]
 pub struct LayoutPlaceTool {
     device: Option<Uuid>,
@@ -1246,7 +1246,7 @@ impl Tool for LayoutPlaceTool {
                 g.update(at, mods, cx);
                 track_output(g)
             }
-            // FT-993: Escape drops the ghost and the tool gives way to Select (the host's answer to `None`), as the
+            // Escape drops the ghost and the tool gives way to Select (the host's answer to `None`), as the
             // schematic Place tool's Escape does.
             CanvasEvent::Escape => {
                 self.gesture = None;
@@ -1320,7 +1320,7 @@ impl LayoutPlaceTool {
 mod tests {
     use super::round_to;
 
-    /// Halves round away from zero, as `round_to`'s doc says (cycle-42 review part 3, nit 4).
+    /// Halves round away from zero, as `round_to`'s doc says (part 3, nit 4).
     #[test]
     fn halves_round_away_from_zero() {
         assert_eq!(round_to(5, 10), 10);

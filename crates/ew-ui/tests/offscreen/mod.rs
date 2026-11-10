@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! An offscreen renderer of a test harness's last frame (WP-S2.17 part 1): the harness hands every texture change to
-//! a [`Recorder`]; [`render`] replays them with `ew_ui::offscreen` (moved there by WP-S6.13 part 4), which paints
+//! An offscreen renderer of a test harness's last frame: the harness hands every texture change to
+//! a [`Recorder`]; [`render`] replays them with `ew_ui::offscreen` (moved there), which paints
 //! the last frame's shapes on the headless device of `ew-render2d` and reads them back as an RGBA image.
 
 #![allow(dead_code, missing_docs)]

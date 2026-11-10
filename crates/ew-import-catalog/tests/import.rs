@@ -273,7 +273,7 @@ fn another_header_dialect_through_its_own_map_gives_the_same_parts() {
     assert_eq!(a.parts[0], b.parts[0]);
 }
 
-/// A project target (WP-S1.19 D10): every manufacturer a part names is a copy in the target, the master records it
+/// A project target: every manufacturer a part names is a copy in the target, the master records it
 /// resolves to copied (not reported as new), the created ones as before; no reference keeps a `key`.
 #[test]
 fn a_project_target_copies_the_master_manufacturers_it_resolves() {
@@ -746,7 +746,7 @@ fn a_shared_string_named_by_many_cells_is_refused_within_the_memory_budget() {
     // The workspace forbids `unsafe`, so no counting allocator measures the parse; the bound is the budget itself:
     // the cells may hold at most eight times the ~1 MB unpacked, far under the 256 MB rule.
     // Under the general 1 MiB text limit the string itself is admitted, and the cells' budget refuses it; under the
-    // table preset (32 KiB cells, FT-665) the string is refused on its own.
+    // table preset (32 KiB cells) the string is refused on its own.
     // The string packs at about 1,000 : 1, so the archive's ratio limit (200 : 1, doc 14 §11) refuses it first; with
     // the ratio lifted the cells' budget is what refuses it.
     let err = import_bytes(
@@ -934,7 +934,7 @@ fn the_import_is_deterministic() {
     assert_eq!(a, b);
 }
 
-/// FT-665: a parts table's cell is at most 32 KiB (doc 14 §11), the default of [`CatalogTarget::new`]: a cell of
+/// A parts table's cell is at most 32 KiB (doc 14 §11), the default of [`CatalogTarget::new`]: a cell of
 /// exactly 32 KiB is read, one byte more refuses the table, naming the cell's line.
 #[test]
 fn a_cell_above_32_kib_refuses_the_table() {
@@ -956,7 +956,7 @@ fn a_cell_above_32_kib_refuses_the_table() {
     );
 }
 
-/// IC-2 (WP-S3.09 D2): a workbook with an entry whose name leads out of the archive, is absolute or a drive path, has a
+/// IC-2: a workbook with an entry whose name leads out of the archive, is absolute or a drive path, has a
 /// backslash or a NUL is refused, naming the rule and the entry.
 #[test]
 fn an_entry_name_outside_the_archive_refuses_the_workbook() {
@@ -998,7 +998,7 @@ fn an_entry_above_the_expansion_ratio_is_refused() {
     assert!(import_bytes("liste.xlsx", book, &target()).is_ok());
 }
 
-/// IC-5 (WP-S3.09 D5 b): a workbook part that declares a DOCTYPE is refused, naming it.
+/// IC-5 (b): a workbook part that declares a DOCTYPE is refused, naming it.
 #[test]
 fn a_part_with_a_doctype_is_refused() {
     let rels = r#"<?xml version="1.0"?><!DOCTYPE r [<!ENTITY e SYSTEM "file:///etc/passwd">]><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>"#;

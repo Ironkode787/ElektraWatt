@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Jobs pane (WP-S2.09 part 1, §6.4): one entry per PDF export, oldest first, with the kind, the file's base name,
+//! The Jobs pane: one entry per PDF export, oldest first, with the kind, the file's base name,
 //! the revision it runs on, the progress (`page 12 of 36`, or the phase while it is indeterminate), the elapsed time
 //! (the window's clock only) and Cancel while it runs; a finished entry keeps its result (the pages and size with Open,
 //! "cancelled; no file written", or the failure's cause).
@@ -46,7 +46,7 @@ pub fn show(
             return;
         }
         let room = ui.available_rect_before_wrap();
-        // FT-1199: an entry is inset from the pane's edges as the other panes' rows are (`space.4`).
+        // An entry is inset from the pane's edges as the other panes' rows are (`space.4`).
         let inset = egui::Margin::symmetric(
             crate::theme::margin_px(crate::theme::current(ui.ctx()).space_4),
             0,
@@ -68,7 +68,7 @@ pub fn show(
                     ui.separator();
                 }
             });
-        // FT-1362: the dock follows the list's height.
+        // The dock follows the list's height.
         crate::dock::report_content(
             ui,
             ew_viewmodel::layout::PaneKind::Jobs,
@@ -116,7 +116,7 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
                 }
             });
         }
-        // WP-S2.17 part 4 (FT-510, doc 16a §6.19): a finished entry names its outcome as a status badge next to its
+        // WP-S2.17 part 4 (doc 16a §6.19): a finished entry names its outcome as a status badge next to its
         // result.
         JobStatus::Done { pages, kib, now } => {
             ui.horizontal_wrapped(|ui| {

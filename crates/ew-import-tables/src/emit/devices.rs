@@ -407,7 +407,7 @@ fn template_origin<'c>(
 ///
 /// 1. **template origin**: the first template entry naming the FnDef, whatever its role, in part-use order (the
 ///    entry `ew-derive` reads for a function without `template_entry`; a row with `part` and `template` records it), its
-///    pattern entries paired with the FnDef's CPs by `ew_schema::pair_template_cps` (FT-655), the rule `ew-derive`'s
+///    pattern entries paired with the FnDef's CPs by `ew_schema::pair_template_cps`, the rule `ew-derive`'s
 ///    `function_cps` applies: by position, with the FnDef CP indices, when the entry names as many pattern entries
 ///    as the FnDef has CPs; else each with its pattern index;
 /// 2. a **black box**: every entry of the first part use whose part has a CP pattern, with its pattern index;
@@ -561,7 +561,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
             .as_deref()
             .map(|f| function_cps(cx, &mut r, f, device.as_deref(), &role, black_box))
             .unwrap_or_default();
-        // WP-S1.20 D20: the template entry a row states (`part` and `template`, checked above) is stored (FT-655)
+        // The template entry a row states (`part` and `template`, checked above) is stored
         let template_entry = r.text("part").and(r.uint::<u16>("template"));
         let mut overrides = Vec::new();
         for item in r.list("cp_aliases") {
@@ -719,7 +719,7 @@ fn black_box_geometry(grid: Grid, pos: Pt2, cps: &[CpInfo]) -> Option<BoxSpec> {
     })
 }
 
-/// The `slot_pos` cell of a `representations.csv` row (FT-1323): `;`-separated `<slot> <x> <y>`, a text slot of the
+/// The `slot_pos` cell of a `representations.csv` row: `;`-separated `<slot> <x> <y>`, a text slot of the
 /// symbol by index and its moved position in symbol coordinates, in QET px.
 fn slot_pos(r: &mut Rd<'_>) -> Vec<(u16, Pt2)> {
     let mut out = Vec::new();
@@ -767,7 +767,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
         let dx = r.int("dx").unwrap_or(0);
         let dy = r.int("dy").unwrap_or(0);
         let arrangement = r.ident("arrangement");
-        // ID-1502 (7): the orientation's letter, A to H (doc 06's variant keys); empty for A.
+        // The orientation's letter, A to H (doc 06's variant keys); empty for A.
         let orient = match r.text("orient") {
             None => Orient2::R0,
             Some(l) => match "ABCDEFGH".find(l).filter(|_| l.len() == 1) {
@@ -845,7 +845,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             cx.unresolved(row, &format!("unknown symbol `{symbol}`"));
             continue;
         };
-        // WP-S2.19 D16: EW's arrow forms are their direction's (`ew.gen.ip` the source's outgoing arrow,
+        // EW's arrow forms are their direction's (`ew.gen.ip` the source's outgoing arrow,
         // `ew.gen.ip-target` the target's incoming one, each with its `@qet10` edition).
         let target_form = match symbol.split('@').next() {
             Some("ew.gen.ip") => Some(false),

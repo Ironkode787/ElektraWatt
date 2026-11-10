@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page items and structure boxes, derived (WP-S2.04 part 4a, §10.2; doc 03 §5, §6; doc 08 §4.5).
+//! Page items and structure boxes, derived (doc 03 §5, §6; doc 08 §4.5).
 //!
 //! - **Structure-box containment** (FR-PRJ-020, FR-PRJ-019): [`RepStructureBox`] is the innermost structure box on a
 //!   representation's page whose outline contains the representation's anchor point (the point `rep_anchor_cell`
@@ -13,7 +13,7 @@
 //! - **Bound texts** (FR-SYM-024): a free text's `bind` names one of [`BINDABLE`]; it prints what the title block
 //!   prints for that placeholder on its page (`title_block`'s resolver); `page.full_name` is the page's structure and
 //!   folio, `=P01+J-E-2416/101` (FR-PAG-012), which the title block's binding set does not carry.
-//! - **Marker modes** (FR-CON-024, WP-S2.04 D16): `settings.extra.drawing.marker_mode` ([`MarkerMode`]); absent, a
+//! - **Marker modes** (FR-CON-024): `settings.extra.drawing.marker_mode` ([`MarkerMode`]); absent, a
 //!   connection shows a marker when its `show_marker` is set and prints its explicit cross-section and colour (the
 //!   as-built rule); in a mode, the mode selects the wires and the marker prints effective values (doc 08 §4.5). A
 //!   connection a wire-marker item lists draws no marker of its own; the item draws the group whenever one of its
@@ -48,7 +48,7 @@ use crate::title_block::{TbValue, TitleBlockValues};
 use crate::wire_props::{ConnWireProps, EffectiveProps};
 use crate::{Q, anchor_point};
 
-/// The names a free text may bind to (WP-S2.04 §10.2 item 2), in this order.
+/// The names a free text may bind to, in this order.
 pub const BINDABLE: [&str; 6] = [
     "project.description",
     "project.document_title",
@@ -111,7 +111,7 @@ pub fn outline_area2(outline: &[Pt2]) -> u128 {
 
 /// `rep_structure_box(rep)`: the innermost structure box on the representation's page whose outline contains the
 /// representation's anchor point (innermost by absolute area, ties by box ID); `None` without one, for a missing
-/// representation or one without an anchor point. Policy Memo (WP-S2.04 §10.2 item 1).
+/// representation or one without an anchor point. Policy Memo.
 #[derive(Debug)]
 pub struct RepStructureBox;
 
@@ -163,7 +163,7 @@ pub(crate) fn box_slot(q: &Q, b: &StructureBox, aspect: ew_rds::Aspect) -> Optio
 
 /// `ip_structure(function)`: the structure of an interruption-point function: its representation's structure
 /// box's slots (a node, or `none`) over its page's structure, per aspect. Empty for a function that is not an
-/// interruption point or has no representation. Policy Memo (WP-S2.04 §10.2 item 1, §17.5 ruling 3).
+/// interruption point or has no representation. Policy Memo (§17.5 ruling 3).
 #[derive(Debug)]
 pub struct IpStructure;
 
@@ -502,7 +502,7 @@ pub fn group_marker(q: &Q, item: &PageItem) -> Option<GroupMarker> {
     })
 }
 
-/// The load findings of the wire markers (WP-S2.04 §10.1, ADR-0009 amendment 8): one note per listed connection
+/// The load findings of the wire markers (ADR-0009 amendment 8): one note per listed connection
 /// that does not exist or is not drawn on the marker's page, in item then list order. The derivation and the
 /// drawing ignore these entries; the next edit of the marker may write a clean list.
 pub fn stale_marker_notes(q: &Q) -> Vec<DeriveNote> {

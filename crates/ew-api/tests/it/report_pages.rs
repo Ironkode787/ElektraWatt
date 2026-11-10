@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The report-pages provider hook (WP-S3.03): the session installs the report engine, so `page_order`
+//! The report-pages provider hook: the session installs the report engine, so `page_order`
 //! includes the generated report pages of the golden project and settles the TOC page count (doc 09 §3.1,
 //! doc 20 §5, §16); a `Q` without a provider has none; the TOC page count starts from its closed form, so
 //! large projects settle and every page is listed once; a provider that breaks the contract is reported and
@@ -65,8 +65,8 @@ fn the_golden_page_order_includes_the_generated_pages_with_two_toc_pages() {
     assert_eq!(labels.last(), Some(&"911"));
 
     // The whole order: the 36 pages of doc 20 §5 and §16. The parts list 901 paginates into 901 and 901.1
-    // (27 rows, FT-110), the wire list 907 into 907, 907.1 and 907.2, and the PLC overview 908 into 908,
-    // 908.1 and 908.2 (56 channels, FT-111).
+    // (27 rows), the wire list 907 into 907, 907.1 and 907.2, and the PLC overview 908 into 908,
+    // 908.1 and 908.2 (56 channels).
     assert_eq!(
         labels,
         [
@@ -107,7 +107,7 @@ fn the_golden_page_order_includes_the_generated_pages_with_two_toc_pages() {
     assert_eq!(title(&q, last), "Revision Overview");
 }
 
-/// FT-160: a generated page of a block outside every section (the TOC) takes the structure all drawn pages
+/// A generated page of a block outside every section (the TOC) takes the structure all drawn pages
 /// share, so its title block prints `=P01` and `+J-E-2416` like every other page (doc 20 §5); where the drawn
 /// pages disagree it has none.
 #[test]

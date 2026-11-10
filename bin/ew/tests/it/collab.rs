@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 8 through the `ew` binary (D26 to D29, decision log ID-1284): `ew diff` (DG-1), its textconv in `git
+//! WP-S1.17 part 8 through the `ew` binary (D26 to D29): `ew diff` (DG-1), its textconv in `git
 //! log -p` (DG-2), `ew git setup` (DG-3, DG-4), `ew check --integrity` (DG-6) and AC-41 through the real git (DG-7).
 //!
 //! Git runs only in fresh temporary repositories (ruling 8): `-C <dir>`, every repository-selecting variable of
@@ -264,7 +264,7 @@ merge=elektrawatt\nrules/** text eol=lf\nreports/*.sql text eol=lf\nassets/* bin
 fn dg3_git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
     let Some(r) = Repo::new("ew-dg3") else { return };
     std::fs::write(r.project().join(".gitattributes"), "*.png binary\n").unwrap();
-    // C49-p9#6: a web app's manifest is no project folder.
+    // A web app's manifest is no project folder.
     std::fs::create_dir_all(r.repo().join("web")).unwrap();
     std::fs::write(r.repo().join("web/manifest.json"), "{\"name\":\"app\"}\n").unwrap();
     let config_before = std::fs::read(r.repo().join(".git/config")).unwrap();
@@ -377,7 +377,7 @@ fn dg4_the_hook_is_installed_and_a_foreign_one_is_kept() {
     assert_eq!(std::fs::read_to_string(&hook).unwrap(), "#!/bin/sh\necho mine\n");
     assert!(!r.project().join(".gitignore").exists(), "nothing written");
 
-    // C49-p9#9: `core.hooksPath` is where git runs hooks from, so the hook goes there.
+    // `core.hooksPath` is where git runs hooks from, so the hook goes there.
     assert!(r.git(&["config", "core.hooksPath", "githooks"]).status.success());
     let done = r.ew(&["git", "setup", "--yes", "--hooks"]);
     assert_eq!(
@@ -414,7 +414,7 @@ fn dg4_the_hook_is_installed_and_a_foreign_one_is_kept() {
         );
     }
 
-    // C49-p10#4: a `core.hooksPath` outside the repository (as a global one is) serves other repositories too: refused.
+    // A `core.hooksPath` outside the repository (as a global one is) serves other repositories too: refused.
     let shared = r.0.join("shared-hooks");
     let value = shared.to_string_lossy().replace('\\', "/");
     assert!(r.git(&["config", "core.hooksPath", &value]).status.success());
@@ -435,7 +435,7 @@ fn dg4_the_hook_is_installed_and_a_foreign_one_is_kept() {
     assert!(!shared.exists(), "nothing written");
 }
 
-/// C49-p9#5, C49-p10#2: run from an AppImage (`$APPIMAGE`, the executable under `$APPDIR`), `ew git setup` writes the
+/// Run from an AppImage (`$APPIMAGE`, the executable under `$APPDIR`), `ew git setup` writes the
 /// AppImage with `ew` as its first argument, never the executable's own path in the AppImage's transient mount; an
 /// `ew` outside `$APPDIR` that inherited another AppImage's variables (an editor's terminal) writes its own path.
 #[test]

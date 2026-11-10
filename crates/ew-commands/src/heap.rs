@@ -306,7 +306,7 @@ impl HeapSize for ew_schema::Revision {
     }
 }
 
-// WP-S1.18 part 1: the typed sign-off and release record (digests, dates and counts are inline).
+// The typed sign-off and release record (digests, dates and counts are inline).
 plain!(u64, ew_schema::Digest128, ew_schema::Sha256, ew_schema::Date);
 
 /// A label format of a newer build keeps its value verbatim on the heap (FX37a); the known formats are inline.
@@ -353,7 +353,7 @@ impl HeapSize for ew_schema::ReleaseRecord {
     }
 }
 
-// ---- conflict records (WP-S1.17 D17) ----
+// ---- conflict records ----
 
 impl HeapSize for ew_schema::Conflict {
     fn heap_size(&self) -> usize {
@@ -370,7 +370,7 @@ impl HeapSize for ew_schema::Conflict {
     }
 }
 
-// ---- import runs (WP-S3.09 D6) ----
+// ---- import runs ----
 
 impl HeapSize for ew_schema::ImportRun {
     fn heap_size(&self) -> usize {
@@ -524,7 +524,7 @@ impl HeapSize for Bond {
     }
 }
 
-// ---- Page items and structure boxes (WP-S2.04 part 4a) ----
+// ---- Page items and structure boxes ----
 
 impl HeapSize for ew_schema::PageItem {
     fn heap_size(&self) -> usize {
@@ -843,7 +843,7 @@ impl HeapSize for Function {
     }
 }
 
-// ---- bus (WP-S1.21 D11): enum payloads of a newer format are not counted ----
+// ---- bus: enum payloads of a newer format are not counted ----
 
 impl HeapSize for ew_schema::BusPort {
     fn heap_size(&self) -> usize {
@@ -878,7 +878,7 @@ impl HeapSize for ew_schema::PhysicalNet {
     }
 }
 
-// ---- layout (WP-S4.01) ----
+// ---- layout ----
 
 impl HeapSize for ew_schema::LayoutSpace {
     fn heap_size(&self) -> usize {
@@ -1307,7 +1307,7 @@ impl HeapSize for Part {
     }
 }
 
-// ---- manufacturers and macros (WP-S1.19 part 1) ----
+// ---- manufacturers and macros ----
 
 impl HeapSize for ew_schema::Manufacturer {
     fn heap_size(&self) -> usize {
@@ -1320,7 +1320,7 @@ impl HeapSize for ew_schema::Manufacturer {
     }
 }
 
-// ---- address profiles (WP-S7.03 D7) ----
+// ---- address profiles ----
 
 impl HeapSize for ew_schema::PlcProfileDef {
     fn heap_size(&self) -> usize {

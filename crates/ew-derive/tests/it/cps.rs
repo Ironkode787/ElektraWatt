@@ -290,7 +290,7 @@ fn terminal_function_from_part_template_uses_the_pattern() {
     assert!(out[0].source_output && out[0].optional && out[0].physical);
     assert_eq!(out[1].discipline, Discipline::Pneumatic);
     assert!(!out[1].physical);
-    // WP-S1.20 D3: the port role comes from the FnDef CP as the discipline does.
+    // The port role comes from the FnDef CP as the discipline does.
     assert_eq!(out[1].port_role, Some(FluidPortRole::Working2));
     assert_eq!(out[0].port_role, None);
     assert_eq!(out[2].discipline, Discipline::Electrical);

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Normaliser N-FL-1 `valve_functions` (doc 06 §3.2 row 1, doc 11 §4.2, WP-S1.20 D6, FR-FLU-003): a valve's functions
+//! Normaliser N-FL-1 `valve_functions` (doc 06 §3.2 row 1, doc 11 §4.2, FR-FLU-003): a valve's functions
 //! follow its valve part.
 //!
 //! - **Trigger.** A device of the transaction that is new or whose `parts` changed and that has a **valve part**: the
@@ -9,15 +9,15 @@
 //!   fluid section changes nothing.
 //! - **The template.** The valve part's `function_template`: its valve entry is the first on a FnDef of contact kind
 //!   `valve`; its coil entries are those on a FnDef of contact kind `coil`, the k-th being solenoid k of
-//!   `fluid.solenoids` (WP-S1.20 D4). Every entry's FnDef copy must be embedded (else the transaction is refused, as
+//!   `fluid.solenoids`. Every entry's FnDef copy must be embedded (else the transaction is refused, as
 //!   part-first placement refuses it).
 //! - **Effect.** (a) A device without a function on a FnDef of contact kind `valve` gets one from the valve entry; (b)
 //!   each coil entry without its function gets one; a new function has the ID `v5(device, template_index)` (ADR-0004
-//!   amendment 2), or, when that ID is a kept record, `v5(that ID, template_index)` and so on (FT-1313), the entry's role (auxiliary when the device already has a main function, EW-INV-002) and its index
+//!   amendment 2), or, when that ID is a kept record, `v5(that ID, template_index)` and so on, the entry's role (auxiliary when the device already has a main function, EW-INV-002) and its index
 //!   as `template_entry`; an internal coil whose solenoid differs from its FnDef CP's designation gets a designation
 //!   override on that CP. (c) A coil function of the device that is no entry of the valve part's template (the old
 //!   part's, after a part change) is removed; a channel bound to it is unbound with the notice `solenoid <s> of <valve>
-//!   went with the old part; <channel> is unbound`, unless N2 binds the channel again in the same step (FT-1392). (d) The valve function is never replaced or removed: a valve part
+//!   went with the old part; <channel> is unbound`, unless N2 binds the channel again in the same step. (d) The valve function is never replaced or removed: a valve part
 //!   whose valve entry names another FnDef gives the notice `<valve> keeps its drawn valve function; the new part has
 //!   another valve type: replace the symbol to change it`.
 //! - **Entries and functions.** A coil function is the function of an entry when its `template_entry` names that entry
@@ -41,7 +41,7 @@ use crate::text::text;
 use crate::tx::TxBuilder;
 use crate::words;
 
-/// The most derived IDs a new function tries past `v5(device, entry)` before the transaction is refused (FT-1313).
+/// The most derived IDs a new function tries past `v5(device, entry)` before the transaction is refused.
 const FRESH_TRIES: usize = 8;
 
 /// Normaliser N-FL-1.
@@ -207,7 +207,7 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
             has_main = false;
         }
         tx.delete((Kind::Function, f.id.cast()))?;
-        // FT-1392: N2 may bind the new coil to the same channel in this step; the notice then goes.
+        // N2 may bind the new coil to the same channel in this step; the notice then goes.
         for (id, c) in unbound {
             tx.notice_while_unbound(
                 id,

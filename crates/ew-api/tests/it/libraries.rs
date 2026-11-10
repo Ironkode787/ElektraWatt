@@ -46,7 +46,7 @@ fn session(libraries: Option<LibraryTiers>, lib: Vec<LibDocument>) -> Session {
     .unwrap()
 }
 
-/// The starter's compiled-in library ID is `ew_interop_api::SYSTEM_LIBRARY` (FT-24): `ew-library` cannot name
+/// The starter's compiled-in library ID is `ew_interop_api::SYSTEM_LIBRARY`: `ew-library` cannot name
 /// `ew-interop-api`, so the equality is asserted here, where both are visible.
 #[test]
 fn the_starter_library_is_the_system_library() {
@@ -64,7 +64,7 @@ fn the_starter_library_is_the_system_library() {
 }
 
 /// Without tiers, and with tiers that cannot be opened, the session has the starter and the compiled-in starter
-/// parts (WP-S2.18 D5), read from no file; only the tiers that cannot be opened report why.
+/// parts, read from no file; only the tiers that cannot be opened report why.
 #[test]
 fn tiers_that_cannot_be_opened_fall_back_to_the_starter() {
     struct Case {
@@ -162,7 +162,7 @@ fn part_search_ranks_held_parts_first() {
     assert_eq!(s1.libraries().libraries()[1].index, library::IndexState::Fresh);
 }
 
-/// The hits of `q` outside the compiled-in starter parts (WP-S2.18 D5), which every session's registry holds.
+/// The hits of `q` outside the compiled-in starter parts, which every session's registry holds.
 fn fixture_hits(s: &Session, q: &PartQuery) -> Vec<library::PartHit> {
     s.part_search(q)
         .into_iter()

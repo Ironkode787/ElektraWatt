@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Table mode in the shell (WP-S2.06 part 3, §8): `navigator.table` and the fourteen `table.*` actions over a
+//! Table mode in the shell: `navigator.table` and the fourteen `table.*` actions over a
 //! navigator's table, the gestures (a cell, a column over the marked rows, fill down, pattern fill, paste, clear), their
 //! one compiled command, the policy and the table card.
 //!
@@ -100,7 +100,7 @@ pub(super) fn list_param(p: &Map<String, Value>, name: &str) -> Result<Option<Ve
     }
 }
 
-/// The strip edit of one strip-editor cell (WP-S2.07 §6.3) on `path` of row `row`, keyed by `targets`, with `text`.
+/// The strip edit of one strip-editor cell on `path` of row `row`, keyed by `targets`, with `text`.
 fn strip_edit_of(path: &str, row: &str, targets: &[Uuid], text: &str) -> Option<StripEdit> {
     if path == "group" {
         return Some(StripEdit::GroupLabel {
@@ -122,7 +122,7 @@ fn strip_edit_of(path: &str, row: &str, targets: &[Uuid], text: &str) -> Option<
     })
 }
 
-/// The strip edits of a gesture's applicable strip-editor cells (WP-S2.07 §6.3): one `GroupLabel` per distinct text
+/// The strip edits of a gesture's applicable strip-editor cells: one `GroupLabel` per distinct text
 /// (its rows' terminals, in row order) at the place of its first cell, then each Bridge part and accessory Part cell in
 /// cell order.
 fn strip_edits_of(gesture: &Gesture) -> Vec<StripEdit> {
@@ -216,7 +216,7 @@ fn merge_compiled(plain: Option<Compiled>, strip: Option<AnyCommand>) -> Option<
 }
 
 impl ShellModel {
-    /// The command of a gesture's strip-editor cells (WP-S2.07 §6.3): `Ok(None)` without any; a refusal of the
+    /// The command of a gesture's strip-editor cells: `Ok(None)` without any; a refusal of the
     /// combined edits refuses the gesture.
     fn strip_compiled(&self, gesture: &Gesture) -> Result<Option<AnyCommand>, Outcome> {
         let edits = strip_edits_of(gesture);
@@ -301,7 +301,7 @@ impl ShellModel {
                     // The G-PP triage's row 8: a potential's Type and Voltage take their printed forms.
                     let (input, leaf) = potential_input(&kind, &path, text);
                     extra = leaf;
-                    // C50-p5#3: a word of an enumerated field, as its choices show it, is read back as its code.
+                    // A word of an enumerated field, as its choices show it, is read back as its code.
                     let input = match ew_api::output::field_catalogue(&kind)
                         .and_then(|c| c.iter().find(|s| s.path == path).map(|s| s.ty.clone()))
                     {
@@ -317,7 +317,7 @@ impl ShellModel {
                             CellValue::Invalid(strings::format(key!("error-no-part"), &[&typed]))
                         }
                         Err(InputError::Ambiguous { choices }) => CellValue::Ambiguous(choices),
-                        // FT-1240: the field's words, not the stored ones.
+                        // The field's words, not the stored ones.
                         Err(InputError::NotOneOf { typed, options }) => CellValue::Invalid(
                             crate::properties::not_one_of_text(&kind, &path, &typed, &options),
                         ),
@@ -381,7 +381,7 @@ impl ShellModel {
         }
     }
 
-    /// The value of a strip-editor cell (WP-S2.07 §6.3): the text, when `Session::strip_edit` compiles the cell's
+    /// The value of a strip-editor cell: the text, when `Session::strip_edit` compiles the cell's
     /// own edit; else its refusal, reason or readings (each reading's value the text `id:<uuid>` that resolves to it).
     fn strip_cell_value(&self, view: &TableView, i: u32, path: &str, text: &str) -> CellValue {
         let Some(project) = &self.project else {
@@ -486,7 +486,7 @@ impl ShellModel {
         };
         mark_conflicts(&mut gesture);
         let compiled = compile(&gesture, &mut |k, t, m| self.member_base(k, t, m));
-        // WP-S2.07 §6.3: the strip-editor cells compile through `Session::strip_edits`, into the same one command.
+        // The strip-editor cells compile through `Session::strip_edits`, into the same one command.
         let compiled = match self.strip_compiled(&gesture) {
             Ok(strip) => merge_compiled(compiled, strip),
             Err(outcome) => return outcome,
@@ -646,7 +646,7 @@ impl ShellModel {
                     strings::format(
                         key!("toast-set"),
                         &[
-                            // FT-757: sentence case, "Set address on 1 channel".
+                            // Sentence case, "Set address on 1 channel".
                             &gesture
                                 .column_labels()
                                 .split(", ")
@@ -999,7 +999,7 @@ impl ShellModel {
         };
         let i = view.rows[r];
         if let Err(reason) = self.cell_route(&view, i, col) {
-            // WP-S2.08 part 6 (D17): tips 2 and 3.
+            // Tips 2 and 3.
             self.tip_for_refused_cell(kind, &view.table, i, col);
             return failed(
                 key!("error-table-read-only"),
@@ -1108,7 +1108,7 @@ impl ShellModel {
     }
 
     /// `table.set {kind, column, value, rows?, all?}`: sets a column's cells to a typed text: the listed rows, else the
-    /// marked rows when any are marked, else the cursor row (`all` is the same, ID-1497); the column by its key or its
+    /// marked rows when any are marked, else the cursor row (`all` is the same); the column by its key or its
     /// header label.
     pub(crate) fn act_table_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.table_kind(p));
@@ -1126,7 +1126,7 @@ impl ShellModel {
         let Some(view) = self.table_view(kind) else {
             return Outcome::Done;
         };
-        // ID-1497 (1): a column is named by its key or by its header label. C53-fx#4: a label that heads more than one
+        // A column is named by its key or by its header label. C53-fx#4: a label that heads more than one
         // column (the Wires table's two "CP") names none; the refusal lists their keys.
         let labelled: Vec<usize> = (0..view.table.columns.len())
             .filter(|i| view.table.columns[*i].label.to_lowercase() == column.to_lowercase())
@@ -1147,7 +1147,7 @@ impl ShellModel {
             Some(keys) => {
                 let mut out = Vec::new();
                 for k in &keys {
-                    // A printed label or `<strip>:<terminal>` names the row too (cycle 33).
+                    // A printed label or `<strip>:<terminal>` names the row too.
                     let key = self.resolve_nav_key(kind, k).unwrap_or_else(|| k.clone());
                     match view
                         .rows
@@ -1162,7 +1162,7 @@ impl ShellModel {
                 out.dedup();
                 out
             }
-            // ID-1497 (1): without `rows` the marked rows when any are marked, else the cursor row (`all` the same).
+            // Without `rows` the marked rows when any are marked, else the cursor row (`all` the same).
             None => view.acted.clone(),
         };
         if rows.is_empty() {
@@ -1261,7 +1261,7 @@ impl ShellModel {
 
     /// `table.paste {text?}` (Ctrl+V): the tab-separated text (else the clipboard's) from the cursor cell (§8.6). A
     /// first row naming at least half of the columns on show is a header and maps the columns by label (in any shipped
-    /// language) or key (C50-p5#1); otherwise they map by position from the cursor column. A cell whose text equals the cell's own is unchanged and left out.
+    /// language) or key; otherwise they map by position from the cursor column. A cell whose text equals the cell's own is unchanged and left out.
     pub(crate) fn act_table_paste(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.table_kind(p));
         let text = match string_param(p, "text") {
@@ -1282,7 +1282,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         let fold = |s: &str| s.trim().to_lowercase();
-        // C50-p5#1: a column's header in the window's language, in any shipped language (a copy made in en-GB, a
+        // A column's header in the window's language, in any shipped language (a copy made in en-GB, a
         // `table_export` file) or as its key.
         let nav = kind.word();
         let labels: Vec<Vec<String>> = view

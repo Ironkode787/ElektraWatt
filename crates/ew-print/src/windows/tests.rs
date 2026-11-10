@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Windows adapter without a dialog (WP-S3.07 WN-3's automated half, ruling 7 of ID-1218): its words, its paper
+//! The Windows adapter without a dialog (WN-3's automated half): its words, its paper
 //! requests, the dialog's printer name, and four placed pages printed to "Microsoft Print to PDF".
 
 use std::collections::BTreeMap;
@@ -263,7 +263,7 @@ fn page_objects(pdf: &[u8]) -> usize {
         .sum()
 }
 
-/// WN-3's automated half (ruling 7 of ID-1218): four placed pages printed through the adapter to "Microsoft Print to
+/// WN-3's automated half: four placed pages printed through the adapter to "Microsoft Print to
 /// PDF" with DOCINFO's output file set, so no dialog opens; the spooler writes a PDF of four pages once the job has
 /// run. When that printer's device context cannot be created, a skip line names the reason and the test passes.
 #[test]
@@ -313,7 +313,7 @@ fn four_placed_pages_print_to_microsoft_print_to_pdf() {
     assert_eq!(page_objects(&pdf), 4);
 }
 
-/// FT-1150, FT-1159 (ID-1394 ruling 9): only a window of this process owns the dialog. A test process has no window,
+/// Only a window of this process owns the dialog. A test process has no window,
 /// so the owner is a hidden window it makes, which belongs to it and is gone once the guard drops; another process's
 /// window (the terminal's, or one at another integrity level) never passes the rule.
 #[test]
@@ -332,7 +332,7 @@ fn the_dialog_is_owned_by_a_window_of_this_process() {
     assert_eq!(window_process(window), 0);
 }
 
-/// FT-1158: a band is white paper only when every pixel is; one grey channel sends it.
+/// A band is white paper only when every pixel is; one grey channel sends it.
 #[test]
 fn a_white_band_is_not_sent() {
     let mut band = RgbaImage {
@@ -345,10 +345,10 @@ fn a_white_band_is_not_sent() {
     assert!(!white(&band));
 }
 
-/// FT-1157 (ID-1417): a print whose job's cancel signal is set (through a clone of the job, as the window's job Cancel
+/// A print whose job's cancel signal is set (through a clone of the job, as the window's job Cancel
 /// and `ew print`'s Ctrl+C hold one) ends before its first band is sent, the document aborted, as
 /// [`PrintError::Cancelled`], and the spooler writes no file. The adapter is asked directly: the window's chain asks no
-/// way once the signal is set (C52-p6#2, ID-1424). Skipped, with its line, as WN-3 is when the PDF printer cannot be
+/// way once the signal is set. Skipped, with its line, as WN-3 is when the PDF printer cannot be
 /// opened.
 #[test]
 fn a_cancelled_print_aborts_before_its_first_band() {
@@ -367,7 +367,7 @@ fn a_cancelled_print_aborts_before_its_first_band() {
     }
 }
 
-/// C52-p6#3 (ID-1424): the first Ctrl+C or Ctrl+Break sets the print's signal and is handled; a second, with the signal
+/// The first Ctrl+C or Ctrl+Break sets the print's signal and is handled; a second, with the signal
 /// set, goes on to the default handler, which ends the process as before; other console events always go on.
 #[test]
 fn a_second_ctrl_c_ends_the_process_as_before() {

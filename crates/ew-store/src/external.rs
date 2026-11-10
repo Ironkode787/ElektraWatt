@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! External change (doc 05 §9; WP-S1.17 D20 to D23, decision log ID-1284): a project that changes on disk while a
+//! External change (doc 05 §9): a project that changes on disk while a
 //! session has it open, through a pull, a checkout or a sync client.
 //!
 //! - **Detection** ([`crate::Store::poll`]): the SHA-256 of `manifest.json`'s raw bytes against the one the store loaded

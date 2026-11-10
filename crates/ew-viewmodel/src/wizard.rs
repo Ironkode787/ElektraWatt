@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The company-standard wizard's data (WP-S2.01 part 2, FT-308; UX/UI doc 16 section 9.2, FR-PRJ-010): the steps,
+//! The company-standard wizard's data (UX/UI doc 16 section 9.2, FR-PRJ-010): the steps,
 //! the fields of each step, their validation, the draft that is kept in the configuration directory until the
 //! wizard finishes, and the model commands the draft becomes.
 //!
@@ -11,7 +11,7 @@
 //! FT-337), the frame defaults (`project.frames.set`), the colour profile (the sample's convention or one of the
 //! shipped EN 60204-1 and IEC 60445 profiles, FT-337), the size profile, the numbering schemes and the
 //! cross-reference format (`project.settings.set`), the languages and printed formats (`project.languages.set`),
-//! the structure nodes, the sections (FT-336), the report blocks of the golden layout (`report_block.create`, each
+//! the structure nodes, the sections, the report blocks of the golden layout (`report_block.create`, each
 //! with its form from the library, FT-341) and the first revision. The check scheme is validated and kept in the draft, listed
 //! on the review step as "kept in the draft": its command, `project.checks.set`, is `HumanOnly` (ADR-0008
 //! amendment 3: it decides a check outcome), so a script, the wizard's included, cannot submit it. A field's
@@ -40,10 +40,10 @@ use crate::wizard_data::{
     SHIPPED_COLOUR_PROFILES, SHIPPED_FORMS, SIZE_PROFILE_SAMPLE, TITLE_BLOCK,
 };
 
-/// The field of the check scheme, the one field `wizard.finish` keeps in the draft (FT-336).
+/// The field of the check scheme, the one field `wizard.finish` keeps in the draft.
 pub const CHECK_SCHEME_FIELD: &str = "check_scheme";
 
-/// The field of the company logo: the path of an SVG, PNG or JPEG file (FT-337).
+/// The field of the company logo: the path of an SVG, PNG or JPEG file.
 pub const LOGO_FIELD: &str = "company_logo";
 
 /// The `$schema` of the draft file.
@@ -229,7 +229,7 @@ pub static FIELDS: &[FieldMeta] = &[
         "qet-grid",
         true,
     ),
-    // WP-S7.03 D11: the readable text styles of a new project (ADR-0032 decision 3), or the base table the sample
+    // The readable text styles of a new project (ADR-0032 decision 3), or the base table the sample
     // project prints.
     field(
         Step::Frame,
@@ -453,7 +453,7 @@ fn is_node_code(text: &str) -> bool {
 }
 
 /// Whether `text` is a numbering format the command layer's counters keep unique: balanced `{token}`s that
-/// include `{page}`, `{letter}` and `{counter}` (until WP-S1.11, `ew_derive` applies no other scheme).
+/// include `{page}`, `{letter}` and `{counter}` (`ew_derive` applies no other scheme).
 fn is_format(text: &str) -> bool {
     let mut depth = false;
     let mut token = String::new();
@@ -581,7 +581,7 @@ impl Logo {
         if bytes.len() > ew_api::MAX_LOGO_BYTES {
             return Err(key!("wizard-error-logo-size"));
         }
-        // The gate of an image brought in, with the pixel limit (ID-1417).
+        // The gate of an image brought in, with the pixel limit.
         let format = match ew_api::asset_ref_of(&bytes) {
             Ok(reference) => reference.format,
             Err(ew_api::AssetError::UnsafeSvg(hazard)) => return Err(svg_refusal_key(hazard)),
@@ -598,7 +598,7 @@ impl Logo {
     }
 }
 
-/// The wizard's text key for a refused SVG logo: what was found and how to export the logo again (FT-418).
+/// The wizard's text key for a refused SVG logo: what was found and how to export the logo again.
 fn svg_refusal_key(hazard: ew_api::SvgHazard) -> Key<'static> {
     use ew_api::SvgHazard as H;
     match hazard {
@@ -776,7 +776,7 @@ impl Draft {
 
     /// The company command (`project.company.set`) with the members the draft names (an empty field sends
     /// nothing, so it leaves the project's value as it is), or `None` when it names no company, notice or logo. The
-    /// logo is sent as its file's bytes in base64 (FT-337); `logo_text` turns the logo into that text.
+    /// logo is sent as its file's bytes in base64; `logo_text` turns the logo into that text.
     fn company_command_with(&self, logo_text: impl Fn(&Logo) -> String) -> Option<(&'static str, Value)> {
         let mut params = serde_json::Map::new();
         for (field, member) in [("company_name", "name"), ("company_notice", "notice")] {
@@ -852,7 +852,7 @@ impl Draft {
 
     /// The report blocks of the golden layout ([`GOLDEN_REPORT_LAYOUT`]) when the `report_blocks` field says so:
     /// one `report_block.create` per block, on the shipped frame without the grid, with that form and the title
-    /// block it names as `form_copies` (the form comes from the library with the block, FT-341), in the section
+    /// block it names as `form_copies` (the form comes from the library with the block), in the section
     /// whose folio range holds the block's first folio (a `{"ref": "section:<n>"}`), else in none.
     fn report_commands(&self, sections: &[SectionRow]) -> Vec<(&'static str, Value)> {
         if self.get("report_blocks") != "golden" {
@@ -906,7 +906,7 @@ impl Draft {
         out
     }
 
-    /// The text styles (WP-S7.03 D11): the built-in basic project's readable ones, or none (`null` removes the
+    /// The text styles: the built-in basic project's readable ones, or none (`null` removes the
     /// member), so that the base table prints as in the sample project.
     fn text_styles_value(&self) -> Value {
         match self.get("text_styles") {
@@ -1183,7 +1183,7 @@ pub(crate) fn run_commands(
         let text = Draft::cmdlog(label, &[(*cmd, params.clone())]);
         let log = CmdLog::parse(&text)
             .map_err(|e| strings::format(key!("wizard-error-command"), &[cmd, &e.to_string()]))?;
-        // FT-1488 (ID-1457): the command's error in the window's language.
+        // The command's error in the window's language.
         session.run_script(&log, label).map_err(|e| {
             let why = match &e {
                 ew_api::CmdLogError::Refused { error, .. } | ew_api::CmdLogError::Failed { error, .. } => {
@@ -1320,7 +1320,7 @@ mod tests {
                 "revision.create"
             ]
         );
-        // FT-341: the golden layout, each block with its form and the title block it names from the library.
+        // The golden layout, each block with its form and the title block it names from the library.
         let blocks: Vec<&Value> = cmds
             .iter()
             .filter(|(n, _)| *n == "report_block.create")
@@ -1437,7 +1437,7 @@ mod tests {
             2
         );
         assert_ne!(d.preview_key(), Draft::default().preview_key());
-        // The company, the frame and the formats are written (FT-336) and reach the preview.
+        // The company, the frame and the formats are written and reach the preview.
         let mut c = Draft::default();
         c.set("company_name", "Example Panels").unwrap();
         c.set("company_notice", "Property of Example Panels.").unwrap();
@@ -1658,7 +1658,7 @@ mod tests {
         assert_eq!(review.len(), FIELDS.len());
         let by = |label: &str| review.iter().find(|l| l.label == label).unwrap().clone();
         assert!(by(strings::text(key!("wizard-field-xref"))).written);
-        // FT-336: every field is written but the check scheme, whose command is `HumanOnly` (ADR-0008 am. 3).
+        // Every field is written but the check scheme, whose command is `HumanOnly` (ADR-0008 am. 3).
         for f in FIELDS {
             assert_eq!(f.written, f.key != "check_scheme", "{}", f.key);
         }

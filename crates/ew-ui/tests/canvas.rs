@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The page canvas without rendering (WP-S2.02 part 1, acceptance checks A9, A10, A11) and the tile parity of the
+//! The page canvas without rendering (acceptance checks A9, A10, A11) and the tile parity of the
 //! CPU path: keys, wheel, drag and pointer reach the canvas through the registry, the status bar follows, the
 //! canvas is one named AccessKit node, view steps re-execute no query, and tiles stitched at one resolution match
 //! the whole-page raster.
@@ -92,7 +92,7 @@ fn a10_ctrl_plus_zooms_the_canvas_and_leaves_the_ui_scale() {
 fn a10_home_fits_and_ctrl_arrow_right_moves_the_view() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
-    // FT-1443: the first view is fit-width here; Home is Fit page.
+    // The first view is fit-width here; Home is Fit page.
     let fit = h.state().shell().canvas().unwrap().fit_zoom();
     h.key_press_modifiers(Modifiers::COMMAND, Key::Plus);
     h.key_press_modifiers(Modifiers::COMMAND, Key::Plus);
@@ -283,7 +283,7 @@ fn a11_the_statistics_hold_one_sample_per_canvas_frame() {
     }
     let stats = h.state().canvas_stats();
     assert_eq!(stats.len(), before + 5);
-    // Summaries exist; their values are reported, never asserted (WP-S2.02 section 9).
+    // Summaries exist; their values are reported, never asserted (section 9).
     let frame = stats.frame();
     assert!(frame.max >= frame.p99 && frame.p99 >= frame.p50);
     println!(

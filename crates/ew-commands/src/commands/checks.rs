@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `project.checks.set` (`SetCheckSchemes`, FT-336): the check schemes the project names (doc 03 §15
+//! `project.checks.set` (`SetCheckSchemes`): the check schemes the project names (doc 03 §15
 //! `CheckSettings`, doc 15 §3.1–§3.2, §4.9; doc 16 §9.2 step 9). `check.waive` (`WaiveFinding`) and `check.unwaive`
-//! (`UnwaiveFinding`): waiver recording (doc 15 §2.5, FR-CHK-009; WP-S1.16 D7, FT-494).
+//! (`UnwaiveFinding`): waiver recording (doc 15 §2.5, FR-CHK-009).
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
@@ -124,7 +124,7 @@ pub const WAIVER_REASON_MIN_CHARS: usize = 10;
 ///
 /// The finding is named by its rule ID and its fingerprint (32 hex digits, FR-CHK-044; stored in lower case). The
 /// author (the display name the GUI records) and the date are parameters: the command reads no clock and no
-/// operating-system user (WP-S1.16 §10 rule 2). The check engine then reports the matching finding as waived; a
+/// operating-system user (rule 2). The check engine then reports the matching finding as waived; a
 /// waiver that matches no finding stays and is reported (EW-CORE-081), and a rule whose findings cannot be waived
 /// (an integrity or system rule) gives no waived finding either.
 ///
@@ -153,7 +153,7 @@ pub struct WaiveFinding {
     /// The date of the waiver.
     pub date: Date,
     /// The finding's subject as printed (a device's tag), which the refusal of a finding waived already names; not
-    /// recorded (FT-1509).
+    /// recorded.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subject: Option<String>,
 }
@@ -244,7 +244,7 @@ impl Command for WaiveFinding {
     }
 }
 
-/// `check.unwaive` (`UnwaiveFinding`): removes a waiver (doc 15 §2.5, FR-CHK-009; WP-S1.16 D7), after which its
+/// `check.unwaive` (`UnwaiveFinding`): removes a waiver (doc 15 §2.5, FR-CHK-009), after which its
 /// finding counts again. Rejected: a waiver that does not exist (at `/waiver`). **Exposure `HumanOnly`**, as
 /// `check.waive`. Interactive; undoable as one step. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]

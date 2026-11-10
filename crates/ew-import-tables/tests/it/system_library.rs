@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! L1-5 (FT-24): every starter document under `content/` carries [`SYSTEM_LIBRARY`] as its `library_id`, with
+//! L1-5: every starter document under `content/` carries [`SYSTEM_LIBRARY`] as its `library_id`, with
 //! `item_id = v5(SYSTEM_LIBRARY, meta.key)`. Moved here from `ew-interop-api`, a permissive crate whose own tests do
 //! not read files outside the crate.
 

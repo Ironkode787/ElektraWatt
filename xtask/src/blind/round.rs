@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The usability rounds' additions to a run (WP-S2.12 D8, D11): hints on request and the proxy questionnaire.
+//! The usability rounds' additions to a run: hints on request and the proxy questionnaire.
 //!
 //! **Hints.** A task's `hints.toml` holds one to three hints, graded from where to look to what to do, in the user's
 //! words. `start` copies it into `.harness/hints.toml`; `hint <run>` prints the next one and records it in

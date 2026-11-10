@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-436: the real-exporter raster corpus through the asset sniffer.
+//! The real-exporter raster corpus through the asset sniffer.
 
 use std::path::Path;
 
 use ew_api::AssetFormat;
 
-/// The real-exporter raster corpus (FT-436): file name, format and the size of the corpus table.
+/// The real-exporter raster corpus: file name, format and the size of the corpus table.
 const CORPUS: &[(&str, AssetFormat, (u32, u32))] = &[
     ("jpeg-progressive-gimp-icc.jpg", AssetFormat::Jpeg, (945, 945)),
     ("jpeg-progressive-photoshop.jpg", AssetFormat::Jpeg, (600, 362)),

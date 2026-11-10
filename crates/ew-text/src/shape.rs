@@ -111,7 +111,7 @@ impl FontSet {
     ///
     /// Deterministic: the same font bytes, text, style and width give the same glyph ids and positions on
     /// every platform (see the crate documentation for the exact numeric pipeline). There is no cache
-    /// here; memoisation belongs to the `shaped_text` query of `ew-memo` (WP-S1.05).
+    /// here; memoisation belongs to the `shaped_text` query of `ew-memo`.
     ///
     /// A text without line breaks and without `max_width` gives one line; `\n` always breaks. A
     /// `max_width` narrower than a single word lets that word overflow (parley never breaks inside a word

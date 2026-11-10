@@ -1,19 +1,19 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The IP tool (`ip`; WP-S2.04 §9.1, doc 06 §3.5, §4.5) and the naming rules it shares with the Wire tool's end in an
+//! The IP tool (`ip`; doc 06 §3.5, §4.5) and the naming rules it shares with the Wire tool's end in an
 //! interruption point (§9.2).
 //!
 //! | State | Event | Next | Output |
 //! |---|---|---|---|
 //! | floating | `PointerMove` or `CursorMove` to p | floating | `Transient`: the IP symbol's outline at the grid point nearest to p, a `cp` marker, a label `<name> <direction>` |
 //! | floating | `Key(RotateCw, RotateCcw, MirrorX, MirrorY, NextVariant)` | floating | the orientation as the Place tool turns it; `Transient` |
-//! | floating | `Key(ToggleDirection)` (D) | floating | the direction source → target → undirected → source; on a starred point the star is cleared and D steps on from source (FT-980); `Transient` |
-//! | floating | `Key(ToggleStar)` | floating | the star source toggled (the host refuses it for an external point); while it is on the point is a source, the chosen direction kept for after it (FT-980); `Transient` |
+//! | floating | `Key(ToggleDirection)` (D) | floating | the direction source → target → undirected → source; on a starred point the star is cleared and D steps on from source; `Transient` |
+//! | floating | `Key(ToggleStar)` | floating | the star source toggled (the host refuses it for an external point); while it is on the point is a source, the chosen direction kept for after it; `Transient` |
 //! | floating | `Text(s)` (`ip.name`) | floating | the name is `s`; `Transient` |
 //! | floating | `Dwell { ms ≥ 80 }` | floating | `Preview` of the command a click commits |
 //! | floating | `Press` primary or `Activate`, the ghost's CP on a free grid point, or Alt held | floating | `Commit(ip.place …)`; sticky |
-//! | floating | `Press` primary or `Activate`, the ghost's CP on a pin | floating | `Commit(connection.draw_to_ip {a: the pin, route: []} …)`, an external point's with its `external` (FT-946); sticky |
+//! | floating | `Press` primary or `Activate`, the ghost's CP on a pin | floating | `Commit(connection.draw_to_ip {a: the pin, route: []} …)`, an external point's with its `external`; sticky |
 //! | floating | `Press` primary or `Activate`, the ghost's CP on another interruption point | floating | refused by the host ([`IpTool::refusal`]): nothing committed, the ghost stays |
 //! | floating | `Escape` | — | `None` (the host returns to Select) |
 //!
@@ -21,12 +21,12 @@
 //! is `IP`, FT-619): the derived potential name of the page's CP that lies exactly under the ghost's CP when it is
 //! given (not a fallback), else the last name this tool or the Wire tool's P committed, else that potential's fallback
 //! name, else `IP`; then, while an interruption point of the project already has the proposal, the next name of its
-//! numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`), so that only a typed name joins two points
-//! (ID-1462). **The direction** is `source` while the star is on (FT-980, ID-1146: a star source is a source point; the chosen
+//! numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`), so that only a typed name joins two points.
+//! **The direction** is `source` while the star is on (FT-980, ID-1146: a star source is a source point; the chosen
 //! direction is kept for after it), else the one D chose, else `target` for an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
 //! or top quarter ([`quarter_direction`]: the horizontal quarters first), else the last committed one. After a commit
 //! the typed name and the star are cleared and the committed name and direction (an external point's are not) are remembered ([`IpMemory`], kept by
-//! the host across tools); **the chosen direction stays** for the next placements (FT-547: no flip after a placement)
+//! the host across tools); **the chosen direction stays** for the next placements (no flip after a placement)
 //! until D or `tool.ip_direction` chooses another, and setting an external reference clears it, so that the external
 //! point is a target.
 //!
@@ -34,11 +34,11 @@
 //! commit use the external-arrow symbol the host gives, `ip.place` and `connection.draw_to_ip` carry `external`, and
 //! the star is refused.
 //!
-//! **A drop on a pin connects** (FIXPT41, FR-CON-003, WP-S2.04 §9.1): when the ghost's CP lies exactly on a CP of the
+//! **A drop on a pin connects** (FIXPT41, FR-CON-003): when the ghost's CP lies exactly on a CP of the
 //! page that no interruption point draws (a pin, free or wired), the click commits `connection.draw_to_ip` with that
 //! CP as `a` and an empty route (a route-less wire of length zero, one undo step), and the ghost says so ("connects
 //! to -102F2:14"); Alt (held on the last pointer move or the press, or `canvas.activate_alt`) places the point free
-//! with `ip.place`. An external connection point connects the same way (FT-946). On the CP of another interruption
+//! with `ip.place`. An external connection point connects the same way. On the CP of another interruption
 //! point the click is refused in words.
 
 use std::collections::BTreeSet;
@@ -108,7 +108,7 @@ pub struct IpMemory {
     /// The last committed direction.
     pub last_direction: IpDir,
     /// The name typed in Tool options (`ip.name`) that no interruption point has taken yet: the next one the IP tool
-    /// or the Wire tool's P places takes it unchanged, then it is cleared (the play-test of cycle 40). It outlives a
+    /// or the Wire tool's P places takes it unchanged, then it is cleared (the play-test). It outlives a
     /// switch of tools, so a name typed with the IP tool armed names the end of the next wire ended with P.
     pub typed: Option<String>,
 }
@@ -127,7 +127,7 @@ pub fn next_in_series(name: &str) -> String {
 }
 
 /// Whether the page point `c` lies on a junction of `tables` or strictly inside a connection's polyline: on one of its
-/// segments, a bend included, but at neither of its ends (FT-948). As the Wire tool's `resolve_target` looks, after
+/// segments, a bend included, but at neither of its ends. As the Wire tool's `resolve_target` looks, after
 /// the connection points: the junctions, then the segments.
 fn on_wire(tables: &PageTables, c: (i64, i64)) -> bool {
     if tables.junctions.iter().any(|j| j.at == c) {
@@ -151,8 +151,8 @@ fn on_segment(a: (i64, i64), b: (i64, i64), p: (i64, i64)) -> bool {
     cross == 0 && (a.0.min(b.0)..=a.0.max(b.0)).contains(&p.0) && (a.1.min(b.1)..=a.1.max(b.1)).contains(&p.1)
 }
 
-/// The project's interruption points, as the IP tool's proposal reads them: the name of every one (ID-1462), and those
-/// with a source role (FT-822): EW-CORE-052 counts the source points of a name across the whole project, so a proposal
+/// The project's interruption points, as the IP tool's proposal reads them: the name of every one, and those
+/// with a source role: EW-CORE-052 counts the source points of a name across the whole project, so a proposal
 /// that reads only the page's tables can offer a second source. External connection points never pair and are left
 /// out of the sources.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -169,13 +169,13 @@ impl ProjectIps {
         self.sources.insert((name.to_owned(), page));
     }
 
-    /// Notes an interruption point named `name` (ID-1462: an automatic name never takes it).
+    /// Notes an interruption point named `name` (an automatic name never takes it).
     pub fn add_name(&mut self, name: &str) {
         self.names.insert(name.to_owned());
     }
 
     /// `base`, or the first name of its series ([`next_in_series`]) that no interruption point of the project and none
-    /// of the page of `tables` has (ID-1462): an automatic name is free, so it never joins two points.
+    /// of the page of `tables` has: an automatic name is free, so it never joins two points.
     pub fn free_name(&self, base: &str, tables: &PageTables) -> String {
         let used = |n: &str| {
             self.names.contains(n)
@@ -223,7 +223,7 @@ impl ProjectIps {
 /// The name and direction an interruption point gets from the proposal `base`: `auto` is the direction the page's
 /// quarters or the memory give (`chosen` false) or the one D chose (`chosen` true). With `typed` the name is the
 /// user's, unchanged, and an automatic `source` whose name has a source on another page and none on this one, without a
-/// star, becomes `target` with that name (FT-822): only a name the user gives joins two points. Otherwise the point
+/// star, becomes `target` with that name: only a name the user gives joins two points. Otherwise the point
 /// keeps `auto` and takes the first name of the series that no interruption point of the project has
 /// ([`ProjectIps::free_name`], ID-1462), read from the model at the moment of naming, so a reopen, an undo or a paste
 /// never repeats a name.
@@ -308,7 +308,7 @@ pub fn potential_at(tables: &PageTables, at: (i64, i64)) -> Option<TablePotentia
         .find_map(|c| c.potential.clone())
 }
 
-/// The base of a name proposal (FT-950, ID-1146), in the IP tool and the Wire tool's P alike: the potential's name when
+/// The base of a name proposal, in the IP tool and the Wire tool's P alike: the potential's name when
 /// it is given (by a definition, a source interruption point or the supply), else the last name placed, else the
 /// potential's fallback name (`-101F1:2`), else `IP`. So a point dropped on a pin whose potential has only a fallback
 /// name proposes the next of the name just placed, not the pin's.
@@ -374,7 +374,7 @@ pub struct IpTool {
     shape: Arc<SymbolShape>,
     outline: Arc<[Vec<(i64, i64)>]>,
     orient: u8,
-    /// EW's target form with its outline, while `shape` is EW's source form (WP-S2.19 D16): a target point is drawn
+    /// EW's target form with its outline, while `shape` is EW's source form: a target point is drawn
     /// with it, and neither form is turned.
     target: Option<(Arc<SymbolShape>, Outline)>,
     /// The snapped insertion point: (sheet nm, page nm).
@@ -391,17 +391,17 @@ pub struct IpTool {
     shown: String,
     /// The direction the last overlay showed (the ghost's; D goes on from it).
     shown_dir: IpDir,
-    /// The project's source points (FT-822) and the revision they were read at.
+    /// The project's source points and the revision they were read at.
     project: ProjectIps,
     project_rev: Option<u64>,
-    /// The library documents the placement embeds (`ip.place`'s `copies`, FT-673); the host sends only those the
+    /// The library documents the placement embeds (`ip.place`'s `copies`); the host sends only those the
     /// project lacks.
     copies: Vec<Value>,
     /// Alt held on the last pointer move or press: a drop on a pin places the point without connecting (FIXPT41).
     suppressed: bool,
     /// The pin the last overlay's click would connect to, in words (the ghost's `connects`).
     shown_connects: Option<String>,
-    /// The base of the proposal the last overlay showed, when it is taken and the name differs from it (FT-1023).
+    /// The base of the proposal the last overlay showed, when it is taken and the name differs from it.
     shown_taken: Option<String>,
 }
 
@@ -444,13 +444,13 @@ impl IpTool {
         }
     }
 
-    /// The tool with the library documents its placements embed (`ip.place`'s `copies`, FT-673).
+    /// The tool with the library documents its placements embed (`ip.place`'s `copies`).
     pub fn with_copies(mut self, copies: Vec<Value>) -> IpTool {
         self.copies = copies;
         self
     }
 
-    /// The tool holding EW's two forms (WP-S2.19 D16): its shape is the source form, `target` the target form; a point
+    /// The tool holding EW's two forms: its shape is the source form, `target` the target form; a point
     /// is drawn with its direction's form and never turned.
     pub fn with_target(mut self, target: Option<Arc<SymbolShape>>) -> IpTool {
         self.target = target.map(|t| {
@@ -515,7 +515,7 @@ impl IpTool {
         shape: Arc<SymbolShape>,
         cx: &ToolCx<'_>,
     ) -> Overlay {
-        // An external connection point is a target (FT-547: the one change of direction the tool makes itself).
+        // An external connection point is a target (the one change of direction the tool makes itself).
         if external.is_some() {
             self.chosen = None;
         }
@@ -527,7 +527,7 @@ impl IpTool {
     }
 
     /// Sets the direction (`tool.ip_direction {direction}`, the headless form of D); a direction other than source
-    /// clears the star, as D does (FT-980: a star source is a source point).
+    /// clears the star, as D does (a star source is a source point).
     pub fn choose_direction(&mut self, direction: IpDir, cx: &ToolCx<'_>) -> Overlay {
         if direction != IpDir::Source {
             self.star = false;
@@ -553,7 +553,7 @@ impl IpTool {
     /// The direction at the insertion point `pos` before the project's sources are considered, and whether it is
     /// chosen (by the star, D, `tool.ip_direction` or an external reference) rather than found.
     fn auto_direction(&self, pos: Option<(i64, i64)>) -> (IpDir, bool) {
-        // FT-980 (ID-1146): a star source is a source point; the chosen direction is kept for the next point (FT-547).
+        // A star source is a source point; the chosen direction is kept for the next point.
         if self.star {
             return (IpDir::Source, true);
         }
@@ -582,7 +582,7 @@ impl IpTool {
     }
 
     /// The name and direction at the insertion point `pos` ([`propose`]), and the base the proposal started from when
-    /// it is taken, so that the name differs from it (FT-1023); `None` for a typed name or a free base.
+    /// it is taken, so that the name differs from it; `None` for a typed name or a free base.
     fn proposal(&self, cx: &ToolCx<'_>, pos: Option<(i64, i64)>) -> (String, IpDir, Option<String>) {
         let (auto, chosen) = self.auto_direction(pos);
         let tables = &cx.page.tables;
@@ -592,7 +592,7 @@ impl IpTool {
             let (name, direction) = propose(typed, true, auto, chosen, self.star, &self.project, tables);
             return (name, direction, None);
         }
-        // An external connection point proposes its own name, never the last interruption point's (FT-619).
+        // An external connection point proposes its own name, never the last interruption point's.
         let base = if self.external.is_some() {
             "IP".to_owned()
         } else {
@@ -606,7 +606,7 @@ impl IpTool {
         (name, direction, taken)
     }
 
-    /// The sentence the HUD and the placement toast say when the proposal is not its base's name (FT-1023, ID-1107):
+    /// The sentence the HUD and the placement toast say when the proposal is not its base's name:
     /// "0V is taken, so this point is 0V-1."; `None` when the point takes its base's name or a typed one.
     pub fn taken_note(&self) -> Option<String> {
         self.shown_taken
@@ -616,7 +616,7 @@ impl IpTool {
 
     /// What a click at the insertion point `pos` does with the ghost's CP (FIXPT41): on the CP of an interruption
     /// point of the page it is refused (16a P10: no point stacked on another), Alt or not; on another CP (a pin, free or
-    /// wired, ruling 2) it connects unless Alt is held, an external connection point too (FT-946); elsewhere it places
+    /// wired, ruling 2) it connects unless Alt is held, an external connection point too; elsewhere it places
     /// the point free.
     fn drop_on(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> DropOn {
         let Some(c) = self.cp_at(pos) else {
@@ -638,7 +638,7 @@ impl IpTool {
             return DropOn::Refused(crate::strings::format(key!("notice-ip-on-ip"), &[&name]));
         }
         // A pin always wins; without one, a point on a junction or strictly inside a wire would sit on it without
-        // joining it, so it is refused (FT-948, ID-1150). A wire's bare end is no wire's inside: the point places free.
+        // joining it, so it is refused. A wire's bare end is no wire's inside: the point places free.
         let Some(pin) = under.first() else {
             if on_wire(tables, c) {
                 return DropOn::Refused(crate::strings::text(key!("notice-ip-on-wire")).to_owned());
@@ -688,7 +688,7 @@ impl IpTool {
                 if self.star {
                     ip["star_source"] = Value::Bool(true);
                 }
-                // FT-946: an external point on a pin is connected too, in the same one undo step.
+                // An external point on a pin is connected too, in the same one undo step.
                 if let Some(e) = &self.external {
                     ip["external"] = Value::from(e.id.clone());
                 }
@@ -797,7 +797,7 @@ impl Tool for IpTool {
 
     fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> ToolOutput {
         let turn = |t: &mut IpTool, rotate: u8, mirror: bool| {
-            // WP-S2.19 D16: EW's forms are never turned; D changes the direction and with it the form.
+            // EW's forms are never turned; D changes the direction and with it the form.
             if t.forms() {
                 return ToolOutput::None;
             }
@@ -860,12 +860,12 @@ impl Tool for IpTool {
         let pending = self.pending.take();
         if let (true, Some((name, direction))) = (done, pending) {
             // An external connection point is not remembered: the next interruption point's proposal goes on from
-            // the last one (FT-619).
+            // the last one.
             if self.external.is_none() {
                 self.memory.last_name = Some(name);
                 self.memory.last_direction = direction;
             }
-            // The chosen direction stays (FT-547); the typed name is taken.
+            // The chosen direction stays; the typed name is taken.
             self.typed = None;
             self.memory.typed = None;
             self.star = false;
@@ -908,7 +908,7 @@ impl Tool for IpTool {
 mod tests {
     use super::*;
 
-    /// FT-948 (ID-1150): a point strictly inside a wire (on a segment, at a bend, on a slanted segment) is on it; its
+    /// A point strictly inside a wire (on a segment, at a bend, on a slanted segment) is on it; its
     /// ends, a point beside it and a point past its end are not.
     #[test]
     fn ft948_a_point_inside_a_wire_is_on_it_its_ends_are_not() {
@@ -962,12 +962,12 @@ mod tests {
         let p = |base: &str, typed, auto, chosen, star, project: &ProjectIps| {
             propose(base, typed, auto, chosen, star, project, &tables)
         };
-        // ID-1462: a source elsewhere does not lend its name to an automatic point; the series' next free name does.
+        // A source elsewhere does not lend its name to an automatic point; the series' next free name does.
         assert_eq!(
             p("0V", false, IpDir::Source, false, false, &project),
             ("0V-1".to_owned(), IpDir::Source)
         );
-        // Typed: the name stays, and a source elsewhere makes the point its target (FT-822).
+        // Typed: the name stays, and a source elsewhere makes the point its target.
         assert_eq!(
             p("0V", true, IpDir::Source, false, false, &project),
             ("0V".to_owned(), IpDir::Target)
@@ -987,7 +987,7 @@ mod tests {
             p("0V", false, IpDir::Source, false, true, &project),
             ("0V-1".to_owned(), IpDir::Source)
         );
-        // ID-1462: a target or an undirected point never takes the name of a point of another direction either.
+        // A target or an undirected point never takes the name of a point of another direction either.
         assert_eq!(
             p("0V", false, IpDir::Target, false, false, &project),
             ("0V-1".to_owned(), IpDir::Target)

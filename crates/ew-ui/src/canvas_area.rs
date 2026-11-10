@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas area of the project view (WP-S2.03 part 1, spec section 6.2; decision log ID-533): the workspace's
+//! The canvas area of the project view (spec section 6.2): the workspace's
 //! `page-view` pane holds a nested `egui_tiles` tree built from the shell's toolkit-neutral `CanvasArea`, one `Tabs`
 //! container per tab group in a horizontal `Linear` container with equal shares.
 //!
@@ -13,7 +13,7 @@
 //! `view.canvas_resize`. The registry owns Ctrl+Tab: `cycle_tabs_with_keyboard` is false.
 //!
 //! **Accessibility.** Each tab is a node with the role `Tab`, its title and then its badges after commas as the name
-//! ("101 Power Supply 1, QET grid"; the badges are painted as caption chips, WP-S2.17) and the `selected` state on the
+//! ("101 Power Supply 1, QET grid"; the badges are painted as caption chips) and the `selected` state on the
 //! active one; its close button is named `Close <folio>`. egui_tiles 0.18.0 exposes no node for the tab bar, so the
 //! `TabList` role is a follow-up joined with FT-338 (the splitter names); the splitter between the groups has no
 //! accessible name and is counted by [`CanvasAreaHost::splitter_count`].
@@ -185,7 +185,7 @@ impl CanvasAreaHost {
         canvas: &mut CanvasHost,
         events: &mut Vec<Event>,
     ) {
-        // WP-S2.06 part 1: the chip line "Not on this page" above the canvas (§6.5).
+        // The chip line "Not on this page" above the canvas (§6.5).
         crate::navigator::chip_line(ui, shell, events);
         let drop_rect = ui.available_rect_before_wrap();
         let Some(area) = shell.area() else {
@@ -208,7 +208,7 @@ impl CanvasAreaHost {
             events,
         };
         tree.ui(&mut behavior, ui);
-        // FT-338: the handle between two groups is a named splitter ("Resize 103 … and 104 …").
+        // The handle between two groups is a named splitter ("Resize 103 … and 104 …").
         let title = |tiles: &Tiles<TabPane>, id: TileId| -> String {
             let pane = match tiles.get(id) {
                 Some(Tile::Pane(p)) => Some(p.0),
@@ -308,7 +308,7 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
         false
     }
 
-    /// FT-338: the area draws its own named splitter (`crate::splitter`).
+    /// The area draws its own named splitter (`crate::splitter`).
     fn is_container_resizable(&self, _tiles: &Tiles<TabPane>, _tile_id: TileId) -> bool {
         false
     }
@@ -318,7 +318,7 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
         matches!(tiles.get(tile_id), Some(Tile::Pane(_)))
     }
 
-    /// FT-1435 (ID-1409): Back beside the group's page tabs, enabled only while its tab has a step to go back to; its
+    /// Back beside the group's page tabs, enabled only while its tab has a step to go back to; its
     /// tooltip names its key from the keymap ("Back (Alt+Left)"). A click focuses the group's tab and goes back.
     fn tab_bar_left_ui(&mut self, tiles: &Tiles<TabPane>, ui: &mut Ui, _tile_id: TileId, tabs: &Tabs) {
         let Some((g, i)) = tabs.active.and_then(|a| match tiles.get(a) {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The first-run screen (WP-S2.01 part 2, FT-308; UX/UI doc 16 section 9.1, FR-UI-030): language, what the user
+//! The first-run screen (UX/UI doc 16 section 9.1, FR-UI-030): language, what the user
 //! comes from, the privacy choice, the appearance, and where to start. Every step can be skipped. It makes no
 //! network connection. The answers are dispatched as `first_run.set`; the flow ends with `first_run.finish`.
 
@@ -31,7 +31,7 @@ fn choices(ui: &mut Ui, events: &mut Vec<Event>, field: &str, prefix: &str, opti
     }
 }
 
-/// The Start step's buttons and the start each one takes (FT-1262: the screen and the fit test read this one list).
+/// The Start step's buttons and the start each one takes (the screen and the fit test read this one list).
 pub const STARTS: [(strings::Key<'static>, &str); 5] = [
     (key!("firstrun-start-wizard"), "wizard"),
     (key!("firstrun-start-sample"), "sample"),
@@ -41,7 +41,7 @@ pub const STARTS: [(strings::Key<'static>, &str); 5] = [
 ];
 
 /// The footer's buttons on `step`, in their order, with the action each runs: Back after the first step, Skip and
-/// Next before the last (FT-1262: the screen and the fit test read this one list).
+/// Next before the last (the screen and the fit test read this one list).
 pub fn footer(step: FirstRunStep) -> Vec<(strings::Key<'static>, &'static str)> {
     let mut out = Vec::new();
     if step != FirstRunStep::Language {
@@ -58,7 +58,7 @@ pub fn footer(step: FirstRunStep) -> Vec<(strings::Key<'static>, &'static str)> 
 pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let Some(run) = shell.first_run() else { return };
     let settings = shell.settings();
-    // C40 (FT-816): the reading measure, kept fixed on purpose (running text gets no easier to read wider). FT-1173
+    // C40: the reading measure, kept fixed on purpose (running text gets no easier to read wider). FT-1173
     // (doc 16a §2): the heading, the texts, the choices and the buttons share that one column, centred in the window.
     let width = crate::theme::current(ui.ctx())
         .size_text_measure
@@ -90,7 +90,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     });
                 }
                 FirstRunStep::Privacy => {
-                    // FT-1117 (ID-1229 item 3, ID-1187): this version has no update check, so no box for one.
+                    // FT-1117 (item 3): this version has no update check, so no box for one.
                     ui.label(strings::text(key!("firstrun-text-privacy")));
                     if ui.button(strings::text(key!("about-privacy-button"))).clicked() {
                         events.push(Event::OpenPrivacy);

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The temporary directory of a test (FT-524, FT-538), shared by the tests of every crate (FT-569, FT-586). A dev-only
+//! The temporary directory of a test, shared by the tests of every crate. A dev-only
 //! helper crate without dependencies, so any crate may take it as a dev-dependency.
 
 use std::path::{Path, PathBuf};
@@ -45,7 +45,7 @@ mod tests {
 
     use super::{fresh_dir, fresh_dir_in};
 
-    /// FT-524, FT-538: a leftover directory of the same PID and number (a killed run's settings and project lock) is
+    /// A leftover directory of the same PID and number (a killed run's settings and project lock) is
     /// skipped, not adopted, and left as it was.
     #[test]
     fn a_leftover_directory_of_the_same_pid_is_not_adopted() {

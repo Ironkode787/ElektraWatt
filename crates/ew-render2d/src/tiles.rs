@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tile pyramid, the per-frame plan and the tile cache (WP-S2.02 §6.3).
+//! The tile pyramid, the per-frame plan and the tile cache.
 //!
 //! **Levels.** Level `k` is the full-sheet raster at `6 × 2^k` dpi, `k = 0 … 12` (6 to 24 576 dpi). The target level
 //! of a display resolution `D` is the smallest level at or above `D` (the top level above it), so a level tile is
@@ -406,7 +406,7 @@ impl<T> TileCache<T> {
     }
 
     /// Evicts least recently used entries until at most `max_bytes` are held, whatever frame used them: the
-    /// retention of a canvas hidden behind another tab within a share of the budget (FT-356).
+    /// retention of a canvas hidden behind another tab within a share of the budget.
     pub fn trim(&mut self, max_bytes: u64) {
         while self.bytes > max_bytes {
             let Some((used, key)) = self.lru.pop_first() else {
@@ -436,7 +436,7 @@ impl<T> TileCache<T> {
             .sum()
     }
 
-    /// Evicts within the budget with hidden scenes first (FT-356, extended by WP-S2.03 §6.8): a scene not in
+    /// Evicts within the budget with hidden scenes first (extended): a scene not in
     /// `visible` (the scenes drawn in frame `frame`) is hidden. First, while the hidden scenes together hold more
     /// than `hidden_budget` bytes, the least recently used tile of the least recently shown hidden scene that has
     /// tiles goes; then, while the cache is above its budget, hidden tiles go in the same order and after them

@@ -156,7 +156,7 @@ fn catalogue_order(s: &Session) -> Vec<(String, String, bool)> {
         .collect()
 }
 
-/// FT-1087 (ID-1184) as FT-1375 (ID-1391) amends it: the chooser lists the parts the project holds first, then those
+/// FT-1087 as FT-1375 amends it: the chooser lists the parts the project holds first, then those
 /// of the libraries it does not, each by (maker, part number); embedding a part (here by the Parts row's
 /// `part.assign`, which carries the part with its closure) moves it to the front, among the project's own.
 #[test]
@@ -198,7 +198,7 @@ fn embedding_a_library_part_moves_it_among_the_projects_parts() {
     assert_eq!(names(&after), expected, "the others keep their order");
 }
 
-/// FT-1087 (ID-1184): a part names its maker by the library record's name, not its key: a library part whose
+/// A part names its maker by the library record's name, not its key: a library part whose
 /// manufacturer the project does not hold is listed under the same text as the part is once embedded.
 #[test]
 fn a_part_names_its_maker_by_the_library_records_name_not_its_key() {

@@ -411,7 +411,7 @@ fn gpp_folio_102_wiring_survives_both_new_id_orders() {
     assert_ne!(minted_orders[0], minted_orders[1]);
 }
 
-/// WP-S2.04 §13.6's G-PP rehearsal: the start of `gpp_start`, the placements of 101 to 103 in one script, the typed
+/// 6's G-PP rehearsal: the start of `gpp_start`, the placements of 101 to 103 in one script, the typed
 /// tags and the parts through the Session, the wiring, the junction styles of 102 and the structure box of 101, the
 /// four marker groups, the PDF export and the 901 parts list. The oracle of §13.6 checks the counts, the
 /// representations, the wiring, the junctions, the cross-reference texts, the page items, the box and the parts
@@ -750,7 +750,7 @@ fn gpp_rehearsal_draws_folios_101_to_103_saves_exports_and_lists_the_parts() {
     golden_s.close();
 }
 
-/// WP-S2.04 §13.6's G-PP rehearsal on the folio-103 demo variant (round a28-r8): folios 101 and 102 as the golden
+/// 6's G-PP rehearsal on the folio-103 demo variant (round a28-r8): folios 101 and 102 as the golden
 /// rehearsal draws them, folio 103 without strip segments (the strips by `strip.new`, the 15 terminals by Place,
 /// their parts, the wiring to the terminals' own CPs, PI10's three bridges, the other golden bridges and the bridge
 /// part quantities), then the save, the PDF export and the oracle of the demo variant. Folios 101 and 102 carry

@@ -6,7 +6,7 @@
 //! Connection points are derived from the function's FnDef or the part's pin pattern (FR-DEV-002, doc 07
 //! §4.2) and are never stored; only `Function.cp_overrides` persist, and a command writes those itself.
 //! The normaliser therefore keeps its place in the registry order and changes nothing. When derived CP
-//! data arrives (WP-S1.05 to WP-S1.08), validating overrides against the instantiated CPs plugs in here.
+//! data arrives, validating overrides against the instantiated CPs plugs in here.
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;

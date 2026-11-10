@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The starter library (WP-S2.04 D8, §4.3): the shipped symbols and function definitions of `content/symbols`,
+//! The starter library: the shipped symbols and function definitions of `content/symbols`,
 //! `content/symbols/qet10` and `content/fndefs`, compiled in, so that a new project without symbol copies can place
 //! symbols. Each item is one library document in the `lib/` JSON form that `library.embed` takes (doc 05 §13.2);
 //! [`items`] lists them in key order, the key being the file stem (`ew.iec.mcb-1p@qet10`, `ew.fn.mcb-1p`).
@@ -10,7 +10,7 @@
 //! and its function definition through `library.embed` (the host's commit, an undo step of its own).
 
 /// The library ID of the starter, the system library `ew-starter`: equal to `ew_interop_api::SYSTEM_LIBRARY`
-/// (FT-24; `ew-library` does not depend on `ew-interop-api`, so `ew-api`'s tests assert the equality).
+/// (`ew-library` does not depend on `ew-interop-api`, so `ew-api`'s tests assert the equality).
 pub const LIBRARY: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
 
 /// The starter's library key.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The layout queries of the MVP (doc 12 §2.6, WP-S4.01 part 2): `mountable(dev)` (D8), `unplaced(space)`,
+//! The layout queries of the MVP (doc 12 §2.6): `mountable(dev)` (D8), `unplaced(space)`,
 //! `placement_geometry(p)` (D5), `rail_occupancy(carrier)`, `layout_label(p)` (D10's text) and
 //! `carrier_geometry(carrier)`.
 //!
@@ -161,7 +161,7 @@ impl Mountability {
     }
 }
 
-/// `mountable(dev)`: the mountable predicate as built (WP-S4.01 D8, doc 12 §2.7), first match wins:
+/// `mountable(dev)`: the mountable predicate as built (doc 12 §2.7), first match wins:
 ///
 /// 1. a device whose location has no layout space: not considered (supplied by others, FT-209, waits for its
 ///    attribute);
@@ -428,7 +428,7 @@ impl Query for PlacementGeometry {
 }
 
 /// The `front_2d` polylines placed by `place`; empty (no outline) when any point falls outside the `Nm` range, so the
-/// footprint and the occupancy stay (cycle-40 review, part 4, finding 4).
+/// footprint and the occupancy stay (part 4, finding 4).
 fn placed_outline(lines: &[Vec<Pt2>], place: impl Fn((i128, i128)) -> Option<Pt2>) -> Vec<Vec<Pt2>> {
     lines
         .iter()
@@ -506,7 +506,7 @@ fn placement_geom(q: &Q, key: Id<Placement>) -> Option<PlacementGeom> {
     })
 }
 
-/// The clearance pads along a rail of a placement realising `part` (WP-S4.02 D3): `[clearance.left,
+/// The clearance pads along a rail of a placement realising `part`: `[clearance.left,
 /// clearance.right]`, swapped when `flipped`; `[0, 0]` without a part (a strip, a partless device) or a clearance; a
 /// negative side counts as 0.
 fn pads(q: &Q, part: Option<&PartRef>, flipped: bool) -> [i128; 2] {
@@ -520,7 +520,7 @@ fn pads(q: &Q, part: Option<&PartRef>, flipped: bool) -> [i128; 2] {
     if flipped { [right, left] } else { [left, right] }
 }
 
-/// What a placement of a device takes along a rail (WP-S4.02 D4): the width of its footprint along the axis, where its
+/// What a placement of a device takes along a rail: the width of its footprint along the axis, where its
 /// clip point lies from the footprint's left (smaller-`s`) edge, its clearance pads and whether it is a strip.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct RailExtent {
@@ -585,7 +585,7 @@ pub struct Occupied {
     pub locked: bool,
     /// Whether its footprint is unknown (D5).
     pub unknown: bool,
-    /// The clearance pads along the rail axis, `[before, after]` in nanometres (WP-S4.02 D3): the realised part's
+    /// The clearance pads along the rail axis, `[before, after]` in nanometres: the realised part's
     /// `clearance.left` and `clearance.right`, swapped when the placement is flipped (turned 180° on the rail); `[0, 0]`
     /// for a strip, a device without a part and a part without a clearance; a negative clearance counts as 0. The pads
     /// space the snapping only: EW-LAY-006 compares the bare intervals `[s0, s1]`. Last, so that the derived order

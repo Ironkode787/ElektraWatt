@@ -499,7 +499,7 @@ fn workbook_sheets(
     Ok((workbook, sheets))
 }
 
-/// The names of the sheets of an XLSX workbook in workbook order, hidden sheets included (WP-S3.08 D12).
+/// The names of the sheets of an XLSX workbook in workbook order, hidden sheets included.
 pub(crate) fn sheet_names(bytes: &[u8], limits: &Limits) -> Result<Vec<String>, ImportError> {
     let book = Archive::open(bytes, limits)?;
     let (_, sheets) = workbook_sheets(&book, limits)?;

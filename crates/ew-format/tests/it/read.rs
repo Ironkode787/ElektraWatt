@@ -457,7 +457,7 @@ fn reserved_kind_is_kept_without_a_finding() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Migration of the revision kind (FT-165): typed within format 0.1 (ADR-0011 amendment 4, ID-334)
+// Migration of the revision kind: typed within format 0.1 (ADR-0011 amendment 4)
 
 /// The two revision lines of the golden fixture as the cycle-16 build wrote them: `revision` was a reserved
 /// kind, kept as an unknown record, so its members were written in byte-wise key order.
@@ -506,7 +506,7 @@ fn an_old_revisions_file_loads_typed_and_is_rewritten_canonically() {
 /// `extra`, byte-wise order) loads into the typed members, partial payloads included, without a finding and without a
 /// rewrite: it is already canonical and writes back byte for byte. With `purpose` (still untyped, sorting before
 /// them) it loads with the same values and its line is kept as a later minor wrote it, `purpose` last only in the
-/// canonical line of an edit (ADR-0011 amendment 1, WP-S6.08 D24). A revision line that does not
+/// canonical line of an edit (ADR-0011 amendment 1). A revision line that does not
 /// parse (a page note as a bare page ID, which no writer produced) is quarantined verbatim with EW-CORE-007, never
 /// dropped.
 #[test]
@@ -558,10 +558,10 @@ fn revision_members_typed_in_part_1_load_from_an_older_line_and_a_broken_line_is
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Migration of the waiver kind (WP-S1.16 part 5, D7): typed within format 0.1 (ADR-0011 amendment 4, ID-334)
+// Migration of the waiver kind: typed within format 0.1 (ADR-0011 amendment 4)
 
 /// A waiver line as a build before the typing wrote it: the kind was reserved, so the members are in byte-wise key
-/// order, and `expires` (FT-184) is a member the typed kind keeps in `extra`.
+/// order, and `expires` is a member the typed kind keeps in `extra`.
 const OLD_WAIVER: &str = r#"{"$k":"waiver","author":"engineer","date":"2025-04-14","expires":"never","id":"6c1d0a37-92e4-5f8b-a0d6-3e7b9c2f4a18","reason":"PE stud is part of NSYPMM107","rule":"EW-CORE-041","target":{"finding":"9c2e5a0b7d14f3e8a6c1b05d2e9f41ab"}}"#;
 
 /// The same record in the canonical form of the typed kind: `$k`, `id`, the members in declaration order, `extra`
@@ -866,7 +866,7 @@ fn non_canonical_library_document_is_rewritten() {
 }
 
 /// A BOM before a library document is a shape, as before a JSON Lines file: the document is read, and rewritten
-/// at the next save. The cargo-fuzz target `migration_chain` found it (cycle 22): the document was a syntax error,
+/// at the next save. The cargo-fuzz target `migration_chain` found it: the document was a syntax error,
 /// opaque, and the records naming it refused the whole project (`fuzz/corpus/migration_chain/lib-document-bom`).
 #[test]
 fn library_document_with_a_bom_is_read_and_rewritten() {
@@ -907,7 +907,7 @@ fn library_document_with_two_boms_is_opaque() {
 #[test]
 fn library_document_of_a_newer_kind_is_opaque_and_in_lib() {
     let id = "5d1ab4de-706a-5b85-b463-8b15311c4f39";
-    // `plc_profile`, the reserved kind of this test before, is implemented (WP-S7.03 D7); no reserved kind is a JSON
+    // `plc_profile`, the reserved kind of this test before, is implemented; no reserved kind is a JSON
     // library document any more, so the newer kind is an unknown one.
     let unknown = format!("{{\n  \"$k\": \"gadget\",\n  \"id\": \"{id}\",\n  \"z\": 1\n}}\n");
     let mut files = Files::new();
@@ -1021,7 +1021,7 @@ fn findings_are_capped_with_one_truncated() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Page items and structure boxes (WP-S2.04 part 4a): typed within format 0.1 (ADR-0011 amendment 4, ID-334)
+// Page items and structure boxes: typed within format 0.1 (ADR-0011 amendment 4)
 
 /// A page file with both kinds, every typed page-item variant and an unknown variant, in the canonical form of the
 /// typed kinds and in line order (doc 05 §3.3: the page, then the page items, then the structure box).
@@ -1037,7 +1037,7 @@ const ITEM_LINES: [&str; 6] = [
 /// The migration test of WP-S2.04 §10.1: a page file holding both kinds and an unknown `page_item` variant reads
 /// without a finding (typed records, the unknown variant kept as `PageItemKind::Unknown`) and its lines are written
 /// back byte for byte: nothing is quarantined or scheduled for a rewrite, and the line with the unknown variant is
-/// kept as it was read while its record is untouched (WP-S6.08 D30).
+/// kept as it was read while its record is untouched.
 #[test]
 fn a_page_file_with_page_items_and_a_structure_box_round_trips_byte_for_byte() {
     use ew_format::ew_schema::PageItemKind;
@@ -1066,7 +1066,7 @@ fn a_page_file_with_page_items_and_a_structure_box_round_trips_byte_for_byte() {
 /// The same records as the cycle-26 build wrote them: `page_item` and `structure_box` were reserved kinds, kept
 /// as unknown records, so every object's members were written in byte-wise key order. This build reads them typed,
 /// reports the file as not canonical (info) and schedules its rewrite in the canonical member order of the typed
-/// kinds (the revision precedent, FT-165); a newer build's file read by the cycle-26 reader is the reserved-kind
+/// kinds (the revision precedent); a newer build's file read by the cycle-26 reader is the reserved-kind
 /// path, kept line for line (`reserved_kind_is_kept_without_a_finding`).
 #[test]
 fn page_items_written_by_an_older_build_load_typed_and_are_rewritten_canonically() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! What a PLC channel dropped on a field device can do (FT-753; doc 10 §3.3, FR-PLC-020): the reads behind the PLC
+//! What a PLC channel dropped on a field device can do (doc 10 §3.3, FR-PLC-020): the reads behind the PLC
 //! navigator's drop when the connection point under it is not on the channel's card. `plc.bind_channel` binds a
 //! channel to a pin of its card or to the coil of a valve on it, and nothing else; the window reaches a field device
 //! in the model's own terms:
@@ -107,7 +107,7 @@ fn channel_pins(q: &Q, module: Id<Device>) -> BTreeSet<(Id<Function>, u16)> {
 
 impl Session {
     /// What the channel `channel` dropped on CP `idx` of `function` can do when that CP is off the channel's card
-    /// (FT-753; see [`OffCardBind`]); `None` when the function is on the card or one of its children (the plain
+    /// (see [`OffCardBind`]); `None` when the function is on the card or one of its children (the plain
     /// `plc.bind_channel` applies), or when a record is missing (the command then answers).
     ///
     /// **Wired** first: the dropped CP's potential, else the potential of any CP of the device's functions, holds

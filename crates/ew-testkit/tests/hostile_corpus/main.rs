@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The hostile corpus test (WP-S6.04 D10, SE-7; NFR-SEC-02): every file of `crates/ew-testkit/hostile/` (its index is
+//! The hostile corpus test (NFR-SEC-02): every file of `crates/ew-testkit/hostile/` (its index is
 //! the folder's `README.md`) through the public entry point of its parser, the importers through WP-S3.09's front door,
 //! with its verdict asserted whole (a refusal's text, or the findings a reader reports) and at most 256 MiB of extra
 //! peak allocation each, counted by this binary's own global allocator ([`alloc`]). No time is asserted (owner's rule).
@@ -415,7 +415,7 @@ fn raster_assets() {
                 "jpeg-without-end-marker.jpg",
                 "taken as Jpeg of Some((16, 8)); not decoded",
             ),
-            // FT-1378 (ID-1392): the gate refuses a declared size over the decode limit, in words.
+            // The gate refuses a declared size over the decode limit, in words.
             (
                 "png-2-31-pixels.png",
                 "the png image is 65536 × 32768 pixels, more than a drawing can show (at most 16777216 pixels and \

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! One long-lived worker thread with a latest-request-wins slot (WP-S2.01 part 1 review ruling): a request that
+//! One long-lived worker thread with a latest-request-wins slot: a request that
 //! arrives while another is being worked on replaces any request still waiting, so a burst of requests (the
 //! Page Down key held) costs one render in flight and at most one more, never a thread and an image per request.
 

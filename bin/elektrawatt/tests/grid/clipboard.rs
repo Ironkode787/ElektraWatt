@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The clipboard headless (WP-S2.05 part 3, acceptance checks CB5, CB6 and the script half of CB8): T55, E55 and E56
+//! The clipboard headless (acceptance checks CB5, CB6 and the script half of CB8): T55, E55 and E56
 //! of Golden A's folio 101 copied into folio 1 of a new project by an `ew.uiscript/1` script through the built binary
 //! (three devices with new IDs, no frozen tag, tags of that project's scheme, the part copies embedded once),
 //! byte-identical transcripts on two runs without a raw UUID, and the `--record` log (one `edit.paste` carrying the

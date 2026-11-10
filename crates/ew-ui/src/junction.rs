@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The junction sequence editor popup (WP-S2.04 §8.5, FR-CON-005): the junction's style and wiring as buttons, its
+//! The junction sequence editor popup (FR-CON-005): the junction's style and wiring as buttons, its
 //! sequence as rows named by each member's far endpoint, the physical wires through it below. Up and Down focus a row
 //! (a view change of the popup), Alt+Up and Alt+Down move the focused member (`junction.member`), R cycles a bevel's
 //! orientation (`junction.style`), Escape closes it (`ui.dismiss`, the topmost popup). Every change is a registry
@@ -58,7 +58,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
         .anchor(Align2::CENTER_TOP, [0.0, 60.0])
         .collapsible(false)
         .resizable(false)
-        // C40 (FT-816): kept at `size.dialog.small` on purpose: two button rows and a short member list, which a
+        // C40: kept at `size.dialog.small` on purpose: two button rows and a short member list, which a
         // wider window would only pad with empty space.
         .default_width(crate::theme::current(ctx).size_dialog_small)
         .show(ctx, |ui| {

@@ -4,7 +4,7 @@
 //! `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes,
 //! structural invariants and link delete policies.
 //!
-//! `ew-model` v0 (WP-S1.03) implements ADR-0001 (typed records in persistent maps, O(1) snapshots, base
+//! `ew-model` v0 implements ADR-0001 (typed records in persistent maps, O(1) snapshots, base
 //! indexes maintained by delta), the `Op` layer of ADR-0008 (`Put { key, before, after }`, rows as
 //! `Arc`s, inversion by swapping) and the structural invariants of ADR-0009 with the delete policies of
 //! the domain model (`docs/design/03-domain-model.md` §4.2). The record structs are the `ew-schema` types;
@@ -21,7 +21,7 @@
 //!   keep-alive), catalogued in `invariants.md`; the configurable prevent rules plug in through
 //!   [`PreventHook`].
 //!
-//! Commands, `TxBuilder` and transactions are `ew-commands` (WP-S1.04); derived data is `ew-derive`;
+//! Commands, `TxBuilder` and transactions are `ew-commands`; derived data is `ew-derive`;
 //! files are `ew-format`.
 //!
 //! # Reading the model: the `raw-read` feature

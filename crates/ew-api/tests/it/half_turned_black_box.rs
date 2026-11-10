@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-867 by derivation (decision log ID-1137) through the page scene the PDF and SVG writers draw
+//! FT-867 by derivation through the page scene the PDF and SVG writers draw
 //! (`ew_api::output::page_scene`): a black box turned by a half turn places its slot texts as on the same box unturned
 //! (`ew_derive::text_frame`), so every text keeps its place, angle and alignment relative to the box, a text override
 //! stays in the unturned frame, and the cross-reference text keeps its dodge. The box is the starter CPU placed from the

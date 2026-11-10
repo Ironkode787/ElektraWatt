@@ -175,7 +175,7 @@ fn end_pos(q: &Q, e: &Endpoint, page: Id<Page>) -> Pt2 {
 }
 
 /// An orthogonal route between two points with at least one bend at each end, so that a moved end follows its CP by
-/// moving its neighbour (`follow_end`; a straight two-vertex route would take a dog-leg instead, FT-423): one bend
+/// moving its neighbour (`follow_end`; a straight two-vertex route would take a dog-leg instead): one bend
 /// when the points are not aligned, else a U-shaped detour three grid steps away. Every bend shares a coordinate with
 /// an end or lies on the grid.
 fn l_route(a: Pt2, b: Pt2) -> Vec<Pt2> {
@@ -734,7 +734,7 @@ fn from_part_gives_a_device_with_a_black_box_and_a_contact_that_is_not_drawn() {
         "the contact is not drawn"
     );
     // The CPs follow from the part's pattern (doc 03 §7). The contact's entry lists one pattern CP per FnDef CP, so
-    // they pair by position and keep the FnDef's indices 0 and 1, which its symbol draws (FT-655).
+    // they pair by position and keep the FnDef's indices 0 and 1, which its symbol draws.
     assert_eq!(contact.template_entry, Some(1));
     let cps = |f: Id<Function>| -> Vec<(u16, String)> {
         q.get::<FunctionCps>(f)
@@ -929,7 +929,6 @@ fn the_new_dsl_verbs_send_the_parameters_of_their_commands() {
         .unwrap();
     b.drawing(Some(Some("hops"))).unwrap();
     b.drawing(Some(None)).unwrap();
-    // WP-S2.04 part 3
     let ip = IpEnd {
         symbol,
         def: None,

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The asset store of a [`Model`](crate::Model) (doc 05 §13.3, FT-337): content-addressed image bytes that records
+//! The asset store of a [`Model`](crate::Model) (doc 05 §13.3): content-addressed image bytes that records
 //! name through an [`AssetRef`].
 //!
 //! Assets are not rows and not ops. Their bytes are immutable and named by their SHA-256, so putting an asset

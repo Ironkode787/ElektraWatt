@@ -90,8 +90,8 @@ pub fn split_connection(
 /// the part to `b` starts at the CP met last. The representation then has connections, so a second run does
 /// nothing.
 ///
-/// A connection's path is the one the page draws it along (FT-1020, decision log ID-1104): its stored route. A
-/// connection without one is unrouted and has no wire geometry (WP-S2.19 D3): it is drawn as a dashed straight line
+/// A connection's path is the one the page draws it along: its stored route. A
+/// connection without one is unrouted and has no wire geometry: it is drawn as a dashed straight line
 /// between its ends, and it is not split.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ConnectionSplit;
@@ -124,7 +124,7 @@ impl Normaliser for ConnectionSplit {
                 continue;
             }
             let on_page = tx.connections_on_page(rep.page);
-            // Only a wire with a stored route has wire geometry: an unrouted connection is not split (WP-S2.19 D3).
+            // Only a wire with a stored route has wire geometry: an unrouted connection is not split.
             for &cid in &on_page {
                 let Some(c) = tx.get::<Connection>(cid) else {
                     continue;

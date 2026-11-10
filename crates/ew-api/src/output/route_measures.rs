@@ -593,7 +593,7 @@ fn text_runs(q: &Q, page: PageRef, owners: &BTreeSet<Uuid>) -> Vec<(Uuid, [i64; 
     out
 }
 
-/// The layout rules' findings on the page of `tables` (WP-S2.19 §9), worded by `ew-checks`: the measures of its
+/// The layout rules' findings on the page of `tables`, worded by `ew-checks`: the measures of its
 /// routed connections (an unrouted one counts only as unrouted, D3), a touched terminal CP left to EW-TERM-006, and
 /// EW-CORE-073 for each connection without a route between two different points.
 fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<crate::checks::Finding>) {

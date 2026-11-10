@@ -190,7 +190,7 @@ fn fluid_net_model() -> Model {
     ])
 }
 
-/// FT-1321: T1 and T2 in words at a junction end and at a point on a connection, and T3 across a junction; no record
+/// T1 and T2 in words at a junction end and at a point on a connection, and T3 across a junction; no record
 /// ID reaches the user.
 #[test]
 fn the_fluid_refusals_name_junction_and_connection_ends_in_words() {
@@ -228,7 +228,7 @@ fn the_fluid_refusals_name_junction_and_connection_ends_in_words() {
     );
 }
 
-/// C51-p5#7: T3's walk over a ring of three junctions ends: a hydraulic port drawn to the ring, which a pneumatic
+/// T3's walk over a ring of three junctions ends: a hydraulic port drawn to the ring, which a pneumatic
 /// port feeds, is refused in words; a pneumatic one is drawn.
 #[test]
 fn t3_walks_a_ring_of_three_junctions_to_its_end() {
@@ -380,7 +380,7 @@ fn occupancy_makes_and_changes_valves_and_plates() {
     assert_eq!(child(&e, 3).map(|d| d.id), Some(v.id));
 }
 
-/// FT-1317: "blank" with another part on a plate swaps its part and its template functions, the old part's going and
+/// "blank" with another part on a plate swaps its part and its template functions, the old part's going and
 /// the new part's coming, in one undo step; the same part again changes nothing.
 #[test]
 fn a_plate_given_another_part_takes_that_parts_template_functions() {
@@ -468,7 +468,7 @@ fn closing_a_fluid_port_sets_its_closure_and_opening_drops_it() {
     );
     e.execute(&close(FN_Q1, 1, None)).expect("opened");
     assert!(row::<Function>(&e, FN_Q1).unwrap().cp_overrides.is_empty());
-    // FT-1316: each is one undo step.
+    // Each is one undo step.
     let closure = |e: &Engine| {
         row::<Function>(e, FN_Q1)
             .unwrap()

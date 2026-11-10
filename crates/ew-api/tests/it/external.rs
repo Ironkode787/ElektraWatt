@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! External change in the session (WP-S1.17 part 6, XC-1 to XC-7; D20 to D23, decision log ID-1284).
+//! External change in the session (XC-1 to XC-7; D20 to D23).
 //!
 //! Each test opens a copy of Golden A in memory for editing. The external change is a colleague's save made by a second
 //! session on a copy of the project, whose changed files and manifest are then copied into the live folder, the files
@@ -377,7 +377,7 @@ fn xc3_a_collision_is_held_until_mine_or_theirs_is_chosen() {
     assert_eq!(report.written.len(), 1);
 }
 
-/// C49-p9#1: a held change is neither read nor merged again while the manifest's bytes stay; the apply merges it again
+/// A held change is neither read nor merged again while the manifest's bytes stay; the apply merges it again
 /// with the current model, so an edit made since the hold survives theirs, and a choice made for collisions that have
 /// changed since is refused and held with the new ones.
 #[test]
@@ -636,7 +636,7 @@ fn online(s: &Session) -> Vec<ew_api::checks::Finding> {
         .collect()
 }
 
-/// DG-5 (FR-CHK-012's acceptance; D29, decision log ID-1284 rulings 5 and 6): two branches each added a device on
+/// DG-5 (FR-CHK-012's acceptance; D29, rulings 5 and 6): two branches each added a device on
 /// folio 102 that numbers as -102F3. Without merge evidence only EW-RDS-004 reports; in a merged copy (`merged: true`)
 /// EW-CORE-013 reports the group with the older UUIDv7 as keeper and the fix "Renumber the newer", which gives the
 /// other the next free counter, -102F4, in one undo step.
@@ -713,7 +713,7 @@ fn dg5_ew_core_013_renumbers_the_newer_after_a_merge() {
     assert!(findings(&s, "EW-CORE-013").is_empty(), "no merge evidence");
     assert!(online(&s).is_empty());
 
-    // C49-p9#3 (D29): a pull of the merged manifest is an external change, after which the window's online check
+    // A pull of the merged manifest is an external change, after which the window's online check
     // reports EW-CORE-013.
     merged(true);
     assert!(matches!(settle(&mut s, &c), DiskPoll::Applied(_)));
@@ -733,7 +733,7 @@ fn dg5_ew_core_013_renumbers_the_newer_after_a_merge() {
         "`=P01+J-E-2416-102F3` is printed by 2 devices after a merge; the oldest record keeps it, and the other must \
          change"
     );
-    // FT-1295: the inner uniqueness finding is worded by EW-RDS-004's own pattern in each language.
+    // The inner uniqueness finding is worded by EW-RDS-004's own pattern in each language.
     use ew_api::checks::messages::{format, render};
     assert_eq!(format(f, "en-GB").as_deref(), Some(f.message.as_str()));
     assert_eq!(

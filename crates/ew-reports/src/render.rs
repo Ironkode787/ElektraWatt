@@ -149,7 +149,7 @@ fn folios(q: &Q, ps: &[PageRef]) -> String {
 }
 
 /// The printed text of a `Folios` cell of `ps` and the byte span of each page in it ([`folios_spans`]): the
-/// printer and the link boxes of the cell's pages read this one function (WP-S3.06 D10, ruling 1).
+/// printer and the link boxes of the cell's pages read this one function.
 ///
 /// Reads `PageOrder`: draw or export time only, like [`render`].
 pub fn folios_printed(q: &Q, ps: &[PageRef]) -> (String, Vec<Option<Range<usize>>>) {
@@ -229,7 +229,7 @@ fn unit_symbol(u: &QtyUnit) -> &'static str {
 }
 
 /// Whether a quantity prints with a decimal comma: the output language decides when there is one, else the
-/// project's `settings.formatting.decimal_separator` (FT-366; absent or `point`: the point).
+/// project's `settings.formatting.decimal_separator` (absent or `point`: the point).
 fn writes_comma(q: &Q, lang: Option<&LangTag>) -> bool {
     match lang {
         Some(_) => uses_comma(lang),

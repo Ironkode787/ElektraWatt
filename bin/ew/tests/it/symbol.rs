@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew symbol` through the built binary (WP-S2.10, ID-1463): its five subcommands, their exit codes, a library created
+//! `ew symbol` through the built binary: its five subcommands, their exit codes, a library created
 //! and then reused, and a key that another symbol holds.
 
 use std::ffi::OsString;

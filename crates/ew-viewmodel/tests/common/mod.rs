@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shared helpers of the tool-framework tests (WP-S2.03 part 2): temporary copies of Golden A, dispatch with checks,
+//! Shared helpers of the tool-framework tests: temporary copies of Golden A, dispatch with checks,
 //! points of a page.
 
 #![allow(dead_code)]
@@ -71,7 +71,7 @@ pub fn copy_dir(from: &Path, to: &Path) {
     }
 }
 
-/// Whether `EW_BLESS=1` asks the golden-text tests to rewrite their expected files (WP-S6.13).
+/// Whether `EW_BLESS=1` asks the golden-text tests to rewrite their expected files.
 // Allowed: the program boundary of a test, read once; the value never reaches a result.
 #[allow(clippy::disallowed_methods)]
 pub fn bless() -> bool {
@@ -168,7 +168,7 @@ pub fn structural_tokens(line: &str) -> Vec<String> {
 }
 
 /// FT-500's overlap and its wire through a symbol on a writable Golden A shown at folio 101, which the routed folio no
-/// longer draws (WP-S2.19, Golden A's route tool): three wires given the routes the provisional path drew them along
+/// longer draws (Golden A's route tool): three wires given the routes the provisional path drew them along
 /// before, by `connection.route` (a command stores the route it is given). `-101F1:1 -> F55:1` and
 /// `S51:3 -> -101F1:N#1` then overlap on one line inside -101F1's rectangle, and `T55:3 -> E55:N` runs straight down
 /// through E55's body. Returns the sheet y of the overlap's line.

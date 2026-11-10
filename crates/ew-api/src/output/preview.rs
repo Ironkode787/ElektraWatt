@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The labelled entity list of a preview (WP-S2.09 part 3, §4.2): the Preview tab's Entities list and the history
+//! The labelled entity list of a preview: the Preview tab's Entities list and the history
 //! panel's Show changes read the records a transaction changes as [`PreviewEntity`] lines, each with the label the
 //! property grid prints for the record (a device's tag, a page's folio and title, a node's path, a name).
 //!
@@ -129,7 +129,7 @@ fn entity_order(a: &PreviewEntity, b: &PreviewEntity) -> Ordering {
 }
 
 impl Session {
-    /// The records `preview` changes (WP-S2.09 §4.2), one per `EntityChange` of [`Preview::diff`], labelled by the
+    /// The records `preview` changes, one per `EntityChange` of [`Preview::diff`], labelled by the
     /// property grid's rule (an added record by the candidate model's), in the order change (`added`, `changed`,
     /// `removed`), kind, label in natural order, ID. One call per card (§9 item 5).
     pub fn preview_entities(&self, preview: &Preview) -> Vec<PreviewEntity> {

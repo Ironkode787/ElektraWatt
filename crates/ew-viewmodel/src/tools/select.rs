@@ -110,7 +110,7 @@ enum State {
         steps: (i64, i64),
         readout: String,
     },
-    /// A drag of a segment of a selected connection (WP-S2.04 §8.4).
+    /// A drag of a segment of a selected connection.
     Segment {
         connection: EntityRef,
         mods: Mods,
@@ -120,13 +120,13 @@ enum State {
         from: (i64, i64),
         steps: i64,
     },
-    /// A drag of a grip of the selected black box (WP-S2.04 §9.4): `to` the grid point it is at.
+    /// A drag of a grip of the selected black box: `to` the grid point it is at.
     Grip {
         rep: EntityRef,
         grip: usize,
         to: Option<(i64, i64)>,
     },
-    /// A drag of a CP of the selected black box along its outline (WP-S2.04 §9.4).
+    /// A drag of a CP of the selected black box along its outline.
     BoxCp {
         rep: EntityRef,
         idx: u16,
@@ -148,20 +148,19 @@ pub struct SelectTool {
     /// The grid cursor as the last `CursorMove` placed it.
     cursor: Option<(i64, i64)>,
     /// The selection's generation and the page's revision when a drag or the keyboard move began: a change of
-    /// either makes the pending move stale (fix round of WP-S2.04 part 1, item 11).
+    /// either makes the pending move stale (fix round, item 11).
     origin: (u64, u64),
     /// The autoconnect proposals of the moved CPs at the current steps, as the describe text names them.
     proposals: Vec<(String, Option<String>)>,
-    /// Whether the move connects them on release (WP-S2.19 D15: the session's connect on move, as the drag saw it).
+    /// Whether the move connects them on release (the session's connect on move, as the drag saw it).
     connect: bool,
     /// The last plain click and what it selected, for the repeated click that walks the pick stack (FT-500).
     last: Option<LastClick>,
-    // WP-S4.02 part 3
     /// A press on a placement or a carrier of a panel page, and the placement's drag once it moves.
     panel: Option<PanelPress>,
 }
 
-/// A press on a panel page (WP-S4.02 part 3): a click selects the placement or carrier (a label press selects its
+/// A press on a panel page: a click selects the placement or carrier (a label press selects its
 /// placement, W3-2); a drag of a placement moves it as the layout place tool places (D4); a drag of a carrier translates
 /// its path on the grid (part 4, D11: `layout.carrier.edit`; its placements go with it, their poses being along it).
 #[derive(Clone, PartialEq, Debug)]
@@ -175,7 +174,6 @@ struct PanelPress {
     gesture: Option<super::layout::LayoutGesture>,
     /// The last pointer point and modifiers.
     last: ((i64, i64), Mods),
-    // WP-S4.02 part 4 (D11)
     /// A carrier's drag once the pointer left the click slop: its displacement on the grid, surface nm.
     moved: Option<(i128, i128)>,
 }
@@ -251,7 +249,7 @@ fn touches(a: Rect, b: Rect) -> bool {
 
 /// The entities a band selects: left to right (`encloses`) those whose rectangles all lie inside it, right to left
 /// those with a rectangle that touches it; in reading order of the centre of each entity's rectangles together (y,
-/// then x), ties by ID (FT-439, decision log ID-640). Not in paint order: the scene paints records in ID order, and
+/// then x), ties by ID. Not in paint order: the scene paints records in ID order, and
 /// the IDs one transaction mints are not in creation order, so the selection (and the aliases it prints) could list
 /// two new records the other way round in a replay.
 pub fn band_selection(entities: &[(EntityRef, Rect)], band: Rect, encloses: bool) -> Vec<EntityRef> {
@@ -295,7 +293,6 @@ impl SelectTool {
         }
     }
 
-    // WP-S4.02 part 3
     /// Select on a panel page: the events of a press on a placement or a carrier; `None` hands the event to the
     /// drawing page's rules (a band, a link).
     fn panel_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> Option<ToolOutput> {
@@ -332,7 +329,7 @@ impl SelectTool {
                 let press = self.panel.as_mut()?;
                 press.last = (*at, *mods);
                 if !press.placement {
-                    // WP-S4.02 part 4 (D11): a carrier's drag.
+                    // A carrier's drag.
                     if press.moved.is_none() && cx.within(press.at, *at, CLICK_SLOP_PT) {
                         return Some(ToolOutput::None);
                     }
@@ -358,7 +355,7 @@ impl SelectTool {
                 mods,
             } => {
                 let mut press = self.panel.take()?;
-                // WP-S4.02 part 4 (D11): a carrier's drop translates its path (`layout.carrier.edit`).
+                // A carrier's drop translates its path (`layout.carrier.edit`).
                 if press.moved.is_some() {
                     let d = carrier_offset(cx, panel, press.at, *at, mods.shift);
                     let Some(carrier) = panel.carrier(press.entity.0) else {
@@ -460,7 +457,7 @@ impl SelectTool {
     }
 
     /// The overlay of a move of `moved` by `steps`; the proposals of the moved CPs are kept for the ghost, with whether
-    /// the move connects them (WP-S2.19 D15).
+    /// the move connects them.
     fn move_out(&mut self, cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> ToolOutput {
         self.proposals = super::move_keys::move_proposals(cx, moved, steps).lines();
         self.connect = cx.connect_on_move;
@@ -501,7 +498,7 @@ impl SelectTool {
         })
     }
 
-    /// Whether a pending drag or keyboard move no longer stands (fix round of WP-S2.04 part 1, item 11): the
+    /// Whether a pending drag or keyboard move no longer stands (fix round, item 11): the
     /// selection changed under it, the page's revision changed (a delete, an undo, a redo, another commit) or one of
     /// its entities is gone (none of the representations, page items and structure boxes holds it). The host then
     /// escapes it, so no stale entity reaches a preview.
@@ -522,7 +519,7 @@ impl SelectTool {
             })
     }
 
-    /// Starts the keyboard move (M, WP-S2.04 §7.3) of the selection's movable entities from the grid cursor and
+    /// Starts the keyboard move (M) of the selection's movable entities from the grid cursor and
     /// answers its first overlay; `None` (and nothing changes) without a movable entity selected, without a grid
     /// cursor or in another state than idle.
     pub fn start_move(&mut self, cx: &ToolCx<'_>) -> Option<ToolOutput> {
@@ -671,7 +668,7 @@ impl SelectTool {
             self.state = State::Link { dest: link.dest, at };
             return ToolOutput::None;
         }
-        // WP-S2.04 part 3: a grip or a CP of the selected black box.
+        // A grip or a CP of the selected black box.
         if let Some(state) = SelectTool::box_handle(cx, at) {
             self.origin = (cx.selection.generation, cx.page.rev);
             self.state = state;
@@ -792,7 +789,7 @@ impl SelectTool {
                 if steps == (0, 0) {
                     self.click(last, pressed, from, held, cx)
                 } else {
-                    // WP-S2.19 D14, D15: the re-solved routes, and the proposals unless Alt is held at the release.
+                    // The re-solved routes, and the proposals unless Alt is held at the release.
                     let connect = cx.connect_on_move && !(held.alt || mods.alt);
                     ToolOutput::Commit(release_command(cx, &moved, steps, connect))
                 }
@@ -950,7 +947,7 @@ impl Tool for SelectTool {
     }
 
     fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> ToolOutput {
-        // WP-S4.02 part 3: a press on a placement or a carrier of a panel page.
+        // A press on a placement or a carrier of a panel page.
         if cx.page.panel.is_some()
             && let Some(out) = self.panel_event(ev, cx)
         {
@@ -1132,7 +1129,7 @@ mod tests {
         EntityRef(format!("{n:032x}").parse().unwrap())
     }
 
-    /// FT-439: a band lists what it selects in reading order of each entity's centre (y, then x), ties by ID; never in
+    /// A band lists what it selects in reading order of each entity's centre (y, then x), ties by ID; never in
     /// paint order, which follows the IDs.
     #[test]
     fn a_band_selects_in_reading_order_not_in_paint_order() {

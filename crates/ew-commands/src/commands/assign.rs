@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `part.assign` (`AssignPart`, WP-S1.19 D8, FT-168, FR-PRT-023): the one part assignment command.
+//! `part.assign` (`AssignPart`, FR-PRT-023): the one part assignment command.
 
 use std::collections::BTreeSet;
 
@@ -21,7 +21,7 @@ use crate::proxy::{Dec3S, UuidS};
 use crate::text::text;
 use crate::tx::TxBuilder;
 
-/// From this many devices on, `part.assign` is `Bulk` (WP-S1.19 §8: interactive below 50 devices).
+/// From this many devices on, `part.assign` is `Bulk` (interactive below 50 devices).
 pub const ASSIGN_BULK_FROM: usize = 50;
 
 /// How `part.assign` changes a device's part uses (FR-PRT-023).
@@ -37,7 +37,7 @@ pub enum AssignModeParam {
     Replace,
 }
 
-/// `part.assign` (`AssignPart`, WP-S1.19 D8, FT-168): assigns a part to devices in one undo step, embedding the
+/// `part.assign` (`AssignPart`): assigns a part to devices in one undo step, embedding the
 /// library copies it needs (D7: the command carries the documents, never reads a library).
 ///
 /// Each document of `copies` (the `lib/` JSON form, the part's closure as the caller resolved it) is checked as
@@ -54,7 +54,7 @@ pub enum AssignModeParam {
 /// FR-LAY-007). Otherwise it stays and EW-LAY-003 reports it: a mode that only removes the placed copy (the part was
 /// already used) is a removal, not a replacement (FR-LAY-059); `append` removes no copy; a placement that names no
 /// part (the primary) has nothing to follow. A placed strip whose terminal the change widened pushes the items after
-/// it on its rail, as a growing strip does (FT-1441, FT-1497), in every mode.
+/// it on its rail, as a growing strip does, in every mode.
 ///
 /// `qty` defaults to 1. Template functions are not matched onto existing functions (D8: part-first placement
 /// does that). Rejected, with the pointer: an empty device list (`/devices`), a device listed twice or that does
@@ -317,7 +317,7 @@ impl Command for AssignPart {
                 crate::commands::layout::follow_part_change(tx, *d, self.part, &before)?;
             }
         }
-        // FT-1497 (ID-1455): a strip whose terminal the change widened pushes as a growing strip does (FT-1441).
+        // A strip whose terminal the change widened pushes as a growing strip does.
         let strips: BTreeSet<Id<Device>> = self
             .devices
             .iter()

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The design language's one token source (WP-S2.17 part 1, D4; doc 16a §4): [`tokens`] gives every alias and
+//! The design language's one token source (doc 16a §4): [`tokens`] gives every alias and
 //! component token of a [`Theme`] and a [`Density`], [`apply`] maps them onto egui's `Style` (doc 16a §4.14), and
 //! [`current`] gives widget code the tokens of the theme egui shows now. Widget code takes every colour, size and
 //! radius from here; a source guard test fails on literals elsewhere in `ew-ui` (D4).

@@ -104,7 +104,7 @@ fn drawn(shell: &ShellModel, members: &[ew_viewmodel::ew_api::output::Uuid]) -> 
         .collect()
 }
 
-/// NP3 (FR-UI-018, FT-362; D14), the model half: Ctrl+Shift+H on 24VDC-1 in the Potentials navigator highlights it
+/// NP3 (FR-UI-018, D14), the model half: Ctrl+Shift+H on 24VDC-1 in the Potentials navigator highlights it
 /// in slot 0; on folios 102 and 103 the overlay holds exactly its members' polylines, and the members are the
 /// connections of the wire-list rows whose potential is 24VDC-1; the describe lines; one `highlight_members` call per
 /// highlight and revision; pressing it again removes it; a fifth highlight replaces the first; other rows refuse.

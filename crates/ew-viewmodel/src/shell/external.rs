@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 7 (D24, D25, the driver status; decision log ID-1284): the window's half of collaboration.
+//! WP-S1.17 part 7 (D24, D25, the driver status): the window's half of collaboration.
 //!
 //! - **External change** (doc 05 §9, §16): [`ShellModel::poll_disk`] polls the project on disk (the window every
 //!   [`ew_api::external::POLL_EVERY`] and when it regains the focus, never during a gesture; `project.check_disk` at
@@ -85,7 +85,7 @@ pub(crate) struct CollabState {
     /// Whether the user dismissed the cloud folder's banner (until the next open).
     pub(crate) cloud_dismissed: bool,
     /// The damaged library copy that made the project of this epoch read-only (FT-1383), kept from its open: its banner
-    /// is a state banner and stays while the project is open (ID-1427, W52 F7).
+    /// is a state banner and stays while the project is open (W52 F7).
     pub(crate) damaged: Option<(u64, ew_api::DamagedCopy)>,
     /// Whether the collision dialog of the held change was shown: a poll opens it once, never over another dialog and
     /// never again after Decide later (a refused save opens it again).
@@ -234,7 +234,7 @@ impl ShellModel {
             })
     }
 
-    /// The damaged library copy that made the open project of `epoch` read-only (ID-1427, W52 F7).
+    /// The damaged library copy that made the open project of `epoch` read-only (W52 F7).
     fn damaged_state(&self, epoch: u64) -> Option<&ew_api::DamagedCopy> {
         self.collab
             .damaged
@@ -302,7 +302,7 @@ impl ShellModel {
         }
         let records = strings::format_count(crate::count_key!("external-changes"), a.records);
         // W49.3-F5: nothing of theirs was taken (All mine): the window says it kept the user's version.
-        // C50-p1#4: nothing taken and nothing kept (the same edit made on both sides) has words of its own.
+        // Nothing taken and nothing kept (the same edit made on both sides) has words of its own.
         let mut text = if a.records == 0 && a.kept == 0 {
             strings::text(key!("toast-external-same")).to_owned()
         } else if a.records == 0 && a.kept > 0 {
@@ -316,7 +316,7 @@ impl ShellModel {
             strings::format(key!("toast-external-folios"), &[&records, &and_list(&a.folios)])
         };
         if let Some(hash) = &a.commit {
-            // FT-1505: the commit goes inside the sentence, before its full stop.
+            // The commit goes inside the sentence, before its full stop.
             text = format!(
                 "{}{}.",
                 strings::without_stop(&text),
@@ -551,7 +551,7 @@ impl ShellModel {
     }
 
     /// The released formats of the stores the shell opens from now on, instead of the shipped list (feature
-    /// `testkit`): a list without this build's format makes every save mark its manifest `unstable` (FT-1154).
+    /// `testkit`): a list without this build's format makes every save mark its manifest `unstable`.
     #[cfg(feature = "testkit")]
     pub fn set_released_for_tests(&mut self, released: Option<&'static [&'static str]>) {
         self.collab.released = released;
@@ -590,7 +590,7 @@ impl ShellModel {
         if matches!(self.dialog, Some(Dialog::ConfirmGitSetup { .. })) {
             self.dialog = None;
         }
-        // From an AppImage, git runs the AppImage with `ew` first, never its transient mount (C49-p9#5, C49-p10#2).
+        // From an AppImage, git runs the AppImage with `ew` first, never its transient mount.
         let [image, mount] = ["APPIMAGE", "APPDIR"].map(|name| self.env_var(name).map(PathBuf::from));
         let ew = ew_api::git::ew_command(&ew, image.as_deref(), mount.as_deref());
         let git = ew_api::git::GitExe::default();

@@ -101,21 +101,21 @@ pub enum KindName {
     ReportBlock,
     /// `revision`.
     Revision,
-    /// `page_item` (WP-S2.04 part 4a).
+    /// `page_item`.
     PageItem,
-    /// `structure_box` (WP-S2.04 part 4a).
+    /// `structure_box`.
     StructureBox,
-    /// `project`: the single project row (FT-447); `fields.set` only, `edit.delete` refuses it.
+    /// `project`: the single project row; `fields.set` only, `edit.delete` refuses it.
     Project,
-    /// `plc_config_project` (WP-S1.21 D6, FT-226).
+    /// `plc_config_project`.
     PlcConfigProject,
-    /// `channel` (WP-S1.21 D6, FT-226).
+    /// `channel`.
     Channel,
-    /// `device_link` (WP-S1.21 D6, FT-226).
+    /// `device_link`.
     DeviceLink,
-    /// `logical_net` (WP-S1.21 D11).
+    /// `logical_net`.
     LogicalNet,
-    /// `physical_net` (WP-S1.21 D11).
+    /// `physical_net`.
     PhysicalNet,
     /// `layout_space` (WP-S4.02 D7, FT-837): `edit.delete` only.
     LayoutSpace,
@@ -192,7 +192,7 @@ pub(crate) fn one() -> u32 {
     1
 }
 
-/// The CP indices `func` has on `device` by the rule `ew_derive::FunctionCps` derives (doc 03 §7; FT-655): a
+/// The CP indices `func` has on `device` by the rule `ew_derive::FunctionCps` derives (doc 03 §7): a
 /// template-origin function's from its part's pattern (`ew_schema::template_entry_of`, `TemplateFn::function_cps`, which
 /// yields pattern entries only, so no filter follows); else, for a black box, the CP pattern of the device's first part
 /// use that has one (FX38a: the generic black-box FnDef defines no CPs, the card's part does); else its FnDef copy's.

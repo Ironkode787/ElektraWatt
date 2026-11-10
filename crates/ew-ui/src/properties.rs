@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property grid pane (WP-S2.05 part 1, spec §6.9): the shell's sheet drawn as the inline preview card, the header
+//! The property grid pane (spec §6.9): the shell's sheet drawn as the inline preview card, the header
 //! and one block per section with collapsible groups; each row its label, its value or editor, the provenance chip
 //! (an icon glyph and words, never colour alone) and its actions. The toast of a commit with several targets is one of
 //! the window's toasts since WP-S2.09 part 1 (`crate::notifications`).
@@ -60,12 +60,12 @@ pub struct PropertiesPane {
     /// The widths each value of the rows on show needs in its cell this frame, whole and by its first word, with its
     /// chip (W40b: the label column gives way to them).
     value_needs: Vec<(f32, f32)>,
-    /// The filter field's text (FT-541; the shell's filter is set from it).
+    /// The filter field's text (the shell's filter is set from it).
     filter: String,
-    /// The cursor row last brought into view (FT-1037): a row the cursor moves to (Up, Down, Home, End) scrolls into
+    /// The cursor row last brought into view: a row the cursor moves to (Up, Down, Home, End) scrolls into
     /// view once, and the pane's scrolling is the user's again after that.
     cursor_shown: Option<String>,
-    /// F followed a link row (FT-1030): its typed letter, in this frame or a later one, is dropped, not typed.
+    /// F followed a link row: its typed letter, in this frame or a later one, is dropped, not typed.
     follow_letter: bool,
     /// The shell's filter text as last seen: a change made elsewhere (`props.filter`, Clear filter) shows in the field
     /// even while a text field has the focus.
@@ -258,7 +258,7 @@ impl PropertiesPane {
                         for (group, rows) in groups(section, advanced) {
                             let key = group_key(&section.kind, group);
                             let shut = collapsed.contains(&key);
-                            // FT-541: the filter keeps the rows it matches (FT-1358: with their parents); an open group left without rows hides.
+                            // The filter keeps the rows it matches (with their parents); an open group left without rows hides.
                             let rows: Vec<&PropRow> = filtered(section, rows, &filter);
                             if !shut && rows.is_empty() {
                                 continue;
@@ -311,7 +311,7 @@ impl PropertiesPane {
         });
     }
 
-    /// The filter field (FT-541; doc 16a §6.5, §6.8): "Filter properties", inset `space.4` from the pane's sides and
+    /// The filter field (doc 16a §6.5, §6.8): "Filter properties", inset `space.4` from the pane's sides and
     /// `size.control` high, as the navigator's filter; a change is `props.filter`.
     fn filter_field(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let t = crate::theme::current(ui.ctx());
@@ -349,7 +349,7 @@ impl PropertiesPane {
     fn keys(&mut self, ui: &Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let pressed = |m: Modifiers, k: Key| ui.ctx().input_mut(|i| i.consume_key(m, k));
         let row = shell.properties_row();
-        // FT-1030 (ID-1107): the keymap's `props.follow` (F) follows a link row, and its typed letter starts no edit
+        // The keymap's `props.follow` (F) follows a link row, and its typed letter starts no edit
         // (the letter may come in the same frame as the key or in a later one); on any other row the key is typed (it
         // starts the row's edit, as every letter does).
         if let Some(at) = events
@@ -477,7 +477,7 @@ impl PropertiesPane {
         // its tooltip), so the header keeps its width whatever the count (doc 16a §6.8: "the findings badge").
         // Cycle 37 (window check W37): always one chip per severity, also for one or two findings ("2 Warnings", not
         // "Warning Warning").
-        // FT-664 (cycle 37): the chips never take the title's room. When the title at its full width and the chips
+        // The chips never take the title's room. When the title at its full width and the chips
         // with their words do not fit the line, each severity becomes one glyph chip (its icon, and the count when
         // more than one), the words in its tooltip and node name; the title is then ellipsised by the panel only.
         let findings = &sheet.header.findings;
@@ -574,13 +574,13 @@ impl PropertiesPane {
         }
     }
 
-    /// The inline preview card (§6.6; WP-S2.17 part 4, doc 16a §6.23): "Preview of `<command>`" with its revision and
+    /// The inline preview card (§6.6; doc 16a §6.23): "Preview of `<command>`" with its revision and
     /// status badge, the summary as a polite live region, the first tag changes, Apply and Cancel.
     fn card(&self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let Some(card) = shell.properties().card() else {
             return;
         };
-        // A replace card is the find pane's (WP-S2.05 part 2).
+        // A replace card is the find pane's.
         if !matches!(card.origin, ew_viewmodel::properties::CardOrigin::Properties) {
             return;
         }
@@ -653,16 +653,16 @@ impl PropertiesPane {
         let t = crate::theme::current(ui.ctx());
         let width = ui.available_width();
         // M39 (owner 2026-10-31: scale, not cap): the label column fits the widest label on show, between
-        // `size.property_label` and half the row (FT-1413, ID-1419); W40b: it gives way to the widest value it can make
-        // whole (a tag, a part number), below the widest single word of a label too (ID-1427). A label longer than its column
-        // wraps at its words onto a second line and the row grows (FT-1413); one that still does not fit elides with
+        // `size.property_label` and half the row; W40b: it gives way to the widest value it can make
+        // whole (a tag, a part number), below the widest single word of a label too. A label longer than its column
+        // wraps at its words onto a second line and the row grows; one that still does not fit elides with
         // the whole label in its tooltip.
         let (label_column_width, indent) = (
             label_column(&t, width, self.label_need, &self.value_needs),
             t.space_3,
         );
         let depth = indent * f32::from(row.depth.saturating_sub(self.base_depth)).min(6.0);
-        // FT-1077 (ID-1183): a row with no value, that nothing edits or follows, has nothing to show in its value
+        // A row with no value, that nothing edits or follows, has nothing to show in its value
         // column, so its label runs on across it (all but the last `size.control.inline`, where the "…" button
         // stands). The column and its cap stay for a row with a value (M39).
         let valueless = value.is_empty()
@@ -686,7 +686,7 @@ impl PropertiesPane {
             label.clone(),
             egui::TextFormat::simple(crate::theme::font(&t.type_small), t.text_secondary.color32()),
         );
-        // ID-1427: a label wraps at its words only; one with a word longer than its column is cut on one line (its
+        // A label wraps at its words only; one with a word longer than its column is cut on one line (its
         // whole text in the tooltip), never broken inside the word.
         let widest_word = label
             .split_whitespace()
@@ -712,7 +712,7 @@ impl PropertiesPane {
             egui::text::TextWrapping::truncate_at_width(label_width - depth)
         };
         let galley = ui.painter().layout_job(job);
-        // FT-1498 (ID-1456, doc 16a §6.8): a prose value too wide for its cell wraps at its words onto up to three
+        // FT-1498 (doc 16a §6.8): a prose value too wide for its cell wraps at its words onto up to three
         // lines and the row grows with it; only a longer one is cut, its whole text in the tooltip.
         let editing = props.edit().is_some_and(|e| e.row == row.key);
         let prose = (!editing && !header && !is_link(row))
@@ -752,7 +752,7 @@ impl PropertiesPane {
             events.push(Event::Action("props.row_menu", json!({})));
         }
         let selected = focused == Some(row.key.as_str());
-        // FT-1037 (ID-1107): the cursor row moved to (an arrow, Home, End) scrolls into view.
+        // The cursor row moved to (an arrow, Home, End) scrolls into view.
         if selected && self.cursor_shown.as_deref() != Some(row.key.as_str()) {
             ui.scroll_to_rect(rect, None);
             self.cursor_shown = Some(row.key.clone());
@@ -807,7 +807,7 @@ impl PropertiesPane {
             events.push(Event::Action("ui.focus", json!({"area": "properties"})));
             events.push(Event::Action("props.row", json!({"to": row.key})));
         }
-        // Where the value cell (or its editor) starts: the choice list's left edge (FT-1036).
+        // Where the value cell (or its editor) starts: the choice list's left edge.
         let value_left = child.cursor().min.x;
         // The chip's word: the source in one word, the whole text in the tooltip (doc 16a §6.8).
         let word = chip_word(&row.provenance);
@@ -871,7 +871,7 @@ impl PropertiesPane {
                 // `color.border.control` on hover; `space.icon` padding; an empty value is an em dash in
                 // `color.text.tertiary`; the provenance chip at the cell's right end.
                 let editable = !header && row.actions.contains(&RowAction::Edit);
-                // FT-1030 (ID-1107): a link row (Device) is a link in `color.accent` (doc 16a P4); a click follows it.
+                // A link row (Device) is a link in `color.accent` (doc 16a P4); a click follows it.
                 let link = !header && !editable && is_link(row);
                 let (cell, response) = child.allocate_exact_size(
                     Vec2::new(
@@ -914,7 +914,7 @@ impl PropertiesPane {
                 let mut text_right = cell.right() - t.space_icon - reserve;
                 let mut on_chip = false;
                 if show_chip {
-                    // FT-1498: under a wrapped prose value the chip stands on its own line at the cell's right end.
+                    // Under a wrapped prose value the chip stands on its own line at the cell's right end.
                     let at = match &prose {
                         Some(_) => egui::pos2(cell.right() - t.space_icon, cell.bottom() - t.size_chip / 2.0),
                         None => egui::pos2(text_right, cell.center().y),
@@ -938,7 +938,7 @@ impl PropertiesPane {
                     format.underline = crate::theme::stroke(t.border_width, t.accent);
                     child.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
                 }
-                // FT-1077: where the label has run across the cell, the empty value's dash would overlap it.
+                // Where the label has run across the cell, the empty value's dash would overlap it.
                 let painted = if valueless && label_width > label_column_width {
                     String::new()
                 } else {
@@ -968,10 +968,10 @@ impl PropertiesPane {
                 let tip = if on_chip {
                     Some(chip.clone())
                 } else if link {
-                    // The canvas link's hint (FT-1030): "Click or F: go to -201U7", the key from the keymap (FT-1042).
+                    // The canvas link's hint: "Click or F: go to -201U7", the key from the keymap.
                     Some(ew_viewmodel::status::follow_hint(shell, &value, "props.follow"))
                 } else if let Some(reference) = profile_reference(row) {
-                    // FT-1491 (ID-1456): the Address profile row reads the profile's name; its reference, the
+                    // The Address profile row reads the profile's name; its reference, the
                     // chooser's secondary line, is the tooltip.
                     Some(reference)
                 } else if !editable && !header {
@@ -1073,11 +1073,11 @@ impl PropertiesPane {
                 ui.scroll_to_rect(rect.union(line.response.rect), None);
                 self.error_shown = shown;
             }
-            // FR-NUM-029: a refused tag-letter edit offers its proposal as one button (cycle 33, G-PP row 6).
+            // FR-NUM-029: a refused tag-letter edit offers its proposal as one button (G-PP row 6).
             if let Some(p) = props.tag_proposal().filter(|p| p.row == row.key) {
                 ui.horizontal(|ui| {
                     ui.add_space(t.space_4 + t.icon_sm);
-                    // WP-S2.18 D3: "Join -K1" is a Secondary button (FT-628).
+                    // "Join -K1" is a Secondary button.
                     let clicked = match p.join() {
                         true => crate::components::button(
                             ui,
@@ -1095,7 +1095,7 @@ impl PropertiesPane {
                 });
             }
         }
-        // FT-1035 (ID-1107): a list with no match opens no popup. FT-1036: the list starts under the value cell.
+        // A list with no match opens no popup. FT-1036: the list starts under the value cell.
         if let Some(c) = props
             .choices()
             .filter(|c| c.row == row.key && !c.items.is_empty())
@@ -1106,7 +1106,7 @@ impl PropertiesPane {
             self.choices_rect = None;
         }
         match props.popup() {
-            // FT-530: the actions menu is a popup anchored on the row's "…" button (`actions_menu`), not drawn here.
+            // The actions menu is a popup anchored on the row's "…" button (`actions_menu`), not drawn here.
             Some(Popup::MlText { row: r }) if *r == row.key => {
                 self.mltext_popup(ui, sheet, row, events);
             }
@@ -1145,7 +1145,7 @@ impl PropertiesPane {
             .width()
             .clamp(t.size_chooser_min_width, t.size_chooser_max_width);
         let rows = c.items.len().min(t.size_chooser_rows as usize).max(1);
-        // FT-1478: an item with a secondary line (an address profile's reference under its name) is two lines tall.
+        // An item with a secondary line (an address profile's reference under its name) is two lines tall.
         let row_height = if c.details.is_empty() {
             t.size_row
         } else {
@@ -1196,7 +1196,7 @@ impl PropertiesPane {
                                                 &name,
                                             )
                                         });
-                                        // FT-1255: egui maps `selected` to `toggled` only; AccessKit's selected state.
+                                        // Egui maps `selected` to `toggled` only; AccessKit's selected state.
                                         ui.ctx().accesskit_node_builder(response.id, |n| {
                                             n.set_selected(selected)
                                         });
@@ -1309,7 +1309,7 @@ impl PropertiesPane {
                         .inner_margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_icon), 0)),
                 )
                 .desired_width(f32::INFINITY)
-                // FT-1034 (ID-1107): the text centred in its field, as the value's is in its cell.
+                // The text centred in its field, as the value's is in its cell.
                 .align(egui::Align2::LEFT_CENTER)
                 .hint_text(label),
         );
@@ -1441,7 +1441,7 @@ pub(crate) fn remember_free_area(ui: &Ui) {
 }
 
 /// Where the options popup of a choice editor opens (the top-left corner) and how high its list may be before it
-/// scrolls: under `anchor` (the row's value cell, FT-1036) when the list's `content` height and its frame (`pad` on each side) fit between
+/// scrolls: under `anchor` (the row's value cell) when the list's `content` height and its frame (`pad` on each side) fit between
 /// the row and `bound`'s bottom (the status bar), else over the row when they fit above it, else on the side with
 /// more room with the list cut to that room. `gap` separates the popup from the row. The popup is `width` wide, its
 /// left edge at the anchor's, moved left as far as needed to stay inside `bound`.
@@ -1468,7 +1468,7 @@ pub(crate) fn choices_placement(
     }
 }
 
-/// Whether `row` is a link the grid follows (FT-1030): a device link with a value.
+/// Whether `row` is a link the grid follows: a device link with a value.
 fn is_link(row: &PropRow) -> bool {
     matches!(row.ty.inner(), FieldType::Link { kind } if kind == "device")
         && matches!(&row.value, RowValue::One { json, .. } if json.is_string())
@@ -1515,7 +1515,7 @@ pub fn is_grid_key(s: &egui::KeyboardShortcut) -> bool {
     (plain && grid) || alt_arrow
 }
 
-/// The row's actions menu (FT-530; doc 16a §6.8, §6.13): a popup menu anchored on the row's "…" button (`anchor`),
+/// The row's actions menu (doc 16a §6.8, §6.13): a popup menu anchored on the row's "…" button (`anchor`),
 /// named `name`; one row of `size.row` per action with an empty 16-px icon column and its label, the highlighted one
 /// (`index`, Up and Down: `props.row_menu`) and the hovered one under the hover overlay, never the accent. A click
 /// chooses (`props.choose`); a click elsewhere or Escape closes it (`props.cancel`).
@@ -1639,11 +1639,11 @@ fn severity_groups<'a>(
 ///
 /// M39: `need`, never below `size.property_label` and never above half the row (FT-1413, ID-1419: a longer label wraps
 /// at its words; the floor wins in a row too narrow for both). W40b (the value column gets the width first): the
-/// column then gives way, down to half of `size.property_label` (ID-1427: below a label's widest word too), to the widest value
+/// column then gives way, down to half of `size.property_label` (below a label's widest word too), to the widest value
 /// it can make whole that way. Each value counts whole, or, when it is too
 /// wide for that, by its first word if that is an identifier (a part number before its name, "EW-GEN-CPU-1
 /// (Generic)"), so that the tag or the number is never cut while the labels have room; a value or first word too wide
-/// even then, prose and (FT-1413) a list's count take nothing from the labels.
+/// even then, prose and a list's count take nothing from the labels.
 pub(crate) fn label_column(t: &crate::theme::Tokens, row: f32, need: f32, values: &[(f32, f32)]) -> f32 {
     let labels = need.min(row * 0.5).max(t.size_property_label);
     // The label, the `space.3` gap and the value cell share the row inside its `space.4` padding.
@@ -1669,7 +1669,7 @@ fn row_value(section: &SheetSection, row: &PropRow) -> String {
         String::new()
     } else if is_page_kind(section, row) || is_line_kind(section, row) {
         // M39 (doc 16a: words, not IDs): a page's Kind in the New page dialog's words ("Multi-line"); a fluid line's
-        // Line kind in its words ("Pilot", WP-S1.20 T25).
+        // Line kind in its words ("Pilot", T25).
         ew_viewmodel::strings::choice_text(&value_text(row))
     } else {
         value_text(row)
@@ -1679,9 +1679,9 @@ fn row_value(section: &SheetSection, row: &PropRow) -> String {
 /// The widths the value cell of `row` needs to show its value whole and to show its first word whole, infinite when
 /// that first word is not an identifier (W40b): the
 /// text in `type.body` with the cell's `space.icon` padding on both sides and the provenance chip with its `space.2`
-/// gap when it shows, and the row's "…" button when it has actions (ID-1427: the cursor row's value stays whole).
+/// gap when it shows, and the row's "…" button when it has actions (the cursor row's value stays whole).
 fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &PropRow) -> (f32, f32) {
-    // FT-1413: a list's words (its item count, "4 elementen") summarise it; the label column never gives way to them.
+    // A list's words (its item count, "4 elementen") summarise it; the label column never gives way to them.
     // ID-1427 (W52 F5): a list field's only; a position's pair reads as words ("102-C7 · x 124.4 y 52.9 mm").
     if matches!(row.ty.inner(), FieldType::List(_)) {
         return (f32::INFINITY, f32::INFINITY);
@@ -1708,7 +1708,7 @@ fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &P
         _ if varies => Some(shown.clone()),
         Some((first, _)) if first.chars().any(|c| c.is_ascii_digit()) => Some(format!("{first} …")),
         Some(_) => return (f32::INFINITY, f32::INFINITY),
-        // ID-1439 (C52-p8#1): a single word is an identifier only with a digit; prose or a choice word
+        // A single word is an identifier only with a digit; prose or a choice word
         // ("Hoofdschakelaar") takes nothing from the labels.
         None if !shown.chars().any(|c| c.is_ascii_digit()) => return (f32::INFINITY, f32::INFINITY),
         None => Some(shown.clone()),
@@ -1728,7 +1728,7 @@ fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &P
     )
 }
 
-/// The reference of the address profile an Address profile row names (FT-1491): its stored value, which the row
+/// The reference of the address profile an Address profile row names: its stored value, which the row
 /// shows by the profile's name; `None` for every other row.
 fn profile_reference(row: &PropRow) -> Option<String> {
     match (&row.route, &row.value) {
@@ -1739,7 +1739,7 @@ fn profile_reference(row: &PropRow) -> Option<String> {
     }
 }
 
-/// How a prose value that does not fit on one line stands in its value cell (FT-1498, ID-1456, doc 16a §6.8).
+/// How a prose value that does not fit on one line stands in its value cell (doc 16a §6.8).
 struct Prose {
     /// The text rows it takes, at most three.
     rows: usize,
@@ -1825,14 +1825,14 @@ fn is_page_kind(section: &ew_viewmodel::ew_api::output::SheetSection, row: &Prop
     section.kind == "page" && (row.key == "page/kind" || row.key == "page/type")
 }
 
-/// Whether `row` is a fluid line's Line kind (WP-S1.20 D18).
+/// Whether `row` is a fluid line's Line kind.
 fn is_line_kind(section: &ew_viewmodel::ew_api::output::SheetSection, row: &PropRow) -> bool {
     section.kind == "connection" && row.key == "connection/line_kind"
 }
 
-/// A severity's glyph chip (FT-664): the severity's subtle fill, its icon, and the count in `type.caption` when more
+/// A severity's glyph chip: the severity's subtle fill, its icon, and the count in `type.caption` when more
 /// than one; named like the count chip ("2 Warnings: <rule>: <message>; …"), every finding in its tooltip.
-/// The actions of a click on a Properties finding chip (FT-759): Messages opens, filtered to the record
+/// The actions of a click on a Properties finding chip: Messages opens, filtered to the record
 /// ([`findings_filter`]).
 fn findings_events(header: &ew_viewmodel::ew_api::output::SheetHeader) -> [Event; 2] {
     [
@@ -1871,7 +1871,7 @@ fn glyph_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::R
     });
     let icon = t.type_caption.size + t.space_1;
     let width = t.space_1 + icon + count.as_ref().map_or(0.0, |g| t.space_1 + g.size().x) + t.space_1;
-    // FT-759: a button that opens Messages filtered to the record.
+    // A button that opens Messages filtered to the record.
     let (rect, response) = ui.allocate_exact_size(Vec2::new(width, t.size_badge), Sense::click());
     let lines: Vec<String> = findings
         .iter()
@@ -1914,7 +1914,7 @@ mod tests {
 
     use super::choices_placement;
 
-    /// M39: the label column scales with the row (FT-1413: up to half of it), never under `size.property_label`.
+    /// M39: the label column scales with the row (up to half of it), never under `size.property_label`.
     #[test]
     fn the_label_column_scales_with_the_panel() {
         use crate::theme::{Density, Theme, tokens};
@@ -1985,7 +1985,7 @@ mod tests {
         assert!(none.iter().all(|(g, _)| *g != "pending"));
     }
 
-    /// FT-759: a page's chip filters Messages by its folio facet, a device's by its tag.
+    /// A page's chip filters Messages by its folio facet, a device's by its tag.
     #[test]
     fn a_finding_chip_filters_a_page_by_folio_and_a_device_by_tag() {
         use ew_viewmodel::ew_api::output::SheetHeader;

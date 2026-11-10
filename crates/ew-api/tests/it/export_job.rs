@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! JB2 (WP-S2.09 part 1, D4, §6.2): the PDF export as a job on a temporary copy of Golden A. Its bytes equal
+//! JB2: the PDF export as a job on a temporary copy of Golden A. Its bytes equal
 //! `Session::export_pdf`'s and the committed digest; a cancel at the held gate `page` after page 2 ends it
 //! `Cancelled`; a job made before an edit exports the earlier revision (snapshot isolation). The job runs on a thread
 //! of `ew_jobs`, so the snapshot crosses threads and no `Session` call happens there.
@@ -152,7 +152,7 @@ fn jb2_a_selection_the_page_order_does_not_have_fails_with_its_cause() {
     s.close();
 }
 
-// WP-S3.07 part 3, ruling 2 of ID-1180: the print set as a job.
+// The print set as a job.
 
 const PRINT_DIGEST: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),

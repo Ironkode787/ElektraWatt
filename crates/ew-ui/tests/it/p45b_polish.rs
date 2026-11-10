@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The play-test polish of cycle 45 in the window (ID-1107): FT-1025, a click on a greyed command says why.
+//! The play-test polish of cycle 45 in the window: FT-1025, a click on a greyed command says why.
 
 use crate::support;
 
@@ -67,7 +67,7 @@ fn ft1028_the_parts_list_button_shows_the_bom_fitted_with_its_row_marked() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1025, ID-1107: "a click on a disabled command-bar button shows its reason as a toast, as well as in its
+/// "a click on a disabled command-bar button shows its reason as a toast, as well as in its
 /// tooltip." On a section divider the Symbol button is greyed; a click on it runs nothing and the toast says why.
 #[test]
 fn ft1025_a_click_on_a_greyed_command_shows_its_reason_as_a_toast() {

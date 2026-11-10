@@ -850,7 +850,7 @@ fn potentials(q: &Q, wires: &Wires) -> Vec<Row> {
                     }
                 }
             }
-            // The pages of its drawn bus lines too, as the potential overview counts them (FT-105).
+            // The pages of its drawn bus lines too, as the potential overview counts them.
             for page in ew_derive::bus_line_pages(q, &wires.partition, p.id) {
                 pages.insert((order.position(PageRef::Drawn(page)).unwrap_or(usize::MAX), page));
             }

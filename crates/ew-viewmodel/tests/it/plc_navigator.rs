@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC navigator and grid in the view model (WP-S2.07 part 3, §8; acceptance PG2 to PG4, PG6): a channel row
+//! The PLC navigator and grid in the view model (acceptance PG2 to PG4, PG6): a channel row
 //! dropped on a connection point binds it with one `plc.bind_channel` (FR-PLC-020), a drop beside every CP is refused,
 //! the PLC flags filter the rows, and pasting eight symbols into the grid is one undo step (FR-PLC-021). FT-753: a
 //! channel dropped on a field device wired to its card binds the card's pin, on a valve beside a valve terminal attaches
@@ -75,7 +75,7 @@ fn channel_rows(s: &ShellModel) -> Vec<(String, String)> {
         .collect()
 }
 
-/// PG2's state: the generic CPU, the digital output card and a starter coil attached to the card (WP-S1.21 PT-2).
+/// PG2's state: the generic CPU, the digital output card and a starter coil attached to the card (PT-2).
 /// Returns the coil's representation.
 fn pg2_state(s: &mut ShellModel) -> Uuid {
     coil_state(s, true)
@@ -133,7 +133,7 @@ fn coil_state(s: &mut ShellModel, attach: bool) -> Uuid {
     coil.id
 }
 
-/// FX38d (cycle 38, window check W38): a channel dropped on a stand-alone coil (not on the card) is refused before
+/// FX38d (window check W38): a channel dropped on a stand-alone coil (not on the card) is refused before
 /// any commit, in words that name the coil and the card by tag and carry no record ID; the same drop on the coil once
 /// it is on the card (PG2's path) still binds.
 #[test]
@@ -164,7 +164,7 @@ fn fx38d_a_cp_off_the_card_is_refused_in_words() {
         toast.starts_with(&format!("{coil_tag} is not on the card -")),
         "{toast}"
     );
-    // FT-753: a device neither wired to the card nor attachable to it: the words say what to do.
+    // A device neither wired to the card nor attachable to it: the words say what to do.
     assert!(
         toast.contains(&format!("wire {coil_tag} to a pin of -")),
         "{toast}"
@@ -388,7 +388,7 @@ fn switch_state(s: &mut ShellModel) -> (String, String) {
 
 /// FT-753, wired: a channel dropped on a selector switch wired (through a terminal) to pin 3 of its card binds the
 /// card's pin 3 with one `plc.bind_channel`: the pin prints the channel's address, the channel that N3 had bound there
-/// is named in the toast as unbound (FT-757), and one undo restores both.
+/// is named in the toast as unbound, and one undo restores both.
 #[test]
 fn ft753_a_device_wired_to_the_card_binds_the_card_pin() {
     let tmp = Tmp::new("plcnav-ft753-wired");
@@ -560,7 +560,7 @@ fn ft753_a_valve_is_attached_to_a_valve_terminal_and_bound() {
     assert_eq!(s.revision(), rev.map(|r| r + 2), "attached again");
 }
 
-/// FT-757: the PLC grid's key column is the address and the target follows it, so a narrow grid shows what a
+/// The PLC grid's key column is the address and the target follows it, so a narrow grid shows what a
 /// channel is and what it drives; the default table mode shows them first.
 #[test]
 fn ft757_the_grid_leads_with_address_and_target() {
@@ -577,7 +577,7 @@ fn ft757_the_grid_leads_with_address_and_target() {
     assert!(d.contains("  row \"Q0.0\" \"-101A2\" "), "{d}");
 }
 
-/// FT-757: a channel that a drop on its card's pin unbinds is named in the toast by its address, not left unbound
+/// A channel that a drop on its card's pin unbinds is named in the toast by its address, not left unbound
 /// silently.
 #[test]
 fn ft757_a_displaced_channel_is_named() {
@@ -597,7 +597,7 @@ fn ft757_a_displaced_channel_is_named() {
     assert!(!toast.text.contains('@'));
 }
 
-/// FT-757: an edited row stays the cursor row after its commit re-sorts the grid (the window scrolls to the cursor
+/// An edited row stays the cursor row after its commit re-sorts the grid (the window scrolls to the cursor
 /// row when its position changes), and the toast reads in sentence case.
 #[test]
 fn ft757_an_edited_row_keeps_the_cursor_and_the_toast_reads_in_sentence_case() {
@@ -633,7 +633,7 @@ fn ft757_an_edited_row_keeps_the_cursor_and_the_toast_reads_in_sentence_case() {
     assert_eq!(s.toast().unwrap().text, "Set address on 1 channel.");
 }
 
-/// PG6 (WP-S2.07 §8): the PLC navigator's transcript members and describe words, and its table calls. The focus
+/// PG6: the PLC navigator's transcript members and describe words, and its table calls. The focus
 /// member names the navigator; the describe text carries the tree's roles and badges with no record ID, and in table
 /// mode the columns and the rows; showing the navigator reads one table, a filter reads none, a commit one more.
 #[test]
@@ -714,7 +714,7 @@ fn pg6_transcript_and_counts() {
     );
 }
 
-/// FT-1448 (ID-1397): a configuration project's Address profile row in Properties is a chooser of the profiles at
+/// A configuration project's Address profile row in Properties is a chooser of the profiles at
 /// hand; choosing another pins it through `plc.set_profile`, one undo step.
 #[test]
 fn ft1448_the_address_profile_is_chosen_in_properties() {
@@ -741,7 +741,7 @@ fn ft1448_the_address_profile_is_chosen_in_properties() {
         (text.clone(), options)
     };
     let (now_name, options) = profile(&s);
-    // FT-1478: the chooser shows each profile's name, its reference as the secondary line, and commits the reference.
+    // The chooser shows each profile's name, its reference as the secondary line, and commits the reference.
     done(&mut s, "props.edit", json!({"row": "plc_config_project/profile"}));
     let c = s.properties().choices().expect("the profiles").clone();
     let shown: Vec<(&str, &str, &str)> = c
@@ -761,7 +761,7 @@ fn ft1448_the_address_profile_is_chosen_in_properties() {
         assert!(shown.contains(&builtin), "{builtin:?} among {shown:?}");
     }
     assert_eq!(c.details.len(), c.items.len());
-    // FT-1491 (ID-1456): the row reads the chosen profile's name; its reference is read through the chooser.
+    // The row reads the chosen profile's name; its reference is read through the chooser.
     let name_of = |reference: &str| {
         shown
             .iter()

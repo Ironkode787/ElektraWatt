@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The SQL projection over the golden project (WP-S1.10; ADR-0017, doc 17 §6): every `api_v1_*` view is
+//! The SQL projection over the golden project (ADR-0017, doc 17 §6): every `api_v1_*` view is
 //! readable through the sandbox with the columns of `ew_sqlview::schema`; the acceptance SQL of
 //! `golden/J-E-2416/acceptance/` returns `expected/csv/`; the acceptance criteria of FR-EXT-006 and
 //! FR-EXT-007; the row counts; a deterministic image.

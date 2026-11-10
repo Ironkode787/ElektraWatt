@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The notifications (WP-S2.09 part 1, D6, §6.5; FR-UI-042, NFR-A11Y-04): the toasts on screen and the log of the
+//! The notifications (FR-UI-042, NFR-A11Y-04): the toasts on screen and the log of the
 //! session's last notifications, with the actions that stay usable while they are valid.
 //!
 //! Every toast enters the log (`NotificationLog::push`): at most [`MAX_VISIBLE`] toasts are visible (a toast of a
@@ -31,7 +31,7 @@ pub enum NoteAction {
     Undo,
     /// Open the file the job wrote (Open PDF).
     Open,
-    // WP-S2.08 part 6 (D17): the actions of the one-time tips.
+    // The actions of the one-time tips.
     /// Tip 1's Convert to connection: undo the line the tip reports and arm the Wire tool.
     Convert,
     /// Tip 2's Renumber devices….
@@ -41,7 +41,7 @@ pub enum NoteAction {
     /// Open the history at the step the notification reports, with its changes (an external change's Show changes,
     /// WP-S1.17 D24, decision log ID-1284 ruling 3).
     ShowChanges,
-    /// Back to the symbol editor and its kept draft, after a test placement (ID-1463).
+    /// Back to the symbol editor and its kept draft, after a test placement.
     BackToEditor,
 }
 
@@ -118,7 +118,6 @@ pub(crate) enum Validity {
         /// The written file (never printed).
         path: PathBuf,
     },
-    // WP-S2.08 part 6 (D17)
     /// A tip's action that needs no step: while project session `epoch` is open; `select` the records it selects
     /// (Show report block's block; never printed).
     Session {
@@ -150,7 +149,7 @@ pub struct Notification {
     /// The key: a toast of a key that is visible replaces that one (`edit`, `export`, `recovery`).
     pub key: &'static str,
     pub(crate) action: Option<(NoteAction, Validity)>,
-    /// A second action (an external change's Show changes beside its Undo, WP-S1.17 D24).
+    /// A second action (an external change's Show changes beside its Undo).
     pub(crate) second: Option<(NoteAction, Validity)>,
     /// The tone a result set (the check's worst severity); `None` for every other notification.
     pub(crate) tone: Option<NoteTone>,
@@ -205,7 +204,7 @@ impl Notification {
         }
     }
 
-    /// The records its action `action` selects (Show report block's block, WP-S2.08 part 6); empty for the others.
+    /// The records its action `action` selects (Show report block's block); empty for the others.
     pub(crate) fn selects(&self, action: NoteAction) -> &[ew_api::output::Uuid] {
         match self.validity(action) {
             Some(Validity::Session { select, .. }) => select,
@@ -274,7 +273,7 @@ impl NotificationLog {
         serial
     }
 
-    /// Adds a notification with two actions (an external change's Undo and Show changes, WP-S1.17 D24); returns its
+    /// Adds a notification with two actions (an external change's Undo and Show changes); returns its
     /// serial.
     pub(crate) fn push_two(
         &mut self,
@@ -419,7 +418,7 @@ mod tests {
         );
     }
 
-    /// FT-1075 (ID-1182): the line under a toast's title starts with a capital where it started lowercase; the text
+    /// The line under a toast's title starts with a capital where it started lowercase; the text
     /// itself, a digit or a designation first, stays as it is.
     #[test]
     fn a_toasts_line_starts_with_a_capital() {

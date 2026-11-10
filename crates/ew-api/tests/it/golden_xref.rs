@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cross-reference acceptance on the golden model (WP-S1.08; doc 20 §15, AC-05, AC-20, NFR-REL-07).
+//! Cross-reference acceptance on the golden model (doc 20 §15, AC-05, AC-20, NFR-REL-07).
 //!
 //! The expected texts are typed by hand from doc 20 §15. Tests:
 //!

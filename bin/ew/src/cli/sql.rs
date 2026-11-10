@@ -24,7 +24,7 @@ pub(super) fn run_sql(a: &SqlArgs) -> i32 {
     if let Some(n) = a.timeout {
         profile = profile.with_deadline(std::time::Duration::from_secs(n));
     }
-    // FT-1379: the result's writing, which a hostile SELECT drives as much as the statement, runs inside the guard
+    // The result's writing, which a hostile SELECT drives as much as the statement, runs inside the guard
     // too (the workbook's in `write_sql_xlsx`).
     let (set, text) = match guarded_query(|| {
         debug_panic("sql");
@@ -73,7 +73,7 @@ pub(super) fn run_sql(a: &SqlArgs) -> i32 {
 /// S1 of WP-S6.04 (D15): `ew sql`'s line when the statement panicked.
 pub(super) const QUERY_PANICKED: &str = "error: the query stopped on an internal error; nothing was changed";
 
-/// Runs `ew sql`'s statement, `run`, inside `catch_unwind` (WP-S6.04 D15, NFR-REL-12): its result, or the line to print
+/// Runs `ew sql`'s statement, `run`, inside `catch_unwind` (NFR-REL-12): its result, or the line to print
 /// (`error: <the SQL error>`, or [`QUERY_PANICKED`] when it panicked). The query reads a projection image only, so a
 /// panic changes nothing.
 pub(super) fn guarded_query<T>(run: impl FnOnce() -> Result<T, ew_api::sql::SqlError>) -> Result<T, String> {
@@ -84,7 +84,7 @@ pub(super) fn guarded_query<T>(run: impl FnOnce() -> Result<T, ew_api::sql::SqlE
     }
 }
 
-/// `ew sql --format xlsx --out <file>` (FT-218): the result as the one sheet `sql` of a workbook, written atomically.
+/// `ew sql --format xlsx --out <file>`: the result as the one sheet `sql` of a workbook, written atomically.
 pub(super) fn write_sql_xlsx(a: &SqlArgs, session: &ew_api::Session, set: &ew_api::sql::ResultSet) -> i32 {
     let Some(path) = &a.out else {
         eprintln!("error: {XLSX_NEEDS_OUT}");
@@ -98,7 +98,7 @@ pub(super) fn write_sql_xlsx(a: &SqlArgs, session: &ew_api::Session, set: &ew_ap
         }
     };
     let meta = session.workbook_meta(date);
-    // FT-1379: the workbook is written from the result inside the statement's guard.
+    // The workbook is written from the result inside the statement's guard.
     let bytes = match guarded_query(|| {
         debug_panic("sql-write");
         Ok(ew_api::output::xlsx(&[ew_api::output::sql_table(set)], &meta))
@@ -121,7 +121,7 @@ pub(super) fn write_sql_xlsx(a: &SqlArgs, session: &ew_api::Session, set: &ew_ap
     0
 }
 
-/// The refusal of `--format xlsx` without `--out` (WP-S3.08 D7).
+/// The refusal of `--format xlsx` without `--out`.
 pub const XLSX_NEEDS_OUT: &str = "`--format xlsx` writes a file: give `--out <file.xlsx>`";
 
 pub(super) fn run_sql_dump(a: &SqlDumpArgs) -> i32 {
@@ -153,7 +153,7 @@ pub(super) fn run_sql_dump(a: &SqlDumpArgs) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    //! WP-S6.04 D15, SE-9: `ew sql`'s statement under its panic guard, given a panicking closure, on a copy of
+    //! `ew sql`'s statement under its panic guard, given a panicking closure, on a copy of
     //! Golden A in a fresh directory; nothing under `golden/` is opened for writing.
     use super::*;
 
@@ -183,7 +183,7 @@ mod tests {
         }
     }
 
-    /// C51-p1#2: `ew import table`'s refusal lines, each whole: `error: ` and the refusal, its first letter in lower
+    /// `ew import table`'s refusal lines, each whole: `error: ` and the refusal, its first letter in lower
     /// case (S2 for a read that panicked).
     #[test]
     fn an_import_table_refusal_is_one_lower_case_error_line() {

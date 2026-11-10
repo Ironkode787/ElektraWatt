@@ -214,7 +214,7 @@ fn eb1_row_26_counts_the_derived_brackets_and_prints_902() {
     let (pos, qty, _, folios) = bracket_row(&q, BomMode::Component);
     // 1X1 × 2, -X1031 × 1, X33 × 2 derived, -X1032 × 1 authored.
     assert_eq!((pos, qty.as_str(), folios), (26, "6", owned(&["103", "902"])));
-    // C44-p1#8: assembly mode reads the same lines (ruling 3), and 902's legend counts the derived brackets only (R2's
+    // Assembly mode reads the same lines (ruling 3), and 902's legend counts the derived brackets only (R2's
     // five: 1X1 × 2, -X1031 × 1, X33 × 2), its one bracket row after the 30 others (X33 placed, -X1032 removed).
     let (pos, qty, _, folios) = bracket_row(&q, BomMode::Assembly);
     assert_eq!((pos, qty.as_str(), folios), (20, "6", owned(&["103", "902"])));
@@ -475,7 +475,7 @@ fn s10(s: &Session, key: &str) -> i64 {
     row.pose.t[0].0 * 10 / MM
 }
 
-/// FT-1441 (decision log ID-1416; doc 12 §3.3's push), T3's case on R2 (570 mm): one PT 2.5-TWIN (5.2 mm) inserted into
+/// FT-1441 (doc 12 §3.3's push), T3's case on R2 (570 mm): one PT 2.5-TWIN (5.2 mm) inserted into
 /// -X1031 moves -X1032 from 172.6 to 177.8 mm in the same step, with no finding; 69 fit, 70 put -X1032's bracket past
 /// the rail end (one `bracket_outside`); with -X1032 locked it stays, the insert is not refused and the bracket after
 /// -X1031 overlaps it.
@@ -521,9 +521,9 @@ fn ft1441_a_growing_strip_pushes_the_items_after_it() {
     );
 }
 
-/// FT-1497 (decision log ID-1455; doc 12 §3.5): `part.assign` of a 10.4 mm copy of PT 2.5-TWIN onto one terminal of
+/// FT-1497 (doc 12 §3.5): `part.assign` of a 10.4 mm copy of PT 2.5-TWIN onto one terminal of
 /// -X1031 (mode `replace`) widens the strip by 5.2 mm, and -X1032 moves from 172.6 to 177.8 mm in the same step, as
-/// one inserted terminal moves it (FT-1441).
+/// one inserted terminal moves it.
 #[test]
 fn ft1497_a_part_change_that_widens_a_strips_terminal_pushes() {
     let mut s = golden_common::session(&golden_common::batch());
@@ -569,7 +569,7 @@ fn ft1497_a_part_change_that_widens_a_strips_terminal_pushes() {
     assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
 }
 
-/// FT-1495 (decision log ID-1455; doc 12 §3.4): -X1031 turned 180° in place on R2 (its clip point its right end, 162.6
+/// FT-1495 (doc 12 §3.4): -X1031 turned 180° in place on R2 (its clip point its right end, 162.6
 /// mm) grows left, so one terminal inserted into it moves 1X1, the strip before it, from 30 to 24.8 mm in the same
 /// step, with no finding, and -X1032 after it stays; five put 1X1's bracket 6 mm past the rail's start (one
 /// `bracket_outside`, the positions written); with 1X1 locked it stays, the insert is not refused and the bracket
@@ -655,7 +655,7 @@ fn first_terminal(q: &Q, strip: &str) -> Id<Device> {
         .expect("a terminal")
 }
 
-/// C53-p2#2 (decision log ID-1480; doc 12 §3.4): one `part.assign` that widens a terminal of -X1031 and one of -X1032
+/// C53-p2#2 (doc 12 §3.4): one `part.assign` that widens a terminal of -X1031 and one of -X1032
 /// by 5.2 mm each cascades both pushes: -X1032 moves from 172.6 to 177.8 mm, and X33, placed 3 mm clear of the
 /// bracket after -X1032 (at 211.6 mm), moves to 219.0 mm, 10 mm after -X1032's new end at 209.0 mm, with no finding.
 /// Each push measured on the base snapshot left X33 at 216.0 mm, the bracket after -X1032 overlapping it.
@@ -710,7 +710,7 @@ fn a_part_change_that_widens_two_strips_on_one_rail_cascades_both_pushes() {
     assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
 }
 
-/// C53-p2#3 (decision log ID-1480; doc 12 §3.4): -X1031 turned 180° as in FT-1495, with an end bracket of 5 mm of its
+/// C53-p2#3 (doc 12 §3.4): -X1031 turned 180° as in FT-1495, with an end bracket of 5 mm of its
 /// own while 1X1 keeps its 10 mm one. One terminal inserted into -X1031 moves 1X1 from 30 to 24.8 mm: the gap between
 /// the two strips is the bracket of 1X1, the strip on the left, as EW-LAY-010 judges it, so there is no finding.
 /// -X1031's own bracket in the mirrored frame left 1X1 at 29.8 mm, its bracket overlapping -X1031.

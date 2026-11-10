@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell's clipboard (WP-S2.05 part 3, spec §8.5 to §8.8): one text value, what it holds, and the text the window
+//! The shell's clipboard (spec §8.5 to §8.8): one text value, what it holds, and the text the window
 //! puts on the system clipboard.
 //!
 //! **Headless** runs have no system clipboard: the shell keeps the text (§8.7). `clipboard.text` sets it as an
@@ -126,7 +126,7 @@ pub fn fragment_banner(e: &ew_api::output::FragmentError) -> String {
     strings::format(key!("banner-paste-refused"), &[&fragment_words(e)])
 }
 
-/// A fragment's error in the window's language (FT-1488, ID-1457).
+/// A fragment's error in the window's language.
 pub fn fragment_words(e: &ew_api::output::FragmentError) -> String {
     crate::shell::tools::rejected_words(&e.to_string(), Some(&e.text()))
 }

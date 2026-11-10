@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The panel layout records (doc 20 §13's test geometry, WP-S4.01 part 2): `layout_spaces.csv`, `enclosures.csv`
+//! The panel layout records (doc 20 §13's test geometry): `layout_spaces.csv`, `enclosures.csv`
 //! (an enclosure and its plate surface), `carriers.csv` and `placements.csv`. Lengths are millimetres in the plate's
 //! frame (`u` right, `v` up); the records hold nanometres.
 //!
-//! The layout kinds carry no `source_ref` member (WP-S4.01 D3 types none), so their records have only the ID of the
+//! The layout kinds carry no `source_ref` member (types none), so their records have only the ID of the
 //! identity rule: `v5(ns, "{table}|{key}")`, and the plate surface of an enclosure row `v5(ns,
 //! "mounting_surfaces|{key}")`.
 

@@ -20,7 +20,7 @@ use support::{Scripted, Tmp, harness, settle, wait_for_page};
 /// The star row of an interruption point's sheet.
 const STAR: &str = "function/kind.ip.star_source";
 
-/// The refusal of a star on the external point "IP", as the pane shows it: a capital first (FT-1075).
+/// The refusal of a star on the external point "IP", as the pane shows it: a capital first.
 const EXTERNAL: &str =
     "Interruption point IP: an external point never pairs, so it takes no star; clear the star";
 
@@ -221,7 +221,7 @@ fn escape_in_an_editor_holding_an_error_cancels_the_edit() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1144 (ID-1225; ID-940): a toast whose line is cut (a point with a long name refuses a second point on its
+/// A toast whose line is cut (a point with a long name refuses a second point on its
 /// spot) shows its whole text under the pointer in doc 16a §6.18's tooltip, `color.surface.inverse`.
 #[test]
 fn ft1144_a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() {
@@ -286,7 +286,7 @@ fn ft1144_a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() 
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1075 (ID-1182): a toast's line stands under its title with a capital, as the window draws it: "Not placed" over
+/// A toast's line stands under its title with a capital, as the window draws it: "Not placed" over
 /// "The interruption point W464 is already here; ...". The toast's own text (its tooltip, the log) keeps the
 /// command's lowercase.
 #[test]
@@ -321,7 +321,7 @@ fn a_toasts_line_is_drawn_with_a_capital() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1211, C52-p3#2 (ID-1417): with the place tool armed, its press in the canvas's top-right quarter places a lamp
+/// With the place tool armed, its press in the canvas's top-right quarter places a lamp
 /// and sends the Placed toast low. The pointer then travels to the toast's Undo with the tool still armed: the stack
 /// stays where it stood on every step, and the click on Undo takes the placing back.
 #[test]

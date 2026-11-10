@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The layout measures on small hand-built pages, each with and without its violation (WP-S2.19, ID-1498). Units are
+//! The layout measures on small hand-built pages, each with and without its violation. Units are
 //! millimetres written as nm through [`mm`].
 
 use ew_ids::Uuid;

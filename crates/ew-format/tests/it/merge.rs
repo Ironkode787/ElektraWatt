@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The three-way merge core (WP-S1.17 part 4a: D2, D13, D14, D16; decision log ID-1268): MD-1 (each row of the record
+//! The three-way merge core (D2, D13, D14, D16): MD-1 (each row of the record
 //! table and each strategy), MD-2 (the properties), MD-3 (typed inputs merge typed, over Golden A's records), MD-4 (a
 //! side that does not read or is newer), the manifest merge and AC-41's page half on W20. Golden A is only read.
 
@@ -297,7 +297,7 @@ fn md1_a_keyed_conflict_holds_ours_and_theirs_lists_as_merged() {
 fn md1_a_keyed_list_whose_keys_mix_integers_and_other_numbers_merges_atomically() {
     // 40 elements, more than a sort orders by insertion alone: `idx` 1 to 20 and 1.5 to 20.5, which no order sorts both
     // as numbers and as text (10 < 2.5 by text, 2.5 < 3 by number). The keys are neither all unsigned integers nor
-    // all strings, so the list merges as one value (decision log ID-1273).
+    // all strings, so the list merges as one value.
     let list = |changed: (usize, &str)| {
         let mut items = Vec::new();
         for i in 1..=20u32 {
@@ -767,7 +767,7 @@ fn assert_kept(o: &Value, a: &Value, b: &Value, r: &Value, c: Option<&Value>) {
     }
 }
 
-/// `value` with every `parties` list sorted: a plain list keeps ours' order (decision log ID-1268 ruling 3), so the
+/// `value` with every `parties` list sorted: a plain list keeps ours' order, so the
 /// two side orders compare up to it.
 fn unordered(value: Option<Value>) -> Option<Value> {
     fn walk(v: &mut Value) {
@@ -794,7 +794,7 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(512))]
 
     /// MD-2 on `merge_record`. Not on `merge_file`'s one loss, where a merged file would pass a reader limit and ours is
-    /// kept as it is (`a_merge_that_would_pass_a_reader_limit_keeps_ours_as_it_is`, decision log ID-1273).
+    /// kept as it is (`a_merge_that_would_pass_a_reader_limit_keeps_ours_as_it_is`).
     #[test]
     fn md2_merge_properties((o, a, b) in sides()) {
         let (o, a, b) = (o.as_ref(), a.as_ref(), b.as_ref());
@@ -1015,13 +1015,12 @@ fn ac41_w20_conflict_variant_writes_one_conflict_record_and_keeps_bu() {
     let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
     let (_, theirs) = page_with(r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#);
     let (_, kept) = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
-    // D14's member order: `$k`, `id`, `kind`, `base`, `ours`, `theirs` (decision log ID-1273).
+    // D14's member order: `$k`, `id`, `kind`, `base`, `ours`, `theirs`.
     let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
     let (merged, conflicts) = merge_page(&base, &ours, &theirs);
     assert_eq!(merged, format!("{kept}{conflict}\n"));
     assert_eq!(conflicts, 1);
-    // The file opens editable with nothing reported: the conflict is a typed record now, written back as it was read
-    // (WP-S1.17 part 5, decision log ID-1279).
+    // The file opens editable with nothing reported: the conflict is a typed record now, written back as it was read.
     let loaded = load_page(&merged);
     assert_eq!(loaded.findings, []);
     assert!(!loaded.read_only);
@@ -1039,7 +1038,7 @@ fn ac41_w20_conflict_variant_writes_one_conflict_record_and_keeps_bu() {
     }
 }
 
-/// The file-level conflict line of PAGE holding `side`'s `text` (D14), members in D14's order (decision log ID-1273).
+/// The file-level conflict line of PAGE holding `side`'s `text` (D14), members in D14's order.
 fn file_conflict(side: &str, text: &str) -> String {
     let lines: Vec<&str> = text.strip_suffix('\n').unwrap_or(text).split('\n').collect();
     format!(
@@ -1060,7 +1059,7 @@ fn md4_a_side_that_does_not_parse_keeps_the_other_with_one_file_level_conflict()
         merge_page(&base, &broken, &ours),
         (format!("{ours}{}\n", file_conflict("ours", &broken)), 1)
     );
-    // The result opens: the file-level record is a typed conflict record (decision log ID-1279).
+    // The result opens: the file-level record is a typed conflict record.
     let (merged, _) = merge_page(&base, &ours, &broken);
     let loaded = load_page(&merged);
     assert_eq!(loaded.findings, []);
@@ -1074,7 +1073,7 @@ fn md4_a_side_that_does_not_parse_keeps_the_other_with_one_file_level_conflict()
     assert_eq!(held, [file_conflict("theirs", &broken)]);
 }
 
-// ---- conflict markers, D18 (WP-S1.17 part 5, decision log ID-1279) ---------------------------------------------------
+// ---- conflict markers, D18 ---------------------------------------------------
 
 /// Golden A's page-102 file with W20's line replaced by a marker hunk: ours, the diff3 base when `base` is given,
 /// theirs; each side `W20_OVERRIDES` replaced by its own.
@@ -1273,7 +1272,7 @@ fn md4_a_side_above_a_reader_limit_keeps_the_other_side() {
         &MIGRATIONS,
     );
     // Neither side reads (ours is above the line limit, theirs has no ID): ours stays as it is, and the file-level
-    // record that would hold theirs is above the line limit too, so it is not written (decision log ID-1273).
+    // record that would hold theirs is above the line limit too, so it is not written.
     assert_eq!(
         (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts),
         (ours, 1)
@@ -1310,8 +1309,8 @@ fn bond(n: u8, members: Value) -> String {
 
 #[test]
 fn a_base_that_does_not_read_follows_the_no_base_rule() {
-    // A committed marker line makes the base unreadable (doc 05 §11.4). D18's no-base rule holds, never an empty base
-    // (decision log ID-1273): a record equal on both sides is kept; one that differs keeps ours with a conflict of
+    // A committed marker line makes the base unreadable (doc 05 §11.4). D18's no-base rule holds, never an empty base:
+    // a record equal on both sides is kept; one that differs keeps ours with a conflict of
     // every member that differs; one on one side only is kept with a conflict whose other side is deleted.
     let base = "<<<<<<< ours\n";
     let ours = [
@@ -1409,7 +1408,7 @@ fn a_library_document_neither_side_reads_keeps_ours_and_holds_theirs() {
 
 #[test]
 fn a_record_unchanged_on_its_side_is_written_as_that_side_s_own_line() {
-    // FR-COL-010, doc 05 §10.3 (decision log ID-1273): J5.feed's line with `page` before `a` (out of schema order),
+    // FR-COL-010, doc 05 §10.3: J5.feed's line with `page` before `a` (out of schema order),
     // untouched on every side, and a record of an unknown kind with its members out of byte order are written as
     // ours' lines; W11, changed on theirs only (a member of a newer minor, first), as theirs' line.
     let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
@@ -1440,7 +1439,7 @@ fn a_record_unchanged_on_its_side_is_written_as_that_side_s_own_line() {
 
 #[test]
 fn a_merge_that_would_pass_a_reader_limit_keeps_ours_as_it_is() {
-    // D14's loadable file over its "nothing lost" (decision log ID-1273): the result is ours as it is, with 1 conflict.
+    // D14's loadable file over its "nothing lost": the result is ours as it is, with 1 conflict.
     let merge = |path: &str, sides: [&str; 3], limits: &Limits| {
         let m = merge_file(
             path,
@@ -1665,7 +1664,7 @@ fn the_manifest_merges_by_max_plus_one_with_pending_where_both_changed() {
     assert_eq!(merged.extra.get("base"), None);
 }
 
-/// FT-1235 (WP-S6.08 D4): a side that names a format newer than this reader's, theirs, ours or the ancestor, is not
+/// A side that names a format newer than this reader's, theirs, ours or the ancestor, is not
 /// merged: ours as it is, not clean, so the merge never takes a format this reader cannot read.
 #[test]
 fn a_manifest_side_of_a_newer_format_keeps_ours_as_it_is() {
@@ -1717,7 +1716,7 @@ fn a_file_of_another_class_keeps_ours_when_both_sides_changed_it() {
     assert_eq!((m.bytes, m.conflicts), (b"b".to_vec(), 0));
 }
 
-// ---- cycle 50's FT batch (decision log ID-1312) ------------------------------------------------------------------
+// ---- cycle 50's FT batch ------------------------------------------------------------------
 
 /// `merge_file` on bytes: the merged bytes and the conflicts.
 fn merge_bytes(path: &str, sides: [&[u8]; 3], limits: &Limits) -> (Vec<u8>, usize) {
@@ -1734,8 +1733,8 @@ fn merge_bytes(path: &str, sides: [&[u8]; 3], limits: &Limits) -> (Vec<u8>, usiz
 
 #[test]
 fn a_side_that_is_not_utf8_is_a_binary_conflict_that_keeps_the_side_that_reads() {
-    // FT-1234: never held lossily; the side that reads is kept and the other in git's index, as for a binary file
-    // (doc 05 §11.2: B when A is the failing side; C50-p4#3).
+    // Never held lossily; the side that reads is kept and the other in git's index, as for a binary file
+    // (doc 05 §11.2: B when A is the failing side).
     let ours = format!("{}\n", bond(1, json!({"number": 1})));
     let not_utf8 = b"{\"$k\":\"bond\",\"name\":\"\xff\"}\n".as_slice();
     let base = format!("{}\n", bond(1, json!({})));
@@ -1773,7 +1772,7 @@ fn a_side_that_is_not_utf8_is_a_binary_conflict_that_keeps_the_side_that_reads()
     );
 }
 
-/// C50-p4#3: ours does not read and theirs holds a `$conflict`: theirs is kept, ours' text held at the end of its
+/// Ours does not read and theirs holds a `$conflict`: theirs is kept, ours' text held at the end of its
 /// `$conflict`'s chain.
 #[test]
 fn an_unreadable_ours_is_held_below_theirs_conflict() {
@@ -1801,7 +1800,7 @@ fn an_unreadable_ours_is_held_below_theirs_conflict() {
 
 #[test]
 fn a_second_conflict_on_a_target_joins_its_conflict_record() {
-    // FT-1233: one conflict record per target (D14). Ours and theirs hold the record of an earlier conflict on
+    // One conflict record per target (D14). Ours and theirs hold the record of an earlier conflict on
     // `number`; both now change `page`: one record holds both, never a second line with the same ID.
     let earlier = r#"{"$k":"conflict","id":"0190d8a4-6d3e-7c41-8f00-000000000001","kind":"bond","base":{"number":0},"ours":{"number":1},"theirs":{"number":2}}"#;
     let side = |page: &str| format!("{}\n{earlier}\n", bond(1, json!({"number": 1, "page": page})));
@@ -1844,7 +1843,7 @@ fn a_second_conflict_on_a_target_joins_its_conflict_record() {
         )
     );
     // On one member with different values: ours' record stays as it is and the file is conflicted, so that git keeps
-    // theirs in its index; nothing pending is dropped (D14; decision log ID-1312, C50-p4#1).
+    // theirs in its index; nothing pending is dropped (D14).
     let b = format!("{o}{}\n", conflict(r#"{"number":1}"#, r#"{"number":3}"#));
     let (bytes, conflicts) = merge_bytes(
         "waivers.jsonl",
@@ -1857,7 +1856,7 @@ fn a_second_conflict_on_a_target_joins_its_conflict_record() {
     );
 }
 
-/// C50-p4#1: ours holds an unresolved conflict on `number` (1 against 2); a later merge brings theirs' `number` to 3.
+/// Ours holds an unresolved conflict on `number` (1 against 2); a later merge brings theirs' `number` to 3.
 /// The pending 2 is not replaced: ours' record stays as it is, W's ours value with it, and the file is conflicted.
 #[test]
 fn a_new_conflict_on_a_member_already_in_conflict_keeps_the_pending_one() {
@@ -1873,7 +1872,7 @@ fn a_new_conflict_on_a_member_already_in_conflict_keeps_the_pending_one() {
     assert_eq!((String::from_utf8(bytes).expect("UTF-8"), conflicts), (a, 1));
 }
 
-/// C50-p4#2: one side resolved and deleted the conflict record C of X, the other changed C; X conflicts in the same
+/// One side resolved and deleted the conflict record C of X, the other changed C; X conflicts in the same
 /// merge. C's own delete/modify keeps the changed C and raises no conflict of kind `conflict`, and X's new conflict
 /// joins it: one record of kind `bond`.
 #[test]
@@ -1900,7 +1899,7 @@ fn a_conflict_record_deleted_on_one_side_keeps_the_changed_one_and_x_s_conflict(
 
 #[test]
 fn a_library_document_conflict_keeps_the_earlier_conflict_below_theirs() {
-    // FT-1233: ours holds the `$conflict` of an earlier merge; both now change the name. `$conflict` holds theirs'
+    // Ours holds the `$conflict` of an earlier merge; both now change the name. `$conflict` holds theirs'
     // document, and the earlier conflict at the end of its chain.
     let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
     let base: Value = serde_json::from_slice(&golden()[path]).expect("JSON");
@@ -1931,7 +1930,7 @@ fn a_library_document_conflict_keeps_the_earlier_conflict_below_theirs() {
 
 #[test]
 fn a_manifest_base_that_does_not_read_makes_a_path_on_one_side_only_a_conflict() {
-    // FT-1245: markers a web merge committed (doc 05 §11.4) cannot tell theirs' delete from ours' add.
+    // Markers a web merge committed (doc 05 §11.4) cannot tell theirs' delete from ours' add.
     let o = "{\n<<<<<<< ours\n}\n";
     let a = manifest(2, &[("a.jsonl", 1), ("b.jsonl", 2)], "");
     let b = manifest(3, &[("a.jsonl", 3)], "");
@@ -1946,7 +1945,7 @@ fn a_manifest_base_that_does_not_read_makes_a_path_on_one_side_only_a_conflict()
 
 #[test]
 fn a_merge_that_would_pass_a_file_limit_keeps_ours_as_it_is() {
-    // FT-1246: the record file's size and line count, and the manifest's size and file count.
+    // The record file's size and line count, and the manifest's size and file count.
     let o = format!("{}\n", bond(1, json!({})));
     let a = format!("{o}{}\n", bond(2, json!({})));
     let b = format!("{o}{}\n", bond(3, json!({})));

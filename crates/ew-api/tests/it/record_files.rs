@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1290 (decision log ID-1312): `merge.resolve` routes a record to its file by `ew-commands`' own copy of doc 05
+//! `merge.resolve` routes a record to its file by `ew-commands`' own copy of doc 05
 //! §2.2's rules, since `ew-commands` has no `ew-format` edge. This crate sees both, and pins the copy to
 //! `ew_format::record_file`, the writer's, over Golden A's records and conflict records, kind by kind.
 
@@ -82,7 +82,7 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
         "target": {"finding": "9c2e5a0b7d14f3e8a6c1b05d2e9f41ab"}, "reason": "a reason", "author": "engineer",
         "date": "2025-04-14", "expires": "never"
     })));
-    // WP-S3.09 D6: an import run of Golden A's lineage, in `imports/<run>.jsonl`.
+    // An import run of Golden A's lineage, in `imports/<run>.jsonl`.
     let lineage = records
         .iter()
         .find_map(|r| match r {
@@ -108,7 +108,7 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
             "side": "theirs", "lines": []
         })));
     }
-    // FT-1335: file-level conflicts of every root file, of each record directory, and of paths that name no record
+    // File-level conflicts of every root file, of each record directory, and of paths that name no record
     // file (the writer routes those to the conflict's own shard).
     let id = "0190d8a4-6d3e-7c41-8f00-0000000000aa";
     let paths: Vec<String> = ew_store::ew_format::ROOT_FILES
@@ -143,7 +143,7 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
             "path": path, "side": "theirs", "lines": []
         })));
     }
-    // A conflict on the project record (C50-p4#7).
+    // A conflict on the project record.
     records.push(record(json!({
         "$k": "conflict", "id": project.id.to_string(), "kind": "project", "base": {}, "ours": {}, "theirs": {}
     })));

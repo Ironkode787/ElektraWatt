@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Synthetic S-XL fixtures (WP-S1.05): format-level records of generated projects in the four size classes of
+//! Synthetic S-XL fixtures: format-level records of generated projects in the four size classes of
 //! NFR §2.1, for the performance gates, benchmarks and scale tests.
 //!
 //! # What is generated

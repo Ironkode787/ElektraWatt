@@ -169,7 +169,7 @@ pub(super) fn library_embed(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
-/// `part.assign` (WP-S1.19 D8): a held part, or a part of another library embedded with the command, assigned to a
+/// `part.assign`: a held part, or a part of another library embedded with the command, assigned to a
 /// plain device. Refused: no devices, a device twice or unknown, a part neither held nor given, `replace` without
 /// `from`, `from` without `replace`, a quantity of 0, a copy listed twice.
 pub(super) fn part_assign(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -231,7 +231,6 @@ pub(super) fn part_assign(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
-// WP-S2.07 part 4a
 /// `part.edit_copy` (Bulk, D20, D21): a held project-local part copy (Golden A's are) edited in place with a new
 /// description. Refused: a copy the project does not hold, a fork for a project-local copy, a changed CP pattern, an
 /// empty part number, the unit `pcs`, a technical key twice, and the unchanged item.
@@ -287,7 +286,6 @@ pub(super) fn part_edit_copy(live: &Live, rng: &mut SplitMix64) -> Option<Step> 
     }
 }
 
-// WP-S1.19 part 5
 /// `macro.insert` (D12, D13): a window macro of one device with its main function drawn by an embedded symbol,
 /// carried in the command and inserted at a grid point of a page that takes it; the new device's ID is
 /// v5(instance, local). Refused: the macro not carried, no anchor, an unknown value set, a fragment of another grid,
@@ -323,7 +321,7 @@ pub(super) fn macro_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let good = doc(page.grid)?;
     let id = good["id"].clone();
     let instance = rng.uuid();
-    // FT-672: a window macro turns about its anchor by any of the eight orientations
+    // A window macro turns about its anchor by any of the eight orientations
     let orient = *rng.pick(&["r0", "r90", "r180", "r270", "m0", "m90", "m180", "m270"])?;
     let params = |copies: Value| json!({"copies": copies, "macro": id, "page": page.id, "at": at, "orient": orient, "instance": instance});
     let cmd = |p: Value| Step::cmd("macro.insert", p);
@@ -378,10 +376,10 @@ pub(super) fn macro_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
-/// `library.update` (Bulk, WP-S1.19 D9): a held part copy replaced by another version with another description.
+/// `library.update` (Bulk): a held part copy replaced by another version with another description.
 /// Refused: no copies, a copy the project does not hold, a version that is not semantic, a copy twice, a mapping for a
 /// copy not given, a CP mapping that is not injective (an old CP twice, or two old CPs onto one new), a version that
-/// names a manufacturer the project does not hold without embedding it (FT-640). The version is drawn at random, so
+/// names a manufacturer the project does not hold without embedding it. The version is drawn at random, so
 /// an update may be a downgrade of an earlier one: either.
 pub(super) fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (held, template) = rng.pick(&live.fixture.part_json)?;
@@ -429,7 +427,7 @@ pub(super) fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> 
                 json!({"copies": [c], "cp_maps": [{"copy": held, "map": map}]}),
             ))
         }
-        // Refused (FT-640): the new version names a manufacturer that is a fresh UUID, which the project does not
+        // Refused: the new version names a manufacturer that is a fresh UUID, which the project does not
         // hold and the command does not embed (a dangling reference).
         6 => {
             let mut t = template.clone();

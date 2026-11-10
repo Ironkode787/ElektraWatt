@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The layout queries over Golden A's test geometry (WP-S4.01 part 2, LQ-1 to LQ-5; doc 20 §13, U-50):
+//! The layout queries over Golden A's test geometry (LQ-1 to LQ-5; doc 20 §13, U-50):
 //!
 //! - `lq1_golden_a_holds_the_layout`: one space for +J-E-2416, the enclosure -UC1 with one plate surface, the eight
 //!   carriers (rails 1.71 m, ducts 3.17 m), the twenty placements; `Session::layout_spaces`.
@@ -251,7 +251,7 @@ fn lq2_unplaced_is_the_five_devices_each_case_asserted() {
     assert_eq!(s.unplaced(space()), unplaced);
 }
 
-/// Orchestrator ruling 1 (cycle 40): "LQ-3 footprints are in the surface frame: u = path[0].u + s". -102G1 on R1 is
+/// Orchestrator ruling 1: "LQ-3 footprints are in the surface frame: u = path[0].u + s". -102G1 on R1 is
 /// (101, 675)–(171, 805) mm; -X1031 on R2 is (98.6, 444)–(202.6, 516) mm; the spec's (61, …)–(131, …) and (58.6, …)–
 /// (162.6, …) are the same rectangles as `rail_occupancy` intervals in `s` (R1 and R2 start at u = 40 mm).
 #[test]

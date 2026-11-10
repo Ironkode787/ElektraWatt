@@ -3,7 +3,7 @@
 
 //! `ProjectSettings.text_styles` (ADR-0032, an optional member of the unreleased 0.1 under ADR-0011 amendment 4): a
 //! project line without it is unchanged, and a line with it, an unknown member inside an entry or a weight of a newer
-//! format reads and writes back byte for byte (WP-S1.12 text styles, TS-1 and TS-5).
+//! format reads and writes back byte for byte (text styles, TS-1 and TS-5).
 
 use crate::common;
 

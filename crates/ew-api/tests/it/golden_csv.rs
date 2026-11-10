@@ -215,7 +215,7 @@ fn every_representation_anchors_in_its_table_cell() {
     );
 }
 
-/// FT-456: the command layer's model-only anchor cell (`ew_commands::numbering::anchor_cell_in`, which online
+/// The command layer's model-only anchor cell (`ew_commands::numbering::anchor_cell_in`, which online
 /// numbering orders by) equals the derived `rep_anchor_cell` for every representation of Golden A: the committed
 /// fixture `golden/J-E-2416.ew` opened read-only, and the model the golden tables bootstrap.
 #[test]
@@ -328,7 +328,7 @@ fn list(cps: &[ew_derive::Cp]) -> String {
     format!("[{}]", items.join(", "))
 }
 
-/// Cycle-40 review, part 4, finding 5 (WP-S4.01 D5): the importer's copy of the carrier-path rule agrees with
+/// Cycle-40 review, part 4, finding 5: the importer's copy of the carrier-path rule agrees with
 /// `ew-derive`'s `check_path` on every case (the importer may not depend on `ew-derive`, so the copy stays).
 #[test]
 fn the_importer_and_the_derivation_agree_on_carrier_paths() {

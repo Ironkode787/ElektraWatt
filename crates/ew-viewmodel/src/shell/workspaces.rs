@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Named workspaces (WP-S2.01 part 2, FT-309; UX/UI doc 16 section 2.5, 2.6 and 3.4): the dock layout of the
+//! Named workspaces (UX/UI doc 16 section 2.5, 2.6 and 3.4): the dock layout of the
 //! project view, the workspace files `workspaces/<name>.json` in the configuration directory, and the actions that
 //! load, save and reset them.
 //!
@@ -88,7 +88,7 @@ impl ShellModel {
             return Ok(());
         };
         std::fs::create_dir_all(&dir)?;
-        // The configuration directory, which the same call may have made (C52-p1#6).
+        // The configuration directory, which the same call may have made.
         if let Some(config) = dir.parent() {
             crate::settings::user_only_dir(config);
         }
@@ -188,10 +188,10 @@ impl ShellModel {
         if layout != self.layout {
             self.layout = layout;
             self.layout_changed_at = Some(now);
-            // A pane dragged out or in: the property grid fetches or drops its sheet (WP-S2.05 §6.9).
+            // A pane dragged out or in: the property grid fetches or drops its sheet.
             self.sync_properties();
             self.sync_find();
-            // WP-S2.09 part 3: the Preview tab closed with a card pending cancels it; the history panel fetches or
+            // The Preview tab closed with a card pending cancels it; the history panel fetches or
             // drops its view.
             self.sync_preview();
             self.sync_history();

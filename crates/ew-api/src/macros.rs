@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 5: macros in the session (D12, D13; doc 07 §3.5, §4.6). [`Session::save_macro`] writes a selection
+//! Macros in the session (D12, D13; doc 07 §3.5, §4.6). [`Session::save_macro`] writes a selection
 //! (a window macro) or whole pages (a page macro) into a writable library as a macro document, a library write that
 //! is confirmed in the shell and not undoable; [`Session::insert_macro`] composes `macro.insert` with the macro and the
 //! closure documents the project lacks, so the command replays with no library installed (D7);
@@ -119,7 +119,7 @@ pub struct InsertAt {
     pub page: Uuid,
     /// A window macro's anchor point on the page (a grid point); ignored for a page macro.
     pub at: Option<Pt2>,
-    /// A window macro's orientation about its anchor (FT-672); `R0` for a page macro, which takes no other.
+    /// A window macro's orientation about its anchor; `R0` for a page macro, which takes no other.
     pub orient: ew_units::Orient2,
 }
 

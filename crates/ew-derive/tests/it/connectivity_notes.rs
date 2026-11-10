@@ -4,7 +4,7 @@
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
-//! Connectivity notes and the linear partner lookup (WP-S1.07, cycle-7 A review findings F6, F7, F8, F13).
+//! Connectivity notes and the linear partner lookup (A review findings F6, F7, F8, F13).
 //!
 //! - `star_group_of_400_members_derives`: one source and 399 targets derive through every query; the 3,999-target
 //!   size, `star_group_of_4000_members_is_linear`, is a perf test (ignored, milestone deliveries only).
@@ -18,7 +18,7 @@
 //! - `unlocated_rail_bonded_terminals_do_not_bond`: EW-POT-008, no rail bond, in a project with two own locations.
 //! - `unlocated_rail_bonded_terminals_join_the_only_own_location` and `..._join_the_implicit_main_location`:
 //!   cycle 33 (G-PP ruling #20), one own location or none: the rail joins them, no EW-POT-008. A location an
-//!   external reference names is own while an own device or page uses it (cycle 33 review finding 7).
+//!   external reference names is own while an own device or page uses it (finding 7).
 //! - `scoped_pairing_without_the_node_pairs_project_wide_and_notes`: F13, pages without a location node.
 //! - `scoped_pairing_keeps_locations_apart`: F13, different location nodes do not pair, the same node does.
 

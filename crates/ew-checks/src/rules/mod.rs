@@ -9,10 +9,10 @@ pub mod bus;
 pub mod cable;
 pub mod core;
 pub mod device;
-// WP-S1.20: the EW-FL MVP rules
+// The EW-FL MVP rules
 pub mod fluid;
 pub mod imp;
-// WP-S4.01 part 5: the EW-LAYOUT MVP rules
+// The EW-LAYOUT MVP rules
 pub mod layout;
 pub mod num;
 pub mod page;

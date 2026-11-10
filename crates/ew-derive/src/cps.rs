@@ -7,7 +7,7 @@
 //!
 //! Template origin is detected through the part template naming the function's FnDef copy: a function
 //! whose FnDef is not named by a `function_template` entry of one of its device's parts keeps the FnDef
-//! CPs. `Function.template_entry` (FT-655) only chooses among the entries of one FnDef; it does not make a
+//! CPs. `Function.template_entry` only chooses among the entries of one FnDef; it does not make a
 //! function template-origin on its own.
 
 use std::sync::Arc;
@@ -51,7 +51,7 @@ pub struct Cp {
     pub clamp: Option<ClampKey>,
     /// A drawn, wireable point.
     pub physical: bool,
-    /// The role of a fluid port, from its FnDef CP (WP-S1.20 D3).
+    /// The role of a fluid port, from its FnDef CP.
     pub port_role: Option<FluidPortRole>,
     /// Whether an override of the function changed this CP.
     pub overridden: bool,
@@ -63,7 +63,7 @@ pub struct Cp {
 /// - A function is *template-origin* when a part use of its device (in `Device.parts` order) has a part copy
 ///   whose `function_template` has an entry naming the function's FnDef copy (the copy of the entry's `fndef`
 ///   reference). The entry is the one at `Function.template_entry` when a part use has one there naming the
-///   FnDef copy, else the first naming it (FT-655). Its CPs start from that part's CP pattern: the entries
+///   FnDef copy, else the first naming it. Its CPs start from that part's CP pattern: the entries
 ///   named by the entry's `cps` (CP indices, `CpData.idx`; empty means the whole pattern). When `cps` lists as
 ///   many pattern entries as the FnDef has CPs, they pair with the FnDef's CPs by position and each function CP
 ///   keeps the FnDef CP's `idx`; otherwise they are taken in `idx` order with their own `idx` and pair with the
@@ -80,7 +80,7 @@ pub struct Cp {
 ///   `unused` flag and mark the CP `overridden`. An override whose index has no CP is ignored (finding it
 ///   is a normaliser's job).
 /// - Before the overrides, a CP with no potential role from its pattern or FnDef takes `L+` or `M` from the first
-///   supply group of its device's PLC part that names its designation (WP-S1.21 D13, FR-PLC-024).
+///   supply group of its device's PLC part that names its designation (FR-PLC-024).
 #[derive(Debug)]
 pub struct FunctionCps;
 
@@ -120,7 +120,7 @@ impl Query for FunctionCps {
     }
 }
 
-/// The potential roles that the supply groups of the device's PLC part give its pins (WP-S1.21 D13, FR-PLC-024):
+/// The potential roles that the supply groups of the device's PLC part give its pins (FR-PLC-024):
 /// pin designation → `L+` or `M`, in group order. The part is found by the rule of WP-S1.21 D2: the part use named by
 /// `plc_module.part_use`, else the first part use whose copy has a PLC section with at least one group.
 fn supply_roles(q: &Q, function: &Function) -> Vec<(String, PotentialType)> {
@@ -150,7 +150,7 @@ fn supply_roles(q: &Q, function: &Function) -> Vec<(String, PotentialType)> {
         .collect()
 }
 
-/// The supply-group fallback of a CP's potential role (WP-S1.21 D13; the orchestrator's ruling 2 of cycle 42): a CP
+/// The supply-group fallback of a CP's potential role (the orchestrator's): a CP
 /// takes its role from its authored part-pattern CP, else from its definition CP (the instantiation above), else, when
 /// it has neither, from the first supply group of the device's PLC part that names its designation as `l_plus` (`L+`)
 /// or `m` (`M`). An authored role always wins. Applied to the CPs of every instantiation path (FnDef, template, black
@@ -214,12 +214,12 @@ fn fndef_cps(q: &Q, function: &Function) -> Vec<Cp> {
 /// copy, or when the entry selects no pattern CP.
 ///
 /// The entry is the one at the function's `template_entry` index in the first part use whose template has, at that
-/// index, an entry naming the function's FnDef copy (FT-655); without the member, or when the index names no such
+/// index, an entry naming the function's FnDef copy; without the member, or when the index names no such
 /// entry in any part use (out of range, or another FnDef), it is the first entry naming the FnDef copy, in
 /// `Device.parts` order. A stale index therefore never panics and never needs a finding: it derives as a file
 /// without the member does.
 ///
-/// How the entry's `cps` pair with the FnDef's CPs (FT-655): when `cps` is not empty, names as many pattern entries
+/// How the entry's `cps` pair with the FnDef's CPs: when `cps` is not empty, names as many pattern entries
 /// as the FnDef copy has CPs and every index it lists is in the pattern, they pair **by position**: the FnDef's
 /// `k`-th CP (in `idx` order) is drawn as pattern entry `cps[k]`, keeping the FnDef CP's `idx`, so that a symbol's
 /// `fn_cp` and the FnDef's internal links still name it (a relay's second changeover contact, pattern `[5, 6, 7]`,

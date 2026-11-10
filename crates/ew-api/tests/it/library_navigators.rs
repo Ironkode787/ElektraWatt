@@ -159,7 +159,7 @@ fn ui4_golden_a_copies_have_no_source_without_libraries() {
     assert_eq!(cell(&t, lamp, "kind"), "Symbol");
     assert_eq!(cell(&t, lamp, "version"), "0.2.0");
     assert!(!cell(&t, lamp, "used_by").is_empty(), "{lamp:?}");
-    // FT-755: the copy is listed by its name in words, not its key
+    // The copy is listed by its name in words, not its key
     let copy = row(&t, NavRole::LibCopy, "Title block QET A4");
     assert_eq!(copy.badges, ["source_missing"]);
     assert_eq!(cell(&t, copy, "state"), "Source missing");
@@ -168,7 +168,7 @@ fn ui4_golden_a_copies_have_no_source_without_libraries() {
         copy.facets
             .contains(&("state".to_owned(), "source_missing".to_owned()))
     );
-    // FT-755: the copy's detail names it in words, its key secondary, with its kind, version and state.
+    // The copy's detail names it in words, its key secondary, with its kind, version and state.
     let detail = s.library_copy_detail(&copy.key).expect("a copy row's detail");
     assert_eq!(detail.name, "Title block QET A4");
     assert_eq!(detail.kind, "Form");
@@ -180,7 +180,7 @@ fn ui4_golden_a_copies_have_no_source_without_libraries() {
         None,
         "a tier row has no copy detail"
     );
-    // FT-755: no copy row is listed by an `ew.` key; a function definition reads as its kind.
+    // No copy row is listed by an `ew.` key; a function definition reads as its kind.
     for n in t.nodes.iter().filter(|n| n.role == NavRole::LibCopy) {
         assert!(!n.label.starts_with("ew."), "{}", n.label);
     }

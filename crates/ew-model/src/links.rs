@@ -14,7 +14,7 @@
 //!   [`Model::apply_with`](crate::Model::apply_with) reject a batch that removes the target anyway
 //!   ([`ModelError::Referenced`](crate::ModelError::Referenced)); [`Policy::Cascade`] and
 //!   [`Policy::Unlink`] are computed by `Model::delete_plan` (behind `raw-read`), which a transaction
-//!   includes (WP-S1.04), and `apply` only verifies the result.
+//!   includes, and `apply` only verifies the result.
 //!
 //! Two link fields are **`LibRef` links** ([`LinkDecl::lib_ref`]): `symbol.fndef` and
 //! `part.function_template[].fndef` name a library item by `{library, item}`, and within a project such a
@@ -28,7 +28,7 @@
 //! [`Model::apply_with`](crate::Model::apply_with)) cannot remove an FnDef copy that an embedded symbol or
 //! part names, while undo and redo ([`Model::apply_history`](crate::Model::apply_history)) may, because the
 //! state they restore is valid: the undo of `library.embed` leaves the `LibRef` naming nothing, as before
-//! the embedding (FT-316). Every other forbid link stores the target's ID and is structural: its missing target
+//! the embedding. Every other forbid link stores the target's ID and is structural: its missing target
 //! is a dangling reference in any state, so no committed state, and no undo, can leave one. Other `LibRef`s
 //! (successors, manufacturers) are not links; see [`NOT_LINKS`].
 //!
@@ -40,7 +40,7 @@
 //! unlink link: a deleted connection leaves the list, and a marker left empty is deleted in the same plan.
 //!
 //! One link is **kind-erased** ([`LinkDecl::kind_erased`]): `macro_instance.members[][1]`, the records a placed
-//! macro created (doc 03 §7, WP-S1.19 part 1). A member is stored as a bare ID, so the link names a record of any
+//! macro created (doc 03 §7). A member is stored as a bare ID, so the link names a record of any
 //! kind of [`MACRO_MEMBER_KINDS`]: it resolves when a record of one of those kinds has the ID, its reverse map is
 //! keyed by the ID under the link's nominal `to` kind (the first of the list), and the removal of a record of any
 //! of the kinds consults it. Its policy is unlink: a deleted member leaves the instance, which stays (an instance
@@ -108,12 +108,12 @@ pub enum IndexName {
     PageItemsByPage,
     /// `StructureBox.page` → structure boxes.
     StructureBoxesByPage,
-    /// `Placement.device` → placements (WP-S4.01).
+    /// `Placement.device` → placements.
     PlacementsByDevice,
     /// `Placement.carrier` (a carrier) → placements; a placement on the surface itself is found through the
-    /// generic referrer index (WP-S4.01).
+    /// generic referrer index.
     PlacementsByCarrier,
-    /// `Carrier.surface` → carriers (WP-S4.01).
+    /// `Carrier.surface` → carriers.
     CarriersBySurface,
 }
 
@@ -504,7 +504,7 @@ pub static LINKS: &[LinkDecl] = &[
     link!(Device."terminal.strip" -> Device, Forbid, Some(I::TerminalsByStrip),
         |v, out| opt(v.aspects.terminal.as_ref().map(|t| t.strip), out)),
     // The assembly aspect (doc 03 §7, D-41): a configured part copy is kept alive like a part use; a covered
-    // device that is removed leaves the cover list (ID-334: additive within the unreleased 0.1).
+    // device that is removed leaves the cover list (additive within the unreleased 0.1).
     link!(Device."assembly.configs[].part.copy" -> Part, Forbid, None, |v, out| {
         if let Some(a) = &v.aspects.assembly {
             for c in &a.configs {
@@ -553,7 +553,7 @@ pub static LINKS: &[LinkDecl] = &[
         }
         Some(AnyRow::Function(Arc::new(f)))
     })),
-    // The bus port (WP-S1.21 D11): a port whose net is removed leaves the net, as a channel's binding does.
+    // The bus port: a port whose net is removed leaves the net, as a channel's binding does.
     link!(Function."bus_port.logical_net" -> LogicalNet, Unlink, None,
     |v, out| opt(v.bus_port.as_ref().and_then(|p| p.logical_net), out),
     Some(|row, del| {
@@ -578,7 +578,7 @@ pub static LINKS: &[LinkDecl] = &[
         }
         Some(AnyRow::Function(Arc::new(f)))
     })),
-    // A fluid port's closure (WP-S1.20 D2): its part copy is kept alive like a part use.
+    // A fluid port's closure: its part copy is kept alive like a part use.
     link!(Function."cp_overrides[].closure.part.copy" -> Part, Forbid, None, |v, out| {
         for o in &v.cp_overrides {
             if let Some(p) = o.closure.as_ref().and_then(|c| c.part.as_ref()) {
@@ -706,7 +706,7 @@ pub static LINKS: &[LinkDecl] = &[
     link!(DeviceLink."from" -> Device, Cascade, None, |v, out| id(v.from, out)),
     link!(DeviceLink."to" -> Device, Cascade, None, |v, out| id(v.to, out)),
     lineage_link!(DeviceLink),
-    // logical_net and physical_net (WP-S1.21 D11): a removed master or ordered member leaves the net
+    // logical_net and physical_net: a removed master or ordered member leaves the net
     link!(LogicalNet."master.cp[0]" -> Function, Unlink, None, |v, out| opt_cp(&v.master, out),
     Some(|row, del| {
         let AnyRow::LogicalNet(n) = row else { return Some(row.clone()) };
@@ -739,16 +739,16 @@ pub static LINKS: &[LinkDecl] = &[
         Some(AnyRow::PhysicalNet(Arc::new(n)))
     })),
     lineage_link!(PhysicalNet),
-    // page_item (WP-S2.04 part 4a; EW-INV-022, EW-INV-023)
+    // page_item (EW-INV-022, EW-INV-023)
     link!(PageItem."page" -> Page, Cascade, Some(I::PageItemsByPage), |v, out| id(v.page, out)),
     MARKER_LIST_LINK,
-    // WP-S4.01 part 3 (D9): a surface view shows nothing without its surface, so it goes with it.
+    // A surface view shows nothing without its surface, so it goes with it.
     link!(PageItem."kind.surface_view.surface" -> MountingSurface, Cascade, None, |v, out| {
         if let PageItemKind::SurfaceView(sv) = &v.kind {
             id(sv.surface, out);
         }
     }),
-    // structure_box (WP-S2.04 part 4a; EW-INV-022)
+    // structure_box (EW-INV-022)
     link!(StructureBox."page" -> Page, Cascade, Some(I::StructureBoxesByPage), |v, out| id(v.page, out)),
     BOX_SLOTS[0],
     BOX_SLOTS[1],
@@ -771,12 +771,12 @@ pub static LINKS: &[LinkDecl] = &[
     link!(ReportBlock."section" -> Section, Forbid, None, |v, out| opt(v.section, out)),
     link!(ReportBlock."embedded.page" -> Page, Cascade, None, |v, out| opt(v.embedded.as_ref().map(|e| e.page), out)),
     lineage_link!(ReportBlock),
-    // macro_instance (WP-S1.19 part 1; doc 03 §7): the macro copy is a stored copy ID (structural forbid, as
+    // macro_instance (doc 03 §7): the macro copy is a stored copy ID (structural forbid, as
     // `representation.symbol`), the members a kind-erased unlink, the anchor page a cascade
     link!(MacroInstance."macro" -> Macro, Forbid, None, |v, out| id(v.macro_copy, out)),
     MACRO_MEMBERS_LINK,
     link!(MacroInstance."page" -> Page, Cascade, None, |v, out| id(v.page, out)),
-    // layout (WP-S4.01 D4; doc 03 §16): the containment chain space ← enclosure ← surface ← carrier cascades; a
+    // layout (doc 03 §16): the containment chain space ← enclosure ← surface ← carrier cascades; a
     // placement cannot outlive its device or function (EW-LAY-002) and keeps its carrier, so an occupied carrier
     // leaves only through `layout.carrier.delete` (doc 12 §3.6); an enclosure keeps its device; a separate surface
     // part's device may go (the surface stays without one); `placement.part` is not a link (NOT_LINKS)
@@ -809,7 +809,7 @@ pub static LINKS: &[LinkDecl] = &[
     }),
     // revision (`page_notes[].page` is not a link: NOT_LINKS)
     link!(Revision."withdraws" -> Revision, Forbid, None, |v, out| opt(v.withdraws, out)),
-    // import run (WP-S3.09 D6): the lineage and its last run name each other, neither cascades
+    // import run: the lineage and its last run name each other, neither cascades
     link!(ImportRun."lineage" -> ImportLineage, Forbid, None, |v, out| id(v.lineage, out)),
     link!(ImportLineage."last_run" -> ImportRun, Forbid, None, |v, out| opt(v.last_run, out)),
     lineage_link!(Revision),
@@ -869,7 +869,7 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
         "history: a released revision is immutable (FR-REV-009), so its notes keep naming a page that a later \
          revision deletes; a note on a page that does not exist selects nothing",
     ),
-    // WP-S1.18 part 1 (D2): the typed sign-off and release record are history, like the page notes.
+    // The typed sign-off and release record are history, like the page notes.
     (
         "revision",
         "release.approval.waivers_ack[]",

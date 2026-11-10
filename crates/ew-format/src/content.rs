@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The content digest of a saved generation (doc 15 §5.4; WP-S1.18 D8, FR-REV-021): the value a checker's sign-off
+//! The content digest of a saved generation (doc 15 §5.4; FR-REV-021): the value a checker's sign-off
 //! binds to, so that any later content edit voids it.
 //!
 //! **Definition.** SHA-256 over the sorted `(path, sha256)` entries of the generation's manifest, without the files
@@ -73,7 +73,7 @@ pub fn content_lines(manifest: &Manifest) -> Result<String, ContentDigestError> 
     Ok(out)
 }
 
-/// The content digest of the generation `manifest` describes (doc 15 §5.4; WP-S1.18 D8): SHA-256 over
+/// The content digest of the generation `manifest` describes (doc 15 §5.4): SHA-256 over
 /// [`content_lines`].
 ///
 /// ```

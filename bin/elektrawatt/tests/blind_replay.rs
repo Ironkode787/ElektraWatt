@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The CI replay of the blind drafter's recordings (WP-S6.13 part 1, D15, acceptance check BD12).
+//! The CI replay of the blind drafter's recordings (acceptance check).
 //!
 //! `tools/blind/recordings/<name>/` holds what a run needs to be replayed: `prelude.uiscript`, `steps.uiscript` (the
 //! agent's steps, the harness's looks and the epilogue), `outcomes.jsonl` (per step its action, outcome and reason) and
@@ -13,7 +13,7 @@
 //! no record ID (the product prints the alias `@n`), so the test needs no normaliser, and a raw UUID in a replayed line
 //! fails it. A recording with `stale` set is skipped with its reason; the self-test recording is never stale.
 //!
-//! A visual recording (`run.json` `senses = "visual"`, WP-S6.13 part 4) is replayed with `--visual --no-frames`: its
+//! A visual recording (`run.json` `senses = "visual"`) is replayed with `--visual --no-frames`: its
 //! input and frame lines are settled as in the run and no frame is painted, so it runs on every OS. R1 then compares
 //! each input's and each frame line's `dispatched` (and `closed`) too; the frames themselves are a report (§5.4).
 //! `blind_replay_long` (ignored) does the same for `ci = "nightly"`.
@@ -177,7 +177,7 @@ fn replay(rec: &Recording) -> Vec<String> {
 /// R1 and R2 over one replay: the failures, empty when both hold.
 fn check(rec: &Recording, lines: &[String]) -> Vec<String> {
     let mut failures = Vec::new();
-    // ID-630 (d): a raw UUID in any replayed line is a product defect, named by its line.
+    // A raw UUID in any replayed line is a product defect, named by its line.
     if let Some(at) = lines.iter().position(|l| has_uuid(l)) {
         failures.push(format!(
             "a raw UUID in replayed transcript line {}: {}",
@@ -321,7 +321,7 @@ fn blind_replay() {
     assert!(out.failures.is_empty(), "{}", out.failures.join("\n"));
 }
 
-/// The long recordings (`ci = "nightly"`), replayed by the deep nightly (FT-414).
+/// The long recordings (`ci = "nightly"`), replayed by the deep nightly.
 #[test]
 #[ignore = "the nightly's"]
 fn blind_replay_long() {

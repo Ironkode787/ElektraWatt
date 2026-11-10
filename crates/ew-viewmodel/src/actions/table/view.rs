@@ -148,7 +148,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     keeps_banner(with_params(
         "by:enum(folio|type)",
-        // FT-1174: the palette row's icon (doc 16a §6.14).
+        // The palette row's icon (doc 16a §6.14).
         needs_parameters(with_icon(
             "arrows-sort",
             act(
@@ -185,7 +185,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         grp(Group::Show),
         |s, _| s.act_cpu_canvas(),
     ),
-    // WP-S2.08 part 6 (D18): View ▸ Wire colours, a view toggle of the session.
+    // View ▸ Wire colours, a view toggle of the session.
     keeps_banner(with_params(
         "on?:bool",
         act(
@@ -198,7 +198,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_wire_colours(p),
         ),
     )),
-    // The property grid (WP-S2.05 part 1, spec §6.10).
+    // The property grid (spec §6.10).
     keeps_banner(with_params(
         "on?:bool",
         placed(
@@ -251,7 +251,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     )),
-    // FT-1372 (ID-1362): Output ▸ Reports ▸ Report block…, `report_block.create` through its form.
+    // Output ▸ Reports ▸ Report block…, `report_block.create` through its form.
     with_params(
         "kind:text, folio:text, title?:text",
         act(
@@ -363,7 +363,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_messages_fix(p),
         ))),
     ),
-    // FT-674: Waive… and Unwaive in the Messages detail (`check.waive`, `check.unwaive`; window only).
+    // Waive… and Unwaive in the Messages detail (`check.waive`, `check.unwaive`; window only).
     with_params(
         "key?:text, reason?:text, author?:text, date?:text",
         hidden(in_navigator(act(
@@ -404,7 +404,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
-    // WP-S2.08 D14 (ID-1272 ruling 5): View ▸ Minimum text size (`pt` 0 is off, else 8 to 16) and View ▸ Reduce motion,
+    // View ▸ Minimum text size (`pt` 0 is off, else 8 to 16) and View ▸ Reduce motion,
     // the settings `min_font_pt` and `reduce_motion`.
     with_params(
         "pt:uint",
@@ -430,7 +430,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_reduce_motion(p),
         ),
     ),
-    // FT-1439 (ID-1397): View ▸ Mouse wheel scrolls, the setting `wheel_scrolls`; off, the wheel zooms.
+    // View ▸ Mouse wheel scrolls, the setting `wheel_scrolls`; off, the wheel zooms.
     with_params(
         "on?:bool",
         act(
@@ -443,8 +443,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_wheel_scrolls(p),
         ),
     ),
-    // FT-1280 (ID-1315 ruling 3): View ▸ Show tips, the setting `tips` (FR-UI-048), beside Reduce motion. FT-1367
-    // (ID-1392): a switch of the View tab's Show group too, so its menu item is View ▸ Show ▸ Show tips.
+    // View ▸ Show tips, the setting `tips` (FR-UI-048), beside Reduce motion. FT-1367:
+    // a switch of the View tab's Show group too, so its menu item is View ▸ Show ▸ Show tips.
     with_params(
         "on?:bool",
         placed(
@@ -461,7 +461,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // WP-S2.17 part 1: View ▸ Theme and View ▸ Density (doc 16a §4.13, D5, D6). The theme words of the spec
+    // View ▸ Theme and View ▸ Density (doc 16a §4.13, D5, D6). The theme words of the spec
     // (`hc-dark`, `hc-light`) are not words of the signature grammar, so `value` is text, checked against `THEMES`.
     with_params(
         "value:text",
@@ -495,11 +495,11 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
-    // WP-S2.08 part 3 (D10, ID-1219 ruling 5): View ▸ Language switches the UI language at run time; `value` is a
+    // WP-S2.08 part 3 (D10, ruling 5): View ▸ Language switches the UI language at run time; `value` is a
     // value of the `language` setting.
     with_params(
         "value:text",
-        // FT-1174: the palette row's icon (doc 16a §6.14).
+        // The palette row's icon (doc 16a §6.14).
         needs_parameters(with_icon(
             "language",
             act(

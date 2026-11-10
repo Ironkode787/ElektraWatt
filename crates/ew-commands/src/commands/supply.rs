@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `project.supply.set` (`SetProjectSupply`, FT-270): one member of the project's supply (doc 03 §5).
+//! `project.supply.set` (`SetProjectSupply`): one member of the project's supply (doc 03 §5).
 
 use ew_schema::{ExternalRef, SupplySpec};
 use schemars::JsonSchema;
@@ -17,7 +17,7 @@ use crate::tx::TxBuilder;
 
 /// The member paths of the supply that `project.supply.set` edits (the `SupplySpec` JSON form).
 ///
-/// v0 (owner ruling, cycle 16): only `origin.source`, the external reference the supply comes from. The
+/// v0: only `origin.source`, the external reference the supply comes from. The
 /// electrical members (phases, earthing, nominal voltage, frequency, upstream rating, short-circuit current)
 /// change derived values project-wide; they wait for an ADR-0008 amendment that makes them Bulk with a
 /// preview and semantic validation (ADR-0008 amendment 3).

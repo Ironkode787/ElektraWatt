@@ -99,7 +99,7 @@ impl HistoryEntry {
         &self.tx.command
     }
 
-    /// The exposure class of the command, recorded at commit (FT-404): `undo` and
+    /// The exposure class of the command, recorded at commit: `undo` and
     /// `redo` refuse a `HumanOnly` step from an origin that [`Exposure::allows_history`] does not admit.
     pub fn exposure(&self) -> Exposure {
         self.tx.exposure
@@ -198,7 +198,7 @@ impl History {
     /// Every asset hash that an undo or redo entry may bring back: the SHA-256 texts mentioned in the JSON of the
     /// `before` and `after` rows of every op of every entry ([`ew_schema::sha256_mentions`]: any 64 hex digits, so
     /// a bare hash, a reference of a newer writer or an unknown member counts). The asset purge keeps the files of
-    /// these hashes ("in no undo entry", doc 05 §13.3, FT-380), so that an undo never names an asset whose file a
+    /// these hashes ("in no undo entry", doc 05 §13.3), so that an undo never names an asset whose file a
     /// purge deleted. An over-approximation by design. O(the rows the history keeps).
     ///
     /// # Errors

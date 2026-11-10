@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The edit-cable table's gestures below the shell (WP-S2.07 part 2, §7): [`Session::swap_cores`] compiles a swap of
+//! The edit-cable table's gestures below the shell: [`Session::swap_cores`] compiles a swap of
 //! two cores of one cable into one `fields.set_many` that moves the core assignment of their connections (each
 //! connection of the one core becomes a connection of the other), so the assignment moves, not the colour.
 
@@ -73,11 +73,11 @@ pub struct CoresRefused {
 }
 
 impl Session {
-    /// The one command of New cable… (FT-1371) for the cable part `part` (its copy ID, a project copy or an installed
+    /// The one command of New cable… for the cable part `part` (its copy ID, a project copy or an installed
     /// library's part, as [`Session::layout_part_offers`] offers it for `cable`): `cable.create` with the part
     /// (quantity 1), one conductor per core of the part's cable cores, in the part's order (FR-CBL-004), and the part
     /// and its closure as `copies` when the project does not hold it, so that the embed and the cable are one
-    /// transaction and one undo step (decision log ID-1376). `None` when no cable part has that ID.
+    /// transaction and one undo step. `None` when no cable part has that ID.
     pub fn create_cable(&self, part: Uuid) -> Option<AnyCommand> {
         let offer = self
             .layout_part_offers("cable")
@@ -129,8 +129,8 @@ impl Session {
         })
     }
 
-    /// The project's cables for Connect cores… (FT-1371): `(cable device, its tag, its words)`, by tag. The words are
-    /// the tag, unless another cable prints the same tag (two frozen tags alike; decision log ID-1376, FT-1406): then
+    /// The project's cables for Connect cores…: `(cable device, its tag, its words)`, by tag. The words are
+    /// the tag, unless another cable prints the same tag (two frozen tags alike): then
     /// the tag, `·` and the cable's part number (none for a cable without a part), and where those words are shared too, its position among them in the order the cables were created, `(1)`, `(2)`.
     pub fn cables(&self) -> Vec<(Uuid, String, String)> {
         let q = self.query();
@@ -175,7 +175,7 @@ impl Session {
         out
     }
 
-    /// The one command of Connect cores… (FT-1371; doc 08 §7.2, by order): one `fields.set_many` that makes the
+    /// The one command of Connect cores… (doc 08 §7.2, by order): one `fields.set_many` that makes the
     /// connections `wires`, in the order given, cores of `cable`, taking its free cores in the order of its part's
     /// cable cores (cores the part does not list after them, by core). A free core is one that no connection outside
     /// `wires` is; a wire among `wires` that is a core already is assigned again.

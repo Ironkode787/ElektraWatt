@@ -14,7 +14,7 @@
 //!   ([`MemoInput::Page`]), an ID shard for rows without a page ([`MemoInput::Shard`]), an index-key shard for
 //!   index buckets not keyed by page ([`MemoInput::IndexShard`]), and the read itself for whole tables,
 //!   whole indexes, the project row and the reserved records. With row-level keys the index would hold about
-//!   56 MB at XL (ID-226); page-level keys are required.
+//!   56 MB at XL; page-level keys are required.
 //!
 //! # The contract between registration and touch
 //!

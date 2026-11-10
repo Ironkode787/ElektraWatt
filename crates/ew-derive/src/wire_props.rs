@@ -177,7 +177,7 @@ pub struct WirePropsMap {
 ///   belongs to both potentials of the bond, so its result must not depend on the key: level 3 reads the
 ///   definitions of both potentials in `PhysicalWire::potentials` order, and level 2 follows the bond rule
 ///   (the PE colour row, the class of the non-PE potential, [`SizeRule::Bond`]).
-/// - **Merged 0 V/PE potential** (FT-654, decision log ID-828; doc 08 §3.6, doc 16a §7.5). A potential without a
+/// - **Merged 0 V/PE potential** (doc 08 §3.6, doc 16a §7.5). A potential without a
 ///   bond that holds a definition of type PE while another definition's type applies (two typed definitions
 ///   merged by a plain wire: FT-587's natural order names it 0V and gives it type M) shows the PE colour, not the
 ///   colour of its name: the level-3 colour comes from its PE definitions only, and levels 2 and 0 take the
@@ -516,7 +516,7 @@ impl Ctx<'_> {
             })
             .filter_map(|d| q.potential_defs().get(d).map(|r| (d, r.clone())))
             .collect();
-        // FT-654: a merged 0 V/PE potential (a PE definition whose type does not apply) takes the PE colour.
+        // A merged 0 V/PE potential (a PE definition whose type does not apply) takes the PE colour.
         let pe_defs: Vec<(Id<PotentialDef>, Arc<PotentialDef>)> = defs
             .iter()
             .filter(|(_, d)| d.ptype == Some(PotentialType::Pe))
@@ -560,7 +560,7 @@ impl Ctx<'_> {
             } else {
                 (row.class.clone(), SizeRule::Class)
             };
-            // FT-654: the colour row of a PE potential; the class and the size row keep the applied type.
+            // The colour row of a PE potential; the class and the size row keep the applied type.
             let colour_row = if pe_merged { self.row(&pe, None) } else { row };
             (attrs, colour_row, class, rule)
         };

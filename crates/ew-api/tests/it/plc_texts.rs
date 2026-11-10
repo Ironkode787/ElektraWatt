@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 2 in the Session (acceptance PT-1 and the restated PT-2; D7, FT-227): the derived PLC texts on the
+//! WP-S1.21 part 2 in the Session (acceptance PT-1 and the restated PT-2; D7): the derived PLC texts on the
 //! page. The generic CPU and the two generic cards of the starter parts are placed from the picker's command
 //! (`box.black` from the part, here with the tool's default box CPs); the cards' pins print their CP designation and channel address
 //! in the labels layer, and a `PlcAddress` slot of a starter coil prints the address of the channel bound to it. A
@@ -132,7 +132,7 @@ fn count(texts: &[String], t: &str) -> usize {
     texts.iter().filter(|x| x.as_str() == t).count()
 }
 
-/// The number of pin texts printing address `a` after their CP designation (FT-707: "<designation> <address>").
+/// The number of pin texts printing address `a` after their CP designation ("<designation> <address>").
 fn pins(texts: &[String], a: &str) -> usize {
     texts
         .iter()
@@ -163,7 +163,7 @@ fn pt1_the_card_pins_print_their_channel_addresses() {
     place(&mut s, "EW-GEN-DO-1", 3, true);
     let texts = labels(&s);
     for n in 0..8 {
-        // FT-707: the CP designation (the generic cards number their pins 1 … 8) comes first, one space before the
+        // The CP designation (the generic cards number their pins 1 … 8) comes first, one space before the
         // address.
         let (i, q) = (format!("{} I0.{n}", n + 1), format!("{} Q0.{n}", n + 1));
         assert_eq!(count(&texts, &i), 1, "{i} in {texts:?}");
@@ -272,7 +272,7 @@ fn pt2_a_starter_coil_bound_to_an_output_channel_prints_its_address() {
     assert_eq!((count(&texts, "Q4.0"), count(&texts, "Q0.0")), (0, 1));
 }
 
-/// PT-2 and PT-4 with FT-698 (cycle 38): Golden A's lamp, position switch and 5/2 valve have a `PlcAddress` slot
+/// PT-2 and PT-4 with FT-698: Golden A's lamp, position switch and 5/2 valve have a `PlcAddress` slot
 /// (0.2.0). Every valve on the valve-manifold folios 203 to 206 prints the address of the channel bound to its coil,
 /// the address folio 908 lists with that valve as its target; the unbound lamp and position switch of folio 101 print
 /// nothing, and none of Golden A's black boxes has a pin bound to a channel (its pins print their designations only,
@@ -308,7 +308,7 @@ fn golden_a_prints_the_valve_addresses_of_part_2() {
     let mut folios: Vec<u32> = Vec::new();
     for (page, p) in q.pages().iter() {
         let slots = q.get::<ew_api::output::PageSlotsOf>(page);
-        // FT-707: the black boxes' pins print their CP designations only, no address.
+        // The black boxes' pins print their CP designations only, no address.
         assert!(
             slots
                 .iter()

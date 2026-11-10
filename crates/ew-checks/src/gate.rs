@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The release gate (doc 15 §4.8, §5.5; WP-S1.18 D10, FR-REV-007) and the versions of the packs a run evaluated
+//! The release gate (doc 15 §4.8, §5.5; FR-REV-007) and the versions of the packs a run evaluated
 //! (doc 15 §3.9; FR-REV-001, FR-REV-020).
 //!
 //! The gate is the release scheme in release mode (its `Tbd` rules included) together with the gate-only EW-REL rules.
@@ -33,7 +33,7 @@ pub fn gate(q: &Q, scheme: &Scheme, input: &GateInput) -> CheckReport {
     let mut report = run(q, scheme, CheckMode::Release);
     let mut rel: Vec<Finding> = four_eyes(q, input);
     rel.extend(label_order(q));
-    // EW-REL-002 reports nothing at MVP (no committed computation has an input hash yet; WP-S1.18 D9).
+    // EW-REL-002 reports nothing at MVP (no committed computation has an input hash yet).
     for r in rules() {
         let m = r.meta();
         if m.pack == LABEL_ORDER.pack && !report.rules.iter().any(|x| x.id == m.id) {

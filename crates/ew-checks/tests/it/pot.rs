@@ -43,7 +43,7 @@ fn pot001_reports_conflicting_definition_attributes_once_per_potential() {
     assert_eq!(f[0].code, "005001");
     assert_eq!(f[0].severity, Severity::Error);
     assert_eq!(f[0].discriminator, "attrs");
-    // FT-587 (WP-S1.16 D9): every definition is a target; the fingerprint stays keyed on the potential's ID.
+    // Every definition is a target; the fingerprint stays keyed on the potential's ID.
     assert_eq!(
         f[0].targets,
         vec![
@@ -296,7 +296,7 @@ fn pot001_agreeing_definitions_have_no_finding() {
     assert!(findings_of(&m, "EW-POT-001").is_empty());
 }
 
-/// FT-587 (ID-677): the flow conflict names the pass-through function by its device tag, not by an ID, so the text
+/// The flow conflict names the pass-through function by its device tag, not by an ID, so the text
 /// is the same whichever IDs the records carry.
 #[test]
 fn ft587_the_flow_conflict_names_the_pass_through_by_its_tag() {
@@ -406,8 +406,8 @@ fn pot011_cases() {
                         "case {c}"
                     );
                     assert!(!f[0].discriminator.is_empty(), "case {c}");
-                    // FT-711: plain words from the Fluent pattern, never the derivation's arm-and-root text; FT-1146
-                    // (ID-1229 item 10): the potential once, first.
+                    // Plain words from the Fluent pattern, never the derivation's arm-and-root text; FT-1146
+                    // (item 10): the potential once, first.
                     let p = &f[0].subject;
                     assert_eq!(
                         f[0].message,
@@ -482,7 +482,7 @@ fn conflict_fixture(core1: u128, core2: u128) -> Model {
 }
 
 /// [`conflict_fixture`], with `bonded` a 0 V–PE bond from -K4097:1 to a second potential (function 0x1003 wired
-/// to 0x1004), so that the conflicting wire lies in a bond closure of two potentials (FT-188).
+/// to 0x1004), so that the conflicting wire lies in a bond closure of two potentials.
 fn conflict_fixture_bonded(core1: u128, core2: u128, bonded: bool) -> Model {
     let mut fx = Fx::base();
     if bonded {
@@ -731,7 +731,7 @@ fn pot002_cases() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WP-S1.16 part 1 (D2, D3; FT-551): EW-POT-001's quick fix "Declare 0 V–PE bond (PELV)".
+// WP-S1.16 part 1 (D2, D3): EW-POT-001's quick fix "Declare 0 V–PE bond (PELV)".
 
 const M_FN: u128 = 0x1001;
 const TERMINAL: u128 = 0x1002;
@@ -768,7 +768,7 @@ fn zero_volt_through_a_terminal(bond: bool) -> Model {
 
 #[test]
 fn pot001_offers_the_0v_pe_bond_on_the_wire_at_the_pe_side() {
-    // The two ID orders of the wires: the carrier follows the drawing's printed keys, not the IDs (ID-677).
+    // The two ID orders of the wires: the carrier follows the drawing's printed keys, not the IDs.
     for (w1, w27) in [(W1, W27), (W27, W1)] {
         let f = findings_of(&zero_volt_through_a_terminal_with(false, (w1, w27)), "EW-POT-001");
         assert_eq!(f.len(), 1, "{f:#?}");
@@ -824,12 +824,12 @@ fn pot001_without_a_carrier_has_no_fix_and_names_draw_connect_bond() {
     let f = findings_of(&zero_volt_meets_pe_without_a_carrier(), "EW-POT-001");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert!(f[0].fix.is_none(), "{:?}", f[0].fix);
-    // FT-1400: the menu path as the menus give it (Draw ▸ Connect ▸ Bond).
+    // The menu path as the menus give it (Draw ▸ Connect ▸ Bond).
     assert_eq!(
         f[0].message,
         "member roles M meet Pe; the first in role order applies; declare the bond with Draw ▸ Connect ▸ Bond"
     );
-    // C50-p7#5: the Dutch hint names the Dutch menu path.
+    // The Dutch hint names the Dutch menu path.
     assert_eq!(
         ew_checks::messages::render(&f[0], "nl-NL"),
         "aansluitpuntrollen M botsen met Pe; de eerste in de rolvolgorde geldt; declareer de potentiaalverbinding met \
@@ -890,7 +890,7 @@ fn pot001_names_every_member_cp_up_to_three() {
     assert!(!f.message.contains("more"), "{}", f.message);
 }
 
-/// FT-724: EW-POT-001's text is built in the rule and in the Fluent pattern; the en-GB pattern rendered from the
+/// EW-POT-001's text is built in the rule and in the Fluent pattern; the en-GB pattern rendered from the
 /// finding's arguments equals the rule's text for the "and N more" cut, the bond hint and a plain conflict.
 #[test]
 fn ft724_the_en_gb_pattern_equals_the_rule_text() {

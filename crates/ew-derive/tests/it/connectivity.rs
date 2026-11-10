@@ -4,7 +4,7 @@
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
-//! Connectivity derivations (WP-S1.07): page-local nets, stitch graph, potential partition, hostile shapes.
+//! Connectivity derivations: page-local nets, stitch graph, potential partition, hostile shapes.
 //!
 //! - `local_net_joins_wires_and_junction_arms`: three CPs and a three-arm junction are one local net.
 //! - `overview_and_bridge_connections_do_not_join_nets`: only a bridge joins, and only at potential level.
@@ -492,7 +492,7 @@ fn fallback_name_ties_go_to_the_name_not_the_cp_id() {
     // One function whose two CPs (designations "1" and "2") share its anchor cell, wired to each other: no
     // definition and no IP, so the fallback names the potential. The two CPs tie on (page, row, column); the tie
     // goes to the name in natural order (`…:1`), whichever of the two CP IDs is smaller — a new project's IDs are
-    // random (WP-S6.13 §6 item 3, blind replay of gpp-dry-101).
+    // random (blind replay of gpp-dry-101).
     let below = |f: u128| CpRef::new(id(f), 1).id() < CpRef::new(id(f), 0).id();
     let pick = |want: bool| (0x1001..0x1100).find(|f| below(*f) == want).unwrap();
     for f in [pick(true), pick(false)] {

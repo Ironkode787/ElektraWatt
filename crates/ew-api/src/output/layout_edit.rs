@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Properties for layout records and a panel page's Surface view rows (WP-S4.02 part 4, D12, FT-839; ruling 3):
+//! Properties for layout records and a panel page's Surface view rows:
 //! the rows the property sheet shows for a placement, a carrier, a mounting surface, an enclosure and a layout space,
 //! the panel page's Surface, Label mode and Datum rows, and [`Session::layout_edit`], the door that compiles one row's
 //! text into exactly one command (`layout.move`, `layout.lock`, `layout.carrier.edit`, `layout.surface.edit`,
@@ -12,7 +12,7 @@
 //! then the system libraries' parts with the `copies` that embed them, ruling 8) and the project's locations.
 //!
 //! Every row is `derived.<name>` of its kind; an editable one carries [`EditRoute::Command`] with its command's name.
-//! Lengths are millimetres as the project prints them (its decimal separator, FT-366), the unit as a suffix.
+//! Lengths are millimetres as the project prints them (its decimal separator), the unit as a suffix.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -187,10 +187,10 @@ fn tag(q: &Q, d: Id<Device>) -> String {
         .unwrap_or_default()
 }
 
-/// A surface in words, as the Surface row lists it (C44-p2#4): "<enclosure tag> plate" ("-UC1 plate") by the short
+/// A surface in words, as the Surface row lists it: "<enclosure tag> plate" ("-UC1 plate") by the short
 /// tag; when two surfaces would read the same, each of them reads "<the enclosure's full designation> plate"
 /// ("=P01+J-E-2416-UC1 plate"). An enclosure without a tag gives "plate". When the full words collide too, each of the
-/// alike surfaces gains its ordinal, " (1)", " (2)", in page order (C44-p4#6, [`surface_words`]).
+/// alike surfaces gains its ordinal, " (1)", " (2)", in page order ([`surface_words`]).
 pub(crate) fn surface_name(q: &Q, s: &MountingSurface) -> String {
     surface_words(q)
         .into_iter()
@@ -199,9 +199,9 @@ pub(crate) fn surface_name(q: &Q, s: &MountingSurface) -> String {
 }
 
 /// The words of every mounting surface of the project ([`surface_name`]), in table order. The alike words are counted
-/// once per call (C44-p4#1): O(S log S) for S surfaces.
+/// once per call: O(S log S) for S surfaces.
 ///
-/// Words alike after the full designation are told apart by an ordinal from 1 (C44-p4#6), in page order: by the first
+/// Words alike after the full designation are told apart by an ordinal from 1, in page order: by the first
 /// panel page that shows the surface, in drawn page order; the surfaces no page shows follow; then by ID.
 fn surface_words(q: &Q) -> Vec<(Id<MountingSurface>, String)> {
     let named = |t: String| {
@@ -262,7 +262,7 @@ fn has_alike(words: &[(Id<MountingSurface>, String)]) -> bool {
     !words.iter().all(|(_, w)| seen.insert(w.as_str()))
 }
 
-/// Tells alike words apart (C44-p4#6): each entry whose words another entry shares gains " (n)", n from 1 in page
+/// Tells alike words apart: each entry whose words another entry shares gains " (n)", n from 1 in page
 /// order, `page(id)` being the position of the first page that shows the surface; the surfaces no page shows follow,
 /// then by ID. O(S log S).
 fn number_alike(
@@ -583,9 +583,9 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
 }
 
 /// The part copies of the device's part uses that the Realised part row offers for a placement on `on`: D12's
-/// mountable uses (C44-p2#3), those whose part mounts (a mount kind other than `none` and `on_parent`) or has no mount
+/// mountable uses, those whose part mounts (a mount kind other than `none` and `on_parent`) or has no mount
 /// kind (an unknown footprint), and on a rail only those whose mount kind the rail's profile does not refuse.
-/// `layout.move {part}` judges the same (ID-1106, FT-1031): on a surface it refuses a `none` or `on_parent` part use, so
+/// `layout.move {part}` judges the same: on a surface it refuses a `none` or `on_parent` part use, so
 /// the row offers mounting parts only.
 fn mountable_uses(q: &Q, device: &Device, on: &CarrierRef) -> Vec<Id<Part>> {
     let profile = match on {
@@ -772,7 +772,7 @@ pub(crate) fn surface_view_rows(q: &Q, page: Id<Page>) -> Vec<PropRow> {
         options,
         Some("page.surface_view.set"),
     );
-    // The value is the surface (its ID), the text its words: a choice resolves by its value (C44-p2#4).
+    // The value is the surface (its ID), the text its words: a choice resolves by its value.
     surface.value = match current {
         Some((id, words)) => RowValue::One {
             json: Value::String(id),
@@ -821,7 +821,7 @@ fn surfaces_in_order(q: &Q) -> Vec<(Id<MountingSurface>, String)> {
     out
 }
 
-/// The scale a surface view set of `surface` on `page` sends (FT-1016, ID-1148): the fitting scale when the page is
+/// The scale a surface view set of `surface` on `page` sends: the fitting scale when the page is
 /// still drawn not to scale (a new page's) and one fits; `None`, the page's scale kept, otherwise.
 fn scale_to_send(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Option<Scale> {
     let pg = q.pages().get(page)?;
@@ -880,8 +880,8 @@ pub(crate) fn centred_datum(
 }
 
 impl Session {
-    /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`, FT-366): the shell's
-    /// millimetre texts follow it (ID-1427: the Properties position row).
+    /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`): the shell's
+    /// millimetre texts follow it (the Properties position row).
     pub fn decimal_comma(&self) -> bool {
         comma(&self.query())
     }
@@ -919,7 +919,7 @@ impl Session {
             })
         };
         match (edit.kind.as_str(), name) {
-            // FT-1448 (ID-1397): a configuration project's address profile, chosen among the profiles at hand; the
+            // A configuration project's address profile, chosen among the profiles at hand; the
             // command refuses a text that names none.
             ("plc_config_project", "profile") => command(
                 "plc.set_profile",
@@ -1101,7 +1101,7 @@ impl Session {
                     })
                 });
                 let Some(v) = v else {
-                    // The row shows three lengths (x, y, z), so its refusal asks for three (C44-p2#7).
+                    // The row shows three lengths (x, y, z), so its refusal asks for three.
                     return invalid(if comma(&q) {
                         "Type three lengths in millimetres, such as 10; 20; 0."
                     } else {
@@ -1146,7 +1146,7 @@ impl Session {
                 match name {
                     "surface" => {
                         // A choice from the list is its value, the surface's ID; a typed text is its words, which
-                        // must name one surface (C44-p2#4).
+                        // must name one surface.
                         let surfaces = surfaces_in_order(&q);
                         // The ID in any form `Uuid::parse_str` reads (upper case, braces, simple, padded:
                         // C44-p6#5), compared as a UUID.
@@ -1159,7 +1159,7 @@ impl Session {
                         let id = match (by_id, by_words.as_slice()) {
                             (Some((id, _)), _) | (None, [(id, _)]) => *id,
                             // A surface ID that names no surface (a deleted one, or a stale list): no ID in
-                            // the words (C44-p4#3).
+                            // the words.
                             (None, []) if as_id.is_some() => {
                                 return invalid("That surface no longer exists; choose one of the list.");
                             }
@@ -1174,7 +1174,7 @@ impl Session {
                                 )));
                             }
                         };
-                        // A page still drawn not to scale takes the fitting scale with the view (FT-1016, ID-1148).
+                        // A page still drawn not to scale takes the fitting scale with the view.
                         scale = scale_to_send(&q, page, id);
                         // A page without a view, or one that takes a scale, centres the enclosure in the frame
                         // (D12) at the scale it draws at.
@@ -1268,8 +1268,7 @@ impl Session {
             if !usable(&c) || !seen.insert(c.id.as_uuid()) {
                 continue;
             }
-            // The reference to the library part, from the part itself: the libraries are read once per computation
-            // (C44-p2#2).
+            // The reference to the library part, from the part itself: the libraries are read once per computation.
             let r = ew_schema::LibRef {
                 library: Id::from_uuid(c.library_id.as_uuid()),
                 item: Id::from_uuid(c.item_id.as_uuid()),
@@ -1296,7 +1295,7 @@ impl Session {
         held
     }
 
-    /// The Surface row's choices (D12, C44-p2#4): the project's mounting surfaces as `(surface, words)`, in the row's
+    /// The Surface row's choices (D12): the project's mounting surfaces as `(surface, words)`, in the row's
     /// order; choosing one commits its ID.
     pub fn surface_choices(&self) -> Vec<(Uuid, String)> {
         surfaces_in_order(&self.query())
@@ -1305,7 +1304,7 @@ impl Session {
             .collect()
     }
 
-    /// The address profiles at hand as `(reference, name)` (FT-1478): the Address profile row's choices, each shown by
+    /// The address profiles at hand as `(reference, name)`: the Address profile row's choices, each shown by
     /// its name with its reference as the secondary line; choosing one commits its reference.
     pub fn profile_choices(&self) -> Vec<(String, String)> {
         let q = self.query();
@@ -1377,7 +1376,7 @@ mod tests {
         assert_eq!(parse_bool("maybe"), None);
     }
 
-    /// C44-p4#6: two untagged enclosures both read "plate"; the one a page shows first is "plate (1)", the other, which
+    /// Two untagged enclosures both read "plate"; the one a page shows first is "plate (1)", the other, which
     /// no page shows, "plate (2)", though its ID sorts first; a lone word stays as it is.
     #[test]
     fn alike_words_gain_their_ordinal_in_page_order() {

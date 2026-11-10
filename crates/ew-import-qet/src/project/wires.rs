@@ -164,7 +164,7 @@ fn resolve_at<'a>(terminal: &TerminalRef, lk: &Lookup<'_>, key: &str, placed: &'
 }
 
 /// The most position probes a conductor whose two ends both name repeated UUIDs may make; beyond it the
-/// first copies are bound with EW-IMP-120, so no conductor costs more than a constant (doc 14 §11, ID-115).
+/// first copies are bound with EW-IMP-120, so no conductor costs more than a constant (doc 14 §11).
 pub const MAX_PAIR_PROBES: usize = 16;
 
 /// The copies of every UUID repeated on one folio and their terminal-position indexes, built once per folio
@@ -298,7 +298,7 @@ fn points_of(start: Pt2, segments: &[Segment]) -> Option<Vec<Pt2>> {
     Some(points)
 }
 
-/// The route of a conductor drawn from `start` through `segments` to `end`, both ends included (WP-S2.19 D2, D17):
+/// The route of a conductor drawn from `start` through `segments` to `end`, both ends included:
 /// `start`, the point after each segment but the last, then `end`; a coordinate that names the same QET px as an
 /// end's coordinate takes the end's exact value (the tables importer's rule), and equal neighbours are merged.
 /// Empty (the connection is unrouted) without segments, when an end's position is unknown, a length does not

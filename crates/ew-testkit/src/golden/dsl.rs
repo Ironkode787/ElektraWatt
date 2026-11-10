@@ -296,8 +296,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         .map(|_| ())
     }
 
-    // WP-S2.05 part 2
-    /// `fields.set_many` (WP-S2.05 part 2): one transaction of `fields.set` entries, each `(kind, targets, path,
+    /// `fields.set_many`: one transaction of `fields.set` entries, each `(kind, targets, path,
     /// value)`, in the given order (one value per target set: find and replace, freezing several tags).
     ///
     /// # Errors
@@ -313,8 +312,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("fields.set_many", json!({ "edits": edits })).map(|_| ())
     }
 
-    // WP-S2.05 part 3
-    /// `edit.paste` (WP-S2.05 part 3): pastes `fragment` (the command's `fragment` member, what
+    /// `edit.paste`: pastes `fragment` (the command's `fragment` member, what
     /// `ew_api::output::parse_fragment` reads from clipboard text) onto `page` with its anchor at `at` (nm, a grid point
     /// of the page).
     ///
@@ -329,7 +327,6 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         .map(|_| ())
     }
 
-    // WP-S2.07 part 4b
     /// `edit.paste` with `adapt` (WP-S2.07 D22, FT-396's "Use the project's copy"): as `paste`, reusing the project's
     /// copies `adapt` (copy IDs) where the fragment carries another version of them. An empty `adapt` is left out, so
     /// the command equals `paste`'s.
@@ -345,7 +342,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("edit.paste", params).map(|_| ())
     }
 
-    /// `macro.insert` (FT-672): inserts `m` on `page` (a window macro: its anchor at `at`, nm, a grid point of the
+    /// `macro.insert`: inserts `m` on `page` (a window macro: its anchor at `at`, nm, a grid point of the
     /// page, turned by `orient` in the command's JSON form, `r0` … `m270`; a page macro: its pages after `page`, with
     /// `at` `None` and `orient` `r0`). `r0` is left out of the parameters, as a log written before FT-672 has it.
     ///
@@ -708,8 +705,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok(devices.into_iter().zip(functions).collect())
     }
 
-    // WP-S2.07 part 1
-    /// `terminal.insert` (WP-S2.07 §5.1): the `terminals` (`TerminalSpec` JSON objects without `seq`) of the strip
+    /// `terminal.insert`: the `terminals` (`TerminalSpec` JSON objects without `seq`) of the strip
     /// `strip`, with main functions of `fndef` and the part uses `parts` on each, put before the terminal `before`, or
     /// after the strip's last terminal when `None`; the following terminals, group bounds and accessories move up.
     /// Returns the first new terminal device (the command's primary record).
@@ -739,7 +735,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             .map(|(id, _)| id)
     }
 
-    /// `terminal.move` (WP-S2.07 §5.2): the terminals `terminals` of one strip put before the terminal `before`, or
+    /// `terminal.move`: the terminals `terminals` of one strip put before the terminal `before`, or
     /// after the strip's last terminal when `None`; the sequence numbers of the changed range are permuted.
     ///
     /// # Errors
@@ -754,8 +750,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("terminal.move", Value::Object(p)).map(|_| ())
     }
 
-    // WP-S1.19 part 3
-    /// `part.assign` (WP-S1.19 D8): the part copy `part` assigned to `devices`, embedding the library documents
+    /// `part.assign`: the part copy `part` assigned to `devices`, embedding the library documents
     /// `copies` the project lacks (the part's closure; empty when the project holds it). `mode` is `"append"`,
     /// `"replace_all"` or `"replace"` (with `from`, the part copy it replaces); `qty` defaults to 1.
     ///
@@ -790,7 +785,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("part.assign", Value::Object(p)).map(|_| ())
     }
 
-    /// `library.update` (WP-S1.19 D9): the held copies replaced by the documents `copies` (same copy IDs), with the
+    /// `library.update`: the held copies replaced by the documents `copies` (same copy IDs), with the
     /// CP maps `cp_maps` (`(copy, [(old_idx, new_idx)])`). The command is Bulk: the sink previews and commits it.
     ///
     /// # Errors
@@ -819,8 +814,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("library.update", Value::Object(p)).map(|_| ())
     }
 
-    // WP-S2.07 part 4a
-    /// `part.edit_copy` (WP-S2.07 D20): the part copy `copy` edited to the part item `part` (its members, without the
+    /// `part.edit_copy`: the part copy `copy` edited to the part item `part` (its members, without the
     /// copy metadata), in place for a project-local copy, else forked to the item `fork`; `copies` are library
     /// documents the edit names that the project lacks (a manufacturer). The command is Bulk: the sink previews and
     /// commits it. Returns the edited copy (the fork's for a fork).
@@ -1074,7 +1068,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         })
     }
 
-    /// `connection.route_many` (WP-S2.19 D12): the `routes` of several connections in one transaction.
+    /// `connection.route_many`: the `routes` of several connections in one transaction.
     ///
     /// # Errors
     ///
@@ -1277,7 +1271,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         let tag = take(&mut m, "tag");
         let (id, done) = self.primary::<Device>("valve.add", Value::Object(p))?;
         let created = Self::created::<Function>(&done, Kind::Function);
-        // WP-S1.20 D6: a valve part's template entry n gives the function `v5(valve, n)` (N-FL-1)
+        // A valve part's template entry n gives the function `v5(valve, n)` (N-FL-1)
         let function = match main.and_then(|f| f.template_entry) {
             Some(n) => {
                 Some(ew_ids::v5::template_function_id(id, u32::from(n))).filter(|f| created.contains(f))
@@ -1331,7 +1325,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok(id)
     }
 
-    /// `bus.logical_net.create` of `net`'s bus, name and rate (WP-S1.21 D11); its master names a function, so the
+    /// `bus.logical_net.create` of `net`'s bus, name and rate; its master names a function, so the
     /// caller sets it with [`Builder::logical_net_master`] once the functions are built.
     ///
     /// # Errors
@@ -1365,7 +1359,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.set("logical_net", &[id.cast()], "master", value)
     }
 
-    /// `bus.physical_net.create` of `net`'s name and medium (WP-S1.21 D11); its `order_hint` names functions, so the
+    /// `bus.physical_net.create` of `net`'s name and medium; its `order_hint` names functions, so the
     /// caller sets it with `fields.set` once they are built.
     ///
     /// # Errors
@@ -1423,7 +1417,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok(id)
     }
 
-    /// `revision.create` (FT-165): the open revision, or a historic released one (no release record, no
+    /// `revision.create`: the open revision, or a historic released one (no release record, no
     /// archive). A withdrawal record, or a state of a newer format, is not written (`revision.withdraw` does
     /// not exist yet): `None`, counted under `revision (withdrawn or newer state)`.
     ///
@@ -1491,7 +1485,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     }
 
     /// `project.company.set` with `logo`: the company logo from the bytes of an image file (SVG, PNG or JPEG),
-    /// sent in base64 (FT-337); empty bytes remove the logo.
+    /// sent in base64; empty bytes remove the logo.
     ///
     /// # Errors
     ///
@@ -1505,8 +1499,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     }
 
     /// `report_block.create` of a block whose form comes from the library: `copies` are the library documents of
-    /// the form and its closure (`lib/` JSON form), embedded with the block where the project does not hold them
-    /// (FT-341).
+    /// the form and its closure (`lib/` JSON form), embedded with the block where the project does not hold them.
     ///
     /// # Errors
     ///
@@ -1551,7 +1544,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("project.languages.set", languages).map(|_| ())
     }
 
-    /// `device.place` (or `box.black` with `black_box`) with a `from_part` target (FR-UI-017; WP-S2.04 D9): a new
+    /// `device.place` (or `box.black` with `black_box`) with a `from_part` target (FR-UI-017): a new
     /// device of the part copy `part` with the letter `letter` and one function per entry of its function template;
     /// the representation draws entry `template`, the others stay unplaced. Returns the representation and the
     /// functions the command created, in template order.
@@ -1579,7 +1572,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok((rep, Self::created::<Function>(&done, Kind::Function)))
     }
 
-    /// `device.place` with a `new_terminal` target (AC-28; WP-S2.04 D9): one new terminal of the strip `strip`
+    /// `device.place` with a `new_terminal` target (AC-28): one new terminal of the strip `strip`
     /// with the designation `designation` (the sequence number `seq`, or one more than the highest when absent),
     /// created as `terminal.add` creates it, with the symbol's function definition, and placed. Returns the
     /// representation and the terminal device.
@@ -1607,7 +1600,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok((rep, Self::created::<Device>(&done, Kind::Device).first().copied()))
     }
 
-    /// `rep.move` by grid steps `[kx, ky]` on the page's connection grid (WP-S2.04 D13): each representation lands on
+    /// `rep.move` by grid steps `[kx, ky]` on the page's connection grid: each representation lands on
     /// the grid point at its grid index plus the steps, and the routes follow.
     ///
     /// # Errors
@@ -1656,10 +1649,9 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("project.drawing.set", Value::Object(p)).map(|_| ())
     }
 
-    // WP-S2.04 part 3
     /// `connection.draw_to_ip` (doc 06 §4.4 "P"): a wire from `a` that ends in a new interruption point, in one
     /// transaction. `route` (empty for none) must end at the IP's one connection point; `kind` `None` draws a wire.
-    /// `ip.spec.external`, when set, is the point's external target (FT-946). Returns the new connection and the new IP
+    /// `ip.spec.external`, when set, is the point's external target. Returns the new connection and the new IP
     /// function.
     ///
     /// # Errors
@@ -1824,7 +1816,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok(id)
     }
 
-    /// `rep.move` with `items` (WP-S2.04 part 4a): the representations, page items and structure boxes named move
+    /// `rep.move` with `items`: the representations, page items and structure boxes named move
     /// by `delta` together.
     ///
     /// # Errors
@@ -1840,7 +1832,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             .map(|_| ())
     }
 
-    /// `layout.space.create` (WP-S4.01 D6).
+    /// `layout.space.create`.
     ///
     /// # Errors
     ///
@@ -1853,7 +1845,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok(id)
     }
 
-    /// `layout.enclosure.create` (WP-S4.01 D6) of `enclosure` with its plate `surface`: the command derives the
+    /// `layout.enclosure.create` of `enclosure` with its plate `surface`: the command derives the
     /// plate's frame, outline and device from the enclosure part (centred plate, D5), so of the surface only
     /// `pe_bond` is a parameter. Returns the enclosure and the surface the command created.
     ///
@@ -1885,7 +1877,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok((id, made))
     }
 
-    /// `layout.carrier.add` (WP-S4.01 D6): the part reference becomes its copy ID.
+    /// `layout.carrier.add`: the part reference becomes its copy ID.
     ///
     /// # Errors
     ///
@@ -1902,7 +1894,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok(id)
     }
 
-    /// `layout.place` (WP-S4.01 D6): the part reference becomes its copy ID (absent: the command takes the primary
+    /// `layout.place`: the part reference becomes its copy ID (absent: the command takes the primary
     /// mountable part, a strip none); `locked` has no command in this builder and is counted.
     ///
     /// # Errors
@@ -1920,7 +1912,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok(id)
     }
 
-    /// `page.surface_view.set` (WP-S4.01 part 3, D9): the surface view of a panel-layout page.
+    /// `page.surface_view.set`: the surface view of a panel-layout page.
     ///
     /// # Errors
     ///
@@ -1959,7 +1951,6 @@ fn params_of(m: &mut Map<String, Value>, keys: &[&str]) -> Value {
 mod tests {
     use super::*;
 
-    // WP-S2.05 part 2
     /// `set_many` issues one `fields.set_many` with the entries in order.
     #[test]
     fn set_many_issues_one_command_with_the_entries_in_order() {
@@ -2011,7 +2002,6 @@ mod tests {
         assert_eq!(seen[2].1, json!({"pages": [a]}));
     }
 
-    // WP-S2.07 part 1
     /// `terminal_insert` and `terminal_move` issue one `terminal.insert` / `terminal.move` each, with `before` only
     /// when given and `parts` only when not empty; `terminal_insert` returns the command's primary record.
     #[test]
@@ -2067,7 +2057,6 @@ mod tests {
         assert_eq!(seen[3].1, json!({"terminals": [t2]}));
     }
 
-    // WP-S2.05 part 3
     /// `paste` issues one `edit.paste` with the fragment as given.
     #[test]
     fn paste_issues_one_command_with_the_fragment() {
@@ -2089,7 +2078,6 @@ mod tests {
         );
     }
 
-    // WP-S2.07 part 4b
     /// `paste_adapt` adds `adapt` when it names copies and leaves it out when empty (the command equals `paste`'s).
     #[test]
     fn paste_adapt_carries_the_adapted_copies() {
@@ -2119,7 +2107,6 @@ mod tests {
         );
     }
 
-    // FT-672
     /// `insert_macro` issues one `macro.insert` with the orientation, and leaves `r0` out as an old log has it.
     #[test]
     fn insert_macro_issues_one_command_with_its_orientation() {
@@ -2153,7 +2140,6 @@ mod tests {
         assert_eq!(seen[1].1, page_macro);
     }
 
-    // WP-S2.04 part 4a
     /// The page-item verbs issue their commands with the documented parameters.
     #[test]
     fn page_item_verbs_issue_their_commands() {

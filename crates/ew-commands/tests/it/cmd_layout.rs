@@ -316,7 +316,7 @@ fn lm2_a_location_has_one_layout_space() {
         not_location,
         "node P01 is not a location; a layout space lays out a location"
     );
-    // An unnamed space is named by its location (ID-900: no ID in a refusal).
+    // An unnamed space is named by its location (no ID in a refusal).
     let unnamed_space: Id<LayoutSpace> = created(
         e.execute(&CreateLayoutSpace {
             location: LOC,
@@ -641,7 +641,7 @@ fn lm5_placement_refusals() {
     assert_eq!(get(&e, k2).unwrap().part, Some(PartRef::new(copy_id(ITEM_MCB))));
 }
 
-/// ID-1106 (FT-1031): "a part whose mount kind is `none` or `on_parent` is refused on a surface by `layout.place`,
+/// "a part whose mount kind is `none` or `on_parent` is refused on a surface by `layout.place`,
 /// `layout.move` and `layout.place_assembly`, \"Part {part number} does not mount on a surface; choose a part that
 /// mounts on it.\"". `layout.place_assembly` takes a rail only ("An assembly is placed on a rail.", pinned in
 /// `cmd_layout_assembly`), so a surface never reaches its fit. A mounting part still fits the surface.

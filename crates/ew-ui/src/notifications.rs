@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The toasts and the notifications log of the window (WP-S2.09 part 1, D6, §6.5; FR-UI-042, NFR-A11Y-04), restyled
+//! The toasts and the notifications log of the window (FR-UI-042, NFR-A11Y-04), restyled
 //! by WP-S2.17 part 4 (doc 16a §6.10).
 //!
 //! **Toasts.** At most three, stacked at the canvas's top right, `space.4` from its edges (under the canvas tabs), the
@@ -128,11 +128,11 @@ pub(crate) fn text_width(t: &Tokens, width: f32) -> f32 {
     width - 2.0 * t.space_4 - t.icon_md - t.size_control_inline - 2.0 * t.space_3
 }
 
-/// The non-breaking hyphen (U+2011) a toast shows for each hyphen (FT-1507).
+/// The non-breaking hyphen (U+2011) a toast shows for each hyphen.
 const NB_HYPHEN: char = '\u{2011}';
 
 /// The layout of a toast's title or line: wrapped at word boundaries in the text column, up to `rows` rows
-/// ([`TITLE_ROWS`], [`LINE_ROWS`]), then cut with an ellipsis. FT-1507 (ID-1456): never at a hyphen, so a tag
+/// ([`TITLE_ROWS`], [`LINE_ROWS`]), then cut with an ellipsis. FT-1507: never at a hyphen, so a tag
 /// ("-X1031", "103-E9") is never broken: each hyphen is shown as U+2011, the non-breaking hyphen, which the UI's faces
 /// carry ([`crate::fonts::carries`]); the labels are not selectable, and their accessible names keep "-".
 fn line_job(line: &str, font: egui::FontId, colour: egui::Color32, rows: usize) -> egui::text::LayoutJob {
@@ -186,8 +186,8 @@ fn toast(
                     match n.lines() {
                         (title, Some(line)) => {
                             // The title carries the whole text as the live region. It wraps at word boundaries up to two
-                            // rows (ID-1139: a disabled command's reason is never cut at one line), the line up to three
-                            // (W40b), each then cut with an ellipsis; the whole text is the toast's tooltip (ID-940), so
+                            // rows (a disabled command's reason is never cut at one line), the line up to three
+                            // (W40b), each then cut with an ellipsis; the whole text is the toast's tooltip, so
                             // the labels show no tooltip of their own. A check's counts stay on one line (FT-664: the
                             // waived and pending counts qualify the title, so the severities fit).
                             let response = ui.add(
@@ -223,7 +223,7 @@ fn toast(
                                 .accesskit_node_builder(response.id, |node| node.set_label(name));
                         }
                         (_, None) => {
-                            // FT-1195 (doc 16a §6.10, ID-940): a long text wraps up to three rows, then is cut with an
+                            // FT-1195 (doc 16a §6.10): a long text wraps up to three rows, then is cut with an
                             // ellipsis; the whole text is the toast's tooltip.
                             let response = ui.add(
                                 egui::Label::new(line_job(
@@ -251,7 +251,7 @@ fn toast(
                 }
             });
         });
-    // A `Group` node over the card, named "Notification" (its text is the live region inside). FT-1144 (ID-1225):
+    // A `Group` node over the card, named "Notification" (its text is the live region inside). FT-1144:
     // hovering it shows the whole text in doc 16a §6.18's tooltip only when the title or the line is cut (ID-940,
     // ID-1139), unless a control inside shows its own tooltip.
     let text_w = text_width(t, width);
@@ -273,7 +273,7 @@ fn toast(
     node.widget_info(|| {
         egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text(key!("toast-name")))
     });
-    // FT-1137 (ID-1225): a control of the toast (its action, Dismiss) that holds the keyboard focus.
+    // A control of the toast (its action, Dismiss) that holds the keyboard focus.
     let focused = ui.memory(|m| m.focused()).is_some_and(|id| {
         ui.ctx()
             .read_response(id)
@@ -320,7 +320,7 @@ pub const TOASTS_AREA: &str = "ew-toasts";
 
 /// A toast's opacity `age` seconds (frame clock) after the frame that first painted it, for a toast that lives `life`
 /// seconds and fades over `fade` seconds (`motion.base`): it fades in over the first `fade` seconds and out over the
-/// last, linearly, and stands at 1 between (FT-1027, ID-1107; doc 16a §4.12, §6.10). No fade (`motion.none`): 1.
+/// last, linearly, and stands at 1 between (doc 16a §4.12, §6.10). No fade (`motion.none`): 1.
 pub(crate) fn toast_opacity(age: f64, life: f64, fade: f64) -> f32 {
     if fade <= 0.0 {
         return 1.0;
@@ -332,7 +332,7 @@ pub(crate) fn toast_opacity(age: f64, life: f64, fade: f64) -> f32 {
 /// top right, or its bottom right while the toasts stand low, FT-1211), each painted at its opacity in `opacity` (1
 /// when absent); `under_modal` puts them in the middle order, below a modal dialog's backdrop (doc 16a §6.12), so the
 /// dialog is the only focus. Returns the serials of the toasts under the pointer, those of the toasts that hold the
-/// keyboard focus (FT-1137), and the stack's rectangle.
+/// keyboard focus, and the stack's rectangle.
 pub(crate) fn show_toasts(
     ctx: &Context,
     shell: &ShellModel,
@@ -357,7 +357,7 @@ pub(crate) fn show_toasts(
         .fixed_pos(anchor)
         .order(order)
         .interactable(true)
-        // The fade is the toasts' own, on the frame clock (FT-1027), not the area's.
+        // The fade is the toasts' own, on the frame clock, not the area's.
         .fade_in(false)
         .show(ctx, |ui| {
             ui.spacing_mut().item_spacing.y = t.space_3;
@@ -455,7 +455,7 @@ mod tests {
     use super::*;
     use crate::theme::{Density, Theme};
 
-    /// FT-1211, C52-p3#2: a tool's press in the canvas's top-right quarter sends the toasts low; they stay low without
+    /// A tool's press in the canvas's top-right quarter sends the toasts low; they stay low without
     /// a press, for a press on their stack or outside the canvas, and come back up for a press elsewhere on the canvas,
     /// with Select, or without a canvas.
     #[test]
@@ -550,9 +550,9 @@ mod tests {
         assert!(rows.1 > 1 && rows.1 <= LINE_ROWS, "{} rows", rows.1);
     }
 
-    /// ID-1139: at the floor, a disabled click's title lays out whole on two rows in the text column, and a longer one
+    /// At the floor, a disabled click's title lays out whole on two rows in the text column, and a longer one
     /// is cut with an ellipsis after two rows. The toast as `toast` draws it is asserted in the window's tests
-    /// (`tests/it/part4_cards.rs`, C46-p1#5).
+    /// (`tests/it/part4_cards.rs`).
     #[test]
     fn the_title_wraps_up_to_two_rows() {
         let reason = strings::text(key!("reason-page-type-no-symbols-panel"));
@@ -588,7 +588,7 @@ mod tests {
         assert_eq!(shown, (2, false, TITLE_ROWS, true, title.to_owned()));
     }
 
-    /// FT-1507 (ID-1456, W52 F12): the UI's faces carry the non-breaking hyphen, and a toast at the floor never breaks
+    /// FT-1507 (W52 F12): the UI's faces carry the non-breaking hyphen, and a toast at the floor never breaks
     /// a tag at its hyphen: at every width of a narrowing column each row ends at a space or with the text, so no "-"
     /// is left alone on a row.
     #[test]

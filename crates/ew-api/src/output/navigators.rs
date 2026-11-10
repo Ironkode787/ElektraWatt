@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigators' tables (WP-S2.06 §4.2, §6.1, D2, D3): one row source per navigator,
+//! The navigators' tables (§6.1, D2, D3): one row source per navigator,
 //! [`Session::navigator_table`], a plain function over `Q` that the view model fetches once per (kind, revision) for
 //! an open navigator only (no memoised family).
 //!
@@ -46,7 +46,7 @@ use crate::Session;
 mod libraries;
 pub use libraries::{LibraryCopyDetail, MacroDetail, MacroThumbnail};
 
-/// The navigators (D4; WP-S2.09 D8 adds the message panel last), in View ▸ Navigators order.
+/// The navigators (D4; adds the message panel last), in View ▸ Navigators order.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum NavKind {
     /// Pages.
@@ -71,13 +71,13 @@ pub enum NavKind {
     Parts,
     /// Report blocks (part 2).
     Blocks,
-    /// The unplaced devices of each layout space (WP-S4.02 part 3, FT-486, doc 16 §5.2's row).
+    /// The unplaced devices of each layout space (doc 16 §5.2's row).
     Unplaced,
-    /// The macros of every library tier and of the project (WP-S1.19 §11, FR-MAC-006).
+    /// The macros of every library tier and of the project (FR-MAC-006).
     Macros,
-    /// The installed libraries and the project's library copies with their state (WP-S1.19 §11, FT-487).
+    /// The installed libraries and the project's library copies with their state.
     Libraries,
-    /// The message panel (WP-S2.09 part 2, D8): the findings of the project's online check scheme.
+    /// The message panel: the findings of the project's online check scheme.
     Messages,
 }
 
@@ -151,13 +151,13 @@ pub enum NavRole {
     Strip,
     /// A terminal.
     Terminal,
-    /// A strip accessory (WP-S2.07 D3): a row of the Terminal strips navigator.
+    /// A strip accessory: a row of the Terminal strips navigator.
     Accessory,
     /// A cable.
     Cable,
     /// A cable conductor.
     Conductor,
-    /// A PLC configuration project (WP-S2.07 §8): the top level of the PLC navigator.
+    /// A PLC configuration project: the top level of the PLC navigator.
     ConfigProject,
     /// A PLC station.
     Station,
@@ -177,13 +177,13 @@ pub enum NavRole {
     Part,
     /// A report block.
     ReportBlock,
-    /// A severity group of the message panel (WP-S2.09 part 2).
+    /// A severity group of the message panel.
     Severity,
     /// A rule group of the message panel.
     Rule,
     /// A finding of the message panel.
     Finding,
-    /// A library tier group of the Macros and Libraries navigators (WP-S1.19 §11).
+    /// A library tier group of the Macros and Libraries navigators.
     Tier,
     /// An installed library.
     Library,
@@ -249,7 +249,7 @@ pub struct NavColumn {
     pub route: Option<(String, String)>,
     /// Why the column is read-only, when it is.
     pub read_only: Option<String>,
-    /// A strip-editor column whose cells compile through `Session::strip_edit` (WP-S2.07 §6.3); `None` elsewhere.
+    /// A strip-editor column whose cells compile through `Session::strip_edit`; `None` elsewhere.
     pub strip_cell: Option<super::strip_edit::StripCell>,
 }
 
@@ -297,7 +297,7 @@ pub struct NavNode {
     pub kinds: Vec<String>,
     /// For a Potentials row of a potential known only at connection points (`kinds` is `cp`): the CP its record names
     /// (the function and the CP index), where a Name typed in table mode, with Type and Voltage if typed with it,
-    /// defines it with `potential.define` (the G-PP triage's row 8, amending ID-752; WP-S1.16 D4); `None` elsewhere
+    /// defines it with `potential.define` (the G-PP triage's row 8, amending); `None` elsewhere
     /// (not printed). It carries no name: the definition takes the typed one.
     pub define_at: Option<(Uuid, u16)>,
     /// What draws them, main first, then page order, cell row, cell column, ID.
@@ -428,7 +428,7 @@ fn kind_columns(kind: &str) -> Vec<NavColumn> {
         .unwrap_or_default()
 }
 
-/// The editable columns of table mode (WP-S2.06 part 3, §8.2; D10): (navigator, column key, route kind, route path).
+/// The editable columns of table mode (D10): (navigator, column key, route kind, route path).
 /// Every other column is read-only.
 const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 29] = [
     (NavKind::Pages, "title", "page", "title"),
@@ -461,7 +461,7 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 29] = [
     (NavKind::Potentials, "class", "potential_def", "circuit_class"),
     (NavKind::Potentials, "colour", "potential_def", "props.colour"),
     (NavKind::Potentials, "cross_section", "potential_def", "props.csa"),
-    // WP-S2.07 §8 (FR-PLC-021): a channel's members through `fields.set` (WP-S1.21 D6); Address and Target through
+    // WP-S2.07 §8 (FR-PLC-021): a channel's members through `fields.set`; Address and Target through
     // their typed editors (`Session::parse_field_input`), Slot the module's through its typed editor.
     (NavKind::Plc, "slot", "device", "plc_module.slot"),
     (NavKind::Plc, "designation", "channel", "designation"),
@@ -479,7 +479,7 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 29] = [
     ),
 ];
 
-/// The derived columns (WP-S2.06 part 3, §8.1, §8.2): cells the derivation computes from other records rather than a
+/// The derived columns (§8.2): cells the derivation computes from other records rather than a
 /// field of the row's record (a connection's or terminal's potential, the folios a row is drawn on, counts). Drawn
 /// italic in table mode and read-only with the reason "derived".
 const DERIVED_COLUMNS: [(NavKind, &str); 17] = [
@@ -493,18 +493,18 @@ const DERIVED_COLUMNS: [(NavKind, &str); 17] = [
     (NavKind::Potentials, "pages"),
     (NavKind::Structure, "usage"),
     (NavKind::Blocks, "pages"),
-    // WP-S2.07 §8: a channel's function text and process tag come from its target, its page from the bound coil.
+    // A channel's function text and process tag come from its target, its page from the bound coil.
     (NavKind::Plc, "function_text"),
     (NavKind::Plc, "process_tag"),
     (NavKind::Plc, "placed_on"),
-    // WP-S4.02 part 3: the Unplaced devices navigator's cells are the device's tag and its primary part's data.
+    // The Unplaced devices navigator's cells are the device's tag and its primary part's data.
     (NavKind::Unplaced, "device"),
     (NavKind::Unplaced, "part"),
     (NavKind::Unplaced, "size"),
     (NavKind::Unplaced, "mount"),
 ];
 
-/// The strip-editor columns of the Terminal strips navigator (WP-S2.07 §6.2, §6.3): (column key, its compile).
+/// The strip-editor columns of the Terminal strips navigator (§6.3): (column key, its compile).
 const STRIP_CELLS: [(&str, super::strip_edit::StripCell); 3] = [
     ("group", super::strip_edit::StripCell::Group),
     ("bridge_part", super::strip_edit::StripCell::BridgePart),
@@ -550,12 +550,12 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             column("type", "Type", false, None),
             column("frame", "Frame", false, None),
             column("generated", "Generated", false, None),
-            // WP-S1.18 part 2 (D7): the page change status of doc 15 §5.6.
+            // The page change status of doc 15 §5.6.
             column("changed_in", "Changed in", false, None),
         ],
         NavKind::Devices => kind_columns("structure_overview"),
         NavKind::Connections => kind_columns("wire_list"),
-        // WP-S2.07 D2, D6: `pos` after `strip`, `bridge_part` after `bridge`.
+        // `pos` after `strip`, `bridge_part` after `bridge`.
         NavKind::Strips => {
             let mut c = own(&["strip"]);
             c.push(column("pos", "Pos", false, None));
@@ -576,7 +576,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             c.extend(["potential", "shield", "pair"].map(|k| column(k, &key_label(k), false, None)));
             c
         }
-        // WP-S2.07 §8: the PLC grid's own columns; the first, Address, is the key column (FT-757).
+        // The PLC grid's own columns; the first, Address, is the key column.
         NavKind::Plc => PLC_COLUMNS
             .iter()
             .enumerate()
@@ -591,7 +591,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
         }
         NavKind::Parts => kind_columns("parts_summary"),
         NavKind::Blocks => own(&["title", "kind", "first_folio", "section", "pages"]),
-        // WP-S4.02 part 3 (FT-486): the device (the key column, as the tree row names it in table mode), Part,
+        // The device (the key column, as the tree row names it in table mode), Part,
         // W × H (mm), Mount.
         NavKind::Unplaced => vec![
             column("device", "Device", true, None),
@@ -599,10 +599,10 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             column("size", "W × H (mm)", false, None),
             column("mount", "Mount", false, None),
         ],
-        // WP-S1.19 §11: the Macros and Libraries navigators' own columns.
+        // The Macros and Libraries navigators' own columns.
         NavKind::Macros => libraries::columns(&libraries::MACRO_COLUMNS),
         NavKind::Libraries => libraries::columns(&libraries::LIBRARY_COLUMNS),
-        // WP-S2.09 §7.1: every column is derived and read-only; `rule` is the key column.
+        // Every column is derived and read-only; `rule` is the key column.
         NavKind::Messages => MESSAGE_COLUMNS
             .iter()
             .map(|k| NavColumn {
@@ -707,11 +707,11 @@ impl Builder {
 }
 
 impl Session {
-    /// The table of navigator `kind` at the current revision (WP-S2.06 §4.2, §6.1): a plain function over `Q`,
+    /// The table of navigator `kind` at the current revision (§6.1): a plain function over `Q`,
     /// deterministic, reading memoised queries and `ew_reports::project_rows` only, for every kind of [`NavKind`].
-    /// The Macros and Libraries tables (WP-S1.19 §11) also read [`Session::libraries`] as it is now: a library write
+    /// The Macros and Libraries tables also read [`Session::libraries`] as it is now: a library write
     /// changes them without a new revision, so the shell refetches them after one. The Messages table also reads the
-    /// merge evidence (WP-S1.17 D29: the manifest's `merged`, a git merge or rebase in progress, `--after-merge`): a
+    /// merge evidence (the manifest's `merged`, a git merge or rebase in progress, `--after-merge`): a
     /// change of that evidence without a new revision shows at the next revision.
     pub fn navigator_table(&self, kind: NavKind) -> NavTable {
         let rev = self.world().rev.0;
@@ -739,7 +739,7 @@ impl Session {
         b.finish(kind, rev)
     }
 
-    /// The Messages table of the migration report (WP-S3.09 D9 d, T11): the tree of [`Session::navigator_table`]'s
+    /// The Messages table of the migration report (d, T11): the tree of [`Session::navigator_table`]'s
     /// Messages from a run of the `migration` scheme at the release mode, the import runs' findings among the live
     /// ones.
     pub fn migration_table(&self) -> NavTable {
@@ -755,7 +755,7 @@ impl Session {
         b.finish(NavKind::Messages, rev)
     }
 
-    /// Whether the project holds an import lineage, so that its migration report can be shown (WP-S3.09 D9 d).
+    /// Whether the project holds an import lineage, so that its migration report can be shown (d).
     pub fn has_lineage(&self) -> bool {
         self.query()
             .table::<ew_schema::ImportLineage>()
@@ -764,7 +764,7 @@ impl Session {
             .is_some()
     }
 
-    /// The Pages tree as built (WP-S2.03 §6.1, section view): section nodes (front matter first, as the page order
+    /// The Pages tree as built (section view): section nodes (front matter first, as the page order
     /// meets them), the pages under them.
     fn pages_table(&self, b: &mut Builder) {
         let q = self.query();
@@ -921,7 +921,7 @@ fn fndef_key(q: &Q, f: &Function) -> Option<String> {
         })
 }
 
-/// The human text of a function's kind (FT-670, FT-664): the FnDef's last category entry, then the one before it
+/// The human text of a function's kind: the FnDef's last category entry, then the one before it
 /// lower-cased, then the CP designations of the function's template entry (else of the FnDef, in `idx` order) joined
 /// by `-`. Category `["Relay", "Contact", "NO"]` with CPs 13 and 14 gives `NO contact 13-14`; a last entry equal to
 /// the CP designations run together is dropped and the one before it capitalised (`["Relay", "Coil", "A1A2"]` with
@@ -934,7 +934,7 @@ pub(crate) fn function_kind_text(q: &Q, f: &Function) -> String {
 }
 
 /// [`function_kind_text`] without its last fallback, the copy's UUID text: the category's text, else the FnDef's key,
-/// else `None` (the live description's `<kind>`, FT-1249).
+/// else `None` (the live description's `<kind>`).
 pub(crate) fn function_kind_or_key(q: &Q, f: &Function) -> Option<String> {
     let fndefs = q.fndefs();
     let def = fndefs
@@ -1035,7 +1035,7 @@ const KIND_WORDS: &[(&str, &str, &str, bool)] = &[
 ];
 
 /// The word of a category's last entry where the generic rule of [`kind_text`] spells it out (FT-712: `CO` reads
-/// "changeover"); in the same localisation as [`KIND_WORDS`] (WP-S2.08 part 3).
+/// "changeover"); in the same localisation as [`KIND_WORDS`].
 const LAST_ENTRY_WORDS: &[(&str, &str)] = &[("CO", "changeover")];
 
 /// The display words of a FnDef category by its last two entries ([`KIND_WORDS`]), with whether the CP designations
@@ -1068,7 +1068,7 @@ pub(crate) fn function_kind_words(q: &Q, f: &Function) -> Option<&'static str> {
     kind_words(before, last).map(|(words, _)| words)
 }
 
-/// The Properties grid's "Part function" text of a function (FT-670): [`function_kind_text`] when the function
+/// The Properties grid's "Part function" text of a function: [`function_kind_text`] when the function
 /// records `template_entry` and that entry resolves among its device's part uses (`ew_schema::template_entry_of`);
 /// `None` otherwise (the row is hidden).
 pub(crate) fn part_function_text(q: &Q, f: &Function) -> Option<String> {
@@ -1251,7 +1251,7 @@ fn device_node(
     let fn_drawables: Vec<(Id<Function>, bool, Vec<Drawable>)> = fns
         .iter()
         .map(|(aux, _, f)| {
-            // WP-S1.20 D5: an internal coil is drawn in its valve's symbol
+            // An internal coil is drawn in its valve's symbol
             let drawn = ew_derive::coil_host(q, *f).unwrap_or(*f);
             let reps = q
                 .idx()
@@ -1670,7 +1670,7 @@ fn short_tag(q: &Q, d: Id<Device>) -> String {
         .unwrap_or_default()
 }
 
-/// Terminal strips (§7.1; WP-S2.07 D2, D3): strip → its rows in mounting order: the accessories placed before the
+/// Terminal strips (§7.1): strip → its rows in mounting order: the accessories placed before the
 /// first terminal, then each terminal (from the strip's terminal diagram) followed by the accessories placed after it.
 /// The table has a leading `strip` column, `pos` (the terminal's `seq`, an accessory's `<after_seq>.<k>`) and
 /// `bridge_part` (the part number of the terminal's bridge, D6). Every node of a strip carries the facet `strip` (the
@@ -1838,7 +1838,7 @@ fn strips_table(q: &Q, b: &mut Builder) {
     }
 }
 
-/// One accessory row of a strip (WP-S2.07 D3).
+/// One accessory row of a strip.
 struct AccessoryRow {
     /// Its index in `Strip.accessories`.
     index: usize,
@@ -1984,7 +1984,7 @@ fn cables_table(q: &Q, b: &mut Builder) {
     }
 }
 
-/// The PLC grid's columns (WP-S2.07 §8, FR-PLC-021): the members of PBF §2.8 that WP-S1.21's model has. Rack, data
+/// The PLC grid's columns (FR-PLC-021): the members of PBF §2.8 that WP-S1.21's model has. Rack, data
 /// type, safety and signal range have no member yet and are left out. FT-757: the address is the key column and the
 /// target, symbol and function text follow it, so that a grid at the default rail width shows what a channel is
 /// and what it drives; station, slot and comment come last.
@@ -2060,7 +2060,7 @@ fn slot_text(s: &ew_derive::Slot) -> String {
     }
 }
 
-/// The channels that the `duplicate` flag marks (WP-S2.07 §8): the targets of EW-PLC-007 (duplicate symbol) and of
+/// The channels that the `duplicate` flag marks: the targets of EW-PLC-007 (duplicate symbol) and of
 /// EW-PLC-001's `overlap` findings (two addresses whose bit ranges overlap), in every configuration project.
 fn duplicate_channels(
     q: &Q,
@@ -2082,12 +2082,12 @@ fn duplicate_channels(
     out
 }
 
-/// PLC (WP-S2.07 §8, FR-PLC-020, FR-PLC-021): configuration project → station (its role word as the badge) → module →
+/// PLC (FR-PLC-020, FR-PLC-021): configuration project → station (its role word as the badge) → module →
 /// channel, from `plc_rows(station)` in slot and channel order. Configuration projects sort by name (natural, then ID),
 /// stations by their tag (natural, as the PLC overview lists them). A channel row carries the grid's cells
 /// ([`PLC_COLUMNS`]), the badges `spare` and `unplaced` (no binding), and the facets `kind`, `state`, `page`,
 /// `config:<name>` and the flags `unassigned` (no address: excluded or not derivable), `spare`, `unplaced`, `tbd` (an
-/// open address) and `duplicate` ([`duplicate_channels`]). Racks and bus ports wait for their records (WP-S1.21 part 4).
+/// open address) and `duplicate` ([`duplicate_channels`]). Racks and bus ports wait for their records.
 fn plc_table(q: &Q, b: &mut Builder) {
     use ew_derive::ew_schema::{Channel, PlcConfigProject};
     use ew_derive::{ChannelAddr, EffectiveState, PlcRows};
@@ -2608,7 +2608,7 @@ fn parts_table(q: &Q, b: &mut Builder) {
     }
 }
 
-/// The Unplaced devices tree (WP-S4.02 part 3, FT-486, doc 16 §5.2's row): one location node per layout space (its
+/// The Unplaced devices tree (doc 16 §5.2's row): one location node per layout space (its
 /// full designation, `+J-E-2416`), in space order, and under it the space's unplaced devices in `unplaced` order
 /// (natural full tag, ruling 9), each labelled by its tag as a sentence names it, with the badges `strip`, `assembly`
 /// and `unknown size` and the cells Device (the tag again, the key column of table mode), Part (the primary part's
@@ -2796,7 +2796,7 @@ pub enum HighlightTarget {
 }
 
 impl Session {
-    /// The connection IDs a highlight draws (WP-S2.06 §4.2, §7.3), sorted: for a potential the connections with an end
+    /// The connection IDs a highlight draws (§7.3), sorted: for a potential the connections with an end
     /// on it (by the potential partition; a bond's `via` counts for both of its potentials), for a connection the
     /// connections of its page-local net (the connection alone when it joins no net, a bridge). Empty for an unknown
     /// ID. Reads memoised queries only.
@@ -2885,7 +2885,7 @@ fn rule_kind_word(kind: crate::checks::RuleKind) -> &'static str {
     }
 }
 
-/// The drawables of one finding target (§6.1 item 6 of WP-S2.06): a device the representations of its functions; a
+/// The drawables of one finding target (§6.1 item 6): a device the representations of its functions; a
 /// function its representations; a representation and a connection themselves; a conductor its core connections;
 /// every other record none.
 fn target_drawables(
@@ -2933,7 +2933,7 @@ fn rank(b: &mut Builder, at: u32) {
 }
 
 impl Session {
-    /// The check scheme of the online checks (WP-S2.09 §4.2): the project's `active_scheme`
+    /// The check scheme of the online checks: the project's `active_scheme`
     /// ([`Session::project_check_scheme`] in [`crate::checks::CheckMode::Online`]), else `drafting`. The message panel
     /// and the property grid's header findings run it.
     pub fn online_scheme(&self) -> &'static crate::checks::Scheme {
@@ -2941,7 +2941,7 @@ impl Session {
             .unwrap_or(&crate::checks::DRAFTING)
     }
 
-    /// The message panel's tree (WP-S2.09 §7.1): severity groups (Error, Warning, Info; an empty one left out) → rule
+    /// The message panel's tree: severity groups (Error, Warning, Info; an empty one left out) → rule
     /// groups in rule-ID order (label `<rule ID> <title>`, badge the number of its findings) → the findings in the
     /// report's order (label `<subject>: <message>`, key `finding:<fingerprint>`), from the online scheme's run. A
     /// node's first natural key is its rank in this order, so that the default label sort shows the provider's order.
@@ -2953,7 +2953,7 @@ impl Session {
         mode: crate::checks::CheckMode,
     ) {
         use crate::checks;
-        // With merge evidence, EW-CORE-013's groups (WP-S1.17 D29).
+        // With merge evidence, EW-CORE-013's groups.
         let report = self.check_over(q, scheme, mode);
         let folios = folios(q);
         for (severity, label) in SEVERITY_GROUPS {
@@ -3006,7 +3006,7 @@ impl Session {
 
 /// The drawables of a finding's primary target among `candidates` (the place key of each target's first drawable,
 /// its printed label, its drawables, in target order): the smallest place key, a tie broken on the label in natural
-/// order and then by bytes (FT-588); the target order decides only between equal labels.
+/// order and then by bytes; the target order decides only between equal labels.
 fn primary_drawables<K: Ord>(candidates: impl Iterator<Item = (K, String, Vec<Drawable>)>) -> Vec<Drawable> {
     candidates
         .map(|(key, label, ds)| (key, natural_key(&label), label, ds))
@@ -3050,8 +3050,8 @@ pub(crate) fn finding_page(
             )
         })
     };
-    // A tie (two targets drawn first in the same cell) breaks on the targets' printed labels in natural order
-    // (FT-588), never on the target (ID) order.
+    // A tie (two targets drawn first in the same cell) breaks on the targets' printed labels in natural order,
+    // never on the target (ID) order.
     let label = |t: &crate::checks::Target| super::properties::order_key(q, t.kind, t.id.as_uuid(), None).0;
     let primary = primary_drawables(
         f.targets
@@ -3206,7 +3206,7 @@ mod tests {
         assert_eq!(tokens("Ä1"), ["ä", "1"]);
     }
 
-    /// FT-588: two targets drawn first in the same cell; the primary is the one whose label prints first in natural
+    /// Two targets drawn first in the same cell; the primary is the one whose label prints first in natural
     /// order (`-K2` before `-K10`), in either target (ID) order.
     #[test]
     fn a_primary_target_tie_breaks_on_the_printed_label() {
@@ -3331,7 +3331,7 @@ mod tests {
             ("device", "terminal.designation"),
             ("potential_def", "name"),
             ("structure_node", "code"),
-            // WP-S2.07 §8: a module's slot (the catalogue's identifier flag, FR-UI-044 rule 2).
+            // A module's slot (the catalogue's identifier flag, FR-UI-044 rule 2).
             ("device", "plc_module.slot"),
         ];
         for (nav, key, kind, path) in EDITABLE_COLUMNS {
@@ -3345,8 +3345,8 @@ mod tests {
                 "{kind}.{path}: route {:?}",
                 spec.route
             );
-            // A cable's length source is JSON with its own typed editor (`parse_field_input`, WP-S2.07 §7).
-            // The PLC grid's address, target and slot have theirs too (WP-S2.07 §8).
+            // A cable's length source is JSON with its own typed editor (`parse_field_input`).
+            // The PLC grid's address, target and slot have theirs too.
             let typed = [
                 ("device", "cable.length"),
                 ("channel", "address"),

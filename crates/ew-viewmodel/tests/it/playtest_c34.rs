@@ -45,7 +45,7 @@ fn place_terminal(s: &mut ShellModel, cell: &str) {
 // ---------------------------------------------------------------------------------------------------------------
 // Item 9: the Device button's picker on a fresh project.
 
-/// A fresh project has no part copies, but Draw ▸ Device (`tool.place_part`) lists the starter parts (WP-S2.18 D6),
+/// A fresh project has no part copies, but Draw ▸ Device (`tool.place_part`) lists the starter parts,
 /// so it has no empty text; with a filter that matches nothing it is the parts filter's text. The parts' own empty text
 /// stays for a picker without part rows.
 #[test]
@@ -61,7 +61,7 @@ fn the_device_picker_of_a_fresh_project_lists_the_starter_parts() {
         ew_viewmodel::strings::text(key!("picker-empty-parts")),
         "No parts in this project yet"
     );
-    // FT-1375 (ID-1391): under a filter the Device picker's empty state names Choose part… as the next step.
+    // Under a filter the Device picker's empty state names Choose part… as the next step.
     done(&mut s, "picker.filter", json!({"text": "zzz"}));
     assert_eq!(
         s.picker().unwrap().empty_text(),
@@ -95,7 +95,7 @@ fn strip_with_two_terminals(tmp: &Tmp) -> (ShellModel, String) {
     (s, strip)
 }
 
-/// FT-1403 (ID-1392): the new-strip toast's example is the tag the strip takes with its first terminal, by the
+/// The new-strip toast's example is the tag the strip takes with its first terminal, by the
 /// project's scheme (`-101X1`, not `-X1011`).
 #[test]
 fn the_new_strip_toasts_example_is_the_tag_it_takes() {
@@ -149,7 +149,7 @@ fn select_set_by_a_terminals_list_form_tag_then_mirror_mirrors_it() {
     );
 }
 
-/// FT-626: a refused transform key leaves a by-reference selection as it was. Shift+V with Select is refused
+/// A refused transform key leaves a by-reference selection as it was. Shift+V with Select is refused
 /// `reason-place-only` and V on two drawn representations `reason-one-rep`; neither replaces the selected devices
 /// with their representations. An accepted key (V on one) still does.
 #[test]

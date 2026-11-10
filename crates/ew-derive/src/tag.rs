@@ -4,7 +4,7 @@
 //! Device tags (doc 03 §8.2–§8.5, FR-NUM-001, FR-NUM-002, FR-DEV-021, ADR-0026, D-27, D-41).
 //!
 //! **Agreement with the command layer.** The counter of a tag is assigned by the online-numbering
-//! normaliser of `ew-commands` (ID-48) in the scope (page of the main representation, letter). For the
+//! normaliser of `ew-commands` in the scope (page of the main representation, letter). For the
 //! printed tags to be unique wherever the counters are, `device_tag` uses the same two rules as
 //! `ew_commands::numbering`: the main function is the device's function with role `Main` and the smallest
 //! ID, and the main representation is the smallest-ID representation that draws it, contact images
@@ -13,7 +13,7 @@
 //! both at once with WP-S1.11; `tests/agreement.rs` holds the two layers together until then.
 //!
 //! **Schemes the command layer does not number.** The command layer numbers per (page of the main
-//! representation, letter) and nothing else (ID-48). A scheme is therefore applied only when that makes
+//! representation, letter) and nothing else. A scheme is therefore applied only when that makes
 //! its tags unique wherever the counters are: its counter scope is `"page"` and its format and every
 //! rule's format contain `{page}`, `{letter}` and `{counter}`. Any other scheme (from the project's
 //! settings or named by `TagScheme::Named`) is skipped with a [`DeriveNote::SchemeNotApplied`] and the
@@ -290,7 +290,7 @@ pub(crate) fn scheme_issue(scheme: &NumberingScheme) -> Option<SchemeIssue> {
 
 /// The scheme that formats a numbered tag: the requested one ([`profile::scheme_for`]: the named scheme,
 /// else the project's default, else the profile's), or the pinned profile's default scheme when the command
-/// layer's counters would not keep the requested one's tags unique (noted, decision log ID-99). A named key
+/// layer's counters would not keep the requested one's tags unique (noted). A named key
 /// the settings do not define is noted too.
 fn applied_scheme<'a>(
     q: &'a Q,
@@ -463,7 +463,7 @@ pub(crate) fn unknown_numbering_token(format: &str) -> Option<String> {
     None
 }
 
-/// The page of a cable's first connected core (FT-1406): of the core connections that name one of its conductors and
+/// The page of a cable's first connected core: of the core connections that name one of its conductors and
 /// lie on a page, the one of the smallest ID; `None` for a device that is no cable or has no such core. A cable
 /// without a drawn definition line is placed through it, as `ew_commands::numbering::main_page` places it.
 pub fn cable_core_page(q: &Q, device: Id<Device>) -> Option<Id<Page>> {
@@ -481,7 +481,7 @@ pub fn cable_core_page(q: &Q, device: Id<Device>) -> Option<Id<Page>> {
 }
 
 /// Renders a numbering format for a device. A cable without a drawn definition line takes the page of its first
-/// connected core, and without one no page: `{page}` prints nothing, its counter being the project's (FT-1406).
+/// connected core, and without one no page: `{page}` prints nothing, its counter being the project's.
 fn render_format(q: &Q, id: Id<Device>, dev: &Device, format: &str) -> String {
     let main_rep = *q.get::<MainRep>(id);
     let rep = main_rep.and_then(|r| q.reps().get(r));

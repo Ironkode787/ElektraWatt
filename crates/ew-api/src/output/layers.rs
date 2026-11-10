@@ -10,7 +10,7 @@
 //! | [`FrameLayer`] | [`Layer::Frame`] | `page_frame`, `page_bindings` (`title_block(page)`, the date format) |
 //! | [`SymbolsLayer`] | [`Layer::Symbols`] | `page_reps`, `page_cp_targets`, `assembly_break_marks`, `page_grid` (the pen of the break marks and graphics), the page items and structure boxes without texts |
 //! | [`WiresLayer`] | [`Layer::Wires`] | `page_reps`, `page_connections`, `page_junctions`, `page_grid`, `page_frame` (the page rectangle) |
-//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption, FT-734), `page_frame`, the page items with texts, the structure boxes with captions and the strip tags of terminals drawn alone (`page_strip_tags`); on a panel-layout page also the placement labels (`panel.rs`) |
+//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption), `page_frame`, the page items with texts, the structure boxes with captions and the strip tags of terminals drawn alone (`page_strip_tags`); on a panel-layout page also the placement labels (`panel.rs`) |
 //! | [`TablesLayer`] | [`Layer::Tables`] | `page_frame` (the sheet map), `page_table` or `page_embedded` |
 //! | [`SurfaceLayer`] | [`Layer::Surface`] | the surface outlines of the page's surface view (`panel.rs`) |
 //! | [`CarriersLayer`] | [`Layer::Carriers`] | the carriers of the page's surface view and its placement labels, which the carriers are cut around (`panel.rs`) |
@@ -53,7 +53,7 @@ pub struct PageLayer {
     pub geometry: BTreeMap<SymbolGeomId, Arc<DisplayList>>,
     /// What to report, in paint order.
     pub findings: Vec<PageFinding>,
-    /// The labels layer's anchor of each representation's device tag after the tag rule (FT-771), by representation
+    /// The labels layer's anchor of each representation's device tag after the tag rule, by representation
     /// ID (`ew_scene::page::LayerList::tags`).
     pub tags: BTreeMap<Uuid, Pt2>,
 }
@@ -83,7 +83,7 @@ fn base_view(page: PageRef) -> PageView {
     }
 }
 
-/// How the project draws crossing wires (`drawing_settings`, WP-S2.04 §8.6).
+/// How the project draws crossing wires (`drawing_settings`).
 fn crossings(q: &Q) -> Crossings {
     if q.get::<DrawingSettingsQ>(()).hops {
         Crossings::Hops

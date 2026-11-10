@@ -77,7 +77,7 @@ pub enum OccupancyParam {
     Empty,
 }
 
-/// `valve.set_occupancy` (`SetValveOccupancy`, doc 11 §4.3, WP-S1.20 D9): what one valve position of a module holds.
+/// `valve.set_occupancy` (`SetValveOccupancy`, doc 11 §4.3): what one valve position of a module holds.
 ///
 /// A module is a device whose part (`plc_module.part_use`, else the first part use with `plc.positions`) has a
 /// solenoid-position map; its positions are 1 … `plc.positions.count`. `copies` embeds library documents first, as
@@ -88,7 +88,7 @@ pub enum OccupancyParam {
 ///   the part (N-FL-1).
 /// - *blank:* a valve at the position is removed with its delete plan (functions, representations, the connections
 ///   at its CPs, its `drives` links; channels bound to its coils are unbound), with notices; a plate there takes the
-///   given part, the old part's template functions replaced by the new part's (FT-1317); otherwise a child `{kind: blanking_plate, tag: child scheme, letter Q, counter = position, parts:
+///   given part, the old part's template functions replaced by the new part's; otherwise a child `{kind: blanking_plate, tag: child scheme, letter Q, counter = position, parts:
 ///   [part]?}` is made, with the part's template functions when a part is given.
 /// - *empty:* the child at the position is removed as above.
 ///
@@ -109,7 +109,7 @@ pub struct SetValveOccupancy {
     pub copies: Vec<Value>,
 }
 
-/// The number of valve positions of a module (WP-S1.20 D8): `plc.positions.count` of the part named by
+/// The number of valve positions of a module: `plc.positions.count` of the part named by
 /// `plc_module.part_use`, else of the first part use whose copy has `plc.positions`; `None` for a device without.
 pub(crate) fn position_count(tx: &TxBuilder<'_>, module: &Device) -> Option<u16> {
     let count = |i: usize| {
@@ -123,7 +123,7 @@ pub(crate) fn position_count(tx: &TxBuilder<'_>, module: &Device) -> Option<u16>
     }
 }
 
-/// The child of `module` at `position`: of two, the lower ID (WP-S1.20 D8).
+/// The child of `module` at `position`: of two, the lower ID.
 fn child_at(tx: &TxBuilder<'_>, module: Id<Device>, position: u32) -> Option<Arc<Device>> {
     tx.children_of(module)
         .into_iter()
@@ -342,7 +342,7 @@ impl Command for SetValveOccupancy {
                         if let Some(part) = part
                             && plate.parts.first().map(|u| u.part.copy) != Some(*part)
                         {
-                            // FT-1317: the template functions follow the part, the old part's going.
+                            // The template functions follow the part, the old part's going.
                             let old: Vec<_> = tx
                                 .functions_of_device(plate.id)
                                 .into_iter()
@@ -413,7 +413,7 @@ pub enum ClosureKindParam {
     Blanked,
 }
 
-/// `fluid.port.close` (`ClosePort`, doc 11 §4.3, WP-S1.20 D10, FR-FLU-028): closes a fluid port with a plug, a
+/// `fluid.port.close` (`ClosePort`, doc 11 §4.3, FR-FLU-028): closes a fluid port with a plug, a
 /// silencer or a blanking (`CpOverride.closure`), or opens it again without `closure`.
 ///
 /// A closed port is exempt from EW-FL-001. Refused: a CP that is no fluid port; a fluid port with a fluid line (when

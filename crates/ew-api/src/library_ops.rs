@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 3: the library reference form of the commands (D7). The session resolves a [`LibRef`] with its
+//! The library reference form of the commands (D7). The session resolves a [`LibRef`] with its
 //! closure from [`Session::libraries`] and composes `library.embed`, `part.assign` and `library.update` with the
 //! documents; the commands never read a library, so a command log replays on a machine with no library installed.
 //! Also the library status of the held copies (FT-487's data) and the update plan the card shows (D9).
@@ -187,7 +187,6 @@ pub struct UpdatePlan {
     pub derived: DerivedDiff,
 }
 
-// WP-S2.07 part 4b
 /// One library copy a pasted fragment carries in another version than the project holds (WP-S2.07 D22, FT-396), as
 /// the paste choice card lists it: "FX-MCB-1PN (Fixture): this project 1.1.0, pasted 1.0.0, patch".
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -296,7 +295,7 @@ fn identity(doc: &LibDocument) -> Option<(Kind, Uuid, Uuid, Uuid, String, Sha256
     })
 }
 
-/// Why each address profile of `library` that does not render is left out of the profiles at hand (WP-S7.03 T2), in
+/// Why each address profile of `library` that does not render is left out of the profiles at hand (T2), in
 /// item order: the notes `ew lib list` shows under the library.
 pub fn unreadable_profiles(reg: &library::Registry, library: Uuid) -> Vec<String> {
     reg.documents(library, Kind::PlcProfile)
@@ -513,7 +512,7 @@ fn version_core(v: &str) -> Option<[u64; 3]> {
 }
 
 impl Session {
-    /// The documents of `refs` with their closures (D7, FT-274) that the project does not hold yet: a held copy with
+    /// The documents of `refs` with their closures (D7) that the project does not hold yet: a held copy with
     /// the same hash is left out; one with another hash is [`ApiError::OtherVersionHeld`].
     pub(crate) fn closure_docs(&self, refs: &[LibRef]) -> Result<Vec<LibDocument>, ApiError> {
         let q = self.query();
@@ -549,7 +548,7 @@ impl Session {
         Ok(out)
     }
 
-    /// The item ID of the next fork of the held copy `copy` (WP-S2.07 D20): `v5(copy, "fork")`, else
+    /// The item ID of the next fork of the held copy `copy`: `v5(copy, "fork")`, else
     /// `v5(copy, "fork\u{1f}<n>")` for the first `n` from 1 whose copy the project does not hold, as
     /// [`Session::next_macro_instance`] mints instance IDs. The command carries the ID, so a replay reproduces it.
     pub fn next_fork_item(&self, copy: Uuid) -> Uuid {
@@ -565,7 +564,7 @@ impl Session {
             .expect("an unbounded sequence has a free item")
     }
 
-    /// The `library.embed` that a `plc.set_profile` naming `profile` needs first (WP-S7.03 D8): when no profile at hand
+    /// The `library.embed` that a `plc.set_profile` naming `profile` needs first: when no profile at hand
     /// has that name (`id@version` or the ID, without regard to ASCII case) and a library profile of the session's
     /// tiers that renders has, the command that embeds the first such in tier order, so that the command then pins
     /// it; `None` otherwise. A library profile that does not render is left out (T2).
@@ -613,7 +612,7 @@ impl Session {
             .collect()
     }
 
-    /// The manufacturer a part names, as the picker and the Properties part cell show it, held or not (FT-1087): the
+    /// The manufacturer a part names, as the picker and the Properties part cell show it, held or not: the
     /// held copy's name, else the library record's name (its key only when it has no name); empty when neither
     /// resolves. The name is the same text before and after the part is embedded, so that a maker group does not
     /// change on placing a part.
@@ -649,7 +648,7 @@ impl Session {
             })
     }
 
-    /// The Parts row's edit as `part.assign` (WP-S2.18 D6): when the new part uses `value` (`[{part: {copy}, qty}]`, the
+    /// The Parts row's edit as `part.assign`: when the new part uses `value` (`[{part: {copy}, qty}]`, the
     /// row's value) are exactly one use whose copy the project does not hold and a system library holds
     /// ([`Session::library_part_ref`]), the command that embeds the part with its closure and makes it the devices'
     /// only part use (`replace_all`, the use's quantity) in one transaction; `None` otherwise (the row's own
@@ -680,7 +679,7 @@ impl Session {
         Some(self.assign_part(devices, &r, AssignMode::ReplaceAll, qty))
     }
 
-    /// `library.embed` by reference (FT-274, WP-S1.19 §8): resolves each reference with its closure from
+    /// `library.embed` by reference: resolves each reference with its closure from
     /// [`Session::libraries`] and builds the raw-document command; documents the project holds with the same hash are
     /// left out.
     ///
@@ -699,7 +698,7 @@ impl Session {
         AnyCommand::of(&cmd).map_err(ApiError::Cmd)
     }
 
-    /// `part.assign` by reference (D7, D8, FT-168): resolves the part with its closure (template FnDefs, manufacturer)
+    /// `part.assign` by reference (D7, D8): resolves the part with its closure (template FnDefs, manufacturer)
     /// and builds the command that embeds what the project lacks and sets the part uses of `devices` by `mode`.
     ///
     /// # Errors
@@ -877,7 +876,7 @@ impl Session {
             if lib_sha == sha {
                 continue;
             }
-            // FT-640: the new version's closure that the project does not hold travels with the update.
+            // The new version's closure that the project does not hold travels with the update.
             for d in self
                 .libraries()
                 .closure(&r)
@@ -902,7 +901,7 @@ impl Session {
     /// [`Session::update_from_library`], with the new versions taken from `docs` (a pasted fragment's copies) instead
     /// of the installed libraries. A document the project holds with another hash is updated to it; one it holds with
     /// the same hash is left out; one it does not hold travels in the command's `embed` when an updated document names
-    /// it (its manufacturer or template FnDefs, a symbol's FnDef; FT-640), else it is left for the paste to embed.
+    /// it (its manufacturer or template FnDefs, a symbol's FnDef), else it is left for the paste to embed.
     ///
     /// # Errors
     ///
@@ -953,7 +952,7 @@ impl Session {
         self.update_from_documents(&docs, &[])
     }
 
-    /// The update plan of the pairs (held copy, new version) with the closure documents `embed` (FT-640): the
+    /// The update plan of the pairs (held copy, new version) with the closure documents `embed`: the
     /// `library.update` command, each copy's class and field diff, and what a preview on a throwaway engine changes.
     fn update_plan(
         &self,

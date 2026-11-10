@@ -463,7 +463,7 @@ fn change_symbol_previews_and_commits_on_one_representation() {
     done(&mut s, "ui.dismiss", json!({}));
     // A symbol of another function definition with no CP matching by designation: the preview is refused because a
     // symbol CP would draw a function CP by no decision of the map's (ruling 5), which leaves no CP unmapped: the
-    // ghost names none (fix round, item 4), before the dwell too: the map comes from the two shapes (FT-424).
+    // ghost names none (fix round, item 4), before the dwell too: the map comes from the two shapes.
     done(&mut s, "rep.exchange", json!({"symbol": "ew.iec.heater@qet10"}));
     assert_eq!(s.tool().name(), "exchange");
     assert_eq!(s.tool().state(), "armed");
@@ -560,7 +560,7 @@ fn pointer_and_cursor_moves_with_a_tool_armed_and_picker_filtering_call_no_sessi
     assert_eq!(s.session_calls().run_script, calls.run_script + 1);
 }
 
-/// C49-p8b#3 (ID-1278 ruling 7): the Place tool's label names a strip without a tag yet in words, never by its
+/// C49-p8b#3: the Place tool's label names a strip without a tag yet in words, never by its
 /// placeholder tag.
 #[test]
 fn the_place_label_names_a_strip_without_a_tag_in_words() {
@@ -578,7 +578,7 @@ fn the_place_label_names_a_strip_without_a_tag_in_words() {
                 .map(|n| n.label.clone())
         })
         .expect("the new strip");
-    // FT-1285: the preview chip's "before" of the strip reads in words; a device's "?" stays as it is.
+    // The preview chip's "before" of the strip reads in words; a device's "?" stays as it is.
     let strip_id = s
         .nav(ew_viewmodel::navigators::NavKind::Strips)
         .and_then(|n| n.table())
@@ -633,7 +633,7 @@ fn the_place_label_names_a_strip_without_a_tag_in_words() {
         "{nl:?}"
     );
     done(&mut s, "view.language", json!({"value": "en"}));
-    // FT-1285: a device that is no strip keeps its "?" as it is (folio 101's relay).
+    // A device that is no strip keeps its "?" as it is (folio 101's relay).
     done(&mut s, "tool.select", json!({}));
     done(&mut s, "page.goto", json!({"folio": "101"}));
     let device = tables(&s)
@@ -670,10 +670,10 @@ fn a_terminal_joins_strip_x1031_with_its_tag_predicted_and_the_designation_advan
     done(&mut s, "canvas.dwell", json!({"ms": 80}));
     assert_eq!(state(&s)["canvas"]["preview"]["state"], "ready");
     assert!(ghost(&s)["tag"].is_string(), "{g}");
-    // C50-p1#3: the whole label after the preview, the terminal's tag not added to it.
+    // The whole label after the preview, the terminal's tag not added to it.
     let labels: Vec<String> = s.tool_overlay().labels().map(|l| l.to_string()).collect();
     assert_eq!(labels, ["Variant A · terminal 30 on -X1031"]);
-    // FT-1297: View ▸ Language relabels it at once, before the pointer moves.
+    // View ▸ Language relabels it at once, before the pointer moves.
     done(&mut s, "view.language", json!({"value": "nl"}));
     let labels: Vec<String> = s.tool_overlay().labels().map(|l| l.to_string()).collect();
     assert_eq!(labels, ["Variant A · klem 30 op -X1031"]);
@@ -710,7 +710,7 @@ fn structural_tokens(line: &str) -> Vec<String> {
             words.push(token.to_owned());
             break;
         }
-        // An ID alias `@n` is a value token like a number (ID-630).
+        // An ID alias `@n` is a value token like a number.
         let number = token.parse::<f64>().is_ok()
             || ew_viewmodel::alias::is_alias(token)
             || token.chars().all(|c| !c.is_alphanumeric());
@@ -895,7 +895,7 @@ fn a_refused_commit_keeps_the_designation_and_a_non_decimal_one_asks_again() {
     assert_eq!(tables(&s).reps.len(), count + 1);
 }
 
-/// FT-421: a terminal symbol without a strip opens the picker's strip chooser (every strip of the project by tag, the
+/// A terminal symbol without a strip opens the picker's strip chooser (every strip of the project by tag, the
 /// next free designation proposed); a strip made while it is open is listed and current; the tag comes from the model.
 #[test]
 fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
@@ -925,7 +925,7 @@ fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
     );
     let before = s.picker().unwrap().rows.len();
     done(&mut s, "strip.new", json!({"letter": "X"}));
-    // FT-893: the toast's example is the tag the first terminal gives the strip on this page (checked below).
+    // The toast's example is the tag the first terminal gives the strip on this page (checked below).
     let toast = state(&s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
     assert_eq!(
         toast,
@@ -966,7 +966,7 @@ fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
     assert!(line.contains(&format!("strip \"{numbered}:2\"")), "{line}");
 }
 
-/// FT-1083 (ID-1181): after an Undo of a placed terminal the Place tool proposes the number the Undo freed, not the
+/// After an Undo of a placed terminal the Place tool proposes the number the Undo freed, not the
 /// one after it, and after a Redo the number after the one redone; a strip keeps no gap.
 #[test]
 fn after_an_undo_the_place_tool_proposes_the_number_it_freed() {
@@ -1069,7 +1069,7 @@ fn the_strip_chooser_says_what_it_waits_for_and_a_canvas_press_starts_nothing() 
     assert_ne!(state(&s)["status"][0], hint);
 }
 
-/// FT-1087 (ID-1184; play-test rv-vis-7, t0059) as FT-1375 (ID-1391) amends it: the chooser lists the project's own
+/// FT-1087 (play-test rv-vis-7, t0059) as FT-1375 amends it: the chooser lists the project's own
 /// parts first, then the libraries', each by (maker, part number). Placing a terminal from a library part embeds the
 /// part, which then stands among the project's own: the chooser opened again has the same rows, in that order.
 #[test]
@@ -1200,7 +1200,7 @@ fn a_page_type_without_symbol_tools_refuses_the_editing_actions() {
     );
 }
 
-/// FT-892: on each page kind without drawing tools, the Wire button's disabled reason names the kind in words; a
+/// On each page kind without drawing tools, the Wire button's disabled reason names the kind in words; a
 /// generated section divider reaches the divider's text, not the generic "drawn pages" one.
 #[test]
 fn ft892_the_wire_buttons_disabled_reason_names_the_page_kind() {
@@ -1458,7 +1458,7 @@ fn ft900_a_placement_selects_what_it_placed_and_the_tool_stays_armed() {
     assert_eq!(s.tool().state(), "floating");
 }
 
-/// FT-1209 (ID-1392): a part row carries its rating beside its part number, which tells two parts of one kind apart:
+/// A part row carries its rating beside its part number, which tells two parts of one kind apart:
 /// the starter fuse EW-GEN-FUS-1 is rated 4 A.
 #[test]
 fn a_part_row_carries_its_rating() {

@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The application settings file `settings.toml` (WP-S2.01 part 1, spec section 5.1; FR-UI-033, FR-UI-049).
+//! The application settings file `settings.toml` (spec section 5.1; FR-UI-033, FR-UI-049).
 //!
 //! `version = 1`, `recent_projects` (at most [`MAX_RECENT`], most recent first, no duplicates), `ui_scale` (one
 //! of [`UI_SCALES`]) and, since part 2, the first-run answers and quick switches: `first_run_done`, `language`,
-//! `keymap`, `theme`, `density` (WP-S2.17), `comes_from`, `update_check` (an opt-in, off by default, NFR-PRIV-03), the default basic
+//! `keymap`, `theme`, `density`, `comes_from`, `update_check` (an opt-in, off by default, NFR-PRIV-03), the default basic
 //! project `basic_project` (FR-PRJ-009), the active workspace `workspace` (FR-UI-002) and, since WP-S2.02 part 2,
 //! the canvas renderer `canvas_backend` (`auto`, or `cpu` for View, Use the CPU renderer) and, since cycle 37, the
-//! author name `author_name` of the Waive prompt (FT-674; written only once set) and, since WP-S2.07 part 4a (D18), the
+//! author name `author_name` of the Waive prompt (written only once set) and, since WP-S2.07 part 4a (D18), the
 //! part dialog's `[parts] favourites` (sorted) and `recent` (most recent first, at most [`MAX_RECENT_PARTS`]), each a
 //! list of `<library ID>/<item ID>` texts, written only once set, and, since WP-S2.08 part 5 (D14), the minimum text size
 //! `min_font_pt` and `reduce_motion`, each written only once set, and, since part 6 (D17), the tips' switch `tips`
@@ -21,10 +21,10 @@ use std::path::{Path, PathBuf};
 /// The recent-projects list holds at most this many paths.
 pub const MAX_RECENT: usize = 10;
 
-/// The recently used parts list holds at most this many library items (WP-S2.07 D18).
+/// The recently used parts list holds at most this many library items.
 pub const MAX_RECENT_PARTS: usize = 20;
 
-/// The UI scales the user can choose, as factors on the native scale (to 300 %, FR-UI-027, WP-S2.08 D14).
+/// The UI scales the user can choose, as factors on the native scale (to 300 %, FR-UI-027).
 pub const UI_SCALES: [f32; 6] = [1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
 
 /// The label of the UI scale `scale` (`100 %`): the text of `scale-<per cent>`, one key per scale of [`UI_SCALES`], so
@@ -36,7 +36,7 @@ pub fn scale_label(scale: f32) -> &'static str {
     )))
 }
 
-/// The choices of View ▸ Minimum text size (WP-S2.08 D14, ID-1272 ruling 5): off, then 12, 14 and 16 pt.
+/// The choices of View ▸ Minimum text size: off, then 12, 14 and 16 pt.
 pub const MIN_FONT_CHOICES: [u8; 4] = [0, 12, 14, 16];
 
 /// The values of `min_font_pt` besides 0 (off): 8 to 16 pt.
@@ -45,18 +45,18 @@ pub const MIN_FONT_RANGE: std::ops::RangeInclusive<u8> = 8..=16;
 /// The file name inside the settings directory.
 pub const FILE_NAME: &str = "settings.toml";
 
-/// The UI languages of this version: English (en-GB) and Dutch (nl-NL, WP-S2.08 D10).
+/// The UI languages of this version: English (en-GB) and Dutch (nl-NL).
 pub const LANGUAGES: [&str; 2] = ["en", "nl"];
 
-/// The keymap presets the settings can name (WP-S2.08 part 2, D6): EW and KiCad-like (`keymap::Preset`); the user's
+/// The keymap presets the settings can name: EW and KiCad-like (`keymap::Preset`); the user's
 /// `keymap.toml` beside `settings.toml` replaces bindings of either.
 pub const KEYMAPS: [&str; 2] = ["ew", "kicad"];
 
-/// The themes of the design language (doc 16a §4, WP-S2.17 part 1): follow the system (light or dark), light, dark and
+/// The themes of the design language (doc 16a §4): follow the system (light or dark), light, dark and
 /// the two high-contrast themes.
 pub const THEMES: [&str; 5] = ["system", "light", "dark", "hc-dark", "hc-light"];
 
-/// The densities (doc 16a §4.13, WP-S2.17 D6): Comfortable (the default) and Compact.
+/// The densities (doc 16a §4.13): Comfortable (the default) and Compact.
 pub const DENSITIES: [&str; 2] = ["comfortable", "compact"];
 
 /// What the user comes from (first-run step 2, doc 16 section 9.1); the empty text is "not answered".
@@ -85,7 +85,7 @@ pub struct Settings {
     pub keymap: String,
     /// The theme, one of [`THEMES`].
     pub theme: String,
-    /// The density, one of [`DENSITIES`] (WP-S2.17 D6).
+    /// The density, one of [`DENSITIES`].
     pub density: String,
     /// What the user comes from, one of [`ORIGINS`], or empty.
     pub comes_from: String,
@@ -100,29 +100,28 @@ pub struct Settings {
     /// The property grid's collapsed categories, `<kind>/<category>` (`device/identity`), sorted (`[properties]
     /// collapsed`, WP-S2.05 §6.1.2).
     pub properties_collapsed: Vec<String>,
-    /// Whether the property grid shows the Advanced rows (`[properties] show_advanced`, WP-S2.17 D11).
+    /// Whether the property grid shows the Advanced rows (`[properties] show_advanced`).
     pub properties_show_advanced: bool,
-    /// The author name (FT-674): the display name a waiver records as its author, prefilled in the Waive prompt and
+    /// The author name: the display name a waiver records as its author, prefilled in the Waive prompt and
     /// saved back when a waiver is committed; `None` until one is typed (`author_name`, written only when set).
     pub author_name: Option<String>,
-    /// The main window's last size, position and maximised state (`[window]`, WP-S2.17 part 3 item 9, FT-348); `None`
+    /// The main window's last size, position and maximised state (`[window]`, item 9); `None`
     /// until a window has closed.
     pub window: Option<crate::window::WindowGeometry>,
-    /// The favourite parts, `<library ID>/<item ID>`, sorted (`[parts] favourites`, WP-S2.07 D18).
+    /// The favourite parts, `<library ID>/<item ID>`, sorted (`[parts] favourites`).
     pub parts_favourites: Vec<String>,
     /// The recently used parts, `<library ID>/<item ID>`, most recent first, at most [`MAX_RECENT_PARTS`] (`[parts]
     /// recent`).
     pub parts_recent: Vec<String>,
-    /// The minimum text size in points (`min_font_pt`, WP-S2.08 D14): 0 is off, else one of [`MIN_FONT_RANGE`]; a value
+    /// The minimum text size in points (`min_font_pt`): 0 is off, else one of [`MIN_FONT_RANGE`]; a value
     /// out of range loads as 0. Written only when set.
     pub min_font_pt: u8,
-    /// Reduce motion (`reduce_motion`, WP-S2.08 D14, NFR-A11Y-04); `None` while unset, which is on with the CPU canvas
+    /// Reduce motion (`reduce_motion`, NFR-A11Y-04); `None` while unset, which is on with the CPU canvas
     /// and off otherwise (`ShellModel::reduce_motion`). Written only when set.
     pub reduce_motion: Option<bool>,
-    /// FT-1439 (ID-1397): whether the plain mouse wheel scrolls the canvas, Ctrl with the wheel zooming
+    /// Whether the plain mouse wheel scrolls the canvas, Ctrl with the wheel zooming
     /// (`wheel_scrolls`); off, the default, the wheel zooms. Written only when on.
     pub wheel_scrolls: bool,
-    // WP-S2.08 part 6 (D17)
     /// Whether the one-time tips may be shown (`tips`; on unless the file says `tips = false`).
     pub tips: bool,
     /// The tips already shown, by their word ([`crate::shell::Tip::word`]), in the order they were shown
@@ -239,7 +238,7 @@ impl Settings {
         let theme = take_choice(&mut table, "theme", &THEMES)?;
         let density = take_choice(&mut table, "density", &DENSITIES)?;
         let canvas_backend = take_choice(&mut table, "canvas_backend", &CANVAS_BACKENDS)?;
-        // WP-S2.08 D14: an integer; a value out of range loads as off. ID-1278 ruling 14: a float of an integral value
+        // An integer; a value out of range loads as off. ID-1278 ruling 14: a float of an integral value
         // (`14.0`) loads as that size, any other float as off.
         let in_range = |i: i64| {
             u8::try_from(i)
@@ -264,7 +263,7 @@ impl Settings {
             Some(toml::Value::Boolean(on)) => on,
             Some(_) => return None,
         };
-        // WP-S2.08 part 6 (D17): `tips` a bool (absent is on), `tips_seen` a list of texts.
+        // `tips` a bool (absent is on), `tips_seen` a list of texts.
         let tips = match table.remove("tips") {
             None => true,
             Some(toml::Value::Boolean(on)) => on,
@@ -299,7 +298,7 @@ impl Settings {
         let mut properties_collapsed: Vec<String> = Vec::new();
         let mut properties_show_advanced = false;
         if let Some(toml::Value::Table(props)) = table.get_mut("properties") {
-            // WP-S2.17 part 3 (D11): `[properties] show_advanced`.
+            // `[properties] show_advanced`.
             match props.remove("show_advanced") {
                 None => {}
                 Some(toml::Value::Boolean(on)) => properties_show_advanced = on,
@@ -323,7 +322,7 @@ impl Settings {
         }
         properties_collapsed.sort();
         properties_collapsed.dedup();
-        // WP-S2.07 D18: `[parts] favourites` and `recent`, lists of texts; other members of the table are kept.
+        // `[parts] favourites` and `recent`, lists of texts; other members of the table are kept.
         let mut parts_favourites: Vec<String> = Vec::new();
         let mut parts_recent: Vec<String> = Vec::new();
         if let Some(toml::Value::Table(parts)) = table.get_mut("parts") {
@@ -351,7 +350,7 @@ impl Settings {
         }
         parts_favourites.sort();
         parts_recent.truncate(MAX_RECENT_PARTS);
-        // WP-S2.17 part 3 (FT-348): `[window]`. Known members this version cannot read are dropped, not the whole
+        // `[window]`. Known members this version cannot read are dropped, not the whole
         // file: the window then opens at its default size. Other members of the table are kept (R1-6).
         let window = match table.remove("window") {
             Some(toml::Value::Table(mut w)) => {
@@ -507,7 +506,7 @@ impl Settings {
                 table.remove("author_name");
             }
         }
-        // WP-S2.08 D14: written only when set, so an untouched settings file keeps its bytes.
+        // Written only when set, so an untouched settings file keeps its bytes.
         if self.min_font_pt != 0 {
             table.insert(
                 "min_font_pt".to_owned(),
@@ -520,7 +519,7 @@ impl Settings {
         if self.wheel_scrolls {
             table.insert("wheel_scrolls".to_owned(), toml::Value::Boolean(true));
         }
-        // WP-S2.08 part 6 (D17): written only when set, likewise.
+        // Written only when set, likewise.
         if !self.tips {
             table.insert("tips".to_owned(), toml::Value::Boolean(false));
         }
@@ -568,7 +567,7 @@ impl Settings {
             members.extend(w.to_toml());
             table.insert("window".to_owned(), toml::Value::Table(members));
         }
-        // WP-S2.07 D18: written only once a part is a favourite or was chosen, merged into the kept members.
+        // Written only once a part is a favourite or was chosen, merged into the kept members.
         if !self.parts_favourites.is_empty() || !self.parts_recent.is_empty() {
             let mut parts = match table.remove("parts") {
                 Some(toml::Value::Table(t)) => t,
@@ -673,12 +672,12 @@ impl Settings {
 /// Writes `text` as `<dir>/settings.toml` through a temporary file and a rename; creates `dir` if needed.
 fn write_atomically(dir: &Path, text: &str) -> std::io::Result<()> {
     std::fs::create_dir_all(dir)?;
-    // WP-S6.05 D10: the configuration directory is user-only.
+    // The configuration directory is user-only.
     user_only_dir(dir);
     write_user_only(&dir.join(FILE_NAME), text.as_bytes())
 }
 
-/// The options that create a file user-only: mode 0600 on Unix (WP-S6.05 D10, FT-1309). Every file EW creates in its
+/// The options that create a file user-only: mode 0600 on Unix. Every file EW creates in its
 /// configuration directory is created through them, beside the directory's 0700 ([`user_only_dir`]).
 pub fn user_only_options() -> std::fs::OpenOptions {
     let mut options = std::fs::OpenOptions::new();
@@ -766,7 +765,7 @@ fn copy_aside(path: &Path) -> Option<String> {
 }
 
 /// Copies the bad file `path` to `<file_name>.bad-<n>` beside it (the lowest free `n`); the name, or `None` when the
-/// copy failed. The copy is written user-only through [`write_aside`], whatever the source's mode (FT-1309).
+/// copy failed. The copy is written user-only through [`write_aside`], whatever the source's mode.
 pub(crate) fn copy_aside_as(path: &Path, file_name: &str) -> Option<String> {
     let dir = path.parent()?;
     let bytes = std::fs::read(path).ok()?;
@@ -775,9 +774,9 @@ pub(crate) fn copy_aside_as(path: &Path, file_name: &str) -> Option<String> {
 }
 
 /// As [`copy_aside_as`], but a copy with the same bytes that is already there is named instead of copying again: a
-/// refused `keymap.toml` (WP-S2.08 part 2), which is read and refused on every start while the user's file stays, is
+/// refused `keymap.toml`, which is read and refused on every start while the user's file stays, is
 /// copied aside once (FIX40d). Every existing `.bad-<n>` is looked through for the same bytes before the first free
-/// name is written, so a gap in the numbers (a copy the user deleted) never copies the same file twice (FT-849).
+/// name is written, so a gap in the numbers (a copy the user deleted) never copies the same file twice.
 pub(crate) fn copy_aside_once_as(path: &Path, file_name: &str) -> Option<String> {
     let dir = path.parent()?;
     let bytes = std::fs::read(path).ok()?;
@@ -802,14 +801,14 @@ const BAD_COPIES: u32 = 999;
 const TEMP_ATTEMPTS: u32 = 64;
 
 /// Writes `bytes` to `<file_name>.bad-<first>` in `dir`, or to the next free `.bad-<n>` when a file is at that name
-/// by the time it is written (another instance's copy made meanwhile; FT-1073, ID-1179); the name, or `None`.
+/// by the time it is written (another instance's copy made meanwhile); the name, or `None`.
 ///
 /// The bytes go to a fresh temporary file first, created only if nothing is at its name (the process and a counter
 /// name it, so no other file or link is written through and two instances never share one; mode `0o600` on Unix),
 /// which is then hard-linked to the target: a link never replaces a file that is there, and a failed write leaves no
 /// half-written `.bad-<n>` that a later look would take for a different file. Where the file system has no hard links
 /// (FAT, exFAT, some network shares), the link fails with another error, and the bytes are written to the target as a
-/// new user-only file instead, which never replaces a file either (C52-p1#1, ID-1390). The temporary file is removed in
+/// new user-only file instead, which never replaces a file either. The temporary file is removed in
 /// every case; any failure but a taken name gives up.
 fn write_aside(dir: &Path, file_name: &str, first: u32, bytes: &[u8]) -> Option<String> {
     write_aside_linking(dir, file_name, first, bytes, |from, to| {
@@ -970,7 +969,7 @@ mod tests {
         crate::shell::fresh_test_dir(&format!("ew-settings-{tag}"))
     }
 
-    /// FT-849 (ID-1150): with `.bad-1` another file, `.bad-2` missing and `.bad-3` the same bytes, the file is named as
+    /// With `.bad-1` another file, `.bad-2` missing and `.bad-3` the same bytes, the file is named as
     /// `.bad-3` and not copied again into the gap; a new file takes the gap, the first free name.
     #[test]
     fn ft849_a_copy_aside_once_finds_the_same_bytes_past_a_gap() {
@@ -1003,7 +1002,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// FT-1073 (ID-1179): a `.bad-<n>` another instance made after the look is never replaced: the copy takes the
+    /// A `.bad-<n>` another instance made after the look is never replaced: the copy takes the
     /// next free name, the other files keep their bytes, and no temporary file is left.
     #[test]
     fn ft1073_a_copy_aside_never_replaces_a_copy_made_meanwhile() {
@@ -1032,7 +1031,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// C52-p1#1 (ID-1390): where the file system refuses the hard link (FAT, exFAT), the copy is still made, as a
+    /// Where the file system refuses the hard link (FAT, exFAT), the copy is still made, as a
     /// new file that takes the next free name past one made meanwhile, and no temporary file is left.
     #[test]
     fn a_copy_aside_is_made_where_the_link_is_refused() {
@@ -1151,7 +1150,7 @@ mod tests {
         assert!(!s.recent_projects.contains(&"p13".to_owned()));
     }
 
-    /// FT-674: the author name round-trips, is trimmed, and is written only once set (an untouched file keeps its
+    /// The author name round-trips, is trimmed, and is written only once set (an untouched file keeps its
     /// bytes); a blank one reads as unset.
     #[test]
     fn the_author_name_round_trips_and_is_written_only_once_set() {
@@ -1225,7 +1224,7 @@ mod tests {
         assert_eq!(loose.density, "comfortable");
         let dense = Settings::parse("density = \"dense\"\n").unwrap();
         assert_eq!(dense.density, "comfortable");
-        // WP-S2.08 D10: Dutch is kept; a language this version does not ship loads as English.
+        // Dutch is kept; a language this version does not ship loads as English.
         assert_eq!(Settings::parse("language = \"nl\"\n").unwrap().language, "nl");
         assert_eq!(Settings::parse("language = \"de\"\n").unwrap().language, "en");
         assert!(Settings::parse("canvas_backend = 1\n").is_none());
@@ -1283,7 +1282,7 @@ mod tests {
         assert_eq!(s.ui_scale, 2.0);
     }
 
-    /// AX-2 (WP-S2.08 D14): 250 % and 300 % are scales, each with its label, and `settings.toml` round-trips both.
+    /// AX-2: 250 % and 300 % are scales, each with its label, and `settings.toml` round-trips both.
     #[test]
     fn ax2_the_scales_reach_300_percent_and_round_trip() {
         for scale in [2.5, 3.0] {
@@ -1298,7 +1297,7 @@ mod tests {
         assert_eq!(labels, ["100 %", "125 %", "150 %", "200 %", "250 %", "300 %"]);
     }
 
-    /// WP-S2.08 D14: `min_font_pt` (0 off, else 8 to 16; out of range loads as 0) and `reduce_motion` (unset, on or
+    /// `min_font_pt` (0 off, else 8 to 16; out of range loads as 0) and `reduce_motion` (unset, on or
     /// off) round-trip and are written only once set.
     #[test]
     fn the_minimum_text_size_and_reduce_motion_round_trip() {
@@ -1333,7 +1332,7 @@ mod tests {
             None,
             "a known key of the wrong type"
         );
-        // ID-1278 ruling 14 (C49-p3#6): a float of an integral value loads as that size, any other as off, and the
+        // ID-1278 ruling 14: a float of an integral value loads as that size, any other as off, and the
         // file's other settings are kept.
         for (text, pt) in [("14.0", 14), ("14.5", 0), ("17.0", 0), ("nan", 0), ("inf", 0)] {
             let s = Settings::parse(&format!(
@@ -1353,7 +1352,7 @@ mod tests {
         );
     }
 
-    /// DK6 (FT-348): `[window]` is written only once a window recorded it, read back equal, and a table this version
+    /// DK6: `[window]` is written only once a window recorded it, read back equal, and a table this version
     /// cannot read is dropped without making the file bad; members of the table this version does not know are kept.
     #[test]
     fn dk6_the_window_table() {

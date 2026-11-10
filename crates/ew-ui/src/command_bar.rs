@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command bar (WP-S2.17 part 2, doc 16a §5.2, ADR-0031 decision 3): the tab row (the app button that opens the
+//! The command bar (doc 16a §5.2, ADR-0031 decision 3): the tab row (the app button that opens the
 //! app menu, quick access, the six tabs, the command search) on `color.surface.chrome` and the command row (the
 //! active tab's groups of large, small, split and menu buttons, and the tab's next step) on `color.surface.panel`,
 //! generated from `ew_viewmodel::command_bar`. Ctrl+F1 or a double-click on a tab collapses the bar to its tab row;
@@ -298,7 +298,7 @@ fn tooltip(b: &CommandButton) -> String {
     }
 }
 
-/// A click on the disabled command `b` (FT-1025, ID-1107; doc 16a §5.2): its reason as a toast, the sentence its
+/// A click on the disabled command `b` (doc 16a §5.2): its reason as a toast, the sentence its
 /// tooltip ends with; nothing for an enabled command or one without a reason.
 fn say_why(b: &CommandButton, events: &mut Vec<Event>) {
     if !b.enabled
@@ -814,7 +814,7 @@ impl CommandBarHost {
             if response.clicked() && b.enabled {
                 events.push(Event::Action(b.id, Value::Null));
             } else if response.clicked() {
-                // FT-1025: a greyed command says why.
+                // A greyed command says why.
                 say_why(b, events);
             }
             x = r.right();
@@ -892,7 +892,7 @@ impl CommandBarHost {
         self.search = Some(search);
         let placeholder = strings::text(key!("commandbar-search")).to_owned();
         let response = ui.interact(search, Id::unique("command-search"), Sense::click());
-        // WP-S2.08 part 2: the palette's key as the keymap binds it.
+        // The palette's key as the keymap binds it.
         let palette_key = ew_viewmodel::actions::find("tools.palette")
             .map(|a| shell.shortcut_text(a))
             .unwrap_or_default();
@@ -1006,7 +1006,7 @@ fn command_row(ui: &mut Ui, t: &Tokens, model: &CommandBarModel, row: Rect, even
                     let Some((gi, bi)) = p.button else { continue };
                     let b = &model.groups[gi].buttons[bi];
                     let (response, chevron) = command_button(ui, t, b, p.rect);
-                    // FT-1025 (ID-1107, doc 16a §5.2): a click on a greyed command says why, as its tooltip does.
+                    // FT-1025 (doc 16a §5.2): a click on a greyed command says why, as its tooltip does.
                     if response.clicked() && !b.enabled {
                         say_why(b, events);
                     }
@@ -1091,7 +1091,7 @@ fn next_step(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect, events: &mut Ve
     if response.clicked() && b.enabled {
         events.push(Event::Action(b.id, Value::Null));
     } else if response.clicked() {
-        // FT-1025: a greyed command says why.
+        // A greyed command says why.
         say_why(b, events);
     }
 }

@@ -226,7 +226,7 @@ mod tests {
         assert!(rule("EW-NOPE-001").is_none());
     }
 
-    /// T5 (WP-S7.05 D6): the refusal of a rule whose `docs` is not its page `reference/rules/<id in lower case>`.
+    /// T5: the refusal of a rule whose `docs` is not its page `reference/rules/<id in lower case>`.
     fn docs_refusal(m: &crate::rule::RuleMeta) -> Option<String> {
         let page = format!("reference/rules/{}", m.id.to_lowercase());
         (m.docs != page).then(|| {

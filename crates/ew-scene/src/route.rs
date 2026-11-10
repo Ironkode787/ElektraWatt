@@ -3,7 +3,7 @@
 
 //! The polyline a connection is drawn along on its page.
 //!
-//! A connection's stored route is its drawing (WP-S2.19 D1, ADR-0033): the scene never routes. A stored route holds
+//! A connection's stored route is its drawing (ADR-0033): the scene never routes. A stored route holds
 //! every vertex from end `a`'s point to end `b`'s (D2) and is drawn as stored ([`connection_polyline`]). A connection
 //! without one is *unrouted* (D3): it is drawn as the straight line between its ends (the page draws it dashed in the
 //! thinnest pen), and as nothing where its ends meet.
@@ -35,7 +35,7 @@ pub struct RouteEnd {
 ///   end `a`'s point to end `b`'s, both included, WP-S2.19 D2; equal neighbours merged, a stale end joined by one
 ///   straight segment), each point clamped into `page`, equal neighbours merged again. Collinear vertices are kept:
 ///   the model's route is authoritative and the user placed those vertices.
-/// - `stored` empty: the unrouted line `[a.pos, b.pos]` (WP-S2.19 D3), clamped into `page`; `[a.pos]` where the ends
+/// - `stored` empty: the unrouted line `[a.pos, b.pos]`, clamped into `page`; `[a.pos]` where the ends
 ///   meet (nothing is drawn).
 pub fn connection_polyline(a: &RouteEnd, b: &RouteEnd, stored: &[Pt2], page: Rect) -> Vec<Pt2> {
     let mut pts: Vec<Pt2> = ew_derive::stored_path(a.pos, stored, b.pos)

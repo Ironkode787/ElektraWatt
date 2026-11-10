@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The status bar (WP-S2.17 part 3, D12; doc 16a §5.8): `size.status` high on `color.surface.chrome` under a 1-px
+//! The status bar (doc 16a §5.8): `size.status` high on `color.surface.chrome` under a 1-px
 //! `color.border.default` line. The state stands at the left; the findings, the job, the selection, the cursor, the
 //! grid, the zoom, the save state, the renderer and the notifications stand at the right in that order
 //! (`ew_viewmodel::status::bar`). Each field is `size.status_field` high with `space.3` padding in `type.small`; an
@@ -25,7 +25,7 @@ fn click(kind: StatusKind) -> Option<Event> {
         StatusKind::Findings => Some(Event::Action("messages.show", json!({ "on": true }))),
         StatusKind::Job => Some(Event::Action("jobs.show", json!({ "on": true }))),
         StatusKind::Notifications => Some(Event::Action("notifications.show", json!({}))),
-        // WP-S1.17 part 7: Set up merge driver.
+        // Set up merge driver.
         StatusKind::Driver => Some(Event::Action("git.setup", json!({}))),
         _ => None,
     }

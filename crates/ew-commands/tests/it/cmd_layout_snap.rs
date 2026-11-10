@@ -570,7 +570,7 @@ fn a_neighbours_concurrent_edit_conflicts_at_merge() {
     assert!(preview.read_set().unchanged_since(f.e.model(), base));
 }
 
-/// FT-941: `note_rail_reads` records the rail's placements index, so a concurrent insert onto the same rail, which
+/// `note_rail_reads` records the rail's placements index, so a concurrent insert onto the same rail, which
 /// writes no row the push read, still conflicts at merge, and the push re-runs on the current rail.
 #[test]
 fn a_concurrent_insert_onto_the_rail_conflicts_at_merge() {
@@ -598,7 +598,7 @@ fn a_concurrent_insert_onto_the_rail_conflicts_at_merge() {
     );
 }
 
-/// FT-941: `note_rail_reads` records the neighbours' part copies, so a concurrent clearance edit of a neighbour's part
+/// `note_rail_reads` records the neighbours' part copies, so a concurrent clearance edit of a neighbour's part
 /// copy (a `library.update` of its 5 mm pads to 9 mm, which changes no placement or device row) conflicts at merge.
 #[test]
 fn a_concurrent_clearance_edit_of_a_neighbours_part_copy_conflicts_at_merge() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The EW-IMP findings of the migration report (doc 14 §2.5, WP-S3.09 D9): the import-only facts an importer recorded
+//! The EW-IMP findings of the migration report (doc 14 §2.5): the import-only facts an importer recorded
 //! in the project's import runs, read back as findings.
 //!
 //! Each code an importer emits is a rule of the pack `EW-IMP`, message class 160 (`EW-IMP-101` prints `160101`). A
@@ -336,7 +336,7 @@ impl Rule for ImportEntries {
     }
 }
 
-/// The quick fix of an entry that names none, for the one rule whose remedy is deterministic (ID-1392, FT-1386):
+/// The quick fix of an entry that names none, for the one rule whose remedy is deterministic:
 /// EW-IMP-103's label kept as a frozen tag is unfrozen (`fields.set` of `tag.frozen` to null, the property grid's
 /// Unfreeze), while the device's tag is still frozen. Every other EW-IMP rule's remedy asks for a judgement or a
 /// value (a label to give, a record to delete, a version to keep), so it offers none.
@@ -372,7 +372,7 @@ pub const FOLDED: [(&str, &str); 3] = [
     ("EW-IMP-114", "EW-CORE-063"),
 ];
 
-/// One row per condition (WP-S3.09 D9 c): an import finding of a [`FOLDED`] pair whose targets equal a live finding's
+/// One row per condition (c): an import finding of a [`FOLDED`] pair whose targets equal a live finding's
 /// of the pair's rule is left out; that live finding takes the import code as its origin, and the import's quick fix
 /// when it has none.
 pub fn fold(findings: Vec<Finding>) -> Vec<Finding> {
@@ -448,7 +448,7 @@ mod tests {
         assert_eq!(rows[1].fix, Some(fix));
     }
 
-    /// The re-import's codes read in Dutch (WP-S3.09 D12): the Messages pane titles them in the window's language.
+    /// The re-import's codes read in Dutch: the Messages pane titles them in the window's language.
     #[test]
     fn the_re_import_codes_have_dutch_titles() {
         assert_eq!(
@@ -459,7 +459,7 @@ mod tests {
             crate::messages::title("EW-IMP-011", "nl-NL").as_deref(),
             Some("In de bron en hier gewijzigd, hier behouden")
         );
-        // ID-1374 (C51-p2#9): the terminology table's words, the title block and the terminal strip.
+        // The terminology table's words, the title block and the terminal strip.
         let nl = |rule| {
             (
                 crate::messages::title(rule, "nl-NL"),

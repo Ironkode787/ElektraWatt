@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shell-model transitions on a temporary copy of Golden A (WP-S2.01 part 1, acceptance checks A2, A3, A9).
+//! Shell-model transitions on a temporary copy of Golden A (acceptance checks A2, A3, A9).
 
 use ew_testdir as fresh_dir;
 
@@ -89,13 +89,13 @@ fn the_shell_starts_on_the_start_page_and_opens_a_project() {
     assert!(shell.page_count() > 3);
     assert_eq!(shell.page_index(), 0);
     let status = shell.status_fields(false);
-    // The hint is the active tool's (Select's; WP-S2.03 §7.2).
+    // The hint is the active tool's (Select's).
     assert_eq!(status[0], "Click to select; drag for a rubber band");
     assert_eq!(
         status[1],
         format!("{} (1 of {})", shell.page_labels()[0], shell.page_count())
     );
-    // The canvas's zoom and grid fields stand between the page and the save state (WP-S2.02 section 6.5).
+    // The canvas's zoom and grid fields stand between the page and the save state (section 6.5).
     assert!(status[2].ends_with(" %"), "{status:?}");
     assert_eq!(status[3], "QET 10 px");
     assert_eq!(status[4], "saved");
@@ -427,7 +427,7 @@ fn dl7_density_and_theme_round_trip_through_settings_toml() {
     let text = std::fs::read_to_string(&file).unwrap();
     assert!(text.contains("density = \"compact\""), "{text}");
     assert!(text.contains("theme = \"hc-dark\""), "{text}");
-    // FT-1175: a refused theme or language names the values it takes.
+    // A refused theme or language names the values it takes.
     for (action, value, message) in [
         (
             "view.density",
@@ -526,7 +526,7 @@ fn command_run_refuses_what_a_script_may_not_run() {
         .filter(|c| format!("{:?}", c.meta().exposure) != "Edit")
         .map(|c| c.meta().name.to_owned())
         .collect();
-    // FT-1363: each refusal names the command by its title in words, by its exposure class.
+    // Each refusal names the command by its title in words, by its exposure class.
     for c in session
         .registry()
         .commands()
@@ -754,7 +754,7 @@ fn the_registry_flag_decides_whether_an_action_clears_the_banner() {
     assert_eq!(shell.banner(), None);
 }
 
-/// R1-5 (FT-348, doc 16 "the same project twice"): two window instances on one settings file. B starts, then A starts,
+/// R1-5 (doc 16 "the same project twice"): two window instances on one settings file. B starts, then A starts,
 /// changes the theme and opens a project (written at once); A exits, then B exits with its window geometry. B merges
 /// only `[window]` into the file on disk, so A's theme and recent project stay; an exit with the geometry the file
 /// already holds writes nothing.

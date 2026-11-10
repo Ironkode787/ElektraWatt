@@ -171,7 +171,7 @@ fn a_schematic_page_has_no_panel_tables() {
     assert_eq!(s.panel_tables("no such folio"), None);
 }
 
-/// PW-1 (FT-486) in `ew-api`: the Unplaced devices navigator lists the five devices under +J-E-2416 in `unplaced`
+/// PW-1 in `ew-api`: the Unplaced devices navigator lists the five devices under +J-E-2416 in `unplaced`
 /// order (ruling 9: PW-1's list read as a set) with their part, size and mount kind and their badges; after
 /// `layout.place` of F55 its row is gone in the same revision.
 #[test]

@@ -8,7 +8,7 @@
 //!
 //! Values are read through two tracked-read contexts, one over the snapshot before and one over the
 //! candidate, so the diff never reads rows directly (ARCH §3 rule 1). The BOM, wire and TOC rows of
-//! doc 03 §8.6 follow with the full `diff_query` (WP-S1.05).
+//! doc 03 §8.6 follow with the full `diff_query`.
 
 use std::collections::BTreeSet;
 

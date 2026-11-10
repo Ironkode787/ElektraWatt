@@ -214,7 +214,7 @@ fn link_rects(b: &[u8]) -> Vec<[f64; 4]> {
 
 #[test]
 fn every_linked_item_gets_its_own_annotation_over_its_own_box() {
-    // The two items of one cross-reference text (FT-86): invisible boxes side by side, each with its own
+    // The two items of one cross-reference text: invisible boxes side by side, each with its own
     // target on page 103, drawn after the text they cover.
     let box_of = |x0: i64, x1: i64, to: u128| {
         Item::path(
@@ -462,7 +462,7 @@ fn image(sha: u8, format: ew_dl::ImageFormat, bytes: &[u8], from: Pt2, to: Pt2) 
     )
 }
 
-/// FT-406: PNG and JPEG images are embedded as image XObjects in the PDF/A-2b; the JPEG unchanged (DCT), the opaque PNG
+/// PNG and JPEG images are embedded as image XObjects in the PDF/A-2b; the JPEG unchanged (DCT), the opaque PNG
 /// without a soft mask, the translucent one with one; an image repeated on two pages is embedded once; equal input
 /// gives equal bytes.
 #[test]
@@ -505,7 +505,7 @@ fn png_and_jpeg_images_are_embedded() {
     assert_eq!(pdf(&pages, &options(), &fonts(), None).unwrap().bytes, out.bytes);
 }
 
-/// FT-406: hostile image bytes are counted as skipped and the rest of the PDF is written, never a panic: a JPEG cut
+/// Hostile image bytes are counted as skipped and the rest of the PDF is written, never a panic: a JPEG cut
 /// inside its data, a JPEG and a PNG whose headers declare more than `MAX_IMAGE_PIXELS`, a GIF and a WebP that claim to
 /// be a PNG or a JPEG, an image item without bytes and an SVG image item.
 #[test]
@@ -722,7 +722,7 @@ fn placed(placement: Option<PagePlacement>) -> Vec<PdfPage> {
     vec![a, b]
 }
 
-/// WP-S3.07 D7 (decision log ID-1114): a placed page is the paper, its content under the placement's one transform,
+/// A placed page is the paper, its content under the placement's one transform,
 /// its link boxes placed by the same rule, the overlay on top; the placement maps sheet points exactly.
 #[test]
 fn a_placed_page_is_the_paper_with_the_sheet_scaled_at_the_offset_and_the_overlay() {

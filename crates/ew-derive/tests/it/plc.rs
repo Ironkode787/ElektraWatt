@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC queries (doc 10 §3.1–§3.4, FT-111) on a small valve terminal shaped like Golden A's -201U1: a
+//! The PLC queries (doc 10 §3.1–§3.4) on a small valve terminal shaped like Golden A's -201U1: a
 //! station with three output modules in manifold slots, one bound used valve that drives a field device and
 //! one bound spare valve.
 
@@ -41,7 +41,7 @@ fn fixture() -> Fx {
     fixture_with_designation("{n}")
 }
 
-/// The fixture whose part prints its channel designations from `designation` (FT-318).
+/// The fixture whose part prints its channel designations from `designation`.
 fn fixture_with_designation(designation: &str) -> Fx {
     let mut fx = Fx::new();
     fx.page(PAGE, 203, None, "fluid", &[], "Valve Manifold 1");
@@ -256,7 +256,7 @@ fn texts_track_the_driven_process_tag_and_keep_the_manual_function_text() {
     assert_eq!(t2[0].1.function_text, None);
 }
 
-/// FT-318: the automatic designation expands the whole pattern language of doc 10 §2.6, as `pin_of` does.
+/// The automatic designation expands the whole pattern language of doc 10 §2.6, as `pin_of` does.
 #[test]
 fn the_designation_pattern_expands_every_placeholder_of_the_language() {
     let designations = |pattern: &str| -> Vec<Option<String>> {
@@ -283,7 +283,7 @@ fn the_designation_pattern_expands_every_placeholder_of_the_language() {
     assert_eq!(designations("COM")[5], Some("COM".to_owned()));
 }
 
-/// FT-318: a pattern that does not expand gives no automatic designation and one note, never a panic; a
+/// A pattern that does not expand gives no automatic designation and one note, never a panic; a
 /// manual designation is kept whatever the pattern.
 #[test]
 fn a_designation_pattern_that_does_not_expand_gives_no_designation_and_a_note() {
@@ -553,7 +553,7 @@ fn a_slot_of_a_newer_format_takes_no_rank() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The channel indexes (FT-319)
+// The channel indexes
 
 type IndexRead = (String, String, Vec<Vec<(u16, Id<ew_schema::Channel>)>>);
 
@@ -598,7 +598,7 @@ fn a_module_finds_its_channels_by_number_whatever_their_id() {
     );
     assert_eq!(ids[3].1, id(0xabc));
 
-    // three channels with number 5 of M2: the v5 one wins over foreign IDs, however low (WP-S1.21 D10, FT-350) …
+    // three channels with number 5 of M2: the v5 one wins over foreign IDs, however low …
     let mut fx = fixture();
     fx.record(channel(M2, 5))["designation"] = json!("V5");
     fx.push(
@@ -642,7 +642,7 @@ fn a_module_finds_its_channels_by_number_whatever_their_id() {
     assert_eq!(texts[5].1.designation.as_deref(), Some("LOW"));
 }
 
-/// WP-S1.21 D9 (FT-224, AC-29): a start edit of one module re-runs the configuration project's starts and every
+/// WP-S1.21 D9 (AC-29): a start edit of one module re-runs the configuration project's starts and every
 /// module's projection, but `channel_addresses` of that module alone; the other projections cut off.
 #[test]
 fn a_start_edit_re_addresses_its_own_module_only() {

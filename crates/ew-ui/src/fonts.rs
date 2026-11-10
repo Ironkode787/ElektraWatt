@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The UI fonts (WP-S2.01 part 1, spec section 5.3): egui's built-in fonts are off (`default_fonts` is not a
+//! The UI fonts (spec section 5.3): egui's built-in fonts are off (`default_fonts` is not a
 //! feature of this build), and the bundled Noto Sans of `ew-text` becomes the proportional and monospace family.
 //! The face bytes come from `ew_api::output::font_bytes()`, the same set the PDF export embeds, so the screen and
 //! the paper use one font file (NFR-REL-11: no system fonts). WP-S2.17 part 1 adds Noto Sans SemiBold as the family
@@ -20,7 +20,7 @@ pub const REGULAR: &str = "NotoSans-Regular";
 /// The name of the symbol face (Noto Sans Math), the last fallback for glyphs the regular face lacks.
 pub const SYMBOLS: &str = "NotoSansMath-Regular";
 
-/// The name of the SemiBold face (WP-S2.17 D8): UI emphasis only, never the drawings.
+/// The name of the SemiBold face: UI emphasis only, never the drawings.
 pub const SEMIBOLD: &str = "NotoSans-SemiBold";
 
 /// The egui font family of the SemiBold face (`FontFamily::Name("semibold")`).
@@ -160,7 +160,7 @@ mod tests {
         }
     }
 
-    /// FT-1095 (ID-1184; play-test rv-vis-7, t0044): a part cell showed a replacement character. Every character of
+    /// FT-1095 (play-test rv-vis-7, t0044): a part cell showed a replacement character. Every character of
     /// every text of the shipped content (`content/`: the starter library's symbols and function definitions, the
     /// starter parts and their manufacturer, the frames and the profiles) has a glyph in the bundled faces the UI
     /// draws with (Noto Sans, then Noto Sans Math, [`definitions`]), and none is U+FFFD, the character a lossy decoding

@@ -4,7 +4,7 @@
 //! The built-in library the tables reference by key (doc 05 §13.2, doc 07 §9.1): starter symbols, FnDefs and
 //! forms as embedded copies. The host supplies the documents (`content/symbols/qet10`, `content/fndefs`,
 //! `content/forms`); the importer never reads files itself. Their `library_id` is
-//! [`ew_interop_api::SYSTEM_LIBRARY`] (FT-24), and the references the tables emit carry the documents' own
+//! [`ew_interop_api::SYSTEM_LIBRARY`], and the references the tables emit carry the documents' own
 //! `library_id`.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -245,7 +245,7 @@ mod tests {
             .collect()
     }
 
-    /// L1-5 (FT-24): the golden bootstrap's built-in library (the `@qet10` symbols, the FnDefs and the forms)
+    /// L1-5: the golden bootstrap's built-in library (the `@qet10` symbols, the FnDefs and the forms)
     /// lives in [`SYSTEM_LIBRARY`], and a FnDef reference the tables emit points at it with the item ID
     /// `v5(SYSTEM_LIBRARY, key)`, as before the importer's own constant was dropped.
     #[test]

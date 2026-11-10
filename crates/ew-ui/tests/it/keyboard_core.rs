@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! WP-S2.08 part 5b, acceptance check AX-5 (NFR-A11Y-01): the five core tasks on a copy of Golden A with key events
-//! only (ID-1276 ruling 1): place a symbol (I, the picker by typing and arrows, Enter, Enter at the grid cursor), draw a
+//! only: place a symbol (I, the picker by typing and arrows, Enter, Enter at the grid cursor), draw a
 //! wire (W, `]`, Enter, `]`, `]`, Enter), insert a terminal from the Terminal strips navigator (Ctrl+2; F6 and
 //! Shift+F6; Insert), renumber the devices through the palette and Ctrl+Enter (Ctrl+K, "renum", Enter; Tab and Space
 //! clear "Only non-conforming tags"; Ctrl+Enter submits; F6 to Properties and Ctrl+Enter apply the card) and export the PDF
@@ -191,7 +191,7 @@ fn ax5_the_five_core_tasks_with_key_events_only() {
         "a terminal inserted into {strip}"
     );
 
-    // 4. Renumber devices…: Ctrl+K, "renum", Enter opens its form; Ctrl+Enter submits it (ID-1276 ruling 2) and opens
+    // 4. Renumber devices…: Ctrl+K, "renum", Enter opens its form; Ctrl+Enter submits it and opens
     // the renumber card, which F6 to Properties and Ctrl+Enter apply.
     chord(&mut h, Modifiers::COMMAND, Key::K);
     assert!(h.state().shell().palette().is_some());

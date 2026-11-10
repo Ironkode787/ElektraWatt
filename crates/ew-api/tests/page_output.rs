@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page output of the golden project (WP-S3.04, FT-59): page display lists, PNG candidates and the PDF of every
+//! Page output of the golden project: page display lists, PNG candidates and the PDF of every
 //! folio of `page_order`, through the session's export job (`ew_api::output`: the product's page views and one
 //! memoised `page_display_list` family per layer; `page_output/view.rs` keeps the test-only loading).
 
@@ -166,7 +166,7 @@ fn the_pdf_sha256_matches_the_committed_file() {
 /// main/auxiliary texts (9 main lists, 10 auxiliaries).
 const LINKED_XREF_TEXTS: usize = 44 + 19;
 /// The link targets of those texts: the main list of -201U1 ("∞ 3-B2, 106-G3") lists two, so every item
-/// has its own link (FT-86, ID-228).
+/// has its own link.
 const XREF_LINK_TARGETS: usize = LINKED_XREF_TEXTS + 1;
 /// The external interruption points print "+J-E-206 / JE-N1000-03" without a link (no in-project target).
 const EXTERNAL_XREF_TEXTS: usize = 4;
@@ -175,7 +175,7 @@ const EXTERNAL_XREF_TEXTS: usize = 4;
 const PLC_ROW_LINKS: usize = 8 + 20;
 
 /// The PDF's links are the cross-reference items, the PLC overview rows and the report row links the generated pages
-/// draw (WP-S3.06 D10, ruling 5): the last are counted from the page views, never written by hand.
+/// draw: the last are counted from the page views, never written by hand.
 #[test]
 fn the_golden_pdf_has_one_link_per_cross_reference_item() {
     let s = golden_session(None);
@@ -857,7 +857,7 @@ fn every_page_wire_of_the_golden_model_is_drawn() {
             assert_eq!(drawn, g.view.connections.len(), "folio {}", g.entry.folio);
         }
         // 72 wire connections, the single-line bus cable -3W1 on folio 3 (DP.1; DP.2 is page-less) and the 16 fluid
-        // lines F1 to F16 on folio 203 (WP-S1.20 GA-2).
+        // lines F1 to F16 on folio 203 (GA-2).
         assert_eq!(total, 72 + 1 + 16, "page connections of the golden model");
     });
 }
@@ -912,7 +912,7 @@ fn session_page_grid_gives_the_grid_and_the_sheet_map() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The print set (WP-S3.07 part 2, D6 to D8; decision log ID-1114)
+// The print set
 
 /// The print set of Golden A's section 1 on A5 with the fit (D8's command
 /// `ew print golden/J-E-2416.ew --sections 1 --paper A5 --fit`).
@@ -928,7 +928,7 @@ fn section_1_on_a5(s: &ew_api::Session) -> ew_api::output::print::PrintSet {
     .expect("section 1 prints")
 }
 
-/// D6 (ID-1114 ruling 5): a section selection is the section's pages in page order with its divider; an unknown
+/// D6: a section selection is the section's pages in page order with its divider; an unknown
 /// number is refused naming the sections; `--pages` and `--sections` resolve through the same `resolve`.
 #[test]
 fn a_section_selection_is_the_sections_pages_with_its_divider() {
@@ -1087,7 +1087,7 @@ fn a4_with_the_fit_has_no_stamp_and_a_set_on_its_sheets_is_the_export() {
     );
 }
 
-/// D6's stop (ID-1114, ID-1144): on every page of section 1 printed on A5 with the fit, the stamp's box, taken back to
+/// D6's stop: on every page of section 1 printed on A5 with the fit, the stamp's box, taken back to
 /// the sheet, covers no drawn item, tested exactly ([`stamp_clearance`]). The clearance to the nearest drawn item is
 /// printed.
 #[test]
@@ -1190,7 +1190,7 @@ fn the_stamp_check_finds_every_item_covering_the_box_exactly() {
     assert_eq!(stamp_clearance(&[fill(ring)], stamp), Ok(40.0));
 }
 
-/// FT-1059: the check reaches a miter join's point and a square cap's corners, beyond the half-width disc of a vertex
+/// The check reaches a miter join's point and a square cap's corners, beyond the half-width disc of a vertex
 /// or an end, 1 nm outside and 1 nm inside the 10 × 10 box; a corner past the miter limit is bevelled and keeps to the
 /// disc.
 #[test]
@@ -1343,7 +1343,7 @@ struct Drawn {
 }
 
 /// What a stroked subpath `sub` (closed by `ClosePath` when `closed`, starting at `start`) covers beyond its segments
-/// grown by half the stroke width, into `out` (FT-1059):
+/// grown by half the stroke width, into `out`:
 /// - a miter join's point, while the miter stays within [`ew_dl::MITER_LIMIT`] (past it the join is bevelled, which
 ///   stays within the half-width disc around the vertex): the kite of the vertex, the two outer corners of the
 ///   segments and the miter point, a curve by its tangent there;

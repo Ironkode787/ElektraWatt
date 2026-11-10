@@ -4,7 +4,7 @@
 //! The seeded, reproducible UUIDv7 source of the tests (doc 18 §2.2). A dev-only crate.
 //!
 //! It was the `testkit` feature of `ew-ids`. A crate of its own changes no feature of `ew-ids`, so a package set
-//! that uses it compiles `ew-ids` (and every crate above it) the same way as one that does not (RD43 T1).
+//! that uses it compiles `ew-ids` (and every crate above it) the same way as one that does not (T1).
 //!
 //! **Test-only by policy:** every edge to this crate is a dev-dependency. `cargo xtask check-features` fails on a
 //! normal or build edge (`banned_crates` in `ci/dep-rules.toml`) and on the crate in a shipped binary's graph, and

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command-sequence fuzzer (WP-S6.02, doc 18 §3.6): random command sequences over the golden project from
+//! The command-sequence fuzzer (doc 18 §3.6): random command sequences over the golden project from
 //! a seeded RNG, with the invariants, the memo oracle and the validity oracle of every command checked after
 //! every step. A run is reproducible from its seed.
 //!
@@ -32,7 +32,7 @@
 //!
 //! Oracles after every step that changed the model (an Ok command that moved the revision, an Ok undo/redo):
 //! - (a) `Model::integrity_check` (the full structural check against the engine's incremental one), and the layout
-//!   invariant: no placement without its device (WP-S4.01 LM-6);
+//!   invariant: no placement without its device (LM-6);
 //! - (b) the memo oracle: a fixed sample of derived values is read through `session.query()` (every device
 //!   tag, the potential partition, the page order, the wire properties of every potential) and
 //!   `take_oracle_mismatches` is empty;
@@ -55,7 +55,7 @@
 //!   `the_default_arm_steps_hold_the_invariants_on_golden_a`, `every_arm_commits_on_golden_a`,
 //!   `a_whole_run_is_deterministic`, the regressions of `fuzz/regressions/command_sequence` as step sequences,
 //!   `save_and_reload_of_golden_a_round_trips`, `embed_then_undo_of_a_named_fndef_restores_golden_a`,
-//!   `table_import_oracles_hold`, `layout_command_sequences_save_incrementally_as_a_full_save` (WP-S4.01 LM-1).
+//!   `table_import_oracles_hold`, `layout_command_sequences_save_incrementally_as_a_full_save` (LM-1).
 //! - `fuzz_long` (ignored, the nightly body; see the function): `EW_FUZZ_SEEDS` (a comma list, or `a..b` /
 //!   `a..=b`, default 1..=20), `EW_FUZZ_STEPS` (default 300), the cadences `EW_FUZZ_SAMPLE_EVERY`,
 //!   `EW_FUZZ_CHECK_EVERY`, `EW_FUZZ_VERIFY_EVERY`, the step mix `EW_FUZZ_SAVE_WEIGHT` and
@@ -221,7 +221,7 @@ fn open_session_with(seed: u64, memo: MemoMode) -> Session {
         }
     }
     let project = project.expect("the batch holds the project");
-    // One waiver (WP-S1.16 part 5), so that `check.unwaive` has a record to remove from the first step on: Golden A
+    // One waiver, so that `check.unwaive` has a record to remove from the first step on: Golden A
     // itself holds none (W-1 is a test fixture, `ew-api/tests/checks_part5.rs`). Its fingerprint matches no finding.
     records.push(Record::Waiver(
         serde_json::from_value(serde_json::json!({
@@ -471,7 +471,7 @@ fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Ap
         (e.meta().cost == Cost::Bulk, e.meta().undoable)
     });
     // An `Internal` command (`external.apply`) runs only from the session's external change (`Origin::External`): a
-    // step of the harness must be refused with `CmdError::Exposure`, all or nothing (WP-S1.17 part 6, C49-p9#11).
+    // step of the harness must be refused with `CmdError::Exposure`, all or nothing.
     let internal = session
         .registry()
         .get(c.name)
@@ -676,7 +676,7 @@ pub fn run_fuzz_with(seed: u64, steps: usize, cadence: &Cadence) -> FuzzStats {
     run_fuzz_rng(seed, SplitMix64::new(seed), steps, cadence)
 }
 
-/// The run of the cargo-fuzz target (`fuzz/`, FT-297, FT-272), which includes this module: the random source is
+/// The run of the cargo-fuzz target (`fuzz/`), which includes this module: the random source is
 /// the seeded stream mixed with the bytes of the fuzzer's input ([`SplitMix64::with_tape`]), so that the
 /// coverage-guided mutation of the input steers the draws. `seed` is the identity of the run (the ID source, the
 /// scratch directory, the failure text). The tests use it for the seeded fault of the determinism check
@@ -798,7 +798,7 @@ fn run_fuzz_rng(seed: u64, mut rng: SplitMix64, steps: usize, cadence: &Cadence)
             if let Err(e) = session.world().model.integrity_check() {
                 fail(&log, "integrity_check", format!("{e:?}"));
             }
-            // (a') the layout invariant (WP-S4.01 LM-6): no placement without its device.
+            // (a') the layout invariant (LM-6): no placement without its device.
             if let Err(e) = arms::placements_have_devices(&session.query()) {
                 fail(&log, "no placement without a device", e);
             }
@@ -1006,7 +1006,7 @@ fn fuzz_smoke() {
     );
 }
 
-/// The coverage rule (FT-279, RD43): every hand arm names a registered command, and no command has two. A
+/// The coverage rule: every hand arm names a registered command, and no command has two. A
 /// registered command without a hand arm is still fuzzed: the default arm builds its steps from its schema
 /// (`the_default_arm_builds_a_valid_step_for_every_registered_command`).
 #[test]
@@ -1319,7 +1319,7 @@ fn every_arm_commits_on_golden_a() {
             }
         }
         if arms::SESSION_REFUSES.contains(&arm.command) {
-            // A command no submit path of the session commits (`revision.approve`, WP-S1.18 D9): every step is
+            // A command no submit path of the session commits (`revision.approve`): every step is
             // refused, and the arm proves it.
             assert!(
                 committed == 0 && refused > 0,
@@ -1337,7 +1337,7 @@ fn every_arm_commits_on_golden_a() {
     eprintln!("{}", report("every arm", &stats));
 }
 
-/// FT-1064 (ID-1178): on Golden A, the `connection.draw_to_ip` arm reaches both star refusals (a starred point that is
+/// On Golden A, the `connection.draw_to_ip` arm reaches both star refusals (a starred point that is
 /// no source, a starred external point with a live external reference), each with the "either" verdict a rule's
 /// refusal takes, and the `page.surface_view.set` arm reaches the schema's minimum of a scale, with the "refuse"
 /// verdict. Each refusal is asserted whole; a committed step is undone.
@@ -1506,7 +1506,7 @@ fn ft469_conductor_add_commits_on_a_cable_and_is_refused_on_another_device() {
 
 /// Cycle 33 `fuzz-smoke` finding (`fuzz/regressions/command_sequence/route-repeated-vertex`, seed 286 720 002): the
 /// arm built a Z-shaped `connection.route` whose bend line ran through an end, so the route repeated a vertex, which
-/// the product refuses (FT-437), and the run expected a commit. The step sequence: that route is refused and changes
+/// the product refuses, and the run expected a commit. The step sequence: that route is refused and changes
 /// nothing, and the tidy dog-leg between the same ends commits (the arm's routes are tidy).
 #[test]
 fn a_route_that_repeats_a_vertex_is_refused_and_the_tidy_route_commits() {
@@ -1653,7 +1653,7 @@ fn rep_transform_of_a_black_box_keeps_the_centre_of_its_bounding_box() {
 /// Deep nightly finding (ID-1493; `fuzz/regressions/command_sequence/device-create-valve-part-functions`, seed
 /// 13 901 746 652 117 265 409, step 0): `device.create` with Golden A's valve part and a main FnDef of another kind
 /// commits three functions, its main one and the valve and coil functions normaliser N-FL-1 makes from the valve
-/// part (WP-S1.20 D6), and the arm expected one. The input (the finding's seed, its tape remade to draw the finding's
+/// part, and the arm expected one. The input (the finding's seed, its tape remade to draw the finding's
 /// step) still draws that step, and it replays with the cadence of the fuzz target and passes the arm's oracle, which
 /// counts N-FL-1's functions.
 #[test]
@@ -1706,8 +1706,8 @@ fn replay_drawing(input: &[u8], first: &str) {
     run_fuzz_tape(seed, tape, 1 + usize::from(steps) % 8, &cadence);
 }
 
-/// The same cause in the `valve.add` arm (ID-1493): with Golden A's valve part the command ignores `fndef`
-/// (WP-S1.20 D7) and N-FL-1 makes the valve and coil functions (D6). The arm's well-formed steps on that part, with
+/// The same cause in the `valve.add` arm: with Golden A's valve part the command ignores `fndef`
+///  and N-FL-1 makes the valve and coil functions (D6). The arm's well-formed steps on that part, with
 /// `fndef` and without, commit and pass its oracle.
 #[test]
 fn valve_add_with_a_valve_part_counts_its_valve_functions() {
@@ -1766,7 +1766,6 @@ const PLACEMENT_GROUPS: [PlacementGroup; 3] = [
         ("rep.exchange_symbol", 200, &["rep.exchange_symbol"]),
         ("project.drawing.set", 40, &["project.drawing.set"]),
     ],
-    // WP-S2.04 part 3
     &[
         ("connection.draw_to_ip", 300, &["connection.draw_to_ip"]),
         ("ip.arrange", 200, &["ip.arrange"]),
@@ -2149,7 +2148,7 @@ fn layout_command_sequences_save_incrementally_as_a_full_save() {
     }
 }
 
-/// FT-468: the round-trip oracle names a differing row of any kind from the model's own tables, also a kind that
+/// The round-trip oracle names a differing row of any kind from the model's own tables, also a kind that
 /// `model_lines` does not render: Golden A with the structure box of the `fuzz-smoke` finding against Golden A.
 #[test]
 fn the_round_trip_oracle_names_a_row_of_any_kind() {
@@ -2175,7 +2174,7 @@ fn the_round_trip_oracle_names_a_row_of_any_kind() {
     roundtrip::same_model("live", &initial, &initial.clone()).expect("a model equals its clone");
 }
 
-/// FT-468: when only the project row differs, the oracle names it and prints both project lines.
+/// When only the project row differs, the oracle names it and prints both project lines.
 #[test]
 fn the_round_trip_oracle_prints_the_project_row_lines() {
     let batch = golden_batch();

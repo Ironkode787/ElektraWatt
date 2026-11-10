@@ -19,7 +19,7 @@ fn page_of(s: &Session, folio: &str) -> Uuid {
         .id
 }
 
-/// ID-1107 (FT-1019): "a placement's rows show labels and values in the user's words, and the members with no meaning
+/// "a placement's rows show labels and values in the user's words, and the members with no meaning
 /// to the user move to Advanced (doc 16a §6.8)". 902's Placement rows: the scale reads "1:10", not its JSON; the form's
 /// UUID and the connection grid's fraction are the Advanced rows (`ew_viewmodel::properties::is_advanced`).
 #[test]

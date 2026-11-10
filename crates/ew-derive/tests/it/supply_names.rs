@@ -49,7 +49,7 @@ const FIRST: Ids = Ids {
     def: 0x5001,
 };
 
-/// The same drawing with the IDs in another order (a new project mints random IDs, ID-677).
+/// The same drawing with the IDs in another order (a new project mints random IDs).
 const PERMUTED: Ids = Ids {
     ip: 0x1001,
     fuse: 0x1005,

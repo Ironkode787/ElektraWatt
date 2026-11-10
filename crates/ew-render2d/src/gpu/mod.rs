@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The GPU path of the canvas (WP-S2.02 part 2, §7): the display list tessellated with lyon, drawn instanced with a
+//! The GPU path of the canvas: the display list tessellated with lyon, drawn instanced with a
 //! depth-ordered paint order and screen-space minimum stroke widths into an offscreen multisampled texture, which
 //! the egui host shows as a native texture under the overlays of [`crate::overlay`].
 //!

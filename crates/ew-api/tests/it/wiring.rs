@@ -137,7 +137,7 @@ fn wr8_crossings_as_hops_change_only_the_wires_by_the_hop_arcs() {
     assert_eq!(layers(&s, page), before);
 }
 
-/// Fix round (FT-421 follow-up): the next designation keeps the width of a zero-padded one (`05` is followed by
+/// Fix round: the next designation keeps the width of a zero-padded one (`05` is followed by
 /// `06`, not `6`).
 #[test]
 fn the_next_designation_keeps_the_width_of_a_padded_one() {
@@ -153,7 +153,7 @@ fn the_next_designation_keeps_the_width_of_a_padded_one() {
     assert_eq!(x1032.next_designation, "06");
 }
 
-/// FT-1083 (ID-1181): the next designation is the lowest number free in the strip, not the largest plus one: with
+/// The next designation is the lowest number free in the strip, not the largest plus one: with
 /// terminals 1 and 3 (2 renamed PE) the catalogue proposes 2; once 2 is back it proposes 6 again.
 #[test]
 fn the_next_designation_is_the_lowest_number_free() {

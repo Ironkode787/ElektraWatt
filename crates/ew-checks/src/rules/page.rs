@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! EW-CORE rules of pages, report blocks and texts (doc 15 §4.2; WP-S1.16 part 4): EW-CORE-021, -022, -025 and -026
+//! EW-CORE rules of pages, report blocks and texts (doc 15 §4.2): EW-CORE-021, -022, -025 and -026
 //! (folios, the table of contents and report coverage, doc 09 §3.1 and §7), EW-CORE-061, -063 and -071 (text
 //! heights, unstyled text sizes and graphic lines on connection points), and the layout rules EW-CORE-067 to -070,
-//! -072 and -073 (WP-S2.19 §9), whose findings the session joins.
+//! -072 and -073, whose findings the session joins.
 //!
-//! # Determinism (WP-S1.16 §10)
+//! # Determinism
 //!
 //! Texts name pages by their folio labels, devices by their derived tags, text styles by their keys and CPs by their
 //! printed labels; lists inside a message are in natural order of their printed text. IDs enter only targets and
@@ -262,7 +262,7 @@ pub const TOC_FIXPOINT: RuleMeta = RuleMeta {
 
 /// EW-CORE-025: the confirming round of the table of contents' page count needed more pages than the closed form
 /// gave, so the larger count is used and the last page of each TOC block takes every remaining row (FR-REP-003; doc
-/// 09 §3.1, §7 item 1). The note of `page_order` (`fixpoint_reached`) surfaced as a finding (FT-49). One finding:
+/// 09 §3.1, §7 item 1). The note of `page_order` (`fixpoint_reached`) surfaced as a finding. One finding:
 /// targets the TOC blocks, discriminator `toc`.
 #[derive(Clone, Copy, Debug)]
 pub struct TocFixpoint;
@@ -725,7 +725,7 @@ pub const GRAPHIC_LINE_ON_CP: RuleMeta = RuleMeta {
 /// drawn on the same page (FR-CON-001; doc 06 §8): a QET habit with no electrical meaning. One finding per graphic and
 /// CP: targets the page item and the CP's function, discriminator `line`, shown on the page. Online only. The quick
 /// fix "convert to connection" of the catalogue is not offered: it would draw a connection and delete the graphic,
-/// two commands where a quick fix runs one (WP-S1.16 §11.2 item 6).
+/// two commands where a quick fix runs one.
 #[derive(Clone, Copy, Debug)]
 pub struct GraphicLineOnCp;
 
@@ -815,7 +815,7 @@ impl Rule for GraphicLineOnCp {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// EW-CORE-067 to -070, -072 and -073: the layout rules (WP-S2.19 §9, D19)
+// EW-CORE-067 to -070, -072 and -073: the layout rules (D19)
 
 /// The metadata of a layout rule: pack EW-CORE, scope page, release MVP, modes `o r`.
 const fn layout_rule(
@@ -843,7 +843,7 @@ const fn layout_rule(
     }
 }
 
-/// EW-CORE-067 "Wire through a connection point" (WP-S2.19 §9): conflict, o r, warning (release error), page.
+/// EW-CORE-067 "Wire through a connection point": conflict, o r, warning (release error), page.
 pub const WIRE_THROUGH_CP: RuleMeta = layout_rule(
     "EW-CORE-067",
     "104067",
@@ -854,7 +854,7 @@ pub const WIRE_THROUGH_CP: RuleMeta = layout_rule(
     "reference/rules/ew-core-067",
 );
 
-/// EW-CORE-068 "Wire along another wire" (WP-S2.19 §9): conflict, o r, warning (release error), page.
+/// EW-CORE-068 "Wire along another wire": conflict, o r, warning (release error), page.
 pub const WIRE_ALONG_WIRE: RuleMeta = layout_rule(
     "EW-CORE-068",
     "104068",
@@ -865,7 +865,7 @@ pub const WIRE_ALONG_WIRE: RuleMeta = layout_rule(
     "reference/rules/ew-core-068",
 );
 
-/// EW-CORE-069 "Wire through a symbol" (WP-S2.19 §9): hygiene, o r, warning, page.
+/// EW-CORE-069 "Wire through a symbol": hygiene, o r, warning, page.
 pub const WIRE_THROUGH_SYMBOL: RuleMeta = layout_rule(
     "EW-CORE-069",
     "104069",
@@ -876,7 +876,7 @@ pub const WIRE_THROUGH_SYMBOL: RuleMeta = layout_rule(
     "reference/rules/ew-core-069",
 );
 
-/// EW-CORE-070 "Wire through a text" (WP-S2.19 §9): hygiene, o r, warning, page.
+/// EW-CORE-070 "Wire through a text": hygiene, o r, warning, page.
 pub const WIRE_THROUGH_TEXT: RuleMeta = layout_rule(
     "EW-CORE-070",
     "104070",
@@ -887,7 +887,7 @@ pub const WIRE_THROUGH_TEXT: RuleMeta = layout_rule(
     "reference/rules/ew-core-070",
 );
 
-/// EW-CORE-072 "Four-way junction" (WP-S2.19 §9): hygiene, o r, warning, page.
+/// EW-CORE-072 "Four-way junction": hygiene, o r, warning, page.
 pub const FOUR_WAY_JUNCTION: RuleMeta = layout_rule(
     "EW-CORE-072",
     "104072",
@@ -898,7 +898,7 @@ pub const FOUR_WAY_JUNCTION: RuleMeta = layout_rule(
     "reference/rules/ew-core-072",
 );
 
-/// EW-CORE-073 "Unrouted wire" (WP-S2.19 §9, D3): completeness, o r, info (release error), page.
+/// EW-CORE-073 "Unrouted wire" (D3): completeness, o r, info (release error), page.
 pub const UNROUTED_WIRE: RuleMeta = layout_rule(
     "EW-CORE-073",
     "104073",
@@ -909,7 +909,7 @@ pub const UNROUTED_WIRE: RuleMeta = layout_rule(
     "reference/rules/ew-core-073",
 );
 
-/// A layout rule (EW-CORE-067 to -070, -072 and -073; WP-S2.19 D19). Its evidence, a page's drawn geometry with the
+/// A layout rule (EW-CORE-067 to -070, -072 and -073). Its evidence, a page's drawn geometry with the
 /// text boxes the scene measures, exists only where the scene runs, so the rule reports nothing over the model: the
 /// session measures each schematic page (`ew_derive::routing::measure`) and joins the findings, worded by the
 /// functions below, through [`CheckReport::with_layout_evidence`](crate::CheckReport::with_layout_evidence), where
@@ -1167,7 +1167,7 @@ pub fn four_way_junction(page: Id<Page>, folio: &str, junction: Id<Junction>, ce
     .arg("page", folio)
 }
 
-/// EW-CORE-073: `wire`, a page connection between two different points, has no route (WP-S2.19 D3). Targets the wire.
+/// EW-CORE-073: `wire`, a page connection between two different points, has no route. Targets the wire.
 pub fn unrouted_wire(page: Id<Page>, wire: LayoutWire<'_>) -> Finding {
     Finding::new(
         &UNROUTED_WIRE,

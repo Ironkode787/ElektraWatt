@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property grid in the shell (WP-S2.05 part 1, spec §6.2 to §6.11): the sheet fetched once per key, the row
+//! The property grid in the shell (spec §6.2 to §6.11): the sheet fetched once per key, the row
 //! cursor, the edit buffer, the commit path, the card, the toast and `select.set`.
 //!
 //! **The sheet** is fetched at the end of a dispatch when the pane is in the layout and its key (project session,
@@ -41,7 +41,7 @@ use crate::tools::PreviewState;
 /// its label (`label(i)`, "on -101F1: …").
 fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
     match e {
-        // FT-1395 (ID-1415): the reason in the window's language.
+        // The reason in the window's language.
         CmdError::InvalidParams {
             path, message, text, ..
         } => {
@@ -56,7 +56,7 @@ fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
         }
         CmdError::Rejected { reason, text, .. } => super::tools::rejected_words(reason, text.as_ref()),
         CmdError::NotFound { .. } => strings::text(key!("props-gone")).to_owned(),
-        // FT-1488: a prevent rule, a model or history error in the window's language.
+        // A prevent rule, a model or history error in the window's language.
         other => super::tools::command_error_words(other),
     }
 }
@@ -86,14 +86,14 @@ pub(super) fn replace_uuids(text: &str, name: &dyn Fn(&str) -> String) -> String
     out
 }
 
-/// WP-S2.07 D13: the key of a terminal's Group row and of its Printed label row.
+/// The key of a terminal's Group row and of its Printed label row.
 const GROUP_ROW: &str = "device/derived.group";
-/// A panel page's Surface view row (WP-S4.02 D12): its choices are the surfaces by ID.
+/// A panel page's Surface view row: its choices are the surfaces by ID.
 const SURFACE_ROW: &str = "page/derived.surface";
 const PRINTED_LABEL_ROW: &str = "device/derived.printed_label";
-/// WP-S2.18 D3 (FT-628): the key of a device's Tag row.
+/// The key of a device's Tag row.
 const TAG_ROW: &str = "device/derived.tag";
-/// ID-1477 (1): a page's Connection grid row, a choice of the grids New page offers, in their words.
+/// A page's Connection grid row, a choice of the grids New page offers, in their words.
 const GRID_ROW: &str = "page/grid";
 
 /// The choices of the Connection grid row: each grid of `PAGE_GRIDS` in its words, with its value.
@@ -104,7 +104,7 @@ fn grid_choices() -> Vec<(String, Value)> {
         .collect()
 }
 
-/// FT-633: the grid row and value of a tag typed for a device whose tag on show is `shown` (letter `letter`, counter
+/// The grid row and value of a tag typed for a device whose tag on show is `shown` (letter `letter`, counter
 /// `counter`) when the typed text changes exactly one of the two and keeps the rest: `-102F1` → `-102K1` is the Letter
 /// row with `K`, `-X1031` → `-X1032` the Counter row with `2` (the strip format `{letter}{page}{counter}`). `None` for
 /// any other text (the same tag, both changed, another prefix), which the Tag row takes.
@@ -196,7 +196,6 @@ impl ShellModel {
         self.settings.properties_collapsed.iter().cloned().collect()
     }
 
-    // WP-S2.17 part 3 (D11)
     /// Whether the grid shows the Advanced rows (`[properties] show_advanced`; `props.show_advanced`).
     pub fn properties_show_advanced(&self) -> bool {
         self.settings.properties_show_advanced
@@ -240,7 +239,7 @@ impl ShellModel {
         }
     }
 
-    /// `props.filter {text}`: sets the text of the grid's filter field (FT-541); the rows on show are those whose label
+    /// `props.filter {text}`: sets the text of the grid's filter field; the rows on show are those whose label
     /// or value contains it, case-folded, while the field is on show.
     pub(crate) fn act_props_filter(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = match string_param(p, "text") {
@@ -337,7 +336,7 @@ impl ShellModel {
             self.props.tag_proposal = None;
             self.props.choices = None;
             self.props.popup = None;
-            // The grid's card goes; a replace card is the find pane's and does not follow the selection (WP-S2.05 part 2).
+            // The grid's card goes; a replace card is the find pane's and does not follow the selection.
             if self
                 .props
                 .card
@@ -377,7 +376,7 @@ impl ShellModel {
         crate::properties::values_in_words(&mut sheet);
         self.positions_in_words(&mut sheet, p.session.decimal_comma());
         crate::properties::header_in_words(&mut sheet);
-        // FT-1162 (ID-1219 ruling 6): the header's finding chips in the UI language, as the Messages detail renders
+        // The header's finding chips in the UI language, as the Messages detail renders
         // them, for the online report's finding of the chip's rule and message.
         let lang = strings::rule_language();
         if lang != "en-GB" && !sheet.header.findings.is_empty() {
@@ -405,9 +404,9 @@ impl ShellModel {
         sheet
     }
 
-    /// FT-1043 (ID-1391): a representation's position reads in millimetres, with its grid cell when the focused
+    /// A representation's position reads in millimetres, with its grid cell when the focused
     /// canvas shows its page (`102-C5 · x 18.5 y 74.1 mm`), never in nanometres; ID-1427 (W52 F5): one decimal, as the
-    /// status bar's (ID-946), with the project's decimal separator (`comma`).
+    /// status bar's, with the project's decimal separator (`comma`).
     fn positions_in_words(&self, sheet: &mut PropertySheet, comma: bool) {
         let page = self.canvas().map(|c| c.page());
         for section in sheet.sections.iter_mut().filter(|s| s.kind == "representation") {
@@ -463,7 +462,7 @@ impl ShellModel {
         find_row(sheet, key).map(|(s, r)| (s.clone(), r.clone()))
     }
 
-    /// Why a row cannot take `action` now, as the outcome that refuses it: `None` when it can (ID-1113). A read-only
+    /// Why a row cannot take `action` now, as the outcome that refuses it: `None` when it can. A read-only
     /// project refuses with `reason-read-only`; in an editable project a derived row is computed
     /// (`reason-row-computed`), a human-only row keeps `reason-human-only`, a row with another read-only reason reads
     /// that reason in a sentence (`crate::properties::refusal_text`, a formatted refusal; FT-1051), and an editable
@@ -708,7 +707,7 @@ impl ShellModel {
             return failed(key!("error-no-row"), &[key]);
         };
         if let Some(out) = self.props_refusal(&section, &row, action) {
-            // WP-S2.08 part 6 (D17): tips 2 and 3.
+            // Tips 2 and 3.
             self.tip_for_refused_row(&section, &row, &out);
             return out;
         }
@@ -726,9 +725,9 @@ impl ShellModel {
                         text.clone()
                     }
                 }
-                // ID-1477 (1): the Connection grid is edited in its words ("4 mm"), as its choices show it.
+                // The Connection grid is edited in its words ("4 mm"), as its choices show it.
                 (RowValue::One { text, .. }, None) if row.key == GRID_ROW => text.clone(),
-                // FT-1019 (ID-1107): a JSON value shown in words (a scale's `1:10`, a length's `12.5 m`) is edited in
+                // A JSON value shown in words (a scale's `1:10`, a length's `12.5 m`) is edited in
                 // those words, which its parser reads back.
                 (RowValue::One { json, text }, None)
                     if matches!(row.ty.inner(), crate::properties::FieldType::Json)
@@ -771,7 +770,7 @@ impl ShellModel {
     fn options(&self, section: &SheetSection, row: &PropRow, filter: &str, key: &str) -> Option<Choices> {
         let p = self.project.as_ref()?;
         bump(&self.calls, |c| c.field_choices += 1);
-        // WP-S4.02 part 4 (D12): a layout row lists the choices its sheet built (the device's parts, the turns, the
+        // A layout row lists the choices its sheet built (the device's parts, the turns, the
         // project's surfaces), each its own text.
         let mut details = Vec::new();
         let items: Vec<(String, Value)> = match (&row.route, row.ty.inner()) {
@@ -782,7 +781,7 @@ impl ShellModel {
                     .filter(|(text, _)| text.to_lowercase().contains(&f))
                     .collect()
             }
-            // FT-1478: an address profile by its name, its reference as the secondary line; choosing one commits the
+            // An address profile by its name, its reference as the secondary line; choosing one commits the
             // reference.
             (crate::properties::EditRoute::Command { command }, _) if command == "plc.set_profile" => {
                 let f = filter.to_lowercase();
@@ -796,7 +795,7 @@ impl ShellModel {
                 details = refs;
                 items
             }
-            // The Surface row's choice is the surface, by its ID (C44-p2#4): two surfaces may read alike.
+            // The Surface row's choice is the surface, by its ID: two surfaces may read alike.
             (crate::properties::EditRoute::Command { .. }, _) if row.key == SURFACE_ROW => {
                 let f = filter.to_lowercase();
                 p.session
@@ -822,7 +821,7 @@ impl ShellModel {
                     .filter(|(text, _)| text.to_lowercase().contains(&f))
                     .collect()
             }
-            // FT-1258: an enumerated row's choices are its words in the UI language, filtered by those words.
+            // An enumerated row's choices are its words in the UI language, filtered by those words.
             (_, crate::properties::FieldType::Enum { options }) => {
                 let f = filter.to_lowercase();
                 options
@@ -995,11 +994,11 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
-        // WP-S2.07 D13: a terminal's Group row compiles through `Session::strip_edit` (D8).
+        // A terminal's Group row compiles through `Session::strip_edit` (D8).
         if row.key == GROUP_ROW {
             return self.commit_group_label(&section, &row, text);
         }
-        // ID-1477 (1): a Connection grid typed in its words is that grid.
+        // A Connection grid typed in its words is that grid.
         if row.key == GRID_ROW
             && let Some((_, value)) = grid_choices()
                 .into_iter()
@@ -1008,13 +1007,13 @@ impl ShellModel {
             self.props.choices = None;
             return self.commit_value(key, value, text.to_owned(), Vec::new());
         }
-        // FT-1258: a word of an enumerated row is read back as its stored word.
+        // A word of an enumerated row is read back as its stored word.
         let typed = crate::properties::enum_value_of(&section.kind, &row, text);
         // WP-S4.02 part 4 (ruling 3): a layout row compiles through `Session::layout_edit`.
         if matches!(row.route, crate::properties::EditRoute::Command { .. }) {
             return self.commit_layout_row(&section, &row, &typed);
         }
-        // WP-S2.18 D3 (FT-628): an existing device's tag proposes Join; the shown tag again builds no command.
+        // An existing device's tag proposes Join; the shown tag again builds no command.
         if row.key == TAG_ROW {
             if let Some(outcome) = self.propose_join(&section, key, text) {
                 return outcome;
@@ -1060,7 +1059,7 @@ impl ShellModel {
                 return Outcome::Done;
             }
             (Err(InputError::Invalid(why)), _) => {
-                // FT-1493: the reason in the window's language.
+                // The reason in the window's language.
                 let message = super::tools::rejected_words(&why.to_string(), Some(&why));
                 self.props.set_error(key.to_owned(), message.clone());
                 return Outcome::Failed { message };
@@ -1152,7 +1151,7 @@ impl ShellModel {
             base.clone()
         };
         let unchanged = current.as_ref() == Some(&new) || (current.is_none() && new.is_null());
-        // WP-S2.07 D13: the Printed label row is the function text under another key, not an override.
+        // The Printed label row is the function text under another key, not an override.
         if unchanged && (!(is_derived(&row) && row.path == member) || row.key == PRINTED_LABEL_ROW) {
             self.props.edit = None;
             self.props.error = None;
@@ -1164,7 +1163,7 @@ impl ShellModel {
         self.run_edit(edit, false)
     }
 
-    /// A layout row (WP-S4.02 part 4, D12, ruling 3): one `Session::layout_edit` of the row's text, through the commit
+    /// A layout row: one `Session::layout_edit` of the row's text, through the commit
     /// path of every edit (one preview, the policy, the commit); the text on show again builds no command, and a text
     /// that does not read stays under the row in words.
     fn commit_layout_row(
@@ -1178,7 +1177,7 @@ impl ShellModel {
             RowValue::Absent => Some(String::new()),
             RowValue::Varies { .. } => None,
         };
-        // The shown text, or the row's value (a choice by ID, C44-p2#4), again builds no command.
+        // The shown text, or the row's value (a choice by ID), again builds no command.
         let same_value =
             matches!(&row.value, RowValue::One { json: Value::String(v), .. } if v == text.trim());
         if shown.as_deref().map(str::trim) == Some(text.trim()) || same_value {
@@ -1221,7 +1220,7 @@ impl ShellModel {
         self.run_edit(pending, false)
     }
 
-    /// The Group row of terminals (WP-S2.07 D13): one `StripEdit::GroupLabel` over the section's terminals, through
+    /// The Group row of terminals: one `StripEdit::GroupLabel` over the section's terminals, through
     /// the commit path of every edit (one preview, the policy, the commit or the card); the same text builds no command.
     fn commit_group_label(
         &mut self,
@@ -1302,7 +1301,7 @@ impl ShellModel {
                 (String::new(), Value::Null)
             }
         };
-        // WP-S2.18 D6: a Parts row that chooses a system library's part the project does not hold assigns it with
+        // A Parts row that chooses a system library's part the project does not hold assigns it with
         // `part.assign`, which embeds the part with its closure in the same transaction.
         let (name, params) = match self
             .project
@@ -1317,7 +1316,7 @@ impl ShellModel {
             None => (name, params),
         };
         // WP-S2.07 §8 (FT-429): a module's start typed as the profile's text or a keyword goes through
-        // `plc.set_start` (WP-S1.21 D8), which reads it with the module's profile.
+        // `plc.set_start`, which reads it with the module's profile.
         let start_dir = match row.path.as_str() {
             "plc_module.start.input" => Some("input"),
             "plc_module.start.output" => Some("output"),
@@ -1506,7 +1505,7 @@ impl ShellModel {
                         strings::format(
                             key!("toast-set"),
                             &[
-                                // FT-757: sentence case, as the table's toast.
+                                // Sentence case, as the table's toast.
                                 &strings::in_sentence(&edit.label),
                                 &edit.targets.len().to_string(),
                                 &kind_plural(&edit.kind, edit.targets.len()),
@@ -1574,7 +1573,7 @@ impl ShellModel {
         })
     }
 
-    /// WP-S2.18 D3 (FT-628): `text` typed into one device's Tag field names another device the device's one
+    /// `text` typed into one device's Tag field names another device the device's one
     /// representation can join (`Session::join_proposal`): the rename is refused and the error line proposes the join,
     /// accepted by `props.accept_tag_proposal` ("Join -K1"). `None` otherwise (the field's other behaviour).
     fn propose_join(&mut self, section: &SheetSection, key: &str, text: &str) -> Option<Outcome> {
@@ -1627,7 +1626,7 @@ impl ShellModel {
             self.props.error = None;
             self.props.tag_proposal = None;
             let toast = if proposal.join {
-                // WP-S2.18 D3: "Joined -K1 (NO contact 13-14) at 102-C4".
+                // "Joined -K1 (NO contact 13-14) at 102-C4".
                 let rep = proposal.params["rep"].as_str().and_then(|r| r.parse().ok());
                 let joined = rep.and_then(|r| self.project.as_ref()?.session.joined_text(r));
                 // FX37a: what the removed source device carried goes with it; the toast names it.
@@ -1653,7 +1652,7 @@ impl ShellModel {
             if let Some(toast) = toast {
                 self.notify(toast, true);
             }
-            // FT-633: the proposal of a device row's F2 rename closes its inline field.
+            // The proposal of a device row's F2 rename closes its inline field.
             if self.rename.as_ref().is_some_and(|r| r.tag) {
                 self.rename = None;
             }
@@ -1661,7 +1660,7 @@ impl ShellModel {
         outcome
     }
 
-    /// FT-633: shows the sheet of `device` in the grid (the pane opened when it is closed, the device the selection), so
+    /// Shows the sheet of `device` in the grid (the pane opened when it is closed, the device the selection), so
     /// that a navigator's F2 on a device row edits the tag through the Tag field's own path. The tag on show, or `None`
     /// when the sheet has no editable Tag row.
     pub(super) fn tag_rename_sheet(&mut self, device: ew_api::output::Uuid) -> Option<String> {
@@ -1686,7 +1685,7 @@ impl ShellModel {
         }
     }
 
-    /// FT-633: commits `text` typed for the tag of `device` (a navigator's F2 on a device row) through the grid's own
+    /// Commits `text` typed for the tag of `device` (a navigator's F2 on a device row) through the grid's own
     /// rows: a tag another device prints and the device can join goes to the Tag row (its "Join -K1" proposal); a text
     /// that changes only the letter or only the counter of the tag on show goes to the Letter or the Counter row
     /// (FR-NUM-029: a counter collision on the page is refused, a letter edit with the next free counter proposed);
@@ -1717,7 +1716,7 @@ impl ShellModel {
         }
     }
 
-    /// FT-633: the refusal under a device row's F2 field (the grid's error line of the tag's rows) and its proposal.
+    /// The refusal under a device row's F2 field (the grid's error line of the tag's rows) and its proposal.
     pub fn nav_rename_error(&self) -> Option<(&str, Option<&crate::properties::TagProposal>)> {
         self.rename.as_ref().filter(|r| r.tag)?;
         let (row, message) = self.props.error()?;
@@ -1862,7 +1861,7 @@ impl ShellModel {
 
     /// The entries of the actions menu of the row `key` (FT-530, FT-754 (h)): the row's actions, then Make variable
     /// when the row can be a macro variable (a row of one record with an action, not a derived value), then on a
-    /// Parts row Choose part…, Add part… and Edit part… (WP-S2.07 part 4a); empty for a row that is not on show.
+    /// Parts row Choose part…, Add part… and Edit part…; empty for a row that is not on show.
     pub fn row_menu(&self, key: &str) -> Vec<RowMenuItem> {
         let Some((section, row)) = self.props_find(key) else {
             return Vec::new();
@@ -1938,7 +1937,7 @@ impl ShellModel {
             return failed(key!("error-no-row"), &[key]);
         };
         if let Some(out) = self.props_refusal(&section, &row, action) {
-            // WP-S2.08 part 6 (D17): tips 2 and 3.
+            // Tips 2 and 3.
             self.tip_for_refused_row(&section, &row, &out);
             return out;
         }
@@ -1976,7 +1975,6 @@ impl ShellModel {
         }
     }
 
-    // WP-S2.05 part 2
     /// Freeze on a device section with several targets (§7.5): every device whose tag is not frozen gets
     /// `tag.frozen` ← `{"text": <its product designation>, "sign": "shown"}`, all in one `fields.set_many` through the
     /// preview and the policy (rule 2 opens the card). Each device's product designation is the derived tag row of its
@@ -2200,48 +2198,48 @@ impl ShellModel {
         let Some(card) = self.props.card.take() else {
             return Outcome::refused(key!("reason-no-card"));
         };
-        // WP-S3.08 part 3: a table import card commits the import's own command (ruling 6 of ID-1224).
+        // A table import card commits the import's own command.
         if matches!(card.origin, CardOrigin::TableImport(_)) {
             return self.apply_table_import_card(card);
         }
-        // WP-S2.05 part 2: a replace card is the find pane's (§7.4).
+        // A replace card is the find pane's (§7.4).
         if matches!(card.origin, CardOrigin::Find { .. }) {
             return self.apply_find_card(card);
         }
-        // FT-410: an import card is the parts table's (`parts.import`).
+        // An import card is the parts table's (`parts.import`).
         if matches!(card.origin, CardOrigin::Import { .. }) {
             return self.apply_import_card(card);
         }
-        // WP-S2.06 part 1: a reorder card is the Pages navigator's (`pages.reorder`).
+        // A reorder card is the Pages navigator's (`pages.reorder`).
         if matches!(card.origin, CardOrigin::Reorder { .. }) {
             return self.apply_reorder_card(card);
         }
-        // WP-S2.09 part 2: a quick-fix card is the Messages pane's (`messages.fix`).
+        // A quick-fix card is the Messages pane's (`messages.fix`).
         if matches!(card.origin, CardOrigin::QuickFix { .. }) {
             return self.apply_fix_card(card);
         }
-        // WP-S2.07 D22: the paste choice card previews nothing; its choices are `paste.resolve`.
+        // The paste choice card previews nothing; its choices are `paste.resolve`.
         if matches!(card.origin, CardOrigin::PasteVersions(_)) {
             self.props.card = Some(card);
             return Outcome::refused(key!("reason-paste-versions"));
         }
-        // WP-S2.07 D22: Update the project's copy commits, then the pending paste is armed again.
+        // Update the project's copy commits, then the pending paste is armed again.
         if matches!(card.origin, CardOrigin::PasteUpdate { .. }) {
             return self.apply_paste_update_card(card);
         }
-        // WP-S2.19 D13: a route card commits its plan and says what it routed.
+        // A route card commits its plan and says what it routed.
         if matches!(card.origin, CardOrigin::Route { .. }) {
             return self.apply_route_card(card);
         }
-        // WP-S2.09 part 3: a bulk card is a renumber dialog's (§8.2).
+        // A bulk card is a renumber dialog's (§8.2).
         if matches!(card.origin, CardOrigin::Bulk | CardOrigin::Part(_)) {
             return self.apply_bulk_card(card);
         }
-        // WP-S1.19 part 6: a macro card is the Macros navigator's (`macro.insert`, §11).
+        // A macro card is the Macros navigator's (`macro.insert`, §11).
         if matches!(card.origin, CardOrigin::Macro(_)) {
             return self.apply_macro_card(card);
         }
-        // WP-S2.06 part 3: a table card is a navigator's table gesture (§8.7).
+        // A table card is a navigator's table gesture (§8.7).
         if matches!(card.origin, CardOrigin::Table { .. }) {
             return self.apply_table_card(card);
         }
@@ -2279,7 +2277,7 @@ impl ShellModel {
             });
             return Outcome::refused(key!("reason-changed-meanwhile"));
         }
-        // WP-S2.05 part 2: a freeze on several devices is built again from the current sheet (a second Apply).
+        // A freeze on several devices is built again from the current sheet (a second Apply).
         if edit.name == "fields.set_many" {
             return self.row_action(&edit.row, RowAction::Freeze);
         }
@@ -2298,7 +2296,7 @@ impl ShellModel {
         self.run_edit(rebuilt, true)
     }
 
-    /// Shows `text` as a toast (FT-485): what a command did that the page does not show by itself (a new strip, the
+    /// Shows `text` as a toast: what a command did that the page does not show by itself (a new strip, the
     /// wires a placement drew); `undo` offers Undo. WP-S2.09 D6: the toasts of these callers share the key `edit`, so a
     /// newer one replaces an older one on screen; every one enters the notifications log.
     pub(super) fn notify(&mut self, text: String, undo: bool) {
@@ -2343,7 +2341,7 @@ pub(super) mod tests {
     use super::*;
     use crate::properties::EditRoute;
 
-    /// FT-633: a typed tag that changes only the letter or only the counter goes to that row; anything else to the
+    /// A typed tag that changes only the letter or only the counter goes to that row; anything else to the
     /// Tag row.
     #[test]
     fn tag_edit_of_reads_the_letter_or_the_counter() {
@@ -2455,7 +2453,7 @@ pub(super) mod tests {
         let _ = std::fs::remove_dir_all(&base);
     }
 
-    /// FT-404: the shell's undo and redo carry its origin. A `project.checks.set` step committed from the GUI is
+    /// The shell's undo and redo carry its origin. A `project.checks.set` step committed from the GUI is
     /// refused to the headless script (`Origin::CmdLog`) with the history reason key, the session unchanged; the
     /// window's GUI origin undoes and redoes it.
     #[test]

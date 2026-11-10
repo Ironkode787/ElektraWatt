@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The sample project's catalogue parts in a new project (WP-S7.03 D3, SC-3, SC-5): with the installation's system
+//! The sample project's catalogue parts in a new project (SC-3, SC-5): with the installation's system
 //! tier (`content/libraries`), every sample part with a function template is placed from the picker on the starter
 //! symbol of its main function, and its device carries the part after saving and reopening; the place tool's picker
 //! offers a sample part, and the Libraries navigator lists the library in the system tier.
@@ -225,7 +225,7 @@ fn the_picker_and_the_libraries_navigator_offer_the_sample_parts() {
     assert!(lib.starts_with(&format!("{tier}/")), "{lib} under {tier}");
 }
 
-/// ID-1497 (7): a black box placed from a sample part takes its letter from the part's function category, as the
+/// A black box placed from a sample part takes its letter from the part's function category, as the
 /// reference drawing's -102G1 (2904602, a power supply: G) and -102F2 (MICO 4.10, monitoring and protection: F).
 #[test]
 fn a_black_box_from_a_part_takes_the_letter_of_its_category() {

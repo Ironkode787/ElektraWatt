@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The upgrade of a project of an older format through the session (WP-S1.17 D11, decision log ID-1221 ruling 5):
+//! The upgrade of a project of an older format through the session:
 //! MG-3 (the consent, the verified backup before any project byte, the backup extracting byte-equal to the original
 //! folder, no second question) and MG-4 (declining, or closing between the consent and the save, leaves every project
 //! file byte-identical), with the backup's name sequence and a backup that cannot be written. The `"0.0"` fixture is a
@@ -176,7 +176,7 @@ fn files_v0() -> (BTreeMap<String, Vec<u8>>, Vec<u8>) {
     let current = files
         .insert("project.jsonl".to_owned(), project)
         .expect("a project file");
-    // Compact, unlike `Manifest::to_text`'s, and read all the same: the backup keeps these bytes (ID-1230 ruling 6).
+    // Compact, unlike `Manifest::to_text`'s, and read all the same: the backup keeps these bytes.
     let compact: Value = serde_json::from_str(&manifest.to_text()).unwrap();
     let compact = format!("{compact}\n");
     assert_ne!(compact, manifest.to_text());

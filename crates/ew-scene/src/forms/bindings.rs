@@ -11,7 +11,7 @@
 //! (`supply`, `qty`, `ml`, `range`, …) are reported as [`BindingFinding::UnsupportedFilter`] and pass the value
 //! through unchanged.
 //!
-//! Nothing is silently dropped, and no placeholder text is ever drawn (decision log ID-40): an unresolved
+//! Nothing is silently dropped, and no placeholder text is ever drawn: an unresolved
 //! path ([`BindingFinding::Unresolved`]), an unknown scope ([`BindingFinding::UnknownScope`]) and a computed
 //! cell (`{= …}`, [`BindingFinding::Computed`], not in v0) render as empty text and are reported, and a
 //! malformed template ([`BindingFinding::Malformed`]) yields no text at all and is reported.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `Session::navigator_table` on Golden A (WP-S2.06 part 1, acceptance check NV2): the Pages table in the derived page
+//! `Session::navigator_table` on Golden A (acceptance check NV2): the Pages table in the derived page
 //! order, the Devices tree with one device row per non-terminal device, -201U3's representation rows (D16), keys
 //! stable across a revision that changes nothing they show, and the index from a representation to its rows.
 
@@ -168,12 +168,12 @@ fn keys_are_stable_across_a_revision() {
     assert_eq!(keys(&before), keys(&after));
     s.undo(&Origin::Gui).expect("undo");
     assert_eq!(keys(&s.navigator_table(NavKind::Pages)), keys(&pages_before));
-    // Part 2's kinds have their rows (WP-S2.06 part 2).
+    // Part 2's kinds have their rows.
     let c = s.navigator_table(NavKind::Connections);
     assert!(!c.nodes.is_empty());
     assert!(!c.columns.is_empty());
     // Determinism: two builds of every kind are equal, and every kind has rows on Golden A, except Macros: no
-    // installed library holds a macro and Golden A holds none (WP-S1.19 §11).
+    // installed library holds a macro and Golden A holds none.
     for k in NavKind::ALL {
         let a = s.navigator_table(k);
         assert_eq!(a, s.navigator_table(k), "{k:?}");

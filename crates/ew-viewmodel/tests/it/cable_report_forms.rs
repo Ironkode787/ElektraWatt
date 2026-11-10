@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1371 and FT-1372 (ID-1362) on copies of Golden A, through the forms as the window shows them: Draw ▸ Connect ▸
+//! FT-1371 and FT-1372 on copies of Golden A, through the forms as the window shows them: Draw ▸ Connect ▸
 //! New cable… creates a cable from its part with the part's cores, Connect cores… makes the selected wires its cores
 //! by order (one undo step; too few free cores refused in words), and Output ▸ Report block… adds a report block
 //! whose pages join the page order.
@@ -91,7 +91,7 @@ fn menu_items(s: &ShellModel, menu: Menu) -> Vec<(String, String)> {
     out
 }
 
-/// FT-1371: New cable… sits in Draw ▸ Connect; its form offers the cable parts and creates the cable with the part's
+/// New cable… sits in Draw ▸ Connect; its form offers the cable parts and creates the cable with the part's
 /// five cores in one undo step; Connect cores… sits beside it and makes the two leftmost selected wires the cable's BK
 /// and BU cores in one undo step; four wires more than its three free cores are refused in words, nothing assigned.
 #[test]
@@ -132,7 +132,7 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
     let mut sorted = cores.clone();
     sorted.sort();
     assert_eq!(sorted, ["BK", "BN", "BU", "GNYE", "WH"], "the part's cores");
-    // FT-1406: a new cable without a definition line takes the project's counter, never `-?W?`.
+    // A new cable without a definition line takes the project's counter, never `-?W?`.
     assert_eq!(tag, "-W1");
     assert_eq!(
         state(&s)["toast"]["text"],
@@ -161,7 +161,7 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
     assert_eq!(s.submit_form(), Outcome::Done);
     assert!(s.dialog().is_none());
     assert_eq!(kinds(&s, &w[..2]), ["core", "core"]);
-    // FT-1406: with its first core on folio 103 the cable takes that page, and the toast names it so.
+    // With its first core on folio 103 the cable takes that page, and the toast names it so.
     let tag = "-103W1".to_owned();
     assert_eq!(
         state(&s)["toast"]["text"],
@@ -207,7 +207,7 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
     s.shutdown();
 }
 
-/// FT-1371: without a selected wire Connect cores… is disabled with its reason; headless, New cable… needs its part.
+/// Without a selected wire Connect cores… is disabled with its reason; headless, New cable… needs its part.
 #[test]
 fn connect_cores_needs_selected_wires_and_new_cable_its_part() {
     let tmp = Tmp::new("ft1371b");
@@ -230,7 +230,7 @@ fn connect_cores_needs_selected_wires_and_new_cable_its_part() {
     s.shutdown();
 }
 
-/// FT-1372: Report block… sits in the Output menu; its form offers the report kinds in words and proposes the folio
+/// Report block… sits in the Output menu; its form offers the report kinds in words and proposes the folio
 /// after the last page; a terminal diagram from folio 950 adds its pages in one undo step.
 #[test]
 fn a_report_block_from_its_form_adds_its_pages() {
@@ -293,7 +293,7 @@ fn a_report_block_from_its_form_adds_its_pages() {
     s.shutdown();
 }
 
-/// ID-1376 (C51-p4#4): Report block…'s two refusals, a kind that is no report and a folio that is no number, stay
+/// Report block…'s two refusals, a kind that is no report and a folio that is no number, stay
 /// under the fields, whole, in English and in Dutch; the kind's refusal lists the kinds the form offers, in words.
 #[test]
 fn report_block_refuses_a_bad_kind_and_a_bad_folio_in_both_languages() {
@@ -421,7 +421,7 @@ fn a_library_cable_part_is_embedded_with_its_cable_in_one_undo_step() {
     s.shutdown();
 }
 
-/// ID-1376 (C51-p4#3b): two cables that print one tag (two new cables each take the project's counter, FT-1406, so
+/// Two cables that print one tag (two new cables each take the project's counter, FT-1406, so
 /// they are given one frozen tag here); Connect cores… names each in its list by its part and its position, and
 /// refuses the bare tag in words, in both languages, instead of taking the first.
 #[test]
@@ -496,7 +496,7 @@ fn connect_cores_tells_two_cables_with_one_tag_apart() {
     s.shutdown();
 }
 
-/// C52-p4#3 (FT-1406, ID-1418): (a) a counter that another cable on no page holds is refused through `fields.set`, in
+/// (a) a counter that another cable on no page holds is refused through `fields.set`, in
 /// words that name no page, in both languages, instead of being replaced; (b) `numbering.renumber` numbers the cables
 /// on no page in the project's scope and a cable placed through its first core in its page's.
 #[test]

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-687: the placement rules of the slot texts. At one-column spacing a contact's back-reference does not overlap
+//! The placement rules of the slot texts. At one-column spacing a contact's back-reference does not overlap
 //! the neighbour contact's tag (it drops below it), and a coil's cross-reference list of two lines grows downward
 //! from its first line, clear of the coil's technical data ("24 V").
 

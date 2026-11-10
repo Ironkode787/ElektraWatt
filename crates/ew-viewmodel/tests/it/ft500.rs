@@ -56,7 +56,7 @@ fn samples(pts: &[(i64, i64)]) -> Vec<(i64, i64)> {
 }
 
 /// Whether `p` lies on a symbol's body, the middle half of a representation's rectangle each way, where a press picks
-/// the symbol before a wire (FT-1438).
+/// the symbol before a wire.
 fn on_body(s: &ShellModel, p: (i64, i64)) -> bool {
     let page = s.canvas().unwrap().page();
     page.entities.iter().any(|(e, rect)| {
@@ -71,7 +71,7 @@ fn on_body(s: &ShellModel, p: (i64, i64)) -> bool {
 }
 
 /// The first sample of `own`'s route that no other wire passes within the reach of, that no link is under, that no
-/// symbol's body covers (FT-1438) and that no junction is within twice the reach of (a junction's dot picks first).
+/// symbol's body covers and that no junction is within twice the reach of (a junction's dot picks first).
 fn own_point(s: &ShellModel, own: EntityRef, all: &[(EntityRef, Vec<(i64, i64)>)]) -> Option<(i64, i64)> {
     let r = reach(s);
     let line = &all.iter().find(|(e, _)| *e == own)?.1;
@@ -263,7 +263,7 @@ fn a_wire_through_a_symbol_is_clicked_and_the_symbol_still_drags_from_there() {
     s.shutdown();
 }
 
-/// FT-1438 (ID-1397; R0-F10): a click at the lamp E56's centre picks the lamp, never a wire through it; E56 selected by
+/// FT-1438 (R0-F10): a click at the lamp E56's centre picks the lamp, never a wire through it; E56 selected by
 /// its tag is moved by Move as its symbol on the page shown, which the selection becomes.
 #[test]
 fn ft1438_a_symbol_s_body_wins_and_a_device_by_its_tag_moves() {
@@ -294,7 +294,7 @@ fn ft1438_a_symbol_s_body_wins_and_a_device_by_its_tag_moves() {
     s.shutdown();
 }
 
-/// C52-p5#3 (FT-626): Move changes a by-reference selection only once the move starts. With a press held on the page
+/// Move changes a by-reference selection only once the move starts. With a press held on the page
 /// the Select tool is busy, so the move is refused, and E56 stays selected as the device it was.
 #[test]
 fn a_refused_move_keeps_a_by_reference_selection() {

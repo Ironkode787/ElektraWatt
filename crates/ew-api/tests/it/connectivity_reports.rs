@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The connectivity report kinds over the golden project (WP-S3.03; doc 20 §8.2, §8.3, §9, §10, §16):
+//! The connectivity report kinds over the golden project (doc 20 §8.2, §8.3, §9, §10, §16):
 //! `wire_list` (907), `potential_overview` (909), `terminal_diagram` (903 to 905) and
 //! `cable_overview_diagrams` (906).
 //!
@@ -219,7 +219,7 @@ fn potential_overview_lists_every_potential_and_the_bond() {
     let s = golden_common::session_with_profiles(&batch);
     let q = plain(&s);
     let set = rows_of(&q, &batch, "909");
-    // Doc 20 §7.3: 19 potentials (the PROFIBUS `DP` line through its `Bus` connections, FT-105) and the
+    // Doc 20 §7.3: 19 potentials (the PROFIBUS `DP` line through its `Bus` connections) and the
     // bond B1.
     assert_eq!(set.rows.len(), 20);
     let rows: Vec<Vec<String>> = (0..set.rows.len()).map(|i| texts(&q, &set, i)).collect();
@@ -283,7 +283,7 @@ fn potential_overview_lists_every_potential_and_the_bond() {
     assert_eq!(pages(&q, &batch, "909"), vec![("909".to_owned(), 0..20)]);
 }
 
-/// FT-1098 (ID-1182): the window names a potential as the reports do. The page tables' connection points carry
+/// The window names a potential as the reports do. The page tables' connection points carry
 /// `TablePotential`, the name the connection point's tooltip, the wire-number proposals and the describe lines show;
 /// the wire list's Potential column carries the reports' name. A named potential (a definition or a source point
 /// gives it its name: Golden A's) and an unnamed one (two coils wired to each other on folio 103: only the fallback

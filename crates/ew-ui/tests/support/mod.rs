@@ -72,8 +72,8 @@ impl Drop for Tmp {
     }
 }
 
-/// A new, empty directory `<parent>/<stem>-<pid>-<n>` that this call created (FT-524, FT-538): the shared helper
-/// [`ew_testdir::fresh_dir_in`] (FT-586).
+/// A new, empty directory `<parent>/<stem>-<pid>-<n>` that this call created: the shared helper
+/// [`ew_testdir::fresh_dir_in`].
 pub fn fresh_dir(parent: &Path, stem: &str, counter: &AtomicU32) -> PathBuf {
     ew_testdir::fresh_dir_in(parent, stem, counter)
 }
@@ -159,7 +159,7 @@ pub fn wait_for_page(harness: &mut Harness<'_, App>) {
         }
         std::thread::sleep(Duration::from_millis(20));
     }
-    // FT-524: what the next sighting needs to tell a slow worker from a project that opened otherwise.
+    // What the next sighting needs to tell a slow worker from a project that opened otherwise.
     let shell = harness.state().shell();
     panic!(
         "the page image did not arrive after {:?} (access {:?}, banner {:?}, folio {:?})",
@@ -196,7 +196,7 @@ pub fn surface_name(harness: &Harness<'_, App>) -> String {
     }
 }
 
-/// The accessibility walker (ADR-0014 amendment 2, NFR-A11Y-02; WP-S2.11 D3): every visible, enabled AccessKit node a
+/// The accessibility walker (ADR-0014 amendment 2, NFR-A11Y-02): every visible, enabled AccessKit node a
 /// user can reach (an input role, or one that takes the keyboard focus) has (R1) a name, a label or a placeholder;
 /// (R2) a check box, switch or radio button its toggled state; (R3) a combo box, a node with a pop-up or a tree item
 /// with children its expanded state; (R4) an option, tab, row or tree item of a selectable container its selected
@@ -302,7 +302,7 @@ pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<S
         .iter()
         .chain(bar.groups.iter().flat_map(|g| &g.buttons))
         .chain(&bar.next);
-    // While the symbol editor shows, its own bar replaces the command bar's buttons (ID-1463).
+    // While the symbol editor shows, its own bar replaces the command bar's buttons.
     for b in buttons.filter(|b| !b.enabled && shell.symbol_editor().is_none()) {
         check(&b.bar_label, false);
     }
@@ -324,7 +324,7 @@ fn menu_label(item: &ew_ui::ew_viewmodel::actions::ActionItem) -> String {
     }
 }
 
-/// R6 on an open menu of the app menu (WP-S2.11 D3, ID-1375): each of `items` whose action is unavailable has a
+/// R6 on an open menu of the app menu: each of `items` whose action is unavailable has a
 /// shown entry in it. One that has none is a line, so an entry never passes unseen; whether it is disabled is
 /// [`availability_problems`]'s line.
 pub fn menu_entry_problems(
@@ -357,7 +357,7 @@ pub fn menu_entry_problems(
 }
 
 /// The walker on the surface on show, R1 to R6, with WP-S2.08's splitter count: every splitter handle of the dock and
-/// the canvas area is a named `Splitter` node (FT-338).
+/// the canvas area is a named `Splitter` node.
 #[track_caller]
 pub fn assert_accessible(harness: &Harness<'_, App>) {
     let surface = surface_name(harness);
@@ -374,7 +374,7 @@ pub fn assert_accessible(harness: &Harness<'_, App>) {
     let splitter_join = rest.split_once("{1}").map_or(rest, |(join, _)| join);
     for node in harness.root().children_recursive() {
         let node = node.accesskit_node();
-        // FT-338: the dock's and the canvas area's handles are named `Splitter` nodes ("Resize Pages and Page view")
+        // The dock's and the canvas area's handles are named `Splitter` nodes ("Resize Pages and Page view")
         // like every other input. (A table's column handles and egui's panel handle are splitters with other names.)
         // WP-S2.08 part 3: the name's form in the UI language.
         let reachable = egui::accessibility::is_input(node.role())
@@ -423,7 +423,7 @@ pub fn fit_problems<S>(harness: &Harness<'_, S>) -> Vec<String> {
     let overlap = |a: &Rect, b: &Rect| {
         a.x1.min(b.x1) - a.x0.max(b.x0) > SLACK && a.y1.min(b.y1) - a.y0.max(b.y0) > SLACK
     };
-    // AccessKit's bounds are in physical pixels, the content rectangle in points (ID-1269 ruling 6: 200 %).
+    // AccessKit's bounds are in physical pixels, the content rectangle in points (ruling 6: 200 %).
     let screen = harness.ctx.content_rect() * harness.ctx.pixels_per_point();
     let window = Rect {
         x0: f64::from(screen.min.x),
@@ -487,9 +487,9 @@ pub fn fit_problems<S>(harness: &Harness<'_, S>) -> Vec<String> {
     problems
 }
 
-/// ID-1278 ruling 13 (C49-p3#3, C49-p6#3; FR-UI-027): the buttons of the open dialog (its Primary and Cancel among
+/// ID-1278 ruling 13 (FR-UI-027): the buttons of the open dialog (its Primary and Cancel among
 /// them) or of the first run's step on show lie inside the window down as well as across ([`fit_problems`] checks
-/// across only: a dialog grows down). A button is looked for in its own window only (FT-1261): the dialog's modal
+/// across only: a dialog grows down). A button is looked for in its own window only: the dialog's modal
 /// that holds its title (the first run's window), so a button of the same name elsewhere never stands in for it. A
 /// button not shown there is reported "not shown". Empty without a dialog or a first run.
 pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
@@ -502,7 +502,7 @@ pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
         let labels = spec.buttons().iter().map(|b| b.label.clone()).collect();
         (spec.title, labels)
     } else if let Some(run) = shell.first_run() {
-        // FT-1262: the screen's own lists of its buttons.
+        // The screen's own lists of its buttons.
         let text = |k| strings::text(k).to_owned();
         let mut labels: Vec<String> = Vec::new();
         if run.step == FirstRunStep::Start {
@@ -521,7 +521,7 @@ pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
     let (x0, y0) = (f64::from(screen.min.x) - SLACK, f64::from(screen.min.y) - SLACK);
     let (x1, y1) = (f64::from(screen.max.x) + SLACK, f64::from(screen.max.y) + SLACK);
     let root = harness.root();
-    // FT-1261: the dialog's own window (a modal's `Dialog` node; for the first run, which fills the window, the root):
+    // The dialog's own window (a modal's `Dialog` node; for the first run, which fills the window, the root):
     // the title is looked for inside a dialog when a dialog is open, and the buttons under that window alone.
     fn window_of<'a>(
         n: &egui_kittest::kittest::AccessKitNode<'a>,
@@ -582,7 +582,7 @@ pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
     problems
 }
 
-// WP-S2.17 part 2: the app menu replaced the menu bar, the HUD the tool strip.
+// The app menu replaced the menu bar, the HUD the tool strip.
 
 /// The value of the tool HUD's `Status` node ("Select · Click to select …"); empty without a HUD.
 pub fn hud_value(harness: &Harness<'_, App>) -> String {
@@ -623,7 +623,7 @@ fn in_chrome(node: &egui_kittest::Node<'_>) -> bool {
 /// The node labelled `label` outside the command bar and the HUD: an entry of the open menus (the app menu's
 /// submenus share their names with the command tabs, some items with the bar's buttons).
 pub fn menu_node<'t>(harness: &'t Harness<'_, App>, label: &'t str) -> egui_kittest::Node<'t> {
-    // WP-S2.17 part 3: the rails and the panel headers share names with the submenus ("Project"): an entry inside an
+    // The rails and the panel headers share names with the submenus ("Project"): an entry inside an
     // open menu first.
     harness
         .query_all_by_label(label)
@@ -647,7 +647,7 @@ pub fn view_tabs<'t>(harness: &'t Harness<'_, App>) -> Vec<egui_kittest::Node<'t
     harness
         .get_all_by_role(egui::accesskit::Role::Tab)
         .filter(|n| !in_chrome(n))
-        // WP-S2.17 part 3: the Project entry's segmented control is no view tab.
+        // The Project entry's segmented control is no view tab.
         .filter(|n| {
             !ancestors(n)
                 .iter()

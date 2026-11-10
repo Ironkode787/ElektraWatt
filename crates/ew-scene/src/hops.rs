@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Crossings drawn as hops (FR-CON-031, WP-S2.04 §8.6): with the project's drawing setting `crossings: hops`, a
+//! Crossings drawn as hops (FR-CON-031): with the project's drawing setting `crossings: hops`, a
 //! horizontal wire segment that properly crosses a vertical segment of another connection is drawn interrupted
 //! with a half circle above the crossing.
 //!

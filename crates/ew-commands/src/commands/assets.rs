@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `project.assets.purge` (`PurgeAssets`, FT-380): the explicit, previewed clean-up of asset files that nothing
-//! names (doc 05 §13.3, decision log ID-574). A save never removes an asset file; this command is the only way one
+//! `project.assets.purge` (`PurgeAssets`): the explicit, previewed clean-up of asset files that nothing
+//! names (doc 05 §13.3). A save never removes an asset file; this command is the only way one
 //! goes.
 
 use schemars::JsonSchema;
@@ -15,7 +15,7 @@ use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `project.assets.purge` (`PurgeAssets`): deletes the project's asset files (`assets/<sha256>.<ext>`) that nothing
-/// names (doc 05 §13.3, FT-380).
+/// names (doc 05 §13.3).
 ///
 /// An asset file goes only when its hash appears in **no project file** (records, kept unknown kinds and members,
 /// quarantined and other kept lines, stray and foreign files, the manifest's members other than its file list) and

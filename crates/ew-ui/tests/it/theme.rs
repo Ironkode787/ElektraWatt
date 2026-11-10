@@ -613,7 +613,7 @@ fn css_shadow(text: &str) -> Vec<(i8, i8, u8, u8, String)> {
     layers
 }
 
-/// The mockup's custom property → the token's dump name (WP-S2.17 §12.0).
+/// The mockup's custom property → the token's dump name.
 fn token_name(property: &str) -> Option<String> {
     Some(match property {
         "font" => return None,
@@ -624,7 +624,7 @@ fn token_name(property: &str) -> Option<String> {
         "sheet-line" => "canvas.sheet_line".to_owned(),
         "grid-dot" => "canvas.grid_dot".to_owned(),
         "selection" => "canvas.selection".to_owned(),
-        // ID-1277: the tokens take the slots' order; the mockup's two highlights are vermillion and bluish green.
+        // The tokens take the slots' order; the mockup's two highlights are vermillion and bluish green.
         "hl1" => "canvas.highlight.4".to_owned(),
         "hl2" => "canvas.highlight.3".to_owned(),
         "shadow-1" => "elevation.1".to_owned(),

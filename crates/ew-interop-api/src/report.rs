@@ -160,7 +160,7 @@ impl Hash for QuickFixProposal {
     }
 }
 
-/// A record a finding is about: its kind and ID (WP-S3.09 D1). The migration report folds an import finding into a
+/// A record a finding is about: its kind and ID. The migration report folds an import finding into a
 /// live finding on the same records (D9).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct RecordKey {
@@ -183,7 +183,7 @@ pub struct ReportEntry {
     pub message: String,
     /// Where.
     pub location: Option<SourceLocation>,
-    /// The emitted records the finding is about, empty when it is about none (WP-S3.09 D1).
+    /// The emitted records the finding is about, empty when it is about none.
     pub targets: Vec<RecordKey>,
     /// A quick fix, where the finding offers one.
     pub fix: Option<QuickFixProposal>,

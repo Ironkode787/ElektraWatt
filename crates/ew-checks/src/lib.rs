@@ -25,10 +25,10 @@
 //!   [`CheckReport`] is in canonical order (code, printed subject and message, fingerprint) and carries the totals and `ew check`'s exit code.
 //!   [`prevent`] is the commit validator's entry (ADR-0009): `ew-api` installs it as the model's
 //!   `PreventHook`.
-//! - **Open items** ([`open_items`], WP-S3.06 D7, D8): the open findings of the open-item rules
+//! - **Open items** ([`open_items`]): the open findings of the open-item rules
 //!   ([`OPEN_ITEM_RULES`]) in release mode of the project's release scheme ([`release_scheme_of`]), through
 //!   [`run_table_rules`], the path of [`run`] over a subset that returns a query cycle instead of panicking.
-//! - **The release gate** ([`gate`], WP-S1.18 D10): the release scheme in release mode together with the gate-only
+//! - **The release gate** ([`gate`]): the release scheme in release mode together with the gate-only
 //!   EW-REL rules (mode `g`, which no plain run evaluates), with the saved generation's content digest handed in
 //!   ([`GateInput`]); [`blockers`] are the release's refusal list, [`safety_waivers`] what a checker acknowledges, and
 //!   [`pack_versions`] the `{id, version, sha256}` of every evaluated pack (doc 15 §3.9).

@@ -35,7 +35,7 @@ pub struct Pt2 {
     pub y: Nm,
 }
 
-/// A 2D offset (a vector, not a position) in nanometres, such as a part's rail offset (WP-S1.19 §6.1, FT-604): the
+/// A 2D offset (a vector, not a position) in nanometres, such as a part's rail offset: the
 /// representation of [`Pt2`], which serves as an offset between points, under the name the specification gives a
 /// vector. **JSON:** `[dx, dy]`, each an [`Nm`] integer, exactly as a [`Pt2`].
 pub type Vec2Nm = Pt2;

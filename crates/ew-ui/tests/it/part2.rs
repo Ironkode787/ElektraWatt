@@ -60,7 +60,7 @@ fn the_start_page_has_every_entry_of_doc_16_section_3_7() {
     );
 }
 
-/// FT-1475: the quick switches stand centred in the page's column, as the buttons above them do, not at its left edge.
+/// The quick switches stand centred in the page's column, as the buttons above them do, not at its left edge.
 #[test]
 fn the_start_page_quick_switches_are_centred_in_its_column() {
     let tmp = Tmp::new();
@@ -142,7 +142,7 @@ fn the_quick_switches_and_the_privacy_link_change_settings() {
     settle(&mut h);
     assert_eq!(h.state().shell().settings().keymap, "ew");
     // FT-1197 (doc 16a §8 item 2): the line says this version has no update check, and no "Change" button stands
-    // beside it, since there is nothing to change. FT-1117 (ID-1229 item 3): the first run's privacy step says so
+    // beside it, since there is nothing to change. FT-1117 (item 3): the first run's privacy step says so
     // too and sends no crash reports, with no box for one; the Privacy button stays.
     let _ = h.get_by_label("This version has no update check");
     assert!(h.query_by_label("Change").is_none());
@@ -307,7 +307,7 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     settle(&mut h);
     assert!(h.query_all_by_label("kept: apply after finishing").count() > 0);
     assert!(h.query_all_by_label("written to the basic project").count() > 0);
-    // WP-S2.17 part 1: controls of `size.control` (28 px) push the button under the fold of this window.
+    // Controls of `size.control` (28 px) push the button under the fold of this window.
     h.get_by_label("Create the basic project…").scroll_to_me();
     settle(&mut h);
     h.get_by_label("Create the basic project…").click();
@@ -393,12 +393,12 @@ fn the_project_view_is_a_dock_and_a_changed_layout_becomes_the_workspace_file() 
         h.state().dock_panes(),
         [PaneKind::Pages, PaneKind::Properties, PaneKind::PageView]
     );
-    // WP-S2.17 part 3: the navigator group's header is its rail entry's ("Project"), the page view has none.
+    // The navigator group's header is its rail entry's ("Project"), the page view has none.
     assert!(h.query_all_by_label("Project").count() >= 1);
     assert!(h.query_all_by_label("Pages").next().is_some());
     assert!(h.query_by_label("Page view").is_none());
     assert!(h.query_all_by_label("Properties").next().is_some());
-    // View ▸ Properties closes the property grid (WP-S2.05): the two-pane layout this test drags. (A tab group nested
+    // View ▸ Properties closes the property grid: the two-pane layout this test drags. (A tab group nested
     // in a split shows egui_tiles' unnamed tab-bar area, which the name walker counts with the splitters, FT-338.)
     h.state_mut()
         .shell_mut()
@@ -604,7 +604,7 @@ fn a_leftover_journal_is_discarded_from_the_banner() {
             .next()
             .is_some()
     );
-    // WP-S2.17 part 4: the recovery dialog is modal; Escape closes it and the banner stays.
+    // The recovery dialog is modal; Escape closes it and the banner stays.
     h.key_press(Key::Escape);
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none());
@@ -625,7 +625,7 @@ fn a_leftover_journal_is_discarded_from_the_banner() {
         h.state().shell().can_discard_journal(),
         "Cancel keeps the journal"
     );
-    // WP-S2.17 part 4: the recovery dialog is modal; Escape closes it and the banner stays.
+    // The recovery dialog is modal; Escape closes it and the banner stays.
     h.key_press(Key::Escape);
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none());

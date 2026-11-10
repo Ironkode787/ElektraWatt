@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.09 part 3: the history panel's host duties and context restore (§8.4, §8.5, D13; FR-UI-023).
+//! The history panel's host duties and context restore (§8.4, §8.5, D13; FR-UI-023).
 //!
 //! **The panel** fetches `Session::history_view` once per (project session, revision) while it is open
 //! ([`ShellModel::sync_history`], counted) and none while it is closed. `history.row` moves its row cursor over the
@@ -97,7 +97,7 @@ impl ShellModel {
         self.history.view = Some((epoch, rev, view));
     }
 
-    /// FT-1440 (ID-1397): what the undo steps committed after revision `since` changed, in words, oldest first: each
+    /// What the undo steps committed after revision `since` changed, in words, oldest first: each
     /// step's title with the folios its changes touch ("Draw wire on 101"), the text protocol's answer to a step.
     pub fn changes_since(&self, since: u64) -> Vec<String> {
         let Some(project) = &self.project else {

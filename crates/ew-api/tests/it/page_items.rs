@@ -348,7 +348,7 @@ fn pi3_a_bound_free_text_prints_the_title_block_value_and_follows_its_property()
     let labels = texts(&s.query(), page, Layer::Labels);
     assert!(labels.iter().any(|t| t == "Feed"), "{labels:?}");
     assert!(!labels.iter().any(|t| t == "Power Supply 1 - Main Current"));
-    // The project description is edited by `fields.set` on the project (FT-447): the bound text follows too.
+    // The project description is edited by `fields.set` on the project: the bound text follows too.
     let project = s.query().project().id.to_string();
     run(
         &mut s,

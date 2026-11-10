@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-485: the product findings of the first blind-drafter dry run (BD16), one regression test per fixed item. The
+//! The product findings of the first blind-drafter dry run (BD16), one regression test per fixed item. The
 //! drafter drew folio 101 through the text interface only; each test repeats the step that went wrong there, on a
 //! writable copy of Golden A or on a new project, and asserts what the text now says or does.
 
@@ -115,7 +115,7 @@ fn item4_a_wire_is_selected_by_its_printed_point_or_by_its_ends() {
         .map(str::to_owned)
         .collect();
     assert_eq!(wires.len(), 21);
-    // Folio 101's wires are routed (WP-S2.19, Golden A's route tool): none runs along another, so every line prints a
+    // Folio 101's wires are routed (Golden A's route tool): none runs along another, so every line prints a
     // point that picks its wire alone.
     let pointless: Vec<&String> = wires.iter().filter(|l| at_of(l).is_none()).collect();
     assert!(pointless.is_empty(), "{pointless:#?}");
@@ -249,7 +249,7 @@ fn item10_delete_on_a_device_selected_by_tag_deletes_its_representations_on_the_
     );
 }
 
-/// FT-893: off a schematic page the strip scheme's example is left out of the toast.
+/// Off a schematic page the strip scheme's example is left out of the toast.
 #[test]
 fn ft893_the_new_strip_toast_off_a_schematic_page_has_no_example() {
     let tmp = Tmp::new("ft893");
@@ -274,7 +274,7 @@ fn item9_an_unused_strip_is_listed_with_its_alias_and_deleted_by_delete() {
     let mut s = new_project(&tmp);
     done(&mut s, "strip.new", json!({"letter": "X"}));
     // Item 1: the toast says where the strip shows. FT-893: not its `-X??` tag; the tag it takes with its first
-    // terminal on page 101, a fresh multi-line page, by the project's scheme `{page}{letter}{counter}` (FT-1403).
+    // terminal on page 101, a fresh multi-line page, by the project's scheme `{page}{letter}{counter}`.
     assert_eq!(
         toast(&s),
         "Created a terminal strip. It takes its tag, such as -101X1, when its first terminal is placed: Draw \u{25b8} \
@@ -357,7 +357,7 @@ fn item8_ip_external_takes_the_printed_location_and_lists_the_labels_when_nothin
     );
 }
 
-/// FT-1131 (ID-1229 item 7): with no external reference the message names the command by its menu path, never its
+/// FT-1131 (item 7): with no external reference the message names the command by its menu path, never its
 /// action ID, and its key only once the user binds one.
 #[test]
 fn ft1131_no_external_reference_names_the_menu_path_and_a_bound_key() {

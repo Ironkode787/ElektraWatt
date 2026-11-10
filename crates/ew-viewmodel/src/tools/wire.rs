@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Wire tool (`wire`; WP-S2.04 §8.2, doc 06 §4.4, FR-UI-015, FR-CON-001, FR-CON-006): a connection drawn from a
+//! The Wire tool (`wire`; doc 06 §4.4, FR-UI-015, FR-CON-001, FR-CON-006): a connection drawn from a
 //! connection point, a junction or a point on a wire to another, routed by the pure router of §8.1 and committed as
 //! `connection.draw` with the route the ghost showed.
 //!
@@ -26,8 +26,8 @@
 //! | routing | `Press` or `Activate` on the grid | routing | a bend is fixed there (the route so far becomes fixed vertices) |
 //! | routing | `Back` | routing | the last fixed bend is removed; without one `None` |
 //! | routing | `Dwell { ms ≥ 80 }` on a valid end | routing | `Preview(connection.draw)` |
-//! | routing | `Press` or `Activate` on a CP, junction or segment other than the start | armed | `Commit(connection.draw {a, b, page, route})`, or `connection.draw_many` for a route through representations ([`pass_through`], FT-705) |
-//! | armed | `Key(Finish)` (a double click's second press) on a CP, junction or segment | routing | as `Press` there (FT-708) |
+//! | routing | `Press` or `Activate` on a CP, junction or segment other than the start | armed | `Commit(connection.draw {a, b, page, route})`, or `connection.draw_many` for a route through representations ([`pass_through`]) |
+//! | armed | `Key(Finish)` (a double click's second press) on a CP, junction or segment | routing | as `Press` there |
 //! | routing | `Escape` | armed | `Cancel` |
 //! | armed | `Escape` | — | `None` (the host returns to Select) |
 //!
@@ -37,7 +37,7 @@
 //! with FT-706). The connection kind is the page type's (doc 06 §2.2), given
 //! by the host ([`WireTool::with_kind`]): a wire on a multi-line page (`connection.draw`'s default, so no `kind` is
 //! sent), `overview` on single-line, overview and assembly-overview pages, a working fluid line (`{"fluid": {}}`) on a
-//! fluid page (WP-S1.20 D18); on the other page types the host refuses `tool.wire` until their kinds are drawn (fix
+//! fluid page; on the other page types the host refuses `tool.wire` until their kinds are drawn (fix
 //! round of WP-S2.04 part 2, item 1).
 
 use ew_api::AnyCommand;
@@ -273,7 +273,7 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
             label: cp.label.clone(),
         };
     }
-    // 2. A junction, but one that already joins three wires (WP-S2.19 D13: a fourth would make a four-way junction).
+    // 2. A junction, but one that already joins three wires (a fourth would make a four-way junction).
     let mut best: Option<(i128, EntityRef, (i64, i64))> = None;
     for j in &tables.junctions {
         if full_junction(tables, j.id) {
@@ -303,7 +303,7 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
             if d > limit {
                 continue;
             }
-            // FT-1084 (ID-1181): the nearest grid point that is not the connection's end, so a press beside a rail's
+            // The nearest grid point that is not the connection's end, so a press beside a rail's
             // end joins it at the next grid point along it rather than fixing a bend there.
             let end = |p: (i64, i64)| p == first || p == last;
             let point = if a.1 == b.1 && a.0 != b.0 {
@@ -328,7 +328,7 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
     grid_point()
 }
 
-/// Whether the junction `id` already joins three wires or more (WP-S2.19 D13): it is no end of a new wire.
+/// Whether the junction `id` already joins three wires or more: it is no end of a new wire.
 fn full_junction(tables: &ew_api::output::PageTables, id: Uuid) -> bool {
     let at = ew_api::output::TableEnd::Junction { id };
     tables
@@ -340,7 +340,7 @@ fn full_junction(tables: &ew_api::output::PageTables, id: Uuid) -> bool {
 }
 
 /// Whether the sheet point `at` is within reach of a junction that already joins three wires and of no connection
-/// point (the Wire tool's hint, WP-S2.19 D13).
+/// point (the Wire tool's hint).
 fn near_full_junction(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> bool {
     let tables = &cx.page.tables;
     let reach = cx.nm_of_points(CP_SNAP_PT).floor().min(9.0e15) as i128;
@@ -359,7 +359,7 @@ fn on_axis(grid: PageGridMap, v: i64, lo: i64, hi: i64) -> Option<i64> {
 }
 
 /// The grid coordinate nearest to `v` inside `[lo, hi]` that `skip` does not refuse; `None` when there is none. A
-/// skipped coordinate is an end of the range, so the next one along is at most one step further (FT-1084).
+/// skipped coordinate is an end of the range, so the next one along is at most one step further.
 fn on_axis_except(grid: PageGridMap, v: i64, lo: i64, hi: i64, skip: impl Fn(i64) -> bool) -> Option<i64> {
     let k = grid.index(v.clamp(lo, hi));
     [k, k - 1, k + 1, k - 2, k + 2]
@@ -401,7 +401,7 @@ pub(super) fn clean(pts: Vec<(i64, i64)>) -> Vec<(i64, i64)> {
 /// A function CP as `(function, index)`.
 type CpKey = (Uuid, u16);
 
-/// One connection of a route that passes through representations (FT-705): from the wire's start or a CP to a CP
+/// One connection of a route that passes through representations: from the wire's start or a CP to a CP
 /// or the wire's end.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Piece {
@@ -430,7 +430,7 @@ struct Hit<'t> {
     travel: Option<Dir>,
 }
 
-/// The pieces of a route from `start` to `end` that passes through representations (FT-705, the cycle-38 ruling):
+/// The pieces of a route from `start` to `end` that passes through representations:
 /// the route meets two CPs of one other representation that have no connection on the page, the first where the run
 /// enters it and the second where it leaves, so the wire is drawn as two connections, start to the first and the
 /// second to the end, and the representation is in the circuit. Empty when the route passes through none, which is
@@ -628,7 +628,7 @@ enum State {
 }
 
 /// The key of a computed route: the page content's revision, the last fixed vertex with its leaving direction and its
-/// arrival direction (FT-437), the end with its direction, and the ends' own representations (FT-706).
+/// arrival direction, the end with its direction, and the ends' own representations.
 type RouteKey = (
     u64,
     (i64, i64),
@@ -652,9 +652,9 @@ fn one_end(at: (i64, i64), dir: Option<Dir>, rep: Option<EntityRef>) -> OneEnd {
 }
 
 /// The user's tail from `from` (leaving along `from_dir`, or arrived at along `arrive`) to `to` (entered against
-/// `to_dir`), taken without a clear route after a fixed bend (WP-S2.19 D13): the straight segment for aligned ends,
+/// `to_dir`), taken without a clear route after a fixed bend: the straight segment for aligned ends,
 /// else one corner from the ends' own coordinates, the first leg along `from_dir`'s axis, else the last along
-/// `to_dir`'s, else across first; a first leg that would double back over `arrive` takes the other corner (FT-437).
+/// `to_dir`'s, else across first; a first leg that would double back over `arrive` takes the other corner.
 fn l_tail(
     (from, from_dir, arrive): ((i64, i64), Option<Dir>, Option<Dir>),
     to: (i64, i64),
@@ -730,10 +730,10 @@ pub struct WireTool {
     state: State,
     /// The last routed tail, whether it is the router's fallback, and its key (one route per changed snapped point).
     cache: Option<CachedTail>,
-    /// Whether the last tail the tool computed found no clear route (WP-S2.19 D13): the status hint says so until
+    /// Whether the last tail the tool computed found no clear route: the status hint says so until
     /// the next wire starts.
     direct: bool,
-    /// Whether the point is on a junction that already joins three wires (WP-S2.19 D13): the hint says so.
+    /// Whether the point is on a junction that already joins three wires: the hint says so.
     full_junction: bool,
     /// How many times the router ran (the exact-count test, §12 item 4).
     routes: u64,
@@ -795,11 +795,11 @@ impl WireTool {
     /// The router's tail from `from` (leaving along `from_dir`, or arrived at along `arrive`) to the end target,
     /// through the cache; it sets `self.direct` to whether no clear route was found.
     ///
-    /// The tail is [`route_one`]'s against the page as drawn (WP-S2.19 D13, the host's page geometry): every
+    /// The tail is [`route_one`]'s against the page as drawn (the host's page geometry): every
     /// routed connection a fixed wire, every other CP with its stub and every junction not at an end reserved, the
     /// ends' own bodies left only along a CP's escape corridor (`own`: the start's while the tail starts at it, the
     /// end's). Before it, the direct route through a free terminal in line is taken when it qualifies
-    /// ([`through_route`], FT-705). Without a clear route the tail is the straight line to the end, the unrouted
+    /// ([`through_route`]). Without a clear route the tail is the straight line to the end, the unrouted
     /// line, or after a fixed bend the user's L ([`l_tail`]).
     fn tail(
         &mut self,
@@ -851,14 +851,13 @@ impl WireTool {
             return Vec::new();
         };
         let from_dir = if fixed.len() == 1 { start.dir() } else { None };
-        // After a fixed bend the router takes the last segment's direction, so it never doubles back over it
-        // (FT-437).
+        // After a fixed bend the router takes the last segment's direction, so it never doubles back over it.
         let arrive = match fixed {
             [.., a, b] => heading_between(*a, *b),
             _ => None,
         };
         // The start's representation is the tail's own only while the tail starts at it; after a bend it is an
-        // obstacle like any other (FT-706).
+        // obstacle like any other.
         let own = [start.rep().filter(|_| fixed.len() == 1), to.rep()];
         let tail = self.tail(cx, (last, from_dir, arrive), own, to);
         let mut pts: Vec<(i64, i64)> = fixed[..fixed.len() - 1].to_vec();
@@ -913,7 +912,7 @@ impl WireTool {
     }
 
     /// The command of the current route to `end`; `None` without a valid end. A route that passes through
-    /// representations (FT-705, [`pass_through`]) is `connection.draw_many` with one entry per piece, in one
+    /// representations ([`pass_through`]) is `connection.draw_many` with one entry per piece, in one
     /// transaction; any other is one `connection.draw`.
     fn command(&self, cx: &ToolCx<'_>) -> Option<Box<AnyCommand>> {
         let State::Routing {
@@ -923,7 +922,7 @@ impl WireTool {
             return None;
         };
         let end = end.as_ref().filter(|e| e.is_end() && !e.same_end(start))?;
-        // WP-S2.19 D13: without a clear route and without a fixed bend, the wire is stored unrouted.
+        // Without a clear route and without a fixed bend, the wire is stored unrouted.
         let route: &[(i64, i64)] = if self.direct && self.bends() == 0 {
             &[]
         } else {
@@ -1060,7 +1059,7 @@ impl WireTool {
         }
     }
 
-    /// P (WP-S2.04 §9.2): ends the routing wire in a new interruption point drawn with `shape` (the
+    /// P: ends the routing wire in a new interruption point drawn with `shape` (the
     /// IP symbol, one CP) at the end target's grid point, oriented among A–D so that its CP faces the arriving
     /// segment (the CP leaves opposite to the last segment's direction), its insertion point the grid point that puts
     /// the CP there (the route then ends exactly at the CP, re-routed when the grid rounds the CP off the point);
@@ -1069,7 +1068,7 @@ impl WireTool {
     /// routing to a grid point (`reason-ip-end-grid`), before the wire has a segment (`reason-ip-end-segment`) or for a
     /// symbol without exactly one CP (`reason-ip-symbol`).
     ///
-    /// With EW's two forms (`shapes`: the source form and the target form, WP-S2.19 D16) the point is never turned:
+    /// With EW's two forms (`shapes`: the source form and the target form) the point is never turned:
     /// `name_of` gives the name and the direction from the start and the end's grid point first, and the direction's
     /// form is drawn there, its CP where the grid puts it, the route ending at it.
     pub fn end_in_ip(
@@ -1141,7 +1140,7 @@ impl WireTool {
         };
         let mut route = self.full_route(cx, &start, &fixed, &target);
         if self.direct && fixed.len() == 1 {
-            // WP-S2.19 D13: without a clear route and without a fixed bend, the wire is stored unrouted.
+            // Without a clear route and without a fixed bend, the wire is stored unrouted.
             route.clear();
         }
         let (name, direction) = match (named, name_of) {
@@ -1206,9 +1205,9 @@ impl Tool for WireTool {
                 button: Button::Primary,
                 mods,
             } => self.click(*at, *mods, cx),
-            // A double click is `Finish` in place of its second press (the window's rule, WP-S2.04 §6.1). Armed, it
+            // A double click is `Finish` in place of its second press (the window's rule). Armed, it
             // is that second press: a click that ends a wire on a CP and a second one there at once start the next
-            // wire from that CP, as two slower clicks do (FT-708: the wire was silently not drawn). Routing, it is
+            // wire from that CP, as two slower clicks do (the wire was silently not drawn). Routing, it is
             // nothing (the first press fixed the bend or ended the wire).
             CanvasEvent::Key(ToolKey::Finish) if matches!(self.state, State::Armed { .. }) => {
                 match &self.state {
@@ -1272,14 +1271,14 @@ impl Tool for WireTool {
         }
     }
 
-    /// WP-S2.19 D13: while the target is a junction that already joins three wires, the hint says it is no end; once a
+    /// While the target is a junction that already joins three wires, the hint says it is no end; once a
     /// click placed a bend, that a bend is placed (ID-1497 (11)); while no clear route is found, and after a wire drawn
     /// so until the next one starts, that the wire stays unrouted (not a refusal).
     fn status_hint(&self) -> super::Hint {
         if self.full_junction {
             return super::Hint::plain(key!("hint-wire-full-junction"));
         }
-        // ID-1497 (11): once a click placed a bend instead of ending on a connection point, the hint says so and what
+        // Once a click placed a bend instead of ending on a connection point, the hint says so and what
         // ends the wire (a click that missed a connection point snaps to the grid and bends there).
         if self.bends() > 0 {
             return super::Hint::plain(key!("hint-wire-bend"));
@@ -1295,7 +1294,7 @@ impl Tool for WireTool {
         }
     }
 
-    /// A double click ends the wire on its target and arms the next one there (FT-708; doc 16's keymap).
+    /// A double click ends the wire on its target and arms the next one there (doc 16's keymap).
     fn finishes_on_double_click(&self) -> bool {
         true
     }
@@ -1346,7 +1345,7 @@ mod tests {
         assert_eq!(on_axis(g, 500_000, 100_000, 900_000), None);
     }
 
-    /// FT-1084: a refused end gives way to the next grid coordinate along; a range of its two ends alone has none.
+    /// A refused end gives way to the next grid coordinate along; a range of its two ends alone has none.
     #[test]
     fn on_axis_except_takes_the_next_coordinate_past_a_refused_end() {
         let g = PageGridMap::new((1_000_000, 1));

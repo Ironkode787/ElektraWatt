@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! EW-REL, the release gate's rules (doc 15 §4.8; WP-S1.18 D9): EW-REL-001 "Four eyes", EW-REL-002 "Stale committed
+//! EW-REL, the release gate's rules (doc 15 §4.8): EW-REL-001 "Four eyes", EW-REL-002 "Stale committed
 //! computation" and EW-REL-004 "Revision label order". All three are integrity rules (never waivable, never pending)
 //! of mode `g`: only the release gate evaluates them ([`gate`](crate::gate)), never `ew check` or the message panel
 //! (doc 15 §3.2), so "checker not set" does not turn every open revision's check run red.
@@ -16,7 +16,7 @@ use ew_derive::ew_schema::{Kind, LabelFormat, PartyRole, Revision, Sha256};
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 
-/// What the gate knows besides the snapshot (WP-S1.18 D8, D10).
+/// What the gate knows besides the snapshot.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct GateInput {
     /// The content digest of the saved generation the gate runs on (`ew_format::content_digest`, doc 15 §5.4); `None`
@@ -216,7 +216,7 @@ impl Rule for FourEyes {
 
 /// EW-REL-002 (doc 15 §4.8): a committed computation that a release output uses is stale. Registered so that the gate
 /// lists it; it reports nothing until committed routes, thermal results and frozen report snapshots exist (WP-S4.x):
-/// at MVP no committed computation has an input hash to compare (WP-S1.18 D9).
+/// at MVP no committed computation has an input hash to compare.
 #[derive(Clone, Copy, Debug)]
 pub struct StaleCommitted;
 

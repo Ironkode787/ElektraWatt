@@ -4,7 +4,7 @@
 //! JSONL canonical reader and writer, sharding rules, manifest, upgrade chain, 3-way record merge core and
 //! conflict records.
 //!
-//! `ew-format` v0 (WP-S1.09) is the permissive half of the project format of
+//! `ew-format` v0 is the permissive half of the project format of
 //! `docs/design/05-project-format-and-persistence.md` (doc 05; ADR-0010, ADR-0011): everything a reader or
 //! writer needs that does not touch a file system or the model. `ew-store` (GPL) does the I/O, the save
 //! protocol, the lock and the journal on top of it, and a third party can read, validate and write a project
@@ -31,7 +31,7 @@
 //!   malformed variants, quarantined lines), the rewrite set and the integrity findings of §6.2 and §6.3
 //!   ([`Finding`]), under the hostile-input [`Limits`] of §3.6.
 //! - **Migrating** ([`Migrations`], [`load_migrated`]): the chain of steps on `serde_json::Value` that an older
-//!   format's project runs through before its typed reading (§10.2, WP-S1.17 D10), empty as shipped
+//!   format's project runs through before its typed reading (§10.2), empty as shipped
 //!   ([`MIGRATIONS`]), and the steward's check of a released format ([`steward_problems`]). A library copy whose item a
 //!   step changed takes the hash of its migrated item ([`rehash_migrated_copy`]): the loader and a pasted fragment's
 //!   copies share it, so a copy reads with one hash wherever it was migrated.

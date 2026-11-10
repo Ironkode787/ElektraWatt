@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC queries of doc 10 §2.10 and §3.1–§3.4 (FT-111): module order and starts per configuration
+//! The PLC queries of doc 10 §2.10 and §3.1–§3.4: module order and starts per configuration
 //! project, then addresses, states, targets and texts per module, and the PLC rows of a station.
 //!
 //! # Address derivation (doc 10 §3.1)
@@ -22,7 +22,7 @@
 //! # States, targets, texts (doc 10 §3.2–§3.5)
 //!
 //! [`ChannelStates`] applies A3: an explicit state, a `Tbd` address, the state of the bound target device, a
-//! channel that the solenoid-position map claims gives `Reserved` (step 4, FT-228), else the part's
+//! channel that the solenoid-position map claims gives `Reserved` (step 4), else the part's
 //! `unbound` state (spare by default). [`SolenoidPositions`] applies the part's position map
 //! (`PlcSection.positions`) to the module's valve children; on the golden project (test input H1) it claims
 //! no channel, because every coil is bound to channel 2p + 1 (doc 10 §3.2). [`ChannelTargets`] takes the manual target, else
@@ -80,7 +80,7 @@ pub fn module_part(q: &Q, module: Id<Device>) -> Option<(Arc<LibCopy<Part>>, Plc
 /// The station of a device: the device itself when it carries `plc_station`, else its nearest ancestor that
 /// does. A hostile parent cycle terminates: the walk stops at a device it has visited. It reads the rows of the
 /// device and its ancestors only, never the whole device table, so an edit of another device does not invalidate
-/// its readers (WP-S1.21 D9).
+/// its readers.
 pub fn station_of(q: &Q, device: Id<Device>) -> Option<Id<Device>> {
     let devices = q.devices();
     let mut seen = std::collections::BTreeSet::new();
@@ -95,14 +95,14 @@ pub fn station_of(q: &Q, device: Id<Device>) -> Option<Id<Device>> {
     None
 }
 
-/// The built-in address profiles' files (WP-S7.03 D7): `content/plc-profiles`, library documents of kind
+/// The built-in address profiles' files: `content/plc-profiles`, library documents of kind
 /// `plc_profile`, compiled in and parsed once ([`builtin_profiles`]).
 const BUILTIN_PROFILE_FILES: [&str; 2] = [
     include_str!("../../../content/plc-profiles/siemens-tia-intl.json"),
     include_str!("../../../content/plc-profiles/iec-61131-3.json"),
 ];
 
-/// The address profile of a profile document (WP-S7.03 D7): the one parse path of the built-ins and of a user's file.
+/// The address profile of a profile document: the one parse path of the built-ins and of a user's file.
 ///
 /// # Errors
 ///
@@ -129,7 +129,7 @@ pub fn address_profile(def: &PlcProfileDef) -> Result<AddressProfile, ProfileErr
     })
 }
 
-/// Why a profile document is no address profile at hand (WP-S7.03 T2), as a library's listing and `library.embed`
+/// Why a profile document is no address profile at hand (T2), as a library's listing and `library.embed`
 /// say it: `the address profile <id@version> cannot be read: <reason>`; `None` for a profile that renders.
 pub fn unreadable_profile(def: &PlcProfileDef) -> Option<String> {
     address_profile(def).err().map(|reason| {
@@ -158,10 +158,10 @@ pub fn builtin_profiles() -> &'static [Arc<AddressProfile>] {
     })
 }
 
-/// The address profiles at hand (WP-S7.03 D8): the built-ins, then the profiles of the project's `plc_profile`
+/// The address profiles at hand: the built-ins, then the profiles of the project's `plc_profile`
 /// `copies` that render and whose pin no built-in has, in copy order. A copy that does not render is left out. A
 /// copy that has a built-in's pin takes the built-in's place: the project's own copy comes first, as in
-/// [`profile_of`] (ID-1375), so a project prints and parses in one notation.
+/// [`profile_of`], so a project prints and parses in one notation.
 pub fn profiles_at_hand<'a>(
     copies: impl IntoIterator<Item = &'a LibCopy<PlcProfileDef>>,
 ) -> Vec<Arc<AddressProfile>> {
@@ -191,7 +191,7 @@ pub fn pinned_profile(at_hand: &[Arc<AddressProfile>], reference: &str) -> Optio
 }
 
 /// The address profile of a configuration project: its pin among the project's `plc_profile` copies, else among
-/// the built-ins (WP-S7.03 D8).
+/// the built-ins.
 pub fn profile_of(q: &Q, cfg: Id<PlcConfigProject>) -> Option<Arc<AddressProfile>> {
     let c = q.table::<PlcConfigProject>().get(cfg)?;
     let reference = c.profile.as_str();
@@ -207,15 +207,15 @@ pub fn profile_of(q: &Q, cfg: Id<PlcConfigProject>) -> Option<Arc<AddressProfile
 }
 
 /// The reference (`id@version`) of the address profile that a configuration project created on demand pins
-/// (FR-PLC-008's default, WP-S1.21 D3): the built-in TIA international profile.
+/// (FR-PLC-008's default): the built-in TIA international profile.
 pub fn default_profile() -> String {
     builtin_profiles()[0].reference()
 }
 
 /// An address text in the notation of the profile `profile` (`id@version`) at hand (`at_hand`), in the stored form
-/// of a channel's `Manual` address (WP-S1.21 D6): `"I4.0"` under the TIA profile is input byte 4, bit 0. The error
+/// of a channel's `Manual` address: `"I4.0"` under the TIA profile is input byte 4, bit 0. The error
 /// is the message a refusal shows: the profile's example (`expected an address like Q0.1`) for a text that does not
-/// parse, or that the profile is not one at hand (FT-1427: "not an address profile of this build or of the project").
+/// parse, or that the profile is not one at hand ("not an address profile of this build or of the project").
 pub fn parse_plc_address(
     at_hand: &[Arc<AddressProfile>],
     profile: &str,
@@ -257,7 +257,7 @@ pub fn parse_plc_address(
 }
 
 /// A module-start text in the notation of the profile `profile` (`id@version`) at hand (`at_hand`), in the stored
-/// form of a `Manual` start (WP-S1.21 D8, `plc.set_start`): the area and the byte, no size and no bit (`"Q10"`,
+/// form of a `Manual` start (`plc.set_start`): the area and the byte, no size and no bit (`"Q10"`,
 /// `"Q10.0"` and `"QB10"` under the TIA profile are output byte 10; see [`AddressProfile::parse_start`]). The error is
 /// the message a refusal shows, naming the profile's example start (`expected a start like Q0`).
 pub fn parse_plc_start(
@@ -297,7 +297,7 @@ pub fn start_example(p: &AddressProfile, area: Area) -> String {
 
 /// The reference (`id@version`) of the profile among `at_hand` ([`profiles_at_hand`]) that `text` names: its exact
 /// reference, or its ID alone (`iec-61131-3`), compared without regard to ASCII case; the first in `at_hand` order.
-/// `None` when no profile at hand has that name (`plc.set_profile`, WP-S1.21 D8, WP-S7.03 D8).
+/// `None` when no profile at hand has that name (`plc.set_profile`).
 pub fn address_profile_named(at_hand: &[Arc<AddressProfile>], text: &str) -> Option<String> {
     let text = text.trim();
     at_hand
@@ -423,7 +423,7 @@ pub fn pin_pattern_error(pin_of: &PinMap, number: u16) -> Option<PatternError> {
     }
 }
 
-/// The solenoids a valve part declares (WP-S1.20 D4, D5): its `fluid.solenoids`, `None` for a part without a fluid
+/// The solenoids a valve part declares: its `fluid.solenoids`, `None` for a part without a fluid
 /// section with solenoids. A device's **valve part** is its first part use whose copy gives `Some`.
 pub fn valve_solenoids(part: &Part) -> Option<&[Ident]> {
     part.sections
@@ -433,7 +433,7 @@ pub fn valve_solenoids(part: &Part) -> Option<&[Ident]> {
         .filter(|s| !s.is_empty())
 }
 
-/// The coil CP of solenoid `solenoid` in one function (WP-S1.20 D5): on a FnDef of contact kind `coil`, its first
+/// The coil CP of solenoid `solenoid` in one function: on a FnDef of contact kind `coil`, its first
 /// non-physical CP (by index) whose effective designation (the function's override, else the FnDef CP's) is the
 /// solenoid's name; `None` on any other FnDef. A physical coil gives none. Shared by [`solenoid_coil`] and
 /// normaliser N2, so the derivation and the binding agree.
@@ -459,7 +459,7 @@ pub fn coil_cp(
         .map(|cp| cp.idx)
 }
 
-/// `solenoid_coil(device, s)` (WP-S1.20 D5, replacing the interim rule of decision log ID-469): a valve **declares**
+/// `solenoid_coil(device, s)` (replacing the interim rule): a valve **declares**
 /// solenoid s exactly when s is in `fluid.solenoids` of its valve part ([`valve_solenoids`]); its coil CP is the
 /// first [`coil_cp`] among the device's functions in function-ID order. `None` when the device does not declare s
 /// or has no internal coil for it. Read by [`SolenoidPositions`] and, through the same rule, normaliser N2.
@@ -771,7 +771,7 @@ impl Query for ModuleStarts {
 }
 
 /// `module_start_of(module)`: one module's entry of [`ModuleStarts`] of its configuration project, `None` for a module
-/// outside every configuration project (WP-S1.21 D9, FT-224). A projection read as a cut-off point: a start edit of one
+/// outside every configuration project. A projection read as a cut-off point: a start edit of one
 /// module re-runs [`ModuleStarts`] and every module's projection, but only the modules whose own start value changed
 /// pass the change on, so [`ChannelAddresses`] re-runs for them alone (AC-29: "only its 8 channels").
 #[derive(Debug)]
@@ -1131,7 +1131,7 @@ impl Query for ChannelTargets {
                     channel: c.id,
                     function,
                     device: function.and_then(|f| functions.get(f).and_then(|f| f.device)),
-                    // WP-S1.20 D5: an internal coil is drawn in its valve's symbol
+                    // An internal coil is drawn in its valve's symbol
                     rep: bound
                         .or(function)
                         .and_then(|f| drawn(f).or_else(|| coil_host(q, f).and_then(drawn))),
@@ -1283,7 +1283,7 @@ impl Query for ChannelStates {
         // declares s, and s is unbound or bound to c. Only an unbound channel reaches step 4, so "bound to c"
         // cannot hold there; a coil counts as bound when any channel binds it, of this module or another
         // (a valve moved by `assembly.attach` keeps its binding) and whatever its ID (review ruling, cycle
-        // 18): the CP → channel index, as normaliser N2 and `plc.bind_channel` read it (FT-319). A module
+        // 18): the CP → channel index, as normaliser N2 and `plc.bind_channel` read it. A module
         // whose map claims nothing does not read it.
         let claimed: std::collections::BTreeSet<u16> =
             if slots.iter().any(|s| s.coil.is_some() && s.channel.is_some()) {
@@ -1367,7 +1367,7 @@ impl Query for ChannelTexts {
             .and_then(|(_, s)| s.channels.as_ref().and_then(|c| c.designation.clone()));
         let targets = q.get::<ChannelTargets>(*key);
         let devices = q.devices();
-        // a pattern that does not expand gives no automatic designation, with one note per module (FT-318)
+        // a pattern that does not expand gives no automatic designation, with one note per module
         let mut noted = false;
         let out = module_channels(q, *key)
             .iter()
@@ -1418,7 +1418,7 @@ impl Query for ChannelTexts {
 // ---------------------------------------------------------------------------------------------------------
 // plc_address_text(function)
 
-/// The printed PLC addresses of a function (doc 10 §3.6; WP-S1.21 D7, FT-227): what a `PlcAddress` text slot
+/// The printed PLC addresses of a function (doc 10 §3.6): what a `PlcAddress` text slot
 /// of a representation drawing it prints, and what each bound pin of a black-box module prints beside it. Never
 /// stored (FR-PLC-007): every text is the derived [`ChannelAddr`] of the bound channel rendered by the
 /// configuration project's profile.

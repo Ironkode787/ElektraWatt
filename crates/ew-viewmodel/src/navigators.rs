@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigator framework (WP-S2.06 part 1, §6.2 to §6.5; D5, D6, D7): the state of an open navigator over its
+//! The navigator framework (to §6.5; D5, D6, D7): the state of an open navigator over its
 //! [`NavTable`], the visible rows (a depth-first walk over the expanded nodes, or the flat list), the filter over the
 //! precomputed tokens and facets, the sort, and the marked rows.
 //!
@@ -23,7 +23,6 @@
 //! prefix of one of its tokens or the plain text, case-folded, is a substring of its case-folded label. Matches keep
 //! their ancestors, shown and expanded.
 
-// WP-S2.09 part 2
 pub mod messages;
 pub mod paste;
 pub mod pattern;
@@ -63,7 +62,7 @@ pub const FACETS: [&str; 7] = ["page", "potential", "state", "kind", "part", "st
 /// The flags that a query word alone matches.
 pub const FLAGS: [&str; 2] = ["unplaced", "frozen"];
 
-/// The flags that a query word alone matches in the PLC navigator besides [`FLAGS`] (WP-S2.07 §8, FR-PLC-021): a
+/// The flags that a query word alone matches in the PLC navigator besides [`FLAGS`] (FR-PLC-021): a
 /// channel without an address, a spare channel, an open address, and a duplicate symbol or overlapping address. In
 /// the other navigators these words stay plain text.
 pub const PLC_FLAGS: [&str; 4] = ["unassigned", "spare", "tbd", "duplicate"];
@@ -101,12 +100,12 @@ pub enum SortBy {
     Label,
     /// A column, by its key.
     Column(String),
-    /// The provider's node order (WP-S2.07 D2: the Terminal strips navigator's mounting order, its default).
+    /// The provider's node order (the Terminal strips navigator's mounting order, its default).
     Order,
 }
 
 impl SortBy {
-    /// The default sort of a navigator kind: `Order` for Terminal strips (WP-S2.07 D2), else the label.
+    /// The default sort of a navigator kind: `Order` for Terminal strips, else the label.
     pub fn default_for(kind: NavKind) -> SortBy {
         if kind == NavKind::Strips {
             SortBy::Order
@@ -126,7 +125,7 @@ pub struct Query {
     /// The plain tokens.
     pub tokens: Vec<String>,
     /// The sub-tokens of each typed plain word that splits into more than one (`24VDC-4` gives `24`, `vdc`, `4`):
-    /// each such group must match within one cell of a row (FT-663, §6.3).
+    /// each such group must match within one cell of a row (§6.3).
     pub words: Vec<Vec<String>>,
     /// The plain text, case-folded and trimmed (the substring alternative).
     pub text: String,
@@ -182,7 +181,7 @@ impl Query {
 
     /// Whether a node with these tokens (sorted), facets, label and cells matches (§6.3): every facet and flag
     /// holds, and either every query token is a prefix of one of the node's tokens, the sub-tokens of one typed word
-    /// all matching within one cell (the label or one column's value, FT-663), or the plain text is a substring of
+    /// all matching within one cell (the label or one column's value), or the plain text is a substring of
     /// the label.
     pub fn matches(
         &self,
@@ -321,7 +320,7 @@ pub struct Navigator {
     pub(crate) table: Option<Arc<NavTable>>,
     /// The selection generation this navigator last applied or followed (the generation guard, §6.5).
     pub(crate) applied: Option<u64>,
-    /// Table mode (WP-S2.06 part 3, §8): Some while the navigator shows its table.
+    /// Table mode: Some while the navigator shows its table.
     pub(crate) table_mode: Option<table::TableMode>,
     cache: VisCache,
     /// How many times the visible rows were built (tests).
@@ -583,7 +582,7 @@ pub fn visible_rows(
             }
         }
     }
-    // WP-S4.02 part 3 (FT-486): a location of the Unplaced devices navigator whose devices are all placed is not on show
+    // A location of the Unplaced devices navigator whose devices are all placed is not on show
     // (the table keeps it, so that the empty state can name it).
     if table.kind == NavKind::Unplaced {
         let mut has_child = vec![false; n];
@@ -636,7 +635,7 @@ pub fn visible_rows(
 }
 
 /// The text of `node`'s cell in column `col` as the window shows it: the cell, except that the Terminal strips table's
-/// Strip column names a strip without a tag yet in words ([`strip_label`]; ID-1278 ruling 7, C49-p8b#3).
+/// Strip column names a strip without a tag yet in words ([`strip_label`]; ruling 7, b#3).
 pub fn cell_text(table: &NavTable, node: &NavNode, col: usize) -> String {
     let cell = node.cells.get(col).map_or("", String::as_str);
     if table.kind == NavKind::Strips && table.columns.get(col).is_some_and(|c| c.key == "strip") {
@@ -646,7 +645,7 @@ pub fn cell_text(table: &NavTable, node: &NavNode, col: usize) -> String {
     }
 }
 
-/// A terminal strip's label as the window shows it (ID-1278 ruling 7): a tag with a part not derived yet (`-X??`, a
+/// A terminal strip's label as the window shows it: a tag with a part not derived yet (`-X??`, a
 /// new strip before its first terminal) reads "New terminal strip · no tag yet"; any other tag as it is.
 pub fn strip_label(tag: &str) -> String {
     if tag.contains('?') {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The bus model typed within format 0.1 (WP-S1.21 D11, BU-1; ADR-0011 amendment 4): the `logical_net` and
+//! The bus model typed within format 0.1 (BU-1; ADR-0011 amendment 4): the `logical_net` and
 //! `physical_net` kinds and the function's `bus_port` aspect round-trip byte for byte, a newer `NetAddress` form and
 //! newer members survive a load and a save verbatim, a malformed known variant is kept by the loader (EW-CORE-017),
 //! and a function without a port is written as before.
@@ -64,7 +64,7 @@ fn golden_bus_records_are_typed() {
     );
 }
 
-/// BU-1: an address form of a newer format (a PROFINET name, typed only by WP-S1.24), a newer bus system, role and
+/// BU-1: an address form of a newer format (a PROFINET name, typed only), a newer bus system, role and
 /// medium, and newer members at every depth survive a load and a save byte for byte.
 #[test]
 fn newer_bus_values_survive_a_load_and_a_save_verbatim() {

@@ -280,7 +280,7 @@ fn item_place_rejections() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// item.place, images (WP-S2.04 part 5, §11; FR-SYM-025)
+// item.place, images (FR-SYM-025)
 
 /// A placeholder logo: an SVG of 40 × 10 user units (no company's artwork).
 const IMAGE_SVG: &[u8] =
@@ -728,7 +728,7 @@ fn fields_set_refuses_a_colour_the_profile_does_not_know() {
     assert_eq!(conn(&e, CON_W22).overrides.colour, None);
 }
 
-/// FT-476: `fields.set` and `fields.set_many` on a conductor's `colour` apply FT-451's check with its texts, at
+/// `fields.set` and `fields.set_many` on a conductor's `colour` apply FT-451's check with its texts, at
 /// `/value` (`/edits/0/value` for set_many); IEC codes, a declared company code and `null` pass; a refusal changes
 /// nothing.
 #[test]

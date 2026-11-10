@@ -161,7 +161,7 @@ fn ax1_a_page_item_says_its_kind_and_text_and_two_records_say_how_many() {
     shell.shutdown();
 }
 
-/// ID-1278 ruling 11 (C49-p3#1): a selected free text of two lines that holds a `"` is quoted on one `canvas live`
+/// ID-1278 ruling 11: a selected free text of two lines that holds a `"` is quoted on one `canvas live`
 /// line as the page items' texts are (a line break a space, a `"` a `'`); the live region keeps the text as it is.
 #[test]
 fn ax1_a_two_line_text_with_a_quote_stays_on_one_quoted_line() {
@@ -194,7 +194,7 @@ fn language(shell: &mut ShellModel, tag: &str) {
     done(shell, "view.language", json!({ "value": tag }));
 }
 
-/// FT-1248 (ID-1315): a junction, an interruption point's representation and a structure box are described in words
+/// A junction, an interruption point's representation and a structure box are described in words
 /// of their own, not as "1 selected", in en-GB and nl-NL. The values are the page tables' and the Interruption points
 /// navigator's.
 #[test]
@@ -254,8 +254,8 @@ fn ft1248_a_junction_an_interruption_point_and_a_structure_box_say_what_they_are
     shell.shutdown();
 }
 
-/// FT-1250 and FT-1252 (ID-1315 ruling 5): a wire that ends at a junction names that end "a junction", in en-GB and
-/// nl-NL; its other end is its connection point's label. A language switch words the live region again (FT-1251).
+/// A wire that ends at a junction names that end "a junction", in en-GB and
+/// nl-NL; its other end is its connection point's label. A language switch words the live region again.
 #[test]
 fn ft1250_a_wire_to_a_junction_names_that_end_a_junction() {
     let tmp = Tmp::new("ft1250");
@@ -293,7 +293,7 @@ fn ft1250_a_wire_to_a_junction_names_that_end_a_junction() {
     shell.shutdown();
 }
 
-/// FT-1249 and FT-1252 (ID-1315 ruling 4): a device that is not placed and has no kind (no function, so neither a
+/// A device that is not placed and has no kind (no function, so neither a
 /// category text nor a key) says its tag and "Device", in en-GB and, after a language switch, nl-NL.
 #[test]
 fn ft1252_an_unplaced_device_without_a_kind_says_device() {
@@ -338,7 +338,7 @@ fn ft1252_an_unplaced_device_without_a_kind_says_device() {
     shell.shutdown();
 }
 
-/// FT-1251: an edit that keeps the selection (a new tag typed in Properties) words the live region again, as the
+/// An edit that keeps the selection (a new tag typed in Properties) words the live region again, as the
 /// `canvas live` line is.
 #[test]
 fn ft1251_a_rename_that_keeps_the_selection_words_the_live_region_again() {

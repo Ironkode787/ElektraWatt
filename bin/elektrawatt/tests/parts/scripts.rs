@@ -211,7 +211,7 @@ pub(crate) fn ps4_the_choose_script_is_deterministic_and_replays_case(twice: boo
             ("part.choose", json!({"use": 0})),
             ("part.pick", json!({"part": "EW-GEN-MCB-2"})),
             ("part.choose", json!({"add": true})),
-            // The held copy of A9P52610: the sample parts library offers its own (WP-S7.03), so the number names two.
+            // The held copy of A9P52610: the sample parts library offers its own, so the number names two.
             ("part.pick", json!({"index": 20})),
             ("ui.describe", json!({})),
             ("file.save", json!({})),
@@ -299,8 +299,6 @@ pub(crate) fn ps7_the_fork_script_is_deterministic_and_replays_case(twice: bool)
     );
     assert!(has_line(d, "field \"Description\" \"MCB 1P+N C4\""), "{d}");
 }
-
-// WP-S2.07 part 4b
 
 /// The user tiers of a run whose data directory is `data` (what `EW_DATA_DIR` gives the binary).
 fn data_tiers(data: &Path) -> ew_ui::ew_viewmodel::ew_api::library::LibraryTiers {

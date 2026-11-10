@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC navigator and grid on Golden A (WP-S2.07 part 3, §8; acceptance PG1, PG4, PG5): the tree's levels and badges,
+//! The PLC navigator and grid on Golden A (acceptance PG1, PG4, PG5): the tree's levels and badges,
 //! the grid's facets (`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `config:<name>`) before and after the
 //! edits that set them, and the typed editors of a channel's address and target and a module's slot and start.
 
@@ -195,7 +195,7 @@ fn pg5_the_typed_editors() {
     assert_eq!(cell(&t, row, "target"), "-201U3");
 }
 
-/// The grid's routes (WP-S2.07 §8, ruling 6): the channel members through `fields.set`, the slot on the module; the
+/// The grid's routes: the channel members through `fields.set`, the slot on the module; the
 /// derived columns read-only.
 #[test]
 fn the_grid_columns_and_routes() {

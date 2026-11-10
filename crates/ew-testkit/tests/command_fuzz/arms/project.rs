@@ -156,7 +156,7 @@ pub(super) fn placeholder_logo(w: u32, h: u32) -> Vec<u8> {
         .into_bytes()
 }
 
-/// `project.assets.purge` (FT-380): a non-undoable, `HumanOnly` marker whose file side runs in the session (the
+/// `project.assets.purge`: a non-undoable, `HumanOnly` marker whose file side runs in the session (the
 /// fuzzer's session submits as the GUI, which `HumanOnly` accepts). Every purgeable asset
 /// (`{}`) commits as a marker when the session is saved (a session without a project directory has nothing to purge)
 /// and is refused while it has unsaved changes; the model never changes. A listed hash that is no purgeable asset, and
@@ -185,7 +185,7 @@ pub(super) fn project_company_set(live: &Live, rng: &mut SplitMix64) -> Option<S
         // Refused: no member at all, or a value of the wrong type.
         0 => Some(Step::cmd("project.company.set", json!({}))),
         1 => Some(Step::cmd("project.company.set", json!({"name": 5})).refuse()),
-        // FT-337: a logo joins the asset store and the company member names it; empty removes it.
+        // A logo joins the asset store and the company member names it; empty removes it.
         8 | 9 => {
             let (w, h) = (1 + rng.below(400) as u32, 1 + rng.below(400) as u32);
             let bytes = placeholder_logo(w, h);
@@ -255,7 +255,7 @@ pub(super) fn project_drawing_set(_live: &Live, rng: &mut SplitMix64) -> Option<
         0 => Some(Step::cmd("project.drawing.set", json!({}))),
         // Refused: an unknown value, a value of the wrong type, an unknown member.
         1 => Some(Step::cmd("project.drawing.set", json!({"crossings": "loops"})).refuse()),
-        // WP-S2.04 part 4a: `marker_mode`, an unknown value refused, a known one or `null` accepted.
+        // `marker_mode`, an unknown value refused, a known one or `null` accepted.
         7 if rng.chance(2) => Some(Step::cmd("project.drawing.set", json!({"marker_mode": "some"})).refuse()),
         7 => {
             let mode = [

@@ -1,16 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The UI script and its transcript (WP-S2.01 part 1, spec section 6): the headless mode's input and output.
+//! The UI script and its transcript (spec section 6): the headless mode's input and output.
 //!
 //! **Script** (`ew.uiscript/1`, JSON Lines). The first non-empty line is the header
 //! `{"$schema":"ew.uiscript/1","label":"..."}`; every further line is `{"action":"<id>","params":{...}}` with
 //! `params` optional. A line has no other member, an action ID is one of the registry.
 //! A refused step ends the run (unless `--keep-going`). To frame a refusal's window and go on, wrap the step in
-//! `{"action":"script.expect_refused","params":{"action":"<id>","params":{...}}}` (FT-720): it runs the inner step and
+//! `{"action":"script.expect_refused","params":{"action":"<id>","params":{...}}}`: it runs the inner step and
 //! is `done` exactly when that step is refused, with the refusal's key in `reason`; an accepted inner step makes it
 //! `failed` ("expected a refusal; the step was accepted"). The refusal's window state stays for the next step. A step
-//! that fails rather than being refused (a form's error) is wrapped in `script.expect_failed` the same way (FT-1409): it
+//! that fails rather than being refused (a form's error) is wrapped in `script.expect_failed` the same way: it
 //! is `done` exactly when the inner step fails, with the failure's text in `message`, so the visual driver frames the
 //! failure and goes on; an inner step that is done or refused makes it `failed` ("expected a failure; the step did not
 //! fail"). The header, like that of
@@ -21,45 +21,45 @@
 //! refusal or null), `reason_text` (the sentence of that key, or null; G-PP triage row 10), `message` (the text of a
 //! failure or null), `pending` (the summary line of a preview card left open after the step, as the window shows it,
 //! or null), `state`, and for `ui.describe` the member
-//! `describe`; for a done `help.documentation` (FT-1267) the member `doc`: the file the request opens below the
+//! `describe`; for a done `help.documentation` the member `doc`: the file the request opens below the
 //! installed user guide's folder (`nl/` first in a Dutch window that has the Dutch guide), or null when no guide is
 //! installed. `state` holds, in this order: `title`, `project` (the directory name, never a path), `access`,
 //! `dirty`, `page`, `page_index` (0-based), `page_count`, `can_undo`, `can_redo`, `banner`, `status`, `canvas`, `tabs`,
 //! `focus`, `navigator`.
-//! `canvas` (WP-S2.02 section 6.6) is `null` while no page is shown, else an object with, in this order: `folio`,
+//! `canvas` (section 6.6) is `null` while no page is shown, else an object with, in this order: `folio`,
 //! `zoom` (per cent rounded to 0.1), `view_nm` (`[x0, y0, x1, y1]`, the sheet rectangle the pane shows), `grid`
 //! (`[num_nm, den]`, `null` when off or absent), `pointer_nm` (`[x, y]` or `null`), `hover` (the entity's alias or
 //! `null`), `backend` (the label), `statistics` (whether the overlay is shown) and `renderer` (the `canvas_backend`
-//! setting, `auto` or `cpu`; WP-S2.02 part 2), then (WP-S2.03 part 1) `cursor_nm` (the grid cursor, `[x, y]` or
+//! setting, `auto` or `cpu`; WP-S2.02 part 2), then `cursor_nm` (the grid cursor, `[x, y]` or
 //! `null`), `cell` (the status bar's cursor cell or `null`) and `link` (the hovered link: `{"folio", "cell"}`,
-//! `{"external": true}` or `null`), then (WP-S2.03 part 2) `tool` (`{"name", "state"}`), `snap` (`{"kind", "at_nm",
+//! `{"external": true}` or `null`), then `tool` (`{"name", "state"}`), `snap` (`{"kind", "at_nm",
 //! "label"}` or `null`), `selection` (the selected entities' aliases in selection order), `preview` (`{"command",
 //! "state": "ready" | "stale" | "failed", "tags", "xrefs"}` or `null`), `overlay` (the number of overlay items) and
-//! `link_preview` (the link preview's target folio or `null`), then (WP-S2.04 part 1, §7.7) `ghost` (`null`, or
+//! `link_preview` (the link preview's target folio or `null`), then `ghost` (`null`, or
 //! `{"kind": "place", "symbol", "variant", "rep_type", "at_nm", "target", "tag", "hints", "wires"}`, `{"kind": "move",
 //! "count", "steps"}` or `{"kind": "exchange", "symbol", "unmapped"}`) and `picker` (`null` or `{"mode", "filter",
-//! "rows", "row"}`; `mode` also `strip`, the strip chooser), then (WP-S2.04 part 2, §8.7) `route` (`null` or
+//! "rows", "row"}`; `mode` also `strip`, the strip chooser), then `route` (`null` or
 //! `{"from", "bends", "points", "end"}`: the labels of the Wire tool's start and target, the bends fixed by clicks,
 //! the vertices of the ghost) and `junction_editor` (`null` or `{"junction", "style", "wiring", "sequence"}`: the
 //! junction named by its frame cell, never its UUID, and the members by their far endpoints' labels). After `canvas`
 //! come `tabs` (`null` without a project, else
 //! `{"focused": [g, i], "groups": [[{"id", "folio", "back", "forward"}, …], …]}`), `focus` (`navigator`, `canvas`,
-//! `properties` or `null`) and `navigator` (`null`, or `{"mode", "sort", "filter", "row"}`), then (WP-S2.05 part 1)
+//! `properties` or `null`) and `navigator` (`null`, or `{"mode", "sort", "filter", "row"}`), then
 //! `properties` (`null` without a project or while the pane is closed, else `{"title", "items", "kinds", "sections":
 //! [{"kind", "targets", "rows"}, …], "missing", "row", "editing", "buffer", "error": {"row", "message"} | null,
 //! "choices", "highlight" (the highlighted choice's index or null), "popup", "read_only"}`), `card` (`null` or `{"command", "state", "targets", "changes", "tags", "xrefs",
-//! "origin"}`) and `toast` (`null` or `{"text", "undo"}`); then (WP-S2.05 part 2) `find`
+//! "origin"}`) and `toast` (`null` or `{"text", "undo"}`); then `find`
 //! (`null` while the find pane is closed, else `{"text", "replace" (the replacement, or null outside find and
 //! replace), "regex", "match_case", "whole_word", "in_selection", "fields", "folios", "results" (the number of hits, or
 //! null before a search), "truncated", "error", "row" (1-based, or null), "stale", "note"}`); the card's `origin` is
-//! `find` for a replace, and `focus` may be `find`; then (WP-S2.05 part 3) `clipboard` (`null` while empty, else
+//! `find` for a replace, and `focus` may be `find`; then `clipboard` (`null` while empty, else
 //! `{"kind": "fragment", "records", "copies"}` or `{"kind": "text", "lines"}`), and the canvas `ghost` may be
-//! `{"kind": "paste", "records", "at_nm", "dropped"}`. (WP-S2.04 part 4b) the `ghost` may also be
+//! `{"kind": "paste", "records", "at_nm", "dropped"}`. the `ghost` may also be
 //! `{"kind": "text", …}`, `{"kind": "graphic", …}`, `{"kind": "marker", "connections", "text"}` or
 //! `{"kind": "structure_box", "outline"}`, and (part 5) `{"kind": "image", "asset"}`. Nothing in it depends on time, process or location: two runs of one
 //! script on equal inputs give equal bytes.
 //!
-//! **Record IDs** (decision log ID-630, FT-422). No UUID reaches a transcript line: every UUID of a step's line
+//! **Record IDs**. No UUID reaches a transcript line: every UUID of a step's line
 //! (`state`, `message`, `describe`, a buffer or an error) is printed as its alias `@n` ([`crate::alias`]), numbered in
 //! the order of first appearance in this run's output; a run starts a new table, which lasts across every project the
 //! run opens or creates. A script may write `@n` wherever an action parameter takes a UUID or a reference
@@ -266,7 +266,7 @@ pub enum RunEnd {
     Completed {
         /// Whether `app.quit` stopped the script before its last step.
         quit: bool,
-        /// The steps that were refused or failed while `--keep-going` let the run go on (WP-S6.13 §5.5.1).
+        /// The steps that were refused or failed while `--keep-going` let the run go on.
         not_done: usize,
     },
     /// A step was refused or failed and the run stopped there (exit code 1).
@@ -338,16 +338,14 @@ pub fn state_json(shell: &ShellModel) -> String {
             "focus",
             &match shell.focus() {
                 None => Value::Null,
-                // WP-S2.06 part 1: `navigator` for Pages, `navigator.<kind>` for the others (§6.8).
+                // `navigator` for Pages, `navigator.<kind>` for the others (§6.8).
                 Some(Focus::Navigator(crate::navigators::NavKind::Pages)) => Value::from("navigator"),
                 Some(Focus::Navigator(k)) => Value::from(format!("navigator.{}", k.word())),
                 Some(Focus::Canvas(_)) => Value::from("canvas"),
                 Some(Focus::Properties) => Value::from("properties"),
-                // WP-S2.05 part 2
                 Some(Focus::Find) => Value::from("find"),
-                // WP-S2.17 part 2
                 Some(Focus::CommandBar) => Value::from("commandbar"),
-                // WP-S2.17 part 3 (FT-519)
+                // WP-S2.17 part 3
                 Some(Focus::History) => Value::from("history"),
             },
         ),
@@ -355,9 +353,7 @@ pub fn state_json(shell: &ShellModel) -> String {
         format!("\"properties\":{}", properties_json(shell)),
         format!("\"card\":{}", card_json(shell)),
         format!("\"toast\":{}", toast_json(shell)),
-        // WP-S2.05 part 2
         format!("\"find\":{}", find_json(shell)),
-        // WP-S2.05 part 3
         format!("\"clipboard\":{}", clipboard_json(shell)),
     ];
     if let Some(e) = shell.symbol_editor() {
@@ -366,7 +362,6 @@ pub fn state_json(shell: &ShellModel) -> String {
     object(members)
 }
 
-// WP-S2.05 part 3
 /// The `clipboard` member (§8.8): `null` while empty, `{"kind": "fragment", "records", "copies"}` or `{"kind": "text",
 /// "lines"}`. Never the text: a fragment holds real record IDs (data, not machine text).
 fn clipboard_json(shell: &ShellModel) -> String {
@@ -385,7 +380,6 @@ fn clipboard_json(shell: &ShellModel) -> String {
     }
 }
 
-// WP-S2.05 part 2
 /// The `find` member (§7.6): `null` while the find pane is closed.
 fn find_json(shell: &ShellModel) -> String {
     if !shell.find_shown() {
@@ -435,7 +429,7 @@ fn find_json(shell: &ShellModel) -> String {
     ])
 }
 
-/// The `properties` member (WP-S2.05 §6.11): `null` without a project or while the pane is closed.
+/// The `properties` member: `null` without a project or while the pane is closed.
 fn properties_json(shell: &ShellModel) -> String {
     let props = shell.properties();
     let (true, Some(sheet)) = (shell.properties_shown(), props.sheet()) else {
@@ -594,13 +588,12 @@ fn canvas_json(shell: &ShellModel) -> String {
         ),
         format!("\"ghost\":{}", ghost_json(shell)),
         format!("\"picker\":{}", picker_json(shell)),
-        // WP-S2.04 part 2.
         format!("\"route\":{}", route_json(shell)),
         format!("\"junction_editor\":{}", junction_editor_json(shell)),
     ])
 }
 
-/// The `route` member of the canvas (WP-S2.04 §8.7): `null`, or `{"from", "bends", "points", "end"}`.
+/// The `route` member of the canvas: `null`, or `{"from", "bends", "points", "end"}`.
 fn route_json(shell: &ShellModel) -> String {
     match shell.tool().route_info() {
         None => "null".to_owned(),
@@ -613,7 +606,7 @@ fn route_json(shell: &ShellModel) -> String {
     }
 }
 
-/// The `junction_editor` member of the canvas (WP-S2.04 §8.7): `null`, or `{"junction" (its frame cell), "style",
+/// The `junction_editor` member of the canvas: `null`, or `{"junction" (its frame cell), "style",
 /// "wiring", "sequence"}`.
 fn junction_editor_json(shell: &ShellModel) -> String {
     match shell.junction_editor() {
@@ -627,8 +620,8 @@ fn junction_editor_json(shell: &ShellModel) -> String {
     }
 }
 
-/// The `ghost` member of the canvas (WP-S2.04 §7.7): `null`, or `{"kind": "place", "symbol", "variant",
-/// "rep_type", "at_nm", "target", "tag", "hints", "wires"}` (`wires` the proposals the commit connects, FT-545),
+/// The `ghost` member of the canvas: `null`, or `{"kind": "place", "symbol", "variant",
+/// "rep_type", "at_nm", "target", "tag", "hints", "wires"}` (`wires` the proposals the commit connects),
 /// `{"kind": "move", "count", "steps"}` or `{"kind": "exchange", "symbol", "unmapped"}`, and the part 4b forms
 /// (`text`, `graphic`, `marker`, `structure_box`) and part 5's `image`.
 fn ghost_json(shell: &ShellModel) -> String {
@@ -657,7 +650,7 @@ fn ghost_json(shell: &ShellModel) -> String {
             member("target", &Value::from(target)),
             member("tag", &tag.map_or(Value::Null, Value::from)),
             member("hints", &Value::from(hints)),
-            // FT-545: the wires the commit draws, before it: `"<cp>" -> "<target>"` each (a split names its segment).
+            // The wires the commit draws, before it: `"<cp>" -> "<target>"` each (a split names its segment).
             member(
                 "wires",
                 &Value::from(
@@ -676,7 +669,6 @@ fn ghost_json(shell: &ShellModel) -> String {
             member("count", &Value::from(count)),
             member("steps", &Value::from(vec![steps.0, steps.1])),
         ]),
-        // WP-S2.05 part 3
         Some(Ghost::Paste {
             records,
             at_nm,
@@ -742,7 +734,7 @@ fn ghost_json(shell: &ShellModel) -> String {
             member("points", &Value::from(points)),
             member("anticlockwise", &Value::from(anticlockwise)),
         ]),
-        // WP-S2.04 part 4b: the Wire marker tool's group and the Structure box tool's outline.
+        // The Wire marker tool's group and the Structure box tool's outline.
         Some(Ghost::Marker { connections, text }) => object(vec![
             member("kind", &Value::from("marker")),
             member("connections", &Value::from(connections)),
@@ -757,7 +749,7 @@ fn ghost_json(shell: &ShellModel) -> String {
             member("kind", &Value::from("image")),
             member("asset", &asset.map_or(Value::Null, Value::from)),
         ]),
-        // WP-S4.02 part 3 (D4): `{"kind": "layout", "device", "carrier", "mode", "at_nm", "moved", "refused"}`; `at_nm`
+        // `{"kind": "layout", "device", "carrier", "mode", "at_nm", "moved", "refused"}`; `at_nm`
         // is a rail's left edge `[s]` or the plate pose's `[u, v]`, surface nm.
         Some(Ghost::Layout {
             device,
@@ -799,7 +791,7 @@ fn ghost_json(shell: &ShellModel) -> String {
     }
 }
 
-/// The `picker` member of the canvas (WP-S2.04 §7.7): `null`, or `{"mode", "filter", "rows", "row"}`.
+/// The `picker` member of the canvas: `null`, or `{"mode", "filter", "rows", "row"}`.
 fn picker_json(shell: &ShellModel) -> String {
     match shell.picker() {
         None => "null".to_owned(),
@@ -916,7 +908,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
     let card = shell.properties().card()?;
     let tags = card.preview.derived.tags.len().to_string();
     let xrefs = card.preview.derived.xrefs.len().to_string();
-    // WP-S1.19 part 6: a macro card's line ends with its conflicts, also when a prevent rule refused it (§11).
+    // A macro card's line ends with its conflicts, also when a prevent rule refused it (§11).
     if let CardOrigin::Macro(m) = &card.origin {
         let head = match card.failed_lead() {
             Some(lead) => match lead.rule {
@@ -943,7 +935,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
         };
         return Some(format!("{head} · {conflicts}"));
     }
-    // WP-S2.07 D22: the paste choice card's line is its lead and its copies.
+    // The paste choice card's line is its lead and its copies.
     if let CardOrigin::PasteVersions(choice) = &card.origin {
         let rows: Vec<String> = choice
             .conflicts
@@ -956,7 +948,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
             rows.join("; ")
         ));
     }
-    // WP-S3.08 part 3: a table import card's line is its title and its counts, also when no cell applies.
+    // A table import card's line is its title and its counts, also when no cell applies.
     if let CardOrigin::TableImport(c) = &card.origin
         && (c.import.command.is_none() || card.preview.result.is_ok())
     {
@@ -990,7 +982,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
         ),
         CardOrigin::Reorder { notices } => crate::properties::reorder_line(card, notices),
         CardOrigin::QuickFix { .. } => crate::properties::fix_line(card),
-        // FT-580: the Preview tab's title (a table card's gesture title) and its summary line, as the window shows them.
+        // The Preview tab's title (a table card's gesture title) and its summary line, as the window shows them.
         CardOrigin::Bulk
         | CardOrigin::Table { .. }
         | CardOrigin::Macro(_)
@@ -1021,10 +1013,10 @@ pub struct StepResult {
     pub ok: bool,
 }
 
-/// The action that expects its inner step to be refused (FT-720).
+/// The action that expects its inner step to be refused.
 pub const EXPECT_REFUSED: &str = "script.expect_refused";
 
-/// The action that expects its inner step to fail (FT-1409).
+/// The action that expects its inner step to fail.
 pub const EXPECT_FAILED: &str = "script.expect_failed";
 
 /// Runs one action as a step does: refused when its enabling rule says so, else the extension's or the shell's.
@@ -1072,7 +1064,7 @@ fn expect_refused(
     }
 }
 
-/// Runs the inner step of `script.expect_failed` (FT-1409): the failure's text when it fails, else the step's failure
+/// Runs the inner step of `script.expect_failed`: the failure's text when it fails, else the step's failure
 /// (a done or refused step fails with `message-expected-failure`; a malformed inner step with
 /// `message-expect-failed-inner`, and the inner step does not run).
 fn expect_failed(
@@ -1105,13 +1097,13 @@ pub fn run_step(
     number: usize,
     step: &Step,
 ) -> StepResult {
-    // WP-S2.09 §6.3 item 5: the ends of the jobs that finished since the last step are taken first.
+    // The ends of the jobs that finished since the last step are taken first.
     shell.poll_jobs();
-    // FT-1440: the project and revision before the step, so that a done step answers with what it changed.
+    // The project and revision before the step, so that a done step answers with what it changed.
     let before = shell.epoch_rev();
-    // FT-720: `script.expect_refused` runs its inner step and is done exactly when that step is refused; the refusal's
+    // `script.expect_refused` runs its inner step and is done exactly when that step is refused; the refusal's
     // key stays in `reason` (with its sentence) so the transcript says which refusal was met.
-    // FT-1409: `script.expect_failed` likewise, the failure's text staying in `message`.
+    // `script.expect_failed` likewise, the failure's text staying in `message`.
     let (outcome, met_refusal, met_failure) = if step.action == EXPECT_REFUSED {
         match expect_refused(shell, ext, &step.params) {
             Ok(reason_key) => (Outcome::Done, Some(reason_key), None),
@@ -1156,7 +1148,7 @@ pub fn run_step(
     if step.action == "ui.describe" && outcome == Outcome::Done {
         members.push(member("describe", &Value::from(crate::describe::describe(shell))));
     }
-    // FT-1440 (ID-1397): a done step that changed the same project answers with what it changed, the undo steps it
+    // A done step that changed the same project answers with what it changed, the undo steps it
     // committed in words (a finished wire, a chosen part), never a bare "done".
     if outcome == Outcome::Done
         && let Some((epoch, rev)) = before
@@ -1167,20 +1159,20 @@ pub fn run_step(
             members.push(member("changed", &Value::from(changed)));
         }
     }
-    // FT-1267 (WP-S6.08 D6): the page a documentation request opens, so that the installed tree's run proves the guide
+    // The page a documentation request opens, so that the installed tree's run proves the guide
     // is found.
     if step.action == "help.documentation" && outcome == Outcome::Done {
         let page = shell.doc_request().and_then(|r| r.page.as_deref());
         members.push(member("doc", &page.map_or(Value::Null, Value::from)));
     }
-    // WP-S6.13 part 1: `page.describe` carries the page's text in the same member.
+    // `page.describe` carries the page's text in the same member.
     if step.action == "page.describe" {
         let text = shell.take_page_text();
         if let (Outcome::Done, Some(text)) = (&outcome, text) {
             members.push(member("describe", &Value::from(text)));
         }
     }
-    // Every UUID of the line becomes its alias `@n`, numbered in the order of first appearance in the output (FT-422).
+    // Every UUID of the line becomes its alias `@n`, numbered in the order of first appearance in the output.
     StepResult {
         line: shell.alias_text(&object(members)),
         ok: outcome == Outcome::Done,
@@ -1189,7 +1181,7 @@ pub fn run_step(
 
 /// Runs a parsed script: the header, then every step until one is refused or fails, or `app.quit` is done.
 ///
-/// With `keep_going` (`--keep-going`, WP-S6.13 §5.5.1) a step that is not done is written as before and the run goes
+/// With `keep_going` (`--keep-going`) a step that is not done is written as before and the run goes
 /// on; the count of such steps is [`RunEnd::Completed`]'s `not_done`. Without it the first such step ends the run.
 ///
 /// `sink` receives each transcript line (no newline) as it is produced. Returns how the run ended; an I/O error
@@ -1456,7 +1448,7 @@ mod tests {
         }
     }
 
-    /// FT-1409: `script.expect_failed` is done when its inner step fails, the failure's text in `message`, and the run
+    /// `script.expect_failed` is done when its inner step fails, the failure's text in `message`, and the run
     /// goes on; a done, refused or malformed inner step makes it fail.
     #[test]
     fn expect_failed_meets_a_failure_and_the_run_goes_on() {

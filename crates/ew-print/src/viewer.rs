@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The viewer adapter (WP-S3.07 D9): the set written to a fresh file `<dir>/<project>-print-<process>-<n>.pdf` and
+//! The viewer adapter: the set written to a fresh file `<dir>/<project>-print-<process>-<n>.pdf` and
 //! opened in the default PDF application, which prints it.
 
 use std::path::PathBuf;

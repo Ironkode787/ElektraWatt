@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Named splitter handles for egui_tiles trees (FT-338; WP-S2.17 part 3 §7 item 8).
+//! Named splitter handles for egui_tiles trees.
 //!
 //! egui_tiles 0.18 publishes its resize handles without a role or a name. The dock and the canvas area turn its own
 //! handles off (`Behavior::is_container_resizable` is false, so it only paints the idle line) and call [`show`] after

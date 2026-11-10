@@ -407,8 +407,8 @@ pub(super) fn template_kinds(
         .collect()
 }
 
-/// The check that the Functions table grew by a new device's functions (ID-1493): the command's own main function
-/// on the FnDef copy `main`, and those normaliser N-FL-1 (`valve_functions`, WP-S1.20 D6) gives a device with a valve
+/// The check that the Functions table grew by a new device's functions: the command's own main function
+/// on the FnDef copy `main`, and those normaliser N-FL-1 (`valve_functions`) gives a device with a valve
 /// part (a fluid section with solenoids): its valve entry's unless the main function is of contact kind valve, and
 /// one per coil entry but one on the main function's FnDef. With `from_part` (`valve.add`, D7) a part with an entry
 /// of contact kind valve drops the command's own main function.
@@ -589,7 +589,6 @@ pub(super) fn mounting_order(after: &ew_derive::Q, strip: &Value) -> Result<Vec<
     Ok(order.into_iter().map(|(seq, t)| (seq, id_json(t))).collect())
 }
 
-// WP-S2.07 part 1
 pub(super) fn terminal_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let fndef = live
         .term_fndef
@@ -703,7 +702,6 @@ pub(super) fn terminal_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step>
     }
 }
 
-// WP-S2.07 part 1
 pub(super) fn terminal_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let strips: Vec<&StripInfo> = live.strip_infos.iter().filter(|s| s.order.len() >= 2).collect();
     let strip = *rng.pick(&strips)?;
@@ -830,7 +828,7 @@ pub(super) fn conductor_specs(
         .collect()
 }
 
-/// `check.waive` (WP-S1.16 part 5, D7): a `HumanOnly` command, which the fuzzer's session (the GUI) may submit. A
+/// `check.waive`: a `HumanOnly` command, which the fuzzer's session (the GUI) may submit. A
 /// well-formed waiver (a rule ID, 32 hex digits, a reason of at least ten characters) of a finding no waiver of
 /// that rule covers yet commits one waiver with the fingerprint in lower case; a malformed rule ID or fingerprint,
 /// a short reason and a finding a waiver already covers (in either case) are refused.
@@ -888,7 +886,7 @@ pub(super) fn check_waive(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
-/// `check.unwaive` (WP-S1.16 part 5, D7): removing an existing waiver commits and drops one waiver; a waiver that
+/// `check.unwaive`: removing an existing waiver commits and drops one waiver; a waiver that
 /// does not exist is refused.
 pub(super) fn check_unwaive(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     if rng.chance(4) {
@@ -930,7 +928,7 @@ pub(super) fn conductor_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 json!({"cable": cable.id, "conductors": [{"core": core}]}),
             ))
         }
-        // Any device (FT-469): the command refuses one that is no cable and adds a conductor to a cable.
+        // Any device: the command refuses one that is no cable and adds a conductor to a cable.
         1 => {
             let d = rng.pick(&live.plain_devices)?;
             Some(Step::cmd(
@@ -1213,9 +1211,9 @@ pub(super) fn valve_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                                 "the valve is at position {:?}, not {expected}",
                                 d.position
                             )),
-                            // ID-1493: a part with a PLC section of role module makes the new device a PLC module,
+                            // A part with a PLC section of role module makes the new device a PLC module,
                             // which normaliser N0 attaches to the project's only station when the module has no
-                            // station ancestor (WP-S1.21 D4).
+                            // station ancestor.
                             [] if after.devices().iter().any(|(id, d)| {
                                 !before.devices().contains(id)
                                     && d.aspects.plc_module.is_some()

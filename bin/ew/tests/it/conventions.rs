@@ -144,7 +144,7 @@ pub(super) fn copy_dir(from: &Path, to: &Path) {
 
 /// A line that is not JSON after the first line of the project's first page file (`ew fmt --repair`'s case, WP-S1.17
 /// ID-1185), with the file's hash in the manifest as a save of those bytes writes it (`saved`), or written by hand, the
-/// manifest untouched (ID-1186).
+/// manifest untouched.
 fn with_a_broken_line(project: &Path, saved: bool) {
     use sha2::Digest;
     let hash = |b: &[u8]| {
@@ -394,7 +394,7 @@ fn project_flag_equals_the_positional_directory() {
             "{positional:?}: {}",
             stderr(&a)
         );
-        // Both together: a usage error with D3's rule, in clap's words (cycle 43); the usage line is the subcommand's.
+        // Both together: a usage error with D3's rule, in clap's words; the usage line is the subcommand's.
         let mut both = positional.clone();
         both.push("--project".into());
         both.push(project.as_os_str().to_owned());
@@ -541,7 +541,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         (report.kind.as_str(), report.format.as_str()),
         ("plc_overview", "csv")
     );
-    // WP-S3.06 D4 and the orchestrator's ruling 2 (cycle 42): `--kind` prints the kind, the rows and `"block": ""`.
+    // WP-S3.06 D4 and the orchestrator's ruling 2: `--kind` prints the kind, the rows and `"block": ""`.
     let by_kind: results::ExportReportResult = json_twice(
         &t,
         &args([&"export", &"report", &p, &"--kind", &"device_list", &"--json"]),
@@ -799,9 +799,9 @@ fn every_writing_json_result_validates_and_round_trips() {
         outs.push(stdout(&o));
     }
     assert_eq!(outs[0], outs[1]);
-    // `fmt --repair` on two copies with the same broken line (WP-S1.17, ID-1185): the same bytes but for the backup's
+    // `fmt --repair` on two copies with the same broken line: the same bytes but for the backup's
     // path; then again on one, with nothing to repair. On a third copy the line is written by hand: the backup counts
-    // the page file as edited outside EW (ID-1186).
+    // the page file as edited outside EW.
     let mut outs = Vec::new();
     for (name, saved) in [("r1.ew", true), ("r2.ew", true), ("r3.ew", false)] {
         let p = t.golden(name);
@@ -879,7 +879,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         outs.push(stdout(&o));
     }
     assert_eq!(outs[0], outs[1]);
-    // `export ewz` twice to the same file, and `extract` twice into the same fresh target (WP-S1.17 part 2).
+    // `export ewz` twice to the same file, and `extract` twice into the same fresh target.
     let golden = t.golden("ewz.ew");
     let ewz = t.0.join("p.ewz");
     let r: results::ExportEwzResult = json_twice(

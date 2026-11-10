@@ -114,7 +114,7 @@ enum PendingKind<'t> {
     Bridge(BridgeSpec),
     /// A bus connection, with its cable device by `devices` key (doc 10 §2.7).
     Bus(Option<&'t str>),
-    /// A fluid line of kind working (WP-S1.20 D2, D20: Golden A's F1 to F16).
+    /// A fluid line of kind working (Golden A's F1 to F16).
     Fluid,
 }
 
@@ -290,7 +290,7 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
     }
 }
 
-/// The `route` cell of a `connections.csv` row (FT-1315, doc 20 ▲U-51): the corners between the two ends,
+/// The `route` cell of a `connections.csv` row (doc 20 ▲U-51): the corners between the two ends,
 /// `;`-separated, each `<cell>` or `<cell> <dx> <dy>` (an offset in QET px from the cell centre, as `dx` and `dy` of
 /// `junctions.csv`).
 fn route_cells(r: &mut Rd<'_>) -> Vec<((i64, i64), i64, i64)> {
@@ -347,7 +347,7 @@ fn stored_route(
     };
     // An end the tables do not place (a strip segment's terminal, drawn from derived queries: a CP of a function no
     // symbol or black box draws) is named by the route itself: its first item is end `a`'s point, its last end `b`'s
-    // (WP-S2.19 §8.2, Golden A's router-written routes).
+    // (Golden A's router-written routes).
     let undrawn = |e: &Endpoint| match e {
         Endpoint::Cp(f, _) => {
             !cx.cp_points.keys().any(|(g, _, _)| g == f)
@@ -417,7 +417,7 @@ fn stored_route(
     }
     route.push(b);
     // A corner on an end (a straight route names end `b` as its one corner) is no vertex of its own: the stored route
-    // repeats no point, as `connection.route` requires; its two ends stay where they meet (FT-1029).
+    // repeats no point, as `connection.route` requires; its two ends stay where they meet.
     route.dedup();
     if route.len() == 1 {
         route.push(b);

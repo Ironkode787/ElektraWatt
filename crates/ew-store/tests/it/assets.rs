@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The asset store on disk (doc 05 §13.3, FT-337): a save writes the assets that records name as
+//! The asset store on disk (doc 05 §13.3): a save writes the assets that records name as
 //! `assets/<sha256>.<ext>` and lists them in the manifest; an open loads them into the model; the journal carries
 //! the assets of a transaction, so a recovery restores the bytes its ops name; an asset no record names is not
 //! written, and a save never removes an asset file.
@@ -164,7 +164,7 @@ fn the_journal_restores_the_assets_of_a_transaction() {
     assert_eq!(asset.reference().format, AssetFormat::Svg);
 }
 
-/// FT-1378 as ruled by ID-1417 (C52-p5#7): a raster image over the pixel limit, which an earlier build took in, is kept
+/// FT-1378 as ruled by ID-1417: a raster image over the pixel limit, which an earlier build took in, is kept
 /// by an open and by a journal replay, never dropped: the limit is the gates' that bring an image in.
 #[test]
 fn an_image_over_the_pixel_limit_is_kept_by_the_open_and_the_journal() {
@@ -372,7 +372,7 @@ fn a_new_project_writes_its_assets() {
     );
 }
 
-/// FT-383: an asset file on disk whose SVG the rejecter refuses (a script, synthetic) is not loaded into the asset
+/// An asset file on disk whose SVG the rejecter refuses (a script, synthetic) is not loaded into the asset
 /// store: it stays an opaque file of the manifest, so no renderer can read it.
 #[test]
 fn an_open_does_not_load_a_hostile_svg_asset() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `project.frames.set` (`SetFrameDefaults`, FT-336): the frame defaults of the project settings (doc 03 §5.1
+//! `project.frames.set` (`SetFrameDefaults`): the frame defaults of the project settings (doc 03 §5.1
 //! `FrameDefaults`, FR-PAG-018; doc 16 §9.2 step 2).
 
 use std::collections::BTreeSet;

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The paste tool (WP-S2.05 part 3, spec §8.5): a parsed fragment floats at the snapped grid point under the pointer or
+//! The paste tool (spec §8.5): a parsed fragment floats at the snapped grid point under the pointer or
 //! the grid cursor and is pasted with one `edit.paste`.
 //!
 //! State `floating` (not sticky). `PointerMove` or `CursorMove` → `Transient`: one ghost rectangle per ghost entry of

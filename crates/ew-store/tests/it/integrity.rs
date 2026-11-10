@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! What an open and a save do with files and lines the writer does not own (review cycle 8): findings
+//! What an open and a save do with files and lines the writer does not own: findings
 //! beyond the cap still force a read-only session, quarantined lines are written back byte for byte, an
 //! unlisted file at a path the save writes is moved aside instead of overwritten, and only the save
 //! protocol's own temps are deleted.
@@ -196,7 +196,7 @@ fn an_editing_open_deletes_only_the_save_protocols_temps() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// `ew fmt --repair`'s open and save (WP-S1.17, decision log ID-1185)
+// `ew fmt --repair`'s open and save
 
 /// A line that is not one JSON value.
 const NOT_JSON: &[u8] = b"{\"$k\":\"device\",";
@@ -370,7 +370,7 @@ fn a_failed_repair_save_keeps_the_broken_lines() {
     );
 }
 
-/// A clock whose wait lets a sync client finish: a sleep writes the missing file back (WP-S1.17 D25).
+/// A clock whose wait lets a sync client finish: a sleep writes the missing file back.
 #[derive(Debug)]
 struct SyncedWhileWaiting {
     clock: ew_store::ManualClock,
@@ -392,7 +392,7 @@ impl ew_store::Clock for SyncedWhileWaiting {
     }
 }
 
-/// C49-p9#4 (WP-S1.17 D25): on a cloud-synced path, an open that finds a listed file missing (EW-CORE-003) waits five
+/// On a cloud-synced path, an open that finds a listed file missing (EW-CORE-003) waits five
 /// seconds and reads again before it reports: the file the sync client wrote meanwhile makes it an editing open. On
 /// another path the same folder is reported at once.
 #[test]
@@ -471,7 +471,7 @@ fn a_damaged_copy_a_device_names_opens_read_only_with_its_finding() {
         model.integrity_check().is_err(),
         "a device names the missing copy"
     );
-    // C52-p4#1 (ID-1418): Save As of it is refused before anything is written; the copy would not open.
+    // Save As of it is refused before anything is written; the copy would not open.
     let target = PathBuf::from("/q");
     let mut opts = options(&vfs, 1);
     opts.state_dir = None;
@@ -660,7 +660,7 @@ fn update_damaged_copies_is_refused_beside_another_finding_and_under_another_loc
     store.close();
 }
 
-/// C53-p4#1 (ID-1486): the copies an update from library leaves damaged, one cut short (kept as found) and one whose
+/// The copies an update from library leaves damaged, one cut short (kept as found) and one whose
 /// file is gone, neither refuse the update of the copy a library holds nor lose their manifest entries: the reopen finds
 /// them damaged as before, the cut-short one changed outside ElektraWatt (EW-CORE-002) and the other missing.
 #[test]

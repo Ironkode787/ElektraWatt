@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `library.update` (`UpdateLibraryCopies`, WP-S1.19 D9, FR-PRT-014, FR-SYM-016) and the update classification of
+//! `library.update` (`UpdateLibraryCopies`, FR-PRT-014, FR-SYM-016) and the update classification of
 //! doc 07 §4.5 ([`classify_update`]), which the session's update plan shows on the card.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -57,7 +57,7 @@ pub struct CopyDiff {
     pub class: ChangeClass,
     /// The members that differ, in member-name order.
     pub fields: Vec<FieldChange>,
-    /// Why the change is major (empty below major), in a fixed order, by key (FT-1494): the CLI prints their English.
+    /// Why the change is major (empty below major), in a fixed order, by key: the CLI prints their English.
     pub major_reasons: Vec<Text>,
 }
 
@@ -102,7 +102,7 @@ fn patch_members(doc: &LibDocument) -> &'static [&'static str] {
         LibDocument::Fndef(_) => &["meta"],
         LibDocument::Form(_) => &["meta", "name", "description"],
         LibDocument::Macro(_) => &["meta", "name", "description", "thumbnail"],
-        // A profile renders by its data; what it renders changes only with a new `profile.version` (WP-S7.03 D7).
+        // A profile renders by its data; what it renders changes only with a new `profile.version`.
         LibDocument::PlcProfile(_) => &["meta", "label"],
         LibDocument::Manufacturer(_) | LibDocument::Unknown(_) => &[],
     }
@@ -352,7 +352,7 @@ pub struct CpMapParam {
     pub map: Vec<[u16; 2]>,
 }
 
-/// `library.update` (`UpdateLibraryCopies`, WP-S1.19 D9, doc 07 §4.5, FR-PRT-014, FR-SYM-016): replaces held library
+/// `library.update` (`UpdateLibraryCopies`, doc 07 §4.5, FR-PRT-014, FR-SYM-016): replaces held library
 /// copies by other versions of the same items, in place (same copy ID), remapping the connection points the change
 /// moves.
 ///
@@ -376,7 +376,7 @@ pub struct CpMapParam {
 /// refusal). **Bulk**: always previewed; the session's update plan shows the class ([`classify_update`]), the field
 /// diff, the devices and representations touched and the BOM rows that change. Outcome: the first copy.
 ///
-/// **The new version's closure (FT-640).** `embed` holds the documents the new versions name that the project does
+/// **The new version's closure.** `embed` holds the documents the new versions name that the project does
 /// not hold (a new manufacturer, a new template FnDef, a symbol's new FnDef); they are embedded in the same
 /// transaction, each checked as `library.embed` checks it (`/embed/i`: a copy the project holds already, one listed
 /// twice or also in `copies` is refused). A FnDef or manufacturer that a new version names and its held version did
@@ -390,14 +390,14 @@ pub struct UpdateLibraryCopies {
     /// CP mappings, per copy.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub cp_maps: Vec<CpMapParam>,
-    /// The closure documents the new versions name that the project does not hold (FT-640), embedded with the
+    /// The closure documents the new versions name that the project does not hold, embedded with the
     /// update (`lib/` JSON form).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub embed: Vec<Value>,
 }
 
-/// The FnDefs and the manufacturer a part names, the FnDef a symbol names: the closure items an update checks
-/// (FT-640), by (kind, copy ID).
+/// The FnDefs and the manufacturer a part names, the FnDef a symbol names: the closure items an update checks,
+/// by (kind, copy ID).
 fn named_items(doc: &LibDocument) -> BTreeSet<(ew_schema::Kind, AnyId)> {
     use ew_schema::Kind;
     let copy =
@@ -534,7 +534,7 @@ fn template_anchors(
 /// A template-origin function (in the held world, for a part or FnDef update) keeps each CP on the pattern entry it
 /// is drawn as: an updated part maps the entry through `target` (old pattern index to new), a FnDef update keeps it;
 /// the new endpoint is the CP the new world draws as that entry (the `k`-th one when an entry is drawn twice). Its
-/// endpoints are FnDef CP indices where the template entry pairs by position (FT-655), so an endpoint is never read
+/// endpoints are FnDef CP indices where the template entry pairs by position, so an endpoint is never read
 /// as a pattern index. Every other function maps by the updated copy's CP indices (its endpoints are those indices).
 fn function_moves(
     tx: &TxBuilder<'_>,
@@ -751,7 +751,7 @@ impl Command for UpdateLibraryCopies {
                 crate::words::list(blocked)
             ));
         }
-        // FT-640: the closure documents to embed, and the new version's items the project would lack.
+        // The closure documents to embed, and the new version's items the project would lack.
         let project = tx.project().id.as_uuid();
         let mut embed: Vec<(AnyKey, LibDocument)> = Vec::new();
         for (i, value) in self.embed.iter().enumerate() {

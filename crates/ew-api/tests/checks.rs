@@ -251,7 +251,7 @@ fn potential_names(s: &Session) -> Vec<String> {
     names
 }
 
-/// WP-S1.16 P1-2 (D2, D3; FT-551): Golden A without its bond B1 (D-22: W27 is then a plain wire, 0 V and PE merge)
+/// WP-S1.16 P1-2 (D2, D3): Golden A without its bond B1 (D-22: W27 is then a plain wire, 0 V and PE merge)
 /// reports EW-POT-001 with the fix "Declare 0 V–PE bond (PELV)" on W27, the wire on the PE side; running the fix's
 /// command as `messages.fix` does leaves 0V and PE two potentials, no EW-POT-001 and EW-POT-002 satisfied by the one
 /// bond; undo brings the finding back.
@@ -603,7 +603,7 @@ fn golden_a_part4_reports_the_ef_rows() {
     }
 }
 
-/// D-15 (P3-2, WP-S1.21 PA-4): a `Tbd` channel address is an open item: EW-PLC-015 reports it as an error in release
+/// D-15 (P3-2, PA-4): a `Tbd` channel address is an open item: EW-PLC-015 reports it as an error in release
 /// mode and supersedes EW-CORE-044's finding for the same value, so it prints once.
 #[test]
 fn golden_a_d15_a_tbd_channel_address_is_an_open_item() {

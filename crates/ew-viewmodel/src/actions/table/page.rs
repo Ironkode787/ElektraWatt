@@ -9,7 +9,7 @@
 use super::super::*;
 
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
-    // FT-408: Page, New page.
+    // Page, New page.
     with_params(
         "folio:text, type?:enum(title_page|table_of_contents|section_divider|graphic|single_line|multi_line|overview|bus_topology|fluid|assembly_overview|panel_layout|model_view|external_document), title?:text, section?:text, grid?:enum(mm4|qet_10px)",
         placed(
@@ -154,7 +154,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_link_step(p, false),
         )),
     )),
-    // Keyboard tool input (WP-S2.03 §7.7): the connection points in reading order; `[` and `]` are matched as the
+    // Keyboard tool input: the connection points in reading order; `[` and `]` are matched as the
     // physical keys by the window, so they need no AltGr on QWERTZ and AZERTY (doc 16 §4.4).
     keeps_banner(with_params(
         "group?:uint",

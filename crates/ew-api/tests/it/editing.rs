@@ -99,7 +99,7 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
         "starter rows beside the embedded ones"
     );
     // Parts: every embedded part copy, then every part with a template of the system libraries the project does not
-    // hold, each group in the order (maker, part number, copy) (FT-1087; FT-1375, ID-1391: the project's own first);
+    // hold, each group in the order (maker, part number, copy) (the project's own first);
     // a template function names a symbol of the page that draws its FnDef.
     let order: Vec<(bool, &str, &str, Uuid)> = cat
         .parts
@@ -116,14 +116,14 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
     let mut sorted = order.clone();
     sorted.sort();
     assert_eq!(order, sorted, "the embedded parts first, then the library parts");
-    // FT-1375: Golden A's A9F78116, a copy without a function template, is a row without functions.
+    // Golden A's A9F78116, a copy without a function template, is a row without functions.
     let mcb_part = cat
         .parts
         .iter()
         .find(|p| p.part_number == "A9F78116")
         .expect("the project's A9F78116");
     assert_eq!((mcb_part.library, mcb_part.functions.len()), (None, 0));
-    // FT-1170 (ID-1391): an embedded part's maker comes from its own maker field, as the Parts row names it.
+    // An embedded part's maker comes from its own maker field, as the Parts row names it.
     for p in cat.parts.iter().filter(|p| p.library.is_none()) {
         let copy = q.parts().get(Id::from_uuid(p.copy)).expect("held");
         assert_eq!(
@@ -147,12 +147,12 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
         assert!(p.library.is_none() || !p.functions.is_empty());
         for (i, f) in p.functions.iter().enumerate() {
             assert_eq!(usize::from(f.index), i);
-            // FT-664: the picker's words for the entry, never its FnDef key where the FnDef has a category.
+            // The picker's words for the entry, never its FnDef key where the FnDef has a category.
             assert!(!f.kind_text.is_empty());
             if f.fndef_key == "ew.fn.contact-no" {
                 assert!(f.kind_text.starts_with("NO contact "), "{}", f.kind_text);
             }
-            // FT-712: a change-over contact is spelled out, never "CO".
+            // A change-over contact is spelled out, never "CO".
             if f.fndef_key == "ew.fn.contact-co" {
                 assert!(f.kind_text.starts_with("Changeover contact "), "{}", f.kind_text);
             }
@@ -163,7 +163,7 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
             }
         }
     }
-    // FT-664: the contactor's second entry reads as the part names it.
+    // The contactor's second entry reads as the part names it.
     let con = cat
         .parts
         .iter()
@@ -173,7 +173,7 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
     // Cycle 37 (window check W37): a coil's category entry that repeats its CPs (`A1A2`) is dropped.
     assert_eq!(con.functions[0].fndef_key, "ew.fn.coil");
     assert_eq!(con.functions[0].kind_text, "Coil A1-A2");
-    // FT-712: the picker leads with the part's description in words.
+    // The picker leads with the part's description in words.
     assert!(!con.description.is_empty(), "the generic contactor's description");
     assert_ne!(con.description, con.part_number);
     // The generic relay's change-over contacts read as words (rv-vis-1 friction 9: "CO").
@@ -200,7 +200,7 @@ fn a_new_project_lists_starter_rows_only_and_embeds_a_starter_symbol_once() {
     let cat = s.place_catalogue(&folio).unwrap();
     assert!(!cat.symbols.is_empty());
     assert!(cat.symbols.iter().all(|r| r.copy.is_none()), "starter rows only");
-    // The parts are the starter parts' rows, none embedded (WP-S2.18 D6).
+    // The parts are the starter parts' rows, none embedded.
     assert!(!cat.parts.is_empty());
     assert!(cat.parts.iter().all(|p| p.library.is_some()), "library rows only");
     // The page's grid family: the native edition on a page that is not on the QET grid.
@@ -298,7 +298,7 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
         assert_eq!(t.grid, (7_937_500, 3));
         assert_eq!(t.reps.len(), reps, "{folio}");
         assert_eq!(golden_rows("representations", folio).len(), reps, "{folio}");
-        // FT-439: by place and label, the ID only as the last key.
+        // By place and label, the ID only as the last key.
         let rep_key = |r: &ew_api::output::TableRep| (r.pos.1, r.pos.0, r.id);
         assert!(
             t.reps.windows(2).all(|w| rep_key(&w[0]) < rep_key(&w[1])),
@@ -421,7 +421,7 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
     assert!(s.page_tables("no such folio").is_none());
 }
 
-/// FT-771 (WP-S2.11 D12, GT-6): `TableRep::tag_at` stands where the scene prints the tag, after the tag rule (ID-898)
+/// FT-771 (GT-6): `TableRep::tag_at` stands where the scene prints the tag, after the tag rule
 /// moved it, never at the tag slot's default: on every drawn page of Golden A (the rule moves tags on 102 and 106),
 /// each reported tag is the labels layer's anchor of its representation's tag, raised by the one text height of the
 /// tag style.
@@ -456,7 +456,7 @@ fn ft771_tag_at_is_where_the_labels_layer_prints_the_tag() {
     );
 }
 
-/// FT-421: the catalogue lists every terminal strip of the project by its printed tag, with the next free decimal
+/// The catalogue lists every terminal strip of the project by its printed tag, with the next free decimal
 /// designation and the next sequence number as `terminal.add` would take them; a new strip has none used.
 #[test]
 fn the_catalogue_lists_the_strips_with_their_next_designation_and_sequence_number() {
@@ -503,7 +503,7 @@ fn the_catalogue_lists_the_strips_with_their_next_designation_and_sequence_numbe
     assert!(cat.strips[0].tag.contains("X7"), "{}", cat.strips[0].tag);
 }
 
-/// WP-S2.04 §4.3 (part 2): the physical wires through a junction, for the junction sequence editor (WR7). On folio
+/// 3 (part 2): the physical wires through a junction, for the junction sequence editor (WR7). On folio
 /// 101 of Golden A, J1 carries the wires from F55:2 to E55:L and to E56:X2 (golden W13 and W14), J2 those from
 /// F55:N#2 to T55:5 and to S56:13 (W15, W16); each prints its derived number.
 #[test]
@@ -514,7 +514,7 @@ fn the_physical_wires_through_a_junction_name_their_numbers_and_ends() {
     let mut seen = Vec::new();
     for j in &tables.junctions {
         let wires = s.junction_wires(j.id);
-        // FT-439: by printed number (natural), then the ends' labels.
+        // By printed number (natural), then the ends' labels.
         let text = |x: &str, y: &str| ew_derive::ew_mltext::natural_cmp(x, y).then_with(|| x.cmp(y));
         assert!(
             wires.windows(2).all(|w| text(&w[0].label, &w[1].label)

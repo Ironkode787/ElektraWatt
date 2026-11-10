@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Normaliser #18, the interruption point's form (WP-S2.19 D16, doc 06 §3.2 row 18), and the checks the commands
+//! Normaliser #18, the interruption point's form (doc 06 §3.2 row 18), and the checks the commands
 //! share.
 //!
 //! EW's interruption-point symbol comes in two forms, both drawn with the arrow pointing right: the source form

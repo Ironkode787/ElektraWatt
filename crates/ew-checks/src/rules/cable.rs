@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! EW-CORE cable rules of the 03x block (doc 15 §4.2; content in doc 08 §8.1; WP-S1.16 part 3): EW-CORE-031,
+//! EW-CORE cable rules of the 03x block (doc 15 §4.2; content in doc 08 §8.1): EW-CORE-031,
 //! -032, -034, -036 and -037. EW-CORE-033 is in [`core`](super::core).
 //!
-//! # Determinism (WP-S1.16 §10)
+//! # Determinism
 //!
 //! Texts name cables, cores, wires and external locations by their printed text; lists inside a message are in
 //! natural order of that text. IDs enter only targets and fingerprints.
@@ -152,7 +152,7 @@ fn colour_finding(q: &Q, id: Id<Conductor>, c: &Conductor, declared: &BTreeSet<S
 /// release runs, not refused, so a lenient import's project stays editable.
 ///
 /// The "use BN" quick fix of the import finding EW-IMP-008 is not carried here: its alias table
-/// (`ew_import_tables::COLOUR_ALIASES`) is outside this crate's allowed dependencies (WP-S1.16 part 3 report).
+/// (`ew_import_tables::COLOUR_ALIASES`) is outside this crate's allowed dependencies (report).
 #[derive(Clone, Copy, Debug)]
 pub struct InvalidCoreColour;
 

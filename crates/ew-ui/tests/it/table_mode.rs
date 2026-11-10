@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Table mode in the window (WP-S2.06 part 3) and FT-509: the platform's copy and paste events in a navigator's table
+//! Table mode in the window and FT-509: the platform's copy and paste events in a navigator's table
 //! run `table.copy` and `table.paste` (the TSV goes to the system clipboard), the table card in the navigator's pane
 //! with its Drop buttons and Apply, and the left dock's "All tabs" menu that reaches every navigator tab hidden behind
 //! the tab strip's overflow; the accessible-name walker after every step (`settle`).
@@ -81,7 +81,7 @@ fn copy_and_paste_events_run_the_table_actions() {
             _ => None,
         })
         .expect("the frame hands the TSV to the system clipboard");
-    // WP-S2.07 part 1: the Pos column after the key column.
+    // The Pos column after the key column.
     assert!(
         copied.starts_with("Strip\tPos\tTerminal\tFunction text\t"),
         "{copied}"

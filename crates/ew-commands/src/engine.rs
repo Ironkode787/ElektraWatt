@@ -314,7 +314,7 @@ impl Engine {
         &self.history
     }
 
-    /// Replaces the model by one reopened from disk (a read-only session's reload, WP-S1.17 D23): the history starts
+    /// Replaces the model by one reopened from disk (a read-only session's reload): the history starts
     /// again, and a preview of the old model is never committed as prepared.
     ///
     /// The model becomes `model` as one new revision of the old one (its changed rows as ops), so that a view keyed by
@@ -405,7 +405,7 @@ impl Engine {
         let mut tx = TxBuilder::new(base, &mut *self.ids);
         tx.set_source(meta.name);
         let mut outcome = cmd.run(&mut tx)?;
-        // An `Internal` command (an external change, WP-S1.17 D22) takes a state another build saved as it is: no
+        // An `Internal` command (an external change) takes a state another build saved as it is: no
         // normaliser rewrites it and no prevent rule judges it; the structural invariants hold.
         let internal = meta.exposure == Exposure::Internal;
         let passes = if internal {
@@ -669,11 +669,10 @@ impl Engine {
     /// Reverts the step below the cursor by applying its inverse ops as a new revision (ARCH §5.3), on the
     /// history path (`Model::apply_history`): structural invariants are checked; prevent rules are not (the
     /// restored state passed them), nor is the model's delete-time rule EW-INV-021, so the undo of
-    /// `library.embed` restores the state before it even where records name the copies through a `LibRef`
-    /// (FT-316).
+    /// `library.embed` restores the state before it even where records name the copies through a `LibRef`.
     ///
     /// `origin` is who asks for the undo: a step that holds a `HumanOnly` command is undone only from the GUI and a
-    /// confirmed CLI subcommand (ADR-0008 amendment 3's note, FT-404).
+    /// confirmed CLI subcommand (ADR-0008 amendment 3's note).
     ///
     /// # Errors
     ///
@@ -735,7 +734,7 @@ impl Engine {
     }
 }
 
-/// Refuses an undo or redo of a step whose recorded exposure class `origin` may not take back or re-apply (FT-404).
+/// Refuses an undo or redo of a step whose recorded exposure class `origin` may not take back or re-apply.
 fn check_history_exposure(entry: &HistoryEntry, origin: &Origin) -> Result<(), CmdError> {
     let exposure = entry.exposure();
     if exposure.allows_history(origin) {

@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `project.company.set` (`SetCompany`, FT-336): the company of a basic project, the panel builder (doc 16 §9.2
+//! `project.company.set` (`SetCompany`): the company of a basic project, the panel builder (doc 16 §9.2
 //! step 1): its name as the `Party{role: panel_builder}` of the project row and the notice text that the title
-//! block's notice cell prints (`project.notice`, doc 09 §2.6, decision log ID-40), and the company logo as a project
-//! asset (FT-337, doc 05 §13.3).
+//! block's notice cell prints (`project.notice`, doc 09 §2.6), and the company logo as a project
+//! asset (doc 05 §13.3).
 
 use ew_mltext::MlText;
 use ew_schema::{Extra, Party, PartyRole};
@@ -53,7 +53,7 @@ pub(crate) fn store_image(
     if text.len() > ew_schema::MAX_LOGO_BYTES.div_ceil(3) * 4 {
         return Err(too_large());
     }
-    // FT-1504: the gate's refusal by key.
+    // The gate's refusal by key.
     let refused = |e: ew_schema::AssetError| {
         CmdError::invalid_params(
             command,
@@ -66,7 +66,7 @@ pub(crate) fn store_image(
         return Err(too_large());
     }
     let reference = tx.put_asset(bytes).map_err(refused)?;
-    // ID-1417: a gate that brings an image in applies the pixel limit; a refusal drops the transaction and its asset.
+    // A gate that brings an image in applies the pixel limit; a refusal drops the transaction and its asset.
     ew_schema::pixel_limit(reference.format, reference.size).map_err(refused)?;
     Ok(reference)
 }

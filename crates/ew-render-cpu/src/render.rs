@@ -35,7 +35,7 @@ pub struct SheetSize {
     pub height: Nm,
 }
 
-/// A sheet placed on a paper (WP-S3.07 D7, decision log ID-1114, ID-1180): the fit of a print page as a page
+/// A sheet placed on a paper: the fit of a print page as a page
 /// placement, not a display-list scale, so that a print page's content stays the export page's list item for item.
 ///
 /// One rule for every renderer: the content at the target resolution times [`scale`](PagePlacement::scale), at
@@ -233,7 +233,7 @@ pub fn render(
     ))
 }
 
-/// Renders a print page (WP-S3.07 D7, ID-1180): `content` (sheet coordinates) placed on the paper of `placement`,
+/// Renders a print page: `content` (sheet coordinates) placed on the paper of `placement`,
 /// onto a [`pixel_size`] image of the paper at `options.dpi`. The content is painted through the device transform
 /// times the placement's scale at its offset, so a sheet point `p` lands on the paper's pixel of
 /// [`PagePlacement::place`]`(p)` and glyphs are sized by the composed scale; then the overlay (the stamp) is painted
@@ -323,7 +323,7 @@ fn paper_pixels(placement: &PagePlacement, dpi: u32) -> Result<(u16, u16), Rende
     Ok((pw, ph))
 }
 
-/// The passes of a placed page (WP-S3.07 D7) at `k` pixels per nm, each device transform preceded by `shift` (the
+/// The passes of a placed page at `k` pixels per nm, each device transform preceded by `shift` (the
 /// identity for the whole paper, a translation up for a band): the content times the placement's scale at its
 /// offset, then the overlay, when it has items, at the paper's resolution.
 fn placed_passes<'a>(
@@ -401,7 +401,7 @@ pub struct RegionOptions {
 /// The full rectangle (`x = y = 0` and the sheet's pixel size) gives the bytes of [`render`] exactly: the same
 /// single-threaded `Level::baseline()` pipeline runs with the same transforms. Another rectangle rounds its
 /// coordinates at another magnitude, so its pixels match the full raster's within anti-aliasing noise, not
-/// necessarily byte for byte (WP-S2.02 §8).
+/// necessarily byte for byte.
 ///
 /// With `bounds` (from [`ItemBounds::of`] on the same list and resolver), a top-level item whose inflated bounds
 /// miss the region is skipped; culling never changes a pixel. Bounds made for a list with another number of items

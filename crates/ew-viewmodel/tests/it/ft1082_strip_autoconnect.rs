@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1082 (decision log ID-1177): autoconnect never joins two terminals of one strip. In a play-test, terminal 2 of
+//! Autoconnect never joins two terminals of one strip. In a play-test, terminal 2 of
 //! a strip placed in line under terminal 1 was connected to it, shorting the two feed terminals; two terminals of a
 //! strip are joined by a bridge, never by a wire autoconnect proposes. A terminal of another strip, in the same
 //! geometry, is proposed and connected as before; a move of the terminal into that line proposes nothing either. The
@@ -183,7 +183,7 @@ fn ft1082_a_terminal_moved_under_one_of_its_strip_proposes_nothing() {
     place(&mut s, terminal("-X1031", "71"), (50, 40), "canvas.activate_alt");
     place(&mut s, terminal("-X1032", "90"), (70, 40), "canvas.activate_alt");
     assert_eq!(drag_proposals(&mut s, (50, 40), (10, -6)), None);
-    // The other strip's terminal dragged to the same point is proposed, and the move connects it (WP-S2.19 D15).
+    // The other strip's terminal dragged to the same point is proposed, and the move connects it.
     assert_eq!(
         drag_proposals(&mut s, (70, 40), (-10, -6)).as_deref(),
         Some("canvas proposals 1 \"90/b\" -> \"-X1031:70/a\" connect all")

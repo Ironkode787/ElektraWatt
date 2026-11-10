@@ -29,7 +29,7 @@ pub enum Exposure {
     HumanOnly,
     /// The import wizard and `ew import`.
     Import,
-    /// Submitted only from [`Origin::External`]: the session's external-change apply (WP-S1.17 D22); never from the
+    /// Submitted only from [`Origin::External`]: the session's external-change apply; never from the
     /// GUI, the CLI, scripts, MCP, plugins or Python. Such a command runs no normaliser and no prevent rule.
     Internal,
 }
@@ -38,8 +38,7 @@ impl Exposure {
     /// Whether an origin may submit a command of this class. `HumanOnly` is accepted from the GUI and
     /// from a CLI subcommand that a human confirmed on a terminal (`Origin::Cli { confirmed: true }`, D7),
     /// and refused for an unconfirmed CLI submission, command logs, scripts, MCP, plugins and Python;
-    /// `Import` is accepted from the GUI, the CLI and an import origin; `Internal` only from [`Origin::External`]
-    /// (decision log ID-1284 ruling 1).
+    /// `Import` is accepted from the GUI, the CLI and an import origin; `Internal` only from [`Origin::External`].
     pub fn allows(self, origin: &Origin) -> bool {
         match self {
             Exposure::Edit => true,
@@ -49,7 +48,7 @@ impl Exposure {
         }
     }
 
-    /// Whether an origin may undo or redo a history step of this class (ADR-0008 amendment 3's note, FT-404): a
+    /// Whether an origin may undo or redo a history step of this class (ADR-0008 amendment 3's note): a
     /// `HumanOnly` step (and an `Internal` one, an external change) only from the GUI and a CLI subcommand a
     /// human confirmed on a terminal, as [`Exposure::allows`] admits `HumanOnly`; an `Edit` or `Import` step from
     /// every origin.

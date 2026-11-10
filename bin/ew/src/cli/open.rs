@@ -14,7 +14,7 @@ pub(super) fn find_project(start: &Path) -> Option<PathBuf> {
 }
 
 /// The explicit project directory, else the one found from the current directory, for every subcommand but the readers
-/// ([`reader_dir`]): an `.ewz` is refused with D9's text (WP-S1.17; it opens read-only).
+/// ([`reader_dir`]): an `.ewz` is refused with D9's text (it opens read-only).
 pub(super) fn project_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
     let dir = reader_dir(explicit)?;
     if ew_api::ewz::is_ewz(&ew_api::OsVfs, &dir) {
@@ -24,7 +24,7 @@ pub(super) fn project_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
     Some(dir)
 }
 
-/// The refusal of a subcommand that is not a reader, given an `.ewz` as its project (WP-S1.17 D9).
+/// The refusal of a subcommand that is not a reader, given an `.ewz` as its project.
 pub(super) fn ewz_refusal(path: &Path) -> String {
     format!("error: {}: {}", path.display(), ew_api::ewz::READ_ONLY)
 }
@@ -99,7 +99,7 @@ pub(super) fn open_for_writing_items(
 }
 
 /// [`open_for_writing_items`] with the session's library tiers: `ew apply`'s, so that a `plc.set_profile` of a
-/// library's address profile embeds it first (WP-S7.03 D8).
+/// library's address profile embeds it first.
 pub(super) fn open_for_writing_from(
     dir: &Path,
     origin: ew_api::Origin,
@@ -123,9 +123,9 @@ pub(super) fn open_for_writing_from(
 
 /// Opens the project in `dir` for editing with `origin`, `recovery` saying what happens to a crashed session's
 /// journal: refused (exit 2, [`read_only_refusal`]) when the open went read-only, which an editing open does silently
-/// when another session holds the lock (ruling 2 of cycle 41: a writer never acts read-only). A repair open
+/// when another session holds the lock (a writer never acts read-only). A repair open
 /// ([`ew_api::StoreOptions::repair`]) that integrity findings made read-only is let through: `ew fmt --repair` names a
-/// crashed session's journal first and then the finding (WP-S1.17, decision log ID-1185 rulings 3 and 4).
+/// crashed session's journal first and then the finding.
 pub(super) fn open_editing(
     dir: &Path,
     origin: ew_api::Origin,
@@ -146,7 +146,7 @@ pub(super) fn open_editing_from(
     open_editing_to(dir, origin, store, recovery, libraries, &mut std::io::stderr())
 }
 
-/// [`open_editing_from`] with its refusals written to `errors` (`ew recover`'s injected writer, FT-1394).
+/// [`open_editing_from`] with its refusals written to `errors` (`ew recover`'s injected writer).
 pub(super) fn open_editing_to(
     dir: &Path,
     origin: ew_api::Origin,
@@ -191,7 +191,7 @@ pub(super) fn open_editing_to(
                         dir.display()
                     )
                 }
-                // FT-1500 (ID-1458): a copy no device names, by its own words and the record that names it.
+                // A copy no device names, by its own words and the record that names it.
                 (ew_api::ReadOnlyReason::Integrity, Some(damaged)) => format!(
                     "error: {}: the project opens read-only: {} is damaged; update the copy from its library first; \
                      nothing was written",
@@ -206,7 +206,7 @@ pub(super) fn open_editing_to(
         }
         ew_api::Access::Edit => {}
     }
-    // FT-1503 (ID-1458): an image kept but not drawn is named as the window's open banner names it.
+    // An image kept but not drawn is named as the window's open banner names it.
     for notice in undrawn_notices(&session) {
         let _ = writeln!(errors, "notice: {notice}");
     }
@@ -214,7 +214,7 @@ pub(super) fn open_editing_to(
 }
 
 /// The refusal of every writer (`apply`, `fmt`, `recover`, `import parts`, the human-only subcommands) whose open went
-/// read-only (ruling 2 of cycle 41: `ew recover` refuses a held lock with `ew apply`'s text). The reason is in words,
+/// read-only (`ew recover` refuses a held lock with `ew apply`'s text). The reason is in words,
 /// those the window uses, with no session ID, process ID or `@` (FT-877; the ruling WP-S1.22 §10.2 rule 3 needs for a
 /// changed text is ruling 1 of the cycle-42 FT batch).
 pub(super) fn read_only_refusal(dir: &Path, reason: &ew_api::ReadOnlyReason) -> String {
@@ -247,7 +247,7 @@ pub(super) fn read_only_words(reason: &ew_api::ReadOnlyReason) -> String {
 }
 
 /// Why a writer other than `ew upgrade` and `ew recover` does not write a project of an older format, which opens
-/// migrated in memory (WP-S1.17 D11, decision log ID-1312): said before the unsaved-changes check and the save's
+/// migrated in memory: said before the unsaved-changes check and the save's
 /// consent gate, naming the writer that converts it. `ew fmt --check` says it too.
 pub(super) fn older_format(dir: &Path, from: &str) -> String {
     format!(
@@ -259,7 +259,7 @@ pub(super) fn older_format(dir: &Path, from: &str) -> String {
 
 /// The refusal of every writer (`apply`, `fmt`, `import parts`, the human-only subcommands) while a crashed session's
 /// journal holds unsaved changes, which a new save would hide (doc 05 section 8.3). It names the command that replays
-/// or discards them, `ew recover`, and no follow-up number (cycle 41 review, ruling 1 of its fix round).
+/// or discards them, `ew recover`, and no follow-up number (ruling 1 of its fix round).
 pub(super) fn journal_refusal(dir: &Path) -> String {
     format!(
         "error: {}: a crashed session left unsaved changes in its journal; replay or discard them first with `ew \

@@ -744,7 +744,7 @@ fn mini_golden_loads() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Page items and structure boxes (WP-S2.04 part 4a)
+// Page items and structure boxes
 
 /// A wire marker on `page` listing `connections`.
 pub(crate) fn wire_marker(
@@ -836,7 +836,7 @@ pub(crate) fn external_ref(
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Macros and manufacturers (WP-S1.19 part 1)
+// Macros and manufacturers
 
 /// A window macro copy without variants (the model does not read its content).
 pub(crate) fn macro_copy(copy_id: Id<ew_schema::MacroDef>) -> LibCopy<ew_schema::MacroDef> {

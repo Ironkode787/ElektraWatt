@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool host in the shell (WP-S2.03 part 2, spec §7.2 to §7.9): one active tool per window acting on the
+//! The tool host in the shell (spec §7.2 to §7.9): one active tool per window acting on the
 //! focused group's canvas, its overlay, the preview protocol over `Session::preview_with`, the Escape chain, the
 //! keyboard tool input, the link hover preview and the selection.
 //!
@@ -115,9 +115,8 @@ impl ShellModel {
         self.tools.announcement.as_deref()
     }
 
-    /// The active tool's status hint; while the picker's strip chooser is open (FT-421), what it waits for instead
-    /// (cycle 36, play-test rv-txt-2: the switch to the strip list was silent). The keys it names are the keymap's
-    /// (FT-964, ID-1150).
+    /// The active tool's status hint; while the picker's strip chooser is open, what it waits for instead
+    /// (play-test rv-txt-2: the switch to the strip list was silent). The keys it names are the keymap's.
     pub fn tool_hint(&self) -> String {
         if self.strip_chooser_open() {
             return strings::text(key!("hint-choose-strip")).to_owned();
@@ -137,7 +136,7 @@ impl ShellModel {
         strings::format(hint.key, &args)
     }
 
-    /// Whether the picker is open as the strip chooser of a terminal placement (FT-421).
+    /// Whether the picker is open as the strip chooser of a terminal placement.
     fn strip_chooser_open(&self) -> bool {
         self.tools
             .picker
@@ -178,7 +177,7 @@ impl ShellModel {
             .collect()
     }
 
-    /// ID-1497 (8): how many selected items the canvas's status field and HUD count: the selection, or none while
+    /// How many selected items the canvas's status field and HUD count: the selection, or none while
     /// nothing of it is drawn on the focused group's page (a page chosen in the page list selects its page record,
     /// which draws nothing there). A device or a function selected by its tag counts where the page draws it, as
     /// Delete takes it (C53-fx#1). The live region and the page list's Delete keep the whole selection.
@@ -203,7 +202,6 @@ impl ShellModel {
             .any(|e| crate::tools::entity_kind(&page.tables, e).is_some())
     }
 
-    // FT-705
     /// The sheet points of the connection points of group `group`'s page that have no connection on the page, in the
     /// page tables' order: the window marks each open (a session overlay like the CP rings, doc 16a §7), so that a
     /// wire drawn across one is visibly not connected to it. The page's display list, its print and its export do not
@@ -233,7 +231,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The host
 
-    /// A click on a disabled command (FT-1025, ID-1107; doc 16a §5.2): `text`, its reason in words (the sentence its
+    /// A click on a disabled command (doc 16a §5.2): `text`, its reason in words (the sentence its
     /// tooltip ends with), as an information toast of key `disabled`, so a second click replaces it rather than
     /// stacking.
     pub fn explain_disabled(&mut self, text: String) {
@@ -257,7 +255,7 @@ impl ShellModel {
     /// Escapes a busy tool and clears the overlay, the preview and the link preview when the canvas the tool works
     /// on changed (the end of every dispatch).
     pub(super) fn sync_tool_context(&mut self) {
-        // FT-1032 (ID-1107): a refusal clears when the state it refused changes: a committed command, a Properties
+        // A refusal clears when the state it refused changes: a committed command, a Properties
         // edit, undo or redo (each moves the revision) or a selection change (its generation). A refusal set by this
         // dispatch, which changed neither, stands.
         let basis = (self.revision(), self.tools.selection.generation);
@@ -276,7 +274,7 @@ impl ShellModel {
         if first {
             return;
         }
-        // A press held across the change: the tool is escaped below and the release that follows is dropped (FT-392).
+        // A press held across the change: the tool is escaped below and the release that follows is dropped.
         if std::mem::take(&mut self.tools.press_held) {
             self.tools.drop_release = true;
         }
@@ -292,8 +290,8 @@ impl ShellModel {
         self.tools.notice = None;
         self.tools.notice_sticky = false;
         // An editing tool (Wire, Edit route, Place, Change symbol, and the part-4b Text, Text edit, Graphic, Wire
-        // marker, Structure box and part-5 Image tools) works on one page (WP-S2.04 part 2, window-check ruling): a page or tab
-        // change ends it and Select takes over. The selection survives (WP-S2.03 §7.6).
+        // marker, Structure box and part-5 Image tools) works on one page (window-check ruling): a page or tab
+        // change ends it and Select takes over. The selection survives.
         if matches!(
             self.tools.tool.name(),
             "wire"
@@ -330,7 +328,7 @@ impl ShellModel {
     /// and rubber-band states) is not, so a click or a drag does not repeat the hint to a screen reader.
     fn run_tool(&mut self, ev: &CanvasEvent) -> Option<ToolOutput> {
         let (page, points_per_nm, pane) = self.focused_canvas()?;
-        // FT-822: the IP tool's proposal reads the project's source points of this revision.
+        // The IP tool's proposal reads the project's source points of this revision.
         self.sync_ip_project();
         let before = self.tools.tool.status_hint();
         let out = {
@@ -374,7 +372,7 @@ impl ShellModel {
 
     /// Hands `ev` to the active tool and acts on its output (§7.2).
     pub(super) fn send_tool(&mut self, ev: &CanvasEvent) -> Outcome {
-        // A refused key's notice stands in the status bar until the next canvas input (WP-S2.04 part 2). A tool
+        // A refused key's notice stands in the status bar until the next canvas input. A tool
         // refusal is sticky for the rest of its gesture: its release keeps it and the post-release hover keeps it, so
         // the user reads it after the gesture; the next primary press, key press, page change or tool change clears it
         // (window re-check W1). While the tool is still busy a move or a dwell clears it first: a valid move ends the
@@ -383,7 +381,7 @@ impl ShellModel {
         let keeps = self.tools.notice_sticky
             && match ev {
                 CanvasEvent::Release { .. } => true,
-                // FT-751: a move to the refused press's own point is no move (the window reports one after each
+                // A move to the refused press's own point is no move (the window reports one after each
                 // press), so a busy tool's refusal stands until the pointer really moves.
                 CanvasEvent::PointerMove { at, .. } => idle || self.tools.notice_at == Some(*at),
                 CanvasEvent::Dwell { .. } => idle || self.tools.notice_at.is_some(),
@@ -394,7 +392,7 @@ impl ShellModel {
             self.tools.notice_sticky = false;
             self.tools.notice_at = None;
         }
-        // A place tool that asks for the next designation refuses a click or Enter with the reason (WP-S2.04 §7.2).
+        // A place tool that asks for the next designation refuses a click or Enter with the reason.
         if matches!(ev, CanvasEvent::Press { .. } | CanvasEvent::Activate) && self.place_needs_designation() {
             return Outcome::refused(key!("reason-designation-needed"));
         }
@@ -409,7 +407,7 @@ impl ShellModel {
                 let committed = matches!(out, ToolOutput::Commit(_));
                 let out = self.apply_tool_output(out);
                 // The refused press's point; a refused Enter (no pointer point) is kept until the pointer or the
-                // grid cursor moves. A refused commit (FT-822: an interruption point a prevent rule refuses) too.
+                // grid cursor moves. A refused commit (an interruption point a prevent rule refuses) too.
                 if refused || (committed && matches!(out, Outcome::Refused { .. })) {
                     self.tools.notice_at = match ev {
                         CanvasEvent::Press { at, .. } => Some(*at),
@@ -417,13 +415,13 @@ impl ShellModel {
                         _ => None,
                     };
                 }
-                // The place tool says what it floats after a key or a cursor move (WP-S2.04 §7.2).
+                // The place tool says what it floats after a key or a cursor move.
                 if self.tools.tool.name() == "place"
                     && matches!(ev, CanvasEvent::Key(_) | CanvasEvent::CursorMove { .. })
                 {
                     self.announce_place();
                 }
-                // The Wire tool says where it routes from once it starts (WP-S2.04 §8.2).
+                // The Wire tool says where it routes from once it starts.
                 if self.tools.tool.name() == "wire"
                     && self.tools.tool.state() == "routing"
                     && matches!(
@@ -442,7 +440,7 @@ impl ShellModel {
     }
 
     /// The words of a tool's refusal: the reason's text, except where it names keys, which come from the keymap
-    /// (a refused turn during a layout drag reads as `layout.rotate`'s and `layout.flip`'s refusal; cycle-42 review).
+    /// (a refused turn during a layout drag reads as `layout.rotate`'s and `layout.flip`'s refusal).
     pub(super) fn refusal_text(&self, reason_key: Key<'static>) -> String {
         if reason_key == key!("reason-layout-turn") {
             self.layout_turn_refusal()
@@ -464,7 +462,7 @@ impl ShellModel {
                 self.run_preview(cmd.as_ref());
                 Outcome::Done
             }
-            // WP-S1.19 part 6: the macro tool's click is a host step, no command.
+            // The macro tool's click is a host step, no command.
             ToolOutput::Host(crate::tools::HostStep::MacroPlace { key, at }) => {
                 self.macro_place_from_tool(&key, at)
             }
@@ -482,22 +480,22 @@ impl ShellModel {
                     }
                     _ => None,
                 };
-                // FT-1023: the IP tool's "0V is taken, so this point is 0V-1.", said again by the placement's toast.
+                // The IP tool's "0V is taken, so this point is 0V-1.", said again by the placement's toast.
                 let taken = match cmd.name() {
                     "ip.place" | "connection.draw_to_ip" => self.tools.tool.proposal_note(),
                     _ => None,
                 };
-                // FT-1208: a terminal moved off a terminal of its strip, said again by the placement's toast.
+                // A terminal moved off a terminal of its strip, said again by the placement's toast.
                 let moved = match cmd.name() {
                     "device.place" => self.tools.tool.proposal_note(),
                     _ => None,
                 };
-                // WP-S2.09 D6: an earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
+                // An earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());
-                // FT-822: a refused interruption point keeps its ghost where it was and says why.
+                // A refused interruption point keeps its ghost where it was and says why.
                 let (out, keep_ghost) = self.ip_commit_refused(out);
-                // WP-S2.08 part 6 (D17): tip 1, a Line segment of the Graphic tool ending on a connection point.
+                // Tip 1, a Line segment of the Graphic tool ending on a connection point.
                 if out == Outcome::Done
                     && self.tools.tool.name() == "graphic"
                     && let Ok(json) = cmd.to_json()
@@ -505,7 +503,7 @@ impl ShellModel {
                 {
                     self.offer_tip(super::Tip::LineOnCp, Vec::new());
                 }
-                // FT-546: every placement answers with its result line (the tag and the cell, and the wires it drew),
+                // Every placement answers with its result line (the tag and the cell, and the wires it drew),
                 // said at the end of the dispatch, once the page tables show it.
                 if out == Outcome::Done
                     && cmd.name() == "device.place"
@@ -541,7 +539,7 @@ impl ShellModel {
                     self.tools.overlay = Overlay::default();
                 }
                 self.tools.preview = None;
-                // WP-S2.05 part 3: a committed paste returns to Select with the pasted representations selected.
+                // A committed paste returns to Select with the pasted representations selected.
                 self.tools.pasted = out == Outcome::Done && self.tools.tool.name() == "paste";
                 // FT-900 (ID-1147): what a placement made is the selection, replacing it: the schematic Place tool's
                 // representations (the tool stays armed) and a layout drop's placement, at the end of the dispatch.
@@ -552,16 +550,16 @@ impl ShellModel {
                 {
                     self.tools.placed_device = params["device"].as_str().and_then(|s| s.parse().ok());
                 }
-                // FT-995: the pick stack under the drop point is the dropped item and what it sits on; the HUD says
+                // The pick stack under the drop point is the dropped item and what it sits on; the HUD says
                 // nothing of it until the pointer moves on.
                 if out == Outcome::Done && matches!(cmd.name(), "layout.place" | "layout.move") {
                     self.tools.quiet_stack_at = self.canvas().and_then(CanvasModel::pointer);
                 }
-                // The IP tool's memory and its next name (WP-S2.04 part 3, §9.1).
+                // The IP tool's memory and its next name.
                 if out == Outcome::Done {
                     self.after_ip_commit();
                 }
-                // WP-S4.02 part 3: a dragged placement is selected after its move; the layout place tool, its device
+                // A dragged placement is selected after its move; the layout place tool, its device
                 // placed, gives way to Select.
                 self.tools.layout_announce |= out == Outcome::Done && cmd.name().starts_with("layout.");
                 if out == Outcome::Done
@@ -619,7 +617,7 @@ impl ShellModel {
                 // The same path as a refused canvas key: the status bar shows the reason until the next canvas input.
                 // A refusal ends the gesture it answers: its ghost and its kept preview go, as a refused release's
                 // `Select` and the old `Transient(Overlay::default())` did (review fix, F1). A refused turn (R on a
-                // rail, X on the plate) is no end: the layout ghost and its gesture stay with the reason (FT-991).
+                // rail, X on the plate) is no end: the layout ghost and its gesture stay with the reason.
                 if reason_key != key!("reason-layout-turn") {
                     self.tools.overlay = Overlay::default();
                     self.tools.preview = None;
@@ -737,7 +735,7 @@ impl ShellModel {
         }
     }
 
-    /// Whether the HUD keeps quiet about the pick stack under the pointer: it rests where a drop left it (FT-995).
+    /// Whether the HUD keeps quiet about the pick stack under the pointer: it rests where a drop left it.
     pub(crate) fn stack_quiet(&self) -> bool {
         self.tools.quiet_stack_at.is_some()
     }
@@ -750,7 +748,7 @@ impl ShellModel {
     }
 
     /// Words the selection's announcement again at another revision or in another language while the live region
-    /// still holds it (FT-1251: a rename in Properties keeps the selection); the end of every dispatch.
+    /// still holds it (a rename in Properties keeps the selection); the end of every dispatch.
     pub(super) fn sync_selection_announcement(&mut self) {
         let Some((rev, generation, text)) = &self.tools.selection_announced else {
             return;
@@ -762,7 +760,7 @@ impl ShellModel {
         }
     }
 
-    /// The live description's values of the one selected record (WP-S2.08 D13), from the session; `None` unless
+    /// The live description's values of the one selected record, from the session; `None` unless
     /// exactly one record is selected and it is a device (or one of its functions or representations), a connection or
     /// a page item.
     pub fn selection_words(&self) -> Option<ew_api::output::SelectionWords> {
@@ -828,7 +826,7 @@ impl ShellModel {
             Err(_) => Default::default(),
         };
         self.count(|c| c.preview_with += 1);
-        // What the tool may show of its preview (WP-S2.04: the predicted tag, the unmapped CPs).
+        // What the tool may show of its preview (the predicted tag, the unmapped CPs).
         let info = PreviewInfo {
             ok: result.is_ok(),
             tags: derived
@@ -982,7 +980,7 @@ impl ShellModel {
         if self.area.as_ref().map(|a| a.focused) != Some(g) {
             return Outcome::Done;
         }
-        // FT-995: a move away from a drop's point lets the HUD name the pick stack again.
+        // A move away from a drop's point lets the HUD name the pick stack again.
         if self.tools.quiet_stack_at.is_some_and(|q| q != at) {
             self.tools.quiet_stack_at = None;
         }
@@ -1006,7 +1004,7 @@ impl ShellModel {
     /// `canvas.press` and `canvas.release` (§7.9): `x_mm`, `y_mm`, optional `button` (`primary`, `middle`),
     /// `shift`, `ctrl`, `alt` and `group`. A press in the other group focuses it first; the middle button reaches
     /// no tool (it pans). A primary release after the tool's context changed under its press is dropped: no focus,
-    /// pointer, tool or selection change (FT-392).
+    /// pointer, tool or selection change.
     pub(crate) fn act_press(&mut self, p: &Map<String, Value>, release: bool) -> Outcome {
         let at = match point_mm(p) {
             Ok(Some(at)) => at,
@@ -1033,7 +1031,7 @@ impl ShellModel {
                 self.tools.drop_release = true;
                 return Outcome::refused(key!("reason-choose-strip"));
             }
-            // ID-1497 (5): so does the symbol chooser of a part without a symbol (FT-1375).
+            // So does the symbol chooser of a part without a symbol.
             if !release && self.tools.picker.as_ref().is_some_and(|p| p.part.is_some()) {
                 self.tools.press_held = false;
                 self.tools.drop_release = true;
@@ -1106,7 +1104,7 @@ impl ShellModel {
                 if let Some(at) = target.at_nm {
                     view.jump_view(at, zoom);
                 }
-                // ID-1231: with no key, the command by its menu path, as FT-1131's `external-none` names one.
+                // With no key, the command by its menu path, as FT-1131's `external-none` names one.
                 let key = crate::command_bar::key_of(self, "nav.follow");
                 let go = if key.is_empty() {
                     strings::text(key!("link-preview-go-none")).to_owned()
@@ -1124,7 +1122,7 @@ impl ShellModel {
     }
 
     /// `canvas.activate` (Enter): `Activate` to the tool, at the grid cursor; with Select idle and exactly one junction
-    /// selected, the junction sequence editor opens instead (WP-S2.04 §8.5). With `alt` (headless; WP-S2.04 part 2) it
+    /// selected, the junction sequence editor opens instead. With `alt` (headless) it
     /// is a click with Alt held at the grid cursor (a press and a release): the keyboard's way to place a symbol without
     /// its autoconnect proposals (FR-CON-003) or to fix a wire's bend without object snaps.
     pub(crate) fn act_activate_with(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -1161,14 +1159,14 @@ impl ShellModel {
         }
         // WP-S4.02 part 3 (doc 12 §12.4): on a panel page, Enter with a placement selected focuses Properties.
         if self.tools.tool.name() == "select" && self.selected_placements() > 0 {
-            // FT-997: Enter is the next action; a nudge's "Blocked by T55" ends with it.
+            // Enter is the next action; a nudge's "Blocked by T55" ends with it.
             self.tools.notice = None;
             self.tools.notice_sticky = false;
             self.tools.notice_at = None;
             return self.act_props_focus();
         }
         // The keyboard route editor commits without a grid cursor (its segment stays where it is), and so does the paste
-        // tool (its ghost stays where duplicate or the pointer put it; WP-S2.05 part 3).
+        // tool (its ghost stays where duplicate or the pointer put it).
         if matches!(self.tools.tool.name(), "route_edit" | "paste" | "layout_place")
             && self.canvas().and_then(CanvasModel::cursor).is_none()
         {
@@ -1246,12 +1244,12 @@ impl ShellModel {
     }
 }
 
-/// The toast of a refused command (FT-779): an invalid parameter names its field in words, never its JSON Pointer
+/// The toast of a refused command: an invalid parameter names its field in words, never its JSON Pointer
 /// (the command error itself stays machine-readable for the CLI); any other error as it prints. Every shell path that
 /// shows a command error goes through it: the tool host, `command.run`, the creation dialogs, paste, undo and redo.
 pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
     match e {
-        // FT-1395 (ID-1415): the reason in the window's language.
+        // The reason in the window's language.
         CmdError::InvalidParams {
             command,
             path,
@@ -1265,12 +1263,12 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
                 &rejected_words(message, Some(&**text)),
             ],
         ),
-        // FT-909 (ID-1108): a refusal shows its reason, never the error's Display form ("<source>: <reason>"); FT-1337
-        // (ID-1359 ruling 1): in the window's language
+        // A refusal shows its reason, never the error's Display form ("<source>: <reason>"); FT-1337:
+        // in the window's language
         CmdError::Rejected { reason, text, .. } => {
             failed(key!("error-command"), &[&rejected_words(reason, text.as_ref())])
         }
-        // FT-1337 and FT-1363 (ID-1359 ruling 1): every other reason through its own key in the window's language,
+        // Every other reason through its own key in the window's language,
         // never the error's Display form (which names the exposure class and the origin, `cmdlog:script.uiscript`).
         other => {
             let (key, args) = command_error_text(other);
@@ -1280,7 +1278,7 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
     }
 }
 
-/// A command's own refusal in the window's language (FT-1337, ID-1359 ruling 1): its keyed text, an argument that is
+/// A command's own refusal in the window's language: its keyed text, an argument that is
 /// itself a text in the same language; a refusal without a key (one of the API's own) as its English `reason`.
 pub(crate) fn rejected_words(reason: &str, text: Option<&ew_api::Text>) -> String {
     fn words(t: &ew_api::Text) -> String {
@@ -1298,7 +1296,7 @@ pub(crate) fn rejected_words(reason: &str, text: Option<&ew_api::Text>) -> Strin
     text.map_or_else(|| reason.to_owned(), words)
 }
 
-/// A prevent rule's refusal in the window's language, after its rule code (FT-1488, ID-1457): a finding of the
+/// A prevent rule's refusal in the window's language, after its rule code: a finding of the
 /// commands' own by its key, a finding of the check catalogue by the rule's message rendered from its arguments, else
 /// the finding as it prints.
 pub(crate) fn prevented_words(
@@ -1322,14 +1320,14 @@ pub(crate) fn prevented_words(
 }
 
 /// A command error that is neither an invalid parameter nor a command's refusal in the window's language, as
-/// [`command_error_text`] words it (FT-1488): the property grid's and Find's refusals read it.
+/// [`command_error_text`] words it: the property grid's and Find's refusals read it.
 pub(crate) fn command_error_words(e: &CmdError) -> String {
     let (key, args) = command_error_text(e);
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     strings::format(key, &args)
 }
 
-/// The keys [`command_error_text`] renders a command error by, one per reason (FT-1337): a test checks each has its
+/// The keys [`command_error_text`] renders a command error by, one per reason: a test checks each has its
 /// text in both languages with the same arguments.
 #[cfg(test)]
 const COMMAND_ERROR_KEYS: &[&str] = &[
@@ -1347,8 +1345,8 @@ const COMMAND_ERROR_KEYS: &[&str] = &[
     "reason-nothing-to-redo",
 ];
 
-/// The key and the arguments of a command error that is neither an invalid parameter nor a command's refusal
-/// (FT-1337, FT-1363): the command by its title, a history or internal error with its text, a prevent rule or a model
+/// The key and the arguments of a command error that is neither an invalid parameter nor a command's refusal:
+/// the command by its title, a history or internal error with its text, a prevent rule or a model
 /// error as it prints after its rule code. The match names every reason, so a new one does not build until it has its key.
 fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
     let title = |c: &str| strings::command_title(c).to_owned();
@@ -1366,7 +1364,7 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
         },
         CmdError::NeedsPreview { command } => (key!("error-command-needs-preview"), vec![title(command)]),
         // A prevent rule's and the model's own words, after their rule code (`EW-CORE-052: …`), which the IP tool and
-        // the card read; FT-1488 (ID-1457): in the window's language.
+        // the card read; FT-1488: in the window's language.
         CmdError::Prevented {
             rule,
             finding,
@@ -1427,7 +1425,7 @@ pub(crate) fn param_words(params: &Value, path: &str) -> String {
     let Some(at) = segments.iter().rposition(|s| s.parse::<usize>().is_err()) else {
         return strings::text(key!("error-param-whole")).to_owned();
     };
-    // FT-1237: the words of the UI language.
+    // The words of the UI language.
     let base = match segments[at] {
         "ips" => strings::text(key!("param-ips")).to_owned(),
         "cps" => strings::text(key!("param-cps")).to_owned(),
@@ -1457,7 +1455,7 @@ mod ft779 {
         ew_api::Text::checked_by_macro(key, args)
     }
 
-    /// FT-779: the toast of an invalid parameter names the field in words: a field set by `fields.set` by its label,
+    /// The toast of an invalid parameter names the field in words: a field set by `fields.set` by its label,
     /// any other parameter by its member humanised with its list position; never a JSON Pointer.
     #[test]
     fn an_invalid_parameter_toast_names_the_field_in_words() {
@@ -1488,7 +1486,7 @@ mod ft779 {
         );
     }
 
-    /// FT-1395 (ID-1415): an invalid parameter's reason reads in the window's language, a text inside it too, as a
+    /// An invalid parameter's reason reads in the window's language, a text inside it too, as a
     /// refusal's does; the error keeps its English message for the CLI.
     #[test]
     fn an_invalid_parameter_reads_in_the_windows_language() {
@@ -1516,7 +1514,7 @@ mod ft779 {
         );
     }
 
-    /// FT-1494 (ID-1457): another crate's error under `refusal-params-detail` (here serde's) reads in a
+    /// Another crate's error under `refusal-params-detail` (here serde's) reads in a
     /// Dutch window, the error keeping its English for the CLI.
     #[test]
     fn another_crates_detail_reads_in_a_dutch_window() {
@@ -1545,7 +1543,7 @@ mod ft779 {
         );
     }
 
-    /// FT-1488 (ID-1457): a prevent rule's refusal reads in the window's language, the rule's message rendered from the
+    /// A prevent rule's refusal reads in the window's language, the rule's message rendered from the
     /// finding's arguments after its code (which the IP tool reads); a history block by its own words; the errors keep
     /// their English for the CLI.
     #[test]
@@ -1613,7 +1611,7 @@ mod ft779 {
         Some(args)
     }
 
-    /// FT-1337 (ID-1359 ruling 1): every reason a command error is rendered by has its text in en-GB and nl-NL, with
+    /// Every reason a command error is rendered by has its text in en-GB and nl-NL, with
     /// the same arguments; the exhaustive match of `command_error_text` makes a new reason name its key, and this
     /// list holds it.
     #[test]
@@ -1670,7 +1668,7 @@ mod ft779 {
         );
     }
 
-    /// FT-1366 (C51-p6#8): a command error names what it changes or misses as items ("elementen"), never records.
+    /// A command error names what it changes or misses as items ("elementen"), never records.
     #[test]
     fn a_command_error_says_items_not_records() {
         let preview = CmdError::NeedsPreview {

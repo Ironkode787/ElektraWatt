@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The links of the layout kinds (WP-S4.01 D4, LM-2, LM-6; doc 03 §4.2, §16): a placement cannot outlive its device
+//! The links of the layout kinds (LM-2, LM-6; doc 03 §4.2, §16): a placement cannot outlive its device
 //! or function (cascade, EW-LAY-002), an occupied carrier and an enclosure's device cannot be removed (forbid), a
 //! separate surface part's device leaves the surface without one (unlink), the containment chain cascades, and a
 //! location with a layout space cannot be deleted. The three named indexes agree with a rebuild.

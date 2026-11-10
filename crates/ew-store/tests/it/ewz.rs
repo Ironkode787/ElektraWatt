@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 2, `.ewz` transport (D8, D9; decision log ID-1175): EZ-1 (a deterministic pack of one verified
+//! WP-S1.17 part 2, `.ewz` transport (D8, D9): EZ-1 (a deterministic pack of one verified
 //! generation that extracts to its source), EZ-3 (the extract, all or nothing) and EZ-4 (the reader's refusals); and the
-//! repair's pack of the files as found (decision log ID-1186).
+//! repair's pack of the files as found.
 
 use std::collections::BTreeMap;
 use std::io;
@@ -19,7 +19,7 @@ use crate::common::{fixture, small_fixture};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
-/// The git files EZ-1 adds to its copy of Golden A (Golden A has none, ID-1175 ruling 8).
+/// The git files EZ-1 adds to its copy of Golden A (Golden A has none, ruling 8).
 fn git_files() -> BTreeMap<String, Vec<u8>> {
     BTreeMap::from([
         (
@@ -160,7 +160,7 @@ fn ez1_golden_a_packs_deterministically_and_extracts_to_its_source() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
-/// The repair's pack as found (WP-S1.17, decision log ID-1186): on a copy of Golden A with git files, whose files match
+/// The repair's pack as found: on a copy of Golden A with git files, whose files match
 /// its manifest, it is `pack_store`'s archive byte for byte and counts no edited file; after a file is edited outside
 /// ElektraWatt, `pack_store` still refuses the generation, and the pack as found holds the file as it is, the manifest
 /// hashed to it, the other files and the git files as they are, and counts it.
@@ -373,7 +373,7 @@ fn ez3_a_failure_at_each_call_leaves_no_target_and_no_staging() {
     );
 }
 
-/// FT-1108: the parent's sync fails and the move back fails too (the process is killed at the sync): the complete
+/// The parent's sync fails and the move back fails too (the process is killed at the sync): the complete
 /// target stays, and the error says so instead of "nothing was extracted".
 #[test]
 fn ez3_a_failed_sync_and_a_failed_move_back_report_the_target_that_stays() {
@@ -399,7 +399,7 @@ fn ez3_a_failed_sync_and_a_failed_move_back_report_the_target_that_stays() {
     assert_eq!(names(&vfs), ["p.ew"]);
 }
 
-/// The `MemVfs` learnt directory renames (ID-1175 ruling 4): the subtree moves, an empty target directory is replaced,
+/// The `MemVfs` learnt directory renames: the subtree moves, an empty target directory is replaced,
 /// a non-empty one or a file is refused, and a rename into itself is refused.
 #[test]
 fn a_directory_rename_moves_its_subtree() {
@@ -538,7 +538,7 @@ fn refusal(bytes: &[u8]) -> String {
 }
 
 /// Deflatable data whose compressed size `c` is at least 327 bytes and whose size is exactly `201 · c`: a 201 : 1 entry
-/// above the 64 KiB floor (ID-1175 ruling 3).
+/// above the 64 KiB floor.
 fn ratio_201() -> Vec<u8> {
     let noise: Vec<u8> = (0..420u32)
         .map(|i| (i.wrapping_mul(2_654_435_761) >> 13) as u8)

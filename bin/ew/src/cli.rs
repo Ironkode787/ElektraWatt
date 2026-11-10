@@ -59,9 +59,9 @@ pub enum Command {
     ImportQet(ImportQetArgs),
     /// `ew import parts`.
     ImportParts(ImportPartsArgs),
-    /// `ew import csv`: golden-dialect tables as a new project (WP-S1.22 part 3, FT-27).
+    /// `ew import csv`: golden-dialect tables as a new project.
     ImportCsv(ImportCsvArgs),
-    /// `ew import table`: a round-trip table read back and its changed cells applied (WP-S3.08 D11).
+    /// `ew import table`: a round-trip table read back and its changed cells applied.
     ImportTable(ImportTableArgs),
     /// Check a project.
     Check(CheckArgs),
@@ -73,27 +73,27 @@ pub enum Command {
     SqlSchema,
     /// Write a report's rows as CSV.
     Export(ExportArgs),
-    /// `ew export table`: a navigator's table as CSV or XLSX for a round trip (WP-S3.08 D7, D8).
+    /// `ew export table`: a navigator's table as CSV or XLSX for a round trip.
     ExportTable(ExportTableArgs),
     /// Compare the memoised derived data with a cold recomputation.
     VerifyDerived(VerifyArgs),
     /// Write the pages as PDF, SVG or PNG.
     ExportPages(ExportPagesArgs),
-    /// `ew print`: the print set through an adapter, or to a file (WP-S3.07 part 2).
+    /// `ew print`: the print set through an adapter, or to a file.
     Print(PrintArgs),
-    /// `ew render --page <folio> --png`: one page as PNG (WP-S1.22 D7).
+    /// `ew render --page <folio> --png`: one page as PNG.
     Render(RenderArgs),
-    /// `ew export ewz`: the project's saved generation as an `.ewz` (WP-S1.17 D8).
+    /// `ew export ewz`: the project's saved generation as an `.ewz`.
     ExportEwz(ExportEwzArgs),
-    /// `ew extract`: an `.ewz` into a new project directory (WP-S1.17 D9).
+    /// `ew extract`: an `.ewz` into a new project directory.
     Extract(ExtractArgs),
     /// Replay a command log.
     Apply(ApplyArgs),
-    /// `ew fmt`: the project files in canonical form (WP-S1.22 D9).
+    /// `ew fmt`: the project files in canonical form.
     Fmt(FmtArgs),
-    /// `ew recover`: a crashed session's journal (WP-S1.22 D10, FT-252).
+    /// `ew recover`: a crashed session's journal.
     Recover(RecoverArgs),
-    /// `ew upgrade`: a project of an older format converted after a backup (WP-S1.17 D11).
+    /// `ew upgrade`: a project of an older format converted after a backup.
     Upgrade(UpgradeArgs),
     /// `ew update-copies`: the damaged library copies updated from their libraries (FT-1499).
     UpdateCopies(UpdateCopiesArgs),
@@ -103,33 +103,33 @@ pub enum Command {
     AssetsPurge(AssetsPurgeArgs),
     /// `ew lib`: list, search, reindex and create libraries.
     Lib(LibArgs),
-    /// `ew revision approve|release|withdraw` (WP-S1.18 parts 3 and 4).
+    /// `ew revision approve|release|withdraw`.
     Revision(RevisionArgs),
-    /// `ew commands [--json]`: the command registry (WP-S1.22 D6).
+    /// `ew commands [--json]`: the command registry.
     Commands {
         /// Print the result as JSON (`--json`).
         json: bool,
     },
-    /// `ew schema <name>`: a command's parameter schema or a result schema (WP-S1.22 D6).
+    /// `ew schema <name>`: a command's parameter schema or a result schema.
     Schema(String),
-    /// `ew query <name> <key> [--explain]`: one public query (WP-S1.22 D11, D12).
+    /// `ew query <name> <key> [--explain]`: one public query.
     Query(query::QueryArgs),
-    /// `ew queries [--json]`: the query registry (WP-S1.22 D11).
+    /// `ew queries [--json]`: the query registry.
     Queries {
         /// Print the result as JSON (`--json`).
         json: bool,
     },
-    /// `ew layout [--page <folio>] [--json]`: the layout measures (WP-S2.19 part 1, ID-1498).
+    /// `ew layout [--page <folio>] [--json]`: the layout measures.
     Layout(layout::LayoutArgs),
-    /// `ew route [--page <folio>] [--selection <ids>] [--dry-run] [--json]`: the page router (WP-S2.19 D13).
+    /// `ew route [--page <folio>] [--selection <ids>] [--dry-run] [--json]`: the page router.
     Route(route::RouteArgs),
-    /// `ew merge resolve`: the conflict records a merge left, resolved (WP-S1.17 D19).
+    /// `ew merge resolve`: the conflict records a merge left, resolved.
     MergeResolve(merge_resolve::MergeResolveArgs),
-    /// `ew diff` (WP-S1.17 D26, D27).
+    /// `ew diff`.
     Diff(diff::DiffArgs),
-    /// `ew git setup` (WP-S1.17 D28).
+    /// `ew git setup`.
     GitSetup(collab::GitSetupArgs),
-    /// `ew merge-driver %O %A %B %L %P`: the merge driver for project files (WP-S1.17 D15).
+    /// `ew merge-driver %O %A %B %L %P`: the merge driver for project files.
     MergeDriver(merge_driver::MergeDriverArgs),
 }
 
@@ -258,11 +258,11 @@ pub struct RecoverArgs {
     pub action: RecoverAction,
     /// Print the result as JSON (`--json`; not with `--discard`).
     pub json: bool,
-    /// `--yes` (with `--replay`): confirm the upgrade of a project in an older format without the typed word (FT-1336).
+    /// `--yes` (with `--replay`): confirm the upgrade of a project in an older format without the typed word.
     pub yes: bool,
 }
 
-/// The arguments of `ew upgrade` (WP-S1.17 D11, decision log ID-1221 ruling 6).
+/// The arguments of `ew upgrade`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct UpgradeArgs {
     /// The project directory; `None`: found from the current directory.
@@ -356,7 +356,7 @@ pub struct RenderArgs {
     pub json: bool,
 }
 
-/// The arguments of `ew export ewz` (WP-S1.17 D8).
+/// The arguments of `ew export ewz`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ExportEwzArgs {
     /// The project directory; `None`: found from the current directory.
@@ -367,7 +367,7 @@ pub struct ExportEwzArgs {
     pub json: bool,
 }
 
-/// The arguments of `ew extract` (WP-S1.17 D9).
+/// The arguments of `ew extract`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ExtractArgs {
     /// The `.ewz` file.
@@ -463,7 +463,7 @@ pub enum ExportKind {
         /// `--format pdf`.
         pdf: bool,
     },
-    /// The whole-project rows of a report kind (`export report --kind <kind>`, CSV only; WP-S3.06 D4).
+    /// The whole-project rows of a report kind (`export report --kind <kind>`, CSV only).
     ReportKind(String),
 }
 
@@ -480,11 +480,11 @@ pub struct ExportArgs {
     pub out: Option<PathBuf>,
     /// Print the result as JSON (`--json`).
     pub json: bool,
-    /// How the rows are written (`--format`, `--preset`, `--bom`, `--line-end`; WP-S3.08 D6, D7).
+    /// How the rows are written (`--format`, `--preset`, `--bom`, `--line-end`).
     pub format: RowFormat,
 }
 
-/// The arguments of `ew export table` (WP-S3.08 D7, D8).
+/// The arguments of `ew export table`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ExportTableArgs {
     /// The navigator's word (`strips`).
@@ -501,7 +501,7 @@ pub struct ExportTableArgs {
     pub format: RowFormat,
 }
 
-/// The arguments of `ew import table` (WP-S3.08 D7, D11).
+/// The arguments of `ew import table`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ImportTableArgs {
     /// The round-trip file.
@@ -520,7 +520,7 @@ pub struct ImportTableArgs {
     pub json: bool,
 }
 
-/// How a row export writes its rows (WP-S3.08 D7).
+/// How a row export writes its rows.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowFormat {
     /// CSV in a preset (the default: the golden dialect `ew`).
@@ -551,7 +551,7 @@ pub enum SqlFormat {
     Csv,
     /// JSON (`ew.sql-result/1`).
     Json,
-    /// An XLSX workbook (`--format xlsx`, with `--out`; FT-218).
+    /// An XLSX workbook (`--format xlsx`, with `--out`).
     Xlsx,
 }
 
@@ -577,7 +577,7 @@ pub struct SqlArgs {
     pub timeout: Option<u64>,
     /// The output file (`--out`).
     pub out: Option<PathBuf>,
-    /// The CSV preset and its overrides (`--preset`, `--bom`, `--line-end`; WP-S3.08 D6).
+    /// The CSV preset and its overrides (`--preset`, `--bom`, `--line-end`).
     pub csv: CsvOptions,
 }
 
@@ -718,7 +718,7 @@ where
 
 /// The exit code of [`parse`]'s error `e` for the arguments `args` after the program name: clap's (2 for a usage
 /// error, 0 for the help and the version), but 129 for a usage error of `merge-driver`, since git reads any code up to
-/// 128 from a merge driver as "conflicts written" (ADR-0012 amendment 2; decision log ID-1273).
+/// 128 from a merge driver as "conflicts written" (ADR-0012 amendment 2).
 pub fn error_exit_code(args: &[std::ffi::OsString], e: &clap::Error) -> i32 {
     if e.use_stderr() && args.first().is_some_and(|word| word == "merge-driver") {
         merge_driver::INTERNAL
@@ -781,7 +781,7 @@ pub fn run(cmd: Command) -> i32 {
 }
 
 /// A debug build panics here when `EW_DEBUG_PANIC` names `site` (`sql`: `ew sql`'s statement; `sql-write`: the writing
-/// of its result; `table-read`: `ew import table`'s read), inside the panic guard it tests (WP-S6.04 D15, SE-9: the guard at its call site); a release build
+/// of its result; `table-read`: `ew import table`'s read), inside the panic guard it tests (the guard at its call site); a release build
 /// compiles none of it.
 // The program boundary of a debug build's test fault, read at the site it fails; a release build has no such read.
 #[allow(

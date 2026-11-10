@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Build path (b) of Golden A (doc 20 §3.2, WP-S6.01): the builder DSL constructs the golden project
+//! Build path (b) of Golden A (doc 20 §3.2): the builder DSL constructs the golden project
 //! through commands only, from the shell; the acceptance SQL over it is compared with the expected CSVs.
 //!
 //! The acceptance runner (`crates/ew-api/tests/acceptance.rs`, AC-15) makes the comparison with the expected
@@ -91,7 +91,7 @@ fn path_b_is_deterministic_and_compares_by_content() {
 }
 
 /// The command log of path (b) replays with `Session::run_script` (`ew apply`) on the shell with the same
-/// ID source to the same model; undoing every step, `library.embed` included (FT-316), returns to the shell,
+/// ID source to the same model; undoing every step, `library.embed` included, returns to the shell,
 /// and a save after the undo reloads the shell.
 #[test]
 fn the_command_log_replays_and_every_step_undoes() {
@@ -121,7 +121,7 @@ fn the_command_log_replays_and_every_step_undoes() {
     // One undo step per command that changed the model: nine of the commands leave the model as it was (a
     // value the record already had), so they leave no step: two from before, and since WP-S1.21 part 1 the
     // `plc_module` aspect step of each of the seven modules, which normaliser N0 gave the aspect (and N1 the
-    // channels) when `device.create` gave the device its module part. FT-316 (cycle 19): the last step undone is the
+    // channels) when `device.create` gave the device its module part. FT-316: the last step undone is the
     // first command, `library.embed`, although the shell's project-local parts name the embedded function
     // definitions (`part.function_template[].fndef`): the `LibRef` keep-alive is the delete-time rule
     // EW-INV-021, which undo skips, so the state before the embedding (a `LibRef` to an item the project
@@ -185,7 +185,7 @@ fn store_options() -> ew_api::StoreOptions {
     o
 }
 
-/// FT-278: the shell holds the project row and the project-local parts only; the non-local copies come
+/// The shell holds the project row and the project-local parts only; the non-local copies come
 /// from one `library.embed`, the first command, and path (b) holds the library of path (a) in the end.
 #[test]
 fn the_builder_embeds_the_non_local_library_copies() {
@@ -194,7 +194,7 @@ fn the_builder_embeds_the_non_local_library_copies() {
     let project = shell.project.id.as_uuid();
     let local = |d: &ew_schema::LibDocument| match d {
         ew_schema::LibDocument::Part(c) => c.library_id.as_uuid() == project,
-        // WP-S1.19 D10: the manufacturer copies the parts name are project-local like them.
+        // The manufacturer copies the parts name are project-local like them.
         ew_schema::LibDocument::Manufacturer(c) => c.library_id.as_uuid() == project,
         _ => false,
     };
@@ -255,7 +255,7 @@ fn rows_by_key(session: &Session) -> BTreeMap<String, serde_json::Value> {
         .collect()
 }
 
-/// FT-337 and FT-341: the DSL verbs for the logo and for a block whose form comes from the library send the
+/// The DSL verbs for the logo and for a block whose form comes from the library send the
 /// parameters of their commands.
 #[test]
 fn the_logo_and_library_form_verbs_send_their_command_parameters() {
@@ -303,8 +303,8 @@ fn the_logo_and_library_form_verbs_send_their_command_parameters() {
 /// Path (b) holds the records of path (a) record for record, up to the IDs the commands minted: every
 /// record of the bootstrap (its `source_ref` aside), with its references remapped to the built IDs,
 /// equals the built record under the built ID, and path (b) holds no other record. The import lineage is
-/// path (a)'s own. The revisions (typed since FT-165) are compared like every other record, and so are the
-/// library copies (FT-278).
+/// path (a)'s own. The revisions (typed) are compared like every other record, and so are the
+/// library copies.
 ///
 /// On the same build: what path (b) issues and what it cannot write yet (no command), pinned so that a new command
 /// or a table change shows here (since FT-165 path (b) writes every record: nothing is left out); and FT-278's
@@ -336,7 +336,7 @@ fn path_b_equals_path_a_record_by_record_up_to_ids() {
         .collect();
     // WP-S1.20 GA-2 (FL-14): the 16 fluid lines F1 to F16 are drawn, and normaliser N-FL-4 makes the eight `drives`
     // links of the valves they join, so no `device.link` is issued; the links compare equal record by record below.
-    // WP-S2.19 §8.2 and FT-1323: the 89 page connections of folios 3, 101 to 106 and 203 take their stored routes (the
+    // The 89 page connections of folios 3, 101 to 106 and 203 take their stored routes (the
     // router's) by `connection.route`, and the eight valves of folio 203 their moved function-text slot by
     // `fields.set`.
     assert_eq!(

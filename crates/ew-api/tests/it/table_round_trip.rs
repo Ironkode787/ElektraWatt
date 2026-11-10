@@ -160,7 +160,7 @@ fn the_round_trip_refuses_in_words() {
     );
 }
 
-/// SE-9 (WP-S6.04 D15, NFR-REL-12): a read that panics under `guard_table_read`, after it read the file against
+/// SE-9 (NFR-REL-12): a read that panics under `guard_table_read`, after it read the file against
 /// the project, is S2 whole with the file's name, and the session's model is unchanged; a refusal keeps its own text.
 #[test]
 fn a_panicking_read_gives_s2_and_changes_nothing() {

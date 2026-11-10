@@ -70,7 +70,7 @@ fn the_unplaced_navigator_and_the_layout_options_card() {
     h.get_by_role_and_label(egui::Role::Tab, "1 mm").click();
     settle(&mut h);
     assert_eq!(h.state().shell().layout_options().grid_mm, 1);
-    // Escape drops the ghost and the tool gives way to Select (FT-993), the card with it.
+    // Escape drops the ghost and the tool gives way to Select, the card with it.
     dispatch(&mut h, "ui.dismiss", json!({}));
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "select");
@@ -82,7 +82,7 @@ fn the_unplaced_navigator_and_the_layout_options_card() {
     assert_eq!(h.state().shell().layout_options().mode, SnapMode::Push);
 }
 
-/// FT-997 (ID-1147, doc 12 §12.1): Lock shows `lock` at the locked placement's top-right corner, standing on the
+/// FT-997 (doc 12 §12.1): Lock shows `lock` at the locked placement's top-right corner, standing on the
 /// footprint's top edge, `icon.sm` square and fixed on screen at another zoom; Unlock takes it away.
 #[test]
 fn ft997_a_locked_placement_shows_the_lock_icon() {

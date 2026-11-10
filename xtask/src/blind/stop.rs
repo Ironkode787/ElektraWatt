@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `stop` (WP-S6.13 §5.8): the epilogue, the product's exit, the exports of the copied `ew`, the second hash of `golden/`
+//! `stop`: the epilogue, the product's exit, the exports of the copied `ew`, the second hash of `golden/`
 //! and the report.
 //!
 //! The epilogue is part of `steps.uiscript`: `page.describe` for every folio of the run, `file.save` only when the
@@ -558,7 +558,7 @@ mod tests {
         );
     }
 
-    /// FT-484: a run stops cleanly when only `expected/` or a document changed, and fails when the
+    /// A run stops cleanly when only `expected/` or a document changed, and fails when the
     /// golden project changed.
     #[test]
     fn only_the_golden_project_voids_a_run() {

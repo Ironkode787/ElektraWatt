@@ -5,7 +5,7 @@
 //! QElectroTech project importer and opens the batch as a [`Session`], so that front-ends see the import,
 //! its migration report and the derived pages without naming the record types.
 //!
-//! Every importer call goes through [`front_door`] (WP-S3.09 D4). A QET project becomes a project through `import.apply`
+//! Every importer call goes through [`front_door`]. A QET project becomes a project through `import.apply`
 //! ([`session_from_import`], D7): the batch on a fork of an empty project, the normalisers, the structural invariants
 //! (prevent rules relaxed to findings) and the import run, committed as the project's first state. The golden CSV
 //! bootstrap keeps [`session_from_batch`] and writes no run (D13).
@@ -24,11 +24,11 @@ pub use ew_import_qet::ew_interop_api::{
 pub use ew_import_qet::migration;
 
 // -------------------------------------------------------------------------------------------------------------------
-// The front door (WP-S3.09 D3, D4)
+// The front door
 
 pub use ew_import_qet::ew_interop_api::{Limits, LineageInfo};
 
-/// Why a batch breaks the importer contract (WP-S3.09 D3, T2's reasons).
+/// Why a batch breaks the importer contract (T2's reasons).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ContractBreach {
     /// Two records share `(kind, id)`.
@@ -53,7 +53,7 @@ impl ContractBreach {
     }
 }
 
-/// Why the front door imported nothing (WP-S3.09 D4): the model is untouched in every case.
+/// Why the front door imported nothing: the model is untouched in every case.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Refusal {
     /// The importer, or a limit checked before it ran, refused the input (the importer's English text).
@@ -120,7 +120,7 @@ impl FrontDoorOutput for ew_import_catalog::PartsImport {}
 
 impl FrontDoorOutput for ew_import_tables::PartsTables {}
 
-/// The one front door of every importer call (WP-S3.09 D4): refuses inputs above `limits.max_input_bytes`, a total
+/// The one front door of every importer call: refuses inputs above `limits.max_input_bytes`, a total
 /// above `limits.max_expanded_bytes` and more than `limits.max_input_files` inputs before `run` is called (`sizes` are
 /// the inputs' byte counts); runs `run` inside `catch_unwind`, a panic becoming [`Refusal::Panicked`]; and checks a
 /// batch against the contract ([`check_contract`], against `lineage` when the batch emits none). `file` names the
@@ -162,7 +162,7 @@ pub fn front_door<T: FrontDoorOutput>(
     Ok(out)
 }
 
-/// The importer contract of a batch (WP-S3.09 D3): no two records share `(kind, id)`; every record with a `source_ref`
+/// The importer contract of a batch: no two records share `(kind, id)`; every record with a `source_ref`
 /// names the batch's lineage (its `import_lineage` record, else `lineage`); a record's ID is
 /// `v5(namespace, source_ref.key)`, except the project record, channels and template functions (`v5(device, index)`,
 /// ADR-0004 amendment 2); and the records are sorted by kind rank, then ID. It never repairs a batch.
@@ -416,7 +416,7 @@ pub fn import_qet_with(
 }
 
 /// The first half of [`import_qet`]: the file through the front door into a new project's context, the batch only. It
-/// makes no session, so a host may run it as a job (WP-S3.09 D4: a `Session` is not `Send`).
+/// makes no session, so a host may run it as a job (a `Session` is not `Send`).
 ///
 /// # Errors
 ///
@@ -440,7 +440,7 @@ pub fn imported_of(batch: ImportBatch, options: SessionOptions) -> Imported {
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// ApplyImport (WP-S3.09 D6, D7, D13)
+// ApplyImport
 
 /// The import run of a batch's report (D6): its findings in the importer's order, its counts and its source; the ID
 /// and the record hashes are the transaction's. `lineage` is the lineage imported into.
@@ -607,7 +607,7 @@ pub fn apply_command(
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// Re-import into a lineage (WP-S3.09 D10 to D12)
+// Re-import into a lineage
 
 pub use ew_commands::commands::{MemberChange, ReimportClass, ReimportPlan, ReimportRow, member_text};
 
@@ -1017,7 +1017,7 @@ pub fn session_from_import(
     Ok(session)
 }
 
-/// The open findings of a project's migration report by severity (T5, WP-S3.09 D8): `(errors, warnings, infos)` of a
+/// The open findings of a project's migration report by severity (T5): `(errors, warnings, infos)` of a
 /// run of the `migration` scheme.
 pub fn migration_counts(session: &Session) -> (usize, usize, usize) {
     use crate::checks::Severity as S;
@@ -1030,13 +1030,13 @@ pub fn migration_counts(session: &Session) -> (usize, usize, usize) {
 /// The lenient check findings of an imported model (doc 15 §10.2, doc 14 §2.5): the `migration` scheme of
 /// `ew-checks` (every rule of `pre-delivery` at its release severity, reporting prevent violations as
 /// findings) run over the session, its open findings grouped by rule in rule order, one message per finding.
-/// This replaces the hand-written duplicate checks of cycle 11 (decision log ID-276); the import run's own
+/// This replaces the hand-written duplicate checks of cycle 11; the import run's own
 /// findings stay in the importer's report.
 pub fn lenient_findings(session: &Session) -> Vec<migration::LiveGroup> {
     use std::collections::BTreeMap;
     let report = session.check(&crate::checks::MIGRATION, crate::checks::CheckMode::Release);
     let mut groups: BTreeMap<&'static str, migration::LiveGroup> = BTreeMap::new();
-    // The import run's own findings are the report's groups (WP-S3.09 D9); the live groups are the rules'.
+    // The import run's own findings are the report's groups; the live groups are the rules'.
     for f in report
         .findings
         .iter()
@@ -1056,7 +1056,7 @@ pub fn lenient_findings(session: &Session) -> Vec<migration::LiveGroup> {
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// Parts tables (FT-410)
+// Parts tables
 
 /// The `(created, skipped)` counts of a `parts.import` outcome note.
 pub use ew_commands::commands::import_counts as parts_import_counts;
@@ -1065,7 +1065,7 @@ pub use ew_import_tables::SiblingTables;
 /// The command a parts table import dispatches.
 pub const PARTS_IMPORT: &str = "parts.import";
 
-/// Part copies read from a parts table, ready for `parts.import` (FT-410).
+/// Part copies read from a parts table, ready for `parts.import`.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PartsImport {
     /// The base name of the chosen file (the copies' provenance).
@@ -1074,7 +1074,7 @@ pub struct PartsImport {
     pub siblings: Vec<String>,
     /// The project-local part copies in the `lib/` JSON form, in `parts.csv` row order.
     pub copies: Vec<serde_json::Value>,
-    /// The project-local manufacturer copies the parts name (WP-S1.19 D10), in the `lib/` JSON form, in name order.
+    /// The project-local manufacturer copies the parts name, in the `lib/` JSON form, in name order.
     pub manufacturers: Vec<serde_json::Value>,
 }
 
@@ -1093,7 +1093,7 @@ pub enum PartsReadError {
     Io(String, std::io::Error),
     /// The tables were refused (the first problem, with its pointer).
     Import(ImportError),
-    /// The front door refused the import: the importer panicked (WP-S3.09 D4).
+    /// The front door refused the import: the importer panicked.
     Refused(Refusal),
 }
 
@@ -1134,7 +1134,7 @@ fn starter_fndefs() -> &'static ew_import_tables::BuiltinLibrary {
 /// project `project` (`ew_import_tables::parse_parts_tables` with the starter FnDefs). `source` is the chosen file's
 /// name; only its base name is kept.
 ///
-/// A table that a spreadsheet saved with a byte-order mark (one leading U+FEFF) is read without it (FT-464): the
+/// A table that a spreadsheet saved with a byte-order mark (one leading U+FEFF) is read without it: the
 /// user's path of `parts.import` and `ew import parts` accepts it, while the golden bootstrap, which calls
 /// `ew_import_tables` directly, stays strict.
 ///
@@ -1254,7 +1254,7 @@ pub fn read_parts_tables(
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// Golden-dialect tables (`ew import csv`, FR-IMP-022, FT-27)
+// Golden-dialect tables (`ew import csv`, FR-IMP-022)
 
 pub use ew_import_tables::LibraryError;
 pub use ew_import_tables::csv::CsvError;
@@ -1292,7 +1292,7 @@ pub enum TablesError {
     Library(LibraryError),
     /// The import as a whole is refused (a limit, no project table, a file name that is a path).
     Import(ImportError),
-    /// The front door refused the import: the importer panicked or its batch breaks the contract (WP-S3.09 D4).
+    /// The front door refused the import: the importer panicked or its batch breaks the contract.
     Refused(Refusal),
 }
 
@@ -1455,7 +1455,7 @@ impl std::error::Error for CreateError {}
 /// Writes `batch` as a new project (generation 1) into `out`, which must not exist or be an empty directory: the
 /// project is written into a new sibling directory and renamed to `out` once complete, so `out` never holds a part of
 /// a project. The project is not journalled and its lock is released afterwards. Returns whether the manifest written is
-/// marked `unstable` (an unreleased format: the CLI warns, FT-1489).
+/// marked `unstable` (an unreleased format: the CLI warns).
 ///
 /// # Errors
 ///
@@ -1471,7 +1471,7 @@ pub fn create_project(
     write_new(session, out, empty_dir, store)
 }
 
-/// Writes `session` as a new project into `out` under [`create_project`]'s rule (`ew import qet --out`, WP-S3.09 D8):
+/// Writes `session` as a new project into `out` under [`create_project`]'s rule (`ew import qet --out`):
 /// `out` absent or empty, the project written into a sibling directory and renamed when complete. Returns whether the
 /// manifest written is marked `unstable`, as [`create_project`].
 ///

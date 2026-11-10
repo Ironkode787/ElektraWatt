@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The table round trip (WP-S3.08 part 2; D8, D9, D11; decision log ID-1174): a navigator table as a [`Table`]
+//! The table round trip (D8, D9, D11): a navigator table as a [`Table`]
 //! ([`Session::table_export`]), and a round-trip file read back against the project's table of the same key
 //! ([`Session::table_import`]), its changed cells compiled by table mode's own rule ([`super::table_edit::compile`]) into
 //! one `fields.set_many` ([`Session::apply_table_import`]).
 //!
-//! **Tables and keys** (D8, ID-1174 ruling 4): `nav:<word>` for the twelve table navigators ([`TABLE_NAVIGATORS`]),
+//! **Tables and keys** (D8, ruling 4): `nav:<word>` for the twelve table navigators ([`TABLE_NAVIGATORS`]),
 //! `nav:strips/<strip uuid>` for one strip's rows; the report tables of `ew export` (`block:<uuid>`, `kind:<name>`,
 //! `kind:parts_summary/<mode>`); `sql` is never imported. A navigator table is every table row in node order with every
 //! column; its rows' IDs are the node keys.
@@ -46,7 +46,7 @@ use super::table_edit::{
 use super::{InputError, RowValue};
 use crate::{AnyCommand, CmdError, Receipt, Session, Submit};
 
-/// The navigators whose tables a round trip exports (D8, ID-1174 ruling 4), in [`NavKind::ALL`]'s order: not the
+/// The navigators whose tables a round trip exports (D8, ruling 4), in [`NavKind::ALL`]'s order: not the
 /// macros, libraries or messages.
 pub const TABLE_NAVIGATORS: [NavKind; 12] = [
     NavKind::Pages,
@@ -171,7 +171,7 @@ pub enum TableImportError {
     NoIdColumn,
     /// More changed cells than one import applies (their number).
     TooManyCells(usize),
-    /// The read panicked on the file named (WP-S6.04 D15, [`guard_table_read`]).
+    /// The read panicked on the file named ([`guard_table_read`]).
     Panicked(String),
 }
 
@@ -208,7 +208,7 @@ impl fmt::Display for TableImportError {
 impl std::error::Error for TableImportError {}
 
 /// Runs `read`, a table round trip's read of the file `file` ([`Session::table_import`]), inside `catch_unwind`
-/// (WP-S6.04 D15, NFR-REL-12): a panic becomes [`TableImportError::Panicked`] with the file's name. The read is pure
+/// (NFR-REL-12): a panic becomes [`TableImportError::Panicked`] with the file's name. The read is pure
 /// over the bytes and the session (`&self`), so a panic leaves the model and the files as they were. The window and
 /// `ew import table` call the read through it.
 ///
@@ -934,7 +934,7 @@ impl Merge<'_> {
             };
             let targets = row_targets(node, &kind);
             if targets.is_empty() || define_point(node, &kind, &path).is_some() {
-                // A potential's defining cell (WP-S1.16 D4) is defined in the window.
+                // A potential's defining cell is defined in the window.
                 return Err(ew_commands::text_key!("table-reason-window"));
             }
             return Ok(((kind, path), targets));

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas tool framework (WP-S2.03 part 2, spec §7; decision log ID-536): the tool contract, the overlay, the
+//! The canvas tool framework (spec §7): the tool contract, the overlay, the
 //! snapper, the selection and the two shipped tools, Select and Measure, which change nothing.
 //!
 //! **The contract** (§7.1). A [`Tool`] is a state machine over typed input events ([`CanvasEvent`], in sheet nm):
@@ -51,9 +51,9 @@
 
 pub mod autoconnect;
 pub mod black_box;
-// WP-S2.18 part 1: the chooser list of doc 16a §6.22 (the Join chooser).
+// The chooser list of doc 16a §6.22 (the Join chooser).
 mod chooser;
-// WP-S4.02 part 4 (D11): Draw rail and Draw duct.
+// Draw rail and Draw duct.
 pub mod duct_draw;
 mod exchange;
 pub mod graphic;
@@ -61,15 +61,12 @@ mod host;
 pub mod image;
 pub mod ip;
 mod junction_editor;
-// WP-S4.02 part 3
 pub mod layout;
+pub mod macro_place;
 pub mod marker;
 mod measure;
 pub mod move_keys;
 mod overlay;
-// WP-S1.19 part 6
-pub mod macro_place;
-// WP-S2.05 part 3
 mod paste;
 mod picker;
 mod place;
@@ -93,12 +90,11 @@ pub use junction_editor::{JunctionEditor, JunctionMember, junction_name};
 pub use layout::{LayoutOptions, LayoutPlaceTool};
 pub use macro_place::MacroTool;
 pub use marker::{MarkerTool, crossed_connections};
-pub use rail_draw::{DrawCard, DrawPart, RailDrawTool};
-// WP-S2.05 part 3
 pub use paste::PasteTool;
 pub(crate) use picker::grid_words;
 pub use picker::{PendingTerminal, Picker, PickerMode, PickerRow, symbol_name};
 pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
+pub use rail_draw::{DrawCard, DrawPart, RailDrawTool};
 pub use route_edit::RouteEditTool;
 pub use structure_box::StructureBoxTool;
 pub use text::{BINDABLE, TextEditTool, TextTool};
@@ -133,7 +129,7 @@ pub struct Mods {
     pub alt: bool,
 }
 
-/// A pointer button. Only [`Button::Primary`] reaches a tool; the middle button pans (WP-S2.02).
+/// A pointer button. Only [`Button::Primary`] reaches a tool; the middle button pans.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Button {
     /// The primary button.
@@ -186,13 +182,13 @@ pub enum CanvasEvent {
     Back,
     /// Escape.
     Escape,
-    /// A tool key (WP-S2.04 §6.1): a registry action of the key sends it to the active tool.
+    /// A tool key: a registry action of the key sends it to the active tool.
     Key(ToolKey),
-    /// Text typed into the tool (`text.input`, WP-S2.04 §6.1).
+    /// Text typed into the tool (`text.input`).
     Text(String),
 }
 
-/// The tool keys (WP-S2.04 §6.1): each is a registry action whose handler sends [`CanvasEvent::Key`] to the active
+/// The tool keys: each is a registry action whose handler sends [`CanvasEvent::Key`] to the active
 /// tool.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ToolKey {
@@ -220,7 +216,7 @@ pub enum ToolKey {
     Finish,
 }
 
-/// The route a tool is drawing (WP-S2.04 §8.7): the transcript's `route` member and the describe text's `canvas
+/// The route a tool is drawing: the transcript's `route` member and the describe text's `canvas
 /// route` line.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct RouteInfo {
@@ -247,7 +243,7 @@ pub struct PreviewInfo {
     pub message: Option<String>,
 }
 
-/// What a tool floats or drags (WP-S2.04 §7.7): the transcript's `ghost`, the describe text's `canvas ghost` line.
+/// What a tool floats or drags: the transcript's `ghost`, the describe text's `canvas ghost` line.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Ghost {
     /// The place tool's floating symbol.
@@ -273,7 +269,7 @@ pub enum Ghost {
         /// The proposals as the describe text names them: the ghost CP's designation in quotes (two for a split) and
         /// the target CP's label (`None` for a split).
         proposals: Vec<(String, Option<String>)>,
-        /// Whether J offers the Join chooser: the symbol's FnDef can be an auxiliary function (WP-S2.18 D2).
+        /// Whether J offers the Join chooser: the symbol's FnDef can be an auxiliary function.
         joinable: bool,
     },
     /// A move of the selection in grid steps.
@@ -286,10 +282,9 @@ pub enum Ghost {
         readout: String,
         /// The autoconnect proposals of the moved CPs (part 2, §8.3).
         proposals: Vec<(String, Option<String>)>,
-        /// Whether the move commits them (WP-S2.19 D15: connect on move).
+        /// Whether the move commits them (connect on move).
         connect: bool,
     },
-    // WP-S2.05 part 3
     /// The paste tool's floating fragment (§8.8).
     Paste {
         /// The fragment's records.
@@ -306,7 +301,7 @@ pub enum Ghost {
         /// The designations of the function CPs left unmapped.
         unmapped: Vec<String>,
     },
-    /// The IP tool's floating interruption point (WP-S2.04 §9.6).
+    /// The IP tool's floating interruption point.
     Ip {
         /// The proposed name.
         name: String,
@@ -321,14 +316,14 @@ pub enum Ghost {
         /// The pin a click connects the point to, in words (`-102F2:14`; FIXPT41); `None` where it places it free.
         connects: Option<String>,
     },
-    /// The black box tool's rectangle (WP-S2.04 §9.6).
+    /// The black box tool's rectangle.
     Box {
         /// The outline's vertices (0 before the first corner).
         outline: usize,
         /// The connection points it lays out.
         cps: usize,
     },
-    /// The Text tool's or Text edit's free text (WP-S2.04 §10.7).
+    /// The Text tool's or Text edit's free text.
     Text {
         /// The anchor point on the page, nm; `None` before the first pointer or cursor move.
         at_nm: Option<(i64, i64)>,
@@ -337,7 +332,7 @@ pub enum Ghost {
         /// The binding name (`project.description`, …) of a bound text.
         bind: Option<String>,
     },
-    /// The Graphic tool's shape (WP-S2.04 §10.7).
+    /// The Graphic tool's shape.
     Graphic {
         /// The shape's word (`line`, `polyline`, `rect`, `circle`, `arc`, `polygon`).
         shape: &'static str,
@@ -346,24 +341,23 @@ pub enum Ghost {
         /// Whether an arc is drawn anticlockwise.
         anticlockwise: bool,
     },
-    /// The Wire marker tool's group (WP-S2.04 §10.7).
+    /// The Wire marker tool's group.
     Marker {
         /// The crossed connections (0 in the armed state).
         connections: usize,
         /// The fields' text (`2.5 BK BU`); `None` when both fields are empty.
         text: Option<String>,
     },
-    /// The Structure box tool's outline (WP-S2.04 §10.7).
+    /// The Structure box tool's outline.
     StructureBox {
         /// The outline's vertices: 0 in the armed state, the fixed points while drawing, all of them while typing.
         outline: usize,
     },
-    /// The Image tool's asset (WP-S2.04 §11).
+    /// The Image tool's asset.
     Image {
         /// The asset's hash (`sha256:<64 hex>`); `None` before `image.pick`.
         asset: Option<String>,
     },
-    // WP-S4.02 part 3
     /// The layout place tool's or Select's dragged placement on a panel page (D4, doc 16a §7.3).
     Layout {
         /// The device's tag (`F55`).
@@ -393,7 +387,7 @@ pub enum Ghost {
 }
 
 impl Ghost {
-    /// Whether J offers the Join chooser (a Place ghost whose symbol can be an auxiliary function, WP-S2.18 D2).
+    /// Whether J offers the Join chooser (a Place ghost whose symbol can be an auxiliary function).
     pub fn joinable(&self) -> bool {
         matches!(self, Ghost::Place { joinable: true, .. })
     }
@@ -436,7 +430,7 @@ pub enum ToolOutput {
 /// A step a tool asks of the host ([`ToolOutput::Host`]).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum HostStep {
-    /// The macro tool's click (WP-S1.19 §11): compose `macro.insert` of the Macros navigator's row `key` at `at`
+    /// The macro tool's click: compose `macro.insert` of the Macros navigator's row `key` at `at`
     /// (page nm) and open its card.
     MacroPlace {
         /// The Macros navigator's row key.
@@ -462,7 +456,7 @@ impl std::fmt::Debug for ToolOutput {
     }
 }
 
-/// A tool's status hint (FT-964, ID-1150): the key of its text and the actions whose first keys, from the keymap, fill
+/// A tool's status hint: the key of its text and the actions whose first keys, from the keymap, fill
 /// its `{0}`, `{1}`, … ([`crate::shell::ShellModel::tool_hint`]), so a rebound key shows. A key no action binds (a
 /// mouse chord, a modifier held during a drag, a key inside a text field) stays in the text.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -505,7 +499,7 @@ pub trait Tool {
     /// Handles one event: one output.
     fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> ToolOutput;
 
-    /// The status hint: its text's key in [`crate::strings`] and the actions whose keys fill it (FT-964).
+    /// The status hint: its text's key in [`crate::strings`] and the actions whose keys fill it.
     fn status_hint(&self) -> Hint;
 
     /// Whether the hover, the link hover and the link preview are shown while the tool is active.
@@ -520,14 +514,14 @@ pub trait Tool {
         None
     }
 
-    /// Whether the window sends a double click's second press as `tool.finish` (WP-S2.04 §6.1). Only a tool whose
+    /// Whether the window sends a double click's second press as `tool.finish`. Only a tool whose
     /// keymap (doc 16) or status hint names the double click answers `true`; every other tool sees two plain presses,
     /// so two quick clicks of the Place tool place twice.
     fn finishes_on_double_click(&self) -> bool {
         false
     }
 
-    /// What the tool floats or drags; `None` while it holds nothing (WP-S2.04 §7.7).
+    /// What the tool floats or drags; `None` while it holds nothing.
     fn ghost(&self) -> Option<Ghost> {
         None
     }
@@ -539,12 +533,12 @@ pub trait Tool {
         None
     }
 
-    /// The host committed the tool's command (`done`) or the commit failed (fix round of WP-S2.04 part 1, item 2).
+    /// The host committed the tool's command (`done`) or the commit failed (fix round, item 2).
     fn on_commit(&mut self, done: bool) {
         let _ = done;
     }
 
-    /// The route the tool is drawing (WP-S2.04 §8.7); `None` while it draws none.
+    /// The route the tool is drawing; `None` while it draws none.
     fn route_info(&self) -> Option<RouteInfo> {
         None
     }
@@ -555,7 +549,6 @@ pub trait Tool {
         None
     }
 
-    // WP-S4.02 part 3
     /// The outline of a refused drop and its diagonal cross, in sheet nm (doc 16a §7.3: shape and text, never colour
     /// alone): the host draws them in `canvas.conflict` with the conflict overlay. Empty for a tool without one.
     fn conflict_lines(&self) -> Vec<Vec<(i64, i64)>> {
@@ -581,7 +574,7 @@ pub struct ToolCx<'a> {
     pub snapper: &'a Snapper,
     /// The window's selection.
     pub selection: &'a Selection,
-    /// The placing options of the tool options card (WP-S4.02 part 3): the sticky mode and the grid step.
+    /// The placing options of the tool options card: the sticky mode and the grid step.
     pub layout: LayoutOptions,
     /// Whether a move connects its autoconnect proposals (WP-S2.19 D15: on by default; `tool.connect_on_move` toggles
     /// it for the session).
@@ -702,7 +695,7 @@ pub fn pick_stack(page: &CanvasPage, snapper: &Snapper, at: (i64, i64), reach: f
             .min()
             .unwrap_or(i128::MAX)
     };
-    // FT-1438 (ID-1397): a press on a symbol's body, the middle half of one of its rectangles each way, picks the
+    // A press on a symbol's body, the middle half of one of its rectangles each way, picks the
     // symbol before a wire under it (a lamp's centre); nearer its outline, where the wires meet its pins, the nearer
     // of the wire and the rectangle's centre goes first, as before.
     let on_body = |e: EntityRef| -> bool {
@@ -891,7 +884,7 @@ pub fn segment_dist2(p: (i64, i64), a: (i64, i64), b: (i64, i64)) -> i128 {
     c2 / len2 + i128::from(c2 % len2 != 0)
 }
 
-/// The kind of a selected entity, resolved by the page tables (WP-S2.04 §6.6, D14); page items and structure boxes
+/// The kind of a selected entity, resolved by the page tables (D14); page items and structure boxes
 /// join with WP-S2.04 part 4b.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum EntityKind {
@@ -905,7 +898,6 @@ pub enum EntityKind {
     Item,
     /// A structure box (movable).
     StructureBox,
-    // WP-S4.02 part 3
     /// A placement on a panel page (from the page's panel tables).
     Placement,
     /// A carrier on a panel page (from the page's panel tables).
@@ -945,7 +937,6 @@ pub fn entity_kind(tables: &PageTables, e: EntityRef) -> Option<EntityKind> {
     }
 }
 
-// WP-S4.02 part 3
 /// The kind of `e` on `page`: [`entity_kind`] over its page tables, else a placement or a carrier of its panel tables
 /// (a panel page, D9); `None` for an entity neither holds.
 pub fn page_entity_kind(page: &CanvasPage, e: EntityRef) -> Option<EntityKind> {

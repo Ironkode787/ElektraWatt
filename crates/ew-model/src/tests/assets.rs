@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The stamp of the asset store (cycle-29 review 4): a tracked read of whether an asset is held depends on it, so it
+//! The stamp of the asset store: a tracked read of whether an asset is held depends on it, so it
 //! changes exactly when an insert grows the set.
 
 use ew_schema::{AssetFormat, AssetRef, Sha256};

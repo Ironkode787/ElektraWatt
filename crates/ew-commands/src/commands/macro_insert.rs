@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `macro.insert` (WP-S1.19 part 5, D12, D13; doc 07 §3.5, §4.6): inserts a window or page macro in one transaction,
+//! `macro.insert` (doc 07 §3.5, §4.6): inserts a window or page macro in one transaction,
 //! with its values, its placeholder groups and its closure as parameters, so a command log replays the insertion
 //! exactly on a machine with no library installed (D7).
 //!
@@ -172,7 +172,7 @@ fn set_path(root: &mut Value, path: &str, value: Value) -> bool {
 /// records: `text` a text or a language object; `ident`, `state`, `process_tag`, `address` a text; `number` a
 /// number or a decimal text; `bool` a boolean; `tag_counter` an integer from 1; `channel_binding` an integer from
 /// 0 to 65535; `part` a part use object (`{"copy": …}`); `device_ref` a UUID text; `text_slots` an array, each slot
-/// checked by the representation it binds (FT-1420, doc 07 §2.7's as-built note). A value of a type this version does
+/// checked by the representation it binds (doc 07 §2.7's as-built note). A value of a type this version does
 /// not know is taken as it is.
 ///
 /// # Errors
@@ -214,7 +214,7 @@ pub fn coerce_value(ty: &VarType, v: &Value) -> Result<Value, Text> {
             Some(s) if s.parse::<Uuid>().is_ok() => Ok(v.clone()),
             _ => fail(|v| text!("refusal-macro-value-device", v)),
         },
-        // FT-1420: a list of text slots; the bound representation checks each slot.
+        // A list of text slots; the bound representation checks each slot.
         VarType::TextSlots => match v {
             Value::Array(_) => Ok(v.clone()),
             _ => fail(|v| text!("refusal-macro-value-text-slots", v)),
@@ -494,8 +494,8 @@ fn drop_records(fragment: &mut Fragment, dropped: &mut BTreeSet<Uuid>) {
     }
 }
 
-/// `macro.insert` (`InsertMacro`, WP-S1.19 D13, doc 07 §3.5 and §4.6, FR-MAC-002 to FR-MAC-005, FR-MAC-018): inserts a
-/// window macro onto `page` with its anchor at `at`, turned and mirrored about the anchor by `orient` first (FT-672),
+/// `macro.insert` (`InsertMacro`, doc 07 §3.5 and §4.6, FR-MAC-002 to FR-MAC-005, FR-MAC-018): inserts a
+/// window macro onto `page` with its anchor at `at`, turned and mirrored about the anchor by `orient` first,
 /// or a page macro's pages after `page`, in one transaction (one undo step).
 ///
 /// `copies` holds the macro's document and the documents of its closure the project does not hold (the `lib/` JSON
@@ -521,7 +521,7 @@ fn drop_records(fragment: &mut Fragment, dropped: &mut BTreeSet<Uuid>) {
 /// kind; `/copies/<i>` a document that `library.embed` refuses, a second macro, or a macro the project holds in another
 /// version ("update from library first"); `/page` a missing page, or no variant for its representation types; `/at`
 /// missing for a window macro, or off the page's grid; `/orient` other than `r0` for a page macro, or for a window
-/// macro holding one of EW's interruption-point forms (they always point right, WP-S2.19 D16); `/value_set` and
+/// macro holding one of EW's interruption-point forms (they always point right); `/value_set` and
 /// `/values/<name>` as [`instantiate`]; `/macro/fragment/…` as `edit.paste` refuses a fragment (a grid other than the
 /// page's, a record that does not read, …). Tag, address, interruption-point and process-tag conflicts are not
 /// refusals: the session lists them on the preview (FR-MAC-005); the project's prevent rules apply as to every edit (a
@@ -544,7 +544,7 @@ pub struct InsertMacro {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<Pt2S>")]
     pub at: Option<Pt2>,
-    /// The orientation of a window macro about its anchor, applied before the move to `at` (FT-672): one of the
+    /// The orientation of a window macro about its anchor, applied before the move to `at`: one of the
     /// eight variants `r0` … `m270` of a symbol; default `r0`. A page macro takes none.
     #[serde(default, skip_serializing_if = "is_r0")]
     #[schemars(with = "Orient2S")]
@@ -689,7 +689,7 @@ impl Command for InsertMacro {
             keep_refs: inst.refs.clone(),
         };
         let out = insertion.run(tx)?;
-        // ID-1509 (5), WP-S2.19 D16: EW's interruption-point forms always point right, so a window macro holding one is
+        // EW's interruption-point forms always point right, so a window macro holding one is
         // never inserted turned.
         if !self.orient.is_default()
             && out.members.iter().any(|(_, new)| {

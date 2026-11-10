@@ -20,7 +20,7 @@
 //!   authoritative, reindexed per library when its generation or a file hash changes.
 //! - **Search** ([`PartQuery`], [`ItemQuery`]): the rank tiers of doc 07 §4.3 and the tie-breaks of D6.
 //!
-//! The index is never read by a command or a derivation (WP-S1.19 §12 item 4): a project's outputs depend on its
+//! The index is never read by a command or a derivation: a project's outputs depend on its
 //! embedded copies only (NFR-REL-11).
 
 #![forbid(unsafe_code)]
@@ -47,8 +47,8 @@ pub use tiers::{LibraryTiers, Tier, default_cache_dir, default_data_dir};
 /// The key of the shipped system library of starter parts.
 pub const STARTER_PARTS_KEY: &str = "ew-starter-parts";
 
-/// The ID of the system library `ew-starter-parts` (WP-S1.19 §7.1): `v5(SYSTEM_LIBRARY, "ew-starter-parts")`, the
-/// directory `content/libraries/ew-starter-parts.ewlib` of the generic starter parts (WP-S2.18 D5). It is compiled in
+/// The ID of the system library `ew-starter-parts`: `v5(SYSTEM_LIBRARY, "ew-starter-parts")`, the
+/// directory `content/libraries/ew-starter-parts.ewlib` of the generic starter parts. It is compiled in
 /// beside the starter (D6), so every registry holds it; a directory library with this ID replaces the compiled-in
 /// one.
 pub fn starter_parts_library() -> ew_ids::Uuid {

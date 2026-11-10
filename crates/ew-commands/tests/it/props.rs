@@ -416,7 +416,7 @@ proptest! {
         );
     }
 
-    /// `page.renumber` changes only the folio numbers of pages and the sub-page labels that carry them (FT-475).
+    /// `page.renumber` changes only the folio numbers of pages and the sub-page labels that carry them.
     #[test]
     fn page_renumbering_keeps_references(sequence in steps(true), start_101 in any::<bool>()) {
         let mut e = engine(golden_model());

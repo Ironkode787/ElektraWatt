@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Scene preparation (WP-S2.02 §7.1): one walk of the display list turns a page into meshes and instances, on a
+//! Scene preparation: one walk of the display list turns a page into meshes and instances, on a
 //! worker thread ([`Preparer`]), never on the UI thread.
 //!
 //! **Contexts.** The walk starts a *context* at the root and at every group with a transform or a clip. A group
@@ -27,7 +27,7 @@
 //! skipped and counted, as the CPU path does without a resolver. A group clip becomes a per-instance clip rectangle
 //! in page coordinates (exact for multiples of 90°, the bounding box otherwise).
 //!
-//! **Raster images** (PNG, JPEG; FT-480). Each image item takes one paint index; a drawn one becomes an
+//! **Raster images** (PNG, JPEG). Each image item takes one paint index; a drawn one becomes an
 //! [`ImageInstance`]: the unit square (the LOD bars' mesh) over the item's rectangle, with the context's clip, drawn by
 //! the renderer's textured-quad pipeline. The worker decodes the bytes with [`ew_render_cpu::decode_image`] (the CPU
 //! path's decoder, so both paths draw the same images and skip the same ones), premultiplies them and, when a side

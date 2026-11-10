@@ -473,7 +473,7 @@ fn log_texts(s: &ShellModel) -> Vec<String> {
     s.notifications().entries().map(|n| n.text.clone()).collect()
 }
 
-/// ID-719: Quit (`shutdown`) cancels a running export, waits for it and records its real end like any other: a job
+/// Quit (`shutdown`) cancels a running export, waits for it and records its real end like any other: a job
 /// that met its cancel is cancelled, its entry and the notifications log say so, and no file is left.
 #[test]
 fn quit_records_a_cancelled_export_in_its_entry_and_the_log() {
@@ -498,7 +498,7 @@ fn quit_records_a_cancelled_export_in_its_entry_and_the_log() {
     assert!(!sibling(&target).exists(), "no sibling");
 }
 
-/// ID-719: a job that had already written its file when the quit came keeps its real end: done, not cancelled, with
+/// A job that had already written its file when the quit came keeps its real end: done, not cancelled, with
 /// its notification in the log.
 #[test]
 fn quit_keeps_the_end_of_an_export_that_wrote_its_file() {
@@ -575,7 +575,7 @@ fn an_export_into_the_open_projects_folder_is_refused() {
     s.shutdown();
 }
 
-/// FT-513: the end of a `wait: false` export that failed, was cancelled or panicked and that no step waited for is
+/// The end of a `wait: false` export that failed, was cancelled or panicked and that no step waited for is
 /// returned by `wait_jobs` (the headless runner prints it and exits 1), one text per end, in job order; an end a step
 /// waited for (`jobs.wait`, a waiting export) is not, and neither is a done one.
 #[test]
@@ -635,7 +635,7 @@ fn ft513_wait_jobs_returns_the_unseen_failed_cancelled_and_panicked_ends() {
     s.shutdown();
 }
 
-/// FT-513: a failed end that a step waited for is the step's outcome (or, for `jobs.wait`, its entry's), never an
+/// A failed end that a step waited for is the step's outcome (or, for `jobs.wait`, its entry's), never an
 /// unseen failure; a done export is none either.
 #[test]
 fn ft513_a_waited_failure_and_a_done_export_are_not_unseen() {

@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Windows adapter (WP-S3.07 D12, rulings 1 to 9 of ID-1218): each placed page of the print set rendered by
+//! The Windows adapter: each placed page of the print set rendered by
 //! `ew-render-cpu` in bands of [`BAND_ROWS`] device rows and sent to a printer through GDI.
 //!
 //! Without a printer named, the Windows print dialog (`PrintDlgExW`) chooses the printer and its settings; its owner is
-//! a window of this process ([`Owner`], ID-1394 ruling 9), and its Cancel is [`PrintError::Cancelled`]. With a printer
+//! a window of this process ([`Owner`], ruling 9), and its Cancel is [`PrintError::Cancelled`]. With a printer
 //! named, its device context is opened with
 //! its default settings and no dialog (`CreateDCW`). Then `StartDocW`, and per page: its paper and orientation asked
 //! for by `ResetDCW` (D6's named sizes as `dmPaperSize` where Windows has one, else `dmPaperWidth` and
@@ -13,7 +13,7 @@
 //! at the lower of the device's horizontal and vertical resolutions (the placement's offset is from the paper's corner,
 //! so the printable area's offset is subtracted) and each stretched by `StretchDIBits` to its device rectangle,
 //! `EndPage`; then `EndDoc`. A band that would start below the device's paper is not sent, nor a band that is white
-//! paper alone (FT-1158). The job's cancel signal ([`PrintJob::cancel`], FT-1157) is read before each band:
+//! paper alone. The job's cancel signal ([`PrintJob::cancel`], FT-1157) is read before each band:
 //! once it is set, the document is aborted (`AbortDoc`) and the print is [`PrintError::Cancelled`]. With
 //! [`PrintJob::monochrome`] the bands are drawn from the lists `ew_render_cpu::monochrome` gives, the greying the PDF
 //! uses; the driver's colour setting is left as it is. A failure aborts the document. The print set's PDF is not used.
@@ -122,9 +122,9 @@ impl PrintAdapter for Windows {
 /// The signal the console's Ctrl+C sets ([`ctrl_c_cancels`]): the console's handler has no context but this.
 static CTRL_C: OnceLock<PrintCancel> = OnceLock::new();
 
-/// FT-1157 (ID-1417): makes the console's Ctrl+C and Ctrl+Break set `cancel` instead of ending the process, so that
+/// Makes the console's Ctrl+C and Ctrl+Break set `cancel` instead of ending the process, so that
 /// `ew print --via windows` aborts its document at the next band and ends as a cancelled print; a second press, with
-/// the signal set, ends the process as before (C52-p6#3, ID-1424). Once per process: `false` when a signal is set
+/// the signal set, ends the process as before. Once per process: `false` when a signal is set
 /// already or the console refuses the handler.
 pub fn ctrl_c_cancels(cancel: &PrintCancel) -> bool {
     if CTRL_C.set(cancel.clone()).is_err() {
@@ -293,7 +293,7 @@ fn send_page(dc: &Dc, mode: &mut DevMode, page: &PdfPage, job: &PrintJob) -> Res
 }
 
 /// Whether `band` is white paper alone (every channel of every pixel at its full value), so sending it changes nothing
-/// on the sheet (FT-1158).
+/// on the sheet.
 fn white(band: &RgbaImage) -> bool {
     band.pixels.iter().all(|&c| c == u8::MAX)
 }
@@ -304,7 +304,7 @@ fn device(v: u64, logical: i32, dpi: u32) -> i32 {
     i32::try_from((i128::from(v) * logical + dpi / 2) / dpi).unwrap_or(i32::MAX)
 }
 
-/// The Windows print dialog (ruling 5 of ID-1218): the chosen printer's device context, its settings and its name
+/// The Windows print dialog: the chosen printer's device context, its settings and its name
 /// (`None` when the dialog's block holds none); Cancel is [`PrintError::Cancelled`].
 fn dialog() -> Result<(Dc, DevMode, Option<String>), PrintError> {
     let _com = Com::init().map_err(|code| error(Step::Dialog, code.message()))?;
@@ -345,7 +345,7 @@ fn dialog() -> Result<(Dc, DevMode, Option<String>), PrintError> {
     Ok((dc, mode, printer))
 }
 
-/// The print dialog's owner (FT-1150, FT-1159; ID-1394 ruling 9): a window of this process, never another's. A modal
+/// The print dialog's owner: a window of this process, never another's. A modal
 /// dialog disables its owner while it shows, and Windows lets a window of one process own a window of another, tying
 /// their input together, so an `ew print` killed while its dialog showed would leave the terminal that ran it
 /// disabled. When the foreground window is this process's (the main window the person chose Print… in), it is the
@@ -556,10 +556,10 @@ impl DevMode {
         self.0.as_ptr().cast()
     }
 
-    /// Asks for a paper of `width` × `height` nm (ruling 3 of ID-1218): D6's named sizes as `dmPaperSize` where
+    /// Asks for a paper of `width` × `height` nm: D6's named sizes as `dmPaperSize` where
     /// Windows has one, else `dmPaperWidth` and `dmPaperLength` in 0.1 mm (the short and the long side); landscape
     /// when wider than high. The form name the dialog may have set is cleared, so a driver that ranks it first never
-    /// prints on the dialog's form (ID-1226).
+    /// prints on the dialog's form.
     fn ask_paper(&mut self, width: i64, height: i64) {
         let (short, long) = (width.min(height), width.max(height));
         let tenths = |nm: i64| i16::try_from((nm + 50_000) / 100_000).unwrap_or(i16::MAX);

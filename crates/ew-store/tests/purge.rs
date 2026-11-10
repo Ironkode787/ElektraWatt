@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The asset purge (doc 05 §13.3, FT-380): it removes only listed asset files whose hash no project file mentions
+//! The asset purge (doc 05 §13.3): it removes only listed asset files whose hash no project file mentions
 //! (kept unknown lines and foreign files included) and that the caller does not keep (the undo entries), through the
 //! save protocol's removal list; it is refused in read-only sessions, with quarantined lines, with unsaved journal
 //! steps or an unsaved model, with a crashed session's journal and after an external change; a kill at every call of

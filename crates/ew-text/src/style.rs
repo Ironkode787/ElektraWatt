@@ -264,7 +264,7 @@ mod tests {
 
     /// The rows, their keys and order, and every row against doc 20 §17.5, one row per case: only `section.id` is bold; the native size in milli-pt,
     /// the em, the printed size (rounded to 0.01 pt) and the printed em are those of the doc. Doc 20 gives the
-    /// printed em rounded to 0.01 mm (decision log ID-38), so the exact printed em (em × 0.986282578, truncated
+    /// printed em rounded to 0.01 mm, so the exact printed em (em × 0.986282578, truncated
     /// to nm) must lie within half a step, 0.005 mm, of the doc value.
     #[test]
     fn rows_keys_and_order() {

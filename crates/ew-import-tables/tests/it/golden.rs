@@ -170,7 +170,7 @@ fn the_per_kind_counts_are_those_of_doc_20() {
     assert_eq!(n("import_lineage"), 1);
     // doc 20 §4.1: the revisions V1.0 and V2.0.
     assert_eq!(n("revision"), table_rows("revisions.csv"));
-    // doc 20 §13's test geometry (U-50, WP-S4.01 D13): one space, one enclosure with its plate surface, the
+    // doc 20 §13's test geometry (U-50): one space, one enclosure with its plate surface, the
     // rails and ducts, the placements.
     assert_eq!(n("layout_space"), table_rows("layout_spaces.csv"));
     assert_eq!(n("enclosure"), table_rows("enclosures.csv"));
@@ -223,7 +223,7 @@ fn the_tbd_parts_are_used_by_the_enclosure_and_the_strips() {
         assert_eq!(p.description.as_neutral(), Some(description), "{key}");
     }
     // Quantity per device: the strips their brackets and bridges. -UC1 has no rail or duct part use: its rails and
-    // ducts are carrier part lines (WP-S4.01 part 4, FT-205).
+    // ducts are carrier part lines.
     let uses = |tag: &str| -> Vec<(String, String)> {
         let id: Id<Device> = record_id("devices", tag);
         let dev = b
@@ -310,7 +310,7 @@ fn the_ratings_are_typed_technical_data() {
     assert_eq!(tech(&t55.tech_data), ["setpoint=15 DegC"]);
 }
 
-/// The revision records are typed (FT-165) and carry label, date, state, the author's party role and the page
+/// The revision records are typed and carry label, date, state, the author's party role and the page
 /// notes (doc 03 §18).
 #[test]
 fn the_revisions_are_the_two_of_doc_20() {
@@ -494,7 +494,7 @@ fn a_representation_sits_at_its_cell_position() {
             _ => None,
         })
         .expect("representation S51");
-    // Cell B2 of the grid: column 2, row B (index 1), less the table's dx of three grid steps (ID-1504); the symbol
+    // Cell B2 of the grid: column 2, row B (index 1), less the table's dx of three grid steps; the symbol
     // has no named anchor, so no anchor offset.
     assert_eq!(rep.pos.x, Grid::QET_10PX.at(5 + 6 * 2 - 3).unwrap());
     assert_eq!(rep.pos.y, Grid::QET_10PX.at(6 + 8).unwrap());
@@ -745,7 +745,7 @@ fn the_plc_station_the_modules_and_the_part_section_are_those_of_doc_20() {
             pin_of: None,
             supply_groups: Vec::new(),
             unbound: Some(ChannelState::Deactivated),
-            // test input H1 of doc 20 §11.2 (FT-228): coil 14 on channel 2p, coil 12 on 2p + 1
+            // test input H1 of doc 20 §11.2: coil 14 on channel 2p, coil 12 on 2p + 1
             positions: Some(PositionMap {
                 count: 4,
                 map: vec![
@@ -810,7 +810,7 @@ fn the_56_channels_are_those_of_doc_20() {
                 c.id.as_uuid(),
                 record_id::<Channel>("channels", &format!("{module}:{number}")).as_uuid()
             );
-            // Valve index 14 is CP 0 of the valve's coil function (WP-S1.20 D5).
+            // Valve index 14 is CP 0 of the valve's coil function.
             let binding = (number % 2 == 1).then(|| cp(&format!("{module}-Q{}#coil", number / 2 + 1), 0));
             assert_eq!(c.binding, binding, "{module}:{number}");
         }
@@ -907,10 +907,10 @@ fn a_route_runs_from_a_black_box_cp_to_a_junction() {
             _ => None,
         })
         .expect("J5");
-    // J5 lies 10 px right of the centre of D8 (ID-1504); the corner is that cell moved to the CP's column (in QET px).
+    // J5 lies 10 px right of the centre of D8; the corner is that cell moved to the CP's column (in QET px).
     let px = |v: Nm| Grid::QET_1PX.snap(v);
     let dx = px(a.x) - px(b.x);
-    // The row's router-written route (WP-S2.19 §8.2) is replaced by the one corner.
+    // The row's router-written route is replaced by the one corner.
     let row = "J5.feed,,102,-102G1:−#1,@J5,,,,,,,,,,";
     let text = std::fs::read_to_string(common::tables_dir().join("connections.csv")).unwrap();
     let line = text

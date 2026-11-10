@@ -198,7 +198,7 @@ pub struct KeptLine {
     pub kept: Kept,
     /// The kind of the finding that quarantined a [`Kept::Quarantined`] line (EW-CORE-005, -006, -007, -009 or a
     /// limit); `None` for the other kept lines. In memory only: the line is written back byte for byte whatever its
-    /// kind (WP-S1.17, decision log ID-1185).
+    /// kind.
     pub kind: Option<FindingKind>,
 }
 
@@ -254,7 +254,7 @@ pub struct Loaded {
     /// Whether a finding forces a read-only session.
     pub read_only: bool,
     /// Whether a finding other than a broken line (EW-CORE-005 at line level) forces a read-only session, the findings
-    /// beyond the cap included: what `ew fmt --repair` refuses (WP-S1.17, decision log ID-1185).
+    /// beyond the cap included: what `ew fmt --repair` refuses.
     pub read_only_beyond_repair: bool,
 }
 
@@ -287,7 +287,7 @@ pub fn load(manifest: Option<&Manifest>, files: &BTreeMap<FilePath, Vec<u8>>, li
     loader.finish()
 }
 
-/// [`load`] of a project of an older format (doc 05 §10.2, WP-S1.17 D10): every record and library document runs
+/// [`load`] of a project of an older format (doc 05 §10.2): every record and library document runs
 /// through `migration` ([`Migration::record`]) after its parse and before its typed reading, and is read, placed and
 /// checked as migrated. The files in which a step changed a value are in [`Loaded::migrated`]; a line or document kept
 /// verbatim there (an unknown kind, a malformed variant, a quarantined record) keeps its migrated value's text, never
@@ -325,7 +325,7 @@ enum Hunk {
     Theirs,
 }
 
-/// The lines of a JSON Lines `body` with its conflict markers resolved (WP-S1.17 D18, FR-COL-025; doc 05 §11.4), each
+/// The lines of a JSON Lines `body` with its conflict markers resolved (FR-COL-025; doc 05 §11.4), each
 /// with its line number in the file (a hunk's lines take the number of its `<<<<<<<` line); `None` when the body
 /// holds no marker, or when a hunk is not whole (a marker out of place, an open hunk) or a side holds a line that is
 /// not a record with a `$k` and an `id`, a key twice, or more lines than the limit: the file then stays EW-CORE-006.
@@ -480,7 +480,7 @@ struct Loader<'a> {
     /// Its first error: nothing more is read.
     failed: Option<MigrationError>,
     /// The record-level conflict records read, held until every file is read: one whose target is not a record of
-    /// the project is kept verbatim (WP-S1.17 D17).
+    /// the project is kept verbatim.
     conflicts: Vec<HeldConflict>,
 }
 
@@ -494,7 +494,7 @@ struct HeldConflict {
     record: Record,
 }
 
-/// A library document in words (FT-1213, doc 16a §8): its kind, what names it (a part by its part number, a symbol, a
+/// A library document in words (doc 16a §8): its kind, what names it (a part by its part number, a symbol, a
 /// macro or a manufacturer by its name, a PLC profile by its label) and its version.
 fn document_words(doc: &LibDocument) -> String {
     // A multi-language name: its neutral text, else its first language's.
@@ -580,7 +580,7 @@ pub(crate) struct Fault {
 
 /// One line of a JSON Lines file (without its line end and CR) as the loader reads it (doc 05 §3.6), in this order: the
 /// line-length limit, a conflict marker (EW-CORE-006), UTF-8, the nesting depth, and JSON syntax with duplicate members
-/// rejected. The merge core reads its three inputs with it (decision log ID-1268 ruling 5).
+/// rejected. The merge core reads its three inputs with it.
 pub(crate) fn parse_line<'b>(bytes: &'b [u8], limits: &Limits) -> Result<(&'b str, Value), Fault> {
     if bytes.len() > limits.max_line_bytes {
         return Err(Fault {
@@ -849,7 +849,7 @@ impl<'a> Loader<'a> {
 
     /// The canonical check of a record file read whole.
     fn finish_record_file(&mut self, path: &FilePath, bytes: &[u8], st: FileState) {
-        // A migrated file is rewritten from its migrated values: no `NonCanonical` finding (ID-1221 ruling 4).
+        // A migrated file is rewritten from its migrated values: no `NonCanonical` finding.
         if st.migrated {
             self.out.migrated.insert(path.clone());
         } else if st.non_canonical || jsonl_file(st.lines) != bytes {
@@ -917,7 +917,7 @@ impl<'a> Loader<'a> {
         if normalised {
             st.non_canonical = true;
         }
-        // A line kept verbatim keeps its migrated value's text (ID-1221 ruling 2), never its old one.
+        // A line kept verbatim keeps its migrated value's text, never its old one.
         let migrated_text;
         let text = if migrated {
             migrated_text = value.to_string();
@@ -1011,7 +1011,7 @@ impl<'a> Loader<'a> {
             }
             Some(Kept::UnknownKind)
         } else if malformed.is_empty() {
-            // ADR-0011 amendment 1 (WP-S6.08 D24, D30): a record with members or variants this reader does not know
+            // ADR-0011 amendment 1: a record with members or variants this reader does not know
             // keeps its line as a later minor wrote it while it is untouched; a line its own reader would not write
             // (its known members out of order, migrated, normalised) is rewritten canonically.
             let later = !extra.is_empty()
@@ -1089,7 +1089,7 @@ impl<'a> Loader<'a> {
         // A leading UTF-8 BOM (an editor's, doc 05 §3.1: the writer never writes one) is a shape, as in a JSON
         // Lines file: the document is read without it and, being unlike its canonical text, rewritten at the
         // next save. JSON has no BOM, so without this the document would be a syntax error, opaque, and every
-        // record naming it a dangling reference that refuses the whole project (fuzz finding, cycle 22).
+        // record naming it a dangling reference that refuses the whole project (fuzz finding).
         let value = match parse_document(bytes, self.limits) {
             Ok(value) => value,
             Err(fault) => {
@@ -1102,12 +1102,12 @@ impl<'a> Loader<'a> {
         let Some((mut value, migrated)) = self.migrate(path, None, value) else {
             return;
         };
-        // A step that changed a copy's item is not an edit: its hash follows the migrated item (ID-1230 ruling 3).
+        // A step that changed a copy's item is not an edit: its hash follows the migrated item.
         if let Some(before) = &before {
             rehash_migrated_copy(before, &mut value);
         }
         let normalised = ew_schema::normalize_nfc(&mut value);
-        // A document kept verbatim keeps its migrated value's text (ID-1221 ruling 2), never its old one.
+        // A document kept verbatim keeps its migrated value's text, never its old one.
         let migrated_text = migrated.then(|| crate::pretty(&value.to_string()).into_bytes());
         let (doc, malformed) = match LibDocument::load(value) {
             Ok(loaded) => loaded,
@@ -1164,7 +1164,7 @@ impl<'a> Loader<'a> {
         };
         let identity = (kind.name().to_owned(), id);
         if self.seen.contains_key(&identity) {
-            // FT-1213 (ID-1392): the document in words, never its kind and ID or the other file's path.
+            // The document in words, never its kind and ID or the other file's path.
             let words = document_words(&doc);
             if migrated_text.is_some() {
                 self.refuse_opaque(
@@ -1234,7 +1234,7 @@ impl<'a> Loader<'a> {
 
     // ---- placement and result ---------------------------------------------------------------------------
 
-    /// The held record-level conflicts (WP-S1.17 D17): one whose target is a record of an implemented kind joins the
+    /// The held record-level conflicts: one whose target is a record of an implemented kind joins the
     /// records; one whose target the project does not hold, or holds only as a record of a kind this reader keeps
     /// verbatim, is kept verbatim and reported (EW-CORE-007, the line quarantined).
     fn hold_conflicts(&mut self) {
@@ -1350,7 +1350,7 @@ pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
     }
 }
 
-/// A library copy's `sha256` after its migration (doc 05 §10.2, WP-S1.17 D10; ID-1230 ruling 3, ID-1250): a step
+/// A library copy's `sha256` after its migration (doc 05 §10.2, ruling 3): a step
 /// that changed the copy's item is not an edit, so when the item of `migrated` (its members without the copy envelope)
 /// differs from that of `before`, the same document before the chain, `migrated`'s `sha256` becomes
 /// [`library_copy_hash`] of its item after NFC normalisation, as the loader reads it. Else, or when `migrated` does not

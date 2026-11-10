@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The polyline a connection is drawn along: stored routes as stored, an unrouted connection as the straight line
-//! between its ends (WP-S2.19 D2, D3), clamping and properties.
+//! between its ends, clamping and properties.
 
 use ew_scene::route::{RouteEnd, connection_polyline};
 use ew_schema::Dir4;
@@ -39,7 +39,7 @@ fn all_dirs() -> Vec<Option<Dir4>> {
     ]
 }
 
-/// WP-S2.19 D3: a connection without a stored route is the straight line between its ends whatever their directions,
+/// A connection without a stored route is the straight line between its ends whatever their directions,
 /// a single point where they meet (nothing is drawn); never an L.
 #[test]
 fn an_unrouted_connection_is_the_straight_line_between_its_ends() {
@@ -55,7 +55,7 @@ fn an_unrouted_connection_is_the_straight_line_between_its_ends() {
 
 #[test]
 fn a_stale_route_joins_its_ends_by_straight_segments() {
-    // WP-S2.19 D2: a route whose end vertices are not the ends' points (an end moved without the route following) is
+    // A route whose end vertices are not the ends' points (an end moved without the route following) is
     // joined to each end by one straight segment.
     let a = end(0, 0, None);
     let b = end(300, 300, None);
@@ -68,7 +68,7 @@ fn a_stale_route_joins_its_ends_by_straight_segments() {
 fn stored_route_is_drawn_as_stored() {
     let a = end(0, 0, None);
     let b = end(300, 100, None);
-    // WP-S2.19 D2: the route holds both ends, drawn once each; (50,0) and (100,0) are collinear and kept.
+    // The route holds both ends, drawn once each; (50,0) and (100,0) are collinear and kept.
     let stored = [p(0, 0), p(50, 0), p(100, 0), p(300, 0), p(300, 100)];
     let r = connection_polyline(&a, &b, &stored, page());
     assert_eq!(r, stored.to_vec());

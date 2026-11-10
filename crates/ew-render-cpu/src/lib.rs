@@ -17,8 +17,7 @@
 //!
 //! [`render_region`] rasterises one rectangle of that full-sheet image (the canvas tiles and the headless canvas
 //! snapshot of WP-S2.02), skipping top-level items whose [`ItemBounds`] miss it; its full rectangle is
-//! [`render`]'s bytes. [`render_placed_band`] renders rows of a placed print page, the bands a printer is sent
-//! (WP-S3.07 D12).
+//! [`render`]'s bytes. [`render_placed_band`] renders rows of a placed print page, the bands a printer is sent.
 //!
 //! [`decode_image`] decodes the PNG and JPEG bytes of image items within [`MAX_IMAGE_PIXELS`] (the PDF writer checks
 //! with it too). [`encode_png`] writes deterministic PNG bytes; [`monochrome`] and [`render_monochrome`] give the

@@ -71,7 +71,7 @@ pub const BOX_TITLE_STYLE: &str = "box.title";
 /// The drop shadow of a boxed table, printed (doc 20 §17.3: "shadow 2.61").
 pub const SHADOW: Nm = Nm(2_610_000);
 
-/// The gutter between two flow columns of a boxed table, printed (WP-S4.01 D16).
+/// The gutter between two flow columns of a boxed table, printed.
 pub const GUTTER: Nm = Nm(4_000_000);
 
 /// The most flow columns a boxed table draws; a larger count is drawn as this many.
@@ -115,7 +115,7 @@ pub struct CoverTables {
     pub note: Option<String>,
 }
 
-/// A boxed report table: an embedded block of any kind but the cover (WP-S4.01 D16).
+/// A boxed report table: an embedded block of any kind but the cover.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct EmbeddedTable {
     /// The title printed in the box's title band; empty: no title band.
@@ -614,7 +614,7 @@ mod tests {
         }
     }
 
-    /// FT-940: a rectangle read from a hostile file at the `i64` extremes lowers without a panic (the arithmetic
+    /// A rectangle read from a hostile file at the `i64` extremes lowers without a panic (the arithmetic
     /// stays inside `i64`), for both contents, and its capacity is computed on the clamped rectangle.
     #[test]
     fn a_block_at_the_i64_extremes_lowers_without_a_panic() {
@@ -665,7 +665,7 @@ mod tests {
         );
     }
 
-    /// FT-940: a 3-flow table in a box 5 mm wide (narrower than its two gutters) draws every flow column inside
+    /// A 3-flow table in a box 5 mm wide (narrower than its two gutters) draws every flow column inside
     /// the box: no column's left lies right of the box, so none has `right < left`.
     #[test]
     fn flow_columns_in_a_box_narrower_than_the_gutters_stay_inside_it() {

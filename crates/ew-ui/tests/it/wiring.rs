@@ -244,7 +244,7 @@ fn drag(h: &mut Harness<'_, App>, a: egui::Pos2, b: egui::Pos2, n: usize) {
 }
 
 /// Window check, item 1: a page change ends Edit route (an editing tool works on one page); Select takes over and the
-/// strip says so. The selection survives the page change (WP-S2.03 §7.6).
+/// strip says so. The selection survives the page change.
 #[test]
 fn a_page_change_ends_edit_route_and_select_takes_over() {
     let tmp = Tmp::new();
@@ -372,10 +372,10 @@ fn c_turns_connect_on_move_off_and_on_and_the_status_bar_says_so() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-902: the pointer over a cross-reference label of folio 101 that leads to another page shows the pointing hand and
+/// The pointer over a cross-reference label of folio 101 that leads to another page shows the pointing hand and
 /// the tooltip "Go to <its target's cell or folio>"; over empty sheet the cursor is the default one. FT-1091 (ID-1184):
 /// the tooltip waits while the link preview shows (the rest opens the preview first) and shows once it is dismissed.
-/// FT-1123 (ID-1225): the preview says, under its title, how to go there.
+/// The preview says, under its title, how to go there.
 #[test]
 fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     use egui_kittest::kittest::{NodeT as _, Queryable as _};
@@ -413,7 +413,7 @@ fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     settle(&mut h);
     assert!(h.state().shell().canvas().unwrap().hovered_link().is_some());
     assert!(h.state().shell().canvas().unwrap().hovered_cp().is_none());
-    // ID-1497 (9): the hovered link is underlined: a 1-px `canvas.hover` line along its bottom.
+    // The hovered link is underlined: a 1-px `canvas.hover` line along its bottom.
     let hover = ew_ui::theme::current(&h.ctx).canvas_hover.color32();
     fn lines(shape: &egui::Shape, colour: egui::Color32, n: &mut usize) {
         match shape {
@@ -427,7 +427,7 @@ fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
         lines(&c.shape, hover, &mut underlines);
     }
     assert_eq!(underlines, 1, "the link's underline");
-    // ID-1497 (9): the tooltip says the gesture.
+    // The tooltip says the gesture.
     let tip = format!("Click to go to {label}");
     // FT-1091 (ID-1184): the rest opens the link preview first, and the tooltip waits while it shows ...
     let mut preview = false;
@@ -441,7 +441,7 @@ fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
     assert!(preview, "the rest over the link shows its preview");
-    // FT-1123 (ID-1225): the popup says how to go there, on a line under its title, with `nav.follow`'s key.
+    // The popup says how to go there, on a line under its title, with `nav.follow`'s key.
     let go = "Click the link or press F to go there";
     assert_eq!(h.state().shell().link_preview().unwrap().go, go);
     h.step();
@@ -495,7 +495,7 @@ fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1320 (WP-S1.20 D17): the pointer over a fluid line of folio 203 shows a tooltip naming its line kind ("Working
+/// The pointer over a fluid line of folio 203 shows a tooltip naming its line kind ("Working
 /// line"); over an electrical wire of folio 102 there is none.
 #[test]
 fn hovering_a_fluid_line_names_its_kind() {

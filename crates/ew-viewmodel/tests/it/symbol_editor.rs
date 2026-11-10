@@ -553,7 +553,7 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
         assert_eq!(shell.page_count(), pages);
         done(&mut shell, "symbol.scratch", json!({}));
         assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1));
-        // ID-1463: the page shows after a test placement; the editor keeps the draft, Edit ▸ Symbol editor returns.
+        // The page shows after a test placement; the editor keeps the draft, Edit ▸ Symbol editor returns.
         assert!(shell.symbol_editor().is_none());
         done(&mut shell, "symbol.new", json!({}));
         done(&mut shell, "symbol.place", json!({"x":80,"y":80}));
@@ -580,7 +580,7 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
         done(&mut shell, "symbol.replace", json!({"document":qet}));
         done(&mut shell, "symbol.validate", json!({}));
         let page_count = shell.page_count();
-        // ID-1477 (1): the picker's words, both grids named.
+        // The picker's words, both grids named.
         assert_eq!(
             shell.dispatch("symbol.place", &json!({"x":80,"y":80})),
             Outcome::Failed {
@@ -1019,7 +1019,7 @@ fn the_window_asks_the_pickers_for_a_missing_symbol_path() {
     shell.shutdown();
 }
 
-/// ID-1463: a test placement shows the page with the symbol selected and offers the way back to the kept draft.
+/// A test placement shows the page with the symbol selected and offers the way back to the kept draft.
 #[test]
 fn a_test_placement_shows_the_page_and_its_toast_returns_to_the_editor() {
     let tmp = Tmp::new("symbol-back");
@@ -1091,7 +1091,7 @@ fn a_test_copy_placed_again_after_reopening_the_project_takes_its_own_key() {
     assert_eq!(keys.len(), 2, "{keys:?}");
 }
 
-/// ID-1463: quitting with an unsaved draft asks Save symbol, Discard or Cancel; `discard` discards it.
+/// Quitting with an unsaved draft asks Save symbol, Discard or Cancel; `discard` discards it.
 #[test]
 fn quitting_with_an_unsaved_draft_asks_and_discard_discards_it() {
     use ew_viewmodel::dialogs::spec;
@@ -1130,7 +1130,7 @@ fn quitting_with_an_unsaved_draft_asks_and_discard_discards_it() {
     shell.shutdown();
 }
 
-/// ID-1463: while the editor shows, Ctrl+S saves the symbol and the File menu names Save symbol and keeps Save project.
+/// While the editor shows, Ctrl+S saves the symbol and the File menu names Save symbol and keeps Save project.
 #[test]
 fn the_file_menu_names_save_symbol_and_keeps_save_project_while_the_editor_shows() {
     use ew_viewmodel::actions::{MenuEntry, menu_model};
@@ -1313,7 +1313,7 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
     shell.shutdown();
 }
 
-/// ID-1477 (1): on a QET-grid page Place on current page is refused in the picker's words, both grids named, and offers
+/// On a QET-grid page Place on current page is refused in the picker's words, both grids named, and offers
 /// Place on a new page with its grid; the Insert symbol picker's greyed row of the published symbol places it on a new
 /// page with its grid, selected, and the picker closes.
 #[test]
@@ -1469,7 +1469,7 @@ fn the_editors_offer_places_the_published_symbol_only_while_the_draft_is_as_save
     assert_eq!(keys, ["example.offered"]);
 }
 
-/// ID-1477 (2): a new free text is centred on its click, in the small style pin designations use until a style is
+/// A new free text is centred on its click, in the small style pin designations use until a style is
 /// chosen in the draft, then in the style chosen last; a text may hold a line break; a style is named in words.
 #[test]
 fn a_new_text_is_centred_in_the_style_chosen_last() {
@@ -1559,7 +1559,7 @@ fn an_edit_the_reader_refuses_is_refused_in_words() {
     shell.shutdown();
 }
 
-/// ID-1477 (5): with no folder given, a new draft's Library folder is the default user library, `symbols.ewlib` in the
+/// With no folder given, a new draft's Library folder is the default user library, `symbols.ewlib` in the
 /// user library folder, and Save to library saves there.
 #[test]
 fn save_without_a_folder_saves_to_the_default_user_library() {
@@ -1667,7 +1667,7 @@ fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
     );
 }
 
-/// ID-1477 (7): the editor has a button on the Draw tab's Place group, and the command search names it there.
+/// The editor has a button on the Draw tab's Place group, and the command search names it there.
 #[test]
 fn the_editor_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {
     use ew_viewmodel::command_bar::{Group, Tab};

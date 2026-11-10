@@ -102,7 +102,7 @@ fn integrity_check_on_load_rejected() {
     rejected_by(r, crate::REFS_RESOLVE);
 }
 
-/// FT-1540: the all-violations form reports a second dangling reference that the integrity check's first
+/// The all-violations form reports a second dangling reference that the integrity check's first
 /// violation hides, the first of them being the integrity check's error.
 #[test]
 fn integrity_violations_report_every_dangling_reference() {
@@ -224,7 +224,7 @@ fn inv021_named_copy_removed_by_an_edit_referenced() {
     }
 }
 
-/// FT-316: the history path restores the state before an embedding. A symbol names an FnDef item the project
+/// The history path restores the state before an embedding. A symbol names an FnDef item the project
 /// does not embed (valid); embedding the copy makes the `LibRef` a link. The edit path refuses to remove the
 /// copy again (a user's delete of a named copy), the history path (the undo of the embedding) restores the
 /// state before it, which passes the integrity check, and redo embeds it again.
@@ -1191,7 +1191,7 @@ fn every_catalogue_rule_has_a_test() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// EW-INV-022 and EW-INV-023 (WP-S2.04 part 4a, ADR-0009 amendment 8)
+// EW-INV-022 and EW-INV-023 (ADR-0009 amendment 8)
 
 /// A graphic and a structure box on an existing page are accepted.
 #[test]
@@ -1324,7 +1324,7 @@ fn reload_with(_base: &Model, extra: Vec<Record>) -> Model {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// EW-INV-024 (WP-S1.20 D11, ADR-0009 amendment 9)
+// EW-INV-024 (ADR-0009 amendment 9)
 
 /// A FnDef copy with two CPs of `discipline`.
 fn fluid_fndef(def: Id<FnDef>, discipline: ew_schema::Discipline) -> LibCopy<FnDef> {
@@ -1434,7 +1434,7 @@ fn inv024_junction_with_a_wire_and_a_fluid_line_rejected() {
     rejected_by(edit(&m, &[seq, ins(wire)]), crate::FLUID_LINES);
 }
 
-/// FT-1318: the media are collected across any number of junctions: hydraulic to pneumatic through three junctions in
+/// The media are collected across any number of junctions: hydraulic to pneumatic through three junctions in
 /// series is rejected; pneumatic to pneumatic through them is accepted.
 #[test]
 fn inv024_media_across_three_junctions_in_series() {
@@ -1463,7 +1463,7 @@ fn inv024_media_across_three_junctions_in_series() {
     assert!(edit(&m, &chain(FQ2)).is_ok());
 }
 
-/// C51-p5#7: the walk over a ring of three junctions ends: hydraulic to pneumatic across the ring is rejected;
+/// The walk over a ring of three junctions ends: hydraulic to pneumatic across the ring is rejected;
 /// pneumatic to pneumatic across it is accepted.
 #[test]
 fn inv024_media_across_a_ring_of_three_junctions() {

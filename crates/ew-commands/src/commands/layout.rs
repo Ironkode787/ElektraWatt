@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The `layout.*` commands (WP-S4.01 D6, doc 12 §3): layout spaces, enclosures with their plate, carriers and
+//! The `layout.*` commands (doc 12 §3): layout spaces, enclosures with their plate, carriers and
 //! placements, each one undo step. A placement's pose is given explicitly and checked against its carrier kind's
 //! degrees of freedom (`ew_derive::layout`, D5); with WP-S4.02's `mode` (D4, D5) `layout.place` and `layout.move`
 //! resolve the position on a rail in free, push or swap mode and write every moved neighbour in the same step.
@@ -122,7 +122,7 @@ pub enum CarrierThen {
     RehomeToSurface,
 }
 
-/// How `layout.place` and `layout.move` resolve their position on a rail (WP-S4.02 D4, D5). Without a mode the pose
+/// How `layout.place` and `layout.move` resolve their position on a rail. Without a mode the pose
 /// is taken exactly as given.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -285,7 +285,7 @@ fn target(tx: &TxBuilder<'_>, name: &'static str, at: &str, on: CarrierRef) -> R
 }
 
 /// Refuses a part whose mount kind does not fit the target rail's profile (doc 12 §3.3: "-102F1 (TS 35) does not fit a
-/// TS 32 rail"), and on a surface a part that mounts on its parent or not at all (ID-1106, FT-1031). A part without a
+/// TS 32 rail"), and on a surface a part that mounts on its parent or not at all. A part without a
 /// mount kind, a strip and a partless device are not judged here.
 fn check_fit(
     tx: &TxBuilder<'_>,
@@ -500,7 +500,7 @@ impl Command for CreateLayoutSpace {
             .into_iter()
             .find(|s| s.location == self.location)
         {
-            // ID-900: the space in words, by its name, else as the layout space of its location; never by its ID.
+            // The space in words, by its name, else as the layout space of its location; never by its ID.
             let code = node.code.as_str();
             return tx.reject(match first.name.as_ref() {
                 Some(n) => text!("refusal-layout-space-named-exists", code, n.as_str()),
@@ -644,7 +644,7 @@ impl Command for CreateEnclosure {
             ));
         };
         if let Some(first) = tx.iter::<Enclosure>().into_iter().find(|e| e.space == self.space) {
-            // ID-1106 (FT-1033): the refusal names the next step, as the location's does.
+            // The refusal names the next step, as the location's does.
             let tag = tag(tx, first.device);
             return tx.reject(text!("refusal-layout-space-has-enclosure", tag));
         }
@@ -796,7 +796,7 @@ pub struct AddCarrier {
     /// Whether the carrier is bonded to protective earth; default false.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pe_bond: Option<bool>,
-    /// The library documents to embed first (`lib/` JSON form; WP-S4.02 D7): the part and its closure; empty when the
+    /// The library documents to embed first (`lib/` JSON form): the part and its closure; empty when the
     /// project holds them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
@@ -818,7 +818,7 @@ impl Command for AddCarrier {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let name = Self::NAME;
-        // WP-S4.02 D7: the copies first, so that the part they bring resolves below.
+        // The copies first, so that the part they bring resolves below.
         embed_closure(name, tx, &self.copies)?;
         if !tx.exists::<MountingSurface>(self.surface) {
             return Err(CmdError::invalid_params(
@@ -1042,7 +1042,7 @@ impl Command for DeleteCarrier {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Modes on a rail (WP-S4.02 D4, D5)
+// Modes on a rail
 
 /// One placement dropped on a rail with a mode.
 struct Dropped<'d> {
@@ -1233,7 +1233,7 @@ fn resolve_items(
 /// snapshot (the same [`rail_items`] the tool's ghost reads), the placement's own extent from [`rail_extent`], then
 /// [`resolve_items`]; the pose's `t.x` is the intended clip point, turned into the footprint's left edge and back.
 ///
-/// **One placement per transaction** (cycle-42 review part 1, finding 5): the items come from
+/// **One placement per transaction** (part 1, finding 5): the items come from
 /// [`TxBuilder::base_model`], which does not see the writes pending in the same transaction. A command that resolves
 /// several placements in one transaction (`layout.place_assembly`) keeps its own in-memory item list and calls
 /// [`resolve_items`] with it instead.
@@ -1297,7 +1297,7 @@ fn move_neighbours(tx: &mut TxBuilder<'_>, neighbours: Vec<(Id<Placement>, Pose3
 // Placements
 
 /// `layout.place` (`PlaceDevice`, D6, doc 12 §3.3): places a device on a rail or on a mounting surface at an explicit
-/// pose, or, with `mode` on a rail, where the mode resolves it (WP-S4.02 D4, D5).
+/// pose, or, with `mode` on a rail, where the mode resolves it.
 ///
 /// Without `mode` the pose is taken exactly as given. With `mode` on a rail the pose's `t.x` is the intended clip
 /// point: free keeps it where the device fits with its minimum gaps (clearance pads, end brackets) else takes the
@@ -1336,7 +1336,7 @@ pub struct PlaceDevice {
     /// The pose relative to the carrier; with `mode` on a rail, `t.x` is the intended clip point.
     #[schemars(with = "Pose3S")]
     pub pose: Pose3,
-    /// How the position is resolved on a rail: `free`, `push` or `swap` (WP-S4.02 D5); absent: the pose as given.
+    /// How the position is resolved on a rail: `free`, `push` or `swap`; absent: the pose as given.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mode: Option<PlaceMode>,
 }
@@ -1449,10 +1449,10 @@ impl Command for PlaceDevice {
 /// The pose is checked as `layout.place` checks it; the fit of the part to a rail's profile only when the carrier
 /// changes. Without `mode`, or with `mode: free`, a locked placement moves too (the lock excludes it from being moved
 /// by another placement's push, swap and auto-fill, doc 12 §2.3). With `mode` on a rail the placement is first taken
-/// off the rail and resolved as `layout.place` resolves a device (WP-S4.02 D5); `swap` exchanges it with the placement
+/// off the rail and resolved as `layout.place` resolves a device; `swap` exchanges it with the placement
 /// under its centre on the same rail, the segment between them re-laid with every gap kept where it still meets the
 /// new minimum gap. Push and swap of a locked placement are refused ("Unlock F55 to push or swap it."), and never move
-/// another locked placement. With `part` (WP-S4.02 D7) the placement realises that part use of its device instead
+/// another locked placement. With `part` the placement realises that part use of its device instead
 /// (EW-LAY-003's quick fix "Realise the primary part"): checked as `layout.place` checks a part, its fit to a rail's
 /// profile checked when the part changes, and with `mode` the resolver reads the new part's extent; without `part`
 /// the realised part is unchanged. Rejected: a placement, carrier or surface that does not exist (`/placement`,
@@ -1471,10 +1471,10 @@ pub struct MovePlacement {
     /// The new pose relative to the carrier; with `mode` on a rail, `t.x` is the intended clip point.
     #[schemars(with = "Pose3S")]
     pub pose: Pose3,
-    /// How the position is resolved on a rail: `free`, `push` or `swap` (WP-S4.02 D5); absent: the pose as given.
+    /// How the position is resolved on a rail: `free`, `push` or `swap`; absent: the pose as given.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mode: Option<PlaceMode>,
-    /// The part copy of another part use of the device to realise (WP-S4.02 D7); absent: the realised part stays.
+    /// The part copy of another part use of the device to realise; absent: the realised part stays.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub part: Option<Id<Part>>,
@@ -1500,7 +1500,7 @@ impl Command for MovePlacement {
             .carrier
             .map_or_else(|| current.carrier.clone(), PlaceOnParam::to_ref);
         let target = target(tx, name, "/carrier", carrier.clone())?;
-        // WP-S4.02 D7: another part use of the device, checked as `layout.place` checks it.
+        // Another part use of the device, checked as `layout.place` checks it.
         let new_part = match self.part {
             None => None,
             Some(copy) => {
@@ -1676,14 +1676,14 @@ pub(crate) fn follow_part_change(
     Ok(())
 }
 
-/// FT-1441 (doc 12 §3.3's push; decision log ID-1416): after terminals were inserted into `strip`, each placement of the
+/// FT-1441 (doc 12 §3.3's push): after terminals were inserted into `strip`, each placement of the
 /// strip as a whole on a rail (turned 0°) that grew shifts the items after it on the rail by the overlap, cascading
 /// ([`cascade`] with the grown strip first), in the same transaction. The grown width is the strip's terminals as the
 /// transaction holds them, side by side; the positions and the other strips' widths are the transaction's too
-/// ([`in_transaction`], C53-p2#2), so one command's pushes cascade from one another. A strip turned 180° grows left and
-/// pushes the items before it, leftwards (FT-1495, ID-1455): the same cascade runs on the rail's coordinates mirrored
+/// ([`in_transaction`]), so one command's pushes cascade from one another. A strip turned 180° grows left and
+/// pushes the items before it, leftwards: the same cascade runs on the rail's coordinates mirrored
 /// ([`cascade_mirrored`]), the gap between two strips being the bracket of the strip on the left in the real frame, as
-/// EW-LAY-010 judges it (C53-p2#3, ID-1480); past the rail's start the positions are written all the same.
+/// EW-LAY-010 judges it; past the rail's start the positions are written all the same.
 ///
 /// - Free space after the strip is used first; an item moves only as far as its minimum gap to its moved neighbour
 ///   requires (between two strips, the end bracket).
@@ -1751,7 +1751,7 @@ pub(crate) fn push_after_growth(tx: &mut TxBuilder<'_>, strip: Id<Device>) -> Re
         }
         // The rail's end (its start, mirrored) refuses nothing here: EW-LAY-010 reports it.
         let rest = &items[k + 1..];
-        // C53-p2#3 (ID-1480): mirrored, the gaps stay the real frame's.
+        // Mirrored, the gaps stay the real frame's.
         let push = if turned { cascade_mirrored } else { cascade };
         let moves = match push(grown, rest, i128::MAX, true) {
             Ok(moves) => moves,
@@ -1778,7 +1778,7 @@ pub(crate) fn push_after_growth(tx: &mut TxBuilder<'_>, strip: Id<Device>) -> Re
 }
 
 /// The width of `strip`'s terminals side by side as the transaction holds them; `None` when one has no part or no
-/// width and height (FT-1441).
+/// width and height.
 fn strip_width(tx: &TxBuilder<'_>, strip: Id<Device>) -> Option<i128> {
     let mut width = 0i128;
     for t in tx.terminals_of_strip(strip) {
@@ -1792,7 +1792,7 @@ fn strip_width(tx: &TxBuilder<'_>, strip: Id<Device>) -> Option<i128> {
     Some(width)
 }
 
-/// C53-p2#2 (ID-1480): the rail's items (computed on the base snapshot `q`) where the transaction holds them, so that
+/// The rail's items (computed on the base snapshot `q`) where the transaction holds them, so that
 /// a command that grows several strips cascades each push from the earlier ones: an item whose placement moved along
 /// the rail (its turn unchanged) moves by as much, and another strip placed as a whole takes the width of its terminals
 /// as the transaction holds them, at its clip point (its left end, turned 180° its right end). The placement `grown`
@@ -1827,7 +1827,7 @@ fn in_transaction(tx: &TxBuilder<'_>, q: &Q, grown: Id<Placement>, items: &mut [
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Assemblies and bulk placement (WP-S4.02 D6)
+// Assemblies and bulk placement
 
 /// A bare non-strip item without pads: what a block's outer pads are measured against.
 const BARE: RailItem = RailItem {
@@ -1993,7 +1993,7 @@ fn assembly_root(q: &Q, device: &Device) -> Option<Id<Device>> {
     }
 }
 
-/// [`assembly_root`] read through the transaction (cycle-42 review part 2, finding 1): the device's children through
+/// [`assembly_root`] read through the transaction (part 2, finding 1): the device's children through
 /// the `device_children` index, so that a concurrent new member or a member re-parented away conflicts at merge
 /// (ADR-0008). The device row itself is the caller's `tx.get`, its parent the row's.
 fn assembly_root_tx(tx: &TxBuilder<'_>, device: &Device) -> Option<Id<Device>> {
@@ -2054,7 +2054,7 @@ fn unplaced_members(q: &Q, root: Id<Device>) -> Vec<Id<Device>> {
         .collect()
 }
 
-/// `layout.place_assembly` (`PlaceAssembly`, WP-S4.02 D6, FR-LAY-061): places the unplaced members of an assembly on a
+/// `layout.place_assembly` (`PlaceAssembly`, FR-LAY-061): places the unplaced members of an assembly on a
 /// rail in their member order ([`member_order`], the order EW-LAY-016 checks), in one step.
 ///
 /// The assembly of `device` is the device itself when it has children, else its parent's. The members placed are those
@@ -2286,7 +2286,7 @@ fn insert_members(
     Ok(())
 }
 
-/// The order `layout.auto_fill` places its devices in (WP-S4.02 D6).
+/// The order `layout.auto_fill` places its devices in.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum FillOrder {
@@ -2333,7 +2333,7 @@ fn fill_list(q: &Q, carrier: Id<Carrier>) -> Vec<Id<Device>> {
         .collect()
 }
 
-/// `layout.auto_fill` (`AutoFill`, WP-S4.02 D6, FR-LAY-013): places a list of devices on a rail, next-fit from the
+/// `layout.auto_fill` (`AutoFill`, FR-LAY-013): places a list of devices on a rail, next-fit from the
 /// rail start, in one step; placed items never move.
 ///
 /// `devices` defaults to the unplaced devices of the rail's layout space whose primary part fits the rail's profile.
@@ -2459,7 +2459,7 @@ impl Command for AutoFill {
                 }
                 continue;
             };
-            // FT-973: the placement IDs are minted after the fit, only for the members placed
+            // The placement IDs are minted after the fit, only for the members placed
             let members: Vec<Member> = measured.into_iter().map(|m| mint_member(tx, m)).collect();
             for (m, off) in members.into_iter().zip(offsets) {
                 let at = item_at(&m.item, s.saturating_add(off));
@@ -2621,7 +2621,7 @@ fn one_of(part: Id<Part>) -> PartUse {
     }
 }
 
-/// `layout.enclosure.create_from_part` (`CreateEnclosureFromPart`, WP-S4.02 D7, FR-LAY-002): sets up a location's
+/// `layout.enclosure.create_from_part` (`CreateEnclosureFromPart`, FR-LAY-002): sets up a location's
 /// enclosure from an enclosure part in one step.
 ///
 /// `copies` (the `lib/` JSON form, as `device.place` takes them) are embedded first. Then, in order: the location's
@@ -2718,7 +2718,7 @@ impl Command for CreateEnclosureFromPart {
                     .map(|p| p.codes.clone())
                     .filter(|c| !c.is_empty())
                     .unwrap_or_else(|| vec![node.code.as_str().to_owned()]);
-                // ID-1106 (FT-1033): "Location +{location} already has enclosure {tag}; a location has one
+                // "Location +{location} already has enclosure {tag}; a location has one
                 // enclosure. Choose another location, or edit {tag}."
                 let tag = tag(tx, e.device);
                 return tx.reject(text!(

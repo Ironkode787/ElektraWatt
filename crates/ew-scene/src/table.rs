@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The `tables` layer of a generated report page: the house report table of doc 20 §16 (FT-53).
+//! The `tables` layer of a generated report page: the house report table of doc 20 §16.
 //!
 //! The caller (which holds the tracked read context) fills a [`TableView`] with the **printed** texts of
 //! one page's rows: the cell values are typed [`ew_reports::Cell`]s rendered late (doc 09 §3.6), so this
@@ -95,7 +95,7 @@ pub struct TableRow {
     pub links: Vec<TableLink>,
 }
 
-/// One link of a table cell (FR-REP-042; WP-S3.06 D10).
+/// One link of a table cell (FR-REP-042).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TableLink {
     /// The column of the cell.
@@ -575,7 +575,7 @@ mod tests {
         (q[0].x, q[2].x)
     }
 
-    /// C44-p3#1: in digits (no kerning, one glyph per character) every box of a 300-folio cell equals the one a
+    /// In digits (no kerning, one glyph per character) every box of a 300-folio cell equals the one a
     /// shaping per span end gives, in a cell that shrinks it and in one wide enough for it.
     #[test]
     fn the_spans_of_a_300_folio_cell_equal_a_shaping_per_span_end() {
@@ -588,7 +588,7 @@ mod tests {
         }
     }
 
-    /// C44-p5#1: a span's box is where its glyphs are drawn, kerning included. In "LT, Y, r, 7" the box of "L" ends at
+    /// A span's box is where its glyphs are drawn, kerning included. In "LT, Y, r, 7" the box of "L" ends at
     /// the x of the "T" kerned towards it, the box of "Y" at the "," kerned towards it, and the box of "r" at its ","
     /// likewise; each ends before the advance of its text shaped alone up to the span's end.
     #[test]
@@ -627,9 +627,9 @@ mod tests {
         }
     }
 
-    /// C44-p5#2: a 300-folio line with a CJK folio label among its digits: every span has its box at its glyphs' drawn
+    /// A 300-folio line with a CJK folio label among its digits: every span has its box at its glyphs' drawn
     /// extent, the boxes follow each other along the line, and the digit labels' boxes are those a shaping per end gives
-    /// (no kerning between digits). `span_quads` takes no fonts, so it cannot shape per span end (C44-p6#2).
+    /// (no kerning between digits). `span_quads` takes no fonts, so it cannot shape per span end.
     #[test]
     fn a_folio_line_with_a_cjk_label_takes_its_boxes_from_the_drawn_glyphs() {
         let (digits, spans) = folios_300();
@@ -660,7 +660,7 @@ mod tests {
         assert_eq!(new[6], None);
     }
 
-    /// C44-p6#1: a cross-reference-like text of two lines that starts right-to-left is drawn with one base direction:
+    /// A cross-reference-like text of two lines that starts right-to-left is drawn with one base direction:
     /// its first line right-aligned in the run, its second reordered ("90" drawn first). Every span's box is its glyphs'
     /// drawn extent, not where its line would lie shaped alone.
     #[test]
@@ -676,7 +676,7 @@ mod tests {
         assert!(xs(&new[5]).1 <= xs(&new[4]).0);
     }
 
-    /// C44-p6#3: in a right-to-left line a span's box covers its glyphs' extent ("\u{5d0}" is drawn right of
+    /// In a right-to-left line a span's box covers its glyphs' extent ("\u{5d0}" is drawn right of
     /// "\u{5d1}"), the two letters' boxes together make the word's, and a span that holds no glyph has no box.
     #[test]
     fn a_right_to_left_span_covers_its_glyphs_and_an_empty_span_has_no_box() {

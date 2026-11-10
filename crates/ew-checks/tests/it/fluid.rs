@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The EW-FL MVP rules (WP-S1.20 D16, FL-7, FL-9, FL-12's fixtures): EW-FL-001, -002, -004, -011 and -013, each on a
+//! The EW-FL MVP rules (FL-7, FL-9, FL-12's fixtures): EW-FL-001, -002, -004, -011 and -013, each on a
 //! fixture of its defect: a valve module `-1U3` (4 positions, the map 14 on 2p) of the valve terminal `-1U1`, valves
 //! with a placed 5/2 body (ports 1 to 5 with their roles) and an internal coil 14, cylinders with consumer ports A and B.
 
@@ -212,7 +212,7 @@ fn ew_fl_001_lists_the_open_working_ports() {
             ),
         ]
     );
-    // C50-p6#8: the closure choices' words, "blindstop" and "afgeblind".
+    // The closure choices' words, "blindstop" and "afgeblind".
     assert_eq!(
         dutch(&fx, "EW-FL-001"),
         [
@@ -287,7 +287,7 @@ fn ew_fl_004_lists_spare_valves_and_blanking_plates() {
             ),
         ]
     );
-    // C50-p6#8: "ventielplaats" for a valve slot.
+    // "ventielplaats" for a valve slot.
     assert_eq!(
         dutch(&fx, "EW-FL-004"),
         [
@@ -383,7 +383,7 @@ fn ew_fl_013_reports_the_occupancy_defects() {
             ),
         ]
     );
-    // C50-p6#8: "ventielplaats" for a valve slot; a module's place on the valve terminal stays a "positie".
+    // "ventielplaats" for a valve slot; a module's place on the valve terminal stays a "positie".
     assert_eq!(
         dutch(&fx, "EW-FL-013"),
         [
@@ -437,7 +437,7 @@ fn ew_fl_013_prevents_a_valve_outside_or_at_a_held_position() {
     assert!(messages(&free).is_empty());
 }
 
-/// EW-FL-013's prevent half (FL-7, C50-p6#1): a valve added at a position another valve holds is refused whatever the
+/// EW-FL-013's prevent half (FL-7): a valve added at a position another valve holds is refused whatever the
 /// IDs' order, here the new valve's ID being the lower.
 #[test]
 fn ew_fl_013_prevents_a_lower_id_valve_at_a_held_position() {

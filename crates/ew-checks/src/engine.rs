@@ -193,7 +193,7 @@ impl CheckReport {
         self
     }
 
-    /// The report with the layout rules' findings joined (EW-CORE-067 to -070, -072 and -073; WP-S2.19 D19): the
+    /// The report with the layout rules' findings joined (EW-CORE-067 to -070, -072 and -073): the
     /// session measures the drawn pages and words each finding with [`rules::page`](crate::rules::page)'s functions.
     /// A finding joins only when the run evaluated its rule (the scheme and the mode enable it), at the mode's
     /// severity; a waiver that matches it waives it, and the EW-CORE-081 finding that said it matched nothing goes. The
@@ -263,7 +263,7 @@ struct Waiver {
 }
 
 /// The waivers of the snapshot: the typed `waiver` records (doc 15 §2.5; typed within format 0.1 by WP-S1.16 D7,
-/// ID-334), matched by rule and fingerprint. A part target (1.0) and `expires` (FT-184) are not evaluated yet; a
+/// ID-334), matched by rule and fingerprint. A part target (1.0) and `expires` are not evaluated yet; a
 /// record without a parsable fingerprint matches nothing (EW-CORE-081 reports it).
 fn waivers(q: &Q) -> Vec<Waiver> {
     let mut out: Vec<Waiver> = q
@@ -311,7 +311,7 @@ fn supersede(findings: Vec<Finding>) -> Vec<Finding> {
 /// in canonical order ([`Finding::order_cmp`], §3.9, FT-594).
 ///
 /// A rule that panics in a scope yields EW-CORE-083 there and leaves every other finding as it is; a rule whose data
-/// table does not load is not evaluated and EW-CORE-084 names it (WP-S1.16 part 4).
+/// table does not load is not evaluated and EW-CORE-084 names it.
 ///
 /// # Panics
 ///

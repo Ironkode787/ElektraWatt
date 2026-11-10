@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The GPU host of the canvas (WP-S2.02 part 2, spec sections 7.1 and 7.2): which renderer draws, the GPU canvas
+//! The GPU host of the canvas (spec sections 7.1 and 7.2): which renderer draws, the GPU canvas
 //! on eframe's device, the scene preparation worker, and the canvas texture registered with egui-wgpu's renderer.
 //!
 //! **The switch rule** is `ew_render2d::gpu::choose`, evaluated every frame from the host's facts: `--no-gpu`, the
@@ -150,7 +150,7 @@ impl GpuHost {
         }
     }
 
-    /// The GPU side of a second canvas group (WP-S2.03 §6.8, §9: one offscreen target per visible group): the
+    /// The GPU side of a second canvas group (§9: one offscreen target per visible group): the
     /// leader's render state, flags and adapter; its switch-rule result is mirrored each frame by
     /// [`GpuHost::follow`], so the rule runs and tells its banners once.
     pub fn follower(&self) -> GpuHost {
@@ -224,7 +224,7 @@ impl GpuHost {
     }
 
     /// Whether the GPU canvas draws (the rule chose it and the canvas exists). It draws every page, raster images
-    /// (PNG, JPEG) included, through its textured-quad pipeline (FT-480).
+    /// (PNG, JPEG) included, through its textured-quad pipeline.
     pub fn drawing(&self) -> bool {
         self.choice.is_gpu() && self.canvas.is_some()
     }
@@ -431,7 +431,7 @@ impl GpuHost {
 
     /// Renders the scene at `view` (only when something changed) and returns the texture to paint; the texture is
     /// registered with egui-wgpu's renderer once per size. An error is recorded as a fault (the CPU canvas from the
-    /// next frame on), except a target beyond the device's limits (FT-363, WP-S2.11 D8): a pane too large is a property
+    /// next frame on), except a target beyond the device's limits: a pane too large is a property
     /// of this frame, not a broken device, so the CPU draws this frame and the next one tries the GPU again.
     pub fn render(&mut self, view: &GpuView) -> Option<(TextureId, RenderOutcome)> {
         let canvas = self.canvas.as_mut()?;

@@ -26,7 +26,7 @@ use crate::tools::{
 };
 use crate::{count_key, key};
 
-/// The text popup of the window (WP-S2.04 §10.5): the title's label key and the field's initial text.
+/// The text popup of the window: the title's label key and the field's initial text.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TextPopup {
     /// The key of the window's title (`tool-text` or `tool-text_edit`).
@@ -314,7 +314,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The Image tool (WP-S2.04 §11)
+    // The Image tool
 
     /// `tool.image` (Insert ▸ Image…): the Image tool, without an asset until `image.pick`.
     ///
@@ -367,7 +367,7 @@ impl ShellModel {
         }
         let reference = match ew_api::asset_ref_of(&bytes) {
             Ok(r) => r,
-            // FT-1504: the gate's refusal in the window's language.
+            // The gate's refusal in the window's language.
             Err(e) => {
                 let why = super::tools::rejected_words(&e.to_string(), Some(&ew_api::asset_error_text(&e)));
                 return failed(key!("error-image-refused"), &[&name, &why]);
@@ -424,9 +424,9 @@ impl ShellModel {
         let Some((reference, _)) = project.session.asset(&sha256) else {
             return failed(key!("error-image-asset-missing"), &[text]);
         };
-        // FT-1523 (ID-1458): a held image over the pixel limit is refused as `image.file` refuses it.
+        // A held image over the pixel limit is refused as `image.file` refuses it.
         if let Err(e) = ew_api::pixel_limit(reference.format, reference.size) {
-            // C53-p3#2 (ID-1481): in the window's language, as `image.file`'s refusal.
+            // In the window's language, as `image.file`'s refusal.
             let why = super::tools::rejected_words(&e.to_string(), Some(&ew_api::asset_error_text(&e)));
             return failed(key!("error-image-refused"), &[text, &why]);
         }
@@ -493,7 +493,7 @@ impl ShellModel {
         outcome
     }
 
-    /// FT-554: the toast of a marker-mode switch, how many wires carry a marker now (`0 wires carry a marker`), so a
+    /// The toast of a marker-mode switch, how many wires carry a marker now (`0 wires carry a marker`), so a
     /// mode that selects no wire on this project does not look like a mode that did nothing.
     fn notify_marker_count(&mut self, undo: bool) {
         let Some(project) = &self.project else { return };

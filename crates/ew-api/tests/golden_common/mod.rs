@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The golden model (doc 20) loaded through the CSV bootstrap (`ew-import-tables`) and
-//! `Session::from_records`, for the connectivity acceptance tests (WP-S1.07). The recipe is the one of
+//! `Session::from_records`, for the connectivity acceptance tests. The recipe is the one of
 //! `tests/golden_csv.rs`.
 //!
 //! The bootstrap reads `colour_profile.csv` and `size_profile.csv` but does not emit them yet (decision log
@@ -136,7 +136,7 @@ pub fn session_oracle_with(
         .expect("the golden batch passes the model's integrity check")
 }
 
-/// A session over the batch as imported (the bootstrap emits the colour and size profiles since cycle 12).
+/// A session over the batch as imported (the bootstrap emits the colour and size profiles).
 pub fn session(batch: &ImportBatch) -> Session {
     session_with(batch, |_, _| {})
 }
@@ -184,7 +184,7 @@ fn split(line: &str) -> Vec<String> {
 }
 
 /// Adds `colour_profile` and `size_profile` to `project`. The bootstrap emits both members since cycle 12
-/// (`ew-import-tables`, FT-159), so on a project of the golden batch this changes nothing; it restores them on
+/// (`ew-import-tables`), so on a project of the golden batch this changes nothing; it restores them on
 /// a project that lost them.
 pub fn with_profiles(project: &mut ew_schema::Project) {
     let (colour, size) = profiles_json();

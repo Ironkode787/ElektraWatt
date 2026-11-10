@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The bus tables (WP-S1.21 D11; doc 10 §2.7): `logical_nets.csv` → `logical_net`, `physical_nets.csv` →
+//! The bus tables (doc 10 §2.7): `logical_nets.csv` → `logical_net`, `physical_nets.csv` →
 //! `physical_net`, and `bus_ports.csv` → the `bus_port` aspect of the function its key names. A project without
 //! these tables has no bus records, and its functions are written as before.
 //!

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! EW-CORE-011 "Conflict records present" over the model (WP-S1.17 part 5, decision log ID-1279): one release-mode
+//! EW-CORE-011 "Conflict records present" over the model: one release-mode
 //! error per conflict record, its target and file named in words, never by ID; nothing in online mode.
 
 use crate::common;
@@ -85,7 +85,7 @@ fn ew_core_011_reports_each_conflict_in_words_as_a_release_error() {
     assert_eq!(online, 0);
 }
 
-/// FT-1291 (ID-1315 ruling 7): a conflict on a connection whose end is a junction names that end in words, in en-GB
+/// A conflict on a connection whose end is a junction names that end in words, in en-GB
 /// and in nl-NL (whose message falls back to en-GB's words, FT-680).
 #[test]
 fn ew_core_011_names_a_junction_end_in_words() {

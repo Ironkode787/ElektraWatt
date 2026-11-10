@@ -289,7 +289,7 @@ fn the_wire_list_workbook_reads_back_as_the_golden_wire_list() {
 }
 
 /// TX-2: the bill of materials' Qty is a numeric cell; the block of folio 908 has its 56 rows (FR-EXT-027); the
-/// terminal diagrams give one sheet per strip; `ew sql` writes the query's rows (FT-218).
+/// terminal diagrams give one sheet per strip; `ew sql` writes the query's rows.
 #[test]
 fn the_row_exports_and_sql_write_workbooks() {
     let t = Tmp::new();

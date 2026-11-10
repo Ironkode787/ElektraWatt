@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! [`Registry`]: the opened tiers, the one resolver and the search index (WP-S1.19 §5.2, §7).
+//! [`Registry`]: the opened tiers, the one resolver and the search index (§7).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
@@ -99,7 +99,7 @@ struct Lib {
     info: LibraryInfo,
     /// `None` for the compiled-in starter.
     manifest: Option<LibManifest>,
-    /// The files of a compiled-in `.ewlib` library (the starter parts, WP-S2.18 D6) as `(path, text)`.
+    /// The files of a compiled-in `.ewlib` library (the starter parts) as `(path, text)`.
     compiled: Option<&'static [(&'static str, &'static str)]>,
     /// The files of a library given in memory ([`Registry::in_memory`]) as `(path, bytes)`, `library.json` among them.
     memory: Option<BTreeMap<String, Vec<u8>>>,
@@ -171,7 +171,7 @@ fn starter_entries() -> Vec<Entry> {
         .collect()
 }
 
-/// The opened tiers and the search index (WP-S1.19 §5.2): the one resolver of library references.
+/// The opened tiers and the search index: the one resolver of library references.
 pub struct Registry {
     tiers: LibraryTiers,
     libs: Vec<Lib>,
@@ -442,7 +442,7 @@ fn under(child: &Path, parent: &Path) -> bool {
 }
 
 impl Registry {
-    /// Opens the tiers and the index, reindexing what changed (WP-S1.19 §7.3). A library that cannot be read is
+    /// Opens the tiers and the index, reindexing what changed. A library that cannot be read is
     /// left out with a finding ([`Registry::findings`]); an index that cannot be used is deleted and rebuilt.
     pub fn open(tiers: &LibraryTiers) -> Result<Registry, LibraryError> {
         let path = tiers.cache.join(INDEX_FILE);
@@ -481,7 +481,7 @@ impl Registry {
 
     /// A registry of the compiled-in libraries and one library of tier `tier` given as its files in memory (`(path,
     /// bytes)`, `library.json` among them), with the index in memory (no tiers configured, nothing on disk): the
-    /// `.ewlib` reader without a directory (FT-1382). The library is read as a directory's would be, under the same
+    /// `.ewlib` reader without a directory. The library is read as a directory's would be, under the same
     /// limits, and is not writable; when it cannot be read it is left out with a finding.
     ///
     /// # Errors
@@ -537,12 +537,12 @@ impl Registry {
                 key: starter::KEY.to_owned(),
                 name: "ElektraWatt starter library".to_owned(),
                 tier: Tier::System,
-                // 0.2.0: the plc_address slot of the coil, valve coil, pushbutton and selector (WP-S1.21 part 2);
-                // 0.3.0: the same slot on the lamp, position switch and 5/2 valve (FT-698);
-                // 0.4.0: the fluid power model (WP-S1.20): the port roles of the 5/2 valve and the cylinder, the 5/2
+                // 0.2.0: the plc_address slot of the coil, valve coil, pushbutton and selector;
+                // 0.3.0: the same slot on the lamp, position switch and 5/2 valve;
+                // 0.4.0: the fluid power model: the port roles of the 5/2 valve and the cylinder, the 5/2
                 // valve's solenoid as the new `ew.fn.valve-solenoid`, the valve symbol's process-tag fallback, the module
                 // overview's tag above the valve glyphs;
-                // 0.4.1: the one-pole on/off switch in the manual-command category, class S (FT-1204, ID-1395).
+                // 0.4.1: the one-pole on/off switch in the manual-command category, class S.
                 version: "0.4.1".to_owned(),
                 licence: "CC-BY-SA-4.0".to_owned(),
                 writable: false,
@@ -556,7 +556,7 @@ impl Registry {
             memory: None,
         }];
         let mut seen: BTreeSet<Uuid> = BTreeSet::from([starter::LIBRARY]);
-        // The system library of starter parts, compiled in (WP-S2.18 D6): a new project reaches its parts with no
+        // The system library of starter parts, compiled in: a new project reaches its parts with no
         // library configured. The same directory installed as a system library is the shipped copy of it.
         let compiled_parts = crate::starter_parts_library();
         match LibManifest::parse(starter_parts::MANIFEST.as_bytes()) {
@@ -1023,7 +1023,7 @@ impl Registry {
         Ok(())
     }
 
-    /// Writes documents into a writable library (WP-S1.19 §7.2): under the library's lock, every changed shard as a
+    /// Writes documents into a writable library: under the library's lock, every changed shard as a
     /// new file, then `library.json` with the next generation, last; then the files the old manifest named and the
     /// new one does not, and leftovers of an interrupted write, are removed. Each document's `library_id` must be
     /// the library's; its copy ID and hash are recomputed. A document of other content under a version the library

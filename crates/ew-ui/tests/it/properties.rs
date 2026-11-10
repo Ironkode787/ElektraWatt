@@ -145,7 +145,7 @@ fn pg5_ac28_w29_colour_through_the_editor_and_undo() {
     assert_eq!(options.first().map(String::as_str), Some("BU"), "{options:?}");
     assert!(options.iter().all(|o| o.contains("BU")), "{options:?}");
     press(&mut h, Key::ArrowDown);
-    // FT-1255: the highlighted option alone is selected for AccessKit.
+    // The highlighted option alone is selected for AccessKit.
     let selected: Vec<Option<bool>> = h
         .get_all_by_role(egui::Role::ListBoxOption)
         .map(|n| n.accesskit_node().is_selected())
@@ -722,7 +722,7 @@ fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
         let chip = h
             .query_by_label(&name)
             .unwrap_or_else(|| panic!("the chip {name}"));
-        // FT-759: the chip is a button (it opens Messages filtered to the record).
+        // The chip is a button (it opens Messages filtered to the record).
         assert_eq!(
             chip.accesskit_node().role(),
             egui::accesskit::Role::Button,
@@ -1103,7 +1103,7 @@ fn c39_the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
     );
 }
 
-/// FT-1413 (ID-1419): in Dutch the project sheet's label column takes what its labels need up to half the row and gives
+/// In Dutch the project sheet's label column takes what its labels need up to half the row and gives
 /// way to no list's item count ("4 elementen") and to no prose; a label longer than its column wraps at its words onto
 /// a second line and its row grows. At the 1280 × 800 floor no label is cut: "Persoonsgegevens" whole on one line,
 /// "Personen en organisaties" on two; at 1920 × 1080 both stand on one line.
@@ -1159,7 +1159,7 @@ fn ft1413_the_label_column_gives_way_to_no_count_and_no_prose() {
     }
 }
 
-/// FT-1498 (ID-1456, doc 16a §6.8): at the 1280 × 800 floor folio 101's prose values (its Description beside its
+/// FT-1498 (doc 16a §6.8): at the 1280 × 800 floor folio 101's prose values (its Description beside its
 /// "inherited" chip, its Title) wrap at their words onto further lines, their rows growing, and none is cut; at
 /// 1920 × 1080 they stand on one line.
 #[test]
@@ -1272,7 +1272,7 @@ fn id1427_an_identifier_stays_whole_beside_its_chip_at_the_floor() {
             ("-X1031:71".to_owned(), false)
         ]
     );
-    // ID-1439 (C52-p8#8): a label whose word is longer than the column left is cut on one line, its whole text in
+    // A label whose word is longer than the column left is cut on one line, its whole text in
     // its tooltip (the label button's description).
     let line = ew_ui::theme::current(&h.ctx).size_control_inline;
     let cut = h
@@ -1333,7 +1333,7 @@ fn id1427_the_position_row_is_whole_at_the_floor() {
     );
 }
 
-/// ID-1439 (C52-p8#1): at the 1280 × 800 floor in Dutch a one-word prose value ("Hoofdschakelaarkast", no digit) takes
+/// At the 1280 × 800 floor in Dutch a one-word prose value ("Hoofdschakelaarkast", no digit) takes
 /// nothing from the labels: the label column keeps at least `size.property_label`.
 #[test]
 fn id1439_a_one_word_prose_value_takes_nothing_from_the_labels() {

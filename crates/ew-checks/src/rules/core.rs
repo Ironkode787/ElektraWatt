@@ -110,7 +110,7 @@ impl Rule for DeviceNotInSchematic {
         let idx = q.idx();
         let functions: Vec<Id<Function>> = idx.functions_of_device(device).collect();
         // Doc 15 §4.2: a *schematic* representation. A panel-front view, a contact image or a strip segment is a
-        // derived or layout view and does not draw the device in the schematic (cycle 33 review finding 8). A graphic
+        // derived or layout view and does not draw the device in the schematic (finding 8). A graphic
         // counts: a cable is drawn in the schematic as a graphic representation (Golden A's -106W1, -106W2, -3W1). A
         // representation type of a newer format counts, so that a newer file raises no finding this release cannot
         // judge.
@@ -240,9 +240,9 @@ pub const AMBIGUOUS_INTERRUPTION_POINT: RuleMeta = RuleMeta {
 /// (FR-CHK-017): more than one point flagged as star source, or none flagged and two or more source points.
 /// The derivation picks the smallest ID as the source and pairs; the finding asks for the decision. One
 /// finding per group: targets every member's function, discriminator `star-source`. An odd chain-mode group
-/// leaves a point without a partner, which EW-CORE-051 reports (FT-195).
+/// leaves a point without a partner, which EW-CORE-051 reports.
 ///
-/// Prevent (FT-194, ADR-0009 amendment 1): a batch that touches an interruption-point function (in the base or the
+/// Prevent (ADR-0009 amendment 1): a batch that touches an interruption-point function (in the base or the
 /// candidate), a representation or the project settings, and leaves an ambiguous group the base did not hold, is
 /// refused; an ambiguity the base already held does not refuse an edit.
 #[derive(Clone, Copy, Debug)]
@@ -281,7 +281,7 @@ fn ambiguous_groups(q: &Q) -> Vec<Finding> {
         } else {
             continue;
         };
-        // FT-1334: the arguments of the rule's pattern, so that EW-CORE-013 words this group in each language too.
+        // The arguments of the rule's pattern, so that EW-CORE-013 words this group in each language too.
         out.push(
             Finding::new(
                 &AMBIGUOUS_INTERRUPTION_POINT,
@@ -854,7 +854,7 @@ pub const DANGLING_REFERENCE: RuleMeta = integrity(
 );
 
 /// EW-CORE-011 "Conflict records present" (doc 15 §4.2): integrity, n r, error, project. A registered rule over the
-/// model's conflict table ([`ConflictRecords`], WP-S1.17 D17), no longer a row of [`INTEGRITY`] (decision log ID-1279).
+/// model's conflict table ([`ConflictRecords`]), no longer a row of [`INTEGRITY`].
 pub const CONFLICT_RECORDS: RuleMeta = integrity(
     "EW-CORE-011",
     "100011",
@@ -864,7 +864,7 @@ pub const CONFLICT_RECORDS: RuleMeta = integrity(
     "reference/rules/ew-core-011",
 );
 
-/// EW-CORE-011: one finding per conflict record a merge left (doc 05 §11.2, §11.4; WP-S1.17 D17), an error of release
+/// EW-CORE-011: one finding per conflict record a merge left (doc 05 §11.2, §11.4), an error of release
 /// mode, so the release gate blocks while one is left. A record-level conflict targets its record and names it in
 /// words (its kind and tag, folio or ends, never its ID) with the members ours and theirs changed differently, or
 /// the side that deleted it; a file-level one names its file and the side whose lines it holds. Discriminator
@@ -920,8 +920,8 @@ impl Rule for ConflictRecords {
 }
 
 /// EW-CORE-013 "Collision after a merge" (doc 15 §4.2, §6.4): integrity, n r, error, project. A registered rule over
-/// the model (WP-S1.17 D29, decision log ID-1284 ruling 5), no longer a row of [`INTEGRITY`]. Doc 15's `n`, the
-/// integrity run on open and after an external change, is the window's online check (C49-p9#3): `o r`.
+/// the model, no longer a row of [`INTEGRITY`]. Doc 15's `n`, the
+/// integrity run on open and after an external change, is the window's online check: `o r`.
 pub const MERGE_COLLISION: RuleMeta = integrity(
     "EW-CORE-013",
     "100013",
@@ -943,7 +943,7 @@ pub const UNIQUENESS_RULES: [&str; 6] = [
 ];
 
 /// EW-CORE-013: after a merge, each group of records that one of the six [`UNIQUENESS_RULES`] finds sharing its key
-/// (doc 15 §6.4; WP-S1.17 D29). The rule reports only when the model carries merge evidence, its conflict records; the
+/// (doc 15 §6.4). The rule reports only when the model carries merge evidence, its conflict records; the
 /// session joins the groups for the evidence the model does not hold (a merged manifest, a merge or rebase in
 /// progress, `ew check --integrity --after-merge`) through [`merge_collisions`]. One finding per group, its targets the
 /// group's records, its discriminator the uniqueness rule's ID, its subject that rule's; the keeper is the record a
@@ -1032,7 +1032,7 @@ fn frozen(q: &Q, t: &Target) -> bool {
             .is_some_and(|d| d.tag.frozen.is_some())
 }
 
-/// The keeper order of a group (doc 15 §6.4, WP-S1.17 D29): (1) a device with a frozen tag first; (3) then the older
+/// The keeper order of a group (doc 15 §6.4): (1) a device with a frozen tag first; (3) then the older
 /// ID by its UUIDv7 time, bytes 0 to 5 of the ID (RFC 9562's 48-bit Unix milliseconds), an ID that is not a UUIDv7
 /// (an imported or generated record's UUIDv5) counting as the oldest, then the full ID. Step (2), the merge base, is
 /// FP-2; a number published in the last release is not modelled yet.
@@ -1052,7 +1052,7 @@ pub fn keeper_order(q: &Q, a: &Target, b: &Target) -> std::cmp::Ordering {
         .then_with(|| a.id.cmp(&b.id))
 }
 
-/// "Renumber the newer" (doc 15 §6.4; WP-S1.17 D29, decision log ID-1284 ruling 6): `numbering.renumber` scoped to the
+/// "Renumber the newer" (doc 15 §6.4; ruling 6): `numbering.renumber` scoped to the
 /// devices of a duplicated tag after the keeper (`group` in keeper order), each given the lowest counter its page and
 /// letter leave free, as one previewed command. `None` when the group holds fewer than two devices.
 pub fn renumber_newer(q: &Q, group: &[Target]) -> Option<QuickFix> {
@@ -1141,8 +1141,8 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> String {
 }
 
 /// The integrity rules EW-CORE-001 … 019 but 011 and 013 (doc 15 §4.2; detection in the store, doc 05 §6.3), which are
-/// the registered [`ConflictRecords`] since WP-S1.17 part 5 (decision log ID-1279) and [`MergeCollisions`] since part 8
-/// (ID-1284). They run on open (mode n, not
+/// the registered [`ConflictRecords`] since WP-S1.17 part 5 and [`MergeCollisions`] since part 8.
+/// They run on open (mode n, not
 /// modelled) and, where the catalogue lists `r`, in release mode; the engine does not run them:
 /// [`CheckReport::with_integrity`](crate::CheckReport::with_integrity) joins the store's findings.
 pub const INTEGRITY: &[RuleMeta] = &[
@@ -1281,8 +1281,8 @@ pub const INTEGRITY: &[RuleMeta] = &[
 mod tests {
     use super::*;
 
-    /// The rows are EW-CORE-001 to 019 in order, without 011, which moved to the registered `ConflictRecords`
-    /// (decision log ID-1279), and 013, which moved to the registered `MergeCollisions` (ID-1284).
+    /// The rows are EW-CORE-001 to 019 in order, without 011, which moved to the registered `ConflictRecords`,
+    /// and 013, which moved to the registered `MergeCollisions`.
     #[test]
     fn integrity_rules_are_numbered_in_class_100() {
         let numbers: Vec<usize> = (1..=19).filter(|n| *n != 11 && *n != 13).collect();

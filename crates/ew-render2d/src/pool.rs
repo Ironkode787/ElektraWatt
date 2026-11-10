@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The raster worker pool (WP-S2.02 §6.3): tiles are rasterised off the UI thread by
+//! The raster worker pool: tiles are rasterised off the UI thread by
 //! `clamp(available_parallelism − 1, 1, 4)` workers.
 //!
 //! A [`Scene`] is one page content: its display list, sheet size and fonts, with the [`ItemBounds`] built once, on
@@ -312,7 +312,7 @@ impl TilePool {
     }
 
     /// Makes `jobs` (each a scene and one of its tiles, in priority order, of one or several scenes) the queue,
-    /// dropping waiting jobs of earlier plans: the merged plan of several visible canvases (WP-S2.03 §6.8).
+    /// dropping waiting jobs of earlier plans: the merged plan of several visible canvases.
     pub fn submit_many(&self, jobs: &[(Arc<Scene>, TileKey)]) {
         let delivered = self.delivered.lock().unwrap_or_else(PoisonError::into_inner);
         self.pool.submit(

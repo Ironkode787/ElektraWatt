@@ -156,7 +156,7 @@ fn bl1_the_bom_folios_link_each_listed_folio() {
     }
 }
 
-/// D10 (C44-p3#2): BOM rows 13 and 14, the PT 2.5-TWIN terminals placed through their strip, list folio 103 and link
+/// D10: BOM rows 13 and 14, the PT 2.5-TWIN terminals placed through their strip, list folio 103 and link
 /// the page whole: the terminals have no representation of their own there.
 #[test]
 fn bl1_the_terminal_rows_link_their_strip_page() {
@@ -184,7 +184,7 @@ fn bl1_the_terminal_rows_link_their_strip_page() {
     }
 }
 
-/// D10 (C44-p3#2): a folio link never picks a contact image. A contact image of -101F1 on 101 with an ID below every
+/// D10: a folio link never picks a contact image. A contact image of -101F1 on 101 with an ID below every
 /// other representation's leaves the Folios link of -101F1's row on its main representation (101-B8).
 #[test]
 fn bl1_a_folio_link_skips_contact_images() {
@@ -227,7 +227,7 @@ fn bl1_a_folio_link_skips_contact_images() {
     );
 }
 
-/// D10 (C44-p3#2): a `parts_list` block links each row's device tag to the device's main representation, whole; a
+/// D10: a `parts_list` block links each row's device tag to the device's main representation, whole; a
 /// device without one (-UC1, its plate, the terminals) links nothing.
 #[test]
 fn bl3_a_parts_list_links_each_device_to_its_main_representation() {
@@ -247,7 +247,7 @@ fn bl3_a_parts_list_links_each_device_to_its_main_representation() {
     let q = s.query();
     let rows = block_rows(&q, "915");
     assert!(!rows.is_empty());
-    // C44-p5#4: each row links exactly its device's main representation, whole, in the Device column.
+    // Each row links exactly its device's main representation, whole, in the Device column.
     let devices: BTreeMap<String, Id<ew_schema::Device>> = golden_common::tags(&s)
         .into_iter()
         .map(|(id, tag)| (tag, id))

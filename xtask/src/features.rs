@@ -24,7 +24,7 @@
 //!
 //! `[[uniform_test_features]]` keeps a test-only feature the same in every test build: each workspace package whose
 //! test build reaches the crate requests the feature on a dev edge, so no package set builds the crate a second way
-//! (RD43 T1). A missing request fails and names the manifest line to write.
+//! (T1). A missing request fails and names the manifest line to write.
 //!
 //! The shipped binaries' resolved graph (`cargo tree -e normal,build` over every workspace package with a binary
 //! target) must hold no banned crate and no feature that is banned outside dev edges (doc 18 CI-R-09, the graph
@@ -122,7 +122,7 @@ pub fn check_required(required: &[RequiredFeature], resolved: &[Resolved]) -> Ve
     v
 }
 
-/// A test-only feature that every test build compiles the same way (RD43 T1; doc 18 §2.2).
+/// A test-only feature that every test build compiles the same way (T1; doc 18 §2.2).
 ///
 /// Cargo keeps one build of a crate per feature set. A test-only feature that only some packages request on their
 /// dev edges is on in one package set and off in the next, so after an edit the crate and every crate above it
@@ -1170,7 +1170,7 @@ mod tests {
         );
     }
 
-    /// FT-1011: the shipping graph's `cargo tree` covers every target (`--target all`) and no dev edge.
+    /// The shipping graph's `cargo tree` covers every target (`--target all`) and no dev edge.
     #[test]
     fn the_shipping_graph_command_covers_every_target() {
         assert_eq!(
@@ -1275,7 +1275,7 @@ mod tests {
         );
     }
 
-    /// SE-4 (WP-S6.04 D8): the real policy bans `ew-testkit` from the shipped binaries; on a normal edge of a shipped
+    /// The real policy bans `ew-testkit` from the shipped binaries; on a normal edge of a shipped
     /// binary, or in its resolved graph, it fails, and on a dev edge it passes.
     #[test]
     fn the_testkit_fails_outside_dev_edges() {
@@ -1307,7 +1307,7 @@ mod tests {
         );
     }
 
-    /// The generator features of `uuid` and `rand` (FT-317) are banned outside dev edges by the real policy.
+    /// The generator features of `uuid` and `rand` are banned outside dev edges by the real policy.
     #[test]
     fn the_generator_features_are_banned_outside_dev_edges() {
         let root = crate::workspace_root();

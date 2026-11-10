@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rule messages in Fluent (doc 15 §3.8; WP-S1.16 D6, P5-1, P5-2).
+//! The rule messages in Fluent (doc 15 §3.8; P5-1, P5-2).
 
 use crate::common;
 
@@ -53,7 +53,7 @@ fn every_rule_has_its_message_title_and_hint_in_en_gb() {
         );
     }
     assert!(missing.is_empty(), "en-GB lacks: {missing:#?}");
-    // The integrity rules of opening a project reach the Messages pane too (C51-p6#1): each has its title in every
+    // The integrity rules of opening a project reach the Messages pane too: each has its title in every
     // language, en-GB's the catalogue's.
     for m in INTEGRITY {
         assert_eq!(
@@ -64,7 +64,7 @@ fn every_rule_has_its_message_title_and_hint_in_en_gb() {
         );
         for lang in LANGUAGES {
             assert!(has(m.id, Some("title"), lang), "{lang} has no title for {}", m.id);
-            // FT-1422: and its hint, the remedy the finding's detail shows.
+            // And its hint, the remedy the finding's detail shows.
             assert!(has(m.id, Some("hint"), lang), "{lang} has no hint for {}", m.id);
         }
     }
@@ -126,7 +126,7 @@ fn one(m: &ew_model::Model, rule: &str) -> ew_checks::Finding {
 /// and `render` in en-GB is the message itself; nl-NL renders the Dutch pattern from the same arguments.
 #[test]
 fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
-    // EW-TERM-002 (FT-1334): its pattern words the duplicate in each language.
+    // EW-TERM-002: its pattern words the duplicate in each language.
     let m = model(vec![strip(1, 1), terminal(2, 1, 1, "1"), terminal(3, 1, 2, "1")]);
     let dup = one(&m, "EW-TERM-002");
     assert_eq!(dup.message, "designation 1 is used by 2 terminals of -?X1");
@@ -165,7 +165,7 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
         assert_eq!(render(&f, "nl-NL"), nl);
         assert_eq!(render(&f, "NL-nl"), nl, "language tags compare without case");
     }
-    // FT-756 (ID-889): a pin whose designation the device shares is named in words with its position, in each
+    // A pin whose designation the device shares is named in words with its position, in each
     // language's ordinal, never by the label's `#n`.
     for (nth, en, nl) in [
         ("2", "-1A4 pin − (2nd)", "-1A4 pen − (2e)"),
@@ -207,7 +207,7 @@ fn by_hand(rule: &str, discriminator: &str, en: &str, args: &[(&'static str, &st
     f
 }
 
-/// FT-1417: EW-TERM-002's prevent finding carries its pattern's arguments, so nl-NL words it with each remedy.
+/// EW-TERM-002's prevent finding carries its pattern's arguments, so nl-NL words it with each remedy.
 #[test]
 fn nl_nl_words_ew_term_002_s_prevent_finding() {
     for (remedy, free, old, en, nl) in [
@@ -261,7 +261,7 @@ fn nl_nl_words_ew_term_002_s_prevent_finding() {
     }
 }
 
-/// FT-1480: EW-TERM-002 words a strip without a printed designation in each language, in both its forms.
+/// EW-TERM-002 words a strip without a printed designation in each language, in both its forms.
 #[test]
 fn nl_nl_words_ew_term_002_s_untagged_strip() {
     for (form, en, nl) in [
@@ -296,7 +296,7 @@ fn nl_nl_words_ew_term_002_s_untagged_strip() {
     }
 }
 
-/// FT-1416: EW-BUS-001 words an untagged port in each language, a TBD address's port and a duplicate's ports alike.
+/// EW-BUS-001 words an untagged port in each language, a TBD address's port and a duplicate's ports alike.
 #[test]
 fn nl_nl_words_ew_bus_001_s_untagged_ports() {
     for (args, en, nl) in [
@@ -370,7 +370,7 @@ fn nl_nl_words_ew_bus_001_s_untagged_ports() {
     }
 }
 
-/// FT-1334, FT-1370: the uniqueness rules EW-CORE-052 and EW-POT-015 (and so EW-CORE-013 that reports them after a
+/// The uniqueness rules EW-CORE-052 and EW-POT-015 (and so EW-CORE-013 that reports them after a
 /// merge), EW-BUS-004's segment ends and EW-POT-001's conflicts read in Dutch in nl-NL.
 #[test]
 fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
@@ -529,7 +529,7 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     assert_eq!(render(&odd, "nl-NL"), "something else");
 }
 
-/// FT-1482 (ID-1457): every quick fix a rule offers names its key beside its English label; the key's en-GB message
+/// Every quick fix a rule offers names its key beside its English label; the key's en-GB message
 /// is that label byte for byte (the CLI's text), nl-NL words it in Dutch, and a fix without a key keeps its label.
 #[test]
 fn every_quick_fix_label_has_its_key_in_both_languages() {

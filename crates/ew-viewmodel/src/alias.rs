@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The ID alias `@n` (decision log ID-630, FT-422): the one grammar for record IDs in machine text.
+//! The ID alias `@n`: the one grammar for record IDs in machine text.
 //!
 //! **Form.** `@` and a decimal number from 1 without a leading zero, as a whole token (in JSON the string `"@3"`).
 //! An `@` inside a longer word is never an alias (`ew.iec.mcb-1pn@qet10`, a profile's `id@version`).
@@ -245,7 +245,6 @@ pub enum ParamForm {
     IdRef,
     /// A text with UUIDs inside it (a navigator row key, `s:1/p:@3`).
     Embedded,
-    // WP-S2.06 part 1
     /// A list of texts with UUIDs inside them (the row keys of `navigator.select`).
     EmbeddedList,
     /// Command parameters, whose command-log references `{"ref": "@3"}` resolve to `{"ref": "id:<uuid>"}`.

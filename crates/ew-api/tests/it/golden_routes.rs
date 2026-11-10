@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Golden A's route tool (WP-S2.19 §8.2, decision log ID-1499, ID-1503): the routes of the page connections of folios
+//! Golden A's route tool: the routes of the page connections of folios
 //! 3, 101, 102, 103, 106 and 203 are the schematic router's. The tool imports the tables with those rows' routes left out, routes
 //! each page with `Session::route_plan` (Route page), and writes each route's corners into `connections.csv`'s `route`
 //! column in the column's grammar (`<cell>` or `<cell> <dx> <dy>`, QET px from the cell's centre). Compare mode asserts that the committed column is the router's result,

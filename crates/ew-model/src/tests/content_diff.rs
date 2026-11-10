@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `Model::content_diff`: the first difference between two models, per part (FT-468).
+//! `Model::content_diff`: the first difference between two models, per part.
 
 use ew_ids::{Id, Uuid};
 use ew_mltext::MlText;

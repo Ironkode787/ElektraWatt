@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The normalisation of product output (WP-S6.13 §5.10, D14, decision log ID-630) and the guards that go with it.
+//! The normalisation of product output (D14) and the guards that go with it.
 //!
 //! This is the only rewriting of product output, applied alike to live runs, replays and committed recordings: the run
 //! folder's absolute path, in any spelling the operating system gives it, becomes `«run»`, and the transcript
-//! header's version `«version»`. A record ID is never rewritten: the product prints the alias `@n` itself (FT-422), so
+//! header's version `«version»`. A record ID is never rewritten: the product prints the alias `@n` itself, so
 //! a raw UUID in a transcript line is a product defect and is reported with its line.
 
 use std::path::Path;

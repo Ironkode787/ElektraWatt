@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The headless tutorial of the user guide runs as its page says (WP-S7.05 D11, DC-8): every `console` block of
+//! The headless tutorial of the user guide runs as its page says (DC-8): every `console` block of
 //! `docs/book/src/tutorials/headless-workflow.md` is run in order in a folder that holds a copy of Golden A at
 //! `golden/J-E-2416.ew`. An `ew` line runs the binary under test; `mkdir` makes the folder; `echo $?` shows the last
 //! exit code. The lines the page shows below a command are its standard output and then its standard error, compared

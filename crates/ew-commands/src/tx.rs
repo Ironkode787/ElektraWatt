@@ -69,7 +69,7 @@ pub enum IndexRead {
     PlacementsOnSurface(Id<ew_schema::MountingSurface>),
     /// `Carrier.surface` → carriers.
     CarriersOfSurface(Id<ew_schema::MountingSurface>),
-    /// `Device.parent` → child devices (FT-352).
+    /// `Device.parent` → child devices.
     DeviceChildren(Id<Device>),
 }
 
@@ -399,7 +399,7 @@ impl<'a> TxBuilder<'a> {
     }
 
     /// Records a notice that `channel` is unbound, dropped when the channel is bound again before the transaction
-    /// ends: a normaliser later in the pipeline may bind it in the same step (FT-1392).
+    /// ends: a normaliser later in the pipeline may bind it in the same step.
     pub fn notice_while_unbound(&mut self, channel: Id<Channel>, text: impl Into<String>) {
         let text = text.into();
         self.while_unbound.push((text.clone(), channel));
@@ -629,12 +629,12 @@ impl<'a> TxBuilder<'a> {
         self.indexed::<Device>(IndexRead::DeviceChildren(device), |d| d.parent == Some(device))
     }
 
-    /// The channels of a module, in ID order (FT-319: an index lookup, not a scan of the channel table).
+    /// The channels of a module, in ID order (an index lookup, not a scan of the channel table).
     pub fn channels_of_module(&self, module: Id<Device>) -> Vec<Id<Channel>> {
         self.indexed::<Channel>(IndexRead::ChannelsOfModule(module), |c| c.module == module)
     }
 
-    /// The channels bound to CP `idx` of `function`, in ID order (FT-319: an index lookup, not a scan).
+    /// The channels bound to CP `idx` of `function`, in ID order (an index lookup, not a scan).
     pub fn channels_at_cp(&self, function: Id<Function>, idx: u16) -> Vec<Id<Channel>> {
         self.indexed::<Channel>(
             IndexRead::ChannelsAtFunction(function),
@@ -764,7 +764,7 @@ impl<'a> TxBuilder<'a> {
     /// names it at the end of the transaction (the structural invariants check it anyway, and so does the
     /// delete-time rule EW-INV-021 for a library copy named through a `LibRef`), with one exception it takes care
     /// of itself: a record of a kind of [`ew_model::MACRO_MEMBER_KINDS`] leaves every macro instance that lists it
-    /// (the unlink policy of `macro_instance.members[][1]`, WP-S1.19 §6.1), so the normalisers' direct removals
+    /// (the unlink policy of `macro_instance.members[][1]`), so the normalisers' direct removals
     /// (a dissolved junction, a merged connection, an emptied wire marker) do not each need to know the link.
     pub fn remove_row(&mut self, key: AnyKey) {
         if !self.pending.contains_key(&key) {
@@ -856,7 +856,7 @@ impl<'a> TxBuilder<'a> {
         if keys.is_empty() {
             return Ok(());
         }
-        // FT-1488: a record a forbid link still names, in words.
+        // A record a forbid link still names, in words.
         let planned = self.planning_snapshot()?.delete_plan_many(keys);
         let plan = match planned {
             Ok(plan) => plan,

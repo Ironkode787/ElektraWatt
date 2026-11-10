@@ -15,7 +15,7 @@
 //! Files are decoded by [`decode`]: UTF-16 by its byte-order mark, everything else as lossy UTF-8, binary
 //! files (NUL byte in the first 8 KiB) skipped.
 
-// FT-271: the denylist is only asked `contains` and `is_empty`; it is never iterated.
+// The denylist is only asked `contains` and `is_empty`; it is never iterated.
 #[allow(clippy::disallowed_types)]
 use std::collections::HashSet;
 
@@ -27,7 +27,7 @@ use unicode_normalization::UnicodeNormalization;
 pub type Hash = [u8; 32];
 
 /// The digests of the denylist. Membership only: nothing iterates it, so its order never reaches output.
-// FT-271: the one place that names the hash set. The alias is private to this module on purpose: a use of an alias is
+// The one place that names the hash set. The alias is private to this module on purpose: a use of an alias is
 // not linted, so a public alias would let any module use the hash set unseen.
 #[allow(clippy::disallowed_types)]
 type Denylist = HashSet<Hash>;

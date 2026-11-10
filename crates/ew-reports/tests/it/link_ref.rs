@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `LinkRef::item` (WP-S3.06 D10, ruling 1): a link over one listed item of a cell, never one whose column or item
-//! index does not fit (C44-p3#3).
+//! `LinkRef::item`: a link over one listed item of a cell, never one whose column or item
+//! index does not fit.
 
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_reports::{LinkRef, LinkTarget};

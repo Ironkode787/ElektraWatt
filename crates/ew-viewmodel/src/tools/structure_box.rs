@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Structure box tool (`structure_box`; WP-S2.04 §10.5, §10.7; FR-PRJ-020): a rectangle by two fine-snapped
+//! The Structure box tool (`structure_box`; §10.7; FR-PRJ-020): a rectangle by two fine-snapped
 //! corners or a polygon by its points, then its style, caption, location node and external reference in the tool
 //! strip, committed as `box.structure`.
 //!

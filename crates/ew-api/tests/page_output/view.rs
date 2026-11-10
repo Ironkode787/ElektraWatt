@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Test glue (WP-S3.04): the golden model loaded through the CSV bootstrap, the bundled fonts and the pages of
+//! Test glue: the golden model loaded through the CSV bootstrap, the bundled fonts and the pages of
 //! the page order with their views.
 //!
-//! The views are the product's since cycle 15 (FT-59): `ew_api::output` owns the glue rules (frame forms,
+//! The views are the product's since cycle 15: `ew_api::output` owns the glue rules (frame forms,
 //! bindings, slot texts, wire markers, strip segments, report tables, embedded blocks) and builds one memoised
 //! `page_display_list` family per layer. What stays here is test-only: loading the golden tables (with a record
 //! shuffle for AC-14), and a symbol of `content/symbols` for the hostile page.

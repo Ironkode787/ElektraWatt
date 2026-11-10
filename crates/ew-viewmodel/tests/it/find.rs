@@ -333,7 +333,7 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
     done(&mut shell, "find.row", json!({"to": 16}));
     done(&mut shell, "find.row", json!({"step": 5}));
     assert_eq!(state(&shell)["find"]["row"], 16, "clamped");
-    // FT-1347 (C51-p6#6): a step near `i64::MAX` past row 0 stops at the last row (no overflow).
+    // A step near `i64::MAX` past row 0 stops at the last row (no overflow).
     done(&mut shell, "find.row", json!({"to": 2}));
     done(&mut shell, "find.row", json!({"step": i64::MAX}));
     assert_eq!(state(&shell)["find"]["row"], 16, "clamped");
@@ -363,13 +363,13 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
     done(&mut shell, "find.text", json!({"text": "(Spare"}));
     done(&mut shell, "find.run", json!({}));
     let st = state(&shell);
-    // FT-1414: in words, never the parser's own text.
+    // In words, never the parser's own text.
     assert_eq!(
         st["find"]["error"],
         "The regular expression cannot be used: check its brackets, repeats and escapes, or make it simpler"
     );
     assert!(shell.describe().contains("find error \""), "{}", shell.describe());
-    // C52-p5#10: the same error in the Dutch window, whole.
+    // The same error in the Dutch window, whole.
     assert!(strings::set_locale("nl"));
     done(&mut shell, "find.run", json!({}));
     let dutch = state(&shell)["find"]["error"].clone();
@@ -516,7 +516,7 @@ fn structural_words(line: &str, shortcut_keys: &[String]) -> Vec<String> {
             break;
         }
         let skip = token.chars().all(|c| c.is_ascii_digit())
-            // An ID alias `@n` is a value token like a number (ID-630).
+            // An ID alias `@n` is a value token like a number.
             || ew_viewmodel::alias::is_alias(token)
             || token.starts_with('#')
             || token.contains('.')

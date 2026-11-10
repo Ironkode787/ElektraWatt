@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! FT-418: real exporters' SVG files get the verdicts the lead ruled.
+//! Real exporters' SVG files get the verdicts the lead ruled.
 
 use std::path::{Path, PathBuf};
 

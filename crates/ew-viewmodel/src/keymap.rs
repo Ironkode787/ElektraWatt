@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Keymaps (WP-S2.08 part 2, D6 to D8; FR-UI-013, NFR-I18N-06; doc 16 §4.4 and §15.5).
+//! Keymaps (FR-UI-013, NFR-I18N-06; doc 16 §4.4 and §15.5).
 //!
 //! **Chords.** A binding text is modifiers in a fixed order (`Ctrl`, `Alt`, `Shift`, `Win`) and a key. Letters and
 //! digits, the named keys (`Enter`, `Page Down`, `F8`) and the registry's `Plus`, `Minus` and `Equals` bind by logical
@@ -232,7 +232,7 @@ pub fn display(text: &str) -> String {
     }
 }
 
-/// A binding text as every surface names a key (FT-964, ID-1150, FT-1112, ID-1229, doc 16a §8 item 7): [`display`]
+/// A binding text as every surface names a key (doc 16a §8 item 7): [`display`]
 /// with the long key names short (`Escape` "Esc", `Delete` "Del", `Arrow Up` "Up"), in the menus, the key chips, the
 /// palette, the keymap editor, the command bar, the tooltips and the HUD's texts ("Esc done", "Del deletes").
 pub fn short_display(text: &str) -> String {
@@ -983,7 +983,7 @@ mod tests {
         }
     }
 
-    /// FT-964 (ID-1150): the HUD's short names; a key without one, and a chord's modifiers, as `display` shows them.
+    /// The HUD's short names; a key without one, and a chord's modifiers, as `display` shows them.
     #[test]
     fn ft964_the_short_form_shortens_only_the_long_key_names() {
         assert_eq!(short_display("Escape"), "Esc");

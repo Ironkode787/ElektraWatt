@@ -146,7 +146,7 @@ fn a_point_placed_after_a_paste_takes_a_free_name() {
     s.shutdown();
 }
 
-/// ID-1470 (C53-p1#6): a copied and pasted point keeps its name, an explicit act like a typed name, so it continues the
+/// A copied and pasted point keeps its name, an explicit act like a typed name, so it continues the
 /// points of that name; the paste's toast says which, whole, so nothing joins silently.
 #[test]
 fn a_pasted_point_keeps_its_name_and_says_which_point_it_continues() {

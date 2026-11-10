@@ -97,7 +97,7 @@ fn row_key(h: &Harness<'_, App>, role: NavRole, badge: Option<&str>) -> Option<S
         .map(|n| n.key.clone())
 }
 
-/// FT-1092 (ID-1184; play-test rv-vis-7, t0018): the Pending chip of the Properties header (whole at the floor, the
+/// FT-1092 (play-test rv-vis-7, t0018): the Pending chip of the Properties header (whole at the floor, the
 /// glyph chip in a narrow pane) and the Messages header's "pending n" say what they count in a tooltip, whole.
 #[test]
 fn ft1092_the_pending_chips_and_the_messages_header_say_what_they_count() {
@@ -132,7 +132,7 @@ fn ft1092_the_pending_chips_and_the_messages_header_say_what_they_count() {
             glyph,
             "the glyph chip is the narrow one: {w} by {hgt}"
         );
-        // FT-1139 (ID-1229 item 8): the definition first, then the pending finding, "<rule>: <message>".
+        // FT-1139 (item 8): the definition first, then the pending finding, "<rule>: <message>".
         let finding = chip
             .accesskit_node()
             .label()
@@ -184,7 +184,7 @@ fn dk10_messages_rows_badges_and_header() {
     let mut h = on_golden(&tmp, false);
     dispatch(&mut h, "messages.show", json!({"on": true}));
     settle(&mut h);
-    // ID-1497 (6): while findings are pending, one sentence under the header says what pending means.
+    // While findings are pending, one sentence under the header says what pending means.
     let note = "Pending findings are on the page you are editing: they count once you leave that page or run a check.";
     assert!(h.query_by_label(note).is_none(), "nothing pending yet");
     place_ip(&mut h, "K32PEND");
@@ -459,7 +459,7 @@ fn cp5_the_empty_states_of_messages_find_history_and_the_navigators() {
         group_named(&h, "Nothing matches \"zzqqk32\""),
         "Find's empty result"
     );
-    // FT-1365: it says so once, with the next step, and a screen reader hears it.
+    // It says so once, with the next step, and a screen reader hears it.
     assert!(h.query_by_label("No results").is_none());
     assert!(
         h.query_by_label("Try other words, or search more fields and folios.")
@@ -474,7 +474,7 @@ fn cp5_the_empty_states_of_messages_find_history_and_the_navigators() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// DK6 (FT-348): a window's geometry recorded in the shell is written at the end of the window and read by the next
+/// DK6: a window's geometry recorded in the shell is written at the end of the window and read by the next
 /// start; a run that recorded none leaves no `[window]` table.
 #[test]
 fn dk6_the_window_geometry_survives_a_restart() {

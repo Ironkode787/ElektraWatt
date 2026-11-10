@@ -81,24 +81,24 @@ pub struct StoreOptions {
     /// crash-protected", doc 05 §8.1).
     pub state_dir: Option<PathBuf>,
     /// Whether this is a release build (doc 05 §10.1: `unstable` projects open read-only): [`FORMAT`] is among the
-    /// released formats (WP-S1.17 D3).
+    /// released formats.
     pub release_build: bool,
-    /// The migration chain an older format's project runs through at open (WP-S1.17 D10, decision log ID-1221):
+    /// The migration chain an older format's project runs through at open:
     /// [`ew_format::MIGRATIONS`]; a test passes its own.
     pub migrations: &'static Migrations,
     /// The formats released so far ([`RELEASED_FORMATS`]): a save marks its manifest `unstable` when the list is not
-    /// empty and does not hold the format it writes (WP-S1.17 D3). A test passes its own.
+    /// empty and does not hold the format it writes. A test passes its own.
     pub released: &'static [&'static str],
     /// How long a read-only opener waits for a save in progress.
     pub read_only_wait: Duration,
-    /// An open for `ew fmt --repair` only (WP-S1.17, decision log ID-1185): with [`OpenMode::Edit`] the store takes the
+    /// An open for `ew fmt --repair` only: with [`OpenMode::Edit`] the store takes the
     /// writer's lock as for any edit, and the integrity demotion does not demote when the only findings that force a
     /// read-only session are broken lines ([`Finding::is_broken_line`]), which the repair discards
     /// ([`Store::discard_broken_lines`]); a repair open that another finding made read-only still summarises a crashed
     /// session's journal ([`OpenReport::recovery`]), which the repair names first. `false` everywhere else.
     pub repair: bool,
     /// Whether the project folder lies in a cloud-synced folder, as the front-end found it with
-    /// [`crate::cloud::detect`] (WP-S1.17 D25): an open that finds a listed file missing (EW-CORE-003, a half-synced
+    /// [`crate::cloud::detect`]: an open that finds a listed file missing (EW-CORE-003, a half-synced
     /// folder) waits [`crate::external::CLOUD_RECHECK`] and reads the project once more before it reports.
     pub cloud_synced: bool,
 }
@@ -123,7 +123,7 @@ impl StoreOptions {
         }
     }
 
-    /// The start of a front-end that keeps journals (WP-S6.05 D10, D11): the state directory and its `journal/` made
+    /// The start of a front-end that keeps journals: the state directory and its `journal/` made
     /// user-only, the leftover journal segments of every project older than [`journal::KEEP_LEFTOVERS`] deleted, and
     /// the projects whose leftover journals hold unsaved transactions, newest last change first, without a project
     /// whose lock is live ([`lock::is_stale`]: another session has it open). Empty without a state directory.
@@ -145,7 +145,7 @@ impl StoreOptions {
 }
 
 /// The OS state directory of doc 05 §1: `%LOCALAPPDATA%\ElektraWatt\state` on Windows, `$XDG_STATE_HOME/elektrawatt`
-/// (default `~/.local/state/elektrawatt`) on Linux and any other system (macOS is not supported, ID-880). `None` when
+/// (default `~/.local/state/elektrawatt`) on Linux and any other system (macOS is not supported). `None` when
 /// the environment names none.
 pub fn default_state_dir() -> Option<PathBuf> {
     // The per-user state directory (lock, journal) is outside the project; no project byte depends on it.
@@ -223,7 +223,7 @@ pub enum OpenError {
     NotADirectory(PathBuf),
     /// The format refuses (doc 05 §10.1: `min_reader` above this reader, unreadable stamps).
     Format(String),
-    /// An older major's migration failed (WP-S1.17 D10): a step's error, or no step where one is needed, with the
+    /// An older major's migration failed: a step's error, or no step where one is needed, with the
     /// file and the JSON Pointer.
     Migration(MigrationError),
     /// A read-only opener met a save in progress for longer than the wait (doc 05 §6.4: exit code 2).
@@ -246,7 +246,7 @@ pub enum OpenError {
     Takeover(Box<TakeoverError>),
     /// `create` into a directory that already holds a project.
     Exists(PathBuf),
-    /// An `.ewz` opened read-only is refused unread (WP-S1.17 D9).
+    /// An `.ewz` opened read-only is refused unread.
     Ewz(crate::ewz::EwzError),
 }
 
@@ -375,7 +375,7 @@ pub enum SaveError {
     LockLost(Option<Box<LockRecord>>),
     /// Files changed on disk since we loaded or wrote them: `manifest.json` (an external change, doc 05 §9, to be
     /// merged first), or files this save would replace or remove whose bytes, also in their CRLF-to-LF form, are no
-    /// longer those we hold (doc 05 §6.2, WP-S1.17 D5). Nothing was written.
+    /// longer those we hold (doc 05 §6.2). Nothing was written.
     ExternalChange {
         /// The changed files, in path order.
         files: Vec<FilePath>,
@@ -403,7 +403,7 @@ pub enum SaveError {
     },
     /// An **earlier** save (generation `generation`) passed its commit point but is still incomplete, and
     /// completing it failed again: this save wrote nothing. The model given to this save is not on disk;
-    /// the caller keeps its dirty set and saves again later (review cycle 8, blocker 1).
+    /// the caller keeps its dirty set and saves again later (review, blocker 1).
     PendingIncomplete {
         /// The decided generation of the earlier save.
         generation: u64,
@@ -413,7 +413,7 @@ pub enum SaveError {
     /// A record has no file or no JSON form.
     Format(ew_format::FormatError),
     /// The next generation would pass [`ew_format::MAX_GENERATION`], which the manifest's reader refuses: nothing
-    /// was written (ID-1144). A copy in a new folder ([`Store::create`]) starts again at generation 0.
+    /// was written. A copy in a new folder ([`Store::create`]) starts again at generation 0.
     GenerationLimit,
     /// The project was migrated from the older format `from` and its first save converts it, which needs the user's
     /// consent first ([`Store::confirm_upgrade`], WP-S1.17 D11): nothing was written.
@@ -422,9 +422,9 @@ pub enum SaveError {
         from: String,
     },
     /// The project changed on disk, and the change collides with unsaved edits: the session holds it until a choice of
-    /// mine or theirs is made for each colliding field (WP-S1.17 D22). Nothing was written.
+    /// mine or theirs is made for each colliding field. Nothing was written.
     ExternalCollisions,
-    /// The project changed on disk and the change cannot be read (WP-S1.17 D21): the session keeps its model and its
+    /// The project changed on disk and the change cannot be read: the session keeps its model and its
     /// edits. Nothing was written.
     ExternalUnreadable,
 }
@@ -518,8 +518,8 @@ pub struct SaveReport {
     /// for each file that sat at a path the save writes without being in the baseline, moved aside to its
     /// [`FilePath::unlisted`] name, which the finding names.
     pub findings: Vec<Finding>,
-    /// Whether the `manifest.json` this save wrote is marked `unstable` (an unreleased format, WP-S1.17 D3): the front
-    /// ends warn on every such save (FT-1154, WP-S6.08 D3). False when no manifest was written.
+    /// Whether the `manifest.json` this save wrote is marked `unstable` (an unreleased format): the front
+    /// ends warn on every such save. False when no manifest was written.
     pub unstable: bool,
 }
 
@@ -733,10 +733,10 @@ pub struct Store {
     /// and unknown members may name assets that no known record names).
     all_assets: bool,
     /// The files that hold quarantined lines (EW-CORE-005, EW-CORE-007), kept verbatim: the asset purge is refused
-    /// while there are any (doc 05 §13.3, FT-380).
+    /// while there are any (doc 05 §13.3).
     quarantined: BTreeSet<FilePath>,
-    /// The broken lines among the kept ones (EW-CORE-005 at line level), by file: what `ew fmt --repair` discards
-    /// (WP-S1.17, decision log ID-1185). In memory only; their bytes stay in `kept` until a repair's save adopts.
+    /// The broken lines among the kept ones (EW-CORE-005 at line level), by file: what `ew fmt --repair` discards.
+    /// In memory only; their bytes stay in `kept` until a repair's save adopts.
     broken: BTreeMap<FilePath, Broken>,
     journal: Option<Journal>,
     leftovers: Vec<Segment>,
@@ -745,7 +745,7 @@ pub struct Store {
     /// The bytes of `manifest.json` as read at open (`None`: absent, unreadable or an intent's): the backup of an
     /// upgrade packs them ([`crate::ewz::pack_as_found`]).
     manifest_bytes: Option<Vec<u8>>,
-    /// A project of an older format migrated in memory, until its first save passes its commit point (WP-S1.17 D11).
+    /// A project of an older format migrated in memory, until its first save passes its commit point.
     migrated: Option<Migrated>,
     /// The changed `manifest.json` a poll saw first, by the hash of its bytes (`None`: absent), and when
     /// ([`Store::poll`], WP-S1.17 D20).
@@ -768,10 +768,10 @@ struct Migrated {
 
 /// A writer-owned file as the store holds it: the SHA-256 of its bytes as loaded or written, the SHA-256 of their
 /// CRLF-to-LF form when it differs, and its `since` value ([`ew_format::file_since`]; `None` at the format's floor),
-/// which the computed `min_reader` of every save reads without reading the file again (WP-S1.17 D3).
+/// which the computed `min_reader` of every save reads without reading the file again.
 ///
 /// `hash` is the raw hash: the manifest lists it and the plan compares the bytes it renders with it. `lf` serves only
-/// the save's pre-check (WP-S1.17 D5, ID-1144), which compares a record file or library document by its text, so that
+/// the save's pre-check, which compares a record file or library document by its text, so that
 /// a checkout that changed only its line endings is not a change.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Held {
@@ -806,7 +806,7 @@ fn lf_hash(bytes: &[u8], raw: &[u8; 32]) -> Option<[u8; 32]> {
     (lf != *raw).then_some(lf)
 }
 
-/// The broken lines of one file (EW-CORE-005 at line level, WP-S1.17 ID-1185): each line's key in `kept` with its
+/// The broken lines of one file (EW-CORE-005 at line level): each line's key in `kept` with its
 /// line number in the generation loaded, and whether the file holds another quarantined line, which keeps it among the
 /// quarantined files after a repair.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -816,7 +816,7 @@ struct Broken {
 }
 
 /// A broken line of the generation on disk ([`Store::broken_lines`]): EW-CORE-005 at line level, a line that is not one
-/// JSON value or not UTF-8, which `ew fmt --repair` discards (WP-S1.17, decision log ID-1185).
+/// JSON value or not UTF-8, which `ew fmt --repair` discards.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct BrokenLine {
     /// The file.
@@ -1105,7 +1105,7 @@ impl Store {
                 }
             }
         }
-        // The generation of an unusable manifest that came out of a git text merge (FT-97).
+        // The generation of an unusable manifest that came out of a git text merge.
         let mut conflicted = None;
         let manifest = match intent
             .clone()
@@ -1147,7 +1147,7 @@ impl Store {
                 "manifest.json is missing; it is rebuilt at the next save",
             ));
         }
-        // The way from an older major's format to this one (WP-S1.17 D10, D11): the open migrates in memory.
+        // The way from an older major's format to this one: the open migrates in memory.
         let mut migration = None;
         if let Some(m) = &manifest {
             format = ew_format::reader_access(m, FORMAT, self.opts.release_build);
@@ -1174,7 +1174,7 @@ impl Store {
             }
             self.generation = m.generation;
         } else if let Some(g) = conflicted {
-            // A manifest with git conflict markers (doc 05 §11.3, WP-S1.17 D6): the greatest generation of its sides,
+            // A manifest with git conflict markers (doc 05 §11.3): the greatest generation of its sides,
             // so that the next save writes one more than either side and never restarts at 1 under both. Without
             // such a line the generation stays 0, as for a missing manifest.
             self.generation = g;
@@ -1254,8 +1254,8 @@ impl Store {
             None => ew_format::load(manifest.as_ref(), &files, &limits),
         };
         // The loader's list is capped at `max_findings`; its flag also counts the findings it dropped
-        // (review cycle 8, major 2: a thousand duplicates must not hide a line the writer would lose).
-        // A repair open (WP-S1.17 ID-1185 ruling 4) lets broken lines through, which the repair discards, and nothing
+        // (review, major 2: a thousand duplicates must not hide a line the writer would lose).
+        // A repair open lets broken lines through, which the repair discards, and nothing
         // else: the loader's own flag for the other forcing findings counts those beyond its cap too.
         let repair = self.opts.repair;
         let loader_read_only = if repair {
@@ -1311,7 +1311,7 @@ impl Store {
                 PathClass::Records(_) | PathClass::LibDocument { .. }
             ) && !loaded.opaque.contains_key(path)
             {
-                // The raw hash as the reader found it (the manifest's), and the LF form's beside it (ID-1144).
+                // The raw hash as the reader found it (the manifest's), and the LF form's beside it.
                 let bytes = files.get(path);
                 let since = bytes.and_then(|bytes| file_since(FORMAT, path, bytes, &SINCE));
                 let lf = bytes.and_then(|bytes| lf_hash(bytes, hash));
@@ -1367,7 +1367,7 @@ impl Store {
             }
         }
         self.rewrite = loaded.rewrite;
-        // Every file a step changed is written from its migrated values at the first save (WP-S1.17 D11).
+        // Every file a step changed is written from its migrated values at the first save.
         self.rewrite.extend(loaded.migrated);
         for key in all_keys(&model) {
             if let Some(file) = file_of(&model, &key).map_err(|e| OpenError::Format(e.to_string()))? {
@@ -1642,8 +1642,8 @@ impl Store {
     /// finding naming the new path.
     ///
     /// A retried save or roll-forward of the same generation can find the file again, restored by a sync client after
-    /// the first move (FT-98): when the new stray's bytes equal those of an older stray of the same file and
-    /// generation, the new one is removed and the finding names the older one, which holds the bytes (WP-S1.17 D7).
+    /// the first move: when the new stray's bytes equal those of an older stray of the same file and
+    /// generation, the new one is removed and the finding names the older one, which holds the bytes.
     fn move_aside(&self, path: &FilePath, g: u64) -> io::Result<Finding> {
         let vfs = &*self.opts.vfs;
         let from = join(&self.root, path.as_str());
@@ -1698,8 +1698,8 @@ impl Store {
     }
 
     /// An older stray of `path` and generation `g` ([`FilePath::unlisted`] with any other `n`, gaps skipped) whose
-    /// bytes equal those of the stray `path.unlisted(g, new)` just moved, both read again just before the comparison
-    /// (WP-S1.17 D7, FT-98). `None` when there is none, or when a listing or a read fails: the new stray then stays.
+    /// bytes equal those of the stray `path.unlisted(g, new)` just moved, both read again just before the comparison.
+    /// `None` when there is none, or when a listing or a read fails: the new stray then stays.
     fn equal_older_stray(&self, path: &FilePath, g: u64, new: u32) -> Option<FilePath> {
         let vfs = &*self.opts.vfs;
         let dir = if path.dir().is_empty() {
@@ -1886,7 +1886,7 @@ impl Store {
         if let Access::ReadOnly(reason) = &self.access {
             return Err(SaveError::ReadOnly(reason.clone()));
         }
-        // The first save of a migrated project converts it: only with the user's consent (WP-S1.17 D11), whoever saves.
+        // The first save of a migrated project converts it: only with the user's consent, whoever saves.
         if let Some(migrated) = self.migrated.as_ref().filter(|m| !m.confirmed) {
             return Err(SaveError::UpgradeConsent {
                 from: migrated.from.clone(),
@@ -1944,7 +1944,7 @@ impl Store {
             .cloned()
             .collect();
         plan.removes.extend(drop.iter().cloned());
-        // The rest of step 2 (WP-S1.17 D5): every file this save replaces or removes still holds the bytes we loaded or
+        // The rest of step 2: every file this save replaces or removes still holds the bytes we loaded or
         // wrote, else it changed outside the session and nothing is written. Before any temp and any move-aside.
         let changed = self.changed_targets(&plan)?;
         if !changed.is_empty() {
@@ -1958,7 +1958,7 @@ impl Store {
             model.project().id.cast(),
             g1,
         );
-        // The computed stamp (doc 05 §4, WP-S1.17 D3): the greatest `since` of the files the new generation lists.
+        // The computed stamp (doc 05 §4): the greatest `since` of the files the new generation lists.
         let since: Vec<&str> = plan.disk.values().filter_map(|h| h.since).collect();
         manifest.min_reader = min_reader(FORMAT, since.iter().copied());
         manifest.unstable = unstable_flag(
@@ -1975,7 +1975,7 @@ impl Store {
                 );
             }
         }
-        // A migrated project's members other than the stamps and the files are the manifest steps' (WP-S1.17 D11).
+        // A migrated project's members other than the stamps and the files are the manifest steps'.
         let old_manifest = match &self.migrated {
             Some(migrated) => Some(&migrated.manifest),
             None => self.manifest.as_ref(),
@@ -2019,7 +2019,7 @@ impl Store {
                 ..SaveReport::default()
             });
         }
-        // The manifest's ceiling (ID-1144): a generation above it is one the next open refuses, so a save that would
+        // The manifest's ceiling: a generation above it is one the next open refuses, so a save that would
         // write one is refused here, beside D5's pre-check and before any temp or move-aside. A save with nothing to
         // write (above) stays allowed.
         if g1 > ew_format::MAX_GENERATION {
@@ -2049,7 +2049,7 @@ impl Store {
                     dirs.insert(d);
                 }
                 // Never rename over a file the baseline does not list (another user's file, a sync
-                // client's copy): move it aside first (review cycle 8, owner ruling). Its directory is
+                // client's copy): move it aside first. Its directory is
                 // synced with the temps below, so the move is durable before the commit point.
                 if !self.disk.contains_key(path) {
                     match vfs.stat(&target) {
@@ -2248,9 +2248,9 @@ impl Store {
         SaveError::LockLost(rec)
     }
 
-    /// The files of `plan` that the save replaces or removes and that changed on disk since we loaded or wrote them
-    /// (WP-S1.17 D5), in path order: each is compared with the hashes we hold ([`unchanged_on_disk`]), for record files
-    /// and library documents (`disk`) the raw hash and the LF form's, so that their text is compared (ID-1144), for
+    /// The files of `plan` that the save replaces or removes and that changed on disk since we loaded or wrote them,
+    /// in path order: each is compared with the hashes we hold ([`unchanged_on_disk`]), for record files
+    /// and library documents (`disk`) the raw hash and the LF form's, so that their text is compared, for
     /// opaque files and assets (`opaque`) the one hash. A new target (one we hold no hash for) is not compared: the save
     /// moves it aside when it is there.
     ///
@@ -2262,7 +2262,7 @@ impl Store {
         let mut changed = Vec::new();
         for path in targets {
             let held = match (self.disk.get(path), self.opaque.get(path)) {
-                // A record file or library document: its raw hash or its LF form's (ID-1144).
+                // A record file or library document: its raw hash or its LF form's.
                 (Some(held), _) => held.accepted(),
                 (None, Some(FileHash::Sha256(hash))) => vec![*hash],
                 // A hash we do not know cannot show the file unchanged.
@@ -2336,7 +2336,7 @@ impl Store {
             }
         };
         let mut dirty: BTreeSet<FilePath> = self.rewrite.clone();
-        // A repair (WP-S1.17 ID-1185 ruling 6): the files that hold broken lines are rewritten as `self.rewrite`'s are,
+        // A repair: the files that hold broken lines are rewritten as `self.rewrite`'s are,
         // since under `Changes::Keys` a file whose only change is a dropped kept line is not otherwise dirty.
         if discard {
             dirty.extend(self.broken.keys().cloned());
@@ -2499,7 +2499,7 @@ impl Store {
         Ok(out)
     }
 
-    /// The rewrite set of the generation on disk in canonical form (`ew fmt`, WP-S1.22 D9): each file the loader
+    /// The rewrite set of the generation on disk in canonical form (`ew fmt`): each file the loader
     /// found not in canonical form or holding a record of another file (`Loaded::rewrite`), with the bytes the next
     /// save writes for it (`None`: the save removes it, nothing is left in it). Files already canonical are not in
     /// it: this is the save plan with no changed record, never a full rewrite. Rendered from the generation on disk
@@ -2689,7 +2689,7 @@ impl Store {
 
     /// The broken lines of the generation loaded (EW-CORE-005 at line level: not one JSON value, or not UTF-8), in file
     /// and line order, from the store's own data, never the open's findings, whose list is capped: what
-    /// [`Store::discard_broken_lines`] discards (WP-S1.17, decision log ID-1185).
+    /// [`Store::discard_broken_lines`] discards.
     pub fn broken_lines(&self) -> Vec<BrokenLine> {
         let mut out = Vec::new();
         for (file, broken) in &self.broken {
@@ -2712,7 +2712,7 @@ impl Store {
         out
     }
 
-    /// `ew fmt --repair`'s save (WP-S1.17, decision log ID-1185 ruling 6): one save of the generation loaded through the
+    /// `ew fmt --repair`'s save: one save of the generation loaded through the
     /// protocol, with no changed key, in which the files that hold broken lines ([`Store::broken_lines`]) are rewritten
     /// without them, in canonical form as `ew fmt` writes them, every other kept line byte for byte; generation g + 1
     /// (nothing is written without a broken line or a file to rewrite). The broken lines leave the store's kept lines
@@ -2756,7 +2756,7 @@ impl Store {
             .filter_map(|&(kind, id)| Some(FilePath::lib(ew_format::lib_dir(kind)?, id)))
             .collect();
         // A damaged copy left as it is (one the open kept as found, or whose file it could not read: missing or over the
-        // limit) keeps its manifest entry unchanged, and stays damaged with its findings (C53-p4#1).
+        // limit) keeps its manifest entry unchanged, and stays damaged with its findings.
         let left: BTreeMap<FilePath, FileHash> = self
             .manifest
             .as_ref()
@@ -2858,9 +2858,9 @@ impl Store {
         self.generation
     }
 
-    /// Whether this store's saves mark the `manifest.json` they write `unstable` (an unreleased format, WP-S1.17 D3):
+    /// Whether this store's saves mark the `manifest.json` they write `unstable` (an unreleased format):
     /// what [`SaveReport::unstable`] says of a save that writes one, and so of the manifest [`Store::create`] wrote. The
-    /// front ends warn on every such write (FT-1489, WP-S6.08 D19).
+    /// front ends warn on every such write.
     pub fn writes_unstable(&self) -> bool {
         unstable_flag(
             self.manifest.as_ref().filter(|_| self.keep_format),
@@ -2891,13 +2891,13 @@ impl Store {
         self.manifest_bytes.as_deref()
     }
 
-    /// The older format this project was migrated from in memory, until its first save passes its commit point
-    /// (WP-S1.17 D11): that save needs [`Store::confirm_upgrade`] first.
+    /// The older format this project was migrated from in memory, until its first save passes its commit point:
+    /// that save needs [`Store::confirm_upgrade`] first.
     pub fn migrated_from(&self) -> Option<&str> {
         self.migrated.as_ref().map(|m| m.from.as_str())
     }
 
-    /// The user's consent to the conversion of a migrated project (WP-S1.17 D11): its next save no longer refuses with
+    /// The user's consent to the conversion of a migrated project: its next save no longer refuses with
     /// [`SaveError::UpgradeConsent`]. The caller writes the backup first. Nothing for a project that was not migrated.
     pub fn confirm_upgrade(&mut self) {
         if let Some(migrated) = &mut self.migrated {
@@ -2910,8 +2910,7 @@ impl Store {
         &self.root
     }
 
-    /// The I/O seam the store works through ([`StoreOptions::vfs`]); the release writes its archive through it too
-    /// (WP-S1.18 D13).
+    /// The I/O seam the store works through ([`StoreOptions::vfs`]); the release writes its archive through it too.
     pub fn vfs(&self) -> &Arc<dyn Vfs> {
         &self.opts.vfs
     }
@@ -3033,7 +3032,7 @@ struct SavePlan {
 }
 
 /// Whether the file at `full`, held with the SHA-256 values `held`, can be replaced or removed without losing a change
-/// made outside the session (WP-S1.17 D5, doc 05 §6.2): it is absent (nothing to overwrite), or a regular file whose
+/// made outside the session (doc 05 §6.2): it is absent (nothing to overwrite), or a regular file whose
 /// bytes, or their CRLF-to-LF form ([`crlf_to_lf`]), hash to one of `held`. A directory, a link or anything else in its
 /// place is a change. Read in chunks of [`purge::SCAN_CHUNK`], so that a file grown outside the session is never held
 /// whole.
@@ -3094,7 +3093,7 @@ fn same_bytes(vfs: &dyn Vfs, a: &Path, b: &Path) -> io::Result<bool> {
     }
 }
 
-/// The `unstable` flag a save writes (WP-S1.17 D3, decision log ID-1221 ruling 7 and ID-1230 ruling 1): a save that
+/// The `unstable` flag a save writes: a save that
 /// keeps the file's own format (`kept`, a newer minor) keeps the file's own flag, since `released` cannot know a newer
 /// minor; a save that writes [`FORMAT`] marks it when `released` is not empty and does not hold it.
 fn unstable_flag(kept: Option<&Manifest>, released: &[&str]) -> bool {
@@ -3153,7 +3152,7 @@ mod tests {
 
     #[test]
     fn a_held_crlf_file_accepts_its_raw_and_its_lf_hash() {
-        // ID-1144: a record file held as CRLF bytes keeps the LF form's hash beside the raw one; LF bytes, or a lone
+        // A record file held as CRLF bytes keeps the LF form's hash beside the raw one; LF bytes, or a lone
         // CR that the conversion keeps, have one hash only.
         let path = FilePath::new("pages/0190a1b2-0000-7000-8000-000000000001.jsonl").expect("a page file");
         let crlf = Held::of(&path, b"a\r\nb\r\n");

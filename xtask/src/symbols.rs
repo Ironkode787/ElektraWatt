@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `symbols-qet10`: seals the native starter library documents and generates the QET edition (WP-S7.02).
+//! `symbols-qet10`: seals the native starter library documents and generates the QET edition.
 //!
 //! The library documents under `content/` are pretty JSON with a placeholder envelope while being
 //! authored. **Sealing** fills the envelope (copy id, library id, item id, version, content hash) and the

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Place tool's Join chooser (WP-S2.18 D2), the chooser list of doc 16a §6.22: a popup of `color.surface.raised`,
+//! The Place tool's Join chooser, the chooser list of doc 16a §6.22: a popup of `color.surface.raised`,
 //! `elevation.1`, `radius.md`, `space.2` padding and `size.chooser` wide, with no title; rows of `size.row` with a
 //! 16-px kind icon in `color.text.secondary`, the printed name in `type.body` and the kind word right-aligned in
 //! `type.small` `color.text.tertiary`; the active row has the hover overlay; a last line of key chips. It opens 8 px

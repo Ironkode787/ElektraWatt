@@ -16,7 +16,7 @@
 //! **Commit.** The card is the host card of the renumber dialogs (`CardOrigin::Bulk`, reason `reason-bond`): Apply
 //! commits the kept preview (`ShellModel::commit_kept`; headless one command-log line).
 //!
-//! Beside it, Draw ▸ Define potential… (`potential.draw`, FT-1202, ID-1270): `potential.define` at the selection's
+//! Beside it, Draw ▸ Define potential… (`potential.draw`): `potential.define` at the selection's
 //! one point, with the name, type and voltage of its parameter form (WP-S2.08 D5 (a)).
 
 use ew_api::AnyCommand;
@@ -41,8 +41,8 @@ fn end_param(e: TableEnd) -> Value {
     }
 }
 
-/// The one point a potential is defined at on representation `rep` (FT-1202): over the connection points of every
-/// function it shows (FT-1242), its one point, or a terminal's lowest; `None` for any other symbol.
+/// The one point a potential is defined at on representation `rep`: over the connection points of every
+/// function it shows, its one point, or a terminal's lowest; `None` for any other symbol.
 fn rep_point(rep: &TableRep, cps: &[TableCp]) -> Option<TableEnd> {
     let mut cps: Vec<(u16, TableEnd)> = cps
         .iter()
@@ -140,11 +140,11 @@ impl ShellModel {
         self.preview_host_card("bond.create", params, key!("reason-bond"))
     }
 
-    /// The point of the selection a potential is defined at (FT-1202, ID-1270): a selected junction; a selected wire's
+    /// The point of the selection a potential is defined at: a selected junction; a selected wire's
     /// `from` end (a connection point or a junction, on the wire's potential as its other end is); a terminal's lowest
     /// connection point, or the one connection point of a symbol that has one. Anything else is refused in words.
     pub(crate) fn potential_point(&self) -> Result<TableEnd, Key<'static>> {
-        // FT-1239: while the form a Potentials row opened is open, the row's point.
+        // While the form a Potentials row opened is open, the row's point.
         if let Some(at) = self.potential_at.filter(|_| self.potential_form_open()) {
             return Ok(at);
         }
@@ -276,7 +276,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Whether Define potential…'s form is open with a Potentials row's point pinned (FT-1239).
+    /// Whether Define potential…'s form is open with a Potentials row's point pinned.
     pub(crate) fn potential_pinned(&self) -> bool {
         self.potential_at.is_some() && self.potential_form_open()
     }
@@ -289,7 +289,7 @@ impl ShellModel {
             .is_some_and(|f| f.action == "potential.draw")
     }
 
-    /// `potential.draw_row {row}` (a Potentials row's context menu, FT-1239): Define potential…'s form for the row's
+    /// `potential.draw_row {row}` (a Potentials row's context menu): Define potential…'s form for the row's
     /// potential at its definition point (`NavNode::define_at`, the row's lowest member connection point), whatever
     /// the selection or the page on show; a row without one is refused in words.
     pub(crate) fn act_potential_draw_row(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -354,7 +354,7 @@ mod tests {
         }
     }
 
-    /// FT-1342 (FT-1242, ID-1357 ruling 4): a symbol showing two functions of one connection point each has two points,
+    /// A symbol showing two functions of one connection point each has two points,
     /// so Define potential takes none of them; one function's one point is the point, a terminal's lowest likewise.
     #[test]
     fn a_symbol_of_several_functions_counts_every_functions_points() {

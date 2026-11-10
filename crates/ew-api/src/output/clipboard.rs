@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The clipboard below the shell (WP-S2.05 part 3, spec §8.1 to §8.3, §8.6; D12): [`Session::copy_fragment`] writes a
+//! The clipboard below the shell (spec §8.1 to §8.3, §8.6; D12): [`Session::copy_fragment`] writes a
 //! selection as a project fragment, [`parse_fragment`] reads clipboard text back into the parameters of `edit.paste`,
 //! and [`Session::tag_list`] gives the "Copy tag list" text.
 //!
@@ -124,19 +124,19 @@ pub enum FragmentError {
         /// The version that is newer (`v2`, a format such as `0.2`, a record's `$v`).
         version: String,
     },
-    /// The text exceeds a limit, by key (FT-1488).
+    /// The text exceeds a limit, by key.
     TooLarge(crate::Text),
     /// A line is not what the format allows.
     Invalid {
         /// The 1-based line.
         line: usize,
-        /// What is wrong, by key (FT-1488).
+        /// What is wrong, by key.
         message: crate::Text,
     },
 }
 
 impl FragmentError {
-    /// The error by key, which the window renders in its language (FT-1488, ID-1457); its English is the error's
+    /// The error by key, which the window renders in its language; its English is the error's
     /// [`Display`](fmt::Display) text.
     pub fn text(&self) -> crate::Text {
         match self {
@@ -288,7 +288,7 @@ pub fn parse_fragment_with(text: &str, chain: &Migrations) -> Result<ParsedFragm
             migration = Some(way);
             continue;
         }
-        // A record or library copy of an older format, or of an older `$v`, through the chain (FT-403).
+        // A record or library copy of an older format, or of an older `$v`, through the chain.
         let migrate = |value: &Value| {
             migration
                 .as_ref()
@@ -398,7 +398,7 @@ fn read_header<'c>(
         Ordering::Less => format,
         Ordering::Equal => ew_schema::FORMAT,
     };
-    // An older format migrates through the chain (FT-403); what it does not reach is refused as before.
+    // An older format migrates through the chain; what it does not reach is refused as before.
     let migration = chain
         .towards(from, ew_schema::FORMAT)
         .map_err(|_| invalid(older_format()))?;
@@ -942,7 +942,7 @@ impl Session {
                 _ => {}
             }
         }
-        // A part's closure holds its manufacturer (WP-S1.19 D10): the held manufacturer copy travels with the part.
+        // A part's closure holds its manufacturer: the held manufacturer copy travels with the part.
         let makers: Vec<Uuid> = named
             .iter()
             .filter(|(k, _)| *k == Kind::Part)

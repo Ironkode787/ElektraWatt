@@ -35,7 +35,7 @@ use ew_scene::table::TableFinding;
 use ew_schema::{Record, ReportBlock};
 use serde_json::{Value, json};
 
-/// The first folio of the test's `io_list` block (Golden A has none; WP-S3.06 D4 forbids adding one).
+/// The first folio of the test's `io_list` block (Golden A has none; forbids adding one).
 const FOLIO: u32 = 950;
 
 fn run(session: &mut Session, name: &str, params: Value) -> ew_api::Receipt {
@@ -74,7 +74,7 @@ fn golden_with_io_list() -> (Session, ReportBlock) {
     (s, block)
 }
 
-/// A session over Golden A with `block` added (a block value no command writes: `params`, WP-S3.06 D9).
+/// A session over Golden A with `block` added (a block value no command writes: `params`).
 fn golden_with_block(block: ReportBlock) -> Session {
     golden_common::session_with(&golden_common::batch(), |_, records| {
         records.push(Record::ReportBlock(block))

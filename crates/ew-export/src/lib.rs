@@ -3,11 +3,11 @@
 
 //! PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF and PNG export.
 //!
-//! So far (WP-S3.04): the PDF writer [`pdf_bytes`] / [`pdf`] over sheet display lists (doc 09 §4.2, §4.3;
+//! So far: the PDF writer [`pdf_bytes`] / [`pdf`] over sheet display lists (doc 09 §4.2, §4.3;
 //! ADR-0015 decision 5), and PNG through the CPU renderer, re-exported as [`ew_render_cpu`]. Cycle 14: the
 //! SVG writer [`svg`] over the same display lists (doc 09 §4.4, FR-OUT-013) and the parallel page phase
-//! [`par_map`] with results by page index (FR-OUT-019, AC-14). Cycle 45 (WP-S3.07 part 1): the SVG pages embed
-//! their font subsets, made by [`subset_glyf`], which keeps the glyph IDs and the `cmap` (FT-233).
+//! [`par_map`] with results by page index (FR-OUT-019, AC-14). Cycle 45: the SVG pages embed
+//! their font subsets, made by [`subset_glyf`], which keeps the glyph IDs and the `cmap`.
 
 #![forbid(unsafe_code)]
 

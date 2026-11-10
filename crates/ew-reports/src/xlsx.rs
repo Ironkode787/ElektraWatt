@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The own XLSX writer (WP-S3.08 D3 to D5; decision log ID-827, ID-1145): [`xlsx()`] writes [`Table`]s as an Office
+//! The own XLSX writer: [`xlsx()`] writes [`Table`]s as an Office
 //! Open XML workbook whose bytes depend on the tables and the [`WorkbookMeta`] only.
 //!
 //! **The container** is the deterministic ZIP of `ew-zip` (entries in the given order, raw deflate at level 6, the DOS
@@ -17,7 +17,7 @@
 //! [`TableCell::Number`] cells are numeric cells, [`TableCell::Date`] cells date serials with the style `yyyy-mm-dd`
 //! (a date before 1900-03-01, where Excel's serials are not the calendar's, stays text), every other cell an inline
 //! string. A number is a numeric cell only when it has at most [`MAX_NUMBER_DIGITS`] significant digits, which a
-//! spreadsheet's double holds exactly; a longer one (`9007199254740993`) stays text (ID-1174). The sheet's name is the
+//! spreadsheet's double holds exactly; a longer one (`9007199254740993`) stays text. The sheet's name is the
 //! table's with `[]:*?/\`, control characters and an apostrophe at either end replaced by `_`, cut to 31 characters; a
 //! name a sheet already has (ignoring case, `_ew` and `_ew_base` included) gets " (2)", " (3)", ….
 //!
@@ -25,7 +25,7 @@
 //! `rev`, `generation` (empty without a store), `locale` `neutral`, `ew` (the program version), then one row per column
 //! of the first table: `column`, key, label, type ([`CellType`] name), editable (`true`/`false`).
 //!
-//! **The `_ew_base` sheet** (D5; ID-1174 ruling 1), hidden, after `_ew`, exactly when the first table has an editable
+//! **The `_ew_base` sheet** (D5; ruling 1), hidden, after `_ew`, exactly when the first table has an editable
 //! column: a header row `id` and the editable columns' keys, then each row with an ID as exported (its ID, then its
 //! editable cells), then a last row `sha256` and [`WorkbookMeta::base_sha256`], the lowercase-hex SHA-256 of
 //! [`base_text`]. The writer takes no hash: the caller computes the digest, and the writer refuses a workbook with an
@@ -492,7 +492,7 @@ fn base_rows(table: &Table) -> Vec<Vec<String>> {
     rows
 }
 
-/// The text the digest of the `_ew_base` sheet is made over (D5; ID-1174 ruling 1): its rows without the digest row,
+/// The text the digest of the `_ew_base` sheet is made over (D5; ruling 1): its rows without the digest row,
 /// each row's cell texts joined by tabs and ended by LF (the header first, then each row with an ID: its ID and its
 /// editable cells). The round trip reads the sheet back, makes the same text ([`rows_text`]) and compares the digests,
 /// so an edited base is detected.
@@ -774,11 +774,11 @@ mod tests {
         assert_eq!(escape("bell\u{7}"), "bell_x0007_");
         assert_eq!(escape("_x0041_ and _x"), "_x005F_x0041_ and _x");
         assert_eq!(escape("tab\tline\n"), "tab\tline\n");
-        // ID-1174 ruling 5 (C46-p2#3): a carriage return is the workbook's escape, which a parser keeps.
+        // ID-1174 ruling 5: a carriage return is the workbook's escape, which a parser keeps.
         assert_eq!(escape("a\r\nb"), "a_x000D_\nb");
     }
 
-    /// ID-1174 ruling 5 (C46-p2#10): names are unique ignoring case as `str::to_lowercase` folds it, and an apostrophe
+    /// ID-1174 ruling 5: names are unique ignoring case as `str::to_lowercase` folds it, and an apostrophe
     /// at either end is replaced (also one a cut leaves at the end).
     #[test]
     fn sheet_names_fold_case_fully_and_drop_end_apostrophes() {
@@ -803,7 +803,7 @@ mod tests {
         );
     }
 
-    /// ID-1174 ruling 5 (C46-p2#1): a number of more than 15 significant digits stays text, a shorter one is numeric.
+    /// ID-1174 ruling 5: a number of more than 15 significant digits stays text, a shorter one is numeric.
     #[test]
     fn a_long_number_stays_text() {
         let mut t = table("n");
@@ -833,7 +833,7 @@ mod tests {
         assert_eq!(significant_digits("1500"), 2);
     }
 
-    /// ID-1174 ruling 5 (C46-p2#4): every refusal is whole and ends with what to do.
+    /// ID-1174 ruling 5: every refusal is whole and ends with what to do.
     #[test]
     fn every_refusal_says_what_to_do() {
         assert_eq!(
@@ -876,7 +876,7 @@ mod tests {
         }
     }
 
-    /// D5 (ID-1174 ruling 1): an editable table carries `_ew_base` after `_ew`, hidden, with the rows of
+    /// D5: an editable table carries `_ew_base` after `_ew`, hidden, with the rows of
     /// [`base_text`] and the digest row; without a digest the writer refuses; a table without an editable column has
     /// no `_ew_base`.
     #[test]

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The golden builders of Golden A (doc 20 §3.2, WP-S6.01): build path (a), the CSV bootstrap, and build
+//! The golden builders of Golden A (doc 20 §3.2): build path (a), the CSV bootstrap, and build
 //! path (b), the builder DSL that constructs the same project through commands only.
 //!
 //! - **Path (a)**, [`bootstrap`]: `ew-import-tables` over `golden/J-E-2416/tables/` with the built-in
@@ -14,7 +14,7 @@
 //!   `revision.create`, `library.embed`, …) against a session, starting from the [`Shell`]: the project
 //!   row (a new project is `ew new`) and the project-local library items (the parts, which are created in
 //!   the project, not embedded); the builder's first command, `library.embed`, embeds the non-local copies
-//!   (symbols, function definitions, forms; FT-278). The content comes from the same source of truth as path (a): the
+//!   (symbols, function definitions, forms). The content comes from the same source of truth as path (a): the
 //!   records of the bootstrap batch are the typed description, translated into commands in dependency
 //!   order; the commands mint their own IDs, so path (b) agrees with (a) by content (the acceptance SQL and
 //!   its expected CSVs), never by ID (doc 20 §3.2: "all columns except `id` and `source_ref`").
@@ -122,7 +122,7 @@ fn project_of(batch: &ImportBatch) -> &Project {
 }
 
 /// The library copies of `batch` that are not project-local, in the batch's order: what the builder embeds
-/// with `library.embed` (FT-278).
+/// with `library.embed`.
 ///
 /// # Panics
 ///
@@ -141,7 +141,7 @@ pub fn embedded_copies(batch: &ImportBatch) -> Vec<LibDocument> {
 ///
 /// No command creates a project row (a new project is `ew new`), and the project-local parts are created in
 /// the project, not embedded (`library.embed` refuses them), so path (b) starts from them. The non-local
-/// copies are not part of the shell: the builder embeds them with `library.embed` (FT-278). The project row
+/// copies are not part of the shell: the builder embeds them with `library.embed`. The project row
 /// is the bootstrap's without its import provenance, without the supply's origin (`project.supply.set`) and
 /// without the [`SETTINGS_BY_COMMAND`] members, which the builder sets through `project.settings.set`; its
 /// ID stays the bootstrap's, because the project-local parts name the project as their library (doc 05
@@ -150,7 +150,7 @@ pub fn embedded_copies(batch: &ImportBatch) -> Vec<LibDocument> {
 pub struct Shell {
     /// The project row.
     pub project: Project,
-    /// The project-local library items (the parts and the manufacturer copies they name, WP-S1.19 D10).
+    /// The project-local library items (the parts and the manufacturer copies they name).
     pub lib: Vec<LibDocument>,
 }
 

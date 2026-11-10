@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command palette (WP-S2.01 part 1, spec section 5.3; FR-UI-012), restyled by WP-S2.17 part 4 (doc 16a §6.14);
+//! The command palette (spec section 5.3; FR-UI-012), restyled by WP-S2.17 part 4 (doc 16a §6.14);
 //! its behaviour is WP-S2.08 part 1's: Ctrl+K opens a popover with a search field; the shell ranks the entries
 //! (`ew_viewmodel::palette`: fuzzy score, glossary aliases, recents, the prefixes `>`, `@`, `#`, `:` and `?`);
 //! disabled entries follow the enabled ones with their reason; Enter runs the selected enabled entry or opens its
@@ -32,7 +32,7 @@ use crate::theme::{self, Tokens};
 /// (C39; owner 2026-10-31: the UI grows with the space it has, never a width chosen for the floor).
 pub(crate) const PALETTE_SHARE: f32 = 0.4;
 
-/// The label of `entry` with the characters the query's best alignment matches (WP-S2.08 D2) in `type.body.strong`;
+/// The label of `entry` with the characters the query's best alignment matches in `type.body.strong`;
 /// `query` is the text after the prefix.
 fn label_job(t: &Tokens, label: &str, query: &str, colour: egui::Color32) -> LayoutJob {
     let mut job = LayoutJob::default();
@@ -69,7 +69,7 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
         _ => entry.label.clone(),
     };
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, entry.enabled, &name));
-    // FT-1255: the selected result is selected for AccessKit too.
+    // The selected result is selected for AccessKit too.
     ui.ctx()
         .accesskit_node_builder(response.id, |n| n.set_selected(selected));
     if !entry.shortcut.is_empty() {
@@ -148,7 +148,7 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
 }
 
 /// Paints the palette when it is open. `just_opened` puts the keyboard focus into its search field. `anchor` is the
-/// command bar's search field (WP-S2.17 part 2, doc 16a §5.2): the palette opens under it, right-aligned with it.
+/// command bar's search field (doc 16a §5.2): the palette opens under it, right-aligned with it.
 pub fn show(
     ctx: &egui::Context,
     shell: &ShellModel,
@@ -210,7 +210,7 @@ pub fn show(
             .shadow(theme::shadow(&t.elevation_2))
             .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_2)))
             .show(ui, |ui| {
-                // C39 (doc 16a §2, ID-908): the palette grows with the window (never narrower than at the floor).
+                // C39 (doc 16a §2): the palette grows with the window (never narrower than at the floor).
                 let width = crate::dialog::grown(t.size_palette, PALETTE_SHARE, ctx.content_rect().width());
                 ui.set_width(width - 2.0 * t.space_2);
                 ui.spacing_mut().item_spacing.y = t.space_1;

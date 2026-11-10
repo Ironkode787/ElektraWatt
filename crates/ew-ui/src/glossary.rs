@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The glossary pane (WP-S2.08 part 6, D16; FR-UI-045) in the bottom dock: the shared filter field (doc 16a §6.5),
+//! The glossary pane (FR-UI-045) in the bottom dock: the shared filter field (doc 16a §6.5),
 //! then the table of doc 16a §6.7 with the columns EW term, EPLAN, QET, Definition and Actions. The header row is
 //! `type.small` SemiBold in `color.text.secondary` on `color.surface.sunken`; a row is `type.small` with `space.4`
 //! cell padding and a 1-px `color.border.subtle` line under it; the definition wraps. A row's actions are Subtle
@@ -11,7 +11,7 @@
 //! **Accessibility.** The pane is a `Group` named "Glossary"; the field is named by its hint; each row is a `Group`
 //! named by its term, its other cells its description (`EPLAN: …; QET: …; <definition>`, "none" for an empty cell).
 //! In the field, Up and Down move a row cursor (`glossary.row`; the row selected for AccessKit) and Enter runs the
-//! cursor row's first enabled action (FT-1281).
+//! cursor row's first enabled action.
 
 use egui::{Sense, Ui, Vec2};
 use ew_viewmodel::shell::{GlossaryRow, ShellModel};
@@ -67,7 +67,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         ui.add_space(t.space_2);
         let mut filter = shell.glossary_filter().to_owned();
         let field = components::filter_field(ui, &mut filter, strings::text(key!("glossary-search")));
-        // FT-1346: the field's accessible name is its hint.
+        // The field's accessible name is its hint.
         field.widget_info(|| {
             egui::WidgetInfo::labeled(
                 egui::Role::TextInput,
@@ -78,7 +78,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         if field.changed() {
             events.push(Event::Action("glossary.filter", json!({ "text": filter })));
         }
-        // FT-1281: in the field, Up and Down move the row cursor and Enter runs the cursor row's first enabled action.
+        // In the field, Up and Down move the row cursor and Enter runs the cursor row's first enabled action.
         if field.has_focus() {
             for (key, step) in [(egui::Key::ArrowDown, 1), (egui::Key::ArrowUp, -1)] {
                 if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, key)) {
@@ -161,7 +161,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     row(ui, &t, shell, r, &widths, cursor == Some(i), events);
                 }
             });
-        // FT-1415: the dock follows the glossary's rows.
+        // The dock follows the glossary's rows.
         crate::dock::report_content(
             ui,
             ew_viewmodel::layout::PaneKind::Glossary,
@@ -218,7 +218,7 @@ fn header(ui: &mut Ui, t: &Tokens, widths: &[f32; 5]) {
 }
 
 /// One term's row: the texts wrapped in their columns, `space.2` above and below the tallest, at least `size.row`
-/// high; the actions stacked in the last column. The cursor's row (FT-1281) has the hover overlay, as a navigator's
+/// high; the actions stacked in the last column. The cursor's row has the hover overlay, as a navigator's
 /// does, is selected for AccessKit and is scrolled into view.
 fn row(
     ui: &mut Ui,

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Every starter symbol reaches a usable device from the picker (WP-S2.18 D7): in a new project each symbol of the
+//! Every starter symbol reaches a usable device from the picker: in a new project each symbol of the
 //! starter set is placed by its path, with a generic starter part where the starter parts (D5) give one, and each
 //! auxiliary symbol joins a device by the join chooser (D2). The table [`PATHS`] must name every starter symbol, so a
 //! symbol added later fails the test until it has a path. D3 (the device's "Add" menu) is not built; no path uses it.
@@ -354,7 +354,7 @@ fn every_starter_symbol_reaches_a_usable_device_from_the_picker() {
     );
 }
 
-/// FT-659: the letter a new project (identifier set EN 81346-2:2009) gives each generic starter part placed from the
+/// The letter a new project (identifier set EN 81346-2:2009) gives each generic starter part placed from the
 /// picker without a letter of its own: the selector switch and the one-pole on/off switch S (a manual command, FT-1204
 /// by IEC 81346-2:2019, ID-1395), the valve's coil M (a solenoid actuator), not the switching device's Q or the
 /// relay's K.
@@ -424,7 +424,7 @@ fn parts_text(s: &ShellModel) -> String {
     }
 }
 
-/// WP-S2.18 D6: the Parts row of a device in a new project offers the starter parts after the project's own (none
+/// The Parts row of a device in a new project offers the starter parts after the project's own (none
 /// here); choosing one embeds it with its closure and assigns it in one undo step.
 #[test]
 fn the_parts_row_takes_a_starter_part_in_one_undo_step() {
@@ -473,7 +473,7 @@ fn the_parts_row_takes_a_starter_part_in_one_undo_step() {
     assert_eq!(parts_text(&s), "EW-GEN-LMP-1 × 1");
 }
 
-/// FT-655: the starter relay templates its four changeover contacts. Placing the relay's coil makes the four
+/// The starter relay templates its four changeover contacts. Placing the relay's coil makes the four
 /// contacts as unplaced slots; each contact symbol joined to the relay fills the next slot, and every contact prints
 /// its own designations (11-12-14, 21-22-24, ...) on the CPs its symbol draws, not the first contact's.
 #[test]

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The message panel in the shell (WP-S2.09 part 2, §7.2 to §7.6): `NavKind::Messages` in the bottom dock, the
+//! The message panel in the shell (to §7.6): `NavKind::Messages` in the bottom dock, the
 //! editing page and the pending rows, F8 and Shift+F8, F1 on a finding or rule row, the quick fix as a previewed card,
 //! and Tools ▸ Run checks.
 //!
@@ -74,7 +74,7 @@ impl ShellModel {
             .map(|(_, _, c)| c)
     }
 
-    /// The Messages tab's count chip (doc 16a §5.7, FT-710): [`MessageCounts::open`] of the open pane's counts, the
+    /// The Messages tab's count chip (doc 16a §5.7): [`MessageCounts::open`] of the open pane's counts, the
     /// same rule as the status bar's and the check toast's counts; 0 while the pane is closed.
     pub fn messages_badge(&self) -> usize {
         self.messages_counts().map_or(0, |c| c.open())
@@ -92,12 +92,12 @@ impl ShellModel {
             .is_some_and(|(_, n)| messages::is_pending(n, editing.as_deref()))
     }
 
-    /// The detail block of the Messages cursor's finding (§7.3), with the waiver's ID while it is waived (FT-674).
+    /// The detail block of the Messages cursor's finding (§7.3), with the waiver's ID while it is waived.
     pub fn messages_detail(&self) -> Option<FindingDetail> {
         let nav = self.navs.get(&NavKind::Messages)?;
         let key = nav.cursor_key()?;
         let mut d = nav.node_of(&key).and_then(|(_, n)| messages::detail(n))?;
-        // WP-S2.08 part 3 (D10, ID-1219 ruling 6): the message in the UI language, by `report::localise`'s rule
+        // WP-S2.08 part 3 (D10, ruling 6): the message in the UI language, by `report::localise`'s rule
         // (the rule's pattern of that language where it has one, the en-GB message otherwise), for the finding of the
         // online report with this fingerprint.
         let lang = strings::rule_language();
@@ -113,14 +113,14 @@ impl ShellModel {
                 .find(|f| f.fingerprint.to_string() == d.fingerprint)
             {
                 d.message = ew_api::checks::messages::render(f, lang);
-                // FT-1482: the quick fix's label by its key.
+                // The quick fix's label by its key.
                 d.fix = f
                     .fix
                     .as_ref()
                     .map(|q| ew_api::checks::messages::fix_label(q, lang));
             }
         }
-        // FT-1140 (ID-1229 item 9): the message stands on its own line, so it starts with a capital (ID-1182).
+        // FT-1140 (item 9): the message stands on its own line, so it starts with a capital.
         d.message = strings::sentence_start(&d.message).into_owned();
         if d.waived {
             d.waiver = self
@@ -131,9 +131,9 @@ impl ShellModel {
     }
 
     /// The polylines (sheet coordinates) of the wires of canvas group `group`'s page that belong to the potential of
-    /// an open EW-POT-001 finding (FT-675, ID-828): the window draws them in the conflict colour over the page, a
+    /// an open EW-POT-001 finding: the window draws them in the conflict colour over the page, a
     /// screen-only overlay like the selection; the page's display list, its print and its export do not change.
-    /// FT-696 (WP-S2.11 D9): a connection point a finding names adds the connections that end at it; a point with none
+    /// A connection point a finding names adds the connections that end at it; a point with none
     /// is a ring, a closed polyline one grid step across, so it is drawn with the overlay's pen and colour.
     pub fn conflict_overlay(&self, group: usize) -> Vec<Vec<(i64, i64)>> {
         let Some(c) = self.canvas_of(group) else {
@@ -152,7 +152,7 @@ impl ShellModel {
         c.page().conflict_lines(&members, &cps)
     }
 
-    /// The connection IDs of the potentials of the open EW-POT-001 findings of the online report, sorted (FT-675).
+    /// The connection IDs of the potentials of the open EW-POT-001 findings of the online report, sorted.
     pub fn conflict_members(&self) -> Vec<ew_api::output::Uuid> {
         self.with_online(|o| o.conflict.clone()).unwrap_or_default()
     }
@@ -185,7 +185,7 @@ impl ShellModel {
                             let target = ew_api::output::HighlightTarget::Potential(t.id.as_uuid());
                             facts.conflict.extend(project.session.highlight_members(&target));
                         }
-                        // FT-696: a potential without a definition is keyed by the member CP its discriminator
+                        // A potential without a definition is keyed by the member CP its discriminator
                         // names (`attrs@<function>:<idx>`).
                         if let Some(cp) = named_cp(&finding.discriminator) {
                             facts.conflict_cps.push(cp);
@@ -264,7 +264,7 @@ impl ShellModel {
     }
 
     /// The Messages table of `project` now: `Session::navigator_table(Messages)` with the release's housekeeping
-    /// warnings of this project session under Warnings ▸ Release (FT-842).
+    /// warnings of this project session under Warnings ▸ Release.
     pub(super) fn messages_table_of(
         project: &super::Project,
         state: &messages::MessagesState,
@@ -314,7 +314,7 @@ impl ShellModel {
             .map(|p| strings::scheme_text(p.session.online_scheme().name))
     }
 
-    /// Whether the Messages pane offers the migration report beside the project's scheme (WP-S3.09 D9 d): the project
+    /// Whether the Messages pane offers the migration report beside the project's scheme (d): the project
     /// holds an import.
     pub fn messages_offers_migration(&self) -> bool {
         self.project.as_ref().is_some_and(|p| p.session.has_lineage())
@@ -325,7 +325,7 @@ impl ShellModel {
         self.messages.migration && self.messages_offers_migration()
     }
 
-    /// `messages.migration {on?}` (WP-S3.09 D9 d, T11): the Messages pane shows the migration report (a run of the
+    /// `messages.migration {on?}` (d, T11): the Messages pane shows the migration report (a run of the
     /// `migration` scheme, the import runs' findings among the live ones) instead of the project's scheme, or (`on:
     /// false`) the project's scheme again; without `on` it switches. Refused when the project holds no import.
     pub(crate) fn act_messages_migration(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -366,7 +366,7 @@ impl ShellModel {
         if !self.navs.contains_key(&NavKind::Messages) {
             self.open_messages();
         } else {
-            // FT-916: a pane behind another tab of its group comes to front, so the opened finding is seen.
+            // A pane behind another tab of its group comes to front, so the opened finding is seen.
             self.bring_navigator_to_front(NavKind::Messages);
         }
         let Some(nav) = self.navs.get(&NavKind::Messages) else {
@@ -418,9 +418,9 @@ impl ShellModel {
             n.table = None;
         }
         self.fetch_messages_table();
-        // FT-549: the outcome counted, `Check: 1 error, 0 warnings`, from the pane's table or, with the pane closed,
+        // The outcome counted, `Check: 1 error, 0 warnings`, from the pane's table or, with the pane closed,
         // from a table fetched for the count alone.
-        // ID-1497 (3): with the findings counted, which the next check compares as a set.
+        // With the findings counted, which the next check compares as a set.
         let editing = self.editing_folio();
         let counted = |t: &NavTable| {
             (
@@ -436,7 +436,7 @@ impl ShellModel {
                 .map(|project| counted(&Self::messages_table_of(project, &self.messages))),
         };
         if let Some((c, findings)) = counts {
-            // FT-1432: the last check of this project, which the toast's changes count from; C52-p5#2: only a check
+            // The last check of this project, which the toast's changes count from; C52-p5#2: only a check
             // of the same table, the same scheme and the migration report or not, so a switch reads as no change.
             let table = (
                 self.project
@@ -470,7 +470,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// FT-759: the last check's toast goes once the project leaves the revision it counted (an edit, an undo, another
+    /// The last check's toast goes once the project leaves the revision it counted (an edit, an undo, another
     /// project), so its counts never disagree with the dock's pending ones; the log keeps it.
     pub(super) fn sync_check_toast(&mut self) {
         let Some((at, serial)) = self.messages.check_toast else {
@@ -495,7 +495,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // Waive… and Unwaive (FT-674; WP-S2.09, WP-S1.16 D7)
+    // Waive… and Unwaive
 
     /// The finding row `key` of the Messages pane (default the open Waive prompt's row, else the cursor row) when it
     /// is a finding in state `state`: (key, rule, fingerprint, subject as printed); else the refusal.
@@ -535,7 +535,7 @@ impl ShellModel {
         Ok((key, d.rule, d.fingerprint, messages::subject(node)))
     }
 
-    /// `messages.waive {key?, reason?, author?, date?}` (Waive… in the Messages detail, FT-674): on an open finding
+    /// `messages.waive {key?, reason?, author?, date?}` (Waive… in the Messages detail): on an open finding
     /// row (default the cursor row) commits one `check.waive` with the rule, the fingerprint, the reason (at least
     /// ten characters once trimmed, as the command checks), the author and the date. Without a reason the window
     /// opens the Waive prompt (Reason; Author prefilled from the preference "Author name"), which keeps the row and
@@ -607,7 +607,7 @@ impl ShellModel {
         let mut params = serde_json::json!({
             "rule": rule, "fingerprint": fingerprint, "reason": reason, "author": author, "date": date,
         });
-        // FT-1509: the finding's subject, which the refusal of a finding waived already names.
+        // The finding's subject, which the refusal of a finding waived already names.
         if !subject.is_empty() {
             params["subject"] = Value::String(subject);
         }
@@ -633,7 +633,7 @@ impl ShellModel {
         }
     }
 
-    /// `messages.unwaive {key?}` (Unwaive in the Messages detail, FT-674): on a waived finding row (default the cursor
+    /// `messages.unwaive {key?}` (Unwaive in the Messages detail): on a waived finding row (default the cursor
     /// row) commits one `check.unwaive` of its waiver, after which the finding is open again. Headless it refuses
     /// (`HumanOnly`).
     pub(crate) fn act_messages_unwaive(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -686,7 +686,7 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        // ID-1392 (FT-1386): a row of the migration report is found in the run that lists it.
+        // A row of the migration report is found in the run that lists it.
         let report = if migration {
             project
                 .session
@@ -797,7 +797,7 @@ const WAIVER_REASON_MIN_CHARS: usize = 10;
 /// The action of the Waive prompt.
 const WAIVE: &str = "messages.waive";
 
-/// The rule whose open findings colour their potential's wires on the canvas (FT-675).
+/// The rule whose open findings colour their potential's wires on the canvas.
 const CONFLICT_RULE: &str = "EW-POT-001";
 
 /// The connection point (function, CP index) a finding's discriminator names after its `@` (`attrs@<function>:<idx>`,
@@ -808,9 +808,9 @@ fn named_cp(discriminator: &str) -> Option<(ew_api::output::Uuid, u16)> {
     Some((ew_api::output::Uuid::parse_str(function).ok()?, idx.parse().ok()?))
 }
 
-/// The toast of `messages.check` (FT-549): the errors and warnings always, the infos when there are any; the waived and
-/// pending findings, when there are any, qualify the title so the line of counts stays one line (FT-664):
-/// `Check: 1 error, 0 warnings`, `Check · 1 waived: 1 error, 0 warnings`. FT-1432 (ID-1397): after an earlier check of
+/// The toast of `messages.check`: the errors and warnings always, the infos when there are any; the waived and
+/// pending findings, when there are any, qualify the title so the line of counts stays one line:
+/// `Check: 1 error, 0 warnings`, `Check · 1 waived: 1 error, 0 warnings`. FT-1432: after an earlier check of
 /// the same project (`before`), the line leads with what changed since then, then the project's totals:
 /// `Check: −1 error since the last check; project: 0 errors, 2 warnings`. ID-1497 (3): `before` carries how many of
 /// this check's findings the earlier one did not count, so that equal counts of other findings read "2 findings
@@ -857,7 +857,7 @@ pub(crate) fn check_summary(c: MessageCounts, before: Option<(MessageCounts, usi
             &[&changes, &parts.join(", ")],
         )];
     }
-    // FT-664: the waived and pending counts qualify the title ("Check · 4 waived · 1 pending"), so the line of
+    // The waived and pending counts qualify the title ("Check · 4 waived · 1 pending"), so the line of
     // severity counts stays one line in the toast.
     let qualifiers: Vec<String> = [
         (c.waived, key!("check-waived-one"), key!("check-waived")),
@@ -894,7 +894,7 @@ pub(crate) fn check_tone(c: MessageCounts) -> NoteTone {
 mod tests {
     use super::*;
 
-    /// FT-696: the member CP a CP-keyed EW-POT-001 finding's discriminator names; none for a definition's.
+    /// The member CP a CP-keyed EW-POT-001 finding's discriminator names; none for a definition's.
     #[test]
     fn the_discriminator_names_the_keying_connection_point() {
         let f = "0190a5c4-1001-7000-8000-000000000001";
@@ -939,7 +939,7 @@ mod tests {
             check_summary(c(0, 1, 0, 0, 0), None),
             "Check: 0 errors, 1 warning."
         );
-        // FT-664: waived and pending qualify the title; the line keeps the severities.
+        // Waived and pending qualify the title; the line keeps the severities.
         assert_eq!(
             check_summary(c(2, 3, 1, 4, 1), None),
             "Check · 4 waived · 1 pending: 2 errors, 3 warnings, 1 info."
@@ -948,7 +948,7 @@ mod tests {
             check_summary(c(0, 25, 0, 1, 0), None),
             "Check · 1 waived: 0 errors, 25 warnings."
         );
-        // FT-1432: after an earlier check, what changed leads, then the project's totals.
+        // After an earlier check, what changed leads, then the project's totals.
         assert_eq!(
             check_summary(c(32, 4, 0, 0, 0), Some((c(33, 3, 1, 0, 0), 1))),
             "Check: \u{2212}1 error, +1 warning, \u{2212}1 info since the last check; project: 32 errors, 4 warnings."
@@ -957,7 +957,7 @@ mod tests {
             check_summary(c(33, 3, 0, 1, 0), Some((c(33, 3, 0, 0, 0), 0))),
             "Check · 1 waived: no change since the last check; project: 33 errors, 3 warnings."
         );
-        // ID-1497 (3): the same counts of other findings are a change, counted by the new findings.
+        // The same counts of other findings are a change, counted by the new findings.
         assert_eq!(
             check_summary(c(33, 3, 0, 0, 0), Some((c(33, 3, 0, 0, 0), 2))),
             "Check: 2 findings changed since the last check; project: 33 errors, 3 warnings."
@@ -980,7 +980,7 @@ mod tests {
         );
     }
 
-    /// ID-1497 (3): Check project compares the findings themselves (rule, subject, message) as a set: a check whose
+    /// Check project compares the findings themselves (rule, subject, message) as a set: a check whose
     /// counts equal the last one's but whose findings differ reports the change ("1 finding changed"), not "no
     /// change"; the same findings again are no change.
     #[test]
@@ -1020,7 +1020,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&base);
     }
 
-    /// C52-p5#2 (FT-1432): Check project counts its changes only from a check of the same table. A switch of the
+    /// Check project counts its changes only from a check of the same table. A switch of the
     /// project's scheme between two checks gives no "since the last check": the toast is the plain one of the new
     /// table.
     #[test]

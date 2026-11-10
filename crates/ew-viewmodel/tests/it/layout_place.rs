@@ -159,7 +159,7 @@ const R1_SN3: [(&str, f64); 7] = [
 // ---------------------------------------------------------------------------------------------------------------
 // PW-1
 
-/// PW-1 (FT-486): the rows in `Unplaced` order (ruling 9) with their badges and drag sources; placing F55 removes its
+/// PW-1: the rows in `Unplaced` order (ruling 9) with their badges and drag sources; placing F55 removes its
 /// row in the same revision; the panel tables are fetched once per revision and folio, never for a schematic page.
 #[test]
 fn pw1_the_unplaced_devices_navigator_lists_the_five_devices() {
@@ -245,7 +245,7 @@ fn rows_of(expected: &[(&str, f64)]) -> Vec<(String, f64, u8)> {
     rows(expected)
 }
 
-/// FT-882 (ID-1108: "`ui.describe` names a surface view \"surface view\""): folio 902's view is described as one,
+/// FT-882 ("`ui.describe` names a surface view \"surface view\""): folio 902's view is described as one,
 /// never as an unknown item.
 #[test]
 fn ft882_describe_names_the_surface_view() {
@@ -717,7 +717,7 @@ fn pw6_tab_cycles_the_rail_with_the_live_region() {
         shell.layout_live_text().as_deref(),
         Some("S51, rail 1 at 267.5 mm, 1 finding")
     );
-    // FT-996: on a rail only X turns it, so R goes unnamed.
+    // On a rail only X turns it, so R goes unnamed.
     assert_eq!(
         hud(&shell).prompt,
         "1 selected · arrows nudge · X flips · Del deletes"
@@ -830,7 +830,7 @@ fn footprint_centre(shell: &ShellModel, tag: &str) -> (i64, i64) {
 /// no keys.
 #[test]
 fn a_refused_turn_names_the_rebound_keys_on_every_path() {
-    // ID-1106: the second key comes from `tool.mirror_x`, rebound here to K.
+    // The second key comes from `tool.mirror_x`, rebound here to K.
     const TEXT: &str = "Q turns a placement on the plate; K flips one on a rail.";
     let tmp = Tmp::new("layout-turn-keys");
     let mut shell = writable(&tmp);
@@ -901,7 +901,7 @@ fn a_refused_turn_names_the_rebound_keys_on_every_path() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Cycle 46 (ID-1147): the placing tools' polish rows
+// Cycle 46: the placing tools' polish rows
 
 /// The whole text of a refused turn with the default keymap.
 const TURN_TEXT: &str = "R turns a placement on the plate; X flips one on a rail.";
@@ -928,7 +928,7 @@ fn press_until_refused(shell: &mut ShellModel, action: &'static str) -> usize {
     panic!("{action} never stopped: {}", ghost(shell));
 }
 
-/// FT-991 (ID-1147): a refused R keeps the layout ghost, its overlay and its gesture with the refusal's words, for the
+/// A refused R keeps the layout ghost, its overlay and its gesture with the refusal's words, for the
 /// layout place tool's ghost and for Select's drag of a placement alike; X then flips the same gesture. Other refusals
 /// still end their ghost.
 #[test]
@@ -995,7 +995,7 @@ fn ft991_a_refused_turn_keeps_the_ghost_and_its_gesture() {
     shell.shutdown();
 }
 
-/// FT-992 (ID-1147): the arrows stop a floating ghost as they stop a selected placement: at the rail's start and end
+/// The arrows stop a floating ghost as they stop a selected placement: at the rail's start and end
 /// with "At the rail end" and at a neighbour with "Blocked by -102G1", the ghost staying on Rail 1; a selected
 /// placement stops at the rail end in the same words.
 #[test]
@@ -1044,7 +1044,7 @@ fn ft992_the_arrows_stop_a_floating_ghost_at_the_rail_end_and_at_a_neighbour() {
     shell.shutdown();
 }
 
-/// FT-993 (ID-1147): Escape on a layout ghost drops it and returns to Select, as the schematic Place tool does; the
+/// Escape on a layout ghost drops it and returns to Select, as the schematic Place tool does; the
 /// hint says so.
 #[test]
 fn ft993_escape_drops_the_layout_ghost_and_returns_to_select() {
@@ -1066,7 +1066,7 @@ fn ft993_escape_drops_the_layout_ghost_and_returns_to_select() {
     assert!(shell.tool_overlay().items.is_empty());
     assert_eq!(shell.revision(), revision, "nothing placed");
     assert_eq!(unplaced(&shell, "F55"), f55);
-    // The text after the behaviour (FT-1066), so a changed hint does not hide it.
+    // The text after the behaviour, so a changed hint does not hide it.
     assert_eq!(
         ew_viewmodel::strings::format(key!("hint-layout-place"), &["Esc"]),
         "Click or release to place; Esc ends"
@@ -1074,7 +1074,7 @@ fn ft993_escape_drops_the_layout_ghost_and_returns_to_select() {
     shell.shutdown();
 }
 
-/// FT-994 (ID-1147): at grid 1 mm an arrow moves a plate ghost exactly one grid step from where it is drawn, at every
+/// At grid 1 mm an arrow moves a plate ghost exactly one grid step from where it is drawn, at every
 /// turn: E55 floating 30 mm right of -201U7's, -102G1's and -X1032's footprints, level with their tops, where an edge
 /// of a neighbour snaps it off the grid (a step from the pointer re-snapped it 0.5 mm further, or short).
 #[test]
@@ -1128,7 +1128,7 @@ fn ft994_an_arrow_steps_a_turned_plate_ghost_one_grid_step() {
     shell.shutdown();
 }
 
-/// FT-995 (ID-1147): after a layout drop and after Select's drag of a placement, the HUD names no pick stack where the
+/// After a layout drop and after Select's drag of a placement, the HUD names no pick stack where the
 /// drop left the pointer; once the pointer moves it does again.
 #[test]
 fn ft995_after_a_drop_the_hud_names_no_stack_until_the_pointer_moves() {
@@ -1171,7 +1171,7 @@ fn ft995_after_a_drop_the_hud_names_no_stack_until_the_pointer_moves() {
     shell.shutdown();
 }
 
-/// FT-996 (ID-1147): the HUD of a selected placement names only the keys it takes: X on a rail, R on the plate, Delete
+/// The HUD of a selected placement names only the keys it takes: X on a rail, R on the plate, Delete
 /// always.
 #[test]
 fn ft996_the_selected_placements_hud_names_only_its_keys() {
@@ -1207,7 +1207,7 @@ fn ft996_the_selected_placements_hud_names_only_its_keys() {
     shell.shutdown();
 }
 
-/// FT-997 (ID-1147): a nudge's "Blocked by T55" ends with the next action: Lock, Unlock and Enter each clear it.
+/// A nudge's "Blocked by T55" ends with the next action: Lock, Unlock and Enter each clear it.
 #[test]
 fn ft997_blocked_by_clears_on_lock_unlock_and_enter() {
     let tmp = Tmp::new("layout-ft997");
@@ -1225,8 +1225,8 @@ fn ft997_blocked_by_clears_on_lock_unlock_and_enter() {
         assert_eq!(shell.tool_notice(), Some("Blocked by T55"));
         assert_eq!(hud(shell).prompt, "Blocked by T55");
     };
-    // The behaviour first: each action clears the notice and the HUD's "Blocked by"; the HUD's text after it
-    // (FT-1066), so a changed HUD text does not hide it.
+    // The behaviour first: each action clears the notice and the HUD's "Blocked by"; the HUD's text after it,
+    // so a changed HUD text does not hide it.
     let mut prompts = Vec::new();
     for cmd in [
         "layout.lock_selection",

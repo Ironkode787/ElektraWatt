@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The strip editor's door below the shell (WP-S2.07 §4.2, §6.3 to §6.7; D4 to D8, D14): [`Session::strip_edit`]
+//! The strip editor's door below the shell (§6.3 to §6.7; D4 to D8, D14): [`Session::strip_edit`]
 //! compiles one strip gesture into one command, and [`Session::strip_edits`] several cell gestures into one.
 //!
 //! - **Group labels** (D8): setting the label L on terminals E of a strip rewrites `strip.groups`: every group that
@@ -171,7 +171,7 @@ struct Work {
     order: Vec<(u8, usize)>,
 }
 
-/// One bridge group as the page description lists it (FT-621): its label `BR<n>` and its terminals in (`seq`, ID)
+/// One bridge group as the page description lists it: its label `BR<n>` and its terminals in (`seq`, ID)
 /// order, each as its device and its printed name `<strip>:<designation>`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct BridgeRow {
@@ -184,7 +184,7 @@ pub struct BridgeRow {
 }
 
 impl Session {
-    /// Every bridge group of the project (FT-621), in `BR<n>` order (WP-S2.07 D6's `bridge_groups`).
+    /// Every bridge group of the project, in `BR<n>` order (WP-S2.07 D6's `bridge_groups`).
     pub fn bridges(&self) -> Vec<BridgeRow> {
         let q = self.query();
         let tag = |d: Id<Device>| {
@@ -391,7 +391,7 @@ impl Session {
     }
 }
 
-/// A parse context with parts the project does not hold yet among its copies (WP-S2.07 D16).
+/// A parse context with parts the project does not hold yet among its copies.
 struct WithPending<'a> {
     inner: &'a dyn ParseCx,
     pending: Vec<PartCopyText>,

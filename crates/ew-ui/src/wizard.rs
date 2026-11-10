@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The company-standard wizard screen (WP-S2.01 part 2, FT-308; UX/UI doc 16 section 9.2, FR-PRJ-010): the steps on
+//! The company-standard wizard screen (UX/UI doc 16 section 9.2, FR-PRJ-010): the steps on
 //! the left, the fields of the current step in the middle, and on the right the live preview, a cover or folio 102
 //! of the sample project rendered by the CPU renderer with the current choices.
 //!
@@ -80,7 +80,7 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
                 for line in wizard.review() {
                     ui.label(line.label);
                     ui.label(line.value);
-                    // FT-336: the check scheme is applied after finishing, by a person (its command is HumanOnly).
+                    // The check scheme is applied after finishing, by a person (its command is HumanOnly).
                     ui.weak(strings::text(if line.written {
                         key!("wizard-written")
                     } else if line.key == CHECK_SCHEME_FIELD {

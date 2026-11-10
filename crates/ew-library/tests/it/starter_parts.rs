@@ -12,8 +12,8 @@
 //! The parts are CC0-1.0 part facts (doc 19 §2.1 L8): manufacturer "Generic", part numbers `EW-GEN-<kind>-<n>`, a
 //! description, no order or catalogue data; each carries the template functions on the starter FnDefs, the CP pattern,
 //! the contact data of its contacts and the technical data the starter symbols print in their `tech_data` slot. The
-//! layout parts (WP-S4.02 D14: an enclosure, a mounting plate, a rail, a duct and an end bracket) carry no template
-//! and no CP pattern: their sections and their dimensions (`mech`) are their data. The generic cable (FT-1401) carries
+//! layout parts (an enclosure, a mounting plate, a rail, a duct and an end bracket) carry no template
+//! and no CP pattern: their sections and their dimensions (`mech`) are their data. The generic cable carries
 //! no template either: its cores (`cable_cores`) are its data, so a new project creates a cable without a library.
 
 use std::collections::BTreeMap;
@@ -34,13 +34,13 @@ const VERSION: &str = "0.1.0";
 /// switch EW-GEN-SW-1, 0.2.0 since WP-S1.21 D5 added the generic CPU EW-GEN-CPU-1, 0.2.1 since WP-S1.21 D17 gave
 /// it its DP port (a library refuses other content under a published version, doc 05 §13.1), 0.3.0 since WP-S4.02
 /// part 6 (D14) added the layout parts and the dimensions, 0.4.0 since WP-S1.20 D4 gave the valve its fluid section,
-/// 0.4.1 since FT-1204 (ID-1395) moved the on/off switch to the manual-command category, class S, 0.5.0 since FT-1401
+/// 0.4.1 since FT-1204 moved the on/off switch to the manual-command category, class S, 0.5.0 since FT-1401
 /// added the generic cable EW-GEN-CBL-1.
 const LIBRARY_VERSION: &str = "0.5.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (FT-659: the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. FT-655: the relay
 /// and the contactor template their contacts beside the coil. WP-S1.21 D17: the CPU's bus section, after 0.2.0.
-/// WP-S4.02 D14: the dimensions. WP-S1.20 D4: the valve's solenoid 14 leaves the pattern for its fluid section, a
+/// The dimensions. WP-S1.20 D4: the valve's solenoid 14 leaves the pattern for its fluid section, a
 /// major change. FT-1204: the on/off switch on the manual-command FnDef, letter S).
 const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-SEL-1", "0.1.1"),
@@ -59,7 +59,7 @@ const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-TRM-2", "0.1.1"),
 ];
 
-/// The bus section of part `number` (WP-S1.21 D17): the generic CPU's DP interface, the master by default; no
+/// The bus section of part `number`: the generic CPU's DP interface, the master by default; no
 /// termination (the plug carries it), connector, signal map or address range (a generic part claims no pinout). No
 /// other starter part has a bus interface.
 fn bus_section(number: &str) -> Option<Value> {
@@ -121,7 +121,7 @@ fn mm(text: &str) -> i64 {
     whole * 1_000_000 + frac
 }
 
-/// The mechanical data of a part (`mech`, WP-S4.02 D14): the dimensions in millimetres as exact decimal text, the
+/// The mechanical data of a part (`mech`): the dimensions in millimetres as exact decimal text, the
 /// depth absent on a flat part, the mount kind absent on a part that is not mounted on a rail.
 struct Mech {
     width: &'static str,
@@ -157,7 +157,7 @@ fn mech_json(m: &Mech) -> Value {
 
 /// One generic part: number, part kind, description, the CP designations (index order, with a potential role), the
 /// template (FnDef key, main, CP indices), the contacts (kind, CP designations), the technical data, the PLC section,
-/// the mechanical data, the section of a layout part (WP-S4.02 D14) and the order unit.
+/// the mechanical data, the section of a layout part and the order unit.
 struct Def {
     number: &'static str,
     kind: Option<&'static str>,
@@ -404,7 +404,7 @@ fn defs() -> Vec<Def> {
             tech: vec![("coil_voltage", q("24", "V"))],
             plc: None,
             mech: None,
-            // WP-S1.20 D4: solenoid 14 is the physical coil A1, A2 (no internal coil)
+            // Solenoid 14 is the physical coil A1, A2 (no internal coil)
             sections: Some(json!({"fluid": {"solenoids": ["14"]}})),
             unit: None,
         },
@@ -465,7 +465,7 @@ fn defs() -> Vec<Def> {
             template: vec![("ew.fn.blackbox", true, range(0, 2))],
             contacts: Vec::new(),
             tech: vec![("rated_voltage", q("24", "V"))],
-            // WP-S1.21 D5: a station without I/O ranges, so the cards' addresses start at byte 0; its DP port is
+            // A station without I/O ranges, so the cards' addresses start at byte 0; its DP port is
             // the bus section (D17, `bus_section`).
             plc: Some(json!({"role": "station"})),
             mech: ts35("100", "100", "75"),
@@ -496,7 +496,7 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
-        // WP-S4.02 D14: the layout parts. No template, no CP pattern; the layout tools read their sections and `mech`.
+        // The layout parts. No template, no CP pattern; the layout tools read their sections and `mech`.
         Def {
             number: "EW-GEN-ENC-1",
             kind: Some("enclosure"),
@@ -572,7 +572,7 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
-        // FT-1401: a generic cable, so that a new project creates a cable from the starter set alone (tutorial 2).
+        // A generic cable, so that a new project creates a cable from the starter set alone (tutorial 2).
         Def {
             number: "EW-GEN-CBL-1",
             kind: Some("cable"),
@@ -607,7 +607,7 @@ fn manufacturer() -> LibDocument {
 }
 
 /// Adds the section `name` to the part document `v`, beside the sections it already has: the layout section of a
-/// definition stays when the PLC or the bus section is added (WP-S4.02 D14).
+/// definition stays when the PLC or the bus section is added.
 fn add_section(v: &mut Value, name: &str, section: Value) {
     if v.get("sections").is_none() {
         v["sections"] = json!({});
@@ -638,7 +638,7 @@ fn parts() -> Vec<LibDocument> {
                     cp
                 }).collect::<Vec<_>>(),
             });
-            // A layout part has no template, so no category and no function template (WP-S4.02 D14).
+            // A layout part has no template, so no category and no function template.
             if !d.template.is_empty() {
                 let main = d
                     .template
@@ -790,7 +790,7 @@ fn the_shipped_library_is_the_generated_one() {
 /// Whether a part is a layout part of WP-S4.02 D14: an enclosure, a mounting plate, a rail, a duct or an end bracket.
 /// The layout tools use them; they carry no function template.
 fn is_layout(kind: &PartKind) -> bool {
-    // the generic cable (FT-1401) carries no template either: `the_generic_cable_has_its_cores` checks it
+    // the generic cable carries no template either: `the_generic_cable_has_its_cores` checks it
     matches!(
         kind,
         PartKind::Enclosure
@@ -802,7 +802,7 @@ fn is_layout(kind: &PartKind) -> bool {
     )
 }
 
-/// FT-1401: the generic cable reads back from the shipped files with its kind, its unit and its three cores, and the
+/// The generic cable reads back from the shipped files with its kind, its unit and its three cores, and the
 /// compiled-in registry finds it by its number.
 #[test]
 fn the_generic_cable_has_its_cores() {
@@ -846,7 +846,7 @@ fn shipped_parts() -> BTreeMap<String, Value> {
     out
 }
 
-/// FT-1094 (ID-1184): `STARTER_GENERIC_MANUFACTURER` is the item ID of the manufacturer "Generic" that every generic
+/// `STARTER_GENERIC_MANUFACTURER` is the item ID of the manufacturer "Generic" that every generic
 /// part names, as the shipped records have it; the sheet's maker slot leaves that item out by it.
 #[test]
 fn the_generic_manufacturer_constant_is_the_shipped_records_item() {
@@ -927,7 +927,7 @@ fn every_generic_part_is_usable() {
             for i in &t.cps {
                 assert!(p.cp_pattern.iter().any(|cp| cp.idx == *i), "{n}: CP {i}");
             }
-            // FT-655: an entry of an FnDef that the template names more than once lists one pattern CP per FnDef
+            // An entry of an FnDef that the template names more than once lists one pattern CP per FnDef
             // CP, so that the derivation pairs them by position and each function keeps the FnDef's CP indices.
             let same = p
                 .function_template
@@ -956,7 +956,7 @@ fn every_generic_part_is_usable() {
     }
 }
 
-/// WP-S4.02 D14: each layout part reads back from the shipped files with its kind, its version, its unit and its
+/// Each layout part reads back from the shipped files with its kind, its version, its unit and its
 /// section or `mech`, as whole values (nanometres as integers; the plate as its reference), and without a category or
 /// a function template.
 #[test]
@@ -1018,7 +1018,7 @@ fn the_layout_parts_read_back_from_the_shipped_files() {
     }
 }
 
-/// WP-S4.02 D14: the twelve parts with dimensions read back from the shipped files, each at its version, with its `mech`
+/// The twelve parts with dimensions read back from the shipped files, each at its version, with its `mech`
 /// as whole nanometres and the mount kind `ts35x7_5`; the door and field parts carry no `mech`.
 #[test]
 fn the_dimensioned_parts_read_back_from_the_shipped_files() {
@@ -1099,7 +1099,7 @@ fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
     );
 }
 
-/// WP-S1.21 D5: the generic CPU is a station without I/O ranges on a black box with the supply CPs L+ and M, a new
+/// The generic CPU is a station without I/O ranges on a black box with the supply CPs L+ and M, a new
 /// item at 0.1.0 in the library's minor version 0.2.0 (0.1.1 in 0.2.1 with its DP port, D17; 0.1.2 in 0.3.0 with its
 /// dimensions, D14; unchanged in 0.4.0, 0.4.1 and 0.5.0); the cards are modules of 8 channels each.
 #[test]
@@ -1134,7 +1134,7 @@ fn the_generic_cpu_is_a_station_without_io() {
     }
 }
 
-/// BU-7e (WP-S1.21 D17): the generic CPU at 0.1.2 (its bus port from 0.1.1, D17; its dimensions, D14) carries one bus
+/// BU-7e: the generic CPU at 0.1.2 (its bus port from 0.1.1, D17; its dimensions, D14) carries one bus
 /// port `DP`, `profibus_dp`, `master`, with no port label, termination or other member; its CP pattern, function
 /// template and PLC section are 0.1.0's (the compact JSON of 0.1.0's members as `ew-starter-parts` 0.2.0 published
 /// them), and no other starter part has a bus section.

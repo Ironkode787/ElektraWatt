@@ -188,11 +188,11 @@ fn create_page_refuses_a_folio_a_report_block_generates() {
         .expect("a block of another section");
 }
 
-/// FT-459 (cycle-29 review 8): when several refusals apply to one folio, the first of the order range, divider, report
+/// When several refusals apply to one folio, the first of the order range, divider, report
 /// block, duplicate is the one the reason names.
 #[test]
 fn create_page_names_the_first_of_several_refusals() {
-    // A report block of section 2 whose first folio is the divider's: no command makes it (ID-1427), so the project is
+    // A report block of section 2 whose first folio is the divider's: no command makes it, so the project is
     // loaded with it, as a file may hold it.
     let (p, mut records, _) = mini_golden_parts();
     let sec2: Id<Section> = id(0xf200);
@@ -213,7 +213,7 @@ fn create_page_names_the_first_of_several_refusals() {
         rejected(e.execute(&CreatePage::at(Some(sec2), 200))),
         "folio 200 is the divider page of section 2; choose another folio"
     );
-    // Report block before duplicate: no command makes a page that prints "190" beside a block at 190 (ID-1389, ID-1417),
+    // Report block before duplicate: no command makes a page that prints "190" beside a block at 190,
     // so the project is loaded with both, as a file may hold them.
     let (p, mut records, _) = mini_golden_parts();
     let mut printed = ew_schema::Record::Page(page(id(0xf190), Some(SEC1), 191, "Prints 190"));
@@ -373,7 +373,7 @@ fn renumber_sub_pages_move_together() {
     assert_eq!(folio_of(&e, PAGE_102), (Some(SEC1), 121, None));
 }
 
-/// FT-475 (ID-670): a label whose leading number segment is the page's old printed folio follows the new folio.
+/// A label whose leading number segment is the page's old printed folio follows the new folio.
 #[test]
 fn renumber_rewrites_sub_page_labels() {
     let mut e = engine(golden_model());
@@ -412,7 +412,7 @@ fn renumber_rewrites_sub_page_labels() {
     assert_eq!(folio_of(&e, other), (None, 101, Some("101.1".into())));
 }
 
-/// FT-475: the relabelling is part of the renumbering's transaction (one undo), and a page outside the scope keeps
+/// The relabelling is part of the renumbering's transaction (one undo), and a page outside the scope keeps
 /// its number but follows the label rule.
 #[test]
 fn renumber_sub_page_labels_undo_in_one_step() {
@@ -431,7 +431,7 @@ fn renumber_sub_page_labels_undo_in_one_step() {
     assert_eq!(lines(e.model()), before);
 }
 
-/// FT-475: a rewritten label may not collide with the printed folio of another page of the section.
+/// A rewritten label may not collide with the printed folio of another page of the section.
 #[test]
 fn renumber_refuses_a_rewritten_label_that_collides() {
     let mut e = engine(golden_model());
@@ -592,7 +592,7 @@ fn reorder_rejects_a_page_listed_twice() {
         &reorder(&[PAGE_101, PAGE_102, PAGE_101], None, Some(SEC1)),
     ));
     assert_eq!(path, "/pages/2");
-    // FT-756: the page by its folio, never its ID
+    // The page by its folio, never its ID
     assert_eq!(message, "page 101 is listed twice");
 }
 
@@ -853,7 +853,7 @@ fn set_block(block: Id<ReportBlock>, path: &str, value: serde_json::Value) -> Se
     }
 }
 
-/// ID-1417 (C52-p2#1): `fields.set` of a block's first folio or continuation refuses, in `page.create`'s words, the
+/// `fields.set` of a block's first folio or continuation refuses, in `page.create`'s words, the
 /// pages a page of the section already holds: a first folio a page prints, a sub-page continuation over a page
 /// `<first>.<k>`, another block's first folio. The block's own folio is no conflict; nothing changes on a refusal.
 #[test]
@@ -937,9 +937,9 @@ fn every_folio_path_refuses_the_divider_folio() {
     bulk(&mut e, &renumber(PageScope::Pages(vec![page]), 260, 1, false)).expect("a free folio");
 }
 
-/// C52-p6#1 (ID-1424): `page.renumber` refuses, in `page.create`'s words, a new printed folio a page-oriented report
+/// `page.renumber` refuses, in `page.create`'s words, a new printed folio a page-oriented report
 /// block of the section generates: its first folio, and with sub-page continuation a `<first>.<k>` that a sub-page
-/// label takes when it follows its page (FT-475). Nothing changes on a refusal; a free folio goes through.
+/// label takes when it follows its page. Nothing changes on a refusal; a free folio goes through.
 #[test]
 fn renumber_refuses_a_folio_a_report_block_generates() {
     let mut e = engine(golden_model());
@@ -974,7 +974,7 @@ fn renumber_refuses_a_folio_a_report_block_generates() {
     bulk(&mut e, &renumber(PageScope::Pages(vec![PAGE_101]), 170, 1, false)).expect("a free folio");
 }
 
-/// FT-1511 (WP-S6.08 D27, S8): `page.renumber` refuses a new folio outside its section's folio range, as `page.create`
+/// FT-1511 (S8): `page.renumber` refuses a new folio outside its section's folio range, as `page.create`
 /// does; nothing changes on a refusal.
 #[test]
 fn renumber_refuses_a_folio_outside_its_section() {
@@ -995,7 +995,7 @@ fn renumber_refuses_a_folio_outside_its_section() {
     .expect("inside the range");
 }
 
-/// FT-1510 (WP-S6.08 D27, S9): `fields.set` of a section's `divider` or `folio_range` refuses a divider onto a folio a
+/// FT-1510 (S9): `fields.set` of a section's `divider` or `folio_range` refuses a divider onto a folio a
 /// page of the section prints or a page-oriented report block of the section starts at; nothing changes on a refusal,
 /// and without a divider the range is free.
 #[test]
@@ -1056,7 +1056,7 @@ fn with_copy(first_folio: u32, form: Id<ew_schema::FormDef>, copy: &serde_json::
     b
 }
 
-/// FT-341: the form comes from the library with the block, in one transaction and one undo step; a second block
+/// The form comes from the library with the block, in one transaction and one undo step; a second block
 /// uses the copy the project holds.
 #[test]
 fn report_block_create_embeds_its_form_from_the_library_in_one_step() {

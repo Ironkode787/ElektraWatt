@@ -4,7 +4,7 @@
 //! Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built
 //! archive, git commits and tags.
 //!
-//! `ew-store` v0 (WP-S1.09) implements the I/O half of the project format of
+//! `ew-store` v0 implements the I/O half of the project format of
 //! `docs/design/05-project-format-and-persistence.md` (doc 05; ADR-0010 with amendment 1) on top of
 //! `ew-format`:
 //!
@@ -16,7 +16,7 @@
 //!   manifest rename, removals, `save-done`. Only the files of the dirty set are serialised, files equal to
 //!   their hash are dropped, and an unchanged project writes nothing (NFR-REL-04, NFR-REL-16).
 //! - **Purge** ([`Store::purge`]): the explicit, previewed removal of asset files that no project file and no undo
-//!   entry names, through the save protocol's removal list (doc 05 §13.3, FT-380).
+//!   entry names, through the save protocol's removal list (doc 05 §13.3).
 //! - **Lock** ([`lock`]): `.~ew.lock` with heartbeat, stale detection, read-only sessions and the takeover
 //!   rename without replacement (doc 05 §7).
 //! - **Journal** ([`journal`]): field-level diffs of every commit in the OS state directory, replayed onto
@@ -24,9 +24,9 @@
 //! - **I/O seam** ([`Vfs`]): every file operation goes through it; [`mem::MemVfs`] numbers, fails and
 //!   "powers off" calls for the fault-injection harness (doc 05 §5.6).
 //! - **As-built archive** ([`archive`], [`zip`]): the release's archive as an own deterministic ZIP, its check and
-//!   its atomic write through the seam (doc 05 §14; WP-S1.18 D11, D13).
+//!   its atomic write through the seam (doc 05 §14).
 //! - **`.ewz` transport** ([`ewz`]): one verified generation packed as a deterministic ZIP, its strict reader and the
-//!   all-or-nothing extract into a new directory through the seam (doc 05 §12; WP-S1.17 D8, D9).
+//!   all-or-nothing extract into a new directory through the seam (doc 05 §12).
 //! - **Git** ([`git`]): the release's commit and tag through the `git` executable, never a shell (doc 05 §11.6;
 //!   WP-S1.18 D12).
 //!
@@ -34,9 +34,9 @@
 //!   [`StoreOptions::migrations`], and its first save waits for the user's consent ([`Store::confirm_upgrade`];
 //!   WP-S1.17 D10, D11).
 //!
-//! - **Cloud folders** ([`cloud`]): whether a project lies in a folder a sync client keeps (doc 05 §15; WP-S1.17 D25).
+//! - **Cloud folders** ([`cloud`]): whether a project lies in a folder a sync client keeps (doc 05 §15).
 //! - **External change** ([`external`]): the manifest polled, the incoming generation read and merged three-way with
-//!   the session's model, adopted as the baseline with the journal following it (doc 05 §9; WP-S1.17 D20 to D23).
+//!   the session's model, adopted as the baseline with the journal following it (doc 05 §9).
 //!
 //! Not in v0: journal snapshot slots (§8.1), a later work package.
 //!
@@ -52,7 +52,7 @@
 /// their own (ARCH §3); it re-exports `ew-schema` in turn.
 pub use ew_format;
 /// The own deterministic ZIP writer and its strict reader (`ew-zip`), re-exported under the path the archive's users
-/// name (decision log ID-1145).
+/// name.
 pub use ew_zip as zip;
 
 pub mod archive;

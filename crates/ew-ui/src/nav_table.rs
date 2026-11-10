@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A navigator's table mode in the window (WP-S2.06 part 3 §8.1) on egui_table: the shell's table rows (the
+//! A navigator's table mode in the window on egui_table: the shell's table rows (the
 //! navigator's `visible` rows while it is in table mode) drawn as a virtualised table whose key column is frozen at the
 //! left (egui_table's sticky column), with one header row of sort buttons, the column chooser, the cell editor and the
 //! pattern fill dialog.
@@ -22,7 +22,7 @@
 //! descending"); a cell is a node with the role `Cell` named `<column label> <cell text>,
 //! row <i> of <n>`, with `, read-only` for a read-only cell (§8.1).
 //!
-//! **The strip editor (WP-S2.07 part 1).** An accessory row is a row of the grid like a terminal row; its texts are
+//! **The strip editor.** An accessory row is a row of the grid like a terminal row; its texts are
 //! `color.text.secondary` (a fitting between the terminals, not a terminal), except its editable Part cell. While
 //! `strip.add_accessory` finds several parts, the chooser list of doc 16a §6.22 (its first use) opens under the cursor
 //! row: a `ListBox` named by its question, its rows `ListBoxOption`s with position and set size; Up and Down (wrapping),
@@ -63,11 +63,11 @@ pub(crate) struct TableUi {
     scrolled_to: Option<((String, usize), Option<usize>)>,
     /// How many cells the last frame painted (tests: the virtualisation).
     pub(crate) painted: usize,
-    /// The row the chooser list was opened at (WP-S2.07 §6.5), while it is open.
+    /// The row the chooser list was opened at, while it is open.
     chooser_for: Option<String>,
     /// The chooser list's active row.
     chooser_active: usize,
-    /// The grid's width last frame (C40, FT-816: a resize re-fills the capped columns).
+    /// The grid's width last frame (C40, a resize re-fills the capped columns).
     pane_width: Option<f32>,
     /// ID-1497 F1: how the cursor's column is aligned again in the next frame, when the scroll that brought it into
     /// view left it cut by the frozen key column (or, while it fits, by the grid's right edge).
@@ -96,7 +96,7 @@ fn column_key(table: &NavTable, shown: &[usize], i: usize) -> Option<String> {
 impl TableUi {
     /// Paints the table of navigator `nav` (in table mode) into `ui`; `focus` is the focusable table node and whether
     /// the shell's focus is on this navigator. Returns `false` when the table has no row to show, so that the caller
-    /// paints its empty state (doc 16a §6.17, FT-532) where the grid would be.
+    /// paints its empty state (doc 16a §6.17) where the grid would be.
     pub(crate) fn show(
         &mut self,
         ui: &mut Ui,
@@ -132,7 +132,7 @@ impl TableUi {
         }
         // The pattern fill dialog (§8.5).
         self.pattern_dialog(ui, nav, preview, events);
-        // FT-532: no row (an empty navigator, or a filter without hits): the caller's empty state, not a bare header.
+        // No row (an empty navigator, or a filter without hits): the caller's empty state, not a bare header.
         if rows.is_empty() {
             self.painted = 0;
             self.scrolled_to = None;
@@ -162,7 +162,7 @@ impl TableUi {
             Some((row, col))
         });
         // The cursor cell is scrolled into view when it moved, also when its row moved under it: an edit that re-sorts
-        // the rows keeps the edited row in view (FT-757).
+        // the rows keeps the edited row in view.
         let cursor_cell = cursor_key.clone().zip(cursor_col).map(|c| (c, cursor_row));
         let scroll = (cursor_cell != self.scrolled_to)
             .then(|| cursor_row.zip(cursor_col))
@@ -176,7 +176,7 @@ impl TableUi {
             SortBy::Label | SortBy::Order => None,
         };
         let area = ui.available_rect_before_wrap();
-        // C40 (FT-816): a resize of the grid re-sizes the capped columns (the Pages Title, the Libraries Name) to the
+        // C40: a resize of the grid re-sizes the capped columns (the Pages Title, the Libraries Name) to the
         // new room, and a column's range scales with the grid: `size.table_column.max` or the grid's width.
         let resized = self.pane_width.is_some_and(|w| (w - area.width()).abs() > 0.5);
         self.pane_width = Some(area.width());
@@ -258,7 +258,7 @@ impl TableUi {
             // near-white bar on the dark panel; the handle is a component boundary, so at rest it takes
             // `color.border.control` (3:1 on the panel in both themes) and `color.text.secondary` under the pointer
             // and while dragged. The grid's own texts are painted with explicit colours, so nothing else changes.
-            // FT-567: the bars sit inside the focus ring (inset `RING_INSET`, `focus_width` wide), not on it.
+            // The bars sit inside the focus ring (inset `RING_INSET`, `focus_width` wide), not on it.
             ui.spacing_mut().scroll = egui::style::ScrollStyle {
                 foreground_color: true,
                 dormant_background_opacity: 0.0,
@@ -274,7 +274,7 @@ impl TableUi {
             w.active.bg_stroke = theme::stroke(tokens.border_width, tokens.accent);
             let id = t.get_id(ui);
             t.show(ui, &mut delegate);
-            // FT-1404: the strip editor's side columns in a wide window: the width its columns lack is reported, and
+            // The strip editor's side columns in a wide window: the width its columns lack is reported, and
             // the dock widens the left column by it (as far as its default share may grow). ID-1427 (W52 F15): the
             // Libraries table likewise, so that its State column (an unreadable library's reason) is in reach.
             if matches!(kind, NavKind::Strips | NavKind::Libraries) {
@@ -326,7 +326,7 @@ impl TableUi {
             }
         }
         let anchor = delegate.cursor_rect;
-        // Doc 16a §6.21 (FT-532): the grid is the focusable node, so while it has the keyboard the focus ring of §6.1
+        // Doc 16a §6.21: the grid is the focusable node, so while it has the keyboard the focus ring of §6.1
         // (2-px `color.focus`, `radius.sm`) is drawn around the whole grid, inset 1 px into the pane.
         if focused {
             ui.painter().rect_stroke(
@@ -340,7 +340,7 @@ impl TableUi {
         true
     }
 
-    /// The chooser list of `strip.add_accessory` (WP-S2.07 §6.5; doc 16a §6.22): a popup under the cursor row in
+    /// The chooser list of `strip.add_accessory` (doc 16a §6.22): a popup under the cursor row in
     /// `color.surface.raised`, `elevation.1`, `radius.md`, `space.2` padding, `size.chooser` wide; rows of `size.row`
     /// with the 16-px kind icon in `color.text.secondary`, the part in `type.body` and the accessory's kind word
     /// right-aligned in `type.small` `color.text.tertiary`; the active row has the hover overlay; a last line of key
@@ -541,7 +541,7 @@ pub(crate) fn chooser(
                 }
                 if let Some(at) = movable.iter().position(|k| *k == c.key) {
                     let mut order = movable.clone();
-                    // Doc 16a §6.21: two 24-px icon buttons, `arrow-left` and `arrow-right` (FT-536).
+                    // Doc 16a §6.21: two 24-px icon buttons, `arrow-left` and `arrow-right`.
                     let name = strings::format(key!("table-move-left-name"), &[&c.label]);
                     let left = crate::components::icon_toggle(ui, IconId::arrow_left, &name, at > 0, None);
                     if left.clicked() {
@@ -565,14 +565,14 @@ pub(crate) fn chooser(
                 }
             });
         }
-        // WP-S3.08 part 3 (ruling 2 of ID-1224): the table to a file and back, a separated block after the columns;
+        // The table to a file and back, a separated block after the columns;
         // each runs on this navigator, which takes the focus first.
         ui.separator();
         for (action, label) in [
             ("navigator.export_table", key!("action-navigator-export-table")),
             ("navigator.import_table", key!("action-navigator-import-table")),
         ] {
-            // FT-1167: drawn from the action's predicate, disabled with its reason as the tooltip (doc 16a §6.1).
+            // Drawn from the action's predicate, disabled with its reason as the tooltip (doc 16a §6.1).
             let reason = ew_viewmodel::actions::find(action).and_then(|a| (a.enabled)(shell).err());
             let response = ui.add_enabled(reason.is_none(), egui::Button::new(strings::text(label)));
             let response = match reason {
@@ -612,7 +612,7 @@ impl TableUi {
         if fresh || (!ui.ctx().text_edit_focused() && self.pattern != pattern) {
             pattern.clone_into(&mut self.pattern);
         }
-        // WP-S2.17 part 4: the card of doc 16a §6.9, with Apply (Enter) and Cancel (Escape) as its buttons.
+        // The card of doc 16a §6.9, with Apply (Enter) and Cancel (Escape) as its buttons.
         let t = crate::theme::current(ui.ctx());
         crate::components::card_frame(&t).show(ui, |ui| {
             ui.label(
@@ -674,7 +674,7 @@ pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>
     let (Some(table), Some(mode)) = (nav.table(), nav.table_mode()) else {
         return;
     };
-    // WP-S2.07 §6.5: the chooser list has the keys while it is open (`TableUi::chooser_list`).
+    // The chooser list has the keys while it is open (`TableUi::chooser_list`).
     // ID-1497 (1, C53-fx#2): so has the cell editor once an edit is open, also in the frame it opens in, while the
     // grid still holds the focus: the characters typed after the first ("Reserve" lost its "e" when this replaced the
     // buffer with it) and Enter, the arrows, Home, End and Ctrl+A (a "Q" and Enter in the next frame lost the Enter).
@@ -741,7 +741,7 @@ pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>
             events.push(Event::Action("navigator.open", json!({"kind": kind, "key": k})));
         }
     } else if pressed(Modifiers::COMMAND, Key::A) {
-        // ID-1497 (2): Ctrl+A marks every row of the filtered table (doc 16 §4.6).
+        // Ctrl+A marks every row of the filtered table (doc 16 §4.6).
         let keys: Vec<String> = (0..rows.len()).filter_map(row_key).collect();
         events.push(Event::Action(
             "navigator.select",
@@ -805,12 +805,12 @@ fn cell_rect(
 }
 
 /// The width a column starts at before its content widens it: `size.table_column`, except the strip editor's Pos
-/// column (WP-S2.07 D2), a short number like a row gutter, which starts at `size.table_column.min` so that it does not
-/// push the Terminal column out of a narrow pane, and the Pages table's Folio, as short (FT-718), and the PLC grid's
-/// Address, Channel and Slot, short texts too, so that Target and Symbol fit the default rail width (FT-757).
+/// column, a short number like a row gutter, which starts at `size.table_column.min` so that it does not
+/// push the Terminal column out of a narrow pane, and the Pages table's Folio, as short, and the PLC grid's
+/// Address, Channel and Slot, short texts too, so that Target and Symbol fit the default rail width.
 fn start_width(t: &Tokens, kind: NavKind, key: &str) -> f32 {
     let plc_short = kind == NavKind::Plc && matches!(key, "address" | "channel" | "slot");
-    // WP-S4.02 part 3: the Unplaced devices table's short texts fit their content, so that Part gives way first.
+    // The Unplaced devices table's short texts fit their content, so that Part gives way first.
     let unplaced_short = kind == NavKind::Unplaced && matches!(key, "device" | "size" | "mount");
     if key == "pos" || (kind == NavKind::Pages && key == "folio") || plc_short || unplaced_short {
         t.size_table_column_min
@@ -820,19 +820,19 @@ fn start_width(t: &Tokens, kind: NavKind, key: &str) -> f32 {
 }
 
 /// Whether a column fills the room the others leave: the Pages table's Title ([`fill_cap`]) and the Unplaced devices
-/// table's Part (WP-S4.02 part 3: it gives way first).
+/// table's Part (it gives way first).
 fn fills(kind: NavKind, key: &str) -> bool {
     (kind == NavKind::Pages && key == "title") || (kind == NavKind::Unplaced && key == "part")
 }
 
 /// Whether a column has a cap that depends on the grid's width (the Pages Title, [`fill_cap`]; the Libraries Name,
-/// [`libraries_name_cap`]): a resize re-sizes it (C40, FT-816).
+/// [`libraries_name_cap`]): a resize re-sizes it (C40).
 fn capped(kind: NavKind, key: &str) -> bool {
     fills(kind, key) || (kind == NavKind::Libraries && key == "name")
 }
 
 /// The widest a column may be sized or dragged in a grid `pane` wide: `size.table_column.max`, or the grid's width
-/// when that is wider (C40, FT-816: the cap scales with the pane, it is no width chosen for the floor).
+/// when that is wider (C40, the cap scales with the pane, it is no width chosen for the floor).
 pub(crate) fn column_max(t: &Tokens, pane: f32) -> f32 {
     t.size_table_column_max.max(pane)
 }
@@ -890,7 +890,7 @@ struct Delegate<'a> {
     edit: Option<(usize, usize)>,
     /// Whether the editor opened this frame.
     fresh: bool,
-    /// ID-1497 (1): what the editor says while more than one row is marked ("Ctrl+Enter sets all 12 marked rows.").
+    /// What the editor says while more than one row is marked ("Ctrl+Enter sets all 12 marked rows.").
     commit_hint: Option<String>,
     /// Whether the project is writable (a double click edits).
     writable: bool,
@@ -926,7 +926,7 @@ impl Delegate<'_> {
                 w
             }
         };
-        // WP-S4.02 part 3: the Unplaced devices table's Part gives way first, down to the column minimum.
+        // The Unplaced devices table's Part gives way first, down to the column minimum.
         if self.kind == NavKind::Unplaced {
             return Some((self.area.width() - others).max(self.tokens.size_table_column_min));
         }
@@ -967,7 +967,7 @@ impl Delegate<'_> {
     fn editor(&mut self, ui: &mut Ui, name: &str) {
         let t = self.tokens.clone();
         let word = self.kind.word();
-        // ID-1497 (1): the editor takes the focus before it reads this frame's input, so a key pressed in the frame it
+        // The editor takes the focus before it reads this frame's input, so a key pressed in the frame it
         // first shows reaches it: when it opens, and while the grid still holds the keys (an editor that opened on a
         // row scrolled out of view takes them once it shows).
         let took = self.fresh || self.focused;
@@ -1009,7 +1009,7 @@ impl Delegate<'_> {
                 json!({"kind": word, "text": *self.buffer}),
             ));
         }
-        // ID-1497 (1): with more than one row marked the editor says, in a tooltip under it (doc 16a §6.18's style),
+        // With more than one row marked the editor says, in a tooltip under it (doc 16a §6.18's style),
         // that Ctrl+Enter sets them all; Enter sets the cursor row.
         if let Some(hint) = &self.commit_hint {
             crate::components::show_tip(ui.ctx(), egui::containers::Tooltip::for_widget(&response), hint);
@@ -1102,7 +1102,7 @@ impl TableDelegate for Delegate<'_> {
         if cell.col_range.start == 0 {
             self.frozen_edge(ui, rect);
         }
-        // FT-523: the sorted header's name says the direction, not only its icon (NFR-A11Y-01).
+        // The sorted header's name says the direction, not only its icon (NFR-A11Y-01).
         let name = strings::format(key!("table-sort-by"), &[&column.label]);
         let name = match sorted {
             Some((_, false)) => strings::format(key!("table-sorted-ascending"), &[&name]),
@@ -1205,12 +1205,12 @@ impl TableDelegate for Delegate<'_> {
             || cap,
             || text_width(ui, &text, theme::font(&t.type_small)),
         );
-        // WP-S2.07 §6.8: an unplaced terminal row is a drag source onto a canvas (its terminal device; the drop arms
+        // An unplaced terminal row is a drag source onto a canvas (its terminal device; the drop arms
         // Place with the terminal's main function).
         let unplaced = (node.role == NavRole::Terminal && node.badges.iter().any(|b| b == "unplaced"))
             .then(|| node.records.first())
             .flatten();
-        // WP-S2.07 §8: a PLC channel row is a drag source onto a connection point (`navigator.bind`).
+        // A PLC channel row is a drag source onto a connection point (`navigator.bind`).
         let channel = (node.role == NavRole::Channel)
             .then(|| node.records.first())
             .flatten();
@@ -1228,7 +1228,7 @@ impl TableDelegate for Delegate<'_> {
         }
         // Doc 16a §6.21: text in `type.small`, primary (a derived cell secondary), `space.4` padding, cut with an
         // ellipsis at the column (W31-3).
-        // WP-S2.07 part 1: an accessory row's texts are secondary, except its editable Part cell.
+        // An accessory row's texts are secondary, except its editable Part cell.
         let accessory = node.role == NavRole::Accessory && reason.is_some();
         let colour = if column.derived || accessory {
             t.text_secondary
@@ -1237,12 +1237,12 @@ impl TableDelegate for Delegate<'_> {
         };
         let content = rect.shrink2(vec2(t.space_4, 0.0));
         paint_text(ui, content, &text, theme::font(&t.type_small), colour);
-        // FT-718: a cell cut with an ellipsis shows its whole text in its tooltip (a read-only cell's reason first).
+        // A cell cut with an ellipsis shows its whole text in its tooltip (a read-only cell's reason first).
         let elided = text_width(ui, &text, theme::font(&t.type_small)) > content.width() + 0.5;
         let painter = ui.painter();
         // The cursor row: a 2-px accent bar at the key cell's left, inset `space.2` top and bottom. It sits just inside
         // the grid's focus ring (inset `RING_INSET`, `focus_width` wide), in the same place whether or not the grid has
-        // the keyboard, so the two never overlap and nothing moves when the focus does (cycle-33 ruling).
+        // the keyboard, so the two never overlap and nothing moves when the focus does.
         if on_cursor_row && cell.col_nr == 0 {
             self.cursor_rect = Some(rect);
             let left = rect.left() + RING_INSET + t.focus_width;
@@ -1270,7 +1270,7 @@ impl TableDelegate for Delegate<'_> {
         };
         let word = self.kind.word();
         let key = column.key.clone();
-        // FT-1239: the row's context menu, when the row offers an action (Define potential… on a Potentials row).
+        // The row's context menu, when the row offers an action (Define potential… on a Potentials row).
         let menu = ew_viewmodel::command_bar::navigator_row_menu(self.kind, node, self.writable);
         if !menu.is_empty() {
             let events = &mut *self.events;
@@ -1342,7 +1342,7 @@ mod cap_tests {
         assert!(super::fill_cap(&t, 900.0, 250.0) > super::fill_cap(&t, 600.0, 250.0));
     }
 
-    /// C40 (FT-816): a column's range keeps `size.table_column.max` in a narrow grid and scales with a wide one.
+    /// C40: a column's range keeps `size.table_column.max` in a narrow grid and scales with a wide one.
     #[test]
     fn the_column_range_scales_with_the_pane() {
         let t = tokens(Theme::Light, Density::Comfortable);

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.01 part 4 over Golden A (doc 20 §13, §14.1; the orchestrator's rulings 4 to 7 of cycle 41):
+//! WP-S4.01 part 4 over Golden A (doc 20 §13, §14.1; the orchestrator's rulings 4 to 7):
 //!
 //! - `lb1_rails_and_ducts_come_from_the_carriers_and_rows_22_to_25_print_902`: -UC1 carries no rail or duct part use;
 //!   its carrier lines give rows 24 and 25 at 1.71 m and 3.17 m; rows 22 to 25 print folio 902, and row 26 (the end
@@ -163,7 +163,7 @@ fn lb1_rails_and_ducts_come_from_the_carriers_and_rows_22_to_25_print_902() {
             ),
         ]
     );
-    // Row 26, the end brackets of R2's strips (WP-S4.02 EB-1, ruling 2): 902 alone.
+    // Row 26, the end brackets of R2's strips (EB-1, ruling 2): 902 alone.
     assert_eq!(
         (rows[25].pos, rows[25].qty, rows[25].pages.clone()),
         (26, m("4"), vec![PageRef::Drawn(page("902"))])
@@ -260,7 +260,7 @@ fn lb2_the_legend_of_the_plate_lists_31_rows_and_renumbers() {
         (0..4).map(part_number).collect::<Vec<_>>(),
         ["NSYPLA1074G", "NSYPMM107", "TBD", "TBD"]
     );
-    // The end brackets last (WP-S4.02 EB-3): no DT, the TBD end bracket, quantity 4, keyed by the plate's surface.
+    // The end brackets last (EB-3): no DT, the TBD end bracket, quantity 4, keyed by the plate's surface.
     let surface = q
         .table::<ew_schema::MountingSurface>()
         .iter()

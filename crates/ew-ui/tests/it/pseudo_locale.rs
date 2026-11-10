@@ -229,7 +229,7 @@ fn lo5_export_pdf_in_the_pseudo_locale() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// LO-2: with the shipped nl-NL (ID-1269 ruling 5), View ▸ Language ▸ Nederlands renames the View menu and the
+/// LO-2: with the shipped nl-NL, View ▸ Language ▸ Nederlands renames the View menu and the
 /// command bar's tabs ("Beeld", "Pagina") and the open preview card's Apply ("Toepassen") without a restart, and
 /// View ▸ Taal ▸ English brings them back.
 #[test]

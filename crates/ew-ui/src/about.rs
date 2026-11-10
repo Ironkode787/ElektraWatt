@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The dialogs of the shell (WP-S2.01 parts 1 and 2, spec section 5.3): the complete About (FR-UI-038: the version,
+//! The dialogs of the shell (spec section 5.3): the complete About (FR-UI-038: the version,
 //! the page-view renderer, the privacy state, the licence, the repository, the engineering-verification
 //! disclaimer and the support status, with buttons for the third-party notices and the documentation), the
 //! notices, the keyboard shortcuts, the unsaved-changes question, the question about an earlier session's journal,
-//! the recovery dialog (WP-S2.09 part 1), Go to page, Save layout as and the creation dialogs of pages, structure nodes
-//! and external references (FT-408, FT-409). Each answer is an [`Event`]; Escape closes the dialog through
+//! the recovery dialog, Go to page, Save layout as and the creation dialogs of pages, structure nodes
+//! and external references. Each answer is an [`Event`]; Escape closes the dialog through
 //! `ui.dismiss`.
 
 use egui::{ScrollArea, TextEdit, Ui};
@@ -44,7 +44,7 @@ fn now_ms() -> u64 {
 const NOW_FOR_TESTS: &str = "ew-now-for-tests";
 
 /// Makes the recovery dialog measure its elapsed time against `now_ms` (epoch milliseconds) instead of the system
-/// clock, for a stable image in the pixel gate (FT-571). Tests only: the product never calls it and keeps the store's
+/// clock, for a stable image in the pixel gate. Tests only: the product never calls it and keeps the store's
 /// clock.
 #[doc(hidden)]
 pub fn set_now_for_tests(ctx: &egui::Context, now_ms: u64) {
@@ -57,7 +57,7 @@ fn dialog_now_ms(ctx: &egui::Context) -> u64 {
         .unwrap_or_else(now_ms)
 }
 
-/// FT-1021 (ID-1107): a pre-filled field selects its whole text when it takes the focus, as the Properties editor does,
+/// A pre-filled field selects its whole text when it takes the focus, as the Properties editor does,
 /// so that what is typed replaces the proposal instead of being appended to it.
 fn select_all_on_focus(ui: &Ui, field: &egui::Response, text: &str) {
     if !field.gained_focus() || text.is_empty() {
@@ -80,7 +80,7 @@ fn name_field(
 ) -> (Option<String>, bool) {
     let t = crate::theme::current(ui.ctx());
     let mut field = text.to_owned();
-    // FT-566: a dialog's only field fills the body's width, `size.control` high (doc 16a §6.5).
+    // A dialog's only field fills the body's width, `size.control` high (doc 16a §6.5).
     let edit = ui.add(
         TextEdit::singleline(&mut field)
             .hint_text(strings::text(hint_key))
@@ -98,7 +98,7 @@ fn name_field(
 
 /// Paints the open dialog, if any, in the dialog frame of WP-S2.17 part 4 ([`crate::dialog`]): the specification's
 /// title, body and buttons, with each dialog's own content between the body and the footer. `form_key`: the frame
-/// took Ctrl+Enter for a form dialog, which submits it as Enter in its text field does (ID-1276 ruling 2).
+/// took Ctrl+Enter for a form dialog, which submits it as Enter in its text field does.
 pub fn show(
     ctx: &egui::Context,
     shell: &ShellModel,
@@ -129,11 +129,11 @@ pub fn show(
             | Dialog::Shortcuts
             | Dialog::Print(_)
     );
-    // WP-S3.07 part 3 (ruling 4 of ID-1180): the print pre-dialog is `size.dialog.preview` wide, growing with the
+    // The print pre-dialog is `size.dialog.preview` wide, growing with the
     // window.
     let width = matches!(d, Dialog::Print(_))
         .then(|| crate::dialog::preview_width(&crate::theme::current(ctx), ctx.content_rect().width()));
-    // WP-S2.07 part 4a: Choose picks the list's active row, which the window keeps.
+    // Choose picks the list's active row, which the window keeps.
     if matches!(d, Dialog::PartChoose(_)) {
         spec.primary.answer = DialogAnswer::Action(
             "part.pick",
@@ -143,7 +143,7 @@ pub fn show(
     // What Submit sends (the field's text as typed this frame) and whether Enter in a field submitted.
     let mut submit_text: Option<String> = None;
     let mut submit = false;
-    // FT-1125 (ID-1225): the print pre-dialog's first focus is its Primary, Print… (doc 16a §6.12), which is disabled
+    // The print pre-dialog's first focus is its Primary, Print… (doc 16a §6.12), which is disabled
     // until the set is built: it takes the focus once it can, while no other widget holds it.
     let focus_primary = if matches!(d, Dialog::Print(_)) {
         ctx.memory(|m| m.focused().is_none())
@@ -173,7 +173,7 @@ pub fn show(
             ScrollArea::vertical()
                 .max_height(t.size_row * 12.0)
                 .show(ui, |ui| {
-                    // FT-559: the underlined headings in `type.body.strong`, the text between them reflowed.
+                    // The underlined headings in `type.body.strong`, the text between them reflowed.
                     for (i, block) in blocks.iter().enumerate() {
                         match block {
                             NoticeBlock::Heading(h) => {
@@ -195,9 +195,9 @@ pub fn show(
                     }
                 });
         }
-        // WP-S2.08 part 2: the keymap editor.
+        // The keymap editor.
         Dialog::Shortcuts => crate::keymap_editor::show(ui, shell, just_opened, events),
-        // WP-S1.17 part 7 (D24): one block per colliding field: the record and the field in `type.body.strong`, then
+        // One block per colliding field: the record and the field in `type.body.strong`, then
         // base, mine and theirs in `type.small`, and the choice of mine or theirs.
         Dialog::ExternalChange { rows } => {
             let t = crate::theme::current(ui.ctx());
@@ -256,7 +256,7 @@ pub fn show(
                 });
         }
         Dialog::ConfirmUpgrade { .. } | Dialog::OpenEwz { .. } | Dialog::ConfirmGitSetup { .. } => {}
-        // WP-S3.09 D8: the import card lists the imported pages under its summary.
+        // The import card lists the imported pages under its summary.
         Dialog::ImportQet {
             pages,
             confirm: false,
@@ -272,7 +272,7 @@ pub fn show(
             }
         }
         Dialog::ImportQet { .. } | Dialog::ReimportMatch { .. } => {}
-        // WP-S3.09 D12: the re-import card lists its rows under T8.
+        // The re-import card lists its rows under T8.
         Dialog::Reimport { rows, .. } => {
             let t = crate::theme::current(ui.ctx());
             for row in rows.iter().take(ew_viewmodel::dialogs::IMPORT_PAGES_LISTED) {
@@ -293,7 +293,7 @@ pub fn show(
                 );
             }
         }
-        // FT-503: the elapsed time against the store's clock; the exact time (UTC, no time-zone source) as a small
+        // The elapsed time against the store's clock; the exact time (UTC, no time-zone source) as a small
         // secondary line under it (W31-5: a hover tooltip covered the buttons).
         Dialog::Recovery {
             last_change_ms,
@@ -334,7 +334,7 @@ pub fn show(
             submit |= enter;
         }
         Dialog::Form(form) => {
-            // WP-S1.18 part 5: a revision dialog's list (the gate's findings, the release's steps) under its body.
+            // A revision dialog's list (the gate's findings, the release's steps) under its body.
             if form.action.starts_with("revision.") {
                 let t = crate::theme::current(ui.ctx());
                 for line in shell.revision_list() {
@@ -349,7 +349,7 @@ pub fn show(
                 }
             }
             submit |= form_fields(ui, form, just_opened, primary_disabled, events);
-            // WP-S6.04 D13: the Approve and the Release dialog end with the disclaimer, before the buttons.
+            // The Approve and the Release dialog end with the disclaimer, before the buttons.
             if let Some(line) = shell.revision_disclaimer() {
                 let t = crate::theme::current(ui.ctx());
                 ui.add(
@@ -370,7 +370,7 @@ pub fn show(
     });
     let mut clicked = clicked.or(link_clicked);
     submit |= form_key && matches!(d, Dialog::Form(_));
-    // WP-S1.18 part 5: Enter in a revision dialog presses its Primary (Approve, Set author, Withdraw; Cancel in
+    // Enter in a revision dialog presses its Primary (Approve, Set author, Withdraw; Cancel in
     // Release, whose step is the destructive button), never a plain form submit.
     if submit
         && let Dialog::Form(form) = d
@@ -409,7 +409,7 @@ pub fn show(
     }
 }
 
-/// The fields of a creation or renumber form, one row each (FT-558, FT-566): the label in the dialog size's fixed label
+/// The fields of a creation or renumber form, one row each: the label in the dialog size's fixed label
 /// column (`size.dialog.label`, then `space.3`), so the field edges line up from one dialog to the next, and the field filling the
 /// rest of the body, `size.control` high. A text field has no placeholder (its label names it); a choice shows doc
 /// 16a §8's words ([`strings::choice_text`]) behind a `chevron-down`; a yes-or-no choice is a check box. `true` when
@@ -424,7 +424,7 @@ fn form_fields(
     let t = crate::theme::current(ui.ctx());
     let mut submit = false;
     let mut first = just_opened;
-    // FT-1284: with no text field to take it, the first control takes the first focus while the Primary is disabled.
+    // With no text field to take it, the first control takes the first focus while the Primary is disabled.
     let mut first_control = just_opened && primary_disabled && !form.fields.iter().any(|f| f.is_text());
     // Cycle 39 (FIX39b-1): the label column is at least `size.dialog.label` and grows to the widest label, up to half
     // the body; a label wider still wraps, so a label is never cut ("Library (cannot be undone)").
@@ -543,7 +543,7 @@ fn form_fields(
                 crate::components::focus_ring(ui, &combo, t.radius_md);
             }
         });
-        // ID-1497 (4): a field's line under it, in the field column, `type.small` secondary. Window check F3 (doc 16a
+        // A field's line under it, in the field column, `type.small` secondary. Window check F3 (doc 16a
         // §6.12): the line sits with its field, `space.1` under it, and the row gap follows it to the next field.
         if let Some(note) = form.note(f.name) {
             ui.add_space(t.space_1 - ui.spacing().item_spacing.y);
@@ -564,7 +564,7 @@ fn form_fields(
             });
         }
     }
-    // FT-786: Save as macro's value-set table under the fields, the refusal under it.
+    // Save as macro's value-set table under the fields, the refusal under it.
     if let Some(table) = &form.table {
         crate::value_table::show(ui, table, events);
     }
@@ -587,7 +587,7 @@ pub(crate) enum NoticeBlock {
     Text(String),
 }
 
-/// The notices text as headings and text (FT-559): the SPDX header lines of each notices file are dropped (they are
+/// The notices text as headings and text: the SPDX header lines of each notices file are dropped (they are
 /// the files' licensing, not notices), a line underlined by a line of "=" or "-" (three or more) becomes a heading
 /// without its rule, and the blank lines at a block's ends are trimmed.
 pub(crate) fn notice_blocks(text: &str) -> Vec<NoticeBlock> {
@@ -675,7 +675,7 @@ mod tests {
         );
     }
 
-    /// FT-559: no SPDX header line and no underline rule reaches the dialog; the underlined lines are headings.
+    /// No SPDX header line and no underline rule reaches the dialog; the underlined lines are headings.
     #[test]
     fn notice_blocks_drop_the_spdx_header_and_turn_rules_into_headings() {
         let text = "SPDX-FileCopyrightText: 2026 X\nSPDX-License-Identifier: CC0-1.0\n\nTitle\n=====\n\nIntro line.\n\n\

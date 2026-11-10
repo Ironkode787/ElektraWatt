@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The EW-LAYOUT MVP rules (WP-S4.01 part 5, D12, LC-1 to LC-7, FT-845) on a small plate modelled on Golden A's (doc 20
+//! The EW-LAYOUT MVP rules (LC-1 to LC-7) on a small plate modelled on Golden A's (doc 20
 //! §13, WP-S4.01 §6.1): a 650 × 900 mm plate in location +J-E-2416, rails R1 (40, 740)–(610, 740), R2 (40, 480)–
 //! (610, 480) and R3 (40, 200)–(610, 200) (TS 35×7.5), ducts D2 (20, 860)–(20, 0) and D4 (40, 600)–(610, 600) (40 ×
 //! 60). On R1 -101F1 (18 mm, s = 140), -102F1 (18 mm, s = 158) and -102F2 (45 mm, s = 189.5); on R2 the strip -X1031 (three
@@ -340,7 +340,7 @@ fn lc2_removing_the_other_part_changes_nothing_removing_the_placed_one_is_report
         found[0].page.is_none(),
         "no panel page shows the plate in this fixture"
     );
-    // WP-S4.02 D7: no quick fix when the device has no primary part (its one part mounts on its parent).
+    // No quick fix when the device has no primary part (its one part mounts on its parent).
     assert!(found[0].fix.is_none());
     assert_eq!(
         dutch(&m, "EW-LAY-003"),
@@ -717,7 +717,7 @@ fn lc6_swapping_two_modules_and_a_device_between_members() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// EB-4 (WP-S4.02 part 5, ruling 5): EW-LAY-010's end-bracket cases
+// EB-4: EW-LAY-010's end-bracket cases
 
 const P_EB: u128 = 0x609; // an end bracket, 10 mm wide
 const STRIP2: u128 = 0xea; // -X1032, two 6.2 mm terminals (12.4 mm)
@@ -879,7 +879,7 @@ fn strip_with_bracket_of_no_width(s: f64, terminal: u128) -> Fx {
     fx
 }
 
-/// C44-p3#4: a strip with a width whose bracket part has none, placed 20 mm before R2's start: its run-start bracket
+/// A strip with a width whose bracket part has none, placed 20 mm before R2's start: its run-start bracket
 /// `[-20, -20]` reads "before" though it has no length and no other bracket shares its point; the one after it
 /// `[-13.8, -13.8]` reads "after".
 #[test]
@@ -911,7 +911,7 @@ fn eb4_the_run_start_bracket_of_no_width_reads_before_off_the_rail_start() {
     );
 }
 
-/// Ruling 12 (C44-p1#5): a strip whose bracket part has no width gives two brackets at one start; their findings never
+/// Ruling 12: a strip whose bracket part has no width gives two brackets at one start; their findings never
 /// share a fingerprint, and a zero-length bracket overlaps nothing.
 #[test]
 fn eb4_brackets_of_no_width_never_share_a_fingerprint_and_overlap_nothing() {
@@ -946,7 +946,7 @@ fn eb4_brackets_of_no_width_never_share_a_fingerprint_and_overlap_nothing() {
     assert_eq!(messages(&m, "EW-LAY-010"), Vec::<String>::new());
 }
 
-/// Ruling 11 (C44-p1#1): 200 strips stacked on one rail at s = 100 mm, each one 6.2 mm terminal declaring the 10 mm
+/// Ruling 11: 200 strips stacked on one rail at s = 100 mm, each one 6.2 mm terminal declaring the 10 mm
 /// bracket. One run: its run-start bracket [90, 100] (the first strip's) and one bracket after each strip, all at
 /// [106.2, 116.2], each overlapping the next. EW-LAY-010 gives one finding per overlapping bracket (199, no cap), and
 /// each strip's bracket line counts its own brackets (the first 2, every other 1; the BOM row 201). The speed is not

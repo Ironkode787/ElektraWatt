@@ -1,16 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The revision dialogs of Check ▸ Revision (WP-S1.18 part 5, §9): Approve revision, Release revision, Withdraw
+//! The revision dialogs of Check ▸ Revision: Approve revision, Release revision, Withdraw
 //! revision and Set revision author, and the offer of an incomplete release when a project opens; with the release's
-//! housekeeping warnings in Messages (FT-842).
+//! housekeeping warnings in Messages.
 //!
 //! Each dialog is a form of its own action with parameters (as `project.purge_assets` with `confirm`): without
 //! `confirm` the action opens the form, or fills the open one with the parameters given; `cancel` closes it; with
 //! `confirm` it validates the fields (the typed label, the role, the reason, the date the window passed, the git
 //! consent), then submits the `HumanOnly` command.
 //!
-//! **Who may confirm** (cycle 41, ruling 1: "the `HumanOnly` gate is per submission"). The submission carries the
+//! **Who may confirm** (ruling 1: "the `HumanOnly` gate is per submission"). The submission carries the
 //! shell's own origin ([`ShellModel::origin`]): `Origin::Gui` only in the window a person drives. The headless shell and
 //! a window a script drives ([`ShellModel::new_scripted`], the visual driver) open, fill, validate and frame the
 //! dialogs, but their confirm is refused with `error-revision-person`, and the session judges the same origin again
@@ -112,7 +112,7 @@ fn path_free(text: &str, paths: &[PathBuf]) -> String {
 }
 
 /// One finding as a dialog lists it: its subject and message in words (no rule ID), the message in the UI language as
-/// Messages renders it (ID-1389, W51 finding F).
+/// Messages renders it (W51 finding F).
 fn finding_line(f: &Finding) -> String {
     let message = ew_api::checks::messages::render(f, strings::rule_language());
     if f.subject.is_empty() || message.starts_with(&f.subject) {
@@ -164,7 +164,7 @@ fn field(
     }
 }
 
-/// The cause of an I/O failure as a release text ends on it (cycle 41, FIX41b ruling 6: "release troubles in words"):
+/// The cause of an I/O failure as a release text ends on it (FIX41b ruling 6: "release troubles in words"):
 /// not found, no permission, not a folder, each in words from the error's kind; any other kind adds nothing, so the
 /// sentence ends on "could not be read" (never the OS text or its code).
 fn io_cause(kind: std::io::ErrorKind) -> &'static str {
@@ -176,7 +176,7 @@ fn io_cause(kind: std::io::ErrorKind) -> &'static str {
     }
 }
 
-/// The release's housekeeping warning in words with the file name only (FT-842), its cause from the error's kind
+/// The release's housekeeping warning in words with the file name only, its cause from the error's kind
 /// (FIX41b ruling 6).
 pub(crate) fn trouble_text(t: &ReleaseTrouble) -> String {
     let key = match t.what {
@@ -218,7 +218,7 @@ fn waiver_words(report: &CheckReport, waiver: &str) -> String {
     let Some(f) = finding else {
         return strings::text(key!("revision-waiver-gone")).to_owned();
     };
-    // FT-1314: the rule's title in the window's language.
+    // The rule's title in the window's language.
     let title = ew_api::checks::messages::title(f.rule, strings::rule_language()).unwrap_or_else(|| {
         ew_api::checks::rule(f.rule).map_or_else(|| f.rule.to_owned(), |r| r.meta().title.to_owned())
     });
@@ -370,7 +370,7 @@ impl ShellModel {
     }
 
     /// The engineering-verification disclaimer that ends the Approve and the Release dialog, the About dialog's sentence
-    /// (WP-S6.04 D13, NFR-COMP-04); `None` in every other dialog.
+    /// (NFR-COMP-04); `None` in every other dialog.
     pub fn revision_disclaimer(&self) -> Option<&'static str> {
         (self.in_form_of(APPROVE) || self.in_form_of(RELEASE))
             .then(|| strings::text(key!("about-disclaimer")))
@@ -416,8 +416,8 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Opening a project, draining the release's warnings
 
-    /// After a project opened (WP-S1.18 part 5): keeps its integrity findings for the gate, shows the release's
-    /// housekeeping warnings of opening (FT-842), and offers an incomplete release of the open revision when there
+    /// After a project opened: keeps its integrity findings for the gate, shows the release's
+    /// housekeeping warnings of opening, and offers an incomplete release of the open revision when there
     /// is one and no other dialog is open.
     pub(super) fn revision_opened(&mut self, integrity: Vec<IntegrityItem>) {
         self.revision = RevisionState {
@@ -439,7 +439,7 @@ impl ShellModel {
         self.drain_release_troubles();
     }
 
-    /// FT-842 (cycle 41, ruling 2): drains `Session::take_release_troubles` and shows each warning once as a Messages
+    /// Drains `Session::take_release_troubles` and shows each warning once as a Messages
     /// entry (severity Warning, rule column "Release", the file name only), with one toast that points to Messages. An
     /// empty drain shows nothing.
     pub(super) fn drain_release_troubles(&mut self) {
@@ -1282,7 +1282,7 @@ impl ShellModel {
     // Set revision author
 
     /// `revision.set_author {role?, confirm?, cancel?}` (Check ▸ Revision ▸ Set revision author…): the author of the
-    /// open revision as a party role (`revision.set_author`, WP-S1.18 D4); never the checker's. Undoable as one step;
+    /// open revision as a party role (`revision.set_author`); never the checker's. Undoable as one step;
     /// not saved.
     pub(crate) fn act_revision_set_author(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Some(out) = self.revision_start(SET_AUTHOR, p) {
@@ -1477,7 +1477,7 @@ mod tests {
         }
     }
 
-    /// FT-1314 (C51-p6#2): in a Dutch window the approval names a safety waiver in force by its rule's Dutch title.
+    /// In a Dutch window the approval names a safety waiver in force by its rule's Dutch title.
     #[test]
     fn a_dutch_approval_names_the_waiver_in_force_by_its_dutch_title() {
         let unacknowledged = ApproveError::Unacknowledged(vec![WAIVER.parse().expect("an ID")]);

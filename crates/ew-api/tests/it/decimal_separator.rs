@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-366: `settings.formatting.decimal_separator` reaches the rendering of decimals in the printed tables of the
+//! `settings.formatting.decimal_separator` reaches the rendering of decimals in the printed tables of the
 //! generated pages (`ew_reports::render`, neutral language). The golden project sets `point`, a project that sets
 //! nothing prints the point as well, `comma` prints the comma.
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Test support of the folio scripts (WP-S2.04 §13.6): the generator of a folio's UI script from Golden A's records,
+//! Test support of the folio scripts: the generator of a folio's UI script from Golden A's records,
 //! read as the JSON Lines of the committed fixture (`golden/J-E-2416.ew`, never written).
 //!
 //! **What part 1 draws.** Each representation of the folio by the gesture of the part that owns it: a symbol with
@@ -286,7 +286,7 @@ pub fn placement_steps_with(
         let symbol = keys[r["symbol"].as_str().unwrap()].clone();
         let pos = (r["pos"][0].as_i64().unwrap(), r["pos"][1].as_i64().unwrap());
         let function = &all[r["functions"][0].as_str().unwrap()];
-        // ID-1502 (7): Golden A's mains points are mirrored (E); ID-1504: 1X1's terminals are mirrored top to bottom
+        // Golden A's mains points are mirrored (E); ID-1504: 1X1's terminals are mirrored top to bottom
         // (G); everything else is placed in orientation A.
         let mirrored = function["kind"].get("ip").is_some() && orient_of(&r["orient"]) == 4;
         let flipped = function["kind"].get("ip").is_none() && orient_of(&r["orient"]) == 6;
@@ -295,7 +295,7 @@ pub fn placement_steps_with(
             "part 1's generator places orientation A only, a mirrored external point or a flipped symbol"
         );
         if let Some(ip) = function["kind"].get("ip") {
-            // WP-S2.04 part 3: the IP tool; an external connection point names its external reference by printed text
+            // The IP tool; an external connection point names its external reference by printed text
             // (the start project holds the references).
             steps.push(("tool.ip".into(), json!({})));
             if let Some(e) = ip["external"].as_str() {
@@ -320,7 +320,7 @@ pub fn placement_steps_with(
             continue;
         }
         if r["rep_type"].as_str() == Some("strip_segment") {
-            // WP-S2.04 §13.6: the strip segment is another representation of the strip's main function.
+            // The strip segment is another representation of the strip's main function.
             let golden = r["functions"][0].as_str().unwrap();
             let target = functions
                 .get(golden)
@@ -366,7 +366,7 @@ fn drag(map: SheetMap, from: (i64, i64), to: (i64, i64)) -> Vec<(String, Value)>
     ]
 }
 
-/// WP-S2.04 part 3: the steps that draw the golden black box `b` (a rectangle at `pos`, its device `device` made from a
+/// The steps that draw the golden black box `b` (a rectangle at `pos`, its device `device` made from a
 /// part) with the black box tool and its CPs: `tool.black_box` with the part's template entry 0 and the device's letter,
 /// the two corners by the grid cursor and Enter, then (Select, the box clicked) each CP dragged from the tool's
 /// default layout to its golden point along the outline, a CP whose target is free first (ascending index).
@@ -740,7 +740,7 @@ pub fn golden_wiring(folio: u32) -> WiringOracle {
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// The script runs and the project start (WP-S2.04 §13.6): the temporary directory, the headless runs, the wizard
+// The script runs and the project start: the temporary directory, the headless runs, the wizard
 // and the start project the folio tests and the G-PP rehearsal share.
 
 /// The content tree of the source repository (the starter library of `file.new` and the wizard).
@@ -815,7 +815,7 @@ pub const USER_DIRS: [&str; 8] = [
 ];
 
 /// The command that starts the binary at `exe` in a test, with the content of the source tree (`EW_CONTENT_DIR`), so
-/// what it finds does not depend on where the binary lies (a nextest archive's partition, FT-1539). Every test start
+/// what it finds does not depend on where the binary lies (a nextest archive's partition). Every test start
 /// of the binary names the content folder (xtask's `tests_start_the_binary_with_the_content_folder`).
 pub fn elektrawatt(exe: &Path) -> Command {
     let mut cmd = Command::new(exe);
@@ -842,7 +842,7 @@ pub fn run(exe: &Path, tmp: &Tmp, name: &str, steps: &[(String, Value)], record:
     };
     // The user directories (home, application data, state, data and config) point inside the scratch folder, so a
     // journal, a library index or a settings file never lands in the user's own folders, and no two tests (nor a
-    // killed earlier run) share one (FT-1039).
+    // killed earlier run) share one.
     for d in USER_DIRS {
         let dir = tmp.path("home").join(d.to_ascii_lowercase());
         std::fs::create_dir_all(&dir).unwrap();
@@ -942,7 +942,7 @@ pub fn start(exe: &Path, tmp: &Tmp) -> PathBuf {
                     "fndefs/ew.fn.external-arrow.json",
                 ])}),
             ),
-            // WP-S2.04 part 3: page 102 and the golden part copies of its black boxes (-102G1, -102F2) with the
+            // Page 102 and the golden part copies of its black boxes (-102G1, -102F2) with the
             // black-box symbol and FnDef copies their templates name.
             (
                 "command.run",
@@ -1046,7 +1046,7 @@ pub fn records_of(s: &Session) -> (Vec<String>, Vec<String>) {
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// The G-PP start (WP-S2.04 §13.6): the three folios, the strips -X1031/-X1032 with their terminals, the parts of
+// The G-PP start: the three folios, the strips -X1031/-X1032 with their terminals, the parts of
 // the 101 terminals and the golden function IDs the strip segments are placed on.
 
 /// The start of the G-PP rehearsal (§13.6): the saved project, the 1X1 strip the 101 terminals are placed on, and
@@ -1128,7 +1128,7 @@ pub fn external_connection_anchors(folio: u32) -> Vec<(i64, i64)> {
         if ip.get("external").and_then(Value::as_str).is_none() {
             continue;
         }
-        // ID-1502 (7): Golden A's mains points are mirrored (E, x → −x); the others stand at orientation A.
+        // Golden A's mains points are mirrored (E, x → −x); the others stand at orientation A.
         let mirrored = orient_of(&r["orient"]) == 4;
         assert!(
             mirrored || orient_of(&r["orient"]) == 0,
@@ -1478,7 +1478,7 @@ fn gpp_start_common(exe: &Path, tmp: &Tmp, demo: bool) -> GppStart {
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// The folio-103 demo variant (WP-S2.04 §13.6, round a28-r8): the strips by `strip.new` with their golden values
+// The folio-103 demo variant (round a28-r8): the strips by `strip.new` with their golden values
 // member by member, the 15 terminals by Place, their parts, the wiring to the terminals' own CPs, PI10's bridges and
 // the other golden bridges with the strips' plug-in bridge part uses.
 
@@ -2120,7 +2120,7 @@ pub fn demo_103_bridges(tmp: &Tmp, job: &Path, strips: &DemoStrips) -> DemoBridg
 
 // -------------------------------------------------------------------------------------------------------------------
 // The generators of the records no WP-S2.04 tool draws, the junction editor steps, the structure box and the marker
-// tool (WP-S2.04 §13.6).
+// tool.
 
 /// `num / den` floored, exact in `i128`.
 fn floor_div(num: i128, den: i128) -> i128 {

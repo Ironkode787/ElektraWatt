@@ -373,7 +373,7 @@ fn wire_marker(item: Id<PageItem>, connections: Vec<Id<ew_schema::Connection>>) 
 
 /// Deleting a wire so a junction dissolves (normaliser #8 removes the junction and merges the second member into
 /// the kept one): the removed junction and connection leave the instance that lists them, the edit commits (no
-/// EW-INV-001), the instance and its other members stay, and undo restores everything (WP-S1.19 §6.1).
+/// EW-INV-001), the instance and its other members stay, and undo restores everything.
 #[test]
 fn a_dissolving_junction_leaves_the_instance_that_lists_it() {
     let members = vec![

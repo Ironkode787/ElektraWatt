@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The panel page's host duties (WP-S4.02 part 3, D4, D10; doc 12 §12.4): arming the layout place tool, the keyboard
+//! The panel page's host duties (doc 12 §12.4): arming the layout place tool, the keyboard
 //! placement (Tab and Shift+Tab cycle a rail's placements, the arrows nudge, R turns on the plate, X flips on a rail),
 //! Lock and Unlock, the placing options and the canvas's live region for a selected placement.
 //!
@@ -29,7 +29,7 @@ use crate::tools::{
 };
 use crate::{count_key, key};
 
-/// Millimetres as the project prints them (FT-366): the shortest decimal with the project's separator.
+/// Millimetres as the project prints them: the shortest decimal with the project's separator.
 pub(crate) fn mm_text(nm: i128, comma: bool) -> String {
     let sign = if nm < 0 { "-" } else { "" };
     let a = nm.unsigned_abs();
@@ -257,7 +257,7 @@ impl ShellModel {
 
     /// The arrows while a layout ghost floats: the gesture's keyboard step (`LayoutGesture::step`), sent to the tool as
     /// a cursor move; nothing further that way is no error. Along a rail the ghost stops at a neighbour and at the rail
-    /// end in words, as a selected placement does ("Blocked by -102F2", "At the rail end"; FT-992); the ghost stays.
+    /// end in words, as a selected placement does ("Blocked by -102F2", "At the rail end"); the ghost stays.
     fn step_layout_ghost(&mut self, dx: i64, dy: i64) -> Outcome {
         let Some(panel) = self.panel_tables() else {
             return Outcome::refused(key!("reason-no-panel-page"));
@@ -284,7 +284,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         if exact {
-            // FT-994: the tool resolves the step without snapping, as a pointer move with Shift held.
+            // The tool resolves the step without snapping, as a pointer move with Shift held.
             let mods = crate::tools::Mods {
                 shift: true,
                 ..crate::tools::Mods::default()
@@ -583,7 +583,7 @@ impl ShellModel {
     /// The parts a draw tool of `kind` (`rail`, `duct`) offers (D11): the project's copies of the kind, then the
     /// installed libraries' parts, embedded through `copies` when drawn.
     ///
-    /// The offers are kept for (session, revision, kind) (C44-p2#2): arming the tool or changing its options computes
+    /// The offers are kept for (session, revision, kind): arming the tool or changing its options computes
     /// them afresh, a new revision too; the options card's every frame reuses them.
     pub fn draw_part_offers(&self, kind: &str) -> Vec<crate::tools::DrawPart> {
         let Some(project) = &self.project else {

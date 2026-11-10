@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The texts of the shell, by key, in the UI language (WP-S2.01 part 1, spec section 5.2; WP-S2.08 part 3, D9 to D11).
+//! The texts of the shell, by key, in the UI language (spec section 5.2).
 //!
 //! Every user-facing text of `ew-viewmodel` and `ew-ui` is a message of the en-GB Fluent file
 //! `locales/en-GB/shell.ftl`; no other literal reaches a screen, a menu, a banner or a transcript. The code names a key
@@ -47,7 +47,7 @@ impl<'a> Key<'a> {
     }
 }
 
-/// A count text key: a key of [`KEYS`] with its `-one` text, the only key [`format_count`] takes (ID-1106). It is
+/// A count text key: a key of [`KEYS`] with its `-one` text, the only key [`format_count`] takes. It is
 /// made by [`count_key!`](crate::count_key), which checks both texts at compile time.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct CountKey(&'static str);
@@ -298,7 +298,7 @@ static LOADED: RwLock<Vec<&'static Locale>> = RwLock::new(Vec::new());
 static CURRENT: RwLock<Option<&'static Locale>> = RwLock::new(None);
 
 /// Counted up by every [`set_locale`] that selects a language: a cache of translated text keeps it beside what else
-/// it was built for, so a language change rebuilds it (ID-1278 ruling 5).
+/// it was built for, so a language change rebuilds it.
 static GENERATION: AtomicU64 = AtomicU64::new(0);
 
 /// The language generation: it changes whenever [`set_locale`] selects a language.
@@ -392,7 +392,7 @@ pub fn rule_language() -> &'static str {
     }
 }
 
-/// Test hook (`testkit`, ID-1219 ruling 5): loads the Fluent source `source` as the UI language `tag`, which
+/// Test hook (`testkit`, ruling 5): loads the Fluent source `source` as the UI language `tag`, which
 /// View ▸ Language then offers and [`set_locale`] selects; a message it lacks falls back to en-GB. A tag loaded
 /// before is replaced for later selections.
 #[cfg(feature = "testkit")]
@@ -422,7 +422,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
 }
 
 /// The headers of navigator `nav`'s column `key` (`nav` its word, `pages`) in each shipped language, en-GB first: its
-/// `column-<nav>-<key>` text, else `column-<key>` (C50-p5#1: a header copied in one language pastes in another).
+/// `column-<nav>-<key>` text, else `column-<key>` (a header copied in one language pastes in another).
 pub fn column_labels(nav: &str, key: &str) -> Vec<&'static str> {
     let key = key.replace('_', "-");
     [en_gb(), nl_nl()]
@@ -436,7 +436,7 @@ pub fn column_labels(nav: &str, key: &str) -> Vec<&'static str> {
         .collect()
 }
 
-/// The line kinds of a fluid line (WP-S1.20 T25), in schema order: the Line kind row shows each as its
+/// The line kinds of a fluid line (T25), in schema order: the Line kind row shows each as its
 /// `choice-<kind>` text.
 pub const LINE_KINDS: &[&str] = &["working", "pilot", "exhaust", "drain", "flexible"];
 
@@ -452,7 +452,7 @@ const LABEL_WORDS: &[(&str, &str)] = &[
 ];
 
 /// The label of the field `path` of `kind` (list indices allowed) in the UI language, the one source of the property
-/// grid's row labels, the collision dialog's field headings and the tools' texts that name a field (FT-1237): the
+/// grid's row labels, the collision dialog's field headings and the tools' texts that name a field: the
 /// field's own `field-<kind>-<path>` text (`.` and `_` as `-`, a list item as `-item`; a row whose humanised name would
 /// not read well, "Wire number", "Colour override"), else its last member's `field-word-<member>` text ("Number",
 /// "Nummer"), else that member humanised (underscores to spaces, the word list applied, the first letter capitalised:
@@ -472,7 +472,7 @@ pub fn field_label(kind: &str, path: &str) -> String {
             generic.push(c);
         }
     }
-    // WP-S2.17 part 3: a list item carries its position (`Connection point 2`), so the items of a list differ.
+    // A list item carries its position (`Connection point 2`), so the items of a list differ.
     let item = path
         .strip_suffix(']')
         .and_then(|p| p.rsplit_once('['))
@@ -494,7 +494,7 @@ pub fn field_label(kind: &str, path: &str) -> String {
         .unwrap_or(&generic)
         .trim_end_matches(']');
     let word = format!("field-word-{}", last.replace('_', "-"));
-    // C50-p5#6: a list's item by its singular where the list has one ("Connection point 2").
+    // A list's item by its singular where the list has one ("Connection point 2").
     let singular = (!item.is_empty())
         .then(|| lookup(&format!("{word}-item")))
         .flatten();
@@ -547,7 +547,7 @@ pub fn var_type_word(ty: &str) -> String {
     word.to_owned()
 }
 
-/// A choice value of a form dialog in words (doc 16a §8, FT-558; ID-1278 ruling 2): the text of `choice-<value>`
+/// A choice value of a form dialog in words (doc 16a §8, ruling 2): the text of `choice-<value>`
 /// (`_` as `-`) in the UI language, else [`choice_words`]. The parameter keeps the raw word; only the window shows
 /// this.
 pub fn choice_text(value: &str) -> String {
@@ -557,13 +557,13 @@ pub fn choice_text(value: &str) -> String {
     }
 }
 
-/// A check scheme's name in the UI language's words (FT-1355): the wizard's `choice-check_scheme-<name>` text, else
+/// A check scheme's name in the UI language's words: the wizard's `choice-check_scheme-<name>` text, else
 /// the name itself.
 pub fn scheme_text(name: &'static str) -> &'static str {
     lookup(&format!("choice-check_scheme-{name}")).unwrap_or(name)
 }
 
-/// A choice value of the field `path` of `kind` in words (C50-p5#5): the field's own `choice-<kind>-<path>-<value>`
+/// A choice value of the field `path` of `kind` in words: the field's own `choice-<kind>-<path>-<value>`
 /// text (`.` and `_` as `-`, a list item as `-item`), where one word means two things in two fields (a terminal
 /// level's `main` is no main function), else [`choice_text`].
 pub fn field_choice_text(kind: &str, path: &str, value: &str) -> String {
@@ -581,7 +581,7 @@ pub fn field_choice_text(kind: &str, path: &str, value: &str) -> String {
 }
 
 /// The words of the choice `value` of the field `path` of `kind` in every shipped language, as
-/// [`field_choice_text`] picks them (FT-1338: a table cell copied in one language and pasted in the other).
+/// [`field_choice_text`] picks them (a table cell copied in one language and pasted in the other).
 pub fn field_choice_texts(kind: &str, path: &str, value: &str) -> Vec<&'static str> {
     let own = format!(
         "choice-{}-{}-{}",
@@ -630,7 +630,7 @@ pub fn choice_words(value: &str) -> String {
         "single_line" => "single-line".to_owned(),
         "user_defined" => "user-defined".to_owned(),
         "page_based" => "page-based".to_owned(),
-        // ID-1463: the symbol editor's tools by their names in the bar.
+        // The symbol editor's tools by their names in the bar.
         "cp" => "connection point".to_owned(),
         "slot" => "text slot".to_owned(),
         "link" => "link point".to_owned(),
@@ -654,14 +654,14 @@ pub fn kind_heading(kind: &str) -> String {
     lookup(&key).map_or_else(|| sentence_start(&kind_label(kind)).into_owned(), str::to_owned)
 }
 
-/// A record kind in the plural as a heading in the UI language (FT-1411: `Devices`, `Apparaten`): its
+/// A record kind in the plural as a heading in the UI language (`Devices`, `Apparaten`): its
 /// `record-kinds-<kind>` text, else [`kind_plural`] with a capital.
 pub fn kinds_heading(kind: &str) -> String {
     let key = format!("record-kinds-{}", kind.replace('_', "-"));
     lookup(&key).map_or_else(|| sentence_start(&kind_plural(kind)).into_owned(), str::to_owned)
 }
 
-/// An accessory kind of the strip editor in the UI language (FT-1289): the text of `accessory-<kind>` (`end_clamp`
+/// An accessory kind of the strip editor in the UI language: the text of `accessory-<kind>` (`end_clamp`
 /// is "End bracket", "Eindsteun"), `accessory-other` for a kind this version does not know. The words of
 /// `ew_api::output::accessory_kind_word` in en-GB, which the table round trip keeps.
 pub fn accessory_text(kind: &str) -> &'static str {
@@ -715,12 +715,12 @@ pub fn format(key: Key<'_>, args: &[&str]) -> String {
 }
 
 /// A sentence `text` without its closing full stop, so that another part can follow it inside the same sentence
-/// (FT-1505: every toast text ends with its full stop, doc 16a §8 item 5).
+/// (every toast text ends with its full stop, doc 16a §8 item 5).
 pub fn without_stop(text: &str) -> &str {
     text.strip_suffix('.').unwrap_or(text)
 }
 
-/// A column or field label inside a sentence (FT-757, sentence case): its first letter lower-cased ("Address" reads
+/// A column or field label inside a sentence (sentence case): its first letter lower-cased ("Address" reads
 /// "address", "Function text" "function text"), unless the label starts with an abbreviation, two capitals in a row
 /// ("DT", "PLC address"), which stays as it is.
 pub fn in_sentence(label: &str) -> String {
@@ -739,7 +739,7 @@ pub fn in_sentence(label: &str) -> String {
 /// ") is left as it is and the words after it start with the capital; a designation, a code or a digit first ("-K1
 /// exists", "W464: …", "4 errors": no lowercase letter first, or a first word that holds a digit) is left as it is.
 pub fn sentence_start(part: &str) -> Cow<'_, str> {
-    /// A rule code with its colon, `EW-[A-Z]+-[0-9]+:` (FT-1113, ID-1229 item 2): a designation ("-K1:") is none.
+    /// A rule code with its colon, `EW-[A-Z]+-[0-9]+:` (item 2): a designation ("-K1:") is none.
     fn is_code(word: &str) -> bool {
         word.strip_prefix("EW-")
             .and_then(|w| w.strip_suffix(':'))
@@ -782,7 +782,7 @@ pub fn format_count(key: CountKey, count: usize) -> String {
     }
 }
 
-/// The time from epoch milliseconds `last_ms` to `now_ms` in words (FT-503): `just now` under a minute (also for a
+/// The time from epoch milliseconds `last_ms` to `now_ms` in words: `just now` under a minute (also for a
 /// `last_ms` after `now_ms`, a clock skew, never a negative), then whole minutes, hours or days, rounded down.
 pub fn elapsed_text(last_ms: u64, now_ms: u64) -> String {
     const MINUTE: u64 = 60_000;
@@ -813,7 +813,7 @@ mod tests {
         KEYS.iter().map(|k| (*k, en_gb().texts[k]))
     }
 
-    /// FT-1075 (ID-1182): a part shown on its own line starts with a capital; a designation, a code or a digit first
+    /// A part shown on its own line starts with a capital; a designation, a code or a digit first
     /// is left as it is, and a rule code first leaves the words after it to start with the capital.
     #[test]
     fn a_part_on_its_own_line_starts_with_a_capital() {
@@ -833,7 +833,7 @@ mod tests {
                 "EW-CORE-052: A second source of 0V",
             ),
             ("W464: a star source", "W464: a star source"),
-            // FT-1113 (ID-1229 item 2): a designation with a colon is no rule code, and a chain of codes is skipped.
+            // FT-1113 (item 2): a designation with a colon is no rule code, and a chain of codes is skipped.
             ("-K1: the coil of the relay", "-K1: the coil of the relay"),
             (
                 "EW-CORE-052: EW-POT-011: a second source",
@@ -849,7 +849,7 @@ mod tests {
         }
     }
 
-    /// FT-964 (ID-1150): the texts that name a key the default keymap binds by its literal name, each with why it stays:
+    /// The texts that name a key the default keymap binds by its literal name, each with why it stays:
     /// a key no keymap action reaches there (a popup's or a text field's own key), or a letter that is no key.
     const KEPT_KEYS: &[(&str, &str)] = &[
         // Letters that are no key.
@@ -907,7 +907,7 @@ mod tests {
         })
     }
 
-    /// Whether the key word `word` stands in `text` in a key's context (FT-1072, ID-1179): after "press" ("press
+    /// Whether the key word `word` stands in `text` in a key's context: after "press" ("press
     /// Delete", "press" in any case) or before a word ending in "s" ("Delete deletes"), the word itself exact.
     fn names_key_in_context(text: &str, word: &str) -> bool {
         let part = |c: char| c.is_alphanumeric() || matches!(c, '+' | '-' | '_' | '{' | '}');
@@ -932,13 +932,13 @@ mod tests {
         })
     }
 
-    /// FT-964 (ID-1150): "a test scans the table for a bound key's literal name outside the kept list". The names are
+    /// "a test scans the table for a bound key's literal name outside the kept list". The names are
     /// every chord the EW preset binds, in full and in the HUD's short form; the key names that are also everyday
     /// words of the labels ("Delete wire", "Insert symbol", "Home", "Space", "End") are left out, and are caught only
-    /// in a key's context ("press Delete", "Delete deletes"; FT-1072) in the hint, HUD, toast, notice and reason
+    /// in a key's context ("press Delete", "Delete deletes") in the hint, HUD, toast, notice and reason
     /// texts (an `action-` label names a command, as "Delete rows").
     ///
-    /// FT-1072 (ID-1179): "the arrow keys" and "arrows" are not listed and match no name: they name the cursor
+    /// "the arrow keys" and "arrows" are not listed and match no name: they name the cursor
     /// actions (`cursor.left` and its kin, which the nudges ride on), which every shipped keymap binds to the arrows.
     #[test]
     fn ft964_no_text_names_a_bound_key_outside_the_kept_list() {
@@ -995,7 +995,7 @@ mod tests {
         }
     }
 
-    /// FT-1081 (ID-1182, doc 16a §8 item 7): a key has one name in every text, the form on its keycap. No text names
+    /// FT-1081 (doc 16a §8 item 7): a key has one name in every text, the form on its keycap. No text names
     /// the Escape key in full, and the long forms `short_display` shortens ("Arrow Up") stand in none.
     #[test]
     fn ft1081_no_text_names_a_key_by_its_long_form() {
@@ -1008,7 +1008,7 @@ mod tests {
         assert_eq!(crate::keymap::short_display("Alt+Delete"), "Alt+Del");
     }
 
-    /// FT-1072 (ID-1179): a skipped key word counts only in a key's context, the word exact and "press" in any case.
+    /// A skipped key word counts only in a key's context, the word exact and "press" in any case.
     #[test]
     fn ft1072_a_skipped_key_word_counts_in_a_keys_context() {
         assert!(names_key_in_context("press Delete to remove it", "Delete"));
@@ -1107,7 +1107,7 @@ mod tests {
             .filter(|k| has_key(k))
             .collect();
         assert!(counted.contains(&"toast-recovered"), "{counted:?}");
-        // FT-1351: the window's sources too, which use the shell's keys.
+        // The window's sources too, which use the shell's keys.
         let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
         let mut files = Vec::new();
         for dir in ["ew-viewmodel/src", "ew-ui/src"] {
@@ -1215,7 +1215,7 @@ mod tests {
             text(key!("reason-page-type-no-symbols")),
             "This page type takes no symbols or wires: draw on a schematic page"
         );
-        // FT-892: a drawn table of contents by name (Golden A's is a generated report page, so the window test cannot
+        // A drawn table of contents by name (Golden A's is a generated report page, so the window test cannot
         // reach this kind).
         assert_eq!(
             text(key!("reason-page-type-no-symbols-contents")),
@@ -1260,7 +1260,7 @@ mod tests {
             .collect()
     }
 
-    /// FT-1237 (ID-1315): every field label the property grid, the collision dialog or a tool shows comes from one
+    /// Every field label the property grid, the collision dialog or a tool shows comes from one
     /// source, a key of both languages: the field's own `field-<kind>-<path>` text, else its last member's
     /// `field-word-<member>` (the record version `$v` alone is no word). The en-GB labels are the ones of before;
     /// nl-NL's are its own.
@@ -1299,7 +1299,7 @@ mod tests {
         assert_eq!(field_label("connection", "overrides.colour"), "Colour override");
         assert_eq!(field_label("function", "cps[1]"), "Connection point 2");
         assert_eq!(field_label("function", "cps"), "Connection points");
-        // C50-p5#6 (ID-1320): the humanised English labels written by hand.
+        // The humanised English labels written by hand.
         let members = [
             "pe",
             "pe_bond",
@@ -1328,7 +1328,7 @@ mod tests {
             ]
         );
         assert!(set_locale("nl"));
-        // C50-p5#6 (ID-1320) and FIX50b's ruling 1: the Dutch compounds and words.
+        // C50-p5#6 and FIX50b's ruling 1: the Dutch compounds and words.
         let members = [
             "wire_part",
             "symbol_cp",
@@ -1376,7 +1376,7 @@ mod tests {
         assert!(set_locale("en"));
     }
 
-    /// FT-1258 (ID-1315): every word of the format's enumerated fields has its `choice-<value>` in en-GB and nl-NL, so
+    /// Every word of the format's enumerated fields has its `choice-<value>` in en-GB and nl-NL, so
     /// the Properties pane's choices and values read in the UI language.
     #[test]
     fn every_enumerated_field_word_has_a_choice_text_in_both_languages() {
@@ -1421,7 +1421,7 @@ mod tests {
                 "Eindsteun"
             ]
         );
-        // C50-p5#5: one word, two meanings, each field its own words; the merge's sides (C50-p5#6).
+        // One word, two meanings, each field its own words; the merge's sides.
         let fields = [
             ("function", "role", "main"),
             ("device", "terminal.levels[0].role", "main"),
@@ -1452,7 +1452,7 @@ mod tests {
         );
     }
 
-    /// FT-558: the form dialogs show doc 16a §8's words, never the raw parameter value.
+    /// The form dialogs show doc 16a §8's words, never the raw parameter value.
     #[test]
     fn choice_text_gives_the_display_words() {
         assert_eq!(choice_text("multi_line"), "Multi-line");
@@ -1472,7 +1472,7 @@ mod tests {
         }
     }
 
-    /// `elapsed_text` (FT-503): (name, last change, expected text) against `NOW`.
+    /// `elapsed_text`: (name, last change, expected text) against `NOW`.
     #[test]
     fn elapsed_text_table() {
         let cases = [

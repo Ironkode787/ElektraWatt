@@ -13,7 +13,7 @@
 //! malformed cell, a duplicate key, a reference to an unknown part or FnDef, a foreign colour code) refuses the whole
 //! import with its pointer (file, line, row key and the column the message names).
 //!
-//! A freely mapped supplier CSV with a column-mapping form is not this slice (WP-S2.09).
+//! A freely mapped supplier CSV with a column-mapping form is not this slice.
 
 use std::sync::Arc;
 

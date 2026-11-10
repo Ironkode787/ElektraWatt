@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `merge.resolve` (`ResolveConflicts`, WP-S1.17 D19; FR-COL-015): the conflict records a merge left (doc 05 §11.2,
+//! `merge.resolve` (`ResolveConflicts`, FR-COL-015): the conflict records a merge left (doc 05 §11.2,
 //! §11.4), resolved by taking ours or theirs, in one transaction.
 
 use std::collections::BTreeSet;
@@ -45,7 +45,7 @@ pub struct ConflictChoice {
     pub take: Take,
 }
 
-/// `merge.resolve` (`ResolveConflicts`): resolves conflict records (WP-S1.17 D19; doc 05 §11.2, doc 15 §6.5).
+/// `merge.resolve` (`ResolveConflicts`): resolves conflict records (doc 05 §11.2, doc 15 §6.5).
 ///
 /// Per choice, a **record-level** conflict:
 /// - **ours** removes the conflict: ours is the record in place. When ours deleted the record (a delete/modify
@@ -294,7 +294,7 @@ fn record_of(row: &AnyRow) -> Result<Record, CmdError> {
 }
 
 /// The file `merge.resolve` routes `record` to in `model` (its `file_of`), for the test in `ew-api` that pins it to
-/// `ew_format::record_file` record kind by record kind (FT-1290): the crate that sees both.
+/// `ew_format::record_file` record kind by record kind: the crate that sees both.
 #[cfg(feature = "testkit")]
 pub fn record_file_of(model: &ew_model::Model, record: &Record) -> Option<String> {
     let mut ids = ew_ids::SystemSource;
@@ -384,7 +384,7 @@ fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
             CarrierRef::Unknown(_) => r.id.cast(),
         }),
         Record::Conflict(c) => match &c.body {
-            // FT-1335: the writer's routing; a path that names no record file, the shard of the conflict's own ID.
+            // The writer's routing; a path that names no record file, the shard of the conflict's own ID.
             ConflictBody::File { path, .. } if names_record_file(path) => path.clone(),
             ConflictBody::File { .. } => shard(c.id.cast()),
             ConflictBody::Record { kind, .. } => {
@@ -407,7 +407,7 @@ fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
 
 /// Whether `path` names a record file as `ew_format::classify` reads one (doc 05 §2.2): a root file, `pages/`,
 /// `layout/`, `imports/` or `exchange/<id>.jsonl`, or `devices/<xx>.jsonl` (`xx` lower-case hex). The agreement test
-/// of `record_file_of` pins it to the writer's (FT-1335).
+/// of `record_file_of` pins it to the writer's.
 fn names_record_file(path: &str) -> bool {
     const ROOT_FILES: [&str; 6] = [
         "project.jsonl",

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cloud-synced folders (doc 05 §15 rows 7 to 11; WP-S1.17 D25, decision log ID-1284 ruling 10): whether a project lies
+//! Cloud-synced folders (doc 05 §15 rows 7 to 11; ruling 10): whether a project lies
 //! in a folder that a sync client (OneDrive, Dropbox, iCloud Drive, Google Drive, Box) keeps, from environment
 //! variables and paths only, with the standard library.
 //!

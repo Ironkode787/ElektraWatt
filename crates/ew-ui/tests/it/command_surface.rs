@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.17 part 2: the command surface in the window without rendering. CB2 (the tabs and the Draw row's buttons,
+//! The command surface in the window without rendering. CB2 (the tabs and the Draw row's buttons,
 //! each dispatching its action), CB3 (the keyboard: Alt, F10, Ctrl+F1, F6, Left and Right), CB4 (the geometry at
 //! 1280 by 800 in both densities), CB5 (one HUD with the selection's prompt, no tool strip), CB8 (the app button),
 //! FT-514 (a repaint when the window gets the focus back) and IC2 (every icon key of the registry resolves).
@@ -99,7 +99,7 @@ fn cb2_the_tabs_and_the_draw_row_dispatch_their_actions() {
                 continue;
             }
             node.click();
-            // ID-1477 (7): the symbol editor takes the place of the page and its docks; Close editor returns to them.
+            // The symbol editor takes the place of the page and its docks; Close editor returns to them.
             if b.id == "symbol.new" {
                 h.run_ok();
                 assert_eq!(h.state().dispatched().last().copied(), Some(b.id));
@@ -249,7 +249,7 @@ fn cb4_the_geometry_at_1280_by_800_in_both_densities() {
         let model = command_bar(h.state().shell());
         let mut seen = (0, 0);
         for b in model.groups.iter().flat_map(|g| &g.buttons) {
-            // ID-1497 (10): the bar's own button (a group collapsed at the floor shows none; the HUD's Text is no
+            // The bar's own button (a group collapsed at the floor shows none; the HUD's Text is no
             // button of the bar).
             let Some(r) = h
                 .query_all_by_label(&b.bar_label)
@@ -326,7 +326,7 @@ fn cb5_one_hud_with_the_prompt_of_the_selection() {
             .count(),
         1
     );
-    // ID-1497 (8): an item drawn on the page (a selection that draws nothing there is not counted).
+    // An item drawn on the page (a selection that draws nothing there is not counted).
     let drawn = h.state().shell().canvas().unwrap().page().entities[0].0;
     assert_eq!(
         h.state_mut()
@@ -392,7 +392,7 @@ fn cb8_the_app_button() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-514: the window repaints when it gets the focus back (a native file dialog closed), so the status hint is
+/// The window repaints when it gets the focus back (a native file dialog closed), so the status hint is
 /// never stale.
 #[test]
 fn ft514_a_repaint_when_the_window_gets_the_focus_back() {
@@ -434,7 +434,7 @@ fn ic2_every_icon_key_resolves() {
     }
 }
 
-/// FT-822 (cycle-39 play-test): the banner lies over the top edge of the canvas below the page tabs; showing and
+/// FT-822 (play-test): the banner lies over the top edge of the canvas below the page tabs; showing and
 /// dismissing it moves neither the page view nor the command bar, so a click aimed before it appears still lands.
 #[test]
 fn ft822_the_banner_overlays_the_canvas_and_moves_nothing() {
@@ -463,7 +463,7 @@ fn ft822_the_banner_overlays_the_canvas_and_moves_nothing() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1279: in a 1000 × 700 window the View menu's every entry, the Show group's Grid, Frame statistics and the CPU
+/// In a 1000 × 700 window the View menu's every entry, the Show group's Grid, Frame statistics and the CPU
 /// canvas among them, lies inside the window, and Grid is reached and runs from it.
 #[test]
 fn ft1279_the_view_menu_fits_a_1000_by_700_window() {
@@ -503,7 +503,7 @@ fn ft1279_the_view_menu_fits_a_1000_by_700_window() {
             outside.push(format!("{label} at {r:?}"));
         }
     }
-    // FT-1367 (ID-1392): Show tips joined the Show group, which has four entries now and so is a submenu (doc 16a
+    // Show tips joined the Show group, which has four entries now and so is a submenu (doc 16a
     // §9.2): Grid, Frame statistics and the CPU canvas are reached through it.
     for show in ["Show", "Wire colours"] {
         assert!(seen.iter().any(|s| s == show), "{show} in {seen:?}");
@@ -517,7 +517,7 @@ fn ft1279_the_view_menu_fits_a_1000_by_700_window() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1520 (ID-1456, doc 16a §6.13): View ▸ Show's switches draw only their check in the menu's check column, blank
+/// FT-1520 (doc 16a §6.13): View ▸ Show's switches draw only their check in the menu's check column, blank
 /// when off, never their icons: Grid (on) shows its check, Frame statistics (off) nothing.
 #[test]
 fn ft1520_view_show_switches_show_only_their_check() {
@@ -556,7 +556,7 @@ fn ft1520_view_show_switches_show_only_their_check() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// ID-1497 (11): the HUD moves under the tab bar while the pointer is within 48 px of its place at the bottom, and
+/// The HUD moves under the tab bar while the pointer is within 48 px of its place at the bottom, and
 /// back only once the pointer is more than 96 px away, so it does not flip back and forth between the two.
 #[test]
 fn the_hud_moves_up_near_the_pointer_and_back_only_far_from_it() {

@@ -107,7 +107,7 @@ fn the_part_dialog_by_keyboard_and_its_accessibility_tree() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// W45.1 F2 (ID-1110): an empty search says it once, in the list, and Choose is disabled with its reason.
+/// W45.1 F2: an empty search says it once, in the list, and Choose is disabled with its reason.
 #[test]
 fn the_empty_search_says_it_once_and_chooses_nothing() {
     let tmp = Tmp::new();

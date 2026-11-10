@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fitting scale of a panel-layout page and a mounting surface (FT-1016, ID-1148): the first 1:n of
+//! The fitting scale of a panel-layout page and a mounting surface: the first 1:n of
 //! [`FIT_SCALES`] at which the bounding box of the surface's usable outline, drawn at 1:n on paper, fits the drawing
 //! area of the page's frame; 1:100 when none fits; none when the surface records no usable outline or the page has
 //! no frame. The list is doc 12's (FR-LAY-010: 1:2 to 1:20) with 1:1 and ISO 5455's 1:50 and 1:100.
@@ -18,7 +18,7 @@ use ew_schema::{Extra, FormDef, FormKind, FrameGrid, ItemMeta, MountingSurface, 
 use super::view::PageFrameOf;
 use crate::Session;
 
-/// The scales a panel page is fitted at, 1:n by n, smallest reduction first (ID-1148).
+/// The scales a panel page is fitted at, 1:n by n, smallest reduction first.
 pub const FIT_SCALES: [u32; 7] = [1, 2, 5, 10, 20, 50, 100];
 
 /// The first n of [`FIT_SCALES`] at which the bounding box of `usable` (surface nm) fits a drawing area of `area`
@@ -86,7 +86,7 @@ pub(crate) fn page_fitting_scale(q: &Q, page: Id<Page>, surface: Id<MountingSurf
 }
 
 impl Session {
-    /// The fitting scale's n (1:n) of the mounting surface `surface` on the panel page `page` (FT-1016, ID-1148):
+    /// The fitting scale's n (1:n) of the mounting surface `surface` on the panel page `page`:
     /// see [`fitting_scale`]. `None` for an unknown page or surface, a page without a frame grid or a surface that
     /// records no usable outline.
     pub fn fitting_scale(&self, page: Uuid, surface: Uuid) -> Option<u32> {

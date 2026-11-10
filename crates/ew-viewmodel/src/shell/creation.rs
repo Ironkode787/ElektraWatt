@@ -6,7 +6,7 @@
 //! and `external_ref.new`.
 //!
 //! **One path.** Each action builds one existing command (`page.create`, `structure.create_node`,
-//! `external_ref.create`) and commits it as the property grid does (WP-S2.05 §6.6): `Session::preview_with` once, the
+//! `external_ref.create`) and commits it as the property grid does: `Session::preview_with` once, the
 //! prepared preview kept in the host, then the host's commit path (the window `Session::commit`, headless one command-log
 //! line through `Session::run_script`, so `--record` and the exposure rules apply). A plain create is a single target
 //! and no identifier change on several records, so the policy of FR-UI-044 commits it at once: no card.
@@ -172,7 +172,7 @@ static PAGE_NEW: Spec = Spec {
         },
         field("title", key!("form-title")),
         field("section", key!("form-section")),
-        // ID-1477 (1): the dialog starts with the current page's grid.
+        // The dialog starts with the current page's grid.
         Field {
             name: "grid",
             label_key: key!("form-grid"),
@@ -208,14 +208,14 @@ static EXTERNAL_REF_NEW: Spec = Spec {
     ],
 };
 
-/// FT-1090 (ID-1181): the picker's New terminal strip form (`strip.new {dialog: true}`), its tag proposed.
+/// The picker's New terminal strip form (`strip.new {dialog: true}`), its tag proposed.
 static STRIP_NEW: Spec = Spec {
     action: "strip.new",
     title_key: key!("new-strip-title"),
     fields: &[field("tag", key!("form-tag"))],
 };
 
-/// The report kinds Output ▸ Reports ▸ Report block… adds (FT-1372): the page-oriented kinds of `ReportKind`, in its
+/// The report kinds Output ▸ Reports ▸ Report block… adds: the page-oriented kinds of `ReportKind`, in its
 /// order (the embedded ones, profile tables and part data, sit on a drawn page and are not offered).
 pub const REPORT_KINDS: &[&str] = &[
     "toc",
@@ -237,7 +237,7 @@ pub const REPORT_KINDS: &[&str] = &[
     "check_report",
 ];
 
-/// FT-1372 (ID-1362): Output ▸ Reports ▸ Report block…, its kind offered in words.
+/// Output ▸ Reports ▸ Report block…, its kind offered in words.
 static REPORT_NEW: Spec = Spec {
     action: "report_block.new",
     title_key: key!("report-block-new-title"),
@@ -272,7 +272,7 @@ pub struct FormField {
 }
 
 impl FormField {
-    /// Whether the field is a yes-or-no choice (`false`, `true`), which the window draws as a check box (FT-558).
+    /// Whether the field is a yes-or-no choice (`false`, `true`), which the window draws as a check box.
     pub fn is_toggle(&self) -> bool {
         self.choices.values() == ["false", "true"]
     }
@@ -298,7 +298,7 @@ pub struct FormDialog {
     pub fields: Vec<FormField>,
     /// What the last attempt was refused with, shown under the fields.
     pub error: Option<String>,
-    /// The table under the fields (FT-786: Save as macro's value sets), `None` for a form without one.
+    /// The table under the fields (Save as macro's value sets), `None` for a form without one.
     pub table: Option<FormTable>,
 }
 
@@ -313,7 +313,7 @@ impl FormDialog {
     }
 }
 
-/// An editable table of a form (FT-786: the value sets of Save as macro, doc 16a section 6.21's look): a named first
+/// An editable table of a form (the value sets of Save as macro, doc 16a section 6.21's look): a named first
 /// column and one column per variable. Submit carries it as the JSON parameter `name`: one object per row,
 /// `{"name": <first column>, "values": {<column>: <cell>}}`, blank cells left out.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -464,7 +464,7 @@ impl ShellModel {
     }
 
     /// Sets the first-column text (`column` `None`, a rename) or a cell of row `row` of the open form's table, and
-    /// clears the last refusal; a row or column the table does not have changes nothing (FT-786).
+    /// clears the last refusal; a row or column the table does not have changes nothing.
     pub fn set_form_table_cell(&mut self, row: usize, column: Option<usize>, value: &str) {
         if let Some(Dialog::Form(form)) = &mut self.dialog
             && let Some(table) = &mut form.table
@@ -482,7 +482,7 @@ impl ShellModel {
     }
 
     /// Adds a row to the open form's table: named `Set <n>` with the lowest `n` from the row count up that no row has,
-    /// its cells blank (FT-786).
+    /// its cells blank.
     pub fn add_form_table_row(&mut self) {
         if let Some(Dialog::Form(form)) = &mut self.dialog
             && let Some(table) = &mut form.table
@@ -499,7 +499,7 @@ impl ShellModel {
         }
     }
 
-    /// Removes row `row` of the open form's table; a row it does not have changes nothing (FT-786).
+    /// Removes row `row` of the open form's table; a row it does not have changes nothing.
     pub fn remove_form_table_row(&mut self, row: usize) {
         if let Some(Dialog::Form(form)) = &mut self.dialog
             && let Some(table) = &mut form.table
@@ -511,7 +511,7 @@ impl ShellModel {
     }
 
     /// Enter in the creation dialog (or its Create button): the dialog's action with its non-empty fields as parameters
-    /// (and its table's rows, FT-786). A refusal stays in the dialog, its reason shown in the form (ID-1276 ruling 7);
+    /// (and its table's rows). A refusal stays in the dialog, its reason shown in the form;
     /// success closes it.
     pub fn submit_form(&mut self) -> Outcome {
         let Some(Dialog::Form(form)) = &self.dialog else {
@@ -554,7 +554,7 @@ impl ShellModel {
         }
     }
 
-    /// FT-1257: the text of a missing parameter `name`: by its field's label when the open form has the field, else
+    /// The text of a missing parameter `name`: by its field's label when the open form has the field, else
     /// by the parameter's name.
     pub(super) fn missing_text(&self, name: &str) -> String {
         if let Some(Dialog::Form(f)) = &self.dialog
@@ -565,7 +565,7 @@ impl ShellModel {
         strings::format(key!("error-missing-param"), &[name])
     }
 
-    /// FT-1090: the New terminal strip form, its Tag field holding `tag` (in the window and headless alike: the
+    /// The New terminal strip form, its Tag field holding `tag` (in the window and headless alike: the
     /// action asks for it by its `dialog` flag).
     pub(super) fn open_strip_form(&mut self, tag: &str) -> Outcome {
         let mut p = Map::new();
@@ -588,7 +588,7 @@ impl ShellModel {
     }
 
     /// [`ShellModel::host_create`] with the notices of the command's outcome (what it left out instead of refusing),
-    /// read on its preview (WP-S4.02 part 4: Auto-fill rail's toast).
+    /// read on its preview (Auto-fill rail's toast).
     pub(super) fn host_create_noticed(&mut self, name: &str, params: Value) -> (Outcome, Vec<String>) {
         let cmd = AnyCommand {
             name: name.into(),
@@ -630,7 +630,7 @@ impl ShellModel {
     /// The UUID text of the structure node `text` names in the aspect `aspect`: its alias or UUID (resolved by
     /// dispatch), or its code (with the aspect's own prefix sign, which is taken off) when exactly one node of the aspect
     /// has it. Several nodes with the code are refused listing them as aliases `@n` with their parent's code, ordered by
-    /// their codes from the root (FT-439), because no navigator prints a node's alias yet.
+    /// their codes from the root, because no navigator prints a node's alias yet.
     pub(super) fn structure_node(&self, aspect: &str, text: &str) -> Result<String, String> {
         let Some(project) = &self.project else {
             return Err(strings::text(key!("reason-no-project")).to_owned());
@@ -697,7 +697,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The actions
 
-    /// `page.new {folio, type?, title?, section?, grid?}` (FT-408): one `page.create` with the explicit folio and the
+    /// `page.new {folio, type?, title?, section?, grid?}`: one `page.create` with the explicit folio and the
     /// connection grid given, else the current page's (ID-1477 (1)), then the new page is shown.
     pub(crate) fn act_page_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let mut v = Vec::new();
@@ -713,7 +713,7 @@ impl ShellModel {
             .and_then(|(num, den)| page_grid_word(num, den))
             .unwrap_or_default();
         if folio.is_empty() {
-            // WP-S2.06 part 1 (FT-461): the dialog opens with the proposed folio and section filled in.
+            // The dialog opens with the proposed folio and section filled in.
             if !self.in_form_of(PAGE_NEW.action) {
                 let (proposal, proposed_section) = self.new_page_proposal();
                 let mut filled = p.clone();
@@ -788,14 +788,13 @@ impl ShellModel {
         if out == Outcome::Done
             && let Some(id) = self.tools.last_primary.clone()
         {
-            // FT-1116: the new page holds none of the old page's selection (ID-1228 item 4: here, not in `show`).
+            // The new page holds none of the old page's selection (item 4: here, not in `show`).
             self.tools.selection.clear();
             self.show_page_by_id(&id);
         }
         out
     }
 
-    // WP-S2.06 part 2
     /// The parent the New structure node dialog proposes for a node of aspect `kind` (FT-461's second half, §7.1): the
     /// first marked node of the Structure identifiers navigator (else its cursor row) when that node's aspect is `kind`,
     /// by its designation when the designation names it, else by its ID; empty otherwise.
@@ -825,7 +824,7 @@ impl ShellModel {
         }
     }
 
-    /// `structure.new {kind, designation, parent?}` (FT-409): one `structure.create_node`.
+    /// `structure.new {kind, designation, parent?}`: one `structure.create_node`.
     pub(crate) fn act_structure_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let mut v = Vec::new();
         for f in STRUCTURE_NEW.fields {
@@ -886,7 +885,7 @@ impl ShellModel {
         self.form_done(STRUCTURE_NEW.action, out)
     }
 
-    /// `external_ref.new {location, device, connection?, project?}` (FT-409): one `external_ref.create` at a location
+    /// `external_ref.new {location, device, connection?, project?}`: one `external_ref.create` at a location
     /// node.
     pub(crate) fn act_external_ref_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let mut v = Vec::new();
@@ -915,7 +914,7 @@ impl ShellModel {
         }
         let out = self.host_create("external_ref.create", params);
         if out == Outcome::Done {
-            // The label `ip.external` takes (FT-485 item 8).
+            // The label `ip.external` takes (item 8).
             let label = if connection.is_empty() {
                 device.clone()
             } else {
@@ -926,7 +925,7 @@ impl ShellModel {
         self.form_done(EXTERNAL_REF_NEW.action, out)
     }
 
-    /// `report_block.new {kind, folio, title?}` (Output ▸ Reports ▸ Report block…, FT-1372): one `report_block.create`
+    /// `report_block.new {kind, folio, title?}` (Output ▸ Reports ▸ Report block…): one `report_block.create`
     /// of the report kind `kind` from folio `folio` on, titled `title`, on the shipped frame without the grid (embedded
     /// with its title block where the project does not hold it, as the company-standard wizard's blocks are), in the
     /// section whose folio range holds the folio. In the window without a kind or a folio its form opens, the first
@@ -1032,7 +1031,7 @@ mod tests {
     use super::*;
     use crate::actions::{find, parse_signature};
 
-    /// FT-1348: a refused form says what to do next for a read-only project and for no page shown, in either
+    /// A refused form says what to do next for a read-only project and for no page shown, in either
     /// language.
     #[test]
     fn a_refused_form_names_the_next_step() {

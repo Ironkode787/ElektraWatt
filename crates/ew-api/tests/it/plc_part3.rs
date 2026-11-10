@@ -4,7 +4,7 @@
 //! WP-S1.21 part 3 on Golden A (acceptance PA-1, PA-3, PA-5, PA-6, AC-29; D8, D9, D10): the start command re-addresses
 //! one module with one recompute of its channel addresses and one undo step; the profile command changes the printed
 //! notation and nothing else in the files; EW-PLC-012 reports the 28 coil bindings under the part map H1 and none
-//! under H2; the tag form of `plc.bind_channel` (FT-721).
+//! under H2; the tag form of `plc.bind_channel`.
 
 use crate::golden_common;
 
@@ -297,7 +297,7 @@ fn channel(q: &Q, module: Id<Device>, number: u16) -> Id<Channel> {
         .expect("the channel")
 }
 
-/// FT-721: a command log names the channel by `<module tag>#<number>` or `<module tag>:<designation>` and the coil by
+/// A command log names the channel by `<module tag>#<number>` or `<module tag>:<designation>` and the coil by
 /// `<device tag>` (or `<tag>:<slot>`) and its CP designation; the replay binds as the ID form does. An unknown or
 /// ambiguous name stops the replay and lists candidates.
 #[test]

@@ -187,7 +187,7 @@ fn np1_strips_are_the_terminal_diagrams() {
 #[test]
 fn np1_cables_plc_potentials_parts() {
     let s = common::golden_session();
-    // Cables: block 906's data rows, 3 cables and 13 cores, then (WP-S2.07 part 2) a core's derived potential, its
+    // Cables: block 906's data rows, 3 cables and 13 cores, then a core's derived potential, its
     // shield flag and pair, empty on a cable row.
     let t = s.navigator_table(NavKind::Cables);
     assert_tree_contract(&t);
@@ -227,14 +227,14 @@ fn np1_cables_plc_potentials_parts() {
         "a conductor draws as its core connections"
     );
 
-    // PLC (PG1, WP-S2.07 §8): the configuration project, station -201U1, 7 modules, 56 channels; the grid's columns
+    // PLC (PG1): the configuration project, station -201U1, 7 modules, 56 channels; the grid's columns
     // that the PLC overview prints hold block 908's texts, row for row.
     let t = s.navigator_table(NavKind::Plc);
     assert_tree_contract(&t);
     let keys: Vec<&str> = t.columns.iter().map(|c| c.key.as_str()).collect();
     assert_eq!(
         keys,
-        // FT-757: the address is the key column, what the channel drives follows it.
+        // The address is the key column, what the channel drives follows it.
         [
             "address",
             "target",
@@ -336,7 +336,7 @@ fn np1_cables_plc_potentials_parts() {
     assert_eq!(wires, want, "the Connections navigator's physical-wire rows");
     let bond = find(&t, NavRole::Potential, "B1 (0V \u{21C4} PE)");
     assert!(children(&t, bond).is_empty());
-    // The record kinds for edit routing (FT-515): every potential of Golden A has a definition; the bond row's is
+    // The record kinds for edit routing: every potential of Golden A has a definition; the bond row's is
     // the bond.
     for n in table_rows(&t) {
         let want = if n.label.starts_with("B1 ") {
@@ -434,7 +434,7 @@ fn np1_ips_structure_blocks() {
         (NavRole::Location, "location")
     );
 
-    // Report blocks: 16 rows, 11 page blocks and 5 embedded (902 embeds PART DATA and the legend, WP-S4.01 D17).
+    // Report blocks: 16 rows, 11 page blocks and 5 embedded (902 embeds PART DATA and the legend).
     let t = s.navigator_table(NavKind::Blocks);
     assert_tree_contract(&t);
     let rows = table_rows(&t);
@@ -587,7 +587,7 @@ fn np3_members_of_24vdc_1_are_its_wire_list_connections() {
     assert!(s.highlight_members(&HighlightTarget::Net(unknown)).is_empty());
 }
 
-/// R1-10 (FT-515): the third row kind of the Potentials overview. On Golden A without the definition of 24VDC-4 that
+/// R1-10: the third row kind of the Potentials overview. On Golden A without the definition of 24VDC-4 that
 /// potential is known only by its name at connection points, so its row's record is a CP and its kind `cp`; every
 /// other row keeps its definition or its bond, and the overview keeps its 20 rows.
 #[test]

@@ -76,7 +76,7 @@ fn bits_and_units() {
     assert_eq!(Size::LWord.bits(), 64);
 }
 
-/// WP-S7.03 D7: the one constructor refuses data the engine does not render, with T2's reasons in their order.
+/// The one constructor refuses data the engine does not render, with T2's reasons in their order.
 #[test]
 fn the_constructor_refuses_data_it_does_not_render() {
     assert_eq!(p().reference(), "siemens-tia-intl@2027.1");
@@ -148,7 +148,7 @@ fn the_iec_profile_renders_and_parses_its_notation() {
     }
 }
 
-/// WP-S1.21 D8: a module-start text names an area and a byte: a bit address at bit 0, a unit address, or the area and
+/// A module-start text names an area and a byte: a bit address at bit 0, a unit address, or the area and
 /// the byte alone; any other bit is refused.
 #[test]
 fn a_start_text_names_an_area_and_a_byte() {
@@ -257,7 +257,7 @@ proptest! {
     }
 }
 
-/// WP-S1.21 D6: an address text is parsed by the profile, the inverse of `render`; the example names output 0.1.
+/// An address text is parsed by the profile, the inverse of `render`; the example names output 0.1.
 #[test]
 fn parse_and_example() {
     let p = p();

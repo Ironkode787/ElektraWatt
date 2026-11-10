@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The change-symbol tool (`exchange`; WP-S2.04 §7.5, FR-SYM-022): one selected representation shown with another
+//! The change-symbol tool (`exchange`; FR-SYM-022): one selected representation shown with another
 //! symbol, committed with `rep.exchange_symbol`.
 //!
 //! State `armed`. The overlay is the new shape's outline at the representation's position and orientation with a
@@ -47,7 +47,7 @@ pub struct ExchangeTool {
     drawn: Vec<DrawnCp>,
     /// The function CP indices left unmapped (`exchange_map`).
     unmapped: Vec<u16>,
-    /// The library documents the exchange embeds (`rep.exchange_symbol`'s `copies`, FT-673); the host sends only those
+    /// The library documents the exchange embeds (`rep.exchange_symbol`'s `copies`); the host sends only those
     /// the project lacks.
     copies: Vec<Value>,
 }
@@ -105,7 +105,7 @@ impl ExchangeTool {
         }
     }
 
-    /// The tool with the library documents its exchange embeds (`rep.exchange_symbol`'s `copies`, FT-673).
+    /// The tool with the library documents its exchange embeds (`rep.exchange_symbol`'s `copies`).
     pub fn with_copies(mut self, copies: Vec<Value>) -> ExchangeTool {
         self.copies = copies;
         self

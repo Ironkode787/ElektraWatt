@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The crash log through the debug binary (WP-S6.05 D6 to D11; PV-4, PV-6, PV-8, PV-9's positive control): a forced
+//! The crash log through the debug binary (PV-4, PV-6, PV-8, PV-9's positive control): a forced
 //! panic at the end of a headless run that edited a copy of Golden A exits 101 and leaves one log with its entry and the
 //! end line, the journal is kept, and the next start offers the project and the log; Recover replays the journal.
 
@@ -201,7 +201,7 @@ fn a_forced_panic_writes_the_crash_log_and_the_next_start_offers_recovery() {
     let after = lines[3]["describe"].as_str().unwrap();
     assert!(after.contains("page \"996\""), "{after}");
     assert!(!after.contains("startup \""), "{after}");
-    // D8 (C50-p3#6): the panic unwound past the shutdown, and the journal replays to the model after the edit: equal
+    // D8: the panic unwound past the shutdown, and the journal replays to the model after the edit: equal
     // digests of the two exports.
     let digest = |p: &Path| {
         use sha2::Digest as _;

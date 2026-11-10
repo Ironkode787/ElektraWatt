@@ -125,7 +125,7 @@ pub struct QuickFix {
 
 /// One finding (doc 15 §2.1, §2.5): what a rule reports about a set of records.
 ///
-/// Findings sort by code, then their printed subject and message, then the fingerprint (doc 15 §3.9, FT-594) and
+/// Findings sort by code, then their printed subject and message, then the fingerprint (doc 15 §3.9) and
 /// hold no wall-clock data, so two platforms, and two fresh copies of one project, give identical finding lists.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Finding {
@@ -149,7 +149,7 @@ pub struct Finding {
     pub page: Option<Id<Page>>,
     /// The message: the en-GB text, as the rule prints it (rendered when the rule ran).
     pub message: String,
-    /// The message's typed arguments, by Fluent variable name (WP-S1.16 D6, doc 15 §3.8): the printed values the
+    /// The message's typed arguments, by Fluent variable name (doc 15 §3.8): the printed values the
     /// rule's pattern in `messages/<lang>/rules.ftl` renders the text from in another language
     /// ([`crate::messages::render`]). Empty for a rule whose messages have no pattern yet; the en-GB pattern renders
     /// [`message`](Self::message) from them byte for byte.
@@ -215,7 +215,7 @@ impl Finding {
 
     /// The same finding with its fingerprint computed from `key` (and the discriminator) instead of every target:
     /// the display targets stay, the identity a waiver matches does not follow them. A potential's findings key on
-    /// the potential's identity (WP-S1.16 D8, FT-588): a waiver survives a member added to or removed from it.
+    /// the potential's identity: a waiver survives a member added to or removed from it.
     #[must_use]
     pub fn keyed_on(mut self, key: &[Target]) -> Finding {
         let ids: Vec<AnyId> = key.iter().map(|t| t.id).collect();
@@ -243,7 +243,7 @@ impl Finding {
     }
 
     /// The same finding, marked as resting on unverified data when `confidence` (what the rule read, through
-    /// [`ew_derive::part_confidence`]) is not `verified` (WP-S1.19 §8).
+    /// [`ew_derive::part_confidence`]) is not `verified`.
     #[must_use]
     pub fn reading(mut self, confidence: &ew_derive::ew_schema::Confidence) -> Finding {
         if *confidence != ew_derive::ew_schema::Confidence::Verified {
@@ -257,10 +257,10 @@ impl Finding {
         self.state == FindingState::Open
     }
 
-    /// The canonical order (doc 15 §3.9, FT-594): the code, then the printed subject in natural order (then by
+    /// The canonical order (doc 15 §3.9): the code, then the printed subject in natural order (then by
     /// bytes), then the message, and only then the fingerprint and the rule. Findings of one code thus print in an
     /// order that follows the project's content: the fingerprint follows record IDs, which are random in a new
-    /// project (ID-677), so it decides only between two findings that print alike.
+    /// project, so it decides only between two findings that print alike.
     pub fn order_cmp(&self, other: &Finding) -> std::cmp::Ordering {
         self.code
             .cmp(other.code)

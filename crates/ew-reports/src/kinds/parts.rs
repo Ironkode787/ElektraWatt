@@ -19,14 +19,14 @@ use crate::rowset::{
     Cell, CellType, ColumnDef, LinkRef, LinkTarget, MissingReason, QtyUnit, Row, RowId, RowKey, RowSet,
 };
 
-/// The block parameter that chooses the BOM mode (WP-S3.06 D9).
+/// The block parameter that chooses the BOM mode.
 const MODE: &str = "mode";
 
 /// The summarised parts list (EPLAN `.f02`).
 ///
 /// Component mode by default; assembly mode when the block's `params.mode` is `"assembly"` (read through
 /// [`kind_params`]: another value gives component mode and one note). Both modes
-/// print one "Part number" column (a configured product's order code prints there; ID-356); assembly mode
+/// print one "Part number" column (a configured product's order code prints there); assembly mode
 /// appends the "Covers" column (doc 20 §14.2): the devices whose part lines a configured product replaces,
 /// as a compressed tag list, empty on the component rows.
 #[derive(Clone, Copy, Debug)]
@@ -50,7 +50,7 @@ impl ReportKindDef for PartsSummary {
         ]
     }
 
-    /// `mode`: `"component"` (the default) or `"assembly"` (WP-S3.06 D9).
+    /// `mode`: `"component"` (the default) or `"assembly"`.
     fn params(&self) -> &'static [ParamDef] {
         &[ParamDef {
             key: MODE,
@@ -137,12 +137,11 @@ impl PartsSummary {
     }
 }
 
-/// The links of a BOM row's Folios cell in `column` (WP-S3.06 D10, ruling 2): one per page of `pages`, to the
+/// The links of a BOM row's Folios cell in `column`: one per page of `pages`, to the
 /// smallest-ID representation on that page of the first of `devices` (in their order) that has one there, not a
 /// contact image, else to the page (a panel-layout page of a layout object). A cell with one page links whole; with
 /// several, each page links its own item. The representations are read from the model's tables, never from the page
-/// order (doc 09 §3.6). The page → representation map is built once per row, walking the devices in their order
-/// (C44-p3#1).
+/// order (doc 09 §3.6). The page → representation map is built once per row, walking the devices in their order.
 fn folio_links(q: &Q, column: usize, devices: &[Id<Device>], pages: &[PageRef]) -> Vec<LinkRef> {
     let rep_on = rep_by_page(q, devices);
     pages
@@ -285,7 +284,7 @@ pub(super) fn unit_symbol(unit: &OrderUnit) -> String {
 
 /// The manufacturer cell of a manufacturer reference: the name of the embedded manufacturer copy, else the `key` a
 /// file written before WP-S1.19 part 3 keeps on the reference (`ew_derive::manufacturer_name`), else "manufacturer
-/// missing", never the item ID (FT-876). A copy with an empty name prints its empty name.
+/// missing", never the item ID. A copy with an empty name prints its empty name.
 pub(super) fn manufacturer_cell(q: &Q, m: &LibRef) -> Cell {
     let name = manufacturer_name(q, m);
     if name.is_empty() && manufacturer_copy(q, m).is_none() {
@@ -344,7 +343,7 @@ mod tests {
         assert_ne!(a.to_string(), b.to_string());
     }
 
-    /// FT-876: a manufacturer reference with no embedded copy and no `key` prints "manufacturer missing", never the
+    /// A manufacturer reference with no embedded copy and no `key` prints "manufacturer missing", never the
     /// item ID; with a `key` it prints the key. Ruling 2 of the FT42 brief: "(a). FT42 edits that one line" of
     /// `enclosure_legend`, so every caller of `manufacturer_cell` (the summary, the list, `part_cells` and the
     /// enclosure legend) shows the missing cell.

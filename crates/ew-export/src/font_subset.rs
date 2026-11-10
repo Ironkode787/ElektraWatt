@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The font subsetter of the SVG writer: a TrueType (`glyf`) face cut down to the glyphs a page draws, **with
-//! the glyph IDs kept** (WP-S3.07 D3; doc 09 §4.4; FR-OUT-013, FT-233).
+//! the glyph IDs kept** (doc 09 §4.4; FR-OUT-013).
 //!
 //! The SVG pages keep their text as `<text>`, so a browser maps the characters through the embedded font's
 //! `cmap` and draws the glyphs itself. The subset therefore keeps the `cmap` and every glyph ID (krilla's
@@ -15,7 +15,7 @@
 //! | `head` | as in the face, `checkSumAdjustment` recomputed over the subset |
 //! | `post` | version 3.0 (no glyph names), the face's other fields |
 //! | `cmap`, `hhea`, `hmtx`, `maxp`, `OS/2`, `name` | as in the face (`OS/2`, `name` and `post` when the face has them) |
-//! | `cvt `, `fpgm`, `prep` | as in the face, when the face has them: the kept glyphs keep their instructions (FT-1045) |
+//! | `cvt `, `fpgm`, `prep` | as in the face, when the face has them: the kept glyphs keep their instructions |
 //! | `GSUB`, `GPOS`, `GDEF`, `kern`, `MATH`, every other table | dropped: the text is shaped already and placed per character |
 //!
 //! The tables are written in tag order, 4-byte aligned, each with its checksum. The parser uses the standard
@@ -400,7 +400,7 @@ impl<'a> Face<'a> {
         head[50..52].copy_from_slice(&1i16.to_be_bytes());
         let mut out: BTreeMap<[u8; 4], Vec<u8>> = BTreeMap::new();
         // The hinting tables stay byte for byte when the face has them: the kept glyphs keep their instructions in
-        // `glyf`, which call into `fpgm` and read `cvt ` (FT-1045).
+        // `glyf`, which call into `fpgm` and read `cvt `.
         for tag in [
             b"cmap", b"hhea", b"hmtx", b"maxp", b"OS/2", b"name", b"cvt ", b"fpgm", b"prep",
         ] {

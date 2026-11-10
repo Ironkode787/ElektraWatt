@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `box.structure` (`CreateStructureBox`, WP-S2.04 §5.1, §10.1; FR-PRJ-020): a dotted or dash-dot box that assigns
+//! `box.structure` (`CreateStructureBox`, §10.1; FR-PRJ-020): a dotted or dash-dot box that assigns
 //! a structure to the representations it encloses, and the checks `fields.set` repeats after it writes a box.
 
 use ew_ids::Id;
@@ -52,7 +52,7 @@ fn slots(a: &StructureAssignment) -> [(Aspect, &'static str, Option<&Slot>); 7] 
     ]
 }
 
-/// Checks a structure box's members (WP-S2.04 §5.1 `box.structure`): at least three outline vertices; every node of
+/// Checks a structure box's members (`box.structure`): at least three outline vertices; every node of
 /// `assigns` exists and has the aspect of its slot; the external reference exists; a style this build draws. A
 /// refusal is invalid parameters of `command` at `pointer` + the member's path.
 pub(crate) fn check_box(
@@ -119,7 +119,7 @@ pub(crate) fn check_box(
     Ok(())
 }
 
-/// `box.structure` (`CreateStructureBox`, WP-S2.04 §5.1, §10.1; FR-PRJ-020): creates a structure box on a page: its
+/// `box.structure` (`CreateStructureBox`, §10.1; FR-PRJ-020): creates a structure box on a page: its
 /// outline (absolute page nm, at least three vertices, which need not lie on the connection grid), its style (`dotted`
 /// or `dash_dot`), an optional caption, the structure it assigns (one slot per aspect: a node, `none`, or absent to
 /// leave the page's) and the external point it stands for. Which representations it encloses is derived, never

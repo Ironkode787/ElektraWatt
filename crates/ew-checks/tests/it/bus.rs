@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The MVP rules of the EW-BUS pack (WP-S1.21 part 4, D12): EW-BUS-001 (a TBD or duplicate station address in a
+//! The MVP rules of the EW-BUS pack: EW-BUS-001 (a TBD or duplicate station address in a
 //! logical net, superseding EW-CORE-044) and EW-BUS-004 (the termination at the segment ends), on a PROFIBUS line of
 //! three ports `-1K8193` — `-1K8194` — `-1K8195` (bus connections, no cable) on one physical and one logical net: the
 //! master at address 1 and the two slaves at 2 and 3, the end ports terminated On, the middle one Off.

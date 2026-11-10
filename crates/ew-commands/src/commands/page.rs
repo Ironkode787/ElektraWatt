@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Page commands (doc 06 §3.1): `page.create`, `page.delete`, `page.renumber`, `page.reorder`; and
-//! `page.surface_view.set` (WP-S4.01 D9), the view of a panel-layout page.
+//! `page.surface_view.set`, the view of a panel-layout page.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -45,7 +45,7 @@ fn qet_grid() -> Grid {
 ///
 /// Rejected: neither `number` nor `after`; a printed folio (the label, else the number) another page of the
 /// section already prints; kind `report` (report pages are generated, EW-INV-012). An explicit `number` is also
-/// rejected (FT-459; FR-PAG-012, FR-REP-041) outside the section's folio range, at the folio of the section's divider
+/// rejected (FR-PAG-012, FR-REP-041) outside the section's folio range, at the folio of the section's divider
 /// page (the range's first folio) and at a folio a page-oriented report block of the same section generates (its
 /// first folio; with sub-page continuation also `<first>.<k>`). The section and form must exist.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -160,7 +160,7 @@ pub(super) fn propose_folio(tx: &TxBuilder<'_>, after: &Page) -> Result<(u32, Op
     Err(CmdError::internal("no free sub-page label"))
 }
 
-/// What is wrong with a page scale a command writes, in words (FT-1016, FT-1065): a 1:0. A JSON command is refused
+/// What is wrong with a page scale a command writes, in words: a 1:0. A JSON command is refused
 /// first by the schema's minimum, at `/scale/one_to` ("0 is below the minimum 1"); a typed `page.surface_view.set`
 /// gives this text at `/scale`, and `fields.set` on a page's scale at `/value`. The reader still takes a 1:0 from a
 /// file, which is drawn 1:1.
@@ -173,7 +173,7 @@ pub(super) fn printed_folio(number: u32, label: Option<&Ident>) -> String {
     label.map_or_else(|| number.to_string(), |l| l.as_str().to_owned())
 }
 
-/// Why an explicit folio may not be created (FT-459; FR-PAG-012, FR-REP-041, FR-CHK-038), in this order: a number
+/// Why an explicit folio may not be created (FR-PAG-012, FR-REP-041, FR-CHK-038), in this order: a number
 /// outside the section's folio range; the printed folio of the section's divider page (its range's first folio,
 /// FR-PAG-009); the printed folio of a generated page of a page-oriented report block of the same section (its first
 /// folio, and with sub-page continuation any `<first>.<k>`; with next-folio continuation only the first folio is
@@ -200,7 +200,7 @@ fn explicit_folio_problem(
     held_folio_problem(tx, sec, section, printed)
 }
 
-/// Why a page of `section` may not print `printed` (FT-459; FR-PAG-009, FR-REP-041; `page.renumber`, ID-1427), in
+/// Why a page of `section` may not print `printed` (FR-PAG-009, FR-REP-041; `page.renumber`), in
 /// this order: the printed folio of the section's divider page (its range's first folio); the printed folio of a
 /// generated page of a page-oriented report block of the same section (its first folio, and with sub-page continuation
 /// any `<first>.<k>`). `None` when the folio is free of them.
@@ -311,7 +311,7 @@ impl Command for CreatePage {
 /// cascade, and an interruption-point function goes with its representation. Devices stay, unplaced,
 /// unless `delete_devices` is set: then every device that had a representation of one of its functions on
 /// a deleted page and has none left anywhere is removed too (with its functions and their remaining
-/// connections). The open revision's notes on the deleted pages go in the same transaction (FT-303, WP-S1.18 D5);
+/// connections). The open revision's notes on the deleted pages go in the same transaction;
 /// the notes of released and withdrawn revisions stay. Bulk: it always previews (doc 06 §3.1).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -413,7 +413,7 @@ pub enum PageScope {
 /// `.`, or the whole label) is the printed old number takes the printed new number instead (`101.1` becomes `20.1`
 /// when 101 becomes 20; `101a` and `1011.1` keep their label; FT-475); a rewritten label that equals another page's
 /// printed folio is rejected. A page whose printed folio changes is rejected, in `page.create`'s words, on the folio
-/// of its section's divider page or on a folio a page-oriented report block of its section generates (ID-1427). Bulk.
+/// of its section's divider page or on a folio a page-oriented report block of its section generates. Bulk.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RenumberPages {
@@ -498,7 +498,7 @@ impl Command for RenumberPages {
             };
             new_numbers.push((p.id, new));
         }
-        // FT-1511 (WP-S6.08 D27): a new folio stays inside its section's folio range, as `page.create` keeps it.
+        // A new folio stays inside its section's folio range, as `page.create` keeps it.
         for (p, &(_, new)) in scope.iter().zip(&new_numbers) {
             if let Some(s) = p.folio.section.and_then(|s| tx.get::<Section>(s)) {
                 let (first, last) = s.folio_range;
@@ -527,7 +527,7 @@ impl Command for RenumberPages {
                 return tx.reject(text!("refusal-page-renumber-used", new.to_string()));
             }
         }
-        // FT-475: a label that carries the printed folio of its parent (FT-460's `101.1`, an imported `101.1.1`, or
+        // A label that carries the printed folio of its parent (FT-460's `101.1`, an imported `101.1.1`, or
         // the page's own label `101`) follows the number: in the same section, a label whose leading segment (up to
         // the first `.` or the end) is the printed old number gets the printed new number in its place. `101a` and
         // `1011.1` keep their label. Computed on the old state, so chained renumbers (101 to 102, 102 to 103) cannot
@@ -554,7 +554,7 @@ impl Command for RenumberPages {
                 .map_err(|_| CmdError::internal(format!("sub-page label `{text}` is not an identifier")))?;
             relabel.push((p.id, new_label));
         }
-        // ID-1427 (C52-p6#1, W52 F1): a page whose printed folio changes may not take the section's divider folio or
+        // ID-1427 (W52 F1): a page whose printed folio changes may not take the section's divider folio or
         // a folio a page-oriented report block of the section generates, as `page.create` refuses it.
         let new_number: BTreeMap<Id<Page>, u32> = new_numbers.iter().copied().collect();
         for p in tx.iter::<Page>() {
@@ -777,12 +777,12 @@ pub enum LabelModeParam {
     Full,
 }
 
-/// `page.surface_view.set` (`SetSurfaceView`, WP-S4.01 D9; FR-LAY-010): sets the view of one mounting surface on a
+/// `page.surface_view.set` (`SetSurfaceView`, FR-LAY-010): sets the view of one mounting surface on a
 /// panel-layout page: the surface, where its origin lands on the page (`datum_at`, page nm) and the label mode
 /// (default abbreviated). A page holds at most one view: a page that has one keeps it, with its ID, and takes the new
 /// values (members this build keeps verbatim stay); a page without one gets a new page item. What the view draws is
 /// derived from the layout records at the page's scale, never stored. With `scale` the page takes that scale in the
-/// same undo step (FT-1016, ID-1148: the window sends the fitting scale to a page still drawn not to scale); without
+/// same undo step (the window sends the fitting scale to a page still drawn not to scale); without
 /// it the page keeps its scale.
 ///
 /// Rejected: a missing page (not found); a page that is not a panel-layout page; a surface that is not in the project

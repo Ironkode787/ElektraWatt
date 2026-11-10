@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigator panes (WP-S2.03 part 1 §6.1; WP-S2.06 part 1 §6.4, §6.6, §6.8): one generic tree widget for every
+//! The navigator panes (§6.6, §6.8): one generic tree widget for every
 //! navigator, the shell's rows on show (`ShellModel::shown_rows`) drawn as a filter field and a tree of rows with
 //! egui's row virtualisation (only the rows in view are painted).
 //!
@@ -20,13 +20,13 @@
 //! marked; a drop on a page row of the Pages navigator dispatches `pages.reorder` before it, a drop on a section node
 //! to that section's end. An unplaced function row of the Devices navigator drags its function; the canvas area takes
 //! the drop (`place.pick {function}`). A channel row of the PLC navigator drags its channel; the canvas under the drop
-//! point takes it (`navigator.bind {channel, x_mm, y_mm}`, WP-S2.07 §8).
+//! point takes it (`navigator.bind {channel, x_mm, y_mm}`).
 //!
 //! **Accessibility.** The list is a node with the role `Tree`; a row is a `TreeItem` named `<label>, <role>[,
 //! <badges>]` (the Pages rows as built, `PageNavigator::accessible_name`), with AccessKit's own `level`,
 //! `position_in_set`, `size_of_set`, `expanded` and `selected` (marked) properties.
 //!
-//! **Table mode** (WP-S2.06 part 3). Every pane has a Table toggle beside its filter (`navigator.table`); a navigator
+//! **Table mode**. Every pane has a Table toggle beside its filter (`navigator.table`); a navigator
 //! in table mode is drawn by `nav_table` as an egui_table on the same focusable node, then with the role `Table`.
 
 use std::rc::Rc;
@@ -59,18 +59,17 @@ pub struct PagesDrag(pub Vec<String>);
 #[derive(Clone, Debug)]
 pub struct FunctionDrag(pub String);
 
-/// The channel a drag of a PLC channel row carries (its ID text, WP-S2.07 §8); a canvas takes the drop at its point
+/// The channel a drag of a PLC channel row carries (its ID text); a canvas takes the drop at its point
 /// (`navigator.bind`).
 #[derive(Clone, Debug)]
 pub struct ChannelDrag(pub String);
 
-/// The macro a drag of a Macros navigator row carries (its row key, WP-S1.19 §11); a canvas takes the drop at its
+/// The macro a drag of a Macros navigator row carries (its row key); a canvas takes the drop at its
 /// point (`macros.place`).
 #[derive(Clone, Debug)]
 pub struct MacroDrag(pub String);
 
-// WP-S4.02 part 3
-/// The device a drag of an Unplaced devices row carries (its ID text, FT-486); a panel page's canvas floats it while
+/// The device a drag of an Unplaced devices row carries (its ID text); a panel page's canvas floats it while
 /// the drag is over it (`tool.place_layout`) and drops it on release.
 #[derive(Clone, Debug)]
 pub struct DeviceDrag(pub String);
@@ -91,7 +90,7 @@ enum Stamp {
         Option<ew_viewmodel::canvas::PageId>,
     ),
     /// Another navigator: its state, and for Messages the editing page's folio, which marks the pending rows
-    /// (FT-710: a row kept its `pending` badge after the tab left the page while the counts no longer had it).
+    /// (a row kept its `pending` badge after the tab left the page while the counts no longer had it).
     Other(NavStamp, Option<String>),
 }
 
@@ -115,10 +114,10 @@ pub struct NavigatorPane {
     view: std::ops::Range<usize>,
     /// The list's height on the last frame (W31-1: a shorter list scrolls its cursor back into view).
     list_height: f32,
-    /// FT-560: the list's scroll area as last shown, and whether it came new (a dock change rebuilt the pane's ids,
+    /// The list's scroll area as last shown, and whether it came new (a dock change rebuilt the pane's ids,
     /// so the area starts at the top again): the cursor is then scrolled into view as if it had moved.
     scroll_area: (Option<egui::Id>, bool),
-    /// Table mode's widget state (WP-S2.06 part 3).
+    /// Table mode's widget state.
     table: crate::nav_table::TableUi,
 }
 
@@ -200,9 +199,9 @@ impl NavigatorPane {
 
     /// Paints the navigator of `shell` into `ui`.
     pub(crate) fn show(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
-        // FT-1415: where the pane ends, under the Messages list's detail block and footer.
+        // Where the pane ends, under the Messages list's detail block and footer.
         let pane_bottom = ui.max_rect().bottom();
-        // The Pages navigator as built (WP-S2.03); in table mode (WP-S2.06 part 3) it is a generic navigator.
+        // The Pages navigator as built; in table mode it is a generic navigator.
         let pages = self.kind == NavKind::Pages && shell.nav(NavKind::Pages).is_none();
         let table_nav = shell.nav(self.kind).filter(|n| n.table_mode().is_some());
         let in_table = table_nav.is_some();
@@ -233,7 +232,7 @@ impl NavigatorPane {
                     ui.set_min_size(line.size());
                     ui.spacing_mut().item_spacing.x = t.space_2;
                     if pages {
-                        // The New page entry (FT-408) beside the filter: the same action as Page, New page, disabled
+                        // The New page entry beside the filter: the same action as Page, New page, disabled
                         // with its reason.
                         let new_page = ew_viewmodel::actions::find("page.new").map(|a| (a.enabled)(shell));
                         let enabled = matches!(new_page, Some(Ok(())));
@@ -252,7 +251,7 @@ impl NavigatorPane {
                             events.push(Event::Action("page.new", Value::Null));
                         }
                     }
-                    // WP-S2.06 part 3: the Table toggle (§8.1, `navigator.table`); the Messages pane (WP-S2.09 part 2)
+                    // The Table toggle (§8.1, `navigator.table`); the Messages pane
                     // has no table mode, so no toggle.
                     if self.kind != NavKind::Messages {
                         let toggle = crate::components::icon_toggle(
@@ -291,7 +290,7 @@ impl NavigatorPane {
                             let text = strings::format(key!("nav-scope-strip"), &[words]);
                             return ui
                                 .with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                                    // ID-1320: the scope takes the width it has; cut there with "…", its whole
+                                    // The scope takes the width it has; cut there with "…", its whole
                                     // text is its tooltip.
                                     ui.add(egui::Label::new(text).truncate())
                                 })
@@ -321,7 +320,7 @@ impl NavigatorPane {
         if pages {
             reorder_card(ui, shell, events);
         }
-        // WP-S2.09 part 2: the message panel's header line and quick-fix card above the rows, its detail block and
+        // The message panel's header line and quick-fix card above the rows, its detail block and
         // footer below them.
         if self.kind == NavKind::Messages {
             crate::messages::header(ui, shell, events);
@@ -390,9 +389,9 @@ impl NavigatorPane {
                     });
             }
         }
-        // WP-S1.19 part 6: the Libraries navigator's Update… and the Macros navigator's detail block.
+        // The Libraries navigator's Update… and the Macros navigator's detail block.
         crate::library_panes::show(ui, shell, self.kind, events);
-        // WP-S2.06 part 3: the table card of this navigator's gesture.
+        // The table card of this navigator's gesture.
         table_card(ui, shell, self.kind, events);
         let visible = self.visible_rows(shell);
         let cursor = shell.nav_cursor(self.kind);
@@ -452,7 +451,7 @@ impl NavigatorPane {
                 json!({"area": "navigator", "kind": self.kind_word()}),
             ));
         }
-        // WP-S2.06 part 3: a navigator in table mode is drawn as its table.
+        // A navigator in table mode is drawn as its table.
         if let Some(nav) = table_nav {
             let writable =
                 ew_viewmodel::actions::find("table.edit").is_some_and(|a| (a.enabled)(shell).is_ok());
@@ -461,7 +460,7 @@ impl NavigatorPane {
                 .table
                 .show(ui, nav, writable, preview, (list_id, ours), events);
             self.painted = self.table.painted;
-            // FT-532: table mode without rows says why, as the tree does (doc 16a §6.17, CP5).
+            // Table mode without rows says why, as the tree does (doc 16a §6.17, CP5).
             if !has_rows {
                 self.view = 0..0;
                 self.empty_state(ui, shell, false, events);
@@ -503,7 +502,7 @@ impl NavigatorPane {
         let row = row_height(ui.ctx());
         // The list keeps to that room: neither the rest of the pane nor egui's default minimum of 64 points may run
         // it under the Messages detail block, which the token sizes made reachable in a short pane.
-        // FT-567: a list with more rows than room ends on a whole row, so its last row is never cut mid-glyph.
+        // A list with more rows than room ends on a whole row, so its last row is never cut mid-glyph.
         let room = list_rect.height().max(0.0);
         let list_height = if visible.len() as f32 * row > room {
             (room / row).floor() * row
@@ -515,7 +514,7 @@ impl NavigatorPane {
             .auto_shrink([false, false])
             .max_height(list_height)
             .min_scrolled_height(list_height);
-        // FT-528: the scroll is a scroll target without animation inside the list (two rows above the cursor at the
+        // The scroll is a scroll target without animation inside the list (two rows above the cursor at the
         // top), not a set offset: egui clamps a target to this frame's room, while an offset past the last frame's room
         // (the list just got shorter) springs back with momentum and carries the cursor row out of view again.
         if scroll_to.is_some() {
@@ -535,7 +534,7 @@ impl NavigatorPane {
                 if let Some(i) = scroll_to {
                     // The closure's rectangle starts at the first row it paints, `range.start`.
                     let first = ui.max_rect().top() - range.start as f32 * row;
-                    // FT-915: two rows above the cursor, fewer in a list of fewer than three rows (the Messages list
+                    // Two rows above the cursor, fewer in a list of fewer than three rows (the Messages list
                     // beside a tall detail block keeps two), so the cursor row stays on show.
                     let lead = 2.min(fits.saturating_sub(1)) as f32;
                     let top = first + (i as f32 - lead).max(0.0) * row;
@@ -555,7 +554,7 @@ impl NavigatorPane {
                     if let Some(r) = renaming.as_ref().filter(|r| r.key == row.key) {
                         let error = shell.nav_rename_error();
                         rename_ui(ui, kind, row, &r.text, error.is_some(), events);
-                        // FT-633: a refused device tag shows the Properties grid's refusal and proposal under it.
+                        // A refused device tag shows the Properties grid's refusal and proposal under it.
                         if let Some((message, proposal)) = error {
                             rename_error_ui(ui, row, message, proposal, events);
                         }
@@ -572,7 +571,7 @@ impl NavigatorPane {
                 }
             }
         });
-        // FT-1415: the dock follows the Messages rows and what stands under them (the detail block, the footer).
+        // The dock follows the Messages rows and what stands under them (the detail block, the footer).
         if kind == NavKind::Messages {
             let below = (pane_bottom - list_rect.bottom()).max(0.0);
             crate::dock::report_content(
@@ -612,7 +611,7 @@ impl NavigatorPane {
             }
             return;
         }
-        // WP-S4.02 part 3: the Unplaced devices navigator says whether the project has no layout space yet or every
+        // The Unplaced devices navigator says whether the project has no layout space yet or every
         // device of its locations is placed ("Every device of +J-E-2416 is placed.").
         if self.kind == NavKind::Unplaced {
             let (line, sentence) = shell.unplaced_empty();
@@ -628,7 +627,7 @@ impl NavigatorPane {
         crate::components::empty_state(ui, icon, line, sentence, None);
     }
 
-    /// The navigator's keys while it has the focus (WP-S2.03 §6.1, WP-S2.06 §6.4).
+    /// The navigator's keys while it has the focus.
     fn keys(
         &mut self,
         ui: &Ui,
@@ -665,7 +664,7 @@ impl NavigatorPane {
         let card = shell.properties().card().is_some_and(|c| match c.origin {
             CardOrigin::Reorder { .. } => pages,
             CardOrigin::QuickFix { .. } => self.kind == NavKind::Messages,
-            // WP-S2.06 part 3: a table card.
+            // A table card.
             CardOrigin::Table { .. } => true,
             _ => false,
         });
@@ -818,7 +817,7 @@ pub(crate) fn empty_texts(kind: NavKind) -> (crate::icons::IconId, &'static str,
             );
         }
         NavKind::Libraries => (IconId::books, key!("empty-nav-libraries")),
-        // WP-S4.02 part 3: the pane draws the shell's texts (`ShellModel::unplaced_empty`); these are the first state's.
+        // The pane draws the shell's texts (`ShellModel::unplaced_empty`); these are the first state's.
         NavKind::Unplaced => {
             return (
                 IconId::layout_dashboard,
@@ -891,7 +890,7 @@ fn rename_ui(
     }
 }
 
-/// FT-633: under a device row's F2 field, the refusal of the typed tag as the Properties grid words it (the icon and
+/// Under a device row's F2 field, the refusal of the typed tag as the Properties grid words it (the icon and
 /// the message in `color.error`, `type.small`) and its proposal as the same button ("Use -102F3", "Join -K1"), which
 /// runs `props.accept_tag_proposal`.
 fn rename_error_ui(
@@ -981,7 +980,7 @@ fn row_ui(
                 }
                 None => false,
             };
-            // WP-S2.09 part 2: a finding row's severity icon; a pending one is muted. WP-S2.17 part 3 (doc 16a §6.24,
+            // A finding row's severity icon; a pending one is muted. WP-S2.17 part 3 (doc 16a §6.24,
             // K32): the icon and the word; a severity group row has its icon in place of the folder.
             if let Some(look) = row.finding {
                 crate::messages::severity_cell(ui, look);
@@ -1033,7 +1032,7 @@ fn row_ui(
                 .sum();
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.add_space(t.space_4);
-                // C50-p5#2: a status badge from its code, a chip and a count from the words.
+                // A status badge from its code, a chip and a count from the words.
                 for (b, code) in row.badges.iter().zip(&row.badge_codes).rev() {
                     if kind != NavKind::Messages {
                         crate::components::caption_chip(ui, b);
@@ -1184,7 +1183,7 @@ fn row_ui(
                 "navigator.select",
                 json!({"kind": word, "keys": [row.key]}),
             ));
-            // FT-1024 (ID-1107, doc 16a §6.6): a single click on a page row opens that page; Ctrl-click and Shift-click
+            // FT-1024 (doc 16a §6.6): a single click on a page row opens that page; Ctrl-click and Shift-click
             // only mark rows, and a double click still opens.
             if pages && row.openable {
                 open(events, kind, pages, &row.key, false);
@@ -1193,7 +1192,7 @@ fn row_ui(
     }
 }
 
-/// The reorder card in the Pages pane (§6.6; WP-S2.17 part 4, doc 16a §6.23): "Reorder pages" with its revision and
+/// The reorder card in the Pages pane (§6.6; doc 16a §6.23): "Reorder pages" with its revision and
 /// status badge, "106 → 103, 103 → 106 · <n> tags, <m> cross-reference texts", Apply and Cancel.
 fn reorder_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let Some(card) = shell.properties().card() else {
@@ -1212,8 +1211,7 @@ fn reorder_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     crate::components::inline_card(ui, shell, card, events, |_, _| {});
 }
 
-// WP-S2.06 part 3
-/// The table card in the pane of the navigator whose gesture it holds (§8.7; WP-S2.17 part 4, doc 16a §6.23): the
+/// The table card in the pane of the navigator whose gesture it holds (§8.7; doc 16a §6.23): the
 /// title with the gesture and its counts, the pasted columns that were ignored, every invalid or ambiguous cell (row,
 /// column, text, reason) with a button per reading (`table.resolve`) and Drop (`table.drop`), then Apply and Cancel.
 fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<Event>) {
@@ -1253,7 +1251,7 @@ fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<E
                         }
                     }
                 }
-                // FT-567: Drop is a Secondary button beside the readings (doc 16a §6.21), not bare text.
+                // Drop is a Secondary button beside the readings (doc 16a §6.21), not bare text.
                 if button(
                     ui,
                     Kind::Secondary,

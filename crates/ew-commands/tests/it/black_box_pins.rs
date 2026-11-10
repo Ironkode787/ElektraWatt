@@ -489,7 +489,7 @@ fn move_tag(e: &mut Engine, rep: Id<Representation>) {
     .expect("the tag moved");
 }
 
-/// FT-867 (ID-1137): a half turn of a black box writes no text override; the drawing places its texts as on the same
+/// A half turn of a black box writes no text override; the drawing places its texts as on the same
 /// box unturned (`ew_derive::text_frame`, tested through the page scene in `ew-api`'s `half_turned_black_box`).
 #[test]
 fn ft867_a_half_turn_of_a_black_box_writes_no_text_override() {
@@ -508,7 +508,7 @@ fn ft867_a_half_turn_of_a_black_box_writes_no_text_override() {
     }
 }
 
-/// FT-867 (ID-1137): a second half turn gives back the record as it was before the first.
+/// A second half turn gives back the record as it was before the first.
 #[test]
 fn ft867_a_second_half_turn_gives_back_the_original_record() {
     let mut e = engine(texts_model());

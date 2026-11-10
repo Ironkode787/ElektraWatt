@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The orientation arithmetic the canvas tools need without a `Session` (WP-S2.04 §4.3): pure functions equal to
+//! The orientation arithmetic the canvas tools need without a `Session`: pure functions equal to
 //! `ew_units::Orient2`'s mapping, on the plain integers a tool holds.
 //!
 //! An orientation is `o` in `0..=7`, the variant letters A to H of doc 06 §2.5: R0, R90, R180, R270 (quarter turns

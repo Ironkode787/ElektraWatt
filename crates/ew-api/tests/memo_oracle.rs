@@ -13,7 +13,7 @@
 //!
 //! Tests:
 //! - `memo_equals_cold_over_every_state` (`MemoMode::On`): at every state every `Memo` family of
-//!   `ew_derive::FAMILIES` (`potential_flow` is a cold lookup, decision log ID-221), `ew_reports::FAMILIES` and
+//!   `ew_derive::FAMILIES` (`potential_flow` is a cold lookup), `ew_reports::FAMILIES` and
 //!   `ew_api::output::FAMILIES` (the page views and the page display list of every layer) is read for every key of
 //!   the snapshot through a memoising `Q` and through `Session::query_over`; the values are equal, so are the
 //!   derivation notes, and a second memoising `Q` (mostly memo hits) is equal again, with hits in the
@@ -23,12 +23,12 @@
 //!   gate the value equality of every family and key is `memo_equals_cold_over_every_state`'s; this test checks
 //!   the engine's own oracle path (test audit g7: one sampled run instead of five shards at one in eight). Its
 //!   `#[ignore]`d twin `oracle_finds_no_mismatch_over_every_state_on_every_read` re-runs every read in one run
-//!   (the deep nightly, FT-297).
+//!   (the deep nightly).
 //! - `the_family_list_is_the_memo_families` (the guard that a promotion or demotion of a family breaks the
 //!   test loudly).
-//! - `a_cold_q_evaluates_every_query_once` (review cycle 10, finding 1): a cold `Q` evaluates each (family,
+//! - `a_cold_q_evaluates_every_query_once` (review, finding 1): a cold `Q` evaluates each (family,
 //!   key) once, detached scopes included.
-//! - `creating_and_deleting_a_page_60_times_does_not_grow_the_store` (review cycle 10, finding 3): the
+//! - `creating_and_deleting_a_page_60_times_does_not_grow_the_store` (review, finding 3): the
 //!   memo store's dependencies, memos and push index stay within a small constant of the live set.
 
 // The profile edit of the last state applies raw ops to a snapshot (`Model::apply_unchecked`, `raw-read`).
@@ -51,7 +51,7 @@ use ew_testids::seeded_ids;
 use serde_json::{Value, json};
 
 // The families this test reads: the memoised families of the three `FAMILIES` lists (`ew_api::verify`): the
-// derived data, the report engine and the page output (the views and the per-layer page display lists, FT-59).
+// derived data, the report engine and the page output (the views and the per-layer page display lists).
 use ew_api::verify::SWEPT;
 
 /// The oracle samples one memoised read in this many (see `oracle_finds_no_mismatch_over_every_state`).
@@ -522,7 +522,7 @@ fn run_states(
     step(
         session,
         "9 page.renumber",
-        // Section 1's pages, inside its folios 100 to 199 (FT-1511, WP-S6.08 D27).
+        // Section 1's pages, inside its folios 100 to 199.
         &by(vec![cmd(
             "page.renumber",
             json!({"scope": {"section": "4fedea58-1889-5ba9-aeb8-8ab28ffe9e89"}, "start": 110, "step": 3}),

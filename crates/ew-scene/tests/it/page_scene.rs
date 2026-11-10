@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page display lists of a synthetic page (WP-S3.04): CP resolution, wires, junctions, link roles, slot
+//! Page display lists of a synthetic page: CP resolution, wires, junctions, link roles, slot
 //! texts, wire markers, findings, layer independence and the sheet list.
 
 use std::sync::Arc;
@@ -71,7 +71,7 @@ fn connection(n: u128, a: serde_json::Value, b: serde_json::Value) -> Arc<Connec
     Arc::new(serde_json::from_value(json!({ "id": uuid(n), "a": a, "b": b, "page": uuid(PAGE) })).unwrap())
 }
 
-/// `connection` with the stored route `route` (page nm, both ends included; WP-S2.19 D2): a wire without one is
+/// `connection` with the stored route `route` (page nm, both ends included): a wire without one is
 /// unrouted and drawn dashed (D3).
 fn routed(n: u128, a: serde_json::Value, b: serde_json::Value, route: &[(i64, i64)]) -> Arc<Connection> {
     let route: Vec<[i64; 2]> = route.iter().map(|&(x, y)| [x, y]).collect();
@@ -233,7 +233,7 @@ fn wires_run_between_the_drawn_cps_and_junction_arms_meet_at_the_junction() {
     // Terminal CPs: idx 0 one grid step below the origin ((0, 2 645 833) = 1 grid step), idx 1 above.
     let below = |x, y| Pt2::new(Nm(g(x)), Nm(g(y) + 2_645_833));
     let above = |x, y| Pt2::new(Nm(g(x)), Nm(g(y) - 2_645_833));
-    // F1 top (the CP at y = 20 - 1 step) → junction, along their stored routes (WP-S2.19 D2).
+    // F1 top (the CP at y = 20 - 1 step) → junction, along their stored routes.
     assert_eq!(lines[0].1.first(), Some(&above(10, 20)));
     assert_eq!(lines[0].1.last(), Some(&p(40, 20)));
     assert_eq!(lines[1].1.first(), Some(&p(40, 20)));

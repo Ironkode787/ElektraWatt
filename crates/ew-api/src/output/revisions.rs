@@ -22,7 +22,7 @@
 //! (FR-I18N-005); the loop over the documentation languages joins when they render.
 //!
 //! The digest reads the memoised layers and the memoised title block, so it is a function of `Q` (Class I), whatever
-//! the thread that encodes it; [`page_digest`] is itself memoised ([`PageDigest`], FT-722), so the change status
+//! the thread that encodes it; [`page_digest`] is itself memoised ([`PageDigest`]), so the change status
 //! reads each page's digest once per revision ([`page_digests`] encodes on [`ew_export::par_map`]).
 //!
 //! **The change status.** `r_last` is the latest released revision that is not withdrawn
@@ -38,7 +38,7 @@
 //! - [`changed_pages`]: of `o`, the pages changed now, in page order; of any other revision the pages it records
 //!   ([`ew_derive::recorded_changed_pages`]) that are in the page order, in page order.
 //!
-//! **How the status reaches the outputs** (the mechanism of WP-S1.18 part 2): `ew-derive` and `ew-reports` cannot
+//! **How the status reaches the outputs** (the mechanism): `ew-derive` and `ew-reports` cannot
 //! see the page scene, so this crate computes the status and hands it down as a parameter, as ADR-0032 hands the
 //! text-style table to the scene: `ew_derive::last_changed_in` takes `changed_now`, the page bindings
 //! (`PageBindingsOf`) replace the title block's `page.last_changed_in` with [`last_changed_in`] in the digest branch,
@@ -179,7 +179,7 @@ fn title_value(c: &mut Canonical, value: &TbValue) {
     }
 }
 
-/// `page_digest(page)`: the memoised digest of one page (FT-722; Class I, doc 15 §5.6), `None` for a page that is
+/// `page_digest(page)`: the memoised digest of one page (Class I, doc 15 §5.6), `None` for a page that is
 /// not in the page order. It reads the page order, the page's memoised layers and its title block, so an edit on
 /// one page re-executes only that page's digest.
 #[derive(Debug)]

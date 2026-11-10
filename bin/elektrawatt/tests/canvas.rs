@@ -234,7 +234,7 @@ fn a6_the_canvas_snapshot_matches_the_golden_page_and_shows_the_view() {
             if rgb_at(&grid, 1200, x, y) == rgb_at(&plain, 1200, x, y) {
                 continue;
             }
-            // Doc 16a §4.6 (WP-S2.17 part 5): `canvas.grid_dot`.
+            // Doc 16a §4.6: `canvas.grid_dot`.
             assert_eq!(rgb_at(&grid, 1200, x, y), [0xB8, 0xBE, 0xC7], "({x}, {y})");
             assert!(
                 on_grid(x, ox) && on_grid(y, oy),
@@ -257,7 +257,7 @@ fn a6_the_canvas_snapshot_matches_the_golden_page_and_shows_the_view() {
         "the whole sheet is in view"
     );
     assert_eq!(rgb_at(&fit, 1200, 0, 0), [0xE3, 0xE6, 0xEA], "the light surround");
-    // Doc 16a §4.6 (WP-S2.17 part 5): the page bound in `border.default`.
+    // Doc 16a §4.6: the page bound in `border.default`.
     let border = [0xD5, 0xD9, 0xDF];
     assert_eq!(
         rgb_at(&fit, 1200, fx - 1, fy + sheet_h / 2),
@@ -359,7 +359,7 @@ fn a8_the_pointer_at_an_entity_hovers_it_in_the_transcript_and_the_describe_text
         .as_str()
         .expect("an entity is hovered")
         .to_owned();
-    // The entity as its alias `@n`, never its UUID (FT-422, ID-630); the describe line names it with its box, which
+    // The entity as its alias `@n`, never its UUID; the describe line names it with its box, which
     // identifies the entity of the page.
     assert!(ew_ui::ew_viewmodel::alias::is_alias(&hover), "{hover}");
     let describe = steps[7]["describe"].as_str().unwrap();
@@ -491,7 +491,7 @@ fn bin_exe() -> std::path::PathBuf {
 }
 
 // -----------------------------------------------------------------------------------------------------------------
-// The tool framework (WP-S2.03 part 2)
+// The tool framework
 
 /// How many pixels of `rgba` have exactly the colour `c`.
 fn count(rgba: &[u8], c: [u8; 3]) -> usize {
@@ -502,7 +502,7 @@ fn count(rgba: &[u8], c: [u8; 3]) -> usize {
         .count()
 }
 
-// Doc 16a §4.6 (WP-S2.17 part 5): the measure line in slate-900; the snap markers, the grid cursor and the rubber
+// Doc 16a §4.6: the measure line in slate-900; the snap markers, the grid cursor and the rubber
 // band in the one accent.
 const MEASURE: [u8; 3] = [0x1A, 0x1D, 0x21];
 const ACCENT: [u8; 3] = [0x0B, 0x63, 0xCE];
@@ -611,7 +611,7 @@ fn t7_the_snapshot_composites_the_tool_overlay() {
     let (_, _, band) = decode_rgba(&band);
     let (_, _, markers) = decode_rgba(&markers);
     assert_eq!(count(&plain, MEASURE), 0);
-    // The overlay is counted over the plain page. The open squares of unconnected CPs (FT-705) are a neutral grey
+    // The overlay is counted over the plain page. The open squares of unconnected CPs are a neutral grey
     // since FX38a, so the plain page has no accent.
     let base = count(&plain, ACCENT);
     assert_eq!(base, 0, "no accent on the plain page");

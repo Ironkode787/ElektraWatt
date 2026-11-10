@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The switch rule (WP-S2.02 §7.2): which renderer draws the canvas, as one pure function over the host's facts.
+//! The switch rule: which renderer draws the canvas, as one pure function over the host's facts.
 //!
 //! | # | Condition | Canvas |
 //! |---|---|---|
@@ -15,7 +15,7 @@
 //!
 //! The rows are checked in that order: an adapter that row 6 rules out is never initialised, so its `init` result
 //! does not matter. A host with no adapter at all cannot open its window (egui's own chrome needs one); the
-//! application exits with code 3 before the rule is ever asked (decision log ID-514).
+//! application exits with code 3 before the rule is ever asked.
 
 use std::fmt;
 
@@ -191,7 +191,7 @@ pub fn choose(
     }
 }
 
-/// The adapter `--no-gpu` gives the window (WP-S2.02 §7.2 row 1): the first adapter whose device kind is
+/// The adapter `--no-gpu` gives the window (row 1): the first adapter whose device kind is
 /// [`DeviceKind::Cpu`]; without one, the default adapter (the first discrete, then integrated, virtual, other
 /// adapter, the order of a high-performance preference) and `false` (the host shows a banner). `None` for an empty
 /// list (no adapter at all: exit code 3).
@@ -258,7 +258,7 @@ mod tests {
         ] {
             assert_eq!(choose(none, auto, Some(&adapter(kind, api)), &OK), gpu(label));
         }
-        // Row 5: WARP stays on the GPU path (ID-514).
+        // Row 5: WARP stays on the GPU path.
         assert_eq!(choose(none, auto, Some(&warp), &OK), CanvasBackend::Warp);
         // Row 6: other software adapters draw on the CPU, even when their initialisation would succeed.
         for a in [&lavapipe, &llvmpipe] {

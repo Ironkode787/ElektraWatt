@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The generator of the hostile corpus's binary files and of the files too large to commit (WP-S6.04 D10): each file by
+//! The generator of the hostile corpus's binary files and of the files too large to commit: each file by
 //! its corpus name. [`committed`] are the small binary files, committed under `hostile/` and compared with what this
 //! module makes (`EW_BLESS=1` writes them); [`large`] are made here only, in memory, at each run.
 

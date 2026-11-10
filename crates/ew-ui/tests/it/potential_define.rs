@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The G-PP triage's row 8 in the window, as amended by WP-S1.16 D4 (FT-577): in the Potentials table, a potential
+//! The G-PP triage's row 8 in the window, as amended by WP-S1.16 D4: in the Potentials table, a potential
 //! known only at its connection points (its definition deleted) has editable Name and Type cells (their AccessKit
 //! names do not end ", read-only"); a double click on the Name opens the cell editor, and the typed name defines the
 //! potential in one step.
@@ -145,7 +145,7 @@ fn the_type_cell_of_an_undefined_potential_is_editable() {
 
 /// FT-1239's row with a context menu, in the window `h` on a copy of Golden A: the Potentials table, 24VDC-4's
 /// definition deleted, filtered to the first row with a point to define its potential at; the accessible name of its
-/// Potential cell and the point (the census opens its menu too, FT-1424).
+/// Potential cell and the point (the census opens its menu too).
 pub(crate) fn a_row_to_define(
     h: &mut Harness<'static, App>,
 ) -> (String, (impl std::fmt::Display + use<>, u16)) {
@@ -187,7 +187,7 @@ pub(crate) fn a_row_to_define(
     (cell_name(h.state().shell(), node, "Potential"), at)
 }
 
-/// FT-1239: a right click on a Potentials row with a definition point opens its context menu with Define potential…;
+/// A right click on a Potentials row with a definition point opens its context menu with Define potential…;
 /// it opens the form, which defines the row's potential at the row's point.
 #[test]
 fn a_potentials_rows_context_menu_defines_its_potential() {
@@ -294,7 +294,7 @@ fn a_failed_define_stays_in_its_form_and_no_banner_follows() {
         h.state().shell().banner(),
         Some("\"abc\" is not a voltage; type it as 24 V DC, 230 V AC or 24.")
     );
-    // FT-1260: reopening its form is no success: the banner stays, the form open over it.
+    // Reopening its form is no success: the banner stays, the form open over it.
     h.state_mut().dispatch_from_window("potential.draw", &json!({}));
     settle(&mut h);
     assert!(
@@ -315,8 +315,8 @@ fn a_failed_define_stays_in_its_form_and_no_banner_follows() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1205 (ID-1392): Escape in a context menu closes the menu and nothing else: the selection stays, as Escape in the
-/// app menu does (FT-1130).
+/// Escape in a context menu closes the menu and nothing else: the selection stays, as Escape in the
+/// app menu does.
 #[test]
 fn escape_in_a_context_menu_keeps_the_selection() {
     let tmp = Tmp::new();

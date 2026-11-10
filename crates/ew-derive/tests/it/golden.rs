@@ -33,7 +33,7 @@
 //!
 //! The fixture is a subset of Golden A (see `tests/common/golden.rs`): the quantities of the strips and of
 //! the 533361 and 571334 rows count the fixture's devices, not the 20, 5, 7 and 28 of doc 20.
-//! The generated folios (2, 901, 903 to 911) are not in the fixture (WP-S3.03).
+//! The generated folios (2, 901, 903 to 911) are not in the fixture.
 
 use crate::common;
 use crate::golden_fixture as golden;

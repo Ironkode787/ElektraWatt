@@ -14,7 +14,7 @@ use super::plc_overview::{address_cell, kind_name, page_cell};
 use crate::kind::{ParamDef, ParamKind, ParamValue, ReportKindDef, kind_params};
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
-/// The block parameter that lists the deactivated channels too (WP-S3.06 D9; decision log ID-950, ruling 1).
+/// The block parameter that lists the deactivated channels too.
 const INCLUDE_DEACTIVATED: &str = "include_deactivated";
 
 /// The I/O list.
@@ -24,8 +24,8 @@ const INCLUDE_DEACTIVATED: &str = "include_deactivated";
 ///   the orchestrator's ruling 10 of cycle 42).
 /// - **Rows:** `plc_rows(station)`: the channels of every module in slot order, then by channel number. A channel
 ///   whose effective state is `deactivated` is left out unless the block parameter `params.include_deactivated` is
-///   `true` (FR-PLC-023: "the same 28 rows ... 56 with the deactivated filter off"), read through `kind_params`
-///   (WP-S3.06 D9): a value that is not a boolean gives the default, `false`, and one `MalformedShim` note naming the
+///   `true` (FR-PLC-023: "the same 28 rows ... 56 with the deactivated filter off"), read through `kind_params`:
+///   a value that is not a boolean gives the default, `false`, and one `MalformedShim` note naming the
 ///   block and the key.
 /// - **Columns:** the 20 columns of FR-PLC-023 this build fills (ruling 4 (b) of cycle 42: passed terminals, signal
 ///   range and the safety address are added with their writers): configuration project, CPU, station, bus address
@@ -70,7 +70,7 @@ impl ReportKindDef for IoList {
         ]
     }
 
-    /// `include_deactivated`: a boolean, `false` by default (WP-S3.06 D9; decision log ID-950, ruling 1).
+    /// `include_deactivated`: a boolean, `false` by default.
     fn params(&self) -> &'static [ParamDef] {
         &[ParamDef {
             key: INCLUDE_DEACTIVATED,

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Image tool (`image`; WP-S2.04 §11, FR-SYM-025): an image asset of the project in a rectangle of two
+//! The Image tool (`image`; FR-SYM-025): an image asset of the project in a rectangle of two
 //! fine-snapped corners that keeps the asset's aspect ratio, committed as an `item.place` image.
 //!
 //! **The asset** is chosen by the host (`image.pick`, which resolves the hash through the session and hands the tool

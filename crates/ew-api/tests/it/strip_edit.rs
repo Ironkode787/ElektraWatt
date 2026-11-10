@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The strip editor below the shell on Golden A (WP-S2.07 part 1): the strips table's rows, columns and accessory rows
+//! The strip editor below the shell on Golden A: the strips table's rows, columns and accessory rows
 //! (SE7, D2, D3), the bridge groups (SE4, D6), the part resolver's kinds and ambiguity (SE5, D7), the group labels
 //! (SE8, D8, D13) and the commands `Session::strip_edit` compiles (§4.2, D5, D14).
 

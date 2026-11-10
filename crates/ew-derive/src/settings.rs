@@ -101,7 +101,7 @@ pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
         Member::Numbering => {
             let settings = serde_json::from_value::<crate::NumberingSettings>(value.clone())
                 .map_err(|e| e.to_string())?;
-            // A default that names no scheme falls back to the profile's scheme (decision log ID-103).
+            // A default that names no scheme falls back to the profile's scheme.
             if !settings.schemes.iter().any(|s| s.key == settings.default) {
                 return Err(format!(
                     "the default `{}` names no scheme of `schemes`; tags would silently use the profile's \
@@ -203,18 +203,18 @@ impl Query for SettingsMember {
     }
 }
 
-/// The drawing settings of the project: the member `drawing` of `ProjectSettings.extra` (WP-S2.04 D16, §8.6),
+/// The drawing settings of the project: the member `drawing` of `ProjectSettings.extra`,
 /// typed. Absent, not an object, or a member of an unknown value: the as-built defaults.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct DrawingSettings {
     /// `crossings: "hops"`: crossing wires are drawn as hops (FR-CON-031); else plain.
     pub hops: bool,
-    /// `marker_mode` (FR-CON-024, WP-S2.04 D16): which wires carry a marker; `None` (absent or an unknown value) is
+    /// `marker_mode` (FR-CON-024): which wires carry a marker; `None` (absent or an unknown value) is
     /// the as-built rule, a connection's `show_marker`.
     pub marker_mode: Option<crate::items::MarkerMode>,
 }
 
-/// `drawing_settings()`: the project's [`DrawingSettings`] (WP-S2.04 part 2, §8.6). Policy Memo: a cut-off point
+/// `drawing_settings()`: the project's [`DrawingSettings`]. Policy Memo: a cut-off point
 /// over the project row, so an edit of another settings member leaves the readers (the wires layer of every page)
 /// valid.
 #[derive(Debug)]

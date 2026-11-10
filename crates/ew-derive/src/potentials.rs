@@ -73,7 +73,7 @@ pub enum NameSource {
     Def(Id<PotentialDef>),
     /// A source interruption point.
     SourceIp(Id<Function>),
-    /// The supply (doc 08 §3.5 step 2b, WP-S1.16 D1): `<root>/<tag>:<designation>` of the pass-through pair of
+    /// The supply (doc 08 §3.5 step 2b): `<root>/<tag>:<designation>` of the pass-through pair of
     /// `via` that enters the potential from upstream.
     Supply {
         /// The function whose pass-through pair enters the potential.
@@ -430,13 +430,13 @@ pub fn potential_id_at(q: &Q, at: EndpointKey) -> Option<PotentialId> {
 }
 
 /// The partition, read as part [`PartKey::Potential`] of `id`: the caller reads the topology of `id` only
-/// (`Partition::get`, `Partition::component_of`), so a topology edit elsewhere does not reach it (FT-236).
+/// (`Partition::get`, `Partition::component_of`), so a topology edit elsewhere does not reach it.
 pub fn potential_part(q: &Q, id: PotentialId) -> Arc<Partition> {
     q.get_part::<PotentialPartition>((), PartKey::Potential(id))
 }
 
 /// The bonds with an end on the potential `id`, in bond ID order, read as the parts [`PartKey::Bonds`] (the bond
-/// records) and [`PartKey::BondsOf`] of `id` (which bonds end on it) instead of the whole partition (FT-236): a
+/// records) and [`PartKey::BondsOf`] of `id` (which bonds end on it) instead of the whole partition: a
 /// topology change re-runs only the readers of the potentials it touches.
 pub fn bonds_of_potential(q: &Q, id: PotentialId) -> Vec<BondLink> {
     let _ = q.get_part::<PotentialPartition>((), PartKey::Bonds);
@@ -705,7 +705,7 @@ pub(crate) fn bond_parts(old: &[BondLink], new: &[BondLink]) -> Vec<PartKey> {
     parts.into_iter().collect()
 }
 
-/// The pages of the drawn `Bus` connections of a potential (doc 08 §3.3; FT-105): a bus line joins its nets
+/// The pages of the drawn `Bus` connections of a potential (doc 08 §3.3): a bus line joins its nets
 /// but is no physical wire, so the pages a potential is drawn on are the pages of its wires and these. A
 /// connection belongs to the potential of its first endpoint (both ends are in one potential).
 pub fn bus_line_pages(q: &Q, partition: &Partition, potential: PotentialId) -> BTreeSet<Id<Page>> {

@@ -725,7 +725,7 @@ proptest! {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// LibRef shapes: the undo of an embedding (FT-316, EW-INV-021)
+// LibRef shapes: the undo of an embedding (EW-INV-021)
 
 /// One library item of the `LibRef` property: whether a record embedded before the batch names it, whether
 /// the batch embeds its FnDef copy, and whether the batch embeds a new record that names it. The naming
@@ -783,7 +783,7 @@ fn lib_row(doc: LibDocument) -> AnyRow {
 proptest! {
     #![proptest_config(ProptestConfig { cases: 64, ..ProptestConfig::default() })]
 
-    /// Doc 18 §3.3 `undo(all) ∘ apply(cmds) = id` across `LibRef` shapes (FT-316): a batch that embeds FnDef
+    /// Doc 18 §3.3 `undo(all) ∘ apply(cmds) = id` across `LibRef` shapes: a batch that embeds FnDef
     /// copies and symbols and parts naming them, some of the copies named by records embedded before, commits
     /// on the edit path; its inverse on the history path restores the start, which passes the integrity check,
     /// and redo restores the batch's result. On the edit path the same inverse is refused exactly when it

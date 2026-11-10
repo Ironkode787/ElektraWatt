@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The deterministic ZIP writer and its strict reader (doc 05 §12, §14.2; WP-S1.18 D11): the container of the as-built
-//! archive, on `miniz_oxide`'s raw deflate (already in the graph, decision log ID-827), so that the archive's bytes
+//! The deterministic ZIP writer and its strict reader (doc 05 §12, §14.2): the container of the as-built
+//! archive, on `miniz_oxide`'s raw deflate (already in the graph), so that the archive's bytes
 //! depend on no ZIP crate's defaults.
 //!
 //! **The writer** ([`write()`]) takes the entries in the order the caller gives them and writes, for each, a local file
@@ -760,7 +760,7 @@ mod tests {
         #[test]
         fn round_trip(files in proptest::collection::btree_map("[a-z]{1,4}/\\.{0,2}[a-z0-9_][a-z0-9_.]{0,5}", proptest::collection::vec(any::<u8>(), 0..300), 0..8)) {
             // `.` and `..` segments are refused by design; the generator's other names are all accepted. It writes
-            // none: a last segment holds a character that is not a dot (ID-1493: the assumption rejected too many).
+            // none: a last segment holds a character that is not a dot (the assumption rejected too many).
             prop_assume!(files.keys().all(|n| !n.ends_with("/.") && !n.ends_with("/..")));
             let entries: Vec<(&str, Method, &[u8])> = files
                 .iter()

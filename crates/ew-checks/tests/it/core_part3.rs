@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.16 part 3: the EW-CORE rules of cables, parts and devices (EW-CORE-031, -032, -034, -036, -037, -041 to
-//! -045, -048), EW-CORE-008's `form` half (FT-368) and the canonical finding order (FT-594). One positive and one
+//! The EW-CORE rules of cables, parts and devices (EW-CORE-031, -032, -034, -036, -037, -041 to
+//! -045, -048), EW-CORE-008's `form` half and the canonical finding order. One positive and one
 //! negative fixture per rule (P3-1), prevent rules refusing the candidate and only it, and the ID-permutation tests
 //! of WP-S1.16 §10.
 
@@ -546,7 +546,7 @@ fn core045_reports_contacts_beyond_the_part() {
     assert!(findings_of(&contacts(&[], &["no", "no", "no"]), "EW-CORE-045").is_empty());
 }
 
-/// EW-CORE-045 (ID-821): a change-over contact of the part serves one normally open or one normally closed function,
+/// EW-CORE-045: a change-over contact of the part serves one normally open or one normally closed function,
 /// each change-over at most once; a change-over function needs a change-over contact.
 #[test]
 fn core045_a_change_over_contact_serves_one_no_or_nc_function() {
@@ -676,7 +676,7 @@ fn unconnected(ids: [u128; 3]) -> Model {
     fx.build()
 }
 
-/// FT-594: the findings of one code print in natural order of their subjects, whatever the record IDs: permuting the
+/// The findings of one code print in natural order of their subjects, whatever the record IDs: permuting the
 /// IDs of the functions gives the same report order (the self-test recordings' `check.txt` no longer churns).
 #[test]
 fn findings_of_one_code_order_by_printed_subject_under_id_permutation() {
@@ -701,7 +701,7 @@ fn findings_of_one_code_order_by_printed_subject_under_id_permutation() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// ID permutation (WP-S1.16 §10)
+// ID permutation
 
 /// One permutation case: the rule, its fixture and the ID pairs to swap.
 type Case = (&'static str, Fx, Vec<(u128, u128)>);
@@ -738,7 +738,7 @@ fn printed(m: &Model) -> Vec<String> {
 
 /// The ID-permutation test of every part-3 rule: swapping record IDs (conductors, connections, devices, functions,
 /// part copies, pages) changes no printed finding and no report order, so a fresh project, whose IDs are random,
-/// prints the same findings in the same order (ID-677, WP-S1.16 §10, FT-594).
+/// prints the same findings in the same order.
 #[test]
 fn part3_findings_do_not_follow_record_ids() {
     let cases: Vec<Case> = vec![

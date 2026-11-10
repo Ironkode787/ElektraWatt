@@ -31,7 +31,7 @@
 //! | `functions`, `representations` | `function` (interruption points included), `representation` |
 //! | `connections`, `junctions`, `conductors`, `potentials`, `bonds` | `connection` (wire, core, bridge and bus), `junction`, `conductor`, `potential_def`, `bond` |
 //! | `plc_config_projects`, `channels`, `device_links` | `plc_config_project`, `channel` (ID `plc_channel_id(module, number)`, not the table rule), `device_link` |
-//! | `logical_nets`, `physical_nets`, `bus_ports` | `logical_net`, `physical_net`, and the `bus_port` aspect of the function the port's key names (WP-S1.21 D11; `emit/bus.rs`) |
+//! | `logical_nets`, `physical_nets`, `bus_ports` | `logical_net`, `physical_net`, and the `bus_port` aspect of the function the port's key names (`emit/bus.rs`) |
 //! | `assembly_configs` | the `assembly` aspect of the device `assembly` (its `AssemblyConfig`s in `n` order; `emit/assembly.rs`) |
 //! | `revisions` | the reserved `revision` records |
 //! | `colour_profile`, `size_profile` | the `colour_profile` and `size_profile` members of the project settings (doc 03 §5.1; `emit/profiles.rs`) |
@@ -39,7 +39,7 @@
 //! # Parts into an existing project
 //!
 //! [`parse_parts_tables`] reads a `parts.csv` and its sibling tables strictly into the same project-local part copies
-//! for the `parts.import` command (FT-410; [`parts`]).
+//! for the `parts.import` command ([`parts`]).
 //!
 //! # Hostile input (doc 14 §11)
 //!
@@ -52,7 +52,7 @@
 //! the import continues. Row-level problems drop the row: EW-IMP-002 for a malformed or duplicate row or a key
 //! that is not in Unicode NFC (keys are hashed byte for byte), EW-IMP-003 for a reference that does not
 //! resolve (structural invariants are never relaxed, doc 14 §3.3); a position off the page grid is refused
-//! with EW-IMP-002 (error) and the row is dropped (doc 06 §5.7, ID-54; doc 14 §9 strict mode). At most
+//! with EW-IMP-002 (error) and the row is dropped (doc 06 §5.7, doc 14 §9 strict mode). At most
 //! [`MAX_REPORT_ENTRIES`] findings are listed; the rest are counted in one EW-IMP-001 entry.
 //!
 //! # Strict and lenient colours (doc 14 §4.12, §8.4)
@@ -75,9 +75,9 @@ mod schema;
 mod table;
 
 pub use csv::TableLimits;
-/// The importer's own check of a carrier path (WP-S4.01 D5). `ew-derive`'s `check_path` is the rule; this crate may not
+/// The importer's own check of a carrier path. `ew-derive`'s `check_path` is the rule; this crate may not
 /// depend on `ew-derive` (ci/dep-rules.toml), so it keeps a copy, and `ew-api`'s `golden_csv` test runs both over one
-/// set of paths and asserts they agree (cycle-40 review, part 4, finding 5).
+/// set of paths and asserts they agree (part 4, finding 5).
 #[doc(hidden)]
 pub use emit::layout::path_problem as carrier_path_problem;
 /// The importer contract this crate implements, re-exported for hosts that reach the importer through

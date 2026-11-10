@@ -172,7 +172,7 @@ impl Finding {
     }
 
     /// Whether this is EW-CORE-005 at line level: a line of a JSON Lines file that is not one JSON value or not UTF-8,
-    /// which `ew fmt --repair` discards (doc 05 §6.3; WP-S1.17, decision log ID-1185). A library document that is not
+    /// which `ew fmt --repair` discards (doc 05 §6.3). A library document that is not
     /// JSON or not UTF-8 is EW-CORE-005 of the whole file, with no line, and is not one.
     pub fn is_broken_line(&self) -> bool {
         self.kind == FindingKind::JsonSyntax && self.line.is_some()
@@ -237,7 +237,7 @@ impl Findings {
     }
 
     /// Whether any finding pushed (kept or dropped) other than a broken line ([`Finding::is_broken_line`]) forces a
-    /// read-only session: what `ew fmt --repair` cannot discard, and refuses (WP-S1.17, decision log ID-1185).
+    /// read-only session: what `ew fmt --repair` cannot discard, and refuses.
     pub fn forces_read_only_beyond_repair(&self) -> bool {
         self.beyond_repair
     }

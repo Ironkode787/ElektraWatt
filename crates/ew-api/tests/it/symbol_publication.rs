@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A symbol draft's publication (ID-1463): its own item identity, keys held by other items, the owned function
+//! A symbol draft's publication: its own item identity, keys held by other items, the owned function
 //! definition's version, unknown members and the portable export.
 
 use std::path::{Path, PathBuf};

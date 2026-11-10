@@ -42,7 +42,7 @@ fn run_until_jobs_end(h: &mut Harness<'_, App>) {
 
 /// Waits for the running jobs without running frames, then settles: for a test of what the ends show, not of how the
 /// window takes them. Frames run the window's clock, so polling through a long export ran an earlier toast's 8 seconds
-/// out on a loaded machine (FT-524).
+/// out on a loaded machine.
 fn wait_jobs_then_settle(h: &mut Harness<'_, App>) {
     h.state_mut().shell_mut().wait_jobs();
     settle(h);
@@ -67,7 +67,7 @@ fn jb4_the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     let bytes = std::fs::read(&pdf).unwrap();
     assert!(bytes.starts_with(b"%PDF-"), "the file was replaced");
     let kib = bytes.len().div_ceil(1024);
-    // FT-1212 (ID-1392): the pages by kind.
+    // The pages by kind.
     let text = format!(
         "Exported out.pdf: 13 drawing pages, 3 section divider pages and 20 report pages, {kib} KiB."
     );
@@ -118,8 +118,8 @@ fn jb3_a_running_export_is_a_named_progress_indicator_with_cancel_and_the_job_fi
         .find(|n| n.accesskit_node().label().as_deref() == Some("PDF export held.pdf"))
         .expect("the running entry is a named progress indicator");
     assert_eq!(bar.accesskit_node().numeric_value(), Some(0.0));
-    // The job field shows once the job is 200 ms old (a job that ends sooner shows none), measured on the frame clock
-    // (FT-570): 15 frames of 1/60 s, however long the machine takes for them.
+    // The job field shows once the job is 200 ms old (a job that ends sooner shows none), measured on the frame clock:
+    // 15 frames of 1/60 s, however long the machine takes for them.
     for _ in 0..15 {
         h.step();
     }
@@ -222,7 +222,7 @@ fn jb7_the_recovery_dialog_offers_recover_open_read_only_and_discard() {
             .is_some()
     );
     assert!(h.query_by_label("Unsaved changes: 1").is_some());
-    // FT-503: the elapsed time (the journal was written moments ago); W31-5: the UTC stamp as a secondary line under
+    // The elapsed time (the journal was written moments ago); W31-5: the UTC stamp as a secondary line under
     // it, above the buttons (a hover tooltip covered them).
     let ago = h.get_by_label("Last change: just now").rect();
     let utc = h.get_by_label_contains(" UTC").rect();

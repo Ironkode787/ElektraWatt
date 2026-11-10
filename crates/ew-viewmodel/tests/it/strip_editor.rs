@@ -238,7 +238,7 @@ fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
     shell.shutdown();
 }
 
-/// SE8 (D8, D13, FT-553): the Group column and the Properties Group row. "Reserve" on -X1031:7 and :8 splits the
+/// SE8 (D8, D13): the Group column and the Properties Group row. "Reserve" on -X1031:7 and :8 splits the
 /// spare group 5–10 into 5–6, 7–8, 9–10 with the old labels kept; one `fields.set` of `strip.groups` and one undo step;
 /// the Properties Group row of the two terminals does the same; the Bridge part fill over BR1 is one `fields.set` of
 /// the carrier's part (D6).
@@ -432,7 +432,7 @@ fn se9_insert_delete_and_move_rows() {
     done(&mut shell, "strip.move", json!({"step": 1}));
     assert_eq!(texts(&shell, "Terminal")[..4], ["1", "3", "2", "4"]);
     // To the end: :2 would leave bridge group BR1 (1 to 4); terminal.move refuses, naming the group and the way
-    // out (FT-641, CI-06); nothing is committed.
+    // out (CI-06); nothing is committed.
     let n = steps(&shell);
     match shell.dispatch("strip.move", &json!({"before": "end"})) {
         Outcome::Failed { message } => assert!(
@@ -568,7 +568,7 @@ fn se14_describe_lines() {
     shell.shutdown();
 }
 
-/// C49-p8b#3 (ID-1278 ruling 7): an accessory at the start of a new strip without a tag yet reads the strip in words
+/// C49-p8b#3: an accessory at the start of a new strip without a tag yet reads the strip in words
 /// in its toast and in its row's Strip cell, never by the placeholder tag.
 #[test]
 fn an_untagged_strips_accessory_row_names_it_in_words() {
@@ -608,7 +608,7 @@ fn an_untagged_strips_accessory_row_names_it_in_words() {
     shell.shutdown();
 }
 
-/// FT-1289 and FT-1264 (ID-1315 ruling 1): in nl-NL the strip editor's columns, an accessory row's kind and the
+/// In nl-NL the strip editor's columns, an accessory row's kind and the
 /// accessory toast read in Dutch; the strip editor finds its columns and rows by those words.
 #[test]
 fn ft1289_the_strip_editor_and_its_accessory_toast_read_in_dutch() {
@@ -656,7 +656,7 @@ fn ft1289_the_strip_editor_and_its_accessory_toast_read_in_dutch() {
         lines_with(&shell, "toast "),
         ["toast \"Eindsteun toegevoegd na klem 4 van -X1031.\" undo"]
     );
-    // FT-1412: the insert and the move name the terminal in words, in Dutch too.
+    // The insert and the move name the terminal in words, in Dutch too.
     let k5 = row(&shell, "Klem", "5");
     at(&mut shell, &k5);
     done(&mut shell, "strip.insert", json!({}));

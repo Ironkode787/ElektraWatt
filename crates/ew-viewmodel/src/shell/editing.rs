@@ -35,16 +35,16 @@ enum Pick {
     Symbol(usize),
     /// A template function: the part's and the function's indices.
     PartFn(usize, usize),
-    /// A part without a function template with a symbol row (FT-1375): the part's and the symbol's indices.
+    /// A part without a function template with a symbol row: the part's and the symbol's indices.
     PartSymbol(usize, usize),
     /// Another representation of a function, with a symbol row.
     Function(String, usize),
-    /// An existing device (WP-S2.18 D1, D4: `place.pick device=<tag>`), with a symbol row.
+    /// An existing device (`place.pick device=<tag>`), with a symbol row.
     Join(super::join::JoinPick, usize),
 }
 
 /// The names of a terminal's designation in `place.pick` and `picker.choose`: `terminal_designation`, and
-/// `designation`, its old name (FT-543: the old name invited a device tag).
+/// `designation`, its old name (the old name invited a device tag).
 const TERMINAL_DESIGNATION: [&str; 2] = ["terminal_designation", "designation"];
 
 /// The terminal designation of `p`: `terminal_designation`, else its old name `designation`.
@@ -55,7 +55,7 @@ fn terminal_designation(p: &Map<String, Value>) -> Result<Option<&str>, Outcome>
     }
 }
 
-/// The result note of a delete of the representations `reps` (FT-547, FT-709): the names of the interruption points
+/// The result note of a delete of the representations `reps`: the names of the interruption points
 /// among them, in page-table order, and the connections at their connection points that `drawn` does not name; and
 /// `unplaced`, the devices the delete leaves without a symbol; `None` when neither applies.
 fn delete_note(
@@ -93,7 +93,7 @@ fn delete_note(
     })
 }
 
-/// The toast's sentence about the devices a delete left without a symbol (FT-709): `-101K1 (now -?K1) has no symbol on
+/// The toast's sentence about the devices a delete left without a symbol: `-101K1 (now -?K1) has no symbol on
 /// a page now; it stays in the Devices navigator and the parts list`. Each device is named by its tag before the
 /// delete, with the tag the navigator shows now when that differs (`now` gives it); the parts list is named when one
 /// of them has a part.
@@ -122,7 +122,7 @@ fn unplaced_text(
 }
 
 impl ShellModel {
-    /// The toast of the result note the dispatch's commit left (FT-546, FT-547), read on the page tables after it.
+    /// The toast of the result note the dispatch's commit left, read on the page tables after it.
     fn say_result(&mut self, before: &PageTables, now: &PageTables) {
         let Some(note) = self.tools.result_note.take() else {
             return;
@@ -140,7 +140,7 @@ impl ShellModel {
                 };
                 let cps: Vec<&ew_api::output::TableCp> = now.cps.iter().filter(|c| c.rep == rep.id).collect();
                 let tag = crate::describe::rep_tag(rep, &cps).unwrap_or_else(|| rep.symbol_key.clone());
-                // A sentence names a terminal "-X1011 terminal 3", never "-X1011:3" (FT-716).
+                // A sentence names a terminal "-X1011 terminal 3", never "-X1011:3".
                 let tag = if rep.terminal {
                     crate::describe::terminal_in_sentence(&tag)
                 } else {
@@ -154,7 +154,7 @@ impl ShellModel {
                     Some(cell) => strings::format(key!("toast-placed"), &[&tag, &cell]),
                     None => strings::format(key!("toast-placed-no-cell"), &[&tag]),
                 };
-                // FT-759: a symbol dropped on a wire is split into it (normaliser 7) and drew no wire of its own: the
+                // A symbol dropped on a wire is split into it (normaliser 7) and drew no wire of its own: the
                 // toast says that it is in the circuit, where a connection of the page now ends on it.
                 let ends_on_rep = |e: &ew_api::output::TableEnd| matches!(e, ew_api::output::TableEnd::Cp { function, .. } if rep.functions.contains(function));
                 let in_wire = now
@@ -162,7 +162,7 @@ impl ShellModel {
                     .iter()
                     .any(|c| ends_on_rep(&c.a) || ends_on_rep(&c.b));
                 let text = match wires {
-                    // FT-949 (ID-1150): the way to place without the wires takes its key from the keymap, as the
+                    // The way to place without the wires takes its key from the keymap, as the
                     // interruption point's toast does.
                     Some((count, list)) => strings::format(
                         key!("toast-autoconnect"),
@@ -178,7 +178,7 @@ impl ShellModel {
                     }
                     None => placed,
                 };
-                // FT-1208: a terminal that left the click point says where and why, after the result.
+                // A terminal that left the click point says where and why, after the result.
                 let text = match moved {
                     Some(moved) => format!("{}, {moved}", strings::without_stop(&text)),
                     None => text,
@@ -199,7 +199,7 @@ impl ShellModel {
                     page.cell_text(page.snapper.page_to_sheet(pos))
                 });
                 let key = crate::command_bar::key_name(self, "canvas.activate_alt");
-                // FT-1067: an external point is named so.
+                // An external point is named so.
                 let text = match (cell, external) {
                     (Some(cell), false) => {
                         strings::format(key!("toast-ip-connected"), &[&name, &cell, &pin, &key])
@@ -215,7 +215,7 @@ impl ShellModel {
                         &[&name, "", &pin, &key],
                     ),
                 };
-                // FT-1023: a renamed point says why first.
+                // A renamed point says why first.
                 let text = match taken {
                     Some(taken) => format!("{taken} {text}"),
                     None => text,
@@ -240,7 +240,7 @@ impl ShellModel {
                     };
                     strings::format(key, &[&names.join(", "), &gone.to_string()])
                 });
-                // FT-709: the devices left without a symbol stay in the project; the toast says where.
+                // The devices left without a symbol stay in the project; the toast says where.
                 let unplaced = self
                     .project
                     .as_ref()
@@ -249,7 +249,7 @@ impl ShellModel {
                 if text.is_empty() {
                     return;
                 }
-                // C53-p2#1: each sentence ends with its own full stop (FT-1505).
+                // Each sentence ends with its own full stop.
                 self.notify(text.join(" "), true);
             }
         }
@@ -258,7 +258,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Getters
 
-    /// The picker popup, while open (WP-S2.04 §7.1).
+    /// The picker popup, while open.
     pub fn picker(&self) -> Option<&Picker> {
         self.tools.picker.as_ref()
     }
@@ -272,7 +272,7 @@ impl ShellModel {
             .is_some_and(|p| p.needs_designation())
     }
 
-    /// What the active tool floats or drags (WP-S2.04 §7.7).
+    /// What the active tool floats or drags.
     pub fn tool_ghost(&self) -> Option<Ghost> {
         self.tools.tool.ghost()
     }
@@ -410,7 +410,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Arming
 
-    /// The catalogue strip named by `param`: its ID, or its tag as the page prints it (FT-421).
+    /// The catalogue strip named by `param`: its ID, or its tag as the page prints it.
     fn catalogue_strip(cat: &PlaceCatalogue, param: &str) -> Option<usize> {
         cat.strips
             .iter()
@@ -423,7 +423,7 @@ impl ShellModel {
     /// as amended by the cycle-27 follow-up): the starter symbol and every FnDef the part's template needs are
     /// embedded in one host commit before the tool arms; an FnDef neither the project nor the starter library holds
     /// fails the pick by name and arms nothing.
-    /// The tag a new strip with letter `letter` would take from its first terminal placed on the page on show (FT-893):
+    /// The tag a new strip with letter `letter` would take from its first terminal placed on the page on show:
     /// the strip's numbering format (`Session::strip_format`) with the lowest counter no device of that letter prints
     /// on the page (FR-NUM-007 fills gaps). `None` off a schematic page or on a folio that is not a whole number, where
     /// the scheme's `{page}` is not the folio as written.
@@ -436,7 +436,7 @@ impl ShellModel {
             return None;
         }
         let session = &self.project.as_ref()?.session;
-        // FT-1403 (ID-1392): the format the strip's scheme gives it (`-101X1` under `{page}{letter}{counter}`, `-X1011`
+        // The format the strip's scheme gives it (`-101X1` under `{page}{letter}{counter}`, `-X1011`
         // under the strip rule `{letter}{page}{counter}`); a format with another token gives no example.
         let format = session
             .strip_format(letter)
@@ -473,7 +473,7 @@ impl ShellModel {
         };
         let mut box_cps: Option<Vec<(u16, String)>> = None;
         let mut part_copy = None;
-        // ID-1497 (7): the letter of the part's own function category, which a black box placed from it takes.
+        // The letter of the part's own function category, which a black box placed from it takes.
         let mut part_letter = None;
         let mut part_cps: Vec<(u16, String)> = Vec::new();
         let (row_index, part) = match &pick {
@@ -485,7 +485,7 @@ impl ShellModel {
                 part_letter.clone_from(&part.letter);
                 // The CPs come from the part's `cp_pattern`, which the catalogue lists whether or not the FnDef is
                 // embedded yet; `f.black_box` is false until it is (the first black box of a project arms through
-                // the starter symbol row instead), so the CPs are kept apart from that test (cycle 33, row 4).
+                // the starter symbol row instead), so the CPs are kept apart from that test (row 4).
                 part_cps = f.cps.clone();
                 if f.black_box {
                     box_cps = Some(f.cps.clone());
@@ -501,7 +501,7 @@ impl ShellModel {
                     Some((part.copy.to_string(), f.index, part.part_number.clone())),
                 )
             }
-            // FT-1375: the device carries the part; its one function is the symbol's (`from_part` entry 0).
+            // The device carries the part; its one function is the symbol's (`from_part` entry 0).
             Pick::PartSymbol(pi, i) => {
                 let part = &cat.parts[*pi];
                 part_copy = Some(part.copy);
@@ -519,7 +519,7 @@ impl ShellModel {
         if !row.allowed {
             return Outcome::refused(key!("reason-rep-type-not-allowed"));
         }
-        // A black box (a black-box symbol, or a template function that is one) arms the black box tool (WP-S2.04 §9.5);
+        // A black box (a black-box symbol, or a template function that is one) arms the black box tool;
         // `tool.black_box` arms nothing else.
         let is_box = row.black_box || box_cps.is_some();
         // FT-896: the refusals name the way out with its key from the keymap, or without the parenthesis when unbound.
@@ -590,7 +590,7 @@ impl ShellModel {
         let Some(shape) = self.row_shape(&row) else {
             return Outcome::refused(key!("reason-unknown-symbol"));
         };
-        // A terminal: a terminal symbol (a PE terminal's category `TerminalEarth` counts too, FT-618), or any symbol or
+        // A terminal: a terminal symbol (a PE terminal's category `TerminalEarth` counts too), or any symbol or
         // part given a strip or a designation. A part-first terminal joins the strip and carries its part (G-PP
         // finding 2: the part route ignored `strip` and `designation` and made a free device).
         let terminal = row.terminal
@@ -617,12 +617,12 @@ impl ShellModel {
             (_, part) if terminal => {
                 let strip = or_return!(string_param(p, "strip"));
                 // Without a strip in the project a terminal has nowhere to go. Chosen in the picker (the window's
-                // path) the strip chooser opens on its empty state, which says why and offers New terminal strip
-                // (FT-605); `strip.new` then lists the new strip as the current row. A direct `place.pick` refuses.
+                // path) the strip chooser opens on its empty state, which says why and offers New terminal strip;
+                // `strip.new` then lists the new strip as the current row. A direct `place.pick` refuses.
                 if cat.strips.is_empty() && (strip.is_some() || self.tools.picker.is_none()) {
                     return Outcome::refused(key!("reason-no-strip"));
                 }
-                // Without a strip the picker asks for one (FT-421): its strip chooser.
+                // Without a strip the picker asks for one: its strip chooser.
                 let Some(strip) = strip else {
                     let folio = self.current_folio().unwrap_or_default().to_owned();
                     let pending = PendingTerminal {
@@ -634,7 +634,7 @@ impl ShellModel {
                     self.tools.picker = Some(Picker::strips(&folio, Arc::clone(&cat), pending));
                     return Outcome::Done;
                 };
-                // An unknown strip name says which strips there are (cycle 33, G-PP finding 9): a new strip's
+                // An unknown strip name says which strips there are (G-PP finding 9): a new strip's
                 // `-X??` takes its counter with its first terminal, so the name the toast gave may have changed.
                 let Some(i) = Self::catalogue_strip(&cat, strip) else {
                     let tags: Vec<&str> = cat.strips.iter().map(|st| st.tag.as_str()).collect();
@@ -662,7 +662,7 @@ impl ShellModel {
         };
         self.tools.picker = None;
         let autoconnect = self.page_autoconnects();
-        // WP-S2.18 D2: J offers the Join chooser while the symbol's FnDef can be an auxiliary function.
+        // J offers the Join chooser while the symbol's FnDef can be an auxiliary function.
         let joinable = self
             .project
             .as_ref()
@@ -682,7 +682,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-one-rep"));
         };
         let key = cat.symbols[i].key.clone();
-        // FT-673: a starter symbol the project lacks travels in the exchange itself (one undo step).
+        // A starter symbol the project lacks travels in the exchange itself (one undo step).
         let (row, copies) = or_return!(self.starter_row(&key));
         let Some(shape) = self.row_shape(&row) else {
             return Outcome::refused(key!("reason-unknown-symbol"));
@@ -823,7 +823,7 @@ impl ShellModel {
             return Outcome::Refused { reason_key };
         }
         let (mode, cat, pending) = (picker.mode, Arc::clone(&picker.catalogue), picker.pending.clone());
-        // FT-1375: a part without a function template asks for its symbol, then places with it.
+        // A part without a function template asks for its symbol, then places with it.
         if let (PickerRow::Symbol(i), Some(pi)) = (row, picker.part) {
             return self.arm(cat, Pick::PartSymbol(pi, i), p);
         }
@@ -837,7 +837,7 @@ impl ShellModel {
             }
             (_, PickerRow::Symbol(i)) => self.arm(cat, Pick::Symbol(i), p),
             (_, PickerRow::PartFn(a, b)) => self.arm(cat, Pick::PartFn(a, b), p),
-            // The strip chooser (FT-421): the pending terminal placement with the chosen strip.
+            // The strip chooser: the pending terminal placement with the chosen strip.
             (_, PickerRow::Strip(i)) => {
                 let Some(pending) = pending else {
                     return Outcome::refused(key!("reason-no-picker-row"));
@@ -848,7 +848,7 @@ impl ShellModel {
                 // The parameters of this choice (`designation`, `letter`, `strip`) win over those of the choice that
                 // opened the chooser; the strip is the current row's unless this choice names one.
                 let mut params = pending.params.clone();
-                // A designation of this choice replaces the earlier one under either of its names (FT-543).
+                // A designation of this choice replaces the earlier one under either of its names.
                 if TERMINAL_DESIGNATION.iter().any(|k| p.contains_key(*k)) {
                     for k in TERMINAL_DESIGNATION {
                         params.remove(k);
@@ -877,7 +877,7 @@ impl ShellModel {
     }
 
     /// `place.pick` (§7.6, headless): one of `symbol` (key or copy ID), `part` (part number or copy ID) with
-    /// `template` (0-based; a part without a function template with `symbol` instead, FT-1375), `function` (ID, with `symbol`); optional `letter`; for a terminal `strip` (tag or ID)
+    /// `template` (0-based; a part without a function template with `symbol` instead), `function` (ID, with `symbol`); optional `letter`; for a terminal `strip` (tag or ID)
     /// and `designation`. WP-S2.18 D4: `device=<tag>` (with `symbol`) joins an existing device, and `function` also
     /// takes `<tag>:<slot>` or `<tag>` (with `symbol`): see [`super::join`].
     pub(crate) fn act_place_pick(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -898,7 +898,7 @@ impl ShellModel {
             Ok(v) => v.map(str::to_owned),
             Err(e) => return e,
         };
-        // WP-S2.18 D4: a device by its printed tag (or its ID) joins it.
+        // A device by its printed tag (or its ID) joins it.
         if let Some(device) = device {
             let Some(i) = symbol.as_deref().and_then(find) else {
                 return failed(key!("error-missing-param"), &["symbol"]);
@@ -913,7 +913,7 @@ impl ShellModel {
         }
         let pick = match (string_param(p, "part"), string_param(p, "function")) {
             (Err(e), _) | (_, Err(e)) => return e,
-            // WP-S2.18 D4: a function by its device's printed tag (`-101K1`, `-101K1:13-14`); an ID keeps the path below.
+            // A function by its device's printed tag (`-101K1`, `-101K1:13-14`); an ID keeps the path below.
             (_, Ok(Some(function))) if function.trim().parse::<ew_api::output::Uuid>().is_err() => {
                 let Some(i) = symbol.as_deref().and_then(find) else {
                     return failed(key!("error-missing-param"), &["symbol"]);
@@ -935,7 +935,7 @@ impl ShellModel {
                 else {
                     return unknown;
                 };
-                // FT-1375: a part without a function template is placed with the symbol named beside it.
+                // A part without a function template is placed with the symbol named beside it.
                 if cat.parts[pi].functions.is_empty() {
                     let Some(i) = symbol.as_deref().and_then(find) else {
                         return failed(key!("error-missing-param"), &["symbol"]);
@@ -953,7 +953,7 @@ impl ShellModel {
                 }
             }
             (_, Ok(Some(function))) => {
-                // WP-S2.07 §6.8: an unplaced terminal row names its terminal device, which places the device's main
+                // An unplaced terminal row names its terminal device, which places the device's main
                 // function.
                 let main = Uuid::parse_str(function)
                     .ok()
@@ -990,9 +990,9 @@ impl ShellModel {
     }
 
     /// `strip.new {letter?, tag?, dialog?}` (§7.6): a host commit of `device.create` with the strip aspect. While the
-    /// picker's strip chooser is open it lists the new strip, which becomes its current row (FT-421).
+    /// picker's strip chooser is open it lists the new strip, which becomes its current row.
     ///
-    /// FT-1090 (ID-1181): with `dialog` (the picker's New row) the New terminal strip form opens instead, its Tag field
+    /// With `dialog` (the picker's New row) the New terminal strip form opens instead, its Tag field
     /// holding the tag the strip would take from a terminal on the page on show (empty without one); Create sends
     /// `strip.new {tag}`. A `tag` other than that example is frozen in the creating commit (one Undo step), as the
     /// Properties Tag row freezes a typed tag (`-X5` with the sign shown, `X5` without); the example left as it is, or
@@ -1087,8 +1087,8 @@ impl ShellModel {
             };
             let mut reps = count_reps(self);
             // A device or a function selected by reference (`select.set` with a tag, `-X1011:2`) is transformed as
-            // the representations the page shown draws of it, as Delete and Cut take it (FT-485 items 9 and 10):
-            // the selection becomes those representations, but only once the key is sent (FT-626): a refused key
+            // the representations the page shown draws of it, as Delete and Cut take it (items 9 and 10):
+            // the selection becomes those representations, but only once the key is sent: a refused key
             // leaves the selection as it was.
             let mut replace_with = None;
             if reps == 0 {
@@ -1183,9 +1183,9 @@ impl ShellModel {
         };
         let tables = Arc::clone(&c.page().tables);
         let mut movable = transform::selected_movable(&self.tools.selection, c.page());
-        // FT-1438 (ID-1397): a device or a function selected by reference (`select.set` with its tag) is moved as the
+        // A device or a function selected by reference (`select.set` with its tag) is moved as the
         // representations the page shown draws of it, as R and X take it: the selection becomes those symbols, but
-        // only once the move starts (C52-p5#3, FT-626): a refused move puts the selection back as it was.
+        // only once the move starts: a refused move puts the selection back as it was.
         let mut replaced = None;
         if movable.is_empty() {
             let drawn = self.drawn_reps_of_selection();
@@ -1363,7 +1363,7 @@ impl ShellModel {
                 },
             };
         };
-        // FT-547: an interruption point takes the wires at its connection point with it; the toast says so. FT-709: a
+        // An interruption point takes the wires at its connection point with it; the toast says so. FT-709: a
         // device that keeps no symbol but stays in the project (EW-CORE-047) is named, with where it stays.
         let unplaced = self.devices_kept_unplaced(&reps, &unused);
         let note = delete_note(&reps, &drawn, &page.tables, unplaced);
@@ -1452,7 +1452,7 @@ impl ShellModel {
     }
 
     /// The devices that deleting the representations `reps` leaves without any representation while the delete keeps
-    /// them (not in `deleted`, the devices the same command deletes), in ID order (FT-709): each as the device, its tag and whether
+    /// them (not in `deleted`, the devices the same command deletes), in ID order: each as the device, its tag and whether
     /// it has a part. Terminals and strips are left out (a terminal stays in its strip).
     fn devices_kept_unplaced(
         &self,
@@ -1604,15 +1604,13 @@ impl ShellModel {
     /// The after-commit duties (§6.4 item 3), at the end of a dispatch: a committed record the page tables no longer
     /// hold leaves the selection; the place tool's shape is read again for a new revision.
     pub(super) fn after_commit(&mut self) {
-        // WP-S4.02 part 3
         self.after_layout_commit();
-        // WP-S2.05 part 3
         self.after_paste();
         // FT-900
         self.after_place();
         self.refresh_place_shape();
         self.refresh_strip_tag();
-        // WP-S2.18 D1: a sticky join target fills the next slot, then makes new auxiliary functions.
+        // A sticky join target fills the next slot, then makes new auxiliary functions.
         self.refresh_join_target();
         self.cancel_stale_move();
         let Some(before) = self.tools.before_commit.take() else {
@@ -1669,11 +1667,11 @@ impl ShellModel {
         }
     }
 
-    /// The strip tag of a terminal placement after a new revision (FT-421): read from the place catalogue (cached per
+    /// The strip tag of a terminal placement after a new revision: read from the place catalogue (cached per
     /// revision, so a dispatch that changes nothing reads nothing), because a new strip prints its tag only once its
     /// first terminal numbers it.
     fn refresh_strip_tag(&mut self) {
-        // FT-1083 (ID-1181): after an Undo or a Redo the designation is the catalogue's again (the lowest free).
+        // After an Undo or a Redo the designation is the catalogue's again (the lowest free).
         let reread = std::mem::take(&mut self.tools.reread_designation);
         let strip = self
             .with_tool(|t, _| {

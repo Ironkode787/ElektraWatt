@@ -435,7 +435,7 @@ fn image_item(sha: u8, format: ew_dl::ImageFormat, bytes: &[u8]) -> Item {
     )
 }
 
-/// FT-384, FT-406: PNG and JPEG images are written as `<image>` elements with their bytes embedded in base64,
+/// PNG and JPEG images are written as `<image>` elements with their bytes embedded in base64,
 /// stretched over their rectangle; an image without bytes, an SVG image (which reaches the writer as paths), bytes
 /// whose magic number is not their format's and bytes that carry the magic number but do not decode (the PDF writer's
 /// rule: a cut JPEG, a PNG header with nothing after it) are counted as skipped and not embedded.

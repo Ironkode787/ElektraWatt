@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cycle 45's Properties polish through the shell on temporary copies of Golden A (ID-1107): `props.follow` on a
-//! placement's Device row (FT-1030) and 902's Placement rows in words (FT-1019).
+//! Cycle 45's Properties polish through the shell on temporary copies of Golden A: `props.follow` on a
+//! placement's Device row and 902's Placement rows in words.
 
 use crate::common;
 
@@ -31,7 +31,7 @@ fn pairs(list: &[(&str, &str)]) -> Vec<(String, String)> {
         .collect()
 }
 
-/// ID-1107 (FT-1030): "Properties' Device row is a link in the accent colour that a click or F (`props.follow`, in the
+/// "Properties' Device row is a link in the accent colour that a click or F (`props.follow`, in the
 /// properties context of every keymap, through the action registry; typed, not followed, while an editor field has
 /// the focus) follows to the device on its main page". `props.follow` on -102F1's placement shows -102F1's main page
 /// (102) with its drawings there selected, so Properties shows the device; on a row that links nothing it is refused.
@@ -63,7 +63,7 @@ fn props_follow_goes_from_a_placement_to_its_device_on_its_main_page() {
         ),
         "reason-row-no-link"
     );
-    // FT-1057: a sentence with its next step.
+    // A sentence with its next step.
     assert_eq!(
         ew_viewmodel::strings::text(ew_viewmodel::key!("reason-row-no-link")),
         "The property row links to nothing. Choose a row that names a device to go to it."
@@ -93,9 +93,9 @@ fn f_follows_in_the_properties_context() {
     assert_eq!(keys, pairs(&[("F", "Properties")]));
 }
 
-/// ID-1107 (FT-1019): "a placement's rows show labels and values in the user's words, and the members with no meaning
+/// "a placement's rows show labels and values in the user's words, and the members with no meaning
 /// to the user move to Advanced (doc 16a §6.8)". 902's Placement rows: Scale "1:10"; the form's ID and the connection
-/// grid's fraction only under Advanced, the grid itself as the status bar writes it (ID-1139). The scale is edited in
+/// grid's fraction only under Advanced, the grid itself as the status bar writes it. The scale is edited in
 /// its words.
 #[test]
 fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
@@ -118,7 +118,7 @@ fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
         })
         .cloned()
         .collect();
-    // ID-1477 (1): the Connection grid row is a choice outside Advanced; its fraction stays under it.
+    // The Connection grid row is a choice outside Advanced; its fraction stays under it.
     assert_eq!(
         placement,
         pairs(&[("Connection grid", "QET 10 px"), ("Scale", "1:10")])
@@ -170,7 +170,7 @@ fn filtered(s: &ShellModel, filter: &str) -> Vec<(String, String)> {
         .collect()
 }
 
-/// FT-1357 (ID-1357 ruling 7) and FT-1358 (ruling 8): the project's sheet is headed "Project", its yes and no, list
+/// FT-1357 and FT-1358 (ruling 8): the project's sheet is headed "Project", its yes and no, list
 /// counts and structured values read in words in either language, never as JSON; a filter shows its rows with their
 /// parents, so the four parties' "Personal data" rows never stand alone (doc 16a §6.8).
 #[test]

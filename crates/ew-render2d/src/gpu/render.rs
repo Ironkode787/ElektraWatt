@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The GPU canvas (WP-S2.02 §7.1): a prepared scene drawn instanced into the canvas's own multisampled colour and
+//! The GPU canvas: a prepared scene drawn instanced into the canvas's own multisampled colour and
 //! depth attachments, resolved into a texture of the target's physical size.
 //!
 //! **Paint order.** Opaque meshes and opaque images are drawn first, batched by mesh (and texture) in any order,
 //! with the depth test and depth writes (later in paint order is nearer); translucent meshes, LOD bars, translucent
 //! glyphs and images with alpha follow in paint order with the depth test and without depth writes.
 //!
-//! **Raster images** (FT-480). A second pair of pipelines over the same vertex and instance layout, view uniform,
+//! **Raster images**. A second pair of pipelines over the same vertex and instance layout, view uniform,
 //! MSAA sample count and depth format draws an image instance as the unit square with its texture (`fs_image` in
 //! the one WGSL file): bind group 1 holds the texture and the sampler. Textures are premultiplied `Rgba8Unorm`
 //! (gamma-space bytes, as the CPU path's u8 pipeline interpolates them) and blended as premultiplied colour. The
@@ -500,7 +500,7 @@ impl GpuCanvas {
         self.sample_count
     }
 
-    /// A lost device or an uncaptured error recorded since the canvas was made (WP-S2.02 §7.2 row 8).
+    /// A lost device or an uncaptured error recorded since the canvas was made (row 8).
     pub fn fault(&self) -> Option<GpuError> {
         self.fault.lock().unwrap_or_else(PoisonError::into_inner).clone()
     }

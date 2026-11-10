@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `terminal_overview`: the terminal strip overview (FR-REP-010; WP-S3.06 D6).
+//! `terminal_overview`: the terminal strip overview (FR-REP-010).
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Device, RepType, ReportBlock, Representation};
@@ -118,7 +118,7 @@ impl ReportKindDef for TerminalOverview {
             );
             let mut r = Row::data(RowId::entity(strip), cells);
             r.sources = vec![strip.cast()];
-            // The strip links its main representation (WP-S3.06 D10).
+            // The strip links its main representation.
             if let Some(c) = set_columns.iter().position(|c| c.key == "strip") {
                 r.links = vec![LinkRef::whole(c, LinkTarget::MainRep(strip))];
             }

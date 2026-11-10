@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The headless mode (WP-S2.01 part 1, spec section 6): `elektrawatt --headless --script <file|->` runs a UI
+//! The headless mode (spec section 6): `elektrawatt --headless --script <file|->` runs a UI
 //! script on the same `ShellModel::dispatch` as the window, with no window, no GPU and no display, and writes a
 //! deterministic transcript. This module adds the page raster (`view.snapshot`), the canvas snapshot
-//! (`canvas.snapshot`, WP-S2.02 section 6.6) and the link preview's image (`canvas.preview_snapshot`, WP-S2.03 §7.8)
+//! (`canvas.snapshot`, section 6.6) and the link preview's image (`canvas.preview_snapshot`)
 //! to the core runner of `ew_viewmodel::script`, and the smoke run of architecture section 10.1.
 //!
 //! Exit codes: 0 all steps done; 1 a step was refused or failed (the run stops there; with `--keep-going` the run
 //! goes on and the exit code is 1 when any step was not done, WP-S6.13 §5.5.1), or the script ended with unsaved
-//! changes, or a job no step waited for failed, was cancelled or panicked (FT-513); 2 a usage error (an unreadable or
+//! changes, or a job no step waited for failed, was cancelled or panicked; 2 a usage error (an unreadable or
 //! malformed script, an unknown action ID).
 
 use std::io::{self, BufRead, Write};
@@ -43,10 +43,10 @@ pub struct HeadlessArgs {
     /// `--config-dir <dir>`: the settings directory of the run. Without it (and without `EW_CONFIG_DIR`) the run has
     /// none: it neither reads nor writes the user's settings and recent projects.
     pub config_dir: Option<PathBuf>,
-    /// `--keep-going`: a refused or failed step is written to the transcript and the run goes on (WP-S6.13 §5.5.1);
+    /// `--keep-going`: a refused or failed step is written to the transcript and the run goes on;
     /// the exit code is 1 when any step was not done or the script ends with unsaved changes.
     pub keep_going: bool,
-    /// `--visual` (WP-S6.13 part 4): the window's frame driven by mouse and key lines, see [`crate::visual`].
+    /// `--visual`: the window's frame driven by mouse and key lines, see [`crate::visual`].
     pub visual: bool,
     /// `--frames <dir>`: where a visual run writes the frames its frame lines ask for.
     pub frames: Option<PathBuf>,
@@ -58,7 +58,7 @@ pub struct HeadlessArgs {
 }
 
 /// `view.snapshot`: the current page as a PNG at the given dpi through the page view's render path; and
-/// `canvas.snapshot`: the canvas pane as it shows it (WP-S2.02 section 6.6), always on the CPU path.
+/// `canvas.snapshot`: the canvas pane as it shows it (section 6.6), always on the CPU path.
 pub(crate) struct Snapshot;
 
 impl StepExtension for Snapshot {
@@ -111,7 +111,7 @@ fn canvas_snapshot(shell: &ShellModel, params: &Value) -> Outcome {
     }
 }
 
-/// `canvas.preview_snapshot` (WP-S2.03 §7.8): the link preview's image as PNG (refused without a preview).
+/// `canvas.preview_snapshot`: the link preview's image as PNG (refused without a preview).
 fn preview_snapshot(shell: &ShellModel, params: &Value) -> Outcome {
     let Some(path) = params.get("path").and_then(Value::as_str) else {
         return Outcome::Failed {
@@ -187,7 +187,7 @@ pub fn run(
 }
 
 /// [`run`] that calls `script_ended` once the script's last step ran, before the jobs are waited for and the shell
-/// shuts down (WP-S6.05 D9: a debug build's forced panic there unwinds past the shutdown, as a crash does).
+/// shuts down (a debug build's forced panic there unwinds past the shutdown, as a crash does).
 pub fn run_ending(
     mut config: ShellConfig,
     args: &HeadlessArgs,
@@ -200,14 +200,14 @@ pub fn run_ending(
         return crate::visual::run(config, args, stdin, out, err);
     }
     if let Some(dir) = &args.config_dir {
-        // The library tiers stay (WP-S1.19 §11: `EW_DATA_DIR` names them for a script), and so do the resources the
-        // program found (FT-1266).
+        // The library tiers stay (`EW_DATA_DIR` names them for a script), and so do the resources the
+        // program found.
         config = ShellConfig::in_dir(dir, &config.app_version)
             .with_libraries(config.libraries)
             .with_resources(config.resources);
     }
     let mut shell = ShellModel::new(Mode::Headless, config);
-    // WP-S6.05 D11: the start-up offer is pending and blocks no step.
+    // The start-up offer is pending and blocks no step.
     shell.start_up();
     let mut sink = |line: &str| -> io::Result<()> {
         out.write_all(line.as_bytes())?;
@@ -257,7 +257,7 @@ pub fn run_ending(
     // An export started with `wait: false` and never waited for ends here as if `jobs.wait` had followed: its file is
     // written and its end recorded before the checks below, so two runs of the script give the same file (review
     // finding 3 of cycle 30; `shutdown` would cancel it at a point that depends on timing).
-    // FT-513: an end of such a job that failed, was cancelled or panicked, and that no step waited for, is reported
+    // An end of such a job that failed, was cancelled or panicked, and that no step waited for, is reported
     // like a failed step: its notification text on stderr and exit code 1.
     let unseen = shell.wait_jobs();
     for text in &unseen {

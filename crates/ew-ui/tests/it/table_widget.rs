@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigators' table widget (WP-S2.06 part 3 §8.1; acceptance check TB7 and the window half of TB2): the key
+//! The navigators' table widget (acceptance check TB7 and the window half of TB2): the key
 //! column stays at the left while the table scrolls right, a header click sorts, the column chooser hides and orders
 //! columns, every cell has the AccessKit name of §8.1, and the flows of TB2 (a cell edit and fill down, one undo
 //! step), TB3 (pattern fill) and TB4 (paste with an ambiguous number resolved on the card) run from the keyboard and
@@ -124,7 +124,7 @@ fn tb7_the_key_column_stays_while_the_table_scrolls_right() {
             .unwrap()
             .cursor_cell()
             .map(|c| c.1),
-        // WP-S2.07 part 1: State is the table's column 11 (Pos and Bridge part came before it).
+        // State is the table's column 11 (Pos and Bridge part came before it).
         Some(11),
         "the cursor is on the last column"
     );
@@ -201,9 +201,9 @@ fn tb7_header_click_sorts_and_the_chooser_hides_and_orders() {
 fn tb2_fill_down_from_the_keyboard_is_one_step() {
     let tmp = Tmp::new();
     let mut h = table(&tmp, "strips", "x1031");
-    // WP-S2.17 part 1: twenty rows of `size.row` (28 points) need a taller window than 700 points to be all on show.
+    // Twenty rows of `size.row` (28 points) need a taller window than 700 points to be all on show.
     h.set_size(egui::Vec2::new(1000.0, 900.0));
-    // WP-S2.17 part 3 (D10): Properties under the navigator would halve it; this test needs the whole column.
+    // Properties under the navigator would halve it; this test needs the whole column.
     done(h.state_mut().shell_mut(), "props.show", json!({"on": false}));
     settle(&mut h);
     h.get_by_label("Sort by Terminal").click_accesskit();

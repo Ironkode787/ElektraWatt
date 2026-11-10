@@ -123,7 +123,7 @@ impl ResultSet {
 /// The schema name of [`SqlResult`].
 pub const SQL_RESULT_SCHEMA: &str = "ew.sql-result/1";
 
-/// The JSON result of `ew sql` (`ew.sql-result/1`, doc 17 §3.1, WP-S1.22 D5): the type is the published schema
+/// The JSON result of `ew sql` (`ew.sql-result/1`, doc 17 §3.1): the type is the published schema
 /// (`bin/ew/schemas/ew.sql-result-1.schema.json`). Members print in byte-wise key order (`$schema` first).
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

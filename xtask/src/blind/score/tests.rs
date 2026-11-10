@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Tests of the scoring (WP-S6.13 BD15): fixtures of a run folder, canned outputs of the copied `ew`, each status and
+//! Tests of the scoring: fixtures of a run folder, canned outputs of the copied `ew`, each status and
 //! each outcome.
 
 use serde_json::json;
@@ -435,7 +435,7 @@ fn h7_counts_the_drawing_lines_of_the_prelude() {
     assert!(by_id(&s, "H7").misses[0].contains("2 entries for 1 prelude steps"));
 }
 
-/// FT-555: S1 accepts a strip's terminal at any cell of the strip's column run from its anchor cell (n terminals, n
+/// S1 accepts a strip's terminal at any cell of the strip's column run from its anchor cell (n terminals, n
 /// columns of one row), and nothing else: another row, a column before the anchor or past the run, another folio, a
 /// device that is not a terminal.
 #[test]
@@ -646,7 +646,7 @@ fn s2_and_s4_leave_out_what_ends_on_a_folio_that_is_not_drawn() {
     assert_eq!(xref_folios("24VDC-1 0VDC-AIR1"), Vec::<String>::new());
 }
 
-/// FT-598: a drafted wire that ends at an interruption point whose partner the oracle puts on a folio outside the run
+/// A drafted wire that ends at an interruption point whose partner the oracle puts on a folio outside the run
 /// (PE-1.1 on 101, partner 106-A1) is out of scope, not an extra row; one whose partner is drawn (L-1, partner on 102)
 /// is still extra, and so is a point the oracle does not know.
 #[test]
@@ -896,7 +896,7 @@ fn the_committed_task_loads_and_its_counts_are_the_documents() {
             )
         })
         .collect();
-    // WP-S2.04 §13.6: 17, 12 and 23 reps less the 3 strip segments plus the 15 terminals of the demo variant.
+    // 17, 12 and 23 reps less the 3 strip segments plus the 15 terminals of the demo variant.
     assert_eq!(
         counts,
         [

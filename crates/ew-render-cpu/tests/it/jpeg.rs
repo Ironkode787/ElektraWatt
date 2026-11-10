@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! JPEG decoding of image items (FT-406) over the JPEG variants a logo may come in: greyscale, YCbCr 4:4:4 and 4:2:0,
+//! JPEG decoding of image items over the JPEG variants a logo may come in: greyscale, YCbCr 4:4:4 and 4:2:0,
 //! CMYK (Adobe), baseline and progressive, built in the test from fixed coefficients (`common::jpeg`), and the
 //! cross-platform determinism of the decoded pixels.
 

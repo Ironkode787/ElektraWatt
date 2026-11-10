@@ -522,7 +522,7 @@ impl Q {
     }
 
     /// This context with the report engine installed: [`PageOrder`](crate::PageOrder) then includes the
-    /// generated report pages (WP-S3.03). The provider is configuration, not a tracked input (see the type
+    /// generated report pages. The provider is configuration, not a tracked input (see the type
     /// documentation), so installing it discards every value this `Q` has already cached and every note
     /// its queries pushed: nothing computed under the previous configuration survives.
     #[must_use]
@@ -590,7 +590,7 @@ impl Q {
     }
 
     /// The reference of the held asset with this hash (format, intrinsic size): the company logo of the earlier
-    /// bare-hash form, which names no format (FT-337), and the asset of an image page item. Recorded as a read of the
+    /// bare-hash form, which names no format, and the asset of an image page item. Recorded as a read of the
     /// project row (`project.company.set` changes the logo the answer is asked for) and of the asset store
     /// ([`DepKey::Assets`]): assets are only ever added, and one arrives in any transaction that carries it, e.g.
     /// an image item placed on another page with the file as `data`, which changes no row this reader read.
@@ -719,12 +719,12 @@ impl Q {
         self.table()
     }
 
-    /// Embedded manufacturer copies (WP-S1.19 D10).
+    /// Embedded manufacturer copies.
     pub fn manufacturers(&self) -> TableView<'_, LibCopy<Manufacturer>> {
         self.table()
     }
 
-    /// Embedded PLC address-profile copies (WP-S7.03 D7).
+    /// Embedded PLC address-profile copies.
     pub fn plc_profiles(&self) -> TableView<'_, LibCopy<PlcProfileDef>> {
         self.table()
     }
@@ -989,7 +989,7 @@ impl<'q> IdxView<'q> {
         )
     }
 
-    /// The placements of a device (`Placement.device`, WP-S4.01).
+    /// The placements of a device (`Placement.device`).
     pub fn placements_of_device(
         &self,
         device: Id<Device>,

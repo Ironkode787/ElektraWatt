@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The items of a rail and its derived end brackets (WP-S4.02 D3, FR-LAY-060, doc 12 §3.4): [`rail_items`] turns
+//! The items of a rail and its derived end brackets (FR-LAY-060, doc 12 §3.4): [`rail_items`] turns
 //! `rail_occupancy` into the rail model's items (the strips with their declared bracket widths), and the memo query
 //! [`GroupAccessories`] (`group_accessories(carrier)`) lists the end brackets the strips need. Nothing is stored: a
 //! bracket is derived from the strips' positions each time, so moving a strip away from its run adds two.
@@ -48,7 +48,7 @@ pub fn bracket_use(q: &Q, device: &Device) -> Option<usize> {
     })
 }
 
-/// The end brackets attributed to one placed strip (WP-S4.02 D13, part 5).
+/// The end brackets attributed to one placed strip.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct StripBrackets {
     /// The index in `Device.parts` of the declaring part use ([`bracket_use`]).
@@ -79,7 +79,7 @@ pub fn strip_brackets(q: &Q, device: Id<Device>) -> Option<StripBrackets> {
     let mut count = 0usize;
     let mut surfaces = BTreeSet::new();
     for c in carriers {
-        // counted once per rail inside the family (WP-S4.02 §9, ruling 11), not filtered here per strip
+        // counted once per rail inside the family, not filtered here per strip
         let n = q.get::<GroupAccessories>(c).count_of(device);
         if n > 0 {
             count = count.saturating_add(n);
@@ -139,12 +139,12 @@ pub struct Bracket {
     pub strip: Id<Device>,
     /// The strip's placement.
     pub placement: Id<Placement>,
-    /// Before its run or after its strip, as [`brackets`] made it (C44-p3#4).
+    /// Before its run or after its strip, as [`brackets`] made it.
     pub role: BracketRole,
 }
 
 /// The end brackets of one rail, the value of [`GroupAccessories`]: the brackets in rail order (it dereferences to
-/// them) and how many each strip holds, counted once when the family runs (WP-S4.02 §9, ruling 11).
+/// them) and how many each strip holds, counted once when the family runs.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct RailBrackets {
     /// The brackets, sorted as [`GroupAccessories`] says.

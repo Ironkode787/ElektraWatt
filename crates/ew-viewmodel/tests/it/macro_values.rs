@@ -159,7 +159,7 @@ fn insert_and_read(shell: &mut ShellModel, key: &str, set: Option<&str>, typed: 
     tag
 }
 
-/// FT-785: the card has one field per variable typed by it, its placeholder the default (`PSU-D`) or the chosen set's
+/// The card has one field per variable typed by it, its placeholder the default (`PSU-D`) or the chosen set's
 /// value (`PSU-A`); a typed value is passed in `values` and survives a change of value set; inserted, the literal wins
 /// over the value set, the value set over the default, and the default applies without either.
 #[test]
@@ -217,7 +217,7 @@ fn ft785_a_typed_value_wins_over_the_value_set_and_the_default() {
     assert!(insert_and_read(&mut shell, &key, None, &[]).contains("PSU-D"));
 }
 
-/// FT-785: a typed value that does not coerce (a tag counter of letters) shows the command's refusal under its field
+/// A typed value that does not coerce (a tag counter of letters) shows the command's refusal under its field
 /// in words, without the variable's name; Apply fails with it and the card stays; clearing the value previews again.
 #[test]
 fn ft785_a_value_that_does_not_coerce_is_refused_under_its_field() {
@@ -235,7 +235,7 @@ fn ft785_a_value_that_does_not_coerce_is_refused_under_its_field() {
     let m = card(&shell);
     let n = m.fields.iter().find(|f| f.name == "n").unwrap();
     let error = n.error.as_deref().expect("the refusal under the field");
-    // The whole text: the refusal in words, without the variable's name (cycle-40 review, part 3, finding 2).
+    // The whole text: the refusal in words, without the variable's name (part 3, finding 2).
     assert_eq!(error, "\"abc\" is not a tag counter (an integer from 1)");
     assert!(m.fields.iter().find(|f| f.name == "pt").unwrap().error.is_none());
     assert!(shell.properties().card().unwrap().preview.result.is_err());
@@ -304,7 +304,7 @@ fn detail(shell: &mut ShellModel, name: &str) -> ew_viewmodel::ew_api::output::M
     shell.macro_detail().expect("the detail").clone()
 }
 
-/// FT-786: the dialog's table has one column per variable (Make variable's) and starts empty; Add names the rows
+/// The dialog's table has one column per variable (Make variable's) and starts empty; Add names the rows
 /// `Set 1`, `Set 2`, `Set 3`; a rename, a cell edit and a remove change the rows; Save writes the table's sets into the
 /// macro (its value sets equal the table). `value_sets` given to `macros.save` prefills the table.
 #[test]
@@ -371,7 +371,7 @@ fn ft786_the_value_set_table_adds_renames_removes_and_saves() {
     assert_eq!((rows[1].key.as_str(), rows[1].cells[0].as_str()), ("y", ""));
 }
 
-/// FT-786: Save with a cell that does not coerce is refused in words naming the set and the variable, and a set
+/// Save with a cell that does not coerce is refused in words naming the set and the variable, and a set
 /// without a name by its row number; the dialog stays with the refusal and nothing is written.
 #[test]
 fn ft786_an_invalid_cell_is_refused_naming_the_set_and_the_variable() {

@@ -6,7 +6,7 @@
 use super::*;
 
 pub(super) fn rep_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
-    // WP-S2.04 part 4a: page items and structure boxes move with `items`.
+    // Page items and structure boxes move with `items`.
     if rng.chance(4)
         && let Some(step) = rep_move_items(live, rng)
     {
@@ -53,7 +53,7 @@ pub(super) fn rep_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 }),
             );
         }
-        // WP-S2.19 D14, D15: the window's members. Refused: a route for a connection that does not exist. Either: a
+        // The window's members. Refused: a route for a connection that does not exist. Either: a
         // connection's route cleared after the move (a route the move followed), and a hint whose junction does not
         // exist (dropped with a notice, before its CP is judged).
         7 => {
@@ -440,7 +440,7 @@ pub(super) fn rep_transform(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
-/// `rep.join_device` (WP-S2.18 D3): a D3-eligible representation joins a device that takes its FnDef by D2's rule;
+/// `rep.join_device`: a D3-eligible representation joins a device that takes its FnDef by D2's rule;
 /// the steps the command refuses: a representation whose device has several functions, the representation's own
 /// device, a device D2's rule refuses, a representation that does not exist.
 pub(super) fn rep_join_device(live: &Live, rng: &mut SplitMix64) -> Option<Step> {

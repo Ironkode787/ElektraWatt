@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The visual play-test driver (WP-S6.13 part 4, BV2 to BV6): the input vocabulary's bounds, inputs that reach the
+//! The visual play-test driver (BV2 to BV6): the input vocabulary's bounds, inputs that reach the
 //! window's widgets, equal dispatch logs and frames for equal scripts, the frame clock, the jobs and the file dialogs
 //! answered for the system, and the application closing.
 
@@ -115,8 +115,8 @@ fn golden_on_101(tmp: &Tmp) -> Driver {
     d
 }
 
-/// FT-1188: a script's `ui.dismiss` action line with the app menu open closes the menu and nothing else, as the
-/// window's own `ui.dismiss` does (FT-1130): the selection stays; with the menu closed it dismisses as before.
+/// A script's `ui.dismiss` action line with the app menu open closes the menu and nothing else, as the
+/// window's own `ui.dismiss` does: the selection stays; with the menu closed it dismisses as before.
 #[test]
 fn a_scripts_ui_dismiss_with_the_app_menu_open_closes_only_the_menu() {
     let tmp = Tmp::new();
@@ -272,7 +272,7 @@ fn ft891_the_drivers_double_clicks_on_two_rows_open_both() {
     }
 }
 
-/// ID-1497 (2): in the visual harness as in the window, a Shift+click on a row of the Terminal strips table marks the
+/// In the visual harness as in the window, a Shift+click on a row of the Terminal strips table marks the
 /// range from the cursor row and a Ctrl+click toggles one row (R1's clicks lost their modifiers: the harness let go of
 /// them in the release's frame, where the grid reads the click); Ctrl+A marks every row of the filtered table.
 #[test]
@@ -346,7 +346,7 @@ fn shift_and_ctrl_clicks_mark_table_rows_and_ctrl_a_marks_them_all() {
 fn bv3_clicks_right_clicks_typing_and_drags_reach_the_widgets() {
     let tmp = Tmp::new();
     let mut d = golden_on_101(&tmp);
-    // The drags below aim at Fit page's view (FT-1443: the first view is fit-width).
+    // The drags below aim at Fit page's view (the first view is fit-width).
     let _ = d.shell_mut().dispatch("view.fit_page", &json!({}));
     d.settle();
     let _ = actions(&mut d);
@@ -520,7 +520,7 @@ fn bv5_bv6_dialogs_are_answered_and_an_export_ends_within_its_input() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1201: `answer_open` names the file the next open dialog answers with, resolved against the script's folder, and
+/// `answer_open` names the file the next open dialog answers with, resolved against the script's folder, and
 /// runs no frame; the QElectroTech import then reads that file and its card shows. Without it the same import is
 /// cancelled.
 #[test]
@@ -632,7 +632,7 @@ fn the_application_closes_and_later_lines_say_so() {
     assert_eq!(t[6]["outcome"], "done", "the epilogue's shell: {:?}", t[6]);
 }
 
-/// 1920 × 1080 points at 1 pixel per point (cycle 39).
+/// 1920 × 1080 points at 1 pixel per point.
 fn typical() -> Geometry {
     Geometry::parse(Some("1920x1080"), Some("1")).unwrap()
 }
@@ -763,7 +763,7 @@ fn the_harness_key_names_are_keys() {
     }
 }
 
-/// FT-1253: the driver's fixed rendering inputs hold whatever the settings folder holds: no minimum text size and
+/// The driver's fixed rendering inputs hold whatever the settings folder holds: no minimum text size and
 /// reduced motion on, after a session that set 12 pt and motion.
 #[test]
 fn the_driver_pins_the_minimum_text_size_and_reduced_motion() {
@@ -1077,7 +1077,7 @@ fn symbol_editor_pointer_tools_dispatch_the_drawing_tool_name() {
     assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None);
     d.input(&click(d.find("Select").unwrap()));
     d.input(&click(d.find("Line 1").unwrap()));
-    // ID-1477 (9): the canvas fits only when asked.
+    // The canvas fits only when asked.
     d.input(&click(d.find("Fit drawing").unwrap()));
     let before = d.shell_mut().symbol_editor().unwrap().draft.clone();
     // M25-p3#3: the drag starts on the line (the fitted drawing's centre).
@@ -1434,7 +1434,7 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
     d.input(&click(d.find("Save to library").unwrap()));
     assert!(!d.shell_mut().symbol_editor().unwrap().dirty());
     d.input(&click(d.find("Test on a new page").unwrap()));
-    // ID-1463: the editor's view closes itself; the page shows with the test copy selected, the draft kept behind
+    // The editor's view closes itself; the page shows with the test copy selected, the draft kept behind
     // Back to the editor.
     assert!(d.shell_mut().symbol_editor().is_none());
     assert_eq!(d.shell_mut().kept_symbol_editor().unwrap().error, None);

@@ -71,7 +71,7 @@ fn fresh_scratch(base: &Path, seed: u64, counter: &AtomicUsize) -> Result<PathBu
 impl Disk {
     pub fn new(seed: u64) -> Disk {
         // The target directory's scratch space when cargo provides one (an integration test), else the system's
-        // (the cargo-fuzz crate, FT-297, which includes this module).
+        // (the cargo-fuzz crate, which includes this module).
         let base = option_env!("CARGO_TARGET_TMPDIR").map_or_else(std::env::temp_dir, PathBuf::from);
         Disk {
             base,
@@ -162,7 +162,7 @@ pub fn scratch_project(seed: u64) -> Result<(PathBuf, StoreOptions), String> {
 impl Drop for Disk {
     fn drop(&mut self) {
         // A failing run keeps its directory for the diagnosis; the next run of the same target dir does not
-        // adopt it (the folder is created new, FT-602).
+        // adopt it (the folder is created new).
         if let (false, Some(dir)) = (std::thread::panicking(), &self.dir) {
             let _ = std::fs::remove_dir_all(dir);
         }
@@ -243,7 +243,7 @@ fn derived_agree(live: &Session, back: &Session, depth: Depth) -> Result<(), Str
     Ok(())
 }
 
-/// FT-602: the scratch folder's parent is created when it is missing (a fresh runner's `target/tmp`), and a leftover
+/// The scratch folder's parent is created when it is missing (a fresh runner's `target/tmp`), and a leftover
 /// folder of the same PID and number (a killed run's) is skipped, not adopted, and left as it was.
 #[test]
 fn a_scratch_folder_is_created_new_under_a_missing_parent() {

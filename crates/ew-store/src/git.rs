@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The git integration through the `git` executable: the release's commit of the project directory and its annotated
-//! tag `ew/rev/<label>` (doc 05 §14.1 steps 3 and 5; WP-S1.18 D12), and the collaboration's git (doc 05 §9, §11;
+//! tag `ew/rev/<label>` (doc 05 §14.1 steps 3 and 5), and the collaboration's git (doc 05 §9, §11;
 //! WP-S1.17 D20, D22, D26, D28): a git operation in progress, the commit checked out, the blobs of a revision, the merge
 //! driver's configuration, the managed `.gitattributes` and `.gitignore` blocks and the `post-merge` hook.
 //!
@@ -10,7 +10,7 @@
 //! closed, the repository-selecting environment variables removed (`GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE`, …, so
 //! that git finds the repository from the directory as [`worktree_root`] does) and terminal prompts off. A `.git` file
 //! (a linked worktree, a submodule) is resolved to its `gitdir` ([`git_dir`]). What git prints is parsed in five places
-//! only (WP-S1.17 D26, decision log ID-1284 ruling 7), every other call is read for its exit status:
+//! only, every other call is read for its exit status:
 //! - the `git cat-file --batch` header (`<oid> <type> <size>`, or `<name> missing`) and the blob bytes it announces,
 //!   under the reader's limits ([`CatFile`]);
 //! - `git rev-parse --short HEAD`, taken only as lower-case hexadecimal ([`GitExe::short_head`]);
@@ -170,7 +170,7 @@ pub fn worktree_root(vfs: &dyn Vfs, dir: &Path) -> io::Result<Option<PathBuf>> {
 
 /// The git directory of the worktree `dir` lies in ([`worktree_root`]): its `.git` directory, or for a `.git` file (a
 /// linked worktree, a submodule) the directory its `gitdir: <path>` line names, a relative path taken from the
-/// worktree's root (doc 05 §9 step 3; WP-S1.17 D20). `None` outside a worktree, or when a `.git` file names no
+/// worktree's root (doc 05 §9 step 3). `None` outside a worktree, or when a `.git` file names no
 /// directory.
 ///
 /// # Errors
@@ -194,7 +194,7 @@ pub fn git_dir(vfs: &dyn Vfs, dir: &Path) -> io::Result<Option<PathBuf>> {
 
 /// Whether the hooks directory `hooks` ([`GitExe::hooks_dir`]) is the repository's own: inside the worktree `root`, its
 /// git directory or its common git directory. A `core.hooksPath` elsewhere (a global one) serves other repositories
-/// too (WP-S1.17 D28, C49-p10#4).
+/// too.
 ///
 /// # Errors
 ///
@@ -254,7 +254,7 @@ fn lexical(path: &Path) -> PathBuf {
 }
 
 /// Whether a git operation is in progress in the worktree `dir` lies in: its git directory ([`git_dir`]) holds
-/// `index.lock`, `MERGE_HEAD`, `rebase-merge/` or `rebase-apply/` (doc 05 §9 step 3; WP-S1.17 D20). An external change
+/// `index.lock`, `MERGE_HEAD`, `rebase-merge/` or `rebase-apply/` (doc 05 §9 step 3). An external change
 /// waits until none is there. `false` outside a worktree.
 ///
 /// # Errors
@@ -269,7 +269,7 @@ pub fn busy(vfs: &dyn Vfs, dir: &Path) -> io::Result<bool> {
 }
 
 /// Whether a merge or a rebase is in progress in the worktree `dir` lies in (`MERGE_HEAD`, `rebase-merge/`,
-/// `rebase-apply/` in its git directory): merge evidence for EW-CORE-013 (WP-S1.17 D29). `false` outside a worktree.
+/// `rebase-apply/` in its git directory): merge evidence for EW-CORE-013. `false` outside a worktree.
 ///
 /// # Errors
 ///
@@ -426,7 +426,7 @@ impl GitExe {
     }
 
     /// The short hash of the commit checked out in the worktree of `dir` (`git rev-parse --short HEAD`), the label of an
-    /// external change (WP-S1.17 D22); `None` when git does not answer with one (no commit yet, not a worktree). Only
+    /// external change; `None` when git does not answer with one (no commit yet, not a worktree). Only
     /// lower-case hexadecimal of 4 to 64 digits is taken.
     ///
     /// # Errors
@@ -552,7 +552,7 @@ impl Git for GitExe {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// The merge driver's configuration, the managed blocks and the hook (doc 05 §11.1, §11.5; WP-S1.17 D28)
+// The merge driver's configuration, the managed blocks and the hook (doc 05 §11.1, §11.5)
 
 /// The scope of a `git config` call: the repository of the directory, or the user's global file (`--global`).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -602,7 +602,7 @@ impl GitExe {
         self.ok(dir, "config", &args)
     }
 
-    /// Starts one `git cat-file --batch` process in the worktree of `dir` (WP-S1.17 D26): [`CatFile::get`] reads blobs
+    /// Starts one `git cat-file --batch` process in the worktree of `dir`: [`CatFile::get`] reads blobs
     /// through it.
     ///
     /// # Errors
@@ -644,7 +644,7 @@ impl GitExe {
 /// The most bytes of a `git cat-file --batch` header line read before it counts as malformed.
 const CAT_FILE_HEADER_MAX: usize = 512;
 
-/// One `git cat-file --batch` process (WP-S1.17 D26): a name per request on its input, then the header it prints
+/// One `git cat-file --batch` process: a name per request on its input, then the header it prints
 /// (`<oid> <type> <size>` or `<name> missing`) and the bytes the header announces. Its output is flushed per object, so
 /// requests and answers alternate. Dropping it ends the process.
 #[derive(Debug)]
@@ -1090,7 +1090,7 @@ mod tests {
             ),
             "'/home/u/Apps/ElektraWatt.AppImage' ew"
         );
-        // C49-p10#2: an `ew` outside the mount, started where another AppImage's variables are inherited, is itself.
+        // An `ew` outside the mount, started where another AppImage's variables are inherited, is itself.
         assert_eq!(ew_command(Path::new("/opt/ew/ew"), image, mount), "'/opt/ew/ew'");
         assert_eq!(
             ew_command(Path::new("/tmp/.mount_ElektrAbc/ew"), image, None),
@@ -1114,7 +1114,7 @@ mod tests {
         std::os::windows::fs::symlink_dir(target, link)
     }
 
-    /// FT-1298: the AppImage mount compares canonical, so an `ew` under a mount reached through a symbolic link (or the
+    /// The AppImage mount compares canonical, so an `ew` under a mount reached through a symbolic link (or the
     /// mount named through one) runs from that AppImage.
     #[test]
     fn the_appimage_mount_compares_through_a_symbolic_link() {
@@ -1143,7 +1143,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// FT-1298: a hooks directory reached through a symbolic link into the repository is the repository's own.
+    /// A hooks directory reached through a symbolic link into the repository is the repository's own.
     #[test]
     fn hooks_through_a_symbolic_link_into_the_repository_are_its_own() {
         let dir = ew_testdir::fresh_dir("ew-store-hooks-link");
@@ -1162,7 +1162,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// C50-p1#5: an I/O error reading the git directory's `commondir` (here a folder) names that path.
+    /// An I/O error reading the git directory's `commondir` (here a folder) names that path.
     #[test]
     fn an_io_error_of_own_hooks_names_the_path_that_failed() {
         let dir = ew_testdir::fresh_dir("ew-store-hooks-commondir");

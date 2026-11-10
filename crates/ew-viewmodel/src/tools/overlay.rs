@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool overlay (WP-S2.03 §7.4): what a tool draws while it works, in sheet nanometres, toolkit-neutral and
+//! The tool overlay: what a tool draws while it works, in sheet nanometres, toolkit-neutral and
 //! never persisted.
 //!
 //! The items are drawn in order above the hover and selection outlines and below the snap markers and the grid
@@ -165,7 +165,7 @@ pub enum OverlayItem {
         kind: MarkerKind,
     },
     /// Polylines in page nm relative to an origin, under an orientation (`0..=7`, A to H) and translated to an
-    /// absolute page point (WP-S2.04 §6.3): a symbol's outline while it floats. Drawn as dashed lines in the
+    /// absolute page point: a symbol's outline while it floats. Drawn as dashed lines in the
     /// `ghost` token, composited by the headless snapshot like `Ghost`; [`paths_on_sheet`] gives the sheet points.
     Paths {
         /// The polylines, relative to the origin, at orientation A.
@@ -173,7 +173,6 @@ pub enum OverlayItem {
         /// The orientation and the absolute page point of the origin.
         transform: (u8, (i64, i64)),
     },
-    // WP-S2.06 part 2
     /// A potential or net highlight (§7.3, D14): the drawn polylines of its members on the shown page, in sheet nm,
     /// drawn as hatched bands in the colour and hatch angle of `slot` (`crate::highlight`); composited into
     /// `canvas.snapshot` like `Ghost`. Built by the shell from the window's highlights, never by a tool.

@@ -200,7 +200,7 @@ fn invalid_path(e: CmdError) -> (String, String) {
     }
 }
 
-/// EM-1 (FT-274, D7): `embed_command` by reference embeds 2904602 with its manufacturer and its template FnDef in one
+/// EM-1 (D7): `embed_command` by reference embeds 2904602 with its manufacturer and its template FnDef in one
 /// command, and the command replays on a session with no library.
 #[test]
 fn em1_embedding_by_reference_carries_the_closure_and_replays_without_a_library() {
@@ -518,7 +518,7 @@ fn em5_a_patch_update_shows_the_field_diff_and_the_device() {
     assert_eq!(state(&s).0, CopyState::Current);
 }
 
-/// FT-640: the library's next version of 2904602 names a manufacturer the project does not hold. The plan's
+/// The library's next version of 2904602 names a manufacturer the project does not hold. The plan's
 /// `library.update` embeds it in the same command; the command without it is refused with the missing item listed.
 #[test]
 fn em9_an_update_embeds_the_new_versions_missing_closure_or_is_refused() {
@@ -648,7 +648,7 @@ fn em6_a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connec
     let CmdError::Rejected { reason, .. } = &e else {
         panic!("{e:?}")
     };
-    // FT-1396: the attached records in words, a wire by its number or page, never by its ID; whole (FT-1525).
+    // The attached records in words, a wire by its number or page, never by its ID; whole.
     let wires = [
         "wire 103.1",
         "a wire on page 103",
@@ -783,7 +783,7 @@ fn library_update_refuses_what_it_cannot_update() {
             not_held["version"].as_str().unwrap()
         )
     );
-    // FT-1524: a manufacturer by its name and key, never "a manufacturer".
+    // A manufacturer by its name and key, never "a manufacturer".
     let maker_item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_1524);
     let mut maker = golden_manufacturer_of("2904602");
     maker["item_id"] = json!(maker_item.to_string());
@@ -798,7 +798,7 @@ fn library_update_refuses_what_it_cannot_update() {
         "the project holds no copy of manufacturer PowerCo (PWC) at version 1.0.0; embed it first (library.embed \
          or part.assign)"
     );
-    // FT-1524 (C53-p2#5): a symbol by its name, a PLC profile by its label.
+    // A symbol by its name, a PLC profile by its label.
     let symbol_item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_1525);
     let mut symbol = held_symbol(&s, "ew.gen.ip@qet10");
     symbol["item_id"] = json!(symbol_item.to_string());
@@ -926,7 +926,7 @@ fn em8_a_deprecated_part_offers_its_successor() {
     assert_eq!(part_uses(&s, f1), [copy_in(lib, A9P52616)]);
 }
 
-/// The 0.1.0 copies Golden A held before FT-698 (cycle 38), by key, with their published hashes.
+/// The 0.1.0 copies Golden A held before FT-698, by key, with their published hashes.
 const GOLDEN_PRE_FT698: [(&str, &str); 3] = [
     (
         "ew.iec.lamp@qet10",
@@ -943,7 +943,7 @@ const GOLDEN_PRE_FT698: [(&str, &str); 3] = [
 ];
 
 /// A 0.2.0 starter symbol of FT-698 as its 0.1.0 predecessor: the appended `plc_address` slot and its arrangement
-/// entries removed, the version and the hash of the item put back. The 5/2 valve's 0.3.0 (WP-S1.20) also loses its
+/// entries removed, the version and the hash of the item put back. The 5/2 valve's 0.3.0 also loses its
 /// function-text fallback and names its FnDef's 0.1 again.
 fn before_ft698(doc: &LibDocument) -> LibDocument {
     let mut v = serde_json::to_value(doc).unwrap();
@@ -976,7 +976,7 @@ fn symbol_key(d: &LibDocument) -> Option<String> {
     }
 }
 
-/// FT-698 (cycle 38), the product path of Golden A's symbol change: over Golden A as it was (its lamp, position
+/// FT-698, the product path of Golden A's symbol change: over Golden A as it was (its lamp, position
 /// switch and 5/2 valve at 0.1.0, rebuilt from the new copies and checked against the published hashes), the library
 /// status offers exactly those three copies an update, a minor one to the starter's 0.2.0 (the 5/2 valve a major one
 /// to its 0.3.0, which names the FnDef's 0.2, WP-S1.20); "update from library" updates them in one command, after which
@@ -1020,7 +1020,7 @@ fn ft698_update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
         .collect();
     let valve = device(&s, "-201U3-Q1");
     assert!(!slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
-    // WP-S1.20: the 5/2 valve's update is the major one to 0.3.0
+    // The 5/2 valve's update is the major one to 0.3.0
     let target = |copy: Uuid| {
         let valve = current.iter().any(|d| {
             matches!(d, LibDocument::Symbol(c) if c.id.as_uuid() == copy)
@@ -1074,7 +1074,7 @@ fn ft698_update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
     assert!(slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
 }
 
-/// FT-1396 (ID-1423 ruling 5): a damaged library copy a device names is named by its part's words, as the installed
+/// A damaged library copy a device names is named by its part's words, as the installed
 /// library gives them, never by its file: the part number and the library's name.
 #[test]
 fn a_damaged_copy_is_named_by_its_installed_part() {
@@ -1110,7 +1110,7 @@ fn a_damaged_copy_is_named_by_its_installed_part() {
     )
     .unwrap();
     let damaged = s.damaged_copy().expect("a damaged copy");
-    // FT-1500: the copy and the record that names it in words, whole; a record names it, so a Save As is refused.
+    // The copy and the record that names it in words, whole; a record names it, so a Save As is refused.
     assert_eq!(
         damaged.words.to_string(),
         "the library copy of part 2904602 named by -102G1"

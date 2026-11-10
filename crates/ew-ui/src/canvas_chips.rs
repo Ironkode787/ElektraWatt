@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The chips of a canvas (WP-S2.17 part 5; doc 16a §7.3 to §7.5): the tool overlay's labels (the Place ghost's one
+//! The chips of a canvas (doc 16a §7.3 to §7.5): the tool overlay's labels (the Place ghost's one
 //! label with the tag it will get, FT-507; the measurement readout), the highlights' name chips and the kept
 //! preview's semantic ghost (its header with the command and status, one chip per changed tag or cross-reference
 //! text, FT-389), each placed by `ew-viewmodel`'s one rule, [`place_chip`] (D13), in that order, so that a later chip
 //! keeps off the earlier ones.
 //!
-//! **Obstacles** (FT-508): the outside of the canvas, the frame-statistics panel, the chrome the caller reports
+//! **Obstacles**: the outside of the canvas, the frame-statistics panel, the chrome the caller reports
 //! over the canvas (the tool HUD, the zoom control and the tool options card,
 //! [`crate::canvas::CanvasHost::set_chrome_obstacles`]), the
 //! pointer's 16-point box, and every chip placed before. **Targets**: a label stands by its point; a highlight's
@@ -132,7 +132,7 @@ fn clamp_inside(chip: Rect, bounds: Rect) -> Rect {
     chip.translate(Vec2::new(dx, dy))
 }
 
-/// The nearest place for a chip whose candidates are all taken (FT-1142, ID-1225; doc 16a §7.4): stacked inward from
+/// The nearest place for a chip whose candidates are all taken (doc 16a §7.4): stacked inward from
 /// its first candidate `first` (moved inside `bounds`) by its height and `gap`, towards the canvas's vertical middle,
 /// the first that overlaps none of the `chips` already placed and stays inside `bounds`; `None` when there is none.
 fn stack_inward(first: Rect, chips: &[Rect], bounds: Rect, gap: f32) -> Option<Rect> {
@@ -158,7 +158,7 @@ struct Placer<'u> {
     tokens: &'u Tokens,
     obstacles: Vec<vm::Rect>,
     pointer: Option<vm::Pos2>,
-    /// The canvas: a chip no candidate fits for is clamped inside it (FT-1079).
+    /// The canvas: a chip no candidate fits for is clamped inside it.
     bounds: Rect,
     out: Vec<CanvasChip>,
 }
@@ -193,8 +193,8 @@ impl Placer<'_> {
             &self.obstacles,
             self.pointer,
         );
-        // FT-1142 (ID-1225; doc 16a §7.4): where no candidate is free the chip stacks inward clear of the chips placed
-        // so far; FT-1079 (ID-1183): where that finds no place it stands at the rule's first candidate, faded; that one
+        // FT-1142 (doc 16a §7.4): where no candidate is free the chip stacks inward clear of the chips placed
+        // so far; FT-1079: where that finds no place it stands at the rule's first candidate, faded; that one
         // may lie off the canvas, so the chip is moved in (its top left wins in a canvas too small for it).
         let placed: Vec<Rect> = self.out.iter().map(|c| c.rect).collect();
         let stacked = p
@@ -274,7 +274,7 @@ pub fn plan(ui: &Ui, input: &ChipInput<'_>, canvas: &CanvasModel, shell: &ShellM
     placer.out
 }
 
-/// The kept preview's chips (FT-389 by the rule of D13).
+/// The kept preview's chips (by the rule of D13).
 fn preview(
     placer: &mut Placer<'_>,
     input: &ChipInput<'_>,
@@ -290,7 +290,7 @@ fn preview(
         return;
     }
     // A ready preview that changes no tag and no cross-reference text says nothing a chip should stand for (a route
-    // edit, a move): the tool's readout and the HUD carry it (WP-S2.04 part 2, window check).
+    // edit, a move): the tool's readout and the HUD carry it (window check).
     if status == PreviewStatus::Ready
         && p.result.is_ok()
         && p.derived.tags.is_empty()
@@ -324,11 +324,11 @@ fn preview(
             .reps
             .iter()
             .find(|r| r.device == Some(id))
-            // FT-502: by the printed tag text where the page tables give it, else by the body.
+            // By the printed tag text where the page tables give it, else by the body.
             .map(|r| r.tag_at.map_or(r.body, |t| [t.0, t.1, t.0, t.1]))
             .or(floating)
             .map(corner_of);
-        // FT-1285: a strip without a tag yet reads in words, never as "-?X?".
+        // A strip without a tag yet reads in words, never as "-?X?".
         let before = shell.device_tag_label(id, &c.before);
         texts.push((
             strings::format(key!("preview-chip-change"), &[&before, &c.after]),
@@ -343,7 +343,7 @@ fn preview(
             at,
         ));
     }
-    // FT-1079: a text that reads the same as an earlier one (a tag and a cross-reference both going from -103S2 to
+    // A text that reads the same as an earlier one (a tag and a cross-reference both going from -103S2 to
     // -103S2) shows once.
     drop_repeats(&mut texts);
     texts.truncate(11);
@@ -421,11 +421,11 @@ pub fn clear_corner(canvas: Rect, corner: Pos2, size: Vec2, obstacles: &[Rect], 
     }
 }
 
-/// FT-1277 (ID-1315 ruling 3): the places of the wire-colour view's code chips in a canvas `bounds`, each code
+/// The places of the wire-colour view's code chips in a canvas `bounds`, each code
 /// `(anchor, size)` by doc 16a §7.4's rule, in order: [`place_chip`] by its anchor (its stroke's middle in its lane)
 /// clear of the canvas's outside, of the codes placed before it, of `obstacles` and of the `pointer`'s box; where every
 /// candidate is taken, the nearest place stacked inward (`gap` apart) clear of the same; only where there is none, the
-/// first candidate, faded (`true`). FT-1345 (ID-1358 ruling 5): `obstacles` are what §7.4 names besides: the HUD, the
+/// first candidate, faded (`true`). FT-1345: `obstacles` are what §7.4 names besides: the HUD, the
 /// frame-statistics panel, the other chips and the drawing's printed texts.
 pub fn wire_code_chips(
     bounds: Rect,
@@ -491,7 +491,7 @@ pub fn paint(ui: &Ui, clip: Rect, chips: &[CanvasChip]) {
     }
 }
 
-/// The frame of the link preview popup (WP-S2.03 §7.8): a popover (doc 16a §6.13's surface: `elevation.1`, a 1-px
+/// The frame of the link preview popup: a popover (doc 16a §6.13's surface: `elevation.1`, a 1-px
 /// `color.border.default` outline) around `rect` and the target's folio as a canvas chip above it, with `go` (how to go
 /// there, FT-1123) on a line under the folio.
 pub fn paint_popup_frame(ui: &Ui, clip: Rect, rect: Rect, folio: &str, go: &str) {
@@ -536,7 +536,7 @@ mod tests {
 
     use super::{OFFSET, clamp_inside, clear_corner, drop_repeats};
 
-    /// FT-1079 (ID-1183): a chip no candidate was free for is moved inside the canvas: off its left and top edges
+    /// A chip no candidate was free for is moved inside the canvas: off its left and top edges
     /// by the least, off its right and bottom edges by the least, and in a canvas too small it keeps its top left.
     #[test]
     fn a_chip_with_no_free_candidate_is_clamped_inside_the_canvas() {
@@ -566,8 +566,8 @@ mod tests {
     }
 
     /// FT-1079 at the floor's canvas: the placer puts a chip whose every candidate is taken (the whole canvas is an
-    /// obstacle) inside the canvas, though its first candidate lies above the canvas's top left corner. FT-1142
-    /// (ID-1225): the chips that follow it at the same target stack inward (down from the top corner), clear of one
+    /// obstacle) inside the canvas, though its first candidate lies above the canvas's top left corner. FT-1142:
+    /// the chips that follow it at the same target stack inward (down from the top corner), clear of one
     /// another and whole; where the canvas has no such place left the chip is faded, inside the canvas.
     #[test]
     fn the_placer_clamps_a_chip_with_no_free_candidate() {
@@ -625,7 +625,7 @@ mod tests {
         assert!(checked);
     }
 
-    /// FT-1079: the preview's texts drop an exact repeat (a tag and a cross-reference that both read "-103S2 →
+    /// The preview's texts drop an exact repeat (a tag and a cross-reference that both read "-103S2 →
     /// -103S2" show once), the first keeping its place; texts that differ stay.
     #[test]
     fn the_preview_shows_a_text_that_repeats_once() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.19 part 1 (ID-1498): a page's geometry and its layout measures on a temporary copy of Golden A. Folio 101
+//! A page's geometry and its layout measures on a temporary copy of Golden A. Folio 101
 //! draws its connections along the provisional path, and the measures name what the owner saw there: the heater's
 //! PE wire through the lamp's X1, and the lamp's L feed along the switch's wires. Named items only, never totals. The
 //! layout rules of §9 (EW-CORE-067 to -070, -072 and -073) on hand-built pages and on Golden A (RK1, RK2).
@@ -171,7 +171,7 @@ fn the_geometry_of_folio_101_holds_its_bodies_texts_and_frame_bands() {
     }
 }
 
-/// ID-1502 (3): a free text and a structure box's caption are text boxes of the page's geometry, so measure (d) and
+/// A free text and a structure box's caption are text boxes of the page's geometry, so measure (d) and
 /// the router's rule 4 see them.
 #[test]
 fn free_texts_and_structure_box_captions_are_text_boxes() {
@@ -208,7 +208,7 @@ fn free_texts_and_structure_box_captions_are_text_boxes() {
     assert!(has(structure), "the structure box's caption");
 }
 
-// WP-S2.19 §9: the layout rules EW-CORE-067 to -070, -072 and -073 on hand-built pages (RK1) and on Golden A (RK2).
+// The layout rules EW-CORE-067 to -070, -072 and -073 on hand-built pages (RK1) and on Golden A (RK2).
 
 /// The point of the QET grid at column `c` and row `r` of grid steps (7 937 500 / 3 nm, rounded to the nm).
 fn grid(c: i64, r: i64) -> serde_json::Value {

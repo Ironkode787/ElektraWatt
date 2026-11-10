@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell frame without rendering (WP-S2.01 part 1, acceptance checks A10 and A11): the start page, the
+//! The shell frame without rendering (acceptance checks A10 and A11): the start page, the
 //! command palette, page keys, the About dialog and the unsaved-changes dialog, each followed by the
 //! accessible-name walker.
 
@@ -21,7 +21,7 @@ fn the_start_page_offers_open_and_names_no_project() {
     settle(&mut h);
     assert!(h.query_by_label("Open…").is_some());
     assert!(h.query_by_label("This version has no update check").is_some());
-    // WP-S2.17 part 3 (D12): the status bar's state field; the start page's hint left the bar.
+    // The status bar's state field; the start page's hint left the bar.
     assert!(h.query_by_label("Ready").is_some());
     // The app menu is there on every operating system (WP-S2.17 part 2: one button opens the whole tree, in doc
     // 16a §9.2's order).
@@ -99,7 +99,7 @@ fn page_down_changes_the_page_in_the_status_bar() {
     );
     wait_for_page(&mut h);
     settle(&mut h);
-    // WP-S2.17 part 3 (D12): the page field left the status bar (the canvas tab and the page list show the page); the
+    // The page field left the status bar (the canvas tab and the page list show the page); the
     // save state is "Saved".
     assert!(h.query_all_by_label("Pages").next().is_some());
     assert!(h.query_by_label("Saved").is_some());
@@ -125,7 +125,7 @@ fn a_click_in_the_page_list_marks_and_enter_goes_to_that_page() {
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    // The navigator's row of the fourth page, by its accessible name (WP-S2.03 §6.1).
+    // The navigator's row of the fourth page, by its accessible name.
     let shell = h.state().shell();
     let rows = shell.page_rows().to_vec();
     let row = shell
@@ -135,7 +135,7 @@ fn a_click_in_the_page_list_marks_and_enter_goes_to_that_page() {
         .unwrap();
     let name =
         ew_ui::ew_viewmodel::navigator::PageNavigator::accessible_name(&row, &rows, shell.current_page());
-    // WP-S2.06 §6.4: a click marks the row and moves the cursor; since FT-1024 (ID-1107, doc 16a §6.6) it also opens
+    // A click marks the row and moves the cursor; since FT-1024 (doc 16a §6.6) it also opens
     // the page.
     h.get_by_label(&name).click();
     settle(&mut h);
@@ -233,7 +233,7 @@ fn closing_a_dirty_project_asks_and_discard_closes_it() {
         h.query_by_label("Unsaved changes").is_some(),
         "the save state shows unsaved"
     );
-    // Close project is Ctrl+Shift+W: Ctrl+W closes a canvas tab (WP-S2.03 §6.2).
+    // Close project is Ctrl+Shift+W: Ctrl+W closes a canvas tab.
     h.key_press_modifiers(Modifiers::COMMAND | Modifiers::SHIFT, Key::W);
     settle(&mut h);
     assert!(matches!(
@@ -317,7 +317,7 @@ fn the_file_menu_greys_out_what_needs_a_project() {
     );
 }
 
-/// FT-1112 (ID-1229 item 1): a menu names a key by its keycap form, as the tooltips do: Edit ▸ Delete reads "Del", not
+/// FT-1112 (item 1): a menu names a key by its keycap form, as the tooltips do: Edit ▸ Delete reads "Del", not
 /// "Delete".
 #[test]
 fn ft1112_a_menu_names_its_key_by_the_keycap() {
@@ -394,7 +394,7 @@ fn the_zoom_is_set_when_the_setting_changes_not_every_frame() {
     assert_eq!(h.ctx.zoom_factor(), 1.5);
 }
 
-// WP-S2.09 part 1: the one-frame "Exporting PDF…" label went with the export job; `tests/jobs.rs` holds the
+// The one-frame "Exporting PDF…" label went with the export job; `tests/jobs.rs` holds the
 // window's export (the save dialog, the job, its progress and its end).
 
 /// WP-S2.08 part 1 (PL-6, PL-7): Enter on an action that needs parameters opens its inline form in the palette, named

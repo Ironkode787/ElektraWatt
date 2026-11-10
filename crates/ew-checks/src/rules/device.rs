@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! EW-CORE device and part rules of the 04x block (doc 15 §4.2; WP-S1.16 part 3): EW-CORE-041 to -045 and -048,
+//! EW-CORE device and part rules of the 04x block (doc 15 §4.2): EW-CORE-041 to -045 and -048,
 //! and EW-CORE-008's `form` half (FT-368) and `channel` half (FT-229, part 4). EW-CORE-047 is in [`core`](super::core).
 //!
-//! # Determinism (WP-S1.16 §10)
+//! # Determinism
 //!
 //! Texts name devices by their derived tags and parts by their part numbers; lists inside a message are in natural
 //! order of their printed text. IDs enter only targets and fingerprints.
@@ -64,7 +64,7 @@ pub const DEVICE_WITHOUT_PART: RuleMeta = RuleMeta {
 };
 
 /// EW-CORE-041: a device without a part use (FR-CHK-024; D-04, EF-04, EF-19). The device half only: a device that
-/// is not placed is EW-LAY-001's (WP-S4.01). The exemption of a device "supplied by others" (`supply_scope =
+/// is not placed is EW-LAY-001's. The exemption of a device "supplied by others" (`supply_scope =
 /// by_others`, FR-DEV-037, decision log ID-322) waits for the attribute (FT-209): until it exists the rule fires for
 /// such devices too. Left out: a strip (its terminals carry the parts), a cable (its part is the cable part, and a
 /// cable without one is reported by its length and core rules), a PLC configuration device and a device without
@@ -278,7 +278,7 @@ impl Rule for PlaceholderPart {
 
 /// The part copies EW-CORE-043 looks at for a device: its part uses ([`parts_of`]) and the parts of its carrier part
 /// lines (`LineSource::Carrier`: the rails and ducts of its enclosure, WP-S4.01 D11), in the order of [`parts_of`]. A
-/// placeholder rail or duct reaches the BOM through the carriers since WP-S4.01 part 4 (FT-205), so it stays an open
+/// placeholder rail or duct reaches the BOM through the carriers since WP-S4.01 part 4, so it stays an open
 /// item that blocks release (EF-17), owned by the enclosure device.
 fn placeholder_candidates(q: &Q, device: &Device) -> Vec<(Id<Part>, std::sync::Arc<LibCopy<Part>>)> {
     let mut out = parts_of(q, device);
@@ -435,7 +435,7 @@ impl ContactCount {
         }
     }
 
-    /// The counts in words (FT-712: a change-over contact is spelled out, `0 changeover`).
+    /// The counts in words (a change-over contact is spelled out, `0 changeover`).
     fn text(self) -> String {
         format!("{} NO, {} NC, {} changeover", self.no, self.nc, self.co)
     }
@@ -555,11 +555,11 @@ fn descendants(q: &Q, head: Id<Device>) -> Vec<Id<Device>> {
 
 /// EW-CORE-048: an assembly with `bom_basis = assembly` whose order codes do not cover each of its descendants with
 /// part uses exactly once (FR-DEV-020, D-36): only an order code with a configured part covers (doc 03 §7: one
-/// without prints and covers nothing); covers are not transitive (decision log ID-371), so every descendant with own
+/// without prints and covers nothing); covers are not transitive, so every descendant with own
 /// part lines is named, and a device named by two order codes would print twice. The assembly device itself may be
 /// covered, at most once. A descendant without part uses has no line to replace. One finding per device and
 /// condition: targets the assembly and the device, discriminator `uncovered` or `covered-twice`. A cover outside the
-/// assembly's subtree (FT-260) is not judged here.
+/// assembly's subtree is not judged here.
 #[derive(Clone, Copy, Debug)]
 pub struct OrderCodesCover;
 
@@ -635,7 +635,7 @@ impl Rule for OrderCodesCover {
 /// EW-CORE-008, the dangling references a loaded model can hold. An integrity rule of release mode: it runs in `ew
 /// check` and the release gate, not online. Two halves, by discriminator:
 ///
-/// - **`form`** (FT-368): a page without a form of its own whose frame defaults (`settings.frames`, doc 03 §5.1)
+/// - **`form`**: a page without a form of its own whose frame defaults (`settings.frames`, doc 03 §5.1)
 ///   name a form copy the project does not hold, so its frame falls through to the next rule (decision log ID-547
 ///   item 4). A page's own `form` is a checked link (`Model::from_records` refuses a dangling one); the frame
 ///   defaults are a settings member that is not. Reported per stored page, as the cell grid resolves it
@@ -646,7 +646,7 @@ impl Rule for OrderCodesCover {
 ///   refuses on open). Target the channel and the device, subject `<device tag>:<channel number>`. The delete quick
 ///   fix of FT-229 waits for a command that deletes a channel (`edit.delete` does not take one; WP-S1.16 §11.2
 ///   item 6).
-/// - **`duplicate_number`** (FT-350, WP-S1.21 D10): a channel that shares its number with another channel of its
+/// - **`duplicate_number`**: a channel that shares its number with another channel of its
 ///   module (an import or a merge that bypassed the v5 rule of N1). The derivation and N1 keep one channel per
 ///   number, the one whose ID is `v5(module, "channel", number)`, else the lowest ID; every other channel of that
 ///   number is reported, with the channel and the module as targets and subject `<module tag>:<number>`.

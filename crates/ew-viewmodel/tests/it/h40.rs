@@ -67,7 +67,7 @@ fn parts_list_without_a_bom_block_is_refused_in_words() {
     );
 }
 
-/// FT-1028, ID-1107: "the command ends with the BOM's first page fitted in the canvas and its row selected in the page
+/// "the command ends with the BOM's first page fitted in the canvas and its row selected in the page
 /// tree", and "dismiss the earlier export toast". After a PDF export on 102, zoomed in, Parts list shows 901 at the
 /// fit zoom, marks its row (the row cursor on it) and leaves no export toast on screen.
 #[test]

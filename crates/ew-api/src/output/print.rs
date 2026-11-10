@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The print set (WP-S3.07 part 2, D5 to D7; decision log ID-1114): the export's pages placed on a paper, stamped
+//! The print set: the export's pages placed on a paper, stamped
 //! when scaled, and written by the export's PDF writer with the export's options and fonts (ADR-0015: the PDF is the
 //! print master). `ew-print`'s adapters hand the bytes to the OS; the binaries build their `PrintJob` from a
 //! [`PrintSet`]'s fields.
@@ -39,7 +39,7 @@ use super::{
 };
 use crate::Session;
 
-/// The paper a print set is printed on (WP-S3.07 D6).
+/// The paper a print set is printed on.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub enum Paper {
     /// Each page on its own sheet size (the default).
@@ -134,7 +134,7 @@ impl fmt::Display for Paper {
     }
 }
 
-/// How a page meets the paper (WP-S3.07 D6).
+/// How a page meets the paper.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum Fit {
     /// At 100 %, the sheet's top-left corner at the paper's; a larger sheet is clipped (the default).
@@ -164,7 +164,7 @@ impl fmt::Display for PrintError {
 
 impl std::error::Error for PrintError {}
 
-/// What a print set is built from (WP-S3.07 D6).
+/// What a print set is built from.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PrintOptions {
     /// The pages (`--pages`, `--sections`).
@@ -204,7 +204,7 @@ impl fmt::Display for PrintNotice {
     }
 }
 
-/// A built print set (WP-S3.07 D5).
+/// A built print set.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PrintSet {
     /// The print pages, in page order: each export page with its [`PagePlacement`].
@@ -354,7 +354,7 @@ pub fn sections(q: &Q) -> Vec<(u16, String)> {
     all
 }
 
-/// [`print_set_with`] with the job's controller `ctl` (the print job, ID-1180 ruling 2): the export's phases with
+/// [`print_set_with`] with the job's controller `ctl` (the print job, ruling 2): the export's phases with
 /// their reports and checkpoints, then `report(0, 0, "writing")` before the placement and the writer.
 pub(crate) fn print_set_hooked(
     q: &Q,

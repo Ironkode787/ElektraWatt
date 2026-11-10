@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.17 part 2: the command surface's model. CB1 (the registry's placements and the app menu), CB6 (the describe
+//! The command surface's model. CB1 (the registry's placements and the app menu), CB6 (the describe
 //! lines, deterministic), CB8 (the Draw tab equals the mockup's command row) and the HUD's prompts (CB5's model side,
 //! FT-521).
 
@@ -162,7 +162,7 @@ fn cb1_the_registry_places_every_command_once_and_the_app_menu_holds_every_actio
         }
     }
     assert_eq!(missing, KEY_ONLY, "the actions outside the app menu");
-    // The Window menu lists the open tabs as items of the hidden `tab.activate` (WP-S2.03).
+    // The Window menu lists the open tabs as items of the hidden `tab.activate`.
     for id in found.keys().filter(|id| **id != "tab.activate") {
         let a = actions::find(id).unwrap();
         assert!(!a.headless_only && !a.hidden, "{id} is in the menu");
@@ -403,7 +403,7 @@ fn cb6_the_command_tab_and_the_collapse_reach_the_describe_text() {
     s.shutdown();
 }
 
-/// FT-1116: a new page shows with nothing selected, so its HUD does not read "1 selected".
+/// A new page shows with nothing selected, so its HUD does not read "1 selected".
 #[test]
 fn page_new_shows_the_new_page_with_nothing_selected() {
     let tmp = Tmp::new("ft1116");
@@ -420,7 +420,7 @@ fn page_new_shows_the_new_page_with_nothing_selected() {
     s.shutdown();
 }
 
-/// ID-1497 (8): a page chosen in the page list selects its page record, which draws nothing on the canvas: the
+/// A page chosen in the page list selects its page record, which draws nothing on the canvas: the
 /// canvas's HUD and status bar do not count it ("1 selected · Del deletes") and Edit ▸ Delete is not offered for it,
 /// while the selection itself stays (the page list's Delete deletes the page). A device drawn on the page is counted
 /// as before, also when it is selected by its tag (C53-fx#1: Delete deletes its representations on the page).
@@ -543,7 +543,7 @@ fn cb5_arming_place_names_the_tool_the_target_and_its_keys() {
     s.shutdown();
 }
 
-/// ID-1497 (10): the Draw tab's Renumber reads "Renumber devices", and Edit route stands in the Connect group beside
+/// The Draw tab's Renumber reads "Renumber devices", and Edit route stands in the Connect group beside
 /// Wire.
 #[test]
 fn the_draw_tab_names_renumber_devices_and_offers_edit_route_beside_wire() {

@@ -212,7 +212,7 @@ fn a_qelectrotech_project_is_imported_by_a_script() {
 fn the_journal_of_an_earlier_session_is_discarded_by_a_script() {
     let tmp = Tmp::new();
     let project = tmp.path("j.ew");
-    // A script that ends with unsaved changes exits 1 and keeps the journal (decision log ID-475).
+    // A script that ends with unsaved changes exits 1 and keeps the journal.
     run_ok(&tmp, &[("file.new", json!({ "dir": path(&project) }))]);
     let out = run(
         &tmp,
@@ -382,7 +382,7 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
             ("wizard.goto", json!({"step": 9})),
             ("ui.describe", json!({})),
             ("wizard.finish", json!({ "dir": path(&basic) })),
-            // FT-336: the finished wizard stays on the review step until it is closed.
+            // The finished wizard stays on the review step until it is closed.
             ("wizard.cancel", json!({})),
             ("ui.describe", json!({})),
         ],
@@ -411,7 +411,7 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
         review.contains("review \"Company name\": \"Example Panels\" written"),
         "{review}"
     );
-    // FT-336: the check scheme stays in the draft (its command is `HumanOnly`, ADR-0008 amendment 3).
+    // The check scheme stays in the draft (its command is `HumanOnly`, ADR-0008 amendment 3).
     assert!(
         review.contains("review \"Check scheme\": \"Pre-delivery\" kept"),
         "{review}"
@@ -597,7 +597,7 @@ fn bin_exe() -> std::path::PathBuf {
         .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
 }
 
-/// FT-384, FT-406: the company logo is visible on the cover. The wizard's preview of the cover (the sample's folio 1
+/// The company logo is visible on the cover. The wizard's preview of the cover (the sample's folio 1
 /// with the draft applied, rendered through the page view's CPU path) shows an SVG logo as dark vector paths and a PNG
 /// and a JPEG logo as their pixels in the title block, where the cover without a logo is light; the project the wizard
 /// writes and a new project made from it print the logo on folio 1 too. Placeholder logos only (a black rectangle, a

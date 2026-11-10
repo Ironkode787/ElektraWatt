@@ -109,13 +109,13 @@ fn ms5_the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     let platform = Scripted::default();
     let opened = platform.opened.clone();
     let mut h = on_golden(&tmp, platform);
-    // WP-S2.17 part 1: with the controls and rows at their token sizes (28 points) the docked pane of a 700-point
+    // With the controls and rows at their token sizes (28 points) the docked pane of a 700-point
     // window has no room left for a row below its header; 800 points (the height of the snapshots' window) does.
     h.set_size(egui::Vec2::new(1000.0, 800.0));
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
     dispatch(&mut h, "view.zoom_actual", json!({}));
     settle(&mut h);
-    // WP-S2.06 part 3: the Table toggles before the Messages pane opens (it adds none: it has no table mode).
+    // The Table toggles before the Messages pane opens (it adds none: it has no table mode).
     let toggles = h.query_all_by_label("Table").count();
     // View ▸ Messages docks the pane at the bottom and focuses it.
     support::open_menu(&mut h, &["Check"]);
@@ -256,7 +256,7 @@ fn ms5_the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
 }
 
 /// W31-1: at 1280×800 the bottom dock holds the Messages pane's header, at least three whole rows, and with a
-/// finding selected both its row (of at least two whole rows, FT-915) and its detail block, with the footer below.
+/// finding selected both its row (of at least two whole rows) and its detail block, with the footer below.
 #[test]
 fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
     let tmp = Tmp::new();
@@ -293,7 +293,7 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
     settle(&mut h);
     settle(&mut h);
     let (list, rows) = whole(&h);
-    // FT-915: beside a detail block the list keeps at least two rows (was three).
+    // Beside a detail block the list keeps at least two rows (was three).
     assert!(rows.len() >= 2, "two whole rows beside the detail: {rows:?}");
     assert!(
         rows.iter().any(|(l, _)| l.starts_with(&label)),
@@ -332,7 +332,7 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
     );
 }
 
-/// FT-528: `navigator.row` to a finding under a collapsed group expands the path and scrolls the cursor row into view;
+/// `navigator.row` to a finding under a collapsed group expands the path and scrolls the cursor row into view;
 /// a finding out of view is scrolled to as well (Golden A's findings, the window 1280 by 800; FX38d: the dock leaves the
 /// page view half the window, so a 640-high window shows too few rows).
 #[test]
@@ -431,7 +431,7 @@ fn ft528_navigator_row_into_a_collapsed_group_expands_it_and_scrolls_the_row_int
     );
 }
 
-/// Doc 16a §5.7, §6.4 (the rest of FT-540): the Messages dock tab carries a count chip of the open findings (its
+/// Doc 16a §5.7, §6.4 (the rest): the Messages dock tab carries a count chip of the open findings (its
 /// node's value), and the bottom dock's tab row has one close button that closes every pane of the dock.
 #[test]
 fn the_dock_tab_counts_the_findings_and_the_close_button_closes_the_dock() {
@@ -678,13 +678,13 @@ fn ambiguous_junction_feed(h: &mut Harness<'_, App>) {
     settle(h);
 }
 
-/// FT-1097 (ID-1184; play-test rv-vis-7, t0084): EW-POT-011's message is cut at the panel's edge. The finding's list
+/// FT-1097 (play-test rv-vis-7, t0084): EW-POT-011's message is cut at the panel's edge. The finding's list
 /// row keeps one line (a cut row has an ellipsis and its whole text in its tooltip). The detail block shows the rule's title and the message whole, wrapped to the pane's width
 /// and between the list and the footer, at the floor and at 1920 × 1080.
 #[test]
 fn ft1097_the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920() {
     const TITLE: &str = "EW-POT-011 Junction feed ambiguous";
-    // FT-1146 (ID-1229 item 10): the potential once, first; the row shows the message alone (it leads with its
+    // FT-1146 (item 10): the potential once, first; the row shows the message alone (it leads with its
     // subject).
     const MESSAGE: &str = "24VDC has a junction or a group of interruption points whose feed is unclear; draw one \
                            wire into it from the supply side";
@@ -740,7 +740,7 @@ fn ft1097_the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_
                 "{w}×{hgt}: {text:?} {rect:?} inside the pane {list:?} above the footer {footer:?}"
             );
         }
-        // The list row keeps one line. FT-1146 (ID-1229 item 10): with the potential named once it fits at the floor
+        // The list row keeps one line. FT-1146 (item 10): with the potential named once it fits at the floor
         // too (it was cut there, its whole text in its tooltip).
         let cut = painted
             .iter()
@@ -757,7 +757,7 @@ fn ft1097_the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_
     }
 }
 
-/// C50-p6#3, C50-p7#1: the quick-fix card's strip in the Messages pane counts its records, tags and cross-reference
+/// The quick-fix card's strip in the Messages pane counts its records, tags and cross-reference
 /// texts in words, in en-GB and in nl-NL (it read "1, 0, 0").
 #[test]
 fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
@@ -815,7 +815,7 @@ fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
     }
 }
 
-/// C50-p5#2: in nl-NL a finding row with a quick fix still paints its Fix status badge (`badge-fix`, "Oplossen"):
+/// In nl-NL a finding row with a quick fix still paints its Fix status badge (`badge-fix`, "Oplossen"):
 /// the window paints the badge from its code, the row's text carries the Dutch word.
 #[test]
 fn a_finding_keeps_its_fix_badge_in_dutch() {

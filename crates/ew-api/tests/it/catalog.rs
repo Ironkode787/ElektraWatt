@@ -187,7 +187,7 @@ fn a_list_imports_into_a_project_through_its_saved_map() {
 
     let input = read_input(&write_file(&root.0, "supplier-a.csv", LIST), &Limits::default()).unwrap();
     let master = catalog::manufacturer_master(s.libraries());
-    // The company library's two manufacturers and the system library's "Generic" (WP-S2.18 D5).
+    // The company library's two manufacturers and the system library's "Generic".
     assert_eq!(master.len(), 3, "the master list of every tier");
     let (import, cmd) = s
         .catalog_parts(&input, &loaded, &master, date("2026-10-29"))
@@ -203,7 +203,7 @@ fn a_list_imports_into_a_project_through_its_saved_map() {
     let parts = q.parts();
     assert_eq!(parts.len(), 3);
     assert!(parts.iter().all(|(_, p)| p.library_id.as_uuid() == project));
-    // The manufacturers the parts name are embedded as project copies (WP-S1.19 D10), the master's two and the new
+    // The manufacturers the parts name are embedded as project copies, the master's two and the new
     // one, and the parts print their names; no reference keeps a `key`.
     assert_eq!(cmd.params["copies"].as_array().unwrap().len(), 6);
     let makers = q.manufacturers();
@@ -371,7 +371,7 @@ fn maker_library(reg: &Registry, library: Uuid, item: Uuid) -> Uuid {
     }
 }
 
-/// FT-651: a library-target import names another library's manufacturer record only when the target's manifest
+/// A library-target import names another library's manufacturer record only when the target's manifest
 /// `depends` names that library. Without it, the import writes a copy of each manufacturer into the target and the
 /// parts name the copies, so a second import finds the target's copy first and is not ambiguous; with it, the
 /// parts name the depended-on library's records and only the new manufacturer is written.
@@ -454,7 +454,7 @@ fn a_library_import_names_another_librarys_manufacturer_only_through_depends() {
     );
 }
 
-/// FT-649: the source key a file proposes is its stem as a key `check_source_key` takes; the columns of a table are
+/// The source key a file proposes is its stem as a key `check_source_key` takes; the columns of a table are
 /// its headers with a sample each; the fixed members are the map's members without a key.
 #[test]
 fn the_mapping_steps_accessors() {

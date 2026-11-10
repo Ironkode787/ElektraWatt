@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The computed `min_reader` on Golden A (WP-S1.17 D3, FT-95, SG-1): `"0.1"` with the shipped tables, and the greatest
+//! The computed `min_reader` on Golden A (SG-1): `"0.1"` with the shipped tables, and the greatest
 //! format of an injected table's rows that Golden A's records use. Golden A is only read.
 
 use std::collections::BTreeMap;

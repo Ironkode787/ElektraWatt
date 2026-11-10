@@ -246,7 +246,7 @@ fn mutate_once(lines: &mut Vec<String>, rng: &mut Lcg) {
 ///
 /// Per table: `MUTATIONS_PER_TABLE` = 60 mutated runs from the seed `0xC5F0_7A11_0B5E_ED01` mixed with the
 /// table index, one thread per table (debug build: see the measured time in the test run). A failure names its table,
-/// its run and the seed, and prints the panic's message and the mutated text (FT-925).
+/// its run and the seed, and prints the panic's message and the mutated text.
 #[test]
 fn mutated_golden_tables_never_panic() {
     const MUTATIONS_PER_TABLE: usize = 60;
@@ -284,7 +284,7 @@ fn mutated_golden_tables_never_panic() {
                         ew_interop_api::ImportInput::new(target.name(), mutated.clone().into_bytes())
                             .unwrap(),
                     );
-                    // FT-925: a panic is caught and reported with its message and the case (the table, the run, the
+                    // A panic is caught and reported with its message and the case (the table, the run, the
                     // seed and the mutated text), so a failure under load can be replayed.
                     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                         importer.import(&inputs, ctx)

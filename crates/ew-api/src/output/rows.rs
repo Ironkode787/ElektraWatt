@@ -19,7 +19,7 @@
 //! a strip a later block lists again keeps the earlier block's rows, and [`RowsCsv::notices`] says so. `--strip`
 //! takes a full tag exactly, else the printed tag, and refuses a printed tag two strips share.
 //!
-//! **The table writers** (WP-S3.08 part 1, D4 to D8; [`row_output`]): the same row choice written as XLSX or in a CSV
+//! **The table writers** ([`row_output`]): the same row choice written as XLSX or in a CSV
 //! preset. Each row set becomes an [`ew_reports::table::Table`] named by its kind (a strip's by its printed tag) and
 //! keyed by what it is (D8): `block:<uuid>` for a block's rows (`kind:terminal_diagram` for the strips of several
 //! blocks), `kind:parts_summary/<mode>` for the bill of materials (`parts` or `assembly`), `kind:<name>` for a kind's
@@ -64,7 +64,7 @@ pub enum RowExport {
     },
     /// The rows of a block of any kind (`ew export report --format csv`); needs a named block.
     Report,
-    /// The whole-project rows of a registered report kind (`ew export report --kind <kind>`, WP-S3.06 D4): the kind's
+    /// The whole-project rows of a registered report kind (`ew export report --kind <kind>`): the kind's
     /// [`ew_reports::project_rows`] in its default order, no block arrangement; refuses a named block.
     Kind(String),
 }
@@ -131,15 +131,15 @@ pub enum RowsError {
     AmbiguousStrip(String, Vec<String>),
     /// The block has no pages (an embedded block), so it has no folios to write.
     NoPages(String),
-    /// Both a block and a kind were given (WP-S3.06 D4).
+    /// Both a block and a kind were given.
     KindAndBlock,
-    /// A kind was asked for as pages (`--format pdf`): a kind has pages only through a block (WP-S3.06 D4).
+    /// A kind was asked for as pages (`--format pdf`): a kind has pages only through a block.
     KindPages,
-    /// No registered report kind has this name (the name, the registered names in order; WP-S3.06 D4).
+    /// No registered report kind has this name (the name, the registered names in order).
     UnknownKind(String, Vec<String>),
-    /// `terminal_diagram` lists one strip, so it has no whole-project rows (WP-S3.06 D4).
+    /// `terminal_diagram` lists one strip, so it has no whole-project rows.
     KindOneStrip,
-    /// The workbook was not written (the writer's sentence: a table larger than a sheet; WP-S3.08 D3).
+    /// The workbook was not written (the writer's sentence: a table larger than a sheet).
     Xlsx(String),
 }
 
@@ -276,17 +276,17 @@ struct Chosen {
     kind: String,
     /// The IDs of the blocks the rows come from, in block order.
     blocks: Vec<String>,
-    /// The table's key (WP-S3.08 D8).
+    /// The table's key.
     key: String,
     /// Sentences about rows left out.
     notices: Vec<String>,
 }
 
 /// The rows of `what` (D8), from the block `block` names or, without one, the default block of the kind; for
-/// [`RowExport::Kind`] the kind's whole-project rows (WP-S3.06 D4).
+/// [`RowExport::Kind`] the kind's whole-project rows.
 ///
 /// The `pages` cell of every data row of a `revision_overview` row set is the revision's changed pages as folio 911
-/// draws them (WP-S3.06 D11), for a block and a kind alike.
+/// draws them, for a block and a kind alike.
 ///
 /// # Errors
 ///
@@ -417,7 +417,7 @@ pub fn report_kinds() -> Vec<&'static str> {
     Registry::builtin().names().collect()
 }
 
-/// The whole-project rows of the registered kind `name` (WP-S3.06 D4).
+/// The whole-project rows of the registered kind `name`.
 fn kind_rows(q: &Q, name: &str) -> Result<Chosen, RowsError> {
     let registry = Registry::builtin();
     let Some(def) = registry.by_name(name) else {
@@ -444,7 +444,7 @@ fn kind_rows(q: &Q, name: &str) -> Result<Chosen, RowsError> {
 }
 
 /// `set` with the `pages` cell of every data row of a `revision_overview` row set replaced by the revision's changed
-/// pages, through the function folio 911's drawn cell uses (WP-S3.06 D11); `None` for any other kind.
+/// pages, through the function folio 911's drawn cell uses; `None` for any other kind.
 fn with_revision_pages(q: &Q, set: &RowSet, kind: &str) -> Option<RowSet> {
     if kind != "revision_overview" {
         return None;
@@ -517,7 +517,7 @@ fn split_by_strip(set: &RowSet) -> Vec<(Id<Device>, Vec<Row>)> {
     out
 }
 
-/// The strips of the terminal blocks, each once (cycle-40 review, part 3, finding 3).
+/// The strips of the terminal blocks, each once (part 3, finding 3).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 struct GatheredStrips {
     /// Each strip with the label of the block its rows come from and its rows: every run of the strip in that
@@ -651,7 +651,7 @@ fn terminals(
     Ok((Body::Strips(empty, strips), notices))
 }
 
-/// How a row export is written (WP-S3.08 D6, D7).
+/// How a row export is written.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum RowsFormat {
     /// CSV in a preset ([`Preset::Ew`]: [`row_export`]'s CSV).
@@ -685,11 +685,11 @@ pub struct RowsFile {
     pub strips: Vec<String>,
     /// Sentences for the user about rows left out (a strip a later block lists again).
     pub notices: Vec<String>,
-    /// The table's key (WP-S3.08 D8): `_ew`'s `table`.
+    /// The table's key: `_ew`'s `table`.
     pub table: String,
 }
 
-/// The rows of `what` (as [`row_export`] chooses them) written in `format` (WP-S3.08 D4 to D7).
+/// The rows of `what` (as [`row_export`] chooses them) written in `format`.
 ///
 /// # Errors
 ///
@@ -782,7 +782,7 @@ fn sheets(q: &Q, chosen: &Chosen) -> Vec<Table> {
     }
 }
 
-/// The report table of a key as `ew export` writes it (WP-S3.08 D8, the round trip's current table): `block:<uuid>` a
+/// The report table of a key as `ew export` writes it (the round trip's current table): `block:<uuid>` a
 /// block's rows, `kind:parts_summary/<mode>` the bill of materials of the default block, `kind:terminal_diagram` every
 /// strip, `kind:<name>` a kind's whole-project rows; one table as a preset CSV holds it.
 ///
@@ -833,7 +833,7 @@ fn one_table(q: &Q, chosen: &Chosen) -> Table {
     }
 }
 
-/// The `ew sql` result as a table (WP-S3.08 D8: key `sql`, never re-importable): one column per result column, a
+/// The `ew sql` result as a table (key `sql`, never re-importable): one column per result column, a
 /// number column when every value that is not `NULL` is a number; an integer and a finite real are number cells (a
 /// real in its shortest form), `NULL` an empty text, a blob its `x'…'` text. The rows have no ID.
 pub fn sql_table(set: &crate::sql::ResultSet) -> Table {
@@ -883,7 +883,7 @@ pub fn sql_table(set: &crate::sql::ResultSet) -> Table {
 }
 
 impl Session {
-    /// The metadata of a workbook exported from this session (WP-S3.08 D3, D5): the project's ID, the session's
+    /// The metadata of a workbook exported from this session: the project's ID, the session's
     /// revision, the store's generation (`None` without a store), this program's version, and the export date: `date`
     /// (the CLI's `SOURCE_DATE_EPOCH`), else the model's edited date, else its created date, else 1980-01-01, as the
     /// PDF's (doc 09 §4.3 rule 1).
@@ -908,7 +908,7 @@ impl Session {
     }
 }
 
-/// A workbook as text, through the round trip's reader (WP-S3.08 D12, D16): for each sheet in workbook order (hidden
+/// A workbook as text, through the round trip's reader: for each sheet in workbook order (hidden
 /// ones included) a line `[<name>]`, then its rows as the reader gives them, the header row first, each row's cell
 /// texts joined by tabs (`\`, tab, LF and CR in a cell written `\\`, `\t`, `\n`, `\r`), LF line ends. The round trip's
 /// sheets `_ew` and `_ew_base` are read whole ([`ew_import_catalog::sheet::read_rows`], ID-1174 ruling 2).

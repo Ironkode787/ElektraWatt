@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `rep.join_device` (`JoinDevice`, WP-S2.18 D3, FT-628, FR-DEV-038): a placed representation re-targeted to another
+//! `rep.join_device` (`JoinDevice`, FR-DEV-038): a placed representation re-targeted to another
 //! device after placing, its wires kept.
 
 use std::collections::BTreeSet;
@@ -22,7 +22,7 @@ use crate::proxy::UuidS;
 use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
-/// `rep.join_device` (`JoinDevice`, WP-S2.18 D3, FT-628): the placed representation `rep` joins `device` in one
+/// `rep.join_device` (`JoinDevice`): the placed representation `rep` joins `device` in one
 /// transaction, at the same page, position and orientation, its wires kept.
 ///
 /// It takes one of D1's two ways:

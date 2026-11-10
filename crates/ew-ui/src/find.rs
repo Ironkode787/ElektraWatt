@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The find pane (WP-S2.05 part 2, spec §7.3 and §7.4): the search text, the replacement (find and replace), the
+//! The find pane (spec §7.3 and §7.4): the search text, the replacement (find and replace), the
 //! toggles, the field checkboxes, the folio filter, the results with their matches marked, and the replace card.
 //!
 //! **Input.** Every gesture is a registry action (`find.*`, `preview.*`); the pane builds no command. In the text,
@@ -346,7 +346,7 @@ impl FindPane {
         }
     }
 
-    /// The replace card (§7.4; WP-S2.17 part 4, doc 16a §6.23): "Replace" with its revision and status badge, the
+    /// The replace card (§7.4; doc 16a §6.23): "Replace" with its revision and status badge, the
     /// summary as a polite live region, the first tag changes, Apply and Cancel.
     fn card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let Some(card) = shell.properties().card() else {
@@ -388,7 +388,7 @@ impl FindPane {
     /// The results' count, the stale badge, the error, the truncation and the note.
     fn status(ui: &mut Ui, shell: &ShellModel) {
         let f = shell.find_state();
-        // FT-1365: a search without hits says so once, in the empty state under this line ([`Self::results`]).
+        // A search without hits says so once, in the empty state under this line ([`Self::results`]).
         let mut line = match f.results() {
             None => String::new(),
             Some(r) if r.hits.is_empty() && r.error.is_none() => String::new(),
@@ -443,7 +443,7 @@ impl FindPane {
                 Some(text) if !text.is_empty() => strings::format(key!("empty-nav-filter"), &[text]),
                 _ => strings::text(key!("find-no-results")).to_owned(),
             };
-            // FT-1365: the one line that says so, and the next step; a screen reader hears it as the count before.
+            // The one line that says so, and the next step; a screen reader hears it as the count before.
             let group = ui.scope_id().with(("empty-state", line.as_str()));
             crate::components::empty_state(
                 ui,
@@ -467,7 +467,7 @@ impl FindPane {
         let list_name = strings::format_count(ew_viewmodel::count_key!("find-results"), r.hits.len());
         list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, &list_name));
         let row = f.row();
-        // FT-433: one line of body text in a button's padding per result; only the rows on show are built.
+        // One line of body text in a button's padding per result; only the rows on show are built.
         let height = (ui.text_style_height(&egui::TextStyle::Body) + 2.0 * ui.spacing().button_padding.y)
             .max(ui.spacing().interact_size.y);
         let pitch = height + ui.spacing().item_spacing.y;
@@ -476,7 +476,7 @@ impl FindPane {
                 .id_salt("find-results-scroll")
                 .auto_shrink([false, false])
                 // A target taken by the pitch holds for the offset it was taken at: an animated scroll ran past the
-                // cursor's row (C49-p5#1).
+                // cursor's row.
                 .animated(false)
                 .show_rows(ui, height, r.hits.len(), |ui, range| {
                     // The cursor's row off the built rows: scrolled to by the pitch (the closure starts at row
@@ -494,7 +494,7 @@ impl FindPane {
                     }
                     for (i, hit) in r.hits.iter().enumerate().take(range.end).skip(range.start) {
                         let selected = row == Some(i);
-                        // C49-p5#1: one line per row, so the rows keep the pitch; the name and the description
+                        // One line per row, so the rows keep the pitch; the name and the description
                         // carry the whole line.
                         let response = ui.add(
                             egui::Button::selectable(selected, Self::job(ui, hit))
@@ -526,7 +526,7 @@ impl FindPane {
                         }
                     }
                 });
-            // FT-1415: the dock follows the results' height.
+            // The dock follows the results' height.
             crate::dock::report_content(
                 ui,
                 ew_viewmodel::layout::PaneKind::Find,

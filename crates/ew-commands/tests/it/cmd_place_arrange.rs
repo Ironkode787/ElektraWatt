@@ -418,7 +418,7 @@ fn from_part_makes_the_device_with_one_function_per_template_entry() {
             FunctionKind::Normal
         )
     );
-    // Each function records the template entry it is made from (FT-655).
+    // Each function records the template entry it is made from.
     assert_eq!((first.template_entry, second.template_entry), (Some(0), Some(1)));
     // The representation draws entry 0; entry 1 stays unplaced.
     let rep = row(&e, rep_id);
@@ -431,7 +431,7 @@ fn from_part_makes_the_device_with_one_function_per_template_entry() {
     );
 }
 
-/// FT-1375 (ID-1391): a part without a function template is placed with the symbol the user chose: one device with
+/// A part without a function template is placed with the symbol the user chose: one device with
 /// the part, one main function of the symbol's FnDef, drawn.
 #[test]
 fn from_part_without_a_template_places_the_symbol_with_the_part() {
@@ -551,7 +551,7 @@ fn from_part_rejections_write_nothing() {
         e.execute(&place_with(SYM_TWO, PAGE_101, at, from_part(PART_TWO, 2, "K"))),
         "has no template entry 2",
     );
-    // An empty template takes entry 0 only (FT-1375), and never as a black box.
+    // An empty template takes entry 0 only, and never as a black box.
     rejected_with(
         e.execute(&place_with(SYM_TWO, PAGE_101, at, from_part(PART_EMPTY, 1, "K"))),
         "no function template",
@@ -917,7 +917,7 @@ fn move_by_steps_makes_a_route_with_one_moved_end_follow_that_end() {
         e.execute(&steps_cmd(vec![REP_102G1], steps)).unwrap();
         let new_pos = stepped(g1, steps);
         let d = p(Nm(new_pos.x.0 - g1.x.0), Nm(new_pos.y.0 - g1.y.0));
-        // `follow_end` at the start: the end vertex moves by the CP's displacement and the far end stays (FT-423): a
+        // `follow_end` at the start: the end vertex moves by the CP's displacement and the far end stays: a
         // horizontal move keeps the straight segment, a vertical one adds a dog-leg at the grid coordinate nearest
         // the middle.
         let end = p(Nm(old[0].x.0 + d.x.0), Nm(old[0].y.0 + d.y.0));
@@ -939,12 +939,12 @@ fn move_by_steps_makes_a_route_with_one_moved_end_follow_that_end() {
     }
 }
 
-/// `rep.move` with the window's members (WP-S2.19 D14, D15), from its JSON form.
+/// `rep.move` with the window's members, from its JSON form.
 fn move_with(params: Value) -> MoveReps {
     serde_json::from_value(params).expect("rep.move parameters")
 }
 
-/// WP-S2.19 D14: `routes` replace the followed route after the follow, in the move's one transaction; an entry is
+/// `routes` replace the followed route after the follow, in the move's one transaction; an entry is
 /// checked as `connection.route` checks it, its error at `/routes/<i>`.
 #[test]
 fn move_routes_replace_the_followed_route_in_the_same_step() {
@@ -984,7 +984,7 @@ fn move_routes_replace_the_followed_route_in_the_same_step() {
     );
 }
 
-/// WP-S2.19 D15: a `connect` hint makes its wire with the move, from the named representation's symbol CP, with the
+/// A `connect` hint makes its wire with the move, from the named representation's symbol CP, with the
 /// straight route when its ends lie on one line; a hint whose junction is gone is dropped with a notice; a symbol CP
 /// the representation does not draw is refused in words.
 #[test]
@@ -1241,7 +1241,7 @@ fn move_by_steps_rejections() {
         rejection(edge.execute(&steps_cmd(vec![REP_102F2, REP_T1], [0, 1]))),
         "the move takes the route of wire 102.1 outside the drawable range; move it less far"
     );
-    // FT-864 (ID-1108, as above): a move to another page that leaves one end of a wire behind names the wire.
+    // FT-864 (as above): a move to another page that leaves one end of a wire behind names the wire.
     let mut split = engine(arrange_model(|_| {}));
     assert_eq!(
         rejection(split.execute(&MoveReps {
@@ -1267,7 +1267,7 @@ fn move_by_steps_rejections() {
     }));
     match off.execute(&steps_cmd(vec![REP_102F2], [1, 0])) {
         Err(CmdError::Rejected { reason, .. }) => {
-            // FT-756: the symbol by its device's tag, never its ID; the point in mm on its page
+            // The symbol by its device's tag, never its ID; the point in mm on its page
             assert_eq!(
                 reason,
                 "the symbol of -102F2 at x 0, y 0 mm on page 102 is not on the drawing grid, so it cannot be \
@@ -1280,7 +1280,7 @@ fn move_by_steps_rejections() {
     // An empty list, an unknown representation.
     rejected_with(e.execute(&steps_cmd(vec![], [1, 0])), "at least one");
     not_found(e.execute(&steps_cmd(vec![id(0x999)], [1, 0])));
-    // A move out of the drawable range, in words (C45-p3#3, ID-1137: no JSON pointer, ending with what to do).
+    // A move out of the drawable range, in words (no JSON pointer, ending with what to do).
     match e.execute(&steps_cmd(vec![REP_102F2], [i64::MAX / 2, 0])) {
         Err(CmdError::Rejected { reason, .. }) => assert_eq!(
             reason,
@@ -1426,7 +1426,7 @@ fn route_of(e: &Engine, c: Id<ew_schema::Connection>) -> Vec<Pt2> {
     row(e, c).route.clone()
 }
 
-/// The route a moved end `new` takes to a far end `far` that stays (FT-423): a dog-leg at the grid coordinate nearest
+/// The route a moved end `new` takes to a far end `far` that stays: a dog-leg at the grid coordinate nearest
 /// the middle, keeping the old segment's axis (`horizontal`) at both ends; from `new` to `far`.
 fn dog_leg(new: Pt2, far: Pt2, horizontal: bool) -> Vec<Pt2> {
     let g = grid();
@@ -1527,7 +1527,7 @@ fn exchange_to_another_fndef_maps_by_designation() {
     // Routes follow: function CP 0 is now drawn by symbol CP 1 at (10 mm, 10 mm), function CP 1 by symbol CP 0 at
     // (10 mm, 0).
     let l = l_at();
-    // The far ends (CPs nothing draws) stay where they are, with a dog-leg (FT-423).
+    // The far ends (CPs nothing draws) stay where they are, with a dog-leg.
     assert_eq!(
         route_of(&e, CON_L0),
         dog_leg_to(pt(0, l.y.0), pt(l.x.0 + MM10, l.y.0 + MM10), true)
@@ -1578,7 +1578,7 @@ fn exchange_with_an_explicit_pin_map_stores_it_and_moves_the_routes() {
     assert_eq!(rep.pin_map.as_slice(), &[entry(0, FN_L, 1), entry(1, FN_L, 0)]);
     // Function CP 0 is drawn by symbol CP 1 at (10 mm, 10 mm), function CP 1 by symbol CP 0 at (10 mm, 0).
     let l = l_at();
-    // The far ends (CPs nothing draws) stay where they are, with a dog-leg (FT-423).
+    // The far ends (CPs nothing draws) stay where they are, with a dog-leg.
     assert_eq!(
         route_of(&e, CON_L0),
         dog_leg_to(pt(0, l.y.0), pt(l.x.0 + MM10, l.y.0 + MM10), true)
@@ -2091,7 +2091,7 @@ fn check_routes(
 
 /// The case count of [`route_ends_stay_on_their_connection_points`]: `PROPTEST_CASES` when it is set, else 64 (an
 /// explicit `cases` hides the variable, which proptest reads only into its default).
-// ID-1106 (FT-1029): "the property keeps its failures, takes its case count from `PROPTEST_CASES` when set".
+// "the property keeps its failures, takes its case count from `PROPTEST_CASES` when set".
 fn follow_cases() -> u32 {
     // The variable only sets how many cases run; no persisted, exported or printed result depends on it.
     std::env::var("PROPTEST_CASES")
@@ -2101,7 +2101,7 @@ fn follow_cases() -> u32 {
 }
 
 proptest! {
-    // ID-1106 (FT-1029): the failures persist in the crate's `proptest-regressions/` (the working directory of a test
+    // The failures persist in the crate's `proptest-regressions/` (the working directory of a test
     // is its package's directory) and are re-run first.
     #![proptest_config(ProptestConfig {
         cases: follow_cases(),
@@ -2111,7 +2111,7 @@ proptest! {
         ..ProptestConfig::default()
     })]
 
-    /// FT-423: after any `rep.move` (by `delta` or by `steps`), `rep.transform` or `rep.exchange_symbol`, every
+    /// After any `rep.move` (by `delta` or by `steps`), `rep.transform` or `rep.exchange_symbol`, every
     /// stored route still starts and ends on its connection points (the far end of a two-vertex route is never
     /// pulled off its CP; two moved ends, followed one after the other, both meet their CPs).
     #[test]
@@ -2323,7 +2323,7 @@ fn ft656_held_copies_are_skipped_and_another_hash_is_refused_by_item() {
             ..
         }) => {
             assert_eq!(path, "/copies/1");
-            // FT-1396: the held item by its part number, never its ID.
+            // The held item by its part number, never its ID.
             assert_eq!(
                 reason,
                 format!(

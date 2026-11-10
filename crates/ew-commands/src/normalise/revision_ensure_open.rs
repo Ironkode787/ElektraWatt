@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Normaliser #18, the automatic open revision (`revision.ensure_open`; doc 15 §5.3, FR-REV-009; WP-S1.18 D3).
+//! Normaliser #18, the automatic open revision (`revision.ensure_open`; doc 15 §5.3, FR-REV-009).
 //!
 //! When a transaction changes a content record ([`ew_schema::is_content_kind`]: every record whose file the content
 //! digest covers, the project row, library copies and waivers included; not revisions, transmittals or comments)

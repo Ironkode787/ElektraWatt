@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Connectivity acceptance on the golden model (WP-S1.07; doc 20 §7–§10, AC-09, AC-10, AC-12, NFR-REL-07).
+//! Connectivity acceptance on the golden model (doc 20 §7–§10, AC-09, AC-10, AC-12, NFR-REL-07).
 //!
 //! The model is the golden tables loaded through the CSV bootstrap (`tests/golden_common`), with the
 //! colour and size profiles of doc 20 §7.1, §7.2 where a test says so. Tests:
@@ -295,7 +295,7 @@ fn potential_partition_matches_section_7_3() {
     let ids = ids_by_key(&batch);
     let q = Q::new(&s.world().model);
     let part = q.get::<PotentialPartition>(());
-    // Doc 20 §7.3 has 19 potentials: the 18 rows below and the PROFIBUS DP line (FT-105), whose members are
+    // Doc 20 §7.3 has 19 potentials: the 18 rows below and the PROFIBUS DP line, whose members are
     // the bus CPs of its two `Bus` connections and the external point (checked below the loop).
     assert_eq!(part.potential_count(), 19);
     assert_eq!(potential_rows().len(), 18);
@@ -466,7 +466,7 @@ fn potential_member_sets_match_section_7_3_exactly() {
 
 /// The voltage and circuit-class columns of §7.3: (name, voltage text, AC/DC, circuit class). `None` is a
 /// cell that states nothing: PE has no voltage, and the switched N-55T and N-55S state the voltage but no
-/// class. The spare 24VDC-2 to -4 are 24 V DC control like 24VDC-1 (decision log ID-235).
+/// class. The spare 24VDC-2 to -4 are 24 V DC control like 24VDC-1.
 type ClassRow = (
     &'static str,
     Option<&'static str>,

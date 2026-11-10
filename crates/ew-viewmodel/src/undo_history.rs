@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The history panel and context restore (WP-S2.09 part 3, §8.4, §8.5, D13; FR-UI-023): the undo steps of the open
+//! The history panel and context restore (§8.5, D13; FR-UI-023): the undo steps of the open
 //! project with their origins and pages, the shell's marker lines (saves, exports, recoveries) by revision, the row
 //! cursor, Show changes, and the editor context each commit was made in.
 //!
@@ -116,7 +116,7 @@ impl HistoryPane {
         self.changes.as_ref().map(|(i, v)| (*i, v.as_slice()))
     }
 
-    /// The panel's header line: "`n` steps · cursor at `c`", "1 step · cursor at `c`" for one (FT-986); `None` without
+    /// The panel's header line: "`n` steps · cursor at `c`", "1 step · cursor at `c`" for one; `None` without
     /// a view.
     pub fn header(&self) -> Option<String> {
         let view = self.view()?;
@@ -131,13 +131,13 @@ impl HistoryPane {
         ))
     }
 
-    /// FT-1362 (ID-1358 ruling 7; doc 16a §8): an entry's label in words, its command's title ("Create page" for
+    /// FT-1362 (ruling 7; doc 16a §8): an entry's label in words, its command's title ("Create page" for
     /// `page.create`).
     pub fn label_words(row: &HistoryRow) -> &str {
         crate::strings::command_title(&row.label)
     }
 
-    /// FT-1362: an origin text ([`HistoryPane::origin_of`]) in words in the UI language: "by hand" for the window's,
+    /// An origin text ([`HistoryPane::origin_of`]) in words in the UI language: "by hand" for the window's,
     /// "from `<name>`" for a script, a log or a client, "changed on disk", "import", "merge", "quick fix `<rule>`"; any
     /// other text as it is.
     pub fn origin_words(origin: &str) -> String {
@@ -233,7 +233,7 @@ mod tests {
         }
     }
 
-    /// FT-986 (ID-1150): one row reads "1 step", two "2 steps"; no view, no header.
+    /// One row reads "1 step", two "2 steps"; no view, no header.
     #[test]
     fn ft986_the_header_counts_one_step_in_the_singular() {
         let pane = |rows: Vec<HistoryRow>, cursor: usize| HistoryPane {

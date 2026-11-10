@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 4b in the view model (acceptance check PI10, FT-411): `strip.bridge` (Edit ▸ Bridge terminals)
+//! WP-S2.04 part 4b in the view model (acceptance check PI10): `strip.bridge` (Edit ▸ Bridge terminals)
 //! on the folio-103 demo variant, the bridge group the action derives, one undo step per bridge, and the refusals of
-//! a selection that is not terminals of one strip; and (cycle 33) the chain over three or more terminals in one undo
+//! a selection that is not terminals of one strip; and the chain over three or more terminals in one undo
 //! step and the side-1 end of terminals without a bridge shaft. Every test works on a writable temporary copy of
 //! Golden A.
 
@@ -139,7 +139,7 @@ fn place_terminals(s: &mut ShellModel, functions: &[&str]) -> Vec<TableRep> {
         .collect()
 }
 
-/// The `strip.bridge` item of the app menu (WP-S2.17 part 2: Draw, Connect).
+/// The `strip.bridge` item of the app menu (Draw, Connect).
 fn edit_item(s: &ShellModel, id: &str) -> ActionItem {
     let draw = menu_model(s)
         .into_iter()
@@ -371,7 +371,7 @@ fn a_bridge_extends_the_group_of_an_existing_bridge() {
     done(&mut s, "strip.bridge", json!({}));
     let last = s.recorded_commands().last().expect("the commit");
     assert_eq!(last.params["kind"]["bridge"]["group"], 1, "{}", last.params);
-    // FT-549: one bridge counts its two terminals.
+    // One bridge counts its two terminals.
     assert_eq!(
         s.toast().expect("the bridge toast").text,
         "Added 1 bridge between 2 terminals."
@@ -472,7 +472,7 @@ fn four_terminals_draw_the_chain_in_one_undo_step() {
     assert_eq!(last.cmd, "connection.draw_many");
     let connections = last.params["connections"].as_array().expect("the entries");
     assert_eq!(connections.len(), 3, "{}", last.params);
-    // FT-549: the outcome is counted in the toast.
+    // The outcome is counted in the toast.
     assert_eq!(
         s.toast().expect("the bridge toast").text,
         "Added 3 bridges between 4 terminals."
@@ -521,7 +521,7 @@ fn a_chain_draws_only_the_pairs_not_bridged_yet() {
     assert_eq!(last.params["a"], json!({"cp": {"function": X1031[1], "idx": 3}}));
     assert_eq!(last.params["b"], json!({"cp": {"function": X1031[2], "idx": 3}}));
     assert_eq!(last.params["kind"]["bridge"]["group"], 1, "{}", last.params);
-    // FT-549: one bridge counts its two terminals.
+    // One bridge counts its two terminals.
     assert_eq!(
         s.toast().expect("the bridge toast").text,
         "Added 1 bridge between 2 terminals."
@@ -710,7 +710,7 @@ fn se12_a_part_added_after_a_partless_bridge_keeps_the_pair_bridged() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// WP-S2.07 part 1: selection by records (D9), the shaft rule (FT-576) and Remove bridge (D11)
+// WP-S2.07 part 1: selection by records (D9), the shaft rule and Remove bridge (D11)
 
 /// The Terminal strips row keys of terminals `designations` of strip `strip` (the navigator open in table mode).
 fn strip_rows(s: &mut ShellModel, strip: &str, designations: &[&str]) -> Vec<String> {
@@ -738,7 +738,7 @@ fn strip_rows(s: &mut ShellModel, strip: &str, designations: &[&str]) -> Vec<Str
         .collect()
 }
 
-/// SE10 (WP-S2.07 D9, FT-548): Bridge terminals takes the terminals selected by click (representations), by
+/// SE10: Bridge terminals takes the terminals selected by click (representations), by
 /// `select.set` with `tag:` references (devices), by navigator marks (devices) and by functions, with one result each
 /// time; terminals of two strips refuse `reason-bridge-strips`.
 #[test]
@@ -789,7 +789,7 @@ fn se10_bridge_terminals_by_reps_tags_marks_and_functions() {
     assert_eq!(refused(&mut s, "strip.bridge", json!({})), "reason-bridge-strips");
 }
 
-/// SE11 (FT-576): two terminals whose function definition has no side-1 CP and that carry no part with a shaft-1
+/// SE11: two terminals whose function definition has no side-1 CP and that carry no part with a shaft-1
 /// entry refuse `reason-bridge-no-shaft` (the shaft half, part-placed terminals ending on the shaft CPs, is PI10).
 #[test]
 fn se11_terminals_without_a_shaft_or_a_side1_cp_refuse() {
@@ -832,7 +832,7 @@ fn se11_terminals_without_a_shaft_or_a_side1_cp_refuse() {
     assert_eq!(s.revision(), rev);
 }
 
-/// SE13 (WP-S2.07 D11): Remove bridge on Golden A's BR1 (-X1031 1–2, 2–3, 3–4): all four terminals remove the whole
+/// SE13: Remove bridge on Golden A's BR1 (-X1031 1–2, 2–3, 3–4): all four terminals remove the whole
 /// group in one `edit.delete` of three connections and one undo step; 3 and 4 remove the end link; 2 and 3 refuse
 /// `reason-unbridge-split`; terminals no bridge joins refuse `reason-unbridge-none`.
 #[test]

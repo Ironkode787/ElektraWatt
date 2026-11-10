@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Tessellation (WP-S2.02 §7.1): fills and strokes of the display list, and glyph outlines, into triangle meshes
+//! Tessellation: fills and strokes of the display list, and glyph outlines, into triangle meshes
 //! with lyon.
 //!
 //! **Vertices** carry the point on the path, the stroke's normal and half-width (both zero for a fill), the

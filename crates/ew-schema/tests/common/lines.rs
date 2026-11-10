@@ -69,7 +69,7 @@ pub const GOLDEN: &[&str] = &[
     r#"{"$k":"channel","id":"@CH_U3_1","module":"@DEV_S51","number":1,"kind":"do","binding":{"cp":["@FN_S51",5]}}"#,
     r#"{"$k":"channel","id":"@CH_U3_1","module":"@DEV_S51","number":0,"designation":"DO 0","kind":"di","address":{"manual":{"area":"i","size":"word","byte":64}},"state":"deactivated","symbol":"TA05_V_15","comment":{"en-GB":"Valve"},"target":"@FN_S51"}"#,
     r#"{"$k":"device_link","id":"@DL_Q1","from":"@DEV_S51","to":"@DEV_G1","kind":"drives"}"#,
-    // the bus model (doc 20 §11.1, doc 10 §2.7; WP-S1.21 D11): the DP nets, the slave port of -201U1 (address `tbd`),
+    // the bus model (doc 20 §11.1, doc 10 §2.7): the DP nets, the slave port of -201U1 (address `tbd`),
     // the passive connector port of -3X1 (termination on), a set PROFIBUS address
     r#"{"$k":"logical_net","id":"@LNET_DP","bus":"profibus_dp","name":"PROFIBUS DP","master":{"cp":["@FN_X1031",0]}}"#,
     r#"{"$k":"logical_net","id":"@LNET_DP","bus":"profibus_dp","name":"DP2","rate":1500000}"#,
@@ -90,12 +90,12 @@ pub const GOLDEN: &[&str] = &[
     r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","date":"2025-04-14","author":"engineer","description":{"en-GB":"Changes on 101 and 106"},"state":"open","page_notes":[{"page":"@P1"},{"page":"@P103","description":{"en-GB":"Supply moved"}}]}"#,
     // waivers (doc 15 §2.5, doc 20 §18.1 EF-19): W-1 on -XPE, with a member of a newer build kept in `extra`
     r#"{"$k":"waiver","id":"@WAIVER_W1","rule":"EW-CORE-041","target":{"finding":"9c2e5a0b7d14f3e8a6c1b05d2e9f41ab"},"reason":{"en-GB":"PE stud is part of NSYPMM107"},"author":"engineer","date":"2025-04-14","expires":"never"}"#,
-    // conflict records (doc 05 §11.2, WP-S1.17 D14, D17): W29's colour changed on both sides without a base, a
+    // conflict records (doc 05 §11.2): W29's colour changed on both sides without a base, a
     // device deleted on one side and changed on the other, and the lines of a side a merge could not read
     r#"{"$k":"conflict","id":"@CON_W29","kind":"connection","base":{},"ours":{"overrides":{"colour":"BU"}},"theirs":{"overrides":{"colour":"WH"}}}"#,
     r#"{"$k":"conflict","id":"@DEV_G1","kind":"device","base":{"function_text":"Power supply"},"ours":"deleted","theirs":{"function_text":"Power supply 24 V"}}"#,
     r#"{"$k":"conflict","id":"@CONFLICT_FILE","kind":"file","path":"pages/@P102.jsonl","side":"theirs","lines":["{\"$k\":\"page\",\"id\":\"@P102\"",""]}"#,
-    // page items and a structure box (doc 03 §5, §6; WP-S2.04 §10.1): every typed variant and shape kind, a
+    // page items and a structure box (doc 03 §5, §6): every typed variant and shape kind, a
     // bound text (an unknown variant is `records::an_unknown_page_item_variant_is_kept_verbatim`)
     r#"{"$k":"page_item","id":"@PI_MARKER","page":"@P102","kind":{"wire_marker":{"connections":["@CON_W20","@CON_W29"],"at":[90000000,24000000],"angle":90000,"fields":["csa","colour"]}}}"#,
     r#"{"$k":"page_item","id":"@PI_RECT","page":"@P101","layer":"notes","kind":{"graphic":{"shape":{"rect":{"min":[20000000,40000000],"max":[80000000,64000000]}},"stroke":{"width":500000},"dash":"dashed","fill":true}}}"#,
@@ -103,13 +103,13 @@ pub const GOLDEN: &[&str] = &[
     r#"{"$k":"page_item","id":"@PI_TEXT","page":"@P101","kind":{"free_text":{"text":"40x60","at":[50800000,30480000],"angle":90000,"style":"text.small","align":"centre"}}}"#,
     r#"{"$k":"page_item","id":"@PI_BOUND","page":"@P1","kind":{"free_text":{"bind":"project.description","at":[20000000,20000000]}}}"#,
     r#"{"$k":"structure_box","id":"@SBOX_206","page":"@P101","outline":[[0,140000000],[60000000,140000000],[60000000,170000000],[0,170000000]],"style":"dotted","caption":"External Connection","assigns":{"location":"@LOC_JE206"},"external":"@EXT_L"}"#,
-    // macro instance (doc 03 §7, WP-S1.19 part 1): the PSU block of folio 102 placed with value set 1
+    // macro instance (doc 03 §7): the PSU block of folio 102 placed with value set 1
     r#"{"$k":"macro_instance","id":"@MI_PSU","macro":"@MAC_PSU","variant":"A","value_set":"1","values":{"counter":1,"function_text":{"en-GB":"Power supply 1"}},"members":[["@LOCAL_G1","@DEV_G1"],["@LOCAL_F1","@FN_F1"]],"page":"@P102"}"#,
     // import lineage (doc 14 §2.3); its namespace is checked in its own test
     r#"{"$k":"import_lineage","id":"@LIN","importer":"csv","source_name":"tables","anchor":{"fixed":"golden"},"namespace":"@PRJ","last_source_sha256":"@HASH"}"#,
-    // import run (WP-S3.09 D6): one finding about a device, its hashes, and a member of a newer build kept in `extra`
+    // import run: one finding about a device, its hashes, and a member of a newer build kept in `extra`
     r#"{"$k":"import_run","id":"019a4f00-0000-7000-8000-000000000001","lineage":"@LIN","importer":"qet","importer_version":"0.1.0","source":{"name":"plant.qet","sha256":"@HASH","size":12,"format":"qet-project"},"as_of":"2025-04-14","mode":"lenient","entries":[{"code":"EW-IMP-006","severity":"info","message":"font substituted","location":{"file":"plant.qet","folio":"101"},"targets":[{"kind":"device","id":"@DEV_G1"}]}],"stats":{"per_kind":{"device":1}},"record_hashes":{"@DEV_G1":{"source":"00112233445566778899aabbccddeeff"}},"acknowledged":[]}"#,
-    // panel layout (doc 03 §16, WP-S4.01 D3): every typed member, and members of later packages kept in `extra`
+    // panel layout (doc 03 §16): every typed member, and members of later packages kept in `extra`
     r#"{"$k":"layout_space","id":"@SPACE_JE2416","location":"@LOC_JE2416","name":"+J-E-2416","install":{"wall_behind":true}}"#,
     r#"{"$k":"enclosure","id":"@ENCL_UC1","space":"@SPACE_JE2416","device":"@DEV_UC1","pose":{"t":[0,0,0],"q":[1000000000,0,0,0]},"install_type":"wall"}"#,
     r#"{"$k":"mounting_surface","id":"@SURF_PLATE","enclosure":"@ENCL_UC1","kind":"plate","device":"@DEV_PLATE","frame":{"t":[50000000,50000000,0],"q":[1000000000,0,0,0]},"usable":[[0,0],[650000000,0],[650000000,900000000],[0,900000000]],"pe_bond":true,"max_depth":250000000}"#,

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Per-function and per-terminal inputs of the stitch graph, as memoised families (WP-S1.07 part 2):
+//! Per-function and per-terminal inputs of the stitch graph, as memoised families:
 //!
 //! - **`function_links(f)`**: what a function contributes to the stitch graph whatever is drawn: its declared
 //!   FnDef links, the duplicated-pin and terminal-level groups of its CPs, and the flow data of the potential
@@ -186,7 +186,7 @@ pub enum RailLocation {
     /// A location node: the terminal's own, or, for a terminal without one, the project's only own location.
     Node(Id<StructureNode>),
     /// The project's implicit main location: a terminal without a location in a project that has no own location
-    /// node (amended by cycle 33, G-PP ruling #20).
+    /// node (amended, G-PP ruling #20).
     Main,
 }
 
@@ -249,7 +249,7 @@ pub struct RailTerminal {
     pub location: Option<Id<StructureNode>>,
     /// The location whose rail it joins: its own; without one, the project's only own location, or the implicit
     /// main location when the project has none; `None` (EW-POT-008) when it has none and the project has two or
-    /// more own locations (amended by cycle 33, G-PP ruling #20).
+    /// more own locations (amended, G-PP ruling #20).
     pub rail: Option<RailLocation>,
     /// Its location could not be resolved (a structure cycle, noted as `cycle`): it joins nothing, unnoted.
     pub skipped: bool,

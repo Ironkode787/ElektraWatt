@@ -96,7 +96,7 @@ fn dk3_the_groups_labels_and_advanced_rows() {
 fn dk4_the_status_bar_fields() {
     let tmp = Tmp::new("docks-dk4");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
-    // ID-1497 (8): a selection drawn on the canvas (a selection that draws nothing there is not counted).
+    // A selection drawn on the canvas (a selection that draws nothing there is not counted).
     let (_, p) = common::entity_points(shell.canvas().unwrap())[0];
     common::click(&mut shell, p, json!({}));
     let fields = bar(&shell, false);
@@ -355,7 +355,7 @@ fn messages_shown(shell: &ShellModel) -> bool {
         .contains(&PaneKind::Navigator(NavKind::Messages))
 }
 
-/// FT-916: with History and Messages tabbed in the bottom dock and History in front, `messages.show` brings Messages to
+/// With History and Messages tabbed in the bottom dock and History in front, `messages.show` brings Messages to
 /// front (it stays in the layout); a second one, Messages now in front, closes it (FX38d kept); F8 (`messages.next`,
 /// its key read from the keymap) brings it to front too.
 #[test]
@@ -388,7 +388,7 @@ fn ft916_messages_show_and_next_bring_a_hidden_messages_tab_to_front() {
     assert!(in_front(&shell), "F8 brings Messages to front");
 }
 
-/// FX38d (cycle 38, play-test rv-vis-2 t0035–t0039): the Messages dock closes by the command that opened it (a
+/// FX38d (play-test rv-vis-2 t0035–t0039): the Messages dock closes by the command that opened it (a
 /// toggle), by its close control (`view.bottom_dock {on: false}`) and by Escape in the pane; opening and closing it,
 /// which shrinks and grows the canvas pane, never changes the zoom or the centre of the fitted page.
 #[test]
@@ -411,7 +411,7 @@ fn fx38d_the_messages_dock_closes_and_keeps_the_zoom() {
         "view.canvas_resize",
         json!({"width": 1088.0, "height": 460.0}),
     );
-    // FT-769: the view is fitted and untouched, so it fits the shorter pane again.
+    // The view is fitted and untouched, so it fits the shorter pane again.
     assert!(shell.canvas().unwrap().is_fitted());
     assert_ne!(view(&shell), fitted, "the untouched fit refits the shorter pane");
     // The same command again closes it; the pane grows back, the fit is the first one again.
@@ -426,7 +426,7 @@ fn fx38d_the_messages_dock_closes_and_keeps_the_zoom() {
         json!({"width": 1088.0, "height": 760.0}),
     );
     assert_eq!(view(&shell), fitted, "closing the dock refits the first fit");
-    // A view the user zoomed keeps its zoom and centre through the dock (FX38d, ID-889).
+    // A view the user zoomed keeps its zoom and centre through the dock (FX38d).
     done(&mut shell, "view.zoom_in", json!({}));
     let zoomed = view(&shell);
     assert!(!shell.canvas().unwrap().is_fitted());
@@ -468,7 +468,7 @@ fn fx38d_the_messages_dock_closes_and_keeps_the_zoom() {
         "view.canvas_resize",
         json!({"width": 1088.0, "height": 460.0}),
     );
-    // After the explicit fit above the view is fitted and untouched: the smaller pane refits it (FT-769).
+    // After the explicit fit above the view is fitted and untouched: the smaller pane refits it.
     assert!(view(&shell).0 < fitted.0, "the fit to the smaller pane zooms out");
 }
 

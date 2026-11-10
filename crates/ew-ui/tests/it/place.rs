@@ -82,7 +82,7 @@ fn pl6_a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the
     assert!(format!("{ghost:?}").contains("terminal"), "{ghost:?}");
     // The window's dwell timer previews the command after 80 ms of rest; the ghost then shows the predicted tag.
     // The rest is the action `canvas.dwell` (D11): dispatched as the window's dwell timer dispatches it, so the test
-    // reads no clock and sleeps nowhere (fix round, item 6; ID-559).
+    // reads no clock and sleeps nowhere (fix round, item 6).
     dispatch(&mut h, "canvas.dwell", json!({"ms": 80}));
     settle(&mut h);
     let Some(ew_ui::ew_viewmodel::tools::Ghost::Place { tag: Some(tag), .. }) =
@@ -92,7 +92,7 @@ fn pl6_a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the
     };
     assert!(h.state().shell().session_calls().preview_with >= 1);
     assert_eq!(tag, "-X1031:30");
-    // C50-p1#3 (ID-1315): the label names the terminal's strip and designation, its predicted tag not added again.
+    // The label names the terminal's strip and designation, its predicted tag not added again.
     assert!(
         h.state()
             .shell()
@@ -340,7 +340,7 @@ fn two_quick_clicks_with_the_place_tool_place_once_and_refuse_the_stacked_twin()
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The Wire tool finishes on a double click (FT-708, doc 16's keymap): the second press is `tool.finish`, its release
+/// The Wire tool finishes on a double click (doc 16's keymap): the second press is `tool.finish`, its release
 /// is dropped, and the tool sees one press.
 #[test]
 fn a_double_click_with_the_wire_tool_is_its_finish() {
@@ -363,7 +363,7 @@ fn a_double_click_with_the_wire_tool_is_its_finish() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-605: in a project without terminal strips, choosing the terminal symbol in the picker opens the strip chooser
+/// In a project without terminal strips, choosing the terminal symbol in the picker opens the strip chooser
 /// on its empty state, which says why and offers New terminal strip; the button creates a strip, which the chooser
 /// lists as its current row, and choosing it arms the Place tool.
 #[test]
@@ -405,7 +405,7 @@ fn ft605_a_terminal_without_strips_says_why_and_offers_a_new_strip() {
     h.get_by_label("New terminal strip…").click();
     settle(&mut h);
     settle(&mut h);
-    // FT-1090 (ID-1181): the New terminal strip form offers the tag; Enter there creates the strip (the chooser
+    // The New terminal strip form offers the tag; Enter there creates the strip (the chooser
     // under it does not take the key).
     assert!(
         matches!(h.state().shell().dialog(), Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) if f.action == "strip.new"),
@@ -435,7 +435,7 @@ fn chord_of(h: &Harness<'_, App>, id: &str) -> (Key, Modifiers) {
     (key.expect("a key"), mods)
 }
 
-/// FT-890: the Device button (`tool.place_part`, Shift+I by default) opens a dialog titled "Insert device"; the
+/// The Device button (`tool.place_part`, Shift+I by default) opens a dialog titled "Insert device"; the
 /// Symbol tool (`tool.place`, I) keeps "Insert symbol". Both keys are read from the keymap.
 #[test]
 fn ft890_the_device_picker_is_titled_insert_device_and_the_symbol_picker_insert_symbol() {
@@ -464,14 +464,14 @@ fn ft890_the_device_picker_is_titled_insert_device_and_the_symbol_picker_insert_
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1375 (R0-F1, ID-1391): on GP-UT (Golden A without -102F1 and its four wires), folio 102, Draw ▸ Place ▸ Device
+/// FT-1375 (R0-F1): on GP-UT (Golden A without -102F1 and its four wires), folio 102, Draw ▸ Place ▸ Device
 /// from part… (its key from the keymap) filtered by `A9F78116` lists the project's own copy, which has no function
 /// template; choosing it asks for its symbol, and the MCB symbol places -102F1 with its part, in one undo step.
 #[test]
 fn ft1375_device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "102");
-    // The place cursor starts at the middle of Fit page's view (FT-1443: the first view is fit-width).
+    // The place cursor starts at the middle of Fit page's view (the first view is fit-width).
     dispatch(&mut h, "view.fit_page", json!({}));
     settle(&mut h);
     let gp_ut = std::fs::read_to_string(
@@ -548,7 +548,7 @@ fn ft1375_device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// ID-1497 (5): on GP-UT, a click on A9F78116's row (a part without a symbol) opens its symbol chooser with a line
+/// On GP-UT, a click on A9F78116's row (a part without a symbol) opens its symbol chooser with a line
 /// under the title that says why it asks, its filter with the keyboard focus (the click had moved it to the row), and
 /// a press on the page does nothing while it is open, as with the strip chooser.
 #[test]

@@ -8,21 +8,19 @@
 //! name. The book's command table (`docs/book/src/reference/commands/index.md`) is generated from their schemas.
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
-//! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380), and `revision.release`,
+//! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1), and `revision.release`,
 //! the release's stamp, which a released revision's immutability makes a barrier (FR-REV-009); every one is of exposure
 //! class `Edit` except `project.checks.set`, `check.waive` and `check.unwaive`, which are `HumanOnly` (ADR-0008 amendment
 //! 3: they decide a check outcome), `revision.set_author`, `revision.withdraw`, `revision.approve` and
-//! `revision.release`, which are `HumanOnly` because they decide the four-eyes sign-off and the release history
-//! (WP-S1.18 D4, D5, D9, D13),
+//! `revision.release`, which are `HumanOnly` because they decide the four-eyes sign-off and the release history,
 //! and `project.assets.purge`, which is `HumanOnly` because deleted files do not come back (owner ruling, 2026-10-23).
 //! `external.apply` is of exposure class `Internal` and stability `Internal`: only the session's external-change apply
-//! submits it, from the origin `external` (WP-S1.17 D22, decision log ID-1284).
+//! submits it, from the origin `external`.
 
 mod assembly;
 mod assets;
 mod assign;
 mod box_reshape;
-// WP-S1.21 part 4 (D11)
 mod bus;
 mod checks;
 pub mod common;
@@ -32,7 +30,6 @@ mod device;
 mod drawing;
 mod edit;
 mod exchange;
-// WP-S1.17 part 6 (D22)
 mod external;
 mod fields;
 mod fluid;
@@ -41,18 +38,13 @@ mod import;
 pub(crate) mod items;
 mod join;
 mod languages;
-// WP-S4.01 part 1
 mod layout;
 pub(crate) mod library;
 mod library_update;
-// WP-S1.19 part 5
 mod macro_insert;
-// WP-S1.17 part 5
 mod merge;
 mod page;
-// WP-S2.07 part 4a
 mod part_edit;
-// WP-S2.05 part 3
 mod parts;
 mod paste;
 mod plc;
@@ -122,7 +114,6 @@ commands! {
     page::DeletePages,
     page::RenumberPages,
     page::ReorderPages,
-    // WP-S4.01 part 3 (D9)
     page::SetSurfaceView,
     structure::CreateStructureNode,
     structure::CreateSection,
@@ -142,22 +133,20 @@ commands! {
     connection::ContinueIp,
     connection::DefinePotential,
     connection::CreateBond,
-    // WP-S2.04 part 3
     connection::DrawToIp,
     connection::ArrangeIps,
     // Cycle 33: the chain of bridges of Edit ▸ Bridge terminals
     connection::ConnectMany,
-    // WP-S2.19 D12: a page's or a selection's routes in one step
+    // A page's or a selection's routes in one step
     connection::RouteMany,
     terminal::AddTerminals,
     terminal::DesignateTerminals,
     terminal::CreateCable,
     terminal::AddConductors,
-    // WP-S2.07 part 1: the strip editor's insert and move
+    // The strip editor's insert and move
     terminal::InsertTerminals,
     terminal::MoveTerminals,
     fields::SetFields,
-    // WP-S2.05 part 2
     fields::SetManyFields,
     edit::DeleteSelection,
     renumber::RenumberDevices,
@@ -165,17 +154,13 @@ commands! {
     assembly::AttachChildren,
     assembly::AddValve,
     assembly::LinkDevices,
-    // WP-S1.20 (D9, D10)
     fluid::SetValveOccupancy,
     fluid::ClosePort,
     plc::CreatePlcConfigProject,
-    // WP-S1.21 part 4 (D11)
     plc::BindChannel,
     plc::SetModulePart,
-    // WP-S1.21 part 3 (D8)
     plc::SetStart,
     plc::SetProfile,
-    // WP-S1.21 part 4 (D11)
     bus::CreateLogicalNet,
     bus::CreatePhysicalNet,
     supply::SetProjectSupply,
@@ -183,44 +168,37 @@ commands! {
     revision::CreateRevision,
     revision::SetRevisionAuthor,
     revision::WithdrawRevision,
-    // WP-S1.18 part 3: the sign-off (D9)
+    // The sign-off (D9)
     revision::ApproveRevision,
-    // WP-S1.18 part 4: the release's stamp (D13)
+    // The release's stamp (D13)
     revision::ReleaseRevision,
     company::SetCompany,
     frames::SetFrameDefaults,
     languages::SetProjectLanguages,
     checks::SetCheckSchemes,
-    // WP-S1.16 part 5: waiver recording (D7, FT-494)
+    // Waiver recording (D7)
     checks::WaiveFinding,
     checks::UnwaiveFinding,
-    // WP-S1.17 part 5: conflict records (D19)
+    // Conflict records (D19)
     merge::ResolveConflicts,
-    // WP-S1.17 part 6: an external change (D22)
+    // An external change (D22)
     external::ApplyExternal,
     assets::PurgeAssets,
     exchange::ExchangeSymbol,
     drawing::SetDrawing,
-    // WP-S2.05 part 3
     paste::PasteFragment,
-    // WP-S2.04 part 3
     box_reshape::ReshapeBox,
-    // WP-S2.04 part 4a
     structure_box::CreateStructureBox,
     items::PlaceItem,
     items::PlaceMarker,
-    // FT-410
     parts::ImportParts,
-    // WP-S1.19 part 3
     assign::AssignPart,
     library_update::UpdateLibraryCopies,
-    // WP-S1.19 part 5
     macro_insert::InsertMacro,
-    // WP-S2.18 D3 (FT-628)
+    // WP-S2.18 D3
     join::JoinDevice,
-    // WP-S2.07 part 4a (D20, FT-394)
+    // WP-S2.07 part 4a (D20)
     part_edit::EditPartCopy,
-    // WP-S4.01 part 1 (D6)
     layout::CreateLayoutSpace,
     layout::DeleteLayoutSpace,
     layout::CreateEnclosure,

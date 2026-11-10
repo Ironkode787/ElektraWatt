@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The part-level bus section through the files (WP-S1.21 §8a.1, D15; BU-7d): a part copy in `lib/` whose
+//! The part-level bus section through the files (.1, D15; BU-7d): a part copy in `lib/` whose
 //! `sections.bus` carries typed members, unknown members and newer enum values loads and saves byte-equal, and its
 //! stored `sha256` (the hash of the item's compact JSON) verifies; a copy that an older 0.1 build wrote, with `bus`
 //! in `PartSections.extra`, reads typed and is rewritten canonically.
@@ -102,7 +102,7 @@ fn a_part_copy_with_a_bus_section_round_trips_and_its_hash_verifies() {
 /// §8a.1 compatibility, as built: an older 0.1 build keeps `bus` in `PartSections.extra` at the same place (after
 /// the typed sections, in key order), but writes the port members in byte-wise order (`bus` before `interface`) and
 /// takes its hash over that text. The file reads typed, is reported not canonical (info) and by EW-CORE-014
-/// (warning, accepted within 0.1 as for the part-1 members, decision log ID-334), and the next save rewrites it in
+/// (warning, accepted within 0.1 as for the part-1 members), and the next save rewrites it in
 /// §8a.1's order.
 #[test]
 fn a_copy_an_older_build_wrote_reads_typed_and_is_rewritten() {

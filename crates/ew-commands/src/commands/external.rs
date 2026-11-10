@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `external.apply` (`ApplyExternal`, WP-S1.17 D22, decision log ID-1284 ruling 1): an external change, merged by the
+//! `external.apply` (`ApplyExternal`, ruling 1): an external change, merged by the
 //! session, committed as one undoable transaction.
 
 use ew_model::{AnyKey, AnyRow, Asset};
@@ -15,7 +15,7 @@ use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `external.apply` (`ApplyExternal`): the records of a project that changed on disk (a pull, a checkout, a sync
-/// client), as the session merged them three-way with its own edits (doc 05 §9; WP-S1.17 D22).
+/// client), as the session merged them three-way with its own edits (doc 05 §9).
 ///
 /// Exposure `Internal`: only the session's external-change apply submits it, from the origin `external`; scripts, the
 /// palette, MCP, plugins and the CLI cannot. It runs no normaliser and no prevent rule (the state another build saved

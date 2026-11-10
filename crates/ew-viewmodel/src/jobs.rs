@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell's jobs (WP-S2.09 part 1, D3 to D5, §6.3, §6.4): the PDF export as a job of `ew_jobs`, its entries in the
+//! The shell's jobs (§6.4): the PDF export as a job of `ew_jobs`, its entries in the
 //! Jobs pane, and the file rule.
 //!
 //! **The file rule.** The job's body runs the export ([`ew_api::output::ExportJob::run`]) and then writes the bytes to
@@ -34,10 +34,10 @@ pub const MAX_JOBS: usize = 20;
 pub enum JobKind {
     /// The PDF export (`file.export_pdf`).
     Pdf,
-    /// The print set of the print pre-dialog (`file.print`, WP-S3.07 ruling 2 of ID-1180): it writes no file, and
+    /// The print set of the print pre-dialog (`file.print`): it writes no file, and
     /// the dialog shows its progress in the preview's place rather than the Jobs pane.
     Print,
-    /// A navigator's table as XLSX or CSV (`navigator.export_table`, WP-S3.08 ruling 4 of ID-1224).
+    /// A navigator's table as XLSX or CSV (`navigator.export_table`).
     Table,
 }
 
@@ -86,7 +86,7 @@ pub enum JobStatus {
 pub struct ExportDone {
     /// The pages of the PDF.
     pub pages: usize,
-    /// The drawing pages and the section divider pages among them (FT-1212).
+    /// The drawing pages and the section divider pages among them.
     pub kinds: ew_api::output::PageKinds,
     /// The bytes written.
     pub bytes: usize,
@@ -111,16 +111,16 @@ pub struct JobEntry {
     pub(crate) path: PathBuf,
     /// The running job; `None` once its end has been taken, and for a print.
     pub(crate) handle: Option<Job<ExportDone>>,
-    /// The cancel signal of a print the window hands to its platform (FT-1157, ID-1417): the entry's Cancel sets it;
+    /// The cancel signal of a print the window hands to its platform: the entry's Cancel sets it;
     /// `None` for the other jobs.
     pub(crate) cancel: Option<Arc<AtomicBool>>,
     /// The notification text of a failed, cancelled or panicked end that no step waited for (a `wait: false` export
     /// whose end was taken by polling or at the end of a headless run); cleared when a waiting step takes the end.
-    /// The headless runner reports these on stderr (FT-513).
+    /// The headless runner reports these on stderr.
     pub(crate) unseen_failure: Option<String>,
     /// Whether a step waited for the job (a waiting `file.export_pdf` or `jobs.wait`), set for every outcome and
     /// never by a poll: `jobs.wait {}` picks the newest job no step waited for, so its choice does not depend on
-    /// which poll took an end (R2-1 of cycle 31).
+    /// which poll took an end (R2-1).
     pub(crate) waited: bool,
 }
 
@@ -246,7 +246,7 @@ impl JobsState {
         self.start(JobKind::Pdf, produce, target, name, rev, epoch)
     }
 
-    /// Starts the table export job (WP-S3.08 ruling 4 of ID-1224): `file` encoded on the job's thread and written to
+    /// Starts the table export job: `file` encoded on the job's thread and written to
     /// `target` by the same file rule; returns its number.
     pub(crate) fn start_table(
         &mut self,
@@ -300,7 +300,7 @@ impl JobsState {
         Ok(number)
     }
 
-    /// Adds the running entry of a print the window hands to its platform (FT-1157, ID-1417): `name` the print's title,
+    /// Adds the running entry of a print the window hands to its platform: `name` the print's title,
     /// `cancel` its signal, which the entry's Cancel sets. [`crate::shell::ShellModel::print_done`] removes it at the
     /// print's end, whose toast tells it. Returns its number.
     pub(crate) fn start_print(&mut self, name: String, rev: u64, epoch: u64, cancel: Arc<AtomicBool>) -> u64 {
@@ -337,7 +337,7 @@ impl JobsState {
 
     /// Cancels every running job and waits for each to end (the shell's end: no job outlives its window or run, so
     /// no sibling is left by a killed thread). Returns each job's real end, for the shell to record: a job that had
-    /// already written its file is done, not cancelled (ID-719).
+    /// already written its file is done, not cancelled.
     pub(crate) fn stop_all(&mut self) -> Vec<(u64, JobEnd<ExportDone>)> {
         // A test gate would hold a cancelled job at its checkpoint: it is let go.
         self.hooks.release();
@@ -356,7 +356,7 @@ impl JobsState {
     }
 }
 
-/// What a table export job encodes (WP-S3.08 ruling 4 of ID-1224): the restricted table as a workbook with its
+/// What a table export job encodes: the restricted table as a workbook with its
 /// metadata, or as CSV in a preset.
 pub(crate) enum TableFile {
     /// A workbook (`ew_api::output::xlsx`).
@@ -420,7 +420,7 @@ pub(crate) fn io_cause(e: &std::io::Error) -> String {
     }
 }
 
-/// The pages a job's body produced, and their kinds (FT-1212).
+/// The pages a job's body produced, and their kinds.
 type PageCount = (usize, ew_api::output::PageKinds);
 
 /// The export job's body (§6.3 step 3): the export (`produce`: the bytes and the pages), then the sibling written and

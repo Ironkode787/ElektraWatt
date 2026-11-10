@@ -230,7 +230,7 @@ fn core052_cases() {
                          flag one as the star source",
                         "case {c}"
                     );
-                    // FT-1334: the finding's own arguments word it in Dutch (C51-p6#5).
+                    // The finding's own arguments word it in Dutch.
                     assert_eq!(
                         ew_checks::messages::render(&f[0], "nl-NL"),
                         "onderbrekingspunt X: 2 bronpunten en geen sterbron; maak ze op één na tot doel, of markeer \
@@ -280,7 +280,7 @@ fn clean_model_has_no_finding_from_any_shipped_rule() {
     let m = fx.build();
     let report = run(&Q::new(&m), &FULL, CheckMode::Online);
     // EW-CORE-061 reports the project's text styles below the minimum cap height, and the built-in table has two
-    // (`cp.small`, `marker`) in every project until project text styles exist (WP-S1.12).
+    // (`cp.small`, `marker`) in every project until project text styles exist.
     let findings: Vec<_> = report
         .findings
         .iter()
@@ -298,7 +298,7 @@ fn a_run_is_deterministic() {
     fx.drawn_device(0x301, "Q", Some(1), P1);
     fx.drawn_device(0x302, "Q", Some(1), P1);
     fx.push(json!({"$k": "device", "id": us(0x400), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
-    // Two own locations: an unlocated rail-bonded terminal is EW-POT-008 (amended by cycle 33).
+    // Two own locations: an unlocated rail-bonded terminal is EW-POT-008.
     for (n, code) in [(0x901u128, "A"), (0x902, "B")] {
         fx.push(json!({"$k": "structure_node", "id": us(n), "aspect": "location", "code": code}));
     }

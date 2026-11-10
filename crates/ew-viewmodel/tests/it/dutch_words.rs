@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Dutch UI's fix round (cycle 49, ID-1278): the palette form's labels and the finding detail's kind from keys in
+//! The Dutch UI's fix round: the palette form's labels and the finding detail's kind from keys in
 //! both locales (rulings 1 and 3), the count texts (ruling 6) and a new terminal strip in words (ruling 7).
 
 use std::collections::BTreeSet;
@@ -62,7 +62,7 @@ fn every_palette_form_parameter_has_a_label_in_both_locales() {
     let mut wanted = BTreeSet::new();
     let mut fields = Vec::new();
     for meta in actions::ACTIONS {
-        // Define potential… opens its form itself, with the action's parameters (FT-1202).
+        // Define potential… opens its form itself, with the action's parameters.
         let specs = match form_plan(meta) {
             FormPlan::Form(specs) => Some(specs),
             _ if meta.id == "potential.draw" => actions::parse_signature(meta.params).ok(),
@@ -160,7 +160,7 @@ fn a_count_of_one_reads_in_the_singular() {
             "Voorbeeld bijgewerkt: 1 resultaat meer",
             "Preview updated: 2 more results",
         ),
-        // C49-p6#2: the paste ghost's dropped connections, the open banner's findings, the approval's waivers.
+        // The paste ghost's dropped connections, the open banner's findings, the approval's waivers.
         (
             count_key!("label-paste-dropped"),
             ", 1 connection dropped",
@@ -253,7 +253,7 @@ fn a_new_strip_without_a_terminal_reads_in_words() {
     shell.shutdown();
 }
 
-/// C49-p6#4 (ID-1278 ruling 9): Dutch puts the action's name mid-sentence through the Fluent function `IN_SENTENCE`;
+/// Dutch puts the action's name mid-sentence through the Fluent function `IN_SENTENCE`;
 /// en-GB keeps the title as it is.
 #[test]
 fn the_preview_chip_puts_the_action_mid_sentence_in_dutch() {
@@ -280,7 +280,7 @@ fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_viewmodel::ew_a
         .expect("the navigator's table")
 }
 
-/// FT-1264 and FT-1289 (ID-1315 ruling 1): every navigator's column header has its text in both locales, the en-GB one
+/// Every navigator's column header has its text in both locales, the en-GB one
 /// the label `ew-api` gives (`column-<navigator>-<key>`, else `column-<key>`); in nl-NL the window's tables show the
 /// Dutch headers and the Devices tree its badges in Dutch.
 #[test]
@@ -330,7 +330,7 @@ fn ft1264_every_navigator_column_and_badge_reads_in_both_locales() {
         .iter()
         .map(|r| r.text.clone())
         .collect();
-    // FT-1338 (ID-1392): a function's kind of `KIND_WORDS` in Dutch too.
+    // A function's kind of `KIND_WORDS` in Dutch too.
     let kinds = [
         ("Double-acting cylinder ", "Dubbelwerkende cilinder "),
         ("Two-way process valve ", "Tweewegprocesklep "),
@@ -373,7 +373,7 @@ fn ft1264_every_navigator_column_and_badge_reads_in_both_locales() {
     shell.shutdown();
 }
 
-/// FT-1162 (ID-1219 ruling 6, ID-1315 ruling 1): in nl-NL the Messages pane's group headers, its rule groups and its
+/// In nl-NL the Messages pane's group headers, its rule groups and its
 /// finding rows read in Dutch, the messages as the detail renders them, and so does the Properties pane's finding chip.
 #[test]
 fn ft1162_the_messages_rows_and_the_chip_read_in_dutch() {
@@ -403,7 +403,7 @@ fn ft1162_the_messages_rows_and_the_chip_read_in_dutch() {
         }
     }
     assert_eq!(groups, expected_groups);
-    // FT-1314: each rule group reads its rule's nl-NL title (the row's key is a path, `severity:<word>/rule:<id>`).
+    // Each rule group reads its rule's nl-NL title (the row's key is a path, `severity:<word>/rule:<id>`).
     let rule_rows: Vec<(String, String)> = t
         .nodes
         .iter()
@@ -443,14 +443,14 @@ fn ft1162_the_messages_rows_and_the_chip_read_in_dutch() {
     }
     assert!(!rows.is_empty());
     assert_eq!(rows, expected);
-    // C50-p5#7: one row as the Dutch reader sees it.
+    // One row as the Dutch reader sees it.
     let cable = "=P01+J-E-2416-3W1 heeft geen gerouteerde, handmatige of artikellengte";
     assert_eq!(rows.iter().filter(|r| *r == cable).count(), 1, "{rows:?}");
     // ID-1509 (9), the window check's F3: a message that names its subject after a word shows it once.
     let pe = "PE-draad 101.8 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij 1X1 \
               (de dimensioneringstabel is niet getoetst aan de norm)";
     assert_eq!(rows.iter().filter(|r| *r == pe).count(), 1, "{rows:?}");
-    // FT-1314: the detail of that row names the rule by its nl-NL title.
+    // The detail of that row names the rule by its nl-NL title.
     let key = t
         .nodes
         .iter()
@@ -530,7 +530,7 @@ fn row_value(shell: &ShellModel, key: &str) -> (String, serde_json::Value) {
     (ew_viewmodel::properties::value_text(row), json)
 }
 
-/// FT-1287 (ID-1315 ruling 3): a generated page's Properties show its Kind and its row source in words, in en-GB and
+/// A generated page's Properties show its Kind and its row source in words, in en-GB and
 /// nl-NL, never the JSON; the JSON values stay.
 #[test]
 fn ft1287_a_generated_page_shows_its_kind_and_source_in_words() {
@@ -573,7 +573,7 @@ fn ft1287_a_generated_page_shows_its_kind_and_source_in_words() {
     shell.shutdown();
 }
 
-/// FT-1493 (ID-1457): the property grid's own parse error reads in the window's language, keyed with its argument.
+/// The property grid's own parse error reads in the window's language, keyed with its argument.
 #[test]
 fn ft1493_a_grid_parse_error_reads_in_the_windows_language() {
     let tmp = Tmp::new("ft1493");
@@ -592,7 +592,7 @@ fn ft1493_a_grid_parse_error_reads_in_the_windows_language() {
     shell.shutdown();
 }
 
-/// FT-1258 and FT-1240 (ID-1315): an enumerated row shows its value and its choices in the UI language's words, takes
+/// An enumerated row shows its value and its choices in the UI language's words, takes
 /// a word typed in them, and refuses another word naming the choices in words, in en-GB and nl-NL.
 #[test]
 fn ft1258_an_enumerated_row_reads_and_takes_its_words() {
@@ -650,7 +650,7 @@ fn ft1258_an_enumerated_row_reads_and_takes_its_words() {
     shell.shutdown();
 }
 
-/// C50-p6#7 (WP-S1.20 T25, FT-1258): in nl-NL a fluid line's Line kind choices are the Dutch words, filtered by them:
+/// C50-p6#7 (T25): in nl-NL a fluid line's Line kind choices are the Dutch words, filtered by them:
 /// typing "Stuur" finds the pilot line ("Stuurleiding").
 #[test]
 fn a_fluid_line_kind_is_found_by_its_dutch_word() {
@@ -660,7 +660,7 @@ fn a_fluid_line_kind_is_found_by_its_dutch_word() {
     let mut shell = tmp.shell_in(Mode::Headless, true, "203");
     done(&mut shell, "view.language", json!({"value": "nl"}));
     done(&mut shell, "select.set", json!({"ids": [F6]}));
-    // FT-1319 (ID-1357 ruling 2): the sheet is headed by the line's kind in words, never "?".
+    // The sheet is headed by the line's kind in words, never "?".
     let title = |s: &ShellModel| s.properties().sheet().expect("a sheet").header.title.clone();
     assert_eq!(title(&shell), "Werkleiding");
     let sheet = shell.properties().sheet().expect("a sheet");
@@ -836,7 +836,7 @@ fn the_scheme_grid_factor_surface_view_and_sizes_read_in_words() {
     shell.shutdown();
 }
 
-/// ID-1389 (ID-1320, W51 finding C): the orchestrator's Dutch word for word, and a re-import's member row quoting its
+/// ID-1389 (W51 finding C): the orchestrator's Dutch word for word, and a re-import's member row quoting its
 /// values in both languages.
 #[test]
 fn the_w51_dutch_texts_read_word_for_word() {
@@ -890,7 +890,7 @@ fn the_w51_dutch_texts_read_word_for_word() {
     shell.shutdown();
 }
 
-/// FT-1338 (ID-1357 ruling 1): in nl-NL the navigators' section groups and yes-or-no cells read in Dutch: the report
+/// In nl-NL the navigators' section groups and yes-or-no cells read in Dutch: the report
 /// blocks' sections ("Sectie 9 - …"), the cables' Shield column ("nee").
 #[test]
 fn the_navigators_sections_and_yes_or_no_cells_read_in_dutch() {
@@ -946,7 +946,7 @@ fn the_messages_scheme_reads_in_dutch() {
     shell.shutdown();
 }
 
-/// C50-p7#9 (ID-1320): the Dutch toasts of a new terminal strip each say, as `toast-strip-new` does, that the symbol's
+/// The Dutch toasts of a new terminal strip each say, as `toast-strip-new` does, that the symbol's
 /// strip picker lists the strip.
 #[test]
 fn the_new_strip_toasts_name_the_strip_picker_in_dutch() {
@@ -970,7 +970,7 @@ fn the_new_strip_toasts_name_the_strip_picker_in_dutch() {
     shell.shutdown();
 }
 
-/// ID-1439 (C52-p8#5, #6, #7): in Dutch the Messages header's sentence puts the count before "vrijgesteld" and
+/// ID-1439 (#6, #7): in Dutch the Messages header's sentence puts the count before "vrijgesteld" and
 /// "wachtend", the Preview's counts name items "elementen", and the action after the Preview's colon is in a sentence.
 #[test]
 fn id1439_the_messages_and_preview_headers_in_dutch() {
@@ -996,7 +996,7 @@ fn id1439_the_messages_and_preview_headers_in_dutch() {
     shell.shutdown();
 }
 
-/// C50-p5#7 (FT-1287): every report kind of the format has its `report-kind-<kind>` text in en-GB and nl-NL, so no
+/// Every report kind of the format has its `report-kind-<kind>` text in en-GB and nl-NL, so no
 /// generated page's Source shows JSON.
 #[test]
 fn every_report_kind_has_its_words_in_both_locales() {
@@ -1196,7 +1196,7 @@ fn ft1483_kinds_tiers_and_block_kinds_read_in_dutch() {
     );
 }
 
-/// C53-p3#5 (ID-1481): the Blocks navigator words a block's kind code in its kind column, and in its title and label
+/// The Blocks navigator words a block's kind code in its kind column, and in its title and label
 /// only where `ew-api` put the code there for a block without a title; a title that reads as a code stays as typed.
 #[test]
 fn a_block_title_that_reads_as_a_kind_code_stays_as_typed() {

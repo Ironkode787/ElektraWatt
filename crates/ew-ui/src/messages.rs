@@ -215,7 +215,7 @@ pub(crate) fn severity_count_chip(ui: &mut Ui, severity: &str, findings: &[(&str
 }
 
 /// A severity chip's tooltip: its findings, one "<rule>: <message>" line each; the Pending chip says first what it
-/// counts (FT-1092, ID-1184), then lists them (FT-1139, ID-1229 item 8).
+/// counts, then lists them (item 8).
 pub(crate) fn chip_tip(severity: &str, lines: &[String]) -> String {
     let list = lines.join("\n");
     if severity == "pending" {
@@ -237,7 +237,7 @@ fn paint_severity_chip(ui: &mut Ui, severity: &str, word: &str, name: &str, tip:
         t.space_2 + icon + t.space_1 + galley.size().x + t.space_2,
         t.size_badge,
     );
-    // FT-759: the Properties header's chip is a button that opens Messages filtered to the record.
+    // The Properties header's chip is a button that opens Messages filtered to the record.
     let (rect, response) = ui.allocate_exact_size(size, Sense::click());
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, name));
     let painter = ui.painter();
@@ -331,7 +331,7 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             let waived = strings::format(key!("messages-header-waived"), &[&c.waived.to_string()]);
             small(ui, &waived, t.text_tertiary);
             let pending = strings::format(key!("messages-header-pending"), &[&c.pending.to_string()]);
-            // FT-1092 (ID-1184): "pending n" says what it counts, in its tooltip (the Pending chips' text).
+            // "pending n" says what it counts, in its tooltip (the Pending chips' text).
             let response = small(ui, &pending, t.text_tertiary);
             response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &pending));
             response.tip(strings::text(key!("tip-pending")));
@@ -344,7 +344,7 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             n.set_live(egui::accesskit::Live::Polite);
             n.set_value(line);
         });
-        // ID-1497 (6): while findings are pending, one sentence under the header says what pending means.
+        // While findings are pending, one sentence under the header says what pending means.
         if c.pending > 0 {
             ui.horizontal(|ui| {
                 ui.add_space(t.space_4);
@@ -362,7 +362,7 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     fix_card(ui, shell, events);
 }
 
-/// The quick-fix card (§7.4; WP-S2.17 part 4, doc 16a §6.23): "Quick fix `<rule>`" with its revision and status badge,
+/// The quick-fix card (§7.4; doc 16a §6.23): "Quick fix `<rule>`" with its revision and status badge,
 /// what the fix changes, Apply and Cancel.
 fn fix_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let Some(card) = shell.properties().card() else {
@@ -448,7 +448,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                             .color(t.text_secondary.color32()),
                     );
                 } else if small_link(ui, key!("messages-waive-button"), "messages.waive").clicked() {
-                    // The window reads the date; the shell never does (FT-674).
+                    // The window reads the date; the shell never does.
                     events.push(Event::Action(
                         "messages.waive",
                         json!({ "date": crate::clock::today() }),
@@ -582,7 +582,7 @@ mod tests {
         assert_eq!(finding_badge("error"), None);
     }
 
-    /// FT-1139 (ID-1229 item 8): the Pending chip's tooltip says what it counts, then lists its findings; another
+    /// FT-1139 (item 8): the Pending chip's tooltip says what it counts, then lists its findings; another
     /// chip's lists them only.
     #[test]
     fn ft1139_the_pending_tip_defines_then_lists() {

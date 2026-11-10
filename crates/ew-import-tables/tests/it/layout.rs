@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The layout tables of doc 20 §13's test geometry (U-50, WP-S4.01 D13): the records they give, the mechanical
+//! The layout tables of doc 20 §13's test geometry (U-50): the records they give, the mechanical
 //! columns of `parts.csv`, and the defective rows the emitter refuses.
 
 use crate::common;
@@ -284,7 +284,7 @@ fn a_location_has_one_layout_space() {
     assert_eq!(spaces, 1);
 }
 
-/// WP-S4.01 part 3: folio 902's view columns give its surface view (the plate of -UC1, its origin at (25, 167) mm,
+/// Folio 902's view columns give its surface view (the plate of -UC1, its origin at (25, 167) mm,
 /// abbreviated labels); a view on a schematic page, an unknown enclosure and a view without its datum are refused.
 #[test]
 fn the_view_columns_give_902_its_surface_view_and_refuse_the_defective_ones() {
@@ -351,7 +351,7 @@ fn the_view_columns_give_902_its_surface_view_and_refuse_the_defective_ones() {
     assert!(views(&b).is_empty(), "no view is imported");
 }
 
-/// FT-871: of a repeated `pages.csv` key, the page and its view come from the same row. A malformed first row of 902
+/// Of a repeated `pages.csv` key, the page and its view come from the same row. A malformed first row of 902
 /// (grid `bad`) does not import, its valid second row does, and the view is the second row's; with a valid first
 /// row, the first row gives both and the repeated row is dropped whole.
 #[test]

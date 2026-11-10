@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Library record lines and the files of a `.ewlib` directory (doc 07 §2.2, WP-S1.19 §7.1, §7.2).
+//! Library record lines and the files of a `.ewlib` directory (doc 07 §2.2, §7.2).
 //!
 //! A record line is the item's own document: `$k`, `id` = the item ID, `$v` when not 1, `version`, then the item's
 //! members in declaration order, compact (the canonical form of doc 05 §3.1). It carries no `library_id`, no copy ID

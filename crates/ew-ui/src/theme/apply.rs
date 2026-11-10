@@ -57,7 +57,7 @@ pub fn style_of(t: &Tokens) -> Style {
     v.indent_has_left_vline = false;
     v.button_frame = true;
     v.collapsing_header_frame = false;
-    // FT-566: a 1-px caret (`border.width`, as the platforms draw it), so it clears the first glyph of the text or
+    // A 1-px caret (`border.width`, as the platforms draw it), so it clears the first glyph of the text or
     // the placeholder; the 2-px caret, centred on the pen position, overlapped it.
     v.text_cursor.stroke = stroke(t.border_width, t.accent);
 
@@ -115,7 +115,7 @@ pub fn style_of(t: &Tokens) -> Style {
     style
 }
 
-/// FT-1247 (ID-1315 ruling 1): with reduced motion a scroll area moves by the wheel in the frame the wheel turns.
+/// With reduced motion a scroll area moves by the wheel in the frame the wheel turns.
 /// egui 0.37 smooths a wheel's line and page steps over the next frames and has no switch for it; its pass's scroll
 /// delta is public input, so at the start of each frame it is set to this frame's own wheel events, in points as egui
 /// reads them (a line `line_scroll_speed`, a page the viewport's height, a horizontal or vertical modifier as egui
@@ -168,7 +168,7 @@ pub fn apply(tokens: &Tokens, ctx: &egui::Context) {
 }
 
 /// Installs the `theme` and `density` settings (`settings.toml`): both egui slots, then the preference, so that
-/// `system` follows the operating system (D5). WP-S2.08 D14 (ID-1272 ruling 5): the settings `min_font_pt` and
+/// `system` follows the operating system (D5). WP-S2.08 D14: the settings `min_font_pt` and
 /// `reduce_motion` (as `ShellModel::reduce_motion` resolves it) come as two more arguments; `min_font_pt` raises every
 /// text token below it to it, and reduced motion sets the motion tokens, egui's animation time with them,
 /// to zero and scrolls to a target without animation.
@@ -218,7 +218,7 @@ mod tests {
     use super::*;
     use crate::theme::Theme;
 
-    /// FT-1247: egui spreads a wheel line over several frames; with [`unsmoothed_scroll`] the whole line scrolls in the
+    /// Egui spreads a wheel line over several frames; with [`unsmoothed_scroll`] the whole line scrolls in the
     /// frame of the turn and nothing follows in the next one.
     #[test]
     fn reduced_motion_scrolls_a_wheel_line_in_its_frame() {
@@ -272,7 +272,7 @@ mod tests {
         assert_eq!(ctx.options(|o| o.theme_preference), egui::ThemePreference::System);
     }
 
-    /// FT-1252 (D14): `min_font_pt` raises a text token below it to the minimum and its line height by as much,
+    /// `min_font_pt` raises a text token below it to the minimum and its line height by as much,
     /// `type_body_strong` among them; a token at or above the minimum, and the setting 0, leave it as it is.
     #[test]
     fn raise_text_raises_the_size_and_the_line_height_by_as_much() {

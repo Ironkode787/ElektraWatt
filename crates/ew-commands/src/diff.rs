@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The entity and field changes of a transaction (ADR-0008, ARCH §5.4), for previews and the history
-//! panel. `diff_query` over derived rows arrives with the query layer (WP-S1.05).
+//! panel. `diff_query` over derived rows arrives with the query layer.
 //!
 //! A diff is a **summary**: per changed record the kind of change, the record's key (kind and ID) and the
 //! dotted paths of the changed members, never the record values. Values are read through the tracked

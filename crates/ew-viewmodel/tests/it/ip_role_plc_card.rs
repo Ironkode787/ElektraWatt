@@ -3,7 +3,7 @@
 
 //! The cycle-39 play-test's findings FT-822 and FT-823 in the view model (cycle 40, lane G40).
 //!
-//! FT-822: the page-arrow tool offers the target role for a name whose source stands on another page (EW-CORE-052 is
+//! The page-arrow tool offers the target role for a name whose source stands on another page (EW-CORE-052 is
 //! project-wide), its HUD names the role and the key that changes it, D goes on from the offered role, and a refused
 //! arrow keeps its ghost with the reason in the HUD and a toast. FT-823: a card drawn before the CPU is attached when
 //! the CPU arrives (its channels get addresses), the page description lists the addresses the canvas prints, and
@@ -108,7 +108,7 @@ fn ft822_the_hud_names_the_role_and_d_goes_on_from_the_offered_one() {
     let tmp = Tmp::new("g40-hud");
     let mut s = source_on_101(&tmp);
     arm_ip(&mut s, "0V", 150.0);
-    // FT-899: each role in words, and the key (from the keymap) with the next role's short word.
+    // Each role in words, and the key (from the keymap) with the next role's short word.
     let d = key_of(&s, "tool.ip_direction");
     let prompt = |s: &ShellModel| ew_viewmodel::command_bar::hud(s).prompt;
     assert_eq!(
@@ -153,7 +153,7 @@ fn ghost_label(s: &ShellModel) -> String {
         .expect("the ghost's label")
 }
 
-/// W42b, re-pinned by FT-980 (ID-1146: a star source is a source point): with the star on the point is a source, the
+/// W42b, re-pinned by FT-980 (a star source is a source point): with the star on the point is a source, the
 /// HUD names the star source alone (no role beside it) and the ghost label says "0V star source"; D clears the star and
 /// steps on from source (target, undirected, then source with the star still off, no notice); the star turned on from
 /// another direction walks the point to source, and turned off gives back the direction it had before.
@@ -237,7 +237,7 @@ fn ft822_choosing_source_for_a_proposed_name_offers_the_next_free_name() {
     let tmp = Tmp::new("g40-free");
     let mut s = source_on_101(&tmp);
     // No typed name: the proposal is the last committed name's series' first free name, 0V-1, with the quarter's role
-    // (ID-1462: an automatic name never joins the source on 101).
+    // (an automatic name never joins the source on 101).
     done(&mut s, "tool.ip", json!({}));
     done(&mut s, "cursor.set", json!({"x_mm": 330.0, "y_mm": 150.0}));
     assert_eq!(ghost(&s)["name"], "0V-1");

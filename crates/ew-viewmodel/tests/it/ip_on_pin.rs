@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The delivery play-test of cycle 41 (rv-vis-5, FIXPT41): an interruption point dropped so that its connection
-//! point lies on a pin connects to it (FR-CON-003, WP-S2.04 §9.1), in one undo step, as a symbol placed the same way
+//! point lies on a pin connects to it (FR-CON-003), in one undo step, as a symbol placed the same way
 //! does; Alt places it free; a drop on another interruption point, and an external point's on a pin, are refused in
 //! words.
 
@@ -103,7 +103,7 @@ fn arm_on(s: &mut ShellModel, name: &str, pin: (i64, i64)) {
 fn hud_head(s: &ShellModel, name: &str) -> String {
     let direction = ghost(s)["direction"].as_str().unwrap().to_owned();
     let dir = IpDir::from_word(&direction).unwrap();
-    // FT-899: the role in words.
+    // The role in words.
     let role = match dir {
         IpDir::Source => "source: the wire continues at its targets",
         IpDir::Target => "target: fed by its source",
@@ -342,7 +342,7 @@ fn ghost_cp(s: &ShellModel) -> (i64, i64) {
     s.canvas().unwrap().page().snapper.sheet_to_page(marker)
 }
 
-/// FT-948 (ID-1150): a point whose connection point lies on a junction, or strictly inside a wire, would sit on it
+/// A point whose connection point lies on a junction, or strictly inside a wire, would sit on it
 /// without joining it: refused in words, nothing committed, the ghost kept; the HUD offers no connection there.
 #[test]
 fn ft948_a_point_on_a_junction_or_inside_a_wire_is_refused() {
@@ -429,7 +429,7 @@ fn an_external_point_on_a_pin_connects_to_it() {
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
     let name = added(&before, &s).0[0].ip.as_ref().unwrap().name.clone();
     assert_connects(&s, &before, &pin, &name);
-    // FT-1067: the toast names the external point so; FT-1129 (ID-1229 item 6): both sentences end with a full stop.
+    // The toast names the external point so; FT-1129 (item 6): both sentences end with a full stop.
     let cell = {
         let (reps, _) = added(&before, &s);
         let page = s.canvas().unwrap().page();
@@ -557,7 +557,7 @@ fn a_route_less_connection_to_a_point_on_a_pin_saves_and_reloads_byte_stable() {
     }
 }
 
-/// FT-950 (ID-1146): the next name after a connecting drop. A target "FT950" dropped on the free pin -102F2:14 makes a
+/// The next name after a connecting drop. A target "FT950" dropped on the free pin -102F2:14 makes a
 /// potential whose name is only the pin's fallback; the ghost kept there proposes the next of the name just placed (as
 /// `propose` counts among the targets of the page), not the fallback name. The Wire tool's P, from that pin, names its
 /// end from the name just placed the same way.
@@ -568,7 +568,7 @@ fn ft950_after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
     let pin = cp(&s, "-102F2:14");
     arm_on(&mut s, "FT950", pin.at);
     done(&mut s, "tool.ip_direction", json!({"direction": "target"}));
-    // The target's form has its CP at the tip (WP-S2.19 D16): the ghost goes where that CP lies on the pin.
+    // The target's form has its CP at the tip: the ghost goes where that CP lies on the pin.
     let pos = insertion_for(&mut s, pin.at);
     cursor(&mut s, pos);
     let before = tables(&s);
@@ -609,7 +609,7 @@ fn ft950_after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
     assert_eq!((ip.name.as_str(), ip.direction.as_str()), ("FT950-1", "target"));
 }
 
-/// FT-1074 (ID-1179): a pin on a junction wins (FT-948): a free contact moved so that its pin lies on a junction of
+/// A pin on a junction wins: a free contact moved so that its pin lies on a junction of
 /// 102, the point dropped there connects to the pin as on any pin.
 #[test]
 fn ft1074_a_pin_on_a_junction_wins() {
@@ -675,7 +675,7 @@ fn ft1074_a_pin_on_a_junction_wins() {
     assert_connects(&s, &before, &pin, "J1074");
 }
 
-/// FT-1074 (ID-1179): a wire's bare end is no wire's inside (FT-948): on FT-1049's page, where the scene draws a wire
+/// A wire's bare end is no wire's inside: on FT-1049's page, where the scene draws a wire
 /// whose coil lies off the sheet along the sheet's edge, the drawn end on the edge has no pin and no junction, and a
 /// point dropped there places free.
 #[test]

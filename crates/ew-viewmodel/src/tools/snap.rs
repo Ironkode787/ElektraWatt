@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Snapping (WP-S2.03 §7.5, FR-UI-018, doc 06 §5.7): to the connection points drawn on a page within 8 screen
+//! Snapping (FR-UI-018, doc 06 §5.7): to the connection points drawn on a page within 8 screen
 //! points, else to the page's connection grid, always on grid indices (ADR-0005).
 //!
 //! A [`Snapper`] is built per page content from its [`PageGrid`] and `Session::page_cps`, once per (revision,
 //! folio), and evaluated without a `Session` call. A sheet point maps to the page by the inverse of the frame's
 //! page-to-sheet map (`page = (sheet − offset) × 10⁹ / scale_ppb`, per axis in `i128`, halves away from zero); the
 //! grid index of a page coordinate is `k = round(page × den / num)`; the page point a command receives is
-//! `round(k × num / den)` (so a tool never meets the grid rule's rejection, ID-54), and its sheet point
+//! `round(k × num / den)` (so a tool never meets the grid rule's rejection), and its sheet point
 //! `offset + round(k × num × scale_ppb / (den × 10⁹))`, the point the grid overlay and the grid cursor use.
 
 use ew_api::output::{PageCp, PageGrid};
@@ -49,7 +49,7 @@ pub struct Snap {
     pub label: Option<String>,
 }
 
-/// What a fine snap places (WP-S2.04 §6.5).
+/// What a fine snap places.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FineKind {
     /// A graphic's point.
@@ -231,7 +231,7 @@ impl Snapper {
         self.index(p)
     }
 
-    /// The fine snap of graphics and texts (WP-S2.04 §6.5, doc 06 §2.4): the nearest point of the fine grid, on a
+    /// The fine snap of graphics and texts (doc 06 §2.4): the nearest point of the fine grid, on a
     /// QET-grid page `793_750/3` nm (1 px) for both, elsewhere 500 000 nm for graphics and 1 000 000 nm for texts;
     /// with `alt` the exact page point of the pointer. Returns the sheet point and the page point, computed on
     /// grid indices in `i128`.
@@ -258,7 +258,7 @@ impl Snapper {
         (self.page_to_sheet(page), page)
     }
 
-    /// Snaps the sheet point `at` (WP-S2.03 §7.5): unless `alt` is held, the connection point nearest to it within
+    /// Snaps the sheet point `at`: unless `alt` is held, the connection point nearest to it within
     /// 8 screen points wins; else the nearest point of the page's connection grid.
     pub fn snap(&self, at: (i64, i64), points_per_nm: f64, alt: bool) -> Snap {
         if !alt && let Some(s) = self.snap_cp(at, points_per_nm) {

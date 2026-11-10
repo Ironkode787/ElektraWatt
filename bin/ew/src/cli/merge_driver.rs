@@ -10,7 +10,7 @@
 //! conflict records (or with `%A` left as ours when a side is newer than this reader, FT-1235, or holds a record it
 //! cannot read, FT-1490), 129 on a caught internal
 //! error (I/O, a panic in the merge) with `%A` as it was; a usage error
-//! exits 129 too, with clap's text (decision log ID-1273).
+//! exits 129 too, with clap's text.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
@@ -88,7 +88,7 @@ fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, m
     };
     // A side above the file limit cannot be held by a conflict record that loads: the file stays ours, conflicted.
     // An oversized base, read to one byte past the limit, is a base that does not read: the core merges it by D18's
-    // no-base rule (decision log ID-1273).
+    // no-base rule.
     if [&ours, &theirs]
         .iter()
         .any(|b| b.len() as u64 > limits.max_file_bytes)
@@ -101,7 +101,7 @@ fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, m
         return CONFLICTS;
     }
     let (path, format) = project(&a.path);
-    // FT-1235 (WP-S6.08 D4): a side written by a newer ElektraWatt is not merged in this project. The driver sees ours'
+    // A side written by a newer ElektraWatt is not merged in this project. The driver sees ours'
     // format (the working tree's manifest) and, when it merges the manifest, the three sides' own.
     let formats: Vec<String> = if path == "manifest.json" {
         [&base, &ours, &theirs]
@@ -119,7 +119,7 @@ fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, m
         );
         return CONFLICTS;
     }
-    // FT-1490 (WP-S6.08 D20): theirs' manifest is not in the working tree while the drivers run, so a record file is
+    // Theirs' manifest is not in the working tree while the drivers run, so a record file is
     // judged by its own lines: one whose `$v` is above this reader's leaves the file as ours.
     if holds_newer_records(&path, [&base, &ours, &theirs], limits) {
         eprintln!(
@@ -151,8 +151,8 @@ fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, m
 
 /// `repo_path` relative to its project, the longest prefix whose directory in `worktree` holds a `manifest.json`, and
 /// ours' format, that manifest's (this reader's [`FORMAT`] when it does not read). A path under no project is kept
-/// whole and merges as its own class by name (decision log ID-1271 rulings 2 and 3). The walk follows no symbolic link
-/// or junction (doc 05 §3.6, NFR-SEC-16): a link on the way ends it, under no project (decision log ID-1273).
+/// whole and merges as its own class by name. The walk follows no symbolic link
+/// or junction (doc 05 §3.6, NFR-SEC-16): a link on the way ends it, under no project.
 fn project_path(worktree: &Path, repo_path: &str, limits: &Limits) -> (String, String) {
     let segments: Vec<&str> = repo_path.split('/').collect();
     let link = |p: &Path| std::fs::symlink_metadata(p).is_ok_and(|m| m.file_type().is_symlink());
@@ -299,7 +299,7 @@ mod tests {
     }
 
     /// Ruling 5: ours or theirs above the file limit leaves `%A` as it was with exit 1 and no merge; a base above it
-    /// merges, past the limit, as a base that does not read (D18's no-base rule in the core, decision log ID-1273).
+    /// merges, past the limit, as a base that does not read (D18's no-base rule in the core).
     #[test]
     fn a_side_above_the_file_limit_is_left_conflicted() {
         let (dir, args) = setup("0.1");

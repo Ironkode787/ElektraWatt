@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The icon set (WP-S2.17 part 6, D9; doc 16a §4.11): Tabler Icons 3.50.0 (MIT) and the project's own glyphs,
+//! The icon set (doc 16a §4.11): Tabler Icons 3.50.0 (MIT) and the project's own glyphs,
 //! converted by `cargo xtask gen-icons` into `generated.rs` and drawn through epaint. No runtime SVG parsing.
 //!
 //! `ew-viewmodel` names an icon by its `&'static str` key (the Tabler name, `ew-<name>` for the project's

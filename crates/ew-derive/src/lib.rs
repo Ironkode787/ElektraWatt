@@ -63,7 +63,7 @@ mod index;
 mod ip;
 mod items;
 mod joins;
-// WP-S4.01 part 1: the layout's pure geometry (D5), the compatibility table and the pose validator
+// The layout's pure geometry (D5), the compatibility table and the pose validator
 pub mod layout;
 mod links;
 mod memo_keys;
@@ -80,7 +80,7 @@ mod potentials;
 mod profile;
 mod q;
 mod query;
-// WP-S2.19 (ID-1498): the schematic router's page model, the layout measures and the router core (the search and the
+// The schematic router's page model, the layout measures and the router core (the search and the
 // page solve).
 pub mod routing;
 mod settings;
@@ -109,14 +109,14 @@ pub use channel_index::{ChannelKeyed, ChannelsByCp, ChannelsByModule, ModuleChan
 pub use cp_point::{cp_cell, cp_end, cp_point, rep_cp_end};
 pub use cps::{Cp, FunctionCps};
 pub use drawn_path::{dir_vertical, drawn_path, on_segment, oriented_dir, stored_path};
-// WP-S1.07 part 2: the derived-index families of the connectivity (ARCH §6.3 rule 5) and the interruption-point
+// The derived-index families of the connectivity (ARCH §6.3 rule 5) and the interruption-point
 // pairing split out of the stitch graph.
 pub use index::{
     BondIndex, BondRec, BondVias, DefPoints, DefPointsV, Index, IpFunctions, Link, PageIds, PagelessLinks,
     PagelessLinksV, RailTerminals,
 };
 pub use ip::{IpFnInfo, IpInfoOf, IpNotes, IpPairing, IpPairingQ};
-// WP-S2.04 part 4a: page items and structure boxes, derived (§10.2).
+// Page items and structure boxes, derived (§10.2).
 pub use items::{
     BINDABLE, GroupMarker, IpStructure, MarkerMode, RepStructureBox, bound_text, box_caption, colour_text,
     connection_marker, csa_text, effective_marker_text, explicit_marker_text, free_text, group_marker,
@@ -132,9 +132,9 @@ pub use memo_keys::{MemoInput, PartKey};
 pub use memo_store::MemoStore;
 // The memo engine types a session configures and reads (oracle mode, statistics, memo counts).
 pub use ew_memo::{Counters, FamilyMemory, Mismatch, Oracle, Stats};
-// WP-S1.16 D3: the carrier of a 0 V–PE bond (EW-POT-001's quick fix).
+// The carrier of a 0 V–PE bond (EW-POT-001's quick fix).
 pub use bond_carrier::{BondCarrierQ, Carrier};
-// WP-S1.21 D11: the bus model's derived data.
+// The bus model's derived data.
 pub use bus::{
     BusSegment, BusSegments, NetMaster, NetMembers, NetMembersOf, SegmentMember, bus_address_text,
     bus_termination_text, external_partner_text, potential_member_count,
@@ -218,13 +218,13 @@ pub use wire_props::{
 };
 pub use wires::{EndKind, PhysicalWire, PhysicalWires, PhysicalWiresOf, WireEnd};
 
-// WP-S3.03: the report-pages provider hook of `page_order` and the drawn-page order.
+// The report-pages provider hook of `page_order` and the drawn-page order.
 pub use pages::{DrawnPageOrder, ReportPagesProvider};
 
 // Cycle-7 review: the constituent behind each level-7 wire value.
 pub use wires::OverrideSources;
 
-// WP-S1.08: cross-references (relations, formats, texts) and the format token engine.
+// Cross-references (relations, formats, texts) and the format token engine.
 pub use xref::{
     SamePage, StructureRule, TargetRole, XrefKind, XrefLink, XrefRelation, XrefRelationOf, XrefSettings,
     XrefSettingsOf, XrefTarget, XrefText, XrefTextOf,
@@ -242,7 +242,7 @@ pub use ew_model::Rev;
 pub use {ew_ids, ew_mltext, ew_schema, ew_units};
 
 // The PLC address types of `ChannelAddr` and `AddressUse` and the address profiles, for the PLC rules of `ew-checks`
-// and the PLC commands (WP-S1.21 part 3).
+// and the PLC commands.
 pub use ew_plcaddr;
 
 // The reference-designation types of `ResolvedStructure` (`Aspect`, `RdsSyntax`), for the crates that render a
@@ -375,7 +375,7 @@ mod tests {
         assert_eq!(policy("numbering_settings"), Some(Policy::Cold));
         assert_eq!(policy("toc_rows"), Some(Policy::Memo));
         assert_eq!(policy("title_block"), Some(Policy::Memo));
-        // WP-S1.07: the connectivity rows of ARCH §6.4; `wire_props(conn)` is a cold lookup (§6.3).
+        // The connectivity rows of ARCH §6.4; `wire_props(conn)` is a cold lookup (§6.3).
         for memo in [
             "page_local_nets",
             "stitch_graph",
@@ -397,7 +397,7 @@ mod tests {
         assert_eq!(policy("wire_props"), Some(Policy::Cold));
         // ID-221 (ADR-0002 amendment 4): `potential_flow(potential)` is a cold lookup into the memoised BFS.
         assert_eq!(policy("potential_flow"), Some(Policy::Cold));
-        // WP-S1.08: `xref_text(rep)` is Memo (ARCH §6.4); the format and the relation are cold lookups.
+        // `xref_text(rep)` is Memo (ARCH §6.4); the format and the relation are cold lookups.
         assert_eq!(policy("xref_text"), Some(Policy::Memo));
         assert_eq!(policy("xref_relation"), Some(Policy::Cold));
         assert_eq!(policy("xref_format"), Some(Policy::Cold));

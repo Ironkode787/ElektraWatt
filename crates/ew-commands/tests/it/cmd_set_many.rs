@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `fields.set_many` (WP-S2.05 part 2, acceptance check FR1): every rejection at its pointer, the equivalence with a
+//! `fields.set_many` (acceptance check FR1): every rejection at its pointer, the equivalence with a
 //! sequence of `fields.set` on the same records, one undo step, and the bulk cost above 500 targets.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]

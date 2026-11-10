@@ -239,7 +239,7 @@ fn an_xinclude_is_reported_and_never_followed() {
     );
 }
 
-/// FT-1508: a placed thumbnail element is dropped by design with its reason in words, no plan reference.
+/// A placed thumbnail element is dropped by design with its reason in words, no plan reference.
 #[test]
 fn a_thumbnail_element_is_dropped_in_words() {
     let xml = r#"<project version="0.100.0">

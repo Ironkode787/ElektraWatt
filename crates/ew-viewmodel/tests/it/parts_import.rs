@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-410: File, Import, Parts table… as the headless action `parts.import`: the golden parts table into a new
+//! File, Import, Parts table… as the headless action `parts.import`: the golden parts table into a new
 //! project through the inline preview card (29 created, none skipped; a second import skips all 29), the picker
 //! listing the parts in part-number order, a transcript that is byte-identical across runs and has no UUID, the
 //! disabled menu item without a project, a refused table with its pointer and no card, and the recorded command.
@@ -104,13 +104,13 @@ fn the_golden_parts_table_imports_through_the_card_once() {
     assert_eq!(card["command"], "parts.import");
     assert_eq!(card["origin"], "import");
     assert_eq!(card["state"], "ready");
-    // FT-759: the preview says what it imports in words, not "29 records".
+    // The preview says what it imports in words, not "29 records".
     let summary = shell.preview_summary().expect("a summary");
     assert_eq!(summary, "29 new parts \u{b7} 0 already in the project");
     // The card is the import's own: Apply and Cancel need neither the grid nor the find pane.
     done(&mut shell, "preview.apply", json!({}));
     assert!(shell.can_undo(), "one undo step");
-    // FT-719: the applied import is a toast, not a banner over the tab title.
+    // The applied import is a toast, not a banner over the tab title.
     assert_eq!(shell.banner(), None);
     assert_eq!(
         common::state(&shell)["toast"]["text"],
@@ -162,8 +162,8 @@ fn the_picker_lists_the_imported_parts_under_their_manufacturer_in_part_number_o
     done(&mut shell, "preview.apply", json!({}));
     done(&mut shell, "tool.place", json!({}));
     let picker = shell.picker().expect("the picker is open");
-    // FT-425 (WP-S2.17 part 4, CP5): grouped by manufacturer, in part-number order within one (FT-439), the project's
-    // own parts before the libraries' (FT-1375, ID-1391).
+    // FT-425 (CP5): grouped by manufacturer, in part-number order within one, the project's
+    // own parts before the libraries'.
     let rows: Vec<(usize, &str, &str, bool)> = picker
         .rows
         .iter()
@@ -189,8 +189,8 @@ fn the_picker_lists_the_imported_parts_under_their_manufacturer_in_part_number_o
         keys, sorted,
         "the project's first, then manufacturer, then part-number order"
     );
-    // A header stands above the first part row of each manufacturer within its group and above no other row; FT-1513
-    // (ID-1456): the group's heading in words above the group's first part row.
+    // A header stands above the first part row of each manufacturer within its group and above no other row; FT-1513:
+    // the group's heading in words above the group's first part row.
     for (k, (i, m, _, l)) in rows.iter().enumerate() {
         let starts = k == 0 || rows[k - 1].3 != *l;
         let first = starts || rows[k - 1].1 != *m;
@@ -279,7 +279,7 @@ fn a_bad_table_is_refused_with_its_pointer_and_opens_no_card() {
     let tmp = Tmp::new("parts-bad");
     let table = tmp.0.join("tables");
     std::fs::create_dir_all(&table).unwrap();
-    // FT-649: a table without a header row cannot be mapped.
+    // A table without a header row cannot be mapped.
     std::fs::write(table.join("parts.csv"), "\n\n").unwrap();
     let mut shell = headless(&tmp);
     new_project(&mut shell, &tmp.0.join("proj.ew"));
@@ -328,7 +328,7 @@ fn mapping_lines(shell: &ShellModel) -> Vec<String> {
     out
 }
 
-/// FT-649: a table with other headers opens the mapping step (no member pre-filled, Import refused with the
+/// A table with other headers opens the mapping step (no member pre-filled, Import refused with the
 /// importer's message); mapped, it imports through the card and the parts are in the project; the map is saved for
 /// the source key and fills the next import of the same source.
 #[test]
@@ -474,7 +474,7 @@ fn a_supplier_list_imports_after_mapping_and_its_map_is_saved() {
         ],
         "{lines:?}"
     );
-    // FT-719: the same table again holds no new parts: one toast says so, with no banner and no card.
+    // The same table again holds no new parts: one toast says so, with no banner and no card.
     done(&mut shell, "parts.map_import", json!({}));
     assert_eq!(shell.banner(), None);
     assert!(shell.properties().card().is_none());
@@ -501,7 +501,7 @@ fn a_supplier_list_imports_after_mapping_and_its_map_is_saved() {
     shell.shutdown();
 }
 
-/// FT-649: a required member left unmapped refuses the import with the importer's message, and nothing is imported.
+/// A required member left unmapped refuses the import with the importer's message, and nothing is imported.
 #[test]
 fn an_unmapped_part_number_refuses_with_the_importers_message() {
     let tmp = Tmp::new("parts-map-required");

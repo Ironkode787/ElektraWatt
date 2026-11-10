@@ -10,7 +10,7 @@
 //!
 //! # The main part
 //!
-//! The part a device's slots print is its main part ([`main_part`], WP-S1.19 D8, FT-208): the first part use
+//! The part a device's slots print is its main part ([`main_part`]): the first part use
 //! whose copy's function template has a `main` function with the FnDef of the device's main function, else the
 //! first part use whose copy exists (doc 07 §3.3 step 6). A device with one part use (every printed device of the
 //! golden project) prints that part.
@@ -18,7 +18,7 @@
 //! # The manufacturer
 //!
 //! A part names its manufacturer by a `LibRef`, which resolves to the embedded manufacturer copy of `(library,
-//! item)` ([`manufacturer_name`], WP-S1.19 D10, FT-39). Files written before WP-S1.19 part 3 carry no
+//! item)` ([`manufacturer_name`]). Files written before WP-S1.19 part 3 carry no
 //! manufacturer copies; their references keep the name in the `key` member, which is the fallback.
 //!
 //! # Technical data
@@ -53,7 +53,7 @@ fn main_function_def(q: &Q, device: Id<Device>) -> Option<Id<FnDef>> {
         .map(|f| f.def)
 }
 
-/// The part a device's slots print (WP-S1.19 D8, FT-208): the first part use whose copy's template has a `main`
+/// The part a device's slots print: the first part use whose copy's template has a `main`
 /// function with the FnDef of the device's main function, else the first part use whose copy exists. The functions
 /// are read only when the device has more than one part use with a copy.
 pub fn main_part(q: &Q, device: Id<Device>) -> Option<Arc<LibCopy<Part>>> {
@@ -83,7 +83,7 @@ pub fn manufacturer_copy(q: &Q, m: &LibRef) -> Option<Arc<LibCopy<Manufacturer>>
     q.manufacturers().get(copy_of::<Manufacturer>(m)).cloned()
 }
 
-/// The printed name of a manufacturer reference (WP-S1.19 D10): the name of the embedded manufacturer copy it
+/// The printed name of a manufacturer reference: the name of the embedded manufacturer copy it
 /// resolves to (its neutral text, else its first language); without a copy, the `key` member a file written before
 /// WP-S1.19 part 3 keeps on the reference; else empty.
 pub fn manufacturer_name(q: &Q, m: &LibRef) -> String {
@@ -97,7 +97,7 @@ pub fn manufacturer_name(q: &Q, m: &LibRef) -> String {
         .to_owned()
 }
 
-/// The confidence of a part copy's data section `section` (FR-PRT-031, WP-S1.19 §8): the entry of
+/// The confidence of a part copy's data section `section` (FR-PRT-031): the entry of
 /// `meta.confidence` under `section`; for a dotted section (`sections.plc`) without an entry of its own, the entry of
 /// its first segment (`sections`); else `verified`, the confidence of data nobody marked.
 pub fn part_confidence(copy: &LibCopy<Part>, section: &str) -> Confidence {

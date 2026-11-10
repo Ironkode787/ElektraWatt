@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Moving representations in grid steps (WP-S2.04 §7.3, D13, §6.7): the steps of a drag or of the keyboard move,
+//! Moving representations in grid steps (D13, §6.7): the steps of a drag or of the keyboard move,
 //! the overlay (the ghost of the moved entities' rectangles, the rubber bands of their connections and the
 //! readout) and the command, `rep.move` with `steps`. Shared by Select's drag rows and its keyboard move (M).
 //!
@@ -126,7 +126,7 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
             style: Style::dashed(Token::RubberBand),
         });
     }
-    // The autoconnect proposals of the moved CPs (WP-S2.04 §8.3): shown, never committed by a move.
+    // The autoconnect proposals of the moved CPs: shown, never committed by a move.
     let found = move_proposals(cx, moved, steps);
     for p in &found.list {
         if let super::autoconnect::ProposalTarget::Cp { at, .. } = &p.target {
@@ -162,8 +162,8 @@ pub fn grid_point_of(grid: (i64, i64), v: i64) -> i64 {
     clamp64(p)
 }
 
-/// The autoconnect proposals of the free CPs of `moved` displaced by `steps` (WP-S2.04 §8.3): the CP proposals a move
-/// shows and, with connect on move, commits (WP-S2.19 D15); a split is none.
+/// The autoconnect proposals of the free CPs of `moved` displaced by `steps`: the CP proposals a move
+/// shows and, with connect on move, commits; a split is none.
 pub fn move_proposals(
     cx: &ToolCx<'_>,
     moved: &[EntityRef],
@@ -187,7 +187,7 @@ pub fn move_proposals(
     found
 }
 
-/// `geometry::follow_ends` of `ew-commands` on a page polyline (FT-423): end `a` moves by `da`, end `b` by `db`
+/// `geometry::follow_ends` of `ew-commands` on a page polyline: end `a` moves by `da`, end `b` by `db`
 /// (equal displacements translate); the far end never moves; a segment that keeps its axis stays, an interior
 /// neighbour whose other segment is perpendicular follows on the moved axis, else a dog-leg at the grid coordinate
 /// nearest the middle keeps both segments' axes. `snap` maps a page coordinate to the nearest grid coordinate. The
@@ -247,7 +247,7 @@ fn follow_start(r: &mut Vec<(i64, i64)>, snap: &dyn Fn(i64) -> i64, d: (i64, i64
     }
 }
 
-/// The command a move of `moved` by `steps` commits on release (WP-S2.19 D14, D15): [`move_command`] with `routes`,
+/// The command a move of `moved` by `steps` commits on release: [`move_command`] with `routes`,
 /// the connections [`resolved_routes`] routes again, and with `connect` the autoconnect proposals of the moved CPs as
 /// `connect` hints, so the move, its re-solved routes and its new wires are one undo step.
 pub fn release_command(
@@ -286,7 +286,7 @@ pub fn release_command(
     cmd
 }
 
-/// The re-solved routes of a move of `moved` by `steps` (WP-S2.19 D14), as `rep.move`'s `routes` entries. On the page
+/// The re-solved routes of a move of `moved` by `steps`, as `rep.move`'s `routes` entries. On the page
 /// geometry with the move applied (the moved representations' bodies, CPs and texts displaced as `rep.move` displaces
 /// them; each connection with a moved end drawn along its rubber band), every such connection that is unrouted,
 /// breaks a hard rule there or has more bends than before is routed again (`route_page`, the other connections fixed);

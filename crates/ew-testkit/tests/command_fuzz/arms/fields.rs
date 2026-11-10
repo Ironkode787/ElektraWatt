@@ -125,7 +125,7 @@ pub(super) fn fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             )
         }
         // The assembly aspect: the configs; covers within the subtree are accepted, a cover outside it that
-        // the config did not hold before is refused (decision log ID-371).
+        // the config did not hold before is refused.
         17 => {
             let a = rng.pick(&live.assemblies)?;
             let outside: Vec<&Value> = live
@@ -220,12 +220,11 @@ pub(super) fn fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
-// WP-S2.05 part 3
 /// `edit.paste`: a fragment of one new device with its main function drawn by an embedded symbol on a page that takes
 /// it, pasted at a grid point of that page (the copies are held, so nothing is embedded), with a free-text page item
 /// on the source page; refused: no record, another grid, a point off the grid, a record of a kind that is not pasted,
 /// a representation whose function is not in the fragment (a mandatory reference), and an `adapt` that names no held
-/// copy of another version or names one twice (WP-S2.07 D22). The boundary case pastes a wire marker that names a
+/// copy of another version or names one twice. The boundary case pastes a wire marker that names a
 /// connection outside the fragment: the marker is left out, the paste succeeds.
 pub(super) fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let pages = pages_taking_reps(live);
@@ -311,7 +310,7 @@ pub(super) fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 ]),
             )
         }
-        // WP-S2.07 D22: `adapt` naming no copy of the fragment that the project holds in another version, or one
+        // `adapt` naming no copy of the fragment that the project holds in another version, or one
         // listed twice, is refused at `/adapt/<i>`.
         6 => {
             let copy = rng.uuid();
@@ -336,7 +335,6 @@ pub(super) fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
-// WP-S2.07 part 4a
 /// `fields.set` with `copies` (D16): a connection's wire part set to a part of another library carried in the command
 /// (embedded in the same transaction); refused: the copy listed twice, and a part neither held nor carried.
 pub(super) fn fields_set_copies(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -372,12 +370,11 @@ pub(super) fn fields_set_copies(live: &Live, rng: &mut SplitMix64) -> Option<Ste
     }
 }
 
-// WP-S2.05 part 2
 /// `fields.set_many`: one function text per device (distinct devices, one entry each), checked afterwards; refused: no
 /// entry, a (target, path) pair in two entries, and an entry `fields.set` would refuse (a path that is not settable).
 pub(super) fn fields_set_many(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let entry = |device: &Value, value: &str| json!({"kind": "device", "targets": [device], "path": "function_text", "value": value});
-    // WP-S2.07 part 4a (D16): the command's `copies` embed; an entry's own `copies` are refused.
+    // The command's `copies` embed; an entry's own `copies` are refused.
     if rng.chance(9) {
         let (_, template) = rng.pick(&live.fixture.part_json)?;
         let c = relineaged(template, &rng.uuid(), &rng.uuid())?;

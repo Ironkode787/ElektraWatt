@@ -104,7 +104,7 @@ fn a_representation_on_an_unknown_page_is_dropped() {
     assert!(representations(&b).is_empty());
 }
 
-/// The typed revisions (FT-165): a row that would break a revision invariant is dropped with one error each
+/// The typed revisions: a row that would break a revision invariant is dropped with one error each
 /// (a second open revision, EW-INV-016; the author as checker, EW-INV-018; a page listed twice, EW-INV-019),
 /// so the batch always loads as a model.
 #[test]
@@ -299,7 +299,7 @@ fn a_terminal_key_must_name_strip_and_designation() {
     let _: Option<Device> = None;
 }
 
-/// FT-1323: the `slot_pos` column moves a text slot of the symbol, in symbol coordinates in QET px; a slot the
+/// The `slot_pos` column moves a text slot of the symbol, in symbol coordinates in QET px; a slot the
 /// symbol does not have, a slot moved twice and an item that is not `<slot> <x> <y>` drop the row, each with its
 /// whole reason.
 #[test]
@@ -734,7 +734,7 @@ fn a_device_parent_cycle_is_dropped_with_its_children() {
     expect_error(&b, 2, "devices.csv", "-1F1", "parent chain is a cycle");
     expect_error(&b, 2, "devices.csv", "-1F2", "parent chain is a cycle");
     expect_error(&b, 3, "devices.csv", "-1F3", "was dropped");
-    // FT-1508: the case in words, no invariant code.
+    // The case in words, no invariant code.
     let cycle: Vec<_> = errors(&b, 2).iter().map(|e| e.message.as_str()).collect();
     assert_eq!(cycle, ["row dropped: parent chain is a cycle (devices)"; 2]);
     assert_eq!(devices(&b), 1);

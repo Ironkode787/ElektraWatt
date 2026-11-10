@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property grid below the shell (WP-S2.05 part 1, acceptance checks PG1, PG2 and the `ew-api` half of PG8): the
+//! The property grid below the shell (acceptance checks PG1, PG2 and the `ew-api` half of PG8): the
 //! field catalogue against `tests/expected/field_catalogue.txt`, the routes, the property sheet of Golden A's records
 //! with its derived rows and chips, and the editors' parse and display rules on the project's data.
 //!
 //! A stale expected catalogue fails the test, which writes the catalogue as built to `field_catalogue.txt` in a new
-//! folder under `target/tmp` (`CARGO_TARGET_TMPDIR`, created when missing, FT-627; the failure names the path): review
+//! folder under `target/tmp` (`CARGO_TARGET_TMPDIR`, created when missing, the failure names the path): review
 //! the difference and copy it over; a missing one is written. The reviewer reads its settable paths that fall back to `json`.
 
 use crate::golden_common;
@@ -85,7 +85,7 @@ fn pg1_the_catalogue_is_the_expected_one() {
         .unwrap_or_default()
         .replace("\r\n", "\n");
     if expected != text {
-        // FT-627: `target/tmp` can be missing on a fresh runner (a nextest archive run); `fresh_dir_in` creates it.
+        // `target/tmp` can be missing on a fresh runner (a nextest archive run); `fresh_dir_in` creates it.
         static COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
         let dir = ew_testdir::fresh_dir_in(
             Path::new(env!("CARGO_TARGET_TMPDIR")),
@@ -206,7 +206,7 @@ fn pg1_the_json_fallbacks_of_settable_paths_are_the_listed_ones() {
         "project settings.numbering",
         "project settings.size_profile",
         "project settings.xref_format",
-        // WP-S1.21 D11: the master of a logical net is an endpoint (a port's CP or an external interruption point).
+        // The master of a logical net is an endpoint (a port's CP or an external interruption point).
         "logical_net master",
         "section folio_range",
         "page scale",
@@ -216,14 +216,14 @@ fn pg1_the_json_fallbacks_of_settable_paths_are_the_listed_ones() {
         "device plc_module.start.output",
         "device tag.scheme",
         "device tech_data[].value",
-        // WP-S1.21 D11: a bus address is `tbd`, `not_applicable` or a value typed per bus system.
+        // A bus address is `tbd`, `not_applicable` or a value typed per bus system.
         "function bus_port.address",
         "representation text_slots[].pos",
         "connection kind",
         "connection number",
-        // WP-S1.21 part 1: an address is a word or a text of the station's profile (fields.set reads either).
+        // An address is a word or a text of the station's profile (fields.set reads either).
         "channel address",
-        // WP-S2.04 part 4a: the positions and the nested shape members (cut at the walker's depth) of the two kinds.
+        // The positions and the nested shape members (cut at the walker's depth) of the two kinds.
         "page_item kind.graphic.shape.line.a",
         "page_item kind.graphic.shape.line.b",
         "page_item kind.graphic.shape.polyline.points",
@@ -359,7 +359,7 @@ fn pg2_a_representation_reaches_three_sections_with_derived_rows() {
         "{:?}",
         tag.provenance
     );
-    // One device's Tag field is typed into (WP-S2.18 D3, FT-628).
+    // One device's Tag field is typed into.
     assert_eq!(tag.actions, [RowAction::Edit, RowAction::Freeze]);
     let part = row(&sheet, "device/parts[0].part");
     assert!(
@@ -461,7 +461,7 @@ fn pg2_mixed_and_missing_selections() {
     let sheet = s.property_sheet(&[main_rep(&s, f2), rep]);
     assert_eq!(sheet.sections[0].kind, "device");
     assert_eq!(sheet.sections[0].targets.len(), 2);
-    // In label order (FT-439), whatever order the selection named them in.
+    // In label order, whatever order the selection named them in.
     assert_eq!(sheet.sections[0].targets, [f1, f2]);
     assert_eq!(
         s.property_sheet(&[rep, main_rep(&s, f2)]).sections[0].targets,
@@ -477,7 +477,7 @@ fn pg2_mixed_and_missing_selections() {
     assert_eq!(sheet.header.title, "2 devices");
 }
 
-/// FT-1127 (ID-1229 item 5): an interruption point's Properties header names its kind in the navigators' words, not
+/// FT-1127 (item 5): an interruption point's Properties header names its kind in the navigators' words, not
 /// the raw kind word "representation".
 #[test]
 fn ft1127_an_interruption_points_header_names_its_kind_in_words() {
@@ -493,7 +493,7 @@ fn ft1127_an_interruption_points_header_names_its_kind_in_words() {
     assert_eq!(sheet.header.kinds, [("representation".to_owned(), 1)]);
 }
 
-/// FT-439 (decision log ID-640): a section lists its targets in label order (devices by tag, representations by their
+/// A section lists its targets in label order (devices by tag, representations by their
 /// first CP's label, then place), never by ID alone, and a `‹varies›` value lists its texts in natural text order.
 #[test]
 fn ft439_targets_and_varied_texts_are_in_label_order() {
@@ -770,7 +770,7 @@ fn the_command_meta_and_the_reference_resolver() {
     assert!(err.contains("a reference is a tag"), "{err}");
 }
 
-/// FT-544: a bare tag resolves like `tag:<tag>` when one device prints it, a terminal as `TAG:pin` included; an
+/// A bare tag resolves like `tag:<tag>` when one device prints it, a terminal as `TAG:pin` included; an
 /// ambiguous one is refused with a sentence naming the candidates, never guessed.
 #[test]
 fn ft544_a_bare_tag_is_a_reference() {
@@ -808,7 +808,7 @@ fn ft544_a_bare_tag_is_a_reference() {
     assert_eq!(err.matches("=P01+J-E-2416-K9 as `id:").count(), 2, "{err}");
 }
 
-/// FT-450: the page item and structure box placement members read their narrowing reasons (a page item's kind and a
+/// The page item and structure box placement members read their narrowing reasons (a page item's kind and a
 /// marker's wires are replaced, not changed in place; an item stays on its page), while the settable members of a
 /// kind keep their `fields.set` route.
 #[test]
@@ -1013,7 +1013,7 @@ fn page_item_property_sheet_multi_selection_keeps_members_and_missing_counts() {
     assert_eq!(one(row(&sheet, "page_item/kind.free_text.text")), "40x60");
 }
 
-/// FT-670: a templated function's `template_entry` row is read-only, labelled "Part function" (its label key), its
+/// A templated function's `template_entry` row is read-only, labelled "Part function" (its label key), its
 /// value the entry's function and designations as the part names them, never the integer; a function without the
 /// member (every one of Golden A) has no such row.
 #[test]
@@ -1094,7 +1094,7 @@ fn ft670_a_templated_function_shows_its_part_function() {
     );
 }
 
-/// FT-1076 (ID-1182): an external interruption point's External row reads as the IP tool prints the reference,
+/// An external interruption point's External row reads as the IP tool prints the reference,
 /// `<device>:<connection>`, not the record kind's internal name; a reference without a connection reads its device
 /// alone.
 #[test]
@@ -1177,7 +1177,7 @@ fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
         .map(|r| r.key.as_str())
         .collect();
     assert!(!keys.contains(&"connection/kind"), "{keys:?}");
-    // FT-1319 (ID-1357 ruling 2): the fluid rows only, none of a wire's, under the line's kind in words.
+    // The fluid rows only, none of a wire's, under the line's kind in words.
     assert_eq!(
         keys,
         [

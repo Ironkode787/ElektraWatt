@@ -32,7 +32,7 @@ fn modes(m: Modes) -> Vec<&'static str> {
 
 /// The catalogue text: two-space indentation, keys sorted, LF and a final newline. It lists the registered rules and
 /// the integrity rules of opening a project ([`INTEGRITY`]), which reach the Messages pane too, once each in rule-ID order, so
-/// that docs-gen writes the page every rule's `docs` names (WP-S7.05 D6; decision log ID-1376).
+/// that docs-gen writes the page every rule's `docs` names.
 fn generated() -> String {
     let mut metas: Vec<&RuleMeta> = rules().iter().map(|r| r.meta()).chain(INTEGRITY).collect();
     metas.sort_by_key(|m| m.id);
@@ -65,13 +65,13 @@ fn generated() -> String {
                 "release": m.release.name(),
                 "waivable": m.waivable(),
                 "schemes": schemes,
-                // WP-S3.06 D8 and the orchestrator's ruling 6 (cycle 42): "`\"open_item\": null` or
+                // WP-S3.06 D8 and the orchestrator's ruling 6: "`\"open_item\": null` or
                 // `{\"category\": \"<words>\", \"discriminator\": \"<d>\" | null}` from `OPEN_ITEM_RULES`".
                 "open_item": OPEN_ITEM_RULES.iter().find(|o| o.rule == m.id).map(|o| json!({
                     "category": o.category,
                     "discriminator": o.discriminator,
                 })),
-                // WP-S7.05 D4, D6: the rule's page reference and the en-GB hint, for the rule's page of the guide.
+                // The rule's page reference and the en-GB hint, for the rule's page of the guide.
                 "docs": m.docs,
                 // An integrity finding carries the reader's own text and has no Fluent message: its hint is empty.
                 "hint": ew_checks::messages::hint(m.id, ew_checks::messages::DEFAULT_LANGUAGE)
@@ -98,7 +98,7 @@ fn the_catalogue_is_written_where_the_reference_is_asked_for() {
     std::fs::write(dir.join("rules.json"), generated()).expect("write the catalogue");
 }
 
-/// OI-4 (WP-S3.06 D8): the catalogue's `open_item` marks exactly the open-item rules, each with its category,
+/// OI-4: the catalogue's `open_item` marks exactly the open-item rules, each with its category,
 /// and EW-BUS-001 with the discriminator `address`.
 #[test]
 fn the_catalogue_marks_exactly_the_open_item_rules() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `gen-icons`: the icon table of `ew-ui` (WP-S2.17 part 6, D9; doc 16a §4.11).
+//! `gen-icons`: the icon table of `ew-ui` (doc 16a §4.11).
 //!
 //! Reads the vendored Tabler Icons outline SVGs (`assets/icons/tabler/`, MIT) and the project's own glyphs
 //! (`assets/icons/ew/`, GPL-3.0-or-later, keyed `ew-<stem>`), parses every `d` attribute with

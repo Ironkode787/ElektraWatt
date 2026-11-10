@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas model (WP-S2.02 part 1, spec section 6.1): what the page canvas shows, in plain Rust, so that the
+//! The canvas model (spec section 6.1): what the page canvas shows, in plain Rust, so that the
 //! window and the headless mode zoom, pan and point through the same `ShellModel::dispatch`.
 //!
 //! **Coordinates.** Sheet nanometres, origin top-left, y down. The zoom is a factor of paper size: at 100 % one
 //! millimetre of paper is 96/25.4 physical pixels times the operating system's scale factor (the CSS convention),
 //! so a page keeps its physical size across monitors (doc 16 section 17 item 7). The UI scale enlarges the chrome
-//! and never the page (decision log ID-521, FT-349): the pane and the pan deltas are in the window's logical points,
+//! and never the page: the pane and the pan deltas are in the window's logical points,
 //! which include the UI scale, so the display resolution is `D = zoom × 96 × ppp / ui_scale` and one paper
 //! millimetre at 100 % is `96 / 25.4 / ui_scale` logical points. The headless mode's UI scale is always 1.
 //!
@@ -20,7 +20,7 @@
 //! spare on each side, centred. Until the host first sizes the pane the view stays fitted, so that first layout fits
 //! again (it comes after the page was opened); after it a resize ([`CanvasModel::relayout`]: a dock opened, closed or
 //! dragged) fits a view that is still fitted and untouched again, and keeps the centre and the zoom of a view the user
-//! zoomed or panned (FX38d, FT-769).
+//! zoomed or panned (FX38d).
 //!
 //! **Zoom about an anchor** `a`: `centre' = a − (a − centre) × zoom / zoom'`, each axis rounded toward zero to whole
 //! nanometres, then clamped to the sheet: the anchor keeps its screen position to within 1 nm while the clamp is
@@ -45,7 +45,7 @@ pub mod chip;
 pub use chip::{ChipPlacement, place_chip};
 
 /// A page of the page order by its stable identity (`PageRow::id`), held as the page's own PDF destination
-/// (`Destination::Page`, `ew:p:<uuid>`): a renumber that changes folios keeps it (WP-S2.03 §6.2).
+/// (`Destination::Page`, `ew:p:<uuid>`): a renumber that changes folios keeps it.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct PageId(pub Destination);
 
@@ -68,7 +68,7 @@ impl PageId {
     }
 }
 
-/// A cross-reference link of a page (WP-S2.03 §6.4): its destination, the sheet rectangle it is followed over
+/// A cross-reference link of a page: its destination, the sheet rectangle it is followed over
 /// (`DisplayList::link_sources`), its resolved target (`None`: another project) and its index in paint order.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PageLink {
@@ -91,7 +91,7 @@ impl PageLink {
     }
 }
 
-/// The reading order of a page's links and connection points (WP-S2.03 §6.4): by the cell of a point (column, then
+/// The reading order of a page's links and connection points: by the cell of a point (column, then
 /// row, by their indices; no cell last), then by `(y, x)`.
 pub fn reading_key(cells: Option<&PageCells>, p: (i64, i64)) -> (u32, u32, i64, i64) {
     let (c, r) = cells
@@ -188,13 +188,13 @@ impl GridMap {
     }
 }
 
-/// How far the grid cursor stays inside the pane before the view pans, as a share of each side (WP-S2.03 §6.6).
+/// How far the grid cursor stays inside the pane before the view pans, as a share of each side.
 pub const AUTO_PAN_INSET: f64 = 0.1;
 
 /// Grid steps of a Shift+Arrow cursor move on a page without cells.
 pub const CELL_STEP_FALLBACK: i64 = 10;
 
-/// The remembered view of a page in a tab (WP-S2.03 §6.2): a fitted view refits to the pane when restored.
+/// The remembered view of a page in a tab: a fitted view refits to the pane when restored.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Viewport {
     /// The sheet point at the pane's centre.
@@ -203,7 +203,7 @@ pub struct Viewport {
     pub zoom: f64,
     /// Whether the view is the fit of the page.
     pub fitted: bool,
-    /// Whether a fitted view is the page's first view (FT-1443), which fits again as one, not as Fit page.
+    /// Whether a fitted view is the page's first view, which fits again as one, not as Fit page.
     pub first: bool,
 }
 
@@ -328,7 +328,7 @@ pub fn round_tenth(v: f64) -> f64 {
     (v * 10.0).round() / 10.0
 }
 
-/// Where the canvas draws: the host's fact, not a user action (WP-S2.02 section 7.2).
+/// Where the canvas draws: the host's fact, not a user action (section 7.2).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub enum CanvasBackend {
     /// The CPU tile path (headless, kittest, the fallback).
@@ -371,7 +371,7 @@ pub struct CanvasPage {
     pub entities: Vec<(EntityRef, Rect)>,
     /// The page's connection grid with its page-to-sheet map.
     pub grid: Option<PageGrid>,
-    /// The page's cross-reference links in reading order, with their resolved targets (WP-S2.03 §6.4).
+    /// The page's cross-reference links in reading order, with their resolved targets.
     pub links: Vec<PageLink>,
     /// The page's frame cells (`Session::page_cells`); `None` for a page without a frame grid.
     pub cells: Option<PageCells>,
@@ -466,7 +466,7 @@ impl CanvasPage {
         cells.cell_at(p).map(|c| cells.text(&c))
     }
 
-    /// The conflict overlay's polylines on this page, in sheet coordinates (FT-675, FT-696; WP-S2.11 D9): the wires
+    /// The conflict overlay's polylines on this page, in sheet coordinates: the wires
     /// among `members` (connection IDs, sorted), and for each connection point of `cps` (function, CP index; sorted)
     /// the wires that end at it, in the page's connection order; a named point with none is a ring around it, a closed
     /// polyline one grid step across, so the overlay draws it with its pen and colour.
@@ -513,7 +513,7 @@ impl CanvasPage {
     }
 }
 
-/// The segments of the conflict overlay's ring around a connection point without connections (FT-696).
+/// The segments of the conflict overlay's ring around a connection point without connections.
 const CONFLICT_RING_SEGMENTS: u32 = 24;
 
 /// The view of the page on show.
@@ -528,19 +528,19 @@ pub struct CanvasModel {
     hover: Option<(EntityRef, Rect)>,
     fitted: bool,
     ui_scale: f64,
-    /// The keyboard grid cursor, a sheet point (WP-S2.03 §6.6).
+    /// The keyboard grid cursor, a sheet point.
     cursor: Option<(i64, i64)>,
     /// The index into the page's links of the link under the pointer.
     hover_link: Option<usize>,
     /// Logical points at the pane's bottom that a fit keeps clear (the tool HUD's band, doc 16a §5.5; 0 headless).
     fit_inset: f64,
-    /// The point a jump arrived at and the jump's serial (FT-1435): the window marks it for a moment.
+    /// The point a jump arrived at and the jump's serial: the window marks it for a moment.
     arrival: Option<((i64, i64), u64)>,
-    /// Whether the view is a page's first view (FT-1443): while fitted it fits again as one, until Fit page.
+    /// Whether the view is a page's first view: while fitted it fits again as one, until Fit page.
     first: bool,
 }
 
-/// The serial of the next jump's arrival (FT-1435): a new jump to the same point is a new mark.
+/// The serial of the next jump's arrival: a new jump to the same point is a new mark.
 static ARRIVALS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 impl CanvasModel {
@@ -566,13 +566,13 @@ impl CanvasModel {
         m
     }
 
-    /// The point a jump arrived at and the jump's serial (FT-1435), which the window marks for a moment; `None` for
+    /// The point a jump arrived at and the jump's serial, which the window marks for a moment; `None` for
     /// a view no jump made.
     pub fn arrival(&self) -> Option<((i64, i64), u64)> {
         self.arrival
     }
 
-    /// The UI scale the pane's logical points include (1.0 headless; WP-S2.02 FT-349).
+    /// The UI scale the pane's logical points include (1.0 headless).
     pub fn ui_scale(&self) -> f64 {
         self.ui_scale
     }
@@ -711,7 +711,7 @@ impl CanvasModel {
         self.fit_page();
     }
 
-    /// Whether the view is a page's first view, untouched (FT-1443): fit-width where that is larger than Fit page,
+    /// Whether the view is a page's first view, untouched: fit-width where that is larger than Fit page,
     /// which fits again as one on a new pane.
     pub fn is_first_view(&self) -> bool {
         self.first && self.fitted
@@ -726,7 +726,7 @@ impl CanvasModel {
         }
     }
 
-    /// A page's first view (FT-1443, ID-1419): fit-width when that is larger than Fit page, the top of the sheet
+    /// A page's first view: fit-width when that is larger than Fit page, the top of the sheet
     /// [`FIT_MARGIN_PT`] below the pane's top and its middle at the pane's middle; else Fit page. Fit page stays one
     /// key away (`view.fit_page`).
     fn first_view(&mut self) {
@@ -858,7 +858,7 @@ impl CanvasModel {
     }
 
     // -------------------------------------------------------------------------------------------------------------
-    // Links, the grid cursor and the view of a jump (WP-S2.03 part 1)
+    // Links, the grid cursor and the view of a jump
 
     /// The link whose rectangle, inflated by [`HOVER_SLOP_PT`] at the current zoom, contains `p`: the smallest area
     /// wins, ties to the later in paint order. An index into the page's links.
@@ -875,7 +875,7 @@ impl CanvasModel {
     }
 
     /// The connection point under the pointer: the nearest within [`HOVER_SLOP_PT`] at the current zoom, as
-    /// [`CanvasModel::cursor_cp`] finds it at the grid cursor (FT-512: the window's CP tooltip names its label).
+    /// [`CanvasModel::cursor_cp`] finds it at the grid cursor (the window's CP tooltip names its label).
     pub fn hovered_cp(&self) -> Option<&PageCp> {
         let at = self.pointer?;
         self.page
@@ -889,7 +889,7 @@ impl CanvasModel {
         self.hovered_cp().map(|cp| cp_tip(&self.page, cp))
     }
 
-    /// The hover text of the fluid line under the pointer (WP-S1.20 D17, FT-1320; NFR-A11Y-03): its line kind in words,
+    /// The hover text of the fluid line under the pointer (NFR-A11Y-03): its line kind in words,
     /// as the property grid's header names it ("Pilot line"); `None` over anything else, an electrical wire included.
     pub fn hovered_line_tip(&self) -> Option<String> {
         let (entity, _) = self.hover?;
@@ -1037,8 +1037,8 @@ impl CanvasModel {
         probe.zoom
     }
 
-    /// The view of a jump to the sheet point `p` (WP-S2.03 §6.3): the zoom `max(previous, 2 × fit)` clamped, `p`
-    /// at the centre (clamped to the sheet). FT-1506 (ID-1456, doc 16a §5.5): the view stays on the sheet: where
+    /// The view of a jump to the sheet point `p`: the zoom `max(previous, 2 × fit)` clamped, `p`
+    /// at the centre (clamped to the sheet). FT-1506 (doc 16a §5.5): the view stays on the sheet: where
     /// centring `p` would show off-sheet space it stops at the sheet's edge and `p` stands off centre; along a side the
     /// sheet is smaller than the pane, the sheet is centred.
     pub fn jump_view(&mut self, p: (i64, i64), previous_zoom: f64) {
@@ -1063,7 +1063,7 @@ impl CanvasModel {
         self.update_hover();
     }
 
-    /// Marks `p` as where a jump arrived (FT-1435), with a new serial.
+    /// Marks `p` as where a jump arrived, with a new serial.
     pub fn mark_arrival(&mut self, p: (i64, i64)) {
         let serial = ARRIVALS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         self.arrival = Some((p, serial));
@@ -1264,14 +1264,14 @@ mod tests {
         })
     }
 
-    /// An A4 page in the headless pane at Fit page (its first view is fit-width, FT-1443).
+    /// An A4 page in the headless pane at Fit page (its first view is fit-width).
     fn model() -> CanvasModel {
         let mut m = CanvasModel::new(page(Vec::new()), HEADLESS_PANE, 1.0);
         m.fit();
         m
     }
 
-    /// FT-1443 (ID-1419): a page's first view is fit-width where that is larger than Fit page, the top of the sheet
+    /// A page's first view is fit-width where that is larger than Fit page, the top of the sheet
     /// 16 points below the pane's top; it fits again so on a new pane until Fit page, which stays one key away.
     #[test]
     fn a_pages_first_view_is_fit_width_with_its_top_in_view() {

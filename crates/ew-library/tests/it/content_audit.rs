@@ -20,7 +20,7 @@ fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-/// The licence a record of this kind ships under (doc 07 §3.8; WP-S7.03 D7 for the address profiles of `content/**`).
+/// The licence a record of this kind ships under (doc 07 §3.8; for the address profiles of `content/**`).
 fn kind_licence(kind: &str) -> &'static str {
     match kind {
         "part" | "manufacturer" => "CC0-1.0",
@@ -117,7 +117,7 @@ fn item_key(doc: &Value) -> String {
         .to_owned()
 }
 
-/// The map expressions and designation patterns of a part's PLC section that do not parse (WP-S7.03 D4), as
+/// The map expressions and designation patterns of a part's PLC section that do not parse, as
 /// `<member> = "<expr>" is no map expression: <reason>`.
 fn map_failures(doc: &Value) -> Vec<String> {
     let plc = &doc["sections"]["plc"];

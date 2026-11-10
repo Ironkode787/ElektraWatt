@@ -30,41 +30,34 @@ macro_rules! or_return {
 
 pub mod about;
 pub mod actions;
-// FT-422 (ID-630): the ID alias `@n`.
+// The ID alias `@n`.
 pub mod alias;
 pub mod area;
 pub mod canvas;
-// WP-S2.17 part 2
-pub mod command_bar;
-// WP-S2.05 part 3
 pub mod clipboard;
+pub mod command_bar;
 pub mod describe;
-// WP-S2.17 part 4: the dialog specifications.
+// The dialog specifications.
 pub mod dialogs;
-// WP-S2.05 part 2
 pub mod find;
 pub mod first_run;
 // WP-S2.08 part 1 (D5 (b)): the glossary file, the palette's aliases.
 pub mod glossary;
 pub mod help;
-// WP-S2.06 part 2
 pub mod highlight;
 pub mod history;
-// WP-S2.09 part 1: the jobs (the PDF export) and the notifications.
+// The jobs (the PDF export) and the notifications.
 pub mod jobs;
-// WP-S2.08 part 2: the keymap files, the presets, the conflict rules and the editor's rows.
+// The keymap files, the presets, the conflict rules and the editor's rows.
 pub mod keymap;
 pub mod layout;
 pub mod navigator;
-// WP-S2.06 part 1
 pub mod navigators;
 pub mod notifications;
-// WP-S2.08 part 1: the palette's ranking, recents, prefixes and parameter forms.
+// The palette's ranking, recents, prefixes and parameter forms.
 pub mod palette;
-// WP-S2.09 part 3
 pub mod preview;
 pub mod properties;
-// WP-S2.17 part 3
 pub mod rail;
 pub mod script;
 pub mod settings;
@@ -72,10 +65,8 @@ pub mod shell;
 pub mod status;
 pub mod strings;
 pub mod tools;
-// WP-S2.09 part 3
 pub mod undo_history;
 pub mod window;
-// WP-S2.08 part 6 (D18)
 pub mod wire_colours;
 pub mod wizard;
 mod wizard_data;

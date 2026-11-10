@@ -1,24 +1,24 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The black box tool (`black_box`; WP-S2.04 §9.4, FR-DEV-013, FR-DEV-039) and the grips of a selected black box.
+//! The black box tool (`black_box`; FR-DEV-013, FR-DEV-039) and the grips of a selected black box.
 //!
 //! | State | Event | Next | Output |
 //! |---|---|---|---|
 //! | armed | `PointerMove`, `CursorMove` | armed | `Transient`: a grid marker at the snapped point |
 //! | armed | `Press` or `Activate` | outline | the first corner is fixed; `Transient`: a grid marker at it |
-//! | outline | `PointerMove`, `CursorMove` | outline | `Transient`: the rectangle to the snapped point (grown to the right until the default CPs fit), a marker per CP; a grid marker ringed by a CP marker at the first corner while the rectangle has no area (FT-714, FT-759) |
+//! | outline | `PointerMove`, `CursorMove` | outline | `Transient`: the rectangle to the snapped point (grown to the right until the default CPs fit), a marker per CP; a grid marker ringed by a CP marker at the first corner while the rectangle has no area |
 //! | outline | `Dwell { ms ≥ 80 }` | outline | `Preview(box.black …)` |
 //! | outline | `Press` or `Activate` | armed | `Commit(box.black …)` (a rectangle without width or height commits nothing) |
-//! | outline | `Escape` | armed (the hint says a second Escape leaves the tool, FT-714) | `Cancel` |
+//! | outline | `Escape` | armed (the hint says a second Escape leaves the tool) | `Cancel` |
 //! | armed | `Escape` | — | `None` (the host returns to Select) |
 //!
 //! **The command** is `box.black {page, symbol: the black-box symbol, pos: the top-left corner, box: {outline: the
 //! rectangle relative to pos (v0 top-left, then clockwise), cps}, target}`. **Default CPs** for a part target: the
 //! template entry's CPs in template order, the first `⌈n/2⌉` on the top edge and the rest on the bottom edge, left to
 //! right, leaving up and down; when an edge is too short the rectangle grows to the right until they fit one grid step
-//! apart with one grid step to spare at each corner. On a wider box the CPs of an edge spread over its drawn length
-//! (FT-550): one common pitch, the largest whole number of grid steps that fits `m + 1` times into the edge, the group
+//! apart with one grid step to spare at each corner. On a wider box the CPs of an edge spread over its drawn length:
+//! one common pitch, the largest whole number of grid steps that fits `m + 1` times into the edge, the group
 //! centred (half a step to the left when it cannot be centred exactly). Without a part, no CPs.
 //!
 //! **Grips** ([`grip_points`], [`reshape_by_grip`]): for an outline of `n` vertices in stored order, grips `0 … n−1`
@@ -111,7 +111,7 @@ pub fn layout(grid: PageGridMap, a: (i64, i64), b: (i64, i64), cps: &[(u16, Stri
     Some((pos, outline, out))
 }
 
-/// The grid offset of CP `k` of `m` on an edge `width` grid steps long (FT-550): the CPs one common pitch apart, the
+/// The grid offset of CP `k` of `m` on an edge `width` grid steps long: the CPs one common pitch apart, the
 /// largest whole number of grid steps that fits `m + 1` times into the edge (at least one), and the group centred on
 /// the edge (half a step to the left when it cannot be centred exactly). Every CP lies at least one grid step from both
 /// corners whenever `width ≥ m + 1`, which the layout guarantees.
@@ -140,8 +140,8 @@ pub struct BlackBoxTool {
     symbol: String,
     target: BoxTarget,
     state: State,
-    /// Whether an Escape just dropped the first corner: the hint then says that a second Escape leaves the tool
-    /// (FT-714); the next click clears it.
+    /// Whether an Escape just dropped the first corner: the hint then says that a second Escape leaves the tool;
+    /// the next click clears it.
     dropped: bool,
     /// The library documents the black box embeds (`box.black`'s `copies`, FT-656); the host sends only those the
     /// project still lacks.
@@ -239,8 +239,8 @@ impl BlackBoxTool {
                 let mut items = Vec::new();
                 let current = self.current(cx);
                 // While the rectangle has no area the first corner is marked, so the click visibly registered
-                // (FT-714: the tester saw nothing after the first click).
-                // FT-759: a ring around the cross, so the fixed corner stands out from the pointer's grid marker at
+                // (the tester saw nothing after the first click).
+                // A ring around the cross, so the fixed corner stands out from the pointer's grid marker at
                 // 100 % zoom (the 7-pixel cross alone was missed).
                 if current.is_none() {
                     let corner = cx.snapper.page_to_sheet(first);
@@ -649,7 +649,7 @@ mod tests {
         );
     }
 
-    /// FT-550: on a box drawn wider than the CPs need, the CPs spread over the edge one common whole-grid pitch apart,
+    /// On a box drawn wider than the CPs need, the CPs spread over the edge one common whole-grid pitch apart,
     /// the group centred, instead of packed from the left corner.
     #[test]
     fn the_default_cps_spread_over_the_drawn_edge_on_the_grid() {

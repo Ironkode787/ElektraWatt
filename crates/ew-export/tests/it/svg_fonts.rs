@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fonts of the SVG pages (WP-S3.07 D3, D4; SV-1 in miniature, FT-233): each page's `<style>` declares
+//! The fonts of the SVG pages (SV-1 in miniature): each page's `<style>` declares
 //! exactly the faces its `<text>` elements name, one subset per face per page, and every character of the page's
 //! texts maps through the embedded subset's `cmap` to the face's glyph with its outline (read back with
 //! `skrifa`); a face without usable bytes is named only and reported.
@@ -319,7 +319,7 @@ fn a_face_without_usable_bytes_is_named_and_reported() {
     assert!(faces.values().all(|f| f.data.is_some()));
 }
 
-/// FT-1047, ID-1138: "the subset's characters are those written after escaping". A run whose text holds a control
+/// "the subset's characters are those written after escaping". A run whose text holds a control
 /// character is written with U+FFFD in its place, and the page's subset holds U+FFFD's outline, so a browser that
 /// maps the characters itself draws what the page shows.
 #[test]

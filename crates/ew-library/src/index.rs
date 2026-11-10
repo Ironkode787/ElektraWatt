@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The derived per-user search index (WP-S1.19 D5; doc 07 §4.3, §4.7): one SQLite file in the cache directory,
+//! The derived per-user search index (doc 07 §4.3, §4.7): one SQLite file in the cache directory,
 //! never authoritative, rebuilt per library when its generation or a file hash changes, and from scratch when it is
 //! missing, unreadable or of another schema. It is opened with `trusted_schema=OFF` and in defensive mode.
 //!

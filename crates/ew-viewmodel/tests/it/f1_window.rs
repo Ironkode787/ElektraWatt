@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! F1 in every part of the window (WP-S7.05 D8, DC-3) on a copy of Golden A: a focused navigator, the strip editor, a
+//! F1 in every part of the window (DC-3) on a copy of Golden A: a focused navigator, the strip editor, a
 //! navigator in table mode, the property grid, the find pane, the history, the command bar, an active tool and the
 //! dialogs open the section of their page of the window reference.
 

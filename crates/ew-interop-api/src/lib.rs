@@ -19,9 +19,9 @@
 //! - [`SourceRef`] (re-exported from `ew-schema`): the persisted `{lineage, key}` provenance.
 //! - [`check_archive_name`]: the name rule of an archive entry (doc 14 §11).
 //! - [`SYSTEM_LIBRARY`]: the library ID of the compiled-in starter library, which importers reference built-in
-//!   items by (FT-24).
+//!   items by.
 //!
-//! # Differences from doc 14 §2.1 (decided for WP-S3.05)
+//! # Differences from doc 14 §2.1 (decided)
 //!
 //! - `import` takes the whole input as an [`ImportInput`] instead of a streaming `Source`, and an
 //!   [`ImportContext`] without hints, options, cancellation or progress; those arrive with the project
@@ -33,8 +33,8 @@
 //!   importer stamps no dates, since it never reads the wall clock.
 //! - [`ImportBatch`] carries library documents beside the records, and no `assets` or `provenance` vectors
 //!   yet: library items keep their provenance in `ItemMeta.sources` and `extra["source_ref"]`.
-//! - `Proposal` and `TableImage` are not built (WP-S3.09 FP-1, ADR-0021 amendment 1); [`ReportEntry`] has
-//!   `targets` ([`RecordKey`], WP-S3.09 D1) but no `proposal` or Fluent arguments, and its message is plain English
+//! - `Proposal` and `TableImage` are not built (FP-1, ADR-0021 amendment 1); [`ReportEntry`] has
+//!   `targets` ([`RecordKey`]) but no `proposal` or Fluent arguments, and its message is plain English
 //!   text (FP-6).
 //!
 //! # Lenient-mode boundaries (doc 14 §3.3)
@@ -61,7 +61,7 @@ mod report;
 
 pub use ew_schema::SourceRef;
 
-/// The record types importers emit (WP-S1.19 D11): an importer names them through this re-export, so it needs no
+/// The record types importers emit: an importer names them through this re-export, so it needs no
 /// dependency on `ew-schema` of its own (`ew-import-catalog` depends on this crate only).
 pub use ew_schema;
 
@@ -74,7 +74,7 @@ pub use report::{
     Severity, SourceInfo, SourceLocation,
 };
 
-/// The library ID of EW's system library: the compiled-in starter `ew-starter` (WP-S1.19 D4, FT-24), the
+/// The library ID of EW's system library: the compiled-in starter `ew-starter`, the
 /// `library_id` of every starter document under `content/symbols`, `content/symbols/qet10`, `content/fndefs` and
 /// `content/forms`. A starter item's ID is `v5(SYSTEM_LIBRARY, meta.key)` and its copy ID
 /// `ew_ids::v5::lib_copy_id(SYSTEM_LIBRARY, item)` (doc 05 §13.2).
@@ -88,7 +88,7 @@ pub const SYSTEM_LIBRARY: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x7202fd8b_1024
 mod tests {
     use super::SYSTEM_LIBRARY;
 
-    /// L1-5 (FT-24): the constant is the decided value. That every starter document under `content/` carries it is
+    /// L1-5: the constant is the decided value. That every starter document under `content/` carries it is
     /// checked by `ew-import-tables`' integration test `system_library`, outside this permissive crate.
     #[test]
     fn system_library_is_the_decided_value() {

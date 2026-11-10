@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The parts import's front door (WP-S1.19 part 4, D11): the column maps saved per source, the input read with its
+//! The parts import's front door: the column maps saved per source, the input read with its
 //! size checked first, the manufacturer master from the libraries, and the two targets:
 //!
 //! - **a project** ([`Session::catalog_parts`]): the parts as project-local copies, ready for `parts.import` (as
@@ -10,7 +10,7 @@
 //!   the library's lock, the import date a parameter (doc 07 §3.6). Changed content under a held version is refused
 //!   before anything is written unless the import bumps it (doc 05 §13.1).
 //!
-//! A library write is a front-end operation (WP-S1.19 §13.2 item 7): it takes the registry by `&mut`, which only the
+//! A library write is a front-end operation: it takes the registry by `&mut`, which only the
 //! shell and the CLI hold ([`Session::libraries_mut`]); no command, command log, script or MCP tool reaches it.
 
 use std::path::{Path, PathBuf};
@@ -43,7 +43,7 @@ pub enum CatalogError {
     Map(MapError),
     /// The table was refused as a whole.
     Import(ImportError),
-    /// The front door refused the import: the importer panicked (WP-S3.09 D4).
+    /// The front door refused the import: the importer panicked.
     Refused(crate::import::Refusal),
     /// The library refused the write (read-only, locked, stale lock, other content under a published version, I/O).
     Library(library::LibraryError),
@@ -99,7 +99,7 @@ fn base_name(p: &Path) -> String {
         .map_or_else(|| p.display().to_string(), |n| n.to_string_lossy().into_owned())
 }
 
-/// The source key a table file proposes (FT-649, the column-mapping step's pre-filled key): the file stem in lower
+/// The source key a table file proposes (the column-mapping step's pre-filled key): the file stem in lower
 /// case with every character [`check_source_key`] refuses as `-`, a leading `.` dropped, at most 64 characters;
 /// `parts` for a stem that leaves nothing. `Supplier A.csv` gives `supplier-a`.
 pub fn source_key_for(file_name: &str) -> String {
@@ -289,7 +289,7 @@ pub fn import_into_library(
         return Err(CatalogError::Library(library::LibraryError::ReadOnly));
     }
     let master = manufacturer_master(reg);
-    // FT-651: a part names a manufacturer record of another library only when the target's manifest `depends` names
+    // A part names a manufacturer record of another library only when the target's manifest `depends` names
     // that library; else the import writes a copy of the record into the target, and the part names the copy.
     let shared = reg.depends(library);
     let import = {
@@ -348,7 +348,7 @@ impl Session {
     /// what the target holds. Returns the import and the `parts.import` command of its
     /// new parts (`None` when there is none): `parts.import` creates them in one undoable step and skips a key the
     /// project holds; it never updates a part (updating is the previewed `library.update`). The command embeds the
-    /// manufacturer copies the new parts name (WP-S1.19 D10): the manufacturers the import creates and the project's
+    /// manufacturer copies the new parts name: the manufacturers the import creates and the project's
     /// copies of the master records they resolve to (`parts.import` skips one the project holds).
     ///
     /// # Errors

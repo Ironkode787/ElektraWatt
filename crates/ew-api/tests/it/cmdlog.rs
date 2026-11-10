@@ -425,7 +425,6 @@ fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
     assert_eq!(err.exit_code(), 2);
 }
 
-// WP-S2.05 part 2
 /// A command whose cost depends on its parameters (`fields.set_many` above 500 targets) runs from a command log as
 /// preview and commit, one undo step, like a command that is bulk by its metadata.
 #[test]

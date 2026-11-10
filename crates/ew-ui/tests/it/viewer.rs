@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The read-only viewer in the window without rendering (WP-S2.03 part 1, acceptance checks V10 to V12): the
+//! The read-only viewer in the window without rendering (acceptance checks V10 to V12): the
 //! keyboard-only flow (Go to, links, Back, tabs, side by side, the navigator, the grid cursor and its AccessKit
 //! announcement) with the accessible-name walker after every step, the exact counts of the multi-canvas host, and
 //! FT-356's retention for hidden canvas tabs.
@@ -50,7 +50,7 @@ fn live(h: &Harness<'_, App>) -> String {
         .unwrap_or_default()
 }
 
-/// Whether an ancestor of the first node with `label` has `role` (AccessKit's own tree, WP-S2.03 §6.9).
+/// Whether an ancestor of the first node with `label` has `role` (AccessKit's own tree).
 fn has_ancestor(h: &Harness<'_, App>, label: &str, role: egui::Role) -> bool {
     let mut node = h.query_all_by_label(label).next().expect("the node").parent();
     while let Some(n) = node {
@@ -165,7 +165,7 @@ fn v12_the_viewer_without_a_pointer() {
     let a = h.state().shell().area().unwrap();
     assert_eq!((a.groups.len(), a.focused), (2, 1));
     assert_eq!(h.get_all_by_role(egui::Role::Canvas).count(), 2);
-    // The dock's two splitters (pages | page view | properties, WP-S2.05) and the canvas area's.
+    // The dock's two splitters (pages | page view | properties) and the canvas area's.
     assert_eq!(
         h.state().splitter_count(),
         3,
@@ -518,7 +518,7 @@ fn j32_canvas_tab_badges_are_chips_not_bracketed_words() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The Back button beside the page tabs (FT-1435): the Back button whose middle is level with the view tabs.
+/// The Back button beside the page tabs: the Back button whose middle is level with the view tabs.
 fn tab_bar_back(h: &Harness<'_, App>) -> (bool, String, egui::Rect) {
     let tab = support::view_tabs(h).first().expect("a view tab").rect();
     let back = h
@@ -536,7 +536,7 @@ fn tab_bar_back(h: &Harness<'_, App>) -> (bool, String, egui::Rect) {
     )
 }
 
-/// FT-1435 (ID-1409): a jump centres its arrival and marks it with a ring that fades out on the frame clock; Back
+/// A jump centres its arrival and marks it with a ring that fades out on the frame clock; Back
 /// stands beside the page tabs, at the floor and at 1920 × 1080, enabled only with a step to go back to, its tooltip
 /// naming its key, and a click on it goes back.
 #[test]
@@ -565,7 +565,7 @@ fn ft1435_a_jump_marks_its_arrival_and_back_stands_beside_the_tabs() {
         let g = h.state().shell().area().unwrap().focused;
         let canvas = h.state().shell().canvas().unwrap();
         let (at, _) = canvas.arrival().expect("the arrival is marked");
-        // FT-1506 (ID-1456): the view stays on the sheet; the arrival in the corner cell A1 stands off centre in it.
+        // The view stays on the sheet; the arrival in the corner cell A1 stands off centre in it.
         let [x0, y0, x1, y1] = canvas.view_nm();
         let (w, ht) = canvas.page().sheet;
         assert!(

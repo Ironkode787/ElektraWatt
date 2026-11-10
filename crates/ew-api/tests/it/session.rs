@@ -59,7 +59,7 @@ fn execute_undo_redo_and_the_change_feed() {
     assert_eq!(s.history().entries().len(), 1);
 }
 
-/// FT-404: `Session::undo` and `Session::redo` take the caller's origin; a `project.checks.set` step is refused to the
+/// `Session::undo` and `Session::redo` take the caller's origin; a `project.checks.set` step is refused to the
 /// command-log and script origins (nothing changes, nothing enters the change feed) and taken back by the GUI.
 #[test]
 fn undo_and_redo_of_a_human_only_step_need_the_gui() {

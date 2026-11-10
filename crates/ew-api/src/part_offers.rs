@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.07 part 4a (D16, D17): the part selection dialog's data. [`Session::part_offers`] merges the project's part
+//! The part selection dialog's data. [`Session::part_offers`] merges the project's part
 //! copies and the catalogue hits of [`Session::part_search`] into one list ordered for the target (the fit to its
 //! function, the rank of the text, held before not held, favourites and recently used parts, the catalogue's order,
 //! the natural part number); [`Session::part_pick_command`] compiles a choice into the one command of its gesture
@@ -63,7 +63,7 @@ pub enum PartPick {
 pub enum Fit {
     /// The part's function template declares the function's FnDef (the same library and item, any version).
     SameFnDef,
-    /// A template function has the function's first two category levels and contact kind (WP-S1.19 D6).
+    /// A template function has the function's first two category levels and contact kind.
     SameCategory,
     /// Neither, no template, or no function to fit.
     Other,
@@ -344,7 +344,7 @@ impl Session {
         })
     }
 
-    /// The layout kinds a part dialog for `devices` offers (ID-1112, WP-S4.02 D3, D14): an end bracket only when every
+    /// The layout kinds a part dialog for `devices` offers: an end bracket only when every
     /// device is a strip (its `aspects.strip` is set, with or without terminals); an enclosure and a mounting plate only
     /// when every device has no main function; a rail and a duct never (they are layout items, not part uses of a
     /// device). Every other device is offered none. Empty when `devices` is empty or one names no device.

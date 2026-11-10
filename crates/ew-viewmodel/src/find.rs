@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The find pane's model (WP-S2.05 part 2, spec §7.3 to §7.6): the query being typed, the last results with the
+//! The find pane's model (spec §7.3 to §7.6): the query being typed, the last results with the
 //! revision they were made at, the result cursor and the pane's note.
 //!
 //! Only the shell (`ShellModel`'s `find.*` actions) calls the `Session`: `find.run` makes exactly one
@@ -53,7 +53,7 @@ pub fn field_label_key(f: FindField) -> Key<'static> {
     }
 }
 
-/// Why a search could not run, in the UI language (FT-1414): the error's own text by its key, never the parser's.
+/// Why a search could not run, in the UI language: the error's own text by its key, never the parser's.
 pub fn error_text(e: &ew_api::output::FindError) -> String {
     let args = e.args();
     let args: Vec<&str> = args.iter().map(String::as_str).collect();

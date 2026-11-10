@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The window's two clocks (WP-S6.13 part 4 §4.4, FT-570). Everything the window decides on time (the canvas's
+//! The window's two clocks. Everything the window decides on time (the canvas's
 //! dwells, the 200 ms job-field rule, the toasts, a double click) reads egui's frame time (`input.time`), which is the
 //! wall clock in the window and the driver's frame count in a test or a visual run. The frame-phase statistics read
 //! the wall clock through [`now`]: never in a run on the frame clock ([`use_frame_clock`]), so a visual run's frame
@@ -58,7 +58,7 @@ pub fn wall_reads() -> u64 {
     WALL_READS.load(Ordering::Relaxed)
 }
 
-/// The date a waiver records when it is committed from the window (FT-674): today's date as `YYYY-MM-DD`, from the
+/// The date a waiver records when it is committed from the window: today's date as `YYYY-MM-DD`, from the
 /// wall clock, by the proleptic Gregorian calendar in UTC (the workspace carries no time-zone data, so a waiver made
 /// near midnight may carry the neighbouring day). A run on the frame clock reads no wall clock and gives
 /// [`FRAME_CLOCK_DATE`], so a visual run is reproducible. Read on a click, never in the frame path; the shell never

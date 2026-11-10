@@ -179,7 +179,7 @@ pub(crate) fn get_part<F: Query>(
 /// It holds the snapshot it was last advanced to; [`MemoStore::query`] hands out memoising `Q`s over it,
 /// [`MemoStore::advance`] moves it to the next committed snapshot with push invalidation. A `Q` over any
 /// other snapshot (a preview's candidate, an export fork) is cold: build it with [`Q::new`]. The report
-/// engine is part of the store's configuration (FT-60), fixed by [`MemoStore::with_report_pages`].
+/// engine is part of the store's configuration, fixed by [`MemoStore::with_report_pages`].
 ///
 /// A `MemoStore` is neither `Send` nor `Sync`: the `ew-memo` store is shared with the `Q`s it hands out
 /// through an `Rc` and mutated through `RefCell`s. It lives on the thread that owns the session (the UI thread,
@@ -276,7 +276,7 @@ impl MemoStore {
     /// cannot advance to an equal revision, so it starts a new, empty store at that snapshot. An older snapshot
     /// (another history) starts a new, empty store too.
     ///
-    /// There is deliberately no "move to any snapshot" (review cycle 9, finding 10): verifying memos of one
+    /// There is deliberately no "move to any snapshot" (review, finding 10): verifying memos of one
     /// history by pull against the stamps of another compares incomparable revisions, which can find a stale
     /// memo green. A session that opens, recovers or reloads a project builds a new `MemoStore`.
     pub fn advance(&self, after: &Model, keys: &[AnyKey]) {

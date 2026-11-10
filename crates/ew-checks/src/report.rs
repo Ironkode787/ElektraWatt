@@ -18,7 +18,7 @@ use crate::scheme::CheckMode;
 pub const JSON_SCHEMA: &str = "ew.check-result/1";
 
 /// The disclaimer that ends every Markdown report (NFR-COMP-04); the as-built archive's `check/report.json` carries it
-/// too (doc 05 §14.2). It is the About dialog's sentence, one wording everywhere (WP-S6.04 D13).
+/// too (doc 05 §14.2). It is the About dialog's sentence, one wording everywhere.
 pub const DISCLAIMER: &str =
     "ElektraWatt's checks do not replace engineering verification by a competent person.";
 
@@ -38,7 +38,7 @@ fn totals(report: &CheckReport) -> String {
 }
 
 /// The report with every finding's message rendered in `lang` ([`crate::messages::render`]: the rule's pattern of
-/// that language where it exists, the en-GB message otherwise), for `ew check --lang` (WP-S1.16 D6). The order, the
+/// that language where it exists, the en-GB message otherwise), for `ew check --lang`. The order, the
 /// counts and every other member stay as they are; in en-GB the report is unchanged.
 #[must_use]
 pub fn localise(report: &CheckReport, lang: &str) -> CheckReport {
@@ -134,7 +134,7 @@ pub fn to_markdown(report: &CheckReport) -> String {
     out
 }
 
-/// The JSON result of `ew check` (`ew.check-result/1`, doc 17 §3.1, WP-S1.22 D5). The type is the published schema
+/// The JSON result of `ew check` (`ew.check-result/1`, doc 17 §3.1). The type is the published schema
 /// (`bin/ew/schemas/ew.check-result-1.schema.json`), so the printed object and its schema cannot drift. Members print
 /// in byte-wise key order (`$schema` first); an optional member is absent, never `null`.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -156,7 +156,7 @@ pub struct CheckResult {
     /// The findings in report order.
     pub findings: Vec<ResultFinding>,
     /// Notices outside the findings and their counts, in the window's words: an image the project keeps but no drawing
-    /// shows (FT-1503, decision log ID-1458). Absent when there is none.
+    /// shows. Absent when there is none.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub notices: Vec<String>,
 }

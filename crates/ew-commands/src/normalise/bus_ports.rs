@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Normaliser #14a, bus ports from the part (N5; WP-S1.21 §8a.2, D16; doc 06 §3.2 between rows 14 and 15).
+//! Normaliser #14a, bus ports from the part (N5; .2, D16; doc 06 §3.2 between rows 14 and 15).
 //!
 //! **Terms.** The *bus part* of a device is its first part use (in `Device.parts` order) whose part copy has a
 //! `bus` section with at least one port. A *bus-port function* is a function whose FnDef copy has contact kind

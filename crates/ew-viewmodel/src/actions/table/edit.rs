@@ -64,7 +64,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     )),
     // Edit, Properties of selection (E and Alt+Enter on the canvas) and Project properties: the shell has no Project
-    // menu yet, so the project's properties sit beside the selection's (WP-S2.05 §6.10, lane ruling).
+    // menu yet, so the project's properties sit beside the selection's (lane ruling).
     keeps_banner(in_canvas(act(
         "props.focus",
         View,
@@ -92,7 +92,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_props_project(),
         ),
     )),
-    // WP-S2.05 part 2: Edit, Find…, Find and replace… and Replace all (§7.6). macOS's ⌥⌘F (doc 16 §4.4) needs a
+    // Edit, Find…, Find and replace… and Replace all (§7.6). macOS's ⌥⌘F (doc 16 §4.4) needs a
     // per-platform binding: `Ctrl+Alt+F` would be a Ctrl+Alt+letter chord, which NFR-I18N-06 forbids.
     keeps_banner(act(
         "find.open",

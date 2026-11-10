@@ -70,7 +70,7 @@ pub struct CreateDevice {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub main_fndef: Option<Id<FnDef>>,
-    /// A frozen product designation, set in the creating commit (FT-1090: a new strip's tag typed in its form).
+    /// A frozen product designation, set in the creating commit (a new strip's tag typed in its form).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frozen_tag: Option<FrozenTag>,
 }
@@ -156,7 +156,7 @@ pub enum PlaceTarget {
         #[serde(default = "aux")]
         role: FnRole,
     },
-    /// A new device made from a part copy (part-first placement; FR-UI-017, FR-DEV-017, WP-S2.04 D9): the device
+    /// A new device made from a part copy (part-first placement; FR-UI-017, FR-DEV-017): the device
     /// `{tag: {letter, counter: none}, parts: [the part, quantity 1]}` and one function per entry of the part's
     /// `function_template`; the representation draws entry `template`, the others stay unplaced.
     FromPart {
@@ -226,7 +226,7 @@ pub struct ConnectHint {
 ///   contact kind is `black_box`, else normal; `template_entry` the entry's index, so the CPs follow from that
 ///   entry, doc 03 §7, FT-655); the representation
 ///   draws entry `template`, the others stay unplaced. The symbol's FnDef must be entry `template`'s, and that
-///   entry must not be a black box (`box.black` places those). A part without a function template (FT-1375) takes
+///   entry must not be a black box (`box.black` places those). A part without a function template takes
 ///   `template` 0 and gets one main function of the symbol's FnDef.
 /// - `new_terminal` (AC-28): one terminal of the strip, created as `terminal.add` creates it (the strip's letter,
 ///   structure and the sequence number as counter; the next sequence number when `seq` is absent) with its main
@@ -234,7 +234,7 @@ pub struct ConnectHint {
 ///   terminal also gets `parts: [the part, quantity 1]`; the part copy must exist and, when it has a function
 ///   template, its main entry's FnDef must be the symbol's.
 /// - Every hint creates a wire `{a: the hint's CP, b: to, page}` with the straight route between its two ends' points
-///   (WP-S2.19 D12; none when they do not lie on one line, so the wire is unrouted); the hint's symbol CP is
+///   (none when they do not lie on one line, so the wire is unrouted); the hint's symbol CP is
 ///   mapped to a function CP as the derived pin map does (`(functions[0], fn_cp)`); an unknown symbol CP
 ///   is rejected. A hint ending at a junction appends the wire to the junction's sequence; a hint ending
 ///   on a point of a connection (`HintTarget::Split`) puts a new junction there, splits the connection at
@@ -511,7 +511,7 @@ fn split_for_hint(
 ///
 /// The graphic representations on MultiLine and BusTopology pages (cable markers, the screen graphic) and
 /// the multi-line ones on Fluid pages (the CPX black boxes of a valve terminal drawn on its fluid pages) are
-/// the owner ruling that amends decision log ID-55 (cycle 15): the reference drawings contain exactly these,
+/// the owner ruling that amends decision log ID-55: the reference drawings contain exactly these,
 /// and Golden A's tables place them so (doc 20, build path (b)).
 pub fn allowed_rep_types(page: &PageType) -> Option<&'static [RepType]> {
     Some(match page {
@@ -578,7 +578,7 @@ fn zero() -> Pt2 {
 /// marker on the old page lets go of the connections that leave it, and a marker left empty is removed (the
 /// unlink policy of its list, EW-INV-023).
 ///
-/// **By grid steps** (`steps: [kx, ky]`, WP-S2.04 D13; what the canvas tools send). Each representation's position
+/// **By grid steps** (`steps: [kx, ky]`, what the canvas tools send). Each representation's position
 /// becomes the grid point at its grid index plus the steps, exactly, per axis (`Grid::at(Grid::snap(x) + k)`), so
 /// several representations stay on the grid even where a uniform nm delta cannot keep them there (the QET grid
 /// `7_937_500/3` nm). A representation whose position is not on the grid cannot be moved by steps (rejected, named).
@@ -591,7 +591,7 @@ fn zero() -> Pt2 {
 /// `k mod 3`) keeps its axis with a jog at the grid point nearest its middle. `steps` is exclusive with a non-zero
 /// `delta` and with `page`: the tools never move across pages, and a script's cross-page move keeps `delta`.
 ///
-/// **Page items and structure boxes** (`items`, WP-S2.04 part 4a): the page items and structure boxes named move
+/// **Page items and structure boxes** (`items`): the page items and structure boxes named move
 /// with the representations, translated by `delta`, or with `steps` by `round_half_away(k × num / den)` nm per axis
 /// on their page's grid (they need not lie on the grid). `reps` and `items` together name at least one record; every
 /// item lies on one page, the page of every named representation; an item of a kind this build does not move (a
@@ -603,7 +603,7 @@ fn zero() -> Pt2 {
 /// prefixed `/routes/<i>`, as `connection.route_many` prefixes them); then each hint of `connect` makes a wire from
 /// the named representation's symbol CP as a `device.place` hint does, with the straight route between its ends (a
 /// hint whose target no longer exists is dropped with a notice; a CP the representation does not draw is refused). A
-/// hint onto a point of a connection is refused: a move never splits an existing wire (ADR-0007 decision 4, ID-1509).
+/// hint onto a point of a connection is refused: a move never splits an existing wire (ADR-0007 decision 4).
 ///
 /// Outcome: none; the notices of dropped hints. Coalesce one drag with a key.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -620,15 +620,15 @@ pub struct MoveReps {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub page: Option<Id<Page>>,
-    /// Grid steps `[kx, ky]` on the page's connection grid, instead of `delta` (WP-S2.04 D13).
+    /// Grid steps `[kx, ky]` on the page's connection grid, instead of `delta`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub steps: Option<[i64; 2]>,
-    /// Page items and structure boxes moving with the representations (WP-S2.04 part 4a).
+    /// Page items and structure boxes moving with the representations.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[schemars(with = "Vec<UuidS>")]
     pub items: Vec<AnyId>,
     /// Routes that replace the followed routes of the connections named, after the follow, each as
-    /// `connection.route` takes it (WP-S2.19 D14: the Select tool's re-solve).
+    /// `connection.route` takes it (the Select tool's re-solve).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub routes: Vec<crate::commands::connection::RouteConnection>,
     /// Autoconnect hints committed with the move, each a `device.place` hint naming its representation (WP-S2.19
@@ -637,7 +637,7 @@ pub struct MoveReps {
     pub connect: Vec<MoveHint>,
 }
 
-/// An autoconnect hint of `rep.move` (WP-S2.19 D15): a `device.place` hint ([`ConnectHint`]) of a representation,
+/// An autoconnect hint of `rep.move`: a `device.place` hint ([`ConnectHint`]) of a representation,
 /// its CP named by function and index (the CP the representation draws, a black box's included), as the window knows
 /// a placed representation's CPs.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -754,14 +754,14 @@ impl MoveReps {
         Ok(out)
     }
 
-    /// After the move (WP-S2.19 D14, D15): `routes` replace the followed routes, as `connection.route_many` applies
+    /// After the move: `routes` replace the followed routes, as `connection.route_many` applies
     /// them, then each hint of `connect` makes its wire as `device.place` does (a hint whose target no longer exists is
     /// dropped with a notice; a CP the representation does not draw is refused). The notices.
     fn routes_and_hints(&self, tx: &mut TxBuilder<'_>) -> Result<Vec<String>, CmdError> {
         crate::commands::connection::run_routes(tx, Self::NAME, &self.routes)?;
         let mut notices = Vec::new();
         for (i, hint) in self.connect.iter().enumerate() {
-            // ID-1509 (6): ADR-0007 decision 4 holds on a move, so no existing connection is split.
+            // ADR-0007 decision 4 holds on a move, so no existing connection is split.
             if matches!(hint.to, EndpointParam::OnConnection { .. }) {
                 return tx.reject(text!("refusal-rep-move-split"));
             }
@@ -795,7 +795,7 @@ impl MoveReps {
             match m {
                 MovedItem::Item(item) => {
                     let Some(mut next) = crate::commands::items::translate_item(item, d) else {
-                        // FT-882 (ID-1108): the item in words and the true reason
+                        // The item in words and the true reason
                         let page = crate::words::page(tx, item.page);
                         let why = match &item.kind {
                             PageItemKind::SurfaceView(_) => text!("refusal-rep-move-surface-view", page),
@@ -996,7 +996,7 @@ pub(crate) fn step_route(
     }
     // Two coordinates that were equal can part by 1 nm (two CPs on one coordinate whose representations' grid
     // indices differ in `k mod 3` move by displacements that differ by 1 nm): such a segment would turn diagonal.
-    // It keeps its axis with a jog at the grid point nearest its middle (fix round of WP-S2.04 part 1, item 10):
+    // It keeps its axis with a jog at the grid point nearest its middle (fix round, item 10):
     // every new vertex has the jog's grid coordinate on one axis and an end's coordinate on the other.
     let mut out: Vec<Pt2> = Vec::with_capacity(next.len() + 4);
     for i in 0..n {
@@ -1200,7 +1200,7 @@ impl Command for TransformReps {
             if self.mirror {
                 orient = orient.then(Orient2::M0);
             }
-            // WP-S2.19 D16: one of EW's interruption-point forms is never turned.
+            // One of EW's interruption-point forms is never turned.
             if orient != old.orient && crate::normalise::ip_form::form(tx, old.symbol).is_some() {
                 return tx.reject(crate::normalise::ip_form::turned());
             }
@@ -1226,7 +1226,7 @@ impl Command for TransformReps {
                     }
                 }
             }
-            // FT-867 (ID-1137): no text override is written. A black box turned by a half turn places its texts as on
+            // No text override is written. A black box turned by a half turn places its texts as on
             // the same box unturned (`ew_derive::text_frame`), so a second half turn gives back the record as it was.
             let (Ok(before), Ok(after_cps)) = (rep_cps_checked(tx, &old), rep_cps_checked(tx, &new)) else {
                 out_of_range(tx)?;
@@ -1344,7 +1344,7 @@ mod box_pivot_tests;
 /// `rep.set_anchor_policy`: sets the cross-reference anchor policy of representations (FR-SYM-010; the
 /// quick fix of MF-13, doc 07 §3.6).
 ///
-/// The policy is a per-representation override, `Representation.anchor` (owner ruling, cycle 14): `anchor`
+/// The policy is a per-representation override, `Representation.anchor`: `anchor`
 /// is `origin`, `graphic_centre`, `{"slot": <kind>}` or `{"named": [x, y]}`, and `null` removes the override,
 /// so the representation follows its symbol copy's policy again. Other representations of the same symbol
 /// copy keep theirs. A representation that already holds the value is left untouched. Rejections: an empty
@@ -1600,7 +1600,7 @@ pub(crate) fn insert_function(
 }
 
 /// Inserts a function of `device` with the given definition, role and kind; `template_entry` is the index of the
-/// part template entry it is made from (FT-655), `None` for a function not made from a template.
+/// part template entry it is made from, `None` for a function not made from a template.
 fn insert_function_of_kind(
     tx: &mut TxBuilder<'_>,
     device: Option<Id<Device>>,
@@ -1646,7 +1646,7 @@ fn insert_from_part(
     let number = copy.item.part_number.as_str().to_owned();
     let entries = copy.item.function_template.clone();
     if entries.is_empty() {
-        // FT-1375 (ID-1391): a part without a function template is placed with the symbol the user chose, entry 0 of
+        // A part without a function template is placed with the symbol the user chose, entry 0 of
         // `device.place` only: the device carries the part and one main function of the symbol's FnDef.
         return match placed {
             PartEntry::Normal(symbol_def) if template == 0 => {
@@ -1713,7 +1713,7 @@ fn insert_from_part(
     let mut placed_fn = None;
     for (i, (e, (def, kind))) in entries.iter().zip(defs).enumerate() {
         let role = if e.main { FnRole::Main } else { FnRole::Aux };
-        // The entry index is stored (FT-655); an index beyond u16 (never in practice) is left out and the derivation
+        // The entry index is stored; an index beyond u16 (never in practice) is left out and the derivation
         // falls back to the first entry of the FnDef.
         let entry = u16::try_from(i).ok();
         let f = insert_function_of_kind(tx, Some(device), def, role, kind, entry)?;

@@ -741,8 +741,6 @@ fn ps7_a_library_copy_forks() {
     assert_ne!(s.next_fork_item(original), fork_item);
 }
 
-// WP-S2.07 part 4b
-
 /// FX-MCB-1PN of the fixture catalogue at `version`, its description `description` and its CP designations `cps`.
 fn mcb_version(lib: Uuid, version: &str, description: &str, cps: &[&str]) -> LibDocument {
     let doc = fixture_docs(lib)
@@ -943,8 +941,8 @@ impl ew_testkit::golden::dsl::CommandSink for Sink<'_> {
     }
 }
 
-/// FT-1053, ID-1138: "a strip device without terminals in the golden builder, whose chooser offers the end bracket
-/// (ID-1113)". A strip made by the builder's `device` verb, with the strip aspect and the main function of 1X1 and no
+/// "a strip device without terminals in the golden builder, whose chooser offers the end bracket
+/// ". A strip made by the builder's `device` verb, with the strip aspect and the main function of 1X1 and no
 /// `terminals` step, is offered the end bracket and no other layout kind; its part dialog's offers, kept as the shell
 /// keeps them, list EW-GEN-EB-1.
 #[test]

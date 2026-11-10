@@ -454,7 +454,7 @@ fn ct4_f2_refuses_a_taken_device_tag_like_the_properties_grid() {
     let r = s.nav_rename().expect("the field stays open").clone();
     assert_eq!(r.text, "-102F2", "on the text as typed");
     let (shown, proposal) = s.nav_rename_error().expect("the refusal under the field");
-    // The line under the field starts with a capital (FT-1075); the command's message, the same words, is lowercase.
+    // The line under the field starts with a capital; the command's message, the same words, is lowercase.
     assert_eq!(shown, ew_viewmodel::strings::sentence_start(&grid));
     assert!(proposal.is_none());
     done(

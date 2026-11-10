@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Paste from Excel and copy (WP-S2.06 part 3, §8.6; D12): the tab-separated text Excel puts on the clipboard.
+//! Paste from Excel and copy (D12): the tab-separated text Excel puts on the clipboard.
 //!
 //! **Parse.** Rows split on CRLF or LF (a lone CR too), cells on TAB. A cell that starts with a double quote is quoted:
 //! it runs to the next quote that is not doubled, may hold TAB and line breaks, and `""` inside is one quote; text after

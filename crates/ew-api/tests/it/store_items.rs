@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The store's per-file row index and the commands' row dump over Golden A's page items and structure boxes
-//! (WP-S2.04 part 4a): a kind missing from the model's key list is dropped by the next save that rewrites its
+//! The store's per-file row index and the commands' row dump over Golden A's page items and structure boxes:
+//! a kind missing from the model's key list is dropped by the next save that rewrites its
 //! file, and `render_all` (`Session::create`) drops it too. Both readers are generated from the model's entity
 //! list now; these tests keep the save path and the row dump covered end to end.
 

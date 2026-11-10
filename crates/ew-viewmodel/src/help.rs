@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Documentation anchors and the context of F1 (WP-S2.01 part 2, FT-311; UX/UI doc 16 section 13, FR-UI-031).
+//! Documentation anchors and the context of F1 (UX/UI doc 16 section 13, FR-UI-031).
 //!
 //! Every dialog, screen and registry action with a page in the user guide has a **topic**: a stable name that
 //! maps to a page of the book (`docs/book/src`) and a heading of that page. F1 resolves the context in the order
 //! of doc 16 section 13 as far as the shell has the contexts: an open wizard, first-run flow, palette or dialog, then
 //! the focused pane (a navigator, the strip editor, a table, the property grid, the find pane, the history, the
 //! command bar, or the canvas's active tool), then the project view or the start page, otherwise the documentation
-//! home. Every tool action, dialog, pane and navigator has a topic on the window reference pages (WP-S7.05 D8). A tooltip of a menu item that has a
+//! home. Every tool action, dialog, pane and navigator has a topic on the window reference pages. A tooltip of a menu item that has a
 //! topic ends with "F1: learn more"; F1 over a hovered item opens that item's topic (the `topic` parameter of
 //! `help.documentation`).
 //!
@@ -122,7 +122,7 @@ pub static ANCHORS: &[Anchor] = &[
         page: WINDOW,
         fragment: "about",
     },
-    // WP-S7.05 D8: a topic for every tool action, every dialog without one above, every pane and navigator kind.
+    // A topic for every tool action, every dialog without one above, every pane and navigator kind.
     on(TOOLS, "tool-back", "tool-step-back"),
     on(TOOLS, "tool-select", "select"),
     on(TOOLS, "tool-measure", "measure"),
@@ -228,7 +228,7 @@ pub fn action_topic(action: &str) -> Option<&'static str> {
         "help.tutorials" => "tutorials",
         "help.about" => "about",
         "command.run" => "commands",
-        // WP-S7.05 D8: the panes, the strip editor and the table mode open from these.
+        // The panes, the strip editor and the table mode open from these.
         "props.show" | "props.focus" => "pane-properties",
         "find.open" | "find.open_replace" => "pane-find",
         "jobs.show" => "pane-jobs",
@@ -278,13 +278,13 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
     }
 }
 
-/// The topic of a tool action (`tool.place` → `tool-place`, WP-S7.05 D8); `None` for one without an anchor.
+/// The topic of a tool action (`tool.place` → `tool-place`); `None` for one without an anchor.
 fn tool_topic(action: &str) -> Option<&'static str> {
     let name = action.strip_prefix("tool.")?.replace('_', "-");
     anchor(&format!("tool-{name}")).map(|a| a.topic)
 }
 
-/// The topic of an open dialog (WP-S7.05 D8). The match names every variant, so a new dialog does not compile until it
+/// The topic of an open dialog. The match names every variant, so a new dialog does not compile until it
 /// has its topic.
 pub fn dialog_topic(dialog: &Dialog) -> &'static str {
     match dialog {
@@ -310,7 +310,7 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
     }
 }
 
-/// The topic of a navigator kind (WP-S7.05 D8).
+/// The topic of a navigator kind.
 pub fn nav_topic(kind: NavKind) -> &'static str {
     match kind {
         NavKind::Pages => "nav-pages",
@@ -331,7 +331,7 @@ pub fn nav_topic(kind: NavKind) -> &'static str {
     }
 }
 
-/// The topic of a pane kind (WP-S7.05 D8).
+/// The topic of a pane kind.
 pub fn pane_topic(pane: PaneKind) -> &'static str {
     match pane {
         PaneKind::Pages => nav_topic(NavKind::Pages),
@@ -346,7 +346,7 @@ pub fn pane_topic(pane: PaneKind) -> &'static str {
     }
 }
 
-/// The topic of the focused pane (WP-S7.05 D8): a navigator, the strip editor or a navigator's table mode, the property
+/// The topic of the focused pane: a navigator, the strip editor or a navigator's table mode, the property
 /// grid, the find pane, the history, the command bar, or the canvas's active tool other than Select.
 fn focus_topic(model: &ShellModel) -> Option<&'static str> {
     Some(match model.focus()? {
@@ -369,7 +369,7 @@ fn focus_topic(model: &ShellModel) -> Option<&'static str> {
     })
 }
 
-/// The page of a shipped rule in the book (§7.3; WP-S7.05 D3, D6): the rule's declared `docs` reference as a page,
+/// The page of a shipped rule in the book (§7.3): the rule's declared `docs` reference as a page,
 /// `reference/rules/<id in lower case>.md` (`reference/rules/ew-core-033.md`); `None` for a rule this build does not
 /// ship.
 pub fn rule_page(rule: &str) -> Option<String> {
@@ -383,7 +383,7 @@ pub fn rule_target(rule: &str) -> Option<String> {
 }
 
 /// The data of a shipped rule: a registered rule, or an integrity rule of opening a project, whose findings reach the
-/// Messages pane too (decision log ID-1376).
+/// Messages pane too.
 fn rule_meta(rule: &str) -> Option<&'static ew_api::checks::RuleMeta> {
     ew_api::checks::rule(rule).map(|r| r.meta()).or_else(|| {
         ew_api::checks::rules::core::INTEGRITY
@@ -479,7 +479,7 @@ mod tests {
         }
     }
 
-    /// C53-rt#19 (WP-S2.19 D13): F1 on Route page and Route selection opens their sections of the tools page, not the
+    /// C53-rt#19: F1 on Route page and Route selection opens their sections of the tools page, not the
     /// project view's page.
     #[test]
     fn route_page_and_route_selection_open_their_sections() {

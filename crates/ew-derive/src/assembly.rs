@@ -132,7 +132,7 @@ pub fn order_code_text(q: &Q, device: Id<Device>) -> String {
         .unwrap_or_default()
 }
 
-/// The configured part of a device's order code (FT-265): the part copy of its assembly aspect's first config, if the
+/// The configured part of a device's order code: the part copy of its assembly aspect's first config, if the
 /// config names one and the project holds it. The `manufacturer` slot beside an `order_code` slot prints its
 /// manufacturer, not the main part's (folio 3 of the golden project).
 pub fn order_code_part(q: &Q, device: Id<Device>) -> Option<Arc<LibCopy<Part>>> {

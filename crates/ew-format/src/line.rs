@@ -262,7 +262,7 @@ pub fn jsonl_file<L: AsRef<[u8]>>(mut lines: Vec<(LineKey, L)>) -> Vec<u8> {
 
 /// Whether `line`, a record's line as read, is the line a later minor of this format writes for the record whose
 /// canonical line is `canonical`, `extra` holding the JSON Pointers of the members this reader does not know and
-/// `variants` those of the values it keeps as unknown variants (ADR-0011 amendment 1, WP-S6.08 D24, D30): in every
+/// `variants` those of the values it keeps as unknown variants (ADR-0011 amendment 1): in every
 /// object the members this reader knows stand in the canonical order, wherever the others stand, and an unknown
 /// variant's value is the later minor's, whatever its order. A line that is not JSON is not one.
 pub(crate) fn later_minor_line(line: &str, canonical: &str, extra: &[String], variants: &[String]) -> bool {

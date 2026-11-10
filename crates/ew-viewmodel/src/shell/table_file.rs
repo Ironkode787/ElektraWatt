@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.08 part 3 (D14, ruling of ID-1224): a navigator table's export to a file and the round trip's import from one,
-//! in the table mode of the focused navigator, or of the one navigator shown in it (ID-1231).
+//! A navigator table's export to a file and the round trip's import from one,
+//! in the table mode of the focused navigator, or of the one navigator shown in it.
 //!
 //! **The table** (ruling 3): `Session::table_export` of the view's key, cut to the rows on show (matched by row ID, in
 //! the order on show) and the columns on show (matched by column key, in their order); the writer keeps the hidden `id`
@@ -178,7 +178,7 @@ impl ShellModel {
 
     /// `navigator.export_table {path?, format?, preset?, replace?, wait?}`: the focused navigator's table on show as a
     /// job writing `path` (XLSX, or CSV with `format: csv` or a `.csv` name) through its hidden sibling. A CSV takes
-    /// the preset `excel-en` unless `preset` names another; `ew` writes no `id` column and is refused (ID-1252).
+    /// the preset `excel-en` unless `preset` names another; `ew` writes no `id` column and is refused.
     pub(crate) fn act_export_table(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.file_table_kind());
         let path = match string_param(p, "path") {
@@ -292,7 +292,7 @@ impl ShellModel {
         self.open_table_import(input.name().to_owned(), bytes, key, take_file, rev)
     }
 
-    /// `preview.take_file {on?}` (FT-1149, WP-S3.08 D14): the table import card's switch "Take the file's values"
+    /// `preview.take_file {on?}`: the table import card's switch "Take the file's values"
     /// reads the bytes the card keeps again with `take_file` on (or off; without `on` it flips), so a cell changed in
     /// both takes the file's value; the card shows the new reading.
     pub(crate) fn act_preview_take_file(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -399,13 +399,13 @@ impl ShellModel {
     }
 
     /// Apply on a table import card (ruling 6): the import's one `fields.set_many`, one undo step; with nothing to
-    /// apply it is refused and the card stays (FT-1193); a project changed since the read is refused in words and the
+    /// apply it is refused and the card stays; a project changed since the read is refused in words and the
     /// card stays.
     pub(super) fn apply_table_import_card(&mut self, card: Card) -> Outcome {
         let CardOrigin::TableImport(c) = &card.origin else {
             return Outcome::Done;
         };
-        // FT-1193 (ID-1391): a file that changes nothing has no Apply; the card stays.
+        // A file that changes nothing has no Apply; the card stays.
         if c.nothing_to_import() {
             self.props.card = Some(card);
             return Outcome::refused(key!("reason-table-import-nothing"));
@@ -448,7 +448,7 @@ impl ShellModel {
 mod tests {
     use super::*;
 
-    /// SE-9 (WP-S6.04 D15): a read that panicked, under the guard the window calls it through, is the banner's S2
+    /// A read that panicked, under the guard the window calls it through, is the banner's S2
     /// whole, with the file's name.
     #[test]
     fn a_panicked_read_is_worded_with_the_file() {

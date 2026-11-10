@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Measure tool (`measure`; WP-S2.03 §7.6): a distance between two snapped points, read in sheet millimetres.
+//! The Measure tool (`measure`): a distance between two snapped points, read in sheet millimetres.
 //!
 //! armed → `Press` or `Activate` at A (snapped) → measuring: every move a `Transient` with a `measure` line from A
 //! to B (snapped), the two snap markers and the label `dx <dx> dy <dy> mm, <d> mm` → `Press` or `Activate` fixes B

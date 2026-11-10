@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fixes of window check W33 (cycle 34, FT-558 to FT-567) that a node or a painted shape can show without the
+//! The fixes of window check W33 that a node or a painted shape can show without the
 //! pixel gate: the Columns button's inset, the grid's scroll bar inside the focus ring, the form dialogs' words and
 //! check boxes, the label column, and the dock's borderless "All tabs" button.
 
@@ -39,7 +39,7 @@ fn strips(tmp: &Tmp) -> Harness<'static, App> {
     h
 }
 
-/// FT-567: the tool line keeps `space.4` on both sides: the Columns button ends `space.4` inside the grid's pane, as
+/// The tool line keeps `space.4` on both sides: the Columns button ends `space.4` inside the grid's pane, as
 /// the Table toggle starts `space.4` inside it.
 #[test]
 fn ft567_the_columns_button_keeps_space_4_from_the_pane_edge() {
@@ -97,7 +97,7 @@ fn combo_value(h: &Harness<'static, App>) -> String {
         .unwrap_or_default()
 }
 
-/// FT-558: a choice shows doc 16a §8's words ("Multi-line", "Location"), never the raw parameter value, and the action
+/// A choice shows doc 16a §8's words ("Multi-line", "Location"), never the raw parameter value, and the action
 /// still gets the raw value.
 #[test]
 fn ft558_choices_show_display_words() {
@@ -131,7 +131,7 @@ fn ft558_choices_show_display_words() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-558: a yes-or-no field is a check box named by its label; checking it sets the field to `true`.
+/// A yes-or-no field is a check box named by its label; checking it sets the field to `true`.
 #[test]
 fn ft558_booleans_are_check_boxes() {
     let tmp = Tmp::new();
@@ -166,7 +166,7 @@ fn the_start_note_sits_with_start() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-566: the form dialogs share one label column: every field starts at the same x in every form dialog, and the
+/// The form dialogs share one label column: every field starts at the same x in every form dialog, and the
 /// fields fill the body to the same right edge.
 #[test]
 fn ft566_one_label_column_and_full_width_fields() {
@@ -198,7 +198,7 @@ fn ft566_one_label_column_and_full_width_fields() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-562: the dock's "All tabs" button is a borderless 24-px icon button (doc 16a §6.3) that opens the list of tabs.
+/// The dock's "All tabs" button is a borderless 24-px icon button (doc 16a §6.3) that opens the list of tabs.
 #[test]
 fn ft562_all_tabs_is_a_subtle_icon_button() {
     let tmp = Tmp::new();
@@ -224,7 +224,7 @@ fn ft562_all_tabs_is_a_subtle_icon_button() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-561: a dock tab's count chip stands off the chrome in every theme: a fill other than the chrome's, or (high
+/// A dock tab's count chip stands off the chrome in every theme: a fill other than the chrome's, or (high
 /// contrast) a `color.border.default` outline; its text keeps the text contrast on that fill.
 #[test]
 fn ft561_the_count_chip_stands_off_the_chrome() {

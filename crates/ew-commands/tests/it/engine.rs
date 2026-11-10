@@ -189,8 +189,8 @@ fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
     for c in r.commands() {
         // ADR-0008 amendment 3: the release scheme decides a check outcome, so its command is `HumanOnly`; the asset
         // purge deletes files that do not come back (owner ruling, 2026-10-23); a scripted waiver would defeat the record
-        // (ADR-0019 decision 8, WP-S1.16 D7); the revision author, a withdrawal, the sign-off and the release are a
-        // person's (WP-S1.18 D4, D5, D9, D13).
+        // (ADR-0019 decision 8); the revision author, a withdrawal, the sign-off and the release are a
+        // person's.
         let expected = if matches!(
             c.meta().name,
             "project.checks.set"
@@ -204,14 +204,14 @@ fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
         ) {
             Exposure::HumanOnly
         } else if c.meta().name == "external.apply" {
-            // WP-S1.17 D22: submitted only by the session's external-change apply (decision log ID-1284 ruling 1).
+            // Submitted only by the session's external-change apply.
             Exposure::Internal
         } else {
             Exposure::Edit
         };
         assert_eq!(c.meta().exposure, expected, "{}", c.meta().name);
-        // ADR-0008 amendment 1: the asset purge deletes files, a non-undoable marker line (FT-380); the release's stamp
-        // is a barrier (WP-S1.18 D13: the archive and the tag are outside the history).
+        // ADR-0008 amendment 1: the asset purge deletes files, a non-undoable marker line; the release's stamp
+        // is a barrier (the archive and the tag are outside the history).
         assert_eq!(
             c.meta().undoable,
             !matches!(c.meta().name, "project.assets.purge" | "revision.release"),
@@ -246,7 +246,7 @@ fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
     let _ = Submit::from(Origin::Gui);
 }
 
-/// FT-404: who may undo or redo a step of each exposure class.
+/// Who may undo or redo a step of each exposure class.
 #[test]
 fn the_history_rule_by_exposure_class() {
     use Exposure::{Edit, HumanOnly, Import, Internal};

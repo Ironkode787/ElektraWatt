@@ -3,14 +3,14 @@
 
 //! QElectroTech `.qet` and `.qetz` importer behind `ew-interop-api`.
 //!
-//! This version reads one **element definition** (`.elmt`, WP-S3.05 second half; doc 14 §4.1–§4.3, §4.10):
+//! This version reads one **element definition** (`.elmt`, second half; doc 14 §4.1–§4.3, §4.10):
 //! its geometry and terminals become a [`SymbolDef`](ew_schema::SymbolDef) on the QET 10 px grid with QET's element-origin
 //! anchor, and its function semantics a generated [`FnDef`](ew_schema::FnDef), both as library copies of the per-project
 //! "QET import" library, whose `library_id` is the project ID (doc 05 §13.2,
 //! [`ImportContext::project`](ew_interop_api::ImportContext::project)) and whose human key is
 //! [`QET_IMPORT_LIBRARY_KEY`].
 //!
-//! The **project importer** [`QetProjectImporter`] (cycle 11 spike, [`project`]) reads a whole `.qet` in
+//! The **project importer** [`QetProjectImporter`] (spike, [`project`]) reads a whole `.qet` in
 //! lenient mode and reuses the element reader for every embedded definition; its mapping table is in the
 //! crate README, and [`migration`] groups its findings by code (the migration report of doc 14 §2.5).
 //!
@@ -122,7 +122,7 @@ mod tests {
     use ew_ids::Uuid;
     use ew_interop_api::SYSTEM_LIBRARY;
 
-    /// L1-5 (FT-24, FT-596): the built-in reference to `ew.fn.ip` points at the same library and item as before
+    /// L1-5: the built-in reference to `ew.fn.ip` points at the same library and item as before
     /// the constant moved to `ew_interop_api::SYSTEM_LIBRARY` (the starter's `content/fndefs/ew.fn.ip.json`
     /// carries this `item_id`).
     #[test]

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fluid side (doc 11 §5.1, WP-S1.20 D12, D13): `fluid_nets()`, the partition of the fluid CPs joined by `fluid`
+//! The fluid side (doc 11 §5.1): `fluid_nets()`, the partition of the fluid CPs joined by `fluid`
 //! connections and their junctions, and the tracked target of a valve (`reached_device`, `tracked_target`,
 //! `tracked_process_tag`).
 //!
@@ -47,7 +47,7 @@ impl FluidPartition {
     }
 }
 
-/// `fluid_nets()`: the fluid partition of the project (doc 11 §5.1, WP-S1.20 D12). Policy Memo.
+/// `fluid_nets()`: the fluid partition of the project (doc 11 §5.1). Policy Memo.
 #[derive(Debug)]
 pub struct FluidNets;
 
@@ -113,7 +113,7 @@ pub fn parent_chain(q: &Q, device: Id<Device>) -> Vec<Id<Device>> {
     out
 }
 
-/// `reached_device(valve)` (doc 11 §3.3, WP-S1.20 D13): the single device, other than the valve and its parent chain,
+/// `reached_device(valve)` (doc 11 §3.3): the single device, other than the valve and its parent chain,
 /// with a CP in a fluid net of one of the valve's working ports (`working2`, `working4`); `None` when there is no
 /// such device or more than one. Cold.
 pub fn reached_device(q: &Q, valve: Id<Device>) -> Option<Id<Device>> {
@@ -149,13 +149,13 @@ pub fn reached_device(q: &Q, valve: Id<Device>) -> Option<Id<Device>> {
     }
 }
 
-/// `tracked_target(valve)` (doc 11 §3.3, WP-S1.20 D13): the device the valve's `drives` link names
+/// `tracked_target(valve)` (doc 11 §3.3): the device the valve's `drives` link names
 /// ([`driven_device`]), else its [`reached_device`], else none.
 pub fn tracked_target(q: &Q, valve: Id<Device>) -> Option<Id<Device>> {
     driven_device(q, valve).or_else(|| reached_device(q, valve))
 }
 
-/// What one valve position of a module holds (doc 11 §5.6, WP-S1.20 D8).
+/// What one valve position of a module holds (doc 11 §5.6).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ValveSlot {
     /// A child with a function on a FnDef of contact kind `valve`, in its state.
@@ -187,7 +187,7 @@ pub struct ValveSlotsV {
     pub outside: Vec<(u32, Id<Device>)>,
 }
 
-/// The position count of a module (WP-S1.20 D8): `plc.positions.count` of the part named by `plc_module.part_use`,
+/// The position count of a module: `plc.positions.count` of the part named by `plc_module.part_use`,
 /// else of the first part use whose copy has `plc.positions`; `None` for a device without (no module).
 pub fn valve_positions(q: &Q, module: Id<Device>) -> Option<u16> {
     let dev = q.devices().get(module)?;
@@ -202,7 +202,7 @@ pub fn valve_positions(q: &Q, module: Id<Device>) -> Option<u16> {
     }
 }
 
-/// `valve_slots(module)` (doc 11 §5.6, WP-S1.20 D8): the occupancy of each position 1 … n of a module, n its
+/// `valve_slots(module)` (doc 11 §5.6): the occupancy of each position 1 … n of a module, n its
 /// [`valve_positions`]: a [`ValveSlot::Valve`] (of two valve or plate children at a position, the lower ID holds it), a
 /// [`ValveSlot::Blank`] or [`ValveSlot::Empty`]; a child that is neither a valve nor a plate leaves its position empty.
 /// The second children at a position and the children outside 1 … n are listed apart (EW-FL-013). Empty for a device
@@ -273,7 +273,7 @@ impl Query for ValveSlots {
     }
 }
 
-/// `tracked_process_tag(valve)` (doc 11 §3.3, WP-S1.20 D13): the process tag of the [`tracked_target`], else the
+/// `tracked_process_tag(valve)` (doc 11 §3.3): the process tag of the [`tracked_target`], else the
 /// valve's own; `None` when neither has one.
 pub fn tracked_process_tag(q: &Q, valve: Id<Device>) -> Option<String> {
     let devices = q.devices();

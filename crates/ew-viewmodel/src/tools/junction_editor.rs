@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The junction sequence editor (WP-S2.04 §8.5, FR-CON-005): a popup of the tool host over one junction of the
+//! The junction sequence editor (FR-CON-005): a popup of the tool host over one junction of the
 //! focused page, showing its style (`dot`, or `bevel` with its orientation), its wiring (`star` or `chain`, stored or
 //! the style's default), its sequence as rows named by each member's far endpoint (doc 06 §3.5) and below them the
 //! physical wires through it (`Session::junction_wires`). Every change commits `junction.edit` at once (one undo
@@ -51,7 +51,7 @@ pub struct JunctionEditor {
 /// The name of junction `j` in the transcript and the describe text: the frame cell it lies in, with `#n` when the
 /// cell holds several junctions (`C11#2`), numbered by position (y, then x; ties by ID). Not by ID alone: the IDs one
 /// transaction mints are not in creation order (UUIDv7's random bits within one timestamp), so two runs of one script
-/// could swap the numbers (ID-474's byte equality). No UUID (`@n` comes with FT-422).
+/// could swap the numbers (ID-474's byte equality). No UUID (`@n` comes).
 pub fn junction_name(tables: &PageTables, j: EntityRef, cell_of: &dyn Fn((i64, i64)) -> String) -> String {
     let Some(row) = tables.junctions.iter().find(|x| x.id == j.0) else {
         return String::new();

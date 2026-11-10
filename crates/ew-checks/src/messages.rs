@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rule messages in Fluent (doc 15 §3.8; WP-S1.16 D6; ADR-0019 as amended, ADR-0024 for the dependency).
+//! The rule messages in Fluent (doc 15 §3.8; ADR-0019 as amended, ADR-0024 for the dependency).
 //!
 //! One resource per language, `messages/<lang>/rules.ftl`, compiled into the binary. Every registered rule has the
 //! message `rule-<id lower case>` (Fluent identifiers hold no dots) with the attributes `.title` and `.hint`; a rule
@@ -62,7 +62,7 @@ fn bundle(lang: &str) -> Option<&'static Bundle> {
                 let id: unic_langid::LanguageIdentifier = tag.parse().unwrap_or_default();
                 let mut b = Bundle::new_concurrent(vec![id]);
                 b.set_use_isolating(false);
-                // NUMBER(…, type: "ordinal") of a pin's position (FT-756)
+                // NUMBER(…, type: "ordinal") of a pin's position
                 let _ = b.add_builtins();
                 let resource = match FluentResource::try_new((*source).to_owned()) {
                     Ok(r) => r,
@@ -94,8 +94,8 @@ pub fn resource_errors() -> Vec<(&'static str, String)> {
 /// The arguments a pattern reads as numbers (an ordinal through `NUMBER(…, type: "ordinal")`, FT-756).
 const NUMBER_ARGS: &[&str] = &["cp_nth"];
 
-/// The decimal arguments of a rule, by rule ID (ID-1417): written with the decimal separator of the language
-/// ([`DECIMAL_COMMA`]). EW-POT-006's cross-sections in mm²; EW-LAY-010's lengths in mm (FT-1496), its point lists
+/// The decimal arguments of a rule, by rule ID: written with the decimal separator of the language
+/// ([`DECIMAL_COMMA`]). EW-POT-006's cross-sections in mm²; EW-LAY-010's lengths in mm, its point lists
 /// (`rail`, `at`) keeping their notation.
 const DECIMAL_ARGS: &[(&str, &[&str])] = &[
     (crate::rules::pot::PE_UNDERSIZED.id, &["pe", "required", "line"]),
@@ -154,7 +154,7 @@ pub fn format(f: &Finding, lang: &str) -> Option<String> {
             }
         }
     }
-    // FT-1370: EW-POT-001's conflicts, each worded by its attribute of the rule's message where every one has a shape
+    // EW-POT-001's conflicts, each worded by its attribute of the rule's message where every one has a shape
     // and an attribute, else the en-GB `conflicts`.
     if f.rule == crate::rules::pot::TYPE_OR_VOLTAGE_CONFLICT.id
         && let Some((_, list)) = f.args.iter().find(|(k, _)| *k == "conflict_list")
@@ -223,7 +223,7 @@ pub fn has(rule: &str, name: Option<&str>, lang: &str) -> bool {
     }
 }
 
-/// A quick fix's label in `lang` (FT-1482): its key's message of that language, falling back to en-GB's, and to the
+/// A quick fix's label in `lang`: its key's message of that language, falling back to en-GB's, and to the
 /// English label for a fix without a key (an importer's).
 pub fn fix_label(fix: &crate::finding::QuickFix, lang: &str) -> String {
     let lookup = |tag: &str| -> Option<String> {

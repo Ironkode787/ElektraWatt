@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The app menu (WP-S2.17 part 2, doc 16a §9.2; WP-S2.01 part 1 built the menu bar it replaces), drawn with egui on
+//! The app menu (doc 16a §9.2; built the menu bar it replaces), drawn with egui on
 //! every operating system (native menus are FT-310): one button of the command bar opens the full tree, File, Edit,
 //! the six tabs' menus with their groups, Window and Help, generated from the action registry by
 //! `ew_viewmodel::actions::menu_model`. Each entry shows its accelerator, is greyed when disabled and gives its
-//! reason as the tooltip; a click is an [`Event::Action`]. Rows follow doc 16a §6.13 (WP-S2.17 part 4). An enabled entry with a documentation topic ends its
+//! reason as the tooltip; a click is an [`Event::Action`]. Rows follow doc 16a §6.13. An enabled entry with a documentation topic ends its
 //! tooltip with "F1: learn more", and F1 while the pointer is on it opens that topic (FR-UI-031).
 
 use egui::{Button, Key, Modifiers, Ui};
@@ -24,7 +24,7 @@ use crate::keys;
 /// The style of the app menu and its submenus (doc 16a §6.13): egui's menu style with a visible 1-px
 /// `color.border.default` container border on `elevation.1`, and `space.3` side padding in the rows, so with the
 /// menu's `space.2` margin a label, a key or a long disabled item ends `space.4` from the menu's edge, the row padding
-/// of doc 16a §4.9 (FT-567; `space.2` alone left the longest item 8 px from the edge).
+/// of doc 16a §4.9 (`space.2` alone left the longest item 8 px from the edge).
 pub(crate) fn menu_style(t: &crate::theme::Tokens) -> egui::style::StyleModifier {
     let (border, side) = (crate::theme::stroke(t.border_width, t.border_default), t.space_3);
     egui::style::StyleModifier::new(move |style: &mut egui::Style| {
@@ -42,7 +42,7 @@ pub(crate) fn menu_config(t: &crate::theme::Tokens) -> egui::containers::menu::M
         .submenu_gap(t.space_1)
 }
 
-/// One menu item (WP-S2.17 part 4, doc 16a §6.13): a row of `size.row` with a 16-px icon column (the action's icon,
+/// One menu item (doc 16a §6.13): a row of `size.row` with a 16-px icon column (the action's icon,
 /// a check icon when checked, else empty so the labels align), the label, and the key in `color.text.secondary`
 /// right-aligned; hover uses the hover overlay, never the accent. Disabled with its reason as the tooltip.
 pub(crate) fn item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
@@ -50,7 +50,7 @@ pub(crate) fn item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
 }
 
 /// [`item`], with the action's icon in the icon column only when `icons`; else the column holds the check alone, blank
-/// when the item is off (FT-1520, ID-1456: View ▸ Show's switches).
+/// when the item is off (View ▸ Show's switches).
 fn item_in(ui: &mut Ui, item: &ActionItem, icons: bool, events: &mut Vec<Event>) {
     let t = crate::theme::current(ui.ctx());
     let icon = if item.checked {
@@ -92,7 +92,7 @@ fn item_in(ui: &mut Ui, item: &ActionItem, icons: bool, events: &mut Vec<Event>)
     });
     let mut response = response.inner;
     if let Some(reason) = &item.reason {
-        // FT-759: beside the entry, so that the reason never covers the next entry.
+        // Beside the entry, so that the reason never covers the next entry.
         response = response.disabled_tip_beside(reason.as_str());
     } else if item.topic.is_some() {
         response = response.tip(strings::text(key!("tooltip-learn-more")));
@@ -116,7 +116,7 @@ fn blank_column(ui: &Ui) -> egui::Atom<'static> {
 }
 
 /// The entries of a menu: items, separators, submenus and the command-bar groups shown as submenus. The items show
-/// their actions' icons when `icons` (all but View ▸ Show's switches, FT-1520).
+/// their actions' icons when `icons` (all but View ▸ Show's switches).
 fn entries(ui: &mut Ui, list: &[MenuEntry], icons: bool, events: &mut Vec<Event>) {
     for entry in list {
         match entry {
@@ -174,7 +174,7 @@ mod tests {
         }
     }
 
-    /// FT-759: a disabled entry's reason stands beside the entry, never over the entry below it.
+    /// A disabled entry's reason stands beside the entry, never over the entry below it.
     #[test]
     fn a_disabled_entry_s_reason_does_not_cover_the_next_entry() {
         let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);

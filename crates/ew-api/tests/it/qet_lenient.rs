@@ -646,7 +646,7 @@ fn unlabelled_elements_are_reported_with_their_own_code() {
         &[folio("1", "A", vec![el(SIMPLE, uuid(1), 100, 100).prefix("K")])],
     );
     let imported = import(&text);
-    // ID-1376: the text says what the import does: the tag is numbered, it does not print `?`.
+    // The text says what the import does: the tag is numbered, it does not print `?`.
     assert_eq!(
         entries(&imported, "EW-IMP-122"),
         [
@@ -663,7 +663,7 @@ fn unlabelled_elements_are_reported_with_their_own_code() {
     let devs = devices(&imported);
     assert_eq!(devs.len(), 1);
     assert_eq!(devs[0].tag.letter.as_str(), "K");
-    // FT-1390: two read in the plural.
+    // Two read in the plural.
     let text = qet(
         r#"version="0.100""#,
         &[folio(
@@ -770,7 +770,7 @@ fn duplicate_printed_tags_are_lenient_findings() {
     assert_eq!(group.count, 1, "{:?}", group.messages);
 }
 
-/// WP-S3.09 D1: an entry about an emitted record names it as its target: a frozen tag, a label kept as text and a slave
+/// An entry about an emitted record names it as its target: a frozen tag, a label kept as text and a slave
 /// without master their device, a repeated folio its page; an entry about dropped content names none.
 #[test]
 fn entries_about_emitted_records_name_them() {
@@ -828,7 +828,7 @@ fn entries_about_emitted_records_name_them() {
     );
 }
 
-/// ID-1392 (FT-1386): EW-IMP-103's label kept as a frozen tag offers the deterministic remedy as its quick fix,
+/// EW-IMP-103's label kept as a frozen tag offers the deterministic remedy as its quick fix,
 /// Unfreeze (`fields.set` of `tag.frozen` to null); running it unfreezes the tag, and the finding then offers none.
 #[test]
 fn a_label_kept_as_a_frozen_tag_offers_unfreeze() {

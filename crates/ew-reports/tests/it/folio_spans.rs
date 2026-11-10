@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `render::folios_spans` (WP-S3.06 D10, ruling 1): the printed Folios text and the byte span of each page in it,
+//! `render::folios_spans`: the printed Folios text and the byte span of each page in it,
 //! the one function the printer and the link boxes read.
 
 use ew_reports::render::folios_spans;

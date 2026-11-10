@@ -132,7 +132,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_dwell(p),
         ))),
     ))),
-    // FT-720: a script step that expects its inner step to be refused, so a refusal's window state can be framed.
+    // A script step that expects its inner step to be refused, so a refusal's window state can be framed.
     with_params(
         "action:text, params?:json",
         headless(act(
@@ -145,7 +145,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_script_expect_refused(p),
         )),
     ),
-    // FT-1409: a script step that expects its inner step to fail, so a failure's window state (a form's error) can be
+    // A script step that expects its inner step to fail, so a failure's window state (a form's error) can be
     // framed.
     with_params(
         "action:text, params?:json",
@@ -363,7 +363,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             }),
         ))),
     )),
-    // WP-S2.06 part 1: the navigator framework (§6.9).
+    // The navigator framework (§6.9).
     keeps_banner(with_params(
         "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks|unplaced|macros|libraries|messages), on?:bool",
         needs_parameters(placed(
@@ -493,7 +493,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_macros_value_set(p),
         )),
     ),
-    // FT-785: an ad-hoc value of the macro card's variable `name` (empty or absent `value`: none).
+    // An ad-hoc value of the macro card's variable `name` (empty or absent `value`: none).
     with_params(
         "name:text, value?:text",
         hidden(act(
@@ -649,7 +649,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_pages_move(false),
         ),
     )),
-    // WP-S2.06 part 2: potential and net highlighting (§7.4).
+    // Potential and net highlighting (§7.4).
     keeps_banner(with_params(
         "kind?:text, key?:text, off?:bool",
         in_navigator(placed(
@@ -679,7 +679,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_clear_highlights(),
         ),
     )),
-    // WP-S2.06 part 3: table mode (§8.8).
+    // Table mode (§8.8).
     keeps_banner(with_params(
         "kind:text, on?:bool",
         hidden(act(
@@ -692,7 +692,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_navigator_table(p),
         )),
     )),
-    // WP-S3.08 part 3 (D14, ruling 2 of ID-1224): the table on show to a file as a job, and a round trip's file back
+    // The table on show to a file as a job, and a round trip's file back
     // through the Preview tab; in the table's Columns menu and the Output menu.
     with_params(
         "path?:path, format?:enum(xlsx|csv), preset?:text, replace?:bool, wait?:bool",

@@ -5,7 +5,7 @@
 //! selection and four highlights, a measurement and a Place ghost, blessed under `tests/expected/canvas/` and equal
 //! across two runs (OV5); the selection's 2-pixel outline, white casing and four 8-pixel handles probed in the
 //! snapshot (OV6); the pick stack's hover outline and the walk (OV7); in the window, the highlight name chip's model
-//! values (OV6), the link preview's accessible node (OV4, FT-390) and the chrome obstacles the chips keep off (OV2,
+//! values (OV6), the link preview's accessible node (OV4) and the chrome obstacles the chips keep off (OV2,
 //! FT-508).
 //!
 //! `EW_BLESS=1` writes the blessed images. They are compared pixel by pixel with a channel tolerance of 4 and at most
@@ -200,10 +200,10 @@ fn gate(name: &str, image: &RgbaImage) {
     }
 }
 
-/// FT-1254: the differing pixels a 32 × 32 tile of a snapshot may hold.
+/// The differing pixels a 32 × 32 tile of a snapshot may hold.
 const TILE_PIXELS: usize = 16;
 
-/// FT-1254: the first 32 × 32 tile (x, y, count) of an image `w` pixels wide that holds more than [`TILE_PIXELS`]
+/// The first 32 × 32 tile (x, y, count) of an image `w` pixels wide that holds more than [`TILE_PIXELS`]
 /// differing pixels: the differences may be scattered edge pixels, never a drawn thing, so a short tag that appears
 /// or goes (59 pixels of "1X1") fails although the whole image allows more. FT-1350: the tiles overlap by half (one
 /// every 16 pixels), so a tag up to 16 pixels across lies whole in one of them wherever it stands.
@@ -220,7 +220,7 @@ fn crowded_tile(differs: &[bool], w: usize) -> Option<(usize, usize, usize)> {
     })
 }
 
-/// FT-1254: an 8 × 8 block (a short tag) is a crowded tile, 16 scattered pixels are not; FT-1350: so is one that
+/// An 8 × 8 block (a short tag) is a crowded tile, 16 scattered pixels are not; FT-1350: so is one that
 /// straddles the corner of four tiles, 4 × 4 pixels in each.
 #[test]
 fn ov5_a_short_tag_is_a_crowded_tile() {
@@ -754,7 +754,7 @@ fn ov2_the_chips_keep_off_the_hud_and_the_zoom_control() {
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     settle(&mut h);
     let (w, hh) = h.state().shell().canvas().unwrap().sheet();
-    // FT-538: points are mapped with the transform the last frame drew (and placed the chips) with, the settled one
+    // Points are mapped with the transform the last frame drew (and placed the chips) with, the settled one
     // once the view rests, not the model's exact zoom, which differs by a few points away from the pane's centre
     // (as the tools tests since fc1fbd97); whether the view has rested then depends on how many frames ran.
     let drawn = |h: &mut Harness<'_, App>| {
@@ -834,7 +834,6 @@ fn ov2_the_chips_keep_off_the_hud_and_the_zoom_control() {
     h.state_mut().shell_mut().shutdown();
 }
 
-// FT-705
 /// The free connection points of Golden A's first multi-line page that has some (spare terminals are unwired by
 /// design) marked open in the canvas snapshot at 100 % (a hollow square in `canvas.open_cp`, a neutral grey, FX38a:
 /// its corners grey, no accent on the plain page), none at

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `rep.exchange_symbol` (`ExchangeSymbol`, FR-SYM-022, WP-S2.04 §5.1): the symbol of a placed representation
+//! `rep.exchange_symbol` (`ExchangeSymbol`, FR-SYM-022): the symbol of a placed representation
 //! exchanged, its function and connections kept.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -39,7 +39,7 @@ pub struct ExchangePin {
 /// `rep.exchange_symbol` (`ExchangeSymbol`, FR-SYM-022): the representation's `symbol` becomes `symbol`, `variant` 0,
 /// its orientation, position and functions kept.
 ///
-/// - **`copies`** (FT-673): library documents (`lib/` JSON form) embedded first, in the same transaction, as
+/// - **`copies`**: library documents (`lib/` JSON form) embedded first, in the same transaction, as
 ///   `device.place` embeds its `copies` (each checked as `library.embed` checks it, at `/copies/i`; a copy the project
 ///   holds with the same hash skipped, one held with another hash refused), so an exchange to a symbol from a library
 ///   is one undo step and replays without a library.
@@ -72,7 +72,7 @@ pub struct ExchangeSymbol {
     /// An explicit CP map; absent derives it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pin_map: Option<Vec<ExchangePin>>,
-    /// The library documents to embed with the exchange (`lib/` JSON form; FT-673): the new symbol and its FnDef as
+    /// The library documents to embed with the exchange (`lib/` JSON form): the new symbol and its FnDef as
     /// the caller resolved them; empty when the project holds them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
@@ -86,7 +86,7 @@ fn fold(s: &str) -> String {
 /// `(symbol CP, function CP)` pairs of a derived CP map.
 pub type PinPairs = Vec<(u16, u16)>;
 
-/// The CP map `rep.exchange_symbol` derives without `pin_map` (FT-424), as a pure function of the CPs:
+/// The CP map `rep.exchange_symbol` derives without `pin_map`, as a pure function of the CPs:
 ///
 /// - `function_cps`: the function's CPs, `(index, designation)`;
 /// - `same_def`: whether the new symbol's FnDef is the function's definition;
@@ -128,7 +128,7 @@ impl Command for ExchangeSymbol {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        // FT-673: the copies first, so that the new symbol and its FnDef resolve below.
+        // The copies first, so that the new symbol and its FnDef resolve below.
         embed_closure(Self::NAME, tx, &self.copies)?;
         let old = tx.require::<Representation>(self.rep)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;

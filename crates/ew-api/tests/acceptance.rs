@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The acceptance runner (WP-S6.01, WP-S7.01; doc 20 §21, §22; doc 18 §3.10) for gate M1, headless.
+//! The acceptance runner (doc 20 §21, §22; doc 18 §3.10) for gate M1, headless.
 //!
 //! It opens the golden project with the oracle on and evaluates AC-01 … AC-14, AC-18, AC-20, AC-37's SVG half and
 //! the §19 rows gated M1 (`acceptance/checks.rs`), each as a named entry that passes, fails or is not applicable with a
@@ -9,15 +9,15 @@
 //! `tests/page_output.rs` and `tests/connectivity_reports.rs` (text CSV, frame geometry, PNG, PDF structure and
 //! SHA-256, report rows); they live in `tests/page_output/` and `tests/golden_common/` and are included here.
 //!
-//! The page output is the product's since cycle 15 (FT-59): the views, the per-layer page display lists and the
+//! The page output is the product's since cycle 15: the views, the per-layer page display lists and the
 //! PDF and SVG export are the session's export job (`ew_api::output`), which AC-13, AC-14, AC-15 and AC-17 run.
 //! The runner stays in this test crate for its shared helpers (`tests/page_output/`, `tests/golden_common/`); it
-//! moves to `ew-testkit` (`ew-testkit accept --gate`) with the golden builders (WP-S6.01).
+//! moves to `ew-testkit` (`ew-testkit accept --gate`) with the golden builders.
 //!
 //! - `cargo xtask acceptance <report.md>` runs the gate: the `#[ignore]`d test `gate` writes the report and
 //!   fails when any entry fails or is not built (exit status non-zero).
 //! - The ordinary tests run the runner without the raster comparison and the measurements, in the three shards of
-//!   [`HEADLESS_SHARDS`] that nextest runs in parallel (cycle 32), and compare each shard's rows with the
+//!   [`HEADLESS_SHARDS`] that nextest runs in parallel, and compare each shard's rows with the
 //!   committed `expected/acceptance_headless.md`; a fourth test shows that the shards evaluate every row of the
 //!   report once and that the committed summary line follows from the committed rows. They keep `expected/csv/`
 //!   equal to the derived rows.

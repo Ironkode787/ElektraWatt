@@ -173,7 +173,7 @@ fn im1_an_unknown_hash_is_refused() {
     let ids = ids_by_key(&batch);
     let page = ids["pages|101"].clone();
     let mut s = session(&batch);
-    // The golden project holds page items of its own (folio 902's surface view, WP-S4.01 part 3).
+    // The golden project holds page items of its own (folio 902's surface view).
     let before = s.query().page_items().ids().count();
     let unknown = ew_api::Sha256([0x5a; 32]).to_string();
     let err = place(&mut s, &page, &unknown).unwrap_err().to_string();

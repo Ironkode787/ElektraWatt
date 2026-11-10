@@ -3,7 +3,7 @@
 
 //! The colour and size profile shims of the wire-property chain (doc 03 §5.1, doc 08 §4.2).
 //!
-//! Until `ew-schema` types `ProjectSettings.colour_profile`, `.size_profile` and `.wire_default` (WP-S3.03),
+//! Until `ew-schema` types `ProjectSettings.colour_profile`, `.size_profile` and `.wire_default`,
 //! they are read from `ProjectSettings.extra` with the JSON shapes of doc 03 §5.1 (record spellings:
 //! `l_plus`, `dc`; `Dec3` and `Csa` as strings; `ColourSpec` as an array). A member that is present but does
 //! not parse is noted ([`DeriveNote::MalformedShim`]) and treated as absent; an absent colour or size profile

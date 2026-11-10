@@ -115,7 +115,7 @@ impl Query for BlockPages {
 
 /// The page-title format with `{strip}` and `{device}` resolved: the short tag of the first device of the block's
 /// manual selection (the first strip for `{strip}`), so that renaming or renumbering the device renames the pages
-/// ("Terminal Diagram {strip}"; ruling of cycle 14). A placeholder without such a device stays as written.
+/// ("Terminal Diagram {strip}"). A placeholder without such a device stays as written.
 fn resolve_title(
     q: &Q,
     block: &ReportBlock,
@@ -220,7 +220,7 @@ pub fn rows_of(q: &Q, block: Id<ReportBlock>) -> Arc<RowSet> {
     q.get::<BlockRows>(block)
 }
 
-/// The rows of the built-in report kind `kind` for the whole project (WP-S2.06 §4.2, D3): the rows a block of that kind
+/// The rows of the built-in report kind `kind` for the whole project (D3): the rows a block of that kind
 /// would list with no manual selection, no filter, no sort keys, no grouping and no page limits, in the kind's default
 /// order; for `terminal_diagram` the rows of the strip `include`. The navigators read their tables from it, so a
 /// printed list and its navigator never disagree.

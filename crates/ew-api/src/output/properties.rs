@@ -1,17 +1,17 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property sheet (WP-S2.05 part 1, spec §6.2 to §6.4, §6.8; D8, D9, D10, D15): what the property grid shows for
+//! The property sheet (spec §6.2 to §6.4, §6.8; D8, D9, D10, D15): what the property grid shows for
 //! a set of records — the sections every record reaches, each field's value over the section's targets with its
 //! provenance and actions, and the closed list of derived rows with their authored partners.
 //!
 //! **Sections** (D8). A representation reaches its functions and their devices, a function its device; a section is
 //! shown when every selected record reaches it, its targets the union of the records reached, in label order
-//! ([`order_records`], FT-439: never by ID alone). Section order: device, function, representation, connection,
+//! ([`order_records`], never by ID alone). Section order: device, function, representation, connection,
 //! junction, page, then the other kinds by rank.
 //!
 //! **Values** (§6.3). Equal canonical JSON on every target is one value; else `‹varies›` with the distinct count and
-//! up to eight texts in the natural order of the texts (FT-439: a link lists records by label, not by UUID). A list's items are rows only when the list is equal on every
+//! up to eight texts in the natural order of the texts (a link lists records by label, not by UUID). A list's items are rows only when the list is equal on every
 //! target; a device aspect's members only when every target has the aspect.
 //!
 //! **Derived rows** (§6.4) come first in their category, each with the authored path its actions write.
@@ -100,7 +100,7 @@ pub struct FindingChip {
 pub struct SheetSection {
     /// The record kind.
     pub kind: String,
-    /// The records, in label order (FT-439): the printed label, then the place, the ID only as the last key.
+    /// The records, in label order: the printed label, then the place, the ID only as the last key.
     pub targets: Vec<Uuid>,
     /// The rows.
     pub rows: Vec<PropRow>,
@@ -146,7 +146,7 @@ pub enum RowValue {
     Varies {
         /// The number of distinct values.
         count: usize,
-        /// Up to eight of their texts, in natural order of the text (then its bytes, then the JSON; FT-439).
+        /// Up to eight of their texts, in natural order of the text (then its bytes, then the JSON).
         texts: Vec<String>,
     },
     /// Not stored on any target (the schema default applies).
@@ -185,8 +185,8 @@ pub enum Provenance {
     },
     /// On a generated page.
     Generated {
-        /// The generated page's derived title ("Wire List 1", FT-1282), else its report block's title; the member keeps
-        /// its name (FT-1349).
+        /// The generated page's derived title ("Wire List 1"), else its report block's title; the member keeps
+        /// its name.
         block: String,
     },
     /// Different on the targets.
@@ -269,7 +269,7 @@ fn lookup(q: &Q, id: Uuid) -> Option<(Kind, Value)> {
         DeviceLink => DeviceLink,
         ReportBlock => ReportBlock,
         Revision => Revision,
-        // WP-S4.02 part 4 (D12): the layout records' sheets.
+        // The layout records' sheets.
         Placement => ew_schema::Placement,
         Carrier => ew_schema::Carrier,
         MountingSurface => ew_schema::MountingSurface,
@@ -337,7 +337,7 @@ pub(crate) fn json_at<'v>(root: &'v Value, path: &str) -> Option<&'v Value> {
 pub(crate) struct SheetCx<'q> {
     q: &'q Q,
     source: Option<String>,
-    /// The system libraries' parts the project does not hold, listed after its copies (the Parts row, WP-S2.18 D6).
+    /// The system libraries' parts the project does not hold, listed after its copies (the Parts row).
     library: Vec<super::fields::PartCopyText>,
 }
 
@@ -351,7 +351,7 @@ impl<'q> SheetCx<'q> {
         }
     }
 
-    /// The context with the system libraries' parts that `q` does not hold among the part copies (WP-S2.18 D6).
+    /// The context with the system libraries' parts that `q` does not hold among the part copies.
     fn with_library_parts(mut self, session: &crate::Session) -> SheetCx<'q> {
         self.library = session
             .library_parts()
@@ -527,7 +527,7 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
             format!("{folio} {title}").trim().to_owned()
         }
         Kind::StructureNode => SheetCx::new(q).node_path(Id::from_uuid(id)).unwrap_or_default(),
-        // FT-1319 (ID-1357 ruling 2): a fluid line has no wire number; it is named by its line kind ("drain line").
+        // A fluid line has no wire number; it is named by its line kind ("drain line").
         Kind::Connection => match json.pointer("/kind/fluid") {
             Some(fluid) => format!(
                 "{} line",
@@ -538,9 +538,9 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
             ),
             None => wire_number_text(q, Id::from_uuid(id)),
         },
-        // WP-S4.02 part 4 (D12): a layout record by its device's tag, its label or its words.
+        // A layout record by its device's tag, its label or its words.
         k if super::layout_edit::LAYOUT_KINDS.contains(&k) => super::layout_edit::layout_title(q, k, id)?,
-        // FT-1076 (ID-1182): an external reference has no name; it reads as the IP tool prints it, `<device>:<connection>`
+        // An external reference has no name; it reads as the IP tool prints it, `<device>:<connection>`
         // (the device alone without a connection).
         Kind::ExternalRef => {
             let part = |member: &str| json.get(member).and_then(Value::as_str).filter(|s| !s.is_empty());
@@ -621,7 +621,7 @@ fn tag_provenance(q: &Q, device: Id<Device>, tag: Option<&ew_derive::Tag>) -> Pr
 /// The `via` of the main-location row: the main representation's folio and anchor cell.
 const MAIN_LOCATION_VIA: &str = "main representation";
 
-/// The property sheet's texts that `ew query` shares (WP-S1.22 D11, D12): the provenance of a row the query backs and
+/// The property sheet's texts that `ew query` shares: the provenance of a row the query backs and
 /// a record's title.
 impl Session {
     /// The provenance of `device`'s tag row, as the property sheet shows it.
@@ -646,7 +646,7 @@ impl Session {
         prop_via(q, source, potential, class)
     }
 
-    /// A member value of a re-import's conflict row in words (ID-1392, FT-1387): as the property grid shows the
+    /// A member value of a re-import's conflict row in words: as the property grid shows the
     /// member `path` of a `kind` record (a link by its record's title, a quantity with its unit), `-` for an absent
     /// value, a record ID by the record's title, and any other member the grid does not list by
     /// [`ew_commands::commands::member_text`].
@@ -694,9 +694,9 @@ pub(super) fn device_tag_text(q: &Q, device: Id<Device>) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The selection's live description (WP-S2.08 D13)
+// The selection's live description
 
-/// What the canvas's live region says of one selected record (WP-S2.08 D13, NFR-A11Y-02), as values: the shell words
+/// What the canvas's live region says of one selected record (NFR-A11Y-02), as values: the shell words
 /// them in the UI language.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum SelectionWords {
@@ -704,7 +704,7 @@ pub enum SelectionWords {
     Device {
         /// The printed tag: as displayed on its main page, else the short tag.
         tag: String,
-        /// The kind of its main function as the navigators print it (the FnDef's category, FT-670); `None` without a
+        /// The kind of its main function as the navigators print it (the FnDef's category); `None` without a
         /// main function or without a copy of its FnDef.
         kind: Option<String>,
         /// The folio of its main representation; `None` while the device is not placed.
@@ -732,21 +732,21 @@ pub enum SelectionWords {
         /// The printed text of a free text or a wire marker.
         text: Option<String>,
     },
-    /// A junction (FT-1248).
+    /// A junction.
     Junction {
         /// The folio of its page.
         folio: Option<String>,
         /// The connections that meet at it.
         wires: usize,
     },
-    /// A representation of an interruption point (FT-1248).
+    /// A representation of an interruption point.
     InterruptionPoint {
         /// Its pairing name.
         name: String,
         /// The folio of its page.
         folio: Option<String>,
     },
-    /// A structure box (FT-1248).
+    /// A structure box.
     StructureBox {
         /// Its caption in the project's source language; `None` without one.
         caption: Option<String>,
@@ -755,7 +755,7 @@ pub enum SelectionWords {
     },
 }
 
-/// One end of a selected wire in the live description (FT-1250).
+/// One end of a selected wire in the live description.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum WireEnd {
     /// A connection point with its printed label (`-102F1:2`).
@@ -769,9 +769,9 @@ pub enum WireEnd {
 }
 
 impl Session {
-    /// The live description's values of the record `id` in the current snapshot (WP-S2.08 D13): a device (or a
+    /// The live description's values of the record `id` in the current snapshot: a device (or a
     /// function or representation of exactly one device), a connection, a page item, a junction, an interruption
-    /// point's representation or a structure box (FT-1248); `None` for any other record and for an unknown ID.
+    /// point's representation or a structure box; `None` for any other record and for an unknown ID.
     pub fn selection_words(&self, id: Uuid) -> Option<SelectionWords> {
         selection_words(&self.query(), id)
     }
@@ -847,7 +847,7 @@ fn selection_words(q: &Q, id: Uuid) -> Option<SelectionWords> {
         }
     }
     let device = selected_device(q, id)?;
-    // FT-1249 (ID-1315 ruling 4): the category's text, else the FnDef's key; neither gives `None` ("Device").
+    // The category's text, else the FnDef's key; neither gives `None` ("Device").
     let kind = (*q.get::<ew_derive::MainFunction>(device))
         .and_then(|f| q.functions().get(f))
         .and_then(|f| super::navigators::function_kind_or_key(q, f));
@@ -895,7 +895,7 @@ fn selected_device(q: &Q, id: Uuid) -> Option<Id<Device>> {
 type Wire = (Id<Connection>, ew_derive::EffectiveProps);
 
 /// The physical wires of a connection, `(carrier, effective properties)`, in the order of their printed wire numbers
-/// (natural order; an unnumbered wire after the numbered ones), ties by carrier ID (FT-439): the "first wire" whose
+/// (natural order; an unnumbered wire after the numbered ones), ties by carrier ID: the "first wire" whose
 /// number and properties the sheet prints is one a person can see, never the smallest of IDs one transaction minted.
 fn wires_of(q: &Q, conn: Id<Connection>) -> Vec<Wire> {
     let numbers = q.get::<WireNumbers>(());
@@ -908,7 +908,7 @@ fn wires_of(q: &Q, conn: Id<Connection>) -> Vec<Wire> {
     wires.into_iter().map(|(_, w)| w).collect()
 }
 
-// WP-S2.08 part 6 (D18, C49-p8#1)
+// WP-S2.08 part 6 (D18)
 /// A company colour code the project's colour profile declares (FR-CON-019): its IEC 60757 base and its shade.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CompanyColour {
@@ -920,7 +920,7 @@ pub struct CompanyColour {
     pub shade: Option<String>,
 }
 
-/// What the wire-colour view reads (WP-S2.08 D18): the effective colour of each connection asked for, as its codes,
+/// What the wire-colour view reads: the effective colour of each connection asked for, as its codes,
 /// and the company codes of the colour profile.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct WireColours {
@@ -1004,7 +1004,7 @@ fn wire_number(q: &Q, conn: Id<Connection>) -> Option<String> {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The order of records in shell output (FT-439, decision log ID-640)
+// The order of records in shell output
 
 /// A record's place: the position of its page in the page order, then y, then x (page nm, y down); `None` for a
 /// record drawn nowhere.
@@ -1099,7 +1099,7 @@ pub(crate) fn order_key(q: &Q, kind: Kind, id: Uuid, source: Option<&str>) -> (S
     }
 }
 
-/// `ids` (records of `kind`) in the order shell output lists records (FT-439, decision log ID-640): by the printed
+/// `ids` (records of `kind`) in the order shell output lists records: by the printed
 /// label in natural order (a device's tag, a function's or representation's first connection point, a connection's
 /// wire number, a page's folio and title, a node's path, else a name), then by place (page order, then y, then x; a
 /// record drawn nowhere after the drawn ones), and by ID only as the last key. Never by ID alone: the IDs one
@@ -1136,7 +1136,7 @@ struct Picked {
     page_title: Option<String>,
 }
 
-/// WP-S2.07 D13: for devices that all have the terminal aspect, the rows "Printed label" (the `function_text` row
+/// For devices that all have the terminal aspect, the rows "Printed label" (the `function_text` row
 /// under its own key, its route unchanged) and "Group" (the label of the strip group covering each terminal, edited
 /// through `Session::strip_edit`), inserted after the Designation row of the Terminal section.
 fn terminal_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<Built>) {
@@ -1236,7 +1236,7 @@ fn row_value(cx: &SheetCx<'_>, ty: &FieldType, values: &[Option<&Value>]) -> Row
         return RowValue::One { json, text };
     }
     // The texts in the order a person reads them (natural order of the text, then its bytes, then the JSON), so a
-    // link's value lists records by label, never by the UUIDs it holds (FT-439).
+    // link's value lists records by label, never by the UUIDs it holds.
     let mut texts: Vec<(String, &String)> = distinct
         .iter()
         .map(|(json, v)| (v.map_or_else(String::new, |x| format_with(cx, ty, x)), json))
@@ -1405,7 +1405,7 @@ impl SectionCx<'_, '_> {
     }
 }
 
-/// The `template_entry` row of a function section (FT-670): read-only, labelled "Part function", its value the
+/// The `template_entry` row of a function section: read-only, labelled "Part function", its value the
 /// template entry's function and designations as the part names them (`NO contact 13-14`), never the bare index;
 /// removed when no target records the member or its entry does not resolve.
 fn part_function_row(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<Built>) {
@@ -1434,10 +1434,10 @@ fn part_function_row(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<
     row.actions = Vec::new();
 }
 
-/// FT-1448 (ID-1397): a configuration project's address profile is a choice of the profiles at hand (the built-ins and
+/// A configuration project's address profile is a choice of the profiles at hand (the built-ins and
 /// the project's copies, WP-S7.03 D8) by their references, which `plc.set_profile` pins through
 /// [`Session::layout_edit`].
-/// FT-1491 (ID-1456): the row's text is the chosen profile's name, its value the reference.
+/// The row's text is the chosen profile's name, its value the reference.
 fn profile_chooser(q: &Q, built: &mut [Built]) {
     let copies = q.plc_profiles();
     let at_hand = ew_derive::profiles_at_hand(copies.iter().map(|(_, c)| &**c));
@@ -1618,7 +1618,7 @@ impl Session {
                         .and_then(|g| serde_json::to_value(&g.title).ok())
                         .map(|t| ml_text(&t, source.as_deref()))
                         .unwrap_or_default();
-                    // FT-1282: a generated row's provenance names the page's derived title ("Wire List 1"), not the
+                    // A generated row's provenance names the page's derived title ("Wire List 1"), not the
                     // block's title format ("Wire List {n}").
                     let title = if page_title.is_empty() {
                         ml_text(&serde_json::to_value(&b.title).ok()?, source.as_deref())
@@ -1723,7 +1723,7 @@ impl Session {
             .iter()
             .filter_map(|id| lookup(q, *id).map(|(_, v)| v))
             .collect();
-        // WP-S1.20 D18: a fluid line's line kind is its row `line_kind` (`kind.fluid.line_kind`), shown when every
+        // A fluid line's line kind is its row `line_kind` (`kind.fluid.line_kind`), shown when every
         // target is a fluid line.
         let fluid_lines = kind == Kind::Connection
             && !jsons.is_empty()
@@ -1770,7 +1770,7 @@ impl Session {
             closed,
         };
         let mut built: Vec<Built> = Vec::new();
-        // WP-S4.02 part 4 (D12, FT-839): a layout record shows D12's rows only, each committed by its own command.
+        // A layout record shows D12's rows only, each committed by its own command.
         if let Some(rows) = super::layout_edit::layout_rows(q, kind, &targets) {
             return SheetSection {
                 kind: name.to_owned(),
@@ -1790,8 +1790,8 @@ impl Session {
                 continue;
             }
             listed.push(spec.path.as_str());
-            // WP-S1.20 D18: the line kind is a row of fluid lines only, and on them it stands for the kind's JSON.
-            // FT-1319 (ID-1357 ruling 2): a fluid line shows the fluid rows only, none of a wire's (its number, the
+            // The line kind is a row of fluid lines only, and on them it stands for the kind's JSON.
+            // A fluid line shows the fluid rows only, none of a wire's (its number, the
             // wire overrides; below, the derived wire rows).
             if kind == Kind::Connection
                 && ((spec.path == super::fields::LINE_KIND && !fluid_lines)
@@ -1816,7 +1816,7 @@ impl Session {
         if (generated.is_none() || kind != Kind::ReportBlock) && !fluid_lines {
             built.extend(self.derived_rows(q, cx, kind, &targets, &jsons));
         }
-        // FT-1287 (ID-1315 ruling 3): a generated page shows its Kind, as a drawn page does: the page type `report`.
+        // A generated page shows its Kind, as a drawn page does: the page type `report`.
         if let (Kind::ReportBlock, Some(block)) = (kind, generated) {
             built.push(derived(
                 "report_block",
@@ -1836,7 +1836,7 @@ impl Session {
                 Vec::new(),
             ));
         }
-        // WP-S4.02 part 4 (D12): a panel layout page's Surface view rows.
+        // A panel layout page's Surface view rows.
         if kind == Kind::Page
             && let [page] = targets.as_slice()
         {
@@ -1913,7 +1913,7 @@ impl Session {
                 {
                     *json = Value::String((*product).clone());
                 }
-                // WP-S2.18 D3 (FT-628): one device's Tag field is typed into: an existing device's tag proposes Join,
+                // One device's Tag field is typed into: an existing device's tag proposes Join,
                 // another text freezes the typed tag (the partner write, as Override would).
                 let mut actions = Vec::new();
                 if devices.len() == 1 {
@@ -1977,7 +1977,7 @@ impl Session {
                                     .unwrap_or_default();
                                 Provenance::Inherited { from }
                             }
-                            // WP-S2.04 part 4a: the structure box around the main representation (FR-PRJ-020).
+                            // The structure box around the main representation (FR-PRJ-020).
                             SlotSource::StructureBox => {
                                 inherited = true;
                                 let folio = (*q.get::<MainRep>(*d))
@@ -2030,7 +2030,7 @@ impl Session {
                     provenance,
                     Vec::new(),
                 ));
-                // FT-512: the connection points of the device's functions, one read-only row each with the label
+                // The connection points of the device's functions, one read-only row each with the label
                 // the junction notation prints (`-X1:1/a`, `-102G1:−#1`), in natural order of the label; over several
                 // devices the n-th rows merge.
                 let per_device: Vec<Vec<String>> = devices
@@ -2395,7 +2395,7 @@ impl Session {
             ([one], None) if one.page_title.is_some() => one.page_title.clone().unwrap_or_default(),
             ([one], None) => {
                 let id = one.reach.get(&one.kind).and_then(|s| s.iter().next()).copied();
-                // FT-1127 (ID-1229 item 5): a representation without a device (an interruption point's) is named by
+                // FT-1127 (item 5): a representation without a device (an interruption point's) is named by
                 // its function's kind in the navigators' words ("Interruption point"), not by the raw kind word.
                 let words = match one.reach.get(&Kind::Function) {
                     Some(fs) if one.kind == Kind::Representation && fs.len() == 1 => {
@@ -2427,7 +2427,7 @@ impl Session {
         });
         let subtitle = subtitle.filter(|s| !s.is_empty());
         let location = device.and_then(|d| main_location(q, d));
-        // The open findings of the online scheme (WP-S2.09 §4.2: the project's `active_scheme`, else `drafting`) on the
+        // The open findings of the online scheme (the project's `active_scheme`, else `drafting`) on the
         // sheet's records or pages.
         let mut targets: BTreeSet<Uuid> = BTreeSet::new();
         let mut pages: BTreeSet<Uuid> = BTreeSet::new();
@@ -2440,7 +2440,7 @@ impl Session {
         let mut findings: Vec<(String, String, FindingChip)> = Vec::new();
         let folios = super::navigators::folios(q);
         {
-            // With merge evidence, EW-CORE-013's groups (WP-S1.17 D29).
+            // With merge evidence, EW-CORE-013's groups.
             let report = self.check_over(q, self.online_scheme(), checks::CheckMode::Online);
             for f in report
                 .findings
@@ -2556,7 +2556,7 @@ impl Session {
             // refuses a text that does not parse with the profile's example.
             ("channel", "address") if !t.is_empty() => plain(Value::String(t.to_owned())),
             ("channel", "address") => Some(Err(InputError::Invalid(api_text!("refusal-input-plc-address")))),
-            // `auto`, `excluded`, `tbd` or a start text (`Q10`): `plc.set_start` reads it (WP-S1.21 D8).
+            // `auto`, `excluded`, `tbd` or a start text (`Q10`): `plc.set_start` reads it.
             ("device", "plc_module.start.input" | "plc_module.start.output") if !t.is_empty() => {
                 plain(Value::String(t.to_owned()))
             }
@@ -2592,7 +2592,7 @@ impl Session {
     }
 }
 
-/// A module's slot typed as the PLC grid prints it (WP-S2.07 §8): empty, `auto` or `positional` for the positional
+/// A module's slot typed as the PLC grid prints it: empty, `auto` or `positional` for the positional
 /// slot, a number for that slot in rack 0, `<rack>.<slot>` and `<rack>.<slot>.<subslot>`.
 pub(crate) fn plc_slot_input(t: &str) -> Result<ParsedInput, InputError> {
     let lower = t.to_ascii_lowercase();
@@ -2661,7 +2661,7 @@ fn cable_length_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
     }
 }
 
-/// The frozen tag typed as the page should print it (FT-485 item 2): `S51` freezes the text `S51` with the sign hidden,
+/// The frozen tag typed as the page should print it (item 2): `S51` freezes the text `S51` with the sign hidden,
 /// `-S51` the text `S51` with the sign shown (the default sign, left out of the value); a JSON string (`"S51"`) is read
 /// as its text. An empty text unfreezes (`null`). `None` for a JSON object, which is the field's own form and parsed
 /// as before.
@@ -2719,7 +2719,7 @@ fn row_type(kind: &str, row_path: &str) -> Option<FieldType> {
     if let Some(spec) = spec_of(&catalogue, row_path) {
         return Some(spec.ty.clone());
     }
-    // An unlisted member (a derived row's partner such as `overrides.flags.shielded` is a catalogue node, FT-427).
+    // An unlisted member (a derived row's partner such as `overrides.flags.shielded` is a catalogue node).
     Some(FieldType::Json)
 }
 
@@ -2898,7 +2898,7 @@ mod tests {
         Session::open_read_only(&dir, "ElektraWatt test").unwrap().0
     }
 
-    /// C50-p5#4 (FT-1250): through the model, a wire end of a newer format is unknown, not a junction (before, every end
+    /// Through the model, a wire end of a newer format is unknown, not a junction (before, every end
     /// but a labelled connection point read "a junction"). A connection point with an empty label has no model: the
     /// invariants refuse a dangling function and a function without a device that is no interruption point.
     #[test]

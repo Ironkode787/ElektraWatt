@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The history panel (WP-S2.09 part 3, §8.4, D13; FR-UI-023) and its Show changes popup, in the design language of
-//! doc 16a §6.24 (WP-S2.17 part 3, DK11, DK12; lane K32).
+//! The history panel (D13; FR-UI-023) and its Show changes popup, in the design language of
+//! doc 16a §6.24 (DK11, DK12; lane K32).
 //!
 //! **The panel** lists the shell's history lines newest first ([`ew_viewmodel::undo_history::HistoryPane::lines`]).
 //! The header ("12 steps · cursor at 9", then FT-518's "oldest kept: step `<k>` · `<a>` MB of `<b>` MB") is in
@@ -16,7 +16,7 @@
 //! changes (`list-details`). A marker line is a separator row: its text in `type.small` `color.text.tertiary`, then a
 //! 1-px `color.border.subtle` rule to the row's end. Without steps the panel shows the empty state (doc 16a §6.17).
 //!
-//! **Keys (FT-519).** The panel takes the keyboard focus (Tab, a click on a row): Up and Down move the row cursor
+//! **Keys.** The panel takes the keyboard focus (Tab, a click on a row): Up and Down move the row cursor
 //! (`history.row`), Enter runs Undo to here on it (`history.undo_to`). A row's actions show on the cursor row, on
 //! hover and while one of them has the focus (16a §6.25 follow-up 5); on the other rows they keep their nodes (Tab
 //! still reaches them) but are not painted. A double click on a row is Undo to here.
@@ -49,7 +49,7 @@ fn pane_id() -> egui::Id {
     egui::Id::unique("ew-history-pane")
 }
 
-/// FT-519: the row cursor's keys while the panel has the keyboard focus (called before the frame's other keys):
+/// The row cursor's keys while the panel has the keyboard focus (called before the frame's other keys):
 /// Down and Up move the row cursor, Enter runs Undo to here on it; `true` when a key was taken.
 pub(crate) fn keys(ctx: &Context, events: &mut Vec<Event>) -> bool {
     if !ctx.memory(|m| m.has_focus(pane_id())) {
@@ -90,7 +90,7 @@ fn label_colour(t: &Tokens, state: EntryState, selected: bool) -> Rgba {
 
 /// The as-built text of an entry: number, label, origin, pages and "not undoable" (its accessible name).
 fn entry_text(row: &HistoryRow, origin: &str) -> String {
-    // FT-1362: the label and the origin in words.
+    // The label and the origin in words.
     let mut text = format!(
         "{}  {}  ({})",
         row.index + 1,
@@ -114,7 +114,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     pane.widget_info(|| {
         egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text(key!("pane-history")))
     });
-    // FT-519: the panel holds the shell's focus like the other panes (F6, a click, Tab).
+    // The panel holds the shell's focus like the other panes (F6, a click, Tab).
     let ours = shell.focus() == Some(ew_viewmodel::shell::Focus::History);
     if ours && !pane.has_focus() && !ui.ctx().text_edit_focused() && shell.dialog().is_none() {
         pane.request_focus();
@@ -123,7 +123,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         events.push(Event::Action("ui.focus", json!({"area": "history"})));
     }
     if pane.has_focus() {
-        // FT-519: the arrows stay with the panel (`keys`).
+        // The arrows stay with the panel (`keys`).
         ui.memory_mut(|m| {
             m.set_focus_lock_filter(
                 pane_id,
@@ -163,12 +163,12 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             );
         };
         ui.horizontal_wrapped(|ui| {
-            // FT-1078 (ID-1183): the pane's `space.4` gutter, as the Messages header has it.
+            // The pane's `space.4` gutter, as the Messages header has it.
             ui.add_space(t.space_4);
             ui.spacing_mut().item_spacing.x = t.space_4;
-            // FT-986: "1 step" for one.
+            // "1 step" for one.
             small(ui, history.header().unwrap_or_default());
-            // FT-518: the oldest step kept and the memory the steps hold against the bound.
+            // The oldest step kept and the memory the steps hold against the bound.
             let mb = |b: usize| strings::decimal(&format!("{:.1}", b as f64 / 1_000_000.0));
             let oldest = view.rows.first().map_or(1, |r| r.index + 1);
             small(
@@ -227,7 +227,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     }
                 }
             });
-        // FT-1362: the dock follows the list's height.
+        // The dock follows the list's height.
         crate::dock::report_content(
             ui,
             ew_viewmodel::layout::PaneKind::History,
@@ -346,7 +346,7 @@ fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
     // The actions at the right first, so the text takes what is left.
     child.with_layout(Layout::right_to_left(Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = t.space_1;
-        // FT-519: the actions keep their nodes on every row and are painted only when on show.
+        // The actions keep their nodes on every row and are painted only when on show.
         let mut actions = ui.new_child(
             egui::UiBuilder::new()
                 .max_rect(ui.max_rect())
@@ -436,7 +436,7 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
             line
         })
         .collect();
-    // C40 (FT-816): the popup is as wide as its longest line, from `size.dialog.small` up to a share of the window
+    // C40: the popup is as wide as its longest line, from `size.dialog.small` up to a share of the window
     // (`dialog::small_width`); past that a line elides. A short list keeps the small width, nothing is stretched.
     let font = theme::font(&t.type_body);
     let longest = lines

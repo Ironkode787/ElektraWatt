@@ -17,7 +17,7 @@ pub(super) fn import_table_error_line(e: &ew_api::output::TableImportError) -> S
     format!("error: {first}{}", chars.as_str())
 }
 
-/// `ew import table` (WP-S3.08 D11): the preview of a round-trip file against the project, and with `--apply` its one
+/// `ew import table`: the preview of a round-trip file against the project, and with `--apply` its one
 /// `fields.set_many` committed and the project saved.
 pub(super) fn run_import_table(a: &ImportTableArgs) -> i32 {
     let Some(dir) = project_dir(a.project.as_ref()) else {
@@ -486,7 +486,7 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
             (None, Some(msg.to_string()))
         }
     };
-    // ID-1374 (C51-p2#7): as `import csv --strict`, a failed `--strict` writes no project.
+    // As `import csv --strict`, a failed `--strict` writes no project.
     let mut strict_failed = false;
     if a.strict {
         let errors = imported
@@ -578,7 +578,7 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
     code
 }
 
-/// `ew import qet <file> --into <project> [--apply]` (WP-S3.09 D10 to D12): the file re-imported into its earlier
+/// `ew import qet <file> --into <project> [--apply]`: the file re-imported into its earlier
 /// import in the project. Prints T6 when the import is matched by its items, T8 and the rows of the records added,
 /// changed in the source, changed on both sides (each member with this project's and the file's value) and removed
 /// in the source; without `--apply` nothing is written (T12), with it the re-import is one transaction, saved. Exit 2
@@ -676,7 +676,7 @@ pub(super) fn run_reimport_qet(
     0
 }
 
-/// `ew import csv` (WP-S1.22 part 3, FT-27): the golden-dialect tables of a directory with the starter content as a new
+/// `ew import csv`: the golden-dialect tables of a directory with the starter content as a new
 /// project in `--out`. Every finding is printed; `--strict` (the default) writes nothing when the import made error
 /// findings (exit 1), `--lenient` writes the project with them.
 pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {

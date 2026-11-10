@@ -18,7 +18,7 @@
 //!   table built by its caller ([`TextStyleTable::from_rows`], ADR-0032).
 //!
 //! There is **no cache** here: the memoised `shaped_text` query of ADR-0015 is built on `ew-memo`
-//! (WP-S1.05) over [`FontSet::shape`], which is a pure function of its inputs.
+//!  over [`FontSet::shape`], which is a pure function of its inputs.
 //!
 //! # Numeric pipeline (doc 09 §4.3 rule 4)
 //!

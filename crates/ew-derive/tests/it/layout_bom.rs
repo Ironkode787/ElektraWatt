@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! WP-S4.01 part 4 on a small fixture: the carrier lines of the enclosure device (D11, the orchestrator's rulings 5 and
-//! 6 of cycle 41), the folios of the layout objects' BOM rows (FT-204), `layout_legend(surface)` with its order and
+//! 6 of cycle 41), the folios of the layout objects' BOM rows, `layout_legend(surface)` with its order and
 //! renumbering (LB-2's row content), and a free graphic counted nowhere (LB-4). Golden A's values are `ew-api`'s
 //! `tests/golden_layout.rs`.
 
@@ -209,7 +209,7 @@ fn row_of(rows: &[BomRow], part: u128) -> BomRow {
         .unwrap_or_else(|| panic!("no BOM row of part {part:#x}"))
 }
 
-/// Ruling 5 (cycle 41): "the carriers of one enclosure device that share a part copy give one part line
+/// Ruling 5: "the carriers of one enclosure device that share a part copy give one part line
 /// (`LineSource::Carrier`), whose quantity is the sum of their path lengths in metres, exact to the millimetre (`Dec3`).
 /// The lines come after the device's authored part uses." Ruling 6: "A carrier without a length adds nothing to its
 /// line's quantity. The line is never dropped: if every carrier of that part lacks a length, the line stays with

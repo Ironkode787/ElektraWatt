@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The chooser list (doc 16a §6.22): a popup list of candidates the user picks one from, for a choice too small for
-//! a dialog. Its first use is the Place tool's Join chooser (WP-S2.18 D2, J): "New device", then the devices the
+//! a dialog. Its first use is the Place tool's Join chooser (J): "New device", then the devices the
 //! armed symbol can join. Up and Down move the active row (wrapping), Home and End go to the ends, type-ahead moves it
 //! to the first row whose name matches, Enter picks, Escape closes it and leaves everything as it was. Every change
 //! is a registry action (`chooser.row`, `chooser.type`, `chooser.choose`, `ui.dismiss`), so the headless mode drives
@@ -13,7 +13,7 @@
 pub enum ChooserValue {
     /// The Join chooser's first row: a new device (the target before the join comes back).
     NewDevice,
-    /// An existing device (WP-S2.18 D1).
+    /// An existing device.
     Join {
         /// The device's ID text.
         device: String,

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-705 (the cycle-38 rulings): a wire the Wire tool draws over two free connection points of one other
+//! A wire the Wire tool draws over two free connection points of one other
 //! representation, where the run enters and leaves it, is drawn as two connections in one transaction (one undo
 //! step), so a terminal drawn into a vertical circuit is in the circuit; a run over one free CP (a T) stays one
 //! connection. The wires are drawn by the window's own path (pointer presses on the canvas, the bends fixed with Alt
@@ -213,7 +213,7 @@ fn wire(s: &mut ShellModel, from: (i64, i64), to: (i64, i64)) {
     click(s, to, false);
 }
 
-// FT-708: the window turns the second of two presses within 0.5 s and 4 points into `tool.finish` (a double click,
+// The window turns the second of two presses within 0.5 s and 4 points into `tool.finish` (a double click,
 // WP-S2.04 §6.1). A click that ends a wire on a pin and a quick second one there to start the next wire are that
 // double click, and the Wire tool ignored it: the second wire was silently not drawn. The model takes a second
 // connection at a wired CP (`connection.draw` has no one-connection rule), so the wire is drawn.
@@ -422,7 +422,7 @@ fn a_direct_route_on_another_wire_s_track_is_left_to_the_router() {
     assert!(cp(&s, "-X1031:70/a").connections.is_empty());
 }
 
-// C39 (FT-734, FT-758): a black box's caption is an obstacle to the router, the through route of the cycle-38 window
+// C39: a black box's caption is an obstacle to the router, the through route of the cycle-38 window
 // fix (FX38c) included. Beside the line the through route is still taken; standing on the line it is not.
 
 /// Draws a MICO 4.10 black box with the grid corners `a` and `b` (it grows until its CPs fit) and returns the page
@@ -536,7 +536,7 @@ fn a_black_box_caption_on_the_line_turns_the_through_route_away() {
     assert!(cp(&s, "-X1031:70/a").connections.is_empty());
 }
 
-// FT-758: an interruption point one step inside the drawing area, leaving towards the sheet's edge (Golden A's
+// An interruption point one step inside the drawing area, leaving towards the sheet's edge (Golden A's
 // folio 101 feeds before decision log ID-1502 (7) mirrored them, so the test mirrors one back), still turns on the
 // area's edge: the frame's inward step gives way on that side.
 #[test]
@@ -576,7 +576,7 @@ fn an_interruption_point_at_the_area_edge_still_routes() {
     assert!(line.iter().all(|p| p.0 >= area[0]), "{line:?}");
 }
 
-// FT-758: the frame outside the drawing area (the header bands, the title block and its fields) is an obstacle to
+// The frame outside the drawing area (the header bands, the title block and its fields) is an obstacle to
 // the router, its edge grown inward by a grid step as a box's outline is.
 #[test]
 fn a_wire_keeps_out_of_the_title_block() {
@@ -677,7 +677,7 @@ fn ft759_a_terminal_dropped_on_a_wire_says_it_is_in_the_circuit() {
     );
 }
 
-/// FT-1020 (decision log ID-1104): the wire autoconnect draws when a coil is placed under a switch has no route (a
+/// The wire autoconnect draws when a coil is placed under a switch has no route (a
 /// `connect` hint), and the page draws it straight from the coil up to the switch; a terminal dropped on it is split
 /// into it as into a routed wire, and the toast says so.
 #[test]

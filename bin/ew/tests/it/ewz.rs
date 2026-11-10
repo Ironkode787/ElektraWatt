@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 2 through the `ew` binary (D8, D9; decision log ID-1175): `ew export ewz`, every reader on an `.ewz`
+//! WP-S1.17 part 2 through the `ew` binary (D8, D9): `ew export ewz`, every reader on an `.ewz`
 //! (EZ-2), every other subcommand's refusal of one, and `ew extract` (EZ-3, EZ-4).
 
 use std::collections::BTreeMap;

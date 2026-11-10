@@ -656,7 +656,7 @@ fn renumber_include_frozen_with_only_nonconforming_keeps_conforming_counters() {
     assert!(p.ops().is_empty(), "{:?}", p.ops());
 }
 
-/// C52-p4#3 (FT-1406, ID-1418): a cable without a drawn representation is numbered in its scope (its first core's page,
+/// A cable without a drawn representation is numbered in its scope (its first core's page,
 /// or the project's), so with `include_frozen` its frozen tag gives way to a counter, as a placed device's does.
 #[test]
 fn renumber_include_frozen_numbers_a_cable_without_a_representation() {

@@ -208,7 +208,7 @@ proxy!(
 );
 
 proxy!(
-    /// `Pt2` in a mounting surface's frame (WP-S4.01): `[u, v]` in nanometres, `v` upwards.
+    /// `Pt2` in a mounting surface's frame: `[u, v]` in nanometres, `v` upwards.
     SurfacePt2S,
     "CmdSurfacePt2",
     {

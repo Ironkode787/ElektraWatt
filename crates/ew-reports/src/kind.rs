@@ -38,7 +38,7 @@ pub trait ReportKindDef: Send + Sync {
     /// The rows of `block`, in the kind's default order.
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet;
 
-    /// What an **embedded** block of this kind prints (WP-S4.01 D16): the printed columns with their weights, the box
+    /// What an **embedded** block of this kind prints: the printed columns with their weights, the box
     /// title, whether each flow column draws a header row, and the number of flow columns. The default prints every
     /// column at weight 1 under a header row, no title, one flow column ([`EmbeddedLayout::every_column`]). The
     /// layout is presentation only: the rows, the CSV and the other exports keep every column of
@@ -47,7 +47,7 @@ pub trait ReportKindDef: Send + Sync {
         EmbeddedLayout::every_column(&self.columns())
     }
 
-    /// The block parameters this kind declares (WP-S3.06 D9): the keys of a block's `params` object it reads, each
+    /// The block parameters this kind declares: the keys of a block's `params` object it reads, each
     /// with its type and default, in declaration order. Read through [`kind_params`]. None by default.
     fn params(&self) -> &'static [ParamDef] {
         &[]
@@ -110,7 +110,7 @@ impl KindParams {
     }
 }
 
-/// The parameters of `block` as its kind declares them (WP-S3.06 D9): the block's top-level `params` member, a JSON
+/// The parameters of `block` as its kind declares them: the block's top-level `params` member, a JSON
 /// object, read key by key.
 ///
 /// A declared key that is absent takes its default. A value outside its kind (another JSON type, a word the choice

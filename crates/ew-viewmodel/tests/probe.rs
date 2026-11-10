@@ -526,7 +526,7 @@ fn t2_a_human_only_command_is_refused_headless() {
     let Outcome::Failed { message } = out else {
         panic!("{out:?}")
     };
-    // FT-1363: the refusal names the command by its title, in words.
+    // The refusal names the command by its title, in words.
     assert_eq!(
         message,
         format!(
@@ -606,7 +606,7 @@ fn t9_the_probe_cancels_with_escape_in_every_state_and_t10_the_preview_words() {
     done(&mut shell, "canvas.dwell", json!({"ms": 80}));
     assert_eq!(state(&shell)["canvas"]["preview"]["state"], "failed");
     texts.push(shell.describe());
-    // FT-422: the failed preview's message names the missing record by its alias, never its UUID.
+    // The failed preview's message names the missing record by its alias, never its UUID.
     let failed = texts
         .last()
         .unwrap()

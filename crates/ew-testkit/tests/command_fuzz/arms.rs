@@ -6,7 +6,7 @@
 //! command needs no hand arm; [`ARMS`] names registered commands only (`every_hand_arm_names_a_registered_command`).
 //! An arm returns `None` when the snapshot has nothing to target (the no-op rule of doc 18 §3.3).
 //!
-//! The command decides whether a step is accepted (RD43). Every arm mixes, by a dice roll:
+//! The command decides whether a step is accepted. Every arm mixes, by a dice roll:
 //! - steps built from the live records, which a command should mostly commit, and steps a command's own rules
 //!   refuse (an off-grid position, a duplicate key, a cycle): both `Verdict::Either`;
 //! - steps invalid in a way no command rule decides, `Verdict::Refuse`: an ID that names no record or a record of
@@ -55,8 +55,8 @@ fn registry_strings(command: &str, path: &[&str]) -> Vec<&'static str> {
 }
 
 /// Commands that no submit path of the session commits, so that their arms only ever refuse: `revision.approve` is
-/// recorded only by `Session::approve` on a saved generation (WP-S1.18 part 3, D9), `revision.release` only by
-/// `Session::release` after the archive and the tag (WP-S1.18 part 4, D13).
+/// recorded only by `Session::approve` on a saved generation, `revision.release` only by
+/// `Session::release` after the archive and the tag.
 pub const SESSION_REFUSES: &[&str] = &["revision.approve", "revision.release"];
 
 /// One generator arm.
@@ -86,13 +86,11 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: box_black,
     },
-    // WP-S2.04 part 3
     Arm {
         command: "box.reshape",
         weight: 3,
         build: box_reshape,
     },
-    // WP-S2.04 part 4a
     Arm {
         command: "box.structure",
         weight: 2,
@@ -134,7 +132,6 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: connection_draw_many,
     },
-    // WP-S2.04 part 3
     Arm {
         command: "connection.draw_to_ip",
         weight: 3,
@@ -165,7 +162,6 @@ pub const ARMS: &[Arm] = &[
         weight: 3,
         build: edit_delete,
     },
-    // WP-S2.05 part 3
     Arm {
         command: "edit.paste",
         weight: 3,
@@ -181,13 +177,11 @@ pub const ARMS: &[Arm] = &[
         weight: 8,
         build: fields_set,
     },
-    // WP-S2.05 part 2
     Arm {
         command: "fields.set_many",
         weight: 3,
         build: fields_set_many,
     },
-    // WP-S2.04 part 3
     Arm {
         command: "ip.arrange",
         weight: 3,
@@ -203,7 +197,6 @@ pub const ARMS: &[Arm] = &[
         weight: 3,
         build: ip_place,
     },
-    // WP-S2.04 part 4a
     Arm {
         command: "item.place",
         weight: 3,
@@ -219,19 +212,16 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: library_embed,
     },
-    // WP-S1.19 part 3
     Arm {
         command: "library.update",
         weight: 2,
         build: library_update,
     },
-    // WP-S1.19 part 5
     Arm {
         command: "macro.insert",
         weight: 2,
         build: macro_insert,
     },
-    // WP-S2.04 part 4a
     Arm {
         command: "marker.place",
         weight: 3,
@@ -262,7 +252,6 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: page_reorder,
     },
-    // WP-S1.19 part 3
     Arm {
         command: "part.assign",
         weight: 2,
@@ -288,7 +277,6 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: plc_set_module_part,
     },
-    // WP-S1.21 part 3 (D8)
     Arm {
         command: "plc.set_profile",
         weight: 1,
@@ -349,7 +337,7 @@ pub const ARMS: &[Arm] = &[
         weight: 3,
         build: rep_exchange_symbol,
     },
-    // WP-S2.18 D3 (FT-628)
+    // WP-S2.18 D3
     Arm {
         command: "rep.join_device",
         weight: 2,
@@ -365,7 +353,6 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: rep_set_anchor_policy,
     },
-    // WP-S1.18 part 3 (D9)
     Arm {
         command: "revision.approve",
         weight: 1,
@@ -376,7 +363,6 @@ pub const ARMS: &[Arm] = &[
         weight: 3,
         build: revision_create,
     },
-    // WP-S1.18 part 4 (D13)
     Arm {
         command: "revision.release",
         weight: 1,
@@ -437,7 +423,7 @@ pub const ARMS: &[Arm] = &[
         weight: 3,
         build: valve_add,
     },
-    // WP-S1.21 part 4 (D11): last, so the per-arm seeds of the arms before them stay as they were.
+    // Last, so the per-arm seeds of the arms before them stay as they were.
     Arm {
         command: "bus.logical_net.create",
         weight: 1,
@@ -448,13 +434,13 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: bus_physical_net_create,
     },
-    // WP-S2.07 part 4a: last, for the same reason.
+    // Last, for the same reason.
     Arm {
         command: "part.edit_copy",
         weight: 2,
         build: part_edit_copy,
     },
-    // WP-S4.01 part 1 (D6): last, for the same reason.
+    // Last, for the same reason.
     Arm {
         command: "layout.space.create",
         weight: 2,
@@ -510,7 +496,7 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: layout_lock,
     },
-    // WP-S4.01 part 3 (D9): appended last, as the layout arms.
+    // Appended last, as the layout arms.
     Arm {
         command: "page.surface_view.set",
         weight: 2,
@@ -634,7 +620,7 @@ pub fn setup_chain_of(command: &str) -> Option<&'static [ChainStep]> {
         "layout.enclosure.delete" | "layout.carrier.add" => Some(ENCLOSURE),
         "layout.carrier.edit" | "layout.carrier.delete" | "layout.place" => Some(RAIL),
         "layout.move" | "layout.remove" | "layout.lock" => Some(PLACED),
-        // WP-S4.02 part 2: Golden A's assemblies are placed; one member is taken off its rail first.
+        // Golden A's assemblies are placed; one member is taken off its rail first.
         "layout.place_assembly" | "layout.auto_fill" => Some(UNPLACED),
         _ => None,
     }

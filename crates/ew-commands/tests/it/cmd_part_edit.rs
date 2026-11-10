@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.07 part 4a at the command layer: `part.edit_copy` (D20, D21; FT-394), in place and as a fork that re-points
+//! WP-S2.07 part 4a at the command layer: `part.edit_copy` (D20, D21), in place and as a fork that re-points
 //! every part-copy link of the link table, with each refusal of §9.3 at its pointer; and `copies` on `fields.set` and
 //! `fields.set_many` (D16, PS4's command half).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.

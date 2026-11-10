@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `cargo xtask blind`: the blind-drafter harness (WP-S6.13 part 1, ID-610 to ID-624).
+//! `cargo xtask blind`: the blind-drafter harness.
 //!
 //! An agent that never sees pixels draws and edits in ElektraWatt through the shell's headless mode, with `ui.describe`
 //! and `page.describe` as its only senses and the transcript as its evidence. This module is the tool between the agent
@@ -142,7 +142,7 @@ pub fn copy_of(exe: Option<&Path>) -> Option<Run> {
         .map(|d| Run { dir: d.to_path_buf() })
 }
 
-/// The refusal of `command` when it is run from a run's copy: the copy knows no repository (isolation, ID-621), so only
+/// The refusal of `command` when it is run from a run's copy: the copy knows no repository (isolation), so only
 /// the agent's commands and the keeper's own `serve` run there (`--help` and `-h` are `help`).
 pub fn refused_in_copy(command: &str, from_copy: bool) -> Option<String> {
     let command = if matches!(command, "--help" | "-h") {
@@ -779,7 +779,7 @@ pub fn resume(run: &Run) -> Result<String> {
     }
 }
 
-/// The most bytes of one page of `help` (FT-556): well below what an agent's shell shows inline, so the text never
+/// The most bytes of one page of `help`: well below what an agent's shell shows inline, so the text never
 /// overflows into a side file.
 pub const HELP_PAGE_BYTES: usize = 12_000;
 
@@ -866,7 +866,7 @@ mod tests {
     use super::*;
     use crate::blind::testkit::{Tmp, test_run};
 
-    /// FT-556: `help` pages its text at line ends; the pages joined are the text, each page fits, and the footer names
+    /// `help` pages its text at line ends; the pages joined are the text, each page fits, and the footer names
     /// the next page or the last.
     #[test]
     fn help_is_paged_at_line_ends() {
@@ -892,7 +892,7 @@ mod tests {
         assert_eq!(pages.concat(), full);
     }
 
-    /// ID-621: the run's copy of the harness runs the agent's commands only.
+    /// The run's copy of the harness runs the agent's commands only.
     #[test]
     fn a_runs_copy_refuses_the_orchestrators_subcommands() {
         for sub in [
@@ -933,7 +933,7 @@ mod tests {
         assert!(copy_of(None).is_none());
     }
 
-    /// ID-621: from a run's copy, `serve` serves that run's folder only: not another run, not a repository.
+    /// From a run's copy, `serve` serves that run's folder only: not another run, not a repository.
     #[test]
     fn a_copy_serves_its_own_run_only() {
         let tmp = Tmp::new("serve-own");
@@ -967,7 +967,7 @@ mod tests {
         assert!(!check.path("work/leftover.txt").exists());
     }
 
-    /// ID-621: from a copy, the help and the reference come from the run folder and never from a repository.
+    /// From a copy, the help and the reference come from the run folder and never from a repository.
     #[test]
     fn a_copy_reads_its_own_files_and_never_falls_back_to_the_repository() {
         let tmp = Tmp::new("copy-help");

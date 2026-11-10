@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Raster image items decoded for drawing (FT-384, FT-406; decision log ID-576, ID-605): PNG with `png`, JPEG with
+//! Raster image items decoded for drawing: PNG with `png`, JPEG with
 //! `zune-jpeg`, both bounded by [`MAX_IMAGE_PIXELS`] before any pixel buffer is allocated, so that a small file cannot
 //! decompress into an unbounded buffer. The PDF writer of `ew-export` decodes through [`decode_image`] too before it
 //! hands the original bytes to krilla, so an image the CPU renderer cannot draw is not embedded either.

@@ -492,7 +492,7 @@ pub enum MissingReason {
     CrossSection,
     /// A colour.
     Colour,
-    /// A manufacturer: the part's manufacturer copy is absent and the reference keeps no key (FT-876).
+    /// A manufacturer: the part's manufacturer copy is absent and the reference keeps no key.
     Manufacturer,
 }
 
@@ -522,7 +522,7 @@ impl LinkRef {
     }
 
     /// A link over the `item`-th listed item of the cell of `column`; `None` when the column or the item index does not
-    /// fit a `u16` (such a link is not made: a saturated index would draw over another item; C44-p3#3).
+    /// fit a `u16` (such a link is not made: a saturated index would draw over another item).
     pub fn item(column: usize, item: usize, target: LinkTarget) -> Option<LinkRef> {
         Some(LinkRef {
             column: u16::try_from(column).ok()?,
@@ -546,6 +546,6 @@ pub enum LinkTarget {
     },
     /// A page.
     Page(PageRef),
-    /// One representation (a device's placement on a given page; WP-S3.06 D10, ruling 2).
+    /// One representation (a device's placement on a given page; ruling 2).
     Rep(Id<Representation>),
 }

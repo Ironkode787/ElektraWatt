@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The 2D canvas renderer: the CPU tile path and the wgpu path over one display list (WP-S2.02).
+//! The 2D canvas renderer: the CPU tile path and the wgpu path over one display list.
 //!
 //! The CPU tile path is the GPU-less fallback and the loading state while a GPU scene prepares (FR-UI-028,
 //! NFR-PLAT-03); the GPU path ([`gpu`]) draws wherever the switch rule allows. Toolkit-neutral: no egui type appears
@@ -21,7 +21,7 @@
 //!
 //! The CPU raster is the golden reference: tiles are regions of `ew_render_cpu`'s full-sheet raster, and the
 //! headless snapshot is one such region with the overlays composited by integer pixel fills, so equal inputs give
-//! equal bytes on every run of one build target (WP-S2.02 §8).
+//! equal bytes on every run of one build target.
 
 #![forbid(unsafe_code)]
 

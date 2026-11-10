@@ -160,7 +160,7 @@ fn bu6_ac31_the_bus_checks_on_golden_a() {
         )]
     );
     assert_eq!(open(&report, "EW-CORE-044"), [], "superseded by EW-BUS-001");
-    // FT-1265: the external end is worded in each language, from its name and partner.
+    // The external end is worded in each language, from its name and partner.
     let info = report
         .findings
         .iter()

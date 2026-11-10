@@ -37,7 +37,7 @@ impl ReportKindDef for RevisionOverview {
     }
 }
 
-/// `revision_rows`: one row per `revision` record (FT-207).
+/// `revision_rows`: one row per `revision` record.
 ///
 /// **Order.** The revisions in label order (the project's label order, [`ew_derive::revision_label_key`]: a label in
 /// the project's format by its position, `Y < Z < AA`, after the labels outside it in natural order; then the ID);

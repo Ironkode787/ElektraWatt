@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `edit.delete`: deletes a selection (doc 06 §3.4, §3.6). `edit.paste` lives in `paste.rs` (WP-S2.05 part 3).
+//! `edit.delete`: deletes a selection (doc 06 §3.4, §3.6). `edit.paste` lives in `paste.rs`.
 
 use std::collections::BTreeSet;
 
@@ -33,8 +33,7 @@ pub const BULK_ABOVE: usize = 500;
 /// terminals, a referenced structure node) rejects the whole command (`ModelError::Referenced`). Cost:
 /// `Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by
 /// `cost`). A released or withdrawn revision is immutable (FR-REV-009): naming one is refused at
-/// `/targets/<i>`; the open revision may be deleted. A deleted page takes the open revision's note on it along
-/// (FT-303, WP-S1.18 D5).
+/// `/targets/<i>`; the open revision may be deleted. A deleted page takes the open revision's note on it along.
 ///
 /// The layout kinds (WP-S4.02 D7, FT-837: `layout_space`, `enclosure`, `mounting_surface`, `carrier`, `placement`)
 /// delete with the model's cascades as `layout.*.delete` do, after four checks on the selection (ruling 6): a plate
@@ -101,7 +100,7 @@ impl Command for DeleteSelection {
     }
 }
 
-/// The layout checks of `edit.delete` (WP-S4.02 D7, ruling 6), before the delete plan is applied: "occupied" means
+/// The layout checks of `edit.delete`, before the delete plan is applied: "occupied" means
 /// holding a placement the same delete does not remove. The removed placements and devices come from the plan of the
 /// targets that are not layout containers (spaces, enclosures, surfaces, carriers); the containers' closure from the
 /// records read through the transaction.

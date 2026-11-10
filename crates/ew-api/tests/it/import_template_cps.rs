@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-655: the tables importer and `ew-derive`'s `function_cps` agree on the CPs of a template-origin function. The
+//! The tables importer and `ew-derive`'s `function_cps` agree on the CPs of a template-origin function. The
 //! golden tables plus a contactor whose template pairs by position (coil `A1`/`A2` at pattern 0/1, aux contact
 //! `13`/`14` at pattern 4/5, each FnDef with CPs 0 and 1): every connection end the importer writes is a CP the
 //! derivation gives, with the designation the table names.

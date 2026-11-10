@@ -361,7 +361,7 @@ fn cover_frame() -> FormDef {
 }
 
 /// The cover prints the bound party and project values; a cell holds several placeholders ("Postcode / City")
-/// and an unbound path prints nothing and is reported, never a placeholder text (decision log ID-40).
+/// and an unbound path prints nothing and is reported, never a placeholder text.
 #[test]
 fn the_cover_prints_the_bound_values_and_a_cell_may_hold_two_placeholders() {
     let mut b = bindings();

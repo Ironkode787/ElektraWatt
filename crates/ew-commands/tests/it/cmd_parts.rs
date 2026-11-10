@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `parts.import` (FT-410): project-local part copies are created once; a second import skips every key; the
+//! `parts.import`: project-local part copies are created once; a second import skips every key; the
 //! command is Bulk and checks every copy's lineage, library and key.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]

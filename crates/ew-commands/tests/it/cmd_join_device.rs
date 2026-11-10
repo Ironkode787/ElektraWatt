@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `rep.join_device` (WP-S2.18 D3, FT-628): a placed representation joins another device, its wires kept, in one
+//! `rep.join_device`: a placed representation joins another device, its wires kept, in one
 //! transaction and one undo step; each refusal with its pointer.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]

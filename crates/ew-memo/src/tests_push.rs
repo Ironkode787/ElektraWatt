@@ -1076,7 +1076,7 @@ proptest! {
     /// only, or by a plain advance, with forks read against a snapshot, every memoised read
     /// equals the cold one, oracle mode finds no mismatch and the revision never decreases. The families
     /// include a reader whose producer depends on data (`Mid`, chosen by cell 44, read through a part) and a
-    /// whole reader of it (`Top`), so a producer switch with a cut-off is exercised (review cycle 9).
+    /// whole reader of it (`Top`), so a producer switch with a cut-off is exercised.
     #[test]
     fn push_equals_cold(steps in proptest::collection::vec(step(), 1..60)) {
         let mut db = Grid::default();

@@ -349,7 +349,7 @@ impl FontSet {
     }
 
     /// The bytes of the whole font file behind `key` (the face is `key.face_index` inside it), for the
-    /// renderers and writers that draw or embed the glyphs this set shaped (WP-S3.04); `None` if the set
+    /// renderers and writers that draw or embed the glyphs this set shaped; `None` if the set
     /// has no such face.
     pub fn face_data(&self, key: FontKey) -> Option<&[u8]> {
         self.faces

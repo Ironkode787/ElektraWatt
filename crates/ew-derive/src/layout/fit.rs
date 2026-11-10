@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The mount-kind compatibility table (doc 12 §3.3, WP-S4.01 D6): which rail profiles a part's mount kind fits.
+//! The mount-kind compatibility table (doc 12 §3.3): which rail profiles a part's mount kind fits.
 
 use ew_schema::MountKind;
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew diff` and its textconv (WP-S1.17 D26, D27; doc 05 §11.6; FR-COL-013): the records that differ between two
+//! `ew diff` and its textconv (doc 05 §11.6; FR-COL-013): the records that differ between two
 //! sessions, each labelled with the tags of its own side, and one project file's records as text lines for `git diff`.
 //!
 //! **Labels.** A record is named as the property grid names it (a device's tag, a page's folio and title, a connection
@@ -162,7 +162,7 @@ impl Session {
     }
 
     /// `value` with every string that is the ID of a record with a label replaced by that label, as `ew diff` shows a
-    /// field (the collision dialog's values, WP-S1.17 D24).
+    /// field (the collision dialog's values).
     pub fn named_value(&self, value: &Value) -> Value {
         named(&self.query(), value)
     }
@@ -176,7 +176,7 @@ impl Session {
             .any(|k| record_json(&q, *k, id).is_some())
     }
 
-    /// The records that differ from this session to `to` (WP-S1.17 D26), each labelled with the tags of its own side
+    /// The records that differ from this session to `to`, each labelled with the tags of its own side
     /// (the module documentation), in key order.
     ///
     /// # Errors
@@ -224,7 +224,7 @@ impl Session {
     }
 }
 
-/// The textconv of one project file (WP-S1.17 D27; doc 05 §11.6): one line per record in file order, `<kind> <label>
+/// The textconv of one project file (doc 05 §11.6): one line per record in file order, `<kind> <label>
 /// <path>=<value> …`, the members other than `$k` and `id` flattened to dotted paths with compact JSON leaves; the label
 /// from the model of `session` (the project found for the file), a record it does not hold, or every record without a
 /// session, named by the first 8 digits of its ID. A library document is one record; a line that is not a JSON object

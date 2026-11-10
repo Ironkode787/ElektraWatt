@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The macro tool (WP-S1.19 §11, FR-MAC-006): a macro chosen in the Macros navigator floats at the snapped grid point
+//! The macro tool (FR-MAC-006): a macro chosen in the Macros navigator floats at the snapped grid point
 //! under the pointer or the grid cursor, as the paste tool floats a fragment (its ghost is the macro's extent and the
 //! label "Insert `<name>`").
 //!

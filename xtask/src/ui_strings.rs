@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `check-ui-strings` (WP-S2.08 D11, NFR-I18N-02): no string literal reaches an egui text call in `crates/ew-ui/src`
+//! `check-ui-strings` (NFR-I18N-02): no string literal reaches an egui text call in `crates/ew-ui/src`
 //! except the allowlist `ci/ui-strings-allow.txt`. Every shell text comes from a Fluent key (`strings::text`).
 //!
 //! The scan is lexical. A text call is a method `label(`, `button(`, `small_button(`, `selectable_label(`,
@@ -13,7 +13,7 @@
 //! passed by name is out of its reach. A literal that holds only `format!` placeholders
 //! (`"{}"`, `"{a}{b}"`) passes; another passes when the allowlist holds it exactly as written in the source (one per
 //! line in its quotes, `#` comments). A `#[cfg(test)]` module, comments and the test tool's own files are not scanned.
-//! An allowlist entry that no such literal matches is stale and fails the check, named (FT-1166).
+//! An allowlist entry that no such literal matches is stale and fails the check, named.
 
 use std::path::Path;
 
@@ -169,7 +169,7 @@ fn only_placeholders(lit: &str) -> bool {
 }
 
 /// The literals of `src` that reach a text call and are not allowed: (line, literal). Each entry of `allow` that such a
-/// literal matches is marked in `used`, index for index (FT-1166).
+/// literal matches is marked in `used`, index for index.
 fn findings<'s>(src: &'s str, allow: &[String], used: &mut [bool]) -> Vec<(usize, &'s str)> {
     let toks = tokens(src);
     let mut out = Vec::new();
@@ -282,7 +282,7 @@ pub(crate) fn check(root: &Path) -> Result<Vec<String>> {
             .unwrap_or(&path)
             .to_string_lossy()
             .replace('\\', "/");
-        // The test tool's frames and messages (`--visual`) reach no egui text call (ID-1219 ruling 7).
+        // The test tool's frames and messages (`--visual`) reach no egui text call.
         if rel.ends_with("/visual.rs") {
             continue;
         }
@@ -298,7 +298,7 @@ pub(crate) fn check(root: &Path) -> Result<Vec<String>> {
     Ok(out)
 }
 
-/// The entries of `allow` that no text call's literal matched (`used` false): a stale entry, named (FT-1166).
+/// The entries of `allow` that no text call's literal matched (`used` false): a stale entry, named.
 fn stale(allow: &[String], used: &[bool]) -> Vec<String> {
     allow
         .iter()
@@ -318,7 +318,7 @@ mod tests {
         findings(src, &["▸".to_owned()], &mut [false])
     }
 
-    /// FT-1166: an entry a text call's literal matches is used; one no literal matches is stale and named.
+    /// An entry a text call's literal matches is used; one no literal matches is stale and named.
     #[test]
     fn a_stale_allowlist_entry_is_named() {
         let allow = ["▸".to_owned(), "◂".to_owned()];
@@ -375,7 +375,7 @@ mod tests { fn t(ui: &mut Ui) { ui.label("Test"); } }
         );
     }
 
-    /// ID-1226: each call of the widened list is read; a painter's `text(` only on a painter, and another `.text(`
+    /// Each call of the widened list is read; a painter's `text(` only on a painter, and another `.text(`
     /// or a `new(` of another type not.
     #[test]
     fn the_widened_calls() {
@@ -414,7 +414,7 @@ fn f(ui: &mut Ui) {
         );
     }
 
-    /// ID-1231: of `menu_button(` and `collapsing(` only the title is read, so a literal in the closure that reaches
+    /// Of `menu_button(` and `collapsing(` only the title is read, so a literal in the closure that reaches
     /// no text (`Id::new`) is not found.
     #[test]
     fn a_menu_closure_literal_is_not_a_text() {
@@ -431,7 +431,7 @@ fn f(ui: &mut Ui) {
         assert_eq!(found(src), [(3, "Menu")]);
     }
 
-    /// ID-1231: a text call nested in the closure of `menu_button(` or `collapsing(` is found once, by its own call.
+    /// A text call nested in the closure of `menu_button(` or `collapsing(` is found once, by its own call.
     #[test]
     fn a_nested_label_is_found_once() {
         let src = r##"

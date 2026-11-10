@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew fmt` and `ew recover` (WP-S1.22 part 3, D9 and D10), `ew fmt --repair` (WP-S1.17, decision log ID-1185) and
-//! `ew upgrade` (WP-S1.17 D11, decision log ID-1221): the subcommands that work on the project's files and journals as
+//! `ew fmt` and `ew recover`, `ew fmt --repair` and
+//! `ew upgrade`: the subcommands that work on the project's files and journals as
 //! the store keeps them.
 
 use std::path::Path;
@@ -32,7 +32,7 @@ pub(super) fn run_fmt(a: &FmtArgs) -> i32 {
 }
 
 /// [`run_fmt`] with the store options (a test's migration chain among them) and the writers of what it prints on a
-/// project of an older format injected (C50-p4#4).
+/// project of an older format injected.
 fn run_fmt_with(
     a: &FmtArgs,
     mut store: ew_api::StoreOptions,
@@ -42,7 +42,7 @@ fn run_fmt_with(
         store.repair = true;
         return run_repair(a, store, err);
     }
-    // `--check` is a reader and takes an `.ewz` (WP-S1.17 D9); `fmt` writes and refuses one.
+    // `--check` is a reader and takes an `.ewz`; `fmt` writes and refuses one.
     let dir = if a.check {
         reader_dir(a.project.as_ref())
     } else {
@@ -113,7 +113,7 @@ fn run_fmt_with(
     } else {
         ew_api::fmt::format(&mut session).map(|done| (done.files, done.generation))
     };
-    // FT-1489 (WP-S6.08 D19): a format that wrote says so when its manifest is marked `unstable`.
+    // A format that wrote says so when its manifest is marked `unstable`.
     let unstable = !a.check
         && outcome.as_ref().is_ok_and(|(files, _)| !files.is_empty())
         && session.store().is_some_and(|s| s.writes_unstable());
@@ -213,7 +213,7 @@ fn fmt_origin() -> ew_api::Origin {
     }
 }
 
-/// `ew fmt --repair` (WP-S1.17, decision log ID-1185): the refusals in ruling 3's order (an `.ewz`, a crashed session's
+/// `ew fmt --repair`: the refusals in ruling 3's order (an `.ewz`, a crashed session's
 /// journal, any other finding that forces read-only, then the repair's own: a project that cannot be packed, the
 /// backup's name or folder, the content check), each before anything is written; then the backup and the one save
 /// (`ew_api::fmt::repair`), and the project opened again as an editor opens it (ruling 6): exit 0 when it opens editable
@@ -248,7 +248,7 @@ fn run_repair(a: &FmtArgs, store: ew_api::StoreOptions, err: &mut dyn std::io::W
         eprintln!("{}", kept_line(k));
     }
     let outcome = ew_api::fmt::repair(&mut session);
-    // FT-1489 (WP-S6.08 D19): a repair that wrote says so when its manifest is marked `unstable`.
+    // A repair that wrote says so when its manifest is marked `unstable`.
     let unstable = outcome.as_ref().is_ok_and(|r| r.backup.is_some())
         && session.store().is_some_and(|s| s.writes_unstable());
     // A repair's session holds no unsaved transaction: the clean close loses nothing.
@@ -261,11 +261,11 @@ fn run_repair(a: &FmtArgs, store: ew_api::StoreOptions, err: &mut dyn std::io::W
 }
 
 /// What `ew fmt --repair` prints after `ew_api::fmt::repair`, and its exit code: `(code, stdout, stderr)`. `reopen`
-/// opens the repaired project again (ID-1185 ruling 6) and runs only after a save. Once the backup exists, `--json`
-/// prints the result on every way out (C47-p2#2): after a failed save with `save_error` (exit 2), after a re-open that
+/// opens the repaired project again and runs only after a save. Once the backup exists, `--json`
+/// prints the result on every way out: after a failed save with `save_error` (exit 2), after a re-open that
 /// found something wrong with `reopen_finding` (exit 2); a refusal before anything is written prints no result. A save
 /// that failed before its commit point leaves `discarded` and `files` empty and the generation before; one incomplete
-/// after it has taken effect, so they say what the repair decided, beside the decided generation (C47-p3#1). The human
+/// after it has taken effect, so they say what the repair decided, beside the decided generation. The human
 /// text goes to stderr with `--json`.
 fn repair_outcome(
     dir: &Path,
@@ -353,8 +353,8 @@ fn repair_outcome(
 }
 
 /// What `ew fmt --repair` prints when it repaired: each discarded line (`file:line` and its text as shown, cut after 80
-/// characters, control characters escaped), then the backup's path (ID-1185 ruling 7) with, when the backup holds files
-/// edited outside EW since the last save, how many (ID-1186 ruling 3: "as found: N files edited outside EW").
+/// characters, control characters escaped), then the backup's path with, when the backup holds files
+/// edited outside EW since the last save, how many (ruling 3: "as found: N files edited outside EW").
 fn repair_report(discarded: &[DiscardedLine], backup: &Backup) -> Vec<String> {
     let mut lines: Vec<String> = discarded
         .iter()
@@ -426,7 +426,7 @@ fn backup_result(backup: Option<&Backup>, generation: u64, kept: &[KeptLine]) ->
     }
 }
 
-/// Opens the repaired project again as an editor opens it (ID-1185 ruling 6) and closes it: `Err` with what is still
+/// Opens the repaired project again as an editor opens it and closes it: `Err` with what is still
 /// wrong, in words.
 fn reopen(dir: &Path) -> Result<(), String> {
     let options = ew_api::SessionOptions {
@@ -450,7 +450,7 @@ fn reopen(dir: &Path) -> Result<(), String> {
     }
 }
 
-/// The refusal of a repair open that a finding other than a broken line made read-only (ID-1185 ruling 3): the first
+/// The refusal of a repair open that a finding other than a broken line made read-only: the first
 /// such finding by its rule and place; one beyond the findings cap is named as such.
 fn beyond_repair_refusal(dir: &Path, report: &ew_api::OpenReport) -> String {
     let what = ew_api::fmt::beyond_repair(report).map_or_else(
@@ -470,7 +470,7 @@ fn beyond_repair_refusal(dir: &Path, report: &ew_api::OpenReport) -> String {
 fn repair_refusal(dir: &Path, e: &RepairError) -> String {
     let d = dir.display();
     match e {
-        // A file changed between the repair's open and its backup (ID-1186 ruling 4): the project is as it was, and a
+        // A file changed between the repair's open and its backup: the project is as it was, and a
         // new run finds it as it is now.
         RepairError::Pack(ew_api::ewz::PackError::ChangedSinceOpen { path }) => format!(
             "error: {d}: the backup cannot be packed: {path} changed on disk since the repair opened the project; \
@@ -520,11 +520,11 @@ fn fmt_refusal(e: &FmtError) -> String {
     }
 }
 
-/// `ew recover [--replay|--discard]` (D10, FT-252): the journal of the crashed session with the latest change, one at
-/// a time (ruling 2 of cycle 41). Without a flag its summary; `--replay` replays it and saves; `--discard` deletes it
+/// `ew recover [--replay|--discard]` (D10): the journal of the crashed session with the latest change, one at
+/// a time. Without a flag its summary; `--replay` replays it and saves; `--discard` deletes it
 /// after the word typed on a controlling terminal (without one: exit 2 before the project is opened). On a project of
 /// an older format `--replay` asks the upgrade's typed word (or takes `--yes`) before it replays, and saves with the
-/// upgrade's backup (FT-1336, FT-1394).
+/// upgrade's backup.
 pub(super) fn run_recover(a: &RecoverArgs) -> i32 {
     use std::io::IsTerminal;
     let terminal = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
@@ -541,7 +541,7 @@ pub(super) fn run_recover(a: &RecoverArgs) -> i32 {
 }
 
 /// [`run_recover`] with the terminal test, the reader, the writers (everything `ew recover` prints on stdout, and its
-/// own errors on stderr) and the store options injected (unit tests; ruling 3 of cycle 41, FT-1394).
+/// own errors on stderr) and the store options injected (unit tests).
 fn run_recover_with(
     a: &RecoverArgs,
     terminal: bool,
@@ -565,7 +565,7 @@ fn run_recover_with(
         confirmed: a.action == RecoverAction::Discard,
     };
     // Ruling 2 of cycle 41: `ew recover` acts only with the lock; a read-only open is refused with `ew apply`'s text.
-    // The first open keeps the journal: `--replay` opens again to replay it once the upgrade has its consent (FT-1394).
+    // The first open keeps the journal: `--replay` opens again to replay it once the upgrade has its consent.
     let opened = open_editing_to(
         &dir,
         origin.clone(),
@@ -633,7 +633,7 @@ fn run_recover_with(
         }
         RecoverAction::Replay => {
             say(output, errors, &summary(&info));
-            // FT-1336, FT-1394: a project of an older format opens migrated and the journal replays onto it, as the
+            // A project of an older format opens migrated and the journal replays onto it, as the
             // crashed session had it; its save converts the project, so the upgrade's consent comes first (WP-S1.17
             // D11). Without it the session closes with the journal kept as it was, nothing replayed.
             if let Some(from) = &opened.migrated_from
@@ -757,10 +757,10 @@ fn run_recover_with(
     }
 }
 
-/// `ew upgrade [--check] [--yes]` (WP-S1.17 D11, decision log ID-1221 ruling 6): a project of an older format, which
+/// `ew upgrade [--check] [--yes]`: a project of an older format, which
 /// opens migrated in memory, converted after the typed word or `--yes`: the session's consent, then its save, which
 /// writes the backup beside the project folder first. `--check` is a reader: no lock, nothing written, and it takes an
-/// `.ewz` (WP-S1.17 D9, decision log ID-1230 ruling 5), which the upgrade itself refuses as every writer does.
+/// `.ewz`, which the upgrade itself refuses as every writer does.
 pub(super) fn run_upgrade(a: &UpgradeArgs) -> i32 {
     use std::io::IsTerminal;
     let terminal = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
@@ -821,7 +821,7 @@ fn run_upgrade_with(
             }
         };
         return match opened.migrated_from {
-            // FT-1214: `ew upgrade` refuses an `.ewz` as every writer does, so the way names `ew extract` first.
+            // `ew upgrade` refuses an `.ewz` as every writer does, so the way names `ew extract` first.
             Some(from) if ewz => {
                 let _ = writeln!(
                     output,
@@ -931,7 +931,7 @@ fn summary(info: &ew_api::RecoveryInfo) -> String {
     out
 }
 
-/// How many further crashed sessions' journals remain (ruling 2 of cycle 41); empty when none.
+/// How many further crashed sessions' journals remain; empty when none.
 fn further(n: usize) -> String {
     match n {
         0 => String::new(),
@@ -1308,7 +1308,7 @@ mod tests {
     /// Ruling 1 of the cycle-41 review's fix round: "`journal_refusal` names the command that now exists and no FT
     /// number ... add a whole-text test for one subcommand of each kind that prints it (`ew apply`, `ew import
     /// parts`, a human-only subcommand)." The human-only kind: `project assets purge`, confirmed on the injected
-    /// terminal (ruling 3 of cycle 41), opens through `open_for_writing_with` and refuses a project with a crashed
+    /// terminal, opens through `open_for_writing_with` and refuses a project with a crashed
     /// session's journal before it asks: exit 2, nothing prompted, the journal unchanged. It prints
     /// `journal_refusal`'s text on stderr, which a unit test does not capture, so the text is asserted whole here;
     /// `ew apply` and `ew import parts` assert the same text through the binary (`tests/cli.rs`).
@@ -1360,7 +1360,7 @@ mod tests {
         );
     }
 
-    /// C47-p2#2: once the backup exists, `--json` prints the result on every way out, with exit 2 where it is a failure,
+    /// Once the backup exists, `--json` prints the result on every way out, with exit 2 where it is a failure,
     /// and the human text goes to stderr: a re-open that still finds something wrong (with `reopen_finding`), a save
     /// incomplete after its commit point (with `save_error`, and `discarded` and `files` as the repair decided them,
     /// C47-p3#1) and a save that failed before it (with `save_error`, `discarded` and `files` empty), each with and
@@ -1429,7 +1429,7 @@ mod tests {
         );
 
         // The save after the backup: incomplete after its commit point, which took effect and carries what the repair
-        // decided (C47-p3#1), and failed before it, which left the generation as it was.
+        // decided, and failed before it, which left the generation as it was.
         let incomplete = || RepairError::Save {
             error: ew_api::SaveError::Incomplete {
                 generation: 2,
@@ -1537,7 +1537,7 @@ mod tests {
         );
     }
 
-    // ---- `ew upgrade` (WP-S1.17 D11, decision log ID-1221 ruling 6) -------------------------------------------------
+    // ---- `ew upgrade` -------------------------------------------------
 
     fn unchanged(value: serde_json::Value) -> Result<serde_json::Value, ew_api::MigrationError> {
         Ok(value)
@@ -1694,7 +1694,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// FT-1148 (decision log ID-1312): the writers other than `ew upgrade` (`ew apply`, the purge, the release and the
+    /// The writers other than `ew upgrade` (`ew apply`, the purge, the release and the
     /// rest through `open_for_writing_items`; `ew fmt` and `--repair`) refuse a project of an older format before the
     /// unsaved-changes check, naming `ew upgrade`; nothing is written. `ew fmt --check` says so as a needed change.
     #[test]
@@ -1716,7 +1716,7 @@ mod tests {
              written",
             project.display()
         );
-        // C50-p4#4: `ew fmt`, `--check` (with and without `--json`) and `--repair` through their runner, the whole
+        // `ew fmt`, `--check` (with and without `--json`) and `--repair` through their runner, the whole
         // stderr and stdout and the exit codes.
         let fmt = |check: bool, repair: bool, json: bool| {
             let args = FmtArgs {
@@ -1845,7 +1845,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// FT-1154 (WP-S6.08 D3, RL-2): with a released list that lacks this build's format, the save of `ew upgrade --yes`
+    /// FT-1154 (RL-2): with a released list that lacks this build's format, the save of `ew upgrade --yes`
     /// marks the manifest `unstable` and prints the warning on stderr, the exit code unchanged; with the format
     /// released, neither.
     #[test]
@@ -1878,7 +1878,7 @@ mod tests {
         }
     }
 
-    /// FT-1489 (WP-S6.08 D19): with a released list that lacks this build's format, `ew fmt` rewriting a page with CRLF
+    /// With a released list that lacks this build's format, `ew fmt` rewriting a page with CRLF
     /// line ends and `ew fmt --repair` discarding a broken line each mark the manifest `unstable` and print the warning
     /// on stderr after their save; with the format released, neither.
     #[test]
@@ -1919,9 +1919,9 @@ mod tests {
                 let (mut out, mut err) = (Vec::new(), Vec::new());
                 let code = run_fmt_with(&args, options, (&mut out, &mut err));
                 let err = String::from_utf8(err).unwrap();
-                // The repair's own re-open (ID-1185 ruling 6) has this build's options: a release build (this format
+                // The repair's own re-open has this build's options: a release build (this format
                 // released) opens an unstable project read-only, exit 2 with the repaired generation kept; a
-                // development build opens it (C53-p1#9).
+                // development build opens it.
                 let release_build = ew_api::StoreOptions::new(VERSION).release_build;
                 let code_after = if repair && marked && release_build { 2 } else { 0 };
                 assert_eq!(
@@ -1936,7 +1936,7 @@ mod tests {
         }
     }
 
-    /// FT-1336: a session on a project of an older format (opened migrated) adds page 3 and crashes. `ew upgrade`
+    /// A session on a project of an older format (opened migrated) adds page 3 and crashes. `ew upgrade`
     /// refuses the journal, so `ew recover --replay` is the way out that keeps it: off a terminal without `--yes` it
     /// exits 2 and a wrong word exits 1, the journal kept and offered again each time; `--yes` replays, writes the
     /// upgrade's backup and saves in this version's format. FT-1394: the consent comes before the replay, so a
@@ -2030,9 +2030,9 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// ID-1250 (C48-p4#5): `--check` on an `.ewz` of an older format opens it through the injected chain and exits 1;
+    /// `--check` on an `.ewz` of an older format opens it through the injected chain and exits 1;
     /// the backup the upgrade wrote holds the project in format 0.0. Nothing is written. The way names `ew extract`
-    /// first, since `ew upgrade` refuses an `.ewz` (FT-1214).
+    /// first, since `ew upgrade` refuses an `.ewz`.
     #[test]
     fn upgrade_check_exits_1_on_an_older_ewz() {
         let dir = setup_v0("upgrade-check-ewz");

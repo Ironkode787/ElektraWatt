@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The local crash log (WP-S6.05 D6, D7; NFR-REL-13's 0.1.0 part). [`install`] runs first in `main`, for every mode:
+//! The local crash log (NFR-REL-13's 0.1.0 part). [`install`] runs first in `main`, for every mode:
 //! its panic hook appends one entry per panic to the process's log, `<state>/crashes/<yyyymmddThhmmssZ>-<pid>.log`
 //! (the process start in UTC; the file is created, user-only, at the first panic), and then calls the hook it replaced,
 //! so stderr keeps Rust's message. An entry holds the lines L1 to L7 of WP-S6.05 §5 and the frames of a forced
@@ -30,11 +30,11 @@ static START: OnceLock<SystemTime> = OnceLock::new();
 /// The process's crash log, once the mode named its state directory ([`set_dir`]).
 static LOG: OnceLock<PathBuf> = OnceLock::new();
 
-/// The most entries one process writes to its log (C50-p3#1): a panic that a job, a rule run or the tessellator
+/// The most entries one process writes to its log: a panic that a job, a rule run or the tessellator
 /// catches on every check or redraw would otherwise grow the log without end.
 pub(crate) const MAX_ENTRIES: usize = 50;
 
-/// The most bytes of one process's log before it stops taking entries (C50-p3#1).
+/// The most bytes of one process's log before it stops taking entries.
 pub(crate) const MAX_BYTES: u64 = 1024 * 1024;
 
 /// The line after the last entry of a log that reached its cap.
@@ -49,8 +49,8 @@ thread_local! {
     static IN_HOOK: Cell<bool> = const { Cell::new(false) };
 
     /// The hook's own slot past the cap: this thread's newest panic's entry, which [`ended`] writes before the end
-    /// line, so the panic that ends a session in a crash loop is still logged and its time is the one offered
-    /// (FT-1311). It is kept per thread (C51-p5#6): `ended` runs on the thread whose panic ended the session, so a
+    /// line, so the panic that ends a session in a crash loop is still logged and its time is the one offered.
+    /// It is kept per thread: `ended` runs on the thread whose panic ended the session, so a
     /// job thread's later panic never takes its place.
     static NEWEST: Cell<Option<String>> = const { Cell::new(None) };
 }
@@ -172,7 +172,7 @@ fn entry_of(version: &str, info: &PanicHookInfo<'_>) -> String {
     )
 }
 
-/// Appends `text` to the log at `path`, creating it and its directory user-only (WP-S6.05 D10); errors are ignored.
+/// Appends `text` to the log at `path`, creating it and its directory user-only; errors are ignored.
 fn append(path: &Path, text: &str) {
     let Some(dir) = path.parent() else { return };
     if std::fs::create_dir_all(dir).is_err() {
@@ -215,7 +215,7 @@ mod tests {
         std::fs::read_to_string(LOG.get().unwrap()).unwrap()
     }
 
-    /// C50-p3#1: a panic caught over and over writes at most `MAX_ENTRIES` entries, then the cap line once. Nextest runs each test in a process of its own, so the hook and the count
+    /// A panic caught over and over writes at most `MAX_ENTRIES` entries, then the cap line once. Nextest runs each test in a process of its own, so the hook and the count
     /// are this test's.
     #[test]
     fn a_log_stops_taking_entries_at_its_cap() {
@@ -229,7 +229,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(dir);
     }
 
-    /// FT-1311: past the cap, the newest panic's entry is kept and `ended()` writes it before the end line, so the
+    /// Past the cap, the newest panic's entry is kept and `ended()` writes it before the end line, so the
     /// final entry is the panic that ended the session and the offer reads its time (the log's last `Time:` line).
     #[test]
     fn the_panic_past_the_cap_that_ends_the_session_gets_the_final_entry() {
@@ -252,7 +252,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(dir);
     }
 
-    /// C51-p5#6: past the cap, a job thread's panic between the panic that ends the session and `ended()` never
+    /// Past the cap, a job thread's panic between the panic that ends the session and `ended()` never
     /// becomes the final entry: the slot is kept per thread, and `ended()` runs on the thread that panicked.
     #[test]
     fn a_job_thread_s_later_panic_never_takes_the_final_entry() {
@@ -273,7 +273,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(dir);
     }
 
-    /// C50-p3#12: a panic on a thread already in the hook writes nothing (std aborts on a panic inside the hook, so
+    /// A panic on a thread already in the hook writes nothing (std aborts on a panic inside the hook, so
     /// the guard is reached here by setting it).
     #[test]
     fn a_panic_inside_the_hook_is_not_logged_again() {

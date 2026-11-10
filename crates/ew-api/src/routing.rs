@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The schematic router as the canvas tools, the actions and the CLI reach it (WP-S2.19 D4): the core of
+//! The schematic router as the canvas tools, the actions and the CLI reach it: the core of
 //! `ew_derive::routing` re-exported ([`route_page`], [`route_one`], [`clear_one`], [`RoutePlan`]),
 //! [`Session::route_plan`] for Route page, Route selection, a move's re-solve and Golden A's route tool, and
 //! [`route_many_params`], the `connection.route_many` that commits a plan. The Wire tool routes its ghost with
@@ -16,7 +16,7 @@ pub use ew_derive::routing::{
 use crate::Session;
 use crate::geometry::Dir;
 
-/// What a page solve routes (WP-S2.19 D13).
+/// What a page solve routes.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum RouteScope {
     /// Route page: the page's unrouted connections.
@@ -27,7 +27,7 @@ pub enum RouteScope {
 }
 
 impl Session {
-    /// The plan of a page solve on the page labelled `folio` (WP-S2.19 §5, D4): `scope`'s connections routed against
+    /// The plan of a page solve on the page labelled `folio` (D4): `scope`'s connections routed against
     /// the page as drawn ([`Session::page_geometry`]); `None` for an unknown folio or a page that is not drawn.
     pub fn route_plan(&self, folio: &str, scope: &RouteScope) -> Option<RoutePlan> {
         let page = self.page_geometry(folio)?;
@@ -51,7 +51,7 @@ impl Session {
     }
 }
 
-/// The parameters of the `connection.route_many` that commits `plan`'s routes (WP-S2.19 D12); `None` for a plan
+/// The parameters of the `connection.route_many` that commits `plan`'s routes; `None` for a plan
 /// without a route.
 pub fn route_many_params(plan: &RoutePlan) -> Option<serde_json::Value> {
     if plan.routes.is_empty() {

@@ -115,7 +115,7 @@ impl ReportKindDef for StructureOverview {
                 ],
             );
             r.sources = vec![id.cast()];
-            // The designation links the device's main representation (WP-S3.06 D10; none is drawn without one).
+            // The designation links the device's main representation (none is drawn without one).
             r.links = vec![LinkRef::whole(0, LinkTarget::MainRep(id))];
             devices.push(((natural_key(&full), id), r));
         }

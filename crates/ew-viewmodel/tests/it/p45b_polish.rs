@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The play-test polish of cycle 45 in the view model (ID-1107): FT-1023 (a renamed interruption point says so) and
+//! The play-test polish of cycle 45 in the view model: FT-1023 (a renamed interruption point says so) and
 //! FT-1032 (a stale refusal leaves the canvas hint). FT-1028's test is `h40.rs`'s.
 
 use crate::common;
@@ -49,7 +49,7 @@ fn key_of(s: &ShellModel, id: &str) -> String {
     ew_viewmodel::keymap::display(&s.shortcut_text(ew_viewmodel::actions::find(id).unwrap()))
 }
 
-/// FT-1023, ID-1107: "when the tool proposes a name other than the potential's, the HUD and the placement toast read
+/// "when the tool proposes a name other than the potential's, the HUD and the placement toast read
 /// '{base} is taken, so this point is {name}.'" A second source point after 0V is proposed as 0V-1: the HUD says so
 /// in the name's place, and so does the toast of its placement.
 #[test]
@@ -112,7 +112,7 @@ fn refused(tmp: &Tmp) -> ShellModel {
     s
 }
 
-/// FT-1032, ID-1107: "a tool's refusal notice clears when the state it refused changes: a committed command".
+/// "a tool's refusal notice clears when the state it refused changes: a committed command".
 #[test]
 fn ft1032_a_committed_command_clears_the_refusal() {
     let tmp = Tmp::new("p45b-notice-commit");
@@ -121,7 +121,7 @@ fn ft1032_a_committed_command_clears_the_refusal() {
     assert_eq!(s.tool_notice(), None);
 }
 
-/// FT-1032, ID-1107: "... a Properties edit".
+/// "... a Properties edit".
 #[test]
 fn ft1032_a_properties_edit_clears_the_refusal() {
     let tmp = Tmp::new("p45b-notice-props");
@@ -134,7 +134,7 @@ fn ft1032_a_properties_edit_clears_the_refusal() {
     assert_eq!(s.tool_notice(), None);
 }
 
-/// FT-1032, ID-1107: "... a selection change".
+/// "... a selection change".
 #[test]
 fn ft1032_a_selection_change_clears_the_refusal() {
     let tmp = Tmp::new("p45b-notice-select");
@@ -143,7 +143,7 @@ fn ft1032_a_selection_change_clears_the_refusal() {
     assert_eq!(s.tool_notice(), None);
 }
 
-/// FT-1032, ID-1107: "... undo or redo".
+/// "... undo or redo".
 #[test]
 fn ft1032_undo_and_redo_clear_the_refusal() {
     let tmp = Tmp::new("p45b-notice-undo");
@@ -179,7 +179,7 @@ fn the_armed_ip_tools_hud_leads_with_its_name() {
     );
 }
 
-/// FT-1075 (ID-1182): a greyed command's reason, clicked, is a toast whose line under the title starts with a
+/// A greyed command's reason, clicked, is a toast whose line under the title starts with a
 /// capital ("Draw on a schematic page"); the toast's own text stays the reason.
 #[test]
 fn ft1075_a_greyed_commands_reason_reads_with_a_capital_under_its_title() {

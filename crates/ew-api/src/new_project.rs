@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! New projects (FT-307, FR-PRJ-009, FR-PRJ-010; doc 07 §2.8, doc 05 §5.5): [`Session::new_project`] starts a
+//! New projects (FR-PRJ-009, FR-PRJ-010; doc 07 §2.8, doc 05 §5.5): [`Session::new_project`] starts a
 //! session over a project that has no directory yet, from the built-in basic project or from a company basic
 //! project directory. The front-end writes it with [`Session::create`] (Save As into an empty directory).
 //!
@@ -15,7 +15,7 @@
 //! reference between records follows the new IDs. Unknown records are carried over the same way.
 //!
 //! A project made from a directory records `Project.basic_project = {id, generation}`: the basic project's project
-//! ID and its manifest generation when it was copied (D14, doc 07 §2.8; WP-S1.19 part 4). The built-in basic
+//! ID and its manifest generation when it was copied (D14, doc 07 §2.8). The built-in basic
 //! project is no directory and records nothing.
 //!
 //! **Save as basic project** (FR-MAC-011, D14): [`Session::save_as_basic`] writes the session's model as a new
@@ -148,7 +148,7 @@ impl Session {
     ) -> Result<(), SaveAsBasicError> {
         let mut scratch = Session::new(self.engine.model().clone(), SessionOptions::default());
         if omit_devices {
-            // The panel layout goes with the devices (WP-S4.01): the placements, then the enclosures with their
+            // The panel layout goes with the devices: the placements, then the enclosures with their
             // surfaces and carriers (an enclosure keeps its device, `enclosure.device` forbid); the layout spaces
             // belong to the kept structure and stay.
             let (placements, enclosures) = {
@@ -603,7 +603,7 @@ mod tests {
         })
     }
 
-    /// FT-344: a set of IDs that the remap left unsorted (a report block's include and exclude lists) is put in
+    /// A set of IDs that the remap left unsorted (a report block's include and exclude lists) is put in
     /// order at the typed reader's JSON pointer, while an ordered list beside it keeps its order.
     #[test]
     fn read_back_sorts_an_unsorted_id_set_and_keeps_ordered_lists() {

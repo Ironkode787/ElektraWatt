@@ -83,7 +83,7 @@ fn p_d_and_b_stay_with_the_ip_name_field_while_it_has_the_focus() {
     assert_eq!(h.state().shell().tool().name(), "ip", "B arms no black box tool");
     assert_eq!(direction(&h), second, "D does not reach the tool");
     assert_eq!(h.state().shell().revision(), rev);
-    // FT-1022, ID-1107: "Enter or Tab ends the name and gives the keys back to the tool." Enter sends the name, the
+    // "Enter or Tab ends the name and gives the keys back to the tool." Enter sends the name, the
     // field gives up the focus, and D turns the tool again.
     press(&mut h, Key::Enter);
     assert_eq!(ghost_name(&h), "X1");
@@ -101,7 +101,7 @@ fn ghost_name(h: &Harness<'_, App>) -> String {
     }
 }
 
-/// FT-1022, ID-1107: "Enter or Tab ends the name and gives the keys back to the tool." Tab does what Enter does: the
+/// "Enter or Tab ends the name and gives the keys back to the tool." Tab does what Enter does: the
 /// focus goes to no other widget, Tab does not reach the canvas, and D turns the tool again.
 #[test]
 fn tab_ends_the_ip_name_and_gives_the_keys_back_to_the_tool() {
@@ -126,7 +126,7 @@ fn tab_ends_the_ip_name_and_gives_the_keys_back_to_the_tool() {
     assert_eq!(ghost_name(&h), "X1", "the tool keeps the name");
 }
 
-/// FT-1022, ID-1107: the field's tooltip names the keys that end it (doc 16a P8).
+/// The field's tooltip names the keys that end it (doc 16a P8).
 #[test]
 fn the_ip_name_tooltip_names_the_keys_that_end_it() {
     const TIP: &str = "Enter or Tab ends the name and gives the keys back to the tool";
@@ -195,11 +195,11 @@ fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
     assert_eq!(h.state().shell().tool().name(), "ip");
     type_in_name_field(&mut h, "0V");
     assert_eq!(click_canvas_centre(&mut h), vec!["0V".to_owned()]);
-    // The point took the typed name, so the field is empty again (FT-851).
+    // The point took the typed name, so the field is empty again.
     assert_eq!(name_field_text(&h).unwrap_or_default(), "");
 }
 
-/// FT-851 (ID-1150): the field shows the typed name after the focus leaves it, until a point takes it; empty, it shows
+/// The field shows the typed name after the focus leaves it, until a point takes it; empty, it shows
 /// the HUD's proposal as its hint.
 #[test]
 fn ft851_the_ip_name_field_keeps_the_typed_name_until_a_point_takes_it() {
@@ -290,7 +290,7 @@ fn click_canvas_centre(h: &mut Harness<'_, App>) -> Vec<String> {
         .collect()
 }
 
-/// FT-1086 (ID-1183) at the floor: the IP tool's Tool options card takes the pointer only with its controls. A click on
+/// FT-1086 at the floor: the IP tool's Tool options card takes the pointer only with its controls. A click on
 /// its title (its free area) places a point on the sheet beneath; while the tool's ghost is under the card the card is
 /// drawn at 40 % opacity and is no chip obstacle, and away from it the card is whole and an obstacle again.
 #[test]
@@ -328,7 +328,7 @@ fn ft1086_a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() 
     h.event(egui::Event::PointerMoved(away));
     settle(&mut h);
     settle(&mut h);
-    // FT-1141: the three by membership, no total (a set that grows). The zoom control by its bottom-right corner.
+    // The three by membership, no total (a set that grows). The zoom control by its bottom-right corner.
     let (_, hud, pane) = h.state().command_surface_rects();
     let (hud, pane) = (hud.unwrap(), pane.unwrap());
     let zoom_corner = egui::pos2(pane.right() - t.space_4 - 1.0, pane.bottom() - t.space_5 - 1.0);
@@ -375,7 +375,7 @@ fn ft1086_a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() 
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1115 (ID-1225) at the floor: the Tool options card's band takes the pointer only on its controls. A click in the
+/// FT-1115 at the floor: the Tool options card's band takes the pointer only on its controls. A click in the
 /// gap between the IP name's label and its field places a point on the sheet beneath; a click on the field does not.
 /// Folio 3, whose sheet is free beneath the band (103's routed wires run there, and a point is not placed on a wire).
 #[test]
@@ -423,7 +423,7 @@ fn ft1115_a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1077 (ID-1183) at the floor: the Interruption point row of a placed point's function has no value, so its label
+/// FT-1077 at the floor: the Interruption point row of a placed point's function has no value, so its label
 /// runs across the value column and is whole; a row with a value keeps the label column (M39).
 #[test]
 fn ft1077_a_row_with_no_value_lets_its_label_run_across_the_value_column() {

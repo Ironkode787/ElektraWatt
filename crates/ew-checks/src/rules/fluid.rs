@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The EW-FL pack, its MVP rules (doc 15 §4.5.3, doc 11 §6; WP-S1.20 D16): EW-FL-001, -002, -004, -011 and -013.
+//! The EW-FL pack, its MVP rules (doc 15 §4.5.3, doc 11 §6): EW-FL-001, -002, -004, -011 and -013.
 //!
 //! # Determinism
 //!
@@ -90,7 +90,7 @@ pub const WORKING_PORT_OPEN: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-fl-001",
 };
 
-/// EW-FL-001 (FR-FLU-018, WP-S1.20 D16): per placed valve function (a function on a FnDef of contact kind `valve`
+/// EW-FL-001 (FR-FLU-018): per placed valve function (a function on a FnDef of contact kind `valve`
 /// with a representation) of a valve not in state `not_fitted`, its working ports (`working2`, `working4`) whose fluid
 /// net has no other member and that carry no closure (`fluid.port.close`): one finding listing them, target the
 /// function.
@@ -194,7 +194,7 @@ pub const COIL_BINDINGS: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-fl-002",
 };
 
-/// EW-FL-002 (FR-FLU-017, FI-03, WP-S1.20 D16): per valve whose valve part declares solenoids and that has internal
+/// EW-FL-002 (FR-FLU-017, FI-03): per valve whose valve part declares solenoids and that has internal
 /// coils (non-physical CPs of functions on a FnDef of contact kind `coil`; physical coils are skipped): an internal
 /// coil CP of a declared solenoid that more than one channel binds (error), a channel bound to an internal coil the
 /// part does not declare (error), and, on a valve in state `used`, a declared solenoid whose internal coil no channel
@@ -320,7 +320,7 @@ impl Rule for CoilBindings {
 // ---------------------------------------------------------------------------------------------------------
 // EW-FL-004
 
-/// EW-FL-004 "Spare positions" (doc 15 §4.5.3): hygiene, o r (WP-S1.20 D16, §13 O2), info, device.
+/// EW-FL-004 "Spare positions" (doc 15 §4.5.3): hygiene, o r (O2), info, device.
 pub const SPARE_POSITIONS: RuleMeta = RuleMeta {
     id: "EW-FL-004",
     code: "120004",
@@ -336,7 +336,7 @@ pub const SPARE_POSITIONS: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-fl-004",
 };
 
-/// EW-FL-004 (FR-FLU-017, WP-S1.20 D16): one finding per position of a module that holds a spare valve or a blanking
+/// EW-FL-004 (FR-FLU-017): one finding per position of a module that holds a spare valve or a blanking
 /// plate (`valve_slots`), target the valve or the plate. It runs in the release run too, where AC-21 counts EF-14.
 #[derive(Clone, Copy, Debug)]
 pub struct SparePositions;
@@ -411,7 +411,7 @@ pub const DRIVES_MISMATCH: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-fl-011",
 };
 
-/// EW-FL-011 (FR-FLU-029, WP-S1.20 D16): a valve with a `drives` link whose target differs from the device its
+/// EW-FL-011 (FR-FLU-029): a valve with a `drives` link whose target differs from the device its
 /// working-port lines reach (`reached_device`), when that device exists; target the valve.
 #[derive(Clone, Copy, Debug)]
 pub struct DrivesMismatch;
@@ -532,7 +532,7 @@ fn outside(q: &Q, module: Id<Device>, n: u16, p: u32, child: Id<Device>, tail: (
     .arg("free", free)
 }
 
-/// EW-FL-013 (FR-FLU-027, FI-02, FI-07; WP-S1.20 D16): per module (`valve_slots`), a second child at a position (T13)
+/// EW-FL-013 (FR-FLU-027, FI-02, FI-07): per module (`valve_slots`), a second child at a position (T13)
 /// and a child outside 1 … n (T12), errors, and each empty position (T19), a warning; per device, two modules of its
 /// children at one position (FI-07, T13), an error. Prevent mode refuses a batch that puts a touched device at a held
 /// position or outside its module's positions (the two error cases), the latter with the free positions or "every

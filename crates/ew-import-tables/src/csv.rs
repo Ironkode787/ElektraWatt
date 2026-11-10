@@ -16,7 +16,7 @@
 //! byte; together with the per-table cell budget ([`TableLimits::max_cells`]) this bounds the table's storage
 //! (see [`CsvTable::accounted_bytes`]).
 
-// FT-271: `seen` below only answers "already there?"; it is never iterated.
+// `seen` below only answers "already there?"; it is never iterated.
 #[allow(clippy::disallowed_types)]
 use std::collections::HashSet;
 use std::fmt;
@@ -562,7 +562,7 @@ pub fn parse(bytes: &[u8], limits: &TableLimits) -> Result<CsvTable, CsvError> {
         .iter()
         .map(|&c| cell_text(bytes, &sc.owned, c).to_owned())
         .collect();
-    // FT-271: insert-only duplicate check; the order of a set never reaches the error or the table.
+    // Insert-only duplicate check; the order of a set never reaches the error or the table.
     #[allow(clippy::disallowed_types)]
     let mut seen = HashSet::new();
     for (i, name) in header.iter().enumerate() {
@@ -894,7 +894,7 @@ mod tests {
         }
     }
 
-    /// FT-880: a stray quote, a stray CR and an unterminated quote name the column of their field, as an over-long
+    /// A stray quote, a stray CR and an unterminated quote name the column of their field, as an over-long
     /// cell does; the whole text is what the import prints after "table refused: ".
     #[test]
     fn the_quote_and_cr_errors_name_their_column() {

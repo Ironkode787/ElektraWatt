@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The schema-driven default arm (RD43): one generator that builds a step for any registered command from the
+//! The schema-driven default arm: one generator that builds a step for any registered command from the
 //! command's parameter schema (`CommandRegistry::get(..).schema()`), so a new command is fuzzed without a hand arm.
 //!
 //! Values follow the schema: by type, within the bounds (`minimum`/`maximum`, the `format` of an unsigned or

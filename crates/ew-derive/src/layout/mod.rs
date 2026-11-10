@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The layout's pure geometry (WP-S4.01 D5, doc 12 §2.1–§2.4, §3.3): carrier paths, the mount-kind compatibility
+//! The layout's pure geometry (doc 12 §2.1–§2.4, §3.3): carrier paths, the mount-kind compatibility
 //! table and the pose validator, shared by the `layout.*` commands (`ew-commands`) and part 5's EW-LAY-010.
 //!
 //! Everything here is a plain function over record values, in integer nanometres and exact: carriers are
@@ -24,32 +24,32 @@
 //! | [`layout_legend`], [`LegendRow`] | `layout_legend(surface)`: the legend rows of a surface (D11, doc 12 §5.4) |
 //! | [`page_surface`], [`surface_pages`] | The surface a panel-layout page shows, and the pages that show a surface (D9) |
 //! | [`carrier_order`], [`metres_of_nm`] | The legend order of carriers and a length in metres exact to the millimetre (D11) |
-//! | [`carrier_labels`], [`CarrierLabel`] | "Rail n" and "Duct n" of a surface's carriers (WP-S4.02 D8) |
-//! | [`RailItem`], [`min_gap`], [`runs`], [`brackets`], [`free_length`] | The rail model: items, minimum gaps, runs of strips and their end brackets (WP-S4.02 D3) |
-//! | [`resolve`], [`SnapMode`] | Where a dropped item lands in free, push or swap mode and which neighbours move (WP-S4.02 D4, D5) |
+//! | [`carrier_labels`], [`CarrierLabel`] | "Rail n" and "Duct n" of a surface's carriers |
+//! | [`RailItem`], [`min_gap`], [`runs`], [`brackets`], [`free_length`] | The rail model: items, minimum gaps, runs of strips and their end brackets |
+//! | [`resolve`], [`SnapMode`] | Where a dropped item lands in free, push or swap mode and which neighbours move |
 //! | [`rail_items`], [`rail_extent`] | A rail's items from `rail_occupancy`; what a device takes along a rail |
-//! | [`GroupAccessories`], [`RailBrackets`] | `group_accessories(carrier)`: the derived end brackets of a rail and their count per strip (WP-S4.02 D3, FR-LAY-060) |
-//! | [`member_order`], [`member_slot`] | The member order of an assembly, shared with EW-LAY-016, and where a member is pushed in (WP-S4.02 D6) |
-//! | [`mount_label`] | A mount kind in words, for every text that names one (WP-S4.02 part 3) |
-//! | [`next_fit`] | Where a fill places an item: the first fit at or after a floor (WP-S4.02 D6) |
+//! | [`GroupAccessories`], [`RailBrackets`] | `group_accessories(carrier)`: the derived end brackets of a rail and their count per strip (FR-LAY-060) |
+//! | [`member_order`], [`member_slot`] | The member order of an assembly, shared with EW-LAY-016, and where a member is pushed in |
+//! | [`mount_label`] | A mount kind in words, for every text that names one |
+//! | [`next_fit`] | Where a fill places an item: the first fit at or after a floor |
 //!
 //! Frames (doc 12 §2.1): a surface's `u` grows to the right and `v` upwards; a rail's pose `t = (s, 0, 0)` is the part's
 //! clip point at distance `s` from `path[0]` along the axis; a surface pose `t = (u, v, 0)` is the part origin, the
 //! bottom-left corner of its footprint (x along the rail, y up the plate); a part's `rail_offset` is the clip point
 //! in the part frame (absent: the footprint's centre).
 
-// WP-S4.02 part 1: the rail items and the derived end brackets (D3)
+// The rail items and the derived end brackets (D3)
 mod accessories;
-// WP-S4.02 part 2: the member order of an assembly (D6)
+// The member order of an assembly (D6)
 mod assembly;
 mod carrier;
 mod fit;
-// WP-S4.01 part 4: the layout legend and the surface of a panel page (D11)
+// The layout legend and the surface of a panel page (D11)
 mod legend;
 mod pose;
-// WP-S4.01 part 2: the layout queries (doc 12 §2.6)
+// The layout queries (doc 12 §2.6)
 mod queries;
-// WP-S4.02 part 1: the rail model and the mode resolution (D3 to D5)
+// The rail model and the mode resolution (D3 to D5)
 mod snap;
 
 pub use accessories::{

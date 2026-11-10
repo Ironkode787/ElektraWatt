@@ -5,7 +5,7 @@
 
 /// SplitMix64 (Steele, Lea and Flood 2014): a 64-bit state, one addition and a mixing function per output.
 ///
-/// The cargo-fuzz target (`fuzz/`, FT-297) drives the same generator from its input: with a *tape*
+/// The cargo-fuzz target (`fuzz/`) drives the same generator from its input: with a *tape*
 /// ([`SplitMix64::with_tape`]) every draw is the SplitMix64 output XOR the next eight bytes of the tape
 /// (zero-padded at the end), so an input that changes one tape word changes one draw and the coverage
 /// feedback of libFuzzer steers the generator; an empty tape is the plain seeded stream of the nightly test.

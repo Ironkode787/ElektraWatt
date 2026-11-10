@@ -130,7 +130,7 @@ fn the_rows_of_the_plate_cell_by_cell() {
         .map(|r| r.cells.iter().map(text).collect())
         .collect();
     let row = |v: [&str; 7]| v.iter().map(|s| (*s).to_owned()).collect::<Vec<String>>();
-    // The manufacturer copy is not embedded and the reference has no key: the missing cell, not the item ID (FT-876).
+    // The manufacturer copy is not embedded and the reference has no key: the missing cell, not the item ID.
     let maker = format!("{:?}", Cell::Missing(MissingReason::Manufacturer));
     assert_eq!(
         cells,

@@ -23,7 +23,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             s.act_tool("measure")
         }),
     )),
-    // Place and arrange (WP-S2.04 part 1, §7.6): the Insert menu, the transform keys, Move, Delete, Change symbol.
+    // Place and arrange: the Insert menu, the transform keys, Move, Delete, Change symbol.
     keeps_banner(in_canvas(placed(
         place(Group::Place, 1, CommandSize::Large, None),
         "circuit-switch-open",
@@ -62,7 +62,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_strip_new(p),
         ),
     )),
-    // FT-409: the structure node and the external reference, one previewed command each.
+    // The structure node and the external reference, one previewed command each.
     with_params(
         "kind:enum(functional_assignment|function|installation_site|location|document_kind|user_defined|type), designation:text, parent?:text",
         placed(
@@ -144,7 +144,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     keeps_banner(hidden(with_params(
         // `arm` reads the optional device letter and, for a terminal, the strip and its designation
-        // (`terminal_designation`; FT-543 keeps `designation` as its old name).
+        // (`terminal_designation`; keeps `designation` as its old name).
         "letter?:text, strip?:text, terminal_designation?:text, designation?:text",
         act(
             "picker.choose",
@@ -156,7 +156,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_picker_choose(p),
         ),
     ))),
-    // ID-1477 (1): the current row, a symbol on another connection grid, placed on a new page with its grid.
+    // The current row, a symbol on another connection grid, placed on a new page with its grid.
     keeps_banner(hidden(act(
         "picker.new_page",
         Command,
@@ -166,7 +166,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_picker_new_page(),
     ))),
-    // WP-S2.18 part 1 (D2): J opens the Place tool's Join chooser (doc 16a §6.22) while the armed symbol can be an
+    // J opens the Place tool's Join chooser (doc 16a §6.22) while the armed symbol can be an
     // auxiliary function; the chooser's own keys are its actions.
     keeps_banner(hidden(in_canvas(act(
         "place.join",
@@ -293,7 +293,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         slot_sep(Menu::Edit),
         |s, _| s.act_delete_selection(),
     ))),
-    // WP-S2.05 part 3: the clipboard (§8.8). The chords are the canvas's: a text field of the property grid or the find
+    // The clipboard (§8.8). The chords are the canvas's: a text field of the property grid or the find
     // pane keeps egui's own copy and paste, and the window routes no chord while a text field has the keyboard.
     in_canvas(act(
         "edit.cut",
@@ -413,7 +413,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ))),
     // Ctrl+Enter: a click with Alt held at the grid cursor (a placement without its autoconnect proposals, a bend
-    // without object snaps), the keyboard's twin of `canvas.activate {alt}` (fix round; per-context chords, ID-628).
+    // without object snaps), the keyboard's twin of `canvas.activate {alt}` (fix round; per-context chords).
     keeps_banner(hidden(in_canvas(act(
         "canvas.activate_alt",
         View,
@@ -612,7 +612,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, p| s.act_tool_connect_on_move(p),
     )))),
-    // ID-1497 (10): Edit route on the Draw tab's Connect group, beside Wire (the polyline: Wire has the route icon).
+    // Edit route on the Draw tab's Connect group, beside Wire (the polyline: Wire has the route icon).
     keeps_banner(in_canvas(placed(
         place(Group::Connect, 2, CommandSize::Small, None),
         "ew-shape-polyline",
@@ -626,7 +626,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_route_edit(),
         ),
     ))),
-    // WP-S2.19 D13: Route page and Route selection after Edit route, previewed (no default key); after Interruption,
+    // Route page and Route selection after Edit route, previewed (no default key); after Interruption,
     // so the two stack in one column of their own (ID-1506 (6)). Each its own icon, neither the generated badge's
     // (ID-1509 (9), C1): the page as a whole, and a pull on the selected wires.
     keeps_banner(placed(
@@ -712,7 +712,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_crossings(p),
         ),
     )),
-    // WP-S2.04 part 2. End.
+    // End.
     // WP-S2.04 part 3 (interruption points and black boxes, §9.6). Begin.
     keeps_banner(in_canvas(placed(
         place(
@@ -845,7 +845,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         grp(Group::Place),
         |s, _| s.act_box_add_cp(),
     ))),
-    // WP-S2.04 part 3. End.
+    // End.
     // WP-S2.04 part 4b (text and graphic tools, §10.7). Begin.
     keeps_banner(in_canvas(placed(
         place(Group::Annotate, 1, CommandSize::Large, None),
@@ -899,7 +899,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_text_edit(),
         ),
     ))),
-    // FT-411: Edit ▸ Bridge terminals.
+    // Edit ▸ Bridge terminals.
     keeps_banner(in_canvas(act(
         "strip.bridge",
         Command,
@@ -909,7 +909,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         grp(Group::Connect),
         |s, _| s.act_strip_bridge(),
     ))),
-    // WP-S2.07 part 1: the strip editor (§6.9; 262 → 268).
+    // The strip editor (§6.9; 262 → 268).
     with_params(
         "strip?:text",
         act(
@@ -1029,7 +1029,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_bond_draw(p),
         )),
     )),
-    // FT-1202 (ID-1270): Draw ▸ Define potential…, beside Bond: `potential.define` at the selection's point, through
+    // Draw ▸ Define potential…, beside Bond: `potential.define` at the selection's point, through
     // its parameter form.
     keeps_banner(with_params(
         "name?:text, type?:text, voltage?:text",
@@ -1043,7 +1043,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_potential_draw(p),
         )),
     )),
-    // FT-1371 (ID-1362): Draw ▸ Connect ▸ New cable… (`cable.create` from a cable part, with its cores) and Connect
+    // Draw ▸ Connect ▸ New cable… (`cable.create` from a cable part, with its cores) and Connect
     // cores… (the selected wires become the cable's cores, by order), each through its form.
     with_params(
         "part:text",
@@ -1069,7 +1069,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_cable_connect_cores(p),
         )),
     ),
-    // FT-1239: Define potential… from a Potentials row's context menu, at the row's point.
+    // Define potential… from a Potentials row's context menu, at the row's point.
     keeps_banner(with_params(
         "row:text",
         hidden(in_navigator(act(
@@ -1082,7 +1082,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_potential_draw_row(p),
         ))),
     )),
-    // WP-S2.04 part 4b: the Wire marker and Structure box tools, their fields and the marker mode.
+    // The Wire marker and Structure box tools, their fields and the marker mode.
     keeps_banner(in_canvas(with_icon(
         "ew-cable",
         act(
@@ -1146,7 +1146,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_marker_mode(p),
         ),
     )),
-    // WP-S2.04 part 4b. End.
+    // End.
     // WP-S2.04 part 5 (images, §11).
     keeps_banner(in_canvas(with_icon(
         "file",

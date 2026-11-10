@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 6 (D16 to D18): the glossary pane (GT-1, FR-UI-045), the one-time tips (GT-2, GT-3, FR-UI-048) and
+//! The glossary pane (GT-1, FR-UI-045), the one-time tips (GT-2, GT-3, FR-UI-048) and
 //! the wire-colour view (GT-4, FR-UI-047), on copies of Golden A. Every text a person reads is asserted whole.
 
 use crate::common;
@@ -228,7 +228,7 @@ fn tips_item(s: &ShellModel) -> (String, bool) {
         .expect("View ▸ Show tips")
 }
 
-/// FT-1280 (ID-1315 ruling 3): View ▸ Show tips switches the one-time tips, saved to `tips` in `settings.toml`
+/// View ▸ Show tips switches the one-time tips, saved to `tips` in `settings.toml`
 /// (FR-UI-048), and its check shows the setting.
 #[test]
 fn view_show_tips_switches_the_tips_and_saves_the_setting() {
@@ -251,7 +251,7 @@ fn view_show_tips_switches_the_tips_and_saves_the_setting() {
     assert!(settings_of(&tmp).tips);
     line_onto_a_cp(&mut s);
     assert_eq!(tips(&s).len(), 1, "the tip again once on");
-    // FT-1348: in Dutch too.
+    // In Dutch too.
     done(&mut s, "view.language", json!({"value": "nl"}));
     assert_eq!(tips_item(&s), ("Tips tonen".to_owned(), true));
     s.shutdown();
@@ -314,7 +314,7 @@ fn refuse_a_generated_page(s: &mut ShellModel, folio: &str) -> String {
     row
 }
 
-/// FT-1282: a generated page's refusal names the page's title with its number, never the block's title format, in
+/// A generated page's refusal names the page's title with its number, never the block's title format, in
 /// both languages.
 #[test]
 fn a_generated_page_refuses_in_the_words_of_its_numbered_title() {
@@ -452,7 +452,7 @@ fn gt3_tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_o
     s.shutdown();
 }
 
-/// C49-p8#3: a read-only project's refusal offers neither tip 2 nor tip 3 and leaves both unused.
+/// A read-only project's refusal offers neither tip 2 nor tip 3 and leaves both unused.
 #[test]
 fn gt3_a_read_only_refusal_leaves_tips_2_and_3_unused() {
     let tmp = Tmp::new("gt3-read-only");
@@ -494,7 +494,7 @@ fn gt3_a_read_only_refusal_leaves_tips_2_and_3_unused() {
     s.shutdown();
 }
 
-/// C49-p8#3: an editing tool refused on a generated page, and the Pages navigator's reorder and move of one, offer tip
+/// An editing tool refused on a generated page, and the Pages navigator's reorder and move of one, offer tip
 /// 3 (once).
 #[test]
 fn gt3_a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
@@ -655,7 +655,7 @@ fn gt4_wire_colours_stroke_w29_in_dbu_and_stripe_w27_and_are_off_by_default() {
         .find(|x| x.id.to_string() == W29)
         .expect("W29 is drawn on 103");
     assert_eq!(w29.code, "DBU");
-    // Golden A's colour profile declares DBU as BU, dark (C49-p8#1): the colour comes from that, not the spelling.
+    // Golden A's colour profile declares DBU as BU, dark: the colour comes from that, not the spelling.
     assert_eq!(w29.colours, [Some((0x11, 0x34, 0x76))]);
     assert!(!w29.cased);
     assert_eq!(
@@ -693,7 +693,7 @@ fn gt4_wire_colours_stroke_w29_in_dbu_and_stripe_w27_and_are_off_by_default() {
     assert_eq!(s.wire_colour_overlay(0), []);
 }
 
-/// FT-1347: a script's `step` near `i64::MAX` with the cursor past row 0 stops at the last row (no overflow).
+/// A script's `step` near `i64::MAX` with the cursor past row 0 stops at the last row (no overflow).
 #[test]
 fn ft1347_a_huge_glossary_step_stops_at_the_last_row() {
     let tmp = Tmp::new("ft1347-glossary");

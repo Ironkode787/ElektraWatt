@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Panel-layout pages (WP-S4.01 part 3, D9 and D10; doc 12 §5.1 to §5.3): the surface view of a `panel_layout` page
+//! Panel-layout pages (doc 12 §5.1 to §5.3): the surface view of a `panel_layout` page
 //! drawn into the panel layers of [`Layer::PANEL`](ew_dl::Layer::PANEL).
 //!
 //! The caller (`ew-api`, which holds `Q`) fills a [`PanelView`] from the derived layout queries, in the frame of the
@@ -25,7 +25,7 @@
 //! |---|---|
 //! | [`Layer::Surface`](ew_dl::Layer::Surface) | the enclosure outline ([`Pen::P052`]), the plate outline ([`Pen::P026`]), the usable polygon thin dashed ([`Pen::P013`], 4:2) |
 //! | [`Layer::Carriers`](ew_dl::Layer::Carriers) | per carrier by ID: its outline rectangles ([`Pen::P026`]); a rail's axis as a chain line ([`Pen::P013`], dash-dot); a duct's "W×H" label in mm, in the layout-label style, centred on its longest segment and turned to read bottom to top on a vertical one. The outlines and the axis are cut around every placement label's knockout box (see below) |
-//! | [`Layer::Placements`](ew_dl::Layer::Placements) | per placement by ID: its `front_2d` outline (FR-LAY-011), else its footprint rectangle ([`Pen::P026`]; an unknown footprint 4:2 dashed); then each derived end bracket ([`BracketDraw`], WP-S4.02 D13) as a rectangle in the footprints' pen ([`Pen::P026`]), by its strip's placement, then its rectangle |
+//! | [`Layer::Placements`](ew_dl::Layer::Placements) | per placement by ID: its `front_2d` outline (FR-LAY-011), else its footprint rectangle ([`Pen::P026`]; an unknown footprint 4:2 dashed); then each derived end bracket ([`BracketDraw`]) as a rectangle in the footprints' pen ([`Pen::P026`]), by its strip's placement, then its rectangle |
 //! | [`Layer::Labels`](ew_dl::Layer::Labels) | per placement by ID: its label (see below), after the page items' texts |
 //!
 //! Carrier outlines and duct labels carry the carrier's entity, placement and label items the placement's (an end
@@ -51,7 +51,7 @@
 //!
 //! Balloons are 1.0 (doc 12 §5.2), so FR-LAY-062's last step is not built.
 //!
-//! # The knockout (cycle 41, window check W41a; the orchestrator's ruling 2)
+//! # The knockout (window check W41a; the orchestrator's ruling 2)
 //!
 //! Every placement label, inside its footprint or outside with a leader, clears the carriers under it: its
 //! **knockout box** is its ink box as placed ([`place_label`]: the advance along the text by the cap height across it,
@@ -234,7 +234,7 @@ pub struct PlacementDraw {
     pub outline: Vec<Vec<Pt2>>,
 }
 
-/// One derived end bracket (`group_accessories`, WP-S4.02 D13): a rectangle of the bracket's width along the rail by
+/// One derived end bracket (`group_accessories`): a rectangle of the bracket's width along the rail by
 /// the largest footprint height across the rail of its run's strips, centred on the rail axis.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct BracketDraw {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File, Import, Parts table… (FT-410): the headless action `parts.import`.
+//! File, Import, Parts table…: the headless action `parts.import`.
 //!
 //! The action asks for a `parts.csv` (the window's file dialog, or the `path` parameter), reads it with the tables
 //! beside it through `ew_api::import::read_parts_tables`, and previews the `parts.import` command through the host.
@@ -11,7 +11,7 @@
 //! its pointer, in the banner and opens no card. The registry's `writable` check has run before the action body
 //! (`ShellModel::dispatch`).
 //!
-//! **The column mapping step (FT-649, WP-S1.19 §9, D11).** `parts.import {path}` first opens the mapping card on any
+//! **The column mapping step (D11).** `parts.import {path}` first opens the mapping card on any
 //! table (CSV or XLSX): the source key (pre-filled from the file name), and per column its header, a sample value and
 //! the member it imports as, pre-filled from the map saved for the source key (`<config dir>/imports/<key>.toml`),
 //! else from the golden dialect's headers when the file has exactly those. `parts.map` changes the key or a column's
@@ -38,8 +38,8 @@ const COMMAND: &str = "parts.import";
 
 /// The columns of the golden dialect's `parts.csv` (`ew-import-tables`) and the member each fills in a column map:
 /// the required `key`, `manufacturer` and `part_number`, then the optional ones; `key`, `test_data`, `tech_data` (a
-/// `name=value;…` list), the mechanical columns (WP-S4.01 D13: `width` … `rail_profile`, read by the golden reader) and
-/// `solenoids` (a valve part's fluid section, WP-S1.20 D4) fill no member of the general importer.
+/// `name=value;…` list), the mechanical columns (`width` … `rail_profile`, read by the golden reader) and
+/// `solenoids` (a valve part's fluid section) fill no member of the general importer.
 const GOLDEN_COLUMNS: [(&str, Option<&str>); 18] = [
     ("key", None),
     ("manufacturer", Some("manufacturer")),
@@ -80,7 +80,7 @@ fn golden_members(columns: &[catalog::TableColumn]) -> Option<Vec<Option<String>
     })
 }
 
-/// One column of the mapping card (FT-649).
+/// One column of the mapping card.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct MapColumn {
     /// The header.
@@ -91,7 +91,7 @@ pub struct MapColumn {
     pub member: Option<String>,
 }
 
-/// The column mapping step of File ▸ Import ▸ Parts table… (FT-649), while it is open.
+/// The column mapping step of File ▸ Import ▸ Parts table…, while it is open.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PartsMap {
     /// The table's file name (never its path).
@@ -110,7 +110,7 @@ pub struct PartsMap {
 }
 
 impl PartsMap {
-    /// The member choices of the column `header` (FT-649): the members without a key in declaration order, then the
+    /// The member choices of the column `header`: the members without a key in declaration order, then the
     /// column's own technical-data and free-property members (`tech_data.<header as identifier>`), when the header
     /// gives an identifier the importer takes.
     pub fn choices(header: &str) -> Vec<String> {
@@ -154,7 +154,7 @@ impl PartsMap {
         self.column_map().is_ok()
     }
 
-    /// A member in words, as the mapping card shows it (cycle 37, window check W37; doc 16a P2): "Manufacturer",
+    /// A member in words, as the mapping card shows it (window check W37; doc 16a P2): "Manufacturer",
     /// "Part number", "Description (de)", "Technical data: Nennstrom", "Free property: Farbe", with `header` the
     /// column's header. A name that is no member is shown as it is. Describe text and scripts keep the member names.
     pub fn member_text(member: &str, header: &str) -> String {
@@ -221,7 +221,7 @@ impl ShellModel {
                 .is_some_and(|c| matches!(c.origin, CardOrigin::Import { .. }))
     }
 
-    /// The column mapping step while it is open (FT-649).
+    /// The column mapping step while it is open.
     pub fn parts_map(&self) -> Option<&PartsMap> {
         self.parts_map.as_ref()
     }
@@ -233,7 +233,7 @@ impl ShellModel {
         Outcome::Failed { message }
     }
 
-    /// `parts.import {path}` (FT-649): reads the table's header row and opens the column mapping step on it,
+    /// `parts.import {path}`: reads the table's header row and opens the column mapping step on it,
     /// pre-filled from the map saved for the file's source key, else from the golden dialect's headers when the file
     /// has exactly those. A table that cannot be read shows its problem in the banner and opens nothing.
     pub(crate) fn act_parts_import(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -298,7 +298,7 @@ impl ShellModel {
         map.error = map.column_map().err();
     }
 
-    /// `parts.map {source?, column?, member?}` (FT-649): sets the source key (a map saved for it fills the members)
+    /// `parts.map {source?, column?, member?}`: sets the source key (a map saved for it fills the members)
     /// and the member the column with header `column` imports as (`member` empty or absent: not imported).
     pub(crate) fn act_parts_map(&mut self, p: &Map<String, Value>) -> Outcome {
         let (source, column, member) = match (
@@ -351,7 +351,7 @@ impl ShellModel {
         outcome
     }
 
-    /// `parts.map_import` (FT-649): saves the map for the source key and reads the table through it
+    /// `parts.map_import`: saves the map for the source key and reads the table through it
     /// (`ew_api::catalog`): the new parts go to the import card (`parts.import`, as before), the counts of the rows read
     /// to the toast. A golden-dialect table whose pre-filled map is unchanged is read by the golden reader with its
     /// sibling tables, as before the mapping step. Refused while the importer refuses the map (its message under the
@@ -385,7 +385,7 @@ impl ShellModel {
             let params = read.params();
             let PartsImport { source, copies, .. } = read;
             let outcome = self.preview_import(params, source.clone(), copies.len());
-            // FT-719: the read's outcome is one toast, as on the mapped path; the card shows the list only.
+            // The read's outcome is one toast, as on the mapped path; the card shows the list only.
             let origin = self.props.card().map(|c| c.origin.clone());
             if let Some(CardOrigin::Import { created, skipped, .. }) = origin {
                 let text = strings::format(
@@ -410,7 +410,7 @@ impl ShellModel {
         let c = import.counts();
         let held = (c.updated + c.unchanged + c.duplicate).to_string();
         let rejected = c.rejected.to_string();
-        // FT-719: every outcome of the read is one toast line, never a banner over the tab title.
+        // Every outcome of the read is one toast line, never a banner over the tab title.
         let Some(cmd) = cmd else {
             let message = strings::format(key!("banner-parts-none"), &[&map.file, &held, &rejected]);
             self.notify(message, false);
@@ -524,7 +524,7 @@ impl ShellModel {
                 } else {
                     key!("banner-parts-imported")
                 };
-                // FT-719: the applied import is a toast with Undo, not a banner over the tab title.
+                // The applied import is a toast with Undo, not a banner over the tab title.
                 let text = strings::format(key, &[&created.to_string(), &skipped.to_string(), &source]);
                 self.notify(text, true);
             }

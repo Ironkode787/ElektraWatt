@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The open design brief (WP-S6.13 part 4, visual spec §6.1 and §6.2) and `check-brief <task>`.
+//! The open design brief (visual spec §6.1 and §6.2) and `check-brief <task>`.
 //!
 //! A brief lives in `tools/blind/tasks/brief-<name>/`: `task.md` (the brief in a user's words), `task.toml` (`kind`,
 //! `grade`, `version`, `turn_budget`, `senses`, `requires`, `areas`), `acceptance.toml` (the acceptance list),
@@ -17,7 +17,7 @@
 //! prelude's command form can do (`command.run`) is a finding: the window has no path for it. `start --kind brief`
 //! refuses a brief that does not pass.
 //!
-//! **The usability rounds' tasks (WP-S2.12 D4 to D8):** `task.toml` may name the task (`task_id`, `T1`), its rounds
+//! **The usability rounds' tasks:** `task.toml` may name the task (`task_id`, `T1`), its rounds
 //! (`rounds`) and its start project (`start`: `gp-ut` or `golden-a`), which every replay makes as `work/project` from a
 //! copy of the golden project ([`super::start::make_start_project`]) before the prelude opens it. An item may name
 //! `actions`, an ordered list of action IDs (alternatives joined by ` or `) that must be done in that order, decided
@@ -69,7 +69,7 @@ pub struct TaskToml {
     /// by them, and friction in an area still under feature work is parked.
     #[serde(default)]
     pub areas: Vec<String>,
-    /// The task's ID in its plan (`T1`, `A7`; WP-S2.12 D4).
+    /// The task's ID in its plan (`T1`, `A7`).
     #[serde(default)]
     pub task_id: Option<String>,
     /// The usability rounds that run the task (`R0`, `R1`, `R2`): a round task's prompt adds `ROUND.md` (D11).
@@ -252,7 +252,7 @@ fn requirement(root: &Path, dir: &Path, actions: &BTreeSet<String>, req: &str) -
     let met = match form.trim() {
         "action" => actions.contains(value),
         "fndef" | "symbol" => starter(),
-        // A part the prelude embeds, or one of the shipped starter parts (WP-S2.18 D5), which every new project lists.
+        // A part the prelude embeds, or one of the shipped starter parts, which every new project lists.
         "part" => {
             std::fs::read_to_string(dir.join("prelude.uiscript")).is_ok_and(|t| t.contains(value))
                 || tree_holds(&root.join("content/libraries"), value)
@@ -331,7 +331,7 @@ pub fn check_files(root: &Path, task: &str) -> Result<(BriefCheck, Option<Accept
             }
         }
     }
-    // The hints (WP-S2.12 D8): one to three, in the user's words.
+    // The hints: one to three, in the user's words.
     if dir.join("hints.toml").is_file() {
         match read_toml::<super::round::Hints>(&dir.join("hints.toml")) {
             Err(e) => c.problems.push(format!("hints.toml: {e:#}")),
@@ -661,7 +661,7 @@ fn prove(
     Ok(())
 }
 
-/// The canvas's clicks: a click on a cross-reference is the Select tool's follow (WP-S2.03 §7.6), which dispatches
+/// The canvas's clicks: a click on a cross-reference is the Select tool's follow, which dispatches
 /// these and not `nav.follow`.
 const CLICKS: [&str; 4] = [
     "canvas.activate",
@@ -1196,7 +1196,7 @@ mod tests {
     /// (every hard item met, the soft ones met or marked infeasible): `brief-relays-valves` since WP-S2.18 part 1, whose
     /// `place.pick function=<tag>:13-14` puts each relay's contact on its relay's auxiliary slot (FT-599, WP-S2.18 D4;
     /// since FT-655 the contactor's contacts are template slots and `device=<tag>` fills the first, 1-2).
-    /// `brief-plc-io` since WP-S2.18 part 4 (ID-882).
+    /// `brief-plc-io` since WP-S2.18 part 4.
     /// Needs `elektrawatt` and `ew` built in `target/debug` (the workspace run builds them); without them the test says
     /// so and checks nothing. Its scratch folders live in a temporary folder of its own, removed after it, so a parallel
     /// run shares none of them.

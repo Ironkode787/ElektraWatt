@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Agreement with the command layer (ID-48): the main representation `device_tag` prints with is the one
+//! Agreement with the command layer: the main representation `device_tag` prints with is the one
 //! whose page scopes the counters `ew-commands` assigns, and the devices the command layer numbers are
 //! exactly the devices whose tag comes from the page-based scheme. If the two drifted, two devices with
 //! distinct counters in the command layer's scope could print the same tag.
 //!
-//! **This test pins a provisional rule (design decision 1 of WP-S1.06).** Both layers take the main
+//! **This test pins a provisional rule (design decision 1).** Both layers take the main
 //! representation as the smallest-ID representation of the smallest-ID main function that is not a contact
 //! image (doc 03 §5.1). Doc 03 §8.2 step 4
 //! (lowest page order, row, column among the counted representation types) replaces that rule in
@@ -148,7 +148,7 @@ fn a_strip_without_a_segment_is_placed_through_its_first_terminal() {
     assert_agree(&fx, &[0x3000]);
 }
 
-/// FT-1406: a cable without a definition line is placed on the page of its first connected core (the smallest
+/// A cable without a definition line is placed on the page of its first connected core (the smallest
 /// connection ID), in both layers, and prints that page; a cable with no connected core prints no page, never `?`.
 #[test]
 fn a_cable_without_a_definition_line_is_placed_through_its_first_core() {
@@ -488,7 +488,7 @@ proptest! {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Anchor cells (FT-456): `ew_commands::numbering::anchor_cell` is the model-only copy of `RepAnchorCell` that
+// Anchor cells: `ew_commands::numbering::anchor_cell` is the model-only copy of `RepAnchorCell` that
 // online numbering orders by (normalisers see no derived data). The two must agree on every representation, for
 // every anchor policy, orientation, slot override and frame resolution the derivation handles.
 

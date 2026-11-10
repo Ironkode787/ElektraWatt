@@ -212,7 +212,7 @@ fn company(f: &Fixture, reg: &mut Registry) -> Uuid {
     lib
 }
 
-/// The hits of `q` from the fixture's libraries: the compiled-in starter parts (WP-S2.18 D6), which every registry
+/// The hits of `q` from the fixture's libraries: the compiled-in starter parts, which every registry
 /// holds, are left out.
 fn fixture_hits(reg: &Registry, q: PartQuery) -> Vec<PartHit> {
     let mut hits = reg.search(&q);
@@ -829,7 +829,7 @@ fn ix5_the_compatibility_filter_ranks_fitting_parts_first() {
     assert!(none.iter().all(|h| h.compatible == Some(false)));
 }
 
-/// PS1's library half (WP-S2.07 D17, FT-629): with the function's FnDef named, the parts whose template declares
+/// PS1's library half: with the function's FnDef named, the parts whose template declares
 /// that FnDef report `same_fndef` true and come first; the 1P parts stay `compatible` with `same_fndef` false and
 /// follow; the others are `compatible = false` and last. Without `fndef`, `same_fndef` is not reported (IX-5 holds).
 #[test]
@@ -1104,7 +1104,7 @@ fn a_locked_library_refuses_and_a_stale_lock_needs_a_confirmed_takeover() {
     assert!(!dir.join(LOCK).exists(), "released after the write");
 }
 
-/// The shipped system library `ew-starter-parts` (§7.1, filled by WP-S2.18 part 2): its manifest names the derived ID
+/// The shipped system library `ew-starter-parts` (§7.1, filled): its manifest names the derived ID
 /// and the CC0 licence of part facts; installed as a system library it replaces the compiled-in copy of itself.
 #[test]
 fn the_shipped_starter_parts_library_has_the_derived_id() {
@@ -1155,7 +1155,7 @@ fn the_shipped_starter_parts_library_has_the_derived_id() {
     assert!(!reg.search(&PartQuery::default()).is_empty());
 }
 
-/// FT-1382: a library given as its files in memory reads as its directory does, with the index in memory; a set of
+/// A library given as its files in memory reads as its directory does, with the index in memory; a set of
 /// files without a manifest is left out with a finding.
 #[test]
 fn a_library_in_memory_reads_as_its_directory() {

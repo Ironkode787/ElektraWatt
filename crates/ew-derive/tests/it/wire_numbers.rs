@@ -31,7 +31,7 @@
 //!   and `the_cell_of_a_function_drawn_twice_is_its_smallest_not_its_first_minted`.
 //! - `a_repeated_clamp_letter_takes_a_suffix_and_distinct_letters_do_not`: `cp_label` of a terminal whose FnDef
 //!   repeats a clamp letter on one level (a third-party FnDef) prints `/a#1`, `/a#2`; distinct letters print
-//!   `/a`, `/b` (FT-505).
+//!   `/a`, `/b`.
 
 use crate::common;
 
@@ -604,7 +604,7 @@ fn the_flow_distance_decides_before_the_anchor_cell() {
     );
 }
 
-/// Entry through a pass-through (doc 08 §3.8 rule 2, FT-101): the potential behind the pair is entered at the
+/// Entry through a pass-through (doc 08 §3.8 rule 2): the potential behind the pair is entered at the
 /// pair's CP on its side, at distance 0. P (cell (10, F)) is before the source S in the order of cells and X
 /// is the first cell of the page, so rule 3 alone would start both wires at the wrong end.
 #[test]
@@ -878,7 +878,7 @@ fn a_bond_wire_falls_to_the_anchor_cell() {
     assert_eq!(from[&0x2003], (cpr(0x1011, 0), cpr(0x1012, 0)));
 }
 
-/// FT-478: in step 3, ends in one cell are told apart by their printed CP labels (natural order), not by the minted
+/// In step 3, ends in one cell are told apart by their printed CP labels (natural order), not by the minted
 /// function IDs: the wire between K1 and K2 starts at K1 whichever of the two functions has the smaller ID.
 #[test]
 fn the_orientation_tie_is_decided_by_the_cp_label_and_not_by_the_ids() {
@@ -903,7 +903,7 @@ fn the_orientation_tie_is_decided_by_the_cp_label_and_not_by_the_ids() {
     );
 }
 
-/// FT-478: the cell of a function drawn twice on the page is its smallest cell, not the cell of the representation
+/// The cell of a function drawn twice on the page is its smallest cell, not the cell of the representation
 /// with the smallest ID: F (rows 1 and 5) starts the wire to G (row 3) whichever representation was minted first.
 #[test]
 fn the_cell_of_a_function_drawn_twice_is_its_smallest_not_its_first_minted() {
@@ -933,7 +933,7 @@ fn the_cell_of_a_function_drawn_twice_is_its_smallest_not_its_first_minted() {
     );
 }
 
-/// `cp_label` of a terminal (cycle 30, FT-505): a FnDef that repeats a clamp letter on one level (a third-party
+/// `cp_label` of a terminal: a FnDef that repeats a clamp letter on one level (a third-party
 /// FnDef; the starter `ew.fn.terminal` names side 2 `b` since FT-505) prints `#n` in CP index order, a FnDef with
 /// distinct letters prints the letters alone.
 #[test]
@@ -974,7 +974,7 @@ fn a_repeated_clamp_letter_takes_a_suffix_and_distinct_letters_do_not() {
     assert_eq!(tails, ["1/a", "1/b", "2/a#1", "2/a#2"], "{labels:?}");
 }
 
-/// `CpRef::label_parts` (FT-756, ID-889): a device CP's tag, designation and, for a designation the function shares,
+/// `CpRef::label_parts`: a device CP's tag, designation and, for a designation the function shares,
 /// its 1-based position in index order (the label's `#n`) with no words; a terminal's clamp has none.
 #[test]
 fn label_parts_split_a_shared_designation_and_skip_a_terminal() {

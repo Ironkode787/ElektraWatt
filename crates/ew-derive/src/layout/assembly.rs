@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The member order of an assembly or PLC station (WP-S4.02 D6, FR-LAY-061): one function shared by
+//! The member order of an assembly or PLC station (FR-LAY-061): one function shared by
 //! `layout.place_assembly`, `layout.auto_fill` and EW-LAY-016, so that the layout and the check cannot disagree.
 
 use std::cmp::Ordering;
@@ -52,7 +52,7 @@ fn member_cmp(a: &(u32, String, Id<Device>), b: &(u32, String, Id<Device>)) -> O
         .then_with(|| a.2.cmp(&b.2))
 }
 
-/// The left edge an assembly member is pushed in at (WP-S4.02 D6 and part 3's PW-5, ruling 4): one function shared by
+/// The left edge an assembly member is pushed in at (and part 3's PW-5, ruling 4): one function shared by
 /// `layout.place_assembly`'s insertion and the layout tool's default slot, never a second copy.
 ///
 /// With a predecessor `pred` (the nearest earlier member on the rail, its rightmost item) the member's doubled centre is

@@ -34,7 +34,7 @@ pub trait Vfs: Send + Sync + fmt::Debug {
     /// The whole content of a regular file.
     fn read(&self, path: &Path) -> io::Result<Vec<u8>>;
     /// Up to `len` bytes of a regular file from byte `offset` (fewer at its end, none past it): the chunked reads of
-    /// a scan that must not hold a whole file in memory (the asset purge, FT-380). The default reads the whole file
+    /// a scan that must not hold a whole file in memory (the asset purge). The default reads the whole file
     /// for every call, so a chunked scan through it is quadratic in the file's size: acceptable for the in-memory
     /// test file system, which uses it; [`OsVfs`] overrides it with a seek and a bounded read.
     fn read_at(&self, path: &Path, offset: u64, len: usize) -> io::Result<Vec<u8>> {
@@ -51,7 +51,7 @@ pub trait Vfs: Send + Sync + fmt::Debug {
     /// Creates a directory and its missing parents.
     fn create_dir_all(&self, dir: &Path) -> io::Result<()>;
     /// Creates one directory, exclusively: `AlreadyExists` when anything (a file, a link, a directory) is at the path,
-    /// `NotFound` when its parent is missing. The `.ewz` extract's staging directory (WP-S1.17 D9, ID-1175 ruling 4).
+    /// `NotFound` when its parent is missing. The `.ewz` extract's staging directory.
     /// Not durable until [`Vfs::sync_dir`] of its parent.
     fn create_dir(&self, dir: &Path) -> io::Result<()>;
     /// Creates a new file with `data` (`O_EXCL`, SMB2 `FILE_CREATE`); `AlreadyExists` when the path exists.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Preview tab (WP-S2.09 part 3, §8.1, D11; FR-UI-022), restyled by WP-S2.17 part 4 (doc 16a §6.23).
+//! The Preview tab (D11; FR-UI-022), restyled by WP-S2.17 part 4 (doc 16a §6.23).
 //!
 //! **The tab** shows the open card: a header row with "Preview: `<command>`", "as of rev `<r>`" and the Stale or Failed
 //! status badge at the left and Apply (Primary) and Cancel at the right, so the actions stay visible above long lists;
@@ -125,7 +125,7 @@ fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 4] {
             r
         })
         .collect();
-    // ID-1497 (4): a page whose folio changes as "106 → 104".
+    // A page whose folio changes as "106 → 104".
     let pages = pane
         .pages()
         .iter()
@@ -137,7 +137,7 @@ fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 4] {
     [entities, tags, xrefs, pages]
 }
 
-/// WP-S2.07 part 4a (D20): a part card's field diff ("Description: old → new"), the devices that use the copy, the
+/// A part card's field diff ("Description: old → new"), the devices that use the copy, the
 /// parts list rows that go and come, and a fork's note, one wrapped `type.small` label each.
 fn part_block(ui: &mut Ui, p: &ew_viewmodel::properties::PartCard) {
     let t = components::tokens(ui);
@@ -301,7 +301,7 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
     }
 }
 
-/// FT-785: a macro card's ad-hoc values, one row per variable: the label "<name> (<type in words>)" in `type.small`
+/// A macro card's ad-hoc values, one row per variable: the label "<name> (<type in words>)" in `type.small`
 /// `color.text.secondary` in a column as wide as the widest label (at most half the row), the field beside it as wide as a form dialog's field (W40a item 4: the row is a form dialog's body,
 /// [`crate::dialog::form_width`], which grows with the window; never the whole preview panel), with the value set's
 /// (or the default's) value as its placeholder, and the command's refusal of a typed value under the field at the
@@ -422,8 +422,7 @@ fn value_columns(t: &Tokens, widest: f32, window: f32, available: f32) -> (f32, 
     (label, (body - label - t.space_3).max(0.0))
 }
 
-// WP-S3.08 part 3
-/// The table import card in the Preview tab (D14, ruling 6 of ID-1224): the inline card titled "Import `<file>`" with
+/// The table import card in the Preview tab (D14): the inline card titled "Import `<file>`" with
 /// the counts as its summary ("5 changed, 0 kept, 1 conflict: the project's value is kept, …"), then the file's cells
 /// ("-X1031:1 · Function text · "Valve" → "Valve 1" · applied") and the table's rows the file lacks, each a list of
 /// its own; Apply commits the import's one command, Cancel drops it.
@@ -490,7 +489,7 @@ fn table_import(
     report(ui, &shown, 0.0);
 }
 
-/// FT-1415: the dock follows the Preview tab's lists; `closed` is the height the closed lists' rows would add.
+/// The dock follows the Preview tab's lists; `closed` is the height the closed lists' rows would add.
 fn report<R>(ui: &Ui, shown: &egui::scroll_area::ScrollAreaOutput<R>, closed: f32) {
     crate::dock::report_content(
         ui,
@@ -520,7 +519,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             );
             return;
         };
-        // WP-S3.08 part 3 (ruling 6 of ID-1224): a table import is the inline card with its counts and its cells.
+        // A table import is the inline card with its counts and its cells.
         if let CardOrigin::TableImport(c) = &card.origin {
             table_import(ui, shell, c, events);
             return;
@@ -576,7 +575,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 CardStatus::Stale => {
                     components::status_badge(ui, components::Badge::Stale);
                 }
-                // WP-S2.07 D22: the paste choice card asks; it has not failed, so it wears no Failed badge.
+                // The paste choice card asks; it has not failed, so it wears no Failed badge.
                 CardStatus::Failed(_) if !choice => {
                     components::status_badge(ui, components::Badge::Failed);
                 }
@@ -640,9 +639,9 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             }
             return;
         }
-        // FT-580: one summary line, shared with the text interface.
+        // One summary line, shared with the text interface.
         let summary = shell.preview_summary().unwrap_or_default();
-        // FT-719: an import's counts are the toast's sentence; the tab shows the summary and the lists only.
+        // An import's counts are the toast's sentence; the tab shows the summary and the lists only.
         inset(ui, &mut |ui| components::live_line(ui, &summary, false));
         if let CardOrigin::Macro(m) = &card.origin {
             inset(ui, &mut |ui| macro_block(ui, m, events));
@@ -650,7 +649,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         if let CardOrigin::Part(p) = &card.origin {
             inset(ui, &mut |ui| part_block(ui, p));
         }
-        // WP-S2.19 D13: a route card's connections left unrouted, one row each with its reason.
+        // A route card's connections left unrouted, one row each with its reason.
         if let CardOrigin::Route { rows, .. } = &card.origin {
             for row in rows {
                 inset(ui, &mut |ui| {
@@ -692,7 +691,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 theme::stroke(t.border_width, t.border_subtle),
             );
         }
-        // ID-1497 (4): the dock is sized for every list open, so that a list opened or closed keeps the headers where
+        // The dock is sized for every list open, so that a list opened or closed keeps the headers where
         // they are (a click on the next header hit the one before, which the grown dock had moved there); past the
         // dock's room the lists scroll.
         report(ui, &shown, shown.inner);

@@ -258,12 +258,12 @@ fn the_panel_pages_surface_view_rows_set_the_view() {
         refusal(edit(&s, "page", page, "surface", "nowhere")),
         "The project has no surface nowhere; choose one of the list."
     );
-    // An ID that names no surface (C44-p4#3): refused in words, without the ID.
+    // An ID that names no surface: refused in words, without the ID.
     assert_eq!(
         refusal(edit(&s, "page", page, "surface", &Uuid::from_u128(7).to_string())),
         "That surface no longer exists; choose one of the list."
     );
-    // C44-p6#5: an existing surface's ID in another form names it: upper case, braces, simple, padded.
+    // An existing surface's ID in another form names it: upper case, braces, simple, padded.
     let plate = uuid::<MountingSurface>("mounting_surfaces", "-UC1");
     for form in [
         plate.to_string().to_uppercase(),
@@ -383,7 +383,7 @@ fn options_of(s: &Session, id: Uuid, key: &str) -> Vec<String> {
     }
 }
 
-/// C44-p2#4: two locations with an enclosure -UC1 each read alike by the short tag, so each surface reads by its
+/// Two locations with an enclosure -UC1 each read alike by the short tag, so each surface reads by its
 /// enclosure's full designation; choosing the second (by its value, the surface's ID) sets the second.
 #[test]
 fn two_uc1_plates_read_by_their_full_designations_and_the_choice_sets_the_one_chosen() {
@@ -416,7 +416,7 @@ fn two_uc1_plates_read_by_their_full_designations_and_the_choice_sets_the_one_ch
     let cmd = edit(&s, "page", page, "surface", "=P01+J-E-2416-UC1 plate").unwrap();
     assert_eq!(cmd.params["surface"], json!(first.to_string()));
     run(&mut s, &cmd);
-    // A list chosen before the second enclosure was deleted: its ID is refused in words, without the ID (C44-p4#3).
+    // A list chosen before the second enclosure was deleted: its ID is refused in words, without the ID.
     let enclosure = s
         .query()
         .table::<MountingSurface>()
@@ -472,7 +472,7 @@ fn two_surfaces_of_one_enclosure_read_with_their_ordinals() {
     );
 }
 
-/// C44-p2#3 (D12): Device is a link (its tag the words); Realised part offers only the part uses `layout.move {part}`
+/// Device is a link (its tag the words); Realised part offers only the part uses `layout.move {part}`
 /// takes (an accessory mounted on its parent is not one); Label is read from the page that shows the placement's
 /// surface, and is absent when none does.
 #[test]
@@ -591,7 +591,7 @@ fn the_layout_rows_refusals_read_whole() {
     assert!(edit(&s, "page", page, "datum", "1, 2").is_ok());
 }
 
-/// PS-5 (C44-p2#5): Position on a rail and on the plate, Realised part, Rotation on the plate, a duct's Width and
+/// PS-5: Position on a rail and on the plate, Realised part, Rotation on the plate, a duct's Width and
 /// Height and the page's Datum each commit their command, and the row then reads the new value.
 #[test]
 fn ps5_position_realised_part_rotation_duct_size_and_datum_commit() {
@@ -602,7 +602,7 @@ fn ps5_position_realised_part_rotation_duct_size_and_datum_commit() {
     run(&mut s, &cmd);
     assert_eq!(text_of(&s, f1, "placement/derived.position"), "450 mm");
     // Realised part: -102F1's device gains -101F1's part (A9P52610) as a second use, and the row commits it in place
-    // of A9F78116 (C44-p4#3).
+    // of A9F78116.
     assert_eq!(text_of(&s, f1, "placement/derived.realised_part"), "A9F78116");
     let other = {
         let q = s.query();
@@ -755,7 +755,7 @@ fn a_library_enclosure_part_is_offered_with_its_plate_and_creates_the_enclosure(
         .map(|o| (o.number.as_str(), o.copies.len()))
         .collect();
     // The library's enclosure by its part number: the project's held copy of it has no copies, so the offer with its
-    // copies is the library's (the starter's enclosure is offered too, below, ID-1109).
+    // copies is the library's (the starter's enclosure is offered too, below).
     let library = offers
         .iter()
         .find(|o| o.number == "NSYPLA1074G" && !o.copies.is_empty())
@@ -768,7 +768,7 @@ fn a_library_enclosure_part_is_offered_with_its_plate_and_creates_the_enclosure(
         .filter_map(|c| c["part_number"].as_str().map(str::to_owned))
         .collect();
     assert_eq!(embedded, ["NSYPLA1074G", "NSYPMM107"], "the part and its plate");
-    // ID-1109 (WP-S4.02 D14): the starter's enclosure is offered too, with its plate EW-GEN-PLT-1.
+    // The starter's enclosure is offered too, with its plate EW-GEN-PLT-1.
     let starter = offers
         .iter()
         .find(|o| o.number == "EW-GEN-ENC-1")
@@ -807,7 +807,7 @@ fn scale_of(s: &Session, page: Uuid) -> ew_schema::Scale {
         .clone()
 }
 
-/// FT-1016 (ID-1148): the Surface row of a new panel page (drawn not to scale) sends the fitting scale with the view
+/// The Surface row of a new panel page (drawn not to scale) sends the fitting scale with the view
 /// and the datum centred at that scale, in one command; the page then keeps it. 902's own 1:10 is kept.
 #[test]
 fn ft1016_a_new_panel_page_takes_the_fitting_scale_with_its_surface() {

@@ -58,7 +58,7 @@ fn gt1_gt5_the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_
     // On the title page the IP tool cannot be armed: the button is disabled.
     let insert = h.get_by_label("Insert: Interruption point");
     assert!(insert.accesskit_node().is_disabled());
-    // C49-p8#6: its reason, as the menus give it, beside the button.
+    // Its reason, as the menus give it, beside the button.
     insert.hover();
     settle(&mut h);
     settle(&mut h);
@@ -90,7 +90,7 @@ fn gt1_gt5_the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_
     // No term: the empty state.
     dispatch(&mut h, "glossary.filter", json!({"text": "zzqx"}));
     settle(&mut h);
-    // C49-p8#7: the search quoted, and Clear, as in the navigators.
+    // The search quoted, and Clear, as in the navigators.
     assert!(group(&h, "Niets komt overeen met \"zzqx\""), "the empty state");
     h.get_by_label("Filter wissen").click();
     settle(&mut h);
@@ -110,7 +110,7 @@ fn field<'h>(h: &'h Harness<'_, App>) -> egui_kittest::Node<'h> {
         .get_by_role(egui::accesskit::Role::TextInput)
 }
 
-/// FT-1281: in the glossary's field Down and Up move a row cursor, its row alone selected for AccessKit, a new search
+/// In the glossary's field Down and Up move a row cursor, its row alone selected for AccessKit, a new search
 /// starts it again, and Enter runs the cursor row's first enabled action (Insert arms the IP tool).
 #[test]
 fn ft1281_the_glossary_has_a_keyboard_row_cursor() {
@@ -131,7 +131,7 @@ fn ft1281_the_glossary_has_a_keyboard_row_cursor() {
             .map(|n| n.accesskit_node().label().unwrap_or_default())
             .collect()
     };
-    // FT-1346: the field is named by its hint.
+    // The field is named by its hint.
     assert_eq!(
         field(&h).accesskit_node().label().as_deref(),
         Some("Search terms")
@@ -166,7 +166,7 @@ fn ft1281_the_glossary_has_a_keyboard_row_cursor() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// C49-p8#8: a cased stroke's casing is painted first, `CASING_PX` physical pixel wider on each side, in the casing
+/// A cased stroke's casing is painted first, `CASING_PX` physical pixel wider on each side, in the casing
 /// colour; then the stroke in its colour.
 #[test]
 fn a_cased_strokes_casing_is_painted_first_one_pixel_wider_on_each_side() {
@@ -322,7 +322,7 @@ fn ft1277_the_wire_codes_stand_apart_by_the_chip_rule() {
     );
 }
 
-/// FT-1345 (ID-1358 ruling 5; doc 16a §7.4): on folio 102 the wire codes keep clear of the drawing's printed texts
+/// FT-1345 (ruling 5; doc 16a §7.4): on folio 102 the wire codes keep clear of the drawing's printed texts
 /// (the device texts, the title block), of the HUD and the zoom control, of the other chips and of each other, at the
 /// floor and at 1920 × 1080; a code stands faded only where it has no free place.
 #[test]
@@ -343,7 +343,7 @@ fn ft1345_the_wire_codes_keep_clear_of_the_printed_texts_and_the_chrome() {
         let chrome = host.chrome_obstacles(0).to_vec();
         let chips: Vec<egui::Rect> = host.canvas_chips(0).iter().map(|c| c.rect).collect();
         assert!(!codes.is_empty() && !texts.is_empty(), "{size:?}");
-        // C51-p6#7: a code fades only where it has no free place, so most codes stand unfaded at the floor and every
+        // A code fades only where it has no free place, so most codes stand unfaded at the floor and every
         // code at 1920 × 1080.
         let unfaded = codes.iter().filter(|(_, faded)| !faded).count();
         let least = if size.x < 1920.0 {
@@ -414,7 +414,7 @@ fn gt4_the_exported_pdf_is_the_golden_one_with_the_wire_colour_view_on_and_off()
         let count: usize = strokes
             .iter()
             .map(|s| {
-                // FT-1283: a laned stroke is drawn on its path moved into its lanes.
+                // A laned stroke is drawn on its path moved into its lanes.
                 let s = s.in_lanes(1.0 / t.px_per_nm());
                 let casing = usize::from(s.cased);
                 let solid = s.colours.len() == 1 && !s.unresolved();
@@ -422,7 +422,7 @@ fn gt4_the_exported_pdf_is_the_golden_one_with_the_wire_colour_view_on_and_off()
             })
             .sum();
         assert_eq!(shapes.len(), count);
-        // C49-p8#4: the headless snapshot shows the view as the window does: W29's DBU only while it is on.
+        // The headless snapshot shows the view as the window does: W29's DBU only while it is on.
         let (image, _) = ew_ui::canvas::snapshot_image(shell, 0).unwrap();
         let dbu = ew_ui::ew_viewmodel::wire_colours::company_rgb(
             "DBU",

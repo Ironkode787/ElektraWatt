@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The GPU canvas on a headless device (WP-S2.02 part 2, B4 and the renderer's own rules): a hairline keeps one
+//! The GPU canvas on a headless device (B4 and the renderer's own rules): a hairline keeps one
 //! physical pixel, later paint wins over earlier whatever the batch order, translucency blends last, clips cut,
-//! and an idle frame submits nothing. Raster images (FT-480) are drawn by the textured-quad pipeline in paint order,
+//! and an idle frame submits nothing. Raster images are drawn by the textured-quad pipeline in paint order,
 //! clipped, cached and downscaled, within the parity rule of §8 item 3 against the CPU raster. On Windows an adapter
 //! must be found (DX12 WARP at least); elsewhere a host without one prints `skipped: no adapter` and passes (§8 item
 //! 4).
@@ -222,7 +222,7 @@ fn a_target_beyond_the_device_limit_is_an_error_not_a_panic() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Raster images (FT-480): the textured-quad pipeline, checked against the CPU raster
+// Raster images: the textured-quad pipeline, checked against the CPU raster
 
 /// A PNG of `w × h` pixels, pixel `(x, y)` given by `f` (synthetic).
 fn png_of(w: u32, h: u32, f: impl Fn(u32, u32) -> [u8; 4]) -> Vec<u8> {
@@ -327,7 +327,7 @@ fn mean_difference(a: &ew_render_cpu::RgbaImage, b: &ew_render_cpu::RgbaImage) -
 }
 
 /// The bound of the mean channel difference between the GPU and the CPU raster of the image pages: measured 0.27 on
-/// the hardware DX12 adapter and on WARP alike (cycle 30), both pages; the bound leaves about a quarter for other
+/// the hardware DX12 adapter and on WARP alike, both pages; the bound leaves about a quarter for other
 /// adapters' MSAA patterns. A missing, shifted or nearest-sampled image raises it several times over.
 const MEAN_BOUND_IMAGES: f64 = 0.35;
 

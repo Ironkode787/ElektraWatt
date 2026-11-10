@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The viewer's reads on Golden A (WP-S2.03 part 1, acceptance check V1): `DisplayList::link_sources` against the
+//! The viewer's reads on Golden A (acceptance check V1): `DisplayList::link_sources` against the
 //! PDF writer's link annotations, `Session::page_rows`, `Session::page_cells`, `Session::resolve_goto`, and
 //! `Session::link_targets` against the PDF's named destinations and the cross-reference texts.
 

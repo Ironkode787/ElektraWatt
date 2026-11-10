@@ -76,7 +76,7 @@ fn record(name: &str, image: &ew_render_cpu::RgbaImage, gated: bool) -> Option<S
     }
     let expected = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected/snapshots"));
     let shared = expected.join(format!("{name}.png"));
-    // WP-S2.11 D4: Linux reads its override where lavapipe and WARP differ beyond the tolerance.
+    // Linux reads its override where lavapipe and WARP differ beyond the tolerance.
     let linux = expected.join("linux").join(format!("{name}.png"));
     let blessed = if cfg!(target_os = "linux") && linux.is_file() {
         linux.clone()
@@ -201,7 +201,7 @@ fn the_main_window_in_light_and_dark_at_both_densities() {
 }
 
 /// DK7's 300 % variant: the main window, light and Comfortable, at 1280 × 800 points on a 300 % display (3840 × 2400
-/// pixels). The setting `ui_scale` reaches 300 % too (`UI_SCALES`, WP-S2.08 D14); this variant takes 300 % as the
+/// pixels). The setting `ui_scale` reaches 300 % too (`UI_SCALES`); this variant takes 300 % as the
 /// system's scale (egui's native pixels per point), which is how a 300 % display reaches the window. Gated since
 /// FT-537 (the orchestrator's ruling) and re-blessed with the main-window images; the test keeps its name from before
 /// the ruling.
@@ -366,7 +366,7 @@ fn part4_dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
         h.run_ok();
         h.run_ok();
         let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-        // FT-557: the scrim dims the whole window, the command bar, the rail, the navigator, Properties and the status
+        // The scrim dims the whole window, the command bar, the rail, the navigator, Properties and the status
         // bar included, not only the canvas.
         for (x, y, part) in [
             (900, 60, "command bar"),
@@ -374,11 +374,11 @@ fn part4_dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
             (200, 330, "navigator"),
             (200, 700, "Properties"),
             (500, 780, "status bar"),
-            // FT-624: the toast goes below the backdrop and dims with the rest (a plain spot of its fill).
+            // The toast goes below the backdrop and dims with the rest (a plain spot of its fill).
             (1150, 205, "toast"),
         ] {
             let (a, b) = (luma(&before, x, y), luma(&image, x, y));
-            // FT-624: visibly, not only measurably: at least 15 % darker (light measured about 21 %, dark about 39 %).
+            // Visibly, not only measurably: at least 15 % darker (light measured about 21 %, dark about 39 %).
             assert!(
                 a - b >= 8.0 && b <= 0.85 * a,
                 "{theme}: the scrim dims the {part} ({a} to {b})"
@@ -468,7 +468,7 @@ fn messages_pane(h: &Harness<'_, App>) -> egui::Rect {
     )
 }
 
-/// DK12 (WP-S2.17 part 3, lane K32): the Messages pane in tree mode (Golden A's error and a pending finding, then the
+/// DK12 (lane K32): the Messages pane in tree mode (Golden A's error and a pending finding, then the
 /// cursor on the pending finding with its detail block) and the History panel (three steps, a save marker, one undone), each cropped to its pane,
 /// gated: all three in light Comfortable, the detail block in dark Compact.
 #[test]
@@ -631,7 +631,7 @@ fn drag(h: &mut Harness<'_, App>, from: egui::Pos2, by: egui::Vec2) {
     h.run_ok();
 }
 
-/// DK12's grid (FT-532, doc 16a §6.21): Golden A's Terminal strips navigator in table mode, filtered `x1031`, sorted
+/// DK12's grid (doc 16a §6.21): Golden A's Terminal strips navigator in table mode, filtered `x1031`, sorted
 /// by Terminal, with the derived Potential column moved next to Terminal so that it is on show, two marked rows and
 /// the cursor cell in the second (`dk12-grid-*`), then the editing cell opened on the cursor cell
 /// (`dk12-grid-edit-*`; the editor opens where the cursor is, so the cursor ring and the editor are two images).
@@ -790,10 +790,10 @@ fn around(rects: impl IntoIterator<Item = egui::Rect>, margin: f32) -> egui::Rec
         .expand(margin)
 }
 
-/// CP6 (FT-533): every dialog of the shell one by one that Golden A opens with one action, each cropped to the dialog's
+/// CP6: every dialog of the shell one by one that Golden A opens with one action, each cropped to the dialog's
 /// frame with its shadow, light Comfortable, gated. Not here: the quit prompt (`part4-dialog-toast-*`)
 /// and the four dialogs that need a fixture (the recovery dialog, the question of discarding its journal, the
-/// check-scheme question and the purge question), gated by [`cp6_the_fixture_dialogs_in_light`] (FT-571).
+/// check-scheme question and the purge question), gated by [`cp6_the_fixture_dialogs_in_light`].
 #[test]
 fn cp6_every_dialog_one_by_one_in_light() {
     let dev = device();
@@ -920,7 +920,7 @@ fn pin_journal_times(dir: &std::path::Path, t: u64) {
     }
 }
 
-/// CP6 (FT-571): the four dialogs that need a fixture, each cropped to the dialog's frame with its shadow, light
+/// CP6: the four dialogs that need a fixture, each cropped to the dialog's frame with its shadow, light
 /// Comfortable, gated: the recovery dialog (an earlier session's journal on a copy of Golden A, its last change
 /// pinned to 2026-10-28 12:00 UTC and the dialog's clock to two hours later), the question of discarding that journal
 /// (Discard… of the recovery dialog), the check-scheme question (Apply the check scheme of the finished
@@ -1110,7 +1110,7 @@ fn buttons(h: &Harness<'_, App>, labels: &[&str]) -> Vec<egui::Rect> {
         .collect()
 }
 
-/// CP9 (FT-533): the quick-fix card in the Messages pane (EW-CORE-023's fix on folio 102, cropped to the pane with the
+/// CP9: the quick-fix card in the Messages pane (EW-CORE-023's fix on folio 102, cropped to the pane with the
 /// card) and the table card in the Terminal strips pane (a paste onto a read-only cell, cropped to the grid with the
 /// card), light Comfortable, gated.
 #[test]
@@ -1148,7 +1148,7 @@ fn cp9_the_quick_fix_card_and_the_table_card_in_light() {
             .and_then(|t| {
                 t.nodes
                     .iter()
-                    // the page override's fix, not the rebind of EW-PLC-012 (Golden A's EF-02, WP-S1.21 part 3)
+                    // the page override's fix, not the rebind of EW-PLC-012 (Golden A's EF-02)
                     .find(|n| n.badges.iter().any(|b| b == "fix") && !n.label.contains("drives solenoid"))
                     .map(|n| n.key.clone())
             })
@@ -1172,7 +1172,7 @@ fn cp9_the_quick_fix_card_and_the_table_card_in_light() {
             h.state().shell().properties().card().is_some(),
             "the quick-fix card"
         );
-        // FT-567: the "Errors" group title drawn in the accent is the cursor row (a cursor row's title takes the
+        // The "Errors" group title drawn in the accent is the cursor row (a cursor row's title takes the
         // selection colour, as the Pages list's), not a group title in the wrong colour.
         let cursor = h
             .state()
@@ -1281,7 +1281,7 @@ fn the_bottom_dock_tab_bar_in_light() {
         );
         let strip = crop(&image, bar);
         // The bar's top rows between the tabs and the right-hand buttons are its plain fill: no band from the page
-        // view's floating HUD (its shadow used to spill onto the bar, cycle 33).
+        // view's floating HUD (its shadow used to spill onto the bar).
         let at = |x: u32, y: u32| {
             let i = ((y * strip.width + x) * 4) as usize;
             strip.pixels[i..i + 3].to_vec()
@@ -1392,7 +1392,7 @@ fn rep_at(h: &Harness<'_, App>, k: (i64, i64)) -> (String, String) {
     (rep.id.to_string(), label.rsplit_once(':').unwrap().0.to_owned())
 }
 
-/// Doc 16a §6.22, second use (WP-S2.18 D2): the Place tool holding a NO contact on folio 101 with the Join chooser
+/// Doc 16a §6.22, second use: the Place tool holding a NO contact on folio 101 with the Join chooser
 /// open: "New device", a slot row ("slot 13-14", a relay whose contact was deleted) and the relays as "auxiliary"
 /// rows, the slot row active; cropped to the popup with its shadow, light Comfortable, gated.
 #[test]
@@ -1593,7 +1593,7 @@ fn the_save_tooltip_in_light() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// FT-625: four window details, each in its own window on a fresh copy of Golden A (their
+/// Four window details, each in its own window on a fresh copy of Golden A (their
 /// edits would show in each other's crops), light Comfortable, gated.
 #[test]
 fn ft625_the_window_details_in_light() {
@@ -1606,7 +1606,7 @@ fn ft625_the_window_details_in_light() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// FT-625 (FT-545): the Place tool holding a NO contact between two contacts on folio 101, its ghost facing both
+/// The Place tool holding a NO contact between two contacts on folio 101, its ghost facing both
 /// with the wires autoconnect will draw, and the HUD saying how many and how to place without them; cropped to the
 /// page pane, light Comfortable.
 fn ft625_the_place_ghost_wires_and_hud_hint(
@@ -1651,7 +1651,7 @@ fn ft625_the_place_ghost_wires_and_hud_hint(
     }
 }
 
-/// FT-625 (FT-549, FT-554): the counted toasts one after the other, Run checks by severity (`check`) and the
+/// The counted toasts one after the other, Run checks by severity (`check`) and the
 /// marker-mode switch's count (`marker`), at the canvas's top right; cropped to the toast with its shadow, light
 /// Comfortable.
 fn ft625_the_counted_toasts(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
@@ -1689,7 +1689,7 @@ fn ft625_the_counted_toasts(dev: &ew_render2d::gpu::HeadlessDevice, failures: &m
     }
 }
 
-/// FT-625 (FT-554): Properties of the wire W29 on folio 103, the Main group with "Wire marker" right after the
+/// Properties of the wire W29 on folio 103, the Main group with "Wire marker" right after the
 /// cross-section and the colour; cropped to those rows in the Properties pane, light Comfortable.
 fn ft625_the_wire_marker_row(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
     {
@@ -1736,7 +1736,7 @@ fn ft625_the_wire_marker_row(dev: &ew_render2d::gpu::HeadlessDevice, failures: &
     }
 }
 
-/// FT-625 (FT-577): the Potentials table with a potential known only at its connection points (24VDC-4's definition
+/// The Potentials table with a potential known only at its connection points (24VDC-4's definition
 /// deleted), its Name cell in the editor with a typed name; cropped to the grid, light
 /// Comfortable.
 fn ft625_the_potential_name_cell(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
@@ -1815,7 +1815,7 @@ fn ft625_the_potential_name_cell(dev: &ew_render2d::gpu::HeadlessDevice, failure
     }
 }
 
-/// FT-675: folio 103 of Golden A without its bond B1 (0 V and PE merge over W27 and EW-POT-001 stands): the CPU
+/// Folio 103 of Golden A without its bond B1 (0 V and PE merge over W27 and EW-POT-001 stands): the CPU
 /// snapshot of the page pane (800 x 560 points at ppp 1, the page fitted) with the merged potential's wires drawn over in
 /// `canvas.conflict`; the pixel on the middle of a conflict segment is that colour.
 #[test]
@@ -1893,7 +1893,7 @@ fn ft675_the_conflict_overlay_in_light() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// FT-997 (ID-1147): a locked placement's lock icon on folio 902 (-102F1 locked, the view two steps in), cropped round
+/// A locked placement's lock icon on folio 902 (-102F1 locked, the view two steps in), cropped round
 /// the icon, at the 1280 × 800 floor and at the typical 1920 × 1080, light Comfortable at ppp 1 (gated).
 #[test]
 fn ft997_the_lock_icon_at_both_sizes() {

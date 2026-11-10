@@ -96,13 +96,13 @@ pub const REVISION_IMMUTABLE: &str = "EW-INV-020";
 /// EW-INV-021 (delete-time): an edit does not remove an embedded library copy that a record names through a
 /// `LibRef` link.
 pub const LIB_REF_KEEP_ALIVE: &str = "EW-INV-021";
-/// EW-INV-022: the page of a page item or a structure box exists (WP-S2.04 part 4a, ADR-0009 amendment 8).
+/// EW-INV-022: the page of a page item or a structure box exists (ADR-0009 amendment 8).
 pub const ITEM_PAGE_EXISTS: &str = "EW-INV-022";
 /// EW-INV-023: every connection a wire marker lists exists and lies on the marker's page (WP-S2.04 part 4a,
 /// ADR-0009 amendment 8).
 pub const MARKER_CONNECTIONS: &str = "EW-INV-023";
 /// EW-INV-024: a fluid line joins fluid ports of one medium family only, and no other line ends at a fluid port
-/// (WP-S1.20 D11, ADR-0009 amendment 9).
+/// (ADR-0009 amendment 9).
 pub const FLUID_LINES: &str = "EW-INV-024";
 
 /// The catalogue in evaluation order: the structural invariants, then the delete-time rule.
@@ -316,7 +316,7 @@ pub(crate) fn check(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 }
 
 /// Every violation of the catalogue, in [`RULES`] order and then the order each rule finds them, the first being
-/// [`check`]'s error (FT-1540): a rule reports each record at fault, EW-INV-024 the first fault of each connection.
+/// [`check`]'s error: a rule reports each record at fault, EW-INV-024 the first fault of each connection.
 pub(crate) fn check_all(m: &Model, scope: &Scope) -> Vec<ModelError> {
     let mut out = Violations(Some(Vec::new()));
     let kept = rules(m, scope, &mut out);
@@ -355,7 +355,7 @@ pub fn unexplained_by_dropped_copies<'a>(
     })
 }
 
-/// Where a rule puts a violation (FT-1540): with `None` the first ends the check, else every one is kept.
+/// Where a rule puts a violation: with `None` the first ends the check, else every one is kept.
 pub(crate) struct Violations(Option<Vec<ModelError>>);
 
 impl Violations {
@@ -403,7 +403,7 @@ fn rules(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelErro
 /// A `LibRef` link ([`crate::LinkDecl::lib_ref`]) takes part in neither half: its missing target is not
 /// dangling (NFR-REL-11), so neither is a referrer left behind by the removal of its copy. Its keep-alive is
 /// the delete-time rule EW-INV-021 ([`check_delete_time`]), which the history path does not evaluate: the undo
-/// of `library.embed` restores the state before the embedding, where the `LibRef` named nothing (FT-316).
+/// of `library.embed` restores the state before the embedding, where the `LibRef` named nothing.
 ///
 /// A kind-erased link ([`crate::LinkDecl::kind_erased`], `macro_instance.members[][1]`) resolves when a record of
 /// any of its kinds has the ID; its removal half is the ordinary one, for each of the kinds.
@@ -1195,7 +1195,7 @@ fn marker_connections(m: &Model, scope: &Scope, out: &mut Violations) -> Result<
     Ok(())
 }
 
-/// The medium family of a fluid port (WP-S1.20 D11): pneumatic and vacuum are one family, hydraulic another.
+/// The medium family of a fluid port: pneumatic and vacuum are one family, hydraulic another.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FluidMedium {
     /// Pneumatic or vacuum.
@@ -1272,7 +1272,7 @@ fn black_box_from_pattern(function: &Function, parts: &[&ew_schema::Part]) -> bo
         && parts.iter().any(|p| !p.cp_pattern.is_empty())
 }
 
-/// EW-INV-024 (WP-S1.20 D11): the touched connections, the connections at the CPs of touched functions and of the
+/// EW-INV-024: the touched connections, the connections at the CPs of touched functions and of the
 /// functions of touched devices, and every connection at a junction one of them ends at. A batch that touches a
 /// FnDef or part copy checks every connection, since a copy changes the disciplines of every function using it.
 fn fluid_lines(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
@@ -1321,7 +1321,7 @@ fn fluid_line_ok(m: &Model, conn: &Connection) -> Result<(), ModelError> {
         _ => false,
     };
     let mut media: Vec<(FluidMedium, Id<Function>, u16)> = Vec::new();
-    // The junctions the line ends at; the media are collected across every junction the fluid lines reach (FT-1318).
+    // The junctions the line ends at; the media are collected across every junction the fluid lines reach.
     let mut todo: Vec<Id<Junction>> = Vec::new();
     for end in [&conn.a, &conn.b] {
         match end {

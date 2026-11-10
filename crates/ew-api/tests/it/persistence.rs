@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Session's persistence (WP-S1.09): create, open, incremental save, undo across a save, the
+//! The Session's persistence: create, open, incremental save, undo across a save, the
 //! read-only second session, and journal recovery after a crash (doc 05 §5, §7, §8).
 
 // The tests count rows through the untracked readers (dev-dependency `ew-model/raw-read`; tests are exempt

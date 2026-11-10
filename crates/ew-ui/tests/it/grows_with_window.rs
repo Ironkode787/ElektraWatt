@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cycle 39 (window check W39c2; doc 16a §2, ID-908: the UI is not fitted to the floor): the Choose part dialog, the
+//! Cycle 39 (window check W39c2; doc 16a §2, the UI is not fitted to the floor): the Choose part dialog, the
 //! Device-from-part picker and the command palette grow with the window. Each is measured at the floor (1280 by 800)
 //! and at the typical size (1920 by 1080): wider at the typical size, a share of the window there, and never narrower
 //! than at the floor.
@@ -104,7 +104,7 @@ fn the_part_picker_grows_with_the_window() {
     );
 }
 
-/// ID-1439 (C52-p8#3): Device from part keeps its width while the filter narrows its rows, and its window stays
+/// Device from part keeps its width while the filter narrows its rows, and its window stays
 /// inside the app's window with `space.6` free on each side (its content inside `space.5` margins), at both sizes.
 #[test]
 fn id1439_the_part_picker_keeps_its_width_and_stays_inside_the_window() {
@@ -188,8 +188,8 @@ fn id1427_part_names_are_whole_in_device_from_part() {
     }
 }
 
-/// FT-1143 (ID-1225) at the floor: a part row's function text stays inside the row, never cut hard at the popup's
-/// edge (ID-1427: the picker now takes the width its columns need, so these stand whole), and the row's tooltip ends
+/// FT-1143 at the floor: a part row's function text stays inside the row, never cut hard at the popup's
+/// edge (the picker now takes the width its columns need, so these stand whole), and the row's tooltip ends
 /// with the whole text.
 #[test]
 fn ft1143_a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip() {
@@ -245,7 +245,7 @@ fn ft1143_a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip(
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1514 (ID-1456, ID-1415): a part row's tooltip in Device from part is its description, its maker and part
+/// A part row's tooltip in Device from part is its description, its maker and part
 /// number, and its function in words, never a FnDef key.
 #[test]
 fn ft1514_a_part_rows_tooltip_ends_with_its_function_in_words() {
@@ -312,7 +312,7 @@ fn selected_labels(h: &Harness<'_, App>) -> Vec<String> {
         .collect()
 }
 
-/// FT-1255 (ID-1315 ruling 4): the palette and the part picker tell AccessKit which row is selected, the cursor's
+/// The palette and the part picker tell AccessKit which row is selected, the cursor's
 /// row alone.
 #[test]
 fn ft1255_the_palette_and_the_picker_mark_their_selected_row() {
@@ -426,7 +426,7 @@ fn the_parts_mapping_card_grows_with_the_window() {
     );
 }
 
-/// WP-S3.07 part 3 (ruling 4 of ID-1180): the print pre-dialog is `size.dialog.preview` (1040) wide at the floor and
+/// The print pre-dialog is `size.dialog.preview` (1040) wide at the floor and
 /// 0.65 of the window at 1920 (1248).
 #[test]
 fn the_print_dialog_grows_with_the_window() {
@@ -533,7 +533,7 @@ fn no_pages_row_is_cut_at_1920() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// C40 (FT-816 b): the Pages table's Title is re-filled when its pane grows: after a resize from the floor to 1920
+/// C40 (b): the Pages table's Title is re-filled when its pane grows: after a resize from the floor to 1920
 /// it is wider.
 #[test]
 fn the_pages_table_title_refills_on_a_resize() {
@@ -556,7 +556,7 @@ fn the_pages_table_title_refills_on_a_resize() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1404: in a wide window the strip editor's grid shows its side columns without scrolling sideways: at 1920 the
+/// In a wide window the strip editor's grid shows its side columns without scrolling sideways: at 1920 the
 /// left column grows past its default width (`size.panel.left_max`, 480) by what the grid lacks, so the header
 /// "Sort by Side 2 (clamp b)" ends inside the grid; at the floor the grid keeps its width and scrolls.
 #[test]
@@ -609,7 +609,7 @@ fn id1427_the_libraries_table_shows_its_state_column_at_1920() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// C52-p4#5 (FT-1404, ID-1418): the strip editor's grid asks for a repaint only while what its columns lack changes: at
+/// The strip editor's grid asks for a repaint only while what its columns lack changes: at
 /// the floor, where the left column does not grow, and at 1920 once it has grown, the window comes to rest after the
 /// first frames instead of repainting every frame.
 #[test]

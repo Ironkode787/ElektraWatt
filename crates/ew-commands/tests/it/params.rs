@@ -81,7 +81,6 @@ fn examples() -> Vec<(&'static str, Value)> {
             "connection.route",
             json!({"connection": CON_W22.to_string(), "route": [[0, 0], [7_937_500, 7_937_500]]}),
         ),
-        // WP-S2.19 D12
         (
             "connection.route_many",
             json!({"routes": [{"connection": CON_W22.to_string(), "route": [[0, 0], [7_937_500, 7_937_500]]}]}),
@@ -152,7 +151,6 @@ fn examples() -> Vec<(&'static str, Value)> {
                 "part": {"part": {"copy": PART_MCB.to_string()}, "qty": "1"},
                 "letter": "Q", "fndef": FNDEF_MCB.to_string()}),
         ),
-        // WP-S1.20 D9, D10
         (
             "valve.set_occupancy",
             json!({"module": DEV_102F2.to_string(), "position": 2,
@@ -183,7 +181,6 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"channel": DEV_T1.to_string(), "endpoint": fn_a.clone()}),
         ),
         ("plc.set_module_part", json!({"module": DEV_102F2.to_string()})),
-        // WP-S1.21 part 3 (D8)
         (
             "plc.set_start",
             json!({"modules": [DEV_102F2.to_string()], "dir": "output", "spec": "Q10"}),
@@ -202,7 +199,6 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"label": "V3.0", "date": "2025-06-02", "author": "engineer",
                 "description": "Changes on 102", "page_notes": [{"page": PAGE_102.to_string()}]}),
         ),
-        // WP-S1.18 part 1
         (
             "revision.set_author",
             json!({"revision": DEV_T1.to_string(), "role": "engineer"}),
@@ -211,7 +207,6 @@ fn examples() -> Vec<(&'static str, Value)> {
             "revision.withdraw",
             json!({"revision": DEV_T1.to_string(), "reason": "Issued in error"}),
         ),
-        // WP-S1.18 part 3
         (
             "revision.approve",
             json!({"revision": DEV_T1.to_string(), "checker": "checker", "date": "2025-06-02",
@@ -221,7 +216,6 @@ fn examples() -> Vec<(&'static str, Value)> {
                 "waivers_ack": [], "content_digest":
                     "sha256:1111111111111111111111111111111111111111111111111111111111111111"}),
         ),
-        // WP-S1.18 part 4
         (
             "revision.release",
             json!({"revision": DEV_T1.to_string(), "released_on": "2025-06-09", "generation": 7,
@@ -277,7 +271,7 @@ fn examples() -> Vec<(&'static str, Value)> {
             "check.unwaive",
             json!({"waiver": "6c1d0a37-92e4-5f8b-a0d6-3e7b9c2f4a18"}),
         ),
-        // Its rows are not parameters: the example writes nothing (WP-S1.17 D22).
+        // Its rows are not parameters: the example writes nothing.
         ("external.apply", json!({"generation": 2, "commit": "a1b2c3d"})),
         (
             "merge.resolve",
@@ -296,7 +290,6 @@ fn examples() -> Vec<(&'static str, Value)> {
             "project.drawing.set",
             json!({"crossings": "hops", "marker_mode": "explicit"}),
         ),
-        // WP-S2.05 part 2
         (
             "fields.set_many",
             json!({"edits": [
@@ -304,14 +297,12 @@ fn examples() -> Vec<(&'static str, Value)> {
                 {"kind": "device", "targets": [DEV_101F1.to_string()], "path": "function_text", "value": "Reserve"}],
                 "copies": [{"$k": "part"}]}),
         ),
-        // WP-S2.05 part 3
         (
             "edit.paste",
             json!({"page": PAGE_101.to_string(), "at": [0, 0], "fragment": {"format": "0.1",
                 "project": PAGE_101.to_string(), "grid": [7_937_500, 3], "page_kind": "multi_line", "anchor": [0, 0],
                 "records": [], "copies": [], "nodes": []}}),
         ),
-        // WP-S2.04 part 3
         (
             "connection.draw_to_ip",
             json!({"a": fn_a, "page": PAGE_102.to_string(), "route": [[0, 0], [7_937_500, 0]],
@@ -328,7 +319,6 @@ fn examples() -> Vec<(&'static str, Value)> {
                 "outline": [[0, 0], [31_750_000, 0], [31_750_000, 23_812_500], [0, 23_812_500]],
                 "cps": [{"idx": 0, "pos": [7_937_500, 0], "dir": "up"}]}),
         ),
-        // WP-S2.04 part 4a
         (
             "box.structure",
             json!({"page": PAGE_101.to_string(),
@@ -347,14 +337,12 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"page": PAGE_102.to_string(), "connections": [CON_W22.to_string(), CON_W27.to_string()],
                 "at": [7_937_500, 15_875_000], "angle": 90_000, "csa": "1.5", "colours": [["BK"], ["BU"]]}),
         ),
-        // FT-410
         ("parts.import", json!({"copies": [{"$k": "part"}]})),
         // Cycle 33
         (
             "connection.draw_many",
             json!({"connections": [{"a": fn_a, "b": fn_b}]}),
         ),
-        // WP-S2.07 part 1
         (
             "terminal.insert",
             json!({"strip": DEV_X1031.to_string(), "before": DEV_T2.to_string(),
@@ -364,7 +352,6 @@ fn examples() -> Vec<(&'static str, Value)> {
             "terminal.move",
             json!({"terminals": [DEV_T3.to_string()], "before": DEV_T1.to_string()}),
         ),
-        // WP-S1.19 part 3
         (
             "part.assign",
             json!({"devices": [DEV_T3.to_string()], "part": FNDEF_TERMINAL.to_string(), "mode": "replace",
@@ -375,18 +362,16 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"copies": [{"$k": "part"}], "cp_maps": [{"copy": FNDEF_TERMINAL.to_string(), "map": [[1, 2]]}],
                 "embed": [{"$k": "manufacturer"}]}),
         ),
-        // WP-S1.19 part 5
         (
             "macro.insert",
             json!({"copies": [{"$k": "macro"}], "macro": FNDEF_TERMINAL.to_string(), "page": DEV_T1.to_string(),
                 "at": [0, 0], "orient": "r90", "value_set": "1", "values": {"pos": 2}, "instance": DEV_T3.to_string()}),
         ),
-        // WP-S2.18 D3 (FT-628)
+        // WP-S2.18 D3
         (
             "rep.join_device",
             json!({"rep": REP_102F2.to_string(), "device": DEV_T3.to_string()}),
         ),
-        // WP-S2.07 part 4a (D20)
         (
             "part.edit_copy",
             json!({"copy": PART_MCB.to_string(), "part": {"description": "MCB"}, "fork": DEV_T3.to_string(),
@@ -438,7 +423,6 @@ fn examples() -> Vec<(&'static str, Value)> {
             "layout.lock",
             json!({"placement": DEV_T1.to_string(), "locked": true}),
         ),
-        // WP-S4.01 part 3
         (
             "page.surface_view.set",
             json!({"page": PAGE_101.to_string(), "surface": DEV_T2.to_string(),

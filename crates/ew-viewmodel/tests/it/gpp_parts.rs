@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The G-PP blind-drafter run's part findings (cycle 33, lane J33), through the text interface: the minimal part
+//! The G-PP blind-drafter run's part findings (lane J33), through the text interface: the minimal part
 //! chooser of the Parts row (draft FT row 1), part-first terminal placement into a strip (row 2) and no orphan device
 //! after deleting its last representation (row 5). Each test repeats the run's step on a writable copy of Golden A and
 //! reads the bill of materials of the saved project.
@@ -221,7 +221,7 @@ fn row5_deleting_the_last_representation_deletes_the_device_and_one_undo_restore
     let commands = s.recorded_commands().len();
     done(&mut s, "edit.delete_selection", json!({}));
     assert_eq!(s.recorded_commands().len(), commands + 1, "one command");
-    // FT-709: the device went too, so the toast names no device left without a symbol.
+    // The device went too, so the toast names no device left without a symbol.
     assert_eq!(unplaced_toast(&s), None);
     assert!(
         format!("{:?}", s.recorded_commands()[commands]).contains(E55),
@@ -252,7 +252,7 @@ fn row5_deleting_the_last_representation_deletes_the_device_and_one_undo_restore
     );
 }
 
-/// The visible toast when it says that a device has no symbol on a page any more (FT-709).
+/// The visible toast when it says that a device has no symbol on a page any more.
 fn unplaced_toast(s: &ShellModel) -> Option<String> {
     s.toast()
         .map(|t| t.text.clone())
@@ -289,7 +289,7 @@ fn row5_a_device_whose_cps_carry_potentials_and_a_bond_is_kept() {
     assert_eq!(reps_of(&s, device).len(), 1, "-102G1 is one black box");
     done(&mut s, "edit.delete_selection", json!({}));
     assert!(reps_of(&s, device).is_empty(), "the box is deleted");
-    // FT-709: the kept device is named in the delete's toast, with where it stays.
+    // The kept device is named in the delete's toast, with where it stays.
     assert_eq!(
         unplaced_toast(&s).as_deref(),
         Some(
@@ -305,8 +305,8 @@ fn row5_a_device_whose_cps_carry_potentials_and_a_bond_is_kept() {
     assert!(found[0].contains("G1"), "{found:?}");
 }
 
-/// C53-p2#1 (ID-1480): one delete of an interruption point with its wire and of -102G1's only box joins the two
-/// sentences of its toast with one space, each ending with its own full stop (FT-1505), in both languages.
+/// One delete of an interruption point with its wire and of -102G1's only box joins the two
+/// sentences of its toast with one space, each ending with its own full stop, in both languages.
 #[test]
 fn a_delete_toast_of_two_sentences_joins_them_with_one_space() {
     for (lang, want) in [
@@ -379,7 +379,7 @@ fn row5_a_device_with_another_representation_is_kept() {
         reps[1..],
         "the device keeps its other representations"
     );
-    // FT-709: another representation remains, so no notice.
+    // Another representation remains, so no notice.
     assert_eq!(unplaced_toast(&s), None);
 }
 

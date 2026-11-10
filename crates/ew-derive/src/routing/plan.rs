@@ -8,9 +8,9 @@
 //! **One job's request.** The ends are the connection's CPs (with their leaving directions) or junctions. Every
 //! representation's body and black-box outline grown by one grid step, and every text box grown by a quarter step,
 //! block; the ends' own representations' bodies block but for the escape corridors, and their texts block as any
-//! other text (rule 4 has no exemption for a wire's own texts, nor for its stubs; ID-1502, ID-1509). The frame's
+//! other text (rule 4 has no exemption for a wire's own texts, nor for its stubs). The frame's
 //! bands block, the drawing area's edge grown inward by one step but on a side where an end or its stub stands
-//! within that step (FT-758). The routed connections that are not re-routed, and the jobs routed so far, are the
+//! within that step. The routed connections that are not re-routed, and the jobs routed so far, are the
 //! other wires (an unrouted connection outside the solve is no obstacle). Every other connection point and its stub,
 //! and every
 //! junction the job does not end at, is reserved. A crossing costs [`CROSSING_COST`]; a step beside a routed mate of
@@ -150,7 +150,7 @@ struct Relax {
     points: bool,
 }
 
-/// The frame's obstacles (FT-758): the sheet outside the drawing area grown inward by `g`, but on a side where one
+/// The frame's obstacles: the sheet outside the drawing area grown inward by `g`, but on a side where one
 /// of `ends` stands within `g`.
 fn frame_rects(page: &PageGeometry, g: i64, ends: &[Point]) -> Vec<Rect> {
     let Some([x0, y0, x1, y1]) = page.drawing_area else {
@@ -210,7 +210,7 @@ fn request(
         }
         obstacles.extend(frame_rects(page, g, &[a.at, stub(a), b.at, stub(b)]));
     }
-    // Rule 4 (ID-1502, ID-1509): every text blocks, the ends' own included, across a stub too; the escape corridors
+    // Rule 4: every text blocks, the ends' own included, across a stub too; the escape corridors
     // pass bodies only.
     let texts = if relax.texts {
         Vec::new()
@@ -439,7 +439,7 @@ impl Solve<'_> {
                 .and_then(|req| search_areas(self.page, &req));
             let Some((free, _)) = free else { continue };
             // The routed jobs the free route meets, and every routed job after the first of them in the order: they
-            // were routed around it, so they are routed again too (ID-1502, step 6's tuning).
+            // were routed around it, so they are routed again too (step 6's tuning).
             let first = self
                 .order
                 .iter()
@@ -678,10 +678,10 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
     }
 }
 
-/// One route from `from` to `to` against `page` as drawn (WP-S2.19 D4, the Wire tool's ghost): every routed
+/// One route from `from` to `to` against `page` as drawn (the Wire tool's ghost): every routed
 /// connection a fixed wire, every other CP with its stub and every junction not at an end reserved, the ends'
 /// own representations' rectangles left along their escape corridors, the areas of §5.5; `arrive` the heading a
-/// free first end was arrived at with (FT-437). `None` when no route keeps every hard rule.
+/// free first end was arrived at with. `None` when no route keeps every hard rule.
 pub fn route_one(
     page: &PageGeometry,
     from: OneEnd,
@@ -712,7 +712,7 @@ fn routed_wires(page: &PageGeometry) -> Vec<[Point; 2]> {
 
 /// Whether `points` is a route [`route_one`] could take from `from` to `to` on `page` (`search::clear` on its
 /// request), with the representations `through` left out: their bodies, texts and connection points. The Wire tool
-/// asks it of the direct route through a free terminal in line (FT-705).
+/// asks it of the direct route through a free terminal in line.
 pub fn clear_one(
     page: &PageGeometry,
     (from, to): (OneEnd, OneEnd),

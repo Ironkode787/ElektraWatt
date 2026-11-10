@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.07 part 3: the print pre-dialog of the shell. PW-2 (the set is built as a job: an edit made while it builds
+//! The print pre-dialog of the shell. PW-2 (the set is built as a job: an edit made while it builds
 //! is applied at once, the set holds the revision it started from, a cancel leaves no file), the empty state, the
 //! Pages field's refusals, the disabled print buttons and the toasts of the window's print, every text whole. PW-1's
 //! digest is `bin/elektrawatt`'s `tests/it/print.rs` and `ew-api`'s `export_job.rs`.
@@ -211,7 +211,7 @@ fn the_pages_field_shows_the_parsers_and_the_page_orders_refusal() {
         s.print_disabled_reason().as_deref(),
         Some("\"100,,101\" is not a page range of this project")
     );
-    // FT-1124 (ID-1225): the page order's refusal is the same sentence, once, under the field; the preview is empty.
+    // The page order's refusal is the same sentence, once, under the field; the preview is empty.
     done(&mut s, "print.set", json!({"pages": "999"}));
     assert_eq!(
         dialog_lines(&s)[1..3],
@@ -224,7 +224,7 @@ fn the_pages_field_shows_the_parsers_and_the_page_orders_refusal() {
         s.print_dialog().map(|d| d.build.clone()),
         Some(ew_viewmodel::shell::print::PrintBuild::Empty)
     );
-    // FT-1172, FT-1190: Print… says why in words; the refusal is told by its kind.
+    // Print… says why in words; the refusal is told by its kind.
     assert_eq!(
         s.print_disabled_reason().as_deref(),
         Some("\"999\" is not a page range of this project")
@@ -280,7 +280,7 @@ fn print_send_hands_the_set_to_the_window_and_each_end_has_one_toast() {
             PrintEnd::Failed("`lp` said: no default destination.".to_owned()),
             "Printing failed: `lp` said: no default destination. Export a PDF and print it from your PDF viewer.",
         ),
-        // FT-1192: a cause that ends in an ellipsis keeps it whole.
+        // A cause that ends in an ellipsis keeps it whole.
         (
             PrintEnd::Failed("`lp` said: printer busy...".to_owned()),
             "Printing failed: `lp` said: printer busy... Export a PDF and print it from your PDF viewer.",
@@ -306,7 +306,7 @@ fn print_send_hands_the_set_to_the_window_and_each_end_has_one_toast() {
     s.shutdown();
 }
 
-/// C52-p3#3 (FT-1157, ID-1417): the print the window hands to its platform is a running entry of the Jobs pane; its
+/// The print the window hands to its platform is a running entry of the Jobs pane; its
 /// Cancel sets the request's cancel signal, which the platform hands to the print job, and the print's end takes the
 /// entry away.
 #[test]
@@ -332,7 +332,7 @@ fn a_running_print_is_a_job_whose_cancel_reaches_the_print() {
     s.shutdown();
 }
 
-/// FT-1502: a print being spooled is no export: a PDF export started meanwhile runs beside it, and the print's end
+/// A print being spooled is no export: a PDF export started meanwhile runs beside it, and the print's end
 /// takes only the print's entry away.
 #[test]
 fn a_pdf_export_runs_beside_a_print_being_spooled() {
@@ -357,7 +357,7 @@ fn a_pdf_export_runs_beside_a_print_being_spooled() {
     s.shutdown();
 }
 
-/// C52-p6#2 (ID-1424): a way that hands a file over cannot take it back: a print cancelled in the Jobs pane that the
+/// A way that hands a file over cannot take it back: a print cancelled in the Jobs pane that the
 /// printer or the viewer already had says so in words, in English and Dutch, rather than telling it as sent.
 #[test]
 fn a_cancel_too_late_for_a_handed_over_print_says_where_it_went() {

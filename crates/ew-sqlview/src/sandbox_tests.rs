@@ -401,10 +401,10 @@ fn a_huge_deadline_is_capped_and_never_overflows_the_clock() {
     assert_eq!(texts(&r, "SELECT count(*) FROM api_v1_item"), ["5"]);
 }
 
-/// The hostile SQL of the corpus (`crates/ew-testkit/hostile/sql/`; FT-223, WP-S6.04 D10).
+/// The hostile SQL of the corpus (`crates/ew-testkit/hostile/sql/`).
 const HOSTILE_SQL: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../ew-testkit/hostile/sql");
 
-/// SE-6 (FT-223, NFR-SEC-06): every hostile SQL file of the corpus, which is also `sql_sandbox`'s seed corpus, is
+/// SE-6 (NFR-SEC-06): every hostile SQL file of the corpus, which is also `sql_sandbox`'s seed corpus, is
 /// refused by the statement gate or the authorizer, or stopped by a limit or the deadline, with its error's text
 /// whole; the reader stays usable after each.
 #[test]

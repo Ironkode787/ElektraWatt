@@ -8,7 +8,7 @@
 //! result **by page index**, so the output does not depend on the thread count, on which thread finished
 //! first or on the scheduler: serial and parallel exports are the same bytes.
 //!
-//! *As built (cycle 14):* scoped threads of `std` with a strided split (worker `w` of `n` takes the indices
+//! *As built:* scoped threads of `std` with a strided split (worker `w` of `n` takes the indices
 //! `w, w + n, w + 2n, …`), not rayon (doc 09 §4.2 names rayon): no new dependency for a phase that has no
 //! nested parallelism yet. Swapping the pool keeps the contract, results by index.
 

@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PDF export as a job (WP-S2.09 part 1, D4, §6.2; FT-251): a snapshot that crosses to the job's thread and runs
+//! The PDF export as a job: a snapshot that crosses to the job's thread and runs
 //! the export's three phases there with a cold `Q`, progress and checkpoints. The print set is built the same way
-//! ([`PrintSetJob`], WP-S3.07 ruling 2 of ID-1180): the window's print pre-dialog builds it in the background.
+//! ([`PrintSetJob`]): the window's print pre-dialog builds it in the background.
 
 use std::sync::Arc;
 
@@ -97,7 +97,7 @@ impl PrintSetJob {
         self.run_typed(ctl)?.map_err(|e| JobError::Failed(e.to_string()))
     }
 
-    /// [`PrintSetJob::run`] with the build's failure kept as its [`OutputError`] (FT-1190): the outer `Err` is
+    /// [`PrintSetJob::run`] with the build's failure kept as its [`OutputError`]: the outer `Err` is
     /// [`JobError::Cancelled`] (or a checkpoint's), the inner one the selection or the writer's refusal, so a caller
     /// tells a refused selection apart by its kind, not by its text.
     ///
@@ -132,7 +132,7 @@ impl std::fmt::Debug for PrintSetJob {
 }
 
 impl Session {
-    /// The export of the current snapshot as a job (WP-S2.09 part 1, D4): O(1) in the model (the snapshot and the
+    /// The export of the current snapshot as a job: O(1) in the model (the snapshot and the
     /// report engine are shared), plus the asset map. Run it with [`ExportJob::run`] on a job's thread.
     pub fn export_job(&self, options: &ExportOptions) -> ExportJob {
         ExportJob {
@@ -143,7 +143,7 @@ impl Session {
         }
     }
 
-    /// The print set of the current snapshot as a job (WP-S3.07 ruling 2 of ID-1180), made as
+    /// The print set of the current snapshot as a job, made as
     /// [`Session::export_job`] is. Run it with [`PrintSetJob::run`] on a job's thread.
     pub fn print_set_job(&self, options: &PrintOptions) -> PrintSetJob {
         PrintSetJob {

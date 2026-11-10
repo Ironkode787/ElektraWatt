@@ -139,7 +139,7 @@ impl Query for IpInfoOf {
             let mut scope = None;
             if pairs {
                 let (_, scope_aspect) = pairing_setting(q);
-                // The point's structure: its structure box over its page (`ip_structure`, WP-S2.04 §10.2).
+                // The point's structure: its structure box over its page (`ip_structure`).
                 scope = scope_aspect.and_then(|a| q.get::<crate::items::IpStructure>(fid).node(a));
                 if let (Some(aspect), None) = (scope_aspect, scope) {
                     notes.push(DeriveNote::Connectivity {

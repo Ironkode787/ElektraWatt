@@ -153,7 +153,7 @@ fn golden_library_documents_are_canonical() {
 
 #[test]
 fn a_text_slot_style_is_optional_and_round_trips() {
-    // The golden symbol has two slots without a style; the member is written only when present (ID-197).
+    // The golden symbol has two slots without a style; the member is written only when present.
     let plain = fill(GOLDEN_LIB[1]);
     let LibDocument::Symbol(copy) = assert_lib_canonical(&plain) else {
         panic!("a symbol");
@@ -226,7 +226,7 @@ fn unknown_members_are_kept_and_written_last_in_byte_order() {
 
 #[test]
 fn unknown_device_aspects_follow_the_known_ones() {
-    // `assembly` is typed (cycle 15); `bus_node` is not implemented yet and stays in `extra`, after the known
+    // `assembly` is typed; `bus_node` is not implemented yet and stays in `extra`, after the known
     // aspects.
     let line = fill(
         r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"cable":{},"assembly":{"bom_basis":"components"},"bus_node":{"role":"slave"}}"#,
@@ -396,7 +396,7 @@ fn library_kinds_are_not_records_and_vice_versa() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// revision (FT-165, doc 03 §18)
+// revision (doc 03 §18)
 
 #[test]
 fn a_revision_is_typed_and_lives_in_the_revisions_file() {
@@ -592,7 +592,7 @@ fn a_revision_without_label_or_state_or_with_a_bare_page_id_is_rejected() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Page items and structure boxes (WP-S2.04 part 4a, §10.1; acceptance PI1)
+// Page items and structure boxes (acceptance PI1)
 
 /// Every typed page-item variant and every graphic shape round-trips byte for byte, defaults omitted; the
 /// structure box with all its members too.
@@ -702,7 +702,7 @@ fn an_unknown_page_item_variant_is_kept_verbatim() {
     assert!(matches!(b.style, BoxStyle::Unknown(_)));
 }
 
-/// The `image` variant (WP-S2.04 part 5, §11) is typed: it round-trips byte for byte, a reversed rectangle and a
+/// The `image` variant is typed: it round-trips byte for byte, a reversed rectangle and a
 /// malformed hash are refused by the strict reader, and an unknown member is kept.
 #[test]
 fn the_image_page_item_variant_is_typed() {

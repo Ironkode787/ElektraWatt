@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A headless device for the render-to-texture tests and the bench (WP-S2.02 §8 item 4, §9): no window, no
+//! A headless device for the render-to-texture tests and the bench (§9): no window, no
 //! surface. The window's device is eframe's (one wgpu device, ADR-0014); this one only exists where there is no
 //! window.
 
@@ -63,7 +63,7 @@ fn open(adapter: wgpu::Adapter) -> Option<HeadlessDevice> {
 }
 
 /// The number of graphics adapters of the compiled backends on a fresh instance: 0 means the window cannot open
-/// on this system (the application's exit code 3, WP-S2.02 section 7.2), whichever step of eframe's setup failed.
+/// on this system (the application's exit code 3, section 7.2), whichever step of eframe's setup failed.
 pub fn adapter_count() -> usize {
     pollster::block_on(instance().enumerate_adapters(wgpu::Backends::all())).len()
 }

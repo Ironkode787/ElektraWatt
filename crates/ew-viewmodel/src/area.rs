@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas area (WP-S2.03 part 1, spec section 6.2; ruling D6, decision log ID-533): the open pages as tabs in
+//! The canvas area (spec section 6.2; ruling D6): the open pages as tabs in
 //! one or two tab groups side by side, toolkit-neutral. `ew-ui` rebuilds its nested egui_tiles tree from this model
 //! after every structural change ([`CanvasArea::version`]), so the model is the one source of truth.
 //!
@@ -97,7 +97,7 @@ pub struct TabGroup {
     pub ppp: f64,
     /// Whether the host has sized the pane (`view.canvas_resize`): until then a resize fits a fitted page to the real
     /// pane; after it a resize (a dock opened, closed or dragged) refits a fitted, untouched view and keeps a zoomed
-    /// or panned view's zoom and centre (FX38d, FT-769).
+    /// or panned view's zoom and centre (FX38d).
     pub sized: bool,
 }
 

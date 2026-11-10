@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The canonical byte encoding of a display list: the input of the page digests of doc 15 §5.6 (WP-S1.18 D6).
+//! The canonical byte encoding of a display list: the input of the page digests of doc 15 §5.6.
 //!
 //! A page digest must not change when a dependency changes its `Debug` output, its serde form or its hash
 //! function, so the encoding is this crate's own and spelled out here. It never reads `Debug`, serde, a hash map
@@ -427,7 +427,7 @@ mod tests {
     }
 
     /// The encoding is pinned: a change of any byte of this list's encoding is a new encoding version, which
-    /// changes every page digest (WP-S1.18 D6, risk R1).
+    /// changes every page digest (risk R1).
     #[test]
     fn the_encoding_of_one_list_is_pinned() {
         let line = DisplayList {

@@ -286,7 +286,7 @@ fn ms2_a_new_unpaired_point_on_the_editing_page_is_pending_until_the_tab_moves()
     shell.shutdown();
 }
 
-/// The status bar's findings field (WP-S2.17 D12), empty when it has none.
+/// The status bar's findings field, empty when it has none.
 fn status_findings(shell: &ShellModel) -> String {
     ew_viewmodel::status::bar(shell, false)
         .into_iter()
@@ -361,7 +361,7 @@ fn ft710_the_toast_the_status_bar_and_the_chip_agree() {
     place_ip(&mut shell, "MSGTEST", (60, 3), "target");
     let pending = agree(&shell, "after an edit on 101");
     assert!(pending.pending > 0, "{pending:?}");
-    // FT-759: the check's toast, whose counts the edit made stale, is off the screen (the log keeps it).
+    // The check's toast, whose counts the edit made stale, is off the screen (the log keeps it).
     assert!(
         shell.toast().is_none_or(|t| !t.text.starts_with("Check")),
         "{:?}",
@@ -412,7 +412,7 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     );
     assert!(!shell.row_pending(NavKind::Messages, &row.key));
     assert_eq!(shell.messages_counts().unwrap().pending, 0);
-    // FT-549: the check reports its findings by severity, the same counts as the pane's header.
+    // The check reports its findings by severity, the same counts as the pane's header.
     let c = shell.messages_counts().unwrap();
     let toast = shell.toast().expect("the check toast").text.clone();
     assert!(
@@ -420,7 +420,7 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
             && toast.contains(&format!("{} warning", c.warnings)),
         "{toast} / {c:?}"
     );
-    // A second source of an existing name on 101 is EW-CORE-052, which prevents the commit (FT-194).
+    // A second source of an existing name on 101 is EW-CORE-052, which prevents the commit.
     let e_before = errors(&shell);
     done(&mut shell, "navigator.show", json!({"kind": "ips"}));
     let ips = shell.nav(NavKind::Ips).and_then(|n| n.table()).cloned().unwrap();
@@ -433,7 +433,7 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     done(&mut shell, "navigator.show", json!({"kind": "ips", "on": false}));
     let rev = shell.revision();
     arm_ip(&mut shell, &source, (60, 6), "source");
-    // FT-822: the IP tool's refused click keeps its ghost and says why in the HUD.
+    // The IP tool's refused click keeps its ghost and says why in the HUD.
     match shell.dispatch("canvas.activate", &json!({})) {
         Outcome::Refused { reason_key } => assert_eq!(reason_key, key!("reason-ip-not-placed")),
         other => panic!("{other:?}"),
@@ -561,7 +561,7 @@ fn ms3_the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
         "{card_line}"
     );
     assert!(card_line.ends_with(" fix \"EW-CORE-023\""), "{card_line}");
-    // FT-1259: each count of the card's line takes its singular.
+    // Each count of the card's line takes its singular.
     assert_eq!(
         ew_viewmodel::script::card_summary(&shell).as_deref(),
         Some("1 change, 0 tags, 0 cross-reference texts")
@@ -806,7 +806,7 @@ fn ms6_the_sixteen_words_the_five_actions_and_the_counts() {
     shell.shutdown();
 }
 
-/// FT-528: `navigator.row {key}` to a finding under a collapsed group expands its path and puts the cursor on it; a key
+/// `navigator.row {key}` to a finding under a collapsed group expands its path and puts the cursor on it; a key
 /// the filter hides is refused and leaves the collapsed groups as they were.
 #[test]
 fn ft528_navigator_row_into_a_collapsed_group_expands_its_path() {
@@ -876,7 +876,7 @@ fn ft528_navigator_row_into_a_collapsed_group_expands_its_path() {
     shell.shutdown();
 }
 
-/// FT-549: with the Messages pane closed, Run checks still reports what it found, errors and warnings always named
+/// With the Messages pane closed, Run checks still reports what it found, errors and warnings always named
 /// (`Check: 0 errors, 1 warning`), and the summary text follows the singular and plural forms.
 #[test]
 fn ft549_check_reports_its_counts_with_the_pane_closed() {
@@ -906,7 +906,7 @@ fn a_finding_row_shows_its_subject_once() {
     shell.shutdown();
 }
 
-/// FT-1140 (ID-1229 item 9): the detail block's message stands on its own line, so it starts with a capital (ID-1182,
+/// FT-1140 (item 9): the detail block's message stands on its own line, so it starts with a capital (ID-1182,
 /// `strings::sentence_start`); the row keeps the rule's lowercase text.
 #[test]
 fn ft1140_the_detail_message_starts_with_a_capital() {

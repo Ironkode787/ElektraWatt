@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew git setup [--global] [--hooks] [--yes]` (WP-S1.17 D28; doc 05 §11.1, §11.5; FR-COL-024): the merge driver and
+//! `ew git setup [--global] [--hooks] [--yes]` (doc 05 §11.1, §11.5; FR-COL-024): the merge driver and
 //! the textconv in git's configuration after the user's consent, the managed `.gitattributes` and `.gitignore` blocks
 //! in each project folder of the worktree, and with `--hooks` the `post-merge` hook that runs `ew check --integrity`.
 //! Git never takes a driver from a repository, so the configuration is the user's to give.
@@ -134,7 +134,7 @@ fn run_git_setup_with(
         match exe_git.hooks_dir(&root) {
             Ok(hooks) => {
                 // A `core.hooksPath` outside the repository (a global one) serves other repositories too: the hook,
-                // with this repository's project paths, is not written there (C49-p10#4).
+                // with this repository's project paths, is not written there.
                 match git::own_hooks(&vfs, &root, &hooks) {
                     Ok(true) => {}
                     Ok(false) => {
@@ -146,7 +146,7 @@ fn run_git_setup_with(
                         );
                         return 2;
                     }
-                    // The error names the path that failed (C50-p1#5).
+                    // The error names the path that failed.
                     Err(e) => {
                         eprintln!("error: {e}; nothing was changed");
                         return 2;
@@ -296,7 +296,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// C49-p9#6: the question names the project folders it writes the blocks into, and only ElektraWatt ones: a web
+    /// The question names the project folders it writes the blocks into, and only ElektraWatt ones: a web
     /// app's `manifest.json` is no project.
     #[test]
     fn the_question_names_the_project_folders_and_only_those() {

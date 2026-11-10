@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Preview tab (WP-S2.09 part 3, §8.1, D11; FR-UI-022): the one card of the window (every origin: the property
+//! The Preview tab (D11; FR-UI-022): the one card of the window (every origin: the property
 //! grid's, the find pane's replace, the parts import's, the Pages navigator's reorder and the renumber dialogs' `bulk`)
 //! shown in a dockable tab of the bottom dock, with its Summary, Entities, Tags, Xrefs and Pages.
 //!
@@ -44,7 +44,7 @@ pub fn card_key(card: &Card) -> CardKey {
 }
 
 /// The changed fields of a record of `kind` (its top-level members) in words for the Preview tab's row (cycle 39,
-/// FIX39b-1): each by its label in a sentence (ID-1427: `part_number` → "part number"); a library copy's content hash
+/// FIX39b-1): each by its label in a sentence (`part_number` → "part number"); a library copy's content hash
 /// (`sha256`) is no field to a reader: it is left out when another field changed, and reads "content" when it is the
 /// only change.
 pub fn field_words(kind: &str, fields: &[String]) -> Vec<String> {
@@ -60,7 +60,7 @@ pub fn field_words(kind: &str, fields: &[String]) -> Vec<String> {
         .collect()
 }
 
-/// A changed record's line in words (ID-1427, W52 F6): its change word ("changed", "gewijzigd") and its kind in a
+/// A changed record's line in words (W52 F6): its change word ("changed", "gewijzigd") and its kind in a
 /// sentence ("device", "apparaat") in the UI language.
 pub fn entity_words(e: &PreviewEntity) -> (&'static str, String) {
     let change = crate::strings::text(match e.change {
@@ -92,7 +92,7 @@ pub struct PreviewPane {
     pub(crate) xrefs: Vec<XrefChange>,
     pub(crate) pages: Vec<(String, Option<String>)>,
     /// Whether the card chain opened the tab (it was not in the layout when the first card came): the tab then closes
-    /// when the last card is applied or cancelled; a tab the user opened by hand stays (cycle 39, FIX39b-1).
+    /// when the last card is applied or cancelled; a tab the user opened by hand stays (FIX39b-1).
     pub(crate) opened_by_card: bool,
 }
 

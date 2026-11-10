@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The channel indexes (FT-319; doc 10 §2.4, §3.2 step 4, §3.3): a channels-by-module index and a
+//! The channel indexes (doc 10 §2.4, §3.2 step 4, §3.3): a channels-by-module index and a
 //! connection-point → channel index, as memoised derived families.
 //!
 //! The PLC queries used to find a module's channels by their v5 IDs (`v5(module, "channel", n)`), while
@@ -90,7 +90,7 @@ fn first_id() -> Id<Channel> {
 impl ChannelKeyed<(Id<Device>, u16)> {
     /// The channels of `module` by number, in number order, each number once: of two channels with one number (an
     /// import that bypassed the v5 rule), the one whose ID is `v5(module, "channel", number)`, else the lowest ID
-    /// (WP-S1.21 D10, FT-350: the channel N1 keeps; EW-CORE-008 `duplicate_number` reports the others).
+    /// (the channel N1 keeps; EW-CORE-008 `duplicate_number` reports the others).
     pub fn of_module(&self, module: Id<Device>) -> Vec<(u16, Id<Channel>)> {
         let mut out: Vec<(u16, Id<Channel>)> = Vec::new();
         for (((m, number), id), ()) in self.by_key.range(((module, 0), first_id())..) {

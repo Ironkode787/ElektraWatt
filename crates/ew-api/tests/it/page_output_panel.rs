@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The panel page 902 of Golden A (WP-S4.01 part 3, D9 and D10; acceptance LP-1 to LP-5):
+//! The panel page 902 of Golden A (acceptance LP-1 to LP-5):
 //!
 //! - `lp1_the_surface_view_round_trips_and_is_refused_elsewhere`: `page.surface_view.set` replaces 902's view in
 //!   place (one view, its ID kept) and the edit survives a save and a reopen of a fixture copy; a view on a schematic
@@ -828,7 +828,7 @@ fn lp4_the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record()
         "130 mm printed"
     );
     drop(q);
-    // FT-1065: `fields.set` refuses a scale of 1:0 with `page.surface_view.set`'s text (a stored one is read and drawn
+    // `fields.set` refuses a scale of 1:0 with `page.surface_view.set`'s text (a stored one is read and drawn
     // 1:1: `ft1065_a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one`).
     let zero = cmd(
         "fields.set",
@@ -844,7 +844,7 @@ fn lp4_the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record()
     );
 }
 
-/// FT-1065, FT-881: the reader stays tolerant. A copy of Golden A whose 902 line says `one_to: 0` opens; 902 draws the
+/// The reader stays tolerant. A copy of Golden A whose 902 line says `one_to: 0` opens; 902 draws the
 /// surface at 1:1 on the page, as a page drawn not to scale, and its title block prints the plain title, with neither
 /// the suffix nor the scale.
 #[test]

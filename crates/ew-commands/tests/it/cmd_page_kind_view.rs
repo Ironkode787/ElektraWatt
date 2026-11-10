@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-869 (ID-1080): a page whose kind `fields.set` or `fields.set_many` moves away from `panel_layout` loses its
+//! A page whose kind `fields.set` or `fields.set_many` moves away from `panel_layout` loses its
 //! surface view in the same transaction (listed in the preview, undone in one step); every other item stays, a batch
 //! that sets the kind away and back keeps the view, and a page without a view loses nothing.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
@@ -331,7 +331,7 @@ fn scale_of(m: &Model, page: Id<Page>) -> Scale {
     m.table::<Page>().get(&page).expect("the page").scale.clone()
 }
 
-/// FT-1016 (ID-1148): `page.surface_view.set` with a scale sets the page's scale and the view in one undo step.
+/// `page.surface_view.set` with a scale sets the page's scale and the view in one undo step.
 #[test]
 fn ft1016_a_surface_view_with_a_scale_sets_the_page_scale_in_one_step() {
     let (mut e, _) = fx();
@@ -353,7 +353,7 @@ fn ft1016_a_surface_view_with_a_scale_sets_the_page_scale_in_one_step() {
     );
 }
 
-/// FT-1016 (ID-1148): without a scale the page keeps the one it has (a script's view set changes no scale).
+/// Without a scale the page keeps the one it has (a script's view set changes no scale).
 #[test]
 fn ft1016_a_surface_view_without_a_scale_keeps_the_page_scale() {
     let (mut e, _) = fx();
@@ -389,7 +389,7 @@ fn ft1016_a_surface_view_without_a_scale_keeps_the_page_scale() {
     );
 }
 
-/// FT-1016 (ID-1148): a scale of 1:0 is refused, and nothing changes.
+/// A scale of 1:0 is refused, and nothing changes.
 #[test]
 fn ft1016_a_scale_of_one_to_zero_is_refused() {
     let (mut e, _) = fx();
@@ -411,7 +411,7 @@ fn ft1016_a_scale_of_one_to_zero_is_refused() {
     assert_eq!(lines(e.model()), before);
 }
 
-/// FT-1065 (ID-1178): the schema's minimum refuses a JSON `page.surface_view.set` with 1:0 before it runs, and
+/// The schema's minimum refuses a JSON `page.surface_view.set` with 1:0 before it runs, and
 /// `fields.set` and `fields.set_many` refuse a page scale of 1:0 at the value with the command's text; nothing changes.
 #[test]
 fn ft1065_a_scale_of_one_to_zero_is_refused_by_the_schema_and_by_fields_set() {

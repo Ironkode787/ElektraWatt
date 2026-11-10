@@ -10,7 +10,7 @@
 //! | [`PageSurfaceView`] | every panel layer | the page row (kind, scale), its page items and its frame's page-to-sheet map |
 //! | the surface outlines | `surface` | the surface, its enclosure, the enclosure's and the plate's devices and their part copies (the enclosure and mounting-plate sections) |
 //! | the carriers | `carriers` | `carriers_of_surface`, `carrier_geometry`, the carriers' `params` |
-//! | the placements | `placements` | the placements on the surface's carriers and on the surface, `placement_geometry`; the end brackets of the surface's rails (`group_accessories`, `rail_occupancy` through `rail_items`, WP-S4.02 D13) |
+//! | the placements | `placements` | the placements on the surface's carriers and on the surface, `placement_geometry`; the end brackets of the surface's rails (`group_accessories`, `rail_occupancy` through `rail_items`) |
 //! | the labels | `labels` and `carriers` | the same placements, `layout_label`, [`ShapedText`] in the label style, the surface's usable polygon |
 //!
 //! The carriers layer reads the labels for their knockout boxes (the carriers are cut around the labels, cycle 41's
@@ -256,7 +256,7 @@ fn placements(q: &Q, ids: &[Id<Placement>]) -> Vec<PlacementDraw> {
         .collect()
 }
 
-/// The derived end brackets of a surface's rails (WP-S4.02 D13), carrier by ID then in `group_accessories`' order: each
+/// The derived end brackets of a surface's rails, carrier by ID then in `group_accessories`' order: each
 /// a rectangle of the bracket's width along the rail by the largest footprint extent across the rail of the strips of
 /// its run (the terminals' height), centred on the rail axis. A rail without a valid axis draws none.
 fn bracket_draws(q: &Q, surface: Id<MountingSurface>) -> Vec<BracketDraw> {
@@ -409,7 +409,7 @@ pub(crate) fn panel_view(q: &Q, page: Id<Page>, parts: Parts) -> Option<PanelVie
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The panel tables (WP-S4.02 part 3, D9): the panel data a layout tool reads, `page_tables`' pattern for a
+// The panel tables: the panel data a layout tool reads, `page_tables`' pattern for a
 // panel-layout page, so that a tool never calls the `Session`. A plain function over `Q` that reads the existing
 // layout queries (`page_surface_view`, `carrier_geometry`, `rail_occupancy` through `rail_items`,
 // `group_accessories`, `placement_geometry`, `layout_label`, `unplaced`): no memo family of its own. Everything is
@@ -526,7 +526,7 @@ pub struct PanelPlacement {
     pub extent_flipped: RailExtent,
 }
 
-/// One unplaced device of the surface's layout space (D9, FT-486), in `unplaced` order (natural full tag).
+/// One unplaced device of the surface's layout space (D9), in `unplaced` order (natural full tag).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct UnplacedDevice {
     /// The device's ID.
@@ -579,7 +579,7 @@ pub struct PanelTables {
     pub placements: Vec<PanelPlacement>,
     /// The unplaced devices of the surface's layout space, in `unplaced` order.
     pub unplaced: Vec<UnplacedDevice>,
-    /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`, FT-366): the tools' texts
+    /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`): the tools' texts
     /// print millimetres as the project's other millimetre texts do.
     pub decimal_comma: bool,
 }
@@ -661,7 +661,7 @@ fn device_tag(q: &Q, d: Id<Device>) -> String {
         .unwrap_or_default()
 }
 
-/// The root of a device's assembly (WP-S4.02 D6, as `layout.place_assembly` finds it): the device when it has
+/// The root of a device's assembly (as `layout.place_assembly` finds it): the device when it has
 /// children, else its parent.
 fn assembly_root(q: &Q, device: &Device) -> Option<Id<Device>> {
     if q.idx().device_children(device.id).any(|c| c != device.id) {
@@ -931,7 +931,7 @@ pub(crate) fn panel_tables_of(q: &Q, folio: &str, page: Id<Page>) -> Option<Pane
 }
 
 impl crate::Session {
-    /// `panel_tables(folio)` (WP-S4.02 D9): the panel data of the panel-layout page labelled `folio` for the layout
+    /// `panel_tables(folio)`: the panel data of the panel-layout page labelled `folio` for the layout
     /// tools, keyed by folio like [`Session::page_tables`](crate::Session::page_tables); `None` for an unknown folio,
     /// a page that is not a panel-layout page or one without a surface view. A plain function over `Q`.
     pub fn panel_tables(&self, folio: &str) -> Option<PanelTables> {
