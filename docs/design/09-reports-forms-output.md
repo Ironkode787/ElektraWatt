@@ -809,7 +809,7 @@ sequential assembly in page order (FR-OUT-001, ARCH §2). *As built:* the page p
   Glyphs map to text one char per glyph when the counts agree, else the run is one cluster (clusters in
   `ShapedRun` follow); `.notdef` glyphs are dropped; link annotations use a rectangle; images are skipped
   until assets reach the scene; links out of a partial export are plain text. The golden PDF has the
-  33 pages of the page order with their report tables and 64 link annotations, one per listed item.
+  36 pages of the page order with their report tables and 246 link annotations (64 cross-reference items, 28 PLC overview rows and the report row links).
   Glyph coverage as built: the font set holds Noto Sans Math Regular as its one symbol fallback face, only
   for characters the style's own face lacks in Latin, Greek and Cyrillic text; a text with such glyphs is one group
   of one glyph run per face, so the golden PDF embeds both fonts and drops no `.notdef` glyph. A `.notdef` glyph

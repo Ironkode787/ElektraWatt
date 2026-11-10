@@ -1354,7 +1354,7 @@ rows: JE-N1000-03 (master, external) and -201U1 (slave, `Tbd` flagged).
 | 203–206 | 28 valve representations, each drawing fluid function + coil function; 28 bindings | Q0.1 … Q6.7 from `channel_addresses`; TA05-V-xx from the driven device's process tag (used valves carry no function text), or the manual function text "Spare" | FR-PLC-011, FR-FLU-005 |
 | 908 (new) | `plc_overview` report block | 56 rows on 908–908.2 | FR-PLC-022 |
 
-**As built.** The coil addresses on folios 203–206 (Q0.1 … Q6.7) are not printed yet. Folio 908 is built (§5). Folio 3's "Node TBD" waits for the `BusPort` record (§3.8).
+**As built.** The coil addresses on folios 203–206 (Q0.1 … Q6.7) are printed (§3.6). Folio 908 is built (§5). Folio 3's "Node TBD" waits for the `BusPort` record (§3.8).
 
 ### 9.2 Module -201U3 under H1 and H2
 

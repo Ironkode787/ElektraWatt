@@ -470,8 +470,8 @@ not canonical (info) and is rewritten in the member order above at the next save
 EW-CORE-014 reports it where the canonical order differs, which is accepted within 0.1
 ([05](05-project-format-and-persistence.md) §10.3). The manufacturer is the kind `manufacturer`, `{meta, key, name:
 MlText, aliases, brands}`, embedded under `lib/manufacturers/` by `library.embed` with the checks of the other kinds;
-the slot texts still read the manufacturer name from the `LibRef`'s `extra["key"]` until WP-S1.19 part 3 resolves the
-`LibRef` to the embedded copy. No Golden A copy uses a typed member, so no golden file or hash changed.
+the slot texts take the manufacturer name from the embedded copy the `LibRef` resolves to, and fall back to the
+`LibRef`'s `extra["key"]` only where the project holds no copy. No Golden A copy uses a typed member, so no golden file or hash changed.
 *As built.* **The part bus section** `sections.bus` is typed
 after `mounting_plate`: `{ports: [...], extra}`, each port written in the order `interface`, `port_label`, `bus`,
 `role`, `termination`, then its `extra`; `interface`, `bus` and `role` are required and the enums keep `Unknown`. A
@@ -1285,7 +1285,7 @@ Seven further symbols join the starter set for the pilot corpus (§2.3); they ar
   `TEST-LAMP-1` with confidence `test`.
 - *As built.* **Manufacturer copies.** Golden A holds eight
   project-local manufacturer copies, one per manufacturer name, and its 29 part copies name them with no `key`; the
-  readers take the name from the held copy and fall back to a legacy `key`, so a file written before part 3 derives
+  readers take the name from the held copy and fall back to a legacy `key`, so a file written with the `key` alone derives
   the same. Every exported output stayed byte-equal ([20](20-golden-project.md) ▲U-45).
 
 *As built.* The content versions after WP-S1.20, each checked against
@@ -1382,7 +1382,7 @@ section) as `test` where doc 20 gives the value as a test input and `unverified`
 | Symbol model, variants A–H, text slots, arrangements, anchors, link points | ● | | | |
 | Starter set of about 40 symbols (FR-SYM-007), native edition and generated QET 10 px edition (FR-SYM-030) | ● | | | |
 | Full IEC 60617-style and ISO 1219 library; symbol lint in CI (FR-SYM-008, FR-SYM-020) | | ● | | |
-| Symbol editor (Should). A Must of release 0.2.0 (milestone M2.5), right after the MVP and before M3's first release | 0.2.0 | | | |
+| Symbol editor (Should). Built (milestone M2.5) and shipped in release 0.1.0 | ● | | | |
 | QET project elements → "QET import" library; `symbol-map.csv` | ● | | | |
 | QET element collection conversion on demand (FR-SYM-029) | | ● | | |
 | Parametric symbol families | | | ● | |

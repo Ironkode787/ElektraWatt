@@ -89,7 +89,7 @@ a form dialog's field (`dialog::form_width` less its margins, growing with the w
 a refusal sits right under its field (about 525 px of field at the floor, 735 px at 1920). The Macros navigator's
 thumbnail gives up height before its detail card clips.
 
-*As built (FIX40e).* **The keyboard-shortcuts list** (Help ▸ Keyboard shortcuts) is a
+*As built.* **The keyboard-shortcuts list** (Help ▸ Keyboard shortcuts) is a
 list dialog that fits its content up to half the window's height, in whole rows: a row is `max(size.row,
 size.control)` high (28 px) with no gap, so 14 rows show at the floor and 19 at 1920; mid-scroll positions are not
 snapped to whole rows. Of the columns' room the keys column takes at most 25 % and the "where" column at most
@@ -638,7 +638,7 @@ Commands of later packages join their tab's group when they exist (Macro in Plac
 Findings); a new group, or a new command on Draw, needs a design-language review against the mockup. The Edit commands Cut, Copy, Paste, Duplicate and Select all
 live in the app menu's Edit, the canvas context menu and their keys, as everywhere else.
 
-*As built (2026-11-05, W52 F13).*
+*As built (2026-11-05).*
 **View ▸ Show.** The View tab's Show group is as listed, Grid, Frame statistics and Show tips, with Snap still
 waiting for its action. The app menu's View ▸ Show is a submenu of the group's switches plus CPU renderer, a setting
 that has no button on the tab: Grid, Frame statistics, Show tips, CPU renderer. Wire colours and Mouse wheel scrolls
@@ -792,7 +792,7 @@ year does not belong in the busiest strip of the window.
 
 *As built.* The findings field, the check toast and the Messages tab's chip count by one rule, `MessageCounts::open`: the project's open errors, warnings and infos, without the waived and the pending ones (the completeness findings of the page being edited); the field adds "· N pending on this page" when there are any. The Properties chip stays scoped to its record or page.
 
-*As built (fix round FX38d).* After Check project the findings field shows the last check's counts while the project is at the revision it checked, also with Messages closed, and its click opens Messages; an edit hides it until the pane or a new check counts again.
+*As built.* After Check project the findings field shows the last check's counts while the project is at the revision it checked, also with Messages closed, and its click opens Messages; an edit hides it until the pane or a new check counts again.
 
 ### 5.9 Focus order
 
@@ -919,7 +919,7 @@ button that appears on hover and focus. Two rows never share a label: duplicate 
 
 *As built.* **The label column fits its labels,
 then gives way to a value.** It is as wide as the widest label of the rows on show, from `size.property_label` up to
-40 % of the row (M39); then it gives way, down to half of `size.property_label`, to the widest value it can make
+40 % of the row; then it gives way, down to half of `size.property_label`, to the widest value it can make
 whole: a value counts whole, or, when too wide for that, by its first word if that word contains a digit (a tag, a
 part number: "EW-GEN-CPU-1 …"), so the tag or the number is not cut while the labels have room. The row's "…" button
 does not count. As built a prose value that fits whole narrows the labels too; only
@@ -949,7 +949,7 @@ yielding first, its labels wrapping and a single overlong label word cut with it
 prose value wraps at its words onto up to three lines, its row growing with it, and only a value longer than three
 lines is cut, with its whole text as its tooltip.
 
-*As built (2026-11-05, FIXW52 and its second round).* **Labels give way to
+*As built (2026-11-05).* **Labels give way to
 identifiers only, down to half their width.** The word floor of the note above does not hold for
 an identifier, so an identifier value (a tag, a part number, any word with a digit) can narrow the label column down to
 half of `size.property_label`, and a label whose longest word no longer fits is then cut on one line with its whole text as
@@ -982,7 +982,7 @@ in tree-row style, newest first, each with its time, message and still-valid act
 
 *As built.* A parts import says each outcome in one toast, the applied import's with Undo; the banner over the tab title is gone (a banner is for a state of the whole project, §6.11), and the Preview tab shows the summary and the lists without repeating the counts.
 
-*As built (FIX40e).* **A toast grows with the window:** `size.toast` (300 px) at the
+*As built.* **A toast grows with the window:** `size.toast` (300 px) at the
 1280 × 800 floor, 0.22 of the window's width above it (422 px at 1920), never wider than the window. Its line wraps at
 word boundaries up to three rows, so a refusal's reason is never cut at one line; what does not fit in three rows ends
 in an ellipsis, with the whole text in the tooltip, the HUD and the log.
@@ -1231,7 +1231,7 @@ scrolls, as built. Without a card a tab the user opened by hand shows the empty 
 <summary>" in `type.small` with ellipsis and a tooltip when cut, then Apply (a Subtle button with its label in
 `color.accent` SemiBold), Cancel and Show (Subtle). Polite live region as built.
 
-*As built (fix round FX38d).* A failed card leads in words with what blocks the apply: a macro card reads "The macro clashes with this project and cannot be inserted here (3 conflicts)", and the rule code follows under it as secondary text in `type.small` `color.text.secondary` ("Rule …"); the conflict list below is not repeated in the lead. A macro failure without conflicts reads "The macro cannot be inserted here: …" with the refusal's words; every other failed card keeps its "card-failed" sentence.
+*As built.* A failed card leads in words with what blocks the apply: a macro card reads "The macro clashes with this project and cannot be inserted here (3 conflicts)", and the rule code follows under it as secondary text in `type.small` `color.text.secondary` ("Rule …"); the conflict list below is not repeated in the lead. A macro failure without conflicts reads "The macro cannot be inserted here: …" with the refusal's words; every other failed card keeps its "card-failed" sentence.
 
 ### 6.24 Finding rows, History rows and the chip line
 

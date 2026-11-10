@@ -141,7 +141,7 @@ pub enum Provenance {
 The `via` chain is the short form of `ew query --explain` (FR-EXT-005); for wire properties it names the winning
 level of the seven-level chain of [03](03-domain-model.md) §9.5.
 
-*As built.* The sheet produces `Authored`, `Inherited` ("from colour profile …", "project description"), `Derived` (with its chip text), `Overridden`, `Frozen`, `Library` (the chip shows only the item and its version), `Generated` and `Varies`; each carries its chip text as a string, not the typed `via` chain sketched above. `Committed` and `Async` are not produced yet (routes and Class II results have no grid rows before WP-S2.04 part 2 and the jobs panel). The derived tag's row shows the product designation, which is what Freeze writes.
+*As built.* The sheet produces `Authored`, `Inherited` ("from colour profile …", "project description"), `Derived` (with its chip text), `Overridden`, `Frozen`, `Library` (the chip shows only the item and its version), `Generated` and `Varies`; each carries its chip text as a string, not the typed `via` chain sketched above. `Committed` and `Async` are not produced yet (routes and Class II results have no grid rows yet and the jobs panel). The derived tag's row shows the product designation, which is what Freeze writes.
 
 ### 2.3 Selection
 
@@ -287,8 +287,8 @@ Menus are generated from the action registry (§2.4) and show the active keymap'
 | Window | Workspaces, panels list, open canvas tabs | Move to new window |
 | Help | Help for this context (F1), Documentation, Tutorials, Glossary, Keyboard shortcuts, Rule catalogue, Verify derived data, First-run setup, About | — |
 
-*As built.* The shell's menu bar now has seven menus: File,
-Edit, View, Page, Tools, **Window** and Help. **Window** holds New tab (Ctrl+T), Close tab (Ctrl+W), Next tab
+*As built.* The shell's menu bar has ten menus: File,
+Edit, Project, Page, Draw, Check, Output, View, **Window** and Help. **Window** holds New tab (Ctrl+T), Close tab (Ctrl+W), Next tab
 (Ctrl+Tab), Previous tab (Ctrl+Shift+Tab), Other tab group (Ctrl+F6) and then the list of the focused group's open
 tabs, one checked item per tab; the workspaces and the panels list of the design join with their panels. **View** gains
 Side by side (checked while two tab groups exist) and Page navigator, a submenu of the navigator's three modes (flat,
@@ -298,7 +298,7 @@ by section, by structure) and two sort orders (by folio, by type). **Page** gain
 `page.goto` (a folio only) stays for scripts. A refused tab or history action names its reason ("32 tabs are open", "The last tab
 stays open", "The tab group has one tab", "Only one tab group is shown", "No page to return to").
 
-*As built.* The menu bar has eight menus: File, Edit, View, **Insert**, Page, Tools, Window and Help, Insert standing between View and Page as in the table. **Insert** holds Symbol… (I), Device from part… (Shift+I) and, after a separator, Terminal strip…; the rest of its row arrives with WP-S2.04's later parts. **Edit** gains Properties of selection (E, Alt+Enter) and Project properties (`props.project`; there is no Project menu yet, so it sits in Edit), and, after a separator, Rotate clockwise (R), Rotate counter-clockwise (Shift+R), Mirror left to right (X), Mirror top to bottom (Y), Next variant (V), Next representation type (Shift+V), Move (M), Delete (Delete) and Change symbol…. **View** gains Properties, which shows the property grid in the Schematic workspace. The Project menu's "Drawing" item of WP-S2.04 part 2 needs that menu first; until it exists the crossings setting is reached through `project.drawing.set`.
+*As built.* The **Insert** menu of the table is now the Draw menu. **Insert** holds Symbol… (I), Device from part… (Shift+I) and, after a separator, Terminal strip…; the rest of its row arrives with WP-S2.04's later parts. **Edit** gains Properties of selection (E, Alt+Enter) and Project properties (`props.project`; it sits in Edit), and, after a separator, Rotate clockwise (R), Rotate counter-clockwise (Shift+R), Mirror left to right (X), Mirror top to bottom (Y), Next variant (V), Next representation type (Shift+V), Move (M), Delete (Delete) and Change symbol…. **View** gains Properties, which shows the property grid in the Schematic workspace. The crossings setting is set through `project.crossings`, which commits `project.drawing.set`.
 
 *As built.* The Output menu holds Print… (Ctrl+P, `file.print`) beside Export PDF…, opening the print pre-dialog
 ([16a](16a-design-language.md) §6.26), and, in its Lists group, Export table… and Import table…
@@ -482,7 +482,7 @@ cross-reference links, Back and Forward, Go to page or cell and a keyboard grid 
 | Element | As built | Differs from the design by |
 |---|---|---|
 | Window | `elektrawatt [<project-dir>]`: eframe 0.37.0 on the wgpu renderer, 1280 × 800 at start; the title `<directory name> - ElektraWatt`, with `*` while unsaved | No toolbar (§3.3), no canvas tabs (§3.5) |
-| Menus | Drawn with egui on every OS from the toolkit-neutral registry of `ew-viewmodel`: File, Edit, View, Page, Tools, Help, each entry with its accelerator text; a disabled entry shows its reason as a tooltip, and an entry with a documentation topic ends its tooltip with "F1: learn more" | Six menus of §3.2's twelve (seven with Window, §3.2); muda on macOS and Windows is deferred |
+| Menus | Drawn with egui on every OS from the toolkit-neutral registry of `ew-viewmodel`: File, Edit, Project, Page, Draw, Check, Output, View, Window, Help, each entry with its accelerator text; a disabled entry shows its reason as a tooltip, and an entry with a documentation topic ends its tooltip with "F1: learn more" | Ten menus (§3.2); muda on macOS and Windows is deferred |
 | Start page | New project (from the default basic project, else the built-in one), Open..., the recent projects (at most 10; an entry is dropped only when its path no longer exists), Open sample project (Golden A, read-only), Import QET project, Create company standard (Edit company standard once a default basic project is set), Tutorials (a fresh copy of the sample project in an empty directory), the language and keymap quick switches and the line "Update check: off" | The privacy line has no "change" link yet; one tutorial, not the tutorial pages of §13 |
 | New project | File ▸ New project (Ctrl+N) through `Session::new_project`: the built-in basic project (the shipped defaults, one empty folio 1) or a company basic project, whose records are copied with new identities `v5(new project ID, source ID)`; the target is an empty or absent directory, checked before the open project closes | The project does not record which basic project it came from (`Project.basic_project`, FT-339) |
 | Project view | Docking with egui_tiles 0.18.0: the Schematic workspace with the panes that exist, the page list (printed folio labels; a click goes to the page) and the page view, in splits and tab groups the user rearranges; View ▸ Workspace saves, loads and resets named workspaces (§2.5, `ew.workspace/1`), saved one second after the last change and at shutdown | The page list is the page navigator (§5.2); the property grid, navigators and message panels of §2.6 join with their work packages; the splitter handles have no accessible name yet |
@@ -957,8 +957,7 @@ CP drawn on the page; an unnumbered wire reads `<from> <cp> → <to> <cp>`; ever
 least once, shared only by junction arms. **Structure identifiers:** aspect groups in the Function and Location roles;
 aliases are filter tokens. **PLC:** a channel's label is its address, else its number; it opens its representation's
 page with nothing selected. **Report blocks:** an embedded block shows its host page as first folio, a page count of 0
-and no open target; a block's section is that of its first page. **Not built:** Messages (the messages panel),
-Unplaced devices, the library status of parts, finding badges and `has:finding`
+and no open target; a block's section is that of its first page. **Not built:** Unplaced devices, the library status of parts, finding badges and `has:finding`
 (FT-488), thumbnails (FT-492), persisted navigator state (FT-489), Delete and F2 in trees (FT-490).
 
 Symbol, part and macro **browsers** are library views, specified in [07](07-symbols-parts-macros.md) §5; they

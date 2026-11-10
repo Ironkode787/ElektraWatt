@@ -514,26 +514,17 @@ and accepted only while its refusal is still under the field on the same revisio
 | 17 | **Tube counter** (N-FL-5) | A new tube connection gets its counter when a line-tag scheme is active | [11](11-fluid-power.md) §4.2 |
 | 18 | **Interruption-point form** (`ip_form`) | An interruption point drawn with one of EW's two arrow forms whose direction the transaction changed takes the other form, the one of its new direction, with the default orientation; a project that does not hold that form refuses the change: "the project does not hold the incoming arrow of symbol Interruption point: place one interruption point of that direction first" | this document §3.5 |
 
-**Routing is one pure function, `ew_commands::route::auto_route`, re-exported by `ew-api`, and the tools call it;
+**Routing is one pure function, `ew_derive::routing::auto_route`, reached through `ew_api::routing`, and the tools call it;
 the commands do not.** The Wire tool computes its ghost with it and passes the result as the `route` of
-`connection.draw`, which **stores the route it is given and stays unchanged**: an empty route stays route-less and is
-drawn provisionally by `ew-scene`, so every connection of Golden A (none had a stored route then; folio 203's sixteen
-fluid lines have one) and its derived output are
-untouched. `rep.move` keeps moving the route's vertices by `geometry::follow_end` (WP-S2.04 §5.2); a re-solve of a moved connection
-stays FT-18. A script therefore gets the mouse's route by calling the same function and passing the result, not by a
+`connection.draw`, which **stores the route it is given and stays unchanged**: an empty route stays route-less
+(*unrouted*, below). `rep.move` moves the route's vertices by `geometry::follow_end` (WP-S2.04 §5.2) and takes the
+routes the Select tool re-solved (§5.4). A script therefore gets the mouse's route by calling the same function and passing the result, not by a
 command that routes. **Normaliser 7 (connection split) works on routes**, so it splits a connection that has a stored
 route, which every connection drawn with the Wire tool has; a route-less connection has no route to test, and the
 route editor's first edit stores its drawn polyline (WP-S2.04 §8.4).
-Normaliser 7 tests a route-less connection on the provisional
-path between its ends, so a symbol dropped on the wire of a `connect` hint is split into it; the two parts stay
-route-less, and a routed connection drawn on the same line is split first. *As built:* one rule,
-`ew_derive::provisional_path`; `ew-scene` draws it and then pulls a vertex off the sheet onto the sheet's edge, and
-normaliser 7 places its ends by `ew_derive::rep_cp_end`. Next to an end off the sheet the drawn wire runs along the
-edge, where neither normaliser 7 nor EW-TERM-006 sees it; a wire ending at a strip segment's terminal point is not
-split.
 
 [ADR-0033](../adr/0033-schematic-routing-model.md) governs routing. A connection is drawn along its stored route, the full
-vertex list with both ends; the provisional path is retired, and a page connection without a route is *unrouted*:
+vertex list with both ends, and a page connection without a route is *unrouted*:
 drawn as a dashed straight line, not split by normaliser 7, not read by EW-TERM-006, reported by EW-CORE-073. The
 commands still never route: the router, now `ew_derive::routing` reached through `ew_api::routing`, runs in
 the tools and in Route page and Route selection, which store their plan with `connection.route_many`; autoconnect
@@ -1062,20 +1053,16 @@ A terminal's CP never proposes a CP of a terminal of its own strip: two terminal
 never by an autoconnected wire.
 
 - **On placement**, accepted proposals are committed by default; Alt suppresses them for one placement.
-- **On move**, proposals for free CPs are shown but committed only when the user presses `C` during the drag. A move
-  never adds a connection silently (FR-CON-004; Open question 5 asks the M2 usability test to confirm this default,
-  PQ-27).
+- **On move**, proposals for free CPs are shown and committed with the move; Alt at the release suppresses them and
+  `C` turns the behaviour off or on for the session (FR-CON-004; Open question 5 asks the M2 usability test to
+  confirm this default, PQ-27).
 - **Cost:** one spatial-index ray per free CP, O(CPs · log n), well inside the frame budget.
 
-The "On move"
-bullet is narrowed. The proposals are computed in `ew-viewmodel` from the prepared page tables (not from a spatial
-index) and drawn as dashed overlay stubs, on placement and, during a move, **shown only: a move never adds a
-connection in WP-S2.04**, and the action `tool.connect_on_move` (C) is refused with `reason-connect-on-place`.
-Committing the proposals of a move, and the sticky wire, are FT-373, after WP-S2.04 part 2. Placement is unchanged: the
-accepted proposals become the `connect` hints of the committed `device.place`, and Alt at the commit sends none.
+The proposals are computed in `ew-viewmodel` from the prepared page tables (not from a spatial index) and drawn as
+dashed overlay stubs. Placement: the accepted proposals become the `connect` hints of the committed `device.place`,
+and Alt at the commit sends none.
 
-*As built (ADR-0007 amendment 3).* The "On move" narrowing above is
-lifted: a move connects the proposals its drag shows by default. They commit with the move as `rep.move`'s `connect`
+*As built (ADR-0007 amendment 3).* A move connects the proposals its drag shows by default. They commit with the move as `rep.move`'s `connect`
 hints, `{rep, cp: {function, idx}, to}` (the CP named by function, as the window knows a placed representation's CPs),
 each making its wire as a `device.place` hint does, in the move's one undo step. Alt held at the release moves without
 them; `tool.connect_on_move` (C) turns connect on move off or on for the session, and the move's HUD and the status
@@ -1099,7 +1086,7 @@ New connections and the route parts touched by a move are routed on the connecti
 2. Search for the path from stub to stub with A* over grid nodes (a small in-house search in `ew-commands`; the
    `pathfinding` 4.16.0 crate that `ew-panel` already uses is an option), with costs of 1 per step and 4 per bend,
    and symbol bodies inflated by one grid step as obstacles. The search is bounded to the bounding box of both CPs
-   plus 4 grid steps; outside that box, the fallback is an L or Z route.
+   plus 4 grid steps; outside that box there is no route (§5.4, as built).
 3. Break ties lexicographically on (bends, length, first-turn direction), so routes are deterministic.
 4. A user-edited route keeps its interior vertices; only the segments adjacent to a moved CP are re-solved.
 
@@ -1107,7 +1094,7 @@ Routes are stored as nm vertices (FR-CON-007). Wire crossings render as plain cr
 (FR-CON-031).
 
 The router is the pure function
-`ew_commands::route::auto_route` (re-exported by `ew-api`), called by the Wire tool for its ghost and for the route it
+`ew_derive::routing::auto_route` (reached through `ew_api::routing`), called by the Wire tool for its ghost and for the route it
 passes to `connection.draw`; it is not run inside the commands (§3.2). Two points of the list above change. **Step 3's
 tie-break is the whole move sequence**, not the first turn: among the paths of least cost the router returns the least by
 (bends, length, move sequence), the sequence being the list of unit moves from the first stub to the last, each ranked
@@ -1115,11 +1102,11 @@ right, down, left, up and compared move by move, so the result is deterministic 
 order of the obstacles. **Step 2's bounds are fixed:** the search area is the bounding box of both ends grown by 4 grid
 steps and clipped to the page's drawing area; the obstacles are the bodies of every representation on the page except
 those of the two ends, inflated by one grid step; a stub into an obstacle is allowed; without a path inside the area
-the result is the provisional L route of `ew-scene`. Step 4 (a user-edited route keeps its interior vertices and only
+there is no route and the connection stays unrouted. Step 4 (a user-edited route keeps its interior vertices and only
 the segments next to a moved CP are re-solved) is not built in WP-S2.04: a move shifts the route's vertices with the
 moved CPs (`rep.move`, §5.7), and the re-solve stays FT-18.
 
-*As built.* `auto_route` is an exact backward Dijkstra over (grid node, heading) from the end, then a forward walk from the start that takes the lowest-ranked move staying on a least path: not A*, but the same least path by (bends, length, move sequence). Ends are exact and interior corners on the grid (a corner next to an end takes that end's coordinate, so a connection point up to 1 nm off a rational grid stays valid); collinear vertices are removed. **Size limit:** the search area holds at most `MAX_NODES` = 262,144 grid nodes (2^18; an A0 sheet at a 2.5 mm grid has 160,412); a larger area, an index at the edge of `i64` and an area without a path all give the L route; the backward search stops once its distance passes the start's. Known minor case: after a fixed bend the router knows no incoming direction and can double back over the last segment. Crossings are drawn as hops by `ew-scene` when `project.drawing.set` sets `crossings` to `hops`: each proper crossing of a horizontal and a vertical segment of two connections, a half circle of 1 mm radius above the horizontal one, a crossing closer than 2 mm to a segment end or another hop drawn plain.
+*As built.* `auto_route` is an exact backward Dijkstra over (grid node, heading) from the end, then a forward walk from the start that takes the lowest-ranked move staying on a least path: not A*, but the same least path by (bends, length, move sequence). Ends are exact and interior corners on the grid (a corner next to an end takes that end's coordinate, so a connection point up to 1 nm off a rational grid stays valid); collinear vertices are removed. **Size limit:** the search area holds at most `MAX_NODES` = 262,144 grid nodes (2^18; an A0 sheet at a 2.5 mm grid has 160,412); a larger area, an index at the edge of `i64` and an area without a path all give no route (the straight line of an unrouted connection); the backward search stops once its distance passes the start's. Known minor case: after a fixed bend the router knows no incoming direction and can double back over the last segment. Crossings are drawn as hops by `ew-scene` when `project.drawing.set` sets `crossings` to `hops`: each proper crossing of a horizontal and a vertical segment of two connections, a half circle of 1 mm radius above the horizontal one, a crossing closer than 2 mm to a segment end or another hop drawn plain.
 
 *As built.* The obstacles are no longer
 the bodies alone. The Wire tool's request blocks the other representations' bodies and black-box outlines grown by one
@@ -1127,7 +1114,7 @@ grid step, their texts (tags, slot texts, pin texts) grown by a quarter step, th
 area, the vertices and tracks of the other wires (a right-angle crossing stays allowed) and every other CP with its
 stub; the two ends' own rectangles block except along a CP's escape corridor. The tool tries the passes Clear, then
 without the texts, then the bodies alone, each in an area of 4 and then 16 grid steps around the ends, after the
-direct route through a free representation in line; only without any route does it draw the L and say so.
+direct route through a free representation in line; only without any route does it leave the connection unrouted and say so.
 
 Under [ADR-0033](../adr/0033-schematic-routing-model.md), this section's router is replaced by the page router of the
 WP-S2.19 specification §5: the search moves to
@@ -1305,7 +1292,7 @@ KiCad.
 
 *As built.* The EW preset now binds, in the canvas context, I (Insert ▸ Symbol, the picker), Shift+I (Insert ▸ Device from part), M (keyboard move: the arrow keys move by grid steps, Enter commits, Escape cancels), R and Shift+R, X and Y, V and Shift+V (on the Place ghost and on a selection), Delete (the selection; a pending move is cancelled first), Shift+Enter (finish the active tool, also a double click) and E or Alt+Enter (Properties of selection: the focus moves to the property grid); the picker takes Up, Down, Home, End and Enter itself. In the property grid's context the registry binds F2 (edit the row), Shift+F10 (the row menu; egui reports no Menu key), Shift+Enter (the multi-language editor) and Ctrl+Enter (apply the preview card), and the pane itself takes the arrows, Home, End, Enter, Space (toggle a checkbox) and the keys that start an edit; Escape stays the global dismiss. A chord is unique within its shell context, so Shift+Enter means "finish" on the canvas and "multi-language editor" in the grid. Edit ▸ Change symbol has no default key. W, P, B, T, L and Shift+W follow with WP-S2.04's later parts; Ctrl+F and Ctrl+H with WP-S2.05 part 2; the KiCad-like preset with WP-S2.08.
 
-*As built.* The canvas context adds W (Insert ▸ Connection, the Wire tool; with it `]` and `[` move the grid cursor between connection points, Enter or a click fixes a bend or ends the wire, Backspace removes the last bend, Escape cancels), Tab (the next autoconnect proposal of the Place ghost), C (connect on move: refused in this package, its reason in the status bar, FT-373), Ctrl+Enter (a click with Alt held at the grid cursor, `canvas.activate_alt`: a placement without proposals) and Enter on exactly one selected junction (Edit ▸ Junction sequence…; in its popup Alt+Up and Alt+Down move the focused member and R cycles a bevel's orientation). Edit ▸ Edit route and Edit ▸ Junction sequence… are disabled until exactly one connection or junction is selected. Edit ▸ Find… (Ctrl+F) and Edit ▸ Find and replace… (Ctrl+H) are global; in the find pane Enter searches, Up, Down, Home and End move the result cursor, Enter on a result jumps, Tab moves between the fields, and Ctrl+Enter replaces (or applies the open card). Ctrl+Enter is thus bound in three contexts, canvas, property grid and find, each unique within its own. macOS keeps Ctrl+H until the per-platform keymap gives it ⌥⌘F. P, B, T, L and Shift+W follow with WP-S2.04's later parts.
+*As built.* The canvas context adds W (Insert ▸ Connection, the Wire tool; with it `]` and `[` move the grid cursor between connection points, Enter or a click fixes a bend or ends the wire, Backspace removes the last bend, Escape cancels), Tab (the next autoconnect proposal of the Place ghost), C (connect on move: turns it off or on for the session), Ctrl+Enter (a click with Alt held at the grid cursor, `canvas.activate_alt`: a placement without proposals) and Enter on exactly one selected junction (Edit ▸ Junction sequence…; in its popup Alt+Up and Alt+Down move the focused member and R cycles a bevel's orientation). Edit ▸ Edit route and Edit ▸ Junction sequence… are disabled until exactly one connection or junction is selected. Edit ▸ Find… (Ctrl+F) and Edit ▸ Find and replace… (Ctrl+H) are global; in the find pane Enter searches, Up, Down, Home and End move the result cursor, Enter on a result jumps, Tab moves between the fields, and Ctrl+Enter replaces (or applies the open card). Ctrl+Enter is thus bound in three contexts, canvas, property grid and find, each unique within its own. macOS keeps Ctrl+H until the per-platform keymap gives it ⌥⌘F. P, B, T, L and Shift+W follow with WP-S2.04's later parts.
 
 **Accessibility.** Every tool is operable from the keyboard (NFR-A11Y-01). The selected object is announced as a live
 region ("-102G1, power supply 24 V DC, 7 connection points, 9 wires"; FR-UI-026, NFR-A11Y-02), and the navigators

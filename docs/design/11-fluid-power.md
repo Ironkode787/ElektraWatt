@@ -270,15 +270,7 @@ per declared solenoid (FR-FLU-003). Assigning the part creates both through the 
   question 5). Used valves carry no function text of their own; "Spare" stays a manual function text.
 - **`CpDesignation(idx)`** prints the port designations.
 
-**Interim declaration rule.** Until N-FL-1 and the typed `solenoids` of the valve
-part's fluid section (§2.6) exist, a valve **declares** solenoid s exactly when one of its functions, in ID
-order, has a CP named s with `physical = false`: the internal coil CP of the table above, which the valve's FnDef
-copy carries (`valve.add`'s interim `fndef`). The derivation's `solenoid_positions`, step 4 of
-[10](10-plc-and-bus.md) §3.2 and N2 share this one rule (`ew_derive::coil_cp_idx`). Golden A's 571334 declares
-solenoid 14 this way. When N-FL-1 lands, the part's `solenoids` decide, the coil functions come from the part, and the
-CP rule goes.
-
-*As built.* The interim rule above is gone: a valve declares solenoid s
+*As built.* A valve declares solenoid s
 exactly when s is in `fluid.solenoids` of its valve part, and its coil CP is the first non-physical CP with the
 effective designation s among the device's functions on a FnDef of contact kind `coil` (`ew_derive::solenoid_coil`,
 read by the solenoid positions, N2 and the PLC address slot); a physical coil gives no coil CP. The solenoid left the
@@ -579,7 +571,7 @@ cause, because modules are page-based ([06](06-schematic-editor.md) §8).
 *As built.* Step 3 is built: the scene derives one glyph
 per position of a module from `valve_slots`, a valve as a rectangle with a circle and its part's number, a blank with
 both diagonals, an empty position dashed, in a band above the module glyph; the glyphs are derived items, never
-records. Golden A's folio 201 shows 24 and 202 four, each printing 571334 (AC-32's MVP part, FT-263 closed).
+records. Golden A's folio 201 shows 24 and 202 four, each printing 571334 (AC-32's MVP part).
 
 ### 5.6 Query catalogue
 
