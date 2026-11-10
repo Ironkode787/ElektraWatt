@@ -1,31 +1,22 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-# Crate-dependency rules of docs/design/04-architecture.md §3 (Rules 2-4 and the dependency graph),
-# NFR-MAINT-01 and ADR-0024 decision 4, in machine form. Checked by `cargo xtask check-deps` over
-# `cargo metadata` (direct, declared dependencies of every workspace package, all kinds and targets).
+# The rules between crates that the manifests alone do not state. `cargo xtask rules` checks them over
+# `cargo metadata` (the direct, declared dependencies of every workspace package, all kinds and targets).
+#
+# A crate's layer is its licence: a crate whose manifest says `MIT OR Apache-2.0` is permissive, every other one is
+# GPL. A crate's dependencies are its manifest's. Nothing here repeats either; a new crate needs no entry.
 #
 # The check fails when:
-# - a workspace package is missing from [layers] or [allowed_edges], or this file names a package that
-#   neither exists nor is listed under `planned`;
-# - a workspace-to-workspace edge is not listed in [allowed_edges] (dev-dependencies may also use
-#   [allowed_dev_edges]): this is "no crate depends on a crate above it" in checkable form;
-# - a permissive crate depends on a non-permissive workspace crate (any dependency kind);
+# - a permissive crate depends on a GPL workspace crate (any dependency kind);
+# - a crate with an [allowed_edges] entry depends on a workspace crate outside it (dev-dependencies may also use
+#   [allowed_dev_edges]);
 # - an external crate matched by an [[external_owner]] rule is a direct dependency of a non-owner;
 # - an importer depends on a workspace crate outside the permissive layer;
 # - a [[confined]] crate has a direct dependent outside its list, or is reachable from a forbidden crate.
 #
-# Separately, `cargo xtask check-features` reads [[banned_features]] and banned_crates (18 §5.2 CI-PR-09): a
-# banned feature must not be requested on a dependency edge whose kind is not in allowed_kinds (unless the
-# package is in the rule's allowed_packages), a banned crate may only be a dev-dependency, no workspace package's
-# own `default` feature may reach a banned feature, and with a non-empty allowed_packages no package outside it
-# may forward the feature (`dep/feature`) from any of its own features. It also reads [[uniform_test_features]]:
-# every workspace package whose test build reaches the crate requests the feature on a dev edge. And the shipped
-# binaries' resolved graph (`cargo tree --target all -e normal,build`) holds no banned crate and no feature banned outside dev
-# edges (18 CI-R-09).
-#
-# Changing an edge here is an architecture change: it needs the matching change in 04-architecture.md §3
-# (and an ADR where the rules themselves change).
+# The feature rules below ([[banned_features]], banned_crates, [[uniform_test_features]], [[required_features]])
+# keep test-only features and crates, and network clients, out of the shipped binaries.
 
 # Crates that may appear as dev-dependencies only (18 §5.2 CI-PR-09: egui_mcp in any non-test target).
 # ew-testids, the seeded ID source of the tests (doc 18 §2.2), likewise; and ew-testkit, the test-only crate of the
@@ -39,159 +30,19 @@ banned_crates = [
 ]
 
 [layers]
-# MIT OR Apache-2.0; closed under dependencies (ADR-0024 decision 2).
-permissive = [
-  "ew-units", "ew-ids", "ew-mltext", "ew-rds", "ew-schema", "ew-format", "ew-interop-api", "ew-dl",
-  "ew-step-proto", "ew-memo", "ew-plcaddr", "ew-caex", "ew-devdesc", "ew-ewpp", "ew-testdir",
-  "ew-testids",
-]
-# GPL-3.0-or-later application layer, including the binaries.
-gpl = [
-  "ew-model", "ew-rhai", "ew-derive", "ew-commands", "ew-checks", "ew-sqlview", "ew-library", "ew-store",
-  "ew-zip", "ew-text", "ew-reports", "ew-scene", "ew-render2d", "ew-render-cpu", "ew-export", "ew-print", "ew-plc",
-  "ew-panel", "ew-render3d", "ew-mfg", "ew-import-qet", "ew-import-eplan", "ew-import-dxf",
-  "ew-import-catalog", "ew-import-tables", "ew-script", "ew-plugin-host", "ew-jobs", "ew-api",
-  "ew-viewmodel", "ew-ui", "ew-testkit", "elektrawatt", "ew", "ew-step-worker",
-  # The workspace-hack crate of cargo-hakari (RD43 R17; .config/hakari.toml).
-  "ew-hack",
-]
-# Development-only packages outside the product crate table; they may not be depended on.
+# Development-only packages; they may not be depended on.
 tools = ["xtask"]
-# Crates of §3 that are not in the workspace yet (1.0 and v1.x). They may appear in owner lists only;
-# when one is added to the workspace it moves to a layer above and gets an [allowed_edges] entry.
-planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "ew-py", "ew-sysprobe"]
 
-# Every permitted direct edge between workspace packages: the arrows of the §3 Mermaid graph.
-# Every workspace package has an entry, even when empty.
+# The two crates whose dependencies are the architecture: the window reaches the model only through the view model,
+# and the view model only through `ew-api`. A crate without an entry here may depend on what its manifest says.
 [allowed_edges]
-"ew-units" = []
-"ew-ids" = []
-"ew-mltext" = []
-"ew-rds" = []
-"ew-schema" = ["ew-units", "ew-ids", "ew-mltext", "ew-rds"]
-"ew-format" = ["ew-schema"]
-"ew-interop-api" = ["ew-schema", "ew-ids"]
-"ew-dl" = ["ew-units"]
-"ew-step-proto" = ["ew-units"]
-"ew-memo" = []
-"ew-plcaddr" = []
-"ew-caex" = []
-"ew-devdesc" = []
-"ew-ewpp" = []
-# The fresh temporary directory of the tests (FT-569, FT-586): dev-only, no dependencies.
-"ew-testdir" = []
-# The seeded UUIDv7 source of the tests (doc 18 §2.2, RD43 T1): dev-only, on the ID crate alone.
-"ew-testids" = ["ew-ids"]
-"ew-model" = ["ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds", "ew-hack"]
-"ew-rhai" = ["ew-hack"]
-"ew-derive" = ["ew-model", "ew-memo", "ew-rhai", "ew-plcaddr", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds", "ew-hack"]
-"ew-commands" = ["ew-derive", "ew-model", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds", "ew-hack"]
-"ew-checks" = ["ew-derive", "ew-rhai", "ew-hack"]
-"ew-sqlview" = ["ew-derive", "ew-checks", "ew-hack"]
-"ew-library" = ["ew-schema", "ew-format", "ew-ids", "ew-hack"]
-# The as-built archive's ZIP moved into `ew-zip` (decision log ID-1145); `ew-store` re-exports it as `zip`.
-"ew-store" = ["ew-format", "ew-model", "ew-zip", "ew-hack"]
-"ew-zip" = ["ew-hack"]
-"ew-text" = ["ew-dl", "ew-units", "ew-hack"]
-# The open-items kind reads `ew_checks::open_items` (WP-S3.06 D8); `ew-checks` was already in the graph through `ew-sqlview`.
-# The XLSX writer's container (WP-S3.08 D3, decision log ID-1145): the own ZIP of `ew-zip`.
-# The table writers implement the `Exporter` trait of `ew-interop-api` (WP-S3.09 D14, decision log ID-1016); no crate of
-# the trait is new to the graph, and no other edge of the workspace re-exports it to `ew-reports`.
-"ew-reports" = ["ew-derive", "ew-sqlview", "ew-text", "ew-checks", "ew-zip", "ew-hack", "ew-interop-api"]
-# The drawn path of a connection (decision log ID-1111): `ew-derive` was already in the graph through `ew-reports`.
-"ew-scene" = ["ew-reports", "ew-derive", "ew-dl", "ew-text", "ew-schema", "ew-units", "ew-ids", "ew-mltext", "ew-hack"]
-"ew-render2d" = ["ew-dl", "ew-render-cpu", "ew-hack"]
-"ew-render-cpu" = ["ew-dl", "ew-hack"]
-"ew-export" = ["ew-dl", "ew-render-cpu", "ew-hack"]
-"ew-print" = ["ew-export", "ew-render-cpu", "ew-hack"]
-"ew-plc" = ["ew-commands", "ew-plcaddr", "ew-caex", "ew-devdesc", "ew-hack"]
-"ew-panel" = ["ew-commands", "ew-step-proto", "ew-hack"]
-"ew-render3d" = ["ew-panel", "ew-hack"]
-"ew-mfg" = ["ew-reports", "ew-panel", "ew-ewpp", "ew-hack"]
-"ew-import-qet" = ["ew-interop-api", "ew-schema", "ew-units", "ew-ids", "ew-mltext"]
-"ew-import-eplan" = ["ew-interop-api"]
-"ew-import-dxf" = ["ew-interop-api"]
-"ew-import-catalog" = ["ew-interop-api"]
-"ew-import-tables" = ["ew-interop-api", "ew-schema", "ew-units", "ew-ids", "ew-mltext", "ew-rds"]
-"ew-script" = ["ew-commands", "ew-rhai", "ew-hack"]
-"ew-plugin-host" = ["ew-commands", "ew-sqlview", "ew-checks", "ew-hack"]
-"ew-jobs" = ["ew-hack"]
-"ew-api" = [
-  "ew-store", "ew-commands", "ew-checks", "ew-sqlview", "ew-library", "ew-scene", "ew-export", "ew-plc",
-  "ew-panel", "ew-mfg", "ew-import-qet", "ew-import-eplan", "ew-import-dxf", "ew-import-catalog",
-  "ew-import-tables", "ew-script", "ew-plugin-host", "ew-jobs", "ew-model", "ew-schema", "ew-derive",
-  "ew-reports",
-  # The export job (FT-59): the bundled fonts of ew-text and the display-list types of ew-dl.
-  "ew-text", "ew-dl",
-  # WP-S2.05 part 1 (§4.1 rule 2; decision log ID-600): the field parser and formatter of the property grid
-  # name the integer value types and the multi-language text. Normal edges since cycle 24, dev edges before.
-  "ew-units", "ew-mltext",
-  "ew-hack",
-]
 "ew-viewmodel" = ["ew-api", "ew-hack"]
-"ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-render3d", "ew-hack"]
-# The synthetic S-XL generator (WP-S1.05) emits records and builds the model snapshot.
-"ew-testkit" = [
-  "ew-import-tables", "ew-model", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds",
-  "ew-hack",
-]
-"elektrawatt" = ["ew-ui", "ew-print", "ew-hack"]
-"ew" = ["ew-api", "ew-print", "ew-hack"]
-"ew-step-worker" = ["ew-step-proto", "ew-hack"]
-# The workspace-hack crate (RD43 R17): no workspace edges; every GPL member that hakari wires (all but the importers,
-# ARCH §3 rule 4) depends on it.
-"ew-hack" = []
-"xtask" = []
+"ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-hack"]
 
-# Additional edges allowed for dev-dependencies only (for example a test helper crate).
+# Their tests may also use these.
 [allowed_dev_edges]
-# The G-PP wiring regression reverses new IDs through the viewmodel's test-only source hook; the ew-commands edge
-# only carries its `testkit` ([[uniform_test_features]]); ew-testkit gives the starter part versions (FT-1041); the
-# tests take their fresh temporary directory from ew-testdir (FT-1039); the application icon's PNG is rendered from
-# its SVG through ew-scene and ew-render-cpu (WP-S6.06 §13 O5, ID-1280).
-"elektrawatt" = ["ew-viewmodel", "ew-commands", "ew-testkit", "ew-testdir", "ew-scene", "ew-render-cpu"]
-# ew-commands' own integration tests enable its `testkit` feature (row dumps, `Preview::ops`, history ops),
-# which is crate-private otherwise (ARCH §3 rule 1); the seeded IDs come from ew-testids.
-"ew-commands" = ["ew-commands", "ew-testids"]
-# ew-testkit's tests and benches load generated projects through the Session facade and run commands
-# (WP-S1.05 benchmark harness); the G-SP spike bench measures the ew-derive queries cold and through its memo
-# backend `MemoStore` (WP-S1.05, WP-S1.07, `benches/spike.rs`); the hostile corpus test decodes a raster asset as the
-# renderers do (WP-S6.04 D10).
-"ew-testkit" = ["ew-api", "ew-commands", "ew-derive", "ew-testdir", "ew-testids", "ew-render-cpu"]
-
-# ew-derive's agreement tests compare its main-representation and tag rules with the numbering of ew-commands.
-"ew-derive" = ["ew-commands"]
-# ew-api's golden CSV test compares the derived anchor cells, CPs and tags of the loaded golden model with its
-# tables (the importer may not depend on the model, so the test lives in ew-api). Its page-output test (WP-S3.04)
-# renders the PNGs of the golden folios (ew-text and ew-dl are normal edges since the export job, FT-59). The
-# acceptance runner builds AC-15's path (b) with the golden builder DSL of ew-testkit (WP-S6.01).
-"ew-api" = ["ew-derive", "ew-render-cpu", "ew-ids", "ew-testkit", "ew-testdir", "ew-testids"]
-# The renderer's and the PDF writer's tests shape their text with the bundled fonts (WP-S3.04).
-"ew-render-cpu" = ["ew-text", "ew-units"]
-"ew-export" = ["ew-text", "ew-units"]
-
-# ew-reports' unit tests build small model snapshots to run report row queries over a `Q` (no `raw-read`).
-"ew-reports" = ["ew-model"]
-
-# FT-569, FT-586: the tests take their fresh temporary directory (`ew_testdir::fresh_dir`) from ew-testdir.
-"ew-store" = ["ew-testdir"]
-# WP-S7.03 D4: ew-library's content audit parses the shipped parts' map expressions and patterns with ew-derive's.
-"ew-library" = ["ew-testdir", "ew-derive"]
-"ew-sqlview" = ["ew-testdir"]
-# ew-checks' unit tests build small model snapshots to evaluate rules over a `Q` (no `raw-read`).
-"ew-checks" = ["ew-model"]
-
-# [[uniform_test_features]] (RD43 T1): every package whose test build reaches ew-commands requests its `testkit` on a
-# dev edge, and every package whose test build reaches ew-viewmodel requests its `testkit` (ew-viewmodel itself too:
-# its `probe`, `replay_order` and `jobs` tests use the hooks), so neither crate compiles twice between package sets.
-# The `ew-commands` and self entries below are such edges: the package has no normal edge to the crate. (ew-viewmodel
-# and ew-ui also take ew-testdir, FT-586; ew-viewmodel takes ew-testkit's starter part versions, FT-1041.)
 "ew-viewmodel" = ["ew-testdir", "ew-commands", "ew-viewmodel", "ew-testkit"]
 "ew-ui" = ["ew-testdir", "ew-commands"]
-"ew-mfg" = ["ew-commands"]
-"ew-render3d" = ["ew-commands"]
-# ew's tests take their fresh temporary directory from ew-testdir (FT-1039).
-"ew" = ["ew-commands", "ew-testdir"]
 
 # ARCH §3 Rule 2: only ew-sqlview and ew-library link rusqlite.
 [[external_owner]]
@@ -199,16 +50,16 @@ crates = ["rusqlite", "libsqlite3-sys"]
 owners = ["ew-sqlview", "ew-library"]
 reason = "ARCH §3 rule 2 (SQLite)"
 
-# ARCH §3 Rule 3: only ew-ui, ew-viewer, the app binary and the ew-wiring-viewer binary know egui.
+# Only ew-ui and the app binary know egui.
 [[external_owner]]
 crates = ["egui", "eframe", "egui-wgpu", "egui_*", "egui-*"]
-owners = ["ew-ui", "ew-viewer", "elektrawatt", "ew-wiring-viewer"]
+owners = ["ew-ui", "elektrawatt"]
 reason = "ARCH §3 rule 3 (UI toolkit)"
 
 # ARCH §3 Rule 3: only the renderers know wgpu.
 [[external_owner]]
 crates = ["wgpu", "wgpu-*"]
-owners = ["ew-render2d", "ew-render3d"]
+owners = ["ew-render2d"]
 reason = "ARCH §3 rule 3 (GPU)"
 
 # 18 §5.2 CI-PR-09 feature bans: test-only or unsafe features that must never be enabled on a non-test edge.
@@ -330,7 +181,7 @@ pattern = "ew-import-*"
 [[confined]]
 crate = "ew-import-qet"
 only_direct_dependents = ["ew-api"]
-never_reached_from = ["ew-plugin-host", "@permissive"]
+never_reached_from = ["@permissive"]
 reason = "ADR-0024 decision 4 (QET-derived code)"
 
 # `cargo xtask check-raw-read` (ADR-0001 amendment 2, decision log ID-50, FT-01) guards the raw readers that
@@ -418,254 +269,3 @@ accessors = ["asset", "assets", "has_asset"]
 path = "crates/ew-derive/src/q.rs"
 function = "logo_asset"
 reason = "Q::logo_asset, the one named exception of ID-575: the format and size of a bare-hash logo; recorded as a read of the project row, safe while an asset becomes present only at open or through project.company.set, which changes that row"
-
-# The crate table of docs/design/04-architecture.md §3, one table per crate of [layers] permissive and gpl and per
-# planned crate, in the table's row order (the order of these headers). `cargo xtask docs-gen` writes the table between
-# the `<!-- generated:crate-table -->` markers of doc 04; `cargo xtask check-deps` fails when a crate of those layers
-# has no table here, or a table names no such crate. The cells:
-# - Crate: the crate and the crates whose `row` names it, then `crate_note`;
-# - Layer: `P` or `GPL` from [layers] (`planned_layer` for a planned crate, then `(planned)`), then `layer_note`;
-# - Responsibility: `responsibility`; Key dependencies: `key_deps` (both Markdown, one line, no `|`).
-
-[crates."ew-units"]
-responsibility = '`Nm(i64)`, `Pt2`, `Rect`, rational `Grid{num,den}`, `Orient2` (8 variants), `Angle2(i32)` (10⁻³ degree; free texts and graphics only), `Pose3` (nm + quaternion rounded to 1e-9), fixed-point `Dec3` (mm², A, V)'
-key_deps = 'serde 1.0.229; kurbo 0.13.1 and glam 0.34.1 conversions behind features'
-
-[crates."ew-ids"]
-responsibility = '`Id<T>`: UUIDv7 for new records, UUIDv5 for instantiated, imported and generated ones; per-session `u32` interner'
-key_deps = 'uuid 1.28.0'
-
-[crates."ew-mltext"]
-responsibility = '`MlText` with EPLAN neutral-xor-languages semantics, BCP 47 `LangTag`, NFC, confusable detection, natural-sort keys'
-key_deps = 'unicode-normalization 0.1.26, unicode-security 0.1.2'
-
-[crates."ew-rds"]
-responsibility = 'IEC 81346 parser and formatter (strict and lenient); identifier sets as data: EN 81346-2:2009 single letters (default), IEC 81346-2:2019, IEC 60750 legacy. Node codes are atomic tokens: parsing first matches the longest known node code or alias of the aspect and only then splits at prefix characters, so `+J-E-2416` stays one code'
-key_deps = 'serde'
-
-[crates."ew-schema"]
-responsibility = '**The persisted record type of every entity kind** (plain serde structs), kind registry, per-kind schema versions, JSON Schemas'
-key_deps = 'serde, schemars 1.2.3'
-
-[crates."ew-format"]
-responsibility = 'JSONL canonical reader and writer, sharding rules, manifest, upgrade chain on `serde_json::Value`, 3-way record merge core, conflict records'
-key_deps = 'serde_json 1.0.154, semver 1.0.28, sha2 **(verify)**'
-
-[crates."ew-interop-api"]
-responsibility = '`Importer`/`Exporter` traits over `ew-schema` records: `ImportBatch`, `ImportReport`, `SourceRef`, `TableImage`, `Proposal` (§10.6); since cycle 34 the constant `SYSTEM_LIBRARY`, the library ID of the compiled-in starter library by which importers reference built-in items (§7.7, FT-24)'
-key_deps = 'ew-schema, ew-ids; sha2 (input digest)'
-
-[crates."ew-dl"]
-responsibility = 'Display-list IR: paths, glyph runs, images, groups, symbol instances, link sources and targets, entity tags; `ShapedRun` carries its `layout_box`; own hashable colour type (no peniko: renderer crates convert)'
-key_deps = 'kurbo 0.13.1, libm 0.2 (deterministic trigonometry), uuid; re-exports `ew_units` for renderers and writers (rule 7)'
-
-[crates."ew-step-proto"]
-responsibility = 'STEP worker IPC contract and cache format'
-key_deps = 'postcard 1.1.3, rkyv 0.8.18'
-
-[crates."ew-memo"]
-responsibility = "Generic memo engine: revisions, dependency recording, early cut-off, durability levels, LRU, statistics, oracle hooks, and a generic reverse-dependency API per query family. Knows nothing about ECAD. Not published to crates.io until it has two owners; v1 implemented (WP-S1.05); G-SP outcome Recycle (2026-10-20): push invalidation from touched inputs, O(1) hits, nested memos through a `Q` backend, value bytes and an incremental re-execution hook join v1 (ADR-0002 amendment 4, §6.1, §6.2); `Store::explain` (cycle 41, WP-S1.22 part 4, decision log ID-981): a read-only reading of one key (the family's policy, verified at the current revision or not, its revisions and its trail of at most 64 reads, sharing the walk with the oracle's mismatch trail) for `ew query --explain`"
-key_deps = 'imbl 7.0.2 (MPL-2.0+), smallvec 1.16.3, tracing 0.1.44 (statistics events, ADR-0002 decision 4); dev: proptest'
-
-[crates."ew-plcaddr"]
-responsibility = '`PlcAddress`, PLC address profiles as data, the address-grammar engine, bit intervals; v0 (cycle 13, decision log ID-333): `PlcAddress` (area, size, byte, bit), `AddressProfile` with the built-in `siemens-tia-intl@2027.1`, `AreaIntervals` for unit allocation and `MapExpr`, the `k*n+c` language of part maps; MIT OR Apache-2.0 like every P crate, so it stays below the licence boundary (rule 3) and importers may use it (rule 4)'
-key_deps = '—; dev: proptest'
-
-[crates."ew-caex"]
-responsibility = 'CAEX 2.15/3.0 model and `ExchangeImage`'
-key_deps = 'quick-xml 0.42.0'
-
-[crates."ew-devdesc"]
-responsibility = 'Device descriptions: GSD, GSDML and IODD (ESI and EDS at 1.x)'
-key_deps = 'quick-xml'
-
-[crates."ew-ewpp"]
-responsibility = '`.ewpp` record types, JSON Schemas, reader, writer and package diff'
-key_deps = 'zip 9.0.4, csv 1.4.0'
-
-[crates."ew-plugin-wit"]
-crate_note = '(v1.x)'
-planned_layer = "P"
-responsibility = 'WIT package `elektrawatt:plugin` and the guest SDK with typed bindings generated from the JSON Schemas'
-key_deps = 'wit-bindgen 0.63.0'
-
-[crates."ew-plugin-sdk"]
-planned_layer = "P"
-row = "ew-plugin-wit"
-
-[crates."ew-testdir"]
-responsibility = "*As built (cycle 34, FT-569, FT-586).* The tests' fresh temporary directory: `fresh_dir(stem)` creates a new, empty `<temp>/<stem>-<pid>-<n>` with `create_dir` and takes the next number when a killed run left that directory behind, so a test never adopts a leftover lock, journal or settings file. It replaced three copies of the helper (`ew-viewmodel` source and tests, `ew-ui` tests) and the PID-only folders of the `ew-api`, `ew-store`, `ew-testkit` and `ew-sqlview` tests. Dev-only (`publish = false`): every edge to it is listed under `[allowed_dev_edges]`, and it is in the licence map and the MSRV job. It is a crate of its own because hosting it in `ew-testkit` (FT-586's suggestion) did not pass `cargo xtask check-deps` under ADR-0024's confinement rules"
-key_deps = 'none; the dev-dependency of `ew-store`, `ew-sqlview`, `ew-api`, `ew-testkit`, `ew-viewmodel`, `ew-ui`, `elektrawatt` and `ew` (FT-1039)'
-
-[crates."ew-testids"]
-responsibility = '*As built (cycle 43, RD43 T1).* The seeded UUIDv7 source of the tests: `SeededSource` (a counter clock from 2026-01-01T00:00:00Z and a ChaCha20 stream seeded per test) and `seeded_ids(seed)`, the boxed form that `SessionOptions` takes. It was the `testkit` feature of `ew-ids`; as a crate of its own it changes no feature of `ew-ids`, so no package set compiles `ew-ids` and the crates above it a second way. Dev-only (`publish = false`): every edge to it is listed under `[allowed_dev_edges]`, `banned_crates` in `ci/dep-rules.toml` fails a normal or build edge, and it is in the licence map and the MSRV job'
-key_deps = 'ew-ids; chacha20 0.10, rand_core 0.10 (the lines proptest uses); the dev-dependency of `ew-commands`, `ew-api` and `ew-testkit`'
-
-[crates."ew-model"]
-responsibility = '`Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants, link delete policies; the raw read API only behind the `raw-read` feature (rule 1)'
-key_deps = 'ew-schema, ew-ids, ew-units, ew-mltext, ew-rds; imbl 7.0.2, smol_str 0.3.6 **(verify)**'
-
-[crates."ew-rhai"]
-responsibility = 'rhai engine configuration plus the formula and rule profiles (pure, tracked reads, operation limits)'
-key_deps = 'rhai 1.26.1'
-
-[crates."ew-derive"]
-responsibility = 'All domain queries (§6.4), the tracked-read context `Q` and its memo backend `MemoStore`'
-key_deps = 'ew-memo, ew-model (enables raw-read), ew-rhai, ew-plcaddr, ew-schema, ew-ids, ew-units, ew-mltext, ew-rds; imbl 7.0.2 (MPL-2.0+; the persistent maps of the partition and the index families, ADR-0002 amendment 6), serde, serde_json, toml (the shipped derivation profiles in profiles/, §6.6); dev: ew-commands (agreement tests of the numbering rules; listed under `[allowed_dev_edges]`); later: icu **(verify)**'
-
-[crates."ew-commands"]
-responsibility = '`Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros, `ApplyImport`'
-key_deps = "ew-derive, ew-model (enables `raw-read`), ew-schema, ew-ids, ew-units, ew-mltext, ew-rds; serde, serde_json, schemars 1.2.3, sha2 (the lineage hash of `library.embed`, cycle 16); dev: ew-testids, proptest, and ew-commands itself with its `testkit` feature (the crate's own integration tests; the dev-only self edge is listed under `[allowed_dev_edges]` in `ci/dep-rules.toml`)"
-
-[crates."ew-checks"]
-responsibility = 'Rule engine, rule packs, the `RuleImpl` trait and registry (Rust and rhai rules implemented here), online checks as queries, offline check jobs, waivers, quick fixes; v0 (cycle 12, decision log ID-305): Rust rules, the shipped schemes, the memo family `check_findings`, waivers by fingerprint and the prevent entry that `ew-api` installs'
-key_deps = 'ew-derive, ew-rhai (declared, not used yet), sha2, serde_json; dev: ew-model (snapshots for the rule tests, no `raw-read`); later: toml 1.1.8, fluent-bundle 0.16.0'
-
-[crates."ew-sqlview"]
-responsibility = 'Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natural` collation; the SQL rule implementations registered into `ew-checks`; v0 (cycle 13, WP-S1.10, decision log ID-328): thirteen views, the sandbox and `ew sql`, no SQL rules yet; GPL, above the licence boundary, like every crate that links rusqlite (rule 2)'
-key_deps = 'rusqlite 0.40.2 (`bundled`, `functions`, `hooks`, `limits`; as built (WP-S1.10) also `collation` and `serialize`, the read-only deserialised copy per consumer), ew-derive (and through its re-exports ew-schema, ew-mltext, ew-rds; rule 7), ew-checks; serde_json; dev: ew-testdir (FT-569)'
-
-[crates."ew-library"]
-responsibility = "Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier (system, community, company, user); one derived SQLite FTS5 index per user in the cache; embedding used items into projects (§7.7). *As built (cycle 35, WP-S1.19 part 2, decision log ID-818):* the four tiers, the reader with the project loader's limits and the shard-first writer, the library lock with `Locked` and a distinct `Stale` taken over only on explicit confirmation, the per-user index; the shipped system library `ew-starter-parts` is empty until WP-S2.18 part 2"
-key_deps = 'ew-schema, ew-format, ew-ids (since cycle 35, a permissive leaf); rusqlite 0.40.2 bundled; serde, serde_json; dev: ew-testdir'
-
-[crates."ew-store"]
-responsibility = 'Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive, git commits and tags; v0 (WP-S1.09) has the save protocol with roll-forward, the lock, the journal and the `Vfs` seam ([05](05-project-format-and-persistence.md) §5 to §8, ADR-0010 amendment 3)'
-key_deps = 'ew-format (and, through its re-export, ew-schema; rule 7), ew-model (enables `raw-read`), ew-zip (the as-built archive ZIP, re-exported as `zip`; decision log ID-1145), serde_json; later: notify 8.2.0, gix 0.89.0, etcetera or directories **(verify)**, ew-sysprobe on Windows and macOS (FT-89); dev: ew-testdir (FT-569)'
-
-[crates."ew-zip"]
-responsibility = '*As built (cycle 46, WP-S3.08 part 1; decision log ID-1145).* The own deterministic ZIP writer and its strict reader, moved out of `ew-store` unchanged: entries in the given order, raw deflate at level 6, the DOS date 1980-01-01 00:00, its own CRC-32, no extra fields, no data descriptor and no ZIP64; the reader takes exactly that shape under size and ratio limits ([05](05-project-format-and-persistence.md) §12). The container of the as-built archive (`ew-store` re-exports it as `zip`) and of the XLSX writer of `ew-reports`; no ZIP crate (decision log ID-827)'
-key_deps = 'miniz_oxide 0.8.9 (the workspace pin, `with-alloc`); dev: proptest'
-
-[crates."ew-sysprobe"]
-crate_note = '(FT-89)'
-planned_layer = "GPL"
-responsibility = 'The only `unsafe` FFI of the core path, on the `unsafe` allowlist ([18](18-quality-security-release.md) §11.2): process liveness and start time for the stale-lock rule ([05](05-project-format-and-persistence.md) §7.4) and the peak resident memory of the performance gate (NFR-PERF-13); `ew-store` and `ew-testkit` keep `forbid(unsafe_code)` and call it through `ProcessProbe`'
-key_deps = 'windows-sys (Windows), libc (macOS, Linux); both MIT OR Apache-2.0 and already in the lockfile (decision log ID-216). Node and edges join the graph and `ci/dep-rules.toml` with FT-89'
-
-[crates."ew-text"]
-responsibility = 'Fonts and the memoised `shaped_text` query: one text stack for screen, pagination and paper'
-key_deps = 'ew-dl, ew-units; parley 0.12.0, fontique 0.12.0, skrifa 0.44.0, harfrust 0.12.0 (through parley), sha2 0.10.9'
-
-[crates."ew-reports"]
-responsibility = 'Report-kind registry and row queries (`report_rows`), arrangement (manual selection, typed filters, natural sort, grouping), pagination into generated pages (`report_block_pages`), the report engine that `page_order` calls through `ReportPagesProvider` (decision log ID-126), value rendering; user SQL reports through the sandboxed query API of `ew-sqlview` (1.0, never links rusqlite); the table writers (WP-S3.08 part 1, decision log ID-1145): one table model for report rows and the `ew sql` result, the CSV presets with the formula guard and the own XLSX writer over `ew-zip` (inline strings, the hidden `id` column and `_ew` sheet), so no ZIP or XLSX crate (FT-61)'
-key_deps = "ew-derive (and through its re-exports ew-schema, ew-ids, ew-mltext, ew-units; rule 7), ew-sqlview, ew-text, ew-checks (the edge since cycle 42: `open_items` lists the open-item rules' findings, WP-S3.06 D8, decision log ID-1039); serde_json (the provisional profile members of the project settings, read by `profile_tables`); ew-zip (the XLSX writer's container, decision log ID-1145); dev: ew-model (snapshots for the row-query tests, no `raw-read`), proptest"
-
-[crates."ew-scene"]
-responsibility = 'Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0); page layers as pure functions of a caller-filled `PageView` (rule 7) and the provisional orthogonal router `route` (decision log ID-137)'
-key_deps = 'ew-reports, ew-derive (since cycle 45, decision log ID-1111: its pure functions only, the drawn path and the text frame, never a `Q`), ew-dl, ew-text; ew-schema (symbol lowering reads `SymbolDef` records by reference), ew-units, ew-ids, ew-mltext; serde_json; rstar 0.13.0, hayro 0.8.0 (underlays, 1.0); usvg 0.48.1 (pinned `=0.48.1`, default features off; Apache-2.0 OR MIT for this version; with svgtypes 0.16.1, simplecss 0.2.2, data-url 0.3.2, imagesize 0.15.0 and pico-args 0.5.0, about 279 KB, no build scripts; SVG assets as `ew-dl` paths, cycle 24, FT-384, decision log ID-605); the `ew-reports` edge is declared for report forms and not used yet; dev: sha2, insta 1.49.0, proptest'
-
-[crates."ew-render2d"]
-responsibility = 'The canvas renderer, toolkit-neutral (no egui): wgpu 2D renderer (lyon tessellation once per symbol, instancing, screen-space lines; glyphs as tessellated outlines into an offscreen MSAA texture, ADR-0015 amendment 10) and the CPU tile path over `ew-render-cpu`. *As built (cycle 21, WP-S2.02 part 1; decision log ID-517):* `view`, `tiles` (the 256-pixel tile pyramid, its planner and LRU cache), `pool` (the raster workers), `overlay` (page bounds, grid dots, highlight outlines and their compositing for the headless snapshot) and `stats` (frame statistics and the one clock). *As built (cycle 22, WP-S2.02 part 2; decision log ID-539, ID-540):* `gpu`, the wgpu path (scene preparation on a worker, lyon meshes keyed by content, one WGSL file, the offscreen 4× MSAA texture resolved into a pane-sized `Rgba8Unorm` texture, the switch rule as `gpu::choose`, `pub use wgpu`); the crate declares `rust-version = "1.95"`'
-key_deps = 'ew-dl, ew-render-cpu (the edge since cycle 21, ID-510); wgpu 30.0.1 (one backend set per operating system: DX12, Metal, or Vulkan with GL), lyon_tessellation 1.0.22 with lyon_path, lyon_geom and float_next_after (cargo-vet exemptions until FT-326, ID-543); kurbo and skrifa already in the graph'
-
-[crates."ew-render-cpu"]
-responsibility = 'vello_cpu renderer: GPU-less fallback, thumbnails, golden PNGs, banded printing; since cycle 26 (FT-406, decision log ID-636) `decode_image`, the one PNG and JPEG decoder of the screen, PDF and SVG paths (bounded by `MAX_IMAGE_PIXELS`, inside `catch_unwind`, a JPEG needs its EOI marker, ID-637)'
-key_deps = 'ew-dl; vello_cpu 0.3.0 (default features off: `std`, `text`, `u8_pipeline`; `Level::baseline()`), png 0.18.1, zune-jpeg 0.5.15 (pinned `=0.5.15`, default features off, `std`; a direct edge since cycle 26, no new package); dev: ew-text, ew-units, sha2'
-
-[crates."ew-export"]
-responsibility = 'PDF (as built: PDF/A-2b with outline, `/PageLabels`, named destinations, link annotations and subset fonts; ADR-0015 amendments 5 to 7), SVG (as built in cycle 14 with no new dependency, the page phase on `par_map` with scoped std threads instead of rayon; decision log ID-344, ID-345), DXF, PNG (through `ew-render-cpu`)'
-key_deps = "ew-dl, ew-render-cpu; krilla 0.8.2 (default features off; since cycle 26 `raster-images` for PNG and JPEG image items, which brings gif 0.14.2, image-webp 0.2.4, imagesize 0.14.0 beside usvg's 0.15.0, and color_quant 1.1.0, four audited packages; krilla's `Image::from_gif` and `Image::from_webp` are disallowed methods; FT-406, decision log ID-636); later: krilla-svg 0.8.1, dxf 0.6.2; dev: ew-text, ew-units, sha2, uuid, png"
-
-[crates."ew-print"]
-responsibility = 'OS print adapters with per-OS features (§8.4)'
-key_deps = 'ew-export, ew-render-cpu; Linux: ashpd 0.13.13 (default features off; `async-io`, `print`); Windows: windows 0.62.2 (`Win32_Foundation`, `Win32_Graphics_Gdi`, `Win32_Storage_Xps`, `Win32_System_Com`, `Win32_System_Memory`, `Win32_UI_Controls_Dialogs`, `Win32_UI_WindowsAndMessaging`)'
-
-[crates."ew-plc"]
-responsibility = 'Exchange orchestration, merge and writers: AML AR APC (CAEX 2.15 write, 2.15 and 3.0 read, through `ew-caex`), the TIA "PLC Tags" XLSX exporter and importer, PLCopen XML; rack and slot logic'
-key_deps = 'ew-plcaddr, ew-caex, ew-devdesc, quick-xml 0.42.0, calamine 0.36.1'
-
-[crates."ew-panel"]
-responsibility = 'Layout queries, collision reconciler, routing graph, negotiated-congestion routing, lengths, duct fill, 2D panel projection; glTF (glb) and STL writer for `layout_scene`. *As built (WP-S4.01, cycles 40 and 41; decision log ID-932, ID-957):* the MVP layout queries live in `ew-derive` (`src/layout/`) and the 2D panel projection of folio 902 in `ew-scene` (`src/panel.rs`); `ew-panel` stays empty until the collision and routing work, and no dependency edge changed'
-key_deps = 'parry3d 0.31.1, pathfinding 4.16.0, petgraph 0.8.3, glam 0.34.1, gltf-json **(verify)**'
-
-[crates."ew-render3d"]
-responsibility = "wgpu 3D: instancing, feature edges, transparency, CAD camera, picking; a toolkit-agnostic camera, pick and constraint API that `ew-ui`'s gizmo drives (Rule 3)"
-key_deps = 'wgpu 30.0.1, meshopt 0.7.0'
-
-[crates."ew-mfg"]
-responsibility = 'Production package content, wire lists with lengths, ferrules, labels, data-driven machine and label profiles'
-key_deps = 'ew-panel, ew-ewpp, zip, csv, rust_xlsxwriter'
-
-[crates."ew-import-qet"]
-responsibility = 'QET `.qet`/`.qetz`; EDZ (7-Zip and ZIP), EPLAN XML/XLSX; DXF (DWG behind a feature)'
-key_deps = 'roxmltree 0.21.1, quick-xml, ew-schema, ew-units, ew-ids, ew-mltext (QET: records and value types, [14](14-interop.md) §4.3); sevenz-rust2 0.24.2 (without default features; lzma-rust2 0.23.0, ID-1460), zip, calamine, csv (EPLAN); dxf 0.6.2, acadrust 0.6.4 (MPL-2.0)'
-
-[crates."ew-import-eplan"]
-row = "ew-import-qet"
-
-[crates."ew-import-dxf"]
-row = "ew-import-qet"
-
-[crates."ew-import-catalog"]
-responsibility = "Parts from CSV/XLSX (MVP), BMEcat and ETIM xChange (1.x), behind `ew-interop-api`. *As built (cycle 35, WP-S1.19 part 4, decision log ID-824, ID-827):* the column map, an own bounded CSV reader and an own XLSX reader (inflate under an output cap, bounded shared strings, doc 05 §3.6's limits); `ew-interop-api` re-exports `ew_schema` and `ew_ids`, so the importer keeps its one edge. calamine is not used: its zip enabled flate2's zlib-rs backend by feature unification and changed the PDF bytes that krilla compresses"
-key_deps = 'ew-interop-api; miniz_oxide =0.8.9 (`with-alloc` only), quick-xml =0.41.0 (no default features), both already in the graph; serde, serde_json, sha2, toml'
-
-[crates."ew-import-tables"]
-responsibility = 'The golden CSV bootstrap behind `ew import csv`, the round-trip table reader and translation tables; reused by `ew-testkit`; the bootstrap importer TablesImporter reads a directory of tables (ADR-0021 amendment 6)'
-key_deps = 'ew-interop-api, ew-schema, ew-units, ew-ids, ew-mltext, ew-rds (as ew-import-qet); serde, serde_json, sha2; an own bounded RFC-4180 reader (no csv crate yet); later: csv, calamine (round-trip reader)'
-
-[crates."ew-script"]
-responsibility = 'rhai automation bindings over queries and commands (profile from `ew-rhai`); WIT world and host on the wasmtime LTS line current at plugin launch (48.x in development), plugin export roles (§10.4), plugin rule implementations registered into `ew-checks`, the `secret-get` capability (v1.x)'
-key_deps = 'ew-rhai; wasmtime LTS, wit-bindgen 0.63.0'
-
-[crates."ew-plugin-host"]
-row = "ew-script"
-
-[crates."ew-jobs"]
-responsibility = 'Scheduler, progress, cancellation, staleness tagging, adopt-if-unchanged; *as built (cycle 30, ID-692, ID-714):* a minimal runner, one named `std` thread per job with progress, checkpoints, cancel, `catch_unwind` and a test gate, used by `Session::export_job`; no rayon pool and no adopt-if-unchanged yet (FT-497)'
-key_deps = 'rayon (not yet used)'
-
-[crates."ew-api"]
-responsibility = 'The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb; the page-output export job (cycle 15, FT-59: the page views, one memoised `page_display_list` family per layer, PDF and SVG)  dev: ew-commands/testkit, ew-derive, ew-model/raw-read, ew-render-cpu, ew-ids, ew-units, ew-mltext, png, sha2, insta (the page-output goldens of WP-S3.04), ew-testkit (the acceptance runner builds AC-15 path (b) with the builder DSL, cycle 15);'
-key_deps = "v0: ew-commands, ew-checks (the shipped prevent hook, `Session::check` and the migration scheme on imports, decision log ID-306, ID-312), ew-derive (normal edge: the Session surfaces derivation findings, tracked reads only), ew-reports (the Session installs the report engine on every `Q`, decision log ID-126), ew-model, ew-schema (no `raw-read`), ew-scene and ew-export (the export job), ew-text (the bundled fonts it shapes with and embeds) and ew-dl (the layer types; normal edges since FT-59), ew-units and ew-mltext (normal edges since cycle 24, dev edges before: the property grid's field parser and formatter of WP-S2.05 part 1 name the integer value types and the multi-language text, decision log ID-600), and from WP-S2.05 part 2 the external crate regex 1.13.1 (`Session::find`; default features off, `std`, `unicode-case`, `unicode-perl`; at the lockfile's version, so no new package in `Cargo.lock`, but a runtime edge that brings `regex`, `regex-automata` and `regex-syntax` into the shipped graph, 288 to 291 packages in `cargo tree -p elektrawatt`, decision log ID-634; with `aho-corasick` they are `safe-to-deploy` exemptions the owner confirms, FT-435); dev: ew-commands/testkit, ew-derive, ew-model/raw-read, ew-render-cpu, ew-ids, png, sha2, insta (the page-output goldens of WP-S3.04), ew-testdir (FT-569); eventually everything above except UI"
-
-[crates."ew-viewmodel"]
-responsibility = 'Toolkit-agnostic panel models: navigator trees, table rows with edit→command mapping, property-grid rows with provenance, message lists, each with a revision stamp; the toolkit-neutral action definitions and the shell model that the GUI and the headless mode `elektrawatt --headless` both dispatch on (decision log ID-443, ID-444); as built in cycle 19: the registry, `ShellModel`, the settings file, the UI-script runner and the `ui.describe` text (ID-473, ID-474)'
-key_deps = 'ew-api; fluent-bundle 0.16.0 and unic-langid 0.9.6 (the shell texts in Fluent, WP-S2.08 part 3; default features off, at the lockfile versions ew-checks uses); dev: ew-testdir (FT-586)'
-
-[crates."ew-ui"]
-responsibility = "egui widgets, canvas host, tools (state machines; specified for WP-S2.03: the tool host and the tools in `ew-viewmodel`, `ew-ui` maps input and paints, decision log ID-536), command palette, keymaps, the action registry behind every menu, the 3D transform gizmo over `ew-render3d`'s camera and pick API; as built in cycle 19: the shell frame, the CPU page view with its render worker, the palette, the bundled UI fonts and the headless runner (ID-473)"
-key_deps = 'egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0 (0.11.0 and no egui_ltreeview, ADR-0014 amendment 4, decision log ID-686), egui_ltreeview 0.9.0, transform-gizmo-egui 0.11.0 (in cycle 19: egui 0.37.0 and skrifa 0.44.0 only; egui_kittest 0.37.0 for tests); dev: ew-testdir (FT-586)'
-
-[crates."ew-viewer"]
-crate_note = '(1.0)'
-planned_layer = "GPL"
-responsibility = 'The read-only `.ewpp` wiring viewer on `ew-ui` widgets, used by the `ew-wiring-viewer` binary and the "Preview package" view of the Manufacturing workspace'
-key_deps = 'ew-ewpp, ew-ui, ew-render-cpu, hayro 0.8.0 (after the fidelity check)'
-
-[crates."elektrawatt"]
-crate_note = '(bin)'
-responsibility = 'eframe shell, the app menu drawn with egui on Windows and Linux (ADR-0031), dialogs, clipboard, crash handler; as built in cycle 19: the window, the rfd dialogs, `--headless`, `--smoke` and the exit codes, with the egui menu bar on every OS (ID-446, ID-473)'
-key_deps = 'eframe 0.37.0, egui-wgpu 0.37.0, muda 0.21.2, rfd 0.17.2, arboard 3.7.0, ew-print (in cycle 19: eframe 0.37.0 on wgpu and rfd 0.17.2 only; `rust-version` 1.95, ID-477); dev: ew-viewmodel/testkit (the G-PP wiring regression under both new-ID orders), ew-testdir (FT-1039), ew-scene and ew-render-cpu (the PNG of the application icon rendered from its SVG, WP-S6.06 §13 O5)'
-
-[crates."ew"]
-crate_note = '(bin)'
-responsibility = 'CLI, `ew mcp`, merge driver, textconv, migration verifier'
-key_deps = "clap 4.6.7 (as built in cycle 43: the CLI is one derive tree, `default-features = false`), rmcp 3.5.1 **(verify)**, ew-print, hayro 0.8.0 (`ew verify-migration`), serde_json (a normal dependency since cycle 22, for the `HumanOnly` subcommand's command value; decision log ID-546); dev: ew-testdir (FT-1039)"
-
-[crates."ew-wiring-viewer"]
-crate_note = '(bin, 1.0)'
-planned_layer = "GPL"
-responsibility = 'Small read-only viewer for shop PCs'
-key_deps = 'ew-viewer'
-
-[crates."ew-step-worker"]
-crate_note = '(bin)'
-layer_note = '(links LGPL OCCT)'
-responsibility = 'STEP reading, tessellation, feature edges, hulls, mounting frames'
-key_deps = 'occt-sys 7.8.1, opencascade 0.3.0, gltf 1.4.1'
-
-[crates."ew-testkit"]
-responsibility = 'Golden builders (CSV bootstrap through `ew-import-tables`, command DSL), S–XL and XL-A generators, oracle comparator, acceptance runner; the seeded S–XL generator ew_testkit::synth and the cold-operation benchmark harness ew_testkit::bench (WP-S1.05); the G-SP spike bench (`benches/spike.rs`)'
-key_deps = "ew-model, ew-schema, ew-ids, ew-units, ew-mltext, ew-rds (the generator); ew-import-tables (golden builders, allowed edge); serde, serde_json (the builder DSL speaks the JSON parameters of the commands through a `CommandSink` the caller implements over its `Session`, so the edges to ew-api and ew-commands stay dev-only; cycle 15); dev: ew-api, ew-commands with testkit, ew-testids, ew-testdir (FT-569), ew-derive (the spike measures the connectivity families cold and through `ew-derive`'s `MemoStore`, which is how it reaches `ew-memo`: there is no direct edge to `ew-memo`; decision log ID-223, ID-263), serde_json; later: insta 1.49.0, proptest 1.12.0, dify 0.8.0, hayro 0.8.0 (test use); criterion 0.8.2 only as a front end of the nightly performance gate (NFR-PERF-20). Dev-only everywhere: no crate may take it as a normal dependency."
-
-[crates."ew-hack"]
-responsibility = '*As built (cycle 43, RD43 R17, a trial).* The workspace-hack crate of cargo-hakari: no code; its manifest, generated by `cargo hakari generate` (`cargo xtask settle`, step `hakari`), depends on the third-party crates the GPL members share with the union of their features, so building one package set after another reuses them. Every GPL member except the importers (rule 4) depends on it; the permissive crates and `xtask` never do, and the owner-only crates of rules 2 and 3 (egui, eframe, wgpu, rusqlite, `libsqlite3-sys`) and the shader translator of wgpu (naga, `naga-types`) are not in it, nor are the crates only the text stack or one platform reaches (`windows`, `harfrust`, `skrifa`, `regex`): unifying them widened every narrow GPL build, FT-1000 (`.config/hakari.toml`). `publish = false`; no edges to workspace crates'
-key_deps = 'third-party crates only, as generated; an empty `build.rs` so that its build-dependencies count'
-
-[crates."ew-py"]
-crate_note = '(v1.x)'
-planned_layer = "GPL"
-responsibility = 'Python wheel of the headless core'
-key_deps = 'pyo3 0.30.1'

@@ -83,17 +83,6 @@ pub(crate) fn merge_base(root: &Path, base: &str) -> Result<String> {
         .with_context(|| format!("no merge base of `{base}` and HEAD"))
 }
 
-/// `text` with the lines between the `begin` and `end` markers replaced by `body`.
-pub(crate) fn replace_block(text: &str, begin: &str, end: &str, body: &str, path: &str) -> Result<String> {
-    let (Some(b), Some(e)) = (text.find(begin), text.find(end)) else {
-        bail!("{path} lacks the markers {begin} and {end}");
-    };
-    if e < b {
-        bail!("{path}: {end} comes before {begin}");
-    }
-    Ok(format!("{}\n{body}{}", &text[..b + begin.len()], &text[e..]))
-}
-
 /// Writes `text` to `path` through a temporary file in the same folder, renamed over it; on failure the old file
 /// stays and the temporary file is removed.
 pub(crate) fn write_atomic(path: &Path, text: &str) -> Result<()> {

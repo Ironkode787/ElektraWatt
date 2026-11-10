@@ -1316,23 +1316,17 @@ dependencies = [
  "ew-hack",
  "ew-ids",
  "ew-import-catalog",
- "ew-import-dxf",
  "ew-import-eplan",
  "ew-import-qet",
  "ew-import-tables",
  "ew-jobs",
  "ew-library",
- "ew-mfg",
  "ew-mltext",
  "ew-model",
- "ew-panel",
- "ew-plc",
- "ew-plugin-host",
  "ew-render-cpu",
  "ew-reports",
  "ew-scene",
  "ew-schema",
- "ew-script",
  "ew-sqlview",
  "ew-store",
  "ew-testdir",
@@ -1352,10 +1346,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ew-caex"
-version = "0.1.0"
-
-[[package]]
 name = "ew-checks"
 version = "0.1.0"
 dependencies = [
@@ -1363,7 +1353,6 @@ dependencies = [
  "ew-derive",
  "ew-hack",
  "ew-model",
- "ew-rhai",
  "fluent-bundle",
  "schemars",
  "serde",
@@ -1408,7 +1397,6 @@ dependencies = [
  "ew-model",
  "ew-plcaddr",
  "ew-rds",
- "ew-rhai",
  "ew-schema",
  "ew-units",
  "imbl",
@@ -1417,10 +1405,6 @@ dependencies = [
  "serde_json",
  "toml",
 ]
-
-[[package]]
-name = "ew-devdesc"
-version = "0.1.0"
 
 [[package]]
 name = "ew-dl"
@@ -1433,10 +1417,6 @@ dependencies = [
  "proptest",
  "uuid",
 ]
-
-[[package]]
-name = "ew-ewpp"
-version = "0.1.0"
 
 [[package]]
 name = "ew-export"
@@ -1554,13 +1534,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ew-import-dxf"
-version = "0.1.0"
-dependencies = [
- "ew-interop-api",
-]
-
-[[package]]
 name = "ew-import-eplan"
 version = "0.1.0"
 dependencies = [
@@ -1650,17 +1623,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ew-mfg"
-version = "0.1.0"
-dependencies = [
- "ew-commands",
- "ew-ewpp",
- "ew-hack",
- "ew-panel",
- "ew-reports",
-]
-
-[[package]]
 name = "ew-mltext"
 version = "0.1.0"
 dependencies = [
@@ -1688,40 +1650,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "ew-panel"
-version = "0.1.0"
-dependencies = [
- "ew-commands",
- "ew-hack",
- "ew-step-proto",
-]
-
-[[package]]
-name = "ew-plc"
-version = "0.1.0"
-dependencies = [
- "ew-caex",
- "ew-commands",
- "ew-devdesc",
- "ew-hack",
- "ew-plcaddr",
-]
-
-[[package]]
 name = "ew-plcaddr"
 version = "0.1.0"
 dependencies = [
  "proptest",
-]
-
-[[package]]
-name = "ew-plugin-host"
-version = "0.1.0"
-dependencies = [
- "ew-checks",
- "ew-commands",
- "ew-hack",
- "ew-sqlview",
 ]
 
 [[package]]
@@ -1777,15 +1709,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ew-render3d"
-version = "0.1.0"
-dependencies = [
- "ew-commands",
- "ew-hack",
- "ew-panel",
-]
-
-[[package]]
 name = "ew-reports"
 version = "0.1.0"
 dependencies = [
@@ -1800,13 +1723,6 @@ dependencies = [
  "ew-zip",
  "proptest",
  "serde_json",
-]
-
-[[package]]
-name = "ew-rhai"
-version = "0.1.0"
-dependencies = [
- "ew-hack",
 ]
 
 [[package]]
@@ -1847,15 +1763,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ew-script"
-version = "0.1.0"
-dependencies = [
- "ew-commands",
- "ew-hack",
- "ew-rhai",
-]
-
-[[package]]
 name = "ew-sqlview"
 version = "0.1.0"
 dependencies = [
@@ -1868,21 +1775,6 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "ew-step-proto"
-version = "0.1.0"
-dependencies = [
- "ew-units",
-]
-
-[[package]]
-name = "ew-step-worker"
-version = "0.1.0"
-dependencies = [
- "ew-hack",
- "ew-step-proto",
 ]
 
 [[package]]

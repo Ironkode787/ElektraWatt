@@ -194,8 +194,9 @@ pub(crate) fn rules(root: &Path) -> Result<bool> {
 
 /// The crate layers and dependency rules of `ci/dep-rules.toml`.
 fn check_deps(root: &Path) -> Result<Violations> {
-    let policy = deps::Policy::load(&root.join("ci/dep-rules.toml"))?;
-    let graph = deps::Graph::from_metadata(&metadata()?);
+    let metadata = metadata()?;
+    let policy = deps::Policy::load(&root.join("ci/dep-rules.toml"))?.with_layers(&metadata);
+    let graph = deps::Graph::from_metadata(&metadata);
     let mut violations = deps::check(&policy, &graph);
     violations.extend(deps::check_confined_manifests(&policy, root)?);
     violations.extend(deps::importer_purity(root)?);
@@ -205,12 +206,12 @@ fn check_deps(root: &Path) -> Result<Violations> {
 /// Test-only features and crates never reach a shipped binary (`ci/dep-rules.toml`: `banned_features`,
 /// `banned_crates`, `uniform_test_features`, `required_features`).
 fn check_features(root: &Path) -> Result<Violations> {
-    let policy = deps::Policy::load(&root.join("ci/dep-rules.toml"))?;
+    let metadata = metadata()?;
+    let policy = deps::Policy::load(&root.join("ci/dep-rules.toml"))?.with_layers(&metadata);
     let rules = features::Rules {
         features: &policy.banned_features,
         crates: &policy.banned_crates,
     };
-    let metadata = metadata()?;
     let packages = features::from_metadata(&metadata);
     let mut violations = features::check(&rules, &packages);
     violations.extend(features::check_uniform(&policy.uniform_test_features, &packages));
@@ -262,8 +263,10 @@ pub(crate) fn check_licence_map_at(root: &Path) -> Result<Violations> {
         .collect();
     violations.extend(licence::check_crates(&map, &crates));
 
-    // One source of truth for the permissive layer: ci/dep-rules.toml.
-    let layers = deps::Policy::load(&root.join("ci/dep-rules.toml"))?.layers;
+    // The permissive layer is the crates whose manifest says so.
+    let layers = deps::Policy::load(&root.join("ci/dep-rules.toml"))?
+        .with_layers(&metadata)
+        .layers;
     let graph = licence::DepGraph::from_metadata(&metadata)?;
     violations.extend(licence::check_boundary(
         &map.boundary.allow,

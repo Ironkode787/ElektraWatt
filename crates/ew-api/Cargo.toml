@@ -22,16 +22,10 @@ ew-sqlview = { path = "../ew-sqlview" }
 ew-library = { path = "../ew-library" }
 ew-scene = { path = "../ew-scene" }
 ew-export = { path = "../ew-export" }
-ew-plc = { path = "../ew-plc" }
-ew-panel = { path = "../ew-panel" }
-ew-mfg = { path = "../ew-mfg" }
 ew-import-qet = { path = "../ew-import-qet" }
 ew-import-eplan = { path = "../ew-import-eplan" }
-ew-import-dxf = { path = "../ew-import-dxf" }
 ew-import-catalog = { path = "../ew-import-catalog" }
 ew-import-tables = { path = "../ew-import-tables" }
-ew-script = { path = "../ew-script" }
-ew-plugin-host = { path = "../ew-plugin-host" }
 ew-jobs = { path = "../ew-jobs" }
 # The snapshot type and its revision. Without `raw-read`: the Session hands snapshots out and never reads rows
 # itself (ARCH §3 rule 1: the untracked read API stays with ew-derive, ew-commands and ew-store).

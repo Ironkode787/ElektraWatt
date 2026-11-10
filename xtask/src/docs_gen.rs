@@ -27,8 +27,6 @@
 //! - the release and migration notes of the releases (`docs/release-notes/<X.Y.Z>.md`, WP-S6.08's) give one page per
 //!   release under `reference/release-notes/`, newest first, with their relative links rewritten to the repository's
 //!   address, and the index of the releases (WP-S7.05 D13);
-//! - the `[crates]` tables of `ci/dep-rules.toml` give the crate table of `docs/design/04-architecture.md` §3, written
-//!   between its `<!-- generated:crate-table -->` markers (RD43 R18a), the one generated part outside the book.
 //!
 //! The generated pages are built, not committed: the root `.gitignore` names them (a test keeps its block equal to
 //! [`GENERATED_DIRS`] and [`GENERATED_PAGES`]), and the contract files they render stay committed. `docs-gen` writes
@@ -89,12 +87,6 @@ const FORMAT_DIR: &str = "reference/format";
 const RELEASE_NOTES: &str = "docs/release-notes";
 /// Generated release-notes pages, relative to [`BOOK_SRC`] (WP-S7.05 D13).
 const RELEASE_NOTES_DIR: &str = "reference/release-notes";
-/// The crate-dependency rules whose `[crates]` tables give the crate table of [`ARCHITECTURE`].
-const DEP_RULES: &str = "ci/dep-rules.toml";
-/// The architecture document that holds the generated crate table (relative to the root, outside the book).
-const ARCHITECTURE: &str = "docs/design/04-architecture.md";
-const CRATE_TABLE_BEGIN: &str = "<!-- generated:crate-table -->";
-const CRATE_TABLE_END: &str = "<!-- /generated:crate-table -->";
 /// The directories whose pages are all generated: a page no source gives is stale, and `SUMMARY.md` lists their pages
 /// below the line that links their index page.
 const GENERATED_DIRS: [&str; 5] = [COMMANDS_DIR, RULES_DIR, CLI_DIR, FORMAT_DIR, RELEASE_NOTES_DIR];
@@ -184,15 +176,8 @@ fn plan(root: &Path) -> Result<Plan> {
         read_lf(&summary_path)?.with_context(|| format!("{} is missing", summary_path.display()))?;
     wanted.insert(SUMMARY.to_owned(), rewrite_summary(&summary, &generated.lists())?);
     let (differing, stale) = compare(root, &wanted)?;
-    let mut partial = Vec::new();
-    let doc = read_lf(&root.join(ARCHITECTURE))?.with_context(|| format!("{ARCHITECTURE} is missing"))?;
-    let policy = read_lf(&root.join(DEP_RULES))?.with_context(|| format!("{DEP_RULES} is missing"))?;
-    let table = crate_table(&policy)?;
-    let wanted_doc =
-        crate::repo::replace_block(&doc, CRATE_TABLE_BEGIN, CRATE_TABLE_END, &table, ARCHITECTURE)?;
-    if wanted_doc != doc {
-        partial.push((ARCHITECTURE.to_owned(), wanted_doc));
-    }
+    // No document outside the book has a generated part at present.
+    let partial = Vec::new();
     Ok(Plan {
         wanted,
         differing,
@@ -1725,104 +1710,6 @@ fn repo_target(target: &str, base: &str) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The crate table of 04-architecture §3
-
-/// The crate table of doc 04 §3 from the policy text of `ci/dep-rules.toml`, with its header comment, ending in a
-/// newline: one row per `[crates]` table without a `row`, in the order of the headers. Refused: a table whose `row`
-/// names no row of its own, a row with no responsibility or key dependencies, a crate whose layer the table cannot
-/// tell, a cell with a `|` or a line break.
-fn crate_table(text: &str) -> Result<String> {
-    let policy = crate::deps::Policy::parse(text).with_context(|| format!("parsing {DEP_RULES}"))?;
-    let order = crate::deps::crate_table_order(text);
-    // The row order comes from the header lines: a table written another way would drop its row unseen.
-    if let Some(name) = policy.crates.keys().find(|k| !order.contains(k)) {
-        bail!(
-            "{DEP_RULES}: the [crates] table of `{name}` needs the header line [crates.\"{name}\"] alone (the row order \
-             is read from those lines)"
-        );
-    }
-    let layers = &policy.layers;
-    let mut out = format!(
-        "{}\n| Crate | Layer | Responsibility | Key dependencies |\n|---|---|---|---|\n",
-        header(&format!("the `[crates]` tables of `{DEP_RULES}`"))
-    );
-    for name in &order {
-        let Some(row) = policy.crates.get(name) else {
-            continue;
-        };
-        let at = format!("{DEP_RULES}: [crates.\"{name}\"]");
-        if let Some(head) = &row.row {
-            let joins = policy.crates.get(head).is_some_and(|h| h.row.is_none());
-            let cells = row.responsibility.is_some()
-                || row.key_deps.is_some()
-                || row.crate_note.is_some()
-                || row.layer_note.is_some();
-            if !joins || cells {
-                bail!(
-                    "{at} shares the row of `{head}`: that crate needs a row of its own, and this table no cells"
-                );
-            }
-            // The row's Layer cell is the head's: a joined crate must sit in the same layer.
-            let layer_of = |n: &str, r: &crate::deps::CrateRow| {
-                r.planned_layer.clone().or_else(|| {
-                    if layers.permissive.iter().any(|l| l == n) {
-                        Some("P".to_owned())
-                    } else if layers.gpl.iter().any(|l| l == n) {
-                        Some("GPL".to_owned())
-                    } else {
-                        None
-                    }
-                })
-            };
-            let planned = |n: &str| layers.planned.iter().any(|p| p == n);
-            if layer_of(name, row) != layer_of(head, &policy.crates[head]) || planned(name) != planned(head) {
-                bail!("{at} shares the row of `{head}` but not its layer");
-            }
-            continue;
-        }
-        let mut names = vec![format!("`{name}`")];
-        names.extend(
-            order
-                .iter()
-                .filter(|n| {
-                    policy
-                        .crates
-                        .get(*n)
-                        .is_some_and(|r| r.row.as_deref() == Some(name))
-                })
-                .map(|n| format!("`{n}`")),
-        );
-        let mut crate_cell = names.join(", ");
-        let in_layer = |list: &[String]| list.iter().any(|l| l == name);
-        let planned = in_layer(&layers.planned);
-        let mut layer = match row.planned_layer.as_deref() {
-            None if !planned && in_layer(&layers.permissive) => "P".to_owned(),
-            None if !planned && in_layer(&layers.gpl) => "GPL".to_owned(),
-            Some(l @ ("P" | "GPL")) if planned => format!("{l} (planned)"),
-            _ => bail!(
-                "{at}: a permissive or GPL crate of [layers] takes its layer from there; a planned crate names it \
-                 with planned_layer = \"P\" or \"GPL\""
-            ),
-        };
-        let (Some(responsibility), Some(key_deps)) = (&row.responsibility, &row.key_deps) else {
-            bail!("{at} needs responsibility and key_deps");
-        };
-        if let Some(note) = &row.crate_note {
-            crate_cell = format!("{crate_cell} {note}");
-        }
-        if let Some(note) = &row.layer_note {
-            layer = format!("{layer} {note}");
-        }
-        let cells = [crate_cell, layer, responsibility.clone(), key_deps.clone()];
-        if cells.iter().any(|c| c.contains(['|', '\n'])) {
-            bail!("{at}: a cell holds a `|` or a line break");
-        }
-        let _ = writeln!(out, "| {} |", cells.join(" | "));
-    }
-    Ok(out)
-}
-
-// ---------------------------------------------------------------------------------------------------------------
 // Rules
 
 /// The rule catalogue snapshot: a mirror of the JSON that `crates/ew-checks/tests/catalogue.rs` writes (the licence
@@ -3049,108 +2936,6 @@ mod tests {
         );
     }
 
-    /// A policy of the shape of `ci/dep-rules.toml` with a permissive crate, a GPL crate with notes and a crate that
-    /// shares its row, and a planned crate.
-    const CRATE_POLICY: &str = r#"
-[layers]
-permissive = ["p-units"]
-gpl = ["g-worker", "g-helper"]
-tools = ["xtask"]
-planned = ["g-viewer"]
-
-[allowed_edges]
-
-[importers]
-pattern = "g-import-*"
-
-[crates."p-units"]
-responsibility = "`Nm(i64)` and friends"
-key_deps = "serde"
-
-[crates."g-worker"]
-crate_note = "(bin)"
-layer_note = "(links LGPL OCCT)"
-responsibility = "STEP reading"
-key_deps = "occt-sys"
-
-[crates."g-viewer"]
-crate_note = "(1.0)"
-planned_layer = "GPL"
-responsibility = "The read-only viewer"
-key_deps = "g-worker"
-
-[crates."g-helper"]
-row = "g-worker"
-"#;
-
-    /// RD43 R18a: the crate table of doc 04 §3, whole, from the `[crates]` tables in their order.
-    #[test]
-    fn the_crate_table_is_written_from_the_crate_tables() {
-        assert_eq!(
-            crate_table(CRATE_POLICY).unwrap(),
-            "<!-- Generated by `cargo xtask docs-gen` from the `[crates]` tables of `ci/dep-rules.toml`. Do not edit: \
-             change the source and regenerate. -->\n\
-             | Crate | Layer | Responsibility | Key dependencies |\n\
-             |---|---|---|---|\n\
-             | `p-units` | P | `Nm(i64)` and friends | serde |\n\
-             | `g-worker`, `g-helper` (bin) | GPL (links LGPL OCCT) | STEP reading | occt-sys |\n\
-             | `g-viewer` (1.0) | GPL (planned) | The read-only viewer | g-worker |\n"
-        );
-        let refusal =
-            |from: &str, to: &str| format!("{:#}", crate_table(&CRATE_POLICY.replace(from, to)).unwrap_err());
-        assert_eq!(
-            refusal("planned_layer = \"GPL\"\n", ""),
-            "ci/dep-rules.toml: [crates.\"g-viewer\"]: a permissive or GPL crate of [layers] takes its layer from \
-             there; a planned crate names it with planned_layer = \"P\" or \"GPL\""
-        );
-        assert_eq!(
-            refusal("row = \"g-worker\"", "row = \"g-viewer\"\nkey_deps = \"x\""),
-            "ci/dep-rules.toml: [crates.\"g-helper\"] shares the row of `g-viewer`: that crate needs a row of its own, \
-             and this table no cells"
-        );
-        assert_eq!(
-            refusal("row = \"g-worker\"", "row = \"g-worker\"\nplanned_layer = \"P\""),
-            "ci/dep-rules.toml: [crates.\"g-helper\"] shares the row of `g-worker` but not its layer"
-        );
-        assert_eq!(
-            refusal("row = \"g-worker\"", "row = \"g-worker\"\nlayer_note = \"(x)\""),
-            "ci/dep-rules.toml: [crates.\"g-helper\"] shares the row of `g-worker`: that crate needs a row of its own, \
-             and this table no cells"
-        );
-        for header in [
-            "[crates.g-helper]",
-            "[crates.'g-helper']",
-            "[crates.\"g-helper\"] # shares a row",
-        ] {
-            assert_eq!(
-                refusal("[crates.\"g-helper\"]", header),
-                "ci/dep-rules.toml: the [crates] table of `g-helper` needs the header line [crates.\"g-helper\"] \
-                 alone (the row order is read from those lines)",
-                "{header}"
-            );
-        }
-        assert_eq!(
-            refusal("key_deps = \"serde\"\n", ""),
-            "ci/dep-rules.toml: [crates.\"p-units\"] needs responsibility and key_deps"
-        );
-        assert_eq!(
-            refusal("key_deps = \"serde\"", "key_deps = \"a | b\""),
-            "ci/dep-rules.toml: [crates.\"p-units\"]: a cell holds a `|` or a line break"
-        );
-    }
-
-    /// RD43 R18a: the generated crate table replaces the lines between the markers of doc 04, and the rest stays.
-    #[test]
-    fn the_crate_table_goes_between_the_markers() {
-        let doc = format!("# 4\n\nText.\n\n{CRATE_TABLE_BEGIN}\n| old |\n{CRATE_TABLE_END}\n\nAfter.\n");
-        let table = crate_table(CRATE_POLICY).unwrap();
-        assert_eq!(
-            crate::repo::replace_block(&doc, CRATE_TABLE_BEGIN, CRATE_TABLE_END, &table, ARCHITECTURE)
-                .unwrap(),
-            format!("# 4\n\nText.\n\n{CRATE_TABLE_BEGIN}\n{table}{CRATE_TABLE_END}\n\nAfter.\n")
-        );
-    }
-
     /// RD43 R18a: a catalogue field the mirror structs do not know fails docs-gen, at every level.
     #[test]
     fn an_unknown_catalogue_field_is_refused() {
@@ -3263,7 +3048,7 @@ row = "g-worker"
     #[test]
     fn check_fails_on_a_tracked_built_page_and_a_differing_generated_part() {
         let tracked = ["reference/cli/gone.md".to_owned(), GLOSSARY_PAGE.to_owned()];
-        let partial = [(ARCHITECTURE.to_owned(), "the wanted text\n".to_owned())];
+        let partial = [("docs/design/04-architecture.md".to_owned(), "the wanted text\n".to_owned())];
         assert_eq!(
             violations_of(&[SUMMARY.to_owned()], &tracked, &partial),
             [

@@ -17,7 +17,6 @@ workspace = true
 [dependencies]
 # The tracked-read context every rule reads through (no `raw-read`: ARCH §3 rule 1).
 ew-derive = { path = "../ew-derive" }
-ew-rhai = { path = "../ew-rhai" }
 # Finding fingerprints: the first 128 bits of SHA-256 (doc 15 §2.5, FR-CHK-044).
 sha2.workspace = true
 # Quick-fix parameters (command JSON) and the reserved waiver records.

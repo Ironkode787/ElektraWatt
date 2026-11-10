@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `check-deps`: the crate-dependency rules of ARCH §3 and NFR-MAINT-01, driven by `ci/dep-rules.toml`.
+//! The rule `layers`: the rules between crates of `ci/dep-rules.toml`. A crate's layer is its licence and its
+//! dependencies are its manifest's; the policy file holds only what those do not state.
 //!
 //! The check works on [`Graph`], a plain list of the direct dependencies that every workspace package
 //! declares (all kinds, all targets, optional ones included). Building it from `cargo metadata` is separate
@@ -19,7 +20,9 @@ use serde::Deserialize;
 pub struct Policy {
     /// Which layer each workspace package belongs to.
     pub layers: Layers,
-    /// Permitted direct workspace-to-workspace edges, per dependent package.
+    /// Permitted direct workspace-to-workspace edges of the packages that have an entry; a package without one is
+    /// not restricted.
+    #[serde(default)]
     pub allowed_edges: BTreeMap<String, Vec<String>>,
     /// Extra edges permitted for dev-dependencies only.
     #[serde(default)]
@@ -47,63 +50,25 @@ pub struct Policy {
     /// The source-level guard for a gated feature's readers (`cargo xtask check-raw-read`).
     #[serde(default)]
     pub raw_read: Option<crate::raw_read::RawReadPolicy>,
-    /// The crate table of 04-architecture §3, one entry per permissive, GPL and planned crate (`cargo xtask
-    /// docs-gen` writes the table; the row order is the order of the headers, [`crate_table_order`]).
-    #[serde(default)]
-    pub crates: BTreeMap<String, CrateRow>,
-}
-
-/// One crate of the crate table of 04-architecture §3 (`[crates."<name>"]`).
-#[derive(Debug, Default, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct CrateRow {
-    /// The crate whose row this crate shares (its name joins that row's Crate cell); the row's cells are that crate's.
-    #[serde(default)]
-    pub row: Option<String>,
-    /// The text after the crate names in the Crate cell, such as `(bin)`.
-    #[serde(default)]
-    pub crate_note: Option<String>,
-    /// The layer of a planned crate, `P` or `GPL` (a layered crate's comes from `[layers]`).
-    #[serde(default)]
-    pub planned_layer: Option<String>,
-    /// The text after the layer in the Layer cell, such as `(links LGPL OCCT)`.
-    #[serde(default)]
-    pub layer_note: Option<String>,
-    /// The Responsibility cell (Markdown, one line).
-    #[serde(default)]
-    pub responsibility: Option<String>,
-    /// The Key dependencies cell (Markdown, one line).
-    #[serde(default)]
-    pub key_deps: Option<String>,
-}
-
-/// The crate names of the `[crates."<name>"]` headers of the policy text, in their order: the row order of the crate
-/// table (the TOML parser keeps no order).
-pub fn crate_table_order(text: &str) -> Vec<String> {
-    text.lines()
-        .filter_map(|l| {
-            l.trim()
-                .strip_prefix("[crates.\"")?
-                .strip_suffix("\"]")
-                .map(str::to_owned)
-        })
-        .collect()
 }
 
 /// Layer membership of the workspace packages.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Layers {
-    /// MIT OR Apache-2.0 crates; closed under dependencies.
+    /// MIT OR Apache-2.0 crates; closed under dependencies. Not in the file: [`Policy::with_layers`] reads it from the
+    /// manifests' licences.
+    #[serde(default)]
     pub permissive: Vec<String>,
-    /// GPL application crates and binaries.
+    /// GPL application crates and binaries: every other package that is not a tool. From the manifests too.
+    #[serde(default)]
     pub gpl: Vec<String>,
     /// Development-only packages.
     pub tools: Vec<String>,
-    /// Architecture crates that do not exist in the workspace yet.
-    #[serde(default)]
-    pub planned: Vec<String>,
 }
+
+/// The licence expression of a permissive crate.
+pub const PERMISSIVE: &str = "MIT OR Apache-2.0";
 
 /// Only `owners` may depend directly on an external crate matching one of `crates`.
 #[derive(Debug, Deserialize)]
@@ -155,6 +120,27 @@ impl Policy {
     /// Parses policy TOML.
     pub fn parse(text: &str) -> Result<Self> {
         Ok(toml::from_str(text)?)
+    }
+
+    /// The policy with its layers read from the workspace's manifests: a package whose licence is [`PERMISSIVE`] is
+    /// permissive, every other one GPL; the tools are in neither.
+    pub fn with_layers(mut self, metadata: &cargo_metadata::Metadata) -> Self {
+        self.layers.permissive.clear();
+        self.layers.gpl.clear();
+        for p in metadata.workspace_packages() {
+            let name = p.name.to_string();
+            if self.layers.tools.contains(&name) {
+                continue;
+            }
+            if p.license.as_deref() == Some(PERMISSIVE) {
+                self.layers.permissive.push(name);
+            } else {
+                self.layers.gpl.push(name);
+            }
+        }
+        self.layers.permissive.sort();
+        self.layers.gpl.sort();
+        self
     }
 
     fn is_permissive(&self, name: &str) -> bool {
@@ -266,45 +252,8 @@ pub fn check(policy: &Policy, graph: &Graph) -> Vec<String> {
     v
 }
 
-/// Every workspace package is in exactly one layer and has an `allowed_edges` entry; the policy names no
-/// package that is neither in the workspace nor planned.
+/// The policy names no package that is not in the workspace.
 fn check_policy_consistency(policy: &Policy, graph: &Graph, v: &mut Vec<String>) {
-    let layers = &policy.layers;
-    let mut layer_of: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
-    for (layer, names) in [
-        ("permissive", &layers.permissive),
-        ("gpl", &layers.gpl),
-        ("tools", &layers.tools),
-    ] {
-        for name in names {
-            layer_of.entry(name).or_default().push(layer);
-        }
-    }
-    let planned: BTreeSet<&str> = layers.planned.iter().map(String::as_str).collect();
-
-    for name in &graph.workspace {
-        match layer_of.get(name.as_str()) {
-            None => v.push(format!(
-                "policy: workspace package `{name}` is in no layer of [layers]"
-            )),
-            Some(ls) if ls.len() > 1 => v.push(format!(
-                "policy: package `{name}` is in more than one layer: {}",
-                ls.join(", ")
-            )),
-            Some(_) => {}
-        }
-        if !policy.allowed_edges.contains_key(name) {
-            v.push(format!(
-                "policy: workspace package `{name}` has no [allowed_edges] entry"
-            ));
-        }
-        if planned.contains(name.as_str()) {
-            v.push(format!(
-                "policy: `{name}` is listed as planned but exists in the workspace; move it to a layer"
-            ));
-        }
-    }
-
     let unknown = |name: &str, place: &str, v: &mut Vec<String>| {
         if !graph.is_workspace(name) {
             v.push(format!(
@@ -312,8 +261,8 @@ fn check_policy_consistency(policy: &Policy, graph: &Graph, v: &mut Vec<String>)
             ));
         }
     };
-    for name in layer_of.keys() {
-        unknown(name, "[layers]", v);
+    for name in &policy.layers.tools {
+        unknown(name, "[layers] tools", v);
     }
     for (table, edges) in [
         ("[allowed_edges]", &policy.allowed_edges),
@@ -326,19 +275,11 @@ fn check_policy_consistency(policy: &Policy, graph: &Graph, v: &mut Vec<String>)
             }
         }
     }
-    let known_or_planned = |name: &str, place: &str, v: &mut Vec<String>| {
-        if !graph.is_workspace(name) && !planned.contains(name) {
-            v.push(format!(
-                "policy: {place} names `{name}`, which is neither a workspace package nor planned"
-            ));
-        }
-    };
     for rule in &policy.external_owner {
         for owner in &rule.owners {
-            known_or_planned(owner, "[[external_owner]] owners", v);
+            unknown(owner, "[[external_owner]] owners", v);
         }
     }
-    check_crate_table(policy, &planned, v);
     for rule in &policy.confined {
         unknown(&rule.krate, "[[confined]] crate", v);
         for name in &rule.only_direct_dependents {
@@ -352,40 +293,22 @@ fn check_policy_consistency(policy: &Policy, graph: &Graph, v: &mut Vec<String>)
     }
 }
 
-/// The crate table: every permissive and GPL crate of `[layers]` has a `[crates]` table, and every `[crates]` table
-/// names such a crate or a planned one.
-fn check_crate_table(policy: &Policy, planned: &BTreeSet<&str>, v: &mut Vec<String>) {
-    let layered = || policy.layers.permissive.iter().chain(&policy.layers.gpl);
-    for name in layered() {
-        if !policy.crates.contains_key(name) {
-            v.push(format!(
-                "policy: `{name}` of [layers] has no [crates.\"{name}\"] table (its row of the 04-architecture §3 crate table)"
-            ));
-        }
-    }
-    for name in policy.crates.keys() {
-        if !planned.contains(name.as_str()) && !layered().any(|l| l == name) {
-            v.push(format!(
-                "policy: [crates.\"{name}\"] names no permissive, GPL or planned crate of [layers]"
-            ));
-        }
-    }
-}
-
-/// Every workspace-to-workspace edge is allowed, and no permissive crate depends on a non-permissive one.
+/// A package with an `[allowed_edges]` entry depends on no workspace package outside it, and no permissive crate
+/// depends on a non-permissive one.
 fn check_edges(policy: &Policy, graph: &Graph, v: &mut Vec<String>) {
     let empty = Vec::new();
     for e in graph.edges.iter().filter(|e| graph.is_workspace(&e.to)) {
-        let allowed = policy.allowed_edges.get(&e.from).unwrap_or(&empty);
-        let dev_allowed = policy.allowed_dev_edges.get(&e.from).unwrap_or(&empty);
-        let ok = allowed.contains(&e.to) || (e.kind == Kind::Dev && dev_allowed.contains(&e.to));
-        if !ok {
-            v.push(format!(
-                "edge: `{}` -> `{}` ({}) is not in [allowed_edges] (ARCH §3 dependency graph)",
-                e.from,
-                e.to,
-                e.kind.label()
-            ));
+        if let Some(allowed) = policy.allowed_edges.get(&e.from) {
+            let dev_allowed = policy.allowed_dev_edges.get(&e.from).unwrap_or(&empty);
+            let ok = allowed.contains(&e.to) || (e.kind == Kind::Dev && dev_allowed.contains(&e.to));
+            if !ok {
+                v.push(format!(
+                    "edge: `{}` -> `{}` ({}) is not in its [allowed_edges] entry",
+                    e.from,
+                    e.to,
+                    e.kind.label()
+                ));
+            }
         }
         if policy.is_permissive(&e.from) && !policy.is_permissive(&e.to) {
             v.push(format!(
@@ -737,7 +660,6 @@ mod tests {
         permissive = ["p-units", "p-schema", "p-api"]
         gpl = ["g-model", "g-sql", "g-ui", "g-host", "g-import-qet", "g-import-x", "g-top", "app"]
         tools = ["xtask"]
-        planned = ["g-viewer"]
 
         [allowed_edges]
         "p-units" = []
@@ -760,7 +682,7 @@ mod tests {
 
         [[external_owner]]
         crates = ["egui", "egui_*", "egui-*"]
-        owners = ["g-ui", "app", "g-viewer"]
+        owners = ["g-ui", "app"]
         reason = "rule 3"
 
         [importers]
@@ -771,19 +693,6 @@ mod tests {
         only_direct_dependents = ["g-top"]
         never_reached_from = ["g-host", "@permissive"]
         reason = "ADR-0024 decision 4"
-
-        [crates."p-units"]
-        [crates."p-schema"]
-        [crates."p-api"]
-        [crates."g-model"]
-        [crates."g-sql"]
-        [crates."g-ui"]
-        [crates."g-host"]
-        [crates."g-import-qet"]
-        [crates."g-import-x"]
-        [crates."g-top"]
-        [crates."app"]
-        [crates."g-viewer"]
     "#;
 
     fn policy() -> Policy {
@@ -862,7 +771,7 @@ mod tests {
         let v = with(("g-model", "g-sql", Kind::Normal));
         assert_violation(
             &v,
-            "edge: `g-model` -> `g-sql` (dependency) is not in [allowed_edges]",
+            "edge: `g-model` -> `g-sql` (dependency) is not in its [allowed_edges] entry",
         );
     }
 
@@ -1055,16 +964,18 @@ mod tests {
         );
     }
 
+    /// A package without an `[allowed_edges]` entry may depend on what its manifest says; the licence boundary
+    /// still holds for it.
     #[test]
-    fn workspace_package_missing_from_policy_fails() {
+    fn a_package_without_an_entry_is_not_restricted() {
         let mut g = graph(&clean_edges());
         g.workspace.insert("g-new".into());
-        let v = check(&policy(), &g);
-        assert_violation(&v, "policy: workspace package `g-new` is in no layer");
-        assert_violation(
-            &v,
-            "policy: workspace package `g-new` has no [allowed_edges] entry",
-        );
+        g.edges.push(Edge {
+            from: "g-new".into(),
+            to: "g-sql".into(),
+            kind: Kind::Normal,
+        });
+        assert_eq!(check(&policy(), &g), Vec::<String>::new());
     }
 
     #[test]
@@ -1082,37 +993,8 @@ mod tests {
         let v = check(&p, &graph(&clean_edges()));
         assert_violation(
             &v,
-            "names `g-nowhere`, which is neither a workspace package nor planned",
+            "names `g-nowhere`, which is not a workspace package",
         );
-    }
-
-    /// RD43 R18a: the crate table of 04-architecture §3 covers every permissive and GPL crate, and names no other.
-    #[test]
-    fn the_crate_table_names_exactly_the_layered_and_planned_crates() {
-        let text = POLICY
-            .replace(
-                "        [crates.\"g-sql\"]
-",
-                "",
-            )
-            .replace(
-                "        [crates.\"g-viewer\"]
-",
-                "        [crates.\"g-viewer\"]
-        [crates.\"xtask\"]
-        [crates.\"g-gone\"]
-",
-            );
-        let p = Policy::parse(&text).unwrap();
-        assert_eq!(
-            check(&p, &graph(&clean_edges())),
-            [
-                "policy: [crates.\"g-gone\"] names no permissive, GPL or planned crate of [layers]",
-                "policy: [crates.\"xtask\"] names no permissive, GPL or planned crate of [layers]",
-                "policy: `g-sql` of [layers] has no [crates.\"g-sql\"] table (its row of the 04-architecture §3 crate table)",
-            ]
-        );
-        assert_eq!(crate_table_order(&text)[..3], ["p-units", "p-schema", "p-api"]);
     }
 
     #[test]
@@ -1153,8 +1035,11 @@ mod tests {
     #[test]
     fn real_policy_rejects_seeded_gpl_dependency_in_ew_format() {
         let root = crate::workspace_root();
-        let policy = Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
-        let mut graph = Graph::from_metadata(&crate::metadata().expect("cargo metadata runs"));
+        let metadata = crate::metadata().expect("cargo metadata runs");
+        let policy = Policy::load(&root.join("ci/dep-rules.toml"))
+            .expect("policy loads")
+            .with_layers(&metadata);
+        let mut graph = Graph::from_metadata(&metadata);
         graph.edges.push(Edge {
             from: "ew-format".into(),
             to: "ew-model".into(),

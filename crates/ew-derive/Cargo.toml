@@ -20,7 +20,6 @@ workspace = true
 # normal edge by `cargo xtask check-features` (ci/dep-rules.toml).
 ew-model = { path = "../ew-model", features = ["raw-read"] }
 ew-memo = { path = "../ew-memo" }
-ew-rhai = { path = "../ew-rhai" }
 ew-plcaddr = { path = "../ew-plcaddr" }
 # The record types, IDs, units and text that queries read and return.
 ew-schema = { path = "../ew-schema" }

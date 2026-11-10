@@ -18,167 +18,15 @@
 # RFC process of 19 §3.4 (label `licence`).
 
 # ---------------------------------------------------------------------------------------------------------------
-# L1: application and GPL-layer crates, binaries. `GPL-3.0-or-later WITH LicenseRef-ElektraWatt-plugin-exception`
-# once ADR-0025 is accepted; until then plain `GPL-3.0-or-later` (ADR-0025 "Pending", LG-2).
-# Crates of 19 §2.1 that do not exist yet (ew-viewer, ew-py, ew-wiring-viewer) are listed so that they land
-# in the right row.
+# L1: application and GPL-layer crates, binaries. Every crate under `crates/` and `bin/` is GPL-3.0-or-later unless a
+# longer rule below names it: a new GPL crate needs no entry here, a new permissive one needs its own rule.
 [[path]]
-glob = "crates/ew-model/**"
+glob = "crates/**"
 allowed = ["GPL-3.0-or-later"]
 crate = true
 
 [[path]]
-glob = "crates/ew-rhai/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-derive/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-commands/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-checks/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-sqlview/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-library/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-store/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-text/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-reports/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-scene/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-render2d/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-render-cpu/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-export/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-print/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-zip/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-plc/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-panel/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-render3d/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-mfg/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-import-eplan/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-import-dxf/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-import-catalog/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-import-tables/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-script/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-plugin-host/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-jobs/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-api/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-viewmodel/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-ui/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-viewer/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
-glob = "crates/ew-testkit/**"
+glob = "bin/**"
 allowed = ["GPL-3.0-or-later"]
 crate = true
 
@@ -192,33 +40,16 @@ allowed = ["CC0-1.0"]
 glob = "crates/ew-testkit/hostile/README.md"
 allowed = ["CC-BY-4.0"]
 
-[[path]]
-glob = "crates/ew-py/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-# The binaries elektrawatt, ew, ew-step-worker (and ew-wiring-viewer when it exists).
-[[path]]
-glob = "bin/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
 # ---------------------------------------------------------------------------------------------------------------
 # L2: ew-import-qet, files written by EW: GPL-3.0-or-later with no exception (C-8, NFR-LIC-05).
-[[path]]
-glob = "crates/ew-import-qet/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
 # L3: ported QET code, the only place where GPL-2.0 may appear (LR-04). The directory does not exist yet.
 [[path]]
 glob = "crates/ew-import-qet/src/qet_port/**"
 allowed = ["GPL-2.0-or-later"]
 
 # ---------------------------------------------------------------------------------------------------------------
-# L4: the closed permissive layer (ADR-0024 decision 2 and amendment 1). Must equal [layers].permissive of
-# ci/dep-rules.toml plus the planned ew-plugin-wit and ew-plugin-sdk; the boundary check below takes its crate
-# list from dep-rules.toml.
+# L4: the closed permissive layer (ADR-0024 decision 2 and amendment 1): the crates whose manifest says
+# `MIT OR Apache-2.0`, one rule each. The boundary check below takes its crate list from the manifests.
 [[path]]
 glob = "crates/ew-units/**"
 allowed = ["MIT OR Apache-2.0"]
@@ -260,11 +91,6 @@ allowed = ["MIT OR Apache-2.0"]
 crate = true
 
 [[path]]
-glob = "crates/ew-step-proto/**"
-allowed = ["MIT OR Apache-2.0"]
-crate = true
-
-[[path]]
 glob = "crates/ew-memo/**"
 allowed = ["MIT OR Apache-2.0"]
 crate = true
@@ -281,37 +107,7 @@ crate = true
 
 # The workspace-hack crate of cargo-hakari (RD43 R17).
 [[path]]
-glob = "crates/ew-hack/**"
-allowed = ["GPL-3.0-or-later"]
-crate = true
-
-[[path]]
 glob = "crates/ew-testids/**"
-allowed = ["MIT OR Apache-2.0"]
-crate = true
-
-[[path]]
-glob = "crates/ew-caex/**"
-allowed = ["MIT OR Apache-2.0"]
-crate = true
-
-[[path]]
-glob = "crates/ew-devdesc/**"
-allowed = ["MIT OR Apache-2.0"]
-crate = true
-
-[[path]]
-glob = "crates/ew-ewpp/**"
-allowed = ["MIT OR Apache-2.0"]
-crate = true
-
-[[path]]
-glob = "crates/ew-plugin-wit/**"
-allowed = ["MIT OR Apache-2.0"]
-crate = true
-
-[[path]]
-glob = "crates/ew-plugin-sdk/**"
 allowed = ["MIT OR Apache-2.0"]
 crate = true
 

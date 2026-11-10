@@ -8,9 +8,9 @@
 //!   as JSON, for the user guide's reference pages. xtask may not link the product (it is permissive, the product
 //!   GPL), so each registry's own crate has a test that writes its file when `EW_REFERENCE_DIR` is set, and
 //!   [`reference`] runs those tests.
-//! - **Committed files** that a generator of xtask writes from data in the tree: the book's contents and reference
-//!   pages, the icon table, the lint list, the QET symbol edition, and the persona harness's action list. `--check`
-//!   compares the ones that need no build.
+//! - **Committed files** that a generator writes from data in the tree: the workspace-hack crate, the book's
+//!   contents and reference pages, the icon table, the lint list, the QET symbol edition, and the persona harness's
+//!   action list. `--check` compares the ones that need no build.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -60,8 +60,10 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
     if check {
         return check_own(root);
     }
+    println!("==> gen: workspace-hack");
+    let mut ok = workspace_hack(root)?;
     println!("==> gen: reference");
-    let mut ok = reference(root)?;
+    ok &= reference(root)?;
     println!("==> gen: blind-reference");
     ok &= blind_reference(root)?;
     println!("==> gen: docs-gen");
@@ -118,6 +120,32 @@ pub(crate) fn reference(root: &Path) -> Result<bool> {
             .with_context(|| format!("running the reference test of {package}"))?;
         if !status.success() {
             eprintln!("gen: the reference test of {package} ({}) FAILED", args.join(" "));
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+/// The workspace-hack crate `ew-hack` (`.config/hakari.toml`), which gives every `-p` build the same features of the
+/// third-party crates, so that changing the package set rebuilds none of them. Skipped with a note where
+/// cargo-hakari is not installed: a stale hack only costs build time.
+fn workspace_hack(root: &Path) -> Result<bool> {
+    let installed = Command::new(crate::cargo())
+        .current_dir(root)
+        .args(["hakari", "--version"])
+        .output()
+        .is_ok_and(|o| o.status.success());
+    if !installed {
+        println!("gen: cargo-hakari is not installed; ew-hack is left as it is");
+        return Ok(true);
+    }
+    for args in [&["hakari", "generate"][..], &["hakari", "manage-deps", "--yes"][..]] {
+        let status = Command::new(crate::cargo())
+            .current_dir(root)
+            .args(args)
+            .status()
+            .with_context(|| format!("running cargo {}", args.join(" ")))?;
+        if !status.success() {
             return Ok(false);
         }
     }
