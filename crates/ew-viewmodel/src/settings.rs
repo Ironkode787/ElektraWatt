@@ -905,7 +905,7 @@ fn tighten(_path: &Path, _mode: u32) {}
 
 /// An environment variable as a path, `None` when unset or empty.
 // Program boundary: the settings directory override is read once at start-up and passed in.
-#[allow(clippy::disallowed_methods)]
+#[allow(clippy::disallowed_methods, reason = "the environment is read once at start-up")]
 pub(crate) fn env_path(name: &str) -> Option<PathBuf> {
     std::env::var_os(name)
         .filter(|v| !v.is_empty())

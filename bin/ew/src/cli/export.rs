@@ -521,7 +521,7 @@ pub(super) fn run_export_report_pdf(a: &ExportArgs, session: &ew_api::Session, b
 
 // The program boundary: the one environment input of the exports, and there is no wall-clock fallback (no
 // `SOURCE_DATE_EPOCH` means no creation date), so the same input and variable give the same bytes (doc 18 §3.5).
-#[allow(clippy::disallowed_methods)]
+#[allow(clippy::disallowed_methods, reason = "the environment is read at the program boundary")]
 pub(super) fn source_date_epoch() -> Option<std::ffi::OsString> {
     std::env::var_os("SOURCE_DATE_EPOCH").filter(|v| !v.is_empty())
 }
@@ -529,7 +529,7 @@ pub(super) fn source_date_epoch() -> Option<std::ffi::OsString> {
 // The program boundary: `$APPIMAGE` and `$APPDIR`, the AppImage this `ew` may run from (ID-1187's Linux package) and its
 // mount, read once and passed in, so that `ew git setup` makes git run the AppImage and never its transient mount
 // (WP-S1.17 D28, C49-p9#5, C49-p10#2).
-#[allow(clippy::disallowed_methods)]
+#[allow(clippy::disallowed_methods, reason = "the environment is read at the program boundary")]
 pub(super) fn appimage() -> [Option<std::path::PathBuf>; 2] {
     ["APPIMAGE", "APPDIR"].map(|name| {
         std::env::var_os(name)

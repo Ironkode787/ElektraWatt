@@ -203,8 +203,10 @@ reason = "ADR-0024 decision 4 (QET-derived code)"
 # `examples/` directories, and items under `#[cfg(test)]` or `#[cfg(all(test, ..))]`; a `cfg(any(test, ..))` is
 # production code.
 #
-# A false positive gets an `[[raw_read.allow]]` entry (file, item, reason); the item of a suppression finding is
-# `disallowed_methods`. Inline suppressions of this check are not honoured, and an entry that matches nothing fails.
+# The lint also lists wall-clock, environment and randomness calls. A helper that wraps one such call allows the lint
+# on itself and gives its reason in the attribute (`#[allow(clippy::disallowed_methods, reason = "...")]`): an allow
+# with a reason on one item passes, a crate-wide one does not. Any other false positive gets an `[[raw_read.allow]]`
+# entry (file, item, reason); an entry that matches nothing fails.
 [raw_read]
 crate = "ew-model"
 feature = "raw-read"
@@ -214,46 +216,6 @@ readers = ["ew-model", "ew-derive", "ew-commands", "ew-store"]
 clippy_config = "clippy.toml"
 # The guard's own source names the feature and the macro.
 exempt_packages = ["xtask"]
-
-# The allows of `disallowed_methods` below are for the wall-clock, environment and randomness list that shares the
-# lint (FT-317, doc 18 §3.5), not for a raw reader. Each sits on a one-line helper that wraps the one call, and the
-# entry's `count` is the number of those helpers: a further allow in the file is a finding here, and
-# `cargo xtask check-disallowed-methods` reviews each site (ci/disallowed-methods-allow.toml).
-[[raw_read.allow]]
-path = "bin/ew/src/cli.rs"
-item = "disallowed_methods"
-count = 1
-reason = "debug_panic, a debug build's test fault"
-
-[[raw_read.allow]]
-path = "bin/ew/src/cli/export.rs"
-item = "disallowed_methods"
-count = 2
-reason = "the helpers source_date_epoch and appimage, the CLI's program-boundary environment reads"
-
-[[raw_read.allow]]
-path = "bin/ew/src/cli/library.rs"
-item = "disallowed_methods"
-count = 1
-reason = "the helper content_dir, the CLI's program-boundary environment read"
-
-[[raw_read.allow]]
-path = "bin/elektrawatt/src/main.rs"
-item = "disallowed_methods"
-count = 1
-reason = "the helper dbus_env_path, the portal availability heuristic (two D-Bus variables)"
-
-[[raw_read.allow]]
-path = "crates/ew-viewmodel/src/settings.rs"
-item = "disallowed_methods"
-count = 1
-reason = "the helper env_path, the shell's program-boundary environment read (EW_CONFIG_DIR and the platform directories, read once at start-up)"
-
-[[raw_read.allow]]
-path = "crates/ew-sqlview/src/sandbox.rs"
-item = "disallowed_methods"
-count = 1
-reason = "the helper deadline_now, the monotonic deadline of a sandboxed query"
 
 # [[raw_read.allow]]
 # path = "crates/ew-example/src/lib.rs"   # relative to the workspace root, forward slashes

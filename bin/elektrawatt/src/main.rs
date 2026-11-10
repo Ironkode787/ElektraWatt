@@ -165,7 +165,7 @@ struct RfdPlatform {
 /// An environment variable as a path, `None` when unset or empty.
 // Program boundary: the portal's session bus (`DBUS_SESSION_BUS_ADDRESS`, `XDG_RUNTIME_DIR`) and the directories of
 // the application's resources (`EW_SAMPLE_DIR`, `EW_CONTENT_DIR`, `EW_DOCS_DIR`) are read once at start-up.
-#[allow(clippy::disallowed_methods)]
+#[allow(clippy::disallowed_methods, reason = "the environment is read once at start-up")]
 fn env_path(name: &str) -> Option<PathBuf> {
     std::env::var_os(name)
         .filter(|v| !v.is_empty())

@@ -6,7 +6,7 @@
 use super::*;
 
 // The program boundary: `EW_CONTENT_DIR` only names the directory of the starter content, as `--content` does.
-#[allow(clippy::disallowed_methods)]
+#[allow(clippy::disallowed_methods, reason = "the environment is read at the program boundary")]
 pub(super) fn content_dir() -> Option<PathBuf> {
     std::env::var_os("EW_CONTENT_DIR")
         .filter(|v| !v.is_empty())

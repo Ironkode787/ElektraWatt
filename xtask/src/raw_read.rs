@@ -33,15 +33,14 @@
 //!
 //! The same file carries a `disallowed-types` list of the hash containers (`std::collections::HashMap` and
 //! `HashSet`, and `imbl`'s, [`DISALLOWED_TYPES`]: FT-271, WP-S6.02): their iteration order must not reach a persisted,
-//! exported or printed sequence. It is static (not derived from `ew-model`); `check-ordered-collections`
-//! (`ordered.rs`) reviews the use sites that allow the lint.
+//! exported or printed sequence. It is static (not derived from `ew-model`).
 //!
 //! The `disallowed-methods` list also ends with the wall-clock, environment and randomness functions
 //! ([`DISALLOWED_METHODS`]: FT-317, WP-S6.02, doc 18 §3.5), which share the lint `disallowed_methods` with the raw
-//! readers. A use site that is justified is allowed with `#[allow(clippy::disallowed_methods)]`;
-//! `check-disallowed-methods` (`ordered.rs`) reviews those sites, and scans the reader crates, which opt out of the
-//! whole lint, for the calls themselves. In non-test source, an allow in a package that reaches `ew-model` is a
-//! suppression of this guard too and needs an `[[raw_read.allow]]` entry.
+//! readers. A helper that wraps one such call allows the lint on itself and gives the reason in the attribute
+//! (`#[allow(clippy::disallowed_methods, reason = "...")]`). In non-test source of a package that reaches `ew-model`,
+//! an allow without a reason, a crate-wide allow, an `expect` or an allow of a wider lint group is a suppression of
+//! this guard and a finding.
 //!
 //! The reader crates (`policy.readers`) opt out with `#![allow(clippy::disallowed_methods)]` at each target
 //! root; no other crate may. Clippy finds its configuration by walking up from each package's manifest
@@ -72,9 +71,8 @@
 //!   `all` to `allow`.
 //!   The first two duplicate part of `check-features` on purpose, as the ADR words it.
 //!
-//! A false positive gets an `[[raw_read.allow]]` entry (path, item, reason); the item of a suppression finding
-//! is `disallowed_methods`. Inline suppressions of this check are not honoured and an entry that suppresses
-//! nothing fails. Packages whose normal dependencies cannot reach the gated crate are not scanned (they cannot
+//! A false positive gets an `[[raw_read.allow]]` entry (path, item, reason); an entry that suppresses nothing
+//! fails. Packages whose normal dependencies cannot reach the gated crate are not scanned (they cannot
 //! name its readers).
 //!
 //! # Asset presence (FT-382)
@@ -188,9 +186,7 @@ pub const OPTIONAL_METHODS: [(&str, &str); 5] = [
 /// Not listed, because they do not resolve under the workspace's feature sets: `Uuid::new_v4` and
 /// `Uuid::now_v7` (`uuid` has the `v5` feature only) and `rand::random`, `rand::rng` and `rand::random_range`
 /// (`rand` 0.10 without its `thread_rng` feature, which only `proptest` loads). A crate that enables a generator
-/// feature adds its path here. `check-disallowed-methods` (`ordered.rs`) keeps the allow sites reviewed and
-/// scans the reader crates, which opt out of the whole lint, lexically, and its table names those paths too. The last
-/// two entries are not about determinism: krilla's GIF and WebP image constructors, whose decoders the cargo-vet
+/// feature adds its path here. The last two entries are not about determinism: krilla's GIF and WebP image constructors, whose decoders the cargo-vet
 /// audits assume unreachable (FT-406).
 pub const DISALLOWED_METHODS: [(&str, &str); 13] = [
     ("std::time::SystemTime::now", CLOCK_REASON),
@@ -1313,6 +1309,11 @@ fn suppressions(p: &Parsed, a: &Attr, path: &str, v: &mut Vec<Violation>) {
             continue;
         }
         let Some(close) = p.pair[k + 1] else { continue };
+        // An `allow` of the lint itself on one item that gives its reason is the reviewed exception: the reason
+        // stands where the code is. A crate-wide `#![allow]`, an `expect` and the wider lint groups get no such pass.
+        let reasoned = !a.inner
+            && kind == "allow"
+            && (k + 2..close).any(|j| p.ident(j) == Some("reason") && p.is_p(j + 1, '='));
         let mut j = k + 2;
         while j < close {
             let Some(first) = p.ident(j) else {
@@ -1331,7 +1332,7 @@ fn suppressions(p: &Parsed, a: &Attr, path: &str, v: &mut Vec<Violation>) {
                 lint.push_str(segment);
                 j += 3;
             }
-            if SUPPRESSING.contains(&lint.as_str()) {
+            if SUPPRESSING.contains(&lint.as_str()) && !(reasoned && lint == "clippy::disallowed_methods") {
                 v.push(Violation::new(
                     path,
                     line,
@@ -2672,7 +2673,11 @@ disallowed-types = [
             #[expect(disallowed_methods, reason = \"x\")]\n\
             fn c() {}\n\
             #[allow(dead_code, clippy::style)]\n\
-            fn d() {}\n";
+            fn d() {}\n\
+            #[allow(clippy::disallowed_methods, reason = \"the environment, read once\")]\n\
+            fn e() {}\n\
+            #[allow(clippy::all, reason = \"x\")]\n\
+            fn f() {}\n";
         assert_eq!(
             scan(src),
             [
@@ -2682,6 +2687,7 @@ disallowed-types = [
                 suppresses(6, "allow(warnings)"),
                 suppresses(7, "expect(disallowed_methods)"),
                 suppresses(9, "allow(clippy::style)"),
+                suppresses(13, "allow(clippy::all)"),
             ]
         );
     }
