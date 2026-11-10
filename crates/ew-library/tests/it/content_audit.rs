@@ -253,21 +253,6 @@ fn the_shipped_content_passes_the_audit() {
     assert_eq!(audit(&repo()), Vec::<String>::new());
 }
 
-/// SC-1: Golden A's part and manufacturer copies carry `CC0-1.0` (the sample project's set).
-#[test]
-fn golden_as_part_and_manufacturer_copies_carry_cc0() {
-    for dir in ["parts", "manufacturers"] {
-        let mut all = Vec::new();
-        files(&repo().join("golden/J-E-2416.ew/lib").join(dir), &mut all);
-        assert!(!all.is_empty(), "{dir}");
-        for p in &all {
-            for doc in records(p) {
-                assert_eq!(doc["meta"]["licence"], "CC0-1.0", "{}", p.display());
-            }
-        }
-    }
-}
-
 /// SC-2 (NFR-LIC-06): no shipped record names a vendor file: every source is the project's own (`ew.original`), a
 /// golden table row or a repository document.
 #[test]

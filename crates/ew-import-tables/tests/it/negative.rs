@@ -627,52 +627,42 @@ fn block_row(key: &str, form: &str, first_folio: &str, include: &str, page: &str
     format!("{key},toc,{form},{first_folio},{include},{page},{rect}\n")
 }
 
+/// A bad row of report_blocks.csv is dropped with one error naming file, key and cause, and the good row R2 stays,
+/// one case per defect.
 #[test]
-fn a_report_block_with_an_unknown_form_is_dropped() {
-    let csv = format!(
-        "{BLOCK_HEAD}{}{}",
-        block_row("R1", "ew.frame.nope", "2", "", "", ""),
-        block_row("R2", FORM, "3", "", "", "")
-    );
-    let b = run(&[("report_blocks.csv", &csv)]);
-    expect_error(&b, 3, "report_blocks.csv", "R1", "unknown form");
-    assert_eq!(blocks(&b), 1);
-}
-
-#[test]
-fn a_report_block_including_an_unknown_device_is_dropped() {
-    let csv = format!(
-        "{BLOCK_HEAD}{}{}",
-        block_row("R1", FORM, "2", "-1F1;-9Z9", "", ""),
-        block_row("R2", FORM, "3", "-1F1", "", "")
-    );
-    let b = run(&[("report_blocks.csv", &csv)]);
-    expect_error(&b, 3, "report_blocks.csv", "R1", "unknown device");
-    assert_eq!(blocks(&b), 1);
-}
-
-#[test]
-fn an_embedded_page_needs_an_embedded_rect() {
-    let csv = format!(
-        "{BLOCK_HEAD}{}{}",
-        block_row("R1", FORM, "", "", "101", ""),
-        block_row("R2", FORM, "3", "", "", "")
-    );
-    let b = run(&[("report_blocks.csv", &csv)]);
-    expect_error(&b, 2, "report_blocks.csv", "R1", "go together");
-    assert_eq!(blocks(&b), 1);
-}
-
-#[test]
-fn a_page_oriented_block_needs_a_first_folio() {
-    let csv = format!(
-        "{BLOCK_HEAD}{}{}",
-        block_row("R1", FORM, "", "", "", ""),
-        block_row("R2", FORM, "3", "", "", "")
-    );
-    let b = run(&[("report_blocks.csv", &csv)]);
-    expect_error(&b, 2, "report_blocks.csv", "R1", "first_folio");
-    assert_eq!(blocks(&b), 1);
+fn a_bad_report_block_row_is_dropped() {
+    let cases = [
+        (
+            "an_unknown_form",
+            block_row("R1", "ew.frame.nope", "2", "", "", ""),
+            3,
+            "unknown form",
+        ),
+        (
+            "an_included_unknown_device",
+            block_row("R1", FORM, "2", "-1F1;-9Z9", "", ""),
+            3,
+            "unknown device",
+        ),
+        (
+            "an_embedded_page_without_an_embedded_rect",
+            block_row("R1", FORM, "", "", "101", ""),
+            2,
+            "go together",
+        ),
+        (
+            "a_page_oriented_block_without_a_first_folio",
+            block_row("R1", FORM, "", "", "", ""),
+            2,
+            "first_folio",
+        ),
+    ];
+    for (name, bad, code, needle) in cases {
+        let csv = format!("{BLOCK_HEAD}{bad}{}", block_row("R2", FORM, "3", "", "", ""));
+        let b = run(&[("report_blocks.csv", &csv)]);
+        in_case(name, || expect_error(&b, code, "report_blocks.csv", "R1", needle));
+        assert_eq!(blocks(&b), 1, "case {name}");
+    }
 }
 
 // ---- structure.csv ----------------------------------------------------------------------------------------

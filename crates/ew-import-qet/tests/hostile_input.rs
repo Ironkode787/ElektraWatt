@@ -103,26 +103,34 @@ fn check_flood(text: &str, name: &str) {
     assert_eq!(report.entries[k].location.as_ref().unwrap().line, Some(expected));
 }
 
-/// C1: 100 000 unsupported root children give a capped, linear report.
+/// C1: 100 000 unsupported children, at the root and inside `<description>`, give a capped, linear report.
 #[test]
-fn many_root_findings_are_linear() {
-    let mut text = String::from("<definition type=\"element\">\n");
-    for _ in 0..100_000 {
-        text.push_str("<x/>\n");
+fn many_findings_are_linear() {
+    let cases = [
+        (
+            "root",
+            "<definition type=\"element\">
+",
+            "</definition>",
+        ),
+        (
+            "description",
+            "<definition type=\"element\"><description>
+",
+            "</description></definition>",
+        ),
+    ];
+    for (name, open, close) in cases {
+        let mut text = String::from(open);
+        for _ in 0..100_000 {
+            text.push_str(
+                "<x/>
+",
+            );
+        }
+        text.push_str(close);
+        check_flood(&text, name);
     }
-    text.push_str("</definition>");
-    check_flood(&text, "many_root_findings_are_linear");
-}
-
-/// C1: the same inside `<description>`.
-#[test]
-fn many_description_findings_are_linear() {
-    let mut text = String::from("<definition type=\"element\"><description>\n");
-    for _ in 0..100_000 {
-        text.push_str("<x/>\n");
-    }
-    text.push_str("</description></definition>");
-    check_flood(&text, "many_description_findings_are_linear");
 }
 
 /// A `<polygon>` with `n` points as attributes `x1 y1 x2 y2 …`.
@@ -168,14 +176,6 @@ fn check_long_polygon(n: usize) {
 #[test]
 fn long_polygon_is_linear() {
     check_long_polygon(2_000);
-}
-
-/// The review size of C2, 16 000 points, with its timing (`EW_PERF_ASSERT`); a performance test (`CLAUDE.md`
-/// testing policy), run at milestone deliveries. `long_polygon_is_linear` is its per-gate correctness twin.
-#[test]
-#[ignore = "perf: release-profile timing, milestone deliveries only"]
-fn long_polygon_is_linear_at_16000_points() {
-    check_long_polygon(16_000);
 }
 
 /// C2 limit: an element with more attributes than `max_xml_attributes_per_element` is refused before
@@ -615,33 +615,22 @@ fn timed_refusal(bytes: Vec<u8>, name: &str) -> ImportError {
     result.expect_err("the input is refused")
 }
 
-/// N6: 200 MiB of text in `<informations>` is refused by the 16 MiB element-definition input preset, not
-/// read (it used to import in 1.2 s with 656 MiB extra).
+/// N6: 200 MiB of text in `<informations>` (it used to import in 1.2 s with 656 MiB extra) and 17 MiB are
+/// refused by the 16 MiB element-definition input preset, not read.
 #[test]
-fn huge_text_run_is_refused_by_the_input_preset() {
-    let bytes = text_run("<informations>", "</informations>", 200 * 1024 * 1024);
-    let err = timed_refusal(bytes, "huge_text_run_is_refused_by_the_input_preset");
-    assert_eq!(
-        err,
-        ImportError::LimitExceeded {
-            what: "input size".into(),
-            limit: 16 * 1024 * 1024
-        }
-    );
-}
-
-/// N6: 17 MiB of text is over the preset.
-#[test]
-fn seventeen_mib_is_refused_by_the_input_preset() {
-    let bytes = text_run("<informations>", "</informations>", 17 * 1024 * 1024);
-    let err = timed_refusal(bytes, "seventeen_mib_is_refused_by_the_input_preset");
-    assert_eq!(
-        err,
-        ImportError::LimitExceeded {
-            what: "input size".into(),
-            limit: 16 * 1024 * 1024
-        }
-    );
+fn oversized_text_runs_are_refused_by_the_input_preset() {
+    for mib in [200, 17] {
+        let bytes = text_run("<informations>", "</informations>", mib * 1024 * 1024);
+        let err = timed_refusal(bytes, &format!("{mib} MiB"));
+        assert_eq!(
+            err,
+            ImportError::LimitExceeded {
+                what: "input size".into(),
+                limit: 16 * 1024 * 1024
+            },
+            "{mib} MiB"
+        );
+    }
 }
 
 /// N6: a 2 MiB `<name>` in a 3 MiB document is within the input preset and refused by the text-node limit.

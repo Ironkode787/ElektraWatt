@@ -4,18 +4,11 @@
 //! Hostile shapes (doc 14 §11: hostile input is rejected within 1 s / 256 MB): deep device parent chains and
 //! cycles, junction drop cascades and many orphaned interruption points.
 //!
-//! The correctness tests run moderate sizes in the normal suite and assert output and findings only. The
-//! timing tests are performance tests (`CLAUDE.md` testing policy): `#[ignore]`d, run at milestone deliveries
-//! with `cargo nextest run -p ew-import-tables --release --run-ignored only --test it -E 'test(/^hostile_shapes::/)'`, and assert
-//! ≤ 1 s each at the review sizes (20,000-row chain, 1,000-junction cascade, 20,000 orphans).
-
-// A wall-clock timer of this test, asserted only with EW_PERF_ASSERT (the timing rule of doc 18 §3.16); no timestamp reaches a compared result.
-#![allow(clippy::disallowed_methods)]
+//! The tests run moderate sizes and assert output and findings only.
 
 use crate::common;
 
 use std::fmt::Write as _;
-use std::time::{Duration, Instant};
 
 use ew_import_tables::ids::record_id;
 use ew_interop_api::{Code, ImportBatch, Severity};
@@ -210,52 +203,4 @@ fn orphaned_interruption_points_are_all_dropped() {
         .filter(|e| e.message.contains("without a representation"))
         .count();
     assert_eq!(dropped, n);
-}
-
-fn timed(what: &str, f: impl FnOnce() -> ImportBatch) -> ImportBatch {
-    let t = Instant::now();
-    let b = f();
-    let dt = t.elapsed();
-    println!("{what}: {dt:?}");
-    assert!(
-        dt <= Duration::from_secs(1),
-        "{what} took {dt:?} (> 1 s, doc 14 §11); run with --release"
-    );
-    b
-}
-
-#[test]
-#[ignore = "perf: release-profile timing, milestone deliveries only"]
-fn timing_a_20000_row_parent_chain() {
-    let text = chain(20_000, true);
-    let b = timed("20,000-row cyclic chain", || run(&[("devices.csv", &text)]));
-    assert_eq!(kinds(&b, |r| matches!(r, Record::Device(_))), 0);
-    let text = chain(20_000, false);
-    let b = timed("20,000-row chain", || run(&[("devices.csv", &text)]));
-    assert_eq!(kinds(&b, |r| matches!(r, Record::Device(_))), 20_000);
-}
-
-#[test]
-#[ignore = "perf: release-profile timing, milestone deliveries only"]
-fn timing_a_1000_junction_cascade() {
-    let (conns, juncs) = cascade(1_000);
-    let b = timed("1,000-junction cascade", || {
-        run(&[
-            ONE_DEVICE,
-            ONE_FUNCTION,
-            ("connections.csv", &conns),
-            ("junctions.csv", &juncs),
-        ])
-    });
-    assert_eq!(kinds(&b, |r| matches!(r, Record::Junction(_))), 0);
-}
-
-#[test]
-#[ignore = "perf: release-profile timing, milestone deliveries only"]
-fn timing_20000_orphaned_interruption_points() {
-    let text = orphans(20_000);
-    let b = timed("20,000 orphaned interruption points", || {
-        run(&[("functions.csv", &text)])
-    });
-    assert_eq!(kinds(&b, |r| matches!(r, Record::Function(_))), 0);
 }

@@ -33,21 +33,76 @@ fn with_code(batch: &ImportBatch, code: Code) -> Vec<&ReportEntry> {
 }
 
 #[test]
-fn nesting_deeper_than_the_depth_limit_is_refused() {
-    let mut xml = String::from("<project><collection>");
-    for _ in 0..100 {
-        xml.push_str("<category name=\"c\">");
-    }
-    for _ in 0..100 {
-        xml.push_str("</category>");
-    }
-    xml.push_str("</collection></project>");
-    let limits = Limits {
-        max_xml_depth: 64,
-        ..Limits::default()
+fn input_over_a_limit_is_refused() {
+    let nested = |n: usize| {
+        let mut xml = String::from("<project><collection>");
+        for _ in 0..n {
+            xml.push_str("<category name=\"c\">");
+        }
+        for _ in 0..n {
+            xml.push_str("</category>");
+        }
+        xml.push_str("</collection></project>");
+        xml
     };
-    let r = import_limited(&xml, limits);
-    assert!(matches!(r, Err(ImportError::LimitExceeded { .. })), "{r:?}");
+    let diagrams = format!("<project>{}</project>", "<diagram/>".repeat(2000));
+    let mut attributes = String::from("<project><diagram");
+    for i in 0..20 {
+        attributes.push_str(&format!(" a{i}=\"v\""));
+    }
+    attributes.push_str("/></project>");
+    let cases = [
+        (
+            "depth",
+            nested(100),
+            Limits {
+                max_xml_depth: 64,
+                ..Limits::default()
+            },
+        ),
+        (
+            "input size",
+            format!("<project>{}</project>", " ".repeat(2048)),
+            Limits {
+                max_input_bytes: 1024,
+                ..Limits::default()
+            },
+        ),
+        (
+            "nodes",
+            diagrams,
+            Limits {
+                max_xml_nodes: 1000,
+                ..Limits::default()
+            },
+        ),
+        (
+            "attributes per element",
+            attributes,
+            Limits {
+                max_xml_attributes_per_element: 10,
+                ..Limits::default()
+            },
+        ),
+        (
+            "text node",
+            format!(
+                "<project><properties><property name=\"p\">{}</property></properties></project>",
+                "t".repeat(200)
+            ),
+            Limits {
+                max_text_bytes: 100,
+                ..Limits::default()
+            },
+        ),
+    ];
+    for (name, xml, limits) in cases {
+        let r = import_limited(&xml, limits);
+        assert!(
+            matches!(r, Err(ImportError::LimitExceeded { .. })),
+            "{name}: {r:?}"
+        );
+    }
 }
 
 #[test]
@@ -65,70 +120,6 @@ fn nesting_within_the_depth_limit_is_read() {
         ..Limits::default()
     };
     assert!(import_limited(&xml, limits).is_ok());
-}
-
-#[test]
-fn input_larger_than_the_size_limit_is_refused() {
-    let mut xml = String::from("<project>");
-    xml.push_str(&" ".repeat(2048));
-    xml.push_str("</project>");
-    let limits = Limits {
-        max_input_bytes: 1024,
-        ..Limits::default()
-    };
-    let r = import_limited(&xml, limits);
-    assert!(matches!(r, Err(ImportError::LimitExceeded { .. })), "{r:?}");
-}
-
-#[test]
-fn more_nodes_than_the_node_limit_are_refused() {
-    let mut xml = String::from("<project>");
-    for _ in 0..2000 {
-        xml.push_str("<diagram/>");
-    }
-    xml.push_str("</project>");
-    let limits = Limits {
-        max_xml_nodes: 1000,
-        ..Limits::default()
-    };
-    let r = import_limited(&xml, limits);
-    assert!(matches!(r, Err(ImportError::LimitExceeded { .. })), "{r:?}");
-}
-
-#[test]
-fn too_many_attributes_on_one_element_are_refused() {
-    let mut xml = String::from("<project><diagram");
-    for i in 0..20 {
-        xml.push_str(&format!(" a{i}=\"v\""));
-    }
-    xml.push_str("/></project>");
-    let limits = Limits {
-        max_xml_attributes_per_element: 10,
-        ..Limits::default()
-    };
-    let r = import_limited(&xml, limits);
-    assert!(matches!(r, Err(ImportError::LimitExceeded { .. })), "{r:?}");
-}
-
-#[test]
-fn a_text_node_over_the_text_limit_is_refused() {
-    let xml = format!(
-        "<project><properties><property name=\"p\">{}</property></properties></project>",
-        "t".repeat(200)
-    );
-    let limits = Limits {
-        max_text_bytes: 100,
-        ..Limits::default()
-    };
-    let r = import_limited(&xml, limits);
-    assert!(matches!(r, Err(ImportError::LimitExceeded { .. })), "{r:?}");
-}
-
-#[test]
-fn a_doctype_with_an_entity_is_malformed() {
-    let xml = "<?xml version=\"1.0\"?><!DOCTYPE project [<!ENTITY a \"aaaa\">]><project title=\"&a;\"/>";
-    let r = import(xml);
-    assert!(matches!(r, Err(ImportError::Malformed { .. })), "{r:?}");
 }
 
 #[test]

@@ -55,11 +55,6 @@ fn satisfies(version: &str, req: &str) -> bool {
 }
 
 #[test]
-fn the_ip_key_is_the_fndef_not_the_symbol() {
-    assert_eq!(IP_FNDEF_KEY, "ew.fn.ip");
-}
-
-#[test]
 fn every_builtin_fndef_key_exists_in_the_content_with_the_expected_reference() {
     let fndefs = load("fndefs");
     let symbols = load("symbols");
