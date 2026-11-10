@@ -530,11 +530,7 @@ mod tests {
         let scaled = scaled_title(&title, 10);
         assert_eq!(scaled.get(&en), Some("Cabinet Layout · Scale 1:10"));
         assert_eq!(scaled.get(&nl), Some("Kastindeling · Schaal 1:10"));
-    }
-
-    /// The word follows each entry's primary subtag ("Schaal" for `nl`, else "Scale").
-    #[test]
-    fn the_scale_word_follows_each_language() {
+        // The word follows each entry's primary subtag ("Schaal" for `nl`, else "Scale").
         let nl: LangTag = "nl".parse().expect("a tag");
         let de: LangTag = "de-DE".parse().expect("a tag");
         let title = MlText::from_langs([(nl.clone(), "Kastindeling"), (de.clone(), "Schaltschrank")]);

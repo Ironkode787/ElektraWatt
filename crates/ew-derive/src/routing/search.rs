@@ -1024,6 +1024,18 @@ mod tests {
         let mut bad = req(end(0, 0, None), end(3, 4, None), vec![]);
         bad.grid = (0, 1);
         assert_eq!(auto_route(&bad), vec![p(0, 0), p(3, 4)]);
+        // The result says it is direct; the same ends without the walls are routed.
+        let to = end(10, 10, None);
+        let walls = vec![
+            rect(7, 7, 13, 9),
+            rect(7, 11, 13, 13),
+            rect(7, 7, 9, 13),
+            rect(11, 7, 13, 13),
+        ];
+        let walled = route(&req(end(0, 0, Some(Heading::Right)), to, walls));
+        assert!(walled.direct);
+        assert_eq!(walled.points, vec![p(0, 0), p(10, 10)]);
+        assert!(!route(&req(end(0, 0, Some(Heading::Right)), to, vec![])).direct);
     }
 
     #[test]
@@ -1322,6 +1334,16 @@ mod tests {
         out
     }
 
+    /// The wires of `(x, y, len, horizontal)` draws: each runs `len` mm from (x, y), along x or along y.
+    fn wires_of(ws: &[(i64, i64, i64, bool)]) -> Vec<[(i64, i64); 2]> {
+        ws.iter()
+            .map(|&(x, y, len, horizontal)| {
+                let b = if horizontal { (x + len, y) } else { (x, y + len) };
+                [p(x, y), p(b.0, b.1)]
+            })
+            .collect()
+    }
+
     fn with_wires(mut r: RouteRequest, polylines: &[&[(i64, i64)]]) -> RouteRequest {
         for line in polylines {
             for w in line.windows(2) {
@@ -1510,21 +1532,6 @@ mod tests {
     }
 
     #[test]
-    fn without_a_route_the_result_says_it_is_direct() {
-        let to = end(10, 10, None);
-        let walls = vec![
-            rect(7, 7, 13, 9),
-            rect(7, 11, 13, 13),
-            rect(7, 7, 9, 13),
-            rect(11, 7, 13, 13),
-        ];
-        let walled = route(&req(end(0, 0, Some(Heading::Right)), to, walls));
-        assert!(walled.direct);
-        assert_eq!(walled.points, vec![p(0, 0), p(10, 10)]);
-        assert!(!route(&req(end(0, 0, Some(Heading::Right)), to, vec![])).direct);
-    }
-
-    #[test]
     fn a_text_thinner_than_a_step_between_two_nodes_is_not_run_over() {
         // A text from x = 4.2 to 5.8 mm and y = -0.4 to 0.4 mm holds no grid node, yet the straight run crosses it.
         let text = [4 * MM + MM / 5, -2 * MM / 5, 5 * MM + 4 * MM / 5, 2 * MM / 5];
@@ -1620,13 +1627,7 @@ mod tests {
         ) {
             let obstacles = ob.iter().map(|&(x, y, w, hh)| rect(x, y, x + w, y + hh)).collect();
             let rq = RouteRequest {
-                wires: ws
-                    .iter()
-                    .map(|&(x, y, len, horizontal)| {
-                        let b = if horizontal { (x + len, y) } else { (x, y + len) };
-                        [p(x, y), p(b.0, b.1)]
-                    })
-                    .collect(),
+                wires: wires_of(&ws),
                 reserved: rs.iter().map(|&(x, y)| p(x, y)).collect(),
                 ..req(
                     end(fx, fy, fd.map(|k| Heading::ALL[k])),
@@ -1678,13 +1679,7 @@ mod tests {
         ) {
             let mut obstacles: Vec<[i64; 4]> = ob.iter().map(|&(x, y, w, hh)| rect(x, y, x + w, y + hh)).collect();
             let mut reserved: Vec<(i64, i64)> = rs.iter().map(|&(x, y)| p(x, y)).collect();
-            let mut wires: Vec<[(i64, i64); 2]> = ws
-                .iter()
-                .map(|&(x, y, len, horizontal)| {
-                    let b = if horizontal { (x + len, y) } else { (x, y + len) };
-                    [p(x, y), p(b.0, b.1)]
-                })
-                .collect();
+            let mut wires = wires_of(&ws);
             // Put the start on something the search would otherwise block.
             match start_blocked {
                 1 => reserved.push(p(fx, fy)),
@@ -1762,13 +1757,7 @@ mod tests {
         let mut found = Vec::new();
         for ((fx, fy, fd), (tx, ty, td), ws) in cases {
             let rq = RouteRequest {
-                wires: ws
-                    .iter()
-                    .map(|&(x, y, len, horizontal)| {
-                        let b = if horizontal { (x + len, y) } else { (x, y + len) };
-                        [p(x, y), p(b.0, b.1)]
-                    })
-                    .collect(),
+                wires: wires_of(&ws),
                 ..req(
                     end(fx, fy, Some(Heading::ALL[fd])),
                     end(tx, ty, Some(Heading::ALL[td])),

@@ -484,6 +484,8 @@ mod tests {
             ("unicode literal", Plain, "∞ {page}", "∞ 102"),
             // A list token in an item format prints nothing.
             ("list token in an item", Plain, "a{list}b", "ab"),
+            // Unknown names stay literal.
+            ("unknown names stay literal", Plain, "a{foo}b%qc", "a{foo}b%qc"),
         ];
         for (name, how, format, expected) in cases {
             let got = match how {
@@ -511,14 +513,14 @@ mod tests {
     /// Parse examples: (name, format, expected tokens).
     #[test]
     fn parse_examples() {
-        use XrefToken::{Column, List, Lit, Page, Row};
+        use XrefToken::{Column, List, Lit, Location, Page, Row};
         // The QET preset equals the brace preset.
         assert_eq!(
             parse_format("%F-%l%c"),
             parse_format("{page}-{row}{column}"),
             "case qet preset equals brace preset"
         );
-        let cases: [(&str, &str, Vec<XrefToken>); 6] = [
+        let cases: Vec<(&str, &str, Vec<XrefToken>)> = vec![
             (
                 "brace preset",
                 "{page}-{row}{column}",
@@ -530,6 +532,25 @@ mod tests {
             ("literals merge", "a{foo}%%%q{x", vec![Lit("a{foo}%%q{x".into())]),
             ("empty", "", vec![]),
             ("list token and unicode", "∞ {list}", vec![Lit("∞ ".into()), List]),
+            // Unknown names and a lone `%` or `{` stay literal.
+            ("unknown brace name", "{foo}", vec![Lit("{foo}".into())]),
+            ("empty braces", "{}", vec![Lit("{}".into())]),
+            ("unknown percent letter", "%q", vec![Lit("%q".into())]),
+            ("trailing percent", "100%", vec![Lit("100%".into())]),
+            ("percent alone", "%", vec![Lit("%".into())]),
+            ("percent L alone", "%L", vec![Lit("%L".into())]),
+            ("percent unicode", "%∞", vec![Lit("%∞".into())]),
+            // An unclosed brace is literal to the end.
+            (
+                "unclosed brace after a token",
+                "{page}-{page",
+                vec![Page, Lit("-{page".into())],
+            ),
+            ("unclosed brace alone", "{", vec![Lit("{".into())]),
+            // `%LM` is checked before `%l`.
+            ("percent LM", "%LM", vec![Location]),
+            ("percent l", "%l", vec![Row]),
+            ("percent l then M", "%lM", vec![Row, Lit("M".into())]),
         ];
         for (name, format, expected) in cases {
             assert_eq!(parse_format(format), expected, "case {name}");
@@ -570,37 +591,6 @@ mod tests {
         assert_eq!(
             item("{page}-{row}{column}", &v, &ItemOptions::default()),
             "102-??"
-        );
-    }
-
-    #[test]
-    fn unknown_names_stay_literal() {
-        assert_eq!(parse_format("{foo}"), vec![XrefToken::Lit("{foo}".into())]);
-        assert_eq!(parse_format("{}"), vec![XrefToken::Lit("{}".into())]);
-        assert_eq!(parse_format("%q"), vec![XrefToken::Lit("%q".into())]);
-        assert_eq!(plain("a{foo}b%qc"), "a{foo}b%qc");
-        assert_eq!(parse_format("100%"), vec![XrefToken::Lit("100%".into())]);
-        assert_eq!(parse_format("%"), vec![XrefToken::Lit("%".into())]);
-        assert_eq!(parse_format("%L"), vec![XrefToken::Lit("%L".into())]);
-        assert_eq!(parse_format("%∞"), vec![XrefToken::Lit("%∞".into())]);
-    }
-
-    #[test]
-    fn unclosed_brace_is_literal_to_the_end() {
-        assert_eq!(
-            parse_format("{page}-{page"),
-            vec![XrefToken::Page, XrefToken::Lit("-{page".into())]
-        );
-        assert_eq!(parse_format("{"), vec![XrefToken::Lit("{".into())]);
-    }
-
-    #[test]
-    fn lm_is_checked_before_l() {
-        assert_eq!(parse_format("%LM"), vec![XrefToken::Location]);
-        assert_eq!(parse_format("%l"), vec![XrefToken::Row]);
-        assert_eq!(
-            parse_format("%lM"),
-            vec![XrefToken::Row, XrefToken::Lit("M".into())]
         );
     }
 

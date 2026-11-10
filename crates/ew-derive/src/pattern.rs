@@ -95,7 +95,7 @@ mod tests {
     }
 
     #[test]
-    fn placeholders_are_expressions_in_n() {
+    fn placeholders_are_expressions_in_n_and_literal_text_is_kept() {
         assert_eq!(ok("{n}", 3), "3");
         assert_eq!(ok("DO {n}", 0), "DO 0");
         assert_eq!(ok("X2:{n+1}", 0), "X2:1");
@@ -104,10 +104,6 @@ mod tests {
         assert_eq!(ok("{4n}", 5), "20");
         assert_eq!(ok("A{n}.{n+1}", 2), "A2.3");
         assert_eq!(ok("{n}{n}", 4), "44");
-    }
-
-    #[test]
-    fn literal_text_is_kept() {
         assert_eq!(ok("", 5), "");
         assert_eq!(ok("COM", 5), "COM");
         assert_eq!(ok("a:b/c-d é", 5), "a:b/c-d é");
