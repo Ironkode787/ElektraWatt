@@ -10,14 +10,8 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Outcome;
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    let out = h.state_mut().shell_mut().dispatch(action, &params);
-    assert_eq!(out, Outcome::Done, "{action}: {out:?}");
-}
+use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
 /// `command.run` of `cmd` as the window runs it: its refusal is the banner, which the window shows.
 fn refused_in_window(h: &mut Harness<'_, App>, cmd: &str, params: Value) -> String {

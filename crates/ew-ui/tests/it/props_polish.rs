@@ -12,29 +12,9 @@ use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::{Dialog, Focus, Outcome};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn on_902(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": "902" }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
+use ew_ui::ew_viewmodel::shell::{Dialog, Focus};
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, harness, settle};
 
 /// F as a keyboard gives it: the key and the typed letter, in one frame.
 fn type_f(h: &mut Harness<'_, App>) {
@@ -102,7 +82,7 @@ fn text_in(h: &Harness<'_, App>, text: &str, inside: egui::Rect) -> egui::Rect {
 #[test]
 fn the_device_row_is_a_link_that_a_click_follows() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = support::on_golden(&tmp, "902");
     select_placement(&mut h, "-102F1");
     let link = h.get_by_role_and_label(egui::Role::Link, "-102F1");
     link.hover();
@@ -125,7 +105,7 @@ fn the_device_row_is_a_link_that_a_click_follows() {
 #[test]
 fn f_follows_the_device_row_and_is_typed_elsewhere() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = support::on_golden(&tmp, "902");
     select_placement(&mut h, "-102F1");
     dispatch(&mut h, "props.focus", json!({}));
     settle(&mut h);
@@ -173,7 +153,7 @@ fn f_follows_the_device_row_and_is_typed_elsewhere() {
 #[test]
 fn the_editors_text_is_centred_as_the_values() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = support::on_golden(&tmp, "902");
     dispatch(&mut h, "select.set", json!({"ids": []}));
     settle(&mut h);
     let cell = h
@@ -202,7 +182,7 @@ fn options(h: &Harness<'_, App>) -> Option<egui::Rect> {
 #[test]
 fn a_choice_list_with_no_match_opens_no_popup() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = support::on_golden(&tmp, "902");
     dispatch(&mut h, "select.set", json!({"ids": []}));
     settle(&mut h);
     dispatch(&mut h, "props.edit", json!({"row": "page/derived.label_mode"}));
@@ -226,7 +206,7 @@ fn a_choice_list_with_no_match_opens_no_popup() {
 #[test]
 fn the_choice_list_starts_under_the_value_cell() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = support::on_golden(&tmp, "902");
     for (size, exact) in [((1920.0, 1080.0), true), ((1280.0, 800.0), false)] {
         h.set_size(egui::Vec2::new(size.0, size.1));
         settle(&mut h);
@@ -256,7 +236,7 @@ fn the_choice_list_starts_under_the_value_cell() {
 #[test]
 fn home_and_end_scroll_the_cursor_row_into_view() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = support::on_golden(&tmp, "902");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-102F1"]}));
@@ -334,7 +314,7 @@ fn ft1491_the_address_profile_row_shows_the_name_its_reference_in_the_tooltip() 
     // Golden A's configuration project PLC1.
     const PLC1: &str = "4a1d3ee5-9e34-5065-b364-09f61b6e7c30";
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = support::on_golden(&tmp, "902");
     dispatch(&mut h, "navigator.show", json!({"kind": "plc"}));
     dispatch(
         &mut h,

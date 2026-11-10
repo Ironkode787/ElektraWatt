@@ -15,15 +15,7 @@ use ew_ui::ew_viewmodel::ew_api::ew_jobs::Gate;
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_ui::visual::{Driver, FrameRequest, Geometry, parse_input};
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, harness_with, settle};
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
+use support::{Scripted, Tmp, dispatch, harness, harness_with, settle};
 
 /// Frames until the print set is built (bounded); its thread wakes the window, a frame takes its end.
 fn run_until_built(h: &mut Harness<'_, App>) {
@@ -235,9 +227,10 @@ fn ft1124_a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1125 (doc 16a §6.12): the pre-dialog's first focus is its Primary, Print…, once the set is built.
+/// FT-1125 (doc 16a §6.12): the pre-dialog's first focus is its Primary, Print…, once the set is built. FT-1198 (doc 16a
+/// §6.1, §6.12): that first focus shows its focus ring: a `color.focus` stroke round the button, whole inside its clip.
 #[test]
-fn ft1125_the_first_focus_is_print() {
+fn ft1125_ft1198_the_first_focus_is_print_and_shows_its_focus_ring() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -250,20 +243,6 @@ fn ft1125_the_first_focus_is_print() {
         .map(|n| n.accesskit_node().label().unwrap_or_default())
         .collect();
     assert_eq!(focused, ["Print…"]);
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// FT-1198 (doc 16a §6.1, §6.12): the first focus, Print…, shows its focus ring: a `color.focus` stroke round the
-/// button, whole inside its clip.
-#[test]
-fn ft1198_the_first_focus_shows_its_focus_ring() {
-    let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
-    settle(&mut h);
-    dispatch(&mut h, "file.print", json!({"range": "current"}));
-    run_until_built(&mut h);
-    settle(&mut h);
     let button = h.get_by_role_and_label(egui::Role::Button, "Print…").rect();
     let t = ew_ui::theme::current(&h.ctx);
     let rings: Vec<(egui::Rect, egui::Rect)> = shapes(&h)

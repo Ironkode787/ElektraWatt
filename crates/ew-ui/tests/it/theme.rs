@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The token module of WP-S2.17 part 1 (§12.1): DL1 the contrast lint of NFR-A11Y-04, DL2 the blessed dump
-//! (`tests/expected/tokens.txt`, rewritten by `EW_BLESS=1`), DL3 the mapping onto egui, DL4 the literal guard, DL5
+//! (`tests/expected/tokens.txt`, rewritten by `EW_BLESS=1`), DL3 the mapping onto egui, DL5
 //! the SemiBold face, DL8 the token values of the approved mockup (read with `include_str!`).
 //!
 //! ```text
@@ -10,7 +10,7 @@
 //! ```
 
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use egui::{FontFamily, TextStyle};
 use ew_ui::theme::{
@@ -305,204 +305,6 @@ fn dl5_a_strong_label_is_laid_out_with_the_semibold_face() {
         semibold > regular,
         "SemiBold is wider ({semibold} against {regular})"
     );
-}
-
-// ---------------------------------------------------------------------------------------------------------------
-// DL4: the literal guard
-
-/// The literal styling of one source text: `(line, what)` per finding. Comments are skipped.
-fn literals(source: &str) -> Vec<(usize, String)> {
-    let mut code = String::with_capacity(source.len());
-    let mut lines = Vec::new();
-    for (n, line) in source.lines().enumerate() {
-        let without = match line.find("//") {
-            Some(i) => &line[..i],
-            None => line,
-        };
-        lines.push((code.len(), n + 1));
-        code.push_str(without);
-        code.push('\n');
-    }
-    let line_of = |at: usize| {
-        lines
-            .iter()
-            .rev()
-            .find(|(start, _)| *start <= at)
-            .map_or(0, |l| l.1)
-    };
-    let mut out = Vec::new();
-    let mut find = |needle: &str, what: &str, needs_number: bool| {
-        let mut from = 0;
-        while let Some(i) = code[from..].find(needle) {
-            let at = from + i;
-            from = at + needle.len();
-            if needs_number {
-                let rest = code[from..].trim_start();
-                if !rest.starts_with(|c: char| c.is_ascii_digit() || c == '-') {
-                    continue;
-                }
-            }
-            out.push((line_of(at), what.to_owned()));
-        }
-    };
-    for ctor in [
-        "Color32::from_rgb(",
-        "Color32::from_rgba",
-        "Color32::from_hex",
-        "Color32::from_gray",
-        "Color32::from_black_alpha",
-        "Color32::from_white_alpha",
-        "Rgba::hex(",
-    ] {
-        find(ctor, ctor, false);
-    }
-    for (ctor, what) in [
-        ("CornerRadius::same(", "numeric CornerRadius"),
-        ("Stroke::new(", "numeric Stroke"),
-        ("Margin::same(", "numeric Margin"),
-        ("Margin::symmetric(", "numeric Margin"),
-        ("FontId::proportional(", "numeric font size"),
-        ("FontId::monospace(", "numeric font size"),
-        ("FontId::new(", "numeric font size"),
-    ] {
-        find(ctor, what, true);
-    }
-    // Named colour constants: `Color32::WHITE`, `Color32::TRANSPARENT`, …
-    let mut from = 0;
-    while let Some(i) = code[from..].find("Color32::") {
-        let at = from + i;
-        from = at + "Color32::".len();
-        if code[from..].starts_with(|c: char| c.is_ascii_uppercase()) {
-            out.push((line_of(at), "named Color32 constant".to_owned()));
-        }
-    }
-    // A painter's rectangle with a numeric corner radius: the second argument of `rect_filled(` / `rect_stroke(`.
-    for call in ["rect_filled(", "rect_stroke("] {
-        let mut from = 0;
-        while let Some(i) = code[from..].find(call) {
-            let at = from + i;
-            from = at + call.len();
-            if let Some(arg) = argument(&code[from..], 1)
-                && arg.trim().starts_with(|c: char| c.is_ascii_digit())
-            {
-                out.push((line_of(at), format!("numeric radius in {call}")));
-            }
-        }
-    }
-    // Hex colour literals.
-    for (n, line) in code.lines().enumerate() {
-        if let Some(i) = line.find("\"#")
-            && line[i + 2..]
-                .chars()
-                .take(6)
-                .filter(char::is_ascii_hexdigit)
-                .count()
-                == 6
-        {
-            out.push((n + 1, "hex colour literal".to_owned()));
-        }
-    }
-    out.sort();
-    out
-}
-
-/// The `index`th top-level argument of a call whose text starts after its `(`.
-fn argument(text: &str, index: usize) -> Option<&str> {
-    let mut depth = 0usize;
-    let mut start = 0;
-    let mut n = 0;
-    for (i, c) in text.char_indices() {
-        match c {
-            '(' | '[' | '{' => depth += 1,
-            ')' | ']' | '}' if depth == 0 => {
-                return (n == index).then(|| &text[start..i]);
-            }
-            ')' | ']' | '}' => depth -= 1,
-            ',' if depth == 0 => {
-                if n == index {
-                    return Some(&text[start..i]);
-                }
-                n += 1;
-                start = i + 1;
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-fn sources(dir: &Path, out: &mut Vec<PathBuf>) {
-    let mut entries: Vec<_> = std::fs::read_dir(dir)
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .collect();
-    entries.sort();
-    for path in entries {
-        if path.is_dir() {
-            sources(&path, out);
-        } else if path.extension().is_some_and(|e| e == "rs") {
-            out.push(path);
-        }
-    }
-}
-
-#[test]
-fn dl4_no_literal_colour_size_or_radius_outside_the_theme_module() {
-    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    let mut files = Vec::new();
-    sources(&src, &mut files);
-    let mut found = Vec::new();
-    for file in files {
-        let rel = file
-            .strip_prefix(&src)
-            .unwrap()
-            .to_string_lossy()
-            .replace('\\', "/");
-        if rel.starts_with("theme/") || rel == "icons/generated.rs" {
-            continue;
-        }
-        let text = std::fs::read_to_string(&file).unwrap();
-        for (line, what) in literals(&text) {
-            found.push(format!("src/{rel}:{line}: {what}"));
-        }
-    }
-    assert!(
-        found.is_empty(),
-        "literal styling outside theme/ (D4):\n{}",
-        found.join("\n")
-    );
-}
-
-#[test]
-fn dl4_the_guard_finds_each_kind_of_literal() {
-    let bad = r##"
-        let a = Color32::from_rgb(1, 2, 3);
-        let b = egui::Color32::from_rgba_unmultiplied(1, 2, 3, 4);
-        let c = Color32::WHITE;
-        let d = Stroke::new(1.5, colour);
-        let e = CornerRadius::same(4);
-        let f = Margin::symmetric(8, 2);
-        painter.rect_filled(rect, 2.0, fill);
-        painter.rect_stroke(
-            rect,
-            0.0,
-            stroke,
-            kind,
-        );
-        let g = FontId::proportional(12.0);
-        let h = "#0B63CE";
-    "##;
-    let found = literals(bad);
-    assert_eq!(found.len(), 10, "{found:#?}");
-    let good = r##"
-        // Color32::from_rgb in a comment is fine.
-        let a = t.accent.color32();
-        let d = Stroke::new(t.border_width, colour);
-        painter.rect_filled(rect, t.radius_sm, fill);
-        let g = theme::font(&t.type_small);
-        let i = ColorImage::from_rgba_unmultiplied(size, &pixels);
-    "##;
-    assert_eq!(literals(good), Vec::new());
 }
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -22,8 +22,8 @@ use ew_ui::app::{App, Pick};
 use ew_ui::ew_viewmodel::settings::Settings;
 use ew_ui::ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use ew_ui::ew_viewmodel::{key, strings};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, harness_with, settle, wait_for_page};
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, harness, harness_with, settle, wait_for_page};
 
 /// D14's window, in points.
 const WINDOW: Vec2 = Vec2::new(1280.0, 720.0);
@@ -33,11 +33,6 @@ const WINDOW: Vec2 = Vec2::new(1280.0, 720.0);
 enum Size {
     At300,
     Min14,
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    let out = h.state_mut().shell_mut().dispatch(action, &params);
-    assert_eq!(out, Outcome::Done, "{action}: {out:?}");
 }
 
 /// The UI scale of `size` on a display of the window's points at that scale and, at 100 %, the minimum text size
@@ -112,12 +107,7 @@ fn new_project(size: Size) {
 fn renumber(size: Size) {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, size);
-    dispatch(
-        &mut h,
-        "command.run",
-        json!({"cmd": "project.settings.set", "params": {"member": "numbering", "value": {"default": "page-based",
-            "schemes": [{"key": "page-based", "format": "{page}{letter}{counter}", "rules": [], "child_separator": "-"}]}}}),
-    );
+    support::page_based_numbering(&mut h);
     for action in ["devices.renumber", "pages.renumber"] {
         dispatch(&mut h, action, json!({}));
         step(&mut h);
@@ -311,84 +301,52 @@ fn ax3_a_first_run_footer_below_the_window_is_reported() {
     h.state_mut().shell_mut().shutdown();
 }
 
-#[test]
-fn ax3_new_project_at_300() {
-    new_project(Size::At300);
+/// Runs a flow at 300 % and with the minimum text size 14 pt; a failure's captured output names the size.
+fn at_both_sizes(flow: fn(Size)) {
+    for size in [Size::At300, Size::Min14] {
+        eprintln!("at {size:?}");
+        flow(size);
+    }
 }
 
 #[test]
-fn ax3_new_project_with_14_pt_text() {
-    new_project(Size::Min14);
+fn ax3_new_project_at_300_and_with_14_pt_text() {
+    at_both_sizes(new_project);
 }
 
 #[test]
-fn ax3_renumber_devices_and_pages_at_300() {
-    renumber(Size::At300);
+fn ax3_renumber_devices_and_pages_at_300_and_with_14_pt_text() {
+    at_both_sizes(renumber);
 }
 
 #[test]
-fn ax3_renumber_devices_and_pages_with_14_pt_text() {
-    renumber(Size::Min14);
+fn ax3_the_print_pre_dialog_at_300_and_with_14_pt_text() {
+    at_both_sizes(print);
 }
 
 #[test]
-fn ax3_the_print_pre_dialog_at_300() {
-    print(Size::At300);
+fn ax3_find_and_replace_at_300_and_with_14_pt_text() {
+    at_both_sizes(find_and_replace);
 }
 
 #[test]
-fn ax3_the_print_pre_dialog_with_14_pt_text() {
-    print(Size::Min14);
+fn ax3_the_settings_switches_at_300_and_with_14_pt_text() {
+    at_both_sizes(settings_switches);
 }
 
 #[test]
-fn ax3_find_and_replace_at_300() {
-    find_and_replace(Size::At300);
+fn ax3_the_first_run_steps_at_300_and_with_14_pt_text() {
+    at_both_sizes(first_run);
 }
 
 #[test]
-fn ax3_find_and_replace_with_14_pt_text() {
-    find_and_replace(Size::Min14);
+fn ax3_the_recovery_dialog_at_300_and_with_14_pt_text() {
+    at_both_sizes(recovery);
 }
 
 #[test]
-fn ax3_the_settings_switches_at_300() {
-    settings_switches(Size::At300);
-}
-
-#[test]
-fn ax3_the_settings_switches_with_14_pt_text() {
-    settings_switches(Size::Min14);
-}
-
-#[test]
-fn ax3_the_first_run_steps_at_300() {
-    first_run(Size::At300);
-}
-
-#[test]
-fn ax3_the_first_run_steps_with_14_pt_text() {
-    first_run(Size::Min14);
-}
-
-#[test]
-fn ax3_the_recovery_dialog_at_300() {
-    recovery(Size::At300);
-}
-
-#[test]
-fn ax3_the_recovery_dialog_with_14_pt_text() {
-    recovery(Size::Min14);
-}
-
-#[test]
-fn ax3_the_parts_import_card_at_300() {
-    parts_import(Size::At300);
-}
-
-#[test]
-fn ax3_the_parts_import_card_with_14_pt_text() {
-    parts_import(Size::Min14);
+fn ax3_the_parts_import_card_at_300_and_with_14_pt_text() {
+    at_both_sizes(parts_import);
 }
 
 /// AX-2: View ▸ UI scale and the first run's appearance step offer 250 % and 300 %; choosing either writes it to

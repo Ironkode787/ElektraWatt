@@ -15,15 +15,10 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::{App, Pick};
 use ew_ui::ew_viewmodel::navigators::NavKind;
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_ui::ew_viewmodel::shell::{Mode, ShellModel};
 use ew_ui::ew_viewmodel::{key, strings};
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, harness_with, settle, wait_for_page};
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    let out = h.state_mut().shell_mut().dispatch(action, &params);
-    assert_eq!(out, Outcome::Done, "{action}: {out:?}");
-}
+use support::{Scripted, Tmp, dispatch, harness, harness_with, settle, wait_for_page};
 
 /// Whether a tab (the command bar's) is labelled `label`.
 fn bar_tab(h: &Harness<'_, App>, label: &str) -> bool {
@@ -184,12 +179,7 @@ fn lo5_a_terminal_strip_in_the_pseudo_locale() {
 fn lo5_renumber_in_the_pseudo_locale() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
-    dispatch(
-        &mut h,
-        "command.run",
-        json!({"cmd": "project.settings.set", "params": {"member": "numbering", "value": {"default": "page-based",
-            "schemes": [{"key": "page-based", "format": "{page}{letter}{counter}", "rules": [], "child_separator": "-"}]}}}),
-    );
+    support::page_based_numbering(&mut h);
     dispatch(&mut h, "devices.renumber", json!({}));
     step(&mut h);
     support::off_chrome(&h, strings::text(key!("dialog-renumber")))
@@ -239,12 +229,7 @@ fn lo2_view_language_nederlands_and_back_in_the_window() {
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     // An open card: the renumber preview of `preview_history.rs`.
-    dispatch(
-        &mut h,
-        "command.run",
-        json!({"cmd": "project.settings.set", "params": {"member": "numbering", "value": {"default": "page-based",
-            "schemes": [{"key": "page-based", "format": "{page}{letter}{counter}", "rules": [], "child_separator": "-"}]}}}),
-    );
+    support::page_based_numbering(&mut h);
     dispatch(&mut h, "devices.renumber", json!({}));
     settle(&mut h);
     support::off_chrome(&h, "Renumber")

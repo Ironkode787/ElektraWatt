@@ -15,15 +15,7 @@ use ew_ui::app::App;
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_ui::ew_viewmodel::shell::{Outcome, ShellModel};
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn done(shell: &mut ShellModel, action: &str, params: Value) {
-    assert_eq!(
-        shell.dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
+use support::{Scripted, Tmp, done, harness, settle, wait_for_page};
 
 /// The four pointer events of a double click at `at`, all in one frame (as `tests/data_grid.rs` gives them).
 fn double_click(h: &mut Harness<'static, App>, at: egui::Pos2) {
@@ -60,17 +52,11 @@ fn cell_name(shell: &ShellModel, node: u32, label: &str) -> String {
     format!("{head}, row {at} of {}", rows.len())
 }
 
-#[test]
-fn the_type_cell_of_an_undefined_potential_is_editable() {
-    let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
-    let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    let shell = h.state_mut().shell_mut();
+/// The Potentials table on show with 24VDC-4's definition deleted: the potential is known only at its connection points
+/// (FT-515's situation).
+fn undefine_24vdc4(shell: &mut ShellModel) {
     done(shell, "navigator.show", json!({"kind": "potentials"}));
     done(shell, "navigator.table", json!({"kind": "potentials"}));
-    // FT-515's situation: 24VDC-4's definition deleted, the potential is known only at its CPs.
     let def = {
         let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
         t.nodes
@@ -84,6 +70,17 @@ fn the_type_cell_of_an_undefined_potential_is_editable() {
         "command.run",
         json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "potential_def", "id": def.to_string()}]}}),
     );
+}
+
+#[test]
+fn the_type_cell_of_an_undefined_potential_is_editable() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    let shell = h.state_mut().shell_mut();
+    undefine_24vdc4(shell);
     let (node, label) = {
         let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
         let i = t
@@ -150,21 +147,7 @@ pub(crate) fn a_row_to_define(
     h: &mut Harness<'static, App>,
 ) -> (String, (impl std::fmt::Display + use<>, u16)) {
     let shell = h.state_mut().shell_mut();
-    done(shell, "navigator.show", json!({"kind": "potentials"}));
-    done(shell, "navigator.table", json!({"kind": "potentials"}));
-    let def = {
-        let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
-        t.nodes
-            .iter()
-            .find(|n| n.role == NavRole::Potential && n.label == "24VDC-4")
-            .map(|n| n.records[0])
-            .expect("24VDC-4")
-    };
-    done(
-        shell,
-        "command.run",
-        json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "potential_def", "id": def.to_string()}]}}),
-    );
+    undefine_24vdc4(shell);
     let (node, label, at) = {
         let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
         let i = t
@@ -324,40 +307,14 @@ fn escape_in_a_context_menu_keeps_the_selection() {
     let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
-    let shell = h.state_mut().shell_mut();
-    done(shell, "navigator.show", json!({"kind": "potentials"}));
-    done(shell, "navigator.table", json!({"kind": "potentials"}));
-    // As above: 24VDC-4's definition deleted, so its row offers Define potential….
-    let def = {
-        let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
-        t.nodes
-            .iter()
-            .find(|n| n.role == NavRole::Potential && n.label == "24VDC-4")
-            .map(|n| n.records[0])
-            .expect("24VDC-4")
-    };
+    // 24VDC-4's definition deleted, so its row offers Define potential….
+    let (name, _) = a_row_to_define(&mut h);
     done(
-        shell,
-        "command.run",
-        json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "potential_def", "id": def.to_string()}]}}),
+        h.state_mut().shell_mut(),
+        "select.set",
+        json!({"refs": ["-102F1"]}),
     );
-    let (node, label) = {
-        let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
-        let i = t
-            .nodes
-            .iter()
-            .position(|n| n.table_row && n.define_at.is_some())
-            .expect("a potential with a point to define it at");
-        (u32::try_from(i).unwrap(), t.nodes[i].label.clone())
-    };
-    done(
-        shell,
-        "navigator.filter",
-        json!({"kind": "potentials", "text": label}),
-    );
-    done(shell, "select.set", json!({"refs": ["-102F1"]}));
     settle(&mut h);
-    let name = cell_name(h.state().shell(), node, "Potential");
     h.get_by_label(&name).click_secondary();
     settle(&mut h);
     assert!(

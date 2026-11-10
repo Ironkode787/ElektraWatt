@@ -11,17 +11,9 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle};
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
+use ew_ui::ew_viewmodel::shell::Dialog;
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, harness, settle};
 
 /// Whether a node shows `text` as its name or (a label) as its value.
 fn has_text(h: &Harness<'_, App>, text: &str) -> bool {
@@ -42,12 +34,7 @@ fn pv2_renumber_devices_through_the_dialog_and_the_preview_tab() {
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    dispatch(
-        &mut h,
-        "command.run",
-        json!({"cmd": "project.settings.set", "params": {"member": "numbering", "value": {"default": "page-based",
-            "schemes": [{"key": "page-based", "format": "{page}{letter}{counter}", "rules": [], "child_separator": "-"}]}}}),
-    );
+    support::page_based_numbering(&mut h);
     dispatch(&mut h, "devices.renumber", json!({}));
     settle(&mut h);
     assert!(
@@ -125,12 +112,7 @@ fn pv5_the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     for text in ["one", "two"] {
-        dispatch(
-            &mut h,
-            "command.run",
-            json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
-                "path": "function_text", "value": text}}),
-        );
+        support::set_function_text(&mut h, text);
     }
     dispatch(&mut h, "history.show", json!({}));
     settle(&mut h);
@@ -157,19 +139,16 @@ fn pv5_the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1078, as FT-567: the History header starts `space.4` inside the pane, as the Messages header does.
+/// FT-1078, as FT-567: the History header starts `space.4` inside the pane, as the Messages header does. FT-1362
+/// (ruling 7; W50-F12): with one step the History dock is as high as its one row needs, at the floor and at 1920 × 1080,
+/// and the row reads in words: the command's title and its origin, not `fields.set` and `script ui-script`.
 #[test]
-fn ft1078_the_history_header_keeps_space_4_from_the_pane_edge() {
+fn ft1078_ft1362_a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    dispatch(
-        &mut h,
-        "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
-            "path": "function_text", "value": "one"}}),
-    );
+    support::set_function_text(&mut h, "one");
     dispatch(&mut h, "history.show", json!({}));
     settle(&mut h);
     let t = ew_ui::theme::current(&h.ctx);
@@ -183,24 +162,6 @@ fn ft1078_the_history_header_keeps_space_4_from_the_pane_edge() {
         (header.left() - pane.left() - t.space_4).abs() < 0.5,
         "the header at {header:?} in {pane:?}"
     );
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// FT-1362 (ruling 7; W50-F12): with one step the History dock is as high as its one row needs, at the floor
-/// and at 1920 × 1080, and the row reads in words: the command's title and its origin, not `fields.set` and `script ui-script`.
-#[test]
-fn ft1362_a_short_history_is_a_short_dock_in_words() {
-    let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(&tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    dispatch(
-        &mut h,
-        "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
-            "path": "function_text", "value": "one"}}),
-    );
-    dispatch(&mut h, "history.show", json!({}));
     for size in [egui::vec2(1280.0, 800.0), egui::vec2(1920.0, 1080.0)] {
         h.set_size(size);
         settle(&mut h);
@@ -241,12 +202,7 @@ fn w31_2_the_first_tag_change_is_on_show_at_1280_by_800() {
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
-    dispatch(
-        &mut h,
-        "command.run",
-        json!({"cmd": "project.settings.set", "params": {"member": "numbering", "value": {"default": "page-based",
-            "schemes": [{"key": "page-based", "format": "{page}{letter}{counter}", "rules": [], "child_separator": "-"}]}}}),
-    );
+    support::page_based_numbering(&mut h);
     dispatch(&mut h, "devices.renumber", json!({}));
     settle(&mut h);
     h.state_mut().shell_mut().set_form_field("include_frozen", "true");
@@ -281,12 +237,7 @@ fn w31_7_an_undone_entry_offers_redo_to_here() {
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     for text in ["one", "two", "three"] {
-        dispatch(
-            &mut h,
-            "command.run",
-            json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
-                "path": "function_text", "value": text}}),
-        );
+        support::set_function_text(&mut h, text);
     }
     dispatch(&mut h, "history.show", json!({}));
     settle(&mut h);
@@ -322,12 +273,7 @@ fn id1427_a_changed_records_line_reads_in_dutch() {
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
-    dispatch(
-        &mut h,
-        "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
-            "path": "function_text", "value": "een"}}),
-    );
+    support::set_function_text(&mut h, "een");
     dispatch(&mut h, "history.show", json!({}));
     settle(&mut h);
     h.get_all_by_label("Wijzigingen tonen").next().unwrap().click();

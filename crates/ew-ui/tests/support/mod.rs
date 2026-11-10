@@ -180,6 +180,29 @@ pub fn dispatch(harness: &mut Harness<'_, App>, action: &str, params: serde_json
     );
 }
 
+/// The project's numbering set to the page-based scheme (`{page}{letter}{counter}`), so that Renumber devices… has tags
+/// to change.
+#[track_caller]
+pub fn page_based_numbering(harness: &mut Harness<'_, App>) {
+    dispatch(
+        harness,
+        "command.run",
+        serde_json::json!({"cmd": "project.settings.set", "params": {"member": "numbering", "value": {"default": "page-based",
+            "schemes": [{"key": "page-based", "format": "{page}{letter}{counter}", "rules": [], "child_separator": "-"}]}}}),
+    );
+}
+
+/// The function text of -101F1 set to `text` as one command.
+#[track_caller]
+pub fn set_function_text(harness: &mut Harness<'_, App>, text: &str) {
+    dispatch(
+        harness,
+        "command.run",
+        serde_json::json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
+            "path": "function_text", "value": text}}),
+    );
+}
+
 /// Runs `action` on a shell and asserts it was done.
 #[track_caller]
 pub fn done(shell: &mut ShellModel, action: &str, params: serde_json::Value) {

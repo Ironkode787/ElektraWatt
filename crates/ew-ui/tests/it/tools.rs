@@ -15,20 +15,8 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::shell::Outcome;
 use ew_ui::ew_viewmodel::tools::{Dash, Ghost, OverlayItem, Token, band_selection, measure_label, rect_of};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": folio }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
-}
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
 /// A harness on a folio without waiting for its tiles: the dashed overlays are model state and are painted before the
 /// page image arrives.
@@ -39,14 +27,6 @@ fn quick_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
     dispatch(&mut h, "page.goto", json!({ "folio": folio }));
     settle(&mut h);
     h
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
 }
 
 /// The text of the focused canvas's live region.
@@ -62,22 +42,7 @@ fn press(h: &mut Harness<'_, App>, key: Key) {
     settle(h);
 }
 
-/// The window position (points) of the sheet point `p` on the focused canvas, from the canvas's view.
-pub(crate) fn screen(h: &Harness<'_, App>, p: (i64, i64)) -> Pos2 {
-    let bounds = h
-        .get_all_by_role(egui::Role::Canvas)
-        .next()
-        .expect("the canvas node")
-        .accesskit_node()
-        .raw_bounds()
-        .expect("bounds");
-    let c = h.state().shell().canvas().unwrap();
-    let k = c.points_per_nm();
-    Pos2::new(
-        bounds.x0 as f32 + ((p.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
-        bounds.y0 as f32 + ((p.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
-    )
-}
+pub(crate) use support::screen;
 
 /// The sheet point under the window point `pos` on the focused canvas, the inverse of [`screen`].
 fn sheet_at_screen(h: &Harness<'_, App>, pos: Pos2) -> (i64, i64) {
@@ -113,7 +78,7 @@ fn tap(h: &mut Harness<'_, App>, pos: Pos2) {
 #[test]
 fn t6_t10_select_and_measure_from_the_keyboard_alone() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = support::on_golden(&tmp, "102");
     // The Tools menu's Measure through the palette, keyboard only.
     h.key_press_modifiers(Modifiers::COMMAND, Key::K);
     settle(&mut h);
@@ -194,7 +159,7 @@ fn t6_t10_select_and_measure_from_the_keyboard_alone() {
 #[test]
 fn t10_the_primary_button_is_the_tools_input() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = support::on_golden(&tmp, "103");
     let canvas = h
         .get_all_by_role(egui::Role::Canvas)
         .next()
@@ -253,7 +218,7 @@ fn t10_the_primary_button_is_the_tools_input() {
 #[test]
 fn a_press_and_its_release_in_one_frame_still_click() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = support::on_golden(&tmp, "103");
     // An entity whose centre is no link and picks it, with no wire within reach (the Select tool takes a wire's line
     // drawn through a symbol's middle first, FT-500, and the tap's point is rounded to the screen).
     let (entity, p) = {
@@ -307,7 +272,7 @@ fn a_press_and_its_release_in_one_frame_still_click() {
 #[test]
 fn a_press_on_the_splitter_between_the_groups_is_no_tool_input() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = support::on_golden(&tmp, "103");
     dispatch(&mut h, "view.side_by_side", json!({}));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -387,7 +352,7 @@ fn button(h: &mut Harness<'_, App>, pos: Pos2, pressed: bool) {
 #[test]
 fn a_group_hidden_while_a_press_is_held_drops_the_release() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = support::on_golden(&tmp, "103");
     dispatch(&mut h, "view.side_by_side", json!({}));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -449,7 +414,7 @@ fn a_group_hidden_while_a_press_is_held_drops_the_release() {
 #[test]
 fn a_release_after_the_pressed_group_was_hidden_is_dropped() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = support::on_golden(&tmp, "103");
     dispatch(&mut h, "view.side_by_side", json!({}));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -477,7 +442,7 @@ fn a_release_after_the_pressed_group_was_hidden_is_dropped() {
 #[test]
 fn the_physical_bracket_key_steps_the_connection_points() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = support::on_golden(&tmp, "102");
     // QWERTZ: the key right of P is `+` logically and `]` physically.
     let bracket = |h: &mut Harness<'_, App>| {
         h.event(egui::Event::Key {
@@ -519,7 +484,7 @@ fn the_physical_bracket_key_steps_the_connection_points() {
 #[test]
 fn t8_the_window_reports_the_rest_and_shows_the_popup() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = support::on_golden(&tmp, "101");
     let link = h
         .state()
         .shell()
@@ -537,20 +502,8 @@ fn t8_the_window_reports_the_rest_and_shows_the_popup() {
         .clone();
     let p = ew_ui::ew_viewmodel::canvas::rect_centre(link.rect);
     let calls = h.state().shell().session_calls();
-    // The window's pointer over the link: its screen point from the canvas's view.
-    let bounds = h
-        .get_all_by_role(egui::Role::Canvas)
-        .next()
-        .expect("the canvas node")
-        .accesskit_node()
-        .raw_bounds()
-        .expect("bounds");
-    let c = h.state().shell().canvas().unwrap();
-    let k = c.points_per_nm();
-    let pos = Pos2::new(
-        bounds.x0 as f32 + ((p.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
-        bounds.y0 as f32 + ((p.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
-    );
+    // The window's pointer over the link.
+    let pos = screen(&h, p);
     h.event(egui::Event::PointerMoved(pos));
     let started = ew_render2d::stats::now();
     // The rest is measured on egui's frame time: the harness's steps, however long the machine takes.
@@ -588,7 +541,7 @@ fn t8_the_window_reports_the_rest_and_shows_the_popup() {
 #[test]
 fn t11_exact_counts_of_tool_events_in_the_window() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = support::on_golden(&tmp, "103");
     // The property grid fetches a sheet per selection change (its counts in `tests/properties.rs`): closed
     // here, so that the tool events alone are counted.
     dispatch(&mut h, "props.show", json!({"on": false}));
@@ -963,7 +916,7 @@ fn assert_chips_apart(
 #[test]
 fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = support::on_golden(&tmp, "103");
     let at = place_and_rest(&mut h);
     // A second rest at the same point (the 300-ms dwell previews again): the label still names the tag once.
     dispatch(&mut h, "canvas.dwell", json!({"ms": 300}));
@@ -1048,7 +1001,7 @@ fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
 #[test]
 fn ft1079_the_preview_chips_stay_inside_the_canvas_at_the_floor() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = support::on_golden(&tmp, "103");
     h.set_size(Vec2::new(1280.0, 800.0));
     settle(&mut h);
     let at = place_and_rest(&mut h);
@@ -1089,11 +1042,8 @@ fn ft1079_the_preview_chips_stay_inside_the_canvas_at_the_floor() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// R30 F3 in the window: after Insert ▸ Image…'s file dialog answers, the status hint is the armed tool's at once,
-/// without a pointer event over the canvas.
-#[test]
-fn r30_the_image_hint_follows_the_file_answer_without_a_pointer_move() {
-    let tmp = Tmp::new();
+/// A file `pick.png` of the PNG header of an 8 × 2 image, in `tmp`.
+fn a_png(tmp: &Tmp) -> std::path::PathBuf {
     let mut png = [0x89u8, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].to_vec();
     png.extend_from_slice(&13u32.to_be_bytes());
     png.extend_from_slice(b"IHDR");
@@ -1102,6 +1052,15 @@ fn r30_the_image_hint_follows_the_file_answer_without_a_pointer_move() {
     png.extend_from_slice(&[8, 6, 0, 0, 0]);
     let file = tmp.0.join("pick.png");
     std::fs::write(&file, &png).unwrap();
+    file
+}
+
+/// R30 F3 in the window: after Insert ▸ Image…'s file dialog answers, the status hint is the armed tool's at once,
+/// without a pointer event over the canvas.
+#[test]
+fn r30_the_image_hint_follows_the_file_answer_without_a_pointer_move() {
+    let tmp = Tmp::new();
+    let file = a_png(&tmp);
     let scripted = Scripted::default();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, scripted.clone(), Some(dir));
@@ -1153,14 +1112,7 @@ impl ew_ui::app::Platform for ThreadedImage {
 #[test]
 fn r30_the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
     let tmp = Tmp::new();
-    let mut png = [0x89u8, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].to_vec();
-    png.extend_from_slice(&13u32.to_be_bytes());
-    png.extend_from_slice(b"IHDR");
-    png.extend_from_slice(&8u32.to_be_bytes());
-    png.extend_from_slice(&2u32.to_be_bytes());
-    png.extend_from_slice(&[8, 6, 0, 0, 0]);
-    let file = tmp.0.join("pick.png");
-    std::fs::write(&file, &png).unwrap();
+    let file = a_png(&tmp);
     let dir = tmp.golden("g.ew");
     let shell =
         ew_ui::ew_viewmodel::shell::ShellModel::new(ew_ui::ew_viewmodel::shell::Mode::Gui, tmp.config());
@@ -1203,7 +1155,7 @@ fn r30_the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
 #[test]
 fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = support::on_golden(&tmp, "101");
     // The rails and the wider left column narrow the page view; at 1000 px the chip meets the
     // view's edge and is pushed off its candidates, so this window has the reference width.
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -1283,7 +1235,7 @@ pub(crate) fn right_click(h: &mut Harness<'_, App>, pos: Pos2) {
 fn a_right_click_opens_the_canvas_context_menu() {
     use ew_ui::ew_viewmodel::canvas::{pick, rect_centre};
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = support::on_golden(&tmp, "103");
     // The centre of an object's rectangle whose pick is that object.
     let (entity, at) = {
         let c = h.state().shell().canvas().unwrap();

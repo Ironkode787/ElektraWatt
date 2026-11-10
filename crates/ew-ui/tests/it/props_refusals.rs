@@ -14,8 +14,8 @@ use ew_ui::app::App;
 use ew_ui::ew_viewmodel::key;
 use ew_ui::ew_viewmodel::shell::Outcome;
 use ew_ui::ew_viewmodel::strings;
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
 /// The star row of an interruption point's sheet.
 const STAR: &str = "function/kind.ip.star_source";
@@ -26,14 +26,6 @@ const EXTERNAL: &str =
 
 /// The refusal of a star on the target point "W464", as the pane shows it.
 const TARGET: &str = "Interruption point W464: a star source is a source point; set the direction to source, or clear the star";
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
 
 /// Golden A on 102 at the window's floor (1280 × 800) with Properties shown, an external interruption point and a
 /// target point W464 placed (W46.4's script i3).

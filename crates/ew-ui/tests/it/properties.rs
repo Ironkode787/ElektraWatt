@@ -14,31 +14,11 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::properties::{Provenance, RowValue, find_row};
 use ew_ui::ew_viewmodel::shell::{Focus, Outcome};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use serde_json::json;
+use support::{Tmp, dispatch, settle};
 
 /// W29 on folio 103 (`connections|W29`).
 const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
-
-fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": folio }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
 
 fn press(h: &mut Harness<'_, App>, key: Key) {
     h.key_press(key);
@@ -83,7 +63,7 @@ fn type_into_field(h: &mut Harness<'_, App>, label: &str, text: &str) {
 #[test]
 fn pg5_ac28_w29_colour_through_the_editor_and_undo() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = support::on_golden(&tmp, "103");
     // W29 through `select.set` (the canvas picks by geometry since WP-S2.04 part 1, and the centre of a wire's
     // rectangle need not lie on the wire).
     dispatch(&mut h, "select.set", json!({"ids": [W29]}));
@@ -174,7 +154,7 @@ fn pg5_ac28_w29_colour_through_the_editor_and_undo() {
 #[test]
 fn pg9_d06_the_description_override_from_the_keyboard() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = support::on_golden(&tmp, "101");
     // An empty selection shows the page on show.
     let sheet = h.state().shell().properties().sheet().expect("a sheet");
     assert_eq!(sheet.sections[0].kind, "page");
@@ -265,7 +245,7 @@ fn pg9_d06_the_description_override_from_the_keyboard() {
 #[test]
 fn pg11_the_window_fetches_a_sheet_once_per_key() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = support::on_golden(&tmp, "101");
     let calls = |h: &Harness<'_, App>| h.state().shell().session_calls();
     let n = calls(&h).property_sheet;
     // Frames without a change: no sheet.
@@ -320,7 +300,7 @@ fn pg11_the_window_fetches_a_sheet_once_per_key() {
 #[test]
 fn a_boolean_row_is_a_checkbox() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = support::on_golden(&tmp, "102");
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-X1031:1"]}));
     settle(&mut h);
     assert!(
@@ -346,7 +326,7 @@ fn a_boolean_row_is_a_checkbox() {
 #[test]
 fn a_choice_editor_option_is_picked_with_the_mouse() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = support::on_golden(&tmp, "103");
     // WP-S2.17 (J32): at 1280 by 800 Properties is the lower half of the left column and the colour row sits in its
     // lower half, so the option list opens over the row, inside the window and above the status bar.
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -438,7 +418,7 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
 #[test]
 fn j33_the_parts_row_chooses_a_part_copy_with_the_mouse() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:S51"]}));
@@ -481,7 +461,7 @@ fn j33_the_parts_row_chooses_a_part_copy_with_the_mouse() {
 #[test]
 fn j32_property_rows_are_left_aligned_with_one_word_chips() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     let tokens = ew_ui::theme::current(&h.ctx);
@@ -593,7 +573,7 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
 fn ft759_a_finding_chip_opens_messages_filtered_to_the_record() {
     use ew_ui::ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     dispatch(&mut h, "messages.next", json!({}));
@@ -678,7 +658,7 @@ fn severity_word(severity: &str) -> &'static str {
 #[test]
 fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     // F8: the first finding, its object selected, so the grid shows its sheet with the finding in the header.
@@ -865,7 +845,7 @@ fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
 fn ft541_the_properties_filter_for_more_than_twelve_rows() {
     use ew_ui::ew_viewmodel::properties::{FILTER_ROWS, visible_rows};
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     let open_rows = |h: &Harness<'_, App>| {
@@ -976,7 +956,7 @@ fn ft541_the_properties_filter_for_more_than_twelve_rows() {
 #[test]
 fn m33_a_refused_letter_edit_offers_use_tag_as_a_button() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = support::on_golden(&tmp, "102");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-102G1"]}));
@@ -1017,7 +997,7 @@ fn m33_a_refused_letter_edit_offers_use_tag_as_a_button() {
 #[test]
 fn c37_typing_into_an_opened_field_replaces_its_text() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = support::on_golden(&tmp, "102");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-102G1"]}));
@@ -1068,7 +1048,7 @@ fn c37_typing_into_an_opened_field_replaces_its_text() {
 #[test]
 fn c39_the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     settle(&mut h);
@@ -1114,7 +1094,7 @@ fn ft1413_the_label_column_gives_way_to_no_count_and_no_prose() {
         (egui::Vec2::new(1920.0, 1080.0), false),
     ] {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, "101");
+        let mut h = support::on_golden(&tmp, "101");
         h.set_size(size);
         dispatch(&mut h, "view.language", json!({ "value": "nl" }));
         settle(&mut h);
@@ -1169,7 +1149,7 @@ fn ft1498_a_prose_value_wraps_and_is_never_cut() {
         (egui::Vec2::new(1920.0, 1080.0), false),
     ] {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, "101");
+        let mut h = support::on_golden(&tmp, "101");
         h.set_size(size);
         settle(&mut h);
         settle(&mut h);
@@ -1240,7 +1220,7 @@ fn texts_in_row(h: &Harness<'_, App>, label: &str) -> Vec<(String, bool)> {
 #[test]
 fn id1427_an_identifier_stays_whole_beside_its_chip_at_the_floor() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = support::on_golden(&tmp, "103");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
     settle(&mut h);
@@ -1306,7 +1286,7 @@ fn id1427_an_identifier_stays_whole_beside_its_chip_at_the_floor() {
 #[test]
 fn id1427_the_position_row_is_whole_at_the_floor() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = support::on_golden(&tmp, "102");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
     settle(&mut h);
@@ -1338,15 +1318,10 @@ fn id1427_the_position_row_is_whole_at_the_floor() {
 #[test]
 fn id1439_a_one_word_prose_value_takes_nothing_from_the_labels() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
-    dispatch(
-        &mut h,
-        "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
-            "path": "function_text", "value": "Hoofdschakelaarkast"}}),
-    );
+    support::set_function_text(&mut h, "Hoofdschakelaarkast");
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-101F1"]}));
     // The row alone, so that no identifier of another row narrows the column.
     dispatch(&mut h, "props.filter", json!({"text": "Functietekst"}));

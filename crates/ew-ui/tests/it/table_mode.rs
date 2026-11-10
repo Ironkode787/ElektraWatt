@@ -14,17 +14,9 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::layout::PaneKind;
 use ew_ui::ew_viewmodel::navigators::NavKind;
-use ew_ui::ew_viewmodel::shell::{Outcome, ShellModel};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn done(shell: &mut ShellModel, action: &str, params: Value) {
-    assert_eq!(
-        shell.dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
+use ew_ui::ew_viewmodel::shell::ShellModel;
+use serde_json::json;
+use support::{Scripted, Tmp, done, harness, settle, wait_for_page};
 
 /// The window on a writable copy of Golden A, folio 102 shown.
 fn window(tmp: &Tmp) -> Harness<'static, App> {

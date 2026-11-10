@@ -13,15 +13,7 @@ use ew_ui::app::App;
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, harness_with, settle, wait_for_page};
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
+use support::{Scripted, Tmp, dispatch, harness, harness_with, settle, wait_for_page};
 
 /// The names of the nodes of `role` (a `Label` node carries its text as its value).
 fn labels(h: &Harness<'_, App>, role: egui::Role) -> Vec<String> {
@@ -336,12 +328,7 @@ fn dk11_history_rows_actions_marker_and_show_changes() {
     settle(&mut h);
     wait_for_page(&mut h);
     for text in ["one", "two", "three"] {
-        dispatch(
-            &mut h,
-            "command.run",
-            json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
-                "path": "function_text", "value": text}}),
-        );
+        support::set_function_text(&mut h, text);
     }
     dispatch(&mut h, "file.save", json!({}));
     dispatch(&mut h, "edit.undo", json!({}));
