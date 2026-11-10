@@ -10,14 +10,10 @@ use ew_schema::{Device, LibDocument, Part, Record};
 use serde_json::json;
 
 use super::fixture::*;
-use crate::{AnyKey, Entity, Model, ModelError, Op, Rev};
+use crate::{Model, ModelError, Op, Rev};
 
 /// A configured part copy of the fixture library, used only by the assembly.
 const PART_CONF: Id<Part> = Id::from_uuid(Uuid::from_u128(0x7_1001));
-
-fn uid<T>(id: Id<T>) -> String {
-    id.as_uuid().to_string()
-}
 
 /// The mini golden model with an assembly aspect on -102G1: one order code (the configured part) covering
 /// -102G1 itself and -102F2.
@@ -41,18 +37,6 @@ fn assembly_model() -> Model {
         }
     }
     Model::from_records(project, records, lib).expect("the assembly model is valid")
-}
-
-fn key<T: Entity>(id: crate::rev::RowId<T>) -> AnyKey {
-    T::key(id)
-}
-
-fn after<T: Entity>(ops: &[Op], id: crate::rev::RowId<T>) -> T {
-    let op = ops
-        .iter()
-        .find(|op| op.key() == T::key(id))
-        .expect("an op for the row");
-    (**op.after().expect("modified").get::<T>().expect("typed")).clone()
 }
 
 #[test]

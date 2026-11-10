@@ -15,7 +15,7 @@ use ew_schema::{
 use ew_units::{Nm, Pose3, Pt2};
 
 use super::fixture::*;
-use crate::{AnyKey, ApplyOptions, BaseIndexes, Entity, Model, ModelError, Op, Rev, invert_batch};
+use crate::{AnyKey, ApplyOptions, BaseIndexes, Model, ModelError, Op, Rev, invert_batch};
 
 const LOC_B: Id<StructureNode> = Id::from_uuid(Uuid::from_u128(0x9500));
 const SPACE: Id<LayoutSpace> = Id::from_uuid(Uuid::from_u128(0x9501));
@@ -26,10 +26,6 @@ const EMPTY_RAIL: Id<Carrier> = Id::from_uuid(Uuid::from_u128(0x9505));
 const PL_F1: Id<Placement> = Id::from_uuid(Uuid::from_u128(0x9510));
 const PL_G1: Id<Placement> = Id::from_uuid(Uuid::from_u128(0x9511));
 const PL_AUX: Id<Placement> = Id::from_uuid(Uuid::from_u128(0x9512));
-
-fn key<T: Entity>(id: crate::rev::RowId<T>) -> AnyKey {
-    T::key(id)
-}
 
 fn rail(id: Id<Carrier>) -> Carrier {
     Carrier {
@@ -116,10 +112,6 @@ fn referenced(r: Result<Vec<Op>, ModelError>) -> (String, AnyKey) {
         Err(ModelError::Referenced { link, referrer, .. }) => (link, referrer),
         other => panic!("expected Referenced, got {other:?}"),
     }
-}
-
-fn removes(ops: &[Op], k: AnyKey) -> bool {
-    ops.iter().any(|op| op.key() == k && op.after().is_none())
 }
 
 /// The layout records load into their tables; the named indexes list placements by device and by carrier and

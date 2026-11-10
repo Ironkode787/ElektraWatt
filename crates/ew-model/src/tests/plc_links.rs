@@ -10,15 +10,11 @@ use ew_schema::{Channel, Device, DeviceLink, Function, PlcConfigProject, Record}
 use serde_json::json;
 
 use super::fixture::*;
-use crate::{AnyKey, Entity, Model, ModelError, Op, Rev};
+use crate::{Model, ModelError, Op, Rev};
 
 const CFG: Id<PlcConfigProject> = Id::from_uuid(Uuid::from_u128(0x7_0001));
 const CH: Id<Channel> = Id::from_uuid(Uuid::from_u128(0x7_0002));
 const LINK: Id<DeviceLink> = Id::from_uuid(Uuid::from_u128(0x7_0003));
-
-fn uid<T>(id: Id<T>) -> String {
-    id.as_uuid().to_string()
-}
 
 /// The mini golden model with a configuration project (CPU -102F2), the station -101F1, the module -102G1,
 /// one channel of the module bound to CP 0 of -102F2's aux function and targeting it, and a link -101F1 drives
@@ -49,22 +45,6 @@ fn plc_model() -> Model {
         "$k": "device_link", "id": uid(LINK), "from": uid(DEV_101F1), "to": uid(DEV_102F2), "kind": "drives",
     })));
     Model::from_records(project, records, lib).expect("the PLC model is valid")
-}
-
-fn key<T: Entity>(id: crate::rev::RowId<T>) -> AnyKey {
-    T::key(id)
-}
-
-fn removes(ops: &[Op], k: AnyKey) -> bool {
-    ops.iter().any(|op| op.key() == k && op.after().is_none())
-}
-
-fn after<T: Entity>(ops: &[Op], id: crate::rev::RowId<T>) -> T {
-    let op = ops
-        .iter()
-        .find(|op| op.key() == T::key(id))
-        .expect("an op for the row");
-    (**op.after().expect("modified").get::<T>().expect("typed")).clone()
 }
 
 #[test]

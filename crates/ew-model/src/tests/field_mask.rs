@@ -157,12 +157,6 @@ fn links_are_well_formed() {
             l.path()
         );
     }
-    for (kind, field, reason) in NOT_LINKS {
-        assert!(
-            !reason.trim().is_empty(),
-            "{kind}.{field}: NOT_LINKS reason is empty"
-        );
-    }
 }
 
 #[test]

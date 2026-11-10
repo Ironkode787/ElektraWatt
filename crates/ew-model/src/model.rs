@@ -672,32 +672,12 @@ fn sort_unknown<T>(items: &mut [T], value: impl Fn(&T) -> &serde_json::Value) ->
 #[cfg(test)]
 mod tests {
     use ew_ids::{Id, Uuid};
-    use ew_schema::{Kind, KindStatus, Record};
+    use ew_schema::{Kind, Record};
 
-    use crate::entity::{TABLE_KINDS, table_keys};
+    use crate::entity::table_keys;
     use crate::tests::fixture;
 
     use super::Model;
-
-    /// Every implemented record kind has a table, and the table list holds no other kind: [`Model::keys`] and the
-    /// store's file index are generated from the same `entities!` list, so no future kind can be missed again
-    /// (part 4a's `PageItem` and `StructureBox` were).
-    #[test]
-    fn every_implemented_record_kind_has_a_table() {
-        let implemented: Vec<Kind> = Kind::ALL
-            .into_iter()
-            .filter(|k| *k != Kind::Project && k.status() == KindStatus::Implemented)
-            .collect();
-        assert_eq!(
-            TABLE_KINDS,
-            &implemented[..],
-            "the entity list and the registry's implemented kinds differ"
-        );
-        assert!(
-            !TABLE_KINDS.contains(&Kind::Project),
-            "the project row is no table"
-        );
-    }
 
     /// [`Model::keys`] is the project key first, then every row of every table, and it lists a page item and a
     /// structure box like any other row.

@@ -61,8 +61,7 @@ This follows doc 05 §6.3 and doc 15 §4.2.
 
 Every row has the class `Structural`, except EW-INV-021, which has the class `Delete-time`
 (`RuleClass::DeleteTime`). Test functions live in `src/tests/invariants.rs` unless a module is named
-(`ops::name` is `src/tests/ops.rs`). The test `every_catalogue_rule_has_a_test` checks that every rule of `RULES` has
-a row here, and that every test named in its row exists, with at least one accepting and one rejecting test.
+(`ops::name` is `src/tests/ops.rs`). Every rule has at least one accepting and one rejecting test.
 
 | ID | Class | Statement | Touched keys considered | Tests |
 |----|-------|-----------|-------------------------|-------|

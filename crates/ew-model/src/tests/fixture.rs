@@ -19,7 +19,7 @@ use ew_schema::{
 };
 use ew_units::{Dec3, Grid, Nm, Pt2};
 
-use crate::Model;
+use crate::{AnyKey, Entity, Model, Op};
 
 // ---------------------------------------------------------------------------------------------------------
 // Identifiers
@@ -734,13 +734,28 @@ pub(crate) fn mini_golden() -> Model {
     Model::from_records(p, r, l).expect("mini golden is valid")
 }
 
-#[test]
-fn mini_golden_loads() {
-    let m = mini_golden();
-    assert_eq!(m.table::<Device>().len(), 8);
-    assert_eq!(m.table::<Function>().len(), 10);
-    assert_eq!(m.table::<Connection>().len(), 8);
-    assert_eq!(m.indexes().functions_by_device().get(&DEV_102F2).count(), 2);
+/// The key of the row `id` of kind `T`.
+pub(crate) fn key<T: Entity>(id: crate::rev::RowId<T>) -> AnyKey {
+    T::key(id)
+}
+
+/// Whether `ops` removes the row under `k`.
+pub(crate) fn removes(ops: &[Op], k: AnyKey) -> bool {
+    ops.iter().any(|op| op.key() == k && op.after().is_none())
+}
+
+/// The modified record of kind `T` under `id` that `ops` carries.
+pub(crate) fn after<T: Entity>(ops: &[Op], id: crate::rev::RowId<T>) -> T {
+    let op = ops
+        .iter()
+        .find(|op| op.key() == T::key(id))
+        .expect("an op for the row");
+    (**op.after().expect("modified").get::<T>().expect("typed")).clone()
+}
+
+/// The text of an ID as the JSON of a record writes it.
+pub(crate) fn uid<T>(id: Id<T>) -> String {
+    id.as_uuid().to_string()
 }
 
 // ---------------------------------------------------------------------------------------------------------

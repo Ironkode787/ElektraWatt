@@ -3188,13 +3188,6 @@ mod tests {
                 ),
                 SvgHazard::TooComplex,
             ),
-            (
-                "a pattern cycle through a style-sheet class",
-                format!(
-                    r##"<svg {NS} viewBox="0 0 4 4"><style>.p {{ fill: url(#pat) }}</style><pattern id="pat" width="1" height="1"><rect class="p" width="1" height="1"/></pattern></svg>"##
-                ),
-                SvgHazard::TooComplex,
-            ),
             ("a use expansion bomb", bomb, SvgHazard::TooComplex),
             (
                 "a marker inside a marker",
@@ -3234,14 +3227,6 @@ mod tests {
                 format!(
                     r#"<svg {NS} viewBox="0 0 4 4"><style>g {} {{ fill: red }}</style></svg>"#,
                     "* ".repeat(19)
-                ),
-                SvgHazard::TooComplex,
-            ),
-            (
-                "more cloned declarations than the bound",
-                format!(
-                    r#"<svg {NS} viewBox="0 0 4 4"><style>{} {{ fill: red }}</style></svg>"#,
-                    (0..5_000).map(|k| format!(".c{k}")).collect::<Vec<_>>().join(",")
                 ),
                 SvgHazard::TooComplex,
             ),

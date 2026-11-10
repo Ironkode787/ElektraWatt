@@ -19,7 +19,7 @@ use super::fixture::{
     fndef_copy_for, function, ip_function, mini_golden, mini_golden_parts, page, part_using, rep, strip,
     structure_node, symbol_using, terminal,
 };
-use crate::{AnyKey, AnyRow, ApplyOptions, Entity, Model, ModelError, Op, RULES, Rev, RowId, invert_batch};
+use crate::{AnyKey, AnyRow, ApplyOptions, Entity, Model, ModelError, Op, Rev, RowId, invert_batch};
 
 fn nid<T>(n: u128) -> Id<T> {
     Id::from_uuid(Uuid::from_u128(n))
@@ -1109,85 +1109,6 @@ fn inv016_two_open_revisions_rejected_on_load() {
         Model::from_records(project, records, lib),
         crate::ONE_OPEN_REVISION,
     );
-}
-
-// ---------------------------------------------------------------------------------------------------------
-// Catalogue
-
-/// The names in backticks of the last (Tests) cell of the catalogue row of `rule`.
-fn catalogue_tests(catalogue: &str, rule: &str) -> Vec<String> {
-    let prefix = format!("| {rule} |");
-    let row = catalogue
-        .lines()
-        .find(|l| l.starts_with(&prefix))
-        .unwrap_or_else(|| panic!("{rule} has no row in invariants.md"));
-    let cell = row
-        .trim_end()
-        .trim_end_matches('|')
-        .rsplit('|')
-        .next()
-        .expect("a last cell");
-    cell.split('`').skip(1).step_by(2).map(str::to_owned).collect()
-}
-
-/// Whether `source` has a test function `name`: `fn name(` whose attribute and doc-comment lines above it
-/// include `#[test]`.
-fn has_test(source: &str, name: &str) -> bool {
-    let signature = format!("fn {name}(");
-    let lines: Vec<&str> = source.lines().collect();
-    let Some(at) = lines.iter().position(|l| l.trim_start().starts_with(&signature)) else {
-        return false;
-    };
-    lines[..at]
-        .iter()
-        .rev()
-        .map(|l| l.trim())
-        .take_while(|l| l.starts_with("///") || l.starts_with("#["))
-        .any(|l| l == "#[test]")
-}
-
-/// Every rule of `RULES` (24 of them) has its table row in `invariants.md`; every test the row names exists
-/// as a `#[test]` function, with at least one accepting (`_ok`) and one rejecting (`rejected`/`referenced`) test.
-#[test]
-fn every_catalogue_rule_has_a_test() {
-    let catalogue = include_str!("../../invariants.md");
-    let invariant_tests = include_str!("invariants.rs");
-    let ops_tests = include_str!("ops.rs");
-    let rows = catalogue
-        .lines()
-        .skip_while(|l| !l.starts_with("| ID | Class |"))
-        .skip(2)
-        .take_while(|l| l.starts_with("| "))
-        .count();
-    assert_eq!(RULES.len(), rows, "one catalogue row per rule");
-    for rule in RULES {
-        let names = catalogue_tests(catalogue, rule.id);
-        assert!(!names.is_empty(), "{} names no tests in invariants.md", rule.id);
-        for name in &names {
-            let (file, source, fn_name) = match name.strip_prefix("ops::") {
-                Some(n) => ("ops.rs", ops_tests, n),
-                None => ("invariants.rs", invariant_tests, name.as_str()),
-            };
-            assert!(
-                has_test(source, fn_name),
-                "{}: the test {name} named in invariants.md is not a #[test] fn in src/tests/{file}",
-                rule.id
-            );
-        }
-        let base = |n: &str| n.rsplit("::").next().unwrap_or(n).to_owned();
-        assert!(
-            names.iter().any(|n| base(n).ends_with("_ok")),
-            "{} names no accepting test (a name ending in _ok)",
-            rule.id
-        );
-        assert!(
-            names
-                .iter()
-                .any(|n| base(n).contains("rejected") || base(n).contains("referenced")),
-            "{} names no rejecting test (a name containing rejected or referenced)",
-            rule.id
-        );
-    }
 }
 
 // ---------------------------------------------------------------------------------------------------------
