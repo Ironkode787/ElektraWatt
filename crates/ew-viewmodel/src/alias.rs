@@ -252,52 +252,16 @@ pub enum ParamForm {
     CommandRefs,
 }
 
-/// The action parameters that take a UUID or a reference (ID-630 (c)): action ID, parameter, form.
-pub const ALIAS_PARAMS: &[(&str, &str, ParamForm)] = &[
-    ("select.set", "ids", ParamForm::List),
-    ("select.set", "refs", ParamForm::RefList),
-    ("place.pick", "symbol", ParamForm::Whole),
-    ("place.pick", "part", ParamForm::Whole),
-    ("place.pick", "function", ParamForm::Whole),
-    // WP-S2.18 part 1 (D4): the device a placement joins.
-    ("place.pick", "device", ParamForm::Whole),
-    ("place.pick", "strip", ParamForm::Whole),
-    ("rep.exchange", "symbol", ParamForm::Whole),
-    // WP-S2.04 part 3: the IP tool's external reference and the black box tool's `place.pick` parameters.
-    ("ip.external", "external", ParamForm::Whole),
-    ("tool.black_box", "symbol", ParamForm::Whole),
-    ("tool.black_box", "part", ParamForm::Whole),
-    ("pages.toggle", "key", ParamForm::Embedded),
-    ("pages.row", "key", ParamForm::Embedded),
-    ("pages.open", "key", ParamForm::Embedded),
-    // WP-S2.06 part 1: the navigators' row keys.
-    ("navigator.toggle", "key", ParamForm::Embedded),
-    ("navigator.row", "key", ParamForm::Embedded),
-    ("navigator.open", "key", ParamForm::Embedded),
-    ("navigator.mark", "key", ParamForm::Embedded),
-    ("navigator.select", "keys", ParamForm::EmbeddedList),
-    // WP-S2.07 §8: the channel a drop binds.
-    ("navigator.bind", "channel", ParamForm::Whole),
-    ("props.input", "text", ParamForm::IdRef),
-    ("props.set", "value", ParamForm::IdRef),
-    ("structure.new", "parent", ParamForm::Whole),
-    ("external_ref.new", "location", ParamForm::Whole),
-    // WP-S2.04 part 4b: the Structure box tool's location node and external reference.
-    ("structure_box.fields", "location", ParamForm::Whole),
-    ("structure_box.fields", "external", ParamForm::Whole),
-    ("command.run", "params", ParamForm::CommandRefs),
-];
-
-/// The parameters of action `action` with every alias in a parameter of [`ALIAS_PARAMS`] resolved through `table`:
-/// `Ok(None)` when nothing changed; `Err` with the first alias the table does not hold. A parameter of another type
-/// than its form expects is left for the action to refuse.
+/// `params` with every alias resolved through `table` in the parameters `forms` names (an action's
+/// [`crate::actions::ActionMeta::aliases`]): `Ok(None)` when nothing changed; `Err` with the first alias the table
+/// does not hold. A parameter of another type than its form expects is left for the action to refuse.
 pub fn resolve_params(
     table: &AliasTable,
-    action: &str,
+    forms: &[(&str, ParamForm)],
     params: &Map<String, Value>,
 ) -> Result<Option<Map<String, Value>>, String> {
     let mut out: Option<Map<String, Value>> = None;
-    for (_, name, form) in ALIAS_PARAMS.iter().filter(|(a, _, _)| *a == action) {
+    for (name, form) in forms {
         let Some(value) = params.get(*name) else {
             continue;
         };
@@ -351,6 +315,15 @@ mod tests {
 
     fn obj(v: Value) -> Map<String, Value> {
         v.as_object().unwrap().clone()
+    }
+
+    /// [`super::resolve_params`] with the alias parameters of the action `action`.
+    fn resolve_params(
+        table: &AliasTable,
+        action: &str,
+        params: &Map<String, Value>,
+    ) -> Result<Option<Map<String, Value>>, String> {
+        super::resolve_params(table, crate::actions::find(action).unwrap().aliases, params)
     }
 
     #[test]
@@ -550,20 +523,18 @@ mod tests {
         }
     }
 
-    /// Each row of [`ALIAS_PARAMS`] names an action of the registry and a parameter of its signature (the form is not
-    /// derivable from the signature type: `list(ref)` reads as a list or a reference list, `text` as a whole, an
-    /// embedded or an `id:` reference, and most `text` parameters take no alias).
+    /// Each alias parameter of an action is a parameter of its signature (the form is not derivable from the signature
+    /// type: `list(ref)` reads as a list or a reference list, `text` as a whole, an embedded or an `id:` reference, and
+    /// most `text` parameters take no alias).
     #[test]
     fn every_alias_parameter_is_a_parameter_of_its_action() {
         let mut wrong: Vec<String> = Vec::new();
-        for (action, name, _) in ALIAS_PARAMS {
-            let Some(meta) = crate::actions::find(action) else {
-                wrong.push(format!("{action} is no action of the registry"));
-                continue;
-            };
+        for meta in crate::actions::ACTIONS {
             let params = crate::actions::parse_signature(meta.params).unwrap_or_default();
-            if !params.iter().any(|p| p.name == *name) {
-                wrong.push(format!("{action} has no parameter {name}"));
+            for (name, _) in meta.aliases {
+                if !params.iter().any(|p| p.name == *name) {
+                    wrong.push(format!("{} has no parameter {name}", meta.id));
+                }
             }
         }
         assert_eq!(wrong, Vec::<String>::new());

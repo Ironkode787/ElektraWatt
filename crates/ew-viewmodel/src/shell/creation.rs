@@ -12,7 +12,7 @@
 //! and no identifier change on several records, so the policy of FR-UI-044 commits it at once: no card.
 //!
 //! **Parameters.** A parameter that names a record takes the record's designation as the user types it (`J-E-206`,
-//! the node's code), or its alias `@n` or UUID (the `ALIAS_PARAMS` rows); a code that two nodes of the aspect share is
+//! the node's code), or its alias `@n` or UUID (the action's alias parameters); a code that two nodes of the aspect share is
 //! refused with the instruction to give the alias. Nothing outside the project is read.
 //!
 //! **The dialog** (the pattern of Go to page and Save layout as: a small dialog, opened by the action when it is

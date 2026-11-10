@@ -63,7 +63,7 @@
 //! (`state`, `message`, `describe`, a buffer or an error) is printed as its alias `@n` ([`crate::alias`]), numbered in
 //! the order of first appearance in this run's output; a run starts a new table, which lasts across every project the
 //! run opens or creates. A script may write `@n` wherever an action parameter takes a UUID or a reference
-//! ([`crate::alias::ALIAS_PARAMS`]; `id:@n` in a reference or a typed link value); `--record` writes the resolved UUID.
+//! ([`crate::actions::ActionMeta::aliases`]; `id:@n` in a reference or a typed link value); `--record` writes the resolved UUID.
 //!
 //! The core runner lives here; a [`StepExtension`] adds what needs a renderer (`view.snapshot`).
 

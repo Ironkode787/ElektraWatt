@@ -138,14 +138,11 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // The property grid's own controls (WP-S2.05 part 1, spec §6.10): the window and the headless mode dispatch them.
     keeps_banner(with_params(
         "ids?:list(ref), refs?:list(ref)",
-        hidden(act(
-            "select.set",
-            View,
-            Menu::Edit,
-            &[],
-            project_open,
-            None,
-            |s, p| s.act_select_set(p),
+        hidden(with_aliases(
+            &[("ids", ParamForm::List), ("refs", ParamForm::RefList)],
+            act("select.set", View, Menu::Edit, &[], project_open, None, |s, p| {
+                s.act_select_set(p)
+            }),
         )),
     )),
     keeps_banner(with_params(
@@ -200,14 +197,11 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     keeps_banner(with_params(
         "text:text",
-        hidden(in_properties(act(
-            "props.input",
-            View,
-            Menu::Edit,
-            &[],
-            grid_shown,
-            None,
-            |s, p| s.act_props_input(p),
+        hidden(in_properties(with_aliases(
+            &[("text", ParamForm::IdRef)],
+            act("props.input", View, Menu::Edit, &[], grid_shown, None, |s, p| {
+                s.act_props_input(p)
+            }),
         ))),
     )),
     keeps_banner(hidden(in_properties(parameterless(act(
@@ -230,14 +224,17 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ))))),
     keeps_banner(with_params(
         "row?:text, value?:text, choice?:uint",
-        hidden(act(
-            "props.set",
-            Command,
-            Menu::Edit,
-            &[],
-            grid_writable,
-            None,
-            |s, p| s.act_props_set(p),
+        hidden(with_aliases(
+            &[("value", ParamForm::IdRef)],
+            act(
+                "props.set",
+                Command,
+                Menu::Edit,
+                &[],
+                grid_writable,
+                None,
+                |s, p| s.act_props_set(p),
+            ),
         )),
     )),
     keeps_banner(hidden(parameterless(act(

@@ -68,39 +68,54 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         placed(
             place(Group::Project, 2, CommandSize::Small, Some(key!("bar-structure"))),
             "sitemap",
-            act(
-                "structure.new",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_structure_new(p),
+            with_aliases(
+                &[("parent", ParamForm::Whole)],
+                act(
+                    "structure.new",
+                    Command,
+                    Menu::Project,
+                    &[],
+                    writable,
+                    None,
+                    |s, p| s.act_structure_new(p),
+                ),
             ),
         ),
     ),
     with_params(
         "location:text, device:text, connection?:text, project?:text",
-        act(
-            "external_ref.new",
-            Command,
-            Menu::Project,
-            &[],
-            writable,
-            grp(Group::Project),
-            |s, p| s.act_external_ref_new(p),
+        with_aliases(
+            &[("location", ParamForm::Whole)],
+            act(
+                "external_ref.new",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                grp(Group::Project),
+                |s, p| s.act_external_ref_new(p),
+            ),
         ),
     ),
     keeps_banner(with_params(
         "symbol?:text, part?:text, function?:ref, device?:ref, template?:uint, letter?:text, strip?:text, terminal_designation?:text, designation?:text",
-        hidden(in_canvas(act(
-            "place.pick",
-            Command,
-            Menu::Draw,
-            &[],
-            editable_page,
-            None,
-            |s, p| s.act_place_pick(p),
+        hidden(in_canvas(with_aliases(
+            &[
+                ("symbol", ParamForm::Whole),
+                ("part", ParamForm::Whole),
+                ("function", ParamForm::Whole),
+                ("device", ParamForm::Whole),
+                ("strip", ParamForm::Whole),
+            ],
+            act(
+                "place.pick",
+                Command,
+                Menu::Draw,
+                &[],
+                editable_page,
+                None,
+                |s, p| s.act_place_pick(p),
+            ),
         ))),
     )),
     keeps_banner(with_params(
@@ -347,14 +362,17 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "symbol?:text",
         in_canvas(with_icon(
             "circuit-switch-open",
-            act(
-                "rep.exchange",
-                Command,
-                Menu::Draw,
-                &[],
-                editable_page,
-                grp(Group::Arrange),
-                |s, p| s.act_rep_exchange(p),
+            with_aliases(
+                &[("symbol", ParamForm::Whole)],
+                act(
+                    "rep.exchange",
+                    Command,
+                    Menu::Draw,
+                    &[],
+                    editable_page,
+                    grp(Group::Arrange),
+                    |s, p| s.act_rep_exchange(p),
+                ),
             ),
         )),
     )),
@@ -719,14 +737,17 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         in_canvas(placed(
             place(Group::Place, 4, CommandSize::Small, None),
             "ew-black-box",
-            act(
-                "tool.black_box",
-                Command,
-                Menu::Draw,
-                &["B"],
-                editable_page,
-                None,
-                |s, p| s.act_tool_black_box(p),
+            with_aliases(
+                &[("symbol", ParamForm::Whole), ("part", ParamForm::Whole)],
+                act(
+                    "tool.black_box",
+                    Command,
+                    Menu::Draw,
+                    &["B"],
+                    editable_page,
+                    None,
+                    |s, p| s.act_tool_black_box(p),
+                ),
             ),
         )),
     )),
@@ -766,14 +787,17 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // `external`: an external reference's ID, alias or printed text (`JE-N1000-03:L`); empty clears it.
     keeps_banner(with_params(
         "external:text",
-        hidden(in_canvas(act(
-            "ip.external",
-            View,
-            Menu::Edit,
-            &[],
-            editable_page,
-            None,
-            |s, p| s.act_ip_external(p),
+        hidden(in_canvas(with_aliases(
+            &[("external", ParamForm::Whole)],
+            act(
+                "ip.external",
+                View,
+                Menu::Edit,
+                &[],
+                editable_page,
+                None,
+                |s, p| s.act_ip_external(p),
+            ),
         ))),
     )),
     keeps_banner(with_params(
@@ -1097,14 +1121,17 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ))),
     keeps_banner(with_params(
         "style?:enum(dotted|dash_dot), caption?:text, location?:text, external?:text",
-        hidden(in_canvas(act(
-            "structure_box.fields",
-            View,
-            Menu::Draw,
-            &[],
-            editable_page,
-            None,
-            |s, p| s.act_structure_box_fields(p),
+        hidden(in_canvas(with_aliases(
+            &[("location", ParamForm::Whole), ("external", ParamForm::Whole)],
+            act(
+                "structure_box.fields",
+                View,
+                Menu::Draw,
+                &[],
+                editable_page,
+                None,
+                |s, p| s.act_structure_box_fields(p),
+            ),
         ))),
     )),
     keeps_banner(with_params(

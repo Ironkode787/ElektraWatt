@@ -16,6 +16,7 @@
 
 use serde_json::{Map, Value, json};
 
+use crate::alias::ParamForm;
 use crate::command_bar::{CommandSize, Group, Placement, Tab, place};
 use crate::key;
 use crate::settings::{DENSITIES, MIN_FONT_CHOICES, THEMES, UI_SCALES, scale_label};
@@ -259,6 +260,9 @@ pub struct ActionMeta {
     /// snapshots and Escape (which closes it as the topmost popup); every other action (a pointer move, a cursor move,
     /// a view action) clears it (WP-S2.03 §7.8).
     pub keeps_link_preview: bool,
+    /// The parameters that take a UUID or a reference, each with the form it takes it in: an alias `@n` in one of
+    /// them resolves before the action reads it ([`crate::alias::resolve_params`]).
+    pub aliases: &'static [(&'static str, ParamForm)],
     /// What the action does (run by [`ShellModel::dispatch`] once the action is enabled).
     pub(crate) handler: Handler,
 }
@@ -929,6 +933,7 @@ const fn act(
         keeps_banner: false,
         answers_recovery: false,
         keeps_link_preview: false,
+        aliases: &[],
         handler,
     }
 }
@@ -936,6 +941,12 @@ const fn act(
 /// Gives an action its parameter signature (WP-S6.13 §5.5.2).
 const fn with_params(params: &'static str, mut a: ActionMeta) -> ActionMeta {
     a.params = params;
+    a
+}
+
+/// Names the parameters of an action that take a UUID or a reference.
+const fn with_aliases(aliases: &'static [(&'static str, ParamForm)], mut a: ActionMeta) -> ActionMeta {
+    a.aliases = aliases;
     a
 }
 

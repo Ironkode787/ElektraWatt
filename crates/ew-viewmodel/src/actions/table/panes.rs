@@ -11,14 +11,11 @@ use super::super::*;
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "cmd:text, params?:json",
-        needs_parameters(act(
-            "command.run",
-            Command,
-            Menu::View,
-            &[],
-            writable,
-            None,
-            |s, p| s.act_command_run(p),
+        needs_parameters(with_aliases(
+            &[("params", ParamForm::CommandRefs)],
+            act("command.run", Command, Menu::View, &[], writable, None, |s, p| {
+                s.act_command_run(p)
+            }),
         )),
     ),
     keeps_link_preview(keeps_banner(with_params(
@@ -341,38 +338,29 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     keeps_banner(with_params(
         "key:text",
-        hidden(in_navigator(act(
-            "pages.toggle",
-            View,
-            Menu::View,
-            &[],
-            has_pages,
-            None,
-            |s, p| s.act_pages_toggle(p),
+        hidden(in_navigator(with_aliases(
+            &[("key", ParamForm::Embedded)],
+            act("pages.toggle", View, Menu::View, &[], has_pages, None, |s, p| {
+                s.act_pages_toggle(p)
+            }),
         ))),
     )),
     keeps_banner(with_params(
         "key?:text, step?:int, to?:enum(first|last)",
-        hidden(in_navigator(act(
-            "pages.row",
-            View,
-            Menu::View,
-            &[],
-            has_pages,
-            None,
-            |s, p| s.act_pages_row(p),
+        hidden(in_navigator(with_aliases(
+            &[("key", ParamForm::Embedded)],
+            act("pages.row", View, Menu::View, &[], has_pages, None, |s, p| {
+                s.act_pages_row(p)
+            }),
         ))),
     )),
     keeps_banner(with_params(
         "key?:text, folio?:text, new_tab?:bool",
-        hidden(in_navigator(act(
-            "pages.open",
-            View,
-            Menu::View,
-            &[],
-            has_pages,
-            None,
-            |s, p| s.act_pages_open(p),
+        hidden(in_navigator(with_aliases(
+            &[("key", ParamForm::Embedded)],
+            act("pages.open", View, Menu::View, &[], has_pages, None, |s, p| {
+                s.act_pages_open(p)
+            }),
         ))),
     )),
     // WP-S2.06 part 1: the navigator framework (§6.9).
@@ -430,38 +418,41 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     keeps_banner(with_params(
         "kind:text, key:text",
-        hidden(in_navigator(act(
-            "navigator.toggle",
-            View,
-            Menu::View,
-            &[],
-            has_pages,
-            None,
-            |s, p| s.act_navigator_toggle(p),
+        hidden(in_navigator(with_aliases(
+            &[("key", ParamForm::Embedded)],
+            act(
+                "navigator.toggle",
+                View,
+                Menu::View,
+                &[],
+                has_pages,
+                None,
+                |s, p| s.act_navigator_toggle(p),
+            ),
         ))),
     )),
     keeps_banner(with_params(
         "kind:text, key?:text, step?:int, to?:enum(first|last), extend?:bool",
-        hidden(in_navigator(act(
-            "navigator.row",
-            View,
-            Menu::View,
-            &[],
-            has_pages,
-            None,
-            |s, p| s.act_navigator_row(p),
+        hidden(in_navigator(with_aliases(
+            &[("key", ParamForm::Embedded)],
+            act("navigator.row", View, Menu::View, &[], has_pages, None, |s, p| {
+                s.act_navigator_row(p)
+            }),
         ))),
     )),
     keeps_banner(with_params(
         "kind:text, key?:text, new_tab?:bool",
-        hidden(in_navigator(act(
-            "navigator.open",
-            View,
-            Menu::View,
-            &[],
-            has_pages,
-            None,
-            |s, p| s.act_navigator_open(p),
+        hidden(in_navigator(with_aliases(
+            &[("key", ParamForm::Embedded)],
+            act(
+                "navigator.open",
+                View,
+                Menu::View,
+                &[],
+                has_pages,
+                None,
+                |s, p| s.act_navigator_open(p),
+            ),
         ))),
     )),
     // WP-S1.19 part 6 (§11): Draw ▸ Insert macro… with the place tools; a macro row dropped on the canvas; the macro
@@ -556,38 +547,47 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // the drop point with `plc.bind_channel`.
     with_params(
         "channel:ref, x_mm:mm, y_mm:mm, group?:uint",
-        hidden(in_canvas(act(
-            "navigator.bind",
-            Command,
-            Menu::Edit,
-            &[],
-            editable_page,
-            None,
-            |s, p| s.act_navigator_bind(p),
+        hidden(in_canvas(with_aliases(
+            &[("channel", ParamForm::Whole)],
+            act(
+                "navigator.bind",
+                Command,
+                Menu::Edit,
+                &[],
+                editable_page,
+                None,
+                |s, p| s.act_navigator_bind(p),
+            ),
         ))),
     ),
     keeps_banner(with_params(
         "kind:text, keys:list(text), add?:bool",
-        hidden(act(
-            "navigator.select",
-            View,
-            Menu::View,
-            &[],
-            has_pages,
-            None,
-            |s, p| s.act_navigator_select(p),
+        hidden(with_aliases(
+            &[("keys", ParamForm::EmbeddedList)],
+            act(
+                "navigator.select",
+                View,
+                Menu::View,
+                &[],
+                has_pages,
+                None,
+                |s, p| s.act_navigator_select(p),
+            ),
         )),
     )),
     keeps_banner(with_params(
         "kind?:text, key?:text",
-        hidden(in_navigator(act(
-            "navigator.mark",
-            View,
-            Menu::View,
-            &["Space"],
-            has_pages,
-            None,
-            |s, p| s.act_navigator_mark(p),
+        hidden(in_navigator(with_aliases(
+            &[("key", ParamForm::Embedded)],
+            act(
+                "navigator.mark",
+                View,
+                Menu::View,
+                &["Space"],
+                has_pages,
+                None,
+                |s, p| s.act_navigator_mark(p),
+            ),
         ))),
     )),
     keeps_banner(with_params(
