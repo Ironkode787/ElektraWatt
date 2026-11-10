@@ -19,6 +19,8 @@ use ew_text::{builtin, bundled};
 use ew_units::{Angle2, Nm, Pt2};
 use serde_json::json;
 
+use crate::common::blank_page;
+
 const TERMINAL: &str = include_str!("../../../../content/symbols/qet10/ew.iec.terminal@qet10.json");
 const DOT: &str = include_str!("../../../../content/symbols/qet10/ew.gen.junction-dot@qet10.json");
 const MARKER: &str = include_str!("../../../../content/symbols/qet10/ew.gen.wire-marker@qet10.json");
@@ -97,10 +99,6 @@ fn view() -> PageView {
     // The terminals' CPs: idx 0 one grid step below the origin, idx 1 one above.
     let (below, above) = (|x, y| (g(x), g(y) + 2_645_833), |x, y| (g(x), g(y) - 2_645_833));
     PageView {
-        page: Id::from_uuid(Uuid::from_u128(PAGE)),
-        kind: PageKind::Schematic,
-        grid: ew_units::Grid::QET_10PX,
-        language: None,
         frame: Some(FrameView {
             form: form(FRAME),
             title_block: Some(form(TITLE_BLOCK)),
@@ -185,16 +183,7 @@ fn view() -> PageView {
             symbol: Some(symbol(DOT)),
         }],
         wire_marker: Some(symbol(MARKER)),
-        table: None,
-        embedded: Vec::new(),
-        break_marks: Vec::new(),
-        valve_glyphs: Vec::new(),
-        cp_targets: Vec::new(),
-        crossings: Default::default(),
-        items: Vec::new(),
-        structure_boxes: Vec::new(),
-        panel: None,
-        strip_tags: Vec::new(),
+        ..blank_page(PAGE)
     }
 }
 
@@ -653,25 +642,9 @@ const SEGMENT: &str = include_str!("../../../../content/symbols/qet10/ew.gen.str
 /// A view with only `reps` and `connections` (no frame) on the QET grid.
 fn bare(reps: Vec<RepView>, connections: Vec<ConnectionView>) -> PageView {
     PageView {
-        page: Id::from_uuid(Uuid::from_u128(PAGE)),
-        kind: PageKind::Schematic,
-        grid: ew_units::Grid::QET_10PX,
-        language: None,
-        frame: None,
         reps,
         connections,
-        junctions: Vec::new(),
-        wire_marker: None,
-        table: None,
-        embedded: Vec::new(),
-        break_marks: Vec::new(),
-        valve_glyphs: Vec::new(),
-        cp_targets: Vec::new(),
-        crossings: Default::default(),
-        items: Vec::new(),
-        structure_boxes: Vec::new(),
-        panel: None,
-        strip_tags: Vec::new(),
+        ..blank_page(PAGE)
     }
 }
 

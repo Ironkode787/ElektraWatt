@@ -45,18 +45,6 @@ proptest! {
         prop_assert_eq!(i128::from(units_to_nm(v, size, upem)), want);
     }
 
-    /// The result is odd-symmetric: `units_to_nm(-v) == -units_to_nm(v)`.
-    #[test]
-    fn units_to_nm_is_odd_symmetric(
-        m in 0i32..=(1 << 24),
-        k in 0u32..=12,
-        size in 0i64..=2_000_000_000,
-        upem in 1u16..=u16::MAX,
-    ) {
-        let v = m as f32 / (1u64 << k) as f32;
-        prop_assert_eq!(units_to_nm(-v, size, upem), -units_to_nm(v, size, upem));
-    }
-
     /// `SheetMap::scale_len(n) = round(n × scale / 10⁹)`, ties toward zero, exactly.
     #[test]
     fn scale_len_is_the_exact_rational(

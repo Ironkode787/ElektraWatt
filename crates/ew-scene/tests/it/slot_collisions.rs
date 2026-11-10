@@ -9,11 +9,13 @@ use std::sync::Arc;
 
 use ew_dl::{EntityRef, ItemKind, Layer};
 use ew_ids::{Id, Uuid};
-use ew_scene::page::{PageKind, PageView, RepView, SlotValue, SymbolRef, page_display_list};
+use ew_scene::page::{PageView, RepView, SlotValue, SymbolRef, page_display_list};
 use ew_schema::{LibCopy, LibDocument, Representation, SlotKind, SymbolDef};
 use ew_text::{builtin, bundled};
 use ew_units::Rect;
 use serde_json::json;
+
+use crate::common::blank_page;
 
 const COIL: &str = include_str!("../../../../content/symbols/qet10/ew.iec.coil@qet10.json");
 const VALVE: &str = include_str!("../../../../content/symbols/qet10/ew.iec.valve-coil@qet10.json");
@@ -75,25 +77,8 @@ fn value(slot: u16, text: &str) -> SlotValue {
 
 fn page(reps: Vec<RepView>) -> PageView {
     PageView {
-        page: Id::from_uuid(Uuid::from_u128(PAGE)),
-        kind: PageKind::Schematic,
-        grid: ew_units::Grid::QET_10PX,
-        language: None,
-        frame: None,
         reps,
-        connections: Vec::new(),
-        junctions: Vec::new(),
-        wire_marker: None,
-        table: None,
-        embedded: Vec::new(),
-        break_marks: Vec::new(),
-        valve_glyphs: Vec::new(),
-        cp_targets: Vec::new(),
-        crossings: Default::default(),
-        items: Vec::new(),
-        structure_boxes: Vec::new(),
-        panel: None,
-        strip_tags: Vec::new(),
+        ..blank_page(PAGE)
     }
 }
 

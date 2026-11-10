@@ -115,11 +115,12 @@ macro_rules! to_value {
     };
 }
 
-fn documents() -> [(&'static str, &'static str, &'static str); 3] {
+fn documents() -> [(&'static str, &'static str, &'static str); 4] {
     [
         (TITLE_BLOCK_KEY, TITLE_BLOCK, "title_block"),
         (FRAME_GRID_KEY, FRAME_GRID, "frame"),
         (FRAME_NOGRID_KEY, FRAME_NOGRID, "frame"),
+        (FRAME_COVER_KEY, FRAME_COVER, "frame"),
     ]
 }
 
@@ -544,54 +545,6 @@ fn the_cover_frame_is_the_generated_one() {
         FRAME_COVER == text,
         "content/forms/ew.frame.qet-a4-landscape-cover.json differs from the generated frame (EW_BLESS=1 rewrites it)"
     );
-}
-
-#[test]
-fn the_cover_frame_parses_strictly_and_has_its_identity_and_hash() {
-    let doc = LibDocument::from_json(FRAME_COVER).unwrap();
-    let (loaded, malformed) = LibDocument::load(parse_value(FRAME_COVER).unwrap()).unwrap();
-    assert!(malformed.is_empty(), "{malformed:?}");
-    assert_eq!(loaded, doc);
-    doc.validate().unwrap();
-    assert_eq!(
-        FRAME_COVER,
-        serde_json::to_string_pretty(&doc).unwrap() + "\n",
-        "not canonical"
-    );
-    let copy = form(FRAME_COVER);
-    let (item, id) = identity(FRAME_COVER_KEY);
-    assert_eq!(
-        (copy.library_id.as_uuid(), copy.item_id.as_uuid(), copy.id),
-        (BUILTIN_LIBRARY, item, id)
-    );
-    let digest = sha2::Sha256::digest(serde_json::to_string(&copy.item).unwrap().as_bytes());
-    assert_eq!(copy.sha256, Sha256(digest.into()), "stale sha256");
-    assert_eq!(to_value!(copy.item.meta.key), json!(FRAME_COVER_KEY));
-    assert_eq!(copy.item.meta.licence.as_deref(), Some("CC-BY-SA-4.0"));
-}
-
-/// The cover frame is the no-grid frame with graphics and cells: the same kind, sheet, transform, grid and title
-/// block.
-#[test]
-fn the_cover_frame_is_the_nogrid_frame_plus_the_cover() {
-    let (cover, nogrid) = (form(FRAME_COVER).item, form(FRAME_NOGRID).item);
-    assert_eq!(cover.kind, FormKind::Frame);
-    assert_eq!(cover.sheet, nogrid.sheet);
-    assert_eq!(cover.page_to_sheet, nogrid.page_to_sheet);
-    assert_eq!(cover.grid, nogrid.grid);
-    assert_eq!(cover.title_block, nogrid.title_block);
-    assert_eq!(cover.extra, nogrid.extra);
-    // Two rules, the box and its three separators.
-    assert_eq!(cover.graphics.len(), 6);
-    assert!(matches!(cover.graphics[2], Primitive::Rect(_)));
-    // The title, the subtitle and a label and a value cell per bound row (the box prints 12 rows).
-    let rows = COVER_GROUPS
-        .iter()
-        .flat_map(|g| g.iter())
-        .filter(|r| r.1.is_some())
-        .count();
-    assert_eq!(rows, 12);
-    assert_eq!(cover.cells.len(), 2 + 2 * rows);
 }
 
 /// Every cell lies inside the sheet, uses a known style, has balanced braces and does not overlap another

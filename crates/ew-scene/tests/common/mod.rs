@@ -8,6 +8,7 @@
 use ew_dl::{Item, ItemKind, Transform};
 use ew_ids::{Id, Uuid};
 use ew_mltext::MlText;
+use ew_scene::page::{PageKind, PageView};
 use ew_schema::{
     Align, AnchorPolicy, Colour, Dash, Dir4, Discipline, Extra, ItemMeta, LibRef, Pen, Primitive, RepType,
     SlotKind, Stroke, SymbolCp, SymbolDef, TextSlot,
@@ -102,5 +103,30 @@ pub fn item_points(item: &Item) -> Vec<Pt2> {
             g.items.iter().flat_map(item_points).map(|p| t.apply(p)).collect()
         }
         _ => Vec::new(),
+    }
+}
+
+/// An empty schematic page `page` on the QET 10 px grid, without frame, representations or items.
+pub fn blank_page(page: u128) -> PageView {
+    PageView {
+        page: Id::from_uuid(Uuid::from_u128(page)),
+        kind: PageKind::Schematic,
+        grid: Grid::QET_10PX,
+        language: None,
+        frame: None,
+        reps: Vec::new(),
+        connections: Vec::new(),
+        junctions: Vec::new(),
+        wire_marker: None,
+        table: None,
+        embedded: Vec::new(),
+        break_marks: Vec::new(),
+        valve_glyphs: Vec::new(),
+        cp_targets: Vec::new(),
+        crossings: Default::default(),
+        items: Vec::new(),
+        structure_boxes: Vec::new(),
+        panel: None,
+        strip_tags: Vec::new(),
     }
 }

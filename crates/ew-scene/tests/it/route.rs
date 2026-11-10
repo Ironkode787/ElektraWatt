@@ -54,32 +54,33 @@ fn an_unrouted_connection_is_the_straight_line_between_its_ends() {
 }
 
 #[test]
-fn a_stale_route_joins_its_ends_by_straight_segments() {
-    // A route whose end vertices are not the ends' points (an end moved without the route following) is
-    // joined to each end by one straight segment.
-    let a = end(0, 0, None);
-    let b = end(300, 300, None);
-    let stored = [p(0, 100), p(200, 100), p(200, 300)];
-    let r = connection_polyline(&a, &b, &stored, page());
-    assert_eq!(r, vec![p(0, 0), p(0, 100), p(200, 100), p(200, 300), p(300, 300)]);
-}
-
-#[test]
-fn stored_route_is_drawn_as_stored() {
-    let a = end(0, 0, None);
-    let b = end(300, 100, None);
-    // The route holds both ends, drawn once each; (50,0) and (100,0) are collinear and kept.
-    let stored = [p(0, 0), p(50, 0), p(100, 0), p(300, 0), p(300, 100)];
-    let r = connection_polyline(&a, &b, &stored, page());
-    assert_eq!(r, stored.to_vec());
-}
-
-#[test]
-fn stored_route_keeps_a_spike() {
-    let a = end(0, 0, None);
-    let b = end(0, 0, None);
-    let r = connection_polyline(&a, &b, &[p(0, 500)], page());
-    assert_eq!(r, vec![p(0, 0), p(0, 500), p(0, 0)]);
+fn a_stored_route_is_drawn_as_stored_and_joined_to_each_end_by_a_straight_segment() {
+    // (ends, stored route, drawn): a route whose end vertices are not the ends' points (an end moved without the
+    // route following) is joined to each end by one straight segment; a route that holds both ends draws each once,
+    // collinear points kept; a spike is kept.
+    let cases = [
+        (
+            "stale",
+            (end(0, 0, None), end(300, 300, None)),
+            vec![p(0, 100), p(200, 100), p(200, 300)],
+            vec![p(0, 0), p(0, 100), p(200, 100), p(200, 300), p(300, 300)],
+        ),
+        (
+            "as stored",
+            (end(0, 0, None), end(300, 100, None)),
+            vec![p(0, 0), p(50, 0), p(100, 0), p(300, 0), p(300, 100)],
+            vec![p(0, 0), p(50, 0), p(100, 0), p(300, 0), p(300, 100)],
+        ),
+        (
+            "spike",
+            (end(0, 0, None), end(0, 0, None)),
+            vec![p(0, 500)],
+            vec![p(0, 0), p(0, 500), p(0, 0)],
+        ),
+    ];
+    for (name, (a, b), stored, want) in cases {
+        assert_eq!(connection_polyline(&a, &b, &stored, page()), want, "{name}");
+    }
 }
 
 #[test]

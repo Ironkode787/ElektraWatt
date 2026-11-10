@@ -65,9 +65,9 @@ fn text_prim(style: Option<&str>) -> TextPrim {
 }
 
 /// Each stroked or filled shape lowers to one path item with the shape's path, the house stroke and the fill, one
-/// case per shape; a rect with neither stroke nor fill draws nothing.
+/// case per shape; a line without stroke, a rect with neither stroke nor fill and an unknown primitive draw nothing.
 #[test]
-fn line_is_one_stroked_path() {
+fn primitives_lower_to_their_paths() {
     let r = rect(0, 0, 10 * MM, 6 * MM);
     let pts = [pt(0, 0), pt(MM, 0), pt(MM, MM)];
     let white = Colour::Rgb(Rgb([255, 255, 255]));
@@ -143,6 +143,27 @@ fn line_is_one_stroked_path() {
                 None,
             )),
         ),
+        // Width 11: centre min.x + 5, rx 5; height 7: centre min.y + 3, ry 3.
+        (
+            "ellipse_over_an_odd_box_rounds_towards_the_minimum",
+            ellipse_prim(rect(100, 200, 111, 207)),
+            Some((Path::ellipse(pt(105, 203), Nm(5), Nm(3)), Some(dl_stroke()), None)),
+        ),
+        (
+            "line_without_stroke",
+            Primitive::Line(LinePrim {
+                from: pt(0, 0),
+                to: pt(5, 7),
+                stroke: None,
+                extra: Extra::new(),
+            }),
+            None,
+        ),
+        (
+            "unknown_primitive",
+            Primitive::Unknown(serde_json::json!({"x": 1})),
+            None,
+        ),
     ];
     for (name, prim, want) in cases {
         let items = lower_primitive(&prim);
@@ -157,17 +178,6 @@ fn line_is_one_stroked_path() {
         assert_eq!(p.fill, fill, "case {name}");
     }
 }
-#[test]
-fn line_without_stroke_draws_nothing() {
-    let prim = Primitive::Line(LinePrim {
-        from: pt(0, 0),
-        to: pt(5, 7),
-        stroke: None,
-        extra: Extra::new(),
-    });
-    assert!(lower_primitive(&prim).is_empty());
-}
-
 #[test]
 fn drop_shadow_of_a_square_box_is_the_l_shape() {
     let s = 2_610_000;
@@ -303,17 +313,6 @@ fn ellipse_prim(r: Rect) -> Primitive {
 }
 
 #[test]
-fn ellipse_over_an_odd_box_rounds_towards_the_minimum() {
-    let items = lower_primitive(&ellipse_prim(rect(100, 200, 111, 207)));
-    assert_eq!(items.len(), 1);
-    // Width 11: centre min.x + 5, rx 5; height 7: centre min.y + 3, ry 3.
-    assert_eq!(
-        path_item(&items[0]).path,
-        Path::ellipse(pt(105, 203), Nm(5), Nm(3))
-    );
-}
-
-#[test]
 fn arc_is_never_filled() {
     let r = rect(0, 0, 10 * MM, 6 * MM);
     let prim = Primitive::Arc(ArcPrim {
@@ -427,12 +426,6 @@ fn image_at_r0_and_r90() {
     assert!(matches!(grp.items[0].kind, ItemKind::Image(_)));
     // The image corners enter the bounds under the variant: R90 maps (x, y) to (-y, x).
     assert_eq!(g.bounds, rect(-3 * MM, 0, 0, 4 * MM));
-}
-
-#[test]
-fn unknown_primitive_draws_nothing() {
-    let prim = Primitive::Unknown(serde_json::json!({"x": 1}));
-    assert!(lower_primitive(&prim).is_empty());
 }
 
 #[test]

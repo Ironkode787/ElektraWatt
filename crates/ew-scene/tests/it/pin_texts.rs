@@ -11,12 +11,14 @@ use std::sync::Arc;
 use ew_dl::{ItemKind, Layer};
 use ew_ids::{Id, Uuid};
 use ew_scene::page::{
-    BLACK_BOX_CAPTION_GAP, PageKind, PageView, PinText, RepView, SLOT_TEXT_GAP, SlotValue, page_display_list,
+    BLACK_BOX_CAPTION_GAP, PageView, PinText, RepView, SLOT_TEXT_GAP, SlotValue, page_display_list,
 };
 use ew_schema::{LibCopy, LibDocument, Representation, SlotKind, SymbolDef};
 use ew_text::{builtin, bundled};
 use ew_units::{Nm, Pt2};
 use serde_json::json;
+
+use crate::common::blank_page;
 
 const BLACKBOX: &str = include_str!("../../../../content/symbols/qet10/ew.gen.blackbox@qet10.json");
 const PAGE: u128 = 0x100;
@@ -63,11 +65,6 @@ fn view(orient: &str) -> PageView {
         })
         .to_vec();
     PageView {
-        page: Id::from_uuid(Uuid::from_u128(PAGE)),
-        kind: PageKind::Schematic,
-        grid: ew_units::Grid::QET_10PX,
-        language: None,
-        frame: None,
         reps: vec![RepView {
             rep: Arc::new(r),
             symbol: Some(def),
@@ -75,19 +72,7 @@ fn view(orient: &str) -> PageView {
             terminals: Vec::new(),
             pins,
         }],
-        connections: Vec::new(),
-        junctions: Vec::new(),
-        wire_marker: None,
-        table: None,
-        embedded: Vec::new(),
-        break_marks: Vec::new(),
-        valve_glyphs: Vec::new(),
-        cp_targets: Vec::new(),
-        crossings: Default::default(),
-        items: Vec::new(),
-        structure_boxes: Vec::new(),
-        panel: None,
-        strip_tags: Vec::new(),
+        ..blank_page(PAGE)
     }
 }
 

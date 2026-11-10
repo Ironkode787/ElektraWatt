@@ -23,6 +23,8 @@ use ew_schema::Scale;
 use ew_text::{builtin, bundled};
 use ew_units::{Nm, Pt2, Rect};
 
+use crate::common::blank_page;
+
 /// A surface point in millimetres.
 fn mm(x: f64, y: f64) -> Pt2 {
     Pt2::new(Nm((x * 1e6).round() as i64), Nm((y * 1e6).round() as i64))
@@ -51,23 +53,8 @@ fn view(labels: bool) -> PageView {
         shaped: None,
     };
     PageView {
-        page: Id::from_uuid(id(0x01)),
         kind: PageKind::Panel,
         grid: ew_units::Grid::MM4,
-        language: None,
-        frame: None,
-        reps: Vec::new(),
-        connections: Vec::new(),
-        junctions: Vec::new(),
-        wire_marker: None,
-        table: None,
-        embedded: Vec::new(),
-        break_marks: Vec::new(),
-        valve_glyphs: Vec::new(),
-        cp_targets: Vec::new(),
-        crossings: Default::default(),
-        items: Vec::new(),
-        structure_boxes: Vec::new(),
         panel: Some(PanelView {
             item: Id::from_uuid(id(0x02)),
             projection: projection(),
@@ -95,7 +82,7 @@ fn view(labels: bool) -> PageView {
                 Vec::new()
             },
         }),
-        strip_tags: Vec::new(),
+        ..blank_page(0x01)
     }
 }
 

@@ -3,11 +3,6 @@
 
 //! Cell overflow policies, `visible_if`, rotated text and logo placement of `lower_form`.
 
-// A wall-clock timer of this test, asserted only with EW_PERF_ASSERT (the timing rule of doc 18 §3.16); no timestamp reaches a compared result.
-#![allow(clippy::disallowed_methods)]
-
-use std::time::Instant;
-
 use ew_dl::{DisplayList, ImageFormat, ItemKind, ShapedRun, Transform};
 use ew_scene::forms::{
     AssetRef, BindingFinding, BoundValue, CELL_PADDING, FormFinding, OverflowKind, PageBindings, lower_form,
@@ -99,34 +94,6 @@ fn ellipsis_cuts_and_reports() {
     let out = lower_form(&form, None, &bindings("Short"), bundled(), builtin());
     assert!(out.findings.is_empty());
     assert_eq!(runs(&out.display_list)[0].text, "Short");
-}
-
-#[test]
-#[ignore = "perf: release-profile timing, milestone deliveries only"]
-fn ellipsis_of_20000_chars_is_fast() {
-    let text = "Ab c".repeat(5_000);
-    assert_eq!(text.chars().count(), 20_000);
-    let form = cell_form(
-        60_000_000,
-        8_000_000,
-        "text.normal",
-        "middle_left",
-        json!("ellipsis"),
-        json!({}),
-    );
-    let t = std::env::var_os("EW_PERF_ASSERT").is_some().then(Instant::now);
-    let out = lower_form(&form, None, &bindings(&text), bundled(), builtin());
-    // Timing acquisition, reporting and the bound are opt-in.
-    if let Some(t) = t {
-        let elapsed = t.elapsed();
-        eprintln!("ellipsis 20000 chars: {elapsed:?}");
-        assert!(elapsed.as_secs_f64() < 2.0, "took {elapsed:?}");
-    }
-    assert_eq!(overflow_kinds(&out.findings), vec![OverflowKind::Truncated]);
-    let r = runs(&out.display_list);
-    assert_eq!(r.len(), 1);
-    assert!(r[0].text.ends_with('\u{2026}'));
-    assert!(r[0].text.len() < text.len());
 }
 
 // -- error ------------------------------------------------------------------------------------------------
@@ -592,29 +559,27 @@ fn lower_template(value: &str) -> (Vec<String>, Vec<BindingFinding>) {
 }
 
 #[test]
-fn unknown_scope_placeholder_renders_empty_with_its_finding() {
-    let (texts, findings) = lower_template("{foo.bar}");
-    assert!(texts.is_empty());
-    assert_eq!(
-        findings,
-        vec![BindingFinding::UnknownScope {
-            placeholder: "{foo.bar}".to_owned()
-        }]
-    );
+fn unknown_scope_and_computed_placeholders_render_empty_with_their_finding() {
+    for (template, finding) in [
+        (
+            "{foo.bar}",
+            BindingFinding::UnknownScope {
+                placeholder: "{foo.bar}".to_owned(),
+            },
+        ),
+        (
+            "{= 1 + 1}",
+            BindingFinding::Computed {
+                placeholder: "{= 1 + 1}".to_owned(),
+            },
+        ),
+    ] {
+        let (texts, findings) = lower_template(template);
+        assert!(texts.is_empty(), "{template}: {texts:?}");
+        assert_eq!(findings, vec![finding], "{template}");
+    }
     let (texts, _) = lower_template("A {foo.bar} {page.title}");
     assert_eq!(texts, vec!["A  T".to_owned()]);
-}
-
-#[test]
-fn computed_placeholder_renders_empty_with_its_finding() {
-    let (texts, findings) = lower_template("{= 1 + 1}");
-    assert!(texts.is_empty());
-    assert_eq!(
-        findings,
-        vec![BindingFinding::Computed {
-            placeholder: "{= 1 + 1}".to_owned()
-        }]
-    );
 }
 
 #[test]

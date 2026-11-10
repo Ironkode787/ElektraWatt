@@ -8,16 +8,17 @@
 use std::sync::Arc;
 
 use ew_dl::{ItemKind, Layer};
-use ew_ids::{Id, Uuid};
 use ew_scene::embedded::{
     CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView, RegionTable, boxed_capacity,
 };
 use ew_scene::forms::{PageBindings, SheetMap};
-use ew_scene::page::{FrameView, PageFinding, PageKind, PageView, page_display_list};
+use ew_scene::page::{FrameView, PageFinding, PageView, page_display_list};
 use ew_scene::table::{TableColumn, TableFinding, TableRow, TableRowKind};
 use ew_schema::{FormDef, LibCopy, LibDocument};
 use ew_text::{builtin, bundled};
 use ew_units::{Nm, Pt2, Rect};
+
+use crate::common::blank_page;
 
 const FRAME: &str = include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json");
 const TITLE_BLOCK: &str = include_str!("../../../../content/forms/ew.titleblock.qet-a4.json");
@@ -76,29 +77,13 @@ fn cover() -> EmbeddedView {
 
 fn view(embedded: Vec<EmbeddedView>) -> PageView {
     PageView {
-        page: Id::from_uuid(Uuid::from_u128(0x100)),
-        kind: PageKind::Schematic,
-        grid: ew_units::Grid::QET_10PX,
-        language: None,
         frame: Some(FrameView {
             form: form(FRAME),
             title_block: Some(form(TITLE_BLOCK)),
             bindings: PageBindings::new(),
         }),
-        reps: Vec::new(),
-        connections: Vec::new(),
-        junctions: Vec::new(),
-        wire_marker: None,
-        table: None,
         embedded,
-        break_marks: Vec::new(),
-        valve_glyphs: Vec::new(),
-        cp_targets: Vec::new(),
-        crossings: Default::default(),
-        items: Vec::new(),
-        structure_boxes: Vec::new(),
-        panel: None,
-        strip_tags: Vec::new(),
+        ..blank_page(0x100)
     }
 }
 

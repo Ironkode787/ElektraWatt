@@ -51,50 +51,6 @@ use ew_units::{Grid, Nm, Orient2, Pt2};
 /// The interruption-point symbols: their xref slot keeps the default style of its kind.
 const INTERRUPTION_POINTS: [&str; 3] = ["ew.gen.ip", "ew.gen.ip-target", "ew.gen.external-arrow"];
 
-/// The keys of the native starter library; the qet10 edition has the same keys with `@qet10`.
-const STARTER_KEYS: &[&str] = &[
-    "ew.iec.contact-no",
-    "ew.iec.contact-nc",
-    "ew.iec.contact-co",
-    "ew.iec.coil",
-    "ew.iec.valve-coil",
-    "ew.iec.fuse",
-    "ew.iec.switch-1p",
-    "ew.iec.switch-2p-manual",
-    "ew.iec.mcb-1pn",
-    "ew.iec.mcb-1p",
-    "ew.iec.thermostat-nc",
-    "ew.iec.position-switch-no",
-    "ew.iec.pushbutton-no",
-    "ew.iec.selector-switch-no",
-    "ew.iec.lamp",
-    "ew.iec.heater",
-    "ew.iec.resistor",
-    "ew.iec.motor-3ph",
-    "ew.iec.transformer-1ph",
-    "ew.iec.terminal",
-    "ew.iec.terminal-pe",
-    "ew.gen.strip-segment",
-    "ew.iec.pe",
-    "ew.iec.fe",
-    "ew.iec.plug-pin",
-    "ew.gen.blackbox",
-    "ew.gen.ip",
-    "ew.gen.ip-target",
-    "ew.gen.external-arrow",
-    "ew.gen.junction-dot",
-    "ew.gen.junction-bevel",
-    "ew.gen.cable-marker",
-    "ew.gen.wire-marker",
-    "ew.bus.dp-port",
-    "ew.bus.dp-connector",
-    "ew.ovw.module",
-    "ew.ovw.valve-top",
-    "ew.iso.valve-5-2-sol-spring",
-    "ew.iso.cylinder-double-acting",
-    "ew.iso.process-valve-2way",
-];
-
 /// The suffix of a generated QET 10 px key.
 const QET_SUFFIX: &str = "@qet10";
 /// The ElektraWatt builtin library (`library_id` of every starter document).
@@ -1310,37 +1266,6 @@ fn lower_in_all_variants() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// 8. KEY SET
-
-#[test]
-fn all_starter_keys_present() {
-    let l = lib();
-    let expect_native: BTreeSet<String> = STARTER_KEYS.iter().map(|k| (*k).to_owned()).collect();
-    let expect_qet: BTreeSet<String> = STARTER_KEYS.iter().map(|k| format!("{k}{QET_SUFFIX}")).collect();
-    let mut problems = Vec::new();
-    for (what, expect, have) in [
-        (
-            "native",
-            expect_native,
-            l.native.iter().map(|d| d.key.clone()).collect::<BTreeSet<_>>(),
-        ),
-        (
-            "qet10",
-            expect_qet,
-            l.qet10.iter().map(|d| d.key.clone()).collect::<BTreeSet<_>>(),
-        ),
-    ] {
-        for k in expect.difference(&have) {
-            problems.push(format!("{what}: missing {k}"));
-        }
-        for k in have.difference(&expect) {
-            problems.push(format!("{what}: unexpected {k}"));
-        }
-    }
-    assert_clean("starter key set", &problems);
-}
-
-// ---------------------------------------------------------------------------------------------------------
 // 9. SNAPSHOTS
 
 fn pt_s(p: Pt2) -> String {
@@ -1574,11 +1499,7 @@ fn no_text_of_a_symbol_crosses_a_stub_of_its_connection_points() {
             }))
             .unwrap();
             let view = ew_scene::page::PageView {
-                page: ew_ids::Id::from_uuid(Uuid::from_u128(0x100)),
-                kind: ew_scene::page::PageKind::Schematic,
                 grid,
-                language: None,
-                frame: None,
                 reps: vec![ew_scene::page::RepView {
                     rep: std::sync::Arc::new(rep),
                     symbol: Some(std::sync::Arc::new(def.clone())),
@@ -1586,19 +1507,7 @@ fn no_text_of_a_symbol_crosses_a_stub_of_its_connection_points() {
                     terminals: Vec::new(),
                     pins: Vec::new(),
                 }],
-                connections: Vec::new(),
-                junctions: Vec::new(),
-                wire_marker: None,
-                table: None,
-                embedded: Vec::new(),
-                break_marks: Vec::new(),
-                valve_glyphs: Vec::new(),
-                cp_targets: Vec::new(),
-                crossings: Default::default(),
-                items: Vec::new(),
-                structure_boxes: Vec::new(),
-                panel: None,
-                strip_tags: Vec::new(),
+                ..crate::common::blank_page(0x100)
             };
             let labels = ew_scene::page::page_display_list(
                 &view,

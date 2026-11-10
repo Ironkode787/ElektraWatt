@@ -8,13 +8,15 @@
 use std::sync::Arc;
 
 use ew_dl::{Brush, EntityRef, ItemKind, Layer};
-use ew_ids::{Id, Uuid};
+use ew_ids::Uuid;
 use ew_scene::items::{DASH_DOT, DOTTED, ItemView, StructureBoxView};
-use ew_scene::page::{PageKind, PageView, SymbolRef, page_display_list, page_scene, wire_stroke};
+use ew_scene::page::{PageView, SymbolRef, page_display_list, page_scene, wire_stroke};
 use ew_schema::{LibCopy, LibDocument, PageItem, StructureBox};
 use ew_text::{builtin, bundled};
 use ew_units::{Grid, Nm};
 use serde_json::{Value, json};
+
+use crate::common::blank_page;
 
 const MARKER: &str = include_str!("../../../../content/symbols/qet10/ew.gen.wire-marker@qet10.json");
 const PAGE: u128 = 0x100;
@@ -76,25 +78,10 @@ fn marker_symbol() -> SymbolRef {
 
 fn view(items: Vec<ItemView>, structure_boxes: Vec<StructureBoxView>) -> PageView {
     PageView {
-        page: Id::from_uuid(Uuid::from_u128(PAGE)),
-        kind: PageKind::Schematic,
-        grid: Grid::QET_10PX,
-        language: None,
-        frame: None,
-        reps: Vec::new(),
-        connections: Vec::new(),
-        junctions: Vec::new(),
         wire_marker: Some(marker_symbol()),
-        table: None,
-        embedded: Vec::new(),
-        break_marks: Vec::new(),
-        valve_glyphs: Vec::new(),
-        cp_targets: Vec::new(),
-        crossings: Default::default(),
         items,
         structure_boxes,
-        panel: None,
-        strip_tags: Vec::new(),
+        ..blank_page(PAGE)
     }
 }
 
