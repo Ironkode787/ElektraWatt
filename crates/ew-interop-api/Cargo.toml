@@ -7,7 +7,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Importer and exporter traits over ew-schema records: import batches, reports, source references, table images and proposals."
+description = "The plain data of an import over ew-schema records: inputs, contexts, limits, batches, reports and source references."
 repository.workspace = true
 publish = false
 

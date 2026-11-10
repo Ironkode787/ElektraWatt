@@ -169,10 +169,6 @@ impl Tool for ExchangeTool {
         super::Hint::new(key!("hint-exchange"), &[super::ENTER, super::ESCAPE])
     }
 
-    fn wants_hover(&self) -> bool {
-        false
-    }
-
     fn ghost(&self) -> Option<Ghost> {
         Some(Ghost::Exchange {
             symbol: self.shape.key.clone(),

@@ -62,7 +62,7 @@ use crate::output::{
     ExportOptions, OutputError, Parallelism, PdfDate, changed_pages, page_digests, page_uuid,
 };
 use crate::release::{FOUR_EYES_RULE, Gate, GateError};
-use crate::{AnyCommand, CmdError, OpenError, OpenReport, Origin, Session, Sha256, Submit, checks};
+use crate::{CmdError, OpenError, OpenReport, Origin, Session, Sha256, Submit, checks};
 
 /// The release context (doc 05 §14.1 step 4): the label of the open revision and the release date. The archive is
 /// built from generation g plus this context only, so the same saved state and context give the same bytes (RA-5).
@@ -377,14 +377,7 @@ pub enum ReleaseError {
     },
     /// A git step before the archive failed (a missing executable, a refused commit): nothing was written.
     Git(GitError),
-    /// A freeze transaction was refused.
-    Freeze(CmdError),
-    /// The freeze would change printed pages (doc 15 §5.5): it was undone.
-    FreezeChangesPages {
-        /// The pages whose digests the freeze changed.
-        pages: Vec<Id<Page>>,
-    },
-    /// A save failed (the freeze's, or the stamp's: then the archive and the tag of this run were removed).
+    /// A save failed (the stamp's: then the archive and the tag of this run were removed).
     Save(SaveError),
     /// Generation g could not be read back for the archive.
     Generation(GenerationError),
@@ -462,12 +455,6 @@ impl fmt::Display for ReleaseError {
                  release)"
             ),
             ReleaseError::Git(e) => write!(f, "{e}; nothing was released"),
-            ReleaseError::Freeze(e) => write!(f, "the freeze was refused: {e}"),
-            ReleaseError::FreezeChangesPages { pages } => write!(
-                f,
-                "the freeze would change {} printed page(s); it was undone and the release aborted",
-                pages.len()
-            ),
             ReleaseError::Save(e) => write!(f, "the save failed: {e}"),
             ReleaseError::Generation(e) => write!(f, "the saved generation could not be read back: {e}"),
             ReleaseError::Output(e) => write!(f, "the PDF could not be written: {e}"),
@@ -924,7 +911,7 @@ impl Session {
         options: &ReleaseOptions<'_>,
     ) -> Result<Released, ReleaseError> {
         let origin = self.submit_origin.clone();
-        self.release_with(&origin, ctx, integrity, options, &[])
+        self.release_with(&origin, ctx, integrity, options)
     }
 
     /// [`Session::release`] for a submission from `origin` (cycle 41, ruling 1: judged per submission; see
@@ -941,18 +928,16 @@ impl Session {
         integrity: &[checks::IntegrityItem],
         options: &ReleaseOptions<'_>,
     ) -> Result<Released, ReleaseError> {
-        self.release_with(origin, ctx, integrity, options, &[])
+        self.release_with(origin, ctx, integrity, options)
     }
 
-    /// [`Session::release_as`] with the freeze transactions of step 2 (the seam of the digest assertion's test; at MVP
-    /// the release freezes nothing).
-    pub(crate) fn release_with(
+    /// [`Session::release_as`] for the origin of the submission.
+    fn release_with(
         &mut self,
         origin: &Origin,
         ctx: &ReleaseContext,
         integrity: &[checks::IntegrityItem],
         options: &ReleaseOptions<'_>,
-        freeze: &[AnyCommand],
     ) -> Result<Released, ReleaseError> {
         // Step 1: the gate and every refusal that needs no write.
         let plan = self.release_plan_as(origin, &ctx.label, integrity, options)?;
@@ -963,33 +948,8 @@ impl Session {
             });
         }
         let parallelism = options.parallelism;
-        // Step 2: the freeze, guarded by the page digests, then generation g.
+        // Step 2: generation g.
         let before = page_digests(&self.query(), parallelism);
-        let mut frozen = 0;
-        for cmd in freeze {
-            let submit = Submit::from(origin.clone());
-            if let Err(e) = self.execute_with(cmd, submit) {
-                self.undo_freeze(origin, frozen);
-                return Err(ReleaseError::Freeze(e));
-            }
-            frozen += 1;
-        }
-        if frozen > 0 {
-            let after = page_digests(&self.query(), parallelism);
-            if after != before {
-                let pages = before
-                    .keys()
-                    .chain(after.keys())
-                    .filter(|p| before.get(p) != after.get(p))
-                    .copied()
-                    .collect::<BTreeSet<_>>()
-                    .into_iter()
-                    .collect();
-                self.undo_freeze(origin, frozen);
-                return Err(ReleaseError::FreezeChangesPages { pages });
-            }
-            self.save().map_err(ReleaseError::Save)?;
-        }
         let (content_digest, generation) = self.content_digest().map_err(ReleaseError::Gate)?;
         let project = self.store().map(|s| s.root().to_path_buf()).unwrap_or_default();
         // Step 3: the project directory committed at g.
@@ -1082,20 +1042,6 @@ impl Session {
             save_incomplete,
             unstable: self.store().is_some_and(|s| s.writes_unstable()),
         })
-    }
-
-    /// Undoes the last `n` freeze transactions (an aborted release).
-    fn undo_freeze(&mut self, origin: &Origin, n: usize) {
-        for _ in 0..n {
-            let _ = self.undo(origin);
-        }
-        // The freeze ran on the saved generation (the gate needs one): undone, the model is that generation again, so
-        // its keys leave the dirty set and the content digest is the saved one again.
-        if !self.engine.is_dirty()
-            && let Some(p) = self.persistence.as_mut()
-        {
-            p.unsaved.clear();
-        }
     }
 
     /// The release record's facts (doc 15 §5.5), without the archive: the sign-off as `approval`, the content digest of
@@ -1846,76 +1792,7 @@ impl Session {
 
 #[cfg(test)]
 mod tests {
-    //! RA-4 (D13): the freeze of step 2 through the seam of [`Session::release_with`] (no numbering scheme freezes at
-    //! release yet, so [`Session::release`] freezes nothing).
-
-    use std::path::{Path, PathBuf};
-
-    use ew_schema::{PartyRole, RevisionState};
-
     use super::*;
-    use crate::{Approval, Recovery, SessionOptions, StoreOptions};
-
-    /// A worktree whose tag step fails (step 5), the rest succeeding; or no worktree at all.
-    struct Port {
-        worktree: bool,
-    }
-
-    impl Git for Port {
-        fn worktree(&self, _: &dyn Vfs, _: &Path) -> std::io::Result<Option<PathBuf>> {
-            Ok(self.worktree.then(|| PathBuf::from("/")))
-        }
-        fn available(&self) -> Result<(), GitError> {
-            Ok(())
-        }
-        fn commit_dir(&self, _: &Path, _: &str) -> Result<Committed, GitError> {
-            Ok(Committed::Made)
-        }
-        fn tag_exists(&self, _: &Path, _: &str) -> Result<bool, GitError> {
-            Ok(false)
-        }
-        fn tag_message(&self, _: &Path, _: &str) -> Result<Option<String>, GitError> {
-            Ok(None)
-        }
-        fn tag(&self, _: &Path, _: &str, _: &str) -> Result<(), GitError> {
-            Err(GitError::Failed {
-                step: "tag",
-                code: Some(128),
-            })
-        }
-        fn delete_tag(&self, _: &Path, _: &str) -> Result<(), GitError> {
-            Ok(())
-        }
-    }
-
-    fn copy_dir(from: &Path, to: &Path) {
-        std::fs::create_dir_all(to).expect("a directory");
-        for e in std::fs::read_dir(from).expect("a readable directory") {
-            let e = e.expect("an entry");
-            let target = to.join(e.file_name());
-            if e.path().is_dir() {
-                copy_dir(&e.path(), &target);
-            } else {
-                std::fs::copy(e.path(), &target).expect("a copied file");
-            }
-        }
-    }
-
-    fn cmd(name: &str, params: serde_json::Value) -> AnyCommand {
-        AnyCommand {
-            name: name.into(),
-            params,
-        }
-    }
-
-    fn state(s: &Session) -> RevisionState {
-        s.query()
-            .table::<Revision>()
-            .iter()
-            .find(|(_, r)| r.label.as_str() == "V1.0")
-            .map(|(_, r)| r.state.clone())
-            .expect("revision V1.0")
-    }
 
     /// FIX39a (finding 6): every pack a gate can evaluate (the pack of every registered rule) has an ID and a version
     /// that parse as an `Ident`, so [`Session::release_record`]'s `parse().ok()` never drops a pack from the record
@@ -1934,102 +1811,5 @@ mod tests {
             "pack version {:?}",
             checks::SHIPPED_PACK_VERSION
         );
-    }
-
-    /// RA-4: a freeze that changes a page digest (a moved symbol) is undone and aborts the release before anything is
-    /// written; a freeze that changes no page (the drawing settings of a project without crossings) is saved as g and
-    /// stays an ordinary undoable transaction when a later step fails (a refused tag); then the release completes at the
-    /// generation after the freeze.
-    #[test]
-    fn ra4_a_freeze_that_changes_a_page_digest_aborts_the_release() {
-        let base = ew_testdir::fresh_dir("ew-release-ra4");
-        let dir = base.join("release-min");
-        let root = base.join("archives");
-        copy_dir(
-            &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/fixtures/release-min"),
-            &dir,
-        );
-        let mut store = StoreOptions::new("wp-s1-18-part4");
-        store.state_dir = Some(base.join("state"));
-        let (mut s, report) =
-            Session::open(&dir, store, SessionOptions::default(), Recovery::Keep).expect("the fixture opens");
-        let integrity = crate::integrity_items(&report);
-        let approval = Approval {
-            label: "V1.0".into(),
-            checker: PartyRole::Checker,
-            date: Date::new(2026, 3, 2).expect("a date"),
-            waivers_ack: Vec::new(),
-        };
-        s.approve(&approval, &integrity).expect("approved");
-        s.save().expect("saved");
-        let (signed, g) = s.content_digest().expect("saved");
-        let ctx = ReleaseContext {
-            label: "V1.0".into(),
-            date: Date::new(2026, 3, 9).expect("a date"),
-        };
-        let no_git = Port { worktree: false };
-        let options = ReleaseOptions {
-            archive_root: Some(&root),
-            git: &no_git,
-            git_consent: true,
-            parallelism: Parallelism::Serial,
-        };
-
-        let q = s.query();
-        let rep = q.reps().ids().next().expect("a representation");
-        let page = q.reps().get(rep).expect("the rep").page;
-        let step = i64::try_from(q.pages().get(page).expect("the page").grid.num()).expect("a step");
-        drop(q);
-        let moved = [cmd(
-            "rep.move",
-            serde_json::json!({"reps": [rep.to_string()], "delta": [2 * step, 0]}),
-        )];
-        match s.release_with(&Origin::Gui, &ctx, &integrity, &options, &moved) {
-            Err(ReleaseError::FreezeChangesPages { pages }) => assert_eq!(pages, [page]),
-            other => panic!("expected FreezeChangesPages, got {other:?}"),
-        }
-        assert!(!s.is_dirty(), "the freeze is undone");
-        assert_eq!(s.content_digest().expect("saved"), (signed, g));
-        assert_eq!(state(&s), RevisionState::Open);
-        assert!(!root.exists(), "nothing written");
-
-        let hops = [cmd(
-            "project.drawing.set",
-            serde_json::json!({"crossings": "hops"}),
-        )];
-        let failing = Port { worktree: true };
-        let with_tag = ReleaseOptions {
-            git: &failing,
-            ..options
-        };
-        assert!(matches!(
-            s.release_with(&Origin::Gui, &ctx, &integrity, &with_tag, &hops),
-            Err(ReleaseError::Tag(_))
-        ));
-        assert_eq!(state(&s), RevisionState::Open);
-        let (frozen, g1) = s.content_digest().expect("the freeze is saved");
-        assert_eq!(g1, g + 1);
-        assert_ne!(frozen, signed);
-        assert_eq!(std::fs::read_dir(&root).expect("the root").count(), 0);
-        s.undo(&Origin::Gui).expect("the freeze stays undoable");
-        assert!(s.is_dirty());
-        s.save().expect("saved");
-        assert_eq!(s.content_digest().expect("saved").0, signed);
-
-        let released = s
-            .release_with(&Origin::Gui, &ctx, &integrity, &options, &hops)
-            .expect("released");
-        assert_eq!(released.generation, g + 3, "the freeze's save is generation g");
-        let record = s
-            .query()
-            .table::<Revision>()
-            .get(released.revision)
-            .and_then(|r| r.release.clone())
-            .expect("a record");
-        assert_eq!(record.generation, Some(released.generation));
-        assert_ne!(record.content_digest, Some(signed), "the digest after the freeze");
-        assert_eq!(state(&s), RevisionState::Released);
-        s.close();
-        let _ = std::fs::remove_dir_all(&base);
     }
 }

@@ -63,7 +63,6 @@ use ew_render2d::tiles::{DEFAULT_CACHE_BYTES, Plan, Planner, TileCache, TileKey}
 use ew_render2d::view::{DrawTransform, PxRect, View};
 use ew_viewmodel::canvas::{
     CanvasModel, CanvasPage, HOVER_SLOP_PT, Viewport, bounded_pane, zoom_in_step, zoom_out_step,
-    zoom_percent_text,
 };
 use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect as SheetRect;
 use ew_viewmodel::ew_api::output::ew_dl::{Color, FontKey, ew_units::Nm};
@@ -984,7 +983,6 @@ pub struct CanvasHost {
     stats: FrameStats,
     sample: FrameSample,
     frame_started: Option<Stamp>,
-    memo_at_start: Option<(u64, u64)>,
     counters: CanvasCounters,
     fonts: Arc<dyn FontResolver + Send + Sync>,
     /// The link preview popup's canvas.
@@ -1167,7 +1165,6 @@ impl CanvasHost {
             stats: FrameStats::new(),
             sample: FrameSample::default(),
             frame_started: None,
-            memo_at_start: None,
             counters: CanvasCounters::default(),
             fonts: Arc::new(BundledFonts(font_bytes())),
             popup: PopupView::default(),
@@ -1371,14 +1368,13 @@ impl CanvasHost {
         out
     }
 
-    /// Starts a frame: the frame counter, the statistics' interval and memo counters, the finished tiles taken from
+    /// Starts a frame: the frame counter, the statistics' interval, the finished tiles taken from
     /// the pool and at most 8 (2 MiB) uploaded for every canvas together.
-    pub(crate) fn begin_frame(&mut self, ctx: &egui::Context, shell: &ShellModel) {
+    pub(crate) fn begin_frame(&mut self, ctx: &egui::Context) {
         let started = now();
         if let Some(previous) = self.frame_started.replace(started) {
             self.sample.set(Phase::Interval, started - previous);
         }
-        self.memo_at_start = shell.memo_totals();
         self.frame += 1;
         self.plans.clear();
         for v in &mut self.views {
@@ -1658,13 +1654,9 @@ impl CanvasHost {
     }
 
     /// Ends the frame's statistics: adds the time the frame spent dispatching the canvas's actions to its input
-    /// phase, the memo counters' deltas, and records the sample.
-    pub fn end_frame(&mut self, dispatch: Duration, shell: &ShellModel) {
+    /// phase, and records the sample.
+    pub fn end_frame(&mut self, dispatch: Duration) {
         self.add_phase(Phase::Input, dispatch);
-        if let (Some((h0, r0)), Some((h1, r1))) = (self.memo_at_start, shell.memo_totals()) {
-            self.sample.memo_hits = h1.saturating_sub(h0);
-            self.sample.memo_re_executions = r1.saturating_sub(r0);
-        }
         self.stats.push(std::mem::take(&mut self.sample));
     }
 
@@ -2767,11 +2759,6 @@ fn cp_tooltip(response: &egui::Response, tip: String) {
         .at_pointer()
         .gap(t.space_4);
     crate::components::show_tip(&response.ctx, tooltip, &tip);
-}
-
-/// The zoom text of a canvas as its accessible description reads it (tests).
-pub fn zoom_text(c: &CanvasModel) -> String {
-    strings::format(key!("status-zoom"), &[&zoom_percent_text(c.zoom())])
 }
 
 #[cfg(test)]

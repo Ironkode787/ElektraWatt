@@ -5,8 +5,8 @@
 //! the dialog and of the third-party notices, shared by the egui frame and `ui.describe`.
 //!
 //! It shows the version, the render backend, the privacy state (update check and crash reports), the licence, the
-//! repository, the engineering-verification disclaimer and the support status computed offline from the planned
-//! support end embedded at build time. The notices are the repository's `NOTICE` (the bundled fonts) and, when the
+//! repository, the engineering-verification disclaimer and the support line (only the latest 0.x release is
+//! supported). The notices are the repository's `NOTICE` (the bundled fonts) and, when the
 //! installation has it, the generated `THIRD-PARTY-NOTICES.txt` of the Rust crates (cargo-about, per release).
 //!
 //! `PRIVACY.md` (FT-342) is opened by a button of the dialog and of the first-run privacy step: the bundled copy when
@@ -18,11 +18,6 @@
 use crate::key;
 use crate::shell::ShellModel;
 use crate::strings;
-
-/// The planned end of this release line's support as `YYYY-MM-DD`, embedded at build time (doc 18 section 7.5: the
-/// successor's planned date plus six months). A pre-1.0 build has none: only the latest 0.x is supported, and the
-/// release process (WP-S6.07) fills this in from the published cadence.
-pub const SUPPORT_END: Option<&str> = None;
 
 /// Where `PRIVACY.md` is read: the file on the repository's default branch, opened in the system browser by the
 /// user (a click; the application sends nothing). The installed builds of the release phase bundle the file next
@@ -43,18 +38,6 @@ pub fn privacy_target(model: &ShellModel) -> String {
 /// The repository's third-party notices of committed material (the bundled fonts).
 pub const NOTICE: &str = include_str!("../../../NOTICE");
 
-/// The support line of the About dialog for a planned end and today's date (both `YYYY-MM-DD`), computed without
-/// any network access: no end is the rule before 1.0, the latest 0.x until the next minor (WP-S6.08 D7); an end in the
-/// past is "no longer receives security fixes".
-/// Without today's date (a run without a clock) an end is shown as the planned date.
-pub fn support_line(end: Option<&str>, today: Option<&str>) -> String {
-    match (end, today) {
-        (None, _) => strings::text(key!("about-support-prerelease")).to_owned(),
-        (Some(end), Some(today)) if today > end => strings::format(key!("about-support-ended"), &[end]),
-        (Some(end), _) => strings::format(key!("about-support-until"), &[end]),
-    }
-}
-
 /// The lines of the About dialog, in order (the title is the dialog's).
 pub fn about_lines(model: &ShellModel) -> Vec<String> {
     // FT-1117 (ID-1229 item 3, ID-1187): this version has no update check, whatever the stored setting says.
@@ -67,7 +50,7 @@ pub fn about_lines(model: &ShellModel) -> Vec<String> {
         strings::text(key!("about-licence")).to_owned(),
         strings::format(key!("about-repository"), &[env!("CARGO_PKG_REPOSITORY")]),
         strings::text(key!("about-disclaimer")).to_owned(),
-        support_line(SUPPORT_END, None),
+        strings::text(key!("about-support-prerelease")).to_owned(),
     ]
 }
 
@@ -89,31 +72,6 @@ pub fn notices_text(model: &ShellModel) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn the_support_status_is_computed_offline_from_the_planned_end() {
-        assert_eq!(
-            support_line(None, Some("2030-01-01")),
-            "Support: only the latest 0.x release is supported, until the next minor release."
-        );
-        assert_eq!(
-            support_line(Some("2029-03-19"), Some("2028-12-31")),
-            "Support: security and data-loss fixes until 2029-03-19."
-        );
-        assert_eq!(
-            support_line(Some("2029-03-19"), Some("2029-03-19")),
-            "Support: security and data-loss fixes until 2029-03-19."
-        );
-        assert_eq!(
-            support_line(Some("2029-03-19"), Some("2029-03-20")),
-            "Support: this release line no longer receives security fixes (ended 2029-03-19)."
-        );
-        // No clock: the planned date is all that is known.
-        assert_eq!(
-            support_line(Some("2029-03-19"), None),
-            "Support: security and data-loss fixes until 2029-03-19."
-        );
-    }
 
     #[test]
     fn the_notice_names_the_bundled_fonts() {

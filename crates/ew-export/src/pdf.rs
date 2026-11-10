@@ -13,7 +13,7 @@
 //! | `PdfPage::section`, `PdfPage::title` | the outline: consecutive pages with the same section are grouped under one node pointing at the section's first page; pages without a section are top-level entries (front matter); each page entry is its `title` (FR-OUT-004) |
 //! | `PdfPage::destination` | a named destination at the page's top-left corner (`ew:p:<uuid>`), always; unique per export ([`PdfError::DuplicateDestination`]; a generated page uses its v5 page ID) |
 //! | [`Link::Target`] item | a named destination ([`Destination::pdf_name`]) at the item's anchor, written only if some link of the export points at it (doc 09 §4.2); the first target in page order wins |
-//! | [`Link::Source`] item | a link annotation over the item's box (a glyph run's `layout_quad`, else its control-point bounds) to the named destination; to a destination not in this export: plain text ([`PartialLinks::PlainText`], FR-OUT-020) |
+//! | [`Link::Source`] item | a link annotation over the item's box (a glyph run's `layout_quad`, else its control-point bounds) to the named destination; to a destination not in this export: plain text, no annotation (FR-OUT-020) |
 //! | `Path` | fill (non-zero) then stroke, caps, joins, miter limit [`ew_dl::MITER_LIMIT`], dashes |
 //! | `Glyphs` | the glyphs of the shaped run in its font, subset-embedded (CID, Identity-H) with ToUnicode from the run's text, so extraction keeps real spaces (FR-OUT-008); `.notdef` glyphs are dropped (PDF/A forbids them) |
 //! | `Group` | a transform and a clip path |
@@ -97,14 +97,6 @@ pub enum Conformance {
     None,
 }
 
-/// How links to destinations outside the export are written (FR-OUT-020).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
-pub enum PartialLinks {
-    /// As plain text: no annotation.
-    #[default]
-    PlainText,
-}
-
 /// A fixed output date and time (UTC).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct PdfDate {
@@ -144,8 +136,6 @@ pub struct PdfOptions {
     pub conformance: Conformance,
     /// Draw in black and grey (FR-OUT-011).
     pub monochrome: bool,
-    /// Links to pages outside the export.
-    pub partial_links: PartialLinks,
     /// Document title (the project description).
     pub title: Option<String>,
     /// Document description (subject): drawing id, revision, derivation profile, font substitutions.
@@ -173,7 +163,6 @@ impl PdfOptions {
         PdfOptions {
             conformance: Conformance::PdfA2b,
             monochrome: false,
-            partial_links: PartialLinks::PlainText,
             title: None,
             description: None,
             keywords: Vec::new(),

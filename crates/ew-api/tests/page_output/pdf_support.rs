@@ -7,7 +7,7 @@
 
 use std::collections::BTreeMap;
 
-use ew_api::output::{self, ExportOptions};
+use ew_api::output::{self, ExportAssets, ExportOptions};
 use ew_derive::Q;
 use ew_dl::FontKey;
 use ew_export::{Parallelism, PdfOptions, PdfOutput, PdfPage, SvgOptions, SvgOutput, pdf};
@@ -21,16 +21,17 @@ use super::view::{GoldenPage, golden_session};
 /// ADR-0028 recommendation 3), so none is dropped.
 pub const EXPECTED_DROPPED_NOTDEF_GLYPHS: usize = 0;
 
-/// The PDF page list of the golden project through the shipped export job (`ew_api::output::export_pages`: the
+/// The PDF page list of the golden project through the shipped export job (`ew_api::output::export_pages_with`: the
 /// memoised layers, then the page phase on `par_map` under `parallelism`; FR-OUT-019, one code path for the
 /// serial and the parallel export).
 pub fn pdf_pages(q: &Q, parallelism: Parallelism) -> Vec<PdfPage> {
-    output::export_pages(
+    output::export_pages_with(
         q,
         &ExportOptions {
             parallelism,
             ..ExportOptions::default()
         },
+        &ExportAssets::default(),
     )
     .expect("the golden pages export")
     .pages
@@ -39,7 +40,7 @@ pub fn pdf_pages(q: &Q, parallelism: Parallelism) -> Vec<PdfPage> {
 /// The export options of the golden PDF: the shipped job's (`ew_api::output::pdf_options`; dates from the
 /// model's edited date, FR-OUT-026).
 pub fn pdf_options(q: &Q) -> PdfOptions {
-    output::export_pages(q, &ExportOptions::default())
+    output::export_pages_with(q, &ExportOptions::default(), &ExportAssets::default())
         .expect("the golden pages export")
         .options
 }

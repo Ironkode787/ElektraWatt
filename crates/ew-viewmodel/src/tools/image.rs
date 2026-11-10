@@ -271,10 +271,6 @@ impl Tool for ImageTool {
         }
     }
 
-    fn wants_hover(&self) -> bool {
-        false
-    }
-
     fn ghost(&self) -> Option<Ghost> {
         Some(Ghost::Image {
             asset: self.asset.as_ref().map(|a| a.hash.clone()),

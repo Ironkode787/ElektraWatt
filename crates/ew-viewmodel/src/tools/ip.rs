@@ -883,10 +883,6 @@ impl Tool for IpTool {
         }
     }
 
-    fn wants_hover(&self) -> bool {
-        false
-    }
-
     fn proposal_note(&self) -> Option<String> {
         self.taken_note()
     }

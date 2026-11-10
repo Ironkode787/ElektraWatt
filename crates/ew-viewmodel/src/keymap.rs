@@ -675,247 +675,7 @@ pub fn export(name: &str, preset: Preset, user: Option<&Keymap>) -> Keymap {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Conflicts and reachability (D8)
-
-/// A keyboard layout of the reachability check (NFR-I18N-06).
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Layout {
-    /// QWERTY, US.
-    QwertyUs,
-    /// QWERTZ, German.
-    QwertzDe,
-    /// AZERTY, French.
-    AzertyFr,
-}
-
-/// The base and Shift characters of each physical key of a layout's alphanumeric block (`'\0'` for none). Letters are
-/// listed on their base level in lower case.
-type LayoutTable = &'static [(&'static str, char, char)];
-
-const QWERTY_US: LayoutTable = &[
-    ("Backquote", '`', '~'),
-    ("Digit1", '1', '!'),
-    ("Digit2", '2', '@'),
-    ("Digit3", '3', '#'),
-    ("Digit4", '4', '$'),
-    ("Digit5", '5', '%'),
-    ("Digit6", '6', '^'),
-    ("Digit7", '7', '&'),
-    ("Digit8", '8', '*'),
-    ("Digit9", '9', '('),
-    ("Digit0", '0', ')'),
-    ("Minus", '-', '_'),
-    ("Equal", '=', '+'),
-    ("KeyQ", 'q', 'Q'),
-    ("KeyW", 'w', 'W'),
-    ("KeyE", 'e', 'E'),
-    ("KeyR", 'r', 'R'),
-    ("KeyT", 't', 'T'),
-    ("KeyY", 'y', 'Y'),
-    ("KeyU", 'u', 'U'),
-    ("KeyI", 'i', 'I'),
-    ("KeyO", 'o', 'O'),
-    ("KeyP", 'p', 'P'),
-    ("BracketLeft", '[', '{'),
-    ("BracketRight", ']', '}'),
-    ("Backslash", '\\', '|'),
-    ("KeyA", 'a', 'A'),
-    ("KeyS", 's', 'S'),
-    ("KeyD", 'd', 'D'),
-    ("KeyF", 'f', 'F'),
-    ("KeyG", 'g', 'G'),
-    ("KeyH", 'h', 'H'),
-    ("KeyJ", 'j', 'J'),
-    ("KeyK", 'k', 'K'),
-    ("KeyL", 'l', 'L'),
-    ("Semicolon", ';', ':'),
-    ("Quote", '\'', '"'),
-    ("KeyZ", 'z', 'Z'),
-    ("KeyX", 'x', 'X'),
-    ("KeyC", 'c', 'C'),
-    ("KeyV", 'v', 'V'),
-    ("KeyB", 'b', 'B'),
-    ("KeyN", 'n', 'N'),
-    ("KeyM", 'm', 'M'),
-    ("Comma", ',', '<'),
-    ("Period", '.', '>'),
-    ("Slash", '/', '?'),
-];
-
-const QWERTZ_DE: LayoutTable = &[
-    ("Backquote", '^', '°'),
-    ("Digit1", '1', '!'),
-    ("Digit2", '2', '"'),
-    ("Digit3", '3', '§'),
-    ("Digit4", '4', '$'),
-    ("Digit5", '5', '%'),
-    ("Digit6", '6', '&'),
-    ("Digit7", '7', '/'),
-    ("Digit8", '8', '('),
-    ("Digit9", '9', ')'),
-    ("Digit0", '0', '='),
-    ("Minus", 'ß', '?'),
-    ("Equal", '´', '`'),
-    ("KeyQ", 'q', 'Q'),
-    ("KeyW", 'w', 'W'),
-    ("KeyE", 'e', 'E'),
-    ("KeyR", 'r', 'R'),
-    ("KeyT", 't', 'T'),
-    ("KeyY", 'z', 'Z'),
-    ("KeyU", 'u', 'U'),
-    ("KeyI", 'i', 'I'),
-    ("KeyO", 'o', 'O'),
-    ("KeyP", 'p', 'P'),
-    ("BracketLeft", 'ü', 'Ü'),
-    ("BracketRight", '+', '*'),
-    ("Backslash", '#', '\''),
-    ("KeyA", 'a', 'A'),
-    ("KeyS", 's', 'S'),
-    ("KeyD", 'd', 'D'),
-    ("KeyF", 'f', 'F'),
-    ("KeyG", 'g', 'G'),
-    ("KeyH", 'h', 'H'),
-    ("KeyJ", 'j', 'J'),
-    ("KeyK", 'k', 'K'),
-    ("KeyL", 'l', 'L'),
-    ("Semicolon", 'ö', 'Ö'),
-    ("Quote", 'ä', 'Ä'),
-    ("IntlBackslash", '<', '>'),
-    ("KeyZ", 'y', 'Y'),
-    ("KeyX", 'x', 'X'),
-    ("KeyC", 'c', 'C'),
-    ("KeyV", 'v', 'V'),
-    ("KeyB", 'b', 'B'),
-    ("KeyN", 'n', 'N'),
-    ("KeyM", 'm', 'M'),
-    ("Comma", ',', ';'),
-    ("Period", '.', ':'),
-    ("Slash", '-', '_'),
-];
-
-const AZERTY_FR: LayoutTable = &[
-    ("Backquote", '²', '\0'),
-    ("Digit1", '&', '1'),
-    ("Digit2", 'é', '2'),
-    ("Digit3", '"', '3'),
-    ("Digit4", '\'', '4'),
-    ("Digit5", '(', '5'),
-    ("Digit6", '-', '6'),
-    ("Digit7", 'è', '7'),
-    ("Digit8", '_', '8'),
-    ("Digit9", 'ç', '9'),
-    ("Digit0", 'à', '0'),
-    ("Minus", ')', '°'),
-    ("Equal", '=', '+'),
-    ("KeyQ", 'a', 'A'),
-    ("KeyW", 'z', 'Z'),
-    ("KeyE", 'e', 'E'),
-    ("KeyR", 'r', 'R'),
-    ("KeyT", 't', 'T'),
-    ("KeyY", 'y', 'Y'),
-    ("KeyU", 'u', 'U'),
-    ("KeyI", 'i', 'I'),
-    ("KeyO", 'o', 'O'),
-    ("KeyP", 'p', 'P'),
-    ("BracketLeft", '^', '¨'),
-    ("BracketRight", '$', '£'),
-    ("Backslash", '*', 'µ'),
-    ("KeyA", 'q', 'Q'),
-    ("KeyS", 's', 'S'),
-    ("KeyD", 'd', 'D'),
-    ("KeyF", 'f', 'F'),
-    ("KeyG", 'g', 'G'),
-    ("KeyH", 'h', 'H'),
-    ("KeyJ", 'j', 'J'),
-    ("KeyK", 'k', 'K'),
-    ("KeyL", 'l', 'L'),
-    ("Semicolon", 'm', 'M'),
-    ("Quote", 'ù', '%'),
-    ("IntlBackslash", '<', '>'),
-    ("KeyZ", 'w', 'W'),
-    ("KeyX", 'x', 'X'),
-    ("KeyC", 'c', 'C'),
-    ("KeyV", 'v', 'V'),
-    ("KeyB", 'b', 'B'),
-    ("KeyN", 'n', 'N'),
-    ("KeyM", ',', '?'),
-    ("Comma", ';', '.'),
-    ("Period", ':', '/'),
-    ("Slash", '!', '§'),
-];
-
-impl Layout {
-    /// The layouts the check covers.
-    pub const ALL: [Layout; 3] = [Layout::QwertyUs, Layout::QwertzDe, Layout::AzertyFr];
-
-    /// The layout's name (`QWERTY-US`).
-    pub fn name(self) -> &'static str {
-        match self {
-            Layout::QwertyUs => "QWERTY-US",
-            Layout::QwertzDe => "QWERTZ-DE",
-            Layout::AzertyFr => "AZERTY-FR",
-        }
-    }
-
-    fn table(self) -> LayoutTable {
-        match self {
-            Layout::QwertyUs => QWERTY_US,
-            Layout::QwertzDe => QWERTZ_DE,
-            Layout::AzertyFr => AZERTY_FR,
-        }
-    }
-
-    /// Where `c` is on the layout: `Some(false)` on a base level, `Some(true)` only on a Shift level, `None` not
-    /// without AltGr. Letters are found in either case.
-    fn level(self, c: char) -> Option<bool> {
-        let c = c.to_ascii_lowercase();
-        if self.table().iter().any(|(_, base, _)| *base == c) {
-            Some(false)
-        } else if self.table().iter().any(|(_, _, shift)| *shift == c) {
-            Some(true)
-        } else {
-            None
-        }
-    }
-}
-
-/// How a binding types on a layout.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum Typing {
-    /// Typable as written.
-    Yes,
-    /// Its character needs Shift there and the chord has none (an error).
-    NeedsShift,
-    /// Its character is not on the layout without AltGr.
-    No,
-}
-
-/// How `chord` types on `layout`: a physical key and a layout-independent name always; a character by its level.
-fn typing(chord: &Chord, layout: Layout) -> Typing {
-    let c = match &chord.key {
-        ChordKey::Physical(code) => {
-            return if layout.table().iter().any(|(k, _, _)| k == code) {
-                Typing::Yes
-            } else {
-                Typing::No
-            };
-        }
-        ChordKey::Logical(name) => match name.as_str() {
-            "Plus" => '+',
-            "Minus" => '-',
-            "Equals" => '=',
-            single if single.chars().count() == 1 => single.chars().next().unwrap_or(' '),
-            _ => return Typing::Yes,
-        },
-    };
-    match layout.level(c) {
-        Some(false) => Typing::Yes,
-        // A letter's capital is its Shift level, but a letter binds in either case.
-        Some(true) if chord.shift || c.is_ascii_alphabetic() => Typing::Yes,
-        Some(true) => Typing::NeedsShift,
-        None => Typing::No,
-    }
-}
+// Conflicts (D8)
 
 /// Whether a finding is an error or an info.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -926,7 +686,7 @@ pub enum Severity {
     Info,
 }
 
-/// A finding of the conflict and reachability rules (D8).
+/// A finding of the conflict rules (D8).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Finding {
     /// Equal chords for different actions in one context (an error).
@@ -963,47 +723,14 @@ pub enum Finding {
         /// The action.
         action: &'static str,
     },
-    /// The chord's character needs Shift on `layout` and the chord has none: an error, unless another binding of
-    /// the action types on that layout (`covered`), when it is an info (KM-4 ruling, cycle 40).
-    NeedsShift {
-        /// The chord.
-        chord: Chord,
-        /// The action.
-        action: &'static str,
-        /// The layout.
-        layout: Layout,
-        /// Whether another binding of the action types on the layout.
-        covered: bool,
-    },
-    /// No binding of the action types on `layout` without AltGr (an error).
-    Unreachable {
-        /// The action.
-        action: &'static str,
-        /// The layout.
-        layout: Layout,
-    },
 }
 
 impl Finding {
     /// Its severity.
     pub fn severity(&self) -> Severity {
         match self {
-            Finding::Shadow { .. } | Finding::NeedsShift { covered: true, .. } => Severity::Info,
+            Finding::Shadow { .. } => Severity::Info,
             _ => Severity::Error,
-        }
-    }
-
-    /// Whether it involves `action`.
-    pub fn involves(&self, action: &str) -> bool {
-        match self {
-            Finding::Conflict { actions, .. } => actions.contains(&action),
-            Finding::Shadow {
-                action: a, shadowed, ..
-            } => *a == action || *shadowed == action,
-            Finding::CtrlAlt { action: a, .. }
-            | Finding::Reserved { action: a, .. }
-            | Finding::NeedsShift { action: a, .. }
-            | Finding::Unreachable { action: a, .. } => *a == action,
         }
     }
 
@@ -1039,12 +766,6 @@ impl Finding {
             ),
             Finding::CtrlAlt { chord, .. } => strings::format(key!("keymap-ctrl-alt"), &[&chord.display()]),
             Finding::Reserved { chord, .. } => strings::format(key!("keymap-reserved"), &[&chord.display()]),
-            Finding::NeedsShift { chord, layout, .. } => {
-                strings::format(key!("keymap-needs-shift"), &[&chord.display(), layout.name()])
-            }
-            Finding::Unreachable { action, layout } => {
-                strings::format(key!("keymap-unreachable"), &[&label(action), layout.name()])
-            }
         }
     }
 }
@@ -1108,42 +829,8 @@ pub fn conflicts(binds: &[Bound]) -> Vec<Finding> {
     out
 }
 
-/// The reachability findings of `binds` on each layout (D8): a binding whose character needs a Shift it does not
-/// have (an info when another binding of the action types there), and an action with no typable binding.
-pub fn reachability(binds: &[Bound]) -> Vec<Finding> {
-    let mut out = Vec::new();
-    for layout in Layout::ALL {
-        let mut actions: Vec<&'static str> = Vec::new();
-        for b in binds {
-            if !actions.contains(&b.action) {
-                actions.push(b.action);
-            }
-            if typing(&b.chord, layout) == Typing::NeedsShift {
-                let covered = binds
-                    .iter()
-                    .any(|o| o.action == b.action && typing(&o.chord, layout) == Typing::Yes);
-                out.push(Finding::NeedsShift {
-                    chord: b.chord.clone(),
-                    action: b.action,
-                    layout,
-                    covered,
-                });
-            }
-        }
-        for action in actions {
-            if !binds
-                .iter()
-                .any(|b| b.action == action && typing(&b.chord, layout) == Typing::Yes)
-            {
-                out.push(Finding::Unreachable { action, layout });
-            }
-        }
-    }
-    out
-}
-
 /// The errors that refuse the user's keymap `user` over `preset` (D8): the conflicts, the Ctrl+Alt ban and the
-/// reserved chords of the effective bindings. Reachability is a preset rule, not a user's.
+/// reserved chords of the effective bindings.
 pub fn user_errors(preset: Preset, user: &Keymap) -> Vec<Finding> {
     conflicts(&effective(preset, Some(user)))
         .into_iter()
@@ -1437,58 +1124,6 @@ mod tests {
         assert!(f.iter().filter(|x| x.severity() == Severity::Error).count() == 4);
         // Siblings never conflict: the canvas and the find pane are never active together.
         assert!(conflicts(&[bound("a", "F2", Context::Canvas), bound("b", "F2", Context::Find)]).is_empty());
-    }
-
-    #[test]
-    fn reachability_per_layout() {
-        // A digit needs Shift on AZERTY; the physical key does not.
-        let f = reachability(&[bound("a.zero", "Ctrl+0", Context::Global)]);
-        assert_eq!(
-            f,
-            [
-                Finding::NeedsShift {
-                    chord: chord("Ctrl+0"),
-                    action: "a.zero",
-                    layout: Layout::AzertyFr,
-                    covered: false,
-                },
-                Finding::Unreachable {
-                    action: "a.zero",
-                    layout: Layout::AzertyFr,
-                },
-            ]
-        );
-        assert!(reachability(&[bound("a.zero", "Ctrl+phys:Digit0", Context::Global)]).is_empty());
-        assert!(reachability(&[bound("a.zero", "Ctrl+Shift+0", Context::Global)]).is_empty());
-        // Brackets by physical key, letters and named keys type everywhere.
-        assert!(
-            reachability(&[
-                bound("a", "]", Context::Canvas),
-                bound("b", "Shift+W", Context::Canvas),
-                bound("c", "Page Down", Context::Global),
-            ])
-            .is_empty()
-        );
-        // `=` is Shift+0 on QWERTZ; `+` is Shift+= on QWERTY and AZERTY.
-        let f = reachability(&[bound("z", "Ctrl+Equals", Context::Global)]);
-        assert_eq!(f.len(), 2, "{f:?}");
-        assert!(f.contains(&Finding::Unreachable {
-            action: "z",
-            layout: Layout::QwertzDe
-        }));
-        // KM-4 ruling: a binding that needs Shift is an info when another binding of the action types there.
-        let f = reachability(&[
-            bound("in", "Ctrl+Plus", Context::Global),
-            bound("in", "Ctrl+Equals", Context::Global),
-        ]);
-        assert!(!f.is_empty());
-        assert!(f.iter().all(|x| x.severity() == Severity::Info), "{f:?}");
-        assert!(
-            f.iter()
-                .all(|x| matches!(x, Finding::NeedsShift { covered: true, .. }))
-        );
-        let lone = reachability(&[bound("a.zero", "Ctrl+0", Context::Global)]);
-        assert_eq!(lone[0].severity(), Severity::Error);
     }
 
     #[test]

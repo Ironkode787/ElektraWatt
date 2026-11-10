@@ -124,7 +124,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    hidden(parameterless(act(
+    hidden(act(
         "file.reimport_qet_apply",
         Command,
         Menu::Project,
@@ -132,7 +132,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         project_open,
         None,
         |s, _| s.act_reimport_qet_apply(),
-    ))),
+    )),
     // FT-410: File, Import, Parts table…
     with_params(
         "path?:path",
@@ -169,7 +169,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_parts_map(p),
         )),
     ),
-    hidden(parameterless(act(
+    hidden(act(
         "parts.map_import",
         Command,
         Menu::Project,
@@ -177,7 +177,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         parts_map_open,
         None,
         |s, _| s.act_parts_map_import(),
-    ))),
+    )),
     with_icon(
         "device-floppy",
         act(
@@ -191,7 +191,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // ID-1463: while the symbol editor shows, Save is the symbol's and the File menu keeps Save project.
-    hidden(parameterless(act(
+    hidden(act(
         "file.save_project",
         Command,
         Menu::File,
@@ -199,7 +199,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         writable,
         None,
         |s, _| s.act_save_project(),
-    ))),
+    )),
     with_params(
         "dir?:path",
         act(
@@ -257,7 +257,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // WP-S1.17 part 7 (D20, D24): an external change now, as the window's poll finds it; the upgrade dialog's Upgrade
     // and save; the collision dialog's buttons and choices; Set up merge driver.
-    keeps_banner(parameterless(act(
+    keeps_banner(act(
         "project.check_disk",
         Command,
         Menu::File,
@@ -265,8 +265,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         project_open,
         slot(Menu::File),
         |s, _| s.act_check_disk(),
-    ))),
-    hidden(parameterless(act(
+    )),
+    hidden(act(
         "file.upgrade",
         Command,
         Menu::File,
@@ -274,7 +274,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         project_open,
         None,
         |s, _| s.act_upgrade(),
-    ))),
+    )),
     keeps_banner(with_params(
         "take?:enum(mine|theirs)",
         hidden(act(
@@ -287,7 +287,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_external_apply(p),
         )),
     )),
-    keeps_banner(hidden(parameterless(act(
+    keeps_banner(hidden(act(
         "external.review",
         View,
         Menu::File,
@@ -295,9 +295,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         project_open,
         None,
         |s, _| s.act_external_review(),
-    )))),
+    ))),
     // FT-1499 (ID-1486): the damaged-copy banner's Update from library.
-    hidden(parameterless(act(
+    hidden(act(
         "library.update_damaged",
         Command,
         Menu::File,
@@ -305,7 +305,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         damaged_update_offered,
         None,
         |s, _| s.act_update_damaged(),
-    ))),
+    )),
     keeps_banner(with_params(
         "row:uint, take:enum(mine|theirs)",
         hidden(act(

@@ -42,6 +42,7 @@ use super::fields::{
     InputError, ParseCx, ParsedInput, catalogue_kind, choices, field_catalogue, format_with, route_of,
     segment, spec_of,
 };
+use super::table_edit::{Seg, segments};
 use crate::Session;
 use crate::checks;
 
@@ -295,7 +296,7 @@ fn section_rank(kind: Kind) -> (u8, u8) {
 }
 
 /// The folio label of a drawn page.
-fn folio_of(q: &Q, page: Id<Page>) -> Option<String> {
+pub(crate) fn folio_of(q: &Q, page: Id<Page>) -> Option<String> {
     q.get::<PageOrder>(())
         .entries
         .iter()
@@ -320,59 +321,13 @@ pub(super) fn ml_text(value: &Value, source: Option<&str>) -> String {
 /// The JSON at a row path (`parts[0].qty`, `[ew.company]`) below `root`.
 pub(crate) fn json_at<'v>(root: &'v Value, path: &str) -> Option<&'v Value> {
     let mut cur = root;
-    for seg in path_segments(path) {
+    for seg in segments(path) {
         cur = match seg {
             Seg::Member(m) => cur.get(m.as_str())?,
             Seg::Index(i) => cur.get(i)?,
         };
     }
     Some(cur)
-}
-
-/// One segment of a row path.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub(crate) enum Seg {
-    /// An object member.
-    Member(String),
-    /// A list index.
-    Index(usize),
-}
-
-/// The segments of a row path: members split at `.`, `[name]` a member with dots, `[3]` an index.
-pub(crate) fn path_segments(path: &str) -> Vec<Seg> {
-    let mut out = Vec::new();
-    let mut cur = String::new();
-    let mut chars = path.chars().peekable();
-    while let Some(c) = chars.next() {
-        match c {
-            '.' => {
-                if !cur.is_empty() {
-                    out.push(Seg::Member(std::mem::take(&mut cur)));
-                }
-            }
-            '[' => {
-                if !cur.is_empty() {
-                    out.push(Seg::Member(std::mem::take(&mut cur)));
-                }
-                let mut inner = String::new();
-                for d in chars.by_ref() {
-                    if d == ']' {
-                        break;
-                    }
-                    inner.push(d);
-                }
-                match inner.parse::<usize>() {
-                    Ok(i) => out.push(Seg::Index(i)),
-                    Err(_) => out.push(Seg::Member(inner)),
-                }
-            }
-            other => cur.push(other),
-        }
-    }
-    if !cur.is_empty() {
-        out.push(Seg::Member(cur));
-    }
-    out
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -2747,7 +2702,7 @@ fn frozen_tag_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
 
 /// The last member of a row path (`structure.location` → `location`).
 fn last_member(row_path: &str) -> String {
-    path_segments(row_path)
+    segments(row_path)
         .into_iter()
         .rev()
         .find_map(|s| match s {
@@ -2867,14 +2822,14 @@ mod tests {
     #[test]
     fn row_paths_split_into_members_and_indices() {
         assert_eq!(
-            path_segments("parts[0].qty"),
+            segments("parts[0].qty"),
             [
                 Seg::Member("parts".into()),
                 Seg::Index(0),
                 Seg::Member("qty".into())
             ]
         );
-        assert_eq!(path_segments("[ew.company]"), [Seg::Member("ew.company".into())]);
+        assert_eq!(segments("[ew.company]"), [Seg::Member("ew.company".into())]);
         let v = serde_json::json!({"parts": [{"qty": "1"}], "ew.company": {"a": 1}});
         assert_eq!(json_at(&v, "parts[0].qty"), Some(&Value::from("1")));
         assert_eq!(json_at(&v, "[ew.company].a"), Some(&Value::from(1)));

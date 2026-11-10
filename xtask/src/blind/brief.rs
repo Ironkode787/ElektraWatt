@@ -247,11 +247,8 @@ fn requirement(root: &Path, dir: &Path, actions: &BTreeSet<String>, req: &str) -
         ));
     };
     let value = value.trim();
-    let starter = || {
-        std::fs::read_to_string(root.join("crates/ew-library/src/starter.rs"))
-            .is_ok_and(|t| t.contains(value))
-            || tree_holds(&root.join("content"), value)
-    };
+    // The starter library is the content folder: a symbol or a function definition is a file there.
+    let starter = || tree_holds(&root.join("content"), value);
     let met = match form.trim() {
         "action" => actions.contains(value),
         "fndef" | "symbol" => starter(),
@@ -874,13 +871,15 @@ mod tests {
             tmp.0.join("tools/blind/reference/actions.txt"),
         )
         .unwrap();
-        // The starter library's index, where a `symbol:` requirement is looked up.
-        std::fs::create_dir_all(tmp.0.join("crates/ew-library/src")).unwrap();
-        std::fs::copy(
-            root.join("crates/ew-library/src/starter.rs"),
-            tmp.0.join("crates/ew-library/src/starter.rs"),
-        )
-        .unwrap();
+        // The starter content, where a `symbol:` or `fndef:` requirement is looked up.
+        for folder in ["content/symbols", "content/symbols/qet10", "content/fndefs"] {
+            std::fs::create_dir_all(tmp.0.join(folder)).unwrap();
+            for e in std::fs::read_dir(root.join(folder)).unwrap().flatten() {
+                if e.path().is_file() {
+                    std::fs::copy(e.path(), tmp.0.join(folder).join(e.file_name())).unwrap();
+                }
+            }
+        }
         for e in std::fs::read_dir(task_dir(&root, brief)).unwrap().flatten() {
             std::fs::copy(e.path(), dir.join(e.file_name())).unwrap();
         }

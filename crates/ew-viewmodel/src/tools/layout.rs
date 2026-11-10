@@ -41,7 +41,7 @@ use serde_json::{Value, json};
 
 use super::{
     Anchor, Button, CanvasEvent, Ghost, Mods, Overlay, OverlayItem, PreviewInfo, Style, Token, Tool, ToolCx,
-    ToolKey, ToolOutput,
+    ToolKey, ToolOutput, clamp64,
 };
 use crate::key;
 use crate::strings;
@@ -317,11 +317,6 @@ impl LayoutGesture {
             None => (i128::from(row.pose.0), i128::from(row.pose.1)),
         };
         self.grab = Some((anchor.0 - ptr.0, anchor.1 - ptr.1));
-    }
-
-    /// The device's label (its tag as a sentence names it).
-    pub fn device_label(&self) -> &str {
-        &self.label
     }
 
     /// Turns the floating footprint: R a quarter turn on the plate, X a half turn on a rail. `false` when the key does
@@ -641,7 +636,6 @@ impl LayoutGesture {
             Source::Device(d) => d,
             Source::Placement(p) => p,
         };
-        let sat = |v: i128| i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX });
         match &r.drop {
             Drop::Rail {
                 carrier,
@@ -651,7 +645,7 @@ impl LayoutGesture {
                 moved,
                 ..
             } => {
-                let mut out = vec![(id, (sat(s + clip), 0, *turn))];
+                let mut out = vec![(id, (clamp64(s + clip), 0, *turn))];
                 let items = panel
                     .carrier(*carrier)
                     .map(|c| c.items.clone())
@@ -665,12 +659,15 @@ impl LayoutGesture {
                     ) else {
                         continue;
                     };
-                    out.push((*p, (sat(i128::from(row.pose.0) + (s0 - old.s0)), 0, row.pose.2)));
+                    out.push((
+                        *p,
+                        (clamp64(i128::from(row.pose.0) + (s0 - old.s0)), 0, row.pose.2),
+                    ));
                 }
                 out
             }
             Drop::Rail { .. } => Vec::new(),
-            Drop::Plate { at, turn } => vec![(id, (sat(at.0), sat(at.1), *turn))],
+            Drop::Plate { at, turn } => vec![(id, (clamp64(at.0), clamp64(at.1), *turn))],
         }
     }
 }
@@ -1102,11 +1099,6 @@ fn resolve_at(
     }
 }
 
-/// An `i128` in the `i64` range, saturating.
-pub(crate) fn clamp64(v: i128) -> i64 {
-    i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
-}
-
 /// D4's target snapping of a footprint's left edge on a rail: the candidate nearest to `s_left` among (1) the
 /// positions where it touches a neighbour at its minimum gap and (2) the rail ends at their gaps, each within
 /// `reach`, and (4) the nearest grid point along the axis (`origin` is the rail start's coordinate along its
@@ -1269,10 +1261,6 @@ impl Tool for LayoutPlaceTool {
             Some(_) => super::Hint::new(key!("hint-layout-place"), &[super::ESCAPE]),
             None => super::Hint::plain(key!("hint-layout-idle")),
         }
-    }
-
-    fn wants_hover(&self) -> bool {
-        false
     }
 
     fn ghost(&self) -> Option<Ghost> {

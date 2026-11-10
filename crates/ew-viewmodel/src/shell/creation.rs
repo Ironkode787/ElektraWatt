@@ -542,17 +542,14 @@ impl ShellModel {
         out
     }
 
-    /// Whether the open dialog is the form of `spec`.
-    fn in_form(&self, spec: &Spec) -> bool {
-        matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == spec.action)
-    }
-
     /// A required parameter is missing: in the window the dialog opens (or says what is missing), headless the step
     /// fails.
     fn form_missing(&mut self, spec: &'static Spec, p: &Map<String, Value>, name: &str) -> Outcome {
         match self.mode {
             Mode::Headless => failed(key!("error-missing-param"), &[name]),
-            Mode::Gui if self.in_form(spec) => self.form_failed(spec, self.missing_text(name)),
+            Mode::Gui if self.in_form_of(spec.action) => {
+                self.form_failed(spec.action, self.missing_text(name))
+            }
             Mode::Gui => self.open_dialog(Dialog::Form(spec.dialog(p))),
         }
     }
@@ -568,16 +565,6 @@ impl ShellModel {
         strings::format(key!("error-missing-param"), &[name])
     }
 
-    /// A refusal: it stays in the dialog when the form is open.
-    fn form_failed(&mut self, spec: &Spec, message: String) -> Outcome {
-        if self.in_form(spec)
-            && let Some(Dialog::Form(f)) = &mut self.dialog
-        {
-            f.error = Some(message.clone());
-        }
-        Outcome::Failed { message }
-    }
-
     /// FT-1090: the New terminal strip form, its Tag field holding `tag` (in the window and headless alike: the
     /// action asks for it by its `dialog` flag).
     pub(super) fn open_strip_form(&mut self, tag: &str) -> Outcome {
@@ -588,21 +575,7 @@ impl ShellModel {
 
     /// The end of a `strip.new`: a failure stays in its form when the form is open, a success closes it.
     pub(super) fn strip_form_done(&mut self, out: Outcome) -> Outcome {
-        self.form_done(&STRIP_NEW, out)
-    }
-
-    /// The end of a creation: a failure stays in the dialog, a success closes it.
-    fn form_done(&mut self, spec: &Spec, out: Outcome) -> Outcome {
-        match out {
-            Outcome::Failed { message } => self.form_failed(spec, message),
-            Outcome::Done => {
-                if self.in_form(spec) {
-                    self.dialog = None;
-                }
-                Outcome::Done
-            }
-            other => other,
-        }
+        self.form_done(STRIP_NEW.action, out)
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -741,7 +714,7 @@ impl ShellModel {
             .unwrap_or_default();
         if folio.is_empty() {
             // WP-S2.06 part 1 (FT-461): the dialog opens with the proposed folio and section filled in.
-            if !self.in_form(&PAGE_NEW) {
+            if !self.in_form_of(PAGE_NEW.action) {
                 let (proposal, proposed_section) = self.new_page_proposal();
                 let mut filled = p.clone();
                 if !proposal.is_empty() {
@@ -761,7 +734,7 @@ impl ShellModel {
         }
         let (number, label) = match parse_folio(&folio) {
             Ok(f) => f,
-            Err(message) => return self.form_failed(&PAGE_NEW, message),
+            Err(message) => return self.form_failed(PAGE_NEW.action, message),
         };
         let mut params = json!({ "number": number });
         if let Some(label) = label {
@@ -770,7 +743,7 @@ impl ShellModel {
         if !ty.is_empty() {
             if !PAGE_TYPES.contains(&ty.as_str()) {
                 return self.form_failed(
-                    &PAGE_NEW,
+                    PAGE_NEW.action,
                     strings::format(key!("error-page-type"), &[&ty, &PAGE_TYPES.join(", ")]),
                 );
             }
@@ -787,7 +760,7 @@ impl ShellModel {
         if !grid.is_empty() {
             let Some(value) = page_grid_value(grid) else {
                 return self.form_failed(
-                    &PAGE_NEW,
+                    PAGE_NEW.action,
                     strings::format(key!("error-page-grid"), &[grid, &PAGE_GRIDS.join(", ")]),
                 );
             };
@@ -803,7 +776,7 @@ impl ShellModel {
             };
             match project.session.resolve_reference(&format!("section:{section}")) {
                 Ok(id) => params["section"] = Value::String(id.to_string()),
-                Err(message) => return self.form_failed(&PAGE_NEW, message),
+                Err(message) => return self.form_failed(PAGE_NEW.action, message),
             }
         } else if let Some(id) = section_of(self, number) {
             // A new page belongs to the section whose folio range holds its number (window check, item 7): a sub-page
@@ -811,7 +784,7 @@ impl ShellModel {
             params["section"] = Value::String(id);
         }
         let out = self.host_create("page.create", params);
-        let out = self.form_done(&PAGE_NEW, out);
+        let out = self.form_done(PAGE_NEW.action, out);
         if out == Outcome::Done
             && let Some(id) = self.tools.last_primary.clone()
         {
@@ -866,7 +839,7 @@ impl ShellModel {
             if value.is_empty() {
                 // WP-S2.06 part 2 (FT-461's second half): the dialog opens with the marked structure node as the parent
                 // when its aspect is the chosen kind's.
-                if self.mode == Mode::Gui && !self.in_form(&STRUCTURE_NEW) && parent.is_empty() {
+                if self.mode == Mode::Gui && !self.in_form_of(STRUCTURE_NEW.action) && parent.is_empty() {
                     let chosen = if kind.is_empty() {
                         STRUCTURE_NEW.fields[0].default
                     } else {
@@ -884,7 +857,7 @@ impl ShellModel {
         }
         if !STRUCTURE_KINDS.contains(&kind.as_str()) {
             return self.form_failed(
-                &STRUCTURE_NEW,
+                STRUCTURE_NEW.action,
                 strings::format(
                     key!("error-structure-kind"),
                     &[&kind, &STRUCTURE_KINDS.join(", ")],
@@ -894,13 +867,13 @@ impl ShellModel {
         let designation = match strip_sign(&kind, &designation) {
             Ok(d) if !d.is_empty() => d,
             Ok(_) => return self.form_missing(&STRUCTURE_NEW, p, "designation"),
-            Err(message) => return self.form_failed(&STRUCTURE_NEW, message),
+            Err(message) => return self.form_failed(STRUCTURE_NEW.action, message),
         };
         let mut params = json!({ "aspect": kind, "code": designation });
         if !parent.is_empty() {
             match self.structure_node(&kind, &parent) {
                 Ok(id) => params["parent"] = Value::String(id),
-                Err(message) => return self.form_failed(&STRUCTURE_NEW, message),
+                Err(message) => return self.form_failed(STRUCTURE_NEW.action, message),
             }
         }
         let out = self.host_create("structure.create_node", params);
@@ -910,7 +883,7 @@ impl ShellModel {
                 true,
             );
         }
-        self.form_done(&STRUCTURE_NEW, out)
+        self.form_done(STRUCTURE_NEW.action, out)
     }
 
     /// `external_ref.new {location, device, connection?, project?}` (FT-409): one `external_ref.create` at a location
@@ -931,7 +904,7 @@ impl ShellModel {
         }
         let location = match self.structure_node("location", &location) {
             Ok(id) => id,
-            Err(message) => return self.form_failed(&EXTERNAL_REF_NEW, message),
+            Err(message) => return self.form_failed(EXTERNAL_REF_NEW.action, message),
         };
         let mut params = json!({ "location": location, "device": device });
         if !connection.is_empty() {
@@ -950,7 +923,7 @@ impl ShellModel {
             };
             self.notify(strings::format(key!("toast-external-ref-new"), &[&label]), true);
         }
-        self.form_done(&EXTERNAL_REF_NEW, out)
+        self.form_done(EXTERNAL_REF_NEW.action, out)
     }
 
     /// `report_block.new {kind, folio, title?}` (Output ▸ Reports ▸ Report block…, FT-1372): one `report_block.create`
@@ -969,7 +942,7 @@ impl ShellModel {
         let [kind, folio, title] = <[String; 3]>::try_from(v).expect("three fields");
         for (name, value) in [("kind", &kind), ("folio", &folio)] {
             if value.is_empty() {
-                if self.mode == Mode::Gui && !self.in_form(&REPORT_NEW) {
+                if self.mode == Mode::Gui && !self.in_form_of(REPORT_NEW.action) {
                     let next = self
                         .page_labels()
                         .iter()
@@ -998,12 +971,15 @@ impl ShellModel {
         if !REPORT_KINDS.contains(&kind.as_str()) {
             let words: Vec<String> = REPORT_KINDS.iter().map(|k| report_kind_words(k)).collect();
             return self.form_failed(
-                &REPORT_NEW,
+                REPORT_NEW.action,
                 strings::format(key!("error-report-kind"), &[&kind, &words.join(", ")]),
             );
         }
         let Ok(number) = folio.parse::<u32>() else {
-            return self.form_failed(&REPORT_NEW, strings::format(key!("error-first-folio"), &[&folio]));
+            return self.form_failed(
+                REPORT_NEW.action,
+                strings::format(key!("error-first-folio"), &[&folio]),
+            );
         };
         let (Some(form), Some(project)) = (
             crate::wizard::shipped_form_id(crate::wizard_data::NOGRID_FRAME),
@@ -1047,7 +1023,7 @@ impl ShellModel {
                 true,
             );
         }
-        self.form_done(&REPORT_NEW, out)
+        self.form_done(REPORT_NEW.action, out)
     }
 }
 

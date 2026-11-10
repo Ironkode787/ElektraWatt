@@ -38,21 +38,6 @@ fn given(p: &Map<String, Value>, name: &str) -> Option<String> {
 }
 
 impl ShellModel {
-    /// Whether the open dialog is the form of `action`.
-    fn in_cable_form(&self, action: &str) -> bool {
-        matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == action)
-    }
-
-    /// A refusal: it stays under the fields when the form of `action` is open.
-    fn cable_form_failed(&mut self, action: &str, message: String) -> Outcome {
-        if let Some(Dialog::Form(f)) = &mut self.dialog
-            && f.action == action
-        {
-            f.error = Some(message.clone());
-        }
-        Outcome::Failed { message }
-    }
-
     /// The form of `action` with its button `ok_key` and its one choice field `name` (its label `label`, the
     /// options, the first chosen).
     fn cable_form(
@@ -94,9 +79,9 @@ impl ShellModel {
         let Some(part) = given(p, "part") else {
             return match self.mode {
                 Mode::Headless => failed(key!("error-missing-param"), &["part"]),
-                Mode::Gui if self.in_cable_form(NEW) => {
+                Mode::Gui if self.in_form_of(NEW) => {
                     let message = self.missing_text("part");
-                    self.cable_form_failed(NEW, message)
+                    self.form_failed(NEW, message)
                 }
                 Mode::Gui => {
                     let options = offers
@@ -127,11 +112,11 @@ impl ShellModel {
             .find(|o| o.part.to_string() == part || o.number == part)
         else {
             let message = strings::format(key!("error-no-cable-part"), &[&part]);
-            return self.cable_form_failed(NEW, message);
+            return self.form_failed(NEW, message);
         };
         let Some(cmd) = project.session.create_cable(offer.part) else {
             let message = strings::format(key!("error-no-cable-part"), &[&part]);
-            return self.cable_form_failed(NEW, message);
+            return self.form_failed(NEW, message);
         };
         let cores = offer_cores(&cmd);
         match self.host_create(&cmd.name, cmd.params) {
@@ -153,12 +138,12 @@ impl ShellModel {
                     ),
                     true,
                 );
-                if self.in_cable_form(NEW) {
+                if self.in_form_of(NEW) {
                     self.dialog = None;
                 }
                 Outcome::Done
             }
-            Outcome::Failed { message } => self.cable_form_failed(NEW, message),
+            Outcome::Failed { message } => self.form_failed(NEW, message),
             other => other,
         }
     }
@@ -203,9 +188,9 @@ impl ShellModel {
         let Some(cable) = given(p, "cable") else {
             return match self.mode {
                 Mode::Headless => failed(key!("error-missing-param"), &["cable"]),
-                Mode::Gui if self.in_cable_form(CONNECT) => {
+                Mode::Gui if self.in_form_of(CONNECT) => {
                     let message = self.missing_text("cable");
-                    self.cable_form_failed(CONNECT, message)
+                    self.form_failed(CONNECT, message)
                 }
                 Mode::Gui => {
                     let options = cables
@@ -228,7 +213,7 @@ impl ShellModel {
         let shared = cables.iter().filter(|(_, tag, _)| *tag == cable).count();
         if shared > 1 {
             let message = strings::format(key!("error-cable-ambiguous"), &[&cable, &shared.to_string()]);
-            return self.cable_form_failed(CONNECT, message);
+            return self.form_failed(CONNECT, message);
         }
         let Some((id, _, tag)) = cables
             .iter()
@@ -236,7 +221,7 @@ impl ShellModel {
             .cloned()
         else {
             let message = strings::format(key!("error-no-cable"), &[&cable]);
-            return self.cable_form_failed(CONNECT, message);
+            return self.form_failed(CONNECT, message);
         };
         let cmd = match project.session.connect_cores(id, &wires) {
             Ok(cmd) => cmd,
@@ -248,7 +233,7 @@ impl ShellModel {
             Err(refused) => {
                 let args: Vec<&str> = refused.args.iter().map(String::as_str).collect();
                 let message = strings::format(Key::run_time(refused.key), &args);
-                return self.cable_form_failed(CONNECT, message);
+                return self.form_failed(CONNECT, message);
             }
         };
         let out = self.commit_from_host(&cmd);
@@ -265,12 +250,12 @@ impl ShellModel {
                     strings::format(key!("toast-cores-connected"), &[&wires.len().to_string(), &tag]),
                     true,
                 );
-                if self.in_cable_form(CONNECT) {
+                if self.in_form_of(CONNECT) {
                     self.dialog = None;
                 }
                 Outcome::Done
             }
-            Outcome::Failed { message } => self.cable_form_failed(CONNECT, message),
+            Outcome::Failed { message } => self.form_failed(CONNECT, message),
             other => other,
         }
     }

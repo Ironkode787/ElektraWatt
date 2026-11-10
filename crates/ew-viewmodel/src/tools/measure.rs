@@ -182,10 +182,6 @@ impl Tool for MeasureTool {
             }
         }
     }
-
-    fn wants_hover(&self) -> bool {
-        false
-    }
 }
 
 #[cfg(test)]

@@ -721,11 +721,6 @@ pub fn categories(section: &SheetSection) -> Vec<(Category, Vec<&PropRow>)> {
     out
 }
 
-/// The collapse key of a section's category (`device/identity`).
-pub fn collapse_key(kind: &str, category: Category) -> String {
-    format!("{kind}/{}", category.word())
-}
-
 // WP-S2.17 part 3 (D11; doc 16a §6.8): Main and Advanced.
 /// A group of rows in the grid: **Main** (the kind's primary fields, first and open) or one of the sheet's categories.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

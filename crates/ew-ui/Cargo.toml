@@ -65,8 +65,3 @@ ew-commands = { path = "../ew-commands", features = ["testkit"] }
 png = "0.18.1"
 # The fresh temporary directory of the tests (FT-586; dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }
-
-# The canvas frame-time bench (WP-S2.02 section 9); `cargo xtask perf-gate` runs it once per gate run.
-[[bench]]
-name = "canvas"
-harness = false

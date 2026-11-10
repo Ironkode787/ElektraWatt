@@ -36,7 +36,7 @@
 //!
 //! # Labels (D10, FR-LAY-062)
 //!
-//! A label is printed in the style of the slot kind [`LAYOUT_LABEL_KIND`], bound to [`LAYOUT_LABEL_STYLE`]
+//! A label is printed in the text style [`LAYOUT_LABEL_STYLE`]
 //! (`xref.device`, 1.83 mm em printed, doc 20 §17.5), at its paper height at every scale: it is never scaled. Its ink
 //! box is the shaped text's advance along the text by the face's cap height across it, plus the descent only when the
 //! label has a descender glyph ([`has_descender`]), plus [`LABEL_PAD`] on every side (the orchestrator's ruling 5 of
@@ -76,9 +76,6 @@ use ew_text::{Shaped, TextStyle};
 use ew_units::{Angle2, Nm, Pt2, Rect};
 
 use crate::page::{Builder, PageView, TextSpec};
-
-/// The slot kind of a placement's label (doc 12 §5.2).
-pub const LAYOUT_LABEL_KIND: &str = "layout.label";
 
 /// The text style the label slot kind is bound to (doc 12 §5.2, doc 20 §17.5): `xref.device`.
 pub const LAYOUT_LABEL_STYLE: &str = "xref.device";

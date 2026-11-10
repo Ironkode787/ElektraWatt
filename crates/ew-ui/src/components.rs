@@ -938,13 +938,9 @@ pub(crate) fn apply_cancel_blocked(
     ui.allocate_ui_with_layout(size, Layout::right_to_left(Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = t.space_3;
         // Right to left: the last button of the reading order is added first.
-        let order: [bool; 2] = if cfg!(target_os = "windows") {
-            [false, true]
-        } else {
-            [true, false]
-        };
-        for apply_now in order {
-            if apply_now {
+        let order = crate::dialog::footer_order(crate::dialog::Platform::host(), 1);
+        for slot in order.into_iter().rev() {
+            if slot == crate::dialog::Slot::Primary {
                 let r = button(
                     ui,
                     Kind::Primary,

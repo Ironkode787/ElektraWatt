@@ -934,21 +934,16 @@ impl ShellModel {
         }
     }
 
-    /// Whether the open dialog is Save as macro….
-    fn in_save_form(&self) -> bool {
-        matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == SAVE)
-    }
-
     /// The end of Save as macro…: a failure or refusal stays in its dialog with its text, a success closes it. A
     /// refusal before the dialog opens (nothing selected, no project) shows its reason in the banner (FT-755: a refused
     /// save leaves a trace in the window; a failure becomes the banner through the window's report).
     fn save_done(&mut self, out: Outcome) -> Outcome {
-        if !self.in_save_form()
+        if !self.in_form_of(SAVE)
             && let Outcome::Refused { reason_key } = &out
         {
             self.show_banner(strings::text(*reason_key));
         }
-        if self.in_save_form() {
+        if self.in_form_of(SAVE) {
             let text = match &out {
                 Outcome::Done => {
                     self.dialog = None;
@@ -1022,7 +1017,7 @@ impl ShellModel {
             Err(e) => return self.save_done(e),
         };
         let confirm = match super::jobs::bool_param(p, "confirm", false) {
-            Ok(c) => c || self.in_save_form(),
+            Ok(c) => c || self.in_form_of(SAVE),
             Err(e) => return self.save_done(e),
         };
         let selection: Vec<Uuid> = self.copy_targets().iter().map(|e| e.0).collect();
@@ -1073,7 +1068,7 @@ impl ShellModel {
         };
         let libraries = project.session.libraries().libraries();
         if !confirm || name.is_empty() {
-            if self.in_save_form() {
+            if self.in_form_of(SAVE) {
                 return self.save_done(failed(key!("error-missing-param"), &["name"]));
             }
             let library = if library.is_empty() {

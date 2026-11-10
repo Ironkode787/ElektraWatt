@@ -625,8 +625,6 @@ pub struct ShellModel {
     chips_for: Option<(u64, Option<crate::canvas::PageId>)>,
     /// The page the focused tab showed at the end of the last dispatch (a page switch moves the Pages cursor).
     last_page: Option<crate::canvas::PageId>,
-    /// Counted up by every dispatch (the navigator widget's cache key).
-    nav_version: u64,
     // WP-S2.06 part 2
     /// The window's potential and net highlights (§7.3, D14): view state.
     highlights: crate::highlight::Highlights,
@@ -1115,7 +1113,6 @@ impl ShellModel {
             chips: Vec::new(),
             chips_for: None,
             last_page: None,
-            nav_version: 0,
             highlights: crate::highlight::Highlights::default(),
             focus: None,
             cache: navigation::PageCache::default(),
@@ -1500,17 +1497,6 @@ impl ShellModel {
             .map_err(|e| e.to_string())
     }
 
-    /// The names of the registered model commands, sorted.
-    pub fn command_names(&self) -> Vec<String> {
-        let mut names: Vec<String> = self
-            .project
-            .as_ref()
-            .map(|p| p.session.registry().names().map(str::to_owned).collect())
-            .unwrap_or_default();
-        names.sort();
-        names
-    }
-
     // -----------------------------------------------------------------------------------------------------------
     // The palette (transient widget state)
 
@@ -1697,13 +1683,9 @@ impl ShellModel {
         self.open_dialog(Dialog::Shortcuts)
     }
 
-    /// `canvas.snapshot` and `canvas.preview_snapshot`: only the window and the script runner take a snapshot.
-    pub(crate) fn act_canvas_snapshot(&mut self, _p: &Map<String, Value>) -> Outcome {
-        failed(key!("message-no-snapshot"), &[])
-    }
-
-    /// `view.snapshot`: only the window and the script runner take a snapshot.
-    pub(crate) fn act_view_snapshot(&mut self, _p: &Map<String, Value>) -> Outcome {
+    /// `canvas.snapshot`, `canvas.preview_snapshot` and `view.snapshot`: only the window and the script runner take a
+    /// snapshot.
+    pub(crate) fn act_snapshot(&mut self, _p: &Map<String, Value>) -> Outcome {
         failed(key!("message-no-snapshot"), &[])
     }
 
@@ -1783,6 +1765,35 @@ impl ShellModel {
         self.dialog_gen += 1;
         self.dialog = Some(dialog);
         Outcome::Done
+    }
+
+    /// Whether the open dialog is the form of `action`.
+    pub(super) fn in_form_of(&self, action: &str) -> bool {
+        matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == action)
+    }
+
+    /// A refusal: it stays under the fields when the form of `action` is open.
+    pub(super) fn form_failed(&mut self, action: &str, message: String) -> Outcome {
+        if let Some(Dialog::Form(f)) = &mut self.dialog
+            && f.action == action
+        {
+            f.error = Some(message.clone());
+        }
+        Outcome::Failed { message }
+    }
+
+    /// The end of an action of the form of `action`: a failure stays in its dialog, a success closes it.
+    pub(super) fn form_done(&mut self, action: &str, out: Outcome) -> Outcome {
+        match out {
+            Outcome::Failed { message } => self.form_failed(action, message),
+            Outcome::Done => {
+                if self.in_form_of(action) {
+                    self.dialog = None;
+                }
+                Outcome::Done
+            }
+            other => other,
+        }
     }
 
     /// The unsaved-changes guard of Open, Close and Quit: `Some` when the action must not go on now.
@@ -2182,10 +2193,6 @@ impl ShellModel {
         }
     }
 
-    fn refresh(&mut self) {
-        self.refresh_rows();
-    }
-
     pub(crate) fn act_save(&mut self) -> Outcome {
         if self.symbol_editor().is_some() {
             return self.act_symbol("save", &Map::new());
@@ -2391,63 +2398,48 @@ impl ShellModel {
     }
 
     pub(crate) fn act_undo(&mut self) -> Outcome {
-        if self.symbol_editor().is_some() {
-            return self.act_symbol("undo", &Map::new());
-        }
-        let Some(p) = &mut self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
-        let origin = Self::origin_of(self.mode, self.person, &self.origin_file);
-        let before = p.session.history().cursor();
-        match p.session.undo(&origin) {
-            Ok(_) => {
-                let after = p.session.history().cursor();
-                // WP-S2.09 §8.5: the first entry of the step undone.
-                let crossed = (after < before)
-                    .then(|| p.session.history().entries().get(after).map(|e| e.rev().0))
-                    .flatten();
-                if after < before
-                    && let Some(step) = self.record.steps.pop()
-                {
-                    self.record.undone.push(step);
-                }
-                self.refresh();
-                // The tool's marks belong to the revision undone or redone (WP-S2.04 part 2, window check): the overlay
-                // and the preview go; the next pointer or cursor move draws them again.
-                self.tools.overlay = crate::tools::Overlay::default();
-                self.tools.preview = None;
-                self.crossed_step(crossed);
-                // FT-1083: a terminal placement takes the strip's next designation again.
-                self.tools.reread_designation = true;
-                Outcome::Done
-            }
-            Err(CmdError::Exposure { .. }) => Outcome::refused(key!("reason-human-only-history")),
-            Err(e) => tools::command_failed(&e, &Value::Null),
-        }
+        self.step_history(false)
     }
 
     pub(crate) fn act_redo(&mut self) -> Outcome {
+        self.step_history(true)
+    }
+
+    /// Undoes the last step of the history, or redoes the one undone when `redo`; the symbol editor has its own.
+    fn step_history(&mut self, redo: bool) -> Outcome {
         if self.symbol_editor().is_some() {
-            return self.act_symbol("redo", &Map::new());
+            return self.act_symbol(if redo { "redo" } else { "undo" }, &Map::new());
         }
         let Some(p) = &mut self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
         let origin = Self::origin_of(self.mode, self.person, &self.origin_file);
         let before = p.session.history().cursor();
-        match p.session.redo(&origin) {
+        let stepped = if redo {
+            p.session.redo(&origin)
+        } else {
+            p.session.undo(&origin)
+        };
+        match stepped {
             Ok(_) => {
                 let after = p.session.history().cursor();
-                // WP-S2.09 §8.5: the first entry of the step redone.
-                let crossed = (after > before)
-                    .then(|| p.session.history().entries().get(before).map(|e| e.rev().0))
-                    .flatten();
-                if after > before
-                    && let Some(step) = self.record.undone.pop()
-                {
-                    self.record.steps.push(step);
+                // WP-S2.09 §8.5: the first entry of the step undone or redone.
+                let first = if redo {
+                    (after > before).then_some(before)
+                } else {
+                    (after < before).then_some(after)
+                };
+                let crossed = first.and_then(|i| p.session.history().entries().get(i).map(|e| e.rev().0));
+                if first.is_some() {
+                    if redo {
+                        if let Some(step) = self.record.undone.pop() {
+                            self.record.steps.push(step);
+                        }
+                    } else if let Some(step) = self.record.steps.pop() {
+                        self.record.undone.push(step);
+                    }
                 }
-                self.refresh();
+                self.refresh_rows();
                 // The tool's marks belong to the revision undone or redone (WP-S2.04 part 2, window check): the overlay
                 // and the preview go; the next pointer or cursor move draws them again.
                 self.tools.overlay = crate::tools::Overlay::default();
@@ -2727,7 +2719,7 @@ impl ShellModel {
             }
             self.record.steps.push(RecordedCommand { cmd, params });
         }
-        self.refresh();
+        self.refresh_rows();
         outcome
     }
 }

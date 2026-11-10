@@ -716,19 +716,13 @@ pub fn row_output(
         }
         RowsFormat::Csv(options) => {
             let table = one_table(q, &chosen);
-            let exporter = ew_reports::exporter::CsvExporter { options: *options };
-            let (bytes, _) = ew_reports::exporter::export_tables(&exporter, 0, std::slice::from_ref(&table))
-                .map_err(|e| RowsError::Xlsx(e.to_string()))?;
-            let csv = String::from_utf8(bytes).unwrap_or_default();
+            let csv = ew_reports::csv::table_csv(&table, options);
             (RowsOutput::Csv(csv), table.rows.len())
         }
         RowsFormat::Xlsx(meta) => {
             let tables = sheets(q, &chosen);
             let rows = tables.iter().map(|t| t.rows.len()).sum();
-            let exporter = ew_reports::exporter::XlsxExporter {
-                meta: with_base_digest(meta, &tables),
-            };
-            let (bytes, _) = ew_reports::exporter::export_tables(&exporter, meta.rev, &tables)
+            let bytes = ew_reports::xlsx::xlsx(&tables, &with_base_digest(meta, &tables))
                 .map_err(|e| RowsError::Xlsx(e.to_string()))?;
             (RowsOutput::Xlsx(bytes), rows)
         }

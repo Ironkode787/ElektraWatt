@@ -214,8 +214,6 @@ pub enum ToolKey {
     ConnectOnMove,
     /// D: the interruption point's direction (part 3).
     ToggleDirection,
-    /// P: end the wire in an interruption point (part 3).
-    EndInIp,
     /// The interruption point's star toggle (part 3).
     ToggleStar,
     /// Shift+Enter or a double click: finish the gesture.
@@ -511,7 +509,9 @@ pub trait Tool {
     fn status_hint(&self) -> Hint;
 
     /// Whether the hover, the link hover and the link preview are shown while the tool is active.
-    fn wants_hover(&self) -> bool;
+    fn wants_hover(&self) -> bool {
+        false
+    }
 
     /// A sentence about what the tool proposes, said in the HUD and in the toast of the commit it makes (FT-1023: the
     /// IP tool's "0V is taken, so this point is 0V-1."; the Place tool's terminal moved off its click point, FT-1208, at
@@ -612,63 +612,6 @@ impl ToolCx<'_> {
     /// zoom): the first is the pick, and a repeated click at the same place walks the rest (FT-500).
     pub fn pick_stack(&self, at: (i64, i64)) -> Vec<EntityRef> {
         pick_stack(self.page, self.snapper, at, self.nm_of_points(HOVER_SLOP_PT))
-    }
-
-    /// The connection whose drawn polyline (the page tables', mapped to the sheet) passes within 4 points of `at`,
-    /// with the squared distance in sheet nm²: exact in `i128`, ties by the smaller distance, then by ID.
-    pub fn connection_at(&self, at: (i64, i64)) -> Option<(EntityRef, i128)> {
-        let r = self.nm_of_points(HOVER_SLOP_PT).floor().min(9.0e15) as i128;
-        let mut best: Option<(i128, EntityRef)> = None;
-        for c in &self.page.tables.connections {
-            let pts: Vec<(i64, i64)> = c
-                .polyline
-                .iter()
-                .map(|p| self.snapper.page_to_sheet(*p))
-                .collect();
-            let d = match pts.as_slice() {
-                [] => continue,
-                [p] => dist2(*p, at),
-                _ => pts
-                    .windows(2)
-                    .map(|w| segment_dist2(at, w[0], w[1]))
-                    .min()
-                    .unwrap_or(i128::MAX),
-            };
-            if d <= r * r {
-                let e = EntityRef(c.id);
-                if best.is_none_or(|(bd, be)| d < bd || (d == bd && e.0 < be.0)) {
-                    best = Some((d, e));
-                }
-            }
-        }
-        best.map(|(d, e)| (e, d))
-    }
-
-    /// The structure box whose closed outline (the page tables' vertices mapped to the sheet, the last vertex joined
-    /// to the first) passes within 4 points of `at`, with the squared distance in sheet nm²: exact in `i128`, ties by
-    /// the smaller distance, then by ID. A press inside a box away from its outline picks nothing.
-    pub fn structure_box_at(&self, at: (i64, i64)) -> Option<(EntityRef, i128)> {
-        let r = self.nm_of_points(HOVER_SLOP_PT).floor().min(9.0e15) as i128;
-        let mut best: Option<(i128, EntityRef)> = None;
-        for b in &self.page.tables.structure_boxes {
-            let pts: Vec<(i64, i64)> = b.outline.iter().map(|p| self.snapper.page_to_sheet(*p)).collect();
-            let d = match pts.as_slice() {
-                [] => continue,
-                [p] => dist2(*p, at),
-                _ => {
-                    let closed = pts.windows(2).map(|w| segment_dist2(at, w[0], w[1]));
-                    let last = segment_dist2(at, pts[pts.len() - 1], pts[0]);
-                    closed.chain([last]).min().unwrap_or(i128::MAX)
-                }
-            };
-            if d <= r * r {
-                let e = EntityRef(b.id);
-                if best.is_none_or(|(bd, be)| d < bd || (d == bd && e.0 < be.0)) {
-                    best = Some((d, e));
-                }
-            }
-        }
-        best.map(|(d, e)| (e, d))
     }
 
     /// The page's link under `at` ([`link_at`]).
@@ -885,20 +828,38 @@ pub fn tool_label(name: &str) -> String {
     strings::lookup(&format!("tool-{name}")).map_or_else(|| name.to_owned(), str::to_owned)
 }
 
-/// The shipped tool named `name`, in its first state.
+/// The tool named `name` (`select` or `measure`), in its first state.
 pub fn tool_named(name: &str) -> Option<Box<dyn Tool>> {
     match name {
         "select" => Some(Box::new(SelectTool::new())),
         "measure" => Some(Box::new(MeasureTool::new())),
-        "wire" => Some(Box::new(WireTool::new())),
-        // WP-S4.02 part 3: armed without a device it floats nothing; `tool.place_layout {device}` arms it with one.
-        "layout_place" => Some(Box::new(LayoutPlaceTool::new(None))),
         _ => None,
     }
 }
 
-/// The names of the shipped tools.
-pub const TOOLS: [&str; 2] = ["select", "measure"];
+/// `num / den` rounded to the nearest integer, exact ties toward zero (`den > 0`): `ew_units::Grid`'s rule.
+pub(crate) fn div_round_toward_zero(num: i128, den: i128) -> i128 {
+    let q = num / den;
+    let r = num % den;
+    if 2 * r.abs() > den { q + num.signum() } else { q }
+}
+
+/// `num / den` rounded to the nearest integer, halves away from zero (`den > 0`).
+pub(crate) fn div_round_away(num: i128, den: i128) -> i128 {
+    let q = num / den;
+    let r = num % den;
+    if 2 * r.abs() >= den { q + num.signum() } else { q }
+}
+
+/// An `i128` as an `i64`, saturating.
+pub(crate) fn clamp64(v: i128) -> i64 {
+    i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
+}
+
+/// The number of distinct points.
+pub(crate) fn distinct(points: &[(i64, i64)]) -> usize {
+    points.iter().collect::<std::collections::BTreeSet<_>>().len()
+}
 
 /// The rectangle with corners `a` and `b` (any order).
 pub fn rect_of(a: (i64, i64), b: (i64, i64)) -> Rect {

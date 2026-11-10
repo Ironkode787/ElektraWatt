@@ -1009,7 +1009,7 @@ impl App {
         let project_view =
             self.shell.first_run().is_none() && self.shell.wizard().is_none() && self.shell.has_project();
         if project_view && self.shell.symbol_editor().is_none() {
-            self.canvas.begin_frame(&ctx, &self.shell);
+            self.canvas.begin_frame(&ctx);
         }
         self.area_splitters = 0;
         if project_view && self.shell.symbol_editor().is_none() {
@@ -1329,8 +1329,7 @@ impl App {
         }
         if canvas_shown {
             // The canvas's input phase includes dispatching the frame's actions (WP-S2.02 section 9).
-            self.canvas
-                .end_frame(crate::clock::now() - dispatch_started, &self.shell);
+            self.canvas.end_frame(crate::clock::now() - dispatch_started);
         } else if self.shell.has_project()
             && self.shell.first_run().is_none()
             && self.shell.wizard().is_none()

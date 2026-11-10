@@ -39,6 +39,7 @@ use ew_derive::ew_schema::{
 use ew_derive::{DeviceTag, PageOrder, PageRef, Q, RepAnchorCell, StructureOf};
 
 use super::PageRow;
+use super::layout_edit::mm_text;
 use super::view::PageFrameOf;
 use crate::Session;
 
@@ -894,7 +895,8 @@ fn sorted(mut v: Vec<Keyed>) -> Vec<Drawable> {
         .collect()
 }
 
-/// The label of a representation row: `<folio>-<cell>`, the folio alone without a cell.
+/// The label of a representation row, and where a drawable sits (the Placed on column): `<folio>-<cell>`, the folio
+/// alone without a cell.
 fn rep_label(d: &Drawable) -> String {
     if d.cell.is_empty() {
         d.folio.clone()
@@ -2058,15 +2060,6 @@ fn slot_text(s: &ew_derive::Slot) -> String {
     }
 }
 
-/// Where a drawable sits, as the Placed on column prints it: `<folio>-<cell>`, the folio alone without a cell.
-fn placed_on(d: &Drawable) -> String {
-    if d.cell.is_empty() {
-        d.folio.clone()
-    } else {
-        format!("{}-{}", d.folio, d.cell)
-    }
-}
-
 /// The channels that the `duplicate` flag marks (WP-S2.07 §8): the targets of EW-PLC-007 (duplicate symbol) and of
 /// EW-PLC-001's `overlap` findings (two addresses whose bit ranges overlap), in every configuration project.
 fn duplicate_channels(
@@ -2220,7 +2213,7 @@ fn plc_table(q: &Q, b: &mut Builder) {
                     channel_kind_word(&r.kind).to_owned(),
                     r.text.process_tag.clone().unwrap_or_default(),
                     r.state.name().to_owned(),
-                    page.as_ref().map(placed_on).unwrap_or_default(),
+                    page.as_ref().map(rep_label).unwrap_or_default(),
                     station_tag.clone(),
                     slot_text(&r.slot),
                     comment,
@@ -2612,22 +2605,6 @@ fn parts_table(q: &Q, b: &mut Builder) {
                 facets,
             );
         }
-    }
-}
-
-/// Report blocks (§7.1): section (by number, front matter first) → one row per report block with its title, kind,
-/// first folio (an embedded block's page), section and number of generated pages.
-/// A length in millimetres as the project's other millimetre texts print it: the shortest decimal (`18`, `207.5`) with
-/// the project's decimal separator (FT-366).
-pub(crate) fn mm_text(q: &Q, nm: i128) -> String {
-    let text = ew_derive::layout::mm(nm);
-    if matches!(
-        q.project().settings.formatting.decimal_separator,
-        Some(ew_derive::ew_schema::DecimalSeparator::Comma)
-    ) {
-        text.replace('.', ",")
-    } else {
-        text
     }
 }
 

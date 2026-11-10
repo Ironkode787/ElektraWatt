@@ -517,7 +517,7 @@ fn named_copies(record: &Record, out: &mut BTreeSet<(Kind, Uuid)>) {
 }
 
 /// The structure nodes a structure assignment names.
-fn named_nodes(s: &StructureAssignment) -> Vec<Id<StructureNode>> {
+pub(crate) fn named_nodes(s: &StructureAssignment) -> Vec<Id<StructureNode>> {
     [
         &s.functional_assignment,
         &s.function,

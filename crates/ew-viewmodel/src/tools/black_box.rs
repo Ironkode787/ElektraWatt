@@ -362,10 +362,6 @@ impl Tool for BlackBoxTool {
         }
     }
 
-    fn wants_hover(&self) -> bool {
-        false
-    }
-
     fn ghost(&self) -> Option<Ghost> {
         let outline = match self.state {
             State::Outline { first, at } => {

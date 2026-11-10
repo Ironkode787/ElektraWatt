@@ -35,6 +35,7 @@ use ew_derive::{
 };
 use ew_dl::{Destination, DisplayList, Item, ItemKind, Link, Transform};
 
+use super::panel::div_round;
 use super::view::{PageFrameOf, PageGridOf, PageTableOf, neutral, page_uuid};
 use super::{CpTargetsByPage, page_scene};
 use crate::Session;
@@ -100,13 +101,6 @@ impl fmt::Display for CellLabel {
 struct Map {
     scale_ppb: i128,
     offset: (i128, i128),
-}
-
-/// `num / den` rounded to the nearest integer, halves away from zero (`den > 0`).
-fn div_round(num: i128, den: i128) -> i128 {
-    let q = num / den;
-    let r = num % den;
-    if 2 * r.abs() >= den { q + num.signum() } else { q }
 }
 
 /// An `i128` as `i64`, saturating.
@@ -580,7 +574,7 @@ type ReadingKey = (u32, u32, i64, i64);
 /// The function CPs a page may draw: every CP of every function its representations name (their functions and
 /// pin-map targets) and, for a strip segment, of every terminal of its strip. [`cp_point`] decides which are
 /// drawn.
-fn cp_candidates(q: &Q, page: Id<Page>) -> BTreeSet<(Id<Function>, u16)> {
+pub(super) fn cp_candidates(q: &Q, page: Id<Page>) -> BTreeSet<(Id<Function>, u16)> {
     let mut functions: BTreeSet<Id<Function>> = BTreeSet::new();
     for rid in q.idx().reps_by_page(page) {
         let Some(rep) = q.reps().get(rid) else { continue };

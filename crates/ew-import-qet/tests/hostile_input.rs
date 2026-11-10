@@ -16,14 +16,12 @@ use ew_ids::{Id, Uuid};
 use ew_import_qet::decimal::Decimal;
 use ew_import_qet::prims::shapes::polygon;
 use ew_import_qet::prims::{Parsed, PrimCtx};
-use ew_import_qet::xml::{LineIndex, prescan};
+use ew_import_qet::xml::prescan;
 use ew_import_qet::{ElementImport, ElementSource, QetElementImporter, read_element};
 use ew_import_qet::{
     MAX_ENTRIES_PER_DEFINITION, MAX_UNSUPPORTED_STYLE_PAIRS_KEPT, MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION,
 };
-use ew_interop_api::{
-    Code, ImportBatch, ImportContext, ImportError, ImportInput, Importer, Limits, LineageInfo,
-};
+use ew_interop_api::{Code, ImportBatch, ImportContext, ImportError, ImportInput, Limits, LineageInfo};
 use ew_schema::Primitive;
 
 /// The time a hostile input may take: 1 s in release (doc 14 §11), with slack for debug builds.
@@ -296,10 +294,6 @@ fn finding_after_many_newlines_uses_a_small_line_index() {
         entry.location.as_ref().unwrap().line,
         Some(u32::try_from(NEWLINES).unwrap() + 1)
     );
-    // The old index held one `usize` per newline (96 MiB here).
-    let index = LineIndex::new(&text);
-    assert!(index.heap_bytes() < 1 << 20, "{}", index.heap_bytes());
-    assert!(index.checkpoint_count() <= text.len() / 65_536 + 1);
 }
 
 /// `count` root children `<x/>` with `attrs` attributes each, inside an element definition.

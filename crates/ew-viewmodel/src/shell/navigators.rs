@@ -241,11 +241,6 @@ impl ShellModel {
         &self.chips
     }
 
-    /// Counted up by every dispatch: the widget rebuilds its rows when it changed.
-    pub fn nav_version(&self) -> u64 {
-        self.nav_version
-    }
-
     /// The navigator the focus is in.
     pub fn focused_navigator(&self) -> Option<NavKind> {
         match self.focus {
@@ -569,7 +564,6 @@ impl ShellModel {
     /// when the selection or the page changed, follows a page switch with the Pages cursor, and marks the selected
     /// records' rows in every navigator that has not seen the selection's generation (§6.5).
     pub(super) fn sync_navigators(&mut self) {
-        self.nav_version += 1;
         if !self.has_project() {
             self.navs.clear();
             self.pages_table = None;

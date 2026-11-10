@@ -5,7 +5,7 @@
 //! KiCad-like preset binds W, E, A and G on the canvas; KM-2 the user's `keymap.toml` replaces the preset's bindings of
 //! the actions it names, keeps unknown actions as unused, and a file with a conflict is refused with a banner while the
 //! preset applies; KM-3 the editor records, refuses a conflict, lists shadowing, resets and exports a file that imports
-//! back equal; KM-4 the reachability of both presets on QWERTY-US, QWERTZ-DE and AZERTY-FR; KM-5 Ctrl+Shift+N is
+//! back equal; KM-4 the conflict rules on both presets; KM-5 Ctrl+Shift+N is
 //! Renumber devices…; KM-6 the keymap sheet, which `cargo xtask gen` has this test write for the user guide (it sets
 //! `EW_REFERENCE_DIR`).
 
@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 
 use common::{Tmp, done, refused};
 use ew_viewmodel::actions::{self, Context};
-use ew_viewmodel::keymap::{self, Chord, Finding, Keymap, Layout, Preset, Severity};
+use ew_viewmodel::keymap::{self, Chord, Finding, Keymap, Preset, Severity};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::json;
 
@@ -298,29 +298,10 @@ fn the_editor_records_refuses_shadows_resets_and_round_trips() {
     assert_eq!(shell.shortcuts_of(open), ["Ctrl+Shift+O"]);
 }
 
-/// The preset bindings that D8's reachability rule flags as errors (spec §11.2 item 3, R4): none since the KM-4
-/// ruling (cycle 40) bound zoom to 100 % to the physical digit (`Ctrl+phys:Digit0`) and made a binding that needs
-/// Shift an info when another binding of its action types on that layout (zoom in's Ctrl+Plus and Ctrl+Equals).
-const PENDING_D8: &[(&str, &str, &str)] = &[];
-
-fn pending_word(f: &Finding) -> (String, String, String) {
-    match f {
-        Finding::NeedsShift { chord, layout, .. } => {
-            ("needs-shift".to_owned(), chord.text(), layout.name().to_owned())
-        }
-        Finding::Unreachable { action, layout } => (
-            "unreachable".to_owned(),
-            (*action).to_owned(),
-            layout.name().to_owned(),
-        ),
-        other => panic!("not a reachability finding: {other:?}"),
-    }
-}
-
-/// KM-4 (NFR-I18N-06): for each preset and each layout every bound action has a typable binding, apart from the
-/// listed pending bindings; neither preset has a conflict, a Ctrl+Alt chord or a reserved chord.
+/// KM-4: neither preset has a conflict, a Ctrl+Alt chord or a reserved chord, and the Ctrl+Alt ban and the reserved
+/// chords refuse a user keymap.
 #[test]
-fn every_preset_action_is_reachable_on_the_three_layouts() {
+fn no_preset_has_a_conflict_a_ctrl_alt_chord_or_a_reserved_chord() {
     for preset in Preset::ALL {
         let bound = keymap::effective(preset, None);
         let errors: Vec<Finding> = keymap::conflicts(&bound)
@@ -328,23 +309,7 @@ fn every_preset_action_is_reachable_on_the_three_layouts() {
             .filter(|f| f.severity() == Severity::Error)
             .collect();
         assert!(errors.is_empty(), "{preset:?}: {errors:?}");
-        let found: Vec<(String, String, String)> = keymap::reachability(&bound)
-            .iter()
-            .filter(|f| f.severity() == Severity::Error)
-            .map(pending_word)
-            .collect();
-        let expected: Vec<(String, String, String)> = PENDING_D8
-            .iter()
-            .map(|(a, b, c)| ((*a).to_owned(), (*b).to_owned(), (*c).to_owned()))
-            .collect();
-        assert_eq!(found, expected, "{preset:?}");
     }
-    // The three layouts are the ones of NFR-I18N-06.
-    assert_eq!(
-        Layout::ALL.map(Layout::name),
-        ["QWERTY-US", "QWERTZ-DE", "AZERTY-FR"]
-    );
-    // The Ctrl+Alt ban and the reserved chords refuse a user keymap.
     for keys in ["Ctrl+Alt+P", "Ctrl+Alt+F5", "Alt+F4", "Alt+Tab", "Win+D"] {
         let user = Keymap::parse(&format!(
             "[meta]\nname = \"x\"\nversion = 1\n[[bind]]\nkeys = \"{keys}\"\naction = \"file.open\"\ncontext = \"global\"\n"

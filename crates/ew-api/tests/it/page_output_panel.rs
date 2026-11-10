@@ -33,8 +33,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use ew_api::output::{
-    CarriersLayer, ExportOptions, FrameLayer, LabelsLayer, PlacementsLayer, SurfaceLayer, SymbolsLayer,
-    TablesLayer, WiresLayer, export_pdf, page_layer, text_style_table,
+    CarriersLayer, ExportAssets, ExportOptions, FrameLayer, LabelsLayer, PlacementsLayer, SurfaceLayer,
+    SymbolsLayer, TablesLayer, WiresLayer, export_pdf_with, page_layer, text_style_table,
 };
 use ew_api::{AnyCommand, CmdError, Recovery, Session, SessionOptions, StoreOptions};
 use ew_derive::ew_ids::{Id, Uuid};
@@ -958,8 +958,12 @@ fn lp5_a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footpr
     let memo = s
         .export_pdf(&ExportOptions::default())
         .expect("the second export");
-    let cold =
-        export_pdf(&s.query_over(&s.world().model), &ExportOptions::default()).expect("the cold export");
+    let cold = export_pdf_with(
+        &s.query_over(&s.world().model),
+        &ExportOptions::default(),
+        &ExportAssets::default(),
+    )
+    .expect("the cold export");
     assert!(
         memo.bytes == cold.bytes,
         "the memoised export equals the cold one"

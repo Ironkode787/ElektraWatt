@@ -228,7 +228,6 @@ mod tests {
             origin: "GUI".into(),
             step: true,
             barrier: false,
-            merged: 1,
             rev,
             pages: Vec::new(),
         }

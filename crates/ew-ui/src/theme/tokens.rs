@@ -166,12 +166,10 @@ pub(crate) mod ramp {
     use super::Rgba;
 
     pub const SLATE_0: Rgba = Rgba::hex(0xFFFFFF);
-    pub const SLATE_25: Rgba = Rgba::hex(0xFAFBFC);
     pub const SLATE_50: Rgba = Rgba::hex(0xF4F5F7);
     pub const SLATE_100: Rgba = Rgba::hex(0xECEEF1);
     pub const SLATE_150: Rgba = Rgba::hex(0xE3E6EA);
     pub const SLATE_200: Rgba = Rgba::hex(0xD5D9DF);
-    pub const SLATE_300: Rgba = Rgba::hex(0xBBC1C9);
     pub const SLATE_350: Rgba = Rgba::hex(0xA7AEB8);
     pub const SLATE_400: Rgba = Rgba::hex(0x868E99);
     pub const SLATE_450: Rgba = Rgba::hex(0x959DA8);
@@ -182,7 +180,6 @@ pub(crate) mod ramp {
     pub const SLATE_800: Rgba = Rgba::hex(0x2A2E34);
     pub const SLATE_850: Rgba = Rgba::hex(0x212429);
     pub const SLATE_900: Rgba = Rgba::hex(0x1A1D21);
-    pub const SLATE_950: Rgba = Rgba::hex(0x121417);
 
     pub const VOLT_50: Rgba = Rgba::hex(0xE7F0FC);
     pub const VOLT_250: Rgba = Rgba::hex(0x77B3FF);

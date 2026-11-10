@@ -18,12 +18,12 @@ use ew_derive::{DeviceTag, Q};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     Device, Endpoint, Function, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroKind, MacroVariant, Page,
-    PlaceholderGroup, Record, Representation, Slot, StructureAssignment, ValueSet, VarDef, VarType,
+    PlaceholderGroup, Record, Representation, StructureAssignment, ValueSet, VarDef, VarType,
 };
 use ew_units::Pt2;
 use serde_json::{Value, json};
 
-use crate::output::clipboard::node_path;
+use crate::output::clipboard::{named_nodes, node_path};
 use crate::output::{CopyError, parse_fragment};
 use crate::{AnyCommand, Session, library};
 
@@ -215,24 +215,6 @@ fn page_relative(s: &mut StructureAssignment, page: &StructureAssignment) {
     }
 }
 
-/// The structure nodes a structure assignment names.
-fn nodes_of(s: &StructureAssignment) -> impl Iterator<Item = Id<ew_schema::StructureNode>> + '_ {
-    [
-        &s.functional_assignment,
-        &s.function,
-        &s.installation_site,
-        &s.location,
-        &s.document_kind,
-        &s.user_defined,
-        &s.type_,
-    ]
-    .into_iter()
-    .filter_map(|slot| match slot {
-        Some(Slot::Node(n)) => Some(*n),
-        _ => None,
-    })
-}
-
 fn record_value(r: Record) -> Value {
     serde_json::to_value(r).expect("a record has a JSON form")
 }
@@ -385,7 +367,7 @@ impl Session {
             }
             let mut p = p.clone();
             p.source_ref = None;
-            for n in nodes_of(&p.structure) {
+            for n in named_nodes(&p.structure) {
                 if fragment.nodes.iter().any(|m| m.id == n) {
                     continue;
                 }
@@ -516,9 +498,9 @@ impl Session {
             .chain(&fragment.pages)
             .filter_map(|r| Record::from_value(r.clone()).ok())
             .flat_map(|r| match r {
-                Record::Device(d) => nodes_of(&d.structure).collect::<Vec<_>>(),
-                Record::StructureBox(b) => nodes_of(&b.assigns).collect(),
-                Record::Page(p) => nodes_of(&p.structure).collect(),
+                Record::Device(d) => named_nodes(&d.structure),
+                Record::StructureBox(b) => named_nodes(&b.assigns),
+                Record::Page(p) => named_nodes(&p.structure),
                 _ => Vec::new(),
             })
             .collect();
@@ -1023,6 +1005,8 @@ fn held_any(q: &Q, id: Uuid) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use ew_schema::Slot;
+
     use super::*;
 
     #[test]

@@ -547,12 +547,13 @@ impl Session {
             })?
             .folio
             .clone();
-        let pages = crate::output::export_pages(
+        let pages = crate::output::export_pages_with(
             &q,
             &crate::output::ExportOptions {
                 pages: crate::output::PageSelection::Folios(vec![label]),
                 ..crate::output::ExportOptions::default()
             },
+            &crate::output::ExportAssets::default(),
         )
         .ok()?;
         let first = pages.pages.into_iter().next()?;

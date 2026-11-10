@@ -38,7 +38,7 @@ use ew_api::output::ew_dl::{Destination, DisplayList, EntityRef};
 use ew_api::output::{LinkTarget, PageCells, PageCp, PageGrid, PageRow, PageTables, Uuid};
 
 use crate::shell::natural_cmp;
-use crate::tools::Snapper;
+use crate::tools::{Snapper, clamp64, div_round_away};
 
 pub mod chip;
 
@@ -118,13 +118,6 @@ pub fn sort_links(links: &mut [PageLink], cells: Option<&PageCells>) {
     });
 }
 
-/// `num / den` rounded to the nearest integer, halves away from zero (`den > 0`).
-fn div_round(num: i128, den: i128) -> i128 {
-    let q = num / den;
-    let r = num % den;
-    if 2 * r.abs() >= den { q + num.signum() } else { q }
-}
-
 /// The grid points of a page on the sheet (WP-S2.02's grid overlay, WP-S2.03 §6.6): point `k` of an axis lies at
 /// `offset + scale × k × num / den`, rounded to the nearest nm.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -160,17 +153,18 @@ impl GridMap {
 
     /// The sheet coordinate of grid index `k` on `axis` (0 x, 1 y).
     pub fn point(&self, k: i64, axis: usize) -> i64 {
-        let v = self.off(axis) + div_round(i128::from(k) * self.num * self.scale, self.den * 1_000_000_000);
-        i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
+        let v =
+            self.off(axis) + div_round_away(i128::from(k) * self.num * self.scale, self.den * 1_000_000_000);
+        clamp64(v)
     }
 
     /// The grid index nearest to the sheet coordinate `s` on `axis`.
     pub fn index(&self, s: i64, axis: usize) -> i64 {
-        let v = div_round(
+        let v = div_round_away(
             (i128::from(s) - self.off(axis)) * self.den * 1_000_000_000,
             self.num * self.scale,
         );
-        i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
+        clamp64(v)
     }
 
     /// The grid index nearest to `s` whose point lies within `0 ..= extent` (the sheet), if any does.

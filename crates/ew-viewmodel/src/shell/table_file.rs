@@ -422,7 +422,7 @@ impl ShellModel {
                     self.record.undone.clear();
                     self.record.steps.push(RecordedCommand { cmd: name, params });
                 }
-                self.refresh();
+                self.refresh_rows();
                 let toast = if changed == 1 {
                     key!("toast-table-imported-one")
                 } else {

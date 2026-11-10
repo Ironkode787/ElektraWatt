@@ -9,8 +9,8 @@ use std::collections::BTreeMap;
 use ew_ids::{Id, Uuid, v5};
 use ew_import_qet::{ElementSource, QetElementImporter, read_element};
 use ew_interop_api::{
-    Code, Detection, ImportBatch, ImportContext, ImportError, ImportInput, Importer, InputNameError, Limits,
-    LineageInfo, SYSTEM_LIBRARY, Severity,
+    Code, ImportBatch, ImportContext, ImportError, ImportInput, InputNameError, Limits, LineageInfo,
+    SYSTEM_LIBRARY, Severity,
 };
 use ew_schema::{
     AnchorPolicy, Colour, ContactKind, Dash, Dir4, FnDef, InternalKind, LibCopy, LibDocument,
@@ -526,15 +526,6 @@ fn existing_lineage_emits_no_lineage_record() {
 }
 
 #[test]
-fn detection() {
-    let d = QetElementImporter;
-    assert_eq!(d.id(), "qet");
-    assert_eq!(d.detect(&fixture("contact_no.elmt"), "x.bin"), Detection::Certain);
-    assert_eq!(d.detect(b"garbage", "A.ELMT"), Detection::Maybe(30));
-    assert_eq!(d.detect(b"<project>", "a.qet"), Detection::No);
-}
-
-#[test]
 fn element_source_refuses_paths() {
     assert_eq!(
         ElementSource::new("dir/x.elmt", None).unwrap_err(),
@@ -634,40 +625,4 @@ fn names_are_whitespace_collapsed_like_the_identity() {
             .sources
             .contains(&"qet.name:Synthetic NO contact".to_owned())
     );
-}
-
-#[test]
-fn detection_checks_the_root_element() {
-    let d = QetElementImporter;
-    let project = b"<?xml version=\"1.0\"?><project version=\"0.80\"><collection><element name=\"a.elmt\"><definition type=\"element\" version=\"0.80\">";
-    assert_eq!(d.detect(project, "p.qet"), Detection::No);
-    assert_eq!(d.detect(project, "p.elmt"), Detection::Maybe(30));
-    assert_eq!(
-        d.detect(
-            b"<!-- <project> --><definition version=\"0.8\" type = 'element'>",
-            "x"
-        ),
-        Detection::Certain
-    );
-    assert_ne!(
-        d.detect(b"<definitionx type=\"element\">", "x"),
-        Detection::Certain
-    );
-    assert_eq!(
-        d.detect(
-            b"\xEF\xBB\xBF<?xml version=\"1.0\"?>\n<?pi x?><definition type=\"element\">",
-            "x"
-        ),
-        Detection::Certain
-    );
-    assert_ne!(
-        d.detect(b"<definition type=\"thumbnail\">", "x"),
-        Detection::Certain
-    );
-    // An incomplete start tag falls back to the extension rule.
-    assert_eq!(
-        d.detect(b"<definition type=\"ele", "a.elmt"),
-        Detection::Maybe(30)
-    );
-    assert_eq!(d.detect(b"<definition", "a.bin"), Detection::No);
 }

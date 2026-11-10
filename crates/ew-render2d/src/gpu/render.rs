@@ -505,11 +505,6 @@ impl GpuCanvas {
         self.fault.lock().unwrap_or_else(PoisonError::into_inner).clone()
     }
 
-    /// The slot [`GpuCanvas::fault`] reads (a host test injects a device loss through it).
-    pub fn fault_slot(&self) -> Arc<Mutex<Option<GpuError>>> {
-        Arc::clone(&self.fault)
-    }
-
     /// The counters.
     pub fn counters(&self) -> GpuCounters {
         self.counters
@@ -545,11 +540,6 @@ impl GpuCanvas {
     /// The resolved texture of the last render (the host registers it with egui-wgpu once per size).
     pub fn texture_view(&self) -> Option<&wgpu::TextureView> {
         self.targets.as_ref().map(|t| &t.resolve_view)
-    }
-
-    /// The target size in physical pixels.
-    pub fn target_size(&self) -> Option<(u32, u32)> {
-        self.targets.as_ref().map(|t| t.size)
     }
 
     /// Uploads `image` as a texture with its bind group (`Queue::write_texture`), or refuses it (counted) when a side

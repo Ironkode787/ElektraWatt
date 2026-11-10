@@ -27,7 +27,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             &[],
             page_shown,
             None,
-            |s, p| s.act_view_snapshot(p),
+            |s, p| s.act_snapshot(p),
         )),
     ))),
     keeps_link_preview(keeps_banner(with_params(
@@ -39,7 +39,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             &[],
             has_pages,
             None,
-            |s, p| s.act_canvas_snapshot(p),
+            |s, p| s.act_snapshot(p),
         )),
     ))),
     keeps_banner(with_params(
@@ -93,7 +93,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             &[],
             has_link_preview,
             None,
-            |s, p| s.act_canvas_snapshot(p),
+            |s, p| s.act_snapshot(p),
         )),
     ))),
     keeps_banner(with_params(
@@ -159,7 +159,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_script_expect_failed(p),
         )),
     ),
-    keeps_link_preview(answers_recovery(keeps_banner(headless(parameterless(act(
+    keeps_link_preview(answers_recovery(keeps_banner(headless(act(
         "ui.describe",
         View,
         Menu::View,
@@ -167,7 +167,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         always,
         None,
         |s, p| s.act_ui_describe(p),
-    )))))),
+    ))))),
     with_params(
         "folio:text",
         hidden(act(
@@ -602,7 +602,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_navigator_jump(p),
         ))),
     )),
-    hidden(in_navigator(parameterless(act(
+    hidden(in_navigator(act(
         "navigator.apply",
         Command,
         Menu::Edit,
@@ -610,7 +610,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         reorder_card,
         None,
         |s, _| s.act_navigator_apply(),
-    )))),
+    ))),
     with_params(
         "pages?:list(text), before?:text, end?:bool",
         hidden(in_navigator(act(
@@ -626,7 +626,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     in_navigator(placed(
         place(Group::Order, 2, CommandSize::Small, Some(key!("bar-move-up"))),
         "arrow-up",
-        parameterless(act(
+        act(
             "pages.move_up",
             Command,
             Menu::Page,
@@ -634,12 +634,12 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             pages_writable,
             None,
             |s, _| s.act_pages_move(true),
-        )),
+        ),
     )),
     in_navigator(placed(
         place(Group::Order, 3, CommandSize::Small, Some(key!("bar-move-down"))),
         "arrow-down",
-        parameterless(act(
+        act(
             "pages.move_down",
             Command,
             Menu::Page,
@@ -647,7 +647,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             pages_writable,
             None,
             |s, _| s.act_pages_move(false),
-        )),
+        ),
     )),
     // WP-S2.06 part 2: potential and net highlighting (§7.4).
     keeps_banner(with_params(
@@ -886,7 +886,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_focus(p),
         )),
     )),
-    keeps_banner(hidden(parameterless(act(
+    keeps_banner(hidden(act(
         "ui.focus_next",
         View,
         Menu::Window,
@@ -894,8 +894,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         project_open,
         None,
         |s, _| s.act_focus_cycle(1),
-    )))),
-    keeps_banner(hidden(parameterless(act(
+    ))),
+    keeps_banner(hidden(act(
         "ui.focus_previous",
         View,
         Menu::Window,
@@ -903,8 +903,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         project_open,
         None,
         |s, _| s.act_focus_cycle(-1),
-    )))),
-    keeps_link_preview(answers_recovery(keeps_banner(hidden(parameterless(act(
+    ))),
+    keeps_link_preview(answers_recovery(keeps_banner(hidden(act(
         "ui.dismiss",
         View,
         Menu::View,
@@ -912,7 +912,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         always,
         None,
         |s, _| s.act_dismiss(),
-    )))))),
+    ))))),
     with_params(
         "key:text, value:json",
         hidden(act(

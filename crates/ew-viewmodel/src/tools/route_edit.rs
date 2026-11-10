@@ -258,10 +258,6 @@ impl Tool for RouteEditTool {
         )
     }
 
-    fn wants_hover(&self) -> bool {
-        false
-    }
-
     fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {
         Some(self)
     }

@@ -21,7 +21,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_first_run_set(p),
         )),
     ),
-    hidden(parameterless(act(
+    hidden(act(
         "first_run.next",
         View,
         Menu::Help,
@@ -29,8 +29,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         first_run_open,
         None,
         |s, _| s.act_first_run_step(1),
-    ))),
-    hidden(parameterless(act(
+    )),
+    hidden(act(
         "first_run.back",
         View,
         Menu::Help,
@@ -38,7 +38,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         first_run_open,
         None,
         |s, _| s.act_first_run_step(-1),
-    ))),
+    )),
     with_params(
         "start?:enum(wizard|sample|qet|new|none)",
         hidden(act(
@@ -63,7 +63,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_wizard_set(p),
         )),
     ),
-    hidden(parameterless(act(
+    hidden(act(
         "wizard.next",
         View,
         Menu::Project,
@@ -71,8 +71,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         wizard_open,
         None,
         |s, _| s.act_wizard_step(1),
-    ))),
-    hidden(parameterless(act(
+    )),
+    hidden(act(
         "wizard.back",
         View,
         Menu::Project,
@@ -80,7 +80,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         wizard_open,
         None,
         |s, _| s.act_wizard_step(-1),
-    ))),
+    )),
     with_params(
         "step:uint",
         hidden(act(
@@ -93,7 +93,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_wizard_goto(p),
         )),
     ),
-    hidden(parameterless(act(
+    hidden(act(
         "wizard.reset",
         View,
         Menu::Project,
@@ -101,8 +101,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         wizard_open,
         None,
         |s, _| s.act_wizard_reset(),
-    ))),
-    hidden(parameterless(act(
+    )),
+    hidden(act(
         "wizard.cancel",
         View,
         Menu::Project,
@@ -110,7 +110,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         wizard_open,
         None,
         |s, _| s.act_wizard_cancel(),
-    ))),
+    )),
     with_params(
         "dir?:path",
         hidden(act(
@@ -204,7 +204,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             }),
         ))),
     )),
-    keeps_banner(hidden(in_properties(parameterless(act(
+    keeps_banner(hidden(in_properties(act(
         "props.commit",
         Command,
         Menu::Edit,
@@ -212,8 +212,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         grid_writable,
         None,
         |s, _| s.act_props_commit(),
-    ))))),
-    keeps_banner(hidden(in_properties(parameterless(act(
+    )))),
+    keeps_banner(hidden(in_properties(act(
         "props.cancel",
         View,
         Menu::Edit,
@@ -221,7 +221,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         grid_shown,
         None,
         |s, _| s.act_props_cancel(),
-    ))))),
+    )))),
     keeps_banner(with_params(
         "row?:text, value?:text, choice?:uint",
         hidden(with_aliases(
@@ -237,7 +237,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     )),
-    keeps_banner(hidden(parameterless(act(
+    keeps_banner(hidden(act(
         "props.accept_tag_proposal",
         Command,
         Menu::Edit,
@@ -245,7 +245,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         grid_writable,
         None,
         |s, _| s.act_props_accept_tag_proposal(),
-    )))),
+    ))),
     keeps_banner(with_params(
         "index?:uint, step?:int",
         hidden(in_properties(act(
@@ -319,7 +319,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_props_mltext(p),
         ))),
     )),
-    keeps_banner(hidden(in_properties(parameterless(act(
+    keeps_banner(hidden(in_properties(act(
         "preview.apply",
         Command,
         Menu::Edit,
@@ -327,8 +327,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         card_writable,
         None,
         |s, _| s.act_preview_apply(),
-    ))))),
-    keeps_banner(hidden(in_properties(parameterless(act(
+    )))),
+    keeps_banner(hidden(in_properties(act(
         "preview.cancel",
         View,
         Menu::Edit,
@@ -336,7 +336,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         card_shown,
         None,
         |s, _| s.act_preview_cancel(),
-    ))))),
+    )))),
     // FT-1149 (WP-S3.08 D14): the table import card's switch "Take the file's values".
     keeps_banner(with_params(
         "on?:bool",
@@ -399,7 +399,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_history_changes(p),
         )),
     )),
-    keeps_banner(hidden(parameterless(act(
+    keeps_banner(hidden(act(
         "toast.undo",
         Command,
         Menu::Edit,
@@ -407,8 +407,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         writable,
         None,
         |s, _| s.act_toast_undo(),
-    )))),
-    keeps_banner(hidden(parameterless(act(
+    ))),
+    keeps_banner(hidden(act(
         "toast.dismiss",
         View,
         Menu::Edit,
@@ -416,7 +416,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         project_open,
         None,
         |s, _| s.act_toast_dismiss(),
-    )))),
+    ))),
     // WP-S2.09 part 1 (§6.8): the jobs' and the notifications' own controls, and the recovery dialog's answers.
     keeps_banner(with_params(
         "job?:uint",
@@ -466,7 +466,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_notifications_run(p),
         )),
     )),
-    answers_recovery(hidden(parameterless(act(
+    answers_recovery(hidden(act(
         "journal.recover",
         Command,
         Menu::File,
@@ -474,8 +474,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         recovery_open,
         None,
         |s, _| s.act_journal_recover(),
-    )))),
-    answers_recovery(keeps_banner(hidden(parameterless(act(
+    ))),
+    answers_recovery(keeps_banner(hidden(act(
         "journal.keep",
         View,
         Menu::File,
@@ -483,7 +483,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         recovery_open,
         None,
         |s, _| s.act_journal_keep(),
-    ))))),
+    )))),
     // WP-S6.05 D11: the start-up offer's answers.
     with_params(
         "project:uint",
@@ -497,7 +497,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_startup_recover(p),
         )),
     ),
-    keeps_banner(hidden(parameterless(act(
+    keeps_banner(hidden(act(
         "startup.open_log_folder",
         View,
         Menu::File,
@@ -505,8 +505,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         always,
         None,
         |s, _| s.act_startup_open_log_folder(),
-    )))),
-    keeps_banner(hidden(parameterless(act(
+    ))),
+    keeps_banner(hidden(act(
         "startup.delete_log",
         Command,
         Menu::File,
@@ -514,8 +514,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         always,
         None,
         |s, _| s.act_startup_delete_log(),
-    )))),
-    keeps_banner(hidden(parameterless(act(
+    ))),
+    keeps_banner(hidden(act(
         "startup.dismiss",
         View,
         Menu::File,
@@ -523,9 +523,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         always,
         None,
         |s, _| s.act_startup_dismiss(),
-    )))),
+    ))),
     // WP-S2.05 part 2: the find pane's own controls (§7.6); the pane handles Enter, Up and Down itself.
-    keeps_banner(hidden(in_find(parameterless(act(
+    keeps_banner(hidden(in_find(act(
         "find.close",
         View,
         Menu::Edit,
@@ -533,7 +533,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         find_shown,
         None,
         |s, _| s.act_find_close(),
-    ))))),
+    )))),
     keeps_banner(with_params(
         "text:text",
         hidden(in_find(act(
@@ -594,7 +594,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_find_folios(p),
         ))),
     )),
-    keeps_banner(hidden(in_find(parameterless(act(
+    keeps_banner(hidden(in_find(act(
         "find.run",
         View,
         Menu::Edit,
@@ -602,7 +602,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         find_shown,
         None,
         |s, _| s.act_find_run(),
-    ))))),
+    )))),
     keeps_banner(with_params(
         "step?:int, to?:uint",
         hidden(in_find(act(
@@ -615,7 +615,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_find_row(p),
         ))),
     )),
-    keeps_banner(hidden(in_find(parameterless(act(
+    keeps_banner(hidden(in_find(act(
         "find.jump",
         View,
         Menu::Edit,
@@ -623,7 +623,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         find_shown,
         None,
         |s, _| s.act_find_jump(),
-    ))))),
+    )))),
     // WP-S6.13 part 1: the page's content as text (FR-UI-046's headless v0).
     with_params(
         "folio?:text",
@@ -710,7 +710,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_field(p),
         )),
     ),
-    hidden(parameterless(act(
+    hidden(act(
         "part.save",
         Command,
         Menu::Edit,
@@ -718,7 +718,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         part_editor_open,
         None,
         |s, _| s.act_part_save(),
-    ))),
+    )),
     // WP-S2.07 part 4b (§9.4)
     with_params(
         "choice:enum(adapt|update)",
@@ -931,24 +931,12 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_symbol("replace", p),
         )),
     ),
-    hidden(parameterless(act(
-        "symbol.undo",
-        View,
-        Menu::Edit,
-        &[],
-        always,
-        None,
-        |s, p| s.act_symbol("undo", p),
-    ))),
-    hidden(parameterless(act(
-        "symbol.redo",
-        View,
-        Menu::Edit,
-        &[],
-        always,
-        None,
-        |s, p| s.act_symbol("redo", p),
-    ))),
+    hidden(act("symbol.undo", View, Menu::Edit, &[], always, None, |s, p| {
+        s.act_symbol("undo", p)
+    })),
+    hidden(act("symbol.redo", View, Menu::Edit, &[], always, None, |s, p| {
+        s.act_symbol("redo", p)
+    })),
     // ID-1463 (doc 16a P8): the editor's tool, also chosen by a key of the keymap.
     with_params(
         "tool:enum(select|line|rectangle|circle|ellipse|arc|text|cp|slot|anchor|link|polyline|polygon)",
@@ -968,7 +956,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_symbol("variant", p),
         )),
     ),
-    hidden(parameterless(act(
+    hidden(act(
         "symbol.validate",
         View,
         Menu::Edit,
@@ -976,7 +964,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         always,
         None,
         |s, p| s.act_symbol("validate", p),
-    ))),
+    )),
     with_params(
         "tool:enum(line|rectangle|circle|ellipse|arc|text|anchor), x:mm, y:mm, x2?:mm, y2?:mm, text?:text, start?:int, sweep?:int",
         hidden(act("symbol.draw", View, Menu::Edit, &[], always, None, |s, p| {
@@ -1031,7 +1019,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_symbol("place", p),
         )),
     ),
-    hidden(parameterless(act(
+    hidden(act(
         "symbol.scratch",
         Command,
         Menu::Edit,
@@ -1039,9 +1027,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         writable,
         None,
         |s, p| s.act_symbol("scratch", p),
-    ))),
+    )),
     // M25-p7#2 (ID-1477 (1)): the editor's offer for a draft saved to a library and unchanged since.
-    hidden(parameterless(act(
+    hidden(act(
         "symbol.new_page",
         Command,
         Menu::Edit,
@@ -1049,5 +1037,5 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         writable,
         None,
         |s, p| s.act_symbol("new_page", p),
-    ))),
+    )),
 ];

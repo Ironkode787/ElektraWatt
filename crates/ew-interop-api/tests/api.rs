@@ -3,11 +3,10 @@
 
 //! Tests of the importer API data types.
 
-use ew_ids::{Id, Uuid};
+use ew_ids::Uuid;
 use ew_interop_api::{
-    Code, DefectClass, Detection, ImportBatch, ImportContext, ImportError, ImportInput, ImportReport,
-    Importer, InputNameError, Limits, RecordKey, ReportEntry, Severity, SourceInfo, SourceLocation,
-    check_archive_name, check_file_name,
+    Code, DefectClass, ImportError, ImportInput, ImportReport, InputNameError, Limits, RecordKey,
+    ReportEntry, Severity, SourceInfo, SourceLocation, check_archive_name, check_file_name,
 };
 
 fn hex(bytes: &[u8]) -> String {
@@ -193,55 +192,6 @@ fn limits_element_definition_and_stricter() {
     assert_eq!(Limits::default().stricter(e), e);
 }
 
-struct Tiny;
-
-impl Importer for Tiny {
-    fn id(&self) -> &'static str {
-        "tiny"
-    }
-
-    fn version(&self) -> &'static str {
-        "1"
-    }
-
-    fn detect(&self, _head: &[u8], name: &str) -> Detection {
-        if name.ends_with(".x") {
-            Detection::Maybe(10)
-        } else {
-            Detection::No
-        }
-    }
-
-    fn import(&self, input: &ImportInput, _ctx: &mut ImportContext) -> Result<ImportBatch, ImportError> {
-        let source = SourceInfo {
-            name: input.name().to_owned(),
-            ..SourceInfo::default()
-        };
-        Ok(ImportBatch {
-            records: vec![],
-            lib: vec![],
-            report: ImportReport::new("tiny", "1", source),
-        })
-    }
-}
-
-#[test]
-fn importer_is_object_safe() {
-    let importer: &dyn Importer = &Tiny;
-    assert_eq!(importer.id(), "tiny");
-    assert_eq!(importer.detect(b"", "a.x"), Detection::Maybe(10));
-    assert_eq!(importer.detect(b"", "a.y"), Detection::No);
-    let input = ImportInput::new("a.x", b"data".to_vec()).unwrap();
-    let batch = importer
-        .import(&input, &mut ImportContext::new(Id::from_uuid(Uuid::nil())))
-        .unwrap();
-    assert!(batch.records.is_empty() && batch.lib.is_empty());
-    assert_eq!(batch.report.importer, "tiny");
-    assert!(Detection::No < Detection::Maybe(0));
-    assert!(Detection::Maybe(0) < Detection::Maybe(5));
-    assert!(Detection::Maybe(5) < Detection::Certain);
-}
-
 /// WP-S3.09 D2: the archive, file-set and table members and their defaults (doc 14 §11).
 #[test]
 fn limits_default_archives_inputs_and_tables() {
@@ -311,7 +261,7 @@ fn archive_names_outside_the_archive_are_refused() {
 #[test]
 fn report_entries_name_their_targets() {
     let id = Uuid::from_u128(7);
-    let e = ReportEntry::new(Code::STYLES_NOT_BOUND, Severity::Info, "x").on(ew_schema::Kind::Device, id);
+    let e = ReportEntry::new(Code::LIMIT, Severity::Info, "x").on(ew_schema::Kind::Device, id);
     assert_eq!(
         e.targets,
         vec![RecordKey {

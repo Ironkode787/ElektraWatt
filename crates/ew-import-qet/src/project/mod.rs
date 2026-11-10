@@ -25,8 +25,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::{Id, Uuid, v5};
 use ew_interop_api::{
-    Code, Detection, ImportBatch, ImportContext, ImportError, ImportInput, ImportMode, ImportReport,
-    Importer, Limits, LineageInfo, Severity, SourceInfo,
+    Code, ImportBatch, ImportContext, ImportError, ImportInput, ImportMode, ImportReport, Limits,
+    LineageInfo, Severity, SourceInfo,
 };
 use ew_mltext::Ident;
 use ew_schema::{ImportLineage, LibDocument, LineageAnchor, Project, Record, Sha256};
@@ -83,52 +83,13 @@ impl QetProjectImporter {
     }
 }
 
-/// Whether the first start tag of `head` is `<project` (after an optional BOM, the XML declaration,
-/// comments and white space).
-fn root_is_project(head: &[u8]) -> bool {
-    let mut rest = head.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(head);
-    loop {
-        rest = rest.trim_ascii_start();
-        if let Some(r) = rest.strip_prefix(b"<?") {
-            match r.windows(2).position(|w| w == b"?>") {
-                Some(at) => rest = &r[at + 2..],
-                None => return false,
-            }
-        } else if let Some(r) = rest.strip_prefix(b"<!--") {
-            match r.windows(3).position(|w| w == b"-->") {
-                Some(at) => rest = &r[at + 3..],
-                None => return false,
-            }
-        } else {
-            break;
-        }
-    }
-    rest.strip_prefix(b"<project")
-        .is_some_and(|r| matches!(r.first(), Some(b' ' | b'\t' | b'\n' | b'\r' | b'>' | b'/')))
-}
-
-impl Importer for QetProjectImporter {
-    fn id(&self) -> &'static str {
-        crate::IMPORTER_ID
-    }
-
-    fn version(&self) -> &'static str {
-        crate::IMPORTER_VERSION
-    }
-
-    /// `Certain` when the root element in the head is `<project>`; `Maybe(30)` for a name ending in `.qet`;
-    /// else `No`.
-    fn detect(&self, head: &[u8], name: &str) -> Detection {
-        if root_is_project(head) {
-            Detection::Certain
-        } else if name.to_ascii_lowercase().ends_with(".qet") {
-            Detection::Maybe(30)
-        } else {
-            Detection::No
-        }
-    }
-
-    fn import(&self, input: &ImportInput, ctx: &mut ImportContext) -> Result<ImportBatch, ImportError> {
+impl QetProjectImporter {
+    /// Imports one file.
+    ///
+    /// # Errors
+    ///
+    /// [`ImportError`] when the file as a whole cannot be read; item-level problems are report entries.
+    pub fn import(&self, input: &ImportInput, ctx: &mut ImportContext) -> Result<ImportBatch, ImportError> {
         let limits = ctx.limits;
         let size = input.bytes().len() as u64;
         if size > limits.max_input_bytes {

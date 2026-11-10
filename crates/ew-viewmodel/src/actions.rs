@@ -245,9 +245,6 @@ pub struct ActionMeta {
     pub placement: Option<Placement>,
     /// The icon key (`ew-ui` maps it to its icon table; doc 16a §4.11); required for a placed action.
     pub icon: Option<&'static str>,
-    /// The action reads no parameter although it is hidden, headless-only or marked `needs_parameters` (WP-S6.13 BD2):
-    /// its signature stays empty on purpose.
-    pub parameterless: bool,
     /// Dispatching the action leaves the banner standing (popups, dialogs, help, the describe text, the canvas's view
     /// and tool input, the panes' own moves); every other action clears it.
     pub keeps_banner: bool,
@@ -929,7 +926,6 @@ const fn act(
         params: "",
         placement: None,
         icon: None,
-        parameterless: false,
         keeps_banner: false,
         answers_recovery: false,
         keeps_link_preview: false,
@@ -952,12 +948,6 @@ const fn with_aliases(aliases: &'static [(&'static str, ParamForm)], mut a: Acti
 
 const fn needs_parameters(mut a: ActionMeta) -> ActionMeta {
     a.needs_parameters = true;
-    a
-}
-
-/// Marks a hidden, headless-only or `needs_parameters` action that reads no parameter, so its empty signature is meant.
-const fn parameterless(mut a: ActionMeta) -> ActionMeta {
-    a.parameterless = true;
     a
 }
 
@@ -1930,8 +1920,6 @@ pub fn breadcrumb_of(meta: &ActionMeta, label: &str) -> String {
 pub enum PaletteRun {
     /// An action of the registry.
     Action(&'static str),
-    /// A model command of `Session::registry()`; part 1 only lists it (disabled).
-    Command(String),
     /// A page of the `#` prefix (WP-S2.08 D4): its folio; Enter shows it (`page.goto`).
     Page(String),
     /// The cell of the `:` prefix: the Go to text; Enter goes there (`nav.goto`, FR-UI-039).
@@ -2099,30 +2087,6 @@ mod tests {
         assert!(parse_signature("a:int, a:uint").is_err());
         assert!(parse_signature("a:enum()").is_err());
         assert!(parse_signature("a:list(enum(x|y))").is_ok());
-    }
-
-    /// WP-S6.13 BD2: a hidden, headless-only or `needs_parameters` action has a signature or is marked
-    /// `parameterless`, and a parameterless action has no signature.
-    #[test]
-    fn every_action_that_reads_parameters_has_a_signature() {
-        for a in ACTIONS
-            .iter()
-            .filter(|a| a.needs_parameters || a.headless_only || a.hidden)
-        {
-            assert!(
-                !a.params.is_empty() || a.parameterless,
-                "{} reads parameters but has no signature and is not marked parameterless",
-                a.id
-            );
-        }
-        for a in ACTIONS.iter().filter(|a| a.parameterless) {
-            assert!(
-                a.params.is_empty(),
-                "{} is marked parameterless but has the signature {}",
-                a.id,
-                a.params
-            );
-        }
     }
 
     #[test]

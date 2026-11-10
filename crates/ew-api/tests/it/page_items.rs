@@ -17,8 +17,8 @@ use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_rds::Aspect;
 use ew_derive::ew_units::Pt2;
 use ew_derive::{
-    ConnWireProps, DeriveNote, IpStructure, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf,
-    PotentialPartition, Q, SlotSource, StructureOf, WireNumbers, anchor_point,
+    ConnWireProps, IpStructure, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf, PotentialPartition, Q,
+    SlotSource, StructureOf, WireNumbers, anchor_point,
 };
 use ew_dl::{ItemKind, Layer};
 use ew_schema::{Connection, ConnectionKind, Device, Function, Page, Record, StructureNode};
@@ -217,9 +217,9 @@ fn pi2_a_structure_box_around_the_external_points_assigns_their_location() {
     assert!(report.is_clean(), "{:?}", report.differences);
 }
 
-/// A wire marker of an older file that lists a deleted connection is reported on load, and the project opens.
+/// A wire marker of an older file that lists a deleted connection loads, and the entry is ignored.
 #[test]
-fn pi2_a_stale_marker_entry_is_reported_on_load() {
+fn pi2_a_stale_marker_entry_is_ignored() {
     let batch = batch();
     let ids = ids_by_key(&batch);
     let page: String = ids["pages|101"].clone();
@@ -231,13 +231,6 @@ fn pi2_a_stale_marker_entry_is_reported_on_load() {
         .unwrap();
         records.push(Record::PageItem(item));
     });
-    let stale: Vec<&DeriveNote> = s
-        .load_findings()
-        .iter()
-        .map(|f| &f.note)
-        .filter(|n| matches!(n, DeriveNote::StaleMarkerEntry { .. }))
-        .collect();
-    assert_eq!(stale.len(), 1, "{:?}", s.load_findings());
     // The stale entry is ignored: the marker lists no live connection.
     let tables = s.page_tables("101").unwrap();
     assert_eq!(tables.items.len(), 1);

@@ -113,10 +113,6 @@ pub const MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION: usize = 1_000;
 /// key of the interruption-point *symbol* and must not be used for a FnDef reference.
 pub const IP_FNDEF_KEY: &str = "ew.fn.ip";
 
-/// The keys of every built-in FnDef the importer can reference (`Resolution::Builtin`). The starter content
-/// must hold a FnDef for each of them (see `tests/builtin_refs.rs`).
-pub const BUILTIN_FNDEF_KEYS: [&str; 1] = [IP_FNDEF_KEY];
-
 /// The `version_req` of a reference to a built-in FnDef. The starter content items are version `0.1.0`.
 pub const BUILTIN_VERSION_REQ: &str = "^0.1";
 

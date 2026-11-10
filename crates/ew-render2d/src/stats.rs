@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Frame statistics (WP-S2.02 §9): a ring of the last 1 024 frames with the time of each phase, the tiles
-//! rastered and uploaded, and the memo counters' deltas, summarised as nearest-rank p50, p99 and maximum.
+//! rastered and uploaded, summarised as nearest-rank p50, p99 and maximum.
 //!
 //! The numbers are read against NFR-PERF-04 (frame ≤ 16 ms p99, render ≤ 5 ms) and NFR-PERF-06, reported and never
 //! asserted (timings are runner-dependent; doc 18 §4.3 and the testing policy). [`now`] is the canvas's one clock
@@ -68,10 +68,6 @@ pub struct FrameSample {
     pub tiles_rastered: u32,
     /// Tiles uploaded as textures this frame.
     pub tiles_uploaded: u32,
-    /// Memo hits during the frame.
-    pub memo_hits: u64,
-    /// Memo re-executions during the frame.
-    pub memo_re_executions: u64,
 }
 
 impl FrameSample {

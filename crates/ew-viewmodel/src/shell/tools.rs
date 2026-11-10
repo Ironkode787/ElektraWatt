@@ -786,7 +786,7 @@ impl ShellModel {
         }
     }
 
-    /// The submission of the shell's tool commands: the GUI in the window, the script's command log headless.
+    /// The submission of the tool and grid commands: the GUI in the window, the script's command log headless.
     pub(super) fn tool_submit(&self) -> Submit {
         Submit::from(super::ShellModel::origin_of(
             self.mode,
@@ -924,7 +924,7 @@ impl ShellModel {
             }
             Err(e) => command_failed(&e, &json),
         };
-        self.refresh();
+        self.refresh_rows();
         outcome
     }
 

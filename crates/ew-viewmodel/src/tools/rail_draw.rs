@@ -22,11 +22,10 @@ use ew_api::AnyCommand;
 use ew_api::output::{PanelTables, Uuid};
 use serde_json::{Value, json};
 
-use super::layout::{
-    LAYOUT_SNAP_PT, clamp64, round_to, sheet_of_surface, surface_of_sheet, surface_per_sheet,
-};
+use super::layout::{LAYOUT_SNAP_PT, round_to, sheet_of_surface, surface_of_sheet, surface_per_sheet};
 use super::{
     Anchor, Button, CanvasEvent, Ghost, Mods, Overlay, OverlayItem, Style, Token, Tool, ToolCx, ToolOutput,
+    clamp64,
 };
 use crate::key;
 use crate::strings;
@@ -354,10 +353,6 @@ impl Tool for RailDrawTool {
         } else {
             super::Hint::new(key!("hint-rail-draw"), &[super::ESCAPE])
         }
-    }
-
-    fn wants_hover(&self) -> bool {
-        false
     }
 
     fn ghost(&self) -> Option<Ghost> {

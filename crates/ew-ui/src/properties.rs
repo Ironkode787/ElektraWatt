@@ -499,7 +499,7 @@ impl PropertiesPane {
             };
             let chips: f32 = groups
                 .iter()
-                .map(|(severity, of)| chip(count_words(severity, of.len())))
+                .map(|(severity, of)| chip(crate::messages::count_words(severity, of.len())))
                 .sum();
             let gaps = t.space_1 * groups.len().saturating_sub(1) as f32;
             // C39 (window check W39c2): the title elides first (whole in its tooltip), down to its first three
@@ -1634,11 +1634,6 @@ fn severity_groups<'a>(
         .collect()
 }
 
-/// "<n> <Word(s)>" ("1 Warning", "3 Warnings"), a count chip's word.
-fn count_words(severity: &str, n: usize) -> String {
-    crate::messages::count_words(severity, n)
-}
-
 /// The Properties label column's width in a row `row` wide whose widest label on show needs `need` and whose values
 /// need `values` (each with its chip, [`value_need`]).
 ///
@@ -1884,7 +1879,10 @@ fn glyph_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::R
         .collect();
     let name = strings::format(
         key!("props-findings-chip"),
-        &[&count_words(severity, findings.len()), &lines.join("; ")],
+        &[
+            &crate::messages::count_words(severity, findings.len()),
+            &lines.join("; "),
+        ],
     );
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
     let painter = ui.painter();

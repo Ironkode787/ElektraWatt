@@ -817,10 +817,6 @@ impl Tool for PlaceTool {
         }
     }
 
-    fn wants_hover(&self) -> bool {
-        false
-    }
-
     /// FT-1208 (ID-1416): a terminal that moves off a terminal of its strip standing on the click point (FT-622) says
     /// so, for the placement's toast.
     fn proposal_note(&self) -> Option<String> {

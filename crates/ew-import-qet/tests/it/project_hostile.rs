@@ -6,7 +6,7 @@
 
 use ew_import_qet::QetProjectImporter;
 use ew_import_qet::ew_interop_api::{
-    Code, ImportBatch, ImportContext, ImportError, ImportInput, Importer, Limits, ReportEntry,
+    Code, ImportBatch, ImportContext, ImportError, ImportInput, Limits, ReportEntry,
 };
 use ew_import_qet::project::new_project_context;
 

@@ -54,8 +54,6 @@ use crate::app::{App, Pick, Platform};
 use crate::headless::{HeadlessArgs, ScriptSource};
 use crate::offscreen::Offscreen;
 
-/// The window's size in points at the default geometry ([`Geometry::DEFAULT`]).
-pub const WINDOW_POINTS: Vec2 = Vec2::new(1280.0, 800.0);
 /// The frame's pixels per point at the default geometry.
 pub const PPP: f32 = 1.2;
 /// The title strip's height in frame pixels at the default geometry.
@@ -342,10 +340,6 @@ pub enum Input {
     },
 }
 
-fn bad(text: impl Into<String>) -> String {
-    text.into()
-}
-
 /// Reads the modifiers of `mods` (`ctrl`, `shift`, `alt` joined by `+`).
 fn parse_mods(text: &str) -> Result<Modifiers, String> {
     let mut mods = Modifiers::NONE;
@@ -357,7 +351,7 @@ fn parse_mods(text: &str) -> Result<Modifiers, String> {
             }
             "shift" => mods.shift = true,
             "alt" => mods.alt = true,
-            other => return Err(bad(format!("unknown modifier `{other}`"))),
+            other => return Err(format!("unknown modifier `{other}`")),
         }
     }
     Ok(mods)
@@ -388,7 +382,7 @@ fn key_of(name: &str) -> Option<Key> {
 /// Reads a chord: modifiers and at most one key, joined by `+` (`ctrl+s`, `shift+tab`, `ctrl++`, `alt`).
 pub fn parse_chord(chord: &str) -> Result<(Option<Key>, Modifiers), String> {
     if chord.is_empty() || chord.len() > 40 {
-        return Err(bad("`chord` is 1 to 40 characters"));
+        return Err("`chord` is 1 to 40 characters".to_owned());
     }
     // `ctrl++` and `+`: the last `+` is the key.
     let (head, last) = match chord.strip_suffix("++") {
@@ -415,7 +409,7 @@ pub fn parse_chord(chord: &str) -> Result<(Option<Key>, Modifiers), String> {
         }
         _ => match key_of(last) {
             Some(key) => Ok((Some(key), mods)),
-            None => Err(bad(format!("unknown key `{last}`"))),
+            None => Err(format!("unknown key `{last}`")),
         },
     }
 }
@@ -423,8 +417,8 @@ pub fn parse_chord(chord: &str) -> Result<(Option<Key>, Modifiers), String> {
 fn coordinate(o: &Map<String, Value>, name: &str, limit: u32) -> Result<i64, String> {
     match o.get(name).and_then(Value::as_i64) {
         Some(v) if (0..i64::from(limit)).contains(&v) => Ok(v),
-        Some(_) => Err(bad(format!("`{name}` is outside the frame (0 to {})", limit - 1))),
-        None => Err(bad(format!("`{name}` is an integer frame pixel"))),
+        Some(_) => Err(format!("`{name}` is outside the frame (0 to {})", limit - 1)),
+        None => Err(format!("`{name}` is an integer frame pixel")),
     }
 }
 
@@ -439,7 +433,7 @@ fn mods_member(o: &Map<String, Value>) -> Result<Modifiers, String> {
     match o.get("mods") {
         None => Ok(Modifiers::NONE),
         Some(Value::String(s)) => parse_mods(s),
-        Some(_) => Err(bad("`mods` is text like \"ctrl+shift\"")),
+        Some(_) => Err("`mods` is text like \"ctrl+shift\"".to_owned()),
     }
 }
 
@@ -448,7 +442,7 @@ fn button_member(o: &Map<String, Value>) -> Result<PointerButton, String> {
         None | Some(Some("left")) => Ok(PointerButton::Primary),
         Some(Some("right")) => Ok(PointerButton::Secondary),
         Some(Some("middle")) => Ok(PointerButton::Middle),
-        Some(_) => Err(bad("`button` is left, right or middle")),
+        Some(_) => Err("`button` is left, right or middle".to_owned()),
     }
 }
 
@@ -457,7 +451,7 @@ fn lines_member(o: &Map<String, Value>, name: &str) -> Result<i64, String> {
         None => Ok(0),
         Some(v) => match v.as_i64() {
             Some(n) if (-20..=20).contains(&n) => Ok(n),
-            _ => Err(bad(format!("`{name}` is a whole number of lines from -20 to 20"))),
+            _ => Err(format!("`{name}` is a whole number of lines from -20 to 20")),
         },
     }
 }
@@ -480,7 +474,7 @@ pub fn parse_input_in(o: &Map<String, Value>, g: Geometry) -> Result<Input, Stri
     let kind = o
         .get("input")
         .and_then(Value::as_str)
-        .ok_or_else(|| bad("`input` names the input"))?;
+        .ok_or_else(|| "`input` names the input".to_owned())?;
     let members: &[&str] = match kind {
         "click" => &["x", "y", "button", "mods"],
         "double_click" | "right_click" => &["x", "y", "mods"],
@@ -491,10 +485,10 @@ pub fn parse_input_in(o: &Map<String, Value>, g: Geometry) -> Result<Input, Stri
         "hover" => &["x", "y"],
         "wait" => &["ms"],
         "answer_open" => &["path"],
-        other => return Err(bad(format!("unknown input `{other}`"))),
+        other => return Err(format!("unknown input `{other}`")),
     };
     if let Some(extra) = o.keys().find(|k| *k != "input" && !members.contains(&k.as_str())) {
-        return Err(bad(format!("unknown member `{extra}` of `{kind}`")));
+        return Err(format!("unknown member `{extra}` of `{kind}`"));
     }
     Ok(match kind {
         "click" => Input::Click {
@@ -520,7 +514,7 @@ pub fn parse_input_in(o: &Map<String, Value>, g: Geometry) -> Result<Input, Stri
         "scroll" => {
             let (dx, dy) = (lines_member(o, "dx")?, lines_member(o, "dy")?);
             if dx == 0 && dy == 0 {
-                return Err(bad("a scroll needs `dx` or `dy`"));
+                return Err("a scroll needs `dx` or `dy`".to_owned());
             }
             Input::Scroll {
                 at: point(o, "x", "y", g)?,
@@ -533,10 +527,10 @@ pub fn parse_input_in(o: &Map<String, Value>, g: Geometry) -> Result<Input, Stri
             let text = o
                 .get("text")
                 .and_then(Value::as_str)
-                .ok_or_else(|| bad("`text` is the text to type"))?;
+                .ok_or_else(|| "`text` is the text to type".to_owned())?;
             let n = text.chars().count();
             if !(1..=200).contains(&n) || text.chars().any(char::is_control) {
-                return Err(bad("`text` is 1 to 200 characters without control characters"));
+                return Err("`text` is 1 to 200 characters without control characters".to_owned());
             }
             Input::Type {
                 text: text.to_owned(),
@@ -546,13 +540,13 @@ pub fn parse_input_in(o: &Map<String, Value>, g: Geometry) -> Result<Input, Stri
             let chord = o
                 .get("chord")
                 .and_then(Value::as_str)
-                .ok_or_else(|| bad("`chord` names the key, like \"ctrl+s\""))?;
+                .ok_or_else(|| "`chord` names the key, like \"ctrl+s\"".to_owned())?;
             let (key, mods) = parse_chord(chord)?;
             let repeat = match o.get("repeat") {
                 None => 1,
                 Some(v) => match v.as_u64() {
                     Some(n @ 1..=20) => n as u32,
-                    _ => return Err(bad("`repeat` is 1 to 20")),
+                    _ => return Err("`repeat` is 1 to 20".to_owned()),
                 },
             };
             Input::Key { key, mods, repeat }
@@ -566,7 +560,7 @@ pub fn parse_input_in(o: &Map<String, Value>, g: Geometry) -> Result<Input, Stri
                 .and_then(Value::as_str)
                 .filter(|p| !p.is_empty() && p.chars().count() <= 260 && !p.chars().any(char::is_control))
                 .ok_or_else(|| {
-                    bad("`path` names the file, 1 to 260 characters without control characters")
+                    "`path` names the file, 1 to 260 characters without control characters".to_owned()
                 })?;
             Input::AnswerOpen {
                 path: path.to_owned(),
@@ -574,7 +568,7 @@ pub fn parse_input_in(o: &Map<String, Value>, g: Geometry) -> Result<Input, Stri
         }
         _ => match o.get("ms").and_then(Value::as_u64) {
             Some(ms @ 100..=5000) => Input::Wait { ms: ms as u32 },
-            _ => return Err(bad("`ms` is 100 to 5000")),
+            _ => return Err("`ms` is 100 to 5000".to_owned()),
         },
     })
 }
@@ -612,7 +606,7 @@ pub fn parse_frame_in(o: &Map<String, Value>, g: Geometry) -> Result<FrameReques
         .keys()
         .find(|k| !["frame", "settle", "zoom", "paint"].contains(&k.as_str()))
     {
-        return Err(bad(format!("unknown member `{extra}` of a frame line")));
+        return Err(format!("unknown member `{extra}` of a frame line"));
     }
     let file = o
         .get("frame")
@@ -623,16 +617,16 @@ pub fn parse_frame_in(o: &Map<String, Value>, g: Geometry) -> Result<FrameReques
                 && f.chars().all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c))
                 && !f.starts_with('.')
         })
-        .ok_or_else(|| bad("`frame` is a plain file name ending in .png"))?;
+        .ok_or_else(|| "`frame` is a plain file name ending in .png".to_owned())?;
     let settle = match o.get("settle") {
         None => true,
         Some(Value::Bool(b)) => *b,
-        Some(_) => return Err(bad("`settle` is true or false")),
+        Some(_) => return Err("`settle` is true or false".to_owned()),
     };
     let paint = match o.get("paint") {
         None => true,
         Some(Value::Bool(b)) => *b,
-        Some(_) => return Err(bad("`paint` is true or false")),
+        Some(_) => return Err("`paint` is true or false".to_owned()),
     };
     let zoom = match o.get("zoom") {
         None => None,
@@ -642,7 +636,7 @@ pub fn parse_frame_in(o: &Map<String, Value>, g: Geometry) -> Result<FrameReques
                 .filter_map(|n| n.as_u64().and_then(|n| u32::try_from(n).ok()))
                 .collect();
             let [x, y, w, h] = v[..] else {
-                return Err(bad("`zoom` is [x, y, w, h] in frame pixels"));
+                return Err("`zoom` is [x, y, w, h] in frame pixels".to_owned());
             };
             if w == 0
                 || h == 0
@@ -651,14 +645,14 @@ pub fn parse_frame_in(o: &Map<String, Value>, g: Geometry) -> Result<FrameReques
                 || x.checked_add(w).is_none_or(|end| end > g.frame_width())
                 || y.checked_add(h).is_none_or(|end| end > g.frame_height())
             {
-                return Err(bad(format!(
+                return Err(format!(
                     "`zoom` is at most {} × {} pixels inside the frame",
                     ZOOM_MAX.0, ZOOM_MAX.1
-                )));
+                ));
             }
             Some([x, y, w, h])
         }
-        Some(_) => return Err(bad("`zoom` is [x, y, w, h] in frame pixels")),
+        Some(_) => return Err("`zoom` is [x, y, w, h] in frame pixels".to_owned()),
     };
     Ok(FrameRequest {
         file: file.to_owned(),
@@ -724,21 +718,12 @@ struct Access {
 }
 
 impl Driver {
-    /// A driver over a new shell with `config`; `frames_dir` is where frames go, `None` to paint none.
+    /// A driver over a new shell with `config`; `frames_dir` is where frames go, `None` to paint none. Its file dialogs
+    /// answer with names in `base` (tests; the product's is the working directory).
     ///
     /// # Errors
     ///
     /// A text when frames are wanted and the machine has no offscreen adapter.
-    pub fn new(config: ShellConfig, frames_dir: Option<PathBuf>) -> Result<Driver, String> {
-        Driver::in_folder(config, frames_dir, PathBuf::new())
-    }
-
-    /// [`Driver::new`] whose file dialogs answer with names in `base` (tests; the product's is the working
-    /// directory).
-    ///
-    /// # Errors
-    ///
-    /// As [`Driver::new`].
     pub fn in_folder(
         config: ShellConfig,
         frames_dir: Option<PathBuf>,
@@ -751,7 +736,7 @@ impl Driver {
     ///
     /// # Errors
     ///
-    /// As [`Driver::new`].
+    /// A text when frames are wanted and the machine has no offscreen adapter.
     pub fn with_geometry(
         config: ShellConfig,
         frames_dir: Option<PathBuf>,

@@ -23,8 +23,8 @@ use crate::{IMPORTER_ID, IMPORTER_VERSION, LINEAGE_LABEL};
 
 /// The golden CSV bootstrap (`ew import csv`, FR-IMP-022, doc 20 §3.2 path (a)).
 ///
-/// Unlike [`ew_interop_api::Importer`], which reads one file, it reads the set of table files of one
-/// `tables/` directory, given as [`ImportInput`]s (file names only, never paths; the host reads the files).
+/// It reads the set of table files of one `tables/` directory, given as [`ImportInput`]s (file names only, never
+/// paths; the host reads the files).
 #[derive(Clone, Debug)]
 pub struct TablesImporter {
     library: BuiltinLibrary,

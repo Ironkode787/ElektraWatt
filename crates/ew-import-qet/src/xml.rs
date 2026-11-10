@@ -88,16 +88,6 @@ impl LineIndex {
         let tail = text.as_bytes().get(start..pos).map_or(0, newlines);
         before.saturating_add(tail).saturating_add(1)
     }
-
-    /// The number of checkpoints: one per 64 KiB of text, plus one.
-    pub fn checkpoint_count(&self) -> usize {
-        self.checkpoints.len()
-    }
-
-    /// The heap memory the index holds, in bytes.
-    pub fn heap_bytes(&self) -> usize {
-        self.checkpoints.capacity() * std::mem::size_of::<u32>()
-    }
 }
 
 /// The line feeds in `bytes`, saturated at `u32::MAX`.
@@ -127,29 +117,6 @@ impl Scan {
             }),
         }
     }
-}
-
-/// The deepest element nesting of `xml` by a flat scan, or `None` if it exceeds `limit` (the scan stops
-/// there). Comments, CDATA sections, processing instructions and declarations are skipped; quoted attribute
-/// values may contain `>` and `/`. Malformed input gives some number; the parser reports it properly.
-///
-/// ```
-/// # use ew_import_qet::xml::max_depth;
-/// assert_eq!(max_depth("<a><b/><c x='/>'><!-- <d> --></c></a>", 10), Some(2));
-/// assert_eq!(max_depth("<a><b><c/></b></a>", 1), None);
-/// ```
-pub fn max_depth(xml: &str, limit: u32) -> Option<u32> {
-    let limits = Limits {
-        max_xml_depth: limit,
-        max_xml_nodes: u32::MAX,
-        max_xml_attributes_per_element: u32::MAX,
-        max_xml_attributes: u32::MAX,
-        max_xml_attribute_work: u64::MAX,
-        max_text_bytes: u32::MAX,
-        ..Limits::default()
-    };
-    let s = scan(xml, &limits);
-    s.exceeded.is_none().then_some(s.depth)
 }
 
 /// The flat pre-scan of `xml` against `limits`: the deepest element nesting, unless the scan exceeds
@@ -204,7 +171,7 @@ pub fn markup_char_limit(limits: &Limits) -> u64 {
         .saturating_add(u64::from(limits.max_xml_attributes))
 }
 
-/// The scanner behind [`max_depth`] and [`prescan`]; stops at the first exceeded limit.
+/// The scanner behind [`prescan`]; stops at the first exceeded limit.
 fn scan(xml: &str, limits: &Limits) -> Scan {
     let max_depth = limits.max_xml_depth;
     let max_attrs_per_element = limits.max_xml_attributes_per_element;
@@ -346,18 +313,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn depths() {
-        assert_eq!(max_depth("", 5), Some(0));
-        assert_eq!(max_depth("<?xml version=\"1.0\"?><a/>", 5), Some(0));
-        assert_eq!(max_depth("<a></a>", 5), Some(1));
-        assert_eq!(max_depth("<a><![CDATA[<b><c>]]><b>t</b></a>", 5), Some(2));
-        assert_eq!(max_depth("<a x=\"1>2\" y='/'><b/></a>", 5), Some(1));
-        let deep = format!("{}{}", "<a>".repeat(100_000), "</a>".repeat(100_000));
-        assert_eq!(max_depth(&deep, 256), None);
-        assert_eq!(max_depth(&deep, 100_000), Some(100_000));
-    }
-
-    #[test]
     fn attribute_limits_per_element_and_document() {
         let limits = Limits {
             max_xml_attributes_per_element: 3,
@@ -429,7 +384,6 @@ mod tests {
             i += 1;
         }
         let lines = LineIndex::new(&text);
-        assert_eq!(lines.checkpoint_count(), text.len() / LINE_STRIDE + 1);
         // The reference: the line of every offset by a full scan.
         let mut reference = vec![1u32];
         for &b in text.as_bytes() {
@@ -446,7 +400,6 @@ mod tests {
         // A text of exactly one stride has a checkpoint at its end.
         let exact = "\n".repeat(LINE_STRIDE);
         let lines = LineIndex::new(&exact);
-        assert_eq!(lines.checkpoint_count(), 2);
         assert_eq!(
             lines.line(&exact, LINE_STRIDE),
             u32::try_from(LINE_STRIDE).unwrap() + 1
@@ -458,12 +411,10 @@ mod tests {
     }
 
     #[test]
-    fn line_index_is_sparse() {
-        // 8 MiB of line feeds: one checkpoint per 64 KiB, not one entry per line.
+    fn line_index_counts_a_long_run_of_line_feeds() {
+        // 8 MiB of line feeds.
         let text = "\n".repeat(8 << 20);
         let lines = LineIndex::new(&text);
-        assert_eq!(lines.checkpoint_count(), 129);
-        assert!(lines.heap_bytes() <= 129 * 4 + 64, "{}", lines.heap_bytes());
         assert_eq!(lines.line(&text, text.len()), (8 << 20) + 1);
     }
 
@@ -555,15 +506,13 @@ mod tests {
                 "{over}"
             );
         }
-        // `max_depth` sets no such bound.
-        assert_eq!(max_depth(&format!("<a>{}</a>", "=".repeat(100)), 5), Some(1));
     }
 
     #[test]
     fn deep_parse_on_the_big_stack() {
         let d = 256;
         let deep = format!("<r>{}{}</r>", "<a>".repeat(d - 1), "</a>".repeat(d - 1));
-        let depth = max_depth(&deep, 256).unwrap();
+        let depth = prescan(&deep, &Limits::default()).unwrap();
         assert_eq!(depth, 256);
         let n = with_parser_stack(depth, || {
             let doc = roxmltree::Document::parse(&deep).map_err(|e| ImportError::Malformed {
@@ -605,7 +554,5 @@ mod tests {
         refused(&format!("<a><![CDATA[{}]]></a>", "x".repeat(2 * mib)));
         // An unterminated CDATA section is bounded too.
         refused(&format!("<a><![CDATA[{}", "x".repeat(2 * mib)));
-        // `max_depth` does not apply the text limit.
-        assert_eq!(max_depth(&format!("<a>{}</a>", "x".repeat(2 * mib)), 5), Some(1));
     }
 }

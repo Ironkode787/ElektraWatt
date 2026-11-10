@@ -14,8 +14,6 @@
 mod anonymise;
 mod api_guard;
 mod blind;
-#[cfg(test)]
-mod book_pot;
 mod check;
 mod deps;
 mod docs_gen;

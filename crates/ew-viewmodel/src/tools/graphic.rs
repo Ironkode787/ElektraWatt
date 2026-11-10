@@ -38,7 +38,7 @@ use serde_json::{Value, json};
 
 use super::{
     Button, CanvasEvent, FineKind, Ghost, MarkerKind, Overlay, OverlayItem, Style, Token, Tool, ToolCx,
-    ToolKey, ToolOutput, rect_of,
+    ToolKey, ToolOutput, distinct, rect_of,
 };
 
 /// The six shapes of the Graphic tool, in the Insert ▸ Graphic order.
@@ -122,11 +122,6 @@ pub fn round_distance(a: (i64, i64), b: (i64, i64)) -> i64 {
     let r = isqrt(d2);
     let r = if d2 - r * r > r { r + 1 } else { r };
     i64::try_from(r).unwrap_or(i64::MAX)
-}
-
-/// The number of distinct points.
-fn distinct(points: &[(i64, i64)]) -> usize {
-    points.iter().collect::<std::collections::BTreeSet<_>>().len()
 }
 
 /// The Graphic tool's state.
@@ -505,10 +500,6 @@ impl Tool for GraphicTool {
                 &[super::ENTER, super::FINISH, super::BACK],
             ),
         }
-    }
-
-    fn wants_hover(&self) -> bool {
-        false
     }
 
     /// A double click finishes a polyline or a polygon (the drawing hint says so).

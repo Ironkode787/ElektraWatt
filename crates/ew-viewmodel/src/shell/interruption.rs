@@ -16,7 +16,6 @@
 use std::cmp::Ordering;
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::{PageTables, SymbolShape, TableRep};
 use serde_json::{Map, Value, json};
 
@@ -27,8 +26,7 @@ use crate::key;
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::black_box::{
-    nearest_on_outline, on_outline, outward, reshape_by_grip, reshape_command, selected_black_box,
-    signed_area2,
+    on_outline, outward, reshape_by_grip, reshape_command, selected_black_box, signed_area2,
 };
 use crate::tools::ip::{
     drawing_area, potential_at, potential_of_end, proposal_base, propose, quarter_direction,
@@ -888,32 +886,6 @@ impl ShellModel {
                     self.tools.overlay = crate::tools::Overlay::default();
                 }
             }
-        }
-    }
-
-    /// The nearest grid point on the outline of the one selected black box to the grid cursor (tests and the window's
-    /// keyboard CP move).
-    pub fn box_outline_point(&self) -> Option<(i64, i64)> {
-        let (rep, at) = self.box_and_cursor().ok()?;
-        let b = rep.black_box.as_ref()?;
-        let grid = PageGridMap::new(self.canvas()?.page().tables.grid);
-        nearest_on_outline(grid, &b.outline, at).map(|(p, _)| p)
-    }
-
-    /// The selection's black box entity (tests).
-    pub fn selected_black_box_id(&self) -> Option<EntityRef> {
-        let c = self.canvas()?;
-        match self.selection().items.as_slice() {
-            [one]
-                if c.page()
-                    .tables
-                    .reps
-                    .iter()
-                    .any(|r| r.id == one.0 && r.black_box.is_some()) =>
-            {
-                Some(*one)
-            }
-            _ => None,
         }
     }
 }

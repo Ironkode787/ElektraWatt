@@ -170,12 +170,6 @@ impl CanvasArea {
         self.focused_group().active_tab()
     }
 
-    /// The focused group's active tab, to change.
-    pub fn current_mut(&mut self) -> &mut Tab {
-        let g = self.focused;
-        self.groups[g].active_tab_mut()
-    }
-
     fn take_id(&mut self) -> u32 {
         let id = self.next_tab;
         self.next_tab += 1;

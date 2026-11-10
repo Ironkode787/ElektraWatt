@@ -784,7 +784,10 @@ pub fn run(cmd: Command) -> i32 {
 /// of its result; `table-read`: `ew import table`'s read), inside the panic guard it tests (WP-S6.04 D15, SE-9: the guard at its call site); a release build
 /// compiles none of it.
 // The program boundary of a debug build's test fault, read at the site it fails; a release build has no such read.
-#[allow(clippy::disallowed_methods, reason = "a debug build's test fault, read where it fails")]
+#[allow(
+    clippy::disallowed_methods,
+    reason = "a debug build's test fault, read where it fails"
+)]
 fn debug_panic(site: &str) {
     #[cfg(debug_assertions)]
     if std::env::var_os("EW_DEBUG_PANIC").is_some_and(|v| v == site) {

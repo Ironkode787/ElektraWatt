@@ -1,16 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `Importer` and `Exporter` traits over `ew-schema` records: `ImportBatch`, `ImportReport`, `SourceRef`,
-//! `TableImage` and `Proposal`.
+//! The plain data of an import over `ew-schema` records: `ImportInput`, `ImportContext`, `ImportBatch`,
+//! `ImportReport` and `SourceRef`.
 //!
-//! This is the minimal importer contract of `docs/design/14-interop.md` §2.1 and §2.4 (WP-S3.05), as plain
-//! data: an importer turns the bytes of one source file into format-level records (ADR-0021) and a report.
+//! An importer turns the bytes of one source file into format-level records (ADR-0021) and a report.
 //! It never sees the model, the file system or the network.
 //!
 //! # Contents
 //!
-//! - [`Importer`]: `id`, `version`, `detect` (content first, name last) and `import`.
 //! - [`ImportInput`]: the file name (never a path), the bytes and their SHA-256.
 //! - [`ImportContext`]: the project, the lineage to import into ([`LineageInfo`]), the `as_of` date and the
 //!   [`Limits`].
@@ -19,16 +17,12 @@
 //!   [`DefectClass`] and a [`SourceLocation`]; [`SourceInfo`] and [`ImportStats`].
 //! - [`ImportError`]: why a whole file was refused.
 //! - [`SourceRef`] (re-exported from `ew-schema`): the persisted `{lineage, key}` provenance.
-//! - [`Exporter`] (WP-S3.09 D14): an [`ExportView`] of one revision's records and [`RowTable`]s written to a sink, with
-//!   an [`ExportReport`] of its outputs.
 //! - [`check_archive_name`]: the name rule of an archive entry (doc 14 §11).
 //! - [`SYSTEM_LIBRARY`]: the library ID of the compiled-in starter library, which importers reference built-in
 //!   items by (FT-24).
 //!
 //! # Differences from doc 14 §2.1 (decided for WP-S3.05)
 //!
-//! - `detect(head, name)` replaces `sniff(head, path)`, and its result is [`Detection`] (doc 14 calls it
-//!   `Confidence`, a name `ew-schema` already uses for library confidence).
 //! - `import` takes the whole input as an [`ImportInput`] instead of a streaming `Source`, and an
 //!   [`ImportContext`] without hints, options, cancellation or progress; those arrive with the project
 //!   importers.
@@ -61,7 +55,6 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-mod export;
 mod importer;
 mod input;
 mod report;
@@ -74,13 +67,7 @@ pub use ew_schema;
 
 /// The ID types and the UUIDv5 rules of imported identities (ADR-0004 amendment 4), re-exported for the same reason.
 pub use ew_ids;
-pub use export::{
-    CellKind, ExportContext, ExportError, ExportReport, ExportView, Exporter, OutputMeta, RowCell, RowColumn,
-    RowTable, RowTableRow,
-};
-pub use importer::{
-    Detection, ImportBatch, ImportContext, ImportError, ImportMode, Importer, Limits, LineageInfo,
-};
+pub use importer::{ImportBatch, ImportContext, ImportError, ImportMode, Limits, LineageInfo};
 pub use input::{ArchiveNameError, ImportInput, InputNameError, check_archive_name, check_file_name};
 pub use report::{
     Code, CodeParseError, DefectClass, ImportReport, ImportStats, QuickFixProposal, RecordKey, ReportEntry,

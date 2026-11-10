@@ -14,8 +14,8 @@ use crate::golden_common;
 use std::collections::BTreeMap;
 
 use ew_api::output::{
-    ExportOptions, FrameLayer, LabelsLayer, PageEmbeddedOf, PageFrameOf, PageTableOf, SymbolsLayer,
-    TablesLayer, WiresLayer, export_pdf,
+    ExportAssets, ExportOptions, FrameLayer, LabelsLayer, PageEmbeddedOf, PageFrameOf, PageTableOf,
+    SymbolsLayer, TablesLayer, WiresLayer, export_pdf_with,
 };
 use ew_api::{AnyCommand, CmdError, Session};
 use ew_derive::{PageOrder, PageRef, Query, TitleBlockValues};
@@ -55,8 +55,12 @@ fn assert_equals_cold(s: &Session) -> Vec<u8> {
     let memo = s
         .export_pdf(&ExportOptions::default())
         .expect("the memoised export");
-    let cold =
-        export_pdf(&s.query_over(&s.world().model), &ExportOptions::default()).expect("the cold export");
+    let cold = export_pdf_with(
+        &s.query_over(&s.world().model),
+        &ExportOptions::default(),
+        &ExportAssets::default(),
+    )
+    .expect("the cold export");
     assert!(
         memo.bytes == cold.bytes,
         "the memoised export differs from the cold one"

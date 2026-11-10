@@ -944,7 +944,7 @@ impl ShellModel {
                 Outcome::Failed { message }
             }
         };
-        self.refresh();
+        self.refresh_rows();
         outcome
     }
 

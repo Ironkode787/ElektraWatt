@@ -35,7 +35,7 @@ impl ExportJob {
     /// [`OutputError`]'s text (no path) for a selection the page order does not have or pages the writer refuses.
     pub fn run(self, ctl: &JobCtl) -> Result<PdfExport, JobError> {
         let q = Q::new(&self.world.model).with_report_pages(self.reports);
-        let pages = export_pages_hooked(&q, &self.options, &self.assets, ctl).map_err(|h| match h {
+        let pages = export_pages_hooked(&q, &self.options, &self.assets, Some(ctl)).map_err(|h| match h {
             Halt::Cancelled => JobError::Cancelled,
             Halt::Output(e) => JobError::Failed(e.to_string()),
         })?;
@@ -106,7 +106,7 @@ impl PrintSetJob {
     /// [`JobError::Cancelled`] at a checkpoint after [`ew_jobs::Job::cancel`].
     pub fn run_typed(self, ctl: &JobCtl) -> Result<Result<PrintSet, OutputError>, JobError> {
         let q = Q::new(&self.world.model).with_report_pages(self.reports);
-        let set = match print_set_hooked(&q, &self.options, &self.assets, ctl) {
+        let set = match print_set_hooked(&q, &self.options, &self.assets, Some(ctl)) {
             Ok(set) => set,
             Err(Halt::Cancelled) => return Err(JobError::Cancelled),
             Err(Halt::Output(e)) => return Ok(Err(e)),

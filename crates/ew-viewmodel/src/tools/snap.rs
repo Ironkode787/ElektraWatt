@@ -13,6 +13,8 @@
 
 use ew_api::output::{PageCp, PageGrid};
 
+use super::{clamp64, div_round_away};
+
 /// What a point snapped to.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SnapKind {
@@ -58,18 +60,6 @@ pub enum FineKind {
 
 /// How far a connection point attracts the pointer, in screen points.
 pub const CP_SNAP_PT: f64 = 8.0;
-
-/// `num / den` rounded to the nearest integer, halves away from zero (`den > 0`).
-pub(super) fn div_round(num: i128, den: i128) -> i128 {
-    let q = num / den;
-    let r = num % den;
-    if 2 * r.abs() >= den { q + num.signum() } else { q }
-}
-
-/// An `i128` as `i64`, saturating.
-fn sat(v: i128) -> i64 {
-    i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
-}
 
 /// A connection point as the snapper keeps it.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -129,7 +119,7 @@ impl Snapper {
 
     /// The grid pitch on the page, `(num, den)` nm.
     pub fn grid(&self) -> (i64, i64) {
-        (sat(self.num), sat(self.den))
+        (clamp64(self.num), clamp64(self.den))
     }
 
     fn off(&self, axis: usize) -> i128 {
@@ -138,7 +128,7 @@ impl Snapper {
 
     /// The page coordinate of the sheet coordinate `s` on `axis` (0 x, 1 y).
     pub fn to_page(&self, s: i64, axis: usize) -> i64 {
-        sat(div_round(
+        clamp64(div_round_away(
             (i128::from(s) - self.off(axis)) * 1_000_000_000,
             self.scale,
         ))
@@ -146,17 +136,19 @@ impl Snapper {
 
     /// The grid index of the page coordinate `p`.
     fn index(&self, p: i64) -> i64 {
-        sat(div_round(i128::from(p) * self.den, self.num))
+        clamp64(div_round_away(i128::from(p) * self.den, self.num))
     }
 
     /// The page coordinate of grid index `k`: `round(k × num / den)`.
     pub fn page_of_index(&self, k: i64) -> i64 {
-        sat(div_round(i128::from(k) * self.num, self.den))
+        clamp64(div_round_away(i128::from(k) * self.num, self.den))
     }
 
     /// The sheet coordinate of grid index `k` on `axis`.
     pub fn sheet_of_index(&self, k: i64, axis: usize) -> i64 {
-        sat(self.off(axis) + div_round(i128::from(k) * self.num * self.scale, self.den * 1_000_000_000))
+        clamp64(
+            self.off(axis) + div_round_away(i128::from(k) * self.num * self.scale, self.den * 1_000_000_000),
+        )
     }
 
     /// The grid point nearest to the sheet point `at`.
@@ -216,7 +208,7 @@ impl Snapper {
 
     /// The sheet coordinate of the page coordinate `p` on `axis`: `offset + round(p × scale_ppb / 10⁹)`.
     pub fn to_sheet(&self, p: i64, axis: usize) -> i64 {
-        sat(self.off(axis) + div_round(i128::from(p) * self.scale, 1_000_000_000))
+        clamp64(self.off(axis) + div_round_away(i128::from(p) * self.scale, 1_000_000_000))
     }
 
     /// The sheet point of the page point `p`.
@@ -256,7 +248,12 @@ impl Snapper {
                 FineKind::Text => (1_000_000, 1),
             }
         };
-        let snap = |p: i64| sat(div_round(div_round(i128::from(p) * den, num) * num, den));
+        let snap = |p: i64| {
+            clamp64(div_round_away(
+                div_round_away(i128::from(p) * den, num) * num,
+                den,
+            ))
+        };
         let page = (snap(page.0), snap(page.1));
         (self.page_to_sheet(page), page)
     }

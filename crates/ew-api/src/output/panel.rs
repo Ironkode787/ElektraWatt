@@ -40,6 +40,7 @@ use ew_schema::{
 use ew_text::{Shaped, TextStyle};
 
 use super::layers::text_style_table;
+use super::layout_edit::comma;
 use super::view::PageFrameOf;
 
 /// `shaped_text((text, style))`: a text shaped in a style by the bundled fonts (ADR-0015's memoised `shaped_text`; the
@@ -611,7 +612,7 @@ impl PanelTables {
 }
 
 /// `a / b` rounded to the nearest integer, halves away from zero (`b > 0`).
-fn div_round(a: i128, b: i128) -> i128 {
+pub(super) fn div_round(a: i128, b: i128) -> i128 {
     let q = a / b;
     let r = a % b;
     if r.saturating_mul(2).saturating_abs() >= b {
@@ -644,7 +645,7 @@ pub fn page_of_surface(projection: &Projection, (u, v): (i128, i128)) -> (i64, i
 }
 
 /// A location as a designation prints it: `+` and its path's codes (`+J-E-2416`); empty for a missing node.
-fn location_text(q: &Q, node: Id<StructureNode>) -> String {
+pub(super) fn location_text(q: &Q, node: Id<StructureNode>) -> String {
     let path = q.get::<StructurePath>(node);
     if path.codes.is_empty() {
         return String::new();
@@ -925,10 +926,7 @@ pub(crate) fn panel_tables_of(q: &Q, folio: &str, page: Id<Page>) -> Option<Pane
         carriers,
         placements,
         unplaced,
-        decimal_comma: matches!(
-            q.project().settings.formatting.decimal_separator,
-            Some(ew_schema::DecimalSeparator::Comma)
-        ),
+        decimal_comma: comma(q),
     })
 }
 

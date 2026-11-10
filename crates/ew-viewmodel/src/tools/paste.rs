@@ -183,10 +183,6 @@ impl Tool for PasteTool {
         super::Hint::new(key!("hint-paste"), &[super::ENTER, super::ESCAPE])
     }
 
-    fn wants_hover(&self) -> bool {
-        false
-    }
-
     fn ghost(&self) -> Option<Ghost> {
         Some(Ghost::Paste {
             records: self.fragment.records,

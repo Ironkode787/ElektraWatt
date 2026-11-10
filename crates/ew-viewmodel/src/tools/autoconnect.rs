@@ -24,8 +24,10 @@
 
 use ew_api::geometry::Dir;
 use ew_api::output::ew_dl::EntityRef;
-use ew_api::output::{PageTables, TableEnd, TableRep, Uuid};
+use ew_api::output::{PageTables, TableRep, Uuid};
 use serde_json::{Value, json};
+
+use super::wire::PageGridMap;
 
 /// The most grid steps a ray walks.
 pub const MAX_WALK: usize = 2_000;
@@ -130,41 +132,6 @@ impl Proposals {
     }
 }
 
-/// `num / den` rounded to the nearest integer, ties toward zero (`ew_units::Grid`'s rule).
-fn div_round(num: i128, den: i128) -> i128 {
-    let q = num / den;
-    let r = num % den;
-    if 2 * r.abs() > den { q + num.signum() } else { q }
-}
-
-/// The grid of the page tables: index and coordinate.
-#[derive(Clone, Copy)]
-struct GridMap {
-    num: i128,
-    den: i128,
-}
-
-impl GridMap {
-    fn of(tables: &PageTables) -> GridMap {
-        GridMap {
-            num: i128::from(tables.grid.0.max(1)),
-            den: i128::from(tables.grid.1.max(1)),
-        }
-    }
-
-    fn index(self, v: i64) -> i64 {
-        i64::try_from(div_round(i128::from(v) * self.den, self.num)).unwrap_or(0)
-    }
-
-    fn coord(self, k: i64) -> i64 {
-        i64::try_from(div_round(i128::from(k) * self.num, self.den)).unwrap_or(0)
-    }
-}
-
-fn step(d: Dir) -> (i64, i64) {
-    d.vector()
-}
-
 fn opposite(d: Dir) -> Dir {
     match d {
         Dir::Up => Dir::Down,
@@ -195,9 +162,9 @@ fn ray_hits(
     tables: &PageTables,
     own: &[EntityRef],
     area: [i64; 4],
-    grid: GridMap,
+    grid: PageGridMap,
 ) -> Vec<ProposalTarget> {
-    let d = step(cp.dir);
+    let d = cp.dir.vector();
     let (ix, iy) = (grid.index(cp.at.0), grid.index(cp.at.1));
     let want = opposite(cp.dir);
     let mut hits = Vec::new();
@@ -266,7 +233,7 @@ fn ray_hits(
 
 /// Whether `p` lies strictly inside the axis-parallel segment `a`–`b` (on its line by grid index, between its ends);
 /// never for a segment of another slope or of no length.
-fn strictly_on(grid: GridMap, a: (i64, i64), b: (i64, i64), p: (i64, i64)) -> bool {
+fn strictly_on(grid: PageGridMap, a: (i64, i64), b: (i64, i64), p: (i64, i64)) -> bool {
     if a.1 == b.1 && a.0 != b.0 {
         grid.index(p.1) == grid.index(a.1) && a.0.min(b.0) < p.0 && p.0 < a.0.max(b.0)
     } else if a.0 == b.0 && a.1 != b.1 {
@@ -281,7 +248,7 @@ fn strictly_on(grid: GridMap, a: (i64, i64), b: (i64, i64), p: (i64, i64)) -> bo
 /// Place tool refuses that drop, because the symbol would look joined to a wire that does not run there. A CP at
 /// such a segment's end is not inside it.
 pub fn on_off_sheet_segment(cps: &[GhostCp], tables: &PageTables) -> bool {
-    let grid = GridMap::of(tables);
+    let grid = PageGridMap::new(tables.grid);
     tables.connections.iter().any(|c| {
         c.off_sheet.iter().any(|&i| {
             let (Some(a), Some(b)) = (c.polyline.get(i), c.polyline.get(i + 1)) else {
@@ -294,7 +261,7 @@ pub fn on_off_sheet_segment(cps: &[GhostCp], tables: &PageTables) -> bool {
 
 /// The splits of the ghost: pairs of ghost CPs on one segment of a connection facing its two ends. Only a wire with a
 /// stored route has wire geometry: an unrouted connection is not split (WP-S2.19 D3, as normaliser 7).
-fn splits(cps: &[GhostCp], tables: &PageTables, grid: GridMap) -> Vec<Proposal> {
+fn splits(cps: &[GhostCp], tables: &PageTables, grid: PageGridMap) -> Vec<Proposal> {
     let mut out: Vec<(bool, Proposal)> = Vec::new();
     for c in tables.connections.iter().filter(|c| c.stored_route) {
         let line = dedup(&c.polyline);
@@ -360,7 +327,7 @@ pub fn proposals(
     area: [i64; 4],
     cycle: usize,
 ) -> Proposals {
-    let grid = GridMap::of(tables);
+    let grid = PageGridMap::new(tables.grid);
     let split_list = splits(cps, tables, grid);
     let in_split = |c: &GhostCp| {
         split_list.iter().any(|p| {
@@ -437,15 +404,10 @@ fn moved_strip_tag(tables: &PageTables, rep: Uuid) -> Option<String> {
     tag.map(str::to_owned)
 }
 
-/// Whether `end` is a connection point of the page (a junction end is not).
-pub fn is_cp(end: &TableEnd) -> bool {
-    matches!(end, TableEnd::Cp { .. })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_api::output::{TableConnection, TableCp};
+    use ew_api::output::{TableConnection, TableCp, TableEnd};
 
     const G: i64 = 1_000_000;
 

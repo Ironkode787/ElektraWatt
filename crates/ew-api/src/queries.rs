@@ -33,13 +33,12 @@ use ew_derive::{
 use ew_model::EndpointKey;
 use ew_schema::{AnyId, Connection, Device, Function, Junction, Kind, Page, Representation};
 use schemars::JsonSchema;
-use schemars::generate::SchemaSettings;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::Session;
-use crate::cli_results::{QueryEntry, QueryExplain};
-use crate::output::Provenance;
+use crate::cli_results::{QueryEntry, QueryExplain, schema_of};
+use crate::output::{Provenance, folio_of};
 
 /// The version of every output type of the MVP set.
 pub const OUTPUT_VERSION: u32 = 1;
@@ -92,13 +91,6 @@ impl QueryDef {
             output: self.output_schema(),
         }
     }
-}
-
-fn schema_of<T: JsonSchema>() -> Value {
-    SchemaSettings::draft2020_12()
-        .into_generator()
-        .into_root_schema_for::<T>()
-        .to_value()
 }
 
 const DEVICE: &str = "a device (`tag:-101F1` or `id:<uuid>`)";
@@ -991,15 +983,6 @@ fn page_order(cx: &Cx<'_>, key: &str) -> Result<Answer, String> {
         output: to_value(&out),
         explain: cx.explain::<PageOrder>(&(), None),
     })
-}
-
-/// The folio label of a drawn page in the page order.
-fn folio_of(q: &Q, page: Id<Page>) -> Option<String> {
-    q.get::<PageOrder>(())
-        .entries
-        .iter()
-        .find(|e| e.page == PageRef::Drawn(page))
-        .map(|e| e.folio.clone())
 }
 
 fn cell_of(cx: &Cx<'_>, key: &str) -> Result<Answer, String> {

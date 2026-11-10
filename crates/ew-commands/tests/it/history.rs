@@ -9,9 +9,7 @@ use crate::common;
 use common::fixture::*;
 use common::*;
 use ew_commands::commands::MoveReps;
-use ew_commands::{
-    AnyCommand, CmdError, Engine, Exposure, History, HistoryLimits, Origin, Transaction,
-};
+use ew_commands::{AnyCommand, CmdError, Engine, Exposure, History, HistoryLimits, Origin, Transaction};
 use ew_model::Op;
 use ew_model::Rev;
 

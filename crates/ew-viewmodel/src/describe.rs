@@ -1828,9 +1828,6 @@ fn history_lines(model: &ShellModel, lines: &mut Vec<String>) {
                         text.push_str(&format!(" \"{}\"", user(f)));
                     }
                 }
-                if row.merged > 1 {
-                    text.push_str(&format!(" merged {}", row.merged));
-                }
                 if !row.step {
                     text.push_str(" marker");
                 }
@@ -3461,7 +3458,6 @@ pub fn describe(model: &ShellModel) -> String {
             // (a folio, a rule ID, a record's alias), so only actions and commands print it bare.
             let (kind, id) = match &entry.run {
                 PaletteRun::Action(_) => ("action", Some(&entry.id)),
-                PaletteRun::Command(_) => ("command", Some(&entry.id)),
                 PaletteRun::Page(_) => ("page", None),
                 PaletteRun::Cell(_) => ("cell", None),
                 PaletteRun::Object { .. } => ("item", None),

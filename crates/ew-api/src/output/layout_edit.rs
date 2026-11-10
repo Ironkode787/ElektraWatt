@@ -22,16 +22,16 @@ use ew_derive::layout::{
     Fit, LabelMode, LayoutLabel, PlacementGeometry, Quarter, RailAxis, brackets, carrier_labels, fits_rail,
     free_length, mount_label, path_length, rail_items,
 };
-use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, Q, StructurePath};
+use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, Q};
 use ew_scene::panel::Projection;
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, Kind, LayoutSpace, LibCopy,
-    LibDocument, MountingSurface, Page, PageType, Part, PartKind, Placement, Scale, StructureNode,
+    LibDocument, MountingSurface, Page, PageType, Part, PartKind, Placement, Scale,
 };
 use serde_json::{Value, json};
 
 use super::fields::{Category, EditRoute, FieldReadOnly, FieldType};
-use super::panel::PageSurfaceView;
+use super::panel::{PageSurfaceView, location_text};
 use super::properties::{PropRow, Provenance, RowAction, RowValue};
 use super::scale_fit::{drawing_area, page_fitting_scale};
 use crate::{AnyCommand, Session};
@@ -100,7 +100,7 @@ pub(crate) fn mm_text(q: &Q, nm: i128) -> String {
     if comma(q) { text.replace('.', ",") } else { text }
 }
 
-fn comma(q: &Q) -> bool {
+pub(super) fn comma(q: &Q) -> bool {
     matches!(
         q.project().settings.formatting.decimal_separator,
         Some(ew_schema::DecimalSeparator::Comma)
@@ -311,20 +311,11 @@ pub(crate) fn layout_title(q: &Q, kind: Kind, id: Uuid) -> Option<String> {
             let s = q.table::<LayoutSpace>().get(Id::from_uuid(id))?;
             match &s.name {
                 Some(n) => n.as_str().to_owned(),
-                None => location_code(q, s.location),
+                None => location_text(q, s.location),
             }
         }
         _ => return None,
     })
-}
-
-/// A location's code path as a designation prints it (`+J-E-2416`).
-fn location_code(q: &Q, node: Id<StructureNode>) -> String {
-    let path = q.get::<StructurePath>(node);
-    if path.codes.is_empty() {
-        return String::new();
-    }
-    format!("+{}", path.codes.join("+"))
 }
 
 /// One row (`<kind>/derived.<name>`).
@@ -1332,7 +1323,7 @@ impl Session {
             .structure_nodes()
             .iter()
             .filter(|(_, n)| n.aspect == ew_schema::Open::Known(Aspect::Location))
-            .map(|(id, _)| (id.as_uuid(), location_code(&q, id)))
+            .map(|(id, _)| (id.as_uuid(), location_text(&q, id)))
             .filter(|(_, code)| !code.is_empty())
             .collect();
         out.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));

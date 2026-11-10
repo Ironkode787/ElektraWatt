@@ -152,7 +152,7 @@ fn a_jpeg_logo_is_printed_on_the_cover_in_the_pdf() {
 /// holds no asset bytes), each as a page finding of the cover.
 #[test]
 fn logos_that_cannot_be_drawn_are_page_findings() {
-    use ew_api::output::{PageFindingAt, export_pages};
+    use ew_api::output::{ExportAssets, PageFindingAt, export_pages_with};
     use ew_scene::images::ImageProblem;
     use ew_scene::page::PageFinding;
     let image_findings = |findings: &[PageFindingAt]| -> Vec<(String, ImageProblem)> {
@@ -177,7 +177,11 @@ fn logos_that_cannot_be_drawn_are_page_findings() {
     );
     let mut s = golden();
     set_logo(&mut s, &red_png(2, 2));
-    let found = image_findings(&export_pages(&s.query(), &cover()).unwrap().findings);
+    let found = image_findings(
+        &export_pages_with(&s.query(), &cover(), &ExportAssets::default())
+            .unwrap()
+            .findings,
+    );
     assert_eq!(found, [("1".to_owned(), ImageProblem::Missing)]);
 }
 

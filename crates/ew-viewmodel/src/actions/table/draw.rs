@@ -157,7 +157,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ))),
     // ID-1477 (1): the current row, a symbol on another connection grid, placed on a new page with its grid.
-    keeps_banner(hidden(parameterless(act(
+    keeps_banner(hidden(act(
         "picker.new_page",
         Command,
         Menu::Draw,
@@ -165,10 +165,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         picker_open,
         None,
         |s, _| s.act_picker_new_page(),
-    )))),
+    ))),
     // WP-S2.18 part 1 (D2): J opens the Place tool's Join chooser (doc 16a §6.22) while the armed symbol can be an
     // auxiliary function; the chooser's own keys are its actions.
-    keeps_banner(hidden(in_canvas(parameterless(act(
+    keeps_banner(hidden(in_canvas(act(
         "place.join",
         Command,
         Menu::Draw,
@@ -176,7 +176,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         place_joinable,
         None,
         |s, _| s.act_place_join(),
-    ))))),
+    )))),
     keeps_banner(with_params(
         "step?:int, to?:enum(first|last)",
         hidden(act(
@@ -376,7 +376,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     )),
-    keeps_banner(hidden(in_canvas(parameterless(act(
+    keeps_banner(hidden(in_canvas(act(
         "tool.finish",
         View,
         Menu::Edit,
@@ -384,7 +384,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         has_pages,
         None,
         |s, p| s.act_tool_finish(p),
-    ))))),
+    )))),
     keeps_banner(with_params(
         "text:text",
         hidden(in_canvas(act(
@@ -414,7 +414,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ))),
     // Ctrl+Enter: a click with Alt held at the grid cursor (a placement without its autoconnect proposals, a bend
     // without object snaps), the keyboard's twin of `canvas.activate {alt}` (fix round; per-context chords, ID-628).
-    keeps_banner(hidden(in_canvas(parameterless(act(
+    keeps_banner(hidden(in_canvas(act(
         "canvas.activate_alt",
         View,
         Menu::Page,
@@ -422,8 +422,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         has_pages,
         None,
         |s, p| s.act_canvas_activate_alt(p),
-    ))))),
-    keeps_banner(hidden(in_canvas(parameterless(act(
+    )))),
+    keeps_banner(hidden(in_canvas(act(
         "tool.next_proposal",
         View,
         Menu::Edit,
@@ -431,7 +431,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         editable_page,
         None,
         |s, _| s.send_proposal_key(),
-    ))))),
+    )))),
     // WP-S4.02 part 3 (D4, D10; doc 12 §12.4): placing on a panel page. Tab, R, X and the arrows keep their bindings:
     // on a panel page the shell maps them to these hidden actions (`ShellModel::shortcut_action`, ID-628); Shift+Tab is
     // `layout.previous`'s own canvas binding (ruling 5).
@@ -447,7 +447,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_place_layout(p),
         )),
     ),
-    hidden(in_canvas(parameterless(act(
+    hidden(in_canvas(act(
         "layout.next",
         View,
         Menu::Edit,
@@ -455,8 +455,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         panel_page,
         None,
         |s, _| s.act_layout_step(1),
-    )))),
-    hidden(in_canvas(parameterless(act(
+    ))),
+    hidden(in_canvas(act(
         "layout.previous",
         View,
         Menu::Edit,
@@ -464,7 +464,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         panel_page,
         None,
         |s, _| s.act_layout_step(-1),
-    )))),
+    ))),
     with_params(
         "dx?:int, dy?:int",
         hidden(in_canvas(act(
@@ -478,7 +478,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_layout_nudge(p),
         ))),
     ),
-    hidden(in_canvas(parameterless(act(
+    hidden(in_canvas(act(
         "layout.rotate",
         Command,
         Menu::Edit,
@@ -486,8 +486,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         panel_page,
         None,
         |s, _| s.act_layout_turn(crate::tools::ToolKey::RotateCw),
-    )))),
-    hidden(in_canvas(parameterless(act(
+    ))),
+    hidden(in_canvas(act(
         "layout.flip",
         Command,
         Menu::Edit,
@@ -495,8 +495,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         panel_page,
         None,
         |s, _| s.act_layout_turn(crate::tools::ToolKey::MirrorX),
-    )))),
-    hidden(in_canvas(parameterless(act(
+    ))),
+    hidden(in_canvas(act(
         "layout.lock_selection",
         Command,
         Menu::Edit,
@@ -504,8 +504,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         panel_selection,
         None,
         |s, _| s.act_layout_lock(true),
-    )))),
-    hidden(in_canvas(parameterless(act(
+    ))),
+    hidden(in_canvas(act(
         "layout.unlock_selection",
         Command,
         Menu::Edit,
@@ -513,7 +513,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         panel_selection,
         None,
         |s, _| s.act_layout_lock(false),
-    )))),
+    ))),
     with_params(
         "mode?:enum(free|push|swap), grid?:uint",
         hidden(in_canvas(act(
@@ -603,7 +603,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    keeps_banner(hidden(in_canvas(parameterless(act(
+    keeps_banner(hidden(in_canvas(act(
         "tool.connect_on_move",
         Command,
         Menu::Edit,
@@ -611,7 +611,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         editable_page,
         None,
         |s, p| s.act_tool_connect_on_move(p),
-    ))))),
+    )))),
     // ID-1497 (10): Edit route on the Draw tab's Connect group, beside Wire (the polyline: Wire has the route icon).
     keeps_banner(in_canvas(placed(
         place(Group::Connect, 2, CommandSize::Small, None),

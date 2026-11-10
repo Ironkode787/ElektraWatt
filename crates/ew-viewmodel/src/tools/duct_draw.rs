@@ -254,10 +254,6 @@ impl Tool for DuctDrawTool {
         }
     }
 
-    fn wants_hover(&self) -> bool {
-        false
-    }
-
     fn finishes_on_double_click(&self) -> bool {
         true
     }

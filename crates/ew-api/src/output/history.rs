@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The history panel's rows (WP-S2.09 part 3, §4.2, §8.4): every entry of the undo stack with its label, its origin as
-//! the panel prints it, whether it is an undo step or a marker line, its merged count, its revision and the folios of
+//! the panel prints it, whether it is an undo step or a marker line, its revision and the folios of
 //! the pages its changes touch in the current model.
 //!
 //! **Pages.** A page record names itself; a representation, connection, page item or structure box its page; a device
@@ -38,8 +38,6 @@ pub struct HistoryRow {
     pub step: bool,
     /// Whether it is a marker line that changed the model (undo cannot pass it).
     pub barrier: bool,
-    /// How many transactions the step holds: 1, or more when later gestures were merged into it.
-    pub merged: u32,
     /// The revision that committed it.
     pub rev: u64,
     /// The folios of the pages its changes touch, in page order, at most 8.
@@ -151,7 +149,6 @@ pub(super) fn view_of(history: &History, q: &Q) -> HistoryView {
             origin: origin_text(e.origin()),
             step: e.is_step(),
             barrier: e.is_barrier(),
-            merged: 1,
             rev: e.rev().0,
             pages: e
                 .changes()
@@ -170,7 +167,7 @@ pub(super) fn view_of(history: &History, q: &Q) -> HistoryView {
 
 impl Session {
     /// The history panel's view of the undo stack (WP-S2.09 §4.2): every entry, oldest first, with its label, its
-    /// origin text, its step and barrier flags, the number of transactions merged into it, its revision and the folios of the pages its changes
+    /// origin text, its step and barrier flags, its revision and the folios of the pages its changes
     /// touch in the current model; the cursor and the bounds. One call per revision while the panel is open (§9
     /// item 5).
     pub fn history_view(&self) -> HistoryView {

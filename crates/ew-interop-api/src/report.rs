@@ -37,8 +37,6 @@ impl Code {
     pub const ALIAS_MAPPED: Code = Code(7);
     /// Value kept as foreign or opaque text.
     pub const FOREIGN_VALUE: Code = Code(8);
-    /// Imported text styles not bound to slot kinds.
-    pub const STYLES_NOT_BOUND: Code = Code(114);
     /// Element without function semantics; generic black box.
     pub const BLACK_BOX: Code = Code(119);
 

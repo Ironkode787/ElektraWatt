@@ -441,10 +441,10 @@ fn is_csa(text: &str) -> bool {
         && text.chars().any(|c| c.is_ascii_digit() && c != '0')
 }
 
-/// Whether `text` is a structure node code: 1 to 20 letters, digits, `-` and `_`; or empty when `allow_empty`.
-fn is_node_code(text: &str, allow_empty: bool) -> bool {
+/// Whether `text` is a structure node code: 1 to 20 letters, digits, `-` and `_`; or empty.
+fn is_node_code(text: &str) -> bool {
     if text.is_empty() {
-        return allow_empty;
+        return true;
     }
     text.len() <= 20
         && text
@@ -510,14 +510,14 @@ pub fn validate(meta: &FieldMeta, value: &str) -> Result<(), Key<'static>> {
             }
         }
         (_, "function_node") => {
-            if is_node_code(value, true) {
+            if is_node_code(value) {
                 Ok(())
             } else {
                 Err(key!("wizard-error-node"))
             }
         }
         (_, "location_node") => {
-            if is_node_code(value, true) {
+            if is_node_code(value) {
                 Ok(())
             } else {
                 Err(key!("wizard-error-node"))

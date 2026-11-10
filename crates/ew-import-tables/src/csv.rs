@@ -607,28 +607,6 @@ pub fn parse(bytes: &[u8], limits: &TableLimits) -> Result<CsvTable, CsvError> {
     })
 }
 
-/// `field` quoted for the dialect: wrapped in `"` (inner `"` doubled) exactly when it contains `,`, `"`, LF or CR,
-/// or begins or ends with a space; otherwise unchanged.
-pub fn quote_field(field: &str) -> String {
-    let needs = field.contains([',', '"', '\n', '\r']) || field.starts_with(' ') || field.ends_with(' ');
-    if needs {
-        format!("\"{}\"", field.replace('"', "\"\""))
-    } else {
-        field.to_owned()
-    }
-}
-
-/// One record line: the quoted fields joined by `,`, followed by LF.
-pub fn write_record<S: AsRef<str>>(fields: &[S]) -> String {
-    let mut out = fields
-        .iter()
-        .map(|f| quote_field(f.as_ref()))
-        .collect::<Vec<_>>()
-        .join(",");
-    out.push('\n');
-    out
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -982,38 +960,5 @@ mod tests {
                 limit: 32 * 1024
             })
         );
-    }
-
-    #[test]
-    fn round_trip() {
-        let fields = [
-            "plain",
-            "a,b",
-            "say \"x\"",
-            "two\nlines",
-            "cr\rhere",
-            " lead",
-            "trail ",
-            "\u{2212}5",
-            "",
-            "\"",
-        ];
-        let mut text = write_record(&["h0", "h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8", "h9"]);
-        text.push_str(&write_record(&fields));
-        let t = p(&text).unwrap();
-        assert_eq!(t.row(0), fields);
-    }
-
-    #[test]
-    fn quote_field_cases() {
-        assert_eq!(quote_field("plain"), "plain");
-        assert_eq!(quote_field(" x"), "\" x\"");
-        assert_eq!(quote_field("x "), "\"x \"");
-        assert_eq!(quote_field("a b"), "a b");
-        assert_eq!(quote_field("\u{2212}1"), "\u{2212}1");
-        assert_eq!(quote_field("a\"b"), "\"a\"\"b\"");
-        assert_eq!(quote_field("a,b"), "\"a,b\"");
-        assert_eq!(quote_field(""), "");
-        assert_eq!(write_record(&["a", "b,c"]), "a,\"b,c\"\n");
     }
 }

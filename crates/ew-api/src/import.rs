@@ -13,7 +13,7 @@
 use std::path::Path;
 
 use ew_import_qet::QetProjectImporter;
-use ew_import_qet::ew_interop_api::{ImportInput, Importer};
+use ew_import_qet::ew_interop_api::ImportInput;
 use ew_schema::{LibDocument, Record};
 
 use crate::{Session, SessionOptions};
@@ -437,28 +437,6 @@ pub fn imported_of(batch: ImportBatch, options: SessionOptions) -> Imported {
     let session = session_from_import(&batch, mode, options);
     let live = session.as_ref().map(lenient_findings).unwrap_or_default();
     Imported { batch, session, live }
-}
-
-/// One QET element definition (`.elmt`) named `name` through the front door under `Limits::element_definition()`, in
-/// a context of its own (no project, the element's own lineage): the batch only. ADR-0024 decision 4 keeps the QET
-/// importer behind `ew-api`, so the fuzz target of the element importer calls this (WP-S3.09 D15, ID-1374).
-///
-/// # Errors
-///
-/// As [`import_qet`].
-pub fn import_qet_element(name: &str, bytes: Vec<u8>) -> Result<ImportBatch, Refusal> {
-    let input = ImportInput::new(name, bytes).map_err(|e| ImportError::Unsupported {
-        message: e.to_string(),
-    })?;
-    let mut ctx = ew_import_qet::ew_interop_api::ImportContext::new(ew_derive::ew_ids::Id::from_uuid(
-        ew_derive::ew_ids::Uuid::nil(),
-    ));
-    ctx.limits = Limits::element_definition();
-    let limits = ctx.limits;
-    let sizes = [input.bytes().len() as u64];
-    front_door(name, &sizes, &limits, None, || {
-        ew_import_qet::QetElementImporter.import(&input, &mut ctx)
-    })
 }
 
 // -------------------------------------------------------------------------------------------------------------------

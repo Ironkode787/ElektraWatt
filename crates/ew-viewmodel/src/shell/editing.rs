@@ -468,7 +468,7 @@ impl ShellModel {
 
     fn arm(&mut self, cat: Arc<PlaceCatalogue>, pick: Pick, p: &Map<String, Value>) -> Outcome {
         let letter_param = match string_param(p, "letter") {
-            Ok(v) => v.map(str::to_owned).or_else(|| self.tools.pick_letter.clone()),
+            Ok(v) => v.map(str::to_owned),
             Err(e) => return e,
         };
         let mut box_cps: Option<Vec<(u16, String)>> = None;

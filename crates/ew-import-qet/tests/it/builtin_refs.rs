@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 
 use ew_ids::Uuid;
-use ew_import_qet::{BUILTIN_FNDEF_KEYS, BUILTIN_VERSION_REQ, IP_FNDEF_KEY};
+use ew_import_qet::{BUILTIN_VERSION_REQ, IP_FNDEF_KEY};
 use ew_interop_api::SYSTEM_LIBRARY;
 use ew_schema::LibDocument;
 
@@ -57,14 +57,13 @@ fn satisfies(version: &str, req: &str) -> bool {
 #[test]
 fn the_ip_key_is_the_fndef_not_the_symbol() {
     assert_eq!(IP_FNDEF_KEY, "ew.fn.ip");
-    assert!(BUILTIN_FNDEF_KEYS.contains(&IP_FNDEF_KEY));
 }
 
 #[test]
 fn every_builtin_fndef_key_exists_in_the_content_with_the_expected_reference() {
     let fndefs = load("fndefs");
     let symbols = load("symbols");
-    for key in BUILTIN_FNDEF_KEYS {
+    for key in [IP_FNDEF_KEY] {
         let found: Vec<_> = fndefs
             .iter()
             .filter_map(|(name, d)| match d {

@@ -1,26 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The `Importer` trait, its context and its result.
+//! The import context, its limits and its result.
 
 use std::fmt;
 
 use ew_ids::{Id, Uuid};
 use ew_schema::{Date, ImportLineage, LibDocument, Project, Record};
 
-use crate::{ImportInput, ImportReport};
-
-/// How sure an importer is that it can read a file (doc 14 §2.1 `sniff`): content first, the file name
-/// extension last.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum Detection {
-    /// Not this format.
-    No,
-    /// Possibly this format, with a score 0–100 (higher is surer); used to rank importers.
-    Maybe(u8),
-    /// Certainly this format.
-    Certain,
-}
+use crate::ImportReport;
 
 /// An existing import lineage to import into (doc 14 §2.3): its record ID and its namespace, which the host
 /// reads from the target's `ImportLineage` record.
@@ -280,27 +268,3 @@ impl fmt::Display for ImportError {
 }
 
 impl std::error::Error for ImportError {}
-
-/// An importer of one source format (doc 14 §2.1).
-///
-/// Implementations are pure: `import` reads only its input, never another file, the model, the clock or the
-/// network, and is deterministic (NFR-SEC-18). Everything that cannot be mapped becomes a report entry;
-/// only a file that cannot be read at all is an [`ImportError`].
-pub trait Importer: Send + Sync {
-    /// The importer's lower-case ID, also the `ImportLineage.importer`: `"qet"`, `"dxf"`, `"csv"`.
-    fn id(&self) -> &'static str;
-
-    /// The importer's version, recorded in the report and the import run; bumped on every mapping change.
-    fn version(&self) -> &'static str;
-
-    /// Whether this importer reads a file starting with `head` (the first bytes, at most the whole file)
-    /// and named `name` (a file name, never a path). Content decides first; the extension only breaks ties.
-    fn detect(&self, head: &[u8], name: &str) -> Detection;
-
-    /// Imports one file.
-    ///
-    /// # Errors
-    ///
-    /// [`ImportError`] when the file as a whole cannot be read; item-level problems are report entries.
-    fn import(&self, input: &ImportInput, ctx: &mut ImportContext) -> Result<ImportBatch, ImportError>;
-}

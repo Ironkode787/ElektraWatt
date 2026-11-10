@@ -354,17 +354,9 @@ impl ShellModel {
         q.insert("on".into(), Value::from(on));
         let out = self.act_navigator_show(&q);
         if on && out == Outcome::Done {
-            self.bring_messages_to_front();
+            self.bring_navigator_to_front(NavKind::Messages);
         }
         out
-    }
-
-    /// FT-916: the Messages pane, when it is docked behind another tab of its group (History), becomes the shown tab.
-    fn bring_messages_to_front(&mut self) {
-        let layout = self.layout().showing(PaneKind::Navigator(NavKind::Messages));
-        if layout != *self.layout() {
-            self.replace_layout(layout);
-        }
     }
 
     /// `messages.next` (F8) and `messages.previous` (Shift+F8): the cursor to the next or previous finding row in the
@@ -375,7 +367,7 @@ impl ShellModel {
             self.open_messages();
         } else {
             // FT-916: a pane behind another tab of its group comes to front, so the opened finding is seen.
-            self.bring_messages_to_front();
+            self.bring_navigator_to_front(NavKind::Messages);
         }
         let Some(nav) = self.navs.get(&NavKind::Messages) else {
             return Outcome::Done;
@@ -514,7 +506,7 @@ impl ShellModel {
     ) -> Result<(String, String, String, String), Outcome> {
         let key = match string_param(p, "key")? {
             Some(k) => k.to_owned(),
-            None => match self.messages.waive.as_ref().filter(|_| self.in_waive_form()) {
+            None => match self.messages.waive.as_ref().filter(|_| self.in_form_of(WAIVE)) {
                 Some((k, _)) => k.clone(),
                 None => self
                     .nav_cursor(NavKind::Messages)
@@ -543,21 +535,6 @@ impl ShellModel {
         Ok((key, d.rule, d.fingerprint, messages::subject(node)))
     }
 
-    /// Whether the open dialog is the Waive prompt.
-    fn in_waive_form(&self) -> bool {
-        matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == "messages.waive")
-    }
-
-    /// A refusal of the Waive prompt's fields: it stays in the prompt when the prompt is open.
-    fn waive_failed(&mut self, message: String) -> Outcome {
-        if self.in_waive_form()
-            && let Some(Dialog::Form(f)) = &mut self.dialog
-        {
-            f.error = Some(message.clone());
-        }
-        Outcome::Failed { message }
-    }
-
     /// `messages.waive {key?, reason?, author?, date?}` (Waive… in the Messages detail, FT-674): on an open finding
     /// row (default the cursor row) commits one `check.waive` with the rule, the fingerprint, the reason (at least
     /// ten characters once trimmed, as the command checks), the author and the date. Without a reason the window
@@ -581,17 +558,17 @@ impl ShellModel {
             self.messages
                 .waive
                 .as_ref()
-                .filter(|(k, _)| self.in_waive_form() && *k == key)
+                .filter(|(k, _)| self.in_form_of(WAIVE) && *k == key)
                 .and_then(|(_, d)| d.clone())
                 .unwrap_or_default()
         } else {
             date
         };
-        if !self.in_waive_form() && reason.is_empty() {
+        if !self.in_form_of(WAIVE) && reason.is_empty() {
             let author = self.settings.author_name.clone().unwrap_or_default();
             self.messages.waive = Some((key, (!date.is_empty()).then_some(date)));
             return self.open_dialog(Dialog::Form(FormDialog {
-                action: "messages.waive",
+                action: WAIVE,
                 title_key: key!("waive-title"),
                 ok_key: key!("dialog-waive"),
                 fields: vec![
@@ -616,13 +593,16 @@ impl ShellModel {
         }
         let min = WAIVER_REASON_MIN_CHARS;
         if reason.chars().count() < min {
-            return self.waive_failed(strings::format(key!("error-waive-reason"), &[&min.to_string()]));
+            return self.form_failed(
+                WAIVE,
+                strings::format(key!("error-waive-reason"), &[&min.to_string()]),
+            );
         }
         if author.is_empty() {
-            return self.waive_failed(strings::text(key!("error-waive-author")).to_owned());
+            return self.form_failed(WAIVE, strings::text(key!("error-waive-author")).to_owned());
         }
         if date.parse::<ew_api::catalog::Date>().is_err() {
-            return self.waive_failed(strings::format(key!("error-missing-param"), &["date"]));
+            return self.form_failed(WAIVE, strings::format(key!("error-missing-param"), &["date"]));
         }
         let mut params = serde_json::json!({
             "rule": rule, "fingerprint": fingerprint, "reason": reason, "author": author, "date": date,
@@ -638,7 +618,7 @@ impl ShellModel {
         let out = self.run_commit(&cmd);
         match out {
             Outcome::Done => {
-                if self.in_waive_form() {
+                if self.in_form_of(WAIVE) {
                     self.dialog = None;
                 }
                 self.messages.waive = None;
@@ -648,7 +628,7 @@ impl ShellModel {
                 }
                 Outcome::Done
             }
-            Outcome::Failed { message } => self.waive_failed(message),
+            Outcome::Failed { message } => self.form_failed(WAIVE, message),
             other => other,
         }
     }
@@ -813,6 +793,9 @@ impl ShellModel {
 /// The shortest reason of a waiver in characters, trimmed: `check.waive`'s own minimum (doc 15 §2.5), checked here so
 /// the prompt keeps a short reason without a command round trip; the command checks it again.
 const WAIVER_REASON_MIN_CHARS: usize = 10;
+
+/// The action of the Waive prompt.
+const WAIVE: &str = "messages.waive";
 
 /// The rule whose open findings colour their potential's wires on the canvas (FT-675).
 const CONFLICT_RULE: &str = "EW-POT-001";

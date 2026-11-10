@@ -3,7 +3,7 @@
 
 //! The public items of WP-S2.09 part 3 below the shell (§4.2): `Session::preview_entities` on a fixture command of
 //! each change kind (acceptance check PV1) and on Golden B's two renumbers, and `Session::history_view` on a fixture
-//! history of four GUI steps (one of them merged), a script step and an external change (PV4).
+//! history of four GUI steps, a script step and an external change (PV4).
 
 use crate::golden_common;
 
@@ -200,19 +200,18 @@ fn golden_b_previews_list_their_records() {
     assert_eq!(d.xrefs.len(), 14);
 }
 
-/// `(label, origin, step, merged, pages)` of a row.
-fn row(r: &HistoryRow) -> (&str, &str, bool, u32, Vec<&str>) {
+/// `(label, origin, step, pages)` of a row.
+fn row(r: &HistoryRow) -> (&str, &str, bool, Vec<&str>) {
     (
         r.label.as_str(),
         r.origin.as_str(),
         r.step,
-        r.merged,
         r.pages.iter().map(String::as_str).collect(),
     )
 }
 
 #[test]
-fn history_view_lists_rows_origins_pages_and_merged_counts() {
+fn history_view_lists_rows_origins_and_pages() {
     let mut s = fresh();
     let first = s.page_labels()[0].clone();
     let first_id = page_id(&s, &first);
@@ -293,16 +292,14 @@ fn history_view_lists_rows_origins_pages_and_merged_counts() {
         ["GUI", "GUI", "GUI", "script b2.ewui", "external change", "GUI"]
     );
     assert!(rows.iter().all(|r| r.2), "every entry is a step");
-    let merged: Vec<u32> = rows.iter().map(|r| r.3).collect();
-    assert_eq!(merged, [1, 1, 1, 1, 1, 1]);
-    assert_eq!(rows[0].4, [second.as_str()]);
+    assert_eq!(rows[0].3, [second.as_str()]);
     assert_eq!(
-        rows[2].4,
+        rows[2].3,
         Vec::<&str>::new(),
         "the deleted page is no longer in the model"
     );
-    assert_eq!(rows[3].4, [first.as_str()]);
-    assert_eq!(rows[4].4, [second.as_str()]);
+    assert_eq!(rows[3].3, [first.as_str()]);
+    assert_eq!(rows[4].3, [second.as_str()]);
     assert_eq!(v.cursor, 6);
     assert_eq!(
         v.rows.iter().map(|r| r.index).collect::<Vec<_>>(),

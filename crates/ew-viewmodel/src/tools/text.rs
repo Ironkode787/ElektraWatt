@@ -239,10 +239,6 @@ impl Tool for TextTool {
         }
     }
 
-    fn wants_hover(&self) -> bool {
-        false
-    }
-
     fn ghost(&self) -> Option<Ghost> {
         Some(Ghost::Text {
             at_nm: self.point(),
@@ -353,10 +349,6 @@ impl Tool for TextEditTool {
 
     fn status_hint(&self) -> super::Hint {
         super::Hint::plain(key!("hint-text-edit"))
-    }
-
-    fn wants_hover(&self) -> bool {
-        false
     }
 
     fn ghost(&self) -> Option<Ghost> {

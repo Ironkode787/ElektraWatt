@@ -34,7 +34,7 @@ use ew_text::TextStyle;
 pub use ew_export::PagePlacement;
 
 use super::{
-    ExportAssets, ExportOptions, Halt, Hooks, NoHooks, OutputError, PageFindingAt, PageSelection, PdfDate,
+    ExportAssets, ExportOptions, Halt, OutputError, PageFindingAt, PageSelection, PdfDate,
     export_pages_hooked, font_bytes,
 };
 use crate::Session;
@@ -334,9 +334,9 @@ fn stamp(text: &str, pw: Nm, ph: Nm) -> Item {
 ///
 /// [`OutputError`] for a selection the page order does not have or pages the writer refuses.
 pub fn print_set_with(q: &Q, options: &PrintOptions, assets: &ExportAssets) -> Result<PrintSet, OutputError> {
-    print_set_hooked(q, options, assets, &NoHooks).map_err(|h| match h {
+    print_set_hooked(q, options, assets, None).map_err(|h| match h {
         Halt::Output(e) => e,
-        // No hook cancels.
+        // Without the job's controller nothing cancels.
         Halt::Cancelled => OutputError::Selection("the print set was cancelled".to_owned()),
     })
 }
@@ -354,13 +354,13 @@ pub fn sections(q: &Q) -> Vec<(u16, String)> {
     all
 }
 
-/// [`print_set_with`] with `hooks` (the print job, ID-1180 ruling 2): the export's phases with their reports and
-/// checkpoints, then `report(0, 0, "writing")` before the placement and the writer.
-pub(crate) fn print_set_hooked<H: Hooks>(
+/// [`print_set_with`] with the job's controller `ctl` (the print job, ID-1180 ruling 2): the export's phases with
+/// their reports and checkpoints, then `report(0, 0, "writing")` before the placement and the writer.
+pub(crate) fn print_set_hooked(
     q: &Q,
     options: &PrintOptions,
     assets: &ExportAssets,
-    hooks: &H,
+    ctl: Option<&ew_jobs::JobCtl>,
 ) -> Result<PrintSet, Halt> {
     let export = export_pages_hooked(
         q,
@@ -371,9 +371,15 @@ pub(crate) fn print_set_hooked<H: Hooks>(
             date: options.date,
         },
         assets,
-        hooks,
+        ctl,
     )?;
-    hooks.report(0, 0, "writing");
+    if let Some(ctl) = ctl {
+        ctl.report(ew_jobs::Progress {
+            done: 0,
+            total: 0,
+            phase: "writing",
+        });
+    }
     let mut set = print_pages(export.pages, export.options, options.paper, options.fit)?;
     set.findings = export.findings;
     Ok(set)

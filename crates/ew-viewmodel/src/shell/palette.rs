@@ -399,7 +399,6 @@ impl ShellModel {
                 self.recents.note(id);
                 self.dispatch(id, &Value::Null)
             }
-            PaletteRun::Command(_) => Outcome::Done,
             PaletteRun::Page(folio) => {
                 self.palette = None;
                 self.dispatch("page.goto", &json!({ "folio": folio }))

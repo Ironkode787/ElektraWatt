@@ -39,13 +39,6 @@
 //! (WP-S1.15), the save on a writer thread, and the undo history of a recovered session (FR-COL-028: a recovered
 //! session opens dirty with an empty history).
 //!
-//! **Derivation findings.** What the derivation layer could not do as the project asks (an unknown pinned
-//! derivation profile, a numbering scheme the command layer does not number, the built-in default frame, a
-//! malformed provisional settings member) reaches the front-end as a [`DerivationFinding`]:
-//! [`Session::load_findings`] holds the project-level ones found when the session opened (ADR-0003: an
-//! unknown profile is never silent; it carries `EW-CORE-018` at error severity), and
-//! [`Session::derivation_findings`] runs a full pass over the current snapshot on demand.
-//!
 //! # Example
 //!
 //! ```
@@ -124,23 +117,16 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::Arc;
 
-use ew_derive::{
-    DeviceTag, FrameGridOf, FrameSettings, NumberingSettingsOf, Oracle, PageOrder, Q, ReportPagesProvider,
-};
+use ew_derive::{DeviceTag, Oracle, PageOrder, Q, ReportPagesProvider};
 use ew_model::{AnyKey, Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
 use ew_store::{Changes, LockState, SaveReport, Store};
 
-pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA, ScriptDiff};
-pub use ew_commands::commands::{ChangeClass, CopyDiff, FieldChange, classify_update};
-pub use library_ops::{
-    ApiError, AssignMode, CopyState, CopyStatus, CopyUpdate, CpMap, UpdatePlan, VersionConflict,
-    unreadable_profiles,
-};
-pub use macros::{
-    InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, MacroValues, SavedMacro, macro_item_id,
-};
-pub use part_editor::{DRAFT_FIELDS, DraftMessage, PART_KINDS, PartDraft, PartDraftError, PartEditPlan};
+pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA};
+pub use ew_commands::commands::{ChangeClass, FieldChange, classify_update};
+pub use library_ops::{ApiError, AssignMode, CopyState, CpMap, VersionConflict, unreadable_profiles};
+pub use macros::{InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, MacroValues, SavedMacro};
+pub use part_editor::{DRAFT_FIELDS, PART_KINDS, PartDraft, PartDraftError};
 pub use part_offers::{Fit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};
 
 /// The reference of an image file as the asset store makes it ([`sniff_asset`] and the SHA-256 of the bytes): what a
@@ -176,7 +162,7 @@ pub struct UndrawnImage {
 
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
 pub use ew_checks as checks;
-pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch, NoteSeverity};
+pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch};
 /// The job runner (WP-S2.09 part 1, D3): the shell names it through `ew-api` (no workspace edge of its own).
 pub use ew_jobs;
 /// The libraries (WP-S1.19 part 2): tiers, the `.ewlib` reader and writer, the index and search. The shell and the
@@ -311,47 +297,6 @@ impl std::fmt::Debug for SessionOptions {
             .field("libraries", &self.libraries)
             .finish_non_exhaustive()
     }
-}
-
-/// One finding of the derivation layer, from a [`DeriveNote`].
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct DerivationFinding {
-    /// The catalogue code where one is assigned (`EW-CORE-018` for an unknown derivation profile).
-    pub code: Option<&'static str>,
-    /// The severity.
-    pub severity: NoteSeverity,
-    /// What happened, in English (Fluent keys arrive with the message-list UI).
-    pub message: String,
-    /// The note itself.
-    pub note: DeriveNote,
-}
-
-impl From<DeriveNote> for DerivationFinding {
-    fn from(note: DeriveNote) -> DerivationFinding {
-        DerivationFinding {
-            code: note.code(),
-            severity: note.severity(),
-            message: note.to_string(),
-            note,
-        }
-    }
-}
-
-/// The project-level derivation notes of a snapshot: the pinned profile and the provisional settings
-/// members, each parsed once (cheap: no device or page is derived).
-fn project_notes(model: &Model) -> Vec<DerivationFinding> {
-    let mut q = Q::new(model);
-    let _ = q.get::<NumberingSettingsOf>(());
-    let _ = q.get::<FrameSettings>(());
-    // WP-S2.04 §10.1: a wire marker of an older file that lists a deleted connection, or one of another page, is
-    // reported, not refused.
-    let stale = ew_derive::stale_marker_notes(&q);
-    q.diagnostics()
-        .notes()
-        .into_iter()
-        .chain(stale)
-        .map(DerivationFinding::from)
-        .collect()
 }
 
 /// The shipped prevent rules of `ew-checks` as the model's commit validator (ADR-0009 decision 3, doc 15
@@ -623,7 +568,6 @@ fn write_upgrade_backup(store: &Store, from: &str) -> Result<std::path::PathBuf,
 /// ```
 pub struct Session {
     engine: Engine,
-    load_findings: Vec<DerivationFinding>,
     /// The report engine installed on every `Q` the session builds (WP-S3.03).
     reports: Arc<dyn ReportPagesProvider>,
     /// The memo store of [`Session::query`] (`None`: [`MemoMode::Off`]).
@@ -647,7 +591,6 @@ impl std::fmt::Debug for Session {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Session")
             .field("engine", &self.engine)
-            .field("load_findings", &self.load_findings)
             .finish_non_exhaustive()
     }
 }
@@ -655,7 +598,6 @@ impl std::fmt::Debug for Session {
 impl Session {
     /// A session over a loaded model.
     pub fn new(model: Model, options: SessionOptions) -> Session {
-        let load_findings = project_notes(&model);
         // `Gui`, `Cli { .. }` give `gui`, `cli`: the variant name, for the journal's `origin`.
         let origin = format!("{:?}", options.origin)
             .chars()
@@ -678,7 +620,6 @@ impl Session {
             libraries: std::sync::OnceLock::new(),
             release_troubles: std::cell::RefCell::new(Vec::new()),
             submit_origin: options.origin.clone(),
-            load_findings,
             reports,
             memo,
             persistence: None,
@@ -1047,34 +988,6 @@ impl Session {
             || self.persistence.as_ref().is_some_and(|p| {
                 p.recovered || (p.store.migrated_from().is_some() && *p.store.access() == Access::Edit)
             })
-    }
-
-    /// The project-level derivation findings of the model the session opened with, in canonical order:
-    /// an unknown pinned profile (`EW-CORE-018`, error), malformed provisional settings members.
-    pub fn load_findings(&self) -> &[DerivationFinding] {
-        &self.load_findings
-    }
-
-    /// Every derivation finding of the current snapshot, in canonical order: the project-level ones plus
-    /// those of deriving every device tag and every page's frame (schemes not applied, the default frame,
-    /// query cycles). A cold full pass, O(devices + pages); call it on demand (a check run, an export).
-    pub fn derivation_findings(&self) -> Vec<DerivationFinding> {
-        let mut q = self.query();
-        let _ = q.get::<NumberingSettingsOf>(());
-        let _ = q.get::<FrameSettings>(());
-        let devices: Vec<_> = q.devices().ids().collect();
-        for d in devices {
-            let _ = q.get::<DeviceTag>(d);
-        }
-        let pages: Vec<_> = q.pages().ids().collect();
-        for p in pages {
-            let _ = q.get::<FrameGridOf>(p);
-        }
-        q.diagnostics()
-            .notes()
-            .into_iter()
-            .map(DerivationFinding::from)
-            .collect()
     }
 
     // ---------------------------------------------------------------------------------------------------------

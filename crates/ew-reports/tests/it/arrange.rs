@@ -10,8 +10,8 @@ use ew_derive::ew_units::Dec3;
 use ew_derive::{Q, Rev};
 use ew_reports::arrange::{cell_key, cell_text};
 use ew_reports::{
-    Arrangement, Cell, CellType, ColumnDef, MissingReason, NotDerived, QtyUnit, Row, RowId,
-    RowKey, RowKind, RowSet, RowSetStatus, arrange,
+    Arrangement, Cell, CellType, ColumnDef, MissingReason, NotDerived, QtyUnit, Row, RowId, RowKey, RowKind,
+    RowSet, RowSetStatus, arrange,
 };
 use proptest::prelude::*;
 

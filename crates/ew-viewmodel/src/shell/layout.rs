@@ -24,7 +24,8 @@ use crate::strings;
 use crate::strings::Key;
 use crate::tools::layout::{Step, Stop, mode_word, nudge_stop, quarter_quat};
 use crate::tools::{
-    CanvasEvent, EntityKind, LayoutOptions, LayoutPlaceTool, SelectionChange, ToolKey, page_entity_kind,
+    CanvasEvent, EntityKind, LayoutOptions, LayoutPlaceTool, SelectionChange, ToolKey, clamp64,
+    page_entity_kind,
 };
 use crate::{count_key, key};
 
@@ -518,11 +519,6 @@ fn blocked_text(panel: &PanelTables, by: Option<Uuid>) -> String {
     }
 }
 
-/// An `i128` in the `i64` range, saturating.
-fn clamp64(v: i128) -> i64 {
-    i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
-}
-
 // ---------------------------------------------------------------------------------------------------------------
 // WP-S4.02 part 4: setting the panel up from the window (§8; D10, D11; rulings 7, 8).
 
@@ -752,14 +748,14 @@ impl ShellModel {
             return match self.mode {
                 super::Mode::Headless => failed(key!("error-missing-param"), &[missing]),
                 // Create is disabled while a field is empty (W44.2 F1); Enter in the form says why in the same words.
-                super::Mode::Gui if self.in_layout_form(ACTION) => {
+                super::Mode::Gui if self.in_form_of(ACTION) => {
                     let message = strings::text(if location.is_none() {
                         key!("reason-enclosure-location")
                     } else {
                         key!("reason-enclosure-part")
                     })
                     .to_owned();
-                    self.layout_form_failed(ACTION, message)
+                    self.form_failed(ACTION, message)
                 }
                 super::Mode::Gui => {
                     let form = self.enclosure_form(location, part);
@@ -776,7 +772,7 @@ impl ShellModel {
         });
         let Some((location_id, _)) = found else {
             let message = strings::format(key!("error-no-location"), &[&location]);
-            return self.layout_form_failed(ACTION, message);
+            return self.form_failed(ACTION, message);
         };
         let offer = project
             .session
@@ -785,7 +781,7 @@ impl ShellModel {
             .find(|o| o.part.to_string() == part || o.number == part);
         let Some(offer) = offer else {
             let message = strings::format(key!("error-no-enclosure-part"), &[&part]);
-            return self.layout_form_failed(ACTION, message);
+            return self.form_failed(ACTION, message);
         };
         let function = page.and_then(|pg| project.session.page_structure(pg).1);
         let mut params = json!({
@@ -977,9 +973,9 @@ impl ShellModel {
         let Some(order) = given("order") else {
             return match self.mode {
                 super::Mode::Headless => failed(key!("error-missing-param"), &["order"]),
-                super::Mode::Gui if self.in_layout_form(ACTION) => {
+                super::Mode::Gui if self.in_form_of(ACTION) => {
                     let message = strings::format(key!("error-missing-param"), &["order"]);
-                    self.layout_form_failed(ACTION, message)
+                    self.form_failed(ACTION, message)
                 }
                 super::Mode::Gui => {
                     let rail = given("rail")
@@ -1024,7 +1020,7 @@ impl ShellModel {
         };
         let Some(rail) = rail else {
             let message = strings::text(key!("error-no-rail")).to_owned();
-            return self.layout_form_failed(ACTION, message);
+            return self.form_failed(ACTION, message);
         };
         let sentence = panel
             .carrier(rail)
@@ -1065,27 +1061,12 @@ impl ShellModel {
         self.layout_form_done(ACTION, out)
     }
 
-    /// Whether the open dialog is the form of `action`.
-    fn in_layout_form(&self, action: &str) -> bool {
-        matches!(&self.dialog, Some(super::Dialog::Form(f)) if f.action == action)
-    }
-
-    /// A refusal of a set-up action: it stays under the fields when its form is open.
-    fn layout_form_failed(&mut self, action: &str, message: String) -> Outcome {
-        if let Some(super::Dialog::Form(f)) = &mut self.dialog
-            && f.action == action
-        {
-            f.error = Some(message.clone());
-        }
-        Outcome::Failed { message }
-    }
-
     /// The end of a set-up action: a failure stays in its dialog, a success closes it.
     fn layout_form_done(&mut self, action: &str, out: Outcome) -> Outcome {
         match out {
-            Outcome::Failed { message } => self.layout_form_failed(action, in_words(&message)),
+            Outcome::Failed { message } => self.form_failed(action, in_words(&message)),
             Outcome::Done => {
-                if self.in_layout_form(action) {
+                if self.in_form_of(action) {
                     self.dialog = None;
                 }
                 Outcome::Done

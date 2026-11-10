@@ -363,27 +363,6 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The renumber dialogs
 
-    /// Whether the open dialog is the form of `action`.
-    fn in_bulk_form(&self, action: &str) -> bool {
-        matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == action)
-    }
-
-    /// The end of a renumber action: a failure stays in its dialog, a success (the card is open) closes it.
-    fn bulk_form_done(&mut self, action: &str, out: Outcome) -> Outcome {
-        if self.in_bulk_form(action) {
-            match &out {
-                Outcome::Done => self.dialog = None,
-                Outcome::Failed { message } => {
-                    if let Some(Dialog::Form(f)) = &mut self.dialog {
-                        f.error = Some(message.clone());
-                    }
-                }
-                Outcome::Refused { .. } => {}
-            }
-        }
-        out
-    }
-
     /// The section a renumber of pages starts from: the current page's section number, else `front`.
     fn current_section_text(&self) -> String {
         self.current_page()
@@ -431,15 +410,15 @@ impl ShellModel {
             Ok(_) => self.current_section_text(),
         };
         let start = match uint_param(p, "start") {
-            Err(e) => return self.bulk_form_done(ACTION, e),
+            Err(e) => return self.form_done(ACTION, e),
             Ok(s) => s,
         };
         let Some(start) = start else {
-            if self.mode == Mode::Headless || self.in_bulk_form(ACTION) {
+            if self.mode == Mode::Headless || self.in_form_of(ACTION) {
                 let out = Outcome::Failed {
                     message: self.missing_text("start"),
                 };
-                return self.bulk_form_done(ACTION, out);
+                return self.form_done(ACTION, out);
             }
             let first = self
                 .section_pages(&section)
@@ -487,7 +466,7 @@ impl ShellModel {
             return self.open_dialog(Dialog::Form(form));
         };
         let out = self.renumber_pages(&section, start, p);
-        self.bulk_form_done(ACTION, out)
+        self.form_done(ACTION, out)
     }
 
     /// The `page.renumber` of [`ShellModel::act_pages_renumber`] once its start is known.
@@ -573,9 +552,9 @@ impl ShellModel {
             Ok(s) => s.map(str::trim).filter(|s| !s.is_empty()).map(str::to_owned),
         };
         let Some(scheme) = scheme else {
-            if self.mode == Mode::Headless || self.in_bulk_form(ACTION) {
+            if self.mode == Mode::Headless || self.in_form_of(ACTION) {
                 // ID-1497 (7): headless, the refusal names the schemes it takes.
-                let message = if self.in_bulk_form(ACTION) {
+                let message = if self.in_form_of(ACTION) {
                     self.missing_text("scheme")
                 } else {
                     strings::format(
@@ -584,7 +563,7 @@ impl ShellModel {
                     )
                 };
                 let out = Outcome::Failed { message };
-                return self.bulk_form_done(ACTION, out);
+                return self.form_done(ACTION, out);
             }
             let field = |name, label_key, choices, value: &str| FormField {
                 name,
@@ -629,7 +608,7 @@ impl ShellModel {
             return self.open_dialog(Dialog::Form(form));
         };
         let out = self.renumber_devices(&scope, &scheme, p);
-        self.bulk_form_done(ACTION, out)
+        self.form_done(ACTION, out)
     }
 
     /// The `numbering.renumber` of [`ShellModel::act_devices_renumber`] once its scheme is known.

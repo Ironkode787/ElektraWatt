@@ -11,7 +11,7 @@
 //! smallest `t` with the segment that gives it. The arithmetic is exact in `i128`; a segment whose orientation or `t`
 //! leaves it does not count, two keys that cannot be compared order by the tables' connection order, and a crossing
 //! point that leaves it is the segment's start point. The crossing point rounds halves away from zero
-//! (`tools/snap.rs`'s `div_round`). The crossings are sorted by `t`, ties by the tables' connection order.
+//! (`div_round_away`). The crossings are sorted by `t`, ties by the tables' connection order.
 //!
 //! **The states.** All points are page nm, exact: the crossing ends are the exact page points of the pointer or of
 //! the grid cursor, never snapped; upon release the marker point is the crossing line's midpoint, fine-snapped with
@@ -41,10 +41,9 @@ use ew_api::output::PageTables;
 use ew_api::output::ew_dl::EntityRef;
 use serde_json::{Map, Value, json};
 
-use super::snap::div_round;
 use super::{
     Anchor, Button, CanvasEvent, FineKind, Ghost, MarkerKind, Overlay, OverlayItem, Style, Token, Tool,
-    ToolCx, ToolKey, ToolOutput,
+    ToolCx, ToolKey, ToolOutput, clamp64, div_round_away,
 };
 
 /// `a × b` in the plane, in `i128`; `None` when a product or the difference overflows.
@@ -55,11 +54,6 @@ fn cross(a: (i128, i128), b: (i128, i128)) -> Option<i128> {
 /// The point `a − b`, in `i128`; `None` when a difference overflows.
 fn sub(a: (i128, i128), b: (i128, i128)) -> Option<(i128, i128)> {
     Some((a.0.checked_sub(b.0)?, a.1.checked_sub(b.1)?))
-}
-
-/// An `i128` as an `i64`, saturating.
-fn sat(v: i128) -> i64 {
-    i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
 }
 
 /// One crossing of the crossing line by a connection: its table ID, its key as a fraction, the segment's
@@ -140,10 +134,10 @@ fn crossings(tables: &PageTables, from: (i64, i64), to: (i64, i64)) -> Vec<Cross
             // The crossing point `A + t·d`; a coordinate that leaves `i128` uses the segment's start point.
             let at = match (num.checked_mul(d.0), num.checked_mul(d.1)) {
                 (Some(nx), Some(ny)) => match (
-                    a.0.checked_add(div_round(nx, den)),
-                    a.1.checked_add(div_round(ny, den)),
+                    a.0.checked_add(div_round_away(nx, den)),
+                    a.1.checked_add(div_round_away(ny, den)),
                 ) {
-                    (Some(x), Some(y)) => (sat(x), sat(y)),
+                    (Some(x), Some(y)) => (clamp64(x), clamp64(y)),
                     _ => start,
                 },
                 _ => start,
@@ -180,8 +174,8 @@ pub fn crossed_connections(tables: &PageTables, from: (i64, i64), to: (i64, i64)
 /// The midpoint of `a` and `b`: `(a + b).div_euclid(2)` per axis, in `i128`.
 fn midpoint(a: (i64, i64), b: (i64, i64)) -> (i64, i64) {
     (
-        sat((i128::from(a.0) + i128::from(b.0)).div_euclid(2)),
-        sat((i128::from(a.1) + i128::from(b.1)).div_euclid(2)),
+        clamp64((i128::from(a.0) + i128::from(b.0)).div_euclid(2)),
+        clamp64((i128::from(a.1) + i128::from(b.1)).div_euclid(2)),
     )
 }
 
@@ -537,10 +531,6 @@ impl Tool for MarkerTool {
                 super::Hint::new(key!("hint-marker-typing"), &[super::ENTER, super::ESCAPE])
             }
         }
-    }
-
-    fn wants_hover(&self) -> bool {
-        false
     }
 
     fn ghost(&self) -> Option<Ghost> {

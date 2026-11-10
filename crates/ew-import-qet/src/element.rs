@@ -8,8 +8,8 @@ use std::collections::BTreeMap;
 
 use ew_ids::{Id, Uuid, v5};
 use ew_interop_api::{
-    Detection, ImportBatch, ImportContext, ImportError, ImportInput, ImportReport, Importer, InputNameError,
-    Limits, LineageInfo, ReportEntry, SourceInfo, SourceRef, check_file_name,
+    ImportBatch, ImportContext, ImportError, ImportInput, ImportReport, InputNameError, Limits, LineageInfo,
+    ReportEntry, SourceInfo, SourceRef, check_file_name,
 };
 use ew_mltext::{Ident, LangTag, MlText};
 use ew_schema::{
@@ -452,95 +452,6 @@ pub(crate) fn read_on_stack(
     })
 }
 
-/// Whether the first start tag of `head` is `<definition>` with a `type` attribute of `element`. Skips a
-/// BOM, the XML declaration and other processing instructions, comments, a DOCTYPE and white space; a head
-/// that ends first gives `false`.
-fn root_is_element_definition(head: &[u8]) -> bool {
-    fn skip_space(mut b: &[u8]) -> &[u8] {
-        while let [c, rest @ ..] = b {
-            if !matches!(c, b' ' | b'\t' | b'\n' | b'\r') {
-                break;
-            }
-            b = rest;
-        }
-        b
-    }
-    /// The bytes after the first `end` in `b`.
-    fn after<'b>(b: &'b [u8], end: &[u8]) -> Option<&'b [u8]> {
-        let at = b.windows(end.len()).position(|w| w == end)?;
-        b.get(at + end.len()..)
-    }
-    let mut rest = head.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(head);
-    loop {
-        rest = skip_space(rest);
-        if let Some(r) = rest.strip_prefix(b"<?") {
-            let Some(r) = after(r, b"?>") else { return false };
-            rest = r;
-        } else if let Some(r) = rest.strip_prefix(b"<!--") {
-            let Some(r) = after(r, b"-->") else { return false };
-            rest = r;
-        } else if let Some(r) = rest.strip_prefix(b"<!") {
-            // A DOCTYPE, with an optional internal subset in brackets.
-            let mut depth = 0u32;
-            let mut end = None;
-            for (i, c) in r.iter().enumerate() {
-                match c {
-                    b'[' => depth += 1,
-                    b']' => depth = depth.saturating_sub(1),
-                    b'>' if depth == 0 => {
-                        end = Some(i + 1);
-                        break;
-                    }
-                    _ => {}
-                }
-            }
-            let Some(r) = end.and_then(|e| r.get(e..)) else {
-                return false;
-            };
-            rest = r;
-        } else {
-            break;
-        }
-    }
-    let Some(mut tag) = rest.strip_prefix(b"<definition") else {
-        return false;
-    };
-    if !matches!(tag.first(), Some(b' ' | b'\t' | b'\n' | b'\r' | b'>' | b'/')) {
-        return false;
-    }
-    // The attributes of the start tag.
-    loop {
-        tag = skip_space(tag);
-        let Some(&c) = tag.first() else { return false };
-        if c == b'>' || c == b'/' {
-            return false;
-        }
-        let name_len = tag
-            .iter()
-            .position(|c| matches!(c, b' ' | b'\t' | b'\n' | b'\r' | b'=' | b'>' | b'/'))
-            .unwrap_or(tag.len());
-        let (attr, after_name) = tag.split_at(name_len);
-        let Some(after_eq) = skip_space(after_name).strip_prefix(b"=") else {
-            return false;
-        };
-        let value_start = skip_space(after_eq);
-        let Some((&quote, value)) = value_start.split_first() else {
-            return false;
-        };
-        if quote != b'"' && quote != b'\'' {
-            return false;
-        }
-        let Some(len) = value.iter().position(|&c| c == quote) else {
-            return false;
-        };
-        let (val, after_val) = value.split_at(len);
-        if attr == b"type" && val == b"element" {
-            return true;
-        }
-        tag = after_val.get(1..).unwrap_or_default();
-    }
-}
-
 /// The importer of standalone `.elmt` element definition files.
 ///
 /// A file imported without a target lineage starts a new one anchored on the file's SHA-256
@@ -549,30 +460,13 @@ fn root_is_element_definition(head: &[u8]) -> bool {
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct QetElementImporter;
 
-impl Importer for QetElementImporter {
-    fn id(&self) -> &'static str {
-        crate::IMPORTER_ID
-    }
-
-    fn version(&self) -> &'static str {
-        crate::IMPORTER_VERSION
-    }
-
-    /// `Certain` when the root element in the head is `<definition type="element">` (after an optional BOM,
-    /// XML declaration, processing instructions, comments, DOCTYPE and white space), so that a project
-    /// embedding definitions is not claimed; otherwise `Maybe(30)` for a name ending in `.elmt`, else `No`.
-    /// A head that ends before the root start tag is complete is judged by the name alone.
-    fn detect(&self, head: &[u8], name: &str) -> Detection {
-        if root_is_element_definition(head) {
-            Detection::Certain
-        } else if name.to_ascii_lowercase().ends_with(".elmt") {
-            Detection::Maybe(30)
-        } else {
-            Detection::No
-        }
-    }
-
-    fn import(&self, input: &ImportInput, ctx: &mut ImportContext) -> Result<ImportBatch, ImportError> {
+impl QetElementImporter {
+    /// Imports one file.
+    ///
+    /// # Errors
+    ///
+    /// [`ImportError`] when the file as a whole cannot be read; item-level problems are report entries.
+    pub fn import(&self, input: &ImportInput, ctx: &mut ImportContext) -> Result<ImportBatch, ImportError> {
         let size = input.bytes().len() as u64;
         // The context's limits apply where stricter than the element-definition preset (16 MiB input), so a
         // context carrying the general defaults reads a standalone definition under the preset.

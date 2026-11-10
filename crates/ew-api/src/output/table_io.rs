@@ -360,15 +360,6 @@ impl TableImport {
         }
         c
     }
-
-    /// The command as a command log (`.ewcmd`, doc 17 §3.5) of one line, which `ew apply` replays; `None` without one.
-    pub fn command_log(&self) -> Option<String> {
-        let cmd = self.command.as_ref()?;
-        let header =
-            json!({"$schema": crate::CMDLOG_SCHEMA, "label": format!("ew import table {}", self.table)});
-        let line = json!({"cmd": cmd.name, "params": cmd.params});
-        Some(format!("{header}\n{line}\n"))
-    }
 }
 
 /// Why a round trip's command was not committed.

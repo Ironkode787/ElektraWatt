@@ -23,8 +23,6 @@ pub enum Family {
     /// The default drawing family.
     #[default]
     Default,
-    /// A monospaced family (not bundled in v0; reserved for code-like texts).
-    Mono,
     /// The symbol fallback family (Noto Sans Math, ADR-0028 recommendation 3). A text style does not name
     /// it: [`FontSet::shape`] uses it only for the characters the style's own face lacks.
     Symbols,
@@ -144,14 +142,6 @@ impl FontSource {
     pub fn pinned(self, sha256: [u8; 32]) -> FontSource {
         FontSource {
             expected: Some(sha256),
-            ..self
-        }
-    }
-
-    /// This source using face `index` of a collection file.
-    pub fn with_face_index(self, index: u16) -> FontSource {
-        FontSource {
-            face_index: index,
             ..self
         }
     }
@@ -429,7 +419,6 @@ impl FontSet {
 pub(crate) const fn engine_family(family: Family) -> &'static str {
     match family {
         Family::Default => "ew-default",
-        Family::Mono => "ew-mono",
         Family::Symbols => "ew-symbols",
     }
 }

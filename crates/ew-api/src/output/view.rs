@@ -152,10 +152,12 @@ const WIRE_MARKER: &str = include_str!("../../../../content/symbols/qet10/ew.gen
 /// profile's output. Regenerating `content/symbols/qet10` changes a seal, and the seal test then fails until the
 /// new symbols ship with a new derivation profile (ADR-0003: a project's printed output changes only with the
 /// profile it pins).
-pub const GENERIC_SYMBOLS_PROFILE: &str = "2027.1";
+#[cfg(test)]
+const GENERIC_SYMBOLS_PROFILE: &str = "2027.1";
 
 /// The `sha256` seals (doc 05 §13.2) of the compiled-in generic symbols of [`GENERIC_SYMBOLS_PROFILE`], by key.
-pub const GENERIC_SYMBOL_SEALS: [(&str, &str); 3] = [
+#[cfg(test)]
+const GENERIC_SYMBOL_SEALS: [(&str, &str); 3] = [
     (
         "ew.gen.junction-dot@qet10",
         "sha256:5c96763c7eb1041383074d1ba74a8148a5c764c0e5f9f7feed8e56cafc0e2ceb",
@@ -171,7 +173,7 @@ pub const GENERIC_SYMBOL_SEALS: [(&str, &str); 3] = [
 ];
 
 /// The built-in generic symbols, parsed once (compiled in from `content/symbols/qet10`, sealed by
-/// [`GENERIC_SYMBOL_SEALS`]).
+/// the seals pinned in this module's tests).
 pub fn generic_symbols() -> &'static GenericSymbols {
     static SET: OnceLock<GenericSymbols> = OnceLock::new();
     SET.get_or_init(|| GenericSymbols {

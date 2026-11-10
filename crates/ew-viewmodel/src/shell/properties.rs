@@ -21,7 +21,7 @@ use std::sync::Arc;
 
 use ew_api::output::ew_dl::{Destination, EntityRef};
 use ew_api::output::{InputError, ParsedInput};
-use ew_api::{AnyCommand, CmdError, Exposure, Submit};
+use ew_api::{AnyCommand, CmdError, Exposure};
 use serde_json::{Map, Value, json};
 
 use super::navigation::{Focus, bump};
@@ -1369,7 +1369,7 @@ impl ShellModel {
             name: edit.name.clone(),
             params: edit.params.clone(),
         };
-        let submit = self.props_submit();
+        let submit = self.tool_submit();
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::Done;
@@ -1447,15 +1447,6 @@ impl ShellModel {
         }
     }
 
-    /// The submission of the grid's commands: the GUI in the window, the script's command log headless.
-    fn props_submit(&self) -> Submit {
-        Submit::from(super::ShellModel::origin_of(
-            self.mode,
-            self.person,
-            &self.origin_file,
-        ))
-    }
-
     /// Commits a kept, fresh preview of the command `name` with `params`: the window `Session::commit`; headless a
     /// one-line command log through `Session::run_script` (`command.run`'s path: exposure, `--record`). A refusal
     /// names a target of `section` by its label (§6.7).
@@ -1494,7 +1485,7 @@ impl ShellModel {
                 message: self.refusal(&e, section),
             },
         };
-        self.refresh();
+        self.refresh_rows();
         outcome
     }
 
@@ -1558,7 +1549,7 @@ impl ShellModel {
             name: "fields.set_many".to_owned(),
             params: params.clone(),
         };
-        let submit = self.props_submit();
+        let submit = self.tool_submit();
         let project = self.project.as_mut()?;
         let preview = project.session.preview_with(&cmd, submit).ok()?;
         let change = project
@@ -1755,7 +1746,7 @@ impl ShellModel {
             name: name.to_owned(),
             params: params.clone(),
         };
-        let submit = self.props_submit();
+        let submit = self.tool_submit();
         let Some(project) = &mut self.project else {
             return (Outcome::Done, Vec::new());
         };
@@ -2346,7 +2337,7 @@ impl ShellModel {
 pub(super) mod tests {
     use std::path::Path;
 
-    use ew_api::Origin;
+    use ew_api::{Origin, Submit};
     use serde_json::json;
 
     use super::*;

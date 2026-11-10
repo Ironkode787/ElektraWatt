@@ -22,7 +22,7 @@ use ew_api::output::ew_dl::ew_units::Rect;
 use ew_api::output::{PageTables, TableEnd};
 use serde_json::json;
 
-use super::{Anchor, Overlay, OverlayItem, Style, Token, ToolCx};
+use super::{Anchor, Overlay, OverlayItem, Style, Token, ToolCx, clamp64, div_round_toward_zero};
 use crate::canvas::mm3;
 use crate::key;
 use crate::strings;
@@ -153,20 +153,13 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
     Overlay::new(items)
 }
 
-/// `num / den` rounded to the nearest integer, exact ties toward zero (`den > 0`): `ew_units::Grid`'s rule.
-fn div_round_toward_zero(num: i128, den: i128) -> i128 {
-    let q = num / den;
-    let r = num % den;
-    if 2 * r.abs() > den { q + num.signum() } else { q }
-}
-
 /// The grid coordinate nearest the page coordinate `v` on the grid `(num, den)`, exactly as `ew_units::Grid::snap_point`
 /// computes it (ties toward zero), so a dog-leg drawn here lands where the command puts it.
 pub fn grid_point_of(grid: (i64, i64), v: i64) -> i64 {
     let (num, den) = (i128::from(grid.0.max(1)), i128::from(grid.1.max(1)));
     let k = div_round_toward_zero(i128::from(v) * den, num);
     let p = div_round_toward_zero(k * num, den);
-    i64::try_from(p).unwrap_or(if p < 0 { i64::MIN } else { i64::MAX })
+    clamp64(p)
 }
 
 /// The autoconnect proposals of the free CPs of `moved` displaced by `steps` (WP-S2.04 §8.3): the CP proposals a move

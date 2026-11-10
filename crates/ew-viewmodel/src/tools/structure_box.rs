@@ -34,13 +34,8 @@ use serde_json::{Map, Value, json};
 
 use super::{
     Button, CanvasEvent, FineKind, Ghost, MarkerKind, Overlay, OverlayItem, Style, Token, Tool, ToolCx,
-    ToolKey, ToolOutput,
+    ToolKey, ToolOutput, distinct,
 };
-
-/// The distinct fixed points of `points`.
-fn distinct(points: &[(i64, i64)]) -> usize {
-    points.iter().collect::<std::collections::BTreeSet<_>>().len()
-}
 
 /// The structure box tool's state.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -359,10 +354,6 @@ impl Tool for StructureBoxTool {
                 super::Hint::new(key!("hint-structure-box-typing"), &[super::ENTER, super::ESCAPE])
             }
         }
-    }
-
-    fn wants_hover(&self) -> bool {
-        false
     }
 
     /// A double click closes the box (the drawing hint says so).

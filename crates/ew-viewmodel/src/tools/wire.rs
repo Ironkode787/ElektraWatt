@@ -50,7 +50,7 @@ use serde_json::{Value, json};
 
 use super::{
     Anchor, Button, CP_SNAP_PT, CanvasEvent, MarkerKind, Mods, Overlay, OverlayItem, RouteInfo, Style, Token,
-    Tool, ToolCx, ToolKey, ToolOutput, segment_dist2,
+    Tool, ToolCx, ToolKey, ToolOutput, div_round_toward_zero, segment_dist2,
 };
 use crate::canvas::mm3;
 use crate::key;
@@ -203,13 +203,6 @@ impl WireTarget {
     }
 }
 
-/// `num / den` rounded to the nearest integer, ties toward zero (`ew_units::Grid`'s rule).
-fn div_round(num: i128, den: i128) -> i128 {
-    let q = num / den;
-    let r = num % den;
-    if 2 * r.abs() > den { q + num.signum() } else { q }
-}
-
 /// The grid of the page tables `(num, den)`: the index of a page coordinate and the coordinate of an index.
 #[derive(Clone, Copy, Debug)]
 pub struct PageGridMap {
@@ -228,12 +221,12 @@ impl PageGridMap {
 
     /// The grid index nearest to the page coordinate `v`.
     pub fn index(self, v: i64) -> i64 {
-        i64::try_from(div_round(i128::from(v) * self.den, self.num)).unwrap_or(0)
+        i64::try_from(div_round_toward_zero(i128::from(v) * self.den, self.num)).unwrap_or(0)
     }
 
     /// The page coordinate of grid index `k`.
     pub fn coord(self, k: i64) -> i64 {
-        i64::try_from(div_round(i128::from(k) * self.num, self.den)).unwrap_or(0)
+        i64::try_from(div_round_toward_zero(i128::from(k) * self.num, self.den)).unwrap_or(0)
     }
 
     /// One grid step, nm (rounded).
@@ -1067,7 +1060,7 @@ impl WireTool {
         }
     }
 
-    /// `Key(EndInIp)` (P, WP-S2.04 §9.2): ends the routing wire in a new interruption point drawn with `shape` (the
+    /// P (WP-S2.04 §9.2): ends the routing wire in a new interruption point drawn with `shape` (the
     /// IP symbol, one CP) at the end target's grid point, oriented among A–D so that its CP faces the arriving
     /// segment (the CP leaves opposite to the last segment's direction), its insertion point the grid point that puts
     /// the CP there (the route then ends exactly at the CP, re-routed when the grid rounds the CP off the point);
@@ -1181,14 +1174,6 @@ impl WireTool {
             params,
         });
         Ok((ToolOutput::Commit(cmd), name, direction))
-    }
-
-    /// The start of the wire being routed.
-    pub fn routing_start(&self) -> Option<&WireTarget> {
-        match &self.state {
-            State::Routing { start, .. } => Some(start),
-            State::Armed { .. } => None,
-        }
     }
 
     /// The committed route the ghost shows (tests).
@@ -1308,10 +1293,6 @@ impl Tool for WireTool {
                 super::Hint::new(key!("hint-wire-routing"), &[super::BACK, super::ESCAPE])
             }
         }
-    }
-
-    fn wants_hover(&self) -> bool {
-        false
     }
 
     /// A double click ends the wire on its target and arms the next one there (FT-708; doc 16's keymap).

@@ -9,7 +9,7 @@
 //! memoised `page_display_list` family per layer over the parts that layer reads, so a wire edit never rebuilds
 //! the title block (the memo oracle and `tests/page_output_memo.rs` hold it).
 //!
-//! **The job.** [`export_pages`] (and the [`Session`] methods [`Session::export_pdf`], [`Session::export_svg`])
+//! **The job.** [`export_pages_with`] (and the [`Session`] methods [`Session::export_pdf`], [`Session::export_svg`])
 //! runs in three phases:
 //!
 //! 1. on the session's thread, through its memoising `Q`: `page_order`, the page selection, and for every
@@ -30,7 +30,7 @@
 //! (the `World`, the report engine, the asset bytes); [`ExportJob::run`] builds a cold `Q` on the job's own thread and
 //! runs the same three phases with a progress report before each page, a checkpoint after each page (`page`), a
 //! cancel check before each page of the page phase (`draw`), and checkpoints after the page phase (`drawn`) and the
-//! writer (`written`). The phases are one function for both ([`export_pages_with`] runs it without hooks), so the job's
+//! writer (`written`). The phases are one function for both ([`export_pages_with`] runs it without the job's controller), so the job's
 //! bytes are the synchronous export's on the same revision. No pool and no memo snapshot in the job (FT-497).
 //!
 //! **Metadata** ([`pdf_options`], doc 09 §4.3). Title: the project description (neutral). Creator: `ElektraWatt
@@ -105,66 +105,56 @@ use sha2::{Digest, Sha256};
 
 // WP-S2.05 part 3
 pub use clipboard::{
-    CopiedFragment, CopyError, FRAGMENT_HEADER, FRAGMENT_MAX_BYTES, FRAGMENT_MAX_DEPTH, FRAGMENT_MAX_LINE,
-    FragmentError, ParsedFragment, parse_fragment, parse_fragment_with,
+    CopiedFragment, CopyError, FRAGMENT_HEADER, FragmentError, ParsedFragment, parse_fragment,
+    parse_fragment_with,
 };
 pub use editing::{
-    CataloguePart, CatalogueStrip, CatalogueSymbol, CatalogueTemplateFn, ExchangeMap, JunctionWire,
-    OUTLINE_TOLERANCE_NM, PageTables, PlaceCatalogue, ShapeCp, SymbolShape, TableBox, TableConnection,
-    TableCp, TableEnd, TableIp, TableItem, TableJunction, TablePotential, TableRep, TableStructureBox,
-    exchange_map,
+    CatalogueSymbol, JunctionWire, PageTables, PlaceCatalogue, SymbolShape, TableConnection, TableCp,
+    TableEnd, TableItem, TableJunction, TablePotential, TableRep, TableStructureBox, exchange_map,
 };
 /// The display-list IR the pages of an export are made of ([`ExportPages`]' `content`), re-exported so that the
 /// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl` (WP-S2.02 §4.2;
 /// architecture §3 rule 7).
 pub use ew_dl;
-pub use ew_export::{Parallelism, PdfDate, PdfReport, SvgFile, SvgReport, svg_file_name};
+pub use ew_export::{Parallelism, PdfDate, PdfReport, SvgFile, svg_file_name};
 pub use fields::{
-    Category, EditRoute, FieldChoice, FieldNode, FieldReadOnly, FieldSpec, FieldType, InputError,
-    ParsedInput, field_catalogue, field_catalogue_for, format_field_value,
+    Category, EditRoute, FieldReadOnly, FieldType, InputError, ParsedInput, field_catalogue,
+    field_catalogue_for, format_field_value,
 };
 // WP-S2.05 part 2
 pub use find::{FindError, FindField, FindHit, FindQuery, FindResults};
 // WP-S2.09 part 1
 pub use history::{HistoryRow, HistoryView};
 pub use job::{ExportJob, PrintSetJob};
-pub use join::{JoinCandidate, JoinCandidates, JoinProposal, JoinedText};
 pub use layers::{
     CarriersLayer, FrameLayer, LabelsLayer, PageLayer, PlacementsLayer, SurfaceLayer, SymbolsLayer,
     TablesLayer, WiresLayer, new_project_text_style_table, page_kind, page_layer, page_scene, page_view,
     text_style_table,
 };
 // WP-S4.01 part 3
-pub use layout_edit::{LayoutEdit, LayoutEditError, LayoutPartOffer, parse_mm};
-// FT-1371: Connect cores…' refusal.
-pub use cable_edit::CoresRefused;
+pub use layout_edit::{LayoutEdit, LayoutEditError, parse_mm};
 // FT-1016 (ID-1148)
-pub use navigation::{
-    CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageListRow, PageListTable, PageRow,
-};
-pub use panel::{PageSurfaceView, ShapedText, SurfaceViewOf};
-pub use scale_fit::{FIT_SCALES, fitting_scale};
+pub use navigation::{CellLabel, GotoError, LinkTarget, PageCells, PageCp, PageListTable, PageRow};
+pub use scale_fit::fitting_scale;
 // WP-S4.02 part 3 (D9): the panel tables and the pure items of `ew_derive::layout` the layout tool runs, so that
 // `ew-viewmodel` keeps its one dependency.
 pub use ew_derive::layout::{
     Fit, Profile, RailExtent, RailItem, Resolution, SnapError, SnapMode, brackets, end_gap, fits_rail,
     min_gap, resolve, start_gap,
 };
-pub use panel::{
-    PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, page_of_surface, surface_of_page,
-};
+pub use panel::{PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page};
 // FT-753
-pub use plc_bind::{CardPin, OffCardBind};
+pub use plc_bind::OffCardBind;
 pub use preview::PreviewEntity;
-pub use project_diff::{DiffEntry, FieldDelta, textconv};
+pub use project_diff::textconv;
 pub use route_measures::{
-    LayoutBends, LayoutCrossing, LayoutError, LayoutJunction, LayoutPair, LayoutPoint, LayoutThrough,
-    LayoutTouch, PageLayout,
+    LayoutBends, LayoutCrossing, LayoutError, LayoutJunction, LayoutPair, LayoutThrough, LayoutTouch,
+    PageLayout,
 };
 // WP-S2.06 parts 1 and 2
 pub use navigators::{
     Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NaturalKey, NavColumn,
-    NavKind, NavNode, NavOpen, NavRole, NavTable, Uuid, names_subject, nav_natural_key, tokens as nav_tokens,
+    NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key, tokens as nav_tokens,
 };
 // WP-S1.18 part 2
 pub use properties::{
@@ -177,25 +167,18 @@ pub use ew_import_catalog::sheet;
 /// The table writers of `ew-reports` the row exports name (WP-S3.08 part 1): the CSV presets and their options, the
 /// table model, the workbook's metadata and writer.
 pub use ew_reports::csv::{CsvOptions, LineEnd, Preset, restyle, table_csv};
-/// The table writers behind the `Exporter` trait (WP-S3.09 D14): `ew export` and the window's table export write
-/// through them.
-pub use ew_reports::exporter::{CsvExporter, XlsxExporter, export_tables};
 pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
-pub use ew_reports::xlsx::{WorkbookMeta, XlsxError, base_text, xlsx};
-pub use raster::{
-    DEFAULT_DPI, DPI_RANGE, MAX_PAGE_PIXELS, MAX_PIXELS_IN_FLIGHT, PngExport, PngFile, check_page_pixels,
-    export_png_with, page_png, png_file_name, raster_workers,
-};
+pub use ew_reports::xlsx::{WorkbookMeta, base_text, xlsx};
+pub use raster::{DEFAULT_DPI, DPI_RANGE, page_png};
 pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};
 pub use rows::{
-    RowExport, RowsCsv, RowsError, RowsFile, RowsFormat, RowsOutput, block_kind, find_block, report_folios,
+    RowExport, RowsCsv, RowsError, RowsFormat, RowsOutput, block_kind, find_block, report_folios,
     report_kinds, row_export, row_output, sql_table, with_base_digest, workbook_dump,
 };
 // WP-S3.08 part 2: the table round trip.
 pub use table_io::{
-    CellOutcome, IO_LIST_ROUTES, ImportCell, ImportCounts, ImportFinding, ImportTableOptions,
-    MAX_IMPORT_CELLS, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport, TableImportError,
-    guard_table_read, reason_words,
+    CellOutcome, ImportCell, ImportTableOptions, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport,
+    TableImportError, guard_table_read,
 };
 // WP-S2.07 part 1
 pub use strip_edit::{
@@ -203,10 +186,14 @@ pub use strip_edit::{
     accessory_part_kinds,
 };
 pub use view::{
-    CpTargetsByPage, FrameForms, GENERIC_SYMBOL_SEALS, GENERIC_SYMBOLS_PROFILE, GenericSymbols, NOGRID_FRAME,
-    PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageGridOf,
-    PageJunctionsOf, PageRepsOf, PageSlotsOf, PageTableOf, generic_symbols, page_boxes, page_destination,
-    page_items, page_strip_tags, page_uuid, page_valve_glyphs,
+    FrameForms, NOGRID_FRAME, PageConnectionsOf, PageEmbeddedOf, PageFrameOf, PageSlotsOf, PageTableOf,
+    page_destination, page_items, page_uuid, page_valve_glyphs,
+};
+
+pub(crate) use panel::{PageSurfaceView, ShapedText};
+pub(crate) use properties::folio_of;
+pub(crate) use view::{
+    CpTargetsByPage, PageBindingsOf, PageCpTargetsOf, PageGridOf, PageJunctionsOf, PageRepsOf,
 };
 
 use crate::Session;
@@ -413,9 +400,8 @@ pub struct ExportOptions {
 }
 
 /// The asset bytes an export draws its image items with, by SHA-256 (FT-384): a snapshot of the project's asset
-/// store, taken by the [`Session`] export methods. The free functions [`export_pages`], [`export_pdf`] and
-/// [`export_svg`] take a [`Q`] only, which holds no asset bytes: they draw no image ([`ExportAssets::default`]);
-/// [`export_pages_with`] takes the bytes.
+/// store, taken by the [`Session`] export methods. A [`Q`] holds no asset bytes: the free functions
+/// [`export_pages_with`], [`export_pdf_with`] and [`export_svg_with`] draw no image with [`ExportAssets::default`].
 #[derive(Clone, Default)]
 pub struct ExportAssets {
     bytes: BTreeMap<[u8; 32], Arc<[u8]>>,
@@ -499,7 +485,7 @@ pub struct SvgExport {
     /// One file per page, in page order.
     pub files: Vec<SvgFile>,
     /// The writer's report.
-    pub report: SvgReport,
+    pub report: ew_export::SvgReport,
     /// The findings of the page scenes.
     pub findings: Vec<PageFindingAt>,
 }
@@ -678,16 +664,8 @@ struct Phase1 {
 }
 
 /// Phases 1 and 2 of the export job (see the module documentation): the sheet display lists of the selected
-/// pages, the PDF options and the page findings.
-///
-/// # Errors
-///
-/// [`OutputError::Selection`] when the selection names a folio the page order does not have.
-pub fn export_pages(q: &Q, options: &ExportOptions) -> Result<ExportPages, OutputError> {
-    export_pages_with(q, options, &ExportAssets::default())
-}
-
-/// [`export_pages`] with the asset bytes its image items are drawn with ([`ExportAssets`]).
+/// pages, the PDF options and the page findings, with the asset bytes its image items are drawn with
+/// ([`ExportAssets`]).
 ///
 /// # Errors
 ///
@@ -697,41 +675,11 @@ pub fn export_pages_with(
     options: &ExportOptions,
     assets: &ExportAssets,
 ) -> Result<ExportPages, OutputError> {
-    match export_pages_hooked(q, options, assets, &NoHooks) {
+    match export_pages_hooked(q, options, assets, None) {
         Ok(pages) => Ok(pages),
         Err(Halt::Output(e)) => Err(e),
-        // `NoHooks` never cancels.
+        // Without the job's controller nothing cancels.
         Err(Halt::Cancelled) => Err(OutputError::Selection("the export was cancelled".to_owned())),
-    }
-}
-
-/// The progress reports and checkpoints of an export run (WP-S2.09 part 1, §6.2): none for the synchronous export
-/// ([`NoHooks`]), the job's controller for [`ExportJob`].
-pub(crate) trait Hooks: Sync {
-    /// The progress: `done` of `total` (`total` 0: indeterminate) in `phase`.
-    fn report(&self, done: u32, total: u32, phase: &'static str);
-    /// A checkpoint: `Err` when the run is cancelled.
-    fn checkpoint(&self, at: &'static str) -> Result<(), ew_jobs::Cancelled>;
-}
-
-/// The hooks of the synchronous export: no report, never cancelled.
-pub(crate) struct NoHooks;
-
-impl Hooks for NoHooks {
-    fn report(&self, _: u32, _: u32, _: &'static str) {}
-
-    fn checkpoint(&self, _: &'static str) -> Result<(), ew_jobs::Cancelled> {
-        Ok(())
-    }
-}
-
-impl Hooks for ew_jobs::JobCtl {
-    fn report(&self, done: u32, total: u32, phase: &'static str) {
-        ew_jobs::JobCtl::report(self, ew_jobs::Progress { done, total, phase });
-    }
-
-    fn checkpoint(&self, at: &'static str) -> Result<(), ew_jobs::Cancelled> {
-        ew_jobs::JobCtl::checkpoint(self, at)
     }
 }
 
@@ -755,15 +703,15 @@ impl From<ew_jobs::Cancelled> for Halt {
     }
 }
 
-/// Phases 1 and 2 of the export with `hooks` (§6.2): before page i of n of the selection `report(i, n, "building")`,
-/// after its scene `checkpoint("page")`; in the page phase each page first checks the cancel flag
-/// (`checkpoint("draw")`) and is skipped when cancelled; after the phase `checkpoint("drawn")` and
-/// `report(n, n, "drawing")`. With [`NoHooks`] this is [`export_pages_with`] exactly.
-pub(crate) fn export_pages_hooked<H: Hooks>(
+/// Phases 1 and 2 of the export with the job's controller `ctl` (§6.2): before page i of n of the selection
+/// `report(i, n, "building")`, after its scene `checkpoint("page")`; in the page phase each page first checks the
+/// cancel flag (`checkpoint("draw")`) and is skipped when cancelled; after the phase `checkpoint("drawn")` and
+/// `report(n, n, "drawing")`. Without `ctl` (`None`) this is [`export_pages_with`] exactly.
+pub(crate) fn export_pages_hooked(
     q: &Q,
     options: &ExportOptions,
     assets: &ExportAssets,
-    hooks: &H,
+    ctl: Option<&ew_jobs::JobCtl>,
 ) -> Result<ExportPages, Halt> {
     let order = q.get::<PageOrder>(());
     let picked = options.pages.resolve(&order, q.sections())?;
@@ -774,7 +722,13 @@ pub(crate) fn export_pages_hooked<H: Hooks>(
     // Phase 1, on this thread through `q`: the memoised layers of every selected page.
     let mut phase1: Vec<Phase1> = Vec::with_capacity(picked.len());
     for (done, &i) in (0u32..).zip(picked.iter()) {
-        hooks.report(done, total, "building");
+        if let Some(ctl) = ctl {
+            ctl.report(ew_jobs::Progress {
+                done,
+                total,
+                phase: "building",
+            });
+        }
         let entry = order.entries[i].clone();
         phase1.push(Phase1 {
             title: outline_title(q, &entry),
@@ -782,7 +736,9 @@ pub(crate) fn export_pages_hooked<H: Hooks>(
             scene: page_scene(q, &entry),
             entry,
         });
-        hooks.checkpoint("page")?;
+        if let Some(ctl) = ctl {
+            ctl.checkpoint("page")?;
+        }
     }
     let kinds = PageKinds {
         drawing: (phase1.iter())
@@ -804,7 +760,9 @@ pub(crate) fn export_pages_hooked<H: Hooks>(
     // Phase 2, the page phase: every sheet list on its own, collected by page index; a page whose turn comes after a
     // cancel is skipped.
     let resolved = par_map(&phase1, options.parallelism, |_, p| {
-        hooks.checkpoint("draw").ok()?;
+        if let Some(ctl) = ctl {
+            ctl.checkpoint("draw").ok()?;
+        }
         let (content, report) =
             ew_scene::images::resolve_images(&p.scene.sheet_list(), &|sha| assets.get(sha));
         let page = PdfPage {
@@ -819,8 +777,14 @@ pub(crate) fn export_pages_hooked<H: Hooks>(
         };
         Some((page, report))
     });
-    hooks.checkpoint("drawn")?;
-    hooks.report(total, total, "drawing");
+    if let Some(ctl) = ctl {
+        ctl.checkpoint("drawn")?;
+        ctl.report(ew_jobs::Progress {
+            done: total,
+            total,
+            phase: "drawing",
+        });
+    }
     // A skipped page means a cancel, which the checkpoint above has seen already; this keeps the types honest.
     let resolved = resolved
         .into_iter()
@@ -890,16 +854,8 @@ fn undecodable_rasters(
     }
 }
 
-/// The PDF of an export over `q` (phase 3: [`ew_export::pdf`] with the bundled fonts).
-///
-/// # Errors
-///
-/// [`OutputError`] for a selection the page order does not have or pages the writer refuses.
-pub fn export_pdf(q: &Q, options: &ExportOptions) -> Result<PdfExport, OutputError> {
-    export_pdf_with(q, options, &ExportAssets::default())
-}
-
-/// [`export_pdf`] with the asset bytes of the image items.
+/// The PDF of an export over `q` (phase 3: [`ew_export::pdf`] with the bundled fonts), its image items drawn with the
+/// asset bytes `assets`.
 ///
 /// # Errors
 ///
@@ -920,16 +876,8 @@ pub fn export_pdf_with(
     })
 }
 
-/// The SVG set of an export over `q` (phase 3: [`ew_export::svg`], its page phase on the same parallelism).
-///
-/// # Errors
-///
-/// [`OutputError`] for a selection the page order does not have or pages the writer refuses.
-pub fn export_svg(q: &Q, options: &ExportOptions) -> Result<SvgExport, OutputError> {
-    export_svg_with(q, options, &ExportAssets::default())
-}
-
-/// [`export_svg`] with the asset bytes of the image items.
+/// The SVG set of an export over `q` (phase 3: [`ew_export::svg`], its page phase on the same parallelism), its image
+/// items drawn with the asset bytes `assets`.
 ///
 /// # Errors
 ///
@@ -996,7 +944,7 @@ impl Session {
     }
 
     /// The sheet display lists of an export of the current snapshot through the session's memo store
-    /// ([`export_pages`]).
+    /// ([`export_pages_with`]).
     ///
     /// # Errors
     ///

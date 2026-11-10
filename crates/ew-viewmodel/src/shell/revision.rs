@@ -296,15 +296,6 @@ fn release_words(e: &ReleaseError, paths: &[PathBuf]) -> String {
         ReleaseError::GitConsent { tag, .. } => strings::format(key!("release-error-git-consent"), &[tag]),
         ReleaseError::TagExists { tag } => strings::format(key!("release-error-tag-exists"), &[tag]),
         ReleaseError::Git(_) => text(key!("release-error-git")),
-        ReleaseError::Freeze(_) => text(key!("release-error-freeze")),
-        ReleaseError::FreezeChangesPages { pages } => strings::format(
-            counted(
-                pages.len(),
-                key!("release-error-freeze-pages-one"),
-                key!("release-error-freeze-pages"),
-            ),
-            &[&pages.len().to_string()],
-        ),
         ReleaseError::Save(_) => text(key!("release-error-save")),
         ReleaseError::Generation(_) => text(key!("release-error-generation")),
         ReleaseError::Output(_) => text(key!("release-error-output")),
@@ -397,11 +388,6 @@ impl ShellModel {
     /// Whether the open dialog is one of the revision forms.
     fn in_revision_form(&self) -> bool {
         matches!(&self.dialog, Some(Dialog::Form(f)) if f.action.starts_with("revision."))
-    }
-
-    /// Whether the open dialog is the form of `action`.
-    fn in_form_of(&self, action: &str) -> bool {
-        matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == action)
     }
 
     /// The value of field `name` of the open form, trimmed.
@@ -1608,12 +1594,6 @@ mod tests {
                     tag: "ew/rev/V1.0".to_owned(),
                 },
                 "the git tag ew/rev/V1.0 exists already, and a release never moves a tag".to_owned(),
-            ),
-            (
-                ReleaseError::FreezeChangesPages {
-                    pages: vec![WAIVER.parse().expect("an ID")],
-                },
-                "freezing the numbering would change 1 printed page; it was undone and nothing was released".to_owned(),
             ),
             (
                 ReleaseError::Io {

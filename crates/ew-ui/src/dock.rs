@@ -389,13 +389,6 @@ impl Dock {
         floor: f32,
         reports: &BTreeMap<String, (f32, f32)>,
     ) -> (Vec<Clamp>, bool) {
-        fn holds(tiles: &Tiles<PaneKind>, id: TileId, pred: &dyn Fn(&PaneKind) -> bool) -> bool {
-            match tiles.get(id) {
-                Some(Tile::Pane(p)) => pred(p),
-                Some(Tile::Container(c)) => c.children().any(|c| holds(tiles, *c, pred)),
-                None => false,
-            }
-        }
         let is_bottom = |p: &PaneKind| PaneKind::BOTTOM.contains(p);
         let is_page = |p: &PaneKind| *p == PaneKind::PageView;
         let splits: Vec<TileId> = self

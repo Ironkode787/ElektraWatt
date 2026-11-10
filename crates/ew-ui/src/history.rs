@@ -10,7 +10,7 @@
 //! `arrow-right` in `color.accent`, an undone entry `arrow-back-up` in `color.history.undone`, a done entry none), the
 //! entry number right-aligned in a 28-px column (`type.small`, `color.text.tertiary`), the label in `type.body`
 //! (`type.body.strong` for the current entry, `color.history.undone` for an undone one), the origin and the pages in
-//! `type.small` `color.text.tertiary`, a "merged n" badge and the "Not undoable" status badge (`lock`). The row
+//! `type.small` `color.text.tertiary`, the "Not undoable" status badge (`lock`). The row
 //! cursor takes the Selected state (`color.accent.subtle`). The row actions are 24-px icon buttons in
 //! `color.text.secondary`: Undo to here (`history`; Redo to here, `arrow-forward-up`, on an undone entry) and Show
 //! changes (`list-details`). A marker line is a separator row: its text in `type.small` `color.text.tertiary`, then a
@@ -88,7 +88,7 @@ fn label_colour(t: &Tokens, state: EntryState, selected: bool) -> Rgba {
     }
 }
 
-/// The as-built text of an entry: number, label, origin, pages, "merged n" and "not undoable" (its accessible name).
+/// The as-built text of an entry: number, label, origin, pages and "not undoable" (its accessible name).
 fn entry_text(row: &HistoryRow, origin: &str) -> String {
     // FT-1362: the label and the origin in words.
     let mut text = format!(
@@ -99,12 +99,6 @@ fn entry_text(row: &HistoryRow, origin: &str) -> String {
     );
     if !row.pages.is_empty() {
         text.push_str(&format!("  {}", row.pages.join(", ")));
-    }
-    if row.merged > 1 {
-        text.push_str(&format!(
-            "  {}",
-            strings::format(key!("history-merged"), &[&row.merged.to_string()])
-        ));
     }
     if !row.step {
         text.push_str(&format!("  {}", strings::text(key!("history-not-undoable"))));
@@ -406,12 +400,6 @@ fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
                 .selectable(false)
                 .truncate(),
             );
-            if e.row.merged > 1 {
-                components::caption_badge(
-                    ui,
-                    &strings::format(key!("history-merged"), &[&e.row.merged.to_string()]),
-                );
-            }
             if !e.row.step {
                 components::status_badge(ui, Badge::NotUndoable);
             }

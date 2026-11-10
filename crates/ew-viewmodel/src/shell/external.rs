@@ -286,7 +286,7 @@ impl ShellModel {
         if matches!(self.dialog, Some(Dialog::ExternalChange { .. })) {
             self.dialog = None;
         }
-        self.refresh();
+        self.refresh_rows();
         let Some(p) = self.project.as_ref() else {
             return;
         };
@@ -478,7 +478,7 @@ impl ShellModel {
             }
         }
         self.tools.selection.generation += 1;
-        self.refresh();
+        self.refresh_rows();
     }
 
     // -------------------------------------------------------------------------------------------------------------

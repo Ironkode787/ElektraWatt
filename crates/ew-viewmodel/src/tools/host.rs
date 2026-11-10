@@ -117,8 +117,6 @@ pub(crate) struct ToolHost {
     pub chooser: Option<Chooser>,
     /// The representation a picker in exchange mode changes the symbol of.
     pub exchange_rep: Option<EntityRef>,
-    /// The letter `place.pick` or the window gave for the next placement.
-    pub pick_letter: Option<String>,
     /// The place catalogue of (session, revision, folio), fetched once while the picker needs it.
     pub catalogue: Option<((u64, u64, String), Arc<PlaceCatalogue>)>,
     /// The symbol shapes of (session, revision), by copy ID text, fetched once per copy (§6.2).
@@ -249,7 +247,6 @@ impl ToolHost {
             picker: None,
             chooser: None,
             exchange_rep: None,
-            pick_letter: None,
             catalogue: None,
             shapes: None,
             last_primary: None,

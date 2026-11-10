@@ -74,8 +74,9 @@ The source language is English (`language = "en"` in `book.toml`). The Dutch gui
 built from the same pages through mdbook-i18n-helpers 0.4.0 (pinned in `packaging/components.toml`):
 
 - `po/messages.pot` holds the messages of the hand-written pages and the table of contents, made from a copy of the
-  book without the generated pages, so no generated text is translated. `bash ci/build-book.sh --pot` refreshes it;
-  the `docs-book` job warns when the committed template's messages differ from the pages.
+  book without the generated pages, so no generated text is translated. It is the translator's input, not a check:
+  `bash ci/build-book.sh --pot` refreshes it before the translation is worked on, and the book build warns when its
+  messages differ from the pages.
 - `po/nl.po` translates the introduction, the tutorials page and the tutorials; every other message, and every
   generated page, shows in English. Edit it in the repository (no Weblate at 0.1.0, ID-1331): add a new message of the
   template to it, translate it, and keep the window's Dutch words (the terminology table at the head of

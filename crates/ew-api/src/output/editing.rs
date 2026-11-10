@@ -38,6 +38,8 @@ use ew_scene::forms::FrameGeometry;
 use ew_scene::page::DEFAULT_SHEET;
 use ew_scene::route::{RouteEnd, connection_polyline};
 
+use super::join::fndef_copy;
+use super::navigation::cp_candidates;
 use super::view::{PageFrameOf, PageRepsOf};
 use crate::Session;
 use crate::geometry::{Dir, orient_dir, orient_index, orient_point};
@@ -239,11 +241,6 @@ pub(super) fn starter_fndef(id: Id<FnDef>) -> Option<&'static LibCopy<FnDef>> {
         LibDocument::Fndef(c) if c.id == id => Some(c),
         _ => None,
     })
-}
-
-/// The FnDef copy ID a `LibRef` resolves to: `v5(NS_LIBCOPY, library ‖ item)`.
-fn fndef_copy(r: &LibRef) -> Id<FnDef> {
-    v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid())
 }
 
 /// The key a `LibRef` carries (`"key"` member), else empty.
@@ -1692,35 +1689,6 @@ fn segment_point(grid: ew_derive::ew_units::Grid, rep: &Representation, i: i64, 
         }
     };
     Some(Pt2::new(axis(rep.pos.x, v.x.0)?, axis(rep.pos.y, v.y.0)?))
-}
-
-/// The functions whose CPs a page may draw (the page's representations and pin maps, and the terminals of a strip
-/// whose segment it draws), each CP of their `function_cps`.
-fn cp_candidates(q: &Q, page: Id<Page>) -> BTreeSet<(Id<Function>, u16)> {
-    let mut functions: BTreeSet<Id<Function>> = BTreeSet::new();
-    for rid in q.idx().reps_by_page(page) {
-        let Some(rep) = q.reps().get(rid) else { continue };
-        functions.extend(rep.functions.iter().copied());
-        functions.extend(rep.pin_map.as_slice().iter().map(|p| p.function));
-        if rep.rep_type == RepType::StripSegment
-            && let Some(strip) = rep
-                .functions
-                .first()
-                .and_then(|f| q.functions().get(*f))
-                .and_then(|f| f.device)
-        {
-            for terminal in q.idx().terminals_of_strip(strip) {
-                functions.extend(q.idx().functions_of_device(terminal));
-            }
-        }
-    }
-    let mut out = BTreeSet::new();
-    for f in functions {
-        for cp in q.get::<FunctionCps>(f).iter() {
-            out.insert((f, cp.idx));
-        }
-    }
-    out
 }
 
 /// The page rectangle in page coordinates (the scene's `page_rect`): the frame's outer rectangle, else the form's

@@ -63,7 +63,7 @@ pub fn file_name(name: &str) -> String {
     format!("{}.schema.json", name.replace('/', "-"))
 }
 
-fn schema_of<T: JsonSchema>() -> Value {
+pub(crate) fn schema_of<T: JsonSchema>() -> Value {
     SchemaSettings::draft2020_12()
         .into_generator()
         .into_root_schema_for::<T>()

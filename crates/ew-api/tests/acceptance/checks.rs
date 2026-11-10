@@ -3726,7 +3726,7 @@ fn ac14_shuffle(c: &Ctx) -> Outcome {
 
 /// AC-14, FR-OUT-013, FR-OUT-019: the SVG export (one file per page from the page scene the PDF draws, every
 /// glyph run as `<text>`, every link resolving) and the page phase of the shipped export job
-/// (`ew_api::output::export_pages`, `par_map`) on 2 and 8 threads give the bytes of the serial export.
+/// (`ew_api::output::export_pages_with`, `par_map`) on 2 and 8 threads give the bytes of the serial export.
 fn ac14_parallel(c: &Ctx) -> Outcome {
     let serial = ew_export::svg(&c.pdf_pages, &svg_options(), None, Parallelism::Serial);
     let Ok(out) = &serial else {
@@ -3766,7 +3766,7 @@ fn ac14_parallel(c: &Ctx) -> Outcome {
     let options = pdf_options(&q);
     for threads in [2, 8] {
         let p = Parallelism::threads(threads);
-        // The shipped export job (`ew_api::output::export_pages`): its page phase on `par_map`.
+        // The shipped export job (`ew_api::output::export_pages_with`): its page phase on `par_map`.
         let pages = pdf_pages(&q, p);
         if pages != c.pdf_pages {
             wrong.push(format!("{threads} threads: the page display lists differ"));
