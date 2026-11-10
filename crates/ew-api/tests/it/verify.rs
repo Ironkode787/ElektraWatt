@@ -7,7 +7,7 @@
 
 use crate::golden_common;
 
-use ew_api::verify::{SWEPT, VerifyError, verify_derived};
+use ew_api::verify::{VerifyError, verify_derived};
 use ew_api::{MemoMode, Session, SessionOptions};
 
 fn empty(memo: MemoMode) -> Session {
@@ -27,37 +27,21 @@ fn empty(memo: MemoMode) -> Session {
     .expect("an empty model")
 }
 
-/// The guard: the swept families are the `Memo` families of the three `FAMILIES` lists, the
-/// derived data of `ew-derive`, the report engine of `ew-reports` and the page output of `ew-api` (the views and
-/// the per-layer page display lists, FT-59). A promotion or demotion of a family fails here.
 #[test]
-fn the_swept_families_are_the_memoised_families_of_the_three_lists() {
-    use ew_derive::Policy;
-    let mut memoised: Vec<&str> = ew_derive::FAMILIES
-        .iter()
-        .chain(ew_reports::FAMILIES)
-        .chain(ew_api::output::FAMILIES)
-        .filter(|(_, p)| matches!(p, Policy::Memo))
-        .map(|(n, _)| *n)
-        .collect();
-    memoised.sort_unstable();
-    assert_eq!(memoised, SWEPT);
+fn an_empty_model_has_no_difference() {
+    let report = verify_derived(&empty(MemoMode::On)).expect("a memoising session");
+    assert!(report.is_clean(), "{report:?}");
+    // The derived data, the report engine and the page output are all read.
     for family in [
+        "potential_partition",
         "report_rows",
         "report_block_pages",
         "tag_class_members",
         "page_display_list_frame",
         "page_display_list_wires",
     ] {
-        assert!(SWEPT.contains(&family), "{family} is not swept");
+        assert!(report.keys.contains_key(family), "{family} is not swept");
     }
-}
-
-#[test]
-fn an_empty_model_has_no_difference() {
-    let report = verify_derived(&empty(MemoMode::On)).expect("a memoising session");
-    assert!(report.is_clean(), "{report:?}");
-    assert_eq!(report.keys.keys().copied().collect::<Vec<_>>(), SWEPT);
 }
 
 /// With the memo store off a memoised and a cold read are one computation: nothing to verify, an error rather
@@ -77,7 +61,6 @@ fn the_golden_project_has_no_difference_before_and_after_an_edit() {
     let mut s = golden_common::session(&batch);
     let before = verify_derived(&s).expect("a memoising session");
     assert!(before.is_clean(), "{:?}", before.differences);
-    assert_eq!(before.keys.keys().copied().collect::<Vec<_>>(), SWEPT);
     assert!(before.keys["report_rows"] >= 11, "every report block is read");
     assert!(before.total_keys() > 1000, "{}", before.total_keys());
     // One command through the commit pipeline; the memo store follows it by push invalidation.

@@ -58,7 +58,8 @@ pub trait Query: 'static {
     type Key: Ord + Clone + fmt::Debug + Send + Sync + 'static;
     /// The value, shared behind an `Arc`.
     type Value: fmt::Debug + Eq + Send + Sync + 'static;
-    /// The family name, unique in the crate (see [`FAMILIES`](crate::FAMILIES)).
+    /// The family name, unique among all query types: the request cache of a `Q` keys families by name and
+    /// panics when it meets two types with one name.
     const FAMILY: &'static str;
     /// The initial policy.
     const POLICY: Policy;

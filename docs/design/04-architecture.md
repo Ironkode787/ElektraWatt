@@ -740,7 +740,7 @@ pub fn device_tag(q: &Q, dev: Id<Device>) -> Arc<Tag> { /* reads TagSpec, struct
   with the same family name, or a re-entrant key, panics) and a `Tracker` that sees every read as a `DepKey`
   (project, row, table, index key, whole index, reserved records) with its observed stamp. Phase 1 uses the no-op
   `ColdTracker`; `RecordingTracker` serves tests and `--explain`. `POLICY` records the intended policy of §6.4
-  (`FAMILIES` lists them) but every family still runs cold; the spike switches `ew-memo` in behind the tracker
+  but every family still runs cold; the spike switches `ew-memo` in behind the tracker
   without changing a query body. No accessor of `Q` returns the model, a table, an index or an `Op` (a
   `compile_fail` doctest guards it). What a derivation cannot express as a value (an unknown pinned profile, a
   numbering scheme not applied, the built-in default frame used, a malformed shim) goes to a request-scoped note
@@ -854,8 +854,7 @@ unread memo of a live key is kept (ADR-0002 amendment 7); debug guards enforce `
 ### 6.4 Query catalogue
 
 *Status (ADR-0002 amendments 5 and 6).* In a `Session` every built family below whose policy is Memo is memoised through `ew-memo`, those of `ew-reports` included (a Policy cell that says Memo + LRU is read as Memo: the LRU is specified for 1.0; not built); `query_over` and the tests' `Q::new` stay
-cold. `FAMILIES` in `crates/ew-derive/src/lib.rs` lists every built `ew-derive` family with its policy, and this
-table follows it. Connectivity is incremental: `page_local_nets` per page, the index families
+cold. Each built family declares its policy in its `Query` impl (`POLICY`), and this table follows the code. Connectivity is incremental: `page_local_nets` per page, the index families
 and the per-key memos re-execute only for what an edit touched, and `potential_partition` is a producer of parts
 whose incremental execution recomputes the touched components only; it falls back to the cold algorithm, and
 declares the difference, when it cannot attribute a change or `Changes::via` exceeds 4,096 entries (a bulk device

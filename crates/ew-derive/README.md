@@ -7,7 +7,7 @@ All domain queries of ElektraWatt and the tracked-read context `Q` (ARCH §6, AD
 value is a pure function `fn(q: &Q, key) -> Arc<V>` declared through the `Query` trait; `Q` exposes only tracked
 accessors and never hands out the model. Phase 1 is cold: values are computed on demand and cached for the
 lifetime of one `Q`; every read goes through a `Tracker` (a no-op now) so that `ew-memo` can record dependencies
-later without changing query code. `FAMILIES` lists every query family with its initial policy (ARCH §6.4).
+later without changing query code. Each family declares its initial policy in its `Query` impl (ARCH §6.4).
 
 ## Derivation profiles
 

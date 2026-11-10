@@ -57,33 +57,9 @@ pub use rowset::{
     Row, RowId, RowIdParseError, RowKey, RowKind, RowSet, RowSetStatus,
 };
 
-use ew_derive::{Policy, Query};
-
-/// Every query family of this crate with its initial policy (ARCH §6.4), in name order.
-pub const FAMILIES: &[(&str, Policy)] = &[
-    (BlockPages::FAMILY, BlockPages::POLICY),
-    (BlockRows::FAMILY, BlockRows::POLICY),
-    (TagClassMembers::FAMILY, TagClassMembers::POLICY),
-];
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn family_names_are_sorted_and_unknown_to_ew_derive() {
-        let names: Vec<&str> = FAMILIES.iter().map(|(n, _)| *n).collect();
-        let mut sorted = names.clone();
-        sorted.sort_unstable();
-        sorted.dedup();
-        assert_eq!(names, sorted);
-        for n in names {
-            assert!(
-                ew_derive::FAMILIES.iter().all(|(d, _)| *d != n),
-                "family `{n}` is also an ew-derive family"
-            );
-        }
-    }
 
     #[test]
     fn every_registered_kind_has_columns_and_a_schema_name() {

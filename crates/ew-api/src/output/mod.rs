@@ -92,7 +92,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::{Arc, OnceLock};
 
-use ew_derive::{PageEntry, PageOrder, PageOrderV, PageTitle, Policy, Q, Query, TableView};
+use ew_derive::{PageEntry, PageOrder, PageOrderV, PageTitle, Q, TableView};
 use ew_dl::FontKey;
 use ew_export::ew_render_cpu::FontBytes;
 use ew_export::{PdfError, PdfOptions, PdfPage, SvgError, SvgFace, SvgOptions, par_map};
@@ -180,38 +180,9 @@ pub use view::{
 
 pub(crate) use panel::{PageSurfaceView, ShapedText};
 pub(crate) use properties::folio_of;
-pub(crate) use view::{
-    CpTargetsByPage, PageBindingsOf, PageCpTargetsOf, PageGridOf, PageJunctionsOf, PageRepsOf,
-};
+pub(crate) use view::{CpTargetsByPage, PageBindingsOf, PageCpTargetsOf, PageGridOf, PageRepsOf};
 
 use crate::Session;
-
-/// Every query family of the page output with its policy, in name order (the memoised ones are swept by
-/// `ew verify-derived`, [`crate::verify::SWEPT`]).
-pub const FAMILIES: &[(&str, Policy)] = &[
-    (CpTargetsByPage::FAMILY, CpTargetsByPage::POLICY),
-    (PageBindingsOf::FAMILY, PageBindingsOf::POLICY),
-    (PageConnectionsOf::FAMILY, PageConnectionsOf::POLICY),
-    (PageCpTargetsOf::FAMILY, PageCpTargetsOf::POLICY),
-    (PageDigest::FAMILY, PageDigest::POLICY),
-    (CarriersLayer::FAMILY, CarriersLayer::POLICY),
-    (FrameLayer::FAMILY, FrameLayer::POLICY),
-    (LabelsLayer::FAMILY, LabelsLayer::POLICY),
-    (PlacementsLayer::FAMILY, PlacementsLayer::POLICY),
-    (SurfaceLayer::FAMILY, SurfaceLayer::POLICY),
-    (SymbolsLayer::FAMILY, SymbolsLayer::POLICY),
-    (TablesLayer::FAMILY, TablesLayer::POLICY),
-    (WiresLayer::FAMILY, WiresLayer::POLICY),
-    (PageEmbeddedOf::FAMILY, PageEmbeddedOf::POLICY),
-    (PageFrameOf::FAMILY, PageFrameOf::POLICY),
-    (PageGridOf::FAMILY, PageGridOf::POLICY),
-    (PageJunctionsOf::FAMILY, PageJunctionsOf::POLICY),
-    (PageRepsOf::FAMILY, PageRepsOf::POLICY),
-    (PageSlotsOf::FAMILY, PageSlotsOf::POLICY),
-    (PageSurfaceView::FAMILY, PageSurfaceView::POLICY),
-    (PageTableOf::FAMILY, PageTableOf::POLICY),
-    (ShapedText::FAMILY, ShapedText::POLICY),
-];
 
 /// Why an export did not complete.
 #[derive(Clone, PartialEq, Eq, Debug)]

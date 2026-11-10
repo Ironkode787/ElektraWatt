@@ -4,16 +4,16 @@
 //! `ew verify-derived`: the memoised derived data against a cold recomputation (FR-EXT-005, NFR-REL-08,
 //! doc 18 §3.4).
 //!
-//! [`sweep`] reads every `Memo` family of `ew_derive::FAMILIES`, `ew_reports::FAMILIES` (the
-//! report rows, the generated pages and the tag classes) and [`crate::output::FAMILIES`] (the page views and the
-//! per-layer page display lists of the export job) at every key of the snapshot through a memoising [`Q`] and
-//! through a cold one, and lists the keys whose values differ.
+//! [`sweep`] reads the memoised families of `ew-derive`, of `ew-reports` (the report rows, the generated pages
+//! and the tag classes) and of the page output (the page views and the per-layer page display lists of the
+//! export job) at every key of the snapshot through a memoising [`Q`] and through a cold one, and lists the keys
+//! whose values differ. Its report names every family it read ([`Sweep::keys`]).
 //! [`verify_derived`] runs it over a session twice (the second pass reads mostly memo hits) and adds the
 //! mismatches that the session's own oracle found while the sweep ran ([`MemoMode::Oracle`](crate::MemoMode)).
 //! The acceptance runner calls it after each scripted edit of AC-16, the CLI after opening a project.
 //!
-//! The family list [`SWEPT`] is pinned against the three `FAMILIES` lists by `tests/it/verify.rs` (a promotion or
-//! demotion of a family breaks that test).
+//! `tests/memo_oracle.rs` (`every_family_the_store_memoises_is_swept`) checks after a workload over the golden
+//! project that every family holding memos in the session's store is among the families the sweep read.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -39,103 +39,6 @@ use crate::output::{
     PlacementsLayer, ShapedText, SurfaceLayer, SymbolsLayer, TablesLayer, WiresLayer,
 };
 use crate::{Mismatch, Session};
-
-/// The families the sweep reads: the `Memo` families of `ew_derive::FAMILIES`,
-/// `ew_reports::FAMILIES` and `ew_api::output::FAMILIES`, sorted.
-pub const SWEPT: &[&str] = &[
-    "address_index",
-    "assembly_break_marks",
-    "bom_rows",
-    "bond_index",
-    "bond_paths",
-    "bond_vias",
-    "bus_segments",
-    "channel_addresses",
-    "channel_states",
-    "channel_targets",
-    "channel_texts",
-    "channels_by_cp",
-    "channels_by_module",
-    "cp_flow_distance",
-    "cp_targets_by_page",
-    "def_points",
-    "device_part_lines",
-    "device_tag",
-    "devices_by_structure",
-    "drawing_settings",
-    "drawn_page_order",
-    "end_class",
-    "flow_notes",
-    "fluid_nets",
-    "function_links",
-    "group_accessories",
-    "ip_functions",
-    "ip_info",
-    "ip_notes",
-    "ip_pairing",
-    "ip_structure",
-    "layout_label",
-    "module_channel_ids",
-    "module_order",
-    "module_start_of",
-    "module_starts",
-    "net_members",
-    "page_bindings",
-    "page_cp_targets",
-    "page_digest",
-    "page_display_list_carriers",
-    "page_display_list_frame",
-    "page_display_list_labels",
-    "page_display_list_placements",
-    "page_display_list_surface",
-    "page_display_list_symbols",
-    "page_display_list_tables",
-    "page_display_list_wires",
-    "page_embedded",
-    "page_frame",
-    "page_grid",
-    "page_ids",
-    "page_local_nets",
-    "page_order",
-    "page_reps",
-    "page_slots",
-    "page_surface_view",
-    "page_table",
-    "pageless_links",
-    "physical_wires_of",
-    "placement_geometry",
-    "plc_address_text",
-    "plc_rows",
-    "potential_attrs",
-    "potential_flow_bfs",
-    "potential_name",
-    "potential_partition",
-    "profile_row_for",
-    "rail_bonds",
-    "rail_occupancy",
-    "rail_terminal",
-    "rail_terminals",
-    "rep_structure_box",
-    "report_block_pages",
-    "report_rows",
-    "settings_member",
-    "shaped_text",
-    "solenoid_positions",
-    "stitch_graph",
-    "strip_bridges",
-    "tag_class_members",
-    "text_styles",
-    "title_block",
-    "toc_rows",
-    "unplaced",
-    "valve_slots",
-    "wire_default_props",
-    "wire_numbers",
-    "wire_profile_notes",
-    "wire_profiles",
-    "wire_props_of",
-    "xref_text",
-];
 
 /// Every settings member (the keys of `settings_member`).
 const ALL_MEMBERS: [Member; 9] = Member::ALL;

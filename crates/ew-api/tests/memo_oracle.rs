@@ -12,9 +12,9 @@
 //! project settings yet).
 //!
 //! Tests:
-//! - `memo_equals_cold_over_every_state` (`MemoMode::On`): at every state every `Memo` family of
-//!   `ew_derive::FAMILIES` (`potential_flow` is a cold lookup), `ew_reports::FAMILIES` and
-//!   `ew_api::output::FAMILIES` (the page views and the page display list of every layer) is read for every key of
+//! - `memo_equals_cold_over_every_state` (`MemoMode::On`): at every state every family the sweep of
+//!   `ew verify-derived` reads (`ew_api::verify::sweep`: the memoised derived data, the report engine, the page
+//!   views and the page display list of every layer) is read for every key of
 //!   the snapshot through a memoising `Q` and through `Session::query_over`; the values are equal, so are the
 //!   derivation notes, and a second memoising `Q` (mostly memo hits) is equal again, with hits in the
 //!   commit statistics.
@@ -24,8 +24,8 @@
 //!   the engine's own oracle path (test audit g7: one sampled run instead of five shards at one in eight). Its
 //!   `#[ignore]`d twin `oracle_finds_no_mismatch_over_every_state_on_every_read` re-runs every read in one run
 //!   (the deep nightly).
-//! - `the_family_list_is_the_memo_families` (the guard that a promotion or demotion of a family breaks the
-//!   test loudly).
+//! - `every_family_the_store_memoises_is_swept`: after the states and a sweep, every family holding memos in
+//!   the session's store is one the sweep read (a memoised family that `ew verify-derived` misses fails here).
 //! - `a_cold_q_evaluates_every_query_once` (review, finding 1): a cold `Q` evaluates each (family,
 //!   key) once, detached scopes included.
 //! - `creating_and_deleting_a_page_60_times_does_not_grow_the_store` (review, finding 3): the
@@ -49,10 +49,6 @@ use ew_model::{AnyRow, EndpointKey, Model, Op};
 use ew_schema::{Kind, Page, Record};
 use ew_testids::seeded_ids;
 use serde_json::{Value, json};
-
-// The families this test reads: the memoised families of the three `FAMILIES` lists (`ew_api::verify`): the
-// derived data, the report engine and the page output (the views and the per-layer page display lists).
-use ew_api::verify::SWEPT;
 
 /// The oracle samples one memoised read in this many (see `oracle_finds_no_mismatch_over_every_state`).
 const ORACLE_ONE_IN: u32 = 64;
@@ -92,8 +88,6 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
         "{state}: memoised values differ from cold: {:?}",
         result.differences
     );
-    let swept: Vec<&str> = result.keys.keys().copied().collect();
-    assert_eq!(swept, SWEPT, "the sweep reads exactly the listed families");
     result.keys
 }
 
@@ -606,28 +600,34 @@ fn memo_q_notes_equal(session: &Session, model: &Model, state: &str) -> BTreeMap
 // ---------------------------------------------------------------------------------------------------------
 // Tests
 
-/// The guard: the swept list is the memoised families of `ew_derive::FAMILIES` and `ew_reports::FAMILIES`.
-fn assert_family_list() {
-    use ew_derive::{FAMILIES, Policy};
-    let mut memoised: Vec<&str> = FAMILIES
-        .iter()
-        .chain(ew_reports::FAMILIES)
-        .chain(ew_api::output::FAMILIES)
-        .filter(|(_, p)| matches!(p, Policy::Memo))
-        .map(|(n, _)| *n)
-        .collect();
-    memoised.sort_unstable();
-    assert_eq!(memoised, SWEPT, "a family changed its policy: update the test");
-}
-
+/// The guard of `ew verify-derived`'s coverage: after the command states and one sweep, every family the
+/// session's memo store holds (the store and the sweep both name a family by its `FAMILY`) is a family the
+/// sweep read. A family that becomes `Memo` without a line in `ew_api::verify::sweep` fails here once the
+/// workload reaches it.
 #[test]
-fn the_family_list_is_the_memo_families() {
-    assert_family_list();
+fn every_family_the_store_memoises_is_swept() {
+    let batch = golden_common::batch();
+    let mut session = session(&batch, MemoMode::On);
+    run_states(&mut session, STATES, |_, _, _, _| {});
+    let swept = ew_api::verify::sweep(&session.query(), None).keys;
+    let memory = session.memo().expect("memoising session").memory();
+    assert!(
+        memory.iter().any(|m| m.family == "potential_partition"),
+        "the workload memoised nothing: {memory:?}"
+    );
+    let unswept: Vec<&str> = memory
+        .iter()
+        .map(|m| m.family)
+        .filter(|f| !swept.contains_key(f))
+        .collect();
+    assert!(
+        unswept.is_empty(),
+        "memoised but not swept by `ew verify-derived`: {unswept:?}"
+    );
 }
 
 #[test]
 fn memo_equals_cold_over_every_state() {
-    assert_family_list();
     let batch = golden_common::batch();
     let mut session = session(&batch, MemoMode::On);
     let mut counts_at_open = None;
@@ -680,7 +680,6 @@ fn oracle_finds_no_mismatch_over_every_state_on_every_read() {
 /// an oracle that counts the reads (`OneIn`) but checks none of them. A count of `u32::MAX` reads selects no
 /// read before the 4,294,967,295th, far beyond the reads of a run.
 fn oracle_finds_no_mismatch(oracle: Oracle, first: usize, last: usize) {
-    assert_family_list();
     let batch = golden_common::batch();
     let mut session = session(&batch, MemoMode::Oracle);
     let counting = Oracle::OneIn(NonZeroU32::MAX);
