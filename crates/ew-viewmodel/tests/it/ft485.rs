@@ -7,10 +7,9 @@
 
 use crate::common;
 
-use common::{Tmp, at, click, done, refused, state};
-use ew_viewmodel::ew_api::output::PageTables;
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
-use serde_json::{Value, json};
+use common::{Tmp, at, click, done, failed, new_project, refused, state, tables, toast};
+use ew_viewmodel::shell::{Mode, ShellModel};
+use serde_json::json;
 
 /// A headless shell with a writable copy of Golden A on `folio`, at actual size.
 fn golden(tmp: &Tmp, folio: &str) -> ShellModel {
@@ -19,36 +18,9 @@ fn golden(tmp: &Tmp, folio: &str) -> ShellModel {
     s
 }
 
-/// A headless shell with a new project (the builtin template) and a new folio 101 shown.
-fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    done(
-        &mut s,
-        "page.new",
-        json!({"folio": "101", "type": "multi_line", "title": "Power"}),
-    );
-    s
-}
-
-fn tables(s: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
-}
-
 fn page_text(s: &mut ShellModel, folio: &str) -> String {
     done(s, "page.describe", json!({ "folio": folio }));
     s.take_page_text().expect("page.describe leaves its text")
-}
-
-fn toast(s: &ShellModel) -> String {
-    state(s)["toast"]["text"].as_str().unwrap_or_default().to_owned()
 }
 
 /// `at X Y mm` of a line as a sheet point in nm.
@@ -57,13 +29,6 @@ fn at_of(line: &str) -> Option<(i64, i64)> {
     let i = words.iter().rposition(|w| *w == "at")?;
     let mm = |w: &str| w.parse::<f64>().ok().map(|v| (v * 1e6).round() as i64);
     Some((mm(words.get(i + 1)?)?, mm(words.get(i + 2)?)?))
-}
-
-fn failed(s: &mut ShellModel, action: &str, params: Value) -> String {
-    match s.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action} {params}: {other:?}"),
-    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------

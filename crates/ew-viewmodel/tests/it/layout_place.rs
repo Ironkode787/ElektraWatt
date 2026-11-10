@@ -84,7 +84,7 @@ fn rail_poses(shell: &ShellModel, rail: &str) -> Vec<(String, f64, u8)> {
         .collect()
 }
 
-fn rows(expected: &[(&str, f64)]) -> Vec<(String, f64, u8)> {
+fn rows_of(expected: &[(&str, f64)]) -> Vec<(String, f64, u8)> {
     expected.iter().map(|(t, s)| ((*t).to_owned(), *s, 0)).collect()
 }
 
@@ -105,15 +105,22 @@ fn committed(shell: &ShellModel, predicted: &[(Uuid, (i64, i64, u8))]) -> Vec<(U
         .collect()
 }
 
-/// A click on the footprint of the placement of `tag` (Select on a panel page).
-fn select_placement(shell: &mut ShellModel, tag: &str) {
+/// The sheet point of the centre of the footprint of the placement of `tag`.
+fn footprint_centre(shell: &ShellModel, tag: &str) -> (i64, i64) {
     let t = panel(shell);
     let fp = t.placements.iter().find(|p| p.tag == tag).unwrap().footprint;
-    let centre = (
-        (i128::from(fp.min().x.0) + i128::from(fp.max().x.0)) / 2,
-        (i128::from(fp.min().y.0) + i128::from(fp.max().y.0)) / 2,
-    );
-    let p = sheet_of(shell, centre);
+    sheet_of(
+        shell,
+        (
+            (i128::from(fp.min().x.0) + i128::from(fp.max().x.0)) / 2,
+            (i128::from(fp.min().y.0) + i128::from(fp.max().y.0)) / 2,
+        ),
+    )
+}
+
+/// A click on the footprint of the placement of `tag` (Select on a panel page).
+fn select_placement(shell: &mut ShellModel, tag: &str) {
+    let p = footprint_centre(shell, tag);
     common::click(shell, p, json!({}));
     assert_eq!(shell.selected_placements(), 1, "a click on {tag} selects it");
     let id = placement(shell, tag);
@@ -239,10 +246,6 @@ fn pw1_the_unplaced_devices_navigator_lists_the_five_devices() {
     assert_eq!(labels, ["+J-E-2416", "-201U9", "E55", "E56", "S56"]);
     assert_eq!(rail_poses(&shell, "Rail 1"), rows_of(&R1_SN3));
     shell.shutdown();
-}
-
-fn rows_of(expected: &[(&str, f64)]) -> Vec<(String, f64, u8)> {
-    rows(expected)
 }
 
 /// FT-882 ("`ui.describe` names a surface view \"surface view\""): folio 902's view is described as one,
@@ -804,19 +807,6 @@ fn pw6_nudge_turn_lock_and_delete_a_selected_placement() {
 
 // ---------------------------------------------------------------------------------------------------------------
 // Cycle-42 review part 3, finding 1
-
-/// The sheet point of the centre of the footprint of the placement of `tag`.
-fn footprint_centre(shell: &ShellModel, tag: &str) -> (i64, i64) {
-    let t = panel(shell);
-    let fp = t.placements.iter().find(|p| p.tag == tag).unwrap().footprint;
-    sheet_of(
-        shell,
-        (
-            (i128::from(fp.min().x.0) + i128::from(fp.max().x.0)) / 2,
-            (i128::from(fp.min().y.0) + i128::from(fp.max().y.0)) / 2,
-        ),
-    )
-}
 
 /// A refused turn names the keymap's keys on every path: with `tool.rotate_cw` rebound to Q and `tool.mirror_x` to K,
 /// the rotate key on a rail reads the same whole text from `layout.rotate` on the selected placement (the shell), from

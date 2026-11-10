@@ -7,11 +7,10 @@
 use crate::common;
 
 use std::path::Path;
-use std::sync::Arc;
 
-use common::{Tmp, at, done};
+use common::{Tmp, at, done, tables};
 use ew_viewmodel::ew_api::Session;
-use ew_viewmodel::ew_api::output::{NavKind, PageTables};
+use ew_viewmodel::ew_api::output::NavKind;
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::notifications::{NoteAction, NoteTone};
 use ew_viewmodel::settings::Settings;
@@ -25,21 +24,26 @@ const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
 /// W27, the bonded wire between PE and 0 V (GNYE).
 const W27: &str = "wire:\"PE-0VDC\" -> \"-X1032:2/a\"";
 
-/// A shell with a writable copy of Golden A on `folio`, its settings file written first with `settings` (TOML).
-fn shell_with(tmp: &Tmp, settings: &str, folio: &str) -> ShellModel {
+/// The settings of a user who comes from QET, and of one who comes from EPLAN (TOML).
+const FROM_QET: &str = "version = 1\nfirst_run_done = true\ncomes_from = \"qet\"\n";
+const FROM_EPLAN: &str = "version = 1\nfirst_run_done = true\ncomes_from = \"eplan\"\n";
+
+/// Writes the settings file of `tmp`'s shells (TOML).
+fn write_settings(tmp: &Tmp, settings: &str) {
     let config = tmp.0.join("config");
     std::fs::create_dir_all(&config).unwrap();
     std::fs::write(config.join("settings.toml"), settings).unwrap();
+}
+
+/// A shell with a writable copy of Golden A on `folio`, its settings file written first with `settings` (TOML).
+fn shell_with(tmp: &Tmp, settings: &str, folio: &str) -> ShellModel {
+    write_settings(tmp, settings);
     tmp.shell_in(Mode::Headless, true, folio)
 }
 
 /// The settings file as the shell left it.
 fn settings_of(tmp: &Tmp) -> Settings {
     Settings::load(&tmp.0.join("config")).settings
-}
-
-fn tables(s: &ShellModel) -> Arc<PageTables> {
-    Arc::clone(&s.canvas().unwrap().page().tables)
 }
 
 /// A click at page point `p` through the grid cursor.
@@ -146,11 +150,7 @@ fn gt1_folio_report_finds_the_interruption_point_whose_insert_arms_the_ip_tool_a
 #[test]
 fn gt2_with_origin_qet_a_line_onto_a_connection_point_shows_tip_1_once_and_convert_undoes_it_and_arms_wire() {
     let tmp = Tmp::new("gt2-tip1");
-    let mut s = shell_with(
-        &tmp,
-        "version = 1\nfirst_run_done = true\ncomes_from = \"qet\"\n",
-        "102",
-    );
+    let mut s = shell_with(&tmp, FROM_QET, "102");
     assert!(!s.can_undo());
     let items = tables(&s).items.len();
     line_onto_a_cp(&mut s);
@@ -216,11 +216,7 @@ fn tips_item(s: &ShellModel) -> (String, bool) {
 #[test]
 fn view_show_tips_switches_the_tips_and_saves_the_setting() {
     let tmp = Tmp::new("ft1280-tips");
-    let mut s = shell_with(
-        &tmp,
-        "version = 1\nfirst_run_done = true\ncomes_from = \"qet\"\n",
-        "102",
-    );
+    let mut s = shell_with(&tmp, FROM_QET, "102");
     assert_eq!(tips_item(&s), ("Show tips".to_owned(), true));
     done(&mut s, "view.tips", json!({"on": false}));
     assert_eq!(tips_item(&s), ("Show tips".to_owned(), false));
@@ -351,13 +347,7 @@ fn gt3_tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_o
     }
     // On, for a user from EPLAN; in the window, where Renumber devices… opens its dialog.
     let tmp = Tmp::new("gt3-on");
-    let config = tmp.0.join("config");
-    std::fs::create_dir_all(&config).unwrap();
-    std::fs::write(
-        config.join("settings.toml"),
-        "version = 1\nfirst_run_done = true\ncomes_from = \"eplan\"\n",
-    )
-    .unwrap();
+    write_settings(&tmp, FROM_EPLAN);
     let mut s = tmp.shell_in(Mode::Gui, true, "102");
     refuse_a_derived_tag(&mut s);
     refuse_a_derived_tag(&mut s);
@@ -437,13 +427,7 @@ fn gt3_tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_o
 #[test]
 fn gt3_a_read_only_refusal_leaves_tips_2_and_3_unused() {
     let tmp = Tmp::new("gt3-read-only");
-    let config = tmp.0.join("config");
-    std::fs::create_dir_all(&config).unwrap();
-    std::fs::write(
-        config.join("settings.toml"),
-        "version = 1\nfirst_run_done = true\ncomes_from = \"eplan\"\n",
-    )
-    .unwrap();
+    write_settings(&tmp, FROM_EPLAN);
     let mut s = tmp.shell_in(Mode::Headless, false, "102");
     done(
         &mut s,
@@ -482,11 +466,7 @@ fn gt3_a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
     let generated = "This page is generated from a report block.".to_owned();
     // The Wire tool on a generated page.
     let tmp = Tmp::new("gt3-tool");
-    let mut s = shell_with(
-        &tmp,
-        "version = 1\nfirst_run_done = true\ncomes_from = \"qet\"\n",
-        "102",
-    );
+    let mut s = shell_with(&tmp, FROM_QET, "102");
     let (folio, block) = generated_page(&s);
     done(&mut s, "page.goto", json!({ "folio": folio }));
     assert_eq!(
@@ -513,11 +493,7 @@ fn gt3_a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
     s.shutdown();
     // A reorder naming the generated page.
     let tmp = Tmp::new("gt3-reorder");
-    let mut s = shell_with(
-        &tmp,
-        "version = 1\nfirst_run_done = true\ncomes_from = \"qet\"\n",
-        "102",
-    );
+    let mut s = shell_with(&tmp, FROM_QET, "102");
     let failed = Outcome::Failed {
         message: "A generated page has no folio of its own.".to_owned(),
     };
@@ -529,11 +505,7 @@ fn gt3_a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
     s.shutdown();
     // A move of the cursor row, the generated page on show.
     let tmp = Tmp::new("gt3-move");
-    let mut s = shell_with(
-        &tmp,
-        "version = 1\nfirst_run_done = true\ncomes_from = \"qet\"\n",
-        "102",
-    );
+    let mut s = shell_with(&tmp, FROM_QET, "102");
     done(&mut s, "page.goto", json!({ "folio": folio }));
     assert_eq!(s.dispatch("pages.move_up", &json!({})), failed);
     assert_eq!(tips(&s), [(generated, Some(NoteAction::ShowBlock))]);
@@ -570,11 +542,7 @@ fn the_six_dutch_choice_words_equal_their_siblings() {
 #[test]
 fn gt3_table_mode_refusals_on_a_tag_and_on_a_generated_page_offer_tips_2_and_3() {
     let tmp = Tmp::new("gt3-table");
-    let mut s = shell_with(
-        &tmp,
-        "version = 1\nfirst_run_done = true\ncomes_from = \"qet\"\n",
-        "102",
-    );
+    let mut s = shell_with(&tmp, FROM_QET, "102");
     done(&mut s, "navigator.show", json!({"kind": "devices"}));
     done(&mut s, "navigator.table", json!({"kind": "devices", "on": true}));
     let table = golden().navigator_table(NavKind::Devices);

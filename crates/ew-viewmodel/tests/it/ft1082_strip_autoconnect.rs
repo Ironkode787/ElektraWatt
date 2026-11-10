@@ -10,8 +10,8 @@
 
 use crate::common;
 
-use common::{Tmp, at, done};
-use ew_viewmodel::ew_api::output::{PageTables, TableEnd};
+use common::{Tmp, at, done, tables};
+use ew_viewmodel::ew_api::output::TableEnd;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
@@ -19,10 +19,6 @@ use serde_json::json;
 fn sheet_of(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
     let sn = &s.canvas().unwrap().page().snapper;
     sn.page_to_sheet((sn.page_of_index(k.0), sn.page_of_index(k.1)))
-}
-
-fn tables(s: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
 }
 
 /// Picks `pick`, puts the grid cursor at grid index `k` and commits with `activate` (`canvas.activate` with

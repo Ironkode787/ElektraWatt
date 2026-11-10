@@ -8,24 +8,17 @@
 
 use crate::common;
 
-use common::{Tmp, click, done, empty_point, state};
+use common::{Tmp, click, done, empty_point, failed, state};
 use ew_viewmodel::ew_api::checks;
 use ew_viewmodel::ew_api::output::Uuid;
 use ew_viewmodel::ew_api::{BomMode, Export, Session};
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
-use serde_json::{Value, json};
+use serde_json::json;
 
 /// A headless shell with a writable copy of Golden A on `folio`.
 fn golden(tmp: &Tmp, folio: &str) -> ShellModel {
     tmp.shell_in(Mode::Headless, true, folio)
-}
-
-fn failed(s: &mut ShellModel, action: &str, params: Value) -> String {
-    match s.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action} {params}: {other:?}"),
-    }
 }
 
 /// The component BOM of the saved project as CSV lines.

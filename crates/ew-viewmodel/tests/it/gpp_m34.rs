@@ -7,33 +7,14 @@
 use crate::common;
 use ew_viewmodel::key;
 
-use common::{Tmp, done, state};
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use common::{Tmp, done, new_project, state, toast};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
 /// A writable copy of Golden A with `folio` shown, headless.
 fn golden(tmp: &Tmp, folio: &str) -> ShellModel {
     tmp.shell_in(Mode::Headless, true, folio)
-}
-
-/// A headless shell with a new project (the builtin template) and a new folio 101 shown.
-fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    done(
-        &mut s,
-        "page.new",
-        json!({"folio": "101", "type": "multi_line", "title": "Power"}),
-    );
-    s
 }
 
 /// The first line of `ui.describe` that starts with `prefix`.
@@ -43,11 +24,6 @@ fn describe_line(s: &ShellModel, prefix: &str) -> String {
         .find(|l| l.starts_with(prefix))
         .unwrap_or_else(|| panic!("no line {prefix}:\n{text}"))
         .to_owned()
-}
-
-/// The toast's text, empty without one.
-fn toast(s: &ShellModel) -> String {
-    state(s)["toast"]["text"].as_str().unwrap_or_default().to_owned()
 }
 
 fn ghost(s: &ShellModel) -> Value {

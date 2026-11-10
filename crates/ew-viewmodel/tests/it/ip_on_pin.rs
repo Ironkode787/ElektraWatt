@@ -8,7 +8,7 @@
 
 use crate::common;
 
-use common::{Tmp, at, done, refused, state};
+use common::{Tmp, at, done, refused, state, tables, toast};
 use ew_viewmodel::ew_api::Session;
 use ew_viewmodel::ew_api::checks;
 use ew_viewmodel::ew_api::output::{
@@ -25,20 +25,12 @@ fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
     s
 }
 
-fn tables(s: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
-}
-
 fn ghost(s: &ShellModel) -> Value {
     state(s)["canvas"]["ghost"].clone()
 }
 
 fn hud(s: &ShellModel) -> String {
     ew_viewmodel::command_bar::hud(s).prompt
-}
-
-fn toast(s: &ShellModel) -> String {
-    state(s)["toast"]["text"].as_str().unwrap_or_default().to_owned()
 }
 
 fn cp(s: &ShellModel, label: &str) -> TableCp {

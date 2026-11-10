@@ -11,10 +11,10 @@ use crate::common;
 
 use std::path::{Path, PathBuf};
 
-use common::{Tmp, copy_dir, done, refused};
+use common::{Tmp, copy_dir, done, failed, refused};
 use ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
 use ew_viewmodel::ew_api::{OpenMode, Recovery, Session, SessionOptions, StoreOptions};
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use ew_viewmodel::{key, strings};
 use serde_json::{Value, json};
 
@@ -340,10 +340,7 @@ fn ft1499_other_integrity_findings_refuse_the_update() {
     ] {
         let mut s = open(&tmp, locale, None, &dir);
         assert!(s.damaged_update_offered());
-        match s.dispatch("library.update_damaged", &json!({})) {
-            Outcome::Failed { message: m } => assert_eq!(m, message),
-            other => panic!("{other:?}"),
-        }
+        assert_eq!(failed(&mut s, "library.update_damaged", json!({})), message);
         done(&mut s, "file.close", json!({}));
     }
     assert!(strings::set_locale("en"));
@@ -378,10 +375,7 @@ fn ft1499_a_save_that_fails_refuses_the_update() {
         changed.extend_from_slice(b"\n");
         std::fs::write(&manifest, &changed).unwrap();
         let before = tree(&dir);
-        match s.dispatch("library.update_damaged", &json!({})) {
-            Outcome::Failed { message: m } => assert_eq!(m, message),
-            other => panic!("{other:?}"),
-        }
+        assert_eq!(failed(&mut s, "library.update_damaged", json!({})), message);
         assert!(tree(&dir) == before, "nothing is written");
         done(&mut s, "file.close", json!({}));
     }
@@ -484,56 +478,8 @@ fn ft1499_a_library_version_that_breaks_the_project_refuses_the_update() {
         let mut s = open(&tmp, locale, None, &dir);
         assert!(s.read_only_reason().is_some());
         assert!(s.damaged_update_offered(), "the banner offers the update");
-        match s.dispatch("library.update_damaged", &json!({})) {
-            Outcome::Failed { message: m } => assert_eq!(m, message),
-            other => panic!("{other:?}"),
-        }
+        assert_eq!(failed(&mut s, "library.update_damaged", json!({})), message);
         assert_eq!(s.banner(), Some(message));
-        done(&mut s, "file.close", json!({}));
-    }
-    assert!(strings::set_locale("en"));
-    assert!(tree(&dir) == before, "nothing is written");
-}
-
-/// No library holds the damaged copy (Golden A's own part copy of -201U8-Q1): the banner says so (FT-1383's tests
-/// assert it whole) and offers nothing; the action is refused with its reason, whole in both languages, and nothing is
-/// written.
-#[test]
-fn ft1499_a_copy_no_library_holds_offers_nothing() {
-    let tmp = Tmp::new("ft1499-no-library");
-    let dir = tmp.golden_copy();
-    copy_dir(Path::new(common::GOLDEN_A), &dir);
-    let mut shards: Vec<_> = std::fs::read_dir(dir.join("devices"))
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .collect();
-    shards.sort();
-    let golden = shards
-        .iter()
-        .find_map(|p| {
-            let text = std::fs::read_to_string(p).unwrap();
-            let at = text.find("\"copy\":\"")? + "\"copy\":\"".len();
-            Some(text[at..at + 36].to_owned())
-        })
-        .expect("a device names a part copy");
-    damage(&dir.join("lib/parts").join(format!("{golden}.json")));
-    let before = tree(&dir);
-    for (locale, reason) in [
-        (
-            "en",
-            "The open project has no damaged library copy that a library holds",
-        ),
-        (
-            "nl",
-            "Het open project heeft geen beschadigde bibliotheekkopie die een bibliotheek bevat",
-        ),
-    ] {
-        let mut s = open(&tmp, locale, None, &dir);
-        assert!(s.read_only_reason().is_some());
-        assert!(!s.damaged_update_offered(), "nothing is offered");
-        let key = refused(&mut s, "library.update_damaged", json!({}));
-        assert_eq!(key, "reason-no-damaged-copy-update");
-        assert_eq!(strings::text(key!("reason-no-damaged-copy-update")), reason);
         done(&mut s, "file.close", json!({}));
     }
     assert!(strings::set_locale("en"));
@@ -600,10 +546,7 @@ fn ft1499_nothing_is_written_when_the_library_copy_cannot_be_read() {
         for (p, _) in &saved {
             std::fs::write(p, "{\"$k\": \"part\",\n").unwrap();
         }
-        match s.dispatch("library.update_damaged", &json!({})) {
-            Outcome::Failed { message: m } => assert_eq!(m, message),
-            other => panic!("{other:?}"),
-        }
+        assert_eq!(failed(&mut s, "library.update_damaged", json!({})), message);
         assert_eq!(s.banner(), Some(message));
         assert!(s.read_only_reason().is_some());
         done(&mut s, "file.close", json!({}));
@@ -644,10 +587,7 @@ fn ft1499_update_is_refused_while_another_session_holds_the_project() {
         let mut s = open(&tmp, locale, None, &dir);
         assert!(s.damaged_update_offered());
         std::fs::copy(other.join(".~ew.lock"), dir.join(".~ew.lock")).unwrap();
-        match s.dispatch("library.update_damaged", &json!({})) {
-            Outcome::Failed { message: m } => assert_eq!(m, message),
-            other => panic!("{other:?}"),
-        }
+        assert_eq!(failed(&mut s, "library.update_damaged", json!({})), message);
         assert_eq!(s.banner(), Some(message));
         done(&mut s, "file.close", json!({}));
         std::fs::remove_file(dir.join(".~ew.lock")).unwrap();

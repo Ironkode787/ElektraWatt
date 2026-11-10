@@ -113,6 +113,44 @@ pub fn at(p: (i64, i64), more: Value) -> Value {
     v
 }
 
+/// The message of a dispatch that fails.
+#[track_caller]
+pub fn failed(shell: &mut ShellModel, action: &str, params: Value) -> String {
+    match shell.dispatch(action, &params) {
+        Outcome::Failed { message } => message,
+        other => panic!("{action} {params}: {other:?}"),
+    }
+}
+
+/// The tables of the page on show.
+pub fn tables(s: &ShellModel) -> std::sync::Arc<ew_viewmodel::ew_api::output::PageTables> {
+    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
+}
+
+/// The toast's text, empty without one.
+pub fn toast(s: &ShellModel) -> String {
+    state(s)["toast"]["text"].as_str().unwrap_or_default().to_owned()
+}
+
+/// A headless shell with a new project (the builtin template) and a new folio 101 shown.
+pub fn new_project(tmp: &Tmp) -> ShellModel {
+    let mut s = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(
+        &mut s,
+        "file.new",
+        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
+    );
+    done(
+        &mut s,
+        "page.new",
+        json!({"folio": "101", "type": "multi_line", "title": "Power"}),
+    );
+    s
+}
+
 pub fn state(shell: &ShellModel) -> Value {
     serde_json::from_str(&script::state_json(shell)).unwrap()
 }

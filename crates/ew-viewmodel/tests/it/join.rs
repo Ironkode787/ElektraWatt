@@ -9,10 +9,10 @@
 
 use crate::common;
 
-use common::{Tmp, at, done, refused, state};
+use common::{Tmp, at, done, failed, refused, state, tables};
 use ew_viewmodel::command_bar::hud;
-use ew_viewmodel::ew_api::output::{PageTables, TableRep};
-use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::ew_api::output::TableRep;
+use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::ChooserValue;
 use serde_json::{Value, json};
 
@@ -22,10 +22,6 @@ const LAMP: &str = "ew.iec.lamp@qet10";
 
 fn shell(tmp: &Tmp) -> ShellModel {
     tmp.shell_in(Mode::Headless, true, "101")
-}
-
-fn tables(s: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
 }
 
 /// The sheet point of grid index `k` of folio 101 (its lower right area is empty).
@@ -76,13 +72,6 @@ fn delete_rep(s: &mut ShellModel, rep: &TableRep) {
     done(s, "select.set", json!({"ids": [rep.id.to_string()]}));
     done(s, "edit.delete_selection", json!({}));
     done(s, "ui.dismiss", json!({}));
-}
-
-fn failed(s: &mut ShellModel, action: &str, params: Value) -> String {
-    match s.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action} {params}: {other:?}"),
-    }
 }
 
 fn ghost(s: &ShellModel) -> Value {

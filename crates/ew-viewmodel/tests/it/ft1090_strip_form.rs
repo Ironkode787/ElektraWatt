@@ -10,7 +10,7 @@
 
 use crate::common;
 
-use common::{Tmp, done, state};
+use common::{Tmp, done, toast};
 use ew_viewmodel::key;
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use ew_viewmodel::strings;
@@ -79,10 +79,6 @@ fn current_strip_tag(s: &ShellModel) -> String {
         panic!("a strip row")
     };
     p.catalogue.strips[k].tag.clone()
-}
-
-fn toast(s: &ShellModel) -> String {
-    state(s)["toast"]["text"].as_str().unwrap_or_default().to_owned()
 }
 
 #[test]

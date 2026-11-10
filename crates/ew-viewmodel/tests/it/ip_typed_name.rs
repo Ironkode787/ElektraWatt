@@ -7,7 +7,7 @@
 
 use crate::common;
 
-use common::{Tmp, at, done};
+use common::{Tmp, at, done, tables};
 use ew_viewmodel::ew_api::output::PageTables;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
@@ -17,10 +17,6 @@ fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
     let mut s = tmp.shell_in(Mode::Headless, true, folio);
     done(&mut s, "view.zoom_actual", json!({}));
     s
-}
-
-fn tables(s: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
 }
 
 /// The page point of grid index `k`.
@@ -86,40 +82,26 @@ fn a_name_typed_with_the_ip_tool_names_the_end_of_the_next_wire_ended_with_p() {
     assert_ne!(names[0], "0V");
 }
 
+/// A name typed with the IP tool names the point its click places, across a switch of tools; the cycle-41 review
+/// (finding 3): `ip.name` with an empty or blank text cancels the typed name, across a switch of tools too, so the
+/// point the next click places takes its automatic name; a missing `text` still fails.
 #[test]
-fn a_name_typed_with_the_ip_tool_names_the_point_its_click_places() {
-    let tmp = Tmp::new("typed-click");
-    let mut s = shell(&tmp, "102");
-    done(&mut s, "tool.ip", json!({}));
-    done(&mut s, "ip.name", json!({"text": "0V"}));
-    // A switch of tools keeps the typed name for the IP tool armed again.
-    done(&mut s, "tool.wire", json!({}));
-    done(&mut s, "tool.ip", json!({}));
-    let before = tables(&s);
-    let k = (46, 40);
-    let p = grid_point(&s, k);
-    cursor(&mut s, p);
-    done(&mut s, "canvas.activate", json!({}));
-    assert_eq!(new_ip_names(&before, &s), vec!["0V".to_owned()]);
-}
-
-/// The cycle-41 review (finding 3): `ip.name` with an empty or blank text cancels the typed name, across a switch of
-/// tools too, so the point the next click places takes its automatic name; a missing `text` still fails.
-#[test]
-fn an_empty_or_blank_name_cancels_the_typed_name() {
-    for erased in ["", "  "] {
-        let tmp = Tmp::new("typed-erased");
+fn a_typed_name_names_the_point_its_click_places_until_an_empty_or_blank_name_cancels_it() {
+    for (erased, placed) in [(None, "0V"), (Some(""), "IP"), (Some("  "), "IP")] {
+        let tmp = Tmp::new("typed-click");
         let mut s = shell(&tmp, "102");
         done(&mut s, "tool.ip", json!({}));
         done(&mut s, "ip.name", json!({"text": "0V"}));
-        done(&mut s, "ip.name", json!({ "text": erased }));
+        if let Some(erased) = erased {
+            done(&mut s, "ip.name", json!({ "text": erased }));
+        }
         done(&mut s, "tool.wire", json!({}));
         done(&mut s, "tool.ip", json!({}));
         let before = tables(&s);
         let p = grid_point(&s, (46, 40));
         cursor(&mut s, p);
         done(&mut s, "canvas.activate", json!({}));
-        assert_eq!(new_ip_names(&before, &s), vec!["IP".to_owned()], "{erased:?}");
+        assert_eq!(new_ip_names(&before, &s), vec![placed.to_owned()], "{erased:?}");
     }
     let tmp = Tmp::new("typed-missing");
     let mut s = shell(&tmp, "102");

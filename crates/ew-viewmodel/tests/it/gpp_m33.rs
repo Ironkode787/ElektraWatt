@@ -8,29 +8,10 @@
 use crate::common;
 use ew_viewmodel::key;
 
-use common::{GOLDEN_A, Tmp, done, state};
+use common::{GOLDEN_A, Tmp, done, new_project, state, toast};
 use ew_viewmodel::ew_api::{Session, checks};
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
-
-/// A headless shell with a new project (the builtin template) and a new folio 101 shown.
-fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    done(
-        &mut s,
-        "page.new",
-        json!({"folio": "101", "type": "multi_line", "title": "Power"}),
-    );
-    s
-}
 
 /// Row 4: the very first pick of a black-box part on a new project (its FnDefs not yet embedded) arms the black box
 /// with the part's connection points, the same as a repeat pick.
@@ -59,10 +40,6 @@ fn row4_the_first_black_box_from_a_part_has_its_connection_points() {
     assert_eq!(first["kind"], "box", "{first}");
     assert_eq!(first["cps"], again["cps"], "first {first} again {again}");
     assert_ne!(first["cps"], json!(0), "{first}");
-}
-
-fn toast(s: &ShellModel) -> String {
-    state(s)["toast"]["text"].as_str().unwrap_or_default().to_owned()
 }
 
 /// The EW-NUM-001 findings of the saved project.

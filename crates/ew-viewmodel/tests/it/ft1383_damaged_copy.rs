@@ -7,10 +7,25 @@
 
 use crate::common;
 
-use common::{Tmp, copy_dir, done};
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use common::{Tmp, copy_dir, done, failed};
+use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::json;
+
+/// A headless shell in `locale` with its own configuration under `tmp`, `dir` open for editing.
+fn open_in(tmp: &Tmp, locale: &str, dir: &std::path::Path) -> ShellModel {
+    let mut s = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join(format!("config-{locale}")), "0.0.0-test"),
+    );
+    assert!(strings::set_locale(locale));
+    done(
+        &mut s,
+        "file.open",
+        json!({"dir": dir.to_string_lossy(), "read_only": false}),
+    );
+    s
+}
 
 /// A copy of Golden A in `tmp` whose first part copy a device names is cut short: the folder and the copy's ID.
 fn damaged_golden(tmp: &Tmp) -> (std::path::PathBuf, String) {
@@ -74,11 +89,6 @@ fn ft1383_save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
     let tmp = Tmp::new("ft1383-save-as");
     let (dir, _) = damaged_golden(&tmp);
     let target = tmp.0.join("save-as");
-    let refused =
-        |s: &mut ShellModel| match s.dispatch("file.save_as", &json!({"dir": target.to_string_lossy()})) {
-            Outcome::Failed { message } => message,
-            other => panic!("{other:?}"),
-        };
     for (locale, banner, save_as) in [
         (
             "en",
@@ -98,18 +108,12 @@ fn ft1383_save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
              bij vanuit de bibliotheek.",
         ),
     ] {
-        let mut s = ShellModel::new(
-            Mode::Headless,
-            ShellConfig::in_dir(&tmp.0.join(format!("config-{locale}")), "0.0.0-test"),
-        );
-        assert!(strings::set_locale(locale));
-        done(
-            &mut s,
-            "file.open",
-            json!({"dir": dir.to_string_lossy(), "read_only": false}),
-        );
+        let mut s = open_in(&tmp, locale, &dir);
         assert_eq!(s.banner(), Some(banner));
-        assert_eq!(refused(&mut s), save_as);
+        assert_eq!(
+            failed(&mut s, "file.save_as", json!({"dir": target.to_string_lossy()})),
+            save_as
+        );
         assert!(!target.exists(), "nothing is written");
         assert!(
             s.read_only_reason().is_some(),
@@ -213,22 +217,12 @@ fn ft1500_a_damaged_copy_a_page_names_is_named_with_its_page() {
              vanuit de bibliotheek.",
         ),
     ] {
-        let mut s = ShellModel::new(
-            Mode::Headless,
-            ShellConfig::in_dir(&tmp.0.join(format!("config-{locale}")), "0.0.0-test"),
-        );
-        assert!(strings::set_locale(locale));
-        done(
-            &mut s,
-            "file.open",
-            json!({"dir": dir.to_string_lossy(), "read_only": false}),
-        );
+        let mut s = open_in(&tmp, locale, &dir);
         assert_eq!(s.banner(), Some(banner));
-        let message = match s.dispatch("file.save_as", &json!({"dir": target.to_string_lossy()})) {
-            Outcome::Failed { message } => message,
-            other => panic!("{other:?}"),
-        };
-        assert_eq!(message, save_as);
+        assert_eq!(
+            failed(&mut s, "file.save_as", json!({"dir": target.to_string_lossy()})),
+            save_as
+        );
         assert!(!target.exists(), "nothing is written");
         assert!(s.read_only_reason().is_some());
         done(&mut s, "file.close", json!({}));
@@ -264,16 +258,7 @@ fn ft1500_save_as_leaves_out_a_damaged_copy_no_record_names() {
         ),
     ] {
         let target = tmp.0.join(format!("save-as-{locale}"));
-        let mut s = ShellModel::new(
-            Mode::Headless,
-            ShellConfig::in_dir(&tmp.0.join(format!("config-{locale}")), "0.0.0-test"),
-        );
-        assert!(strings::set_locale(locale));
-        done(
-            &mut s,
-            "file.open",
-            json!({"dir": dir.to_string_lossy(), "read_only": false}),
-        );
+        let mut s = open_in(&tmp, locale, &dir);
         assert_eq!(s.banner(), Some(banner));
         assert!(s.read_only_reason().is_some());
         done(&mut s, "file.save_as", json!({"dir": target.to_string_lossy()}));
@@ -328,16 +313,7 @@ fn every_damaged_copy_a_save_as_leaves_out_is_named() {
         ),
     ] {
         let target = tmp.0.join(format!("save-as-{locale}"));
-        let mut s = ShellModel::new(
-            Mode::Headless,
-            ShellConfig::in_dir(&tmp.0.join(format!("config-{locale}")), "0.0.0-test"),
-        );
-        assert!(strings::set_locale(locale));
-        done(
-            &mut s,
-            "file.open",
-            json!({"dir": dir.to_string_lossy(), "read_only": false}),
-        );
+        let mut s = open_in(&tmp, locale, &dir);
         assert_eq!(s.banner(), Some(banner));
         done(&mut s, "file.save_as", json!({"dir": target.to_string_lossy()}));
         assert_eq!(s.toast().map(|t| t.text.as_str()), Some(toast));
@@ -375,23 +351,13 @@ fn id1484_a_damaged_definition_copy_with_fluid_lines_opens_read_only() {
              bij vanuit de bibliotheek.",
         ),
     ] {
-        let mut s = ShellModel::new(
-            Mode::Headless,
-            ShellConfig::in_dir(&tmp.0.join(format!("config-{locale}")), "0.0.0-test"),
-        );
-        assert!(strings::set_locale(locale));
-        done(
-            &mut s,
-            "file.open",
-            json!({"dir": dir.to_string_lossy(), "read_only": false}),
-        );
+        let mut s = open_in(&tmp, locale, &dir);
         assert!(s.read_only_reason().is_some(), "the project opens read-only");
         assert_eq!(s.banner(), Some(banner));
-        let message = match s.dispatch("file.save_as", &json!({"dir": target.to_string_lossy()})) {
-            Outcome::Failed { message } => message,
-            other => panic!("{other:?}"),
-        };
-        assert_eq!(message, save_as);
+        assert_eq!(
+            failed(&mut s, "file.save_as", json!({"dir": target.to_string_lossy()})),
+            save_as
+        );
         assert!(!target.exists(), "nothing is written");
         done(&mut s, "file.close", json!({}));
     }
@@ -453,22 +419,12 @@ fn ft1525_a_damaged_copy_of_an_installed_part_is_named_whole() {
              niet openen. Werk de kopie eerst bij vanuit de bibliotheek.",
         ),
     ] {
-        let mut s = ShellModel::new(
-            Mode::Headless,
-            ShellConfig::in_dir(&tmp.0.join(format!("config-{locale}")), "0.0.0-test"),
-        );
-        assert!(strings::set_locale(locale));
-        done(
-            &mut s,
-            "file.open",
-            json!({"dir": dir.to_string_lossy(), "read_only": false}),
-        );
+        let mut s = open_in(&tmp, locale, &dir);
         assert_eq!(s.banner(), Some(banner));
-        let message = match s.dispatch("file.save_as", &json!({"dir": target.to_string_lossy()})) {
-            Outcome::Failed { message } => message,
-            other => panic!("{other:?}"),
-        };
-        assert_eq!(message, save_as);
+        assert_eq!(
+            failed(&mut s, "file.save_as", json!({"dir": target.to_string_lossy()})),
+            save_as
+        );
         assert!(!target.exists(), "nothing is written");
         done(&mut s, "file.close", json!({}));
     }

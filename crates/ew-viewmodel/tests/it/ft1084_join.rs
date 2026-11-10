@@ -10,9 +10,9 @@
 
 use crate::common;
 
-use common::{Tmp, at, done};
+use common::{Tmp, at, done, tables};
 use ew_viewmodel::ew_api::output::ew_dl::{EntityRef, Item, ItemKind};
-use ew_viewmodel::ew_api::output::{PageTables, TableCp, TableRep};
+use ew_viewmodel::ew_api::output::{TableCp, TableRep};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::json;
 
@@ -35,10 +35,6 @@ fn new_project(tmp: &Tmp) -> ShellModel {
     done(&mut s, "page.goto", json!({"folio": "101"}));
     done(&mut s, "view.zoom_actual", json!({}));
     s
-}
-
-fn tables(s: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
 }
 
 /// The page point of grid index `k`.
