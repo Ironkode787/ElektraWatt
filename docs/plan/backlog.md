@@ -74,6 +74,7 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### The window: feedback and dead ends
 
+- FT-1666 `ew-viewmodel, ew-api`: **Medium.** The preview of a table fill is very slow: filling one column over 502 marked device rows takes about 59 seconds before the preview card opens (debug build, measured in the test `tb5_a_fill_over_more_than_500_rows_opens_the_card`, about 0.12 s per row; not measured in a release build). Nothing is committed in that time; the cost is in building the bulk preview, probably one evaluation of the project per row. The test takes 70 to 100 s for this reason and times out when the machine is busy.
 - FT-926 `ew-viewmodel, ew-ui`: **Medium.** A PLC card gets its addresses only once a CPU is placed, and nothing says so: the PLC panel reads "No PLC cards yet" with the card drawn and selected, and the card's properties offer no address field; say in the panel and on the card that a card needs a CPU, and how to add one (FT-823's area) (play-test rv-vis-5, cycle 41).
 - FT-927 `ew-viewmodel, ew-ui`: The command search finds nothing for "PLC" (only fuzzy hits such as "Properties of selection"), and the PLC panel sits behind an unlabelled chip icon on the left rail (play-test rv-vis-5, cycle 41).
 - FT-928 `ew-viewmodel, ew-ui`: **Medium.** A placement that places nothing gives no message: Device, typing "CPU", Enter and two corner clicks left nothing on the sheet and no reason (with FT-896) (play-test rv-vis-5, cycle 41).

@@ -308,21 +308,12 @@ mod tests {
             // An unknown size fills the box.
             ("an unknown size fills the box", (10, 10), (0, 40), None, Some(((0, 10), (10, 40)))),
             ("a size with a zero side fills the box", (10, 10), (0, 40), Some((0, 5)), Some(((0, 10), (10, 40)))),
+            // The rectangle grows towards the second corner.
+            ("grows left and down", (100, 100), (60, 120), Some((200, 100)), Some(((60, 100), (100, 120)))),
+            ("grows right and up", (100, 100), (120, 40), Some((100, 200)), Some(((100, 60), (120, 100)))),
         ];
         for (name, p0, p, size, want) in cases {
             assert_eq!(fit_rect(p0, p, size), want, "case {name}");
         }
-    }
-
-    #[test]
-    fn the_rectangle_grows_towards_the_second_corner() {
-        assert_eq!(
-            fit_rect((100, 100), (60, 120), Some((200, 100))),
-            Some(((60, 100), (100, 120)))
-        );
-        assert_eq!(
-            fit_rect((100, 100), (120, 40), Some((100, 200))),
-            Some(((100, 60), (120, 100)))
-        );
     }
 }
