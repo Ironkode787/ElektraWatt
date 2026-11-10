@@ -1299,6 +1299,19 @@ mod tests {
 
     const HEADER: &str = r#"{"$schema":"ew.uiscript/1","label":"t"}"#;
 
+    /// Parses `text` and runs it on a fresh shell without `--keep-going`: the end of the run and its transcript.
+    fn run_text(text: &str) -> (RunEnd, Vec<String>) {
+        let mut shell = ShellModel::for_tests();
+        let steps = parse(text).unwrap();
+        let mut lines = Vec::new();
+        let end = run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {
+            lines.push(l.to_owned());
+            Ok(())
+        })
+        .unwrap();
+        (end, lines)
+    }
+
     #[test]
     fn a_script_parses_into_steps() {
         let text = format!(
@@ -1353,18 +1366,11 @@ mod tests {
 
     #[test]
     fn a_refused_step_stops_the_run_with_exit_code_one() {
-        let mut shell = ShellModel::for_tests();
         let text = format!(
             "{HEADER}\n{}\n{}\n",
             r#"{"action":"file.save"}"#, r#"{"action":"help.about"}"#
         );
-        let steps = parse(&text).unwrap();
-        let mut lines = Vec::new();
-        let end = run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {
-            lines.push(l.to_owned());
-            Ok(())
-        })
-        .unwrap();
+        let (end, lines) = run_text(&text);
         assert_eq!(end, RunEnd::StepFailed { step: 1 });
         assert_eq!(end.exit_code(), 1);
         // The header and the refused step; the second step did not run.
@@ -1382,7 +1388,6 @@ mod tests {
 
     #[test]
     fn expect_refused_meets_a_refusal_and_the_run_goes_on() {
-        let mut shell = ShellModel::for_tests();
         let text = format!(
             "{HEADER}
 {}
@@ -1391,13 +1396,7 @@ mod tests {
             r#"{"action":"script.expect_refused","params":{"action":"file.save"}}"#,
             r#"{"action":"help.about"}"#
         );
-        let steps = parse(&text).unwrap();
-        let mut lines = Vec::new();
-        let end = run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {
-            lines.push(l.to_owned());
-            Ok(())
-        })
-        .unwrap();
+        let (end, lines) = run_text(&text);
         assert_eq!(end.exit_code(), 0);
         assert_eq!(lines.len(), 3);
         let step: Value = serde_json::from_str(&lines[1]).unwrap();
@@ -1425,7 +1424,6 @@ mod tests {
                 strings::text(key!("message-expect-refused-inner")),
             ),
         ] {
-            let mut shell = ShellModel::for_tests();
             let text = format!(
                 "{HEADER}
 {{\"action\":\"script.expect_refused\",\"params\":{inner}}}
@@ -1433,13 +1431,7 @@ mod tests {
 ",
                 r#"{"action":"help.about"}"#
             );
-            let steps = parse(&text).unwrap();
-            let mut lines = Vec::new();
-            let end = run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {
-                lines.push(l.to_owned());
-                Ok(())
-            })
-            .unwrap();
+            let (end, lines) = run_text(&text);
             assert_eq!(end, RunEnd::StepFailed { step: 1 }, "{inner}");
             let step: Value = serde_json::from_str(&lines[1]).unwrap();
             assert_eq!(step["outcome"], "failed", "{inner}");
@@ -1452,16 +1444,9 @@ mod tests {
     /// goes on; a done, refused or malformed inner step makes it fail.
     #[test]
     fn expect_failed_meets_a_failure_and_the_run_goes_on() {
-        let mut shell = ShellModel::for_tests();
         let failing = r#"{"action":"script.expect_failed","params":{"action":"script.expect_refused"}}"#;
         let text = format!("{HEADER}\n{failing}\n{}\n", r#"{"action":"help.about"}"#);
-        let steps = parse(&text).unwrap();
-        let mut lines = Vec::new();
-        let end = run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {
-            lines.push(l.to_owned());
-            Ok(())
-        })
-        .unwrap();
+        let (end, lines) = run_text(&text);
         // The inner `script.expect_refused` is malformed for `expect_failed` (an `expect_*` cannot be the inner step).
         assert_eq!(end, RunEnd::StepFailed { step: 1 });
         let step: Value = serde_json::from_str(&lines[1]).unwrap();
@@ -1487,18 +1472,11 @@ mod tests {
                 Value::from("expected a failure; the step did not fail"),
             ),
         ] {
-            let mut shell = ShellModel::for_tests();
             let text = format!(
                 "{HEADER}\n{{\"action\":\"script.expect_failed\",\"params\":{inner}}}\n{}\n",
                 r#"{"action":"help.about"}"#
             );
-            let steps = parse(&text).unwrap();
-            let mut lines = Vec::new();
-            let _ = run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {
-                lines.push(l.to_owned());
-                Ok(())
-            })
-            .unwrap();
+            let (_, lines) = run_text(&text);
             let step: Value = serde_json::from_str(&lines[1]).unwrap();
             assert_eq!(step["outcome"], outcome, "{inner}: {step}");
             assert_eq!(step["reason"], Value::Null, "{inner}");
@@ -1513,14 +1491,7 @@ mod tests {
 
     #[test]
     fn the_transcript_members_are_in_the_documented_order() {
-        let mut shell = ShellModel::for_tests();
-        let steps = parse(&format!("{HEADER}\n{}\n", r#"{"action":"ui.describe"}"#)).unwrap();
-        let mut lines = Vec::new();
-        run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {
-            lines.push(l.to_owned());
-            Ok(())
-        })
-        .unwrap();
+        let (_, lines) = run_text(&format!("{HEADER}\n{}\n", r#"{"action":"ui.describe"}"#));
         assert!(lines[0].starts_with(r#"{"$schema":"ew.uitranscript/1","version":""#));
         let order = [
             "\"step\"",

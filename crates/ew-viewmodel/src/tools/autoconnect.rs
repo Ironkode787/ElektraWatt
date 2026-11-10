@@ -449,6 +449,25 @@ mod tests {
         }
     }
 
+    /// A stored wire between two junctions along `polyline`.
+    fn wire(
+        n: u128,
+        polyline: Vec<(i64, i64)>,
+        stored_route: bool,
+        off_sheet: Vec<usize>,
+    ) -> TableConnection {
+        TableConnection {
+            id: uuid(n),
+            a: TableEnd::Junction { id: uuid(1) },
+            b: TableEnd::Junction { id: uuid(2) },
+            kind: "wire".into(),
+            polyline,
+            stored_route,
+            off_sheet,
+            line_kind: None,
+        }
+    }
+
     fn ghost(symbol_cp: u16, at: (i64, i64), dir: Dir) -> GhostCp {
         GhostCp {
             symbol_cp,
@@ -510,28 +529,16 @@ mod tests {
         );
         t.reps.clear();
         // A crossing segment is passed.
-        t.connections.push(TableConnection {
-            id: uuid(0x600),
-            a: TableEnd::Junction { id: uuid(1) },
-            b: TableEnd::Junction { id: uuid(2) },
-            kind: "wire".into(),
-            polyline: vec![(-5 * G, 5 * G), (5 * G, 5 * G)],
-            stored_route: true,
-            off_sheet: Vec::new(),
-            line_kind: None,
-        });
+        t.connections.push(wire(
+            0x600,
+            vec![(-5 * G, 5 * G), (5 * G, 5 * G)],
+            true,
+            Vec::new(),
+        ));
         assert_eq!(proposals(&g, &t, &[], AREA, 0).list.len(), 1);
         // A segment along the ray occupies the line.
-        t.connections.push(TableConnection {
-            id: uuid(0x601),
-            a: TableEnd::Junction { id: uuid(1) },
-            b: TableEnd::Junction { id: uuid(2) },
-            kind: "wire".into(),
-            polyline: vec![(0, 3 * G), (0, 7 * G)],
-            stored_route: true,
-            off_sheet: Vec::new(),
-            line_kind: None,
-        });
+        t.connections
+            .push(wire(0x601, vec![(0, 3 * G), (0, 7 * G)], true, Vec::new()));
         assert!(proposals(&g, &t, &[], AREA, 0).list.is_empty());
         // A CP facing the wrong way or connected is no hit.
         let mut t = tables();
@@ -545,16 +552,12 @@ mod tests {
     #[test]
     fn two_cps_on_a_routed_segment_facing_its_ends_are_one_split_without_hints() {
         let mut t = tables();
-        t.connections.push(TableConnection {
-            id: uuid(0x600),
-            a: TableEnd::Junction { id: uuid(1) },
-            b: TableEnd::Junction { id: uuid(2) },
-            kind: "wire".into(),
-            polyline: vec![(0, 0), (0, 0), (0, 20 * G), (0, 20 * G)],
-            stored_route: true,
-            off_sheet: Vec::new(),
-            line_kind: None,
-        });
+        t.connections.push(wire(
+            0x600,
+            vec![(0, 0), (0, 0), (0, 20 * G), (0, 20 * G)],
+            true,
+            Vec::new(),
+        ));
         let g = [ghost(0, (0, 8 * G), Dir::Up), ghost(1, (0, 12 * G), Dir::Down)];
         let p = proposals(&g, &t, &[], AREA, 0);
         assert_eq!(p.list.len(), 1, "{p:?}");
@@ -570,16 +573,8 @@ mod tests {
     fn a_routed_connection_is_split_before_a_route_less_one_on_the_same_line() {
         let mut t = tables();
         for (n, stored_route) in [(0x600, false), (0x601, true)] {
-            t.connections.push(TableConnection {
-                id: uuid(n),
-                a: TableEnd::Junction { id: uuid(1) },
-                b: TableEnd::Junction { id: uuid(2) },
-                kind: "wire".into(),
-                polyline: vec![(0, 0), (0, 20 * G)],
-                stored_route,
-                off_sheet: Vec::new(),
-                line_kind: None,
-            });
+            t.connections
+                .push(wire(n, vec![(0, 0), (0, 20 * G)], stored_route, Vec::new()));
         }
         let g = [ghost(0, (0, 8 * G), Dir::Up), ghost(1, (0, 12 * G), Dir::Down)];
         let p = proposals(&g, &t, &[], AREA, 0);
@@ -596,16 +591,8 @@ mod tests {
     fn a_stretch_drawn_along_the_sheet_edge_is_no_split_and_refuses_a_drop() {
         let mut t = tables();
         // An L whose second segment, (0, 0)–(0, 20 G), is the clamp's.
-        t.connections.push(TableConnection {
-            id: uuid(0x600),
-            a: TableEnd::Junction { id: uuid(1) },
-            b: TableEnd::Junction { id: uuid(2) },
-            kind: "wire".into(),
-            polyline: vec![(20 * G, 0), (0, 0), (0, 20 * G)],
-            stored_route: true,
-            off_sheet: vec![1],
-            line_kind: None,
-        });
+        t.connections
+            .push(wire(0x600, vec![(20 * G, 0), (0, 0), (0, 20 * G)], true, vec![1]));
         let on_edge = [ghost(0, (0, 8 * G), Dir::Up), ghost(1, (0, 12 * G), Dir::Down)];
         assert!(proposals(&on_edge, &t, &[], AREA, 0).list.is_empty());
         assert!(on_off_sheet_segment(&on_edge, &t));

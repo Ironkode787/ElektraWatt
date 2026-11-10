@@ -136,20 +136,12 @@ mod tests {
     }
 
     #[test]
-    fn field_words_drop_the_content_hash_beside_another_field() {
+    fn field_words_drop_the_content_hash_name_a_lone_one_content_and_read_underscores_as_spaces() {
         assert_eq!(
             words(&["description", "sha256", "version"]),
             ["description", "version"]
         );
-    }
-
-    #[test]
-    fn field_words_name_a_lone_content_hash_content() {
         assert_eq!(words(&["sha256"]), ["content"]);
-    }
-
-    #[test]
-    fn field_words_read_underscores_as_spaces() {
         assert_eq!(words(&["part_number", "tag"]), ["part number", "tag"]);
         assert!(words(&[]).is_empty());
     }
