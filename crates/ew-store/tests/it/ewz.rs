@@ -15,7 +15,7 @@ use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::zip::{self, Method, ZipLimits};
 use ew_store::{OpenMode, OsVfs, Store, StoreOptions, Vfs};
 
-use crate::common::{fixture, small_fixture};
+use crate::common::{fixture, small_fixture, tree};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
@@ -41,28 +41,6 @@ fn copy_dir(from: &Path, to: &Path) {
             std::fs::copy(e.path(), &target).unwrap();
         }
     }
-}
-
-/// Every file below `dir`, by `/`-separated relative path.
-fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
-    fn walk(dir: &Path, base: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
-        for e in std::fs::read_dir(dir).unwrap() {
-            let path = e.unwrap().path();
-            if path.is_dir() {
-                walk(&path, base, out);
-            } else {
-                let rel = path
-                    .strip_prefix(base)
-                    .unwrap()
-                    .to_string_lossy()
-                    .replace('\\', "/");
-                out.insert(rel, std::fs::read(&path).unwrap());
-            }
-        }
-    }
-    let mut out = BTreeMap::new();
-    walk(dir, dir, &mut out);
-    out
 }
 
 /// A read-only store of the project at `dir` on the real file system (no lock, no journal).

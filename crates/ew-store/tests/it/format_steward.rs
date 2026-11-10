@@ -11,10 +11,10 @@
 
 use crate::common;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use common::{options, project_files};
+use common::{options, project_files, tree};
 use ew_store::ew_format::ew_schema::{FORMAT, RELEASED_FORMATS};
 use ew_store::ew_format::{MIGRATIONS, steward_problems};
 use ew_store::mem::DirSync;
@@ -23,28 +23,6 @@ use ew_store::{Changes, Opened, Store};
 /// The repository's fixture corpus.
 fn corpus() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/format")
-}
-
-/// Every file below `dir` by relative path with `/`.
-fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
-    fn walk(dir: &Path, base: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
-        for e in std::fs::read_dir(dir).unwrap_or_else(|e| panic!("reading {}: {e}", dir.display())) {
-            let path = e.expect("a directory entry").path();
-            if path.is_dir() {
-                walk(&path, base, out);
-            } else {
-                let rel = path
-                    .strip_prefix(base)
-                    .expect("below the base")
-                    .to_string_lossy()
-                    .replace('\\', "/");
-                out.insert(rel, std::fs::read(&path).expect("a readable file"));
-            }
-        }
-    }
-    let mut out = BTreeMap::new();
-    walk(dir, dir, &mut out);
-    out
 }
 
 /// The subfolders of `dir` in name order; none when it is absent.

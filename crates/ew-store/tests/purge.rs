@@ -16,12 +16,12 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use common::{
-    apply, edit, mem_project, mem_project_of, options, par_map, project_files, reopen, root, small_fixture,
-    try_reopen,
+    edit, manifest, mem_project, mem_project_of, options, par_map, project_files, reopen, root,
+    small_fixture, try_reopen, with_logo,
 };
-use ew_model::{AnyKey, AnyRow, Asset, Model, Op};
-use ew_store::ew_format::ew_schema::{AssetRef, COMPANY_MEMBER, Sha256, sniff};
-use ew_store::ew_format::{Manifest, Severity, sha256};
+use ew_model::{AnyKey, Asset};
+use ew_store::ew_format::ew_schema::{AssetRef, Sha256, sniff};
+use ew_store::ew_format::{Severity, sha256};
 use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::{Access, Changes, PurgeError, Store, join};
 
@@ -42,35 +42,8 @@ fn logo(w: u32) -> Asset {
     )
 }
 
-/// `model` with the asset held and named as the company logo; the keys the edit touched.
-fn with_logo(model: &Model, asset: &Asset) -> (Model, BTreeSet<AnyKey>) {
-    let before = Arc::clone(model.project());
-    let mut after = (*before).clone();
-    after.extra.insert(
-        COMPANY_MEMBER.to_owned(),
-        serde_json::json!({ "logo": serde_json::to_value(asset.reference()).unwrap() }),
-    );
-    let mut keys = BTreeSet::new();
-    let mut next = apply(
-        model,
-        &[Op::update(
-            AnyRow::Project(before),
-            AnyRow::Project(Arc::new(after)),
-        )],
-        &mut keys,
-    )
-    .expect("the edit applies");
-    next.put_asset(asset.clone());
-    (next, keys)
-}
-
 fn hex(asset: &Asset) -> String {
     asset.sha256().to_string()["sha256:".len()..].to_owned()
-}
-
-fn manifest(vfs: &MemVfs) -> Manifest {
-    let files = project_files(vfs, &root());
-    Manifest::parse(&files["manifest.json"], &Default::default()).expect("a manifest")
 }
 
 /// The golden project with the logo saved as A, then C, then B (pid 1, closed): three listed asset files, B named.

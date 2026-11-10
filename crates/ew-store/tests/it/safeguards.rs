@@ -12,15 +12,14 @@
 use crate::common;
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
 use std::sync::Arc;
 
 use common::{
-    apply, device_copy, edit, edit_device, fixture, mem_project, mem_project_of, options, project_files,
-    reopen, unused_folio,
+    apply, device_copy, edit, edit_device, fixture, manifest, mem_project, mem_project_of, open_golden,
+    options, project_files, reopen, unused_folio, with_logo,
 };
 use ew_model::{AnyKey, AnyRow, Asset, Model, Op};
-use ew_store::ew_format::ew_schema::{AssetRef, COMPANY_MEMBER, Device, Page, Record, Sha256, sniff};
+use ew_store::ew_format::ew_schema::{AssetRef, Device, Page, Record, Sha256, sniff};
 use ew_store::ew_format::{
     FileHash, FilePath, Finding, FindingKind, Limits, MANIFEST, MAX_GENERATION, Manifest, hash_text,
     record_line, sha256,
@@ -30,10 +29,6 @@ use ew_store::{Access, Changes, Opened, SaveError, SaveStep, Store, Vfs, join};
 
 fn file(path: &str) -> FilePath {
     FilePath::new(path).expect("a project path")
-}
-
-fn manifest_on_disk(vfs: &MemVfs, root: &Path) -> Manifest {
-    Manifest::parse(&project_files(vfs, root)[MANIFEST], &Limits::default()).expect("the manifest parses")
 }
 
 /// `model` with the folio number of its first page changed: a save of it replaces that page's file, returned.
@@ -90,8 +85,7 @@ fn hand_edited(bytes: &[u8]) -> Vec<u8> {
 fn a_save_refuses_to_replace_a_file_changed_outside_the_session() {
     // SG-3: a hand edit of a page file that the next save replaces refuses the save with the file named, and writes
     // nothing: every file, the manifest included, is byte-identical afterwards. Restored, the file saves.
-    let (vfs, root) = mem_project(DirSync::Explicit);
-    let Opened { mut store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    let (vfs, root, Opened { mut store, model, .. }) = open_golden();
     let (edited, keys, page) = renumber_first_page(&model);
     let original = project_files(&vfs, &root)[page.as_str()].clone();
     vfs.put(&join(&root, page.as_str()), &hand_edited(&original));
@@ -124,8 +118,7 @@ fn a_save_refuses_to_replace_a_file_changed_outside_the_session() {
 #[test]
 fn a_crlf_only_change_does_not_refuse_the_save() {
     // SG-3: a checkout with `core.autocrlf` turns LF into CRLF; the content is the same (doc 05 §6.2).
-    let (vfs, root) = mem_project(DirSync::Explicit);
-    let Opened { mut store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    let (vfs, root, Opened { mut store, model, .. }) = open_golden();
     let (edited, keys, page) = renumber_first_page(&model);
     let original = project_files(&vfs, &root)[page.as_str()].clone();
     let crlf = String::from_utf8(original.clone())
@@ -185,8 +178,7 @@ fn a_save_refuses_to_remove_a_file_changed_outside_the_session_and_names_every_f
 #[test]
 fn a_file_deleted_outside_the_session_is_written_again() {
     // D5 compares the bytes a save would overwrite; a file that is gone holds none, so the save writes it.
-    let (vfs, root) = mem_project(DirSync::Explicit);
-    let Opened { mut store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    let (vfs, root, Opened { mut store, model, .. }) = open_golden();
     let (edited, keys, page) = renumber_first_page(&model);
     vfs.remove_file(&join(&root, page.as_str())).expect("removed");
     let saved = store.save(&edited, Changes::Keys(&keys)).expect("the save");
@@ -196,8 +188,7 @@ fn a_file_deleted_outside_the_session_is_written_again() {
 
 #[test]
 fn a_changed_manifest_refuses_the_save_and_names_it() {
-    let (vfs, root) = mem_project(DirSync::Explicit);
-    let Opened { mut store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    let (vfs, root, Opened { mut store, model, .. }) = open_golden();
     let (edited, keys) = edit_device(&model, 0, "edited");
     let mut manifest = project_files(&vfs, &root)[MANIFEST].clone();
     manifest.push(b'\n');
@@ -278,23 +269,7 @@ fn a_save_refuses_to_replace_an_asset_file_changed_outside_the_session() {
         "{:?}",
         report.findings
     );
-    let before_row = Arc::clone(model.project());
-    let mut after_row = (*before_row).clone();
-    after_row.extra.insert(
-        COMPANY_MEMBER.to_owned(),
-        serde_json::json!({ "logo": serde_json::to_value(asset.reference()).expect("a reference") }),
-    );
-    let mut keys = BTreeSet::new();
-    let mut edited = apply(
-        &model,
-        &[Op::update(
-            AnyRow::Project(before_row),
-            AnyRow::Project(Arc::new(after_row)),
-        )],
-        &mut keys,
-    )
-    .expect("the edit applies");
-    edited.put_asset(asset);
+    let (edited, keys) = with_logo(&model, &asset);
 
     let changed: &[u8] = br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 3"/>"#;
     vfs.put(&join(&root, path.as_str()), changed);
@@ -379,7 +354,7 @@ fn a_save_after_a_conflicted_manifest_continues_from_the_greater_side() {
     assert_eq!(saved.generation, 10);
 
     let on_disk = project_files(&vfs, &root);
-    let manifest = manifest_on_disk(&vfs, &root);
+    let manifest = manifest(&vfs);
     assert_eq!(manifest.generation, 10);
     assert_eq!(manifest.min_reader, "0.1");
     for path in &both_sides {
@@ -620,18 +595,17 @@ fn a_roll_forward_removes_a_duplicate_stray_too() {
     assert_eq!(after[shard.as_str()], ours);
     assert_eq!(after[shard.unlisted(2, 0).as_str()], colleague);
     assert!(!after.contains_key(shard.unlisted(2, 1).as_str()));
-    assert_eq!(manifest_on_disk(&vfs, &root).generation, 2);
+    assert_eq!(manifest(&vfs).generation, 2);
 }
 
 #[test]
 fn a_save_stamps_the_computed_min_reader() {
     // With the shipped tables every file of a 0.1 project is at the floor, so a save writes "0.1"; the
     // golden bytes do not move.
-    let (vfs, root) = mem_project(DirSync::Explicit);
-    let Opened { mut store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    let (vfs, _, Opened { mut store, model, .. }) = open_golden();
     let (edited, keys) = edit(&model);
     store.save(&edited, Changes::Keys(&keys)).expect("the save");
-    let manifest = manifest_on_disk(&vfs, &root);
+    let manifest = manifest(&vfs);
     assert_eq!(
         (manifest.format.as_str(), manifest.min_reader.as_str()),
         ("0.1", "0.1")
@@ -640,8 +614,7 @@ fn a_save_stamps_the_computed_min_reader() {
 
 /// The file of the fixture's first page, which [`renumber_first_page`] replaces.
 fn first_page_file() -> FilePath {
-    let (vfs, root) = mem_project(DirSync::Explicit);
-    let Opened { model, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
+    let (_, _, Opened { model, .. }) = open_golden();
     renumber_first_page(&model).2
 }
 
@@ -759,7 +732,7 @@ fn a_save_up_to_the_generation_ceiling_writes_it_and_reopens() {
     let (edited, keys) = edit_device(&model, 0, "edited");
     let saved = store.save(&edited, Changes::Keys(&keys)).expect("the save");
     assert_eq!(saved.generation, MAX_GENERATION);
-    assert_eq!(manifest_on_disk(&vfs, &root).generation, MAX_GENERATION);
+    assert_eq!(manifest(&vfs).generation, MAX_GENERATION);
     store.close();
     let again = reopen(&vfs, 2);
     assert_eq!(again.report.generation, MAX_GENERATION);

@@ -108,6 +108,17 @@ fn dry_run_of(mut s: Setup) -> (u64, BTreeMap<String, Vec<u8>>, SaveReport, Vec<
     )
 }
 
+/// The first file the dry-run save of `mode` writes: holding its rename makes a save incomplete past its commit point.
+fn first_written(mode: DirSync) -> String {
+    let (_, _, report) = dry_run(mode);
+    report
+        .written
+        .first()
+        .expect("the save writes files")
+        .as_str()
+        .to_owned()
+}
+
 /// The sweeps' fixture has a file of every kind Golden A has (and is small; `small_fixture` asserts the same when it
 /// builds it), and the save of the edit batch on it makes the same sequence of `Vfs` operations as on Golden A, in
 /// both directory-sync modes (the same files written and removed: two device shards and a page written, a page
@@ -134,18 +145,6 @@ fn the_sweep_fixture_has_every_file_kind_and_save_call_of_golden_a() {
             (golden_report.written, golden_report.removed),
             "{mode:?}: the files written and removed"
         );
-    }
-}
-
-#[test]
-fn save_call_trace() {
-    // Documents the numbered calls of the sweeps' fixture save, which the sweeps refer to.
-    for mode in MODES {
-        let (n, _, _, trace) = sweep_dry_run(mode);
-        println!("save of the edit batch, {mode:?}: {n} calls");
-        for line in trace {
-            println!("  {line}");
-        }
     }
 }
 
@@ -587,13 +586,7 @@ fn a_failed_retry_of_an_incomplete_save_is_not_reported_as_this_saves_incomplete
     // the dirty set kept, completes save 1 and writes the edits of save 2; after a clean close (which
     // deletes the journal) a reopen has them.
     for mode in MODES {
-        let (_, _, report) = dry_run(mode);
-        let first = report
-            .written
-            .first()
-            .expect("the save writes files")
-            .as_str()
-            .to_owned();
+        let first = first_written(mode);
         let held = ew_store::join(&root(), &first);
         let mut s = setup(mode);
         s.vfs.hold(&held, 1000);
@@ -676,20 +669,7 @@ fn incomplete_save_rolls_forward_at_the_next_open() {
 fn stale_lock_of_a_crashed_save_opens_read_only_not_as_an_error() {
     // A crash between the intent and the manifest rename leaves `manifest.json.tmp-2` and a stale lock. A
     // plain open must report the stale lock (so that the caller can offer the takeover), not fail.
-    let mode = DirSync::Explicit;
-    let mut s = setup(mode);
-    let first = {
-        let (_, _, report) = dry_run(mode);
-        report.written.first().expect("files").as_str().to_owned()
-    };
-    s.vfs.hold(&ew_store::join(&root(), &first), 1000);
-    assert!(matches!(
-        s.store.save(&s.g1, Changes::Keys(&s.keys)),
-        Err(SaveError::Incomplete { .. })
-    ));
-    s.store.crash();
-    s.vfs.hold(&ew_store::join(&root(), &first), 0);
-    assert!(project_files(&s.vfs, &root()).contains_key("manifest.json.tmp-2"));
+    let s = crashed_incomplete_save(DirSync::Explicit);
     let opened = Store::open(&root(), options(&s.vfs, 2));
     match opened {
         Ok(o) => match &o.report.access {
@@ -724,10 +704,7 @@ struct Crashed {
 }
 
 fn crashed_incomplete_save(mode: DirSync) -> Crashed {
-    let first = {
-        let (_, _, report) = dry_run(mode);
-        report.written.first().expect("files").as_str().to_owned()
-    };
+    let first = first_written(mode);
     let mut s = setup(mode);
     s.vfs.hold(&ew_store::join(&root(), &first), 1000);
     assert!(matches!(
@@ -994,8 +971,7 @@ fn an_intent_whose_base_bytes_changed_is_not_rolled_forward() {
         }
 
         // In session: the manifest changes under an incomplete save.
-        let (_, _, report) = dry_run(mode);
-        let first = report.written.first().expect("files").as_str().to_owned();
+        let first = first_written(mode);
         let mut s = setup(mode);
         let held = ew_store::join(&root(), &first);
         s.vfs.hold(&held, 1000);

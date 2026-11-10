@@ -12,8 +12,9 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, UNIX_EPOCH};
 
-use ew_model::{AnyKey, AnyRow, Model, ModelError, Op, Rev};
-use ew_store::ew_format::ew_schema::{Device, Kind, Page, Record};
+use ew_model::{AnyKey, AnyRow, Asset, Model, ModelError, Op, Rev};
+use ew_store::ew_format::Manifest;
+use ew_store::ew_format::ew_schema::{COMPANY_MEMBER, Device, Kind, Page, Record};
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{
     Access, Identity, ManualClock, OpenError, Opened, ProcessProbe, ProcessState, ReadOnlyReason, Store,
@@ -45,20 +46,26 @@ pub fn root() -> PathBuf {
     PathBuf::from("/p")
 }
 
-fn walk(dir: &Path, base: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
-    for e in std::fs::read_dir(dir).unwrap_or_else(|e| panic!("reading {}: {e}", dir.display())) {
-        let path = e.expect("a directory entry").path();
-        if path.is_dir() {
-            walk(&path, base, out);
-        } else {
-            let rel = path
-                .strip_prefix(base)
-                .expect("below the base")
-                .to_string_lossy()
-                .replace('\\', "/");
-            out.insert(rel, std::fs::read(&path).expect("a readable file"));
+/// Every file below `dir`, by relative path with `/`.
+pub fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
+    fn walk(dir: &Path, base: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
+        for e in std::fs::read_dir(dir).unwrap_or_else(|e| panic!("reading {}: {e}", dir.display())) {
+            let path = e.expect("a directory entry").path();
+            if path.is_dir() {
+                walk(&path, base, out);
+            } else {
+                let rel = path
+                    .strip_prefix(base)
+                    .expect("below the base")
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                out.insert(rel, std::fs::read(&path).expect("a readable file"));
+            }
         }
     }
+    let mut out = BTreeMap::new();
+    walk(dir, dir, &mut out);
+    out
 }
 
 /// Every file of the golden project `golden/J-E-2416.ew/`, by relative path with `/`.
@@ -67,8 +74,7 @@ pub fn fixture() -> BTreeMap<String, Vec<u8>> {
     FIXTURE
         .get_or_init(|| {
             let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-            let mut out = BTreeMap::new();
-            walk(&dir, &dir, &mut out);
+            let out = tree(&dir);
             assert!(!out.is_empty(), "the golden fixture {} is missing", dir.display());
             out
         })
@@ -169,6 +175,13 @@ pub fn mem_project_of(dir_sync: DirSync, files: BTreeMap<String, Vec<u8>>) -> (A
     }
     vfs.put_dir(Path::new("/state"));
     (vfs, root)
+}
+
+/// The golden project in a durable [`MemVfs`] opened for editing as process 1.
+pub fn open_golden() -> (Arc<MemVfs>, PathBuf, Opened) {
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    let opened = Store::open(&root, options(&vfs, 1)).expect("the golden project opens");
+    (vfs, root, opened)
 }
 
 /// Store options on `vfs` for a process with id `pid`; every other pid is dead.
@@ -340,6 +353,35 @@ pub fn project_files(vfs: &MemVfs, root: &Path) -> BTreeMap<String, Vec<u8>> {
         .into_iter()
         .filter(|(name, _)| name != ".~ew.lock" && !name.starts_with(".~ew.lock.stale-"))
         .collect()
+}
+
+/// The manifest on disk in `vfs` under [`root`].
+pub fn manifest(vfs: &MemVfs) -> Manifest {
+    let files = project_files(vfs, &root());
+    Manifest::parse(&files["manifest.json"], &Default::default()).expect("a manifest")
+}
+
+/// `model` with the asset held and named as the company logo, as `project.company.set` commits it; the keys the edit
+/// touched.
+pub fn with_logo(model: &Model, asset: &Asset) -> (Model, BTreeSet<AnyKey>) {
+    let before = Arc::clone(model.project());
+    let mut after = (*before).clone();
+    after.extra.insert(
+        COMPANY_MEMBER.to_owned(),
+        serde_json::json!({ "logo": serde_json::to_value(asset.reference()).unwrap() }),
+    );
+    let mut keys = BTreeSet::new();
+    let mut next = apply(
+        model,
+        &[Op::update(
+            AnyRow::Project(before),
+            AnyRow::Project(Arc::new(after)),
+        )],
+        &mut keys,
+    )
+    .expect("the edit applies");
+    next.put_asset(asset.clone());
+    (next, keys)
 }
 
 /// The names of `files` that are temps of a save (`*.tmp-<generation>`).

@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use crate::common::tree;
 use ew_store::lock::{TakeoverError, new_session_id};
 use ew_store::{
     Access, Changes, Clock, Identity, LockRecord, LockState, ManualClock, OpenError, OpenMode, Opened,
@@ -100,9 +101,7 @@ impl Scratch {
     }
 
     fn snapshot(&self) -> BTreeMap<String, Vec<u8>> {
-        let mut out = BTreeMap::new();
-        snap(&self.project, &self.project, &mut out);
-        out
+        tree(&self.project)
     }
 
     fn stale_files(&self) -> Vec<String> {
@@ -136,23 +135,6 @@ fn copy_dir(from: &Path, to: &Path) {
             copy_dir(&entry.path(), &dest);
         } else {
             std::fs::copy(entry.path(), dest).unwrap();
-        }
-    }
-}
-
-fn snap(root: &Path, dir: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
-    for entry in std::fs::read_dir(dir).unwrap() {
-        let entry = entry.unwrap();
-        if entry.file_type().unwrap().is_dir() {
-            snap(root, &entry.path(), out);
-        } else {
-            let rel = entry
-                .path()
-                .strip_prefix(root)
-                .unwrap()
-                .to_string_lossy()
-                .replace('\\', "/");
-            out.insert(rel, std::fs::read(entry.path()).unwrap());
         }
     }
 }
@@ -319,7 +301,7 @@ fn crashed_holder(s: &Scratch, host: &str, pid: u32, after: Duration) -> String 
 #[test]
 fn stale_by_age() {
     let s = Scratch::new();
-    crashed_holder(&s, "<host>", 1001, 61 * MIN);
+    let a_session = crashed_holder(&s, "<host>", 1001, 61 * MIN);
     let b = s.opts(1002, "<other host>", &[]);
     let b_session = b.identity.session.clone();
     let opened = Store::open(&s.project, b.clone()).unwrap();
@@ -328,6 +310,7 @@ fn stale_by_age() {
     let taken = Store::take_over(&s.project, b).unwrap();
     assert_eq!(taken.report.access, Access::Edit);
     assert_eq!(s.lock_record().session, b_session);
+    assert!(s.project.join(format!("{STALE_PREFIX}{a_session}")).exists());
     drop(taken);
 
     // 59 minutes: not stale, the takeover is refused.
@@ -340,15 +323,6 @@ fn stale_by_age() {
     let e = expect_takeover_error(Store::take_over(&s.project, b));
     assert!(matches!(e, TakeoverError::NotStale(_)), "{e:?}");
     assert!(s.stale_files().is_empty());
-}
-
-#[test]
-fn takeover_by_age_keeps_the_stale_file() {
-    let s = Scratch::new();
-    let a_session = crashed_holder(&s, "<host>", 1001, 61 * MIN);
-    let taken = Store::take_over(&s.project, s.opts(1002, "<other host>", &[])).unwrap();
-    assert_eq!(taken.report.access, Access::Edit);
-    assert!(s.project.join(format!("{STALE_PREFIX}{a_session}")).exists());
 }
 
 #[test]
