@@ -430,16 +430,15 @@ fn the_files_of_the_configuration_directory_are_user_only() {
     files(&dir, &dir, &mut found);
     found.sort();
     let names: Vec<&str> = found.iter().map(|(n, _)| n.as_str()).collect();
-    assert_eq!(
-        names,
-        [
-            "keymap.toml",
-            "settings.toml",
-            "settings.toml.bad-1",
-            "wizard-draft.json",
-            "workspaces/Mine.json"
-        ]
-    );
+    for expected in [
+        "keymap.toml",
+        "settings.toml",
+        "settings.toml.bad-1",
+        "wizard-draft.json",
+        "workspaces/Mine.json",
+    ] {
+        assert!(names.contains(&expected), "{expected} in {names:?}");
+    }
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt as _;

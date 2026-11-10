@@ -12,18 +12,11 @@
 
 use crate::common;
 
-use common::{Tmp, done};
+use common::{Tmp, done, failed};
 use ew_viewmodel::ew_api::output::PageTables;
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
-
-fn failed(shell: &mut ShellModel, action: &str, params: Value) -> String {
-    match shell.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action} {params}: {other:?}"),
-    }
-}
 
 /// The column key of the Potentials column labelled `label`.
 fn col(shell: &ShellModel, label: &str) -> String {

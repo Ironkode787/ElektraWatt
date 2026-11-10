@@ -3,6 +3,7 @@
 
 //! Shell-model transitions on a temporary copy of Golden A (acceptance checks A2, A3, A9).
 
+use crate::common::{copy_dir, refused};
 use ew_testdir as fresh_dir;
 
 use std::path::{Path, PathBuf};
@@ -40,28 +41,8 @@ impl Drop for Tmp {
     }
 }
 
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
-
 fn open(shell: &mut ShellModel, dir: &Path) -> Outcome {
     shell.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() }))
-}
-
-fn refused(shell: &mut ShellModel, action: &str, params: Value) -> &'static str {
-    match shell.dispatch(action, &params) {
-        Outcome::Refused { reason_key } => reason_key.as_str(),
-        other => panic!("{action} should be refused, got {other:?}"),
-    }
 }
 
 #[test]
@@ -205,27 +186,6 @@ fn edits_undo_redo_save_and_close() {
 }
 
 #[test]
-fn closing_a_dirty_project_with_discard_loses_the_edit() {
-    let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
-    open(&mut shell, &dir);
-    let run = json!({"cmd": "page.create", "params": {"number": 998, "title": "Gone"}});
-    assert_eq!(shell.dispatch("command.run", &run), Outcome::Done);
-    assert_eq!(
-        shell.dispatch("file.close", &json!({"discard": true})),
-        Outcome::Done
-    );
-    open(&mut shell, &dir);
-    assert!(!shell.page_labels().iter().any(|l| l == "998"));
-    assert!(
-        shell.recorded_commands().is_empty(),
-        "a discarded step is not recorded"
-    );
-    shell.shutdown();
-}
-
-#[test]
 fn the_gui_asks_instead_of_failing() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
@@ -298,28 +258,6 @@ fn a_second_shell_opens_a_held_project_read_only() {
     assert_eq!(second.dispatch("page.next", &Value::Null), Outcome::Done);
     second.shutdown();
     first.shutdown();
-}
-
-#[test]
-fn a_leftover_journal_opens_the_project_read_only_with_a_banner() {
-    let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
-    {
-        let mut crashed = ShellModel::new(Mode::Headless, tmp.config());
-        open(&mut crashed, &dir);
-        let run = json!({"cmd": "page.create", "params": {"number": 996}});
-        assert_eq!(crashed.dispatch("command.run", &run), Outcome::Done);
-        // Dropped without `shutdown`: the journal stays, like after a crash.
-    }
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
-    assert_eq!(open(&mut shell, &dir), Outcome::Done);
-    assert!(matches!(shell.access(), Some(AccessMode::ReadOnly { .. })));
-    let banner = shell.banner().unwrap_or_default().to_owned();
-    assert!(banner.contains("unsaved changes"), "{banner}");
-    assert!(banner.contains("read-only"), "{banner}");
-    assert_eq!(refused(&mut shell, "file.save", json!({})), "reason-read-only");
-    assert!(!shell.page_labels().iter().any(|l| l == "996"));
-    shell.shutdown();
 }
 
 #[test]
@@ -607,6 +545,16 @@ fn a_discarded_step_leaves_the_record_when_the_directory_is_reopened() {
         Outcome::Done
     );
     assert!(recorded(&shell).is_empty());
+
+    // The same through Close with `discard`.
+    shell.dispatch("command.run", &run);
+    assert_eq!(
+        shell.dispatch("file.close", &json!({"discard": true})),
+        Outcome::Done
+    );
+    open(&mut shell, &dir);
+    assert!(!shell.page_labels().iter().any(|l| l == "990"));
+    assert!(recorded(&shell).is_empty(), "a discarded step is not recorded");
     shell.shutdown();
 }
 
@@ -696,6 +644,13 @@ fn the_journal_survives_a_shutdown_while_the_project_is_dirty() {
         "{:?}",
         again.banner()
     );
+    assert!(
+        again.banner().is_some_and(|b| b.contains("read-only")),
+        "{:?}",
+        again.banner()
+    );
+    assert_eq!(refused(&mut again, "file.save", json!({})), "reason-read-only");
+    assert!(!again.page_labels().iter().any(|l| l == "993"));
     again.shutdown();
     // Opening read-only left the journal alone: it is still offered.
     let mut third = ShellModel::new(Mode::Headless, tmp.config());

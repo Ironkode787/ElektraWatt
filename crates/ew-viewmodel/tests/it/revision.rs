@@ -13,10 +13,10 @@ use crate::common;
 
 use std::path::{Path, PathBuf};
 
-use common::{Tmp, copy_dir, done, refused};
+use common::{Tmp, copy_dir, done, failed, refused};
 use ew_viewmodel::dialogs::{DialogAnswer, spec};
 use ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Dialog, Mode, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
 const FIXTURE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/fixtures/release-min");
@@ -41,13 +41,6 @@ fn config(tmp: &Tmp) -> ShellConfig {
 fn opened(mut shell: ShellModel, dir: &Path) -> ShellModel {
     done(&mut shell, "file.open", json!({ "dir": dir.to_string_lossy() }));
     shell
-}
-
-fn failed(shell: &mut ShellModel, action: &str, params: Value) -> String {
-    match shell.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action} {params}: {other:?}"),
-    }
 }
 
 /// The open form's action, its fields as `(name, value)` and its error.

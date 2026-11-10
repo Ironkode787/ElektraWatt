@@ -6,11 +6,11 @@
 //! Pages field's refusals, the disabled print buttons and the toasts of the window's print, every text whole. PW-1's
 //! digest is `bin/elektrawatt`'s `tests/it/print.rs` and `ew-api`'s `export_job.rs`.
 
-use crate::common::{Tmp, done, refused};
+use crate::common::{Tmp, done, failed, refused};
 use ew_viewmodel::ew_api::ew_jobs::Gate;
 use ew_viewmodel::jobs::JobKind;
+use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::shell::print::{PrintEnd, PrintVia};
-use ew_viewmodel::shell::{Outcome, ShellModel};
 use serde_json::json;
 
 /// The preview's lines of the describe text, and the dialog's own lines before them.
@@ -25,13 +25,6 @@ fn dialog_lines(s: &ShellModel) -> Vec<String> {
         .take_while(|l| !l.trim_start().starts_with("button"))
         .map(|l| l.trim_start().to_owned())
         .collect()
-}
-
-fn failed(s: &mut ShellModel, action: &str, params: serde_json::Value) -> String {
-    match s.dispatch(action, &params) {
-        Outcome::Failed { message } => message,
-        other => panic!("{action} {params}: {other:?}"),
-    }
 }
 
 fn toasts(s: &ShellModel) -> Vec<String> {

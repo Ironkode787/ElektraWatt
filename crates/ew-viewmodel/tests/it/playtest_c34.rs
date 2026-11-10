@@ -8,25 +8,12 @@ use crate::common;
 use ew_viewmodel::key;
 
 use common::{Tmp, done};
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Outcome, ShellModel};
 use serde_json::{Value, json};
 
 /// A headless shell with a new project (the builtin template) and a new folio 101 shown.
 fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    done(
-        &mut s,
-        "page.new",
-        json!({"folio": "101", "type": "multi_line", "title": "Power"}),
-    );
+    let mut s = common::new_project(tmp);
     done(&mut s, "view.zoom_actual", json!({}));
     s
 }

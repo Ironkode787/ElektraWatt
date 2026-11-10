@@ -10,34 +10,17 @@
 
 use crate::common;
 
-use common::{Tmp, done, refused};
-use ew_viewmodel::ew_api::output::{PageTables, Uuid};
+use common::{Tmp, done, refused, tables};
+use ew_viewmodel::ew_api::output::Uuid;
 use ew_viewmodel::navigators::{NavKind, PLC_FLAGS, Query};
-use ew_viewmodel::shell::{DragSource, Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{DragSource, Mode, ShellModel};
 use serde_json::json;
 
 /// A headless shell with a new project (the builtin template) and a new folio 101 shown at actual size.
 fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    done(
-        &mut s,
-        "page.new",
-        json!({"folio": "101", "type": "multi_line", "title": "Control"}),
-    );
+    let mut s = common::new_project(tmp);
     done(&mut s, "view.zoom_actual", json!({}));
     s
-}
-
-fn tables(s: &ShellModel) -> std::sync::Arc<PageTables> {
-    std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
 }
 
 /// The sheet point of the page point `p`, in millimetres.
@@ -73,6 +56,19 @@ fn channel_rows(s: &ShellModel) -> Vec<(String, String)> {
             _ => None,
         })
         .collect()
+}
+
+/// The ID of the card's module (the first module row of the PLC navigator).
+fn module_id(s: &ShellModel) -> String {
+    s.shown_rows(NavKind::Plc)
+        .into_iter()
+        .find(|r| r.role == "module")
+        .expect("the card's module row")
+        .key
+        .rsplit_once("module:")
+        .unwrap()
+        .1
+        .to_owned()
 }
 
 /// PG2's state: the generic CPU, the digital output card and a starter coil attached to the card (PT-2).
@@ -111,16 +107,7 @@ fn coil_state(s: &mut ShellModel, attach: bool) -> Uuid {
         .collect::<Vec<_>>();
     assert_eq!(card.len(), 2, "the CPU and the card");
     done(s, "navigator.show", json!({"kind": "plc"}));
-    let module = s
-        .shown_rows(NavKind::Plc)
-        .into_iter()
-        .find(|r| r.role == "module")
-        .expect("the card's module row")
-        .key
-        .rsplit_once("module:")
-        .unwrap()
-        .1
-        .to_owned();
+    let module = module_id(s);
     if attach {
         done(
             s,
@@ -172,16 +159,7 @@ fn fx38d_a_cp_off_the_card_is_refused_in_words() {
     assert!(!toast.contains('@'), "no record IDs: {toast}");
     assert!(!toast.contains("plc.bind_channel"), "no command name: {toast}");
     // On the card, the same drop binds.
-    let module = s
-        .shown_rows(NavKind::Plc)
-        .into_iter()
-        .find(|r| r.role == "module")
-        .unwrap()
-        .key
-        .rsplit_once("module:")
-        .unwrap()
-        .1
-        .to_owned();
+    let module = module_id(&s);
     let device = t.reps.iter().find(|r| r.id == coil).unwrap().device.unwrap();
     done(
         &mut s,
@@ -254,16 +232,7 @@ fn pg5_the_start_and_slot_editors() {
     let tmp = Tmp::new("plcnav-pg5");
     let mut s = new_project(&tmp);
     pg2_state(&mut s);
-    let module = s
-        .shown_rows(NavKind::Plc)
-        .into_iter()
-        .find(|r| r.role == "module")
-        .unwrap()
-        .key
-        .rsplit_once("module:")
-        .unwrap()
-        .1
-        .to_owned();
+    let module = module_id(&s);
     done(&mut s, "select.set", json!({ "ids": [module] }));
     let rev = s.revision();
     done(
@@ -494,16 +463,7 @@ fn ft753_a_valve_is_attached_to_a_valve_terminal_and_bound() {
     black_box(&mut s, "EW-GEN-CPU-1", (10, 10), (16, 18));
     black_box(&mut s, "EW-GEN-DO-1", (24, 10), (30, 18));
     done(&mut s, "navigator.show", json!({"kind": "plc"}));
-    let module = s
-        .shown_rows(NavKind::Plc)
-        .into_iter()
-        .find(|r| r.role == "module")
-        .unwrap()
-        .key
-        .rsplit_once("module:")
-        .unwrap()
-        .1
-        .to_owned();
+    let module = module_id(&s);
     done(
         &mut s,
         "command.run",

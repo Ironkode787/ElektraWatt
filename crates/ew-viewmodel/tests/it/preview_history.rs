@@ -11,7 +11,7 @@ use ew_viewmodel::key;
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use common::{Tmp, done, entity_points, refused, state};
+use common::{Tmp, done, entity_points, lines_with, refused, state};
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
@@ -79,15 +79,6 @@ fn assert_same(a: &BTreeMap<String, Vec<u8>>, b: &BTreeMap<String, Vec<u8>>, wha
 {left:#?}
 {right:#?}"
     );
-}
-
-fn lines_with(shell: &ShellModel, prefix: &str) -> Vec<String> {
-    shell
-        .describe()
-        .lines()
-        .filter(|l| l.starts_with(prefix))
-        .map(str::to_owned)
-        .collect()
 }
 
 /// The `preview` section of the describe text: its header and its indented lines.

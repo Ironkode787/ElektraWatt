@@ -111,6 +111,7 @@ fn dialog_line(s: &ShellModel) -> String {
 
 #[test]
 fn jb7_a_leftover_journal_opens_read_only_with_the_dialog_and_nothing_is_written_before_a_choice() {
+    use ew_viewmodel::actions::find;
     let tmp = Tmp::new("jb7-dialog");
     let dir = crashed(&tmp);
     let watched = [dir.clone(), tmp.0.join("config").join("state")];
@@ -139,18 +140,8 @@ fn jb7_a_leftover_journal_opens_read_only_with_the_dialog_and_nothing_is_written
         "reason-dialog-open"
     );
     assert_eq!(files(&watched), before);
-    s.shutdown();
-}
-
-/// The recovery flag of the registry entry decides: while the dialog is open an action marked `answers_recovery`
-/// (ui.describe) goes and one without it (help.about) refuses.
-#[test]
-fn jb7_the_registry_flag_decides_what_goes_while_the_dialog_is_open() {
-    use ew_viewmodel::actions::find;
-    let tmp = Tmp::new("jb7-flag");
-    let dir = crashed(&tmp);
-    let mut s = shell(&tmp, Mode::Headless);
-    open(&mut s, &dir);
+    // The recovery flag of the registry entry decides: an action marked `answers_recovery` (ui.describe) goes and one
+    // without it (help.about) refuses.
     assert!(find("ui.describe").unwrap().answers_recovery);
     assert!(!find("help.about").unwrap().answers_recovery);
     done(&mut s, "ui.describe", json!({}));
