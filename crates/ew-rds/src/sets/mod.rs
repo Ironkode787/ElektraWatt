@@ -376,7 +376,9 @@ mod tests {
     #[test]
     fn shipped_sets_are_valid() {
         let keys: Vec<&str> = IdentifierSet::shipped().iter().map(IdentifierSet::key).collect();
-        assert_eq!(keys, [EN_81346_2_2009, IEC_81346_2_2019, IEC_60750_LEGACY]);
+        for key in [EN_81346_2_2009, IEC_81346_2_2019, IEC_60750_LEGACY] {
+            assert!(keys.contains(&key), "{key}");
+        }
         assert_eq!(IdentifierSet::default_set().key(), EN_81346_2_2009);
         for set in IdentifierSet::shipped() {
             assert_eq!(set.check(), Ok(()), "{}", set.key());

@@ -313,16 +313,12 @@ mod tests {
     }
 
     #[test]
-    fn qet_rounding() {
+    fn at_rounds_to_nearest_ties_toward_zero() {
         // k·7937500/3 has remainder 0, 1/3 or 2/3 of a nm: never a tie.
         assert_eq!(Grid::QET_10PX.at(1), Some(Nm(2_645_833)));
         assert_eq!(Grid::QET_10PX.at(2), Some(Nm(5_291_667)));
         assert_eq!(Grid::QET_10PX.at(-1), Some(Nm(-2_645_833)));
         assert_eq!(Grid::QET_10PX.at(-2), Some(Nm(-5_291_667)));
-    }
-
-    #[test]
-    fn at_ties_toward_zero() {
         let g = Grid::new(5, 2).unwrap(); // 2.5 nm
         assert_eq!(g.at(1), Some(Nm(2)));
         assert_eq!(g.at(-1), Some(Nm(-2)));

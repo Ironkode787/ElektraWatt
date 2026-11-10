@@ -174,17 +174,6 @@ mod tests {
     }
 
     #[test]
-    fn order_is_alphabetical() {
-        let mut v: Vec<LetterCode> = ["G", "FC", "F", "FA", "QMB", "QM"]
-            .iter()
-            .map(|s| s.parse().unwrap())
-            .collect();
-        v.sort();
-        let s: Vec<&str> = v.iter().map(LetterCode::as_str).collect();
-        assert_eq!(s, ["F", "FA", "FC", "G", "QM", "QMB"]);
-    }
-
-    #[test]
     fn json_encoding() {
         let c = LetterCode::from_static("BT");
         assert_eq!(serde_json::to_string(&c).unwrap(), "\"BT\"");

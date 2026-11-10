@@ -57,25 +57,25 @@ mod tests {
     use proptest::prelude::*;
 
     #[test]
-    fn div_round_ties_toward_zero() {
-        assert_eq!(div_round(5, 2), 2);
-        assert_eq!(div_round(-5, 2), -2);
-        assert_eq!(div_round(5, -2), -2);
-        assert_eq!(div_round(-5, -2), 2);
-        assert_eq!(div_round(7, 2), 3);
-        assert_eq!(div_round(-7, 2), -3);
-    }
-
-    #[test]
-    fn div_round_nearest() {
-        assert_eq!(div_round(6, 4), 1); // 1.5 tie → 1
-        assert_eq!(div_round(7, 4), 2); // 1.75 → 2
-        assert_eq!(div_round(-7, 4), -2);
-        assert_eq!(div_round(5, 4), 1); // 1.25 → 1
-        assert_eq!(div_round(1, 3), 0);
-        assert_eq!(div_round(2, 3), 1);
-        assert_eq!(div_round(-2, 3), -1);
-        assert_eq!(div_round(0, 7), 0);
+    fn div_round_to_nearest_ties_toward_zero() {
+        for (n, d, want) in [
+            (5, 2, 2),
+            (-5, 2, -2),
+            (5, -2, -2),
+            (-5, -2, 2),
+            (7, 2, 3),
+            (-7, 2, -3),
+            (6, 4, 1), // 1.5 tie
+            (7, 4, 2), // 1.75
+            (-7, 4, -2),
+            (5, 4, 1), // 1.25
+            (1, 3, 0),
+            (2, 3, 1),
+            (-2, 3, -1),
+            (0, 7, 0),
+        ] {
+            assert_eq!(div_round(n, d), want, "{n} / {d}");
+        }
     }
 
     #[test]

@@ -217,7 +217,7 @@ mod tests {
     }
 
     #[test]
-    fn record_and_merge_saturate() {
+    fn merge_adds_field_wise_and_record_and_merge_saturate() {
         let mut c = Counters {
             hits: u64::MAX,
             ..Counters::default()
@@ -232,10 +232,6 @@ mod tests {
         c.merge(&other);
         assert_eq!(c.hits, u64::MAX);
         assert_eq!(c.cycles, 2);
-    }
-
-    #[test]
-    fn merge_adds_field_wise() {
         let mut a = Counters {
             hits: 1,
             re_executions: 2,

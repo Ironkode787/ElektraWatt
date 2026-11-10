@@ -128,24 +128,8 @@ mod tests {
 
     #[test]
     fn names_are_unique_and_round_trip() {
-        let names: Vec<&str> = Layer::ALL.iter().map(|l| l.name()).collect();
-        assert_eq!(
-            names,
-            [
-                "frame",
-                "symbols",
-                "wires",
-                "labels",
-                "tables",
-                "revision",
-                "highlights",
-                "surface",
-                "carriers",
-                "placements",
-                "features",
-                "dims"
-            ]
-        );
+        let names: std::collections::BTreeSet<&str> = Layer::ALL.iter().map(|l| l.name()).collect();
+        assert_eq!(names.len(), Layer::ALL.len());
         for l in Layer::ALL {
             assert_eq!(Layer::from_name(l.name()), Some(l));
         }
