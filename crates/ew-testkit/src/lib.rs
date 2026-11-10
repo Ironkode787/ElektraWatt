@@ -7,7 +7,6 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-pub mod bench;
 pub mod golden;
 pub mod library;
 pub mod synth;

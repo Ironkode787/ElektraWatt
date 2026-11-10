@@ -407,11 +407,7 @@ pub(super) fn rows_refusal(e: &ew_api::output::RowsError) -> String {
                 "the project has no report block of kind `{kind}`: {export} is the rows of that block (a project from the built-in template has none), so there is nothing to export"
             )
         }
-        // WP-S3.06 D4: each refusal of the export by kind is its own whole text.
-        e @ (ew_api::output::RowsError::KindAndBlock
-        | ew_api::output::RowsError::KindPages
-        | ew_api::output::RowsError::UnknownKind(..)
-        | ew_api::output::RowsError::KindOneStrip) => e.to_string(),
+        // WP-S3.06 D4: each other refusal of the export is its own whole text.
         other => other.to_string(),
     }
 }

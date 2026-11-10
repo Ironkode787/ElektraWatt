@@ -255,12 +255,6 @@ item = "disallowed_methods"
 count = 1
 reason = "the helper deadline_now, the monotonic deadline of a sandboxed query"
 
-[[raw_read.allow]]
-path = "crates/ew-testkit/src/bench.rs"
-item = "disallowed_methods"
-count = 2
-reason = "the helpers class_var and timer_start of the bench harness"
-
 # [[raw_read.allow]]
 # path = "crates/ew-example/src/lib.rs"   # relative to the workspace root, forward slashes
 # item = "raw_read!"                      # "raw_read!", "raw-read" or "disallowed_methods"

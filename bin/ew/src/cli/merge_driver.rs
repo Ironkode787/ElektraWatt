@@ -12,7 +12,6 @@
 //! error (I/O, a panic in the merge) with `%A` as it was; a usage error
 //! exits 129 too, with clap's text (decision log ID-1273).
 
-use std::io::Read as _;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 
@@ -77,7 +76,8 @@ fn drive(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, merge: Merg
 /// [`drive`] without its guard.
 fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, merge: Merge<'_>) -> i32 {
     let read = |p: &Path| {
-        read_capped(p, limits.max_file_bytes).map_err(|e| format!("{} cannot be read: {e}", p.display()))
+        super::read_bounded(p, limits.max_file_bytes)
+            .map_err(|e| format!("{} cannot be read: {e}", p.display()))
     };
     let (base, ours, theirs) = match (read(&a.base), read(&a.ours), read(&a.theirs)) {
         (Ok(o), Ok(a), Ok(b)) => (o, a, b),
@@ -165,7 +165,7 @@ fn project_path(worktree: &Path, repo_path: &str, limits: &Limits) -> (String, S
             }
         }
         if std::fs::symlink_metadata(&manifest).is_ok_and(|m| m.is_file()) {
-            let format = read_capped(&manifest, limits.max_manifest_bytes)
+            let format = super::read_bounded(&manifest, limits.max_manifest_bytes)
                 .ok()
                 .and_then(|bytes| Manifest::parse(&bytes, limits).ok())
                 .map_or_else(|| FORMAT.to_owned(), |m| m.format);
@@ -182,15 +182,6 @@ fn newer_than_reader(format: &str) -> bool {
         Some((major.parse().ok()?, minor.parse().ok()?))
     };
     matches!((parse(format), parse(FORMAT)), (Some(side), Some(reader)) if side > reader)
-}
-
-/// The bytes of `path`, at most `max + 1` of them: a longer file is read only far enough to know it is too long.
-fn read_capped(path: &Path, max: u64) -> std::io::Result<Vec<u8>> {
-    let mut bytes = Vec::new();
-    std::fs::File::open(path)?
-        .take(max.saturating_add(1))
-        .read_to_end(&mut bytes)?;
-    Ok(bytes)
 }
 
 #[cfg(test)]

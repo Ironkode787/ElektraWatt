@@ -1074,21 +1074,6 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         })
     }
 
-    /// `connection.draw_many` (cycle 33): page-less connections of one `kind` between each pair of `ends`, in one
-    /// transaction (a chain of bridges).
-    ///
-    /// # Errors
-    ///
-    /// A command's error.
-    pub fn connect_many(&mut self, ends: &[(End, End)], kind: &ConnectionKind) -> Result<()> {
-        let connections: Vec<Value> = ends
-            .iter()
-            .map(|(a, b)| json!({"a": a.param(), "b": b.param(), "kind": kind}))
-            .collect();
-        self.run("connection.draw_many", json!({"connections": connections}))
-            .map(|_| ())
-    }
-
     /// `connection.route_many` (WP-S2.19 D12): the `routes` of several connections in one transaction.
     ///
     /// # Errors
@@ -1556,15 +1541,6 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok(id)
     }
 
-    /// `project.frames.set`: the whole frame defaults `{default?, per_page_type}` (doc 03 §5.1).
-    ///
-    /// # Errors
-    ///
-    /// The command's error.
-    pub fn frame_defaults(&mut self, frames: Value) -> Result<()> {
-        self.run("project.frames.set", frames).map(|_| ())
-    }
-
     /// `project.languages.set`: the project's languages and printed formats as one value `{source?,
     /// translations?, date?, decimal_separator?}`; an absent member is removed.
     ///
@@ -1573,17 +1549,6 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     /// The command's error.
     pub fn languages(&mut self, languages: Value) -> Result<()> {
         self.run("project.languages.set", languages).map(|_| ())
-    }
-
-    /// `project.checks.set`: the check schemes `{active_scheme?, release_scheme?}`. The command is `HumanOnly`
-    /// (ADR-0008 amendment 3): a sink that submits as a command log or a script is refused, so a builder script
-    /// that uses this verb does not replay with `ew apply`.
-    ///
-    /// # Errors
-    ///
-    /// The command's error.
-    pub fn check_schemes(&mut self, schemes: Value) -> Result<()> {
-        self.run("project.checks.set", schemes).map(|_| ())
     }
 
     /// `device.place` (or `box.black` with `black_box`) with a `from_part` target (FR-UI-017; WP-S2.04 D9): a new
@@ -1651,38 +1616,6 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     pub fn move_steps(&mut self, reps: &[Id<Representation>], steps: [i64; 2]) -> Result<()> {
         self.run("rep.move", json!({"reps": reps, "steps": steps}))
             .map(|_| ())
-    }
-
-    /// [`Self::move_steps`] with the window's members (WP-S2.19 D14, D15): `routes` replace the followed routes of the
-    /// connections named, and `connect` makes the wires of the autoconnect hints `(rep, (function, CP index), other
-    /// end)`.
-    ///
-    /// # Errors
-    ///
-    /// The command's error.
-    #[allow(clippy::type_complexity)] // the hints as the command names them: (rep, (function, CP), other end)
-    pub fn move_steps_with(
-        &mut self,
-        reps: &[Id<Representation>],
-        steps: [i64; 2],
-        routes: &[(Id<Connection>, Value)],
-        connect: &[(Id<Representation>, (Id<Function>, u16), Value)],
-    ) -> Result<()> {
-        let routes: Vec<Value> = routes
-            .iter()
-            .map(|(id, route)| json!({"connection": id, "route": route}))
-            .collect();
-        let connect: Vec<Value> = connect
-            .iter()
-            .map(|(rep, (function, idx), to)| {
-                json!({"rep": rep, "cp": {"function": function, "idx": idx}, "to": to})
-            })
-            .collect();
-        self.run(
-            "rep.move",
-            json!({"reps": reps, "steps": steps, "routes": routes, "connect": connect}),
-        )
-        .map(|_| ())
     }
 
     /// `rep.exchange_symbol` (FR-SYM-022): the representation `rep` is drawn by the symbol copy `symbol` from now

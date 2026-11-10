@@ -106,18 +106,7 @@ pub(super) fn confirm_typed(
         line("active", &a.active, "drafting"),
         line("release", &a.release, "pre-delivery"),
     );
-    if output
-        .write_all(summary.as_bytes())
-        .and_then(|()| output.flush())
-        .is_err()
-    {
-        return false;
-    }
-    let mut answer = String::new();
-    match input.read_line(&mut answer) {
-        Ok(_) => answer.trim() == word,
-        Err(_) => false,
-    }
+    typed_word(input, output, &summary, word)
 }
 
 pub(super) fn run_verify_derived(a: &VerifyArgs) -> i32 {

@@ -99,14 +99,7 @@ pub(super) fn run_assets_purge_with(
          else to abort: ",
         plan.remove.len()
     );
-    let mut answer = String::new();
-    let confirmed = output
-        .write_all(prompt.as_bytes())
-        .and_then(|()| output.flush())
-        .is_ok()
-        && input.read_line(&mut answer).is_ok()
-        && answer.trim() == PURGE_WORD;
-    if !confirmed {
+    if !typed_word(input, output, &prompt, PURGE_WORD) {
         eprintln!("error: not confirmed; nothing was removed");
         session.close();
         return 1;
