@@ -7,36 +7,16 @@
 //! exit code. The lines the page shows below a command are its standard output and then its standard error, compared
 //! whole; a line `...` stands for any lines, and a command without lines below it is only run.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Output};
+
+use super::conventions::{bin_exe, copy_dir, isolate};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const PAGE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../docs/book/src/tutorials/headless-workflow.md"
 );
-
-/// The path of the `ew` binary under test (nextest's run-time path, else the compile-time one).
-// The program boundary of a test: the path only chooses which binary runs; no compared result depends on it.
-#[allow(clippy::disallowed_methods)]
-fn bin_exe() -> PathBuf {
-    std::env::var_os("NEXTEST_BIN_EXE_ew")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap() {
-        let e = e.unwrap();
-        let target = to.join(e.file_name());
-        if e.file_type().unwrap().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
-}
 
 /// The words of a command line: blanks separate them, double quotes keep a word whole.
 fn words(line: &str) -> Vec<String> {
@@ -108,25 +88,8 @@ fn lines(bytes: &[u8]) -> Vec<String> {
 /// `ew` in `dir` with its user directories inside it, no starter content and no `SOURCE_DATE_EPOCH`.
 fn ew(dir: &Path, args: &[String]) -> Output {
     let mut cmd = Command::new(bin_exe());
-    cmd.args(args)
-        .current_dir(dir)
-        .env_remove("SOURCE_DATE_EPOCH")
-        .env_remove("EW_CONTENT_DIR")
-        .env("EW_DATA_DIR", dir.join("data"))
-        .env("EW_CACHE_DIR", dir.join("cache"));
-    for d in [
-        "HOME",
-        "USERPROFILE",
-        "LOCALAPPDATA",
-        "APPDATA",
-        "XDG_STATE_HOME",
-        "XDG_DATA_HOME",
-        "XDG_CONFIG_HOME",
-    ] {
-        let home = dir.join("home").join(d.to_ascii_lowercase());
-        std::fs::create_dir_all(&home).unwrap();
-        cmd.env(d, &home);
-    }
+    cmd.args(args).current_dir(dir);
+    isolate(&mut cmd, dir);
     cmd.output().unwrap()
 }
 

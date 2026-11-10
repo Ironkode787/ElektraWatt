@@ -4,13 +4,14 @@
 //! `ew query` and `ew queries` on a copy of Golden A: the text and the `--json` result,
 //! the failure paths, the registry's snapshot, determinism and `--project`.
 
-use std::collections::BTreeMap;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 use ew_api::cli_results as results;
 use serde_json::{Value, json};
+
+use super::conventions::{args, bin_exe, copy_dir, isolate, stderr, stdout, tree};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
@@ -26,27 +27,8 @@ impl Tmp {
     /// `SOURCE_DATE_EPOCH`.
     fn ew(&self, args: &[OsString]) -> Output {
         let mut cmd = Command::new(bin_exe());
-        cmd.args(args)
-            .current_dir(&self.0)
-            .env_remove("DISPLAY")
-            .env_remove("WAYLAND_DISPLAY")
-            .env_remove("SOURCE_DATE_EPOCH")
-            .env_remove("EW_CONTENT_DIR")
-            .env("EW_DATA_DIR", self.0.join("data"))
-            .env("EW_CACHE_DIR", self.0.join("cache"));
-        for d in [
-            "HOME",
-            "USERPROFILE",
-            "LOCALAPPDATA",
-            "APPDATA",
-            "XDG_STATE_HOME",
-            "XDG_DATA_HOME",
-            "XDG_CONFIG_HOME",
-        ] {
-            let dir = self.0.join("home").join(d.to_ascii_lowercase());
-            std::fs::create_dir_all(&dir).unwrap();
-            cmd.env(d, &dir);
-        }
+        cmd.args(args).current_dir(&self.0);
+        isolate(&mut cmd, &self.0);
         cmd.output().unwrap()
     }
 
@@ -62,64 +44,6 @@ impl Drop for Tmp {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
     }
-}
-
-/// The path of the `ew` binary under test (nextest's run-time path, else the compile-time one).
-// The program boundary of a test: the path only chooses which binary runs; no compared result depends on it.
-#[allow(clippy::disallowed_methods)]
-fn bin_exe() -> PathBuf {
-    std::env::var_os("NEXTEST_BIN_EXE_ew")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap() {
-        let e = e.unwrap();
-        let target = to.join(e.file_name());
-        if e.file_type().unwrap().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
-}
-
-/// Every file under `dir` with its bytes.
-fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
-    fn walk(root: &Path, dir: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
-        for e in std::fs::read_dir(dir).unwrap() {
-            let e = e.unwrap();
-            if e.file_type().unwrap().is_dir() {
-                walk(root, &e.path(), out);
-            } else {
-                let rel = e
-                    .path()
-                    .strip_prefix(root)
-                    .unwrap()
-                    .to_string_lossy()
-                    .replace('\\', "/");
-                out.insert(rel, std::fs::read(e.path()).unwrap());
-            }
-        }
-    }
-    let mut out = BTreeMap::new();
-    walk(dir, dir, &mut out);
-    out
-}
-
-/// The arguments: words and paths.
-fn args<const N: usize>(items: [&dyn AsRef<OsStr>; N]) -> Vec<OsString> {
-    items.iter().map(|a| a.as_ref().to_owned()).collect()
-}
-
-fn stdout(o: &Output) -> String {
-    String::from_utf8_lossy(&o.stdout).into_owned()
-}
-
-fn stderr(o: &Output) -> String {
-    String::from_utf8_lossy(&o.stderr).into_owned()
 }
 
 /// `schema` compiled by the independent validator under the name `url`.

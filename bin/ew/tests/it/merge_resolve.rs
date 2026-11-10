@@ -131,63 +131,49 @@ fn cr4_the_release_gate_is_blocked_by_ew_core_011() {
     session.close();
 }
 
-/// CR-3: theirs writes WH into W20, removes the conflict and saves page 102 canonically: Golden A's file with W20's
-/// csa 2.5 and colour WH.
+/// CR-3: `ew merge resolve` takes theirs (WH, with `--kind` and `--field`, and with `--json`, which prints
+/// `ew.merge-resolve-result/1`) or ours (BU), removes the conflict and saves page 102 canonically: Golden A's file with
+/// W20's csa 2.5 and the colour taken.
 #[test]
-fn cr3_merge_resolve_theirs_writes_wh_and_saves_the_page_canonically() {
-    let c = Copy::new();
-    let o = c.ew(&[
-        "merge",
-        "resolve",
-        "--take",
-        "theirs",
-        "--kind",
-        "connection",
-        "--field",
-        "overrides.colour",
-    ]);
-    assert_eq!(
-        result(&o),
+fn cr3_merge_resolve_takes_a_side_and_saves_the_page_canonically() {
+    let cases: [(&[&str], &str, &str, &str); 3] = [
         (
-            Some(0),
-            "1 conflict resolved, theirs taken; saved\n".to_owned(),
-            String::new()
-        )
-    );
-    assert_eq!(c.page(), page_with(&colour("WH")));
-}
-
-/// CR-3: ours keeps BU and removes the conflict.
-#[test]
-fn cr3_merge_resolve_ours_keeps_bu() {
-    let c = Copy::new();
-    let o = c.ew(&["merge", "resolve", "--take", "ours"]);
-    assert_eq!(
-        result(&o),
+            &[
+                "--take",
+                "theirs",
+                "--kind",
+                "connection",
+                "--field",
+                "overrides.colour",
+            ],
+            "1 conflict resolved, theirs taken; saved\n",
+            "WH",
+            "theirs",
+        ),
         (
-            Some(0),
-            "1 conflict resolved, ours taken; saved\n".to_owned(),
-            String::new()
-        )
-    );
-    assert_eq!(c.page(), page_with(&colour("BU")));
-}
-
-/// `--json` prints the result as the other commands do, `ew.merge-resolve-result/1`.
-#[test]
-fn merge_resolve_json_prints_its_result() {
-    let c = Copy::new();
-    let o = c.ew(&["merge", "resolve", "--take", "theirs", "--json"]);
-    assert_eq!(
-        result(&o),
+            &["--take", "ours"],
+            "1 conflict resolved, ours taken; saved\n",
+            "BU",
+            "ours",
+        ),
         (
-            Some(0),
-            "{\n  \"$schema\": \"ew.merge-resolve-result/1\",\n  \"resolved\": 1,\n  \"take\": \"theirs\"\n}\n"
-                .to_owned(),
-            String::new()
-        )
-    );
-    assert_eq!(c.page(), page_with(&colour("WH")));
+            &["--take", "theirs", "--json"],
+            "{\n  \"$schema\": \"ew.merge-resolve-result/1\",\n  \"resolved\": 1,\n  \"take\": \"theirs\"\n}\n",
+            "WH",
+            "theirs json",
+        ),
+    ];
+    for (flags, said, taken, name) in cases {
+        let c = Copy::new();
+        let mut args = vec!["merge", "resolve"];
+        args.extend(flags);
+        assert_eq!(
+            result(&c.ew(&args)),
+            (Some(0), said.to_owned(), String::new()),
+            "{name}"
+        );
+        assert_eq!(c.page(), page_with(&colour(taken)), "{name}");
+    }
 }
 
 /// A selection that matches no conflict is a usage error with its reason; nothing is written.

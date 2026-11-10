@@ -9,9 +9,11 @@
 //! the terminal diagrams.
 
 use std::collections::BTreeMap;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+
+use super::conventions::{args, bin_exe, copy_dir, isolate, stderr, stdout};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
@@ -28,27 +30,8 @@ impl Tmp {
     /// `SOURCE_DATE_EPOCH`.
     fn ew(&self, args: &[OsString]) -> Output {
         let mut cmd = Command::new(bin_exe());
-        cmd.args(args)
-            .current_dir(&self.0)
-            .env_remove("DISPLAY")
-            .env_remove("WAYLAND_DISPLAY")
-            .env_remove("SOURCE_DATE_EPOCH")
-            .env_remove("EW_CONTENT_DIR")
-            .env("EW_DATA_DIR", self.0.join("data"))
-            .env("EW_CACHE_DIR", self.0.join("cache"));
-        for d in [
-            "HOME",
-            "USERPROFILE",
-            "LOCALAPPDATA",
-            "APPDATA",
-            "XDG_STATE_HOME",
-            "XDG_DATA_HOME",
-            "XDG_CONFIG_HOME",
-        ] {
-            let dir = self.0.join("home").join(d.to_ascii_lowercase());
-            std::fs::create_dir_all(&dir).unwrap();
-            cmd.env(d, &dir);
-        }
+        cmd.args(args).current_dir(&self.0);
+        isolate(&mut cmd, &self.0);
         cmd.output().unwrap()
     }
 
@@ -64,41 +47,6 @@ impl Drop for Tmp {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
     }
-}
-
-/// The path of the `ew` binary under test (nextest's run-time path, else the compile-time one).
-// The program boundary of a test: the path only chooses which binary runs; no compared result depends on it.
-#[allow(clippy::disallowed_methods)]
-fn bin_exe() -> PathBuf {
-    std::env::var_os("NEXTEST_BIN_EXE_ew")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap() {
-        let e = e.unwrap();
-        let target = to.join(e.file_name());
-        if e.file_type().unwrap().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
-}
-
-/// The arguments: words and paths.
-fn args<const N: usize>(items: [&dyn AsRef<OsStr>; N]) -> Vec<OsString> {
-    items.iter().map(|a| a.as_ref().to_owned()).collect()
-}
-
-fn stdout(o: &Output) -> String {
-    String::from_utf8_lossy(&o.stdout).into_owned()
-}
-
-fn stderr(o: &Output) -> String {
-    String::from_utf8_lossy(&o.stderr).into_owned()
 }
 
 /// A committed expected file.
@@ -152,7 +100,8 @@ fn block_id(first_folio: u32) -> String {
 // OU-1: `ew render`
 
 /// OU-1 (FR-EXT-004): `ew render --page 103 --png --out 103.png` writes the bytes of `expected/png/103.png`; without
-/// `--out` the PNG goes to `103.png` in the working directory and nothing to stdout but the summary.
+/// `--out` the PNG goes to `103.png` in the working directory and nothing to stdout but the summary; `--dpi 300`
+/// doubles both pixel dimensions.
 #[test]
 fn render_writes_the_golden_png_of_folio_103() {
     let t = Tmp::new();
@@ -174,13 +123,7 @@ fn render_writes_the_golden_png_of_folio_103() {
         "the default file is <folio>.png in the working directory"
     );
     assert!(!stdout(&o).contains("PNG\r\n"), "no PNG bytes on stdout");
-}
-
-/// OU-1: `--dpi 300` doubles both pixel dimensions of the 150 dpi default.
-#[test]
-fn render_at_300_dpi_doubles_both_dimensions() {
-    let t = Tmp::new();
-    let p = t.golden();
+    // `--dpi 300` doubles both pixel dimensions of the 150 dpi default.
     let out = t.0.join("103-300.png");
     let o = t.ew(&args([
         &"render", &p, &"--page", &"103", &"--png", &"--dpi", &"300", &"--out", &out,

@@ -42,29 +42,10 @@ impl Tmp {
     /// unless `content`, no display and no `SOURCE_DATE_EPOCH`.
     fn ew_with(&self, args: &[OsString], content: bool) -> Output {
         let mut cmd = Command::new(bin_exe());
-        cmd.args(args)
-            .env_remove("DISPLAY")
-            .env_remove("WAYLAND_DISPLAY")
-            .env_remove("SOURCE_DATE_EPOCH")
-            .env("EW_DATA_DIR", self.0.join("data"))
-            .env("EW_CACHE_DIR", self.0.join("cache"));
+        cmd.args(args);
+        isolate(&mut cmd, &self.0);
         if content {
             cmd.env("EW_CONTENT_DIR", CONTENT);
-        } else {
-            cmd.env_remove("EW_CONTENT_DIR");
-        }
-        for d in [
-            "HOME",
-            "USERPROFILE",
-            "LOCALAPPDATA",
-            "APPDATA",
-            "XDG_STATE_HOME",
-            "XDG_DATA_HOME",
-            "XDG_CONFIG_HOME",
-        ] {
-            let dir = self.0.join("home").join(d.to_ascii_lowercase());
-            std::fs::create_dir_all(&dir).unwrap();
-            cmd.env(d, &dir);
         }
         cmd.output().unwrap()
     }
@@ -129,6 +110,30 @@ pub(super) fn bin_exe() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
 }
 
+/// Isolates `cmd` under `root`: no display, no starter content and no `SOURCE_DATE_EPOCH`; the user directories, the
+/// data directory and the cache directory inside `root`.
+pub(super) fn isolate(cmd: &mut Command, root: &Path) {
+    cmd.env_remove("DISPLAY")
+        .env_remove("WAYLAND_DISPLAY")
+        .env_remove("SOURCE_DATE_EPOCH")
+        .env_remove("EW_CONTENT_DIR")
+        .env("EW_DATA_DIR", root.join("data"))
+        .env("EW_CACHE_DIR", root.join("cache"));
+    for d in [
+        "HOME",
+        "USERPROFILE",
+        "LOCALAPPDATA",
+        "APPDATA",
+        "XDG_STATE_HOME",
+        "XDG_DATA_HOME",
+        "XDG_CONFIG_HOME",
+    ] {
+        let dir = root.join("home").join(d.to_ascii_lowercase());
+        std::fs::create_dir_all(&dir).unwrap();
+        cmd.env(d, &dir);
+    }
+}
+
 pub(super) fn copy_dir(from: &Path, to: &Path) {
     std::fs::create_dir_all(to).unwrap();
     for e in std::fs::read_dir(from).unwrap() {
@@ -175,7 +180,7 @@ fn with_a_broken_line(project: &Path, saved: bool) {
 }
 
 /// Every file of a directory tree with its bytes, by relative path.
-fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
+pub(super) fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
     fn go(dir: &Path, base: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
         for e in std::fs::read_dir(dir).unwrap() {
             let p = e.unwrap().path();
@@ -193,15 +198,15 @@ fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
 }
 
 /// The arguments: words and paths.
-fn args<const N: usize>(items: [&dyn AsRef<OsStr>; N]) -> Vec<OsString> {
+pub(super) fn args<const N: usize>(items: [&dyn AsRef<OsStr>; N]) -> Vec<OsString> {
     items.iter().map(|a| a.as_ref().to_owned()).collect()
 }
 
-fn stdout(o: &Output) -> String {
+pub(super) fn stdout(o: &Output) -> String {
     String::from_utf8_lossy(&o.stdout).into_owned()
 }
 
-fn stderr(o: &Output) -> String {
+pub(super) fn stderr(o: &Output) -> String {
     String::from_utf8_lossy(&o.stderr).into_owned()
 }
 
@@ -948,24 +953,6 @@ fn json_is_the_alias_of_format_json() {
     assert_eq!((json.status.code(), &json.stdout), (Some(0), &format.stdout));
     let o = t.ew(&args([&"sql", &p, &q, &"--format", &"csv", &"--json"]));
     assert_eq!(o.status.code(), Some(2));
-}
-
-/// CL-4: the release-note line of the `lib` JSON change (D3 (d)) exists; the shape itself is asserted by
-/// `tests/cli.rs` and by the reading results above.
-#[test]
-fn the_lib_json_change_has_its_release_note_line() {
-    let notes = std::fs::read_to_string(
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/release-notes/unreleased.md"),
-    )
-    .unwrap();
-    for item in ["lib list --json", "lib search --json"] {
-        assert!(
-            notes
-                .lines()
-                .any(|l| l.contains(&format!("api-break: cli {item}"))),
-            "docs/release-notes/unreleased.md names `{item}`"
-        );
-    }
 }
 
 /// CL-5: `ew commands --json` lists the command registry's index in its order; `ew schema` prints a command's

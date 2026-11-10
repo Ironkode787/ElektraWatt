@@ -5,9 +5,11 @@
 //! (EZ-2), every other subcommand's refusal of one, and `ew extract` (EZ-3, EZ-4).
 
 use std::collections::BTreeMap;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+
+use super::conventions::{args, bin_exe, copy_dir, isolate, stderr, stdout, tree};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const VARIANTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/variants");
@@ -27,28 +29,9 @@ impl Tmp {
     /// `ew` in this directory with its user directories inside it, no starter content, no display and no
     /// `SOURCE_DATE_EPOCH`.
     fn ew(&self, args: &[OsString]) -> Output {
-        let mut cmd = Command::new(super::conventions::bin_exe());
-        cmd.args(args)
-            .current_dir(&self.0)
-            .env_remove("DISPLAY")
-            .env_remove("WAYLAND_DISPLAY")
-            .env_remove("SOURCE_DATE_EPOCH")
-            .env_remove("EW_CONTENT_DIR")
-            .env("EW_DATA_DIR", self.0.join("data"))
-            .env("EW_CACHE_DIR", self.0.join("cache"));
-        for d in [
-            "HOME",
-            "USERPROFILE",
-            "LOCALAPPDATA",
-            "APPDATA",
-            "XDG_STATE_HOME",
-            "XDG_DATA_HOME",
-            "XDG_CONFIG_HOME",
-        ] {
-            let dir = self.0.join("home").join(d.to_ascii_lowercase());
-            std::fs::create_dir_all(&dir).unwrap();
-            cmd.env(d, &dir);
-        }
+        let mut cmd = Command::new(bin_exe());
+        cmd.args(args).current_dir(&self.0);
+        isolate(&mut cmd, &self.0);
         cmd.output().unwrap()
     }
 
@@ -103,41 +86,6 @@ impl Drop for Tmp {
     }
 }
 
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap() {
-        let e = e.unwrap();
-        let target = to.join(e.file_name());
-        if e.file_type().unwrap().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
-}
-
-/// Every file below `dir`, by `/`-separated relative path.
-fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
-    fn walk(dir: &Path, base: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
-        for e in std::fs::read_dir(dir).unwrap() {
-            let path = e.unwrap().path();
-            if path.is_dir() {
-                walk(&path, base, out);
-            } else {
-                let rel = path
-                    .strip_prefix(base)
-                    .unwrap()
-                    .to_string_lossy()
-                    .replace('\\', "/");
-                out.insert(rel, std::fs::read(&path).unwrap());
-            }
-        }
-    }
-    let mut out = BTreeMap::new();
-    walk(dir, dir, &mut out);
-    out
-}
-
 /// The names directly in `dir`.
 fn names(dir: &Path) -> Vec<String> {
     let mut out: Vec<String> = std::fs::read_dir(dir)
@@ -146,19 +94,6 @@ fn names(dir: &Path) -> Vec<String> {
         .collect();
     out.sort();
     out
-}
-
-/// The arguments: words and paths.
-fn args<const N: usize>(items: [&dyn AsRef<OsStr>; N]) -> Vec<OsString> {
-    items.iter().map(|a| a.as_ref().to_owned()).collect()
-}
-
-fn stdout(o: &Output) -> String {
-    String::from_utf8_lossy(&o.stdout).into_owned()
-}
-
-fn stderr(o: &Output) -> String {
-    String::from_utf8_lossy(&o.stderr).into_owned()
 }
 
 /// What a run printed and wrote: its exit code, stdout and stderr (its output path as `<out>`) and the files it wrote

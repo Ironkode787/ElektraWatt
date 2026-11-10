@@ -269,21 +269,16 @@ fn report_json_to_stdout() {
 }
 
 #[test]
-fn strict_passes_clean_project() {
+fn strict_fails_on_error_finding_lenient_does_not() {
     let t = Tmp::new();
-    let f = t.project();
+    let clean = t.project();
     let o = ew(&[
         "import".as_ref(),
         "qet".as_ref(),
-        f.as_os_str(),
+        clean.as_os_str(),
         "--strict".as_ref(),
     ]);
     assert_eq!(o.status.code(), Some(0), "{}", String::from_utf8_lossy(&o.stderr));
-}
-
-#[test]
-fn strict_fails_on_error_finding_lenient_does_not() {
-    let t = Tmp::new();
     let f = t.project_with(LOST);
     let lenient = ew(&["import".as_ref(), "qet".as_ref(), f.as_os_str()]);
     assert_eq!(
@@ -393,6 +388,13 @@ fn usage_errors_are_exit_2() {
     assert_eq!(ew(&["import".as_ref(), "qet".as_ref()]).status.code(), Some(2));
     assert_eq!(ew(&["bogus".as_ref()]).status.code(), Some(2));
     assert_eq!(ew(&[]).status.code(), Some(2));
+    let o = ew(&[
+        "check".as_ref(),
+        GOLDEN_A.as_ref(),
+        "--scheme".as_ref(),
+        "bogus".as_ref(),
+    ]);
+    assert_eq!(o.status.code(), Some(2), "an unknown --scheme: {}", stderr(&o));
 }
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
@@ -592,17 +594,6 @@ fn check_notices_a_project_scheme_this_build_does_not_ship() {
     let (_, scheme, stderr) = run(&dir, &[]);
     assert_eq!(scheme, "pre-delivery");
     assert!(!stderr.contains("not shipped"), "{stderr}");
-}
-
-#[test]
-fn check_unknown_scheme_is_exit_2() {
-    let o = ew(&[
-        "check".as_ref(),
-        GOLDEN_A.as_ref(),
-        "--scheme".as_ref(),
-        "bogus".as_ref(),
-    ]);
-    assert_eq!(o.status.code(), Some(2));
 }
 
 /// P5-2: `ew check --lang nl-NL` prints the Dutch text of a rule with an nl-NL pattern (EW-POT-013 on
@@ -998,10 +989,12 @@ fn export_errors_are_exit_2() {
 
 /// A small saved project: one page, no report blocks.
 fn tiny_project(t: &Tmp) -> PathBuf {
-    let project = serde_json::from_str(
-        r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
-    )
-    .unwrap();
+    saved_project(t, "tiny.ew", "7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37")
+}
+
+/// A fresh saved project `name` in `t` with the project ID `id`: one page, no parts.
+fn saved_project(t: &Tmp, name: &str, id: &str) -> PathBuf {
+    let project = serde_json::from_str(&format!(r#"{{"id":"{id}","derivation_profile":"2027.1"}}"#)).unwrap();
     let mut session =
         ew_api::Session::from_records(project, [], [], ew_api::SessionOptions::default()).unwrap();
     session
@@ -1010,7 +1003,7 @@ fn tiny_project(t: &Tmp) -> PathBuf {
             params: serde_json::json!({"number": 1, "title": "Cover"}),
         })
         .unwrap();
-    let dir = t.0.join("tiny.ew");
+    let dir = t.0.join(name);
     let mut store = ew_api::StoreOptions::new("test");
     store.state_dir = None;
     session.create(&dir, store).unwrap();
@@ -2020,24 +2013,7 @@ const GOLDEN_PARTS: &str = concat!(
 
 /// A fresh saved project without parts (FT-410's import target).
 fn parts_target(t: &Tmp, name: &str) -> PathBuf {
-    let project = serde_json::from_str(
-        r#"{"id":"3b9e51c4-8a27-7d10-b5f3-6c0a2e9d4f18","derivation_profile":"2027.1"}"#,
-    )
-    .unwrap();
-    let mut session =
-        ew_api::Session::from_records(project, [], [], ew_api::SessionOptions::default()).unwrap();
-    session
-        .execute(&ew_api::AnyCommand {
-            name: "page.create".into(),
-            params: serde_json::json!({"number": 1, "title": "Cover"}),
-        })
-        .unwrap();
-    let dir = t.0.join(name);
-    let mut store = ew_api::StoreOptions::new("test");
-    store.state_dir = None;
-    session.create(&dir, store).unwrap();
-    session.close();
-    dir
+    saved_project(t, name, "3b9e51c4-8a27-7d10-b5f3-6c0a2e9d4f18")
 }
 
 /// The part copies of a `lib/parts` folder by `item_id`, without the members that legitimately differ between
@@ -3025,22 +3001,8 @@ const STARTER_MCB_ASSIGN: &str = r#"{"cmd":"part.assign","params":{"copies":[{"$
 fn a_writer_names_the_damaged_copy_of_an_installed_part_whole() {
     let t = Tmp::new();
     let home = t.0.join("home");
-    let project = golden_copy(&t);
-    let copy = "4b259878-8a92-56e0-ac8e-8f23e7c66a6b";
-    let assign = STARTER_MCB_ASSIGN;
-    let log = t.0.join("assign.ewcmd");
-    std::fs::write(
-        &log,
-        format!("{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"test\"}}\n{assign}\n"),
-    )
-    .unwrap();
-    let applied = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
-    assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
-    std::fs::write(
-        project.join(format!("lib/parts/{copy}.json")),
-        "{\"$k\": \"part\",\n",
-    )
-    .unwrap();
+    let (project, file) = starter_mcb_project(&t, &home);
+    std::fs::write(&file, "{\"$k\": \"part\",\n").unwrap();
     let before = tree(&project);
     let o = ew_in(&home, &["fmt".as_ref(), project.as_os_str()], &[]);
     assert_eq!(
@@ -3339,14 +3301,7 @@ fn after_the_first_line(bytes: &[u8], lines: &[&[u8]]) -> Vec<u8> {
 /// Writes `bytes` to the project file `rel` with their hash in the manifest, as a save of those bytes writes it: lines
 /// that came with the generation, not an edit outside ElektraWatt since the last save.
 fn put_as_saved(project: &std::path::Path, rel: &str, bytes: &[u8]) {
-    use sha2::Digest;
-    let hash = |b: &[u8]| {
-        let hex: String = sha2::Sha256::digest(b)
-            .iter()
-            .map(|x| format!("{x:02x}"))
-            .collect();
-        format!("sha256:{hex}")
-    };
+    let hash = |b: &[u8]| format!("sha256:{}", sha256_hex(b));
     let (old, new) = (hash(&std::fs::read(project.join(rel)).unwrap()), hash(bytes));
     let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
     assert_eq!(manifest.matches(&old).count(), 1, "the manifest lists {rel} once");
@@ -3466,15 +3421,8 @@ fn fmt_repair_discards_a_broken_line_after_a_backup() {
 /// manifest verified and hashed to the files, every listed file as it was before the repair.
 #[test]
 fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
-    use sha2::Digest;
     const NOT_JSON: &[u8] = br#"{"$k":"page","id":"#;
-    let hash = |b: &[u8]| {
-        let hex: String = sha2::Sha256::digest(b)
-            .iter()
-            .map(|x| format!("{x:02x}"))
-            .collect();
-        format!("sha256:{hex}")
-    };
+    let hash = |b: &[u8]| format!("sha256:{}", sha256_hex(b));
     let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
     for merged in [false, true] {
         let t = Tmp::new();

@@ -93,14 +93,26 @@ fn page_with(overrides: &str) -> String {
     base.replace(&w20, &w20.replace(W20_OVERRIDES, overrides))
 }
 
+/// W20's page of the common ancestor, of branch A (adds `colour` BU) and of branch B (sets `csa` "2.5").
+fn clean_sides() -> (String, String, String) {
+    (
+        page_with(W20_OVERRIDES),
+        page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#),
+        page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#),
+    )
+}
+
+/// The page the two branches of [`clean_sides`] merge to.
+fn merged_sides() -> String {
+    page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#)
+}
+
 /// MD-5, MD-6: branch A adds W20's `colour` BU, branch B sets `csa` "2.5": exit 0 and the merged page, in both forms.
 #[test]
 fn md6_w20_merges_cleanly_to_csa_2_5_and_colour_bu_and_exits_0() {
     let t = Tree::new();
-    let base = page_with(W20_OVERRIDES);
-    let ours = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
-    let theirs = page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#);
-    let expected = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
+    let (base, ours, theirs) = clean_sides();
+    let expected = merged_sides();
     for five in [true, false] {
         let (out, merged) = t.merge([&base, &ours, &theirs], form(five, REPO_PAGE));
         assert_eq!(result(&out), (Some(0), String::new(), String::new()));
@@ -114,10 +126,9 @@ fn md6_w20_merges_cleanly_to_csa_2_5_and_colour_bu_and_exits_0() {
 #[test]
 fn md6_the_w20_conflict_variant_writes_one_conflict_record_and_exits_1() {
     let t = Tree::new();
-    let base = page_with(W20_OVERRIDES);
-    let ours = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
+    let (base, ours, _) = clean_sides();
     let theirs = page_with(r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#);
-    let kept = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
+    let kept = merged_sides();
     // D14's member order.
     let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
     for five in [true, false] {
@@ -194,15 +205,8 @@ fn a_side_newer_than_the_reader_is_left_as_ours() {
     assert_eq!(merged, ours);
 
     std::fs::write(t.0.join(manifest), &theirs).unwrap();
-    let ours = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
-    let (out, merged) = t.merge(
-        [
-            &page_with(W20_OVERRIDES),
-            &ours,
-            &page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#),
-        ],
-        form(false, REPO_PAGE),
-    );
+    let (base, ours, theirs) = clean_sides();
+    let (out, merged) = t.merge([&base, &ours, &theirs], form(false, REPO_PAGE));
     assert_eq!(result(&out), (Some(1), String::new(), said(REPO_PAGE)));
     assert_eq!(merged, ours);
 }
@@ -218,9 +222,7 @@ fn a_record_this_reader_cannot_read_leaves_the_file_as_ours() {
         let line = page.lines().find(|l| l.contains(id)).expect("W20").to_owned();
         page.replace(&line, &line.replacen(from, to, 1))
     };
-    let base = page_with(W20_OVERRIDES);
-    let ours = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
-    let theirs = page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#);
+    let (base, ours, theirs) = clean_sides();
     let newer = w20(theirs.clone(), id, &format!("{id},\"$v\":2"));
     assert_ne!(newer, theirs);
     let (out, merged) = t.merge([&base, &ours, &newer], form(true, REPO_PAGE));
@@ -234,11 +236,7 @@ fn a_record_this_reader_cannot_read_leaves_the_file_as_ours() {
 
     let end = r#""key":"connections|W20"}}"#;
     let later = w20(theirs, end, r#""key":"connections|W20"},"later":"kept"}"#);
-    let expected = w20(
-        page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#),
-        end,
-        r#""key":"connections|W20"},"later":"kept"}"#,
-    );
+    let expected = w20(merged_sides(), end, r#""key":"connections|W20"},"later":"kept"}"#);
     let (out, merged) = t.merge([&base, &ours, &later], form(true, REPO_PAGE));
     assert_eq!(result(&out), (Some(0), String::new(), String::new()));
     assert_eq!(merged, expected);
@@ -269,9 +267,7 @@ fn a_library_document_this_reader_cannot_read_is_left_as_ours() {
 #[test]
 fn md5_a_failed_write_exits_129_and_leaves_a_byte_identical() {
     let t = Tree::new();
-    let base = page_with(W20_OVERRIDES);
-    let ours = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
-    let theirs = page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#);
+    let (base, ours, theirs) = clean_sides();
     let tmp = t.0.join(".merge_file_a.tmp");
     std::fs::create_dir(&tmp).unwrap();
     let os_error = std::fs::File::create(&tmp).unwrap_err();
@@ -338,10 +334,8 @@ fn three_arguments_are_a_usage_error() {
 fn a_path_beginning_with_a_hyphen_merges() {
     let t = Tree::new();
     std::fs::rename(t.0.join("proj"), t.0.join("-proj")).unwrap();
-    let base = page_with(W20_OVERRIDES);
-    let ours = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
-    let theirs = page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#);
-    let expected = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
+    let (base, ours, theirs) = clean_sides();
+    let expected = merged_sides();
     let path = "-proj/J-E-2416.ew/pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
     let (out, merged) = t.merge([&base, &ours, &theirs], form(true, path));
     assert_eq!(result(&out), (Some(0), String::new(), String::new()));
