@@ -14,7 +14,7 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::navigators::NavKind;
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
-use serde_json::{json};
+use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness_with, settle, wait_for_page};
 
 /// A copy of Golden A in the window at 1280 × 800, on folio 101.
