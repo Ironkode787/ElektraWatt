@@ -4,20 +4,15 @@
 //! `ew symbol` through the built binary: its five subcommands, their exit codes, a library created
 //! and then reused, and a key that another symbol holds.
 
-use std::ffi::OsString;
 use std::path::Path;
 
 use serde_json::{Value, json};
 
-use crate::tables::{Tmp, stderr, stdout};
-
-fn args(list: &[&dyn AsRef<std::ffi::OsStr>]) -> Vec<OsString> {
-    list.iter().map(|a| a.as_ref().to_owned()).collect()
-}
+use crate::tables::{Tmp, args, stderr, stdout};
 
 /// A valid one-pin draft keyed `key`, from the template.
 fn valid(tmp: &Tmp, key: &str) -> Value {
-    let o = tmp.ew(&args(&[&"symbol", &"template", &key, &"Contact"]));
+    let o = tmp.ew(&args([&"symbol", &"template", &key, &"Contact"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let mut draft: Value = serde_json::from_str(&stdout(&o)).unwrap();
     draft["symbol"]["graphics"] = json!([{"line":{"from":[0,0],"to":[0,4_000_000],"stroke":{"pen":"p026"}}}]);
@@ -33,12 +28,12 @@ fn write(path: &Path, value: &Value) {
 #[test]
 fn template_schema_and_validate_exit_as_documented() {
     let tmp = Tmp::new();
-    let o = tmp.ew(&args(&[&"symbol", &"template", &"example.contact", &"Contact"]));
+    let o = tmp.ew(&args([&"symbol", &"template", &"example.contact", &"Contact"]));
     assert_eq!(o.status.code(), Some(0));
     let template: Value = serde_json::from_str(&stdout(&o)).unwrap();
     assert_eq!(template["format"], "ew.symbol/1");
     assert_eq!(template["key"], "example.contact");
-    let o = tmp.ew(&args(&[&"symbol", &"schema"]));
+    let o = tmp.ew(&args([&"symbol", &"schema"]));
     assert_eq!(o.status.code(), Some(0));
     let schema: Value = serde_json::from_str(&stdout(&o)).unwrap();
     assert_eq!(schema["properties"]["format"]["const"], "ew.symbol/1");
@@ -46,7 +41,7 @@ fn template_schema_and_validate_exit_as_documented() {
     // The template has no drawing yet: exit 1 with the issue.
     let file = tmp.0.join("template.symbol.json");
     write(&file, &template);
-    let o = tmp.ew(&args(&[&"symbol", &"validate", &file]));
+    let o = tmp.ew(&args([&"symbol", &"validate", &file]));
     assert_eq!(o.status.code(), Some(1));
     assert_eq!(
         serde_json::from_str::<Value>(&stdout(&o)).unwrap(),
@@ -54,7 +49,7 @@ fn template_schema_and_validate_exit_as_documented() {
             {"code":"symbol-graphics-required","path":"/symbol/graphics","detail":"example.contact"}]})
     );
     write(&file, &valid(&tmp, "example.contact"));
-    let o = tmp.ew(&args(&[&"symbol", &"validate", &file]));
+    let o = tmp.ew(&args([&"symbol", &"validate", &file]));
     assert_eq!(o.status.code(), Some(0));
     assert_eq!(
         serde_json::from_str::<Value>(&stdout(&o)).unwrap(),
@@ -62,7 +57,7 @@ fn template_schema_and_validate_exit_as_documented() {
     );
     // Unreadable input: exit 2.
     std::fs::write(&file, b"{").unwrap();
-    let o = tmp.ew(&args(&[&"symbol", &"validate", &file]));
+    let o = tmp.ew(&args([&"symbol", &"validate", &file]));
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(stdout(&o), "");
 }
@@ -77,9 +72,9 @@ fn import_takes_the_file_name_as_its_key_unless_one_is_given() {
     )
     .unwrap();
     for (extra, key) in [(None, "contact_no"), (Some("example.qet"), "example.qet")] {
-        let mut list = args(&[&"symbol", &"import", &file]);
+        let mut list = args([&"symbol", &"import", &file]);
         if let Some(k) = extra {
-            list.extend(args(&[&"--key", &k]));
+            list.extend(args([&"--key", &k]));
         }
         let o = tmp.ew(&list);
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
@@ -90,7 +85,7 @@ fn import_takes_the_file_name_as_its_key_unless_one_is_given() {
     // Input that is no element: exit 2, nothing printed.
     let broken = tmp.0.join("broken.elmt");
     std::fs::write(&broken, b"not an element").unwrap();
-    let o = tmp.ew(&args(&[&"symbol", &"import", &broken]));
+    let o = tmp.ew(&args([&"symbol", &"import", &broken]));
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(stdout(&o), "");
 }
@@ -100,7 +95,7 @@ fn publish_creates_then_reuses_the_library_and_refuses_a_key_another_symbol_hold
     let tmp = Tmp::new();
     let library = tmp.0.join("symbols.ewlib");
     let file = tmp.0.join("contact.symbol.json");
-    let publish = |file: &Path| tmp.ew(&args(&[&"symbol", &"publish", &file, &"--library", &library]));
+    let publish = |file: &Path| tmp.ew(&args([&"symbol", &"publish", &file, &"--library", &library]));
     // An invalid draft creates no library.
     let mut off_grid = valid(&tmp, "example.contact");
     off_grid["symbol"]["cps"][0]["pos"] = json!([4_500_000, 0]);
@@ -153,7 +148,7 @@ fn publish_under_another_key_adds_a_symbol_with_a_new_identity() {
     let tmp = Tmp::new();
     let library = tmp.0.join("symbols.ewlib");
     let file = tmp.0.join("contact.symbol.json");
-    let publish = |file: &Path| tmp.ew(&args(&[&"symbol", &"publish", &file, &"--library", &library]));
+    let publish = |file: &Path| tmp.ew(&args([&"symbol", &"publish", &file, &"--library", &library]));
     let mut draft = valid(&tmp, "example.first");
     write(&file, &draft);
     let o = publish(&file);

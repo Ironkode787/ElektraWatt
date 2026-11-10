@@ -15,7 +15,7 @@ use ew_api::output::sheet::{read_rows, sheet_names};
 use ew_api::zip::{Method, ZipLimits, read as unzip, write as zip};
 use sha2::{Digest, Sha256};
 
-use crate::tables::{EXPECTED, Tmp, args, golden_file, sheet, stderr, stdout};
+use crate::tables::{Tmp, args, golden_file, sheet, stderr, stdout};
 
 /// The columns of the Terminal strips table, as `ew export table strips` heads them.
 const STRIP_HEADERS: [&str; 13] = [
@@ -691,10 +691,6 @@ fn rt5_the_io_list_round_trips_by_id_and_by_point() {
     golden_file(
         "csv/presets/io_list.excel-nl.csv",
         csv.replace("\r\n", "\n").as_bytes(),
-    );
-    assert_eq!(
-        csv.replace("\r\n", "\n"),
-        std::fs::read_to_string(Path::new(EXPECTED).join("csv/presets/io_list.excel-nl.csv")).unwrap()
     );
     let comments = ["Klep open", "Pomp aan", "Koeling geïnstalleerd"];
     let rows: Vec<Vec<&str>> = csv
