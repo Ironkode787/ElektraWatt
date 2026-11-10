@@ -23,7 +23,7 @@ say so; that is a finding.
 
 You may:
 
-- read this prompt, `{blind} help` (the harness help, EW's vocabulary and every action with its parameters) and the
+- read this prompt, `{blind} help` (the harness help and every action with its parameters) and the
   user guide in the folder `book/` of this run;
 - run the harness, `{blind}`, and nothing else;
 - use `look`, `look --page <folio>`, the view actions of the harness help (go to a folio or a cell, zoom, pan, tabs,

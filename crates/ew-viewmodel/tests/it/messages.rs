@@ -10,7 +10,6 @@
 use crate::common;
 use ew_viewmodel::key;
 
-use std::collections::BTreeSet;
 
 use common::{Tmp, at, done, refused};
 use ew_viewmodel::layout::PaneKind;
@@ -740,11 +739,10 @@ fn ms4_f8_with_no_findings_on_show_refuses() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// MS6: the words, the actions, the counts
+// MS6: the actions
 
 #[test]
-fn ms6_the_sixteen_words_the_five_actions_and_the_counts() {
-    use ew_viewmodel::describe::{Reach, words as reach_words};
+fn ms6_the_five_actions_exist() {
     for id in [
         "messages.show",
         "messages.next",
@@ -754,56 +752,6 @@ fn ms6_the_sixteen_words_the_five_actions_and_the_counts() {
     ] {
         assert!(ew_viewmodel::actions::ACTIONS.iter().any(|a| a.id == id), "{id}");
     }
-    // The words the describe text reaches on Golden A with a fix card open (the kinds `safety` and `integrity` need
-    // findings of those kinds, which Golden A's drafting run has none of).
-    let tmp = Tmp::new("msg-words");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
-    let page = shell
-        .page_rows()
-        .iter()
-        .find(|r| r.folio == "102")
-        .map(|r| r.id.to_string())
-        .unwrap();
-    done(
-        &mut shell,
-        "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [page], "path": "description_override",
-            "value": "Overridden"}}),
-    );
-    done(&mut shell, "messages.show", json!({"on": true}));
-    let row = finding(&shell, "EW-CORE-023", "102");
-    done(
-        &mut shell,
-        "navigator.row",
-        json!({"kind": "messages", "key": row.key}),
-    );
-    let mut words: BTreeSet<String> = BTreeSet::new();
-    let mut collect = |shell: &ShellModel| {
-        for l in shell.describe().lines() {
-            words.extend(common::structural_tokens(l));
-        }
-    };
-    collect(&shell);
-    done(&mut shell, "messages.fix", json!({}));
-    collect(&shell);
-    let ef08 = finding(&shell, "EW-CORE-033", "-3W1");
-    done(
-        &mut shell,
-        "navigator.row",
-        json!({"kind": "messages", "key": ef08.key}),
-    );
-    collect(&shell);
-    // `conflict` needs a conflict finding (MS2's second test reaches it on its row's facet, not in the text: the detail
-    // line of an EW-CORE-052 finding prints it); `safety` and `integrity` need findings of those kinds, which the
-    // drafting run of Golden A has none of.
-    let unreachable = ["safety", "conflict", "integrity"];
-    for w in reach_words(Reach::Msg)
-        .iter()
-        .filter(|w| !unreachable.contains(w))
-    {
-        assert!(words.contains(*w), "`{w}` is reached");
-    }
-    shell.shutdown();
 }
 
 /// `navigator.row {key}` to a finding under a collapsed group expands its path and puts the cursor on it; a key

@@ -404,11 +404,10 @@ fn np5_new_structure_node_prefills_the_marked_parent() {
     shell.shutdown();
 }
 
-/// NP6 (§7.4, D15), the model half: the 6 words are in the vocabulary (291 words) and reached by the describe text,
-/// and the registry has 217 actions with Ctrl+Shift+H in the navigator context.
+/// NP6 (§7.4, D15), the model half: `navigator.highlight` has Ctrl+Shift+H in the navigator context and highlights a
+/// potential's row.
 #[test]
-fn np6_the_six_words_and_the_two_actions() {
-    use ew_viewmodel::describe::{Reach, words as reach_words};
+fn np6_the_highlight_action() {
     let hl = ew_viewmodel::actions::ACTIONS
         .iter()
         .find(|a| a.id == "navigator.highlight")
@@ -425,24 +424,6 @@ fn np6_the_six_words_and_the_two_actions() {
         "navigator.highlight",
         json!({"kind": "potentials", "key": key}),
     );
-    let text = shell.describe();
-    let words: BTreeSet<&str> = text
-        .lines()
-        .flat_map(|l| {
-            let mut out = Vec::new();
-            let mut quoted = false;
-            for part in l.split('"') {
-                if !quoted {
-                    out.extend(part.split_whitespace());
-                }
-                quoted = !quoted;
-            }
-            out
-        })
-        .collect();
-    for w in reach_words(Reach::Nav2) {
-        assert!(words.contains(w), "`{w}` is reached");
-    }
     shell.shutdown();
 }
 

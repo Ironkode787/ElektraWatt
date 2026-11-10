@@ -259,12 +259,6 @@ fn ft882_describe_names_the_surface_view() {
         .map(|l| l.split(" cell ").next().unwrap_or(l))
         .collect();
     assert_eq!(items, ["  item surface view"]);
-    for token in common::structural_tokens(items[0]) {
-        assert!(
-            ew_viewmodel::describe::VOCABULARY.contains(&token.as_str()),
-            "`{token}` is a vocabulary word"
-        );
-    }
     shell.shutdown();
 }
 

@@ -534,28 +534,6 @@ fn a_csv_export_keeps_its_id_column_and_ew_is_refused() {
     shell.shutdown();
 }
 
-/// The import card's describe line reaches the words of `Reach::TableFile` (ruling 9).
-#[test]
-fn the_import_card_reaches_its_words() {
-    let tmp = Tmp::new("tfw");
-    let mut shell = strips(&tmp);
-    let out = tmp.0.join("x.xlsx");
-    done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
-    let file = tmp.0.join("y.xlsx");
-    let bytes = std::fs::read(&out).unwrap();
-    std::fs::write(&file, edited(&bytes, "Function text", &[(2, "Valve")])).unwrap();
-    done(&mut shell, "navigator.import_table", json!({"path": text(&file)}));
-    let tokens: Vec<String> = shell
-        .describe()
-        .lines()
-        .flat_map(common::structural_tokens)
-        .collect();
-    for w in ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::TableFile) {
-        assert!(tokens.iter().any(|t| t == w), "{w}");
-    }
-    shell.shutdown();
-}
-
 /// The node keys of the Terminal strips rows on show, in the order on show.
 fn shown_rows(shell: &ShellModel) -> Vec<String> {
     let n = shell.nav(NavKind::Strips).unwrap();

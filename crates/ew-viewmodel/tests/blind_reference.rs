@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S6.13 part 1, acceptance check BD3 (closes): the blind drafter's reference files are generated from
-//! this crate's registry and word lists and compared with the committed copies, so that a lane that adds an action,
-//! a signature or a describe word without updating the harness's help fails here. `EW_BLESS=1` rewrites them:
+//! WP-S6.13 part 1, acceptance check BD3 (closes): the blind drafter's reference file is generated from
+//! this crate's registry and compared with the committed copy, so that a lane that adds an action or a signature
+//! without updating the harness's help fails here. `EW_BLESS=1` rewrites it:
 //!
 //! ```text
 //! EW_BLESS=1 cargo nextest run -p ew-viewmodel --test blind_reference
@@ -11,9 +11,8 @@
 //!
 //! `tools/blind/reference/actions.txt` has one line per action in registry order,
 //! `<id> <View|Command> "<label>" menu "<menu>[ ▸ <submenu>]"|none shortcut "<first>"|none context <context>[ headless]
-//! [ hidden][ needs-parameters] params "<signature>"`; `vocabulary.txt` has a header line, the words of
-//! [`VOCABULARY`] in order, one per line, then `markers:` and the [`FREE_TEXT_MARKERS`], one per line. Both carry the
-//! licence of this crate (they are generated from its strings; REUSE.toml and `ci/licence-map.toml`).
+//! [ hidden][ needs-parameters] params "<signature>"`. It carries the
+//! licence of this crate (it is generated from its strings; REUSE.toml and `ci/licence-map.toml`).
 
 mod common;
 
@@ -21,7 +20,6 @@ use std::path::PathBuf;
 
 use common::bless;
 use ew_viewmodel::actions::{ACTIONS, ActionKind, Context, parse_signature};
-use ew_viewmodel::describe::{FREE_TEXT_MARKERS, VOCABULARY};
 use ew_viewmodel::strings;
 use ew_viewmodel::strings::Key;
 
@@ -98,24 +96,6 @@ fn actions_text() -> String {
     out
 }
 
-/// `vocabulary.txt`: the describe text's structural words, then its free-text markers.
-fn vocabulary_text() -> String {
-    let mut out = format!(
-        "# ew.blindvocab/1: the {} structural words of the describe text, then its free-text markers\n",
-        VOCABULARY.len()
-    );
-    for w in VOCABULARY {
-        out.push_str(w);
-        out.push('\n');
-    }
-    out.push_str("markers:\n");
-    for m in FREE_TEXT_MARKERS {
-        out.push_str(m);
-        out.push('\n');
-    }
-    out
-}
-
 #[track_caller]
 fn check(name: &str, text: &str) {
     let path = reference_dir().join(name);
@@ -141,9 +121,8 @@ fn check(name: &str, text: &str) {
 }
 
 #[test]
-fn the_reference_files_equal_the_registry_and_the_word_lists() {
+fn the_reference_file_equals_the_registry() {
     check("actions.txt", &actions_text());
-    check("vocabulary.txt", &vocabulary_text());
 }
 
 #[test]
@@ -171,8 +150,8 @@ fn the_action_lines_parse_back_and_cover_the_registry() {
 #[test]
 fn a_changed_word_fails_with_the_bless_hint() {
     // The comparison itself: a text that differs in one word is not equal, and the hint names the command.
-    let text = vocabulary_text();
-    assert_ne!(text, text.replacen("\npage\n", "\npagE\n", 1));
+    let text = actions_text();
+    assert_ne!(text, text.replacen("page.describe ", "page.describe2 ", 1));
     assert!(BLESS_HINT.starts_with("EW_BLESS=1 cargo nextest run"));
 }
 

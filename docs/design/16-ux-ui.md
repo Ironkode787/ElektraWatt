@@ -528,9 +528,8 @@ actions on the same shell model with no window, no GPU and no display, and write
 script is JSON Lines `ew.uiscript/1`, the transcript JSON Lines `ew.uitranscript/1` with the observable state after
 each step, `ui.describe` returns the visible UI as text for agents and `view.snapshot` a PNG; `--record` keeps the
 committed model commands as an `ew.cmdlog/1` log, and a headless run uses no user settings unless `EW_CONFIG_DIR` or
-`--config-dir` names a directory. The structural words of `ui.describe` are fixed machine text, listed in full in
-`ew-viewmodel`'s `describe.rs` (`VOCABULARY`, with `FREE_TEXT_MARKERS` for the markers after which a line is user text)
-and checked by a test; quoted text is user text, including the option lists of a choice, every dialog-text line and an
+`--config-dir` names a directory. The structural words of `ui.describe` are fixed machine text;
+quoted text is user text, including the option lists of a choice, every dialog-text line and an
 unavailable preview's reason. The hidden actions `settings.set`, `first_run.*` and `wizard.*` let a script drive the
 first run and the wizard. Whatever the headless mode cannot do, the shell does not do.
 The transcript's `canvas` member gains `renderer` (`auto` or `cpu`, the setting `canvas_backend`) as its last member, and `ui.describe` prints `canvas renderer auto|cpu`; the words `renderer`, `auto` and `cpu` join the vocabulary. A headless run has no render state, so its canvas is always the CPU canvas. The registry action `wizard.apply_check_scheme` and its `reason-human-only` refusal are described in §9.2.

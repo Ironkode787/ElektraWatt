@@ -412,9 +412,9 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
     shell.shutdown();
 }
 
-/// FR6: the describe lines of §7.6 and every structural word in the vocabulary; Escape on a replace card closes it.
+/// FR6: the describe lines of §7.6; Escape on a replace card closes it.
 #[test]
-fn fr6_describe_lines_and_the_fourteen_words() {
+fn fr6_describe_lines() {
     let tmp = Tmp::new("find-fr6");
     let mut shell = writable(&tmp, "204");
     spare(&mut shell, &["204", "205", "206"], "Reserve");
@@ -461,73 +461,7 @@ fn fr6_describe_lines_and_the_fourteen_words() {
         all.contains("selection on scope function_text tag property text part_number"),
         "{all}"
     );
-    let shortcut_keys: Vec<String> = ew_viewmodel::actions::ACTIONS
-        .iter()
-        .flat_map(|a| a.shortcut.iter())
-        .flat_map(|s| s.split(['+', ' ']))
-        .map(str::to_owned)
-        .collect();
-    let mut seen = std::collections::BTreeSet::new();
-    for text in [&d, &with_card, &all] {
-        for line in text.lines() {
-            for word in structural_words(line, &shortcut_keys) {
-                assert!(
-                    ew_viewmodel::describe::VOCABULARY.contains(&word.as_str()),
-                    "`{word}` is in no word list; line: {line}"
-                );
-                seen.insert(word);
-            }
-        }
-    }
-    for w in [
-        "find",
-        "replace",
-        "regex",
-        "case",
-        "word",
-        "scope",
-        "function_text",
-        "folios",
-        "results",
-        "result",
-    ] {
-        assert!(seen.contains(w), "{w}");
-    }
     shell.shutdown();
-}
-
-/// The structural words of a describe line (as `tests/part2.rs` takes them out).
-fn structural_words(line: &str, shortcut_keys: &[String]) -> Vec<String> {
-    let mut outside = String::new();
-    let mut quoted = false;
-    for c in line.chars() {
-        if c == '"' {
-            quoted = !quoted;
-            outside.push(' ');
-        } else if !quoted {
-            outside.push(c);
-        }
-    }
-    let outside = outside.replace(['(', ')', '[', ']', ',', '|', '%'], " ");
-    let mut words = Vec::new();
-    for token in outside.split_whitespace() {
-        if ew_viewmodel::describe::FREE_TEXT_MARKERS.contains(&token) {
-            words.push(token.to_owned());
-            break;
-        }
-        let skip = token.chars().all(|c| c.is_ascii_digit())
-            // An ID alias `@n` is a value token like a number.
-            || ew_viewmodel::alias::is_alias(token)
-            || token.starts_with('#')
-            || token.contains('.')
-            || token.contains('+')
-            || token.chars().all(|c| !c.is_alphanumeric())
-            || shortcut_keys.iter().any(|k| k == token);
-        if !skip {
-            words.push(token.to_owned());
-        }
-    }
-    words
 }
 
 /// Closing the pane drops its replace card: no pane draws it, so `preview.apply` (Ctrl+Enter in the property grid)

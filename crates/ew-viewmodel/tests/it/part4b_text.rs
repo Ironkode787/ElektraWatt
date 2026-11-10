@@ -107,41 +107,6 @@ fn assert_failed(s: &mut ShellModel, action: &str, params: Value) {
     }
 }
 
-/// The structural tokens of a describe line: quoted text, numbers, aliases and punctuation left out.
-fn structural_tokens(line: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut quoted = false;
-    let mut cur = String::new();
-    for ch in line.chars() {
-        if ch == '"' {
-            quoted = !quoted;
-            cur.clear();
-            continue;
-        }
-        if quoted {
-            continue;
-        }
-        if ch.is_whitespace() {
-            if !cur.is_empty() {
-                out.push(std::mem::take(&mut cur));
-            }
-        } else {
-            cur.push(ch);
-        }
-    }
-    if !cur.is_empty() {
-        out.push(cur);
-    }
-    out.into_iter()
-        .filter(|t| {
-            !ew_viewmodel::alias::is_alias(t)
-                && t.parse::<f64>().is_err()
-                && !t.contains('.')
-                && !matches!(t.as_str(), "(" | ")" | "[" | "]" | "," | "|" | "%")
-        })
-        .collect()
-}
-
 /// `num / den` rounded to the nearest integer, halves away from zero (`den > 0`).
 fn div_round(num: i128, den: i128) -> i128 {
     let q = num / den;
@@ -609,21 +574,9 @@ fn d_turns_the_arc_and_the_ghost_says_so() {
 }
 
 #[test]
-fn the_part_4b_ghost_lines_use_only_vocabulary_words() {
+fn the_part_4b_ghost_lines_describe_the_tools() {
     let tmp = Tmp::new("graphic-words");
     let mut s = shell(&tmp, "101");
-    let mut seen = std::collections::BTreeSet::new();
-    let scan = |s: &ShellModel, seen: &mut std::collections::BTreeSet<String>| {
-        for l in s.describe().lines().filter(|l| l.starts_with("canvas ")) {
-            for t in structural_tokens(l) {
-                assert!(
-                    ew_viewmodel::describe::VOCABULARY.contains(&t.as_str()),
-                    "`{t}` is no vocabulary word; line: {l}"
-                );
-                seen.insert(t);
-            }
-        }
-    };
     // A typing Text tool.
     done(&mut s, "tool.text", json!({}));
     let p = grid_point(&s, (40, 30));
@@ -631,26 +584,20 @@ fn the_part_4b_ghost_lines_use_only_vocabulary_words() {
     done(&mut s, "text.input", json!({"text": "40x60"}));
     let line = describe_line(&s, "canvas ghost item text ").expect("the typing text's ghost line");
     assert!(line.contains("text \"40x60\""), "{line}");
-    scan(&s, &mut seen);
     // A bound Text tool.
     done(&mut s, "tool.text", json!({}));
     done(&mut s, "text.bind", json!({"bind": "page.title"}));
     let line = describe_line(&s, "canvas ghost item text ").expect("the bound text's ghost line");
     assert!(line.contains("text \"{page.title}\""), "{line}");
-    scan(&s, &mut seen);
     // A drawing arc.
     done(&mut s, "tool.graphic", json!({"shape": "arc"}));
     let p = grid_point(&s, (60, 30));
     click_at(&mut s, p);
     let line = describe_line(&s, "canvas ghost item graphic arc points 1").expect("the arc's ghost line");
     assert!(!line.ends_with(" anticlockwise"), "{line}");
-    scan(&s, &mut seen);
     done(&mut s, "tool.ip_direction", json!({}));
     let line = describe_line(&s, "canvas ghost item graphic arc points 1").expect("the arc's ghost line");
     assert!(line.ends_with(" anticlockwise"), "{line}");
-    scan(&s, &mut seen);
-    assert!(seen.contains("graphic"), "{seen:?}");
-    assert!(seen.contains("anticlockwise"), "{seen:?}");
 }
 
 #[test]

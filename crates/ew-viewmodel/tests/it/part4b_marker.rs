@@ -11,7 +11,7 @@ use crate::common;
 use std::path::Path;
 use std::sync::Arc;
 
-use common::{GOLDEN_A, Tmp, at, done, refused, state, structural_tokens};
+use common::{GOLDEN_A, Tmp, at, done, refused, state};
 use ew_viewmodel::actions::{ActionItem, Menu, Submenu, menu_model};
 use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableEnd};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -658,41 +658,23 @@ fn escape_and_back_in_the_marker_and_structure_box_tools() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Transcript words and exact counts
+// Transcript lines and exact counts
 
 #[test]
-fn the_marker_and_structure_box_ghost_lines_use_only_vocabulary_words() {
+fn the_marker_and_structure_box_ghost_lines_describe_the_tools() {
     let tmp = Tmp::new("marker-words");
     let mut s = shell(&tmp, "101");
-    let scan = |s: &ShellModel| {
-        for line in s
-            .describe()
-            .lines()
-            .filter(|l| l.starts_with("canvas ghost ") || l.starts_with("canvas tool "))
-        {
-            for token in structural_tokens(line) {
-                assert!(
-                    ew_viewmodel::describe::VOCABULARY.contains(&token.as_str()),
-                    "`{token}` is no vocabulary word; line: {line}"
-                );
-            }
-        }
-    };
     done(&mut s, "tool.marker", json!({}));
-    scan(&s);
     assert_eq!(
         describe_line(&s, "canvas ghost marker ").as_deref(),
         Some("canvas ghost marker connections 0")
     );
     let (from, to, _) = w4_w5_line(&s);
     press(&mut s, from);
-    scan(&s);
     assert_eq!(s.tool().state(), "crossing");
     pointer(&mut s, to);
-    scan(&s);
     release(&mut s, to);
     assert_eq!(s.tool().state(), "typing");
-    scan(&s);
     // The marker's line reads as the specification says, also after the fields changed.
     done(&mut s, "marker.fields", json!({"csa": "2.5", "colours": "BK BU"}));
     assert_eq!(
@@ -702,20 +684,16 @@ fn the_marker_and_structure_box_ghost_lines_use_only_vocabulary_words() {
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "tool.structure_box", json!({}));
-    scan(&s);
     let a = grid_point(&s, (40, 30));
     let b = grid_point(&s, (46, 34));
     click_at(&mut s, a);
-    scan(&s);
     assert_eq!(s.tool().state(), "outline");
     click_at(&mut s, b);
-    scan(&s);
     assert_eq!(
         describe_line(&s, "canvas ghost box ").as_deref(),
         Some("canvas ghost box outline 2")
     );
     done(&mut s, "tool.finish", json!({}));
-    scan(&s);
     assert_eq!(s.tool().state(), "typing");
     assert!(describe_line(&s, "canvas ghost box outline 4").is_some());
 }

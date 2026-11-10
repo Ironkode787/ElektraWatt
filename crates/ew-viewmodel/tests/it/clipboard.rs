@@ -334,25 +334,6 @@ fn cb7_the_paste_tool_ghost_preview_and_escape() {
         .find(|l| l.starts_with("canvas ghost paste records 4 at "))
         .unwrap_or_else(|| panic!("{d}"));
     assert!(line.ends_with(" mm dropped 0"), "{line}");
-    let shortcut_keys: Vec<String> = ew_viewmodel::actions::ACTIONS
-        .iter()
-        .flat_map(|a| a.shortcut.iter())
-        .flat_map(|s| s.split(['+', ' ']))
-        .map(str::to_owned)
-        .collect();
-    let mut seen = std::collections::BTreeSet::new();
-    for l in d.lines() {
-        for word in structural_words(l, &shortcut_keys) {
-            assert!(
-                ew_viewmodel::describe::VOCABULARY.contains(&word.as_str()),
-                "`{word}` is in no word list; line: {l}"
-            );
-            seen.insert(word);
-        }
-    }
-    for w in ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::Clip) {
-        assert!(seen.contains(w), "{w} is reached");
-    }
     // Escape: the tool ends, nothing is committed.
     let rev = shell.revision();
     done(&mut shell, "ui.dismiss", json!({}));
@@ -522,40 +503,6 @@ fn cb8_menu_entries_and_chords() {
     }
     assert!(items.iter().find(|i| i.id == "edit.paste_clip").unwrap().enabled);
     shell.shutdown();
-}
-
-/// The structural words of a describe line (as `tests/part2.rs` takes them out).
-fn structural_words(line: &str, shortcut_keys: &[String]) -> Vec<String> {
-    let mut outside = String::new();
-    let mut quoted = false;
-    for c in line.chars() {
-        if c == '"' {
-            quoted = !quoted;
-            outside.push(' ');
-        } else if !quoted {
-            outside.push(c);
-        }
-    }
-    let outside = outside.replace(['(', ')', '[', ']', ',', '|', '%'], " ");
-    let mut words = Vec::new();
-    for token in outside.split_whitespace() {
-        if ew_viewmodel::describe::FREE_TEXT_MARKERS.contains(&token) {
-            words.push(token.to_owned());
-            break;
-        }
-        let skip = token.chars().all(|c| c.is_ascii_digit())
-            // An ID alias `@n` is a value token like a number.
-            || ew_viewmodel::alias::is_alias(token)
-            || token.starts_with('#')
-            || token.contains('.')
-            || token.contains('+')
-            || token.chars().all(|c| !c.is_alphanumeric())
-            || shortcut_keys.iter().any(|k| k == token);
-        if !skip {
-            words.push(token.to_owned());
-        }
-    }
-    words
 }
 
 /// A refused Cut changes only the copy-call counter, including an already pending GUI clipboard write.

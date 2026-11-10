@@ -73,19 +73,8 @@ fn dk3_the_groups_labels_and_advanced_rows() {
     assert!(seen_advanced > 0, "Golden A has Advanced rows");
     // The toggle is a setting and a menu check.
     assert!(!shell.properties_show_advanced());
-    let mut words: BTreeSet<String> = BTreeSet::new();
-    for l in shell.describe().lines() {
-        words.extend(common::structural_tokens(l));
-    }
     done(&mut shell, "props.show_advanced", json!({"on": true}));
     assert!(shell.properties_show_advanced());
-    for l in shell.describe().lines() {
-        words.extend(common::structural_tokens(l));
-    }
-    // The rails and the `advanced <n> shown|hidden` line reach the words of `Reach::Rail`.
-    for w in ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::Rail) {
-        assert!(words.contains(w), "`{w}` is reached");
-    }
     done(&mut shell, "props.show_advanced", json!({}));
     assert!(!shell.properties_show_advanced(), "no `on` toggles");
 }

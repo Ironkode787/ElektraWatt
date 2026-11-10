@@ -124,7 +124,7 @@ pub fn parse_alias(token: &str) -> Option<usize> {
     digits.parse().ok()
 }
 
-/// Whether `token` is an alias (a value token like a number, not a word of the describe vocabulary).
+/// Whether `token` is an alias (a value token like a number, not a structural word of the describe text).
 pub fn is_alias(token: &str) -> bool {
     parse_alias(token).is_some()
 }

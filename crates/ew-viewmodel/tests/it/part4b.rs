@@ -4,12 +4,12 @@
 //! WP-S2.04 part 4b in the view model: Select drags and the keyboard move of page items and structure boxes, one
 //! `rep.move` for a representation, an item and a box, Delete of the three, the box's outline pick against a press
 //! inside it, the part-first arm with a part whose template needs two FnDefs, the failure that names a definition no
-//! library holds, and `page.describe`'s item and box lines with their vocabulary. Every test works on a writable
+//! library holds, and `page.describe`'s item and box lines. Every test works on a writable
 //! temporary copy of Golden A.
 
 use crate::common;
 
-use common::{Tmp, at, done, state, structural_tokens};
+use common::{Tmp, at, done, state};
 use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
 use ew_viewmodel::ew_api::output::{PageTables, TableEnd, TableItem, TableRep, TableStructureBox};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -590,17 +590,6 @@ fn page_describe_lists_items_and_boxes() {
             .any(|l| l.starts_with("  box structure cell ") && l.ends_with(" \"Spare\"")),
         "{text}"
     );
-    for line in text
-        .lines()
-        .filter(|l| l.starts_with("  item ") || l.starts_with("  box "))
-    {
-        for token in structural_tokens(line) {
-            assert!(
-                ew_viewmodel::describe::VOCABULARY.contains(&token.as_str()),
-                "`{token}` is no vocabulary word; line: {line}"
-            );
-        }
-    }
     // G-PP triage row 12: every item line has a position in mm, and the marker's position picks the marker, whose
     // selection title names its kind in words.
     for line in text.lines().filter(|l| l.starts_with("  item ")) {

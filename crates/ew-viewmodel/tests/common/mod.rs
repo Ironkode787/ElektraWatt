@@ -144,29 +144,6 @@ pub fn empty_point(c: &CanvasModel) -> (i64, i64) {
     panic!("no empty point on {}", c.page().folio)
 }
 
-/// The structural tokens of a describe line: every token outside quotes, numbers, aliases and punctuation left out.
-pub fn structural_tokens(line: &str) -> Vec<String> {
-    let mut outside = String::new();
-    let mut quoted = false;
-    for c in line.chars() {
-        if c == '"' {
-            quoted = !quoted;
-            outside.push(' ');
-        } else if !quoted {
-            outside.push(c);
-        }
-    }
-    outside
-        .split_whitespace()
-        .filter(|t| {
-            t.parse::<f64>().is_err()
-                && !ew_viewmodel::alias::is_alias(t)
-                && !t.chars().all(|c| !c.is_alphanumeric())
-        })
-        .map(str::to_owned)
-        .collect()
-}
-
 /// FT-500's overlap and its wire through a symbol on a writable Golden A shown at folio 101, which the routed folio no
 /// longer draws (Golden A's route tool): three wires given the routes the provisional path drew them along
 /// before, by `connection.route` (a command stores the route it is given). `-101F1:1 -> F55:1` and

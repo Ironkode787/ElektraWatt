@@ -48,7 +48,7 @@ const HELP: &str = "\
 cargo xtask blind <subcommand> (the agent runs <run>/bin/xtask blind <subcommand>)
 
 For the agent:
-  help [<page>]                               the protocol, the vocabulary and the actions, a page at a time
+  help [<page>]                               the protocol and the actions, a page at a time
   do <run> <action> [key=value ...]           one step; values are typed by the action's signature
   do <run> -                                  a batch of 1 to 20 steps as JSON Lines on stdin
   look <run> [section ...] [--diff] [--menus] the interface as text, by sections
@@ -818,8 +818,8 @@ pub fn help_page(pages: &[String], k: usize) -> String {
     out
 }
 
-/// The text of `help`: the harness help, the vocabulary and the actions, and what the copied binaries print; in a
-/// visual run only `HELP-VISUAL.md` (visual spec §3.3: no vocabulary, no action reference, no `--help`).
+/// The text of `help`: the harness help, the actions, and what the copied binaries print; in a
+/// visual run only `HELP-VISUAL.md` (visual spec §3.3: no action reference, no `--help`).
 fn help_text(repo: Option<&Path>, run: Option<&Run>) -> Result<String> {
     let read = |own: &str, rel: &str| -> Result<String> {
         let own = run.map(|r| r.path(own)).filter(|p| p.is_file());
@@ -836,11 +836,6 @@ fn help_text(repo: Option<&Path>, run: Option<&Run>) -> Result<String> {
         return read(".harness/HELP-VISUAL.md", "tools/blind/HELP-VISUAL.md");
     }
     let mut out = read(".harness/HELP.md", "tools/blind/HELP.md")?;
-    out.push_str("\n== vocabulary ==\n");
-    out.push_str(&read(
-        ".harness/reference/vocabulary.txt",
-        "tools/blind/reference/vocabulary.txt",
-    )?);
     out.push_str("\n== actions ==\n");
     out.push_str(&read(
         ".harness/reference/actions.txt",
@@ -976,7 +971,6 @@ mod tests {
         let repo = tmp.0.join("repo");
         for (rel, text) in [
             ("tools/blind/HELP.md", "repo help\n"),
-            ("tools/blind/reference/vocabulary.txt", "# v\n"),
             (
                 "tools/blind/reference/actions.txt",
                 "a View \"x\" menu none shortcut none context global params \"\"\n",
@@ -994,7 +988,6 @@ mod tests {
         // With its own files the copy reads them, and says so in its output.
         std::fs::create_dir_all(run.path(".harness/reference")).unwrap();
         std::fs::write(run.path(".harness/HELP.md"), "own help\n").unwrap();
-        std::fs::write(run.path(".harness/reference/vocabulary.txt"), "# own\n").unwrap();
         std::fs::write(
             run.path(".harness/reference/actions.txt"),
             "b View \"y\" menu none shortcut none context global params \"\"\n",
@@ -1002,7 +995,7 @@ mod tests {
         .unwrap();
         let text = help_text(None, Some(&run)).unwrap();
         assert!(
-            text.starts_with("own help") && text.contains("# own") && !text.contains("repo help"),
+            text.starts_with("own help") && text.contains("b View") && !text.contains("repo help"),
             "{text}"
         );
         assert!(load_reference(Some(&run), None).unwrap().find("b").is_some());

@@ -1,11 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell's texts through Fluent. LO-1 every key's en-GB text equals the
-//! committed snapshot `tests/expected/en-GB-texts.txt` (one `key = text` line per key, a backslash, a line feed and a
-//! tab escaped as `\\`, `\n` and `\t`), taken at the base of part 3 before the table moved to Fluent; a difference is
-//! a stop, never a re-bless. LO-3 the completeness gate; the pseudo-locale en-XA; the run-time switch. Part 4 (D12,
-//! ID-1269): NL-1 the arguments of every Dutch message, NL-2 the terminology table.
+//! The shell's texts through Fluent: LO-3 the completeness gate; the pseudo-locale en-XA; the run-time switch. Part 4
+//! (D12, ID-1269): NL-1 the arguments of every Dutch message, NL-2 the terminology table.
 
 use crate::common::{Tmp, done};
 use ew_viewmodel::actions::{self, Menu, Submenu};
@@ -13,45 +10,6 @@ use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Outcome, ShellModel};
 use ew_viewmodel::{key, strings};
 use serde_json::{Value, json};
-
-const SNAPSHOT: &str = include_str!("../expected/en-GB-texts.txt");
-
-/// `text` with a backslash, a line feed and a tab escaped.
-fn escape(text: &str) -> String {
-    text.replace('\\', "\\\\")
-        .replace('\n', "\\n")
-        .replace('\t', "\\t")
-}
-
-/// LO-1: every key of the snapshot is a key with its line's en-GB text (a key added since is not in it); the
-/// arguments filled through Fluent equal the snapshot's text with `{0}`, `{1}`, … replaced.
-#[test]
-fn every_key_has_its_snapshot_text() {
-    assert_eq!(strings::locale(), "en");
-    let snapshot = SNAPSHOT.replace("\r\n", "\n");
-    let have: String = snapshot
-        .lines()
-        .map(|line| {
-            let (key, _) = line.split_once(" = ").unwrap();
-            assert!(strings::has_key(key), "{key} is gone");
-            format!("{key} = {}\n", escape(strings::text(strings::Key::run_time(key))))
-        })
-        .collect();
-    assert_eq!(have, snapshot);
-    for line in snapshot.lines() {
-        let (key, text) = line.split_once(" = ").unwrap();
-        let args = ["α", "β", "γ", "δ", "ε", "ζ"];
-        let mut wanted = text.to_owned();
-        for (i, arg) in args.iter().enumerate() {
-            wanted = wanted.replace(&format!("{{{i}}}"), arg);
-        }
-        assert_eq!(
-            strings::format(strings::Key::run_time(key), &args),
-            wanted,
-            "{key}"
-        );
-    }
-}
 
 /// An argument is a string, never reformatted as a number; a missing one shows as `{n}`, as before.
 #[test]

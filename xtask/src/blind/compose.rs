@@ -56,10 +56,7 @@ pub struct Composed {
 }
 
 /// The reference files the harness copies and the run records.
-pub const REFERENCE_FILES: [&str; 2] = [
-    "tools/blind/reference/actions.txt",
-    "tools/blind/reference/vocabulary.txt",
-];
+pub const REFERENCE_FILES: [&str; 1] = ["tools/blind/reference/actions.txt"];
 
 /// Leaves out the folio blocks of `body` that are not for `folios` (§5.4: `--folios`). A block is the lines from
 /// `<!-- folio 102 -->` to `<!-- /folio -->`; the marker lines themselves never reach the prompt. With no folios every
@@ -252,7 +249,6 @@ mod tests {
             "tools/blind/reference/actions.txt",
             "a View \"x\" menu none shortcut none context global params \"\"\n",
         );
-        w("tools/blind/reference/vocabulary.txt", "# v\n");
     }
 
     fn input<'a>(root: &'a Path, kind: Kind, task: &'a str, persona: Option<&'a str>) -> ComposeIn<'a> {

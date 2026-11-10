@@ -9,7 +9,7 @@ use crate::common;
 use std::path::Path;
 use std::sync::Arc;
 
-use common::{Tmp, at, done, structural_tokens};
+use common::{Tmp, at, done};
 use ew_viewmodel::ew_api::Session;
 use ew_viewmodel::ew_api::output::{NavKind, PageTables};
 use ew_viewmodel::layout::PaneKind;
@@ -81,20 +81,6 @@ fn tips(s: &ShellModel) -> Vec<(String, Option<NoteAction>)> {
     v
 }
 
-/// Every structural word of `lines` is a word of the vocabulary.
-#[track_caller]
-fn words_known(lines: &[String]) {
-    for l in lines {
-        // An action ID (it contains a dot) is a value token.
-        for w in structural_tokens(l).into_iter().filter(|w| !w.contains('.')) {
-            assert!(
-                ew_viewmodel::describe::reach_of(&w).is_some(),
-                "`{w}` is in no word list; line: {l}"
-            );
-        }
-    }
-}
-
 #[test]
 fn gt1_folio_report_finds_the_interruption_point_whose_insert_arms_the_ip_tool_and_dutch_finds_it_too() {
     let tmp = Tmp::new("gt1-glossary");
@@ -127,8 +113,6 @@ fn gt1_folio_report_finds_the_interruption_point_whose_insert_arms_the_ip_tool_a
         "{}",
         s.describe()
     );
-    words_known(&lines(&s, "glossary "));
-    words_known(&lines(&s, "  term "));
     // Insert: the row's action arms the IP tool.
     let id = ew_viewmodel::actions::find(&ip.actions[0]).unwrap().id;
     done(&mut s, id, json!({}));
@@ -190,7 +174,6 @@ fn gt2_with_origin_qet_a_line_onto_a_connection_point_shows_tip_1_once_and_conve
         lines(&s, "toast "),
         ["toast \"Lines do not connect. Draw a wire instead.\" convert"]
     );
-    words_known(&lines(&s, "toast "));
     assert_eq!(settings_of(&tmp).tips_seen, ["line_on_cp"]);
     // Convert to connection: the line is undone in one step and the Wire tool is armed.
     done(
@@ -393,7 +376,6 @@ fn gt3_tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_o
         lines(&s, "toast "),
         ["toast \"Tags are derived from the structure and the counter.\" renumber"]
     );
-    words_known(&lines(&s, "toast "));
     // Renumber devices… opens its dialog.
     let serial = s.toast().unwrap().serial;
     done(
@@ -422,7 +404,6 @@ fn gt3_tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_o
         lines(&s, "toast ").last().map(String::as_str),
         Some("toast \"This page is generated from a report block.\" show_block")
     );
-    words_known(&lines(&s, "toast "));
     let serial = s.toast().unwrap().serial;
     done(
         &mut s,
@@ -662,7 +643,6 @@ fn gt4_wire_colours_stroke_w29_in_dbu_and_stripe_w27_and_are_off_by_default() {
         lines(&s, "canvas wire "),
         [format!("canvas wire colours {}", strokes.len())]
     );
-    words_known(&lines(&s, "canvas wire "));
     // W27, on the page that draws it: green and yellow 2-mm dashes, alternating from green.
     done(&mut s, "select.set", json!({"refs": [W27]}));
     let w27 = s.selection().items[0].0;

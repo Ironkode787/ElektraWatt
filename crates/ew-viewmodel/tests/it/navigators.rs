@@ -603,13 +603,11 @@ fn new_page_proposes_the_next_free_folio_and_the_section() {
     shell.shutdown();
 }
 
-/// NV10 (§6.10): every navigator opens from View ▸ Navigators, and the describe texts reach the navigator words (all but
-/// `aux`, which a badge prints quoted, and `pages`, which the Pages header leaves out).
+/// NV10 (§6.10): every navigator opens from View ▸ Navigators.
 #[test]
-fn every_navigator_opens_and_the_navigator_words_are_reached() {
+fn every_navigator_opens() {
     let tmp = Tmp::new();
     let mut shell = tmp.shell(true);
-    let mut texts = Vec::new();
     for k in NavKind::ALL {
         done(&mut shell, "navigator.show", json!({"kind": k.word()}));
         assert!(shell.navigator_open(k), "{}", k.word());
@@ -624,48 +622,6 @@ fn every_navigator_opens_and_the_navigator_words_are_reached() {
     let kinds = NavKind::ALL.iter().filter(|k| **k != NavKind::Messages).count();
     assert_eq!(menu.len(), kinds, "{menu:?}");
     assert!(menu.iter().all(|l| l.contains("(checked)")), "{menu:?}");
-    done(
-        &mut shell,
-        "navigator.sort",
-        json!({"kind": "devices", "by": "label", "descending": true}),
-    );
-    texts.push(shell.describe());
-    done(&mut shell, "page.goto", json!({"folio": "102"}));
-    let k = row_key(&shell, NavKind::Devices, NavRole::Device, "-201U3");
-    done(
-        &mut shell,
-        "navigator.select",
-        json!({"kind": "devices", "keys": [k]}),
-    );
-    texts.push(shell.describe());
-    done(
-        &mut shell,
-        "pages.reorder",
-        json!({"pages": ["106"], "before": "103"}),
-    );
-    texts.push(shell.describe());
-    let words: std::collections::BTreeSet<&str> = texts
-        .iter()
-        .flat_map(|t| t.lines())
-        .flat_map(|l| {
-            // The quoted texts are user text.
-            let mut out = Vec::new();
-            let mut quoted = false;
-            for part in l.split('"') {
-                if !quoted {
-                    out.extend(part.split_whitespace());
-                }
-                quoted = !quoted;
-            }
-            out
-        })
-        .collect();
-    let missing: Vec<&str> = ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::Nav)
-        .into_iter()
-        // `aux` is printed quoted (a badge), and `pages` is the kind word the Pages header leaves out (D5).
-        .filter(|w| !words.contains(*w) && !matches!(*w, "aux" | "pages"))
-        .collect();
-    assert!(missing.is_empty(), "{missing:?}");
     shell.shutdown();
 }
 

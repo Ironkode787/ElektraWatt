@@ -23,7 +23,7 @@ did, or what to try next, that is a finding about EW, not a failure of yours: sa
 
 You may:
 
-- read this prompt, `{blind} help` (it includes the harness help, EW's vocabulary, every action with its parameters,
+- read this prompt, `{blind} help` (it includes the harness help, every action with its parameters,
   and the output of `elektrawatt --help` and `ew help`), and the user guide in the folder `book/` of this run (HTML);
 - run the harness, `{blind}`, and nothing else. Every step you send, every look and every note goes through it.
 

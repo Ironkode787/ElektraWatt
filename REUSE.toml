@@ -51,7 +51,7 @@ SPDX-License-Identifier = "CC-BY-4.0"
 
 # L1: the generated reference pages of the user guide (`cargo xtask docs-gen`). Their text is the doc comments of
 # the GPL crates, carried by the command schemas of ew-commands and the rule catalogue of ew-checks, so the pages
-# keep those crates' licence (owner ruling, cycle 16); `override` replaces the L9 annotation above for these paths.
+# keep those crates' licence (owner ruling, cycle 16); `override` replaces the L9 annotation above for this path.
 # The glossary page (WP-S2.08 part 1) is the text of ew-viewmodel's glossary file, so it is GPL too; so is the keymap
 # page (WP-S2.08 part 2), the text of ew-viewmodel's keymap sheet. The CLI, query and api_v1 pages (WP-S1.22 D15) are
 # the text of the GPL crates' snapshots (bin/ew, ew-api, ew-sqlview), so they keep that licence too (the orchestrator's
@@ -95,9 +95,9 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC-BY-4.0"
 
-# L1: the generated reference files of the blind drafter (the action registry and the describe vocabulary of
-# ew-viewmodel, written by its `blind_reference` test): they keep the crate's licence, as the generated command and
-# rule pages do; `override` replaces the annotation above for these paths.
+# L1: the generated reference file of the blind drafter (the action registry of
+# ew-viewmodel, written by its `blind_reference` test): it keeps the crate's licence, as the generated command and
+# rule pages do; `override` replaces the annotation above for this path.
 [[annotations]]
 path = "tools/blind/reference/**"
 precedence = "override"

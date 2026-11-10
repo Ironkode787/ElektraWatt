@@ -3,15 +3,14 @@
 
 //! WP-S6.13 part 1, acceptance check BD4: `page.describe` on a temporary copy of Golden A. The header counts of folios
 //! 101 to 103, the expected texts (`tests/expected/page_describe_10{1,2,3}.txt`, rewritten by `EW_BLESS=1`), no
-//! record ID anywhere in the text, every structural token in the vocabulary, the 11 words it adds, and the refusals.
+//! record ID anywhere in the text, and the refusals.
 //! Every test works on a read-only temporary copy of Golden A.
 
 use crate::common;
 
 use std::path::PathBuf;
 
-use common::{Tmp, bless, done, refused, structural_tokens};
-use ew_viewmodel::describe::{FREE_TEXT_MARKERS, Reach, VOCABULARY, words};
+use common::{Tmp, bless, done, refused};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
@@ -78,34 +77,13 @@ fn the_texts_of_folios_101_to_103_equal_the_expected_files() {
 }
 
 #[test]
-fn no_record_id_reaches_the_text_and_every_token_is_a_vocabulary_word() {
+fn no_record_id_reaches_the_text() {
     let tmp = Tmp::new("pagewords");
     let mut shell = tmp.shell("101");
-    let mut seen = std::collections::BTreeSet::new();
     for folio in ["101", "102", "103"] {
         let text = page_text(&mut shell, Some(folio));
         assert_eq!(ew_viewmodel::alias::find_uuid(&text), None, "{folio}");
-        for line in text.lines() {
-            for token in structural_tokens(line) {
-                assert!(
-                    VOCABULARY.contains(&token.as_str()) || FREE_TEXT_MARKERS.contains(&token.as_str()),
-                    "`{token}` is no vocabulary word; line: {line}"
-                );
-                seen.insert(token);
-            }
-        }
     }
-    // The three folios reach the words the page text adds, except the two states Golden A does not have: an unrouted
-    // connection (every page connection of the fixture has the router's route) and an undirected
-    // interruption point.
-    let missing: Vec<&str> = words(Reach::Page)
-        .into_iter()
-        .filter(|w| !seen.contains(*w))
-        .collect();
-    assert!(
-        missing.iter().all(|w| ["unrouted", "undirected"].contains(w)),
-        "words no folio reaches: {missing:?}"
-    );
     shell.shutdown();
 }
 
@@ -215,7 +193,7 @@ fn page_describe_reads_the_cached_page_tables() {
 
 /// A generated list page prints its table: on Golden A's parts list, the `table` line with the column and row
 /// counts, the column headers and one `row` line per printed row, each data row with one quoted cell per column; a
-/// drawn page prints no table. Every token is a vocabulary word.
+/// drawn page prints no table.
 #[test]
 fn a_generated_list_page_prints_its_rows() {
     let tmp = Tmp::new("pagelist");
@@ -248,14 +226,6 @@ fn a_generated_list_page_prints_its_rows() {
         .find(|l| !l.starts_with("  row group "))
         .expect("a data row");
     assert_eq!(data.matches('"').count(), 2 * columns, "{data}");
-    for line in text.lines() {
-        for token in structural_tokens(line) {
-            assert!(
-                VOCABULARY.contains(&token.as_str()) || FREE_TEXT_MARKERS.contains(&token.as_str()),
-                "`{token}` is no vocabulary word; line: {line}"
-            );
-        }
-    }
     assert!(!page_text(&mut shell, Some("101")).contains("table columns"));
     shell.shutdown();
 }

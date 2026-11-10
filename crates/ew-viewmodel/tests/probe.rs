@@ -628,7 +628,6 @@ fn t9_the_probe_cancels_with_escape_in_every_state_and_t10_the_preview_words() {
         .collect();
     for w in ["ready", "stale", "failed", "tags", "xrefs"] {
         assert!(words.contains(w), "{w}: {words:?}");
-        assert!(ew_viewmodel::describe::VOCABULARY.contains(&w));
     }
     shell.shutdown();
 }

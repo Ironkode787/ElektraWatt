@@ -155,7 +155,7 @@ fn workspace_hack(root: &Path) -> Result<bool> {
     Ok(true)
 }
 
-/// The persona harness's committed action and vocabulary lists (`tools/blind/reference/`), rewritten by their test.
+/// The persona harness's committed action list (`tools/blind/reference/actions.txt`), rewritten by its test.
 fn blind_reference(root: &Path) -> Result<bool> {
     Ok(Command::new(crate::cargo())
         .current_dir(root)

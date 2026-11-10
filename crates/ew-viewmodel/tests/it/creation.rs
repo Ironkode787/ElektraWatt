@@ -3,14 +3,14 @@
 
 //! `page.new`, `structure.new` and `external_ref.new` at the view-model level, on a new project (the
 //! builtin template) in both modes: the pages 101 to 103 and the node and reference of folio 101's external points, the
-//! refusals, the creation dialog of the window, the menu entries and the vocabulary of the dialog's describe lines.
+//! refusals, the creation dialog of the window, the menu entries and the dialog's describe lines.
 
 use crate::common;
 use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused};
 use ew_viewmodel::actions::{MenuEntry, menu_model};
-use ew_viewmodel::describe::{FREE_TEXT_MARKERS, VOCABULARY, describe};
+use ew_viewmodel::describe::describe;
 use ew_viewmodel::ew_api::Session;
 use ew_viewmodel::navigator::RowKind;
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
@@ -735,7 +735,7 @@ fn a_form_names_the_missing_field_and_the_next_step() {
 }
 
 #[test]
-fn the_dialog_describes_itself_in_the_vocabulary() {
+fn the_dialog_describes_itself() {
     let tmp = Tmp::new("form-describe");
     let mut shell = new_project(&tmp, Mode::Gui);
     done(&mut shell, "page.new", json!({}));
@@ -760,28 +760,6 @@ fn the_dialog_describes_itself_in_the_vocabulary() {
             "  button \"Cancel\"",
         ]
     );
-    for line in &lines[at..] {
-        let mut outside = String::new();
-        let mut quoted = false;
-        for c in line.chars() {
-            if c == '"' {
-                quoted = !quoted;
-                outside.push(' ');
-            } else if !quoted {
-                outside.push(c);
-            }
-        }
-        // `error:` leads user text to the end of the line.
-        let rest = outside.split("error:").next().unwrap_or_default();
-        for token in rest.split_whitespace() {
-            assert!(
-                token.chars().all(|c| !c.is_alphanumeric())
-                    || VOCABULARY.contains(&token)
-                    || FREE_TEXT_MARKERS.contains(&token),
-                "`{token}` of `{line}`"
-            );
-        }
-    }
     shell.shutdown();
 }
 

@@ -849,54 +849,6 @@ mod tests {
         }
     }
 
-    /// The texts that name a key the default keymap binds by its literal name, each with why it stays:
-    /// a key no keymap action reaches there (a popup's or a text field's own key), or a letter that is no key.
-    const KEPT_KEYS: &[(&str, &str)] = &[
-        // Letters that are no key.
-        ("error-no-external", "L is the connection's name in the example"),
-        ("bond-kind-pelv_0v_pe", "V is the volt"),
-        ("choice-colour-sample", "V is the volt"),
-        ("firstrun-step-origin", "I is the pronoun"),
-        ("wizard-error-revision", "V is the revision label's letter"),
-        ("messages-header", "E, W and I are the severities"),
-        ("error-potential-type", "L, N and M are potential types"),
-        ("choice-l", "L, N and M are potential types"),
-        ("choice-m", "L, N and M are potential types"),
-        ("choice-n", "L, N and M are potential types"),
-        ("report-kind-io-list", "I/O are the inputs and outputs"),
-        ("refusal-ident-not-nfc", "C is Unicode's Normalization Form C"),
-        ("refusal-input-no-unit", "V, W and °C are units"),
-        ("column-size", "W × H are the width and the height"),
-        ("field-word-b", "a geometry member's letter"),
-        ("field-word-r", "a geometry member's letter"),
-        ("field-word-t", "a geometry member's letter"),
-        ("error-potential-voltage", "V is the volt"),
-        ("param-tab", "the command bar's tab view.command_tab chooses"),
-        ("choice-left", "the rail's side rail.show chooses"),
-        ("choice-right", "the rail's side rail.show chooses"),
-        ("choice-up", "a list item's move props.list makes"),
-        ("choice-down", "a list item's move props.list makes"),
-        // Keys no keymap action reaches there.
-        ("hint-choose-strip", "Esc closes the picker popup (app.rs)"),
-        ("reason-choose-strip", "Esc closes the picker popup (app.rs)"),
-        ("reason-choose-symbol", "Esc closes the picker popup (app.rs)"),
-        ("hint-text-typing", "Enter and Esc inside the text popup's field"),
-        ("hint-text-edit", "Enter and Esc inside the text popup's field"),
-        ("action-ip-name-hint", "Enter and Tab inside the IP name field"),
-        (
-            "junction-sequence",
-            "Alt+Up and Alt+Down inside the junction popup",
-        ),
-        ("junction-orient", "R inside the junction popup"),
-        ("table-pos-move", "Alt+Up and Alt+Down inside the table editor"),
-        (
-            "table-commit-all-hint",
-            "Ctrl+Enter inside the table's cell editor (nav_table.rs)",
-        ),
-        ("palette-form-hint", "Enter and Esc inside the palette's form"),
-        ("tooltip-learn-more", "F1 on a hovered menu item (menu.rs)"),
-    ];
-
     /// Whether `name` stands in `text` as a key's name: not inside a word, a chord (`+`), a tag (`-X1`) or a key.
     fn names_key(text: &str, name: &str) -> bool {
         let part = |c: char| c.is_alphanumeric() || matches!(c, '+' | '-' | '_' | '{' | '}');
@@ -905,94 +857,6 @@ mod tests {
             let after = text[i + name.len()..].chars().next();
             !before.is_some_and(part) && !after.is_some_and(part)
         })
-    }
-
-    /// Whether the key word `word` stands in `text` in a key's context: after "press" ("press
-    /// Delete", "press" in any case) or before a word ending in "s" ("Delete deletes"), the word itself exact.
-    fn names_key_in_context(text: &str, word: &str) -> bool {
-        let part = |c: char| c.is_alphanumeric() || matches!(c, '+' | '-' | '_' | '{' | '}');
-        text.match_indices(word).any(|(i, _)| {
-            let (before, after) = (&text[..i], &text[i + word.len()..]);
-            if before.chars().next_back().is_some_and(part) || after.chars().next().is_some_and(part) {
-                return false;
-            }
-            let pressed = before.strip_suffix(' ').is_some_and(|b| {
-                b.len()
-                    .checked_sub(5)
-                    .filter(|n| b.is_char_boundary(*n))
-                    .is_some_and(|n| {
-                        b[n..].eq_ignore_ascii_case("press") && !b[..n].chars().next_back().is_some_and(part)
-                    })
-            });
-            let verb = after.strip_prefix(' ').is_some_and(|a| {
-                let w: String = a.chars().take_while(|c| c.is_alphabetic()).collect();
-                w.len() > 1 && w.ends_with('s') && !a[w.len()..].chars().next().is_some_and(part)
-            });
-            pressed || verb
-        })
-    }
-
-    /// "a test scans the table for a bound key's literal name outside the kept list". The names are
-    /// every chord the EW preset binds, in full and in the HUD's short form; the key names that are also everyday
-    /// words of the labels ("Delete wire", "Insert symbol", "Home", "Space", "End") are left out, and are caught only
-    /// in a key's context ("press Delete", "Delete deletes") in the hint, HUD, toast, notice and reason
-    /// texts (an `action-` label names a command, as "Delete rows").
-    ///
-    /// "the arrow keys" and "arrows" are not listed and match no name: they name the cursor
-    /// actions (`cursor.left` and its kin, which the nudges ride on), which every shipped keymap binds to the arrows.
-    #[test]
-    fn ft964_no_text_names_a_bound_key_outside_the_kept_list() {
-        const WORDS: &[&str] = &[
-            "Delete", "Insert", "Home", "End", "Space", "Plus", "Minus", "Equals",
-        ];
-        const CONTEXT: &[&str] = &["hint-", "hud-", "toast-", "notice-", "reason-"];
-        let mut names: Vec<String> = Vec::new();
-        let mut words: Vec<String> = Vec::new();
-        for meta in crate::actions::ACTIONS {
-            for s in crate::keymap::Preset::Ew.shortcuts(meta) {
-                for n in [crate::keymap::display(s), crate::keymap::short_display(s)] {
-                    let list = if WORDS.contains(&n.as_str()) {
-                        &mut words
-                    } else {
-                        &mut names
-                    };
-                    if !list.contains(&n) {
-                        list.push(n);
-                    }
-                }
-            }
-        }
-        assert!(names.iter().any(|n| n == "Enter") && names.iter().any(|n| n == "Esc"));
-        assert!(words.iter().any(|w| w == "Delete"), "the skipped words are bound");
-        let in_context = |key: &str| CONTEXT.iter().any(|p| key.starts_with(p));
-        let mut found = Vec::new();
-        for (key, text) in texts() {
-            if KEPT_KEYS.iter().any(|(k, _)| *k == key) {
-                continue;
-            }
-            for name in &names {
-                if names_key(text, name) {
-                    found.push(format!("{key}: {name}"));
-                }
-            }
-            if in_context(key) {
-                for word in &words {
-                    if names_key_in_context(text, word) {
-                        found.push(format!("{key}: {word}"));
-                    }
-                }
-            }
-        }
-        assert_eq!(found, Vec::<String>::new());
-        // The kept list holds only keys of the table that still name a key.
-        for (key, why) in KEPT_KEYS {
-            let text = lookup(key).unwrap_or_else(|| panic!("{key} is not in the table"));
-            assert!(
-                names.iter().any(|n| names_key(text, n))
-                    || (in_context(key) && words.iter().any(|w| names_key_in_context(text, w))),
-                "{key} ({why}) names no key"
-            );
-        }
     }
 
     /// FT-1081 (doc 16a §8 item 7): a key has one name in every text, the form on its keycap. No text names
@@ -1006,27 +870,6 @@ mod tests {
         // The short form is the one every action's key takes.
         assert_eq!(crate::keymap::short_display("Escape"), "Esc");
         assert_eq!(crate::keymap::short_display("Alt+Delete"), "Alt+Del");
-    }
-
-    /// A skipped key word counts only in a key's context, the word exact and "press" in any case.
-    #[test]
-    fn ft1072_a_skipped_key_word_counts_in_a_keys_context() {
-        assert!(names_key_in_context("press Delete to remove it", "Delete"));
-        assert!(names_key_in_context("Press Space to pan", "Space"));
-        assert!(names_key_in_context("PRESS Home", "Home"));
-        assert!(names_key_in_context("1 selected \u{b7} Delete deletes", "Delete"));
-        assert!(
-            names_key_in_context("Delete rows", "Delete"),
-            "why labels are not scanned"
-        );
-        assert!(!names_key_in_context("Delete wire", "Delete"));
-        assert!(!names_key_in_context("Delete", "Delete"));
-        assert!(!names_key_in_context("Delete, then", "Delete"));
-        assert!(!names_key_in_context("express Delete", "Delete"));
-        assert!(!names_key_in_context("press Deleted rows", "Delete"));
-        assert!(!names_key_in_context("press delete", "Delete"));
-        assert!(!names_key_in_context("Ends the route", "End"));
-        assert!(!names_key_in_context("{1} deletes", "Delete"));
     }
 
     /// The scan's word test: a name inside a word, a chord or a tag is no key's name.

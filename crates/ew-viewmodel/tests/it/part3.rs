@@ -887,57 +887,10 @@ fn ft1093_place_pick_of_a_black_box_symbol_arms_with_the_two_corner_hint() {
     assert_armed_hint(&s);
 }
 
-/// The structural tokens of a describe line: quoted text, numbers, aliases and punctuation out.
-fn structural_tokens(line: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut quoted = false;
-    let mut cur = String::new();
-    for ch in line.chars() {
-        if ch == '"' {
-            quoted = !quoted;
-            cur.clear();
-            continue;
-        }
-        if quoted {
-            continue;
-        }
-        if ch.is_whitespace() {
-            if !cur.is_empty() {
-                out.push(std::mem::take(&mut cur));
-            }
-        } else {
-            cur.push(ch);
-        }
-    }
-    if !cur.is_empty() {
-        out.push(cur);
-    }
-    out.into_iter()
-        .filter(|t| {
-            !ew_viewmodel::alias::is_alias(t)
-                && t.parse::<f64>().is_err()
-                && !t.contains('.')
-                && !matches!(t.as_str(), "(" | ")" | "[" | "]" | "," | "|" | "%")
-        })
-        .collect()
-}
-
 #[test]
-fn ib7_the_describe_lines_use_the_ten_words_and_the_tools_read_nothing_while_moving() {
+fn ib7_the_tools_read_nothing_while_moving() {
     let tmp = Tmp::new("words");
     let mut s = shell(&tmp, "103");
-    let mut seen = std::collections::BTreeSet::new();
-    let scan = |s: &ShellModel, seen: &mut std::collections::BTreeSet<String>| {
-        for l in s.describe().lines().filter(|l| l.starts_with("canvas ")) {
-            for t in structural_tokens(l) {
-                assert!(
-                    ew_viewmodel::describe::VOCABULARY.contains(&t.as_str()),
-                    "`{t}` is no vocabulary word; line: {l}"
-                );
-                seen.insert(t);
-            }
-        }
-    };
     done(&mut s, "tool.ip", json!({}));
     let calls = s.session_calls();
     for k in 0..6 {
@@ -945,7 +898,6 @@ fn ib7_the_describe_lines_use_the_ten_words_and_the_tools_read_nothing_while_mov
     }
     for _ in 0..3 {
         done(&mut s, "tool.ip_direction", json!({}));
-        scan(&s, &mut seen);
     }
     done(&mut s, "ip.name", json!({"text": "X-1"}));
     let after = s.session_calls();
@@ -953,7 +905,6 @@ fn ib7_the_describe_lines_use_the_ten_words_and_the_tools_read_nothing_while_mov
     assert_eq!(after.page_tables, calls.page_tables);
     assert_eq!(after.symbol_shape, calls.symbol_shape);
     assert_eq!(after.preview_with, calls.preview_with);
-    scan(&s, &mut seen);
     done(&mut s, "ui.dismiss", json!({}));
     done(
         &mut s,
@@ -968,14 +919,6 @@ fn ib7_the_describe_lines_use_the_ten_words_and_the_tools_read_nothing_while_mov
     assert_eq!(after.page_content, calls.page_content);
     assert_eq!(after.page_tables, calls.page_tables);
     assert_eq!(after.symbol_shape, calls.symbol_shape);
-    scan(&s, &mut seen);
-    let words = ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::Ip);
-    // `arrange`, `by` and `potential` name the parameters of `ip.arrange_selected` (no canvas line prints them).
-    let missing: Vec<&&str> = words
-        .iter()
-        .filter(|w| !seen.contains(**w) && !matches!(**w, "arrange" | "by" | "potential"))
-        .collect();
-    assert!(missing.is_empty(), "words no state reached: {missing:?}");
 }
 
 #[test]

@@ -618,7 +618,6 @@ mod tests {
             "tools/blind/reference/actions.txt",
             "a View \"x\" menu none shortcut none context global params \"\"\n",
         );
-        w("tools/blind/reference/vocabulary.txt", "# v\n");
         w("tools/blind/tasks/selftest/task.md", "Selftest\n");
         w(
             "tools/blind/tasks/selftest/prelude.uiscript",
@@ -659,7 +658,6 @@ mod tests {
             ".harness/empty-sample",
             ".harness/content/symbols/x.json",
             ".harness/reference/actions.txt",
-            ".harness/reference/vocabulary.txt",
             ".harness/HELP.md",
             "book",
             "run.json",

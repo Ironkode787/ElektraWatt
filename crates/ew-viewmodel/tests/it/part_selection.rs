@@ -621,9 +621,9 @@ fn ps7_a_library_copy_forks() {
     s.shutdown();
 }
 
-/// PS9's membership: the actions of §9.4 are in the registry and the words of §9.6 in the vocabulary.
+/// PS9's membership: the actions of §9.4 are in the registry.
 #[test]
-fn ps9_the_actions_and_words_are_registered() {
+fn ps9_the_actions_are_registered() {
     for id in [
         "part.choose",
         "part.search",

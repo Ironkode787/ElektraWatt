@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use common::{GOLDEN_A, Tmp, copy_dir, done};
-use ew_viewmodel::describe::{Reach, describe, words as reach_words};
+use ew_viewmodel::describe::describe;
 use ew_viewmodel::ew_api::{
     AnyCommand, FormatStep, MigrationError, Migrations, Recovery, Session, SessionOptions, StoreOptions,
 };
@@ -131,7 +131,6 @@ fn xw1_the_external_change_toast_offers_undo_and_show_changes() {
             std::fs::read(Path::new(GOLDEN_A).join(f)).unwrap()
         );
     }
-    assert!(reach_words(Reach::Collab).contains(&"show_changes"));
 }
 
 /// XW-2: the collision dialog lists W20's colour with base, mine and theirs; "Decide later" leaves the banner and a
@@ -165,9 +164,6 @@ fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     assert!(dialog.contains(
         &"  row 1 \"Connection 102.2 · Colour override\" base \"(none)\" mine \"BU\" theirs \"WH\" chosen mine"
     ));
-    for w in ["chosen", "mine", "theirs"] {
-        assert!(reach_words(Reach::Collab).contains(&w));
-    }
     // The next poll keeps the dialog and the choice made in it.
     done(&mut s, "external.choose", json!({"row": 1, "take": "theirs"}));
     done(&mut s, "project.check_disk", json!({}));

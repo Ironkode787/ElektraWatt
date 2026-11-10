@@ -533,7 +533,8 @@ Rules that a local run on one OS cannot see:
   `ui.describe` gives the visible UI as text, `page.describe` the page's content as text, `view.snapshot` a PNG, and
   `--record` keeps the run's `.ewcmd`; `--keep-going` lets a refused or failed step not end the run (exit 1 when any
   step was not done). The actions are the shell's action registry, each with a parameter signature, and the describe
-  vocabulary is machine text that the harness help documents, because the drafter may not read the design documents.
+  text's structural words are machine text that the drafter learns from the output, because it may not read the design
+  documents.
   Every UUID the shell prints is shown as an alias `@n`, numbered by first appearance in the run's output, so that two
   runs of one script give byte-identical transcripts; a script writes `@n` back where an action takes an id. Wherever
   the shell lists records it orders them by what a person sees, the id only as the last key. A `HumanOnly` command

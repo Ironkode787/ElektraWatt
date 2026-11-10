@@ -2369,49 +2369,8 @@ fn workspace_names_that_windows_reserves_or_that_differ_only_in_case_are_refused
     ));
 }
 
-/// The words of a describe line that are structure: the quoted texts, numbers, action IDs (they have a dot),
-/// shortcuts and punctuation are taken out, and everything after a free-text marker is user text.
-fn structural_words(line: &str, shortcut_keys: &[String]) -> Vec<String> {
-    let mut outside = String::new();
-    let mut quoted = false;
-    for c in line.chars() {
-        if c == '"' {
-            quoted = !quoted;
-            outside.push(' ');
-        } else if !quoted {
-            outside.push(c);
-        }
-    }
-    let outside = outside.replace(['(', ')', '[', ']', ',', '|', '%'], " ");
-    let mut words = Vec::new();
-    for token in outside.split_whitespace() {
-        if ew_viewmodel::describe::FREE_TEXT_MARKERS.contains(&token) {
-            words.push(token.to_owned());
-            break;
-        }
-        let skip = token.chars().all(|c| c.is_ascii_digit())
-            // An ID alias `@n` is a value token like a number.
-            || ew_viewmodel::alias::is_alias(token)
-            || token.starts_with('#')
-            || token.contains('.')
-            || token.contains('+')
-            || token.chars().all(|c| !c.is_alphanumeric())
-            || shortcut_keys.iter().any(|k| k == token);
-        if !skip {
-            words.push(token.to_owned());
-        }
-    }
-    words
-}
-
 #[test]
-fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
-    let shortcut_keys: Vec<String> = ew_viewmodel::actions::ACTIONS
-        .iter()
-        .flat_map(|a| a.shortcut.iter())
-        .flat_map(|s| s.split(['+', ' ']))
-        .map(str::to_owned)
-        .collect();
+fn no_uuid_reaches_the_describe_text_and_a_selection_prints_an_alias() {
     let tmp = Tmp::new();
     let mut texts: Vec<String> = Vec::new();
     // The start page, a first run through all its steps, the wizard through all its steps, and a project with its
@@ -2720,35 +2679,7 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     done(&mut no_sample, "tools.company_standard", json!({}));
     texts.push(no_sample.describe());
 
-    let allowed = ew_viewmodel::describe::VOCABULARY;
-    // Every word the tool lines print for a marker, a snap or a preview status is in the vocabulary, reached or not.
-    use ew_viewmodel::tools::{MarkerKind, PreviewStatus, SnapKind};
-    for word in [
-        MarkerKind::Grid.word(),
-        MarkerKind::Cp.word(),
-        MarkerKind::Junction.word(),
-        SnapKind::Grid.word(),
-        SnapKind::Cp.word(),
-        PreviewStatus::Ready.word(),
-        PreviewStatus::Stale.word(),
-        PreviewStatus::Failed.word(),
-    ] {
-        assert!(allowed.contains(&word), "{word}");
-    }
-    let mut seen = std::collections::BTreeSet::new();
-    for text in &texts {
-        for line in text.lines() {
-            for word in structural_words(line, &shortcut_keys) {
-                assert!(
-                    allowed.contains(&word.as_str()),
-                    "`{word}` is in no word list of describe.rs; line: {line}"
-                );
-                seen.insert(word);
-            }
-        }
-    }
-    // No UUID reaches the describe text: the hovered entity and the selection print as aliases `@n`, value tokens
-    // that the word check above skips.
+    // No UUID reaches the describe text: the hovered entity and the selection print as aliases `@n`.
     for text in &texts {
         assert_eq!(ew_viewmodel::alias::find_uuid(text), None, "{text}");
     }
@@ -2760,14 +2691,6 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
                 && l.split_whitespace().any(ew_viewmodel::alias::is_alias)),
         "a selection line with an alias"
     );
-    // The states above reach most of the vocabulary: a word that nothing emits is a stale entry or a missed state. A
-    // word they do not reach carries the `Reach` of the tests whose own states reach it, in `WORDS` of describe.rs.
-    for w in allowed.iter().filter(|w| !seen.contains(**w)) {
-        assert!(
-            ew_viewmodel::describe::reach_of(w).is_some_and(|r| !r.is_empty()),
-            "`{w}` is reached by no state of this test and has no Reach in describe.rs"
-        );
-    }
 }
 
 #[test]
