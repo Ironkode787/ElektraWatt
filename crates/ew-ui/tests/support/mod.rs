@@ -180,6 +180,48 @@ pub fn dispatch(harness: &mut Harness<'_, App>, action: &str, params: serde_json
     );
 }
 
+/// Runs `action` on a shell and asserts it was done.
+#[track_caller]
+pub fn done(shell: &mut ShellModel, action: &str, params: serde_json::Value) {
+    assert_eq!(
+        shell.dispatch(action, &params),
+        Outcome::Done,
+        "{action} {params}"
+    );
+}
+
+/// The window position (points) of the sheet point `p` on the focused canvas.
+pub fn screen(harness: &Harness<'_, App>, p: (i64, i64)) -> egui::Pos2 {
+    let bounds = harness
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let c = harness.state().shell().canvas().unwrap();
+    let k = c.points_per_nm();
+    egui::Pos2::new(
+        bounds.x0 as f32 + ((p.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
+        bounds.y0 as f32 + ((p.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
+    )
+}
+
+/// An edit of two devices' function text on folio 101: one edit toast on show.
+pub fn edit_toast(harness: &mut Harness<'_, App>) {
+    dispatch(harness, "page.goto", serde_json::json!({"folio": "101"}));
+    dispatch(
+        harness,
+        "select.set",
+        serde_json::json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
+    );
+    dispatch(
+        harness,
+        "props.set",
+        serde_json::json!({"row": "device/function_text", "value": "Spare"}),
+    );
+}
+
 /// The window on a writable copy of Golden A with folio `folio` on show and its image arrived.
 pub fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");

@@ -17,15 +17,7 @@ use ew_ui::app::{App, Pick};
 use ew_ui::ew_viewmodel::ew_api::ew_jobs::Gate;
 use ew_ui::ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, Prompt, ShellModel};
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, harness_with, settle};
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
+use support::{Scripted, Tmp, dispatch, edit_toast, harness, harness_with, settle};
 
 /// Frames until no job runs (bounded); the job's thread wakes the window, the frame takes its end.
 fn run_until_jobs_end(h: &mut Harness<'_, App>) {
@@ -144,17 +136,7 @@ fn jb6_the_toasts_stack_and_the_log_opens_from_the_status_bar() {
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-    dispatch(
-        &mut h,
-        "select.set",
-        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
-    );
-    dispatch(
-        &mut h,
-        "props.set",
-        json!({"row": "device/function_text", "value": "Spare"}),
-    );
+    edit_toast(&mut h);
     dispatch(
         &mut h,
         "file.export_pdf",

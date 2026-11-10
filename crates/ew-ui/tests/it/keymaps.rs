@@ -13,8 +13,8 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::shell::Outcome;
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
 /// The window on a writable copy of Golden A, folio 103, the canvas focused, with `settings` and `keymap` written to
 /// the settings directory first.
@@ -35,14 +35,6 @@ fn on_golden(tmp: &Tmp, settings: &str, keymap: Option<&str>) -> Harness<'static
     settle(&mut h);
     h.state_mut().shell_mut().set_dispatch_log(true);
     h
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
 }
 
 /// The actions the window dispatched for one key press (in order).
@@ -89,22 +81,15 @@ fn km1_the_kicad_preset_binds_a_g_w_and_e_on_the_canvas() {
     );
 }
 
-/// KM-1: in the EW preset A is not bound and I starts Place.
+/// KM-1: in the EW preset A is not bound and I starts Place. KM-5 (D7): Ctrl+Shift+N runs Renumber devices….
 #[test]
-fn km1_the_ew_preset_keeps_i_for_place() {
+fn km1_km5_the_ew_preset_keeps_i_for_place_and_binds_ctrl_shift_n_to_renumber() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, FIRST_RUN_DONE, None);
     let log = actions_of(&mut h, Modifiers::NONE, Key::A);
     assert!(log.is_empty(), "{log:?}");
     let log = actions_of(&mut h, Modifiers::NONE, Key::I);
     assert_eq!(log.first().map(String::as_str), Some("tool.place"), "{log:?}");
-}
-
-/// KM-5 (D7): Ctrl+Shift+N runs Renumber devices….
-#[test]
-fn km5_ctrl_shift_n_runs_renumber_devices() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, FIRST_RUN_DONE, None);
     let log = actions_of(&mut h, Modifiers::COMMAND | Modifiers::SHIFT, Key::N);
     assert_eq!(
         log.first().map(String::as_str),
@@ -181,62 +166,38 @@ fn km3_the_editor_records_a_pressed_chord_and_shows_conflicts_and_shadowing() {
 
 /// FT-1130 (item 5): `ui.dismiss` from a key while the app menu is open closes the menu and nothing else, as
 /// Escape does; with the menu closed the same key dismisses as before. A physical key of the user's keymap reaches the
-/// window's event loop with `ui.dismiss`; a logical key does too, below.
+/// window's event loop with `ui.dismiss`; a logical key does too (the logical-key loop matches a `ui.dismiss` bound to
+/// a key other than Escape as the physical-key loop does).
 #[test]
 fn ui_dismiss_with_the_app_menu_open_closes_only_the_menu() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(
-        &tmp,
-        FIRST_RUN_DONE,
-        Some(
-            "[meta]\nname = \"Mine\"\nversion = 1\n\n[[bind]]\nkeys = \"phys:Backslash\"\naction = \"ui.dismiss\"\n\
-             context = \"global\"\n",
-        ),
-    );
-    assert_eq!(h.state().shell().banner(), None);
-    h.key_press(Key::F10);
-    settle(&mut h);
-    assert!(
-        support::off_chrome(&h, "File").is_some(),
-        "F10 opens the app menu"
-    );
-    let log = actions_of(&mut h, Modifiers::NONE, Key::Backslash);
-    assert!(
-        support::off_chrome(&h, "File").is_none(),
-        "the menu closed: {log:?}"
-    );
-    assert!(log.is_empty(), "nothing else ran: {log:?}");
-    let log = actions_of(&mut h, Modifiers::NONE, Key::Backslash);
-    assert_eq!(log.first().map(String::as_str), Some("ui.dismiss"), "{log:?}");
-}
-
-/// The logical-key loop matches a `ui.dismiss` the keymap binds to a key other than Escape, as the
-/// physical-key loop does: with the app menu open it closes only the menu, then it dismisses.
-#[test]
-fn ui_dismiss_on_a_logical_key_reaches_the_window() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(
-        &tmp,
-        FIRST_RUN_DONE,
-        Some(
-            "[meta]\nname = \"Mine\"\nversion = 1\n\n[[bind]]\nkeys = \"Alt+Q\"\naction = \"ui.dismiss\"\n\
-             context = \"global\"\n",
-        ),
-    );
-    assert_eq!(h.state().shell().banner(), None);
-    h.key_press(Key::F10);
-    settle(&mut h);
-    assert!(
-        support::off_chrome(&h, "File").is_some(),
-        "F10 opens the app menu"
-    );
-    let chord = Modifiers::ALT;
-    let log = actions_of(&mut h, chord, Key::Q);
-    assert!(
-        support::off_chrome(&h, "File").is_none(),
-        "the menu closed: {log:?}"
-    );
-    assert!(log.is_empty(), "nothing else ran: {log:?}");
-    let log = actions_of(&mut h, chord, Key::Q);
-    assert_eq!(log.first().map(String::as_str), Some("ui.dismiss"), "{log:?}");
+    for (keys, modifiers, key) in [
+        ("phys:Backslash", Modifiers::NONE, Key::Backslash),
+        ("Alt+Q", Modifiers::ALT, Key::Q),
+    ] {
+        let tmp = Tmp::new();
+        let keymap = format!(
+            "[meta]\nname = \"Mine\"\nversion = 1\n\n[[bind]]\nkeys = \"{keys}\"\naction = \"ui.dismiss\"\n\
+             context = \"global\"\n"
+        );
+        let mut h = on_golden(&tmp, FIRST_RUN_DONE, Some(&keymap));
+        assert_eq!(h.state().shell().banner(), None, "{keys}");
+        h.key_press(Key::F10);
+        settle(&mut h);
+        assert!(
+            support::off_chrome(&h, "File").is_some(),
+            "{keys}: F10 opens the app menu"
+        );
+        let log = actions_of(&mut h, modifiers, key);
+        assert!(
+            support::off_chrome(&h, "File").is_none(),
+            "{keys}: the menu closed: {log:?}"
+        );
+        assert!(log.is_empty(), "{keys}: nothing else ran: {log:?}");
+        let log = actions_of(&mut h, modifiers, key);
+        assert_eq!(
+            log.first().map(String::as_str),
+            Some("ui.dismiss"),
+            "{keys}: {log:?}"
+        );
+    }
 }

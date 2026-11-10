@@ -14,16 +14,8 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::navigators::NavKind;
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
+use serde_json::{json};
+use support::{Scripted, Tmp, dispatch, harness_with, settle, wait_for_page};
 
 /// A copy of Golden A in the window at 1280 × 800, on folio 101.
 fn on_golden(tmp: &Tmp) -> Harness<'static, App> {

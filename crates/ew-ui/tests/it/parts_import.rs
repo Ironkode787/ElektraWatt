@@ -21,7 +21,7 @@ use ew_ui::app::{App, Pick, PickReply, Platform, setup};
 use ew_ui::ew_viewmodel::ew_api::Session;
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, Prompt, ShellModel};
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, harness_with, settle, wait_for_page};
+use support::{Scripted, Tmp, harness, harness_with, screen, settle, wait_for_page};
 
 /// The newest notification's text: the toast it showed (the harness's clock may already have timed the toast out).
 fn toast(h: &Harness<'_, App>) -> Option<String> {
@@ -31,6 +31,15 @@ fn toast(h: &Harness<'_, App>) -> Option<String> {
         .entries()
         .next()
         .map(|n| n.text.clone())
+}
+
+/// A shell on a new project with the built-in template, and the project's directory.
+fn new_project(tmp: &Tmp) -> (ShellModel, PathBuf) {
+    let dir = tmp.0.join("proj.ew");
+    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
+    let params: Value = json!({"dir": dir.to_string_lossy(), "template": "builtin"});
+    assert_eq!(shell.dispatch("file.new", &params), Outcome::Done);
+    (shell, dir)
 }
 
 fn golden_parts() -> PathBuf {
@@ -53,15 +62,12 @@ fn without_a_project_the_entry_is_disabled() {
 #[test]
 fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     let tmp = Tmp::new();
-    let dir = tmp.0.join("proj.ew");
     let platform = Scripted::default();
     platform
         .answers
         .borrow_mut()
         .push_back(Pick::Path(golden_parts()));
-    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
-    let params: Value = json!({"dir": dir.to_string_lossy(), "template": "builtin"});
-    assert_eq!(shell.dispatch("file.new", &params), Outcome::Done);
+    let (shell, dir) = new_project(&tmp);
     let mut h = harness_with(shell, platform.clone(), None);
     settle(&mut h);
     wait_for_page(&mut h);
@@ -141,10 +147,7 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
 #[test]
 fn cancel_drops_the_card_without_a_change() {
     let tmp = Tmp::new();
-    let dir = tmp.0.join("proj.ew");
-    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
-    let params: Value = json!({"dir": dir.to_string_lossy(), "template": "builtin"});
-    assert_eq!(shell.dispatch("file.new", &params), Outcome::Done);
+    let (shell, _) = new_project(&tmp);
     let mut h = harness_with(shell, Scripted::default(), None);
     settle(&mut h);
     wait_for_page(&mut h);
@@ -187,16 +190,13 @@ impl Platform for DialogPlatform {
 #[test]
 fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
     let tmp = Tmp::new();
-    let dir = tmp.0.join("proj.ew");
     let csv = tmp.0.join("parts.csv");
     std::fs::write(
         &csv,
         "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data\nA1,Acme,A1,,,Relay A,piece,,\nA2,Acme,A2,,,Relay B,piece,,\n",
     )
     .unwrap();
-    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
-    let params: Value = json!({"dir": dir.to_string_lossy(), "template": "builtin"});
-    assert_eq!(shell.dispatch("file.new", &params), Outcome::Done);
+    let (shell, _) = new_project(&tmp);
     let ctx_slot = Rc::new(RefCell::new(None));
     let pick_pass = Rc::new(Cell::new(u64::MAX));
     let platform = DialogPlatform {
@@ -292,10 +292,7 @@ impl Platform for ThreadedPlatform {
 
 /// A harness on a new project whose File, Import, Parts table… has been clicked once with `platform`.
 fn harness_with_open_dialog<'a>(tmp: &Tmp, platform: ThreadedPlatform) -> Harness<'a, App> {
-    let dir = tmp.0.join("proj.ew");
-    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
-    let params: Value = json!({"dir": dir.to_string_lossy(), "template": "builtin"});
-    assert_eq!(shell.dispatch("file.new", &params), Outcome::Done);
+    let (shell, _) = new_project(tmp);
     let app = App::new(shell, Box::new(platform), None);
     let mut h = Harness::builder()
         .with_size(Vec2::new(1000.0, 700.0))
@@ -382,23 +379,6 @@ fn a_dialog_thread_without_an_answer_counts_as_cancelled() {
     h.step();
     assert_eq!(platform.started.get(), 2, "a new prompt starts a new dialog");
     h.state_mut().shell_mut().shutdown();
-}
-
-/// The window position (points) of the sheet point `p` on the focused canvas.
-fn screen(h: &Harness<'_, App>, p: (i64, i64)) -> egui::Pos2 {
-    let bounds = h
-        .get_all_by_role(egui::Role::Canvas)
-        .next()
-        .expect("the canvas node")
-        .accesskit_node()
-        .raw_bounds()
-        .expect("bounds");
-    let c = h.state().shell().canvas().unwrap();
-    let k = c.points_per_nm();
-    egui::Pos2::new(
-        bounds.x0 as f32 + ((p.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
-        bounds.y0 as f32 + ((p.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
-    )
 }
 
 /// FT-467 review: while a file dialog is open off the window's thread no input reaches the shell (a dialog that is not

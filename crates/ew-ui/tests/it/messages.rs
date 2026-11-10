@@ -15,17 +15,9 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavNode, NavRole};
-use ew_ui::ew_viewmodel::shell::{Focus, Mode, Outcome, Resources, ShellModel};
+use ew_ui::ew_viewmodel::shell::{Focus, Mode, Resources, ShellModel};
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
+use support::{Scripted, Tmp, dispatch, harness_with, settle, wait_for_page};
 
 /// A copy of Golden A in the window, with an installed user guide that holds the rule pages.
 fn on_golden(tmp: &Tmp, platform: Scripted) -> Harness<'static, App> {

@@ -8,38 +8,15 @@
 
 use crate::support;
 
-use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use ew_ui::app::App;
 use ew_ui::ew_viewmodel::ew_api::output::SnapMode;
-use ew_ui::ew_viewmodel::shell::Outcome;
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn on_902(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": "902" }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
+use serde_json::json;
+use support::{Tmp, dispatch, on_golden, settle};
 
 #[test]
 fn the_unplaced_navigator_and_the_layout_options_card() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = on_golden(&tmp, "902");
     dispatch(&mut h, "navigator.show", json!({ "kind": "unplaced" }));
     settle(&mut h);
     for label in ["-201U9", "E55", "E56", "F55", "S56"] {
@@ -87,7 +64,7 @@ fn the_unplaced_navigator_and_the_layout_options_card() {
 #[test]
 fn ft997_a_locked_placement_shows_the_lock_icon() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = on_golden(&tmp, "902");
     assert!(h.state_mut().canvas_host().lock_marks(0).is_empty());
     let panel = h.state().shell().panel_tables().unwrap();
     let row = panel

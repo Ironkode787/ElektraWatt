@@ -14,27 +14,7 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::shell::Outcome;
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": folio }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
+use support::{Scripted, Tmp, dispatch, on_golden, screen, settle, wait_for_page};
 
 fn press(h: &mut Harness<'_, App>, key: Key) {
     h.key_press(key);
@@ -43,23 +23,6 @@ fn press(h: &mut Harness<'_, App>, key: Key) {
 
 fn reps(h: &Harness<'_, App>) -> usize {
     h.state().shell().canvas().unwrap().page().tables.reps.len()
-}
-
-/// The window position (points) of the sheet point `p` on the focused canvas.
-fn screen(h: &Harness<'_, App>, p: (i64, i64)) -> Pos2 {
-    let bounds = h
-        .get_all_by_role(egui::Role::Canvas)
-        .next()
-        .expect("the canvas node")
-        .accesskit_node()
-        .raw_bounds()
-        .expect("bounds");
-    let c = h.state().shell().canvas().unwrap();
-    let k = c.points_per_nm();
-    Pos2::new(
-        bounds.x0 as f32 + ((p.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
-        bounds.y0 as f32 + ((p.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
-    )
 }
 
 #[test]
@@ -148,47 +111,41 @@ fn the_picker_popup_is_driven_by_its_keys_and_floats_a_starter_symbol() {
 }
 
 /// Cycle 37 (window check W37): the picker opened by `tool.place` takes the keyboard from the first key; text typed in
-/// the frame that first shows it reaches its filter field ("relay", not "elay").
+/// the frame that first shows it reaches its filter field ("relay", not "elay"). Cycle 38 (window check W38): also with
+/// a navigator focused (it paints before the picker and takes typed text as its type-ahead).
 #[test]
 fn the_picker_filter_keeps_the_first_typed_character() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
-    dispatch(&mut h, "tool.place", json!({}));
-    assert!(
-        h.state().shell().picker().is_some(),
-        "tool.place opens the picker"
-    );
-    // No frame between the action and the typing: the first frame that paints the picker carries the text.
-    h.event(egui::Event::Text("r".to_owned()));
-    h.step();
-    h.event(egui::Event::Text("elay".to_owned()));
-    settle(&mut h);
-    assert_eq!(h.state().shell().picker().unwrap().filter, "relay");
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// Cycle 38 (window check W38): with a navigator focused (it paints before the picker and takes typed text as its
-/// type-ahead), the first key typed after `tool.place` still reaches the picker's filter ("relay", not "elay").
-#[test]
-fn the_picker_filter_keeps_the_first_typed_character_over_a_focused_navigator() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
-    dispatch(&mut h, "navigator.show", json!({"kind": "connections"}));
-    settle(&mut h);
-    assert!(
-        matches!(
-            h.state().shell().focus(),
-            Some(ew_ui::ew_viewmodel::shell::Focus::Navigator(_))
-        ),
-        "the navigator has the focus"
-    );
-    dispatch(&mut h, "tool.place", json!({}));
-    h.event(egui::Event::Text("r".to_owned()));
-    h.step();
-    h.event(egui::Event::Text("elay".to_owned()));
-    settle(&mut h);
-    assert_eq!(h.state().shell().picker().unwrap().filter, "relay");
-    h.state_mut().shell_mut().shutdown();
+    for navigator_focused in [false, true] {
+        let tmp = Tmp::new();
+        let mut h = on_golden(&tmp, "101");
+        if navigator_focused {
+            dispatch(&mut h, "navigator.show", json!({"kind": "connections"}));
+            settle(&mut h);
+            assert!(
+                matches!(
+                    h.state().shell().focus(),
+                    Some(ew_ui::ew_viewmodel::shell::Focus::Navigator(_))
+                ),
+                "the navigator has the focus"
+            );
+        }
+        dispatch(&mut h, "tool.place", json!({}));
+        assert!(
+            h.state().shell().picker().is_some(),
+            "tool.place opens the picker (navigator focused: {navigator_focused})"
+        );
+        // No frame between the action and the typing: the first frame that paints the picker carries the text.
+        h.event(egui::Event::Text("r".to_owned()));
+        h.step();
+        h.event(egui::Event::Text("elay".to_owned()));
+        settle(&mut h);
+        assert_eq!(
+            h.state().shell().picker().unwrap().filter,
+            "relay",
+            "navigator focused: {navigator_focused}"
+        );
+        h.state_mut().shell_mut().shutdown();
+    }
 }
 
 #[test]

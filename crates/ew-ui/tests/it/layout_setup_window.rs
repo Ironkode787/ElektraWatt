@@ -12,36 +12,16 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn on_902(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": "902" }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
+use ew_ui::ew_viewmodel::shell::Dialog;
+use serde_json::json;
+use support::{Tmp, dispatch, on_golden, settle};
 
 /// At the 1280 × 800 floor (doc 16a), where the Draw row shows the Layout group whole; below it the group folds into
 /// its menu.
 #[test]
 fn the_duct_button_arms_draw_duct_with_its_options_card() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = on_golden(&tmp, "902");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     dispatch(&mut h, "view.command_tab", json!({ "tab": "draw" }));
     settle(&mut h);
@@ -83,7 +63,7 @@ fn the_duct_button_arms_draw_duct_with_its_options_card() {
 #[test]
 fn the_duct_card_after_the_rail_card_keeps_its_fields_width() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = on_golden(&tmp, "902");
     dispatch(&mut h, "tool.rail_draw", json!({}));
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "rail_draw");
@@ -113,7 +93,7 @@ fn the_duct_card_after_the_rail_card_keeps_its_fields_width() {
 #[test]
 fn the_create_enclosure_dialog_keeps_its_refusal_under_the_fields() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = on_golden(&tmp, "902");
     dispatch(&mut h, "layout.enclosure_new", json!({}));
     settle(&mut h);
     assert!(
@@ -143,7 +123,7 @@ fn the_create_enclosure_dialog_keeps_its_refusal_under_the_fields() {
 #[test]
 fn create_is_disabled_without_a_part() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = on_golden(&tmp, "902");
     dispatch(&mut h, "layout.enclosure_new", json!({}));
     settle(&mut h);
     h.state_mut().shell_mut().set_form_field("part", "");
@@ -161,7 +141,7 @@ fn create_is_disabled_without_a_part() {
 #[test]
 fn the_auto_fill_dialog_says_which_devices_it_fills_with() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = on_golden(&tmp, "902");
     dispatch(&mut h, "layout.auto_fill_rail", json!({}));
     settle(&mut h);
     assert!(
@@ -184,7 +164,7 @@ fn the_auto_fill_dialog_says_which_devices_it_fills_with() {
 #[test]
 fn rail_1s_properties_show_its_free_length() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = on_golden(&tmp, "902");
     let r1 = h
         .state()
         .shell()
@@ -238,77 +218,60 @@ fn focused_field(h: &Harness<'_, App>) -> (String, egui::Rect) {
     )
 }
 
-/// W44.4 F-h: -102F1's Realised part edited, cancelled, then the same row of -201U1's placement edited: the editor
-/// shows -201U1's own part, not -102F1's.
+/// W44.4 F-h: -102F1's Realised part edited, then the same row of -201U1's placement edited: the editor shows
+/// -201U1's own part, not -102F1's. Once with the first editor cancelled and frames between (C44-p6#4: W44.4 F-h's
+/// case), once with `select.set` on -201U1's placement and `props.edit` on the same row with no frame between, the
+/// first editor's field still focused: the field keeps its focus across the change and still shows -201U1's own part.
 #[test]
 fn the_editor_of_another_selection_shows_its_own_value() {
-    let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
-    let row = json!({"row": "placement/derived.realised_part"});
-    let f1 = placement_of(&h, "-102F1");
-    dispatch(&mut h, "select.set", json!({"ids": [f1]}));
-    settle(&mut h);
-    dispatch(&mut h, "props.edit", row.clone());
-    settle(&mut h);
-    assert_eq!(focused_field(&h).0, "A9F78116");
-    dispatch(&mut h, "props.cancel", json!({}));
-    settle(&mut h);
-    let u1 = placement_of(&h, "-201U1");
-    dispatch(&mut h, "select.set", json!({"ids": [u1]}));
-    settle(&mut h);
-    dispatch(&mut h, "props.edit", row);
-    settle(&mut h);
-    let buffer = h
-        .state()
-        .shell()
-        .properties()
-        .edit()
-        .expect("an editor")
-        .buffer
-        .clone();
-    assert_eq!(
-        (focused_field(&h).0, buffer.as_str()),
-        ("195740".to_owned(), "195740")
-    );
-}
-
-/// C44-p6#4 (W44.4 F-h, the frames' case): with -102F1's Realised part editor focused, `select.set` on -201U1's
-/// placement and `props.edit` on the same row with no frame between: the field keeps its focus across the change,
-/// and still shows -201U1's own part.
-#[test]
-fn the_focused_editor_takes_the_new_selections_value() {
-    let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
-    let row = json!({"row": "placement/derived.realised_part"});
-    let f1 = placement_of(&h, "-102F1");
-    let u1 = placement_of(&h, "-201U1");
-    dispatch(&mut h, "select.set", json!({"ids": [f1]}));
-    settle(&mut h);
-    dispatch(&mut h, "props.edit", row.clone());
-    settle(&mut h);
-    assert_eq!(focused_field(&h).0, "A9F78116");
-    dispatch(&mut h, "select.set", json!({"ids": [u1]}));
-    dispatch(&mut h, "props.edit", row);
-    settle(&mut h);
-    let buffer = h
-        .state()
-        .shell()
-        .properties()
-        .edit()
-        .expect("an editor")
-        .buffer
-        .clone();
-    assert_eq!(
-        (focused_field(&h).0, buffer.as_str()),
-        ("195740".to_owned(), "195740")
-    );
+    for frames_between in [true, false] {
+        let tmp = Tmp::new();
+        let mut h = on_golden(&tmp, "902");
+        let row = json!({"row": "placement/derived.realised_part"});
+        let f1 = placement_of(&h, "-102F1");
+        let u1 = placement_of(&h, "-201U1");
+        dispatch(&mut h, "select.set", json!({"ids": [f1]}));
+        settle(&mut h);
+        dispatch(&mut h, "props.edit", row.clone());
+        settle(&mut h);
+        assert_eq!(
+            focused_field(&h).0,
+            "A9F78116",
+            "frames between: {frames_between}"
+        );
+        if frames_between {
+            dispatch(&mut h, "props.cancel", json!({}));
+            settle(&mut h);
+            dispatch(&mut h, "select.set", json!({"ids": [u1]}));
+            settle(&mut h);
+            dispatch(&mut h, "props.edit", row);
+            settle(&mut h);
+        } else {
+            dispatch(&mut h, "select.set", json!({"ids": [u1]}));
+            dispatch(&mut h, "props.edit", row);
+            settle(&mut h);
+        }
+        let buffer = h
+            .state()
+            .shell()
+            .properties()
+            .edit()
+            .expect("an editor")
+            .buffer
+            .clone();
+        assert_eq!(
+            (focused_field(&h).0, buffer.as_str()),
+            ("195740".to_owned(), "195740"),
+            "frames between: {frames_between}"
+        );
+    }
 }
 
 /// W44.4 F-f (doc 16a §6.8): the editor's text starts `space.icon` (6 px) inside the field.
 #[test]
 fn the_editors_text_is_padded_from_the_fields_edge() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = on_golden(&tmp, "902");
     dispatch(&mut h, "select.set", json!({"ids": []}));
     settle(&mut h);
     dispatch(&mut h, "props.edit", json!({"row": "page/derived.surface"}));
@@ -335,7 +298,7 @@ fn the_editors_text_is_padded_from_the_fields_edge() {
 #[test]
 fn the_surface_view_rows_have_their_own_heading() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = on_golden(&tmp, "902");
     dispatch(&mut h, "select.set", json!({"ids": []}));
     settle(&mut h);
     let headings: Vec<String> = h
@@ -352,7 +315,7 @@ fn the_surface_view_rows_have_their_own_heading() {
 #[test]
 fn an_editor_opened_out_of_view_scrolls_into_view() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = on_golden(&tmp, "902");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-102F1"]}));
@@ -424,7 +387,7 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
 #[test]
 fn create_enclosure_disabled_at_open_focuses_its_first_control() {
     let tmp = Tmp::new();
-    let mut h = on_902(&tmp);
+    let mut h = on_golden(&tmp, "902");
     dispatch(&mut h, "layout.enclosure_new", json!({}));
     h.state_mut().shell_mut().set_form_field("part", "");
     settle(&mut h);

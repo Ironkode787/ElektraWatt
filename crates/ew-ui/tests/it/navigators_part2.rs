@@ -16,18 +16,10 @@ use ew_render2d::view::View;
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::highlight::SLOT_COLOURS;
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::{Focus, Mode, Outcome, ShellModel};
+use ew_ui::ew_viewmodel::shell::{Focus, Mode, ShellModel};
 use ew_ui::ew_viewmodel::tools::OverlayItem;
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn done(shell: &mut ShellModel, action: &str, params: Value) {
-    assert_eq!(
-        shell.dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
+use serde_json::json;
+use support::{Scripted, Tmp, done, harness, settle, wait_for_page};
 
 fn row_key(shell: &ShellModel, kind: NavKind, role: NavRole, label: &str) -> String {
     let t = shell

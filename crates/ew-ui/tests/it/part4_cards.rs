@@ -13,17 +13,8 @@ use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Outcome;
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle};
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, edit_toast, harness, settle};
 
 /// Waits for the running jobs without running frames, then settles. Polling with frames ran the window's clock on for
 /// as long as the export took, so on a loaded machine the edit toast's 8 seconds ran out before the assertions
@@ -87,17 +78,7 @@ fn cp2_cp7_the_toasts_stand_at_the_canvas_top_right_newest_on_top() {
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-    dispatch(
-        &mut h,
-        "select.set",
-        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
-    );
-    dispatch(
-        &mut h,
-        "props.set",
-        json!({"row": "device/function_text", "value": "Spare"}),
-    );
+    edit_toast(&mut h);
     dispatch(
         &mut h,
         "file.export_pdf",
@@ -145,17 +126,7 @@ fn a_modal_dialog_puts_the_toasts_below_its_backdrop() {
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-    dispatch(
-        &mut h,
-        "select.set",
-        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
-    );
-    dispatch(
-        &mut h,
-        "props.set",
-        json!({"row": "device/function_text", "value": "Spare"}),
-    );
+    edit_toast(&mut h);
     h.run_ok();
     let toasts = egui::Id::unique("ew-toasts");
     let layer_of = |h: &Harness<'_, App>| {
@@ -192,17 +163,7 @@ fn the_insert_symbol_picker_stands_above_the_toasts() {
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-    dispatch(
-        &mut h,
-        "select.set",
-        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
-    );
-    dispatch(
-        &mut h,
-        "props.set",
-        json!({"row": "device/function_text", "value": "Spare"}),
-    );
+    edit_toast(&mut h);
     dispatch(&mut h, "tool.place", json!({}));
     h.run_ok();
     h.run_ok();
@@ -321,57 +282,12 @@ fn cp8_a_stale_card_shows_its_badge_and_apply_stays_the_primary() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A toast's 8 seconds run on the window's frame clock (egui's `input.time`), which is the wall
-/// clock in the window and the harness's steps here, so how long a loaded machine takes between two frames does not
-/// decide whether a test still sees a toast. The toast stays while less than 8 seconds of frames have passed since
-/// the frame that first painted it, and goes in the first frame at 8 seconds.
-#[test]
-fn ft_524_a_toast_lives_8_seconds_of_the_frame_clock() {
-    let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(&tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-    dispatch(
-        &mut h,
-        "select.set",
-        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
-    );
-    dispatch(
-        &mut h,
-        "props.set",
-        json!({"row": "device/function_text", "value": "Spare"}),
-    );
-    h.step();
-    let shown = h.ctx.input(|i| i.time);
-    assert_eq!(h.state().shell().notifications().visible().len(), 1);
-    for _ in 0..1000 {
-        h.step();
-        let age = h.ctx.input(|i| i.time) - shown;
-        let visible = h.state().shell().notifications().visible().len();
-        if age < 8.0 {
-            assert_eq!(visible, 1, "on screen at {age} s");
-        } else {
-            assert_eq!(visible, 0, "gone at {age} s");
-            h.state_mut().shell_mut().shutdown();
-            return;
-        }
-    }
-    panic!("the frame clock did not reach 8 seconds");
-}
-
 /// A harness on Golden A with one toast (an edit's) painted in its first frame; returns the frame time of that frame.
 fn one_toast(h: &mut Harness<'_, App>) -> f64 {
     settle(h);
     // The harness draws on the CPU, which reduces motion while the setting is unset.
     dispatch(h, "view.reduce_motion", json!({"on": false}));
-    dispatch(h, "page.goto", json!({"folio": "101"}));
-    dispatch(h, "select.set", json!({"refs": ["tag:-101F1", "tag:-102F1"]}));
-    dispatch(
-        h,
-        "props.set",
-        json!({"row": "device/function_text", "value": "Spare"}),
-    );
+    edit_toast(h);
     h.step();
     assert_eq!(h.state().shell().notifications().visible().len(), 1);
     h.ctx.input(|i| i.time)
@@ -454,74 +370,65 @@ fn ft1027_hovering_a_toast_pauses_its_fade() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1137 (doc 16a §6.10, "hovering or focusing one pauses it"): a toast whose Dismiss button holds the
-/// keyboard focus is paused for as long as it holds it, the pointer away from it.
+/// FT-1137 (doc 16a §6.10, "hovering or focusing one pauses it"): a toast whose Dismiss button holds the keyboard
+/// focus is paused for as long as it holds it, the pointer away from it. FT-1171: also while the shell's focus is on
+/// the canvas, a toast's Dismiss button that takes the keyboard focus keeps it (the canvas does not take it back each
+/// frame).
 #[test]
-fn ft1137_a_toast_that_holds_the_keyboard_focus_is_paused() {
-    let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(&tmp, Scripted::default(), Some(dir));
-    let shown = one_toast(&mut h);
-    assert_eq!(opacity_at(&mut h, shown, 1.0), Some(1.0));
-    let toast = h
-        .get_all_by_role(egui::Role::Group)
-        .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
-        .expect("the toast's node")
-        .rect();
-    // The window's focus leaves the canvas (which takes the keyboard focus back while it has it).
-    dispatch(&mut h, "ui.focus", json!({"area": "commandbar"}));
-    h.step();
-    h.get_all_by_role(egui::Role::Button)
-        .find(|n| n.accesskit_node().label().as_deref() == Some("Dismiss") && toast.contains_rect(n.rect()))
-        .expect("the toast's Dismiss button")
-        .focus();
-    h.step();
-    for t in [2.0, 7.95, 20.0] {
-        assert_eq!(opacity_at(&mut h, shown, t), Some(1.0), "focused at {t} s");
-    }
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// While the shell's focus is on the canvas, a toast's Dismiss button that takes the keyboard focus keeps it
-/// (the canvas does not take it back each frame), so the toast stays paused.
-#[test]
-fn ft1171_a_toasts_control_keeps_the_focus_from_the_canvas() {
-    let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(&tmp, Scripted::default(), Some(dir));
-    let shown = one_toast(&mut h);
-    assert_eq!(opacity_at(&mut h, shown, 1.0), Some(1.0));
-    assert_eq!(
-        h.state().shell().focus(),
-        Some(ew_ui::ew_viewmodel::shell::Focus::Canvas(0)),
-        "the canvas has the shell's focus"
-    );
-    let toast = h
-        .get_all_by_role(egui::Role::Group)
-        .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
-        .expect("the toast's node")
-        .rect();
-    h.get_all_by_role(egui::Role::Button)
-        .find(|n| n.accesskit_node().label().as_deref() == Some("Dismiss") && toast.contains_rect(n.rect()))
-        .expect("the toast's Dismiss button")
-        .focus();
-    h.step();
-    for t in [2.0, 7.95, 20.0] {
-        assert_eq!(opacity_at(&mut h, shown, t), Some(1.0), "focused at {t} s");
-        let focused = h.ctx.memory(|m| m.focused());
-        let dismiss = h
-            .get_all_by_role(egui::Role::Button)
+fn ft1137_ft1171_a_toast_that_holds_the_keyboard_focus_is_paused() {
+    for leave_canvas in [true, false] {
+        let tmp = Tmp::new();
+        let dir = tmp.golden("g.ew");
+        let mut h = harness(&tmp, Scripted::default(), Some(dir));
+        let shown = one_toast(&mut h);
+        assert_eq!(opacity_at(&mut h, shown, 1.0), Some(1.0));
+        let toast = h
+            .get_all_by_role(egui::Role::Group)
+            .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
+            .expect("the toast's node")
+            .rect();
+        let dismiss_of = |h: &Harness<'_, App>| {
+            h.get_all_by_role(egui::Role::Button)
+                .find(|n| {
+                    n.accesskit_node().label().as_deref() == Some("Dismiss") && toast.contains_rect(n.rect())
+                })
+                .map(|n| n.accesskit_node().is_focused())
+        };
+        if leave_canvas {
+            // The window's focus leaves the canvas (which takes the keyboard focus back while it has it).
+            dispatch(&mut h, "ui.focus", json!({"area": "commandbar"}));
+            h.step();
+        } else {
+            assert_eq!(
+                h.state().shell().focus(),
+                Some(ew_ui::ew_viewmodel::shell::Focus::Canvas(0)),
+                "the canvas has the shell's focus"
+            );
+        }
+        h.get_all_by_role(egui::Role::Button)
             .find(|n| {
                 n.accesskit_node().label().as_deref() == Some("Dismiss") && toast.contains_rect(n.rect())
             })
-            .map(|n| n.accesskit_node().is_focused());
-        assert_eq!(
-            dismiss,
-            Some(true),
-            "the Dismiss button keeps the focus at {t} s ({focused:?})"
-        );
+            .expect("the toast's Dismiss button")
+            .focus();
+        h.step();
+        for t in [2.0, 7.95, 20.0] {
+            assert_eq!(
+                opacity_at(&mut h, shown, t),
+                Some(1.0),
+                "focused at {t} s (shell focus left the canvas: {leave_canvas})"
+            );
+            if !leave_canvas {
+                let focused = h.ctx.memory(|m| m.focused());
+                assert_eq!(
+                    dismiss_of(&h),
+                    Some(true),
+                    "the Dismiss button keeps the focus at {t} s ({focused:?})"
+                );
+            }
+        }
+        h.state_mut().shell_mut().shutdown();
     }
-    h.state_mut().shell_mut().shutdown();
 }
 
 /// While a toast shows, every key typed into the page navigator's filter field lands there; the

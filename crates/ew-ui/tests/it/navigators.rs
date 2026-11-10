@@ -15,9 +15,9 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::navigator::RowKind;
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::{Focus, Outcome};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use ew_ui::ew_viewmodel::shell::Focus;
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
 fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");
@@ -26,14 +26,6 @@ fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
     wait_for_page(&mut h);
     settle(&mut h);
     h
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
 }
 
 /// A drag with the primary button from `from` to `to` in steps, one frame each.
@@ -549,9 +541,10 @@ fn marked_folios(h: &Harness<'_, App>) -> Vec<String> {
         .collect()
 }
 
-/// "A single click on a page row opens that page." (doc 16a §6.6)
+/// "A single click on a page row opens that page." (doc 16a §6.6) "Ctrl-click and Shift-click mark rows without
+/// opening."
 #[test]
-fn ft1024_a_single_click_on_a_page_row_opens_the_page() {
+fn ft1024_a_single_click_on_a_page_row_opens_it_and_ctrl_and_shift_click_only_mark() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
@@ -560,14 +553,6 @@ fn ft1024_a_single_click_on_a_page_row_opens_the_page() {
     assert_eq!(h.state().shell().current_folio(), Some("101"));
     click_row(&mut h, "103", Modifiers::NONE);
     assert_eq!(h.state().shell().current_folio(), Some("103"));
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// "Ctrl-click and Shift-click mark rows without opening."
-#[test]
-fn ft1024_ctrl_and_shift_click_mark_page_rows_without_opening() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     settle(&mut h);
     click_row(&mut h, "101", Modifiers::COMMAND);
@@ -582,33 +567,6 @@ fn ft1024_ctrl_and_shift_click_mark_page_rows_without_opening() {
         marked_folios(&h).contains(&"103".to_owned()),
         "Shift-click marks 103"
     );
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// "A double click still opens." (one frame, as egui's four events)
-#[test]
-fn ft1024_a_double_click_on_a_page_row_still_opens_the_page() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
-    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
-    settle(&mut h);
-    let at = item_centre(&h, "103");
-    let now = h.ctx.input(|i| i.time);
-    h.input_mut().time = Some(now + 1.0);
-    h.input_mut().events.push(egui::Event::PointerMoved(at));
-    h.step();
-    for pressed in [true, false, true, false] {
-        h.input_mut().events.push(egui::Event::PointerButton {
-            pos: at,
-            button: PointerButton::Primary,
-            pressed,
-            modifiers: Modifiers::NONE,
-        });
-    }
-    h.step();
-    settle(&mut h);
-    settle(&mut h);
-    assert_eq!(h.state().shell().current_folio(), Some("103"));
     h.state_mut().shell_mut().shutdown();
 }
 

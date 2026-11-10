@@ -13,20 +13,11 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::Pick;
 use ew_ui::ew_viewmodel::layout::{Layout, LayoutNode, PaneKind};
 use ew_ui::ew_viewmodel::shell::{AccessMode, Dialog, Mode, Prompt, ShellModel};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness_with, settle, wait_for_page, wait_for_preview};
+use serde_json::json;
+use support::{Scripted, Tmp, done, harness_with, settle, wait_for_page, wait_for_preview};
 
 fn gui_shell(tmp: &Tmp) -> ShellModel {
     ShellModel::new(Mode::Gui, tmp.config_with_resources())
-}
-
-fn done(shell: &mut ShellModel, action: &str, params: Value) {
-    let out = shell.dispatch(action, &params);
-    assert_eq!(
-        out,
-        ew_ui::ew_viewmodel::shell::Outcome::Done,
-        "{action}: {out:?}"
-    );
 }
 
 // ---------------------------------------------------------------------------------------------------------------

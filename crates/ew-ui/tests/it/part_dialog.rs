@@ -14,9 +14,9 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::properties::CardOrigin;
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use ew_ui::ew_viewmodel::shell::Dialog;
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
 fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");
@@ -25,14 +25,6 @@ fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
     wait_for_page(&mut h);
     settle(&mut h);
     h
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
 }
 
 fn field<'a, 'h>(h: &'h Harness<'a, App>, name: &str) -> egui_kittest::Node<'h> {

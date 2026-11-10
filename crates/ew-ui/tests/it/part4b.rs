@@ -13,31 +13,10 @@ use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Outcome;
 use ew_ui::ew_viewmodel::strings;
 use ew_ui::ew_viewmodel::tools::Ghost;
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": folio }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
-}
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
+use serde_json::json;
+use support::{Tmp, dispatch, on_golden, screen, settle, wait_for_page};
 
 /// The Text tool typing at a free point: the popup opens and its field takes the focus.
 fn typing_text(h: &mut Harness<'_, App>) {
@@ -54,39 +33,6 @@ fn typing_text(h: &mut Harness<'_, App>) {
 /// The popup's text field by its accessible name.
 fn label() -> &'static str {
     strings::text(key!("action-text-input"))
-}
-
-#[test]
-fn the_text_popup_takes_the_text_and_enter_places_it() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
-    typing_text(&mut h);
-    let field = h
-        .get_all_by_role(egui::Role::TextInput)
-        .find(|n| n.accesskit_node().label().as_deref() == Some(label()))
-        .expect("the text popup's field");
-    assert!(field.is_focused(), "the popup's field takes the focus");
-    field.type_text("40x60");
-    settle(&mut h);
-    let rev = h.state().shell().revision();
-    h.key_press(Key::Enter);
-    settle(&mut h);
-    settle(&mut h);
-    assert_eq!(
-        h.state().shell().revision(),
-        rev.map(|r| r + 1),
-        "Enter commits one item.place"
-    );
-    let tables = h.state().shell().canvas().unwrap().page().tables.clone();
-    let item = tables
-        .items
-        .iter()
-        .find(|i| i.kind == "free_text" && i.text.as_deref() == Some("40x60"))
-        .expect("the free text");
-    assert_eq!(item.bind, None);
-    assert!(h.state().shell().text_popup().is_none(), "the popup is gone");
-    assert_eq!(h.state().shell().tool().name(), "text");
-    assert_eq!(h.state().shell().tool().state(), "armed");
 }
 
 /// Opened by a click on the page, as a user opens it (the press and the release in
@@ -373,11 +319,18 @@ fn page_and_project_changes_do_not_keep_stale_drawing_fields() {
 }
 
 #[test]
-fn text_popup_typing_updates_ghost_and_dwell_preview_without_commit() {
+fn text_popup_typing_previews_without_commit_and_enter_places_it() {
     use ew_ui::ew_viewmodel::tools::PreviewStatus;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     typing_text(&mut h);
+    assert!(
+        h.get_all_by_role(egui::Role::TextInput)
+            .find(|n| n.accesskit_node().label().as_deref() == Some(label()))
+            .expect("the text popup's field")
+            .is_focused(),
+        "the popup's field takes the focus"
+    );
     let rev = h.state().shell().revision();
     let recorded = h.state().shell().recorded_commands().len();
     type_field(&mut h, key!("action-text-input"), "40x60", false);
@@ -399,6 +352,16 @@ fn text_popup_typing_updates_ghost_and_dwell_preview_without_commit() {
     let added = &h.state().shell().recorded_commands()[recorded..];
     assert_eq!(added.len(), 1);
     assert_eq!(added[0].cmd, "item.place");
+    let tables = h.state().shell().canvas().unwrap().page().tables.clone();
+    let item = tables
+        .items
+        .iter()
+        .find(|i| i.kind == "free_text" && i.text.as_deref() == Some("40x60"))
+        .expect("the free text");
+    assert_eq!(item.bind, None);
+    assert!(h.state().shell().text_popup().is_none(), "the popup is gone");
+    assert_eq!(h.state().shell().tool().name(), "text");
+    assert_eq!(h.state().shell().tool().state(), "armed");
 }
 
 #[test]
@@ -462,23 +425,6 @@ fn text_edit_typing_updates_preview_before_enter() {
             .as_deref(),
         Some("original")
     );
-}
-
-/// Map a rendered item's sheet bounds into the current canvas geometry, as the pointer tests do.
-fn screen(h: &Harness<'_, App>, p: (i64, i64)) -> egui::Pos2 {
-    let bounds = h
-        .get_all_by_role(egui::Role::Canvas)
-        .next()
-        .expect("the canvas node")
-        .accesskit_node()
-        .raw_bounds()
-        .expect("bounds");
-    let c = h.state().shell().canvas().unwrap();
-    let k = c.points_per_nm();
-    egui::Pos2::new(
-        bounds.x0 as f32 + ((p.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
-        bounds.y0 as f32 + ((p.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
-    )
 }
 
 fn tap(h: &mut Harness<'_, App>, pos: egui::Pos2) {

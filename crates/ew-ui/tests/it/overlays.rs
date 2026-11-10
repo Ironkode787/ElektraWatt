@@ -27,23 +27,15 @@ use ew_ui::ew_viewmodel::canvas::chip::CHIP_OFFSET;
 use ew_ui::ew_viewmodel::ew_api::output::ew_dl::ew_units::{Nm, Rect as SheetRect};
 use ew_ui::ew_viewmodel::highlight::SLOT_COLOURS;
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_ui::ew_viewmodel::shell::{Mode, ShellModel};
 use ew_ui::ew_viewmodel::tools::pick_stack;
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use support::{Tmp, dispatch, done, on_golden, settle};
 
 const ACCENT: [u8; 3] = [0x0B, 0x63, 0xCE];
 const WHITE: [u8; 3] = [0xFF, 0xFF, 0xFF];
 /// `canvas.open_cp` (FX38a): slate-400, a neutral ink, not the accent.
 const OPEN_CP: [u8; 3] = [0x86, 0x8E, 0x99];
-
-fn done(shell: &mut ShellModel, action: &str, params: Value) {
-    assert_eq!(
-        shell.dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
 
 fn at(p: (i64, i64)) -> Value {
     json!({"x_mm": p.0 as f64 / 1e6, "y_mm": p.1 as f64 / 1e6})
@@ -438,26 +430,6 @@ fn ov7_the_pick_stacks_hover_outline_and_walk() {
 
 // -----------------------------------------------------------------------------------------------------------------
 // In the window
-
-fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
-    assert_eq!(
-        h.state_mut().shell_mut().dispatch(action, &params),
-        Outcome::Done,
-        "{action}"
-    );
-}
-
-fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": folio }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
-}
 
 /// OV6 (model values): the highlight name chips of folio 101 are filled with their slot's hue, with a black label in
 /// `type.caption` SemiBold, radius 4 and 20 points high, and they keep off each other.

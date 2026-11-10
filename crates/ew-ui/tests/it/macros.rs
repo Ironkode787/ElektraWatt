@@ -21,7 +21,7 @@ use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_ui::ew_viewmodel::script::{self, NoExtension};
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness_with, settle};
+use support::{Scripted, Tmp, done, harness_with, settle};
 
 /// The fixture's tiers: the compiled-in libraries and a user directory.
 fn tiers(root: &Path) -> LibraryTiers {
@@ -32,15 +32,6 @@ fn tiers(root: &Path) -> LibraryTiers {
         user: root.join("data").join("libraries"),
         cache: root.join("cache"),
     }
-}
-
-#[track_caller]
-fn done(shell: &mut ShellModel, action: &str, params: Value) {
-    assert_eq!(
-        shell.dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
 }
 
 /// A shell in `mode` with the tiers `t` on the copy `name` of Golden A, showing folio 102.
