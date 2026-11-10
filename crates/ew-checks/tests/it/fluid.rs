@@ -8,7 +8,7 @@
 use crate::common;
 
 use common::{Ep, Fx, P1};
-use common::{findings_of, us};
+use common::{dutch, findings_of, us};
 use ew_checks::Severity;
 use serde_json::{Value, json};
 
@@ -97,9 +97,9 @@ fn base() -> Fx {
 /// A module `n` (tag `-1U<counter>`) at `position` of the valve terminal, with its 8 channels.
 fn module(fx: &mut Fx, n: u128, counter: u32, position: u32) {
     fx.drawn_device(n, "U", Some(counter), P1);
-    rec(fx, n)["parent"] = json!(us(TERMINAL));
-    rec(fx, n)["position"] = json!(position);
-    rec(fx, n)["plc_module"] = json!({});
+    fx.rec_mut(&us(n))["parent"] = json!(us(TERMINAL));
+    fx.rec_mut(&us(n))["position"] = json!(position);
+    fx.rec_mut(&us(n))["plc_module"] = json!({});
     fx.with_parts(n, &[MODULE_PART]);
     for c in 0..8u16 {
         fx.push(json!({"$k": "channel", "id": channel_id(n, c), "module": us(n), "number": c, "kind": "do"}));
@@ -140,21 +140,7 @@ fn fluid_line(fx: &mut Fx, n: u128, a: Ep, b: Ep) {
 }
 
 fn bind(fx: &mut Fx, module: u128, number: u16, valve: u128) {
-    let id = channel_id(module, number);
-    let r = fx
-        .records
-        .iter_mut()
-        .find(|r| r["id"] == json!(id))
-        .expect("the channel");
-    r["binding"] = json!({"cp": [us(coil(valve)), 0]});
-}
-
-fn rec(fx: &mut Fx, n: u128) -> &mut Value {
-    let id = us(n);
-    fx.records
-        .iter_mut()
-        .find(|r| r["id"] == json!(id))
-        .expect("the record")
+    fx.rec_mut(&channel_id(module, number))["binding"] = json!({"cp": [us(coil(valve)), 0]});
 }
 
 /// The findings of `rule` as (severity, message), by message.
@@ -164,16 +150,6 @@ fn messages(fx: &Fx, rule: &str) -> Vec<(Severity, String)> {
         .map(|f| (f.severity, f.message))
         .collect();
     out.sort_by(|a, b| a.1.cmp(&b.1));
-    out
-}
-
-/// The messages of `rule` rendered in nl-NL, sorted.
-fn dutch(fx: &Fx, rule: &str) -> Vec<String> {
-    let mut out: Vec<String> = findings_of(&fx.build(), rule)
-        .iter()
-        .map(|f| ew_checks::messages::render(f, "nl-NL"))
-        .collect();
-    out.sort();
     out
 }
 
@@ -192,7 +168,7 @@ fn ew_fl_001_lists_the_open_working_ports() {
     valve(&mut fx, V3, 3, 3, Some("not_fitted"));
     valve(&mut fx, V4, 4, 4, None);
     // V2's port 2 is plugged; V4's port 4 has a line to a cylinder
-    rec(&mut fx, body(V2))["cp_overrides"] = json!([{"idx": 1, "closure": {"kind": "plug"}}]);
+    fx.rec_mut(&us(body(V2)))["cp_overrides"] = json!([{"idx": 1, "closure": {"kind": "plug"}}]);
     cylinder(&mut fx, 0x8001, 1);
     fluid_line(&mut fx, 0x4001, Ep::Cp(body(V4), 3), Ep::Cp(body(0x8001), 0));
     assert_eq!(
@@ -214,7 +190,7 @@ fn ew_fl_001_lists_the_open_working_ports() {
     );
     // The closure choices' words, "blindstop" and "afgeblind".
     assert_eq!(
-        dutch(&fx, "EW-FL-001"),
+        dutch(&fx.build(), "EW-FL-001"),
         [
             "-1Q1: werkpoorten 2 en 4 zijn open; sluit ze aan, zet er een blindstop op of blind ze af",
             "-1Q2: werkpoort 4 is open; sluit hem aan, zet er een blindstop op of blind hem af",
@@ -242,7 +218,7 @@ fn ew_fl_002_reports_excess_and_unbound_coils() {
     bind(&mut fx, MODULE, 1, V1);
     bind(&mut fx, MODULE, 6, V4);
     // V4's coil is a coil 12, which its part does not declare
-    rec(&mut fx, coil(V4))["cp_overrides"] = json!([{"idx": 0, "designation": "12"}]);
+    fx.rec_mut(&us(coil(V4)))["cp_overrides"] = json!([{"idx": 0, "designation": "12"}]);
     assert_eq!(
         messages(&fx, "EW-FL-002"),
         [
@@ -289,7 +265,7 @@ fn ew_fl_004_lists_spare_valves_and_blanking_plates() {
     );
     // "ventielplaats" for a valve slot.
     assert_eq!(
-        dutch(&fx, "EW-FL-004"),
+        dutch(&fx.build(), "EW-FL-004"),
         [
             "-1U3: ventielplaats 2 bevat een reserveventiel, -1Q2",
             "-1U3: ventielplaats 3 bevat een blindplaat, -?Q3",
@@ -328,7 +304,7 @@ fn ew_fl_011_reports_a_drives_link_against_the_lines() {
         )]
     );
     // the line to the linked cylinder: none
-    rec(&mut fx, 0x4001)["b"] = json!({"cp": [us(body(0x8001)), 0]});
+    fx.rec_mut(&us(0x4001))["b"] = json!({"cp": [us(body(0x8001)), 0]});
     assert!(messages(&fx, "EW-FL-011").is_empty());
 }
 
@@ -385,7 +361,7 @@ fn ew_fl_013_reports_the_occupancy_defects() {
     );
     // "ventielplaats" for a valve slot; a module's place on the valve terminal stays a "positie".
     assert_eq!(
-        dutch(&fx, "EW-FL-013"),
+        dutch(&fx.build(), "EW-FL-013"),
         [
             "-1U1: positie 1 bevat zowel -1U3 als -1U4",
             "-1U3: ventielplaats 1 bevat zowel -1Q1 als -1Q2",

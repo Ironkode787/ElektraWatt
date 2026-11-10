@@ -19,12 +19,7 @@ fn drawn(frozen: Option<&str>) -> Model {
     let mut fx = Fx::base();
     fx.drawn_device(DEV, "S", None, P1);
     if let Some(text) = frozen {
-        let d = fx
-            .records
-            .iter_mut()
-            .find(|r| r["id"] == json!(us(DEV)))
-            .expect("the device");
-        d["tag"]["frozen"] = json!({"text": text, "sign": "hidden"});
+        fx.rec_mut(&us(DEV))["tag"]["frozen"] = json!({"text": text, "sign": "hidden"});
     }
     fx.build()
 }

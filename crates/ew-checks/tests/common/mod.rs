@@ -131,6 +131,79 @@ pub fn rule_table(rule: &str, cases: Vec<Case>) {
     }
 }
 
+/// The findings of `rule` in a release run of the `full` scheme.
+pub fn release_findings_of(m: &Model, rule: &str) -> Vec<ew_checks::Finding> {
+    ew_checks::run(
+        &ew_derive::Q::new(m),
+        &ew_checks::FULL,
+        ew_checks::CheckMode::Release,
+    )
+    .findings
+    .into_iter()
+    .filter(|f| f.rule == rule)
+    .collect()
+}
+
+/// The findings of `rule` rendered in nl-NL, sorted.
+pub fn dutch(m: &Model, rule: &str) -> Vec<String> {
+    let mut out: Vec<String> = findings_of(m, rule)
+        .iter()
+        .map(|f| ew_checks::messages::render(f, "nl-NL"))
+        .collect();
+    out.sort();
+    out
+}
+
+/// `(subject, message)` of each finding, in report order.
+pub fn texts(f: &[ew_checks::Finding]) -> Vec<(String, String)> {
+    f.iter().map(|f| (f.subject.clone(), f.message.clone())).collect()
+}
+
+/// The `(kind, id)` of each target of a finding.
+pub fn targets(f: &ew_checks::Finding) -> Vec<(Kind, AnyId)> {
+    f.targets.iter().map(|t| (t.kind, t.id)).collect()
+}
+
+/// A target of kind `kind` with ID number `n`.
+pub fn target(kind: Kind, n: u128) -> ew_checks::Target {
+    ew_checks::Target::new(kind, uid(n))
+}
+
+/// An empty JSON object.
+pub fn none() -> Value {
+    json!({})
+}
+
+/// The fixture with the record and library IDs of each pair swapped everywhere they occur.
+pub fn permuted(fx: &Fx, pairs: &[(u128, u128)]) -> Model {
+    let swap = |v: &Value| -> Value {
+        let mut text = v.to_string();
+        for (i, (a, b)) in pairs.iter().enumerate() {
+            let tmp = format!("@swap{i}@");
+            text = text
+                .replace(&us(*a), &tmp)
+                .replace(&us(*b), &us(*a))
+                .replace(&tmp, &us(*b));
+        }
+        serde_json::from_str(&text).expect("JSON")
+    };
+    let mut out = fx.clone();
+    out.records = fx.records.iter().map(swap).collect();
+    out.lib = fx.lib.iter().map(swap).collect();
+    out.build()
+}
+
+/// Every finding of a release and an online run of the `full` scheme as printed: rule, severity, subject, message,
+/// in report order.
+pub fn printed(m: &Model) -> Vec<String> {
+    let q = ew_derive::Q::new(m);
+    [ew_checks::CheckMode::Online, ew_checks::CheckMode::Release]
+        .into_iter()
+        .flat_map(|mode| ew_checks::run(&q, &ew_checks::FULL, mode).findings)
+        .map(|f| format!("{} {} {}: {}", f.rule, f.severity, f.subject, f.message))
+        .collect()
+}
+
 /// The touched key of a device.
 pub fn dev_key(n: u128) -> (Kind, AnyId) {
     (Kind::Device, uid(n))

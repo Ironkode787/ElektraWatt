@@ -100,6 +100,28 @@ impl Fx {
         self
     }
 
+    /// The record with ID `id` (the ID text, see [`us`]).
+    pub fn rec_mut(&mut self, id: &str) -> &mut Value {
+        self.records
+            .iter_mut()
+            .find(|r| r["id"] == json!(id))
+            .expect("the record")
+    }
+
+    /// A terminal strip `-X<counter>` with ID `n`.
+    pub fn strip(&mut self, n: u128, counter: u32) -> &mut Fx {
+        self.push(
+            json!({"$k": "device", "id": us(n), "tag": {"letter": "X", "counter": counter}, "strip": {}}),
+        )
+    }
+
+    /// A cable `-W<counter>` with ID `n`.
+    pub fn cable(&mut self, n: u128, counter: u32) -> &mut Fx {
+        self.push(
+            json!({"$k": "device", "id": us(n), "tag": {"letter": "W", "counter": counter}, "cable": {}}),
+        )
+    }
+
     /// A library item of kind `k` with copy ID `n`.
     fn lib_item(&mut self, k: &str, n: u128, item: &Value) {
         let mut doc = json!({

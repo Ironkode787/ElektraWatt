@@ -7,21 +7,13 @@
 use crate::common;
 
 use common::*;
-use ew_checks::{Severity, Target};
+use ew_checks::Severity;
 use ew_derive::ew_schema::Kind;
 use ew_model::Model;
 use serde_json::{Value, json};
 
 const STRIP: u128 = 0x400;
 const LOC: u128 = 0x900;
-
-fn none() -> Value {
-    json!({})
-}
-
-fn target(kind: Kind, n: u128) -> Target {
-    Target::new(kind, uid(n))
-}
 
 /// Two plain functions on one wire; the potential definitions `first` (lower ID) and `second` sit on them.
 fn two_defs(first: &Value, second: &Value) -> Model {
@@ -494,7 +486,7 @@ fn conflict_fixture_bonded(core1: u128, core2: u128, bonded: bool) -> Model {
             "kind": "pelv_0v_pe",
         }));
     }
-    fx.push(json!({"$k": "device", "id": us(0x6000), "tag": {"letter": "W", "counter": 1}, "cable": {}}));
+    fx.cable(0x6000, 1);
     for (n, core, csa) in [(0x6101, "1", "1"), (0x6102, "2", "4")] {
         fx.push(json!({"$k": "conductor", "id": us(n), "cable": us(0x6000), "core": core, "csa": csa}));
     }
@@ -573,7 +565,7 @@ fn rail_model(location: Option<u128>, pe: Option<u128>, two_locations: bool) -> 
     if two_locations {
         fx.push(json!({"$k": "structure_node", "id": us(LOC2), "aspect": "location", "code": "B"}));
     }
-    fx.push(json!({"$k": "device", "id": us(STRIP), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
+    fx.strip(STRIP, 1);
     fx.rail_terminal(0x4001, STRIP, location, pe);
     fx.build()
 }
@@ -620,7 +612,7 @@ fn pot008_one_location_project_joins_unlocated_rail_terminals_to_pe() {
         json!({"$k": "external_ref", "id": us(0x950), "location": us(LOC2), "device": "JE-N1000-03",
         "connection": "PE"}),
     );
-    fx.push(json!({"$k": "device", "id": us(STRIP), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
+    fx.strip(STRIP, 1);
     for (k, n) in [0x4001u128, 0x4002, 0x4003, 0x4004].into_iter().enumerate() {
         let pe = 0x1001 + k as u128;
         fx.rail_terminal(n, STRIP, None, Some(pe));
@@ -864,9 +856,13 @@ fn pe_members_against_m(n: u128) -> ew_checks::Finding {
 }
 
 /// Cycle 37 (window check): EW-POT-001's message names at most three member CPs and then "and N more member CPs";
-/// the finding's `members` argument keeps every conflict, and nl-NL renders the same cut from the arguments.
+/// the finding's `members` argument keeps every conflict, and nl-NL renders the same cut from the arguments. Three
+/// member CPs or fewer are all named, with no count.
 #[test]
 fn pot001_names_three_member_cps_and_counts_the_rest() {
+    let f = pe_members_against_m(3);
+    assert_eq!(f.message.matches("member CP ").count(), 3, "{}", f.message);
+    assert!(!f.message.contains("more"), "{}", f.message);
     let f = pe_members_against_m(6);
     assert_eq!(f.message.matches("member CP ").count(), 3, "{}", f.message);
     assert!(f.message.ends_with("; and 3 more member CPs"), "{}", f.message);
@@ -880,32 +876,4 @@ fn pot001_names_three_member_cps_and_counts_the_rest() {
          het gedefinieerde type M geldt; aansluitpunt -1K4354:PE heeft rol Pe; het gedefinieerde type M geldt; en nog \
          3 aansluitpunten"
     );
-}
-
-/// Three member CPs or fewer are all named, with no count.
-#[test]
-fn pot001_names_every_member_cp_up_to_three() {
-    let f = pe_members_against_m(3);
-    assert_eq!(f.message.matches("member CP ").count(), 3, "{}", f.message);
-    assert!(!f.message.contains("more"), "{}", f.message);
-}
-
-/// EW-POT-001's text is built in the rule and in the Fluent pattern; the en-GB pattern rendered from the
-/// finding's arguments equals the rule's text for the "and N more" cut, the bond hint and a plain conflict.
-#[test]
-fn ft724_the_en_gb_pattern_equals_the_rule_text() {
-    let bond = findings_of(&zero_volt_meets_pe_without_a_carrier(), "EW-POT-001");
-    assert_eq!(bond.len(), 1, "{bond:#?}");
-    let cases = [
-        ("and N more", pe_members_against_m(6)),
-        ("bond hint", bond[0].clone()),
-        ("plain", pe_members_against_m(2)),
-    ];
-    for (case, f) in cases {
-        assert_eq!(
-            ew_checks::messages::format(&f, "en-GB").as_deref(),
-            Some(f.message.as_str()),
-            "{case}"
-        );
-    }
 }

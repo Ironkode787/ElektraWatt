@@ -9,37 +9,14 @@
 use crate::common;
 
 use common::*;
-use ew_checks::{CheckMode, FULL, Finding, PRE_DELIVERY, Severity, prevent, run};
+use ew_checks::{CheckMode, PRE_DELIVERY, Severity, prevent, run};
 use ew_derive::Q;
 use ew_derive::ew_schema::{AnyId, Kind};
 use ew_model::Model;
 use serde_json::{Value, json};
 
-/// The findings of `rule` in a release run of the `full` scheme.
-fn release_findings_of(m: &Model, rule: &str) -> Vec<Finding> {
-    run(&Q::new(m), &FULL, CheckMode::Release)
-        .findings
-        .into_iter()
-        .filter(|f| f.rule == rule)
-        .collect()
-}
-
-/// `(subject, message)` of each finding, in report order.
-fn texts(f: &[Finding]) -> Vec<(String, String)> {
-    f.iter().map(|f| (f.subject.clone(), f.message.clone())).collect()
-}
-
-fn targets(f: &Finding) -> Vec<(Kind, AnyId)> {
-    f.targets.iter().map(|t| (t.kind, t.id)).collect()
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // Cables
-
-/// A cable `-W<counter>` with ID `n`.
-fn cable(fx: &mut Fx, n: u128, counter: u32) {
-    fx.push(json!({"$k": "device", "id": us(n), "tag": {"letter": "W", "counter": counter}, "cable": {}}));
-}
 
 /// A conductor `n` of cable `cable` with core identification `core` and extra members.
 fn conductor(fx: &mut Fx, n: u128, cable: u128, core: &str, extra: &Value) {
@@ -60,7 +37,7 @@ fn colour_profile() -> Value {
 fn colours_fx(settings: Value, c2: Value) -> Fx {
     let mut fx = Fx::new();
     fx.settings = settings;
-    cable(&mut fx, 0x6000, 1);
+    fx.cable(0x6000, 1);
     conductor(
         &mut fx,
         0x6001,
@@ -138,7 +115,7 @@ fn cable_with_part_fx(c1: &Value, extra_core: bool) -> Fx {
             {"core": "SH", "shield": true}
         ]}}),
     );
-    cable(&mut fx, 0x6000, 1);
+    fx.cable(0x6000, 1);
     fx.with_parts(0x6000, &[0x7200]);
     conductor(&mut fx, 0x6001, 0x6000, "1", c1);
     conductor(&mut fx, 0x6002, 0x6000, "2", &json!({"colour": ["BU"]}));
@@ -188,12 +165,7 @@ fn core032_reports_cores_that_differ_from_the_cable_part() {
 fn external(fx: &mut Fx, n: u128, name: &str, dev: u128, conn: u128, core: Option<u128>) {
     fx.ip(n, P1, name, "target");
     let ext = n + 0x100;
-    let f = fx
-        .records
-        .iter_mut()
-        .find(|r| r["id"] == json!(us(n)))
-        .expect("the IP function");
-    f["kind"]["ip"]["external"] = json!(us(ext));
+    fx.rec_mut(&us(n))["kind"]["ip"]["external"] = json!(us(ext));
     fx.push(json!({"$k": "external_ref", "id": us(ext), "location": us(0x900), "device": "N1", "connection": name}));
     let extra = core.map_or(Value::Null, |c| json!({"kind": {"core": us(c)}}));
     fx.conn(conn, P1, cp(n), cp(dev), &extra);
@@ -205,7 +177,7 @@ fn supply_fx(cored: bool) -> Fx {
     fx.func_tagged(0x1001, 1, P1);
     fx.func_tagged(0x1002, 2, P1);
     let core = if cored {
-        cable(&mut fx, 0x6000, 9);
+        fx.cable(0x6000, 9);
         conductor(&mut fx, 0x6001, 0x6000, "1", &json!({}));
         conductor(&mut fx, 0x6002, 0x6000, "2", &json!({}));
         [Some(0x6001), Some(0x6002)]
@@ -245,7 +217,7 @@ fn core034_reports_an_external_connection_without_cable() {
 /// A cable with core `1` used by connections `conns` (each between two fresh functions).
 fn cores_fx(conns: &[u128]) -> Fx {
     let mut fx = Fx::base();
-    cable(&mut fx, 0x6000, 1);
+    fx.cable(0x6000, 1);
     conductor(&mut fx, 0x6001, 0x6000, "1", &json!({}));
     for (i, c) in conns.iter().enumerate() {
         let a = 0x1001 + 2 * i as u128;
@@ -302,7 +274,7 @@ fn core036_prevent_refuses_the_second_assignment_only() {
 #[test]
 fn core037_reports_a_shield_connected_at_neither_end() {
     let mut fx = Fx::base();
-    cable(&mut fx, 0x6000, 1);
+    fx.cable(0x6000, 1);
     conductor(&mut fx, 0x6001, 0x6000, "SH", &json!({"shield": true}));
     conductor(&mut fx, 0x6002, 0x6000, "1", &json!({}));
     // A cable none of whose conductors is assigned is drawn as a whole: not judged.
@@ -357,8 +329,8 @@ fn core041_reports_a_device_without_part() {
     fx.func_tagged(0x1002, 2, P1);
     fx.with_parts(0x21002, &[0x7100]);
     fx.device(0x103, "A", Some(1));
-    fx.push(json!({"$k": "device", "id": us(0x104), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
-    cable(&mut fx, 0x6000, 1);
+    fx.strip(0x104, 1);
+    fx.cable(0x6000, 1);
     let f = findings_of(&fx.build(), "EW-CORE-041");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].code, "102041");
@@ -706,36 +678,6 @@ fn findings_of_one_code_order_by_printed_subject_under_id_permutation() {
 /// One permutation case: the rule, its fixture and the ID pairs to swap.
 type Case = (&'static str, Fx, Vec<(u128, u128)>);
 
-/// The fixture with the record and library IDs of each pair swapped everywhere they occur.
-fn permuted(fx: &Fx, pairs: &[(u128, u128)]) -> Model {
-    let swap = |v: &Value| -> Value {
-        let mut text = v.to_string();
-        for (i, (a, b)) in pairs.iter().enumerate() {
-            let tmp = format!("@swap{i}@");
-            text = text
-                .replace(&us(*a), &tmp)
-                .replace(&us(*b), &us(*a))
-                .replace(&tmp, &us(*b));
-        }
-        serde_json::from_str(&text).expect("JSON")
-    };
-    let mut out = fx.clone();
-    out.records = fx.records.iter().map(swap).collect();
-    out.lib = fx.lib.iter().map(swap).collect();
-    out.build()
-}
-
-/// Every finding of a release and an online run of the `full` scheme as printed: rule, severity, subject, message,
-/// in report order.
-fn printed(m: &Model) -> Vec<String> {
-    let q = Q::new(m);
-    [CheckMode::Online, CheckMode::Release]
-        .into_iter()
-        .flat_map(|mode| run(&q, &FULL, mode).findings)
-        .map(|f| format!("{} {} {}: {}", f.rule, f.severity, f.subject, f.message))
-        .collect()
-}
-
 /// The ID-permutation test of every part-3 rule: swapping record IDs (conductors, connections, devices, functions,
 /// part copies, pages) changes no printed finding and no report order, so a fresh project, whose IDs are random,
 /// prints the same findings in the same order.
@@ -781,7 +723,7 @@ fn part3_findings_do_not_follow_record_ids() {
         ),
     ];
     let mut shield = Fx::base();
-    cable(&mut shield, 0x6000, 1);
+    shield.cable(0x6000, 1);
     conductor(&mut shield, 0x6001, 0x6000, "SH", &json!({"shield": true}));
     conductor(&mut shield, 0x6002, 0x6000, "SH2", &json!({"shield": true}));
     conductor(&mut shield, 0x6003, 0x6000, "1", &json!({}));

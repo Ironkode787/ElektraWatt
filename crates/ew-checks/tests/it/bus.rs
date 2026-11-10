@@ -45,12 +45,7 @@ fn line(ports: [(&str, Value, Option<&str>); 3]) -> Fx {
     );
     for (n, (role, address, termination)) in [A, B, C].into_iter().zip(ports) {
         fx.func(n, P1);
-        let f = fx
-            .records
-            .iter_mut()
-            .find(|r| r["$k"] == "function" && r["id"] == json!(us(n)))
-            .expect("the function");
-        f["bus_port"] = port(role, address, termination);
+        fx.rec_mut(&us(n))["bus_port"] = port(role, address, termination);
     }
     fx.conn(
         0x3001,

@@ -248,15 +248,10 @@ fn term001_prevent_passes_every_designated_batch() {
 /// A strip with a rail-bonded terminal; `pe` gives it a function with a PE CP, `bonded` the flag.
 fn rail_strip(pe: bool, bonded: bool) -> ew_model::Model {
     let mut fx = Fx::base();
-    fx.push(json!({"$k": "device", "id": us(STRIP), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
+    fx.strip(STRIP, 1);
     fx.rail_terminal(0x4001, STRIP, None, pe.then_some(0x1001));
     if !bonded {
-        let t = fx
-            .records
-            .iter_mut()
-            .find(|r| r["id"] == json!(us(0x4001)))
-            .expect("the terminal");
-        t["terminal"]["rail_bonded"] = json!(false);
+        fx.rec_mut(&us(0x4001))["terminal"]["rail_bonded"] = json!(false);
     }
     fx.build()
 }
@@ -436,7 +431,7 @@ fn term006_fx(terminal_at: [i64; 2], wires: &[(u128, Ep, Ep, Vec<[i64; 2]>)]) ->
     let mut fx = Fx::base();
     fx.func(TERM_K1, P1);
     fx.func(TERM_K2, P1);
-    fx.device(TERM_STRIP, "X", Some(1)).with("strip", json!({}));
+    fx.strip(TERM_STRIP, 1);
     fx.drawn_terminal(TERM_T, TERM_STRIP, "5", TERM_FN, P1, terminal_at);
     for (id, a, b, route) in wires {
         let extra = if route.is_empty() {
@@ -579,7 +574,7 @@ fn term006_every_branch() {
     );
     l_shaped.func_at(L, P1, [40 * MM, 48 * MM]);
     let mut core = term006_fx(on_cp, &[]);
-    core.push(json!({"$k": "device", "id": us(0x6000), "tag": {"letter": "W", "counter": 1}, "cable": {}}));
+    core.cable(0x6000, 1);
     core.push(json!({"$k": "conductor", "id": us(0x6001), "cable": us(0x6000), "core": "1"}));
     core.conn(
         TERM_WIRE,
@@ -593,11 +588,7 @@ fn term006_every_branch() {
         &[(TERM_WIRE, k1, Ep::Cp(FN2, 0), vec![[0, 17 * MM], [0, 96 * MM]])],
     );
     other_function.drawn_function(FN2, TERM_T, P1, [0, 96 * MM]);
-    for r in &mut other_function.records {
-        if r["$k"] == "function" && r["id"] == json!(us(FN2)) {
-            r["role"] = json!("aux");
-        }
-    }
+    other_function.rec_mut(&us(FN2))["role"] = json!("aux");
     let mut joined_junction = term006_fx(
         on_cp,
         &[

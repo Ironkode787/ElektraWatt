@@ -88,14 +88,6 @@ fn on(carrier: u128) -> Value {
     json!({"carrier": us(carrier)})
 }
 
-fn rec(fx: &mut Fx, n: u128) -> &mut Value {
-    let id = us(n);
-    fx.records
-        .iter_mut()
-        .find(|r| r["id"] == json!(id))
-        .expect("the record")
-}
-
 fn mech_part(fx: &mut Fx, n: u128, number: &str, mech: Value) {
     fx.part(n, number, &json!({"mech": mech}));
 }
@@ -112,7 +104,7 @@ fn device(fx: &mut Fx, n: u128, letter: &str, counter: u32, loc: u128, parts: &[
 
 /// Sets the device's location and freezes its tag at `<letter><counter>`.
 fn located(fx: &mut Fx, n: u128, letter: &str, counter: u32, loc: u128) {
-    let r = rec(fx, n);
+    let r = fx.rec_mut(&us(n));
     r["structure"] = json!({"location": us(loc)});
     r["tag"]["frozen"] = json!({"text": format!("{letter}{counter}"), "sign": "hidden"});
 }
@@ -174,28 +166,33 @@ fn devices_only() -> Fx {
     device(&mut fx, F102, "F", 102, LOC, &[P_MCB]);
     device(&mut fx, F102B, "F", 103, LOC, &[P_MICO]);
     device(&mut fx, F55, "F", 55, LOC, &[P_MCB]);
-    fx.device(STRIP, "X", Some(1031)).with("strip", json!({}));
-    located(&mut fx, STRIP, "X", 1031, LOC);
+    strip_device(&mut fx, STRIP, 1031);
     for i in 0..3 {
-        terminal(&mut fx, T1 + i, i as u32 + 1);
+        terminal(&mut fx, T1 + i, STRIP, i as u32 + 1, P_TERM);
     }
     device(&mut fx, U1, "U", 201, LOC, &[P_COUPLER, P_EXTRA]);
     for (n, counter, position) in [(U2, 202, 1), (U3, 203, 2), (U4, 204, 3)] {
         device(&mut fx, n, "U", counter, LOC, &[P_MOD]);
-        rec(&mut fx, n)["parent"] = json!(us(U1));
-        rec(&mut fx, n)["position"] = json!(position);
+        fx.rec_mut(&us(n))["parent"] = json!(us(U1));
+        fx.rec_mut(&us(n))["position"] = json!(position);
     }
     fx
 }
 
-/// A terminal of the strip with sequence `seq`, whose part is the 6.2 mm terminal.
-fn terminal(fx: &mut Fx, n: u128, seq: u32) {
+/// A terminal `n` of `strip` with sequence `seq`, whose part is `part`.
+fn terminal(fx: &mut Fx, n: u128, strip: u128, seq: u32, part: u128) {
     fx.device(n, "X", None).with(
         "terminal",
-        json!({"strip": us(STRIP), "seq": seq, "designation": seq.to_string()}),
+        json!({"strip": us(strip), "seq": seq, "designation": seq.to_string()}),
     );
     fx.with("structure", json!({"location": us(LOC)}));
-    fx.with_parts(n, &[P_TERM]);
+    fx.with_parts(n, &[part]);
+}
+
+/// A strip `-X<counter>` with ID `n` in `LOC`, its tag frozen as Golden A's.
+fn strip_device(fx: &mut Fx, n: u128, counter: u32) {
+    fx.strip(n, counter);
+    located(fx, n, "X", counter, LOC);
 }
 
 /// The fixture: Golden A's plate in small, nothing wrong but -F55 unplaced.
@@ -242,15 +239,6 @@ fn others_silent(m: &ew_model::Model, except: &[&str]) {
 /// The messages of `rule`'s findings, sorted.
 fn messages(m: &ew_model::Model, rule: &str) -> Vec<String> {
     let mut out: Vec<String> = findings_of(m, rule).into_iter().map(|f| f.message).collect();
-    out.sort();
-    out
-}
-
-fn dutch(m: &ew_model::Model, rule: &str) -> Vec<String> {
-    let mut out: Vec<String> = findings_of(m, rule)
-        .iter()
-        .map(|f| ew_checks::messages::render(f, "nl-NL"))
-        .collect();
     out.sort();
     out
 }
@@ -397,7 +385,7 @@ fn lc4_the_wider_part_overlaps_its_neighbour() {
     // LQ-4's 27 mm part with its clip at (9, 42.5) at s = 158: 149 … 176 against -102F2's 167 … 212
     let mut fx = plate();
     fx.with_parts(F102, &[P_WIDE]);
-    rec(&mut fx, PL_F102)["part"] = json!({"copy": us(P_WIDE)});
+    fx.rec_mut(&us(PL_F102))["part"] = json!({"copy": us(P_WIDE)});
     let m = fx.build();
     assert_eq!(
         messages(&m, "EW-LAY-006"),
@@ -553,8 +541,8 @@ fn lc5_profile_pose_footprint_strip_and_enclosure_limit() {
         pose([mm(630.0), mm(10.0), 0], 0),
     );
     // -X1031 grown past R2's end: moved to s = 550, four terminals of 6.2 mm end at 574.8 > 570
-    terminal(&mut fx, T1 + 3, 4);
-    rec(&mut fx, PL_STRIP)["pose"] = rail_pose(550.0);
+    terminal(&mut fx, T1 + 3, STRIP, 4, P_TERM);
+    fx.rec_mut(&us(PL_STRIP))["pose"] = rail_pose(550.0);
     // a second enclosure in the space
     device(&mut fx, 0xdf, "UC", 2, LOC, &[]);
     fx.push(
@@ -682,8 +670,8 @@ fn d3_limits_a_second_space_and_a_second_plate() {
 #[test]
 fn lc6_swapping_two_modules_and_a_device_between_members() {
     let mut fx = plate();
-    rec(&mut fx, PL_U3)["pose"] = rail_pose(170.0);
-    rec(&mut fx, PL_U4)["pose"] = rail_pose(130.0);
+    fx.rec_mut(&us(PL_U3))["pose"] = rail_pose(170.0);
+    fx.rec_mut(&us(PL_U4))["pose"] = rail_pose(130.0);
     let m = fx.build();
     assert_eq!(
         messages(&m, "EW-LAY-016"),
@@ -696,7 +684,7 @@ fn lc6_swapping_two_modules_and_a_device_between_members() {
 
     // -F55 placed between -201U3 and -201U4: -201U4 moves on to make room
     let mut fx = plate();
-    rec(&mut fx, PL_U4)["pose"] = rail_pose(200.0);
+    fx.rec_mut(&us(PL_U4))["pose"] = rail_pose(200.0);
     place(&mut fx, 0xf9, F55, Some(P_MCB), on(R3), rail_pose(159.0));
     let m = fx.build();
     assert_eq!(
@@ -736,19 +724,12 @@ fn bracketed(s1031: f64, s: f64) -> Fx {
         &json!({"kind": "end_bracket", "mech": {"width": mm(10.0)}}),
     );
     fx.with_parts(STRIP, &[P_EB]);
-    fx.device(STRIP2, "X", Some(1032)).with("strip", json!({}));
-    located(&mut fx, STRIP2, "X", 1032, LOC);
+    strip_device(&mut fx, STRIP2, 1032);
     fx.with_parts(STRIP2, &[P_EB]);
     for i in 0..2u32 {
-        let n = T2 + u128::from(i);
-        fx.device(n, "X", None).with(
-            "terminal",
-            json!({"strip": us(STRIP2), "seq": i + 1, "designation": (i + 1).to_string()}),
-        );
-        fx.with("structure", json!({"location": us(LOC)}));
-        fx.with_parts(n, &[P_TERM]);
+        terminal(&mut fx, T2 + u128::from(i), STRIP2, i + 1, P_TERM);
     }
-    rec(&mut fx, PL_STRIP)["pose"] = rail_pose(s1031);
+    fx.rec_mut(&us(PL_STRIP))["pose"] = rail_pose(s1031);
     place(&mut fx, PL_STRIP2, STRIP2, None, on(R2), rail_pose(s));
     fx
 }
@@ -855,9 +836,9 @@ fn zero_width_strip(s: f64) -> Fx {
     strip_with_bracket_of_no_width(s, P_TERM0)
 }
 
-/// The plate with -X1040, a strip of one terminal of the part `terminal` declaring a bracket of no width, placed on R2
+/// The plate with -X1040, a strip of one terminal of the part `part` declaring a bracket of no width, placed on R2
 /// at `s`.
-fn strip_with_bracket_of_no_width(s: f64, terminal: u128) -> Fx {
+fn strip_with_bracket_of_no_width(s: f64, part: u128) -> Fx {
     let mut fx = plate();
     fx.part(P_EB0, "EB 0", &json!({"kind": "end_bracket"}));
     mech_part(
@@ -866,15 +847,9 @@ fn strip_with_bracket_of_no_width(s: f64, terminal: u128) -> Fx {
         "UK 0",
         json!({"width": 0, "height": mm(47.0), "mount_kind": "ts35x7_5"}),
     );
-    fx.device(STRIP0, "X", Some(1040)).with("strip", json!({}));
-    located(&mut fx, STRIP0, "X", 1040, LOC);
+    strip_device(&mut fx, STRIP0, 1040);
     fx.with_parts(STRIP0, &[P_EB0]);
-    fx.device(0xed, "X", None).with(
-        "terminal",
-        json!({"strip": us(STRIP0), "seq": 1, "designation": "1"}),
-    );
-    fx.with("structure", json!({"location": us(LOC)}));
-    fx.with_parts(0xed, &[terminal]);
+    terminal(&mut fx, 0xed, STRIP0, 1, part);
     place(&mut fx, PL_STRIP0, STRIP0, None, on(R2), rail_pose(s));
     fx
 }
@@ -962,16 +937,9 @@ fn eb4_a_rail_of_stacked_strips_gives_one_finding_per_bracket_and_its_bom_line()
         &json!({"kind": "end_bracket", "mech": {"width": mm(10.0)}}),
     );
     for i in 0..N {
-        fx.device(strip(i), "X", Some(2000 + i)).with("strip", json!({}));
-        located(&mut fx, strip(i), "X", 2000 + i, LOC);
+        strip_device(&mut fx, strip(i), 2000 + i);
         fx.with_parts(strip(i), &[P_EB]);
-        let t = 0x2000 + u128::from(i);
-        fx.device(t, "X", None).with(
-            "terminal",
-            json!({"strip": us(strip(i)), "seq": 1, "designation": "1"}),
-        );
-        fx.with("structure", json!({"location": us(LOC)}));
-        fx.with_parts(t, &[P_TERM]);
+        terminal(&mut fx, 0x2000 + u128::from(i), strip(i), 1, P_TERM);
         place(
             &mut fx,
             0x3000 + u128::from(i),

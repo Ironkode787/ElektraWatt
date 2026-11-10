@@ -14,11 +14,10 @@ use serde_json::{Value, json};
 
 fn cable(length: Option<&str>) -> Fx {
     let mut fx = Fx::new();
-    let mut c = json!({"$k": "device", "id": us(0x6000), "tag": {"letter": "W", "counter": 1}, "cable": {}});
+    fx.cable(0x6000, 1);
     if let Some(l) = length {
-        c["cable"]["length"] = json!(l);
+        fx.with("cable", json!({"length": l}));
     }
-    fx.push(c);
     fx
 }
 
@@ -62,7 +61,7 @@ fn core047_reports_a_device_whose_functions_are_not_drawn() {
     fx.device(0x102, "G", Some(1));
     fx.push(json!({"$k": "function", "id": us(0x1102), "device": us(0x102), "def": us(FNDEF)}));
     fx.device(0x103, "A", Some(1));
-    fx.push(json!({"$k": "device", "id": us(0x104), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
+    fx.strip(0x104, 1);
     fx.push(json!({
         "$k": "device", "id": us(0x105), "tag": {"letter": "X"}, "kind": "terminal",
         "terminal": {"strip": us(0x104), "seq": 1, "designation": "1"}
@@ -294,10 +293,10 @@ fn clean_model_has_no_finding_from_any_shipped_rule() {
 fn a_run_is_deterministic() {
     // A model with findings from several rules, checked twice over two contexts.
     let mut fx = lonely_ip();
-    fx.push(json!({"$k": "device", "id": us(0x6000), "tag": {"letter": "W", "counter": 1}, "cable": {}}));
+    fx.cable(0x6000, 1);
     fx.drawn_device(0x301, "Q", Some(1), P1);
     fx.drawn_device(0x302, "Q", Some(1), P1);
-    fx.push(json!({"$k": "device", "id": us(0x400), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
+    fx.strip(0x400, 1);
     // Two own locations: an unlocated rail-bonded terminal is EW-POT-008.
     for (n, code) in [(0x901u128, "A"), (0x902, "B")] {
         fx.push(json!({"$k": "structure_node", "id": us(n), "aspect": "location", "code": code}));
@@ -327,12 +326,7 @@ fn a_run_is_deterministic() {
 fn page_with_override(over: Option<Value>) -> ew_model::Model {
     let mut fx = Fx::base();
     if let Some(o) = over {
-        let page = fx
-            .records
-            .iter_mut()
-            .find(|r| r["id"] == json!(us(P1)))
-            .expect("page 1");
-        page["description_override"] = o;
+        fx.rec_mut(&us(P1))["description_override"] = o;
     }
     fx.build()
 }
@@ -388,12 +382,7 @@ fn main_and_aux(anchor: &str, graphics: bool) -> ew_model::Model {
 fn main_and_aux_at(anchor: &str, graphics: bool, aux_x: i64, folio2: Option<u32>) -> ew_model::Model {
     let mut fx = Fx::base();
     if let Some(n) = folio2 {
-        let page = fx
-            .records
-            .iter_mut()
-            .find(|r| r["id"] == json!(us(P2)))
-            .expect("page 2");
-        page["folio"] = json!({"number": n});
+        fx.rec_mut(&us(P2))["folio"] = json!({"number": n});
     }
     let sym = fx
         .lib

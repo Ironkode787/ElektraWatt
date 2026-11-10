@@ -7,18 +7,10 @@
 use crate::common;
 
 use common::*;
-use ew_checks::{Severity, Target};
+use ew_checks::Severity;
 use ew_derive::ew_schema::Kind;
 use ew_model::Model;
 use serde_json::{Value, json};
-
-fn none() -> Value {
-    json!({})
-}
-
-fn target(kind: Kind, n: u128) -> Target {
-    Target::new(kind, uid(n))
-}
 
 /// A function definition with an FE-role CP 1.
 const FNDEF_FE: u128 = 0x506;
@@ -501,7 +493,7 @@ fn pot013_cases() {
 /// override `csa`.
 fn core_override(csa: &str) -> Model {
     let mut fx = Fx::base();
-    fx.push(json!({"$k": "device", "id": us(0x6000), "tag": {"letter": "W", "counter": 1}, "cable": {}}));
+    fx.cable(0x6000, 1);
     fx.push(json!({"$k": "conductor", "id": us(0x6101), "cable": us(0x6000), "core": "1", "csa": "1"}));
     fx.func(0x1001, P1);
     fx.func(0x1002, P1);

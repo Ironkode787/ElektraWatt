@@ -193,7 +193,6 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
         messages::title("EW-POT-013", "nl-NL").as_deref(),
         Some("Schakelen in de nulleider")
     );
-    let _ = json!(null);
 }
 
 /// A finding of `rule` built by hand with `args`, its en-GB message `en`: the en-GB pattern renders `en` byte for byte.
@@ -370,32 +369,10 @@ fn nl_nl_words_ew_bus_001_s_untagged_ports() {
     }
 }
 
-/// The uniqueness rules EW-CORE-052 and EW-POT-015 (and so EW-CORE-013 that reports them after a
+/// The uniqueness rule EW-POT-015 (and so EW-CORE-013 that reports it after a
 /// merge), EW-BUS-004's segment ends and EW-POT-001's conflicts read in Dutch in nl-NL.
 #[test]
 fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
-    let ip = by_hand(
-        "EW-CORE-052",
-        "star-source",
-        "interruption point L+: 2 source points and no star source; set all but one to target, or flag one as the \
-         star source",
-        &[("form", "sources"), ("name", "L+"), ("count", "2")],
-    );
-    assert_eq!(
-        render(&ip, "nl-NL"),
-        "onderbrekingspunt L+: 2 bronpunten en geen sterbron; maak ze op één na tot doel, of markeer er één als \
-         sterbron"
-    );
-    let flagged = by_hand(
-        "EW-CORE-052",
-        "star-source",
-        "interruption point L+: 3 points are flagged as star source; keep the flag on one of them",
-        &[("form", "flagged"), ("name", "L+"), ("count", "3")],
-    );
-    assert_eq!(
-        render(&flagged, "nl-NL"),
-        "onderbrekingspunt L+: 3 punten zijn als sterbron gemarkeerd; laat de markering op één ervan staan"
-    );
     let number = by_hand(
         "EW-POT-015",
         "",

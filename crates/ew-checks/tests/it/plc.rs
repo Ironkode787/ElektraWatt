@@ -76,10 +76,10 @@ fn fixture_with(meta: &Value) -> Fx {
     fx.push(json!({"$k": "plc_config_project", "id": us(CFG), "name": "PLC1", "profile": "siemens-tia-intl@2027.1"}));
     // drawn devices, so their tags are complete (`-1U2`, not `-?U2`)
     fx.drawn_device(STATION, "U", Some(1), P1);
-    rec(&mut fx, &us(STATION))["plc_station"] = json!({"config_project": us(CFG), "role": "valve_terminal"});
+    fx.rec_mut(&us(STATION))["plc_station"] = json!({"config_project": us(CFG), "role": "valve_terminal"});
     for (n, pos) in [(M1, 2), (M2, 3)] {
         fx.drawn_device(n, "U", Some(pos), P1);
-        let r = rec(&mut fx, &us(n));
+        let r = fx.rec_mut(&us(n));
         r["parent"] = json!(us(STATION));
         r["position"] = json!(pos - 1);
         r["plc_module"] = json!({});
@@ -108,14 +108,6 @@ fn fixture_with(meta: &Value) -> Fx {
 
 fn fixture() -> Fx {
     fixture_with(&json!({}))
-}
-
-/// The record with ID text `id`.
-fn rec<'a>(fx: &'a mut Fx, id: &str) -> &'a mut Value {
-    fx.records
-        .iter_mut()
-        .find(|r| r["id"] == json!(id))
-        .expect("the record")
 }
 
 const PLC_RULES: [&str; 7] = [
@@ -158,7 +150,7 @@ fn a_consistent_terminal_has_no_plc_finding() {
 fn manual_bits(at: &[(u16, u32, u8)]) -> ew_model::Model {
     let mut fx = fixture();
     for &(n, byte, bit) in at {
-        rec(&mut fx, &ch(M2, n))["address"] = json!({"manual": {"area": "q", "byte": byte, "bit": bit}});
+        fx.rec_mut(&ch(M2, n))["address"] = json!({"manual": {"area": "q", "byte": byte, "bit": bit}});
     }
     fx.build()
 }
@@ -182,7 +174,7 @@ fn ew_plc_001_reports_overlaps_and_word_alignment() {
     assert!(f[0].targets.iter().all(|t| t.kind == Kind::Channel));
 
     let mut fx = fixture();
-    rec(&mut fx, &ch(M2, 0))["address"] = json!({"manual": {"area": "q", "size": "word", "byte": 1}});
+    fx.rec_mut(&ch(M2, 0))["address"] = json!({"manual": {"area": "q", "size": "word", "byte": 1}});
     let f = findings_of(&fx.build(), "EW-PLC-001");
     let align: Vec<&ew_checks::Finding> = f.iter().filter(|f| f.discriminator == "alignment").collect();
     assert_eq!(align.len(), 1, "{f:#?}");
@@ -218,9 +210,9 @@ fn ew_plc_001_reports_a_group_of_three_once() {
 #[test]
 fn ew_plc_001_reports_a_chained_group_once() {
     let mut fx = fixture();
-    rec(&mut fx, &ch(M2, 0))["address"] = json!({"manual": {"area": "i", "size": "word", "byte": 0}});
-    rec(&mut fx, &ch(M2, 1))["address"] = json!({"manual": {"area": "i", "byte": 0, "bit": 0}});
-    rec(&mut fx, &ch(M2, 2))["address"] = json!({"manual": {"area": "i", "byte": 1, "bit": 7}});
+    fx.rec_mut(&ch(M2, 0))["address"] = json!({"manual": {"area": "i", "size": "word", "byte": 0}});
+    fx.rec_mut(&ch(M2, 1))["address"] = json!({"manual": {"area": "i", "byte": 0, "bit": 0}});
+    fx.rec_mut(&ch(M2, 2))["address"] = json!({"manual": {"area": "i", "byte": 1, "bit": 7}});
     let f = findings_of(&fx.build(), "EW-PLC-001");
     let overlap: Vec<&ew_checks::Finding> = f.iter().filter(|f| f.discriminator == "overlap").collect();
     assert_eq!(overlap.len(), 1, "{f:#?}");
@@ -276,7 +268,7 @@ fn ew_plc_001_names_five_channels_and_counts_the_rest() {
 fn ew_plc_001_the_en_gb_pattern_equals_the_rule_text() {
     let all: Vec<(u16, u32, u8)> = (0..8).map(|n| (n, 0, 3)).collect();
     let mut word = fixture();
-    rec(&mut word, &ch(M2, 0))["address"] = json!({"manual": {"area": "q", "size": "word", "byte": 1}});
+    word.rec_mut(&ch(M2, 0))["address"] = json!({"manual": {"area": "q", "size": "word", "byte": 1}});
     let models = [
         ("pair", manual_bits(&[(0, 0, 3)])),
         ("three", manual_bits(&[(0, 0, 3), (1, 0, 3)])),
@@ -303,19 +295,19 @@ fn ew_plc_001_the_en_gb_pattern_equals_the_rule_text() {
 #[test]
 fn ew_plc_002_reports_an_address_outside_the_module() {
     let mut fx = fixture();
-    rec(&mut fx, &ch(M2, 2))["address"] = json!({"manual": {"area": "q", "byte": 1, "bit": 5}});
+    fx.rec_mut(&ch(M2, 2))["address"] = json!({"manual": {"area": "q", "byte": 1, "bit": 5}});
     assert!(
         findings_of(&fx.build(), "EW-PLC-002").is_empty(),
         "Q1.5 is inside -1U3's byte"
     );
-    rec(&mut fx, &ch(M2, 2))["address"] = json!({"manual": {"area": "q", "byte": 4, "bit": 5}});
+    fx.rec_mut(&ch(M2, 2))["address"] = json!({"manual": {"area": "q", "byte": 4, "bit": 5}});
     let f = findings_of(&fx.build(), "EW-PLC-002");
     assert_eq!(subjects(&f), [("range".to_owned(), "-1U3:2".to_owned())]);
     assert_eq!(
         f[0].message,
         "-1U3:2: the address Q4.5 is outside the I/O range of -1U3 (bytes 1 to 1 of area Q)"
     );
-    rec(&mut fx, &ch(M2, 2))["address"] = json!({"manual": {"area": "i", "byte": 1, "bit": 5}});
+    fx.rec_mut(&ch(M2, 2))["address"] = json!({"manual": {"area": "i", "byte": 1, "bit": 5}});
     let f = findings_of(&fx.build(), "EW-PLC-002");
     assert_eq!(
         f[0].message,
@@ -327,8 +319,8 @@ fn ew_plc_002_reports_an_address_outside_the_module() {
 #[test]
 fn ew_plc_003_reports_a_bit_beyond_the_unit() {
     let mut fx = fixture();
-    rec(&mut fx, &ch(M2, 2))["address"] = json!({"manual": {"area": "q", "byte": 1, "bit": 9}});
-    rec(&mut fx, &us(M1))["plc_module"] =
+    fx.rec_mut(&ch(M2, 2))["address"] = json!({"manual": {"area": "q", "byte": 1, "bit": 9}});
+    fx.rec_mut(&us(M1))["plc_module"] =
         json!({"start": {"output": {"manual": {"area": "q", "byte": 0, "bit": 8}}}});
     let f = findings_of(&fx.build(), "EW-PLC-003");
     assert_eq!(
@@ -353,9 +345,9 @@ fn ew_plc_003_reports_a_bit_beyond_the_unit() {
 #[test]
 fn ew_plc_007_reports_a_duplicate_symbol_once() {
     let mut fx = fixture();
-    rec(&mut fx, &ch(M1, 3))["symbol"] = json!("Pump_On");
-    rec(&mut fx, &ch(M2, 4))["symbol"] = json!("Pump_On");
-    rec(&mut fx, &ch(M2, 5))["symbol"] = json!("pump_on");
+    fx.rec_mut(&ch(M1, 3))["symbol"] = json!("Pump_On");
+    fx.rec_mut(&ch(M2, 4))["symbol"] = json!("Pump_On");
+    fx.rec_mut(&ch(M2, 5))["symbol"] = json!("pump_on");
     let f = findings_of(&fx.build(), "EW-PLC-007");
     assert_eq!(subjects(&f), [("symbol".to_owned(), "Pump_On".to_owned())]);
     assert_eq!(
@@ -370,7 +362,7 @@ fn ew_plc_007_reports_a_duplicate_symbol_once() {
 #[test]
 fn ew_plc_008_reports_a_used_channel_without_an_address() {
     let mut fx = fixture();
-    rec(&mut fx, &ch(M1, 0))["address"] = json!("excluded");
+    fx.rec_mut(&ch(M1, 0))["address"] = json!("excluded");
     let f = findings_of(&fx.build(), "EW-PLC-008");
     assert_eq!(subjects(&f), [("address".to_owned(), "-1U2:0".to_owned())]);
     assert_eq!(
@@ -379,7 +371,7 @@ fn ew_plc_008_reports_a_used_channel_without_an_address() {
     );
     // a spare channel without an address is no finding
     let mut fx = fixture();
-    rec(&mut fx, &ch(M1, 4))["address"] = json!("excluded");
+    fx.rec_mut(&ch(M1, 4))["address"] = json!("excluded");
     assert!(findings_of(&fx.build(), "EW-PLC-008").is_empty());
 }
 
@@ -388,11 +380,11 @@ fn ew_plc_008_reports_a_used_channel_without_an_address() {
 #[test]
 fn ew_plc_012_reports_a_binding_against_the_map_and_a_manual_deviation() {
     let mut fx = fixture();
-    rec(&mut fx, &ch(M1, 0))
+    fx.rec_mut(&ch(M1, 0))
         .as_object_mut()
         .expect("object")
         .remove("binding");
-    rec(&mut fx, &ch(M1, 1))["binding"] = json!({"cp": [us(COIL), 0]});
+    fx.rec_mut(&ch(M1, 1))["binding"] = json!({"cp": [us(COIL), 0]});
     let f = findings_of(&fx.build(), "EW-PLC-012");
     assert_eq!(
         subjects(&f),
@@ -419,7 +411,7 @@ fn ew_plc_012_reports_a_binding_against_the_map_and_a_manual_deviation() {
     assert!(!f[0].unverified_data, "an unmarked part is verified data");
 
     let mut fx = fixture();
-    rec(&mut fx, &ch(M2, 6))["address"] = json!({"manual": {"area": "q", "byte": 1, "bit": 7}});
+    fx.rec_mut(&ch(M2, 6))["address"] = json!({"manual": {"area": "q", "byte": 1, "bit": 7}});
     let f = findings_of(&fx.build(), "EW-PLC-012");
     assert_eq!(subjects(&f), [("manual".to_owned(), "-1U3:6".to_owned())]);
     assert_eq!(
@@ -428,7 +420,7 @@ fn ew_plc_012_reports_a_binding_against_the_map_and_a_manual_deviation() {
          deviation deliberately"
     );
     // a manual address equal to the derived one is no deviation
-    rec(&mut fx, &ch(M2, 6))["address"] = json!({"manual": {"area": "q", "byte": 1, "bit": 6}});
+    fx.rec_mut(&ch(M2, 6))["address"] = json!({"manual": {"area": "q", "byte": 1, "bit": 6}});
     assert!(findings_of(&fx.build(), "EW-PLC-012").is_empty());
 }
 
@@ -436,11 +428,11 @@ fn ew_plc_012_reports_a_binding_against_the_map_and_a_manual_deviation() {
 #[test]
 fn ew_plc_012_marks_findings_on_a_test_section() {
     let mut fx = fixture_with(&json!({"confidence": {"plc": "test"}}));
-    rec(&mut fx, &ch(M1, 0))
+    fx.rec_mut(&ch(M1, 0))
         .as_object_mut()
         .expect("object")
         .remove("binding");
-    rec(&mut fx, &ch(M1, 1))["binding"] = json!({"cp": [us(COIL), 0]});
+    fx.rec_mut(&ch(M1, 1))["binding"] = json!({"cp": [us(COIL), 0]});
     let f = findings_of(&fx.build(), "EW-PLC-012");
     assert_eq!(f.len(), 1);
     assert!(f[0].unverified_data, "the finding rests on unverified data");
@@ -452,8 +444,8 @@ fn ew_plc_012_marks_findings_on_a_test_section() {
 #[test]
 fn ew_plc_015_reports_tbd_values_and_supersedes_ew_core_044() {
     let mut fx = fixture();
-    rec(&mut fx, &us(M2))["plc_module"] = json!({"start": {"output": "tbd"}});
-    rec(&mut fx, &ch(M1, 5))["address"] = json!("tbd");
+    fx.rec_mut(&us(M2))["plc_module"] = json!({"start": {"output": "tbd"}});
+    fx.rec_mut(&ch(M1, 5))["address"] = json!("tbd");
     let m = fx.build();
     let f = findings_of(&m, "EW-PLC-015");
     assert_eq!(
@@ -496,11 +488,11 @@ fn ew_plc_015_reports_tbd_values_and_supersedes_ew_core_044() {
 #[test]
 fn a_module_without_a_station_stays_ew_core_044s() {
     let mut fx = fixture();
-    rec(&mut fx, &us(M2))
+    fx.rec_mut(&us(M2))
         .as_object_mut()
         .expect("object")
         .remove("parent");
-    rec(&mut fx, &us(M2))["plc_module"] = json!({"start": {"output": "tbd"}});
+    fx.rec_mut(&us(M2))["plc_module"] = json!({"start": {"output": "tbd"}});
     let m = fx.build();
     assert!(findings_of(&m, "EW-PLC-015").is_empty());
     assert_eq!(findings_of(&m, "EW-CORE-044").len(), 1);

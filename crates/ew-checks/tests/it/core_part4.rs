@@ -10,32 +10,13 @@
 use crate::common;
 
 use common::*;
-use ew_checks::{CheckMode, FULL, Finding, Severity, prevent, run};
+use ew_checks::{Finding, Severity, prevent};
 use ew_derive::Q;
 use ew_derive::ew_schema::{AnyId, Kind};
-use ew_model::Model;
 use serde_json::{Value, json};
-
-/// `(subject, message)` of each finding, in report order.
-fn texts(f: &[Finding]) -> Vec<(String, String)> {
-    f.iter().map(|f| (f.subject.clone(), f.message.clone())).collect()
-}
 
 fn subjects(f: &[Finding]) -> Vec<String> {
     f.iter().map(|f| f.subject.clone()).collect()
-}
-
-fn targets(f: &Finding) -> Vec<(Kind, AnyId)> {
-    f.targets.iter().map(|t| (t.kind, t.id)).collect()
-}
-
-/// The findings of `rule` in a release run of the `full` scheme.
-fn release_findings_of(m: &Model, rule: &str) -> Vec<Finding> {
-    run(&Q::new(m), &FULL, CheckMode::Release)
-        .findings
-        .into_iter()
-        .filter(|f| f.rule == rule)
-        .collect()
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -117,7 +98,7 @@ fn core022_prevent_refuses_a_new_collision_only() {
 
 /// A strip `-X<counter>` with ID `n` and one terminal `n + 1`.
 fn strip_with_terminal(fx: &mut Fx, n: u128, counter: u32) {
-    fx.push(json!({"$k": "device", "id": us(n), "tag": {"letter": "X", "counter": counter}, "strip": {}}));
+    fx.strip(n, counter);
     fx.push(json!({
         "$k": "device", "id": us(n + 1), "tag": {"letter": "X"}, "kind": "terminal",
         "terminal": {"strip": us(n), "seq": 1, "designation": "1"},
@@ -442,12 +423,7 @@ fn designation_fx(letter: &str, code: Option<&str>) -> Fx {
     fx.drawn_device(0x101, letter, Some(1), P1);
     if let Some(c) = code {
         fx.push(json!({"$k": "structure_node", "id": us(0x900), "aspect": "location", "code": c}));
-        let d = fx
-            .records
-            .iter_mut()
-            .find(|r| r["id"] == json!(us(0x101)))
-            .expect("the device");
-        d["structure"] = json!({"location": us(0x900)});
+        fx.rec_mut(&us(0x101))["structure"] = json!({"location": us(0x900)});
     }
     fx
 }
@@ -644,7 +620,7 @@ fn strip_fx(count: u32, spare: bool) -> Fx {
         &json!([]),
         &json!({}),
     );
-    fx.push(json!({"$k": "device", "id": us(STRIP), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
+    fx.strip(STRIP, 1);
     for seq in 1..=count {
         let t = 0x200 + u128::from(seq);
         let mut d = json!({
@@ -738,36 +714,6 @@ fn term004_prevent_refuses_a_new_invalid_group_only() {
 
 /// One permutation case: the rule, its fixture and the ID pairs to swap.
 type Case = (&'static str, Fx, Vec<(u128, u128)>);
-
-/// The fixture with the record and library IDs of each pair swapped everywhere they occur.
-fn permuted(fx: &Fx, pairs: &[(u128, u128)]) -> Model {
-    let swap = |v: &Value| -> Value {
-        let mut text = v.to_string();
-        for (i, (a, b)) in pairs.iter().enumerate() {
-            let tmp = format!("@swap{i}@");
-            text = text
-                .replace(&us(*a), &tmp)
-                .replace(&us(*b), &us(*a))
-                .replace(&tmp, &us(*b));
-        }
-        serde_json::from_str(&text).expect("JSON")
-    };
-    let mut out = fx.clone();
-    out.records = fx.records.iter().map(swap).collect();
-    out.lib = fx.lib.iter().map(swap).collect();
-    out.build()
-}
-
-/// Every finding of a release and an online run of the `full` scheme as printed: rule, severity, subject, message,
-/// in report order.
-fn printed(m: &Model) -> Vec<String> {
-    let q = Q::new(m);
-    [CheckMode::Online, CheckMode::Release]
-        .into_iter()
-        .flat_map(|mode| run(&q, &FULL, mode).findings)
-        .map(|f| format!("{} {} {}: {}", f.rule, f.severity, f.subject, f.message))
-        .collect()
-}
 
 /// The ID-permutation test of every part-4 rule: swapping record IDs (pages, strips, terminals, connections,
 /// structure nodes, page items) changes no printed finding and no report order.

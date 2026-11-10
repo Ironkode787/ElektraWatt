@@ -57,7 +57,7 @@ fn rds004_cases() {
 fn rds004_leaves_terminals_to_term002() {
     let mut fx = Fx::base();
     for (strip, n) in [(0x10, 1), (0x11, 2)] {
-        fx.push(json!({"$k": "device", "id": us(strip), "tag": {"letter": "X", "counter": n}, "strip": {}}));
+        fx.strip(strip, n);
     }
     for (dev, strip) in [(0x201, 0x10), (0x202, 0x11)] {
         fx.push(json!({
