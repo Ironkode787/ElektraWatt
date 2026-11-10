@@ -2,14 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! WP-S3.06 part 3 over Golden A: the report back-links drawn (FR-REP-042; D10, rulings 1 to 4).
-//!
-//! Tests:
-//! - `bl1_the_bom_folios_link_each_listed_folio`
-//! - `bl1_the_terminal_rows_link_their_strip_page`, `bl1_a_folio_link_skips_contact_images`
-//! - `bl1_the_folio_of_101f1_carries_its_link_on_its_text`
-//! - `bl3_a_parts_list_links_each_device_to_its_main_representation`
-//! - `bl2_the_toc_and_the_device_tag_overview_link_their_pages_and_devices`
-//! - `bl3_the_fixture_blocks_draw_their_links`
 
 use std::collections::BTreeMap;
 use std::ops::Range;

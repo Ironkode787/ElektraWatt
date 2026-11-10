@@ -8,7 +8,7 @@
 //! release-scheme errors are each waived first (Golden A's EW-POT-006 and EW-POT-013 are safety-kind, so their
 //! waivers are the ones a checker acknowledges). Nothing under `golden/` changes.
 
-use crate::golden_common;
+use crate::{common, golden_common};
 
 use std::path::{Path, PathBuf};
 
@@ -24,19 +24,6 @@ use ew_store::ew_format::{Limits, Manifest, content_digest};
 
 fn golden() -> PathBuf {
     golden_common::repo().join("golden/J-E-2416.ew")
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).expect("a directory");
-    for e in std::fs::read_dir(from).expect("a readable directory") {
-        let e = e.expect("an entry");
-        let target = to.join(e.file_name());
-        if e.path().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).expect("a copied file");
-        }
-    }
 }
 
 fn open(dir: &Path, state: &Path) -> (Session, Vec<checks::IntegrityItem>) {
@@ -196,7 +183,7 @@ fn the_gate_needs_a_saved_generation_and_approval_the_write_lock() {
 fn rg1_to_rg5_approve_the_saved_revision_bound_to_its_content() {
     let copy = ew_testdir::fresh_dir("ew-part3-approve");
     let state = ew_testdir::fresh_dir("ew-part3-approve-state");
-    copy_dir(&golden(), &copy);
+    common::copy_dir(&golden(), &copy);
     let (mut s, integrity) = open(&copy, &state);
 
     // RG-2: the gate's errors besides EW-REL-001 refuse the approval, listed.

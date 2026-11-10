@@ -2,12 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The SQL projection over the golden project (ADR-0017, doc 17 §6): every `api_v1_*` view is
-//! readable through the sandbox with the columns of `ew_sqlview::schema`; the acceptance SQL of
-//! `golden/J-E-2416/acceptance/` returns `expected/csv/`; the acceptance criteria of FR-EXT-006 and
-//! FR-EXT-007; the row counts; a deterministic image.
-//!
-//! The acceptance runner (`tests/acceptance.rs`) evaluates the same SQL/CSV pairs as the "SQL half" of AC-08
-//! … AC-11; this file gives the row-by-row difference when one fails.
+//! readable through the sandbox with the columns of `ew_sqlview::schema`; the acceptance criteria of FR-EXT-006 and
+//! FR-EXT-007; the row counts; a deterministic image. The acceptance runner (`tests/acceptance`) evaluates the
+//! acceptance SQL/CSV pairs.
 
 #![allow(dead_code)]
 
@@ -23,58 +20,6 @@ fn projection() -> Projection {
     session
         .sql_projection(Some(&report))
         .expect("the projection builds")
-}
-
-/// The acceptance SQL/CSV pairs (doc 20 §3.1): `acceptance/<name>.sql` returns `expected/csv/<name>.csv`.
-const PAIRS: [&str; 6] = [
-    "terminals_1X1",
-    "terminals_X1031",
-    "terminals_X1032",
-    "cables",
-    "wires",
-    "potentials",
-];
-
-fn golden(path: &str) -> String {
-    let p = golden_common::repo().join("golden/J-E-2416").join(path);
-    std::fs::read_to_string(&p).unwrap_or_else(|e| panic!("{}: {e}", p.display()))
-}
-
-/// The lines of `got` that differ from `want`, numbered, for the failure message.
-fn diff(want: &str, got: &str) -> String {
-    let (w, g): (Vec<&str>, Vec<&str>) = (want.lines().collect(), got.lines().collect());
-    let mut out = Vec::new();
-    for i in 0..w.len().max(g.len()) {
-        let (a, b) = (
-            w.get(i).copied().unwrap_or("<none>"),
-            g.get(i).copied().unwrap_or("<none>"),
-        );
-        if a != b {
-            out.push(format!("line {}:\n  want {a}\n  got  {b}", i + 1));
-        }
-    }
-    out.join("\n")
-}
-
-#[test]
-fn the_acceptance_sql_returns_the_expected_csv() {
-    let p = projection();
-    let reader = p.reader(Profile::EW_SQL).unwrap();
-    let mut failures = Vec::new();
-    for name in PAIRS {
-        let sql = golden(&format!("acceptance/{name}.sql"));
-        let want = golden(&format!("expected/csv/{name}.csv"));
-        match reader.query(&sql) {
-            Ok(set) => {
-                let got = set.to_csv();
-                if got != want {
-                    failures.push(format!("{name}:\n{}", diff(&want, &got)));
-                }
-            }
-            Err(e) => failures.push(format!("{name}: {e}")),
-        }
-    }
-    assert!(failures.is_empty(), "{}", failures.join("\n\n"));
 }
 
 #[test]

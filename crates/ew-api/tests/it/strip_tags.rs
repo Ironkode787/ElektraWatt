@@ -203,6 +203,13 @@ fn at(texts: &BTreeMap<Uuid, Vec<String>>, reps: &[Uuid]) -> Vec<Vec<String>> {
         .collect()
 }
 
+/// Golden A with the representations of strip 1X1's terminals "1", "2" and "PE" (in that order) as IDs.
+fn golden_with_terminal_reps() -> (Golden, Vec<Uuid>) {
+    let mut g = Golden::new();
+    let reps = rep_ids(&mut g, &["1X1:1", "1X1:2", "1X1:PE"]);
+    (g, reps)
+}
+
 fn strings(v: &[&[&str]]) -> Vec<Vec<String>> {
     v.iter()
         .map(|x| x.iter().map(|s| (*s).to_owned()).collect())
@@ -213,8 +220,7 @@ fn strings(v: &[&[&str]]) -> Vec<Vec<String>> {
 /// own order: "1" before "2" before "PE"), one grid step above its designation; the designations stay.
 #[test]
 fn the_strip_tag_prints_once_at_the_first_terminal_of_a_page_without_a_segment() {
-    let mut g = Golden::new();
-    let reps = rep_ids(&mut g, &["1X1:1", "1X1:2", "1X1:PE"]);
+    let (g, reps) = golden_with_terminal_reps();
     let s = g.session();
     assert_eq!(
         at(&texts(&s, 101), &reps),
@@ -239,8 +245,7 @@ fn the_strip_tag_prints_once_at_the_first_terminal_of_a_page_without_a_segment()
 /// Rule 2: with terminal "2" moved to page 102, each page prints the tag once, at its own first terminal.
 #[test]
 fn the_strip_tag_prints_once_on_each_page() {
-    let mut g = Golden::new();
-    let reps = rep_ids(&mut g, &["1X1:1", "1X1:2", "1X1:PE"]);
+    let (mut g, reps) = golden_with_terminal_reps();
     let p102 = g.page(102);
     g.rep_mut("1X1:2").page = p102;
     let s = g.session();
@@ -256,8 +261,7 @@ fn the_strip_tag_prints_once_on_each_page() {
 /// designation and, in its function-text slot, its function text.
 #[test]
 fn a_terminal_prints_its_designation_or_its_function_text_by_label_mode() {
-    let mut g = Golden::new();
-    let reps = rep_ids(&mut g, &["1X1:1", "1X1:2", "1X1:PE"]);
+    let (mut g, reps) = golden_with_terminal_reps();
     g.set_function_text("1X1:1", "L");
     let mut by_text = Golden::new();
     by_text.set_function_text("1X1:1", "L");
@@ -318,8 +322,7 @@ fn per_page_prints_the_strip_tag_once_at_the_first_segment() {
 /// tag with the page token: "-X101?" (a strip without a page token reads "-X??").
 #[test]
 fn an_unnumbered_strip_prints_its_tag_at_its_terminals() {
-    let mut g = Golden::new();
-    let reps = rep_ids(&mut g, &["1X1:1", "1X1:2", "1X1:PE"]);
+    let (mut g, reps) = golden_with_terminal_reps();
     let strip = g.device_mut("1X1");
     strip.tag.frozen = None;
     strip.tag.counter = None;
@@ -352,40 +355,38 @@ fn hide_tag(g: &mut Golden, key: &str) {
     g.rep_mut(key).text_slots.insert(hidden);
 }
 
-/// A first terminal whose designation is hidden carries no strip tag; the next terminal in the strip's
-/// order does.
+/// A first terminal that shows no tag slot carries no strip tag; the next terminal in the strip's order does: the
+/// designation is hidden, or the symbol has no tag slot (the interruption-point symbol, whose slots are `function_text`
+/// and `xref`).
 #[test]
-fn a_hidden_first_designation_moves_the_strip_tag_to_the_next_terminal() {
-    let mut g = Golden::new();
-    let reps = rep_ids(&mut g, &["1X1:1", "1X1:2", "1X1:PE"]);
-    hide_tag(&mut g, "1X1:1");
-    let s = g.session();
-    assert_eq!(
-        at(&texts(&s, 101), &reps),
-        strings(&[&[], &["1X1", "2"], &["PE"]])
-    );
-}
-
-/// A first terminal whose symbol has no tag slot (drawn with the interruption-point symbol, whose slots are
-/// `function_text` and `xref`) carries no strip tag; the next terminal does.
-#[test]
-fn a_first_terminal_without_a_tag_slot_passes_the_strip_tag_on() {
-    let mut g = Golden::new();
-    let reps = rep_ids(&mut g, &["1X1:1", "1X1:2", "1X1:PE"]);
-    let ip = symbol_copy(&g, "ew.gen.ip@qet10");
-    g.rep_mut("1X1:1").symbol = ip;
-    let s = g.session();
-    assert_eq!(
-        at(&texts(&s, 101), &reps),
-        strings(&[&[], &["1X1", "2"], &["PE"]])
-    );
+fn a_first_terminal_without_a_shown_tag_slot_passes_the_strip_tag_on() {
+    fn hidden(g: &mut Golden) {
+        hide_tag(g, "1X1:1");
+    }
+    fn ip_symbol(g: &mut Golden) {
+        let ip = symbol_copy(g, "ew.gen.ip@qet10");
+        g.rep_mut("1X1:1").symbol = ip;
+    }
+    let cases = [
+        ("hidden designation", hidden as fn(&mut Golden)),
+        ("ip symbol", ip_symbol),
+    ];
+    for (name, edit) in cases {
+        let (mut g, reps) = golden_with_terminal_reps();
+        edit(&mut g);
+        let s = g.session();
+        assert_eq!(
+            at(&texts(&s, 101), &reps),
+            strings(&[&[], &["1X1", "2"], &["PE"]]),
+            "{name}"
+        );
+    }
 }
 
 /// With no terminal of the strip showing its tag slot on the page, the page prints no strip tag.
 #[test]
 fn no_shown_tag_slot_no_strip_tag() {
-    let mut g = Golden::new();
-    let reps = rep_ids(&mut g, &["1X1:1", "1X1:2", "1X1:PE"]);
+    let (mut g, reps) = golden_with_terminal_reps();
     for key in ["1X1:1", "1X1:2", "1X1:PE"] {
         hide_tag(&mut g, key);
     }

@@ -283,23 +283,12 @@ fn assert_toc_lists_every_page_once(order: &PageOrderV) {
 }
 
 #[test]
-fn the_toc_fixpoint_converges_from_the_closed_form() {
-    let s = common::golden_session();
-    // 16 fixed pages + 8 = 24 others; n = ceil(24 / (23 - 1)) = 2; 24 + 2 = 26 rows on 2 pages: settled.
-    let q = Q::new(&s.world().model).with_report_pages(scripted(8));
-    let order = q.get::<PageOrder>(());
-    assert!(order.fixpoint_reached);
-    assert_eq!(order.toc_pages, 2);
-    assert_eq!(order.len(), 26);
-    assert_toc_lists_every_page_once(&order);
-}
-
-#[test]
 fn large_projects_settle_the_toc_with_every_page_listed_once() {
     let s = common::golden_session();
-    // D = 16 + extra other pages, 23 rows per TOC page, one TOC block: n = ceil(D / 22). The old three-round
-    // iteration first dropped a page at 551 other pages; 10,000 gave 455 TOC rows' worth for 456 pages.
-    for (extra, toc_pages) in [(535, 26), (600, 28), (2_000, 92), (10_000, 456)] {
+    // D = 16 + extra other pages, 23 rows per TOC page, one TOC block: n = ceil(D / 22). 16 fixed pages + 8 = 24 others
+    // settle at 2 TOC pages (26 rows on 2 pages). The old three-round iteration first dropped a page at 551 other pages;
+    // 10,000 gave 455 TOC rows' worth for 456 pages.
+    for (extra, toc_pages) in [(8, 2), (535, 26), (600, 28), (2_000, 92), (10_000, 456)] {
         let q = Q::new(&s.world().model).with_report_pages(scripted(extra));
         let order = q.get::<PageOrder>(());
         assert!(order.fixpoint_reached, "{extra} extra pages: not settled");

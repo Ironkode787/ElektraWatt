@@ -25,36 +25,21 @@ fn lang(s: &str) -> LangTag {
     s.parse().unwrap()
 }
 
+/// Tag-range compression (doc 20 §14.1): a run of one kind, a run interrupted by other devices, a list, a terminal run
+/// that drops the strip prefix, and no devices.
 #[test]
-fn range_of_the_valve_row_is_one_run() {
+fn tag_ranges_compress_runs_and_list_the_rest() {
     let s = common::golden_session();
     let q = s.query();
-    let row = bom_row(&q, "571334");
-    assert_eq!(compress_range(&q, &row.devices), "-201U3-Q1 … -202U2-Q4");
-}
-
-#[test]
-fn range_of_the_electronic_modules_is_interrupted_by_the_supply_plates() {
-    let s = common::golden_session();
-    let q = s.query();
-    let row = bom_row(&q, "533361");
-    assert_eq!(compress_range(&q, &row.devices), "-201U3 … -201U8, -202U2");
-}
-
-#[test]
-fn range_of_the_feed_through_terminals_is_a_list() {
-    let s = common::golden_session();
-    let q = s.query();
-    let row = bom_row(&q, "UK 5 N");
-    assert_eq!(compress_range(&q, &row.devices), "1X1:1, 1X1:2");
-}
-
-#[test]
-fn range_of_a_terminal_run_drops_the_strip_prefix() {
-    let s = common::golden_session();
-    let q = s.query();
-    let row = bom_row(&q, "PT 2.5-TWIN");
-    assert_eq!(compress_range(&q, &row.devices), "-X1031:1 … 20");
+    for (part_number, want) in [
+        ("571334", "-201U3-Q1 … -202U2-Q4"),
+        ("533361", "-201U3 … -201U8, -202U2"),
+        ("UK 5 N", "1X1:1, 1X1:2"),
+        ("PT 2.5-TWIN", "-X1031:1 … 20"),
+    ] {
+        let row = bom_row(&q, part_number);
+        assert_eq!(compress_range(&q, &row.devices), want, "row {part_number}");
+    }
     assert_eq!(compress_range(&q, &[]), "");
 }
 

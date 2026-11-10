@@ -11,7 +11,7 @@ use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{Record, ReportBlock};
 use ew_derive::{DeviceTag, GeneratedPage, PageOrder, PageOrderV, PageRef, Q};
 use ew_reports::render::{RenderOptions, render};
-use ew_reports::{BlockRows, Cell, RowKind, RowSet, RowSetStatus};
+use ew_reports::{BlockRows, Cell, RowKind, RowSet};
 
 /// The data rows of a committed golden table (one row per line after the header).
 fn table_rows(name: &str) -> usize {
@@ -378,25 +378,6 @@ fn every_golden_kind_derives_inside_the_pagination() {
     assert!(pages[0].note.is_none(), "{key}: rows, no placeholder note");
 }
 
-/// PD-3: the revision overview's rows over Golden A, V1.0 (historic, released, no digests) and
-/// V2.0 (open, its page notes on 101 and 106), in label order; the row source inside the pagination prints the page
-/// notes' folios.
-#[test]
-fn the_revision_overview_lists_v1_and_v2_with_their_pages() {
-    let s = common::golden_session();
-    let q = s.query();
-    let set = q.get::<BlockRows>(block("911"));
-    assert!(!matches!(set.status, RowSetStatus::NotDerived(_)));
-    let printed: Vec<Vec<String>> = (0..set.rows.len()).map(|i| printed(&q, &set, i)).collect();
-    assert_eq!(
-        printed,
-        [
-            ["V1.0", "03-03-2025", "", "", "released", ""],
-            ["V2.0", "14-04-2025", "<engineer>", "", "open", "101, 106"],
-        ]
-    );
-}
-
 /// The printed cells of row `i` of a row set.
 fn printed(q: &Q, set: &RowSet, i: usize) -> Vec<String> {
     let opts = RenderOptions::default();
@@ -541,9 +522,6 @@ fn embedded_blocks_have_no_page_and_derive_part_data() {
     ] {
         assert!(pages_of(&order, block(key)).is_empty(), "{key} has no page");
     }
-
-    // The cover's colour and size tables derive from the profiles; see `the_cover_tables_...`.
-    assert!(q.get::<BlockRows>(block("cover-tables")).is_derived());
 
     // Pages 201 and 202 both show devices whose root ancestor is -201U1 (-202U1 is its child), so both boxes
     // list -201U1 (doc 09 §3.4 repeats the box on 202). -201U1 carries the assembly aspect with order codes 1

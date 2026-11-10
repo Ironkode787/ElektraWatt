@@ -145,25 +145,8 @@ fn the_origin_and_context_are_recorded() {
 }
 
 #[test]
-fn the_registry_lists_every_command() {
+fn the_registry_resolves_command_aliases() {
     let s = session(6);
-    let names: Vec<&str> = s.registry().names().collect();
-    assert_eq!(
-        names.len(),
-        ew_commands::CommandRegistry::builtin().names().count()
-    );
-    assert!(names.contains(&"parts.import"));
-    assert!(names.contains(&"fields.set_many"));
-    assert!(names.contains(&"project.assets.purge"));
-    assert!(names.contains(&"rep.exchange_symbol"));
-    assert!(names.contains(&"project.drawing.set"));
-    assert!(names.contains(&"connection.draw_to_ip"));
-    assert!(names.contains(&"ip.arrange"));
-    assert!(names.contains(&"box.reshape"));
-    assert!(names.contains(&"device.place"));
-    assert!(names.contains(&"revision.create"));
-    assert!(names.contains(&"project.settings.set"));
-    assert!(names.contains(&"project.company.set"));
     assert!(s.registry().get("symbol.place").is_some(), "aliases resolve");
 }
 

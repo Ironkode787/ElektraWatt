@@ -646,7 +646,6 @@ fn several_cells_compile_to_one_set_many() {
     assert_eq!(bridges, 2);
     drop(q);
     // A terminal without a bridge.
-    let x1032 = strip(&s, "-X1032");
     let unbridged = s
         .navigator_table(NavKind::Strips)
         .nodes
@@ -660,7 +659,6 @@ fn several_cells_compile_to_one_set_many() {
                 .any(|(_, _, g)| g.terminals.contains(&Id::from_uuid(*t)))
         })
         .expect("an unbridged terminal");
-    let _ = x1032;
     let err = s
         .strip_edit(&StripEdit::BridgePart {
             terminals: vec![unbridged],

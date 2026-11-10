@@ -10,7 +10,7 @@
 //! test walks up into the repository it runs in; RA-7's git test creates its own repository under its temporary
 //! directory.
 
-use crate::golden_common;
+use crate::{common, golden_common};
 
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
@@ -226,19 +226,6 @@ fn the_release_fixture_is_built_by_its_helper() {
 // ---------------------------------------------------------------------------------------------------------------
 // Copies, approval, git ports
 
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).expect("a directory");
-    for e in std::fs::read_dir(from).expect("a readable directory") {
-        let e = e.expect("an entry");
-        let target = to.join(e.file_name());
-        if e.path().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).expect("a copied file");
-        }
-    }
-}
-
 fn open(dir: &Path, state: &Path) -> (Session, Vec<checks::IntegrityItem>) {
     let (session, report) = Session::open(
         dir,
@@ -384,7 +371,7 @@ fn approved_copy(tag: &str) -> (PathBuf, PathBuf, Session, Vec<checks::Integrity
     let base = ew_testdir::fresh_dir(&format!("ew-release-{tag}"));
     let dir = base.join("release-min");
     let state = base.join("state");
-    copy_dir(&fixture(), &dir);
+    common::copy_dir(&fixture(), &dir);
     let (mut s, integrity) = open(&dir, &state);
     approve(&mut s, &integrity);
     (base, dir, s, integrity)
@@ -414,7 +401,7 @@ fn a_release_reports_an_unreleased_format() {
             base.join("state"),
             base.join("archives"),
         );
-        copy_dir(&fixture(), &dir);
+        common::copy_dir(&fixture(), &dir);
         let mut store = store_options(&state);
         store.released = released;
         let (mut s, report) =
@@ -623,7 +610,7 @@ fn the_release_report_lists_the_waivers_in_force() {
     let base = ew_testdir::fresh_dir("ew-release-waivers");
     let dir = base.join("release-min");
     let state = base.join("state");
-    copy_dir(&fixture(), &dir);
+    common::copy_dir(&fixture(), &dir);
     let (mut s, integrity) = open(&dir, &state);
     let connection = s.query().connections().ids().next().expect("a connection");
     run(
@@ -720,7 +707,7 @@ fn the_refusals_write_nothing() {
     let dir = base.join("release-min");
     let state = base.join("state");
     let root = base.join("archives");
-    copy_dir(&fixture(), &dir);
+    common::copy_dir(&fixture(), &dir);
     let (mut s, integrity) = open(&dir, &state);
     // Before the approval the gate blocks with EW-REL-001.
     match s.release(&context(), &integrity, &options(&NoGit, Some(&root))) {
@@ -1506,11 +1493,11 @@ fn a_copy_of_the_project_never_discards_the_other_copys_archive() {
     let root = base.join("archives");
     let dir_a = base.join("a").join("release-min");
     let dir_b = base.join("b").join("release-min");
-    copy_dir(&fixture(), &dir_a);
+    common::copy_dir(&fixture(), &dir_a);
     let (mut a, integrity) = open(&dir_a, &state);
     approve(&mut a, &integrity);
     a.close();
-    copy_dir(&dir_a, &dir_b);
+    common::copy_dir(&dir_a, &dir_b);
     let git = FakeGit::default();
     let (mut a, integrity_a) = open(&dir_a, &state);
     let (mut b, integrity_b) = open(&dir_b, &state);
@@ -2006,7 +1993,7 @@ fn ra7_the_release_commits_and_tags_in_a_git_repository() {
     let dir = repo.join("release-min");
     let state = base.join("state");
     let root = base.join("archives");
-    copy_dir(&fixture(), &dir);
+    common::copy_dir(&fixture(), &dir);
     let (mut s, integrity) = open(&dir, &state);
     approve(&mut s, &integrity);
 
@@ -2244,7 +2231,7 @@ fn ru1_ru2_the_archive_reproduces_its_pdf_and_its_report_rows() {
     let base = ew_testdir::fresh_dir("ew-release-ru1");
     let dir = base.join("release-min");
     let state = base.join("state");
-    copy_dir(&fixture(), &dir);
+    common::copy_dir(&fixture(), &dir);
     let (mut s, integrity) = open(&dir, &state);
     let (frame, title) = shipped_report_forms();
     run(

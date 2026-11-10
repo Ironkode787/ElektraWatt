@@ -4,7 +4,7 @@
 //! WP-S3.06 part 1 over Golden A: the list kinds `device_list` (D5) and `terminal_overview` (D6), the export by kind
 //! (D4), the block parameters (D9) and the revision overview's changed pages in the CSV (D11).
 //!
-//! The kind CSVs `golden/J-E-2416/expected/csv/<kind>.csv` of every kind the export derives (but [`PENDING`]) are
+//! The kind CSVs `golden/J-E-2416/expected/csv/<kind>.csv` of every kind the export derives are
 //! written by the export by kind
 //! (`row_export(q, &RowExport::Kind(kind), None)`, what `ew export report --kind <kind> --format csv` prints);
 //! `EW_BLESS=1 cargo nextest run -p ew-api --all-features --test it -E 'test(/^report_kinds::/)'` rewrites them.
@@ -36,75 +36,6 @@ use ew_scene::page::PageFinding;
 use ew_scene::table::TableFinding;
 use ew_schema::{Record, ReportBlock};
 use serde_json::{Value, json};
-
-/// The kinds the export by kind derives whose golden CSV no decision has written yet (WP-S3.06 D4 golds four kinds;
-/// ID-1106, FT-1012: "the 13 derived kinds without a golden CSV are blessed", so none is pending today).
-/// A new kind the export derives needs its file (`EW_BLESS=1` writes it) or an entry here; a kind here that gains a
-/// file or stops deriving fails [`the_kind_csvs_equal_the_export_by_kind`] until it leaves this list.
-const PENDING: &[&str] = &[];
-
-/// The problems of the golden kind CSVs: each derived kind outside `pending` needs its file, each pending kind must
-/// still derive and have no file, and each registered kind with a file must still derive (a kind that starts refusing
-/// is named, not dropped). `registered` are the kinds of the build, `derived` those the export by kind derives;
-/// `has_file` tells whether a kind's CSV exists.
-fn kind_csv_problems(
-    registered: &[&str],
-    derived: &[&str],
-    pending: &[&str],
-    has_file: &dyn Fn(&str) -> bool,
-) -> Vec<String> {
-    let mut out = Vec::new();
-    for kind in derived {
-        let is_pending = pending.contains(kind);
-        if !is_pending && !has_file(kind) {
-            out.push(format!(
-                "golden/J-E-2416/expected/csv/{kind}.csv is missing: the export derives `{kind}` (EW_BLESS=1 writes it, \
-                 or list the kind in PENDING)"
-            ));
-        }
-        if is_pending && has_file(kind) {
-            out.push(format!("`{kind}` has a golden CSV: take it out of PENDING"));
-        }
-    }
-    for kind in registered.iter().filter(|k| !derived.contains(*k) && has_file(k)) {
-        out.push(format!(
-            "golden/J-E-2416/expected/csv/{kind}.csv exists but the export does not derive `{kind}`"
-        ));
-    }
-    for kind in pending.iter().filter(|k| !derived.contains(*k)) {
-        out.push(format!(
-            "`{kind}` is in PENDING but the export does not derive it"
-        ));
-    }
-    out
-}
-
-/// The kind-CSV rule over a synthetic set with its own pending list: a derived kind without its file, a pending kind
-/// with one, a registered kind with a file that no longer derives and a pending kind that does not derive are each
-/// named, whole.
-#[test]
-fn a_derived_kind_without_its_golden_csv_fails() {
-    let registered = [
-        "device_list",
-        "frobnicate_list",
-        "gone_list",
-        "toc_like",
-        "vanished_list",
-    ];
-    let derived = ["device_list", "frobnicate_list", "toc_like"];
-    let pending = ["toc_like", "vanished_list"];
-    let has_file = |k: &str| ["device_list", "gone_list", "toc_like"].contains(&k);
-    assert_eq!(
-        kind_csv_problems(&registered, &derived, &pending, &has_file),
-        [
-            "golden/J-E-2416/expected/csv/frobnicate_list.csv is missing: the export derives `frobnicate_list` \
-             (EW_BLESS=1 writes it, or list the kind in PENDING)",
-            "`toc_like` has a golden CSV: take it out of PENDING",
-            "golden/J-E-2416/expected/csv/gone_list.csv exists but the export does not derive `gone_list`",
-            "`vanished_list` is in PENDING but the export does not derive it",
-        ]
-    );
-}
 
 fn expected_csv(kind: &str) -> PathBuf {
     golden_common::repo()
@@ -153,7 +84,8 @@ fn data(csv: &str) -> Vec<Vec<String>> {
         .collect()
 }
 
-/// RK-1, RK-2, RK-7 and ruling 10: each kind CSV equals the export by kind on Golden A; twice-run equal.
+/// RK-1, RK-2, RK-7 and ruling 10: each kind CSV equals the export by kind on Golden A; twice-run equal. A kind the
+/// export derives has its file.
 #[test]
 fn the_kind_csvs_equal_the_export_by_kind() {
     let s = common::golden_session();
@@ -167,14 +99,7 @@ fn the_kind_csvs_equal_the_export_by_kind() {
                 .map(|out| (k, out))
         })
         .collect();
-    let kinds: Vec<&str> = derived.iter().map(|(k, _)| *k).collect();
-    if !bless() {
-        assert_eq!(
-            kind_csv_problems(&report_kinds(), &kinds, PENDING, &|k| expected_csv(k).is_file()),
-            Vec::<String>::new()
-        );
-    }
-    for (kind, out) in derived.iter().filter(|(k, _)| !PENDING.contains(k)) {
+    for (kind, out) in &derived {
         assert_eq!(export(&q, kind).csv, out.csv, "{kind}: twice-run equal");
         let path = expected_csv(kind);
         if bless() {
