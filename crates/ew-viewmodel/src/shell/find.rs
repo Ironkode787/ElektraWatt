@@ -101,8 +101,8 @@ impl ShellModel {
 
     /// `find.open` (Ctrl+F) and `find.open_replace` (Ctrl+H): the pane below the page view, with the focus.
     pub(crate) fn act_find_open(&mut self, replace: bool) -> Outcome {
-        if !self.layout.panes().contains(&PaneKind::Find) {
-            let layout = self.layout.with_find();
+        if !self.panes.layout.panes().contains(&PaneKind::Find) {
+            let layout = self.panes.layout.with_find();
             self.replace_layout(layout);
         }
         self.find.replace_mode = replace;
@@ -113,7 +113,7 @@ impl ShellModel {
     /// `find.close`: the pane leaves the layout; its focus goes back to the canvas. A replace card made by the pane
     /// goes with it, since no pane would draw it and Ctrl+Enter in the property grid would apply it unseen.
     pub(crate) fn act_find_close(&mut self) -> Outcome {
-        let layout = self.layout.without(PaneKind::Find);
+        let layout = self.panes.layout.without(PaneKind::Find);
         self.replace_layout(layout);
         if self.focus == Some(Focus::Find) {
             self.focus = self.area.as_ref().map(|a| Focus::Canvas(a.focused));

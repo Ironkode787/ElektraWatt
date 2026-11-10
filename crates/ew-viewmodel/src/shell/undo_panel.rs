@@ -59,7 +59,7 @@ impl ShellModel {
 
     /// Whether the history panel is in the layout.
     pub fn history_shown(&self) -> bool {
-        self.layout.panes().contains(&PaneKind::History)
+        self.panes.layout.panes().contains(&PaneKind::History)
     }
 
     /// Annotates the history entry committed at `rev` with the origin text the panel shows instead of `Session`'s
@@ -123,11 +123,12 @@ impl ShellModel {
         let shown = self.history_shown();
         let want = or_return!(super::jobs::bool_param(p, "on", !shown));
         let layout = if want {
-            self.layout
+            self.panes
+                .layout
                 .with_bottom(PaneKind::History)
                 .showing(PaneKind::History)
         } else {
-            self.layout.without(PaneKind::History)
+            self.panes.layout.without(PaneKind::History)
         };
         self.replace_layout(layout);
         Outcome::Done
@@ -135,7 +136,11 @@ impl ShellModel {
 
     /// Whether any pane of the bottom dock is on show (`view.bottom_dock`'s checked state).
     pub fn bottom_dock_shown(&self) -> bool {
-        self.layout.panes().iter().any(|p| PaneKind::BOTTOM.contains(p))
+        self.panes
+            .layout
+            .panes()
+            .iter()
+            .any(|p| PaneKind::BOTTOM.contains(p))
     }
 
     /// `view.bottom_dock {on?}` (doc 16a §5.7, Ctrl+J; a toggle without `on`): closing closes every bottom pane
@@ -160,19 +165,20 @@ impl ShellModel {
             }
         };
         let panes: Vec<PaneKind> = if want {
-            let mut kept = std::mem::take(&mut self.bottom_closed);
+            let mut kept = std::mem::take(&mut self.panes.bottom_closed);
             if kept.is_empty() {
                 kept.push(PaneKind::Navigator(crate::navigators::NavKind::Messages));
             }
             kept
         } else {
             let open: Vec<PaneKind> = self
+                .panes
                 .layout
                 .panes()
                 .into_iter()
                 .filter(|p| PaneKind::BOTTOM.contains(p))
                 .collect();
-            self.bottom_closed.clone_from(&open);
+            self.panes.bottom_closed.clone_from(&open);
             open
         };
         for pane in panes {

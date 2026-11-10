@@ -18,6 +18,15 @@ use super::{Outcome, ShellModel, string_param};
 use crate::glossary::{Term, terms};
 use crate::layout::PaneKind;
 
+/// The glossary pane's search text and row cursor.
+#[derive(Default)]
+pub(super) struct GlossaryState {
+    /// The glossary pane's search text (D16).
+    pub(super) filter: String,
+    /// The glossary pane's row cursor, an index into its rows; none before the first move.
+    pub(super) row: Option<usize>,
+}
+
 /// One row of the glossary pane.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GlossaryRow {
@@ -68,12 +77,12 @@ fn matches(term: &Term, locale: &str, filter: &str) -> bool {
 impl ShellModel {
     /// Whether the glossary pane is in the layout.
     pub fn glossary_shown(&self) -> bool {
-        self.layout.panes().contains(&PaneKind::Glossary)
+        self.panes.layout.panes().contains(&PaneKind::Glossary)
     }
 
     /// The glossary pane's search text.
     pub fn glossary_filter(&self) -> &str {
-        &self.glossary_filter
+        &self.glossary.filter
     }
 
     /// The glossary rows the search text matches, in file order.
@@ -81,7 +90,7 @@ impl ShellModel {
         let locale = glossary_locale();
         terms()
             .iter()
-            .filter(|t| matches(t, locale, &self.glossary_filter))
+            .filter(|t| matches(t, locale, &self.glossary.filter))
             .map(|t| GlossaryRow {
                 term: t.label(locale).to_owned(),
                 eplan: t.eplan.join(", "),
@@ -97,11 +106,12 @@ impl ShellModel {
         let shown = self.glossary_shown();
         let want = or_return!(super::jobs::bool_param(p, "on", !shown));
         let layout = if want {
-            self.layout
+            self.panes
+                .layout
                 .with_bottom(PaneKind::Glossary)
                 .showing(PaneKind::Glossary)
         } else {
-            self.layout.without(PaneKind::Glossary)
+            self.panes.layout.without(PaneKind::Glossary)
         };
         self.replace_layout(layout);
         Outcome::Done
@@ -112,8 +122,8 @@ impl ShellModel {
         match string_param(p, "text") {
             Err(e) => e,
             Ok(text) => {
-                text.unwrap_or_default().clone_into(&mut self.glossary_filter);
-                self.glossary_row = None;
+                text.unwrap_or_default().clone_into(&mut self.glossary.filter);
+                self.glossary.row = None;
                 Outcome::Done
             }
         }
@@ -123,7 +133,7 @@ impl ShellModel {
     /// before the first move or a new search.
     pub fn glossary_row(&self) -> Option<usize> {
         let n = self.glossary_rows().len();
-        self.glossary_row.filter(|r| *r < n)
+        self.glossary.row.filter(|r| *r < n)
     }
 
     /// `glossary.row {step?, to?}` (Up and Down in the pane's field): moves the row cursor by `step` rows
@@ -153,7 +163,7 @@ impl ShellModel {
                 _ => return super::failed(crate::key!("error-missing-param"), &["step"]),
             }
         };
-        self.glossary_row = Some(at as usize);
+        self.glossary.row = Some(at as usize);
         Outcome::Done
     }
 }

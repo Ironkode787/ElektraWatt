@@ -137,7 +137,7 @@ impl ShellModel {
 
     /// Whether the Preview tab is in the layout.
     pub fn preview_shown(&self) -> bool {
-        self.layout.panes().contains(&PaneKind::Preview)
+        self.panes.layout.panes().contains(&PaneKind::Preview)
     }
 
     /// The Preview tab follows the card (module documentation): a new card fetches its lists and shows the tab; a card
@@ -148,7 +148,7 @@ impl ShellModel {
             let close = self.preview.key.is_some() && self.preview.opened_by_card;
             self.preview.clear();
             if close && self.preview_shown() {
-                let layout = self.layout.without(PaneKind::Preview);
+                let layout = self.panes.layout.without(PaneKind::Preview);
                 self.replace_layout(layout);
             }
             return;
@@ -171,6 +171,7 @@ impl ShellModel {
         self.preview.key = Some(key);
         self.preview.opened_by_card = opened_by_card;
         let layout = self
+            .panes
             .layout
             .with_bottom(PaneKind::Preview)
             .showing(PaneKind::Preview);
@@ -254,11 +255,12 @@ impl ShellModel {
         let shown = self.preview_shown();
         let want = or_return!(super::jobs::bool_param(p, "on", !shown));
         let layout = if want {
-            self.layout
+            self.panes
+                .layout
                 .with_bottom(PaneKind::Preview)
                 .showing(PaneKind::Preview)
         } else {
-            self.layout.without(PaneKind::Preview)
+            self.panes.layout.without(PaneKind::Preview)
         };
         self.replace_layout(layout);
         Outcome::Done

@@ -24,6 +24,29 @@ use crate::settings::{CANVAS_BACKENDS, DENSITIES, KEYMAPS, ORIGINS, THEMES};
 use crate::strings;
 use crate::wizard::{CHECK_SCHEME_FIELD, DRAFT_FILE, Draft, Step, Wizard, run_commands};
 
+/// The first-run flow, the start-up offer and the company-standard wizard of the shell.
+#[derive(Default)]
+pub(super) struct OnboardingState {
+    /// The first-run flow, while it is open.
+    pub(super) first_run: Option<FirstRun>,
+    /// The start-up offer: leftover journals and the crash log of an earlier session.
+    pub(super) startup: Option<super::startup::StartupOffer>,
+    /// The log folder `startup.open_log_folder` asks the window to open: its `file://` URL and the folder.
+    pub(super) folder_request: Option<(String, PathBuf)>,
+    /// The company-standard wizard, while it is open.
+    pub(super) wizard: Option<Wizard>,
+}
+
+/// The command bar's tab and the collapse state of the command bar and the rail.
+pub(super) struct ChromeState {
+    /// The command bar's active tab (`view.command_tab`); a session state, Draw at start.
+    pub(super) tab: crate::command_bar::Tab,
+    /// Whether the command bar shows the tab row only (`view.command_bar`, Ctrl+F1).
+    pub(super) bar_collapsed: bool,
+    /// Whether the left column is collapsed to its rail (`rail.show` on the shown entry); a session state.
+    pub(super) rail_collapsed: bool,
+}
+
 fn bool_value(v: &Value) -> Option<bool> {
     match v {
         Value::Bool(b) => Some(*b),
@@ -102,12 +125,12 @@ impl ShellModel {
 
     /// The command bar's active tab.
     pub fn command_tab(&self) -> crate::command_bar::Tab {
-        self.command_tab
+        self.chrome.tab
     }
 
     /// Whether the command bar is collapsed to its tab row.
     pub fn command_bar_collapsed(&self) -> bool {
-        self.command_bar_collapsed
+        self.chrome.bar_collapsed
     }
 
     /// `view.command_tab { tab }`: shows the tab's groups in the command bar; an unknown tab is refused with
@@ -118,7 +141,7 @@ impl ShellModel {
             Ok(None) => failed(key!("error-missing-param"), &["tab"]),
             Ok(Some(word)) => match crate::command_bar::Tab::from_word(word) {
                 Some(tab) => {
-                    self.command_tab = tab;
+                    self.chrome.tab = tab;
                     Outcome::Done
                 }
                 None => failed(key!("error-bad-param"), &["tab"]),
@@ -129,8 +152,8 @@ impl ShellModel {
     /// `view.command_bar { collapsed? }`: collapses the command bar to its tab row or restores it; without the
     /// parameter it toggles (Ctrl+F1, a double-click on a tab).
     pub(crate) fn act_command_bar(&mut self, p: &Map<String, Value>) -> Outcome {
-        self.command_bar_collapsed = match p.get("collapsed") {
-            None => !self.command_bar_collapsed,
+        self.chrome.bar_collapsed = match p.get("collapsed") {
+            None => !self.chrome.bar_collapsed,
             Some(Value::Bool(b)) => *b,
             Some(_) => return failed(key!("error-bad-param"), &["collapsed"]),
         };
@@ -219,8 +242,8 @@ impl ShellModel {
     /// Opens the first-run flow when it has never been finished or skipped (the window calls this at start; the
     /// headless mode never does).
     pub fn start_first_run_if_needed(&mut self) {
-        if !self.settings.first_run_done && self.first_run.is_none() {
-            self.first_run = Some(FirstRun {
+        if !self.settings.first_run_done && self.onboarding.first_run.is_none() {
+            self.onboarding.first_run = Some(FirstRun {
                 step: FirstRunStep::Language,
             });
         }
@@ -241,7 +264,7 @@ impl ShellModel {
         };
         self.palette = None;
         self.dialog = None;
-        self.first_run = Some(FirstRun { step });
+        self.onboarding.first_run = Some(FirstRun { step });
         Outcome::Done
     }
 
@@ -269,7 +292,7 @@ impl ShellModel {
     }
 
     pub(crate) fn act_first_run_step(&mut self, delta: isize) -> Outcome {
-        if let Some(run) = &mut self.first_run {
+        if let Some(run) = &mut self.onboarding.first_run {
             let index = run.step.index().saturating_add_signed(delta);
             run.step = FirstRunStep::from_index(index).unwrap_or(run.step);
         }
@@ -283,7 +306,7 @@ impl ShellModel {
             Ok(Some(s)) if START_CHOICES.contains(&s) => s,
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["start"]),
         };
-        self.first_run = None;
+        self.onboarding.first_run = None;
         self.settings.first_run_done = true;
         self.save_settings();
         match first_run::start_action(start) {
@@ -301,7 +324,7 @@ impl ShellModel {
 
     /// Writes the draft to the configuration directory (doc 16 section 9.2: kept until the wizard finishes).
     fn persist_draft(&mut self) {
-        let (Some(path), Some(w)) = (self.draft_path(), &self.wizard) else {
+        let (Some(path), Some(w)) = (self.draft_path(), &self.onboarding.wizard) else {
             return;
         };
         // A finished wizard has written its basic project and removed its draft.
@@ -319,7 +342,7 @@ impl ShellModel {
             })
             .and_then(|()| crate::settings::write_user_only(&path, text.as_bytes()));
         if written.is_err()
-            && let Some(w) = &mut self.wizard
+            && let Some(w) = &mut self.onboarding.wizard
         {
             // The wizard says so itself; it is not the settings file that failed.
             w.error = Some(failed_text);
@@ -334,12 +357,12 @@ impl ShellModel {
     /// settings commands when they changed). The frame calls it before it paints; the actions that change the
     /// draft call it too, so `ui.describe` and `view.snapshot` see the current preview.
     pub fn wizard_prepare_preview(&mut self) {
-        if self.wizard.is_none() {
+        if self.onboarding.wizard.is_none() {
             return;
         }
         let sample = self.sample_for_preview();
         let version = self.config.app_version.clone();
-        if let Some(w) = &mut self.wizard {
+        if let Some(w) = &mut self.onboarding.wizard {
             w.ensure_preview(sample.as_deref(), &version);
         }
     }
@@ -350,7 +373,7 @@ impl ShellModel {
     ///
     /// The text of why there is none (no wizard, no sample project, a refused command).
     pub fn wizard_preview_content(&self) -> Result<ew_api::output::ExportPages, String> {
-        match &self.wizard {
+        match &self.onboarding.wizard {
             Some(w) => w.preview_content(),
             None => Err(strings::text(key!("reason-no-wizard")).to_owned()),
         }
@@ -369,7 +392,7 @@ impl ShellModel {
         if lost {
             wizard.error = Some(strings::text(key!("wizard-notice-logo-gone")).to_owned());
         }
-        self.wizard = Some(wizard);
+        self.onboarding.wizard = Some(wizard);
         self.wizard_prepare_preview();
         Outcome::Done
     }
@@ -385,7 +408,7 @@ impl ShellModel {
             Ok(Some(v)) => v.to_owned(),
             Ok(None) => return failed(key!("error-missing-param"), &["value"]),
         };
-        let Some(w) = &mut self.wizard else {
+        let Some(w) = &mut self.onboarding.wizard else {
             return Outcome::refused(key!("reason-no-wizard"));
         };
         if field == "preview" {
@@ -415,7 +438,7 @@ impl ShellModel {
     }
 
     fn set_wizard_step(&mut self, step: Step) {
-        if let Some(w) = &mut self.wizard {
+        if let Some(w) = &mut self.onboarding.wizard {
             w.step = step;
             w.error = None;
         }
@@ -423,7 +446,7 @@ impl ShellModel {
     }
 
     pub(crate) fn act_wizard_step(&mut self, delta: isize) -> Outcome {
-        if let Some(w) = &self.wizard {
+        if let Some(w) = &self.onboarding.wizard {
             let index = w.step.index().saturating_add_signed(delta);
             let step = Step::from_index(index).unwrap_or(w.step);
             self.set_wizard_step(step);
@@ -445,7 +468,7 @@ impl ShellModel {
     }
 
     pub(crate) fn act_wizard_reset(&mut self) -> Outcome {
-        if let Some(w) = &mut self.wizard {
+        if let Some(w) = &mut self.onboarding.wizard {
             *w = Wizard::new(Draft::default(), Step::Company);
         }
         if let Some(path) = self.draft_path() {
@@ -458,15 +481,20 @@ impl ShellModel {
     /// Closes the wizard; the draft stays for the next time.
     pub(crate) fn act_wizard_cancel(&mut self) -> Outcome {
         self.persist_draft();
-        self.wizard = None;
+        self.onboarding.wizard = None;
         Outcome::Done
     }
 
     pub(crate) fn act_wizard_finish(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(draft) = self.wizard.as_ref().map(|w| w.draft.clone()) else {
+        let Some(draft) = self.onboarding.wizard.as_ref().map(|w| w.draft.clone()) else {
             return Outcome::refused(key!("reason-no-wizard"));
         };
-        if self.wizard.as_ref().is_some_and(|w| w.finished.is_some()) {
+        if self
+            .onboarding
+            .wizard
+            .as_ref()
+            .is_some_and(|w| w.finished.is_some())
+        {
             return Outcome::refused(key!("reason-wizard-finished"));
         }
         let dir = match string_param(p, "dir") {
@@ -475,7 +503,7 @@ impl ShellModel {
             Ok(None) => return self.need_path("wizard.finish", Prompt::NewFolder, "dir", p),
         };
         if let Some(outcome) = self.require_free_dir(&dir) {
-            if let Some(w) = &mut self.wizard {
+            if let Some(w) = &mut self.onboarding.wizard {
                 w.error = self.banner.clone();
             }
             return outcome;
@@ -491,7 +519,7 @@ impl ShellModel {
                 }
                 // The wizard stays on the review step: the check scheme is applied after finishing, by a person
                 // (`wizard.apply_check_scheme`).
-                if let Some(w) = &mut self.wizard {
+                if let Some(w) = &mut self.onboarding.wizard {
                     w.finished = Some(dir.clone());
                     w.step = Step::Review;
                     w.error = None;
@@ -500,7 +528,7 @@ impl ShellModel {
                 Outcome::Done
             }
             Err(message) => {
-                if let Some(w) = &mut self.wizard {
+                if let Some(w) = &mut self.onboarding.wizard {
                     w.error = Some(message.clone());
                 }
                 Outcome::Failed { message }
@@ -512,13 +540,18 @@ impl ShellModel {
     /// (ADR-0008 amendment 3, it decides check outcomes), so only a person in the window applies it, after a
     /// confirmation that names the scheme. The headless mode refuses it (the human-only reason in the transcript).
     pub(crate) fn act_wizard_apply_check_scheme(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some((dir, scheme)) = self.wizard.as_ref().and_then(|w| {
+        let Some((dir, scheme)) = self.onboarding.wizard.as_ref().and_then(|w| {
             let dir = w.finished.clone()?;
             Some((dir, w.draft.get(CHECK_SCHEME_FIELD).to_owned()))
         }) else {
             return Outcome::refused(key!("reason-wizard-not-finished"));
         };
-        if !self.wizard.as_ref().is_some_and(Wizard::can_apply_check_scheme) {
+        if !self
+            .onboarding
+            .wizard
+            .as_ref()
+            .is_some_and(Wizard::can_apply_check_scheme)
+        {
             return Outcome::refused(key!("reason-check-scheme-written"));
         }
         if self.mode == Mode::Headless {
@@ -557,7 +590,7 @@ impl ShellModel {
             });
         match written {
             Ok(()) => {
-                if let Some(w) = &mut self.wizard {
+                if let Some(w) = &mut self.onboarding.wizard {
                     w.checks_written = true;
                     w.error = None;
                 }
@@ -572,7 +605,7 @@ impl ShellModel {
                 Outcome::Done
             }
             Err(message) => {
-                if let Some(w) = &mut self.wizard {
+                if let Some(w) = &mut self.onboarding.wizard {
                     w.error = Some(message.clone());
                 }
                 Outcome::Failed { message }

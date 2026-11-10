@@ -540,29 +540,11 @@ pub struct ShellModel {
     palette: Option<PaletteState>,
     /// The palette's recents: the last 50 palette or shortcut invocations of this run.
     recents: crate::palette::Recents,
-    /// The user's keymap (`keymap.toml`), when there is one and it was not refused.
-    user_keymap: Option<crate::keymap::Keymap>,
-    /// Bumped when the user's keymap changes: the window rebuilds its bindings.
-    keymap_version: u64,
-    /// The keymap editor's state (Help ▸ Keyboard shortcuts, D8).
-    keymap_editor: crate::keymap::EditorState,
-    /// Whether `keymap.toml` is left as it is for this run: it could not be read, or a refused file could not be
-    /// copied aside, at start-up (the editor's edits then apply without being written).
-    keymap_keep_file: bool,
+    /// The user's keymap, its version and the keymap editor.
+    keymap: keymaps::KeymapState,
     dialog: Option<Dialog>,
-    /// The imported project the import card shows.
-    import_pending: Option<projects::PendingImport>,
-    /// The import job running for the import card.
-    import_job: Option<projects::ImportJob>,
-    /// The previewed re-import the re-import card shows.
-    reimport_pending: Option<ew_api::import::Reimport>,
-    /// The re-import job running for the re-import card.
-    reimport_job: Option<projects::ReimportJob>,
-    /// The project (its epoch), file and lineage of the re-import's proposal (T6) shown last: its Re-import imports
-    /// into that lineage, in that project only.
-    reimport_proposal: Option<(u64, PathBuf, ew_api::import::LineageInfo)>,
-    /// The re-import's proposal (T6) or card that waits behind a dialog open when its job ended.
-    reimport_waiting: Option<Dialog>,
+    /// The import and re-import cards and their jobs.
+    import: projects::ImportState,
     /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
     /// focus (C49-p10b#4).
     dialog_gen: u64,
@@ -570,21 +552,10 @@ pub struct ShellModel {
     record: Record,
     quit: bool,
     origin_file: String,
-    first_run: Option<FirstRun>,
-    /// The start-up offer: leftover journals and the crash log of an earlier session.
-    startup: Option<startup::StartupOffer>,
-    /// The log folder `startup.open_log_folder` asks the window to open: its `file://` URL and the folder.
-    startup_folder_request: Option<(String, PathBuf)>,
-    wizard: Option<Wizard>,
+    /// The first-run flow, the start-up offer and the company-standard wizard.
+    onboarding: onboarding::OnboardingState,
     /// The dock layout of the project view and the workspace it belongs to.
-    layout: Layout,
-    /// The bottom-dock panes `view.bottom_dock` closed, reopened by the next open (doc 16a §5.7; view state only).
-    bottom_closed: Vec<crate::layout::PaneKind>,
-    workspace: String,
-    /// Bumped when the shell replaces the layout (a workspace was loaded or reset): the frame rebuilds its tree.
-    layout_version: u64,
-    /// The time (egui seconds) of the last layout change that is not on disk yet.
-    layout_changed_at: Option<f64>,
+    panes: workspaces::PaneLayoutState,
     /// The documentation page F1 asked for and the window has not opened yet.
     doc_request: Option<DocRequest>,
     /// The target of the last documentation request, kept for `ui.describe`.
@@ -617,21 +588,8 @@ pub struct ShellModel {
     cache: navigation::PageCache,
     /// The viewer's `Session` reads, counted.
     calls: Cell<SessionCalls>,
-    /// The canvas pane of a new project's first group in logical points and its pixels per point.
-    canvas_pane: (f64, f64),
-    canvas_ppp: f64,
-    /// Whether the host has sized the first group's pane: a new area's first group is then sized (FX38d).
-    canvas_sized: bool,
-    /// The bottom band every canvas's fit keeps clear, in logical points (the window's tool HUD; 0 headless).
-    canvas_fit_inset: f64,
-    /// Whether the page grid is drawn.
-    grid_on: bool,
-    /// Whether the frame-statistics overlay is shown.
-    frame_stats: bool,
-    /// Where the canvas draws (set by the host).
-    canvas_backend: CanvasBackend,
-    /// The (session epoch, revision, folio) whose content could not be built, and why.
-    canvas_error: Option<(u64, u64, String, String)>,
+    /// The canvas pane, grid, statistics overlay, backend and build error.
+    view: canvas_actions::CanvasViewState,
     /// How many sheet display lists the shell has built (engine-statistics tests).
     page_content_calls: Cell<u64>,
     /// The text of the last `page.describe` step, taken by the script runner for the transcript line.
@@ -670,12 +628,8 @@ pub struct ShellModel {
     preview: crate::preview::PreviewPane,
     /// The history panel and the contexts of the commits.
     history: crate::undo_history::HistoryPane,
-    /// The command bar's active tab (`view.command_tab`); a session state, Draw at start.
-    command_tab: crate::command_bar::Tab,
-    /// Whether the command bar shows the tab row only (`view.command_bar`, Ctrl+F1).
-    command_bar_collapsed: bool,
-    /// Whether the left column is collapsed to its rail (`rail.show` on the shown entry); a session state.
-    rail_collapsed: bool,
+    /// The command bar's tab and the collapse state of the command bar and the rail.
+    chrome: onboarding::ChromeState,
     /// The Macros navigator's detail and the variables of the next Save as macro….
     macros: macros::MacroState,
     /// Every `dispatch` since the log was last taken, in call order, while the log is on (a visual run's evidence;
@@ -689,16 +643,12 @@ pub struct ShellModel {
     /// The revision dialogs' view state (the gate's lines of the open dialog) and the integrity items of the opened
     /// project they run the gate with.
     revision: revision::RevisionState,
-    /// The glossary pane's search text (D16).
-    glossary_filter: String,
-    /// The glossary pane's row cursor, an index into its rows; none before the first move.
-    glossary_row: Option<usize>,
+    /// The glossary pane's search text and row cursor.
+    glossary: glossary::GlossaryState,
     /// The point a Potentials row's Define potential… pinned for its open form; none otherwise.
     potential_at: Option<ew_api::output::TableEnd>,
-    /// Whether the wire-colour view is on (View ▸ Wire colours, D18): view state of the session, off at start.
-    wire_colours: bool,
-    /// The wire-colour view's Connections table and the (session epoch, revision) it was fetched at.
-    wire_colour_cache: std::cell::RefCell<Option<wire_colours::Cached>>,
+    /// The wire-colour view's switch and its fetched Connections table.
+    wire_colours: wire_colours::WireColourState,
     /// The cloud environment, the `ew` executable, the merge driver's status, a held change's banner.
     collab: external::CollabState,
 }
@@ -1048,31 +998,27 @@ impl ShellModel {
             banner,
             palette: None,
             recents: crate::palette::Recents::default(),
-            user_keymap,
-            keymap_version: 0,
-            keymap_editor: crate::keymap::EditorState::default(),
-            keymap_keep_file,
+            keymap: keymaps::KeymapState {
+                user: user_keymap,
+                version: 0,
+                editor: crate::keymap::EditorState::default(),
+                keep_file: keymap_keep_file,
+            },
             dialog: None,
-            import_pending: None,
-            import_job: None,
-            reimport_pending: None,
-            reimport_job: None,
-            reimport_proposal: None,
-            reimport_waiting: None,
+            import: projects::ImportState::default(),
             dialog_gen: 0,
             prompt: None,
             record: Record::default(),
             quit: false,
             origin_file: "ui-script".to_owned(),
-            first_run: None,
-            startup: None,
-            startup_folder_request: None,
-            wizard: None,
-            layout: Layout::schematic(),
-            bottom_closed: Vec::new(),
-            workspace,
-            layout_version: 0,
-            layout_changed_at: None,
+            onboarding: onboarding::OnboardingState::default(),
+            panes: workspaces::PaneLayoutState {
+                layout: Layout::schematic(),
+                bottom_closed: Vec::new(),
+                workspace,
+                version: 0,
+                changed_at: None,
+            },
             doc_request: None,
             last_help: None,
             status_note: None,
@@ -1089,14 +1035,16 @@ impl ShellModel {
             focus: None,
             cache: navigation::PageCache::default(),
             calls: Cell::new(SessionCalls::default()),
-            canvas_pane: HEADLESS_PANE,
-            canvas_ppp: 1.0,
-            canvas_sized: false,
-            canvas_fit_inset: 0.0,
-            grid_on: true,
-            frame_stats: false,
-            canvas_backend: CanvasBackend::Cpu,
-            canvas_error: None,
+            view: canvas_actions::CanvasViewState {
+                pane: HEADLESS_PANE,
+                ppp: 1.0,
+                sized: false,
+                fit_inset: 0.0,
+                grid_on: true,
+                frame_stats: false,
+                backend: CanvasBackend::Cpu,
+                error: None,
+            },
             page_content_calls: Cell::new(0),
             page_text: None,
             epochs: 0,
@@ -1115,20 +1063,20 @@ impl ShellModel {
             messages: crate::navigators::messages::MessagesState::default(),
             preview: crate::preview::PreviewPane::default(),
             history: crate::undo_history::HistoryPane::default(),
-            command_tab: crate::command_bar::Tab::Draw,
-            command_bar_collapsed: false,
-            rail_collapsed: false,
+            chrome: onboarding::ChromeState {
+                tab: crate::command_bar::Tab::Draw,
+                bar_collapsed: false,
+                rail_collapsed: false,
+            },
             macros: macros::MacroState::default(),
             symbol_editor: None,
             symbol_editor_generation: 0,
             dispatch_log: None,
             person: mode == Mode::Gui,
             revision: revision::RevisionState::default(),
-            glossary_filter: String::new(),
-            glossary_row: None,
+            glossary: glossary::GlossaryState::default(),
             potential_at: None,
-            wire_colours: false,
-            wire_colour_cache: std::cell::RefCell::new(None),
+            wire_colours: wire_colours::WireColourState::default(),
             collab: external::CollabState::default(),
         };
         model.load_active_workspace();
@@ -1292,23 +1240,23 @@ impl ShellModel {
 
     /// The company-standard wizard, while it is open.
     pub fn wizard(&self) -> Option<&Wizard> {
-        self.wizard.as_ref()
+        self.onboarding.wizard.as_ref()
     }
 
     /// The first-run flow, while it is open.
     pub fn first_run(&self) -> Option<&FirstRun> {
-        self.first_run.as_ref()
+        self.onboarding.first_run.as_ref()
     }
 
     /// The dock layout of the project view.
     pub fn layout(&self) -> &Layout {
-        &self.layout
+        &self.panes.layout
     }
 
     /// A number that changes when the shell replaces the layout (a workspace was loaded or reset): the frame
     /// rebuilds its dock tree from [`ShellModel::layout`] then.
     pub fn layout_version(&self) -> u64 {
-        self.layout_version
+        self.panes.version
     }
 
     /// The open project is read-only because an earlier session left a journal: it can be discarded.
@@ -1651,7 +1599,7 @@ impl ShellModel {
 
     /// `help.shortcuts`: the keymap editor opens with an empty search and nothing recording.
     pub(crate) fn act_help_shortcuts(&mut self, _p: &Map<String, Value>) -> Outcome {
-        self.keymap_editor = crate::keymap::EditorState::default();
+        self.keymap.editor = crate::keymap::EditorState::default();
         self.open_dialog(Dialog::Shortcuts)
     }
 
@@ -2121,8 +2069,8 @@ impl ShellModel {
         // WP-S3.09 D9 d: the migration report is the choice of the project it was made for.
         self.messages.migration = false;
         // C52-p1#4, #2: the re-import's proposal and a waiting proposal or card are the project's.
-        self.reimport_proposal = None;
-        self.reimport_waiting = None;
+        self.import.reimport_proposal = None;
+        self.import.reimport_waiting = None;
     }
 
     /// Ends the shell at the end of a run or of the window (also on a log-off): a clean project is closed, a dirty
@@ -2475,7 +2423,7 @@ impl ShellModel {
             return Outcome::Done;
         }
         // Escape while the keymap editor records ends the recording and leaves the dialog open.
-        if matches!(self.dialog, Some(Dialog::Shortcuts)) && self.keymap_editor.recording.take().is_some() {
+        if matches!(self.dialog, Some(Dialog::Shortcuts)) && self.keymap.editor.recording.take().is_some() {
             return Outcome::Done;
         }
         // Escape and Cancel in the print pre-dialog cancel its build and print

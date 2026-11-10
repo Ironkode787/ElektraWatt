@@ -16,6 +16,26 @@ use crate::canvas::{CanvasBackend, CanvasModel, nm_of_mm, pane_out_of_bounds};
 use crate::key;
 use crate::settings::{CANVAS_BACKENDS, MIN_FONT_RANGE};
 
+/// The canvas view of the shell: the pane's size, the grid, the statistics overlay, the backend and the build error.
+pub(super) struct CanvasViewState {
+    /// The canvas pane of a new project's first group in logical points.
+    pub(super) pane: (f64, f64),
+    /// The pixels per point of the canvas pane.
+    pub(super) ppp: f64,
+    /// Whether the host has sized the first group's pane: a new area's first group is then sized (FX38d).
+    pub(super) sized: bool,
+    /// The bottom band every canvas's fit keeps clear, in logical points (the window's tool HUD; 0 headless).
+    pub(super) fit_inset: f64,
+    /// Whether the page grid is drawn.
+    pub(super) grid_on: bool,
+    /// Whether the frame-statistics overlay is shown.
+    pub(super) frame_stats: bool,
+    /// Where the canvas draws (set by the host).
+    pub(super) backend: CanvasBackend,
+    /// The (session epoch, revision, folio) whose content could not be built, and why.
+    pub(super) error: Option<(u64, u64, String, String)>,
+}
+
 /// A positive finite number parameter.
 fn positive(p: &Map<String, Value>, name: &str) -> Result<f64, Outcome> {
     match p.get(name) {
@@ -64,7 +84,7 @@ impl ShellModel {
 
     /// The message of a page whose content could not be built, for the page on show.
     pub fn canvas_error(&self) -> Option<&str> {
-        let (epoch, rev, folio, message) = self.canvas_error.as_ref()?;
+        let (epoch, rev, folio, message) = self.view.error.as_ref()?;
         (Some(*epoch) == self.project_epoch()
             && Some(*rev) == self.revision()
             && Some(folio.as_str()) == self.current_folio())
@@ -85,12 +105,12 @@ impl ShellModel {
 
     /// Whether the page grid is drawn (View, Grid).
     pub fn grid_on(&self) -> bool {
-        self.grid_on
+        self.view.grid_on
     }
 
     /// Whether the frame-statistics overlay is shown (View, Frame statistics).
     pub fn frame_stats_shown(&self) -> bool {
-        self.frame_stats
+        self.view.frame_stats
     }
 
     /// Whether the setting asks for the CPU canvas (`canvas_backend = "cpu"`; View, Use the CPU renderer for the
@@ -106,18 +126,18 @@ impl ShellModel {
     pub fn reduce_motion(&self) -> bool {
         self.settings
             .reduce_motion
-            .unwrap_or_else(|| self.cpu_canvas_setting() || self.canvas_backend == CanvasBackend::Cpu)
+            .unwrap_or_else(|| self.cpu_canvas_setting() || self.view.backend == CanvasBackend::Cpu)
     }
 
     /// Where the canvas draws.
     pub fn canvas_backend(&self) -> &CanvasBackend {
-        &self.canvas_backend
+        &self.view.backend
     }
 
     /// Sets where the canvas draws: the one host-state setter of the shell (the backend is a fact about the host,
     /// not a user action; WP-S2.02 section 6.1). Always [`CanvasBackend::Cpu`] in the headless mode.
     pub fn set_canvas_backend(&mut self, backend: CanvasBackend) {
-        self.canvas_backend = backend;
+        self.view.backend = backend;
     }
 
     /// How many times the shell has built a page's sheet display list ([`ShellModel::page_content`] and the
@@ -145,10 +165,10 @@ impl ShellModel {
     /// Sets the bottom band every canvas's fit keeps clear (the window's tool HUD band, doc 16a §5.5); fitted views
     /// fit again. The headless mode never sets it, so no transcript or golden depends on it.
     pub fn set_canvas_fit_inset(&mut self, bottom: f64) {
-        if (bottom - self.canvas_fit_inset).abs() < 1e-9 {
+        if (bottom - self.view.fit_inset).abs() < 1e-9 {
             return;
         }
-        self.canvas_fit_inset = bottom;
+        self.view.fit_inset = bottom;
         let Some(area) = &mut self.area else { return };
         for g in &mut area.groups {
             for tab in &mut g.tabs {
@@ -245,9 +265,9 @@ impl ShellModel {
             return failed(key!("error-bad-param"), &[name]);
         }
         if g == 0 {
-            self.canvas_pane = (width, height);
-            self.canvas_ppp = ppp;
-            self.canvas_sized = true;
+            self.view.pane = (width, height);
+            self.view.ppp = ppp;
+            self.view.sized = true;
         }
         if let Some(group) = self.area.as_mut().and_then(|a| a.groups.get_mut(g)) {
             group.pane = (width, height);
@@ -313,12 +333,12 @@ impl ShellModel {
     }
 
     pub(crate) fn act_grid(&mut self) -> Outcome {
-        self.grid_on = !self.grid_on;
+        self.view.grid_on = !self.view.grid_on;
         Outcome::Done
     }
 
     pub(crate) fn act_frame_stats(&mut self) -> Outcome {
-        self.frame_stats = !self.frame_stats;
+        self.view.frame_stats = !self.view.frame_stats;
         Outcome::Done
     }
 

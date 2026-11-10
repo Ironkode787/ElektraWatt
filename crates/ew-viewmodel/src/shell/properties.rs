@@ -501,13 +501,17 @@ impl ShellModel {
 
     /// `props.show` (View ▸ Properties): toggles the pane, or sets it with `on`.
     pub(crate) fn act_props_show(&mut self, p: &Map<String, Value>) -> Outcome {
-        let shown = self.layout.panes().contains(&crate::layout::PaneKind::Properties);
+        let shown = self
+            .panes
+            .layout
+            .panes()
+            .contains(&crate::layout::PaneKind::Properties);
         let want = p.get("on").and_then(Value::as_bool).unwrap_or(!shown);
         if want != shown {
             let layout = if want {
-                self.layout.with_properties()
+                self.panes.layout.with_properties()
             } else {
-                self.layout.without(crate::layout::PaneKind::Properties)
+                self.panes.layout.without(crate::layout::PaneKind::Properties)
             };
             self.replace_layout(layout);
             if !want && self.focus == Some(Focus::Properties) {
@@ -519,7 +523,12 @@ impl ShellModel {
 
     /// `props.focus` (E, Alt+Enter on the canvas): the pane gets the focus (shown first when closed).
     pub(crate) fn act_props_focus(&mut self) -> Outcome {
-        if !self.layout.panes().contains(&crate::layout::PaneKind::Properties) {
+        if !self
+            .panes
+            .layout
+            .panes()
+            .contains(&crate::layout::PaneKind::Properties)
+        {
             let _ = self.act_props_show(&Map::new());
         }
         self.focus = Some(Focus::Properties);
@@ -1664,7 +1673,12 @@ impl ShellModel {
     /// that a navigator's F2 on a device row edits the tag through the Tag field's own path. The tag on show, or `None`
     /// when the sheet has no editable Tag row.
     pub(super) fn tag_rename_sheet(&mut self, device: ew_api::output::Uuid) -> Option<String> {
-        if !self.layout.panes().contains(&crate::layout::PaneKind::Properties) {
+        if !self
+            .panes
+            .layout
+            .panes()
+            .contains(&crate::layout::PaneKind::Properties)
+        {
             let _ = self.act_props_show(&Map::new());
         }
         let items = vec![EntityRef(device)];

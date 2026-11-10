@@ -17,6 +17,19 @@ use crate::key;
 use crate::keymap::{self, Bind, Bound, Chord, EditorRow, Keymap, Preset, Refusal};
 use crate::strings;
 
+/// The user's keymap and the keymap editor of the shell.
+pub(super) struct KeymapState {
+    /// The user's keymap (`keymap.toml`), when there is one and it was not refused.
+    pub(super) user: Option<Keymap>,
+    /// Bumped when the user's keymap changes: the window rebuilds its bindings.
+    pub(super) version: u64,
+    /// The keymap editor's state (Help ▸ Keyboard shortcuts, D8).
+    pub(super) editor: keymap::EditorState,
+    /// Whether `keymap.toml` is left as it is for this run: it could not be read, or a refused file could not be
+    /// copied aside, at start-up (the editor's edits then apply without being written).
+    pub(super) keep_file: bool,
+}
+
 /// Why the user's keymap does not apply at start-up ([`load_user_keymap`]): the banner text, and whether the editor
 /// must leave `keymap.toml` as it is (it could not be read, or a refused file could not be copied aside).
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -87,22 +100,22 @@ impl ShellModel {
 
     /// The user's keymap, when there is one.
     pub fn user_keymap(&self) -> Option<&Keymap> {
-        self.user_keymap.as_ref()
+        self.keymap.user.as_ref()
     }
 
     /// Bumped whenever the user's keymap changes (the window rebuilds its bindings when this or the preset changes).
     pub fn keymap_version(&self) -> u64 {
-        self.keymap_version
+        self.keymap.version
     }
 
     /// The effective bindings, in registry order (D6).
     pub fn bindings(&self) -> Vec<Bound> {
-        keymap::effective(self.keymap_preset(), self.user_keymap.as_ref())
+        keymap::effective(self.keymap_preset(), self.keymap.user.as_ref())
     }
 
     /// The effective binding texts of `meta`, as the menus and the palette show them.
     pub fn shortcuts_of(&self, meta: &ActionMeta) -> Vec<String> {
-        keymap::chords_of(self.keymap_preset(), self.user_keymap.as_ref(), meta)
+        keymap::chords_of(self.keymap_preset(), self.keymap.user.as_ref(), meta)
             .into_iter()
             .map(|(c, _)| c.text())
             .collect()
@@ -115,15 +128,15 @@ impl ShellModel {
 
     /// The keymap editor's state.
     pub fn keymap_editor(&self) -> &keymap::EditorState {
-        &self.keymap_editor
+        &self.keymap.editor
     }
 
     /// The keymap editor's rows for its search.
     pub fn keymap_rows(&self) -> Vec<EditorRow> {
         keymap::editor_rows(
             self.keymap_preset(),
-            self.user_keymap.as_ref(),
-            &self.keymap_editor.search,
+            self.keymap.user.as_ref(),
+            &self.keymap.editor.search,
         )
     }
 
@@ -132,7 +145,7 @@ impl ShellModel {
         match string_param(p, "text") {
             Err(e) => e,
             Ok(text) => {
-                self.keymap_editor.search = text.unwrap_or_default().to_owned();
+                self.keymap.editor.search = text.unwrap_or_default().to_owned();
                 Outcome::Done
             }
         }
@@ -150,14 +163,14 @@ impl ShellModel {
     /// ends.
     pub(crate) fn act_keymap_record_start(&mut self, p: &Map<String, Value>) -> Outcome {
         if !p.contains_key("action") {
-            self.keymap_editor.recording = None;
+            self.keymap.editor.recording = None;
             return Outcome::Done;
         }
         match Self::keymap_action(p) {
             Err(e) => e,
             Ok(meta) => {
-                self.keymap_editor.recording = Some(meta.id);
-                self.keymap_editor.refusal = None;
+                self.keymap.editor.recording = Some(meta.id);
+                self.keymap.editor.refusal = None;
                 Outcome::Done
             }
         }
@@ -171,11 +184,11 @@ impl ShellModel {
             Err(e) => return e,
             Ok(k) => k.unwrap_or_default(),
         };
-        self.keymap_editor.recording = None;
+        self.keymap.editor.recording = None;
         let chord = match Chord::parse(keys) {
             Ok(c) => c,
             Err(reason) => {
-                self.keymap_editor.refusal = Some(Refusal {
+                self.keymap.editor.refusal = Some(Refusal {
                     action: meta.id,
                     chord: keys.to_owned(),
                     errors: vec![reason],
@@ -183,7 +196,7 @@ impl ShellModel {
                 return Outcome::refused(key!("reason-keymap-conflict"));
             }
         };
-        let mut user = self.user_keymap.clone().unwrap_or_else(|| Keymap {
+        let mut user = self.keymap.user.clone().unwrap_or_else(|| Keymap {
             name: strings::format(key!("keymap-custom-name"), &[self.keymap_preset().name()]),
             binds: Vec::new(),
         });
@@ -200,9 +213,9 @@ impl ShellModel {
     /// `keymap.reset {action}`: the action's bindings return to the preset's.
     pub(crate) fn act_keymap_reset(&mut self, p: &Map<String, Value>) -> Outcome {
         let meta = or_return!(Self::keymap_action(p));
-        self.keymap_editor.recording = None;
-        let Some(mut user) = self.user_keymap.clone() else {
-            self.keymap_editor.refusal = None;
+        self.keymap.editor.recording = None;
+        let Some(mut user) = self.keymap.user.clone() else {
+            self.keymap.editor.refusal = None;
             return Outcome::Done;
         };
         user.binds.retain(|b| b.action != meta.id);
@@ -214,14 +227,14 @@ impl ShellModel {
     fn apply_user_keymap(&mut self, action: &'static str, chord: &str, user: Keymap) -> Outcome {
         let errors = keymap::user_errors(self.keymap_preset(), &user);
         if !errors.is_empty() {
-            self.keymap_editor.refusal = Some(Refusal {
+            self.keymap.editor.refusal = Some(Refusal {
                 action,
                 chord: chord.to_owned(),
                 errors: errors.iter().map(|f| keymap::refusal_text(f, action)).collect(),
             });
             return Outcome::refused(key!("reason-keymap-conflict"));
         }
-        self.keymap_editor.refusal = None;
+        self.keymap.editor.refusal = None;
         self.set_user_keymap(user);
         Outcome::Done
     }
@@ -231,14 +244,14 @@ impl ShellModel {
     /// file is left as it is, with a banner.
     fn set_user_keymap(&mut self, user: Keymap) {
         if let Some(dir) = &self.config.config_dir {
-            if self.keymap_keep_file {
+            if self.keymap.keep_file {
                 self.banner = Some(strings::text(key!("banner-keymap-kept")).to_owned());
             } else if keymap::write_user(dir, &user).is_err() {
                 self.banner = Some(strings::text(key!("banner-keymap-write")).to_owned());
             }
         }
-        self.user_keymap = Some(user);
-        self.keymap_version += 1;
+        self.keymap.user = Some(user);
+        self.keymap.version += 1;
     }
 
     /// `keymap.import {path?}`: the keymap file at `path` becomes the user's keymap, when it parses and has no error
@@ -268,7 +281,7 @@ impl ShellModel {
                 .join("; ");
             return failed(key!("error-keymap-import"), &[&list]);
         }
-        self.keymap_editor.refusal = None;
+        self.keymap.editor.refusal = None;
         self.set_user_keymap(user);
         Outcome::Done
     }
@@ -282,11 +295,11 @@ impl ShellModel {
             Ok(Some(path)) => path.to_owned(),
         };
         let preset = self.keymap_preset();
-        let name = match &self.user_keymap {
+        let name = match &self.keymap.user {
             Some(_) => strings::format(key!("keymap-custom-name"), &[preset.name()]),
             None => preset.name().to_owned(),
         };
-        let file = keymap::export(&name, preset, self.user_keymap.as_ref());
+        let file = keymap::export(&name, preset, self.keymap.user.as_ref());
         match std::fs::write(&path, file.to_toml()) {
             Ok(()) => Outcome::Done,
             Err(_) => failed(key!("error-keymap-export"), &[]),

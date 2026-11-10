@@ -27,6 +27,24 @@ use crate::key;
 use crate::strings;
 use crate::strings::Key;
 
+/// The import and re-import cards of the shell and their jobs.
+#[derive(Default)]
+pub(super) struct ImportState {
+    /// The imported project the import card shows.
+    pub(super) pending: Option<PendingImport>,
+    /// The import job running for the import card.
+    pub(super) job: Option<ImportJob>,
+    /// The previewed re-import the re-import card shows.
+    pub(super) reimport_pending: Option<ew_api::import::Reimport>,
+    /// The re-import job running for the re-import card.
+    pub(super) reimport_job: Option<ReimportJob>,
+    /// The project (its epoch), file and lineage of the re-import's proposal (T6) shown last: its Re-import imports
+    /// into that lineage, in that project only.
+    pub(super) reimport_proposal: Option<(u64, PathBuf, ew_api::import::LineageInfo)>,
+    /// The re-import's proposal (T6) or card that waits behind a dialog open when its job ended.
+    pub(super) reimport_waiting: Option<Dialog>,
+}
+
 /// An imported project the import card shows, not written yet.
 #[derive(Debug)]
 pub(crate) struct PendingImport {
@@ -489,7 +507,7 @@ impl ShellModel {
             return self.finish_import(job.wait(), name, dir, library_note);
         }
         self.banner = Some(strings::format(key!("banner-importing"), &[&pending.name]));
-        self.import_job = Some(pending);
+        self.import.job = Some(pending);
         Outcome::Done
     }
 
@@ -497,29 +515,30 @@ impl ShellModel {
     /// card.
     pub(super) fn poll_import(&mut self) {
         if self.dialog.is_none()
-            && let Some(card) = self.import_pending.as_mut().and_then(|p| p.waiting.take())
+            && let Some(card) = self.import.pending.as_mut().and_then(|p| p.waiting.take())
         {
             let _ = self.open_dialog(card);
         }
         // And the re-import's proposal or card.
         if self.dialog.is_none()
-            && let Some(dialog) = self.reimport_waiting.take()
+            && let Some(dialog) = self.import.reimport_waiting.take()
         {
             let _ = self.open_dialog(dialog);
         }
-        let ended = self.import_job.as_mut().and_then(|pending| pending.job.try_end());
+        let ended = self.import.job.as_mut().and_then(|pending| pending.job.try_end());
         if let Some(end) = ended
-            && let Some(pending) = self.import_job.take()
+            && let Some(pending) = self.import.job.take()
         {
             let _ = self.finish_import(end, pending.name, pending.dir, pending.library_note);
         }
         // And the re-import's.
         let ended = self
+            .import
             .reimport_job
             .as_mut()
             .and_then(|pending| pending.job.try_end());
         if let Some(end) = ended
-            && let Some(pending) = self.reimport_job.take()
+            && let Some(pending) = self.import.reimport_job.take()
         {
             let _ = self.finish_reimport(end, pending.name, pending.path, pending.epoch);
         }
@@ -620,7 +639,7 @@ impl ShellModel {
             let _ = self.open_dialog(card);
             None
         };
-        self.import_pending = Some(PendingImport {
+        self.import.pending = Some(PendingImport {
             session,
             dir,
             banner,
@@ -658,7 +677,7 @@ impl ShellModel {
             }
         }
         self.dialog = None;
-        let Some(pending) = self.import_pending.take() else {
+        let Some(pending) = self.import.pending.take() else {
             return Outcome::refused(key!("reason-no-import"));
         };
         self.close_project();
@@ -726,6 +745,7 @@ impl ShellModel {
         };
         // The proposal this file was shown names its lineage: accepted, the job imports the file into it at once.
         let proposed = self
+            .import
             .reimport_proposal
             .take()
             .filter(|(at, path, _)| accept && *at == epoch && *path == file)
@@ -764,7 +784,7 @@ impl ShellModel {
             return self.finish_reimport(job.wait(), name, path, epoch);
         }
         self.banner = Some(strings::format(key!("banner-importing"), &[&pending.name]));
-        self.reimport_job = Some(pending);
+        self.import.reimport_job = Some(pending);
         Outcome::Done
     }
 
@@ -828,7 +848,7 @@ impl ShellModel {
                     source,
                     percent,
                 };
-                self.reimport_proposal = Some((epoch, path, lineage));
+                self.import.reimport_proposal = Some((epoch, path, lineage));
                 return self.open_or_wait(dialog);
             }
             ReimportFound::Batch { lineage, batch } => (lineage, *batch),
@@ -892,7 +912,7 @@ impl ShellModel {
             }
         }
         self.palette = None;
-        self.reimport_pending = Some(reimport);
+        self.import.reimport_pending = Some(reimport);
         self.open_or_wait(Dialog::Reimport {
             file: name,
             summary,
@@ -909,7 +929,7 @@ impl ShellModel {
             .as_ref()
             .is_some_and(|d| !matches!(d, Dialog::ReimportMatch { .. } | Dialog::Reimport { .. }))
         {
-            self.reimport_waiting = Some(dialog);
+            self.import.reimport_waiting = Some(dialog);
             return Outcome::Done;
         }
         self.open_dialog(dialog)
@@ -929,7 +949,8 @@ impl ShellModel {
         let Some(Dialog::Reimport { file, .. }) = self.dialog.take() else {
             return Outcome::refused(key!("reason-no-reimport"));
         };
-        let (Some(pending), Some(project)) = (self.reimport_pending.take(), self.project.as_mut()) else {
+        let (Some(pending), Some(project)) = (self.import.reimport_pending.take(), self.project.as_mut())
+        else {
             return Outcome::refused(key!("reason-no-reimport"));
         };
         let outcome = match project.session.apply_reimport(pending) {

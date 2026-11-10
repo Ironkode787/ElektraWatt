@@ -257,7 +257,7 @@ impl ShellModel {
             })
             .collect();
         if !projects.is_empty() || log.is_some() {
-            self.startup = Some(StartupOffer {
+            self.onboarding.startup = Some(StartupOffer {
                 projects,
                 log,
                 refusal: None,
@@ -268,17 +268,17 @@ impl ShellModel {
 
     /// The pending start-up offer.
     pub fn startup_offer(&self) -> Option<&StartupOffer> {
-        self.startup.as_ref()
+        self.onboarding.startup.as_ref()
     }
 
     /// The folder the window is asked to open (`startup.open_log_folder`), as a `file://` URL, and the folder.
     pub fn take_log_folder_request(&mut self) -> Option<(String, PathBuf)> {
-        self.startup_folder_request.take()
+        self.onboarding.folder_request.take()
     }
 
     /// The window could not open the log folder: the offer says where it is (S7).
     pub fn log_folder_failed(&mut self, folder: &Path) {
-        if let Some(offer) = &mut self.startup {
+        if let Some(offer) = &mut self.onboarding.startup {
             offer.refusal = Some(strings::format(
                 key!("startup-log-folder-failed"),
                 &[&folder.to_string_lossy()],
@@ -288,7 +288,9 @@ impl ShellModel {
 
     /// Closes the offer; its log and the earlier ones are renamed `<stem>.offered.log`, so none is offered again.
     fn close_startup(&mut self) {
-        let Some(offer) = self.startup.take() else { return };
+        let Some(offer) = self.onboarding.startup.take() else {
+            return;
+        };
         for path in offer.log.iter().map(|l| &l.path).chain(&offer.earlier_logs) {
             mark_offered(path);
         }
@@ -297,7 +299,9 @@ impl ShellModel {
     /// A project that opened is no longer offered (`elektrawatt <dir>` recovers it at open); an offer left
     /// with neither a project nor a log closes.
     pub(super) fn opened_offered_project(&mut self, dir: &Path) {
-        let Some(offer) = &mut self.startup else { return };
+        let Some(offer) = &mut self.onboarding.startup else {
+            return;
+        };
         let opened = canonical(dir);
         offer.projects.retain(|p| canonical(&p.path) != opened);
         if offer.projects.is_empty() && offer.log.is_none() {
@@ -308,7 +312,7 @@ impl ShellModel {
     /// `startup.recover {project}` (1-based): the offer closes and the project opens as Open does; a project that is no
     /// longer there is refused in the offer (S7), which stays.
     pub(crate) fn act_startup_recover(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(offer) = &mut self.startup else {
+        let Some(offer) = &mut self.onboarding.startup else {
             return Outcome::refused(key!("reason-no-startup"));
         };
         let n = match p.get("project") {
@@ -335,6 +339,7 @@ impl ShellModel {
     /// opens nothing.
     pub(crate) fn act_startup_open_log_folder(&mut self) -> Outcome {
         let Some(folder) = self
+            .onboarding
             .startup
             .as_ref()
             .and_then(StartupOffer::log_folder)
@@ -345,13 +350,13 @@ impl ShellModel {
         if self.mode == Mode::Headless {
             return Outcome::refused(key!("reason-no-opener"));
         }
-        self.startup_folder_request = Some((super::file_url_of(&folder), folder));
+        self.onboarding.folder_request = Some((super::file_url_of(&folder), folder));
         Outcome::Done
     }
 
     /// `startup.delete_log`: the crash log is deleted; the offer closes when no project is left in it.
     pub(crate) fn act_startup_delete_log(&mut self) -> Outcome {
-        let Some(offer) = &mut self.startup else {
+        let Some(offer) = &mut self.onboarding.startup else {
             return Outcome::refused(key!("reason-no-startup"));
         };
         let Some(log) = offer.log.take() else {
@@ -363,14 +368,14 @@ impl ShellModel {
         }
         offer.refusal = None;
         if offer.projects.is_empty() {
-            self.startup = None;
+            self.onboarding.startup = None;
         }
         Outcome::Done
     }
 
     /// `startup.dismiss` (Not now): the offer closes.
     pub(crate) fn act_startup_dismiss(&mut self) -> Outcome {
-        if self.startup.is_none() {
+        if self.onboarding.startup.is_none() {
             return Outcome::refused(key!("reason-no-startup"));
         }
         self.close_startup();

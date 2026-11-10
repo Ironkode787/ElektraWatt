@@ -22,6 +22,20 @@ use crate::strings;
 /// How long after the last layout change the workspace file is written, in seconds (doc 16 section 3.4).
 pub const PERSIST_DELAY: f64 = 1.0;
 
+/// The dock layout of the project view and the workspace it belongs to.
+pub(super) struct PaneLayoutState {
+    /// The dock layout of the project view.
+    pub(super) layout: Layout,
+    /// The bottom-dock panes `view.bottom_dock` closed, reopened by the next open (doc 16a §5.7; view state only).
+    pub(super) bottom_closed: Vec<crate::layout::PaneKind>,
+    /// The name of the active workspace.
+    pub(super) workspace: String,
+    /// Bumped when the shell replaces the layout (a workspace was loaded or reset): the frame rebuilds its tree.
+    pub(super) version: u64,
+    /// The time (egui seconds) of the last layout change that is not on disk yet.
+    pub(super) changed_at: Option<f64>,
+}
+
 /// Why a workspace could not be read.
 enum ReadError {
     Missing,
@@ -35,7 +49,7 @@ impl ShellModel {
 
     /// The active workspace's name.
     pub fn workspace(&self) -> &str {
-        &self.workspace
+        &self.panes.workspace
     }
 
     /// The workspaces the user can switch to: Schematic first, then the saved ones by name.
@@ -57,8 +71,8 @@ impl ShellModel {
             saved.sort();
             names.extend(saved);
         }
-        if !names.contains(&self.workspace) {
-            names.push(self.workspace.clone());
+        if !names.contains(&self.panes.workspace) {
+            names.push(self.panes.workspace.clone());
         }
         names
     }
@@ -99,11 +113,14 @@ impl ShellModel {
     /// Reads the active workspace at start; a missing file is the built-in layout, a bad one is the built-in layout
     /// with a banner (the file stays as it is).
     pub(super) fn load_active_workspace(&mut self) {
-        match self.read_workspace(&self.workspace.clone()) {
-            Ok(layout) => self.layout = layout,
+        match self.read_workspace(&self.panes.workspace.clone()) {
+            Ok(layout) => self.panes.layout = layout,
             Err(ReadError::Missing) => {}
             Err(ReadError::Bad(_)) => {
-                self.banner = Some(strings::format(key!("banner-workspace-bad"), &[&self.workspace]));
+                self.banner = Some(strings::format(
+                    key!("banner-workspace-bad"),
+                    &[&self.panes.workspace],
+                ));
             }
         }
     }
@@ -122,12 +139,12 @@ impl ShellModel {
         }
         match self.read_workspace(&name) {
             Ok(layout) => {
-                self.layout = layout;
-                self.workspace = name.clone();
+                self.panes.layout = layout;
+                self.panes.workspace = name.clone();
                 self.settings.workspace = name;
                 self.save_settings();
-                self.layout_version += 1;
-                self.layout_changed_at = None;
+                self.panes.version += 1;
+                self.panes.changed_at = None;
                 Outcome::Done
             }
             Err(ReadError::Missing) => failed(key!("error-workspace-missing"), &[&name]),
@@ -143,7 +160,7 @@ impl ShellModel {
                 return match self.mode {
                     Mode::Headless => failed(key!("error-missing-param"), &["name"]),
                     Mode::Gui => self.open_dialog(Dialog::SaveWorkspace {
-                        text: self.workspace.clone(),
+                        text: self.panes.workspace.clone(),
                     }),
                 };
             }
@@ -157,21 +174,21 @@ impl ShellModel {
             return failed(key!("error-workspace-case"), &[]);
         }
         self.dialog = None;
-        if self.write_workspace(&name, &self.layout).is_err() {
+        if self.write_workspace(&name, &self.panes.layout).is_err() {
             return failed(key!("error-workspace-write"), &[]);
         }
-        self.workspace = name.clone();
+        self.panes.workspace = name.clone();
         self.settings.workspace = name;
-        self.layout_changed_at = None;
+        self.panes.changed_at = None;
         self.save_settings();
         Outcome::Done
     }
 
     pub(crate) fn act_workspace_reset(&mut self) -> Outcome {
-        self.layout = Layout::schematic();
-        self.layout_version += 1;
+        self.panes.layout = Layout::schematic();
+        self.panes.version += 1;
         // The reset layout is the active workspace's from now on: it is written like any change.
-        self.layout_changed_at = Some(f64::NEG_INFINITY);
+        self.panes.changed_at = Some(f64::NEG_INFINITY);
         Outcome::Done
     }
 
@@ -185,9 +202,9 @@ impl ShellModel {
     /// The user changed the layout in the frame (a splitter, a tab drag): remembers it and the time `now` (seconds
     /// on the frame's clock). Does not bump [`ShellModel::layout_version`], because the frame already shows it.
     pub fn set_layout(&mut self, layout: Layout, now: f64) {
-        if layout != self.layout {
-            self.layout = layout;
-            self.layout_changed_at = Some(now);
+        if layout != self.panes.layout {
+            self.panes.layout = layout;
+            self.panes.changed_at = Some(now);
             // A pane dragged out or in: the property grid fetches or drops its sheet.
             self.sync_properties();
             self.sync_find();
@@ -201,17 +218,17 @@ impl ShellModel {
     /// Replaces the layout by the shell's own change (View ▸ Properties): the frame rebuilds its tree and the change is
     /// written like any other.
     pub(super) fn replace_layout(&mut self, layout: Layout) {
-        if layout != self.layout {
-            self.layout = layout;
-            self.layout_version += 1;
-            self.layout_changed_at = Some(f64::NEG_INFINITY);
+        if layout != self.panes.layout {
+            self.panes.layout = layout;
+            self.panes.version += 1;
+            self.panes.changed_at = Some(f64::NEG_INFINITY);
         }
     }
 
     /// Writes the active workspace's file when the last layout change is `PERSIST_DELAY` old; `true` when it
     /// did. A failed write keeps the change pending and raises a banner once.
     pub fn persist_layout_if_due(&mut self, now: f64) -> bool {
-        match self.layout_changed_at {
+        match self.panes.changed_at {
             Some(t) if now - t >= PERSIST_DELAY => {}
             _ => return false,
         }
@@ -220,20 +237,23 @@ impl ShellModel {
 
     /// Writes the active workspace's file if a change is pending.
     pub(super) fn flush_layout(&mut self) -> bool {
-        if self.layout_changed_at.is_none() {
+        if self.panes.changed_at.is_none() {
             return false;
         }
-        if self.write_workspace(&self.workspace, &self.layout).is_err() {
-            self.layout_changed_at = None;
+        if self
+            .write_workspace(&self.panes.workspace, &self.panes.layout)
+            .is_err()
+        {
+            self.panes.changed_at = None;
             self.banner = Some(strings::text(key!("banner-workspace-write")).to_owned());
             return false;
         }
-        self.layout_changed_at = None;
+        self.panes.changed_at = None;
         true
     }
 
     /// Whether a layout change waits for its file to be written.
     pub fn layout_pending(&self) -> bool {
-        self.layout_changed_at.is_some()
+        self.panes.changed_at.is_some()
     }
 }

@@ -124,7 +124,7 @@ impl ShellModel {
 
     /// Whether the Jobs pane is in the layout.
     pub fn jobs_shown(&self) -> bool {
-        self.layout.panes().contains(&PaneKind::Jobs)
+        self.panes.layout.panes().contains(&PaneKind::Jobs)
     }
 
     /// The notifications: the visible toasts and the log.
@@ -435,12 +435,12 @@ impl ShellModel {
     /// `error: <text>` and exits 1. Which poll took an end depends on timing; this list does not.
     pub fn wait_jobs(&mut self) -> Vec<String> {
         // A running import job ends in its card.
-        if let Some(pending) = self.import_job.take() {
+        if let Some(pending) = self.import.job.take() {
             let end = pending.job.wait();
             let _ = self.finish_import(end, pending.name, pending.dir, pending.library_note);
         }
         // So does a running re-import job.
-        if let Some(pending) = self.reimport_job.take() {
+        if let Some(pending) = self.import.reimport_job.take() {
             let end = pending.job.wait();
             let _ = self.finish_reimport(end, pending.name, pending.path, pending.epoch);
         }
@@ -614,9 +614,9 @@ impl ShellModel {
         let want = or_return!(bool_param(p, "on", !shown));
         if want != shown {
             let layout = if want {
-                self.layout.with_bottom(PaneKind::Jobs)
+                self.panes.layout.with_bottom(PaneKind::Jobs)
             } else {
-                self.layout.without(PaneKind::Jobs)
+                self.panes.layout.without(PaneKind::Jobs)
             };
             self.replace_layout(layout);
         }

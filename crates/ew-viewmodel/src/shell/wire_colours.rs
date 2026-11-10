@@ -20,17 +20,26 @@ use crate::wire_colours::WireStroke;
 /// The wire-colour view's facts and the (session epoch, revision, page) they were read at.
 pub(super) type Cached = ((u64, u64, Uuid), Arc<WireColours>);
 
+/// The wire-colour view's switch and its fetched Connections table.
+#[derive(Default)]
+pub(super) struct WireColourState {
+    /// Whether the wire-colour view is on (View ▸ Wire colours, D18): view state of the session, off at start.
+    pub(super) on: bool,
+    /// The wire-colour view's Connections table and the (session epoch, revision) it was fetched at.
+    pub(super) cache: std::cell::RefCell<Option<Cached>>,
+}
+
 impl ShellModel {
     /// Whether the wire-colour view is on.
     pub fn wire_colours_on(&self) -> bool {
-        self.wire_colours
+        self.wire_colours.on
     }
 
     /// `view.wire_colours {on?}`: the view on or off (a toggle without `on`).
     pub(crate) fn act_wire_colours(&mut self, p: &Map<String, Value>) -> Outcome {
-        match super::jobs::bool_param(p, "on", !self.wire_colours) {
+        match super::jobs::bool_param(p, "on", !self.wire_colours.on) {
             Ok(on) => {
-                self.wire_colours = on;
+                self.wire_colours.on = on;
                 Outcome::Done
             }
             Err(e) => e,
@@ -42,7 +51,7 @@ impl ShellModel {
     fn wire_colour_facts(&self, tables: &PageTables) -> Option<Arc<WireColours>> {
         let project = self.project.as_ref()?;
         let key = (project.epoch, project.session.world().rev.0, tables.page);
-        let mut cache = self.wire_colour_cache.borrow_mut();
+        let mut cache = self.wire_colours.cache.borrow_mut();
         if let Some((k, facts)) = cache.as_ref()
             && *k == key
         {
@@ -57,7 +66,7 @@ impl ShellModel {
     /// The strokes of the wire-colour view on canvas group `group`'s page: each drawn connection whose effective colour
     /// is known, in the page tables' order. Empty while the view is off.
     pub fn wire_colour_overlay(&self, group: usize) -> Vec<WireStroke> {
-        if !self.wire_colours {
+        if !self.wire_colours.on {
             return Vec::new();
         }
         let Some(c) = self.canvas_of(group) else {

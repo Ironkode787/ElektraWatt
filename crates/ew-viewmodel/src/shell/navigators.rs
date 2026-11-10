@@ -937,7 +937,7 @@ impl ShellModel {
 
     /// Whether the left column is collapsed to its rail.
     pub fn rail_collapsed(&self) -> bool {
-        self.rail_collapsed
+        self.chrome.rail_collapsed
     }
 
     /// `rail.show {side, pane}` (D15; doc 16a §5.4): on the left rail, shows the entry's pane in the navigator group
@@ -975,11 +975,11 @@ impl ShellModel {
             .get("pane")
             .and_then(Value::as_str)
             .is_some_and(|w| crate::rail::LEFT.iter().any(|(e, ..)| *e == w));
-        if same_entry && entry_word && !self.rail_collapsed {
-            self.rail_collapsed = true;
+        if same_entry && entry_word && !self.chrome.rail_collapsed {
+            self.chrome.rail_collapsed = true;
             return Outcome::Done;
         }
-        self.rail_collapsed = false;
+        self.chrome.rail_collapsed = false;
         let kind = match pane {
             PaneKind::Navigator(k) => k,
             _ => NavKind::Pages,

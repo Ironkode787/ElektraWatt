@@ -250,7 +250,7 @@ impl ShellModel {
     pub fn group_pane(&self, group: usize) -> ((f64, f64), f64) {
         match self.area.as_ref().and_then(|a| a.groups.get(group)) {
             Some(g) => (g.pane, g.ppp),
-            None => (self.canvas_pane, self.canvas_ppp),
+            None => (self.view.pane, self.view.ppp),
         }
     }
 
@@ -308,8 +308,8 @@ impl ShellModel {
         }
         self.focus = Some(Focus::Canvas(0));
         if let Some(first) = self.page_rows().first() {
-            let mut area = CanvasArea::new(PageId::of(first), self.canvas_pane, self.canvas_ppp);
-            area.groups[0].sized = self.canvas_sized;
+            let mut area = CanvasArea::new(PageId::of(first), self.view.pane, self.view.ppp);
+            area.groups[0].sized = self.view.sized;
             self.area = Some(area);
         }
     }
@@ -328,8 +328,8 @@ impl ShellModel {
             return;
         }
         if self.area.is_none() {
-            let mut area = CanvasArea::new(PageId::of(&rows[0]), self.canvas_pane, self.canvas_ppp);
-            area.groups[0].sized = self.canvas_sized;
+            let mut area = CanvasArea::new(PageId::of(&rows[0]), self.view.pane, self.view.ppp);
+            area.groups[0].sized = self.view.sized;
             self.area = Some(area);
             return;
         }
@@ -365,7 +365,7 @@ impl ShellModel {
             *n = shows;
             return Ok(Arc::clone(page));
         }
-        if let Some((e, r, f, message)) = &self.canvas_error
+        if let Some((e, r, f, message)) = &self.view.error
             && (*e, *r) == (epoch, rev)
             && f == folio
         {
@@ -380,7 +380,7 @@ impl ShellModel {
                 Ok(page)
             }
             Err(message) => {
-                self.canvas_error = Some((epoch, rev, folio.to_owned(), message.clone()));
+                self.view.error = Some((epoch, rev, folio.to_owned(), message.clone()));
                 Err(message)
             }
         }
@@ -491,7 +491,7 @@ impl ShellModel {
         let folio = self.page_rows()[i].folio.clone();
         let built = self.page_for(&folio);
         let ui_scale = self.canvas_ui_scale();
-        let fit_inset = self.canvas_fit_inset;
+        let fit_inset = self.view.fit_inset;
         let Some(area) = &mut self.area else { return };
         let Some(group) = area.groups.get_mut(g) else {
             return;
