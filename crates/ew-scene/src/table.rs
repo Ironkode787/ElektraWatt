@@ -707,30 +707,20 @@ mod tests {
         let w = RIGHT.0 - LEFT.0;
         assert_eq!(e[1].0 - e[0].0, w / 4);
         assert_eq!(e[3].0 - e[2].0, w - w / 2);
-    }
-
-    #[test]
-    fn the_toc_column_widths_of_the_reference_reproduce() {
         // Doc 09 §2.5: 16.31 | 79.73 | 214.90 | 277.27 mm.
-        let e = column_edges(&cols(&[63_420, 135_170, 62_370]));
+        let toc = cols(&[63_420, 135_170, 62_370]);
+        let e = column_edges(&toc);
         assert_eq!(e[1], Nm(79_730_000));
         assert_eq!(e[2], Nm(214_900_000));
-    }
-
-    #[test]
-    fn column_edges_in_a_span_follow_the_same_rule() {
-        let c = cols(&[63_420, 135_170, 62_370]);
-        assert_eq!(column_edges_in(&c, LEFT, RIGHT), column_edges(&c));
+        // In a span the same rule holds.
+        assert_eq!(column_edges_in(&toc, LEFT, RIGHT), column_edges(&toc));
         // D17's first flow column, 108.00 to 191.00 mm at 10 : 22 : 16 : 35: 10, 22, 16 and 35 mm.
         let e = column_edges_in(&cols(&[10, 22, 16, 35]), Nm(108_000_000), Nm(191_000_000));
         assert_eq!(
             e,
             [108_000_000, 118_000_000, 140_000_000, 156_000_000, 191_000_000].map(Nm)
         );
-    }
-
-    #[test]
-    fn zero_weights_and_no_columns_do_not_panic() {
+        // Zero weights and no columns do not panic.
         assert_eq!(column_edges(&[]), vec![LEFT]);
         let e = column_edges(&cols(&[0, 0]));
         assert_eq!(e, vec![LEFT, LEFT, LEFT]);

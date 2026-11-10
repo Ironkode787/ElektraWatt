@@ -192,6 +192,11 @@ fn date_functions_reject_the_clock() {
         "SELECT CURRENT_TIMESTAMP",
         "SELECT CURRENT_DATE",
         "SELECT CURRENT_TIME",
+        "SELECT date(CAST('now' AS BLOB))",
+        "SELECT unixepoch(x'6e6f77')",
+        "SELECT datetime('2025-01-01', CAST('localtime' AS BLOB))",
+        "SELECT datetime('2025-01-01', CAST('UTC' AS BLOB))",
+        "SELECT strftime('%Y', x'4e4f57')",
     ] {
         match r.query(sql) {
             Err(SqlError::Sql(msg)) => {
@@ -200,6 +205,11 @@ fn date_functions_reject_the_clock() {
             other => panic!("{sql}: {other:?}"),
         }
     }
+    // A blob holding a date is still a date.
+    assert_eq!(
+        texts(&r, "SELECT date(CAST('2025-03-03' AS BLOB))"),
+        ["2025-03-03"]
+    );
 }
 
 #[test]
@@ -361,30 +371,6 @@ fn a_cte_named_after_a_view_reads_only_that_views_table() {
         .contains("t_other")
     );
     assert!(denied(&r, "SELECT i.name FROM api_v1_item AS i JOIN t_other AS o ON 1").contains("t_other"));
-}
-
-#[test]
-fn date_functions_reject_the_clock_in_blob_arguments() {
-    let r = ew_sql();
-    for sql in [
-        "SELECT date(CAST('now' AS BLOB))",
-        "SELECT unixepoch(x'6e6f77')",
-        "SELECT datetime('2025-01-01', CAST('localtime' AS BLOB))",
-        "SELECT datetime('2025-01-01', CAST('UTC' AS BLOB))",
-        "SELECT strftime('%Y', x'4e4f57')",
-    ] {
-        match r.query(sql) {
-            Err(SqlError::Sql(msg)) => {
-                assert!(msg.contains("clock") || msg.contains("time zone"), "{sql}: {msg}")
-            }
-            other => panic!("{sql}: {other:?}"),
-        }
-    }
-    // A blob holding a date is still a date.
-    assert_eq!(
-        texts(&r, "SELECT date(CAST('2025-03-03' AS BLOB))"),
-        ["2025-03-03"]
-    );
 }
 
 #[test]

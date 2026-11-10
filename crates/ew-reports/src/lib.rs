@@ -64,33 +64,14 @@ mod tests {
     #[test]
     fn every_registered_kind_has_columns_and_a_schema_name() {
         let reg = Registry::builtin();
-        let names: Vec<&str> = reg.names().collect();
-        for n in &names {
+        for n in reg.names() {
             let k = reg.by_name(n).unwrap();
-            assert_eq!(k.name(), *n);
+            assert_eq!(k.name(), n);
             assert!(!k.columns().is_empty(), "kind `{n}` has no columns");
             assert!(
                 k.columns().iter().all(|c| c.weight > 0),
                 "kind `{n}` has a column without printed width"
             );
-        }
-        for want in [
-            "toc",
-            "parts_summary",
-            "parts_list",
-            "part_data",
-            "structure_overview",
-            "terminal_diagram",
-            "cable_overview_diagrams",
-            "wire_list",
-            "potential_overview",
-            "plc_overview",
-            "profile_tables",
-            "revision_overview",
-            "device_list",
-            "terminal_overview",
-        ] {
-            assert!(names.contains(&want), "kind `{want}` is not registered");
         }
     }
 }

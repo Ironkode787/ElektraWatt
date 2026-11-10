@@ -231,7 +231,7 @@ mod tests {
     }
 
     /// Hostile input is refused, never a panic: a JPEG cut inside its entropy-coded data (and one cut before it), a JPEG
-    /// header declaring 8192 × 8192 pixels (over the bound) with no data, and bytes that are no JPEG or PNG at all.
+    /// header declaring 8192 × 8192 pixels (over the bound) with no data, and bytes that are no JPEG or PNG at all (an SVG and empty bytes included).
     #[test]
     fn hostile_rasters_are_refused() {
         let jpeg = red_blue_jpeg();
@@ -277,13 +277,9 @@ mod tests {
             None,
             "a WebP"
         );
-    }
-
-    #[test]
-    fn svg_and_empty_bytes_are_not_decoded() {
-        assert_eq!(decode_image(ImageFormat::Svg, b"<svg/>"), None);
-        assert_eq!(decode_image(ImageFormat::Png, &[]), None);
-        assert_eq!(decode_image(ImageFormat::Jpeg, &[]), None);
+        assert_eq!(decode_image(ImageFormat::Svg, b"<svg/>"), None, "an SVG");
+        assert_eq!(decode_image(ImageFormat::Png, &[]), None, "empty PNG bytes");
+        assert_eq!(decode_image(ImageFormat::Jpeg, &[]), None, "empty JPEG bytes");
     }
 
     #[test]

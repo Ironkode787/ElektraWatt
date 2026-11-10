@@ -904,16 +904,6 @@ mod tests {
         assert!(m.contains("no variant"), "{m}");
     }
 
-    #[test]
-    fn single_applicable_branch_by_type_reports_its_error() {
-        let s = json!({"anyOf": [
-            {"type": "object", "properties": {"a": {"type": "integer"}}, "required": ["a"]},
-            {"type": "null"}
-        ]});
-        ok(s.clone(), json!(null));
-        assert_eq!(err(s, json!({"a": "x"})).0, "/a");
-    }
-
     /// `Option<Enum>`: the branch behind a `$ref` is itself a `oneOf`, and is the one the value names when one of
     /// its own branches is.
     fn optional_enum() -> Value {
@@ -981,6 +971,7 @@ mod tests {
             {"type": "object", "properties": {"a": {"type": "integer"}}, "required": ["a"]},
             {"type": "null"}
         ]});
+        ok(s.clone(), json!(null));
         assert_eq!(
             err(s, json!({"a": "x"})),
             ("/a".into(), "expected integer, found string".into())

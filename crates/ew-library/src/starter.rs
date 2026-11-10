@@ -63,28 +63,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn every_item_names_the_starter_library() {
-        for i in items() {
-            let doc = LibDocument::from_json(i.json).unwrap();
-            let lib = match &doc {
-                LibDocument::Symbol(c) => c.library_id.as_uuid(),
-                LibDocument::Fndef(c) => c.library_id.as_uuid(),
-                _ => panic!("{}: kind", i.key),
-            };
-            assert_eq!(lib, LIBRARY, "{}", i.key);
-        }
-    }
-
-    #[test]
     fn every_item_parses_as_the_library_document_library_embed_takes() {
         for i in items() {
             let doc = LibDocument::from_json(i.json).unwrap_or_else(|e| panic!("{}: {e}", i.key));
-            let key = match (i.kind, &doc) {
-                (StarterKind::Symbol, LibDocument::Symbol(c)) => c.item.meta.key.clone(),
-                (StarterKind::Fndef, LibDocument::Fndef(c)) => c.item.meta.key.clone(),
+            let (lib, key) = match (i.kind, &doc) {
+                (StarterKind::Symbol, LibDocument::Symbol(c)) => {
+                    (c.library_id.as_uuid(), c.item.meta.key.clone())
+                }
+                (StarterKind::Fndef, LibDocument::Fndef(c)) => {
+                    (c.library_id.as_uuid(), c.item.meta.key.clone())
+                }
                 _ => panic!("{}: kind", i.key),
             };
             assert_eq!(key.as_ref().map(|k| k.as_str()), Some(i.key));
+            assert_eq!(lib, LIBRARY, "{}: names the starter library", i.key);
         }
         assert_eq!(
             item("ew.iec.mcb-1p@qet10").map(|i| i.kind),

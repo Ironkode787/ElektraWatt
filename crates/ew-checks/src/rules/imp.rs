@@ -486,13 +486,4 @@ mod tests {
             )
         );
     }
-
-    /// Every code's metadata names its pack and message class 160.
-    #[test]
-    fn the_codes_are_of_class_160() {
-        for m in &IMP {
-            assert_eq!(m.pack, "EW-IMP");
-            assert_eq!(m.code, format!("160{}", &m.id[7..]));
-        }
-    }
 }

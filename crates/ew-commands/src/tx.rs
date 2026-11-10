@@ -1048,44 +1048,30 @@ fn same_opt(a: Option<&AnyRow>, b: Option<&AnyRow>) -> bool {
 mod tests {
     use super::*;
 
-    /// The links that `IndexRead` reads through the generic referrer index are declared, with the target kind the
-    /// lookup keys on (a misspelt name would make the index answer nothing).
+    /// The links that `IndexRead` reads through the generic referrer index (the channel reads, the surface
+    /// placement read, the macro-member read) are declared, with the target kind the lookup keys on (a misspelt
+    /// name would make the index answer nothing).
     #[test]
-    fn the_referrer_links_of_the_channel_reads_exist() {
-        for (field, to) in [("module", Kind::Device), ("binding.cp[0]", Kind::Function)] {
+    fn the_referrer_links_of_the_index_reads_exist() {
+        for (from, field, to) in [
+            (Kind::Channel, "module", Kind::Device),
+            (Kind::Channel, "binding.cp[0]", Kind::Function),
+            (Kind::Placement, "carrier.surface", Kind::MountingSurface),
+            (Kind::MacroInstance, "members[][1]", Kind::Page),
+        ] {
             let link = ew_model::LINKS
                 .iter()
-                .find(|l| l.from == Kind::Channel && l.field == field)
-                .unwrap_or_else(|| panic!("Channel.{field} is not a declared link"));
-            assert_eq!(link.to, to, "Channel.{field}");
+                .find(|l| l.from == from && l.field == field)
+                .unwrap_or_else(|| panic!("{from:?}.{field} is not a declared link"));
+            assert_eq!(link.to, to, "{from:?}.{field}");
             assert!(
                 !link.indexed(),
-                "Channel.{field} is served by the generic referrer index"
+                "{from:?}.{field} is served by the generic referrer index"
             );
+            if from == Kind::MacroInstance {
+                assert_eq!(link.kind_erased, ew_model::MACRO_MEMBER_KINDS);
+            }
         }
-    }
-
-    /// The surface-placement read goes through the generic referrer index of `placement.carrier.surface`.
-    #[test]
-    fn the_referrer_link_of_the_surface_placement_read_exists() {
-        let link = ew_model::LINKS
-            .iter()
-            .find(|l| l.from == Kind::Placement && l.field == "carrier.surface")
-            .expect("Placement.carrier.surface is a declared link");
-        assert_eq!(link.to, Kind::MountingSurface);
-        assert!(!link.indexed());
-    }
-
-    /// The macro-member read keys the generic referrer index under the kind-erased link's nominal `to`.
-    #[test]
-    fn the_referrer_link_of_the_macro_member_read_exists() {
-        let link = ew_model::LINKS
-            .iter()
-            .find(|l| l.from == Kind::MacroInstance && l.field == "members[][1]")
-            .expect("MacroInstance.members[][1] is a declared link");
-        assert_eq!(link.to, Kind::Page);
-        assert_eq!(link.kind_erased, ew_model::MACRO_MEMBER_KINDS);
-        assert!(!link.indexed());
     }
 
     #[cfg(debug_assertions)]

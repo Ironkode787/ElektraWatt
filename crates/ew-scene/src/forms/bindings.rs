@@ -539,24 +539,16 @@ mod tests {
     }
 
     #[test]
-    fn literal_only() {
+    fn literals_placeholders_and_escapes() {
         let f = fill("plain text", &b());
         assert_eq!(f.text, "plain text");
         assert!(f.findings.is_empty());
         assert_eq!(f.asset, None);
-    }
-
-    #[test]
-    fn single_and_surrounded_placeholders() {
         assert_eq!(fill("{page.folio}", &b()).text, "101");
         let f = fill("Page {page.folio} of {doc.page_count}", &b());
         assert_eq!(f.text, "Page 101 of 36");
         assert!(f.findings.is_empty());
         assert_eq!(fill("v{ew.version}", &b()).text, "v1.2.3");
-    }
-
-    #[test]
-    fn escapes() {
         let f = fill("{{x}}", &b());
         assert_eq!(f.text, "{x}");
         assert!(f.findings.is_empty());
@@ -587,7 +579,7 @@ mod tests {
     }
 
     #[test]
-    fn unknown_scope() {
+    fn unknown_unresolved_and_computed_placeholders_report_a_finding() {
         let f = fill("a {foo.bar} b", &b());
         assert_eq!(f.text, "a  b");
         assert_eq!(
@@ -596,16 +588,20 @@ mod tests {
                 placeholder: st("{foo.bar}")
             }]
         );
-    }
-
-    #[test]
-    fn unresolved_renders_empty_with_filters() {
         let f = fill("{page.missing | upper}", &b());
         assert_eq!(f.text, "");
         assert_eq!(
             f.findings,
             vec![BindingFinding::Unresolved {
                 placeholder: st("{page.missing | upper}")
+            }]
+        );
+        let f = fill("x {= 1 + 1} y", &b());
+        assert_eq!(f.text, "x  y");
+        assert_eq!(
+            f.findings,
+            vec![BindingFinding::Computed {
+                placeholder: st("{= 1 + 1}")
             }]
         );
     }
@@ -678,18 +674,6 @@ mod tests {
         let f = fill("{page.nope | ml(nl-NL)}", &b());
         assert!(matches!(f.findings[0], BindingFinding::UnsupportedFilter { .. }));
         assert!(matches!(f.findings[1], BindingFinding::Unresolved { .. }));
-    }
-
-    #[test]
-    fn computed_cell() {
-        let f = fill("x {= 1 + 1} y", &b());
-        assert_eq!(f.text, "x  y");
-        assert_eq!(
-            f.findings,
-            vec![BindingFinding::Computed {
-                placeholder: st("{= 1 + 1}")
-            }]
-        );
     }
 
     #[test]
