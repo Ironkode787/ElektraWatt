@@ -5,16 +5,11 @@
 //! `lib/` whose `sections.plc.supply_groups` carries typed members, unknown members and newer enum values loads and
 //! saves byte-equal, and its stored `sha256` (the hash of the item's compact JSON) verifies.
 
-use std::collections::BTreeMap;
+use ew_format::ew_schema::{LibDocument, SupplyFeeds, SupplyKind};
+use ew_format::{hash_text, lib_document_text, lib_file, library_copy_hash, sha256};
 
-use ew_format::ew_schema::{LibDocument, Project, Record, SupplyFeeds, SupplyKind};
-use ew_format::{
-    EntryKind, FilePath, Limits, Loaded, Manifest, hash_text, lib_document_text, lib_file, library_copy_hash,
-    load, plan, project_files, sha256,
-};
+use crate::write_and_read;
 
-const PROJECT: &str =
-    r#"{"$k":"project","id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 const LIB: &str = "6a1d0f3e-8b25-5c74-9e1a-d3f60b8c2e47";
 const COPY: &str = "5e2b8c41-9d07-5f36-a1c8-4b7e0d2f9a65";
 const ITEM: &str = "a83c1f70-4b29-5e6d-8c05-7f1a3e9b0d42";
@@ -40,35 +35,6 @@ fn compact(item: &str) -> String {
         r#"{{"$k":"part","id":"{COPY}","library_id":"{LIB}","item_id":"{ITEM}","version":"1.0.0","sha256":"{hash}",{}"#,
         &item[1..]
     )
-}
-
-fn project() -> Project {
-    match Record::from_json(PROJECT).unwrap() {
-        Record::Project(project) => project,
-        other => panic!("not a project: {other:?}"),
-    }
-}
-
-fn write_and_read(lib: &[LibDocument]) -> (BTreeMap<FilePath, Vec<u8>>, Loaded) {
-    let files = project_files(&project(), &[], lib, 1, "test").unwrap();
-    let manifest = Manifest::parse(
-        &files[&FilePath::new("manifest.json").unwrap()],
-        &Limits::default(),
-    )
-    .unwrap();
-    let present: BTreeMap<String, EntryKind> = files
-        .keys()
-        .map(|k| (k.as_str().to_owned(), EntryKind::File))
-        .collect();
-    let reads = plan(Some(&manifest), &present, &Limits::default());
-    assert!(reads.findings.is_empty(), "{:?}", reads.findings);
-    let input: BTreeMap<FilePath, Vec<u8>> = reads
-        .read
-        .iter()
-        .map(|path| (path.clone(), files[path].clone()))
-        .collect();
-    let loaded = load(Some(&manifest), &input, &Limits::default());
-    (files, loaded)
 }
 
 /// PX-2: the copy is canonical, its hash verifies, and it is written and read back unchanged.
@@ -97,13 +63,13 @@ fn a_part_copy_with_supply_groups_round_trips_and_its_hash_verifies() {
     );
     assert_eq!(plc.supply_groups[1].feeds(), SupplyFeeds::Outputs);
 
-    let (files, loaded) = write_and_read(std::slice::from_ref(&doc));
+    let (files, loaded) = write_and_read(&[], std::slice::from_ref(&doc));
     assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
     assert!(loaded.rewrite.is_empty(), "{:?}", loaded.rewrite);
     assert_eq!(loaded.lib, std::slice::from_ref(&doc));
     let path = lib_file(&doc).unwrap();
     assert_eq!(files[&path], lib_document_text(&doc).unwrap().into_bytes());
     // A second save of the loaded copy writes the same bytes.
-    let (again, _) = write_and_read(&loaded.lib);
+    let (again, _) = write_and_read(&[], &loaded.lib);
     assert_eq!(again[&path], files[&path]);
 }

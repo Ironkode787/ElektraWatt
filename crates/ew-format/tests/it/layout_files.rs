@@ -8,10 +8,12 @@
 
 use std::collections::BTreeMap;
 
-use ew_format::ew_schema::{Project, Record};
+use ew_format::ew_schema::Record;
 use ew_format::{
     FilePath, FindingKind, Limits, RecordAnchors, load, project_files, record_file, record_line,
 };
+
+use crate::project;
 
 const SPACE_A: &str = "4f1c8a27-6d93-5b05-8e2a-c7d0b9f3a164";
 const SPACE_B: &str = "b7e3d0a5-1c48-5f92-9a6e-2d0c7f4b8e13";
@@ -29,8 +31,6 @@ const DEV_2: &str = "0b9d4e62-8f13-5c75-a2d0-3e7f1b6c9a84";
 const DEV_UC1: &str = "93e0b4a6-1c7f-5d28-a5e9-8b3d6f0c1a72";
 const DEV_UC2: &str = "6a2f9c41-0d85-5e37-b1a4-e9c3d7f0b256";
 const DANGLING: &str = "ffffffff-0000-5000-8000-000000000001";
-const PROJECT: &str =
-    r#"{"$k":"project","id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 const IDENTITY: &str = r#"{"t":[0,0,0],"q":[1000000000,0,0,0]}"#;
 
 type Files = BTreeMap<FilePath, Vec<u8>>;
@@ -88,11 +88,7 @@ fn layout_file(space: &str) -> FilePath {
 }
 
 fn files_of(records: &[Record]) -> Files {
-    let Record::Project(project) = record(PROJECT) else {
-        panic!("a project")
-    };
-    let project: Project = project;
-    let mut files = project_files(&project, records, &[], 1, "test").unwrap();
+    let mut files = project_files(&project(), records, &[], 1, "test").unwrap();
     files.remove(&FilePath::new("manifest.json").unwrap());
     files
 }

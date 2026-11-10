@@ -226,6 +226,15 @@ fn rejects_bad_paths_and_hashes() {
         invalid_member(parse(&text_with("1", "{\"a.jsonl\":\"md5:abc\"}", ""))),
         "files/a.jsonl"
     );
+    // The manifest does not list itself.
+    assert_eq!(
+        invalid_member(parse(&text_with(
+            "1",
+            &format!("{{\"manifest.json\":\"{good}\"}}"),
+            ""
+        ))),
+        "files/manifest.json"
+    );
 }
 
 #[test]
@@ -291,19 +300,6 @@ fn rejects_missing_and_mistyped_members() {
     assert_eq!(invalid_member(parse(&text)), "project");
     // An extra member holding a float.
     assert_eq!(invalid_member(parse(&text_with("1", "{}", ",\"x\":1.5"))), "x");
-}
-
-#[test]
-fn rejects_the_manifest_as_a_key() {
-    let good = hash_text(&sha256(b"x"));
-    assert_eq!(
-        invalid_member(parse(&text_with(
-            "1",
-            &format!("{{\"manifest.json\":\"{good}\"}}"),
-            ""
-        ))),
-        "files/manifest.json"
-    );
 }
 
 #[test]

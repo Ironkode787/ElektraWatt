@@ -5,17 +5,17 @@
 
 use std::collections::BTreeMap;
 
-use ew_format::ew_schema::{LibDocument, Project, Record, Sha256};
+use ew_format::ew_schema::{LibDocument, Record, Sha256};
 use ew_format::{
     EntryKind, FilePath, Finding, FindingKind, Kept, Limits, Loaded, Manifest, hash_text, lib_document_text,
     lib_file, load, plan, project_files, record_line, sha256,
 };
 
+use crate::{PROJECT, entries_of, project};
+
 const PAGE: &str = r#"{"$k":"page","id":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","folio":{"section":"0e8b3d61-a74c-5f12-b5e9-82d4c1f06a3e","number":101},"kind":"multi_line","structure":{"function":"7d2c95e0-1f4a-5b38-a6e7-0c93b5d1f284","location":"a41f6c2d-8e05-5d97-b3c1-5f2e8a7d9c60"},"title":{"en-GB":"Power Supply 1 - Main Current"},"grid":{"num":7937500,"den":3}}"#;
 const DEVICE: &str = r#"{"$k":"device","id":"c7a90e35-42d8-5f61-8b03-9d2e6f1a47c2","tag":{"letter":"G","counter":1},"kind":"psu","parts":[{"part":{"copy":"e5d2a8f1-0c37-5b94-8e6a-4f1d93c7b025"},"qty":"1"}],"function_text":{"en-GB":"Power supply 1 AC / 24 V DC"},"tech_data":[{"key":"i_out","value":{"value":"20","unit":"A"}}]}"#;
 const FUNCTION: &str = r#"{"$k":"function","id":"1d6f3a92-7c05-5b8e-94a1-e3c2087f5d19","device":"c7a90e35-42d8-5f61-8b03-9d2e6f1a47c2","def":"5b9e2d70-3c41-5f8a-b6d2-19e4c7a03f58","kind":"black_box"}"#;
-const PROJECT: &str =
-    r#"{"$k":"project","id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 
 const PAGE_FILE: &str = "pages/8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a.jsonl";
 const SHARD_FILE: &str = "devices/c2.jsonl";
@@ -29,13 +29,6 @@ fn p(s: &str) -> FilePath {
 
 fn record(line: &str) -> Record {
     Record::from_json(line).unwrap()
-}
-
-fn project() -> Project {
-    match record(PROJECT) {
-        Record::Project(project) => project,
-        other => panic!("not a project: {other:?}"),
-    }
 }
 
 /// The canonical directory of the three records and the project, with its manifest.
@@ -108,10 +101,7 @@ fn fixtures_are_canonical() {
 fn plan_reads_listed_files_that_are_present() {
     let files = dir();
     let manifest = manifest_of(&files);
-    let entries: BTreeMap<String, EntryKind> = files
-        .keys()
-        .map(|k| (k.as_str().to_owned(), EntryKind::File))
-        .collect();
+    let entries = entries_of(&files);
     let plan = plan(Some(&manifest), &entries, &Limits::default());
     assert_eq!(names(&plan.read), [SHARD_FILE, PAGE_FILE, "project.jsonl"]);
     assert!(plan.findings.is_empty(), "{:?}", plan.findings);
@@ -121,10 +111,7 @@ fn plan_reads_listed_files_that_are_present() {
 fn plan_listed_but_missing_is_ew_core_003() {
     let files = dir();
     let manifest = manifest_of(&files);
-    let mut entries: BTreeMap<String, EntryKind> = files
-        .keys()
-        .map(|k| (k.as_str().to_owned(), EntryKind::File))
-        .collect();
+    let mut entries = entries_of(&files);
     entries.remove(SHARD_FILE);
     let plan = plan(Some(&manifest), &entries, &Limits::default());
     assert_eq!(names(&plan.read), [PAGE_FILE, "project.jsonl"]);
@@ -138,10 +125,7 @@ fn plan_listed_but_missing_is_ew_core_003() {
 fn plan_listed_link_is_ew_core_003_and_not_read() {
     let files = dir();
     let manifest = manifest_of(&files);
-    let mut entries: BTreeMap<String, EntryKind> = files
-        .keys()
-        .map(|k| (k.as_str().to_owned(), EntryKind::File))
-        .collect();
+    let mut entries = entries_of(&files);
     entries.insert(SHARD_FILE.to_owned(), EntryKind::Link);
     entries.insert(PAGE_FILE.to_owned(), EntryKind::Other);
     entries.insert("project.jsonl".to_owned(), EntryKind::Dir);
@@ -167,10 +151,7 @@ fn plan_listed_link_is_ew_core_003_and_not_read() {
 fn plan_unlisted_files_are_orphans_and_not_read() {
     let files = dir();
     let manifest = manifest_of(&files);
-    let mut entries: BTreeMap<String, EntryKind> = files
-        .keys()
-        .map(|k| (k.as_str().to_owned(), EntryKind::File))
-        .collect();
+    let mut entries = entries_of(&files);
     let unlisted = "pages/00000000-0000-7000-8000-000000000001.jsonl";
     let copy = "devices/c2 (conflicted copy).jsonl";
     entries.insert(unlisted.to_owned(), EntryKind::File);
@@ -257,10 +238,7 @@ fn plan_too_many_entries_is_limit_exceeded() {
 fn canonical_directory_loads_clean() {
     let files = dir();
     let manifest = manifest_of(&files);
-    let entries: BTreeMap<String, EntryKind> = files
-        .keys()
-        .map(|k| (k.as_str().to_owned(), EntryKind::File))
-        .collect();
+    let entries = entries_of(&files);
     let reads = plan(Some(&manifest), &entries, &Limits::default());
     let input: Files = reads
         .read

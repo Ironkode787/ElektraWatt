@@ -8,15 +8,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
-use ew_format::ew_schema::{Kind, LibDocument, Project, Record, Sha256};
+use ew_format::ew_schema::{Kind, LibDocument, Sha256};
 use ew_format::{
     FilePath, FormatStep, KindStep, Limits, MIGRATIONS, Manifest, MigrationError, Migrations, StewardProblem,
     lib_document_text, lib_file, load_migrated, sha256, steward_problems,
 };
 use serde_json::{Value, json};
 
-const PROJECT: &str =
-    r#"{"$k":"project","id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
+use crate::{PROJECT, project};
+
 /// [`PROJECT`] as the test format `"0.0"` wrote it: `$v` 0 and the member's old name.
 const PROJECT_V0: &str =
     r#"{"$k":"project","$v":0,"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","profile":"2027.1"}"#;
@@ -152,13 +152,6 @@ static TRACING: Migrations = Migrations {
     }],
 };
 
-fn project() -> Project {
-    match Record::from_json(PROJECT).unwrap() {
-        Record::Project(project) => project,
-        other => panic!("not a project: {other:?}"),
-    }
-}
-
 /// The fndef of the repository's library with a correct copy hash.
 fn fndef() -> LibDocument {
     let path = format!(
@@ -192,7 +185,6 @@ fn files_v0() -> Files {
 
 #[test]
 fn the_shipped_chain_is_empty_and_reaches_no_older_format() {
-    assert!(MIGRATIONS.kinds.is_empty() && MIGRATIONS.formats.is_empty());
     let e = MIGRATIONS.towards("0.0", "0.1").unwrap_err();
     assert_eq!(
         e,

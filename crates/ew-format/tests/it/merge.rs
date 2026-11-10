@@ -38,6 +38,26 @@ fn text(v: &Value) -> Option<String> {
     Some(v.to_string())
 }
 
+/// `merge_file` on bytes: the merged bytes and the conflicts.
+fn merge_bytes(path: &str, sides: [&[u8]; 3], limits: &Limits) -> (Vec<u8>, usize) {
+    let m = merge_file(
+        path,
+        MergeSide::current(sides[0]),
+        MergeSide::current(sides[1]),
+        MergeSide::current(sides[2]),
+        limits,
+        &MIGRATIONS,
+    );
+    (m.bytes, m.conflicts)
+}
+
+/// `merge_file` on UTF-8 texts under the default limits: the merged text and the conflicts.
+fn merge_text(path: &str, o: &str, a: &str, b: &str) -> (String, usize) {
+    let sides = [o.as_bytes(), a.as_bytes(), b.as_bytes()];
+    let (bytes, conflicts) = merge_bytes(path, sides, &Limits::default());
+    (String::from_utf8(bytes).expect("UTF-8"), conflicts)
+}
+
 // ---- MD-1: the record table -------------------------------------------------------------------------------------
 
 #[test]
@@ -984,15 +1004,7 @@ fn page_with(overrides: &str) -> (String, String) {
 }
 
 fn merge_page(o: &str, a: &str, b: &str) -> (String, usize) {
-    let m = merge_file(
-        PAGE,
-        MergeSide::current(o.as_bytes()),
-        MergeSide::current(a.as_bytes()),
-        MergeSide::current(b.as_bytes()),
-        &Limits::default(),
-        &MIGRATIONS,
-    );
-    (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts)
+    merge_text(PAGE, o, a, b)
 }
 
 /// The page file loaded alone: its records, kept lines and findings.
@@ -1263,34 +1275,33 @@ fn md4_a_side_above_a_reader_limit_keeps_the_other_side() {
         max_line_bytes: 64,
         ..Limits::default()
     };
-    let m = merge_file(
-        PAGE,
-        MergeSide::current(base.as_bytes()),
-        MergeSide::current(ours.as_bytes()),
-        MergeSide::current(b"{\"$k\":\"page\"}\n"),
-        &limits,
-        &MIGRATIONS,
-    );
     // Neither side reads (ours is above the line limit, theirs has no ID): ours stays as it is, and the file-level
     // record that would hold theirs is above the line limit too, so it is not written.
     assert_eq!(
-        (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts),
-        (ours, 1)
+        merge_bytes(
+            PAGE,
+            [
+                base.as_bytes(),
+                ours.as_bytes(),
+                b"{\"$k\":\"page\"}
+"
+            ],
+            &limits
+        ),
+        (ours.into_bytes(), 1)
     );
 }
 
 #[test]
 fn neither_side_parsing_keeps_ours_and_holds_theirs() {
-    let m = merge_file(
-        PAGE,
-        MergeSide::current(b""),
-        MergeSide::current(b"<<<<<<< ours"),
-        MergeSide::current(b"not json\n"),
-        &Limits::default(),
-        &MIGRATIONS,
-    );
     assert_eq!(
-        (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts),
+        merge_text(
+            PAGE,
+            "",
+            "<<<<<<< ours",
+            "not json
+"
+        ),
         (
             format!("<<<<<<< ours\n{}\n", file_conflict("theirs", "not json\n")),
             1
@@ -1322,13 +1333,25 @@ fn a_base_that_does_not_read_follows_the_no_base_rule() {
         bond(2, json!({"number": 2})),
         bond(3, json!({"number": 3})),
     ];
-    let m = merge_file(
+    let m = merge_text(
         "waivers.jsonl",
-        MergeSide::current(base.as_bytes()),
-        MergeSide::current(format!("{}\n", ours.join("\n")).as_bytes()),
-        MergeSide::current(format!("{}\n", theirs.join("\n")).as_bytes()),
-        &Limits::default(),
-        &MIGRATIONS,
+        base,
+        &format!(
+            "{}
+",
+            ours.join(
+                "
+"
+            )
+        ),
+        &format!(
+            "{}
+",
+            theirs.join(
+                "
+"
+            )
+        ),
     );
     let conflict = |n: u8, ours: &str, theirs: &str| {
         format!(
@@ -1342,10 +1365,7 @@ fn a_base_that_does_not_read_follows_the_no_base_rule() {
         conflict(2, r#"{"number":1,"page":"p"}"#, r#"{"number":2}"#),
         conflict(3, r#""deleted""#, r#"{"number":3}"#),
     ];
-    assert_eq!(
-        (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts),
-        (format!("{}\n", expected.join("\n")), 2)
-    );
+    assert_eq!(m, (format!("{}\n", expected.join("\n")), 2));
 
     // A library document: theirs deleted a member that ours holds; with no base to tell, ours is kept and `$conflict`
     // holds theirs' document.
@@ -1380,18 +1400,17 @@ fn a_library_document_neither_side_reads_keeps_ours_and_holds_theirs() {
     let id = ew_format::ew_schema::conflict_file_id::<()>(path);
     let ours = "{\n  \"$k\": \"manufacturer\",\n<<<<<<< ours\n";
     let merge = |ours: &str| {
-        merge_file(
+        merge_text(
             path,
-            MergeSide::current(b"{}\n"),
-            MergeSide::current(ours.as_bytes()),
-            MergeSide::current(b"not json\n"),
-            &Limits::default(),
-            &MIGRATIONS,
+            "{}
+",
+            ours,
+            "not json
+",
         )
     };
-    let m = merge(ours);
     assert_eq!(
-        (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts),
+        merge(ours),
         (
             format!(
                 r#"{ours}{{"$k":"conflict","id":"{id}","kind":"file","path":"{path}","side":"theirs","lines":["not json"]}}
@@ -1402,8 +1421,7 @@ fn a_library_document_neither_side_reads_keeps_ours_and_holds_theirs() {
     );
     // An ours that opens (JSON, but no document this reader merges) stays as it is: a line after it would make it a
     // syntax error.
-    let m = merge("[]\n");
-    assert_eq!((m.bytes, m.conflicts), (b"[]\n".to_vec(), 1));
+    assert_eq!(merge("[]\n"), ("[]\n".to_owned(), 1));
 }
 
 #[test]
@@ -1441,15 +1459,9 @@ fn a_record_unchanged_on_its_side_is_written_as_that_side_s_own_line() {
 fn a_merge_that_would_pass_a_reader_limit_keeps_ours_as_it_is() {
     // D14's loadable file over its "nothing lost": the result is ours as it is, with 1 conflict.
     let merge = |path: &str, sides: [&str; 3], limits: &Limits| {
-        let m = merge_file(
-            path,
-            MergeSide::current(sides[0].as_bytes()),
-            MergeSide::current(sides[1].as_bytes()),
-            MergeSide::current(sides[2].as_bytes()),
-            limits,
-            &MIGRATIONS,
-        );
-        (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts)
+        let sides = sides.map(str::as_bytes);
+        let (bytes, conflicts) = merge_bytes(path, sides, limits);
+        (String::from_utf8(bytes).expect("UTF-8"), conflicts)
     };
     // Theirs, a 100-byte line that does not parse, under a 64-byte line limit: the file-level record holding it would
     // be one line above the limit.
@@ -1615,15 +1627,7 @@ fn manifest(generation: u64, files: &[(&str, u8)], extra: &str) -> String {
 }
 
 fn merge_manifests(o: &str, a: &str, b: &str) -> (String, usize) {
-    let m = merge_file(
-        MANIFEST,
-        MergeSide::current(o.as_bytes()),
-        MergeSide::current(a.as_bytes()),
-        MergeSide::current(b.as_bytes()),
-        &Limits::default(),
-        &MIGRATIONS,
-    );
-    (String::from_utf8(m.bytes).expect("UTF-8"), m.conflicts)
+    merge_text(MANIFEST, o, a, b)
 }
 
 #[test]
@@ -1696,40 +1700,12 @@ fn a_manifest_side_that_does_not_read_keeps_the_other_and_is_not_clean() {
 #[test]
 fn a_file_of_another_class_keeps_ours_when_both_sides_changed_it() {
     let path = "assets/logo.png";
-    let m = merge_file(
-        path,
-        MergeSide::current(b"o"),
-        MergeSide::current(b"a"),
-        MergeSide::current(b"b"),
-        &Limits::default(),
-        &MIGRATIONS,
-    );
-    assert_eq!((m.bytes, m.conflicts), (b"a".to_vec(), 1));
-    let m = merge_file(
-        path,
-        MergeSide::current(b"o"),
-        MergeSide::current(b"o"),
-        MergeSide::current(b"b"),
-        &Limits::default(),
-        &MIGRATIONS,
-    );
-    assert_eq!((m.bytes, m.conflicts), (b"b".to_vec(), 0));
+    let limits = Limits::default();
+    assert_eq!(merge_bytes(path, [b"o", b"a", b"b"], &limits), (b"a".to_vec(), 1));
+    assert_eq!(merge_bytes(path, [b"o", b"o", b"b"], &limits), (b"b".to_vec(), 0));
 }
 
 // ---- cycle 50's FT batch ------------------------------------------------------------------
-
-/// `merge_file` on bytes: the merged bytes and the conflicts.
-fn merge_bytes(path: &str, sides: [&[u8]; 3], limits: &Limits) -> (Vec<u8>, usize) {
-    let m = merge_file(
-        path,
-        MergeSide::current(sides[0]),
-        MergeSide::current(sides[1]),
-        MergeSide::current(sides[2]),
-        limits,
-        &MIGRATIONS,
-    );
-    (m.bytes, m.conflicts)
-}
 
 #[test]
 fn a_side_that_is_not_utf8_is_a_binary_conflict_that_keeps_the_side_that_reads() {

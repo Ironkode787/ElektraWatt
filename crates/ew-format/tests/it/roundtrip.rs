@@ -6,13 +6,13 @@
 
 use std::collections::BTreeMap;
 
-use ew_format::ew_schema::{Project, Record};
-use ew_format::{EntryKind, FilePath, Limits, Manifest, load, plan, project_files};
+use ew_format::ew_schema::Record;
+use ew_format::{FilePath, Limits, Manifest, load, plan, project_files};
 use proptest::prelude::*;
 use proptest::test_runner::Config as ProptestConfig;
 
-const PROJECT: &str =
-    r#"{"$k":"project","id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
+use crate::entries_of;
+use crate::project;
 
 /// A random UUID of version 7 and variant 10 in the canonical lower-case hyphenated form.
 fn uuid(mut bytes: [u8; 16]) -> String {
@@ -93,13 +93,6 @@ fn shuffled<T>(mut items: Vec<T>, mut seed: u64) -> Vec<T> {
     items
 }
 
-fn project() -> Project {
-    match Record::from_json(PROJECT).unwrap() {
-        Record::Project(project) => project,
-        other => panic!("not a project: {other:?}"),
-    }
-}
-
 proptest! {
     #![proptest_config(ProptestConfig { cases: 64, .. ProptestConfig::default() })]
 
@@ -119,11 +112,7 @@ proptest! {
 
         let manifest = Manifest::parse(&files[&FilePath::new("manifest.json").unwrap()], &Limits::default())
             .unwrap();
-        let present: BTreeMap<String, EntryKind> = files
-            .keys()
-            .map(|k| (k.as_str().to_owned(), EntryKind::File))
-            .collect();
-        let reads = plan(Some(&manifest), &present, &Limits::default());
+        let reads = plan(Some(&manifest), &entries_of(&files), &Limits::default());
         prop_assert!(reads.findings.is_empty(), "{:?}", reads.findings);
         let input: BTreeMap<FilePath, Vec<u8>> = reads
             .read
@@ -162,11 +151,7 @@ fn an_import_run_is_written_to_its_file_and_read_back() {
         &Limits::default(),
     )
     .unwrap();
-    let present: BTreeMap<String, EntryKind> = files
-        .keys()
-        .map(|k| (k.as_str().to_owned(), EntryKind::File))
-        .collect();
-    let input: BTreeMap<FilePath, Vec<u8>> = plan(Some(&manifest), &present, &Limits::default())
+    let input: BTreeMap<FilePath, Vec<u8>> = plan(Some(&manifest), &entries_of(&files), &Limits::default())
         .read
         .iter()
         .map(|path| (path.clone(), files[path].clone()))

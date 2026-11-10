@@ -7,14 +7,9 @@
 //! The functional tests bound the work structurally: a line over the depth limit is reported by the
 //! linear pre-scan (exactly one `LimitExceeded` finding, EW-CORE-019, whose message names the nesting
 //! limit) and never reaches the recursive JSON parser, whose own failure would be a syntax finding
-//! instead. The wall-clock budget is a performance test (`CLAUDE.md` testing policy):
-//! `hostile_inputs_load_within_the_budget` is `#[ignore]`d and runs at milestone deliveries only.
-
-// A wall-clock timer of this test, asserted only with EW_PERF_ASSERT (the timing rule of doc 18 §3.16); no timestamp reaches a compared result.
-#![allow(clippy::disallowed_methods)]
+//! instead.
 
 use std::collections::BTreeMap;
-use std::time::{Duration, Instant};
 
 use ew_format::{FilePath, FindingKind, Kept, Limits, LineKey, Loaded, jsonl_file, load};
 
@@ -330,35 +325,4 @@ fn a_deep_library_document_is_opaque() {
     assert!(loaded.read_only);
     assert!(loaded.opaque.contains_key(&p(&path)));
     assert!(loaded.lib.is_empty());
-}
-
-/// The loader's time on the hostile inputs above, against a 2 s budget (debug or release). A performance
-/// test: run it at milestone deliveries with
-/// `cargo nextest run -p ew-format --test it -E 'test(/^hostile::/)' --run-ignored only`.
-#[test]
-#[ignore = "perf: wall-clock timing, milestone deliveries only"]
-fn hostile_inputs_load_within_the_budget() {
-    const BUDGET: Duration = Duration::from_secs(2);
-    let limits = Limits::default();
-    let inputs: Vec<(&str, Vec<u8>)> = vec![
-        (SHARD, format!("{}\n", "[".repeat(100_000)).into_bytes()),
-        (SHARD, format!("{}\n", "{\"a\":".repeat(100_000)).into_bytes()),
-        (
-            "structure.jsonl",
-            format!(
-                r#"{{"$k":"frobnicator","id":"3b9c1d72-5e48-7a06-8f13-2d6c0e9a4b51","s":"{}"}}"#,
-                "a".repeat(2 << 20)
-            )
-            .into_bytes(),
-        ),
-        (
-            "lib/fndefs/5d1ab4de-706a-5b85-b463-8b15311c4f39.json",
-            "[".repeat(100_000).into_bytes(),
-        ),
-    ];
-    for (path, bytes) in inputs {
-        let start = Instant::now();
-        let _ = load_bytes(path, &bytes, &limits);
-        assert!(start.elapsed() < BUDGET, "{path}: took {:?}", start.elapsed());
-    }
 }

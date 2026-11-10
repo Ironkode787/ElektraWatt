@@ -8,14 +8,13 @@
 
 use std::collections::BTreeMap;
 
-use ew_format::ew_schema::{BusSystem, LibDocument, Project, Record, Sha256};
+use ew_format::ew_schema::{BusSystem, LibDocument, Sha256};
 use ew_format::{
-    EntryKind, FilePath, FindingKind, Limits, Loaded, Manifest, Severity, hash_text, lib_document_text,
-    lib_file, library_copy_hash, load, plan, project_files, sha256,
+    FindingKind, Limits, Severity, hash_text, lib_document_text, lib_file, library_copy_hash, load, sha256,
 };
 
-const PROJECT: &str =
-    r#"{"$k":"project","id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
+use crate::write_and_read;
+
 const LIB: &str = "6a1d0f3e-8b25-5c74-9e1a-d3f60b8c2e47";
 const COPY: &str = "3d7e1a95-2c48-5b06-9f1d-8a4c0e6b2f73";
 const ITEM: &str = "c19f4b62-7e03-5a8d-b4c5-1e9a0d3f6b28";
@@ -41,35 +40,6 @@ fn compact(item: &str) -> String {
     )
 }
 
-fn project() -> Project {
-    match Record::from_json(PROJECT).unwrap() {
-        Record::Project(project) => project,
-        other => panic!("not a project: {other:?}"),
-    }
-}
-
-fn write_and_read(lib: &[LibDocument]) -> (BTreeMap<FilePath, Vec<u8>>, Loaded) {
-    let files = project_files(&project(), &[], lib, 1, "test").unwrap();
-    let manifest = Manifest::parse(
-        &files[&FilePath::new("manifest.json").unwrap()],
-        &Limits::default(),
-    )
-    .unwrap();
-    let present: BTreeMap<String, EntryKind> = files
-        .keys()
-        .map(|k| (k.as_str().to_owned(), EntryKind::File))
-        .collect();
-    let reads = plan(Some(&manifest), &present, &Limits::default());
-    assert!(reads.findings.is_empty(), "{:?}", reads.findings);
-    let input: BTreeMap<FilePath, Vec<u8>> = reads
-        .read
-        .iter()
-        .map(|path| (path.clone(), files[path].clone()))
-        .collect();
-    let loaded = load(Some(&manifest), &input, &Limits::default());
-    (files, loaded)
-}
-
 /// BU-7d: the copy is canonical, its hash verifies, and it is written and read back unchanged.
 #[test]
 fn a_part_copy_with_a_bus_section_round_trips_and_its_hash_verifies() {
@@ -88,14 +58,14 @@ fn a_part_copy_with_a_bus_section_round_trips_and_its_hash_verifies() {
     assert_eq!(bus.ports[0].bus, BusSystem::ProfibusDp);
     assert!(matches!(bus.ports[1].bus, BusSystem::Unknown(_)));
 
-    let (files, loaded) = write_and_read(std::slice::from_ref(&doc));
+    let (files, loaded) = write_and_read(&[], std::slice::from_ref(&doc));
     assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
     assert!(loaded.rewrite.is_empty(), "{:?}", loaded.rewrite);
     assert_eq!(loaded.lib, std::slice::from_ref(&doc));
     let path = lib_file(&doc).unwrap();
     assert_eq!(files[&path], lib_document_text(&doc).unwrap().into_bytes());
     // A second save of the loaded copy writes the same bytes.
-    let (again, _) = write_and_read(&loaded.lib);
+    let (again, _) = write_and_read(&[], &loaded.lib);
     assert_eq!(again[&path], files[&path]);
 }
 
