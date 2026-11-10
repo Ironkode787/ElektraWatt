@@ -8,41 +8,19 @@
 //! `fields.set` of the channel's address changes the print; undo restores it. No address is stored as text.
 
 use ew_api::output::page_layer;
-use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
+use ew_api::{AnyCommand, Session};
 use ew_derive::{PageRef, Q};
 use ew_dl::{Item, ItemKind, Layer};
 use ew_ids::{Id, Uuid};
 use ew_schema::{Channel, Device, Function, Page};
 use serde_json::{Value, json};
 
-fn fresh(seed: u64) -> Session {
-    let options = SessionOptions {
-        ids: Some(ew_testids::seeded_ids(seed)),
-        ..SessionOptions::default()
-    };
-    Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options).unwrap()
-}
+use crate::common::{first_page, library_part, new_project as fresh};
 
 const BLACKBOX: &str = "ew.gen.blackbox@qet10";
 const COIL: &str = "ew.iec.coil@qet10";
 /// Three steps of the page's connection grid (7937500/3 nm).
 const STEP: i64 = 7_937_500;
-
-fn library_part(s: &Session, number: &str) -> Uuid {
-    s.library_parts()
-        .iter()
-        .find(|c| c.item.part_number.as_str() == number)
-        .unwrap_or_else(|| panic!("{number} among the library parts"))
-        .id
-        .as_uuid()
-}
-
-fn first_page(s: &Session) -> Uuid {
-    let q = s.query();
-    let mut pages: Vec<Uuid> = q.pages().iter().map(|(id, _)| id.as_uuid()).collect();
-    pages.sort();
-    pages.first().copied().expect("the new project has a page")
-}
 
 fn run(s: &mut Session, name: &str, params: Value) {
     s.execute(&AnyCommand {

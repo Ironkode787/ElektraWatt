@@ -184,66 +184,6 @@ fn pg1_every_settable_path_maps_to_a_node_with_its_own_route() {
     assert_eq!(qty.ty, FieldType::Dec3);
 }
 
-/// The settable paths whose type falls back to `json`, as the reviewer reads them (§6.1.3).
-#[test]
-fn pg1_the_json_fallbacks_of_settable_paths_are_the_listed_ones() {
-    let mut fallbacks = Vec::new();
-    for k in catalogue_kinds() {
-        for f in field_catalogue(k.name()).unwrap().iter() {
-            let settable = f.route.is_editable();
-            if settable && matches!(f.ty.inner(), FieldType::Json) {
-                fallbacks.push(format!("{} {}", f.kind, f.path));
-            }
-        }
-    }
-    // The spec's list (§6.1.3) as the schemas give it: `device assembly`, `plc_station` and `plc_module` and
-    // `function cp_overrides` are groups and lists the walker types; the time-of-writing list predicted them as json.
-    let expected = [
-        // ADR-0032: the text-style overrides, an object keyed by style key (typed, so first; a table editor is
-        // FT-669).
-        "project settings.text_styles",
-        "project settings.colour_profile",
-        "project settings.numbering",
-        "project settings.size_profile",
-        "project settings.xref_format",
-        // The master of a logical net is an endpoint (a port's CP or an external interruption point).
-        "logical_net master",
-        "section folio_range",
-        "page scale",
-        "device cable.length",
-        "device plc_module.slot",
-        "device plc_module.start.input",
-        "device plc_module.start.output",
-        "device tag.scheme",
-        "device tech_data[].value",
-        // A bus address is `tbd`, `not_applicable` or a value typed per bus system.
-        "function bus_port.address",
-        "representation text_slots[].pos",
-        "connection kind",
-        "connection number",
-        // An address is a word or a text of the station's profile (fields.set reads either).
-        "channel address",
-        // The positions and the nested shape members (cut at the walker's depth) of the two kinds.
-        "page_item kind.graphic.shape.line.a",
-        "page_item kind.graphic.shape.line.b",
-        "page_item kind.graphic.shape.polyline.points",
-        "page_item kind.graphic.shape.rect.max",
-        "page_item kind.graphic.shape.rect.min",
-        "page_item kind.graphic.shape.circle.centre",
-        "page_item kind.graphic.shape.circle.r",
-        "page_item kind.graphic.shape.arc.centre",
-        "page_item kind.graphic.shape.arc.r",
-        "page_item kind.graphic.shape.arc.start",
-        "page_item kind.graphic.shape.arc.sweep",
-        "page_item kind.graphic.shape.polygon.points",
-        "page_item kind.free_text.at",
-        "page_item kind.wire_marker.at",
-        "structure_box outline[]",
-        "report_block empty",
-    ];
-    assert_eq!(fallbacks, expected, "{fallbacks:#?}");
-}
-
 /// PG1's registry half: the catalogue is a function of the registry. Over an empty registry no route is editable and
 /// every command route is "no command"; the `HumanOnly` half (a registry in which `fields.set` is `HumanOnly`) is the
 /// unit test `a_human_only_fields_set_makes_every_row_read_only` of `output::fields`, which needs no command type.

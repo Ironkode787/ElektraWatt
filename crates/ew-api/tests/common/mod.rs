@@ -131,3 +131,49 @@ pub fn tiers(root: &Path) -> LibraryTiers {
         cache: root.join("cache"),
     }
 }
+
+/// Copies the directory `from` (recursively) to `to`.
+pub fn copy_dir(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for entry in std::fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let target = to.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            copy_dir(&entry.path(), &target);
+        } else {
+            std::fs::copy(entry.path(), target).unwrap();
+        }
+    }
+}
+
+/// A new schematic project from the built-in template with the IDs of the seed `seed`.
+pub fn new_project(seed: u64) -> Session {
+    let options = SessionOptions {
+        ids: Some(ew_testids::seeded_ids(seed)),
+        ..SessionOptions::default()
+    };
+    Session::new_project(
+        ew_api::ProjectTemplate::Builtin,
+        ew_api::NewProjectKind::Schematic,
+        options,
+    )
+    .unwrap()
+}
+
+/// The copy ID of the starter part `number` among the library parts.
+pub fn library_part(s: &Session, number: &str) -> ew_ids::Uuid {
+    s.library_parts()
+        .iter()
+        .find(|c| c.item.part_number.as_str() == number)
+        .unwrap_or_else(|| panic!("{number} among the library parts"))
+        .id
+        .as_uuid()
+}
+
+/// The first page (by ID) of the project.
+pub fn first_page(s: &Session) -> ew_ids::Uuid {
+    let q = s.query();
+    let mut pages: Vec<ew_ids::Uuid> = q.pages().iter().map(|(id, _)| id.as_uuid()).collect();
+    pages.sort();
+    pages.first().copied().expect("the new project has a page")
+}

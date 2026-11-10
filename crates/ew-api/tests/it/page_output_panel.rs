@@ -26,10 +26,10 @@
 // LP-1 copies the fixture into a clock-named scratch directory (`ew-testdir`).
 #![allow(clippy::disallowed_methods)]
 
+use crate::common::copy_dir;
 use crate::golden_common;
 
 use std::collections::BTreeMap;
-use std::path::Path;
 use std::sync::Arc;
 
 use ew_api::output::{
@@ -256,19 +256,6 @@ fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_
                "copies": [serde_json::to_value(LibDocument::Part(copy.clone())).unwrap()],
                "mode": "replace", "from": id_json(old)}),
     );
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap() {
-        let e = e.unwrap();
-        let target = to.join(e.file_name());
-        if e.path().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
 }
 
 /// LP-1. `page.surface_view.set` on 902 keeps its one view and that view's ID (a page holds at most one: the

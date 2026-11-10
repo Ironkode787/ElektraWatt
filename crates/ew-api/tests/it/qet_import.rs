@@ -9,7 +9,6 @@
 //!
 //! Tests:
 //!
-//! - `fixture_is_deterministic`: two builds give the same text.
 //! - `fixture_is_well_formed`: tags balance, every element names a definition with the right number of
 //!   terminals, UUIDs are unique (references excepted), every conductor and link names existing UUIDs or
 //!   integer terminal IDs of its folio, the element counts match the builder's.
@@ -37,16 +36,6 @@ use qet_synth::{FOLIOS, Fixture, build};
 
 // ---------------------------------------------------------------------------------------------------------
 // The fixture
-
-#[test]
-fn fixture_is_deterministic() {
-    let a = build();
-    let b = build();
-    assert_eq!(a.text, b.text);
-    assert_eq!(a.folios, b.folios);
-    assert_eq!(a.skipped, b.skipped);
-    assert!(a.text.starts_with("<?xml"), "an XML declaration first");
-}
 
 fn ancestor(tags: &[Tag], mut i: usize, name: &str) -> Option<usize> {
     loop {

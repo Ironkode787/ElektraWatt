@@ -8,7 +8,9 @@
 //! held) and T2 (a profile file that does not render: refused by `library.embed`, left out of the profiles at hand,
 //! noted in the library's listing) are asserted whole.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
+
+use crate::common::{Dir as Tmp, copy_dir, tiers};
 
 use ew_api::library::{LibraryTiers, Registry};
 use ew_api::output::{NavKind, NavRole};
@@ -20,37 +22,6 @@ use ew_schema::{Device, LibDocument, PlcConfigProject};
 use serde_json::{Value, json};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-
-struct Tmp(PathBuf);
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
-
-fn tiers(root: &Path) -> LibraryTiers {
-    LibraryTiers {
-        system: Vec::new(),
-        community: root.join("data").join("packs"),
-        company: Vec::new(),
-        user: root.join("data").join("libraries"),
-        cache: root.join("cache"),
-    }
-}
 
 /// The built-in TIA profile file with another pin and notation: `fixture-absolute@1`, `%Q0.1` on the drawing.
 fn fixture_profile(library: Uuid, id: &str, edit: impl FnOnce(&mut Value)) -> LibDocument {

@@ -7,40 +7,16 @@
 //! channel (selected through the API, `Session::property_sheet`).
 
 use ew_api::output::{EditRoute, RowValue};
-use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
+use ew_api::{AnyCommand, Session};
 use ew_derive::{ChannelAddr, ChannelAddresses, PlcRows};
 use ew_ids::{Id, Uuid};
 use ew_schema::{Channel, Device, PlcConfigProject, StationRole};
 use serde_json::{Value, json};
 
-fn fresh(seed: u64) -> Session {
-    let options = SessionOptions {
-        ids: Some(ew_testids::seeded_ids(seed)),
-        ..SessionOptions::default()
-    };
-    Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options).unwrap()
-}
+use crate::common::{first_page, library_part, new_project as fresh};
 
 /// The starter black box symbol.
 const BLACKBOX: &str = "ew.gen.blackbox@qet10";
-
-/// The copy ID of the starter part `number` among the library parts.
-fn library_part(s: &Session, number: &str) -> Uuid {
-    s.library_parts()
-        .iter()
-        .find(|c| c.item.part_number.as_str() == number)
-        .unwrap_or_else(|| panic!("{number} among the library parts"))
-        .id
-        .as_uuid()
-}
-
-/// The first page of the project.
-fn first_page(s: &Session) -> Uuid {
-    let q = s.query();
-    let mut pages: Vec<Uuid> = q.pages().iter().map(|(id, _)| id.as_uuid()).collect();
-    pages.sort();
-    pages.first().copied().expect("the new project has a page")
-}
 
 /// The copy ID of the starter black box symbol (the ID it has once embedded).
 fn symbol_id(s: &Session) -> Uuid {

@@ -9,16 +9,12 @@ use crate::golden_common;
 
 use ew_api::output::PreviewEntity;
 use ew_api::window::HistoryRow;
-use ew_api::{AnyCommand, NewProjectKind, Origin, ProjectTemplate, Session, SessionOptions, Submit};
+use ew_api::{AnyCommand, Origin, Session, Submit};
 use ew_derive::ew_ids::Uuid;
 use serde_json::json;
 
 fn fresh() -> Session {
-    let options = SessionOptions {
-        ids: Some(ew_testids::seeded_ids(7)),
-        ..SessionOptions::default()
-    };
-    Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options).unwrap()
+    crate::common::new_project(7)
 }
 
 fn cmd(name: &str, params: serde_json::Value) -> AnyCommand {

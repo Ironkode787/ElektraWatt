@@ -6,9 +6,10 @@
 //! Golden A and a project made by the wizard, with the fixture catalogue "Fixture parts" written into a temporary user
 //! tier. No test pins the number of offers or of starter parts: they assert named rows and their order.
 
+use crate::common::{Dir, tiers};
 use crate::golden_common;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ew_api::library::{LibraryTiers, Registry, starter};
 use ew_api::output::{NavKind, NavRole};
@@ -21,24 +22,6 @@ use ew_schema::{Device, LibDocument, Part, Record};
 use serde_json::{Value, json};
 
 const ZERO: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
-
-struct Dir(PathBuf);
-
-impl Drop for Dir {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn tiers(root: &Path) -> LibraryTiers {
-    LibraryTiers {
-        system: Vec::new(),
-        community: root.join("data").join("packs"),
-        company: Vec::new(),
-        user: root.join("data").join("libraries"),
-        cache: root.join("cache"),
-    }
-}
 
 /// The reference to a starter FnDef.
 fn fndef(key: &str) -> Value {
