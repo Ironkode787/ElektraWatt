@@ -1618,7 +1618,6 @@ version = "0.1.0"
 dependencies = [
  "imbl",
  "proptest",
- "smallvec",
  "tracing",
 ]
 
@@ -1718,8 +1717,6 @@ dependencies = [
  "ew-hack",
  "ew-interop-api",
  "ew-model",
- "ew-sqlview",
- "ew-text",
  "ew-zip",
  "proptest",
  "serde_json",
