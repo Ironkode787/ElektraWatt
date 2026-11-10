@@ -35,6 +35,25 @@ fn open(s: &mut ShellModel, dir: &Path, read_only: bool) {
     );
 }
 
+/// A shell with a writable copy of Golden A open; the copy's folder.
+fn writable(tmp: &Tmp) -> (ShellModel, PathBuf) {
+    let dir = tmp.0.join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &dir);
+    let mut s = shell(tmp);
+    open(&mut s, &dir, false);
+    (s, dir)
+}
+
+/// This window's own edit: the colour override of the wire `wire` set to `colour`.
+fn set_colour_here(s: &mut ShellModel, wire: &str, colour: &str) {
+    done(
+        s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [wire], "path": "overrides.colour",
+            "value": [colour]}}),
+    );
+}
+
 /// A record's ID from Golden A by its source key.
 fn golden_id(key: &str) -> String {
     let needle = format!("\"key\":\"{key}\"");
@@ -138,17 +157,9 @@ fn xw1_the_external_change_toast_offers_undo_and_show_changes() {
 #[test]
 fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     let tmp = Tmp::new("xw2");
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
-    let mut s = shell(&tmp);
-    open(&mut s, &dir, false);
+    let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
-    done(
-        &mut s,
-        "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": "overrides.colour",
-            "value": ["BU"]}}),
-    );
+    set_colour_here(&mut s, &w20, "BU");
     colleague(&tmp, &dir, &[colour(&w20, json!(["WH"]))]);
     done(&mut s, "project.check_disk", json!({}));
     let text = describe(&s);
@@ -230,17 +241,9 @@ fn w20_overrides(dir: &Path) -> Value {
 #[test]
 fn xw2b_a_deleted_record_shows_each_side_in_words() {
     let tmp = Tmp::new("xw2b");
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
-    let mut s = shell(&tmp);
-    open(&mut s, &dir, false);
+    let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
-    done(
-        &mut s,
-        "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": "overrides.colour",
-            "value": ["BU"]}}),
-    );
+    set_colour_here(&mut s, &w20, "BU");
     let delete = AnyCommand {
         name: "edit.delete".into(),
         params: json!({"targets": [{"kind": "connection", "id": w20}]}),
@@ -312,17 +315,9 @@ fn xw4_a_cloud_synced_folder_shows_its_banner() {
 #[test]
 fn xw2e_the_held_banner_stays_until_the_choice() {
     let tmp = Tmp::new("xw2e");
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
-    let mut s = shell(&tmp);
-    open(&mut s, &dir, false);
+    let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
-    done(
-        &mut s,
-        "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": "overrides.colour",
-            "value": ["BU"]}}),
-    );
+    set_colour_here(&mut s, &w20, "BU");
     colleague(&tmp, &dir, &[colour(&w20, json!(["WH"]))]);
     done(&mut s, "project.check_disk", json!({}));
     done(&mut s, "ui.dismiss", json!({}));
@@ -361,10 +356,7 @@ static CHAIN: Migrations = Migrations {
 #[test]
 fn xw6_export_and_open_ewz_and_the_upgrade_dialog() {
     let tmp = Tmp::new("xw6");
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
-    let mut s = shell(&tmp);
-    open(&mut s, &dir, false);
+    let (mut s, dir) = writable(&tmp);
     let ewz = tmp.0.join("J-E-2416.ewz");
     done(&mut s, "file.export_ewz", json!({"path": ewz.to_string_lossy()}));
     assert_eq!(
@@ -647,17 +639,9 @@ fn xw8_the_messages_pane_lists_ew_core_013_after_a_merge() {
 #[test]
 fn xw2c_the_collision_dialog_closes_when_the_disk_returns() {
     let tmp = Tmp::new("xw2c");
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
-    let mut s = shell(&tmp);
-    open(&mut s, &dir, false);
+    let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
-    done(
-        &mut s,
-        "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": "overrides.colour",
-            "value": ["BU"]}}),
-    );
+    set_colour_here(&mut s, &w20, "BU");
     let page = std::fs::read_dir(dir.join("pages"))
         .unwrap()
         .map(|e| e.unwrap().path())
@@ -686,10 +670,7 @@ fn xw2c_the_collision_dialog_closes_when_the_disk_returns() {
 #[test]
 fn xw2d_a_second_change_while_held_rebuilds_the_dialog() {
     let tmp = Tmp::new("xw2d");
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
-    let mut s = shell(&tmp);
-    open(&mut s, &dir, false);
+    let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
     for (path, value) in [
         ("overrides.colour", json!(["BU"])),
@@ -731,17 +712,9 @@ fn xw2d_a_second_change_while_held_rebuilds_the_dialog() {
 #[test]
 fn xw2f_the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
     let tmp = Tmp::new("xw2f");
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
-    let mut s = shell(&tmp);
-    open(&mut s, &dir, false);
+    let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
-    done(
-        &mut s,
-        "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": "overrides.colour",
-            "value": ["BU"]}}),
-    );
+    set_colour_here(&mut s, &w20, "BU");
     colleague(&tmp, &dir, &[colour(&w20, json!(["WH"]))]);
     done(&mut s, "view.language", json!({"value": "nl"}));
     done(&mut s, "project.check_disk", json!({}));
@@ -783,18 +756,10 @@ fn xw2f_the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
 #[test]
 fn xw2g_a_mixed_choice_counts_what_came_from_disk() {
     let tmp = Tmp::new("xw2g");
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
-    let mut s = shell(&tmp);
-    open(&mut s, &dir, false);
+    let (mut s, dir) = writable(&tmp);
     let (w20, w21) = (golden_id("connections|W20"), golden_id("connections|W21"));
     for w in [&w20, &w21] {
-        done(
-            &mut s,
-            "command.run",
-            json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w], "path": "overrides.colour",
-                "value": ["BU"]}}),
-        );
+        set_colour_here(&mut s, w, "BU");
     }
     colleague(
         &tmp,
@@ -847,17 +812,9 @@ fn xw2g_a_mixed_choice_counts_what_came_from_disk() {
 #[test]
 fn xw2h_the_same_edit_on_both_sides_takes_nothing() {
     let tmp = Tmp::new("xw2h");
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
-    let mut s = shell(&tmp);
-    open(&mut s, &dir, false);
+    let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
-    done(
-        &mut s,
-        "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [&w20], "path": "overrides.colour",
-            "value": ["BU"]}}),
-    );
+    set_colour_here(&mut s, &w20, "BU");
     colleague(&tmp, &dir, &[colour(&w20, json!(["BU"]))]);
     // The toast in Dutch.
     done(&mut s, "view.language", json!({"value": "nl"}));

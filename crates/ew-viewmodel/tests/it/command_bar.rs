@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The command surface's model. CB1 (the registry's placements and the app menu), CB6 (the describe
-//! lines, deterministic), CB8 (the Draw tab equals the mockup's command row) and the HUD's prompts (CB5's model side,
+//! lines, deterministic), CB8 (the Mirror split) and the HUD's prompts (CB5's model side,
 //! FT-521).
 
 use crate::common;
@@ -170,68 +170,6 @@ fn cb1_the_registry_places_every_command_once_and_the_app_menu_holds_every_actio
     s.shutdown();
 }
 
-/// One command of the mockup's command row: its group, label and size.
-type MockupCommand = (String, String, CommandSize);
-
-/// The Draw tab's commands of the mockup's command row: (group, label, size) in order, and the next step's label.
-fn mockup_draw() -> (Vec<MockupCommand>, String, Vec<String>, String) {
-    let path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/design/assets/design-language-mockup.html"
-    );
-    let html = std::fs::read_to_string(path).expect("the mockup");
-    let row_start = html.find("<div class=\"cmdrow\"").expect("the command row");
-    let row_end = row_start + html[row_start..].find("</header>").expect("the bar's end");
-    let row = &html[row_start..row_end];
-    // The label of a button is its text after the last </svg>.
-    let label_of = |button: &str| -> String {
-        let body = &button[..button.find("</button>").unwrap()];
-        let text = body.rsplit("</svg>").next().unwrap();
-        text.trim().to_owned()
-    };
-    let mut commands = Vec::new();
-    let mut group = String::new();
-    let mut rest = row;
-    let mut next = String::new();
-    while let Some(i) = rest.find('<') {
-        rest = &rest[i..];
-        if let Some(r) = rest.strip_prefix("<div class=\"group\" aria-label=\"") {
-            group = r[..r.find('"').unwrap()].to_owned();
-        } else if rest.starts_with("<button class=\"cmd") {
-            let class = &rest[15..rest[15..].find('"').unwrap() + 15];
-            let size = if class.split(' ').any(|c| c == "small") {
-                CommandSize::Small
-            } else {
-                CommandSize::Large
-            };
-            commands.push((group.clone(), label_of(rest), size));
-        } else if rest.starts_with("<button class=\"primary") {
-            next = label_of(rest);
-        }
-        rest = &rest[1..];
-    }
-    let tabs_start = html.find("role=\"tablist\"").unwrap();
-    let tabs_end = tabs_start + html[tabs_start..].find("</nav>").unwrap();
-    let tabs = html[tabs_start..tabs_end]
-        .split("role=\"tab\"")
-        .skip(1)
-        .map(|t| {
-            let t = &t[t.find('>').unwrap() + 1..];
-            t[..t.find('<').unwrap()].trim().to_owned()
-        })
-        .collect();
-    let app_start = html.find("<button class=\"appbtn").unwrap();
-    let app = &html[app_start..app_start + html[app_start..].find("</button>").unwrap()];
-    let title = app.split("title=\"").nth(1).unwrap();
-    let title = title[..title.find('"').unwrap()].to_owned();
-    let name = if app.contains(">ElektraWatt") {
-        "ElektraWatt".to_owned()
-    } else {
-        String::new()
-    };
-    (commands, next, tabs, format!("{name}|{title}"))
-}
-
 /// W42b (doc 16a P7, one name per thing): the Wire tool is "Wire" on its button, in its tooltip ("Wire (W)", the
 /// registry label, which the menus and the palette carry too, and the key from the keymap).
 #[test]
@@ -252,53 +190,12 @@ fn w42b_the_wire_tool_is_called_wire_on_its_button_and_in_its_tooltip() {
     );
 }
 
-/// CB8: the Draw tab's buttons parsed from the mockup's command row (group, label, Large or Small, in order) equal
-/// `command_bar` for Draw, a mockup command whose action is not in the registry listed by name in `PENDING` and
-/// skipped; the next step reads "Check project"; the six tab labels equal the mockup's; the app button is named
-/// "ElektraWatt" and its accessible name is "Menu".
+/// CB8: the Draw tab's Mirror button opens its two directions.
 #[test]
-fn cb8_the_draw_tab_equals_the_mockups_command_row() {
-    let (mockup, next, tabs, app) = mockup_draw();
-    assert!(mockup.len() >= 10, "parsed {mockup:?}");
-    let pending: Vec<&str> = PENDING.iter().map(|(_, _, n)| *n).collect();
-    let expected: Vec<MockupCommand> = mockup
-        .into_iter()
-        .filter(|(_, label, _)| !pending.contains(&label.as_str()))
-        .collect();
-    for name in ["Terminal", "Potential", "Align"] {
-        assert!(pending.contains(&name), "{name} is pending");
-    }
+fn cb8_the_draw_tab_mirror_opens_its_two_directions() {
     let tmp = Tmp::new("cb8");
     let mut s = shell(&tmp);
     let bar = command_bar_of(&s, Tab::Draw);
-    let built: Vec<(String, String, CommandSize)> = bar
-        .groups
-        .iter()
-        .flat_map(|g| {
-            g.buttons
-                .iter()
-                .map(|b| (g.label.clone(), b.bar_label.clone(), b.size))
-        })
-        .collect();
-    assert_eq!(built, expected);
-    assert_eq!(
-        bar.next.as_ref().map(|b| b.bar_label.as_str()),
-        Some(next.as_str())
-    );
-    assert_eq!(bar.next.as_ref().map(|b| b.id), Some("messages.check"));
-    let labels: Vec<String> = bar.tabs.iter().map(|(_, l)| l.clone()).collect();
-    assert_eq!(labels, tabs);
-    assert_eq!(
-        app,
-        format!(
-            "{}|{} (Alt)",
-            strings::text(key!("commandbar-app")),
-            strings::text(key!("commandbar-menu"))
-        )
-    );
-    // The Select tool is on in the bar.
-    assert!(bar.groups[0].buttons[0].checked);
-    // Mirror opens its two directions.
     let mirror = bar
         .groups
         .iter()

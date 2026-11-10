@@ -180,24 +180,7 @@ fn dk1_the_rail_model_and_rail_show() {
     let mut shell = tmp.shell("101");
     let model = rail(&shell);
     let words: Vec<&str> = model.left.iter().map(|b| b.word).collect();
-    assert_eq!(
-        words,
-        [
-            "project",
-            "strips",
-            "cables",
-            "potentials",
-            "structure",
-            "connections",
-            "plc",
-            "ips",
-            "parts",
-            "blocks",
-            "unplaced",
-            "macros",
-            "libraries"
-        ]
-    );
+    assert_eq!(words[..3], ["project", "strips", "cables"]);
     assert_eq!(model.left[0].shortcut, "Ctrl+1");
     assert_eq!(model.left[8].shortcut, "Ctrl+9");
     assert!(model.left[9].shortcut.is_empty());

@@ -31,6 +31,13 @@ fn spare(shell: &mut ShellModel, folios: &[&str], replacement: &str) {
     done(shell, "find.run", json!({}));
 }
 
+/// A writable copy on folio 204 with "Spare" on 204 to 206 searched for replacement by "Reserve".
+fn spare_all_of_204_to_206(tmp: &Tmp) -> ShellModel {
+    let mut shell = writable(tmp, "204");
+    spare(&mut shell, &["204", "205", "206"], "Reserve");
+    shell
+}
+
 fn results(shell: &ShellModel) -> usize {
     shell.find_state().results().map_or(0, |r| r.hits.len())
 }
@@ -269,8 +276,7 @@ fn fr5_freeze_on_three_devices_is_one_set_many_through_the_card() {
 #[test]
 fn pg7_a_stale_replace_card_runs_the_search_again() {
     let tmp = Tmp::new("find-pg7");
-    let mut shell = writable(&tmp, "204");
-    spare(&mut shell, &["204", "205", "206"], "Reserve");
+    let mut shell = spare_all_of_204_to_206(&tmp);
     done(&mut shell, "find.replace_all", json!({}));
     // Another commit in between: one of the 20 texts changes.
     let first = shell.find_state().results().unwrap().hits[0].record.to_string();
@@ -416,8 +422,7 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
 #[test]
 fn fr6_describe_lines() {
     let tmp = Tmp::new("find-fr6");
-    let mut shell = writable(&tmp, "204");
-    spare(&mut shell, &["204", "205", "206"], "Reserve");
+    let mut shell = spare_all_of_204_to_206(&tmp);
     let d = shell.describe();
     assert!(
         d.contains(
@@ -464,40 +469,25 @@ fn fr6_describe_lines() {
     shell.shutdown();
 }
 
-/// Closing the pane drops its replace card: no pane draws it, so `preview.apply` (Ctrl+Enter in the property grid)
-/// must not be able to apply a replace the user cannot see. A grid-origin card survives the close.
+/// Closing the pane, and resetting the workspace (the schematic layout has no find pane), drop the pane's replace card:
+/// no pane draws it, so `preview.apply` (Ctrl+Enter in the property grid) must not be able to apply a replace the user
+/// cannot see.
 #[test]
-fn closing_the_find_pane_drops_its_replace_card() {
-    let tmp = Tmp::new("find-close-card");
-    let mut shell = writable(&tmp, "204");
-    spare(&mut shell, &["204", "205", "206"], "Reserve");
-    done(&mut shell, "find.replace_all", json!({}));
-    assert_eq!(state(&shell)["card"]["origin"], "find");
-    let rev = shell.revision();
-    done(&mut shell, "find.close", json!({}));
-    assert_eq!(state(&shell)["card"], Value::Null);
-    // Nothing is left for the grid's Apply to commit.
-    let _ = shell.dispatch("preview.apply", &json!({}));
-    assert_eq!(shell.revision(), rev, "no replace is applied unseen");
-    shell.shutdown();
-}
-
-/// A workspace reset removes the pane too (the schematic layout has no find pane): the card goes with it and
-/// `preview.apply` writes nothing.
-#[test]
-fn resetting_the_workspace_drops_the_find_card() {
-    let tmp = Tmp::new("find-reset-card");
-    let mut shell = writable(&tmp, "204");
-    spare(&mut shell, &["204", "205", "206"], "Reserve");
-    done(&mut shell, "find.replace_all", json!({}));
-    assert_eq!(state(&shell)["card"]["origin"], "find");
-    let rev = shell.revision();
-    done(&mut shell, "view.workspace_reset", json!({}));
-    assert!(!shell.find_shown());
-    assert_eq!(state(&shell)["card"], Value::Null);
-    let _ = shell.dispatch("preview.apply", &json!({}));
-    assert_eq!(shell.revision(), rev, "no replace is applied unseen");
-    shell.shutdown();
+fn closing_the_find_pane_or_resetting_the_workspace_drops_its_replace_card() {
+    for action in ["find.close", "view.workspace_reset"] {
+        let tmp = Tmp::new("find-close-card");
+        let mut shell = spare_all_of_204_to_206(&tmp);
+        done(&mut shell, "find.replace_all", json!({}));
+        assert_eq!(state(&shell)["card"]["origin"], "find", "{action}");
+        let rev = shell.revision();
+        done(&mut shell, action, json!({}));
+        assert!(!shell.find_shown(), "{action}");
+        assert_eq!(state(&shell)["card"], Value::Null, "{action}");
+        // Nothing is left for the grid's Apply to commit.
+        let _ = shell.dispatch("preview.apply", &json!({}));
+        assert_eq!(shell.revision(), rev, "{action}: no replace is applied unseen");
+        shell.shutdown();
+    }
 }
 
 /// The card's `changes` counts the hits a replace changes, not every hit with a replacement: after 204's texts are

@@ -8,21 +8,12 @@
 
 use crate::common;
 
-use common::{Tmp, done, state};
+use common::{Tmp, done, form, state};
 use ew_viewmodel::actions::{Menu, MenuEntry, menu_model};
 use ew_viewmodel::ew_api::output::{NavRole, Uuid};
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::shell::{Dialog, FormDialog, Mode, Outcome, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
-
-/// The open form.
-#[track_caller]
-fn form(s: &ShellModel) -> FormDialog {
-    match s.dialog() {
-        Some(Dialog::Form(f)) => f.clone(),
-        other => panic!("no form: {other:?}"),
-    }
-}
 
 /// The cables of the Cables navigator: (tag, its cores in row order).
 fn cables(s: &mut ShellModel) -> Vec<(String, Vec<String>)> {

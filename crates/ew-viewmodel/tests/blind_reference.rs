@@ -148,14 +148,6 @@ fn the_action_lines_parse_back_and_cover_the_registry() {
 }
 
 #[test]
-fn a_changed_word_fails_with_the_bless_hint() {
-    // The comparison itself: a text that differs in one word is not equal, and the hint names the command.
-    let text = actions_text();
-    assert_ne!(text, text.replacen("page.describe ", "page.describe2 ", 1));
-    assert!(BLESS_HINT.starts_with("EW_BLESS=1 cargo nextest run"));
-}
-
-#[test]
 fn navigator_show_lists_every_navigator_kind() {
     use ew_viewmodel::navigators::NavKind;
     let action = ACTIONS

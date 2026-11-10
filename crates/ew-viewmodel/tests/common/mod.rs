@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use ew_viewmodel::canvas::{CanvasModel, HOVER_SLOP_PT, pick, rect_centre};
 use ew_viewmodel::script;
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Dialog, FormDialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
 pub const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
@@ -92,6 +92,15 @@ pub fn refused(shell: &mut ShellModel, action: &str, params: Value) -> &'static 
     match shell.dispatch(action, &params) {
         Outcome::Refused { reason_key } => reason_key.as_str(),
         other => panic!("{action}: {other:?}"),
+    }
+}
+
+/// The open form dialog.
+#[track_caller]
+pub fn form(s: &ShellModel) -> FormDialog {
+    match s.dialog() {
+        Some(Dialog::Form(f)) => f.clone(),
+        other => panic!("no form: {other:?}"),
     }
 }
 

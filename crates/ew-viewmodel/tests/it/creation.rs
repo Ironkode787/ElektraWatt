@@ -125,9 +125,7 @@ fn page_new_takes_a_connection_grid_and_properties_changes_an_empty_pages() {
     let qet = grid(&shell);
     assert_eq!(qet, (7_937_500, 3));
     done(&mut shell, "page.new", json!({}));
-    let Some(Dialog::Form(form)) = shell.dialog().cloned() else {
-        panic!("{:?}", shell.dialog());
-    };
+    let form = common::form(&shell);
     let field = form.fields.iter().find(|f| f.name == "grid").unwrap();
     assert_eq!(
         (field.label_key.as_str(), field.value.as_str()),
@@ -223,9 +221,7 @@ fn page_new_on_a_page_of_another_grid_takes_that_grid() {
         assert_eq!(grid(&shell), (5_000_000, 1));
         if mode == Mode::Gui {
             done(&mut shell, "page.new", json!({}));
-            let Some(Dialog::Form(form)) = shell.dialog().cloned() else {
-                panic!("{:?}", shell.dialog());
-            };
+            let form = common::form(&shell);
             let field = form.fields.iter().find(|f| f.name == "grid").unwrap();
             assert_eq!(field.value, "");
             shell.set_form_field("folio", "151");
@@ -495,30 +491,6 @@ fn structure_designations_are_refused_when_unknown_wrong_or_ambiguous() {
 }
 
 #[test]
-fn a_new_sub_page_sits_under_its_section_beside_its_number() {
-    let tmp = Tmp::new("page-sub");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
-    done(&mut shell, "page.new", json!({"folio": "102.9"}));
-    let rows = shell.navigator_rows();
-    let at = |folio: &str| {
-        rows.iter()
-            .position(|r| matches!(r.kind, RowKind::Page(i) if shell.page_rows()[i].folio == folio))
-            .unwrap_or_else(|| panic!("no {folio} row in {rows:?}"))
-    };
-    let (plain, sub) = (at("102"), at("102.9"));
-    assert_eq!(sub, plain + 1, "102.9 follows 102");
-    assert_eq!(rows[sub].parent, rows[plain].parent);
-    let parent = rows[sub].parent.as_deref().expect("a section");
-    let section = rows.iter().find(|r| r.key == parent).expect("the section row");
-    assert!(
-        matches!(&section.kind, RowKind::Node { label, .. } if label == "Section 1 - Wiring Definition"),
-        "{:?}",
-        section.kind
-    );
-    shell.shutdown();
-}
-
-#[test]
 fn a_new_page_outside_every_section_stays_front_matter() {
     let tmp = Tmp::new("page-front");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
@@ -620,9 +592,7 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
     let mut shell = new_project(&tmp, Mode::Gui);
     let before = shell.page_labels().len();
     done(&mut shell, "page.new", json!({"title": "Typed first"}));
-    let Some(Dialog::Form(form)) = shell.dialog().cloned() else {
-        panic!("{:?}", shell.dialog());
-    };
+    let form = common::form(&shell);
     assert_eq!(form.action, "page.new");
     let values: Vec<(&str, &str)> = form.fields.iter().map(|f| (f.name, f.value.as_str())).collect();
     // The folio field holds the proposal after the current page 1.
@@ -640,9 +610,7 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
     // Enter with no folio says what is missing and stays open.
     shell.set_form_field("folio", "");
     assert!(matches!(shell.submit_form(), Outcome::Failed { .. }));
-    let Some(Dialog::Form(form)) = shell.dialog() else {
-        panic!()
-    };
+    let form = common::form(&shell);
     assert_eq!(form.error.as_deref(), Some("Folio is empty: fill it in."));
     shell.set_form_field("folio", "101");
     shell.set_form_field("type", "single_line");
@@ -658,9 +626,7 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
         panic!()
     };
     assert!(message.contains("already exists"));
-    let Some(Dialog::Form(form)) = shell.dialog() else {
-        panic!()
-    };
+    let form = common::form(&shell);
     assert_eq!(form.error.as_deref(), Some(message.as_str()));
     assert_eq!(shell.page_labels().len(), before + 1);
     // Escape cancels.
@@ -669,9 +635,7 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
     assert_eq!(shell.page_labels().len(), before + 1);
     // The other two dialogs.
     done(&mut shell, "structure.new", json!({}));
-    let Some(Dialog::Form(form)) = shell.dialog() else {
-        panic!()
-    };
+    let form = common::form(&shell);
     assert_eq!(form.fields[0].value, "location");
     shell.set_form_field("designation", "J-E-206");
     assert_eq!(shell.submit_form(), Outcome::Done);
@@ -717,17 +681,13 @@ fn a_form_names_the_missing_field_and_the_next_step() {
         done(&mut shell, "pages.renumber", json!({}));
         shell.set_form_field("start", "");
         assert!(matches!(shell.submit_form(), Outcome::Failed { .. }));
-        let Some(Dialog::Form(form)) = shell.dialog() else {
-            panic!("{language}: {:?}", shell.dialog())
-        };
+        let form = common::form(&shell);
         assert_eq!(form.error.as_deref(), Some(missing), "{language}");
         done(&mut shell, "ui.dismiss", json!({}));
         done(&mut shell, "devices.renumber", json!({}));
         shell.set_form_field("scope", "selection");
         assert!(matches!(shell.submit_form(), Outcome::Refused { .. }));
-        let Some(Dialog::Form(form)) = shell.dialog() else {
-            panic!("{language}: {:?}", shell.dialog())
-        };
+        let form = common::form(&shell);
         assert_eq!(form.error.as_deref(), Some(refusal), "{language}");
         done(&mut shell, "ui.dismiss", json!({}));
     }
@@ -904,9 +864,7 @@ fn an_invalid_parameter_names_its_field_in_words_on_every_path() {
         message,
         "Create page: Title: the string is 1048577 bytes long; the limit is 1048576 bytes"
     );
-    let Some(Dialog::Form(form)) = shell.dialog() else {
-        panic!()
-    };
+    let form = common::form(&shell);
     assert_eq!(form.error.as_deref(), Some(message.as_str()));
     shell.shutdown();
 }

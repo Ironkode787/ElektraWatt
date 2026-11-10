@@ -622,19 +622,11 @@ fn cut_text_fixture(shell: &mut ShellModel) -> String {
 }
 
 #[test]
-fn cut_marker_without_copied_wires_is_refused_without_changes() {
+fn cut_marker_without_copied_wires_alone_and_with_text_is_refused_without_changes() {
     let tmp = Tmp::new("cut-empty-marker");
     let mut s = tmp.shell_in(Mode::Gui, true, "101");
     let (marker, _) = cut_marker_fixture(&mut s, false);
-    assert_incomplete_cut_unchanged(&mut s, &[marker]);
-    s.shutdown();
-}
-
-#[test]
-fn cut_mixed_text_and_omitted_marker_is_refused_without_changes() {
-    let tmp = Tmp::new("cut-mixed-marker");
-    let mut s = tmp.shell_in(Mode::Gui, true, "101");
-    let (marker, _) = cut_marker_fixture(&mut s, false);
+    assert_incomplete_cut_unchanged(&mut s, std::slice::from_ref(&marker));
     let text = cut_text_fixture(&mut s);
     assert_incomplete_cut_unchanged(&mut s, &[marker, text]);
     s.shutdown();

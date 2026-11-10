@@ -4,80 +4,19 @@
 //! The canvas model through the shell on a temporary copy of Golden A (WP-S2.02 part 1, acceptance checks A1, A2,
 //! A5, A8 and the model half of A9).
 
-use ew_testdir as fresh_dir;
+use crate::common::{self, Tmp, done, state};
 use ew_viewmodel::key;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ew_viewmodel::actions::{self, ACTIONS, Menu, Submenu};
 use ew_viewmodel::canvas::{CanvasBackend, ZOOM_MAX, ZOOM_MIN, rect_centre};
 use ew_viewmodel::script::{self, NoExtension};
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Outcome, ShellModel};
 use serde_json::{Value, json};
-
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(fresh_dir::fresh_dir("ew-vm-canvas"))
-    }
-
-    /// A headless shell with Golden A (a copy) open read-only on folio 103.
-    fn shell_on_103(&self) -> ShellModel {
-        let dir = self.0.join("J-E-2416.ew");
-        copy_dir(Path::new(GOLDEN_A), &dir);
-        let mut shell = ShellModel::new(
-            Mode::Headless,
-            ShellConfig::in_dir(&self.0.join("config"), "0.0.0-test"),
-        );
-        done(
-            &mut shell,
-            "file.open",
-            json!({"dir": dir.to_string_lossy(), "read_only": true}),
-        );
-        done(&mut shell, "page.goto", json!({"folio": "103"}));
-        shell
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
-
-#[track_caller]
-fn done(shell: &mut ShellModel, action: &str, params: Value) {
-    assert_eq!(
-        shell.dispatch(action, &params),
-        Outcome::Done,
-        "{action} {params}"
-    );
-}
 
 fn mm(nm: i64) -> f64 {
     nm as f64 / 1e6
-}
-
-/// The `state` of a transcript step for the current shell.
-fn state(shell: &ShellModel) -> Value {
-    serde_json::from_str(&script::state_json(shell)).unwrap()
 }
 
 /// Whether the menu item `id` (a top-level item of a menu) is checked.
@@ -137,8 +76,8 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
         assert!(!(s.contains("Ctrl") && s.contains("Alt")), "{s}");
     }
     // View holds the pan submenu, and the grid and statistics items are checked while on.
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell_on_103();
+    let tmp = Tmp::new("canvas");
+    let mut shell = tmp.shell("103");
     let view = actions::menu_model(&shell)
         .into_iter()
         .find(|m| m.menu == Menu::View)
@@ -196,8 +135,8 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
 
 #[test]
 fn a1_zoom_pan_fit_and_resize_through_the_shell() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell_on_103();
+    let tmp = Tmp::new("canvas");
+    let mut shell = tmp.shell("103");
     // The page's first view is fit-width (wider than Fit page in this pane); Fit page is one key away.
     let first = shell.canvas().expect("folio 103 is on the canvas");
     assert!(first.is_first_view() && first.zoom() > first.fit_zoom());
@@ -269,8 +208,8 @@ fn a1_zoom_pan_fit_and_resize_through_the_shell() {
 
 #[test]
 fn a5_a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_it() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell_on_103();
+    let tmp = Tmp::new("canvas");
+    let mut shell = tmp.shell("103");
     done(&mut shell, "view.zoom_to", json!({"percent": 400}));
     let entities = shell.canvas().unwrap().page().entities.clone();
     assert!(entities.len() > 20, "folio 103 has entities: {}", entities.len());
@@ -302,8 +241,8 @@ fn a5_a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_i
 
 #[test]
 fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell_on_103();
+    let tmp = Tmp::new("canvas");
+    let mut shell = tmp.shell("103");
     done(&mut shell, "view.fit_page", json!({}));
     done(&mut shell, "view.zoom_to", json!({"percent": 156.25}));
     let s = state(&shell);
@@ -446,8 +385,8 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
 
 #[test]
 fn a8_the_canvas_steps_run_from_a_script_and_carry_no_time() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell_on_103();
+    let tmp = Tmp::new("canvas");
+    let mut shell = tmp.shell("103");
     let text = [
         r#"{"$schema":"ew.uiscript/1","label":"canvas"}"#,
         r#"{"action":"view.canvas_resize","params":{"width":1200,"height":800,"ppp":1.0}}"#,
@@ -489,8 +428,8 @@ fn a8_the_canvas_steps_run_from_a_script_and_carry_no_time() {
 #[test]
 fn a_pane_beyond_the_bounds_is_refused_and_the_view_stays() {
     use ew_viewmodel::canvas::{MAX_PANE_PIXELS, MAX_PANE_POINTS, MAX_PPP, bounded_pane};
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell_on_103();
+    let tmp = Tmp::new("canvas");
+    let mut shell = tmp.shell("103");
     done(
         &mut shell,
         "view.canvas_resize",
@@ -572,8 +511,8 @@ fn the_bounded_pane_is_within_the_bounds_for_fractional_pixels_per_point() {
 
 #[test]
 fn the_canvas_view_actions_leave_the_banner_standing() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell_on_103();
+    let tmp = Tmp::new("canvas");
+    let mut shell = tmp.shell("103");
     for (action, params) in [
         ("view.zoom_in", json!({})),
         ("view.zoom_out", json!({})),
@@ -606,8 +545,8 @@ fn the_canvas_view_actions_leave_the_banner_standing() {
 
 #[test]
 fn a9_view_steps_fetch_no_page_and_re_execute_no_query() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell_on_103();
+    let tmp = Tmp::new("canvas");
+    let mut shell = tmp.shell("103");
     let calls = shell.page_content_calls();
     let (_, re_before) = shell.memo_totals().expect("the session has a memo store");
     let entities = shell.canvas().unwrap().page().entities.clone();
@@ -651,12 +590,12 @@ fn a9_view_steps_fetch_no_page_and_re_execute_no_query() {
 /// folio is a new canvas page, never the old project's (the fix round).
 #[test]
 fn a_project_switch_at_the_same_revision_and_folio_is_a_new_page() {
-    let tmp = Tmp::new();
-    let mut shell = tmp.shell_on_103();
+    let tmp = Tmp::new("canvas");
+    let mut shell = tmp.shell("103");
     let a = std::sync::Arc::clone(shell.canvas().unwrap().page());
     let rev = shell.revision();
     let other = tmp.0.join("other.ew");
-    copy_dir(Path::new(GOLDEN_A), &other);
+    common::copy_dir(Path::new(common::GOLDEN_A), &other);
     done(
         &mut shell,
         "file.open",
